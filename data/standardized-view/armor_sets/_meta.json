@@ -1,0 +1,14 @@
+{
+  "entity": "armor_sets",
+  "generatedAt": "2026-03-28T11:56:07.300Z",
+  "chunkSize": 200,
+  "sourceFile": "data/standardized/armor_sets.standardized.json",
+  "mode": "array",
+  "totalRecords": 18,
+  "parts": [
+    {
+      "name": "part-0001.json",
+      "records": 18
+    }
+  ]
+}

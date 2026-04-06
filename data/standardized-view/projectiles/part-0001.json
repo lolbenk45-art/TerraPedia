@@ -1,0 +1,7527 @@
+[
+  {
+    "aiStyle": 0,
+    "combat": {
+      "knockBack": 0,
+      "penetrate": 1
+    },
+    "dimensions": {
+      "height": 0,
+      "scale": 1,
+      "width": 0
+    },
+    "extras": {
+      "alpha": 0,
+      "appliesImmunityTimeOnSingleHits": false,
+      "armorPenetration": 0,
+      "arrow": false,
+      "bannerIdToRespondTo": 0,
+      "bobber": false,
+      "coldDamage": false,
+      "counterweight": false,
+      "decidesManualFallThrough": false,
+      "drawLayer": 0,
+      "glowMask": -1,
+      "hide": false,
+      "idStaticNPCHitCooldown": -1,
+      "light": 0,
+      "localNPCHitCooldown": -2,
+      "manualDirectionChange": false,
+      "minion": false,
+      "minionSlots": 0,
+      "netImportant": false,
+      "noEnchantments": false,
+      "noEnchantmentVisuals": false,
+      "ownerHitCheck": false,
+      "ownerHitCheckDistance": 1000,
+      "scaleRandom": false,
+      "stopsDealingDamageAfterPenetrateHits": false,
+      "usesIDStaticNPCImmunity": false,
+      "usesLocalNPCImmunity": false,
+      "usesOwnerLight": false,
+      "usesOwnerMeleeHitCD": false
+    },
+    "flags": {
+      "friendly": false,
+      "hostile": false,
+      "ignoreWater": false,
+      "magic": false,
+      "melee": false,
+      "ranged": false,
+      "sentry": false,
+      "summon": null,
+      "tileCollide": true,
+      "trap": false
+    },
+    "id": 0,
+    "internalName": "None",
+    "lifecycle": {
+      "extraUpdates": 0,
+      "timeLeft": 3600
+    },
+    "name": null
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "arrow": true,
+      "image": "Wooden Arrow.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 1,
+    "internalName": "WoodenArrowFriendly",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 1200
+    },
+    "name": "Wooden Arrow (friendly)",
+    "imageFileTitle": "Wooden Arrow.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Wooden_Arrow.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "arrow": true,
+      "image": "Flaming Arrow.png",
+      "light": 1
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 2,
+    "internalName": "FireArrow",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 1200
+    },
+    "name": "Fire Arrow",
+    "imageFileTitle": "Flaming Arrow.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Flaming_Arrow.png"
+  },
+  {
+    "aiStyle": 2,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 4
+    },
+    "dimensions": {
+      "height": 22,
+      "scale": null,
+      "width": 22
+    },
+    "extras": {
+      "image": "Shuriken.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 3,
+    "internalName": "Shuriken",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Shuriken",
+    "imageFileTitle": "Shuriken.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Shuriken.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 5
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "arrow": true,
+      "image": "Unholy Arrow.png",
+      "light": 0.35
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 4,
+    "internalName": "UnholyArrow",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 1200
+    },
+    "name": "Unholy Arrow",
+    "imageFileTitle": "Unholy Arrow.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Unholy_Arrow.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "alpha": 100,
+      "arrow": true,
+      "image": "Jester's Arrow.png",
+      "light": 0.4
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 5,
+    "internalName": "JestersArrow",
+    "lifecycle": {
+      "extraUpdates": 1,
+      "timeLeft": 120
+    },
+    "name": "Jester's Arrow",
+    "imageFileTitle": "Jester's Arrow.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Jester's_Arrow.png"
+  },
+  {
+    "aiStyle": 3,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 22,
+      "scale": null,
+      "width": 22
+    },
+    "extras": {
+      "image": "Enchanted Boomerang.png",
+      "light": 0.4
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 6,
+    "internalName": "EnchantedBoomerang",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Enchanted Boomerang",
+    "imageFileTitle": "Enchanted Boomerang.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Enchanted_Boomerang.png"
+  },
+  {
+    "aiStyle": 4,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 28,
+      "scale": null,
+      "width": 28
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Vilethorn (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 7,
+    "internalName": "VilethornBase",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Vilethorn (base)",
+    "imageFileTitle": "Vilethorn (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Vilethorn_(projectile).png"
+  },
+  {
+    "aiStyle": 4,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 28,
+      "scale": null,
+      "width": 28
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Vilethorn (end projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 8,
+    "internalName": "VilethornTip",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Vilethorn (tip)",
+    "imageFileTitle": "Vilethorn (end projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Vilethorn_(end_projectile).png"
+  },
+  {
+    "aiStyle": 5,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 2
+    },
+    "dimensions": {
+      "height": 19,
+      "scale": 0.8,
+      "width": 19
+    },
+    "extras": {
+      "image": "Starfury (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 9,
+    "internalName": "Starfury",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Starfury",
+    "imageFileTitle": "Starfury (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Starfury_(projectile).png"
+  },
+  {
+    "aiStyle": 6,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 64,
+      "scale": null,
+      "width": 64
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Purification Powder.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 10,
+    "internalName": "PurificationPowder",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Purification Powder",
+    "imageFileTitle": "Purification Powder.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Purification_Powder.png"
+  },
+  {
+    "aiStyle": 6,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 64,
+      "scale": null,
+      "width": 64
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Vile Powder.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 11,
+    "internalName": "VilePowder",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Vile Powder",
+    "imageFileTitle": "Vile Powder.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Vile_Powder.png"
+  },
+  {
+    "aiStyle": 5,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 18,
+      "scale": null,
+      "width": 18
+    },
+    "extras": {
+      "alpha": 50,
+      "image": "Fallen Star.png",
+      "light": 1
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": true
+    },
+    "id": 12,
+    "internalName": "FallingStar",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Falling Star",
+    "imageFileTitle": "Fallen Star.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Fallen_Star.png"
+  },
+  {
+    "aiStyle": 7,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 18,
+      "scale": null,
+      "width": 18
+    },
+    "extras": {
+      "image": "Grappling Hook (projectile).png",
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 13,
+    "internalName": "Hook",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 36000
+    },
+    "name": "Hook",
+    "imageFileTitle": "Grappling Hook (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Grappling_Hook_(projectile).png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 4,
+      "scale": 1.2,
+      "width": 4
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Bullet (projectile).png",
+      "light": 0.5
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 14,
+    "internalName": "Bullet",
+    "lifecycle": {
+      "extraUpdates": 1,
+      "timeLeft": 600
+    },
+    "name": "Bullet",
+    "imageFileTitle": "Bullet (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Bullet_(projectile).png"
+  },
+  {
+    "aiStyle": 8,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 16,
+      "scale": null,
+      "width": 16
+    },
+    "extras": {
+      "alpha": 100,
+      "image": "Ball of Fire.png",
+      "light": 0.8
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 15,
+    "internalName": "BallofFire",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Ball of Fire",
+    "imageFileTitle": "Ball of Fire.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ball_of_Fire.png"
+  },
+  {
+    "aiStyle": 9,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 32,
+      "scale": null,
+      "width": 32
+    },
+    "extras": {
+      "alpha": 100,
+      "image": "Magic Missile (projectile).png",
+      "light": 0.8
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 16,
+    "internalName": "MagicMissile",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Magic Missile",
+    "imageFileTitle": "Magic Missile (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Magic_Missile_(projectile).png"
+  },
+  {
+    "aiStyle": 10,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Dirt Ball.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 17,
+    "internalName": "DirtBall",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Dirt Ball",
+    "imageFileTitle": "Dirt Ball.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Dirt_Ball.png"
+  },
+  {
+    "aiStyle": 11,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 25,
+      "scale": 0.8,
+      "width": 25
+    },
+    "extras": {
+      "alpha": 150,
+      "image": "Shadow Orb (light pet).png",
+      "light": 0.9,
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 18,
+    "internalName": "ShadowOrb",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 18000
+    },
+    "name": "Shadow Orb",
+    "imageFileTitle": "Shadow Orb (light pet).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Shadow_Orb_(light_pet).png"
+  },
+  {
+    "aiStyle": 3,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 22,
+      "scale": null,
+      "width": 22
+    },
+    "extras": {
+      "image": "Flamarang.png",
+      "light": 1
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 19,
+    "internalName": "Flamarang",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Flamarang",
+    "imageFileTitle": "Flamarang.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Flamarang.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 3
+    },
+    "dimensions": {
+      "height": 2,
+      "scale": 0.65,
+      "width": 2
+    },
+    "extras": {
+      "image": "Green Laser (projectile).png",
+      "light": 0.75
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 20,
+    "internalName": "GreenLaser",
+    "lifecycle": {
+      "extraUpdates": 2,
+      "timeLeft": 600
+    },
+    "name": "Green Laser",
+    "imageFileTitle": "Green Laser (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Green_Laser_(projectile).png"
+  },
+  {
+    "aiStyle": 2,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 19,
+      "scale": 1.2,
+      "width": 19
+    },
+    "extras": {
+      "image": "Bone.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 21,
+    "internalName": "Bone",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Bone",
+    "imageFileTitle": "Bone.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Bone.png"
+  },
+  {
+    "aiStyle": 12,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 5
+    },
+    "dimensions": {
+      "height": 18,
+      "scale": null,
+      "width": 18
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Water Stream (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 22,
+    "internalName": "WaterStream",
+    "lifecycle": {
+      "extraUpdates": 2,
+      "timeLeft": null
+    },
+    "name": "Water Stream",
+    "imageFileTitle": "Water Stream (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Water_Stream_(projectile).png"
+  },
+  {
+    "aiStyle": 13,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 3
+    },
+    "dimensions": {
+      "height": 4,
+      "scale": null,
+      "width": 4
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Harpoon (projectile).png",
+      "localNPCHitCooldown": 12,
+      "usesLocalNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 23,
+    "internalName": "Harpoon",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Harpoon",
+    "imageFileTitle": "Harpoon (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Harpoon_(projectile).png"
+  },
+  {
+    "aiStyle": 14,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 7
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Spiky Ball.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 24,
+    "internalName": "SpikyBall",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 4800
+    },
+    "name": "Spiky Ball",
+    "imageFileTitle": "Spiky Ball.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Spiky_Ball.png"
+  },
+  {
+    "aiStyle": 15,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 19,
+      "scale": 0.9,
+      "width": 19
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Ball O' Hurt (projectile).png",
+      "localNPCHitCooldown": 10,
+      "netImportant": true,
+      "usesLocalNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 25,
+    "internalName": "BallOHurt",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Ball 'O Hurt",
+    "imageFileTitle": "Ball O' Hurt (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ball_O'_Hurt_(projectile).png"
+  },
+  {
+    "aiStyle": 15,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 17,
+      "scale": 0.8,
+      "width": 17
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Blue Moon (projectile).png",
+      "localNPCHitCooldown": 10,
+      "netImportant": true,
+      "usesLocalNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 26,
+    "internalName": "BlueMoon",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Blue Moon",
+    "imageFileTitle": "Blue Moon (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Blue_Moon_(projectile).png"
+  },
+  {
+    "aiStyle": 8,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 10
+    },
+    "dimensions": {
+      "height": 16,
+      "scale": null,
+      "width": 16
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Water Bolt (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 27,
+    "internalName": "WaterBolt",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 1800
+    },
+    "name": "Water Bolt",
+    "imageFileTitle": "Water Bolt (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Water_Bolt_(projectile).png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 22,
+      "scale": null,
+      "width": 22
+    },
+    "extras": {
+      "image": "Bomb (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 28,
+    "internalName": "Bomb",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Bomb",
+    "imageFileTitle": "Bomb (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Bomb_(projectile).png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Dynamite (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 29,
+    "internalName": "Dynamite",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Dynamite",
+    "imageFileTitle": "Dynamite (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Dynamite_(projectile).png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Grenade.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 30,
+    "internalName": "Grenade",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Grenade",
+    "imageFileTitle": "Grenade.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Grenade.png"
+  },
+  {
+    "aiStyle": 10,
+    "combat": {
+      "knockBack": 6,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Sand Ball.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 31,
+    "internalName": "SandBallFalling",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Sand Ball",
+    "imageFileTitle": "Sand Ball.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Sand_Ball.png"
+  },
+  {
+    "aiStyle": 7,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 18,
+      "scale": null,
+      "width": 18
+    },
+    "extras": {
+      "image": "Ivy Whip (projectile).png",
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 32,
+    "internalName": "IvyWhip",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 36000
+    },
+    "name": "Ivy Whip",
+    "imageFileTitle": "Ivy Whip (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ivy_Whip_(projectile).png"
+  },
+  {
+    "aiStyle": 3,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 34,
+      "scale": 0.9,
+      "width": 34
+    },
+    "extras": {
+      "image": "Thorn Chakram.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 33,
+    "internalName": "ThornChakram",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Thorn Chakram",
+    "imageFileTitle": "Thorn Chakram.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Thorn_Chakram.png"
+  },
+  {
+    "aiStyle": 9,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 2
+    },
+    "dimensions": {
+      "height": 32,
+      "scale": null,
+      "width": 32
+    },
+    "extras": {
+      "image": "Flamelash (projectile).gif",
+      "light": 0.8,
+      "localNPCHitCooldown": 12,
+      "usesLocalNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 34,
+    "internalName": "Flamelash",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Flamelash",
+    "imageFileTitle": "Flamelash (projectile).gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Flamelash_(projectile).gif"
+  },
+  {
+    "aiStyle": 15,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 17,
+      "scale": 0.8,
+      "width": 17
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Sunfury (projectile).png",
+      "localNPCHitCooldown": 10,
+      "netImportant": true,
+      "usesLocalNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 35,
+    "internalName": "Sunfury",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Sunfury",
+    "imageFileTitle": "Sunfury (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Sunfury_(projectile).png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 2
+    },
+    "dimensions": {
+      "height": 5,
+      "scale": 1.4,
+      "width": 5
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Meteor Shot (projectile).png",
+      "light": 0.6,
+      "localNPCHitCooldown": 7,
+      "usesLocalNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 36,
+    "internalName": "MeteorShot",
+    "lifecycle": {
+      "extraUpdates": 1,
+      "timeLeft": 600
+    },
+    "name": "Meteor Shot",
+    "imageFileTitle": "Meteor Shot (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Meteor_Shot_(projectile).png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 22,
+      "scale": null,
+      "width": 22
+    },
+    "extras": {
+      "image": "Sticky Bomb (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 37,
+    "internalName": "StickyBomb",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Sticky Bomb",
+    "imageFileTitle": "Sticky Bomb (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Sticky_Bomb_(projectile).png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Harpy Feather.png"
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 38,
+    "internalName": "HarpyFeather",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Harpy Feather",
+    "imageFileTitle": "Harpy Feather.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Harpy_Feather.png"
+  },
+  {
+    "aiStyle": 10,
+    "combat": {
+      "knockBack": 6,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Mud Ball.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 39,
+    "internalName": "MudBall",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Mud Ball",
+    "imageFileTitle": "Mud Ball.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mud_Ball.png"
+  },
+  {
+    "aiStyle": 10,
+    "combat": {
+      "knockBack": 6,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Ash Ball.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 40,
+    "internalName": "AshBallFalling",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Ash Ball",
+    "imageFileTitle": "Ash Ball.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ash_Ball.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "arrow": true,
+      "image": "Hellfire Arrow.png",
+      "light": 0.3
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 41,
+    "internalName": "HellfireArrow",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Hellfire Arrow",
+    "imageFileTitle": "Hellfire Arrow.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Hellfire_Arrow.png"
+  },
+  {
+    "aiStyle": 10,
+    "combat": {
+      "knockBack": 8,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Sand Ball.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 42,
+    "internalName": "SandBallGun",
+    "lifecycle": {
+      "extraUpdates": 1,
+      "timeLeft": null
+    },
+    "name": "Sand Ball",
+    "imageFileTitle": "Sand Ball.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Sand_Ball.png"
+  },
+  {
+    "aiStyle": 17,
+    "combat": {
+      "knockBack": 12,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 24,
+      "scale": null,
+      "width": 24
+    },
+    "extras": {
+      "image": "Tombstone.png"
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 43,
+    "internalName": "Tombstone",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Tombstone",
+    "imageFileTitle": "Tombstone.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Tombstone.png"
+  },
+  {
+    "aiStyle": 18,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 43,
+      "scale": 0.9,
+      "width": 43
+    },
+    "extras": {
+      "alpha": 100,
+      "image": "Demon Scythe (projectile).gif",
+      "light": 0.2
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 44,
+    "internalName": "DemonSickle",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Demon Sickle",
+    "imageFileTitle": "Demon Scythe (projectile).gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Demon_Scythe_(projectile).gif"
+  },
+  {
+    "aiStyle": 18,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 5
+    },
+    "dimensions": {
+      "height": 43,
+      "scale": 0.9,
+      "width": 43
+    },
+    "extras": {
+      "alpha": 100,
+      "image": "Demon Scythe (projectile).gif",
+      "light": 0.2
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 45,
+    "internalName": "DemonScythe",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Demon Scythe",
+    "imageFileTitle": "Demon Scythe (projectile).gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Demon_Scythe_(projectile).gif"
+  },
+  {
+    "aiStyle": 19,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 22,
+      "scale": 1.1,
+      "width": 22
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Dark Lance (projectile).png",
+      "ownerHitCheck": true,
+      "usesOwnerLight": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 46,
+    "internalName": "DarkLance",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Dark Lance",
+    "imageFileTitle": "Dark Lance (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Dark_Lance_(projectile).png"
+  },
+  {
+    "aiStyle": 19,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 19,
+      "scale": 1.1,
+      "width": 19
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Trident (projectile).png",
+      "ownerHitCheck": true,
+      "usesOwnerLight": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 47,
+    "internalName": "Trident",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Trident",
+    "imageFileTitle": "Trident (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Trident_(projectile).png"
+  },
+  {
+    "aiStyle": 2,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 2
+    },
+    "dimensions": {
+      "height": 12,
+      "scale": null,
+      "width": 12
+    },
+    "extras": {
+      "image": "Throwing Knife.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 48,
+    "internalName": "ThrowingKnife",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Throwing Knife",
+    "imageFileTitle": "Throwing Knife.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Throwing_Knife.png"
+  },
+  {
+    "aiStyle": 19,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 21,
+      "scale": 1.2,
+      "width": 21
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Spear (projectile).png",
+      "ownerHitCheck": true,
+      "usesOwnerLight": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 49,
+    "internalName": "Spear",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Spear",
+    "imageFileTitle": "Spear (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Spear_(projectile).png"
+  },
+  {
+    "aiStyle": 14,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 6,
+      "scale": null,
+      "width": 6
+    },
+    "extras": {
+      "alpha": 75,
+      "image": "Glowstick (projectile).png",
+      "light": 1,
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 50,
+    "internalName": "Glowstick",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 18000
+    },
+    "name": "Glowstick",
+    "imageFileTitle": "Glowstick (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Glowstick_(projectile).png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 8,
+      "scale": null,
+      "width": 8
+    },
+    "extras": {
+      "image": "Seed (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 51,
+    "internalName": "Seed",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Seed",
+    "imageFileTitle": "Seed (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Seed_(projectile).png"
+  },
+  {
+    "aiStyle": 3,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 22,
+      "scale": null,
+      "width": 22
+    },
+    "extras": {
+      "image": "Wooden Boomerang.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 52,
+    "internalName": "WoodenBoomerang",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Wooden Boomerang",
+    "imageFileTitle": "Wooden Boomerang.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Wooden_Boomerang.png"
+  },
+  {
+    "aiStyle": 14,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 6,
+      "scale": null,
+      "width": 6
+    },
+    "extras": {
+      "alpha": 75,
+      "image": "Sticky Glowstick (projectile).png",
+      "light": 1,
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 53,
+    "internalName": "StickyGlowstick",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 18000
+    },
+    "name": "Sticky Glowstick",
+    "imageFileTitle": "Sticky Glowstick (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Sticky_Glowstick_(projectile).png"
+  },
+  {
+    "aiStyle": 2,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 2
+    },
+    "dimensions": {
+      "height": 12,
+      "scale": null,
+      "width": 12
+    },
+    "extras": {
+      "image": "Poisoned Knife.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 54,
+    "internalName": "PoisonedKnife",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Poisoned Knife",
+    "imageFileTitle": "Poisoned Knife.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Poisoned_Knife.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Hornet Stinger.png"
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 55,
+    "internalName": "Stinger",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Stinger",
+    "imageFileTitle": "Hornet Stinger.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Hornet_Stinger.png"
+  },
+  {
+    "aiStyle": 10,
+    "combat": {
+      "knockBack": 6,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Ebonsand Ball.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 56,
+    "internalName": "EbonsandBallFalling",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Ebonsand Ball",
+    "imageFileTitle": "Ebonsand Ball.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ebonsand_Ball.png"
+  },
+  {
+    "aiStyle": 20,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 18,
+      "scale": null,
+      "width": 18
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Cobalt Chainsaw.png",
+      "ownerHitCheck": true,
+      "usesOwnerLight": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 57,
+    "internalName": "CobaltChainsaw",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Cobalt Chainsaw",
+    "imageFileTitle": "Cobalt Chainsaw.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cobalt_Chainsaw.png"
+  },
+  {
+    "aiStyle": 20,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 19,
+      "scale": 1.08,
+      "width": 19
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Mythril Chainsaw.png",
+      "ownerHitCheck": true,
+      "usesOwnerLight": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 58,
+    "internalName": "MythrilChainsaw",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Mythril Chainsaw",
+    "imageFileTitle": "Mythril Chainsaw.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mythril_Chainsaw.png"
+  },
+  {
+    "aiStyle": 20,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 19,
+      "scale": 0.9,
+      "width": 19
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Cobalt Drill.png",
+      "ownerHitCheck": true,
+      "usesOwnerLight": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 59,
+    "internalName": "CobaltDrill",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Cobalt Drill",
+    "imageFileTitle": "Cobalt Drill.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cobalt_Drill.png"
+  },
+  {
+    "aiStyle": 20,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 19,
+      "scale": 0.9,
+      "width": 19
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Mythril Drill.png",
+      "ownerHitCheck": true,
+      "usesOwnerLight": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 60,
+    "internalName": "MythrilDrill",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Mythril Drill",
+    "imageFileTitle": "Mythril Drill.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mythril_Drill.png"
+  },
+  {
+    "aiStyle": 20,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 20,
+      "scale": 1.16,
+      "width": 20
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Adamantite Chainsaw.png",
+      "ownerHitCheck": true,
+      "usesOwnerLight": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 61,
+    "internalName": "AdamantiteChainsaw",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Adamantite Chainsaw",
+    "imageFileTitle": "Adamantite Chainsaw.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Adamantite_Chainsaw.png"
+  },
+  {
+    "aiStyle": 20,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 19,
+      "scale": 0.9,
+      "width": 19
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Adamantite Drill.png",
+      "ownerHitCheck": true,
+      "usesOwnerLight": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 62,
+    "internalName": "AdamantiteDrill",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Adamantite Drill",
+    "imageFileTitle": "Adamantite Drill.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Adamantite_Drill.png"
+  },
+  {
+    "aiStyle": 15,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 22,
+      "scale": null,
+      "width": 22
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Dao of Pow (projectile).png",
+      "localNPCHitCooldown": 10,
+      "netImportant": true,
+      "usesLocalNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 63,
+    "internalName": "TheDaoofPow",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "The Dao of Pow",
+    "imageFileTitle": "Dao of Pow (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Dao_of_Pow_(projectile).png"
+  },
+  {
+    "aiStyle": 19,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 22,
+      "scale": 1.25,
+      "width": 22
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Mythril Halberd (projectile).png",
+      "ownerHitCheck": true,
+      "usesOwnerLight": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 64,
+    "internalName": "MythrilHalberd",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Mythril Halberd",
+    "imageFileTitle": "Mythril Halberd (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mythril_Halberd_(projectile).png"
+  },
+  {
+    "aiStyle": 10,
+    "combat": {
+      "knockBack": 6,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Ebonsand Ball.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 65,
+    "internalName": "EbonsandBallGun",
+    "lifecycle": {
+      "extraUpdates": 1,
+      "timeLeft": null
+    },
+    "name": "Ebonsand Ball",
+    "imageFileTitle": "Ebonsand Ball.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ebonsand_Ball.png"
+  },
+  {
+    "aiStyle": 19,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 22,
+      "scale": 1.27,
+      "width": 22
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Adamantite Glaive (projectile).png",
+      "ownerHitCheck": true,
+      "usesOwnerLight": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 66,
+    "internalName": "AdamantiteGlaive",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Adamantite Glaive",
+    "imageFileTitle": "Adamantite Glaive (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Adamantite_Glaive_(projectile).png"
+  },
+  {
+    "aiStyle": 10,
+    "combat": {
+      "knockBack": 6,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Pearlsand Ball.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 67,
+    "internalName": "PearlSandBallFalling",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Pearlsand Ball",
+    "imageFileTitle": "Pearlsand Ball.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pearlsand_Ball.png"
+  },
+  {
+    "aiStyle": 10,
+    "combat": {
+      "knockBack": 6,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Pearlsand Ball.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 68,
+    "internalName": "PearlSandBallGun",
+    "lifecycle": {
+      "extraUpdates": 1,
+      "timeLeft": null
+    },
+    "name": "Pearlsand Ball",
+    "imageFileTitle": "Pearlsand Ball.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pearlsand_Ball.png"
+  },
+  {
+    "aiStyle": 2,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Holy Water.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 69,
+    "internalName": "HolyWater",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Holy Water",
+    "imageFileTitle": "Holy Water.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Holy_Water.png"
+  },
+  {
+    "aiStyle": 2,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Unholy Water.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 70,
+    "internalName": "UnholyWater",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Unholy Water",
+    "imageFileTitle": "Unholy Water.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Unholy_Water.png"
+  },
+  {
+    "aiStyle": 10,
+    "combat": {
+      "knockBack": 6,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Silt Ball.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 71,
+    "internalName": "SiltBall",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Silt Ball",
+    "imageFileTitle": "Silt Ball.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Silt_Ball.png"
+  },
+  {
+    "aiStyle": 11,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": 0.8,
+      "width": 14
+    },
+    "extras": {
+      "image": "Blue Fairy (pet).gif",
+      "light": 0.9,
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 72,
+    "internalName": "BlueFairy",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 18000
+    },
+    "name": "Blue Fairy",
+    "imageFileTitle": "Blue Fairy (pet).gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Blue_Fairy_(pet).gif"
+  },
+  {
+    "aiStyle": 7,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 18,
+      "scale": null,
+      "width": 18
+    },
+    "extras": {
+      "image": "Blue Dual Hook.png",
+      "light": 0.4,
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 73,
+    "internalName": "DualHookBlue",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 36000
+    },
+    "name": "Dual Hook (blue)",
+    "imageFileTitle": "Blue Dual Hook.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Blue_Dual_Hook.png"
+  },
+  {
+    "aiStyle": 7,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 18,
+      "scale": null,
+      "width": 18
+    },
+    "extras": {
+      "image": "Red Dual Hook.png",
+      "light": 0.4,
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 74,
+    "internalName": "DualHookRed",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 36000
+    },
+    "name": "Dual Hook (red)",
+    "imageFileTitle": "Red Dual Hook.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Red_Dual_Hook.png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 22,
+      "scale": null,
+      "width": 22
+    },
+    "extras": {
+      "image": "Happy Bomb.png"
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 75,
+    "internalName": "HappyBomb",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Happy Bomb",
+    "imageFileTitle": "Happy Bomb.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Happy_Bomb.png"
+  },
+  {
+    "aiStyle": 21,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 22,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "alpha": 100,
+      "image": "Note 1.png",
+      "light": 0.3
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 76,
+    "internalName": "QuarterNote",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 180
+    },
+    "name": "Quarter Note",
+    "imageFileTitle": "Note 1.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Note_1.png"
+  },
+  {
+    "aiStyle": 21,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 24,
+      "scale": null,
+      "width": 18
+    },
+    "extras": {
+      "alpha": 100,
+      "image": "Note 2.png",
+      "light": 0.3
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 77,
+    "internalName": "EighthNote",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 180
+    },
+    "name": "Eighth Note",
+    "imageFileTitle": "Note 2.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Note_2.png"
+  },
+  {
+    "aiStyle": 21,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 24,
+      "scale": null,
+      "width": 22
+    },
+    "extras": {
+      "alpha": 100,
+      "image": "Note 3.png",
+      "light": 0.3
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 78,
+    "internalName": "TiedEighthNote",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 180
+    },
+    "name": "Tied Eighth Note",
+    "imageFileTitle": "Note 3.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Note_3.png"
+  },
+  {
+    "aiStyle": 9,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 3
+    },
+    "dimensions": {
+      "height": 32,
+      "scale": null,
+      "width": 32
+    },
+    "extras": {
+      "image": "Rainbow Rod (projectile).png",
+      "light": 0.8,
+      "localNPCHitCooldown": 12,
+      "usesLocalNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 79,
+    "internalName": "RainbowRodBullet",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Rainbow",
+    "imageFileTitle": "Rainbow Rod (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Rainbow_Rod_(projectile).png"
+  },
+  {
+    "aiStyle": 22,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 16,
+      "scale": null,
+      "width": 16
+    },
+    "extras": {
+      "coldDamage": true,
+      "image": "Ice Block (projectile).png",
+      "light": 0.5
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 80,
+    "internalName": "IceBlock",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Ice Block",
+    "imageFileTitle": "Ice Block (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ice_Block_(projectile).png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Wooden Arrow.png"
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 81,
+    "internalName": "WoodenArrowHostile",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Wooden Arrow (hostile)",
+    "imageFileTitle": "Wooden Arrow.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Wooden_Arrow.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Flaming Arrow.png"
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 82,
+    "internalName": "FlamingArrow",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Flaming Arrow",
+    "imageFileTitle": "Flaming Arrow.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Flaming_Arrow.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 3
+    },
+    "dimensions": {
+      "height": 6,
+      "scale": 1.7,
+      "width": 6
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Eye Laser.png",
+      "light": 0.75
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 83,
+    "internalName": "EyeLaser",
+    "lifecycle": {
+      "extraUpdates": 2,
+      "timeLeft": 600
+    },
+    "name": "Eye Laser",
+    "imageFileTitle": "Eye Laser.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Eye_Laser.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 3
+    },
+    "dimensions": {
+      "height": 4,
+      "scale": 1.2,
+      "width": 4
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Pink Laser.png",
+      "light": 0.75
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 84,
+    "internalName": "PinkLaser",
+    "lifecycle": {
+      "extraUpdates": 2,
+      "timeLeft": 600
+    },
+    "name": "Pink Laser",
+    "imageFileTitle": "Pink Laser.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pink_Laser.png"
+  },
+  {
+    "aiStyle": 193,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 4
+    },
+    "dimensions": {
+      "height": 6,
+      "scale": null,
+      "width": 6
+    },
+    "extras": {
+      "alpha": 255,
+      "armorPenetration": 15,
+      "image": "Flamethrower (projectile).gif",
+      "localNPCHitCooldown": -1,
+      "usesLocalNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 85,
+    "internalName": "Flames",
+    "lifecycle": {
+      "extraUpdates": 2,
+      "timeLeft": null
+    },
+    "name": "Flames",
+    "imageFileTitle": "Flamethrower (projectile).gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Flamethrower_(projectile).gif"
+  },
+  {
+    "aiStyle": 11,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": 0.8,
+      "width": 14
+    },
+    "extras": {
+      "image": "Pink Fairy (pet).gif",
+      "light": 0.9,
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 86,
+    "internalName": "PinkFairy",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 18000
+    },
+    "name": "Pink Fairy",
+    "imageFileTitle": "Pink Fairy (pet).gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Pink_Fairy_(pet).gif"
+  },
+  {
+    "aiStyle": 11,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": 0.8,
+      "width": 14
+    },
+    "extras": {
+      "image": "Green Fairy (pet).gif",
+      "light": 0.9,
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 87,
+    "internalName": "GreenFairy",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 18000
+    },
+    "name": "Green Fairy",
+    "imageFileTitle": "Green Fairy (pet).gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Green_Fairy_(pet).gif"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 3
+    },
+    "dimensions": {
+      "height": 3,
+      "scale": 0.65,
+      "width": 3
+    },
+    "extras": {
+      "image": "Purple Laser (projectile).png",
+      "light": 0.75
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 88,
+    "internalName": "PurpleLaser",
+    "lifecycle": {
+      "extraUpdates": 4,
+      "timeLeft": 600
+    },
+    "name": "Purple Laser",
+    "imageFileTitle": "Purple Laser (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Purple_Laser_(projectile).png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 4,
+      "scale": 1.2,
+      "width": 4
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Crystal Bullet (projectile).png",
+      "light": 0.5
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 89,
+    "internalName": "CrystalBullet",
+    "lifecycle": {
+      "extraUpdates": 1,
+      "timeLeft": 600
+    },
+    "name": "Crystal Bullet",
+    "imageFileTitle": "Crystal Bullet (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Crystal_Bullet_(projectile).png"
+  },
+  {
+    "aiStyle": 24,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 7,
+      "scale": 1.2,
+      "width": 7
+    },
+    "extras": {
+      "alpha": 50,
+      "image": "Crystal Fragment.png",
+      "light": 0.5
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 90,
+    "internalName": "CrystalShard",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 600
+    },
+    "name": "Crystal Shard",
+    "imageFileTitle": "Crystal Fragment.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Crystal_Fragment.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "arrow": true,
+      "image": "Holy Arrow.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 91,
+    "internalName": "HolyArrow",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 1200
+    },
+    "name": "Holy Arrow",
+    "imageFileTitle": "Holy Arrow.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Holy_Arrow.png"
+  },
+  {
+    "aiStyle": 5,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 19,
+      "scale": 0.8,
+      "width": 19
+    },
+    "extras": {
+      "alpha": 50,
+      "image": "Hallow Star.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 92,
+    "internalName": "HallowStar",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Hallow Star",
+    "imageFileTitle": "Hallow Star.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Hallow_Star.png"
+  },
+  {
+    "aiStyle": 2,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 3
+    },
+    "dimensions": {
+      "height": 12,
+      "scale": null,
+      "width": 12
+    },
+    "extras": {
+      "image": "Magic Dagger.png",
+      "light": 0.15,
+      "localNPCHitCooldown": 20,
+      "usesLocalNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 93,
+    "internalName": "MagicDagger",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Magic Dagger",
+    "imageFileTitle": "Magic Dagger.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Magic_Dagger.png"
+  },
+  {
+    "aiStyle": 24,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 9,
+      "scale": 1.2,
+      "width": 9
+    },
+    "extras": {
+      "alpha": 50,
+      "image": "Crystal Storm (projectile).png",
+      "light": 0.5
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 94,
+    "internalName": "CrystalStorm",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 600
+    },
+    "name": "Crystal Storm",
+    "imageFileTitle": "Crystal Storm (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Crystal_Storm_(projectile).png"
+  },
+  {
+    "aiStyle": 8,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 2
+    },
+    "dimensions": {
+      "height": 16,
+      "scale": null,
+      "width": 16
+    },
+    "extras": {
+      "alpha": 100,
+      "image": "Cursed Flame (projectile).png",
+      "light": 0.8
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 95,
+    "internalName": "CursedFlameFriendly",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Cursed Flame (friendly)",
+    "imageFileTitle": "Cursed Flame (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cursed_Flame_(projectile).png"
+  },
+  {
+    "aiStyle": 8,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 20,
+      "scale": 1.3,
+      "width": 20
+    },
+    "extras": {
+      "alpha": 100,
+      "image": "Cursed Flame (projectile).png",
+      "light": 0.8
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 96,
+    "internalName": "CursedFlameHostile",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Cursed Flame (hostile)",
+    "imageFileTitle": "Cursed Flame (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cursed_Flame_(projectile).png"
+  },
+  {
+    "aiStyle": 19,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 19,
+      "scale": 1.1,
+      "width": 19
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Cobalt Naginata (projectile).png",
+      "ownerHitCheck": true,
+      "usesOwnerLight": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 97,
+    "internalName": "CobaltNaginata",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Cobalt Naginata",
+    "imageFileTitle": "Cobalt Naginata (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cobalt_Naginata_(projectile).png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Poison Dart Trap (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": true
+    },
+    "id": 98,
+    "internalName": "PoisonDart",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Poison Dart",
+    "imageFileTitle": "Poison Dart Trap (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Poison_Dart_Trap_(projectile).png"
+  },
+  {
+    "aiStyle": 25,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 31,
+      "scale": null,
+      "width": 31
+    },
+    "extras": {
+      "image": "Boulder (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": true
+    },
+    "id": 99,
+    "internalName": "Boulder",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Boulder",
+    "imageFileTitle": "Boulder (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Boulder_(projectile).png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 3
+    },
+    "dimensions": {
+      "height": 7,
+      "scale": 1.8,
+      "width": 7
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Death Laser (projectile).png",
+      "light": 0.75
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 100,
+    "internalName": "DeathLaser",
+    "lifecycle": {
+      "extraUpdates": 2,
+      "timeLeft": 2700
+    },
+    "name": "Death Laser",
+    "imageFileTitle": "Death Laser (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Death_Laser_(projectile).png"
+  },
+  {
+    "aiStyle": 23,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 6,
+      "scale": null,
+      "width": 6
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Cursed Flame (projectile).png"
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 101,
+    "internalName": "EyeFire",
+    "lifecycle": {
+      "extraUpdates": 3,
+      "timeLeft": null
+    },
+    "name": "Eye Fire",
+    "imageFileTitle": "Cursed Flame (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cursed_Flame_(projectile).png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 22,
+      "scale": null,
+      "width": 22
+    },
+    "extras": {
+      "image": "Skeletron Bomb.gif"
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 102,
+    "internalName": "BombSkeletronPrime",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Skeletron Prime Bomb",
+    "imageFileTitle": "Skeletron Bomb.gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Skeletron_Bomb.gif"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "arrow": true,
+      "image": "Cursed Arrow.png",
+      "light": 1
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 103,
+    "internalName": "CursedArrow",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 1200
+    },
+    "name": "Cursed Arrow",
+    "imageFileTitle": "Cursed Arrow.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cursed_Arrow.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 4,
+      "scale": 1.2,
+      "width": 4
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Cursed Bullet (projectile).png",
+      "light": 0.5
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 104,
+    "internalName": "CursedBullet",
+    "lifecycle": {
+      "extraUpdates": 2,
+      "timeLeft": 600
+    },
+    "name": "Cursed Bullet",
+    "imageFileTitle": "Cursed Bullet (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cursed_Bullet_(projectile).png"
+  },
+  {
+    "aiStyle": 19,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 23,
+      "scale": 1.3,
+      "width": 23
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Gungnir (projectile).png",
+      "ownerHitCheck": true,
+      "usesOwnerLight": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 105,
+    "internalName": "Gungnir",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Gungnir",
+    "imageFileTitle": "Gungnir (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Gungnir_(projectile).png"
+  },
+  {
+    "aiStyle": 3,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 32,
+      "scale": null,
+      "width": 32
+    },
+    "extras": {
+      "image": "Light Disc.png",
+      "light": 0.4
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 106,
+    "internalName": "LightDisc",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Light Disc",
+    "imageFileTitle": "Light Disc.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Light_Disc.png"
+  },
+  {
+    "aiStyle": 20,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 24,
+      "scale": 1.1,
+      "width": 24
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Drax.png",
+      "ownerHitCheck": true,
+      "usesOwnerLight": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 107,
+    "internalName": "Hamdrax",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Hamdrax",
+    "imageFileTitle": "Drax.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Drax.png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 260,
+      "scale": null,
+      "width": 260
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Explosives.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": true
+    },
+    "id": 108,
+    "internalName": "Explosives",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 2
+    },
+    "name": "Explosives",
+    "imageFileTitle": "Explosives.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Explosives.png"
+  },
+  {
+    "aiStyle": 10,
+    "combat": {
+      "knockBack": 6,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 9,
+      "scale": 0.9,
+      "width": 9
+    },
+    "extras": {
+      "coldDamage": true,
+      "image": "Snow Ball (hostile) (projectile).png"
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 109,
+    "internalName": "SnowBallHostile",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Snow Ball (hostile)",
+    "imageFileTitle": "Snow Ball (hostile) (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Snow_Ball_(hostile)_(projectile).png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 4,
+      "scale": 1.2,
+      "width": 4
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Bullet (projectile).png",
+      "light": 0.5
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 110,
+    "internalName": "BulletSnowman",
+    "lifecycle": {
+      "extraUpdates": 1,
+      "timeLeft": 600
+    },
+    "name": "Snowman Bullet",
+    "imageFileTitle": "Bullet (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Bullet_(projectile).png"
+  },
+  {
+    "aiStyle": 26,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 18,
+      "scale": null,
+      "width": 18
+    },
+    "extras": {
+      "image": "Bunny Pet.gif",
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 111,
+    "internalName": "Bunny",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 18000
+    },
+    "name": "Bunny",
+    "imageFileTitle": "Bunny Pet.gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Bunny_Pet.gif"
+  },
+  {
+    "aiStyle": 26,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 18,
+      "scale": null,
+      "width": 18
+    },
+    "extras": {
+      "image": "Baby Penguin.gif",
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 112,
+    "internalName": "Penguin",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 18000
+    },
+    "name": "Penguin",
+    "imageFileTitle": "Baby Penguin.gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Penguin.gif"
+  },
+  {
+    "aiStyle": 3,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 22,
+      "scale": null,
+      "width": 22
+    },
+    "extras": {
+      "coldDamage": true,
+      "image": "Ice Boomerang.png",
+      "light": 0.4
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 113,
+    "internalName": "IceBoomerang",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Ice Boomerang",
+    "imageFileTitle": "Ice Boomerang.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ice_Boomerang.png"
+  },
+  {
+    "aiStyle": 27,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 3
+    },
+    "dimensions": {
+      "height": 16,
+      "scale": null,
+      "width": 16
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Unholy Trident (projectile).png",
+      "light": 0.5
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 114,
+    "internalName": "UnholyTridentFriendly",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Unholy Trident (friendly)",
+    "imageFileTitle": "Unholy Trident (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Unholy_Trident_(projectile).png"
+  },
+  {
+    "aiStyle": 27,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 16,
+      "scale": null,
+      "width": 16
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Unholy Trident (projectile).png",
+      "light": 0.5
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 115,
+    "internalName": "UnholyTridentHostile",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Unholy Trident (hostile)",
+    "imageFileTitle": "Unholy Trident (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Unholy_Trident_(projectile).png"
+  },
+  {
+    "aiStyle": 27,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 2
+    },
+    "dimensions": {
+      "height": 16,
+      "scale": null,
+      "width": 16
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Beam Sword Beam.png",
+      "light": 0.5
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 116,
+    "internalName": "SwordBeam",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Sword Beam",
+    "imageFileTitle": "Beam Sword Beam.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Beam_Sword_Beam.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "arrow": true,
+      "image": "Bone Arrow (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 117,
+    "internalName": "BoneArrow",
+    "lifecycle": {
+      "extraUpdates": 2,
+      "timeLeft": 1200
+    },
+    "name": "Bone Arrow",
+    "imageFileTitle": "Bone Arrow (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Bone_Arrow_(projectile).png"
+  },
+  {
+    "aiStyle": 28,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "alpha": 255,
+      "coldDamage": true,
+      "image": "Ice Bolt.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 118,
+    "internalName": "IceBolt",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Ice Bolt",
+    "imageFileTitle": "Ice Bolt.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ice_Bolt.png"
+  },
+  {
+    "aiStyle": 28,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 3
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "alpha": 255,
+      "coldDamage": true,
+      "idStaticNPCHitCooldown": 10,
+      "image": "Frost Bolt.png",
+      "usesIDStaticNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 119,
+    "internalName": "FrostBoltSword",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Frost Bolt",
+    "imageFileTitle": "Frost Bolt.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Frost_Bolt.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "arrow": true,
+      "coldDamage": true,
+      "image": "Frost Arrow.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 120,
+    "internalName": "FrostArrow",
+    "lifecycle": {
+      "extraUpdates": 1,
+      "timeLeft": 1200
+    },
+    "name": "Frost Arrow",
+    "imageFileTitle": "Frost Arrow.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Frost_Arrow.png"
+  },
+  {
+    "aiStyle": 29,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Amethyst Bolt.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 121,
+    "internalName": "AmethystBolt",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Amethyst Bolt",
+    "imageFileTitle": "Amethyst Bolt.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Amethyst_Bolt.png"
+  },
+  {
+    "aiStyle": 29,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Topaz Bolt.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 122,
+    "internalName": "TopazBolt",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Topaz Bolt",
+    "imageFileTitle": "Topaz Bolt.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Topaz_Bolt.png"
+  },
+  {
+    "aiStyle": 29,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Sapphire Bolt.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 123,
+    "internalName": "SapphireBolt",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Sapphire Bolt",
+    "imageFileTitle": "Sapphire Bolt.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Sapphire_Bolt.png"
+  },
+  {
+    "aiStyle": 29,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 2
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Emerald Bolt.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 124,
+    "internalName": "EmeraldBolt",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Emerald Bolt",
+    "imageFileTitle": "Emerald Bolt.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Emerald_Bolt.png"
+  },
+  {
+    "aiStyle": 29,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 2
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Ruby Bolt.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 125,
+    "internalName": "RubyBolt",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Ruby Bolt",
+    "imageFileTitle": "Ruby Bolt.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ruby_Bolt.png"
+  },
+  {
+    "aiStyle": 29,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 2
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Diamond Bolt.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 126,
+    "internalName": "DiamondBolt",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Diamond Bolt",
+    "imageFileTitle": "Diamond Bolt.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Diamond_Bolt.png"
+  },
+  {
+    "aiStyle": 26,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 22,
+      "scale": null,
+      "width": 22
+    },
+    "extras": {
+      "image": "Pet Turtle.gif",
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 127,
+    "internalName": "Turtle",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 18000
+    },
+    "name": "Turtle",
+    "imageFileTitle": "Pet Turtle.gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Pet_Turtle.gif"
+  },
+  {
+    "aiStyle": 28,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "alpha": 255,
+      "coldDamage": true,
+      "image": "Ice Bolt.png"
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 128,
+    "internalName": "FrostBlastHostile",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Frost Blast (hostile)",
+    "imageFileTitle": "Ice Bolt.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ice_Bolt.png"
+  },
+  {
+    "aiStyle": 28,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Ice Bolt.png"
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 129,
+    "internalName": "RuneBlast",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Rune Blast",
+    "imageFileTitle": "Ice Bolt.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ice_Bolt.png"
+  },
+  {
+    "aiStyle": 19,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 26,
+      "scale": 1.2,
+      "width": 26
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "Mushroom Spear (projectile).png",
+      "ownerHitCheck": true,
+      "usesOwnerLight": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 130,
+    "internalName": "MushroomSpear",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Mushroom Spear",
+    "imageFileTitle": "Mushroom Spear (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mushroom_Spear_(projectile).png"
+  },
+  {
+    "aiStyle": 30,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 22,
+      "scale": null,
+      "width": 22
+    },
+    "extras": {
+      "image": "Mushroom (projectile).gif",
+      "light": 0.5
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 131,
+    "internalName": "Mushroom",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Mushroom",
+    "imageFileTitle": "Mushroom (projectile).gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Mushroom_(projectile).gif"
+  },
+  {
+    "aiStyle": 27,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 3
+    },
+    "dimensions": {
+      "height": 16,
+      "scale": null,
+      "width": 16
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Terra Blade Beam.png",
+      "light": 0.5,
+      "localNPCHitCooldown": 10,
+      "usesLocalNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 132,
+    "internalName": "TerraBeam",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Terra Beam",
+    "imageFileTitle": "Terra Blade Beam.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Terra_Blade_Beam.png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Grenade I.png",
+      "localNPCHitCooldown": -1,
+      "usesLocalNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 133,
+    "internalName": "GrenadeI",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Grenade I",
+    "imageFileTitle": "Grenade I.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Grenade_I.png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Rocket I.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 134,
+    "internalName": "RocketI",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Rocket I",
+    "imageFileTitle": "Rocket I.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Rocket_I.png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Mine I.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 135,
+    "internalName": "ProximityMineI",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Proximity Mine I",
+    "imageFileTitle": "Mine I.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mine_I.png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Grenade II.png",
+      "localNPCHitCooldown": -1,
+      "usesLocalNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 136,
+    "internalName": "GrenadeII",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Grenade II",
+    "imageFileTitle": "Grenade II.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Grenade_II.png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Rocket II (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 137,
+    "internalName": "RocketII",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Rocket II",
+    "imageFileTitle": "Rocket II (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Rocket_II_(projectile).png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Mine II.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 138,
+    "internalName": "ProximityMineII",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Proximity Mine II",
+    "imageFileTitle": "Mine II.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mine_II.png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Grenade III.png",
+      "localNPCHitCooldown": -1,
+      "usesLocalNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 139,
+    "internalName": "GrenadeIII",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Grenade III",
+    "imageFileTitle": "Grenade III.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Grenade_III.png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Rocket III (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 140,
+    "internalName": "RocketIII",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Rocket III",
+    "imageFileTitle": "Rocket III (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Rocket_III_(projectile).png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Mine III.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 141,
+    "internalName": "ProximityMineIII",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Proximity Mine III",
+    "imageFileTitle": "Mine III.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mine_III.png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Grenade IV.png",
+      "localNPCHitCooldown": -1,
+      "usesLocalNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 142,
+    "internalName": "GrenadeIV",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Grenade IV",
+    "imageFileTitle": "Grenade IV.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Grenade_IV.png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Rocket IV (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 143,
+    "internalName": "RocketIV",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Rocket IV",
+    "imageFileTitle": "Rocket IV (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Rocket_IV_(projectile).png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Mine IV.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 144,
+    "internalName": "ProximityMineIV",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Proximity Mine IV",
+    "imageFileTitle": "Mine IV.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mine_IV.png"
+  },
+  {
+    "aiStyle": 31,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 6,
+      "scale": null,
+      "width": 6
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Pure Spray.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 145,
+    "internalName": "PureSpray",
+    "lifecycle": {
+      "extraUpdates": 2,
+      "timeLeft": null
+    },
+    "name": "Pure Spray",
+    "imageFileTitle": "Pure Spray.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pure_Spray.png"
+  },
+  {
+    "aiStyle": 31,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 6,
+      "scale": null,
+      "width": 6
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Hallow Spray.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 146,
+    "internalName": "HallowSpray",
+    "lifecycle": {
+      "extraUpdates": 2,
+      "timeLeft": null
+    },
+    "name": "Hallow Spray",
+    "imageFileTitle": "Hallow Spray.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Hallow_Spray.png"
+  },
+  {
+    "aiStyle": 31,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 6,
+      "scale": null,
+      "width": 6
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Corrupt Spray.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 147,
+    "internalName": "CorruptSpray",
+    "lifecycle": {
+      "extraUpdates": 2,
+      "timeLeft": null
+    },
+    "name": "Corrupt Spray",
+    "imageFileTitle": "Corrupt Spray.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Corrupt_Spray.png"
+  },
+  {
+    "aiStyle": 31,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 6,
+      "scale": null,
+      "width": 6
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Mushroom Spray.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 148,
+    "internalName": "MushroomSpray",
+    "lifecycle": {
+      "extraUpdates": 2,
+      "timeLeft": null
+    },
+    "name": "Mushroom Spray",
+    "imageFileTitle": "Mushroom Spray.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mushroom_Spray.png"
+  },
+  {
+    "aiStyle": 31,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 6,
+      "scale": null,
+      "width": 6
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Amber Bolt.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 149,
+    "internalName": "CrimsonSpray",
+    "lifecycle": {
+      "extraUpdates": 2,
+      "timeLeft": null
+    },
+    "name": "Crimson Spray",
+    "imageFileTitle": "Amber Bolt.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Amber_Bolt.png"
+  },
+  {
+    "aiStyle": 4,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 28,
+      "scale": null,
+      "width": 28
+    },
+    "extras": {
+      "alpha": 255,
+      "armorPenetration": 10,
+      "image": "Nettle Burst (1).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 150,
+    "internalName": "NettleBurstRight",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Nettle Burst Right",
+    "imageFileTitle": "Nettle Burst (1).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Nettle_Burst_(1).png"
+  },
+  {
+    "aiStyle": 4,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 28,
+      "scale": null,
+      "width": 28
+    },
+    "extras": {
+      "alpha": 255,
+      "armorPenetration": 10,
+      "image": "Nettle Burst (2).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 151,
+    "internalName": "NettleBurstLeft",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Nettle Burst Left",
+    "imageFileTitle": "Nettle Burst (2).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Nettle_Burst_(2).png"
+  },
+  {
+    "aiStyle": 4,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 28,
+      "scale": null,
+      "width": 28
+    },
+    "extras": {
+      "alpha": 255,
+      "armorPenetration": 10,
+      "image": "Nettle Burst End.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 152,
+    "internalName": "NettleBurstEnd",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Nettle Burst End",
+    "imageFileTitle": "Nettle Burst End.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Nettle_Burst_End.png"
+  },
+  {
+    "aiStyle": 19,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 19,
+      "scale": 1.1,
+      "width": 19
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "The Rotted Fork (projectile).png",
+      "ownerHitCheck": true,
+      "usesOwnerLight": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 153,
+    "internalName": "TheRottedFork",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "The Rotted Fork",
+    "imageFileTitle": "The Rotted Fork (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/The_Rotted_Fork_(projectile).png"
+  },
+  {
+    "aiStyle": 15,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 17,
+      "scale": 0.8,
+      "width": 17
+    },
+    "extras": {
+      "drawLayer": 7,
+      "image": "The Meatball (projectile).png",
+      "localNPCHitCooldown": 10,
+      "netImportant": true,
+      "usesLocalNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 154,
+    "internalName": "TheMeatball",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "The Meatball",
+    "imageFileTitle": "The Meatball (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/The_Meatball_(projectile).png"
+  },
+  {
+    "aiStyle": 32,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 44,
+      "scale": null,
+      "width": 44
+    },
+    "extras": {
+      "image": "Beach Ball.png",
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 155,
+    "internalName": "BeachBall",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Beach Ball",
+    "imageFileTitle": "Beach Ball.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Beach_Ball.png"
+  },
+  {
+    "aiStyle": 27,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 2
+    },
+    "dimensions": {
+      "height": 16,
+      "scale": null,
+      "width": 16
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Excalibur Beam.png",
+      "light": 0.5,
+      "localNPCHitCooldown": 10,
+      "usesLocalNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 156,
+    "internalName": "LightBeam",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Light Beam",
+    "imageFileTitle": "Excalibur Beam.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Excalibur_Beam.png"
+  },
+  {
+    "aiStyle": 27,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 38,
+      "scale": 1.2,
+      "width": 38
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Night's Edge Beam.png",
+      "light": 0.5
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 157,
+    "internalName": "NightBeam",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Night Beam",
+    "imageFileTitle": "Night's Edge Beam.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Night's_Edge_Beam.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 4,
+      "scale": null,
+      "width": 4
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "C Shot.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 158,
+    "internalName": "CopperCoin",
+    "lifecycle": {
+      "extraUpdates": 1,
+      "timeLeft": 600
+    },
+    "name": "Copper Coin",
+    "imageFileTitle": "C Shot.png",
+    "imageUrl": "https://terraria.wiki.gg/images/C_Shot.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 4,
+      "scale": null,
+      "width": 4
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "S Shot.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 159,
+    "internalName": "SilverCoin",
+    "lifecycle": {
+      "extraUpdates": 1,
+      "timeLeft": 600
+    },
+    "name": "Silver Coin",
+    "imageFileTitle": "S Shot.png",
+    "imageUrl": "https://terraria.wiki.gg/images/S_Shot.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 4,
+      "scale": null,
+      "width": 4
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "G Shot.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 160,
+    "internalName": "GoldCoin",
+    "lifecycle": {
+      "extraUpdates": 1,
+      "timeLeft": 600
+    },
+    "name": "Gold Coin",
+    "imageFileTitle": "G Shot.png",
+    "imageUrl": "https://terraria.wiki.gg/images/G_Shot.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 4,
+      "scale": null,
+      "width": 4
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "P Shot.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 161,
+    "internalName": "PlatinumCoin",
+    "lifecycle": {
+      "extraUpdates": 1,
+      "timeLeft": 600
+    },
+    "name": "Platinum Coin",
+    "imageFileTitle": "P Shot.png",
+    "imageUrl": "https://terraria.wiki.gg/images/P_Shot.png"
+  },
+  {
+    "aiStyle": 2,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 4
+    },
+    "dimensions": {
+      "height": 16,
+      "scale": null,
+      "width": 16
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Cannonball (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 162,
+    "internalName": "CannonballFriendly",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Cannonball (friendly)",
+    "imageFileTitle": "Cannonball (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cannonball_(projectile).png"
+  },
+  {
+    "aiStyle": 33,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 6,
+      "scale": null,
+      "width": 6
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Flare Shot.png",
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 163,
+    "internalName": "Flare",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 36000
+    },
+    "name": "Flare",
+    "imageFileTitle": "Flare Shot.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Flare_Shot.png"
+  },
+  {
+    "aiStyle": 16,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 128,
+      "scale": null,
+      "width": 128
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Land Mine.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 164,
+    "internalName": "Landmine",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 2
+    },
+    "name": "Landmine",
+    "imageFileTitle": "Land Mine.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Land_Mine.png"
+  },
+  {
+    "aiStyle": 7,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 12,
+      "scale": null,
+      "width": 12
+    },
+    "extras": {
+      "image": "Web Shot.png",
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 165,
+    "internalName": "WebSlingerHook",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 36000
+    },
+    "name": "Web",
+    "imageFileTitle": "Web Shot.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Web_Shot.png"
+  },
+  {
+    "aiStyle": 2,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "coldDamage": true,
+      "image": "Snow Ball (friendly) (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 166,
+    "internalName": "SnowBallFriendly",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Snow Ball (friendly)",
+    "imageFileTitle": "Snow Ball (friendly) (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Snow_Ball_(friendly)_(projectile).png"
+  },
+  {
+    "aiStyle": 34,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "appliesImmunityTimeOnSingleHits": true,
+      "idStaticNPCHitCooldown": 1,
+      "image": "Red Firework Rocket (projectile).png",
+      "usesIDStaticNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 167,
+    "internalName": "RocketFireworkRed",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 45
+    },
+    "name": "Red Firework Rocket",
+    "imageFileTitle": "Red Firework Rocket (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Red_Firework_Rocket_(projectile).png"
+  },
+  {
+    "aiStyle": 34,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "appliesImmunityTimeOnSingleHits": true,
+      "idStaticNPCHitCooldown": 1,
+      "image": "Green Firework Rocket (projectile).png",
+      "usesIDStaticNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 168,
+    "internalName": "RocketFireworkGreen",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 45
+    },
+    "name": "Green Firework Rocket",
+    "imageFileTitle": "Green Firework Rocket (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Green_Firework_Rocket_(projectile).png"
+  },
+  {
+    "aiStyle": 34,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "appliesImmunityTimeOnSingleHits": true,
+      "idStaticNPCHitCooldown": 1,
+      "image": "Blue Firework Rocket (projectile).png",
+      "usesIDStaticNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 169,
+    "internalName": "RocketFireworkBlue",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 45
+    },
+    "name": "Blue Firework Rocket",
+    "imageFileTitle": "Blue Firework Rocket (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Blue_Firework_Rocket_(projectile).png"
+  },
+  {
+    "aiStyle": 34,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "appliesImmunityTimeOnSingleHits": true,
+      "idStaticNPCHitCooldown": 1,
+      "image": "Yellow Firework Rocket (projectile).png",
+      "usesIDStaticNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 170,
+    "internalName": "RocketFireworkYellow",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 45
+    },
+    "name": "Yellow Firework Rocket",
+    "imageFileTitle": "Yellow Firework Rocket (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Yellow_Firework_Rocket_(projectile).png"
+  },
+  {
+    "aiStyle": 35,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Rope Coil (projectile).png"
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 171,
+    "internalName": "RopeCoil",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 400
+    },
+    "name": "Rope Coil",
+    "imageFileTitle": "Rope Coil (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Rope_Coil_(projectile).png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "arrow": true,
+      "coldDamage": true,
+      "image": "Frostburn Arrow.png",
+      "light": 1
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 172,
+    "internalName": "FrostburnArrow",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 1200
+    },
+    "name": "Frostburn Arrow",
+    "imageFileTitle": "Frostburn Arrow.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Frostburn_Arrow.png"
+  },
+  {
+    "aiStyle": 27,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 16,
+      "scale": null,
+      "width": 16
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Enchanted Sword Beam.png",
+      "light": 0.2
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 173,
+    "internalName": "EnchantedBeam",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Enchanted Beam",
+    "imageFileTitle": "Enchanted Sword Beam.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Enchanted_Sword_Beam.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 6,
+      "scale": null,
+      "width": 6
+    },
+    "extras": {
+      "alpha": 255,
+      "coldDamage": true,
+      "image": "Ice Spike.png"
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 174,
+    "internalName": "IceSpike",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Ice Spike",
+    "imageFileTitle": "Ice Spike.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ice_Spike.png"
+  },
+  {
+    "aiStyle": 26,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 34,
+      "scale": null,
+      "width": 34
+    },
+    "extras": {
+      "image": "Baby Eater.gif"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 175,
+    "internalName": "BabyEater",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 18000
+    },
+    "name": "Baby Eater",
+    "imageFileTitle": "Baby Eater.gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Eater.gif"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 6,
+      "scale": null,
+      "width": 6
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Jungle Spike.png"
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 176,
+    "internalName": "JungleSpike",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Jungle Spike",
+    "imageFileTitle": "Jungle Spike.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Jungle_Spike.png"
+  },
+  {
+    "aiStyle": 28,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "alpha": 255,
+      "coldDamage": true,
+      "image": "Frost Bolt.png"
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 177,
+    "internalName": "IcewaterSpit",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Icewater Spit",
+    "imageFileTitle": "Frost Bolt.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Frost_Bolt.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Confetti.png"
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 178,
+    "internalName": "ConfettiGun",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 2
+    },
+    "name": "Confetti",
+    "imageFileTitle": "Confetti.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Confetti.png"
+  },
+  {
+    "aiStyle": 10,
+    "combat": {
+      "knockBack": 6,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Slush Ball.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 179,
+    "internalName": "SlushBall",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Slush Ball",
+    "imageFileTitle": "Slush Ball.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Slush_Ball.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 4,
+      "scale": 1.2,
+      "width": 4
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Bullet (projectile).png",
+      "light": 0.5
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 180,
+    "internalName": "BulletDeadeye",
+    "lifecycle": {
+      "extraUpdates": 1,
+      "timeLeft": 600
+    },
+    "name": "Deadeye Bullet",
+    "imageFileTitle": "Bullet (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Bullet_(projectile).png"
+  },
+  {
+    "aiStyle": 36,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 3
+    },
+    "dimensions": {
+      "height": 8,
+      "scale": null,
+      "width": 8
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Bee (projectile).gif",
+      "noEnchantmentVisuals": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 181,
+    "internalName": "Bee",
+    "lifecycle": {
+      "extraUpdates": 3,
+      "timeLeft": 600
+    },
+    "name": "Bee",
+    "imageFileTitle": "Bee (projectile).gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Bee_(projectile).gif"
+  },
+  {
+    "aiStyle": 3,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 10
+    },
+    "dimensions": {
+      "height": 30,
+      "scale": null,
+      "width": 30
+    },
+    "extras": {
+      "image": "Possessed Hatchet.png",
+      "light": 0.15
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": true,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 182,
+    "internalName": "PossessedHatchet",
+    "lifecycle": {
+      "extraUpdates": 1,
+      "timeLeft": null
+    },
+    "name": "Possessed Hatchet",
+    "imageFileTitle": "Possessed Hatchet.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Possessed_Hatchet.png"
+  },
+  {
+    "aiStyle": 14,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 22,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Beenade.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 183,
+    "internalName": "Beenade",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 180
+    },
+    "name": "Beenade",
+    "imageFileTitle": "Beenade.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Beenade.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Poison Dart (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": true
+    },
+    "id": 184,
+    "internalName": "PoisonDartTrap",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Poison Dart",
+    "imageFileTitle": "Poison Dart (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Poison_Dart_(projectile).png"
+  },
+  {
+    "aiStyle": 14,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 14
+    },
+    "extras": {
+      "image": "Spiky Ball Trap (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": true
+    },
+    "id": 185,
+    "internalName": "SpikyBallTrap",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 900
+    },
+    "name": "Spiky Ball",
+    "imageFileTitle": "Spiky Ball Trap (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Spiky_Ball_Trap_(projectile).png"
+  },
+  {
+    "aiStyle": 37,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 14,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Spear_Trap_Spear.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": true,
+      "ignoreWater": true,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": true
+    },
+    "id": 186,
+    "internalName": "SpearTrap",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 300
+    },
+    "name": "Spear",
+    "imageFileTitle": "Spear_Trap_Spear.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Spear_Trap_Spear.png"
+  },
+  {
+    "aiStyle": 38,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 6,
+      "scale": null,
+      "width": 6
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Flames (friendly) (projectile).png"
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": true
+    },
+    "id": 187,
+    "internalName": "FlamethrowerTrap",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 60
+    },
+    "name": "Flamethrower",
+    "imageFileTitle": "Flames (friendly) (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Flames_(friendly)_(projectile).png"
+  },
+  {
+    "aiStyle": 23,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 6,
+      "scale": null,
+      "width": 6
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Flames (friendly) (projectile).png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": true,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": true
+    },
+    "id": 188,
+    "internalName": "FlamesTrap",
+    "lifecycle": {
+      "extraUpdates": 2,
+      "timeLeft": null
+    },
+    "name": "Flames",
+    "imageFileTitle": "Flames (friendly) (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Flames_(friendly)_(projectile).png"
+  },
+  {
+    "aiStyle": 36,
+    "combat": {
+      "knockBack": null,
+      "penetrate": 3
+    },
+    "dimensions": {
+      "height": 8,
+      "scale": null,
+      "width": 8
+    },
+    "extras": {
+      "alpha": 255,
+      "armorPenetration": 10,
+      "idStaticNPCHitCooldown": 10,
+      "image": "Wasp.gif",
+      "usesIDStaticNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": true,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 189,
+    "internalName": "Wasp",
+    "lifecycle": {
+      "extraUpdates": 3,
+      "timeLeft": 600
+    },
+    "name": "Wasp",
+    "imageFileTitle": "Wasp.gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Wasp.gif"
+  },
+  {
+    "aiStyle": 39,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 22,
+      "scale": null,
+      "width": 22
+    },
+    "extras": {
+      "alpha": 255,
+      "image": "Piranha Gun (projectile).gif",
+      "localNPCHitCooldown": 14,
+      "usesLocalNPCImmunity": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": true,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 190,
+    "internalName": "MechanicalPiranha",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Mechanical Piranha",
+    "imageFileTitle": "Piranha Gun (projectile).gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Piranha_Gun_(projectile).gif"
+  },
+  {
+    "aiStyle": 26,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 18,
+      "scale": null,
+      "width": 18
+    },
+    "extras": {
+      "image": "Pygmy 1.png",
+      "minion": true,
+      "minionSlots": 1,
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 191,
+    "internalName": "Pygmy",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 18000
+    },
+    "name": "Pygmy 1",
+    "imageFileTitle": "Pygmy 1.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pygmy_1.png"
+  },
+  {
+    "aiStyle": 26,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 18,
+      "scale": 1.025,
+      "width": 18
+    },
+    "extras": {
+      "image": "Pygmy 2.png",
+      "minion": true,
+      "minionSlots": 1,
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 192,
+    "internalName": "Pygmy2",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 18000
+    },
+    "name": "Pygmy 2",
+    "imageFileTitle": "Pygmy 2.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pygmy_2.png"
+  },
+  {
+    "aiStyle": 26,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 18,
+      "scale": 1.05,
+      "width": 18
+    },
+    "extras": {
+      "image": "Pygmy 3.png",
+      "minion": true,
+      "minionSlots": 1,
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 193,
+    "internalName": "Pygmy3",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 18000
+    },
+    "name": "Pygmy 3",
+    "imageFileTitle": "Pygmy 3.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pygmy_3.png"
+  },
+  {
+    "aiStyle": 26,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 19,
+      "scale": 1.075,
+      "width": 19
+    },
+    "extras": {
+      "image": "Pygmy 4.png",
+      "minion": true,
+      "minionSlots": 1,
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 194,
+    "internalName": "Pygmy4",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 18000
+    },
+    "name": "Pygmy 4",
+    "imageFileTitle": "Pygmy 4.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pygmy_4.png"
+  },
+  {
+    "aiStyle": 1,
+    "combat": {
+      "knockBack": null,
+      "penetrate": null
+    },
+    "dimensions": {
+      "height": 10,
+      "scale": null,
+      "width": 10
+    },
+    "extras": {
+      "image": "Pygmy Spear.png"
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": false,
+      "trap": null
+    },
+    "id": 195,
+    "internalName": "PygmySpear",
+    "lifecycle": {
+      "extraUpdates": 1,
+      "timeLeft": null
+    },
+    "name": "Pygmy Spear",
+    "imageFileTitle": "Pygmy Spear.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pygmy_Spear.png"
+  },
+  {
+    "aiStyle": 14,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 12,
+      "scale": 0.8,
+      "width": 12
+    },
+    "extras": {
+      "image": "Smoke Bomb (projectile).png"
+    },
+    "flags": {
+      "friendly": null,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 196,
+    "internalName": "SmokeBomb",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": null
+    },
+    "name": "Smoke Bomb",
+    "imageFileTitle": "Smoke Bomb (projectile).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Smoke_Bomb_(projectile).png"
+  },
+  {
+    "aiStyle": 26,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 42,
+      "scale": null,
+      "width": 42
+    },
+    "extras": {
+      "image": "Baby Skeletron Head.png",
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 197,
+    "internalName": "BabySkeletronHead",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 18000
+    },
+    "name": "Baby Skeletron Head",
+    "imageFileTitle": "Baby Skeletron Head.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Skeletron_Head.png"
+  },
+  {
+    "aiStyle": 26,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 26,
+      "scale": null,
+      "width": 26
+    },
+    "extras": {
+      "image": "Baby Hornet.gif",
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": null,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 198,
+    "internalName": "BabyHornet",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 18000
+    },
+    "name": "Baby Hornet",
+    "imageFileTitle": "Baby Hornet.gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Hornet.gif"
+  },
+  {
+    "aiStyle": 26,
+    "combat": {
+      "knockBack": null,
+      "penetrate": -1
+    },
+    "dimensions": {
+      "height": 28,
+      "scale": null,
+      "width": 28
+    },
+    "extras": {
+      "image": "Tiki Spirit.gif",
+      "netImportant": true
+    },
+    "flags": {
+      "friendly": true,
+      "hostile": null,
+      "ignoreWater": true,
+      "magic": null,
+      "melee": null,
+      "ranged": null,
+      "sentry": null,
+      "summon": null,
+      "tileCollide": null,
+      "trap": null
+    },
+    "id": 199,
+    "internalName": "TikiSpirit",
+    "lifecycle": {
+      "extraUpdates": null,
+      "timeLeft": 18000
+    },
+    "name": "Tiki Spirit",
+    "imageFileTitle": "Tiki Spirit.gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Tiki_Spirit.gif"
+  }
+]

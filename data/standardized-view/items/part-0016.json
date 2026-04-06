@@ -1,0 +1,5927 @@
+[
+  {
+    "categoryCode": "CONSUMABLE",
+    "description": null,
+    "economy": {
+      "buy": 500,
+      "sell": 100
+    },
+    "id": 3001,
+    "internalName": "StrangeBrew",
+    "name": "Strange Brew",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 17,
+      "width": 14
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Strange Brew.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Strange_Brew.png?a16f3c",
+    "imageWidth": 18,
+    "imageHeight": 30,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 150,
+      "sell": 30
+    },
+    "id": 3002,
+    "internalName": "SpelunkerGlowstick",
+    "name": "Spelunker Glowstick",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Spelunker Glowstick.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Spelunker_Glowstick.png?6ea748",
+    "imageWidth": 18,
+    "imageHeight": 18,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 15,
+      "sell": 3
+    },
+    "id": 3003,
+    "internalName": "BoneArrow",
+    "name": "Bone Arrow",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 8,
+      "defense": 0,
+      "height": 28,
+      "knockback": 3,
+      "useTime": 0,
+      "width": 10
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Bone Arrow.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Bone_Arrow.png?d50e52",
+    "imageWidth": 14,
+    "imageHeight": 36,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 100,
+      "sell": 20
+    },
+    "id": 3004,
+    "internalName": "BoneTorch",
+    "name": "Bone Torch",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 10
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "CONSUMABLE",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3005,
+    "internalName": "VineRopeCoil",
+    "name": "Vine Rope Coil",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 20,
+      "width": 18
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 400000,
+      "sell": 80000
+    },
+    "id": 3006,
+    "internalName": "SoulDrain",
+    "name": "Life Drain",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 35,
+      "defense": 0,
+      "height": 28,
+      "knockback": 3,
+      "useTime": 12,
+      "width": 26
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Life Drain.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Life_Drain.png?7a8974",
+    "imageWidth": 32,
+    "imageHeight": 30,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 400000,
+      "sell": 80000
+    },
+    "id": 3007,
+    "internalName": "DartPistol",
+    "name": "Dart Pistol",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 28,
+      "defense": 0,
+      "height": 6,
+      "knockback": 4,
+      "useTime": 22,
+      "width": 38
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Dart Pistol.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Dart_Pistol.png?6361f2",
+    "imageWidth": 54,
+    "imageHeight": 28,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 400000,
+      "sell": 80000
+    },
+    "id": 3008,
+    "internalName": "DartRifle",
+    "name": "Dart Rifle",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 52,
+      "defense": 0,
+      "height": 6,
+      "knockback": 6,
+      "useTime": 38,
+      "width": 38
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Dart Rifle.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Dart_Rifle.png?fbd34b",
+    "imageWidth": 62,
+    "imageHeight": 32,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 30,
+      "sell": 6
+    },
+    "id": 3009,
+    "internalName": "CrystalDart",
+    "name": "Crystal Dart",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 14,
+      "defense": 0,
+      "height": 8,
+      "knockback": 4,
+      "useTime": 0,
+      "width": 8
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Crystal Dart.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Crystal_Dart.png?976ea3",
+    "imageWidth": 14,
+    "imageHeight": 28,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 30,
+      "sell": 6
+    },
+    "id": 3010,
+    "internalName": "CursedDart",
+    "name": "Cursed Dart",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 9,
+      "defense": 0,
+      "height": 8,
+      "knockback": 2,
+      "useTime": 0,
+      "width": 8
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Cursed Dart.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cursed_Dart.png?1850fa",
+    "imageWidth": 14,
+    "imageHeight": 28,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 30,
+      "sell": 6
+    },
+    "id": 3011,
+    "internalName": "IchorDart",
+    "name": "Ichor Dart",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 7,
+      "defense": 0,
+      "height": 8,
+      "knockback": 3,
+      "useTime": 0,
+      "width": 8
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Ichor Dart.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ichor_Dart.png?c3bd2f",
+    "imageWidth": 14,
+    "imageHeight": 30,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 400000,
+      "sell": 80000
+    },
+    "id": 3012,
+    "internalName": "ChainGuillotines",
+    "name": "Chain Guillotines",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 59,
+      "defense": 0,
+      "height": 10,
+      "knockback": 3,
+      "useTime": 14,
+      "width": 30
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Chain Guillotines.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Chain_Guillotines.png?af4d93",
+    "imageWidth": 42,
+    "imageHeight": 34,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 400000,
+      "sell": 80000
+    },
+    "id": 3013,
+    "internalName": "FetidBaghnakhs",
+    "name": "Fetid Baghnakhs",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 60,
+      "defense": 0,
+      "height": 28,
+      "knockback": 6,
+      "useTime": 8,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Fetid Baghnakhs.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Fetid_Baghnakhs.png?526e1b",
+    "imageWidth": 32,
+    "imageHeight": 30,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 400000,
+      "sell": 80000
+    },
+    "id": 3014,
+    "internalName": "ClingerStaff",
+    "name": "Clinger Staff",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 43,
+      "defense": 0,
+      "height": 28,
+      "knockback": 8,
+      "useTime": 24,
+      "width": 26
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Clinger Staff.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Clinger_Staff.png?ed897a",
+    "imageWidth": 38,
+    "imageHeight": 38,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 400000,
+      "sell": 80000
+    },
+    "id": 3015,
+    "internalName": "PutridScent",
+    "name": "Putrid Scent",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Putrid Scent.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Putrid_Scent.png?13ab7b",
+    "imageWidth": 20,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 400000,
+      "sell": 80000
+    },
+    "id": 3016,
+    "internalName": "FleshKnuckles",
+    "name": "Flesh Knuckles",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 8,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Flesh Knuckles.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Flesh_Knuckles.png?6ed32a",
+    "imageWidth": 30,
+    "imageHeight": 26,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 300000,
+      "sell": 60000
+    },
+    "id": 3017,
+    "internalName": "FlowerBoots",
+    "name": "Flower Boots",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 16
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Flower Boots.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Flower_Boots.png?e68a47",
+    "imageWidth": 30,
+    "imageHeight": 28,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 500000,
+      "sell": 100000
+    },
+    "id": 3018,
+    "internalName": "Seedler",
+    "name": "Seedler",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 50,
+      "defense": 0,
+      "height": 20,
+      "knockback": 6,
+      "useTime": 23,
+      "width": 50
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Seedler.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Seedler.png?89d369",
+    "imageWidth": 44,
+    "imageHeight": 68,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 125000,
+      "sell": 25000
+    },
+    "id": 3019,
+    "internalName": "HellwingBow",
+    "name": "Hellwing Bow",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 22,
+      "defense": 0,
+      "height": 46,
+      "knockback": 6,
+      "useTime": 13,
+      "width": 18
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Hellwing Bow.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Hellwing_Bow.png?c20680",
+    "imageWidth": 18,
+    "imageHeight": 46,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 300000,
+      "sell": 60000
+    },
+    "id": 3020,
+    "internalName": "TendonHook",
+    "name": "Tendon Hook",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 18
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 300000,
+      "sell": 60000
+    },
+    "id": 3021,
+    "internalName": "ThornHook",
+    "name": "Thorn Hook",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 18
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 300000,
+      "sell": 60000
+    },
+    "id": 3022,
+    "internalName": "IlluminantHook",
+    "name": "Illuminant Hook",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 18
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 300000,
+      "sell": 60000
+    },
+    "id": 3023,
+    "internalName": "WormHook",
+    "name": "Worm Hook",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 18
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 150000,
+      "sell": 30000
+    },
+    "id": 3024,
+    "internalName": "DevDye",
+    "name": "Skiphs' Blood",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Skiphs' Blood.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Skiphs%27_Blood.png?7f6874",
+    "imageWidth": 16,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 37500,
+      "sell": 7500
+    },
+    "id": 3025,
+    "internalName": "PurpleOozeDye",
+    "name": "Purple Ooze Dye",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Purple Ooze Dye.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Purple_Ooze_Dye.png?fc1813",
+    "imageWidth": 16,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 37500,
+      "sell": 7500
+    },
+    "id": 3026,
+    "internalName": "ReflectiveSilverDye",
+    "name": "Reflective Silver Dye",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Reflective Silver Dye.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Reflective_Silver_Dye.png?a3dd49",
+    "imageWidth": 16,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 37500,
+      "sell": 7500
+    },
+    "id": 3027,
+    "internalName": "ReflectiveGoldDye",
+    "name": "Reflective Gold Dye",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Reflective Gold Dye.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Reflective_Gold_Dye.png?b8d380",
+    "imageWidth": 16,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 37500,
+      "sell": 7500
+    },
+    "id": 3028,
+    "internalName": "BlueAcidDye",
+    "name": "Blue Acid Dye",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Blue Acid Dye.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Blue_Acid_Dye.png?2b7b73",
+    "imageWidth": 16,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 400000,
+      "sell": 80000
+    },
+    "id": 3029,
+    "internalName": "DaedalusStormbow",
+    "name": "Daedalus Stormbow",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 38,
+      "defense": 0,
+      "height": 60,
+      "knockback": 2,
+      "useTime": 19,
+      "width": 28
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Daedalus Stormbow.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Daedalus_Stormbow.png?4a68a5",
+    "imageWidth": 30,
+    "imageHeight": 62,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 400000,
+      "sell": 80000
+    },
+    "id": 3030,
+    "internalName": "FlyingKnife",
+    "name": "Flying Knife",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 40,
+      "defense": 0,
+      "height": 28,
+      "knockback": 5,
+      "useTime": 15,
+      "width": 26
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Flying Knife.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Flying_Knife.png?147c59",
+    "imageWidth": 26,
+    "imageHeight": 34,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 500000,
+      "sell": 100000
+    },
+    "id": 3031,
+    "internalName": "BottomlessBucket",
+    "name": "Bottomless Water Bucket",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 12,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 500000,
+      "sell": 100000
+    },
+    "id": 3032,
+    "internalName": "SuperAbsorbantSponge",
+    "name": "Super Absorbant Sponge",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 12,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 50000,
+      "sell": 10000
+    },
+    "id": 3033,
+    "internalName": "GoldRing",
+    "name": "Gold Ring",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 16
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Gold Ring.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Gold_Ring.png?aa89ac",
+    "imageWidth": 28,
+    "imageHeight": 20,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 100000,
+      "sell": 20000
+    },
+    "id": 3034,
+    "internalName": "CoinRing",
+    "name": "Coin Ring",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 16
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Coin Ring.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Coin_Ring.png?4e1bfe",
+    "imageWidth": 28,
+    "imageHeight": 20,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 150000,
+      "sell": 30000
+    },
+    "id": 3035,
+    "internalName": "GreedyRing",
+    "name": "Greedy Ring",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 16
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Greedy Ring.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Greedy_Ring.png?35dc8f",
+    "imageWidth": 28,
+    "imageHeight": 20,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 150000,
+      "sell": 30000
+    },
+    "id": 3036,
+    "internalName": "FishFinder",
+    "name": "Fish Finder",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Fish Finder.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Fish_Finder.png?a52ce5",
+    "imageWidth": 30,
+    "imageHeight": 34,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 50000,
+      "sell": 10000
+    },
+    "id": 3037,
+    "internalName": "WeatherRadio",
+    "name": "Weather Radio",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Weather Radio.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Weather_Radio.png?b4ac68",
+    "imageWidth": 34,
+    "imageHeight": 32,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 75000,
+      "sell": 15000
+    },
+    "id": 3038,
+    "internalName": "HadesDye",
+    "name": "Hades Dye",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Hades Dye.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Hades_Dye.png?214db9",
+    "imageWidth": 16,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 75000,
+      "sell": 15000
+    },
+    "id": 3039,
+    "internalName": "TwilightDye",
+    "name": "Twilight Dye",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Twilight Dye.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Twilight_Dye.png?ec0025",
+    "imageWidth": 16,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 37500,
+      "sell": 7500
+    },
+    "id": 3040,
+    "internalName": "AcidDye",
+    "name": "Acid Dye",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Acid Dye.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Acid_Dye.png?824011",
+    "imageWidth": 16,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 37500,
+      "sell": 7500
+    },
+    "id": 3041,
+    "internalName": "MushroomDye",
+    "name": "Glowing Mushroom Dye",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Glowing Mushroom Dye.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Glowing_Mushroom_Dye.png?4d15d8",
+    "imageWidth": 16,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 75000,
+      "sell": 15000
+    },
+    "id": 3042,
+    "internalName": "PhaseDye",
+    "name": "Phase Dye",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Phase Dye.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Phase_Dye.png?d284ed",
+    "imageWidth": 16,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 100000,
+      "sell": 20000
+    },
+    "id": 3043,
+    "internalName": "MagicLantern",
+    "name": "Magic Lantern",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 30,
+      "knockback": 0,
+      "useTime": 20,
+      "width": 16
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Magic Lantern.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Magic_Lantern.png?6af00b",
+    "imageWidth": 16,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 100000,
+      "sell": 20000
+    },
+    "id": 3044,
+    "internalName": "MusicBoxLunarBoss",
+    "name": "Music Box (Lunar Boss)",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 250,
+      "sell": 50
+    },
+    "id": 3045,
+    "internalName": "RainbowTorch",
+    "name": "Rainbow Torch",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 10
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3046,
+    "internalName": "CursedCampfire",
+    "name": "Cursed Campfire",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3047,
+    "internalName": "DemonCampfire",
+    "name": "Demon Campfire",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3048,
+    "internalName": "FrozenCampfire",
+    "name": "Frozen Campfire",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3049,
+    "internalName": "IchorCampfire",
+    "name": "Ichor Campfire",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3050,
+    "internalName": "RainbowCampfire",
+    "name": "Rainbow Campfire",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 400000,
+      "sell": 80000
+    },
+    "id": 3051,
+    "internalName": "CrystalVileShard",
+    "name": "Crystal Vile Shard",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 25,
+      "defense": 0,
+      "height": 28,
+      "knockback": 3,
+      "useTime": 33,
+      "width": 26
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Crystal Vile Shard.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Crystal_Vile_Shard.png?337245",
+    "imageWidth": 32,
+    "imageHeight": 32,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 100000,
+      "sell": 20000
+    },
+    "id": 3052,
+    "internalName": "ShadowFlameBow",
+    "name": "Shadowflame Bow",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 47,
+      "defense": 0,
+      "height": 32,
+      "knockback": 5,
+      "useTime": 20,
+      "width": 14
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Shadowflame Bow.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Shadowflame_Bow.png?22b01c",
+    "imageWidth": 20,
+    "imageHeight": 40,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 100000,
+      "sell": 20000
+    },
+    "id": 3053,
+    "internalName": "ShadowFlameHexDoll",
+    "name": "Shadowflame Hex Doll",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 32,
+      "defense": 0,
+      "height": 28,
+      "knockback": 4,
+      "useTime": 21,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Shadowflame Hex Doll.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Shadowflame_Hex_Doll.png?3b1e86",
+    "imageWidth": 34,
+    "imageHeight": 34,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 100000,
+      "sell": 20000
+    },
+    "id": 3054,
+    "internalName": "ShadowFlameKnife",
+    "name": "Shadowflame Knife",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 43,
+      "defense": 0,
+      "height": 20,
+      "knockback": 6,
+      "useTime": 12,
+      "width": 18
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Shadowflame Knife.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Shadowflame_Knife.png?fa6ef7",
+    "imageWidth": 14,
+    "imageHeight": 30,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 5000,
+      "sell": 1000
+    },
+    "id": 3055,
+    "internalName": "PaintingAcorns",
+    "name": "Acorns",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 30,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 30
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 5000,
+      "sell": 1000
+    },
+    "id": 3056,
+    "internalName": "PaintingColdSnap",
+    "name": "Cold Snap",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 30,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 30
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 5000,
+      "sell": 1000
+    },
+    "id": 3057,
+    "internalName": "PaintingCursedSaint",
+    "name": "Cursed Saint",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 30,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 30
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 5000,
+      "sell": 1000
+    },
+    "id": 3058,
+    "internalName": "PaintingSnowfellas",
+    "name": "Snowfellas",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 30,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 30
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 5000,
+      "sell": 1000
+    },
+    "id": 3059,
+    "internalName": "PaintingTheSeason",
+    "name": "The Season",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 30,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 30
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 375000,
+      "sell": 75000
+    },
+    "id": 3060,
+    "internalName": "BoneRattle",
+    "name": "Bone Rattle",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 30,
+      "knockback": 0,
+      "useTime": 20,
+      "width": 16
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Bone Rattle.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Bone_Rattle.png?e13e29",
+    "imageWidth": 28,
+    "imageHeight": 28,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 200000,
+      "sell": 40000
+    },
+    "id": 3061,
+    "internalName": "ArchitectGizmoPack",
+    "name": "Architect Gizmo Pack",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 30,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 30
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Architect Gizmo Pack.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Architect_Gizmo_Pack.png?b8b4e1",
+    "imageWidth": 30,
+    "imageHeight": 34,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 75000,
+      "sell": 15000
+    },
+    "id": 3062,
+    "internalName": "CrimsonHeart",
+    "name": "Crimson Heart",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 20,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Crimson Heart.gif",
+    "imageUrl": "https://terraria.wiki.gg/images/Crimson_Heart.gif?7ac9d5",
+    "imageWidth": 32,
+    "imageHeight": 32,
+    "imageContentType": "image/gif"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 1000000,
+      "sell": 200000
+    },
+    "id": 3063,
+    "internalName": "Meowmere",
+    "name": "Meowmere",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 200,
+      "defense": 0,
+      "height": 30,
+      "knockback": 7,
+      "useTime": 14,
+      "width": 30
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Meowmere.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Meowmere.png?3947a6",
+    "imageWidth": 50,
+    "imageHeight": 58,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 150000,
+      "sell": 30000
+    },
+    "id": 3064,
+    "internalName": "Sundial",
+    "name": "Enchanted Sundial",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 34,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 18
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Enchanted Sundial.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Enchanted_Sundial.png?7339a0",
+    "imageWidth": 20,
+    "imageHeight": 38,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 1000000,
+      "sell": 200000
+    },
+    "id": 3065,
+    "internalName": "StarWrath",
+    "name": "Star Wrath",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 170,
+      "defense": 0,
+      "height": 30,
+      "knockback": 7,
+      "useTime": 16,
+      "width": 30
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Star Wrath.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Star_Wrath.png?8b7056",
+    "imageWidth": 46,
+    "imageHeight": 54,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3066,
+    "internalName": "MarbleBlock",
+    "name": "Smooth Marble Block",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Smooth Marble Block.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Smooth_Marble_Block.png?3748c2",
+    "imageWidth": 16,
+    "imageHeight": 16,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3067,
+    "internalName": "HellstoneBrickWall",
+    "name": "Hellstone Brick Wall",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Hellstone Brick Wall.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Hellstone_Brick_Wall.png?a6b649",
+    "imageWidth": 24,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 25000,
+      "sell": 5000
+    },
+    "id": 3068,
+    "internalName": "CordageGuide",
+    "name": "Guide to Plant Fiber Cordage",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 16
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Guide to Plant Fiber Cordage.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Guide_to_Plant_Fiber_Cordage.png?ca6d68",
+    "imageWidth": 24,
+    "imageHeight": 32,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 10000,
+      "sell": 2000
+    },
+    "id": 3069,
+    "internalName": "WandofSparking",
+    "name": "Wand of Sparking",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 14,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 26,
+      "width": 26
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Wand of Sparking.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Wand_of_Sparking.png?8e0b0e",
+    "imageWidth": 26,
+    "imageHeight": 28,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 500000,
+      "sell": 100000
+    },
+    "id": 3070,
+    "internalName": "GoldBirdCage",
+    "name": "Gold Bird Cage",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 500000,
+      "sell": 100000
+    },
+    "id": 3071,
+    "internalName": "GoldBunnyCage",
+    "name": "Gold Bunny Cage",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 500000,
+      "sell": 100000
+    },
+    "id": 3072,
+    "internalName": "GoldButterflyCage",
+    "name": "Gold Butterfly Jar",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 500000,
+      "sell": 100000
+    },
+    "id": 3073,
+    "internalName": "GoldFrogCage",
+    "name": "Gold Frog Cage",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 500000,
+      "sell": 100000
+    },
+    "id": 3074,
+    "internalName": "GoldGrasshopperCage",
+    "name": "Gold Grasshopper Cage",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 500000,
+      "sell": 100000
+    },
+    "id": 3075,
+    "internalName": "GoldMouseCage",
+    "name": "Gold Mouse Cage",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 500000,
+      "sell": 100000
+    },
+    "id": 3076,
+    "internalName": "GoldWormCage",
+    "name": "Gold Worm Cage",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 10,
+      "sell": 2
+    },
+    "id": 3077,
+    "internalName": "SilkRope",
+    "name": "Silk Rope",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 10,
+      "sell": 2
+    },
+    "id": 3078,
+    "internalName": "WebRope",
+    "name": "Web Rope",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "CONSUMABLE",
+    "description": null,
+    "economy": {
+      "buy": 100,
+      "sell": 20
+    },
+    "id": 3079,
+    "internalName": "SilkRopeCoil",
+    "name": "Silk Rope Coil",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 20,
+      "width": 18
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "CONSUMABLE",
+    "description": null,
+    "economy": {
+      "buy": 100,
+      "sell": 20
+    },
+    "id": 3080,
+    "internalName": "WebRopeCoil",
+    "name": "Web Rope Coil",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 20,
+      "width": 18
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3081,
+    "internalName": "Marble",
+    "name": "Marble Block",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Marble Block.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Marble_Block.png?2be326",
+    "imageWidth": 16,
+    "imageHeight": 16,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3082,
+    "internalName": "MarbleWall",
+    "name": "Marble Wall",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Marble Wall.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Marble_Wall.png?5c473e",
+    "imageWidth": 24,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3083,
+    "internalName": "MarbleBlockWall",
+    "name": "Smooth Marble Wall",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Smooth Marble Wall.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Smooth_Marble_Wall.png?5d8028",
+    "imageWidth": 24,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 25000,
+      "sell": 5000
+    },
+    "id": 3084,
+    "internalName": "Radar",
+    "name": "Radar",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 18,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Radar.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Radar.png?483562",
+    "imageWidth": 30,
+    "imageHeight": 32,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 20000,
+      "sell": 4000
+    },
+    "id": 3085,
+    "internalName": "LockBox",
+    "name": "Golden Lock Box",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Golden Lock Box.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Golden_Lock_Box.png?fb4788",
+    "imageWidth": 32,
+    "imageHeight": 22,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3086,
+    "internalName": "Granite",
+    "name": "Granite Block",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Granite Block.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Granite_Block.png?ec19bc",
+    "imageWidth": 16,
+    "imageHeight": 16,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3087,
+    "internalName": "GraniteBlock",
+    "name": "Smooth Granite Block",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Smooth Granite Block.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Smooth_Granite_Block.png?b629ed",
+    "imageWidth": 16,
+    "imageHeight": 16,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3088,
+    "internalName": "GraniteWall",
+    "name": "Granite Wall",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Granite Wall.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Granite_Wall.png?66c11a",
+    "imageWidth": 24,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3089,
+    "internalName": "GraniteBlockWall",
+    "name": "Smooth Granite Wall",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Smooth Granite Wall.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Smooth_Granite_Wall.png?c18621",
+    "imageWidth": 24,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 100000,
+      "sell": 20000
+    },
+    "id": 3090,
+    "internalName": "RoyalGel",
+    "name": "Royal Gel",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 16
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Royal Gel.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Royal_Gel.png?ec1877",
+    "imageWidth": 32,
+    "imageHeight": 30,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3091,
+    "internalName": "NightKey",
+    "name": "Key of Night",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 20,
+      "width": 14
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Key of Night.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Key_of_Night.png?253716",
+    "imageWidth": 14,
+    "imageHeight": 22,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3092,
+    "internalName": "LightKey",
+    "name": "Key of Light",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 20,
+      "width": 14
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Key of Light.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Key_of_Light.png?66e863",
+    "imageWidth": 14,
+    "imageHeight": 22,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 5000,
+      "sell": 1000
+    },
+    "id": 3093,
+    "internalName": "HerbBag",
+    "name": "Herb Bag",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Herb Bag.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Herb_Bag.png?9a7ea3",
+    "imageWidth": 26,
+    "imageHeight": 34,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 25,
+      "sell": 5
+    },
+    "id": 3094,
+    "internalName": "Javelin",
+    "name": "Javelin",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 17,
+      "defense": 0,
+      "height": 30,
+      "knockback": 5,
+      "useTime": 24,
+      "width": 30
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Javelin.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Javelin.png?8f2069",
+    "imageWidth": 40,
+    "imageHeight": 40,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 50000,
+      "sell": 10000
+    },
+    "id": 3095,
+    "internalName": "TallyCounter",
+    "name": "Tally Counter",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 18,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Tally Counter.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Tally_Counter.png?a0a525",
+    "imageWidth": 28,
+    "imageHeight": 28,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 50000,
+      "sell": 10000
+    },
+    "id": 3096,
+    "internalName": "Sextant",
+    "name": "Sextant",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 18,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Sextant.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Sextant.png?7ce6de",
+    "imageWidth": 32,
+    "imageHeight": 32,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 100000,
+      "sell": 20000
+    },
+    "id": 3097,
+    "internalName": "EoCShield",
+    "name": "Shield of Cthulhu",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 30,
+      "defense": 2,
+      "height": 28,
+      "knockback": 9,
+      "useTime": 0,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Shield of Cthulhu.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Shield_of_Cthulhu.png?87afd9",
+    "imageWidth": 30,
+    "imageHeight": 32,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "AXE",
+    "description": null,
+    "economy": {
+      "buy": 500000,
+      "sell": 100000
+    },
+    "id": 3098,
+    "internalName": "ButchersChainsaw",
+    "name": "Butcher's Chainsaw",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 120,
+      "defense": 0,
+      "height": 20,
+      "knockback": 8,
+      "useTime": 15,
+      "width": 54
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Butcher's Chainsaw.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Butcher%27s_Chainsaw.png?2e1832",
+    "imageWidth": 68,
+    "imageHeight": 26,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 50000,
+      "sell": 10000
+    },
+    "id": 3099,
+    "internalName": "Stopwatch",
+    "name": "Stopwatch",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 18,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Stopwatch.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Stopwatch.png?2a1219",
+    "imageWidth": 28,
+    "imageHeight": 32,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3100,
+    "internalName": "MeteoriteBrick",
+    "name": "Meteorite Brick",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Meteorite Brick.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Meteorite_Brick.png?3ddbce",
+    "imageWidth": 16,
+    "imageHeight": 16,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3101,
+    "internalName": "MeteoriteBrickWall",
+    "name": "Meteorite Brick Wall",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Meteorite Brick Wall.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Meteorite_Brick_Wall.png?13d211",
+    "imageWidth": 24,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 50000,
+      "sell": 10000
+    },
+    "id": 3102,
+    "internalName": "MetalDetector",
+    "name": "Metal Detector",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 18,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Metal Detector.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Metal_Detector.png?390be5",
+    "imageWidth": 32,
+    "imageHeight": 32,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 50000,
+      "sell": 10000
+    },
+    "id": 3103,
+    "internalName": "EndlessQuiver",
+    "name": "Endless Quiver",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 5,
+      "defense": 0,
+      "height": 26,
+      "knockback": 2,
+      "useTime": 0,
+      "width": 26
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Endless Quiver.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Endless_Quiver.png?24d454",
+    "imageWidth": 32,
+    "imageHeight": 32,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 50000,
+      "sell": 10000
+    },
+    "id": 3104,
+    "internalName": "EndlessMusketPouch",
+    "name": "Endless Musket Pouch",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 7,
+      "defense": 0,
+      "height": 26,
+      "knockback": 2,
+      "useTime": 0,
+      "width": 26
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Endless Musket Pouch.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Endless_Musket_Pouch.png?6be2c6",
+    "imageWidth": 26,
+    "imageHeight": 34,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 500000,
+      "sell": 100000
+    },
+    "id": 3105,
+    "internalName": "ToxicFlask",
+    "name": "Toxic Flask",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 52,
+      "defense": 0,
+      "height": 20,
+      "knockback": 4,
+      "useTime": 45,
+      "width": 18
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Toxic Flask.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Toxic_Flask.png?6b5195",
+    "imageWidth": 28,
+    "imageHeight": 28,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 500000,
+      "sell": 100000
+    },
+    "id": 3106,
+    "internalName": "PsychoKnife",
+    "name": "Psycho Knife",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 85,
+      "defense": 0,
+      "height": 30,
+      "knockback": 4,
+      "useTime": 8,
+      "width": 30
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Psycho Knife.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Psycho_Knife.png?2d3272",
+    "imageWidth": 30,
+    "imageHeight": 32,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 500000,
+      "sell": 100000
+    },
+    "id": 3107,
+    "internalName": "NailGun",
+    "name": "Nail Gun",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 85,
+      "defense": 0,
+      "height": 18,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 50
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Nail.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Nail.png?2506b7",
+    "imageWidth": 10,
+    "imageHeight": 20,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 100,
+      "sell": 20
+    },
+    "id": 3108,
+    "internalName": "Nail",
+    "name": "Nail",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 30,
+      "defense": 0,
+      "height": 8,
+      "knockback": 3,
+      "useTime": 0,
+      "width": 8
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "HELMET",
+    "description": null,
+    "economy": {
+      "buy": 50000,
+      "sell": 10000
+    },
+    "id": 3109,
+    "internalName": "NightVisionHelmet",
+    "name": "Night Vision Helmet",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 4,
+      "height": 22,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 22
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Night Vision Helmet.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Night_Vision_Helmet.png?900af2",
+    "imageWidth": 20,
+    "imageHeight": 20,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 700000,
+      "sell": 140000
+    },
+    "id": 3110,
+    "internalName": "CelestialShell",
+    "name": "Celestial Shell",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 16
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Celestial Shell.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Celestial_Shell.png?aa0fe9",
+    "imageWidth": 40,
+    "imageHeight": 34,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 15,
+      "sell": 3
+    },
+    "id": 3111,
+    "internalName": "PinkGel",
+    "name": "Pink Gel",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 10
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Pink Gel.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pink_Gel.png?7cf8ae",
+    "imageWidth": 16,
+    "imageHeight": 14,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "CONSUMABLE",
+    "description": null,
+    "economy": {
+      "buy": 10,
+      "sell": 2
+    },
+    "id": 3112,
+    "internalName": "BouncyGlowstick",
+    "name": "Bouncy Glowstick",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Bouncy Glowstick.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Bouncy_Glowstick.png?a635ef",
+    "imageWidth": 16,
+    "imageHeight": 16,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3113,
+    "internalName": "PinkSlimeBlock",
+    "name": "Pink Slime Block",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Pink Slime Block.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pink_Slime_Block.png?db0465",
+    "imageWidth": 16,
+    "imageHeight": 16,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 80,
+      "sell": 16
+    },
+    "id": 3114,
+    "internalName": "PinkTorch",
+    "name": "Pink Torch",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 10
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "CONSUMABLE",
+    "description": null,
+    "economy": {
+      "buy": 400,
+      "sell": 80
+    },
+    "id": 3115,
+    "internalName": "BouncyBomb",
+    "name": "Bouncy Bomb",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 25,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Bouncy Bomb.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Bouncy_Bomb.png?b4c75e",
+    "imageWidth": 22,
+    "imageHeight": 28,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 100,
+      "sell": 20
+    },
+    "id": 3116,
+    "internalName": "BouncyGrenade",
+    "name": "Bouncy Grenade",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 65,
+      "defense": 0,
+      "height": 20,
+      "knockback": 8,
+      "useTime": 40,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Bouncy Grenade.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Bouncy_Grenade.png?7309f1",
+    "imageWidth": 16,
+    "imageHeight": 20,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 500,
+      "sell": 100
+    },
+    "id": 3117,
+    "internalName": "PeaceCandle",
+    "name": "Peace Candle",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 18,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 8
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Peace Candle.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Peace_Candle.png?4167da",
+    "imageWidth": 16,
+    "imageHeight": 20,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 50000,
+      "sell": 10000
+    },
+    "id": 3118,
+    "internalName": "LifeformAnalyzer",
+    "name": "Lifeform Analyzer",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 18,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Lifeform Analyzer.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Lifeform_Analyzer.png?32906f",
+    "imageWidth": 30,
+    "imageHeight": 30,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 50000,
+      "sell": 10000
+    },
+    "id": 3119,
+    "internalName": "DPSMeter",
+    "name": "DPS Meter",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 18,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "DPS Meter.png",
+    "imageUrl": "https://terraria.wiki.gg/images/DPS_Meter.png?e216ce",
+    "imageWidth": 30,
+    "imageHeight": 20,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 50000,
+      "sell": 10000
+    },
+    "id": 3120,
+    "internalName": "FishermansGuide",
+    "name": "Fisherman's Pocket Guide",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Fisherman's Pocket Guide.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Fisherman%27s_Pocket_Guide.png?54aaf7",
+    "imageWidth": 30,
+    "imageHeight": 30,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 150000,
+      "sell": 30000
+    },
+    "id": 3121,
+    "internalName": "GoblinTech",
+    "name": "Goblin Tech",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Goblin Tech.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Goblin_Tech.png?b3292b",
+    "imageWidth": 26,
+    "imageHeight": 28,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 150000,
+      "sell": 30000
+    },
+    "id": 3122,
+    "internalName": "REK",
+    "name": "R.E.K. 3000",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "R.E.K. 3000.png",
+    "imageUrl": "https://terraria.wiki.gg/images/R.E.K._3000.png?5c0b6c",
+    "imageWidth": 32,
+    "imageHeight": 30,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 250000,
+      "sell": 50000
+    },
+    "id": 3123,
+    "internalName": "PDA",
+    "name": "PDA",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "PDA.png",
+    "imageUrl": "https://terraria.wiki.gg/images/PDA.png?51c8bb",
+    "imageWidth": 32,
+    "imageHeight": 32,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 400000,
+      "sell": 80000
+    },
+    "id": 3124,
+    "internalName": "CellPhone",
+    "name": "Cell Phone",
+    "rarity": "legendary",
+    "rarityId": 4,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 90,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Cell Phone.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cell_Phone.png?58f0cd",
+    "imageWidth": 32,
+    "imageHeight": 32,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 500,
+      "sell": 100
+    },
+    "id": 3125,
+    "internalName": "GraniteChest",
+    "name": "Granite Chest",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 22,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 26
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Granite Chest.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Granite_Chest.png?99f2f8",
+    "imageWidth": 32,
+    "imageHeight": 30,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3126,
+    "internalName": "MeteoriteClock",
+    "name": "Meteorite Clock",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3127,
+    "internalName": "MarbleClock",
+    "name": "Marble Clock",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3128,
+    "internalName": "GraniteClock",
+    "name": "Granite Clock",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 200,
+      "sell": 40
+    },
+    "id": 3129,
+    "internalName": "MeteoriteDoor",
+    "name": "Meteorite Door",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 14
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 200,
+      "sell": 40
+    },
+    "id": 3130,
+    "internalName": "MarbleDoor",
+    "name": "Marble Door",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 14
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 200,
+      "sell": 40
+    },
+    "id": 3131,
+    "internalName": "GraniteDoor",
+    "name": "Granite Door",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 14
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3132,
+    "internalName": "MeteoriteDresser",
+    "name": "Meteorite Dresser",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3133,
+    "internalName": "MarbleDresser",
+    "name": "Marble Dresser",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3134,
+    "internalName": "GraniteDresser",
+    "name": "Granite Dresser",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 500,
+      "sell": 100
+    },
+    "id": 3135,
+    "internalName": "MeteoriteLamp",
+    "name": "Meteorite Lamp",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 10
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 500,
+      "sell": 100
+    },
+    "id": 3136,
+    "internalName": "MarbleLamp",
+    "name": "Marble Lamp",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 10
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 500,
+      "sell": 100
+    },
+    "id": 3137,
+    "internalName": "GraniteLamp",
+    "name": "Granite Lamp",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 10
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 150,
+      "sell": 30
+    },
+    "id": 3138,
+    "internalName": "MeteoriteLantern",
+    "name": "Meteorite Lantern",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 150,
+      "sell": 30
+    },
+    "id": 3139,
+    "internalName": "MarbleLantern",
+    "name": "Marble Lantern",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 150,
+      "sell": 30
+    },
+    "id": 3140,
+    "internalName": "GraniteLantern",
+    "name": "Granite Lantern",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3141,
+    "internalName": "MeteoritePiano",
+    "name": "Meteorite Piano",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3142,
+    "internalName": "MarblePiano",
+    "name": "Marble Piano",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3143,
+    "internalName": "GranitePiano",
+    "name": "Granite Piano",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3144,
+    "internalName": "MeteoritePlatform",
+    "name": "Meteorite Platform",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 10,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 8
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3145,
+    "internalName": "MarblePlatform",
+    "name": "Marble Platform",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 10,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 8
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 0,
+      "sell": null
+    },
+    "id": 3146,
+    "internalName": "GranitePlatform",
+    "name": "Granite Platform",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 10,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 8
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3147,
+    "internalName": "MeteoriteSink",
+    "name": "Meteorite Sink",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3148,
+    "internalName": "MarbleSink",
+    "name": "Marble Sink",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3149,
+    "internalName": "GraniteSink",
+    "name": "Granite Sink",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3150,
+    "internalName": "MeteoriteSofa",
+    "name": "Meteorite Sofa",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3151,
+    "internalName": "MarbleSofa",
+    "name": "Marble Sofa",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3152,
+    "internalName": "GraniteSofa",
+    "name": "Granite Sofa",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3153,
+    "internalName": "MeteoriteTable",
+    "name": "Meteorite Table",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 26
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3154,
+    "internalName": "MarbleTable",
+    "name": "Marble Table",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 26
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3155,
+    "internalName": "GraniteTable",
+    "name": "Granite Table",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 26
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 150,
+      "sell": 30
+    },
+    "id": 3156,
+    "internalName": "MeteoriteWorkBench",
+    "name": "Meteorite Work Bench",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 14,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 28
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 150,
+      "sell": 30
+    },
+    "id": 3157,
+    "internalName": "MarbleWorkBench",
+    "name": "Marble Work Bench",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 14,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 28
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 150,
+      "sell": 30
+    },
+    "id": 3158,
+    "internalName": "GraniteWorkBench",
+    "name": "Granite Work Bench",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 14,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 28
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3159,
+    "internalName": "MeteoriteBathtub",
+    "name": "Meteorite Bathtub",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3160,
+    "internalName": "MarbleBathtub",
+    "name": "Marble Bathtub",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3161,
+    "internalName": "GraniteBathtub",
+    "name": "Granite Bathtub",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 2000,
+      "sell": 400
+    },
+    "id": 3162,
+    "internalName": "MeteoriteBed",
+    "name": "Meteorite Bed",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 28
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 2000,
+      "sell": 400
+    },
+    "id": 3163,
+    "internalName": "MarbleBed",
+    "name": "Marble Bed",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 28
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 2000,
+      "sell": 400
+    },
+    "id": 3164,
+    "internalName": "GraniteBed",
+    "name": "Granite Bed",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 28
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3165,
+    "internalName": "MeteoriteBookcase",
+    "name": "Meteorite Bookcase",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3166,
+    "internalName": "MarbleBookcase",
+    "name": "Marble Bookcase",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3167,
+    "internalName": "GraniteBookcase",
+    "name": "Granite Bookcase",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 1500,
+      "sell": 300
+    },
+    "id": 3168,
+    "internalName": "MeteoriteCandelabra",
+    "name": "Meteorite Candelabra",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 1500,
+      "sell": 300
+    },
+    "id": 3169,
+    "internalName": "MarbleCandelabra",
+    "name": "Marble Candelabra",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 1500,
+      "sell": 300
+    },
+    "id": 3170,
+    "internalName": "GraniteCandelabra",
+    "name": "Granite Candelabra",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3171,
+    "internalName": "MeteoriteCandle",
+    "name": "Meteorite Candle",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 18,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 8
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3172,
+    "internalName": "MarbleCandle",
+    "name": "Marble Candle",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 18,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 8
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 300,
+      "sell": 60
+    },
+    "id": 3173,
+    "internalName": "GraniteCandle",
+    "name": "Granite Candle",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 18,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 8
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 150,
+      "sell": 30
+    },
+    "id": 3174,
+    "internalName": "MeteoriteChair",
+    "name": "Meteorite Chair",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 30,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 150,
+      "sell": 30
+    },
+    "id": 3175,
+    "internalName": "MarbleChair",
+    "name": "Marble Chair",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 30,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 150,
+      "sell": 30
+    },
+    "id": 3176,
+    "internalName": "GraniteChair",
+    "name": "Granite Chair",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 30,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 3000,
+      "sell": 600
+    },
+    "id": 3177,
+    "internalName": "MeteoriteChandelier",
+    "name": "Meteorite Chandelier",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 26,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 26
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 3000,
+      "sell": 600
+    },
+    "id": 3178,
+    "internalName": "MarbleChandelier",
+    "name": "Marble Chandelier",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 26,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 26
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 3000,
+      "sell": 600
+    },
+    "id": 3179,
+    "internalName": "GraniteChandelier",
+    "name": "Granite Chandelier",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 26,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 26
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 500,
+      "sell": 100
+    },
+    "id": 3180,
+    "internalName": "MeteoriteChest",
+    "name": "Meteorite Chest",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 22,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 26
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 500,
+      "sell": 100
+    },
+    "id": 3181,
+    "internalName": "MarbleChest",
+    "name": "Marble Chest",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 22,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 26
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Marble Chest.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Marble_Chest.png?e8daae",
+    "imageWidth": 32,
+    "imageHeight": 32,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 200,
+      "sell": 40
+    },
+    "id": 3182,
+    "internalName": "MagicWaterDropper",
+    "name": "Magic Water Dropper",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 250000,
+      "sell": 50000
+    },
+    "id": 3183,
+    "internalName": "GoldenBugNet",
+    "name": "Golden Bug Net",
+    "rarity": "epic",
+    "rarityId": 3,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 28,
+      "knockback": 0,
+      "useTime": 18,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Golden Bug Net.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Golden_Bug_Net.png?8f7831",
+    "imageWidth": 44,
+    "imageHeight": 48,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 200,
+      "sell": 40
+    },
+    "id": 3184,
+    "internalName": "MagicLavaDropper",
+    "name": "Magic Lava Dropper",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 200,
+      "sell": 40
+    },
+    "id": 3185,
+    "internalName": "MagicHoneyDropper",
+    "name": "Magic Honey Dropper",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 100,
+      "sell": 20
+    },
+    "id": 3186,
+    "internalName": "EmptyDropper",
+    "name": "Empty Dropper",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 24
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Empty Dropper.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Empty_Dropper.png?3bf652",
+    "imageWidth": 32,
+    "imageHeight": 32,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "HELMET",
+    "description": null,
+    "economy": {
+      "buy": 17500,
+      "sell": 3500
+    },
+    "id": 3187,
+    "internalName": "GladiatorHelmet",
+    "name": "Gladiator Helmet",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 5,
+      "height": 18,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 18
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "CHESTPLATE",
+    "description": null,
+    "economy": {
+      "buy": 14000,
+      "sell": 2800
+    },
+    "id": 3188,
+    "internalName": "GladiatorBreastplate",
+    "name": "Gladiator Breastplate",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 6,
+      "height": 18,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 18
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "LEGGINGS",
+    "description": null,
+    "economy": {
+      "buy": 10500,
+      "sell": 2100
+    },
+    "id": 3189,
+    "internalName": "GladiatorLeggings",
+    "name": "Gladiator Leggings",
+    "rarity": "common",
+    "rarityId": 1,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 5,
+      "height": 18,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 18
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 37500,
+      "sell": 7500
+    },
+    "id": 3190,
+    "internalName": "ReflectiveDye",
+    "name": "Reflective Dye",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Reflective Dye.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Reflective_Dye.png?5bb4bc",
+    "imageWidth": 16,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "CONSUMABLE",
+    "description": null,
+    "economy": {
+      "buy": 10000,
+      "sell": 2000
+    },
+    "id": 3191,
+    "internalName": "EnchantedNightcrawler",
+    "name": "Enchanted Nightcrawler",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Enchanted Nightcrawler.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Enchanted_Nightcrawler.png?e4dfea",
+    "imageWidth": 18,
+    "imageHeight": 22,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "CONSUMABLE",
+    "description": null,
+    "economy": {
+      "buy": 1250,
+      "sell": 250
+    },
+    "id": 3192,
+    "internalName": "Grubby",
+    "name": "Grubby",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Grubby.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Grubby.png?4d50f0",
+    "imageWidth": 20,
+    "imageHeight": 12,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "CONSUMABLE",
+    "description": null,
+    "economy": {
+      "buy": 2500,
+      "sell": 500
+    },
+    "id": 3193,
+    "internalName": "Sluggy",
+    "name": "Sluggy",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Sluggy.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Sluggy.png?b2bbac",
+    "imageWidth": 20,
+    "imageHeight": 16,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "CONSUMABLE",
+    "description": null,
+    "economy": {
+      "buy": 5000,
+      "sell": 1000
+    },
+    "id": 3194,
+    "internalName": "Buggy",
+    "name": "Buggy",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 12,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 12
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Buggy.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Buggy.png?ecfaa2",
+    "imageWidth": 20,
+    "imageHeight": 16,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "CONSUMABLE",
+    "description": null,
+    "economy": {
+      "buy": 10000,
+      "sell": 2000
+    },
+    "id": 3195,
+    "internalName": "GrubSoup",
+    "name": "Grub Soup",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 22,
+      "knockback": 0,
+      "useTime": 17,
+      "width": 22
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Grub Soup.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Grub_Soup.png?8c3eb7",
+    "imageWidth": 28,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "CONSUMABLE",
+    "description": null,
+    "economy": {
+      "buy": 1000,
+      "sell": 200
+    },
+    "id": 3196,
+    "internalName": "BombFish",
+    "name": "Bomb Fish",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 26,
+      "knockback": 0,
+      "useTime": 25,
+      "width": 26
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Bomb Fish.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Bomb_Fish.png?452d4d",
+    "imageWidth": 32,
+    "imageHeight": 32,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "WEAPON",
+    "description": null,
+    "economy": {
+      "buy": 80,
+      "sell": 16
+    },
+    "id": 3197,
+    "internalName": "FrostDaggerfish",
+    "name": "Frost Daggerfish",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 17,
+      "defense": 0,
+      "height": 28,
+      "knockback": 4,
+      "useTime": 13,
+      "width": 28
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Frost Daggerfish.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Frost_Daggerfish.png?fed06c",
+    "imageWidth": 34,
+    "imageHeight": 34,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "FURNITURE",
+    "description": null,
+    "economy": {
+      "buy": 100000,
+      "sell": 20000
+    },
+    "id": 3198,
+    "internalName": "SharpeningStation",
+    "name": "Sharpening Station",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 22,
+      "knockback": 0,
+      "useTime": 15,
+      "width": 28
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Sharpening Station.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Sharpening_Station.png?86826e",
+    "imageWidth": 30,
+    "imageHeight": 24,
+    "imageContentType": "image/png"
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 50000,
+      "sell": 10000
+    },
+    "id": 3199,
+    "internalName": "IceMirror",
+    "name": "Ice Mirror",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": true,
+      "stackSize": 9999
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 20,
+      "knockback": 0,
+      "useTime": 90,
+      "width": 20
+    },
+    "status": 1,
+    "tooltip": null
+  },
+  {
+    "categoryCode": "MATERIAL",
+    "description": null,
+    "economy": {
+      "buy": 50000,
+      "sell": 10000
+    },
+    "id": 3200,
+    "internalName": "SailfishBoots",
+    "name": "Sailfish Boots",
+    "rarity": "rare",
+    "rarityId": 2,
+    "stack": {
+      "isStackable": false,
+      "stackSize": 1
+    },
+    "stats": {
+      "damage": 0,
+      "defense": 0,
+      "height": 24,
+      "knockback": 0,
+      "useTime": 0,
+      "width": 28
+    },
+    "status": 1,
+    "tooltip": null,
+    "imageFileTitle": "Sailfish Boots.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Sailfish_Boots.png?c792c6",
+    "imageWidth": 34,
+    "imageHeight": 28,
+    "imageContentType": "image/png"
+  }
+]

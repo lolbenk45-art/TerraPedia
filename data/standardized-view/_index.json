@@ -1,0 +1,692 @@
+{
+  "generatedAt": "2026-03-28T11:56:07.300Z",
+  "inputDir": "data/standardized",
+  "outputDir": "data/standardized-view",
+  "chunkSize": 200,
+  "datasets": [
+    {
+      "entity": "armor_sets",
+      "sourceFile": "data/standardized/armor_sets.standardized.json",
+      "outputDir": "data/standardized-view/armor_sets",
+      "totalRecords": 18,
+      "mode": "array",
+      "parts": [
+        {
+          "name": "part-0001.json",
+          "records": 18
+        }
+      ]
+    },
+    {
+      "entity": "biomes",
+      "sourceFile": "data/standardized/biomes.standardized.json",
+      "outputDir": "data/standardized-view/biomes",
+      "totalRecords": 7,
+      "mode": "array",
+      "parts": [
+        {
+          "name": "part-0001.json",
+          "records": 7
+        }
+      ]
+    },
+    {
+      "entity": "buffs",
+      "sourceFile": "data/standardized/buffs.standardized.json",
+      "outputDir": "data/standardized-view/buffs",
+      "totalRecords": 388,
+      "mode": "array",
+      "parts": [
+        {
+          "name": "part-0001.json",
+          "records": 200
+        },
+        {
+          "name": "part-0002.json",
+          "records": 188
+        }
+      ]
+    },
+    {
+      "entity": "item_pages",
+      "sourceFile": "data/standardized/item_pages.standardized.json",
+      "outputDir": "data/standardized-view/item_pages",
+      "totalRecords": 6131,
+      "mode": "array",
+      "parts": [
+        {
+          "name": "part-0001.json",
+          "records": 200
+        },
+        {
+          "name": "part-0002.json",
+          "records": 200
+        },
+        {
+          "name": "part-0003.json",
+          "records": 200
+        },
+        {
+          "name": "part-0004.json",
+          "records": 200
+        },
+        {
+          "name": "part-0005.json",
+          "records": 200
+        },
+        {
+          "name": "part-0006.json",
+          "records": 200
+        },
+        {
+          "name": "part-0007.json",
+          "records": 200
+        },
+        {
+          "name": "part-0008.json",
+          "records": 200
+        },
+        {
+          "name": "part-0009.json",
+          "records": 200
+        },
+        {
+          "name": "part-0010.json",
+          "records": 200
+        },
+        {
+          "name": "part-0011.json",
+          "records": 200
+        },
+        {
+          "name": "part-0012.json",
+          "records": 200
+        },
+        {
+          "name": "part-0013.json",
+          "records": 200
+        },
+        {
+          "name": "part-0014.json",
+          "records": 200
+        },
+        {
+          "name": "part-0015.json",
+          "records": 200
+        },
+        {
+          "name": "part-0016.json",
+          "records": 200
+        },
+        {
+          "name": "part-0017.json",
+          "records": 200
+        },
+        {
+          "name": "part-0018.json",
+          "records": 200
+        },
+        {
+          "name": "part-0019.json",
+          "records": 200
+        },
+        {
+          "name": "part-0020.json",
+          "records": 200
+        },
+        {
+          "name": "part-0021.json",
+          "records": 200
+        },
+        {
+          "name": "part-0022.json",
+          "records": 200
+        },
+        {
+          "name": "part-0023.json",
+          "records": 200
+        },
+        {
+          "name": "part-0024.json",
+          "records": 200
+        },
+        {
+          "name": "part-0025.json",
+          "records": 200
+        },
+        {
+          "name": "part-0026.json",
+          "records": 200
+        },
+        {
+          "name": "part-0027.json",
+          "records": 200
+        },
+        {
+          "name": "part-0028.json",
+          "records": 200
+        },
+        {
+          "name": "part-0029.json",
+          "records": 200
+        },
+        {
+          "name": "part-0030.json",
+          "records": 200
+        },
+        {
+          "name": "part-0031.json",
+          "records": 131
+        }
+      ]
+    },
+    {
+      "entity": "item_relations",
+      "sourceFile": "data/standardized/item_relations.standardized.json",
+      "outputDir": "data/standardized-view/item_relations",
+      "totalRecords": 14746,
+      "mode": "object-arrays",
+      "parts": [
+        {
+          "name": "biomes/biomes.part-0001.json",
+          "records": 7
+        },
+        {
+          "name": "itemBiomes/itemBiomes.part-0001.json",
+          "records": 200
+        },
+        {
+          "name": "itemBiomes/itemBiomes.part-0002.json",
+          "records": 164
+        },
+        {
+          "name": "itemImages/itemImages.part-0001.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0002.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0003.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0004.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0005.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0006.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0007.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0008.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0009.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0010.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0011.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0012.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0013.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0014.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0015.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0016.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0017.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0018.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0019.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0020.json",
+          "records": 200
+        },
+        {
+          "name": "itemImages/itemImages.part-0021.json",
+          "records": 1
+        },
+        {
+          "name": "itemSources/itemSources.part-0001.json",
+          "records": 200
+        },
+        {
+          "name": "itemSources/itemSources.part-0002.json",
+          "records": 200
+        },
+        {
+          "name": "itemSources/itemSources.part-0003.json",
+          "records": 200
+        },
+        {
+          "name": "itemSources/itemSources.part-0004.json",
+          "records": 200
+        },
+        {
+          "name": "itemSources/itemSources.part-0005.json",
+          "records": 200
+        },
+        {
+          "name": "itemSources/itemSources.part-0006.json",
+          "records": 200
+        },
+        {
+          "name": "itemSources/itemSources.part-0007.json",
+          "records": 200
+        },
+        {
+          "name": "itemSources/itemSources.part-0008.json",
+          "records": 200
+        },
+        {
+          "name": "itemSources/itemSources.part-0009.json",
+          "records": 200
+        },
+        {
+          "name": "itemSources/itemSources.part-0010.json",
+          "records": 200
+        },
+        {
+          "name": "itemSources/itemSources.part-0011.json",
+          "records": 200
+        },
+        {
+          "name": "itemSources/itemSources.part-0012.json",
+          "records": 200
+        },
+        {
+          "name": "itemSources/itemSources.part-0013.json",
+          "records": 200
+        },
+        {
+          "name": "itemSources/itemSources.part-0014.json",
+          "records": 200
+        },
+        {
+          "name": "itemSources/itemSources.part-0015.json",
+          "records": 200
+        },
+        {
+          "name": "itemSources/itemSources.part-0016.json",
+          "records": 65
+        },
+        {
+          "name": "recipes/recipes.part-0001.json",
+          "records": 200
+        },
+        {
+          "name": "recipes/recipes.part-0002.json",
+          "records": 200
+        },
+        {
+          "name": "recipes/recipes.part-0003.json",
+          "records": 200
+        },
+        {
+          "name": "recipes/recipes.part-0004.json",
+          "records": 200
+        },
+        {
+          "name": "recipes/recipes.part-0005.json",
+          "records": 200
+        },
+        {
+          "name": "recipes/recipes.part-0006.json",
+          "records": 171
+        },
+        {
+          "name": "snapshots/snapshots.part-0001.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0002.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0003.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0004.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0005.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0006.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0007.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0008.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0009.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0010.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0011.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0012.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0013.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0014.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0015.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0016.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0017.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0018.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0019.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0020.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0021.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0022.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0023.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0024.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0025.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0026.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0027.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0028.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0029.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0030.json",
+          "records": 200
+        },
+        {
+          "name": "snapshots/snapshots.part-0031.json",
+          "records": 138
+        }
+      ]
+    },
+    {
+      "entity": "items",
+      "sourceFile": "data/standardized/items.standardized.json",
+      "outputDir": "data/standardized-view/items",
+      "totalRecords": 6131,
+      "mode": "array",
+      "parts": [
+        {
+          "name": "part-0001.json",
+          "records": 200
+        },
+        {
+          "name": "part-0002.json",
+          "records": 200
+        },
+        {
+          "name": "part-0003.json",
+          "records": 200
+        },
+        {
+          "name": "part-0004.json",
+          "records": 200
+        },
+        {
+          "name": "part-0005.json",
+          "records": 200
+        },
+        {
+          "name": "part-0006.json",
+          "records": 200
+        },
+        {
+          "name": "part-0007.json",
+          "records": 200
+        },
+        {
+          "name": "part-0008.json",
+          "records": 200
+        },
+        {
+          "name": "part-0009.json",
+          "records": 200
+        },
+        {
+          "name": "part-0010.json",
+          "records": 200
+        },
+        {
+          "name": "part-0011.json",
+          "records": 200
+        },
+        {
+          "name": "part-0012.json",
+          "records": 200
+        },
+        {
+          "name": "part-0013.json",
+          "records": 200
+        },
+        {
+          "name": "part-0014.json",
+          "records": 200
+        },
+        {
+          "name": "part-0015.json",
+          "records": 200
+        },
+        {
+          "name": "part-0016.json",
+          "records": 200
+        },
+        {
+          "name": "part-0017.json",
+          "records": 200
+        },
+        {
+          "name": "part-0018.json",
+          "records": 200
+        },
+        {
+          "name": "part-0019.json",
+          "records": 200
+        },
+        {
+          "name": "part-0020.json",
+          "records": 200
+        },
+        {
+          "name": "part-0021.json",
+          "records": 200
+        },
+        {
+          "name": "part-0022.json",
+          "records": 200
+        },
+        {
+          "name": "part-0023.json",
+          "records": 200
+        },
+        {
+          "name": "part-0024.json",
+          "records": 200
+        },
+        {
+          "name": "part-0025.json",
+          "records": 200
+        },
+        {
+          "name": "part-0026.json",
+          "records": 200
+        },
+        {
+          "name": "part-0027.json",
+          "records": 200
+        },
+        {
+          "name": "part-0028.json",
+          "records": 200
+        },
+        {
+          "name": "part-0029.json",
+          "records": 200
+        },
+        {
+          "name": "part-0030.json",
+          "records": 200
+        },
+        {
+          "name": "part-0031.json",
+          "records": 131
+        }
+      ]
+    },
+    {
+      "entity": "npcs",
+      "sourceFile": "data/standardized/npcs.standardized.json",
+      "outputDir": "data/standardized-view/npcs",
+      "totalRecords": 762,
+      "mode": "array",
+      "parts": [
+        {
+          "name": "part-0001.json",
+          "records": 200
+        },
+        {
+          "name": "part-0002.json",
+          "records": 200
+        },
+        {
+          "name": "part-0003.json",
+          "records": 200
+        },
+        {
+          "name": "part-0004.json",
+          "records": 162
+        }
+      ]
+    },
+    {
+      "entity": "projectiles",
+      "sourceFile": "data/standardized/projectiles.standardized.json",
+      "outputDir": "data/standardized-view/projectiles",
+      "totalRecords": 1111,
+      "mode": "array",
+      "parts": [
+        {
+          "name": "part-0001.json",
+          "records": 200
+        },
+        {
+          "name": "part-0002.json",
+          "records": 200
+        },
+        {
+          "name": "part-0003.json",
+          "records": 200
+        },
+        {
+          "name": "part-0004.json",
+          "records": 200
+        },
+        {
+          "name": "part-0005.json",
+          "records": 200
+        },
+        {
+          "name": "part-0006.json",
+          "records": 111
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+# Dependency directories
+front/node_modules/
+data-query-app/node_modules/
+back/.m2/
+
+# Frontend build outputs
+front/dist/
+data-query-app/.nuxt/
+data-query-app/.output/
+
+# Nuxt local runtime/cache folders
+data-query-app/.appdata/
+data-query-app/.home/
+data-query-app/.localappdata/
+data-query-app/--port/
+data-query-app/--host/
+
+# Local verification logs
+**/.verify-*.log
+
+# Runtime logs and pid files
+*.log
+*.pid
+*.err
+*.out
+
+# Keep markdown/json reports, but ignore generated runtime folders
+reports/
+reports/local-start/
+reports/runtime/
+reports/db-backup/
+
+# Local secrets
+**/.env
+**/.env.local
+**/.env.*.local
+!**/.env.example
+scripts/dev/local-stack.config.json
+credentials.json
+credentials.local.json
+back/src/main/resources/application-*-local.yml
+
+# PowerShell cache accidentally created under docs
+project-plan/plan-/Microsoft/Windows/PowerShell/ModuleAnalysisCache
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+
+# Local run artifacts
+reports/run-logs/
+task/
+cargo.txt
+crate_potion_parse.json
+generate_template_patch.py
+out.json
+tmp_debug.py
+data-query-app/false/
+
+# Large local data artifacts
+data/standardized/item_relations.standardized.json
+data/standardized-view/item_relations/snapshots/
+data/generated/*.latest.json
+data/generated/upstream-update*.json
+data/generated/npc-id-row-images*.json
+data/generated/projectile-zh-map.json

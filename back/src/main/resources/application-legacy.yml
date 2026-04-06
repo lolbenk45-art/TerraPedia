@@ -1,0 +1,15 @@
+spring:
+  config:
+    activate:
+      on-profile: legacy
+  datasource:
+    url: jdbc:mysql://localhost:3306/terria_v1_local?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+  data:
+    redis:
+      password: ${TERRAPEDIA_REDIS_PASSWORD:#{null}}
+  redis:
+    password: ${TERRAPEDIA_REDIS_PASSWORD:#{null}}
+
+terraria:
+  runtime:
+    profile-label: legacy

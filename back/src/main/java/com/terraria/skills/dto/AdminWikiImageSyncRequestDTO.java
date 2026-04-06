@@ -1,0 +1,50 @@
+package com.terraria.skills.dto;
+
+public class AdminWikiImageSyncRequestDTO {
+
+    private Integer limit;
+    private Boolean force;
+    private Boolean includeItemImages;
+    private Boolean includeBuffs;
+    private Boolean includeBiomes;
+
+    public Integer getLimit() {
+        return limit;
+    }
+
+    public void setLimit(Integer limit) {
+        this.limit = limit;
+    }
+
+    public Boolean getForce() {
+        return force;
+    }
+
+    public void setForce(Boolean force) {
+        this.force = force;
+    }
+
+    public Boolean getIncludeItemImages() {
+        return includeItemImages;
+    }
+
+    public void setIncludeItemImages(Boolean includeItemImages) {
+        this.includeItemImages = includeItemImages;
+    }
+
+    public Boolean getIncludeBuffs() {
+        return includeBuffs;
+    }
+
+    public void setIncludeBuffs(Boolean includeBuffs) {
+        this.includeBuffs = includeBuffs;
+    }
+
+    public Boolean getIncludeBiomes() {
+        return includeBiomes;
+    }
+
+    public void setIncludeBiomes(Boolean includeBiomes) {
+        this.includeBiomes = includeBiomes;
+    }
+}

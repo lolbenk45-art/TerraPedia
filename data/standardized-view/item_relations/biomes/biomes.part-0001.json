@@ -1,0 +1,318 @@
+[
+  {
+    "aliasEn": "Corruption",
+    "biomeType": "corruption",
+    "code": "corruption",
+    "description": "The Corruption is an evil biome with a dark purple wasteland, death, and decay theme, with an evil forest design to it, in contrast to the red gore theme of its counterpart, The Crimson . Every world will contain one of the two, generated randomly (each with a 50% chance of occurring) or chosen by the player upon world creation. Both contain similar hazards and feature their own unique enemies , items , and blocks . The tools , weapons , and armor obtained via Corruption materials are generally faster, but slightly less powerful than those obtained via Crimson materials. Corruption enemies tend to have slightly lower stats, such as health, defense, and damage.",
+    "iconUrl": "https://terraria.wiki.gg/images/Desktop_only.png?8fb4d9",
+    "lastSyncedAt": "2026-03-27T11:06:05.209Z",
+    "layerType": "surface",
+    "nameEn": "The Corruption",
+    "relations": [
+      {
+        "notes": null,
+        "relatedBiomeCode": "crimson",
+        "relationType": "counterpart"
+      }
+    ],
+    "resources": [
+      {
+        "itemInternalName": null,
+        "itemName": "Corrupt grass",
+        "notes": "Inferred from The Corruption page",
+        "resourceNameRaw": "Corrupt grass",
+        "resourceType": "plant",
+        "sortOrder": 0
+      },
+      {
+        "itemInternalName": "EbonstoneBlock",
+        "itemName": "Ebonstone Block",
+        "notes": "Inferred from The Corruption page",
+        "resourceNameRaw": "Ebonstone Block",
+        "resourceType": "block",
+        "sortOrder": 1
+      },
+      {
+        "itemInternalName": "ShadowOrb",
+        "itemName": "Shadow Orb",
+        "notes": "Inferred from The Corruption page",
+        "resourceNameRaw": "Shadow Orb",
+        "resourceType": "feature",
+        "sortOrder": 2
+      }
+    ],
+    "sourcePage": "The Corruption",
+    "sourceProvider": "wiki_gg",
+    "sourceRevisionTimestamp": "2026-03-19T07:58:00Z"
+  },
+  {
+    "aliasEn": "Crimson",
+    "biomeType": "crimson",
+    "code": "crimson",
+    "description": "The Crimson is an evil biome with a fleshy infection, red gore theme, in contrast to the dark purple wasteland theme of its counterpart, the Corruption . Every world will contain one of the two generated randomly except for special seeds (each with a 50% chance of occurring) or chosen by the player upon world creation. Both contain similar hazards and feature their own unique enemies , items , and blocks . The tools , weapons , and armor obtained via Crimson material generally have minor advantages over those obtained via Corruption materials; however, Corruption tools are slightly faster. Crimson-themed enemies also tend to have slightly higher stats, such as health, defense, and damage.",
+    "iconUrl": "https://terraria.wiki.gg/images/Desktop_only.png?8fb4d9",
+    "lastSyncedAt": "2026-03-27T11:06:03.201Z",
+    "layerType": "surface",
+    "nameEn": "The Crimson",
+    "relations": [
+      {
+        "notes": null,
+        "relatedBiomeCode": "corruption",
+        "relationType": "counterpart"
+      }
+    ],
+    "resources": [
+      {
+        "itemInternalName": null,
+        "itemName": "Crimson grass",
+        "notes": "Inferred from The Crimson page",
+        "resourceNameRaw": "Crimson grass",
+        "resourceType": "plant",
+        "sortOrder": 0
+      },
+      {
+        "itemInternalName": null,
+        "itemName": "Crimson Tree",
+        "notes": "Inferred from The Crimson page",
+        "resourceNameRaw": "Crimson Tree",
+        "resourceType": "plant",
+        "sortOrder": 1
+      },
+      {
+        "itemInternalName": "ViciousMushroom",
+        "itemName": "Vicious Mushroom",
+        "notes": "Inferred from The Crimson page",
+        "resourceNameRaw": "Vicious Mushroom",
+        "resourceType": "plant",
+        "sortOrder": 2
+      },
+      {
+        "itemInternalName": "CrimsonHeart",
+        "itemName": "Crimson Heart",
+        "notes": "Inferred from The Crimson page",
+        "resourceNameRaw": "Crimson Heart",
+        "resourceType": "feature",
+        "sortOrder": 3
+      },
+      {
+        "itemInternalName": "CrimsonAltarIcon",
+        "itemName": "Crimson Altar",
+        "notes": "Inferred from The Crimson page",
+        "resourceNameRaw": "Crimson Altar",
+        "resourceType": "feature",
+        "sortOrder": 4
+      }
+    ],
+    "sourcePage": "The Crimson",
+    "sourceProvider": "wiki_gg",
+    "sourceRevisionTimestamp": "2026-03-13T16:53:54Z"
+  },
+  {
+    "aliasEn": null,
+    "biomeType": "desert",
+    "code": "desert",
+    "description": "The Desert is a biome which consists predominantly of Sand Blocks and cacti . Every world contains a main Desert area (which houses the Underground Desert biome beneath it) and, possibly, additional small Desert patches called Dunes (which only contain layers of Sand Blocks on the surface and do not have underground parts). Pyramids and small pools of water can rarely appear in Dunes. Objects in the Desert appear slightly hazy due to heat distortion , and water has a unique turquoise color. A Desert can also be generated with an Oasis mini-biome, featuring Palm trees and a large pool of water in the center.",
+    "iconUrl": "https://terraria.wiki.gg/images/Desktop_only.png?8fb4d9",
+    "lastSyncedAt": "2026-03-27T11:05:59.701Z",
+    "layerType": "surface",
+    "nameEn": "Desert",
+    "relations": [],
+    "resources": [
+      {
+        "itemInternalName": "SandBlock",
+        "itemName": "Sand Block",
+        "notes": "Inferred from Desert page",
+        "resourceNameRaw": "Sand Block",
+        "resourceType": "block",
+        "sortOrder": 0
+      },
+      {
+        "itemInternalName": "Cactus",
+        "itemName": "Cactus",
+        "notes": "Inferred from Desert page",
+        "resourceNameRaw": "Cactus",
+        "resourceType": "feature",
+        "sortOrder": 1
+      }
+    ],
+    "sourcePage": "Desert",
+    "sourceProvider": "wiki_gg",
+    "sourceRevisionTimestamp": "2026-03-16T15:41:38Z"
+  },
+  {
+    "aliasEn": null,
+    "biomeType": "pure",
+    "code": "forest",
+    "description": "The Forest is a pure biome that comprises the majority of the surface world and is typically where the player initially spawns . The global landscape of a Forest includes lots of grass , plenty of trees , lakes and ponds of water that come in various sizes, and occasional hills that can reveal cave entrances. Forests often contain one or more Living Trees that sometimes have an underground treasure room.",
+    "iconUrl": "https://terraria.wiki.gg/images/Desktop_only.png?8fb4d9",
+    "lastSyncedAt": "2026-03-27T11:05:57.197Z",
+    "layerType": "surface",
+    "nameEn": "Forest",
+    "relations": [],
+    "resources": [
+      {
+        "itemInternalName": "Wood",
+        "itemName": "Wood",
+        "notes": "Inferred from Forest page",
+        "resourceNameRaw": "Wood",
+        "resourceType": "feature",
+        "sortOrder": 0
+      },
+      {
+        "itemInternalName": "Daybloom",
+        "itemName": "Daybloom",
+        "notes": "Inferred from Forest page",
+        "resourceNameRaw": "Daybloom",
+        "resourceType": "feature",
+        "sortOrder": 1
+      },
+      {
+        "itemInternalName": "Sunflower",
+        "itemName": "Sunflower",
+        "notes": "Inferred from Forest page",
+        "resourceNameRaw": "Sunflower",
+        "resourceType": "feature",
+        "sortOrder": 2
+      }
+    ],
+    "sourcePage": "Forest",
+    "sourceProvider": "wiki_gg",
+    "sourceRevisionTimestamp": "2026-03-05T15:29:17Z"
+  },
+  {
+    "aliasEn": null,
+    "biomeType": "hallow",
+    "code": "hallow",
+    "description": "Redirect to:",
+    "iconUrl": null,
+    "lastSyncedAt": "2026-03-27T11:06:06.068Z",
+    "layerType": "surface",
+    "nameEn": "Hallow",
+    "relations": [],
+    "resources": [
+      {
+        "itemInternalName": "PearlsandBlock",
+        "itemName": "Pearlsand Block",
+        "notes": "Inferred from Hallow page",
+        "resourceNameRaw": "Pearlsand Block",
+        "resourceType": "block",
+        "sortOrder": 0
+      },
+      {
+        "itemInternalName": "PearlstoneBlock",
+        "itemName": "Pearlstone Block",
+        "notes": "Inferred from Hallow page",
+        "resourceNameRaw": "Pearlstone Block",
+        "resourceType": "block",
+        "sortOrder": 1
+      },
+      {
+        "itemInternalName": "PixieDust",
+        "itemName": "Pixie Dust",
+        "notes": "Inferred from Hallow page",
+        "resourceNameRaw": "Pixie Dust",
+        "resourceType": "feature",
+        "sortOrder": 2
+      }
+    ],
+    "sourcePage": "Hallow",
+    "sourceProvider": "wiki_gg",
+    "sourceRevisionTimestamp": "2020-02-21T22:28:28Z"
+  },
+  {
+    "aliasEn": null,
+    "biomeType": "jungle",
+    "code": "jungle",
+    "description": "The Jungle is a surface biome composed primarily of Mud Blocks with Jungle grass and Jungle vines , with a dark green background. Mahogany trees are abundant there, as they grow automatically on Jungle grass, though traditional Acorns can also be planted. Moreover, many pools of water can be found in the Jungle, often with several Bamboo stalks. The Underground Jungle is found just below the Jungle, beginning at cavern depths.",
+    "iconUrl": "https://terraria.wiki.gg/images/Desktop_only.png?8fb4d9",
+    "lastSyncedAt": "2026-03-27T11:05:58.526Z",
+    "layerType": "surface",
+    "nameEn": "Jungle",
+    "relations": [],
+    "resources": [
+      {
+        "itemInternalName": "MudBlock",
+        "itemName": "Mud Block",
+        "notes": "Inferred from Jungle page",
+        "resourceNameRaw": "Mud Block",
+        "resourceType": "block",
+        "sortOrder": 0
+      },
+      {
+        "itemInternalName": null,
+        "itemName": "Jungle grass",
+        "notes": "Inferred from Jungle page",
+        "resourceNameRaw": "Jungle grass",
+        "resourceType": "plant",
+        "sortOrder": 1
+      },
+      {
+        "itemInternalName": null,
+        "itemName": "Mahogany tree",
+        "notes": "Inferred from Jungle page",
+        "resourceNameRaw": "Mahogany tree",
+        "resourceType": "plant",
+        "sortOrder": 2
+      },
+      {
+        "itemInternalName": "BambooBlock",
+        "itemName": "Bamboo",
+        "notes": "Inferred from Jungle page",
+        "resourceNameRaw": "Bamboo",
+        "resourceType": "plant",
+        "sortOrder": 3
+      }
+    ],
+    "sourcePage": "Jungle",
+    "sourceProvider": "wiki_gg",
+    "sourceRevisionTimestamp": "2026-03-16T19:10:58Z"
+  },
+  {
+    "aliasEn": "Tundra",
+    "biomeType": "snow",
+    "code": "snow",
+    "description": "The Snow biome , also known as the Tundra , is a Surface biome that takes on an arctic appearance with its constant snowfall, its ground made of Snow and Ice Blocks , and its Boreal trees . It can be of moderate difficulty in the early game, becoming relatively easy with some basic equipment. The biome is always found in the direction of the Dungeon , opposite the Underground Desert and Jungle . It extends Underground and transitions to the Ice biome in the Cavern layer .",
+    "iconUrl": "https://terraria.wiki.gg/images/Desktop_only.png?8fb4d9",
+    "lastSyncedAt": "2026-03-27T11:06:00.841Z",
+    "layerType": "surface",
+    "nameEn": "Snow biome",
+    "relations": [],
+    "resources": [
+      {
+        "itemInternalName": "SnowBlock",
+        "itemName": "Snow Block",
+        "notes": "Inferred from Snow biome page",
+        "resourceNameRaw": "Snow Block",
+        "resourceType": "block",
+        "sortOrder": 0
+      },
+      {
+        "itemInternalName": "IceBlock",
+        "itemName": "Ice Block",
+        "notes": "Inferred from Snow biome page",
+        "resourceNameRaw": "Ice Block",
+        "resourceType": "block",
+        "sortOrder": 1
+      },
+      {
+        "itemInternalName": "BorealWood",
+        "itemName": "Boreal Wood",
+        "notes": "Inferred from Snow biome page",
+        "resourceNameRaw": "Boreal Wood",
+        "resourceType": "feature",
+        "sortOrder": 2
+      },
+      {
+        "itemInternalName": "Shiverthorn",
+        "itemName": "Shiverthorn",
+        "notes": "Inferred from Snow biome page",
+        "resourceNameRaw": "Shiverthorn",
+        "resourceType": "feature",
+        "sortOrder": 3
+      }
+    ],
+    "sourcePage": "Snow biome",
+    "sourceProvider": "wiki_gg",
+    "sourceRevisionTimestamp": "2026-02-10T15:30:02Z"
+  }
+]

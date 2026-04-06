@@ -1,0 +1,3820 @@
+{
+  "generatedAt": "2026-04-04T04:11:53.775Z",
+  "total": 88,
+  "mapped": 71,
+  "placeholder": 17,
+  "records": {
+    "1": {
+      "armorSetId": 1,
+      "name": "挖矿盔甲套装",
+      "internalCode": "挖矿盔甲",
+      "itemIds": [
+        88,
+        410,
+        411
+      ],
+      "status": "mapped_manual",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Mining",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Mining",
+          "primaryPart": null,
+          "setCount": 12,
+          "uniqueItemIds": [
+            88,
+            410,
+            411,
+            5590,
+            5589,
+            5588,
+            4008
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Mining",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Mining",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Mining",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Mining",
+        "primaryPart": null,
+        "setCount": 12,
+        "uniqueItemIds": [
+          88,
+          410,
+          411,
+          5590,
+          5589,
+          5588,
+          4008
+        ]
+      }
+    },
+    "2": {
+      "armorSetId": 2,
+      "name": "木盔甲套装",
+      "internalCode": "木盔甲",
+      "itemIds": [
+        727,
+        728,
+        729
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Wood",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+          "primaryPart": null,
+          "setCount": 7,
+          "uniqueItemIds": [
+            727,
+            728,
+            729,
+            733,
+            734,
+            735,
+            730,
+            731,
+            732,
+            736,
+            737,
+            738,
+            924,
+            925,
+            926,
+            2509,
+            2510,
+            2511,
+            2512,
+            2513,
+            2514
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Wood",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Wood",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Wood",
+        "primaryPart": null,
+        "setCount": 7,
+        "uniqueItemIds": [
+          727,
+          728,
+          729,
+          733,
+          734,
+          735,
+          730,
+          731,
+          732,
+          736,
+          737,
+          738,
+          924,
+          925,
+          926,
+          2509,
+          2510,
+          2511,
+          2512,
+          2513,
+          2514
+        ]
+      }
+    },
+    "3": {
+      "armorSetId": 3,
+      "name": "红木盔甲套装",
+      "internalCode": "红木盔甲",
+      "itemIds": [
+        733,
+        734,
+        735
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Wood",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+          "primaryPart": null,
+          "setCount": 7,
+          "uniqueItemIds": [
+            727,
+            728,
+            729,
+            733,
+            734,
+            735,
+            730,
+            731,
+            732,
+            736,
+            737,
+            738,
+            924,
+            925,
+            926,
+            2509,
+            2510,
+            2511,
+            2512,
+            2513,
+            2514
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Wood",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Wood",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Wood",
+        "primaryPart": null,
+        "setCount": 7,
+        "uniqueItemIds": [
+          727,
+          728,
+          729,
+          733,
+          734,
+          735,
+          730,
+          731,
+          732,
+          736,
+          737,
+          738,
+          924,
+          925,
+          926,
+          2509,
+          2510,
+          2511,
+          2512,
+          2513,
+          2514
+        ]
+      }
+    },
+    "4": {
+      "armorSetId": 4,
+      "name": "针叶木盔甲套装",
+      "internalCode": "针叶木盔甲",
+      "itemIds": [
+        2509,
+        2510,
+        2511
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Wood",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+          "primaryPart": null,
+          "setCount": 7,
+          "uniqueItemIds": [
+            727,
+            728,
+            729,
+            733,
+            734,
+            735,
+            730,
+            731,
+            732,
+            736,
+            737,
+            738,
+            924,
+            925,
+            926,
+            2509,
+            2510,
+            2511,
+            2512,
+            2513,
+            2514
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Wood",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Wood",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Wood",
+        "primaryPart": null,
+        "setCount": 7,
+        "uniqueItemIds": [
+          727,
+          728,
+          729,
+          733,
+          734,
+          735,
+          730,
+          731,
+          732,
+          736,
+          737,
+          738,
+          924,
+          925,
+          926,
+          2509,
+          2510,
+          2511,
+          2512,
+          2513,
+          2514
+        ]
+      }
+    },
+    "5": {
+      "armorSetId": 5,
+      "name": "棕榈木盔甲套装",
+      "internalCode": "棕榈木盔甲",
+      "itemIds": [
+        2512,
+        2513,
+        2514
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Wood",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+          "primaryPart": null,
+          "setCount": 7,
+          "uniqueItemIds": [
+            727,
+            728,
+            729,
+            733,
+            734,
+            735,
+            730,
+            731,
+            732,
+            736,
+            737,
+            738,
+            924,
+            925,
+            926,
+            2509,
+            2510,
+            2511,
+            2512,
+            2513,
+            2514
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Wood",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Wood",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Wood",
+        "primaryPart": null,
+        "setCount": 7,
+        "uniqueItemIds": [
+          727,
+          728,
+          729,
+          733,
+          734,
+          735,
+          730,
+          731,
+          732,
+          736,
+          737,
+          738,
+          924,
+          925,
+          926,
+          2509,
+          2510,
+          2511,
+          2512,
+          2513,
+          2514
+        ]
+      }
+    },
+    "6": {
+      "armorSetId": 6,
+      "name": "乌木盔甲套装",
+      "internalCode": "乌木盔甲",
+      "itemIds": [
+        730,
+        731,
+        732
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Wood",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+          "primaryPart": null,
+          "setCount": 7,
+          "uniqueItemIds": [
+            727,
+            728,
+            729,
+            733,
+            734,
+            735,
+            730,
+            731,
+            732,
+            736,
+            737,
+            738,
+            924,
+            925,
+            926,
+            2509,
+            2510,
+            2511,
+            2512,
+            2513,
+            2514
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Wood",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Wood",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Wood",
+        "primaryPart": null,
+        "setCount": 7,
+        "uniqueItemIds": [
+          727,
+          728,
+          729,
+          733,
+          734,
+          735,
+          730,
+          731,
+          732,
+          736,
+          737,
+          738,
+          924,
+          925,
+          926,
+          2509,
+          2510,
+          2511,
+          2512,
+          2513,
+          2514
+        ]
+      }
+    },
+    "7": {
+      "armorSetId": 7,
+      "name": "暗影木盔甲套装",
+      "internalCode": "暗影木盔甲",
+      "itemIds": [
+        924,
+        925,
+        926
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Wood",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+          "primaryPart": null,
+          "setCount": 7,
+          "uniqueItemIds": [
+            727,
+            728,
+            729,
+            733,
+            734,
+            735,
+            730,
+            731,
+            732,
+            736,
+            737,
+            738,
+            924,
+            925,
+            926,
+            2509,
+            2510,
+            2511,
+            2512,
+            2513,
+            2514
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Wood",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Wood",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Wood",
+        "primaryPart": null,
+        "setCount": 7,
+        "uniqueItemIds": [
+          727,
+          728,
+          729,
+          733,
+          734,
+          735,
+          730,
+          731,
+          732,
+          736,
+          737,
+          738,
+          924,
+          925,
+          926,
+          2509,
+          2510,
+          2511,
+          2512,
+          2513,
+          2514
+        ]
+      }
+    },
+    "8": {
+      "armorSetId": 8,
+      "name": "灰烬木盔甲套装",
+      "internalCode": "灰烬木盔甲",
+      "itemIds": [
+        5279,
+        5280,
+        5281
+      ],
+      "status": "mapped_manual",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.AshWood",
+          "benefitExpression": "ArmorSetBonuses.Benefits.AshWood",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            5279,
+            5280,
+            5281
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Wood",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Wood",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Wood",
+        "primaryPart": null,
+        "setCount": 7,
+        "uniqueItemIds": [
+          727,
+          728,
+          729,
+          733,
+          734,
+          735,
+          730,
+          731,
+          732,
+          736,
+          737,
+          738,
+          924,
+          925,
+          926,
+          2509,
+          2510,
+          2511,
+          2512,
+          2513,
+          2514
+        ]
+      }
+    },
+    "9": {
+      "armorSetId": 9,
+      "name": "雨具盔甲套装",
+      "internalCode": "雨具盔甲",
+      "itemIds": [
+        1135,
+        1136
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "雨具盔甲套装",
+        "textEn": "雨具盔甲",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          1135,
+          1136
+        ]
+      }
+    },
+    "10": {
+      "armorSetId": 10,
+      "name": "防雪盔甲套装",
+      "internalCode": "防雪盔甲",
+      "itemIds": [
+        803,
+        804,
+        805
+      ],
+      "status": "mapped_manual",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Snow",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Snow",
+          "primaryPart": null,
+          "setCount": 8,
+          "uniqueItemIds": [
+            803,
+            804,
+            805,
+            980,
+            979,
+            978
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Snow",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Snow",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Snow",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Snow",
+        "primaryPart": null,
+        "setCount": 8,
+        "uniqueItemIds": [
+          803,
+          804,
+          805,
+          980,
+          979,
+          978
+        ]
+      }
+    },
+    "11": {
+      "armorSetId": 11,
+      "name": "粉色防雪盔甲套装",
+      "internalCode": "粉色防雪盔甲",
+      "itemIds": [
+        978,
+        979,
+        980
+      ],
+      "status": "mapped_manual",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Snow",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Snow",
+          "primaryPart": null,
+          "setCount": 8,
+          "uniqueItemIds": [
+            803,
+            804,
+            805,
+            980,
+            979,
+            978
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Snow",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Snow",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Snow",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Snow",
+        "primaryPart": null,
+        "setCount": 8,
+        "uniqueItemIds": [
+          803,
+          804,
+          805,
+          980,
+          979,
+          978
+        ]
+      }
+    },
+    "12": {
+      "armorSetId": 12,
+      "name": "渔夫盔甲套装",
+      "internalCode": "渔夫盔甲",
+      "itemIds": [
+        2367,
+        2368,
+        2369
+      ],
+      "status": "mapped_manual",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Angler",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Angler",
+          "primaryPart": null,
+          "setCount": 8,
+          "uniqueItemIds": [
+            2367,
+            2368,
+            2369,
+            5593,
+            5592,
+            5591
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Angler",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Angler",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Angler",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Angler",
+        "primaryPart": null,
+        "setCount": 8,
+        "uniqueItemIds": [
+          2367,
+          2368,
+          2369,
+          5593,
+          5592,
+          5591
+        ]
+      }
+    },
+    "13": {
+      "armorSetId": 13,
+      "name": "仙人掌盔甲套装",
+      "internalCode": "仙人掌盔甲",
+      "itemIds": [
+        894,
+        895,
+        896
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Cactus",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Cactus",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            894,
+            895,
+            896
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Cactus",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Cactus",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Cactus",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Cactus",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          894,
+          895,
+          896
+        ]
+      }
+    },
+    "14": {
+      "armorSetId": 14,
+      "name": "铜盔甲套装",
+      "internalCode": "铜盔甲",
+      "itemIds": [
+        76,
+        80,
+        89
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MetalTier1",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier1",
+          "primaryPart": null,
+          "setCount": 4,
+          "uniqueItemIds": [
+            89,
+            80,
+            76,
+            687,
+            688,
+            689,
+            90,
+            81,
+            77,
+            954
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MetalTier1",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MetalTier1",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier1",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MetalTier1",
+        "primaryPart": null,
+        "setCount": 4,
+        "uniqueItemIds": [
+          89,
+          80,
+          76,
+          687,
+          688,
+          689,
+          90,
+          81,
+          77,
+          954
+        ]
+      }
+    },
+    "15": {
+      "armorSetId": 15,
+      "name": "锡盔甲套装",
+      "internalCode": "锡盔甲",
+      "itemIds": [
+        687,
+        688,
+        689
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MetalTier1",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier1",
+          "primaryPart": null,
+          "setCount": 4,
+          "uniqueItemIds": [
+            89,
+            80,
+            76,
+            687,
+            688,
+            689,
+            90,
+            81,
+            77,
+            954
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MetalTier1",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MetalTier1",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier1",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MetalTier1",
+        "primaryPart": null,
+        "setCount": 4,
+        "uniqueItemIds": [
+          89,
+          80,
+          76,
+          687,
+          688,
+          689,
+          90,
+          81,
+          77,
+          954
+        ]
+      }
+    },
+    "16": {
+      "armorSetId": 16,
+      "name": "南瓜盔甲套装",
+      "internalCode": "南瓜盔甲",
+      "itemIds": [
+        1731,
+        1732,
+        1733
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Pumpkin",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Pumpkin",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            1731,
+            1732,
+            1733
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Pumpkin",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Pumpkin",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Pumpkin",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Pumpkin",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          1731,
+          1732,
+          1733
+        ]
+      }
+    },
+    "17": {
+      "armorSetId": 17,
+      "name": "忍者盔甲套装",
+      "internalCode": "忍者盔甲",
+      "itemIds": [
+        256,
+        257,
+        258
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Ninja",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Ninja",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            256,
+            257,
+            258
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Ninja",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Ninja",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Ninja",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Ninja",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          256,
+          257,
+          258
+        ]
+      }
+    },
+    "18": {
+      "armorSetId": 18,
+      "name": "铁盔甲套装",
+      "internalCode": "铁盔甲",
+      "itemIds": [
+        77,
+        81,
+        90
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MetalTier1",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier1",
+          "primaryPart": null,
+          "setCount": 4,
+          "uniqueItemIds": [
+            89,
+            80,
+            76,
+            687,
+            688,
+            689,
+            90,
+            81,
+            77,
+            954
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MetalTier1",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MetalTier1",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier1",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MetalTier1",
+        "primaryPart": null,
+        "setCount": 4,
+        "uniqueItemIds": [
+          89,
+          80,
+          76,
+          687,
+          688,
+          689,
+          90,
+          81,
+          77,
+          954
+        ]
+      }
+    },
+    "19": {
+      "armorSetId": 19,
+      "name": "铅盔甲套装",
+      "internalCode": "铅盔甲",
+      "itemIds": [
+        690,
+        691,
+        692
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MetalTier2",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier2",
+          "primaryPart": null,
+          "setCount": 5,
+          "uniqueItemIds": [
+            91,
+            82,
+            78,
+            92,
+            83,
+            79,
+            955,
+            690,
+            691,
+            692,
+            693,
+            694,
+            695
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MetalTier2",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MetalTier2",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier2",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MetalTier2",
+        "primaryPart": null,
+        "setCount": 5,
+        "uniqueItemIds": [
+          91,
+          82,
+          78,
+          92,
+          83,
+          79,
+          955,
+          690,
+          691,
+          692,
+          693,
+          694,
+          695
+        ]
+      }
+    },
+    "20": {
+      "armorSetId": 20,
+      "name": "银盔甲套装",
+      "internalCode": "银盔甲",
+      "itemIds": [
+        78,
+        82,
+        91
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MetalTier2",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier2",
+          "primaryPart": null,
+          "setCount": 5,
+          "uniqueItemIds": [
+            91,
+            82,
+            78,
+            92,
+            83,
+            79,
+            955,
+            690,
+            691,
+            692,
+            693,
+            694,
+            695
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MetalTier2",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MetalTier2",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier2",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MetalTier2",
+        "primaryPart": null,
+        "setCount": 5,
+        "uniqueItemIds": [
+          91,
+          82,
+          78,
+          92,
+          83,
+          79,
+          955,
+          690,
+          691,
+          692,
+          693,
+          694,
+          695
+        ]
+      }
+    },
+    "21": {
+      "armorSetId": 21,
+      "name": "钨盔甲套装",
+      "internalCode": "钨盔甲",
+      "itemIds": [
+        693,
+        694,
+        695
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MetalTier2",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier2",
+          "primaryPart": null,
+          "setCount": 5,
+          "uniqueItemIds": [
+            91,
+            82,
+            78,
+            92,
+            83,
+            79,
+            955,
+            690,
+            691,
+            692,
+            693,
+            694,
+            695
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MetalTier2",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MetalTier2",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier2",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MetalTier2",
+        "primaryPart": null,
+        "setCount": 5,
+        "uniqueItemIds": [
+          91,
+          82,
+          78,
+          92,
+          83,
+          79,
+          955,
+          690,
+          691,
+          692,
+          693,
+          694,
+          695
+        ]
+      }
+    },
+    "22": {
+      "armorSetId": 22,
+      "name": "金盔甲套装",
+      "internalCode": "金盔甲",
+      "itemIds": [
+        79,
+        83,
+        92
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MetalTier2",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier2",
+          "primaryPart": null,
+          "setCount": 5,
+          "uniqueItemIds": [
+            91,
+            82,
+            78,
+            92,
+            83,
+            79,
+            955,
+            690,
+            691,
+            692,
+            693,
+            694,
+            695
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MetalTier2",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MetalTier2",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier2",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MetalTier2",
+        "primaryPart": null,
+        "setCount": 5,
+        "uniqueItemIds": [
+          91,
+          82,
+          78,
+          92,
+          83,
+          79,
+          955,
+          690,
+          691,
+          692,
+          693,
+          694,
+          695
+        ]
+      }
+    },
+    "23": {
+      "armorSetId": 23,
+      "name": "铂金盔甲套装",
+      "internalCode": "铂金盔甲",
+      "itemIds": [
+        696,
+        697,
+        698
+      ],
+      "status": "mapped_manual",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Platinum",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Platinum",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            696,
+            697,
+            698
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MetalTier2",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MetalTier2",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier2",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MetalTier2",
+        "primaryPart": null,
+        "setCount": 5,
+        "uniqueItemIds": [
+          91,
+          82,
+          78,
+          92,
+          83,
+          79,
+          955,
+          690,
+          691,
+          692,
+          693,
+          694,
+          695
+        ]
+      }
+    },
+    "24": {
+      "armorSetId": 24,
+      "name": "化石盔甲套装",
+      "internalCode": "化石盔甲",
+      "itemIds": [
+        3374,
+        3375,
+        3376
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Fossil",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Fossil",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3374,
+            3375,
+            3376
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Fossil",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Fossil",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Fossil",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Fossil",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3374,
+          3375,
+          3376
+        ]
+      }
+    },
+    "25": {
+      "armorSetId": 25,
+      "name": "蜜蜂盔甲套装",
+      "internalCode": "蜜蜂盔甲",
+      "itemIds": [
+        2361,
+        2362,
+        2363
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Bee",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Bee",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            2361,
+            2362,
+            2363
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Bee",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Bee",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Bee",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Bee",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          2361,
+          2362,
+          2363
+        ]
+      }
+    },
+    "26": {
+      "armorSetId": 26,
+      "name": "黑曜石盔甲套装",
+      "internalCode": "黑曜石盔甲",
+      "itemIds": [
+        3266,
+        3267,
+        3268
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.ObsidianOutlaw",
+          "benefitExpression": "ArmorSetBonuses.Benefits.ObsidianOutlaw",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3266,
+            3267,
+            3268
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.ObsidianOutlaw",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.ObsidianOutlaw",
+        "benefitExpression": "ArmorSetBonuses.Benefits.ObsidianOutlaw",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.ObsidianOutlaw",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3266,
+          3267,
+          3268
+        ]
+      }
+    },
+    "27": {
+      "armorSetId": 27,
+      "name": "角斗士盔甲套装",
+      "internalCode": "角斗士盔甲",
+      "itemIds": [
+        3187,
+        3188,
+        3189
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Gladiator",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Gladiator",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3187,
+            3188,
+            3189
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Gladiator",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Gladiator",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Gladiator",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Gladiator",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3187,
+          3188,
+          3189
+        ]
+      }
+    },
+    "28": {
+      "armorSetId": 28,
+      "name": "流星盔甲套装",
+      "internalCode": "流星盔甲",
+      "itemIds": [
+        123,
+        124,
+        125
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Meteor",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Meteor",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            123,
+            124,
+            125
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Meteor",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Meteor",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Meteor",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Meteor",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          123,
+          124,
+          125
+        ]
+      }
+    },
+    "29": {
+      "armorSetId": 29,
+      "name": "丛林盔甲套装",
+      "internalCode": "丛林盔甲",
+      "itemIds": [
+        228,
+        229,
+        230
+      ],
+      "status": "mapped_manual",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Jungle",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Jungle",
+          "primaryPart": null,
+          "setCount": 8,
+          "uniqueItemIds": [
+            228,
+            229,
+            230,
+            962,
+            961,
+            960
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Jungle",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Jungle",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Jungle",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Jungle",
+        "primaryPart": null,
+        "setCount": 8,
+        "uniqueItemIds": [
+          228,
+          229,
+          230,
+          962,
+          961,
+          960
+        ]
+      }
+    },
+    "30": {
+      "armorSetId": 30,
+      "name": "远古钴盔甲套装",
+      "internalCode": "远古钴盔甲",
+      "itemIds": [
+        960,
+        961,
+        962
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Jungle",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Jungle",
+          "primaryPart": null,
+          "setCount": 8,
+          "uniqueItemIds": [
+            228,
+            229,
+            230,
+            962,
+            961,
+            960
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Jungle",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Jungle",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Jungle",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Jungle",
+        "primaryPart": null,
+        "setCount": 8,
+        "uniqueItemIds": [
+          228,
+          229,
+          230,
+          962,
+          961,
+          960
+        ]
+      }
+    },
+    "31": {
+      "armorSetId": 31,
+      "name": "死灵盔甲套装",
+      "internalCode": "死灵盔甲",
+      "itemIds": [
+        151,
+        152,
+        153
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Bone",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Necro",
+          "primaryPart": null,
+          "setCount": 2,
+          "uniqueItemIds": [
+            151,
+            152,
+            153,
+            959
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Bone",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Bone",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Necro",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Necro",
+        "primaryPart": null,
+        "setCount": 2,
+        "uniqueItemIds": [
+          151,
+          152,
+          153,
+          959
+        ]
+      }
+    },
+    "32": {
+      "armorSetId": 32,
+      "name": "暗影盔甲套装",
+      "internalCode": "暗影盔甲",
+      "itemIds": [
+        924,
+        925,
+        926
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Wood",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+          "primaryPart": null,
+          "setCount": 7,
+          "uniqueItemIds": [
+            727,
+            728,
+            729,
+            733,
+            734,
+            735,
+            730,
+            731,
+            732,
+            736,
+            737,
+            738,
+            924,
+            925,
+            926,
+            2509,
+            2510,
+            2511,
+            2512,
+            2513,
+            2514
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Wood",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Wood",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Wood",
+        "primaryPart": null,
+        "setCount": 7,
+        "uniqueItemIds": [
+          727,
+          728,
+          729,
+          733,
+          734,
+          735,
+          730,
+          731,
+          732,
+          736,
+          737,
+          738,
+          924,
+          925,
+          926,
+          2509,
+          2510,
+          2511,
+          2512,
+          2513,
+          2514
+        ]
+      }
+    },
+    "33": {
+      "armorSetId": 33,
+      "name": "远古暗影盔甲套装",
+      "internalCode": "远古暗影盔甲",
+      "itemIds": [
+        956,
+        957,
+        958
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.ShadowScale",
+          "benefitExpression": "ArmorSetBonuses.Benefits.ShadowScale",
+          "primaryPart": null,
+          "setCount": 8,
+          "uniqueItemIds": [
+            102,
+            101,
+            100,
+            958,
+            957,
+            956
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.ShadowScale",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.ShadowScale",
+        "benefitExpression": "ArmorSetBonuses.Benefits.ShadowScale",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.ShadowScale",
+        "primaryPart": null,
+        "setCount": 8,
+        "uniqueItemIds": [
+          102,
+          101,
+          100,
+          958,
+          957,
+          956
+        ]
+      }
+    },
+    "34": {
+      "armorSetId": 34,
+      "name": "猩红盔甲套装",
+      "internalCode": "猩红盔甲",
+      "itemIds": [
+        792,
+        793,
+        794
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Crimson",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Crimson",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            792,
+            793,
+            794
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Crimson",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Crimson",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Crimson",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Crimson",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          792,
+          793,
+          794
+        ]
+      }
+    },
+    "35": {
+      "armorSetId": 35,
+      "name": "熔岩盔甲套装",
+      "internalCode": "熔岩盔甲",
+      "itemIds": [
+        231,
+        232,
+        233
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Molten",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Molten",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            231,
+            232,
+            233
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Molten",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Molten",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Molten",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Molten",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          231,
+          232,
+          233
+        ]
+      }
+    },
+    "36": {
+      "armorSetId": 36,
+      "name": "珍珠木盔甲套装",
+      "internalCode": "珍珠木盔甲",
+      "itemIds": [
+        736,
+        737,
+        738
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Wood",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+          "primaryPart": null,
+          "setCount": 7,
+          "uniqueItemIds": [
+            727,
+            728,
+            729,
+            733,
+            734,
+            735,
+            730,
+            731,
+            732,
+            736,
+            737,
+            738,
+            924,
+            925,
+            926,
+            2509,
+            2510,
+            2511,
+            2512,
+            2513,
+            2514
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Wood",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Wood",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Wood",
+        "primaryPart": null,
+        "setCount": 7,
+        "uniqueItemIds": [
+          727,
+          728,
+          729,
+          733,
+          734,
+          735,
+          730,
+          731,
+          732,
+          736,
+          737,
+          738,
+          924,
+          925,
+          926,
+          2509,
+          2510,
+          2511,
+          2512,
+          2513,
+          2514
+        ]
+      }
+    },
+    "37": {
+      "armorSetId": 37,
+      "name": "蜘蛛盔甲套装",
+      "internalCode": "蜘蛛盔甲",
+      "itemIds": [
+        2370,
+        2371,
+        2372
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Spider",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Spider",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            2370,
+            2371,
+            2372
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Spider",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Spider",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Spider",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Spider",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          2370,
+          2371,
+          2372
+        ]
+      }
+    },
+    "38": {
+      "armorSetId": 38,
+      "name": "钴盔甲套装",
+      "internalCode": "钴盔甲",
+      "itemIds": [
+        372,
+        374,
+        375
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "钴盔甲套装",
+        "textEn": "钴盔甲",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          372,
+          374,
+          375
+        ]
+      }
+    },
+    "39": {
+      "armorSetId": 39,
+      "name": "钯金盔甲套装",
+      "internalCode": "钯金盔甲",
+      "itemIds": [
+        1205,
+        1208,
+        1209
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Palladium",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Palladium",
+          "primaryPart": null,
+          "setCount": 3,
+          "uniqueItemIds": [
+            1205,
+            1208,
+            1209,
+            1206,
+            1207
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Palladium",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Palladium",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Palladium",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Palladium",
+        "primaryPart": null,
+        "setCount": 3,
+        "uniqueItemIds": [
+          1205,
+          1208,
+          1209,
+          1206,
+          1207
+        ]
+      }
+    },
+    "40": {
+      "armorSetId": 40,
+      "name": "秘银盔甲套装",
+      "internalCode": "秘银盔甲",
+      "itemIds": [
+        377,
+        379,
+        380
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "秘银盔甲套装",
+        "textEn": "秘银盔甲",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          377,
+          379,
+          380
+        ]
+      }
+    },
+    "41": {
+      "armorSetId": 41,
+      "name": "山铜盔甲套装",
+      "internalCode": "山铜盔甲",
+      "itemIds": [
+        1210,
+        1213,
+        1214
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Orichalcum",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Orichalcum",
+          "primaryPart": null,
+          "setCount": 3,
+          "uniqueItemIds": [
+            1210,
+            1213,
+            1214,
+            1211,
+            1212
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Orichalcum",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Orichalcum",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Orichalcum",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Orichalcum",
+        "primaryPart": null,
+        "setCount": 3,
+        "uniqueItemIds": [
+          1210,
+          1213,
+          1214,
+          1211,
+          1212
+        ]
+      }
+    },
+    "42": {
+      "armorSetId": 42,
+      "name": "精金盔甲套装",
+      "internalCode": "精金盔甲",
+      "itemIds": [
+        401,
+        403,
+        404
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "精金盔甲套装",
+        "textEn": "精金盔甲",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          401,
+          403,
+          404
+        ]
+      }
+    },
+    "43": {
+      "armorSetId": 43,
+      "name": "钛金盔甲套装",
+      "internalCode": "钛金盔甲",
+      "itemIds": [
+        1215,
+        1218,
+        1219
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Titanium",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Titanium",
+          "primaryPart": null,
+          "setCount": 3,
+          "uniqueItemIds": [
+            1215,
+            1218,
+            1219,
+            1216,
+            1217
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Titanium",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Titanium",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Titanium",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Titanium",
+        "primaryPart": null,
+        "setCount": 3,
+        "uniqueItemIds": [
+          1215,
+          1218,
+          1219,
+          1216,
+          1217
+        ]
+      }
+    },
+    "44": {
+      "armorSetId": 44,
+      "name": "水晶刺客盔甲套装",
+      "internalCode": "水晶刺客盔甲",
+      "itemIds": [
+        4982,
+        4983,
+        4984
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.CrystalNinja",
+          "benefitExpression": "ArmorSetBonuses.Benefits.CrystalAssassin",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            4982,
+            4983,
+            4984
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.CrystalNinja",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.CrystalNinja",
+        "benefitExpression": "ArmorSetBonuses.Benefits.CrystalAssassin",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.CrystalAssassin",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          4982,
+          4983,
+          4984
+        ]
+      }
+    },
+    "45": {
+      "armorSetId": 45,
+      "name": "寒霜盔甲套装",
+      "internalCode": "寒霜盔甲",
+      "itemIds": [
+        684,
+        685,
+        686
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Frost",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Frost",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            684,
+            685,
+            686
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Frost",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Frost",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Frost",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Frost",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          684,
+          685,
+          686
+        ]
+      }
+    },
+    "46": {
+      "armorSetId": 46,
+      "name": "禁戒盔甲套装",
+      "internalCode": "禁戒盔甲",
+      "itemIds": [
+        3776,
+        3777,
+        3778
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Forbidden",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Forbidden",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3776,
+            3777,
+            3778
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Forbidden",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Forbidden",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Forbidden",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Forbidden",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3776,
+          3777,
+          3778
+        ]
+      }
+    },
+    "47": {
+      "armorSetId": 47,
+      "name": "侍卫盔甲套装",
+      "internalCode": "侍卫盔甲",
+      "itemIds": [
+        3800,
+        3801,
+        3802
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.SquireTier2",
+          "benefitExpression": "ArmorSetBonuses.Benefits.SquireTier2",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3800,
+            3801,
+            3802
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.SquireTier2",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.SquireTier2",
+        "benefitExpression": "ArmorSetBonuses.Benefits.SquireTier2",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.SquireTier2",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3800,
+          3801,
+          3802
+        ]
+      }
+    },
+    "48": {
+      "armorSetId": 48,
+      "name": "武僧盔甲套装",
+      "internalCode": "武僧盔甲",
+      "itemIds": [
+        3806,
+        3807,
+        3808
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MonkTier2",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MonkTier2",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3806,
+            3807,
+            3808
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MonkTier2",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MonkTier2",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MonkTier2",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MonkTier2",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3806,
+          3807,
+          3808
+        ]
+      }
+    },
+    "49": {
+      "armorSetId": 49,
+      "name": "女猎人盔甲套装",
+      "internalCode": "女猎人盔甲",
+      "itemIds": [
+        3803,
+        3804,
+        3805
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.HuntressTier2",
+          "benefitExpression": "ArmorSetBonuses.Benefits.HuntressTier2",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3803,
+            3804,
+            3805
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.HuntressTier2",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.HuntressTier2",
+        "benefitExpression": "ArmorSetBonuses.Benefits.HuntressTier2",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.HuntressTier2",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3803,
+          3804,
+          3805
+        ]
+      }
+    },
+    "50": {
+      "armorSetId": 50,
+      "name": "学徒盔甲套装",
+      "internalCode": "学徒盔甲",
+      "itemIds": [
+        3797,
+        3798,
+        3799
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.ApprenticeTier2",
+          "benefitExpression": "ArmorSetBonuses.Benefits.ApprenticeTier2",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3797,
+            3798,
+            3799
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.ApprenticeTier2",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.ApprenticeTier2",
+        "benefitExpression": "ArmorSetBonuses.Benefits.ApprenticeTier2",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.ApprenticeTier2",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3797,
+          3798,
+          3799
+        ]
+      }
+    },
+    "51": {
+      "armorSetId": 51,
+      "name": "神圣盔甲套装",
+      "internalCode": "神圣盔甲",
+      "itemIds": [
+        551,
+        552,
+        559
+      ],
+      "status": "mapped_manual",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Hallowed",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Hallowed",
+          "primaryPart": "Head",
+          "setCount": 24,
+          "uniqueItemIds": [
+            558,
+            551,
+            552,
+            4901,
+            4900,
+            553,
+            559,
+            4898,
+            4897,
+            4896
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Hallowed",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Hallowed",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Hallowed",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Hallowed",
+        "primaryPart": "Head",
+        "setCount": 24,
+        "uniqueItemIds": [
+          558,
+          551,
+          552,
+          4901,
+          4900,
+          553,
+          559,
+          4898,
+          4897,
+          4896
+        ]
+      }
+    },
+    "52": {
+      "armorSetId": 52,
+      "name": "远古神圣盔甲套装",
+      "internalCode": "远古神圣盔甲",
+      "itemIds": [
+        4899,
+        4900,
+        4901
+      ],
+      "status": "mapped_manual",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.HallowedSummoner",
+          "benefitExpression": "ArmorSetBonuses.Benefits.HallowedSummoner",
+          "primaryPart": "Head",
+          "setCount": 8,
+          "uniqueItemIds": [
+            4873,
+            551,
+            552,
+            4901,
+            4900,
+            4899
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Hallowed",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Hallowed",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Hallowed",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Hallowed",
+        "primaryPart": "Head",
+        "setCount": 24,
+        "uniqueItemIds": [
+          558,
+          551,
+          552,
+          4901,
+          4900,
+          553,
+          559,
+          4898,
+          4897,
+          4896
+        ]
+      }
+    },
+    "53": {
+      "armorSetId": 53,
+      "name": "叶绿盔甲套装",
+      "internalCode": "叶绿盔甲",
+      "itemIds": [
+        1001,
+        1004,
+        1005
+      ],
+      "status": "mapped_manual",
+      "candidates": [],
+      "definition": {
+        "textKey": "ArmorSetBonus.Chlorophyte",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Chlorophyte",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Chlorophyte",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Chlorophyte",
+        "primaryPart": "Head",
+        "setCount": 2,
+        "uniqueItemIds": [
+          1003,
+          1004,
+          1005,
+          1002
+        ]
+      }
+    },
+    "54": {
+      "armorSetId": 54,
+      "name": "海龟盔甲套装",
+      "internalCode": "海龟盔甲",
+      "itemIds": [
+        1316,
+        1317,
+        1318
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Turtle",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Turtle",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            1316,
+            1317,
+            1318
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Turtle",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Turtle",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Turtle",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Turtle",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          1316,
+          1317,
+          1318
+        ]
+      }
+    },
+    "55": {
+      "armorSetId": 55,
+      "name": "提基盔甲套装",
+      "internalCode": "提基盔甲",
+      "itemIds": [
+        1159,
+        1160,
+        1161
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Tiki",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Tiki",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            1159,
+            1160,
+            1161
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Tiki",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Tiki",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Tiki",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Tiki",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          1159,
+          1160,
+          1161
+        ]
+      }
+    },
+    "56": {
+      "armorSetId": 56,
+      "name": "甲虫盔甲套装",
+      "internalCode": "甲虫盔甲",
+      "itemIds": [
+        2199,
+        2200,
+        2202
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "甲虫盔甲套装",
+        "textEn": "甲虫盔甲",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          2199,
+          2200,
+          2202
+        ]
+      }
+    },
+    "57": {
+      "armorSetId": 57,
+      "name": "蘑菇矿盔甲套装",
+      "internalCode": "蘑菇矿盔甲",
+      "itemIds": [
+        1546,
+        1549,
+        1550
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "蘑菇矿盔甲套装",
+        "textEn": "蘑菇矿盔甲",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          1546,
+          1549,
+          1550
+        ]
+      }
+    },
+    "58": {
+      "armorSetId": 58,
+      "name": "幽灵盔甲套装",
+      "internalCode": "幽灵盔甲",
+      "itemIds": [
+        1504,
+        1505,
+        2189
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "幽灵盔甲套装",
+        "textEn": "幽灵盔甲",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          1504,
+          1505,
+          2189
+        ]
+      }
+    },
+    "59": {
+      "armorSetId": 59,
+      "name": "阴森盔甲套装",
+      "internalCode": "阴森盔甲",
+      "itemIds": [
+        1832,
+        1833,
+        1834
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Spooky",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Spooky",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            1832,
+            1833,
+            1834
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Spooky",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Spooky",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Spooky",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Spooky",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          1832,
+          1833,
+          1834
+        ]
+      }
+    },
+    "60": {
+      "armorSetId": 60,
+      "name": "英灵殿骑士盔甲套装",
+      "internalCode": "英灵殿骑士盔甲",
+      "itemIds": [
+        3871,
+        3872,
+        3873
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.SquireTier3",
+          "benefitExpression": "ArmorSetBonuses.Benefits.SquireTier3",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3871,
+            3872,
+            3873
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.SquireTier3",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.SquireTier3",
+        "benefitExpression": "ArmorSetBonuses.Benefits.SquireTier3",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.SquireTier3",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3871,
+          3872,
+          3873
+        ]
+      }
+    },
+    "61": {
+      "armorSetId": 61,
+      "name": "渗透忍者盔甲套装",
+      "internalCode": "渗透忍者盔甲",
+      "itemIds": [
+        3880,
+        3881,
+        3882
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MonkTier3",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MonkTier3",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3880,
+            3881,
+            3882
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MonkTier3",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MonkTier3",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MonkTier3",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MonkTier3",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3880,
+          3881,
+          3882
+        ]
+      }
+    },
+    "62": {
+      "armorSetId": 62,
+      "name": "红色骑术盔甲套装",
+      "internalCode": "红色骑术盔甲",
+      "itemIds": [
+        3877,
+        3878,
+        3879
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.HuntressTier3",
+          "benefitExpression": "ArmorSetBonuses.Benefits.HuntressTier3",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3877,
+            3878,
+            3879
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.HuntressTier3",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.HuntressTier3",
+        "benefitExpression": "ArmorSetBonuses.Benefits.HuntressTier3",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.HuntressTier3",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3877,
+          3878,
+          3879
+        ]
+      }
+    },
+    "63": {
+      "armorSetId": 63,
+      "name": "暗黑艺术家盔甲套装",
+      "internalCode": "暗黑艺术家盔甲",
+      "itemIds": [
+        3874,
+        3875,
+        3876
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.ApprenticeTier3",
+          "benefitExpression": "ArmorSetBonuses.Benefits.ApprenticeTier3",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3874,
+            3875,
+            3876
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.ApprenticeTier3",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.ApprenticeTier3",
+        "benefitExpression": "ArmorSetBonuses.Benefits.ApprenticeTier3",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.ApprenticeTier3",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3874,
+          3875,
+          3876
+        ]
+      }
+    },
+    "64": {
+      "armorSetId": 64,
+      "name": "耀斑盔甲套装",
+      "internalCode": "耀斑盔甲",
+      "itemIds": [
+        2763,
+        2764,
+        2765
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Solar",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Solar",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            2763,
+            2764,
+            2765
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Solar",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Solar",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Solar",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Solar",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          2763,
+          2764,
+          2765
+        ]
+      }
+    },
+    "65": {
+      "armorSetId": 65,
+      "name": "星旋盔甲套装",
+      "internalCode": "星旋盔甲",
+      "itemIds": [
+        2757,
+        2758,
+        2759
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Vortex",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Vortex",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            2757,
+            2758,
+            2759
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Vortex",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Vortex",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Vortex",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Vortex",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          2757,
+          2758,
+          2759
+        ]
+      }
+    },
+    "66": {
+      "armorSetId": 66,
+      "name": "星云盔甲套装",
+      "internalCode": "星云盔甲",
+      "itemIds": [
+        2760,
+        2761,
+        2762
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Nebula",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Nebula",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            2760,
+            2761,
+            2762
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Nebula",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Nebula",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Nebula",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Nebula",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          2760,
+          2761,
+          2762
+        ]
+      }
+    },
+    "67": {
+      "armorSetId": 67,
+      "name": "星尘盔甲套装",
+      "internalCode": "星尘盔甲",
+      "itemIds": [
+        3381,
+        3382,
+        3383
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Stardust",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Stardust",
+          "primaryPart": null,
+          "setCount": 1,
+          "uniqueItemIds": [
+            3381,
+            3382,
+            3383
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Stardust",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Stardust",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Stardust",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Stardust",
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3381,
+          3382,
+          3383
+        ]
+      }
+    },
+    "68": {
+      "armorSetId": 68,
+      "name": "魔法帽套装",
+      "internalCode": "魔法帽",
+      "itemIds": [
+        1282,
+        2275
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MagicHat",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+          "primaryPart": "Head",
+          "setCount": 8,
+          "uniqueItemIds": [
+            2275,
+            1282,
+            0,
+            1283,
+            1284,
+            1285,
+            1286,
+            1287,
+            2279,
+            4256
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MagicHat",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MagicHat",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MagicHat",
+        "primaryPart": "Head",
+        "setCount": 8,
+        "uniqueItemIds": [
+          2275,
+          1282,
+          0,
+          1283,
+          1284,
+          1285,
+          1286,
+          1287,
+          2279,
+          4256
+        ]
+      }
+    },
+    "69": {
+      "armorSetId": 69,
+      "name": "巫师帽套装",
+      "internalCode": "巫师帽",
+      "itemIds": [
+        1282,
+        1739
+      ],
+      "status": "mapped_manual",
+      "candidates": [],
+      "definition": {
+        "textKey": "ArmorSetBonus.Wizard",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Wizard",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Wizard",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Wizard",
+        "primaryPart": "Head",
+        "setCount": 8,
+        "uniqueItemIds": [
+          238,
+          1282,
+          0,
+          1283,
+          1284,
+          1285,
+          1286,
+          1287,
+          2279,
+          4256
+        ]
+      }
+    },
+    "70": {
+      "armorSetId": 70,
+      "name": "紫晶长袍套装",
+      "internalCode": "紫晶长袍",
+      "itemIds": [
+        1282,
+        2275
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MagicHat",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+          "primaryPart": "Head",
+          "setCount": 8,
+          "uniqueItemIds": [
+            2275,
+            1282,
+            0,
+            1283,
+            1284,
+            1285,
+            1286,
+            1287,
+            2279,
+            4256
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MagicHat",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MagicHat",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MagicHat",
+        "primaryPart": "Head",
+        "setCount": 8,
+        "uniqueItemIds": [
+          2275,
+          1282,
+          0,
+          1283,
+          1284,
+          1285,
+          1286,
+          1287,
+          2279,
+          4256
+        ]
+      }
+    },
+    "71": {
+      "armorSetId": 71,
+      "name": "黄玉长袍套装",
+      "internalCode": "黄玉长袍",
+      "itemIds": [
+        1283,
+        2275
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MagicHat",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+          "primaryPart": "Head",
+          "setCount": 8,
+          "uniqueItemIds": [
+            2275,
+            1282,
+            0,
+            1283,
+            1284,
+            1285,
+            1286,
+            1287,
+            2279,
+            4256
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MagicHat",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MagicHat",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MagicHat",
+        "primaryPart": "Head",
+        "setCount": 8,
+        "uniqueItemIds": [
+          2275,
+          1282,
+          0,
+          1283,
+          1284,
+          1285,
+          1286,
+          1287,
+          2279,
+          4256
+        ]
+      }
+    },
+    "72": {
+      "armorSetId": 72,
+      "name": "蓝玉长袍套装",
+      "internalCode": "蓝玉长袍",
+      "itemIds": [
+        1284,
+        2275
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MagicHat",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+          "primaryPart": "Head",
+          "setCount": 8,
+          "uniqueItemIds": [
+            2275,
+            1282,
+            0,
+            1283,
+            1284,
+            1285,
+            1286,
+            1287,
+            2279,
+            4256
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MagicHat",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MagicHat",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MagicHat",
+        "primaryPart": "Head",
+        "setCount": 8,
+        "uniqueItemIds": [
+          2275,
+          1282,
+          0,
+          1283,
+          1284,
+          1285,
+          1286,
+          1287,
+          2279,
+          4256
+        ]
+      }
+    },
+    "73": {
+      "armorSetId": 73,
+      "name": "翡翠长袍套装",
+      "internalCode": "翡翠长袍",
+      "itemIds": [
+        1285,
+        2275
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MagicHat",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+          "primaryPart": "Head",
+          "setCount": 8,
+          "uniqueItemIds": [
+            2275,
+            1282,
+            0,
+            1283,
+            1284,
+            1285,
+            1286,
+            1287,
+            2279,
+            4256
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MagicHat",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MagicHat",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MagicHat",
+        "primaryPart": "Head",
+        "setCount": 8,
+        "uniqueItemIds": [
+          2275,
+          1282,
+          0,
+          1283,
+          1284,
+          1285,
+          1286,
+          1287,
+          2279,
+          4256
+        ]
+      }
+    },
+    "74": {
+      "armorSetId": 74,
+      "name": "红玉长袍套装",
+      "internalCode": "红玉长袍",
+      "itemIds": [
+        1286,
+        2275
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MagicHat",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+          "primaryPart": "Head",
+          "setCount": 8,
+          "uniqueItemIds": [
+            2275,
+            1282,
+            0,
+            1283,
+            1284,
+            1285,
+            1286,
+            1287,
+            2279,
+            4256
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MagicHat",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MagicHat",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MagicHat",
+        "primaryPart": "Head",
+        "setCount": 8,
+        "uniqueItemIds": [
+          2275,
+          1282,
+          0,
+          1283,
+          1284,
+          1285,
+          1286,
+          1287,
+          2279,
+          4256
+        ]
+      }
+    },
+    "75": {
+      "armorSetId": 75,
+      "name": "琥珀长袍套装",
+      "internalCode": "琥珀长袍",
+      "itemIds": [
+        2275,
+        4256
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MagicHat",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+          "primaryPart": "Head",
+          "setCount": 8,
+          "uniqueItemIds": [
+            2275,
+            1282,
+            0,
+            1283,
+            1284,
+            1285,
+            1286,
+            1287,
+            2279,
+            4256
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MagicHat",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MagicHat",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MagicHat",
+        "primaryPart": "Head",
+        "setCount": 8,
+        "uniqueItemIds": [
+          2275,
+          1282,
+          0,
+          1283,
+          1284,
+          1285,
+          1286,
+          1287,
+          2279,
+          4256
+        ]
+      }
+    },
+    "76": {
+      "armorSetId": 76,
+      "name": "钻石长袍套装",
+      "internalCode": "钻石长袍",
+      "itemIds": [
+        1287,
+        2275
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MagicHat",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+          "primaryPart": "Head",
+          "setCount": 8,
+          "uniqueItemIds": [
+            2275,
+            1282,
+            0,
+            1283,
+            1284,
+            1285,
+            1286,
+            1287,
+            2279,
+            4256
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MagicHat",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MagicHat",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MagicHat",
+        "primaryPart": "Head",
+        "setCount": 8,
+        "uniqueItemIds": [
+          2275,
+          1282,
+          0,
+          1283,
+          1284,
+          1285,
+          1286,
+          1287,
+          2279,
+          4256
+        ]
+      }
+    },
+    "77": {
+      "armorSetId": 77,
+      "name": "神秘长袍套装",
+      "internalCode": "神秘长袍",
+      "itemIds": [
+        2275,
+        2279
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.MagicHat",
+          "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+          "primaryPart": "Head",
+          "setCount": 8,
+          "uniqueItemIds": [
+            2275,
+            1282,
+            0,
+            1283,
+            1284,
+            1285,
+            1286,
+            1287,
+            2279,
+            4256
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.MagicHat",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.MagicHat",
+        "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.MagicHat",
+        "primaryPart": "Head",
+        "setCount": 8,
+        "uniqueItemIds": [
+          2275,
+          1282,
+          0,
+          1283,
+          1284,
+          1285,
+          1286,
+          1287,
+          2279,
+          4256
+        ]
+      }
+    },
+    "78": {
+      "armorSetId": 78,
+      "name": "空桶套装",
+      "internalCode": "空桶",
+      "itemIds": [
+        205
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "空桶套装",
+        "textEn": "空桶",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          205
+        ]
+      }
+    },
+    "79": {
+      "armorSetId": 79,
+      "name": "护目镜套装",
+      "internalCode": "护目镜",
+      "itemIds": [
+        37
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "护目镜套装",
+        "textEn": "护目镜",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          37
+        ]
+      }
+    },
+    "80": {
+      "armorSetId": 80,
+      "name": "绿帽套装",
+      "internalCode": "绿帽",
+      "itemIds": [
+        867
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "绿帽套装",
+        "textEn": "绿帽",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          867
+        ]
+      }
+    },
+    "81": {
+      "armorSetId": 81,
+      "name": "潜水头盔套装",
+      "internalCode": "潜水头盔",
+      "itemIds": [
+        268
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "潜水头盔套装",
+        "textEn": "潜水头盔",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          268
+        ]
+      }
+    },
+    "82": {
+      "armorSetId": 82,
+      "name": "夜视头盔套装",
+      "internalCode": "夜视头盔",
+      "itemIds": [
+        3109
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "夜视头盔套装",
+        "textEn": "夜视头盔",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3109
+        ]
+      }
+    },
+    "83": {
+      "armorSetId": 83,
+      "name": "维京海盗头盔套装",
+      "internalCode": "维京海盗头盔",
+      "itemIds": [
+        879
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "维京海盗头盔套装",
+        "textEn": "维京海盗头盔",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          879
+        ]
+      }
+    },
+    "84": {
+      "armorSetId": 84,
+      "name": "超亮头盔套装",
+      "internalCode": "超亮头盔",
+      "itemIds": [
+        4008
+      ],
+      "status": "mapped",
+      "candidates": [
+        {
+          "textKey": "ArmorSetBonus.Mining",
+          "benefitExpression": "ArmorSetBonuses.Benefits.Mining",
+          "primaryPart": null,
+          "setCount": 12,
+          "uniqueItemIds": [
+            88,
+            410,
+            411,
+            5590,
+            5589,
+            5588,
+            4008
+          ]
+        }
+      ],
+      "definition": {
+        "textKey": "ArmorSetBonus.Mining",
+        "textZh": null,
+        "textEn": "ArmorSetBonus.Mining",
+        "benefitExpression": "ArmorSetBonuses.Benefits.Mining",
+        "benefitZh": null,
+        "benefitEn": "ArmorSetBonuses.Benefits.Mining",
+        "primaryPart": null,
+        "setCount": 12,
+        "uniqueItemIds": [
+          88,
+          410,
+          411,
+          5590,
+          5589,
+          5588,
+          4008
+        ]
+      }
+    },
+    "85": {
+      "armorSetId": 85,
+      "name": "小雪怪皮毛外套套装",
+      "internalCode": "小雪怪皮毛外套",
+      "itemIds": [
+        5068
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "小雪怪皮毛外套套装",
+        "textEn": "小雪怪皮毛外套",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          5068
+        ]
+      }
+    },
+    "86": {
+      "armorSetId": 86,
+      "name": "稽古衣套装",
+      "internalCode": "稽古衣",
+      "itemIds": [
+        2277
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "稽古衣套装",
+        "textEn": "稽古衣",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          2277
+        ]
+      }
+    },
+    "87": {
+      "armorSetId": 87,
+      "name": "神灵诅咒套装",
+      "internalCode": "神灵诅咒",
+      "itemIds": [
+        3770
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "神灵诅咒套装",
+        "textEn": "神灵诅咒",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          3770
+        ]
+      }
+    },
+    "88": {
+      "armorSetId": 88,
+      "name": "月亮领主腿套装",
+      "internalCode": "月亮领主腿",
+      "itemIds": [
+        5001
+      ],
+      "status": "placeholder",
+      "candidates": [],
+      "definition": {
+        "textKey": null,
+        "textZh": "月亮领主腿套装",
+        "textEn": "月亮领主腿",
+        "benefitExpression": null,
+        "benefitZh": null,
+        "benefitEn": null,
+        "primaryPart": null,
+        "setCount": 1,
+        "uniqueItemIds": [
+          5001
+        ]
+      }
+    }
+  }
+}

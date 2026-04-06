@@ -1,0 +1,528 @@
+[
+  {
+    "benefitExpression": "ArmorSetBonuses.Benefits.Shroomite",
+    "primaryPart": null,
+    "setCount": 3,
+    "sets": [
+      [
+        1548,
+        1549,
+        1550
+      ],
+      [
+        1546,
+        1549,
+        1550
+      ],
+      [
+        1547,
+        1549,
+        1550
+      ]
+    ],
+    "textKey": "ArmorSetBonus.Shroomite",
+    "uniqueItemIds": [
+      1546,
+      1547,
+      1548,
+      1549,
+      1550
+    ]
+  },
+  {
+    "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+    "primaryPart": null,
+    "setCount": 7,
+    "sets": [
+      [
+        727,
+        728,
+        729
+      ],
+      [
+        733,
+        734,
+        735
+      ],
+      [
+        730,
+        731,
+        732
+      ],
+      [
+        736,
+        737,
+        738
+      ],
+      [
+        924,
+        925,
+        926
+      ],
+      [
+        2509,
+        2510,
+        2511
+      ],
+      [
+        2512,
+        2513,
+        2514
+      ]
+    ],
+    "textKey": "ArmorSetBonus.Wood",
+    "uniqueItemIds": [
+      727,
+      728,
+      729,
+      730,
+      731,
+      732,
+      733,
+      734,
+      735,
+      736,
+      737,
+      738,
+      924,
+      925,
+      926,
+      2509,
+      2510,
+      2511,
+      2512,
+      2513,
+      2514
+    ]
+  },
+  {
+    "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier1",
+    "primaryPart": null,
+    "setCount": 4,
+    "sets": [
+      [
+        76,
+        80,
+        89
+      ],
+      [
+        687,
+        688,
+        689
+      ],
+      [
+        77,
+        81,
+        90
+      ],
+      [
+        77,
+        81,
+        954
+      ]
+    ],
+    "textKey": "ArmorSetBonus.MetalTier1",
+    "uniqueItemIds": [
+      76,
+      77,
+      80,
+      81,
+      89,
+      90,
+      687,
+      688,
+      689,
+      954
+    ]
+  },
+  {
+    "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier2",
+    "primaryPart": null,
+    "setCount": 5,
+    "sets": [
+      [
+        78,
+        82,
+        91
+      ],
+      [
+        79,
+        83,
+        92
+      ],
+      [
+        79,
+        83,
+        955
+      ],
+      [
+        690,
+        691,
+        692
+      ],
+      [
+        693,
+        694,
+        695
+      ]
+    ],
+    "textKey": "ArmorSetBonus.MetalTier2",
+    "uniqueItemIds": [
+      78,
+      79,
+      82,
+      83,
+      91,
+      92,
+      690,
+      691,
+      692,
+      693,
+      694,
+      695,
+      955
+    ]
+  },
+  {
+    "benefitExpression": "ArmorSetBonuses.Benefits.Necro",
+    "primaryPart": null,
+    "setCount": 2,
+    "sets": [
+      [
+        151,
+        152,
+        153
+      ],
+      [
+        152,
+        153,
+        959
+      ]
+    ],
+    "textKey": "ArmorSetBonus.Bone",
+    "uniqueItemIds": [
+      151,
+      152,
+      153,
+      959
+    ]
+  },
+  {
+    "benefitExpression": "ArmorSetBonuses.Benefits.Wizard",
+    "primaryPart": "Head",
+    "setCount": 8,
+    "sets": [
+      [
+        0,
+        238,
+        1282
+      ],
+      [
+        0,
+        238,
+        1283
+      ],
+      [
+        0,
+        238,
+        1284
+      ],
+      [
+        0,
+        238,
+        1285
+      ],
+      [
+        0,
+        238,
+        1286
+      ],
+      [
+        0,
+        238,
+        1287
+      ],
+      [
+        0,
+        238,
+        2279
+      ],
+      [
+        0,
+        238,
+        4256
+      ]
+    ],
+    "textKey": "ArmorSetBonus.Wizard",
+    "uniqueItemIds": [
+      0,
+      238,
+      1282,
+      1283,
+      1284,
+      1285,
+      1286,
+      1287,
+      2279,
+      4256
+    ]
+  },
+  {
+    "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+    "primaryPart": "Head",
+    "setCount": 8,
+    "sets": [
+      [
+        0,
+        1282,
+        2275
+      ],
+      [
+        0,
+        1283,
+        2275
+      ],
+      [
+        0,
+        1284,
+        2275
+      ],
+      [
+        0,
+        1285,
+        2275
+      ],
+      [
+        0,
+        1286,
+        2275
+      ],
+      [
+        0,
+        1287,
+        2275
+      ],
+      [
+        0,
+        2275,
+        2279
+      ],
+      [
+        0,
+        2275,
+        4256
+      ]
+    ],
+    "textKey": "ArmorSetBonus.MagicHat",
+    "uniqueItemIds": [
+      0,
+      1282,
+      1283,
+      1284,
+      1285,
+      1286,
+      1287,
+      2275,
+      2279,
+      4256
+    ]
+  },
+  {
+    "benefitExpression": "ArmorSetBonuses.Benefits.ShadowScale",
+    "primaryPart": null,
+    "setCount": 1,
+    "sets": [
+      []
+    ],
+    "textKey": "ArmorSetBonus.ShadowScale",
+    "uniqueItemIds": []
+  },
+  {
+    "benefitExpression": "ArmorSetBonuses.Benefits.Jungle",
+    "primaryPart": null,
+    "setCount": 1,
+    "sets": [
+      []
+    ],
+    "textKey": "ArmorSetBonus.Jungle",
+    "uniqueItemIds": []
+  },
+  {
+    "benefitExpression": "ArmorSetBonuses.Benefits.Snow",
+    "primaryPart": null,
+    "setCount": 1,
+    "sets": [
+      []
+    ],
+    "textKey": "ArmorSetBonus.Snow",
+    "uniqueItemIds": []
+  },
+  {
+    "benefitExpression": "ArmorSetBonuses.Benefits.Mining",
+    "primaryPart": null,
+    "setCount": 1,
+    "sets": [
+      [
+        5588
+      ]
+    ],
+    "textKey": "ArmorSetBonus.Mining",
+    "uniqueItemIds": [
+      5588
+    ]
+  },
+  {
+    "benefitExpression": "ArmorSetBonuses.Benefits.Chlorophyte",
+    "primaryPart": "Head",
+    "setCount": 2,
+    "sets": [
+      [
+        1003,
+        1004,
+        1005
+      ],
+      [
+        1002,
+        1004,
+        1005
+      ]
+    ],
+    "textKey": "ArmorSetBonus.Chlorophyte",
+    "uniqueItemIds": [
+      1002,
+      1003,
+      1004,
+      1005
+    ]
+  },
+  {
+    "benefitExpression": "ArmorSetBonuses.Benefits.Angler",
+    "primaryPart": null,
+    "setCount": 1,
+    "sets": [
+      []
+    ],
+    "textKey": "ArmorSetBonus.Angler",
+    "uniqueItemIds": []
+  },
+  {
+    "benefitExpression": "ArmorSetBonuses.Benefits.Palladium",
+    "primaryPart": null,
+    "setCount": 3,
+    "sets": [
+      [
+        1205,
+        1208,
+        1209
+      ],
+      [
+        1206,
+        1208,
+        1209
+      ],
+      [
+        1207,
+        1208,
+        1209
+      ]
+    ],
+    "textKey": "ArmorSetBonus.Palladium",
+    "uniqueItemIds": [
+      1205,
+      1206,
+      1207,
+      1208,
+      1209
+    ]
+  },
+  {
+    "benefitExpression": "ArmorSetBonuses.Benefits.Orichalcum",
+    "primaryPart": null,
+    "setCount": 3,
+    "sets": [
+      [
+        1210,
+        1213,
+        1214
+      ],
+      [
+        1211,
+        1213,
+        1214
+      ],
+      [
+        1212,
+        1213,
+        1214
+      ]
+    ],
+    "textKey": "ArmorSetBonus.Orichalcum",
+    "uniqueItemIds": [
+      1210,
+      1211,
+      1212,
+      1213,
+      1214
+    ]
+  },
+  {
+    "benefitExpression": "ArmorSetBonuses.Benefits.Titanium",
+    "primaryPart": null,
+    "setCount": 3,
+    "sets": [
+      [
+        1215,
+        1218,
+        1219
+      ],
+      [
+        1216,
+        1218,
+        1219
+      ],
+      [
+        1217,
+        1218,
+        1219
+      ]
+    ],
+    "textKey": "ArmorSetBonus.Titanium",
+    "uniqueItemIds": [
+      1215,
+      1216,
+      1217,
+      1218,
+      1219
+    ]
+  },
+  {
+    "benefitExpression": "ArmorSetBonuses.Benefits.HallowedSummoner",
+    "primaryPart": "Head",
+    "setCount": 1,
+    "sets": [
+      []
+    ],
+    "textKey": "ArmorSetBonus.HallowedSummoner",
+    "uniqueItemIds": []
+  },
+  {
+    "benefitExpression": "ArmorSetBonuses.Benefits.Hallowed",
+    "primaryPart": "Head",
+    "setCount": 1,
+    "sets": [
+      [
+        553,
+        559,
+        4897,
+        4898
+      ]
+    ],
+    "textKey": "ArmorSetBonus.Hallowed",
+    "uniqueItemIds": [
+      553,
+      559,
+      4897,
+      4898
+    ]
+  }
+]

@@ -1,0 +1,14 @@
+{
+  "entity": "biomes",
+  "generatedAt": "2026-03-28T11:56:07.300Z",
+  "chunkSize": 200,
+  "sourceFile": "data/standardized/biomes.standardized.json",
+  "mode": "array",
+  "totalRecords": 7,
+  "parts": [
+    {
+      "name": "part-0001.json",
+      "records": 7
+    }
+  ]
+}

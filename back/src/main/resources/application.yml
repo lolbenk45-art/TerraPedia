@@ -1,0 +1,153 @@
+﻿server:
+  port: ${APP_PORT:8888}
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: skills-back
+  servlet:
+    multipart:
+      max-file-size: ${TERRAPEDIA_MINIO_MAX_FILE_SIZE:5242880}
+      max-request-size: ${TERRAPEDIA_MINIO_MAX_FILE_SIZE:5242880}
+  
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${TERRAPEDIA_DB_URL:jdbc:mysql://localhost:3306/terria_v1_local?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${TERRAPEDIA_DB_USERNAME:root}
+    password: ${TERRAPEDIA_DB_PASSWORD:}
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+  
+  data:
+    redis:
+      host: ${TERRAPEDIA_REDIS_HOST:localhost}
+      port: ${TERRAPEDIA_REDIS_PORT:6379}
+      password: ${TERRAPEDIA_REDIS_PASSWORD:#{null}}
+      database: ${TERRAPEDIA_REDIS_DATABASE:0}
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          max-wait: 3000ms
+  redis:
+    host: ${TERRAPEDIA_REDIS_HOST:localhost}
+    port: ${TERRAPEDIA_REDIS_PORT:6379}
+    password: ${TERRAPEDIA_REDIS_PASSWORD:#{null}}
+    database: ${TERRAPEDIA_REDIS_DATABASE:0}
+    timeout: 5000ms
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    table: flyway_schema_history
+
+  mail:
+    host: ${TERRAPEDIA_MAIL_HOST:smtp.qq.com}
+    port: ${TERRAPEDIA_MAIL_PORT:465}
+    username: ${TERRAPEDIA_MAIL_USERNAME:}
+    password: ${TERRAPEDIA_MAIL_PASSWORD:}
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: ${TERRAPEDIA_MAIL_SSL_ENABLE:true}
+          starttls:
+            enable: ${TERRAPEDIA_MAIL_STARTTLS_ENABLE:false}
+            required: false
+          connectiontimeout: 8000
+          timeout: 8000
+          writetimeout: 8000
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.terraria.skills.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: true
+    lazy-loading-enabled: true
+    aggressive-lazy-loading: false
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+logging:
+  level:
+    root: INFO
+    com.terraria.skills: DEBUG
+    com.terraria.skills.mapper: DEBUG
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n'
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+terraria:
+  article:
+    review:
+      enforce-strict: ${TERRAPEDIA_ARTICLE_REVIEW_ENFORCE_STRICT:false}
+  auth:
+    admin:
+      username: ${TERRAPEDIA_ADMIN_USERNAME:admin}
+      password: ${TERRAPEDIA_ADMIN_PASSWORD:}
+      display-name: ${TERRAPEDIA_ADMIN_DISPLAY_NAME:Admin}
+      token-secret: ${TERRAPEDIA_AUTH_TOKEN_SECRET:}
+      token-ttl-seconds: ${TERRAPEDIA_AUTH_TOKEN_TTL_SECONDS:28800}
+    user:
+      token-secret: ${TERRAPEDIA_USER_TOKEN_SECRET:}
+      access-token-ttl-seconds: ${TERRAPEDIA_USER_ACCESS_TOKEN_TTL_SECONDS:7200}
+      refresh-token-ttl-seconds: ${TERRAPEDIA_USER_REFRESH_TOKEN_TTL_SECONDS:1209600}
+      access-cookie-name: ${TERRAPEDIA_USER_ACCESS_COOKIE_NAME:tp_user_access}
+      refresh-cookie-name: ${TERRAPEDIA_USER_REFRESH_COOKIE_NAME:tp_user_refresh}
+      cookie-secure: ${TERRAPEDIA_USER_COOKIE_SECURE:false}
+      cookie-same-site: ${TERRAPEDIA_USER_COOKIE_SAME_SITE:Lax}
+  security:
+    login-rate-limit:
+      max-failures: ${TERRAPEDIA_LOGIN_MAX_FAILURES:5}
+      max-failures-per-email: ${TERRAPEDIA_LOGIN_MAX_FAILURES_PER_EMAIL:12}
+      max-failures-per-ip: ${TERRAPEDIA_LOGIN_MAX_FAILURES_PER_IP:25}
+      failure-window-seconds: ${TERRAPEDIA_LOGIN_FAILURE_WINDOW_SECONDS:600}
+      lock-seconds: ${TERRAPEDIA_LOGIN_LOCK_SECONDS:900}
+    register-verification:
+      code-length: ${TERRAPEDIA_REGISTER_CODE_LENGTH:6}
+      code-ttl-seconds: ${TERRAPEDIA_REGISTER_CODE_TTL_SECONDS:600}
+      send-cooldown-seconds: ${TERRAPEDIA_REGISTER_SEND_COOLDOWN_SECONDS:60}
+      max-sends-per-email-per-hour: ${TERRAPEDIA_REGISTER_MAX_SENDS_PER_EMAIL_PER_HOUR:10}
+      max-sends-per-ip-per-hour: ${TERRAPEDIA_REGISTER_MAX_SENDS_PER_IP_PER_HOUR:30}
+      max-verify-failures: ${TERRAPEDIA_REGISTER_MAX_VERIFY_FAILURES:5}
+      verify-failure-window-seconds: ${TERRAPEDIA_REGISTER_VERIFY_FAILURE_WINDOW_SECONDS:900}
+      verify-lock-seconds: ${TERRAPEDIA_REGISTER_VERIFY_LOCK_SECONDS:900}
+  mail:
+    enabled: ${TERRAPEDIA_MAIL_ENABLED:true}
+    from-address: ${TERRAPEDIA_MAIL_FROM:${TERRAPEDIA_MAIL_USERNAME:}}
+    from-name: ${TERRAPEDIA_MAIL_FROM_NAME:TerraPedia}
+    subject-prefix: ${TERRAPEDIA_MAIL_SUBJECT_PREFIX:[TerraPedia]}
+  storage:
+    minio:
+      enabled: ${TERRAPEDIA_MINIO_ENABLED:false}
+      credentials-file: ${TERRAPEDIA_MINIO_CREDENTIALS_FILE:}
+      endpoint: ${TERRAPEDIA_MINIO_ENDPOINT:}
+      public-endpoint: ${TERRAPEDIA_MINIO_PUBLIC_ENDPOINT:}
+      bucket: ${TERRAPEDIA_MINIO_BUCKET:terrapedia-images}
+      object-prefix: ${TERRAPEDIA_MINIO_OBJECT_PREFIX:items}
+      auto-create-bucket: ${TERRAPEDIA_MINIO_AUTO_CREATE_BUCKET:true}
+      public-read: ${TERRAPEDIA_MINIO_PUBLIC_READ:true}
+      max-file-size: ${TERRAPEDIA_MINIO_MAX_FILE_SIZE:5242880}
+

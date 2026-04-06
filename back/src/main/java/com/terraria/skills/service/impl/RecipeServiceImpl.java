@@ -1,0 +1,565 @@
+package com.terraria.skills.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.terraria.skills.dto.AdminRecipeConditionUpsertRequestDTO;
+import com.terraria.skills.dto.AdminRecipeIngredientUpsertRequestDTO;
+import com.terraria.skills.dto.AdminRecipeStationUpsertRequestDTO;
+import com.terraria.skills.dto.AdminRecipeUpsertRequestDTO;
+import com.terraria.skills.dto.RecipeConditionDTO;
+import com.terraria.skills.dto.RecipeDTO;
+import com.terraria.skills.dto.RecipeIngredientDTO;
+import com.terraria.skills.dto.RecipeStationDTO;
+import com.terraria.skills.entity.Biome;
+import com.terraria.skills.entity.CraftingStation;
+import com.terraria.skills.entity.Item;
+import com.terraria.skills.entity.Recipe;
+import com.terraria.skills.entity.RecipeContextRequirement;
+import com.terraria.skills.entity.RecipeIngredient;
+import com.terraria.skills.entity.RecipeStation;
+import com.terraria.skills.entity.WorldContext;
+import com.terraria.skills.mapper.BiomeMapper;
+import com.terraria.skills.mapper.CraftingStationMapper;
+import com.terraria.skills.mapper.ItemMapper;
+import com.terraria.skills.mapper.RecipeContextRequirementMapper;
+import com.terraria.skills.mapper.RecipeIngredientMapper;
+import com.terraria.skills.mapper.RecipeMapper;
+import com.terraria.skills.mapper.RecipeStationMapper;
+import com.terraria.skills.mapper.WorldContextMapper;
+import com.terraria.skills.service.RecipeService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+@Service
+@RequiredArgsConstructor
+public class RecipeServiceImpl implements RecipeService {
+
+    private final RecipeMapper recipeMapper;
+    private final RecipeIngredientMapper recipeIngredientMapper;
+    private final RecipeStationMapper recipeStationMapper;
+    private final RecipeContextRequirementMapper recipeContextRequirementMapper;
+    private final CraftingStationMapper craftingStationMapper;
+    private final ItemMapper itemMapper;
+    private final BiomeMapper biomeMapper;
+    private final WorldContextMapper worldContextMapper;
+
+    @Override
+    public List<RecipeDTO> getRecipesByResultItemId(Long itemId) {
+        List<Recipe> recipes = recipeMapper.selectList(new LambdaQueryWrapper<Recipe>()
+            .eq(Recipe::getResultItemId, itemId)
+            .eq(Recipe::getStatus, 1)
+            .orderByAsc(Recipe::getSortOrder, Recipe::getId));
+
+        if (recipes == null || recipes.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Long> recipeIds = recipes.stream().map(Recipe::getId).toList();
+        List<RecipeIngredient> ingredients = recipeIngredientMapper.selectList(new LambdaQueryWrapper<RecipeIngredient>()
+            .in(RecipeIngredient::getRecipeId, recipeIds)
+            .orderByAsc(RecipeIngredient::getRecipeId, RecipeIngredient::getSortOrder, RecipeIngredient::getId));
+        List<RecipeStation> stations = recipeStationMapper.selectList(new LambdaQueryWrapper<RecipeStation>()
+            .in(RecipeStation::getRecipeId, recipeIds)
+            .orderByAsc(RecipeStation::getRecipeId, RecipeStation::getSortOrder, RecipeStation::getId));
+        List<RecipeContextRequirement> conditions = recipeContextRequirementMapper.selectList(new LambdaQueryWrapper<RecipeContextRequirement>()
+            .in(RecipeContextRequirement::getRecipeId, recipeIds)
+            .orderByAsc(RecipeContextRequirement::getRecipeId, RecipeContextRequirement::getSortOrder, RecipeContextRequirement::getId));
+        Map<Long, CraftingStation> craftingStationById = loadCraftingStations(stations.stream().map(RecipeStation::getStationId));
+
+        Map<Long, Item> itemById = loadItems(
+            recipes.stream().map(Recipe::getResultItemId),
+            ingredients.stream().map(RecipeIngredient::getIngredientItemId),
+            stations.stream().map(RecipeStation::getStationItemId)
+        );
+
+        Map<Long, List<RecipeIngredientDTO>> ingredientDtosByRecipeId = ingredients.stream()
+            .map(ingredient -> toIngredientDto(ingredient, itemById.get(ingredient.getIngredientItemId())))
+            .collect(Collectors.groupingBy(RecipeIngredientDTO::getRecipeId));
+
+        Map<Long, List<RecipeStationDTO>> stationDtosByRecipeId = stations.stream()
+            .map(station -> toStationDto(
+                station,
+                itemById.get(station.getStationItemId()),
+                craftingStationById.get(station.getStationId())
+            ))
+            .collect(Collectors.groupingBy(RecipeStationDTO::getRecipeId));
+        Map<Long, List<RecipeConditionDTO>> conditionDtosByRecipeId = loadRecipeConditionDtos(conditions);
+
+        return recipes.stream().map(recipe -> {
+            RecipeDTO dto = new RecipeDTO();
+            BeanUtils.copyProperties(recipe, dto);
+            Item resultItem = itemById.get(recipe.getResultItemId());
+            if (resultItem != null) {
+                dto.setResultItemName(resultItem.getName());
+                dto.setResultItemNameZh(resultItem.getNameZh());
+                dto.setResultItemInternalName(resultItem.getInternalName());
+                dto.setResultItemImage(resultItem.getImage());
+            } else {
+                dto.setResultItemInternalName(recipe.getResultInternalName());
+            }
+            dto.setIngredients(ingredientDtosByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList()));
+            dto.setStations(stationDtosByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList()));
+            dto.setConditions(conditionDtosByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList()));
+            return dto;
+        }).toList();
+    }
+
+    @Override
+    @Transactional
+    public List<RecipeDTO> replaceRecipesForResultItemId(Long itemId, List<AdminRecipeUpsertRequestDTO> requests) {
+        return replaceRecipesForResultItemId(itemId, requests, null);
+    }
+
+    @Override
+    @Transactional
+    public List<RecipeDTO> replaceRecipesForResultItemId(Long itemId, List<AdminRecipeUpsertRequestDTO> requests, String scopeMode) {
+        Item item = itemMapper.selectById(itemId);
+        if (item == null || (item.getDeleted() != null && item.getDeleted() == 1)) {
+            throw new IllegalArgumentException("Item not found");
+        }
+
+        List<AdminRecipeUpsertRequestDTO> safeRequests = requests == null ? Collections.emptyList() : requests;
+        validateRequests(safeRequests);
+
+        List<Recipe> existingRecipes = recipeMapper.selectList(new LambdaQueryWrapper<Recipe>()
+            .eq(Recipe::getResultItemId, itemId));
+        List<Recipe> recipesToReplace = existingRecipes.stream()
+            .filter(recipe -> matchesScopeMode(recipe.getVersionScope(), scopeMode))
+            .toList();
+
+        if (!recipesToReplace.isEmpty()) {
+            List<Long> recipeIds = recipesToReplace.stream()
+                .map(Recipe::getId)
+                .filter(Objects::nonNull)
+                .toList();
+            if (!recipeIds.isEmpty()) {
+                recipeIngredientMapper.delete(new LambdaQueryWrapper<RecipeIngredient>().in(RecipeIngredient::getRecipeId, recipeIds));
+                recipeStationMapper.delete(new LambdaQueryWrapper<RecipeStation>().in(RecipeStation::getRecipeId, recipeIds));
+                recipeContextRequirementMapper.delete(new LambdaQueryWrapper<RecipeContextRequirement>().in(RecipeContextRequirement::getRecipeId, recipeIds));
+                recipeMapper.delete(new LambdaQueryWrapper<Recipe>().in(Recipe::getId, recipeIds));
+            }
+        }
+
+        for (int recipeIndex = 0; recipeIndex < safeRequests.size(); recipeIndex += 1) {
+            AdminRecipeUpsertRequestDTO request = safeRequests.get(recipeIndex);
+            Recipe recipe = new Recipe();
+            recipe.setResultItemId(itemId);
+            recipe.setResultInternalName(firstNonBlank(request.getResultInternalName(), item.getInternalName()));
+            recipe.setResultQuantity(request.getResultQuantity() == null || request.getResultQuantity() < 1 ? 1 : request.getResultQuantity());
+            recipe.setVersionScope(trimToNull(request.getVersionScope()));
+            recipe.setNotes(trimToNull(request.getNotes()));
+            recipe.setSourceProvider(defaultIfBlank(request.getSourceProvider(), "manual_admin"));
+            recipe.setSourcePage(trimToNull(request.getSourcePage()));
+            recipe.setSourceRevisionTimestamp(parseDateTime(request.getSourceRevisionTimestamp()));
+            recipe.setSortOrder(resolveSortOrder(request.getSortOrder(), recipeIndex));
+            recipe.setStatus(1);
+            recipe.setDeleted(0);
+            recipeMapper.insert(recipe);
+
+            List<AdminRecipeIngredientUpsertRequestDTO> ingredients = request.getIngredients() == null
+                ? Collections.emptyList()
+                : request.getIngredients();
+            for (int ingredientIndex = 0; ingredientIndex < ingredients.size(); ingredientIndex += 1) {
+                AdminRecipeIngredientUpsertRequestDTO ingredientRequest = ingredients.get(ingredientIndex);
+                if (!hasIngredientContent(ingredientRequest)) {
+                    continue;
+                }
+                RecipeIngredient ingredient = new RecipeIngredient();
+                ingredient.setRecipeId(recipe.getId());
+                ingredient.setIngredientItemId(ingredientRequest.getIngredientItemId());
+                ingredient.setIngredientInternalName(trimToNull(ingredientRequest.getIngredientInternalName()));
+                ingredient.setIngredientNameRaw(resolvePreferredIngredientNameRaw(ingredientRequest));
+                ingredient.setIngredientGroupType(defaultIfBlank(ingredientRequest.getIngredientGroupType(), "item"));
+                ingredient.setQuantityMin(ingredientRequest.getQuantityMin());
+                ingredient.setQuantityMax(ingredientRequest.getQuantityMax());
+                ingredient.setQuantityText(resolveQuantityText(ingredientRequest));
+                ingredient.setSortOrder(resolveSortOrder(ingredientRequest.getSortOrder(), ingredientIndex));
+                recipeIngredientMapper.insert(ingredient);
+            }
+
+            List<AdminRecipeStationUpsertRequestDTO> stations = request.getStations() == null
+                ? Collections.emptyList()
+                : request.getStations();
+            for (int stationIndex = 0; stationIndex < stations.size(); stationIndex += 1) {
+                AdminRecipeStationUpsertRequestDTO stationRequest = stations.get(stationIndex);
+                if (!hasStationContent(stationRequest)) {
+                    continue;
+                }
+                RecipeStation station = new RecipeStation();
+                station.setRecipeId(recipe.getId());
+                station.setStationId(stationRequest.getStationId());
+                station.setStationItemId(stationRequest.getStationItemId());
+                station.setStationInternalName(trimToNull(stationRequest.getStationInternalName()));
+                station.setStationNameRaw(resolvePreferredStationNameRaw(stationRequest));
+                station.setIsAlternative(Boolean.TRUE.equals(stationRequest.getIsAlternative()));
+                station.setSortOrder(resolveSortOrder(stationRequest.getSortOrder(), stationIndex));
+                recipeStationMapper.insert(station);
+            }
+
+            List<AdminRecipeConditionUpsertRequestDTO> conditions = request.getConditions() == null
+                ? Collections.emptyList()
+                : request.getConditions();
+            for (int conditionIndex = 0; conditionIndex < conditions.size(); conditionIndex += 1) {
+                AdminRecipeConditionUpsertRequestDTO conditionRequest = conditions.get(conditionIndex);
+                if (!hasConditionContent(conditionRequest)) {
+                    continue;
+                }
+                RecipeContextRequirement condition = new RecipeContextRequirement();
+                condition.setRecipeId(recipe.getId());
+                condition.setRefType(normalizeConditionRefType(conditionRequest.getRefType()));
+                condition.setRefId(conditionRequest.getRefId());
+                condition.setRequirementRole(defaultIfBlank(conditionRequest.getRequirementRole(), "required"));
+                condition.setNotes(trimToNull(conditionRequest.getNotes()));
+                condition.setSortOrder(resolveSortOrder(conditionRequest.getSortOrder(), conditionIndex));
+                recipeContextRequirementMapper.insert(condition);
+            }
+        }
+
+        return getRecipesByResultItemId(itemId);
+    }
+
+    private boolean matchesScopeMode(String versionScope, String scopeMode) {
+        String normalizedMode = trimToNull(scopeMode);
+        if (normalizedMode == null || "all".equalsIgnoreCase(normalizedMode) || "full".equalsIgnoreCase(normalizedMode)) {
+            return true;
+        }
+
+        String normalizedScope = trimToNull(versionScope);
+        if ("desktop".equalsIgnoreCase(normalizedMode)) {
+            if (normalizedScope == null) {
+                return true;
+            }
+            return normalizedScope.toLowerCase().contains("desktop");
+        }
+
+        return true;
+    }
+
+    private Map<Long, Item> loadItems(Stream<Long> resultIds, Stream<Long> ingredientIds, Stream<Long> stationIds) {
+        List<Long> ids = Stream.of(resultIds, ingredientIds, stationIds)
+            .filter(Objects::nonNull)
+            .flatMap(Function.identity())
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+        if (ids.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return itemMapper.selectBatchIds(ids).stream()
+            .collect(Collectors.toMap(Item::getId, Function.identity()));
+    }
+
+    private RecipeIngredientDTO toIngredientDto(RecipeIngredient ingredient, Item item) {
+        RecipeIngredientDTO dto = new RecipeIngredientDTO();
+        BeanUtils.copyProperties(ingredient, dto);
+        if (item != null) {
+            dto.setItemName(item.getName());
+            dto.setItemNameZh(item.getNameZh());
+            dto.setItemInternalName(item.getInternalName());
+            dto.setItemImage(item.getImage());
+        } else {
+            dto.setItemInternalName(ingredient.getIngredientInternalName());
+        }
+        return dto;
+    }
+
+    private RecipeStationDTO toStationDto(RecipeStation station, Item item, CraftingStation craftingStation) {
+        RecipeStationDTO dto = new RecipeStationDTO();
+        BeanUtils.copyProperties(station, dto);
+        if (item != null) {
+            dto.setItemName(item.getName());
+            dto.setItemNameZh(item.getNameZh());
+            dto.setItemInternalName(item.getInternalName());
+            dto.setItemImage(item.getImage());
+        } else if (craftingStation != null) {
+            dto.setItemName(craftingStation.getNameEn());
+            dto.setItemNameZh(craftingStation.getNameZh());
+            dto.setItemInternalName(craftingStation.getInternalName());
+            dto.setItemImage(craftingStation.getImageUrl());
+        } else {
+            dto.setItemInternalName(station.getStationInternalName());
+        }
+        return dto;
+    }
+
+    private Map<Long, CraftingStation> loadCraftingStations(Stream<Long> stationIds) {
+        List<Long> ids = stationIds
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+        if (ids.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return craftingStationMapper.selectBatchIds(ids).stream()
+            .collect(Collectors.toMap(CraftingStation::getId, Function.identity()));
+    }
+
+    private boolean hasIngredientContent(AdminRecipeIngredientUpsertRequestDTO request) {
+        return request != null && (
+            request.getIngredientItemId() != null
+                || trimToNull(request.getIngredientNameRaw()) != null
+                || trimToNull(request.getQuantityText()) != null
+                || request.getQuantityMin() != null
+                || request.getQuantityMax() != null
+        );
+    }
+
+    private boolean hasStationContent(AdminRecipeStationUpsertRequestDTO request) {
+        return request != null && (
+            request.getStationId() != null
+                || request.getStationItemId() != null
+                || trimToNull(request.getStationNameRaw()) != null
+        );
+    }
+
+    private boolean hasConditionContent(AdminRecipeConditionUpsertRequestDTO request) {
+        return request != null
+            && normalizeConditionRefType(request.getRefType()) != null
+            && request.getRefId() != null
+            && request.getRefId() > 0;
+    }
+
+    private void validateRequests(List<AdminRecipeUpsertRequestDTO> requests) {
+        for (int recipeIndex = 0; recipeIndex < requests.size(); recipeIndex += 1) {
+            AdminRecipeUpsertRequestDTO recipe = requests.get(recipeIndex);
+            int displayIndex = recipeIndex + 1;
+            if (recipe == null) {
+                throw new IllegalArgumentException("配方 #" + displayIndex + " 不能为空");
+            }
+            if (recipe.getResultQuantity() != null && recipe.getResultQuantity() < 1) {
+                throw new IllegalArgumentException("配方 #" + displayIndex + " 的产出数量必须大于 0");
+            }
+
+            List<AdminRecipeIngredientUpsertRequestDTO> ingredients = recipe.getIngredients() == null
+                ? Collections.emptyList()
+                : recipe.getIngredients();
+            List<AdminRecipeStationUpsertRequestDTO> stations = recipe.getStations() == null
+                ? Collections.emptyList()
+                : recipe.getStations();
+            List<AdminRecipeConditionUpsertRequestDTO> conditions = recipe.getConditions() == null
+                ? Collections.emptyList()
+                : recipe.getConditions();
+
+            if (ingredients.isEmpty()) {
+                throw new IllegalArgumentException("配方 #" + displayIndex + " 至少需要 1 个原料");
+            }
+            if (stations.isEmpty() && conditions.isEmpty()) {
+                throw new IllegalArgumentException("配方 #" + displayIndex + " 至少需要 1 个工作台");
+            }
+
+            for (int ingredientIndex = 0; ingredientIndex < ingredients.size(); ingredientIndex += 1) {
+                AdminRecipeIngredientUpsertRequestDTO ingredient = ingredients.get(ingredientIndex);
+                int ingredientDisplayIndex = ingredientIndex + 1;
+                if (!hasIngredientContent(ingredient)) {
+                    throw new IllegalArgumentException("配方 #" + displayIndex + " 的原料 #" + ingredientDisplayIndex + " 不能为空");
+                }
+                if (ingredient.getIngredientItemId() == null && trimToNull(ingredient.getIngredientNameRaw()) == null) {
+                    throw new IllegalArgumentException("配方 #" + displayIndex + " 的原料 #" + ingredientDisplayIndex + " 必须填写物品 ID 或原料名称");
+                }
+                String groupType = defaultIfBlank(ingredient.getIngredientGroupType(), "item");
+                if (!"item".equals(groupType) && !"group".equals(groupType)) {
+                    throw new IllegalArgumentException("配方 #" + displayIndex + " 的原料 #" + ingredientDisplayIndex + " 类型仅支持 item 或 group");
+                }
+                if (ingredient.getQuantityMin() != null && ingredient.getQuantityMin() < 0) {
+                    throw new IllegalArgumentException("配方 #" + displayIndex + " 的原料 #" + ingredientDisplayIndex + " quantityMin 不能小于 0");
+                }
+                if (ingredient.getQuantityMax() != null && ingredient.getQuantityMax() < 0) {
+                    throw new IllegalArgumentException("配方 #" + displayIndex + " 的原料 #" + ingredientDisplayIndex + " quantityMax 不能小于 0");
+                }
+                if (ingredient.getQuantityMin() != null && ingredient.getQuantityMax() != null && ingredient.getQuantityMax() < ingredient.getQuantityMin()) {
+                    throw new IllegalArgumentException("配方 #" + displayIndex + " 的原料 #" + ingredientDisplayIndex + " quantityMax 不能小于 quantityMin");
+                }
+            }
+
+            for (int stationIndex = 0; stationIndex < stations.size(); stationIndex += 1) {
+                AdminRecipeStationUpsertRequestDTO station = stations.get(stationIndex);
+                int stationDisplayIndex = stationIndex + 1;
+                if (!hasStationContent(station)) {
+                    throw new IllegalArgumentException("配方 #" + displayIndex + " 的工作台 #" + stationDisplayIndex + " 不能为空");
+                }
+                if (station.getStationId() == null && station.getStationItemId() == null && trimToNull(station.getStationNameRaw()) == null) {
+                    throw new IllegalArgumentException("配方 #" + displayIndex + " 的工作台 #" + stationDisplayIndex + " 必须填写制作站 ID、物品 ID 或工作台名称");
+                }
+            }
+            for (int conditionIndex = 0; conditionIndex < conditions.size(); conditionIndex += 1) {
+                AdminRecipeConditionUpsertRequestDTO condition = conditions.get(conditionIndex);
+                if (!hasConditionContent(condition)) {
+                    throw new IllegalArgumentException("Recipe #" + displayIndex + " condition #" + (conditionIndex + 1) + " requires refType and refId");
+                }
+            }
+        }
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            String trimmed = trimToNull(value);
+            if (trimmed != null) {
+                return trimmed;
+            }
+        }
+        return null;
+    }
+
+    private String defaultIfBlank(String value, String fallback) {
+        String trimmed = trimToNull(value);
+        return trimmed == null ? fallback : trimmed;
+    }
+
+    private Integer resolveSortOrder(Integer explicitSortOrder, int index) {
+        if (explicitSortOrder != null && explicitSortOrder > 0) {
+            return explicitSortOrder;
+        }
+        return index + 1;
+    }
+
+    private String resolveQuantityText(AdminRecipeIngredientUpsertRequestDTO ingredient) {
+        String text = trimToNull(ingredient.getQuantityText());
+        if (text != null) {
+            return text;
+        }
+        if (ingredient.getQuantityMin() != null && ingredient.getQuantityMax() != null && !ingredient.getQuantityMin().equals(ingredient.getQuantityMax())) {
+            return ingredient.getQuantityMin() + "-" + ingredient.getQuantityMax();
+        }
+        if (ingredient.getQuantityMin() != null) {
+            return String.valueOf(ingredient.getQuantityMin());
+        }
+        if (ingredient.getQuantityMax() != null) {
+            return String.valueOf(ingredient.getQuantityMax());
+        }
+        return "1";
+    }
+
+    private String resolvePreferredIngredientNameRaw(AdminRecipeIngredientUpsertRequestDTO request) {
+        String direct = trimToNull(request.getIngredientNameRaw());
+        if (request.getIngredientItemId() == null) {
+            return direct;
+        }
+        Item item = itemMapper.selectById(request.getIngredientItemId());
+        if (item != null) {
+            String preferred = firstNonBlank(item.getNameZh(), item.getName(), direct);
+            if (preferred != null) {
+                return preferred;
+            }
+        }
+        return direct;
+    }
+
+    private String resolvePreferredStationNameRaw(AdminRecipeStationUpsertRequestDTO request) {
+        String direct = trimToNull(request.getStationNameRaw());
+        if (request.getStationItemId() != null) {
+            Item item = itemMapper.selectById(request.getStationItemId());
+            if (item != null) {
+                String preferred = firstNonBlank(item.getNameZh(), item.getName(), direct);
+                if (preferred != null) {
+                    return preferred;
+                }
+            }
+        }
+        if (request.getStationId() != null) {
+            CraftingStation station = craftingStationMapper.selectById(request.getStationId());
+            if (station != null) {
+                String preferred = firstNonBlank(station.getNameZh(), station.getNameEn(), direct);
+                if (preferred != null) {
+                    return preferred;
+                }
+            }
+        }
+        return direct;
+    }
+
+    private Map<Long, List<RecipeConditionDTO>> loadRecipeConditionDtos(List<RecipeContextRequirement> conditions) {
+        if (conditions == null || conditions.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<Long> biomeIds = conditions.stream()
+            .filter(condition -> "BIOME".equalsIgnoreCase(condition.getRefType()))
+            .map(RecipeContextRequirement::getRefId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+        List<Long> worldContextIds = conditions.stream()
+            .filter(condition -> "WORLD_CONTEXT".equalsIgnoreCase(condition.getRefType()))
+            .map(RecipeContextRequirement::getRefId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+
+        Map<Long, Biome> biomeById = biomeIds.isEmpty()
+            ? Collections.emptyMap()
+            : biomeMapper.selectBatchIds(biomeIds).stream().collect(Collectors.toMap(Biome::getId, Function.identity()));
+        Map<Long, WorldContext> worldContextById = worldContextIds.isEmpty()
+            ? Collections.emptyMap()
+            : worldContextMapper.selectBatchIds(worldContextIds).stream().collect(Collectors.toMap(WorldContext::getId, Function.identity()));
+
+        return conditions.stream()
+            .map(condition -> toConditionDto(condition, biomeById.get(condition.getRefId()), worldContextById.get(condition.getRefId())))
+            .collect(Collectors.groupingBy(RecipeConditionDTO::getRecipeId));
+    }
+
+    private RecipeConditionDTO toConditionDto(RecipeContextRequirement condition, Biome biome, WorldContext worldContext) {
+        RecipeConditionDTO dto = new RecipeConditionDTO();
+        BeanUtils.copyProperties(condition, dto);
+        if (biome != null) {
+            dto.setRefCode(biome.getCode());
+            dto.setRefNameEn(biome.getNameEn());
+            dto.setRefNameZh(biome.getNameZh());
+            dto.setRefContextType("BIOME");
+        } else if (worldContext != null) {
+            dto.setRefCode(worldContext.getCode());
+            dto.setRefNameEn(worldContext.getNameEn());
+            dto.setRefNameZh(worldContext.getNameZh());
+            dto.setRefContextType(worldContext.getContextType());
+        }
+        return dto;
+    }
+
+    private String normalizeConditionRefType(String rawType) {
+        String type = trimToNull(rawType);
+        if (type == null) {
+            return null;
+        }
+        String normalized = type.trim().toUpperCase();
+        return switch (normalized) {
+            case "BIOME" -> "BIOME";
+            case "WORLD_CONTEXT", "CONTEXT", "ENVIRONMENT", "MOON_PHASE" -> "WORLD_CONTEXT";
+            default -> null;
+        };
+    }
+
+    private LocalDateTime parseDateTime(String value) {
+        String trimmed = trimToNull(value);
+        if (trimmed == null) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(trimmed);
+        } catch (DateTimeParseException ignored) {
+            return null;
+        }
+    }
+}

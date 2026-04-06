@@ -1,0 +1,6059 @@
+[
+  {
+    "englishName": "Flickerwick",
+    "id": 201,
+    "image": "Flickerwick (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PetDD2Ghost",
+    "localized": {
+      "en": {
+        "name": "Flickerwick",
+        "namesub": null,
+        "page": "Creeper Egg",
+        "tooltip": "A flickerwick is following you"
+      },
+      "zh": {
+        "name": "闪烁灯芯",
+        "namesub": null,
+        "page": "Creeper Egg",
+        "tooltip": "闪烁灯芯正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "DD2PetGhost",
+        "itemId": 3856,
+        "name": "Creeper Egg"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Flickerwick (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Flickerwick_(buff).png"
+  },
+  {
+    "englishName": "Hoardagron",
+    "id": 202,
+    "image": "Hoardagron (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PetDD2Dragon",
+    "localized": {
+      "en": {
+        "name": "Hoardagron",
+        "namesub": null,
+        "page": "Dragon Egg",
+        "tooltip": "A hoardagron is following you"
+      },
+      "zh": {
+        "name": "Hoardagron",
+        "namesub": null,
+        "page": "Dragon Egg",
+        "tooltip": "Hoardagron正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "DD2PetDragon",
+        "itemId": 3857,
+        "name": "Dragon Egg"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Hoardagron (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Hoardagron_(buff).png"
+  },
+  {
+    "englishName": "Betsy's Curse",
+    "id": 203,
+    "image": "Betsy's Curse.png",
+    "immuneNpcCount": 3,
+    "immuneNpcSample": [
+      {
+        "internalName": "Ghost",
+        "name": "Ghost",
+        "npcId": 316
+      },
+      {
+        "internalName": "AncientCultistSquidhead",
+        "name": "Ancient Vision",
+        "npcId": 521
+      },
+      {
+        "internalName": "DesertDjinn",
+        "name": "Desert Spirit",
+        "npcId": 533
+      }
+    ],
+    "internalName": "BetsysCurse",
+    "localized": {
+      "en": {
+        "name": "Betsy's Curse",
+        "namesub": null,
+        "page": "Betsy's Wrath",
+        "tooltip": "Defense is lowered"
+      },
+      "zh": {
+        "name": "双足翼龙诅咒",
+        "namesub": null,
+        "page": "Betsy's Wrath",
+        "tooltip": "防御降低"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Betsy's Curse.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+  },
+  {
+    "englishName": "Oiled",
+    "id": 204,
+    "image": "Oiled.png",
+    "immuneNpcCount": 3,
+    "immuneNpcSample": [
+      {
+        "internalName": "Ghost",
+        "name": "Ghost",
+        "npcId": 316
+      },
+      {
+        "internalName": "AncientCultistSquidhead",
+        "name": "Ancient Vision",
+        "npcId": 521
+      },
+      {
+        "internalName": "DesertDjinn",
+        "name": "Desert Spirit",
+        "npcId": 533
+      }
+    ],
+    "internalName": "Oiled",
+    "localized": {
+      "en": {
+        "name": "Oiled",
+        "namesub": null,
+        "page": "Oiled",
+        "tooltip": "Taking more damage from being on fire"
+      },
+      "zh": {
+        "name": "涂油",
+        "namesub": null,
+        "page": "Oiled",
+        "tooltip": "提高因着火而受到的伤害"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Oiled.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Oiled.png"
+  },
+  {
+    "englishName": "Ballista Panic!",
+    "id": 205,
+    "image": "Ballista Panic!.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BallistaPanic",
+    "localized": {
+      "en": {
+        "name": "Ballista Panic!",
+        "namesub": null,
+        "page": "Ballista Panic!",
+        "tooltip": "Your ballistas rapidly shoot in panic!"
+      },
+      "zh": {
+        "name": "弩车恐慌！",
+        "namesub": null,
+        "page": "Ballista Panic!",
+        "tooltip": "你的弩车在恐慌之中快速射击！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Ballista Panic!.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ballista_Panic!.png"
+  },
+  {
+    "englishName": "Plenty Satisfied",
+    "id": 206,
+    "image": "Plenty Satisfied.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WellFed2",
+    "localized": {
+      "en": {
+        "name": "Plenty Satisfied",
+        "namesub": null,
+        "page": "Well Fed",
+        "tooltip": "<span class=\"gameText\">Medium improvements to all stats</span><br/>[[Expert Mode|<abbr class=\"mode-exclusive expert\" title=\"Expert Mode \"><span class=\"gameText\">Medium improvements to all stats and increased life regeneration</span></abbr>]]"
+      },
+      "zh": {
+        "name": "很满意",
+        "namesub": null,
+        "page": "Well Fed",
+        "tooltip": "<span class=\"gameText\">所有属性中幅提升</span><br/>[[Expert Mode|<abbr class=\"mode-exclusive expert\" title=\"Expert Mode \"><span class=\"gameText\">所有属性中幅提升，生命再生速度提高</span></abbr>]]"
+      }
+    },
+    "sourceItemCount": 26,
+    "sourceItems": [
+      {
+        "buffTime": 28800,
+        "internalName": "BowlofSoup",
+        "itemId": 357,
+        "name": "Bowl of Soup"
+      },
+      {
+        "buffTime": 28800,
+        "internalName": "PadThai",
+        "itemId": 2267,
+        "name": "Pad Thai"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "Pho",
+        "itemId": 2268,
+        "name": "Pho"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "CookedShrimp",
+        "itemId": 2426,
+        "name": "Cooked Shrimp"
+      },
+      {
+        "buffTime": 28800,
+        "internalName": "Sashimi",
+        "itemId": 2427,
+        "name": "Sashimi"
+      },
+      {
+        "buffTime": 50400,
+        "internalName": "GrubSoup",
+        "itemId": 3195,
+        "name": "Grub Soup"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "BananaSplit",
+        "itemId": 4012,
+        "name": "Banana Split"
+      },
+      {
+        "buffTime": 50400,
+        "internalName": "ChickenNugget",
+        "itemId": 4016,
+        "name": "Chicken Nugget"
+      },
+      {
+        "buffTime": 72000,
+        "internalName": "ChocolateChipCookie",
+        "itemId": 4017,
+        "name": "Chocolate Chip Cookie"
+      },
+      {
+        "buffTime": 57600,
+        "internalName": "CreamSoda",
+        "itemId": 4018,
+        "name": "Cream Soda"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "Escargot",
+        "itemId": 4019,
+        "name": "Escargot"
+      },
+      {
+        "buffTime": 50400,
+        "internalName": "FriedEgg",
+        "itemId": 4020,
+        "name": "Fried Egg"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "Fries",
+        "itemId": 4021,
+        "name": "Fries"
+      },
+      {
+        "buffTime": 57600,
+        "internalName": "Grapes",
+        "itemId": 4023,
+        "name": "Grapes"
+      },
+      {
+        "buffTime": 50400,
+        "internalName": "IceCream",
+        "itemId": 4026,
+        "name": "Ice Cream"
+      },
+      {
+        "buffTime": 57600,
+        "internalName": "Nachos",
+        "itemId": 4028,
+        "name": "Nachos"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "RoastedDuck",
+        "itemId": 4032,
+        "name": "Roasted Duck"
+      },
+      {
+        "buffTime": 50400,
+        "internalName": "SeafoodDinner",
+        "itemId": 4034,
+        "name": "Seafood Dinner"
+      },
+      {
+        "buffTime": 64800,
+        "internalName": "ShrimpPoBoy",
+        "itemId": 4035,
+        "name": "Shrimp Po' Boy"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "Dragonfruit",
+        "itemId": 4288,
+        "name": "Dragon Fruit"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "Starfruit",
+        "itemId": 4297,
+        "name": "Star Fruit"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "LobsterTail",
+        "itemId": 4403,
+        "name": "Lobster Tail"
+      },
+      {
+        "buffTime": 72000,
+        "internalName": "PrismaticPunch",
+        "itemId": 4623,
+        "name": "Prismatic Punch"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "CoffeeCup",
+        "itemId": 5042,
+        "name": "Coffee"
+      },
+      {
+        "buffTime": 28800,
+        "internalName": "MonsterLasagna",
+        "itemId": 5092,
+        "name": "Monster Lasagna"
+      },
+      {
+        "buffTime": 21600,
+        "internalName": "FroggleBunwich",
+        "itemId": 5093,
+        "name": "Froggle Bunwich"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Plenty Satisfied.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Plenty_Satisfied.png"
+  },
+  {
+    "englishName": "Exquisitely Stuffed",
+    "id": 207,
+    "image": "Exquisitely Stuffed.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WellFed3",
+    "localized": {
+      "en": {
+        "name": "Exquisitely Stuffed",
+        "namesub": null,
+        "page": "Well Fed",
+        "tooltip": "<span class=\"gameText\">Major improvements to all stats</span><br/>[[Expert Mode|<abbr class=\"mode-exclusive expert\" title=\"Expert Mode \"><span class=\"gameText\">Major improvements to all stats and increased life regeneration</span></abbr>]]"
+      },
+      "zh": {
+        "name": "酒足饭饱",
+        "namesub": null,
+        "page": "Well Fed",
+        "tooltip": "<span class=\"gameText\">所有属性大幅提升</span><br/>[[Expert Mode|<abbr class=\"mode-exclusive expert\" title=\"Expert Mode \"><span class=\"gameText\">所有属性大幅提升，生命再生速度提高</span></abbr>]]"
+      }
+    },
+    "sourceItemCount": 14,
+    "sourceItems": [
+      {
+        "buffTime": 14400,
+        "internalName": "ChristmasPudding",
+        "itemId": 1911,
+        "name": "Christmas Pudding"
+      },
+      {
+        "buffTime": 14400,
+        "internalName": "SugarCookie",
+        "itemId": 1919,
+        "name": "Sugar Cookie"
+      },
+      {
+        "buffTime": 14400,
+        "internalName": "GingerbreadCookie",
+        "itemId": 1920,
+        "name": "Gingerbread Cookie"
+      },
+      {
+        "buffTime": 86400,
+        "internalName": "Bacon",
+        "itemId": 3532,
+        "name": "Bacon"
+      },
+      {
+        "buffTime": 57600,
+        "internalName": "ApplePie",
+        "itemId": 4011,
+        "name": "Apple Pie"
+      },
+      {
+        "buffTime": 86400,
+        "internalName": "BBQRibs",
+        "itemId": 4013,
+        "name": "BBQ Ribs"
+      },
+      {
+        "buffTime": 28800,
+        "internalName": "Burger",
+        "itemId": 4015,
+        "name": "Burger"
+      },
+      {
+        "buffTime": 172800,
+        "internalName": "GoldenDelight",
+        "itemId": 4022,
+        "name": "Golden Delight"
+      },
+      {
+        "buffTime": 43200,
+        "internalName": "Hotdog",
+        "itemId": 4025,
+        "name": "Hotdog"
+      },
+      {
+        "buffTime": 57600,
+        "internalName": "Milkshake",
+        "itemId": 4027,
+        "name": "Milkshake"
+      },
+      {
+        "buffTime": 28800,
+        "internalName": "Pizza",
+        "itemId": 4029,
+        "name": "Pizza"
+      },
+      {
+        "buffTime": 28800,
+        "internalName": "Spaghetti",
+        "itemId": 4036,
+        "name": "Spaghetti"
+      },
+      {
+        "buffTime": 57600,
+        "internalName": "Steak",
+        "itemId": 4037,
+        "name": "Steak"
+      },
+      {
+        "buffTime": 57600,
+        "internalName": "GrapeJuice",
+        "itemId": 4615,
+        "name": "Grape Juice"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Exquisitely Stuffed.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Exquisitely_Stuffed.png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 208,
+    "image": "Minecart (Desert) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DesertMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Desert",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Desert Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Desert) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Desert)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 209,
+    "image": "Minecart (Desert) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DesertMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Desert) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Desert)_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 210,
+    "image": "Minecart (Minecarp) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "FishMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Minecarp",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Minecarp",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Minecarp) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Minecarp)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 211,
+    "image": "Minecart (Minecarp) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "FishMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Minecarp) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Minecarp)_(buff).png"
+  },
+  {
+    "englishName": "Golf Cart",
+    "id": 212,
+    "image": "Golf Cart (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "GolfCartMount",
+    "localized": {
+      "en": {
+        "name": "Golf Cart",
+        "namesub": null,
+        "page": "Golf Cart Keys",
+        "tooltip": "A fair way to cross the fairway"
+      },
+      "zh": {
+        "name": "高尔夫球车",
+        "namesub": null,
+        "page": "Golf Cart Keys",
+        "tooltip": "穿过球道的好方法"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Golf Cart (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Golf_Cart_(buff).png"
+  },
+  {
+    "englishName": "Sanguine Bat",
+    "id": 213,
+    "image": "Sanguine Bat.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BatOfLight",
+    "localized": {
+      "en": {
+        "name": "Sanguine Bat",
+        "namesub": null,
+        "page": "Sanguine Staff",
+        "tooltip": "The sanguine bat will fight for you"
+      },
+      "zh": {
+        "name": "血红蝙蝠",
+        "namesub": null,
+        "page": "Sanguine Staff",
+        "tooltip": "血红蝙蝠将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "SanguineStaff",
+        "itemId": 4269,
+        "name": "Sanguine Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Sanguine Bat.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Sanguine_Bat.png"
+  },
+  {
+    "englishName": "Vampire Frog",
+    "id": 214,
+    "image": "Vampire Frog.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "VampireFrog",
+    "localized": {
+      "en": {
+        "name": "Vampire Frog",
+        "namesub": null,
+        "page": "Vampire Frog Staff",
+        "tooltip": "The vampire frog will fight for you"
+      },
+      "zh": {
+        "name": "吸血鬼青蛙",
+        "namesub": null,
+        "page": "Vampire Frog Staff",
+        "tooltip": "吸血鬼青蛙将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "VampireFrogStaff",
+        "itemId": 4273,
+        "name": "Vampire Frog Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Vampire Frog.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Vampire_Frog.png"
+  },
+  {
+    "englishName": "The Bast Defense",
+    "id": 215,
+    "image": "The Bast Defense.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "CatBast",
+    "localized": {
+      "en": {
+        "name": "The Bast Defense",
+        "namesub": null,
+        "page": "Bast Statue",
+        "tooltip": "Defense is increased by 5"
+      },
+      "zh": {
+        "name": "巴斯特防御",
+        "namesub": null,
+        "page": "Bast Statue",
+        "tooltip": "防御增加5"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "The Bast Defense.png",
+    "imageUrl": "https://terraria.wiki.gg/images/The_Bast_Defense.png"
+  },
+  {
+    "englishName": "Baby Finch",
+    "id": 216,
+    "image": "Baby Finch.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BabyBird",
+    "localized": {
+      "en": {
+        "name": "Baby Finch",
+        "namesub": null,
+        "page": "Finch Staff",
+        "tooltip": "The baby finch will fight for you"
+      },
+      "zh": {
+        "name": "雀宝宝",
+        "namesub": null,
+        "page": "Finch Staff",
+        "tooltip": "雀宝宝将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "BabyBirdStaff",
+        "itemId": 4281,
+        "name": "Finch Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Baby Finch.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Finch.png"
+  },
+  {
+    "englishName": "Estee",
+    "id": 217,
+    "image": "Estee.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "UpbeatStar",
+    "localized": {
+      "en": {
+        "name": "Estee",
+        "namesub": null,
+        "page": "Celestial Wand",
+        "tooltip": "Estee is following you"
+      },
+      "zh": {
+        "name": "埃斯蒂",
+        "namesub": null,
+        "page": "Celestial Wand",
+        "tooltip": "埃斯蒂正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "CelestialWand",
+        "itemId": 4365,
+        "name": "Celestial Wand"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Estee.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Estee.png"
+  },
+  {
+    "englishName": "Sugar Glider",
+    "id": 218,
+    "image": "Sugar Glider (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SugarGlider",
+    "localized": {
+      "en": {
+        "name": "Sugar Glider",
+        "namesub": null,
+        "page": "Eucalyptus Sap",
+        "tooltip": "A sugar glider is following you"
+      },
+      "zh": {
+        "name": "蜜袋鼯",
+        "namesub": null,
+        "page": "Eucalyptus Sap",
+        "tooltip": "蜜袋鼯正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "EucaluptusSap",
+        "itemId": 4366,
+        "name": "Eucalyptus Sap"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Sugar Glider (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Sugar_Glider_(buff).png"
+  },
+  {
+    "englishName": "Shark Pup",
+    "id": 219,
+    "image": "Shark Pup (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SharkPup",
+    "localized": {
+      "en": {
+        "name": "Shark Pup",
+        "namesub": null,
+        "page": "Shark Bait",
+        "tooltip": "Doo doo doo doo doo doo"
+      },
+      "zh": {
+        "name": "小鲨鱼",
+        "namesub": null,
+        "page": "Shark Bait",
+        "tooltip": "嘟嘟嘟嘟嘟嘟"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "SharkBait",
+        "itemId": 4425,
+        "name": "Shark Bait"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Shark Pup (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Shark_Pup_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 220,
+    "image": "Minecart (Bee) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BeeMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Bee",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Bee Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Bee) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Bee)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 221,
+    "image": "Minecart (Bee) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BeeMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Bee) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Bee)_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 222,
+    "image": "Minecart (Ladybug) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "LadybugMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Ladybug",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Ladybug Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Ladybug) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Ladybug)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 223,
+    "image": "Minecart (Ladybug) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "LadybugMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Ladybug) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Ladybug)_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 224,
+    "image": "Minecart (Pigron) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PigronMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Pigron",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Pigron Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Pigron) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Pigron)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 225,
+    "image": "Minecart (Pigron) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PigronMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Pigron) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Pigron)_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 226,
+    "image": "Minecart (Sunflower) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SunflowerMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Sunflower",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Sunflower Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Sunflower) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Sunflower)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 227,
+    "image": "Minecart (Sunflower) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SunflowerMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Sunflower) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Sunflower)_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 228,
+    "image": "Minecart (Demonic Hellcart) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "HellMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Demonic Hellcart",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Demonic Hellcart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Demonic Hellcart) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Demonic_Hellcart)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 229,
+    "image": "Minecart (Demonic Hellcart) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "HellMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Demonic Hellcart) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Demonic_Hellcart)_(buff).png"
+  },
+  {
+    "englishName": "Witch's Broom",
+    "id": 230,
+    "image": "Witch's Broom (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WitchBroom",
+    "localized": {
+      "en": {
+        "name": "Witch's Broom",
+        "namesub": null,
+        "page": "Witch's Broom",
+        "tooltip": "It flies! WITCHCRAFT!"
+      },
+      "zh": {
+        "name": "女巫扫帚",
+        "namesub": null,
+        "page": "Witch's Broom",
+        "tooltip": "它飞起来了！这是巫术！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Witch's Broom (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Witch's_Broom_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 231,
+    "image": "Minecart (Shroom) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ShroomMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Shroom",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Shroom Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Shroom) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Shroom)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 232,
+    "image": "Minecart (Shroom) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ShroomMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Shroom) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Shroom)_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 233,
+    "image": "Minecart (Amethyst) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "AmethystMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Amethyst",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Amethyst Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Amethyst) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Amethyst)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 234,
+    "image": "Minecart (Amethyst) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "AmethystMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Amethyst) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Amethyst)_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 235,
+    "image": "Minecart (Topaz) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "TopazMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Topaz",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Topaz Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Topaz) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Topaz)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 236,
+    "image": "Minecart (Topaz) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "TopazMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Topaz) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Topaz)_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 237,
+    "image": "Minecart (Sapphire) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SapphireMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Sapphire",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Sapphire Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Sapphire) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Sapphire)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 238,
+    "image": "Minecart (Sapphire) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SapphireMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Sapphire) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Sapphire)_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 239,
+    "image": "Minecart (Emerald) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "EmeraldMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Emerald",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Emerald Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Emerald) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Emerald)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 240,
+    "image": "Minecart (Emerald) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "EmeraldMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Emerald) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Emerald)_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 241,
+    "image": "Minecart (Ruby) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "RubyMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Ruby",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Ruby Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Ruby) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Ruby)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 242,
+    "image": "Minecart (Ruby) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "RubyMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Ruby) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Ruby)_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 243,
+    "image": "Minecart (Diamond) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DiamondMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Diamond",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Diamond Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Diamond) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Diamond)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 244,
+    "image": "Minecart (Diamond) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DiamondMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Diamond) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Diamond)_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 245,
+    "image": "Minecart (Amber) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "AmberMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Amber",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Amber Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Amber) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Amber)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 246,
+    "image": "Minecart (Amber) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "AmberMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Amber) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Amber)_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 247,
+    "image": "Minecart (Beetle) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BeetleMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Beetle",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Beetle Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Beetle) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Beetle)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 248,
+    "image": "Minecart (Beetle) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BeetleMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Beetle) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Beetle)_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 249,
+    "image": "Minecart (Meowmere) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MeowmereMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Meowmere",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Meowmere Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Meowmere) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Meowmere)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 250,
+    "image": "Minecart (Meowmere) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MeowmereMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Meowmere) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Meowmere)_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 251,
+    "image": "Minecart (Party) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PartyMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Party",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Party Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Party) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Party)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 252,
+    "image": "Minecart (Party) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PartyMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Party) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Party)_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 253,
+    "image": "Minecart (The Dutchman) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PirateMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "The Dutchman",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "The Dutchman",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (The Dutchman) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(The_Dutchman)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 254,
+    "image": "Minecart (The Dutchman) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PirateMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (The Dutchman) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(The_Dutchman)_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 255,
+    "image": "Minecart (Steampunk) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SteampunkMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Steampunk",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Steampunk Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Steampunk) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Steampunk)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 256,
+    "image": "Minecart (Steampunk) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SteampunkMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Steampunk) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Steampunk)_(buff).png"
+  },
+  {
+    "englishName": "Lucky",
+    "id": 257,
+    "image": "Lucky.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Lucky",
+    "localized": {
+      "en": {
+        "name": "Lucky",
+        "namesub": null,
+        "page": "Lucky (buff)",
+        "tooltip": "You are feeling pretty lucky"
+      },
+      "zh": {
+        "name": "幸运",
+        "namesub": null,
+        "page": "Lucky (buff)",
+        "tooltip": "你觉得自己很幸运"
+      }
+    },
+    "sourceItemCount": 3,
+    "sourceItems": [
+      {
+        "buffTime": 18000,
+        "internalName": "LuckPotionLesser",
+        "itemId": 4477,
+        "name": "Lesser Luck Potion"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "LuckPotion",
+        "itemId": 4478,
+        "name": "Luck Potion"
+      },
+      {
+        "buffTime": 54000,
+        "internalName": "LuckPotionGreater",
+        "itemId": 4479,
+        "name": "Greater Luck Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Lucky.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Lucky.png"
+  },
+  {
+    "englishName": "Lil' Harpy",
+    "id": 258,
+    "image": "Lil' Harpy (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "LilHarpy",
+    "localized": {
+      "en": {
+        "name": "Lil' Harpy",
+        "namesub": null,
+        "page": "Birdie Rattle",
+        "tooltip": "Cuteness from above"
+      },
+      "zh": {
+        "name": "小鸟妖",
+        "namesub": null,
+        "page": "Birdie Rattle",
+        "tooltip": "从天而降的可爱"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "BirdieRattle",
+        "itemId": 4603,
+        "name": "Birdie Rattle"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Lil' Harpy (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Lil'_Harpy_(buff).png"
+  },
+  {
+    "englishName": "Fennec Fox",
+    "id": 259,
+    "image": "Fennec Fox (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "FennecFox",
+    "localized": {
+      "en": {
+        "name": "Fennec Fox",
+        "namesub": null,
+        "page": "Exotic Chew Toy",
+        "tooltip": "What does the fox say? Better yet, what does the fox HEAR?!"
+      },
+      "zh": {
+        "name": "耳廓狐",
+        "namesub": null,
+        "page": "Exotic Chew Toy",
+        "tooltip": "狐狸说了什么？不如说，狐狸听到了什么？！"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "ExoticEasternChewToy",
+        "itemId": 4604,
+        "name": "Exotic Chew Toy"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Fennec Fox (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Fennec_Fox_(buff).png"
+  },
+  {
+    "englishName": "Glittery Butterfly",
+    "id": 260,
+    "image": "Glittery Butterfly (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "GlitteryButterfly",
+    "localized": {
+      "en": {
+        "name": "Glittery Butterfly",
+        "namesub": null,
+        "page": "Bedazzled Nectar",
+        "tooltip": "Truly, truly outrageous"
+      },
+      "zh": {
+        "name": "闪光蝴蝶",
+        "namesub": null,
+        "page": "Bedazzled Nectar",
+        "tooltip": "真的真的荒唐"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "BedazzledNectar",
+        "itemId": 4605,
+        "name": "Bedazzled Nectar"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Glittery Butterfly (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Glittery_Butterfly_(buff).png"
+  },
+  {
+    "englishName": "Baby Imp",
+    "id": 261,
+    "image": "Baby Imp (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BabyImp",
+    "localized": {
+      "en": {
+        "name": "Baby Imp",
+        "namesub": null,
+        "page": "Slice of Hell Cake",
+        "tooltip": "Just wait till his terrible twos!"
+      },
+      "zh": {
+        "name": "小鬼宝宝",
+        "namesub": null,
+        "page": "Slice of Hell Cake",
+        "tooltip": "等到他两岁的时候走着瞧吧！"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "HellCake",
+        "itemId": 4551,
+        "name": "Slice of Hell Cake"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Baby Imp (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Imp_(buff).png"
+  },
+  {
+    "englishName": "Baby Red Panda",
+    "id": 262,
+    "image": "Baby Red Panda (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BabyRedPanda",
+    "localized": {
+      "en": {
+        "name": "Baby Red Panda",
+        "namesub": null,
+        "page": "Bamboo Leaf",
+        "tooltip": "A baby red panda is following you"
+      },
+      "zh": {
+        "name": "小熊猫宝宝",
+        "namesub": null,
+        "page": "Bamboo Leaf",
+        "tooltip": "小熊猫宝宝正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "BambooLeaf",
+        "itemId": 4550,
+        "name": "Bamboo Leaf"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Baby Red Panda (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Red_Panda_(buff).png"
+  },
+  {
+    "englishName": "Desert Tiger",
+    "id": 263,
+    "image": "Desert Tiger (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "StormTiger",
+    "localized": {
+      "en": {
+        "name": "Desert Tiger",
+        "namesub": null,
+        "page": "Desert Tiger Staff",
+        "tooltip": "The desert tiger will fight beside you"
+      },
+      "zh": {
+        "name": "沙漠虎",
+        "namesub": null,
+        "page": "Desert Tiger Staff",
+        "tooltip": "沙漠虎将与你并肩作战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "StormTigerStaff",
+        "itemId": 4607,
+        "name": "Desert Tiger Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Desert Tiger (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Desert_Tiger_(buff).png"
+  },
+  {
+    "englishName": "Plantero",
+    "id": 264,
+    "image": "Plantero (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Plantero",
+    "localized": {
+      "en": {
+        "name": "Plantero",
+        "namesub": null,
+        "page": "Mud Bud",
+        "tooltip": "Little Plantero is following you"
+      },
+      "zh": {
+        "name": "微型世纪之花",
+        "namesub": null,
+        "page": "Mud Bud",
+        "tooltip": "小小世纪之花正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "MudBud",
+        "itemId": 4701,
+        "name": "Mud Bud"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Plantero (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Plantero_(buff).png"
+  },
+  {
+    "englishName": "Flamingo",
+    "id": 265,
+    "image": "Flamingo (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Flamingo",
+    "localized": {
+      "en": {
+        "name": "Flamingo",
+        "namesub": null,
+        "page": "Mollusk Whistle",
+        "tooltip": "Flamingogogo"
+      },
+      "zh": {
+        "name": "火烈鸟",
+        "namesub": null,
+        "page": "Mollusk Whistle",
+        "tooltip": "火烈鸟冲冲冲"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Flamingo (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Flamingo_(buff).png"
+  },
+  {
+    "englishName": "Dynamite Kitten",
+    "id": 266,
+    "image": "Dynamite Kitten (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DynamiteKitten",
+    "localized": {
+      "en": {
+        "name": "Dynamite Kitten",
+        "namesub": null,
+        "page": "Ball O' Fuse Wire",
+        "tooltip": "Not for use in cannons"
+      },
+      "zh": {
+        "name": "雷管小猫",
+        "namesub": null,
+        "page": "Ball O' Fuse Wire",
+        "tooltip": "不可用于大炮"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "BallOfFuseWire",
+        "itemId": 4735,
+        "name": "Ball O' Fuse Wire"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Dynamite Kitten (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Dynamite_Kitten_(buff).png"
+  },
+  {
+    "englishName": "Baby Werewolf",
+    "id": 267,
+    "image": "Baby Werewolf (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BabyWerewolf",
+    "localized": {
+      "en": {
+        "name": "Baby Werewolf",
+        "namesub": null,
+        "page": "Full Moon Squeaky Toy",
+        "tooltip": "A baby werewolf is following you"
+      },
+      "zh": {
+        "name": "狼人宝宝",
+        "namesub": null,
+        "page": "Full Moon Squeaky Toy",
+        "tooltip": "狼人宝宝正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "FullMoonSqueakyToy",
+        "itemId": 4736,
+        "name": "Full Moon Squeaky Toy"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Baby Werewolf (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Werewolf_(buff).png"
+  },
+  {
+    "englishName": "Shadow Mimic",
+    "id": 268,
+    "image": "Shadow Mimic (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ShadowMimic",
+    "localized": {
+      "en": {
+        "name": "Shadow Mimic",
+        "namesub": null,
+        "page": "Ornate Shadow Key",
+        "tooltip": "A shadow mimic is following you"
+      },
+      "zh": {
+        "name": "暗影宝箱怪",
+        "namesub": null,
+        "page": "Ornate Shadow Key",
+        "tooltip": "暗影宝箱怪正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "OrnateShadowKey",
+        "itemId": 4737,
+        "name": "Ornate Shadow Key"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Shadow Mimic (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Shadow_Mimic_(buff).png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 269,
+    "image": "Minecart (Coffin) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "CoffinMinecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Coffin",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Coffin Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Coffin) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Coffin)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 270,
+    "image": "Minecart (Coffin) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "CoffinMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Coffin) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Coffin)_(buff).png"
+  },
+  {
+    "englishName": "Enchanted Daggers",
+    "id": 271,
+    "image": "Enchanted Daggers.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Smolstar",
+    "localized": {
+      "en": {
+        "name": "Enchanted Daggers",
+        "namesub": null,
+        "page": "Blade Staff",
+        "tooltip": "Death by a thousand cuts"
+      },
+      "zh": {
+        "name": "附魔飞刀",
+        "namesub": null,
+        "page": "Blade Staff",
+        "tooltip": "千刀万剐"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "Smolstar",
+        "itemId": 4758,
+        "name": "Blade Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Enchanted Daggers.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Enchanted_Daggers.png"
+  },
+  {
+    "englishName": "Digging Molecart",
+    "id": 272,
+    "image": "Minecart (Digging Molecart) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DiggingMoleMinecart",
+    "localized": {
+      "en": {
+        "name": "Digging Molecart",
+        "namesub": null,
+        "page": "Digging Molecart",
+        "tooltip": "The Molecart will dig for you"
+      },
+      "zh": {
+        "name": "挖掘鼹鼠矿车",
+        "namesub": null,
+        "page": "Digging Molecart",
+        "tooltip": "鼹鼠矿车将为你挖掘"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Digging Molecart) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Digging_Molecart)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 273,
+    "image": "Minecart (Digging Molecart) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DiggingMoleMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Digging Molecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Digging Molecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (Digging Molecart) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Digging_Molecart)_(buff).png"
+  },
+  {
+    "englishName": "Volt Bunny",
+    "id": 274,
+    "image": "Volt Bunny (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "VoltBunny",
+    "localized": {
+      "en": {
+        "name": "Volt Bunny",
+        "namesub": null,
+        "page": "Lightning Carrot",
+        "tooltip": "A volt bunny is ecstatic about you"
+      },
+      "zh": {
+        "name": "伏特兔",
+        "namesub": null,
+        "page": "Lightning Carrot",
+        "tooltip": "伏特兔迷上你了"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "LightningCarrot",
+        "itemId": 4777,
+        "name": "Lightning Carrot"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Volt Bunny (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Volt_Bunny_(buff).png"
+  },
+  {
+    "englishName": "Painted Horse Mount",
+    "id": 275,
+    "image": "Painted Horse Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PaintedHorseMount",
+    "localized": {
+      "en": {
+        "name": "Painted Horse Mount",
+        "namesub": null,
+        "page": "Saddles",
+        "tooltip": "Riding a Painted Horse"
+      },
+      "zh": {
+        "name": "花马坐骑",
+        "namesub": null,
+        "page": "Saddles",
+        "tooltip": "骑上一匹花马"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Painted Horse Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Painted_Horse_Mount_(buff).png"
+  },
+  {
+    "englishName": "Majestic Horse Mount",
+    "id": 276,
+    "image": "Majestic Horse Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MajesticHorseMount",
+    "localized": {
+      "en": {
+        "name": "Majestic Horse Mount",
+        "namesub": null,
+        "page": "Saddles",
+        "tooltip": "Riding a Majestic Horse"
+      },
+      "zh": {
+        "name": "骏马坐骑",
+        "namesub": null,
+        "page": "Saddles",
+        "tooltip": "骑上一匹骏马"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Majestic Horse Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Majestic_Horse_Mount_(buff).png"
+  },
+  {
+    "englishName": "Dark Horse Mount",
+    "id": 277,
+    "image": "Dark Horse Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DarkHorseMount",
+    "localized": {
+      "en": {
+        "name": "Dark Horse Mount",
+        "namesub": null,
+        "page": "Saddles",
+        "tooltip": "Riding a Dark Horse"
+      },
+      "zh": {
+        "name": "黑马坐骑",
+        "namesub": null,
+        "page": "Saddles",
+        "tooltip": "骑上一匹黑马"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Dark Horse Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Dark_Horse_Mount_(buff).png"
+  },
+  {
+    "englishName": "Pogo Stick Mount",
+    "id": 278,
+    "image": "Pogo Stick Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PogoStickMount",
+    "localized": {
+      "en": {
+        "name": "Pogo Stick Mount",
+        "namesub": null,
+        "page": "Pogo Stick",
+        "tooltip": "Kss-shik! Kss-shik! Kss-shik!"
+      },
+      "zh": {
+        "name": "蹦蹦跷坐骑",
+        "namesub": null,
+        "page": "Pogo Stick",
+        "tooltip": "咔咝唏嗑！咔咝唏嗑！咔咝唏嗑！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Pogo Stick Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pogo_Stick_Mount_(buff).png"
+  },
+  {
+    "englishName": "Pirate Ship Mount",
+    "id": 279,
+    "image": "Pirate Ship Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PirateShipMount",
+    "localized": {
+      "en": {
+        "name": "Pirate Ship Mount",
+        "namesub": null,
+        "page": "The Black Spot",
+        "tooltip": "You're the captain now"
+      },
+      "zh": {
+        "name": "海盗船坐骑",
+        "namesub": null,
+        "page": "The Black Spot",
+        "tooltip": "你现在是船长了"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Pirate Ship Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pirate_Ship_Mount_(buff).png"
+  },
+  {
+    "englishName": "Tree Mount",
+    "id": 280,
+    "image": "Tree Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SpookyWoodMount",
+    "localized": {
+      "en": {
+        "name": "Tree Mount",
+        "namesub": null,
+        "page": "Hexxed Branch",
+        "tooltip": "Run, forest, run!"
+      },
+      "zh": {
+        "name": "阴森树坐骑",
+        "namesub": null,
+        "page": "Hexxed Branch",
+        "tooltip": "向前跑，阿树，别回头！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Tree Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Tree_Mount_(buff).png"
+  },
+  {
+    "englishName": "Santank Mount",
+    "id": 281,
+    "image": "Santank Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SantankMount",
+    "localized": {
+      "en": {
+        "name": "Santank Mount",
+        "namesub": null,
+        "page": "Toy Tank",
+        "tooltip": "Crossing off the naughty list..."
+      },
+      "zh": {
+        "name": "圣诞老人坦克坐骑",
+        "namesub": null,
+        "page": "Toy Tank",
+        "tooltip": "从淘气名单上划掉……"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Santank Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Santank_Mount_(buff).png"
+  },
+  {
+    "englishName": "Goat Mount",
+    "id": 282,
+    "image": "Goat Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WallOfFleshGoatMount",
+    "localized": {
+      "en": {
+        "name": "Goat Mount",
+        "namesub": null,
+        "page": "Goat Skull",
+        "tooltip": "This ride is totally metal!"
+      },
+      "zh": {
+        "name": "山羊坐骑",
+        "namesub": null,
+        "page": "Goat Skull",
+        "tooltip": "这完全是金属摇滚范儿！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Goat Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Goat_Mount_(buff).png"
+  },
+  {
+    "englishName": "Book Mount",
+    "id": 283,
+    "image": "Book Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DarkMageBookMount",
+    "localized": {
+      "en": {
+        "name": "Book Mount",
+        "namesub": null,
+        "page": "Dark Mage's Tome",
+        "tooltip": "The Book is now helping in your guidance"
+      },
+      "zh": {
+        "name": "书坐骑",
+        "namesub": null,
+        "page": "Dark Mage's Tome",
+        "tooltip": "这本书在你的指引下现在有点用了"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Book Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Book_Mount_(buff).png"
+  },
+  {
+    "englishName": "Slime Prince",
+    "id": 284,
+    "image": "Slime Prince (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "KingSlimePet",
+    "localized": {
+      "en": {
+        "name": "Slime Prince",
+        "namesub": null,
+        "page": "Royal Delight",
+        "tooltip": "He answers to a higher authority"
+      },
+      "zh": {
+        "name": "史莱姆王子",
+        "namesub": null,
+        "page": "Royal Delight",
+        "tooltip": "他听命于上级"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "KingSlimePetItem",
+        "itemId": 4797,
+        "name": "Royal Delight"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Slime Prince (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Slime_Prince_(buff).png"
+  },
+  {
+    "englishName": "Suspicious Eye",
+    "id": 285,
+    "image": "Suspicious Eye (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "EyeOfCthulhuPet",
+    "localized": {
+      "en": {
+        "name": "Suspicious Eye",
+        "namesub": null,
+        "page": "Suspicious Grinning Eye",
+        "tooltip": "Just keepin' an eye out..."
+      },
+      "zh": {
+        "name": "可疑眼睛",
+        "namesub": null,
+        "page": "Suspicious Grinning Eye",
+        "tooltip": "盯着点……"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "EyeOfCthulhuPetItem",
+        "itemId": 4798,
+        "name": "Suspicious Grinning Eye"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Suspicious Eye (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Suspicious_Eye_(buff).png"
+  },
+  {
+    "englishName": "Eater of Worms",
+    "id": 286,
+    "image": "Eater of Worms (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "EaterOfWorldsPet",
+    "localized": {
+      "en": {
+        "name": "Eater of Worms",
+        "namesub": null,
+        "page": "Writhing Remains",
+        "tooltip": "May ruin several backyards"
+      },
+      "zh": {
+        "name": "蠕虫吞噬怪",
+        "namesub": null,
+        "page": "Writhing Remains",
+        "tooltip": "可能会毁掉几个后院"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "EaterOfWorldsPetItem",
+        "itemId": 4799,
+        "name": "Writhing Remains"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Eater of Worms (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Eater_of_Worms_(buff).png"
+  },
+  {
+    "englishName": "Spider Brain",
+    "id": 287,
+    "image": "Spider Brain (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BrainOfCthulhuPet",
+    "localized": {
+      "en": {
+        "name": "Spider Brain",
+        "namesub": null,
+        "page": "Brain in a Jar",
+        "tooltip": "It's crawling around... icky"
+      },
+      "zh": {
+        "name": "蜘蛛脑",
+        "namesub": null,
+        "page": "Brain in a Jar",
+        "tooltip": "它爬来爬去的……真恶心"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "BrainOfCthulhuPetItem",
+        "itemId": 4800,
+        "name": "Brain in a Jar"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Spider Brain (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Spider_Brain_(buff).png"
+  },
+  {
+    "englishName": "Skeletron Jr.",
+    "id": 288,
+    "image": "Skeletron Jr. (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SkeletronPet",
+    "localized": {
+      "en": {
+        "name": "Skeletron Jr.",
+        "namesub": null,
+        "page": "Possessed Skull",
+        "tooltip": "Skeletron Jr. Is following you"
+      },
+      "zh": {
+        "name": "小骷髅王",
+        "namesub": null,
+        "page": "Possessed Skull",
+        "tooltip": "小骷髅王正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "SkeletronPetItem",
+        "itemId": 4801,
+        "name": "Possessed Skull"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Skeletron Jr. (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Skeletron_Jr._(buff).png"
+  },
+  {
+    "englishName": "Honey Bee",
+    "id": 289,
+    "image": "Honey Bee (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "QueenBeePet",
+    "localized": {
+      "en": {
+        "name": "Honey Bee",
+        "namesub": null,
+        "page": "Sparkling Honey",
+        "tooltip": "A honey bee is following you"
+      },
+      "zh": {
+        "name": "宝贝蜜蜂",
+        "namesub": null,
+        "page": "Sparkling Honey",
+        "tooltip": "宝贝蜜蜂正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "QueenBeePetItem",
+        "itemId": 4802,
+        "name": "Sparkling Honey"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Honey Bee (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Honey_Bee_(buff).png"
+  },
+  {
+    "englishName": "Destroyer-Lite",
+    "id": 290,
+    "image": "Destroyer-Lite (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DestroyerPet",
+    "localized": {
+      "en": {
+        "name": "Destroyer-Lite",
+        "namesub": null,
+        "page": "Deactivated Probe",
+        "tooltip": "For destruction on the go"
+      },
+      "zh": {
+        "name": "微型毁灭者",
+        "namesub": null,
+        "page": "Deactivated Probe",
+        "tooltip": "随时随地准备摧毁"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "DestroyerPetItem",
+        "itemId": 4803,
+        "name": "Deactivated Probe"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Destroyer-Lite (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Destroyer-Lite_(buff).png"
+  },
+  {
+    "englishName": "Rez and Spaz",
+    "id": 291,
+    "image": "Rez and Spaz (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "TwinsPet",
+    "localized": {
+      "en": {
+        "name": "Rez and Spaz",
+        "namesub": null,
+        "page": "Pair of Eyeballs",
+        "tooltip": "You have special eyes!"
+      },
+      "zh": {
+        "name": "激光眼和魔焰眼",
+        "namesub": null,
+        "page": "Pair of Eyeballs",
+        "tooltip": "你有一双特别的眼睛！"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "TwinsPetItem",
+        "itemId": 4804,
+        "name": "Pair of Eyeballs"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Rez and Spaz (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Rez_and_Spaz_(buff).png"
+  },
+  {
+    "englishName": "Mini Prime",
+    "id": 292,
+    "image": "Mini Prime (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SkeletronPrimePet",
+    "localized": {
+      "en": {
+        "name": "Mini Prime",
+        "namesub": null,
+        "page": "Robotic Skull",
+        "tooltip": "Each tool can commit murder"
+      },
+      "zh": {
+        "name": "小机械骷髅王",
+        "namesub": null,
+        "page": "Robotic Skull",
+        "tooltip": "每一种武器都致命"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "SkeletronPrimePetItem",
+        "itemId": 4805,
+        "name": "Robotic Skull"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Mini Prime (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mini_Prime_(buff).png"
+  },
+  {
+    "englishName": "Plantera Seedling",
+    "id": 293,
+    "image": "Plantera Seedling (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PlanteraPet",
+    "localized": {
+      "en": {
+        "name": "Plantera Seedling",
+        "namesub": null,
+        "page": "Plantera Seedling",
+        "tooltip": "What exactly does it eat, anyway?"
+      },
+      "zh": {
+        "name": "世纪之花幼苗",
+        "namesub": null,
+        "page": "Plantera Seedling",
+        "tooltip": "它到底吃什么呢？"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "PlanteraPetItem",
+        "itemId": 4806,
+        "name": "Plantera Seedling"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Plantera Seedling (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Plantera_Seedling_(buff).png"
+  },
+  {
+    "englishName": "Toy Golem",
+    "id": 294,
+    "image": "Toy Golem (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "GolemPet",
+    "localized": {
+      "en": {
+        "name": "Toy Golem",
+        "namesub": null,
+        "page": "Guardian Golem",
+        "tooltip": "Got myself a crying, talking, sleeping, walking, living idol!"
+      },
+      "zh": {
+        "name": "玩具石巨人",
+        "namesub": null,
+        "page": "Guardian Golem",
+        "tooltip": "给自己一个会哭、会说话、会睡觉、会走路的活神像！"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "GolemPetItem",
+        "itemId": 4807,
+        "name": "Guardian Golem"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Toy Golem (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Toy_Golem_(buff).png"
+  },
+  {
+    "englishName": "Tiny Fishron",
+    "id": 295,
+    "image": "Tiny Fishron (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DukeFishronPet",
+    "localized": {
+      "en": {
+        "name": "Tiny Fishron",
+        "namesub": null,
+        "page": "Pork of the Sea",
+        "tooltip": "A sea-green marquess of the abyss"
+      },
+      "zh": {
+        "name": "小猪龙鱼",
+        "namesub": null,
+        "page": "Pork of the Sea",
+        "tooltip": "海绿色的深渊侯爵"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "DukeFishronPetItem",
+        "itemId": 4808,
+        "name": "Pork of the Sea"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Tiny Fishron (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Tiny_Fishron_(buff).png"
+  },
+  {
+    "englishName": "Phantasmal Dragon",
+    "id": 296,
+    "image": "Phantasmal Dragon (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "LunaticCultistPet",
+    "localized": {
+      "en": {
+        "name": "Phantasmal Dragon",
+        "namesub": null,
+        "page": "Tablet Fragment",
+        "tooltip": "It keeps looking at the Moon"
+      },
+      "zh": {
+        "name": "小幻影龙",
+        "namesub": null,
+        "page": "Tablet Fragment",
+        "tooltip": "它一直看着月亮"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "LunaticCultistPetItem",
+        "itemId": 4809,
+        "name": "Tablet Fragment"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Phantasmal Dragon (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Phantasmal_Dragon_(buff).png"
+  },
+  {
+    "englishName": "Moonling",
+    "id": 297,
+    "image": "Moonling (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MoonLordPet",
+    "localized": {
+      "en": {
+        "name": "Moonling",
+        "namesub": null,
+        "page": "Piece of Moon Squid",
+        "tooltip": "A friend from beyond"
+      },
+      "zh": {
+        "name": "月精灵",
+        "namesub": null,
+        "page": "Piece of Moon Squid",
+        "tooltip": "有朋自远方来"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "MoonLordPetItem",
+        "itemId": 4810,
+        "name": "Piece of Moon Squid"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Moonling (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Moonling_(buff).png"
+  },
+  {
+    "englishName": "Fairy Princess",
+    "id": 298,
+    "image": "Fairy Princess (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "FairyQueenPet",
+    "localized": {
+      "en": {
+        "name": "Fairy Princess",
+        "namesub": null,
+        "page": "Jewel of Light",
+        "tooltip": "The light of the fair folk illuminates all"
+      },
+      "zh": {
+        "name": "仙灵公主",
+        "namesub": null,
+        "page": "Jewel of Light",
+        "tooltip": "仙灵之光普照众生"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "FairyQueenPetItem",
+        "itemId": 4811,
+        "name": "Jewel of Light"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Fairy Princess (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Fairy_Princess_(buff).png"
+  },
+  {
+    "englishName": "Jack 'O Lantern",
+    "id": 299,
+    "image": "Jack 'O Lantern (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PumpkingPet",
+    "localized": {
+      "en": {
+        "name": "Jack 'O Lantern",
+        "namesub": null,
+        "page": "Pumpkin Scented Candle",
+        "tooltip": "A small Jack 'O Lantern is fiendishly lighting the way"
+      },
+      "zh": {
+        "name": "杰克南瓜灯",
+        "namesub": null,
+        "page": "Pumpkin Scented Candle",
+        "tooltip": "一盏小杰克南瓜灯狡黠地照亮道路"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "PumpkingPetItem",
+        "itemId": 4812,
+        "name": "Pumpkin Scented Candle"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Jack 'O Lantern (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Jack_'O_Lantern_(buff).png"
+  },
+  {
+    "englishName": "Everscream Sapling",
+    "id": 300,
+    "image": "Everscream Sapling (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "EverscreamPet",
+    "localized": {
+      "en": {
+        "name": "Everscream Sapling",
+        "namesub": null,
+        "page": "Shrub Star",
+        "tooltip": "Taking the tree for a walk!"
+      },
+      "zh": {
+        "name": "常绿尖叫怪树苗",
+        "namesub": null,
+        "page": "Shrub Star",
+        "tooltip": "带着这棵树散步！"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "EverscreamPetItem",
+        "itemId": 4813,
+        "name": "Shrub Star"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Everscream Sapling (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Everscream_Sapling_(buff).png"
+  },
+  {
+    "englishName": "Ice Queen",
+    "id": 301,
+    "image": "Ice Queen (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "IceQueenPet",
+    "localized": {
+      "en": {
+        "name": "Ice Queen",
+        "namesub": null,
+        "page": "Frozen Crown",
+        "tooltip": "Ice Queen has been reborn as your companion"
+      },
+      "zh": {
+        "name": "冰雪女王",
+        "namesub": null,
+        "page": "Frozen Crown",
+        "tooltip": "冰雪女王已经重生为你的同伴"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "IceQueenPetItem",
+        "itemId": 4814,
+        "name": "Frozen Crown"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Ice Queen (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ice_Queen_(buff).png"
+  },
+  {
+    "englishName": "Alien Skater",
+    "id": 302,
+    "image": "Alien Skater (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MartianPet",
+    "localized": {
+      "en": {
+        "name": "Alien Skater",
+        "namesub": null,
+        "page": "Cosmic Skateboard",
+        "tooltip": "How do you do, fellow humans?"
+      },
+      "zh": {
+        "name": "异星滑板小子",
+        "namesub": null,
+        "page": "Cosmic Skateboard",
+        "tooltip": "你们好，人类同胞们？"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "MartianPetItem",
+        "itemId": 4815,
+        "name": "Cosmic Skateboard"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Alien Skater (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Alien_Skater_(buff).png"
+  },
+  {
+    "englishName": "Baby Ogre",
+    "id": 303,
+    "image": "Baby Ogre (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DD2OgrePet",
+    "localized": {
+      "en": {
+        "name": "Baby Ogre",
+        "namesub": null,
+        "page": "Ogre's Club",
+        "tooltip": "He's got a big stick and he doesn't know how to use it"
+      },
+      "zh": {
+        "name": "食人魔宝宝",
+        "namesub": null,
+        "page": "Ogre's Club",
+        "tooltip": "他有一根大棒，但不知道怎么用它"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "DD2OgrePetItem",
+        "itemId": 4816,
+        "name": "Ogre's Club"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Baby Ogre (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Ogre_(buff).png"
+  },
+  {
+    "englishName": "Itsy Betsy",
+    "id": 304,
+    "image": "Itsy Betsy (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DD2BetsyPet",
+    "localized": {
+      "en": {
+        "name": "Itsy Betsy",
+        "namesub": null,
+        "page": "Betsy's Egg",
+        "tooltip": "Itsy Betsy is following you"
+      },
+      "zh": {
+        "name": "小双足翼龙",
+        "namesub": null,
+        "page": "Betsy's Egg",
+        "tooltip": "小双足翼龙正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "DD2BetsyPetItem",
+        "itemId": 4817,
+        "name": "Betsy's Egg"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Itsy Betsy (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Itsy_Betsy_(buff).png"
+  },
+  {
+    "englishName": "Lava Shark Mount",
+    "id": 305,
+    "image": "Lava Shark Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "LavaSharkMount",
+    "localized": {
+      "en": {
+        "name": "Lava Shark Mount",
+        "namesub": null,
+        "page": "Superheated Blood",
+        "tooltip": "Surfing the molten seas!"
+      },
+      "zh": {
+        "name": "熔岩鲨坐骑",
+        "namesub": null,
+        "page": "Superheated Blood",
+        "tooltip": "在熔岩海中冲浪！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Lava Shark Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Lava_Shark_Mount_(buff).png"
+  },
+  {
+    "englishName": "Titanium Barrier",
+    "id": 306,
+    "image": "Titanium Barrier.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "TitaniumStorm",
+    "localized": {
+      "en": {
+        "name": "Titanium Barrier",
+        "namesub": null,
+        "page": "Titanium armor",
+        "tooltip": "Defensive shards surround you"
+      },
+      "zh": {
+        "name": "钛金屏障",
+        "namesub": null,
+        "page": "Titanium armor",
+        "tooltip": "防御碎片环绕着你"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Titanium Barrier.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+  },
+  {
+    "englishName": null,
+    "id": 307,
+    "image": "Titanium Barrier.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BlandWhipEnemyDebuff",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Leather Whip",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Leather Whip",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Titanium Barrier.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+  },
+  {
+    "englishName": "Durendal's Blessing",
+    "id": 308,
+    "image": "Durendal's Blessing.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SwordWhipPlayerBuff",
+    "localized": {
+      "en": {
+        "name": "Durendal's Blessing",
+        "namesub": null,
+        "page": "Durendal",
+        "tooltip": "Whip speed is increased"
+      },
+      "zh": {
+        "name": "迪朗达尔祝福",
+        "namesub": null,
+        "page": "Durendal",
+        "tooltip": "鞭的速度提高"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Durendal's Blessing.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Durendal's_Blessing.png"
+  },
+  {
+    "englishName": null,
+    "id": 309,
+    "image": "Titanium Barrier.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SwordWhipNPCDebuff",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Durendal",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Durendal",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Titanium Barrier.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+  },
+  {
+    "englishName": null,
+    "id": 310,
+    "image": "Titanium Barrier.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ScytheWhipEnemyDebuff",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Dark Harvest",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Dark Harvest",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Titanium Barrier.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+  },
+  {
+    "englishName": "Harvest Time",
+    "id": 311,
+    "image": "Harvest Time.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ScytheWhipPlayerBuff",
+    "localized": {
+      "en": {
+        "name": "Harvest Time",
+        "namesub": null,
+        "page": "Dark Harvest",
+        "tooltip": "Whip speed is increased"
+      },
+      "zh": {
+        "name": "收割时刻",
+        "namesub": null,
+        "page": "Dark Harvest",
+        "tooltip": "鞭的速度提高"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Harvest Time.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Harvest_Time.png"
+  },
+  {
+    "englishName": "A Nice Buff",
+    "id": 312,
+    "image": "A Nice Buff.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "CoolWhipPlayerBuff",
+    "localized": {
+      "en": {
+        "name": "A Nice Buff",
+        "namesub": null,
+        "page": "Cool Whip",
+        "tooltip": "Summons a snowflake to fight for you"
+      },
+      "zh": {
+        "name": "一种不错的增益",
+        "namesub": null,
+        "page": "Cool Whip",
+        "tooltip": "召唤雪花来为你战斗"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "A Nice Buff.png",
+    "imageUrl": "https://terraria.wiki.gg/images/A_Nice_Buff.png"
+  },
+  {
+    "englishName": null,
+    "id": 313,
+    "image": "Titanium Barrier.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "FlameWhipEnemyDebuff",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Firecracker",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Firecracker",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Titanium Barrier.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+  },
+  {
+    "englishName": "Jungle's Fury",
+    "id": 314,
+    "image": "Jungle's Fury.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ThornWhipPlayerBuff",
+    "localized": {
+      "en": {
+        "name": "Jungle's Fury",
+        "namesub": null,
+        "page": "Snapthorn",
+        "tooltip": "Whip speed is increased"
+      },
+      "zh": {
+        "name": "丛林之怒",
+        "namesub": null,
+        "page": "Snapthorn",
+        "tooltip": "鞭的速度提高"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Jungle's Fury.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Jungle's_Fury.png"
+  },
+  {
+    "englishName": null,
+    "id": 315,
+    "image": "Titanium Barrier.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ThornWhipNPCDebuff",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Snapthorn",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Snapthorn",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Titanium Barrier.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+  },
+  {
+    "englishName": null,
+    "id": 316,
+    "image": "Titanium Barrier.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "RainbowWhipNPCDebuff",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Kaleidoscope",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Kaleidoscope",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Titanium Barrier.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+  },
+  {
+    "englishName": "Slime Princess",
+    "id": 317,
+    "image": "Slime Princess (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "QueenSlimePet",
+    "localized": {
+      "en": {
+        "name": "Slime Princess",
+        "namesub": null,
+        "page": "Regal Delicacy",
+        "tooltip": "She is the higher authority"
+      },
+      "zh": {
+        "name": "史莱姆公主",
+        "namesub": null,
+        "page": "Regal Delicacy",
+        "tooltip": "她就是上级"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "QueenSlimePetItem",
+        "itemId": 4960,
+        "name": "Regal Delicacy"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Slime Princess (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Slime_Princess_(buff).png"
+  },
+  {
+    "englishName": "Winged Slime Mount",
+    "id": 318,
+    "image": "Winged Slime Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "QueenSlimeMount",
+    "localized": {
+      "en": {
+        "name": "Winged Slime Mount",
+        "namesub": null,
+        "page": "Gelatinous Pillion",
+        "tooltip": "BOING FLAP BOING!"
+      },
+      "zh": {
+        "name": "羽翼史莱姆坐骑",
+        "namesub": null,
+        "page": "Gelatinous Pillion",
+        "tooltip": "啵嘤扑扑啵嘤！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Winged Slime Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Winged_Slime_Mount_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 319,
+    "image": "Titanium Barrier.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MaceWhipNPCDebuff",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Morning Star",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Morning Star",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Titanium Barrier.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+  },
+  {
+    "englishName": "Sparkle Slime",
+    "id": 320,
+    "image": "Sparkle Slime.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "GelBalloonBuff",
+    "localized": {
+      "en": {
+        "name": "Sparkle Slime",
+        "namesub": null,
+        "page": "Sparkle Slime Balloon",
+        "tooltip": "You are slimy and sparkly"
+      },
+      "zh": {
+        "name": "闪耀史莱姆",
+        "namesub": null,
+        "page": "Sparkle Slime Balloon",
+        "tooltip": "你黏糊糊的，亮闪闪的"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Sparkle Slime.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Sparkle_Slime.png"
+  },
+  {
+    "englishName": "Cerebral Mindtrick",
+    "id": 321,
+    "image": "Cerebral Mindtrick.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BrainOfConfusionBuff",
+    "localized": {
+      "en": {
+        "name": "Cerebral Mindtrick",
+        "namesub": null,
+        "page": "Brain of Confusion",
+        "tooltip": "Increased critical chance and minion damage"
+      },
+      "zh": {
+        "name": "控脑术",
+        "namesub": null,
+        "page": "Brain of Confusion",
+        "tooltip": "提高暴击率和仆从伤害"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Cerebral Mindtrick.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cerebral_Mindtrick.png"
+  },
+  {
+    "englishName": "Terraprisma",
+    "id": 322,
+    "image": "Terraprisma (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "EmpressBlade",
+    "localized": {
+      "en": {
+        "name": "Terraprisma",
+        "namesub": null,
+        "page": "Terraprisma",
+        "tooltip": "The Blades of the Empress will fight for you"
+      },
+      "zh": {
+        "name": "泰拉棱镜",
+        "namesub": null,
+        "page": "Terraprisma",
+        "tooltip": "女皇之刃将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "EmpressBlade",
+        "itemId": 5005,
+        "name": "Terraprisma"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Terraprisma (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Terraprisma_(buff).png"
+  },
+  {
+    "englishName": "Hellfire",
+    "id": 323,
+    "image": "Hellfire.png",
+    "immuneNpcCount": 47,
+    "immuneNpcSample": [
+      {
+        "internalName": "MeteorHead",
+        "name": "Meteor Head",
+        "npcId": 23
+      },
+      {
+        "internalName": "FireImp",
+        "name": "Fire Imp",
+        "npcId": 24
+      },
+      {
+        "internalName": "BoneSerpentHead",
+        "name": "Bone Serpent",
+        "npcId": 39
+      },
+      {
+        "internalName": "BoneSerpentBody",
+        "name": "Bone Serpent",
+        "npcId": 40
+      },
+      {
+        "internalName": "BoneSerpentTail",
+        "name": "Bone Serpent",
+        "npcId": 41
+      },
+      {
+        "internalName": "LavaSlime",
+        "name": "Lava Slime",
+        "npcId": 59
+      },
+      {
+        "internalName": "Hellbat",
+        "name": "Hellbat",
+        "npcId": 60
+      },
+      {
+        "internalName": "Demon",
+        "name": "Demon",
+        "npcId": 62
+      },
+      {
+        "internalName": "VoodooDemon",
+        "name": "Voodoo Demon",
+        "npcId": 66
+      },
+      {
+        "internalName": "SpikeBall",
+        "name": "Spike Ball",
+        "npcId": 70
+      }
+    ],
+    "internalName": "OnFire3",
+    "localized": {
+      "en": {
+        "name": "Hellfire",
+        "namesub": null,
+        "page": "Hellfire",
+        "tooltip": "Slowly losing life"
+      },
+      "zh": {
+        "name": "狱炎",
+        "namesub": null,
+        "page": "Hellfire",
+        "tooltip": "缓慢损失生命值"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Hellfire.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Hellfire.png"
+  },
+  {
+    "englishName": "Frostbite",
+    "id": 324,
+    "image": "Frostbite.png",
+    "immuneNpcCount": 28,
+    "immuneNpcSample": [
+      {
+        "internalName": "SnowmanGangsta",
+        "name": "Snowman Gangsta",
+        "npcId": 143
+      },
+      {
+        "internalName": "MisterStabby",
+        "name": "Mister Stabby",
+        "npcId": 144
+      },
+      {
+        "internalName": "SnowBalla",
+        "name": "Snow Balla",
+        "npcId": 145
+      },
+      {
+        "internalName": "IceSlime",
+        "name": "Ice Slime",
+        "npcId": 147
+      },
+      {
+        "internalName": "IceBat",
+        "name": "Ice Bat",
+        "npcId": 150
+      },
+      {
+        "internalName": "IceTortoise",
+        "name": "Ice Tortoise",
+        "npcId": 154
+      },
+      {
+        "internalName": "ZombieEskimo",
+        "name": "Frozen Zombie",
+        "npcId": 161
+      },
+      {
+        "internalName": "UndeadViking",
+        "name": "Undead Viking",
+        "npcId": 167
+      },
+      {
+        "internalName": "IceElemental",
+        "name": "Ice Elemental",
+        "npcId": 169
+      },
+      {
+        "internalName": "SpikedIceSlime",
+        "name": "Spiked Ice Slime",
+        "npcId": 184
+      }
+    ],
+    "internalName": "Frostburn2",
+    "localized": {
+      "en": {
+        "name": "Frostbite",
+        "namesub": null,
+        "page": "Frostbite",
+        "tooltip": "It's either really hot or really cold. Either way it REALLY hurts"
+      },
+      "zh": {
+        "name": "冻伤",
+        "namesub": null,
+        "page": "Frostbite",
+        "tooltip": "不是特别烫就是特别冻。反正都是特别特别痛"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Frostbite.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Frostbite.png"
+  },
+  {
+    "englishName": "Flinx",
+    "id": 325,
+    "image": "Flinx (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "FlinxMinion",
+    "localized": {
+      "en": {
+        "name": "Flinx",
+        "namesub": null,
+        "page": "Flinx Staff",
+        "tooltip": "The snow flinx will fight for you"
+      },
+      "zh": {
+        "name": "小雪怪",
+        "namesub": null,
+        "page": "Flinx Staff",
+        "tooltip": "小雪怪将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "FlinxStaff",
+        "itemId": 5069,
+        "name": "Flinx Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Flinx (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Flinx_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 326,
+    "image": "Titanium Barrier.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BoneWhipNPCDebuff",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Spinal Tap",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Spinal Tap",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Titanium Barrier.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+  },
+  {
+    "englishName": "Bernie",
+    "id": 327,
+    "image": "Bernie (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BerniePet",
+    "localized": {
+      "en": {
+        "name": "Bernie",
+        "namesub": null,
+        "page": "Bernie's Button",
+        "tooltip": "You're always there for me, Bernie"
+      },
+      "zh": {
+        "name": "伯尼",
+        "namesub": null,
+        "page": "Bernie's Button",
+        "tooltip": "伯尼，你总是陪在我身边"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "BerniePetItem",
+        "itemId": 5088,
+        "name": "Bernie's Button"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Bernie (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Bernie_(buff).png"
+  },
+  {
+    "englishName": "Glommer",
+    "id": 328,
+    "image": "Glommer (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "GlommerPet",
+    "localized": {
+      "en": {
+        "name": "Glommer",
+        "namesub": null,
+        "page": "Glommer's Flower",
+        "tooltip": "It's fuzzy! And slimy..."
+      },
+      "zh": {
+        "name": "格罗姆",
+        "namesub": null,
+        "page": "Glommer's Flower",
+        "tooltip": "毛茸茸！还黏糊糊……"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "GlommerPetItem",
+        "itemId": 5089,
+        "name": "Glommer's Flower"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Glommer (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Glommer_(buff).png"
+  },
+  {
+    "englishName": "Tiny Deerclops",
+    "id": 329,
+    "image": "Tiny Deerclops (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DeerclopsPet",
+    "localized": {
+      "en": {
+        "name": "Tiny Deerclops",
+        "namesub": null,
+        "page": "Deerclops Eyeball",
+        "tooltip": "Holy crap!"
+      },
+      "zh": {
+        "name": "小独眼巨鹿",
+        "namesub": null,
+        "page": "Deerclops Eyeball",
+        "tooltip": "我的天啊！"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "DeerclopsPetItem",
+        "itemId": 5090,
+        "name": "Deerclops Eyeball"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Tiny Deerclops (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Tiny_Deerclops_(buff).png"
+  },
+  {
+    "englishName": "Pig",
+    "id": 330,
+    "image": "Pig.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PigPet",
+    "localized": {
+      "en": {
+        "name": "Pig",
+        "namesub": null,
+        "page": "Monster Meat",
+        "tooltip": "Walking back bacon!"
+      },
+      "zh": {
+        "name": "猪",
+        "namesub": null,
+        "page": "Monster Meat",
+        "tooltip": "行走的培根！"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "PigPetItem",
+        "itemId": 5091,
+        "name": "Monster Meat"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Pig.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pig.png"
+  },
+  {
+    "englishName": "Chester",
+    "id": 331,
+    "image": "Chester (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ChesterPet",
+    "localized": {
+      "en": {
+        "name": "Chester",
+        "namesub": null,
+        "page": "Eye Bone",
+        "tooltip": "Otto von Chesterfield, Esquire"
+      },
+      "zh": {
+        "name": "切斯特",
+        "namesub": null,
+        "page": "Eye Bone",
+        "tooltip": "奥特·冯·切斯特菲尔德先生"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "ChesterPetItem",
+        "itemId": 5098,
+        "name": "Eye Bone"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Chester (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Chester_(buff).png"
+  },
+  {
+    "englishName": "Peckish",
+    "id": 332,
+    "image": "Peckish.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "NeutralHunger",
+    "localized": {
+      "en": {
+        "name": "Peckish",
+        "namesub": null,
+        "page": "Hunger",
+        "tooltip": "You could eat, but it's not so bad."
+      },
+      "zh": {
+        "name": "稍饿",
+        "namesub": null,
+        "page": "Hunger",
+        "tooltip": "你可以吃东西，但还没到非吃不可的地步。"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Peckish.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Peckish.png"
+  },
+  {
+    "englishName": "Hungry",
+    "id": 333,
+    "image": "Hungry.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Hunger",
+    "localized": {
+      "en": {
+        "name": "Hungry",
+        "namesub": null,
+        "page": "Hunger",
+        "tooltip": "You are quite hungry and feeling weak."
+      },
+      "zh": {
+        "name": "饥饿",
+        "namesub": null,
+        "page": "Hunger",
+        "tooltip": "你很饿，而且感觉很虚弱。"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Hungry.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Hungry.png"
+  },
+  {
+    "englishName": "Starving",
+    "id": 334,
+    "image": "Starving.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Starving",
+    "localized": {
+      "en": {
+        "name": "Starving",
+        "namesub": null,
+        "page": "Hunger",
+        "tooltip": "You are starving to death! Eat immediately!"
+      },
+      "zh": {
+        "name": "极饿",
+        "namesub": null,
+        "page": "Hunger",
+        "tooltip": "你快饿死了！马上吃点东西！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Starving.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Starving.png"
+  },
+  {
+    "englishName": "Abigail",
+    "id": 335,
+    "image": "Abigail (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "AbigailMinion",
+    "localized": {
+      "en": {
+        "name": "Abigail",
+        "namesub": null,
+        "page": "Abigail's Flower",
+        "tooltip": "Abigail will fight to protect you"
+      },
+      "zh": {
+        "name": "阿比盖尔",
+        "namesub": null,
+        "page": "Abigail's Flower",
+        "tooltip": "阿比盖尔会为了保护你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "AbigailsFlower",
+        "itemId": 5114,
+        "name": "Abigail's Flower"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Abigail (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Abigail_(buff).png"
+  },
+  {
+    "englishName": "Hearty Meal",
+    "id": 336,
+    "image": "Hearty Meal.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "HeartyMeal",
+    "localized": {
+      "en": {
+        "name": "Hearty Meal",
+        "namesub": null,
+        "page": "Ham Bat",
+        "tooltip": "Increased Life Regeneration"
+      },
+      "zh": {
+        "name": "丰盛大餐",
+        "namesub": null,
+        "page": "Ham Bat",
+        "tooltip": "提高生命再生速度"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Hearty Meal.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Hearty_Meal.png"
+  },
+  {
+    "englishName": null,
+    "id": 337,
+    "image": "Distorted.png",
+    "immuneNpcCount": 2,
+    "immuneNpcSample": [
+      {
+        "internalName": "SkeletronHead",
+        "name": "Skeletron",
+        "npcId": 35
+      },
+      {
+        "internalName": "SkeletronPrime",
+        "name": "Skeletron Prime",
+        "npcId": 127
+      }
+    ],
+    "internalName": "TentacleSpike",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Tentacle Spike",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Tentacle Spike",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Distorted.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Distorted.png"
+  },
+  {
+    "englishName": "Fart Kart",
+    "id": 338,
+    "image": "Fart Kart (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "FartMinecart",
+    "localized": {
+      "en": {
+        "name": "Fart Kart",
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "臭屁车",
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Fart Kart (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Fart_Kart_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 339,
+    "image": "Fart Kart (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "FartMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Fart Kart (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Fart_Kart_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 340,
+    "image": "Titanium Barrier.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "CoolWhipNPCDebuff",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Cool Whip",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Cool Whip",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Titanium Barrier.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+  },
+  {
+    "englishName": "Slime Royals",
+    "id": 341,
+    "image": "Slime Royals.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DualSlimePet",
+    "localized": {
+      "en": {
+        "name": "Slime Royals",
+        "namesub": null,
+        "page": "Resplendent Dessert",
+        "tooltip": "The final authority, they will unite the kingdoms!"
+      },
+      "zh": {
+        "name": "皇家史莱姆",
+        "namesub": null,
+        "page": "Resplendent Dessert",
+        "tooltip": "最终权威，他们将统一王国！"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "ResplendentDessert",
+        "itemId": 5131,
+        "name": "Resplendent Dessert"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Slime Royals.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Slime_Royals.png"
+  },
+  {
+    "englishName": "Blessing of the Moon",
+    "id": 342,
+    "image": "Blessing of the Moon.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WolfMount",
+    "localized": {
+      "en": {
+        "name": "Blessing of the Moon",
+        "namesub": null,
+        "page": "Lilith's Necklace",
+        "tooltip": "You turned into a wolf!"
+      },
+      "zh": {
+        "name": "月亮祝福",
+        "namesub": null,
+        "page": "Lilith's Necklace",
+        "tooltip": "你变成了狼！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Blessing of the Moon.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Blessing_of_the_Moon.png"
+  },
+  {
+    "englishName": "Biome Sight",
+    "id": 343,
+    "image": "Biome Sight.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BiomeSight",
+    "localized": {
+      "en": {
+        "name": "Biome Sight",
+        "namesub": null,
+        "page": "Biome Sight Potion",
+        "tooltip": "Shows the location of infected blocks"
+      },
+      "zh": {
+        "name": "生物群系视觉",
+        "namesub": null,
+        "page": "Biome Sight Potion",
+        "tooltip": "显示感染物块的位置"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 18000,
+        "internalName": "BiomeSightPotion",
+        "itemId": 5211,
+        "name": "Biome Sight Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Biome Sight.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Biome_Sight.png"
+  },
+  {
+    "englishName": "Blood Butchered",
+    "id": 344,
+    "image": "Blood Butchered.png",
+    "immuneNpcCount": 2,
+    "immuneNpcSample": [
+      {
+        "internalName": "SkeletronHead",
+        "name": "Skeletron",
+        "npcId": 35
+      },
+      {
+        "internalName": "SkeletronPrime",
+        "name": "Skeletron Prime",
+        "npcId": 127
+      }
+    ],
+    "internalName": "BloodButcherer",
+    "localized": {
+      "en": {
+        "name": "Blood Butchered",
+        "namesub": null,
+        "page": "Blood Butcherer",
+        "tooltip": "Bleeding out rapidly"
+      },
+      "zh": {
+        "name": "血腥屠宰",
+        "namesub": null,
+        "page": "Blood Butcherer",
+        "tooltip": "迅速出血"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Blood Butchered.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Blood_Butchered.png"
+  },
+  {
+    "englishName": "Junimo",
+    "id": 345,
+    "image": "Junimo (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "JunimoPet",
+    "localized": {
+      "en": {
+        "name": "Junimo",
+        "namesub": null,
+        "page": "Stardrop",
+        "tooltip": "Keeper of the Forest"
+      },
+      "zh": {
+        "name": "祝尼魔",
+        "namesub": null,
+        "page": "Stardrop",
+        "tooltip": "森林守护者"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "JunimoPetItem",
+        "itemId": 5276,
+        "name": "Stardrop"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Junimo (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Junimo_(buff).png"
+  },
+  {
+    "englishName": "Terra Fart Kart",
+    "id": 346,
+    "image": "Terra Fart Kart (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "TerraFartMinecart",
+    "localized": {
+      "en": {
+        "name": "Terra Fart Kart",
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "泰拉臭屁车",
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Terra Fart Kart (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Terra_Fart_Kart_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 347,
+    "image": "Terra Fart Kart (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "TerraFartMinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Terra Fart Kart (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Terra_Fart_Kart_(buff).png"
+  },
+  {
+    "englishName": "Strategist",
+    "id": 348,
+    "image": "Strategist.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WarTable",
+    "localized": {
+      "en": {
+        "name": "Strategist",
+        "namesub": null,
+        "page": "War Table",
+        "tooltip": "Increased your max number of sentries by 1"
+      },
+      "zh": {
+        "name": "战略家",
+        "namesub": null,
+        "page": "War Table",
+        "tooltip": "哨兵数量上限增加1"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Strategist.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Strategist.png"
+  },
+  {
+    "englishName": "Blue Chicken",
+    "id": 349,
+    "image": "Blue Chicken (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BlueChickenPet",
+    "localized": {
+      "en": {
+        "name": "Blue Chicken",
+        "namesub": null,
+        "page": "Blue Chicken Egg",
+        "tooltip": "The nametag says 'Shane'"
+      },
+      "zh": {
+        "name": "蓝鸡",
+        "namesub": null,
+        "page": "Blue Chicken Egg",
+        "tooltip": "名牌上写着“Shane”"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "BlueEgg",
+        "itemId": 5297,
+        "name": "Blue Chicken Egg"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Blue Chicken (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Blue_Chicken_(buff).png"
+  },
+  {
+    "englishName": "Shadow Candle",
+    "id": 350,
+    "image": "Shadow Candle (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ShadowCandle",
+    "localized": {
+      "en": {
+        "name": "Shadow Candle",
+        "namesub": null,
+        "page": "Shadow Candle",
+        "tooltip": "Dispels the peace of towns"
+      },
+      "zh": {
+        "name": "暗影蜡烛",
+        "namesub": null,
+        "page": "Shadow Candle",
+        "tooltip": "驱散城镇的宁静"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Shadow Candle (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Shadow_Candle_(buff).png"
+  },
+  {
+    "englishName": "Spiffo",
+    "id": 351,
+    "image": "Spiffo (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Spiffo",
+    "localized": {
+      "en": {
+        "name": "Spiffo",
+        "namesub": null,
+        "page": "Spiffo Plush",
+        "tooltip": "'This is how you died'"
+      },
+      "zh": {
+        "name": "Spiffo",
+        "namesub": null,
+        "page": "Spiffo Plush",
+        "tooltip": "“你就是这样没命的”"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "SpiffoPlush",
+        "itemId": 5332,
+        "name": "Spiffo Plush"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Spiffo (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Spiffo_(buff).png"
+  },
+  {
+    "englishName": "Caveling Gardener",
+    "id": 352,
+    "image": "Caveling Gardener (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "CavelingGardener",
+    "localized": {
+      "en": {
+        "name": "Caveling Gardener",
+        "namesub": null,
+        "page": "Glow Tulip",
+        "tooltip": "Huk arrr gruk tu!"
+      },
+      "zh": {
+        "name": "洞穴园丁",
+        "namesub": null,
+        "page": "Glow Tulip",
+        "tooltip": "哈嘿啊忒！"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "GlowTulip",
+        "itemId": 5333,
+        "name": "Glow Tulip"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Caveling Gardener (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Caveling_Gardener_(buff).png"
+  },
+  {
+    "englishName": "Shimmering",
+    "id": 353,
+    "image": "Shimmering.png",
+    "immuneNpcCount": 131,
+    "immuneNpcSample": [
+      {
+        "internalName": "ServantofCthulhu",
+        "name": "Servant of Cthulhu",
+        "npcId": 5
+      },
+      {
+        "internalName": "BurningSphere",
+        "name": "Burning Sphere",
+        "npcId": 25
+      },
+      {
+        "internalName": "ChaosBall",
+        "name": "Chaos Ball",
+        "npcId": 30
+      },
+      {
+        "internalName": "WaterSphere",
+        "name": "Water Sphere",
+        "npcId": 33
+      },
+      {
+        "internalName": "KingSlime",
+        "name": "King Slime",
+        "npcId": 50
+      },
+      {
+        "internalName": "SpikeBall",
+        "name": "Spike Ball",
+        "npcId": 70
+      },
+      {
+        "internalName": "BlazingWheel",
+        "name": "Blazing Wheel",
+        "npcId": 72
+      },
+      {
+        "internalName": "VileSpit",
+        "name": "Vile Spit",
+        "npcId": 112
+      },
+      {
+        "internalName": "TheHungry",
+        "name": "The Hungry",
+        "npcId": 115
+      },
+      {
+        "internalName": "TheHungryII",
+        "name": "The Hungry",
+        "npcId": 116
+      }
+    ],
+    "internalName": "Shimmer",
+    "localized": {
+      "en": {
+        "name": "Shimmering",
+        "namesub": null,
+        "page": "Shimmering",
+        "tooltip": "You've gone insubstantial!"
+      },
+      "zh": {
+        "name": "微光闪烁",
+        "namesub": null,
+        "page": "Shimmering",
+        "tooltip": "你虚化了！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Shimmering.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Shimmering.png"
+  },
+  {
+    "englishName": "The Dirtiest Block",
+    "id": 354,
+    "image": "The Dirtiest Block (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DirtiestBlock",
+    "localized": {
+      "en": {
+        "name": "The Dirtiest Block",
+        "namesub": null,
+        "page": "The Dirtiest Block",
+        "tooltip": "You can tell by all the extra dirt"
+      },
+      "zh": {
+        "name": "最土的块",
+        "namesub": null,
+        "page": "The Dirtiest Block",
+        "tooltip": "你可以从这些额外的泥土看出来"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "DirtiestBlock",
+        "itemId": 5400,
+        "name": "The Dirtiest Block"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "The Dirtiest Block (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/The_Dirtiest_Block_(buff).png"
+  },
+  {
+    "englishName": "Mushroom Boi!",
+    "id": 355,
+    "image": "Mushroom Boi!.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DeadCellsMushroomBoiMinion",
+    "localized": {
+      "en": {
+        "name": "Mushroom Boi!",
+        "namesub": null,
+        "page": "Mushroom Staff",
+        "tooltip": "Mushroom Boi will fight for you"
+      },
+      "zh": {
+        "name": "蘑菇君！",
+        "namesub": null,
+        "page": "Mushroom Staff",
+        "tooltip": "蘑菇君将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "DeadCellsMushroomBoiSummonItem",
+        "itemId": 5456,
+        "name": "Mushroom Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Mushroom Boi!.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mushroom_Boi!.png"
+  },
+  {
+    "englishName": "Swarm Biter",
+    "id": 356,
+    "image": "Swarm Biter.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DeadCellsSwarmBiter",
+    "localized": {
+      "en": {
+        "name": "Swarm Biter",
+        "namesub": null,
+        "page": "Swarm Grenade",
+        "tooltip": "Chomp chomp"
+      },
+      "zh": {
+        "name": "咬咬虫群",
+        "namesub": null,
+        "page": "Swarm Grenade",
+        "tooltip": "大嚼特嚼"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "DeadCellsSwarmGrenade",
+        "itemId": 5466,
+        "name": "Swarm Grenade"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Swarm Biter.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Swarm_Biter.png"
+  },
+  {
+    "englishName": null,
+    "id": 357,
+    "image": "Betsy's Curse.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "CobWhipNPCDebuff",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Cobwhip",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Cobwhip",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Betsy's Curse.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+  },
+  {
+    "englishName": null,
+    "id": 358,
+    "image": "Betsy's Curse.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "CorruptWhipNPCDebuff",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Soulscourge",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Soulscourge",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Betsy's Curse.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+  },
+  {
+    "englishName": null,
+    "id": 359,
+    "image": "Betsy's Curse.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "CrimsonWhipNPCDebuff",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Vasculash",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Vasculash",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Betsy's Curse.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+  },
+  {
+    "englishName": null,
+    "id": 360,
+    "image": "Betsy's Curse.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MeteorWhipNPCDebuff",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Starcrash",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Starcrash",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Betsy's Curse.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+  },
+  {
+    "englishName": null,
+    "id": 361,
+    "image": "Betsy's Curse.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "FlowerWhipNPCDebuff",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Vulgar Display of Flower",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Vulgar Display of Flower",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Betsy's Curse.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+  },
+  {
+    "englishName": null,
+    "id": 362,
+    "image": "Betsy's Curse.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "EelWhipNPCDebuff",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Electric Eel",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Electric Eel",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Betsy's Curse.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+  },
+  {
+    "englishName": null,
+    "id": 363,
+    "image": "Betsy's Curse.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ConstellationWhipNPCDebuff",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Constellation",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Constellation",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Betsy's Curse.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+  },
+  {
+    "englishName": null,
+    "id": 364,
+    "image": "Betsy's Curse.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MoonLordWhipNPCDebuff",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Possession",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Possession",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Betsy's Curse.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+  },
+  {
+    "englishName": "Whip Spider",
+    "id": 365,
+    "image": "Whip Spider.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "CobWhipPlayerBuff",
+    "localized": {
+      "en": {
+        "name": "Whip Spider",
+        "namesub": null,
+        "page": "Cobwhip",
+        "tooltip": "Summons a spider to fight for you"
+      },
+      "zh": {
+        "name": "鞭蜘蛛",
+        "namesub": null,
+        "page": "Cobwhip",
+        "tooltip": "召唤一只蜘蛛来为你战斗"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Whip Spider.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Whip_Spider.png"
+  },
+  {
+    "englishName": "Alchemic Enhancement",
+    "id": 366,
+    "image": "Alchemic Enhancement.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DeadCellsPotionStation",
+    "localized": {
+      "en": {
+        "name": "Alchemic Enhancement",
+        "namesub": null,
+        "page": "Alchemy Flask",
+        "tooltip": "Fresh buffs last longer"
+      },
+      "zh": {
+        "name": "炼金强化",
+        "namesub": null,
+        "page": "Alchemy Flask",
+        "tooltip": "新增益持续更长时间"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Alchemic Enhancement.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Alchemic_Enhancement.png"
+  },
+  {
+    "englishName": null,
+    "id": 367,
+    "image": "Betsy's Curse.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "FlowerWhipNPCDebuffProc",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Vulgar Display of Flower",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Vulgar Display of Flower",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Betsy's Curse.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+  },
+  {
+    "englishName": null,
+    "id": 368,
+    "image": "Betsy's Curse.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MoonLordWhipNPCDebuffProc",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Possession",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Possession",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Betsy's Curse.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+  },
+  {
+    "englishName": null,
+    "id": 369,
+    "image": "Betsy's Curse.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MeteorWhipNPCDebuffProc",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Starcrash",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Starcrash",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Betsy's Curse.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+  },
+  {
+    "englishName": "Instinct of the Raptor",
+    "id": 370,
+    "image": "Instinct of the Raptor.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "VelociraptorMount",
+    "localized": {
+      "en": {
+        "name": "Instinct of the Raptor",
+        "namesub": null,
+        "page": "Slasher's Mysterious Skull",
+        "tooltip": "You turned into a velociraptor!"
+      },
+      "zh": {
+        "name": "迅猛龙本能",
+        "namesub": null,
+        "page": "Slasher's Mysterious Skull",
+        "tooltip": "你变成了迅猛龙！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Instinct of the Raptor.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Instinct_of_the_Raptor.png"
+  },
+  {
+    "englishName": "Pufferfish",
+    "id": 371,
+    "image": "Pufferfish (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Pufferfish",
+    "localized": {
+      "en": {
+        "name": "Pufferfish",
+        "namesub": null,
+        "page": "Puffer Shrimp",
+        "tooltip": "A friendly pufferfish is following you"
+      },
+      "zh": {
+        "name": "河豚",
+        "namesub": null,
+        "page": "Puffer Shrimp",
+        "tooltip": "友好河豚正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "PufferfishPet",
+        "itemId": 5513,
+        "name": "Puffer Shrimp"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Pufferfish (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pufferfish_(buff).png"
+  },
+  {
+    "englishName": "Cenaxe",
+    "id": 372,
+    "image": "Cenaxe (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "AxeFairyPet",
+    "localized": {
+      "en": {
+        "name": "Cenaxe",
+        "namesub": null,
+        "page": "Faecorn",
+        "tooltip": "Axing the real questions"
+      },
+      "zh": {
+        "name": "森斧精灵",
+        "namesub": null,
+        "page": "Faecorn",
+        "tooltip": "刨根问底"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "AxeFairyPetItem",
+        "itemId": 5517,
+        "name": "Faecorn"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Cenaxe (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cenaxe_(buff).png"
+  },
+  {
+    "englishName": "Friendly Boulder",
+    "id": 373,
+    "image": "Friendly Boulder (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BoulderPet",
+    "localized": {
+      "en": {
+        "name": "Friendly Boulder",
+        "namesub": null,
+        "page": "Friendly Boulder",
+        "tooltip": "A friendly boulder is rolling around with you"
+      },
+      "zh": {
+        "name": "友好巨石",
+        "namesub": null,
+        "page": "Friendly Boulder",
+        "tooltip": "友好巨石正在你身边滚动"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "BoulderPet",
+        "itemId": 5523,
+        "name": "Friendly Boulder"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Friendly Boulder (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Friendly_Boulder_(buff).png"
+  },
+  {
+    "englishName": "Nature of the Rat",
+    "id": 374,
+    "image": "Nature of the Rat.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "RatMount",
+    "localized": {
+      "en": {
+        "name": "Nature of the Rat",
+        "namesub": null,
+        "page": "Cursed Piper Flute",
+        "tooltip": "You turned into a rat!"
+      },
+      "zh": {
+        "name": "大鼠本性",
+        "namesub": null,
+        "page": "Cursed Piper Flute",
+        "tooltip": "你变成了大鼠！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Nature of the Rat.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Nature_of_the_Rat.png"
+  },
+  {
+    "englishName": "Hemorrhage",
+    "id": 375,
+    "image": "Hemorrhage.png",
+    "immuneNpcCount": 218,
+    "immuneNpcSample": [
+      {
+        "internalName": "BigHornetStingy",
+        "name": "Hornet",
+        "npcId": -65
+      },
+      {
+        "internalName": "LittleHornetStingy",
+        "name": "Hornet",
+        "npcId": -64
+      },
+      {
+        "internalName": "BigHornetSpikey",
+        "name": "Hornet",
+        "npcId": -63
+      },
+      {
+        "internalName": "LittleHornetSpikey",
+        "name": "Hornet",
+        "npcId": -62
+      },
+      {
+        "internalName": "BigHornetLeafy",
+        "name": "Hornet",
+        "npcId": -61
+      },
+      {
+        "internalName": "LittleHornetLeafy",
+        "name": "Hornet",
+        "npcId": -60
+      },
+      {
+        "internalName": "BigHornetHoney",
+        "name": "Hornet",
+        "npcId": -59
+      },
+      {
+        "internalName": "LittleHornetHoney",
+        "name": "Hornet",
+        "npcId": -58
+      },
+      {
+        "internalName": "BigHornetFatty",
+        "name": "Hornet",
+        "npcId": -57
+      },
+      {
+        "internalName": "LittleHornetFatty",
+        "name": "Hornet",
+        "npcId": -56
+      }
+    ],
+    "internalName": "Hemorrhage",
+    "localized": {
+      "en": {
+        "name": "Hemorrhage",
+        "namesub": null,
+        "page": "Hemorrhage",
+        "tooltip": "Bleeding profusely"
+      },
+      "zh": {
+        "name": "出血",
+        "namesub": null,
+        "page": "Hemorrhage",
+        "tooltip": "血流如注"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Hemorrhage.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Hemorrhage.png"
+  },
+  {
+    "englishName": "Torch Blessing",
+    "id": 376,
+    "image": "Torch Blessing.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "TorchGodPotion",
+    "localized": {
+      "en": {
+        "name": "Torch Blessing",
+        "namesub": null,
+        "page": "Torch God's Flavor",
+        "tooltip": "Nearby torches will be converted to match the biome"
+      },
+      "zh": {
+        "name": "火把祝福",
+        "namesub": null,
+        "page": "Torch God's Flavor",
+        "tooltip": "附近的火把将会被转换以匹配生物群系"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 28800,
+        "internalName": "TorchGodPotion",
+        "itemId": 5573,
+        "name": "Torch God's Flavor"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Torch Blessing.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Torch_Blessing.png"
+  },
+  {
+    "englishName": "Curse of the Bat",
+    "id": 377,
+    "image": "Curse of the Bat.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BatMount",
+    "localized": {
+      "en": {
+        "name": "Curse of the Bat",
+        "namesub": null,
+        "page": "Amulet of the Night",
+        "tooltip": "You turned into a bat!"
+      },
+      "zh": {
+        "name": "蝙蝠诅咒",
+        "namesub": null,
+        "page": "Amulet of the Night",
+        "tooltip": "你变成了蝙蝠！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Curse of the Bat.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Curse_of_the_Bat.png"
+  },
+  {
+    "englishName": "Blue Roller Skates",
+    "id": 378,
+    "image": "Blue Roller Skates (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "RollerSkatesMount",
+    "localized": {
+      "en": {
+        "name": "Blue Roller Skates",
+        "namesub": null,
+        "page": "Roller Skates",
+        "tooltip": "This is how I roll"
+      },
+      "zh": {
+        "name": "蓝轮滑鞋",
+        "namesub": null,
+        "page": "Roller Skates",
+        "tooltip": "我就是如此滚动"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Blue Roller Skates (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Blue_Roller_Skates_(buff).png"
+  },
+  {
+    "englishName": "Green Roller Skates",
+    "id": 379,
+    "image": "Green Roller Skates (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "RollerSkatesGreenMount",
+    "localized": {
+      "en": {
+        "name": "Green Roller Skates",
+        "namesub": null,
+        "page": "Roller Skates",
+        "tooltip": "This is how I roll"
+      },
+      "zh": {
+        "name": "绿轮滑鞋",
+        "namesub": null,
+        "page": "Roller Skates",
+        "tooltip": "我就是如此滚动"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Green Roller Skates (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Green_Roller_Skates_(buff).png"
+  },
+  {
+    "englishName": "Classic Roller Skates",
+    "id": 380,
+    "image": "Classic Roller Skates (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "RollerSkatesWhiteMount",
+    "localized": {
+      "en": {
+        "name": "Classic Roller Skates",
+        "namesub": null,
+        "page": "Roller Skates",
+        "tooltip": "This is how I roll"
+      },
+      "zh": {
+        "name": "经典轮滑鞋",
+        "namesub": null,
+        "page": "Roller Skates",
+        "tooltip": "我就是如此滚动"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Classic Roller Skates (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Classic_Roller_Skates_(buff).png"
+  },
+  {
+    "englishName": "Party Roller Skates",
+    "id": 381,
+    "image": "Party Roller Skates (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "RollerSkatesPinkMount",
+    "localized": {
+      "en": {
+        "name": "Party Roller Skates",
+        "namesub": null,
+        "page": "Roller Skates",
+        "tooltip": "This is how I roll"
+      },
+      "zh": {
+        "name": "派对轮滑鞋",
+        "namesub": null,
+        "page": "Roller Skates",
+        "tooltip": "我就是如此滚动"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Party Roller Skates (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Party_Roller_Skates_(buff).png"
+  },
+  {
+    "englishName": "Friendly Rainbow Boulder",
+    "id": 382,
+    "image": "Friendly Rainbow Boulder (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "RainbowBoulderPet",
+    "localized": {
+      "en": {
+        "name": "Friendly Rainbow Boulder",
+        "namesub": null,
+        "page": "Friendly Rainbow Boulder",
+        "tooltip": "A friendly rainbow boulder is rolling around with you"
+      },
+      "zh": {
+        "name": "友好彩虹巨石",
+        "namesub": null,
+        "page": "Friendly Rainbow Boulder",
+        "tooltip": "友好彩虹巨石正在你身边滚动"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "RainbowBoulderPet",
+        "itemId": 5654,
+        "name": "Friendly Rainbow Boulder"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Friendly Rainbow Boulder (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Friendly_Rainbow_Boulder_(buff).png"
+  },
+  {
+    "englishName": "High Spirits",
+    "id": 383,
+    "image": "High Spirits.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Kite",
+    "localized": {
+      "en": {
+        "name": "High Spirits",
+        "namesub": null,
+        "page": "Kites",
+        "tooltip": "Slightly increased movement speed, mining speed, and placement speed"
+      },
+      "zh": {
+        "name": "放飞心灵",
+        "namesub": null,
+        "page": "Kites",
+        "tooltip": "略微提高的移动速度、挖矿速度和放置速度"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "High Spirits.png",
+    "imageUrl": "https://terraria.wiki.gg/images/High_Spirits.png"
+  },
+  {
+    "englishName": "Form of the Fae",
+    "id": 384,
+    "image": "Form of the Fae.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PixieMount",
+    "localized": {
+      "en": {
+        "name": "Form of the Fae",
+        "namesub": null,
+        "page": "Enchanted Pixie Dust",
+        "tooltip": "You turned into a pixie!"
+      },
+      "zh": {
+        "name": "仙灵形态",
+        "namesub": null,
+        "page": "Enchanted Pixie Dust",
+        "tooltip": "你变成了妖精！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Form of the Fae.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Form_of_the_Fae.png"
+  },
+  {
+    "englishName": "Cattiva",
+    "id": 385,
+    "image": "Cattiva (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PalworldMinionCattiva",
+    "localized": {
+      "en": {
+        "name": "Cattiva",
+        "namesub": null,
+        "page": "Cattiva",
+        "tooltip": "Cattiva will fight for you"
+      },
+      "zh": {
+        "name": "捣蛋猫",
+        "namesub": null,
+        "page": "Cattiva",
+        "tooltip": "捣蛋猫将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "PalworldMinionCattiva",
+        "itemId": 5663,
+        "name": "Cattiva"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Cattiva (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cattiva_(buff).png"
+  },
+  {
+    "englishName": "Foxparks",
+    "id": 386,
+    "image": "Foxparks (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PalworldMinionFoxsparks",
+    "localized": {
+      "en": {
+        "name": "Foxparks",
+        "namesub": null,
+        "page": "Foxparks",
+        "tooltip": "Foxparks will fight for you"
+      },
+      "zh": {
+        "name": "火绒狐",
+        "namesub": null,
+        "page": "Foxparks",
+        "tooltip": "火绒狐将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "PalworldMinionFoxsparks",
+        "itemId": 5664,
+        "name": "Foxparks"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Foxparks (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Foxparks_(buff).png"
+  },
+  {
+    "englishName": "Chillet",
+    "id": 387,
+    "image": "Chillet (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PalworldPetChillet",
+    "localized": {
+      "en": {
+        "name": "Chillet",
+        "namesub": null,
+        "page": "Chillet",
+        "tooltip": "Chillet is exploring with you<br/>The movement is quite intense!"
+      },
+      "zh": {
+        "name": "疾旋鼬",
+        "namesub": null,
+        "page": "Chillet",
+        "tooltip": "疾旋鼬将陪你一起探索<br/>它跑起来相当威猛！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Chillet (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Chillet_(buff).png"
+  },
+  {
+    "englishName": "Chillet Ignis",
+    "id": 388,
+    "image": "Chillet Ignis (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PalworldPetChilletIgnis",
+    "localized": {
+      "en": {
+        "name": "Chillet Ignis",
+        "namesub": null,
+        "page": "Chillet",
+        "tooltip": "Chillet Ignis is exploring with you<br/>Be careful of petting it too long, or sparks WILL start flying!"
+      },
+      "zh": {
+        "name": "桃旋鼬",
+        "namesub": null,
+        "page": "Chillet",
+        "tooltip": "桃旋鼬将陪你一起探索<br/>小心别抚摸它太长时间，否则火花将会开始飞舞！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Chillet Ignis (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Chillet_Ignis_(buff).png"
+  }
+]

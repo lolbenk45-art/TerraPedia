@@ -1,0 +1,33 @@
+{
+  "name": "data-query-app",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "lint": "pnpm run check",
+    "check": "nuxt typecheck",
+    "test": "pnpm run build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@pinia/nuxt": "^0.11.3",
+    "@vueuse/core": "^11.2.0",
+    "@vueuse/nuxt": "^11.2.0",
+    "ini": "^6.0.0",
+    "lucide-vue-next": "^1.0.0",
+    "mysql2": "^3.19.1",
+    "nuxt": "^4.0.0",
+    "pinia": "^2.3.0",
+    "vue": "^3.5.13",
+    "vue-router": "^5.0.3"
+  },
+  "devDependencies": {
+    "@nuxtjs/tailwindcss": "^6.12.2",
+    "typescript": "^5.6.3",
+    "vue-tsc": "^3.2.6"
+  }
+}

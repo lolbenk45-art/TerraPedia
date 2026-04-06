@@ -1,0 +1,652 @@
+package com.terraria.skills.controller;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.common.ApiResponse;
+import com.terraria.skills.common.Pagination;
+import com.terraria.skills.common.PaginationParams;
+import com.terraria.skills.entity.Buff;
+import com.terraria.skills.mapper.BuffMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+@RestController
+@RequestMapping("/admin/buffs")
+@RequiredArgsConstructor
+@Tag(name = "AdminBuffs", description = "Admin buff management")
+@SecurityRequirement(name = "bearerAuth")
+public class AdminBuffController {
+
+    private final BuffMapper buffMapper;
+    private final ObjectMapper objectMapper;
+    private final JdbcTemplate jdbcTemplate;
+
+    @GetMapping
+    @Operation(summary = "Get buffs")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getBuffs(
+        @RequestParam(required = false) Integer page,
+        @RequestParam(required = false) Integer limit,
+        @RequestParam(required = false) Integer size,
+        @RequestParam(required = false) String search,
+        @RequestParam(required = false) String buffType
+    ) {
+        int safePage = PaginationParams.resolvePage(page);
+        int safeLimit = PaginationParams.resolveLimit(limit, size, 20, 100);
+
+        LambdaQueryWrapper<Buff> wrapper = new LambdaQueryWrapper<Buff>()
+            .orderByAsc(Buff::getId);
+        if (search != null && !search.isBlank()) {
+            String keyword = search.trim();
+            wrapper.and(w -> w.like(Buff::getInternalName, keyword)
+                .or().like(Buff::getEnglishName, keyword)
+                .or().like(Buff::getNameZh, keyword));
+        }
+        if (buffType != null && !buffType.isBlank()) {
+            wrapper.eq(Buff::getBuffType, buffType.trim());
+        }
+
+        Page<Buff> mpPage = buffMapper.selectPage(new Page<>(safePage, safeLimit), wrapper);
+        Pagination pagination = new Pagination(mpPage.getTotal(), (int) mpPage.getCurrent(), (int) mpPage.getSize());
+        ApiResponse<List<Map<String, Object>>> response = ApiResponse.success(mpPage.getRecords().stream().map(buff -> toPayload(buff, false)).toList());
+        response.setPagination(pagination);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get buff detail")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getBuffById(@PathVariable Long id) {
+        Buff buff = buffMapper.selectById(id);
+        if (buff == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "Buff not found"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(toPayload(buff, true)));
+    }
+
+    @PostMapping
+    @Operation(summary = "Create buff")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createBuff(@RequestBody Map<String, Object> request) {
+        String internalName = trimToNull(request.get("internalName"));
+        Integer sourceId = toInteger(request.get("sourceId"));
+        if (internalName == null || sourceId == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "sourceId and internalName are required"));
+        }
+
+        long duplicate = buffMapper.selectCount(new LambdaQueryWrapper<Buff>()
+            .and(w -> w.eq(Buff::getSourceId, sourceId).or().eq(Buff::getInternalName, internalName)));
+        if (duplicate > 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "sourceId or internalName already exists"));
+        }
+
+        Buff buff = new Buff();
+        applyFields(buff, request, true);
+        buffMapper.insert(buff);
+        if (request.containsKey("linkedSourceItems") || request.containsKey("sourceItemsJson")) {
+            syncBuffSourceItems(buff, request);
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(toPayload(buffMapper.selectById(buff.getId()), true), "Buff created"));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update buff")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updateBuff(@PathVariable Long id, @RequestBody Map<String, Object> request) {
+        Buff existing = buffMapper.selectById(id);
+        if (existing == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "Buff not found"));
+        }
+
+        Integer nextSourceId = request.containsKey("sourceId") ? toInteger(request.get("sourceId")) : existing.getSourceId();
+        String nextInternalName = request.containsKey("internalName") ? trimToNull(request.get("internalName")) : existing.getInternalName();
+        if (nextSourceId == null || nextInternalName == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "sourceId and internalName are required"));
+        }
+
+        long duplicate = buffMapper.selectCount(new LambdaQueryWrapper<Buff>()
+            .ne(Buff::getId, id)
+            .and(w -> w.eq(Buff::getSourceId, nextSourceId).or().eq(Buff::getInternalName, nextInternalName)));
+        if (duplicate > 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "sourceId or internalName already exists"));
+        }
+
+        applyFields(existing, request, false);
+        buffMapper.updateById(existing);
+        if (request.containsKey("linkedSourceItems") || request.containsKey("sourceItemsJson")) {
+            syncBuffSourceItems(existing, request);
+        }
+        return ResponseEntity.ok(ApiResponse.success(toPayload(buffMapper.selectById(id), true), "Buff updated"));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete buff")
+    public ResponseEntity<ApiResponse<Void>> deleteBuff(@PathVariable Long id) {
+        Buff existing = buffMapper.selectById(id);
+        if (existing == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "Buff not found"));
+        }
+        buffMapper.deleteById(id);
+        return ResponseEntity.ok(ApiResponse.success(null, "Buff deleted"));
+    }
+
+    private void applyFields(Buff buff, Map<String, Object> request, boolean creating) {
+        if (creating || request.containsKey("sourceId")) buff.setSourceId(toInteger(request.get("sourceId")));
+        if (creating || request.containsKey("internalName")) buff.setInternalName(trimToNull(request.get("internalName")));
+        if (request.containsKey("englishName")) buff.setEnglishName(trimToNull(request.get("englishName")));
+        if (request.containsKey("nameZh")) buff.setNameZh(trimToNull(request.get("nameZh")));
+        if (request.containsKey("tooltipEn")) buff.setTooltipEn(trimToNull(request.get("tooltipEn")));
+        if (request.containsKey("tooltipZh")) buff.setTooltipZh(trimToNull(request.get("tooltipZh")));
+        if (request.containsKey("image") || request.containsKey("imagePath")) {
+            buff.setImage(normalizeAssetUrl(firstNonBlank(trimToNull(request.get("image")), trimToNull(request.get("imagePath")))));
+        }
+        if (request.containsKey("buffType")) buff.setBuffType(trimToNull(request.get("buffType")));
+        if (request.containsKey("sourceItemCount")) buff.setSourceItemCount(toInteger(request.get("sourceItemCount")));
+        if (request.containsKey("immuneNpcCount")) buff.setImmuneNpcCount(toInteger(request.get("immuneNpcCount")));
+        if (request.containsKey("sourceItemsJson")) buff.setSourceItemsJson(toJsonString(request.get("sourceItemsJson")));
+        if (request.containsKey("immuneNpcSampleJson")) buff.setImmuneNpcSampleJson(toJsonString(request.get("immuneNpcSampleJson")));
+        if (request.containsKey("status")) buff.setStatus(toInteger(request.get("status")));
+
+        if (creating) {
+            if (buff.getStatus() == null) buff.setStatus(1);
+            if (buff.getSourceItemCount() == null) buff.setSourceItemCount(0);
+            if (buff.getImmuneNpcCount() == null) buff.setImmuneNpcCount(0);
+            if (buff.getEnglishName() == null) buff.setEnglishName(buff.getInternalName());
+        }
+    }
+
+    private Map<String, Object> toPayload(Buff buff, boolean includeLinkedItems) {
+        Map<String, Object> supplement = loadBuffSupplement(buff.getInternalName());
+        String immuneNpcSampleJson = firstNonBlank(buff.getImmuneNpcSampleJson(), "[]");
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("id", buff.getId());
+        payload.put("sourceId", buff.getSourceId());
+        payload.put("internalName", buff.getInternalName());
+        payload.put("englishName", firstNonBlank(buff.getEnglishName(), trimToNull(supplement.get("englishName"))));
+        payload.put("nameZh", firstNonBlank(buff.getNameZh(), trimToNull(supplement.get("nameZh"))));
+        payload.put("image", normalizeAssetUrl(buff.getImage()));
+        payload.put("imagePath", normalizeAssetUrl(buff.getImage()));
+        payload.put("categoryId", null);
+        payload.put("buffType", firstNonBlank(buff.getBuffType(), trimToNull(supplement.get("buffType"))));
+        payload.put("sourceItemCount", firstNonNullInteger(buff.getSourceItemCount(), toInteger(supplement.get("sourceItemCount")), 0));
+        payload.put("immuneNpcCount", firstNonNullInteger(buff.getImmuneNpcCount(), toInteger(supplement.get("immuneNpcCount")), 0));
+        payload.put("tooltipEn", firstNonBlank(buff.getTooltipEn(), trimToNull(supplement.get("tooltipEn"))));
+        payload.put("tooltipZh", firstNonBlank(buff.getTooltipZh(), trimToNull(supplement.get("tooltipZh"))));
+        payload.put("sourceItemsJson", firstNonBlank(buff.getSourceItemsJson(), "[]"));
+        payload.put("immuneNpcSampleJson", immuneNpcSampleJson);
+        payload.put("status", firstNonNullInteger(buff.getStatus(), 1));
+        payload.put("createdAt", buff.getCreatedAt());
+        payload.put("updatedAt", buff.getUpdatedAt());
+        if (includeLinkedItems) {
+            payload.put("linkedSourceItems", loadLinkedSourceItems(buff.getId()));
+            payload.put("immuneNpcSamples", loadImmuneNpcSamples(immuneNpcSampleJson));
+        }
+        return payload;
+    }
+
+    private void syncBuffSourceItems(Buff buff, Map<String, Object> request) {
+        if (buff == null || buff.getId() == null) return;
+        List<Map<String, Object>> normalizedItems = normalizeLinkedSourceItems(request);
+        jdbcTemplate.update("DELETE FROM buff_source_items WHERE buff_id = ?", buff.getId());
+        for (int index = 0; index < normalizedItems.size(); index += 1) {
+            Map<String, Object> item = normalizedItems.get(index);
+            jdbcTemplate.update(
+                """
+                INSERT INTO buff_source_items
+                  (buff_id, source_item_id, source_item_internal_name, source_item_name, item_id, buff_time, sort_order)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                buff.getId(),
+                toInteger(item.get("sourceItemId")),
+                trimToNull(item.get("internalName")),
+                trimToNull(item.get("nameEn")) != null ? trimToNull(item.get("nameEn")) : trimToNull(item.get("name")),
+                toLong(item.get("itemId")),
+                toInteger(item.get("buffTime")),
+                toInteger(item.get("sortOrder")) != null ? toInteger(item.get("sortOrder")) : index
+            );
+        }
+
+        buff.setSourceItemCount(normalizedItems.size());
+        buff.setSourceItemsJson(toJsonString(normalizedItems.stream().map(item -> {
+            Map<String, Object> snapshot = new LinkedHashMap<>();
+            snapshot.put("buffTime", item.get("buffTime"));
+            snapshot.put("internalName", item.get("internalName"));
+            snapshot.put("itemId", item.get("sourceItemId"));
+            snapshot.put("name", trimToNull(item.get("nameEn")) != null ? item.get("nameEn") : item.get("name"));
+            return snapshot;
+        }).toList()));
+        buffMapper.updateById(buff);
+    }
+
+    private List<Map<String, Object>> normalizeLinkedSourceItems(Map<String, Object> request) {
+        Object raw = request.get("linkedSourceItems");
+        if (raw == null) {
+            raw = request.get("sourceItemsJson");
+        }
+        List<?> rawList = toObjectList(raw);
+        List<Map<String, Object>> normalized = new ArrayList<>();
+        for (int index = 0; index < rawList.size(); index += 1) {
+            Object entryRaw = rawList.get(index);
+            if (!(entryRaw instanceof Map<?, ?> entry)) continue;
+            Long itemId = toLong(firstNonNull(entry, "itemId"));
+            String internalName = trimToNull(firstNonNull(entry, "internalName"));
+            Integer sourceItemId = toInteger(firstNonNull(entry, "sourceItemId", "itemId"));
+            Map<String, Object> resolvedItem = resolveItemReference(itemId, internalName, sourceItemId);
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("sourceItemId", firstNonNullInteger(sourceItemId, toInteger(resolvedItem.get("itemId"))));
+            payload.put("itemId", toLong(resolvedItem.get("id")));
+            payload.put("internalName", firstNonBlank(internalName, trimToNull(resolvedItem.get("internalName"))));
+            payload.put("name", firstNonBlank(trimToNull(firstNonNull(entry, "nameZh", "name")), trimToNull(resolvedItem.get("nameZh")), trimToNull(resolvedItem.get("name"))));
+            payload.put("nameEn", firstNonBlank(trimToNull(firstNonNull(entry, "nameEn")), trimToNull(resolvedItem.get("name"))));
+            payload.put("nameZh", firstNonBlank(trimToNull(firstNonNull(entry, "nameZh")), trimToNull(resolvedItem.get("nameZh"))));
+            payload.put("image", firstNonBlank(trimToNull(firstNonNull(entry, "image")), normalizeAssetUrl(trimToNull(resolvedItem.get("image")))));
+            payload.put("buffTime", toInteger(firstNonNull(entry, "buffTime")));
+            payload.put("sortOrder", toInteger(firstNonNull(entry, "sortOrder")) != null ? toInteger(firstNonNull(entry, "sortOrder")) : index);
+            if (payload.get("sourceItemId") == null && payload.get("itemId") == null && payload.get("internalName") == null) {
+                continue;
+            }
+            normalized.add(payload);
+        }
+        normalized.sort(Comparator.comparingInt(item -> Objects.requireNonNullElse(toInteger(item.get("sortOrder")), 0)));
+        return normalized;
+    }
+
+    private List<Map<String, Object>> loadImmuneNpcSamples(String immuneNpcSampleJson) {
+        List<Map<String, Object>> rawEntries = toObjectMapList(immuneNpcSampleJson);
+        if (rawEntries.isEmpty()) {
+            return List.of();
+        }
+
+        Set<String> internalNames = new LinkedHashSet<>();
+        Set<Integer> npcIds = new LinkedHashSet<>();
+        for (Map<String, Object> entry : rawEntries) {
+            String internalName = trimToNull(firstNonNull(entry, "internalName", "internal_name"));
+            Integer npcId = toInteger(firstNonNull(entry, "npcId", "sourceId", "source_id"));
+            if (internalName != null) internalNames.add(internalName);
+            if (npcId != null) npcIds.add(npcId);
+        }
+
+        Map<String, Map<String, Object>> npcRowsByInternalName = loadNpcRowsByInternalNames(internalNames);
+        Map<Integer, Map<String, Object>> npcRowsByNpcId = loadNpcRowsByNpcIds(npcIds);
+
+        Set<Long> itemIds = new LinkedHashSet<>();
+        for (Map<String, Object> npcRow : npcRowsByInternalName.values()) {
+            Long bannerItemId = toLong(npcRow.get("bannerItemId"));
+            Long catchItemId = toLong(npcRow.get("catchItemId"));
+            if (bannerItemId != null) itemIds.add(bannerItemId);
+            if (catchItemId != null) itemIds.add(catchItemId);
+        }
+        for (Map<String, Object> npcRow : npcRowsByNpcId.values()) {
+            Long bannerItemId = toLong(npcRow.get("bannerItemId"));
+            Long catchItemId = toLong(npcRow.get("catchItemId"));
+            if (bannerItemId != null) itemIds.add(bannerItemId);
+            if (catchItemId != null) itemIds.add(catchItemId);
+        }
+
+        Map<Long, String> itemImagesById = loadItemImagesByIds(itemIds);
+        Map<String, Map<String, Object>> npcSupplementMap = loadNpcSupplementMap();
+
+        List<Map<String, Object>> enriched = new ArrayList<>();
+        for (Map<String, Object> entry : rawEntries) {
+            Integer requestedNpcId = toInteger(firstNonNull(entry, "npcId", "sourceId", "source_id"));
+            String requestedInternalName = trimToNull(firstNonNull(entry, "internalName", "internal_name"));
+            Map<String, Object> npcRow = requestedInternalName != null
+                ? npcRowsByInternalName.getOrDefault(requestedInternalName, Map.of())
+                : Map.of();
+            if (npcRow.isEmpty() && requestedNpcId != null) {
+                npcRow = npcRowsByNpcId.getOrDefault(requestedNpcId, Map.of());
+            }
+
+            Integer resolvedNpcId = firstNonNullInteger(requestedNpcId, toInteger(npcRow.get("npcId")));
+            Map<String, Object> supplement = resolvedNpcId == null
+                ? Map.of()
+                : npcSupplementMap.getOrDefault(String.valueOf(resolvedNpcId), Map.of());
+
+            String npcImage = normalizeAssetUrl(firstNonBlank(
+                trimToNull(supplement.get("imageUrl")),
+                extractNpcImageUrl(npcRow.get("rawJson"))
+            ));
+            Long bannerItemId = toLong(npcRow.get("bannerItemId"));
+            Long catchItemId = toLong(npcRow.get("catchItemId"));
+            String itemFallbackImage = firstNonBlank(
+                bannerItemId == null ? null : itemImagesById.get(bannerItemId),
+                catchItemId == null ? null : itemImagesById.get(catchItemId)
+            );
+            String image = firstNonBlank(
+                npcImage,
+                itemFallbackImage,
+                normalizeAssetUrl(trimToNull(firstNonNull(entry, "image", "imageUrl")))
+            );
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("npcId", resolvedNpcId);
+            payload.put("internalName", firstNonBlank(requestedInternalName, trimToNull(npcRow.get("internalName"))));
+            payload.put("name", firstNonBlank(trimToNull(firstNonNull(entry, "name")), trimToNull(npcRow.get("name"))));
+            payload.put("nameZh", firstNonBlank(trimToNull(firstNonNull(entry, "nameZh")), trimToNull(npcRow.get("nameZh"))));
+            payload.put("subNameZh", firstNonBlank(trimToNull(firstNonNull(entry, "subNameZh")), trimToNull(npcRow.get("subNameZh"))));
+            payload.put("image", image);
+            payload.put("imageUrl", image);
+            enriched.add(payload);
+        }
+
+        return enriched;
+    }
+
+    private List<Map<String, Object>> toObjectMapList(Object raw) {
+        List<?> rawList = toObjectList(raw);
+        if (rawList.isEmpty()) return List.of();
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Object entryRaw : rawList) {
+            if (!(entryRaw instanceof Map<?, ?> entry)) continue;
+            result.add(new LinkedHashMap<>((Map<String, Object>) entry));
+        }
+        return result;
+    }
+
+    private List<?> toObjectList(Object raw) {
+        if (raw == null) return List.of();
+        if (raw instanceof List<?> list) return list;
+        if (raw instanceof String text) {
+            try {
+                Object parsed = objectMapper.readValue(text, new TypeReference<>() {});
+                return parsed instanceof List<?> list ? list : List.of();
+            } catch (Exception exception) {
+                return List.of();
+            }
+        }
+        return List.of();
+    }
+
+    private Map<String, Map<String, Object>> loadNpcRowsByInternalNames(Set<String> internalNames) {
+        if (internalNames == null || internalNames.isEmpty()) return Map.of();
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            """
+            SELECT
+              game_id AS npcId,
+              internal_name AS internalName,
+              name,
+              name_zh AS nameZh,
+              sub_name_zh AS subNameZh,
+              banner_item_id AS bannerItemId,
+              catch_item_id AS catchItemId,
+              raw_json AS rawJson
+            FROM npcs
+            WHERE deleted = 0 AND internal_name IN (%s)
+            """.formatted(buildPlaceholders(internalNames.size())),
+            internalNames.toArray()
+        );
+        Map<String, Map<String, Object>> lookup = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            String internalName = trimToNull(row.get("internalName"));
+            if (internalName != null) {
+                lookup.put(internalName, new LinkedHashMap<>(row));
+            }
+        }
+        return lookup;
+    }
+
+    private Map<Integer, Map<String, Object>> loadNpcRowsByNpcIds(Set<Integer> npcIds) {
+        if (npcIds == null || npcIds.isEmpty()) return Map.of();
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            """
+            SELECT
+              game_id AS npcId,
+              internal_name AS internalName,
+              name,
+              name_zh AS nameZh,
+              sub_name_zh AS subNameZh,
+              banner_item_id AS bannerItemId,
+              catch_item_id AS catchItemId,
+              raw_json AS rawJson
+            FROM npcs
+            WHERE deleted = 0 AND game_id IN (%s)
+            """.formatted(buildPlaceholders(npcIds.size())),
+            npcIds.toArray()
+        );
+        Map<Integer, Map<String, Object>> lookup = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            Integer npcId = toInteger(row.get("npcId"));
+            if (npcId != null) {
+                lookup.put(npcId, new LinkedHashMap<>(row));
+            }
+        }
+        return lookup;
+    }
+
+    private Map<Long, String> loadItemImagesByIds(Set<Long> itemIds) {
+        if (itemIds == null || itemIds.isEmpty()) return Map.of();
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            "SELECT id, image FROM items WHERE deleted = 0 AND id IN (%s)".formatted(buildPlaceholders(itemIds.size())),
+            itemIds.toArray()
+        );
+        Map<Long, String> lookup = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            Long itemId = toLong(row.get("id"));
+            if (itemId != null) {
+                lookup.put(itemId, normalizeAssetUrl(trimToNull(row.get("image"))));
+            }
+        }
+        return lookup;
+    }
+
+    private Map<String, Map<String, Object>> loadNpcSupplementMap() {
+        Path path = resolveDataFile(Path.of("generated", "npc-standardized-map.json"));
+        if (path == null) return Map.of();
+        try {
+            Map<String, Object> root = objectMapper.readValue(path.toFile(), new TypeReference<>() {});
+            Object recordsRaw = root.get("records");
+            if (!(recordsRaw instanceof Map<?, ?> records)) return Map.of();
+
+            Map<String, Map<String, Object>> lookup = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : records.entrySet()) {
+                if (entry.getKey() == null || !(entry.getValue() instanceof Map<?, ?> value)) continue;
+                lookup.put(String.valueOf(entry.getKey()), new LinkedHashMap<>((Map<String, Object>) value));
+            }
+            return lookup;
+        } catch (Exception exception) {
+            return Map.of();
+        }
+    }
+
+    private String extractNpcImageUrl(Object rawJson) {
+        Map<?, ?> raw = parseMap(rawJson);
+        return normalizeAssetUrl(trimToNull(firstNonNull(raw, "imageUrl", "image_url")));
+    }
+
+    private String buildPlaceholders(int size) {
+        return String.join(", ", java.util.Collections.nCopies(size, "?"));
+    }
+
+    private Map<String, Object> resolveItemReference(Long itemId, String internalName, Integer sourceItemId) {
+        if (itemId != null) {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT id, name, name_zh AS nameZh, internal_name AS internalName, image FROM items WHERE id = ? AND deleted = 0 LIMIT 1",
+                itemId
+            );
+            if (!rows.isEmpty()) return rows.get(0);
+        }
+        if (internalName != null) {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT id, name, name_zh AS nameZh, internal_name AS internalName, image FROM items WHERE internal_name = ? AND deleted = 0 LIMIT 1",
+                internalName
+            );
+            if (!rows.isEmpty()) return rows.get(0);
+        }
+        if (sourceItemId != null) {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT id, name, name_zh AS nameZh, internal_name AS internalName, image FROM items WHERE id = ? AND deleted = 0 LIMIT 1",
+                sourceItemId
+            );
+            if (!rows.isEmpty()) return rows.get(0);
+        }
+        return Map.of();
+    }
+
+    private List<Map<String, Object>> loadLinkedSourceItems(Long buffId) {
+        if (buffId == null) return List.of();
+        try {
+            return jdbcTemplate.queryForList(
+                """
+                SELECT
+                  bsi.source_item_id AS sourceItemId,
+                  bsi.item_id AS itemId,
+                  COALESCE(i.name_zh, bsi.source_item_name, i.name) AS name,
+                  i.name AS nameEn,
+                  i.name_zh AS nameZh,
+                  COALESCE(i.internal_name, bsi.source_item_internal_name) AS internalName,
+                  i.image AS image,
+                  bsi.buff_time AS buffTime,
+                  bsi.sort_order AS sortOrder
+                FROM buff_source_items bsi
+                LEFT JOIN items i ON i.id = bsi.item_id
+                WHERE bsi.buff_id = ?
+                ORDER BY bsi.sort_order ASC, bsi.id ASC
+                """,
+                buffId
+            ).stream().map(row -> {
+                Map<String, Object> payload = new LinkedHashMap<>();
+                payload.put("sourceItemId", row.get("sourceItemId"));
+                payload.put("itemId", row.get("itemId"));
+                payload.put("name", row.get("name"));
+                payload.put("nameEn", row.get("nameEn"));
+                payload.put("nameZh", row.get("nameZh"));
+                payload.put("internalName", row.get("internalName"));
+                payload.put("image", normalizeAssetUrl(trimToNull(row.get("image"))));
+                payload.put("buffTime", row.get("buffTime"));
+                payload.put("sortOrder", row.get("sortOrder"));
+                return payload;
+            }).toList();
+        } catch (Exception exception) {
+            return List.of();
+        }
+    }
+
+    private Map<String, Object> loadBuffSupplement(String internalName) {
+        if (internalName == null) return Map.of();
+        Path path = resolveDataFile(Path.of("generated", "buff-standardized-map.json"));
+        if (path == null) return Map.of();
+        try {
+            Map<String, Object> root = objectMapper.readValue(path.toFile(), new TypeReference<>() {});
+            Object recordsRaw = root.get("records");
+            if (!(recordsRaw instanceof Map<?, ?> records)) return Map.of();
+            Object raw = records.get(internalName);
+            return raw instanceof Map<?, ?> map ? new LinkedHashMap<>((Map<String, Object>) map) : Map.of();
+        } catch (Exception exception) {
+            return Map.of();
+        }
+    }
+
+    private Path resolveDataFile(Path relativePath) {
+        List<Path> candidates = List.of(
+            Path.of(System.getProperty("user.dir")).resolve("data").resolve(relativePath).normalize(),
+            Path.of(System.getProperty("user.dir")).resolve("..").resolve("data").resolve(relativePath).normalize(),
+            Path.of("data").resolve(relativePath).normalize()
+        );
+        for (Path candidate : candidates) {
+            if (Files.exists(candidate)) return candidate;
+        }
+        return null;
+    }
+
+    private String toJsonString(Object value) {
+        if (value == null) return null;
+        if (value instanceof String text) return text;
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception exception) {
+            return String.valueOf(value);
+        }
+    }
+
+    private Map<?, ?> parseMap(Object value) {
+        if (!(value instanceof String text) || text.isBlank()) return Map.of();
+        try {
+            Object parsed = objectMapper.readValue(text, Object.class);
+            return parsed instanceof Map<?, ?> map ? map : Map.of();
+        } catch (Exception exception) {
+            return Map.of();
+        }
+    }
+
+    private String normalizeAssetUrl(String value) {
+        if (value == null) return null;
+        if (value.startsWith("http://") || value.startsWith("https://")) return value;
+        if (value.startsWith("localhost:") || value.startsWith("127.0.0.1:")) return "http://" + value;
+        return value;
+    }
+
+    private String trimToNull(Object value) {
+        if (value == null) return null;
+        String text = String.valueOf(value).trim();
+        return text.isEmpty() ? null : text;
+    }
+
+    private Object firstNonNull(Map<?, ?> source, String... keys) {
+        if (source == null || keys == null) return null;
+        for (String key : keys) {
+            if (source.containsKey(key) && source.get(key) != null) return source.get(key);
+        }
+        return null;
+    }
+
+    private Integer toInteger(Object value) {
+        if (value == null) return null;
+        if (value instanceof Number number) return number.intValue();
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    private Long toLong(Object value) {
+        if (value == null) return null;
+        if (value instanceof Number number) return number.longValue();
+        try {
+            return Long.parseLong(String.valueOf(value));
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    private Integer firstNonNullInteger(Integer... values) {
+        if (values == null) return null;
+        for (Integer value : values) {
+            if (value != null) return value;
+        }
+        return null;
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) return null;
+        for (String value : values) {
+            if (value != null && !value.isBlank()) return value;
+        }
+        return null;
+    }
+}

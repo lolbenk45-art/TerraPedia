@@ -1,0 +1,6739 @@
+[
+  {
+    "englishName": "Obsidian Skin",
+    "id": 1,
+    "image": "Obsidian Skin.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ObsidianSkin",
+    "localized": {
+      "en": {
+        "name": "Obsidian Skin",
+        "namesub": null,
+        "page": "Obsidian Skin Potion",
+        "tooltip": "Immune to lava"
+      },
+      "zh": {
+        "name": "黑曜石皮",
+        "namesub": null,
+        "page": "Obsidian Skin Potion",
+        "tooltip": "对熔岩免疫"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 21600,
+        "internalName": "ObsidianSkinPotion",
+        "itemId": 288,
+        "name": "Obsidian Skin Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Obsidian Skin.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Obsidian_Skin.png"
+  },
+  {
+    "englishName": "Regeneration",
+    "id": 2,
+    "image": "Regeneration.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Regeneration",
+    "localized": {
+      "en": {
+        "name": "Regeneration",
+        "namesub": null,
+        "page": "Regeneration Potion",
+        "tooltip": "Provides life regeneration"
+      },
+      "zh": {
+        "name": "再生",
+        "namesub": null,
+        "page": "Regeneration Potion",
+        "tooltip": "提供生命再生"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 28800,
+        "internalName": "RegenerationPotion",
+        "itemId": 289,
+        "name": "Regeneration Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Regeneration.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Regeneration.png"
+  },
+  {
+    "englishName": "Swiftness",
+    "id": 3,
+    "image": "Swiftness.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Swiftness",
+    "localized": {
+      "en": {
+        "name": "Swiftness",
+        "namesub": null,
+        "page": "Swiftness Potion",
+        "tooltip": "25% increased movement speed"
+      },
+      "zh": {
+        "name": "敏捷",
+        "namesub": null,
+        "page": "Swiftness Potion",
+        "tooltip": "移动速度提高25%"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 28800,
+        "internalName": "SwiftnessPotion",
+        "itemId": 290,
+        "name": "Swiftness Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Swiftness.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Swiftness.png"
+  },
+  {
+    "englishName": "Gills",
+    "id": 4,
+    "image": "Gills.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Gills",
+    "localized": {
+      "en": {
+        "name": "Gills",
+        "namesub": null,
+        "page": "Gills Potion",
+        "tooltip": "Allows you to breathe in liquids"
+      },
+      "zh": {
+        "name": "鱼鳃",
+        "namesub": null,
+        "page": "Gills Potion",
+        "tooltip": "可在液体中呼吸"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 14400,
+        "internalName": "GillsPotion",
+        "itemId": 291,
+        "name": "Gills Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Gills.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Gills.png"
+  },
+  {
+    "englishName": "Ironskin",
+    "id": 5,
+    "image": "Ironskin.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Ironskin",
+    "localized": {
+      "en": {
+        "name": "Ironskin",
+        "namesub": null,
+        "page": "Ironskin Potion",
+        "tooltip": "Increase defense by 8"
+      },
+      "zh": {
+        "name": "铁皮",
+        "namesub": null,
+        "page": "Ironskin Potion",
+        "tooltip": "防御增加8"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 28800,
+        "internalName": "IronskinPotion",
+        "itemId": 292,
+        "name": "Ironskin Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Ironskin.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ironskin.png"
+  },
+  {
+    "englishName": "Mana Regeneration",
+    "id": 6,
+    "image": "Mana Regeneration.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ManaRegeneration",
+    "localized": {
+      "en": {
+        "name": "Mana Regeneration",
+        "namesub": null,
+        "page": "Mana Regeneration Potion",
+        "tooltip": "Increased mana regeneration"
+      },
+      "zh": {
+        "name": "魔力再生",
+        "namesub": null,
+        "page": "Mana Regeneration Potion",
+        "tooltip": "提高魔力再生速度"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 28800,
+        "internalName": "ManaRegenerationPotion",
+        "itemId": 293,
+        "name": "Mana Regeneration Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Mana Regeneration.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mana_Regeneration.png"
+  },
+  {
+    "englishName": "Magic Power",
+    "id": 7,
+    "image": "Magic Power.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MagicPower",
+    "localized": {
+      "en": {
+        "name": "Magic Power",
+        "namesub": null,
+        "page": "Magic Power Potion",
+        "tooltip": "20% increased magic damage"
+      },
+      "zh": {
+        "name": "魔能",
+        "namesub": null,
+        "page": "Magic Power Potion",
+        "tooltip": "魔法伤害提高20%"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 14400,
+        "internalName": "MagicPowerPotion",
+        "itemId": 294,
+        "name": "Magic Power Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Magic Power.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Magic_Power.png"
+  },
+  {
+    "englishName": "Featherfall",
+    "id": 8,
+    "image": "Featherfall.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Featherfall",
+    "localized": {
+      "en": {
+        "name": "Featherfall",
+        "namesub": null,
+        "page": "Featherfall Potion",
+        "tooltip": "Press UP or DOWN to control speed of descent"
+      },
+      "zh": {
+        "name": "羽落",
+        "namesub": null,
+        "page": "Featherfall Potion",
+        "tooltip": "按向上键或向下键来控制下降速度"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 36000,
+        "internalName": "FeatherfallPotion",
+        "itemId": 295,
+        "name": "Featherfall Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Featherfall.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Featherfall.png"
+  },
+  {
+    "englishName": "Spelunker",
+    "id": 9,
+    "image": "Spelunker.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Spelunker",
+    "localized": {
+      "en": {
+        "name": "Spelunker",
+        "namesub": null,
+        "page": "Spelunker Potion",
+        "tooltip": "Shows the location of treasure and ore"
+      },
+      "zh": {
+        "name": "洞穴探险",
+        "namesub": null,
+        "page": "Spelunker Potion",
+        "tooltip": "显示宝藏和矿石的位置"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 18000,
+        "internalName": "SpelunkerPotion",
+        "itemId": 296,
+        "name": "Spelunker Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Spelunker.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Spelunker.png"
+  },
+  {
+    "englishName": "Invisibility",
+    "id": 10,
+    "image": "Invisibility.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Invisibility",
+    "localized": {
+      "en": {
+        "name": "Invisibility",
+        "namesub": null,
+        "page": "Invisibility Potion",
+        "tooltip": "Grants invisibility"
+      },
+      "zh": {
+        "name": "隐身",
+        "namesub": null,
+        "page": "Invisibility Potion",
+        "tooltip": "隐身"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 10800,
+        "internalName": "InvisibilityPotion",
+        "itemId": 297,
+        "name": "Invisibility Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Invisibility.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Invisibility.png"
+  },
+  {
+    "englishName": "Shine",
+    "id": 11,
+    "image": "Shine.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Shine",
+    "localized": {
+      "en": {
+        "name": "Shine",
+        "namesub": null,
+        "page": "Shine Potion",
+        "tooltip": "Emitting light"
+      },
+      "zh": {
+        "name": "光芒",
+        "namesub": null,
+        "page": "Shine Potion",
+        "tooltip": "发光"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 36000,
+        "internalName": "ShinePotion",
+        "itemId": 298,
+        "name": "Shine Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Shine.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Shine.png"
+  },
+  {
+    "englishName": "Night Owl",
+    "id": 12,
+    "image": "Night Owl.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "NightOwl",
+    "localized": {
+      "en": {
+        "name": "Night Owl",
+        "namesub": null,
+        "page": "Night Owl Potion",
+        "tooltip": "Increased night vision"
+      },
+      "zh": {
+        "name": "夜猫子",
+        "namesub": null,
+        "page": "Night Owl Potion",
+        "tooltip": "提升夜视能力"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 36000,
+        "internalName": "NightOwlPotion",
+        "itemId": 299,
+        "name": "Night Owl Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Night Owl.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Night_Owl.png"
+  },
+  {
+    "englishName": "Battle",
+    "id": 13,
+    "image": "Battle.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Battle",
+    "localized": {
+      "en": {
+        "name": "Battle",
+        "namesub": null,
+        "page": "Battle Potion",
+        "tooltip": "Increased enemy spawn rate"
+      },
+      "zh": {
+        "name": "战斗",
+        "namesub": null,
+        "page": "Battle Potion",
+        "tooltip": "提高敌人生成速度"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 25200,
+        "internalName": "BattlePotion",
+        "itemId": 300,
+        "name": "Battle Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Battle.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Battle.png"
+  },
+  {
+    "englishName": "Thorns",
+    "id": 14,
+    "image": "Thorns.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Thorns",
+    "localized": {
+      "en": {
+        "name": "Thorns",
+        "namesub": null,
+        "page": "Thorns Potion",
+        "tooltip": "Attackers also take damage"
+      },
+      "zh": {
+        "name": "荆棘",
+        "namesub": null,
+        "page": "Thorns Potion",
+        "tooltip": "攻击者也会受到伤害"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 28800,
+        "internalName": "ThornsPotion",
+        "itemId": 301,
+        "name": "Thorns Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Thorns.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Thorns.png"
+  },
+  {
+    "englishName": "Water Walking",
+    "id": 15,
+    "image": "Water Walking.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WaterWalking",
+    "localized": {
+      "en": {
+        "name": "Water Walking",
+        "namesub": null,
+        "page": "Water Walking Potion",
+        "tooltip": "Press DOWN to enter water"
+      },
+      "zh": {
+        "name": "水上漂",
+        "namesub": null,
+        "page": "Water Walking Potion",
+        "tooltip": "按向下键进入水中"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 36000,
+        "internalName": "WaterWalkingPotion",
+        "itemId": 302,
+        "name": "Water Walking Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Water Walking.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Water_Walking.png"
+  },
+  {
+    "englishName": "Archery",
+    "id": 16,
+    "image": "Archery.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Archery",
+    "localized": {
+      "en": {
+        "name": "Archery",
+        "namesub": null,
+        "page": "Archery Potion",
+        "tooltip": "10% increased bow damage and 20% increased arrow speed"
+      },
+      "zh": {
+        "name": "箭术",
+        "namesub": null,
+        "page": "Archery Potion",
+        "tooltip": "弓伤害提高10%，箭速度提高20%"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 28800,
+        "internalName": "ArcheryPotion",
+        "itemId": 303,
+        "name": "Archery Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Archery.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Archery.png"
+  },
+  {
+    "englishName": "Hunter",
+    "id": 17,
+    "image": "Hunter.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Hunter",
+    "localized": {
+      "en": {
+        "name": "Hunter",
+        "namesub": null,
+        "page": "Hunter Potion",
+        "tooltip": "Shows the location of enemies"
+      },
+      "zh": {
+        "name": "猎人",
+        "namesub": null,
+        "page": "Hunter Potion",
+        "tooltip": "显示敌人位置"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 28800,
+        "internalName": "HunterPotion",
+        "itemId": 304,
+        "name": "Hunter Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Hunter.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Hunter.png"
+  },
+  {
+    "englishName": "Gravitation",
+    "id": 18,
+    "image": "Gravitation.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Gravitation",
+    "localized": {
+      "en": {
+        "name": "Gravitation",
+        "namesub": null,
+        "page": "Gravitation Potion",
+        "tooltip": "Press UP to reverse gravity"
+      },
+      "zh": {
+        "name": "重力",
+        "namesub": null,
+        "page": "Gravitation Potion",
+        "tooltip": "按向上键可逆转重力"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 10800,
+        "internalName": "GravitationPotion",
+        "itemId": 305,
+        "name": "Gravitation Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Gravitation.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Gravitation.png"
+  },
+  {
+    "englishName": "Shadow Orb",
+    "id": 19,
+    "image": "Shadow Orb (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ShadowOrb",
+    "localized": {
+      "en": {
+        "name": "Shadow Orb",
+        "namesub": null,
+        "page": "Shadow Orb (item)",
+        "tooltip": "A magical orb that provides light"
+      },
+      "zh": {
+        "name": "暗影珠",
+        "namesub": null,
+        "page": "Shadow Orb (item)",
+        "tooltip": "提供照明的魔法珠"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "ShadowOrb",
+        "itemId": 115,
+        "name": "Shadow Orb"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Shadow Orb (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Shadow_Orb_(buff).png"
+  },
+  {
+    "englishName": "Poisoned",
+    "id": 20,
+    "image": "Poisoned.png",
+    "immuneNpcCount": 215,
+    "immuneNpcSample": [
+      {
+        "internalName": "BigHornetStingy",
+        "name": "Hornet",
+        "npcId": -65
+      },
+      {
+        "internalName": "LittleHornetStingy",
+        "name": "Hornet",
+        "npcId": -64
+      },
+      {
+        "internalName": "BigHornetSpikey",
+        "name": "Hornet",
+        "npcId": -63
+      },
+      {
+        "internalName": "LittleHornetSpikey",
+        "name": "Hornet",
+        "npcId": -62
+      },
+      {
+        "internalName": "BigHornetLeafy",
+        "name": "Hornet",
+        "npcId": -61
+      },
+      {
+        "internalName": "LittleHornetLeafy",
+        "name": "Hornet",
+        "npcId": -60
+      },
+      {
+        "internalName": "BigHornetHoney",
+        "name": "Hornet",
+        "npcId": -59
+      },
+      {
+        "internalName": "LittleHornetHoney",
+        "name": "Hornet",
+        "npcId": -58
+      },
+      {
+        "internalName": "BigHornetFatty",
+        "name": "Hornet",
+        "npcId": -57
+      },
+      {
+        "internalName": "LittleHornetFatty",
+        "name": "Hornet",
+        "npcId": -56
+      }
+    ],
+    "internalName": "Poisoned",
+    "localized": {
+      "en": {
+        "name": "Poisoned",
+        "namesub": null,
+        "page": "Poisoned",
+        "tooltip": "Slowly losing life"
+      },
+      "zh": {
+        "name": "中毒",
+        "namesub": null,
+        "page": "Poisoned",
+        "tooltip": "缓慢损失生命值"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Poisoned.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Poisoned.png"
+  },
+  {
+    "englishName": "Potion Sickness",
+    "id": 21,
+    "image": "Potion Sickness.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PotionSickness",
+    "localized": {
+      "en": {
+        "name": "Potion Sickness",
+        "namesub": null,
+        "page": "Potion Sickness",
+        "tooltip": "Cannot consume anymore healing items"
+      },
+      "zh": {
+        "name": "耐药性",
+        "namesub": null,
+        "page": "Potion Sickness",
+        "tooltip": "不能再使用治疗物品"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Potion Sickness.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Potion_Sickness.png"
+  },
+  {
+    "englishName": "Darkness",
+    "id": 22,
+    "image": "Darkness.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Darkness",
+    "localized": {
+      "en": {
+        "name": "Darkness",
+        "namesub": null,
+        "page": "Darkness",
+        "tooltip": "Decreased light vision"
+      },
+      "zh": {
+        "name": "黑暗",
+        "namesub": null,
+        "page": "Darkness",
+        "tooltip": "光视力下降"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Darkness.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Darkness.png"
+  },
+  {
+    "englishName": "Cursed",
+    "id": 23,
+    "image": "Cursed.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Cursed",
+    "localized": {
+      "en": {
+        "name": "Cursed",
+        "namesub": null,
+        "page": "Cursed",
+        "tooltip": "Cannot use any items"
+      },
+      "zh": {
+        "name": "诅咒",
+        "namesub": null,
+        "page": "Cursed",
+        "tooltip": "无法使用任何物品"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Cursed.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cursed.png"
+  },
+  {
+    "englishName": "On Fire!",
+    "id": 24,
+    "image": "On Fire!.png",
+    "immuneNpcCount": 47,
+    "immuneNpcSample": [
+      {
+        "internalName": "MeteorHead",
+        "name": "Meteor Head",
+        "npcId": 23
+      },
+      {
+        "internalName": "FireImp",
+        "name": "Fire Imp",
+        "npcId": 24
+      },
+      {
+        "internalName": "BoneSerpentHead",
+        "name": "Bone Serpent",
+        "npcId": 39
+      },
+      {
+        "internalName": "BoneSerpentBody",
+        "name": "Bone Serpent",
+        "npcId": 40
+      },
+      {
+        "internalName": "BoneSerpentTail",
+        "name": "Bone Serpent",
+        "npcId": 41
+      },
+      {
+        "internalName": "LavaSlime",
+        "name": "Lava Slime",
+        "npcId": 59
+      },
+      {
+        "internalName": "Hellbat",
+        "name": "Hellbat",
+        "npcId": 60
+      },
+      {
+        "internalName": "Demon",
+        "name": "Demon",
+        "npcId": 62
+      },
+      {
+        "internalName": "VoodooDemon",
+        "name": "Voodoo Demon",
+        "npcId": 66
+      },
+      {
+        "internalName": "SpikeBall",
+        "name": "Spike Ball",
+        "npcId": 70
+      }
+    ],
+    "internalName": "OnFire",
+    "localized": {
+      "en": {
+        "name": "On Fire!",
+        "namesub": null,
+        "page": "On Fire!",
+        "tooltip": "Slowly losing life"
+      },
+      "zh": {
+        "name": "着火了！",
+        "namesub": null,
+        "page": "On Fire!",
+        "tooltip": "缓慢损失生命值"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "On Fire!.png",
+    "imageUrl": "https://terraria.wiki.gg/images/On_Fire!.png"
+  },
+  {
+    "englishName": "Tipsy",
+    "id": 25,
+    "image": "Tipsy.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Tipsy",
+    "localized": {
+      "en": {
+        "name": "Tipsy",
+        "namesub": null,
+        "page": "Tipsy",
+        "tooltip": "Increased melee abilities, lowered defense"
+      },
+      "zh": {
+        "name": "踉跄",
+        "namesub": null,
+        "page": "Tipsy",
+        "tooltip": "提高近战能力，降低防御"
+      }
+    },
+    "sourceItemCount": 2,
+    "sourceItems": [
+      {
+        "buffTime": 7200,
+        "internalName": "Ale",
+        "itemId": 353,
+        "name": "Ale"
+      },
+      {
+        "buffTime": 14400,
+        "internalName": "Sake",
+        "itemId": 2266,
+        "name": "Sake"
+      }
+    ],
+    "type": "debuff",
+    "imageFileTitle": "Tipsy.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Tipsy.png"
+  },
+  {
+    "englishName": "Well Fed",
+    "id": 26,
+    "image": "Well Fed.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WellFed",
+    "localized": {
+      "en": {
+        "name": "Well Fed",
+        "namesub": null,
+        "page": "Well Fed",
+        "tooltip": "<span class=\"gameText\">Minor improvements to all stats</span><br/>[[Expert Mode|<abbr class=\"mode-exclusive expert\" title=\"Expert Mode \"><span class=\"gameText\">Minor improvements to all stats and increased life regeneration</span></abbr>]]"
+      },
+      "zh": {
+        "name": "吃得好",
+        "namesub": null,
+        "page": "Well Fed",
+        "tooltip": "<span class=\"gameText\">所有属性小幅提升</span><br/>[[Expert Mode|<abbr class=\"mode-exclusive expert\" title=\"Expert Mode \"><span class=\"gameText\">所有属性小幅提升，生命再生速度提高</span></abbr>]]"
+      }
+    },
+    "sourceItemCount": 42,
+    "sourceItems": [
+      {
+        "buffTime": 3600,
+        "internalName": "Marshmallow",
+        "itemId": 967,
+        "name": "Marshmallow"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "CookedMarshmallow",
+        "itemId": 969,
+        "name": "Cooked Marshmallow"
+      },
+      {
+        "buffTime": 28800,
+        "internalName": "PumpkinPie",
+        "itemId": 1787,
+        "name": "Pumpkin Pie"
+      },
+      {
+        "buffTime": 28800,
+        "internalName": "CookedFish",
+        "itemId": 2425,
+        "name": "Cooked Fish"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "Apple",
+        "itemId": 4009,
+        "name": "Apple"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "BunnyStew",
+        "itemId": 4014,
+        "name": "Bunny Stew"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "GrilledSquirrel",
+        "itemId": 4024,
+        "name": "Grilled Squirrel"
+      },
+      {
+        "buffTime": 90000,
+        "internalName": "PotatoChips",
+        "itemId": 4030,
+        "name": "Potato Chips"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "RoastedBird",
+        "itemId": 4031,
+        "name": "Roasted Bird"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "SauteedFrogLegs",
+        "itemId": 4033,
+        "name": "Sauteed Frog Legs"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "Apricot",
+        "itemId": 4282,
+        "name": "Apricot"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "Banana",
+        "itemId": 4283,
+        "name": "Banana"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "BlackCurrant",
+        "itemId": 4284,
+        "name": "Blackcurrant"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "BloodOrange",
+        "itemId": 4285,
+        "name": "Blood Orange"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "Cherry",
+        "itemId": 4286,
+        "name": "Cherry"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "Coconut",
+        "itemId": 4287,
+        "name": "Coconut"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "Elderberry",
+        "itemId": 4289,
+        "name": "Elderberry"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "Grapefruit",
+        "itemId": 4290,
+        "name": "Grapefruit"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "Lemon",
+        "itemId": 4291,
+        "name": "Lemon"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "Mango",
+        "itemId": 4292,
+        "name": "Mango"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "Peach",
+        "itemId": 4293,
+        "name": "Peach"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "Pineapple",
+        "itemId": 4294,
+        "name": "Pineapple"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "Plum",
+        "itemId": 4295,
+        "name": "Plum"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "Rambutan",
+        "itemId": 4296,
+        "name": "Rambutan"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "ShuckedOyster",
+        "itemId": 4411,
+        "name": "Shucked Oyster"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "AppleJuice",
+        "itemId": 4614,
+        "name": "Apple Juice"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "Lemonade",
+        "itemId": 4616,
+        "name": "Lemonade"
+      },
+      {
+        "buffTime": 54000,
+        "internalName": "BananaDaiquiri",
+        "itemId": 4617,
+        "name": "Frozen Banana Daiquiri"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "PeachSangria",
+        "itemId": 4618,
+        "name": "Peach Sangria"
+      },
+      {
+        "buffTime": 72000,
+        "internalName": "PinaColada",
+        "itemId": 4619,
+        "name": "Piña Colada"
+      },
+      {
+        "buffTime": 72000,
+        "internalName": "TropicalSmoothie",
+        "itemId": 4620,
+        "name": "Tropical Smoothie"
+      },
+      {
+        "buffTime": 72000,
+        "internalName": "BloodyMoscato",
+        "itemId": 4621,
+        "name": "Bloody Moscato"
+      },
+      {
+        "buffTime": 72000,
+        "internalName": "SmoothieofDarkness",
+        "itemId": 4622,
+        "name": "Smoothie of Darkness"
+      },
+      {
+        "buffTime": 54000,
+        "internalName": "FruitJuice",
+        "itemId": 4624,
+        "name": "Fruit Juice"
+      },
+      {
+        "buffTime": 90000,
+        "internalName": "FruitSalad",
+        "itemId": 4625,
+        "name": "Fruit Salad"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "Teacup",
+        "itemId": 5009,
+        "name": "Teacup"
+      },
+      {
+        "buffTime": 72000,
+        "internalName": "MilkCarton",
+        "itemId": 5041,
+        "name": "Carton of Milk"
+      },
+      {
+        "buffTime": 7200,
+        "internalName": "JojaCola",
+        "itemId": 5275,
+        "name": "Joja Cola"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "SpicyPepper",
+        "itemId": 5277,
+        "name": "Spicy Pepper"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "Pomegranate",
+        "itemId": 5278,
+        "name": "Pomegranate"
+      },
+      {
+        "buffTime": 18000,
+        "internalName": "BlackenedFish",
+        "itemId": 5537,
+        "name": "Blackened Fish"
+      },
+      {
+        "buffTime": 36000,
+        "internalName": "RockCandy",
+        "itemId": 5645,
+        "name": "Rock Candy"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Well Fed.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Well_Fed.png"
+  },
+  {
+    "englishName": "Fairy",
+    "id": 27,
+    "image": "Fairy.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "FairyBlue",
+    "localized": {
+      "en": {
+        "name": "Fairy",
+        "namesub": "Blue",
+        "page": "Fairy Bell",
+        "tooltip": "A fairy is following you"
+      },
+      "zh": {
+        "name": "仙灵",
+        "namesub": "蓝",
+        "page": "Fairy Bell",
+        "tooltip": "仙灵正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "FairyBell",
+        "itemId": 425,
+        "name": "Fairy Bell"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Fairy.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Fairy.png"
+  },
+  {
+    "englishName": "Werewolf",
+    "id": 28,
+    "image": "Werewolf (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Werewolf",
+    "localized": {
+      "en": {
+        "name": "Werewolf",
+        "namesub": null,
+        "page": "Moon Charm",
+        "tooltip": "Physical abilities are increased"
+      },
+      "zh": {
+        "name": "狼人",
+        "namesub": null,
+        "page": "Moon Charm",
+        "tooltip": "体能提高"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Werewolf (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Werewolf_(buff).png"
+  },
+  {
+    "englishName": "Clairvoyance",
+    "id": 29,
+    "image": "Clairvoyance.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Clairvoyance",
+    "localized": {
+      "en": {
+        "name": "Clairvoyance",
+        "namesub": null,
+        "page": "Crystal Ball",
+        "tooltip": "Magic powers are increased"
+      },
+      "zh": {
+        "name": "灵视",
+        "namesub": null,
+        "page": "Crystal Ball",
+        "tooltip": "魔法能力提高"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Clairvoyance.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Clairvoyance.png"
+  },
+  {
+    "englishName": "Bleeding",
+    "id": 30,
+    "image": "Bleeding.png",
+    "immuneNpcCount": 218,
+    "immuneNpcSample": [
+      {
+        "internalName": "BigHornetStingy",
+        "name": "Hornet",
+        "npcId": -65
+      },
+      {
+        "internalName": "LittleHornetStingy",
+        "name": "Hornet",
+        "npcId": -64
+      },
+      {
+        "internalName": "BigHornetSpikey",
+        "name": "Hornet",
+        "npcId": -63
+      },
+      {
+        "internalName": "LittleHornetSpikey",
+        "name": "Hornet",
+        "npcId": -62
+      },
+      {
+        "internalName": "BigHornetLeafy",
+        "name": "Hornet",
+        "npcId": -61
+      },
+      {
+        "internalName": "LittleHornetLeafy",
+        "name": "Hornet",
+        "npcId": -60
+      },
+      {
+        "internalName": "BigHornetHoney",
+        "name": "Hornet",
+        "npcId": -59
+      },
+      {
+        "internalName": "LittleHornetHoney",
+        "name": "Hornet",
+        "npcId": -58
+      },
+      {
+        "internalName": "BigHornetFatty",
+        "name": "Hornet",
+        "npcId": -57
+      },
+      {
+        "internalName": "LittleHornetFatty",
+        "name": "Hornet",
+        "npcId": -56
+      }
+    ],
+    "internalName": "Bleeding",
+    "localized": {
+      "en": {
+        "name": "Bleeding",
+        "namesub": null,
+        "page": "Bleeding",
+        "tooltip": "Cannot regenerate life"
+      },
+      "zh": {
+        "name": "流血",
+        "namesub": null,
+        "page": "Bleeding",
+        "tooltip": "无法再生生命"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Bleeding.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Bleeding.png"
+  },
+  {
+    "englishName": "Confused",
+    "id": 31,
+    "image": "Confused.png",
+    "immuneNpcCount": 437,
+    "immuneNpcSample": [
+      {
+        "internalName": "BigHornetStingy",
+        "name": "Hornet",
+        "npcId": -65
+      },
+      {
+        "internalName": "LittleHornetStingy",
+        "name": "Hornet",
+        "npcId": -64
+      },
+      {
+        "internalName": "BigHornetSpikey",
+        "name": "Hornet",
+        "npcId": -63
+      },
+      {
+        "internalName": "LittleHornetSpikey",
+        "name": "Hornet",
+        "npcId": -62
+      },
+      {
+        "internalName": "BigHornetLeafy",
+        "name": "Hornet",
+        "npcId": -61
+      },
+      {
+        "internalName": "LittleHornetLeafy",
+        "name": "Hornet",
+        "npcId": -60
+      },
+      {
+        "internalName": "BigHornetHoney",
+        "name": "Hornet",
+        "npcId": -59
+      },
+      {
+        "internalName": "LittleHornetHoney",
+        "name": "Hornet",
+        "npcId": -58
+      },
+      {
+        "internalName": "BigHornetFatty",
+        "name": "Hornet",
+        "npcId": -57
+      },
+      {
+        "internalName": "LittleHornetFatty",
+        "name": "Hornet",
+        "npcId": -56
+      }
+    ],
+    "internalName": "Confused",
+    "localized": {
+      "en": {
+        "name": "Confused",
+        "namesub": null,
+        "page": "Confused",
+        "tooltip": "Movement is reversed"
+      },
+      "zh": {
+        "name": "困惑",
+        "namesub": null,
+        "page": "Confused",
+        "tooltip": "移动方向逆转"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Confused.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Confused.png"
+  },
+  {
+    "englishName": "Slow",
+    "id": 32,
+    "image": "Slow.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Slow",
+    "localized": {
+      "en": {
+        "name": "Slow",
+        "namesub": null,
+        "page": "Slow",
+        "tooltip": "Movement speed is reduced"
+      },
+      "zh": {
+        "name": "缓慢",
+        "namesub": null,
+        "page": "Slow",
+        "tooltip": "移动速度降低"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Slow.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Slow.png"
+  },
+  {
+    "englishName": "Weak",
+    "id": 33,
+    "image": "Weak.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Weak",
+    "localized": {
+      "en": {
+        "name": "Weak",
+        "namesub": null,
+        "page": "Weak",
+        "tooltip": "Physical abilities are decreased"
+      },
+      "zh": {
+        "name": "虚弱",
+        "namesub": null,
+        "page": "Weak",
+        "tooltip": "体能降低"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Weak.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Weak.png"
+  },
+  {
+    "englishName": "Merfolk",
+    "id": 34,
+    "image": "Merfolk (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Merfolk",
+    "localized": {
+      "en": {
+        "name": "Merfolk",
+        "namesub": null,
+        "page": "Neptune's Shell",
+        "tooltip": "Can breathe and move easily underwater"
+      },
+      "zh": {
+        "name": "人鱼",
+        "namesub": null,
+        "page": "Neptune's Shell",
+        "tooltip": "可在水下顺畅呼吸和移动"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Merfolk (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Merfolk_(buff).png"
+  },
+  {
+    "englishName": "Silenced",
+    "id": 35,
+    "image": "Silenced.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Silenced",
+    "localized": {
+      "en": {
+        "name": "Silenced",
+        "namesub": null,
+        "page": "Silenced",
+        "tooltip": "Cannot use items that require mana"
+      },
+      "zh": {
+        "name": "沉默",
+        "namesub": null,
+        "page": "Silenced",
+        "tooltip": "无法使用需要魔力的物品"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Silenced.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Silenced.png"
+  },
+  {
+    "englishName": "Broken Armor",
+    "id": 36,
+    "image": "Broken Armor.png",
+    "immuneNpcCount": 5,
+    "immuneNpcSample": [
+      {
+        "internalName": "IchorSticker",
+        "name": "Ichor Sticker",
+        "npcId": 268
+      },
+      {
+        "internalName": "Paladin",
+        "name": "Paladin",
+        "npcId": 290
+      },
+      {
+        "internalName": "Ghost",
+        "name": "Ghost",
+        "npcId": 316
+      },
+      {
+        "internalName": "AncientCultistSquidhead",
+        "name": "Ancient Vision",
+        "npcId": 521
+      },
+      {
+        "internalName": "DesertDjinn",
+        "name": "Desert Spirit",
+        "npcId": 533
+      }
+    ],
+    "internalName": "BrokenArmor",
+    "localized": {
+      "en": {
+        "name": "Broken Armor",
+        "namesub": null,
+        "page": "Broken Armor",
+        "tooltip": "Defense is cut in half"
+      },
+      "zh": {
+        "name": "破损盔甲",
+        "namesub": null,
+        "page": "Broken Armor",
+        "tooltip": "防御减半"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Broken Armor.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Broken_Armor.png"
+  },
+  {
+    "englishName": "Horrified",
+    "id": 37,
+    "image": "Horrified.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Horrified",
+    "localized": {
+      "en": {
+        "name": "Horrified",
+        "namesub": null,
+        "page": "Wall of Flesh",
+        "tooltip": "You have seen something nasty, there is no escape."
+      },
+      "zh": {
+        "name": "惊恐",
+        "namesub": null,
+        "page": "Wall of Flesh",
+        "tooltip": "你已看到污秽之物，无可逃脱。"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Horrified.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Horrified.png"
+  },
+  {
+    "englishName": "The Tongue",
+    "id": 38,
+    "image": "The Tongue.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "TheTongue",
+    "localized": {
+      "en": {
+        "name": "The Tongue",
+        "namesub": null,
+        "page": "The Tongue",
+        "tooltip": "You are being sucked into the mouth"
+      },
+      "zh": {
+        "name": "狂卷之舌",
+        "namesub": null,
+        "page": "The Tongue",
+        "tooltip": "你被吸入嘴中"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "The Tongue.png",
+    "imageUrl": "https://terraria.wiki.gg/images/The_Tongue.png"
+  },
+  {
+    "englishName": "Cursed Inferno",
+    "id": 39,
+    "image": "Cursed Inferno.png",
+    "immuneNpcCount": 5,
+    "immuneNpcSample": [
+      {
+        "internalName": "SpikeBall",
+        "name": "Spike Ball",
+        "npcId": 70
+      },
+      {
+        "internalName": "Clinger",
+        "name": "Clinger",
+        "npcId": 101
+      },
+      {
+        "internalName": "Ghost",
+        "name": "Ghost",
+        "npcId": 316
+      },
+      {
+        "internalName": "AncientCultistSquidhead",
+        "name": "Ancient Vision",
+        "npcId": 521
+      },
+      {
+        "internalName": "DesertDjinn",
+        "name": "Desert Spirit",
+        "npcId": 533
+      }
+    ],
+    "internalName": "CursedInferno",
+    "localized": {
+      "en": {
+        "name": "Cursed Inferno",
+        "namesub": null,
+        "page": "Cursed Inferno",
+        "tooltip": "Losing life"
+      },
+      "zh": {
+        "name": "诅咒狱火",
+        "namesub": null,
+        "page": "Cursed Inferno",
+        "tooltip": "正在损失生命值"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Cursed Inferno.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cursed_Inferno.png"
+  },
+  {
+    "englishName": "Pet Bunny",
+    "id": 40,
+    "image": "Pet Bunny.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PetBunny",
+    "localized": {
+      "en": {
+        "name": "Pet Bunny",
+        "namesub": null,
+        "page": "Carrot",
+        "tooltip": "I think it wants your carrot"
+      },
+      "zh": {
+        "name": "宠物兔兔",
+        "namesub": null,
+        "page": "Carrot",
+        "tooltip": "我想它想要你的胡萝卜"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "Carrot",
+        "itemId": 603,
+        "name": "Carrot"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Pet Bunny.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pet_Bunny.png"
+  },
+  {
+    "englishName": "Baby Penguin",
+    "id": 41,
+    "image": "Baby Penguin (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BabyPenguin",
+    "localized": {
+      "en": {
+        "name": "Baby Penguin",
+        "namesub": null,
+        "page": "Fish (item)",
+        "tooltip": "I think it wants your fish"
+      },
+      "zh": {
+        "name": "企鹅宝宝",
+        "namesub": null,
+        "page": "Fish (item)",
+        "tooltip": "我想它想要你的鱼"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "Fish",
+        "itemId": 669,
+        "name": "Fish"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Baby Penguin (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Penguin_(buff).png"
+  },
+  {
+    "englishName": "Pet Turtle",
+    "id": 42,
+    "image": "Pet Turtle (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PetTurtle",
+    "localized": {
+      "en": {
+        "name": "Pet Turtle",
+        "namesub": null,
+        "page": "Seaweed",
+        "tooltip": "Happy turtle time!"
+      },
+      "zh": {
+        "name": "宠物海龟",
+        "namesub": null,
+        "page": "Seaweed",
+        "tooltip": "欢乐乌龟时光！"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "Seaweed",
+        "itemId": 753,
+        "name": "Seaweed"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Pet Turtle (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pet_Turtle_(buff).png"
+  },
+  {
+    "englishName": "Paladin's Shield",
+    "id": 43,
+    "image": "Paladin's Shield (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PaladinsShield",
+    "localized": {
+      "en": {
+        "name": "Paladin's Shield",
+        "namesub": null,
+        "page": "Paladin's Shield",
+        "tooltip": "25% of damage taken will be redirected to another player"
+      },
+      "zh": {
+        "name": "圣骑士护盾",
+        "namesub": null,
+        "page": "Paladin's Shield",
+        "tooltip": "所受伤害的25%将被转移到另一名玩家身上"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Paladin's Shield (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Paladin's_Shield_(buff).png"
+  },
+  {
+    "englishName": "Frostburn",
+    "id": 44,
+    "image": "Frostburn.png",
+    "immuneNpcCount": 28,
+    "immuneNpcSample": [
+      {
+        "internalName": "SnowmanGangsta",
+        "name": "Snowman Gangsta",
+        "npcId": 143
+      },
+      {
+        "internalName": "MisterStabby",
+        "name": "Mister Stabby",
+        "npcId": 144
+      },
+      {
+        "internalName": "SnowBalla",
+        "name": "Snow Balla",
+        "npcId": 145
+      },
+      {
+        "internalName": "IceSlime",
+        "name": "Ice Slime",
+        "npcId": 147
+      },
+      {
+        "internalName": "IceBat",
+        "name": "Ice Bat",
+        "npcId": 150
+      },
+      {
+        "internalName": "IceTortoise",
+        "name": "Ice Tortoise",
+        "npcId": 154
+      },
+      {
+        "internalName": "ZombieEskimo",
+        "name": "Frozen Zombie",
+        "npcId": 161
+      },
+      {
+        "internalName": "UndeadViking",
+        "name": "Undead Viking",
+        "npcId": 167
+      },
+      {
+        "internalName": "IceElemental",
+        "name": "Ice Elemental",
+        "npcId": 169
+      },
+      {
+        "internalName": "SpikedIceSlime",
+        "name": "Spiked Ice Slime",
+        "npcId": 184
+      }
+    ],
+    "internalName": "Frostburn",
+    "localized": {
+      "en": {
+        "name": "Frostburn",
+        "namesub": null,
+        "page": "Frostburn",
+        "tooltip": "It's either really hot or really cold. Either way it REALLY hurts"
+      },
+      "zh": {
+        "name": "霜冻",
+        "namesub": null,
+        "page": "Frostburn",
+        "tooltip": "不是特别烫就是特别冻。反正都是特别特别痛"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Frostburn.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Frostburn.png"
+  },
+  {
+    "englishName": "Baby Eater",
+    "id": 45,
+    "image": "Baby Eater (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BabyEater",
+    "localized": {
+      "en": {
+        "name": "Baby Eater",
+        "namesub": null,
+        "page": "Eater's Bone",
+        "tooltip": "A baby Eater of Souls is following you"
+      },
+      "zh": {
+        "name": "吞噬怪宝宝",
+        "namesub": null,
+        "page": "Eater's Bone",
+        "tooltip": "噬魂怪宝宝正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "EatersBone",
+        "itemId": 994,
+        "name": "Eater's Bone"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Baby Eater (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Eater_(buff).png"
+  },
+  {
+    "englishName": "Chilled",
+    "id": 46,
+    "image": "Chilled.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Chilled",
+    "localized": {
+      "en": {
+        "name": "Chilled",
+        "namesub": null,
+        "page": "Chilled",
+        "tooltip": "Your movement speed has been reduced"
+      },
+      "zh": {
+        "name": "冷冻",
+        "namesub": null,
+        "page": "Chilled",
+        "tooltip": "你的移动速度已降低"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Chilled.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Chilled.png"
+  },
+  {
+    "englishName": "Frozen",
+    "id": 47,
+    "image": "Frozen.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Frozen",
+    "localized": {
+      "en": {
+        "name": "Frozen",
+        "namesub": null,
+        "page": "Frozen",
+        "tooltip": "You can't move!"
+      },
+      "zh": {
+        "name": "冰冻",
+        "namesub": null,
+        "page": "Frozen",
+        "tooltip": "你不能动！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Frozen.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Frozen.png"
+  },
+  {
+    "englishName": "Honey",
+    "id": 48,
+    "image": "Honey (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Honey",
+    "localized": {
+      "en": {
+        "name": "Honey",
+        "namesub": null,
+        "page": "Honey (buff)",
+        "tooltip": "Life regeneration is increased"
+      },
+      "zh": {
+        "name": "蜂蜜",
+        "namesub": null,
+        "page": "Honey (buff)",
+        "tooltip": "生命再生速度提高"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 900,
+        "internalName": "BottledHoney",
+        "itemId": 1134,
+        "name": "Bottled Honey"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Honey (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Honey_(buff).png"
+  },
+  {
+    "englishName": "Pygmies",
+    "id": 49,
+    "image": "Pygmies.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Pygmies",
+    "localized": {
+      "en": {
+        "name": "Pygmies",
+        "namesub": null,
+        "page": "Pygmy Staff",
+        "tooltip": "The pygmies will fight for you"
+      },
+      "zh": {
+        "name": "矮人",
+        "namesub": null,
+        "page": "Pygmy Staff",
+        "tooltip": "矮人将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "PygmyStaff",
+        "itemId": 1157,
+        "name": "Pygmy Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Pygmies.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pygmies.png"
+  },
+  {
+    "englishName": "Baby Skeletron Head",
+    "id": 50,
+    "image": "Baby Skeletron Head (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BabySkeletronHead",
+    "localized": {
+      "en": {
+        "name": "Baby Skeletron Head",
+        "namesub": null,
+        "page": "Bone Key",
+        "tooltip": "Don't even ask..."
+      },
+      "zh": {
+        "name": "骷髅王头宝宝",
+        "namesub": null,
+        "page": "Bone Key",
+        "tooltip": "别问了……"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "BoneKey",
+        "itemId": 1169,
+        "name": "Bone Key"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Baby Skeletron Head (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Skeletron_Head_(buff).png"
+  },
+  {
+    "englishName": "Baby Hornet",
+    "id": 51,
+    "image": "Baby Hornet (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BabyHornet",
+    "localized": {
+      "en": {
+        "name": "Baby Hornet",
+        "namesub": null,
+        "page": "Nectar",
+        "tooltip": "It thinks you are its mother"
+      },
+      "zh": {
+        "name": "黄蜂宝宝",
+        "namesub": null,
+        "page": "Nectar",
+        "tooltip": "它认为你是它的妈妈"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "Nectar",
+        "itemId": 1170,
+        "name": "Nectar"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Baby Hornet (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Hornet_(buff).png"
+  },
+  {
+    "englishName": "Tiki Spirit",
+    "id": 52,
+    "image": "Tiki Spirit (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "TikiSpirit",
+    "localized": {
+      "en": {
+        "name": "Tiki Spirit",
+        "namesub": null,
+        "page": "Tiki Totem",
+        "tooltip": "A friendly spirit is following you"
+      },
+      "zh": {
+        "name": "提基幽魂",
+        "namesub": null,
+        "page": "Tiki Totem",
+        "tooltip": "友好幽魂正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "TikiTotem",
+        "itemId": 1171,
+        "name": "Tiki Totem"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Tiki Spirit (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Tiki_Spirit_(buff).png"
+  },
+  {
+    "englishName": "Pet Lizard",
+    "id": 53,
+    "image": "Pet Lizard (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PetLizard",
+    "localized": {
+      "en": {
+        "name": "Pet Lizard",
+        "namesub": null,
+        "page": "Lizard Egg",
+        "tooltip": "Chillin' like a reptilian"
+      },
+      "zh": {
+        "name": "宠物蜥蜴",
+        "namesub": null,
+        "page": "Lizard Egg",
+        "tooltip": "像爬行动物一样冰凉"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "LizardEgg",
+        "itemId": 1172,
+        "name": "Lizard Egg"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Pet Lizard (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pet_Lizard_(buff).png"
+  },
+  {
+    "englishName": "Pet Parrot",
+    "id": 54,
+    "image": "Pet Parrot (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PetParrot",
+    "localized": {
+      "en": {
+        "name": "Pet Parrot",
+        "namesub": null,
+        "page": "Parrot Cracker",
+        "tooltip": "Polly wants the cracker"
+      },
+      "zh": {
+        "name": "宠物鹦鹉",
+        "namesub": null,
+        "page": "Parrot Cracker",
+        "tooltip": "波利想要饼干"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "ParrotCracker",
+        "itemId": 1180,
+        "name": "Parrot Cracker"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Pet Parrot (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pet_Parrot_(buff).png"
+  },
+  {
+    "englishName": "Baby Truffle",
+    "id": 55,
+    "image": "Baby Truffle (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BabyTruffle",
+    "localized": {
+      "en": {
+        "name": "Baby Truffle",
+        "namesub": null,
+        "page": "Strange Glowing Mushroom",
+        "tooltip": "Isn't this just soooo cute?"
+      },
+      "zh": {
+        "name": "松露人宝宝",
+        "namesub": null,
+        "page": "Strange Glowing Mushroom",
+        "tooltip": "这简直太太太可爱了！"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "StrangeGlowingMushroom",
+        "itemId": 1181,
+        "name": "Strange Glowing Mushroom"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Baby Truffle (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Truffle_(buff).png"
+  },
+  {
+    "englishName": "Pet Sapling",
+    "id": 56,
+    "image": "Pet Sapling (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PetSapling",
+    "localized": {
+      "en": {
+        "name": "Pet Sapling",
+        "namesub": null,
+        "page": "Seedling",
+        "tooltip": "A little sapling is following you"
+      },
+      "zh": {
+        "name": "宠物树苗",
+        "namesub": null,
+        "page": "Seedling",
+        "tooltip": "小树苗正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "Seedling",
+        "itemId": 1182,
+        "name": "Seedling"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Pet Sapling (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pet_Sapling_(buff).png"
+  },
+  {
+    "englishName": "Wisp",
+    "id": 57,
+    "image": "Wisp.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Wisp",
+    "localized": {
+      "en": {
+        "name": "Wisp",
+        "namesub": null,
+        "page": "Wisp in a Bottle",
+        "tooltip": "A wisp is following you"
+      },
+      "zh": {
+        "name": "妖灵",
+        "namesub": null,
+        "page": "Wisp in a Bottle",
+        "tooltip": "妖灵正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "WispinaBottle",
+        "itemId": 1183,
+        "name": "Wisp in a Bottle"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Wisp.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Wisp.png"
+  },
+  {
+    "englishName": "Rapid Healing",
+    "id": 58,
+    "image": "Rapid Healing.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "RapidHealing",
+    "localized": {
+      "en": {
+        "name": "Rapid Healing",
+        "namesub": null,
+        "page": "Palladium armor",
+        "tooltip": "Life regeneration is greatly increased"
+      },
+      "zh": {
+        "name": "快速治疗",
+        "namesub": null,
+        "page": "Palladium armor",
+        "tooltip": "生命再生速度大幅提高"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Rapid Healing.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Rapid_Healing.png"
+  },
+  {
+    "englishName": "Holy Protection",
+    "id": 59,
+    "image": "Holy Protection.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ShadowDodge",
+    "localized": {
+      "en": {
+        "name": "Holy Protection",
+        "namesub": null,
+        "page": "Hallowed armor",
+        "tooltip": "You will dodge the next attack"
+      },
+      "zh": {
+        "name": "神圣防护",
+        "namesub": null,
+        "page": "Hallowed armor",
+        "tooltip": "你将闪避下一次攻击"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Holy Protection.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Holy_Protection.png"
+  },
+  {
+    "englishName": "Leaf Crystal",
+    "id": 60,
+    "image": "Leaf Crystal.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "LeafCrystal",
+    "localized": {
+      "en": {
+        "name": "Leaf Crystal",
+        "namesub": null,
+        "page": "Chlorophyte armor",
+        "tooltip": "Shoots crystal leaves at nearby enemies"
+      },
+      "zh": {
+        "name": "叶状水晶",
+        "namesub": null,
+        "page": "Chlorophyte armor",
+        "tooltip": "朝附近的敌人射出水晶叶"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Leaf Crystal.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Leaf_Crystal.png"
+  },
+  {
+    "englishName": "Baby Dinosaur",
+    "id": 61,
+    "image": "Baby Dinosaur (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BabyDinosaur",
+    "localized": {
+      "en": {
+        "name": "Baby Dinosaur",
+        "namesub": null,
+        "page": "Amber Mosquito",
+        "tooltip": "A baby dinosaur is following you"
+      },
+      "zh": {
+        "name": "恐龙宝宝",
+        "namesub": null,
+        "page": "Amber Mosquito",
+        "tooltip": "恐龙宝宝正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "AmberMosquito",
+        "itemId": 1242,
+        "name": "Amber Mosquito"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Baby Dinosaur (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Dinosaur_(buff).png"
+  },
+  {
+    "englishName": "Ice Barrier",
+    "id": 62,
+    "image": "Ice Barrier.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "IceBarrier",
+    "localized": {
+      "en": {
+        "name": "Ice Barrier",
+        "namesub": null,
+        "page": "Frozen Turtle Shell",
+        "tooltip": "Damage taken is reduced by 25%"
+      },
+      "zh": {
+        "name": "冰障",
+        "namesub": null,
+        "page": "Frozen Turtle Shell",
+        "tooltip": "所受伤害降低25%"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Ice Barrier.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ice_Barrier.png"
+  },
+  {
+    "englishName": "Panic!",
+    "id": 63,
+    "image": "Panic!.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Panic",
+    "localized": {
+      "en": {
+        "name": "Panic!",
+        "namesub": null,
+        "page": "Panic Necklace",
+        "tooltip": "Movement speed is increased"
+      },
+      "zh": {
+        "name": "恐慌！",
+        "namesub": null,
+        "page": "Panic Necklace",
+        "tooltip": "移动速度提高"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Panic!.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Panic!.png"
+  },
+  {
+    "englishName": "Baby Slime",
+    "id": 64,
+    "image": "Baby Slime (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BabySlime",
+    "localized": {
+      "en": {
+        "name": "Baby Slime",
+        "namesub": null,
+        "page": "Slime Staff",
+        "tooltip": "The baby slime will fight for you"
+      },
+      "zh": {
+        "name": "史莱姆宝宝",
+        "namesub": null,
+        "page": "Slime Staff",
+        "tooltip": "史莱姆宝宝将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "SlimeStaff",
+        "itemId": 1309,
+        "name": "Slime Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Baby Slime (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Slime_(buff).png"
+  },
+  {
+    "englishName": "Eyeball Spring",
+    "id": 65,
+    "image": "Eyeball Spring (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "EyeballSpring",
+    "localized": {
+      "en": {
+        "name": "Eyeball Spring",
+        "namesub": null,
+        "page": "Eye Spring",
+        "tooltip": "An eyeball spring is following you"
+      },
+      "zh": {
+        "name": "弹簧眼",
+        "namesub": null,
+        "page": "Eye Spring",
+        "tooltip": "弹簧眼正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "EyeSpring",
+        "itemId": 1311,
+        "name": "Eye Spring"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Eyeball Spring (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Eyeball_Spring_(buff).png"
+  },
+  {
+    "englishName": "Baby Snowman",
+    "id": 66,
+    "image": "Baby Snowman (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BabySnowman",
+    "localized": {
+      "en": {
+        "name": "Baby Snowman",
+        "namesub": null,
+        "page": "Toy Sled",
+        "tooltip": "A baby snowman is following you"
+      },
+      "zh": {
+        "name": "雪人宝宝",
+        "namesub": null,
+        "page": "Toy Sled",
+        "tooltip": "雪人宝宝正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "ToySled",
+        "itemId": 1312,
+        "name": "Toy Sled"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Baby Snowman (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Snowman_(buff).png"
+  },
+  {
+    "englishName": "Burning",
+    "id": 67,
+    "image": "Burning.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Burning",
+    "localized": {
+      "en": {
+        "name": "Burning",
+        "namesub": null,
+        "page": "Burning",
+        "tooltip": "Losing life and slowed movement"
+      },
+      "zh": {
+        "name": "燃烧",
+        "namesub": null,
+        "page": "Burning",
+        "tooltip": "正在损失生命值且移动已放缓"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Burning.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Burning.png"
+  },
+  {
+    "englishName": "Suffocation",
+    "id": 68,
+    "image": "Suffocation.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Suffocation",
+    "localized": {
+      "en": {
+        "name": "Suffocation",
+        "namesub": null,
+        "page": "Suffocation",
+        "tooltip": "Losing life"
+      },
+      "zh": {
+        "name": "窒息",
+        "namesub": null,
+        "page": "Suffocation",
+        "tooltip": "正在损失生命值"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Suffocation.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Suffocation.png"
+  },
+  {
+    "englishName": "Ichor",
+    "id": 69,
+    "image": "Ichor (debuff).png",
+    "immuneNpcCount": 5,
+    "immuneNpcSample": [
+      {
+        "internalName": "IchorSticker",
+        "name": "Ichor Sticker",
+        "npcId": 268
+      },
+      {
+        "internalName": "Paladin",
+        "name": "Paladin",
+        "npcId": 290
+      },
+      {
+        "internalName": "Ghost",
+        "name": "Ghost",
+        "npcId": 316
+      },
+      {
+        "internalName": "AncientCultistSquidhead",
+        "name": "Ancient Vision",
+        "npcId": 521
+      },
+      {
+        "internalName": "DesertDjinn",
+        "name": "Desert Spirit",
+        "npcId": 533
+      }
+    ],
+    "internalName": "Ichor",
+    "localized": {
+      "en": {
+        "name": "Ichor",
+        "namesub": null,
+        "page": "Ichor (debuff)",
+        "tooltip": "Reduced defense"
+      },
+      "zh": {
+        "name": "灵液",
+        "namesub": null,
+        "page": "Ichor (debuff)",
+        "tooltip": "降低防御"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Ichor (debuff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ichor_(debuff).png"
+  },
+  {
+    "englishName": "Acid Venom",
+    "id": 70,
+    "image": "Acid Venom.png",
+    "immuneNpcCount": 5,
+    "immuneNpcSample": [
+      {
+        "internalName": "SpikeBall",
+        "name": "Spike Ball",
+        "npcId": 70
+      },
+      {
+        "internalName": "ToxicSludge",
+        "name": "Toxic Sludge",
+        "npcId": 141
+      },
+      {
+        "internalName": "Ghost",
+        "name": "Ghost",
+        "npcId": 316
+      },
+      {
+        "internalName": "AncientCultistSquidhead",
+        "name": "Ancient Vision",
+        "npcId": 521
+      },
+      {
+        "internalName": "DesertDjinn",
+        "name": "Desert Spirit",
+        "npcId": 533
+      }
+    ],
+    "internalName": "Venom",
+    "localized": {
+      "en": {
+        "name": "Acid Venom",
+        "namesub": null,
+        "page": "Acid Venom",
+        "tooltip": "Losing life"
+      },
+      "zh": {
+        "name": "酸性毒液",
+        "namesub": null,
+        "page": "Acid Venom",
+        "tooltip": "正在损失生命值"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Acid Venom.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Acid_Venom.png"
+  },
+  {
+    "englishName": "Weapon Imbue: Acid Venom",
+    "id": 71,
+    "image": "Weapon Imbue Acid Venom.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WeaponImbueVenom",
+    "localized": {
+      "en": {
+        "name": "Weapon Imbue: Acid Venom",
+        "namesub": null,
+        "page": "Flask of Venom",
+        "tooltip": "Melee attacks inflict acid venom on your targets"
+      },
+      "zh": {
+        "name": "武器灌注：酸性毒液",
+        "namesub": null,
+        "page": "Flask of Venom",
+        "tooltip": "近战攻击会对你的目标施放酸性毒液"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 72000,
+        "internalName": "FlaskofVenom",
+        "itemId": 1340,
+        "name": "Flask of Venom"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Weapon Imbue Acid Venom.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Weapon_Imbue_Acid_Venom.png"
+  },
+  {
+    "englishName": "Midas",
+    "id": 72,
+    "image": "Midas.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Midas",
+    "localized": {
+      "en": {
+        "name": "Midas",
+        "namesub": null,
+        "page": "Midas",
+        "tooltip": "Drop more money on death"
+      },
+      "zh": {
+        "name": "迈达斯",
+        "namesub": null,
+        "page": "Midas",
+        "tooltip": "死亡时掉落更多钱"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Midas.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Midas.png"
+  },
+  {
+    "englishName": "Weapon Imbue: Cursed Flames",
+    "id": 73,
+    "image": "Weapon Imbue Cursed Flames.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WeaponImbueCursedFlames",
+    "localized": {
+      "en": {
+        "name": "Weapon Imbue: Cursed Flames",
+        "namesub": null,
+        "page": "Flask of Cursed Flames",
+        "tooltip": "Melee attacks inflict enemies with cursed flames"
+      },
+      "zh": {
+        "name": "武器灌注：诅咒焰",
+        "namesub": null,
+        "page": "Flask of Cursed Flames",
+        "tooltip": "近战攻击会对敌人施放诅咒焰"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 72000,
+        "internalName": "FlaskofCursedFlames",
+        "itemId": 1353,
+        "name": "Flask of Cursed Flames"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Weapon Imbue Cursed Flames.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Weapon_Imbue_Cursed_Flames.png"
+  },
+  {
+    "englishName": "Weapon Imbue: Fire",
+    "id": 74,
+    "image": "Weapon Imbue Fire.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WeaponImbueFire",
+    "localized": {
+      "en": {
+        "name": "Weapon Imbue: Fire",
+        "namesub": null,
+        "page": "Flask of Fire",
+        "tooltip": "Melee attacks set enemies on fire"
+      },
+      "zh": {
+        "name": "武器灌注：火焰",
+        "namesub": null,
+        "page": "Flask of Fire",
+        "tooltip": "近战攻击会使敌人着火"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 72000,
+        "internalName": "FlaskofFire",
+        "itemId": 1354,
+        "name": "Flask of Fire"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Weapon Imbue Fire.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Weapon_Imbue_Fire.png"
+  },
+  {
+    "englishName": "Weapon Imbue: Gold",
+    "id": 75,
+    "image": "Weapon Imbue Gold.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WeaponImbueGold",
+    "localized": {
+      "en": {
+        "name": "Weapon Imbue: Gold",
+        "namesub": null,
+        "page": "Flask of Gold",
+        "tooltip": "Melee attacks make enemies drop more gold"
+      },
+      "zh": {
+        "name": "武器灌注：金",
+        "namesub": null,
+        "page": "Flask of Gold",
+        "tooltip": "近战攻击会使敌人掉落更多金子"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 72000,
+        "internalName": "FlaskofGold",
+        "itemId": 1355,
+        "name": "Flask of Gold"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Weapon Imbue Gold.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Weapon_Imbue_Gold.png"
+  },
+  {
+    "englishName": "Weapon Imbue: Ichor",
+    "id": 76,
+    "image": "Weapon Imbue Ichor.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WeaponImbueIchor",
+    "localized": {
+      "en": {
+        "name": "Weapon Imbue: Ichor",
+        "namesub": null,
+        "page": "Flask of Ichor",
+        "tooltip": "Melee attacks decrease enemies defense"
+      },
+      "zh": {
+        "name": "武器灌注：灵液",
+        "namesub": null,
+        "page": "Flask of Ichor",
+        "tooltip": "近战攻击会降低敌人防御"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 72000,
+        "internalName": "FlaskofIchor",
+        "itemId": 1356,
+        "name": "Flask of Ichor"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Weapon Imbue Ichor.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Weapon_Imbue_Ichor.png"
+  },
+  {
+    "englishName": "Weapon Imbue: Nanites",
+    "id": 77,
+    "image": "Weapon Imbue Nanites.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WeaponImbueNanites",
+    "localized": {
+      "en": {
+        "name": "Weapon Imbue: Nanites",
+        "namesub": null,
+        "page": "Flask of Nanites",
+        "tooltip": "Melee attacks confuse enemies"
+      },
+      "zh": {
+        "name": "武器灌注：纳米机器人",
+        "namesub": null,
+        "page": "Flask of Nanites",
+        "tooltip": "近战攻击会使敌人困惑"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 72000,
+        "internalName": "FlaskofNanites",
+        "itemId": 1357,
+        "name": "Flask of Nanites"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Weapon Imbue Nanites.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Weapon_Imbue_Nanites.png"
+  },
+  {
+    "englishName": "Weapon Imbue: Confetti",
+    "id": 78,
+    "image": "Weapon Imbue Confetti.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WeaponImbueConfetti",
+    "localized": {
+      "en": {
+        "name": "Weapon Imbue: Confetti",
+        "namesub": null,
+        "page": "Flask of Party",
+        "tooltip": "Melee attacks cause confetti to appear"
+      },
+      "zh": {
+        "name": "武器灌注：彩纸",
+        "namesub": null,
+        "page": "Flask of Party",
+        "tooltip": "近战攻击会喷撒彩纸"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 72000,
+        "internalName": "FlaskofParty",
+        "itemId": 1358,
+        "name": "Flask of Party"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Weapon Imbue Confetti.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Weapon_Imbue_Confetti.png"
+  },
+  {
+    "englishName": "Weapon Imbue: Poison",
+    "id": 79,
+    "image": "Weapon Imbue Poison.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WeaponImbuePoison",
+    "localized": {
+      "en": {
+        "name": "Weapon Imbue: Poison",
+        "namesub": null,
+        "page": "Flask of Poison",
+        "tooltip": "Melee attacks poison enemies"
+      },
+      "zh": {
+        "name": "武器灌注：毒药",
+        "namesub": null,
+        "page": "Flask of Poison",
+        "tooltip": "近战攻击会使敌人中毒"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 72000,
+        "internalName": "FlaskofPoison",
+        "itemId": 1359,
+        "name": "Flask of Poison"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Weapon Imbue Poison.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Weapon_Imbue_Poison.png"
+  },
+  {
+    "englishName": "Blackout",
+    "id": 80,
+    "image": "Blackout.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Blackout",
+    "localized": {
+      "en": {
+        "name": "Blackout",
+        "namesub": null,
+        "page": "Blackout",
+        "tooltip": "Light vision severely reduced"
+      },
+      "zh": {
+        "name": "黑视",
+        "namesub": null,
+        "page": "Blackout",
+        "tooltip": "光视能力严重下降"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Blackout.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Blackout.png"
+  },
+  {
+    "englishName": "Pet Spider",
+    "id": 81,
+    "image": "Pet Spider (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PetSpider",
+    "localized": {
+      "en": {
+        "name": "Pet Spider",
+        "namesub": null,
+        "page": "Spider Egg",
+        "tooltip": "A spider is following you"
+      },
+      "zh": {
+        "name": "宠物蜘蛛",
+        "namesub": null,
+        "page": "Spider Egg",
+        "tooltip": "蜘蛛正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "SpiderEgg",
+        "itemId": 1798,
+        "name": "Spider Egg"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Pet Spider (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pet_Spider_(buff).png"
+  },
+  {
+    "englishName": "Squashling",
+    "id": 82,
+    "image": "Squashling (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Squashling",
+    "localized": {
+      "en": {
+        "name": "Squashling",
+        "namesub": null,
+        "page": "Magical Pumpkin Seed",
+        "tooltip": "A squashling is following you"
+      },
+      "zh": {
+        "name": "南瓜娃娃",
+        "namesub": null,
+        "page": "Magical Pumpkin Seed",
+        "tooltip": "南瓜娃娃正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "MagicalPumpkinSeed",
+        "itemId": 1799,
+        "name": "Magical Pumpkin Seed"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Squashling (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Squashling_(buff).png"
+  },
+  {
+    "englishName": "Ravens",
+    "id": 83,
+    "image": "Ravens.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Ravens",
+    "localized": {
+      "en": {
+        "name": "Ravens",
+        "namesub": null,
+        "page": "Raven Staff",
+        "tooltip": "The ravens will attack your enemies"
+      },
+      "zh": {
+        "name": "乌鸦",
+        "namesub": null,
+        "page": "Raven Staff",
+        "tooltip": "乌鸦将攻击你的敌人"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "RavenStaff",
+        "itemId": 1802,
+        "name": "Raven Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Ravens.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ravens.png"
+  },
+  {
+    "englishName": "Black Cat",
+    "id": 84,
+    "image": "Black Cat (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BlackCat",
+    "localized": {
+      "en": {
+        "name": "Black Cat",
+        "namesub": null,
+        "page": "Unlucky Yarn",
+        "tooltip": "A black kitty is following you"
+      },
+      "zh": {
+        "name": "黑猫",
+        "namesub": null,
+        "page": "Unlucky Yarn",
+        "tooltip": "黑猫正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "UnluckyYarn",
+        "itemId": 1810,
+        "name": "Unlucky Yarn"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Black Cat (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Black_Cat_(buff).png"
+  },
+  {
+    "englishName": "Cursed Sapling",
+    "id": 85,
+    "image": "Cursed Sapling (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "CursedSapling",
+    "localized": {
+      "en": {
+        "name": "Cursed Sapling",
+        "namesub": null,
+        "page": "Cursed Sapling",
+        "tooltip": "A cursed sapling is following you"
+      },
+      "zh": {
+        "name": "诅咒树苗",
+        "namesub": null,
+        "page": "Cursed Sapling",
+        "tooltip": "诅咒树苗正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "CursedSapling",
+        "itemId": 1837,
+        "name": "Cursed Sapling"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Cursed Sapling (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cursed_Sapling_(buff).png"
+  },
+  {
+    "englishName": "Water Candle",
+    "id": 86,
+    "image": "Water Candle (debuff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WaterCandle",
+    "localized": {
+      "en": {
+        "name": "Water Candle",
+        "namesub": null,
+        "page": "Water Candle",
+        "tooltip": "Increased monster spawn rate"
+      },
+      "zh": {
+        "name": "水蜡烛",
+        "namesub": null,
+        "page": "Water Candle",
+        "tooltip": "提高怪物生成速度"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Water Candle (debuff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Water_Candle_(debuff).png"
+  },
+  {
+    "englishName": "Cozy Fire",
+    "id": 87,
+    "image": "Cozy Fire.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Campfire",
+    "localized": {
+      "en": {
+        "name": "Cozy Fire",
+        "namesub": null,
+        "page": "Campfires",
+        "tooltip": "Life regen is slightly increased"
+      },
+      "zh": {
+        "name": "温馨之火",
+        "namesub": null,
+        "page": "Campfires",
+        "tooltip": "生命再生速度略有提高"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Cozy Fire.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cozy_Fire.png"
+  },
+  {
+    "englishName": "Chaos State",
+    "id": 88,
+    "image": "Chaos State.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ChaosState",
+    "localized": {
+      "en": {
+        "name": "Chaos State",
+        "namesub": null,
+        "page": "Rod of Discord",
+        "tooltip": "Using the Rod of Discord will take life"
+      },
+      "zh": {
+        "name": "混沌状态",
+        "namesub": null,
+        "page": "Rod of Discord",
+        "tooltip": "使用混沌传送杖将消耗生命值"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Chaos State.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Chaos_State.png"
+  },
+  {
+    "englishName": "Heart Lamp",
+    "id": 89,
+    "image": "Heart Lamp (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "HeartLamp",
+    "localized": {
+      "en": {
+        "name": "Heart Lamp",
+        "namesub": null,
+        "page": "Heart Lantern",
+        "tooltip": "Life regen is increased"
+      },
+      "zh": {
+        "name": "心灯",
+        "namesub": null,
+        "page": "Heart Lantern",
+        "tooltip": "生命再生速度提高"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Heart Lamp (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Heart_Lamp_(buff).png"
+  },
+  {
+    "englishName": "Rudolph",
+    "id": 90,
+    "image": "Rudolph (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Rudolph",
+    "localized": {
+      "en": {
+        "name": "Rudolph",
+        "namesub": null,
+        "page": "Reindeer Bells",
+        "tooltip": "Riding the red nosed reindeer"
+      },
+      "zh": {
+        "name": "鲁道夫",
+        "namesub": null,
+        "page": "Reindeer Bells",
+        "tooltip": "骑上红鼻子驯鹿"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Rudolph (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Rudolph_(buff).png"
+  },
+  {
+    "englishName": "Puppy",
+    "id": 91,
+    "image": "Puppy (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Puppy",
+    "localized": {
+      "en": {
+        "name": "Puppy",
+        "namesub": null,
+        "page": "Dog Whistle",
+        "tooltip": "A puppy is following you"
+      },
+      "zh": {
+        "name": "小狗",
+        "namesub": null,
+        "page": "Dog Whistle",
+        "tooltip": "小狗正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "DogWhistle",
+        "itemId": 1927,
+        "name": "Dog Whistle"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Puppy (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Puppy_(buff).png"
+  },
+  {
+    "englishName": "Baby Grinch",
+    "id": 92,
+    "image": "Baby Grinch (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BabyGrinch",
+    "localized": {
+      "en": {
+        "name": "Baby Grinch",
+        "namesub": null,
+        "page": "Baby Grinch's Mischief Whistle",
+        "tooltip": "A baby grinch is following you"
+      },
+      "zh": {
+        "name": "格林奇宝宝",
+        "namesub": null,
+        "page": "Baby Grinch's Mischief Whistle",
+        "tooltip": "格林奇宝宝正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "BabyGrinchMischiefWhistle",
+        "itemId": 1959,
+        "name": "Baby Grinch's Mischief Whistle"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Baby Grinch (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Grinch_(buff).png"
+  },
+  {
+    "englishName": "Ammo Box",
+    "id": 93,
+    "image": "Ammo Box (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "AmmoBox",
+    "localized": {
+      "en": {
+        "name": "Ammo Box",
+        "namesub": null,
+        "page": "Ammo Box",
+        "tooltip": "20% chance to save ammo"
+      },
+      "zh": {
+        "name": "弹药箱",
+        "namesub": null,
+        "page": "Ammo Box",
+        "tooltip": "20%几率省下弹药"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Ammo Box (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ammo_Box_(buff).png"
+  },
+  {
+    "englishName": "Mana Sickness",
+    "id": 94,
+    "image": "Mana Sickness.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ManaSickness",
+    "localized": {
+      "en": {
+        "name": "Mana Sickness",
+        "namesub": null,
+        "page": "Mana Sickness",
+        "tooltip": "Magic damage reduced by"
+      },
+      "zh": {
+        "name": "耐魔性",
+        "namesub": null,
+        "page": "Mana Sickness",
+        "tooltip": "魔法伤害降低"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Mana Sickness.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mana_Sickness.png"
+  },
+  {
+    "englishName": "Beetle Endurance",
+    "id": 95,
+    "image": "Beetle Endurance 15.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BeetleEndurance1",
+    "localized": {
+      "en": {
+        "name": "Beetle Endurance",
+        "namesub": "15%",
+        "page": "Beetle Endurance",
+        "tooltip": "Absorbs 15% of damage taken"
+      },
+      "zh": {
+        "name": "甲虫耐力",
+        "namesub": "15%",
+        "page": "Beetle Endurance",
+        "tooltip": "吸收15%所受伤害"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Beetle Endurance 15.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Beetle_Endurance_15.png"
+  },
+  {
+    "englishName": "Beetle Endurance",
+    "id": 96,
+    "image": "Beetle Endurance 30.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BeetleEndurance2",
+    "localized": {
+      "en": {
+        "name": "Beetle Endurance",
+        "namesub": "30%",
+        "page": "Beetle Endurance",
+        "tooltip": "Absorbs 30% of damage taken"
+      },
+      "zh": {
+        "name": "甲虫耐力",
+        "namesub": "30%",
+        "page": "Beetle Endurance",
+        "tooltip": "吸收30%所受伤害"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Beetle Endurance 30.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Beetle_Endurance_30.png"
+  },
+  {
+    "englishName": "Beetle Endurance",
+    "id": 97,
+    "image": "Beetle Endurance 45.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BeetleEndurance3",
+    "localized": {
+      "en": {
+        "name": "Beetle Endurance",
+        "namesub": "45%",
+        "page": "Beetle Endurance",
+        "tooltip": "Absorbs 45% of damage taken"
+      },
+      "zh": {
+        "name": "甲虫耐力",
+        "namesub": "45%",
+        "page": "Beetle Endurance",
+        "tooltip": "吸收45%所受伤害"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Beetle Endurance 45.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Beetle_Endurance_45.png"
+  },
+  {
+    "englishName": "Beetle Might",
+    "id": 98,
+    "image": "Beetle Might 10.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BeetleMight1",
+    "localized": {
+      "en": {
+        "name": "Beetle Might",
+        "namesub": "10%",
+        "page": "Beetle Might",
+        "tooltip": "Melee damage and speed increase by 10%"
+      },
+      "zh": {
+        "name": "甲虫力量",
+        "namesub": "10%",
+        "page": "Beetle Might",
+        "tooltip": "近战伤害和近战速度各提高10%"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Beetle Might 10.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Beetle_Might_10.png"
+  },
+  {
+    "englishName": "Beetle Might",
+    "id": 99,
+    "image": "Beetle Might 20.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BeetleMight2",
+    "localized": {
+      "en": {
+        "name": "Beetle Might",
+        "namesub": "20%",
+        "page": "Beetle Might",
+        "tooltip": "Melee damage and speed increase by 20%"
+      },
+      "zh": {
+        "name": "甲虫力量",
+        "namesub": "20%",
+        "page": "Beetle Might",
+        "tooltip": "近战伤害和近战速度各提高20%"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Beetle Might 20.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Beetle_Might_20.png"
+  },
+  {
+    "englishName": "Beetle Might",
+    "id": 100,
+    "image": "Beetle Might 30.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BeetleMight3",
+    "localized": {
+      "en": {
+        "name": "Beetle Might",
+        "namesub": "30%",
+        "page": "Beetle Might",
+        "tooltip": "Melee damage and speed increase by 30%"
+      },
+      "zh": {
+        "name": "甲虫力量",
+        "namesub": "30%",
+        "page": "Beetle Might",
+        "tooltip": "近战伤害和近战速度各提高30%"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Beetle Might 30.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Beetle_Might_30.png"
+  },
+  {
+    "englishName": "Fairy",
+    "id": 101,
+    "image": "Fairy.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "FairyRed",
+    "localized": {
+      "en": {
+        "name": "Fairy",
+        "namesub": "Red",
+        "page": "Fairy Bell",
+        "tooltip": "A fairy is following you"
+      },
+      "zh": {
+        "name": "仙灵",
+        "namesub": "红",
+        "page": "Fairy Bell",
+        "tooltip": "仙灵正跟着你"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Fairy.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Fairy.png"
+  },
+  {
+    "englishName": "Fairy",
+    "id": 102,
+    "image": "Fairy.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "FairyGreen",
+    "localized": {
+      "en": {
+        "name": "Fairy",
+        "namesub": "Green",
+        "page": "Fairy Bell",
+        "tooltip": "A fairy is following you"
+      },
+      "zh": {
+        "name": "仙灵",
+        "namesub": "绿",
+        "page": "Fairy Bell",
+        "tooltip": "仙灵正跟着你"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Fairy.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Fairy.png"
+  },
+  {
+    "englishName": "Wet",
+    "id": 103,
+    "image": "Wet.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Wet",
+    "localized": {
+      "en": {
+        "name": "Wet",
+        "namesub": null,
+        "page": "Wet",
+        "tooltip": "You are dripping water"
+      },
+      "zh": {
+        "name": "潮湿",
+        "namesub": null,
+        "page": "Wet",
+        "tooltip": "你在滴水"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Wet.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Wet.png"
+  },
+  {
+    "englishName": "Mining",
+    "id": 104,
+    "image": "Mining (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Mining",
+    "localized": {
+      "en": {
+        "name": "Mining",
+        "namesub": null,
+        "page": "Mining Potion",
+        "tooltip": "25% increased mining speed"
+      },
+      "zh": {
+        "name": "挖矿",
+        "namesub": null,
+        "page": "Mining Potion",
+        "tooltip": "挖矿速度提高25%"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 36000,
+        "internalName": "MiningPotion",
+        "itemId": 2322,
+        "name": "Mining Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Mining (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mining_(buff).png"
+  },
+  {
+    "englishName": "Heartreach",
+    "id": 105,
+    "image": "Heartreach.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Heartreach",
+    "localized": {
+      "en": {
+        "name": "Heartreach",
+        "namesub": null,
+        "page": "Heartreach Potion",
+        "tooltip": "Increased heart pickup range"
+      },
+      "zh": {
+        "name": "拾心",
+        "namesub": null,
+        "page": "Heartreach Potion",
+        "tooltip": "扩大心的拾取范围"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 28800,
+        "internalName": "HeartreachPotion",
+        "itemId": 2323,
+        "name": "Heartreach Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Heartreach.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Heartreach.png"
+  },
+  {
+    "englishName": "Calm",
+    "id": 106,
+    "image": "Calm.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Calm",
+    "localized": {
+      "en": {
+        "name": "Calm",
+        "namesub": null,
+        "page": "Calming Potion",
+        "tooltip": "Decreased enemy spawn rate"
+      },
+      "zh": {
+        "name": "冷静",
+        "namesub": null,
+        "page": "Calming Potion",
+        "tooltip": "敌人生成速度降低"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 43200,
+        "internalName": "CalmingPotion",
+        "itemId": 2324,
+        "name": "Calming Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Calm.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Calm.png"
+  },
+  {
+    "englishName": "Builder",
+    "id": 107,
+    "image": "Builder.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Builder",
+    "localized": {
+      "en": {
+        "name": "Builder",
+        "namesub": null,
+        "page": "Builder Potion",
+        "tooltip": "Increased placement speed and range"
+      },
+      "zh": {
+        "name": "建筑工",
+        "namesub": null,
+        "page": "Builder Potion",
+        "tooltip": "提高放置速度、扩大放置范围"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 162000,
+        "internalName": "BuilderPotion",
+        "itemId": 2325,
+        "name": "Builder Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Builder.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Builder.png"
+  },
+  {
+    "englishName": "Titan",
+    "id": 108,
+    "image": "Titan.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Titan",
+    "localized": {
+      "en": {
+        "name": "Titan",
+        "namesub": null,
+        "page": "Titan Potion",
+        "tooltip": "Increased knockback"
+      },
+      "zh": {
+        "name": "泰坦",
+        "namesub": null,
+        "page": "Titan Potion",
+        "tooltip": "提高击退"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 28800,
+        "internalName": "TitanPotion",
+        "itemId": 2326,
+        "name": "Titan Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Titan.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Titan.png"
+  },
+  {
+    "englishName": "Flipper",
+    "id": 109,
+    "image": "Flipper (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Flipper",
+    "localized": {
+      "en": {
+        "name": "Flipper",
+        "namesub": null,
+        "page": "Flipper Potion",
+        "tooltip": "Move like normal in water"
+      },
+      "zh": {
+        "name": "脚蹼",
+        "namesub": null,
+        "page": "Flipper Potion",
+        "tooltip": "在水中移动如常"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 28800,
+        "internalName": "FlipperPotion",
+        "itemId": 2327,
+        "name": "Flipper Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Flipper (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Flipper_(buff).png"
+  },
+  {
+    "englishName": "Summoning",
+    "id": 110,
+    "image": "Summoning (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Summoning",
+    "localized": {
+      "en": {
+        "name": "Summoning",
+        "namesub": null,
+        "page": "Summoning Potion",
+        "tooltip": "Increased your max number of minions by 1"
+      },
+      "zh": {
+        "name": "召唤",
+        "namesub": null,
+        "page": "Summoning Potion",
+        "tooltip": "仆从数量上限增加1"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 28800,
+        "internalName": "SummoningPotion",
+        "itemId": 2328,
+        "name": "Summoning Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Summoning (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Summoning_(buff).png"
+  },
+  {
+    "englishName": "Dangersense",
+    "id": 111,
+    "image": "Dangersense.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Dangersense",
+    "localized": {
+      "en": {
+        "name": "Dangersense",
+        "namesub": null,
+        "page": "Dangersense Potion",
+        "tooltip": "You can see nearby hazards"
+      },
+      "zh": {
+        "name": "危险感",
+        "namesub": null,
+        "page": "Dangersense Potion",
+        "tooltip": "你可以看到附近的危险"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 36000,
+        "internalName": "TrapsightPotion",
+        "itemId": 2329,
+        "name": "Dangersense Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Dangersense.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Dangersense.png"
+  },
+  {
+    "englishName": "Ammo Reservation",
+    "id": 112,
+    "image": "Ammo Reservation.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "AmmoReservation",
+    "localized": {
+      "en": {
+        "name": "Ammo Reservation",
+        "namesub": null,
+        "page": "Ammo Reservation Potion",
+        "tooltip": "20% chance to save ammo"
+      },
+      "zh": {
+        "name": "弹药储备",
+        "namesub": null,
+        "page": "Ammo Reservation Potion",
+        "tooltip": "20%几率省下弹药"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 28800,
+        "internalName": "AmmoReservationPotion",
+        "itemId": 2344,
+        "name": "Ammo Reservation Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Ammo Reservation.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Ammo_Reservation.png"
+  },
+  {
+    "englishName": "Lifeforce",
+    "id": 113,
+    "image": "Lifeforce.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Lifeforce",
+    "localized": {
+      "en": {
+        "name": "Lifeforce",
+        "namesub": null,
+        "page": "Lifeforce Potion",
+        "tooltip": "20% increased max life"
+      },
+      "zh": {
+        "name": "生命力",
+        "namesub": null,
+        "page": "Lifeforce Potion",
+        "tooltip": "最大生命值提高20%"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 28800,
+        "internalName": "LifeforcePotion",
+        "itemId": 2345,
+        "name": "Lifeforce Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Lifeforce.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Lifeforce.png"
+  },
+  {
+    "englishName": "Endurance",
+    "id": 114,
+    "image": "Endurance.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Endurance",
+    "localized": {
+      "en": {
+        "name": "Endurance",
+        "namesub": null,
+        "page": "Endurance Potion",
+        "tooltip": "10% reduced damage"
+      },
+      "zh": {
+        "name": "耐力",
+        "namesub": null,
+        "page": "Endurance Potion",
+        "tooltip": "所受伤害降低10%"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 14400,
+        "internalName": "EndurancePotion",
+        "itemId": 2346,
+        "name": "Endurance Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Endurance.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Endurance.png"
+  },
+  {
+    "englishName": "Rage",
+    "id": 115,
+    "image": "Rage.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Rage",
+    "localized": {
+      "en": {
+        "name": "Rage",
+        "namesub": null,
+        "page": "Rage Potion",
+        "tooltip": "10% increased critical chance"
+      },
+      "zh": {
+        "name": "暴怒",
+        "namesub": null,
+        "page": "Rage Potion",
+        "tooltip": "暴击率提高10%"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 14400,
+        "internalName": "RagePotion",
+        "itemId": 2347,
+        "name": "Rage Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Rage.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Rage.png"
+  },
+  {
+    "englishName": "Inferno",
+    "id": 116,
+    "image": "Inferno.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Inferno",
+    "localized": {
+      "en": {
+        "name": "Inferno",
+        "namesub": null,
+        "page": "Inferno Potion",
+        "tooltip": "Nearby enemies are ignited"
+      },
+      "zh": {
+        "name": "狱火",
+        "namesub": null,
+        "page": "Inferno Potion",
+        "tooltip": "附近的敌人被点燃"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 14400,
+        "internalName": "InfernoPotion",
+        "itemId": 2348,
+        "name": "Inferno Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Inferno.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Inferno.png"
+  },
+  {
+    "englishName": "Wrath",
+    "id": 117,
+    "image": "Wrath.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Wrath",
+    "localized": {
+      "en": {
+        "name": "Wrath",
+        "namesub": null,
+        "page": "Wrath Potion",
+        "tooltip": "10% increased damage"
+      },
+      "zh": {
+        "name": "怒气",
+        "namesub": null,
+        "page": "Wrath Potion",
+        "tooltip": "伤害提高10%"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 14400,
+        "internalName": "WrathPotion",
+        "itemId": 2349,
+        "name": "Wrath Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Wrath.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Wrath.png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 118,
+    "image": "Minecart (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Minecart",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(buff).png"
+  },
+  {
+    "englishName": "Lovestruck",
+    "id": 119,
+    "image": "Lovestruck.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Lovestruck",
+    "localized": {
+      "en": {
+        "name": "Lovestruck",
+        "namesub": null,
+        "page": "Love Potion",
+        "tooltip": "You are in love!"
+      },
+      "zh": {
+        "name": "热恋",
+        "namesub": null,
+        "page": "Love Potion",
+        "tooltip": "你已坠入爱河！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Lovestruck.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Lovestruck.png"
+  },
+  {
+    "englishName": "Stinky",
+    "id": 120,
+    "image": "Stinky.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Stinky",
+    "localized": {
+      "en": {
+        "name": "Stinky",
+        "namesub": null,
+        "page": "Stinky",
+        "tooltip": "You smell terrible"
+      },
+      "zh": {
+        "name": "恶臭",
+        "namesub": null,
+        "page": "Stinky",
+        "tooltip": "你的味道真难闻"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Stinky.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Stinky.png"
+  },
+  {
+    "englishName": "Fishing",
+    "id": 121,
+    "image": "Fishing (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Fishing",
+    "localized": {
+      "en": {
+        "name": "Fishing",
+        "namesub": null,
+        "page": "Fishing Potion",
+        "tooltip": "Increased fishing power"
+      },
+      "zh": {
+        "name": "钓鱼",
+        "namesub": null,
+        "page": "Fishing Potion",
+        "tooltip": "提高渔力"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 28800,
+        "internalName": "FishingPotion",
+        "itemId": 2354,
+        "name": "Fishing Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Fishing (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Fishing_(buff).png"
+  },
+  {
+    "englishName": "Sonar",
+    "id": 122,
+    "image": "Sonar.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Sonar",
+    "localized": {
+      "en": {
+        "name": "Sonar",
+        "namesub": null,
+        "page": "Sonar Potion",
+        "tooltip": "You can see what's biting your hook"
+      },
+      "zh": {
+        "name": "声呐",
+        "namesub": null,
+        "page": "Sonar Potion",
+        "tooltip": "你能看到是什么在咬你的鱼钩"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 28800,
+        "internalName": "SonarPotion",
+        "itemId": 2355,
+        "name": "Sonar Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Sonar.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Sonar.png"
+  },
+  {
+    "englishName": "Crate",
+    "id": 123,
+    "image": "Crate (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Crate",
+    "localized": {
+      "en": {
+        "name": "Crate",
+        "namesub": null,
+        "page": "Crate Potion",
+        "tooltip": "Greater chance of fishing up a crate"
+      },
+      "zh": {
+        "name": "宝匣",
+        "namesub": null,
+        "page": "Crate Potion",
+        "tooltip": "钓上宝匣的几率更大"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 14400,
+        "internalName": "CratePotion",
+        "itemId": 2356,
+        "name": "Crate Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Crate (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Crate_(buff).png"
+  },
+  {
+    "englishName": "Warmth",
+    "id": 124,
+    "image": "Warmth.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Warmth",
+    "localized": {
+      "en": {
+        "name": "Warmth",
+        "namesub": null,
+        "page": "Warmth Potion",
+        "tooltip": "Reduced damage from cold sources"
+      },
+      "zh": {
+        "name": "温暖",
+        "namesub": null,
+        "page": "Warmth Potion",
+        "tooltip": "降低所受冷系伤害"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": 54000,
+        "internalName": "WarmthPotion",
+        "itemId": 2359,
+        "name": "Warmth Potion"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Warmth.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Warmth.png"
+  },
+  {
+    "englishName": "Hornet",
+    "id": 125,
+    "image": "Hornet (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "HornetMinion",
+    "localized": {
+      "en": {
+        "name": "Hornet",
+        "namesub": null,
+        "page": "Hornet Staff",
+        "tooltip": "The hornet will fight for you"
+      },
+      "zh": {
+        "name": "黄蜂",
+        "namesub": null,
+        "page": "Hornet Staff",
+        "tooltip": "黄蜂将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "HornetStaff",
+        "itemId": 2364,
+        "name": "Hornet Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Hornet (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Hornet_(buff).png"
+  },
+  {
+    "englishName": "Imp",
+    "id": 126,
+    "image": "Imp.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ImpMinion",
+    "localized": {
+      "en": {
+        "name": "Imp",
+        "namesub": null,
+        "page": "Imp Staff",
+        "tooltip": "The imp will fight for you"
+      },
+      "zh": {
+        "name": "小鬼",
+        "namesub": null,
+        "page": "Imp Staff",
+        "tooltip": "小鬼将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "ImpStaff",
+        "itemId": 2365,
+        "name": "Imp Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Imp.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Imp.png"
+  },
+  {
+    "englishName": "Zephyr Fish",
+    "id": 127,
+    "image": "Zephyr Fish (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ZephyrFish",
+    "localized": {
+      "en": {
+        "name": "Zephyr Fish",
+        "namesub": null,
+        "page": "Zephyr Fish",
+        "tooltip": "It likes swimming around you"
+      },
+      "zh": {
+        "name": "和风鱼",
+        "namesub": null,
+        "page": "Zephyr Fish",
+        "tooltip": "它喜欢在你周围游泳"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "ZephyrFish",
+        "itemId": 2420,
+        "name": "Zephyr Fish"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Zephyr Fish (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Zephyr_Fish_(buff).png"
+  },
+  {
+    "englishName": "Bunny Mount",
+    "id": 128,
+    "image": "Bunny Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BunnyMount",
+    "localized": {
+      "en": {
+        "name": "Bunny Mount",
+        "namesub": null,
+        "page": "Fuzzy Carrot",
+        "tooltip": "You are craving carrots"
+      },
+      "zh": {
+        "name": "兔兔坐骑",
+        "namesub": null,
+        "page": "Fuzzy Carrot",
+        "tooltip": "你渴望胡萝卜"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Bunny Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Bunny_Mount_(buff).png"
+  },
+  {
+    "englishName": "Pigron Mount",
+    "id": 129,
+    "image": "Pigron Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PigronMount",
+    "localized": {
+      "en": {
+        "name": "Pigron Mount",
+        "namesub": null,
+        "page": "Scaly Truffle",
+        "tooltip": "Now you see me..."
+      },
+      "zh": {
+        "name": "猪龙坐骑",
+        "namesub": null,
+        "page": "Scaly Truffle",
+        "tooltip": "你现在看到我了……"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Pigron Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pigron_Mount_(buff).png"
+  },
+  {
+    "englishName": "Slime Mount",
+    "id": 130,
+    "image": "Slime Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SlimeMount",
+    "localized": {
+      "en": {
+        "name": "Slime Mount",
+        "namesub": null,
+        "page": "Slimy Saddle",
+        "tooltip": "BOOOIIINNNG!"
+      },
+      "zh": {
+        "name": "史莱姆坐骑",
+        "namesub": null,
+        "page": "Slimy Saddle",
+        "tooltip": "啵嘤！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Slime Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Slime_Mount_(buff).png"
+  },
+  {
+    "englishName": "Turtle Mount",
+    "id": 131,
+    "image": "Turtle Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "TurtleMount",
+    "localized": {
+      "en": {
+        "name": "Turtle Mount",
+        "namesub": null,
+        "page": "Hardy Saddle",
+        "tooltip": "Slow if by land, zoom if by sea"
+      },
+      "zh": {
+        "name": "海龟坐骑",
+        "namesub": null,
+        "page": "Hardy Saddle",
+        "tooltip": "陆地上速度缓慢，海上则可急速疾行"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Turtle Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Turtle_Mount_(buff).png"
+  },
+  {
+    "englishName": "Bee Mount",
+    "id": 132,
+    "image": "Bee Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BeeMount",
+    "localized": {
+      "en": {
+        "name": "Bee Mount",
+        "namesub": null,
+        "page": "Honeyed Goggles",
+        "tooltip": "BzzzBzzBZZZZBzzz"
+      },
+      "zh": {
+        "name": "蜜蜂坐骑",
+        "namesub": null,
+        "page": "Honeyed Goggles",
+        "tooltip": "嗡嗡嗡嗡"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Bee Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Bee_Mount_(buff).png"
+  },
+  {
+    "englishName": "Spider",
+    "id": 133,
+    "image": "Spider (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SpiderMinion",
+    "localized": {
+      "en": {
+        "name": "Spider",
+        "namesub": null,
+        "page": "Spider Staff",
+        "tooltip": "The spider will fight for you"
+      },
+      "zh": {
+        "name": "蜘蛛",
+        "namesub": null,
+        "page": "Spider Staff",
+        "tooltip": "蜘蛛将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "SpiderStaff",
+        "itemId": 2551,
+        "name": "Spider Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Spider (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Spider_(buff).png"
+  },
+  {
+    "englishName": "Twins",
+    "id": 134,
+    "image": "Twins (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "TwinEyesMinion",
+    "localized": {
+      "en": {
+        "name": "Twins",
+        "namesub": null,
+        "page": "Optic Staff",
+        "tooltip": "The twins will fight for you"
+      },
+      "zh": {
+        "name": "双子魔眼",
+        "namesub": null,
+        "page": "Optic Staff",
+        "tooltip": "双子魔眼将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "OpticStaff",
+        "itemId": 2535,
+        "name": "Optic Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Twins (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Twins_(buff).png"
+  },
+  {
+    "englishName": "Pirate",
+    "id": 135,
+    "image": "Pirate (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PirateMinion",
+    "localized": {
+      "en": {
+        "name": "Pirate",
+        "namesub": null,
+        "page": "Pirate Staff",
+        "tooltip": "The pirate will fight for you"
+      },
+      "zh": {
+        "name": "海盗",
+        "namesub": null,
+        "page": "Pirate Staff",
+        "tooltip": "海盗将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "PirateStaff",
+        "itemId": 2584,
+        "name": "Pirate Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Pirate (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Pirate_(buff).png"
+  },
+  {
+    "englishName": "Faun",
+    "id": 136,
+    "image": "Faun (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MiniMinotaur",
+    "localized": {
+      "en": {
+        "name": "Faun",
+        "namesub": null,
+        "page": "Beguiling Lyre",
+        "tooltip": "His name is Shaun"
+      },
+      "zh": {
+        "name": "法翁",
+        "namesub": null,
+        "page": "Beguiling Lyre",
+        "tooltip": "他叫肖恩"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "TartarSauce",
+        "itemId": 2587,
+        "name": "Beguiling Lyre"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Faun (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Faun_(buff).png"
+  },
+  {
+    "englishName": "Slime",
+    "id": 137,
+    "image": "Slime (debuff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Slimed",
+    "localized": {
+      "en": {
+        "name": "Slime",
+        "namesub": null,
+        "page": "Slime (debuff)",
+        "tooltip": "You are slimy and sticky"
+      },
+      "zh": {
+        "name": "黏液",
+        "namesub": null,
+        "page": "Slime (debuff)",
+        "tooltip": "你黏糊糊的"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Slime (debuff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Slime_(debuff).png"
+  },
+  {
+    "englishName": null,
+    "id": 138,
+    "image": "Minecart (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MinecartLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(buff).png"
+  },
+  {
+    "englishName": "Sharknado",
+    "id": 139,
+    "image": "Sharknado.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SharknadoMinion",
+    "localized": {
+      "en": {
+        "name": "Sharknado",
+        "namesub": null,
+        "page": "Tempest Staff",
+        "tooltip": "The sharknado will fight for you"
+      },
+      "zh": {
+        "name": "鲨鱼旋风",
+        "namesub": null,
+        "page": "Tempest Staff",
+        "tooltip": "鲨鱼旋风将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "TempestStaff",
+        "itemId": 2621,
+        "name": "Tempest Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Sharknado.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Sharknado.png"
+  },
+  {
+    "englishName": "UFO",
+    "id": 140,
+    "image": "UFO.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "UFOMinion",
+    "localized": {
+      "en": {
+        "name": "UFO",
+        "namesub": null,
+        "page": "Xeno Staff",
+        "tooltip": "The UFO will fight for you"
+      },
+      "zh": {
+        "name": "UFO",
+        "namesub": null,
+        "page": "Xeno Staff",
+        "tooltip": "UFO将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "XenoStaff",
+        "itemId": 2749,
+        "name": "Xeno Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "UFO.png",
+    "imageUrl": "https://terraria.wiki.gg/images/UFO.png"
+  },
+  {
+    "englishName": "UFO Mount",
+    "id": 141,
+    "image": "UFO Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "UFOMount",
+    "localized": {
+      "en": {
+        "name": "UFO Mount",
+        "namesub": null,
+        "page": "Cosmic Car Key",
+        "tooltip": "It's a good thing you had a MAC"
+      },
+      "zh": {
+        "name": "UFO坐骑",
+        "namesub": null,
+        "page": "Cosmic Car Key",
+        "tooltip": "幸好你有MAC"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "UFO Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/UFO_Mount_(buff).png"
+  },
+  {
+    "englishName": "Drill Mount",
+    "id": 142,
+    "image": "Drill Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DrillMount",
+    "localized": {
+      "en": {
+        "name": "Drill Mount",
+        "namesub": null,
+        "page": "Drill Containment Unit",
+        "tooltip": "Riding in a flying drill"
+      },
+      "zh": {
+        "name": "钻头坐骑",
+        "namesub": null,
+        "page": "Drill Containment Unit",
+        "tooltip": "骑上飞行钻头"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Drill Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Drill_Mount_(buff).png"
+  },
+  {
+    "englishName": "Scutlix Mount",
+    "id": 143,
+    "image": "Scutlix Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ScutlixMount",
+    "localized": {
+      "en": {
+        "name": "Scutlix Mount",
+        "namesub": null,
+        "page": "Brain Scrambler (item)",
+        "tooltip": "Pew Pew"
+      },
+      "zh": {
+        "name": "鳞甲怪坐骑",
+        "namesub": null,
+        "page": "Brain Scrambler (item)",
+        "tooltip": "piu piu"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Scutlix Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Scutlix_Mount_(buff).png"
+  },
+  {
+    "englishName": "Electrified",
+    "id": 144,
+    "image": "Electrified.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Electrified",
+    "localized": {
+      "en": {
+        "name": "Electrified",
+        "namesub": null,
+        "page": "Electrified",
+        "tooltip": "Moving hurts!"
+      },
+      "zh": {
+        "name": "带电",
+        "namesub": null,
+        "page": "Electrified",
+        "tooltip": "一动就痛！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Electrified.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Electrified.png"
+  },
+  {
+    "englishName": "Moon Bite",
+    "id": 145,
+    "image": "Moon Bite.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MoonLeech",
+    "localized": {
+      "en": {
+        "name": "Moon Bite",
+        "namesub": null,
+        "page": "Moon Bite",
+        "tooltip": "You are unable to absorb healing effects"
+      },
+      "zh": {
+        "name": "月噬",
+        "namesub": null,
+        "page": "Moon Bite",
+        "tooltip": "你无法吸收治疗效果"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Moon Bite.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Moon_Bite.png"
+  },
+  {
+    "englishName": "Happy!",
+    "id": 146,
+    "image": "Happy!.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Sunflower",
+    "localized": {
+      "en": {
+        "name": "Happy!",
+        "namesub": null,
+        "page": "Sunflower",
+        "tooltip": "Movement speed increased and monster spawns reduced"
+      },
+      "zh": {
+        "name": "快乐！",
+        "namesub": null,
+        "page": "Sunflower",
+        "tooltip": "移动速度提高，怪物生成减少"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Happy!.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Happy!.png"
+  },
+  {
+    "englishName": "Banner",
+    "id": 147,
+    "image": "Banner (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MonsterBanner",
+    "localized": {
+      "en": {
+        "name": "Banner",
+        "namesub": null,
+        "page": "Banners (enemy)",
+        "tooltip": "Increased damage and defense from the following:"
+      },
+      "zh": {
+        "name": "旗帜",
+        "namesub": null,
+        "page": "Banners (enemy)",
+        "tooltip": "提高对以下怪的伤害和防御："
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Banner (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Banner_(buff).png"
+  },
+  {
+    "englishName": "Feral Bite",
+    "id": 148,
+    "image": "Feral Bite.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Rabies",
+    "localized": {
+      "en": {
+        "name": "Feral Bite",
+        "namesub": null,
+        "page": "Feral Bite",
+        "tooltip": "Increased damage, Decreased life regen, Causes status effects"
+      },
+      "zh": {
+        "name": "野性咬噬",
+        "namesub": null,
+        "page": "Feral Bite",
+        "tooltip": "提高伤害，降低生命再生速度，对状态造成影响"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Feral Bite.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Feral_Bite.png"
+  },
+  {
+    "englishName": "Webbed",
+    "id": 149,
+    "image": "Webbed.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Webbed",
+    "localized": {
+      "en": {
+        "name": "Webbed",
+        "namesub": null,
+        "page": "Webbed",
+        "tooltip": "You are stuck"
+      },
+      "zh": {
+        "name": "被网住",
+        "namesub": null,
+        "page": "Webbed",
+        "tooltip": "你动不了了"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Webbed.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Webbed.png"
+  },
+  {
+    "englishName": "Bewitched",
+    "id": 150,
+    "image": "Bewitched.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Bewitched",
+    "localized": {
+      "en": {
+        "name": "Bewitched",
+        "namesub": null,
+        "page": "Bewitching Table",
+        "tooltip": "Increased your max number of minions by 1"
+      },
+      "zh": {
+        "name": "着魔",
+        "namesub": null,
+        "page": "Bewitching Table",
+        "tooltip": "仆从数量上限增加1"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Bewitched.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Bewitched.png"
+  },
+  {
+    "englishName": "Life Drain",
+    "id": 151,
+    "image": "Life Drain (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SoulDrain",
+    "localized": {
+      "en": {
+        "name": "Life Drain",
+        "namesub": null,
+        "page": "Life Drain",
+        "tooltip": "Increased life regeneration"
+      },
+      "zh": {
+        "name": "夺命杖",
+        "namesub": null,
+        "page": "Life Drain",
+        "tooltip": "提高生命再生速度"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Life Drain (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Life_Drain_(buff).png"
+  },
+  {
+    "englishName": "Magic Lantern",
+    "id": 152,
+    "image": "Magic Lantern (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MagicLantern",
+    "localized": {
+      "en": {
+        "name": "Magic Lantern",
+        "namesub": null,
+        "page": "Magic Lantern",
+        "tooltip": "An enchanted lantern is lighting your way"
+      },
+      "zh": {
+        "name": "魔法灯笼",
+        "namesub": null,
+        "page": "Magic Lantern",
+        "tooltip": "附魔灯笼照亮前路"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "MagicLantern",
+        "itemId": 3043,
+        "name": "Magic Lantern"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Magic Lantern (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Magic_Lantern_(buff).png"
+  },
+  {
+    "englishName": "Shadowflame",
+    "id": 153,
+    "image": "Shadowflame.png",
+    "immuneNpcCount": 8,
+    "immuneNpcSample": [
+      {
+        "internalName": "Demon",
+        "name": "Demon",
+        "npcId": 62
+      },
+      {
+        "internalName": "VoodooDemon",
+        "name": "Voodoo Demon",
+        "npcId": 66
+      },
+      {
+        "internalName": "RedDevil",
+        "name": "Red Devil",
+        "npcId": 156
+      },
+      {
+        "internalName": "Ghost",
+        "name": "Ghost",
+        "npcId": 316
+      },
+      {
+        "internalName": "GoblinSummoner",
+        "name": "Goblin Warlock",
+        "npcId": 471
+      },
+      {
+        "internalName": "ShadowFlameApparition",
+        "name": "Shadowflame Apparition",
+        "npcId": 472
+      },
+      {
+        "internalName": "AncientCultistSquidhead",
+        "name": "Ancient Vision",
+        "npcId": 521
+      },
+      {
+        "internalName": "DesertDjinn",
+        "name": "Desert Spirit",
+        "npcId": 533
+      }
+    ],
+    "internalName": "ShadowFlame",
+    "localized": {
+      "en": {
+        "name": "Shadowflame",
+        "namesub": null,
+        "page": "Shadowflame",
+        "tooltip": "Losing life"
+      },
+      "zh": {
+        "name": "暗影焰",
+        "namesub": null,
+        "page": "Shadowflame",
+        "tooltip": "正在损失生命值"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Shadowflame.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Shadowflame.png"
+  },
+  {
+    "englishName": "Baby Face Monster",
+    "id": 154,
+    "image": "Baby Face Monster (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BabyFaceMonster",
+    "localized": {
+      "en": {
+        "name": "Baby Face Monster",
+        "namesub": null,
+        "page": "Bone Rattle",
+        "tooltip": "A baby face monster is following you"
+      },
+      "zh": {
+        "name": "脸怪宝宝",
+        "namesub": null,
+        "page": "Bone Rattle",
+        "tooltip": "脸怪宝宝正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "BoneRattle",
+        "itemId": 3060,
+        "name": "Bone Rattle"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Baby Face Monster (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Baby_Face_Monster_(buff).png"
+  },
+  {
+    "englishName": "Crimson Heart",
+    "id": 155,
+    "image": "Crimson Heart (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "CrimsonHeart",
+    "localized": {
+      "en": {
+        "name": "Crimson Heart",
+        "namesub": null,
+        "page": "Crimson Heart (item)",
+        "tooltip": "A magical heart that provides light"
+      },
+      "zh": {
+        "name": "猩红之心",
+        "namesub": null,
+        "page": "Crimson Heart (item)",
+        "tooltip": "提供照明的魔法心"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "CrimsonHeart",
+        "itemId": 3062,
+        "name": "Crimson Heart"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Crimson Heart (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Crimson_Heart_(buff).png"
+  },
+  {
+    "englishName": "Stoned",
+    "id": 156,
+    "image": "Stoned.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Stoned",
+    "localized": {
+      "en": {
+        "name": "Stoned",
+        "namesub": null,
+        "page": "Stoned",
+        "tooltip": "You are completely petrified!"
+      },
+      "zh": {
+        "name": "石化",
+        "namesub": null,
+        "page": "Stoned",
+        "tooltip": "你彻底石化了！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Stoned.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Stoned.png"
+  },
+  {
+    "englishName": "Peace Candle",
+    "id": 157,
+    "image": "Peace Candle (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PeaceCandle",
+    "localized": {
+      "en": {
+        "name": "Peace Candle",
+        "namesub": null,
+        "page": "Peace Candle",
+        "tooltip": "Decreased monster spawn rate"
+      },
+      "zh": {
+        "name": "和平蜡烛",
+        "namesub": null,
+        "page": "Peace Candle",
+        "tooltip": "怪物生成速度降低"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Peace Candle (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Peace_Candle_(buff).png"
+  },
+  {
+    "englishName": "Star in a Bottle",
+    "id": 158,
+    "image": "Star in a Bottle (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "StarInBottle",
+    "localized": {
+      "en": {
+        "name": "Star in a Bottle",
+        "namesub": null,
+        "page": "Star in a Bottle",
+        "tooltip": "Increased mana regeneration"
+      },
+      "zh": {
+        "name": "星星瓶",
+        "namesub": null,
+        "page": "Star in a Bottle",
+        "tooltip": "提高魔力再生速度"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Star in a Bottle (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Star_in_a_Bottle_(buff).png"
+  },
+  {
+    "englishName": "Sharpened",
+    "id": 159,
+    "image": "Sharpened.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Sharpened",
+    "localized": {
+      "en": {
+        "name": "Sharpened",
+        "namesub": null,
+        "page": "Sharpening Station",
+        "tooltip": "Melee weapons have armor penetration"
+      },
+      "zh": {
+        "name": "锋利",
+        "namesub": null,
+        "page": "Sharpening Station",
+        "tooltip": "近战武器具有盔甲穿透"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Sharpened.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Sharpened.png"
+  },
+  {
+    "englishName": "Dazed",
+    "id": 160,
+    "image": "Dazed.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Dazed",
+    "localized": {
+      "en": {
+        "name": "Dazed",
+        "namesub": null,
+        "page": "Dazed",
+        "tooltip": "Movement is greatly slowed"
+      },
+      "zh": {
+        "name": "眩晕",
+        "namesub": null,
+        "page": "Dazed",
+        "tooltip": "移动大大减慢"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Dazed.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Dazed.png"
+  },
+  {
+    "englishName": "Deadly Sphere",
+    "id": 161,
+    "image": "Deadly Sphere (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DeadlySphere",
+    "localized": {
+      "en": {
+        "name": "Deadly Sphere",
+        "namesub": null,
+        "page": "Deadly Sphere Staff",
+        "tooltip": "The Deadly Sphere will fight for you"
+      },
+      "zh": {
+        "name": "致命球",
+        "namesub": null,
+        "page": "Deadly Sphere Staff",
+        "tooltip": "致命球将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "DeadlySphereStaff",
+        "itemId": 3249,
+        "name": "Deadly Sphere Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Deadly Sphere (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Deadly_Sphere_(buff).png"
+  },
+  {
+    "englishName": "Unicorn Mount",
+    "id": 162,
+    "image": "Unicorn Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "UnicornMount",
+    "localized": {
+      "en": {
+        "name": "Unicorn Mount",
+        "namesub": null,
+        "page": "Blessed Apple",
+        "tooltip": "Charge ahead... fabulously!"
+      },
+      "zh": {
+        "name": "独角兽坐骑",
+        "namesub": null,
+        "page": "Blessed Apple",
+        "tooltip": "向前冲……太棒了！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Unicorn Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Unicorn_Mount_(buff).png"
+  },
+  {
+    "englishName": "Obstructed",
+    "id": 163,
+    "image": "Obstructed.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "Obstructed",
+    "localized": {
+      "en": {
+        "name": "Obstructed",
+        "namesub": null,
+        "page": "Brain Suckler",
+        "tooltip": "You can't see!"
+      },
+      "zh": {
+        "name": "遮挡",
+        "namesub": null,
+        "page": "Brain Suckler",
+        "tooltip": "你看不见了！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Obstructed.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Obstructed.png"
+  },
+  {
+    "englishName": "Distorted",
+    "id": 164,
+    "image": "Distorted.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "VortexDebuff",
+    "localized": {
+      "en": {
+        "name": "Distorted",
+        "namesub": null,
+        "page": "Alien Queen",
+        "tooltip": "Gravity around you is distorted"
+      },
+      "zh": {
+        "name": "扭曲",
+        "namesub": null,
+        "page": "Alien Queen",
+        "tooltip": "你周围的重力是扭曲的"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Distorted.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Distorted.png"
+  },
+  {
+    "englishName": "Dryad's Blessing",
+    "id": 165,
+    "image": "Dryad's Blessing.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DryadsWard",
+    "localized": {
+      "en": {
+        "name": "Dryad's Blessing",
+        "namesub": null,
+        "page": "Dryad's Blessing",
+        "tooltip": "The power of nature protects you"
+      },
+      "zh": {
+        "name": "树妖祝福",
+        "namesub": null,
+        "page": "Dryad's Blessing",
+        "tooltip": "自然的力量保护你"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Dryad's Blessing.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Dryad's_Blessing.png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 166,
+    "image": "Mechanical Cart (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MinecartMech",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Mechanical",
+        "page": "Mechanical Cart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Mechanical Cart",
+        "page": "Mechanical Cart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Mechanical Cart (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mechanical_Cart_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 167,
+    "image": "Mechanical Cart (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MinecartMechLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Mechanical Cart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Mechanical Cart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Mechanical Cart (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mechanical_Cart_(buff).png"
+  },
+  {
+    "englishName": "Cute Fishron Mount",
+    "id": 168,
+    "image": "Cute Fishron Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "CuteFishronMount",
+    "localized": {
+      "en": {
+        "name": "Cute Fishron Mount",
+        "namesub": null,
+        "page": "Shrimpy Truffle",
+        "tooltip": "Just don't make it crawl."
+      },
+      "zh": {
+        "name": "可爱猪龙鱼坐骑",
+        "namesub": null,
+        "page": "Shrimpy Truffle",
+        "tooltip": "不要让它爬行。"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Cute Fishron Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Cute_Fishron_Mount_(buff).png"
+  },
+  {
+    "englishName": "Penetrated",
+    "id": 169,
+    "image": "Penetrated.png",
+    "immuneNpcCount": 2,
+    "immuneNpcSample": [
+      {
+        "internalName": "SkeletronHead",
+        "name": "Skeletron",
+        "npcId": 35
+      },
+      {
+        "internalName": "SkeletronPrime",
+        "name": "Skeletron Prime",
+        "npcId": 127
+      }
+    ],
+    "internalName": "BoneJavelin",
+    "localized": {
+      "en": {
+        "name": "Penetrated",
+        "namesub": null,
+        "page": "Bone Javelin",
+        "tooltip": "Bleeding Out"
+      },
+      "zh": {
+        "name": "穿透",
+        "namesub": null,
+        "page": "Bone Javelin",
+        "tooltip": "血流不止"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Penetrated.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Penetrated.png"
+  },
+  {
+    "englishName": "Solar Blaze",
+    "id": 170,
+    "image": "Solar Blaze.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SolarShield1",
+    "localized": {
+      "en": {
+        "name": "Solar Blaze",
+        "namesub": "1 stack",
+        "page": "Solar Flare armor",
+        "tooltip": "Absorbs 20% of damage taken, repel enemies when taking damage"
+      },
+      "zh": {
+        "name": "日耀烈焰",
+        "namesub": "1 层",
+        "page": "Solar Flare armor",
+        "tooltip": "吸收20%所受伤害，受到伤害时推开敌人"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Solar Blaze.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Solar_Blaze.png"
+  },
+  {
+    "englishName": "Solar Blaze",
+    "id": 171,
+    "image": "Solar Blaze2.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SolarShield2",
+    "localized": {
+      "en": {
+        "name": "Solar Blaze",
+        "namesub": "2 stacks",
+        "page": "Solar Flare armor",
+        "tooltip": "Absorbs 20% of damage taken, repel enemies when taking damage"
+      },
+      "zh": {
+        "name": "日耀烈焰",
+        "namesub": "2 层",
+        "page": "Solar Flare armor",
+        "tooltip": "吸收20%所受伤害，受到伤害时推开敌人"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Solar Blaze2.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Solar_Blaze2.png"
+  },
+  {
+    "englishName": "Solar Blaze",
+    "id": 172,
+    "image": "Solar Blaze3.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SolarShield3",
+    "localized": {
+      "en": {
+        "name": "Solar Blaze",
+        "namesub": "3 stacks",
+        "page": "Solar Flare armor",
+        "tooltip": "Absorbs 20% of damage taken, repel enemies when taking damage"
+      },
+      "zh": {
+        "name": "日耀烈焰",
+        "namesub": "3 层",
+        "page": "Solar Flare armor",
+        "tooltip": "吸收20%所受伤害，受到伤害时推开敌人"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Solar Blaze3.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Solar_Blaze3.png"
+  },
+  {
+    "englishName": "Life Nebula",
+    "id": 173,
+    "image": "Life Nebula1.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "NebulaUpLife1",
+    "localized": {
+      "en": {
+        "name": "Life Nebula",
+        "namesub": "1 stack",
+        "page": "Life Booster",
+        "tooltip": "Increased life regeneration"
+      },
+      "zh": {
+        "name": "生命星云",
+        "namesub": "1 层",
+        "page": "Life Booster",
+        "tooltip": "提高生命再生速度"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "NebulaPickup2",
+        "itemId": 3454,
+        "name": "Life Booster"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Life Nebula1.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Life_Nebula1.png"
+  },
+  {
+    "englishName": "Life Nebula",
+    "id": 174,
+    "image": "Life Nebula2.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "NebulaUpLife2",
+    "localized": {
+      "en": {
+        "name": "Life Nebula",
+        "namesub": "2 stacks",
+        "page": "Life Booster",
+        "tooltip": "Increased life regeneration"
+      },
+      "zh": {
+        "name": "生命星云",
+        "namesub": "2 层",
+        "page": "Life Booster",
+        "tooltip": "提高生命再生速度"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Life Nebula2.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Life_Nebula2.png"
+  },
+  {
+    "englishName": "Life Nebula",
+    "id": 175,
+    "image": "Life Nebula3.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "NebulaUpLife3",
+    "localized": {
+      "en": {
+        "name": "Life Nebula",
+        "namesub": "3 stacks",
+        "page": "Life Booster",
+        "tooltip": "Increased life regeneration"
+      },
+      "zh": {
+        "name": "生命星云",
+        "namesub": "3 层",
+        "page": "Life Booster",
+        "tooltip": "提高生命再生速度"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Life Nebula3.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Life_Nebula3.png"
+  },
+  {
+    "englishName": "Mana Nebula",
+    "id": 176,
+    "image": "Mana Nebula1.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "NebulaUpMana1",
+    "localized": {
+      "en": {
+        "name": "Mana Nebula",
+        "namesub": "1 stack",
+        "page": "Mana Booster",
+        "tooltip": "Increased mana regeneration"
+      },
+      "zh": {
+        "name": "魔力星云",
+        "namesub": "1 层",
+        "page": "Mana Booster",
+        "tooltip": "提高魔力再生速度"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "NebulaPickup3",
+        "itemId": 3455,
+        "name": "Mana Booster"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Mana Nebula1.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mana_Nebula1.png"
+  },
+  {
+    "englishName": "Mana Nebula",
+    "id": 177,
+    "image": "Mana Nebula2.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "NebulaUpMana2",
+    "localized": {
+      "en": {
+        "name": "Mana Nebula",
+        "namesub": "2 stacks",
+        "page": "Mana Booster",
+        "tooltip": "Increased mana regeneration"
+      },
+      "zh": {
+        "name": "魔力星云",
+        "namesub": "2 层",
+        "page": "Mana Booster",
+        "tooltip": "提高魔力再生速度"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Mana Nebula2.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mana_Nebula2.png"
+  },
+  {
+    "englishName": "Mana Nebula",
+    "id": 178,
+    "image": "Mana Nebula3.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "NebulaUpMana3",
+    "localized": {
+      "en": {
+        "name": "Mana Nebula",
+        "namesub": "3 stacks",
+        "page": "Mana Booster",
+        "tooltip": "Increased mana regeneration"
+      },
+      "zh": {
+        "name": "魔力星云",
+        "namesub": "3 层",
+        "page": "Mana Booster",
+        "tooltip": "提高魔力再生速度"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Mana Nebula3.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mana_Nebula3.png"
+  },
+  {
+    "englishName": "Damage Nebula",
+    "id": 179,
+    "image": "Damage Nebula1.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "NebulaUpDmg1",
+    "localized": {
+      "en": {
+        "name": "Damage Nebula",
+        "namesub": "1 stack",
+        "page": "Damage Booster",
+        "tooltip": "15% increased damage"
+      },
+      "zh": {
+        "name": "伤害星云",
+        "namesub": "1 层",
+        "page": "Damage Booster",
+        "tooltip": "伤害提高15%"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "NebulaPickup1",
+        "itemId": 3453,
+        "name": "Damage Booster"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Damage Nebula1.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Damage_Nebula1.png"
+  },
+  {
+    "englishName": "Damage Nebula",
+    "id": 180,
+    "image": "Damage Nebula2.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "NebulaUpDmg2",
+    "localized": {
+      "en": {
+        "name": "Damage Nebula",
+        "namesub": "2 stacks",
+        "page": "Damage Booster",
+        "tooltip": "30% increased damage"
+      },
+      "zh": {
+        "name": "伤害星云",
+        "namesub": "2 层",
+        "page": "Damage Booster",
+        "tooltip": "伤害提高30%"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Damage Nebula2.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Damage_Nebula2.png"
+  },
+  {
+    "englishName": "Damage Nebula",
+    "id": 181,
+    "image": "Damage Nebula3.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "NebulaUpDmg3",
+    "localized": {
+      "en": {
+        "name": "Damage Nebula",
+        "namesub": "3 stacks",
+        "page": "Damage Booster",
+        "tooltip": "45% increased damage"
+      },
+      "zh": {
+        "name": "伤害星云",
+        "namesub": "3 层",
+        "page": "Damage Booster",
+        "tooltip": "伤害提高45%"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Damage Nebula3.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Damage_Nebula3.png"
+  },
+  {
+    "englishName": "Stardust Cell",
+    "id": 182,
+    "image": "Stardust Cell.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "StardustMinion",
+    "localized": {
+      "en": {
+        "name": "Stardust Cell",
+        "namesub": "Stardust Minion",
+        "page": "Stardust Cell Staff",
+        "tooltip": "The stardust cell will fight for you"
+      },
+      "zh": {
+        "name": "星尘细胞",
+        "namesub": "Stardust Minion",
+        "page": "Stardust Cell Staff",
+        "tooltip": "星尘细胞将为你而战"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "StardustCellStaff",
+        "itemId": 3474,
+        "name": "Stardust Cell Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Stardust Cell.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Stardust_Cell.png"
+  },
+  {
+    "englishName": "Celled",
+    "id": 183,
+    "image": "Celled.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "StardustMinionBleed",
+    "localized": {
+      "en": {
+        "name": "Celled",
+        "namesub": null,
+        "page": "Stardust Cell Staff",
+        "tooltip": "being eaten by cells"
+      },
+      "zh": {
+        "name": "细胞附着",
+        "namesub": null,
+        "page": "Stardust Cell Staff",
+        "tooltip": "被细胞吞噬"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Celled.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Celled.png"
+  },
+  {
+    "englishName": "Minecart",
+    "id": 184,
+    "image": "Minecart (wood) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MinecartWood",
+    "localized": {
+      "en": {
+        "name": "Minecart",
+        "namesub": "Wooden",
+        "page": "Minecart",
+        "tooltip": "Riding in a minecart"
+      },
+      "zh": {
+        "name": "矿车",
+        "namesub": "Wooden Minecart",
+        "page": "Minecart",
+        "tooltip": "驾驶矿车"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (wood) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(wood)_(buff).png"
+  },
+  {
+    "englishName": null,
+    "id": 185,
+    "image": "Minecart (wood) (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "MinecartWoodLegacyUnused",
+    "localized": {
+      "en": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      },
+      "zh": {
+        "name": null,
+        "namesub": null,
+        "page": "Minecart",
+        "tooltip": null
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Minecart (wood) (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Minecart_(wood)_(buff).png"
+  },
+  {
+    "englishName": "Dryad's Bane",
+    "id": 186,
+    "image": "Dryad's Bane.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "DryadsWardDebuff",
+    "localized": {
+      "en": {
+        "name": "Dryad's Bane",
+        "namesub": null,
+        "page": "Dryad's Blessing",
+        "tooltip": "The power of nature compells you"
+      },
+      "zh": {
+        "name": "树妖祸害",
+        "namesub": null,
+        "page": "Dryad's Blessing",
+        "tooltip": "自然的力量逼迫你"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Dryad's Bane.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Dryad's_Bane.png"
+  },
+  {
+    "englishName": "Stardust Guardian",
+    "id": 187,
+    "image": "Stardust Guardian.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "StardustGuardianMinion",
+    "localized": {
+      "en": {
+        "name": "Stardust Guardian",
+        "namesub": null,
+        "page": "Stardust armor",
+        "tooltip": "The stardust guardian will protect you"
+      },
+      "zh": {
+        "name": "星尘守卫",
+        "namesub": null,
+        "page": "Stardust armor",
+        "tooltip": "星尘守卫会保护你"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Stardust Guardian.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Stardust_Guardian.png"
+  },
+  {
+    "englishName": "Stardust Dragon",
+    "id": 188,
+    "image": "Stardust Dragon.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "StardustDragonMinion",
+    "localized": {
+      "en": {
+        "name": "Stardust Dragon",
+        "namesub": null,
+        "page": "Stardust Dragon Staff",
+        "tooltip": "The stardust dragon will protect you"
+      },
+      "zh": {
+        "name": "星尘之龙",
+        "namesub": null,
+        "page": "Stardust Dragon Staff",
+        "tooltip": "星尘之龙会保护你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "StardustDragonStaff",
+        "itemId": 3531,
+        "name": "Stardust Dragon Staff"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Stardust Dragon.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Stardust_Dragon.png"
+  },
+  {
+    "englishName": "Daybroken",
+    "id": 189,
+    "image": "Daybroken.png",
+    "immuneNpcCount": 3,
+    "immuneNpcSample": [
+      {
+        "internalName": "Ghost",
+        "name": "Ghost",
+        "npcId": 316
+      },
+      {
+        "internalName": "AncientCultistSquidhead",
+        "name": "Ancient Vision",
+        "npcId": 521
+      },
+      {
+        "internalName": "DesertDjinn",
+        "name": "Desert Spirit",
+        "npcId": 533
+      }
+    ],
+    "internalName": "Daybreak",
+    "localized": {
+      "en": {
+        "name": "Daybroken",
+        "namesub": null,
+        "page": "Daybroken",
+        "tooltip": "Incinerated by solar rays"
+      },
+      "zh": {
+        "name": "破晓",
+        "namesub": null,
+        "page": "Daybroken",
+        "tooltip": "被日耀射线焚烧"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Daybroken.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Daybroken.png"
+  },
+  {
+    "englishName": "Suspicious Looking Eye",
+    "id": 190,
+    "image": "Suspicious Looking Eye (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SuspiciousTentacle",
+    "localized": {
+      "en": {
+        "name": "Suspicious Looking Eye",
+        "namesub": null,
+        "page": "Suspicious Looking Tentacle",
+        "tooltip": "A suspicious looking eye that provides light"
+      },
+      "zh": {
+        "name": "可疑眼球",
+        "namesub": null,
+        "page": "Suspicious Looking Tentacle",
+        "tooltip": "提供照明的可疑眼球"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "SuspiciousLookingTentacle",
+        "itemId": 3577,
+        "name": "Suspicious Looking Tentacle"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Suspicious Looking Eye (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Suspicious_Looking_Eye_(buff).png"
+  },
+  {
+    "englishName": "Companion Cube",
+    "id": 191,
+    "image": "Companion Cube (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "CompanionCube",
+    "localized": {
+      "en": {
+        "name": "Companion Cube",
+        "namesub": null,
+        "page": "Companion Cube",
+        "tooltip": "Will never threaten to stab you and, in fact, cannot speak"
+      },
+      "zh": {
+        "name": "同伴方块",
+        "namesub": null,
+        "page": "Companion Cube",
+        "tooltip": "永远不会威胁要刺伤你，而且，其实，也不会说话"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "CompanionCube",
+        "itemId": 3628,
+        "name": "Companion Cube"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Companion Cube (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Companion_Cube_(buff).png"
+  },
+  {
+    "englishName": "Sugar Rush",
+    "id": 192,
+    "image": "Sugar Rush.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "SugarRush",
+    "localized": {
+      "en": {
+        "name": "Sugar Rush",
+        "namesub": null,
+        "page": "Slice of Cake",
+        "tooltip": "20% increased movement and mining speed"
+      },
+      "zh": {
+        "name": "糖果冲刺",
+        "namesub": null,
+        "page": "Slice of Cake",
+        "tooltip": "移动和挖矿速度各提高20%"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Sugar Rush.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Sugar_Rush.png"
+  },
+  {
+    "englishName": "Basilisk Mount",
+    "id": 193,
+    "image": "Basilisk Mount (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "BasiliskMount",
+    "localized": {
+      "en": {
+        "name": "Basilisk Mount",
+        "namesub": null,
+        "page": "Ancient Horn",
+        "tooltip": "Crash into anyone... and EVERYONE!"
+      },
+      "zh": {
+        "name": "蛇蜥怪坐骑",
+        "namesub": null,
+        "page": "Ancient Horn",
+        "tooltip": "谁都敢撞……谁都要撞！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Basilisk Mount (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Basilisk_Mount_(buff).png"
+  },
+  {
+    "englishName": "Mighty Wind",
+    "id": 194,
+    "image": "Mighty Wind.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WindPushed",
+    "localized": {
+      "en": {
+        "name": "Mighty Wind",
+        "namesub": null,
+        "page": "Mighty Wind",
+        "tooltip": "The wind moves you around!"
+      },
+      "zh": {
+        "name": "强风",
+        "namesub": null,
+        "page": "Mighty Wind",
+        "tooltip": "风将你吹动！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Mighty Wind.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Mighty_Wind.png"
+  },
+  {
+    "englishName": "Withered Armor",
+    "id": 195,
+    "image": "Withered Armor.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WitheredArmor",
+    "localized": {
+      "en": {
+        "name": "Withered Armor",
+        "namesub": null,
+        "page": "Wither Beast",
+        "tooltip": "Your armor is lowered!"
+      },
+      "zh": {
+        "name": "枯萎盔甲",
+        "namesub": null,
+        "page": "Wither Beast",
+        "tooltip": "你的盔甲降级了！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Withered Armor.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Withered_Armor.png"
+  },
+  {
+    "englishName": "Withered Weapon",
+    "id": 196,
+    "image": "Withered Weapon.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "WitheredWeapon",
+    "localized": {
+      "en": {
+        "name": "Withered Weapon",
+        "namesub": null,
+        "page": "Etherian Lightning Bug",
+        "tooltip": "Your attacks are weaker!"
+      },
+      "zh": {
+        "name": "枯萎武器",
+        "namesub": null,
+        "page": "Etherian Lightning Bug",
+        "tooltip": "你的攻击变弱了！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Withered Weapon.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Withered_Weapon.png"
+  },
+  {
+    "englishName": "Oozed",
+    "id": 197,
+    "image": "Oozed.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "OgreSpit",
+    "localized": {
+      "en": {
+        "name": "Oozed",
+        "namesub": null,
+        "page": "Ogre",
+        "tooltip": "Movement is significantly reduced"
+      },
+      "zh": {
+        "name": "分泌物",
+        "namesub": null,
+        "page": "Ogre",
+        "tooltip": "移动速度显著降低"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Oozed.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Oozed.png"
+  },
+  {
+    "englishName": "Striking Moment",
+    "id": 198,
+    "image": "Striking Moment.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "ParryDamageBuff",
+    "localized": {
+      "en": {
+        "name": "Striking Moment",
+        "namesub": null,
+        "page": "Striking Moment",
+        "tooltip": "400% increased damage for next melee strike"
+      },
+      "zh": {
+        "name": "惊人一刻",
+        "namesub": null,
+        "page": "Striking Moment",
+        "tooltip": "下次近战攻击伤害提高400%"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "buff",
+    "imageFileTitle": "Striking Moment.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Striking_Moment.png"
+  },
+  {
+    "englishName": "Creative Shock",
+    "id": 199,
+    "image": "Creative Shock.png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "NoBuilding",
+    "localized": {
+      "en": {
+        "name": "Creative Shock",
+        "namesub": null,
+        "page": "Creative Shock",
+        "tooltip": "You have lost the power of creation!"
+      },
+      "zh": {
+        "name": "创意震撼",
+        "namesub": null,
+        "page": "Creative Shock",
+        "tooltip": "你已失去创造能力！"
+      }
+    },
+    "sourceItemCount": 0,
+    "sourceItems": [],
+    "type": "debuff",
+    "imageFileTitle": "Creative Shock.png",
+    "imageUrl": "https://terraria.wiki.gg/images/Creative_Shock.png"
+  },
+  {
+    "englishName": "Propeller Gato",
+    "id": 200,
+    "image": "Propeller Gato (buff).png",
+    "immuneNpcCount": 0,
+    "immuneNpcSample": [],
+    "internalName": "PetDD2Gato",
+    "localized": {
+      "en": {
+        "name": "Propeller Gato",
+        "namesub": null,
+        "page": "Gato Egg",
+        "tooltip": "A propeller gato is following you"
+      },
+      "zh": {
+        "name": "飞翔Gato",
+        "namesub": null,
+        "page": "Gato Egg",
+        "tooltip": "飞翔Gato正跟着你"
+      }
+    },
+    "sourceItemCount": 1,
+    "sourceItems": [
+      {
+        "buffTime": null,
+        "internalName": "DD2PetGato",
+        "itemId": 3855,
+        "name": "Gato Egg"
+      }
+    ],
+    "type": "buff",
+    "imageFileTitle": "Propeller Gato (buff).png",
+    "imageUrl": "https://terraria.wiki.gg/images/Propeller_Gato_(buff).png"
+  }
+]

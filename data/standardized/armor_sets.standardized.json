@@ -1,0 +1,1753 @@
+{
+  "entity": "armor_sets",
+  "generatedAt": "2026-04-04T04:11:34.894Z",
+  "records": [
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
+      "primaryPart": null,
+      "setCount": 7,
+      "sets": [
+        [
+          727,
+          728,
+          729
+        ],
+        [
+          733,
+          734,
+          735
+        ],
+        [
+          730,
+          731,
+          732
+        ],
+        [
+          736,
+          737,
+          738
+        ],
+        [
+          924,
+          925,
+          926
+        ],
+        [
+          2509,
+          2510,
+          2511
+        ],
+        [
+          2512,
+          2513,
+          2514
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Wood",
+      "uniqueItemIds": [
+        727,
+        728,
+        729,
+        733,
+        734,
+        735,
+        730,
+        731,
+        732,
+        736,
+        737,
+        738,
+        924,
+        925,
+        926,
+        2509,
+        2510,
+        2511,
+        2512,
+        2513,
+        2514
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.AshWood",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          5279,
+          5280,
+          5281
+        ]
+      ],
+      "textKey": "ArmorSetBonus.AshWood",
+      "uniqueItemIds": [
+        5279,
+        5280,
+        5281
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier1",
+      "primaryPart": null,
+      "setCount": 4,
+      "sets": [
+        [
+          89,
+          80,
+          76
+        ],
+        [
+          687,
+          688,
+          689
+        ],
+        [
+          90,
+          81,
+          77
+        ],
+        [
+          954,
+          81,
+          77
+        ]
+      ],
+      "textKey": "ArmorSetBonus.MetalTier1",
+      "uniqueItemIds": [
+        89,
+        80,
+        76,
+        687,
+        688,
+        689,
+        90,
+        81,
+        77,
+        954
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.MetalTier2",
+      "primaryPart": null,
+      "setCount": 5,
+      "sets": [
+        [
+          91,
+          82,
+          78
+        ],
+        [
+          92,
+          83,
+          79
+        ],
+        [
+          955,
+          83,
+          79
+        ],
+        [
+          690,
+          691,
+          692
+        ],
+        [
+          693,
+          694,
+          695
+        ]
+      ],
+      "textKey": "ArmorSetBonus.MetalTier2",
+      "uniqueItemIds": [
+        91,
+        82,
+        78,
+        92,
+        83,
+        79,
+        955,
+        690,
+        691,
+        692,
+        693,
+        694,
+        695
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Platinum",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          696,
+          697,
+          698
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Platinum",
+      "uniqueItemIds": [
+        696,
+        697,
+        698
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Pumpkin",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          1731,
+          1732,
+          1733
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Pumpkin",
+      "uniqueItemIds": [
+        1731,
+        1732,
+        1733
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Gladiator",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          3187,
+          3188,
+          3189
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Gladiator",
+      "uniqueItemIds": [
+        3187,
+        3188,
+        3189
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Ninja",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          256,
+          257,
+          258
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Ninja",
+      "uniqueItemIds": [
+        256,
+        257,
+        258
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Fossil",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          3374,
+          3375,
+          3376
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Fossil",
+      "uniqueItemIds": [
+        3374,
+        3375,
+        3376
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Necro",
+      "primaryPart": null,
+      "setCount": 2,
+      "sets": [
+        [
+          151,
+          152,
+          153
+        ],
+        [
+          959,
+          152,
+          153
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Bone",
+      "uniqueItemIds": [
+        151,
+        152,
+        153,
+        959
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.BeetleDamage",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          0,
+          2199,
+          2200
+        ]
+      ],
+      "textKey": "ArmorSetBonus.BeetleDamage",
+      "uniqueItemIds": [
+        0,
+        2199,
+        2200
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.BeetleDefense",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          0,
+          2199,
+          2201
+        ]
+      ],
+      "textKey": "ArmorSetBonus.BeetleDefense",
+      "uniqueItemIds": [
+        0,
+        2199,
+        2201
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Wizard",
+      "primaryPart": "Head",
+      "setCount": 8,
+      "sets": [
+        [
+          238,
+          1282,
+          0
+        ],
+        [
+          238,
+          1283,
+          0
+        ],
+        [
+          238,
+          1284,
+          0
+        ],
+        [
+          238,
+          1285,
+          0
+        ],
+        [
+          238,
+          1286,
+          0
+        ],
+        [
+          238,
+          1287,
+          0
+        ],
+        [
+          238,
+          2279,
+          0
+        ],
+        [
+          238,
+          4256,
+          0
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Wizard",
+      "uniqueItemIds": [
+        238,
+        1282,
+        0,
+        1283,
+        1284,
+        1285,
+        1286,
+        1287,
+        2279,
+        4256
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.MagicHat",
+      "primaryPart": "Head",
+      "setCount": 8,
+      "sets": [
+        [
+          2275,
+          1282,
+          0
+        ],
+        [
+          2275,
+          1283,
+          0
+        ],
+        [
+          2275,
+          1284,
+          0
+        ],
+        [
+          2275,
+          1285,
+          0
+        ],
+        [
+          2275,
+          1286,
+          0
+        ],
+        [
+          2275,
+          1287,
+          0
+        ],
+        [
+          2275,
+          2279,
+          0
+        ],
+        [
+          2275,
+          4256,
+          0
+        ]
+      ],
+      "textKey": "ArmorSetBonus.MagicHat",
+      "uniqueItemIds": [
+        2275,
+        1282,
+        0,
+        1283,
+        1284,
+        1285,
+        1286,
+        1287,
+        2279,
+        4256
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.ShadowScale",
+      "primaryPart": null,
+      "setCount": 8,
+      "sets": [
+        [
+          102,
+          101,
+          100
+        ],
+        [
+          102,
+          101,
+          958
+        ],
+        [
+          102,
+          957,
+          100
+        ],
+        [
+          102,
+          957,
+          958
+        ],
+        [
+          956,
+          101,
+          100
+        ],
+        [
+          956,
+          101,
+          958
+        ],
+        [
+          956,
+          957,
+          100
+        ],
+        [
+          956,
+          957,
+          958
+        ]
+      ],
+      "textKey": "ArmorSetBonus.ShadowScale",
+      "uniqueItemIds": [
+        102,
+        101,
+        100,
+        958,
+        957,
+        956
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Crimson",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          792,
+          793,
+          794
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Crimson",
+      "uniqueItemIds": [
+        792,
+        793,
+        794
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.SpectreHealing",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          0,
+          1503,
+          1504
+        ]
+      ],
+      "textKey": "ArmorSetBonus.SpectreHealing",
+      "uniqueItemIds": [
+        0,
+        1503,
+        1504
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.SpectreDamage",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          0,
+          2189,
+          1504
+        ]
+      ],
+      "textKey": "ArmorSetBonus.SpectreDamage",
+      "uniqueItemIds": [
+        0,
+        2189,
+        1504
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Meteor",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          123,
+          124,
+          125
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Meteor",
+      "uniqueItemIds": [
+        123,
+        124,
+        125
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Frost",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          684,
+          685,
+          686
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Frost",
+      "uniqueItemIds": [
+        684,
+        685,
+        686
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Jungle",
+      "primaryPart": null,
+      "setCount": 8,
+      "sets": [
+        [
+          228,
+          229,
+          230
+        ],
+        [
+          228,
+          229,
+          962
+        ],
+        [
+          228,
+          961,
+          230
+        ],
+        [
+          228,
+          961,
+          962
+        ],
+        [
+          960,
+          229,
+          230
+        ],
+        [
+          960,
+          229,
+          962
+        ],
+        [
+          960,
+          961,
+          230
+        ],
+        [
+          960,
+          961,
+          962
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Jungle",
+      "uniqueItemIds": [
+        228,
+        229,
+        230,
+        962,
+        961,
+        960
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Molten",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          231,
+          232,
+          233
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Molten",
+      "uniqueItemIds": [
+        231,
+        232,
+        233
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Snow",
+      "primaryPart": null,
+      "setCount": 8,
+      "sets": [
+        [
+          803,
+          804,
+          805
+        ],
+        [
+          803,
+          804,
+          980
+        ],
+        [
+          803,
+          979,
+          805
+        ],
+        [
+          803,
+          979,
+          980
+        ],
+        [
+          978,
+          804,
+          805
+        ],
+        [
+          978,
+          804,
+          980
+        ],
+        [
+          978,
+          979,
+          805
+        ],
+        [
+          978,
+          979,
+          980
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Snow",
+      "uniqueItemIds": [
+        803,
+        804,
+        805,
+        980,
+        979,
+        978
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Mining",
+      "primaryPart": null,
+      "setCount": 12,
+      "sets": [
+        [
+          88,
+          410,
+          411
+        ],
+        [
+          88,
+          410,
+          5590
+        ],
+        [
+          88,
+          5589,
+          411
+        ],
+        [
+          88,
+          5589,
+          5590
+        ],
+        [
+          5588,
+          410,
+          411
+        ],
+        [
+          5588,
+          410,
+          5590
+        ],
+        [
+          5588,
+          5589,
+          411
+        ],
+        [
+          5588,
+          5589,
+          5590
+        ],
+        [
+          4008,
+          410,
+          411
+        ],
+        [
+          4008,
+          410,
+          5590
+        ],
+        [
+          4008,
+          5589,
+          411
+        ],
+        [
+          4008,
+          5589,
+          5590
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Mining",
+      "uniqueItemIds": [
+        88,
+        410,
+        411,
+        5590,
+        5589,
+        5588,
+        4008
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.ChlorophyteMelee",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          0,
+          1001,
+          1004
+        ]
+      ],
+      "textKey": "ArmorSetBonus.ChlorophyteMelee",
+      "uniqueItemIds": [
+        0,
+        1001,
+        1004
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.ChlorophyteSummon",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          0,
+          5524,
+          1004
+        ]
+      ],
+      "textKey": "ArmorSetBonus.ChlorophyteSummon",
+      "uniqueItemIds": [
+        0,
+        5524,
+        1004
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Chlorophyte",
+      "primaryPart": "Head",
+      "setCount": 2,
+      "sets": [
+        [
+          1003,
+          1004,
+          1005
+        ],
+        [
+          1002,
+          1004,
+          1005
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Chlorophyte",
+      "uniqueItemIds": [
+        1003,
+        1004,
+        1005,
+        1002
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Angler",
+      "primaryPart": null,
+      "setCount": 8,
+      "sets": [
+        [
+          2367,
+          2368,
+          2369
+        ],
+        [
+          2367,
+          2368,
+          5593
+        ],
+        [
+          2367,
+          5592,
+          2369
+        ],
+        [
+          2367,
+          5592,
+          5593
+        ],
+        [
+          5591,
+          2368,
+          2369
+        ],
+        [
+          5591,
+          2368,
+          5593
+        ],
+        [
+          5591,
+          5592,
+          2369
+        ],
+        [
+          5591,
+          5592,
+          5593
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Angler",
+      "uniqueItemIds": [
+        2367,
+        2368,
+        2369,
+        5593,
+        5592,
+        5591
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Cactus",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          894,
+          895,
+          896
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Cactus",
+      "uniqueItemIds": [
+        894,
+        895,
+        896
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Turtle",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          1316,
+          1317,
+          1318
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Turtle",
+      "uniqueItemIds": [
+        1316,
+        1317,
+        1318
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.CobaltCaster",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          0,
+          371,
+          374
+        ]
+      ],
+      "textKey": "ArmorSetBonus.CobaltCaster",
+      "uniqueItemIds": [
+        0,
+        371,
+        374
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.CobaltMelee",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          0,
+          372,
+          374
+        ]
+      ],
+      "textKey": "ArmorSetBonus.CobaltMelee",
+      "uniqueItemIds": [
+        0,
+        372,
+        374
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.CobaltRanged",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          0,
+          373,
+          374
+        ]
+      ],
+      "textKey": "ArmorSetBonus.CobaltRanged",
+      "uniqueItemIds": [
+        0,
+        373,
+        374
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.MythrilCaster",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          0,
+          376,
+          379
+        ]
+      ],
+      "textKey": "ArmorSetBonus.MythrilCaster",
+      "uniqueItemIds": [
+        0,
+        376,
+        379
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.MythrilMelee",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          0,
+          377,
+          379
+        ]
+      ],
+      "textKey": "ArmorSetBonus.MythrilMelee",
+      "uniqueItemIds": [
+        0,
+        377,
+        379
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.MythrilRanged",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          0,
+          378,
+          379
+        ]
+      ],
+      "textKey": "ArmorSetBonus.MythrilRanged",
+      "uniqueItemIds": [
+        0,
+        378,
+        379
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.AdamantiteCaster",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          0,
+          400,
+          403
+        ]
+      ],
+      "textKey": "ArmorSetBonus.AdamantiteCaster",
+      "uniqueItemIds": [
+        0,
+        400,
+        403
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.AdamantiteMelee",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          0,
+          401,
+          403
+        ]
+      ],
+      "textKey": "ArmorSetBonus.AdamantiteMelee",
+      "uniqueItemIds": [
+        0,
+        401,
+        403
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.AdamantiteRanged",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          0,
+          402,
+          403
+        ]
+      ],
+      "textKey": "ArmorSetBonus.AdamantiteRanged",
+      "uniqueItemIds": [
+        0,
+        402,
+        403
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Palladium",
+      "primaryPart": null,
+      "setCount": 3,
+      "sets": [
+        [
+          1205,
+          1208,
+          1209
+        ],
+        [
+          1206,
+          1208,
+          1209
+        ],
+        [
+          1207,
+          1208,
+          1209
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Palladium",
+      "uniqueItemIds": [
+        1205,
+        1208,
+        1209,
+        1206,
+        1207
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Orichalcum",
+      "primaryPart": null,
+      "setCount": 3,
+      "sets": [
+        [
+          1210,
+          1213,
+          1214
+        ],
+        [
+          1211,
+          1213,
+          1214
+        ],
+        [
+          1212,
+          1213,
+          1214
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Orichalcum",
+      "uniqueItemIds": [
+        1210,
+        1213,
+        1214,
+        1211,
+        1212
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Titanium",
+      "primaryPart": null,
+      "setCount": 3,
+      "sets": [
+        [
+          1215,
+          1218,
+          1219
+        ],
+        [
+          1216,
+          1218,
+          1219
+        ],
+        [
+          1217,
+          1218,
+          1219
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Titanium",
+      "uniqueItemIds": [
+        1215,
+        1218,
+        1219,
+        1216,
+        1217
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.HallowedSummoner",
+      "primaryPart": "Head",
+      "setCount": 8,
+      "sets": [
+        [
+          4873,
+          551,
+          552
+        ],
+        [
+          4873,
+          551,
+          4901
+        ],
+        [
+          4873,
+          4900,
+          552
+        ],
+        [
+          4873,
+          4900,
+          4901
+        ],
+        [
+          4899,
+          551,
+          552
+        ],
+        [
+          4899,
+          551,
+          4901
+        ],
+        [
+          4899,
+          4900,
+          552
+        ],
+        [
+          4899,
+          4900,
+          4901
+        ]
+      ],
+      "textKey": "ArmorSetBonus.HallowedSummoner",
+      "uniqueItemIds": [
+        4873,
+        551,
+        552,
+        4901,
+        4900,
+        4899
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Hallowed",
+      "primaryPart": "Head",
+      "setCount": 24,
+      "sets": [
+        [
+          558,
+          551,
+          552
+        ],
+        [
+          558,
+          551,
+          4901
+        ],
+        [
+          558,
+          4900,
+          552
+        ],
+        [
+          558,
+          4900,
+          4901
+        ],
+        [
+          553,
+          551,
+          552
+        ],
+        [
+          553,
+          551,
+          4901
+        ],
+        [
+          553,
+          4900,
+          552
+        ],
+        [
+          553,
+          4900,
+          4901
+        ],
+        [
+          559,
+          551,
+          552
+        ],
+        [
+          559,
+          551,
+          4901
+        ],
+        [
+          559,
+          4900,
+          552
+        ],
+        [
+          559,
+          4900,
+          4901
+        ],
+        [
+          4898,
+          551,
+          552
+        ],
+        [
+          4898,
+          551,
+          4901
+        ],
+        [
+          4898,
+          4900,
+          552
+        ],
+        [
+          4898,
+          4900,
+          4901
+        ],
+        [
+          4897,
+          551,
+          552
+        ],
+        [
+          4897,
+          551,
+          4901
+        ],
+        [
+          4897,
+          4900,
+          552
+        ],
+        [
+          4897,
+          4900,
+          4901
+        ],
+        [
+          4896,
+          551,
+          552
+        ],
+        [
+          4896,
+          551,
+          4901
+        ],
+        [
+          4896,
+          4900,
+          552
+        ],
+        [
+          4896,
+          4900,
+          4901
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Hallowed",
+      "uniqueItemIds": [
+        558,
+        551,
+        552,
+        4901,
+        4900,
+        553,
+        559,
+        4898,
+        4897,
+        4896
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.CrystalAssassin",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          4982,
+          4983,
+          4984
+        ]
+      ],
+      "textKey": "ArmorSetBonus.CrystalNinja",
+      "uniqueItemIds": [
+        4982,
+        4983,
+        4984
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Tiki",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          1159,
+          1160,
+          1161
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Tiki",
+      "uniqueItemIds": [
+        1159,
+        1160,
+        1161
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Spooky",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          1832,
+          1833,
+          1834
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Spooky",
+      "uniqueItemIds": [
+        1832,
+        1833,
+        1834
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Bee",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          2361,
+          2362,
+          2363
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Bee",
+      "uniqueItemIds": [
+        2361,
+        2362,
+        2363
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Spider",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          2370,
+          2371,
+          2372
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Spider",
+      "uniqueItemIds": [
+        2370,
+        2371,
+        2372
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Solar",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          2763,
+          2764,
+          2765
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Solar",
+      "uniqueItemIds": [
+        2763,
+        2764,
+        2765
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Vortex",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          2757,
+          2758,
+          2759
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Vortex",
+      "uniqueItemIds": [
+        2757,
+        2758,
+        2759
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Nebula",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          2760,
+          2761,
+          2762
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Nebula",
+      "uniqueItemIds": [
+        2760,
+        2761,
+        2762
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Stardust",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          3381,
+          3382,
+          3383
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Stardust",
+      "uniqueItemIds": [
+        3381,
+        3382,
+        3383
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.Forbidden",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          3776,
+          3777,
+          3778
+        ]
+      ],
+      "textKey": "ArmorSetBonus.Forbidden",
+      "uniqueItemIds": [
+        3776,
+        3777,
+        3778
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.SquireTier2",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          3800,
+          3801,
+          3802
+        ]
+      ],
+      "textKey": "ArmorSetBonus.SquireTier2",
+      "uniqueItemIds": [
+        3800,
+        3801,
+        3802
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.ApprenticeTier2",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          3797,
+          3798,
+          3799
+        ]
+      ],
+      "textKey": "ArmorSetBonus.ApprenticeTier2",
+      "uniqueItemIds": [
+        3797,
+        3798,
+        3799
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.HuntressTier2",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          3803,
+          3804,
+          3805
+        ]
+      ],
+      "textKey": "ArmorSetBonus.HuntressTier2",
+      "uniqueItemIds": [
+        3803,
+        3804,
+        3805
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.MonkTier2",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          3806,
+          3807,
+          3808
+        ]
+      ],
+      "textKey": "ArmorSetBonus.MonkTier2",
+      "uniqueItemIds": [
+        3806,
+        3807,
+        3808
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.SquireTier3",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          3871,
+          3872,
+          3873
+        ]
+      ],
+      "textKey": "ArmorSetBonus.SquireTier3",
+      "uniqueItemIds": [
+        3871,
+        3872,
+        3873
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.ApprenticeTier3",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          3874,
+          3875,
+          3876
+        ]
+      ],
+      "textKey": "ArmorSetBonus.ApprenticeTier3",
+      "uniqueItemIds": [
+        3874,
+        3875,
+        3876
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.HuntressTier3",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          3877,
+          3878,
+          3879
+        ]
+      ],
+      "textKey": "ArmorSetBonus.HuntressTier3",
+      "uniqueItemIds": [
+        3877,
+        3878,
+        3879
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.MonkTier3",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          3880,
+          3881,
+          3882
+        ]
+      ],
+      "textKey": "ArmorSetBonus.MonkTier3",
+      "uniqueItemIds": [
+        3880,
+        3881,
+        3882
+      ]
+    },
+    {
+      "benefitExpression": "ArmorSetBonuses.Benefits.ObsidianOutlaw",
+      "primaryPart": null,
+      "setCount": 1,
+      "sets": [
+        [
+          3266,
+          3267,
+          3268
+        ]
+      ],
+      "textKey": "ArmorSetBonus.ObsidianOutlaw",
+      "uniqueItemIds": [
+        3266,
+        3267,
+        3268
+      ]
+    }
+  ],
+  "schemaVersion": "1.0.0",
+  "sourceFile": "terraria.wiki.gg/api.php?action=query&titles=Module:ArmorSetBonuses&prop=revisions&rvprop=content",
+  "totalRecords": 63,
+  "upstreamMeta": {
+    "fetchedAt": "2026-04-04T04:11:34.894Z",
+    "source": "terraria.wiki.gg:Module:ArmorSetBonuses",
+    "sourceApi": "https://terraria.wiki.gg/api.php",
+    "sourcePageTitle": "Module:ArmorSetBonuses",
+    "sourceRevisionTimestamp": "2026-01-31T20:21:00Z"
+  }
+}

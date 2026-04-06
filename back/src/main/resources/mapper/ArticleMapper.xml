@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.terraria.skills.mapper.ArticleMapper">
+
+    <select id="selectAdminArticlesPage" resultType="com.terraria.skills.dto.ArticleDTO">
+        SELECT
+            a.id,
+            a.title,
+            a.slug,
+            a.summary,
+            a.cover_image AS coverImage,
+            a.content_html AS contentHtml,
+            a.status,
+            a.review_status AS reviewStatus,
+            a.review_comment AS reviewComment,
+            a.reviewed_at AS reviewedAt,
+            a.submitted_at AS submittedAt,
+            a.reviewer_name AS reviewerName,
+            a.published_at AS publishedAt,
+            a.author_id AS authorId,
+            u.display_name AS authorDisplayName,
+            a.created_at AS createdAt,
+            a.updated_at AS updatedAt
+        FROM articles a
+        LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
+        <where>
+            a.deleted = 0
+            <if test="keyword != null and keyword != ''">
+                AND (a.title LIKE CONCAT('%', #{keyword}, '%') OR a.summary LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null and status != ''">
+                AND a.status = #{status}
+            </if>
+        </where>
+        ORDER BY a.id DESC
+    </select>
+
+    <select id="selectPublishedArticlesPage" resultType="com.terraria.skills.dto.ArticleDTO">
+        SELECT
+            a.id,
+            a.title,
+            a.slug,
+            a.summary,
+            a.cover_image AS coverImage,
+            a.content_html AS contentHtml,
+            a.status,
+            a.review_status AS reviewStatus,
+            a.review_comment AS reviewComment,
+            a.reviewed_at AS reviewedAt,
+            a.submitted_at AS submittedAt,
+            a.reviewer_name AS reviewerName,
+            a.published_at AS publishedAt,
+            a.author_id AS authorId,
+            u.display_name AS authorDisplayName,
+            a.created_at AS createdAt,
+            a.updated_at AS updatedAt
+        FROM articles a
+        LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
+        <where>
+            a.deleted = 0
+            AND a.status = 'PUBLISHED'
+            <if test="keyword != null and keyword != ''">
+                AND (a.title LIKE CONCAT('%', #{keyword}, '%') OR a.summary LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY a.published_at DESC, a.id DESC
+    </select>
+
+    <select id="selectUserArticlesPage" resultType="com.terraria.skills.dto.ArticleDTO">
+        SELECT
+            a.id,
+            a.title,
+            a.slug,
+            a.summary,
+            a.cover_image AS coverImage,
+            a.content_html AS contentHtml,
+            a.status,
+            a.review_status AS reviewStatus,
+            a.review_comment AS reviewComment,
+            a.reviewed_at AS reviewedAt,
+            a.submitted_at AS submittedAt,
+            a.reviewer_name AS reviewerName,
+            a.published_at AS publishedAt,
+            a.author_id AS authorId,
+            u.display_name AS authorDisplayName,
+            a.created_at AS createdAt,
+            a.updated_at AS updatedAt
+        FROM articles a
+        LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
+        <where>
+            a.deleted = 0
+            AND a.author_id = #{authorId}
+            <if test="keyword != null and keyword != ''">
+                AND (a.title LIKE CONCAT('%', #{keyword}, '%') OR a.summary LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY a.updated_at DESC, a.id DESC
+    </select>
+
+    <select id="selectAdminArticleById" resultType="com.terraria.skills.dto.ArticleDTO">
+        SELECT
+            a.id,
+            a.title,
+            a.slug,
+            a.summary,
+            a.cover_image AS coverImage,
+            a.content_html AS contentHtml,
+            a.status,
+            a.review_status AS reviewStatus,
+            a.review_comment AS reviewComment,
+            a.reviewed_at AS reviewedAt,
+            a.submitted_at AS submittedAt,
+            a.reviewer_name AS reviewerName,
+            a.published_at AS publishedAt,
+            a.author_id AS authorId,
+            u.display_name AS authorDisplayName,
+            a.created_at AS createdAt,
+            a.updated_at AS updatedAt
+        FROM articles a
+        LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
+        WHERE a.id = #{id}
+          AND a.deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectUserArticleById" resultType="com.terraria.skills.dto.ArticleDTO">
+        SELECT
+            a.id,
+            a.title,
+            a.slug,
+            a.summary,
+            a.cover_image AS coverImage,
+            a.content_html AS contentHtml,
+            a.status,
+            a.review_status AS reviewStatus,
+            a.review_comment AS reviewComment,
+            a.reviewed_at AS reviewedAt,
+            a.submitted_at AS submittedAt,
+            a.reviewer_name AS reviewerName,
+            a.published_at AS publishedAt,
+            a.author_id AS authorId,
+            u.display_name AS authorDisplayName,
+            a.created_at AS createdAt,
+            a.updated_at AS updatedAt
+        FROM articles a
+        LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
+        WHERE a.id = #{id}
+          AND a.author_id = #{authorId}
+          AND a.deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectPublishedArticleById" resultType="com.terraria.skills.dto.ArticleDTO">
+        SELECT
+            a.id,
+            a.title,
+            a.slug,
+            a.summary,
+            a.cover_image AS coverImage,
+            a.content_html AS contentHtml,
+            a.status,
+            a.review_status AS reviewStatus,
+            a.review_comment AS reviewComment,
+            a.reviewed_at AS reviewedAt,
+            a.submitted_at AS submittedAt,
+            a.reviewer_name AS reviewerName,
+            a.published_at AS publishedAt,
+            a.author_id AS authorId,
+            u.display_name AS authorDisplayName,
+            a.created_at AS createdAt,
+            a.updated_at AS updatedAt
+        FROM articles a
+        LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
+        WHERE a.id = #{id}
+          AND a.deleted = 0
+          AND a.status = 'PUBLISHED'
+        LIMIT 1
+    </select>
+
+    <select id="selectPublishedArticleBySlug" resultType="com.terraria.skills.dto.ArticleDTO">
+        SELECT
+            a.id,
+            a.title,
+            a.slug,
+            a.summary,
+            a.cover_image AS coverImage,
+            a.content_html AS contentHtml,
+            a.status,
+            a.review_status AS reviewStatus,
+            a.review_comment AS reviewComment,
+            a.reviewed_at AS reviewedAt,
+            a.submitted_at AS submittedAt,
+            a.reviewer_name AS reviewerName,
+            a.published_at AS publishedAt,
+            a.author_id AS authorId,
+            u.display_name AS authorDisplayName,
+            a.created_at AS createdAt,
+            a.updated_at AS updatedAt
+        FROM articles a
+        LEFT JOIN users u ON u.id = a.author_id AND u.deleted = 0
+        WHERE a.slug = #{slug}
+          AND a.deleted = 0
+          AND a.status = 'PUBLISHED'
+        LIMIT 1
+    </select>
+
+</mapper>

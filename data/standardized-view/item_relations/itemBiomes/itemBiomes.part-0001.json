@@ -1,0 +1,1602 @@
+[
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "Acorn",
+    "itemName": "Acorn",
+    "notes": "Inferred from Acorn page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "forest",
+    "itemInternalName": "AcornSlingshot",
+    "itemName": "Acorn Slingshot",
+    "notes": "Inferred from Acorn Slingshot page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "Amber",
+    "itemName": "Amber",
+    "notes": "Inferred from Amber page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "AmberMosquito",
+    "itemName": "Amber Mosquito",
+    "notes": "Inferred from Amber Mosquito page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "Amethyst",
+    "itemName": "Amethyst",
+    "notes": "Inferred from Amethyst page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "AncientBattleArmorMaterial",
+    "itemName": "Forbidden Fragment",
+    "notes": "Inferred from Forbidden Fragment page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "AncientChisel",
+    "itemName": "Ancient Chisel",
+    "notes": "Inferred from Ancient Chisel page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "AnkletoftheWind",
+    "itemName": "Anklet of the Wind",
+    "notes": "Inferred from Anklet of the Wind page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "AntlionEggs",
+    "itemName": "Antlion Eggs",
+    "notes": "Inferred from Antlion Eggs page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "AntlionMandible",
+    "itemName": "Antlion Mandible",
+    "notes": "Inferred from Antlion Mandible page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "forest",
+    "itemInternalName": "Apple",
+    "itemName": "Apple",
+    "notes": "Inferred from Apple page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "forest",
+    "itemInternalName": "Apricot",
+    "itemName": "Apricot",
+    "notes": "Inferred from Apricot page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "ArmoredCavefish",
+    "itemName": "Armored Cavefish",
+    "notes": "Inferred from Armored Cavefish page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "forest",
+    "itemInternalName": "AshWood",
+    "itemName": "Ash Wood",
+    "notes": "Inferred from Ash Wood page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "snow",
+    "itemInternalName": "AtlanticCod",
+    "itemName": "Atlantic Cod",
+    "notes": "Inferred from Atlantic Cod page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "forest",
+    "itemInternalName": "AxeFairyPetItem",
+    "itemName": "Faecorn",
+    "notes": "Inferred from Faecorn page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "BallOHurt",
+    "itemName": "Ball O' Hurt",
+    "notes": "Inferred from Ball O' Hurt page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "BambooBlock",
+    "itemName": "Bamboo",
+    "notes": "Inferred from Bamboo page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "Banana",
+    "itemName": "Banana",
+    "notes": "Inferred from Banana page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "BandofRegeneration",
+    "itemName": "Band of Regeneration",
+    "notes": "Inferred from Band of Regeneration page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "corruption",
+    "itemInternalName": "BandofStarpower",
+    "itemName": "Band of Starpower",
+    "notes": "Inferred from Band of Starpower page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "Bass",
+    "itemName": "Bass",
+    "notes": "Inferred from Bass page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "BatBat",
+    "itemName": "Bat Bat",
+    "notes": "Inferred from Bat Bat page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "snow",
+    "itemInternalName": "Beanie",
+    "itemName": "Beanie",
+    "notes": "Inferred from Beanie page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "BeeHive",
+    "itemName": "Bee Hive",
+    "notes": "Inferred from Bee Hive page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "snow",
+    "itemInternalName": "BlizzardinaBottle",
+    "itemName": "Blizzard in a Bottle",
+    "notes": "Inferred from Blizzard in a Bottle page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "BlueBerries",
+    "itemName": "Blue Berries",
+    "notes": "Inferred from Blue Berries page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "Bomb",
+    "itemName": "Bomb",
+    "notes": "Inferred from Bomb page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "Boomstick",
+    "itemName": "Boomstick",
+    "notes": "Inferred from Boomstick page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "snow",
+    "itemInternalName": "BorealWood",
+    "itemName": "Boreal Wood",
+    "notes": "Inferred from Boreal Wood page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "BottledHoney",
+    "itemName": "Bottled Honey",
+    "notes": "Inferred from Bottled Honey page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "BrainOfConfusion",
+    "itemName": "Brain of Confusion",
+    "notes": "Inferred from Brain of Confusion page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "ButterflyDust",
+    "itemName": "Butterfly Dust",
+    "notes": "Inferred from Butterfly Dust page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "Cactus",
+    "itemName": "Cactus",
+    "notes": "Inferred from Cactus page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "CatBast",
+    "itemName": "Bast Statue",
+    "notes": "Inferred from Bast Statue page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "CatEars",
+    "itemName": "Cat Ears",
+    "notes": "Inferred from Cat Ears page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "ChaosFish",
+    "itemName": "Chaos Fish",
+    "notes": "Inferred from Chaos Fish page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "Clentaminator",
+    "itemName": "Clentaminator",
+    "notes": "Inferred from Clentaminator page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "Coal",
+    "itemName": "Coal",
+    "notes": "Inferred from Coal page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "Cobweb",
+    "itemName": "Cobweb",
+    "notes": "Inferred from Cobweb page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "Coconut",
+    "itemName": "Coconut",
+    "notes": "Inferred from Coconut page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "snow",
+    "itemInternalName": "Compass",
+    "itemName": "Compass",
+    "notes": "Inferred from Compass page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "CopperOre",
+    "itemName": "Copper Ore",
+    "notes": "Inferred from Copper Ore page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "CopperOre",
+    "itemName": "Copper Ore",
+    "notes": "Inferred from Copper Ore page text",
+    "relationType": "found_in",
+    "sortOrder": 1
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "CopperOre",
+    "itemName": "Copper Ore",
+    "notes": "Inferred from Copper Ore page text",
+    "relationType": "found_in",
+    "sortOrder": 2
+  },
+  {
+    "biomeCode": "corruption",
+    "itemInternalName": "CorruptFishingCrate",
+    "itemName": "Corrupt Crate",
+    "notes": "Inferred from Corrupt Crate page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "corruption",
+    "itemInternalName": "CorruptFishingCrateHard",
+    "itemName": "Defiled Crate",
+    "notes": "Inferred from Defiled Crate page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "corruption",
+    "itemInternalName": "CorruptGrassEcho",
+    "itemName": "Corrupt Grass Wall",
+    "notes": "Inferred from Corrupt Grass Wall page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "CorruptSeeds",
+    "itemName": "Corrupt Seeds",
+    "notes": "Inferred from Corrupt Seeds page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "CrimsonFishingCrate",
+    "itemName": "Crimson Crate",
+    "notes": "Inferred from Crimson Crate page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "CrimsonFishingCrateHard",
+    "itemName": "Hematic Crate",
+    "notes": "Inferred from Hematic Crate page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "CrimsonGrassEcho",
+    "itemName": "Crimson Grass Wall",
+    "notes": "Inferred from Crimson Grass Wall page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "CrimsonHeart",
+    "itemName": "Crimson Heart",
+    "notes": "Inferred from Crimson Heart page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "CrimsonRod",
+    "itemName": "Crimson Rod",
+    "notes": "Inferred from Crimson Rod page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "CrimsonSeeds",
+    "itemName": "Crimson Seeds",
+    "notes": "Inferred from Crimson Seeds page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "CrimsonTigerfish",
+    "itemName": "Crimson Tigerfish",
+    "notes": "Inferred from Crimson Tigerfish page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "CrimstoneBlock",
+    "itemName": "Crimstone Block",
+    "notes": "Inferred from Crimstone Block page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "CrimstoneEcho",
+    "itemName": "Crimstone Wall",
+    "notes": "Inferred from Crimstone Wall page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "CrimtaneOre",
+    "itemName": "Crimtane Ore",
+    "notes": "Inferred from Crimtane Ore page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "CrystalShard",
+    "itemName": "Crystal Shard",
+    "notes": "Inferred from Crystal Shard page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "CrystalVileShard",
+    "itemName": "Crystal Vile Shard",
+    "notes": "Inferred from Crystal Vile Shard page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "CursedFlame",
+    "itemName": "Cursed Flame",
+    "notes": "Inferred from Cursed Flame page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "snow",
+    "itemInternalName": "CyanHusk",
+    "itemName": "Cyan Husk",
+    "notes": "Inferred from Cyan Husk page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "DaedalusStormbow",
+    "itemName": "Daedalus Stormbow",
+    "notes": "Inferred from Daedalus Stormbow page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "DarkShard",
+    "itemName": "Dark Shard",
+    "notes": "Inferred from Dark Shard page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "DartPistol",
+    "itemName": "Dart Pistol",
+    "notes": "Inferred from Dart Pistol page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "DartRifle",
+    "itemName": "Dart Rifle",
+    "notes": "Inferred from Dart Rifle page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "Daybloom",
+    "itemName": "Daybloom",
+    "notes": "Inferred from Daybloom page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "DaybloomSeeds",
+    "itemName": "Daybloom Seeds",
+    "notes": "Inferred from Daybloom Seeds page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "Deathweed",
+    "itemName": "Deathweed",
+    "notes": "Inferred from Deathweed page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "DeathweedSeeds",
+    "itemName": "Deathweed Seeds",
+    "notes": "Inferred from Deathweed Seeds page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "snow",
+    "itemInternalName": "DeerThing",
+    "itemName": "Deer Thing",
+    "notes": "Inferred from Deer Thing page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "DemoniteOre",
+    "itemName": "Demonite Ore",
+    "notes": "Inferred from Demonite Ore page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "DepthMeter",
+    "itemName": "Depth Meter",
+    "notes": "Inferred from Depth Meter page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "DesertChest",
+    "itemName": "Sandstone Chest",
+    "notes": "Inferred from Sandstone Chest page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "DesertFossil",
+    "itemName": "Desert Fossil",
+    "notes": "Inferred from Desert Fossil page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "Diamond",
+    "itemName": "Diamond",
+    "notes": "Inferred from Diamond page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "DirtBlock",
+    "itemName": "Dirt Block",
+    "notes": "Inferred from Dirt Block page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "DjinnLamp",
+    "itemName": "Desert Spirit Lamp",
+    "notes": "Inferred from Desert Spirit Lamp page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "DjinnsCurse",
+    "itemName": "Djinn's Curse",
+    "notes": "Inferred from Djinn's Curse page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "DoubleCod",
+    "itemName": "Double Cod",
+    "notes": "Inferred from Double Cod page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "corruption",
+    "itemInternalName": "Ebonkoi",
+    "itemName": "Ebonkoi",
+    "notes": "Inferred from Ebonkoi page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "EbonstoneBlock",
+    "itemName": "Ebonstone Block",
+    "notes": "Inferred from Ebonstone Block page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "corruption",
+    "itemInternalName": "EbonstoneEcho",
+    "itemName": "Ebonstone Wall",
+    "notes": "Inferred from Ebonstone Wall page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "corruption",
+    "itemInternalName": "Ebonwood",
+    "itemName": "Ebonwood",
+    "notes": "Inferred from Ebonwood page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "Emerald",
+    "itemName": "Emerald",
+    "notes": "Inferred from Emerald page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "EmpressButterfly",
+    "itemName": "Prismatic Lacewing",
+    "notes": "Inferred from Prismatic Lacewing page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "EncumberingStone",
+    "itemName": "Encumbering Stone",
+    "notes": "Inferred from Encumbering Stone page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "forest",
+    "itemInternalName": "EucaluptusSap",
+    "itemName": "Eucalyptus Sap",
+    "notes": "Inferred from Eucalyptus Sap page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "Extractinator",
+    "itemName": "Extractinator",
+    "notes": "Inferred from Extractinator page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "FairyBell",
+    "itemName": "Fairy Bell",
+    "notes": "Inferred from Fairy Bell page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "FeralClaws",
+    "itemName": "Feral Claws",
+    "notes": "Inferred from Feral Claws page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "FetidBaghnakhs",
+    "itemName": "Fetid Baghnakhs",
+    "notes": "Inferred from Fetid Baghnakhs page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "FishingSeaweed",
+    "itemName": "Seaweed",
+    "notes": "Inferred from Seaweed page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "FlameTrap",
+    "itemName": "Flame Trap",
+    "notes": "Inferred from Flame Trap page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "FleshCloningVaat",
+    "itemName": "Flesh Cloning Vat",
+    "notes": "Inferred from Flesh Cloning Vat page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "FleshKnuckles",
+    "itemName": "Flesh Knuckles",
+    "notes": "Inferred from Flesh Knuckles page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "snow",
+    "itemInternalName": "FlinxFur",
+    "itemName": "Flinx Fur",
+    "notes": "Inferred from Flinx Fur page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "Flounder",
+    "itemName": "Flounder",
+    "notes": "Inferred from Flounder page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "FlowerBoots",
+    "itemName": "Flower Boots",
+    "notes": "Inferred from Flower Boots page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "FlyingCarpet",
+    "itemName": "Flying Carpet",
+    "notes": "Inferred from Flying Carpet page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "FlyingKnife",
+    "itemName": "Flying Knife",
+    "notes": "Inferred from Flying Knife page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "FossilOre",
+    "itemName": "Sturdy Fossil",
+    "notes": "Inferred from Sturdy Fossil page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "Frog",
+    "itemName": "Frog",
+    "notes": "Inferred from Frog page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "snow",
+    "itemInternalName": "FrostCore",
+    "itemName": "Frost Core",
+    "notes": "Inferred from Frost Core page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "snow",
+    "itemInternalName": "FrostMinnow",
+    "itemName": "Frost Minnow",
+    "notes": "Inferred from Frost Minnow page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "snow",
+    "itemInternalName": "FrozenCrate",
+    "itemName": "Frozen Crate",
+    "notes": "Inferred from Frozen Crate page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "snow",
+    "itemInternalName": "FrozenCrateHard",
+    "itemName": "Boreal Crate",
+    "notes": "Inferred from Boreal Crate page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "Furnace",
+    "itemName": "Furnace",
+    "notes": "Inferred from Furnace page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "Gel",
+    "itemName": "Gel",
+    "notes": "Inferred from Gel page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "GelBalloon",
+    "itemName": "Sparkle Slime Balloon",
+    "notes": "Inferred from Sparkle Slime Balloon page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "GoldBar",
+    "itemName": "Gold Bar",
+    "notes": "Inferred from Gold Bar page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "GoldBar",
+    "itemName": "Gold Bar",
+    "notes": "Inferred from Gold Bar page text",
+    "relationType": "found_in",
+    "sortOrder": 1
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "GoldBar",
+    "itemName": "Gold Bar",
+    "notes": "Inferred from Gold Bar page text",
+    "relationType": "found_in",
+    "sortOrder": 2
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "GoldBrick",
+    "itemName": "Gold Brick",
+    "notes": "Inferred from Gold Brick page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "GoldBrickWall",
+    "itemName": "Gold Brick Wall",
+    "notes": "Inferred from Gold Brick Wall page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "GoldenCarp",
+    "itemName": "Golden Carp",
+    "notes": "Inferred from Golden Carp page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "GoldenShower",
+    "itemName": "Golden Shower",
+    "notes": "Inferred from Golden Shower page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "GoldOre",
+    "itemName": "Gold Ore",
+    "notes": "Inferred from Gold Ore page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "GoldOre",
+    "itemName": "Gold Ore",
+    "notes": "Inferred from Gold Ore page text",
+    "relationType": "found_in",
+    "sortOrder": 1
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "GoldOre",
+    "itemName": "Gold Ore",
+    "notes": "Inferred from Gold Ore page text",
+    "relationType": "found_in",
+    "sortOrder": 2
+  },
+  {
+    "biomeCode": "forest",
+    "itemInternalName": "Grapefruit",
+    "itemName": "Grapefruit",
+    "notes": "Inferred from Grapefruit page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "GravitationPotion",
+    "itemName": "Gravitation Potion",
+    "notes": "Inferred from Gravitation Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "GravitationPotion",
+    "itemName": "Gravitation Potion",
+    "notes": "Inferred from Gravitation Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 1
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "GravitationPotion",
+    "itemName": "Gravitation Potion",
+    "notes": "Inferred from Gravitation Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 2
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "GreaterHealingPotion",
+    "itemName": "Greater Healing Potion",
+    "notes": "Inferred from Greater Healing Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "GreaterManaPotion",
+    "itemName": "Greater Mana Potion",
+    "notes": "Inferred from Greater Mana Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "Grebe",
+    "itemName": "Grebe",
+    "notes": "Inferred from Grebe page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "GreenMushroom",
+    "itemName": "Green Mushroom",
+    "notes": "Inferred from Green Mushroom page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "GuyFawkesMask",
+    "itemName": "Guy Fawkes Mask",
+    "notes": "Inferred from Guy Fawkes Mask page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "HallowedBar",
+    "itemName": "Hallowed Bar",
+    "notes": "Inferred from Hallowed Bar page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "HallowedFishingCrate",
+    "itemName": "Hallowed Crate",
+    "notes": "Inferred from Hallowed Crate page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "HallowedFishingCrateHard",
+    "itemName": "Divine Crate",
+    "notes": "Inferred from Divine Crate page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "HallowedGrassEcho",
+    "itemName": "Hallowed Grass Wall",
+    "notes": "Inferred from Hallowed Grass Wall page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "HallowedSeeds",
+    "itemName": "Hallowed Seeds",
+    "notes": "Inferred from Hallowed Seeds page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "HealingPotion",
+    "itemName": "Healing Potion",
+    "notes": "Inferred from Healing Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "HealingPotion",
+    "itemName": "Healing Potion",
+    "notes": "Inferred from Healing Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 1
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "HealingPotion",
+    "itemName": "Healing Potion",
+    "notes": "Inferred from Healing Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 2
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "HeartreachPotion",
+    "itemName": "Heartreach Potion",
+    "notes": "Inferred from Heartreach Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "HeartreachPotion",
+    "itemName": "Heartreach Potion",
+    "notes": "Inferred from Heartreach Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 1
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "HeartreachPotion",
+    "itemName": "Heartreach Potion",
+    "notes": "Inferred from Heartreach Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 2
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "Hemopiranha",
+    "itemName": "Hemopiranha",
+    "notes": "Inferred from Hemopiranha page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "HerculesBeetle",
+    "itemName": "Hercules Beetle",
+    "notes": "Inferred from Hercules Beetle page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "HoneyDispenser",
+    "itemName": "Honey Dispenser",
+    "notes": "Inferred from Honey Dispenser page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "Honeyfin",
+    "itemName": "Honeyfin",
+    "notes": "Inferred from Honeyfin page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "Hook",
+    "itemName": "Hook",
+    "notes": "Inferred from Hook page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "HunterPotion",
+    "itemName": "Hunter Potion",
+    "notes": "Inferred from Hunter Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "HunterPotion",
+    "itemName": "Hunter Potion",
+    "notes": "Inferred from Hunter Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 1
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "HunterPotion",
+    "itemName": "Hunter Potion",
+    "notes": "Inferred from Hunter Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 2
+  },
+  {
+    "biomeCode": "snow",
+    "itemInternalName": "IceFeather",
+    "itemName": "Ice Feather",
+    "notes": "Inferred from Ice Feather page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "snow",
+    "itemInternalName": "IceMachine",
+    "itemName": "Ice Machine",
+    "notes": "Inferred from Ice Machine page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "Ichor",
+    "itemName": "Ichor",
+    "notes": "Inferred from Ichor page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "IridescentBrick",
+    "itemName": "Iridescent Brick",
+    "notes": "Inferred from Iridescent Brick page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "IridescentBrickWall",
+    "itemName": "Iridescent Brick Wall",
+    "notes": "Inferred from Iridescent Brick Wall page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "IronBar",
+    "itemName": "Iron Bar",
+    "notes": "Inferred from Iron Bar page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "IronBar",
+    "itemName": "Iron Bar",
+    "notes": "Inferred from Iron Bar page text",
+    "relationType": "found_in",
+    "sortOrder": 1
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "IronBar",
+    "itemName": "Iron Bar",
+    "notes": "Inferred from Iron Bar page text",
+    "relationType": "found_in",
+    "sortOrder": 2
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "IronOre",
+    "itemName": "Iron Ore",
+    "notes": "Inferred from Iron Ore page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "IronOre",
+    "itemName": "Iron Ore",
+    "notes": "Inferred from Iron Ore page text",
+    "relationType": "found_in",
+    "sortOrder": 1
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "IronOre",
+    "itemName": "Iron Ore",
+    "notes": "Inferred from Iron Ore page text",
+    "relationType": "found_in",
+    "sortOrder": 2
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "IronskinPotion",
+    "itemName": "Ironskin Potion",
+    "notes": "Inferred from Ironskin Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "IvyChest",
+    "itemName": "Ivy Chest",
+    "notes": "Inferred from Ivy Chest page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "JoustingLance",
+    "itemName": "Jousting Lance",
+    "notes": "Inferred from Jousting Lance page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "JungleFishingCrate",
+    "itemName": "Jungle Crate",
+    "notes": "Inferred from Jungle Crate page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "JungleFishingCrateHard",
+    "itemName": "Bramble Crate",
+    "notes": "Inferred from Bramble Crate page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "JungleGrassSeeds",
+    "itemName": "Jungle Grass Seeds",
+    "notes": "Inferred from Jungle Grass Seeds page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "JungleRose",
+    "itemName": "Jungle Rose",
+    "notes": "Inferred from Jungle Rose page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "JungleSpores",
+    "itemName": "Jungle Spores",
+    "notes": "Inferred from Jungle Spores page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "JungleWall",
+    "itemName": "Jungle Wall",
+    "notes": "Inferred from Jungle Wall page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "LawnMower",
+    "itemName": "Lawn Mower",
+    "notes": "Inferred from Lawn Mower page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "LeadBar",
+    "itemName": "Lead Bar",
+    "notes": "Inferred from Lead Bar page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "LeadBar",
+    "itemName": "Lead Bar",
+    "notes": "Inferred from Lead Bar page text",
+    "relationType": "found_in",
+    "sortOrder": 1
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "LeadBar",
+    "itemName": "Lead Bar",
+    "notes": "Inferred from Lead Bar page text",
+    "relationType": "found_in",
+    "sortOrder": 2
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "LeadOre",
+    "itemName": "Lead Ore",
+    "notes": "Inferred from Lead Ore page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "LeadOre",
+    "itemName": "Lead Ore",
+    "notes": "Inferred from Lead Ore page text",
+    "relationType": "found_in",
+    "sortOrder": 1
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "LeadOre",
+    "itemName": "Lead Ore",
+    "notes": "Inferred from Lead Ore page text",
+    "relationType": "found_in",
+    "sortOrder": 2
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "Leather",
+    "itemName": "Leather",
+    "notes": "Inferred from Leather page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "forest",
+    "itemInternalName": "Lemon",
+    "itemName": "Lemon",
+    "notes": "Inferred from Lemon page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "LesionStation",
+    "itemName": "Decay Chamber",
+    "notes": "Inferred from Decay Chamber page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "LesserHealingPotion",
+    "itemName": "Lesser Healing Potion",
+    "notes": "Inferred from Lesser Healing Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "LightKey",
+    "itemName": "Key of Light",
+    "notes": "Inferred from Key of Light page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "LightningBug",
+    "itemName": "Lightning Bug",
+    "notes": "Inferred from Lightning Bug page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "LightShard",
+    "itemName": "Light Shard",
+    "notes": "Inferred from Light Shard page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "LihzahrdAltar",
+    "itemName": "Lihzahrd Altar",
+    "notes": "Inferred from Lihzahrd Altar page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "LihzahrdBrickWall",
+    "itemName": "Lihzahrd Brick Wall",
+    "notes": "Inferred from Lihzahrd Brick Wall page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "LihzahrdChest",
+    "itemName": "Lihzahrd Chest",
+    "notes": "Inferred from Lihzahrd Chest page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "LihzahrdFurnace",
+    "itemName": "Lihzahrd Furnace",
+    "notes": "Inferred from Lihzahrd Furnace page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "LihzahrdPowerCell",
+    "itemName": "Lihzahrd Power Cell",
+    "notes": "Inferred from Lihzahrd Power Cell page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "LizardEgg",
+    "itemName": "Lizard Egg",
+    "notes": "Inferred from Lizard Egg page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "LunarTabletFragment",
+    "itemName": "Solar Tablet Fragment",
+    "notes": "Inferred from Solar Tablet Fragment page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "MagicalPumpkinSeed",
+    "itemName": "Magical Pumpkin Seed",
+    "notes": "Inferred from Magical Pumpkin Seed page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "desert",
+    "itemInternalName": "MagicConch",
+    "itemName": "Magic Conch",
+    "notes": "Inferred from Magic Conch page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "ManaPotion",
+    "itemName": "Mana Potion",
+    "notes": "Inferred from Mana Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "ManaPotion",
+    "itemName": "Mana Potion",
+    "notes": "Inferred from Mana Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 1
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "ManaPotion",
+    "itemName": "Mana Potion",
+    "notes": "Inferred from Mana Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 2
+  },
+  {
+    "biomeCode": "snow",
+    "itemInternalName": "Marshmallow",
+    "itemName": "Marshmallow",
+    "notes": "Inferred from Marshmallow page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "MeatGrinder",
+    "itemName": "Meat Grinder",
+    "notes": "Inferred from Meat Grinder page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "crimson",
+    "itemInternalName": "MiningPotion",
+    "itemName": "Mining Potion",
+    "notes": "Inferred from Mining Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 0
+  },
+  {
+    "biomeCode": "hallow",
+    "itemInternalName": "MiningPotion",
+    "itemName": "Mining Potion",
+    "notes": "Inferred from Mining Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 1
+  },
+  {
+    "biomeCode": "jungle",
+    "itemInternalName": "MiningPotion",
+    "itemName": "Mining Potion",
+    "notes": "Inferred from Mining Potion page text",
+    "relationType": "found_in",
+    "sortOrder": 2
+  }
+]

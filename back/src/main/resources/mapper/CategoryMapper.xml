@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.terraria.skills.mapper.CategoryMapper">
+
+    <resultMap id="BaseResultMap" type="com.terraria.skills.entity.Category">
+        <id column="id" property="id"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="name" property="name"/>
+        <result column="code" property="code"/>
+        <result column="top_type" property="topType"/>
+        <result column="sort" property="sort"/>
+        <result column="status" property="status"/>
+        <result column="creator_id" property="creatorId"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectAllCategories" resultMap="BaseResultMap">
+        SELECT *
+        FROM category
+        WHERE deleted = 0
+        ORDER BY sort ASC, id ASC
+    </select>
+
+</mapper>

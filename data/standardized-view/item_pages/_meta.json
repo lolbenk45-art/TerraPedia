@@ -1,0 +1,134 @@
+{
+  "entity": "item_pages",
+  "generatedAt": "2026-03-28T11:56:07.300Z",
+  "chunkSize": 200,
+  "sourceFile": "data/standardized/item_pages.standardized.json",
+  "mode": "array",
+  "totalRecords": 6131,
+  "parts": [
+    {
+      "name": "part-0001.json",
+      "records": 200
+    },
+    {
+      "name": "part-0002.json",
+      "records": 200
+    },
+    {
+      "name": "part-0003.json",
+      "records": 200
+    },
+    {
+      "name": "part-0004.json",
+      "records": 200
+    },
+    {
+      "name": "part-0005.json",
+      "records": 200
+    },
+    {
+      "name": "part-0006.json",
+      "records": 200
+    },
+    {
+      "name": "part-0007.json",
+      "records": 200
+    },
+    {
+      "name": "part-0008.json",
+      "records": 200
+    },
+    {
+      "name": "part-0009.json",
+      "records": 200
+    },
+    {
+      "name": "part-0010.json",
+      "records": 200
+    },
+    {
+      "name": "part-0011.json",
+      "records": 200
+    },
+    {
+      "name": "part-0012.json",
+      "records": 200
+    },
+    {
+      "name": "part-0013.json",
+      "records": 200
+    },
+    {
+      "name": "part-0014.json",
+      "records": 200
+    },
+    {
+      "name": "part-0015.json",
+      "records": 200
+    },
+    {
+      "name": "part-0016.json",
+      "records": 200
+    },
+    {
+      "name": "part-0017.json",
+      "records": 200
+    },
+    {
+      "name": "part-0018.json",
+      "records": 200
+    },
+    {
+      "name": "part-0019.json",
+      "records": 200
+    },
+    {
+      "name": "part-0020.json",
+      "records": 200
+    },
+    {
+      "name": "part-0021.json",
+      "records": 200
+    },
+    {
+      "name": "part-0022.json",
+      "records": 200
+    },
+    {
+      "name": "part-0023.json",
+      "records": 200
+    },
+    {
+      "name": "part-0024.json",
+      "records": 200
+    },
+    {
+      "name": "part-0025.json",
+      "records": 200
+    },
+    {
+      "name": "part-0026.json",
+      "records": 200
+    },
+    {
+      "name": "part-0027.json",
+      "records": 200
+    },
+    {
+      "name": "part-0028.json",
+      "records": 200
+    },
+    {
+      "name": "part-0029.json",
+      "records": 200
+    },
+    {
+      "name": "part-0030.json",
+      "records": 200
+    },
+    {
+      "name": "part-0031.json",
+      "records": 131
+    }
+  ]
+}

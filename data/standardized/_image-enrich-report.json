@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-04-04T01:05:08.916Z",
+  "item": {
+    "total": 6131,
+    "imageAssigned": 2119,
+    "coverage": 0.3456
+  },
+  "buff": {
+    "total": 388,
+    "imageAssigned": 388,
+    "coverage": 1
+  },
+  "projectile": {
+    "total": 1111,
+    "imageAssigned": 1110,
+    "coverage": 0.9991
+  },
+  "npc": {
+    "total": 762,
+    "uniqueNames": 523,
+    "exactImageAssigned": 757,
+    "exactImageMapEntries": 1514,
+    "imageAssigned": 758,
+    "coverage": 0.9948
+  }
+}

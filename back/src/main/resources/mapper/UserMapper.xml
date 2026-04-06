@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.terraria.skills.mapper.UserMapper">
+
+    <select id="selectByEmail" resultType="com.terraria.skills.entity.User">
+        SELECT
+            id,
+            email,
+            password_hash AS passwordHash,
+            display_name AS displayName,
+            status,
+            last_login_at AS lastLoginAt,
+            deleted,
+            created_at AS createdAt,
+            updated_at AS updatedAt
+        FROM users
+        WHERE email = #{email}
+          AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectByEmailIncludeDeleted" resultType="com.terraria.skills.entity.User">
+        SELECT
+            id,
+            email,
+            password_hash AS passwordHash,
+            display_name AS displayName,
+            status,
+            last_login_at AS lastLoginAt,
+            deleted,
+            created_at AS createdAt,
+            updated_at AS updatedAt
+        FROM users
+        WHERE email = #{email}
+        LIMIT 1
+    </select>
+
+    <update id="reactivateDeletedUser">
+        UPDATE users
+        SET
+            password_hash = #{passwordHash},
+            display_name = #{displayName},
+            status = #{status},
+            deleted = 0,
+            last_login_at = #{lastLoginAt},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectAdminUsersPage" resultType="com.terraria.skills.dto.AdminUserListItemDTO">
+        SELECT
+            id,
+            email,
+            display_name AS displayName,
+            status,
+            last_login_at AS lastLoginAt,
+            created_at AS createdAt
+        FROM users
+        <where>
+            deleted = 0
+            <if test="email != null and email != ''">
+                AND email LIKE CONCAT('%', #{email}, '%')
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+        ORDER BY id ASC
+    </select>
+
+</mapper>

@@ -1,0 +1,34 @@
+{
+  "entity": "projectiles",
+  "generatedAt": "2026-03-28T11:56:07.300Z",
+  "chunkSize": 200,
+  "sourceFile": "data/standardized/projectiles.standardized.json",
+  "mode": "array",
+  "totalRecords": 1111,
+  "parts": [
+    {
+      "name": "part-0001.json",
+      "records": 200
+    },
+    {
+      "name": "part-0002.json",
+      "records": 200
+    },
+    {
+      "name": "part-0003.json",
+      "records": 200
+    },
+    {
+      "name": "part-0004.json",
+      "records": 200
+    },
+    {
+      "name": "part-0005.json",
+      "records": 200
+    },
+    {
+      "name": "part-0006.json",
+      "records": 111
+    }
+  ]
+}

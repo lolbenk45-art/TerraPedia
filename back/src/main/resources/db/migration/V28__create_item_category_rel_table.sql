@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS `item_category_rel` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `item_id` BIGINT NOT NULL,
+  `category_id` BIGINT NOT NULL,
+  `is_primary` TINYINT(1) NOT NULL DEFAULT 0,
+  `relation_type` VARCHAR(32) NOT NULL DEFAULT 'wiki_type',
+  `sort_order` INT NOT NULL DEFAULT 0,
+  `source_provider` VARCHAR(64) DEFAULT NULL,
+  `source_page` VARCHAR(255) DEFAULT NULL,
+  `source_revision_timestamp` DATETIME DEFAULT NULL,
+  `status` INT NOT NULL DEFAULT 1,
+  `deleted` TINYINT NOT NULL DEFAULT 0,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_item_category_rel_item_category` (`item_id`, `category_id`, `deleted`),
+  INDEX `idx_item_category_rel_item_id` (`item_id`),
+  INDEX `idx_item_category_rel_category_id` (`category_id`),
+  INDEX `idx_item_category_rel_primary` (`item_id`, `is_primary`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

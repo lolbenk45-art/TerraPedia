@@ -1,0 +1,223 @@
+package com.terraria.skills.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.terraria.skills.dto.ItemImportRequestDTO;
+import com.terraria.skills.dto.ItemImportResultDTO;
+import com.terraria.skills.dto.NormalizedItemImportDTO;
+import com.terraria.skills.entity.Category;
+import com.terraria.skills.entity.Item;
+import com.terraria.skills.mapper.CategoryMapper;
+import com.terraria.skills.mapper.ItemMapper;
+import com.terraria.skills.service.ItemImportService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class ItemImportServiceImpl implements ItemImportService {
+
+    private static final Map<String, String> CATEGORY_CODE_ALIASES = Map.of(
+        "PICKAXE", "TOOL_PICKAXE_DRILL",
+        "AXE", "TOOL_AXE_CHAINSAW",
+        "HELMET", "ARMOR_PART_HEAD",
+        "CHESTPLATE", "ARMOR_PART_BODY",
+        "LEGGINGS", "ARMOR_PART_LEGS"
+    );
+
+    private final ItemMapper itemMapper;
+    private final CategoryMapper categoryMapper;
+
+    @Override
+    @Transactional
+    public ItemImportResultDTO importItems(ItemImportRequestDTO request) {
+        ItemImportResultDTO result = new ItemImportResultDTO();
+        result.setSource(request.getSource());
+
+        List<NormalizedItemImportDTO> items = request.getItems();
+        if (items == null || items.isEmpty()) {
+            result.getErrors().add("No items provided");
+            return result;
+        }
+
+        Map<String, Category> categoriesByCode = loadCategoryCodeMap();
+        result.setTotal(items.size());
+
+        for (int index = 0; index < items.size(); index++) {
+            NormalizedItemImportDTO payload = items.get(index);
+            try {
+                importSingleItem(payload, Boolean.TRUE.equals(request.getOverwriteExisting()), categoriesByCode, result);
+            } catch (IllegalArgumentException ex) {
+                String message = "Item[" + index + "] " + ex.getMessage();
+                result.getErrors().add(message);
+                result.setSkipped(result.getSkipped() + 1);
+            } catch (Exception ex) {
+                String message = "Item[" + index + "] import failed: " + ex.getMessage();
+                log.error(message, ex);
+                result.getErrors().add(message);
+                result.setSkipped(result.getSkipped() + 1);
+            }
+        }
+
+        return result;
+    }
+
+    private void importSingleItem(
+        NormalizedItemImportDTO payload,
+        boolean overwriteExisting,
+        Map<String, Category> categoriesByCode,
+        ItemImportResultDTO result
+    ) {
+        validatePayload(payload);
+
+        Category category = resolveCategory(payload, categoriesByCode);
+        Item existing = findExistingItem(payload);
+
+        if (existing == null) {
+            Item created = new Item();
+            applyPayload(created, payload, category);
+            if (created.getStatus() == null) {
+                created.setStatus(1);
+            }
+            itemMapper.insert(created);
+            result.setCreated(result.getCreated() + 1);
+            return;
+        }
+
+        if (!overwriteExisting) {
+            result.setSkipped(result.getSkipped() + 1);
+            return;
+        }
+
+        applyPayload(existing, payload, category);
+        existing.setUpdatedAt(LocalDateTime.now());
+        itemMapper.updateById(existing);
+        result.setUpdated(result.getUpdated() + 1);
+    }
+
+    private void validatePayload(NormalizedItemImportDTO payload) {
+        if (payload == null) {
+            throw new IllegalArgumentException("payload is null");
+        }
+        if (isBlank(payload.getName())) {
+            throw new IllegalArgumentException("name is required");
+        }
+        if (isBlank(payload.getCategoryCode())) {
+            throw new IllegalArgumentException("categoryCode is required for item " + payload.getName());
+        }
+    }
+
+    private Category resolveCategory(NormalizedItemImportDTO payload, Map<String, Category> categoriesByCode) {
+        String code = normalizeCategoryCode(payload.getCategoryCode());
+        Category category = categoriesByCode.get(code);
+        if (category == null) {
+            throw new IllegalArgumentException("categoryCode not found: " + payload.getCategoryCode());
+        }
+        return category;
+    }
+
+    private Item findExistingItem(NormalizedItemImportDTO payload) {
+        if (!isBlank(payload.getInternalName())) {
+            Item byInternalName = itemMapper.selectOne(
+                new LambdaQueryWrapper<Item>()
+                    .eq(Item::getInternalName, payload.getInternalName().trim())
+                    .last("LIMIT 1")
+            );
+            if (byInternalName != null) {
+                return byInternalName;
+            }
+        }
+
+        return itemMapper.selectOne(
+            new LambdaQueryWrapper<Item>()
+                .eq(Item::getName, payload.getName().trim())
+                .last("LIMIT 1")
+        );
+    }
+
+    private void applyPayload(Item item, NormalizedItemImportDTO payload, Category category) {
+        item.setName(payload.getName().trim());
+        item.setInternalName(resolveInternalName(payload));
+        item.setImage(blankToNull(payload.getImage()));
+        item.setCategoryId(category.getId());
+        item.setDescription(blankToNull(payload.getDescription()));
+        item.setDamage(payload.getDamage());
+        item.setDefense(payload.getDefense());
+        item.setKnockback(payload.getKnockback());
+        item.setUseTime(payload.getUseTime());
+        item.setWidth(payload.getWidth());
+        item.setHeight(payload.getHeight());
+        item.setBuy(payload.getBuy());
+        item.setSell(payload.getSell());
+        item.setTooltip(blankToNull(payload.getTooltip()));
+        item.setRarityId(resolveRarityId(payload));
+        item.setGamePeriodId(payload.getGamePeriodId());
+        item.setGameModelId(payload.getGameModelId());
+        item.setIsStackable(payload.getIsStackable());
+        item.setStackSize(payload.getStackSize());
+        item.setStatus(payload.getStatus() == null ? 1 : payload.getStatus());
+    }
+
+    private Map<String, Category> loadCategoryCodeMap() {
+        List<Category> categories = categoryMapper.selectList(
+            new LambdaQueryWrapper<Category>()
+                .eq(Category::getDeleted, 0)
+        );
+        Map<String, Category> map = new HashMap<>();
+        for (Category category : categories) {
+            if (!isBlank(category.getCode())) {
+                map.put(category.getCode().trim().toUpperCase(Locale.ROOT), category);
+            }
+        }
+        return map;
+    }
+
+    private String normalizeCategoryCode(String rawCode) {
+        String code = rawCode.trim().toUpperCase(Locale.ROOT);
+        return CATEGORY_CODE_ALIASES.getOrDefault(code, code);
+    }
+
+    private Long resolveRarityId(NormalizedItemImportDTO payload) {
+        if (payload.getRarityId() != null) {
+            return payload.getRarityId();
+        }
+        if (isBlank(payload.getRarity())) {
+            return null;
+        }
+
+        String rarity = payload.getRarity().trim().toLowerCase(Locale.ROOT);
+        return switch (rarity) {
+            case "common", "普通" -> 1L;
+            case "rare", "稀有" -> 2L;
+            case "epic", "史诗" -> 3L;
+            case "legendary", "传说" -> 4L;
+            default -> null;
+        };
+    }
+
+    private String resolveInternalName(NormalizedItemImportDTO payload) {
+        if (!isBlank(payload.getInternalName())) {
+            return payload.getInternalName().trim();
+        }
+        return payload.getName().trim().toUpperCase(Locale.ROOT)
+            .replaceAll("[^A-Z0-9]+", "_")
+            .replaceAll("^_+|_+$", "");
+    }
+
+    private String blankToNull(String value) {
+        return isBlank(value) ? null : value.trim();
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+}
