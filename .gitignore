@@ -36,6 +36,8 @@ reports/db-backup/
 **/.env.*.local
 !**/.env.example
 scripts/dev/local-stack.config.json
+scripts/dev/config/local-stack.config.json
+scripts/dev/config/credentials.json
 credentials.json
 credentials.local.json
 back/src/main/resources/application-*-local.yml
@@ -64,3 +66,5 @@ data/generated/*.latest.json
 data/generated/upstream-update*.json
 data/generated/npc-id-row-images*.json
 data/generated/projectile-zh-map.json
+data/raw/
+data/normalized/

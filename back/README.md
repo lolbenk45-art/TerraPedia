@@ -26,7 +26,7 @@ $env:TERRAPEDIA_AUTH_TOKEN_SECRET="<local-admin-token-secret>"
 $env:TERRAPEDIA_USER_TOKEN_SECRET="<local-user-token-secret>"
 ```
 
-Copy `scripts/dev/local-stack.config.example.json` to `scripts/dev/local-stack.config.json` and keep the real values only in the ignored local file.
+Copy `scripts/dev/config/local-stack.config.example.json` to `scripts/dev/config/local-stack.config.json` and keep the real values only in the ignored local file.
 
 ## Start And Stop
 

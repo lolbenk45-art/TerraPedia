@@ -6,9 +6,13 @@ New-Item -ItemType Directory -Force -Path $reportDir | Out-Null
 $backDir = Join-Path $repoRoot 'back'
 $frontDir = Join-Path $repoRoot 'front'
 $adminDir = Join-Path $repoRoot 'data-query-app'
-$configPath = Join-Path $PSScriptRoot 'local-stack.config.json'
+$configCandidates = @(
+  (Join-Path $PSScriptRoot 'config\local-stack.config.json'),
+  (Join-Path $PSScriptRoot 'local-stack.config.json')
+)
+$configPath = $configCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 $stackConfig = $null
-if (Test-Path $configPath) {
+if ($configPath -and (Test-Path $configPath)) {
   $stackConfig = Get-Content -Path $configPath -Raw | ConvertFrom-Json
 }
 
@@ -37,7 +41,7 @@ function Resolve-BoolString([string]$EnvName, [object]$ConfigValue, [bool]$Fallb
 function Require-TextSetting([string]$Name, [object]$Value) {
   $text = [string]$Value
   if ([string]::IsNullOrWhiteSpace($text)) {
-    throw "$Name is required. Set it in scripts/dev/local-stack.config.json or via environment variable."
+    throw "$Name is required. Set it in scripts/dev/config/local-stack.config.json or via environment variable."
   }
   return $text
 }

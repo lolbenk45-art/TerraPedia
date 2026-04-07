@@ -17,8 +17,8 @@ export function loadLocalStackConfig(repoRoot = DEFAULT_REPO_ROOT) {
     return configCache.get(normalizedRepoRoot);
   }
 
-  const configPath = path.join(normalizedRepoRoot, 'scripts', 'dev', 'local-stack.config.json');
-  if (!fs.existsSync(configPath)) {
+  const configPath = resolveLocalStackConfigPath(normalizedRepoRoot);
+  if (!configPath) {
     configCache.set(normalizedRepoRoot, {});
     return {};
   }
@@ -52,7 +52,7 @@ export function resolveAdminAuth(rawOptions = {}, options = {}) {
   );
 
   if (requiredPassword && !password) {
-    const configPath = path.join(repoRoot, 'scripts', 'dev', 'local-stack.config.json');
+    const configPath = resolveLocalStackConfigPath(repoRoot) ?? path.join(repoRoot, 'scripts', 'dev', 'config', 'local-stack.config.json');
     throw new Error(
       `Missing admin password. Set --${passwordKey}=..., TERRAPEDIA_ADMIN_PASSWORD, or auth.admin.password in ${configPath}.`
     );
@@ -70,6 +70,14 @@ function getConfigValue(root, segments) {
     current = current[segment];
   }
   return current ?? null;
+}
+
+function resolveLocalStackConfigPath(repoRoot) {
+  const candidates = [
+    path.join(repoRoot, 'scripts', 'dev', 'config', 'local-stack.config.json'),
+    path.join(repoRoot, 'scripts', 'dev', 'local-stack.config.json'),
+  ];
+  return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
 }
 
 function firstText(...values) {
