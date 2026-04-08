@@ -91,15 +91,15 @@
     </section>
 
     <section class="panel-card">
-      <div class="section-head"><h3 class="section-title">获取来源</h3><span class="section-meta">{{ sources.length }} 条</span></div>
-      <div v-if="sources.length" class="source-list">
-        <article v-for="source in sources" :key="source.id ?? `${source.sourceType}-${source.sourceRefName}-${source.sortOrder}`" class="source-card">
-          <div class="source-card__head"><span class="tag tag--sky">{{ source.sourceType || 'unknown' }}</span><strong>{{ formatSourceName(source.sourceRefName) || '未命名来源' }}</strong></div>
+      <div class="section-head"><h3 class="section-title">获取来源</h3><span class="section-meta">{{ displaySources.length }} 条</span></div>
+      <div v-if="displaySources.length" class="source-list">
+        <article v-for="source in displaySources" :key="source.id ?? `${source.sourceType}-${source.sourceRefNameZh || source.sourceRefName}-${source.sortOrder}`" class="source-card">
+          <div class="source-card__head"><span class="tag tag--sky">{{ formatSourceTypeLabel(source.sourceType) }}</span><strong>{{ formatSourceDisplayName(source) || '未命名来源' }}</strong></div>
           <p v-if="source.biomeNameEn || source.biomeNameZh" class="source-card__text">群系：{{ source.biomeNameZh || source.biomeNameEn }}</p>
           <p v-if="source.quantityText || source.quantityMin != null || source.quantityMax != null" class="source-card__text">数量：{{ formatQuantity(source.quantityText, source.quantityMin, source.quantityMax) }}</p>
           <p v-if="source.chanceText || source.chanceValue != null" class="source-card__text">概率：{{ formatChance(source.chanceText, source.chanceValue) }}</p>
-          <p v-if="source.conditions" class="source-card__text">条件：{{ source.conditions }}</p>
-          <p v-if="source.notes" class="source-card__text">备注：{{ source.notes }}</p>
+          <p v-if="shouldShowLocalizedFreeText(source.conditions)" class="source-card__text">条件：{{ source.conditions }}</p>
+          <p v-if="shouldShowLocalizedFreeText(source.notes)" class="source-card__text">备注：{{ source.notes }}</p>
         </article>
       </div>
       <p v-else class="empty-hint">暂无可用来源</p>
@@ -151,6 +151,28 @@ const biomeSummary = computed(() => {
   }
   return [...map.values()]
 })
+const displaySources = computed(() => {
+  const deduped = new Map<string, ItemSourceRelation>()
+
+  for (const source of sources.value) {
+    const normalizedName = normalizeSourceRefName(source.sourceRefNameZh || source.sourceRefName)
+    const key = [
+      source.sourceType || '',
+      source.sourceRefType || '',
+      normalizedName,
+      source.biomeCode || '',
+      source.quantityText || `${source.quantityMin ?? ''}-${source.quantityMax ?? ''}`,
+      source.chanceText || (source.chanceValue != null ? String(source.chanceValue) : ''),
+      normalizeSourceRefName(source.conditions),
+    ].join('|')
+
+    if (!deduped.has(key)) {
+      deduped.set(key, source)
+    }
+  }
+
+  return [...deduped.values()]
+})
 
 watch(() => item.value.id, async (id) => {
   if (!id) return
@@ -187,7 +209,29 @@ function formatVersionScope(value?: string | null) {
   const labels = ['Desktop version', 'Console version', 'Mobile version', 'Old-gen console version', 'Nintendo 3DS version'].filter((label) => text.includes(label))
   return labels.length > 0 ? `${labels.join(' / ')} only` : text
 }
-function formatSourceName(value?: string | null) { const text = value?.trim() ?? ''; if (!text) return ''; return text.replace(/^(.+?) \1(?=\s|\(|$)/, '$1') }
+function formatSourceTypeLabel(value?: string | null) {
+  const key = (value ?? '').trim().toLowerCase()
+  const labels: Record<string, string> = {
+    drop: '掉落',
+    shop: '商店',
+    worldgen: '世界生成',
+    mining: '采集',
+  }
+  return labels[key] || '来源'
+}
+function normalizeSourceRefName(value?: string | null) {
+  const text = value?.trim() ?? ''
+  if (!text) return ''
+  return text.replace(/^(.+?) \1(?=\s|\(|$)/, '$1').replace(/\s+for$/i, '').trim()
+}
+function formatSourceDisplayName(source: ItemSourceRelation) {
+  return normalizeSourceRefName(source.sourceRefNameZh || source.sourceRefName)
+}
+function shouldShowLocalizedFreeText(value?: string | null) {
+  const text = value?.trim() ?? ''
+  if (!text) return false
+  return /[\u3400-\u9fff]/.test(text)
+}
 </script>
 <style scoped>
 .item-detail { display: grid; gap: 18px; }

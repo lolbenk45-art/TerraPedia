@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -53,6 +54,7 @@ public class AdminBossController {
     private final BossGroupMapper bossGroupMapper;
     private final NpcMapper npcMapper;
     private final ObjectMapper objectMapper;
+    private final JdbcTemplate jdbcTemplate;
 
     @GetMapping
     @Operation(summary = "Get boss groups")
@@ -79,7 +81,10 @@ public class AdminBossController {
         }
         Page<BossGroup> mpPage = bossGroupMapper.selectPage(new Page<>(safePage, safeLimit), wrapper);
         Pagination pagination = new Pagination(mpPage.getTotal(), (int) mpPage.getCurrent(), (int) mpPage.getSize());
-        ApiResponse<List<Map<String, Object>>> response = ApiResponse.success(mpPage.getRecords().stream().map(this::toSummaryPayload).toList());
+        Map<String, Map<String, Object>> npcSupplementMap = loadNpcSupplementMap();
+        ApiResponse<List<Map<String, Object>>> response = ApiResponse.success(mpPage.getRecords().stream()
+            .map(bossGroup -> toSummaryPayload(bossGroup, npcSupplementMap))
+            .toList());
         response.setPagination(pagination);
         return ResponseEntity.ok(response);
     }
@@ -91,7 +96,7 @@ public class AdminBossController {
         if (bossGroup == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "Boss group not found"));
         }
-        return ResponseEntity.ok(ApiResponse.success(toDetailPayload(bossGroup)));
+        return ResponseEntity.ok(ApiResponse.success(toDetailPayload(bossGroup, loadNpcSupplementMap())));
     }
 
     @PostMapping
@@ -111,7 +116,7 @@ public class AdminBossController {
         applyFields(bossGroup, request, true);
         bossGroupMapper.insert(bossGroup);
         syncMembers(bossGroup.getId(), parseLongList(request.get("memberNpcIds")));
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(toDetailPayload(bossGroupMapper.selectById(bossGroup.getId())), "Boss group created"));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(toDetailPayload(bossGroupMapper.selectById(bossGroup.getId()), loadNpcSupplementMap()), "Boss group created"));
     }
 
     @PutMapping("/{id}")
@@ -136,7 +141,7 @@ public class AdminBossController {
         if (request.containsKey("memberNpcIds")) {
             syncMembers(id, parseLongList(request.get("memberNpcIds")));
         }
-        return ResponseEntity.ok(ApiResponse.success(toDetailPayload(bossGroupMapper.selectById(id)), "Boss group updated"));
+        return ResponseEntity.ok(ApiResponse.success(toDetailPayload(bossGroupMapper.selectById(id), loadNpcSupplementMap()), "Boss group updated"));
     }
 
     @DeleteMapping("/{id}")
@@ -152,16 +157,22 @@ public class AdminBossController {
         return ResponseEntity.ok(ApiResponse.success(null, "Boss group deleted"));
     }
 
-    private Map<String, Object> toSummaryPayload(BossGroup bossGroup) {
+    private Map<String, Object> toSummaryPayload(BossGroup bossGroup, Map<String, Map<String, Object>> npcSupplementMap) {
         Map<String, Object> payload = basePayload(bossGroup);
         List<Npc> members = loadMembers(bossGroup.getId());
-        List<Map<String, Object>> referenceMembers = loadReferenceMembers(bossGroup, loadNpcSupplementMap());
+        List<Map<String, Object>> referenceMembers = loadReferenceMembers(bossGroup, npcSupplementMap);
+        Npc lootOwnerNpc = resolveLootOwnerNpc(members);
+        List<Map<String, Object>> lootEntries = loadLootEntries(lootOwnerNpc == null ? null : lootOwnerNpc.getId());
         payload.put("memberCount", resolveVisibleMemberCount(members, referenceMembers));
         payload.put("memberNpcIds", members.stream().map(Npc::getId).filter(Objects::nonNull).toList());
         payload.put("memberNames", resolveVisibleMemberNames(members, referenceMembers));
         payload.put("memberSourceMode", resolveMemberSourceMode(members, referenceMembers));
         payload.put("referenceMemberCount", referenceMembers.size());
         payload.put("referenceBossCodes", REFERENCE_BOSS_GROUP_CODES.getOrDefault(bossGroup.getCode(), List.of()));
+        payload.put("lootEntryCount", lootEntries.size());
+        payload.put("uniqueLootItemCount", countUniqueLootItems(lootEntries));
+        payload.put("lootOwnerNpcId", lootOwnerNpc == null ? null : lootOwnerNpc.getId());
+        payload.put("lootOwnerNpcName", lootOwnerNpc == null ? null : firstNonBlank(lootOwnerNpc.getNameZh(), lootOwnerNpc.getName(), lootOwnerNpc.getInternalName()));
         return payload;
     }
 
@@ -184,15 +195,22 @@ public class AdminBossController {
             .toList();
     }
 
-    private Map<String, Object> toDetailPayload(BossGroup bossGroup) {
-        Map<String, Object> payload = toSummaryPayload(bossGroup);
-        Map<String, Map<String, Object>> npcSupplementMap = loadNpcSupplementMap();
-        List<Map<String, Object>> members = buildMemberPayloads(loadMembers(bossGroup.getId()), npcSupplementMap, null);
+    private Map<String, Object> toDetailPayload(BossGroup bossGroup, Map<String, Map<String, Object>> npcSupplementMap) {
+        List<Npc> assignedMembers = loadMembers(bossGroup.getId());
+        Map<String, Object> payload = toSummaryPayload(bossGroup, npcSupplementMap);
+        List<Map<String, Object>> members = buildMemberPayloads(assignedMembers, npcSupplementMap, null);
         List<Map<String, Object>> referenceMembers = loadReferenceMembers(bossGroup, npcSupplementMap);
+        Npc lootOwnerNpc = resolveLootOwnerNpc(assignedMembers);
+        List<Map<String, Object>> lootEntries = loadLootEntries(lootOwnerNpc == null ? null : lootOwnerNpc.getId());
         payload.put("members", members);
         payload.put("referenceMembers", referenceMembers);
         payload.put("memberSourceMode", resolveMemberSourceMode(members, referenceMembers));
         payload.put("memberCount", resolveVisibleMemberCount(members, referenceMembers));
+        payload.put("lootOwnerNpc", toNpcSummaryPayload(lootOwnerNpc));
+        payload.put("lootEntries", lootEntries);
+        payload.put("directLootCount", countLootEntriesByKind(lootEntries, "direct_boss"));
+        payload.put("treasureBagLootCount", countLootEntriesByKind(lootEntries, "treasure_bag"));
+        payload.put("uniqueLootItemCount", countUniqueLootItems(lootEntries));
         return payload;
     }
 
@@ -219,6 +237,104 @@ public class AdminBossController {
         return npcMapper.selectList(new LambdaQueryWrapper<Npc>()
             .eq(Npc::getBossGroupId, bossGroupId)
             .orderByAsc(Npc::getGameId, Npc::getId));
+    }
+
+    private Npc resolveLootOwnerNpc(List<Npc> members) {
+        if (members == null || members.isEmpty()) {
+            return null;
+        }
+        return members.stream()
+            .filter(Objects::nonNull)
+            .filter(member -> "primary".equalsIgnoreCase(trimToNull(member.getBossRole())))
+            .findFirst()
+            .orElse(null);
+    }
+
+    private Map<String, Object> toNpcSummaryPayload(Npc npc) {
+        if (npc == null) {
+            return null;
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("id", npc.getId());
+        payload.put("gameId", npc.getGameId());
+        payload.put("internalName", npc.getInternalName());
+        payload.put("name", npc.getName());
+        payload.put("nameZh", npc.getNameZh());
+        payload.put("bossRole", npc.getBossRole());
+        payload.put("displayName", firstNonBlank(npc.getNameZh(), npc.getName(), npc.getInternalName()));
+        return payload;
+    }
+
+    private List<Map<String, Object>> loadLootEntries(Long npcId) {
+        if (npcId == null || jdbcTemplate == null) {
+            return List.of();
+        }
+        return jdbcTemplate.queryForList(
+            """
+            SELECT
+              nle.id,
+              nle.npc_id AS npcId,
+              nle.item_id AS itemId,
+              nle.source_item_id AS sourceItemId,
+              nle.drop_source_kind AS dropSourceKind,
+              nle.quantity_min AS quantityMin,
+              nle.quantity_max AS quantityMax,
+              nle.quantity_text AS quantityText,
+              nle.chance_value AS chanceValue,
+              nle.chance_text AS chanceText,
+              nle.conditions,
+              nle.notes,
+              nle.sort_order AS sortOrder,
+              i.name AS itemName,
+              i.name_zh AS itemNameZh,
+              i.internal_name AS itemInternalName,
+              i.image AS itemImage
+            FROM npc_loot_entries nle
+            LEFT JOIN items i ON i.id = nle.item_id AND i.deleted = 0
+            WHERE nle.npc_id = ? AND nle.deleted = 0
+            ORDER BY
+              CASE nle.drop_source_kind
+                WHEN 'direct_boss' THEN 0
+                WHEN 'treasure_bag' THEN 1
+                ELSE 9
+              END ASC,
+              nle.sort_order ASC,
+              nle.id ASC
+            """,
+            npcId
+        );
+    }
+
+    private int countLootEntriesByKind(List<Map<String, Object>> lootEntries, String kind) {
+        if (lootEntries == null || lootEntries.isEmpty() || kind == null) {
+            return 0;
+        }
+        int count = 0;
+        for (Map<String, Object> entry : lootEntries) {
+            if (kind.equalsIgnoreCase(trimToNull(entry.get("dropSourceKind")))) {
+                count += 1;
+            }
+        }
+        return count;
+    }
+
+    private int countUniqueLootItems(List<Map<String, Object>> lootEntries) {
+        if (lootEntries == null || lootEntries.isEmpty()) {
+            return 0;
+        }
+        Set<String> uniqueKeys = new LinkedHashSet<>();
+        for (Map<String, Object> entry : lootEntries) {
+            String key = firstNonBlank(
+                toLong(entry.get("itemId")) == null ? null : "id:" + toLong(entry.get("itemId")),
+                trimToNull(entry.get("itemInternalName")) == null ? null : "internal:" + trimToNull(entry.get("itemInternalName")),
+                trimToNull(entry.get("itemName")) == null ? null : "name:" + trimToNull(entry.get("itemName")),
+                toLong(entry.get("sourceItemId")) == null ? null : "source:" + toLong(entry.get("sourceItemId"))
+            );
+            if (key != null) {
+                uniqueKeys.add(key);
+            }
+        }
+        return uniqueKeys.size();
     }
 
     private int resolveVisibleMemberCount(List<?> members, List<?> referenceMembers) {
@@ -325,7 +441,28 @@ public class AdminBossController {
         if (supplement == null) {
             return null;
         }
-        return trimToNull(supplement.get("imageUrl"));
+        return firstNonBlank(
+            trimToNull(supplement.get("imageUrl")),
+            extractImageUrlFromRawJson(supplement.get("rawJson"))
+        );
+    }
+
+    private String extractImageUrlFromRawJson(Object rawJson) {
+        if (!(rawJson instanceof String text) || text.isBlank()) {
+            return null;
+        }
+        try {
+            Object parsed = objectMapper.readValue(text, Object.class);
+            if (!(parsed instanceof Map<?, ?> map)) {
+                return null;
+            }
+            return firstNonBlank(
+                trimToNull(map.get("imageUrl")),
+                trimToNull(map.get("image_url"))
+            );
+        } catch (Exception exception) {
+            return null;
+        }
     }
 
     private Map<String, Map<String, Object>> loadNpcSupplementMap() {

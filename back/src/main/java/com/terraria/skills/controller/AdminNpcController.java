@@ -267,10 +267,12 @@ public class AdminNpcController {
         payload.put("catchSourceItemId", npc.getCatchSourceItemId());
         payload.put("catchItemId", npc.getCatchItemId());
         payload.put("lootEntryCount", countNpcRelations("npc_loot_entries", npc.getId()));
+        payload.put("derivedLootEntryCount", countNpcDerivedLootEntries(npc.getGameId(), npc.getName()));
         payload.put("buffRelationCount", countNpcRelations("npc_buff_relations", npc.getId()));
         payload.put("shopEntryCount", countNpcRelations("npc_shop_entries", npc.getId()));
         if (includeRelations) {
             payload.put("lootEntries", loadNpcLootEntries(npc.getId()));
+            payload.put("derivedLootEntries", loadNpcDerivedLootEntries(npc.getGameId(), npc.getName()));
             payload.put("buffRelations", loadNpcBuffRelations(npc.getId()));
             payload.put("shopEntries", loadNpcShopEntries(npc.getId()));
         }
@@ -302,11 +304,14 @@ public class AdminNpcController {
 
     private Map<String, Object> toNpcSupplement(Map<?, ?> map) {
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("imageUrl", map.get("imageUrl"));
+        Map<?, ?> rawJson = parseMap(map.get("rawJson"));
+        payload.put("imageUrl", firstNonBlank(
+            trimToNull(map.get("imageUrl")),
+            trimToNull(rawJson.get("imageUrl")),
+            trimToNull(rawJson.get("image_url"))
+        ));
         payload.put("rawJson", map.get("rawJson"));
         payload.put("buffImmune", toJsonString(map.get("buffImmune")));
-
-        Map<?, ?> rawJson = parseMap(map.get("rawJson"));
         Map<?, ?> combat = map.get("combat") instanceof Map<?, ?> combatMap ? combatMap : Map.of();
         Map<?, ?> dimensions = map.get("dimensions") instanceof Map<?, ?> dimMap ? dimMap : Map.of();
         Map<?, ?> economy = map.get("economy") instanceof Map<?, ?> ecoMap ? ecoMap : Map.of();
@@ -353,6 +358,7 @@ public class AdminNpcController {
               nle.id,
               nle.item_id AS itemId,
               nle.source_item_id AS sourceItemId,
+              nle.drop_source_kind AS dropSourceKind,
               nle.quantity_min AS quantityMin,
               nle.quantity_max AS quantityMax,
               nle.quantity_text AS quantityText,
@@ -371,6 +377,89 @@ public class AdminNpcController {
             ORDER BY nle.sort_order ASC, nle.id ASC
             """,
             npcId
+        );
+    }
+
+    private List<Map<String, Object>> loadNpcDerivedLootEntries(Long npcSourceId, String npcName) {
+        if (jdbcTemplate == null) return List.of();
+        if (npcSourceId != null && countNpcDerivedLootEntriesBySourceId(npcSourceId) > 0) {
+            return loadNpcDerivedLootEntriesBySourceId(npcSourceId);
+        }
+        String normalizedNpcName = trimToNull(npcName);
+        if (normalizedNpcName == null) {
+            return List.of();
+        }
+        return loadNpcDerivedLootEntriesByName(normalizedNpcName);
+    }
+
+    private List<Map<String, Object>> loadNpcDerivedLootEntriesBySourceId(Long npcSourceId) {
+        return jdbcTemplate.queryForList(
+            """
+            SELECT
+              ias.id,
+              ias.item_id AS itemId,
+              ias.source_ref_id AS sourceRefId,
+              ias.source_ref_name AS sourceRefName,
+              ias.quantity_min AS quantityMin,
+              ias.quantity_max AS quantityMax,
+              ias.quantity_text AS quantityText,
+              ias.chance_value AS chanceValue,
+              ias.chance_text AS chanceText,
+              ias.conditions,
+              ias.notes,
+              ias.source_page AS sourcePage,
+              ias.source_revision_timestamp AS sourceRevisionTimestamp,
+              ias.sort_order AS sortOrder,
+              i.name AS itemName,
+              i.name_zh AS itemNameZh,
+              i.internal_name AS itemInternalName,
+              i.image AS itemImage
+            FROM item_acquisition_sources ias
+            LEFT JOIN items i ON i.id = ias.item_id AND i.deleted = 0
+            WHERE ias.source_type = 'drop'
+              AND ias.source_ref_type = 'npc'
+              AND ias.source_ref_id = ?
+              AND ias.status = 1
+              AND ias.deleted = 0
+            ORDER BY ias.sort_order ASC, ias.id ASC
+            """,
+            npcSourceId
+        );
+    }
+
+    private List<Map<String, Object>> loadNpcDerivedLootEntriesByName(String npcName) {
+        return jdbcTemplate.queryForList(
+            """
+            SELECT
+              ias.id,
+              ias.item_id AS itemId,
+              ias.source_ref_id AS sourceRefId,
+              ias.source_ref_name AS sourceRefName,
+              ias.quantity_min AS quantityMin,
+              ias.quantity_max AS quantityMax,
+              ias.quantity_text AS quantityText,
+              ias.chance_value AS chanceValue,
+              ias.chance_text AS chanceText,
+              ias.conditions,
+              ias.notes,
+              ias.source_page AS sourcePage,
+              ias.source_revision_timestamp AS sourceRevisionTimestamp,
+              ias.sort_order AS sortOrder,
+              i.name AS itemName,
+              i.name_zh AS itemNameZh,
+              i.internal_name AS itemInternalName,
+              i.image AS itemImage
+            FROM item_acquisition_sources ias
+            LEFT JOIN items i ON i.id = ias.item_id AND i.deleted = 0
+            WHERE ias.source_type = 'drop'
+              AND ias.source_ref_type = 'npc'
+              AND ias.source_ref_id IS NULL
+              AND LOWER(TRIM(ias.source_ref_name)) = LOWER(TRIM(?))
+              AND ias.status = 1
+              AND ias.deleted = 0
+            ORDER BY ias.sort_order ASC, ias.id ASC
+            """,
+            npcName
         );
     }
 
@@ -495,12 +584,13 @@ public class AdminNpcController {
             jdbcTemplate.update(
                 """
                 INSERT INTO npc_loot_entries
-                  (npc_id, item_id, source_item_id, quantity_min, quantity_max, quantity_text, chance_value, chance_text, conditions, notes, sort_order, status, deleted)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
+                  (npc_id, item_id, source_item_id, drop_source_kind, quantity_min, quantity_max, quantity_text, chance_value, chance_text, conditions, notes, sort_order, status, deleted)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
                 """,
                 npcId,
                 itemId,
                 sourceItemId,
+                trimToNull(row.get("dropSourceKind")),
                 toInteger(row.get("quantityMin")),
                 toInteger(row.get("quantityMax")),
                 trimToNull(row.get("quantityText")),
@@ -738,6 +828,53 @@ public class AdminNpcController {
             "SELECT COUNT(*) FROM " + tableName + " WHERE npc_id = ? AND deleted = 0",
             Integer.class,
             npcId
+        );
+        return total == null ? 0 : total;
+    }
+
+    private int countNpcDerivedLootEntries(Long npcSourceId, String npcName) {
+        if (jdbcTemplate == null) return 0;
+        if (npcSourceId != null) {
+            int total = countNpcDerivedLootEntriesBySourceId(npcSourceId);
+            if (total > 0) {
+                return total;
+            }
+        }
+        String normalizedNpcName = trimToNull(npcName);
+        if (normalizedNpcName == null) {
+            return 0;
+        }
+        Integer total = jdbcTemplate.queryForObject(
+            """
+            SELECT COUNT(*)
+            FROM item_acquisition_sources
+            WHERE source_type = 'drop'
+              AND source_ref_type = 'npc'
+              AND source_ref_id IS NULL
+              AND LOWER(TRIM(source_ref_name)) = LOWER(TRIM(?))
+              AND status = 1
+              AND deleted = 0
+            """,
+            Integer.class,
+            normalizedNpcName
+        );
+        return total == null ? 0 : total;
+    }
+
+    private int countNpcDerivedLootEntriesBySourceId(Long npcSourceId) {
+        if (npcSourceId == null || jdbcTemplate == null) return 0;
+        Integer total = jdbcTemplate.queryForObject(
+            """
+            SELECT COUNT(*)
+            FROM item_acquisition_sources
+            WHERE source_type = 'drop'
+              AND source_ref_type = 'npc'
+              AND source_ref_id = ?
+              AND status = 1
+              AND deleted = 0
+            """,
+            Integer.class,
+            npcSourceId
         );
         return total == null ? 0 : total;
     }

@@ -29,6 +29,9 @@ public class NpcLootEntry implements Serializable {
     @TableField("source_item_id")
     private Integer sourceItemId;
 
+    @TableField("drop_source_kind")
+    private String dropSourceKind;
+
     @TableField("quantity_min")
     private Integer quantityMin;
 

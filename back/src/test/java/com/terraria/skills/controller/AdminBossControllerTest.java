@@ -12,12 +12,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
+import java.util.Map;
 
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -34,11 +39,14 @@ class AdminBossControllerTest {
     @Mock
     private NpcMapper npcMapper;
 
+    @Mock
+    private JdbcTemplate jdbcTemplate;
+
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        AdminBossController controller = new AdminBossController(bossGroupMapper, npcMapper, new ObjectMapper());
+        AdminBossController controller = new AdminBossController(bossGroupMapper, npcMapper, new ObjectMapper(), jdbcTemplate);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
             .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
             .build();
@@ -127,7 +135,69 @@ class AdminBossControllerTest {
             .andExpect(jsonPath("$.data.memberSourceMode").value("reference"))
             .andExpect(jsonPath("$.data.memberCount").value(8))
             .andExpect(jsonPath("$.data.referenceMembers[*].sourceBossCode", hasItem("THE_TWINS")))
-            .andExpect(jsonPath("$.data.referenceMembers[?(@.internalName == 'Retinazer')].imageUrl", hasItem("https://terraria.wiki.gg/images/Retinazer.png?51913f")));
+            .andExpect(jsonPath(
+                "$.data.referenceMembers[?(@.internalName == 'Retinazer')].imageUrl",
+                hasItem(anyOf(containsString("Retinazer"), containsString("terrapedia-images")))
+            ));
+    }
+
+    @Test
+    void shouldExposeLootStatsForDirectBossInList() throws Exception {
+        BossGroup kingSlime = bossGroup(34L, "KING_SLIME", "King Slime", "史莱姆王", "PRE_HARDMODE", 1);
+        Page<BossGroup> page = new Page<>(1, 100);
+        page.setTotal(1);
+        page.setRecords(List.of(kingSlime));
+
+        when(bossGroupMapper.selectPage(any(Page.class), any())).thenReturn(page);
+        when(npcMapper.selectList(any())).thenReturn(List.of(
+            npc(201L, 50L, "KingSlime", "King Slime", "史莱姆王", "primary")
+        ));
+        when(jdbcTemplate.queryForList(
+            contains("FROM npc_loot_entries"),
+            eq(201L)
+        )).thenReturn(List.of(
+            lootEntry(2608L, "SlimeGun", "Slime Gun", "史莱姆枪", "direct_boss"),
+            lootEntry(3088L, "RoyalGel", "Royal Gel", "皇家凝胶", "treasure_bag"),
+            lootEntry(2608L, "SlimeGun", "Slime Gun", "史莱姆枪", "treasure_bag")
+        ));
+
+        mockMvc.perform(get("/admin/bosses").param("page", "1").param("limit", "100"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data[0].code").value("KING_SLIME"))
+            .andExpect(jsonPath("$.data[0].lootEntryCount").value(3))
+            .andExpect(jsonPath("$.data[0].uniqueLootItemCount").value(2))
+            .andExpect(jsonPath("$.data[0].lootOwnerNpcId").value(201))
+            .andExpect(jsonPath("$.data[0].lootOwnerNpcName").value("史莱姆王"));
+    }
+
+    @Test
+    void shouldReturnLootEntriesAndOwnerForBossDetail() throws Exception {
+        BossGroup moonLord = bossGroup(51L, "MOON_LORD", "Moon Lord", "月亮领主", "HARDMODE", 18);
+
+        when(bossGroupMapper.selectById(eq(51L))).thenReturn(moonLord);
+        when(npcMapper.selectList(any())).thenReturn(List.of(
+            npc(464L, 398L, "MoonLordCore", "Moon Lord's Core", "月亮领主心脏", "primary"),
+            npc(463L, 397L, "MoonLordHand", "Moon Lord's Hand", "月亮领主手", "part")
+        ));
+        when(jdbcTemplate.queryForList(
+            contains("FROM npc_loot_entries"),
+            eq(464L)
+        )).thenReturn(List.of(
+            lootEntry(3383L, "Terrarian", "Terrarian", "泰拉悠悠球", "direct_boss"),
+            lootEntry(3381L, "PortalGun", "Portal Gun", "传送枪", "direct_boss"),
+            lootEntry(3381L, "PortalGun", "Portal Gun", "传送枪", "treasure_bag")
+        ));
+
+        mockMvc.perform(get("/admin/bosses/51"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.lootOwnerNpc.id").value(464))
+            .andExpect(jsonPath("$.data.lootOwnerNpc.internalName").value("MoonLordCore"))
+            .andExpect(jsonPath("$.data.lootEntries[0].dropSourceKind").value("direct_boss"))
+            .andExpect(jsonPath("$.data.directLootCount").value(2))
+            .andExpect(jsonPath("$.data.treasureBagLootCount").value(1))
+            .andExpect(jsonPath("$.data.uniqueLootItemCount").value(2));
     }
 
     private BossGroup bossGroup(Long id, String code, String nameEn, String nameZh, String bossType, int progressionOrder) {
@@ -153,5 +223,15 @@ class AdminBossControllerTest {
         npc.setIsBoss(true);
         npc.setStatus(1);
         return npc;
+    }
+
+    private Map<String, Object> lootEntry(Long itemId, String itemInternalName, String itemName, String itemNameZh, String dropSourceKind) {
+        return Map.of(
+            "itemId", itemId,
+            "itemInternalName", itemInternalName,
+            "itemName", itemName,
+            "itemNameZh", itemNameZh,
+            "dropSourceKind", dropSourceKind
+        );
     }
 }

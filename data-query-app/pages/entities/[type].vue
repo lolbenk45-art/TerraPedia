@@ -143,6 +143,7 @@
               <div class="boss-card__pills">
                 <span class="preview-pill preview-pill--accent">{{ getBossTypeLabel(row.bossType) }}</span>
                 <span class="preview-pill">成员 {{ row.memberCount ?? 0 }}</span>
+                <span class="preview-pill">掉落 {{ row.lootEntryCount ?? 0 }}</span>
                 <span v-if="row.memberSourceMode === 'reference'" class="preview-pill">组合引用</span>
               </div>
               <div class="boss-card__heading">
@@ -152,6 +153,7 @@
               <p class="boss-card__note">{{ getBossCardNote(row) }}</p>
               <div class="boss-card__meta">
                 <span>Code {{ row.code || '--' }}</span>
+                <span>唯一掉落 {{ row.uniqueLootItemCount ?? 0 }}</span>
                 <span>进度序 {{ row.progressionOrder ?? '--' }}</span>
               </div>
               <div class="boss-card__actions">
@@ -213,7 +215,15 @@
                         <div v-else-if="entityType === 'bosses'" class="cell-badges">
                           <span class="cell-badge cell-badge--accent">{{ getBossTypeLabel(row.bossType) }}</span>
                           <span class="cell-badge">成员 {{ row.memberCount ?? 0 }}</span>
+                          <span class="cell-badge">掉落 {{ row.lootEntryCount ?? 0 }}</span>
                           <span v-if="row.memberSourceMode === 'reference'" class="cell-badge">组合引用</span>
+                        </div>
+                        <div v-else-if="entityType === 'npcs'" class="cell-badges">
+                          <span class="cell-badge cell-badge--accent">{{ row.categoryName || '未分类' }}</span>
+                          <span class="cell-badge">掉落 {{ row.lootEntryCount ?? 0 }}</span>
+                          <span class="cell-badge">原始 {{ row.derivedLootEntryCount ?? 0 }}</span>
+                          <span v-if="row.isTownNpc" class="cell-badge">城镇 NPC</span>
+                          <span v-if="row.isBoss" class="cell-badge">Boss</span>
                         </div>
                         <div v-if="entityType === 'projectiles'" class="cell-bilingual">
                           <span><strong>ZH</strong> {{ getProjectileNameZh(row) || '待补充' }}</span>
@@ -226,7 +236,7 @@
                   </td>
                   <td>
                     <div class="row-actions">
-                      <button v-if="entityType === 'armor-sets' || entityType === 'projectiles' || entityType === 'buffs' || entityType === 'bosses'" type="button" class="btn-link" @click="openDetailDialog(row)">详情</button>
+                      <button v-if="entityType === 'armor-sets' || entityType === 'projectiles' || entityType === 'buffs' || entityType === 'bosses' || entityType === 'npcs'" type="button" class="btn-link" @click="openDetailDialog(row)">详情</button>
                       <button type="button" class="btn-link" @click="openEditDialog(row)">编辑</button>
                       <button type="button" class="btn-link btn-link--danger" @click="handleDelete(row)">删除</button>
                     </div>
@@ -529,6 +539,64 @@
             </div>
           </section>
 
+          <section v-if="bossLootOwner || bossLootGroups.length" class="boss-detail__section">
+            <div class="boss-detail__section-head">
+              <h4>Boss 掉落</h4>
+              <span>{{ bossLootEntries.length }} 条</span>
+            </div>
+            <p class="boss-detail__helper">{{ bossLootSectionHelper }}</p>
+            <div v-if="bossLootOwner" class="boss-detail__loot-owner">
+              <div class="armor-detail__section-copy">
+                <strong>归属 NPC</strong>
+                <p>{{ bossLootOwnerLabel }}</p>
+              </div>
+              <button type="button" class="btn btn-secondary" @click="openBossLootOwnerNpc()">
+                在 NPC 管理中查看
+              </button>
+            </div>
+            <div v-if="bossLootGroups.length" class="boss-detail__loot-groups">
+              <section v-for="group in bossLootGroups" :key="group.key" class="boss-detail__group">
+                <div class="boss-detail__section-head boss-detail__section-head--sub">
+                  <div class="armor-detail__section-copy">
+                    <strong>{{ group.label }}</strong>
+                    <p>{{ group.description }}</p>
+                  </div>
+                  <span>{{ group.entries.length }} 条</span>
+                </div>
+                <div class="boss-detail__loot-list">
+                  <article v-for="entry in group.entries" :key="`${group.key}-${entry.id ?? entry.sortOrder}-${entry.itemId ?? entry.itemInternalName}`" class="boss-detail__loot-card">
+                    <button type="button" class="boss-detail__loot-media boss-detail__loot-media--button" @click="openLinkedItemDetail(entry)">
+                      <img v-if="normalizeImageUrl(entry.itemImage)" :src="normalizeImageUrl(entry.itemImage) || ''" class="boss-detail__loot-image" alt="" @error="handleImageError" />
+                      <div v-else class="boss-detail__loot-fallback">{{ group.short }}</div>
+                    </button>
+                    <div class="boss-detail__loot-body">
+                      <div class="boss-detail__member-pills">
+                        <span class="cell-badge cell-badge--accent">{{ group.label }}</span>
+                        <span v-if="entry.itemInternalName" class="cell-badge">{{ entry.itemInternalName }}</span>
+                      </div>
+                      <strong>{{ entry.itemNameZh || entry.itemName || entry.itemInternalName || `Item ${entry.itemId ?? '--'}` }}</strong>
+                      <span>{{ entry.itemName && entry.itemNameZh ? entry.itemName : entry.itemInternalName || '--' }}</span>
+                      <div v-if="getBossLootModeRows(entry).length" class="boss-detail__loot-mode-list">
+                        <div v-for="mode in getBossLootModeRows(entry)" :key="`boss-mode-${mode.key}`" class="boss-detail__loot-mode">
+                          <strong>{{ mode.label }}</strong>
+                          <span v-if="mode.chance">概率 {{ mode.chance }}</span>
+                          <span v-if="mode.quantity">数量 {{ mode.quantity }}</span>
+                        </div>
+                      </div>
+                      <template v-else>
+                        <span>概率 {{ formatBossLootChance(entry) }}</span>
+                        <span>数量 {{ formatBossLootQuantity(entry) }}</span>
+                      </template>
+                      <span v-if="entry.conditions">条件 {{ entry.conditions }}</span>
+                      <span v-if="formatBossLootNote(entry)">备注 {{ formatBossLootNote(entry) }}</span>
+                      <button type="button" class="btn-link" @click="openLinkedItemDetail(entry)">物品详情</button>
+                    </div>
+                  </article>
+                </div>
+              </section>
+            </div>
+          </section>
+
           <section class="boss-detail__section">
             <div class="boss-detail__section-head">
               <h4>档案说明</h4>
@@ -546,6 +614,176 @@
               <article v-if="detailRow.sourceRevisionTimestamp" class="preview-note">
                 <strong>Source Revision</strong>
                 <p>{{ formatDateTime(detailRow.sourceRevisionTimestamp) }}</p>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <div v-else-if="detailRow && entityType === 'npcs'" class="projectile-detail npc-detail">
+          <section class="projectile-detail__hero">
+            <div class="projectile-detail__media">
+              <img v-if="detailHeroImage" :src="detailHeroImage" class="projectile-detail__image" alt="" @error="handleImageError" />
+              <div v-else class="projectile-detail__fallback">{{ currentConfig?.fallback || 'NP' }}</div>
+            </div>
+            <div class="projectile-detail__body">
+              <div class="preview-pills">
+                <span class="preview-pill preview-pill--accent">NPC DIRECTORY</span>
+                <span class="preview-pill">{{ detailRow.categoryName || '未分类' }}</span>
+                <span class="preview-pill">结构化掉落 {{ npcLootEntries.length }}</span>
+                <span class="preview-pill">原始来源 {{ npcDerivedLootEntries.length }}</span>
+              </div>
+              <h3>{{ detailTitle }}</h3>
+              <p>{{ detailSubtitle }}</p>
+              <div class="projectile-detail__lang-grid">
+                <article class="projectile-detail__lang-card">
+                  <span>中文名</span>
+                  <strong>{{ detailRow.nameZh || '--' }}</strong>
+                </article>
+                <article class="projectile-detail__lang-card">
+                  <span>English Name</span>
+                  <strong>{{ detailRow.nameEn || detailRow.name || '--' }}</strong>
+                </article>
+                <article class="projectile-detail__lang-card">
+                  <span>Internal Name</span>
+                  <strong>{{ detailRow.internalName || '--' }}</strong>
+                </article>
+              </div>
+              <div class="preview-stats">
+                <article v-for="stat in detailStats" :key="stat.label" class="preview-stat">
+                  <span>{{ stat.label }}</span>
+                  <strong>{{ stat.value }}</strong>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section v-if="npcAdvancedDetails.hasContent" class="projectile-detail__section npc-detail__advanced">
+            <div class="projectile-detail__section-head">
+              <h4>高级属性</h4>
+              <span>{{ npcAdvancedMetricRows.length }} 组属性 / {{ npcAdvancedFlags.length }} 项扩展</span>
+            </div>
+            <p class="boss-detail__helper">{{ npcAdvancedSectionHelper }}</p>
+
+            <div v-if="npcAdvancedFlags.length" class="npc-detail__flag-grid">
+              <article v-for="flag in npcAdvancedFlags" :key="flag.key" class="preview-note npc-detail__flag-card">
+                <strong>{{ flag.label }}</strong>
+                <p>{{ flag.value }}</p>
+              </article>
+            </div>
+
+            <div v-if="npcAdvancedMetricRows.length" class="npc-detail__table-wrap">
+              <table class="npc-detail__table">
+                <thead>
+                  <tr>
+                    <th>属性</th>
+                    <th v-for="column in npcAdvancedMetricColumns" :key="column.key">{{ column.label }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="row in npcAdvancedMetricRows" :key="row.key">
+                    <th>{{ row.label }}</th>
+                    <td v-for="column in npcAdvancedMetricColumns" :key="`${row.key}-${column.key}`">
+                      {{ row.values[column.key] || '--' }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section v-if="npcLootEntries.length" class="projectile-detail__section">
+            <div class="projectile-detail__section-head">
+              <h4>结构化掉落</h4>
+              <span>{{ npcLootEntries.length }} 条</span>
+            </div>
+            <p class="boss-detail__helper">{{ npcLootSectionHelper }}</p>
+            <div class="boss-detail__loot-list">
+              <article v-for="entry in npcLootEntries" :key="`npc-loot-${entry.id ?? entry.sortOrder}-${entry.itemId ?? entry.itemInternalName}`" class="boss-detail__loot-card">
+                <button type="button" class="boss-detail__loot-media boss-detail__loot-media--button" @click="openLinkedItemDetail(entry)">
+                  <img v-if="normalizeImageUrl(entry.itemImage)" :src="normalizeImageUrl(entry.itemImage) || ''" class="boss-detail__loot-image" alt="" @error="handleImageError" />
+                  <div v-else class="boss-detail__loot-fallback">IT</div>
+                </button>
+                <div class="boss-detail__loot-body">
+                  <div class="boss-detail__member-pills">
+                    <span class="cell-badge cell-badge--accent">{{ entry.dropSourceKind || 'loot' }}</span>
+                    <span v-if="entry.itemInternalName" class="cell-badge">{{ entry.itemInternalName }}</span>
+                  </div>
+                  <strong>{{ entry.itemNameZh || entry.itemName || entry.itemInternalName || `Item ${entry.itemId ?? '--'}` }}</strong>
+                  <span>{{ entry.itemName && entry.itemNameZh ? entry.itemName : entry.itemInternalName || '--' }}</span>
+                  <div v-if="getBossLootModeRows(entry).length" class="boss-detail__loot-mode-list">
+                    <div v-for="mode in getBossLootModeRows(entry)" :key="`npc-struct-mode-${mode.key}`" class="boss-detail__loot-mode">
+                      <strong>{{ mode.label }}</strong>
+                      <span v-if="mode.chance">概率 {{ mode.chance }}</span>
+                      <span v-if="mode.quantity">数量 {{ mode.quantity }}</span>
+                    </div>
+                  </div>
+                  <template v-else>
+                    <span>概率 {{ formatBossLootChance(entry) }}</span>
+                    <span>数量 {{ formatBossLootQuantity(entry) }}</span>
+                  </template>
+                  <span v-if="entry.conditions">条件 {{ entry.conditions }}</span>
+                  <span v-if="formatBossLootNote(entry)">备注 {{ formatBossLootNote(entry) }}</span>
+                  <button type="button" class="btn-link" @click="openLinkedItemDetail(entry)">物品详情</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section v-if="npcDerivedLootEntries.length" class="projectile-detail__section">
+            <div class="projectile-detail__section-head">
+              <h4>原始来源掉落</h4>
+              <span>{{ npcDerivedLootEntries.length }} 条</span>
+            </div>
+            <p class="boss-detail__helper">{{ npcDerivedLootSectionHelper }}</p>
+            <div class="boss-detail__loot-list">
+              <article v-for="entry in npcDerivedLootEntries" :key="`npc-derived-${entry.id ?? entry.sortOrder}-${entry.itemId ?? entry.itemInternalName}`" class="boss-detail__loot-card">
+                <button type="button" class="boss-detail__loot-media boss-detail__loot-media--button" @click="openLinkedItemDetail(entry)">
+                  <img v-if="normalizeImageUrl(entry.itemImage)" :src="normalizeImageUrl(entry.itemImage) || ''" class="boss-detail__loot-image" alt="" @error="handleImageError" />
+                  <div v-else class="boss-detail__loot-fallback">RW</div>
+                </button>
+                <div class="boss-detail__loot-body">
+                  <div class="boss-detail__member-pills">
+                    <span class="cell-badge cell-badge--accent">raw</span>
+                    <span v-if="entry.sourceRefName" class="cell-badge">{{ entry.sourceRefName }}</span>
+                  </div>
+                  <strong>{{ entry.itemNameZh || entry.itemName || entry.itemInternalName || `Item ${entry.itemId ?? '--'}` }}</strong>
+                  <span>{{ entry.itemName && entry.itemNameZh ? entry.itemName : entry.itemInternalName || '--' }}</span>
+                  <div v-if="getBossLootModeRows(entry).length" class="boss-detail__loot-mode-list">
+                    <div v-for="mode in getBossLootModeRows(entry)" :key="`npc-derived-mode-${mode.key}`" class="boss-detail__loot-mode">
+                      <strong>{{ mode.label }}</strong>
+                      <span v-if="mode.chance">概率 {{ mode.chance }}</span>
+                      <span v-if="mode.quantity">数量 {{ mode.quantity }}</span>
+                    </div>
+                  </div>
+                  <template v-else>
+                    <span>概率 {{ formatBossLootChance(entry) }}</span>
+                    <span>数量 {{ formatBossLootQuantity(entry) }}</span>
+                  </template>
+                  <span v-if="entry.conditions">条件 {{ entry.conditions }}</span>
+                  <span v-if="formatBossLootNote(entry)">备注 {{ formatBossLootNote(entry) }}</span>
+                  <span v-if="entry.sourcePage">来源页 {{ entry.sourcePage }}</span>
+                  <button type="button" class="btn-link" @click="openLinkedItemDetail(entry)">物品详情</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section v-if="detailRow.behaviorNotes || detailRow.rawJson" class="projectile-detail__section">
+            <div class="projectile-detail__section-head">
+              <h4>补充说明</h4>
+              <span>{{ detailRow.rawJson ? 'Raw JSON' : 'Notes' }}</span>
+            </div>
+            <div class="projectile-detail__note-grid">
+              <article v-if="detailRow.behaviorNotes" class="preview-note">
+                <strong>Behavior Notes</strong>
+                <p>{{ detailRow.behaviorNotes }}</p>
+              </article>
+              <article v-if="detailRow.rawJson" class="preview-json">
+                <div class="preview-json__head">
+                  <strong>Raw JSON</strong>
+                  <span>原始结构</span>
+                </div>
+                <pre>{{ formatPrettyJson(detailRow.rawJson) }}</pre>
               </article>
             </div>
           </section>
@@ -739,6 +977,12 @@
         </div>
       </AppModal>
 
+      <AppModal v-model="linkedItemDetailVisible" :title="linkedItem?.nameZh || linkedItem?.name || '物品详情'" width="min(1120px, calc(100vw - 32px))">
+        <div v-if="linkedItemLoading" class="empty-text">加载物品详情中...</div>
+        <ItemDetail v-else-if="linkedItem" :item="linkedItem" />
+        <p v-else class="empty-text">未找到对应物品详情。</p>
+      </AppModal>
+
       <AppModal v-model="lightboxVisible" :title="lightboxTitle || '图片预览'" width="min(960px, calc(100vw - 32px))" body-padding="0">
         <div class="armor-lightbox">
           <img v-if="lightboxImage" :src="lightboxImage" class="armor-lightbox__image" alt="" @error="handleImageError" />
@@ -753,6 +997,9 @@ import { Search } from 'lucide-vue-next'
 import { get, post, put, del } from '~/composables/useApi'
 import { showToast } from '~/composables/useToast'
 import { useCategoriesStore } from '~/stores/categories'
+import type { Item } from '~/stores/items'
+import { useItemsStore } from '~/stores/items'
+import { buildNpcAdvancedDetails } from '~/utils/npcDetail'
 
 definePageMeta({
   headerVariant: 'compact',
@@ -792,6 +1039,7 @@ const route = useRoute()
 const router = useRouter()
 const entityType = computed(() => String(route.params.type || ''))
 const categoriesStore = useCategoriesStore()
+const itemsStore = useItemsStore()
 const selectedNpcCategoryId = ref<number | null>(null)
 const selectedBuffType = ref<'all' | 'buff' | 'debuff'>('all')
 const selectedBossType = ref<'all' | 'PRE_HARDMODE' | 'HARDMODE' | 'EVENT' | 'SPECIAL_SEED'>('all')
@@ -930,7 +1178,7 @@ const configs: Record<string, EntityConfig> = {
       { key: 'bannerItemId', label: 'Banner Item DB ID', type: 'number' },
       { key: 'catchSourceItemId', label: 'Catch Source Item ID', type: 'number' },
       { key: 'catchItemId', label: 'Catch Item DB ID', type: 'number' },
-      { key: 'lootEntries', label: 'Loot Entries JSON', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: '结构化掉落数据。支持 itemId/sourceItemId、数量、概率、条件等。' },
+      { key: 'lootEntries', label: 'Loot Entries JSON', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: '结构化掉落数据。支持 itemId/sourceItemId、dropSourceKind、数量、概率、条件等。' },
       { key: 'buffRelations', label: 'Buff Relations JSON', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: 'NPC 附加或关联 Buff 的结构化关系。' },
       { key: 'shopEntries', label: 'Shop Entries JSON', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: 'NPC 售卖骨架，条件数组支持 BIOME / WORLD_CONTEXT。' },
       { key: 'rawJson', label: 'Raw JSON Payload', type: 'textarea', span: 'full', rows: 10, format: 'json', helper: '标准化补充数据预览字段，通常由同步脚本生成；手工编辑不会直接写回数据库结构化列。' },
@@ -938,7 +1186,7 @@ const configs: Record<string, EntityConfig> = {
   },
   bosses: {
     badge: 'BOSS ARCHIVE', title: 'Boss 管理', shortLabel: 'Boss', fallback: 'BS', endpoint: '/admin/bosses', primaryColumn: 'name', secondaryColumn: 'code',
-    subtitle: '按 Boss 档案聚合成员 NPC，并维护阶段、部件、分身等归组关系。',
+    subtitle: '按 Boss 档案聚合成员 NPC，并查看本体掉落与宝藏袋掉落的后台归属。',
     searchPlaceholder: '搜索 Boss 中文名、英文名或 code',
     displayTitleKeys: ['nameZh', 'nameEn', 'name', 'code'],
     displaySubtitleKeys: ['code', 'notes'],
@@ -956,6 +1204,7 @@ const configs: Record<string, EntityConfig> = {
       { key: 'code', label: 'Code' },
       { key: 'bossType', label: '类型' },
       { key: 'memberCount', label: '成员 NPC' },
+      { key: 'lootEntryCount', label: '掉落行' },
       { key: 'progressionOrder', label: '进度序' },
       { key: 'updatedAt', label: '更新时间' },
     ],
@@ -1071,6 +1320,8 @@ const loading = ref(false)
 const submitting = ref(false)
 const dialogVisible = ref(false)
 const detailVisible = ref(false)
+const linkedItemDetailVisible = ref(false)
+const linkedItemLoading = ref(false)
 const lightboxVisible = ref(false)
 const isEdit = ref(false)
 const editingId = ref<number | null>(null)
@@ -1078,6 +1329,7 @@ const rows = ref<Array<Record<string, any>>>([])
 const bossSourceRows = ref<Array<Record<string, any>>>([])
 const previewExtras = ref<Record<string, any>>({})
 const detailRow = ref<Record<string, any> | null>(null)
+const linkedItem = ref<Item | null>(null)
 const lightboxImage = ref('')
 const lightboxTitle = ref('')
 const search = ref('')
@@ -1185,6 +1437,7 @@ function matchesBossSearch(row: Record<string, any>) {
     row.name,
     row.code,
     row.notes,
+    row.lootOwnerNpcName,
     Array.isArray(row.memberNames) ? row.memberNames.join(' ') : '',
   ]
     .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
@@ -1230,7 +1483,7 @@ const tableCardSubtitle = computed(() => {
     return '射弹页面已切换为中英双语浏览，补充内部标识、行为标签和碰撞信息。'
   }
   if (entityType.value === 'bosses') {
-    return 'Boss 表格保持编辑能力，同时配合上方图谱区完成基础分类浏览和真图核对。'
+    return 'Boss 表格继续承担编辑入口，同时在详情里核对主成员 NPC 与掉落归属。'
   }
   return '中文优先展示，同时保留英文参考字段与原子字段。'
 })
@@ -1246,7 +1499,7 @@ function getBossCardNote(row: Record<string, any>) {
   if (!text) {
     return row.memberSourceMode === 'reference'
       ? '该档案通过组合 Boss 引用成员展示，不直接写入 NPC 归组。'
-      : '点开详情查看成员 NPC、部件结构和来源信息。'
+      : `点开详情查看成员 NPC、部件结构和掉落归属，当前共 ${row.lootEntryCount ?? 0} 条掉落。`
   }
   return text.length > 160 ? `${text.slice(0, 160)}...` : text
 }
@@ -1341,6 +1594,47 @@ async function openDetailDialog(row: Record<string, any>) {
   }
   detailRow.value = normalizeRow(detail)
   detailVisible.value = true
+}
+
+async function openLinkedItemDetail(entry: Record<string, any>) {
+  const rawId = entry?.itemId
+  const itemId = typeof rawId === 'number'
+    ? rawId
+    : (typeof rawId === 'string' && rawId.trim() ? Number(rawId) : NaN)
+  if (!Number.isFinite(itemId) || itemId <= 0) {
+    const imageUrl = normalizeImageUrl(entry?.itemImage)
+    if (imageUrl) {
+      openImageLightbox(imageUrl, entry?.itemNameZh || entry?.itemName || entry?.itemInternalName || '物品图片')
+      return
+    }
+    showToast('当前掉落没有可打开的物品详情', 'warning')
+    return
+  }
+  linkedItemLoading.value = true
+  linkedItemDetailVisible.value = true
+  linkedItem.value = null
+  try {
+    linkedItem.value = await itemsStore.fetchItemById(Number(itemId)) ?? null
+    if (!linkedItem.value) {
+      showToast('未找到对应物品详情', 'warning')
+    }
+  } finally {
+    linkedItemLoading.value = false
+  }
+}
+
+async function openBossLootOwnerNpc() {
+  if (!bossLootOwner.value) return
+  const searchToken = bossLootOwner.value.internalName
+    || (bossLootOwner.value.gameId != null ? String(bossLootOwner.value.gameId) : '')
+    || bossLootOwner.value.nameZh
+    || bossLootOwner.value.name
+    || ''
+  await router.push({
+    path: '/entities/npcs',
+    query: searchToken ? { search: searchToken } : {},
+  })
+  detailVisible.value = false
 }
 
 async function openEditDialog(row: Record<string, any>) {
@@ -1499,6 +1793,73 @@ function formatCell(row: Record<string, any>, key: string) {
   return typeof row[key] === 'object' ? JSON.stringify(row[key]) : String(row[key])
 }
 
+function formatBossLootQuantity(row: Record<string, any>) {
+  const text = typeof row?.quantityText === 'string' ? row.quantityText.trim() : ''
+  if (text) return text
+  const min = row?.quantityMin
+  const max = row?.quantityMax
+  if (min != null && max != null) return min === max ? String(min) : `${min}–${max}`
+  if (min != null) return String(min)
+  if (max != null) return String(max)
+  return '--'
+}
+
+function formatBossLootChance(row: Record<string, any>) {
+  const text = typeof row?.chanceText === 'string' ? row.chanceText.trim() : ''
+  if (text) return text
+  if (row?.chanceValue == null || row.chanceValue === '') return '--'
+  return String(row.chanceValue)
+}
+
+function getBossLootModeRows(row: Record<string, any>) {
+  const quantity = formatBossLootQuantity(row)
+  const chance = formatBossLootChance(row)
+  const quantityTokens = extractBossLootMetricTokens(quantity)
+  const chanceTokens = extractBossLootMetricTokens(chance)
+  const modeCount = Math.max(quantityTokens.length, chanceTokens.length)
+  if (modeCount < 2 || !shouldSplitBossLootByMode(row)) return []
+
+  const labels = modeCount === 2
+    ? ['普通', '专家 / 大师']
+    : ['普通', '专家', '大师']
+
+  return Array.from({ length: modeCount }, (_, index) => ({
+    key: `${labels[index] || `模式 ${index + 1}`}-${quantityTokens[index] || quantityTokens.at(-1) || '--'}-${chanceTokens[index] || chanceTokens.at(-1) || '--'}`,
+    label: `模式 ${labels[index] || `模式 ${index + 1}`}`,
+    quantity: quantityTokens[index] || quantityTokens.at(-1) || null,
+    chance: chanceTokens[index] || chanceTokens.at(-1) || null,
+  }))
+}
+
+function formatBossLootNote(row: Record<string, any>) {
+  const note = typeof row?.notes === 'string' ? row.notes.trim() : ''
+  if (!note) return ''
+  if (getBossLootModeRows(row).length > 0 && note.toLowerCase() === 'normal mode row') {
+    return ''
+  }
+  return note
+}
+
+function shouldSplitBossLootByMode(row: Record<string, any>) {
+  const sourceRefName = typeof row?.sourceName === 'string'
+    ? row.sourceName.trim()
+    : typeof row?.sourceRefName === 'string'
+      ? row.sourceRefName.trim()
+      : ''
+  const note = typeof row?.notes === 'string' ? row.notes.trim().toLowerCase() : ''
+  return sourceRefName === 'Celestial Pillars' || note === 'normal mode row'
+}
+
+function extractBossLootMetricTokens(value: string) {
+  if (typeof value !== 'string') return []
+  const normalized = value.replace(/\s+/g, ' ').trim()
+  if (!normalized || normalized === '--') return []
+  const matches = normalized.match(/\d+(?:[.,]\d+)?(?:\s*[–-]\s*\d+(?:[.,]\d+)?)?%?/g)
+  return (matches ?? [])
+    .map(token => token.replace(/\s+/g, ''))
+    .filter(Boolean)
+}
+
 function handleImageError(event: Event) {
   const target = event.target as HTMLImageElement
   target.style.display = 'none'
@@ -1567,10 +1928,19 @@ const detailSubtitle = computed(() => {
   if (entityType.value === 'projectiles') return projectileDetailSummary.value
   if (entityType.value === 'buffs') return '查看关联物品、免疫 NPC 样例和结构化 JSON。'
   if (entityType.value === 'bosses') return bossDetailSummary.value
+  if (entityType.value === 'npcs') return npcDetailSummary.value
   return getDisplayValue(detailRow.value, currentConfig.value?.displaySubtitleKeys) || '查看男女穿戴图与具体装配图片。'
 })
 const detailStats = computed(() => {
   if (!detailRow.value) return []
+  if (entityType.value === 'npcs') return [
+    { label: '分类', value: detailRow.value.categoryName || '--' },
+    { label: '伤害', value: detailRow.value.damage != null ? String(detailRow.value.damage) : '--' },
+    { label: '生命', value: detailRow.value.lifeMax != null ? String(detailRow.value.lifeMax) : '--' },
+    { label: '结构化掉落', value: npcLootEntries.value.length ? String(npcLootEntries.value.length) : '--' },
+    { label: '原始来源', value: npcDerivedLootEntries.value.length ? String(npcDerivedLootEntries.value.length) : '--' },
+    { label: '更新时间', value: formatDateTime(detailRow.value.updatedAt) },
+  ]
   if (entityType.value === 'projectiles') return [
     { label: '伤害 Damage', value: detailRow.value.damage != null ? String(detailRow.value.damage) : '--' },
     { label: '击退 Knockback', value: detailRow.value.knockBack != null ? String(detailRow.value.knockBack) : '--' },
@@ -1589,6 +1959,8 @@ const detailStats = computed(() => {
   if (entityType.value === 'bosses') return [
     { label: 'Boss 类型', value: getBossTypeLabel(detailRow.value.bossType) },
     { label: '成员数', value: bossDetailMembers.value.length ? String(bossDetailMembers.value.length) : '--' },
+    { label: '掉落行', value: bossLootEntries.value.length ? String(bossLootEntries.value.length) : '--' },
+    { label: '唯一掉落', value: detailRow.value.uniqueLootItemCount != null ? String(detailRow.value.uniqueLootItemCount) : '--' },
     { label: '进度序', value: detailRow.value.progressionOrder != null ? String(detailRow.value.progressionOrder) : '--' },
     { label: '成员模式', value: bossMemberSourceLabel.value },
     { label: '状态', value: detailRow.value.status != null ? formatStatusLabel(detailRow.value.status) : '--' },
@@ -1603,6 +1975,7 @@ const detailStats = computed(() => {
   ]
 })
 const detailModalTitle = computed(() => {
+  if (entityType.value === 'npcs') return 'NPC 详情'
   if (entityType.value === 'projectiles') return '射弹详情 / Projectile Detail'
   if (entityType.value === 'buffs') return 'Buff 详情'
   if (entityType.value === 'bosses') return 'Boss 详情'
@@ -1641,6 +2014,51 @@ const detailBuffNotes = computed(() => {
     { label: '英文提示', value: detailRow.value.tooltipEn },
   ].filter(note => typeof note.value === 'string' && note.value.trim())
 })
+const npcLootEntries = computed<Array<Record<string, any>>>(() => {
+  if (!detailRow.value || entityType.value !== 'npcs' || !Array.isArray(detailRow.value.lootEntries)) return []
+  return detailRow.value.lootEntries
+    .filter(item => item && typeof item === 'object')
+    .map(item => normalizeRow(item as Record<string, any>))
+})
+const npcDerivedLootEntries = computed<Array<Record<string, any>>>(() => {
+  if (!detailRow.value || entityType.value !== 'npcs' || !Array.isArray(detailRow.value.derivedLootEntries)) return []
+  return detailRow.value.derivedLootEntries
+    .filter(item => item && typeof item === 'object')
+    .map(item => normalizeRow(item as Record<string, any>))
+})
+const npcAdvancedDetails = computed(() => {
+  if (!detailRow.value || entityType.value !== 'npcs') {
+    return buildNpcAdvancedDetails(null)
+  }
+  return buildNpcAdvancedDetails(detailRow.value.rawJson)
+})
+const npcAdvancedMetricColumns = computed(() => npcAdvancedDetails.value.metricColumns)
+const npcAdvancedMetricRows = computed(() => npcAdvancedDetails.value.metricRows)
+const npcAdvancedFlags = computed(() => npcAdvancedDetails.value.flags)
+const npcDetailSummary = computed(() => {
+  if (!detailRow.value || entityType.value !== 'npcs') return ''
+  const category = detailRow.value.categoryName || '未分类 NPC'
+  const structured = npcLootEntries.value.length
+  const derived = npcDerivedLootEntries.value.length
+  return `${category}，当前结构化掉落 ${structured} 条，原始来源掉落 ${derived} 条，优先以结构化掉落作为后台维护结果。`
+})
+const npcAdvancedSectionHelper = computed(() => {
+  if (!detailRow.value || entityType.value !== 'npcs') return ''
+  if (!npcAdvancedDetails.value.hasContent) {
+    return '当前没有可展示的 Wiki 扩展属性。'
+  }
+  return '这里展示的是从 Raw JSON 的 extras/combat/economy 派生出的高级属性，标签采用“友好标签 + 原键名”的保守方式，便于和 Wiki 对照。'
+})
+const npcLootSectionHelper = computed(() => {
+  if (!detailRow.value || entityType.value !== 'npcs') return ''
+  if (!npcLootEntries.value.length) return '当前 NPC 还没有导入结构化掉落数据。'
+  return '这里显示的是已导入并去重后的后台掉落结果，后续编辑默认以这组数据为准。'
+})
+const npcDerivedLootSectionHelper = computed(() => {
+  if (!detailRow.value || entityType.value !== 'npcs') return ''
+  if (!npcDerivedLootEntries.value.length) return '当前没有可用于对照的原始来源掉落。'
+  return '这里保留 item_acquisition_sources 的原始来源行，可能存在重复、同名归并或未清洗的噪声，仅用于校对。'
+})
 const bossDetailMembers = computed<Array<Record<string, any>>>(() => {
   if (!detailRow.value || entityType.value !== 'bosses') return []
   if (detailRow.value.memberSourceMode === 'reference' && Array.isArray(detailRow.value.referenceMembers)) {
@@ -1655,6 +2073,49 @@ const bossDetailMembers = computed<Array<Record<string, any>>>(() => {
   }
   return []
 })
+const bossLootOwner = computed<Record<string, any> | null>(() => {
+  if (!detailRow.value || entityType.value !== 'bosses') return null
+  return detailRow.value.lootOwnerNpc && typeof detailRow.value.lootOwnerNpc === 'object'
+    ? normalizeRow(detailRow.value.lootOwnerNpc as Record<string, any>)
+    : null
+})
+const bossLootEntries = computed<Array<Record<string, any>>>(() => {
+  if (!detailRow.value || entityType.value !== 'bosses' || !Array.isArray(detailRow.value.lootEntries)) return []
+  return detailRow.value.lootEntries
+    .filter(item => item && typeof item === 'object')
+    .map(item => normalizeRow(item as Record<string, any>))
+})
+const bossLootOwnerLabel = computed(() => {
+  if (!bossLootOwner.value) return '--'
+  const title = [bossLootOwner.value.nameZh || bossLootOwner.value.name || bossLootOwner.value.internalName || '--']
+  const meta = [bossLootOwner.value.internalName, bossLootOwner.value.gameId != null ? `Game ID ${bossLootOwner.value.gameId}` : '']
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+  return meta.length ? `${title[0]} · ${meta.join(' · ')}` : title[0]
+})
+const bossLootSectionHelper = computed(() => {
+  if (!detailRow.value || entityType.value !== 'bosses') return ''
+  if (!bossLootOwner.value) {
+    return '当前 Boss 没有可写入的 primary 成员 NPC，所以这里只能显示成员归组，暂无后台掉落归属。'
+  }
+  if (!bossLootEntries.value.length) {
+    return '当前已确定掉落归属 NPC，但还没有导入结构化掉落数据。'
+  }
+  return '掉落明细统一归属到 primary NPC，按本体掉落与宝藏袋掉落分组，便于核对导入结果。'
+})
+const bossLootGroups = computed(() => {
+  if (!bossLootEntries.value.length) return []
+  const groups = [
+    { key: 'direct_boss', label: '本体掉落', short: 'DR', description: 'Boss 本体直接掉落。', entries: [] as Array<Record<string, any>> },
+    { key: 'treasure_bag', label: '宝藏袋掉落', short: 'TB', description: '专家/大师等宝藏袋来源掉落。', entries: [] as Array<Record<string, any>> },
+    { key: 'other', label: '其他掉落', short: 'OT', description: '未归类到上述来源的掉落。', entries: [] as Array<Record<string, any>> },
+  ]
+  for (const entry of bossLootEntries.value) {
+    const kind = typeof entry.dropSourceKind === 'string' ? entry.dropSourceKind.trim().toLowerCase() : ''
+    const group = groups.find(item => item.key === kind) ?? groups[groups.length - 1]!
+    group.entries.push(entry)
+  }
+  return groups.filter(group => group.entries.length)
+})
 const bossMemberSourceLabel = computed(() => {
   if (!detailRow.value || entityType.value !== 'bosses') return '--'
   if (detailRow.value.memberSourceMode === 'reference') return '组合引用成员'
@@ -1665,12 +2126,13 @@ const bossDetailSummary = computed(() => {
   if (!detailRow.value || entityType.value !== 'bosses') return ''
   const count = bossDetailMembers.value.length
   const mode = bossMemberSourceLabel.value
+  const lootCount = bossLootEntries.value.length
   const snippet = typeof detailRow.value.notes === 'string' ? detailRow.value.notes.trim() : ''
   if (snippet) {
     const summary = snippet.length > 180 ? `${snippet.slice(0, 180)}...` : snippet
-    return `${summary} 当前以 ${mode} 展示，共 ${count} 条。`
+    return `${summary} 当前以 ${mode} 展示，共 ${count} 条成员记录，掉落 ${lootCount} 条。`
   }
-  return `${getBossTypeLabel(detailRow.value.bossType)} Boss 档案，当前以 ${mode} 展示，共 ${count} 条成员记录。`
+  return `${getBossTypeLabel(detailRow.value.bossType)} Boss 档案，当前以 ${mode} 展示，共 ${count} 条成员记录，掉落 ${lootCount} 条。`
 })
 const bossMemberSectionTitle = computed(() => bossMemberSourceLabel.value === '组合引用成员' ? '组合成员引用' : 'Boss 成员')
 const bossMemberSectionHelper = computed(() => {
@@ -1739,6 +2201,7 @@ const previewStats = computed(() => {
     { label: '中文名', value: previewRow.value.nameZh || previewRow.value.name || '--' },
     { label: '英文名', value: previewRow.value.nameEn || '--' },
     { label: '成员 NPC', value: previewRow.value.memberCount != null ? String(previewRow.value.memberCount) : '--' },
+    { label: '掉落行', value: previewRow.value.lootEntryCount != null ? String(previewRow.value.lootEntryCount) : '--' },
     { label: '进度序', value: previewRow.value.progressionOrder != null ? String(previewRow.value.progressionOrder) : '--' },
     { label: '状态', value: statusLabel.value },
   ]
@@ -2262,6 +2725,73 @@ function guessArmorItemGroup(item: Record<string, any>) {
 .boss-detail__member-body { display: grid; gap: 4px; }
 .boss-detail__member-body strong { color: var(--color-text); }
 .boss-detail__member-body span { color: var(--color-text-secondary); font-size: 0.82rem; }
+.boss-detail__loot-owner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-bg-secondary) 90%, transparent);
+}
+.boss-detail__loot-groups,.boss-detail__loot-list { display: grid; gap: 18px; }
+.boss-detail__loot-list { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.boss-detail__loot-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-bg-secondary) 92%, transparent);
+}
+.boss-detail__loot-media {
+  width: 100%;
+  min-height: 128px;
+  max-height: 152px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-bg-tertiary) 92%, transparent);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.boss-detail__loot-media--button {
+  padding: 0;
+  cursor: pointer;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.boss-detail__loot-media--button:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--color-primary) 44%, var(--color-border));
+  box-shadow: 0 16px 28px -24px color-mix(in srgb, var(--color-primary) 72%, transparent);
+}
+.boss-detail__loot-image,.boss-detail__loot-fallback {
+  width: 100%;
+  min-height: 128px;
+  max-height: 152px;
+  object-fit: contain;
+  display: grid;
+  place-items: center;
+}
+.boss-detail__loot-body { display: grid; gap: 4px; }
+.boss-detail__loot-body strong { color: var(--color-text); }
+.boss-detail__loot-body span { color: var(--color-text-secondary); font-size: 0.82rem; }
+.boss-detail__loot-mode-list { display: grid; gap: 8px; }
+.boss-detail__loot-mode {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-border));
+  background: color-mix(in srgb, var(--color-bg-tertiary) 88%, transparent);
+}
+.boss-detail__loot-mode strong {
+  color: var(--color-primary);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
 .projectile-detail { display: grid; gap: 20px; padding: 24px; }
 .projectile-detail__hero { display: grid; grid-template-columns: minmax(260px, 0.88fr) minmax(0, 1.12fr); gap: 18px; padding: 18px; border-bottom: 1px solid var(--color-border); background: linear-gradient(180deg, color-mix(in srgb, var(--color-bg-secondary) 94%, transparent), var(--color-bg-secondary)); }
 .projectile-detail__media { min-height: 260px; border-radius: var(--radius-lg); border: 1px solid color-mix(in srgb, var(--color-primary) 20%, var(--color-border)); background: radial-gradient(circle at top, color-mix(in srgb, var(--color-primary) 14%, transparent), transparent 55%), color-mix(in srgb, var(--color-bg-tertiary) 92%, transparent); display: grid; place-items: center; overflow: hidden; }
@@ -2290,6 +2820,17 @@ function guessArmorItemGroup(item: Record<string, any>) {
 .projectile-detail__chip strong { color: var(--color-text); }
 .projectile-detail__note-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .projectile-detail__code { margin: 0; padding: 16px; border-radius: var(--radius-lg); border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-tertiary) 88%, transparent); color: var(--color-text-secondary); font-size: 0.84rem; line-height: 1.7; overflow: auto; }
+.npc-detail__advanced { gap: 16px; }
+.npc-detail__flag-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.npc-detail__flag-card { min-height: 88px; }
+.npc-detail__table-wrap { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--color-bg) 82%, var(--color-bg-secondary)); }
+.npc-detail__table { width: 100%; min-width: 760px; border-collapse: collapse; }
+.npc-detail__table th,.npc-detail__table td { padding: 12px 14px; border-bottom: 1px solid var(--color-border); text-align: left; vertical-align: top; }
+.npc-detail__table thead th { font-size: 0.76rem; font-weight: 700; color: var(--color-text-secondary); letter-spacing: 0.08em; text-transform: uppercase; background: color-mix(in srgb, var(--color-bg-tertiary) 88%, transparent); }
+.npc-detail__table tbody th { min-width: 148px; color: var(--color-text); font-weight: 700; background: color-mix(in srgb, var(--color-bg-secondary) 92%, transparent); }
+.npc-detail__table tbody td { color: var(--color-text-secondary); white-space: nowrap; }
+.npc-detail__table tbody tr:last-child th,
+.npc-detail__table tbody tr:last-child td { border-bottom: none; }
 .related-items { display: grid; gap: 10px; }
 .related-item { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; align-items: center; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-secondary) 90%, transparent); }
 .related-item__image,.related-item__fallback { width: 64px; height: 64px; border-radius: 14px; object-fit: contain; border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-tertiary) 90%, transparent); display: grid; place-items: center; }

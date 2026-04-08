@@ -15,6 +15,7 @@ public class ItemSourceDTO {
     private String sourceRefType;
     private Long sourceRefId;
     private String sourceRefName;
+    private String sourceRefNameZh;
     private Long biomeId;
     private Integer quantityMin;
     private Integer quantityMax;

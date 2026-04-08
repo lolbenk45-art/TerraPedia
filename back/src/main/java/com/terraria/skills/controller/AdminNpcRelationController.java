@@ -63,6 +63,16 @@ public class AdminNpcRelationController {
         return ResponseEntity.ok(ApiResponse.success(loadLoot(npcId)));
     }
 
+    @GetMapping("/{id}/derived-loot")
+    @Operation(summary = "Get derived NPC loot entries from item acquisition sources")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getNpcDerivedLoot(@PathVariable("id") Long npcId) {
+        Npc npc = npcMapper.selectById(npcId);
+        if (npc == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "Npc not found"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(loadDerivedLoot(npc.getGameId(), npc.getName())));
+    }
+
     @PutMapping("/{id}/loot")
     @Transactional
     @Operation(summary = "Replace NPC loot entries")
@@ -86,6 +96,7 @@ public class AdminNpcRelationController {
             entry.setNpcId(npcId);
             entry.setItemId(itemId);
             entry.setSourceItemId(sourceItemId);
+            entry.setDropSourceKind(trimToNull(row.get("dropSourceKind")));
             entry.setQuantityMin(toInteger(row.get("quantityMin")));
             entry.setQuantityMax(toInteger(row.get("quantityMax")));
             entry.setQuantityText(trimToNull(row.get("quantityText")));
@@ -221,6 +232,7 @@ public class AdminNpcRelationController {
               nle.id,
               nle.item_id AS itemId,
               nle.source_item_id AS sourceItemId,
+              nle.drop_source_kind AS dropSourceKind,
               nle.quantity_min AS quantityMin,
               nle.quantity_max AS quantityMax,
               nle.quantity_text AS quantityText,
@@ -240,6 +252,111 @@ public class AdminNpcRelationController {
             """,
             npcId
         );
+    }
+
+    private List<Map<String, Object>> loadDerivedLoot(Long npcSourceId, String npcName) {
+        if (jdbcTemplate == null) {
+            return List.of();
+        }
+        if (npcSourceId != null && countDerivedLootBySourceId(npcSourceId) > 0) {
+            return loadDerivedLootBySourceId(npcSourceId);
+        }
+        String normalizedNpcName = trimToNull(npcName);
+        if (normalizedNpcName == null) {
+            return List.of();
+        }
+        return loadDerivedLootByName(normalizedNpcName);
+    }
+
+    private List<Map<String, Object>> loadDerivedLootBySourceId(Long npcSourceId) {
+        return jdbcTemplate.queryForList(
+            """
+            SELECT
+              ias.id,
+              ias.item_id AS itemId,
+              ias.source_ref_id AS sourceRefId,
+              ias.source_ref_name AS sourceRefName,
+              ias.quantity_min AS quantityMin,
+              ias.quantity_max AS quantityMax,
+              ias.quantity_text AS quantityText,
+              ias.chance_value AS chanceValue,
+              ias.chance_text AS chanceText,
+              ias.conditions,
+              ias.notes,
+              ias.source_page AS sourcePage,
+              ias.source_revision_timestamp AS sourceRevisionTimestamp,
+              ias.sort_order AS sortOrder,
+              i.name AS itemName,
+              i.name_zh AS itemNameZh,
+              i.internal_name AS itemInternalName,
+              i.image AS itemImage
+            FROM item_acquisition_sources ias
+            LEFT JOIN items i ON i.id = ias.item_id AND i.deleted = 0
+            WHERE ias.source_type = 'drop'
+              AND ias.source_ref_type = 'npc'
+              AND ias.source_ref_id = ?
+              AND ias.status = 1
+              AND ias.deleted = 0
+            ORDER BY ias.sort_order ASC, ias.id ASC
+            """,
+            npcSourceId
+        );
+    }
+
+    private List<Map<String, Object>> loadDerivedLootByName(String npcName) {
+        return jdbcTemplate.queryForList(
+            """
+            SELECT
+              ias.id,
+              ias.item_id AS itemId,
+              ias.source_ref_id AS sourceRefId,
+              ias.source_ref_name AS sourceRefName,
+              ias.quantity_min AS quantityMin,
+              ias.quantity_max AS quantityMax,
+              ias.quantity_text AS quantityText,
+              ias.chance_value AS chanceValue,
+              ias.chance_text AS chanceText,
+              ias.conditions,
+              ias.notes,
+              ias.source_page AS sourcePage,
+              ias.source_revision_timestamp AS sourceRevisionTimestamp,
+              ias.sort_order AS sortOrder,
+              i.name AS itemName,
+              i.name_zh AS itemNameZh,
+              i.internal_name AS itemInternalName,
+              i.image AS itemImage
+            FROM item_acquisition_sources ias
+            LEFT JOIN items i ON i.id = ias.item_id AND i.deleted = 0
+            WHERE ias.source_type = 'drop'
+              AND ias.source_ref_type = 'npc'
+              AND ias.source_ref_id IS NULL
+              AND LOWER(TRIM(ias.source_ref_name)) = LOWER(TRIM(?))
+              AND ias.status = 1
+              AND ias.deleted = 0
+            ORDER BY ias.sort_order ASC, ias.id ASC
+            """,
+            npcName
+        );
+    }
+
+    private int countDerivedLootBySourceId(Long npcSourceId) {
+        if (npcSourceId == null || jdbcTemplate == null) {
+            return 0;
+        }
+        Integer total = jdbcTemplate.queryForObject(
+            """
+            SELECT COUNT(*)
+            FROM item_acquisition_sources
+            WHERE source_type = 'drop'
+              AND source_ref_type = 'npc'
+              AND source_ref_id = ?
+              AND status = 1
+              AND deleted = 0
+            """,
+            Integer.class,
+            npcSourceId
+        );
+        return total == null ? 0 : total;
     }
 
     private List<Map<String, Object>> loadBuffRelations(Long npcId) {
