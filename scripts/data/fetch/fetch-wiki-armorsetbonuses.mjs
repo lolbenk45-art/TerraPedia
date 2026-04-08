@@ -1,13 +1,20 @@
 #!/usr/bin/env node
 
-import fs from 'node:fs';
 import path from 'node:path';
+
+import {
+  ensureDir,
+  fetchWikiApiJson,
+  sharedDataPath,
+  writeJson
+} from '../lib/wiki-item-utils.mjs';
 
 const root = process.cwd();
 const standardizedPath = path.join(root, 'data', 'standardized', 'armor_sets.standardized.json');
 const rawOutputPath = path.join(root, 'data', 'generated', 'wiki-armorsetbonuses.latest.json');
 const reportPath = path.join(root, 'reports', `wiki-armorsetbonuses-refresh-${new Date().toISOString().slice(0, 10)}.json`);
-const USER_AGENT = 'TerraPedia-armorsetbonuses/1.0';
+const sharedRawDir = sharedDataPath('raw', 'wiki');
+const timestamp = new Date().toISOString().replaceAll(':', '-');
 
 const moduleUrl = new URL('https://terraria.wiki.gg/api.php');
 moduleUrl.searchParams.set('action', 'query');
@@ -17,7 +24,11 @@ moduleUrl.searchParams.set('rvprop', 'content|timestamp');
 moduleUrl.searchParams.set('formatversion', '2');
 moduleUrl.searchParams.set('format', 'json');
 
-const payload = await fetchJson(moduleUrl);
+const payload = await fetchWikiApiJson({
+  url: moduleUrl,
+  profile: 'revision',
+  sourceKey: 'Module:ArmorSetBonuses'
+});
 const page = payload?.query?.pages?.[0];
 const revision = page?.revisions?.[0];
 const content = String(revision?.content ?? '');
@@ -26,55 +37,68 @@ if (!content.trim()) {
 }
 
 const records = parseArmorSetBonuses(content);
+const fetchedAt = new Date().toISOString();
+const rawPayload = {
+  apiUrl: 'https://terraria.wiki.gg/api.php',
+  fetchedAt,
+  moduleContent: content,
+  moduleTitle: 'Module:ArmorSetBonuses',
+  pageId: page?.pageid ?? null,
+  pageTitle: page?.title ?? 'Module:ArmorSetBonuses',
+  revisionTimestamp: revision?.timestamp ?? null
+};
+const parsedPayload = {
+  armorSets: records,
+  fetchedAt,
+  source: 'terraria.wiki.gg:Module:ArmorSetBonuses',
+  sourceApi: rawPayload.apiUrl,
+  sourcePageTitle: rawPayload.pageTitle,
+  sourceRevisionTimestamp: rawPayload.revisionTimestamp,
+  terrariaVersion: null,
+  totalArmorSets: records.length
+};
 const standardized = {
   entity: 'armor_sets',
-  generatedAt: new Date().toISOString(),
+  generatedAt: fetchedAt,
   records,
   schemaVersion: '1.0.0',
   sourceFile: 'terraria.wiki.gg/api.php?action=query&titles=Module:ArmorSetBonuses&prop=revisions&rvprop=content',
   totalRecords: records.length,
   upstreamMeta: {
-    fetchedAt: new Date().toISOString(),
+    fetchedAt,
     source: 'terraria.wiki.gg:Module:ArmorSetBonuses',
     sourceApi: 'https://terraria.wiki.gg/api.php',
     sourcePageTitle: 'Module:ArmorSetBonuses',
-    sourceRevisionTimestamp: revision?.timestamp ?? null,
-  },
+    sourceRevisionTimestamp: revision?.timestamp ?? null
+  }
 };
 
-fs.mkdirSync(path.dirname(standardizedPath), { recursive: true });
-fs.mkdirSync(path.dirname(rawOutputPath), { recursive: true });
-fs.mkdirSync(path.dirname(reportPath), { recursive: true });
-fs.writeFileSync(standardizedPath, `${JSON.stringify(standardized, null, 2)}\n`, 'utf8');
-fs.writeFileSync(rawOutputPath, `${JSON.stringify({ fetchedAt: new Date().toISOString(), pageTitle: page?.title ?? null, revisionTimestamp: revision?.timestamp ?? null, content }, null, 2)}\n`, 'utf8');
+ensureDir(path.dirname(standardizedPath));
+ensureDir(path.dirname(rawOutputPath));
+ensureDir(path.dirname(reportPath));
+ensureDir(sharedRawDir);
+writeJson(standardizedPath, standardized);
+writeJson(rawOutputPath, {
+  fetchedAt,
+  pageTitle: page?.title ?? null,
+  revisionTimestamp: revision?.timestamp ?? null,
+  content
+});
+writeJson(path.join(sharedRawDir, 'module__armorsetbonuses.latest.json'), rawPayload);
+writeJson(path.join(sharedRawDir, `module__armorsetbonuses.${timestamp}.json`), rawPayload);
+writeJson(path.join(sharedRawDir, 'module__armorsetbonuses.parsed.latest.json'), parsedPayload);
+writeJson(path.join(sharedRawDir, `module__armorsetbonuses.parsed.${timestamp}.json`), parsedPayload);
 
 const report = {
-  generatedAt: new Date().toISOString(),
+  generatedAt: fetchedAt,
   moduleUrl: moduleUrl.toString(),
   revisionTimestamp: revision?.timestamp ?? null,
+  sharedRawDir,
   totalRecords: records.length,
-  samples: records.slice(0, 5),
+  samples: records.slice(0, 5)
 };
-fs.writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+writeJson(reportPath, report);
 console.log(JSON.stringify(report, null, 2));
-
-async function fetchJson(url) {
-  for (let attempt = 1; attempt <= 6; attempt += 1) {
-    try {
-      const response = await fetch(url, {
-        headers: { 'user-agent': USER_AGENT },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      if (attempt === 6) throw error;
-      await sleep(Math.min(1000 * attempt, 4000));
-    }
-  }
-  throw new Error('fetchJson exhausted');
-}
 
 function parseArmorSetBonuses(content) {
   const block = extractInitializeBlock(content);
@@ -83,7 +107,9 @@ function parseArmorSetBonuses(content) {
 
   for (const statement of statements) {
     const parsed = parseArmorSetStatement(statement);
-    if (parsed) records.push(parsed);
+    if (parsed) {
+      records.push(parsed);
+    }
   }
 
   return records;
@@ -148,7 +174,7 @@ function parseAddStatement(statement) {
     benefitExpression,
     textKey,
     primaryPart: null,
-    sets: [set],
+    sets: [set]
   });
 }
 
@@ -181,20 +207,20 @@ function parseCreateStatement(statement) {
     benefitExpression,
     textKey,
     primaryPart,
-    sets,
+    sets
   });
 }
 
 function buildRecord({ benefitExpression, textKey, primaryPart, sets }) {
-  const normalizedSets = sets.map(set => set.map(value => Number.isFinite(value) ? value : 0));
-  const uniqueItemIds = [...new Set(normalizedSets.flat().filter(value => Number.isFinite(value)))];
+  const normalizedSets = sets.map((set) => set.map((value) => Number.isFinite(value) ? value : 0));
+  const uniqueItemIds = [...new Set(normalizedSets.flat().filter((value) => Number.isFinite(value)))];
   return {
     benefitExpression,
     primaryPart,
     setCount: normalizedSets.length,
     sets: normalizedSets,
     textKey,
-    uniqueItemIds,
+    uniqueItemIds
   };
 }
 
@@ -262,7 +288,7 @@ function splitTopLevelArgs(content) {
 function parseSetArg(arg) {
   const text = arg.trim();
   if (text.startsWith('{') && text.endsWith('}')) {
-    return splitTopLevelArgs(text.slice(1, -1)).map(parseNumberArg).filter(value => value != null);
+    return splitTopLevelArgs(text.slice(1, -1)).map(parseNumberArg).filter((value) => value != null);
   }
   const value = parseNumberArg(text);
   return value == null ? [0] : [value];
@@ -289,8 +315,4 @@ function cleanEffectRef(arg) {
 
 function stripQuotes(arg) {
   return String(arg).trim().replace(/^"/, '').replace(/"$/, '');
-}
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }

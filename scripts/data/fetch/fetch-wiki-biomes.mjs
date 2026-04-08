@@ -3,8 +3,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { fetchWikiApiJson } from '../lib/wiki-item-utils.mjs';
+
 const API_URL = 'https://terraria.wiki.gg/api.php';
-const USER_AGENT = 'TerraPedia-biomes/1.0';
 const repoRoot = process.cwd();
 const generatedAt = new Date().toISOString();
 const dateTag = generatedAt.slice(0, 10);
@@ -337,21 +338,11 @@ function buildMarkdown(payload) {
 }
 
 async function fetchJson(url) {
-  for (let attempt = 1; attempt <= 6; attempt += 1) {
-    try {
-      const response = await fetch(url, {
-        headers: { 'user-agent': USER_AGENT },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      if (attempt === 6) throw error;
-      await sleep(Math.min(1000 * attempt, 4000));
-    }
-  }
-  throw new Error('fetchJson exhausted');
+  return fetchWikiApiJson({
+    url,
+    profile: 'parse',
+    sourceKey: 'Biomes'
+  });
 }
 
 function extractBlockByClass(html, tagName, className) {
@@ -415,6 +406,3 @@ function escapeRegExp(text) {
   return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}

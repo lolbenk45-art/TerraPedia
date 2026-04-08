@@ -33,6 +33,42 @@ Default shared data root:
 
 ```powershell
 node scripts/data/monitor/check-source-updates.mjs
+node scripts/data/workflow/run-wiki-sync.mjs --mode=monitor
+node scripts/data/workflow/run-wiki-sync.mjs --mode=plan
+node scripts/data/workflow/run-wiki-sync.mjs --mode=apply
+node scripts/data/workflow/run-wiki-sync.mjs --mode=resume
+node scripts/data/workflow/seed-wiki-source-manifest.mjs
+```
+
+The workflow under `scripts/data/workflow` is now the recommended default entrypoint for Wiki.gg refreshes.
+It keeps the default path low-risk:
+
+- monitor first, fetch second
+- `item_pages` excluded from default refresh
+- `item_pages` requires an explicit shard (`--page-limit=100` max by default or `--items=...`)
+- `zh` enrich is a manual lane, not part of the default wiki refresh
+- `images` sync is a manual lane, not part of the default wiki refresh
+
+Manual workflow lanes:
+
+```powershell
+node scripts/data/workflow/run-wiki-sync.mjs --mode=plan --entity=zh
+node scripts/data/workflow/run-wiki-sync.mjs --mode=apply --entity=zh
+node scripts/data/workflow/run-wiki-sync.mjs --mode=plan --entity=images
+node scripts/data/workflow/run-wiki-sync.mjs --mode=apply --entity=images
+```
+
+Safe defaults:
+
+- `zh` defaults to `projectiles,buffs`
+- `images` defaults to `projectiles,buffs`
+- `items,npcs` require explicit `--scopes=items,npcs` or similar
+
+Direct runner usage:
+
+```powershell
+node scripts/data/workflow/run-zh-enrich.mjs --apply=false --scopes=projectiles,buffs
+node scripts/data/workflow/run-image-sync.mjs --apply=false --scopes=projectiles,buffs
 ```
 
 ## Fetch
@@ -44,8 +80,9 @@ node scripts/data/fetch/fetch-wiki-projectileinfo.mjs
 node scripts/data/fetch/fetch-wiki-armorsetbonuses.mjs
 node scripts/data/fetch/fetch-wiki-buffs.mjs --langs=en,zh
 node scripts/data/fetch/fetch-wiki-biomes.mjs
-node scripts/data/fetch/fetch-wiki-item-pages.mjs
+node scripts/data/fetch/fetch-wiki-item-pages.mjs --page-limit=100 --with-recipes=false
 node scripts/data/fetch/build-item-relations-bundle.mjs
+node scripts/data/fetch/build-item-relations-bundle.mjs --refresh-recipe-reference=true
 ```
 
 ## Normalize
@@ -56,13 +93,37 @@ node scripts/data/normalize/validate-normalized-items.mjs data/normalized/items.
 node scripts/data/normalize/validate-normalized-data.mjs data/normalized/items.wiki.sample.json
 ```
 
+## Generate
+
+```powershell
+node scripts/data/generate/generate-boss-loot-bundle.mjs
+node scripts/data/generate/generate-recipe-material-reference.mjs
+```
+
+## Boss Loot
+
+```powershell
+node scripts/data/import/import-boss-loot-to-db.mjs --dry-run=true
+node scripts/data/pipeline/run-boss-loot-sync-pipeline.mjs --dry-run=true
+node scripts/data/pipeline/run-item-detail-sync-pipeline.mjs --items=data/normalized/items.wiki.json --relations=data/normalized/item-relations.bundle.json --with-boss-loot=true
+```
+
+Notes:
+
+- Boss loot uses existing `item_relations.itemSources` to assemble `direct_boss` and `treasure_bag` drops.
+- The admin boss detail API already reads boss loot from `npc_loot_entries`.
+- Boss loot sync writes to the primary DB path and should be treated as an explicit import step.
+
 ## Import And Pipeline
 
 ```powershell
 node scripts/data/import/import-items.mjs data/normalized/items.wiki.sample.json
 node scripts/data/import/import-item-relations.mjs data/normalized/item-relations.bundle.json
 node scripts/data/pipeline/run-import-pipeline.mjs data/normalized/items.wiki.sample.json
+node scripts/data/pipeline/run-recipe-reference-sync-pipeline.mjs --dry-run=true
+node scripts/data/pipeline/run-recipe-reference-sync-pipeline.mjs
 node scripts/data/pipeline/run-item-detail-sync-pipeline.mjs --items=data/normalized/items.wiki.json --relations=data/normalized/item-relations.bundle.json
+node scripts/data/pipeline/run-item-detail-sync-pipeline.mjs --items=data/normalized/items.wiki.json --relations=data/normalized/item-relations.bundle.json --with-boss-loot=true
 ```
 
 Admin-authenticated scripts should read credentials from `scripts/dev/config/local-stack.config.json` or environment variables, not hard-coded passwords.

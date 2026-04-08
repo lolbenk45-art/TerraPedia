@@ -7761,7 +7761,7 @@
       },
       "name": "Snow Ball (friendly)",
       "imageFileTitle": "Snow Ball (friendly) (projectile).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Snow_Ball_(friendly)_(projectile).png",
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5ca64b1917534f979638026f8c1109fc.png",
       "localized": {
         "zh": {
           "name": "雪球",
@@ -8735,7 +8735,7 @@
       },
       "name": "Flamethrower",
       "imageFileTitle": "Flames (friendly) (projectile).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Flames_(friendly)_(projectile).png",
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9304153dc6ba4ee6b378ffa52ec81a27.png",
       "localized": {
         "zh": {
           "name": "火焰喷射器",
@@ -8781,7 +8781,7 @@
       },
       "name": "Flames",
       "imageFileTitle": "Flames (friendly) (projectile).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Flames_(friendly)_(projectile).png",
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9304153dc6ba4ee6b378ffa52ec81a27.png",
       "localized": {
         "zh": {
           "name": "火焰",
@@ -17522,7 +17522,7 @@
       },
       "name": "Imp Fireball",
       "imageFileTitle": "Flames (friendly) (projectile).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Flames_(friendly)_(projectile).png",
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9304153dc6ba4ee6b378ffa52ec81a27.png",
       "localized": {
         "zh": {
           "name": "小鬼火球",
@@ -17890,7 +17890,7 @@
       },
       "name": "Sharknado",
       "imageFileTitle": "Cthulhunado.gif",
-      "imageUrl": "https://terraria.wiki.gg/images/Cthulhunado.gif",
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1e11889c8630412f821560576625f8d9.gif",
       "localized": {
         "zh": {
           "name": "鲨鱼旋风",
@@ -17982,7 +17982,7 @@
       },
       "name": "Cthulunado",
       "imageFileTitle": "Cthulhunado.gif",
-      "imageUrl": "https://terraria.wiki.gg/images/Cthulhunado.gif",
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1e11889c8630412f821560576625f8d9.gif",
       "localized": {
         "zh": {
           "name": "克苏鲁旋风",
@@ -21021,7 +21021,7 @@
       },
       "name": "Influx Waver",
       "imageFileTitle": "projectile 451.png",
-      "imageUrl": "https://terraria.wiki.gg/images/projectile_451.png",
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1a1fd8c266b04b2e9b293937a0a1542d.png",
       "localized": {
         "zh": {
           "name": "波涌之刃",
@@ -30419,7 +30419,7 @@
       },
       "name": "Geyser",
       "imageFileTitle": "Flames (friendly) (projectile).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Flames_(friendly)_(projectile).png",
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9304153dc6ba4ee6b378ffa52ec81a27.png",
       "localized": {
         "zh": {
           "name": "热喷泉",
@@ -30464,7 +30464,7 @@
       },
       "name": "Bee Hive",
       "imageFileTitle": "Dislodgeable_Beehive.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Dislodgeable_Beehive.png",
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ec21dcfa251441cb91549e144e6a44b6.png",
       "localized": {
         "zh": {
           "name": "蜂巢",
@@ -32671,7 +32671,7 @@
       },
       "name": "Flickerwick",
       "imageFileTitle": "Flickerwick (animated).gif",
-      "imageUrl": "https://terraria.wiki.gg/images/Flickerwick_(animated).gif",
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8ecfc53c481f467e9abfc9601745c409.gif",
       "localized": {
         "zh": {
           "name": "闪烁灯芯",
@@ -44384,7 +44384,7 @@
       },
       "name": "Pew-Matic Stuff",
       "imageFileTitle": "Pew-Matic Stuff.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Pew-Matic_Stuff.png",
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e47f6b88a1d24bf2b15f2fce5358a11b.gif",
       "localized": {
         "zh": {
           "name": "气喇叭投射物",
@@ -45534,7 +45534,7 @@
       },
       "name": "Helium Moss Fishing Bobber",
       "imageFileTitle": "Helium Moss Fishing Bobber.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Helium_Moss_Fishing_Bobber.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c0c8be9dc552403cbd7bde50fcd42033.gif"
     },
     {
       "aiStyle": 26,
@@ -46603,7 +46603,7 @@
       },
       "name": "The Dirtiest Block",
       "imageFileTitle": "The Dirtiest Block.png",
-      "imageUrl": "https://terraria.wiki.gg/images/The_Dirtiest_Block.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b5e5c8184c554c29874f756bb1f14904.png"
     },
     {
       "aiStyle": 6,
@@ -50459,7 +50459,7 @@
       },
       "name": "Rainbow Phaseblade",
       "imageFileTitle": "Rainbow Phaseblade.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Rainbow_Phaseblade.png",
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ef52308b419e4dc8bf3ced11a1100633.gif",
       "localized": {
         "zh": {
           "name": "彩虹陨石光剑",
@@ -50508,7 +50508,7 @@
       },
       "name": "Rainbow Phasesaber",
       "imageFileTitle": "Rainbow Phasesaber.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Rainbow_Phasesaber.png",
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/157e5c8b202948b1b2277ae8133a2d9d.gif",
       "localized": {
         "zh": {
           "name": "彩虹晶光刃",

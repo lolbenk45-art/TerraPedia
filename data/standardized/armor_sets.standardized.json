@@ -1,6 +1,6 @@
 {
   "entity": "armor_sets",
-  "generatedAt": "2026-04-04T04:11:34.894Z",
+  "generatedAt": "2026-04-07T02:20:29.303Z",
   "records": [
     {
       "benefitExpression": "ArmorSetBonuses.Benefits.Wood",
@@ -1744,7 +1744,7 @@
   "sourceFile": "terraria.wiki.gg/api.php?action=query&titles=Module:ArmorSetBonuses&prop=revisions&rvprop=content",
   "totalRecords": 63,
   "upstreamMeta": {
-    "fetchedAt": "2026-04-04T04:11:34.894Z",
+    "fetchedAt": "2026-04-07T02:20:29.303Z",
     "source": "terraria.wiki.gg:Module:ArmorSetBonuses",
     "sourceApi": "https://terraria.wiki.gg/api.php",
     "sourcePageTitle": "Module:ArmorSetBonuses",

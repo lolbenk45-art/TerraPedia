@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { fetchWikiApiJson } from '../lib/wiki-item-utils.mjs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
@@ -26,7 +28,7 @@ const GROUP_CONFIG = {
 
 const overview = await fetchBossSections();
 const bossEntries = discoverBossEntries(overview.sections);
-const records = await mapWithConcurrency(bossEntries, 4, hydrateBossEntry);
+const records = await mapWithConcurrency(bossEntries, 1, hydrateBossEntry);
 const sortedRecords = records
   .filter((record) => record != null)
   .sort((a, b) => a.progressionOrder - b.progressionOrder);
@@ -241,21 +243,11 @@ function normalizeImageUrl(value) {
 }
 
 async function fetchJson(url) {
-  for (let attempt = 1; attempt <= 6; attempt += 1) {
-    try {
-      const response = await fetch(url, {
-        headers: { 'user-agent': USER_AGENT },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      if (attempt === 6) throw error;
-      await sleep(Math.min(attempt * 1000, 4000));
-    }
-  }
-  throw new Error('fetchJson exhausted retries');
+  return fetchWikiApiJson({
+    url,
+    profile: 'parse',
+    sourceKey: 'Bosses'
+  });
 }
 
 async function mapWithConcurrency(list, concurrency, worker) {
@@ -324,6 +316,3 @@ function toRepoRelative(filePath) {
   return path.relative(repoRoot, filePath).replaceAll('\\', '/');
 }
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}

@@ -4,6 +4,7 @@ import path from 'node:path';
 import {
   ensureDir,
   expandWikiText,
+  fetchWikiPageMetadataBatch,
   fetchWikiPagePayload,
   numericOption,
   parseCliArgs,
@@ -15,12 +16,16 @@ const options = parseCliArgs(process.argv.slice(2));
 const inputPath = path.resolve(process.cwd(), options.input ?? sharedDataPath('normalized', 'items.wiki.json'));
 const rawDir = path.resolve(process.cwd(), options['raw-dir'] ?? sharedDataPath('raw', 'wiki', 'item-pages'));
 const reportDir = sharedDataPath('reports', 'fetch');
-const limit = numericOption(options.limit, null);
+const allowFullCorpus = booleanOption(options['allow-full-corpus'] ?? options.allowFullCorpus, false);
+const requestedLimit = numericOption(options.limit, allowFullCorpus ? null : 100);
+const limit = Number.isFinite(requestedLimit) && requestedLimit > 0 ? requestedLimit : null;
 const offset = numericOption(options.offset, 0);
-const concurrency = Math.max(1, numericOption(options.concurrency, 2));
-const onlyMissing = options['only-missing'] === true || options.onlyMissing === true;
-const delayMs = Math.max(0, numericOption(options['delay-ms'] ?? options.delayMs, 200));
-const jitterMs = Math.max(0, numericOption(options['jitter-ms'] ?? options.jitterMs, 250));
+const concurrency = Math.max(1, numericOption(options.concurrency, 1));
+const onlyMissing = booleanOption(options['only-missing'] ?? options.onlyMissing, false);
+const onlyChanged = booleanOption(options['only-changed'] ?? options.onlyChanged, true);
+const withRecipes = booleanOption(options['with-recipes'] ?? options.withRecipes, false);
+const delayMs = Math.max(0, numericOption(options['delay-ms'] ?? options.delayMs, 5_000));
+const jitterMs = Math.max(0, numericOption(options['jitter-ms'] ?? options.jitterMs, 2_000));
 const maxAttempts = Math.max(1, numericOption(options['max-attempts'] ?? options.maxAttempts, 8));
 const requestedItems = new Set(
   String(options.items ?? '')
@@ -36,6 +41,10 @@ const sourcePayload = JSON.parse(await fs.promises.readFile(inputPath, 'utf8'));
 const rawItems = Array.isArray(sourcePayload?.items) ? sourcePayload.items : [];
 let selectedItems = rawItems.filter((item) => item?.internalName && item?.name);
 
+if (!allowFullCorpus && requestedItems.size === 0 && (limit == null || limit > 100)) {
+  throw new Error('Full-corpus item page refresh is disabled by default. Pass --limit=100 or lower, provide --items=..., or set --allow-full-corpus=true.');
+}
+
 if (requestedItems.size > 0) {
   selectedItems = selectedItems.filter((item) => {
     return requestedItems.has(item.internalName) || requestedItems.has(item.name);
@@ -45,6 +54,7 @@ if (requestedItems.size > 0) {
 selectedItems = selectedItems.slice(offset, Number.isFinite(limit) && limit > 0 ? offset + limit : undefined);
 
 let skippedExisting = 0;
+let skippedUnchanged = 0;
 if (onlyMissing) {
   const beforeCount = selectedItems.length;
   selectedItems = selectedItems.filter((item) => {
@@ -53,6 +63,20 @@ if (onlyMissing) {
     return !fs.existsSync(latestPath);
   });
   skippedExisting = beforeCount - selectedItems.length;
+}
+
+if (onlyChanged && selectedItems.length > 0) {
+  const revisionMap = await loadRemoteRevisionMap(selectedItems);
+  const beforeCount = selectedItems.length;
+  selectedItems = selectedItems.filter((item) => {
+    const existingRevision = readExistingLatestRevision(item.internalName);
+    const remoteRevision = revisionMap.get(normalizeKey(item.name));
+    if (!remoteRevision) {
+      return true;
+    }
+    return existingRevision == null || existingRevision !== remoteRevision;
+  });
+  skippedUnchanged = beforeCount - selectedItems.length;
 }
 
 const timestamp = new Date().toISOString().replaceAll(':', '-');
@@ -88,10 +112,14 @@ writeJson(reportPath, {
   inputPath,
   rawDir,
   selectedCount: selectedItems.length,
+  allowFullCorpus,
   skippedExisting,
+  skippedUnchanged,
   successCount: successes.length,
   failureCount: errors.length,
   fetchedAt: new Date().toISOString(),
+  onlyChanged,
+  withRecipes,
   items: successes,
   errors
 });
@@ -101,6 +129,9 @@ console.log(`Selected items: ${selectedItems.length}`);
 if (onlyMissing) {
   console.log(`Skipped existing latest pages: ${skippedExisting}`);
 }
+if (onlyChanged) {
+  console.log(`Skipped unchanged pages: ${skippedUnchanged}`);
+}
 console.log(`Fetched pages: ${successes.length}`);
 console.log(`Failed pages: ${errors.length}`);
 console.log(`Report: ${reportPath}`);
@@ -108,7 +139,7 @@ console.log(`Report: ${reportPath}`);
 async function fetchAndPersistItemPage(item, outputDir) {
   await sleep(computeDelayMs());
   const payload = await withRetry(() => fetchWikiPagePayload({ pageTitle: item.name }), item.name);
-  const recipesMarkup = payload.wikitext.includes('{{recipes|result=')
+  const recipesMarkup = withRecipes && payload.wikitext.includes('{{recipes|result=')
     ? await withRetry(() => expandWikiText({ text: `{{recipes|result=${payload.pageTitle}}}` }), `${item.name} recipes`)
     : '';
   const fileBase = sanitizeFileName(item.internalName);
@@ -134,6 +165,62 @@ async function fetchAndPersistItemPage(item, outputDir) {
     latestPath,
     snapshotPath
   };
+}
+
+async function loadRemoteRevisionMap(items) {
+  const byTitle = new Map();
+  const titles = items.map((item) => item.name).filter(Boolean);
+  for (const batch of chunkArray(titles, 50)) {
+    const pages = await fetchWikiPageMetadataBatch({
+      titles: batch
+    });
+    pages.forEach((page) => {
+      if (!page?.pageTitle) {
+        return;
+      }
+      byTitle.set(normalizeKey(page.pageTitle), page.revisionTimestamp ?? null);
+    });
+  }
+  return byTitle;
+}
+
+function readExistingLatestRevision(internalName) {
+  const fileBase = sanitizeFileName(internalName);
+  const latestPath = path.join(rawDir, `${fileBase}.latest.json`);
+  if (!fs.existsSync(latestPath)) {
+    return null;
+  }
+  try {
+    const payload = JSON.parse(fs.readFileSync(latestPath, 'utf8'));
+    return typeof payload?.revisionTimestamp === 'string' ? payload.revisionTimestamp : null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeKey(value) {
+  return String(value ?? '').trim().toLowerCase();
+}
+
+function chunkArray(list, size) {
+  const chunks = [];
+  for (let index = 0; index < list.length; index += size) {
+    chunks.push(list.slice(index, index + size));
+  }
+  return chunks;
+}
+
+function booleanOption(value, fallback) {
+  if (value == null || value === '') {
+    return fallback;
+  }
+  if (value === true || value === 'true' || value === '1') {
+    return true;
+  }
+  if (value === false || value === 'false' || value === '0') {
+    return false;
+  }
+  return fallback;
 }
 
 function sanitizeFileName(value) {

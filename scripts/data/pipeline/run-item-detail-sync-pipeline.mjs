@@ -2,11 +2,17 @@ import { importNormalizedItems } from '../import/import-items.mjs';
 import { importItemRelations } from '../import/import-item-relations.mjs';
 import { parseCliArgs, sharedDataPath } from '../lib/wiki-item-utils.mjs';
 import { validateNormalizedItems } from '../normalize/validate-normalized-items.mjs';
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const args = process.argv.slice(2);
 const options = parseCliArgs(args);
 const itemInputPath = options.items ?? sharedDataPath('normalized', 'items.wiki.json');
 const relationInputPath = options.relations ?? sharedDataPath('normalized', 'item-relations.bundle.json');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const repoRoot = path.resolve(__dirname, '..', '..', '..');
 
 const validation = validateNormalizedItems(itemInputPath);
 console.log(`Validated file: ${validation.resolvedInput}`);
@@ -49,4 +55,51 @@ if (!relationImportResult.ok) {
   process.exit(1);
 }
 
+const withBossLoot = booleanOption(options['with-boss-loot'] ?? options.withBossLoot, false);
+if (withBossLoot) {
+  const bossLootScriptPath = path.join(repoRoot, 'scripts', 'data', 'pipeline', 'run-boss-loot-sync-pipeline.mjs');
+  const bossLootArgs = [
+    `--relations=${relationInputPath}`
+  ];
+  if (typeof options.npcs === 'string' && options.npcs.trim() !== '') {
+    bossLootArgs.push(`--npcs=${options.npcs.trim()}`);
+  }
+  if (booleanOption(options['boss-loot-dry-run'] ?? options.bossLootDryRun, false)) {
+    bossLootArgs.push('--dry-run=true');
+  }
+  const hasBossLootRegenerateOption = Object.prototype.hasOwnProperty.call(options, 'boss-loot-regenerate-bundle')
+    || Object.prototype.hasOwnProperty.call(options, 'bossLootRegenerateBundle');
+  if (hasBossLootRegenerateOption) {
+    const regenerateValue = booleanOption(
+      options['boss-loot-regenerate-bundle'] ?? options.bossLootRegenerateBundle,
+      true
+    );
+    bossLootArgs.push(`--regenerate-bundle=${regenerateValue ? 'true' : 'false'}`);
+  }
+  if (booleanOption(options['allow-non-primary-db'] ?? options.allowNonPrimaryDb, false)) {
+    bossLootArgs.push('--allow-non-primary-db=true');
+  }
+  const bossLootResult = spawnSync(process.execPath, [bossLootScriptPath, ...bossLootArgs], {
+    cwd: repoRoot,
+    stdio: 'inherit'
+  });
+  if (bossLootResult.status !== 0) {
+    console.error('Boss loot sync failed');
+    process.exit(bossLootResult.status ?? 1);
+  }
+}
+
 console.log('Item detail sync pipeline finished successfully');
+
+function booleanOption(value, fallback) {
+  if (value == null || value === '') {
+    return fallback;
+  }
+  if (value === true || value === 'true' || value === '1' || value === 'yes') {
+    return true;
+  }
+  if (value === false || value === 'false' || value === '0' || value === 'no') {
+    return false;
+  }
+  return fallback;
+}

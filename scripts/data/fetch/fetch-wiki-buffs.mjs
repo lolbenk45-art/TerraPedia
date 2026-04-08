@@ -196,26 +196,7 @@ async function expandLocalizedBuffFields(ids, lang) {
 }
 
 async function expandTemplates(text) {
-  const url = new URL('https://terraria.wiki.gg/api.php');
-  url.searchParams.set('action', 'expandtemplates');
-  url.searchParams.set('prop', 'wikitext');
-  url.searchParams.set('format', 'json');
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-      'user-agent': 'TerraPedia buff fetch/1.0'
-    },
-    body: new URLSearchParams({ text })
-  });
-
-  if (!response.ok) {
-    throw new Error(`Expandtemplates failed: ${response.status} ${response.statusText}`);
-  }
-
-  const body = await response.json();
-  return body.expandtemplates?.wikitext ?? '';
+  return expandWikiText({ text });
 }
 
 function normalizeExpandedValue(value) {

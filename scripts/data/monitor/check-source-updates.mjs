@@ -268,20 +268,17 @@ function buildRecommendedActions(summary) {
     ];
   }
 
-  return [
-    {
-      type: 'run_fetch_pipeline',
-      reason: 'upstream_source_changed',
-      commands: [
-        'node terraPedia/scripts/data/fetch/fetch-wiki-iteminfo.mjs',
-        'node terraPedia/scripts/data/fetch/fetch-wiki-npcinfo.mjs',
-        'node terraPedia/scripts/data/fetch/fetch-wiki-projectileinfo.mjs',
-        'node terraPedia/scripts/data/fetch/fetch-wiki-armorsetbonuses.mjs',
-        'node terraPedia/scripts/data/fetch/fetch-wiki-buffs.mjs'
-      ]
-    },
-    {
-      type: 'run_standardize_pipeline',
+    return [
+      {
+        type: 'run_safe_wiki_workflow',
+        reason: 'upstream_source_changed',
+        commands: [
+          'node TerraPedia-dev/scripts/data/workflow/seed-wiki-source-manifest.mjs',
+          'node TerraPedia-dev/scripts/data/workflow/run-wiki-sync.mjs --mode=apply'
+        ]
+      },
+      {
+        type: 'run_standardize_pipeline',
       reason: 'standardized_outputs_must_match_latest_raw_data',
       commands: [
         'node terraPedia/scripts/data/normalize/normalize-wiki-items.mjs',

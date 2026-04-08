@@ -96,16 +96,17 @@ async function syncNpcs(stats) {
 
       const imageUrl = toText(record?.imageUrl);
       const minioImageUrl = imageUrl ? await uploadImageUrl(imageUrl, `${slugify(internalName)}.png`) : null;
+      const effectiveImageUrl = minioImageUrl ?? imageUrl ?? null;
 
       const npcPayload = structuredClone(record);
-      if (minioImageUrl) {
-        npcPayload.imageUrl = minioImageUrl;
+      if (effectiveImageUrl) {
+        npcPayload.imageUrl = effectiveImageUrl;
       }
 
       generatedMap[String(gameId)] = {
         gameId,
         internalName,
-        imageUrl: minioImageUrl,
+        imageUrl: effectiveImageUrl,
         rawJson: JSON.stringify(npcPayload),
         combat: npcPayload.combat ?? null,
         dimensions: npcPayload.dimensions ?? null,
@@ -161,7 +162,14 @@ async function syncNpcs(stats) {
         }
       }
 
-      pushSample(stats, { gameId, internalName, imageUrl: minioImageUrl, reason: existing ? 'updated' : 'inserted' });
+      pushSample(stats, {
+        gameId,
+        internalName,
+        imageUrl: effectiveImageUrl,
+        reason: minioImageUrl
+          ? (existing ? 'updated_minio' : 'inserted_minio')
+          : (existing ? 'updated_source_fallback' : 'inserted_source_fallback'),
+      });
     } catch (error) {
       stats.failed += 1;
       pushSample(stats, { id: record?.id ?? null, internalName: record?.internalName ?? null, reason: String(error.message || error) });

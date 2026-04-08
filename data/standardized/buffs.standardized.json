@@ -34,7 +34,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Obsidian Skin.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Obsidian_Skin.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9c526fabad7e4f8994a6340f15a86936.png"
     },
     {
       "englishName": "Regeneration",
@@ -68,7 +68,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Regeneration.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Regeneration.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ad621e426a964223819739c74adebc32.png"
     },
     {
       "englishName": "Swiftness",
@@ -102,7 +102,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Swiftness.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Swiftness.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e9dbcf9db6244a1f9a2c8668c4878ef9.png"
     },
     {
       "englishName": "Gills",
@@ -136,7 +136,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Gills.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Gills.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4c9eae48bc5f414fbb8f5ac4ce358559.png"
     },
     {
       "englishName": "Ironskin",
@@ -170,7 +170,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Ironskin.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Ironskin.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c86addd4cab34c9f9a6f67efef22d45b.png"
     },
     {
       "englishName": "Mana Regeneration",
@@ -204,7 +204,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Mana Regeneration.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Mana_Regeneration.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ed1807ada1324c9788382deca36f7688.png"
     },
     {
       "englishName": "Magic Power",
@@ -238,7 +238,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Magic Power.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Magic_Power.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9e43dc75498c4c2f878b609c9e7cf8a2.png"
     },
     {
       "englishName": "Featherfall",
@@ -272,7 +272,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Featherfall.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Featherfall.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9310b1d3ebcc4960a199fffa86b6bdaa.png"
     },
     {
       "englishName": "Spelunker",
@@ -306,7 +306,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Spelunker.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Spelunker.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3927125c63614970b74d4df26e7b4126.png"
     },
     {
       "englishName": "Invisibility",
@@ -340,7 +340,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Invisibility.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Invisibility.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/bd51eebf3fd44aea9e6d479bb284362d.png"
     },
     {
       "englishName": "Shine",
@@ -374,7 +374,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Shine.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Shine.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9305677d1f6b4cee8194e916f7862f97.png"
     },
     {
       "englishName": "Night Owl",
@@ -408,7 +408,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Night Owl.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Night_Owl.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ac2b5c69059b4394b58cbac07dce8f10.png"
     },
     {
       "englishName": "Battle",
@@ -442,7 +442,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Battle.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Battle.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1f22c87c8e204c57bdc84d1f4bb2b4aa.png"
     },
     {
       "englishName": "Thorns",
@@ -476,7 +476,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Thorns.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Thorns.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b2ab2a5fe794476395688009b52cb242.png"
     },
     {
       "englishName": "Water Walking",
@@ -510,7 +510,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Water Walking.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Water_Walking.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/90fce18434414d20b6946a1e8d9b08c7.png"
     },
     {
       "englishName": "Archery",
@@ -544,7 +544,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Archery.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Archery.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a44cb5a57fce4200892eb4c105085b17.png"
     },
     {
       "englishName": "Hunter",
@@ -578,7 +578,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Hunter.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Hunter.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4ce33937affe46109f88aef4cbb2af83.png"
     },
     {
       "englishName": "Gravitation",
@@ -612,7 +612,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Gravitation.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Gravitation.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ee944706d1974ab5af96bad2a54ce487.png"
     },
     {
       "englishName": "Shadow Orb",
@@ -646,7 +646,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Shadow Orb (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Shadow_Orb_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/142793d0105f4015ade5a11b003831dd.png"
     },
     {
       "englishName": "Poisoned",
@@ -724,7 +724,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Poisoned.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Poisoned.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f2b935f8701a4bf39058f1b356c27e6b.png"
     },
     {
       "englishName": "Potion Sickness",
@@ -751,7 +751,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Potion Sickness.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Potion_Sickness.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b97d8cd987da4accab24145654b830fd.png"
     },
     {
       "englishName": "Darkness",
@@ -778,7 +778,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Darkness.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Darkness.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9ac99dce7ec54e1fb313ec988c12078d.png"
     },
     {
       "englishName": "Cursed",
@@ -805,7 +805,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Cursed.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Cursed.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c4581ecbe6504d97933201f022c3e4a8.png"
     },
     {
       "englishName": "On Fire!",
@@ -883,7 +883,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "On Fire!.png",
-      "imageUrl": "https://terraria.wiki.gg/images/On_Fire!.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/685945ca103148e0b4484c263ecd08ac.png"
     },
     {
       "englishName": "Tipsy",
@@ -923,7 +923,7 @@
       ],
       "type": "debuff",
       "imageFileTitle": "Tipsy.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Tipsy.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d02b45d1367f44a28fa68b02a6338b05.png"
     },
     {
       "englishName": "Well Fed",
@@ -1203,7 +1203,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Well Fed.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Well_Fed.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/36df5977d3714f69a3c4abdba2ebb668.png"
     },
     {
       "englishName": "Fairy",
@@ -1237,7 +1237,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Fairy.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Fairy.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c45b0a612d6948ff83217f302eac8b22.png"
     },
     {
       "englishName": "Werewolf",
@@ -1264,7 +1264,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Werewolf (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Werewolf_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/24d74a9cdbda41f4bb3c3c27f9919647.png"
     },
     {
       "englishName": "Clairvoyance",
@@ -1291,7 +1291,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Clairvoyance.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Clairvoyance.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/23eb5b9a8e154d22b1cfcfb3ce05eb86.png"
     },
     {
       "englishName": "Bleeding",
@@ -1369,7 +1369,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Bleeding.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Bleeding.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f33489198cbc4d949c003e49237715e8.png"
     },
     {
       "englishName": "Confused",
@@ -1447,7 +1447,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Confused.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Confused.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/bbd997b5c68d4ffab98b974567ceb5a0.png"
     },
     {
       "englishName": "Slow",
@@ -1474,7 +1474,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Slow.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Slow.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3c097859212f402085ef923fd62d8862.png"
     },
     {
       "englishName": "Weak",
@@ -1501,7 +1501,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Weak.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Weak.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/674a5ef8e5464d2aa84f9b8a4d373a76.png"
     },
     {
       "englishName": "Merfolk",
@@ -1528,7 +1528,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Merfolk (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Merfolk_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/fbee83a6dc694dcd8156f542c35164a8.png"
     },
     {
       "englishName": "Silenced",
@@ -1555,7 +1555,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Silenced.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Silenced.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c66c97333c83478cb2ea05e6626f8e0a.png"
     },
     {
       "englishName": "Broken Armor",
@@ -1608,7 +1608,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Broken Armor.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Broken_Armor.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f64790b2dc0d43c5bb0c8051c17a967d.png"
     },
     {
       "englishName": "Horrified",
@@ -1635,7 +1635,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Horrified.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Horrified.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/13756e9fef594928b93bd6c33b5973a8.png"
     },
     {
       "englishName": "The Tongue",
@@ -1662,7 +1662,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "The Tongue.png",
-      "imageUrl": "https://terraria.wiki.gg/images/The_Tongue.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9b45ddb58e354f56a63b7d99841476cc.png"
     },
     {
       "englishName": "Cursed Inferno",
@@ -1715,7 +1715,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Cursed Inferno.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Cursed_Inferno.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/530fbd9b78b94f46821f1d4ee9144b4a.png"
     },
     {
       "englishName": "Pet Bunny",
@@ -1749,7 +1749,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Pet Bunny.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Pet_Bunny.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6c363dd6df40433db8e970db92b34e0d.png"
     },
     {
       "englishName": "Baby Penguin",
@@ -1783,7 +1783,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Baby Penguin (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Baby_Penguin_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/09e402a8989947f9a689805eb59fc31c.png"
     },
     {
       "englishName": "Pet Turtle",
@@ -1817,7 +1817,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Pet Turtle (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Pet_Turtle_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/650b46334ebb4f2795c34683431ff95c.png"
     },
     {
       "englishName": "Paladin's Shield",
@@ -1844,7 +1844,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Paladin's Shield (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Paladin's_Shield_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a6af24a6e41f4e19b4c61f958c5a7a42.png"
     },
     {
       "englishName": "Frostburn",
@@ -1922,7 +1922,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Frostburn.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Frostburn.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ee76b9dcff094b7599df1e878e4c12ae.png"
     },
     {
       "englishName": "Baby Eater",
@@ -1956,7 +1956,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Baby Eater (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Baby_Eater_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/fa45340f7e8849b0b849facb6a2cc4a0.png"
     },
     {
       "englishName": "Chilled",
@@ -1983,7 +1983,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Chilled.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Chilled.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4912a0d303514d79a077a4f35508831d.png"
     },
     {
       "englishName": "Frozen",
@@ -2010,7 +2010,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Frozen.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Frozen.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f13bee047f9740cf8b5e70a6dfb0ad33.png"
     },
     {
       "englishName": "Honey",
@@ -2044,7 +2044,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Honey (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Honey_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f8f068927d18405c8a44fddd4ee1642d.png"
     },
     {
       "englishName": "Pygmies",
@@ -2078,7 +2078,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Pygmies.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Pygmies.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a1425a4f220947a8a7ae72991f394710.png"
     },
     {
       "englishName": "Baby Skeletron Head",
@@ -2112,7 +2112,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Baby Skeletron Head (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Baby_Skeletron_Head_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b58bf6a22c0449ee940e17939be43e7e.png"
     },
     {
       "englishName": "Baby Hornet",
@@ -2146,7 +2146,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Baby Hornet (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Baby_Hornet_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5f44cd13d0c74f799a83f0599e6cb54d.png"
     },
     {
       "englishName": "Tiki Spirit",
@@ -2180,7 +2180,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Tiki Spirit (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Tiki_Spirit_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9ff21013f3b2452bb245489e865e37f0.png"
     },
     {
       "englishName": "Pet Lizard",
@@ -2214,7 +2214,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Pet Lizard (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Pet_Lizard_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/371bc07ca57e471995d19bc26ea94637.png"
     },
     {
       "englishName": "Pet Parrot",
@@ -2248,7 +2248,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Pet Parrot (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Pet_Parrot_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c7275e9f9ed04173ba86d23ae1f5b327.png"
     },
     {
       "englishName": "Baby Truffle",
@@ -2282,7 +2282,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Baby Truffle (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Baby_Truffle_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a209e3e4c20a4d579649cf4bb4403b65.png"
     },
     {
       "englishName": "Pet Sapling",
@@ -2316,7 +2316,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Pet Sapling (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Pet_Sapling_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4305f85aee324dfca46d5530794541d0.png"
     },
     {
       "englishName": "Wisp",
@@ -2350,7 +2350,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Wisp.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Wisp.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a8bdf832c93d47868bc68791669a19f5.png"
     },
     {
       "englishName": "Rapid Healing",
@@ -2377,7 +2377,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Rapid Healing.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Rapid_Healing.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1c69485cd38c4e86ab9425f4866c3f20.png"
     },
     {
       "englishName": "Holy Protection",
@@ -2404,7 +2404,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Holy Protection.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Holy_Protection.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ff48e71314f74222bec48900e3a37291.png"
     },
     {
       "englishName": "Leaf Crystal",
@@ -2431,7 +2431,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Leaf Crystal.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Leaf_Crystal.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2b5ecbb804b4476dbb9b4be701bab55b.png"
     },
     {
       "englishName": "Baby Dinosaur",
@@ -2465,7 +2465,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Baby Dinosaur (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Baby_Dinosaur_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3ea83f32d5f84f419697093051747ac7.png"
     },
     {
       "englishName": "Ice Barrier",
@@ -2492,7 +2492,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Ice Barrier.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Ice_Barrier.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/0401938f6e334b1b8fb6958447e9a988.png"
     },
     {
       "englishName": "Panic!",
@@ -2519,7 +2519,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Panic!.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Panic!.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4ab2a307bc43428c8859b22f846c0797.png"
     },
     {
       "englishName": "Baby Slime",
@@ -2553,7 +2553,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Baby Slime (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Baby_Slime_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6c1d5194cb154400b439ae7de098cf08.png"
     },
     {
       "englishName": "Eyeball Spring",
@@ -2587,7 +2587,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Eyeball Spring (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Eyeball_Spring_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3b0db5e55f434116b88d180345b380eb.png"
     },
     {
       "englishName": "Baby Snowman",
@@ -2621,7 +2621,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Baby Snowman (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Baby_Snowman_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8df4e9f0a8914491b528adca8c338ddf.png"
     },
     {
       "englishName": "Burning",
@@ -2648,7 +2648,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Burning.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Burning.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/bddd9820615148448d341abe69ef03db.png"
     },
     {
       "englishName": "Suffocation",
@@ -2675,7 +2675,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Suffocation.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Suffocation.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d0ee3955af3e475baa354bcbd850cc94.png"
     },
     {
       "englishName": "Ichor",
@@ -2728,7 +2728,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Ichor (debuff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Ichor_(debuff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/0dbdf422da6d4eb6917fc744a6c37540.png"
     },
     {
       "englishName": "Acid Venom",
@@ -2781,7 +2781,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Acid Venom.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Acid_Venom.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9d7abbfd5af14f1d9ed9dd69767d45ae.png"
     },
     {
       "englishName": "Weapon Imbue: Acid Venom",
@@ -2815,7 +2815,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Weapon Imbue Acid Venom.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Weapon_Imbue_Acid_Venom.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6b46f9b715074bf2aa7f403dbd416644.png"
     },
     {
       "englishName": "Midas",
@@ -2842,7 +2842,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Midas.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Midas.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f3f5408726304248bf829ceab98476c9.png"
     },
     {
       "englishName": "Weapon Imbue: Cursed Flames",
@@ -2876,7 +2876,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Weapon Imbue Cursed Flames.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Weapon_Imbue_Cursed_Flames.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1c1fb7ce58914c0faa3c363f31b8d93c.png"
     },
     {
       "englishName": "Weapon Imbue: Fire",
@@ -2910,7 +2910,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Weapon Imbue Fire.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Weapon_Imbue_Fire.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/87cb689453684c27888d766d3c1bcef9.png"
     },
     {
       "englishName": "Weapon Imbue: Gold",
@@ -2944,7 +2944,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Weapon Imbue Gold.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Weapon_Imbue_Gold.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7df2b0be9e00461cb84dbbcb985d67ed.png"
     },
     {
       "englishName": "Weapon Imbue: Ichor",
@@ -2978,7 +2978,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Weapon Imbue Ichor.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Weapon_Imbue_Ichor.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1ae4d101210b49f3ad8045e59c019ffa.png"
     },
     {
       "englishName": "Weapon Imbue: Nanites",
@@ -3012,7 +3012,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Weapon Imbue Nanites.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Weapon_Imbue_Nanites.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a77c91d61c2d48fca47c13046cc32e4d.png"
     },
     {
       "englishName": "Weapon Imbue: Confetti",
@@ -3046,7 +3046,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Weapon Imbue Confetti.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Weapon_Imbue_Confetti.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/79055b28752047a1b4ef15659c54a45f.png"
     },
     {
       "englishName": "Weapon Imbue: Poison",
@@ -3080,7 +3080,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Weapon Imbue Poison.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Weapon_Imbue_Poison.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/adc0270311794e2ab197e5b2fe374f9e.png"
     },
     {
       "englishName": "Blackout",
@@ -3107,7 +3107,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Blackout.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Blackout.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d9a8bf42aea744a6b016ea193a26e2fe.png"
     },
     {
       "englishName": "Pet Spider",
@@ -3141,7 +3141,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Pet Spider (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Pet_Spider_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1dbf86088bb34e1c89e7c5e157bfcbe0.png"
     },
     {
       "englishName": "Squashling",
@@ -3175,7 +3175,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Squashling (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Squashling_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a1f1f76f3d684509b2df55882984f758.png"
     },
     {
       "englishName": "Ravens",
@@ -3209,7 +3209,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Ravens.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Ravens.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/55fdf4197fef40bab9982a71df0ab3ed.png"
     },
     {
       "englishName": "Black Cat",
@@ -3243,7 +3243,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Black Cat (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Black_Cat_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/20f9c6a7ec75456782e611ebae21769e.png"
     },
     {
       "englishName": "Cursed Sapling",
@@ -3277,7 +3277,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Cursed Sapling (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Cursed_Sapling_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f11064a3515840f387c22ef2eb59050f.png"
     },
     {
       "englishName": "Water Candle",
@@ -3304,7 +3304,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Water Candle (debuff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Water_Candle_(debuff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e6a2eadd23d54d028c4a6a46f4fd7fbf.png"
     },
     {
       "englishName": "Cozy Fire",
@@ -3331,7 +3331,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Cozy Fire.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Cozy_Fire.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/55b41c4909c84035bd0a6168ff0bb610.png"
     },
     {
       "englishName": "Chaos State",
@@ -3358,7 +3358,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Chaos State.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Chaos_State.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d06f07ad57144b739197c14a429d070f.png"
     },
     {
       "englishName": "Heart Lamp",
@@ -3385,7 +3385,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Heart Lamp (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Heart_Lamp_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/910a7578607043b3aa4181c7afed5338.png"
     },
     {
       "englishName": "Rudolph",
@@ -3412,7 +3412,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Rudolph (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Rudolph_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9b8f14efdfb74bc196d29b3fd63359c4.png"
     },
     {
       "englishName": "Puppy",
@@ -3446,7 +3446,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Puppy (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Puppy_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d8e24cfe97db481ab11ee1c1325ae433.png"
     },
     {
       "englishName": "Baby Grinch",
@@ -3480,7 +3480,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Baby Grinch (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Baby_Grinch_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b520660c848a4a07abff111be725448f.png"
     },
     {
       "englishName": "Ammo Box",
@@ -3507,7 +3507,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Ammo Box (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Ammo_Box_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/bd2a30fc96594b45a05224bf4a518886.png"
     },
     {
       "englishName": "Mana Sickness",
@@ -3534,7 +3534,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Mana Sickness.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Mana_Sickness.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2400b4c5b89546e39b48dd0cddc05509.png"
     },
     {
       "englishName": "Beetle Endurance",
@@ -3561,7 +3561,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Beetle Endurance 15.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Beetle_Endurance_15.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/24dbdbb6f9594cc987bb6ffc7d1a75e2.png"
     },
     {
       "englishName": "Beetle Endurance",
@@ -3588,7 +3588,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Beetle Endurance 30.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Beetle_Endurance_30.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f10e6f7c13df4d26b5d4891d58543cd0.png"
     },
     {
       "englishName": "Beetle Endurance",
@@ -3615,7 +3615,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Beetle Endurance 45.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Beetle_Endurance_45.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7392c21351b14153a76d4f49125269a6.png"
     },
     {
       "englishName": "Beetle Might",
@@ -3642,7 +3642,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Beetle Might 10.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Beetle_Might_10.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ce4110fe8faf42fbac3367b6389715c9.png"
     },
     {
       "englishName": "Beetle Might",
@@ -3669,7 +3669,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Beetle Might 20.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Beetle_Might_20.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3543d08b7ef94a4799ec482c986b4179.png"
     },
     {
       "englishName": "Beetle Might",
@@ -3696,7 +3696,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Beetle Might 30.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Beetle_Might_30.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/767f0abefcf445a6892da04de8b26306.png"
     },
     {
       "englishName": "Fairy",
@@ -3723,7 +3723,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Fairy.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Fairy.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c45b0a612d6948ff83217f302eac8b22.png"
     },
     {
       "englishName": "Fairy",
@@ -3750,7 +3750,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Fairy.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Fairy.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c45b0a612d6948ff83217f302eac8b22.png"
     },
     {
       "englishName": "Wet",
@@ -3777,7 +3777,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Wet.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Wet.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/95b8b60bc10a4b7586973c009e1ea01b.png"
     },
     {
       "englishName": "Mining",
@@ -3811,7 +3811,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Mining (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Mining_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5c15fb903e054c23b4e7451fa8edff7a.png"
     },
     {
       "englishName": "Heartreach",
@@ -3845,7 +3845,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Heartreach.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Heartreach.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d6fa1db218384d3699f2c88bb610c1e6.png"
     },
     {
       "englishName": "Calm",
@@ -3879,7 +3879,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Calm.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Calm.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6c78d39227fe43deac38988064f10abb.png"
     },
     {
       "englishName": "Builder",
@@ -3913,7 +3913,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Builder.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Builder.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3a0495990dc6497ab6af31de84d9d6ba.png"
     },
     {
       "englishName": "Titan",
@@ -3947,7 +3947,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Titan.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Titan.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c6245aaf57e64a02b08edbfe553a0269.png"
     },
     {
       "englishName": "Flipper",
@@ -3981,7 +3981,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Flipper (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Flipper_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/dace76df48d84af5b15e589f026d7020.png"
     },
     {
       "englishName": "Summoning",
@@ -4015,7 +4015,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Summoning (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Summoning_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b6415797941a4f72bbe0e467620c64cf.png"
     },
     {
       "englishName": "Dangersense",
@@ -4049,7 +4049,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Dangersense.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Dangersense.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d8d7e0a80aee43429f8dd91355727ea3.png"
     },
     {
       "englishName": "Ammo Reservation",
@@ -4083,7 +4083,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Ammo Reservation.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Ammo_Reservation.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/dd2253a67ab14b45aaca8392563b0780.png"
     },
     {
       "englishName": "Lifeforce",
@@ -4117,7 +4117,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Lifeforce.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Lifeforce.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b11c39c30ae94771a160c45e07348448.png"
     },
     {
       "englishName": "Endurance",
@@ -4151,7 +4151,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Endurance.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Endurance.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b66b09abd67d4733a3b20f4dbfcdb941.png"
     },
     {
       "englishName": "Rage",
@@ -4185,7 +4185,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Rage.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Rage.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/22527b6881ef4d22924762aaf6e24263.png"
     },
     {
       "englishName": "Inferno",
@@ -4219,7 +4219,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Inferno.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Inferno.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5990a8b7684a478d9fd3b723a14f1007.png"
     },
     {
       "englishName": "Wrath",
@@ -4253,7 +4253,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Wrath.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Wrath.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/25391a47893a405f97658b5df28698aa.png"
     },
     {
       "englishName": "Minecart",
@@ -4280,7 +4280,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/09b40b385e3b481bb25a571d2e77403c.png"
     },
     {
       "englishName": "Lovestruck",
@@ -4307,7 +4307,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Lovestruck.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Lovestruck.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7d4a3a42853f4af7a8436e9fe2bb8519.png"
     },
     {
       "englishName": "Stinky",
@@ -4334,7 +4334,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Stinky.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Stinky.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ced6efb9e5bc4d1491d20b055357a5fd.png"
     },
     {
       "englishName": "Fishing",
@@ -4368,7 +4368,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Fishing (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Fishing_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/68544abef91249b18fbdc93fa87b6a27.png"
     },
     {
       "englishName": "Sonar",
@@ -4402,7 +4402,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Sonar.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Sonar.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c301f54edd4147798bb2cbb577fb2a0b.png"
     },
     {
       "englishName": "Crate",
@@ -4436,7 +4436,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Crate (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Crate_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/798d1c1524dc47418a599b755bf5ae33.png"
     },
     {
       "englishName": "Warmth",
@@ -4470,7 +4470,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Warmth.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Warmth.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/23080690d55c47b1bce3d30452926db0.png"
     },
     {
       "englishName": "Hornet",
@@ -4504,7 +4504,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Hornet (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Hornet_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/0c5e8140dceb44a58f183a12176e8a88.png"
     },
     {
       "englishName": "Imp",
@@ -4538,7 +4538,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Imp.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Imp.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/0839db4b576345a581a0063026531ac4.png"
     },
     {
       "englishName": "Zephyr Fish",
@@ -4572,7 +4572,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Zephyr Fish (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Zephyr_Fish_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f8f1effc7b4e4dda8a67d31fe9424595.png"
     },
     {
       "englishName": "Bunny Mount",
@@ -4599,7 +4599,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Bunny Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Bunny_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/08904aa5253e49ce80754dce8964c93e.png"
     },
     {
       "englishName": "Pigron Mount",
@@ -4626,7 +4626,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Pigron Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Pigron_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6e6bcb3c34d7464d9ef86ee30275ef06.png"
     },
     {
       "englishName": "Slime Mount",
@@ -4653,7 +4653,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Slime Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Slime_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f8c6e092c8d346c8a6bee22fba13f7f1.png"
     },
     {
       "englishName": "Turtle Mount",
@@ -4680,7 +4680,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Turtle Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Turtle_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/42a184c86c32496fada7e3e7ad3bc1fc.png"
     },
     {
       "englishName": "Bee Mount",
@@ -4707,7 +4707,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Bee Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Bee_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8e5cae885d404b6c9abfa89969863c7d.png"
     },
     {
       "englishName": "Spider",
@@ -4741,7 +4741,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Spider (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Spider_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c353a740803d4358a3d0cd030243d137.png"
     },
     {
       "englishName": "Twins",
@@ -4775,7 +4775,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Twins (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Twins_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/50d5e8f160124950b63b68fb45af0e46.png"
     },
     {
       "englishName": "Pirate",
@@ -4809,7 +4809,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Pirate (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Pirate_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d10e0d8004f6472b900b3820d45495bb.png"
     },
     {
       "englishName": "Faun",
@@ -4843,7 +4843,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Faun (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Faun_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/11b94a7bb37348aa8f4c143df0880470.png"
     },
     {
       "englishName": "Slime",
@@ -4870,7 +4870,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Slime (debuff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Slime_(debuff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d61b1175c441426c9a8a7225cd7d636c.png"
     },
     {
       "englishName": null,
@@ -4897,7 +4897,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/09b40b385e3b481bb25a571d2e77403c.png"
     },
     {
       "englishName": "Sharknado",
@@ -4931,7 +4931,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Sharknado.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Sharknado.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9725bd1c015f4e7090c03bb5725d53fa.png"
     },
     {
       "englishName": "UFO",
@@ -4965,7 +4965,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "UFO.png",
-      "imageUrl": "https://terraria.wiki.gg/images/UFO.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a6e737ec3461478bb25aa378316a7a52.png"
     },
     {
       "englishName": "UFO Mount",
@@ -4992,7 +4992,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "UFO Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/UFO_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3000109270e64c04aac2943e864ae3bb.png"
     },
     {
       "englishName": "Drill Mount",
@@ -5019,7 +5019,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Drill Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Drill_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/18ded1efdb3a48daa15b618c25ca4a2d.png"
     },
     {
       "englishName": "Scutlix Mount",
@@ -5046,7 +5046,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Scutlix Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Scutlix_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ed19fbe6c9914836b5d015b74d5d770f.png"
     },
     {
       "englishName": "Electrified",
@@ -5073,7 +5073,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Electrified.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Electrified.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/381ba1e1832e4ad1bd5efd834c69274e.png"
     },
     {
       "englishName": "Moon Bite",
@@ -5100,7 +5100,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Moon Bite.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Moon_Bite.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/89701bebd0d841eaac00d85f334f1ff8.png"
     },
     {
       "englishName": "Happy!",
@@ -5127,7 +5127,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Happy!.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Happy!.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/31ffc9fd45f84b05a343b1631c9a5a74.png"
     },
     {
       "englishName": "Banner",
@@ -5154,7 +5154,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Banner (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Banner_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/942036a8c1e149199429390c71bc7278.png"
     },
     {
       "englishName": "Feral Bite",
@@ -5181,7 +5181,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Feral Bite.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Feral_Bite.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9917f3c748ef43eead3d84a84e4ef50f.png"
     },
     {
       "englishName": "Webbed",
@@ -5208,7 +5208,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Webbed.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Webbed.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3cd52495c5384f22bfb3a18e7c1748c0.png"
     },
     {
       "englishName": "Bewitched",
@@ -5235,7 +5235,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Bewitched.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Bewitched.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/12b406d61a1146e09fdc78c636e032fd.png"
     },
     {
       "englishName": "Life Drain",
@@ -5262,7 +5262,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Life Drain (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Life_Drain_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2af873b7e1dd469a8efc1b97c19e6063.png"
     },
     {
       "englishName": "Magic Lantern",
@@ -5296,7 +5296,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Magic Lantern (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Magic_Lantern_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b0f9a256837b4c7c89e6ef8e81da8100.png"
     },
     {
       "englishName": "Shadowflame",
@@ -5364,7 +5364,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Shadowflame.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Shadowflame.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7f41cddfb0ec4cf6b1663db707aed0f5.png"
     },
     {
       "englishName": "Baby Face Monster",
@@ -5398,7 +5398,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Baby Face Monster (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Baby_Face_Monster_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d5356eb3d3944861a44753343184d615.png"
     },
     {
       "englishName": "Crimson Heart",
@@ -5432,7 +5432,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Crimson Heart (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Crimson_Heart_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ad35b91e08834d66806979e65dab49ce.png"
     },
     {
       "englishName": "Stoned",
@@ -5459,7 +5459,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Stoned.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Stoned.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4d52c9bc51e74d2e84c3ccca91524422.png"
     },
     {
       "englishName": "Peace Candle",
@@ -5486,7 +5486,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Peace Candle (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Peace_Candle_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f38288a8179c4cd98a13e86f60db5481.png"
     },
     {
       "englishName": "Star in a Bottle",
@@ -5513,7 +5513,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Star in a Bottle (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Star_in_a_Bottle_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4e03e70fa4004c94aa588a0bf3dbc291.png"
     },
     {
       "englishName": "Sharpened",
@@ -5540,7 +5540,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Sharpened.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Sharpened.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e8546f28e521428d9d874ba9b7871586.png"
     },
     {
       "englishName": "Dazed",
@@ -5567,7 +5567,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Dazed.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Dazed.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b563b524108b44b79cbb1b5927a27c11.png"
     },
     {
       "englishName": "Deadly Sphere",
@@ -5601,7 +5601,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Deadly Sphere (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Deadly_Sphere_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c48f0a209cb14da0be71b63888b51688.png"
     },
     {
       "englishName": "Unicorn Mount",
@@ -5628,7 +5628,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Unicorn Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Unicorn_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c3d813fe88714120bbdf900032b31b72.png"
     },
     {
       "englishName": "Obstructed",
@@ -5655,7 +5655,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Obstructed.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Obstructed.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/98f8320bae8d4f76acba0a833014bdac.png"
     },
     {
       "englishName": "Distorted",
@@ -5682,7 +5682,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Distorted.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Distorted.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8c84cf25220b4ca2b361310d49f33b7c.png"
     },
     {
       "englishName": "Dryad's Blessing",
@@ -5709,7 +5709,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Dryad's Blessing.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Dryad's_Blessing.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2fe1d7c650c540389d31d6a8b1266c68.png"
     },
     {
       "englishName": "Minecart",
@@ -5736,7 +5736,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Mechanical Cart (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Mechanical_Cart_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/99988e8c6111419c9a72a705fac77042.png"
     },
     {
       "englishName": null,
@@ -5763,7 +5763,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Mechanical Cart (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Mechanical_Cart_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/99988e8c6111419c9a72a705fac77042.png"
     },
     {
       "englishName": "Cute Fishron Mount",
@@ -5790,7 +5790,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Cute Fishron Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Cute_Fishron_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/0c1ac577962046e7a5f066b265074799.png"
     },
     {
       "englishName": "Penetrated",
@@ -5828,7 +5828,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Penetrated.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Penetrated.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/913e0bac1c9943dda6865b8fa2706089.png"
     },
     {
       "englishName": "Solar Blaze",
@@ -5855,7 +5855,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Solar Blaze.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Solar_Blaze.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7165ed53acbc4b86bfcbe50756424bde.png"
     },
     {
       "englishName": "Solar Blaze",
@@ -5882,7 +5882,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Solar Blaze2.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Solar_Blaze2.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c833ceb70e5742718a71225f022ea75e.png"
     },
     {
       "englishName": "Solar Blaze",
@@ -5909,7 +5909,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Solar Blaze3.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Solar_Blaze3.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4bda41f29a2842e8bbfc1b004f124bdc.png"
     },
     {
       "englishName": "Life Nebula",
@@ -5943,7 +5943,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Life Nebula1.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Life_Nebula1.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/df21abbf0fcc414284689a310b8cad8e.png"
     },
     {
       "englishName": "Life Nebula",
@@ -5970,7 +5970,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Life Nebula2.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Life_Nebula2.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/937c9564da6a4452b4ea323176a13259.png"
     },
     {
       "englishName": "Life Nebula",
@@ -5997,7 +5997,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Life Nebula3.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Life_Nebula3.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d1c7c1e0e15b42819a94ee6c59f4276d.png"
     },
     {
       "englishName": "Mana Nebula",
@@ -6031,7 +6031,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Mana Nebula1.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Mana_Nebula1.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/df6213ba565a463691d525e3ac03105c.png"
     },
     {
       "englishName": "Mana Nebula",
@@ -6058,7 +6058,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Mana Nebula2.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Mana_Nebula2.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d9eb9998a4c745d794945f27b593a024.png"
     },
     {
       "englishName": "Mana Nebula",
@@ -6085,7 +6085,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Mana Nebula3.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Mana_Nebula3.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/48997d4aaf89452b9a612a9b18677b98.png"
     },
     {
       "englishName": "Damage Nebula",
@@ -6119,7 +6119,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Damage Nebula1.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Damage_Nebula1.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/0c4db7243cd24522b73d445d3e148863.png"
     },
     {
       "englishName": "Damage Nebula",
@@ -6146,7 +6146,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Damage Nebula2.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Damage_Nebula2.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/fd89565c78684a7c8bcbd765c6afdc89.png"
     },
     {
       "englishName": "Damage Nebula",
@@ -6173,7 +6173,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Damage Nebula3.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Damage_Nebula3.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/facbf16ff82f4a05ba411b201b45cdd5.png"
     },
     {
       "englishName": "Stardust Cell",
@@ -6207,7 +6207,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Stardust Cell.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Stardust_Cell.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/07e94cee07cb4ebd9375d394ca4e5ab6.png"
     },
     {
       "englishName": "Celled",
@@ -6234,7 +6234,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Celled.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Celled.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1c6a37906e404426a338f7b939088b3f.png"
     },
     {
       "englishName": "Minecart",
@@ -6261,7 +6261,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (wood) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(wood)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/453cf9c5b3b34760b9ddc75342330e6e.png"
     },
     {
       "englishName": null,
@@ -6288,7 +6288,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (wood) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(wood)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/453cf9c5b3b34760b9ddc75342330e6e.png"
     },
     {
       "englishName": "Dryad's Bane",
@@ -6315,7 +6315,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Dryad's Bane.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Dryad's_Bane.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4b58b2de51804332823e5dd6bff67fdd.png"
     },
     {
       "englishName": "Stardust Guardian",
@@ -6342,7 +6342,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Stardust Guardian.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Stardust_Guardian.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5955fc1366414f8f881f29d45021def6.png"
     },
     {
       "englishName": "Stardust Dragon",
@@ -6376,7 +6376,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Stardust Dragon.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Stardust_Dragon.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/03351eec8ae949f2a6b10c70405e5e3f.png"
     },
     {
       "englishName": "Daybroken",
@@ -6419,7 +6419,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Daybroken.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Daybroken.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e84344e13ed14f6da556f4a7b00b3a16.png"
     },
     {
       "englishName": "Suspicious Looking Eye",
@@ -6453,7 +6453,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Suspicious Looking Eye (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Suspicious_Looking_Eye_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8a6198005ae448f982579c9b4fd45c69.png"
     },
     {
       "englishName": "Companion Cube",
@@ -6487,7 +6487,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Companion Cube (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Companion_Cube_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a771f2fd7d994fc693e340482100d322.png"
     },
     {
       "englishName": "Sugar Rush",
@@ -6514,7 +6514,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Sugar Rush.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Sugar_Rush.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/898179378622423099d396e64259fdb2.png"
     },
     {
       "englishName": "Basilisk Mount",
@@ -6541,7 +6541,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Basilisk Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Basilisk_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a717e550e3d145b08d8e3021924ff710.png"
     },
     {
       "englishName": "Mighty Wind",
@@ -6568,7 +6568,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Mighty Wind.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Mighty_Wind.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/33f7f1749b5a4bdb9fe560eaeb820c70.png"
     },
     {
       "englishName": "Withered Armor",
@@ -6595,7 +6595,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Withered Armor.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Withered_Armor.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d1171980b6ad4df9b6b1df9dce4fbb28.png"
     },
     {
       "englishName": "Withered Weapon",
@@ -6622,7 +6622,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Withered Weapon.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Withered_Weapon.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1bf544ce0517499d82f44f0fbf8fde01.png"
     },
     {
       "englishName": "Oozed",
@@ -6649,7 +6649,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Oozed.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Oozed.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/bbebdc615a4b46af8a11263d91fb29e3.png"
     },
     {
       "englishName": "Striking Moment",
@@ -6676,7 +6676,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Striking Moment.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Striking_Moment.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d3d3f9755508413e8e449d1ca47a1a43.png"
     },
     {
       "englishName": "Creative Shock",
@@ -6703,7 +6703,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Creative Shock.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Creative_Shock.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7d482d1a560c4abe9df3a9d7e7251374.png"
     },
     {
       "englishName": "Propeller Gato",
@@ -6737,7 +6737,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Propeller Gato (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Propeller_Gato_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1ceb733da1304d2da600a2ce4ee2ff96.png"
     },
     {
       "englishName": "Flickerwick",
@@ -6771,7 +6771,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Flickerwick (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Flickerwick_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f86a4363d02c4c8aadfa066d320711a9.png"
     },
     {
       "englishName": "Hoardagron",
@@ -6805,7 +6805,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Hoardagron (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Hoardagron_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1e26e68b0c77410bae60c26dfeabc45b.png"
     },
     {
       "englishName": "Betsy's Curse",
@@ -6848,7 +6848,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Betsy's Curse.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a21faf5baba842149b26ccd18cacabd0.png"
     },
     {
       "englishName": "Oiled",
@@ -6891,7 +6891,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Oiled.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Oiled.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/0cff4ef699ca47218cc30cb95f2ec9f2.png"
     },
     {
       "englishName": "Ballista Panic!",
@@ -6918,7 +6918,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Ballista Panic!.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Ballista_Panic!.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2464aaa628d6439b8deefb5fcc71b509.png"
     },
     {
       "englishName": "Plenty Satisfied",
@@ -7102,7 +7102,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Plenty Satisfied.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Plenty_Satisfied.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/47d95afd70dc44e29b97388f2834759c.png"
     },
     {
       "englishName": "Exquisitely Stuffed",
@@ -7214,7 +7214,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Exquisitely Stuffed.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Exquisitely_Stuffed.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d7cd003e69e648409288a56266112405.png"
     },
     {
       "englishName": "Minecart",
@@ -7241,7 +7241,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Desert) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Desert)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5aeaffb062864c128ed182013169dc74.png"
     },
     {
       "englishName": null,
@@ -7268,7 +7268,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Desert) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Desert)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5aeaffb062864c128ed182013169dc74.png"
     },
     {
       "englishName": "Minecart",
@@ -7295,7 +7295,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Minecarp) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Minecarp)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f5dc8b4d6a4e47a795af0711d3987803.png"
     },
     {
       "englishName": null,
@@ -7322,7 +7322,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Minecarp) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Minecarp)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f5dc8b4d6a4e47a795af0711d3987803.png"
     },
     {
       "englishName": "Golf Cart",
@@ -7349,7 +7349,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Golf Cart (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Golf_Cart_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/eec52415e7ce4ab88806eebc6c961cdd.png"
     },
     {
       "englishName": "Sanguine Bat",
@@ -7383,7 +7383,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Sanguine Bat.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Sanguine_Bat.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4dfa272b6bf6457296345f141353536c.png"
     },
     {
       "englishName": "Vampire Frog",
@@ -7417,7 +7417,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Vampire Frog.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Vampire_Frog.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b30ba06bd5c0457ca835295a7b07efe6.png"
     },
     {
       "englishName": "The Bast Defense",
@@ -7444,7 +7444,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "The Bast Defense.png",
-      "imageUrl": "https://terraria.wiki.gg/images/The_Bast_Defense.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d3d3b68f96604d17bd6def534f22075d.png"
     },
     {
       "englishName": "Baby Finch",
@@ -7478,7 +7478,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Baby Finch.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Baby_Finch.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d17b47faaaca4985bf19e26f4c3b7342.png"
     },
     {
       "englishName": "Estee",
@@ -7512,7 +7512,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Estee.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Estee.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5d0018d3986f42eb829388fcfe77d738.png"
     },
     {
       "englishName": "Sugar Glider",
@@ -7546,7 +7546,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Sugar Glider (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Sugar_Glider_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e1cdcc5138824f02b922b9d17aa37e6d.png"
     },
     {
       "englishName": "Shark Pup",
@@ -7580,7 +7580,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Shark Pup (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Shark_Pup_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/dbb9811a82e947a6936c089f54c0ebc6.png"
     },
     {
       "englishName": "Minecart",
@@ -7607,7 +7607,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Bee) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Bee)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/46aecbe1efb245b988a432919d0063d6.png"
     },
     {
       "englishName": null,
@@ -7634,7 +7634,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Bee) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Bee)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/46aecbe1efb245b988a432919d0063d6.png"
     },
     {
       "englishName": "Minecart",
@@ -7661,7 +7661,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Ladybug) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Ladybug)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/fe335830eea5469e8c2019fc87cbeaf4.png"
     },
     {
       "englishName": null,
@@ -7688,7 +7688,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Ladybug) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Ladybug)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/fe335830eea5469e8c2019fc87cbeaf4.png"
     },
     {
       "englishName": "Minecart",
@@ -7715,7 +7715,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Pigron) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Pigron)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d79508343ee3454eb0a6e1794b5a7552.png"
     },
     {
       "englishName": null,
@@ -7742,7 +7742,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Pigron) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Pigron)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d79508343ee3454eb0a6e1794b5a7552.png"
     },
     {
       "englishName": "Minecart",
@@ -7769,7 +7769,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Sunflower) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Sunflower)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/54175594831a44e5ad3fda88cb6ae701.png"
     },
     {
       "englishName": null,
@@ -7796,7 +7796,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Sunflower) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Sunflower)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/54175594831a44e5ad3fda88cb6ae701.png"
     },
     {
       "englishName": "Minecart",
@@ -7823,7 +7823,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Demonic Hellcart) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Demonic_Hellcart)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7d0787570f14495680f8e6e0df060267.png"
     },
     {
       "englishName": null,
@@ -7850,7 +7850,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Demonic Hellcart) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Demonic_Hellcart)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7d0787570f14495680f8e6e0df060267.png"
     },
     {
       "englishName": "Witch's Broom",
@@ -7877,7 +7877,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Witch's Broom (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Witch's_Broom_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6981da0dabb04262bc167be170ee968d.png"
     },
     {
       "englishName": "Minecart",
@@ -7904,7 +7904,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Shroom) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Shroom)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/09d57012a76d4844ae5ee48092e2be36.png"
     },
     {
       "englishName": null,
@@ -7931,7 +7931,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Shroom) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Shroom)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/09d57012a76d4844ae5ee48092e2be36.png"
     },
     {
       "englishName": "Minecart",
@@ -7958,7 +7958,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Amethyst) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Amethyst)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9c6fd04c6f5a4fdab0440b00f6e4465f.png"
     },
     {
       "englishName": null,
@@ -7985,7 +7985,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Amethyst) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Amethyst)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9c6fd04c6f5a4fdab0440b00f6e4465f.png"
     },
     {
       "englishName": "Minecart",
@@ -8012,7 +8012,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Topaz) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Topaz)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/368cfc71d031407083c9ada411438e85.png"
     },
     {
       "englishName": null,
@@ -8039,7 +8039,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Topaz) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Topaz)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/368cfc71d031407083c9ada411438e85.png"
     },
     {
       "englishName": "Minecart",
@@ -8066,7 +8066,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Sapphire) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Sapphire)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8e3abdff70954a66990e4f8542aa6f98.png"
     },
     {
       "englishName": null,
@@ -8093,7 +8093,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Sapphire) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Sapphire)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8e3abdff70954a66990e4f8542aa6f98.png"
     },
     {
       "englishName": "Minecart",
@@ -8120,7 +8120,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Emerald) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Emerald)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6bee4b885ed049a38c4510c8029d7cf9.png"
     },
     {
       "englishName": null,
@@ -8147,7 +8147,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Emerald) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Emerald)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/6bee4b885ed049a38c4510c8029d7cf9.png"
     },
     {
       "englishName": "Minecart",
@@ -8174,7 +8174,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Ruby) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Ruby)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f606a9abbe4b436cabd46b71559d35ab.png"
     },
     {
       "englishName": null,
@@ -8201,7 +8201,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Ruby) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Ruby)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f606a9abbe4b436cabd46b71559d35ab.png"
     },
     {
       "englishName": "Minecart",
@@ -8228,7 +8228,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Diamond) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Diamond)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/68b605b5e51440ab9b33b94176dcb64e.png"
     },
     {
       "englishName": null,
@@ -8255,7 +8255,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Diamond) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Diamond)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/68b605b5e51440ab9b33b94176dcb64e.png"
     },
     {
       "englishName": "Minecart",
@@ -8282,7 +8282,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Amber) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Amber)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/67c45ca4347c47229bb27f79432cad66.png"
     },
     {
       "englishName": null,
@@ -8309,7 +8309,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Amber) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Amber)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/67c45ca4347c47229bb27f79432cad66.png"
     },
     {
       "englishName": "Minecart",
@@ -8336,7 +8336,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Beetle) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Beetle)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8bde1de9b0e046f1b06bb7414569df8f.png"
     },
     {
       "englishName": null,
@@ -8363,7 +8363,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Beetle) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Beetle)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8bde1de9b0e046f1b06bb7414569df8f.png"
     },
     {
       "englishName": "Minecart",
@@ -8390,7 +8390,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Meowmere) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Meowmere)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/15ff198142fa4da2ac7f3751d583f222.png"
     },
     {
       "englishName": null,
@@ -8417,7 +8417,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Meowmere) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Meowmere)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/15ff198142fa4da2ac7f3751d583f222.png"
     },
     {
       "englishName": "Minecart",
@@ -8444,7 +8444,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Party) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Party)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a89b32b9801e4d1d9782a6048c07bb47.png"
     },
     {
       "englishName": null,
@@ -8471,7 +8471,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Party) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Party)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a89b32b9801e4d1d9782a6048c07bb47.png"
     },
     {
       "englishName": "Minecart",
@@ -8498,7 +8498,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (The Dutchman) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(The_Dutchman)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ddfe3e13a2f746d8a9d124bb0772ee29.png"
     },
     {
       "englishName": null,
@@ -8525,7 +8525,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (The Dutchman) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(The_Dutchman)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ddfe3e13a2f746d8a9d124bb0772ee29.png"
     },
     {
       "englishName": "Minecart",
@@ -8552,7 +8552,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Steampunk) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Steampunk)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4c862ce9ee8a40e3972ef52218460dc0.png"
     },
     {
       "englishName": null,
@@ -8579,7 +8579,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Steampunk) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Steampunk)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4c862ce9ee8a40e3972ef52218460dc0.png"
     },
     {
       "englishName": "Lucky",
@@ -8625,7 +8625,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Lucky.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Lucky.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a261652bc9ad44978e84e0e8ff64ef67.png"
     },
     {
       "englishName": "Lil' Harpy",
@@ -8659,7 +8659,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Lil' Harpy (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Lil'_Harpy_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/bfa3b061254243dd9005e44d5a6ee3cf.png"
     },
     {
       "englishName": "Fennec Fox",
@@ -8693,7 +8693,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Fennec Fox (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Fennec_Fox_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/485cf6f850f847a98ab5dae549f13cd5.png"
     },
     {
       "englishName": "Glittery Butterfly",
@@ -8727,7 +8727,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Glittery Butterfly (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Glittery_Butterfly_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5f9085067b7440ae92a66777a74082c9.png"
     },
     {
       "englishName": "Baby Imp",
@@ -8761,7 +8761,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Baby Imp (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Baby_Imp_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/570e3ffc34aa4bb49e8fcb0bd90fed3a.png"
     },
     {
       "englishName": "Baby Red Panda",
@@ -8795,7 +8795,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Baby Red Panda (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Baby_Red_Panda_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/658a70e724aa4d92bc56c3cee927ef0d.png"
     },
     {
       "englishName": "Desert Tiger",
@@ -8829,7 +8829,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Desert Tiger (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Desert_Tiger_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/42a8971df0ba41ba80511b29f83614c7.png"
     },
     {
       "englishName": "Plantero",
@@ -8863,7 +8863,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Plantero (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Plantero_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b124e846197c4a979d2819e9ab54bf15.png"
     },
     {
       "englishName": "Flamingo",
@@ -8890,7 +8890,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Flamingo (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Flamingo_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/bdb78b9ee4ac47b09a95ff3eb4041ba0.png"
     },
     {
       "englishName": "Dynamite Kitten",
@@ -8924,7 +8924,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Dynamite Kitten (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Dynamite_Kitten_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f5aae9ee3b0a42ecb2bb1db27fddede4.png"
     },
     {
       "englishName": "Baby Werewolf",
@@ -8958,7 +8958,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Baby Werewolf (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Baby_Werewolf_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f7c5e681a36e46ceb4fc4d282f7503cc.png"
     },
     {
       "englishName": "Shadow Mimic",
@@ -8992,7 +8992,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Shadow Mimic (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Shadow_Mimic_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b30102ccf01d43cb9f64081c8cf5f415.png"
     },
     {
       "englishName": "Minecart",
@@ -9019,7 +9019,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Coffin) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Coffin)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e74beeb7968144deb5d625980a3f0f36.png"
     },
     {
       "englishName": null,
@@ -9046,7 +9046,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Coffin) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Coffin)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e74beeb7968144deb5d625980a3f0f36.png"
     },
     {
       "englishName": "Enchanted Daggers",
@@ -9080,7 +9080,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Enchanted Daggers.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Enchanted_Daggers.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/14c655cbd1bd480b8b0f06c00091fa78.png"
     },
     {
       "englishName": "Digging Molecart",
@@ -9107,7 +9107,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Digging Molecart) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Digging_Molecart)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5c9d529717574601a274d49ab37b7228.png"
     },
     {
       "englishName": null,
@@ -9134,7 +9134,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Minecart (Digging Molecart) (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Minecart_(Digging_Molecart)_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/5c9d529717574601a274d49ab37b7228.png"
     },
     {
       "englishName": "Volt Bunny",
@@ -9168,7 +9168,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Volt Bunny (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Volt_Bunny_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/372bb8f9d36d483f8b41f2fe6e04ae59.png"
     },
     {
       "englishName": "Painted Horse Mount",
@@ -9195,7 +9195,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Painted Horse Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Painted_Horse_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/13e80af5ab374dbb9266bf3de1b8032e.png"
     },
     {
       "englishName": "Majestic Horse Mount",
@@ -9222,7 +9222,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Majestic Horse Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Majestic_Horse_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/acf59faaeb054fd487a97ebb15420290.png"
     },
     {
       "englishName": "Dark Horse Mount",
@@ -9249,7 +9249,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Dark Horse Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Dark_Horse_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/82519f81207249a59dba512ae8b98ffe.png"
     },
     {
       "englishName": "Pogo Stick Mount",
@@ -9276,7 +9276,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Pogo Stick Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Pogo_Stick_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d60011c48b3a49f7a3f6decbdc9166cd.png"
     },
     {
       "englishName": "Pirate Ship Mount",
@@ -9303,7 +9303,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Pirate Ship Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Pirate_Ship_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/14170a276ce44aa4ba4d5f18051fb2d6.png"
     },
     {
       "englishName": "Tree Mount",
@@ -9330,7 +9330,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Tree Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Tree_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8d59b3cdf3614edbbfdc2c2f0e543099.png"
     },
     {
       "englishName": "Santank Mount",
@@ -9357,7 +9357,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Santank Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Santank_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/aaf452dec2954e1aafbba6d025398c6b.png"
     },
     {
       "englishName": "Goat Mount",
@@ -9384,7 +9384,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Goat Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Goat_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/368b79d65fb342238ece498173860f34.png"
     },
     {
       "englishName": "Book Mount",
@@ -9411,7 +9411,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Book Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Book_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/557a4bd5a54d476b9c47b0eea980cef6.png"
     },
     {
       "englishName": "Slime Prince",
@@ -9445,7 +9445,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Slime Prince (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Slime_Prince_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8cc0cbac726347e2b012f507bbf63ac3.png"
     },
     {
       "englishName": "Suspicious Eye",
@@ -9479,7 +9479,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Suspicious Eye (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Suspicious_Eye_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/06f6d546419047f89e7ca7a3ea037078.png"
     },
     {
       "englishName": "Eater of Worms",
@@ -9513,7 +9513,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Eater of Worms (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Eater_of_Worms_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a174d27abba8462eba121c2b2f7f48aa.png"
     },
     {
       "englishName": "Spider Brain",
@@ -9547,7 +9547,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Spider Brain (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Spider_Brain_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3ec6270d4fc54334a54d9fa5af273cd3.png"
     },
     {
       "englishName": "Skeletron Jr.",
@@ -9581,7 +9581,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Skeletron Jr. (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Skeletron_Jr._(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b47b2c3b3a7b4a049e564917bc97c50f.png"
     },
     {
       "englishName": "Honey Bee",
@@ -9615,7 +9615,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Honey Bee (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Honey_Bee_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/71190f9e840d43e2b5cf5753ca3a685d.png"
     },
     {
       "englishName": "Destroyer-Lite",
@@ -9649,7 +9649,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Destroyer-Lite (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Destroyer-Lite_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/bca22d43e37648708bf35ac0ebade63e.png"
     },
     {
       "englishName": "Rez and Spaz",
@@ -9683,7 +9683,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Rez and Spaz (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Rez_and_Spaz_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a442bae6a57b488b8868fa9f54c8962b.png"
     },
     {
       "englishName": "Mini Prime",
@@ -9717,7 +9717,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Mini Prime (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Mini_Prime_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ac00f0e126024ca5825f99a94cfa2ded.png"
     },
     {
       "englishName": "Plantera Seedling",
@@ -9751,7 +9751,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Plantera Seedling (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Plantera_Seedling_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7d10c63d272744d88cf461037063f4ce.png"
     },
     {
       "englishName": "Toy Golem",
@@ -9785,7 +9785,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Toy Golem (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Toy_Golem_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d9ed36da07a04fa4ab2e38609f0d6a2a.png"
     },
     {
       "englishName": "Tiny Fishron",
@@ -9819,7 +9819,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Tiny Fishron (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Tiny_Fishron_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f5bdc9f8907e48308176d51b7337af28.png"
     },
     {
       "englishName": "Phantasmal Dragon",
@@ -9853,7 +9853,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Phantasmal Dragon (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Phantasmal_Dragon_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/44b6dd1788ba465da3614890125ddd40.png"
     },
     {
       "englishName": "Moonling",
@@ -9887,7 +9887,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Moonling (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Moonling_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/71ba015ff58749b49bf00dc304665da3.png"
     },
     {
       "englishName": "Fairy Princess",
@@ -9921,7 +9921,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Fairy Princess (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Fairy_Princess_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3ea56377815940aea03f848f39a32c7a.png"
     },
     {
       "englishName": "Jack 'O Lantern",
@@ -9955,7 +9955,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Jack 'O Lantern (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Jack_'O_Lantern_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e1d10f90d2f4466a8f2b0af751e553c2.png"
     },
     {
       "englishName": "Everscream Sapling",
@@ -9989,7 +9989,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Everscream Sapling (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Everscream_Sapling_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7896e58e5aa148c48c4168b219977562.png"
     },
     {
       "englishName": "Ice Queen",
@@ -10023,7 +10023,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Ice Queen (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Ice_Queen_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/04842ee83b624531aa7fe2ad8ac0e864.png"
     },
     {
       "englishName": "Alien Skater",
@@ -10057,7 +10057,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Alien Skater (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Alien_Skater_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b00959e791754872b9ac81ab5482ad35.png"
     },
     {
       "englishName": "Baby Ogre",
@@ -10091,7 +10091,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Baby Ogre (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Baby_Ogre_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b5339b4e64a74b789c7e9851d030991b.png"
     },
     {
       "englishName": "Itsy Betsy",
@@ -10125,7 +10125,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Itsy Betsy (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Itsy_Betsy_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3f5bc572537542d69a270ffc5c107323.png"
     },
     {
       "englishName": "Lava Shark Mount",
@@ -10152,7 +10152,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Lava Shark Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Lava_Shark_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e2fb22f29a05400b8aed06384b77ffad.png"
     },
     {
       "englishName": "Titanium Barrier",
@@ -10179,7 +10179,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Titanium Barrier.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2f0c85534262425a9dbc0b507eadade1.png"
     },
     {
       "englishName": null,
@@ -10206,7 +10206,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Titanium Barrier.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2f0c85534262425a9dbc0b507eadade1.png"
     },
     {
       "englishName": "Durendal's Blessing",
@@ -10233,7 +10233,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Durendal's Blessing.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Durendal's_Blessing.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c38dcd0e7b8242d18d1936c628b17297.png"
     },
     {
       "englishName": null,
@@ -10260,7 +10260,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Titanium Barrier.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2f0c85534262425a9dbc0b507eadade1.png"
     },
     {
       "englishName": null,
@@ -10287,7 +10287,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Titanium Barrier.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2f0c85534262425a9dbc0b507eadade1.png"
     },
     {
       "englishName": "Harvest Time",
@@ -10314,7 +10314,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Harvest Time.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Harvest_Time.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a4945df5727545969101e1f7783c4f49.png"
     },
     {
       "englishName": "A Nice Buff",
@@ -10341,7 +10341,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "A Nice Buff.png",
-      "imageUrl": "https://terraria.wiki.gg/images/A_Nice_Buff.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8b7601c8983f49728688f3dbf1b393b3.png"
     },
     {
       "englishName": null,
@@ -10368,7 +10368,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Titanium Barrier.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2f0c85534262425a9dbc0b507eadade1.png"
     },
     {
       "englishName": "Jungle's Fury",
@@ -10395,7 +10395,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Jungle's Fury.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Jungle's_Fury.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/31f161fc2b624da38fc009682c984327.png"
     },
     {
       "englishName": null,
@@ -10422,7 +10422,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Titanium Barrier.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2f0c85534262425a9dbc0b507eadade1.png"
     },
     {
       "englishName": null,
@@ -10449,7 +10449,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Titanium Barrier.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2f0c85534262425a9dbc0b507eadade1.png"
     },
     {
       "englishName": "Slime Princess",
@@ -10483,7 +10483,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Slime Princess (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Slime_Princess_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/90f709ed5a984d4889296126a459518f.png"
     },
     {
       "englishName": "Winged Slime Mount",
@@ -10510,7 +10510,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Winged Slime Mount (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Winged_Slime_Mount_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/0aa7276aedd84738b831d91780b50e5f.png"
     },
     {
       "englishName": null,
@@ -10537,7 +10537,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Titanium Barrier.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2f0c85534262425a9dbc0b507eadade1.png"
     },
     {
       "englishName": "Sparkle Slime",
@@ -10564,7 +10564,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Sparkle Slime.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Sparkle_Slime.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a99d2e88c55240bea6c1c779f8ffe63c.png"
     },
     {
       "englishName": "Cerebral Mindtrick",
@@ -10591,7 +10591,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Cerebral Mindtrick.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Cerebral_Mindtrick.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b487a70d4e874f61aa83b67f89fcc767.png"
     },
     {
       "englishName": "Terraprisma",
@@ -10625,7 +10625,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Terraprisma (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Terraprisma_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/1600eac94eb54ba1a4e2dc33d65923f4.png"
     },
     {
       "englishName": "Hellfire",
@@ -10703,7 +10703,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Hellfire.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Hellfire.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a598336a022f48f6afa3955433a9a613.png"
     },
     {
       "englishName": "Frostbite",
@@ -10781,7 +10781,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Frostbite.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Frostbite.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/528e2e627ecb4580a1d1bb44864e37fe.png"
     },
     {
       "englishName": "Flinx",
@@ -10815,7 +10815,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Flinx (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Flinx_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/bfc432bfe2bc454c8bc7e5c096eab149.png"
     },
     {
       "englishName": null,
@@ -10842,7 +10842,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Titanium Barrier.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2f0c85534262425a9dbc0b507eadade1.png"
     },
     {
       "englishName": "Bernie",
@@ -10876,7 +10876,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Bernie (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Bernie_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/0058516832914a1192d90a3c1640aabf.png"
     },
     {
       "englishName": "Glommer",
@@ -10910,7 +10910,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Glommer (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Glommer_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/0d9c8e6b589d4c899fb8273e143e0114.png"
     },
     {
       "englishName": "Tiny Deerclops",
@@ -10944,7 +10944,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Tiny Deerclops (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Tiny_Deerclops_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f7dfb0850dc5454b9345451b1c6adc78.png"
     },
     {
       "englishName": "Pig",
@@ -10978,7 +10978,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Pig.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Pig.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/84c72082a4354f1f89129b86567b8a29.png"
     },
     {
       "englishName": "Chester",
@@ -11012,7 +11012,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Chester (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Chester_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/afe918b667d9459cbdd789ee19c8b95b.png"
     },
     {
       "englishName": "Peckish",
@@ -11039,7 +11039,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Peckish.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Peckish.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ab054ff4033145b29cacd7fcfb3ebf9d.png"
     },
     {
       "englishName": "Hungry",
@@ -11066,7 +11066,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Hungry.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Hungry.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/e9ca4e1c6b914cb789e6b4f9032752ea.png"
     },
     {
       "englishName": "Starving",
@@ -11093,7 +11093,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Starving.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Starving.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4930fe696bd5429dbc50b7fcc7d842d9.png"
     },
     {
       "englishName": "Abigail",
@@ -11127,7 +11127,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Abigail (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Abigail_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/002036af3ce9476bbacced89162e55f5.png"
     },
     {
       "englishName": "Hearty Meal",
@@ -11154,7 +11154,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Hearty Meal.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Hearty_Meal.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/80645798a54e4bc6adee1cecbc242661.png"
     },
     {
       "englishName": null,
@@ -11192,7 +11192,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Distorted.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Distorted.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/8c84cf25220b4ca2b361310d49f33b7c.png"
     },
     {
       "englishName": "Fart Kart",
@@ -11219,7 +11219,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Fart Kart (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Fart_Kart_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7de2781f13054156a6175843de12eccc.png"
     },
     {
       "englishName": null,
@@ -11246,7 +11246,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Fart Kart (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Fart_Kart_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7de2781f13054156a6175843de12eccc.png"
     },
     {
       "englishName": null,
@@ -11273,7 +11273,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Titanium Barrier.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Titanium_Barrier.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2f0c85534262425a9dbc0b507eadade1.png"
     },
     {
       "englishName": "Slime Royals",
@@ -11307,7 +11307,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Slime Royals.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Slime_Royals.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/db0fcfcd6c6448fbab2fd4aee84e46f6.png"
     },
     {
       "englishName": "Blessing of the Moon",
@@ -11334,7 +11334,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Blessing of the Moon.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Blessing_of_the_Moon.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9e6e0e33b1d64d9aa214e3573d0b1006.png"
     },
     {
       "englishName": "Biome Sight",
@@ -11368,7 +11368,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Biome Sight.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Biome_Sight.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3642066fabdf4416a816446586210736.png"
     },
     {
       "englishName": "Blood Butchered",
@@ -11406,7 +11406,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Blood Butchered.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Blood_Butchered.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/913e0bac1c9943dda6865b8fa2706089.png"
     },
     {
       "englishName": "Junimo",
@@ -11440,7 +11440,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Junimo (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Junimo_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f07e09f9c9df4379b8246fdb06477f19.png"
     },
     {
       "englishName": "Terra Fart Kart",
@@ -11467,7 +11467,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Terra Fart Kart (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Terra_Fart_Kart_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c311542da26e4bb382aebf8a9f3795bf.png"
     },
     {
       "englishName": null,
@@ -11494,7 +11494,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Terra Fart Kart (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Terra_Fart_Kart_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c311542da26e4bb382aebf8a9f3795bf.png"
     },
     {
       "englishName": "Strategist",
@@ -11521,7 +11521,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Strategist.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Strategist.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d90620173c6243e0bf1d7c4cfe1b8381.png"
     },
     {
       "englishName": "Blue Chicken",
@@ -11555,7 +11555,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Blue Chicken (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Blue_Chicken_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/3be06fd1b78b400f851e271de056ede6.png"
     },
     {
       "englishName": "Shadow Candle",
@@ -11582,7 +11582,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Shadow Candle (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Shadow_Candle_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/bb4c7adec8974f2fa004f957638c0177.png"
     },
     {
       "englishName": "Spiffo",
@@ -11616,7 +11616,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Spiffo (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Spiffo_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/cd13aceae31b4a008c92c1e48f780612.png"
     },
     {
       "englishName": "Caveling Gardener",
@@ -11650,7 +11650,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Caveling Gardener (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Caveling_Gardener_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f47ea375d3304d0c90e3b7f56ab26600.png"
     },
     {
       "englishName": "Shimmering",
@@ -11728,7 +11728,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Shimmering.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Shimmering.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/46b61416ed254772b63795dcd959519e.png"
     },
     {
       "englishName": "The Dirtiest Block",
@@ -11762,7 +11762,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "The Dirtiest Block (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/The_Dirtiest_Block_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b9577faefcbd4378a2835677bb8e701f.png"
     },
     {
       "englishName": "Mushroom Boi!",
@@ -11796,7 +11796,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Mushroom Boi!.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Mushroom_Boi!.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/313128de8882459c85233959168aeba0.png"
     },
     {
       "englishName": "Swarm Biter",
@@ -11830,7 +11830,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Swarm Biter.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Swarm_Biter.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/0592074f6af9459ba485506d8702aeb3.png"
     },
     {
       "englishName": null,
@@ -11857,7 +11857,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Betsy's Curse.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a21faf5baba842149b26ccd18cacabd0.png"
     },
     {
       "englishName": null,
@@ -11884,7 +11884,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Betsy's Curse.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a21faf5baba842149b26ccd18cacabd0.png"
     },
     {
       "englishName": null,
@@ -11911,7 +11911,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Betsy's Curse.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a21faf5baba842149b26ccd18cacabd0.png"
     },
     {
       "englishName": null,
@@ -11938,7 +11938,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Betsy's Curse.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a21faf5baba842149b26ccd18cacabd0.png"
     },
     {
       "englishName": null,
@@ -11965,7 +11965,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Betsy's Curse.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a21faf5baba842149b26ccd18cacabd0.png"
     },
     {
       "englishName": null,
@@ -11992,7 +11992,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Betsy's Curse.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a21faf5baba842149b26ccd18cacabd0.png"
     },
     {
       "englishName": null,
@@ -12019,7 +12019,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Betsy's Curse.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a21faf5baba842149b26ccd18cacabd0.png"
     },
     {
       "englishName": null,
@@ -12046,7 +12046,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Betsy's Curse.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a21faf5baba842149b26ccd18cacabd0.png"
     },
     {
       "englishName": "Whip Spider",
@@ -12073,7 +12073,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Whip Spider.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Whip_Spider.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4b5b6173772248ca93f5ea622e28bfcd.png"
     },
     {
       "englishName": "Alchemic Enhancement",
@@ -12100,7 +12100,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Alchemic Enhancement.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Alchemic_Enhancement.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7d251909e69749fda9908ee9e7525a01.png"
     },
     {
       "englishName": null,
@@ -12127,7 +12127,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Betsy's Curse.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a21faf5baba842149b26ccd18cacabd0.png"
     },
     {
       "englishName": null,
@@ -12154,7 +12154,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Betsy's Curse.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a21faf5baba842149b26ccd18cacabd0.png"
     },
     {
       "englishName": null,
@@ -12181,7 +12181,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Betsy's Curse.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Betsy's_Curse.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a21faf5baba842149b26ccd18cacabd0.png"
     },
     {
       "englishName": "Instinct of the Raptor",
@@ -12208,7 +12208,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Instinct of the Raptor.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Instinct_of_the_Raptor.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/d94d05124cf44788b45cf0cb863bb095.png"
     },
     {
       "englishName": "Pufferfish",
@@ -12242,7 +12242,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Pufferfish (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Pufferfish_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/92d72b41719f436fb5666978a6e9bb79.png"
     },
     {
       "englishName": "Cenaxe",
@@ -12276,7 +12276,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Cenaxe (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Cenaxe_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/c53bc9cf0dd442d88c79e13b71bbbb7d.png"
     },
     {
       "englishName": "Friendly Boulder",
@@ -12310,7 +12310,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Friendly Boulder (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Friendly_Boulder_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9b5db57477454d979089743051bf704a.png"
     },
     {
       "englishName": "Nature of the Rat",
@@ -12337,7 +12337,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Nature of the Rat.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Nature_of_the_Rat.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/92bfd0d7140642459f54b60fc94b3c3f.png"
     },
     {
       "englishName": "Hemorrhage",
@@ -12415,7 +12415,7 @@
       "sourceItems": [],
       "type": "debuff",
       "imageFileTitle": "Hemorrhage.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Hemorrhage.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/a95996701dc44704b89408919bed5fd2.png"
     },
     {
       "englishName": "Torch Blessing",
@@ -12449,7 +12449,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Torch Blessing.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Torch_Blessing.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f5bbe26a30cb4966b2a6ef2d6342ada6.png"
     },
     {
       "englishName": "Curse of the Bat",
@@ -12476,7 +12476,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Curse of the Bat.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Curse_of_the_Bat.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/4dfb85bc5c4943c1be4ea9053f69d537.png"
     },
     {
       "englishName": "Blue Roller Skates",
@@ -12503,7 +12503,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Blue Roller Skates (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Blue_Roller_Skates_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/80c85474b600484ab33111aa2346f1ca.png"
     },
     {
       "englishName": "Green Roller Skates",
@@ -12530,7 +12530,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Green Roller Skates (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Green_Roller_Skates_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2f57f8c3d0364d4cb74f8df08800fd6e.png"
     },
     {
       "englishName": "Classic Roller Skates",
@@ -12557,7 +12557,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Classic Roller Skates (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Classic_Roller_Skates_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ccdc7597f72845658ea55fe2ed9f2da1.png"
     },
     {
       "englishName": "Party Roller Skates",
@@ -12584,7 +12584,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Party Roller Skates (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Party_Roller_Skates_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b32f572677e4496ca51fc8b16badb0dd.png"
     },
     {
       "englishName": "Friendly Rainbow Boulder",
@@ -12618,7 +12618,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Friendly Rainbow Boulder (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Friendly_Rainbow_Boulder_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f062f360a476427d9785aa9de877aeab.png"
     },
     {
       "englishName": "High Spirits",
@@ -12645,7 +12645,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "High Spirits.png",
-      "imageUrl": "https://terraria.wiki.gg/images/High_Spirits.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/ab17b87fcace4f05910f4ef3bdc3b091.png"
     },
     {
       "englishName": "Form of the Fae",
@@ -12672,7 +12672,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Form of the Fae.png",
-      "imageUrl": "https://terraria.wiki.gg/images/Form_of_the_Fae.png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/83fae548305f4e5282e0a33da2e09a90.png"
     },
     {
       "englishName": "Cattiva",
@@ -12706,7 +12706,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Cattiva (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Cattiva_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/bedbd22a151242bb82a1db84cf59bd4c.png"
     },
     {
       "englishName": "Foxparks",
@@ -12740,7 +12740,7 @@
       ],
       "type": "buff",
       "imageFileTitle": "Foxparks (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Foxparks_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/397f6f02f64d4b3d885f2be3fe1b30a9.png"
     },
     {
       "englishName": "Chillet",
@@ -12767,7 +12767,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Chillet (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Chillet_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/9076637f050344fa926c622028b0aa36.png"
     },
     {
       "englishName": "Chillet Ignis",
@@ -12794,7 +12794,7 @@
       "sourceItems": [],
       "type": "buff",
       "imageFileTitle": "Chillet Ignis (buff).png",
-      "imageUrl": "https://terraria.wiki.gg/images/Chillet_Ignis_(buff).png"
+      "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/f8f7194d53934d85a9fb614d4a01eef8.png"
     }
   ],
   "schemaVersion": "1.0.0",

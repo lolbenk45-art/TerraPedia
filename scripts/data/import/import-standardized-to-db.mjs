@@ -107,6 +107,27 @@ function toDateTime(value) {
   return date.toISOString().slice(0, 19).replace('T', ' ');
 }
 
+function normalizeRecipeVersionScopeKey(value) {
+  const text = toNullableString(value);
+  if (!text) return '';
+  const fromBracketFiles = text.replace(/\[\[File:([^\]]+)\]\]/g, (_match, inner) => {
+    const parts = String(inner).split('|').map((part) => part.trim()).filter(Boolean);
+    const label = parts.find((part) => (
+      !/^\d+x\d+px$/i.test(part)
+      && !/^link=/i.test(part)
+      && !/\.(png|svg|gif|jpe?g|webp)$/i.test(part)
+    ));
+    return label ?? '';
+  });
+  const simplified = fromBracketFiles.replace(/File:[^|]+\|(?:\d+x\d+px\|)?([^|]+?)(?:\|link=[^\s|]+)?(?=(?:\s+File:|\s+only\b|$))/gi, '$1');
+  return simplified
+    .replace(/\s+/g, ' ')
+    .replace(/\s*only:\s*$/i, ' only')
+    .replace(/:\s*$/i, '')
+    .trim()
+    .toLowerCase();
+}
+
 function normalizePositiveSortOrder(value, fallback) {
   const explicitSortOrder = toNullableInteger(value);
   if (explicitSortOrder != null && explicitSortOrder > 0) return explicitSortOrder;
@@ -141,7 +162,7 @@ function mapRarityToId(rarityId, rarityText) {
 }
 
 function makeStatsSection() {
-  return { input: 0, created: 0, updated: 0, skipped: 0, errors: [] };
+  return { input: 0, created: 0, updated: 0, skipped: 0, duplicatesRemoved: 0, errors: [] };
 }
 
 function makeSummary() {
@@ -1221,6 +1242,7 @@ async function importItemSources(conn, sourceRecords, itemLookup, biomeByCode, s
 async function importRecipes(conn, recipeRecords, itemLookup, recipeStats, ingredientStats, stationStats) {
   recipeStats.input = Array.isArray(recipeRecords) ? recipeRecords.length : 0;
   if (!Array.isArray(recipeRecords)) return;
+  const groupedRecipes = new Map();
 
   for (const recipe of recipeRecords) {
     const resultItemId = getItemId(itemLookup, recipe?.resultInternalName, recipe?.resultName);
@@ -1229,124 +1251,222 @@ async function importRecipes(conn, recipeRecords, itemLookup, recipeStats, ingre
       continue;
     }
 
-    const sourceProvider = toNullableString(recipe?.sourceProvider) ?? 'wiki_gg';
-    const sourcePage = toNullableString(recipe?.sourcePage);
-    const versionScope = toNullableString(recipe?.versionScope);
+    const normalizedRecipe = normalizeStandardizedRecipe(recipe, resultItemId, itemLookup);
+    const groupKey = buildStandardizedRecipeGroupKey(resultItemId, normalizedRecipe.sourceProvider);
+    const bucket = groupedRecipes.get(groupKey) ?? [];
+    bucket.push(normalizedRecipe);
+    groupedRecipes.set(groupKey, bucket);
+  }
 
+  for (const [groupKey, recipesForItem] of groupedRecipes.entries()) {
+    const dedupedRecipes = dedupeStandardizedRecipesBySignature(recipesForItem);
+    recipeStats.duplicatesRemoved += recipesForItem.length - dedupedRecipes.length;
+
+    const { resultItemId, sourceProvider } = parseStandardizedRecipeGroupKey(groupKey);
     const [existingRows] = await conn.execute(
       `SELECT id
          FROM recipes
         WHERE result_item_id = ?
           AND COALESCE(source_provider, '') = ?
-          AND COALESCE(source_page, '') = ?
-          AND COALESCE(version_scope, '') = ?
-        LIMIT 1`,
-      [resultItemId, sourceProvider ?? '', sourcePage ?? '', versionScope ?? '']
+        ORDER BY id ASC`,
+      [resultItemId, sourceProvider ?? '']
     );
+    const existingIds = existingRows.map((row) => Number(row.id)).filter(Number.isFinite);
+    if (existingIds.length > 0) {
+      await deleteRecipeGroupRows(conn, existingIds);
+    }
 
-    let recipeId;
-    if (existingRows.length > 0) {
-      recipeId = Number(existingRows[0].id);
-      await conn.execute(
-        `UPDATE recipes
-            SET result_internal_name = ?,
-                result_quantity = ?,
-                version_scope = ?,
-                notes = ?,
-                source_provider = ?,
-                source_page = ?,
-                source_revision_timestamp = ?,
-                sort_order = ?,
-                status = 1,
-                deleted = 0,
-                updated_at = NOW()
-          WHERE id = ?`,
-        [
-          toNullableString(recipe?.resultInternalName),
-          toNullableInteger(recipe?.resultQuantity) ?? 1,
-          versionScope,
-          toNullableString(recipe?.notes),
-          sourceProvider,
-          sourcePage,
-          toDateTime(recipe?.sourceRevisionTimestamp),
-          normalizePositiveSortOrder(recipe?.sortOrder, recipeStats.updated + recipeStats.created + 1),
-          recipeId,
-        ]
-      );
-      recipeStats.updated += 1;
+    if (existingIds.length > 0) {
+      recipeStats.updated += dedupedRecipes.length;
     } else {
+      recipeStats.created += dedupedRecipes.length;
+    }
+
+    for (const [recipeIndex, recipe] of dedupedRecipes.entries()) {
       const [insertResult] = await conn.execute(
         `INSERT INTO recipes
           (result_item_id, result_internal_name, result_quantity, version_scope, notes, source_provider, source_page, source_revision_timestamp, sort_order, status, deleted)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
         [
-          resultItemId,
-          toNullableString(recipe?.resultInternalName),
-          toNullableInteger(recipe?.resultQuantity) ?? 1,
-          versionScope,
-          toNullableString(recipe?.notes),
-          sourceProvider,
-          sourcePage,
-          toDateTime(recipe?.sourceRevisionTimestamp),
-          normalizePositiveSortOrder(recipe?.sortOrder, recipeStats.updated + recipeStats.created + 1),
+          recipe.resultItemId,
+          recipe.resultInternalName,
+          recipe.resultQuantity,
+          recipe.versionScope,
+          recipe.notes,
+          recipe.sourceProvider,
+          recipe.sourcePage,
+          recipe.sourceRevisionTimestamp,
+          normalizePositiveSortOrder(recipe.sortOrder, recipeIndex + 1),
         ]
       );
-      recipeId = Number(insertResult.insertId);
-      recipeStats.created += 1;
-    }
+      const recipeId = Number(insertResult.insertId);
 
-    await conn.execute('DELETE FROM recipe_ingredients WHERE recipe_id = ?', [recipeId]);
-    await conn.execute('DELETE FROM recipe_stations WHERE recipe_id = ?', [recipeId]);
+      ingredientStats.input += recipe.ingredients.length;
+      for (const [index, ingredient] of recipe.ingredients.entries()) {
+        const ingredientItemId = getItemId(itemLookup, ingredient?.ingredientInternalName, ingredient?.ingredientName);
+        const ingredientItem = ingredientItemId ? itemLookup.byId.get(ingredientItemId) : null;
+        const ingredientNameRaw = ingredientItem?.nameZh
+          ?? toNullableString(ingredient?.ingredientNameRaw ?? ingredient?.ingredientName);
+        await conn.execute(
+          `INSERT INTO recipe_ingredients
+            (recipe_id, ingredient_item_id, ingredient_internal_name, ingredient_name_raw, ingredient_group_type, quantity_min, quantity_max, quantity_text, sort_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            recipeId,
+            ingredientItemId,
+            toNullableString(ingredient?.ingredientInternalName),
+            ingredientNameRaw,
+            toNullableString(ingredient?.ingredientGroupType) ?? 'item',
+            toNullableInteger(ingredient?.quantityMin),
+            toNullableInteger(ingredient?.quantityMax),
+            toNullableString(ingredient?.quantityText),
+            normalizePositiveSortOrder(ingredient?.sortOrder, index + 1),
+          ]
+        );
+        ingredientStats.created += 1;
+      }
 
-    const ingredients = Array.isArray(recipe?.ingredients) ? recipe.ingredients : [];
-    ingredientStats.input += ingredients.length;
-    for (const [index, ingredient] of ingredients.entries()) {
-      const ingredientItemId = getItemId(itemLookup, ingredient?.ingredientInternalName, ingredient?.ingredientName);
-      const ingredientItem = ingredientItemId ? itemLookup.byId.get(ingredientItemId) : null;
-      const ingredientNameRaw = ingredientItem?.nameZh
-        ?? toNullableString(ingredient?.ingredientNameRaw ?? ingredient?.ingredientName);
-      await conn.execute(
-        `INSERT INTO recipe_ingredients
-          (recipe_id, ingredient_item_id, ingredient_internal_name, ingredient_name_raw, ingredient_group_type, quantity_min, quantity_max, quantity_text, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          recipeId,
-          ingredientItemId,
-          toNullableString(ingredient?.ingredientInternalName),
-          ingredientNameRaw,
-          toNullableString(ingredient?.ingredientGroupType) ?? 'item',
-          toNullableInteger(ingredient?.quantityMin),
-          toNullableInteger(ingredient?.quantityMax),
-          toNullableString(ingredient?.quantityText),
-          normalizePositiveSortOrder(ingredient?.sortOrder, index + 1),
-        ]
-      );
-      ingredientStats.created += 1;
-    }
-
-    const stations = Array.isArray(recipe?.stations) ? recipe.stations : [];
-    stationStats.input += stations.length;
-    for (const [index, station] of stations.entries()) {
-      const stationItemId = getItemId(itemLookup, station?.stationInternalName, station?.stationName);
-      const stationItem = stationItemId ? itemLookup.byId.get(stationItemId) : null;
-      const stationNameRaw = stationItem?.nameZh
-        ?? toNullableString(station?.stationNameRaw ?? station?.stationName);
-      await conn.execute(
-        `INSERT INTO recipe_stations
-          (recipe_id, station_item_id, station_internal_name, station_name_raw, is_alternative, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          recipeId,
-          stationItemId,
-          toNullableString(station?.stationInternalName),
-          stationNameRaw,
-          toTinyIntBoolean(station?.isAlternative, 0),
-          normalizePositiveSortOrder(station?.sortOrder, index + 1),
-        ]
-      );
-      stationStats.created += 1;
+      stationStats.input += recipe.stations.length;
+      for (const [index, station] of recipe.stations.entries()) {
+        const stationItemId = getItemId(itemLookup, station?.stationInternalName, station?.stationName);
+        const stationItem = stationItemId ? itemLookup.byId.get(stationItemId) : null;
+        const stationNameRaw = stationItem?.nameZh
+          ?? toNullableString(station?.stationNameRaw ?? station?.stationName);
+        await conn.execute(
+          `INSERT INTO recipe_stations
+            (recipe_id, station_item_id, station_internal_name, station_name_raw, is_alternative, sort_order)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            recipeId,
+            stationItemId,
+            toNullableString(station?.stationInternalName),
+            stationNameRaw,
+            toTinyIntBoolean(station?.isAlternative, 0),
+            normalizePositiveSortOrder(station?.sortOrder, index + 1),
+          ]
+        );
+        stationStats.created += 1;
+      }
     }
   }
+}
+
+function normalizeStandardizedRecipe(recipe, resultItemId, itemLookup) {
+  return {
+    resultItemId,
+    resultInternalName: toNullableString(recipe?.resultInternalName),
+    resultQuantity: toNullableInteger(recipe?.resultQuantity) ?? 1,
+    versionScope: toNullableString(recipe?.versionScope),
+    notes: toNullableString(recipe?.notes),
+    sourceProvider: toNullableString(recipe?.sourceProvider) ?? 'wiki_gg',
+    sourcePage: toNullableString(recipe?.sourcePage),
+    sourceRevisionTimestamp: toDateTime(recipe?.sourceRevisionTimestamp),
+    sortOrder: toNullableInteger(recipe?.sortOrder),
+    ingredients: normalizeStandardizedRecipeIngredients(recipe?.ingredients, itemLookup),
+    stations: normalizeStandardizedRecipeStations(recipe?.stations, itemLookup),
+  };
+}
+
+function normalizeStandardizedRecipeIngredients(ingredients, itemLookup) {
+  return (Array.isArray(ingredients) ? ingredients : []).map((ingredient) => {
+    const ingredientItemId = getItemId(itemLookup, ingredient?.ingredientInternalName, ingredient?.ingredientName);
+    const ingredientItem = ingredientItemId ? itemLookup.byId.get(ingredientItemId) : null;
+    return {
+      ingredientInternalName: toNullableString(ingredient?.ingredientInternalName),
+      ingredientName: toNullableString(ingredient?.ingredientName),
+      ingredientNameRaw: ingredientItem?.nameZh ?? toNullableString(ingredient?.ingredientNameRaw ?? ingredient?.ingredientName),
+      ingredientGroupType: toNullableString(ingredient?.ingredientGroupType) ?? 'item',
+      quantityMin: toNullableInteger(ingredient?.quantityMin),
+      quantityMax: toNullableInteger(ingredient?.quantityMax),
+      quantityText: toNullableString(ingredient?.quantityText),
+      sortOrder: toNullableInteger(ingredient?.sortOrder),
+    };
+  });
+}
+
+function normalizeStandardizedRecipeStations(stations, itemLookup) {
+  return (Array.isArray(stations) ? stations : []).map((station) => {
+    const stationItemId = getItemId(itemLookup, station?.stationInternalName, station?.stationName);
+    const stationItem = stationItemId ? itemLookup.byId.get(stationItemId) : null;
+    return {
+      stationInternalName: toNullableString(station?.stationInternalName),
+      stationName: toNullableString(station?.stationName),
+      stationNameRaw: stationItem?.nameZh ?? toNullableString(station?.stationNameRaw ?? station?.stationName),
+      isAlternative: Boolean(station?.isAlternative),
+      sortOrder: toNullableInteger(station?.sortOrder),
+    };
+  });
+}
+
+function buildStandardizedRecipeGroupKey(resultItemId, sourceProvider) {
+  return [
+    Number(resultItemId),
+    toNullableString(sourceProvider) ?? '',
+  ].join('|');
+}
+
+function parseStandardizedRecipeGroupKey(groupKey) {
+  const [resultItemIdText, sourceProvider] = groupKey.split('|');
+  return {
+    resultItemId: Number(resultItemIdText),
+    sourceProvider: toNullableString(sourceProvider) ?? '',
+  };
+}
+
+function dedupeStandardizedRecipesBySignature(recipes) {
+  const seen = new Set();
+  return recipes.filter((recipe) => {
+    const key = buildStandardizedRecipeSignature(recipe);
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function buildStandardizedRecipeSignature(recipe) {
+  return [
+    toNullableString(recipe?.sourcePage) ?? '',
+    normalizeRecipeVersionScopeKey(recipe?.versionScope),
+    buildStandardizedIngredientSignature(recipe?.ingredients),
+    buildStandardizedStationSignature(recipe?.stations),
+  ].join('|');
+}
+
+function buildStandardizedIngredientSignature(ingredients) {
+  return (Array.isArray(ingredients) ? ingredients : [])
+    .map((ingredient, index) => [
+      toNullableString(ingredient?.ingredientInternalName) ?? '',
+      toNullableString(ingredient?.ingredientNameRaw) ?? '',
+      toNullableString(ingredient?.ingredientGroupType) ?? 'item',
+      toNullableString(ingredient?.quantityText) ?? '',
+      toNullableInteger(ingredient?.quantityMin) ?? '',
+      toNullableInteger(ingredient?.quantityMax) ?? '',
+      normalizePositiveSortOrder(ingredient?.sortOrder, index + 1),
+    ].join('~'))
+    .join('||');
+}
+
+function buildStandardizedStationSignature(stations) {
+  return (Array.isArray(stations) ? stations : [])
+    .map((station, index) => [
+      toNullableString(station?.stationInternalName) ?? '',
+      toNullableString(station?.stationNameRaw) ?? '',
+      station?.isAlternative ? '1' : '0',
+      normalizePositiveSortOrder(station?.sortOrder, index + 1),
+    ].join('~'))
+    .join('||');
+}
+
+async function deleteRecipeGroupRows(conn, ids) {
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return;
+  }
+  const placeholders = ids.map(() => '?').join(',');
+  await conn.execute(`DELETE FROM recipe_ingredients WHERE recipe_id IN (${placeholders})`, ids);
+  await conn.execute(`DELETE FROM recipe_stations WHERE recipe_id IN (${placeholders})`, ids);
+  await conn.execute(`DELETE FROM recipes WHERE id IN (${placeholders})`, ids);
 }
 
 async function importSnapshots(conn, snapshotRecords, itemLookup, biomeByCode, stats) {

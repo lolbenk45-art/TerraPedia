@@ -172,6 +172,30 @@ writeDataset({
 });
 
 writeDataset({
+  entity: 'boss_loot',
+  sourcePath: path.join(sourceDataDir, 'normalized', 'boss-loot.bundle.json'),
+  transform: (payload, sourcePath) => {
+    const records = asArray(payload.bosses).map((entry) => normalizeLooseObject(entry));
+    return deepSortObject({
+      schemaVersion: '1.0.0',
+      entity: 'boss_loot',
+      generatedAt,
+      sourceDataDir,
+      sourceFile: relativeFromWorkspace(sourcePath),
+      upstreamMeta: pick(payload, [
+        'source',
+        'relationsSourceFile',
+        'npcSourceFile',
+        'totalBosses',
+        'totalDrops'
+      ]),
+      totalRecords: records.length,
+      records
+    });
+  }
+});
+
+writeDataset({
   entity: 'biomes',
   sourcePath: path.join(sourceDataDir, 'raw', 'wiki', 'biomes'),
   transformDir: (dirPath) => {

@@ -1,3 +1,10 @@
+import {
+  canonicalizeRecipeGroupName,
+  hasFiniteAlternativeSeparator,
+  isRecipeGroupName,
+  normalizeRecipeMaterialLabel
+} from './recipe-material-reference.mjs';
+
 const HTML_ENTITY_MAP = {
   '&nbsp;': ' ',
   '&thinsp;': ' ',
@@ -188,29 +195,26 @@ export function extractDropSourcesFromHtml(html, npcLookup = new Map()) {
         continue;
       }
 
-      const names = [
-        ...new Set(
-          [...cells[0].matchAll(/<a\b[^>]*title="([^"]+)"/gi)]
-            .map((match) => normalizeText(match[1]))
-            .filter(Boolean)
-        )
-      ];
-      const sourceName = names[0] ?? stripHtml(cells[0]);
       const quantity = parseQuantity(stripHtml(cells[1]));
       const chance = parseChance(stripHtml(cells[2]));
-      const npcMeta = npcLookup.get(normalizeText(sourceName).toLowerCase()) ?? null;
+      const sourceNames = extractDropSourceNames(cells[0]);
 
-      rows.push({
-        sourceType: 'drop',
-        sourceRefType: npcMeta?.boss ? 'boss' : 'npc',
-        sourceRefName: sourceName,
-        quantityMin: quantity.min,
-        quantityMax: quantity.max,
-        quantityText: quantity.text,
-        chanceValue: chance.value,
-        chanceText: chance.text,
-        notes: rowHtml.includes('m-normal') ? 'Normal mode row' : null
-      });
+      for (const sourceName of sourceNames) {
+        const normalizedName = normalizeText(sourceName);
+        const npcMeta = normalizedName ? npcLookup.get(normalizedName.toLowerCase()) ?? null : null;
+
+        rows.push({
+          sourceType: 'drop',
+          sourceRefType: npcMeta?.boss ? 'boss' : 'npc',
+          sourceRefName: sourceName,
+          quantityMin: quantity.min,
+          quantityMax: quantity.max,
+          quantityText: quantity.text,
+          chanceValue: chance.value,
+          chanceText: chance.text,
+          notes: rowHtml.includes('m-normal') ? 'Normal mode row' : null
+        });
+      }
     }
   }
 
@@ -288,24 +292,15 @@ export function parseRecipeTable(expandedMarkup) {
     const resultName = resultLinks.find((title) => title !== 'Crafting station') ?? stripHtml(resultCell);
     const versionScope = humanizeVersionNote(resultCell.match(/<div class="version-note[^"]*">([\s\S]*?)<\/div>/i)?.[1] ?? '');
 
-    const ingredients = [...ingredientsCell.matchAll(/<li>([\s\S]*?)<\/li>/gi)].map((ingredientMatch, index) => {
-      const ingredientMarkup = ingredientMatch[1];
-      const ingredientLinks = extractLinkedTitles(ingredientMarkup);
-      const ingredientName = ingredientLinks.find(Boolean) ?? stripHtml(ingredientMarkup);
-      const quantity = parseQuantity(stripHtml(ingredientMarkup.match(/<span class="am">([\s\S]*?)<\/span>/i)?.[1] ?? ''));
-      return {
-        ingredientName,
-        ingredientNameRaw: ingredientName,
-        quantityMin: quantity.min,
-        quantityMax: quantity.max,
-        quantityText: quantity.text,
-        ingredientGroupType: ingredientName.startsWith('Any ') ? 'group' : 'item',
-        sortOrder: index
-      };
-    });
+    const ingredientOptionSets = [...ingredientsCell.matchAll(/<li>([\s\S]*?)<\/li>/gi)]
+      .map((ingredientMatch, index) => parseIngredientOptions(ingredientMatch[1], index))
+      .filter((options) => options.length > 0);
+    const ingredientVariants = expandIngredientOptionSets(ingredientOptionSets);
 
     const stationMarkup = stationCell ?? previousStationMarkup;
-    const stationNames = extractLinkedTitles(stationMarkup).filter((title) => title !== 'Crafting station');
+    const stationNames = extractLinkedTitles(stationMarkup)
+      .map((title) => normalizeRecipeMaterialLabel(title))
+      .filter((title) => title && title !== 'Crafting station');
     const stations = stationNames.map((stationName, index) => ({
       stationName,
       stationNameRaw: stationName,
@@ -313,16 +308,32 @@ export function parseRecipeTable(expandedMarkup) {
       sortOrder: index
     }));
 
-    recipes.push({
-      resultName,
-      resultQuantity: 1,
-      versionScope: versionScope ? versionScope.replace(/:\s*$/, '') : null,
-      ingredients,
-      stations
-    });
+    for (const ingredients of ingredientVariants) {
+      recipes.push({
+        resultName,
+        resultQuantity: 1,
+        versionScope: versionScope ? versionScope.replace(/:\s*$/, '') : null,
+        ingredients,
+        stations
+      });
+    }
   }
 
-  return recipes;
+  return dedupeBy(recipes, (recipe) => JSON.stringify({
+    resultName: recipe.resultName,
+    versionScope: recipe.versionScope ?? null,
+    ingredients: recipe.ingredients.map((ingredient) => ({
+      ingredientNameRaw: ingredient.ingredientNameRaw,
+      ingredientGroupType: ingredient.ingredientGroupType,
+      quantityText: ingredient.quantityText ?? null,
+      quantityMin: ingredient.quantityMin ?? null,
+      quantityMax: ingredient.quantityMax ?? null
+    })),
+    stations: recipe.stations.map((station) => ({
+      stationNameRaw: station.stationNameRaw,
+      isAlternative: Boolean(station.isAlternative)
+    }))
+  }));
 }
 
 export function normalizeText(value) {
@@ -342,6 +353,104 @@ function extractCellByClass(rowHtml, className) {
   const pattern = new RegExp(`<td\\b[^>]*class="[^"]*${className}[^"]*"[^>]*>([\\s\\S]*?)<\\/td>`, 'i');
   const match = rowHtml.match(pattern);
   return match?.[1] ?? null;
+}
+
+function parseIngredientOptions(ingredientMarkup, sortOrder) {
+  const quantity = parseQuantity(stripHtml(ingredientMarkup.match(/<span class="am">([\s\S]*?)<\/span>/i)?.[1] ?? ''));
+  const linkedTitles = [...new Set(extractLinkedTitles(ingredientMarkup).map((title) => normalizeRecipeMaterialLabel(title)).filter(Boolean))];
+  const rawText = normalizeRecipeMaterialLabel(stripHtml(ingredientMarkup));
+  const hasAlternative = hasFiniteAlternativeSeparator(rawText);
+
+  if (linkedTitles.length > 1 && hasAlternative && linkedTitles.every((title) => !isRecipeGroupName(title))) {
+    return linkedTitles.map((title) => buildIngredientEntry(title, quantity, sortOrder));
+  }
+
+  const primaryName = canonicalizeIngredientName(linkedTitles[0] ?? rawText);
+  if (!primaryName) {
+    return [];
+  }
+  return [buildIngredientEntry(primaryName, quantity, sortOrder)];
+}
+
+function canonicalizeIngredientName(value) {
+  const text = normalizeRecipeMaterialLabel(value);
+  if (!text) {
+    return null;
+  }
+  if (isRecipeGroupName(text)) {
+    return canonicalizeRecipeGroupName(text);
+  }
+  return text;
+}
+
+function buildIngredientEntry(name, quantity, sortOrder) {
+  const canonicalName = canonicalizeIngredientName(name);
+  return {
+    ingredientName: canonicalName,
+    ingredientNameRaw: canonicalName,
+    quantityMin: quantity.min,
+    quantityMax: quantity.max,
+    quantityText: quantity.text,
+    ingredientGroupType: isRecipeGroupName(canonicalName) ? 'group' : 'item',
+    sortOrder
+  };
+}
+
+function expandIngredientOptionSets(optionSets) {
+  if (!Array.isArray(optionSets) || optionSets.length === 0) {
+    return [];
+  }
+
+  let variants = [[]];
+  for (const [ingredientIndex, options] of optionSets.entries()) {
+    const nextVariants = [];
+    for (const variant of variants) {
+      for (const option of options) {
+        nextVariants.push([
+          ...variant,
+          {
+            ...option,
+            sortOrder: ingredientIndex
+          }
+        ]);
+      }
+    }
+    variants = nextVariants;
+  }
+  return variants;
+}
+
+function extractDropSourceNames(cellHtml) {
+  if (typeof cellHtml !== 'string') {
+    return [];
+  }
+
+  const linkedTitles = [
+    ...new Set(
+      [...cellHtml.matchAll(/<a\b[^>]*title="([^"]+)"/gi)]
+        .map((match) => normalizeText(match[1]))
+        .filter((title) => isDropSourceTitle(title))
+    )
+  ];
+
+  if (linkedTitles.length > 0) {
+    return linkedTitles;
+  }
+
+  const stripped = stripHtml(cellHtml);
+  return stripped ? [stripped] : [];
+}
+
+function isDropSourceTitle(title) {
+  if (typeof title !== 'string' || title.trim() === '') {
+    return false;
+  }
+
+  return !(
+    title.startsWith('File:') ||
+    title.startsWith('Category:') ||
+    title.startsWith('Legacy:')
+  );
 }
 
 function parseTagAttributes(markup) {
@@ -408,10 +517,18 @@ function humanizeVersionNote(value) {
     return null;
   }
 
-  const simplified = value.replace(
-    /\[\[File:[^\]|]+\|(?:[^|\]]+\|)?([^|\]]+?)(?:\|link=[^\]]+)?\]\]/g,
-    '$1'
-  );
+  const simplified = value.replace(/\[\[File:([^\]]+)\]\]/g, (_match, inner) => {
+    const parts = String(inner)
+      .split('|')
+      .map((part) => part.trim())
+      .filter(Boolean);
+    const label = parts.find((part) => (
+      !/^\d+x\d+px$/i.test(part)
+      && !/^link=/i.test(part)
+      && !/\.(png|svg|gif|jpe?g|webp)$/i.test(part)
+    ));
+    return label ?? '';
+  });
 
   return normalizeText(simplified)
     ?.replace(/\s*only:\s*$/i, ' only')

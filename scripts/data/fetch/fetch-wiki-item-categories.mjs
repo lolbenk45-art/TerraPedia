@@ -3,7 +3,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const USER_AGENT = 'TerraPedia-item-categories/1.0';
+import { fetchWikiApiJson } from '../lib/wiki-item-utils.mjs';
+
 const API_URL = 'https://terraria.wiki.gg/api.php';
 const repoRoot = process.cwd();
 const generatedAt = new Date().toISOString();
@@ -85,25 +86,11 @@ async function fetchRenderedHtml(title) {
 }
 
 async function fetchJson(url) {
-  for (let attempt = 1; attempt <= 6; attempt += 1) {
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'user-agent': USER_AGENT,
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      if (attempt === 6) {
-        throw error;
-      }
-      await sleep(Math.min(attempt * 1000, 4000));
-    }
-  }
-  throw new Error('fetchJson exhausted retries');
+  return fetchWikiApiJson({
+    url,
+    profile: 'parse',
+    sourceKey: 'ItemCategories'
+  });
 }
 
 function parseTemplateSections(html) {
@@ -463,6 +450,3 @@ function escapeRegExp(text) {
   return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
