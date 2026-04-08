@@ -243,6 +243,7 @@ const menuSections: MenuSection[] = [
     items: [
       { name: '配方管理', path: '/recipes', hint: '编辑制作流程', icon: Hammer },
       { name: '制作站管理', path: '/recipes/stations', hint: '管理工作台与站点', icon: Factory },
+      { name: '??????', path: '/recipes/wiki-zh-import', hint: '?? wiki_zh ????', icon: Globe2 },
     ],
   },
   {
@@ -1037,3 +1038,4 @@ onUnmounted(() => {
   }
 }
 </style>
+
