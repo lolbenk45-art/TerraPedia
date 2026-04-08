@@ -1,20 +1,112 @@
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-  [ValidateRange(1, 4)]
-  [int]$Count = 4,
+  [Nullable[int]]$Count,
 
   [string]$WorkingDirectory,
 
-  [string]$Command = 'codex',
+  [string]$Command,
 
-  [string]$ShortcutPath
+  [string]$ShortcutPath,
+
+  [string]$ConfigPath
 )
 
 $ErrorActionPreference = 'Stop'
 
-if ([string]::IsNullOrWhiteSpace($WorkingDirectory)) {
-  $WorkingDirectory = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+function Get-ConfigValue([object]$Root, [string[]]$PathSegments) {
+  $current = $Root
+  foreach ($segment in $PathSegments) {
+    if ($null -eq $current) {
+      return $null
+    }
+
+    $property = $current.PSObject.Properties[$segment]
+    if ($null -eq $property) {
+      return $null
+    }
+
+    $current = $property.Value
+  }
+
+  return $current
 }
+
+function Resolve-Setting([object]$ExplicitValue, [object]$ConfigValue, [object]$Fallback) {
+  if ($null -ne $ExplicitValue) {
+    if ($ExplicitValue -is [string]) {
+      if (-not [string]::IsNullOrWhiteSpace($ExplicitValue)) {
+        return $ExplicitValue
+      }
+    } else {
+      return $ExplicitValue
+    }
+  }
+
+  if ($null -ne $ConfigValue) {
+    if ($ConfigValue -is [string]) {
+      if (-not [string]::IsNullOrWhiteSpace($ConfigValue)) {
+        return $ConfigValue
+      }
+    } else {
+      return $ConfigValue
+    }
+  }
+
+  return $Fallback
+}
+
+$configCandidates = @()
+if (-not [string]::IsNullOrWhiteSpace($ConfigPath)) {
+  $configCandidates += $ConfigPath
+}
+$configCandidates += (Join-Path $PSScriptRoot 'start-vs2022-codex-devshells.config.json')
+
+$resolvedConfigPath = $null
+foreach ($candidate in $configCandidates) {
+  if (-not [string]::IsNullOrWhiteSpace($candidate) -and (Test-Path $candidate)) {
+    $resolvedConfigPath = (Resolve-Path $candidate).Path
+    break
+  }
+}
+
+$toolConfig = $null
+if ($null -ne $resolvedConfigPath) {
+  $toolConfig = Get-Content -Path $resolvedConfigPath -Raw | ConvertFrom-Json
+}
+
+$launchConfig = Get-ConfigValue $toolConfig @('launch')
+
+if ($null -eq $Count) {
+  $configuredCount = Get-ConfigValue $launchConfig @('count')
+  if ($null -eq $configuredCount) {
+    $configuredCount = Get-ConfigValue $toolConfig @('count')
+  }
+  if ($null -ne $configuredCount) {
+    $Count = [int]$configuredCount
+  } else {
+    $Count = 4
+  }
+}
+if ($Count -lt 1 -or $Count -gt 4) {
+  throw 'Count must be between 1 and 4.'
+}
+
+$configuredWorkingDirectory = Get-ConfigValue $launchConfig @('workingDirectoryPath')
+if ($null -eq $configuredWorkingDirectory) {
+  $configuredWorkingDirectory = Get-ConfigValue $toolConfig @('workingDirectory')
+}
+$configuredCommand = Get-ConfigValue $launchConfig @('command')
+if ($null -eq $configuredCommand) {
+  $configuredCommand = Get-ConfigValue $toolConfig @('command')
+}
+$configuredShortcutPath = Get-ConfigValue $launchConfig @('shortcutPath')
+if ($null -eq $configuredShortcutPath) {
+  $configuredShortcutPath = Get-ConfigValue $toolConfig @('shortcutPath')
+}
+
+$WorkingDirectory = [string](Resolve-Setting $WorkingDirectory $configuredWorkingDirectory (Get-Location).Path)
+$Command = [string](Resolve-Setting $Command $configuredCommand 'codex')
+$ShortcutPath = [string](Resolve-Setting $ShortcutPath $configuredShortcutPath $null)
 
 Add-Type -AssemblyName System.Windows.Forms
 
@@ -324,10 +416,12 @@ $resolvedShortcutPath = Resolve-ShortcutPath -VsInstallation $vsInstallation -Ex
 $launchCommand = Resolve-LaunchCommand -CommandText $Command
 $layout = Get-WindowLayout -WindowCount $Count
 $bootstrapDispatchPath = Join-Path (Get-BootstrapRoot) 'current-bootstrap.ps1'
+$configDisplayPath = if ($null -ne $resolvedConfigPath) { $resolvedConfigPath } else { '(none)' }
 
 Write-Host "Visual Studio: $($vsInstallation.displayName)"
 Write-Host "Instance ID: $($vsInstallation.instanceId)"
 Write-Host "Shortcut: $resolvedShortcutPath"
+Write-Host "Config: $configDisplayPath"
 Write-Host "Working directory: $resolvedWorkingDirectory"
 Write-Host "Command: $Command"
 Write-Host "Layout: tiled $Count pane(s) on monitor containing the current cursor"

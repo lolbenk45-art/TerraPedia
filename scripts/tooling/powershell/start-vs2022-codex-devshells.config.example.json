@@ -1,0 +1,8 @@
+{
+  "launch": {
+    "count": 4,
+    "workingDirectoryPath": "G:\\ClaudeCode\\TerraPedia-dev",
+    "command": "codex",
+    "shortcutPath": null
+  }
+}

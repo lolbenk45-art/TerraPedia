@@ -38,6 +38,7 @@ reports/db-backup/
 scripts/dev/local-stack.config.json
 scripts/dev/config/local-stack.config.json
 scripts/dev/config/credentials.json
+scripts/tooling/powershell/start-vs2022-codex-devshells.config.json
 credentials.json
 credentials.local.json
 back/src/main/resources/application-*-local.yml
