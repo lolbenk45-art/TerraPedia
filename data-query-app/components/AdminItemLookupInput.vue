@@ -94,8 +94,11 @@ const hasExplicitNavigation = ref(false)
 const isFocused = ref(false)
 const menuStyle = ref<Record<string, string>>({})
 
+const LOOKUP_DEBOUNCE_MS = 180
+
 let timer: ReturnType<typeof setTimeout> | null = null
 let requestSerial = 0
+let suppressNextLookup = false
 
 watch(() => props.modelValue, (value) => {
   if (props.updateOnInput === false && isFocused.value && value) {
@@ -109,60 +112,99 @@ watch(query, (value) => {
     emit('update:modelValue', value)
   }
 
-  if (timer) clearTimeout(timer)
+  if (suppressNextLookup) {
+    return
+  }
+
+  scheduleLookup(value)
+})
+
+function clearLookupTimer() {
+  if (!timer) return
+  clearTimeout(timer)
+  timer = null
+}
+
+function invalidateLookupState(options: { close?: boolean } = {}) {
+  requestSerial += 1
+  suggestions.value = []
+  activeId.value = null
+  loading.value = false
+  hasSearched.value = false
+  hasExplicitNavigation.value = false
+
+  if (options.close) {
+    closeMenu()
+  }
+}
+
+function normalizeSuggestionItem(item: any): SuggestionItem | null {
+  const normalized = {
+    id: Number(item?.id ?? 0),
+    name: String(item?.name ?? ''),
+    nameZh: String(item?.nameZh ?? item?.name_zh ?? ''),
+    internalName: String(item?.internalName ?? item?.internal_name ?? ''),
+    image: String(item?.image ?? item?.imageUrl ?? item?.image_url ?? ''),
+  }
+
+  return normalized.id > 0 ? normalized : null
+}
+
+async function runLookup(trimmed: string) {
+  const serial = ++requestSerial
+  loading.value = true
+  hasSearched.value = false
+  activeId.value = null
+  hasExplicitNavigation.value = false
+  openMenu()
+
+  try {
+    const response: any = await get('/items/suggestions', { keyword: trimmed, limit: 8 })
+    if (serial !== requestSerial) return
+
+    const list = response?.data ?? response ?? []
+    suggestions.value = Array.isArray(list)
+      ? list.map(normalizeSuggestionItem).filter((item: SuggestionItem | null): item is SuggestionItem => item !== null)
+      : []
+    hasSearched.value = true
+    openMenu()
+  } catch (error) {
+    if (serial !== requestSerial) return
+    console.error('lookup suggestions failed', error)
+    suggestions.value = []
+    hasSearched.value = true
+    activeId.value = null
+    hasExplicitNavigation.value = false
+    openMenu()
+  } finally {
+    if (serial === requestSerial) {
+      loading.value = false
+      updateMenuPosition()
+    }
+  }
+}
+
+function scheduleLookup(value: string) {
+  clearLookupTimer()
   if (isComposing.value) return
 
   const trimmed = value.trim()
   if (!trimmed) {
-    suggestions.value = []
-    activeId.value = null
-    loading.value = false
-    hasSearched.value = false
-    hasExplicitNavigation.value = false
-    closeMenu()
+    invalidateLookupState({ close: true })
     return
   }
 
-  timer = setTimeout(async () => {
-    const serial = ++requestSerial
-    loading.value = true
-    hasSearched.value = false
-    activeId.value = null
-    hasExplicitNavigation.value = false
-    openMenu()
+  timer = setTimeout(() => {
+    void runLookup(trimmed)
+  }, LOOKUP_DEBOUNCE_MS)
+}
 
-    try {
-      const response: any = await get('/items/suggestions', { keyword: trimmed, limit: 8 })
-      if (serial !== requestSerial) return
-
-      const list = response?.data ?? response ?? []
-      suggestions.value = Array.isArray(list)
-        ? list.map((item: any) => ({
-            id: Number(item?.id ?? 0),
-            name: String(item?.name ?? ''),
-            nameZh: String(item?.nameZh ?? item?.name_zh ?? ''),
-            internalName: String(item?.internalName ?? item?.internal_name ?? ''),
-            image: String(item?.image ?? item?.imageUrl ?? item?.image_url ?? ''),
-          })).filter((item: SuggestionItem) => item.id > 0)
-        : []
-      hasSearched.value = true
-      openMenu()
-    } catch (error) {
-      if (serial !== requestSerial) return
-      console.error('lookup suggestions failed', error)
-      suggestions.value = []
-      hasSearched.value = true
-      activeId.value = null
-      hasExplicitNavigation.value = false
-      openMenu()
-    } finally {
-      if (serial === requestSerial) {
-        loading.value = false
-        updateMenuPosition()
-      }
-    }
-  }, 180)
-})
+function suppressUpcomingLookup() {
+  suppressNextLookup = true
+  nextTick(() => {
+    suppressNextLookup = false
+  })
+}
 
 function handleFocus() {
   isFocused.value = true
@@ -179,7 +221,11 @@ function handleInput() {
 
 function handleCompositionEnd(event: CompositionEvent) {
   isComposing.value = false
-  query.value = String((event.target as HTMLInputElement)?.value ?? query.value)
+  const nextValue = String((event.target as HTMLInputElement)?.value ?? query.value)
+  if (query.value !== nextValue) {
+    query.value = nextValue
+  }
+  scheduleLookup(nextValue)
 }
 
 function moveActive(direction: 1 | -1) {
@@ -207,6 +253,8 @@ function pickActive() {
 }
 
 function pick(item: SuggestionItem) {
+  suppressUpcomingLookup()
+  clearLookupTimer()
   query.value = item.nameZh || item.name
   emit('update:modelValue', query.value)
   emit('pick', item)
@@ -217,13 +265,9 @@ function pick(item: SuggestionItem) {
 }
 
 function clearSelection() {
+  clearLookupTimer()
   query.value = ''
-  suggestions.value = []
-  activeId.value = null
-  loading.value = false
-  hasSearched.value = false
-  hasExplicitNavigation.value = false
-  closeMenu()
+  invalidateLookupState({ close: true })
   emit('update:modelValue', '')
   emit('pick', { id: 0, name: '', nameZh: '', internalName: '', image: '' })
 }
@@ -287,7 +331,7 @@ onBeforeUnmount(() => {
   document.removeEventListener('pointerdown', handleDocumentPointerDown)
   window.removeEventListener('resize', handleWindowLayoutChange)
   window.removeEventListener('scroll', handleWindowLayoutChange, true)
-  if (timer) clearTimeout(timer)
+  clearLookupTimer()
 })
 </script>
 

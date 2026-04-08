@@ -4,11 +4,11 @@
       <div class="recipe-flow__eyebrow">Desktop Recipe Flow</div>
       <div class="recipe-flow__title-row">
         <div>
-          <h3 class="recipe-flow__title">{{ variant.variantLabel || '桌面版配方' }}</h3>
-          <p class="recipe-flow__subtitle">已优先展示桌面版主流程，布局以 PC 横向阅读为主。</p>
+          <h3 class="recipe-flow__title">{{ variant.variantLabel || 'Desktop recipes' }}</h3>
+          <p class="recipe-flow__subtitle">Grouped recipe flow for the current desktop variant.</p>
         </div>
         <div v-if="variant.recipeCount" class="recipe-flow__count">
-          {{ variant.recipeCount }} 条流程
+          {{ variant.recipeCount }} recipes
         </div>
       </div>
     </header>
@@ -20,7 +20,7 @@
         class="recipe-flow__path"
       >
         <section class="recipe-stage recipe-stage--ingredients">
-          <div class="recipe-stage__label">原料</div>
+          <div class="recipe-stage__label">Ingredients</div>
           <div class="recipe-stage__grid">
             <article
               v-for="(ingredient, ingredientIndex) in root.children || []"
@@ -33,26 +33,45 @@
               }"
             >
               <div class="recipe-node__media">
+                <div
+                  v-if="isGroupNode(ingredient) && getGroupPreviewMembers(ingredient).length"
+                  class="recipe-node__group-pair"
+                  :title="getGroupMemberSummary(ingredient)"
+                >
+                  <template
+                    v-for="(member, memberIndex) in getGroupPreviewMembers(ingredient)"
+                    :key="member.internalName || member.nameZh || member.name || `group-member-${memberIndex}`"
+                  >
+                    <img
+                      v-if="getGroupMemberImage(member)"
+                      :src="getGroupMemberImage(member)"
+                      :alt="getGroupMemberDisplayName(member)"
+                      class="recipe-node__group-pair-image"
+                    />
+                    <span v-else class="recipe-node__group-pair-fallback">{{ getGroupMemberAvatar(member) }}</span>
+                    <span v-if="memberIndex === 0 && getGroupPreviewMembers(ingredient).length > 1" class="recipe-node__group-divider">/</span>
+                  </template>
+                </div>
                 <img
-                  v-if="resolveImage(ingredient.itemImage)"
+                  v-else-if="resolveImage(ingredient.itemImage)"
                   :src="resolveImage(ingredient.itemImage)"
                   :alt="getNodeDisplayName(ingredient)"
                   class="recipe-node__image"
                 />
                 <div v-else class="recipe-node__fallback">
-                  {{ ingredient.ingredientGroupType === 'group' ? '组' : '料' }}
+                  {{ ingredient.ingredientGroupType === 'group' ? 'GR' : 'IT' }}
                 </div>
               </div>
               <div class="recipe-node__body">
                 <strong>{{ getNodeDisplayName(ingredient) }}</strong>
-                <small v-if="getNodeSecondaryName(ingredient)">{{ getNodeSecondaryName(ingredient) }}</small>
+                <small v-if="getNodeSecondaryLabel(ingredient)">{{ getNodeSecondaryLabel(ingredient) }}</small>
                 <span class="recipe-node__meta">{{ formatQuantity(ingredient.quantityText, ingredient.quantityMin, ingredient.quantityMax) }}</span>
               </div>
               <div class="recipe-node__badges">
-                <span v-if="ingredient.ingredientGroupType === 'group'" class="recipe-badge recipe-badge--group">配方组</span>
-                <span v-if="ingredient.cycleDetected" class="recipe-badge recipe-badge--warning">循环引用</span>
-                <span v-else-if="ingredient.isReference" class="recipe-badge">引用</span>
-                <span v-else-if="ingredient.expandable" class="recipe-badge recipe-badge--accent">可继续拆解</span>
+                <span v-if="ingredient.ingredientGroupType === 'group'" class="recipe-badge recipe-badge--group">Group</span>
+                <span v-if="ingredient.cycleDetected" class="recipe-badge recipe-badge--warning">Cycle</span>
+                <span v-else-if="ingredient.isReference" class="recipe-badge">Reference</span>
+                <span v-else-if="ingredient.expandable" class="recipe-badge recipe-badge--accent">Expandable</span>
               </div>
             </article>
           </div>
@@ -61,7 +80,7 @@
         <div class="recipe-flow__connector" aria-hidden="true"></div>
 
         <section v-if="root.stations?.length" class="recipe-stage recipe-stage--stations">
-          <div class="recipe-stage__label">工作台 / 条件</div>
+          <div class="recipe-stage__label">Stations / Conditions</div>
           <div class="recipe-stage__stations">
             <span
               v-for="(station, stationIndex) in root.stations"
@@ -86,27 +105,46 @@
         <div class="recipe-flow__connector" aria-hidden="true"></div>
 
         <section class="recipe-stage recipe-stage--result">
-          <div class="recipe-stage__label">产物</div>
+          <div class="recipe-stage__label">Result</div>
           <article class="recipe-node recipe-node--result">
             <div class="recipe-node__media">
+              <div
+                v-if="isGroupNode(root) && getGroupPreviewMembers(root).length"
+                class="recipe-node__group-pair"
+                :title="getGroupMemberSummary(root)"
+              >
+                <template
+                  v-for="(member, memberIndex) in getGroupPreviewMembers(root)"
+                  :key="member.internalName || member.nameZh || member.name || `result-group-member-${memberIndex}`"
+                >
+                  <img
+                    v-if="getGroupMemberImage(member)"
+                    :src="getGroupMemberImage(member)"
+                    :alt="getGroupMemberDisplayName(member)"
+                    class="recipe-node__group-pair-image"
+                  />
+                  <span v-else class="recipe-node__group-pair-fallback">{{ getGroupMemberAvatar(member) }}</span>
+                  <span v-if="memberIndex === 0 && getGroupPreviewMembers(root).length > 1" class="recipe-node__group-divider">/</span>
+                </template>
+              </div>
               <img
-                v-if="resolveImage(root.itemImage)"
+                v-else-if="resolveImage(root.itemImage)"
                 :src="resolveImage(root.itemImage)"
                 :alt="getNodeDisplayName(root)"
                 class="recipe-node__image"
               />
-              <div v-else class="recipe-node__fallback">成</div>
+              <div v-else class="recipe-node__fallback">RS</div>
             </div>
             <div class="recipe-node__body">
               <strong>{{ getNodeDisplayName(root) }}</strong>
-              <small v-if="getNodeSecondaryName(root)">{{ getNodeSecondaryName(root) }}</small>
-              <span class="recipe-node__meta">产出 ×{{ root.resultQuantity ?? 1 }}</span>
+              <small v-if="getNodeSecondaryLabel(root)">{{ getNodeSecondaryLabel(root) }}</small>
+              <span class="recipe-node__meta">Output x{{ root.resultQuantity ?? 1 }}</span>
             </div>
           </article>
         </section>
 
         <section v-if="getExpandableChildren(root).length" class="recipe-stage recipe-stage--subtrees">
-          <div class="recipe-stage__label">子配方树</div>
+          <div class="recipe-stage__label">Subtrees</div>
           <div class="recipe-subtree-list">
             <article
               v-for="(ingredient, ingredientIndex) in getExpandableChildren(root)"
@@ -116,7 +154,7 @@
               <header class="recipe-subtree__header">
                 <div>
                   <strong>{{ getNodeDisplayName(ingredient) }}</strong>
-                  <small v-if="getNodeSecondaryName(ingredient)">{{ getNodeSecondaryName(ingredient) }}</small>
+                  <small v-if="getNodeSecondaryLabel(ingredient)">{{ getNodeSecondaryLabel(ingredient) }}</small>
                 </div>
                 <span>{{ formatQuantity(ingredient.quantityText, ingredient.quantityMin, ingredient.quantityMax) }}</span>
               </header>
@@ -133,36 +171,81 @@
     </div>
 
     <div v-else class="recipe-flow__empty">
-      暂无可展示的桌面版配方树。
+      No desktop recipe tree is available for this item yet.
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { ItemRecipeTreeNode, ItemRecipeTreeStation, ItemRecipeTreeVariant } from '@/types'
+import type { ItemRecipeTreeGroupMember, ItemRecipeTreeNode, ItemRecipeTreeStation, ItemRecipeTreeVariant } from '@/types'
 import RecipeFlowChartBranch from '@/components/RecipeFlowChartBranch.vue'
 
-defineProps<{
+const props = defineProps<{
   variant: ItemRecipeTreeVariant
   resolveImage: (value?: string | null) => string
 }>()
 
+const resolveImage = (value?: string | null) => props.resolveImage(value)
+
 function getNodeDisplayName(node: ItemRecipeTreeNode) {
-  return node.itemNameZh || node.itemName || node.itemInternalName || '未知物品'
+  return node.displayName || node.itemNameZh || node.itemName || node.groupCanonicalName || node.itemInternalName || 'Unknown item'
 }
 
 function getNodeSecondaryName(node: ItemRecipeTreeNode) {
+  const displayName = getNodeDisplayName(node)
+  if (node.ingredientGroupType === 'group') {
+    return node.secondaryName && node.secondaryName !== displayName ? node.secondaryName : ''
+  }
+  if (node.secondaryName && node.secondaryName !== displayName) {
+    return node.secondaryName
+  }
   if (node.itemNameZh && node.itemName && node.itemName !== node.itemNameZh) {
     return node.itemName
   }
-  if (node.itemInternalName && node.itemInternalName !== getNodeDisplayName(node)) {
+  if (node.itemInternalName && node.itemInternalName !== displayName) {
     return node.itemInternalName
   }
   return ''
 }
 
+function getNodeSecondaryLabel(node: ItemRecipeTreeNode) {
+  const secondary = getNodeSecondaryName(node)
+  return secondary ? `EN ${secondary}` : ''
+}
+
+function isGroupNode(node: ItemRecipeTreeNode) {
+  return node.ingredientGroupType === 'group'
+}
+
+function getGroupMemberSummary(node: ItemRecipeTreeNode) {
+  if (node.ingredientGroupType !== 'group' || !Array.isArray(node.groupMemberNames) || node.groupMemberNames.length === 0) {
+    return ''
+  }
+  return node.groupMemberNames.join(' / ')
+}
+
+function getGroupPreviewMembers(node: ItemRecipeTreeNode) {
+  if (node.ingredientGroupType !== 'group' || !Array.isArray(node.groupMembers)) {
+    return []
+  }
+  return node.groupMembers.slice(0, 2)
+}
+
+function getGroupMemberAvatar(member: ItemRecipeTreeGroupMember) {
+  const label = (member.nameZh || member.name || member.internalName || '').trim()
+  return label ? label.slice(0, 2).toUpperCase() : 'IT'
+}
+
+function getGroupMemberDisplayName(member: ItemRecipeTreeGroupMember) {
+  return member.nameZh || member.name || member.internalName || 'Unknown item'
+}
+
+function getGroupMemberImage(member: ItemRecipeTreeGroupMember) {
+  return resolveImage(member.imageUrl || member.image)
+}
+
 function getStationDisplayName(station: ItemRecipeTreeStation) {
-  return station.stationNameZh || station.stationName || station.stationNameRaw || '未知条件'
+  return station.stationNameZh || station.stationName || station.stationNameRaw || 'Unknown station'
 }
 
 function formatQuantity(text?: string | null, min?: number | null, max?: number | null) {
@@ -258,83 +341,83 @@ function getExpandableChildren(node: ItemRecipeTreeNode) {
   gap: 14px;
 }
 
-.recipe-flow__connector {
-  position: relative;
-  height: 20px;
-}
-
-.recipe-flow__connector::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 0;
-  transform: translateX(-50%);
-  width: 2px;
-  height: 100%;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-primary) 58%, transparent), color-mix(in srgb, var(--border-color) 85%, transparent));
-}
-
 .recipe-node {
-  min-height: 164px;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-columns: auto 1fr;
   gap: 12px;
-  padding: 16px;
-  border-radius: 22px;
-  border: 1px solid color-mix(in srgb, var(--text-primary) 12%, var(--border-color));
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--bg-primary) 94%, transparent), color-mix(in srgb, var(--bg-secondary) 94%, transparent));
-  box-shadow: var(--shadow-sm);
+  align-items: flex-start;
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--bg-secondary) 90%, transparent);
 }
 
 .recipe-node--result {
-  max-width: 280px;
-  justify-self: center;
-  border-color: color-mix(in srgb, var(--accent-success) 48%, var(--border-color));
-  background:
-    radial-gradient(circle at top, color-mix(in srgb, var(--accent-success) 14%, transparent), transparent 55%),
-    linear-gradient(180deg, color-mix(in srgb, var(--bg-primary) 95%, transparent), color-mix(in srgb, var(--bg-secondary) 96%, transparent));
+  border-color: color-mix(in srgb, var(--accent-success) 40%, var(--border-color));
 }
 
 .recipe-node--group {
-  border-style: dashed;
-}
-
-.recipe-node--cycle {
-  border-color: color-mix(in srgb, var(--accent-error) 52%, var(--border-color));
-}
-
-.recipe-node--reference {
-  opacity: 0.82;
+  border-color: color-mix(in srgb, var(--accent-primary) 35%, var(--border-color));
 }
 
 .recipe-node__media {
-  display: flex;
-  justify-content: center;
-}
-
-.recipe-node__image,
-.recipe-node__fallback {
-  width: 58px;
-  height: 58px;
-  border-radius: 18px;
-  border: 1px solid var(--border-color);
-  background: color-mix(in srgb, var(--bg-secondary) 94%, transparent);
-  object-fit: contain;
   display: grid;
   place-items: center;
 }
 
+.recipe-node__image,
 .recipe-node__fallback {
-  font-size: 0.88rem;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--bg-primary) 92%, transparent);
+  object-fit: contain;
+  display: grid;
+  place-items: center;
+  font-size: 0.78rem;
   font-weight: 800;
   color: var(--text-secondary);
+}
+
+.recipe-node__group-pair {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 46px;
+}
+
+.recipe-node__group-pair-image,
+.recipe-node__group-pair-fallback {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--bg-primary) 92%, transparent);
+  object-fit: contain;
+  display: grid;
+  place-items: center;
+  padding: 3px;
+}
+
+.recipe-node__group-pair-fallback {
+  color: var(--text-secondary);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.recipe-node__group-divider {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .recipe-node__body {
   display: grid;
   gap: 4px;
-  text-align: center;
+  min-width: 0;
 }
 
 .recipe-node__body strong {
@@ -343,144 +426,96 @@ function getExpandableChildren(node: ItemRecipeTreeNode) {
 }
 
 .recipe-node__body small,
-.recipe-node__meta {
+.recipe-node__meta,
+.recipe-node__members {
   color: var(--text-secondary);
-}
-
-.recipe-node__meta {
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: 0.8rem;
 }
 
 .recipe-node__badges {
+  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 8px;
 }
 
 .recipe-badge {
-  padding: 6px 10px;
+  padding: 4px 8px;
   border-radius: 999px;
-  border: 1px solid var(--border-color);
-  background: color-mix(in srgb, var(--bg-tertiary) 88%, transparent);
+  background: color-mix(in srgb, var(--bg-primary) 84%, transparent);
   color: var(--text-secondary);
   font-size: 0.74rem;
   font-weight: 700;
-  white-space: nowrap;
-}
-
-.recipe-badge--accent {
-  border-color: color-mix(in srgb, var(--accent-primary) 40%, var(--border-color));
-  color: var(--text-primary);
 }
 
 .recipe-badge--group {
-  border-color: color-mix(in srgb, var(--accent-warning) 45%, var(--border-color));
+  background: color-mix(in srgb, var(--accent-primary) 16%, transparent);
+  color: var(--accent-primary);
 }
 
 .recipe-badge--warning {
-  border-color: color-mix(in srgb, var(--accent-error) 52%, var(--border-color));
-  color: var(--accent-error);
+  background: color-mix(in srgb, #dc2626 12%, transparent);
+  color: #b91c1c;
+}
+
+.recipe-badge--accent {
+  background: color-mix(in srgb, var(--accent-success) 16%, transparent);
+  color: var(--accent-success);
 }
 
 .recipe-stage__stations {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .recipe-station {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-radius: 16px;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
   border: 1px solid var(--border-color);
-  background: color-mix(in srgb, var(--bg-primary) 82%, transparent);
-  color: var(--text-primary);
-}
-
-.recipe-station--alternative {
-  border-style: dashed;
-}
-
-.recipe-station--environment {
-  border-color: color-mix(in srgb, var(--accent-primary) 40%, var(--border-color));
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
+  color: var(--text-secondary);
 }
 
 .recipe-station__image {
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
-  border: 1px solid var(--border-color);
-  background: color-mix(in srgb, var(--bg-secondary) 92%, transparent);
+  width: 24px;
+  height: 24px;
   object-fit: contain;
 }
 
-.recipe-stage--subtrees {
-  padding: 18px;
-  border-radius: 24px;
-  border: 1px dashed color-mix(in srgb, var(--border-color) 94%, transparent);
-  background: color-mix(in srgb, var(--bg-secondary) 70%, transparent);
+.recipe-flow__connector {
+  width: 100%;
+  height: 1px;
+  border-top: 1px dashed color-mix(in srgb, var(--border-color) 92%, transparent);
 }
 
-.recipe-subtree-list {
+.recipe-subtree-list,
+.recipe-subtree {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .recipe-subtree {
-  display: grid;
-  gap: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed color-mix(in srgb, var(--border-color) 92%, transparent);
 }
 
 .recipe-subtree__header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 92%, transparent);
+  gap: 12px;
 }
 
 .recipe-subtree__header strong {
   color: var(--text-primary);
 }
 
-.recipe-subtree__header small,
-.recipe-subtree__header span {
-  color: var(--text-secondary);
-}
-
+.recipe-subtree__header span,
 .recipe-flow__empty {
-  padding: 24px;
-  border-radius: 20px;
-  border: 1px dashed var(--border-color);
   color: var(--text-secondary);
-  text-align: center;
-}
-
-@media (min-width: 1180px) {
-  .recipe-flow__path {
-    padding: 22px;
-    border-radius: 28px;
-    border: 1px solid color-mix(in srgb, var(--border-color) 94%, transparent);
-    background:
-      linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 4%, transparent), transparent 38%),
-      color-mix(in srgb, var(--bg-primary) 92%, transparent);
-  }
-}
-
-@media (max-width: 767px) {
-  .recipe-flow__title-row,
-  .recipe-subtree__header {
-    display: grid;
-  }
-
-  .recipe-node {
-    min-height: auto;
-  }
 }
 </style>

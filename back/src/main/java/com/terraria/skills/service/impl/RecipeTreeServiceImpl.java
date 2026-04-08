@@ -1,6 +1,10 @@
 package com.terraria.skills.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.ItemDTO;
+import com.terraria.skills.dto.RecipeGroupMemberDTO;
 import com.terraria.skills.dto.RecipeDTO;
 import com.terraria.skills.dto.RecipeIngredientDTO;
 import com.terraria.skills.dto.RecipeTreeItemDTO;
@@ -9,12 +13,16 @@ import com.terraria.skills.dto.RecipeTreeNodeDTO;
 import com.terraria.skills.dto.RecipeTreeResponseDTO;
 import com.terraria.skills.dto.RecipeTreeStationDTO;
 import com.terraria.skills.dto.RecipeTreeVariantDTO;
+import com.terraria.skills.entity.Item;
+import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.service.ItemService;
 import com.terraria.skills.service.RecipeService;
 import com.terraria.skills.service.RecipeTreeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,6 +45,8 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
 
     private final ItemService itemService;
     private final RecipeService recipeService;
+    private final ObjectMapper objectMapper;
+    private final ItemMapper itemMapper;
 
     @Override
     public RecipeTreeResponseDTO getRecipeTreeByItemId(Long itemId, int maxDepth) {
@@ -132,10 +142,11 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     ) {
         RecipeTreeNodeDTO node = new RecipeTreeNodeDTO();
         node.setNodeType("ingredient");
+        String rawIngredientName = trimToNull(ingredient.getIngredientNameRaw());
         node.setItemId(ingredient.getIngredientItemId());
         node.setItemInternalName(firstNonBlank(ingredient.getItemInternalName(), ingredient.getIngredientInternalName()));
-        node.setItemName(ingredient.getItemName());
-        node.setItemNameZh(ingredient.getItemNameZh());
+        node.setItemName(firstNonBlank(ingredient.getItemName(), rawIngredientName));
+        node.setItemNameZh(firstNonBlank(ingredient.getItemNameZh()));
         node.setItemImage(ingredient.getItemImage());
         node.setQuantityText(trimToNull(ingredient.getQuantityText()));
         node.setQuantityMin(ingredient.getQuantityMin());
@@ -144,8 +155,48 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         node.setDepth(depth);
 
         boolean groupNode = "group".equalsIgnoreCase(node.getIngredientGroupType());
+        if (groupNode) {
+            String fallbackGroupLabel = firstNonBlank(rawIngredientName, ingredient.getIngredientInternalName());
+            RecipeGroupReference reference = loadRecipeGroupReferences().get(normalizeKey(fallbackGroupLabel));
+            if (fallbackGroupLabel != null) {
+                if (node.getItemName() == null) {
+                    node.setItemName(fallbackGroupLabel);
+                }
+                if (node.getItemNameZh() == null) {
+                    node.setItemNameZh(fallbackGroupLabel);
+                }
+                if (node.getItemInternalName() == null) {
+                    node.setItemInternalName(fallbackGroupLabel);
+                }
+            }
+            if (reference != null) {
+                node.setItemName(firstNonBlank(
+                    reference.displayNameEn(),
+                    node.getItemName(),
+                    reference.canonicalName(),
+                    fallbackGroupLabel
+                ));
+                node.setItemNameZh(firstNonBlank(
+                    reference.displayNameZh(),
+                    node.getItemNameZh()
+                ));
+            }
+            node.setDisplayName(firstNonBlank(
+                reference == null ? null : reference.displayNameZh(),
+                reference == null ? null : reference.displayNameEn(),
+                node.getItemNameZh(),
+                node.getItemName(),
+                fallbackGroupLabel
+            ));
+            node.setSecondaryName(reference == null ? null : firstNonBlank(reference.displayNameEn(), reference.canonicalName()));
+            node.setGroupCanonicalName(reference == null ? fallbackGroupLabel : reference.canonicalName());
+            node.setGroupMemberNames(reference == null ? Collections.emptyList() : reference.groupMemberNames());
+            node.setGroupMembers(reference == null ? Collections.emptyList() : reference.groupMembers());
+        }
         boolean hasItemId = ingredient.getIngredientItemId() != null;
-        String refKey = referenceKey(ingredient.getIngredientItemId(), node.getItemInternalName());
+        String refKey = groupNode
+            ? groupReferenceKey(rawIngredientName)
+            : referenceKey(ingredient.getIngredientItemId(), node.getItemInternalName());
         node.setReferenceKey(refKey);
 
         if (!hasItemId || groupNode || depth > maxDepth) {
@@ -318,12 +369,224 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         return normalized == null ? "unknown" : "internal:" + normalized;
     }
 
+    private String groupReferenceKey(String rawIngredientName) {
+        String normalized = trimToNull(rawIngredientName);
+        return normalized == null ? "group:unknown" : "group:" + normalized;
+    }
+
+    private Map<String, RecipeGroupReference> loadRecipeGroupReferences() {
+        try {
+            List<Map<String, Object>> generatedGroups = loadGroupMaps(resolveDataFile(Path.of("generated", "recipe-material-reference.json")));
+            List<Map<String, Object>> overrideGroups = loadGroupMaps(resolveDataFile(Path.of("generated", "recipe-group-overrides.json")));
+            Map<String, RecipeGroupReference> lookup = new LinkedHashMap<>();
+            for (Map<String, Object> group : generatedGroups) {
+                RecipeGroupReference reference = toRecipeGroupReference(group);
+                if (reference != null) {
+                    registerGroupReferenceAliases(lookup, reference);
+                }
+            }
+            for (Map<String, Object> group : overrideGroups) {
+                RecipeGroupReference reference = toRecipeGroupReference(group);
+                if (reference != null) {
+                    registerGroupReferenceAliases(lookup, reference);
+                }
+            }
+            return lookup;
+        } catch (Exception exception) {
+            return Map.of();
+        }
+    }
+
+    private void registerGroupReferenceAliases(Map<String, RecipeGroupReference> lookup, RecipeGroupReference reference) {
+        if (lookup == null || reference == null) {
+            return;
+        }
+        registerGroupReferenceAlias(lookup, reference.canonicalName(), reference);
+        registerGroupReferenceAlias(lookup, reference.displayNameEn(), reference);
+        registerGroupReferenceAlias(lookup, reference.displayNameZh(), reference);
+    }
+
+    private void registerGroupReferenceAlias(Map<String, RecipeGroupReference> lookup, String alias, RecipeGroupReference reference) {
+        for (String aliasVariant : expandGroupAliasVariants(alias)) {
+            String normalizedAlias = normalizeKey(aliasVariant);
+            if (!normalizedAlias.isEmpty()) {
+                lookup.put(normalizedAlias, reference);
+            }
+        }
+    }
+
+    private List<String> expandGroupAliasVariants(String alias) {
+        String normalizedAlias = trimToNull(alias);
+        if (normalizedAlias == null) {
+            return List.of();
+        }
+        LinkedHashSet<String> aliases = new LinkedHashSet<>();
+        aliases.add(normalizedAlias);
+        if (normalizedAlias.contains("任意")) {
+            aliases.add(normalizedAlias.replace("任意", "任何"));
+        }
+        if (normalizedAlias.contains("任何")) {
+            aliases.add(normalizedAlias.replace("任何", "任意"));
+        }
+        return new ArrayList<>(aliases);
+    }
+
+    private List<Map<String, Object>> loadGroupMaps(Path path) throws Exception {
+        if (path == null || !Files.exists(path)) {
+            return List.of();
+        }
+        Map<String, Object> root = objectMapper.readValue(path.toFile(), new TypeReference<>() {});
+        Object rawGroups = root.get("groups");
+        if (!(rawGroups instanceof List<?> groups)) {
+            return List.of();
+        }
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Object rawGroup : groups) {
+            if (rawGroup instanceof Map<?, ?> group) {
+                Map<String, Object> entry = new LinkedHashMap<>();
+                group.forEach((key, value) -> entry.put(String.valueOf(key), value));
+                result.add(entry);
+            }
+        }
+        return result;
+    }
+
+    private RecipeGroupReference toRecipeGroupReference(Map<String, Object> group) {
+        String canonicalName = trimObjectToNull(group.get("canonicalName"));
+        if (canonicalName == null) {
+            return null;
+        }
+        String displayNameZh = trimObjectToNull(group.get("displayNameZh"));
+        String displayNameEn = trimObjectToNull(group.get("displayNameEn"));
+        List<RecipeGroupMemberDTO> members = extractGroupMembers(group.get("members"));
+        return new RecipeGroupReference(
+            canonicalName,
+            displayNameZh,
+            displayNameEn,
+            members.stream().map(this::resolveMemberLabel).filter(Objects::nonNull).toList(),
+            members
+        );
+    }
+
+    private List<RecipeGroupMemberDTO> extractGroupMembers(Object rawMembers) {
+        if (!(rawMembers instanceof List<?> members)) {
+            return List.of();
+        }
+        List<RecipeGroupMemberDTO> rawDtos = new ArrayList<>();
+        Set<String> internalNames = new LinkedHashSet<>();
+        Set<String> names = new LinkedHashSet<>();
+        for (Object rawMember : members) {
+            if (!(rawMember instanceof Map<?, ?> member)) {
+                continue;
+            }
+            RecipeGroupMemberDTO dto = new RecipeGroupMemberDTO();
+            dto.setItemId(parseLong(member.get("itemId")));
+            dto.setInternalName(trimObjectToNull(member.get("internalName")));
+            dto.setName(trimObjectToNull(member.get("name")));
+            dto.setNameZh(trimObjectToNull(member.get("nameZh")));
+            dto.setImage(trimObjectToNull(member.get("image")));
+            rawDtos.add(dto);
+            if (dto.getInternalName() != null) {
+                internalNames.add(dto.getInternalName());
+            }
+            if (dto.getName() != null) {
+                names.add(dto.getName());
+            }
+        }
+        Map<String, Item> itemsByInternalName = new LinkedHashMap<>();
+        if (!internalNames.isEmpty()) {
+            itemMapper.selectList(new LambdaQueryWrapper<Item>()
+                    .in(Item::getInternalName, internalNames)
+                    .eq(Item::getDeleted, 0))
+                .forEach(item -> itemsByInternalName.putIfAbsent(normalizeKey(item.getInternalName()), item));
+        }
+        Map<String, Item> itemsByName = new LinkedHashMap<>();
+        if (!names.isEmpty()) {
+            itemMapper.selectList(new LambdaQueryWrapper<Item>()
+                    .in(Item::getName, names)
+                    .eq(Item::getDeleted, 0))
+                .forEach(item -> itemsByName.putIfAbsent(normalizeKey(item.getName()), item));
+        }
+
+        Map<String, RecipeGroupMemberDTO> deduped = new LinkedHashMap<>();
+        for (RecipeGroupMemberDTO member : rawDtos) {
+            Item resolved = null;
+            if (member.getInternalName() != null) {
+                resolved = itemsByInternalName.get(normalizeKey(member.getInternalName()));
+            }
+            if (resolved == null && member.getName() != null) {
+                resolved = itemsByName.get(normalizeKey(member.getName()));
+            }
+            RecipeGroupMemberDTO dto = new RecipeGroupMemberDTO();
+            dto.setItemId(resolved == null ? member.getItemId() : resolved.getId());
+            dto.setInternalName(firstNonBlank(member.getInternalName(), resolved == null ? null : resolved.getInternalName()));
+            dto.setName(firstNonBlank(member.getName(), resolved == null ? null : resolved.getName()));
+            dto.setNameZh(firstNonBlank(member.getNameZh(), resolved == null ? null : resolved.getNameZh()));
+            dto.setImage(firstNonBlank(member.getImage(), resolved == null ? null : resolved.getImage()));
+            String key = normalizeKey(firstNonBlank(dto.getInternalName(), dto.getName(), dto.getNameZh()));
+            if (!key.isEmpty() && !deduped.containsKey(key)) {
+                deduped.put(key, dto);
+            }
+        }
+        return new ArrayList<>(deduped.values());
+    }
+
+    private String resolveMemberLabel(RecipeGroupMemberDTO member) {
+        return firstNonBlank(member.getNameZh(), member.getName(), member.getInternalName());
+    }
+
+    private Path resolveDataFile(Path relativePath) {
+        List<Path> candidates = List.of(
+            Path.of(System.getProperty("user.dir")).resolve("data").resolve(relativePath).normalize(),
+            Path.of(System.getProperty("user.dir")).resolve("..").resolve("data").resolve(relativePath).normalize(),
+            Path.of("data").resolve(relativePath).normalize()
+        );
+        for (Path candidate : candidates) {
+            if (Files.exists(candidate)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private String normalizeKey(String value) {
+        String text = trimToNull(value);
+        return text == null ? "" : text.toLowerCase();
+    }
+
     private String trimToNull(String value) {
         if (value == null) {
             return null;
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String trimObjectToNull(Object value) {
+        if (value == null) {
+            return null;
+        }
+        return trimToNull(String.valueOf(value));
+    }
+
+    private Long parseLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Long.valueOf(String.valueOf(value));
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    private record RecipeGroupReference(
+        String canonicalName,
+        String displayNameZh,
+        String displayNameEn,
+        List<String> groupMemberNames,
+        List<RecipeGroupMemberDTO> groupMembers
+    ) {
     }
 
     private String firstNonBlank(String... values) {

@@ -36,6 +36,7 @@
           <NuxtLink to="/recipes" class="view-switch__link view-switch__link--active">配方编辑</NuxtLink>
           <NuxtLink :to="selectedItem ? { path: '/recipes/tree', query: buildTreeRouteQuery(selectedItem.id) } : { path: '/recipes/tree', query: buildTreeRouteQuery() }" class="view-switch__link">合成路径</NuxtLink>
           <NuxtLink :to="hasStationReturnContext ? { path: '/recipes/stations', query: buildStationWorkspaceQuery() } : '/recipes/stations'" class="view-switch__link">制作站管理</NuxtLink>
+          <NuxtLink to="/recipes/groups" class="view-switch__link">任意物品组</NuxtLink>
         </nav>
       </div>
     </section>
@@ -130,7 +131,7 @@
                   <span v-if="activeDesktopRoot.recipeId">Recipe #{{ activeDesktopRoot.recipeId }}</span>
                 </div>
               </div>
-              <AdminRecipeTreeBranch :node="activeDesktopRoot" compact @open-item="openRecipeItem" @open-station="openStationWorkspace" />
+              <AdminRecipeTreeBranch :node="activeDesktopRoot" compact @open-item="openRecipeItem" @navigate-item="openAdminItemWorkspace" @open-station="openStationWorkspace" />
             </div>
 
             <AppEmptyState
@@ -360,6 +361,18 @@ async function openRecipeItem(payload: { itemId?: number | null }) {
   if (!payload?.itemId) return
   if (isDirty.value && selectedItem.value?.id !== payload.itemId && !window.confirm('当前配方有未保存修改，确认切换物品吗？')) return
   await loadItemContext(payload.itemId)
+}
+
+async function openAdminItemWorkspace(payload: { itemId?: number | null }) {
+  if (!payload?.itemId) return
+  if (isDirty.value && !window.confirm('当前配方有未保存修改，确认跳转到物品界面吗？')) return
+  await router.push({
+    path: '/items',
+    query: {
+      itemId: String(payload.itemId),
+      view: 'detail',
+    },
+  })
 }
 
 function toRecipeDrafts(recipes: ItemRecipeRelation[]): ItemRecipePayload[] {

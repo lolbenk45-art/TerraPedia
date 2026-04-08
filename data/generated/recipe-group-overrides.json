@@ -1,0 +1,822 @@
+{
+  "schemaVersion" : "1.0.0",
+  "updatedAt" : "2026-04-08T13:34:24.654668",
+  "groups" : [ {
+    "canonicalName" : "Any Adamantite Bar",
+    "displayNameEn" : "Any Adamantite Bar",
+    "displayNameZh" : "任意精金锭",
+    "members" : [ {
+      "itemId" : 391,
+      "internalName" : "AdamantiteBar",
+      "name" : "Adamantite Bar",
+      "nameZh" : "精金锭",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/ff/ff8f50fa5c1415b6a87a7c8f06ec2db081781b34-adamantite-bar-png.png"
+    }, {
+      "itemId" : 1198,
+      "internalName" : "TitaniumBar",
+      "name" : "Titanium Bar",
+      "nameZh" : "钛金锭",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/a7/a7dde6af144db867a182cd42fd98d03fd8f687a9-titanium-bar-png.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Balloon",
+    "displayNameEn" : "Any Balloon",
+    "displayNameZh" : "任意气球",
+    "members" : [ {
+      "itemId" : 3730,
+      "internalName" : "SillyBalloonGreen",
+      "name" : "Silly Green Balloon",
+      "nameZh" : "呆萌绿气球",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/8f7eb6dba25e4a99a855d0db4f8985fd.png"
+    }, {
+      "itemId" : 3728,
+      "internalName" : "SillyBalloonPink",
+      "name" : "Silly Pink Balloon",
+      "nameZh" : "呆萌粉气球",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/7a127f8be6a34f19ac7283474108eacd.png"
+    }, {
+      "itemId" : 3729,
+      "internalName" : "SillyBalloonPurple",
+      "name" : "Silly Purple Balloon",
+      "nameZh" : "呆萌紫气球",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/7f31b894f46c41fd90a8d6728cf25f2b.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Bird",
+    "displayNameEn" : "Any Bird",
+    "displayNameZh" : "任意鸟类",
+    "members" : [ {
+      "itemId" : 2014,
+      "internalName" : "Bird",
+      "name" : "Bird",
+      "nameZh" : "鸟",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/10adce789e554bf9bee768bd6e76c5b9.png"
+    }, {
+      "itemId" : 2015,
+      "internalName" : "BlueJay",
+      "name" : "Blue Jay",
+      "nameZh" : "冠蓝鸦",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/66883997418b487ea0e369cf0b9ebf0e.png"
+    }, {
+      "itemId" : 2016,
+      "internalName" : "Cardinal",
+      "name" : "Cardinal",
+      "nameZh" : "红雀",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/b1aafba9ffbf49c5bc386cc4b29090e8.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Blizzard Balloon",
+    "displayNameEn" : "Any Blizzard Balloon",
+    "displayNameZh" : null,
+    "members" : [ {
+      "itemId" : 1163,
+      "internalName" : "BlizzardinaBalloon",
+      "name" : "Blizzard in a Balloon",
+      "nameZh" : "暴雪气球",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/cc/cc44e54e147935278a4bf491729b4eddd23ce2d1-blizzard-in-a-balloon-png.png"
+    }, {
+      "itemId" : 1251,
+      "internalName" : "WhiteHorseshoeBalloon",
+      "name" : "White Horseshoe Balloon",
+      "nameZh" : "白马掌气球",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/22/223898b1a46b8a925da99cdb75227b0eba6f0545-white-horseshoe-balloon-png.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Butterfly",
+    "displayNameEn" : "Any Butterfly",
+    "displayNameZh" : "任意蝴蝶",
+    "members" : [ {
+      "itemId" : 1993,
+      "internalName" : "MonarchButterfly",
+      "name" : "Monarch Butterfly",
+      "nameZh" : "帝王蝶",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/fb85d71fd802489e91a8a470b9b1e2b9.png"
+    }, {
+      "itemId" : 1997,
+      "internalName" : "SulphurButterfly",
+      "name" : "Sulphur Butterfly",
+      "nameZh" : "黄粉蝶",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/a847429cd6ba4d10aef512133f125d0f.png"
+    }, {
+      "itemId" : 1999,
+      "internalName" : "ZebraSwallowtailButterfly",
+      "name" : "Zebra Swallowtail Butterfly",
+      "nameZh" : "带凤蝶",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/c8e36714f6184bf0afe558b36f7357d0.png"
+    }, {
+      "itemId" : 1996,
+      "internalName" : "UlyssesButterfly",
+      "name" : "Ulysses Butterfly",
+      "nameZh" : "翠凤蝶",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/1e15ee7df30b44d0aaf6a0572fc64b76.png"
+    }, {
+      "itemId" : 2000,
+      "internalName" : "JuliaButterfly",
+      "name" : "Julia Butterfly",
+      "nameZh" : "珠袖蝶",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/3a381ae0b2d64cc7a3d7138409b65b9f.png"
+    }, {
+      "itemId" : 1995,
+      "internalName" : "RedAdmiralButterfly",
+      "name" : "Red Admiral Butterfly",
+      "nameZh" : "红蛱蝶",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/2f9d35e0644d404cba697340a9e5e221.png"
+    }, {
+      "itemId" : 1994,
+      "internalName" : "PurpleEmperorButterfly",
+      "name" : "Purple Emperor Butterfly",
+      "nameZh" : "紫蛱蝶",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/434d0859801c45f4a6a1c6672e0229b6.png"
+    }, {
+      "itemId" : 1998,
+      "internalName" : "TreeNymphButterfly",
+      "name" : "Tree Nymph Butterfly",
+      "nameZh" : "帛斑蝶",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/ba74169bb9dc499c9066df4245532b0d.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Cloud Balloon",
+    "displayNameEn" : "Any Cloud Balloon",
+    "displayNameZh" : null,
+    "members" : [ {
+      "itemId" : 399,
+      "internalName" : "CloudinaBalloon",
+      "name" : "Cloud in a Balloon",
+      "nameZh" : "云朵气球",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/a9/a92781f1b822aff413e98325ce91710de02c77e8-cloud-in-a-balloon-png.png"
+    }, {
+      "itemId" : 1250,
+      "internalName" : "BlueHorseshoeBalloon",
+      "name" : "Blue Horseshoe Balloon",
+      "nameZh" : "蓝马掌气球",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/c0/c0d35177aee1f1ad02efad19d32d08d7939cb669-blue-horseshoe-balloon-png.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Cobalt Bar",
+    "displayNameEn" : "Any Cobalt Bar",
+    "displayNameZh" : "任意钴锭",
+    "members" : [ {
+      "itemId" : 381,
+      "internalName" : "CobaltBar",
+      "name" : "Cobalt Bar",
+      "nameZh" : "钴锭",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/94/94ae5e74a5c9082f78a3694482d5cf13ca7c0dd6-cobalt-bar-png.png"
+    }, {
+      "itemId" : 1184,
+      "internalName" : "PalladiumBar",
+      "name" : "Palladium Bar",
+      "nameZh" : "钯金锭",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/76/7679c1cc0eab419dba2f13191038fc0b78fed4d1-palladium-bar-png.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Cockatiel",
+    "displayNameEn" : "Any Cockatiel",
+    "displayNameZh" : "任意鸡尾鹦鹉",
+    "members" : [ {
+      "itemId" : 5292,
+      "internalName" : "YellowCockatiel",
+      "name" : "Yellow Cockatiel",
+      "nameZh" : "黄玄凤鹦鹉",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/75ad31434dd045f69d6adf6d00a1a617.png"
+    }, {
+      "itemId" : 5293,
+      "internalName" : "GrayCockatiel",
+      "name" : "Gray Cockatiel",
+      "nameZh" : "灰玄凤鹦鹉",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/9b9dd98029e245b8b46960991511219f.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Dragonfly",
+    "displayNameEn" : "Any Dragonfly",
+    "displayNameZh" : "任意蜻蜓",
+    "members" : [ {
+      "itemId" : 4316,
+      "internalName" : "BlackDragonfly",
+      "name" : "Black Dragonfly",
+      "nameZh" : "黑蜻蜓",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/0cfd577c858f471da1d82c696e85f180.png"
+    }, {
+      "itemId" : 4317,
+      "internalName" : "BlueDragonfly",
+      "name" : "Blue Dragonfly",
+      "nameZh" : "蓝蜻蜓",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/e5e674cb9cf1467d8fc86817cc7b6527.png"
+    }, {
+      "itemId" : 4318,
+      "internalName" : "GreenDragonfly",
+      "name" : "Green Dragonfly",
+      "nameZh" : "绿蜻蜓",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/bdf440409a16457fa5e220fc9a4b6ac7.png"
+    }, {
+      "itemId" : 4320,
+      "internalName" : "RedDragonfly",
+      "name" : "Red Dragonfly",
+      "nameZh" : "红蜻蜓",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/b08fb878b290413d80ce241329adb07f.png"
+    }, {
+      "itemId" : 4321,
+      "internalName" : "YellowDragonfly",
+      "name" : "Yellow Dragonfly",
+      "nameZh" : "黄蜻蜓",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/54c4231f988c4bf986916144e6e0ddee.png"
+    }, {
+      "itemId" : 4319,
+      "internalName" : "OrangeDragonfly",
+      "name" : "Orange Dragonfly",
+      "nameZh" : "橙蜻蜓",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/12ffd47455f647fba7c0dfc80bdc4b60.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Duck",
+    "displayNameEn" : "Any Duck",
+    "displayNameZh" : "任意鸭子",
+    "members" : [ {
+      "itemId" : 2122,
+      "internalName" : "Duck",
+      "name" : "Duck",
+      "nameZh" : "鸭",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/27a668c885b54839be45987c59a90d8e.png"
+    }, {
+      "itemId" : 2121,
+      "internalName" : "MallardDuck",
+      "name" : "Mallard Duck",
+      "nameZh" : "野鸭",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/fc02674fc50041e2b4fe4a98f14e1468.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Firefly",
+    "displayNameEn" : "Any Firefly",
+    "displayNameZh" : "任意萤火虫",
+    "members" : [ {
+      "itemId" : 1991,
+      "internalName" : "Firefly",
+      "name" : "Firefly",
+      "nameZh" : "萤火虫",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/34/34269954a73ea2671bb45be3d1d9a066cc7dc856-firefly-png.png"
+    }, {
+      "itemId" : 2003,
+      "internalName" : "LightningBug",
+      "name" : "Lightning Bug",
+      "nameZh" : "荧光虫",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/12/1227f9bffc747c3acdec73cea81882e68021f080-lightning-bug-png.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Fruit",
+    "displayNameEn" : "Any Fruit",
+    "displayNameZh" : "任意水果",
+    "members" : [ {
+      "itemId" : 3992,
+      "internalName" : "Apple",
+      "name" : "Apple",
+      "nameZh" : "苹果",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/da/dad901fce9a851e0f5766f98510e5f94777f3990-apple-png.png"
+    }, {
+      "itemId" : 4264,
+      "internalName" : "Apricot",
+      "name" : "Apricot",
+      "nameZh" : "杏",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/86/866d04b00ca4d487e4688d10d0cac1e05a885ca1-apricot-png.png"
+    }, {
+      "itemId" : 4265,
+      "internalName" : "Banana",
+      "name" : "Banana",
+      "nameZh" : "香蕉",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/c8/c8a2f525bd67a9e82413ce2b61ff0cb16eed4c15-banana-png.png"
+    }, {
+      "itemId" : 4266,
+      "internalName" : "BlackCurrant",
+      "name" : "Blackcurrant",
+      "nameZh" : "黑醋栗",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/b0/b03ceaea79620b0309d7d609d28317d84e2326d0-blackcurrant-png.png"
+    }, {
+      "itemId" : 4267,
+      "internalName" : "BloodOrange",
+      "name" : "Blood Orange",
+      "nameZh" : "血橙",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/07/070920c2e2fdd0dfa003cd94a4d3163fc944d35b-blood-orange-png.png"
+    }, {
+      "itemId" : 4268,
+      "internalName" : "Cherry",
+      "name" : "Cherry",
+      "nameZh" : "樱桃",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/08/0808ee30b3350236162a2db6a4960b63471393db-cherry-png.png"
+    }, {
+      "itemId" : 4269,
+      "internalName" : "Coconut",
+      "name" : "Coconut",
+      "nameZh" : "椰子",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/74/74c242f3561e6d4338fc403699b659c02e088110-coconut-png.png"
+    }, {
+      "itemId" : 4270,
+      "internalName" : "Dragonfruit",
+      "name" : "Dragon Fruit",
+      "nameZh" : "火龙果",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/59/59884710f82d71c9f9f51317a74a5f08edec1d25-dragon-fruit-png.png"
+    }, {
+      "itemId" : 4271,
+      "internalName" : "Elderberry",
+      "name" : "Elderberry",
+      "nameZh" : "接骨木果",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/d6/d67de944d5c3fe103a4ce510eb835e4464d42979-elderberry-png.png"
+    }, {
+      "itemId" : 4272,
+      "internalName" : "Grapefruit",
+      "name" : "Grapefruit",
+      "nameZh" : "葡萄柚",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/16/16f38d1826f42cf53f72721f1936abb65eb68108-grapefruit-png.png"
+    }, {
+      "itemId" : 4273,
+      "internalName" : "Lemon",
+      "name" : "Lemon",
+      "nameZh" : "柠檬",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/52/52e50d648a7fa71d7f6e2536b4d346025b2ba25e-lemon-png.png"
+    }, {
+      "itemId" : 4274,
+      "internalName" : "Mango",
+      "name" : "Mango",
+      "nameZh" : "芒果",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/d7/d7306260c568e8a361368686cc0622e9027ed927-mango-png.png"
+    }, {
+      "itemId" : 4275,
+      "internalName" : "Peach",
+      "name" : "Peach",
+      "nameZh" : "桃子",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/ed/eda82225459e3af262ac01e5451d658319ac9b73-peach-png.png"
+    }, {
+      "itemId" : 4276,
+      "internalName" : "Pineapple",
+      "name" : "Pineapple",
+      "nameZh" : "菠萝",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/b6/b6cd573b56542f2b8656093f0b8afeb126673b77-pineapple-png.png"
+    }, {
+      "itemId" : 4277,
+      "internalName" : "Plum",
+      "name" : "Plum",
+      "nameZh" : "李子",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/26/26c50deaa5d7c03c3185ee105358944e48e18ec2-plum-png.png"
+    }, {
+      "itemId" : 4278,
+      "internalName" : "Rambutan",
+      "name" : "Rambutan",
+      "nameZh" : "红毛丹",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/f7/f72d8bd39df8ae586250811d3fd37391a7c3069d-rambutan-png.png"
+    }, {
+      "itemId" : 4279,
+      "internalName" : "Starfruit",
+      "name" : "Star Fruit",
+      "nameZh" : "杨桃",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/7c/7c6af8f014f3a593ad5ac1094eeaa7d8e617bae5-star-fruit-png.png"
+    }, {
+      "itemId" : 5257,
+      "internalName" : "SpicyPepper",
+      "name" : "Spicy Pepper",
+      "nameZh" : "辣椒",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/5b/5ba3a104645954134609c79342947cba30f31e47-spicy-pepper-png.png"
+    }, {
+      "itemId" : 5258,
+      "internalName" : "Pomegranate",
+      "name" : "Pomegranate",
+      "nameZh" : "石榴",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/dc/dc69e5b38ed4603381d25198087573b50c74743c-pomegranate-png.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Gem Critter",
+    "displayNameEn" : "Any Gem Critter",
+    "displayNameZh" : "任意宝石小动物",
+    "members" : [ {
+      "itemId" : 4819,
+      "internalName" : "GemBunnyAmethyst",
+      "name" : "Amethyst Bunny",
+      "nameZh" : "紫晶兔兔",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/10cc391487ce4c31ad1e0758e065d4a0.png"
+    }, {
+      "itemId" : 4825,
+      "internalName" : "GemBunnyAmber",
+      "name" : "Amber Bunny",
+      "nameZh" : "琥珀兔兔",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/b5f99bf91baa45ec9671ced49732b58e.png"
+    }, {
+      "itemId" : 4824,
+      "internalName" : "GemBunnyDiamond",
+      "name" : "Diamond Bunny",
+      "nameZh" : "钻石兔兔",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/684e67a43eb64b848be65da230614c24.png"
+    }, {
+      "itemId" : 4822,
+      "internalName" : "GemBunnyEmerald",
+      "name" : "Emerald Bunny",
+      "nameZh" : "翡翠兔兔",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/ebc4069a107b4c31b6153a4b2ebec8ff.png"
+    }, {
+      "itemId" : 4823,
+      "internalName" : "GemBunnyRuby",
+      "name" : "Ruby Bunny",
+      "nameZh" : "红玉兔兔",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/90fe76212c8146449564548fedbb4a5b.png"
+    }, {
+      "itemId" : 4821,
+      "internalName" : "GemBunnySapphire",
+      "name" : "Sapphire Bunny",
+      "nameZh" : "蓝玉兔兔",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/1dc435937ab348c2b357f1f641047ef4.png"
+    }, {
+      "itemId" : 4820,
+      "internalName" : "GemBunnyTopaz",
+      "name" : "Topaz Bunny",
+      "nameZh" : "黄玉兔兔",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/e5e980f4230d40bcb423336269971fe7.png"
+    }, {
+      "itemId" : 4812,
+      "internalName" : "GemSquirrelAmethyst",
+      "name" : "Amethyst Squirrel",
+      "nameZh" : "紫晶松鼠",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/d93a62d2df3a41959223596e346e044a.png"
+    }, {
+      "itemId" : 4818,
+      "internalName" : "GemSquirrelAmber",
+      "name" : "Amber Squirrel",
+      "nameZh" : "琥珀松鼠",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/e3f9177268b44dc9ad443a46b768caca.png"
+    }, {
+      "itemId" : 4817,
+      "internalName" : "GemSquirrelDiamond",
+      "name" : "Diamond Squirrel",
+      "nameZh" : "钻石松鼠",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/06e3d886542f44169929d5db4b0c3894.png"
+    }, {
+      "itemId" : 4815,
+      "internalName" : "GemSquirrelEmerald",
+      "name" : "Emerald Squirrel",
+      "nameZh" : "翡翠松鼠",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/1593232ecc4d4b68b6e34f6506ab41fc.png"
+    }, {
+      "itemId" : 4816,
+      "internalName" : "GemSquirrelRuby",
+      "name" : "Ruby Squirrel",
+      "nameZh" : "红玉松鼠",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/95a9fe94e15b40d5b48d0358a20147ed.png"
+    }, {
+      "itemId" : 4814,
+      "internalName" : "GemSquirrelSapphire",
+      "name" : "Sapphire Squirrel",
+      "nameZh" : "蓝玉松鼠",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/f1937d41ac9147c28354c5869e492628.png"
+    }, {
+      "itemId" : 4813,
+      "internalName" : "GemSquirrelTopaz",
+      "name" : "Topaz Squirrel",
+      "nameZh" : "黄玉松鼠",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/e5b3944ba4f54b31b7604e5e1a10a52c.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Guide to Critter Companionship",
+    "displayNameEn" : "Any Guide to Critter Companionship",
+    "displayNameZh" : "任意小动物友谊指南",
+    "members" : [ {
+      "itemId" : 4748,
+      "internalName" : "DontHurtCrittersBook",
+      "name" : "Guide to Critter Companionship",
+      "nameZh" : "小动物友谊指南",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/ff/fff2423f8a820a7c1090bcedf75573ddf1d81dbf-guide-to-critter-companionship-png.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Guide to Environmental Preservation",
+    "displayNameEn" : "Any Guide to Environmental Preservation",
+    "displayNameZh" : "任意环境保护指南",
+    "members" : [ {
+      "itemId" : 5289,
+      "internalName" : "DontHurtNatureBook",
+      "name" : "Guide to Environmental Preservation",
+      "nameZh" : "环境保护指南",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/db/db56e999108d0430c6f3e2aecdb639751e0bef49-guide-to-environmental-preservation-png.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Iron Bar",
+    "displayNameEn" : "Any Iron Bar",
+    "displayNameZh" : "任意铁锭",
+    "members" : [ {
+      "itemId" : 68,
+      "internalName" : "IronBar",
+      "name" : "Iron Bar",
+      "nameZh" : "铁锭",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/8d/8d404f1a0fb94b367610f7665b8bfcc25cdaceff-iron-bar-png.png"
+    }, {
+      "itemId" : 704,
+      "internalName" : "LeadBar",
+      "name" : "Lead Bar",
+      "nameZh" : "铅锭",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/77/7750d7a82cc833296d1b196644a468d336df7d75-lead-bar-png.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Jungle Bug",
+    "displayNameEn" : "Any Jungle Bug",
+    "displayNameZh" : "任意丛林昆虫",
+    "members" : [ {
+      "itemId" : 3190,
+      "internalName" : "Grubby",
+      "name" : "Grubby",
+      "nameZh" : "蛆虫",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/bb/bb8540abd5e1533363f73b8a972bfebee49088dd-grubby-png.png"
+    }, {
+      "itemId" : 3191,
+      "internalName" : "Sluggy",
+      "name" : "Sluggy",
+      "nameZh" : "鼻涕虫",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/13/13fea77d3dfaa838299a1909ef4ff4fcb1110300-sluggy-png.png"
+    }, {
+      "itemId" : 3192,
+      "internalName" : "Buggy",
+      "name" : "Buggy",
+      "nameZh" : "蚜虫",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/63/6305c3ad14bc86353762381609f0b76becb3e0df-buggy-png.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Macaw",
+    "displayNameEn" : "Any Macaw",
+    "displayNameZh" : "任意金刚鹦鹉",
+    "members" : [ {
+      "itemId" : 5192,
+      "internalName" : "ScarletMacaw",
+      "name" : "Scarlet Macaw",
+      "nameZh" : "绯红金刚鹦鹉",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/4f61bea6b1e94acb8a74f6bd9a13d0a3.png"
+    }, {
+      "itemId" : 5280,
+      "internalName" : "BlueMacaw",
+      "name" : "Blue Macaw",
+      "nameZh" : "蓝金刚鹦鹉",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/9b9c8f807df1452385b6ae3149d2ee15.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Magic Mirror",
+    "displayNameEn" : "Any Magic Mirror",
+    "displayNameZh" : "任意魔镜",
+    "members" : [ {
+      "itemId" : 79,
+      "internalName" : "MagicMirror",
+      "name" : "Magic Mirror",
+      "nameZh" : "魔镜",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/e3824eb7410b4a9da57dc32cd0d95bc6.png"
+    }, {
+      "itemId" : 3197,
+      "internalName" : "IceMirror",
+      "name" : "Ice Mirror",
+      "nameZh" : "冰雪镜",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/3f33f5f14f5748ab861a14b212f043bd.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Mythril Bar",
+    "displayNameEn" : "Any Mythril Bar",
+    "displayNameZh" : "任意秘银锭",
+    "members" : [ {
+      "itemId" : 382,
+      "internalName" : "MythrilBar",
+      "name" : "Mythril Bar",
+      "nameZh" : "秘银锭",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/97/97ccd5c24ab1eb79a529dc92d4a43dddd4509efd-mythril-bar-png.png"
+    }, {
+      "itemId" : 1191,
+      "internalName" : "OrichalcumBar",
+      "name" : "Orichalcum Bar",
+      "nameZh" : "山铜锭",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/b2/b269ac86f55726e4b416fbec87440d4b27fc7001-orichalcum-bar-png.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Pressure Plate",
+    "displayNameEn" : "Any Pressure Plate",
+    "displayNameZh" : "任意压力板",
+    "members" : [ {
+      "itemId" : 542,
+      "internalName" : "GrayPressurePlate",
+      "name" : "Gray Pressure Plate",
+      "nameZh" : "灰压力板",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/ed93967972844d42a36205d13d0e6de2.png"
+    }, {
+      "itemId" : 852,
+      "internalName" : "BluePressurePlate",
+      "name" : "Blue Pressure Plate",
+      "nameZh" : "蓝压力板",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/1ece151ba86440ec86574bcee4356459.png"
+    }, {
+      "itemId" : 543,
+      "internalName" : "BrownPressurePlate",
+      "name" : "Brown Pressure Plate",
+      "nameZh" : "棕压力板",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/a5a0104238174f7bafd0729bd6a74c60.png"
+    }, {
+      "itemId" : 541,
+      "internalName" : "GreenPressurePlate",
+      "name" : "Green Pressure Plate",
+      "nameZh" : "绿压力板",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/0136db04cc7f429f8163b89888b89c76.png"
+    }, {
+      "itemId" : 1151,
+      "internalName" : "LihzahrdPressurePlate",
+      "name" : "Lihzahrd Pressure Plate",
+      "nameZh" : "丛林蜥蜴压力板",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/9ead8ab326bd4bbfbf64a18be088c175.png"
+    }, {
+      "itemId" : 529,
+      "internalName" : "RedPressurePlate",
+      "name" : "Red Pressure Plate",
+      "nameZh" : "红压力板",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/60826820263442d0a0cc20e8c7dd8a01.png"
+    }, {
+      "itemId" : 853,
+      "internalName" : "YellowPressurePlate",
+      "name" : "Yellow Pressure Plate",
+      "nameZh" : "黄压力板",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/7af73acb4dc44aeeb4f73a9c688baf7a.png"
+    }, {
+      "itemId" : 4243,
+      "internalName" : "OrangePressurePlate",
+      "name" : "Orange Pressure Plate",
+      "nameZh" : "橙压力板",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/71aed7a3513848a69cc118765ba2ffac.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Sand Block",
+    "displayNameEn" : "Any Sand Block",
+    "displayNameZh" : "任意沙块",
+    "members" : [ {
+      "itemId" : 169,
+      "internalName" : "SandBlock",
+      "name" : "Sand Block",
+      "nameZh" : "沙块",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/499ad8c6049d4e3fa122f898ccefca7e.png"
+    }, {
+      "itemId" : 408,
+      "internalName" : "PearlsandBlock",
+      "name" : "Pearlsand Block",
+      "nameZh" : "珍珠沙块",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/d122712038cd4374aa29663c3194b4d5.png"
+    }, {
+      "itemId" : 1246,
+      "internalName" : "CrimsandBlock",
+      "name" : "Crimsand Block",
+      "nameZh" : "猩红沙块",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/4d2abab315af4e298d094cf6445afcb3.png"
+    }, {
+      "itemId" : 370,
+      "internalName" : "EbonsandBlock",
+      "name" : "Ebonsand Block",
+      "nameZh" : "黑檀沙块",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/eed394f1057f401bad34185a7add95eb.png"
+    }, {
+      "itemId" : 3269,
+      "internalName" : "HardenedSand",
+      "name" : "Hardened Sand Block",
+      "nameZh" : "硬化沙块",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/7f7cf9ed17464bed91c109951607769c.png"
+    }, {
+      "itemId" : 3335,
+      "internalName" : "HallowHardenedSand",
+      "name" : "Hardened Pearlsand Block",
+      "nameZh" : "硬化珍珠沙块",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/fbb88df0816c4f23ab5b0363fdd9668d.png"
+    }, {
+      "itemId" : 3271,
+      "internalName" : "CorruptHardenedSand",
+      "name" : "Hardened Ebonsand Block",
+      "nameZh" : "硬化黑檀沙块",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/b998d57b70504ac4bf3f624fe454df93.png"
+    }, {
+      "itemId" : 3272,
+      "internalName" : "CrimsonHardenedSand",
+      "name" : "Hardened Crimsand Block",
+      "nameZh" : "硬化猩红沙块",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/5b1045f61eb64d4a9665e0888f1baea9.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Sandstorm Balloon",
+    "displayNameEn" : "Any Sandstorm Balloon",
+    "displayNameZh" : null,
+    "members" : [ {
+      "itemId" : 983,
+      "internalName" : "SandstorminaBalloon",
+      "name" : "Sandstorm in a Balloon",
+      "nameZh" : "沙暴气球",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/93/9316a65b11b6fc2b7ddd374a0ac63f605b3412b6-sandstorm-in-a-balloon-png.png"
+    }, {
+      "itemId" : 1252,
+      "internalName" : "YellowHorseshoeBalloon",
+      "name" : "Yellow Horseshoe Balloon",
+      "nameZh" : "黄马掌气球",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/b3/b30b4e419580765559f66177a7d68b08c040673e-yellow-horseshoe-balloon-png.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Scorpion",
+    "displayNameEn" : "Any Scorpion",
+    "displayNameZh" : "任意蝎子",
+    "members" : [ {
+      "itemId" : 2156,
+      "internalName" : "Scorpion",
+      "name" : "Scorpion",
+      "nameZh" : "蝎子",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/53a8c62fa90e430483763a93567c99c8.png"
+    }, {
+      "itemId" : 2155,
+      "internalName" : "BlackScorpion",
+      "name" : "Black Scorpion",
+      "nameZh" : "黑蝎子",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/8772d945e96446038393c2bea5861f8b.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Seashell or Starfish",
+    "displayNameEn" : "Any Seashell or Starfish",
+    "displayNameZh" : "任意海贝或海星",
+    "members" : [ {
+      "itemId" : 2623,
+      "internalName" : "Seashell",
+      "name" : "Seashell",
+      "nameZh" : "贝壳",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/ddbbe3a16ae246f9891b15031fe07e12.png"
+    }, {
+      "itemId" : 2624,
+      "internalName" : "Starfish",
+      "name" : "Starfish",
+      "nameZh" : "海星",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/cdc8b03754e549d59ef6bacb9d176dd3.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Snail",
+    "displayNameEn" : "Any Snail",
+    "displayNameZh" : "任意蜗牛",
+    "members" : [ {
+      "itemId" : 2005,
+      "internalName" : "Snail",
+      "name" : "Snail",
+      "nameZh" : "蜗牛",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/03/03038b1f294e5adbc6addc32a4db267342657b1e-snail-png.png"
+    }, {
+      "itemId" : 2006,
+      "internalName" : "GlowingSnail",
+      "name" : "Glowing Snail",
+      "nameZh" : "发光蜗牛",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/bb/bb69ffbdda5492f5fb1bca75443886d985e158f5-glowing-snail-png.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Squirrel",
+    "displayNameEn" : "Any Squirrel",
+    "displayNameZh" : "任意松鼠",
+    "members" : [ {
+      "itemId" : 2017,
+      "internalName" : "Squirrel",
+      "name" : "Squirrel",
+      "nameZh" : "松鼠",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/1fcf6dc851c34ef1b5b93efc08a4f276.png"
+    }, {
+      "itemId" : 3557,
+      "internalName" : "SquirrelRed",
+      "name" : "Red Squirrel",
+      "nameZh" : "红松鼠",
+      "image" : "http://localhost:9000/terrapedia-images/items/2026/04/06/a339694be7b94b6bbc0b37640095fd1e.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Stone Block",
+    "displayNameEn" : "Any Stone Block",
+    "displayNameZh" : "任意石块",
+    "members" : [ {
+      "itemId" : 3,
+      "internalName" : "StoneBlock",
+      "name" : "Stone Block",
+      "nameZh" : "石块",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/5c/5c8ec896ff383d6665510fc0170a86d800b98b48-stone-block-png.png"
+    }, {
+      "itemId" : 89,
+      "internalName" : "EbonstoneBlock",
+      "name" : "Ebonstone Block",
+      "nameZh" : "黑檀石块",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/54/545ddc6f4d81b08fc01d67a396b0b8ca514942de-ebonstone-block-png.png"
+    }, {
+      "itemId" : 836,
+      "internalName" : "CrimstoneBlock",
+      "name" : "Crimstone Block",
+      "nameZh" : "猩红石块",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/ad/ade71dc0f6845823d1e02a7decbe6591d8b3f7f3-crimstone-block-png.png"
+    }, {
+      "itemId" : 409,
+      "internalName" : "PearlstoneBlock",
+      "name" : "Pearlstone Block",
+      "nameZh" : "珍珠石块",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/04/04dad222f3ab19734ad1e1d9887c85b0db80a902-pearlstone-block-png.png"
+    } ]
+  }, {
+    "canonicalName" : "Any Turtle",
+    "displayNameEn" : "Any Turtle",
+    "displayNameZh" : "任意海龟",
+    "members" : [ {
+      "itemId" : 4446,
+      "internalName" : "Turtle",
+      "name" : "Turtle",
+      "nameZh" : "龟",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/cf/cf7d6a6832f54a98b996141a58fdc8543fce3ee6-turtle-png.png"
+    }, {
+      "itemId" : 4447,
+      "internalName" : "TurtleJungle",
+      "name" : "Jungle Turtle",
+      "nameZh" : "丛林龟",
+      "image" : "http://localhost:9000/terrapedia-images/items/wiki/item-images/0d/0da4425f8c4809fd90c86ef997750b9a3a612971-jungle-turtle-png.png"
+    } ]
+  } ]
+}

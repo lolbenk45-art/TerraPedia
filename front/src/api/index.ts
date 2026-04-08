@@ -94,8 +94,19 @@ const normalizeRecipeTreeStation = (station: ItemRecipeTreeStation): ItemRecipeT
   isAlternative: station.isAlternative ?? false,
 })
 
+const normalizeRecipeTreeGroupMember = (member: any) => ({
+  ...member,
+  itemId: member?.itemId ?? member?.item_id ?? null,
+  internalName: member?.internalName ?? member?.internal_name ?? null,
+  name: member?.name ?? null,
+  nameZh: member?.nameZh ?? member?.name_zh ?? null,
+  image: member?.image ?? member?.imageUrl ?? member?.image_url ?? null,
+  imageUrl: member?.imageUrl ?? member?.image_url ?? member?.image ?? null,
+})
+
 const normalizeRecipeTreeNode = (node: ItemRecipeTreeNode): ItemRecipeTreeNode => ({
   ...node,
+  groupMembers: (node.groupMembers || []).map(normalizeRecipeTreeGroupMember),
   stations: (node.stations || []).map(normalizeRecipeTreeStation),
   children: (node.children || []).map(normalizeRecipeTreeNode),
   expandable: node.expandable ?? false,

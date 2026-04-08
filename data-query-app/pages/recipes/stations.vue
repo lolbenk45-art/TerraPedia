@@ -26,6 +26,7 @@
           <NuxtLink to="/recipes" class="view-switch__link">配方编辑</NuxtLink>
           <NuxtLink to="/recipes/tree" class="view-switch__link">合成路径</NuxtLink>
           <NuxtLink to="/recipes/stations" class="view-switch__link view-switch__link--active">制作站管理</NuxtLink>
+          <NuxtLink to="/recipes/groups" class="view-switch__link">任意物品组</NuxtLink>
         </nav>
       </div>
     </section>
@@ -338,7 +339,7 @@
             </div>
 
             <div class="binding-flow-summary__tree">
-              <AdminRecipeTreeBranch :node="suggestedBindingRoot" compact />
+              <AdminRecipeTreeBranch :node="suggestedBindingRoot" compact @navigate-item="openAdminItemWorkspace" />
             </div>
           </div>
 
@@ -1102,6 +1103,19 @@ async function goToUsageItem(itemId?: number | null) {
   if (!confirmDiscardChanges('跳转到配方页') || !confirmDiscardBindingChanges('跳转到配方页')) return
   allowConfirmedNavigation.value = true
   await router.push({ path: '/recipes', query: buildRecipeRouteQuery(itemId) })
+}
+
+async function openAdminItemWorkspace(payload: { itemId?: number | null }) {
+  if (!payload?.itemId) return
+  if (!confirmDiscardChanges('跳转到物品界面') || !confirmDiscardBindingChanges('跳转到物品界面')) return
+  allowConfirmedNavigation.value = true
+  await router.push({
+    path: '/items',
+    query: {
+      itemId: String(payload.itemId),
+      view: 'detail',
+    },
+  })
 }
 
 async function persistBindingRecipes(nextRecipes: ItemRecipePayload[], actionKey: string) {

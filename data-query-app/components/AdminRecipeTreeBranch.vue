@@ -3,26 +3,54 @@
     <section class="branch-main">
       <div class="branch-main__left">
         <section class="branch-row branch-row--ingredients">
-          <button
+          <component
             v-for="(child, index) in node.children || []"
             :key="`${child.recipeId ?? child.itemId ?? child.itemInternalName ?? index}-${index}`"
-            type="button"
+            :is="canOpenItem(child) ? 'button' : 'div'"
+            :type="canOpenItem(child) ? 'button' : undefined"
             class="branch-node branch-node--ingredient"
             :class="{ 'branch-node--interactive': canOpenItem(child) }"
-            :disabled="!canOpenItem(child)"
+            :disabled="canOpenItem(child) ? false : undefined"
             @click="handleOpenItem(child)"
           >
+            <div
+              v-if="isGroupNode(child) && getGroupPreviewMembers(child).length"
+              class="branch-node__group-pair"
+              :title="getGroupMemberSummary(child)"
+            >
+              <template
+                v-for="(member, memberIndex) in getGroupPreviewMembers(child)"
+                :key="member.internalName || member.nameZh || member.name || `group-member-${memberIndex}`"
+              >
+                <button
+                  type="button"
+                  class="branch-node__group-member-link"
+                  :class="{ 'branch-node__group-member-link--interactive': canNavigateGroupMember(member) }"
+                  :disabled="!canNavigateGroupMember(member)"
+                  @click.stop="handleNavigateGroupMember(member)"
+                >
+                  <img
+                    v-if="getGroupMemberImage(member)"
+                    :src="getGroupMemberImage(member)"
+                    :alt="getGroupMemberDisplayName(member)"
+                    class="branch-node__group-pair-image"
+                  />
+                  <div v-else class="branch-node__group-pair-fallback">{{ getGroupMemberAvatar(member) }}</div>
+                </button>
+                <span v-if="memberIndex === 0 && getGroupPreviewMembers(child).length > 1" class="branch-node__group-divider">/</span>
+              </template>
+            </div>
             <img
-              v-if="resolveImage(child.itemImageUrl || child.itemImage)"
+              v-else-if="resolveImage(child.itemImageUrl || child.itemImage)"
               :src="resolveImage(child.itemImageUrl || child.itemImage)"
               :alt="getNodeDisplayName(child)"
               class="branch-node__image"
             />
             <div v-else class="branch-node__fallback">{{ getNodeAvatar(child) }}</div>
             <strong class="branch-node__title">{{ getNodeDisplayName(child) }}</strong>
-            <small v-if="getNodeSecondaryName(child)" class="branch-node__secondary">EN {{ getNodeSecondaryName(child) }}</small>
+            <small v-if="getNodeSecondaryLabel(child)" class="branch-node__secondary">{{ getNodeSecondaryLabel(child) }}</small>
             <span class="branch-node__quantity">{{ formatQuantity(child.quantityText, child.quantityMin, child.quantityMax) }}</span>
-          </button>
+          </component>
         </section>
 
         <div v-if="node.stations?.length" class="branch-row branch-row--stations">
@@ -52,15 +80,34 @@
 
       <section class="branch-row branch-row--result">
         <button type="button" class="branch-node branch-node--result" :class="{ 'branch-node--interactive': canOpenItem(node) }" :disabled="!canOpenItem(node)" @click="handleOpenItem(node)">
+          <div
+            v-if="isGroupNode(node) && getGroupPreviewMembers(node).length"
+            class="branch-node__group-pair"
+            :title="getGroupMemberSummary(node)"
+          >
+            <template
+              v-for="(member, memberIndex) in getGroupPreviewMembers(node)"
+              :key="member.internalName || member.nameZh || member.name || `result-group-member-${memberIndex}`"
+            >
+              <img
+                v-if="getGroupMemberImage(member)"
+                :src="getGroupMemberImage(member)"
+                :alt="getGroupMemberDisplayName(member)"
+                class="branch-node__group-pair-image"
+              />
+              <div v-else class="branch-node__group-pair-fallback">{{ getGroupMemberAvatar(member) }}</div>
+              <span v-if="memberIndex === 0 && getGroupPreviewMembers(node).length > 1" class="branch-node__group-divider">/</span>
+            </template>
+          </div>
           <img
-            v-if="resolveImage(node.itemImageUrl || node.itemImage)"
+            v-else-if="resolveImage(node.itemImageUrl || node.itemImage)"
             :src="resolveImage(node.itemImageUrl || node.itemImage)"
             :alt="getNodeDisplayName(node)"
             class="branch-node__image"
           />
           <div v-else class="branch-node__fallback">{{ getNodeAvatar(node) }}</div>
           <strong class="branch-node__title">{{ getNodeDisplayName(node) }}</strong>
-          <small v-if="getNodeSecondaryName(node)" class="branch-node__secondary">EN {{ getNodeSecondaryName(node) }}</small>
+          <small v-if="getNodeSecondaryLabel(node)" class="branch-node__secondary">{{ getNodeSecondaryLabel(node) }}</small>
           <span class="branch-node__quantity">产出 ×{{ node.resultQuantity ?? 1 }}</span>
         </button>
       </section>
@@ -81,6 +128,7 @@
           :key="`${childRecipe.recipeId ?? childRecipe.itemId ?? childRecipe.itemInternalName ?? childIndex}-${childIndex}`"
           :node="childRecipe"
           @open-item="emit('open-item', $event)"
+          @navigate-item="emit('navigate-item', $event)"
           @open-station="emit('open-station', $event)"
         />
       </article>
@@ -90,7 +138,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { ItemRecipeTreeNode, ItemRecipeTreeStation } from '~/stores/items'
+import type { ItemRecipeTreeGroupMember, ItemRecipeTreeNode, ItemRecipeTreeStation } from '~/stores/items'
 
 defineOptions({
   name: 'AdminRecipeTreeBranch',
@@ -102,6 +150,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
   'open-item': [{ itemId?: number | null; itemInternalName?: string }]
+  'navigate-item': [{ itemId?: number | null; itemInternalName?: string }]
   'open-station': [{ stationItemId?: number | null; stationInternalName?: string; stationNameRaw?: string }]
 }>()
 
@@ -119,22 +168,83 @@ function resolveImage(value?: string | null) {
 }
 
 function getNodeDisplayName(node: ItemRecipeTreeNode) {
-  return node.itemNameZh || node.itemName || node.itemInternalName || '未知物品'
+  return (
+    node.displayName ||
+    node.itemNameZh ||
+    node.itemName ||
+    node.itemInternalName ||
+    '未知物品'
+  )
 }
 
 function getNodeSecondaryName(node: ItemRecipeTreeNode) {
+  const displayName = getNodeDisplayName(node)
+  if (node.ingredientGroupType === 'group') {
+    return node.secondaryName && node.secondaryName !== displayName ? node.secondaryName : ''
+  }
+  if (node.secondaryName && node.secondaryName !== displayName) {
+    return node.secondaryName
+  }
   if (node.itemNameZh && node.itemName && node.itemName !== node.itemNameZh) {
     return node.itemName
   }
-  if (node.itemInternalName && node.itemInternalName !== getNodeDisplayName(node)) {
+  if (node.itemInternalName && node.itemInternalName !== displayName) {
     return node.itemInternalName
   }
   return ''
 }
 
+function getNodeSecondaryLabel(node: ItemRecipeTreeNode) {
+  const secondary = getNodeSecondaryName(node)
+  return secondary ? `EN ${secondary}` : ''
+}
+
 function getNodeAvatar(node: ItemRecipeTreeNode) {
   const label = getNodeDisplayName(node).trim()
   return label ? label.slice(0, 2).toUpperCase() : 'IT'
+}
+
+function isGroupNode(node: ItemRecipeTreeNode) {
+  return node.ingredientGroupType === 'group'
+}
+
+function getGroupMemberSummary(node: ItemRecipeTreeNode) {
+  if (node.ingredientGroupType !== 'group' || !Array.isArray(node.groupMemberNames) || node.groupMemberNames.length === 0) {
+    return ''
+  }
+  return node.groupMemberNames.join(' / ')
+}
+
+function getGroupPreviewMembers(node: ItemRecipeTreeNode) {
+  if (node.ingredientGroupType !== 'group' || !Array.isArray(node.groupMembers)) {
+    return []
+  }
+  return node.groupMembers.slice(0, 2)
+}
+
+function getGroupMemberAvatar(member: ItemRecipeTreeGroupMember) {
+  const label = (member.nameZh || member.name || member.internalName || '').trim()
+  return label ? label.slice(0, 2).toUpperCase() : 'IT'
+}
+
+function getGroupMemberDisplayName(member: ItemRecipeTreeGroupMember) {
+  return member.nameZh || member.name || member.internalName || 'Unknown item'
+}
+
+function getGroupMemberImage(member: ItemRecipeTreeGroupMember) {
+  return resolveImage(member.imageUrl || member.image)
+}
+
+function canNavigateGroupMember(member: ItemRecipeTreeGroupMember) {
+  return Number.isFinite(Number(member.itemId)) && Number(member.itemId) > 0
+}
+
+function handleNavigateGroupMember(member: ItemRecipeTreeGroupMember) {
+  if (!canNavigateGroupMember(member)) return
+  emit('navigate-item', {
+    itemId: member.itemId ?? null,
+    itemInternalName: member.internalName,
+  })
 }
 
 function getStationDisplayName(station: ItemRecipeTreeStation) {
@@ -255,6 +365,60 @@ function formatQuantity(text?: string | null, min?: number | null, max?: number 
   object-fit: contain;
   display: grid;
   place-items: center;
+}
+
+.branch-node__group-pair {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 42px;
+}
+
+.branch-node__group-member-link {
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.branch-node__group-member-link--interactive {
+  cursor: pointer;
+}
+
+.branch-node__group-member-link--interactive:hover .branch-node__group-pair-image,
+.branch-node__group-member-link--interactive:hover .branch-node__group-pair-fallback {
+  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+  transform: translateY(-1px);
+}
+
+.branch-node__group-pair-image,
+.branch-node__group-pair-fallback {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-bg-secondary) 92%, transparent);
+  object-fit: contain;
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  transition: transform .18s ease, border-color .18s ease;
+}
+
+.branch-node__group-pair-fallback {
+  color: var(--color-text-secondary);
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+.branch-node__group-divider {
+  color: color-mix(in srgb, var(--color-text-secondary) 84%, transparent);
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .branch-node__fallback {
@@ -415,6 +579,23 @@ function formatQuantity(text?: string | null, min?: number | null, max?: number 
   width: 28px;
   height: 28px;
   border-radius: 8px;
+}
+
+.branch-card--compact .branch-node__group-pair {
+  min-height: 28px;
+  gap: 3px;
+}
+
+.branch-card--compact .branch-node__group-pair-image,
+.branch-card--compact .branch-node__group-pair-fallback {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  padding: 3px;
+}
+
+.branch-card--compact .branch-node__group-divider {
+  font-size: 0.7rem;
 }
 
 .branch-card--compact .branch-node__title {

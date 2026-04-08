@@ -18,6 +18,7 @@
           <NuxtLink :to="selectedItemId ? { path: '/recipes', query: buildRecipeRouteQuery(selectedItemId) } : { path: '/recipes', query: buildRecipeRouteQuery() }" class="view-switch__link">配方编辑</NuxtLink>
           <NuxtLink :to="{ path: '/recipes/tree', query: buildTreeRouteQuery(selectedItemId) }" class="view-switch__link view-switch__link--active">合成路径</NuxtLink>
           <NuxtLink :to="hasStationReturnContext ? { path: '/recipes/stations', query: buildStationWorkspaceQuery() } : '/recipes/stations'" class="view-switch__link">制作站管理</NuxtLink>
+          <NuxtLink to="/recipes/groups" class="view-switch__link">任意物品组</NuxtLink>
         </nav>
       </div>
     </section>
@@ -119,7 +120,7 @@
                     <span v-if="group.activeRoot.recipeId">Recipe #{{ group.activeRoot.recipeId }}</span>
                   </div>
                 </div>
-                <AdminRecipeTreeBranch :node="group.activeRoot" compact @open-item="openRecipeItem" @open-station="openStationWorkspace" />
+                <AdminRecipeTreeBranch :node="group.activeRoot" compact @open-item="openRecipeItem" @navigate-item="openAdminItemWorkspace" @open-station="openStationWorkspace" />
               </div>
             </section>
           </template>
@@ -299,6 +300,17 @@ async function openRecipeItem(payload: { itemId?: number | null }) {
   if (!payload?.itemId) return
   selectedItemId.value = payload.itemId
   await loadTree(payload.itemId)
+}
+
+async function openAdminItemWorkspace(payload: { itemId?: number | null }) {
+  if (!payload?.itemId) return
+  await router.push({
+    path: '/items',
+    query: {
+      itemId: String(payload.itemId),
+      view: 'detail',
+    },
+  })
 }
 
 async function openStationWorkspace(payload: { stationItemId?: number | null; stationInternalName?: string }) {

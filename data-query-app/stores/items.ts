@@ -196,6 +196,31 @@ export interface ItemRecipeTreeStation {
   sortOrder?: number | null
 }
 
+export interface ItemRecipeTreeGroupMember {
+  itemId?: number | null
+  internalName?: string
+  name?: string
+  nameZh?: string
+  image?: string
+  imageUrl?: string
+}
+
+export interface RecipeGroupMember {
+  itemId?: number | null
+  internalName?: string
+  name?: string
+  nameZh?: string
+  image?: string
+  imageUrl?: string
+}
+
+export interface RecipeGroup {
+  canonicalName: string
+  displayNameEn?: string
+  displayNameZh?: string
+  members: RecipeGroupMember[]
+}
+
 export interface ItemRecipeTreeNode {
   nodeType?: string
   recipeId?: number | null
@@ -207,6 +232,9 @@ export interface ItemRecipeTreeNode {
   itemImageUrl?: string
   displayName?: string
   secondaryName?: string
+  groupCanonicalName?: string
+  groupMemberNames?: string[]
+  groupMembers?: ItemRecipeTreeGroupMember[]
   resultQuantity?: number | null
   quantityText?: string
   quantityMin?: number | null
@@ -337,6 +365,7 @@ export interface ItemSourceRelation {
   sourceRefType?: string
   sourceRefId?: number | null
   sourceRefName?: string
+  sourceRefNameZh?: string
   biomeId?: number | null
   quantityMin?: number | null
   quantityMax?: number | null
@@ -657,6 +686,31 @@ export const useItemsStore = defineStore('items', () => {
     sortOrder: raw?.sortOrder ?? raw?.sort_order ?? null,
   })
 
+  const normalizeItemRecipeTreeGroupMember = (raw: any): ItemRecipeTreeGroupMember => ({
+    itemId: raw?.itemId ?? raw?.item_id ?? null,
+    internalName: raw?.internalName ?? raw?.internal_name ?? '',
+    name: raw?.name ?? '',
+    nameZh: raw?.nameZh ?? raw?.name_zh ?? '',
+    image: raw?.image ?? '',
+    imageUrl: normalizeAssetUrl({ itemImage: raw?.image }),
+  })
+
+  const normalizeRecipeGroupMember = (raw: any): RecipeGroupMember => ({
+    itemId: raw?.itemId ?? raw?.item_id ?? null,
+    internalName: raw?.internalName ?? raw?.internal_name ?? '',
+    name: raw?.name ?? '',
+    nameZh: raw?.nameZh ?? raw?.name_zh ?? '',
+    image: raw?.image ?? '',
+    imageUrl: normalizeAssetUrl({ itemImage: raw?.image }),
+  })
+
+  const normalizeRecipeGroup = (raw: any): RecipeGroup => ({
+    canonicalName: raw?.canonicalName ?? raw?.canonical_name ?? '',
+    displayNameEn: raw?.displayNameEn ?? raw?.display_name_en ?? '',
+    displayNameZh: raw?.displayNameZh ?? raw?.display_name_zh ?? '',
+    members: Array.isArray(raw?.members) ? raw.members.map(normalizeRecipeGroupMember) : [],
+  })
+
   const normalizeItemRecipeTreeNode = (raw: any): ItemRecipeTreeNode => ({
     nodeType: raw?.nodeType ?? raw?.node_type ?? '',
     recipeId: raw?.recipeId ?? raw?.recipe_id ?? null,
@@ -668,6 +722,9 @@ export const useItemsStore = defineStore('items', () => {
     itemImageUrl: normalizeAssetUrl({ itemImage: raw?.itemImage ?? raw?.item_image }),
     displayName: raw?.displayName ?? raw?.display_name ?? '',
     secondaryName: raw?.secondaryName ?? raw?.secondary_name ?? '',
+    groupCanonicalName: raw?.groupCanonicalName ?? raw?.group_canonical_name ?? '',
+    groupMemberNames: Array.isArray(raw?.groupMemberNames) ? raw.groupMemberNames : [],
+    groupMembers: Array.isArray(raw?.groupMembers) ? raw.groupMembers.map(normalizeItemRecipeTreeGroupMember) : [],
     resultQuantity: raw?.resultQuantity ?? raw?.result_quantity ?? null,
     quantityText: raw?.quantityText ?? raw?.quantity_text ?? '',
     quantityMin: raw?.quantityMin ?? raw?.quantity_min ?? null,
@@ -701,6 +758,7 @@ export const useItemsStore = defineStore('items', () => {
     sourceRefType: raw?.sourceRefType ?? raw?.source_ref_type ?? '',
     sourceRefId: raw?.sourceRefId ?? raw?.source_ref_id ?? null,
     sourceRefName: raw?.sourceRefName ?? raw?.source_ref_name ?? '',
+    sourceRefNameZh: raw?.sourceRefNameZh ?? raw?.source_ref_name_zh ?? '',
     biomeId: raw?.biomeId ?? raw?.biome_id ?? null,
     quantityMin: raw?.quantityMin ?? raw?.quantity_min ?? null,
     quantityMax: raw?.quantityMax ?? raw?.quantity_max ?? null,
@@ -859,6 +917,68 @@ export const useItemsStore = defineStore('items', () => {
       console.error('Failed to create crafting station:', error)
       showToast(error?.data?.message || error?.message || '创建制作站失败', 'error')
       return null
+    }
+  }
+
+  const fetchRecipeGroups = async (keyword = ''): Promise<RecipeGroup[]> => {
+    try {
+      const response = await get('/admin/recipe-groups', { keyword: keyword || undefined })
+      const source = response?.data ?? response
+      return Array.isArray(source) ? source.map(normalizeRecipeGroup) : []
+    } catch (error: any) {
+      console.error('Failed to fetch recipe groups:', error)
+      showToast(error?.data?.message || error?.message || '获取任意物品组失败', 'error')
+      return []
+    }
+  }
+
+  const fetchRecipeGroupDetail = async (canonicalName: string): Promise<RecipeGroup | null> => {
+    try {
+      const response = await get(`/admin/recipe-groups/${encodeURIComponent(canonicalName)}`)
+      const source = response?.data ?? response
+      return source ? normalizeRecipeGroup(source) : null
+    } catch (error: any) {
+      console.error('Failed to fetch recipe group detail:', error)
+      showToast(error?.data?.message || error?.message || '获取任意物品组详情失败', 'error')
+      return null
+    }
+  }
+
+  const createRecipeGroup = async (payload: RecipeGroup): Promise<RecipeGroup | null> => {
+    try {
+      const response = await post('/admin/recipe-groups', payload as any)
+      const source = response?.data ?? response
+      showToast('任意物品组已创建', 'success')
+      return source ? normalizeRecipeGroup(source) : null
+    } catch (error: any) {
+      console.error('Failed to create recipe group:', error)
+      showToast(error?.data?.message || error?.message || '创建任意物品组失败', 'error')
+      return null
+    }
+  }
+
+  const updateRecipeGroup = async (canonicalName: string, payload: RecipeGroup): Promise<RecipeGroup | null> => {
+    try {
+      const response = await put(`/admin/recipe-groups/${encodeURIComponent(canonicalName)}`, payload as any)
+      const source = response?.data ?? response
+      showToast('任意物品组已更新', 'success')
+      return source ? normalizeRecipeGroup(source) : null
+    } catch (error: any) {
+      console.error('Failed to update recipe group:', error)
+      showToast(error?.data?.message || error?.message || '更新任意物品组失败', 'error')
+      return null
+    }
+  }
+
+  const deleteRecipeGroup = async (canonicalName: string): Promise<boolean> => {
+    try {
+      await del(`/admin/recipe-groups/${encodeURIComponent(canonicalName)}`)
+      showToast('任意物品组已删除', 'success')
+      return true
+    } catch (error: any) {
+      console.error('Failed to delete recipe group:', error)
+      showToast(error?.data?.message || error?.message || '删除任意物品组失败', 'error')
+      return false
     }
   }
 
@@ -1168,8 +1288,13 @@ export const useItemsStore = defineStore('items', () => {
     fetchItemImages,
     fetchItemRecipes,
     fetchItemRecipeTree,
+    fetchRecipeGroups,
+    fetchRecipeGroupDetail,
     fetchCraftingStations,
     fetchCraftingStationUsageItems,
+    createRecipeGroup,
+    updateRecipeGroup,
+    deleteRecipeGroup,
     createCraftingStation,
     updateCraftingStation,
     deleteCraftingStation,

@@ -14,6 +14,11 @@ public class RecipeTreeNodeDTO {
     private String itemName;
     private String itemNameZh;
     private String itemImage;
+    private String displayName;
+    private String secondaryName;
+    private String groupCanonicalName;
+    private List<String> groupMemberNames = new ArrayList<>();
+    private List<RecipeGroupMemberDTO> groupMembers = new ArrayList<>();
     private Integer resultQuantity;
     private String quantityText;
     private Integer quantityMin;

@@ -203,6 +203,15 @@ export interface ItemRecipeTreeStation {
   stationType?: string | null
 }
 
+export interface ItemRecipeTreeGroupMember {
+  itemId?: number | null
+  internalName?: string | null
+  name?: string | null
+  nameZh?: string | null
+  image?: string | null
+  imageUrl?: string | null
+}
+
 export interface ItemRecipeTreeNode {
   nodeType?: string | null
   recipeId?: number | null
@@ -211,6 +220,11 @@ export interface ItemRecipeTreeNode {
   itemName?: string | null
   itemNameZh?: string | null
   itemImage?: string | null
+  displayName?: string | null
+  secondaryName?: string | null
+  groupCanonicalName?: string | null
+  groupMemberNames?: string[]
+  groupMembers?: ItemRecipeTreeGroupMember[]
   resultQuantity?: number | null
   quantityText?: string | null
   quantityMin?: number | null
