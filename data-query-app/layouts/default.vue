@@ -190,6 +190,7 @@ import {
   PanelLeftOpen,
   Settings2,
   Shield,
+  Shapes,
   Trees,
   UserRound,
   Users,
@@ -243,7 +244,8 @@ const menuSections: MenuSection[] = [
     items: [
       { name: '配方管理', path: '/recipes', hint: '编辑制作流程', icon: Hammer },
       { name: '制作站管理', path: '/recipes/stations', hint: '管理工作台与站点', icon: Factory },
-      { name: '??????', path: '/recipes/wiki-zh-import', hint: '?? wiki_zh ????', icon: Globe2 },
+      { name: '任意物品组', path: '/recipes/groups', hint: '维护 Any 类型配方组', icon: Shapes },
+      { name: '中文配方导入', path: '/recipes/wiki-zh-import', hint: '查看 wiki_zh 导入状态', icon: Globe2 },
     ],
   },
   {
@@ -1038,4 +1040,3 @@ onUnmounted(() => {
   }
 }
 </style>
-
