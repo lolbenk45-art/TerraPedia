@@ -122,7 +122,38 @@
                 class="item-detail-view__summary mt-6 rounded-2xl border p-4"
                 style="background-color: var(--bg-primary); border-color: var(--border-color);"
               >
-                <p class="leading-7" style="color: var(--text-secondary);">{{ summaryText }}</p>
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div class="min-w-0 flex-1">
+                    <div class="text-xs font-semibold uppercase tracking-wide" style="color: var(--text-muted);">Content</div>
+                    <p class="mt-3 leading-7" style="color: var(--text-secondary);">{{ summaryText }}</p>
+                    <p
+                      v-if="summaryLanguageNote"
+                      class="mt-2 text-xs"
+                      style="color: var(--text-muted);"
+                    >
+                      {{ summaryLanguageNote }}
+                    </p>
+                  </div>
+
+                  <div
+                    v-if="hasLocalizedContent"
+                    class="inline-flex items-center rounded-full border p-1"
+                    style="border-color: var(--border-color); background-color: var(--bg-secondary);"
+                  >
+                    <button
+                      v-for="option in contentLanguageOptions"
+                      :key="option.value"
+                      type="button"
+                      class="rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
+                      :style="contentLanguage === option.value
+                        ? 'background-color: var(--accent-primary); color: white;'
+                        : 'color: var(--text-secondary);'"
+                      @click="contentLanguage = option.value"
+                    >
+                      {{ option.label }}
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div class="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -143,7 +174,49 @@
         <section class="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
           <div class="space-y-6">
             <div
-              v-if="descriptionText && tooltipText && descriptionText !== tooltipText"
+              v-if="contentCards.length"
+              class="rounded-2xl border p-6"
+              style="background-color: var(--bg-secondary); border-color: var(--border-color);"
+            >
+              <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 class="text-lg font-semibold" style="color: var(--text-primary);">Description & Tooltip</h2>
+                  <p class="mt-1 text-sm" style="color: var(--text-secondary);">
+                    中文优先展示，缺失时自动回退到另一语言。
+                  </p>
+                </div>
+                <span
+                  class="rounded-full border px-3 py-1 text-xs font-semibold"
+                  style="border-color: var(--border-color); color: var(--text-primary);"
+                >
+                  {{ activeContentLanguageLabel }}
+                </span>
+              </div>
+
+              <div class="grid gap-4 md:grid-cols-2">
+                <div
+                  v-for="card in contentCards"
+                  :key="card.key"
+                  class="rounded-2xl border p-4"
+                  style="background-color: var(--bg-primary); border-color: var(--border-color);"
+                >
+                  <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">{{ card.label }}</div>
+                    <span
+                      v-if="card.fallbackMessage"
+                      class="rounded-full border px-2.5 py-1 text-[11px] font-medium"
+                      style="border-color: var(--border-color); color: var(--text-secondary);"
+                    >
+                      {{ card.fallbackMessage }}
+                    </span>
+                  </div>
+                  <p class="leading-7" style="color: var(--text-secondary);">{{ card.text }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div
+              v-if="false && contentCards.length"
               class="rounded-2xl border p-6"
               style="background-color: var(--bg-secondary); border-color: var(--border-color);"
             >
@@ -423,6 +496,14 @@ type DetailSection = {
   fields: DetailField[]
 }
 
+type ContentLanguage = 'zh' | 'en'
+
+type LocalizedContentState = {
+  text: string
+  displayLanguage: ContentLanguage | null
+  fallbackFrom: ContentLanguage | null
+}
+
 const route = useRoute()
 const item = ref<Item | null>(null)
 const categories = ref<Category[]>([])
@@ -432,6 +513,12 @@ const relatedRecipes = ref<ItemRecipeRelation[]>([])
 const recipeTree = ref<ItemRecipeTreeResponse | null>(null)
 const isLoading = ref(true)
 const error = ref('')
+const contentLanguage = ref<ContentLanguage>('zh')
+
+const contentLanguageOptions: Array<{ value: ContentLanguage, label: string }> = [
+  { value: 'zh', label: '中文优先' },
+  { value: 'en', label: 'English' },
+]
 
 const flattenCategories = (nodes: Category[]): Category[] => {
   const result: Category[] = []
@@ -494,18 +581,102 @@ const secondaryName = computed(() => {
 const rarityInfo = computed(() => getRarityPresentation(item.value))
 const displayRarity = computed(() => rarityInfo.value.label === '未知' ? '' : rarityInfo.value.label)
 
-const descriptionText = computed(() => item.value?.descriptionZh?.trim() || item.value?.description?.trim() || '')
-const tooltipText = computed(() => item.value?.tooltipZh?.trim() || item.value?.tooltip?.trim() || '')
+const localizedLanguageLabel: Record<ContentLanguage, string> = {
+  zh: '中文优先',
+  en: 'English',
+}
 
-const summaryText = computed(() => {
-  if (descriptionText.value) {
-    return descriptionText.value
+const normalizeLocalizedText = (value?: string | null): string => value?.trim() || ''
+
+const resolveLocalizedContent = (
+  zhText: string | null | undefined,
+  enText: string | null | undefined,
+  preferredLanguage: ContentLanguage,
+): LocalizedContentState => {
+  const zh = normalizeLocalizedText(zhText)
+  const en = normalizeLocalizedText(enText)
+
+  if (preferredLanguage === 'zh') {
+    if (zh) {
+      return { text: zh, displayLanguage: 'zh', fallbackFrom: null }
+    }
+    if (en) {
+      return { text: en, displayLanguage: 'en', fallbackFrom: 'zh' }
+    }
+  } else {
+    if (en) {
+      return { text: en, displayLanguage: 'en', fallbackFrom: null }
+    }
+    if (zh) {
+      return { text: zh, displayLanguage: 'zh', fallbackFrom: 'en' }
+    }
   }
-  if (tooltipText.value) {
-    return tooltipText.value
+
+  return { text: '', displayLanguage: null, fallbackFrom: null }
+}
+
+const buildFallbackMessage = (content: LocalizedContentState): string | null => {
+  if (!content.text || !content.displayLanguage || !content.fallbackFrom) {
+    return null
   }
-  return ''
+  return `当前显示${localizedLanguageLabel[content.displayLanguage]}回退`
+}
+
+const descriptionContent = computed(() => resolveLocalizedContent(
+  item.value?.descriptionZh,
+  item.value?.descriptionEn ?? item.value?.description,
+  contentLanguage.value,
+))
+const tooltipContent = computed(() => resolveLocalizedContent(
+  item.value?.tooltipZh,
+  item.value?.tooltipEn ?? item.value?.tooltip,
+  contentLanguage.value,
+))
+
+const descriptionText = computed(() => descriptionContent.value.text)
+const tooltipText = computed(() => tooltipContent.value.text)
+const hasLocalizedContent = computed(() => Boolean(descriptionText.value || tooltipText.value))
+const activeContentLanguageLabel = computed(() => localizedLanguageLabel[contentLanguage.value])
+
+const contentCards = computed(() => {
+  const cards: Array<{ key: string; label: string; text: string; fallbackMessage: string | null }> = []
+
+  if (descriptionContent.value.text) {
+    cards.push({
+      key: 'description',
+      label: 'Description',
+      text: descriptionContent.value.text,
+      fallbackMessage: buildFallbackMessage(descriptionContent.value),
+    })
+  }
+
+  if (tooltipContent.value.text && tooltipContent.value.text !== descriptionContent.value.text) {
+    cards.push({
+      key: 'tooltip',
+      label: 'Tooltip',
+      text: tooltipContent.value.text,
+      fallbackMessage: buildFallbackMessage(tooltipContent.value),
+    })
+  } else if (!descriptionContent.value.text && tooltipContent.value.text) {
+    cards.push({
+      key: 'tooltip',
+      label: 'Tooltip',
+      text: tooltipContent.value.text,
+      fallbackMessage: buildFallbackMessage(tooltipContent.value),
+    })
+  }
+
+  return cards
 })
+
+const summaryContent = computed(() => {
+  if (descriptionContent.value.text) {
+    return descriptionContent.value
+  }
+  return tooltipContent.value
+})
+const summaryText = computed(() => summaryContent.value.text)
+const summaryLanguageNote = computed(() => buildFallbackMessage(summaryContent.value))
 
 const formatNullable = (value: unknown): string | null => {
   if (value === null || value === undefined || value === '') {

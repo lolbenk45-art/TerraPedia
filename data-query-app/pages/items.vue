@@ -173,7 +173,7 @@
     <AppModal v-model="detailVisible" title="物品详情" width="min(1180px, calc(100vw - 32px))">
       <ItemDetail v-if="selectedItem" :item="selectedItem" />
       <template #footer>
-        <button type="button" class="btn btn-secondary" @click="detailVisible = false">关闭</button>
+        <button type="button" class="btn btn-secondary" @click="closeDetailModal">关闭</button>
       </template>
     </AppModal>
 
@@ -351,6 +351,7 @@ definePageMeta({
   headerVariant: 'compact',
 })
 
+const route = useRoute()
 const router = useRouter()
 const itemsStore = useItemsStore()
 const categoriesStore = useCategoriesStore()
@@ -414,24 +415,45 @@ const getCategoryPathText = (item: Item) => {
 }
 const formatDateTime = (date?: string) => !date ? '--' : (Number.isNaN(new Date(date).getTime()) ? String(date) : new Date(date).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }))
 
-function handleSearch() {
+function parsePositiveInteger(value: unknown): number | null {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : null
+}
+
+async function syncRouteQuery(page = 1) {
+  const nextQuery: Record<string, string> = {}
+  const keyword = searchForm.keyword.trim()
+  if (keyword) nextQuery.search = keyword
+  if (searchForm.categoryId != null) nextQuery.categoryId = String(searchForm.categoryId)
+  if (searchForm.rarity) nextQuery.rarity = searchForm.rarity
+  if (searchForm.gamePeriodId != null) nextQuery.gamePeriodId = String(searchForm.gamePeriodId)
+  if (page > 1) nextQuery.page = String(page)
+  await router.replace({ query: nextQuery })
+}
+
+async function handleSearch() {
   itemsStore.setSearchQuery(searchForm.keyword)
   itemsStore.setSelectedCategory(searchForm.categoryId)
   itemsStore.setSelectedRarity(searchForm.rarity)
   itemsStore.setSelectedGamePeriodId(searchForm.gamePeriodId)
-  itemsStore.fetchItems(1, itemsStore.pagination.size)
+  await syncRouteQuery(1)
+  await itemsStore.fetchItems(1, itemsStore.pagination.size)
 }
 
-function handleReset() {
+async function handleReset() {
   searchForm.keyword = ''
   searchForm.categoryId = null
   searchForm.rarity = ''
   searchForm.gamePeriodId = null
   itemsStore.resetFilters()
-  itemsStore.fetchItems(1, itemsStore.pagination.size)
+  await syncRouteQuery(1)
+  await itemsStore.fetchItems(1, itemsStore.pagination.size)
 }
 
-function handlePageChange(page: number) { itemsStore.fetchItems(page, itemsStore.pagination.size) }
+async function handlePageChange(page: number) {
+  await syncRouteQuery(page)
+  await itemsStore.fetchItems(page, itemsStore.pagination.size)
+}
 function clearSelection() { selectedIds.value = [] }
 function toggleSelected(id: number) { selectedIds.value = selectedIds.value.includes(id) ? selectedIds.value.filter(selectedId => selectedId !== id) : [...selectedIds.value, id] }
 function toggleSelectAllVisible() {
@@ -446,8 +468,37 @@ function toggleSelectAllVisible() {
 }
 
 async function viewItem(item: Item) {
-  selectedItem.value = await itemsStore.fetchItemById(item.id) ?? item
+  await openItemDetail(item)
+}
+
+async function openItemDetail(item: Pick<Item, 'id'> & Partial<Item>) {
+  const loadedItem = await itemsStore.fetchItemById(item.id) ?? (item as Item)
+  selectedItem.value = loadedItem
   detailVisible.value = true
+}
+
+async function syncItemDialogQuery(itemId?: number | null, view?: 'detail' | null) {
+  const nextQuery: Record<string, string> = {}
+  for (const [key, rawValue] of Object.entries(route.query)) {
+    if (key === 'itemId' || key === 'view') continue
+    const value = Array.isArray(rawValue) ? rawValue[0] : rawValue
+    if (typeof value === 'string' && value.trim()) {
+      nextQuery[key] = value
+    }
+  }
+  if (itemId != null && view) {
+    nextQuery.itemId = String(itemId)
+    nextQuery.view = view
+  }
+  await router.replace({ query: nextQuery })
+}
+
+async function closeDetailModal() {
+  detailVisible.value = false
+  const routeView = Array.isArray(route.query.view) ? route.query.view[0] : route.query.view
+  if (routeView === 'detail' && parsePositiveInteger(route.query.itemId) != null) {
+    await syncItemDialogQuery(null, null)
+  }
 }
 
 function resetForm() {
@@ -625,7 +676,54 @@ function toRecipeDrafts(recipes: ItemRecipeRelation[]): ItemRecipePayload[] {
   }))
 }
 
-onMounted(async () => { await Promise.all([itemsStore.fetchItems(), categoriesStore.fetchItemCategories()]) })
+onMounted(async () => {
+  const pageFromQuery = parsePositiveInteger(route.query.page)
+  const categoryIdFromQuery = parsePositiveInteger(route.query.categoryId)
+  const gamePeriodIdFromQuery = parsePositiveInteger(route.query.gamePeriodId)
+  const rarityFromQuery = typeof route.query.rarity === 'string' ? route.query.rarity : ''
+  const searchFromQuery = typeof route.query.search === 'string' ? route.query.search : ''
+
+  searchForm.keyword = searchFromQuery
+  searchForm.categoryId = categoryIdFromQuery
+  searchForm.rarity = rarityFromQuery
+  searchForm.gamePeriodId = gamePeriodIdFromQuery
+
+  itemsStore.setSearchQuery(searchForm.keyword)
+  itemsStore.setSelectedCategory(searchForm.categoryId)
+  itemsStore.setSelectedRarity(searchForm.rarity)
+  itemsStore.setSelectedGamePeriodId(searchForm.gamePeriodId)
+
+  await Promise.all([
+    itemsStore.fetchItems(pageFromQuery ?? 1, itemsStore.pagination.size),
+    categoriesStore.fetchItemCategories(),
+  ])
+})
+
+watch(
+  () => [route.query.itemId, route.query.view],
+  async ([rawItemId, rawView]) => {
+    const itemId = parsePositiveInteger(Array.isArray(rawItemId) ? rawItemId[0] : rawItemId)
+    const view = Array.isArray(rawView) ? rawView[0] : rawView
+    if (itemId == null || view !== 'detail') {
+      return
+    }
+    if (detailVisible.value && selectedItem.value?.id === itemId) {
+      return
+    }
+    const existing = items.value.find((item) => item.id === itemId)
+    await openItemDetail(existing ?? ({ id: itemId } as Item))
+  },
+  { immediate: true },
+)
+
+watch(detailVisible, async (visible) => {
+  if (visible) return
+  const routeView = Array.isArray(route.query.view) ? route.query.view[0] : route.query.view
+  if (routeView === 'detail' && parsePositiveInteger(route.query.itemId) != null) {
+    await syncItemDialogQuery(null, null)
+  }
+})
+
 watch(items, currentItems => {
   const currentIds = new Set(currentItems.map(item => item.id))
   selectedIds.value = selectedIds.value.filter(id => currentIds.has(id))
