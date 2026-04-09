@@ -172,6 +172,7 @@ const visibleVariants = computed(() => {
     variants.find((variant) => (variant.versionScope || '').toLowerCase().includes('desktop version'))
     || variants.find((variant) => (variant.versionScope || '').toLowerCase().includes('desktop'))
     || variants.find((variant) => !(variant.versionScope || '').trim())
+    || variants[0]
   ].filter(Boolean) as ItemRecipeTreeVariant[]
 })
 

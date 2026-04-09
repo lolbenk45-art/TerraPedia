@@ -311,6 +311,7 @@ async function ensureSchema(conn) {
     'V31__add_projectile_zh_column.sql',
     'V32__add_admin_adaptation_world_npc_boss_tables.sql',
     'V33__add_boss_group_metadata_columns.sql',
+    'V34__add_boss_group_summon_method_column.sql',
   ];
   for (const migrationName of migrationNames) {
     const sqlPath = path.join(repoRoot, 'back', 'src', 'main', 'resources', 'db', 'migration', migrationName);

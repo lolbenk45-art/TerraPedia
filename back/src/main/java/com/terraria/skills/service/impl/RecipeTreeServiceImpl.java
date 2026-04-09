@@ -80,10 +80,11 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
 
         Map<String, List<RecipeDTO>> recipeCache = new LinkedHashMap<>();
         for (Map.Entry<String, List<RecipeDTO>> entry : recipesByVariant.entrySet()) {
+            String variantScope = entry.getValue().isEmpty() ? null : entry.getValue().get(0).getVersionScope();
             RecipeTreeVariantDTO variant = new RecipeTreeVariantDTO();
             variant.setVariantKey(entry.getKey());
-            variant.setVariantLabel(variantLabel(entry.getValue().isEmpty() ? null : entry.getValue().get(0).getVersionScope()));
-            variant.setVersionScope(entry.getValue().isEmpty() ? null : entry.getValue().get(0).getVersionScope());
+            variant.setVariantLabel(variantLabel(variantScope));
+            variant.setVersionScope(normalizeVersionScope(variantScope));
             variant.setRecipeCount(entry.getValue().size());
 
             Set<String> rootPath = new LinkedHashSet<>();
@@ -297,7 +298,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     }
 
     private String variantKey(String versionScope) {
-        String normalized = trimToNull(versionScope);
+        String normalized = normalizeVersionScope(versionScope);
         if (normalized == null) {
             return "base";
         }
@@ -312,7 +313,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     }
 
     private String variantLabel(String versionScope) {
-        String normalized = trimToNull(versionScope);
+        String normalized = normalizeVersionScope(versionScope);
         if (normalized == null) {
             return "通用配方";
         }
@@ -331,7 +332,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     }
 
     private int variantOrder(String versionScope) {
-        String normalized = trimToNull(versionScope);
+        String normalized = normalizeVersionScope(versionScope);
         if (normalized == null) {
             return 0;
         }
@@ -345,6 +346,33 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
             return 3;
         }
         return 4;
+    }
+
+    private String normalizeVersionScope(String versionScope) {
+        String raw = trimToNull(versionScope);
+        if (raw == null) {
+            return null;
+        }
+
+        List<String> labels = new ArrayList<>();
+        appendIfContains(labels, raw, "Desktop version", "Desktop version");
+        appendIfContains(labels, raw, "电脑版", "Desktop version");
+        appendIfContains(labels, raw, "Console version", "Console version");
+        appendIfContains(labels, raw, "主机版", "Console version");
+        appendIfContains(labels, raw, "Mobile version", "Mobile version");
+        appendIfContains(labels, raw, "移动版", "Mobile version");
+        appendIfContains(labels, raw, "Old-gen console version", "Old-gen console version");
+        appendIfContains(labels, raw, "前代主机版", "Old-gen console version");
+        appendIfContains(labels, raw, "Nintendo 3DS version", "Nintendo 3DS version");
+        appendIfContains(labels, raw, "任天堂3DS版", "Nintendo 3DS version");
+        appendIfContains(labels, raw, "任天堂 3DS 版", "Nintendo 3DS version");
+
+        if (!labels.isEmpty()) {
+            boolean only = raw.contains("only") || raw.contains("仅");
+            return String.join(" ", labels) + (only ? " only" : "");
+        }
+
+        return raw;
     }
 
     private void appendIfContains(List<String> labels, String raw, String pattern, String label) {

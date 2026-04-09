@@ -41,6 +41,12 @@ const STATION_NAME_MAP = new Map([
   ['Water fountain', '喷泉'],
 ]);
 
+const CANONICAL_STATION_NAME_MAP = new Map([
+  ['Crimson Altar', '\u7329\u7ea2\u796d\u575b'],
+  ['Demon Altar', '\u6076\u9b54\u796d\u575b'],
+  ['Lava', '\u7194\u5ca9'],
+]);
+
 const db = {
   host: process.env.TERRAPEDIA_DB_HOST || '127.0.0.1',
   port: Number(process.env.TERRAPEDIA_DB_PORT || '3306'),
@@ -164,6 +170,7 @@ async function summarizeGroupIngredients(connection) {
 
 async function summarizeCraftingStations(connection) {
   const stationInListSql = buildInListSql(STATION_NAME_MAP);
+  const canonicalStationInListSql = buildInListSql(CANONICAL_STATION_NAME_MAP);
   const [[row]] = await connection.query(`
     SELECT
       COUNT(*) AS total,
@@ -182,7 +189,16 @@ async function summarizeCraftingStations(connection) {
       ) AS autoMappable,
       SUM(
         CASE
-          WHEN (cs.name_zh IS NULL OR TRIM(cs.name_zh) = '')
+          WHEN (
+            (cs.name_zh IS NULL OR TRIM(cs.name_zh) = '')
+            OR (
+              cs.name_en IN (${canonicalStationInListSql})
+              AND TRIM(cs.name_zh) <> CASE cs.name_en
+                ${buildCaseWhenSql(CANONICAL_STATION_NAME_MAP)}
+                ELSE TRIM(cs.name_zh)
+              END
+            )
+          )
            AND cs.name_en IN (${stationInListSql})
           THEN 1 ELSE 0
         END
@@ -205,17 +221,17 @@ async function summarizeStations(connection) {
       COUNT(*) AS total,
       SUM(
         CASE
-          WHEN COALESCE(NULLIF(TRIM(i.name_zh), ''), NULLIF(TRIM(cs.name_zh), '')) IS NOT NULL
+          WHEN COALESCE(NULLIF(TRIM(cs.name_zh), ''), NULLIF(TRIM(i.name_zh), '')) IS NOT NULL
           THEN 1 ELSE 0
         END
       ) AS linkedWithZh,
       SUM(
         CASE
-          WHEN COALESCE(NULLIF(TRIM(i.name_zh), ''), NULLIF(TRIM(cs.name_zh), '')) IS NOT NULL
+          WHEN COALESCE(NULLIF(TRIM(cs.name_zh), ''), NULLIF(TRIM(i.name_zh), '')) IS NOT NULL
            AND (
              rs.station_name_raw IS NULL
              OR TRIM(rs.station_name_raw) = ''
-             OR TRIM(rs.station_name_raw) <> COALESCE(NULLIF(TRIM(i.name_zh), ''), NULLIF(TRIM(cs.name_zh), ''))
+             OR TRIM(rs.station_name_raw) <> COALESCE(NULLIF(TRIM(cs.name_zh), ''), NULLIF(TRIM(i.name_zh), ''))
            )
           THEN 1 ELSE 0
         END
@@ -254,6 +270,7 @@ async function loadGroupIngredientSamples(connection) {
 
 async function loadCraftingStationSamples(connection) {
   const stationInListSql = buildInListSql(STATION_NAME_MAP);
+  const canonicalStationInListSql = buildInListSql(CANONICAL_STATION_NAME_MAP);
   const [rows] = await connection.query(`
     SELECT
       cs.id,
@@ -279,7 +296,16 @@ async function loadCraftingStationSamples(connection) {
         )
         OR
         (
-          (cs.name_zh IS NULL OR TRIM(cs.name_zh) = '')
+          (
+            (cs.name_zh IS NULL OR TRIM(cs.name_zh) = '')
+            OR (
+              cs.name_en IN (${canonicalStationInListSql})
+              AND TRIM(cs.name_zh) <> CASE cs.name_en
+                ${buildCaseWhenSql(CANONICAL_STATION_NAME_MAP)}
+                ELSE TRIM(cs.name_zh)
+              END
+            )
+          )
           AND cs.name_en IN (${stationInListSql})
         )
       )
@@ -288,9 +314,10 @@ async function loadCraftingStationSamples(connection) {
   `);
   return rows.map((row) => ({
     ...row,
-    targetNameZh: shouldSyncCraftingStationFromItem(row)
+    targetNameZh: CANONICAL_STATION_NAME_MAP.get(row.nameEn)
+      || (shouldSyncCraftingStationFromItem(row)
       ? row.itemNameZh
-      : STATION_NAME_MAP.get(row.nameEn) || null,
+      : STATION_NAME_MAP.get(row.nameEn) || null),
   }));
 }
 
@@ -330,11 +357,11 @@ async function loadStationSamples(connection) {
     FROM recipe_stations rs
     LEFT JOIN items i ON i.id = rs.station_item_id
     LEFT JOIN crafting_stations cs ON cs.id = rs.station_id
-    WHERE COALESCE(NULLIF(TRIM(i.name_zh), ''), NULLIF(TRIM(cs.name_zh), '')) IS NOT NULL
+    WHERE COALESCE(NULLIF(TRIM(cs.name_zh), ''), NULLIF(TRIM(i.name_zh), '')) IS NOT NULL
       AND (
         rs.station_name_raw IS NULL
         OR TRIM(rs.station_name_raw) = ''
-        OR TRIM(rs.station_name_raw) <> COALESCE(NULLIF(TRIM(i.name_zh), ''), NULLIF(TRIM(cs.name_zh), ''))
+        OR TRIM(rs.station_name_raw) <> COALESCE(NULLIF(TRIM(cs.name_zh), ''), NULLIF(TRIM(i.name_zh), ''))
       )
     ORDER BY rs.id ASC
     LIMIT 20
@@ -364,6 +391,7 @@ async function applyGroupIngredientBackfill(connection) {
 
 async function applyCraftingStationBackfill(connection) {
   const stationInListSql = buildInListSql(STATION_NAME_MAP);
+  const canonicalStationInListSql = buildInListSql(CANONICAL_STATION_NAME_MAP);
   const [autoResult] = await connection.query(`
     UPDATE crafting_stations cs
     JOIN items i ON i.id = cs.item_id
@@ -385,13 +413,23 @@ async function applyCraftingStationBackfill(connection) {
     UPDATE crafting_stations
     SET
       name_zh = CASE name_en
+        ${buildCaseWhenSql(CANONICAL_STATION_NAME_MAP)}
         ${buildCaseWhenSql(STATION_NAME_MAP)}
         ELSE name_zh
       END,
-      updated_at = NOW()
+      crafting_stations.updated_at = NOW()
     WHERE deleted = 0
-      AND (name_zh IS NULL OR TRIM(name_zh) = '')
       AND name_en IN (${stationInListSql})
+      AND (
+        (name_zh IS NULL OR TRIM(name_zh) = '')
+        OR (
+          name_en IN (${canonicalStationInListSql})
+          AND TRIM(name_zh) <> CASE name_en
+            ${buildCaseWhenSql(CANONICAL_STATION_NAME_MAP)}
+            ELSE TRIM(name_zh)
+          END
+        )
+      )
   `);
 
   return Number(autoResult?.affectedRows ?? 0) + Number(dictionaryResult?.affectedRows ?? 0);
@@ -417,37 +455,74 @@ async function applyIngredientBackfill(connection) {
 
 async function applyStationBackfill(connection) {
   const stationInListSql = buildInListSql(STATION_NAME_MAP);
+  const canonicalStationInListSql = buildInListSql(CANONICAL_STATION_NAME_MAP);
   const [linkedResult] = await connection.query(`
     UPDATE recipe_stations rs
     LEFT JOIN items i ON i.id = rs.station_item_id
     LEFT JOIN crafting_stations cs ON cs.id = rs.station_id
     SET
-      rs.station_name_raw = COALESCE(NULLIF(TRIM(i.name_zh), ''), NULLIF(TRIM(cs.name_zh), '')),
+      rs.station_name_raw = COALESCE(NULLIF(TRIM(cs.name_zh), ''), NULLIF(TRIM(i.name_zh), '')),
       rs.updated_at = NOW()
-    WHERE COALESCE(NULLIF(TRIM(i.name_zh), ''), NULLIF(TRIM(cs.name_zh), '')) IS NOT NULL
+    WHERE COALESCE(NULLIF(TRIM(cs.name_zh), ''), NULLIF(TRIM(i.name_zh), '')) IS NOT NULL
       AND (
         rs.station_name_raw IS NULL
         OR TRIM(rs.station_name_raw) = ''
-        OR TRIM(rs.station_name_raw) <> COALESCE(NULLIF(TRIM(i.name_zh), ''), NULLIF(TRIM(cs.name_zh), ''))
+        OR TRIM(rs.station_name_raw) <> COALESCE(NULLIF(TRIM(cs.name_zh), ''), NULLIF(TRIM(i.name_zh), ''))
       )
   `);
 
   const [dictionaryResult] = await connection.query(`
-    UPDATE recipe_stations
+    UPDATE recipe_stations rs
+    LEFT JOIN crafting_stations cs ON cs.id = rs.station_id
     SET
-      station_name_raw = CASE station_name_raw
-        ${buildCaseWhenSql(STATION_NAME_MAP)}
-        ELSE station_name_raw
+      station_name_raw = CASE
+        WHEN cs.name_en IS NOT NULL THEN CASE cs.name_en
+          ${buildCaseWhenSql(CANONICAL_STATION_NAME_MAP)}
+          ${buildCaseWhenSql(STATION_NAME_MAP)}
+          ELSE rs.station_name_raw
+        END
+        ELSE CASE rs.station_name_raw
+          ${buildCaseWhenSql(STATION_NAME_MAP)}
+          ELSE rs.station_name_raw
+        END
       END,
-      updated_at = NOW()
-    WHERE station_name_raw IN (${stationInListSql})
-      AND station_name_raw <> CASE station_name_raw
-        ${buildCaseWhenSql(STATION_NAME_MAP)}
-        ELSE station_name_raw
+      rs.updated_at = NOW()
+    WHERE (
+        cs.name_en IN (${stationInListSql})
+        OR rs.station_name_raw IN (${stationInListSql})
+      )
+      AND TRIM(rs.station_name_raw) <> CASE
+        WHEN cs.name_en IS NOT NULL THEN CASE cs.name_en
+          ${buildCaseWhenSql(CANONICAL_STATION_NAME_MAP)}
+          ${buildCaseWhenSql(STATION_NAME_MAP)}
+          ELSE TRIM(rs.station_name_raw)
+        END
+        ELSE CASE rs.station_name_raw
+          ${buildCaseWhenSql(STATION_NAME_MAP)}
+          ELSE TRIM(rs.station_name_raw)
+        END
       END
   `);
 
-  return Number(linkedResult?.affectedRows ?? 0) + Number(dictionaryResult?.affectedRows ?? 0);
+  const [canonicalResult] = await connection.query(`
+    UPDATE recipe_stations rs
+    JOIN crafting_stations cs ON cs.id = rs.station_id
+    SET
+      rs.station_name_raw = CASE cs.name_en
+        ${buildCaseWhenSql(CANONICAL_STATION_NAME_MAP)}
+        ELSE rs.station_name_raw
+      END,
+      rs.updated_at = NOW()
+    WHERE cs.name_en IN (${canonicalStationInListSql})
+      AND TRIM(rs.station_name_raw) <> CASE cs.name_en
+        ${buildCaseWhenSql(CANONICAL_STATION_NAME_MAP)}
+        ELSE TRIM(rs.station_name_raw)
+      END
+  `);
+
+  return Number(linkedResult?.affectedRows ?? 0)
+    + Number(dictionaryResult?.affectedRows ?? 0)
+    + Number(canonicalResult?.affectedRows ?? 0);
 }
 
 function resolveDefaultDatabaseName() {

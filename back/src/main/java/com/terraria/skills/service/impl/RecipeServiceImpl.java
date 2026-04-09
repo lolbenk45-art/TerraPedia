@@ -45,6 +45,13 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class RecipeServiceImpl implements RecipeService {
 
+    private static final List<String> RECIPE_PROVIDER_PRIORITY = List.of(
+        "manual_admin",
+        "wiki_gg",
+        "wiki_gg_zh_reference",
+        "wiki_zh"
+    );
+
     private final RecipeMapper recipeMapper;
     private final RecipeIngredientMapper recipeIngredientMapper;
     private final RecipeStationMapper recipeStationMapper;
@@ -56,10 +63,10 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Override
     public List<RecipeDTO> getRecipesByResultItemId(Long itemId) {
-        List<Recipe> recipes = recipeMapper.selectList(new LambdaQueryWrapper<Recipe>()
+        List<Recipe> recipes = selectPreferredProviderRecipes(recipeMapper.selectList(new LambdaQueryWrapper<Recipe>()
             .eq(Recipe::getResultItemId, itemId)
             .eq(Recipe::getStatus, 1)
-            .orderByAsc(Recipe::getSortOrder, Recipe::getId));
+            .orderByAsc(Recipe::getSortOrder, Recipe::getId)));
 
         if (recipes == null || recipes.isEmpty()) {
             return Collections.emptyList();
@@ -227,6 +234,24 @@ public class RecipeServiceImpl implements RecipeService {
         }
 
         return getRecipesByResultItemId(itemId);
+    }
+
+    private List<Recipe> selectPreferredProviderRecipes(List<Recipe> recipes) {
+        if (recipes == null || recipes.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        String preferredProvider = recipes.stream()
+            .filter(Objects::nonNull)
+            .map(Recipe::getSourceProvider)
+            .map(this::normalizeRecipeProvider)
+            .min(this::compareRecipeProviders)
+            .orElse("");
+
+        return recipes.stream()
+            .filter(Objects::nonNull)
+            .filter(recipe -> Objects.equals(normalizeRecipeProvider(recipe.getSourceProvider()), preferredProvider))
+            .toList();
     }
 
     private boolean matchesScopeMode(String versionScope, String scopeMode) {
@@ -427,6 +452,25 @@ public class RecipeServiceImpl implements RecipeService {
     private String defaultIfBlank(String value, String fallback) {
         String trimmed = trimToNull(value);
         return trimmed == null ? fallback : trimmed;
+    }
+
+    private int compareRecipeProviders(String left, String right) {
+        int leftRank = providerRank(left);
+        int rightRank = providerRank(right);
+        if (leftRank != rightRank) {
+            return Integer.compare(leftRank, rightRank);
+        }
+        return normalizeRecipeProvider(left).compareTo(normalizeRecipeProvider(right));
+    }
+
+    private int providerRank(String provider) {
+        int index = RECIPE_PROVIDER_PRIORITY.indexOf(normalizeRecipeProvider(provider));
+        return index >= 0 ? index : RECIPE_PROVIDER_PRIORITY.size() + 1;
+    }
+
+    private String normalizeRecipeProvider(String provider) {
+        String trimmed = trimToNull(provider);
+        return trimmed == null ? "" : trimmed;
     }
 
     private Integer resolveSortOrder(Integer explicitSortOrder, int index) {

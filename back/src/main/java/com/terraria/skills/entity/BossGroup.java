@@ -40,6 +40,9 @@ public class BossGroup implements Serializable {
     @TableField("notes")
     private String notes;
 
+    @TableField("summon_method")
+    private String summonMethod;
+
     @TableField("source_page")
     private String sourcePage;
 

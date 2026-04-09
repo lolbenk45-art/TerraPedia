@@ -109,7 +109,7 @@
         <div class="boss-browser__head">
           <div>
             <h2 class="section-card__title">Boss 图谱</h2>
-            <p class="section-card__subtitle">按基础分类查看真实 Boss 主图，点开详情可检查成员 NPC、部件归组和组合 Boss 引用关系。</p>
+            <p class="section-card__subtitle">按基础分类查看真实 Boss 主图，点开详情可检查召唤方式、成员 NPC、部件归组和组合 Boss 引用关系。</p>
           </div>
           <div class="table-card__summary">
             <span>{{ displayRows.length }} 条可见</span>
@@ -149,6 +149,10 @@
               <div class="boss-card__heading">
                 <h3>{{ getDisplayTitle(row) }}</h3>
                 <p>{{ getBossCardSubtitle(row) }}</p>
+              </div>
+              <div class="boss-card__summon">
+                <span class="boss-card__section-label">召唤方式</span>
+                <p>{{ getBossSummonSummary(row) }}</p>
               </div>
               <p class="boss-card__note">{{ getBossCardNote(row) }}</p>
               <div class="boss-card__meta">
@@ -503,9 +507,40 @@
             </div>
           </section>
 
+          <section class="boss-detail__section boss-detail__section--primary">
+            <div class="boss-detail__section-head">
+              <div class="boss-detail__section-heading">
+                <span class="boss-detail__section-kicker">主要信息</span>
+                <h4>召唤与档案说明</h4>
+              </div>
+              <span>{{ detailRow.sourcePage ? 'Wiki 来源已挂接' : '本地维护说明' }}</span>
+            </div>
+            <div class="boss-detail__primary-grid">
+              <article class="boss-detail__feature-card boss-detail__feature-card--accent">
+                <span class="boss-detail__feature-label">召唤方式</span>
+                <p>{{ getBossSummonMethod(detailRow) || '当前还没有补充召唤方式。' }}</p>
+              </article>
+              <article class="boss-detail__feature-card">
+                <span class="boss-detail__feature-label">Boss Notes</span>
+                <p>{{ detailRow.notes || '当前还没有补充档案说明。' }}</p>
+              </article>
+              <article v-if="detailRow.sourcePage" class="boss-detail__meta-card">
+                <span class="boss-detail__feature-label">Source Page</span>
+                <p>{{ detailRow.sourcePage }}</p>
+              </article>
+              <article v-if="detailRow.sourceRevisionTimestamp" class="boss-detail__meta-card">
+                <span class="boss-detail__feature-label">Source Revision</span>
+                <p>{{ formatDateTime(detailRow.sourceRevisionTimestamp) }}</p>
+              </article>
+            </div>
+          </section>
+
           <section v-if="bossDetailMemberGroups.length" class="boss-detail__section">
             <div class="boss-detail__section-head">
-              <h4>{{ bossMemberSectionTitle }}</h4>
+              <div class="boss-detail__section-heading">
+                <span class="boss-detail__section-kicker">结构信息</span>
+                <h4>{{ bossMemberSectionTitle }}</h4>
+              </div>
               <span>{{ bossDetailMembers.length }} 条</span>
             </div>
             <p class="boss-detail__helper">{{ bossMemberSectionHelper }}</p>
@@ -539,9 +574,12 @@
             </div>
           </section>
 
-          <section v-if="bossLootOwner || bossLootGroups.length" class="boss-detail__section">
+          <section v-if="bossLootOwner || bossLootGroups.length" class="boss-detail__section boss-detail__section--secondary">
             <div class="boss-detail__section-head">
-              <h4>Boss 掉落</h4>
+              <div class="boss-detail__section-heading">
+                <span class="boss-detail__section-kicker">次要信息</span>
+                <h4>Boss 掉落参考</h4>
+              </div>
               <span>{{ bossLootEntries.length }} 条</span>
             </div>
             <p class="boss-detail__helper">{{ bossLootSectionHelper }}</p>
@@ -594,27 +632,6 @@
                   </article>
                 </div>
               </section>
-            </div>
-          </section>
-
-          <section class="boss-detail__section">
-            <div class="boss-detail__section-head">
-              <h4>档案说明</h4>
-              <span>{{ detailRow.sourcePage ? 'Wiki 来源' : '本地档案' }}</span>
-            </div>
-            <div class="projectile-detail__note-grid">
-              <article v-if="detailRow.notes" class="preview-note">
-                <strong>Boss Notes</strong>
-                <p>{{ detailRow.notes }}</p>
-              </article>
-              <article v-if="detailRow.sourcePage" class="preview-note">
-                <strong>Source Page</strong>
-                <p>{{ detailRow.sourcePage }}</p>
-              </article>
-              <article v-if="detailRow.sourceRevisionTimestamp" class="preview-note">
-                <strong>Source Revision</strong>
-                <p>{{ formatDateTime(detailRow.sourceRevisionTimestamp) }}</p>
-              </article>
             </div>
           </section>
         </div>
@@ -1216,6 +1233,7 @@ const configs: Record<string, EntityConfig> = {
       { key: 'imageUrl', label: 'Image URL', type: 'text', span: 'full' },
       { key: 'progressionOrder', label: 'Progression Order', type: 'number' },
       { key: 'status', label: 'Status', type: 'number' },
+      { key: 'summonMethod', label: '召唤方式', type: 'textarea', span: 'full', rows: 4, helper: '可直接补充召唤物、触发条件和事件波次；留空时页面会按 Boss Code 使用内置规则兜底。' },
       { key: 'notes', label: 'Notes', type: 'textarea', span: 'full', rows: 4 },
       { key: 'sourcePage', label: 'Source Page', type: 'text', span: 'full' },
       { key: 'sourceRevisionTimestamp', label: 'Source Revision Timestamp', type: 'text', span: 'full' },
@@ -1436,6 +1454,7 @@ function matchesBossSearch(row: Record<string, any>) {
     row.nameEn,
     row.name,
     row.code,
+    row.summonMethod,
     row.notes,
     row.lootOwnerNpcName,
     Array.isArray(row.memberNames) ? row.memberNames.join(' ') : '',
@@ -1483,7 +1502,7 @@ const tableCardSubtitle = computed(() => {
     return '射弹页面已切换为中英双语浏览，补充内部标识、行为标签和碰撞信息。'
   }
   if (entityType.value === 'bosses') {
-    return 'Boss 表格继续承担编辑入口，同时在详情里核对主成员 NPC 与掉落归属。'
+    return 'Boss 表格继续承担编辑入口，同时在详情里核对召唤方式、主成员 NPC 与掉落归属。'
   }
   return '中文优先展示，同时保留英文参考字段与原子字段。'
 })
@@ -1492,6 +1511,23 @@ function getBossCardSubtitle(row: Record<string, any>) {
   const en = row.nameEn && row.nameEn !== row.nameZh ? row.nameEn : ''
   const pieces = [en, row.code].filter(Boolean)
   return pieces.join(' · ') || getBossTypeLabel(row.bossType)
+}
+
+function getBossSummonMethod(row: Record<string, any> | null | undefined) {
+  if (!row || typeof row.summonMethod !== 'string') return ''
+  return row.summonMethod.trim()
+}
+
+function summarizeBossText(text: string, maxLength = 120) {
+  const normalized = text.trim()
+  if (!normalized) return ''
+  return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}...` : normalized
+}
+
+function getBossSummonSummary(row: Record<string, any> | null | undefined, maxLength = 110) {
+  const text = getBossSummonMethod(row)
+  if (!text) return '当前还没有补充召唤方式。'
+  return summarizeBossText(text, maxLength)
 }
 
 function getBossCardNote(row: Record<string, any>) {
@@ -2223,6 +2259,8 @@ const previewStats = computed(() => {
 })
 const previewNotes = computed(() => {
   const entries = [
+    ['召唤方式', entityType.value === 'bosses' ? getBossSummonMethod(previewRow.value) : ''],
+    ['Boss Notes', entityType.value === 'bosses' ? previewRow.value.notes : ''],
     ['中文名', entityType.value === 'projectiles' ? getProjectileNameZh(previewRow.value) : ''],
     ['English Name', entityType.value === 'projectiles' ? getProjectileNameEn(previewRow.value) : ''],
     ['英文提示', previewRow.value.tooltipEn],
@@ -2547,6 +2585,27 @@ function guessArmorItemGroup(item: Record<string, any>) {
 .boss-card__pills,.boss-detail__member-pills { display: flex; gap: 8px; flex-wrap: wrap; }
 .boss-card__heading { display: grid; gap: 4px; }
 .boss-card__heading h3 { margin: 0; color: var(--color-text); font-size: 1.1rem; }
+.boss-card__summon {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-border));
+  background: color-mix(in srgb, var(--color-bg-tertiary) 88%, transparent);
+}
+.boss-card__section-label {
+  color: var(--color-primary);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.boss-card__summon p {
+  margin: 0;
+  color: var(--color-text);
+  line-height: 1.6;
+  font-size: 0.84rem;
+}
 .boss-card__heading p,.boss-card__meta span,.boss-card__note { color: var(--color-text-secondary); }
 .boss-card__note { margin: 0; line-height: 1.6; font-size: 0.85rem; min-height: 4.8em; }
 .boss-card__meta { display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.8rem; }
@@ -2687,11 +2746,71 @@ function guessArmorItemGroup(item: Record<string, any>) {
 .boss-detail__body h3 { margin: 0; color: var(--color-text); font-size: 1.4rem; }
 .boss-detail__body p { margin: 0; color: var(--color-text-secondary); line-height: 1.6; }
 .boss-detail__section { display: grid; gap: 14px; }
+.boss-detail__section--primary {
+  padding: 18px;
+  border-radius: var(--radius-xl);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-border));
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--color-primary) 10%, transparent), transparent 42%),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg-secondary) 96%, transparent), var(--color-bg-secondary));
+}
+.boss-detail__section--secondary {
+  padding: 16px 18px 18px;
+  border-radius: var(--radius-xl);
+  border: 1px dashed color-mix(in srgb, var(--color-border) 92%, transparent);
+  background: color-mix(in srgb, var(--color-bg-secondary) 78%, transparent);
+}
 .boss-detail__section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .boss-detail__section-head h4,.boss-detail__section-head strong { margin: 0; color: var(--color-text); }
 .boss-detail__section-head span { color: var(--color-text-secondary); font-size: 0.84rem; }
+.boss-detail__section-heading { display: grid; gap: 4px; }
+.boss-detail__section-kicker {
+  color: var(--color-primary);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 .boss-detail__section-head--sub { padding-bottom: 6px; border-bottom: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent); }
 .boss-detail__helper { margin: 0; color: var(--color-text-secondary); font-size: 0.84rem; line-height: 1.6; }
+.boss-detail__primary-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 14px;
+}
+.boss-detail__feature-card,
+.boss-detail__meta-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-bg) 52%, var(--color-bg-secondary));
+}
+.boss-detail__feature-card--accent {
+  border-color: color-mix(in srgb, var(--color-primary) 34%, var(--color-border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 10%, transparent), transparent 55%),
+    color-mix(in srgb, var(--color-bg) 35%, var(--color-bg-secondary));
+}
+.boss-detail__feature-label {
+  color: var(--color-primary);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.boss-detail__feature-card p,
+.boss-detail__meta-card p {
+  margin: 0;
+  color: var(--color-text);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+.boss-detail__feature-card--accent p {
+  font-size: 1rem;
+  line-height: 1.8;
+}
 .boss-detail__group-list { display: grid; gap: 18px; }
 .boss-detail__group {
   display: grid;
@@ -2736,20 +2855,20 @@ function guessArmorItemGroup(item: Record<string, any>) {
   border: 1px solid var(--color-border);
   background: color-mix(in srgb, var(--color-bg-secondary) 90%, transparent);
 }
-.boss-detail__loot-groups,.boss-detail__loot-list { display: grid; gap: 18px; }
-.boss-detail__loot-list { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.boss-detail__loot-groups,.boss-detail__loot-list { display: grid; gap: 16px; }
+.boss-detail__loot-list { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; }
 .boss-detail__loot-card {
   display: grid;
-  gap: 10px;
-  padding: 12px;
+  gap: 8px;
+  padding: 10px;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-  background: color-mix(in srgb, var(--color-bg-secondary) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 92%, transparent);
+  background: color-mix(in srgb, var(--color-bg-secondary) 86%, transparent);
 }
 .boss-detail__loot-media {
   width: 100%;
-  min-height: 128px;
-  max-height: 152px;
+  min-height: 88px;
+  max-height: 100px;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: color-mix(in srgb, var(--color-bg-tertiary) 92%, transparent);
@@ -2769,27 +2888,40 @@ function guessArmorItemGroup(item: Record<string, any>) {
 }
 .boss-detail__loot-image,.boss-detail__loot-fallback {
   width: 100%;
-  min-height: 128px;
-  max-height: 152px;
+  min-height: 76px;
+  max-height: 88px;
   object-fit: contain;
   display: grid;
   place-items: center;
 }
-.boss-detail__loot-body { display: grid; gap: 4px; }
-.boss-detail__loot-body strong { color: var(--color-text); }
-.boss-detail__loot-body span { color: var(--color-text-secondary); font-size: 0.82rem; }
+.boss-detail__loot-body { display: grid; gap: 3px; }
+.boss-detail__loot-body .boss-detail__member-pills { gap: 6px; }
+.boss-detail__loot-body strong {
+  color: var(--color-text);
+  font-size: 0.98rem;
+  line-height: 1.35;
+}
+.boss-detail__loot-body span {
+  color: var(--color-text-secondary);
+  font-size: 0.77rem;
+  line-height: 1.45;
+}
+.boss-detail__loot-body .btn-link {
+  margin-top: 2px;
+  font-size: 0.82rem;
+}
 .boss-detail__loot-mode-list { display: grid; gap: 8px; }
 .boss-detail__loot-mode {
   display: grid;
   gap: 2px;
-  padding: 8px 10px;
+  padding: 7px 8px;
   border-radius: var(--radius-md);
   border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-border));
   background: color-mix(in srgb, var(--color-bg-tertiary) 88%, transparent);
 }
 .boss-detail__loot-mode strong {
   color: var(--color-primary);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   letter-spacing: 0.04em;
 }
 .projectile-detail { display: grid; gap: 20px; padding: 24px; }
@@ -2840,6 +2972,7 @@ function guessArmorItemGroup(item: Record<string, any>) {
 @media (max-width: 1080px) {
   .toolbar,.editor-layout { grid-template-columns: 1fr; }
   .armor-detail__hero,.boss-detail__hero,.projectile-detail__hero { grid-template-columns: 1fr; }
+  .boss-detail__primary-grid { grid-template-columns: 1fr; }
   .armor-detail__wear-layout { grid-template-columns: 1fr; }
   .projectile-detail--buff .projectile-detail__hero { grid-template-columns: 1fr; }
   .projectile-detail--buff .projectile-detail__media { min-height: 160px; }
@@ -2849,10 +2982,14 @@ function guessArmorItemGroup(item: Record<string, any>) {
   .entity-hero__stats,.form-grid,.preview-stats { grid-template-columns: 1fr; }
   .boss-type-strip,.boss-type-grid,.boss-gallery,.boss-detail__member-grid { grid-template-columns: 1fr; }
   .projectile-detail__lang-grid,.projectile-detail__chip-grid,.projectile-detail__note-grid { grid-template-columns: 1fr; }
+  .boss-detail__loot-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .toolbar__actions,.table-card__head,.preview-card__head,.preview-json__head,.boss-browser__head,.boss-detail__section-head { flex-direction: column; align-items: flex-start; }
   .filter-chip { width: 100%; min-width: 0; }
   .projectile-detail--buff .armor-detail__item-image,
   .projectile-detail--buff .armor-detail__item-fallback { min-height: 92px; max-height: 108px; }
+}
+@media (max-width: 560px) {
+  .boss-detail__loot-list { grid-template-columns: 1fr; }
 }
 </style>
 
