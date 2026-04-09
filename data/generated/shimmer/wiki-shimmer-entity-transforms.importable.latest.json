@@ -1,6 +1,6 @@
 {
   "entity": "wiki_shimmer_entity_transforms_importable",
-  "generatedAt": "2026-04-09T00:34:56.477Z",
+  "generatedAt": "2026-04-09T01:52:13.267Z",
   "sourceProvider": "wiki_zh",
   "sourceFile": "data/generated/wiki-shimmer.latest.json",
   "records": [
@@ -9,28 +9,6 @@
       "transformGroup": "critter_to_item",
       "input": {
         "kind": "npc",
-        "nameZh": "放入",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "output": {
-        "kind": "item",
-        "nameZh": "产生",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "sourceSection": "嬗变为物品的小动物",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_entity_transform_0002",
-      "transformGroup": "critter_to_item",
-      "input": {
-        "kind": "ambiguous",
         "nameZh": "金蠕虫",
         "nameEn": "Gold Worm",
         "internalName": null,
@@ -49,12 +27,12 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0003",
+      "code": "shimmer_entity_transform_0002",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "unresolved",
+        "kind": "npc",
         "nameZh": "紫晶松鼠",
-        "nameEn": null,
+        "nameEn": "Gem Squirrels",
         "internalName": null,
         "quantityText": null
       },
@@ -71,10 +49,10 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0004",
+      "code": "shimmer_entity_transform_0003",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "unresolved",
+        "kind": "npc",
         "nameZh": "黄玉松鼠",
         "nameEn": null,
         "internalName": null,
@@ -93,10 +71,10 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0005",
+      "code": "shimmer_entity_transform_0004",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "unresolved",
+        "kind": "npc",
         "nameZh": "蓝玉松鼠",
         "nameEn": null,
         "internalName": null,
@@ -115,10 +93,10 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0006",
+      "code": "shimmer_entity_transform_0005",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "unresolved",
+        "kind": "npc",
         "nameZh": "翡翠松鼠",
         "nameEn": null,
         "internalName": null,
@@ -137,12 +115,12 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0007",
+      "code": "shimmer_entity_transform_0006",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "unresolved",
+        "kind": "npc",
         "nameZh": "红玉松鼠",
-        "nameEn": null,
+        "nameEn": "Gem Squirrels",
         "internalName": null,
         "quantityText": null
       },
@@ -159,10 +137,10 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0008",
+      "code": "shimmer_entity_transform_0007",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "unresolved",
+        "kind": "npc",
         "nameZh": "钻石松鼠",
         "nameEn": null,
         "internalName": null,
@@ -181,12 +159,12 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0009",
+      "code": "shimmer_entity_transform_0008",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "unresolved",
+        "kind": "npc",
         "nameZh": "琥珀松鼠",
-        "nameEn": null,
+        "nameEn": "Gem Squirrels",
         "internalName": null,
         "quantityText": null
       },
@@ -203,10 +181,10 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0010",
+      "code": "shimmer_entity_transform_0009",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "unresolved",
+        "kind": "npc",
         "nameZh": "紫晶兔兔",
         "nameEn": null,
         "internalName": null,
@@ -225,12 +203,12 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0011",
+      "code": "shimmer_entity_transform_0010",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "unresolved",
+        "kind": "npc",
         "nameZh": "黄玉兔兔",
-        "nameEn": null,
+        "nameEn": "Gem Bunnies",
         "internalName": null,
         "quantityText": null
       },
@@ -247,10 +225,10 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0012",
+      "code": "shimmer_entity_transform_0011",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "unresolved",
+        "kind": "npc",
         "nameZh": "蓝玉兔兔",
         "nameEn": null,
         "internalName": null,
@@ -269,10 +247,10 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0013",
+      "code": "shimmer_entity_transform_0012",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "unresolved",
+        "kind": "npc",
         "nameZh": "翡翠兔兔",
         "nameEn": null,
         "internalName": null,
@@ -291,12 +269,12 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0014",
+      "code": "shimmer_entity_transform_0013",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "unresolved",
+        "kind": "npc",
         "nameZh": "红玉兔兔",
-        "nameEn": null,
+        "nameEn": "Gem Bunnies",
         "internalName": null,
         "quantityText": null
       },
@@ -313,10 +291,10 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0015",
+      "code": "shimmer_entity_transform_0014",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "unresolved",
+        "kind": "npc",
         "nameZh": "钻石兔兔",
         "nameEn": null,
         "internalName": null,
@@ -335,12 +313,12 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0016",
+      "code": "shimmer_entity_transform_0015",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "unresolved",
+        "kind": "npc",
         "nameZh": "琥珀兔兔",
-        "nameEn": null,
+        "nameEn": "Gem Bunnies",
         "internalName": null,
         "quantityText": null
       },
@@ -357,29 +335,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0017",
-      "transformGroup": "enemy_transforms",
-      "input": {
-        "kind": "npc",
-        "nameZh": "放入",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "output": {
-        "kind": "npc",
-        "nameZh": "产生",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "sourceSection": "嬗变为物品的小动物",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_entity_transform_0018",
+      "code": "shimmer_entity_transform_0016",
       "transformGroup": "enemy_transforms",
       "input": {
         "kind": "npc",
@@ -401,13 +357,57 @@
       "sourcePageId": 26209
     },
     {
+      "code": "shimmer_entity_transform_0017",
+      "transformGroup": "enemy_transforms",
+      "input": {
+        "kind": "npc",
+        "nameZh": "史莱姆僵尸",
+        "nameEn": "Zombie",
+        "internalName": "BigRainZombie",
+        "quantityText": null
+      },
+      "output": {
+        "kind": "npc",
+        "nameZh": "骷髅",
+        "nameEn": "Skeleton",
+        "internalName": "BigPantlessSkeleton",
+        "quantityText": null
+      },
+      "sourceSection": "嬗变为物品的小动物",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_entity_transform_0018",
+      "transformGroup": "enemy_transforms",
+      "input": {
+        "kind": "npc",
+        "nameZh": "沼泽僵尸",
+        "nameEn": "Swamp Zombie",
+        "internalName": "SwampZombie",
+        "quantityText": null
+      },
+      "output": {
+        "kind": "npc",
+        "nameZh": "骷髅",
+        "nameEn": "Skeleton",
+        "internalName": "BigPantlessSkeleton",
+        "quantityText": null
+      },
+      "sourceSection": "嬗变为物品的小动物",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
       "code": "shimmer_entity_transform_0019",
       "transformGroup": "enemy_transforms",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "史莱姆僵尸",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "火把僵尸",
+        "nameEn": "Zombie",
+        "internalName": "BigRainZombie",
         "quantityText": null
       },
       "output": {
@@ -426,15 +426,15 @@
       "code": "shimmer_entity_transform_0020",
       "transformGroup": "enemy_transforms",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "沼泽僵尸",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "中箭僵尸",
+        "nameEn": "Pincushion Zombie",
+        "internalName": "PincushionZombie",
         "quantityText": null
       },
       "output": {
         "kind": "npc",
-        "nameZh": "骷髅",
+        "nameZh": "头痛骷髅",
         "nameEn": "Skeleton",
         "internalName": "BigPantlessSkeleton",
         "quantityText": null
@@ -448,17 +448,17 @@
       "code": "shimmer_entity_transform_0021",
       "transformGroup": "enemy_transforms",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "火把僵尸",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "秃头僵尸",
+        "nameEn": "Bald Zombie",
+        "internalName": "BaldZombie",
         "quantityText": null
       },
       "output": {
         "kind": "npc",
-        "nameZh": "骷髅",
-        "nameEn": "Skeleton",
-        "internalName": "BigPantlessSkeleton",
+        "nameZh": "畸形骷髅",
+        "nameEn": "Misassembled Skeleton",
+        "internalName": "MisassembledSkeleton",
         "quantityText": null
       },
       "sourceSection": "嬗变为物品的小动物",
@@ -470,17 +470,17 @@
       "code": "shimmer_entity_transform_0022",
       "transformGroup": "enemy_transforms",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "中箭僵尸",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "纤瘦僵尸",
+        "nameEn": "Twiggy Zombie",
+        "internalName": "TwiggyZombie",
         "quantityText": null
       },
       "output": {
-        "kind": "unresolved",
-        "nameZh": "头痛骷髅",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "畸形骷髅",
+        "nameEn": "Misassembled Skeleton",
+        "internalName": "MisassembledSkeleton",
         "quantityText": null
       },
       "sourceSection": "嬗变为物品的小动物",
@@ -492,17 +492,17 @@
       "code": "shimmer_entity_transform_0023",
       "transformGroup": "enemy_transforms",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "秃头僵尸",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "女性僵尸",
+        "nameEn": "Female Zombie",
+        "internalName": "FemaleZombie",
         "quantityText": null
       },
       "output": {
-        "kind": "unresolved",
-        "nameZh": "畸形骷髅",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "无裤骷髅",
+        "nameEn": "Pantless Skeleton",
+        "internalName": "PantlessSkeleton",
         "quantityText": null
       },
       "sourceSection": "嬗变为物品的小动物",
@@ -514,17 +514,17 @@
       "code": "shimmer_entity_transform_0024",
       "transformGroup": "enemy_transforms",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "纤瘦僵尸",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "武装僵尸",
+        "nameEn": "Armed Zombie",
+        "internalName": "ArmedZombie",
         "quantityText": null
       },
       "output": {
-        "kind": "unresolved",
-        "nameZh": "畸形骷髅",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "骨头投掷骷髅",
+        "nameEn": "Skeleton",
+        "internalName": "BigPantlessSkeleton",
         "quantityText": null
       },
       "sourceSection": "嬗变为物品的小动物",
@@ -536,17 +536,17 @@
       "code": "shimmer_entity_transform_0025",
       "transformGroup": "enemy_transforms",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "女性僵尸",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "武装史莱姆僵尸",
+        "nameEn": "Armed Slimed Zombie",
+        "internalName": "ArmedZombieSlimed",
         "quantityText": null
       },
       "output": {
-        "kind": "unresolved",
-        "nameZh": "无裤骷髅",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "骨头投掷骷髅",
+        "nameEn": "Skeleton",
+        "internalName": "BigPantlessSkeleton",
         "quantityText": null
       },
       "sourceSection": "嬗变为物品的小动物",
@@ -558,17 +558,17 @@
       "code": "shimmer_entity_transform_0026",
       "transformGroup": "enemy_transforms",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "武装僵尸",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "武装沼泽僵尸",
+        "nameEn": "Armed Swamp Zombie",
+        "internalName": "ArmedZombieSwamp",
         "quantityText": null
       },
       "output": {
-        "kind": "unresolved",
+        "kind": "npc",
         "nameZh": "骨头投掷骷髅",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Skeleton",
+        "internalName": "BigPantlessSkeleton",
         "quantityText": null
       },
       "sourceSection": "嬗变为物品的小动物",
@@ -580,17 +580,17 @@
       "code": "shimmer_entity_transform_0027",
       "transformGroup": "enemy_transforms",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "武装史莱姆僵尸",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "武装火把僵尸",
+        "nameEn": "Armed Torch Zombie",
+        "internalName": "ArmedTorchZombie",
         "quantityText": null
       },
       "output": {
-        "kind": "unresolved",
+        "kind": "npc",
         "nameZh": "骨头投掷骷髅",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Skeleton",
+        "internalName": "BigPantlessSkeleton",
         "quantityText": null
       },
       "sourceSection": "嬗变为物品的小动物",
@@ -602,17 +602,17 @@
       "code": "shimmer_entity_transform_0028",
       "transformGroup": "enemy_transforms",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "武装沼泽僵尸",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "武装中箭僵尸",
+        "nameEn": "Armed Pincushion Zombie",
+        "internalName": "ArmedZombiePincussion",
         "quantityText": null
       },
       "output": {
-        "kind": "unresolved",
-        "nameZh": "骨头投掷骷髅",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "骨头投掷头痛骷髅",
+        "nameEn": "Bone Throwing Skeleton",
+        "internalName": "BoneThrowingSkeleton2",
         "quantityText": null
       },
       "sourceSection": "嬗变为物品的小动物",
@@ -624,17 +624,17 @@
       "code": "shimmer_entity_transform_0029",
       "transformGroup": "enemy_transforms",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "武装火把僵尸",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "武装纤瘦僵尸",
+        "nameEn": "Zombie",
+        "internalName": "BigRainZombie",
         "quantityText": null
       },
       "output": {
-        "kind": "unresolved",
-        "nameZh": "骨头投掷骷髅",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "骨头投掷畸形骷髅",
+        "nameEn": "Bone Throwing Skeleton",
+        "internalName": "BoneThrowingSkeleton3",
         "quantityText": null
       },
       "sourceSection": "嬗变为物品的小动物",
@@ -646,17 +646,17 @@
       "code": "shimmer_entity_transform_0030",
       "transformGroup": "enemy_transforms",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "武装中箭僵尸",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "武装女性僵尸",
+        "nameEn": "Zombie",
+        "internalName": "BigRainZombie",
         "quantityText": null
       },
       "output": {
-        "kind": "unresolved",
-        "nameZh": "骨头投掷头痛骷髅",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "骨头投掷无裤骷髅",
+        "nameEn": "Skeleton",
+        "internalName": "BigPantlessSkeleton",
         "quantityText": null
       },
       "sourceSection": "嬗变为物品的小动物",
@@ -666,19 +666,19 @@
     },
     {
       "code": "shimmer_entity_transform_0031",
-      "transformGroup": "enemy_transforms",
+      "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "武装纤瘦僵尸",
-        "nameEn": null,
+        "kind": "npc",
+        "nameZh": "爆炸兔",
+        "nameEn": "Explosive Bunny",
         "internalName": null,
         "quantityText": null
       },
       "output": {
-        "kind": "unresolved",
-        "nameZh": "骨头投掷畸形骷髅",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "飞灵",
+        "nameEn": "Faeling",
+        "internalName": "Shimmerfly",
         "quantityText": null
       },
       "sourceSection": "嬗变为物品的小动物",
@@ -688,19 +688,19 @@
     },
     {
       "code": "shimmer_entity_transform_0032",
-      "transformGroup": "enemy_transforms",
+      "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "武装女性僵尸",
-        "nameEn": null,
+        "kind": "npc",
+        "nameZh": "鸟",
+        "nameEn": "Birds",
         "internalName": null,
         "quantityText": null
       },
       "output": {
-        "kind": "unresolved",
-        "nameZh": "骨头投掷无裤骷髅",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "飞灵",
+        "nameEn": "Faeling",
+        "internalName": "Shimmerfly",
         "quantityText": null
       },
       "sourceSection": "嬗变为物品的小动物",
@@ -712,9 +712,9 @@
       "code": "shimmer_entity_transform_0033",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "爆炸兔",
-        "nameEn": "Explosive Bunny",
+        "kind": "npc",
+        "nameZh": "冠蓝鸦",
+        "nameEn": null,
         "internalName": null,
         "quantityText": null
       },
@@ -734,8 +734,8 @@
       "code": "shimmer_entity_transform_0034",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "鸟",
+        "kind": "npc",
+        "nameZh": "红雀",
         "nameEn": "Birds",
         "internalName": null,
         "quantityText": null
@@ -756,9 +756,9 @@
       "code": "shimmer_entity_transform_0035",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "冠蓝鸦",
-        "nameEn": null,
+        "kind": "npc",
+        "nameZh": "巨嘴鸟",
+        "nameEn": "Toucan",
         "internalName": null,
         "quantityText": null
       },
@@ -778,8 +778,8 @@
       "code": "shimmer_entity_transform_0036",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "红雀",
+        "kind": "npc",
+        "nameZh": "蓝金刚鹦鹉",
         "nameEn": null,
         "internalName": null,
         "quantityText": null
@@ -800,9 +800,9 @@
       "code": "shimmer_entity_transform_0037",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "巨嘴鸟",
-        "nameEn": "Toucan",
+        "kind": "npc",
+        "nameZh": "绯红金刚鹦鹉",
+        "nameEn": "Macaws",
         "internalName": null,
         "quantityText": null
       },
@@ -822,9 +822,9 @@
       "code": "shimmer_entity_transform_0038",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "蓝金刚鹦鹉",
-        "nameEn": null,
+        "kind": "npc",
+        "nameZh": "灰玄凤鹦鹉",
+        "nameEn": "Cockatiels",
         "internalName": null,
         "quantityText": null
       },
@@ -844,8 +844,8 @@
       "code": "shimmer_entity_transform_0039",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "绯红金刚鹦鹉",
+        "kind": "npc",
+        "nameZh": "黄玄凤鹦鹉",
         "nameEn": null,
         "internalName": null,
         "quantityText": null
@@ -866,10 +866,10 @@
       "code": "shimmer_entity_transform_0040",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "灰玄凤鹦鹉",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "野鸭",
+        "nameEn": "Mallard Duck",
+        "internalName": "MallardDuck",
         "quantityText": null
       },
       "output": {
@@ -888,9 +888,9 @@
       "code": "shimmer_entity_transform_0041",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "黄玄凤鹦鹉",
-        "nameEn": null,
+        "kind": "npc",
+        "nameZh": "白鸭",
+        "nameEn": "Ducks",
         "internalName": null,
         "quantityText": null
       },
@@ -910,9 +910,9 @@
       "code": "shimmer_entity_transform_0042",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "野鸭",
-        "nameEn": null,
+        "kind": "npc",
+        "nameZh": "䴙䴘",
+        "nameEn": "Grebe",
         "internalName": null,
         "quantityText": null
       },
@@ -932,9 +932,9 @@
       "code": "shimmer_entity_transform_0043",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "白鸭",
-        "nameEn": null,
+        "kind": "npc",
+        "nameZh": "海鸥",
+        "nameEn": "Seagull",
         "internalName": null,
         "quantityText": null
       },
@@ -954,9 +954,9 @@
       "code": "shimmer_entity_transform_0044",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "䴙䴘",
-        "nameEn": "Grebe",
+        "kind": "npc",
+        "nameZh": "猫头鹰",
+        "nameEn": "Owl",
         "internalName": null,
         "quantityText": null
       },
@@ -976,9 +976,9 @@
       "code": "shimmer_entity_transform_0045",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "海鸥",
-        "nameEn": "Seagull",
+        "kind": "npc",
+        "nameZh": "企鹅",
+        "nameEn": "Penguin",
         "internalName": null,
         "quantityText": null
       },
@@ -998,9 +998,9 @@
       "code": "shimmer_entity_transform_0046",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "猫头鹰",
-        "nameEn": "Owl",
+        "kind": "npc",
+        "nameZh": "兔兔",
+        "nameEn": "Bunny",
         "internalName": null,
         "quantityText": null
       },
@@ -1020,10 +1020,10 @@
       "code": "shimmer_entity_transform_0047",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "企鹅",
-        "nameEn": "Penguin",
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "史莱姆兔兔",
+        "nameEn": "Slime Bunny",
+        "internalName": "BunnySlimed",
         "quantityText": null
       },
       "output": {
@@ -1042,8 +1042,8 @@
       "code": "shimmer_entity_transform_0048",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "兔兔",
+        "kind": "npc",
+        "nameZh": "圣诞兔兔",
         "nameEn": "Bunny",
         "internalName": null,
         "quantityText": null
@@ -1064,9 +1064,9 @@
       "code": "shimmer_entity_transform_0049",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "史莱姆兔兔",
-        "nameEn": null,
+        "kind": "npc",
+        "nameZh": "松鼠",
+        "nameEn": "Squirrels",
         "internalName": null,
         "quantityText": null
       },
@@ -1086,9 +1086,9 @@
       "code": "shimmer_entity_transform_0050",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "圣诞兔兔",
-        "nameEn": null,
+        "kind": "npc",
+        "nameZh": "红松鼠",
+        "nameEn": "Squirrels",
         "internalName": null,
         "quantityText": null
       },
@@ -1108,9 +1108,9 @@
       "code": "shimmer_entity_transform_0051",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "松鼠",
-        "nameEn": "Squirrels",
+        "kind": "npc",
+        "nameZh": "金鱼",
+        "nameEn": "Goldfish",
         "internalName": null,
         "quantityText": null
       },
@@ -1130,51 +1130,7 @@
       "code": "shimmer_entity_transform_0052",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "红松鼠",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "output": {
         "kind": "npc",
-        "nameZh": "飞灵",
-        "nameEn": "Faeling",
-        "internalName": "Shimmerfly",
-        "quantityText": null
-      },
-      "sourceSection": "嬗变为物品的小动物",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_entity_transform_0053",
-      "transformGroup": "critter_to_faeling",
-      "input": {
-        "kind": "ambiguous",
-        "nameZh": "金鱼",
-        "nameEn": "Goldfish",
-        "internalName": null,
-        "quantityText": null
-      },
-      "output": {
-        "kind": "npc",
-        "nameZh": "飞灵",
-        "nameEn": "Faeling",
-        "internalName": "Shimmerfly",
-        "quantityText": null
-      },
-      "sourceSection": "嬗变为物品的小动物",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_entity_transform_0054",
-      "transformGroup": "critter_to_faeling",
-      "input": {
-        "kind": "ambiguous",
         "nameZh": "鳉鱼",
         "nameEn": "Pupfish",
         "internalName": null,
@@ -1193,7 +1149,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0055",
+      "code": "shimmer_entity_transform_0053",
       "transformGroup": "critter_to_faeling",
       "input": {
         "kind": "npc",
@@ -1215,7 +1171,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0056",
+      "code": "shimmer_entity_transform_0054",
       "transformGroup": "critter_to_faeling",
       "input": {
         "kind": "npc",
@@ -1237,10 +1193,10 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0057",
+      "code": "shimmer_entity_transform_0055",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
+        "kind": "npc",
         "nameZh": "海马",
         "nameEn": "Seahorse",
         "internalName": null,
@@ -1259,10 +1215,10 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0058",
+      "code": "shimmer_entity_transform_0056",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
+        "kind": "npc",
         "nameZh": "青蛙",
         "nameEn": "Frog",
         "internalName": null,
@@ -1281,7 +1237,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0059",
+      "code": "shimmer_entity_transform_0057",
       "transformGroup": "critter_to_faeling",
       "input": {
         "kind": "npc",
@@ -1303,12 +1259,56 @@
       "sourcePageId": 26209
     },
     {
+      "code": "shimmer_entity_transform_0058",
+      "transformGroup": "critter_to_faeling",
+      "input": {
+        "kind": "npc",
+        "nameZh": "附魔夜行者",
+        "nameEn": "Enchanted Nightcrawler",
+        "internalName": null,
+        "quantityText": null
+      },
+      "output": {
+        "kind": "npc",
+        "nameZh": "飞灵",
+        "nameEn": "Faeling",
+        "internalName": "Shimmerfly",
+        "quantityText": null
+      },
+      "sourceSection": "嬗变为物品的小动物",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_entity_transform_0059",
+      "transformGroup": "critter_to_faeling",
+      "input": {
+        "kind": "npc",
+        "nameZh": "瓢虫",
+        "nameEn": "Ladybug",
+        "internalName": null,
+        "quantityText": null
+      },
+      "output": {
+        "kind": "npc",
+        "nameZh": "飞灵",
+        "nameEn": "Faeling",
+        "internalName": "Shimmerfly",
+        "quantityText": null
+      },
+      "sourceSection": "嬗变为物品的小动物",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
       "code": "shimmer_entity_transform_0060",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "附魔夜行者",
-        "nameEn": "Enchanted Nightcrawler",
+        "kind": "npc",
+        "nameZh": "荧光虫",
+        "nameEn": "Lightning Bug",
         "internalName": null,
         "quantityText": null
       },
@@ -1328,9 +1328,9 @@
       "code": "shimmer_entity_transform_0061",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "瓢虫",
-        "nameEn": "Ladybug",
+        "kind": "npc",
+        "nameZh": "萤火虫",
+        "nameEn": "Firefly",
         "internalName": null,
         "quantityText": null
       },
@@ -1350,9 +1350,9 @@
       "code": "shimmer_entity_transform_0062",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "荧光虫",
-        "nameEn": "Lightning Bug",
+        "kind": "npc",
+        "nameZh": "龟",
+        "nameEn": "Turtle",
         "internalName": null,
         "quantityText": null
       },
@@ -1372,9 +1372,9 @@
       "code": "shimmer_entity_transform_0063",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "萤火虫",
-        "nameEn": "Firefly",
+        "kind": "npc",
+        "nameZh": "丛林龟",
+        "nameEn": "Jungle Turtle",
         "internalName": null,
         "quantityText": null
       },
@@ -1394,9 +1394,9 @@
       "code": "shimmer_entity_transform_0064",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "龟",
-        "nameEn": "Turtle",
+        "kind": "npc",
+        "nameZh": "熔岩萤火虫",
+        "nameEn": "Lavafly",
         "internalName": null,
         "quantityText": null
       },
@@ -1416,9 +1416,9 @@
       "code": "shimmer_entity_transform_0065",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "丛林龟",
-        "nameEn": "Jungle Turtle",
+        "kind": "npc",
+        "nameZh": "地狱蝴蝶",
+        "nameEn": "Butterflies",
         "internalName": null,
         "quantityText": null
       },
@@ -1438,9 +1438,9 @@
       "code": "shimmer_entity_transform_0066",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "熔岩萤火虫",
-        "nameEn": "Lavafly",
+        "kind": "npc",
+        "nameZh": "岩浆蜗牛",
+        "nameEn": "Magma Snail",
         "internalName": null,
         "quantityText": null
       },
@@ -1460,9 +1460,9 @@
       "code": "shimmer_entity_transform_0067",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "地狱蝴蝶",
-        "nameEn": null,
+        "kind": "npc",
+        "nameZh": "蓝仙灵",
+        "nameEn": "Fairies",
         "internalName": null,
         "quantityText": null
       },
@@ -1482,9 +1482,9 @@
       "code": "shimmer_entity_transform_0068",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "岩浆蜗牛",
-        "nameEn": "Magma Snail",
+        "kind": "npc",
+        "nameZh": "绿仙灵",
+        "nameEn": "Fairies",
         "internalName": null,
         "quantityText": null
       },
@@ -1504,8 +1504,8 @@
       "code": "shimmer_entity_transform_0069",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "蓝仙灵",
+        "kind": "npc",
+        "nameZh": "粉仙灵",
         "nameEn": null,
         "internalName": null,
         "quantityText": null
@@ -1526,8 +1526,8 @@
       "code": "shimmer_entity_transform_0070",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "绿仙灵",
+        "kind": "npc",
+        "nameZh": "黑蜻蜓",
         "nameEn": null,
         "internalName": null,
         "quantityText": null
@@ -1548,9 +1548,9 @@
       "code": "shimmer_entity_transform_0071",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "粉仙灵",
-        "nameEn": null,
+        "kind": "npc",
+        "nameZh": "蓝蜻蜓",
+        "nameEn": "Dragonflies",
         "internalName": null,
         "quantityText": null
       },
@@ -1570,8 +1570,8 @@
       "code": "shimmer_entity_transform_0072",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "黑蜻蜓",
+        "kind": "npc",
+        "nameZh": "黄蜻蜓",
         "nameEn": null,
         "internalName": null,
         "quantityText": null
@@ -1592,8 +1592,8 @@
       "code": "shimmer_entity_transform_0073",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "蓝蜻蜓",
+        "kind": "npc",
+        "nameZh": "绿蜻蜓",
         "nameEn": null,
         "internalName": null,
         "quantityText": null
@@ -1614,8 +1614,8 @@
       "code": "shimmer_entity_transform_0074",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "黄蜻蜓",
+        "kind": "npc",
+        "nameZh": "橙蜻蜓",
         "nameEn": null,
         "internalName": null,
         "quantityText": null
@@ -1636,8 +1636,8 @@
       "code": "shimmer_entity_transform_0075",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "绿蜻蜓",
+        "kind": "npc",
+        "nameZh": "红蜻蜓",
         "nameEn": null,
         "internalName": null,
         "quantityText": null
@@ -1658,9 +1658,9 @@
       "code": "shimmer_entity_transform_0076",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "橙蜻蜓",
-        "nameEn": null,
+        "kind": "npc",
+        "nameZh": "蠕虫",
+        "nameEn": "Worm",
         "internalName": null,
         "quantityText": null
       },
@@ -1680,9 +1680,9 @@
       "code": "shimmer_entity_transform_0077",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "红蜻蜓",
-        "nameEn": null,
+        "kind": "npc",
+        "nameZh": "蚱蜢",
+        "nameEn": "Grasshopper",
         "internalName": null,
         "quantityText": null
       },
@@ -1702,9 +1702,9 @@
       "code": "shimmer_entity_transform_0078",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "蠕虫",
-        "nameEn": "Worm",
+        "kind": "npc",
+        "nameZh": "蝇蛆",
+        "nameEn": "Maggot",
         "internalName": null,
         "quantityText": null
       },
@@ -1724,9 +1724,9 @@
       "code": "shimmer_entity_transform_0079",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "蚱蜢",
-        "nameEn": "Grasshopper",
+        "kind": "npc",
+        "nameZh": "蜗牛",
+        "nameEn": "Snail",
         "internalName": null,
         "quantityText": null
       },
@@ -1746,9 +1746,9 @@
       "code": "shimmer_entity_transform_0080",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "蝇蛆",
-        "nameEn": "Maggot",
+        "kind": "npc",
+        "nameZh": "发光蜗牛",
+        "nameEn": "Glowing Snail",
         "internalName": null,
         "quantityText": null
       },
@@ -1768,9 +1768,9 @@
       "code": "shimmer_entity_transform_0081",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "蜗牛",
-        "nameEn": "Snail",
+        "kind": "npc",
+        "nameZh": "蝎子",
+        "nameEn": "Scorpions",
         "internalName": null,
         "quantityText": null
       },
@@ -1790,9 +1790,9 @@
       "code": "shimmer_entity_transform_0082",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "发光蜗牛",
-        "nameEn": "Glowing Snail",
+        "kind": "npc",
+        "nameZh": "黑蝎子",
+        "nameEn": "Scorpions",
         "internalName": null,
         "quantityText": null
       },
@@ -1812,9 +1812,9 @@
       "code": "shimmer_entity_transform_0083",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "蝎子",
-        "nameEn": "Scorpions",
+        "kind": "npc",
+        "nameZh": "老鼠",
+        "nameEn": "Mouse",
         "internalName": null,
         "quantityText": null
       },
@@ -1834,9 +1834,9 @@
       "code": "shimmer_entity_transform_0084",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "黑蝎子",
-        "nameEn": null,
+        "kind": "npc",
+        "nameZh": "大鼠",
+        "nameEn": "Rat",
         "internalName": null,
         "quantityText": null
       },
@@ -1856,9 +1856,9 @@
       "code": "shimmer_entity_transform_0085",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "老鼠",
-        "nameEn": "Mouse",
+        "kind": "npc",
+        "nameZh": "水黾",
+        "nameEn": "Water Strider",
         "internalName": null,
         "quantityText": null
       },
@@ -1878,9 +1878,9 @@
       "code": "shimmer_entity_transform_0086",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "大鼠",
-        "nameEn": "Rat",
+        "kind": "npc",
+        "nameZh": "蚜虫",
+        "nameEn": "Buggy",
         "internalName": null,
         "quantityText": null
       },
@@ -1900,9 +1900,9 @@
       "code": "shimmer_entity_transform_0087",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "水黾",
-        "nameEn": "Water Strider",
+        "kind": "npc",
+        "nameZh": "鼻涕虫",
+        "nameEn": "Sluggy",
         "internalName": null,
         "quantityText": null
       },
@@ -1922,9 +1922,9 @@
       "code": "shimmer_entity_transform_0088",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "蚜虫",
-        "nameEn": "Buggy",
+        "kind": "npc",
+        "nameZh": "蛆虫",
+        "nameEn": "Grubby",
         "internalName": null,
         "quantityText": null
       },
@@ -1944,9 +1944,9 @@
       "code": "shimmer_entity_transform_0089",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "鼻涕虫",
-        "nameEn": "Sluggy",
+        "kind": "npc",
+        "nameZh": "臭虫",
+        "nameEn": "Stinkbug",
         "internalName": null,
         "quantityText": null
       },
@@ -1966,10 +1966,10 @@
       "code": "shimmer_entity_transform_0090",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "蛆虫",
-        "nameEn": "Grubby",
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "蝴蝶",
+        "nameEn": "Butterfly",
+        "internalName": "Butterfly",
         "quantityText": null
       },
       "output": {
@@ -1988,9 +1988,9 @@
       "code": "shimmer_entity_transform_0091",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "臭虫",
-        "nameEn": "Stinkbug",
+        "kind": "npc",
+        "nameZh": "七彩草蛉",
+        "nameEn": "Prismatic Lacewing",
         "internalName": null,
         "quantityText": null
       },
@@ -2010,9 +2010,9 @@
       "code": "shimmer_entity_transform_0092",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "蝴蝶",
-        "nameEn": "Butterflies",
+        "kind": "npc",
+        "nameZh": "松露虫",
+        "nameEn": "Truffle Worm",
         "internalName": null,
         "quantityText": null
       },
@@ -2032,9 +2032,9 @@
       "code": "shimmer_entity_transform_0093",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "七彩草蛉",
-        "nameEn": "Prismatic Lacewing",
+        "kind": "npc",
+        "nameZh": "金鸟",
+        "nameEn": "Gold Bird",
         "internalName": null,
         "quantityText": null
       },
@@ -2054,9 +2054,9 @@
       "code": "shimmer_entity_transform_0094",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "松露虫",
-        "nameEn": "Truffle Worm",
+        "kind": "npc",
+        "nameZh": "金兔兔",
+        "nameEn": "Gold Bunny",
         "internalName": null,
         "quantityText": null
       },
@@ -2076,9 +2076,9 @@
       "code": "shimmer_entity_transform_0095",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "金鸟",
-        "nameEn": "Gold Bird",
+        "kind": "npc",
+        "nameZh": "金蝴蝶",
+        "nameEn": "Gold Butterfly",
         "internalName": null,
         "quantityText": null
       },
@@ -2098,9 +2098,9 @@
       "code": "shimmer_entity_transform_0096",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "金兔兔",
-        "nameEn": "Gold Bunny",
+        "kind": "npc",
+        "nameZh": "金蜻蜓",
+        "nameEn": "Gold Dragonfly",
         "internalName": null,
         "quantityText": null
       },
@@ -2120,9 +2120,9 @@
       "code": "shimmer_entity_transform_0097",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "金蝴蝶",
-        "nameEn": "Gold Butterfly",
+        "kind": "npc",
+        "nameZh": "金蛙",
+        "nameEn": "Gold Frog",
         "internalName": null,
         "quantityText": null
       },
@@ -2142,9 +2142,9 @@
       "code": "shimmer_entity_transform_0098",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "金蜻蜓",
-        "nameEn": "Gold Dragonfly",
+        "kind": "npc",
+        "nameZh": "金金鱼",
+        "nameEn": "Gold Goldfish",
         "internalName": null,
         "quantityText": null
       },
@@ -2164,9 +2164,9 @@
       "code": "shimmer_entity_transform_0099",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "金蛙",
-        "nameEn": "Gold Frog",
+        "kind": "npc",
+        "nameZh": "金蚱蜢",
+        "nameEn": "Gold Grasshopper",
         "internalName": null,
         "quantityText": null
       },
@@ -2186,9 +2186,9 @@
       "code": "shimmer_entity_transform_0100",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "金金鱼",
-        "nameEn": "Gold Goldfish",
+        "kind": "npc",
+        "nameZh": "金瓢虫",
+        "nameEn": "Gold Ladybug",
         "internalName": null,
         "quantityText": null
       },
@@ -2208,9 +2208,9 @@
       "code": "shimmer_entity_transform_0101",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "金蚱蜢",
-        "nameEn": "Gold Grasshopper",
+        "kind": "npc",
+        "nameZh": "金老鼠",
+        "nameEn": "Gold Mouse",
         "internalName": null,
         "quantityText": null
       },
@@ -2230,9 +2230,9 @@
       "code": "shimmer_entity_transform_0102",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "金瓢虫",
-        "nameEn": "Gold Ladybug",
+        "kind": "npc",
+        "nameZh": "金海马",
+        "nameEn": "Gold Seahorse",
         "internalName": null,
         "quantityText": null
       },
@@ -2252,9 +2252,9 @@
       "code": "shimmer_entity_transform_0103",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "金老鼠",
-        "nameEn": "Gold Mouse",
+        "kind": "npc",
+        "nameZh": "金松鼠",
+        "nameEn": "Gold Squirrel",
         "internalName": null,
         "quantityText": null
       },
@@ -2274,51 +2274,7 @@
       "code": "shimmer_entity_transform_0104",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "ambiguous",
-        "nameZh": "金海马",
-        "nameEn": "Gold Seahorse",
-        "internalName": null,
-        "quantityText": null
-      },
-      "output": {
         "kind": "npc",
-        "nameZh": "飞灵",
-        "nameEn": "Faeling",
-        "internalName": "Shimmerfly",
-        "quantityText": null
-      },
-      "sourceSection": "嬗变为物品的小动物",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_entity_transform_0105",
-      "transformGroup": "critter_to_faeling",
-      "input": {
-        "kind": "ambiguous",
-        "nameZh": "金松鼠",
-        "nameEn": "Gold Squirrel",
-        "internalName": null,
-        "quantityText": null
-      },
-      "output": {
-        "kind": "npc",
-        "nameZh": "飞灵",
-        "nameEn": "Faeling",
-        "internalName": "Shimmerfly",
-        "quantityText": null
-      },
-      "sourceSection": "嬗变为物品的小动物",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_entity_transform_0106",
-      "transformGroup": "critter_to_faeling",
-      "input": {
-        "kind": "ambiguous",
         "nameZh": "金水黾",
         "nameEn": "Gold Water Strider",
         "internalName": null,
@@ -2337,7 +2293,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0107",
+      "code": "shimmer_entity_transform_0105",
       "transformGroup": "slime_to_shimmer_slime",
       "input": {
         "kind": "npc",
@@ -2359,13 +2315,57 @@
       "sourcePageId": 26209
     },
     {
+      "code": "shimmer_entity_transform_0106",
+      "transformGroup": "slime_to_shimmer_slime",
+      "input": {
+        "kind": "npc",
+        "nameZh": "兔兔史莱姆",
+        "nameEn": "Bunny Slime",
+        "internalName": "SlimeMasked",
+        "quantityText": null
+      },
+      "output": {
+        "kind": "npc",
+        "nameZh": "微光史莱姆",
+        "nameEn": "Shimmer Slime",
+        "internalName": "ShimmerSlime",
+        "quantityText": null
+      },
+      "sourceSection": "嬗变为物品的小动物",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_entity_transform_0107",
+      "transformGroup": "slime_to_shimmer_slime",
+      "input": {
+        "kind": "npc",
+        "nameZh": "绿礼物史莱姆",
+        "nameEn": "Green Present Slime",
+        "internalName": "SlimeRibbonGreen",
+        "quantityText": null
+      },
+      "output": {
+        "kind": "npc",
+        "nameZh": "微光史莱姆",
+        "nameEn": "Shimmer Slime",
+        "internalName": "ShimmerSlime",
+        "quantityText": null
+      },
+      "sourceSection": "嬗变为物品的小动物",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
       "code": "shimmer_entity_transform_0108",
       "transformGroup": "slime_to_shimmer_slime",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "兔兔史莱姆",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "红礼物史莱姆",
+        "nameEn": "Red Present Slime",
+        "internalName": "SlimeRibbonRed",
         "quantityText": null
       },
       "output": {
@@ -2384,10 +2384,10 @@
       "code": "shimmer_entity_transform_0109",
       "transformGroup": "slime_to_shimmer_slime",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "绿礼物史莱姆",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "黄礼物史莱姆",
+        "nameEn": "Yellow Present Slime",
+        "internalName": "SlimeRibbonYellow",
         "quantityText": null
       },
       "output": {
@@ -2406,10 +2406,10 @@
       "code": "shimmer_entity_transform_0110",
       "transformGroup": "slime_to_shimmer_slime",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "红礼物史莱姆",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "npc",
+        "nameZh": "白礼物史莱姆",
+        "nameEn": "White Present Slime",
+        "internalName": "SlimeRibbonWhite",
         "quantityText": null
       },
       "output": {
@@ -2426,50 +2426,6 @@
     },
     {
       "code": "shimmer_entity_transform_0111",
-      "transformGroup": "slime_to_shimmer_slime",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "黄礼物史莱姆",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "output": {
-        "kind": "npc",
-        "nameZh": "微光史莱姆",
-        "nameEn": "Shimmer Slime",
-        "internalName": "ShimmerSlime",
-        "quantityText": null
-      },
-      "sourceSection": "嬗变为物品的小动物",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_entity_transform_0112",
-      "transformGroup": "slime_to_shimmer_slime",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "白礼物史莱姆",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "output": {
-        "kind": "npc",
-        "nameZh": "微光史莱姆",
-        "nameEn": "Shimmer Slime",
-        "internalName": "ShimmerSlime",
-        "quantityText": null
-      },
-      "sourceSection": "嬗变为物品的小动物",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_entity_transform_0113",
       "transformGroup": "slime_to_shimmer_slime",
       "input": {
         "kind": "npc",
@@ -2491,7 +2447,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0114",
+      "code": "shimmer_entity_transform_0112",
       "transformGroup": "slime_to_shimmer_slime",
       "input": {
         "kind": "npc",
@@ -2513,7 +2469,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0115",
+      "code": "shimmer_entity_transform_0113",
       "transformGroup": "slime_to_shimmer_slime",
       "input": {
         "kind": "npc",
@@ -2535,7 +2491,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0116",
+      "code": "shimmer_entity_transform_0114",
       "transformGroup": "slime_to_shimmer_slime",
       "input": {
         "kind": "npc",
@@ -2557,7 +2513,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0117",
+      "code": "shimmer_entity_transform_0115",
       "transformGroup": "slime_to_shimmer_slime",
       "input": {
         "kind": "npc",
@@ -2579,7 +2535,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0118",
+      "code": "shimmer_entity_transform_0116",
       "transformGroup": "slime_to_shimmer_slime",
       "input": {
         "kind": "npc",
@@ -2601,7 +2557,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0119",
+      "code": "shimmer_entity_transform_0117",
       "transformGroup": "slime_to_shimmer_slime",
       "input": {
         "kind": "npc",
@@ -2623,7 +2579,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0120",
+      "code": "shimmer_entity_transform_0118",
       "transformGroup": "slime_to_shimmer_slime",
       "input": {
         "kind": "npc",
@@ -2645,7 +2601,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0121",
+      "code": "shimmer_entity_transform_0119",
       "transformGroup": "slime_to_shimmer_slime",
       "input": {
         "kind": "npc",
@@ -2667,7 +2623,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0122",
+      "code": "shimmer_entity_transform_0120",
       "transformGroup": "slime_to_shimmer_slime",
       "input": {
         "kind": "npc",
@@ -2689,7 +2645,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_entity_transform_0123",
+      "code": "shimmer_entity_transform_0121",
       "transformGroup": "slime_to_shimmer_slime",
       "input": {
         "kind": "npc",

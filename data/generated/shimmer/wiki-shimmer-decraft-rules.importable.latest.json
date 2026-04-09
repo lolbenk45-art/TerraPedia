@@ -1,30 +1,11 @@
 {
   "entity": "wiki_shimmer_decraft_rules_importable",
-  "generatedAt": "2026-04-09T00:34:56.477Z",
+  "generatedAt": "2026-04-09T01:52:13.267Z",
   "sourceProvider": "wiki_zh",
   "sourceFile": "data/generated/wiki-shimmer.latest.json",
   "records": [
     {
       "code": "shimmer_decraft_multi_recipe_0001",
-      "ruleType": "decraft_multi_recipe",
-      "groupLabel": "有多个配方的物品",
-      "input": {
-        "kind": "item",
-        "nameZh": "放入",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_multi_recipe_0002",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -58,7 +39,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_multi_recipe_0003",
+      "code": "shimmer_decraft_multi_recipe_0002",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -99,7 +80,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_multi_recipe_0004",
+      "code": "shimmer_decraft_multi_recipe_0003",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -147,7 +128,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_multi_recipe_0005",
+      "code": "shimmer_decraft_multi_recipe_0004",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -188,7 +169,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_multi_recipe_0006",
+      "code": "shimmer_decraft_multi_recipe_0005",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -222,7 +203,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_multi_recipe_0007",
+      "code": "shimmer_decraft_multi_recipe_0006",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -256,7 +237,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_multi_recipe_0008",
+      "code": "shimmer_decraft_multi_recipe_0007",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -268,10 +249,37 @@
       },
       "outputs": [
         {
-          "kind": "unresolved",
+          "kind": "item",
           "nameZh": "贝壳",
-          "nameEn": "Seashells",
-          "internalName": null,
+          "nameEn": "Seashell",
+          "internalName": "Seashell",
+          "quantityText": null
+        }
+      ],
+      "conditions": [],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_multi_recipe_0008",
+      "ruleType": "decraft_multi_recipe",
+      "groupLabel": "有多个配方的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "水蜡烛",
+        "nameEn": "Water Candle",
+        "internalName": "WaterCandle",
+        "quantityText": null
+      },
+      "outputs": [
+        {
+          "kind": "item",
+          "nameZh": "蜡烛",
+          "nameEn": "Candle",
+          "internalName": "Candle",
           "quantityText": null
         }
       ],
@@ -284,33 +292,6 @@
     },
     {
       "code": "shimmer_decraft_multi_recipe_0009",
-      "ruleType": "decraft_multi_recipe",
-      "groupLabel": "有多个配方的物品",
-      "input": {
-        "kind": "item",
-        "nameZh": "水蜡烛",
-        "nameEn": "Water Candle",
-        "internalName": "WaterCandle",
-        "quantityText": null
-      },
-      "outputs": [
-        {
-          "kind": "unresolved",
-          "nameZh": "蜡烛",
-          "nameEn": "Candles",
-          "internalName": null,
-          "quantityText": null
-        }
-      ],
-      "conditions": [],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_multi_recipe_0010",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -329,10 +310,10 @@
           "quantityText": null
         },
         {
-          "kind": "unresolved",
+          "kind": "item",
           "nameZh": "粉火把",
-          "nameEn": null,
-          "internalName": null,
+          "nameEn": "Pink Torch",
+          "internalName": "PinkTorch",
           "quantityText": null
         }
       ],
@@ -344,7 +325,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_multi_recipe_0011",
+      "code": "shimmer_decraft_multi_recipe_0010",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -378,7 +359,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_multi_recipe_0012",
+      "code": "shimmer_decraft_multi_recipe_0011",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -397,10 +378,44 @@
           "quantityText": null
         },
         {
-          "kind": "ambiguous",
+          "kind": "item",
           "nameZh": "臭虫",
           "nameEn": "Stinkbug",
           "internalName": null,
+          "quantityText": null
+        }
+      ],
+      "conditions": [],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_multi_recipe_0012",
+      "ruleType": "decraft_multi_recipe",
+      "groupLabel": "有多个配方的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "寒霜头盔",
+        "nameEn": "Frost Helmet",
+        "internalName": "FrostHelmet",
+        "quantityText": null
+      },
+      "outputs": [
+        {
+          "kind": "item",
+          "nameZh": "精金锭",
+          "nameEn": "Adamantite Bar",
+          "internalName": "AdamantiteBar",
+          "quantityText": null
+        },
+        {
+          "kind": "item",
+          "nameZh": "寒霜核",
+          "nameEn": "Frost Core",
+          "internalName": "FrostCore",
           "quantityText": null
         }
       ],
@@ -416,10 +431,10 @@
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "寒霜头盔",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "寒霜胸甲",
+        "nameEn": "Frost Breastplate",
+        "internalName": "FrostBreastplate",
         "quantityText": null
       },
       "outputs": [
@@ -450,10 +465,10 @@
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "寒霜胸甲",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "寒霜护腿",
+        "nameEn": "Frost Leggings",
+        "internalName": "FrostLeggings",
         "quantityText": null
       },
       "outputs": [
@@ -484,10 +499,10 @@
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "寒霜护腿",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "禁戒面具",
+        "nameEn": "Forbidden Mask",
+        "internalName": "AncientBattleArmorHat",
         "quantityText": null
       },
       "outputs": [
@@ -500,9 +515,9 @@
         },
         {
           "kind": "item",
-          "nameZh": "寒霜核",
-          "nameEn": "Frost Core",
-          "internalName": "FrostCore",
+          "nameZh": "禁戒碎片",
+          "nameEn": "Forbidden Fragment",
+          "internalName": "AncientBattleArmorMaterial",
           "quantityText": null
         }
       ],
@@ -518,10 +533,10 @@
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "禁戒面具",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "禁戒长袍",
+        "nameEn": "Forbidden Robes",
+        "internalName": "AncientBattleArmorShirt",
         "quantityText": null
       },
       "outputs": [
@@ -552,10 +567,10 @@
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "禁戒长袍",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "禁戒裤",
+        "nameEn": "Forbidden Treads",
+        "internalName": "AncientBattleArmorPants",
         "quantityText": null
       },
       "outputs": [
@@ -583,40 +598,6 @@
     },
     {
       "code": "shimmer_decraft_multi_recipe_0018",
-      "ruleType": "decraft_multi_recipe",
-      "groupLabel": "有多个配方的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "禁戒裤",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [
-        {
-          "kind": "item",
-          "nameZh": "精金锭",
-          "nameEn": "Adamantite Bar",
-          "internalName": "AdamantiteBar",
-          "quantityText": null
-        },
-        {
-          "kind": "item",
-          "nameZh": "禁戒碎片",
-          "nameEn": "Forbidden Fragment",
-          "internalName": "AncientBattleArmorMaterial",
-          "quantityText": null
-        }
-      ],
-      "conditions": [],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_multi_recipe_0019",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -657,14 +638,14 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_multi_recipe_0020",
+      "code": "shimmer_decraft_multi_recipe_0019",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
-        "kind": "unresolved",
+        "kind": "item",
         "nameZh": "魔镜",
-        "nameEn": "Magic Mirrors",
-        "internalName": null,
+        "nameEn": "Magic Mirror",
+        "internalName": "MagicMirror",
         "quantityText": null
       },
       "outputs": [
@@ -698,7 +679,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_multi_recipe_0021",
+      "code": "shimmer_decraft_multi_recipe_0020",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -717,10 +698,10 @@
           "quantityText": null
         },
         {
-          "kind": "unresolved",
+          "kind": "item",
           "nameZh": "魔镜",
-          "nameEn": "Magic Mirrors",
-          "internalName": null,
+          "nameEn": "Magic Mirror",
+          "internalName": "MagicMirror",
           "quantityText": null
         }
       ],
@@ -732,7 +713,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_multi_recipe_0022",
+      "code": "shimmer_decraft_multi_recipe_0021",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -766,7 +747,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_multi_recipe_0023",
+      "code": "shimmer_decraft_multi_recipe_0022",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -814,7 +795,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_multi_recipe_0024",
+      "code": "shimmer_decraft_multi_recipe_0023",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -848,7 +829,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_multi_recipe_0025",
+      "code": "shimmer_decraft_multi_recipe_0024",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -882,7 +863,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_multi_recipe_0026",
+      "code": "shimmer_decraft_multi_recipe_0025",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -923,7 +904,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_multi_recipe_0027",
+      "code": "shimmer_decraft_multi_recipe_0026",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -971,7 +952,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_multi_recipe_0028",
+      "code": "shimmer_decraft_multi_recipe_0027",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -983,10 +964,10 @@
       },
       "outputs": [
         {
-          "kind": "unresolved",
+          "kind": "item",
           "nameZh": "白绳",
-          "nameEn": null,
-          "internalName": null,
+          "nameEn": "White String",
+          "internalName": "WhiteString",
           "quantityText": null
         },
         {
@@ -997,10 +978,10 @@
           "quantityText": null
         },
         {
-          "kind": "unresolved",
+          "kind": "item",
           "nameZh": "黄平衡锤",
-          "nameEn": null,
-          "internalName": null,
+          "nameEn": "Yellow Counterweight",
+          "internalName": "YellowCounterweight",
           "quantityText": null
         }
       ],
@@ -1012,7 +993,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_multi_recipe_0029",
+      "code": "shimmer_decraft_multi_recipe_0028",
       "ruleType": "decraft_multi_recipe",
       "groupLabel": "有多个配方的物品",
       "input": {
@@ -1046,43 +1027,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_evil_branch_0030",
-      "ruleType": "decraft_evil_branch",
-      "groupLabel": "有两种邪恶生物群系配方的物品",
-      "input": {
-        "kind": "item",
-        "nameZh": "输入",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [
-        {
-          "branch": "corruption",
-          "kind": "unresolved",
-          "nameZh": "腐化",
-          "nameEn": null,
-          "internalName": null,
-          "quantityText": null
-        },
-        {
-          "branch": "crimson",
-          "kind": "unresolved",
-          "nameZh": "猩红",
-          "nameEn": null,
-          "internalName": null,
-          "quantityText": null
-        }
-      ],
-      "conditions": [],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_evil_branch_0031",
+      "code": "shimmer_decraft_evil_branch_0029",
       "ruleType": "decraft_evil_branch",
       "groupLabel": "有两种邪恶生物群系配方的物品",
       "input": {
@@ -1166,7 +1111,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_evil_branch_0032",
+      "code": "shimmer_decraft_evil_branch_0030",
       "ruleType": "decraft_evil_branch",
       "groupLabel": "有两种邪恶生物群系配方的物品",
       "input": {
@@ -1187,10 +1132,10 @@
         },
         {
           "branch": "corruption",
-          "kind": "unresolved",
+          "kind": "item",
           "nameZh": "魔粉",
-          "nameEn": null,
-          "internalName": null,
+          "nameEn": "Vile Powder",
+          "internalName": "VilePowder",
           "quantityText": null
         },
         {
@@ -1203,10 +1148,146 @@
         },
         {
           "branch": "crimson",
-          "kind": "unresolved",
+          "kind": "item",
           "nameZh": "毒粉",
-          "nameEn": null,
-          "internalName": null,
+          "nameEn": "Vicious Powder",
+          "internalName": "ViciousPowder",
+          "quantityText": null
+        }
+      ],
+      "conditions": [],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_evil_branch_0031",
+      "ruleType": "decraft_evil_branch",
+      "groupLabel": "有两种邪恶生物群系配方的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "黑曜石逃犯帽",
+        "nameEn": "Obsidian Outlaw Hat",
+        "internalName": "ObsidianHelm",
+        "quantityText": null
+      },
+      "outputs": [
+        {
+          "branch": "corruption",
+          "kind": "item",
+          "nameZh": "丝绸",
+          "nameEn": "Silk",
+          "internalName": "Silk",
+          "quantityText": null
+        },
+        {
+          "branch": "corruption",
+          "kind": "item",
+          "nameZh": "黑曜石",
+          "nameEn": "Obsidian",
+          "internalName": "Obsidian",
+          "quantityText": null
+        },
+        {
+          "branch": "corruption",
+          "kind": "item",
+          "nameZh": "暗影鳞片",
+          "nameEn": "Shadow Scale",
+          "internalName": "ShadowScale",
+          "quantityText": null
+        },
+        {
+          "branch": "crimson",
+          "kind": "item",
+          "nameZh": "丝绸",
+          "nameEn": "Silk",
+          "internalName": "Silk",
+          "quantityText": null
+        },
+        {
+          "branch": "crimson",
+          "kind": "item",
+          "nameZh": "黑曜石",
+          "nameEn": "Obsidian",
+          "internalName": "Obsidian",
+          "quantityText": null
+        },
+        {
+          "branch": "crimson",
+          "kind": "item",
+          "nameZh": "组织样本",
+          "nameEn": "Tissue Sample",
+          "internalName": "TissueSample",
+          "quantityText": null
+        }
+      ],
+      "conditions": [],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_evil_branch_0032",
+      "ruleType": "decraft_evil_branch",
+      "groupLabel": "有两种邪恶生物群系配方的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "黑曜石风衣",
+        "nameEn": "Obsidian Longcoat",
+        "internalName": "ObsidianShirt",
+        "quantityText": null
+      },
+      "outputs": [
+        {
+          "branch": "corruption",
+          "kind": "item",
+          "nameZh": "丝绸",
+          "nameEn": "Silk",
+          "internalName": "Silk",
+          "quantityText": null
+        },
+        {
+          "branch": "corruption",
+          "kind": "item",
+          "nameZh": "黑曜石",
+          "nameEn": "Obsidian",
+          "internalName": "Obsidian",
+          "quantityText": null
+        },
+        {
+          "branch": "corruption",
+          "kind": "item",
+          "nameZh": "暗影鳞片",
+          "nameEn": "Shadow Scale",
+          "internalName": "ShadowScale",
+          "quantityText": null
+        },
+        {
+          "branch": "crimson",
+          "kind": "item",
+          "nameZh": "丝绸",
+          "nameEn": "Silk",
+          "internalName": "Silk",
+          "quantityText": null
+        },
+        {
+          "branch": "crimson",
+          "kind": "item",
+          "nameZh": "黑曜石",
+          "nameEn": "Obsidian",
+          "internalName": "Obsidian",
+          "quantityText": null
+        },
+        {
+          "branch": "crimson",
+          "kind": "item",
+          "nameZh": "组织样本",
+          "nameEn": "Tissue Sample",
+          "internalName": "TissueSample",
           "quantityText": null
         }
       ],
@@ -1222,10 +1303,10 @@
       "ruleType": "decraft_evil_branch",
       "groupLabel": "有两种邪恶生物群系配方的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "黑曜石逃犯帽",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "黑曜石裤",
+        "nameEn": "Obsidian Pants",
+        "internalName": "ObsidianPants",
         "quantityText": null
       },
       "outputs": [
@@ -1287,142 +1368,6 @@
     },
     {
       "code": "shimmer_decraft_evil_branch_0034",
-      "ruleType": "decraft_evil_branch",
-      "groupLabel": "有两种邪恶生物群系配方的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "黑曜石风衣",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [
-        {
-          "branch": "corruption",
-          "kind": "item",
-          "nameZh": "丝绸",
-          "nameEn": "Silk",
-          "internalName": "Silk",
-          "quantityText": null
-        },
-        {
-          "branch": "corruption",
-          "kind": "item",
-          "nameZh": "黑曜石",
-          "nameEn": "Obsidian",
-          "internalName": "Obsidian",
-          "quantityText": null
-        },
-        {
-          "branch": "corruption",
-          "kind": "item",
-          "nameZh": "暗影鳞片",
-          "nameEn": "Shadow Scale",
-          "internalName": "ShadowScale",
-          "quantityText": null
-        },
-        {
-          "branch": "crimson",
-          "kind": "item",
-          "nameZh": "丝绸",
-          "nameEn": "Silk",
-          "internalName": "Silk",
-          "quantityText": null
-        },
-        {
-          "branch": "crimson",
-          "kind": "item",
-          "nameZh": "黑曜石",
-          "nameEn": "Obsidian",
-          "internalName": "Obsidian",
-          "quantityText": null
-        },
-        {
-          "branch": "crimson",
-          "kind": "item",
-          "nameZh": "组织样本",
-          "nameEn": "Tissue Sample",
-          "internalName": "TissueSample",
-          "quantityText": null
-        }
-      ],
-      "conditions": [],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_evil_branch_0035",
-      "ruleType": "decraft_evil_branch",
-      "groupLabel": "有两种邪恶生物群系配方的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "黑曜石裤",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [
-        {
-          "branch": "corruption",
-          "kind": "item",
-          "nameZh": "丝绸",
-          "nameEn": "Silk",
-          "internalName": "Silk",
-          "quantityText": null
-        },
-        {
-          "branch": "corruption",
-          "kind": "item",
-          "nameZh": "黑曜石",
-          "nameEn": "Obsidian",
-          "internalName": "Obsidian",
-          "quantityText": null
-        },
-        {
-          "branch": "corruption",
-          "kind": "item",
-          "nameZh": "暗影鳞片",
-          "nameEn": "Shadow Scale",
-          "internalName": "ShadowScale",
-          "quantityText": null
-        },
-        {
-          "branch": "crimson",
-          "kind": "item",
-          "nameZh": "丝绸",
-          "nameEn": "Silk",
-          "internalName": "Silk",
-          "quantityText": null
-        },
-        {
-          "branch": "crimson",
-          "kind": "item",
-          "nameZh": "黑曜石",
-          "nameEn": "Obsidian",
-          "internalName": "Obsidian",
-          "quantityText": null
-        },
-        {
-          "branch": "crimson",
-          "kind": "item",
-          "nameZh": "组织样本",
-          "nameEn": "Tissue Sample",
-          "internalName": "TissueSample",
-          "quantityText": null
-        }
-      ],
-      "conditions": [],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_evil_branch_0036",
       "ruleType": "decraft_evil_branch",
       "groupLabel": "有两种邪恶生物群系配方的物品",
       "input": {
@@ -1490,7 +1435,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_evil_branch_0037",
+      "code": "shimmer_decraft_evil_branch_0035",
       "ruleType": "decraft_evil_branch",
       "groupLabel": "有两种邪恶生物群系配方的物品",
       "input": {
@@ -1558,14 +1503,14 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_evil_branch_0038",
+      "code": "shimmer_decraft_evil_branch_0036",
       "ruleType": "decraft_evil_branch",
       "groupLabel": "有两种邪恶生物群系配方的物品",
       "input": {
-        "kind": "unresolved",
+        "kind": "item",
         "nameZh": "棺材矿车",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Coffin Minecart",
+        "internalName": "CoffinMinecart",
         "quantityText": null
       },
       "outputs": [
@@ -1579,10 +1524,10 @@
         },
         {
           "branch": "corruption",
-          "kind": "unresolved",
+          "kind": "item",
           "nameZh": "木材",
-          "nameEn": "Woods",
-          "internalName": null,
+          "nameEn": "Wood",
+          "internalName": "Wood",
           "quantityText": null
         },
         {
@@ -1603,10 +1548,10 @@
         },
         {
           "branch": "crimson",
-          "kind": "unresolved",
+          "kind": "item",
           "nameZh": "木材",
-          "nameEn": "Woods",
-          "internalName": null,
+          "nameEn": "Wood",
+          "internalName": "Wood",
           "quantityText": null
         },
         {
@@ -1626,7 +1571,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_evil_branch_0039",
+      "code": "shimmer_decraft_evil_branch_0037",
       "ruleType": "decraft_evil_branch",
       "groupLabel": "有两种邪恶生物群系配方的物品",
       "input": {
@@ -1662,7 +1607,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_evil_branch_0040",
+      "code": "shimmer_decraft_evil_branch_0038",
       "ruleType": "decraft_evil_branch",
       "groupLabel": "有两种邪恶生物群系配方的物品",
       "input": {
@@ -1714,7 +1659,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_evil_branch_0041",
+      "code": "shimmer_decraft_evil_branch_0039",
       "ruleType": "decraft_evil_branch",
       "groupLabel": "有两种邪恶生物群系配方的物品",
       "input": {
@@ -1782,7 +1727,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_evil_branch_0042",
+      "code": "shimmer_decraft_evil_branch_0040",
       "ruleType": "decraft_evil_branch",
       "groupLabel": "有两种邪恶生物群系配方的物品",
       "input": {
@@ -1803,10 +1748,10 @@
         },
         {
           "branch": "corruption",
-          "kind": "unresolved",
+          "kind": "item",
           "nameZh": "火把",
-          "nameEn": "Torches",
-          "internalName": null,
+          "nameEn": "Torch",
+          "internalName": "Torch",
           "quantityText": null
         },
         {
@@ -1819,10 +1764,10 @@
         },
         {
           "branch": "crimson",
-          "kind": "unresolved",
+          "kind": "item",
           "nameZh": "火把",
-          "nameEn": "Torches",
-          "internalName": null,
+          "nameEn": "Torch",
+          "internalName": "Torch",
           "quantityText": null
         }
       ],
@@ -1834,26 +1779,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_unique_0043",
-      "ruleType": "decraft_unique",
-      "groupLabel": "有独特拆解的物品",
-      "input": {
-        "kind": "item",
-        "nameZh": "放入",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_unique_0044",
+      "code": "shimmer_decraft_unique_0041",
       "ruleType": "decraft_unique",
       "groupLabel": "有独特拆解的物品",
       "input": {
@@ -1887,7 +1813,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_unique_0045",
+      "code": "shimmer_decraft_unique_0042",
       "ruleType": "decraft_unique",
       "groupLabel": "有独特拆解的物品",
       "input": {
@@ -1921,7 +1847,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_unique_0046",
+      "code": "shimmer_decraft_unique_0043",
       "ruleType": "decraft_unique",
       "groupLabel": "有独特拆解的物品",
       "input": {
@@ -1940,10 +1866,10 @@
           "quantityText": null
         },
         {
-          "kind": "unresolved",
+          "kind": "item",
           "nameZh": "木材",
-          "nameEn": "Woods",
-          "internalName": null,
+          "nameEn": "Wood",
+          "internalName": "Wood",
           "quantityText": null
         }
       ],
@@ -1955,7 +1881,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_unique_0047",
+      "code": "shimmer_decraft_unique_0044",
       "ruleType": "decraft_unique",
       "groupLabel": "有独特拆解的物品",
       "input": {
@@ -1974,10 +1900,10 @@
           "quantityText": null
         },
         {
-          "kind": "unresolved",
+          "kind": "item",
           "nameZh": "木材",
-          "nameEn": "Woods",
-          "internalName": null,
+          "nameEn": "Wood",
+          "internalName": "Wood",
           "quantityText": null
         }
       ],
@@ -1989,7 +1915,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_unique_0048",
+      "code": "shimmer_decraft_unique_0045",
       "ruleType": "decraft_unique",
       "groupLabel": "有独特拆解的物品",
       "input": {
@@ -2016,7 +1942,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0049",
+      "code": "shimmer_decraft_random_partial_0046",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2035,7 +1961,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0050",
+      "code": "shimmer_decraft_random_partial_0047",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2054,7 +1980,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0051",
+      "code": "shimmer_decraft_random_partial_0048",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2073,7 +1999,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0052",
+      "code": "shimmer_decraft_random_partial_0049",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2092,7 +2018,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0053",
+      "code": "shimmer_decraft_random_partial_0050",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2111,7 +2037,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0054",
+      "code": "shimmer_decraft_random_partial_0051",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2130,7 +2056,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0055",
+      "code": "shimmer_decraft_random_partial_0052",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2149,7 +2075,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0056",
+      "code": "shimmer_decraft_random_partial_0053",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2168,7 +2094,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0057",
+      "code": "shimmer_decraft_random_partial_0054",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2187,7 +2113,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0058",
+      "code": "shimmer_decraft_random_partial_0055",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2206,7 +2132,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0059",
+      "code": "shimmer_decraft_random_partial_0056",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2225,7 +2151,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0060",
+      "code": "shimmer_decraft_random_partial_0057",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2244,14 +2170,14 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0061",
+      "code": "shimmer_decraft_random_partial_0058",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
-        "kind": "unresolved",
+        "kind": "item",
         "nameZh": "幸运药水",
-        "nameEn": "Luck Potions",
-        "internalName": null,
+        "nameEn": "Luck Potion",
+        "internalName": "LuckPotion",
         "quantityText": null
       },
       "outputs": [],
@@ -2263,7 +2189,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0062",
+      "code": "shimmer_decraft_random_partial_0059",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2282,14 +2208,14 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0063",
+      "code": "shimmer_decraft_random_partial_0060",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
-        "kind": "unresolved",
+        "kind": "item",
         "nameZh": "弱效幸运药水",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Lesser Luck Potion",
+        "internalName": "LuckPotionLesser",
         "quantityText": null
       },
       "outputs": [],
@@ -2301,7 +2227,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0064",
+      "code": "shimmer_decraft_random_partial_0061",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2320,14 +2246,14 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0065",
+      "code": "shimmer_decraft_random_partial_0062",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
-        "kind": "unresolved",
+        "kind": "item",
         "nameZh": "强效幸运药水",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Greater Luck Potion",
+        "internalName": "LuckPotionGreater",
         "quantityText": null
       },
       "outputs": [],
@@ -2339,7 +2265,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0066",
+      "code": "shimmer_decraft_random_partial_0063",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2358,7 +2284,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0067",
+      "code": "shimmer_decraft_random_partial_0064",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2377,7 +2303,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0068",
+      "code": "shimmer_decraft_random_partial_0065",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2396,7 +2322,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0069",
+      "code": "shimmer_decraft_random_partial_0066",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2415,7 +2341,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0070",
+      "code": "shimmer_decraft_random_partial_0067",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2434,7 +2360,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0071",
+      "code": "shimmer_decraft_random_partial_0068",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2453,7 +2379,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0072",
+      "code": "shimmer_decraft_random_partial_0069",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2472,7 +2398,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0073",
+      "code": "shimmer_decraft_random_partial_0070",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2491,7 +2417,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0074",
+      "code": "shimmer_decraft_random_partial_0071",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2510,7 +2436,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0075",
+      "code": "shimmer_decraft_random_partial_0072",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2529,7 +2455,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0076",
+      "code": "shimmer_decraft_random_partial_0073",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2548,7 +2474,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0077",
+      "code": "shimmer_decraft_random_partial_0074",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2567,7 +2493,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0078",
+      "code": "shimmer_decraft_random_partial_0075",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2586,7 +2512,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0079",
+      "code": "shimmer_decraft_random_partial_0076",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2605,7 +2531,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0080",
+      "code": "shimmer_decraft_random_partial_0077",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2624,7 +2550,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0081",
+      "code": "shimmer_decraft_random_partial_0078",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2643,7 +2569,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0082",
+      "code": "shimmer_decraft_random_partial_0079",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2662,7 +2588,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0083",
+      "code": "shimmer_decraft_random_partial_0080",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2681,7 +2607,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0084",
+      "code": "shimmer_decraft_random_partial_0081",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2700,7 +2626,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0085",
+      "code": "shimmer_decraft_random_partial_0082",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2719,7 +2645,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0086",
+      "code": "shimmer_decraft_random_partial_0083",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2738,7 +2664,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0087",
+      "code": "shimmer_decraft_random_partial_0084",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2757,7 +2683,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0088",
+      "code": "shimmer_decraft_random_partial_0085",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2776,7 +2702,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0089",
+      "code": "shimmer_decraft_random_partial_0086",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2795,7 +2721,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0090",
+      "code": "shimmer_decraft_random_partial_0087",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2814,7 +2740,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0091",
+      "code": "shimmer_decraft_random_partial_0088",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2833,7 +2759,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0092",
+      "code": "shimmer_decraft_random_partial_0089",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2852,7 +2778,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0093",
+      "code": "shimmer_decraft_random_partial_0090",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2871,7 +2797,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0094",
+      "code": "shimmer_decraft_random_partial_0091",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2890,7 +2816,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0095",
+      "code": "shimmer_decraft_random_partial_0092",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2909,7 +2835,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0096",
+      "code": "shimmer_decraft_random_partial_0093",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2928,7 +2854,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0097",
+      "code": "shimmer_decraft_random_partial_0094",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2947,7 +2873,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_random_partial_0098",
+      "code": "shimmer_decraft_random_partial_0095",
       "ruleType": "decraft_random_partial",
       "groupLabel": "拆解为随机部分材料的物品",
       "input": {
@@ -2966,14 +2892,92 @@
       "sourcePageId": 26209
     },
     {
+      "code": "shimmer_decraft_locked_skeletron_0096",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "丛林蜥蜴钢琴",
+        "nameEn": "Lihzahrd Piano",
+        "internalName": "LihzahrdPiano",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_skeletron_0097",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "乌木钢琴",
+        "nameEn": "Ebonwood Piano",
+        "internalName": "EbonwoodPiano",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_skeletron_0098",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "书卷钢琴",
+        "nameEn": "Librarian Piano",
+        "internalName": "LibrarianPiano",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
       "code": "shimmer_decraft_locked_skeletron_0099",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "云钢琴",
+        "nameEn": "Cloud Piano",
+        "internalName": "CloudPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -2996,10 +3000,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "乌木钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "仙人掌钢琴",
+        "nameEn": "Cactus Piano",
+        "internalName": "CactusPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3022,10 +3026,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "书卷钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "仙灵木钢琴",
+        "nameEn": "Feywood Piano",
+        "internalName": "FeywoodPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3048,10 +3052,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "云钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "以太钢琴",
+        "nameEn": "Aetherium Piano",
+        "internalName": "AetheriumPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3074,10 +3078,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "仙人掌钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "冰冻钢琴",
+        "nameEn": "Frozen Piano",
+        "internalName": "FrozenPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3100,10 +3104,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "仙灵木钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "办公钢琴",
+        "nameEn": "Office Piano",
+        "internalName": "OfficePiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3126,10 +3130,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "以太钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "南瓜钢琴",
+        "nameEn": "Pumpkin Piano",
+        "internalName": "PumpkinPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3152,10 +3156,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "冰冻钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "史莱姆钢琴",
+        "nameEn": "Slime Piano",
+        "internalName": "SlimePiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3175,84 +3179,6 @@
     },
     {
       "code": "shimmer_decraft_locked_skeletron_0107",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "办公钢琴",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0108",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "南瓜钢琴",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0109",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "史莱姆钢琴",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0110",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
@@ -3278,14 +3204,92 @@
       "sourcePageId": 26209
     },
     {
+      "code": "shimmer_decraft_locked_skeletron_0108",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "哥特钢琴",
+        "nameEn": "Gothic Piano",
+        "internalName": "GothicPiano",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_skeletron_0109",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "坠落之星钢琴",
+        "nameEn": "Fallen Star Piano",
+        "internalName": "FallenStarPiano",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_skeletron_0110",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "复活节钢琴",
+        "nameEn": "Easter Piano",
+        "internalName": "EasterPiano",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
       "code": "shimmer_decraft_locked_skeletron_0111",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "哥特钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "大理石钢琴",
+        "nameEn": "Marble Piano",
+        "internalName": "MarblePiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3308,10 +3312,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "坠落之星钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "天域钢琴",
+        "nameEn": "Skyware Piano",
+        "internalName": "SkywarePiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3331,84 +3335,6 @@
     },
     {
       "code": "shimmer_decraft_locked_skeletron_0113",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "复活节钢琴",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0114",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "大理石钢琴",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0115",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "天域钢琴",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0116",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
@@ -3434,14 +3360,92 @@
       "sourcePageId": 26209
     },
     {
+      "code": "shimmer_decraft_locked_skeletron_0114",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "小雪怪皮毛钢琴",
+        "nameEn": "Flinx Fur Piano",
+        "internalName": "FlinxFurPiano",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_skeletron_0115",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "尖刺钢琴",
+        "nameEn": "Spike Piano",
+        "internalName": "SpikePiano",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_skeletron_0116",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "巨石钢琴",
+        "nameEn": "Boulder Piano",
+        "internalName": "BoulderPiano",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
       "code": "shimmer_decraft_locked_skeletron_0117",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "小雪怪皮毛钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "日耀钢琴",
+        "nameEn": "Solar Piano",
+        "internalName": "SolarPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3464,10 +3468,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "尖刺钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "星云钢琴",
+        "nameEn": "Nebula Piano",
+        "internalName": "NebulaPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3490,10 +3494,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "巨石钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "星尘钢琴",
+        "nameEn": "Stardust Piano",
+        "internalName": "StardustPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3516,10 +3520,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "日耀钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "星旋钢琴",
+        "nameEn": "Vortex Piano",
+        "internalName": "VortexPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3542,10 +3546,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "星云钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "暗影木钢琴",
+        "nameEn": "Shadewood Piano",
+        "internalName": "ShadewoodPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3568,10 +3572,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "星尘钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "暮色钢琴",
+        "nameEn": "Duskware Piano",
+        "internalName": "MoonplatePiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3591,84 +3595,6 @@
     },
     {
       "code": "shimmer_decraft_locked_skeletron_0123",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "星旋钢琴",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0124",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "暗影木钢琴",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0125",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "暮色钢琴",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0126",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
@@ -3694,14 +3620,92 @@
       "sourcePageId": 26209
     },
     {
+      "code": "shimmer_decraft_locked_skeletron_0124",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "松木钢琴",
+        "nameEn": "Pine Piano",
+        "internalName": "PinePiano",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_skeletron_0125",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "棕榈木钢琴",
+        "nameEn": "Palm Wood Piano",
+        "internalName": "PalmWoodPiano",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_skeletron_0126",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "死灵头盔",
+        "nameEn": "Necro Helmet",
+        "internalName": "NecroHelmet",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
       "code": "shimmer_decraft_locked_skeletron_0127",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "松木钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "死灵护胫",
+        "nameEn": "Necro Greaves",
+        "internalName": "NecroGreaves",
         "quantityText": null
       },
       "outputs": [],
@@ -3724,10 +3728,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "棕榈木钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "死灵胸甲",
+        "nameEn": "Necro Breastplate",
+        "internalName": "NecroBreastplate",
         "quantityText": null
       },
       "outputs": [],
@@ -3750,10 +3754,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "死灵头盔",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "气球钢琴",
+        "nameEn": "Balloon Piano",
+        "internalName": "BalloonPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3776,10 +3780,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "死灵护胫",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "水族钢琴",
+        "nameEn": "Aquarium Piano",
+        "internalName": "WaterPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3802,10 +3806,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "死灵胸甲",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "水晶钢琴",
+        "nameEn": "Crystal Piano",
+        "internalName": "CrystalPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3828,10 +3832,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "气球钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "水母钢琴",
+        "nameEn": "Jellyfish Piano",
+        "internalName": "JellyfishPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3854,10 +3858,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "水族钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "永恒旅人兜帽",
+        "nameEn": "Timeless Traveler's Hood",
+        "internalName": "TimelessTravelerHood",
         "quantityText": null
       },
       "outputs": [],
@@ -3880,10 +3884,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "水晶钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "沙岩钢琴",
+        "nameEn": "Sandstone Piano",
+        "internalName": "SandstonePiano",
         "quantityText": null
       },
       "outputs": [],
@@ -3903,84 +3907,6 @@
     },
     {
       "code": "shimmer_decraft_locked_skeletron_0135",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "水母钢琴",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0136",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "永恒旅人兜帽",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0137",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "沙岩钢琴",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0138",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
@@ -4006,14 +3932,92 @@
       "sourcePageId": 26209
     },
     {
+      "code": "shimmer_decraft_locked_skeletron_0136",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "火星钢琴",
+        "nameEn": "Martian Piano",
+        "internalName": "MartianPiano",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_skeletron_0137",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "灰烬木钢琴",
+        "nameEn": "Ash Wood Piano",
+        "internalName": "AshWoodPiano",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_skeletron_0138",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "猩红矿钢琴",
+        "nameEn": "Crimtane Piano",
+        "internalName": "CrimtanePiano",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
       "code": "shimmer_decraft_locked_skeletron_0139",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "火星钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "王朝钢琴",
+        "nameEn": "Dynasty Piano",
+        "internalName": "DynastyPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -4036,10 +4040,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "灰烬木钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "玻璃钢琴",
+        "nameEn": "Glass Piano",
+        "internalName": "GlassPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -4062,10 +4066,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "猩红矿钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "珊瑚礁钢琴",
+        "nameEn": "Reef Piano",
+        "internalName": "CoralPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -4088,10 +4092,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "王朝钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "珍珠木钢琴",
+        "nameEn": "Pearlwood Piano",
+        "internalName": "PearlwoodPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -4114,10 +4118,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "玻璃钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "生命木钢琴",
+        "nameEn": "Living Wood Piano",
+        "internalName": "LivingWoodPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -4140,10 +4144,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "珊瑚礁钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "病变钢琴",
+        "nameEn": "Lesion Piano",
+        "internalName": "LesionPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -4166,10 +4170,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "珍珠木钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "瘟疫使者骷髅头",
+        "nameEn": "Plaguebringer's Skull",
+        "internalName": "PlaguebringerHelmet",
         "quantityText": null
       },
       "outputs": [],
@@ -4192,10 +4196,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "生命木钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "石钢琴",
+        "nameEn": "Stone Piano",
+        "internalName": "StonePiano",
         "quantityText": null
       },
       "outputs": [],
@@ -4218,10 +4222,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "病变钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "神圣钢琴",
+        "nameEn": "Hallowed Piano",
+        "internalName": "HallowedPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -4244,10 +4248,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "瘟疫使者骷髅头",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "禁戒钢琴",
+        "nameEn": "Forbidden Piano",
+        "internalName": "ForbiddenPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -4270,10 +4274,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "石钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "竹钢琴",
+        "nameEn": "Bamboo Piano",
+        "internalName": "BambooPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -4296,10 +4300,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "神圣钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "红木钢琴",
+        "nameEn": "Rich Mahogany Piano",
+        "internalName": "RichMahoganyPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -4319,84 +4323,6 @@
     },
     {
       "code": "shimmer_decraft_locked_skeletron_0151",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "禁戒钢琴",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0152",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "竹钢琴",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0153",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "红木钢琴",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0154",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
@@ -4422,7 +4348,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_locked_skeletron_0155",
+      "code": "shimmer_decraft_locked_skeletron_0152",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
@@ -4448,14 +4374,14 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_locked_skeletron_0156",
+      "code": "shimmer_decraft_locked_skeletron_0153",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
+        "kind": "item",
         "nameZh": "花岗岩钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Granite Piano",
+        "internalName": "GranitePiano",
         "quantityText": null
       },
       "outputs": [],
@@ -4474,7 +4400,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_locked_skeletron_0157",
+      "code": "shimmer_decraft_locked_skeletron_0154",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
@@ -4500,14 +4426,14 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_locked_skeletron_0158",
+      "code": "shimmer_decraft_locked_skeletron_0155",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
+        "kind": "item",
         "nameZh": "蒸汽朋克钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Steampunk Piano",
+        "internalName": "SteampunkPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -4526,14 +4452,14 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_locked_skeletron_0159",
+      "code": "shimmer_decraft_locked_skeletron_0156",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
+        "kind": "item",
         "nameZh": "蘑菇钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Mushroom Piano",
+        "internalName": "MushroomPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -4552,7 +4478,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_locked_skeletron_0160",
+      "code": "shimmer_decraft_locked_skeletron_0157",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
@@ -4578,7 +4504,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_locked_skeletron_0161",
+      "code": "shimmer_decraft_locked_skeletron_0158",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
@@ -4604,14 +4530,92 @@
       "sourcePageId": 26209
     },
     {
+      "code": "shimmer_decraft_locked_skeletron_0159",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "蜂蜜钢琴",
+        "nameEn": "Honey Piano",
+        "internalName": "HoneyPiano",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_skeletron_0160",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "蜘蛛钢琴",
+        "nameEn": "Spider Piano",
+        "internalName": "SpiderPiano",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_skeletron_0161",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "血肉钢琴",
+        "nameEn": "Flesh Piano",
+        "internalName": "FleshPiano",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
       "code": "shimmer_decraft_locked_skeletron_0162",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "蜂蜜钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "针叶木钢琴",
+        "nameEn": "Boreal Wood Piano",
+        "internalName": "BorealWoodPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -4634,10 +4638,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "蜘蛛钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "钢琴",
+        "nameEn": "Piano",
+        "internalName": "Piano",
         "quantityText": null
       },
       "outputs": [],
@@ -4660,10 +4664,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "血肉钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "阴森钢琴",
+        "nameEn": "Spooky Piano",
+        "internalName": "SpookyPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -4686,10 +4690,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "针叶木钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "陨石钢琴",
+        "nameEn": "Meteorite Piano",
+        "internalName": "MeteoritePiano",
         "quantityText": null
       },
       "outputs": [],
@@ -4712,10 +4716,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "钢琴",
-        "nameEn": "Pianos",
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "雪钢琴",
+        "nameEn": "Snow Piano",
+        "internalName": "SnowPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -4735,84 +4739,6 @@
     },
     {
       "code": "shimmer_decraft_locked_skeletron_0167",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "阴森钢琴",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0168",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "陨石钢琴",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0169",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "雪钢琴",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0170",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
@@ -4838,14 +4764,92 @@
       "sourcePageId": 26209
     },
     {
+      "code": "shimmer_decraft_locked_skeletron_0168",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "骨头书架",
+        "nameEn": "Bone Bookcase",
+        "internalName": "BoneBookcase",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_skeletron_0169",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "骨头吊灯",
+        "nameEn": "Bone Chandelier",
+        "internalName": "BoneChandelier",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_skeletron_0170",
+      "ruleType": "decraft_locked_skeletron",
+      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "骨头工作台",
+        "nameEn": "Bone Work Bench",
+        "internalName": "BoneWorkBench",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "SKELETRON",
+          "nameZh": "骷髅王",
+          "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
       "code": "shimmer_decraft_locked_skeletron_0171",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "骨头书架",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "骨头平台",
+        "nameEn": "Bone Platform",
+        "internalName": "BonePlatform",
         "quantityText": null
       },
       "outputs": [],
@@ -4868,10 +4872,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "骨头吊灯",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "骨头床",
+        "nameEn": "Bone Bed",
+        "internalName": "BoneBed",
         "quantityText": null
       },
       "outputs": [],
@@ -4894,10 +4898,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "骨头工作台",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "骨头时钟",
+        "nameEn": "Bone Clock",
+        "internalName": "BoneClock",
         "quantityText": null
       },
       "outputs": [],
@@ -4920,10 +4924,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "骨头平台",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "骨头桌",
+        "nameEn": "Bone Table",
+        "internalName": "BoneTable",
         "quantityText": null
       },
       "outputs": [],
@@ -4946,10 +4950,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "骨头床",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "骨头梳妆台",
+        "nameEn": "Bone Dresser",
+        "internalName": "BoneDresser",
         "quantityText": null
       },
       "outputs": [],
@@ -4972,10 +4976,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "骨头时钟",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "骨头椅",
+        "nameEn": "Bone Chair",
+        "internalName": "BoneChair",
         "quantityText": null
       },
       "outputs": [],
@@ -4998,10 +5002,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "骨头桌",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "骨头水槽",
+        "nameEn": "Bone Sink",
+        "internalName": "BoneSink",
         "quantityText": null
       },
       "outputs": [],
@@ -5024,10 +5028,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "骨头梳妆台",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "骨头沙发",
+        "nameEn": "Bone Sofa",
+        "internalName": "BoneSofa",
         "quantityText": null
       },
       "outputs": [],
@@ -5050,10 +5054,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "骨头椅",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "骨头浴缸",
+        "nameEn": "Bone Bathtub",
+        "internalName": "BoneBathtub",
         "quantityText": null
       },
       "outputs": [],
@@ -5076,10 +5080,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "骨头水槽",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "骨头灯",
+        "nameEn": "Bone Lamp",
+        "internalName": "BoneLamp",
         "quantityText": null
       },
       "outputs": [],
@@ -5102,10 +5106,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "骨头沙发",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "骨头灯笼",
+        "nameEn": "Bone Lantern",
+        "internalName": "BoneLantern",
         "quantityText": null
       },
       "outputs": [],
@@ -5128,10 +5132,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "骨头浴缸",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "骨头烛台",
+        "nameEn": "Bone Candelabra",
+        "internalName": "BoneCandelabra",
         "quantityText": null
       },
       "outputs": [],
@@ -5154,10 +5158,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "骨头灯",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "骨头钢琴",
+        "nameEn": "Bone Piano",
+        "internalName": "BonePiano",
         "quantityText": null
       },
       "outputs": [],
@@ -5180,10 +5184,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "骨头灯笼",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "骨头门",
+        "nameEn": "Bone Door",
+        "internalName": "BoneDoor",
         "quantityText": null
       },
       "outputs": [],
@@ -5206,10 +5210,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "骨头烛台",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "骨头马桶",
+        "nameEn": "Bone Toilet",
+        "internalName": "ToiletBone",
         "quantityText": null
       },
       "outputs": [],
@@ -5232,10 +5236,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "骨头钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "骨箱",
+        "nameEn": "Bone Chest",
+        "internalName": "BoneChest",
         "quantityText": null
       },
       "outputs": [],
@@ -5255,84 +5259,6 @@
     },
     {
       "code": "shimmer_decraft_locked_skeletron_0187",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "骨头门",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0188",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "骨头马桶",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0189",
-      "ruleType": "decraft_locked_skeletron",
-      "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "骨箱",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "SKELETRON",
-          "nameZh": "骷髅王",
-          "nameEn": "Skeletron"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_skeletron_0190",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
@@ -5358,14 +5284,14 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_locked_skeletron_0191",
+      "code": "shimmer_decraft_locked_skeletron_0188",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
+        "kind": "item",
         "nameZh": "魔矿钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Demonite Piano",
+        "internalName": "DemonitePiano",
         "quantityText": null
       },
       "outputs": [],
@@ -5384,14 +5310,14 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_locked_skeletron_0192",
+      "code": "shimmer_decraft_locked_skeletron_0189",
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
+        "kind": "item",
         "nameZh": "鸟妖钢琴",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Harpy Piano",
+        "internalName": "HarpyPiano",
         "quantityText": null
       },
       "outputs": [],
@@ -5401,6 +5327,84 @@
           "code": "SKELETRON",
           "nameZh": "骷髅王",
           "nameEn": "Skeletron"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_golem_0190",
+      "ruleType": "decraft_locked_golem",
+      "groupLabel": "直到 石巨人 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "丛林蜥蜴书架",
+        "nameEn": "Lihzahrd Bookcase",
+        "internalName": "LihzahrdBookcase",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "GOLEM",
+          "nameZh": "石巨人",
+          "nameEn": "Golem"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_golem_0191",
+      "ruleType": "decraft_locked_golem",
+      "groupLabel": "直到 石巨人 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "丛林蜥蜴吊灯",
+        "nameEn": "Lihzahrd Chandelier",
+        "internalName": "LihzahrdChandelier",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "GOLEM",
+          "nameZh": "石巨人",
+          "nameEn": "Golem"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_golem_0192",
+      "ruleType": "decraft_locked_golem",
+      "groupLabel": "直到 石巨人 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "丛林蜥蜴工作台",
+        "nameEn": "Lihzahrd Work Bench",
+        "internalName": "LihzahrdWorkBench",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "GOLEM",
+          "nameZh": "石巨人",
+          "nameEn": "Golem"
         }
       ],
       "notes": null,
@@ -5414,10 +5418,10 @@
       "ruleType": "decraft_locked_golem",
       "groupLabel": "直到 石巨人 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴书架",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "丛林蜥蜴平台",
+        "nameEn": "Lihzahrd Platform",
+        "internalName": "LihzahrdPlatform",
         "quantityText": null
       },
       "outputs": [],
@@ -5440,10 +5444,10 @@
       "ruleType": "decraft_locked_golem",
       "groupLabel": "直到 石巨人 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴吊灯",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "丛林蜥蜴床",
+        "nameEn": "Lihzahrd Bed",
+        "internalName": "LihzahrdBed",
         "quantityText": null
       },
       "outputs": [],
@@ -5466,10 +5470,10 @@
       "ruleType": "decraft_locked_golem",
       "groupLabel": "直到 石巨人 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴工作台",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "丛林蜥蜴时钟",
+        "nameEn": "Lihzahrd Clock",
+        "internalName": "LihzahrdClock",
         "quantityText": null
       },
       "outputs": [],
@@ -5492,10 +5496,10 @@
       "ruleType": "decraft_locked_golem",
       "groupLabel": "直到 石巨人 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴平台",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "丛林蜥蜴桌",
+        "nameEn": "Lihzahrd Table",
+        "internalName": "LihzahrdTable",
         "quantityText": null
       },
       "outputs": [],
@@ -5518,10 +5522,10 @@
       "ruleType": "decraft_locked_golem",
       "groupLabel": "直到 石巨人 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴床",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "丛林蜥蜴梳妆台",
+        "nameEn": "Lihzahrd Dresser",
+        "internalName": "LihzahrdDresser",
         "quantityText": null
       },
       "outputs": [],
@@ -5544,10 +5548,10 @@
       "ruleType": "decraft_locked_golem",
       "groupLabel": "直到 石巨人 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴时钟",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "丛林蜥蜴椅",
+        "nameEn": "Lihzahrd Chair",
+        "internalName": "LihzahrdChair",
         "quantityText": null
       },
       "outputs": [],
@@ -5570,10 +5574,10 @@
       "ruleType": "decraft_locked_golem",
       "groupLabel": "直到 石巨人 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴桌",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "丛林蜥蜴水槽",
+        "nameEn": "Lihzahrd Sink",
+        "internalName": "LihzahrdSink",
         "quantityText": null
       },
       "outputs": [],
@@ -5596,10 +5600,10 @@
       "ruleType": "decraft_locked_golem",
       "groupLabel": "直到 石巨人 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴梳妆台",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "丛林蜥蜴沙发",
+        "nameEn": "Lihzahrd Sofa",
+        "internalName": "LihzahrdSofa",
         "quantityText": null
       },
       "outputs": [],
@@ -5622,10 +5626,10 @@
       "ruleType": "decraft_locked_golem",
       "groupLabel": "直到 石巨人 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴椅",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "丛林蜥蜴浴缸",
+        "nameEn": "Lihzahrd Bathtub",
+        "internalName": "LihzahrdBathtub",
         "quantityText": null
       },
       "outputs": [],
@@ -5648,10 +5652,10 @@
       "ruleType": "decraft_locked_golem",
       "groupLabel": "直到 石巨人 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴水槽",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "丛林蜥蜴灯",
+        "nameEn": "Lihzahrd Lamp",
+        "internalName": "LihzahrdLamp",
         "quantityText": null
       },
       "outputs": [],
@@ -5674,10 +5678,10 @@
       "ruleType": "decraft_locked_golem",
       "groupLabel": "直到 石巨人 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴沙发",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "丛林蜥蜴灯笼",
+        "nameEn": "Lihzahrd Lantern",
+        "internalName": "LihzahrdLantern",
         "quantityText": null
       },
       "outputs": [],
@@ -5700,10 +5704,10 @@
       "ruleType": "decraft_locked_golem",
       "groupLabel": "直到 石巨人 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴浴缸",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "丛林蜥蜴烛台",
+        "nameEn": "Lihzahrd Candelabra",
+        "internalName": "LihzahrdCandelabra",
         "quantityText": null
       },
       "outputs": [],
@@ -5723,84 +5727,6 @@
     },
     {
       "code": "shimmer_decraft_locked_golem_0205",
-      "ruleType": "decraft_locked_golem",
-      "groupLabel": "直到 石巨人 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴灯",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "GOLEM",
-          "nameZh": "石巨人",
-          "nameEn": "Golem"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_golem_0206",
-      "ruleType": "decraft_locked_golem",
-      "groupLabel": "直到 石巨人 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴灯笼",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "GOLEM",
-          "nameZh": "石巨人",
-          "nameEn": "Golem"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_golem_0207",
-      "ruleType": "decraft_locked_golem",
-      "groupLabel": "直到 石巨人 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴烛台",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "GOLEM",
-          "nameZh": "石巨人",
-          "nameEn": "Golem"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_golem_0208",
       "ruleType": "decraft_locked_golem",
       "groupLabel": "直到 石巨人 被击败才可拆解的物品",
       "input": {
@@ -5826,92 +5752,92 @@
       "sourcePageId": 26209
     },
     {
+      "code": "shimmer_decraft_locked_golem_0206",
+      "ruleType": "decraft_locked_golem",
+      "groupLabel": "直到 石巨人 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "丛林蜥蜴蜡烛",
+        "nameEn": "Lihzahrd Candle",
+        "internalName": "LihzahrdCandle",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "GOLEM",
+          "nameZh": "石巨人",
+          "nameEn": "Golem"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_golem_0207",
+      "ruleType": "decraft_locked_golem",
+      "groupLabel": "直到 石巨人 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "丛林蜥蜴钢琴",
+        "nameEn": "Lihzahrd Piano",
+        "internalName": "LihzahrdPiano",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "GOLEM",
+          "nameZh": "石巨人",
+          "nameEn": "Golem"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_locked_golem_0208",
+      "ruleType": "decraft_locked_golem",
+      "groupLabel": "直到 石巨人 被击败才可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "丛林蜥蜴门",
+        "nameEn": "Lihzahrd Door",
+        "internalName": "LihzahrdDoor",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [
+        {
+          "type": "boss_defeated",
+          "code": "GOLEM",
+          "nameZh": "石巨人",
+          "nameEn": "Golem"
+        }
+      ],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
       "code": "shimmer_decraft_locked_golem_0209",
       "ruleType": "decraft_locked_golem",
       "groupLabel": "直到 石巨人 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴蜡烛",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "GOLEM",
-          "nameZh": "石巨人",
-          "nameEn": "Golem"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_golem_0210",
-      "ruleType": "decraft_locked_golem",
-      "groupLabel": "直到 石巨人 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴钢琴",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "GOLEM",
-          "nameZh": "石巨人",
-          "nameEn": "Golem"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_golem_0211",
-      "ruleType": "decraft_locked_golem",
-      "groupLabel": "直到 石巨人 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "丛林蜥蜴门",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [
-        {
-          "type": "boss_defeated",
-          "code": "GOLEM",
-          "nameZh": "石巨人",
-          "nameEn": "Golem"
-        }
-      ],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_locked_golem_0212",
-      "ruleType": "decraft_locked_golem",
-      "groupLabel": "直到 石巨人 被击败才可拆解的物品",
-      "input": {
-        "kind": "unresolved",
+        "kind": "item",
         "nameZh": "丛林蜥蜴马桶",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Lihzahrd Toilet",
+        "internalName": "ToiletLihzhard",
         "quantityText": null
       },
       "outputs": [],
@@ -5930,7 +5856,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0213",
+      "code": "shimmer_decraft_not_allowed_0210",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -5949,7 +5875,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0214",
+      "code": "shimmer_decraft_not_allowed_0211",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -5968,7 +5894,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0215",
+      "code": "shimmer_decraft_not_allowed_0212",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -5987,7 +5913,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0216",
+      "code": "shimmer_decraft_not_allowed_0213",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6006,7 +5932,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0217",
+      "code": "shimmer_decraft_not_allowed_0214",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6025,7 +5951,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0218",
+      "code": "shimmer_decraft_not_allowed_0215",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6044,7 +5970,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0219",
+      "code": "shimmer_decraft_not_allowed_0216",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6063,7 +5989,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0220",
+      "code": "shimmer_decraft_not_allowed_0217",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6082,7 +6008,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0221",
+      "code": "shimmer_decraft_not_allowed_0218",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6101,7 +6027,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0222",
+      "code": "shimmer_decraft_not_allowed_0219",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6120,7 +6046,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0223",
+      "code": "shimmer_decraft_not_allowed_0220",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6139,7 +6065,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0224",
+      "code": "shimmer_decraft_not_allowed_0221",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6158,7 +6084,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0225",
+      "code": "shimmer_decraft_not_allowed_0222",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6177,7 +6103,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0226",
+      "code": "shimmer_decraft_not_allowed_0223",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6196,7 +6122,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0227",
+      "code": "shimmer_decraft_not_allowed_0224",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6215,7 +6141,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0228",
+      "code": "shimmer_decraft_not_allowed_0225",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6234,7 +6160,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0229",
+      "code": "shimmer_decraft_not_allowed_0226",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6253,7 +6179,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0230",
+      "code": "shimmer_decraft_not_allowed_0227",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6272,7 +6198,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0231",
+      "code": "shimmer_decraft_not_allowed_0228",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6291,7 +6217,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0232",
+      "code": "shimmer_decraft_not_allowed_0229",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6310,7 +6236,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0233",
+      "code": "shimmer_decraft_not_allowed_0230",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6329,68 +6255,68 @@
       "sourcePageId": 26209
     },
     {
+      "code": "shimmer_decraft_not_allowed_0231",
+      "ruleType": "decraft_not_allowed",
+      "groupLabel": "不可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "干火箭",
+        "nameEn": "Dry Rocket",
+        "internalName": "DryRocket",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_not_allowed_0232",
+      "ruleType": "decraft_not_allowed",
+      "groupLabel": "不可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "干炸弹",
+        "nameEn": "Dry Bomb",
+        "internalName": "DryBomb",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_not_allowed_0233",
+      "ruleType": "decraft_not_allowed",
+      "groupLabel": "不可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "泰拉马桶",
+        "nameEn": "Terra Toilet",
+        "internalName": "TerraToilet",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
       "code": "shimmer_decraft_not_allowed_0234",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "干火箭",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_not_allowed_0235",
-      "ruleType": "decraft_not_allowed",
-      "groupLabel": "不可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "干炸弹",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_not_allowed_0236",
-      "ruleType": "decraft_not_allowed",
-      "groupLabel": "不可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "泰拉马桶",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_not_allowed_0237",
-      "ruleType": "decraft_not_allowed",
-      "groupLabel": "不可拆解的物品",
-      "input": {
-        "kind": "ambiguous",
+        "kind": "item",
         "nameZh": "日耀碎片",
         "nameEn": "Solar Fragment",
         "internalName": null,
@@ -6405,7 +6331,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0238",
+      "code": "shimmer_decraft_not_allowed_0235",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6424,7 +6350,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0239",
+      "code": "shimmer_decraft_not_allowed_0236",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6443,7 +6369,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0240",
+      "code": "shimmer_decraft_not_allowed_0237",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6462,7 +6388,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0241",
+      "code": "shimmer_decraft_not_allowed_0238",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6481,14 +6407,71 @@
       "sourcePageId": 26209
     },
     {
+      "code": "shimmer_decraft_not_allowed_0239",
+      "ruleType": "decraft_not_allowed",
+      "groupLabel": "不可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "1秒计时器",
+        "nameEn": "1 Second Timer",
+        "internalName": "Timer1Second",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_not_allowed_0240",
+      "ruleType": "decraft_not_allowed",
+      "groupLabel": "不可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "3秒计时器",
+        "nameEn": "3 Second Timer",
+        "internalName": "Timer3Second",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
+      "code": "shimmer_decraft_not_allowed_0241",
+      "ruleType": "decraft_not_allowed",
+      "groupLabel": "不可拆解的物品",
+      "input": {
+        "kind": "item",
+        "nameZh": "5秒计时器",
+        "nameEn": "5 Second Timer",
+        "internalName": "Timer5Second",
+        "quantityText": null
+      },
+      "outputs": [],
+      "conditions": [],
+      "notes": null,
+      "sourceSection": "有多个配方的物品",
+      "sourcePage": "微光",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourcePageId": 26209
+    },
+    {
       "code": "shimmer_decraft_not_allowed_0242",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "1秒计时器",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "龙虾旗",
+        "nameEn": "Crawdad Banner",
+        "internalName": "CrawdadBanner",
         "quantityText": null
       },
       "outputs": [],
@@ -6504,10 +6487,10 @@
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "3秒计时器",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "蝾螈旗",
+        "nameEn": "Salamander Banner",
+        "internalName": "SalamanderBanner",
         "quantityText": null
       },
       "outputs": [],
@@ -6523,10 +6506,10 @@
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
-        "kind": "unresolved",
-        "nameZh": "5秒计时器",
-        "nameEn": null,
-        "internalName": null,
+        "kind": "item",
+        "nameZh": "巨型卷壳怪旗",
+        "nameEn": "Giant Shelly Banner",
+        "internalName": "GiantShellyBanner",
         "quantityText": null
       },
       "outputs": [],
@@ -6539,63 +6522,6 @@
     },
     {
       "code": "shimmer_decraft_not_allowed_0245",
-      "ruleType": "decraft_not_allowed",
-      "groupLabel": "不可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "龙虾旗",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_not_allowed_0246",
-      "ruleType": "decraft_not_allowed",
-      "groupLabel": "不可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "蝾螈旗",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_not_allowed_0247",
-      "ruleType": "decraft_not_allowed",
-      "groupLabel": "不可拆解的物品",
-      "input": {
-        "kind": "unresolved",
-        "nameZh": "巨型卷壳怪旗",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "outputs": [],
-      "conditions": [],
-      "notes": null,
-      "sourceSection": "有多个配方的物品",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_decraft_not_allowed_0248",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6614,7 +6540,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0249",
+      "code": "shimmer_decraft_not_allowed_0246",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6633,7 +6559,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0250",
+      "code": "shimmer_decraft_not_allowed_0247",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {
@@ -6652,7 +6578,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_decraft_not_allowed_0251",
+      "code": "shimmer_decraft_not_allowed_0248",
       "ruleType": "decraft_not_allowed",
       "groupLabel": "不可拆解的物品",
       "input": {

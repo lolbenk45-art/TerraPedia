@@ -1,30 +1,11 @@
 {
   "entity": "wiki_shimmer_npc_transforms_importable",
-  "generatedAt": "2026-04-09T00:34:56.477Z",
+  "generatedAt": "2026-04-09T01:52:13.267Z",
   "sourceProvider": "wiki_zh",
   "sourceFile": "data/generated/wiki-shimmer.latest.json",
   "records": [
     {
       "code": "shimmer_npc_transform_0001",
-      "npc": {
-        "kind": "npc",
-        "nameZh": "NPC",
-        "nameEn": null,
-        "internalName": null,
-        "quantityText": null
-      },
-      "appearanceVariant": "shimmer",
-      "effectType": "visual_only",
-      "variantImageUrl": null,
-      "variantImageAlt": null,
-      "notes": "仅影响外观",
-      "sourceSection": "NPC 微光形态",
-      "sourcePage": "微光",
-      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
-      "sourcePageId": 26209
-    },
-    {
-      "code": "shimmer_npc_transform_0002",
       "npc": {
         "kind": "npc",
         "nameZh": "向导",
@@ -43,12 +24,12 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0003",
+      "code": "shimmer_npc_transform_0002",
       "npc": {
         "kind": "npc",
         "nameZh": "商人",
         "nameEn": "Merchant",
-        "internalName": "Merchant",
+        "internalName": null,
         "quantityText": null
       },
       "appearanceVariant": "shimmer",
@@ -62,7 +43,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0004",
+      "code": "shimmer_npc_transform_0003",
       "npc": {
         "kind": "npc",
         "nameZh": "护士",
@@ -81,7 +62,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0005",
+      "code": "shimmer_npc_transform_0004",
       "npc": {
         "kind": "npc",
         "nameZh": "油漆工",
@@ -100,7 +81,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0006",
+      "code": "shimmer_npc_transform_0005",
       "npc": {
         "kind": "npc",
         "nameZh": "染料商",
@@ -119,7 +100,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0007",
+      "code": "shimmer_npc_transform_0006",
       "npc": {
         "kind": "npc",
         "nameZh": "动物学家",
@@ -138,7 +119,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0008",
+      "code": "shimmer_npc_transform_0007",
       "npc": {
         "kind": "npc",
         "nameZh": "高尔夫球手",
@@ -157,7 +138,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0009",
+      "code": "shimmer_npc_transform_0008",
       "npc": {
         "kind": "npc",
         "nameZh": "派对女孩",
@@ -176,7 +157,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0010",
+      "code": "shimmer_npc_transform_0009",
       "npc": {
         "kind": "npc",
         "nameZh": "渔夫",
@@ -195,7 +176,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0011",
+      "code": "shimmer_npc_transform_0010",
       "npc": {
         "kind": "npc",
         "nameZh": "发型师",
@@ -214,7 +195,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0012",
+      "code": "shimmer_npc_transform_0011",
       "npc": {
         "kind": "npc",
         "nameZh": "爆破专家",
@@ -233,7 +214,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0013",
+      "code": "shimmer_npc_transform_0012",
       "npc": {
         "kind": "npc",
         "nameZh": "树妖",
@@ -252,7 +233,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0014",
+      "code": "shimmer_npc_transform_0013",
       "npc": {
         "kind": "npc",
         "nameZh": "酒馆老板",
@@ -271,7 +252,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0015",
+      "code": "shimmer_npc_transform_0014",
       "npc": {
         "kind": "npc",
         "nameZh": "军火商",
@@ -290,7 +271,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0016",
+      "code": "shimmer_npc_transform_0015",
       "npc": {
         "kind": "npc",
         "nameZh": "哥布林工匠",
@@ -309,7 +290,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0017",
+      "code": "shimmer_npc_transform_0016",
       "npc": {
         "kind": "npc",
         "nameZh": "巫医",
@@ -328,7 +309,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0018",
+      "code": "shimmer_npc_transform_0017",
       "npc": {
         "kind": "npc",
         "nameZh": "服装商",
@@ -347,7 +328,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0019",
+      "code": "shimmer_npc_transform_0018",
       "npc": {
         "kind": "npc",
         "nameZh": "机械师",
@@ -366,7 +347,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0020",
+      "code": "shimmer_npc_transform_0019",
       "npc": {
         "kind": "npc",
         "nameZh": "税收官",
@@ -385,7 +366,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0021",
+      "code": "shimmer_npc_transform_0020",
       "npc": {
         "kind": "npc",
         "nameZh": "海盗",
@@ -404,7 +385,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0022",
+      "code": "shimmer_npc_transform_0021",
       "npc": {
         "kind": "npc",
         "nameZh": "松露人",
@@ -423,7 +404,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0023",
+      "code": "shimmer_npc_transform_0022",
       "npc": {
         "kind": "npc",
         "nameZh": "巫师",
@@ -442,7 +423,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0024",
+      "code": "shimmer_npc_transform_0023",
       "npc": {
         "kind": "npc",
         "nameZh": "蒸汽朋克人",
@@ -461,7 +442,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0025",
+      "code": "shimmer_npc_transform_0024",
       "npc": {
         "kind": "npc",
         "nameZh": "机器侠",
@@ -480,7 +461,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0026",
+      "code": "shimmer_npc_transform_0025",
       "npc": {
         "kind": "npc",
         "nameZh": "圣诞老人",
@@ -499,7 +480,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0027",
+      "code": "shimmer_npc_transform_0026",
       "npc": {
         "kind": "npc",
         "nameZh": "公主",
@@ -518,7 +499,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0028",
+      "code": "shimmer_npc_transform_0027",
       "npc": {
         "kind": "npc",
         "nameZh": "旅商",
@@ -537,7 +518,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0029",
+      "code": "shimmer_npc_transform_0028",
       "npc": {
         "kind": "npc",
         "nameZh": "老人",
@@ -556,7 +537,7 @@
       "sourcePageId": 26209
     },
     {
-      "code": "shimmer_npc_transform_0030",
+      "code": "shimmer_npc_transform_0029",
       "npc": {
         "kind": "npc",
         "nameZh": "骷髅商人",

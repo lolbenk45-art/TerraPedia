@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 
 import {
   DEFAULT_WIKI_API_URL,
@@ -11,7 +12,11 @@ import {
   parseCliArgs,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
+import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { decodeHtmlEntities, extractIntroParagraphs, stripHtml } from '../lib/wiki-page-utils.mjs';
+
+const require = createRequire(import.meta.url);
+const mysql = require('mysql2/promise');
 
 const repoRoot = process.cwd();
 const options = parseCliArgs(process.argv.slice(2));
@@ -24,6 +29,7 @@ const apiUrl = options.api ?? DEFAULT_WIKI_API_URL.replace('/api.php', '/zh/api.
 const sourceProvider = options.provider ?? 'wiki_zh';
 const itemsPath = path.resolve(options.items ?? path.join(repoRoot, 'data', 'standardized', 'items.standardized.json'));
 const npcsPath = path.resolve(options.npcs ?? path.join(repoRoot, 'data', 'standardized', 'npcs.standardized.json'));
+const useDbLookup = booleanOption(options['use-db-lookup'] ?? options.useDbLookup, true);
 
 const TABLE_ROLE_SEQUENCE = [
   { role: 'item_transforms', label: '\u7269\u54c1\u5b17\u53d8' },
@@ -62,6 +68,29 @@ const BOSS_REQUIREMENTS = [
   { code: 'SKELETRON', nameZh: '\u9ab7\u9ac5\u738b', nameEn: 'Skeletron' },
   { code: 'GOLEM', nameZh: '\u77f3\u5de8\u4eba', nameEn: 'Golem' }
 ];
+const TITLE_META_OVERRIDES = new Map([
+  ['\u5f55\u97f3\u540e\u7684\u516b\u97f3\u76d2', { kind: 'item_group', nameEn: 'Recorded Music Boxes', internalName: null }],
+  ['\u6cbc\u6cfd\u50f5\u5c38', { kind: 'npc', nameEn: 'Swamp Zombie', internalName: 'SwampZombie' }],
+  ['\u4e2d\u7bad\u50f5\u5c38', { kind: 'npc', nameEn: 'Pincushion Zombie', internalName: 'PincushionZombie' }],
+  ['\u79c3\u5934\u50f5\u5c38', { kind: 'npc', nameEn: 'Bald Zombie', internalName: 'BaldZombie' }],
+  ['\u7578\u5f62\u9ab7\u9ac5', { kind: 'npc', nameEn: 'Misassembled Skeleton', internalName: 'MisassembledSkeleton' }],
+  ['\u7ea4\u7626\u50f5\u5c38', { kind: 'npc', nameEn: 'Twiggy Zombie', internalName: 'TwiggyZombie' }],
+  ['\u5973\u6027\u50f5\u5c38', { kind: 'npc', nameEn: 'Female Zombie', internalName: 'FemaleZombie' }],
+  ['\u65e0\u88e4\u9ab7\u9ac5', { kind: 'npc', nameEn: 'Pantless Skeleton', internalName: 'PantlessSkeleton' }],
+  ['\u6b66\u88c5\u50f5\u5c38', { kind: 'npc', nameEn: 'Armed Zombie', internalName: 'ArmedZombie' }],
+  ['\u6b66\u88c5\u53f2\u83b1\u59c6\u50f5\u5c38', { kind: 'npc', nameEn: 'Armed Slimed Zombie', internalName: 'ArmedZombieSlimed' }],
+  ['\u6b66\u88c5\u6cbc\u6cfd\u50f5\u5c38', { kind: 'npc', nameEn: 'Armed Swamp Zombie', internalName: 'ArmedZombieSwamp' }],
+  ['\u6b66\u88c5\u706b\u628a\u50f5\u5c38', { kind: 'npc', nameEn: 'Armed Torch Zombie', internalName: 'ArmedTorchZombie' }],
+  ['\u6b66\u88c5\u4e2d\u7bad\u50f5\u5c38', { kind: 'npc', nameEn: 'Armed Pincushion Zombie', internalName: 'ArmedZombiePincussion' }],
+  ['\u9aa8\u5934\u6295\u63b7\u5934\u75db\u9ab7\u9ac5', { kind: 'npc', nameEn: 'Bone Throwing Skeleton', internalName: 'BoneThrowingSkeleton2' }],
+  ['\u9aa8\u5934\u6295\u63b7\u7578\u5f62\u9ab7\u9ac5', { kind: 'npc', nameEn: 'Bone Throwing Skeleton', internalName: 'BoneThrowingSkeleton3' }],
+  ['\u53f2\u83b1\u59c6\u5154\u5154', { kind: 'npc', nameEn: 'Slime Bunny', internalName: 'BunnySlimed' }],
+  ['\u5154\u5154\u53f2\u83b1\u59c6', { kind: 'npc', nameEn: 'Bunny Slime', internalName: 'SlimeMasked' }],
+  ['\u7eff\u793c\u7269\u53f2\u83b1\u59c6', { kind: 'npc', nameEn: 'Green Present Slime', internalName: 'SlimeRibbonGreen' }],
+  ['\u7ea2\u793c\u7269\u53f2\u83b1\u59c6', { kind: 'npc', nameEn: 'Red Present Slime', internalName: 'SlimeRibbonRed' }],
+  ['\u9ec4\u793c\u7269\u53f2\u83b1\u59c6', { kind: 'npc', nameEn: 'Yellow Present Slime', internalName: 'SlimeRibbonYellow' }],
+  ['\u767d\u793c\u7269\u53f2\u83b1\u59c6', { kind: 'npc', nameEn: 'White Present Slime', internalName: 'SlimeRibbonWhite' }]
+]);
 
 if (!fs.existsSync(inputPath)) {
   throw new Error(`Input file not found: ${inputPath}`);
@@ -70,13 +99,16 @@ if (!fs.existsSync(inputPath)) {
 const raw = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
 const itemLookup = buildEntityLookup(JSON.parse(fs.readFileSync(itemsPath, 'utf8')).records ?? []);
 const npcLookup = buildEntityLookup(JSON.parse(fs.readFileSync(npcsPath, 'utf8')).records ?? []);
+if (useDbLookup) {
+  await enrichLookupsFromDb(itemLookup, npcLookup);
+}
 const tables = extractTables(raw.html);
 
 if (tables.length < TABLE_ROLE_SEQUENCE.length) {
   throw new Error(`Unexpected shimmer table count: expected at least ${TABLE_ROLE_SEQUENCE.length}, got ${tables.length}`);
 }
 
-const titleMeta = await resolveTitleMeta(collectLinkedTitlesFromTables(tables), apiUrl, itemLookup, npcLookup);
+const titleMeta = await resolveTitleMeta(collectCandidateTitles(tables), apiUrl, itemLookup, npcLookup);
 const contextPayload = buildContextPayload(raw, sourceProvider);
 const itemTransformsPayload = buildItemTransformPayload(raw, tables[0], sourceProvider, titleMeta);
 const decraftRulesPayload = buildDecraftRulesPayload(raw, tables.slice(1, 8), sourceProvider, titleMeta);
@@ -322,6 +354,45 @@ function buildManifestPayload(rawPayload, titleMeta, itemTransforms, decraftRule
   };
 }
 
+async function enrichLookupsFromDb(itemLookup, npcLookup) {
+  const config = loadLocalStackConfig(repoRoot);
+  const db = {
+    host: process.env.TERRAPEDIA_DB_HOST ?? config.database?.host ?? '127.0.0.1',
+    port: Number(process.env.TERRAPEDIA_DB_PORT ?? config.database?.port ?? 3306),
+    user: process.env.TERRAPEDIA_DB_USERNAME ?? config.database?.username ?? 'root',
+    password: process.env.TERRAPEDIA_DB_PASSWORD ?? config.database?.password ?? 'root',
+    database: process.env.TERRAPEDIA_DB_NAME ?? config.database?.name ?? 'terria_v1_local'
+  };
+
+  let conn;
+  try {
+    conn = await mysql.createConnection(db);
+    const [itemRows] = await conn.query(`SELECT id, internal_name AS internalName, name, name_zh AS nameZh FROM items WHERE deleted = 0`);
+    const [npcRows] = await conn.query(`SELECT id, internal_name AS internalName, name, name_zh AS nameZh FROM npcs WHERE deleted = 0`);
+    for (const row of itemRows) {
+      mergeLookupRecord(itemLookup, row);
+    }
+    for (const row of npcRows) {
+      mergeLookupRecord(npcLookup, row);
+    }
+  } catch {
+    // Keep file-only lookup when DB is unavailable.
+  } finally {
+    if (conn) {
+      await conn.end();
+    }
+  }
+}
+
+function mergeLookupRecord(lookup, record) {
+  const normalizedName = normalizeKey(record?.name);
+  const normalizedInternal = normalizeKey(record?.internalName);
+  const normalizedZh = normalizeKey(record?.nameZh);
+  if (normalizedName && !lookup.has(normalizedName)) lookup.set(normalizedName, record);
+  if (normalizedInternal && !lookup.has(normalizedInternal)) lookup.set(normalizedInternal, record);
+  if (normalizedZh && !lookup.has(normalizedZh)) lookup.set(normalizedZh, record);
+}
+
 function buildMarkdownSummary(rawPayload, outDir, manifest, itemTransforms, decraftRules, entityTransforms, npcTransforms) {
   return [
     '# Wiki Shimmer Importable Summary',
@@ -343,6 +414,55 @@ function buildMarkdownSummary(rawPayload, outDir, manifest, itemTransforms, decr
   ].join('\n') + '\n';
 }
 
+function collectCandidateTitles(tables) {
+  const titles = new Set();
+  for (const [index, table] of tables.entries()) {
+    const role = TABLE_ROLE_SEQUENCE[index]?.role;
+    const rows = extractDataRows(table.html);
+    if (!role || rows.length === 0) {
+      continue;
+    }
+
+    if (role === 'item_transforms' || role === 'decraft_multi_recipe' || role === 'decraft_unique' || role === 'critter_to_item' || role === 'enemy_transforms') {
+      for (const cells of rows) {
+        addTitlesFromCell(titles, cells[0]);
+        addTitlesFromCell(titles, cells[1]);
+      }
+      continue;
+    }
+
+    if (role === 'decraft_evil_branch') {
+      for (const cells of rows) {
+        addTitlesFromCell(titles, cells[0]);
+        addTitlesFromCell(titles, cells[1]);
+        addTitlesFromCell(titles, cells[2]);
+      }
+      continue;
+    }
+
+    if (role === 'decraft_random_partial' || role === 'decraft_locked_skeletron' || role === 'decraft_locked_golem' || role === 'decraft_not_allowed' || role === 'critter_to_faeling' || role === 'slime_to_shimmer_slime') {
+      addTitlesFromCell(titles, rows[0][0]);
+      continue;
+    }
+
+    if (role === 'npc_transforms') {
+      for (const cells of rows) {
+        addTitlesFromCell(titles, cells[0]);
+      }
+    }
+  }
+  return titles;
+}
+
+function addTitlesFromCell(target, cellHtml) {
+  for (const entry of parseCellEntities(cellHtml ?? '')) {
+    const title = normalizeWhitespace(entry?.nameZh);
+    if (title) {
+      target.add(title);
+    }
+  }
+}
+
 function extractTables(html) {
   return [...String(html ?? '').matchAll(/<table\b[^>]*>([\s\S]*?)<\/table>/gi)].map((match) => ({
     html: match[0],
@@ -353,8 +473,12 @@ function extractTables(html) {
 
 function extractDataRows(tableHtml) {
   return [...String(tableHtml ?? '').matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)]
-    .map((rowMatch) => [...rowMatch[1].matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)].map((cell) => cell[1]))
-    .filter((cells) => cells.some((cell) => /<td\b/i.test(`<td>${cell}</td>`)));
+    .map((rowMatch) => ({
+      rowHtml: rowMatch[1],
+      cells: [...rowMatch[1].matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)].map((cell) => cell[1])
+    }))
+    .filter((row) => /<td\b/i.test(row.rowHtml))
+    .map((row) => row.cells);
 }
 
 function parsePrimaryCellEntity(cellHtml) {
@@ -462,10 +586,21 @@ async function resolveTitleMeta(zhTitles, wikiApiUrl, itemLookup, npcLookup) {
   for (const titleZh of zhTitles) {
     const nameZh = normalizeWhitespace(titleZh);
     if (!nameZh) continue;
+    const override = TITLE_META_OVERRIDES.get(nameZh) ?? null;
+    if (override) {
+      titleMeta.set(nameZh, {
+        kind: override.kind,
+        nameZh,
+        nameEn: override.nameEn,
+        internalName: override.internalName,
+        hint: 'override'
+      });
+      continue;
+    }
     const nameEn = langlinks.get(nameZh) ?? (looksAscii(nameZh) ? nameZh : null);
-    const key = normalizeKey(nameEn);
-    const item = key ? itemLookup.get(key) ?? null : null;
-    const npc = key ? npcLookup.get(key) ?? null : null;
+    const candidateKeys = buildLookupCandidates(nameZh, nameEn);
+    const item = findLookupRecord(itemLookup, candidateKeys);
+    const npc = findLookupRecord(npcLookup, candidateKeys);
     if (isItemGroupName(nameZh, nameEn)) {
       titleMeta.set(nameZh, { kind: 'item_group', nameZh, nameEn, internalName: null, hint: 'item_group' });
     } else if (item && !npc) {
@@ -479,6 +614,24 @@ async function resolveTitleMeta(zhTitles, wikiApiUrl, itemLookup, npcLookup) {
     }
   }
   return titleMeta;
+}
+
+function buildLookupCandidates(nameZh, nameEn) {
+  const candidates = [normalizeKey(nameZh), normalizeKey(nameEn)];
+  const singular = singularizeEnglishLabel(nameEn);
+  if (singular) {
+    candidates.push(normalizeKey(singular));
+  }
+  return [...new Set(candidates.filter(Boolean))];
+}
+
+function findLookupRecord(lookup, candidates) {
+  for (const key of candidates) {
+    if (lookup.has(key)) {
+      return lookup.get(key);
+    }
+  }
+  return null;
 }
 
 async function fetchEnglishLanglinks(titles, wikiApiUrl) {
@@ -503,10 +656,22 @@ async function fetchEnglishLanglinks(titles, wikiApiUrl) {
       profile: 'revision',
       sourceKey: `shimmer-langlinks:${batch[0]}`
     });
+    const redirects = new Map();
+    for (const redirect of body?.query?.redirects ?? []) {
+      const fromTitle = normalizeWhitespace(redirect?.from);
+      const toTitle = normalizeWhitespace(redirect?.to);
+      if (fromTitle && toTitle) {
+        redirects.set(toTitle, fromTitle);
+      }
+    }
     for (const page of body?.query?.pages ?? []) {
       const zhTitle = normalizeWhitespace(page?.title);
       const enTitle = normalizeWhitespace(page?.langlinks?.[0]?.title);
       if (zhTitle && enTitle) mapping.set(zhTitle, enTitle);
+      const redirectedFrom = zhTitle ? redirects.get(zhTitle) : null;
+      if (redirectedFrom && enTitle) {
+        mapping.set(redirectedFrom, enTitle);
+      }
     }
   }
   return mapping;
@@ -551,6 +716,14 @@ function formatResolved(entry, titleMeta, hint) {
 function resolveReference(entry, titleMeta, hint) {
   const nameZh = entry?.nameZh ?? null;
   const meta = titleMeta.get(nameZh) ?? { kind: hint === 'npc' ? 'npc' : 'item', nameZh: normalizeWhitespace(nameZh), nameEn: null, internalName: null };
+  if (meta.kind === 'ambiguous') {
+    return {
+      kind: hint === 'npc' ? 'npc' : (hint === 'item_group' ? 'item_group' : 'item'),
+      nameZh: meta.nameZh,
+      nameEn: meta.nameEn,
+      internalName: meta.internalName
+    };
+  }
   return meta;
 }
 
@@ -579,4 +752,34 @@ function normalizeKey(value) {
 
 function looksAscii(value) {
   return /^[\x00-\x7F]+$/.test(String(value ?? ''));
+}
+
+function singularizeEnglishLabel(value) {
+  const text = normalizeWhitespace(value);
+  if (!text) {
+    return null;
+  }
+  if (text.endsWith('ies')) {
+    return `${text.slice(0, -3)}y`;
+  }
+  if (text.endsWith('es')) {
+    return text.slice(0, -2);
+  }
+  if (text.endsWith('s')) {
+    return text.slice(0, -1);
+  }
+  return null;
+}
+
+function booleanOption(value, fallback) {
+  if (value == null || value === '') {
+    return fallback;
+  }
+  if (value === true || value === 'true' || value === '1' || value === 'yes') {
+    return true;
+  }
+  if (value === false || value === 'false' || value === '0' || value === 'no') {
+    return false;
+  }
+  return fallback;
 }
