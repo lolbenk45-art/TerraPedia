@@ -228,6 +228,8 @@ if (-not [string]::IsNullOrWhiteSpace($minioCredentialsFile)) {
 
 $springProfile = [string](Resolve-Setting 'SPRING_PROFILES_ACTIVE' (Get-ConfigValue $stackConfig @('backend', 'springProfile')) 'legacy')
 $env:SPRING_PROFILES_ACTIVE = $springProfile
+$springFlywayOutOfOrder = Resolve-BoolString 'SPRING_FLYWAY_OUT_OF_ORDER' (Get-ConfigValue $stackConfig @('backend', 'flywayOutOfOrder')) $true
+$env:SPRING_FLYWAY_OUT_OF_ORDER = $springFlywayOutOfOrder
 
 if (-not (Test-LocalPort $backPort)) {
   $backLog = Join-Path $reportDir 'back-dev.log'
@@ -235,6 +237,7 @@ if (-not (Test-LocalPort $backPort)) {
 Set-Location '$backDir'
 `$env:APP_PORT = '$backPort'
 `$env:SPRING_PROFILES_ACTIVE = '$springProfile'
+`$env:SPRING_FLYWAY_OUT_OF_ORDER = '$springFlywayOutOfOrder'
 `$env:TERRAPEDIA_DB_NAME = '$dbName'
 `$env:TERRAPEDIA_DB_HOST = '$dbHost'
 `$env:TERRAPEDIA_DB_PORT = '$dbPort'
@@ -306,4 +309,5 @@ Write-Host "data-query-app($adminPort): $(Test-LocalPort $adminPort)"
 Write-Host ''
 Write-Host "database: $dbName"
 Write-Host "config: $configPath"
+Write-Host "flyway.outOfOrder: $springFlywayOutOfOrder"
 Write-Host "Logs: $reportDir"
