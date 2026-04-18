@@ -15,23 +15,25 @@ import type {
   Item,
   ItemSuggestion,
   ItemsResponse,
+  NpcAggregateData,
+  NpcAggregateResponse,
+  NpcListItem,
+  NpcsResponse,
   StatsOverview,
   StatsOverviewResponse,
 } from '@/types'
+import { requestApiResponseWithFallback } from '@/api/apiResponseFallback'
+import { createHttpClient } from '@/api/httpClient'
+import { createItemAggregateFetcher } from '@/api/itemAggregate'
+import {
+  normalizeNpcBase as normalizeNpc,
+  normalizeNpcPublicAggregate as normalizeNpcAggregateData,
+} from '@/api/npcDomain'
+import { requestWithFallback } from '@/api/requestFallback'
 
-const api = axios.create({
+const api = createHttpClient({
   baseURL: '/api',
-  timeout: 10000,
-  withCredentials: true,
 })
-
-api.interceptors.response.use(
-  response => response,
-  error => {
-    console.error('API Error:', error)
-    return Promise.reject(error)
-  }
-)
 
 const ENABLE_P0_AGGREGATE = import.meta.env.VITE_ENABLE_P0_AGGREGATE !== 'false'
 
@@ -162,30 +164,27 @@ export const fetchItems = async (
     params.append('sortDirection', sortDirection)
   }
 
-  try {
-    const { data } = await api.get<ApiResponse<Item[]>>(`/items?${params}`)
-    return {
-      success: data.success,
-      data: (data.data || []).map(normalizeItem),
-      message: data.message,
-      statusCode: data.statusCode,
-      pagination: data.pagination,
-    }
-  } catch (error) {
-    console.error('Error fetching items:', error)
-    return {
-      success: false,
-      data: [],
-      message: 'Failed to fetch items',
-      statusCode: 500,
-      pagination: {
-        total: 0,
-        page,
-        limit,
-        totalPages: 0,
-      },
-    }
-  }
+  return requestApiResponseWithFallback<Item[]>({
+    request: async () => {
+      const { data } = await api.get<ApiResponse<Item[]>>(`/items?${params}`)
+      return {
+        success: data.success,
+        data: (data.data || []).map(normalizeItem),
+        message: data.message,
+        statusCode: data.statusCode,
+        pagination: data.pagination,
+      }
+    },
+    fallbackData: [],
+    fallbackMessage: 'Failed to fetch items',
+    statusCode: 500,
+    pagination: {
+      total: 0,
+      page,
+      limit,
+      totalPages: 0,
+    },
+  })
 }
 
 export const fetchAllItems = async (limit = 1000): Promise<ItemsResponse> => {
@@ -227,108 +226,189 @@ export const fetchItemSuggestions = async (keyword: string, limit = 8): Promise<
     return []
   }
 
-  try {
-    const { data } = await api.get<ApiResponse<ItemSuggestion[]>>('/items/suggestions', {
-      params: {
-        keyword: normalizedKeyword,
-        limit,
-      },
-    })
+  return requestWithFallback<ItemSuggestion[]>({
+    request: async () => {
+      const { data } = await api.get<ApiResponse<ItemSuggestion[]>>('/items/suggestions', {
+        params: {
+          keyword: normalizedKeyword,
+          limit,
+        },
+      })
 
-    return (data.data || []).map(item => normalizeItem(item as Item))
-  } catch (error) {
-    console.error('Error fetching item suggestions:', error)
-    return []
-  }
+      return (data.data || []).map(item => normalizeItem(item as Item))
+    },
+    fallbackValue: [],
+    errorMessage: 'Error fetching item suggestions:',
+  })
 }
 
 export const fetchCategories = async (): Promise<CategoriesResponse> => {
-  try {
-    const { data } = await api.get<ApiResponse<Category[]>>('/categories')
-    return {
-      success: data.success,
-      data: (data.data || []).map(normalizeCategory),
-      message: data.message,
-      statusCode: data.statusCode,
-    }
-  } catch (error) {
-    console.error('Error fetching categories:', error)
-    return {
-      success: false,
-      data: [],
-      message: 'Failed to fetch categories',
-      statusCode: 500,
-    }
-  }
+  return requestApiResponseWithFallback<Category[]>({
+    request: async () => {
+      const { data } = await api.get<ApiResponse<Category[]>>('/categories')
+      return {
+        success: data.success,
+        data: (data.data || []).map(normalizeCategory),
+        message: data.message,
+        statusCode: data.statusCode,
+      }
+    },
+    fallbackData: [],
+    fallbackMessage: 'Failed to fetch categories',
+    statusCode: 500,
+  })
 }
 
 export const fetchItemById = async (id: number): Promise<ApiResponse<Item>> => {
+  return requestApiResponseWithFallback<Item>({
+    request: async () => {
+      const { data } = await api.get<ApiResponse<Item>>(`/items/${id}`)
+      return {
+        ...data,
+        data: normalizeItem(data.data),
+      }
+    },
+    fallbackData: {} as Item,
+    fallbackMessage: 'Failed to fetch item detail',
+    statusCode: 500,
+  })
+}
+
+export const fetchNpcs = async (
+  page = 1,
+  limit = 12,
+  search?: string,
+  categoryId?: number,
+  isTownNpc?: boolean
+): Promise<NpcsResponse> => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  })
+
+  if (search) {
+    params.append('search', search)
+  }
+
+  if (categoryId != null) {
+    params.append('categoryId', String(categoryId))
+  }
+
+  if (typeof isTownNpc === 'boolean') {
+    params.append('isTownNpc', String(isTownNpc))
+  }
+
+  return requestApiResponseWithFallback<NpcListItem[]>({
+    request: async () => {
+      const { data } = await api.get<ApiResponse<NpcListItem[]>>(`/npcs?${params.toString()}`)
+      return {
+        success: data.success,
+        data: (data.data || []).map(normalizeNpc),
+        message: data.message,
+        statusCode: data.statusCode,
+        pagination: data.pagination,
+      }
+    },
+    fallbackData: [],
+    fallbackMessage: 'Failed to fetch npcs',
+    statusCode: 500,
+    pagination: {
+      total: 0,
+      page,
+      limit,
+      totalPages: 0,
+    },
+  })
+}
+
+export const fetchNpcAggregateById = async (
+  id: number,
+  include = 'loot,shop,buffs'
+): Promise<NpcAggregateResponse> => {
   try {
-    const { data } = await api.get<ApiResponse<Item>>(`/items/${id}`)
+    const { data } = await api.get<ApiResponse<NpcAggregateData>>(`/public/npcs/${id}/aggregate`, {
+      params: { include },
+    })
+
+    if (!data.success || !data.data?.npc?.id) {
+      throw new Error(data.message || 'Invalid NPC aggregate response')
+    }
+
     return {
       ...data,
-      data: normalizeItem(data.data),
+      data: normalizeNpcAggregateData(data.data),
     }
   } catch (error) {
-    console.error('Error fetching item:', error)
+    const statusCode = axios.isAxiosError(error)
+      ? (error.response?.status ?? error.response?.data?.statusCode ?? 500)
+      : 500
+    const message = axios.isAxiosError(error)
+      ? (error.response?.data?.message ?? error.message ?? 'Failed to fetch npc detail')
+      : (error instanceof Error ? error.message : 'Failed to fetch npc detail')
+
+    console.error('Error fetching npc aggregate:', error)
     return {
       success: false,
-      data: {} as Item,
-      message: 'Failed to fetch item detail',
-      statusCode: 500,
+      data: null,
+      message,
+      statusCode,
     }
   }
 }
 
 export const fetchItemImages = async (id: number): Promise<ItemImageRelation[]> => {
-  try {
-    const { data } = await api.get<ApiResponse<ItemImageRelation[]>>(`/items/${id}/images`)
-    return (data.data || []).map(normalizeImageRelation)
-  } catch (error) {
-    console.error('Error fetching item images:', error)
-    return []
-  }
+  return requestWithFallback<ItemImageRelation[]>({
+    request: async () => {
+      const { data } = await api.get<ApiResponse<ItemImageRelation[]>>(`/items/${id}/images`)
+      return (data.data || []).map(normalizeImageRelation)
+    },
+    fallbackValue: [],
+    errorMessage: 'Error fetching item images:',
+  })
 }
 
 export const fetchItemSources = async (id: number): Promise<ItemSourceRelation[]> => {
-  try {
-    const { data } = await api.get<ApiResponse<ItemSourceRelation[]>>(`/items/${id}/sources`)
-    return (data.data || []).map(normalizeSourceRelation)
-  } catch (error) {
-    console.error('Error fetching item sources:', error)
-    return []
-  }
+  return requestWithFallback<ItemSourceRelation[]>({
+    request: async () => {
+      const { data } = await api.get<ApiResponse<ItemSourceRelation[]>>(`/items/${id}/sources`)
+      return (data.data || []).map(normalizeSourceRelation)
+    },
+    fallbackValue: [],
+    errorMessage: 'Error fetching item sources:',
+  })
 }
 
 export const fetchItemRecipes = async (id: number): Promise<ItemRecipeRelation[]> => {
-  try {
-    const { data } = await api.get<ApiResponse<ItemRecipeRelation[]>>(`/items/${id}/recipes`)
-    return (data.data || []).map(normalizeRecipeRelation)
-  } catch (error) {
-    console.error('Error fetching item recipes:', error)
-    return []
-  }
+  return requestWithFallback<ItemRecipeRelation[]>({
+    request: async () => {
+      const { data } = await api.get<ApiResponse<ItemRecipeRelation[]>>(`/items/${id}/recipes`)
+      return (data.data || []).map(normalizeRecipeRelation)
+    },
+    fallbackValue: [],
+    errorMessage: 'Error fetching item recipes:',
+  })
 }
 
 export const fetchItemRecipeTree = async (id: number, maxDepth = 3): Promise<ItemRecipeTreeResponse | null> => {
-  try {
-    const { data } = await api.get<ApiResponse<ItemRecipeTreeResponse>>(`/items/${id}/recipe-tree`, {
-      params: { maxDepth },
-    })
+  return requestWithFallback<ItemRecipeTreeResponse | null>({
+    request: async () => {
+      const { data } = await api.get<ApiResponse<ItemRecipeTreeResponse>>(`/items/${id}/recipe-tree`, {
+        params: { maxDepth },
+      })
 
-    if (!data.success || !data.data) {
-      return null
-    }
+      if (!data.success || !data.data) {
+        return null
+      }
 
-    return {
-      item: data.data.item || null,
-      treeMeta: data.data.treeMeta || null,
-      variants: (data.data.variants || []).map(normalizeRecipeTreeVariant),
-    }
-  } catch (error) {
-    console.error('Error fetching item recipe tree:', error)
-    return null
-  }
+      return {
+        item: data.data.item || null,
+        treeMeta: data.data.treeMeta || null,
+        variants: (data.data.variants || []).map(normalizeRecipeTreeVariant),
+      }
+    },
+    fallbackValue: null,
+    errorMessage: 'Error fetching item recipe tree:',
+  })
 }
 
 const fetchItemAggregateLegacy = async (id: number): Promise<ItemAggregateResponse> => {
@@ -376,50 +456,32 @@ const fetchItemAggregateLegacy = async (id: number): Promise<ItemAggregateRespon
   }
 }
 
-export const fetchItemAggregateById = async (
+const fetchP0ItemAggregate = async (id: number, include: string): Promise<ItemAggregateResponse> => {
+  const { data } = await api.get<ApiResponse<ItemAggregateData>>(`/public/items/${id}/aggregate`, {
+    params: { include },
+    timeout: 2500,
+  })
+
+  return {
+    ...data,
+    data: data.data ? normalizeAggregateData(data.data) : (data.data as any),
+  } as ItemAggregateResponse
+}
+
+const itemAggregateFetcher = createItemAggregateFetcher({
+  enabled: ENABLE_P0_AGGREGATE,
+  aggregateRequest: fetchP0ItemAggregate,
+  fallbackRequest: (id: number) => fetchItemAggregateLegacy(id),
+  logger: {
+    info: (event, payload) => console.info(event, payload),
+    warn: (event, payload) => console.warn(event, payload),
+  },
+})
+
+export const fetchItemAggregateById = (
   id: number,
   include = 'images,sources,recipes'
-): Promise<ItemAggregateResponse> => {
-  const startedAt = Date.now()
-
-  if (!ENABLE_P0_AGGREGATE) {
-    return fetchItemAggregateLegacy(id)
-  }
-
-  try {
-    console.info('aggregate_request_start', { id, include })
-    const { data } = await api.get<ApiResponse<ItemAggregateData>>(`/public/items/${id}/aggregate`, {
-      params: { include },
-      timeout: 2500,
-    })
-
-    if (!data.success || !data.data?.item?.id) {
-      throw new Error(data.message || 'Invalid aggregate response')
-    }
-
-    const normalized = normalizeAggregateData(data.data)
-    console.info('aggregate_request_success', {
-      id,
-      source: 'p0',
-      latencyMs: Date.now() - startedAt,
-      images: normalized.images.length,
-      sources: normalized.sources.length,
-      recipes: normalized.recipes.length,
-    })
-
-    return {
-      ...data,
-      data: normalized,
-    }
-  } catch (error) {
-    console.warn('aggregate_request_fallback', {
-      id,
-      reason: error instanceof Error ? error.message : String(error),
-      latencyMs: Date.now() - startedAt,
-    })
-    return fetchItemAggregateLegacy(id)
-  }
-}
+): Promise<ItemAggregateResponse> => itemAggregateFetcher(id, include)
 
 const emptyStats: StatsOverview = {
   totalItems: 0,
@@ -429,23 +491,20 @@ const emptyStats: StatsOverview = {
 }
 
 export const fetchStatsOverview = async (): Promise<StatsOverviewResponse> => {
-  try {
-    const { data } = await api.get<ApiResponse<StatsOverview>>('/statistics/overview')
-    return {
-      success: data.success,
-      data: data.data || emptyStats,
-      message: data.message,
-      statusCode: data.statusCode,
-    }
-  } catch (error) {
-    console.error('Error fetching stats overview:', error)
-    return {
-      success: false,
-      data: emptyStats,
-      message: 'Failed to fetch statistics overview',
-      statusCode: 500,
-    }
-  }
+  return requestApiResponseWithFallback<StatsOverview>({
+    request: async () => {
+      const { data } = await api.get<ApiResponse<StatsOverview>>('/statistics/overview')
+      return {
+        success: data.success,
+        data: data.data || emptyStats,
+        message: data.message,
+        statusCode: data.statusCode,
+      }
+    },
+    fallbackData: emptyStats,
+    fallbackMessage: 'Failed to fetch statistics overview',
+    statusCode: 500,
+  })
 }
 
 export default api

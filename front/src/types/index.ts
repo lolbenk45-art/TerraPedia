@@ -1,3 +1,12 @@
+import type {
+  NpcBaseDomain,
+  NpcBuffRelationDomain,
+  NpcLootEntryDomain,
+  NpcPublicAggregateDomain,
+  NpcShopConditionDomain,
+  NpcShopEntryDomain,
+} from './npcDomain'
+
 export interface Item {
   id: number
   name: string
@@ -282,6 +291,17 @@ export interface StatsOverview {
 }
 
 export interface StatsOverviewResponse extends ApiResponse<StatsOverview> {}
+
+export type NpcAggregateNpc = NpcBaseDomain
+export type NpcListItem = NpcBaseDomain
+export type NpcBuffRelation = NpcBuffRelationDomain
+export type NpcLootEntry = NpcLootEntryDomain
+export type NpcAggregateData = NpcPublicAggregateDomain
+export type NpcShopCondition = NpcShopConditionDomain
+export type NpcShopEntry = NpcShopEntryDomain
+
+export interface NpcAggregateResponse extends ApiResponse<NpcAggregateData | null> {}
+export interface NpcsResponse extends ApiResponse<NpcListItem[]> {}
 
 export type Theme = 'light' | 'dark' | 'ocean' | 'forest' | 'sunset'
 
