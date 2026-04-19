@@ -25,6 +25,14 @@ const COLOR_PREFIX_MAP = new Map([
   ['\u7eff', 'Green'],
   ['\u7c89', 'Pink']
 ]);
+const RECIPE_PAGE_ENVIRONMENT_MAP = new Map([
+  ['\u914d\u65b9/\u7075\u96fe', { nameZh: '\u7075\u96fe', nameEn: 'Ecto Mist' }],
+  ['\u914d\u65b9/\u8702\u871c', { nameZh: '\u8702\u871c', nameEn: 'Honey' }],
+  ['\u914d\u65b9/\u7194\u5ca9', { nameZh: '\u7194\u5ca9', nameEn: 'Lava' }],
+  ['\u914d\u65b9/\u6c34', { nameZh: '\u6c34', nameEn: 'Water' }],
+  ['\u914d\u65b9/\u96ea\u539f', { nameZh: '\u96ea\u539f', nameEn: 'Snow' }],
+  ['\u914d\u65b9/\u5fae\u5149', { nameZh: '\u5fae\u5149', nameEn: 'Shimmer' }]
+]);
 
 const args = parseCliArgs(process.argv.slice(2));
 const apply = booleanOption(args.apply, false);
@@ -65,6 +73,7 @@ try {
     insertedStationRows: 0,
     createdPlaceholderItems: 0,
     createdCraftingStations: 0,
+    environmentRelationRows: 0,
     reusedItemsByZhOrEn: 0,
     resolvedViaLanglink: 0,
     groupIngredientRows: 0,
@@ -95,6 +104,10 @@ try {
   }
 
   const dedupedRecipes = dedupeRecipesBySignature(normalizedRecipes);
+  summary.environmentRelationRows = dedupedRecipes.reduce(
+    (sum, recipe) => sum + recipe.stations.filter((station) => station.stationType === 'environment').length,
+    0
+  );
 
   summary.deletedExistingRecipes = await deleteRecipesByProvider(conn, SOURCE_PROVIDER, apply);
   await importRecipes(conn, dedupedRecipes, summary, apply);
@@ -319,6 +332,7 @@ async function buildDiscreteStations(rawRecipe, state) {
       stationItemId: stationRef.itemId ?? null,
       stationInternalName: stationRef.internalName ?? null,
       stationNameRaw: stationRef.nameZh ?? stationName,
+      stationType: stationRef.stationType ?? 'crafting_station',
       isAlternative: rawRecipe.stationRequirementMode === 'alternative' ? index > 0 : false,
       sortOrder: index + 1
     });
@@ -337,6 +351,18 @@ async function buildCombinationStations(rawRecipe, state) {
     if (stationRef?.id) {
       componentStations.push(stationRef);
     }
+  }
+
+  if (componentStations.some((station) => station?.stationType === 'environment')) {
+    return componentStations.map((station, index) => ({
+      stationId: station.id,
+      stationItemId: station.itemId ?? null,
+      stationInternalName: station.internalName ?? null,
+      stationNameRaw: station.nameZh ?? station.nameEn ?? rawRecipe.stations[index] ?? null,
+      stationType: station.stationType ?? 'crafting_station',
+      isAlternative: false,
+      sortOrder: index + 1
+    }));
   }
 
   if (componentStations.length <= 1) {
@@ -359,6 +385,7 @@ async function buildCombinationStations(rawRecipe, state) {
     stationItemId: combinationRef.itemId ?? null,
     stationInternalName: combinationRef.internalName ?? null,
     stationNameRaw: combinationRef.nameZh ?? rawRecipe.stations.join(' + '),
+    stationType: combinationRef.stationType ?? 'crafting_station_combo',
     isAlternative: false,
     sortOrder: 1
   }];
@@ -516,12 +543,14 @@ async function resolveStationRef(rawName, context) {
     return null;
   }
 
-  const cached = context.state.stationResolutionCache.get(name);
+  const metadata = context.state.metadataMap.get(name) ?? null;
+  const desiredStationType = classifyRecipeStationType(context.sourcePage, name, metadata);
+  const cacheKey = `${desiredStationType ?? 'station'}:${name}`;
+  const cached = context.state.stationResolutionCache.get(cacheKey);
   if (cached) {
     return cached;
   }
 
-  const metadata = context.state.metadataMap.get(name) ?? null;
   const candidateNames = dedupeTexts([
     name,
     metadata?.resolvedTitle,
@@ -531,8 +560,18 @@ async function resolveStationRef(rawName, context) {
 
   const existingStation = findStationByAnyName(context.state.stationLookup, candidateNames);
   if (existingStation) {
-    context.state.stationResolutionCache.set(name, existingStation);
-    return existingStation;
+    const ensuredStation = await ensureCraftingStation({
+      itemId: existingStation.itemId ?? null,
+      internalName: existingStation.internalName ?? buildStationInternalName(metadata?.englishTitle ?? name),
+      nameEn: existingStation.nameEn ?? choosePlaceholderEnglishName(name, metadata?.englishTitle),
+      nameZh: existingStation.nameZh ?? metadata?.resolvedTitle ?? name,
+      imageUrl: existingStation.imageUrl ?? null,
+      stationType: desiredStationType,
+      sourcePage: context.sourcePage,
+      state: context.state
+    });
+    context.state.stationResolutionCache.set(cacheKey, ensuredStation);
+    return ensuredStation;
   }
 
   const matchedItem = findItemByAnyName(context.state.itemLookup, candidateNames);
@@ -543,10 +582,11 @@ async function resolveStationRef(rawName, context) {
       nameEn: metadata?.englishTitle ?? matchedItem.name,
       nameZh: metadata?.resolvedTitle ?? matchedItem.nameZh ?? name,
       imageUrl: matchedItem.image ?? null,
+      stationType: desiredStationType,
       sourcePage: context.sourcePage,
       state: context.state
     });
-    context.state.stationResolutionCache.set(name, linkedStation);
+    context.state.stationResolutionCache.set(cacheKey, linkedStation);
     return linkedStation;
   }
 
@@ -556,10 +596,11 @@ async function resolveStationRef(rawName, context) {
     nameEn: choosePlaceholderEnglishName(name, metadata?.englishTitle),
     nameZh: metadata?.resolvedTitle ?? name,
     imageUrl: null,
+    stationType: desiredStationType,
     sourcePage: context.sourcePage,
     state: context.state
   });
-  context.state.stationResolutionCache.set(name, createdStation);
+  context.state.stationResolutionCache.set(cacheKey, createdStation);
   return createdStation;
 }
 
@@ -613,15 +654,22 @@ async function ensureCraftingStation({ itemId, internalName, nameEn, nameZh, ima
   const lookupCandidates = dedupeTexts([internalName, nameEn, nameZh]);
   const existing = findStationByAnyName(state.stationLookup, lookupCandidates);
   if (existing) {
-    if (state.apply && imageUrl && !existing.imageUrl) {
-      await conn.execute(
-        `UPDATE crafting_stations
-            SET image_url = ?,
-                updated_at = NOW()
-          WHERE id = ?`,
-        [imageUrl, existing.id]
-      );
-      existing.imageUrl = imageUrl;
+    const nextStationType = toText(stationType) ?? existing.stationType ?? 'crafting_station';
+    const shouldUpdateImage = Boolean(imageUrl && !existing.imageUrl);
+    const shouldUpdateType = Boolean(nextStationType && nextStationType !== existing.stationType);
+    if (shouldUpdateImage || shouldUpdateType) {
+      if (state.apply) {
+        await conn.execute(
+          `UPDATE crafting_stations
+              SET image_url = ?,
+                  station_type = ?,
+                  updated_at = NOW()
+            WHERE id = ?`,
+          [imageUrl ?? existing.imageUrl ?? null, nextStationType, existing.id]
+        );
+      }
+      existing.imageUrl = imageUrl ?? existing.imageUrl ?? null;
+      existing.stationType = nextStationType;
       rememberStation(state.stationLookup, existing);
     }
     return existing;
@@ -653,7 +701,8 @@ async function ensureCraftingStation({ itemId, internalName, nameEn, nameZh, ima
     internalName,
     nameEn,
     nameZh,
-    imageUrl: imageUrl ?? null
+    imageUrl: imageUrl ?? null,
+    stationType: stationType ?? 'crafting_station'
   };
 
   rememberStation(state.stationLookup, station);
@@ -816,7 +865,7 @@ async function loadItemLookup(connection) {
 
 async function loadCraftingStationLookup(connection) {
   const [rows] = await connection.query(
-    `SELECT id, item_id AS itemId, internal_name AS internalName, name_en AS nameEn, name_zh AS nameZh, image_url AS imageUrl
+    `SELECT id, item_id AS itemId, internal_name AS internalName, name_en AS nameEn, name_zh AS nameZh, image_url AS imageUrl, station_type AS stationType
        FROM crafting_stations
       WHERE deleted = 0`
   );
@@ -832,7 +881,8 @@ async function loadCraftingStationLookup(connection) {
       internalName: toText(row.internalName),
       nameEn: toText(row.nameEn),
       nameZh: toText(row.nameZh),
-      imageUrl: toText(row.imageUrl)
+      imageUrl: toText(row.imageUrl),
+      stationType: toText(row.stationType)
     });
   }
   return lookup;
@@ -862,6 +912,35 @@ function rememberStation(lookup, station) {
       lookup.byAny.set(key, station.id);
     }
   }
+}
+
+function classifyRecipeStationType(sourcePage, stationName, metadata) {
+  const candidates = dedupeTexts([
+    stationName,
+    metadata?.resolvedTitle,
+    metadata?.englishTitle,
+    singularizeEnglishTitle(metadata?.englishTitle)
+  ]);
+  const environments = dedupeBy(
+    [
+      RECIPE_PAGE_ENVIRONMENT_MAP.get(toText(sourcePage) ?? ''),
+      ...RECIPE_PAGE_ENVIRONMENT_MAP.values()
+    ].filter(Boolean),
+    (entry) => `${entry.nameZh ?? ''}|${entry.nameEn ?? ''}`
+  );
+  const isEnvironment = candidates.some((candidate) => environments.some((environment) => matchesEnvironmentName(candidate, environment)));
+  return isEnvironment ? 'environment' : 'crafting_station';
+}
+
+function matchesEnvironmentName(candidate, environment) {
+  const normalizedCandidate = normalizeLookupKey(candidate);
+  if (!normalizedCandidate) {
+    return false;
+  }
+  return [environment?.nameZh, environment?.nameEn]
+    .map((value) => normalizeLookupKey(value))
+    .filter(Boolean)
+    .includes(normalizedCandidate);
 }
 
 function chooseCombinationStationImage(groups) {
@@ -898,6 +977,20 @@ function findStationByAnyName(lookup, candidateNames) {
   return null;
 }
 
+function dedupeBy(values, keySelector) {
+  const seen = new Set();
+  const result = [];
+  for (const value of Array.isArray(values) ? values : []) {
+    const key = keySelector(value);
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    result.push(value);
+  }
+  return result;
+}
+
 function dedupeRecipesBySignature(recipes) {
   const seen = new Set();
   return recipes.filter((recipe) => {
@@ -928,6 +1021,7 @@ function buildRecipeSignature(recipe) {
       station.stationItemId ?? '',
       station.stationInternalName ?? '',
       station.stationNameRaw ?? '',
+      station.stationType ?? '',
       station.isAlternative ? '1' : '0',
       station.sortOrder ?? ''
     ].join('~')).join('||')

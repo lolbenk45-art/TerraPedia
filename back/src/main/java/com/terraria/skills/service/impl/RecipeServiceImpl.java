@@ -457,13 +457,16 @@ public class RecipeServiceImpl implements RecipeService {
             dto.setItemNameZh(firstNonBlank(craftingStation.getNameZh(), craftingStationItem == null ? null : craftingStationItem.getNameZh()));
             dto.setItemInternalName(firstNonBlank(craftingStation.getInternalName(), craftingStationItem == null ? null : craftingStationItem.getInternalName(), station.getStationInternalName()));
             dto.setItemImage(firstNonBlank(craftingStation.getImageUrl(), craftingStationItem == null ? null : craftingStationItem.getImage(), item == null ? null : item.getImage()));
+            dto.setStationType(firstNonBlank(craftingStation.getStationType(), "station"));
         } else if (item != null) {
             dto.setItemName(item.getName());
             dto.setItemNameZh(item.getNameZh());
             dto.setItemInternalName(item.getInternalName());
             dto.setItemImage(item.getImage());
+            dto.setStationType("station");
         } else {
             dto.setItemInternalName(station.getStationInternalName());
+            dto.setStationType("environment");
         }
         return dto;
     }

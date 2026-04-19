@@ -344,7 +344,10 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         dto.setStationNameRaw(station.getStationNameRaw());
         dto.setStationImage(station.getItemImage());
         dto.setIsAlternative(Boolean.TRUE.equals(station.getIsAlternative()));
-        dto.setStationType((station.getStationId() != null || station.getStationItemId() != null) ? "station" : "environment");
+        dto.setStationType(defaultIfBlank(
+            station.getStationType(),
+            (station.getStationId() != null || station.getStationItemId() != null) ? "station" : "environment"
+        ));
         return dto;
     }
 

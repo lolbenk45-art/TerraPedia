@@ -340,7 +340,7 @@ function handleOpenItem(node: ItemRecipeTreeNode) {
 }
 
 function canOpenStation(station: ItemRecipeTreeStation) {
-  if (station.stationType === 'condition') return false
+  if (station.stationType === 'condition' || station.stationType === 'environment') return false
   return Boolean((station.stationItemId != null && Number(station.stationItemId) > 0) || station.stationInternalName || station.stationNameRaw)
 }
 

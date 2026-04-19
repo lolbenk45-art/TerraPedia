@@ -18,4 +18,5 @@ public class RecipeStationDTO {
     private String itemNameZh;
     private String itemInternalName;
     private String itemImage;
+    private String stationType;
 }

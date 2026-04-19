@@ -5,6 +5,7 @@ import com.terraria.skills.dto.ItemDTO;
 import com.terraria.skills.dto.RecipeConditionDTO;
 import com.terraria.skills.dto.RecipeDTO;
 import com.terraria.skills.dto.RecipeIngredientDTO;
+import com.terraria.skills.dto.RecipeStationDTO;
 import com.terraria.skills.dto.RecipeTreeNodeDTO;
 import com.terraria.skills.dto.RecipeTreeResponseDTO;
 import com.terraria.skills.mapper.ItemMapper;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Map;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -137,5 +139,57 @@ class RecipeTreeServiceImplTest {
         assertEquals("required", root.getStations().get(0).getRequirementRole());
         assertEquals("夜间可制作", root.getStations().get(0).getNotes());
         assertTrue(root.getChildren().isEmpty() || root.getChildren().size() == 1);
+    }
+
+    @Test
+    void shouldPreferEnvironmentStationTypeWhenStationRelationIsTaggedAsEnvironment() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        RecipeTreeServiceImpl service = new RecipeTreeServiceImpl(
+            itemService,
+            recipeService,
+            objectMapper,
+            itemMapper
+        );
+
+        ItemDTO item = new ItemDTO();
+        item.setId(250L);
+        item.setName("Honey Dispenser");
+        item.setNameZh("蜂蜜分配机");
+        item.setInternalName("HoneyDispenser");
+
+        RecipeIngredientDTO ingredient = new RecipeIngredientDTO();
+        ingredient.setIngredientItemId(251L);
+        ingredient.setIngredientNameRaw("Glass");
+        ingredient.setQuantityText("1");
+
+        RecipeStationDTO environmentStation = objectMapper.convertValue(Map.of(
+            "stationId", 29L,
+            "stationNameRaw", "蜂蜜",
+            "itemName", "Honey",
+            "itemNameZh", "蜂蜜",
+            "stationType", "environment"
+        ), RecipeStationDTO.class);
+
+        RecipeDTO recipe = new RecipeDTO();
+        recipe.setId(902L);
+        recipe.setResultItemId(250L);
+        recipe.setResultItemName("Honey Dispenser");
+        recipe.setResultItemNameZh("蜂蜜分配机");
+        recipe.setResultItemInternalName("HoneyDispenser");
+        recipe.setResultQuantity(1);
+        recipe.setIngredients(List.of(ingredient));
+        recipe.setStations(List.of(environmentStation));
+
+        when(itemService.getItemById(250L)).thenReturn(item);
+        when(recipeService.getRecipesByResultItemId(250L)).thenReturn(List.of(recipe));
+        when(recipeService.getRecipesByResultItemId(251L)).thenReturn(List.of());
+        when(itemMapper.selectList(any())).thenReturn(List.of());
+
+        RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(250L, 3);
+
+        RecipeTreeNodeDTO root = response.getVariants().get(0).getRoots().get(0);
+        assertEquals(1, root.getStations().size());
+        assertEquals("environment", root.getStations().get(0).getStationType());
+        assertEquals("蜂蜜", root.getStations().get(0).getStationNameZh());
     }
 }

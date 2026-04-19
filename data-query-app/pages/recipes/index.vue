@@ -310,7 +310,7 @@ function getStationAvatar(station: ItemRecipeTreeStation) {
 }
 
 function isNavigableStationRelation(station: ItemRecipeTreeStation) {
-  return station.stationType !== 'condition'
+  return station.stationType !== 'condition' && station.stationType !== 'environment'
 }
 
 function resolvePreviewImage(value?: string | null) {

@@ -892,7 +892,7 @@ function getTreeStationLabel(station: ItemRecipeTreeStation) {
 }
 
 function getSuggestedStations(root: ItemRecipeTreeNode) {
-  return (root.stations || []).filter((station) => station.stationType !== 'condition')
+  return (root.stations || []).filter((station) => station.stationType !== 'condition' && station.stationType !== 'environment')
 }
 
 function getSuggestedRootLabel(root: ItemRecipeTreeNode) {
