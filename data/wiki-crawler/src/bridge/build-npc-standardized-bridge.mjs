@@ -35,6 +35,7 @@ export function buildNpcStandardizedBridge({
     for (const record of match.records) {
       record.wikiCrawler = {
         pageTitle: crawlerRecord?.source?.pageTitle ?? '',
+        groupMember: crawlerRecord?.groupMember ?? null,
         summary: crawlerRecord?.summary ?? {},
         profile: crawlerRecord?.profile ?? {},
         shop: crawlerRecord?.shop ?? { items: [] },

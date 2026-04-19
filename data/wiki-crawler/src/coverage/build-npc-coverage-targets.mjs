@@ -1,3 +1,8 @@
+import {
+  getNpcCoverageEntityId,
+  getNpcCoveragePageTitle
+} from '../domains/npc-source-mapping.mjs';
+
 export function buildNpcCoverageTargets({
   standardizedPayload,
   crawledEntityIds
@@ -7,7 +12,7 @@ export function buildNpcCoverageTargets({
   const groups = new Map();
 
   for (const record of standardizedRecords) {
-    const pageTitle = toText(record?.name);
+    const pageTitle = getNpcCoveragePageTitle(record);
     if (!pageTitle) {
       continue;
     }
@@ -15,14 +20,19 @@ export function buildNpcCoverageTargets({
     const key = normalizeKey(pageTitle);
     const current = groups.get(key) ?? {
       pageTitle,
-      entityId: toEntityId(pageTitle),
+      entityId: '',
+      targetEntityIds: [],
       standardizedRecords: []
     };
 
+    const targetEntityId = getNpcCoverageEntityId(record);
+    if (targetEntityId) {
+      current.targetEntityIds.push(targetEntityId);
+    }
     current.standardizedRecords.push({
       id: record?.id ?? null,
       internalName: record?.internalName ?? '',
-      name: pageTitle
+      name: toText(record?.name) ?? pageTitle
     });
 
     groups.set(key, current);
@@ -30,12 +40,15 @@ export function buildNpcCoverageTargets({
 
   const targets = [...groups.values()]
     .map((target) => {
+      const targetEntityIds = [...new Set(target.targetEntityIds)].sort();
       const priority = inferPriority(target.standardizedRecords, standardizedRecords);
       return {
         ...target,
+        entityId: targetEntityIds.length === 1 ? targetEntityIds[0] : toEntityId(target.pageTitle),
+        targetEntityIds,
         standardizedRecords: [...target.standardizedRecords].sort(compareStandardizedRecord),
         variantCount: target.standardizedRecords.length,
-        alreadyCrawled: crawledIds.has(target.entityId),
+        alreadyCrawled: targetEntityIds.length > 0 && targetEntityIds.every((entityId) => crawledIds.has(entityId)),
         priority
       };
     })

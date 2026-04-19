@@ -76,18 +76,58 @@ async function loadCrawlerNpcRecords({ crawlerOutputRoot }) {
       reasons: ['missing audit payload']
     };
 
-    records.push({
-      ...normalized,
+    records.push(...expandCrawlerRecords({
+      normalized,
       audit,
-      sourceMetadata: {
-        ...(normalized?.sourceMetadata ?? {}),
-        entityId: normalized?.entityId ?? '',
-        normalizedPath,
-        auditPath
-      }
-    });
+      normalizedPath,
+      auditPath
+    }));
   }
   return records;
+}
+
+function expandCrawlerRecords({
+  normalized,
+  audit,
+  normalizedPath,
+  auditPath
+}) {
+  const baseRecord = {
+    ...normalized,
+    audit,
+    sourceMetadata: {
+      ...(normalized?.sourceMetadata ?? {}),
+      entityId: normalized?.entityId ?? '',
+      normalizedPath,
+      auditPath
+    }
+  };
+
+  const groupMembers = Array.isArray(normalized?.groupMembers) ? normalized.groupMembers : [];
+  if (!groupMembers.length) {
+    return [baseRecord];
+  }
+
+  return groupMembers.map((member) => ({
+    ...baseRecord,
+    entityId: member?.entityId ?? baseRecord.entityId,
+    display: {
+      ...(baseRecord.display ?? {}),
+      name: member?.name ?? baseRecord.display?.name ?? ''
+    },
+    groupMember: {
+      entityId: member?.entityId ?? '',
+      name: member?.name ?? '',
+      pageTitle: member?.pageTitle ?? baseRecord.source?.pageTitle ?? '',
+      moveInCondition: member?.moveInCondition ?? ''
+    },
+    sourceMetadata: {
+      ...baseRecord.sourceMetadata,
+      entityId: member?.entityId ?? baseRecord.entityId,
+      groupPageTitle: baseRecord.source?.pageTitle ?? '',
+      groupMemberName: member?.name ?? ''
+    }
+  }));
 }
 
 function collectBridgeDiagnostics({

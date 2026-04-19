@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { ensureDir, writeJson } from '../../../../scripts/data/lib/wiki-item-utils.mjs';
 import { buildNpcCoverageTargets } from './build-npc-coverage-targets.mjs';
 import { auditNpcCoverageTargets } from './audit-npc-coverage-targets.mjs';
+import { collectNpcCoverageEntityIds } from '../domains/npc-source-mapping.mjs';
 
 export async function runNpcCoverageAudit({
   domain,
@@ -54,10 +55,17 @@ async function loadCrawledEntityIds(crawlerOutputRoot) {
   const normalizedDir = path.join(crawlerOutputRoot, 'normalized-light', 'npc');
   try {
     const files = await fs.readdir(normalizedDir);
-    return files
-      .filter((name) => name.endsWith('.latest.json'))
-      .map((name) => name.replace(/\.latest\.json$/i, ''))
-      .sort();
+    const entityIds = new Set();
+
+    for (const fileName of files.filter((name) => name.endsWith('.latest.json')).sort()) {
+      const normalizedPath = path.join(normalizedDir, fileName);
+      const normalized = JSON.parse(await fs.readFile(normalizedPath, 'utf8'));
+      for (const entityId of collectNpcCoverageEntityIds(normalized)) {
+        entityIds.add(entityId);
+      }
+    }
+
+    return [...entityIds].sort();
   } catch (error) {
     if (error?.code === 'ENOENT') {
       return [];

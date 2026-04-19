@@ -34,3 +34,64 @@ test('buildNpcNormalizedLight infers hostile npc quality fields for Medusa-style
   assert.equal(record.profile.boundVariantName, '');
   assert.equal(record.combat.baseDamageText, '20 / {{expert|40}} / {{master|60}}');
 });
+
+test('buildNpcNormalizedLight normalizes town pet alias pages to standardized display names', () => {
+  const record = buildNpcNormalizedLight({
+    entityId: 'town-cat',
+    pageTitle: 'Town Cat',
+    pageDescription: 'A town pet.',
+    revisionText: "'''Town Cat''' is a town pet."
+  });
+
+  assert.equal(record.source.pageTitle, 'Town Cat');
+  assert.equal(record.display.name, 'Cat');
+});
+
+test('buildNpcNormalizedLight extracts town slime group members from the group page', () => {
+  const record = buildNpcNormalizedLight({
+    entityId: 'town-slimes',
+    pageTitle: 'Town Slimes',
+    pageDescription: 'Town Slimes are a type of town pet.',
+    revisionText: [
+      '{{npc infobox',
+      '| auto = 670',
+      '| name = Town Slimes',
+      '| type = NPC / Slime',
+      '}}',
+      '',
+      "'''Town Slimes''' are a type of [[town pet]].",
+      '',
+      '== Types ==',
+      '{| class="terraria lined"',
+      '|-',
+      '| [[File:Portrait SlimeSquire.png|50px]]',
+      '| {{npc infobox|auto=684|type=NPC}}',
+      '| Spawns from dropping a [[Copper Helmet]] or a [[Copper Shortsword]] on a [[slime]] enemy.',
+      '| [[File:Map Icon Squire Slime.png|link=]]',
+      '|-',
+      '| [[File:Portrait SlimeClumsy.png|50px]]',
+      '| {{npc infobox|auto=680|type=NPC}}',
+      '| Spawns from breaking the balloon of a [[Clumsy Balloon Slime]].',
+      '| [[File:Map Icon Clumsy Slime.png|link=]]',
+      '|}'
+    ].join('\n')
+  });
+
+  assert.deepEqual(
+    record.groupMembers,
+    [
+      {
+        entityId: 'squire-slime',
+        name: 'Squire Slime',
+        pageTitle: 'Town Slimes',
+        moveInCondition: 'Spawns from dropping a [[Copper Helmet]] or a [[Copper Shortsword]] on a [[slime]] enemy.'
+      },
+      {
+        entityId: 'clumsy-slime',
+        name: 'Clumsy Slime',
+        pageTitle: 'Town Slimes',
+        moveInCondition: 'Spawns from breaking the balloon of a [[Clumsy Balloon Slime]].'
+      }
+    ]
+  );
+});

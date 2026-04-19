@@ -50,3 +50,58 @@ test('runNpcCoverageAudit writes coverage target and audit reports from standard
   assert.equal(audit.summary.redirectTargets, 1);
   assert.equal(targets.targets.length, 2);
 });
+
+test('runNpcCoverageAudit treats alias and group-member crawler outputs as already crawled', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'npc-coverage-audit-alias-'));
+  const sourceStandardizedDir = path.join(tempRoot, 'source-standardized');
+  const crawlerOutputRoot = path.join(tempRoot, 'crawler-output');
+  const outputRoot = path.join(tempRoot, 'wiki-crawler');
+
+  await fs.mkdir(sourceStandardizedDir, { recursive: true });
+  await fs.mkdir(path.join(crawlerOutputRoot, 'normalized-light', 'npc'), { recursive: true });
+
+  await fs.writeFile(path.join(sourceStandardizedDir, 'npcs.standardized.json'), JSON.stringify({
+    entity: 'npcs',
+    records: [
+      { id: 637, internalName: 'TownCat', name: 'Cat', extras: { townNPC: true } },
+      { id: 680, internalName: 'TownSlimePurple', name: 'Clumsy Slime', extras: { townNPC: true } },
+      { id: 678, internalName: 'TownSlimeGreen', name: 'Cool Slime', extras: { townNPC: true } }
+    ]
+  }, null, 2));
+
+  await fs.writeFile(path.join(crawlerOutputRoot, 'normalized-light', 'npc', 'town-cat.latest.json'), JSON.stringify({
+    entityId: 'town-cat',
+    source: { pageTitle: 'Town Cat' },
+    display: { name: 'Cat' }
+  }, null, 2));
+
+  await fs.writeFile(path.join(crawlerOutputRoot, 'normalized-light', 'npc', 'town-slimes.latest.json'), JSON.stringify({
+    entityId: 'town-slimes',
+    source: { pageTitle: 'Town Slimes' },
+    display: { name: 'Town Slimes' },
+    groupMembers: [
+      { entityId: 'clumsy-slime', name: 'Clumsy Slime', moveInCondition: 'Break the balloon.' },
+      { entityId: 'cool-slime', name: 'Cool Slime', moveInCondition: 'Move in during Party.' }
+    ]
+  }, null, 2));
+
+  const result = await runNpcCoverageAudit({
+    sourceStandardizedDir,
+    crawlerOutputRoot,
+    outputRoot,
+    fetchWikiPageMetadataBatchImpl: async ({ titles }) => titles.map((title) => ({
+      requestedTitle: title,
+      pageTitle: title,
+      pageId: 1,
+      missing: false
+    }))
+  });
+
+  const cat = result.targets.targets.find((target) => target.pageTitle === 'Town Cat');
+  const townSlimes = result.targets.targets.find((target) => target.pageTitle === 'Town Slimes');
+
+  assert.equal(cat.alreadyCrawled, true);
+  assert.equal(townSlimes.alreadyCrawled, true);
+  assert.equal(result.audit.summary.alreadyCrawledTargets, 2);
+  assert.equal(result.audit.summary.eligibleBatchTargets, 0);
+});

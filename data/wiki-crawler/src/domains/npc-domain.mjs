@@ -6,6 +6,10 @@ import {
   extractNpcShop,
   extractNpcSpecialForms
 } from './npc-parser.mjs';
+import {
+  extractNpcGroupMembers,
+  getNpcDisplayName
+} from './npc-source-mapping.mjs';
 
 export function buildNpcNormalizedLight(raw) {
   const source = raw ?? {};
@@ -19,6 +23,10 @@ export function buildNpcNormalizedLight(raw) {
   const sections = extractNpcSectionBlocks(revisionText);
   const shop = extractNpcShop(revisionText);
   const happiness = extractNpcHappiness(revisionText);
+  const groupMembers = extractNpcGroupMembers({
+    pageTitle: source.pageTitle ?? '',
+    revisionText
+  });
   const inferredKind = inferNpcKind({
     infoboxKind: infobox.kind,
     leadText,
@@ -38,7 +46,10 @@ export function buildNpcNormalizedLight(raw) {
       pageDescription: source.pageDescription ?? ''
     },
     display: {
-      name: source.pageTitle ?? ''
+      name: getNpcDisplayName({
+        pageTitle: source.pageTitle ?? '',
+        fallbackName: source.pageTitle ?? ''
+      })
     },
     summary: {
       leadText,
@@ -67,7 +78,8 @@ export function buildNpcNormalizedLight(raw) {
       dialogue: sections.dialogue ?? '',
       tips: sections.tips ?? '',
       history: sections.history ?? ''
-    }
+    },
+    groupMembers
   };
 }
 
