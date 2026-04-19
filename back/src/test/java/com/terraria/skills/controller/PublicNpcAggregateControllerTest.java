@@ -76,6 +76,7 @@ class PublicNpcAggregateControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.npc.id").value(1))
+            .andExpect(jsonPath("$.data.npc.imageUrl").value("https://cdn.example.com/npcs/guide.png"))
             .andExpect(jsonPath("$.data.loot.length()").value(1))
             .andExpect(jsonPath("$.data.shopEntries.length()").value(0))
             .andExpect(jsonPath("$.data.buffRelations.length()").value(1))
