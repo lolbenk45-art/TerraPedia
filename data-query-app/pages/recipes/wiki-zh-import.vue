@@ -202,7 +202,7 @@
                   <strong>{{ entry.provider || '(empty)' }}</strong>
                   <small>{{ formatNumber(entry.resultItemCount) }} 个结果物</small>
                 </div>
-                <span class="list-table__metric">{{ formatNumber(entry.recipeCount) }}</span>
+                <span class="list-table__metric">{{ formatNumber(entry.resultItemCount) }}</span>
               </article>
             </div>
 
