@@ -126,6 +126,7 @@ export interface ItemRecipeStationRelation {
   stationId?: number | null
   stationItemId?: number | null
   stationNameRaw?: string
+  stationType?: string
   isAlternative?: boolean
   sortOrder?: number | null
   itemName?: string
@@ -288,6 +289,7 @@ export interface ItemRecipeStationPayload {
   stationId?: number | null
   stationItemId?: number | null
   stationNameRaw?: string
+  stationType?: string
   isAlternative?: boolean
   sortOrder?: number | null
   itemName?: string
@@ -591,6 +593,7 @@ export const useItemsStore = defineStore('items', () => {
     stationId: raw?.stationId ?? raw?.station_id ?? null,
     stationItemId: raw?.stationItemId ?? raw?.station_item_id ?? null,
     stationNameRaw: raw?.stationNameRaw ?? raw?.station_name_raw ?? '',
+    stationType: raw?.stationType ?? raw?.station_type ?? 'crafting_station',
     isAlternative: raw?.isAlternative ?? raw?.is_alternative ?? false,
     sortOrder: raw?.sortOrder ?? raw?.sort_order ?? null,
     itemName: raw?.itemName ?? raw?.item_name ?? '',

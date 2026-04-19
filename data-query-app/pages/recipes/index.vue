@@ -483,6 +483,7 @@ function toRecipeDrafts(recipes: ItemRecipeRelation[]): ItemRecipePayload[] {
       stationId: station.stationId ?? null,
       stationItemId: station.stationItemId ?? null,
       stationNameRaw: station.stationNameRaw ?? station.itemNameZh ?? station.itemName ?? '',
+      stationType: station.stationType ?? 'crafting_station',
       isAlternative: station.isAlternative ?? false,
       sortOrder: station.sortOrder ?? index + 1,
       itemName: station.itemName ?? '',

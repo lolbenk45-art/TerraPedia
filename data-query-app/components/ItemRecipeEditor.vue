@@ -17,7 +17,7 @@
             <div class="recipe-card__stats">
               <span class="recipe-stat">产出 ×{{ recipe.resultQuantity || 1 }}</span>
               <span class="recipe-stat">{{ recipe.ingredients.length }} 个原料</span>
-              <span class="recipe-stat">{{ recipe.stations.length }} 个工作台</span>
+              <span class="recipe-stat">{{ recipe.stations.length }} 个站点关系</span>
               <span class="recipe-stat">{{ recipe.conditions.length }} 个条件</span>
             </div>
           </div>
@@ -165,8 +165,8 @@
           <section class="recipe-block recipe-block--stations">
             <div class="recipe-block__head">
               <div>
-                <h4>工作台</h4>
-                <p>正常流程优先选已有制作站；手动名称与 legacy 字段收进高级模式。</p>
+                <h4>工作台 / 环境</h4>
+                <p>正常流程优先选已有制作站；环境关系也在这里维护，手动名称与 legacy 字段收进高级模式。</p>
               </div>
               <div class="recipe-block__actions">
                 <button type="button" class="btn btn-secondary" @click="addStation(recipeIndex)">新增工作台</button>
@@ -185,10 +185,11 @@
                 <div class="recipe-line__summary">
                   <div class="recipe-line__summary-main">
                     <strong>{{ getStationLabel(station) }}</strong>
-                    <span>{{ station.isAlternative ? '可替代工作台' : '主工作台' }}</span>
+                    <span>{{ getStationSummary(station) }}</span>
                   </div>
                   <div class="recipe-line__chips">
                     <span class="recipe-chip">{{ station.stationItemId ? `ID ${station.stationItemId}` : '未绑定 ID' }}</span>
+                    <span v-if="station.stationType === 'environment'" class="recipe-chip">Environment</span>
                     <span v-if="station.isAlternative" class="recipe-chip recipe-chip--accent">Alternative</span>
                   </div>
                 </div>
@@ -215,6 +216,7 @@
                         <strong>{{ station.itemNameZh || station.itemName || station.stationNameRaw || '未命名工作台' }}</strong>
                         <span v-if="station.itemNameZh && station.itemName">{{ station.itemName }}</span>
                         <span v-else-if="station.itemInternalName">{{ station.itemInternalName }}</span>
+                        <span v-if="station.stationType === 'environment'">环境关系</span>
                       </div>
                     </div>
                   </div>
@@ -394,6 +396,7 @@ const createStation = (): EditableRecipeStation => ({
   stationId: null,
   stationItemId: null,
   stationNameRaw: '',
+  stationType: 'crafting_station',
   isAlternative: false,
   sortOrder: null,
 })
@@ -459,6 +462,7 @@ const cloneRecipes = (recipes: ItemRecipePayload[] = []): EditableRecipe[] => (
               stationId: station.stationId ?? null,
               stationItemId: station.stationItemId ?? null,
               stationNameRaw: station.stationNameRaw ?? '',
+              stationType: station.stationType ?? 'crafting_station',
               isAlternative: station.isAlternative ?? false,
               sortOrder: station.sortOrder ?? null,
               itemName: station.itemName ?? '',
@@ -699,6 +703,7 @@ const applyStationSuggestion = (recipeIndex: number, stationIndex: number, item:
   station.stationId = null
   station.stationItemId = item.id || null
   station.stationNameRaw = item.nameZh || item.name || ''
+  station.stationType = 'crafting_station'
   station.itemName = item.name || ''
   station.itemNameZh = item.nameZh || ''
   station.itemInternalName = item.internalName || ''
@@ -727,6 +732,7 @@ const applyStationSelection = (recipeIndex: number, stationIndex: number, event:
   station.stationId = selected.id
   station.stationItemId = selected.itemId ?? null
   station.stationNameRaw = selected.nameZh || selected.nameEn || selected.internalName || ''
+  station.stationType = selected.stationType || 'crafting_station'
   station.itemName = selected.nameEn || ''
   station.itemNameZh = selected.nameZh || ''
   station.itemInternalName = selected.internalName || ''
@@ -767,6 +773,13 @@ const getStationLabel = (station: EditableRecipeStation) => (
   || station.stationNameRaw
   || '未命名工作台'
 )
+
+const getStationSummary = (station: EditableRecipeStation) => {
+  if (station.stationType === 'environment') {
+    return station.isAlternative ? '可替代环境条件' : '环境条件'
+  }
+  return station.isAlternative ? '可替代工作台' : '主工作台'
+}
 
 const getConditionOptions = (condition: EditableRecipeCondition) => (
   condition.refType === 'BIOME' ? biomeOptions.value : worldContextOptions.value

@@ -830,6 +830,7 @@ function toRecipeDrafts(recipes: ItemRecipeRelation[]): ItemRecipePayload[] {
           stationId: station.stationId ?? null,
           stationItemId: station.stationItemId ?? null,
           stationNameRaw: station.stationNameRaw ?? station.itemNameZh ?? station.itemName ?? '',
+          stationType: station.stationType ?? 'crafting_station',
           isAlternative: station.isAlternative ?? false,
           sortOrder: station.sortOrder ?? stationIndex + 1,
           itemName: station.itemName ?? '',
@@ -882,7 +883,12 @@ function getRecipeBinding(recipe: ItemRecipePayload, currentStation: CraftingSta
 function getRecipeStationsLabel(recipe: ItemRecipePayload) {
   if (!recipe.stations?.length) return '未配置工作台'
   return recipe.stations
-    .map((station) => station.itemNameZh || station.itemName || station.stationNameRaw || station.itemInternalName || '未命名工作台')
+    .map((station) => {
+      const label = station.itemNameZh || station.itemName || station.stationNameRaw || station.itemInternalName || '未命名工作台'
+      if (station.stationType === 'environment') return `环境: ${label}`
+      if (station.isAlternative) return `替代: ${label}`
+      return label
+    })
     .slice(0, 4)
     .join(' / ')
 }
