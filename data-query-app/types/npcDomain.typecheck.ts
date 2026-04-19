@@ -2,6 +2,18 @@ import type { TownNpcEditorDetail, TownNpcOverview, TownNpcRow } from '~/types/n
 
 const overview: TownNpcOverview = {
   reportFound: true,
+  summary: {
+    totalTownNpcs: 1,
+    missingGamePeriodCount: 0,
+    missingBehaviorNotesCount: 0,
+    missingShopEntriesCount: 1,
+    scrapedCount: 1,
+    missingScrapeCount: 0,
+    suggestedShopCoverageCount: 1,
+    unmatchedShopNpcCount: 1,
+    unmatchedShopItemCount: 2,
+    rowsNeedingAttentionCount: 1,
+  },
   records: [
     {
       id: 1,

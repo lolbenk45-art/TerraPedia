@@ -206,6 +206,16 @@ public class AdminTownNpcMaintenanceController {
         long missingShopEntries = rows.stream().filter(row -> toInteger(row.get("shopEntryCount"), 0) <= 0).count();
         long scrapedCount = rows.stream().filter(row -> Boolean.TRUE.equals(row.get("scrapeAvailable"))).count();
         long suggestedShopCoverage = rows.stream().filter(row -> toInteger(row.get("matchedSuggestedShopEntryCount"), 0) > 0).count();
+        long missingScrapeCount = rows.stream().filter(row -> !Boolean.TRUE.equals(row.get("scrapeAvailable"))).count();
+        long unmatchedShopNpcCount = rows.stream().filter(row -> !normalizeObjectList(row.get("unmatchedShopItems")).isEmpty()).count();
+        long unmatchedShopItemCount = rows.stream().mapToLong(row -> normalizeObjectList(row.get("unmatchedShopItems")).size()).sum();
+        long rowsNeedingAttentionCount = rows.stream().filter(row ->
+            (toLong(row.get("gamePeriodId")) == null || toLong(row.get("gamePeriodId")) == 0)
+                || trimToNull(row.get("behaviorNotes")) == null
+                || toInteger(row.get("shopEntryCount"), 0) <= 0
+                || !Boolean.TRUE.equals(row.get("scrapeAvailable"))
+                || !normalizeObjectList(row.get("unmatchedShopItems")).isEmpty()
+        ).count();
 
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("totalTownNpcs", total);
@@ -213,7 +223,11 @@ public class AdminTownNpcMaintenanceController {
         summary.put("missingBehaviorNotesCount", missingBehaviorNotes);
         summary.put("missingShopEntriesCount", missingShopEntries);
         summary.put("scrapedCount", scrapedCount);
+        summary.put("missingScrapeCount", missingScrapeCount);
         summary.put("suggestedShopCoverageCount", suggestedShopCoverage);
+        summary.put("unmatchedShopNpcCount", unmatchedShopNpcCount);
+        summary.put("unmatchedShopItemCount", unmatchedShopItemCount);
+        summary.put("rowsNeedingAttentionCount", rowsNeedingAttentionCount);
         return summary;
     }
 

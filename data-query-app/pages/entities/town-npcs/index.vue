@@ -199,6 +199,7 @@ import {
   formatTime,
   importSummaryFromOverview,
   isGapRow,
+  maintenanceSummaryFromOverview,
   resolveKnockBackResist,
   resolveNpcStat,
   rowsFromOverview,
@@ -221,10 +222,13 @@ const workbenchMode = ref<'detail' | 'edit'>('detail')
 const rows = computed<TownNpcRow[]>(() => rowsFromOverview(overview.value))
 const coinIcons = computed(() => coinIconsFromOverview(overview.value))
 const importSummary = computed(() => importSummaryFromOverview(overview.value))
+const maintenanceSummary = computed(() => maintenanceSummaryFromOverview(overview.value))
 const summaryCards = computed(() => [
-  { label: 'TOWN NPC', value: formatNumber(rows.value.length), help: '城镇 NPC 总数' },
-  { label: 'WITH SHOP', value: formatNumber(rows.value.filter(row => row.hasShopEntries).length), help: '已有售卖关系' },
+  { label: 'TOWN NPC', value: formatNumber(maintenanceSummary.value.totalTownNpcs), help: '城镇 NPC 总数' },
   { label: 'GAPS', value: formatNumber(rows.value.filter(row => isGapRow(row)).length), help: '时期 / 描述 / 售卖缺口' },
+  { label: 'REVIEW', value: formatNumber(maintenanceSummary.value.rowsNeedingAttentionCount), help: '待复核 NPC' },
+  { label: 'UNMATCHED', value: formatNumber(maintenanceSummary.value.unmatchedShopItemCount), help: '未匹配售卖物' },
+  { label: 'NO SOURCE', value: formatNumber(maintenanceSummary.value.missingScrapeCount), help: '缺少抓取源的 NPC' },
   { label: 'LINKS', value: formatNumber(importSummary.value.insertedShopEntryCount), help: '最近导入的 shop 关系' },
   { label: 'REBUILT', value: formatNumber(importSummary.value.replacedShopNpcCount), help: '最近重建的 NPC 数' },
 ])
@@ -241,8 +245,20 @@ const filteredRows = computed(() => {
   })
 
   return [...filtered].sort((left, right) => {
+    const issueScore = (row: TownNpcRow) => {
+      let score = 0
+      if (isGapRow(row)) score += 4
+      if ((row.unmatchedShopItems?.length || 0) > 0) score += 2
+      if (!row.scrapeAvailable) score += 1
+      return score
+    }
+
+    const scoreDiff = issueScore(right) - issueScore(left)
+    if (scoreDiff !== 0) return scoreDiff
     const gapDiff = Number(isGapRow(right)) - Number(isGapRow(left))
     if (gapDiff !== 0) return gapDiff
+    const unmatchedDiff = Number(right.unmatchedShopItems?.length || 0) - Number(left.unmatchedShopItems?.length || 0)
+    if (unmatchedDiff !== 0) return unmatchedDiff
     const shopDiff = Number(right.shopEntryCount || 0) - Number(left.shopEntryCount || 0)
     if (shopDiff !== 0) return shopDiff
     const noteDiff = Number(Boolean(left.hasBehaviorNotes)) - Number(Boolean(right.hasBehaviorNotes))
@@ -293,7 +309,7 @@ async function handleWorkbenchSaved(npcId: number) {
 
 .summary-ribbon {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 14px;
 }
 

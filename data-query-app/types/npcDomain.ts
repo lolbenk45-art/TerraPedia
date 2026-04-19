@@ -88,7 +88,7 @@ export interface TownNpcOverview {
   latestImportReport?: Record<string, any>
   coinIcons?: Record<string, string>
   records?: TownNpcRow[]
-  summary?: Record<string, any>
+  summary?: TownNpcMaintenanceSummary | null
 }
 
 export interface TownNpcEditorDetail extends NpcBaseDomain {
@@ -96,4 +96,17 @@ export interface TownNpcEditorDetail extends NpcBaseDomain {
   behaviorNotes?: string | null
   shopEntries?: TownNpcShopItem[]
   shopMutationSummary?: TownNpcShopMutationSummary | null
+}
+
+export interface TownNpcMaintenanceSummary {
+  totalTownNpcs?: number | null
+  missingGamePeriodCount?: number | null
+  missingBehaviorNotesCount?: number | null
+  missingShopEntriesCount?: number | null
+  scrapedCount?: number | null
+  missingScrapeCount?: number | null
+  suggestedShopCoverageCount?: number | null
+  unmatchedShopNpcCount?: number | null
+  unmatchedShopItemCount?: number | null
+  rowsNeedingAttentionCount?: number | null
 }

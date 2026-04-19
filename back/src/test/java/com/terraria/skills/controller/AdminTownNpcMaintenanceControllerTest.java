@@ -82,16 +82,45 @@ class AdminTownNpcMaintenanceControllerTest {
             }
             return "阶段 " + gamePeriodId;
         });
-
-        when(objectMapper.readValue(any(File.class), any(TypeReference.class))).thenReturn(Map.of());
     }
 
     @Test
     void shouldProjectGamePeriodLabelsFromSupportDomainService() throws Exception {
+        when(objectMapper.readValue(any(File.class), any(TypeReference.class))).thenReturn(Map.of());
+
         mockMvc.perform(get("/admin/town-npcs/maintenance"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.records[0].gamePeriodId").value(3))
             .andExpect(jsonPath("$.data.records[0].gamePeriodLabel").value("支撑域-第三阶段"));
+    }
+
+    @Test
+    void shouldSummarizeTownNpcBatchValidationSignals() throws Exception {
+        Map<String, Object> scrapedRecord = new LinkedHashMap<>();
+        scrapedRecord.put("gameId", 1007001L);
+        scrapedRecord.put("pageTitle", "向导");
+        scrapedRecord.put("pageUrl", "https://terraria.wiki.gg/zh/wiki/Guide");
+        scrapedRecord.put("functionSummary", "Provides tips.");
+        scrapedRecord.put("moveInSummary", "A house is available.");
+        scrapedRecord.put("shopItems", List.of(
+            Map.of("nameZh", "火把", "nameEn", "Torch", "priceText", "50 CC"),
+            Map.of("nameZh", "绳", "nameEn", "Rope", "priceText", "10 CC")
+        ));
+
+        when(objectMapper.readValue(any(File.class), any(TypeReference.class))).thenReturn(Map.of(
+            "records", List.of(scrapedRecord)
+        ));
+
+        mockMvc.perform(get("/admin/town-npcs/maintenance"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.summary.totalTownNpcs").value(1))
+            .andExpect(jsonPath("$.data.summary.missingShopEntriesCount").value(1))
+            .andExpect(jsonPath("$.data.summary.scrapedCount").value(1))
+            .andExpect(jsonPath("$.data.summary.missingScrapeCount").value(0))
+            .andExpect(jsonPath("$.data.summary.unmatchedShopNpcCount").value(1))
+            .andExpect(jsonPath("$.data.summary.unmatchedShopItemCount").value(2))
+            .andExpect(jsonPath("$.data.summary.rowsNeedingAttentionCount").value(1));
     }
 }

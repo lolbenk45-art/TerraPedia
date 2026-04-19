@@ -43,6 +43,19 @@ export const importSummaryFromOverview = (overview: TownNpcOverview | null | und
   replacedShopNpcCount: Number(overview?.latestImportReport?.replacedShopNpcCount || 0),
 })
 
+export const maintenanceSummaryFromOverview = (overview: TownNpcOverview | null | undefined) => ({
+  totalTownNpcs: Number(overview?.summary?.totalTownNpcs || 0),
+  missingGamePeriodCount: Number(overview?.summary?.missingGamePeriodCount || 0),
+  missingBehaviorNotesCount: Number(overview?.summary?.missingBehaviorNotesCount || 0),
+  missingShopEntriesCount: Number(overview?.summary?.missingShopEntriesCount || 0),
+  scrapedCount: Number(overview?.summary?.scrapedCount || 0),
+  missingScrapeCount: Number(overview?.summary?.missingScrapeCount || 0),
+  suggestedShopCoverageCount: Number(overview?.summary?.suggestedShopCoverageCount || 0),
+  unmatchedShopNpcCount: Number(overview?.summary?.unmatchedShopNpcCount || 0),
+  unmatchedShopItemCount: Number(overview?.summary?.unmatchedShopItemCount || 0),
+  rowsNeedingAttentionCount: Number(overview?.summary?.rowsNeedingAttentionCount || 0),
+})
+
 export const formatShopMutationSummary = (summary: TownNpcShopMutationSummary | null | undefined) => {
   if (!summary) return ''
 
