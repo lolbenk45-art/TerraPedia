@@ -120,7 +120,7 @@
                 <img v-if="getRootImage(root)" :src="getRootImage(root)" alt="" class="thumb-card__image">
                 <div v-else class="thumb-card__fallback">{{ getRootAvatarLabel(root) }}</div>
                 <strong>{{ getRootLabel(root) }}</strong>
-                <p>{{ getRootIngredientCount(root) }} 原料 / {{ getRootStationCount(root) }} 站点</p>
+                <p>{{ getRootIngredientCount(root) }} 原料 / {{ getRootRelationCount(root) }} 关系</p>
                 <div v-if="getRootIngredientPreview(root).length" class="thumb-card__preview-row">
                   <article
                     v-for="ingredient in getRootIngredientPreview(root)"
@@ -272,6 +272,7 @@ const desktopStations = computed<ItemRecipeTreeStation[]>(() => {
   const deduped = new Map<string, ItemRecipeTreeStation>()
   ;(desktopTreeVariant.value?.roots || []).forEach((root) => {
     ;(root.stations || []).forEach((station) => {
+      if (!isNavigableStationRelation(station)) return
       const key = String(station.stationItemId ?? station.stationInternalName ?? station.stationNameRaw ?? '')
       if (key && !deduped.has(key)) deduped.set(key, station)
     })
@@ -308,6 +309,10 @@ function getStationAvatar(station: ItemRecipeTreeStation) {
   return label ? label.slice(0, 2).toUpperCase() : 'ST'
 }
 
+function isNavigableStationRelation(station: ItemRecipeTreeStation) {
+  return station.stationType !== 'condition'
+}
+
 function resolvePreviewImage(value?: string | null) {
   if (!value) return ''
   if (/^(https?:|data:)/.test(value)) return value
@@ -332,7 +337,7 @@ function getRootIngredientCount(root: ItemRecipeTreeNode) {
   return Array.isArray(root.children) ? root.children.length : 0
 }
 
-function getRootStationCount(root: ItemRecipeTreeNode) {
+function getRootRelationCount(root: ItemRecipeTreeNode) {
   return Array.isArray(root.stations) ? root.stations.length : 0
 }
 
@@ -414,6 +419,7 @@ async function goBackToStations() {
 }
 
 async function openStationWorkspace(station: ItemRecipeTreeStation) {
+  if (!isNavigableStationRelation(station)) return
   if (isDirty.value && !window.confirm('当前配方有未保存修改，确认切换到制作站工作区吗？')) return
   await router.push({
     path: '/recipes/stations',

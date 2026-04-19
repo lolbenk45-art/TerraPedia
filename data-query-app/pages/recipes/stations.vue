@@ -328,9 +328,9 @@
               </article>
             </div>
 
-            <div v-if="suggestedBindingRoot.stations?.length" class="usage-chip-list">
+            <div v-if="getSuggestedStations(suggestedBindingRoot).length" class="usage-chip-list">
               <span
-                v-for="station in suggestedBindingRoot.stations"
+                v-for="station in getSuggestedStations(suggestedBindingRoot)"
                 :key="`${station.stationItemId ?? station.stationInternalName}-${station.sortOrder}`"
                 class="usage-chip usage-chip--disabled"
               >
@@ -891,13 +891,17 @@ function getTreeStationLabel(station: ItemRecipeTreeStation) {
   return station.stationNameZh || station.stationName || station.stationNameRaw || station.stationInternalName || '未知制作站'
 }
 
+function getSuggestedStations(root: ItemRecipeTreeNode) {
+  return (root.stations || []).filter((station) => station.stationType !== 'condition')
+}
+
 function getSuggestedRootLabel(root: ItemRecipeTreeNode) {
   return root.itemNameZh || root.itemName || root.itemInternalName || `Recipe #${root.recipeId ?? '--'}`
 }
 
 function getSuggestedRootMeta(root: ItemRecipeTreeNode) {
   const ingredientCount = Array.isArray(root.children) ? root.children.length : 0
-  const stationCount = Array.isArray(root.stations) ? root.stations.length : 0
+  const stationCount = getSuggestedStations(root).length
   return `${ingredientCount} 个原料 / ${stationCount} 个制作站`
 }
 

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.ItemDTO;
 import com.terraria.skills.dto.RecipeGroupMemberDTO;
+import com.terraria.skills.dto.RecipeConditionDTO;
 import com.terraria.skills.dto.RecipeDTO;
 import com.terraria.skills.dto.RecipeIngredientDTO;
 import com.terraria.skills.dto.RecipeTreeItemDTO;
@@ -150,9 +151,14 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         root.setItemImage(recipe.getResultItemImage());
         root.setResultQuantity(recipe.getResultQuantity());
         root.setDepth(depth);
-        root.setStations(recipe.getStations() == null ? Collections.emptyList() : recipe.getStations().stream()
+        List<RecipeTreeStationDTO> relationEntries = new ArrayList<>();
+        relationEntries.addAll(recipe.getStations() == null ? Collections.emptyList() : recipe.getStations().stream()
             .map(this::toTreeStation)
             .toList());
+        relationEntries.addAll(recipe.getConditions() == null ? Collections.emptyList() : safeConditions(recipe.getConditions()).stream()
+            .map(this::toTreeCondition)
+            .toList());
+        root.setStations(relationEntries);
 
         List<RecipeTreeNodeDTO> children = new ArrayList<>();
         for (RecipeIngredientDTO ingredient : safeIngredients(recipe.getIngredients())) {
@@ -342,6 +348,18 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         return dto;
     }
 
+    private RecipeTreeStationDTO toTreeCondition(RecipeConditionDTO condition) {
+        RecipeTreeStationDTO dto = new RecipeTreeStationDTO();
+        dto.setStationInternalName(firstNonBlank(condition.getRefCode(), condition.getRefType()));
+        dto.setStationName(condition.getRefNameEn());
+        dto.setStationNameZh(condition.getRefNameZh());
+        dto.setStationNameRaw(condition.getRefType());
+        dto.setStationType("condition");
+        dto.setRequirementRole(defaultIfBlank(condition.getRequirementRole(), "required"));
+        dto.setNotes(trimToNull(condition.getNotes()));
+        return dto;
+    }
+
     private String chooseVariantScope(String requestedScope, RecipeDTO recipe) {
         return trimToNull(recipe.getVersionScope()) == null ? requestedScope : recipe.getVersionScope();
     }
@@ -436,6 +454,10 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
 
     private List<RecipeIngredientDTO> safeIngredients(Collection<RecipeIngredientDTO> ingredients) {
         return ingredients == null ? Collections.emptyList() : ingredients.stream().filter(Objects::nonNull).toList();
+    }
+
+    private List<RecipeConditionDTO> safeConditions(Collection<RecipeConditionDTO> conditions) {
+        return conditions == null ? Collections.emptyList() : conditions.stream().filter(Objects::nonNull).toList();
     }
 
     private String referenceKey(Long itemId, String internalName) {

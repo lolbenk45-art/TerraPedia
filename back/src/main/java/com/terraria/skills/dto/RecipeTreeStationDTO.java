@@ -12,4 +12,6 @@ public class RecipeTreeStationDTO {
     private String stationImage;
     private Boolean isAlternative;
     private String stationType;
+    private String requirementRole;
+    private String notes;
 }

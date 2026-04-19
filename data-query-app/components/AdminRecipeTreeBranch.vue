@@ -73,6 +73,8 @@
             <div class="branch-station__copy">
               <strong>{{ getStationDisplayName(station) }}</strong>
               <small v-if="getStationSecondaryName(station)">EN {{ getStationSecondaryName(station) }}</small>
+              <small v-else-if="getStationTypeLabel(station)">{{ getStationTypeLabel(station) }}</small>
+              <small v-if="station.notes">{{ station.notes }}</small>
             </div>
           </button>
         </div>
@@ -307,6 +309,19 @@ function getStationSecondaryName(station: ItemRecipeTreeStation) {
   return ''
 }
 
+function getStationTypeLabel(station: ItemRecipeTreeStation) {
+  if (station.stationType === 'condition') {
+    return station.requirementRole ? `条件 / ${station.requirementRole}` : '条件'
+  }
+  if (station.stationType === 'environment') {
+    return '环境'
+  }
+  if (station.isAlternative) {
+    return '替代工作台'
+  }
+  return '工作台'
+}
+
 function getStationAvatar(station: ItemRecipeTreeStation) {
   const label = getStationDisplayName(station).trim()
   return label ? label.slice(0, 2).toUpperCase() : 'ST'
@@ -325,6 +340,7 @@ function handleOpenItem(node: ItemRecipeTreeNode) {
 }
 
 function canOpenStation(station: ItemRecipeTreeStation) {
+  if (station.stationType === 'condition') return false
   return Boolean((station.stationItemId != null && Number(station.stationItemId) > 0) || station.stationInternalName || station.stationNameRaw)
 }
 

@@ -103,7 +103,7 @@
                   <img v-if="getRootImage(root)" :src="getRootImage(root)" alt="" class="thumb-card__image">
                   <div v-else class="thumb-card__fallback">{{ getRootAvatarLabel(root) }}</div>
                   <strong>{{ getRootLabel(root) }}</strong>
-                  <p>{{ getRootIngredientCount(root) }} 原料 / {{ getRootStationCount(root) }} 站点</p>
+                  <p>{{ getRootIngredientCount(root) }} 原料 / {{ getRootRelationCount(root) }} 关系</p>
                   <span class="thumb-card__cta">查看路径</span>
                 </button>
               </div>
@@ -212,7 +212,7 @@ function getRootIngredientCount(root: ItemRecipeTreeNode) {
   return Array.isArray(root.children) ? root.children.length : 0
 }
 
-function getRootStationCount(root: ItemRecipeTreeNode) {
+function getRootRelationCount(root: ItemRecipeTreeNode) {
   return Array.isArray(root.stations) ? root.stations.length : 0
 }
 

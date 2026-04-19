@@ -193,6 +193,8 @@ export interface ItemRecipeTreeStation {
   itemImageUrl?: string
   isAlternative?: boolean
   stationType?: string
+  requirementRole?: string
+  notes?: string
   sortOrder?: number | null
 }
 
@@ -683,6 +685,8 @@ export const useItemsStore = defineStore('items', () => {
     itemImageUrl: normalizeAssetUrl({ itemImage: raw?.itemImage ?? raw?.item_image ?? raw?.stationImage ?? raw?.station_image }),
     isAlternative: raw?.isAlternative ?? raw?.is_alternative ?? false,
     stationType: raw?.stationType ?? raw?.station_type ?? '',
+    requirementRole: raw?.requirementRole ?? raw?.requirement_role ?? '',
+    notes: raw?.notes ?? '',
     sortOrder: raw?.sortOrder ?? raw?.sort_order ?? null,
   })
 
