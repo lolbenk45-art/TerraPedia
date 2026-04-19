@@ -74,6 +74,7 @@ try {
     createdPlaceholderItems: 0,
     createdCraftingStations: 0,
     environmentRelationRows: 0,
+    alternativeStationRows: 0,
     reusedItemsByZhOrEn: 0,
     resolvedViaLanglink: 0,
     groupIngredientRows: 0,
@@ -106,6 +107,10 @@ try {
   const dedupedRecipes = dedupeRecipesBySignature(normalizedRecipes);
   summary.environmentRelationRows = dedupedRecipes.reduce(
     (sum, recipe) => sum + recipe.stations.filter((station) => station.stationType === 'environment').length,
+    0
+  );
+  summary.alternativeStationRows = dedupedRecipes.reduce(
+    (sum, recipe) => sum + recipe.stations.filter((station) => station.isAlternative).length,
     0
   );
 
@@ -354,15 +359,19 @@ async function buildCombinationStations(rawRecipe, state) {
   }
 
   if (componentStations.some((station) => station?.stationType === 'environment')) {
-    return componentStations.map((station, index) => ({
-      stationId: station.id,
-      stationItemId: station.itemId ?? null,
-      stationInternalName: station.internalName ?? null,
-      stationNameRaw: station.nameZh ?? station.nameEn ?? rawRecipe.stations[index] ?? null,
-      stationType: station.stationType ?? 'crafting_station',
-      isAlternative: false,
-      sortOrder: index + 1
-    }));
+    const groups = groupCombinationStationsByCaption(rawRecipe.tableCaption, componentStations);
+    let sortOrder = 1;
+    return groups.flatMap((group) =>
+      group.map((station, index) => ({
+        stationId: station.id,
+        stationItemId: station.itemId ?? null,
+        stationInternalName: station.internalName ?? null,
+        stationNameRaw: station.nameZh ?? station.nameEn ?? null,
+        stationType: station.stationType ?? 'crafting_station',
+        isAlternative: index > 0,
+        sortOrder: sortOrder++
+      }))
+    );
   }
 
   if (componentStations.length <= 1) {

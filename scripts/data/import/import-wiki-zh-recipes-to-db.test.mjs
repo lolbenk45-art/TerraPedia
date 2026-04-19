@@ -36,17 +36,23 @@ test('import-wiki-zh-recipes-to-db dry-run counts environment relations from env
               }
             ]
           },
+        ]
+      },
+      {
+        pageTitle: '配方/水',
+        revisionTimestamp: '2026-04-20T00:00:00Z',
+        recipeTables: [
           {
-            caption: '水晶球 和 蜂蜜',
-            stations: ['水晶球', '蜂蜜'],
+            caption: '水晶球 和 水 或 水槽',
+            stations: ['水晶球', '水', '水槽'],
             stationRequirementMode: 'combination',
             rows: [
               {
-                resultName: '蜂蜜瀑布块',
+                resultName: '水蜡烛',
                 resultQuantity: 1,
                 versionScope: null,
                 ingredients: [
-                  { name: '玻璃', quantity: null, text: '玻璃', linkedTitles: ['玻璃'] }
+                  { name: '蜡烛', quantity: null, text: '蜡烛', linkedTitles: ['蜡烛'] }
                 ]
               }
             ]
@@ -75,4 +81,5 @@ test('import-wiki-zh-recipes-to-db dry-run counts environment relations from env
   assert.equal(result.status, 0, result.stderr || result.stdout);
   const summary = JSON.parse(String(result.stdout || '{}').trim());
   assert.equal(summary.environmentRelationRows, 2);
+  assert.equal(summary.alternativeStationRows, 1);
 });
