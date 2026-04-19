@@ -81,4 +81,8 @@ export interface TownNpcOverview {
   summary?: Record<string, any>
 }
 
-export interface TownNpcEditorDetail extends Record<string, any> {}
+export interface TownNpcEditorDetail extends NpcBaseDomain {
+  gamePeriodId?: number | null
+  behaviorNotes?: string | null
+  shopEntries?: TownNpcShopItem[]
+}

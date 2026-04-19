@@ -1,4 +1,4 @@
-import type { TownNpcOverview, TownNpcRow } from '~/types/npcDomain'
+import type { TownNpcEditorDetail, TownNpcOverview, TownNpcRow } from '~/types/npcDomain'
 
 const overview: TownNpcOverview = {
   reportFound: true,
@@ -18,3 +18,23 @@ const overview: TownNpcOverview = {
 }
 
 void overview
+
+const editorDetail: TownNpcEditorDetail = {
+  id: 1,
+  gameId: 22,
+  internalName: 'Guide',
+  name: 'Guide',
+  nameZh: '鍚戝',
+  isTownNpc: true,
+  gamePeriodId: 3,
+  behaviorNotes: 'Offers advice to new players.',
+  shopEntries: [
+    {
+      itemId: 8,
+      name: 'Torch',
+      priceText: '50 copper',
+    },
+  ],
+}
+
+void editorDetail
