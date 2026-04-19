@@ -1,0 +1,11 @@
+{
+  "entityId": "medusa",
+  "pageTitle": "Medusa",
+  "pageDescription": "Medusa is a Hardmode enemy found near Marble Caves, and is a relatively fast-moving melee attacker who has the unique ability to inflict the Stoned debuff through her gaze.",
+  "revisionText": "{{exclusive|1.3.0.1}}\n{{npc infobox\n| auto = 480\n| image = Medusa.gif\n| imageother = Medusa Stare.gif\n| imageothercaption = Medusa attack\n| environment = Marble Cave\n| debuff = Stoned\n| debuffduration = {{duration|rawseconds=1–4}}\n| hardmode = yes\n}}\n[[File:Medusa (demo).gif|frame|Medusa turning a player into stone.]]\n{{dablink|Not to be confused with [[Mechdusa]], a secret world seed-exclusive boss.}}\n\n'''Medusa''' is a [[Hardmode]] [[Enemies|enemy]] found near [[Marble Cave]]s, and is a relatively fast-moving melee attacker who has the unique ability to inflict the [[Stoned]] [[Debuffs|debuff]] through her gaze. This debuff deals 20 / {{expert|40}} / {{master|60}} damage to the player and petrifies them, turning them into stone.\n* The player will be unable to move or use items for the duration of the debuff.\n\n{{Lifeform Analyzer note|She}}\n\n== Tips ==\n* Being inflicted with the Stoned debuff is very dangerous.\n\n== History ==\n{{history|Desktop 1.4.4|Added shimmer variant.}}",
+  "relations": {
+    "relatedItems": [],
+    "relatedBiomes": [],
+    "relatedNpcs": []
+  }
+}

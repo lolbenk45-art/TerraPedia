@@ -1,0 +1,229 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  extractNpcHappiness,
+  extractNpcLeadSummary,
+  extractNpcInfobox,
+  extractNpcSectionBlocks,
+  extractNpcShop,
+  extractNpcSpecialForms
+} from '../src/domains/npc-parser.mjs';
+
+const SAMPLE = `{{npc infobox
+| type = NPC
+| type2 = Goblin
+| environment = Cavern/Valid house
+| damage = {{modes|15|22|26}}
+| damage2 = Spiky Ball
+| idprojectile = 24
+}}
+'''Goblin Tinkerer''' is a helpful NPC who can reforge items.
+
+{{Lifeform Analyzer note|Bound Goblin}}
+
+== Tips ==
+* Tip line
+
+== History ==
+{{history|Desktop 1.4.4|Added Rubblemaker.}}
+
+{{NPC shimmered form|Goblin Tinkerer|male}}
+
+== Dialogue ==
+* Line one`;
+
+const PAGE_DESCRIPTION_FALLBACK = 'Fallback derived from the page description.';
+const NO_INFOBOX_SAMPLE = '';
+const UNFINISHED_INFOBOX_SAMPLE = `{{npc infobox
+| type = NPC
+| type2 = Goblin
+| environment = Cavern
+| damage = {{modes|1|2|3}}
+| damage2 = Spiky Ball
+
+Goblin summary after an unfinished infobox.
+
+== Tips ==
+* Tip line`;
+const INFBOX_MULTILINE_SAMPLE = `{{npc infobox
+| type = NPC
+| type2 = Goblin
+| environment = Cavern
+| damage = {{modes|5|10|15}}
+| damage2 = Spiky
+ Ball
+| idprojectile = 77
+}}
+Intro text`;
+
+test('extractNpcLeadSummary prefers the first readable paragraph', () => {
+  assert.equal(
+    extractNpcLeadSummary({ pageDescription: '', revisionText: SAMPLE }),
+    'Goblin Tinkerer is a helpful NPC who can reforge items.'
+  );
+});
+
+const INFBOX_INLINE_CLOSING_SAMPLE = `{{npc infobox
+| type = NPC
+| type2 = Goblin
+| environment = Cavern
+| damage = {{modes|8|16|23}}
+| damage2 = Spiky Ball
+| id projectile = 13}}
+More text`;
+
+const INFBOX_WHITESPACE_CLOSE_SAMPLE = `{{npc infobox
+| type = NPC
+| type2 = Goblin
+| environment = Cavern
+| damage = {{modes|5|10|15}}
+| damage2 = Spiky Ball
+| id projectile = 42
+  }}
+Intro`;
+
+const LINKED_LEAD_SAMPLE = `[[Linked Goblin]] tinkers with gadgets.
+== Tips ==
+* Tip line`;
+const MEDUSA_NOISE_SAMPLE = `[[File:Medusa (demo).gif|frame|Medusa turning a player into stone.]]
+{{dablink|Not to be confused with [[Mechdusa]], a secret world seed-exclusive boss.}}
+
+'''Medusa''' is a [[Hardmode]] [[Enemies|enemy]] found near [[Marble Cave]]s, and is a relatively fast-moving melee attacker.
+* The player will be unable to move or use items for the duration of the debuff.
+
+{{Lifeform Analyzer note|She}}`;
+
+test('extractNpcLeadSummary prefers revisionText over pageDescription', () => {
+  assert.equal(
+    extractNpcLeadSummary({
+      pageDescription: 'Fallback paragraph from description.',
+      revisionText: SAMPLE
+    }),
+    'Goblin Tinkerer is a helpful NPC who can reforge items.'
+  );
+});
+
+test('extractNpcLeadSummary falls back to pageDescription when no infobox content exists', () => {
+  assert.equal(
+    extractNpcLeadSummary({
+      pageDescription: PAGE_DESCRIPTION_FALLBACK,
+      revisionText: NO_INFOBOX_SAMPLE
+    }),
+    PAGE_DESCRIPTION_FALLBACK
+  );
+});
+
+test('extractNpcLeadSummary keeps text that follows an unfinished infobox', () => {
+  assert.equal(
+    extractNpcLeadSummary({ pageDescription: PAGE_DESCRIPTION_FALLBACK, revisionText: UNFINISHED_INFOBOX_SAMPLE }),
+    'Goblin summary after an unfinished infobox.'
+  );
+});
+
+test('extractNpcLeadSummary keeps linked intro before the first heading', () => {
+  assert.equal(
+    extractNpcLeadSummary({ pageDescription: '', revisionText: LINKED_LEAD_SAMPLE }),
+    '[[Linked Goblin]] tinkers with gadgets.'
+  );
+});
+
+test('extractNpcLeadSummary skips file and dablink noise blocks before the first readable paragraph', () => {
+  assert.equal(
+    extractNpcLeadSummary({ pageDescription: '', revisionText: MEDUSA_NOISE_SAMPLE }),
+    "Medusa is a [[Hardmode]] [[Enemies|enemy]] found near [[Marble Cave]]s, and is a relatively fast-moving melee attacker."
+  );
+});
+
+test('extractNpcInfobox returns the first infobox fields as text', () => {
+  assert.deepEqual(extractNpcInfobox(SAMPLE), {
+    baseDamageText: '{{modes|15|22|26}}',
+    environment: ['Cavern', 'Valid house'],
+    extraDamageText: 'Spiky Ball',
+    kind: 'NPC',
+    projectileId: '24',
+    subtypes: ['Goblin']
+  });
+});
+
+test('extractNpcSpecialForms returns shimmer and bound-state hints', () => {
+  assert.deepEqual(extractNpcSpecialForms(SAMPLE), {
+    boundVariantName: 'Bound Goblin',
+    shimmerForm: {
+      args: ['Goblin Tinkerer', 'male'],
+      present: true
+    }
+  });
+});
+
+test('extractNpcInfobox tolerates inline closing braces and field-name whitespace', () => {
+  assert.deepEqual(extractNpcInfobox(INFBOX_INLINE_CLOSING_SAMPLE), {
+    baseDamageText: '{{modes|8|16|23}}',
+    environment: ['Cavern'],
+    extraDamageText: 'Spiky Ball',
+    kind: 'NPC',
+    projectileId: '13',
+    subtypes: ['Goblin']
+  });
+});
+
+test('extractNpcInfobox tolerates closing lines that contain only whitespace and braces', () => {
+  assert.deepEqual(extractNpcInfobox(INFBOX_WHITESPACE_CLOSE_SAMPLE), {
+    baseDamageText: '{{modes|5|10|15}}',
+    environment: ['Cavern'],
+    extraDamageText: 'Spiky Ball',
+    kind: 'NPC',
+    projectileId: '42',
+    subtypes: ['Goblin']
+  });
+});
+
+test('extractNpcInfobox preserves multi-line values for a field', () => {
+  assert.deepEqual(extractNpcInfobox(INFBOX_MULTILINE_SAMPLE), {
+    baseDamageText: '{{modes|5|10|15}}',
+    environment: ['Cavern'],
+    extraDamageText: 'Spiky Ball',
+    kind: 'NPC',
+    projectileId: '77',
+    subtypes: ['Goblin']
+  });
+});
+
+test('extractNpcSectionBlocks captures stable named sections', () => {
+  assert.deepEqual(extractNpcSectionBlocks(SAMPLE), {
+    dialogue: '* Line one',
+    history: '{{history|Desktop 1.4.4|Added Rubblemaker.}}',
+    tips: '* Tip line'
+  });
+});
+
+test('extractNpcSpecialForms ignores pronoun-only lifeform notes', () => {
+  assert.deepEqual(extractNpcSpecialForms(MEDUSA_NOISE_SAMPLE), {
+    boundVariantName: undefined,
+    shimmerForm: {
+      args: [],
+      present: false
+    }
+  });
+});
+
+test('extractNpcShop keeps item name, valueText, and availability note', () => {
+  const sample = '{{shop|{{shop row|Rocket Boots|value=5|Sold after Goblin Army}}}}';
+  assert.deepEqual(extractNpcShop(sample), {
+    items: [
+      {
+        name: 'Rocket Boots',
+        valueText: '5',
+        availabilityNote: 'Sold after Goblin Army'
+      }
+    ]
+  });
+});
+
+test('extractNpcHappiness marks template presence and preserves notes', () => {
+  const sample = '{{living preferences|loves=[[Mechanic]]|likes=[[Underground]]}}';
+  assert.deepEqual(extractNpcHappiness(sample), {
+    sourceTemplatePresent: true,
+    notes: ['loves=[[Mechanic]]', 'likes=[[Underground]]']
+  });
+});

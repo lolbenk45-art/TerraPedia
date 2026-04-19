@@ -1,0 +1,11 @@
+{
+  "entityId": "goblin-tinkerer",
+  "pageTitle": "Goblin Tinkerer",
+  "pageDescription": "A helpful NPC who can reforge items.",
+  "revisionText": "{{npc infobox\n| type = NPC\n| type2 = Goblin\n| environment = Cavern/Valid house\n| damage = {{modes|15|22|26}}\n| damage2 = Spiky Ball\n| idprojectile = 24\n}}\n'''Goblin Tinkerer''' is a helpful NPC who can reforge items.\n\n{{Lifeform Analyzer note|Bound Goblin}}\n{{living preferences|loves=[[Mechanic]]|likes=[[Underground]]}}\n{{shop|{{shop row|Rocket Boots|value=5|Sold after Goblin Army}}}}\n\n== Tips ==\n* Tip line\n\n== History ==\n{{history|Desktop 1.4.4|Added Rubblemaker.}}\n\n{{NPC shimmered form|Goblin Tinkerer|male}}\n\n== Dialogue ==\n* Line one",
+  "relations": {
+    "relatedItems": ["Rocket Boots"],
+    "relatedBiomes": ["Underground"],
+    "relatedNpcs": ["Mechanic"]
+  }
+}
