@@ -3,10 +3,14 @@ package com.terraria.skills.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.terraria.skills.dto.RecipeConditionDTO;
 import com.terraria.skills.dto.RecipeDTO;
+import com.terraria.skills.dto.RecipeStationDTO;
 import com.terraria.skills.dto.RecipeTreeItemDTO;
 import com.terraria.skills.dto.RecipeTreeMetaDTO;
+import com.terraria.skills.dto.RecipeTreeNodeDTO;
 import com.terraria.skills.dto.RecipeTreeResponseDTO;
+import com.terraria.skills.dto.RecipeTreeStationDTO;
 import com.terraria.skills.dto.RecipeTreeVariantDTO;
 import com.terraria.skills.service.RecipeService;
 import com.terraria.skills.service.RecipeTreeService;
@@ -21,6 +25,7 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.Mockito.verify;
@@ -60,6 +65,26 @@ class AdminItemRecipeControllerTest {
         RecipeDTO recipe = new RecipeDTO();
         recipe.setId(31L);
         recipe.setResultItemId(1L);
+        recipe.setVersionScope("Desktop version only");
+        recipe.setSourceProvider("manual_admin");
+        recipe.setSourcePage("admin override");
+        recipe.setSourceRevisionTimestamp(LocalDateTime.of(2026, 4, 20, 7, 30));
+
+        RecipeStationDTO station = new RecipeStationDTO();
+        station.setStationId(30L);
+        station.setStationNameRaw("水");
+        station.setItemName("Water");
+        station.setItemNameZh("水");
+        station.setStationType("environment");
+        recipe.setStations(List.of(station));
+
+        RecipeConditionDTO condition = new RecipeConditionDTO();
+        condition.setRefType("WORLD_CONTEXT");
+        condition.setRefId(11L);
+        condition.setRefCode("SHIMMER");
+        condition.setRefNameEn("Shimmer");
+        condition.setRefNameZh("微光");
+        recipe.setConditions(List.of(condition));
 
         when(recipeService.getRecipesByResultItemId(1L)).thenReturn(List.of(recipe));
 
@@ -67,7 +92,11 @@ class AdminItemRecipeControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.length()").value(1))
-            .andExpect(jsonPath("$.data[0].id").value(31));
+            .andExpect(jsonPath("$.data[0].id").value(31))
+            .andExpect(jsonPath("$.data[0].versionScope").value("Desktop version only"))
+            .andExpect(jsonPath("$.data[0].sourceProvider").value("manual_admin"))
+            .andExpect(jsonPath("$.data[0].stations[0].stationType").value("environment"))
+            .andExpect(jsonPath("$.data[0].conditions[0].refCode").value("SHIMMER"));
 
         verify(recipeService).getRecipesByResultItemId(1L);
     }
@@ -82,6 +111,21 @@ class AdminItemRecipeControllerTest {
         variant.setVariantKey("modern");
         variant.setVariantLabel("Desktop / Console / Mobile");
         variant.setRecipeCount(1);
+        variant.setVersionScope("Desktop version only");
+
+        RecipeTreeStationDTO treeStation = new RecipeTreeStationDTO();
+        treeStation.setStationName("Full Moon");
+        treeStation.setStationNameZh("满月");
+        treeStation.setStationType("condition");
+        treeStation.setRequirementRole("required");
+
+        RecipeTreeNodeDTO root = new RecipeTreeNodeDTO();
+        root.setRecipeId(902L);
+        root.setItemId(1L);
+        root.setItemName("Abeemination");
+        root.setItemNameZh("憎恶之蜂");
+        root.setStations(List.of(treeStation));
+        variant.setRoots(List.of(root));
 
         RecipeTreeResponseDTO response = new RecipeTreeResponseDTO();
         response.setItem(item);
@@ -101,7 +145,11 @@ class AdminItemRecipeControllerTest {
             .andExpect(jsonPath("$.data.item.id").value(1))
             .andExpect(jsonPath("$.data.treeMeta.maxDepth").value(4))
             .andExpect(jsonPath("$.data.variants.length()").value(1))
-            .andExpect(jsonPath("$.data.variants[0].variantKey").value("modern"));
+            .andExpect(jsonPath("$.data.variants[0].variantKey").value("modern"))
+            .andExpect(jsonPath("$.data.variants[0].versionScope").value("Desktop version only"))
+            .andExpect(jsonPath("$.data.variants[0].roots[0].recipeId").value(902))
+            .andExpect(jsonPath("$.data.variants[0].roots[0].stations[0].stationType").value("condition"))
+            .andExpect(jsonPath("$.data.variants[0].roots[0].stations[0].requirementRole").value("required"));
 
         verify(recipeTreeService).getRecipeTreeByItemId(1L, 4);
     }
