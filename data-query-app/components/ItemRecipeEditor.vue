@@ -64,7 +64,9 @@
             </label>
             <label class="field">
               <span class="field__label">来源提供方</span>
-              <input v-model="recipe.sourceProvider" type="text" class="input" placeholder="manual_admin / wiki_gg" />
+              <select v-model="recipe.sourceProvider" class="input">
+                <option v-for="option in recipeSourceProviderOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
             </label>
             <label class="field">
               <span class="field__label">来源页面</span>
@@ -367,6 +369,12 @@ const supportDomainsStore = useSupportDomainsStore()
 const biomeOptions = ref<ConditionOption[]>([])
 const worldContextOptions = computed<ConditionOption[]>(() => supportDomainsStore.worldContextOptions)
 let syncingFromProps = false
+const recipeSourceProviderOptions = [
+  { value: 'manual_admin', label: 'manual_admin' },
+  { value: 'wiki_gg', label: 'wiki_gg' },
+  { value: 'wiki_gg_zh_reference', label: 'wiki_gg_zh_reference' },
+  { value: 'wiki_zh', label: 'wiki_zh' },
+]
 
 const createKey = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 

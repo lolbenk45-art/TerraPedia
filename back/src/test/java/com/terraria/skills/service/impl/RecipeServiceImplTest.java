@@ -2,6 +2,9 @@ package com.terraria.skills.service.impl;
 
 import com.terraria.skills.dto.RecipeDTO;
 import com.terraria.skills.dto.RecipeStationDTO;
+import com.terraria.skills.dto.AdminRecipeIngredientUpsertRequestDTO;
+import com.terraria.skills.dto.AdminRecipeStationUpsertRequestDTO;
+import com.terraria.skills.dto.AdminRecipeUpsertRequestDTO;
 import com.terraria.skills.entity.CraftingStation;
 import com.terraria.skills.entity.Item;
 import com.terraria.skills.entity.Recipe;
@@ -25,8 +28,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,10 +66,10 @@ class RecipeServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        when(recipeIngredientMapper.selectList(any())).thenReturn(Collections.emptyList());
-        when(recipeStationMapper.selectList(any())).thenReturn(Collections.emptyList());
-        when(recipeContextRequirementMapper.selectList(any())).thenReturn(Collections.emptyList());
-        when(itemMapper.selectBatchIds(any())).thenReturn(List.of(resultItem()));
+        lenient().when(recipeIngredientMapper.selectList(any())).thenReturn(Collections.emptyList());
+        lenient().when(recipeStationMapper.selectList(any())).thenReturn(Collections.emptyList());
+        lenient().when(recipeContextRequirementMapper.selectList(any())).thenReturn(Collections.emptyList());
+        lenient().when(itemMapper.selectBatchIds(any())).thenReturn(List.of(resultItem()));
     }
 
     @Test
@@ -249,6 +254,30 @@ class RecipeServiceImplTest {
 
         assertEquals(1, recipes.size());
         assertEquals("wiki_zh", recipes.get(0).getSourceProvider());
+    }
+
+    @Test
+    void shouldRejectUnknownRecipeSourceProviderOnReplace() {
+        when(itemMapper.selectById(1L)).thenReturn(resultItem());
+
+        AdminRecipeIngredientUpsertRequestDTO ingredient = new AdminRecipeIngredientUpsertRequestDTO();
+        ingredient.setIngredientNameRaw("Cobweb");
+        ingredient.setQuantityText("1");
+
+        AdminRecipeStationUpsertRequestDTO station = new AdminRecipeStationUpsertRequestDTO();
+        station.setStationNameRaw("工作台");
+
+        AdminRecipeUpsertRequestDTO request = new AdminRecipeUpsertRequestDTO();
+        request.setSourceProvider("custom_provider");
+        request.setIngredients(List.of(ingredient));
+        request.setStations(List.of(station));
+
+        IllegalArgumentException error = assertThrows(
+            IllegalArgumentException.class,
+            () -> service.replaceRecipesForResultItemId(1L, List.of(request))
+        );
+
+        assertEquals("配方 #1 的 sourceProvider 不在允许列表中", error.getMessage());
     }
 
     private Recipe recipe(Long id, String sourceProvider) {

@@ -516,6 +516,10 @@ public class RecipeServiceImpl implements RecipeService {
             if (recipe.getResultQuantity() != null && recipe.getResultQuantity() < 1) {
                 throw new IllegalArgumentException("配方 #" + displayIndex + " 的产出数量必须大于 0");
             }
+            String sourceProvider = trimToNull(recipe.getSourceProvider());
+            if (sourceProvider != null && providerRank(sourceProvider) > RECIPE_PROVIDER_PRIORITY.size()) {
+                throw new IllegalArgumentException("配方 #" + displayIndex + " 的 sourceProvider 不在允许列表中");
+            }
 
             List<AdminRecipeIngredientUpsertRequestDTO> ingredients = recipe.getIngredients() == null
                 ? Collections.emptyList()
