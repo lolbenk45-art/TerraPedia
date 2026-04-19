@@ -27,12 +27,22 @@ export interface NpcWikiAssets {
 }
 
 export interface TownNpcShopItem extends Record<string, any> {
+  id?: number | null
   itemId?: number | null
   name?: string | null
   nameZh?: string | null
   internalName?: string | null
   image?: string | null
   priceText?: string | null
+}
+
+export interface TownNpcShopMutationSummary {
+  submittedCount?: number | null
+  persistedCount?: number | null
+  insertedCount?: number | null
+  replacedCount?: number | null
+  skippedCount?: number | null
+  removedCount?: number | null
 }
 
 export interface TownNpcRow extends NpcBaseDomain {
@@ -85,4 +95,5 @@ export interface TownNpcEditorDetail extends NpcBaseDomain {
   gamePeriodId?: number | null
   behaviorNotes?: string | null
   shopEntries?: TownNpcShopItem[]
+  shopMutationSummary?: TownNpcShopMutationSummary | null
 }

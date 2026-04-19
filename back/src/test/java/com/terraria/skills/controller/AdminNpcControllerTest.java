@@ -307,4 +307,97 @@ class AdminNpcControllerTest {
             .andExpect(jsonPath("$.data.shopEntries", hasSize(1)))
             .andExpect(jsonPath("$.data.shopEntries[0].itemName").value("Torch"));
     }
+
+    @Test
+    void shouldReportTownNpcShopMutationSummaryOnUpdate() throws Exception {
+        Npc existing = new Npc();
+        existing.setId(7L);
+        existing.setGameId(22L);
+        existing.setInternalName("Guide");
+        existing.setName("Guide");
+        existing.setNameZh("Guide Zh");
+        existing.setGamePeriodId(1L);
+        existing.setBehaviorNotes("Old behavior notes.");
+        existing.setIsTownNpc(true);
+        existing.setStatus(1);
+
+        Npc updated = new Npc();
+        updated.setId(7L);
+        updated.setGameId(22L);
+        updated.setInternalName("Guide");
+        updated.setName("Guide");
+        updated.setNameZh("Guide Zh");
+        updated.setGamePeriodId(3L);
+        updated.setBehaviorNotes("Updated maintenance notes.");
+        updated.setIsTownNpc(true);
+        updated.setStatus(1);
+
+        when(npcMapper.selectById(7L)).thenReturn(existing, updated);
+        when(npcMapper.selectCount(any())).thenReturn(0L);
+        when(jdbcTemplate.queryForList("SELECT id FROM npc_shop_entries WHERE npc_id = ?", 7L)).thenReturn(List.of(
+            Map.of("id", 21L),
+            Map.of("id", 22L)
+        ));
+        when(jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class)).thenReturn(121L, 122L);
+
+        when(jdbcTemplate.queryForObject(contains("FROM npc_loot_entries"), eq(Integer.class), eq(7L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_buff_relations"), eq(Integer.class), eq(7L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_shop_entries"), eq(Integer.class), eq(7L))).thenReturn(2);
+        when(jdbcTemplate.queryForObject(contains("source_ref_id = ?"), eq(Integer.class), eq(22L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(
+            contains("LOWER(TRIM(source_ref_name)) = LOWER(TRIM(?))"),
+            eq(Integer.class),
+            eq("Guide")
+        )).thenReturn(0);
+        when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries nle"), eq(7L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("source_ref_id IS NULL"), eq("Guide"))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(7L))).thenReturn(List.of());
+
+        Map<String, Object> persistedEntry = new LinkedHashMap<>();
+        persistedEntry.put("id", 121L);
+        persistedEntry.put("itemId", 8L);
+        persistedEntry.put("itemName", "Torch");
+        persistedEntry.put("priceText", "50 copper");
+
+        Map<String, Object> insertedEntry = new LinkedHashMap<>();
+        insertedEntry.put("id", 122L);
+        insertedEntry.put("itemId", 9L);
+        insertedEntry.put("itemName", "Rope");
+        insertedEntry.put("priceText", "25 copper");
+
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries nse"), eq(7L))).thenReturn(List.of(persistedEntry, insertedEntry));
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_conditions"), eq(121L), eq(122L))).thenReturn(List.of());
+
+        mockMvc.perform(put("/admin/npcs/7")
+                .contentType(APPLICATION_JSON)
+                .content("""
+                    {
+                      "gamePeriodId": 3,
+                      "behaviorNotes": "Updated maintenance notes.",
+                      "shopEntries": [
+                        {
+                          "id": 21,
+                          "itemId": 8,
+                          "priceText": "50 copper",
+                          "notes": "starter"
+                        },
+                        {
+                          "itemId": 9,
+                          "priceText": "25 copper"
+                        },
+                        {
+                          "notes": "missing item binding"
+                        }
+                      ]
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.shopMutationSummary.submittedCount").value(3))
+            .andExpect(jsonPath("$.data.shopMutationSummary.persistedCount").value(2))
+            .andExpect(jsonPath("$.data.shopMutationSummary.replacedCount").value(1))
+            .andExpect(jsonPath("$.data.shopMutationSummary.insertedCount").value(1))
+            .andExpect(jsonPath("$.data.shopMutationSummary.skippedCount").value(1))
+            .andExpect(jsonPath("$.data.shopMutationSummary.removedCount").value(1));
+    }
 }

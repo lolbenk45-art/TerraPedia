@@ -3,6 +3,7 @@ import type {
   TownNpcEditorDetail,
   TownNpcOverview,
   TownNpcRow,
+  TownNpcShopMutationSummary,
 } from '~/types/npcDomain'
 
 export type RefItem = Record<string, any>
@@ -26,8 +27,9 @@ export const fetchItemSuggestions = async (keyword: string, limit = 8): Promise<
   return Array.isArray(list) ? list : []
 }
 
-export const saveTownNpcMaintenance = async (id: number, payload: Record<string, any>) => {
-  return await put(`/admin/npcs/${id}`, payload)
+export const saveTownNpcMaintenance = async (id: number, payload: Record<string, any>): Promise<TownNpcEditorDetail | null> => {
+  const response: any = await put(`/admin/npcs/${id}`, payload)
+  return (response?.data ?? response) || null
 }
 
 export const rowsFromOverview = (overview: TownNpcOverview | null | undefined): TownNpcRow[] =>
@@ -40,6 +42,24 @@ export const importSummaryFromOverview = (overview: TownNpcOverview | null | und
   insertedShopEntryCount: Number(overview?.latestImportReport?.insertedShopEntryCount || 0),
   replacedShopNpcCount: Number(overview?.latestImportReport?.replacedShopNpcCount || 0),
 })
+
+export const formatShopMutationSummary = (summary: TownNpcShopMutationSummary | null | undefined) => {
+  if (!summary) return ''
+
+  const submitted = Number(summary.submittedCount || 0)
+  const persisted = Number(summary.persistedCount || 0)
+  const inserted = Number(summary.insertedCount || 0)
+  const replaced = Number(summary.replacedCount || 0)
+  const removed = Number(summary.removedCount || 0)
+  const skipped = Number(summary.skippedCount || 0)
+
+  const parts = [`提交 ${submitted}`, `落库 ${persisted}`]
+  if (inserted > 0) parts.push(`新增 ${inserted}`)
+  if (replaced > 0) parts.push(`替换 ${replaced}`)
+  if (removed > 0) parts.push(`移除 ${removed}`)
+  if (skipped > 0) parts.push(`跳过 ${skipped}`)
+  return parts.join('，')
+}
 
 export const buildFallback = (row: TownNpcRow) => {
   const text = row.nameZh || row.name || row.internalName || 'NPC'

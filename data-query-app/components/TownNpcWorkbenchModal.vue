@@ -410,6 +410,7 @@ import {
   fetchTownNpcEditorDetail,
   formatDisplayPrice,
   formatMoveInConditions,
+  formatShopMutationSummary,
   formatSecondaryPrice,
   formatTime,
   formatUnmatchedItems,
@@ -911,6 +912,7 @@ async function saveChanges() {
     }
 
     payloadEntries.push({
+      id: entry.id,
       itemId: entry.itemId,
       sourceItemId: entry.sourceItemId,
       priceText: entry.priceText.trim() || null,
@@ -922,12 +924,13 @@ async function saveChanges() {
 
   saving.value = true
   try {
-    await saveTownNpcMaintenance(Number(props.row.id), {
+    const result = await saveTownNpcMaintenance(Number(props.row.id), {
       gamePeriodId: form.gamePeriodId,
       behaviorNotes: form.behaviorNotes.trim() || null,
       shopEntries: payloadEntries,
     })
-    showToast('Town NPC 维护结果已保存', 'success')
+    const summaryText = formatShopMutationSummary(result?.shopMutationSummary)
+    showToast(summaryText ? `Town NPC 维护结果已保存：${summaryText}` : 'Town NPC 维护结果已保存', 'success')
     await loadDetail(Number(props.row.id))
     emit('saved', Number(props.row.id))
     activeMode.value = 'detail'

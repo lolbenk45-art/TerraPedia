@@ -134,6 +134,7 @@ import {
   formatDisplayPrice,
   formatMoveInConditions,
   formatNumber,
+  formatShopMutationSummary,
   formatUnmatchedItems,
   rowsFromOverview,
   saveTownNpcMaintenance,
@@ -232,12 +233,13 @@ async function saveRow() {
 
   saving.value = true
   try {
-    await saveTownNpcMaintenance(npcId.value, {
+    const result = await saveTownNpcMaintenance(npcId.value, {
       gamePeriodId: form.gamePeriodId,
       behaviorNotes: form.behaviorNotes.trim(),
       shopEntries,
     })
-    showToast('城镇 NPC 维护字段已保存', 'success')
+    const summaryText = formatShopMutationSummary(result?.shopMutationSummary)
+    showToast(summaryText ? `城镇 NPC 维护字段已保存：${summaryText}` : '城镇 NPC 维护字段已保存', 'success')
     await navigateTo(detailPath.value)
   } catch (error: any) {
     showToast(error?.data?.message || error?.message || '保存城镇 NPC 失败', 'error')

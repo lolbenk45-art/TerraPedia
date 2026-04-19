@@ -28,8 +28,17 @@ const editorDetail: TownNpcEditorDetail = {
   isTownNpc: true,
   gamePeriodId: 3,
   behaviorNotes: 'Offers advice to new players.',
+  shopMutationSummary: {
+    submittedCount: 3,
+    persistedCount: 2,
+    insertedCount: 1,
+    replacedCount: 1,
+    skippedCount: 1,
+    removedCount: 1,
+  },
   shopEntries: [
     {
+      id: 21,
       itemId: 8,
       name: 'Torch',
       priceText: '50 copper',

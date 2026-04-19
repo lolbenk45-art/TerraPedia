@@ -134,8 +134,10 @@ public class AdminNpcController {
         Npc npc = new Npc();
         applyFields(npc, request, true);
         npcMapper.insert(npc);
-        syncNpcRelations(npc.getId(), request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(toPayload(npcMapper.selectById(npc.getId()), true), "Npc created"));
+        Map<String, Object> relationSummary = syncNpcRelations(npc.getId(), request);
+        Map<String, Object> payload = toPayload(npcMapper.selectById(npc.getId()), true);
+        payload.putAll(relationSummary);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(payload, "Npc created"));
     }
 
     @PutMapping("/{id}")
@@ -163,8 +165,10 @@ public class AdminNpcController {
 
         applyFields(existing, request, false);
         npcMapper.updateById(existing);
-        syncNpcRelations(id, request);
-        return ResponseEntity.ok(ApiResponse.success(toPayload(npcMapper.selectById(id), true), "Npc updated"));
+        Map<String, Object> relationSummary = syncNpcRelations(id, request);
+        Map<String, Object> payload = toPayload(npcMapper.selectById(id), true);
+        payload.putAll(relationSummary);
+        return ResponseEntity.ok(ApiResponse.success(payload, "Npc updated"));
     }
 
     @DeleteMapping("/{id}")
@@ -694,9 +698,10 @@ public class AdminNpcController {
         return grouped;
     }
 
-    private void syncNpcRelations(Long npcId, Map<String, Object> request) {
+    private Map<String, Object> syncNpcRelations(Long npcId, Map<String, Object> request) {
+        Map<String, Object> summary = new LinkedHashMap<>();
         if (npcId == null || request == null || jdbcTemplate == null) {
-            return;
+            return summary;
         }
         if (request.containsKey("lootEntries")) {
             syncNpcLootEntries(npcId, request.get("lootEntries"));
@@ -705,8 +710,9 @@ public class AdminNpcController {
             syncNpcBuffRelations(npcId, request.get("buffRelations"));
         }
         if (request.containsKey("shopEntries")) {
-            syncNpcShopEntries(npcId, request.get("shopEntries"));
+            summary.put("shopMutationSummary", syncNpcShopEntries(npcId, request.get("shopEntries")));
         }
+        return summary;
     }
 
     private void syncNpcLootEntries(Long npcId, Object raw) {
@@ -767,20 +773,38 @@ public class AdminNpcController {
         }
     }
 
-    private void syncNpcShopEntries(Long npcId, Object raw) {
+    private Map<String, Object> syncNpcShopEntries(Long npcId, Object raw) {
         List<Map<String, Object>> existingEntries = jdbcTemplate.queryForList("SELECT id FROM npc_shop_entries WHERE npc_id = ?", npcId);
-        List<Long> entryIds = existingEntries.stream().map(row -> toLong(row.get("id"))).filter(Objects::nonNull).toList();
+        LinkedHashSet<Long> existingEntryIds = existingEntries.stream()
+            .map(row -> toLong(row.get("id")))
+            .filter(Objects::nonNull)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+        List<Long> entryIds = existingEntryIds.stream().toList();
         if (!entryIds.isEmpty()) {
             String placeholders = String.join(",", entryIds.stream().map(id -> "?").toList());
             jdbcTemplate.update("DELETE FROM npc_shop_conditions WHERE shop_entry_id IN (" + placeholders + ")", entryIds.toArray());
         }
         jdbcTemplate.update("DELETE FROM npc_shop_entries WHERE npc_id = ?", npcId);
         List<Map<String, Object>> rows = normalizeObjectList(raw);
+        LinkedHashSet<Long> retainedEntryIds = new LinkedHashSet<>();
+        int skippedCount = 0;
+        int insertedCount = 0;
+        int replacedCount = 0;
         for (int index = 0; index < rows.size(); index += 1) {
             Map<String, Object> row = rows.get(index);
             Long itemId = toLong(row.get("itemId"));
             Integer sourceItemId = toInteger(row.get("sourceItemId"));
-            if (itemId == null && sourceItemId == null) continue;
+            if (itemId == null && sourceItemId == null) {
+                skippedCount += 1;
+                continue;
+            }
+            Long requestEntryId = toLong(row.get("id"));
+            if (requestEntryId != null && existingEntryIds.contains(requestEntryId)) {
+                replacedCount += 1;
+                retainedEntryIds.add(requestEntryId);
+            } else {
+                insertedCount += 1;
+            }
             jdbcTemplate.update(
                 """
                 INSERT INTO npc_shop_entries
@@ -816,6 +840,16 @@ public class AdminNpcController {
                 );
             }
         }
+        int persistedCount = insertedCount + replacedCount;
+        int removedCount = (int) existingEntryIds.stream().filter(id -> !retainedEntryIds.contains(id)).count();
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("submittedCount", rows.size());
+        summary.put("persistedCount", persistedCount);
+        summary.put("insertedCount", insertedCount);
+        summary.put("replacedCount", replacedCount);
+        summary.put("skippedCount", skippedCount);
+        summary.put("removedCount", removedCount);
+        return summary;
     }
 
     private List<Map<String, Object>> normalizeObjectList(Object raw) {
