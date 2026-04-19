@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.dto.TownNpcOverviewDTO;
+import com.terraria.skills.service.SupportDomainService;
 import com.terraria.skills.service.TownNpcMaintenanceDomainMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -48,6 +49,7 @@ public class AdminTownNpcMaintenanceController {
 
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
+    private final SupportDomainService supportDomainService;
 
     @GetMapping("/maintenance")
     @Operation(summary = "Get town NPC maintenance overview")
@@ -147,7 +149,7 @@ public class AdminTownNpcMaintenanceController {
         String behaviorNotes = trimToNull(row.get("behaviorNotes"));
         int shopEntryCount = toInteger(row.get("shopEntryCount"), 0);
 
-        row.put("gamePeriodLabel", formatGamePeriodLabel(currentGamePeriodId));
+        row.put("gamePeriodLabel", supportDomainService.getGamePeriodLabel(currentGamePeriodId));
         row.put("hasBehaviorNotes", behaviorNotes != null);
         row.put("behaviorNotesPreview", previewText(behaviorNotes, 96));
         row.put("hasShopEntries", shopEntryCount > 0);
@@ -187,7 +189,7 @@ public class AdminTownNpcMaintenanceController {
         row.put("scrapedShopItems", scrapedShopItems);
         row.put("scrapedShopItemCount", scrapedShopItems.size());
         row.put("suggestedGamePeriodId", suggestedGamePeriodId);
-        row.put("suggestedGamePeriodLabel", formatGamePeriodLabel(suggestedGamePeriodId));
+        row.put("suggestedGamePeriodLabel", supportDomainService.getGamePeriodLabel(suggestedGamePeriodId));
         row.put("suggestedGamePeriodReason", trimToNull(scraped.get("suggestedGamePeriodReason")));
         row.put("suggestedBehaviorNotes", buildSuggestedBehaviorNotes(functionSummary, moveInSummary));
         row.put("suggestedShopEntries", suggestedShopEntries);
