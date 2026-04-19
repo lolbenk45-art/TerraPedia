@@ -55,6 +55,12 @@ class AdminWikiZhRecipeImportControllerTest {
             if (sql.contains("COUNT(DISTINCT r.result_item_id)") && sql.contains("NOT EXISTS")) {
                 return 1067L;
             }
+            if (sql.contains("recipe_context_requirements rc") && sql.contains("COUNT(DISTINCT")) {
+                return 12L;
+            }
+            if (sql.contains("recipe_context_requirements rc")) {
+                return 128L;
+            }
             if (sql.contains("COUNT(*)") && sql.contains("status = 0") && sql.contains("EXISTS")) {
                 return 0L;
             }
@@ -118,6 +124,8 @@ class AdminWikiZhRecipeImportControllerTest {
             .andExpect(jsonPath("$.data.sourceProvider").value("wiki_zh"))
             .andExpect(jsonPath("$.data.database.recipeCount").value(3571))
             .andExpect(jsonPath("$.data.database.activeRecipeCount").value(3571))
+            .andExpect(jsonPath("$.data.database.conditionRowCount").value(128))
+            .andExpect(jsonPath("$.data.database.referencedConditionCount").value(12))
             .andExpect(jsonPath("$.data.database.gapOnlyActiveRecipeCount").value(1106))
             .andExpect(jsonPath("$.data.database.gapOnlyActiveResultItemCount").value(1067))
             .andExpect(jsonPath("$.data.database.suppressedOverlapRecipeCount").value(0))

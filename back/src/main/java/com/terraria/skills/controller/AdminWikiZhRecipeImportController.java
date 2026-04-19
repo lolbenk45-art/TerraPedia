@@ -85,6 +85,28 @@ public class AdminWikiZhRecipeImportController {
             "SELECT COUNT(*) FROM items WHERE deleted = 0 AND COALESCE(source_provider, '') = ?",
             PLACEHOLDER_ITEM_SOURCE_PROVIDER
         ));
+        snapshot.put("conditionRowCount", queryForLong(
+            """
+                SELECT COUNT(*)
+                  FROM recipe_context_requirements rc
+                  JOIN recipes r ON r.id = rc.recipe_id
+                 WHERE COALESCE(r.source_provider, '') = ?
+                   AND r.deleted = 0
+                   AND r.status = 1
+                """,
+            RECIPE_SOURCE_PROVIDER
+        ));
+        snapshot.put("referencedConditionCount", queryForLong(
+            """
+                SELECT COUNT(DISTINCT CONCAT(rc.ref_type, ':', rc.ref_id))
+                  FROM recipe_context_requirements rc
+                  JOIN recipes r ON r.id = rc.recipe_id
+                 WHERE COALESCE(r.source_provider, '') = ?
+                   AND r.deleted = 0
+                   AND r.status = 1
+                """,
+            RECIPE_SOURCE_PROVIDER
+        ));
         snapshot.put("referencedStationCount", queryForLong(
             """
                 SELECT COUNT(DISTINCT rs.station_id)

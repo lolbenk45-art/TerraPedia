@@ -4,6 +4,8 @@ export interface RecipeImportDatabaseSnapshot {
   resultItemCount?: number | null
   activeResultItemCount?: number | null
   placeholderItemCount?: number | null
+  conditionRowCount?: number | null
+  referencedConditionCount?: number | null
   referencedStationCount?: number | null
   unresolvedIngredientRows?: number | null
   unresolvedStationRows?: number | null

@@ -11,6 +11,8 @@ const database: RecipeImportDatabaseSnapshot = {
   resultItemCount: 3179,
   activeResultItemCount: 3179,
   placeholderItemCount: 3,
+  conditionRowCount: 128,
+  referencedConditionCount: 12,
   referencedStationCount: 55,
   unresolvedIngredientRows: 0,
   unresolvedStationRows: 0,

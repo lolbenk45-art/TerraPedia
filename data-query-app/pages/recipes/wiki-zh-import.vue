@@ -79,6 +79,16 @@
               <small>仅用于补齐当前库缺失项</small>
             </article>
             <article class="detail-card">
+              <span class="detail-card__label">条件行数</span>
+              <strong>{{ formatNumber(database.conditionRowCount) }}</strong>
+              <small>`recipe_context_requirements` 活跃行数</small>
+            </article>
+            <article class="detail-card">
+              <span class="detail-card__label">引用条件数</span>
+              <strong>{{ formatNumber(database.referencedConditionCount) }}</strong>
+              <small>`ref_type + ref_id` 去重计数</small>
+            </article>
+            <article class="detail-card">
               <span class="detail-card__label">引用制作站数</span>
               <strong>{{ formatNumber(database.referencedStationCount) }}</strong>
               <small>`recipe_stations.station_id` 去重计数</small>
@@ -346,6 +356,8 @@ const database = computed(() => ({
   resultItemCount: Number(overview.value?.database?.resultItemCount || 0),
   activeResultItemCount: Number(overview.value?.database?.activeResultItemCount || 0),
   placeholderItemCount: Number(overview.value?.database?.placeholderItemCount || 0),
+  conditionRowCount: Number(overview.value?.database?.conditionRowCount || 0),
+  referencedConditionCount: Number(overview.value?.database?.referencedConditionCount || 0),
   referencedStationCount: Number(overview.value?.database?.referencedStationCount || 0),
   unresolvedIngredientRows: Number(overview.value?.database?.unresolvedIngredientRows || 0),
   unresolvedStationRows: Number(overview.value?.database?.unresolvedStationRows || 0),
@@ -368,6 +380,7 @@ const summaryCards = computed(() => [
   { label: 'GAP-ONLY', value: formatNumber(database.value.gapOnlyActiveResultItemCount) },
   { label: 'OVERLAP', value: formatNumber(database.value.suppressedOverlapRecipeCount) },
   { label: 'PLACEHOLDERS', value: formatNumber(database.value.placeholderItemCount) },
+  { label: 'CONDITIONS', value: formatNumber(database.value.conditionRowCount) },
   { label: 'UNRESOLVED', value: formatNumber(database.value.unresolvedIngredientRows + database.value.unresolvedStationRows) },
 ])
 
