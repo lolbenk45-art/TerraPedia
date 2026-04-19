@@ -301,10 +301,11 @@ export function parseRecipeTable(expandedMarkup) {
     const stationNames = extractLinkedTitles(stationMarkup)
       .map((title) => normalizeRecipeMaterialLabel(title))
       .filter((title) => title && title !== 'Crafting station');
+    const stationRequirementMode = inferStationRequirementMode(stationMarkup, stationNames);
     const stations = stationNames.map((stationName, index) => ({
       stationName,
       stationNameRaw: stationName,
-      isAlternative: index > 0,
+      isAlternative: stationRequirementMode === 'alternative' && index > 0,
       sortOrder: index
     }));
 
@@ -334,6 +335,30 @@ export function parseRecipeTable(expandedMarkup) {
       isAlternative: Boolean(station.isAlternative)
     }))
   }));
+}
+
+function inferStationRequirementMode(markup, stationNames) {
+  if (!Array.isArray(stationNames) || stationNames.length <= 1) {
+    return 'single';
+  }
+
+  const text = normalizeText(stripHtml(markup))?.toLowerCase() ?? '';
+  if (!text) {
+    return 'alternative';
+  }
+
+  if (
+    /(^|[\s(])and([\s):]|$)/i.test(text)
+    || text.includes('同时')
+    || text.includes('并且')
+    || text.includes('以及')
+    || text.includes('且')
+    || text.includes('和')
+  ) {
+    return 'combination';
+  }
+
+  return 'alternative';
 }
 
 export function normalizeText(value) {

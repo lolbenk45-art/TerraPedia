@@ -241,13 +241,14 @@ export function parseRecipePageRecipesFromHtml(html, itemLookup, categoryPage, s
         .map((title) => normalizeRecipeMaterialLabel(title))
         .filter(Boolean)
     )];
+    const stationRequirementMode = inferStationRequirementMode(captionHtml, stationTitles);
     const stations = stationTitles.map((stationName, index) => {
       const resolved = resolveItemByAnyName(itemLookup, stationName);
       return {
         stationInternalName: resolved?.internalName ?? null,
         stationName: resolved?.name ?? stationName,
         stationNameRaw: resolved?.nameZh ?? stationName,
-        isAlternative: index > 0,
+        isAlternative: stationRequirementMode === 'alternative' && index > 0,
         sortOrder: index
       };
     });
@@ -796,6 +797,30 @@ function buildStationSignature(stations) {
       station?.isAlternative ? '1' : '0'
     ].join('~'))
     .join('||');
+}
+
+function inferStationRequirementMode(markup, stationTitles) {
+  if (!Array.isArray(stationTitles) || stationTitles.length <= 1) {
+    return 'single';
+  }
+
+  const text = normalizeRecipeMaterialLabel(stripHtml(markup))?.toLowerCase() ?? '';
+  if (!text) {
+    return 'alternative';
+  }
+
+  if (
+    /(^|[\s(])and([\s):]|$)/i.test(text)
+    || text.includes('同时')
+    || text.includes('并且')
+    || text.includes('以及')
+    || text.includes('且')
+    || text.includes('和')
+  ) {
+    return 'combination';
+  }
+
+  return 'alternative';
 }
 
 function dedupeBy(values, keySelector) {

@@ -28,12 +28,16 @@ import com.terraria.skills.mapper.WorldContextMapper;
 import com.terraria.skills.service.RecipeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -63,31 +67,55 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Override
     public List<RecipeDTO> getRecipesByResultItemId(Long itemId) {
-        List<Recipe> recipes = selectPreferredProviderRecipes(recipeMapper.selectList(new LambdaQueryWrapper<Recipe>()
+        List<Recipe> allRecipes = recipeMapper.selectList(new LambdaQueryWrapper<Recipe>()
             .eq(Recipe::getResultItemId, itemId)
             .eq(Recipe::getStatus, 1)
-            .orderByAsc(Recipe::getSortOrder, Recipe::getId)));
+            .orderByAsc(Recipe::getSortOrder, Recipe::getId));
 
-        if (recipes == null || recipes.isEmpty()) {
+        if (allRecipes == null || allRecipes.isEmpty()) {
             return Collections.emptyList();
         }
 
-        List<Long> recipeIds = recipes.stream().map(Recipe::getId).toList();
-        List<RecipeIngredient> ingredients = recipeIngredientMapper.selectList(new LambdaQueryWrapper<RecipeIngredient>()
-            .in(RecipeIngredient::getRecipeId, recipeIds)
+        List<Long> allRecipeIds = allRecipes.stream().map(Recipe::getId).toList();
+        List<RecipeIngredient> allIngredients = recipeIngredientMapper.selectList(new LambdaQueryWrapper<RecipeIngredient>()
+            .in(RecipeIngredient::getRecipeId, allRecipeIds)
             .orderByAsc(RecipeIngredient::getRecipeId, RecipeIngredient::getSortOrder, RecipeIngredient::getId));
-        List<RecipeStation> stations = recipeStationMapper.selectList(new LambdaQueryWrapper<RecipeStation>()
-            .in(RecipeStation::getRecipeId, recipeIds)
+        List<RecipeStation> allStations = recipeStationMapper.selectList(new LambdaQueryWrapper<RecipeStation>()
+            .in(RecipeStation::getRecipeId, allRecipeIds)
             .orderByAsc(RecipeStation::getRecipeId, RecipeStation::getSortOrder, RecipeStation::getId));
-        List<RecipeContextRequirement> conditions = recipeContextRequirementMapper.selectList(new LambdaQueryWrapper<RecipeContextRequirement>()
-            .in(RecipeContextRequirement::getRecipeId, recipeIds)
+        List<RecipeContextRequirement> allConditions = recipeContextRequirementMapper.selectList(new LambdaQueryWrapper<RecipeContextRequirement>()
+            .in(RecipeContextRequirement::getRecipeId, allRecipeIds)
             .orderByAsc(RecipeContextRequirement::getRecipeId, RecipeContextRequirement::getSortOrder, RecipeContextRequirement::getId));
+        Map<Long, List<RecipeIngredient>> ingredientsByRecipeId = allIngredients.stream()
+            .collect(Collectors.groupingBy(RecipeIngredient::getRecipeId));
+        Map<Long, List<RecipeStation>> stationsByRecipeId = allStations.stream()
+            .collect(Collectors.groupingBy(RecipeStation::getRecipeId));
+        Map<Long, List<RecipeContextRequirement>> conditionsByRecipeId = allConditions.stream()
+            .collect(Collectors.groupingBy(RecipeContextRequirement::getRecipeId));
+
+        List<Recipe> recipes = dedupeRecipesByStructure(selectPreferredProviderRecipes(
+            allRecipes,
+            ingredientsByRecipeId,
+            stationsByRecipeId,
+            conditionsByRecipeId
+        ), ingredientsByRecipeId, stationsByRecipeId, conditionsByRecipeId);
+        List<Long> recipeIds = recipes.stream().map(Recipe::getId).toList();
+        List<RecipeIngredient> ingredients = recipeIds.isEmpty()
+            ? Collections.emptyList()
+            : allIngredients.stream().filter(ingredient -> recipeIds.contains(ingredient.getRecipeId())).toList();
+        List<RecipeStation> stations = recipeIds.isEmpty()
+            ? Collections.emptyList()
+            : allStations.stream().filter(station -> recipeIds.contains(station.getRecipeId())).toList();
+        List<RecipeContextRequirement> conditions = recipeIds.isEmpty()
+            ? Collections.emptyList()
+            : allConditions.stream().filter(condition -> recipeIds.contains(condition.getRecipeId())).toList();
         Map<Long, CraftingStation> craftingStationById = loadCraftingStations(stations.stream().map(RecipeStation::getStationId));
 
         Map<Long, Item> itemById = loadItems(
             recipes.stream().map(Recipe::getResultItemId),
             ingredients.stream().map(RecipeIngredient::getIngredientItemId),
-            stations.stream().map(RecipeStation::getStationItemId)
+            stations.stream().map(RecipeStation::getStationItemId),
+            craftingStationById.values().stream().map(CraftingStation::getItemId)
         );
 
         Map<Long, List<RecipeIngredientDTO>> ingredientDtosByRecipeId = ingredients.stream()
@@ -95,11 +123,16 @@ public class RecipeServiceImpl implements RecipeService {
             .collect(Collectors.groupingBy(RecipeIngredientDTO::getRecipeId));
 
         Map<Long, List<RecipeStationDTO>> stationDtosByRecipeId = stations.stream()
-            .map(station -> toStationDto(
-                station,
-                itemById.get(station.getStationItemId()),
-                craftingStationById.get(station.getStationId())
-            ))
+            .map(station -> {
+                CraftingStation craftingStation = craftingStationById.get(station.getStationId());
+                Item canonicalStationItem = craftingStation == null ? null : itemById.get(craftingStation.getItemId());
+                return toStationDto(
+                    station,
+                    itemById.get(station.getStationItemId()),
+                    craftingStation,
+                    canonicalStationItem
+                );
+            })
             .collect(Collectors.groupingBy(RecipeStationDTO::getRecipeId));
         Map<Long, List<RecipeConditionDTO>> conditionDtosByRecipeId = loadRecipeConditionDtos(conditions);
 
@@ -123,12 +156,14 @@ public class RecipeServiceImpl implements RecipeService {
     }
 
     @Override
+    @CacheEvict(cacheNames = "item:aggregate", allEntries = true)
     @Transactional
     public List<RecipeDTO> replaceRecipesForResultItemId(Long itemId, List<AdminRecipeUpsertRequestDTO> requests) {
         return replaceRecipesForResultItemId(itemId, requests, null);
     }
 
     @Override
+    @CacheEvict(cacheNames = "item:aggregate", allEntries = true)
     @Transactional
     public List<RecipeDTO> replaceRecipesForResultItemId(Long itemId, List<AdminRecipeUpsertRequestDTO> requests, String scopeMode) {
         Item item = itemMapper.selectById(itemId);
@@ -203,12 +238,15 @@ public class RecipeServiceImpl implements RecipeService {
                 if (!hasStationContent(stationRequest)) {
                     continue;
                 }
+                CraftingStation linkedStation = stationRequest.getStationId() == null
+                    ? null
+                    : craftingStationMapper.selectById(stationRequest.getStationId());
                 RecipeStation station = new RecipeStation();
                 station.setRecipeId(recipe.getId());
                 station.setStationId(stationRequest.getStationId());
-                station.setStationItemId(stationRequest.getStationItemId());
-                station.setStationInternalName(trimToNull(stationRequest.getStationInternalName()));
-                station.setStationNameRaw(resolvePreferredStationNameRaw(stationRequest));
+                station.setStationItemId(resolvePreferredStationItemId(stationRequest, linkedStation));
+                station.setStationInternalName(resolvePreferredStationInternalName(stationRequest, linkedStation));
+                station.setStationNameRaw(resolvePreferredStationNameRaw(stationRequest, linkedStation));
                 station.setIsAlternative(Boolean.TRUE.equals(stationRequest.getIsAlternative()));
                 station.setSortOrder(resolveSortOrder(stationRequest.getSortOrder(), stationIndex));
                 recipeStationMapper.insert(station);
@@ -236,22 +274,133 @@ public class RecipeServiceImpl implements RecipeService {
         return getRecipesByResultItemId(itemId);
     }
 
-    private List<Recipe> selectPreferredProviderRecipes(List<Recipe> recipes) {
+    private List<Recipe> selectPreferredProviderRecipes(
+        List<Recipe> recipes,
+        Map<Long, List<RecipeIngredient>> ingredientsByRecipeId,
+        Map<Long, List<RecipeStation>> stationsByRecipeId,
+        Map<Long, List<RecipeContextRequirement>> conditionsByRecipeId
+    ) {
         if (recipes == null || recipes.isEmpty()) {
             return Collections.emptyList();
         }
 
-        String preferredProvider = recipes.stream()
+        Map<String, List<Recipe>> byProvider = recipes.stream()
             .filter(Objects::nonNull)
-            .map(Recipe::getSourceProvider)
-            .map(this::normalizeRecipeProvider)
-            .min(this::compareRecipeProviders)
+            .collect(Collectors.groupingBy(
+                recipe -> normalizeRecipeProvider(recipe.getSourceProvider()),
+                LinkedHashMap::new,
+                Collectors.toList()
+            ));
+
+        String preferredProvider = byProvider.entrySet().stream()
+            .max(Comparator
+                .comparingInt((Map.Entry<String, List<Recipe>> entry) -> providerQualityScore(
+                    entry.getValue(),
+                    ingredientsByRecipeId,
+                    stationsByRecipeId,
+                    conditionsByRecipeId
+                ))
+                .thenComparing(entry -> normalizeRecipeProvider(entry.getKey()), this::compareRecipeProvidersInverse))
+            .map(Map.Entry::getKey)
             .orElse("");
 
         return recipes.stream()
             .filter(Objects::nonNull)
             .filter(recipe -> Objects.equals(normalizeRecipeProvider(recipe.getSourceProvider()), preferredProvider))
             .toList();
+    }
+
+    private List<Recipe> dedupeRecipesByStructure(
+        List<Recipe> recipes,
+        Map<Long, List<RecipeIngredient>> ingredientsByRecipeId,
+        Map<Long, List<RecipeStation>> stationsByRecipeId,
+        Map<Long, List<RecipeContextRequirement>> conditionsByRecipeId
+    ) {
+        if (recipes == null || recipes.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<String, Recipe> deduped = new LinkedHashMap<>();
+        for (Recipe recipe : recipes) {
+            if (recipe == null) {
+                continue;
+            }
+            String key = buildRecipeStructureSignature(
+                recipe,
+                ingredientsByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList()),
+                stationsByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList()),
+                conditionsByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList())
+            );
+            deduped.putIfAbsent(key, recipe);
+        }
+        return new ArrayList<>(deduped.values());
+    }
+
+    private int providerQualityScore(
+        List<Recipe> recipes,
+        Map<Long, List<RecipeIngredient>> ingredientsByRecipeId,
+        Map<Long, List<RecipeStation>> stationsByRecipeId,
+        Map<Long, List<RecipeContextRequirement>> conditionsByRecipeId
+    ) {
+        int score = 0;
+        for (Recipe recipe : recipes) {
+            List<RecipeIngredient> ingredients = ingredientsByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList());
+            List<RecipeStation> stations = stationsByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList());
+            List<RecipeContextRequirement> conditions = conditionsByRecipeId.getOrDefault(recipe.getId(), Collections.emptyList());
+
+            score += ingredients.size();
+            score += conditions.size() * 2;
+            score += stations.size();
+            score += (int) stations.stream().filter(station -> station.getStationId() != null).count() * 4L;
+            score += (int) ingredients.stream().filter(ingredient -> ingredient.getIngredientItemId() != null).count();
+        }
+        return score;
+    }
+
+    private int compareRecipeProvidersInverse(String left, String right) {
+        return -compareRecipeProviders(left, right);
+    }
+
+    private String buildRecipeStructureSignature(
+        Recipe recipe,
+        List<RecipeIngredient> ingredients,
+        List<RecipeStation> stations,
+        List<RecipeContextRequirement> conditions
+    ) {
+        return String.join("|",
+            String.valueOf(recipe.getResultItemId()),
+            String.valueOf(recipe.getResultQuantity()),
+            defaultIfBlank(recipe.getVersionScope(), ""),
+            ingredients.stream()
+                .map(ingredient -> String.join("~",
+                    String.valueOf(ingredient.getIngredientItemId()),
+                    defaultIfBlank(ingredient.getIngredientInternalName(), ""),
+                    defaultIfBlank(ingredient.getIngredientNameRaw(), ""),
+                    defaultIfBlank(ingredient.getIngredientGroupType(), ""),
+                    defaultIfBlank(ingredient.getQuantityText(), ""),
+                    String.valueOf(resolveSortOrder(ingredient.getSortOrder(), 0))
+                ))
+                .collect(Collectors.joining("||")),
+            stations.stream()
+                .map(station -> String.join("~",
+                    String.valueOf(station.getStationId()),
+                    String.valueOf(station.getStationItemId()),
+                    defaultIfBlank(station.getStationInternalName(), ""),
+                    defaultIfBlank(station.getStationNameRaw(), ""),
+                    Boolean.TRUE.equals(station.getIsAlternative()) ? "1" : "0",
+                    String.valueOf(resolveSortOrder(station.getSortOrder(), 0))
+                ))
+                .collect(Collectors.joining("||")),
+            conditions.stream()
+                .map(condition -> String.join("~",
+                    defaultIfBlank(condition.getRefType(), ""),
+                    String.valueOf(condition.getRefId()),
+                    defaultIfBlank(condition.getRequirementRole(), ""),
+                    defaultIfBlank(condition.getNotes(), ""),
+                    String.valueOf(resolveSortOrder(condition.getSortOrder(), 0))
+                ))
+                .collect(Collectors.joining("||"))
+        );
     }
 
     private boolean matchesScopeMode(String versionScope, String scopeMode) {
@@ -271,8 +420,8 @@ public class RecipeServiceImpl implements RecipeService {
         return true;
     }
 
-    private Map<Long, Item> loadItems(Stream<Long> resultIds, Stream<Long> ingredientIds, Stream<Long> stationIds) {
-        List<Long> ids = Stream.of(resultIds, ingredientIds, stationIds)
+    private Map<Long, Item> loadItems(Stream<Long> resultIds, Stream<Long> ingredientIds, Stream<Long> stationIds, Stream<Long> craftingStationItemIds) {
+        List<Long> ids = Stream.of(resultIds, ingredientIds, stationIds, craftingStationItemIds)
             .filter(Objects::nonNull)
             .flatMap(Function.identity())
             .filter(Objects::nonNull)
@@ -300,19 +449,19 @@ public class RecipeServiceImpl implements RecipeService {
         return dto;
     }
 
-    private RecipeStationDTO toStationDto(RecipeStation station, Item item, CraftingStation craftingStation) {
+    private RecipeStationDTO toStationDto(RecipeStation station, Item item, CraftingStation craftingStation, Item craftingStationItem) {
         RecipeStationDTO dto = new RecipeStationDTO();
         BeanUtils.copyProperties(station, dto);
-        if (item != null) {
+        if (craftingStation != null) {
+            dto.setItemName(firstNonBlank(craftingStation.getNameEn(), craftingStationItem == null ? null : craftingStationItem.getName(), station.getStationNameRaw()));
+            dto.setItemNameZh(firstNonBlank(craftingStation.getNameZh(), craftingStationItem == null ? null : craftingStationItem.getNameZh()));
+            dto.setItemInternalName(firstNonBlank(craftingStation.getInternalName(), craftingStationItem == null ? null : craftingStationItem.getInternalName(), station.getStationInternalName()));
+            dto.setItemImage(firstNonBlank(craftingStation.getImageUrl(), craftingStationItem == null ? null : craftingStationItem.getImage(), item == null ? null : item.getImage()));
+        } else if (item != null) {
             dto.setItemName(item.getName());
             dto.setItemNameZh(item.getNameZh());
             dto.setItemInternalName(item.getInternalName());
             dto.setItemImage(item.getImage());
-        } else if (craftingStation != null) {
-            dto.setItemName(craftingStation.getNameEn());
-            dto.setItemNameZh(craftingStation.getNameZh());
-            dto.setItemInternalName(craftingStation.getInternalName());
-            dto.setItemImage(craftingStation.getImageUrl());
         } else {
             dto.setItemInternalName(station.getStationInternalName());
         }
@@ -512,8 +661,14 @@ public class RecipeServiceImpl implements RecipeService {
         return direct;
     }
 
-    private String resolvePreferredStationNameRaw(AdminRecipeStationUpsertRequestDTO request) {
+    private String resolvePreferredStationNameRaw(AdminRecipeStationUpsertRequestDTO request, CraftingStation craftingStation) {
         String direct = trimToNull(request.getStationNameRaw());
+        if (craftingStation != null) {
+            String preferred = firstNonBlank(craftingStation.getNameZh(), craftingStation.getNameEn(), direct);
+            if (preferred != null) {
+                return preferred;
+            }
+        }
         if (request.getStationItemId() != null) {
             Item item = itemMapper.selectById(request.getStationItemId());
             if (item != null) {
@@ -533,6 +688,20 @@ public class RecipeServiceImpl implements RecipeService {
             }
         }
         return direct;
+    }
+
+    private Long resolvePreferredStationItemId(AdminRecipeStationUpsertRequestDTO request, CraftingStation craftingStation) {
+        if (craftingStation != null && craftingStation.getItemId() != null) {
+            return craftingStation.getItemId();
+        }
+        return request.getStationItemId();
+    }
+
+    private String resolvePreferredStationInternalName(AdminRecipeStationUpsertRequestDTO request, CraftingStation craftingStation) {
+        return firstNonBlank(
+            craftingStation == null ? null : craftingStation.getInternalName(),
+            trimToNull(request.getStationInternalName())
+        );
     }
 
     private Map<Long, List<RecipeConditionDTO>> loadRecipeConditionDtos(List<RecipeContextRequirement> conditions) {

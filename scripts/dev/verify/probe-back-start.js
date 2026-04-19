@@ -7,12 +7,17 @@ const path = require('path');
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const resultPath = path.join(repoRoot, 'reports', 'back-probe-result.json');
 const cmd = 'mvn.cmd';
-const args = ['-DskipTests', 'spring-boot:run'];
 const cwd = path.join(repoRoot, 'back');
 const timeoutMs = 120000;
 const configPath = resolveConfigPath(repoRoot);
 const config = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, 'utf8')) : {};
 const port = Number(process.env.APP_PORT || config.backend?.port || 8888);
+const args = [
+  '-DskipTests',
+  '-Dspring-boot.run.profiles=legacy',
+  `-Dspring-boot.run.jvmArguments=-DAPP_PORT=${port} -DTERRAPEDIA_MAIL_ENABLED=false`,
+  'spring-boot:run',
+];
 const dbName = process.env.TERRAPEDIA_DB_NAME || config.database?.name || 'terria_v1_local';
 const dbHost = process.env.TERRAPEDIA_DB_HOST || config.database?.host || '127.0.0.1';
 const dbPort = Number(process.env.TERRAPEDIA_DB_PORT || config.database?.port || 3306);
@@ -44,31 +49,7 @@ const configuredCredentialsFile = process.env.TERRAPEDIA_MINIO_CREDENTIALS_FILE 
 const minioCredentialsFile = configuredCredentialsFile
   ? (path.isAbsolute(configuredCredentialsFile) ? configuredCredentialsFile : path.join(repoRoot, configuredCredentialsFile))
   : '';
-const env = {
-  ...process.env,
-  APP_PORT: String(port),
-  SPRING_PROFILES_ACTIVE: 'legacy',
-  TERRAPEDIA_DB_NAME: dbName,
-  TERRAPEDIA_DB_HOST: dbHost,
-  TERRAPEDIA_DB_PORT: String(dbPort),
-  TERRAPEDIA_DB_URL: dbUrl,
-  TERRAPEDIA_DB_USERNAME: dbUser,
-  TERRAPEDIA_DB_PASSWORD: dbPassword,
-  TERRAPEDIA_REDIS_HOST: redisHost,
-  TERRAPEDIA_REDIS_PORT: redisPort,
-  TERRAPEDIA_REDIS_PASSWORD: redisPassword,
-  TERRAPEDIA_REDIS_DATABASE: redisDatabase,
-  TERRAPEDIA_ADMIN_USERNAME: adminUsername,
-  TERRAPEDIA_ADMIN_PASSWORD: adminPassword,
-  TERRAPEDIA_ADMIN_DISPLAY_NAME: adminDisplayName,
-  TERRAPEDIA_AUTH_TOKEN_SECRET: adminTokenSecret,
-  TERRAPEDIA_USER_TOKEN_SECRET: userTokenSecret,
-  TERRAPEDIA_MINIO_ENABLED: minioEnabled,
-  TERRAPEDIA_MAIL_ENABLED: 'false',
-};
-if (minioCredentialsFile) {
-  env.TERRAPEDIA_MINIO_CREDENTIALS_FILE = minioCredentialsFile;
-}
+const env = { ...process.env };
 
 const child = spawn(cmd, args, { cwd, shell: true, env });
 let logs = '';

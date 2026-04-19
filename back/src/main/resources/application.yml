@@ -1,4 +1,4 @@
-﻿server:
+server:
   port: ${APP_PORT:8888}
   servlet:
     context-path: /api
@@ -10,7 +10,7 @@ spring:
     multipart:
       max-file-size: ${TERRAPEDIA_MINIO_MAX_FILE_SIZE:5242880}
       max-request-size: ${TERRAPEDIA_MINIO_MAX_FILE_SIZE:5242880}
-  
+
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${TERRAPEDIA_DB_URL:jdbc:mysql://localhost:3306/terria_v1_local?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
@@ -23,7 +23,7 @@ spring:
       max-lifetime: 1800000
       connection-timeout: 30000
       connection-test-query: SELECT 1
-  
+
   data:
     redis:
       host: ${TERRAPEDIA_REDIS_HOST:localhost}
@@ -150,4 +150,3 @@ terraria:
       auto-create-bucket: ${TERRAPEDIA_MINIO_AUTO_CREATE_BUCKET:true}
       public-read: ${TERRAPEDIA_MINIO_PUBLIC_READ:true}
       max-file-size: ${TERRAPEDIA_MINIO_MAX_FILE_SIZE:5242880}
-

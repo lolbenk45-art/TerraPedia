@@ -5,4 +5,6 @@ import com.terraria.skills.dto.RecipeTreeResponseDTO;
 public interface RecipeTreeService {
 
     RecipeTreeResponseDTO getRecipeTreeByItemId(Long itemId, int maxDepth);
+
+    void invalidateCaches();
 }

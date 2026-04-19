@@ -34,10 +34,18 @@ import org.springframework.web.bind.annotation.RestController;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -47,11 +55,14 @@ import java.util.Objects;
 @SecurityRequirement(name = "bearerAuth")
 public class AdminNpcController {
 
+    private static final Duration NPC_SUPPLEMENT_CACHE_TTL = Duration.ofMinutes(10);
+
     private final NpcMapper npcMapper;
     private final CategoryMapper categoryMapper;
     private final BossGroupMapper bossGroupMapper;
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
+    private volatile TimedValue<Map<Long, Map<String, Object>>> npcSupplementCache;
 
     @GetMapping
     @Operation(summary = "Get NPCs")
@@ -90,7 +101,7 @@ public class AdminNpcController {
 
         Page<Npc> mpPage = npcMapper.selectPage(new Page<>(safePage, safeLimit), wrapper);
         Pagination pagination = new Pagination(mpPage.getTotal(), (int) mpPage.getCurrent(), (int) mpPage.getSize());
-        ApiResponse<List<Map<String, Object>>> response = ApiResponse.success(mpPage.getRecords().stream().map(npc -> toPayload(npc, false)).toList());
+        ApiResponse<List<Map<String, Object>>> response = ApiResponse.success(toListPayloads(mpPage.getRecords()));
         response.setPagination(pagination);
         return ResponseEntity.ok(response);
     }
@@ -217,6 +228,40 @@ public class AdminNpcController {
         }
     }
 
+    private List<Map<String, Object>> toListPayloads(List<Npc> npcs) {
+        if (npcs == null || npcs.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, Map<String, Object>> supplementsByGameId = getNpcSupplementSnapshot();
+        Map<Long, Category> categoriesById = loadCategoriesById(npcs.stream().map(Npc::getCategoryId).filter(Objects::nonNull).toList());
+        Map<Long, BossGroup> bossGroupsById = loadBossGroupsById(npcs.stream().map(Npc::getBossGroupId).filter(Objects::nonNull).toList());
+        Map<Long, Integer> lootCountsByNpcId = countNpcRelationsByIds("npc_loot_entries", npcs.stream().map(Npc::getId).filter(Objects::nonNull).toList());
+        Map<Long, Integer> buffCountsByNpcId = countNpcRelationsByIds("npc_buff_relations", npcs.stream().map(Npc::getId).filter(Objects::nonNull).toList());
+        Map<Long, Integer> shopCountsByNpcId = countNpcRelationsByIds("npc_shop_entries", npcs.stream().map(Npc::getId).filter(Objects::nonNull).toList());
+        Map<Long, Integer> derivedBySourceId = countNpcDerivedLootEntriesBySourceIds(npcs.stream().map(Npc::getGameId).filter(Objects::nonNull).toList());
+        Map<String, Integer> derivedByName = countNpcDerivedLootEntriesByNames(
+            npcs.stream()
+                .filter(npc -> derivedBySourceId.getOrDefault(npc.getGameId(), 0) <= 0)
+                .map(Npc::getName)
+                .filter(Objects::nonNull)
+                .toList()
+        );
+
+        return npcs.stream()
+            .map(npc -> toListPayload(
+                npc,
+                safeGetOrDefault(supplementsByGameId, npc.getGameId(), Map.of()),
+                safeGet(categoriesById, npc.getCategoryId()),
+                safeGet(bossGroupsById, npc.getBossGroupId()),
+                lootCountsByNpcId.getOrDefault(npc.getId(), 0),
+                resolveDerivedLootCount(npc, derivedBySourceId, derivedByName),
+                buffCountsByNpcId.getOrDefault(npc.getId(), 0),
+                shopCountsByNpcId.getOrDefault(npc.getId(), 0)
+            ))
+            .toList();
+    }
+
     private Map<String, Object> toPayload(Npc npc, boolean includeRelations) {
         Map<String, Object> supplement = loadNpcSupplement(npc.getGameId());
         Category category = npc.getCategoryId() == null ? null : categoryMapper.selectById(npc.getCategoryId());
@@ -282,22 +327,113 @@ public class AdminNpcController {
         return payload;
     }
 
+    private Map<String, Object> toListPayload(
+        Npc npc,
+        Map<String, Object> supplement,
+        Category category,
+        BossGroup bossGroup,
+        int lootEntryCount,
+        int derivedLootEntryCount,
+        int buffRelationCount,
+        int shopEntryCount
+    ) {
+        Long gameId = npc.getGameId();
+        Integer fallbackNetId = gameId == null ? null : gameId.intValue();
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("id", npc.getId());
+        payload.put("sourceId", gameId);
+        payload.put("gameId", gameId);
+        payload.put("netId", firstNonNullInteger(toInteger(supplement.get("netId")), fallbackNetId));
+        payload.put("name", npc.getName());
+        payload.put("nameZh", firstNonBlank(npc.getNameZh(), trimToNull(supplement.get("nameZh"))));
+        payload.put("nameEn", firstNonBlank(trimToNull(supplement.get("nameEn")), npc.getName()));
+        payload.put("subName", npc.getSubName());
+        payload.put("subNameZh", firstNonBlank(npc.getSubNameZh(), trimToNull(supplement.get("subNameZh"))));
+        payload.put("subNameEn", trimToNull(supplement.get("subNameEn")));
+        payload.put("internalName", npc.getInternalName());
+        payload.put("categoryId", npc.getCategoryId());
+        payload.put("categoryName", category == null ? null : category.getName());
+        payload.put("categoryCode", category == null ? null : category.getCode());
+        payload.put("gamePeriodId", npc.getGamePeriodId());
+        payload.put("gameModelId", npc.getGameModelId());
+        payload.put("isBoss", firstNonNullBoolean(npc.getIsBoss(), toBoolean(supplement.get("isBoss"))));
+        payload.put("bossGroupId", npc.getBossGroupId());
+        payload.put("bossGroupCode", bossGroup == null ? null : bossGroup.getCode());
+        payload.put("bossGroupName", bossGroup == null ? null : firstNonBlank(bossGroup.getNameZh(), bossGroup.getNameEn(), bossGroup.getCode()));
+        payload.put("bossRole", npc.getBossRole());
+        payload.put("isFriendly", firstNonNullBoolean(npc.getIsFriendly(), toBoolean(supplement.get("isFriendly"))));
+        payload.put("isTownNpc", firstNonNullBoolean(npc.getIsTownNpc(), toBoolean(supplement.get("isTownNpc"))));
+        payload.put("behaviorNotes", npc.getBehaviorNotes());
+        payload.put("npcType", toInteger(supplement.get("npcType")));
+        payload.put("aiStyle", toInteger(supplement.get("aiStyle")));
+        payload.put("damage", toInteger(supplement.get("damage")));
+        payload.put("defense", toInteger(supplement.get("defense")));
+        payload.put("lifeMax", toInteger(supplement.get("lifeMax")));
+        payload.put("knockBackResist", supplement.get("knockBackResist"));
+        payload.put("width", toInteger(supplement.get("width")));
+        payload.put("height", toInteger(supplement.get("height")));
+        payload.put("scale", supplement.get("scale"));
+        payload.put("value", toInteger(supplement.get("value")));
+        payload.put("buffImmune", trimToNull(supplement.get("buffImmune")));
+        payload.put("rawJson", trimToNull(supplement.get("rawJson")));
+        payload.put("imageUrl", trimToNull(supplement.get("imageUrl")));
+        payload.put("bannerSourceItemId", npc.getBannerSourceItemId());
+        payload.put("bannerItemId", npc.getBannerItemId());
+        payload.put("catchSourceItemId", npc.getCatchSourceItemId());
+        payload.put("catchItemId", npc.getCatchItemId());
+        payload.put("lootEntryCount", lootEntryCount);
+        payload.put("derivedLootEntryCount", derivedLootEntryCount);
+        payload.put("buffRelationCount", buffRelationCount);
+        payload.put("shopEntryCount", shopEntryCount);
+        payload.put("status", firstNonNullInteger(npc.getStatus(), 1));
+        payload.put("createdAt", npc.getCreatedAt());
+        payload.put("updatedAt", npc.getUpdatedAt());
+        return payload;
+    }
+
     private Map<String, Object> loadNpcSupplement(Long gameId) {
         if (gameId == null) return Map.of();
+        return safeGetOrDefault(getNpcSupplementSnapshot(), gameId, Map.of());
+    }
+
+    private Map<Long, Map<String, Object>> getNpcSupplementSnapshot() {
+        TimedValue<Map<Long, Map<String, Object>>> cached = npcSupplementCache;
+        if (isValid(cached)) {
+            return cached.value();
+        }
+
+        Map<Long, Map<String, Object>> loaded = loadNpcSupplementSnapshot();
+        npcSupplementCache = new TimedValue<>(loaded, System.currentTimeMillis() + NPC_SUPPLEMENT_CACHE_TTL.toMillis());
+        return loaded;
+    }
+
+    private Map<Long, Map<String, Object>> loadNpcSupplementSnapshot() {
         Path path = resolveDataFile(Path.of("generated", "npc-standardized-map.json"));
-        if (path == null) return Map.of();
+        if (path == null) {
+            return Map.of();
+        }
         try {
             Map<String, Object> root = objectMapper.readValue(path.toFile(), new TypeReference<>() {});
             if (root == null) {
                 return Map.of();
             }
             Object recordsRaw = root.get("records");
-            if (!(recordsRaw instanceof Map<?, ?> records)) return Map.of();
-            Object raw = records.get(String.valueOf(gameId));
-            if (!(raw instanceof Map<?, ?> map)) return Map.of();
-            return toNpcSupplement(map);
+            if (!(recordsRaw instanceof Map<?, ?> records)) {
+                return Map.of();
+            }
+
+            Map<Long, Map<String, Object>> result = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : records.entrySet()) {
+                Long gameId = toLong(entry.getKey());
+                if (gameId == null || !(entry.getValue() instanceof Map<?, ?> value)) {
+                    continue;
+                }
+                result.put(gameId, Collections.unmodifiableMap(toNpcSupplement(value)));
+            }
+            return Collections.unmodifiableMap(result);
         } catch (Exception exception) {
-            log.warn("Failed to load npc standardized supplement for gameId={}", gameId, exception);
+            log.warn("Failed to load npc standardized supplement snapshot", exception);
             return Map.of();
         }
     }
@@ -822,6 +958,158 @@ public class AdminNpcController {
         return null;
     }
 
+    private Map<Long, Category> loadCategoriesById(List<Long> categoryIds) {
+        if (categoryIds == null || categoryIds.isEmpty()) {
+            return Map.of();
+        }
+        return categoryMapper.selectBatchIds(categoryIds).stream()
+            .filter(Objects::nonNull)
+            .collect(Collectors.toMap(Category::getId, Function.identity(), (left, right) -> left, LinkedHashMap::new));
+    }
+
+    private Map<Long, BossGroup> loadBossGroupsById(List<Long> bossGroupIds) {
+        if (bossGroupIds == null || bossGroupIds.isEmpty()) {
+            return Map.of();
+        }
+        return bossGroupMapper.selectBatchIds(bossGroupIds).stream()
+            .filter(Objects::nonNull)
+            .collect(Collectors.toMap(BossGroup::getId, Function.identity(), (left, right) -> left, LinkedHashMap::new));
+    }
+
+    private Map<Long, Integer> countNpcRelationsByIds(String tableName, List<Long> npcIds) {
+        if (jdbcTemplate == null || npcIds == null || npcIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> ids = npcIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+
+        String placeholders = String.join(",", Collections.nCopies(ids.size(), "?"));
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            "SELECT npc_id AS npcId, COUNT(*) AS total FROM " + tableName + " WHERE deleted = 0 AND npc_id IN (" + placeholders + ") GROUP BY npc_id",
+            ids.toArray()
+        );
+
+        Map<Long, Integer> result = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            Long npcId = toLong(row.get("npcId"));
+            Integer total = toInteger(row.get("total"));
+            if (npcId != null && total != null) {
+                result.put(npcId, total);
+            }
+        }
+        return result;
+    }
+
+    private Map<Long, Integer> countNpcDerivedLootEntriesBySourceIds(List<Long> npcSourceIds) {
+        if (jdbcTemplate == null || npcSourceIds == null || npcSourceIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> ids = npcSourceIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+
+        String placeholders = String.join(",", Collections.nCopies(ids.size(), "?"));
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            """
+            SELECT source_ref_id AS sourceRefId, COUNT(*) AS total
+            FROM item_acquisition_sources
+            WHERE source_type = 'drop'
+              AND source_ref_type = 'npc'
+              AND source_ref_id IN (%s)
+              AND status = 1
+              AND deleted = 0
+            GROUP BY source_ref_id
+            """.formatted(placeholders),
+            ids.toArray()
+        );
+
+        Map<Long, Integer> result = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            Long sourceId = toLong(row.get("sourceRefId"));
+            Integer total = toInteger(row.get("total"));
+            if (sourceId != null && total != null) {
+                result.put(sourceId, total);
+            }
+        }
+        return result;
+    }
+
+    private Map<String, Integer> countNpcDerivedLootEntriesByNames(List<String> npcNames) {
+        if (jdbcTemplate == null || npcNames == null || npcNames.isEmpty()) {
+            return Map.of();
+        }
+
+        List<String> normalizedNames = npcNames.stream()
+            .map(this::trimToNull)
+            .filter(Objects::nonNull)
+            .map(name -> name.toLowerCase(Locale.ROOT))
+            .distinct()
+            .toList();
+        if (normalizedNames.isEmpty()) {
+            return Map.of();
+        }
+
+        String placeholders = String.join(",", Collections.nCopies(normalizedNames.size(), "?"));
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            """
+            SELECT LOWER(TRIM(source_ref_name)) AS normalizedName, COUNT(*) AS total
+            FROM item_acquisition_sources
+            WHERE source_type = 'drop'
+              AND source_ref_type = 'npc'
+              AND source_ref_id IS NULL
+              AND LOWER(TRIM(source_ref_name)) IN (%s)
+              AND status = 1
+              AND deleted = 0
+            GROUP BY LOWER(TRIM(source_ref_name))
+            """.formatted(placeholders),
+            normalizedNames.toArray()
+        );
+
+        Map<String, Integer> result = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            String normalizedName = trimToNull(row.get("normalizedName"));
+            Integer total = toInteger(row.get("total"));
+            if (normalizedName != null && total != null) {
+                result.put(normalizedName.toLowerCase(Locale.ROOT), total);
+            }
+        }
+        return result;
+    }
+
+    private int resolveDerivedLootCount(Npc npc, Map<Long, Integer> derivedBySourceId, Map<String, Integer> derivedByName) {
+        if (npc == null) {
+            return 0;
+        }
+        int bySourceId = safeGetOrDefault(derivedBySourceId, npc.getGameId(), 0);
+        if (bySourceId > 0) {
+            return bySourceId;
+        }
+        String normalizedName = trimToNull(npc.getName());
+        if (normalizedName == null) {
+            return 0;
+        }
+        return safeGetOrDefault(derivedByName, normalizedName.toLowerCase(Locale.ROOT), 0);
+    }
+
+    private <K, V> V safeGet(Map<K, V> map, K key) {
+        if (map == null || key == null) {
+            return null;
+        }
+        return map.get(key);
+    }
+
+    private <K, V> V safeGetOrDefault(Map<K, V> map, K key, V fallback) {
+        if (map == null || key == null) {
+            return fallback;
+        }
+        return map.getOrDefault(key, fallback);
+    }
+
     private int countNpcRelations(String tableName, Long npcId) {
         if (npcId == null || jdbcTemplate == null) return 0;
         Integer total = jdbcTemplate.queryForObject(
@@ -877,5 +1165,12 @@ public class AdminNpcController {
             npcSourceId
         );
         return total == null ? 0 : total;
+    }
+
+    private boolean isValid(TimedValue<?> cached) {
+        return cached != null && cached.expiresAtMillis() > System.currentTimeMillis();
+    }
+
+    private record TimedValue<T>(T value, long expiresAtMillis) {
     }
 }

@@ -81,6 +81,7 @@ node scripts/data/fetch/fetch-wiki-armorsetbonuses.mjs
 node scripts/data/fetch/fetch-wiki-buffs.mjs --langs=en,zh
 node scripts/data/fetch/fetch-wiki-biomes.mjs
 node scripts/data/fetch/fetch-wiki-item-pages.mjs --page-limit=100 --with-recipes=false
+python scripts/data/fetch/fetch-wiki-town-npc-maintenance.py
 node scripts/data/fetch/build-item-relations-bundle.mjs
 node scripts/data/fetch/build-item-relations-bundle.mjs --refresh-recipe-reference=true
 ```
@@ -120,6 +121,7 @@ Notes:
 node scripts/data/import/import-items.mjs data/normalized/items.wiki.sample.json
 node scripts/data/import/import-item-relations.mjs data/normalized/item-relations.bundle.json
 node scripts/data/pipeline/run-import-pipeline.mjs data/normalized/items.wiki.sample.json
+node scripts/data/import/import-wiki-town-npcs-to-db.mjs --apply=false
 node scripts/data/pipeline/run-recipe-reference-sync-pipeline.mjs --dry-run=true
 node scripts/data/pipeline/run-recipe-reference-sync-pipeline.mjs
 node scripts/data/pipeline/run-item-detail-sync-pipeline.mjs --items=data/normalized/items.wiki.json --relations=data/normalized/item-relations.bundle.json

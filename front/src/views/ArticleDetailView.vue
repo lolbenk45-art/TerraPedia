@@ -1,23 +1,48 @@
 <template>
-  <div class="article-detail-wrap">
-    <div class="article-back">
-      <router-link to="/articles">&lt; Back to Articles</router-link>
+  <div class="public-editorial article-ledger article-detail-wrap page-wrap page-wrap--narrow">
+    <div class="public-breadcrumbs">
+      <router-link to="/">Home</router-link>
+      <span>/</span>
+      <router-link to="/articles">Articles</router-link>
+      <span>/</span>
+      <span class="public-breadcrumbs__current">{{ article?.title || 'Article Detail' }}</span>
     </div>
 
-    <section v-if="loading" class="state">Loading article...</section>
-    <section v-else-if="error" class="state state--error">{{ error }}</section>
-    <article v-else-if="article" class="article-detail">
-      <img v-if="article.coverImage" :src="article.coverImage" :alt="article.title" class="cover" />
-      <header class="article-header">
-        <h1>{{ article.title }}</h1>
-        <p class="meta">
-          <span>{{ formatDate(article.publishedAt || article.createdAt) }}</span>
-          <span v-if="article.authorDisplayName">by {{ article.authorDisplayName }}</span>
-        </p>
-      </header>
-      <p v-if="article.summary" class="summary">{{ article.summary }}</p>
+    <div class="article-back">
+      <router-link to="/articles" class="public-back-link">&lt; Back to Articles</router-link>
+    </div>
 
-      <section class="markdown-body" v-html="renderArticleContent(article.contentHtml || article.contentMarkdown || '')"></section>
+    <section v-if="loading" class="state public-section-frame">Loading article...</section>
+    <section v-else-if="error" class="state state--error public-section-frame">{{ error }}</section>
+    <article v-else-if="article" class="article-detail">
+      <section class="public-editorial-hero article-detail__hero">
+        <div class="public-editorial-hero__layout">
+          <div class="public-editorial-hero__copy">
+            <span class="section-eyebrow">Entry {{ String(article.id).padStart(4, '0') }}</span>
+            <h1 class="section-title">{{ article.title }}</h1>
+            <p class="meta">
+              <span>{{ formatDate(article.publishedAt || article.createdAt) }}</span>
+              <span v-if="article.authorDisplayName">By {{ article.authorDisplayName }}</span>
+            </p>
+            <p v-if="article.summary" class="summary">{{ article.summary }}</p>
+          </div>
+
+          <aside class="public-editorial-hero__aside article-detail__cover-wrap">
+            <img v-if="article.coverImage" :src="article.coverImage" :alt="article.title" class="cover" />
+            <div v-else class="article-detail__cover-fallback">
+              <span>LOG</span>
+              <small>No cover image</small>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="article-ledger__body public-section-frame">
+        <section
+          class="public-reading-body markdown-body"
+          v-html="renderArticleContent(article.contentHtml || article.contentMarkdown || '')"
+        ></section>
+      </section>
     </article>
   </div>
 </template>
@@ -394,67 +419,83 @@ watch(articleId, () => {
 
 <style scoped>
 .article-detail-wrap {
-  max-width: 920px;
-  margin: 0 auto;
-  padding: 28px 16px 40px;
   overflow-x: clip;
 }
 
-.article-back {
-  margin-bottom: 8px;
-}
-
-.article-back a {
-  color: var(--accent-primary);
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-}
-
 .article-detail {
-  margin-top: 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  background: var(--bg-secondary);
-  padding: 22px;
+  display: grid;
+  gap: 1rem;
+}
+
+.article-detail__hero {
+  gap: 1.15rem;
+}
+
+.article-back {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.article-detail__cover-wrap {
+  min-height: 100%;
+}
+
+.cover,
+.article-detail__cover-fallback {
+  width: 100%;
+  min-height: 16rem;
+  border-radius: 1.15rem;
 }
 
 .cover {
-  width: 100%;
-  max-height: 360px;
   object-fit: cover;
-  border-radius: 12px;
-  margin-bottom: 16px;
+  border: 1px solid color-mix(in srgb, var(--border-color) 86%, transparent);
 }
 
-.article-header h1 {
-  margin: 0;
-  font-size: clamp(2rem, 3.3vw, 2.6rem);
-  line-height: 1.2;
+.article-detail__cover-fallback {
+  display: grid;
+  place-items: center;
+  gap: 0.45rem;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 12%, transparent), transparent 26%),
+    linear-gradient(160deg, color-mix(in srgb, white 30%, var(--surface-soft)), var(--surface-soft));
+  color: var(--text-muted);
+}
+
+.article-detail__cover-fallback span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.5rem;
+  min-height: 4.5rem;
+  border-radius: 1.35rem;
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+  color: var(--accent-primary);
   font-weight: 800;
-  letter-spacing: -0.01em;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  letter-spacing: 0.14em;
 }
 
 .meta {
-  margin: 10px 0 0;
   display: flex;
-  gap: 12px;
+  gap: 0.75rem 1rem;
   flex-wrap: wrap;
   color: var(--text-muted);
   font-size: 0.9rem;
 }
 
 .summary {
-  margin: 16px 0 20px;
-  padding: 14px 16px;
-  border-radius: 12px;
+  margin: 0;
+  padding: 0.95rem 1rem;
+  border-radius: 1rem;
   border-left: 4px solid var(--accent-primary);
-  background: var(--bg-tertiary);
+  background: color-mix(in srgb, var(--bg-tertiary) 84%, white 16%);
   color: var(--text-secondary);
   font-size: 1rem;
   line-height: 1.75;
+}
+
+.article-ledger__body {
+  padding: clamp(1rem, 2vw, 1.5rem);
 }
 
 :deep(.markdown-body) {
@@ -589,11 +630,8 @@ watch(articleId, () => {
 }
 
 .state {
-  margin-top: 16px;
   padding: 14px;
-  border-radius: 10px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-secondary);
+  text-align: center;
 }
 
 .state--error {
@@ -601,8 +639,8 @@ watch(articleId, () => {
 }
 
 @media (max-width: 768px) {
-  .article-detail {
-    padding: 16px;
+  .article-detail__cover-wrap {
+    order: -1;
   }
 
   .summary {

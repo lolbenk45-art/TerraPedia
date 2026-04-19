@@ -1,6 +1,5 @@
 <template>
   <div class="category-drawer">
-    <!-- 头部 -->
     <header class="drawer-header">
       <div class="flex items-center gap-2">
         <button
@@ -21,7 +20,6 @@
       </button>
     </header>
 
-    <!-- 搜索框 -->
     <div class="search-box">
       <svg class="w-4 h-4 flex-shrink-0" style="color: var(--text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -45,13 +43,11 @@
       </button>
     </div>
 
-    <!-- 统计信息 -->
     <div class="stats">
-      <span>{{ categories.length }} 个分类</span>
+      <span>{{ rootCategories.length }} 个分类</span>
       <span>{{ totalItems }} 个物品</span>
     </div>
 
-    <!-- 快速操作 -->
     <div class="quick-actions">
       <button
         @click="toggleAllCategories"
@@ -71,9 +67,7 @@
       </button>
     </div>
 
-    <!-- 分类列表 -->
     <nav class="category-list">
-      <!-- 全部物品 -->
       <button
         @click="selectCategory(null)"
         class="category-item all-items"
@@ -86,8 +80,7 @@
         <span class="count">{{ totalItems }}</span>
       </button>
 
-      <!-- 根分类 -->
-      <template v-for="(category, index) in filteredCategories" :key="category.id">
+      <template v-for="(category, index) in rootCategories" :key="category.id">
         <div class="category-group">
           <button
             @click="selectCategory(category.id)"
@@ -95,7 +88,7 @@
             :class="{ selected: selectedCategory === category.id }"
           >
             <span
-              v-if="category.children && category.children.length > 0"
+              v-if="category.children.length > 0"
               @click.stop="toggleExpand(category.id)"
               class="w-4 h-4 flex items-center justify-center rounded transition-colors flex-shrink-0 hover:bg-[var(--bg-tertiary)]"
               :class="expandedIds.has(category.id) ? 'rotate-90' : ''"
@@ -106,22 +99,17 @@
               </svg>
             </span>
             <span v-else class="w-4 flex-shrink-0"></span>
-            
-            <span class="w-5 h-5 flex items-center justify-center text-base flex-shrink-0">
-              {{ categoryIcon(category.name) }}
+
+            <span class="w-5 h-5 flex items-center justify-center text-[10px] font-semibold tracking-[0.08em] flex-shrink-0">
+              {{ getCategoryGlyph(category.name) }}
             </span>
-            
+
             <span class="truncate">{{ category.name }}</span>
-            
-            <span
-              v-if="categoryCountMap.has(category.id)"
-              class="count"
-            >
+            <span v-if="categoryCountMap.has(category.id)" class="count">
               {{ categoryCountMap.get(category.id) }}
             </span>
           </button>
 
-          <!-- 子分类 -->
           <Transition name="collapse">
             <div v-show="expandedIds.has(category.id)" class="children">
               <button
@@ -132,14 +120,11 @@
                 :class="{ selected: selectedCategory === child.id }"
               >
                 <span class="indent" />
-                <span class="w-5 h-5 flex items-center justify-center text-base flex-shrink-0">
-                  {{ categoryIcon(child.name) }}
+                <span class="w-5 h-5 flex items-center justify-center text-[10px] font-semibold tracking-[0.08em] flex-shrink-0">
+                  {{ getCategoryGlyph(child.name) }}
                 </span>
                 <span class="truncate">{{ child.name }}</span>
-                <span
-                  v-if="categoryCountMap.has(child.id)"
-                  class="count"
-                >
+                <span v-if="categoryCountMap.has(child.id)" class="count">
                   {{ categoryCountMap.get(child.id) }}
                 </span>
               </button>
@@ -147,20 +132,10 @@
           </Transition>
         </div>
 
-        <!-- 分隔线 -->
-        <div
-          v-if="index < filteredCategories.length - 1"
-          class="divider"
-          style="border-color: var(--border-color);"
-        ></div>
+        <div v-if="index < rootCategories.length - 1" class="divider" style="border-color: var(--border-color);"></div>
       </template>
 
-      <!-- 无结果 -->
-      <div
-        v-if="filteredCategories.length === 0 && searchQuery"
-        class="no-results"
-        style="color: var(--text-muted);"
-      >
+      <div v-if="rootCategories.length === 0 && searchQuery" class="no-results" style="color: var(--text-muted);">
         未找到匹配的分类
       </div>
     </nav>
@@ -168,8 +143,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { Category } from '@/types'
+import { getCategoryGlyph } from '@/utils/categoryGlyph'
+
+interface DrawerCategory extends Category {
+  children: DrawerCategory[]
+}
 
 interface Props {
   categories: Category[]
@@ -188,77 +168,53 @@ const emit = defineEmits<{
 const searchQuery = ref('')
 const expandedIds = ref<Set<number>>(new Set())
 
-// 默认展开所有根分类（排除 NPC 和 BUFF）
-watch([() => props.categories], () => {
-  const idsToExpand = new Set<number>()
-  props.categories
-    .filter(cat => (cat.parentId || 0) === 0)
+const buildCategoryTree = (categories: Category[]): DrawerCategory[] => {
+  const map = new Map<number, DrawerCategory>()
+  const roots: DrawerCategory[] = []
+
+  categories
     .filter(cat => cat.code !== 'CATEGORY_NPC' && cat.code !== 'CATEGORY_BUFF')
     .forEach(cat => {
-      if (cat.children && cat.children.length > 0) {
-        idsToExpand.add(cat.id)
-      }
+      map.set(cat.id, { ...cat, children: [] })
     })
-  expandedIds.value = idsToExpand
-}, { immediate: true })
 
-// 检查是否全部展开
-const allExpanded = computed(() => {
-  if (props.categories.length === 0) return false
-  return props.categories
-    .filter(cat => (cat.parentId || 0) === 0)
-    .every(cat => !cat.children?.length || expandedIds.value.has(cat.id))
-})
-
-// 切换全部展开/收起
-const toggleAllCategories = () => {
-  if (allExpanded.value) {
-    expandedIds.value = new Set()
-  } else {
-    const idsToExpand = new Set<number>()
-    props.categories.forEach(cat => {
-      if (cat.children && cat.children.length > 0) {
-        idsToExpand.add(cat.id)
-      }
-    })
-    expandedIds.value = idsToExpand
-  }
-}
-
-// 过滤分类（排除 NPC 和 BUFF）
-const filteredCategories = computed(() => {
-  const rootCats = props.categories.filter(cat => 
-    (cat.parentId || 0) === 0 && 
-    cat.code !== 'CATEGORY_NPC' && 
-    cat.code !== 'CATEGORY_BUFF'
-  )
-  
-  if (!searchQuery.value) {
-    return rootCats
-  }
-  
-  const query = searchQuery.value.toLowerCase().trim()
-  const result: Category[] = []
-  
-  rootCats.forEach(cat => {
-    if (cat.name.toLowerCase().includes(query)) {
-      result.push(cat)
-    } else if (cat.children) {
-      const matchingChildren = cat.children.filter(child => 
-        child.name.toLowerCase().includes(query)
-      )
-      if (matchingChildren.length > 0) {
-        result.push({ ...cat, children: matchingChildren })
-      }
+  map.forEach(category => {
+    const parentId = category.parentId ?? 0
+    if (parentId > 0 && map.has(parentId)) {
+      map.get(parentId)!.children.push(category)
+    } else {
+      roots.push(category)
     }
   })
-  
-  return result
-})
 
-// 计算每个分类的物品数量（包括子分类）
-const categoryCountMap = computed(() => {
-  return props.categoryCountMap ?? new Map<number, number>()
+  const sortTree = (nodes: DrawerCategory[]) => {
+    nodes.sort((left, right) => (left.sort || 0) - (right.sort || 0))
+    nodes.forEach(node => sortTree(node.children))
+  }
+
+  sortTree(roots)
+  return roots
+}
+
+const filterTree = (nodes: DrawerCategory[], query: string): DrawerCategory[] => {
+  if (!query) return nodes
+
+  const keyword = query.toLowerCase().trim()
+  return nodes
+    .map(node => ({
+      ...node,
+      children: filterTree(node.children, query),
+    }))
+    .filter(node => node.name.toLowerCase().includes(keyword) || node.children.length > 0)
+}
+
+const rootCategories = computed(() => filterTree(buildCategoryTree(props.categories), searchQuery.value))
+
+const categoryCountMap = computed(() => props.categoryCountMap ?? new Map<number, number>())
+
+const allExpanded = computed(() => {
+  if (rootCategories.value.length === 0) return false
+  return rootCategories.value.every(cat => cat.children.length === 0 || expandedIds.value.has(cat.id))
 })
 
 const selectCategory = (categoryId: number | null) => {
@@ -274,82 +230,38 @@ const toggleExpand = (categoryId: number) => {
   }
 }
 
-const categoryIcon = (name: string): string => {
-  const normalizedName = name.toLowerCase()
-  if (normalizedName.includes('weapon') || normalizedName.includes('sword')) return '⚔️'
-  if (normalizedName.includes('bow') || normalizedName.includes('ammo')) return '🏹'
-  if (normalizedName.includes('staff')) return '✨'
-  if (normalizedName.includes('tool') || normalizedName.includes('pickaxe')) return '⛏️'
-  if (normalizedName.includes('axe')) return '🪓'
-  if (normalizedName.includes('armor') || normalizedName.includes('chestplate')) return '🛡️'
-  if (normalizedName.includes('helmet')) return '🪖'
-  if (normalizedName.includes('leggings')) return '🥾'
-  if (normalizedName.includes('accessory')) return '💍'
-  if (normalizedName.includes('consumable')) return '🧪'
-  if (normalizedName.includes('material')) return '📦'
-  if (normalizedName.includes('furniture')) return '🪑'
-  if (normalizedName.includes('block')) return '🧱'
-  if (normalizedName.includes('wall')) return '🏗️'
-  if (normalizedName.includes('light')) return '💡'
-  if (normalizedName.includes('bait')) return '🪱'
-  if (normalizedName.includes('pet')) return '🐥'
-  if (normalizedName.includes('mount')) return '🦄'
-  if (normalizedName.includes('vanity')) return '👔'
-  if (normalizedName.includes('dye')) return '🎨'
-  if (normalizedName.includes('paint')) return '🖌️'
-  if (normalizedName.includes('wire')) return '🔌'
-  if (normalizedName.includes('mechanism')) return '⚙️'
-  if (normalizedName.includes('plant')) return '🌱'
-  if (normalizedName.includes('seed')) return '🌰'
-  if (normalizedName.includes('fish')) return '🐟'
-  if (normalizedName.includes('crate')) return '📭'
-  if (normalizedName.includes('treasure')) return '💎'
-  if (normalizedName.includes('coin')) return '💰'
-  if (normalizedName.includes('music')) return '🎵'
-  if (normalizedName.includes('statue')) return '🗿'
-  if (normalizedName.includes('banner')) return '🚩'
-  if (normalizedName.includes('painting')) return '🖼️'
+const toggleAllCategories = () => {
+  if (allExpanded.value) {
+    expandedIds.value = new Set()
+    return
+  }
 
-  const iconMap: Record<string, string> = {
-    '武器': '⚔️',
-    '工具': '⛏️',
-    '护甲': '🛡️',
-    '饰品': '💍',
-    '消耗品': '🧪',
-    '材料': '📦',
-    '家具': '🪑',
-    '方块': '🧱',
-    '墙壁': '🏗️',
-    '照明': '💡',
-    '弹药': '🏹',
-    '鱼饵': '🪱',
-    '宠物': '🐾',
-    '坐骑': '🦄',
-    '照明宠物': '✨',
-    '时装': '👕',
-    '染料': '🎨',
-    '油漆': '🖌️',
-    '电线': '🔌',
-    '机械': '⚙️',
-    '植物': '🌱',
-    '种子': '🌰',
-    '鱼': '🐟',
-    '任务鱼': '🎣',
-    '宝匣': '📭',
-    '宝藏': '💎',
-    '钱币': '💰',
-    '音乐': '🎵',
-    '雕像': '🗿',
-    '旗帜': '🚩',
-    '画': '🖼️',
+  const ids = new Set<number>()
+  const collect = (nodes: DrawerCategory[]) => {
+    nodes.forEach(node => {
+      if (node.children.length > 0) {
+        ids.add(node.id)
+        collect(node.children)
+      }
+    })
   }
-  
-  for (const key in iconMap) {
-    if (name.includes(key)) return iconMap[key]
-  }
-  
-  return '📁'
+  collect(rootCategories.value)
+  expandedIds.value = ids
 }
+
+watch(
+  () => props.categories,
+  () => {
+    const ids = new Set<number>()
+    buildCategoryTree(props.categories).forEach(node => {
+      if (node.children.length > 0) {
+        ids.add(node.id)
+      }
+    })
+    expandedIds.value = ids
+  },
+  { immediate: true },
+)
 </script>
 
 <style scoped>
@@ -360,7 +272,6 @@ const categoryIcon = (name: string): string => {
   background: var(--bg-secondary);
 }
 
-/* 头部 */
 .drawer-header {
   display: flex;
   align-items: center;
@@ -390,7 +301,6 @@ const categoryIcon = (name: string): string => {
   background: var(--bg-tertiary);
 }
 
-/* 搜索框 */
 .search-box {
   display: flex;
   align-items: center;
@@ -403,7 +313,6 @@ const categoryIcon = (name: string): string => {
   flex-shrink: 0;
 }
 
-/* 统计信息 */
 .stats {
   display: flex;
   justify-content: space-between;
@@ -414,32 +323,34 @@ const categoryIcon = (name: string): string => {
   flex-shrink: 0;
 }
 
-/* 快速操作 */
 .quick-actions {
   padding: 8px 16px;
   border-bottom: 1px solid var(--border-color);
-  flex-shrink: 0;
 }
 
-/* 分类列表 */
 .category-list {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0;
+  padding: 8px 16px 16px;
 }
 
-/* 分类项 */
+.category-group {
+  display: grid;
+  gap: 4px;
+}
+
 .category-item {
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 12px 16px;
-  background: transparent;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
   border: none;
-  cursor: pointer;
-  transition: background 0.2s;
+  background: transparent;
+  text-align: left;
   color: var(--text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .category-item:hover {
@@ -451,64 +362,42 @@ const categoryIcon = (name: string): string => {
   color: white;
 }
 
-.category-item .count {
+.category-item.child {
+  padding-left: 20px;
+}
+
+.count {
   margin-left: auto;
-  font-size: 12px;
-  opacity: 0.7;
-  white-space: nowrap;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  font-size: 10px;
+  color: var(--text-secondary);
 }
 
 .category-item.selected .count {
-  opacity: 1;
   background: rgba(255, 255, 255, 0.2);
-  padding: 2px 6px;
-  border-radius: 4px;
+  color: white;
 }
 
-/* 子分类 */
 .children {
-  background: var(--bg-primary);
+  display: grid;
+  gap: 4px;
 }
 
-.category-item.child {
-  padding-left: 48px;
-}
-
-.category-item.child .indent {
-  width: 16px;
-  height: 1px;
-  background: var(--border-color);
+.indent {
+  width: 12px;
   flex-shrink: 0;
 }
 
-/* 分隔线 */
 .divider {
   border-top: 1px solid var(--border-color);
-  margin: 4px 0;
+  margin: 8px 0;
 }
 
-/* 折叠动画 */
-.collapse-enter-active,
-.collapse-leave-active {
-  transition: all 0.3s ease;
-}
-
-.collapse-enter-from,
-.collapse-leave-to {
-  opacity: 0;
-  max-height: 0;
-}
-
-.collapse-enter-to,
-.collapse-leave-from {
-  opacity: 1;
-  max-height: 500px;
-}
-
-/* 无结果 */
 .no-results {
-  padding: 24px 16px;
+  padding: 16px 0;
   text-align: center;
-  font-size: 14px;
+  font-size: 13px;
 }
 </style>

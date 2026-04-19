@@ -1,8 +1,12 @@
 package com.terraria.skills.service.impl;
 
 import com.terraria.skills.dto.RecipeDTO;
+import com.terraria.skills.dto.RecipeStationDTO;
+import com.terraria.skills.entity.CraftingStation;
 import com.terraria.skills.entity.Item;
 import com.terraria.skills.entity.Recipe;
+import com.terraria.skills.entity.RecipeIngredient;
+import com.terraria.skills.entity.RecipeStation;
 import com.terraria.skills.mapper.BiomeMapper;
 import com.terraria.skills.mapper.CraftingStationMapper;
 import com.terraria.skills.mapper.ItemMapper;
@@ -117,6 +121,136 @@ class RecipeServiceImplTest {
         assertEquals(List.of("wiki_zh", "wiki_zh"), recipes.stream().map(RecipeDTO::getSourceProvider).toList());
     }
 
+    @Test
+    void shouldPreferCraftingStationDisplayWhenStationIdExists() {
+        Recipe recipe = recipe(51L, "manual_admin");
+        when(recipeMapper.selectList(any())).thenReturn(List.of(recipe));
+
+        RecipeStation recipeStation = new RecipeStation();
+        recipeStation.setRecipeId(51L);
+        recipeStation.setStationId(10L);
+        recipeStation.setStationItemId(4114L);
+        recipeStation.setStationInternalName("VoidLens");
+        recipeStation.setStationNameRaw("恶魔祭坛");
+        when(recipeStationMapper.selectList(any())).thenReturn(List.of(recipeStation));
+
+        CraftingStation craftingStation = new CraftingStation();
+        craftingStation.setId(10L);
+        craftingStation.setItemId(6130L);
+        craftingStation.setInternalName("DemonAltarIcon");
+        craftingStation.setNameEn("Demon Altar");
+        craftingStation.setNameZh("恶魔祭坛");
+        when(craftingStationMapper.selectBatchIds(any())).thenReturn(List.of(craftingStation));
+
+        when(itemMapper.selectBatchIds(any())).thenReturn(List.of(
+            item(1L, "SeafoodDinner", "Seafood Dinner", "娴烽矞澶ч", "https://example.invalid/seafood-dinner.png"),
+            item(4114L, "VoidLens", "Void Bag", "虚空袋", "https://example.invalid/void-bag.png"),
+            item(6130L, "DemonAltar", "Demon Altar", "恶魔祭坛", "https://example.invalid/demon-altar.png")
+        ));
+
+        List<RecipeDTO> recipes = service.getRecipesByResultItemId(1L);
+
+        assertEquals(1, recipes.size());
+        assertEquals(1, recipes.get(0).getStations().size());
+        assertEquals("恶魔祭坛", recipes.get(0).getStations().get(0).getItemNameZh());
+        assertEquals("Demon Altar", recipes.get(0).getStations().get(0).getItemName());
+        assertEquals("DemonAltarIcon", recipes.get(0).getStations().get(0).getItemInternalName());
+    }
+
+    @Test
+    void shouldPreferRicherWikiZhRecipesOverLegacyWikiGgRows() {
+        Recipe legacy = recipe(61L, "wiki_gg");
+        Recipe refined = recipe(62L, "wiki_zh");
+        when(recipeMapper.selectList(any())).thenReturn(List.of(legacy, refined));
+
+        RecipeStation legacyStationA = new RecipeStation();
+        legacyStationA.setRecipeId(61L);
+        legacyStationA.setStationItemId(75L);
+        legacyStationA.setStationInternalName("WorkBench");
+        legacyStationA.setStationNameRaw("工作台");
+        legacyStationA.setIsAlternative(false);
+
+        RecipeStation legacyStationB = new RecipeStation();
+        legacyStationB.setRecipeId(61L);
+        legacyStationB.setStationNameRaw("灵雾");
+        legacyStationB.setIsAlternative(true);
+
+        RecipeStation refinedStationA = new RecipeStation();
+        refinedStationA.setRecipeId(62L);
+        refinedStationA.setStationId(6L);
+        refinedStationA.setStationItemId(75L);
+        refinedStationA.setStationInternalName("WorkBench");
+        refinedStationA.setStationNameRaw("工作台");
+        refinedStationA.setIsAlternative(false);
+
+        RecipeStation refinedStationB = new RecipeStation();
+        refinedStationB.setRecipeId(62L);
+        refinedStationB.setStationId(14L);
+        refinedStationB.setStationNameRaw("灵雾");
+        refinedStationB.setIsAlternative(false);
+
+        when(recipeStationMapper.selectList(any())).thenReturn(List.of(
+            legacyStationA,
+            legacyStationB,
+            refinedStationA,
+            refinedStationB
+        ));
+
+        List<RecipeDTO> recipes = service.getRecipesByResultItemId(1L);
+
+        assertEquals(1, recipes.size());
+        assertEquals("wiki_zh", recipes.get(0).getSourceProvider());
+        assertEquals(List.of(false, false), recipes.get(0).getStations().stream().map(RecipeStationDTO::getIsAlternative).toList());
+    }
+
+    @Test
+    void shouldCollapseDuplicateRecipesWithinPreferredProvider() {
+        Recipe left = recipe(71L, "wiki_zh");
+        Recipe right = recipe(72L, "wiki_zh");
+        when(recipeMapper.selectList(any())).thenReturn(List.of(left, right));
+
+        RecipeIngredient leftIngredient = new RecipeIngredient();
+        leftIngredient.setRecipeId(71L);
+        leftIngredient.setIngredientItemId(150L);
+        leftIngredient.setIngredientInternalName("Cobweb");
+        leftIngredient.setIngredientNameRaw("蛛网");
+        leftIngredient.setIngredientGroupType("item");
+        leftIngredient.setSortOrder(1);
+
+        RecipeIngredient rightIngredient = new RecipeIngredient();
+        rightIngredient.setRecipeId(72L);
+        rightIngredient.setIngredientItemId(150L);
+        rightIngredient.setIngredientInternalName("Cobweb");
+        rightIngredient.setIngredientNameRaw("蛛网");
+        rightIngredient.setIngredientGroupType("item");
+        rightIngredient.setSortOrder(1);
+
+        when(recipeIngredientMapper.selectList(any())).thenReturn(List.of(leftIngredient, rightIngredient));
+
+        RecipeStation leftStation = new RecipeStation();
+        leftStation.setRecipeId(71L);
+        leftStation.setStationId(6L);
+        leftStation.setStationItemId(75L);
+        leftStation.setStationInternalName("WorkBench");
+        leftStation.setStationNameRaw("工作台");
+        leftStation.setSortOrder(1);
+
+        RecipeStation rightStation = new RecipeStation();
+        rightStation.setRecipeId(72L);
+        rightStation.setStationId(6L);
+        rightStation.setStationItemId(75L);
+        rightStation.setStationInternalName("WorkBench");
+        rightStation.setStationNameRaw("工作台");
+        rightStation.setSortOrder(1);
+
+        when(recipeStationMapper.selectList(any())).thenReturn(List.of(leftStation, rightStation));
+
+        List<RecipeDTO> recipes = service.getRecipesByResultItemId(1L);
+
+        assertEquals(1, recipes.size());
+        assertEquals("wiki_zh", recipes.get(0).getSourceProvider());
+    }
+
     private Recipe recipe(Long id, String sourceProvider) {
         Recipe recipe = new Recipe();
         recipe.setId(id);
@@ -137,6 +271,15 @@ class RecipeServiceImplTest {
         item.setName("Seafood Dinner");
         item.setNameZh("海鲜大餐");
         item.setImage("https://example.invalid/seafood-dinner.png");
+        return item;
+    }
+    private Item item(Long id, String internalName, String name, String nameZh, String image) {
+        Item item = new Item();
+        item.setId(id);
+        item.setInternalName(internalName);
+        item.setName(name);
+        item.setNameZh(nameZh);
+        item.setImage(image);
         return item;
     }
 }

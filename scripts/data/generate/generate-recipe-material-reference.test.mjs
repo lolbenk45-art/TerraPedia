@@ -142,6 +142,16 @@ test('parseRecipePageRecipesFromHtml parses caption stations, version rows, and 
   assert.equal(fossilPickaxeRecipe.versionScope, 'Desktop version Console version Mobile version only');
   assert.equal(fossilPickaxeRecipe.sourcePage, 'Recipes/Heavy Assembler');
   assert.equal(fossilPickaxeRecipe.stations.length, 2);
+  assert.deepEqual(
+    fossilPickaxeRecipe.stations.map((station) => ({
+      stationNameRaw: station.stationNameRaw,
+      isAlternative: station.isAlternative
+    })),
+    [
+      { stationNameRaw: '重型装配台', isAlternative: false },
+      { stationNameRaw: '灵雾', isAlternative: false }
+    ]
+  );
 });
 
 function createItemLookup(items) {

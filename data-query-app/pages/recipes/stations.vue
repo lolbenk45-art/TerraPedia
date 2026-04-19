@@ -583,6 +583,7 @@ const loadingStationUsageItems = ref(false)
 const bindingActionKey = ref('')
 const showBindingEditor = ref(false)
 const bindingStationOptions = ref<CraftingStation[]>([])
+const bindingStationOptionsLoaded = ref(false)
 const stationsPagination = ref<Pagination>({ page: 1, size: 20, total: 0, totalPages: 0 })
 const stationUsagePagination = ref<Pagination>({ page: 1, size: 12, total: 0, totalPages: 0 })
 const editorBaseline = ref('')
@@ -1023,6 +1024,7 @@ async function loadBindingItemContext(itemId: number) {
     bindingLoadedRecipes.value = cloneRecipePayloads(toRecipeDrafts(recipes))
     bindingRecipes.value = cloneRecipePayloads(bindingLoadedRecipes.value)
     bindingRecipeTree.value = tree
+    await loadBindingStationOptions()
     workspaceFocus.value = 'binding'
     if (!isHydratingRoute.value) {
       await syncStationWorkspaceRoute()
@@ -1234,8 +1236,10 @@ async function saveBindingRecipes() {
 }
 
 async function loadBindingStationOptions() {
+  if (bindingStationOptionsLoaded.value) return
   const result = await itemsStore.fetchCraftingStations(1, 500)
   bindingStationOptions.value = result.records
+  bindingStationOptionsLoaded.value = true
 }
 
 async function loadStations(options: { page?: number } = {}) {
@@ -1287,7 +1291,10 @@ async function saveStation() {
 
     if (!saved) return
     await loadStations({ page: stationsPagination.value.page })
-    await loadBindingStationOptions()
+    if (bindingStationOptionsLoaded.value) {
+      bindingStationOptionsLoaded.value = false
+      await loadBindingStationOptions()
+    }
     const latestSaved = stations.value.find((station) => station.id === saved.id) ?? saved
     editStation(latestSaved, { force: true })
     syncEditorBaseline()
@@ -1311,7 +1318,10 @@ async function removeStation(station: CraftingStation) {
       ? stationsPagination.value.page - 1
       : stationsPagination.value.page
     await loadStations({ page: targetPage })
-    await loadBindingStationOptions()
+    if (bindingStationOptionsLoaded.value) {
+      bindingStationOptionsLoaded.value = false
+      await loadBindingStationOptions()
+    }
     await syncStationWorkspaceRoute()
   } finally {
     deletingStationId.value = null
@@ -1400,7 +1410,6 @@ onBeforeRouteUpdate((_to, _from, next) => {
 
 onMounted(async () => {
   resetEditor({ force: true })
-  await loadBindingStationOptions()
   await hydrateStationWorkspaceFromRoute(route.query as Record<string, any>)
 })
 

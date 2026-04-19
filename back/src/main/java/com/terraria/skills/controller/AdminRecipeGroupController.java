@@ -8,6 +8,7 @@ import com.terraria.skills.dto.RecipeGroupDTO;
 import com.terraria.skills.dto.RecipeGroupMemberDTO;
 import com.terraria.skills.entity.Item;
 import com.terraria.skills.mapper.ItemMapper;
+import com.terraria.skills.service.RecipeTreeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,15 +46,19 @@ import java.util.Set;
 @SecurityRequirement(name = "bearerAuth")
 public class AdminRecipeGroupController {
 
+    private static final Duration GROUP_CACHE_TTL = Duration.ofMinutes(10);
+
     private final ObjectMapper objectMapper;
     private final ItemMapper itemMapper;
+    private final RecipeTreeService recipeTreeService;
+    private volatile TimedValue<List<RecipeGroupDTO>> mergedRecipeGroupsCache;
 
     @GetMapping
     @Operation(summary = "Get recipe groups")
     public ResponseEntity<ApiResponse<List<RecipeGroupDTO>>> getRecipeGroups(
         @RequestParam(required = false) String keyword
     ) {
-        List<RecipeGroupDTO> groups = loadMergedRecipeGroups();
+        List<RecipeGroupDTO> groups = getCachedRecipeGroups();
         String normalizedKeyword = trimToNull(keyword);
         if (normalizedKeyword != null) {
             String needle = normalizedKeyword.toLowerCase();
@@ -68,7 +74,7 @@ public class AdminRecipeGroupController {
     @GetMapping("/{canonicalName}")
     @Operation(summary = "Get recipe group detail")
     public ResponseEntity<ApiResponse<RecipeGroupDTO>> getRecipeGroup(@PathVariable("canonicalName") String canonicalName) {
-        RecipeGroupDTO group = findGroup(loadMergedRecipeGroups(), canonicalName);
+        RecipeGroupDTO group = findGroup(getCachedRecipeGroups(), canonicalName);
         if (group == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "Recipe group not found"));
         }
@@ -80,13 +86,15 @@ public class AdminRecipeGroupController {
     public ResponseEntity<ApiResponse<RecipeGroupDTO>> createRecipeGroup(@RequestBody RecipeGroupDTO request) {
         try {
             RecipeGroupDTO normalized = normalizeGroup(request, true);
-            List<RecipeGroupDTO> groups = new ArrayList<>(loadMergedRecipeGroups());
+            List<RecipeGroupDTO> groups = new ArrayList<>(getCachedRecipeGroups());
             if (findGroup(groups, normalized.getCanonicalName()) != null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "Recipe group already exists"));
             }
             groups.add(normalized);
             groups.sort(Comparator.comparing(group -> normalizeKey(group.getCanonicalName())));
             writeOverrideGroups(groups);
+            invalidateRecipeGroupSnapshot();
+            recipeTreeService.invalidateCaches();
             return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(normalized, "Recipe group created"));
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, exception.getMessage()));
@@ -100,7 +108,7 @@ public class AdminRecipeGroupController {
         @RequestBody RecipeGroupDTO request
     ) {
         try {
-            List<RecipeGroupDTO> groups = new ArrayList<>(loadMergedRecipeGroups());
+            List<RecipeGroupDTO> groups = new ArrayList<>(getCachedRecipeGroups());
             RecipeGroupDTO existing = findGroup(groups, canonicalName);
             if (existing == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "Recipe group not found"));
@@ -116,6 +124,8 @@ public class AdminRecipeGroupController {
             }
             groups.sort(Comparator.comparing(group -> normalizeKey(group.getCanonicalName())));
             writeOverrideGroups(groups);
+            invalidateRecipeGroupSnapshot();
+            recipeTreeService.invalidateCaches();
             return ResponseEntity.ok(ApiResponse.success(normalized, "Recipe group updated"));
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, exception.getMessage()));
@@ -125,14 +135,27 @@ public class AdminRecipeGroupController {
     @DeleteMapping("/{canonicalName}")
     @Operation(summary = "Delete recipe group")
     public ResponseEntity<ApiResponse<Void>> deleteRecipeGroup(@PathVariable("canonicalName") String canonicalName) {
-        List<RecipeGroupDTO> groups = new ArrayList<>(loadMergedRecipeGroups());
+        List<RecipeGroupDTO> groups = new ArrayList<>(getCachedRecipeGroups());
         RecipeGroupDTO existing = findGroup(groups, canonicalName);
         if (existing == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "Recipe group not found"));
         }
         groups.removeIf(group -> normalizeKey(group.getCanonicalName()).equals(normalizeKey(canonicalName)));
         writeOverrideGroups(groups);
+        invalidateRecipeGroupSnapshot();
+        recipeTreeService.invalidateCaches();
         return ResponseEntity.ok(ApiResponse.success(null, "Recipe group deleted"));
+    }
+
+    private List<RecipeGroupDTO> getCachedRecipeGroups() {
+        TimedValue<List<RecipeGroupDTO>> cached = mergedRecipeGroupsCache;
+        if (isValid(cached)) {
+            return cached.value();
+        }
+
+        List<RecipeGroupDTO> groups = loadMergedRecipeGroups();
+        mergedRecipeGroupsCache = new TimedValue<>(groups, System.currentTimeMillis() + GROUP_CACHE_TTL.toMillis());
+        return groups;
     }
 
     private List<RecipeGroupDTO> loadMergedRecipeGroups() {
@@ -349,6 +372,14 @@ public class AdminRecipeGroupController {
         return candidates.get(0);
     }
 
+    private boolean isValid(TimedValue<?> cached) {
+        return cached != null && cached.expiresAtMillis() > System.currentTimeMillis();
+    }
+
+    private void invalidateRecipeGroupSnapshot() {
+        mergedRecipeGroupsCache = null;
+    }
+
     private String normalizeKey(String value) {
         String text = trimToNull(value);
         return text == null ? "" : text.toLowerCase();
@@ -395,5 +426,8 @@ public class AdminRecipeGroupController {
             }
         }
         return null;
+    }
+
+    private record TimedValue<T>(T value, long expiresAtMillis) {
     }
 }

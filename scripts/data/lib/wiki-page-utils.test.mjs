@@ -157,3 +157,31 @@ test('parseRecipeTable humanizes file-based version notes into stable scope labe
   assert.equal(recipes.length, 1);
   assert.equal(recipes[0].versionScope, 'Desktop version Console version only');
 });
+
+test('parseRecipeTable keeps combined stations as jointly required instead of alternatives', () => {
+  const markup = `
+    <table class="terraria cellborder recipes sortable">
+      <tr><th class="result">Result</th><th class="ingredients">Ingredients</th><th class="station">[[Crafting station]]</th></tr>
+      <tr>
+        <td class="result"><span>[[Amber Stone Wall]]</span></td>
+        <td class="ingredients"><ul><li><span class="i">[[Amber Stone Block]]</span></li></ul></td>
+        <td class="station">[[Work Bench]] and [[Ecto Mist]]</td>
+      </tr>
+    </table>
+  `;
+
+  const recipes = parseRecipeTable(markup);
+
+  assert.equal(recipes.length, 1);
+  assert.equal(recipes[0].stations.length, 2);
+  assert.deepEqual(
+    recipes[0].stations.map((station) => ({
+      stationNameRaw: station.stationNameRaw,
+      isAlternative: station.isAlternative
+    })),
+    [
+      { stationNameRaw: 'Work Bench', isAlternative: false },
+      { stationNameRaw: 'Ecto Mist', isAlternative: false }
+    ]
+  );
+});

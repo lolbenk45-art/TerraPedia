@@ -200,6 +200,8 @@ function parseRecipeTablesFromHtml(html) {
 
   return tables.map((tableHtml, tableIndex) => {
     const captionHtml = tableHtml.match(/<caption>([\s\S]*?)<\/caption>/i)?.[1] ?? '';
+    const stationTitles = extractLinkedTitlesFromHtml(captionHtml);
+    const stationRequirementMode = inferStationRequirementMode(captionHtml, stationTitles);
     const rows = [...tableHtml.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)].slice(1);
     const parsedRows = [];
     let previousResultState = null;
@@ -220,7 +222,8 @@ function parseRecipeTablesFromHtml(html) {
     return {
       tableIndex,
       caption: normalizeText(stripHtml(captionHtml)),
-      stations: extractLinkedTitlesFromHtml(captionHtml),
+      stations: stationTitles,
+      stationRequirementMode,
       rowCount: parsedRows.length,
       rows: parsedRows
     };
@@ -339,6 +342,30 @@ function parseAmount(value) {
   }
   const match = text.match(/^(\d+)$/);
   return match ? Number(match[1]) : null;
+}
+
+function inferStationRequirementMode(captionHtml, stationTitles) {
+  if (!Array.isArray(stationTitles) || stationTitles.length <= 1) {
+    return 'single';
+  }
+
+  const text = normalizeText(stripHtml(captionHtml))?.toLowerCase() ?? '';
+  if (!text) {
+    return 'alternative';
+  }
+
+  if (
+    /(^|[\s(])and([\s):]|$)/i.test(text)
+    || text.includes('同时')
+    || text.includes('并且')
+    || text.includes('以及')
+    || text.includes('且')
+    || text.includes('和')
+  ) {
+    return 'combination';
+  }
+
+  return 'alternative';
 }
 
 function booleanOption(value, fallback) {

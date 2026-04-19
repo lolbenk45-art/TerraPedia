@@ -67,13 +67,6 @@
             <include refid="PreferredItemImageExpr"/> AS image,
             i.category_id AS categoryId,
             c.name AS categoryName,
-            (
-                SELECT GROUP_CONCAT(DISTINCT icr.category_id ORDER BY icr.is_primary DESC, icr.sort_order ASC, icr.category_id ASC SEPARATOR ',')
-                FROM item_category_rel icr
-                WHERE icr.item_id = i.id
-                  AND icr.deleted = 0
-                  AND icr.status = 1
-            ) AS relatedCategoryIdsRaw,
             i.description,
             i.description_zh AS descriptionZh,
             i.damage,
@@ -237,13 +230,6 @@
             <include refid="PreferredItemImageExpr"/> AS image,
             i.category_id AS categoryId,
             c.name AS categoryName,
-            (
-                SELECT GROUP_CONCAT(DISTINCT icr.category_id ORDER BY icr.is_primary DESC, icr.sort_order ASC, icr.category_id ASC SEPARATOR ',')
-                FROM item_category_rel icr
-                WHERE icr.item_id = i.id
-                  AND icr.deleted = 0
-                  AND icr.status = 1
-            ) AS relatedCategoryIdsRaw,
             i.rarity_id AS rarityId,
             COALESCE(ir.display_name_zh, ir.display_name_en) AS rarity
         FROM items i

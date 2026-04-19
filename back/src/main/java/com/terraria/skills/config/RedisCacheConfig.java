@@ -60,7 +60,10 @@ public class RedisCacheConfig {
 
         Map<String, RedisCacheConfiguration> cacheConfigs = new HashMap<>();
         cacheConfigs.put("stats:overview", defaultConfig.entryTtl(Duration.ofMinutes(5)));
+        cacheConfigs.put("item:list", defaultConfig.entryTtl(Duration.ofMinutes(3)));
         cacheConfigs.put("item:detail", defaultConfig.entryTtl(Duration.ofMinutes(10)));
+        cacheConfigs.put("item:suggestions", defaultConfig.entryTtl(Duration.ofMinutes(2)));
+        cacheConfigs.put("item:aggregate", defaultConfig.entryTtl(Duration.ofMinutes(5)));
 
         return RedisCacheManager.builder(connectionFactory)
             .cacheDefaults(defaultConfig)
@@ -69,7 +72,7 @@ public class RedisCacheConfig {
     }
 
     private CacheManager buildLocalCacheManager() {
-        ConcurrentMapCacheManager cacheManager = new ConcurrentMapCacheManager("stats:overview", "item:detail");
+        ConcurrentMapCacheManager cacheManager = new ConcurrentMapCacheManager("stats:overview", "item:list", "item:detail", "item:suggestions", "item:aggregate");
         cacheManager.setAllowNullValues(false);
         return cacheManager;
     }

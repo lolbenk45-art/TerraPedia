@@ -2,11 +2,11 @@
   <!-- Desktop Sidebar -->
   <aside class="hidden lg:block">
     <div class="sticky top-24">
-      <!-- 分类卡片 -->
+      <!-- 鍒嗙被鍗＄墖 -->
       <div class="rounded-xl p-3 border" style="background-color: var(--bg-secondary); border-color: var(--border-color);">
         <div class="flex items-center justify-between mb-3 px-2">
           <h2 class="font-semibold text-sm" style="color: var(--text-primary);">
-            物品分类
+            鐗╁搧鍒嗙被
           </h2>
           <span class="text-[10px] px-1.5 py-0.5 rounded-full" style="background-color: var(--bg-tertiary); color: var(--text-muted);">
             {{ rootCategories.length }}
@@ -21,7 +21,7 @@
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="搜索分类..."
+            placeholder="鎼滅储鍒嗙被..."
             class="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs outline-none border"
             style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);"
           />
@@ -43,7 +43,7 @@
             >
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
-            {{ allExpanded ? '全部收起' : '全部展开' }}
+            {{ allExpanded ? '鍏ㄩ儴鏀惰捣' : '鍏ㄩ儴灞曞紑' }}
           </button>
         </div>
         
@@ -59,7 +59,7 @@
             <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
             </svg>
-            <span class="truncate">全部物品</span>
+            <span class="truncate">鍏ㄩ儴鐗╁搧</span>
             <span
               class="ml-auto px-1.5 py-0.5 rounded text-[10px] flex-shrink-0"
               :class="selectedCategory === null ? 'bg-white/20' : ''"
@@ -94,7 +94,7 @@
                 <span v-else class="w-3.5 flex-shrink-0"></span>
                 
                 <!-- Category Icon -->
-                <span class="w-4 h-4 flex items-center justify-center text-base flex-shrink-0">
+                <span class="w-4 h-4 flex items-center justify-center text-[9px] font-semibold tracking-[0.08em] flex-shrink-0">
                   {{ categoryIcon(category.name) }}
                 </span>
                 
@@ -126,7 +126,7 @@
                     :class="selectedCategory === child.id ? 'bg-blue-500 text-white shadow-sm' : 'hover:bg-[var(--bg-tertiary)]'"
                     :style="selectedCategory === child.id ? {} : { color: 'var(--text-primary)' }"
                   >
-                    <span class="w-4 h-4 flex items-center justify-center text-base flex-shrink-0">
+                    <span class="w-4 h-4 flex items-center justify-center text-[9px] font-semibold tracking-[0.08em] flex-shrink-0">
                       {{ categoryIcon(child.name) }}
                     </span>
                     <span class="truncate">{{ child.name }}</span>
@@ -154,7 +154,7 @@
         
         <!-- No Results -->
         <div v-if="filteredTreeCategories.length === 0 && searchQuery" class="text-center py-3 text-xs" style="color: var(--text-muted);">
-          未找到匹配的分类
+          鏈壘鍒板尮閰嶇殑鍒嗙被
         </div>
       </div>
     </div>
@@ -166,7 +166,7 @@
       <!-- Header -->
       <div class="flex items-center justify-between mb-3 px-2">
         <h2 class="font-semibold text-sm" style="color: var(--text-primary);">
-          物品分类
+          鐗╁搧鍒嗙被
         </h2>
         <span class="text-[10px] px-1.5 py-0.5 rounded-full" style="background-color: var(--bg-tertiary); color: var(--text-muted);">
           {{ rootCategories.length }}
@@ -189,7 +189,7 @@
           >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
-          {{ allExpanded ? '全部收起' : '全部展开' }}
+          {{ allExpanded ? '鍏ㄩ儴鏀惰捣' : '鍏ㄩ儴灞曞紑' }}
         </button>
       </div>
       
@@ -205,7 +205,7 @@
           <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
           </svg>
-          <span class="truncate">全部物品</span>
+          <span class="truncate">鍏ㄩ儴鐗╁搧</span>
           <span
             class="ml-auto px-1.5 py-0.5 rounded text-[10px] flex-shrink-0"
             :class="selectedCategory === null ? 'bg-white/20' : ''"
@@ -239,7 +239,7 @@
               <span v-else class="w-3.5 flex-shrink-0"></span>
               
               <!-- Category Icon -->
-              <span class="w-4 h-4 flex items-center justify-center text-base flex-shrink-0">
+              <span class="w-4 h-4 flex items-center justify-center text-[9px] font-semibold tracking-[0.08em] flex-shrink-0">
                 {{ categoryIcon(category.name) }}
               </span>
               
@@ -271,7 +271,7 @@
                   :class="selectedCategory === child.id ? 'bg-blue-500 text-white shadow-sm' : 'hover:bg-[var(--bg-tertiary)]'"
                   :style="selectedCategory === child.id ? {} : { color: 'var(--text-primary)' }"
                 >
-                  <span class="w-4 h-4 flex items-center justify-center text-base flex-shrink-0">
+                  <span class="w-4 h-4 flex items-center justify-center text-[9px] font-semibold tracking-[0.08em] flex-shrink-0">
                     {{ categoryIcon(child.name) }}
                   </span>
                   <span class="truncate">{{ child.name }}</span>
@@ -303,6 +303,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import type { Category, Item } from '@/types'
+import { getCategoryGlyph } from '@/utils/categoryGlyph'
 
 interface Props {
   categories: Category[]
@@ -451,7 +452,7 @@ const filteredTreeCategories = computed(() => {
 
 // Auto expand root categories with children on mount
 watch([categoryTree], () => {
-  // 默认展开所有有子分类的根分类
+  // 榛樿灞曞紑鎵€鏈夋湁瀛愬垎绫荤殑鏍瑰垎绫?
   const idsToExpand = new Set<number>()
   categoryTree.value.forEach(cat => {
     if (cat.children && cat.children.length > 0) {
@@ -459,7 +460,7 @@ watch([categoryTree], () => {
     }
   })
   expandedIds.value = idsToExpand
-  console.log('默认展开的分类 IDs:', expandedIds.value)
+  console.log('榛樿灞曞紑鐨勫垎绫?IDs:', expandedIds.value)
 }, { immediate: true })
 
 // Auto expand when searching
@@ -502,47 +503,8 @@ const formatNumber = (num: number): string => {
   return num.toString()
 }
 
-const categoryIcon = (name: string): string => {
-  const iconMap: Record<string, string> = {
-    '武器': '⚔️',
-    '工具': '⛏️',
-    '护甲': '🛡️',
-    '饰品': '💍',
-    '消耗品': '🧪',
-    '材料': '📦',
-    '家具': '🪑',
-    '方块': '🧱',
-    '墙壁': '🏗️',
-    '照明': '💡',
-    '弹药': '🏹',
-    '鱼饵': '🪱',
-    '宠物': '🐾',
-    '坐骑': '🦄',
-    '照明宠物': '✨',
-    '时装': '👕',
-    '染料': '🎨',
-    '油漆': '🖌️',
-    '电线': '🔌',
-    '机械': '⚙️',
-    '植物': '🌱',
-    '种子': '🌰',
-    '鱼': '🐟',
-    '任务鱼': '🎣',
-    '宝匣': '📭',
-    '宝藏': '💎',
-    '钱币': '💰',
-    '音乐': '🎵',
-    '雕像': '🗿',
-    '旗帜': '🚩',
-    '画': '🖼️',
-  }
-  
-  for (const key in iconMap) {
-    if (name.includes(key)) return iconMap[key]
-  }
-  
-  return '📁'
-}
+const categoryIcon = (name: string): string => getCategoryGlyph(name)
+
 </script>
 
 <style scoped>

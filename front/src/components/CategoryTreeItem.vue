@@ -27,7 +27,7 @@
         <span v-else class="w-3.5 flex-shrink-0"></span>
         
         <!-- Category Icon -->
-        <span class="w-4 h-4 flex items-center justify-center text-base flex-shrink-0">
+        <span class="w-4 h-4 flex items-center justify-center text-[9px] font-semibold tracking-[0.08em] flex-shrink-0">
           {{ categoryIcon(category.name) }}
         </span>
         
@@ -102,6 +102,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Category } from '@/types'
+import { getCategoryGlyph } from '@/utils/categoryGlyph'
 
 interface Props {
   category: Category
@@ -141,80 +142,6 @@ const toggleExpand = () => {
   emit('toggle', props.category.id)
 }
 
-const categoryIcon = (name: string): string => {
-  const normalizedName = name.toLowerCase()
-  if (normalizedName.includes('weapon') || normalizedName.includes('sword')) return '⚔️'
-  if (normalizedName.includes('bow') || normalizedName.includes('ammo')) return '🏹'
-  if (normalizedName.includes('staff')) return '✨'
-  if (normalizedName.includes('tool') || normalizedName.includes('pickaxe')) return '⛏️'
-  if (normalizedName.includes('axe')) return '🪓'
-  if (normalizedName.includes('armor') || normalizedName.includes('chestplate')) return '🛡️'
-  if (normalizedName.includes('helmet')) return '🪖'
-  if (normalizedName.includes('leggings')) return '🥾'
-  if (normalizedName.includes('accessory')) return '💍'
-  if (normalizedName.includes('consumable')) return '🧪'
-  if (normalizedName.includes('material')) return '📦'
-  if (normalizedName.includes('furniture')) return '🪑'
-  if (normalizedName.includes('block')) return '🧱'
-  if (normalizedName.includes('wall')) return '🏗️'
-  if (normalizedName.includes('light')) return '💡'
-  if (normalizedName.includes('bait')) return '🪱'
-  if (normalizedName.includes('pet')) return '🐥'
-  if (normalizedName.includes('mount')) return '🦄'
-  if (normalizedName.includes('vanity')) return '👔'
-  if (normalizedName.includes('dye')) return '🎨'
-  if (normalizedName.includes('paint')) return '🖌️'
-  if (normalizedName.includes('wire')) return '🔌'
-  if (normalizedName.includes('mechanism')) return '⚙️'
-  if (normalizedName.includes('plant')) return '🌱'
-  if (normalizedName.includes('seed')) return '🌰'
-  if (normalizedName.includes('fish')) return '🐟'
-  if (normalizedName.includes('crate')) return '📭'
-  if (normalizedName.includes('treasure')) return '💎'
-  if (normalizedName.includes('coin')) return '💰'
-  if (normalizedName.includes('music')) return '🎵'
-  if (normalizedName.includes('statue')) return '🗿'
-  if (normalizedName.includes('banner')) return '🚩'
-  if (normalizedName.includes('painting')) return '🖼️'
+const categoryIcon = (name: string): string => getCategoryGlyph(name)
 
-  const iconMap: Record<string, string> = {
-    '武器': '⚔️',
-    '工具': '⛏️',
-    '护甲': '🛡️',
-    '饰品': '💍',
-    '消耗品': '🧪',
-    '材料': '📦',
-    '家具': '🪑',
-    '方块': '🧱',
-    '墙壁': '🏗️',
-    '照明': '💡',
-    '弹药': '🏹',
-    '鱼饵': '🪱',
-    '宠物': '🐾',
-    '坐骑': '🦄',
-    '照明宠物': '✨',
-    '时装': '👕',
-    '染料': '🎨',
-    '油漆': '🖌️',
-    '电线': '🔌',
-    '机械': '⚙️',
-    '植物': '🌱',
-    '种子': '🌰',
-    '鱼': '🐟',
-    '任务鱼': '🎣',
-    '宝匣': '📭',
-    '宝藏': '💎',
-    '钱币': '💰',
-    '音乐': '🎵',
-    '雕像': '🗿',
-    '旗帜': '🚩',
-    '画': '🖼️',
-  }
-  
-  for (const key in iconMap) {
-    if (name.includes(key)) return iconMap[key]
-  }
-  
-  return '📁'
-}
 </script>

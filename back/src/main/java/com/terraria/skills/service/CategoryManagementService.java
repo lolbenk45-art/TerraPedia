@@ -3,11 +3,16 @@ package com.terraria.skills.service;
 import com.terraria.skills.dto.CategoryDTO;
 
 import java.util.List;
+import java.util.Map;
 
 public interface CategoryManagementService {
 
     // Query operations
     List<CategoryDTO> getAllCategories();
+
+    Map<Long, CategoryDTO> getCategoryMap();
+
+    Map<Long, String> getCategoryPathMap();
     
     CategoryDTO getCategoryById(Long id);
     

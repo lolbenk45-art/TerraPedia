@@ -1,15 +1,49 @@
 $ErrorActionPreference = 'Stop'
 
-$ports = 6380, 8888, 5174, 3001, 3000
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $reportDir = Join-Path $repoRoot 'reports\local-start'
+$configCandidates = @(
+  (Join-Path $PSScriptRoot 'config\local-stack.config.json'),
+  (Join-Path $PSScriptRoot 'local-stack.config.json')
+)
+$configPath = $configCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+$stackConfig = $null
+if ($configPath -and (Test-Path $configPath)) {
+  $stackConfig = Get-Content -Path $configPath -Raw | ConvertFrom-Json
+}
 
-function Stop-RecordedProcess([string]$Name) {
-  $pidPath = Join-Path $reportDir "$Name.pid"
+function Get-ConfigPort([object]$Root, [string[]]$PathSegments, [int]$Fallback) {
+  $current = $Root
+  foreach ($segment in $PathSegments) {
+    if ($null -eq $current) {
+      return $Fallback
+    }
+    $property = $current.PSObject.Properties[$segment]
+    if ($null -eq $property) {
+      return $Fallback
+    }
+    $current = $property.Value
+  }
+
+  if ($null -eq $current) {
+    return $Fallback
+  }
+
+  return [int]$current
+}
+
+$redisPort = Get-ConfigPort -Root $stackConfig -PathSegments @('redis', 'port') -Fallback 6380
+$backPort = Get-ConfigPort -Root $stackConfig -PathSegments @('backend', 'port') -Fallback 8888
+$frontPort = Get-ConfigPort -Root $stackConfig -PathSegments @('front', 'port') -Fallback 5174
+$adminPort = Get-ConfigPort -Root $stackConfig -PathSegments @('admin', 'port') -Fallback 3001
+$ports = @($redisPort, $backPort, $frontPort, $adminPort, 3000, 6380) | Select-Object -Unique
+
+function Stop-RecordedProcessFile([string]$PidPath) {
   if (-not (Test-Path $pidPath)) {
     return
   }
 
+  $name = [System.IO.Path]::GetFileNameWithoutExtension($PidPath)
   try {
     $pidText = (Get-Content $pidPath -Raw).Trim()
     $processId = 0
@@ -55,6 +89,6 @@ foreach ($port in $ports) {
   }
 }
 
-foreach ($name in @('back', 'front', 'data-query-app', 'redis-6380')) {
-  Stop-RecordedProcess -Name $name
+Get-ChildItem -Path $reportDir -Filter '*.pid' -File -ErrorAction SilentlyContinue | ForEach-Object {
+  Stop-RecordedProcessFile -PidPath $_.FullName
 }

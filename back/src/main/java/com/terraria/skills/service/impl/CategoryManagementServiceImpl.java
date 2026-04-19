@@ -15,8 +15,12 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -43,62 +47,48 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
     );
 
     private final CategoryMapper categoryMapper;
+    private volatile CategorySnapshot categorySnapshot;
 
     @Override
     public List<CategoryDTO> getAllCategories() {
-        List<Category> categories = categoryMapper.selectAllCategories();
-        return categories.stream()
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
+        return cloneCategoryList(getSnapshot().orderedCategories);
+    }
+
+    @Override
+    public Map<Long, CategoryDTO> getCategoryMap() {
+        Map<Long, CategoryDTO> result = new LinkedHashMap<>();
+        getSnapshot().categoryById.forEach((id, category) -> result.put(id, cloneCategory(category)));
+        return result;
+    }
+
+    @Override
+    public Map<Long, String> getCategoryPathMap() {
+        return getSnapshot().categoryPathById;
     }
 
     @Override
     public CategoryDTO getCategoryById(Long id) {
-        Category category = categoryMapper.selectById(id);
-        if (category == null) {
-            return null;
-        }
-        return convertToDTO(category);
+        return cloneCategory(getSnapshot().categoryById.get(id));
     }
 
     @Override
     public List<CategoryDTO> getCategoriesByParentId(Long parentId) {
-        List<Category> categories = categoryMapper.selectList(
-            new LambdaQueryWrapper<Category>()
-                .eq(parentId != null, Category::getParentId, parentId)
-                .orderByAsc(Category::getSort, Category::getId)
+        Long normalizedParentId = normalizeParentId(parentId);
+        return cloneCategoryList(
+            getSnapshot().orderedCategories.stream()
+                .filter(category -> Objects.equals(normalizeParentId(category.getParentId()), normalizedParentId))
+                .toList()
         );
-
-        return categories.stream()
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
     }
 
     @Override
     public List<CategoryDTO> buildCategoryTree() {
-        List<Category> allCategories = categoryMapper.selectAllCategories();
-
-        List<CategoryDTO> rootCategories = allCategories.stream()
-            .filter(cat -> cat.getParentId() == null || cat.getParentId() == 0)
-            .map(cat -> {
-                CategoryDTO dto = convertToDTO(cat);
-                dto.setLevel(1);
-                return dto;
-            })
-            .collect(Collectors.toList());
-
-        for (CategoryDTO root : rootCategories) {
-            root.setChildren(buildChildren(allCategories, root.getId(), 1));
-        }
-
-        return rootCategories;
+        return buildCategoryTreeFromIds(getSnapshot().rootCategoryIds, 1);
     }
 
     @Override
     public List<CategoryDTO> buildItemCategoryTree() {
-        return buildCategoryTree().stream()
-            .filter(category -> ITEM_ROOT_CATEGORY_CODES.contains(normalizeCategoryCode(category.getCode())))
-            .collect(Collectors.toList());
+        return buildCategoryTreeFromIds(getSnapshot().itemRootCategoryIds, 1);
     }
 
     @Override
@@ -108,13 +98,12 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
         }
 
         String keywordLower = keyword.toLowerCase(Locale.ROOT);
-        List<Category> allCategories = categoryMapper.selectAllCategories();
-
-        return allCategories.stream()
-            .filter(cat -> cat.getName().toLowerCase(Locale.ROOT).contains(keywordLower)
-                || (cat.getCode() != null && cat.getCode().toLowerCase(Locale.ROOT).contains(keywordLower)))
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
+        return cloneCategoryList(
+            getSnapshot().orderedCategories.stream()
+                .filter(cat -> cat.getName().toLowerCase(Locale.ROOT).contains(keywordLower)
+                    || (cat.getCode() != null && cat.getCode().toLowerCase(Locale.ROOT).contains(keywordLower)))
+                .toList()
+        );
     }
 
     @Override
@@ -149,6 +138,7 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
         category.setUpdatedAt(LocalDateTime.now());
 
         categoryMapper.insert(category);
+        invalidateSnapshot();
         return convertToDTO(category);
     }
 
@@ -191,6 +181,7 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
 
         existing.setUpdatedAt(LocalDateTime.now());
         categoryMapper.updateById(existing);
+        invalidateSnapshot();
         return convertToDTO(existing);
     }
 
@@ -218,6 +209,7 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
         existing.setParentId(newParentId == null ? 0L : newParentId);
         existing.setUpdatedAt(LocalDateTime.now());
         categoryMapper.updateById(existing);
+        invalidateSnapshot();
         return convertToDTO(existing);
     }
 
@@ -232,6 +224,7 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
         existing.setSort(Math.max(1, newSort == null ? 1 : newSort));
         existing.setUpdatedAt(LocalDateTime.now());
         categoryMapper.updateById(existing);
+        invalidateSnapshot();
         return convertToDTO(existing);
     }
 
@@ -253,6 +246,7 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
         }
 
         categoryMapper.deleteById(id);
+        invalidateSnapshot();
     }
 
     @Override
@@ -265,6 +259,7 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
 
         deleteDescendants(id);
         categoryMapper.deleteById(id);
+        invalidateSnapshot();
     }
 
     @Override
@@ -285,13 +280,13 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
     public List<CategoryDTO> getPathToRoot(Long id) {
         List<CategoryDTO> path = new ArrayList<>();
 
-        Category current = categoryMapper.selectById(id);
+        CategoryDTO current = getSnapshot().categoryById.get(id);
         while (current != null) {
-            path.add(convertToDTO(current));
+            path.add(cloneCategory(current));
             if (current.getParentId() == null || current.getParentId() == 0) {
                 break;
             }
-            current = categoryMapper.selectById(current.getParentId());
+            current = getSnapshot().categoryById.get(current.getParentId());
         }
 
         Collections.reverse(path);
@@ -300,10 +295,12 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
 
     @Override
     public List<CategoryDTO> getAllDescendants(Long id) {
-        List<Category> allCategories = categoryMapper.selectAllCategories();
-        return collectDescendants(id, allCategories).stream()
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
+        return cloneCategoryList(
+            getSnapshot().descendantIdsByParent.getOrDefault(id, List.of()).stream()
+                .map(getSnapshot().categoryById::get)
+                .filter(Objects::nonNull)
+                .toList()
+        );
     }
 
     @Override
@@ -311,17 +308,25 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
         return getAllDescendants(id).size();
     }
 
-    private List<CategoryDTO> buildChildren(List<Category> allCategories, Long parentId, int level) {
-        return allCategories.stream()
-            .filter(cat -> parentId.equals(cat.getParentId()))
-            .map(cat -> {
-                CategoryDTO dto = convertToDTO(cat);
-                dto.setLevel(level);
-                dto.setChildren(buildChildren(allCategories, cat.getId(), level + 1));
-                return dto;
-            })
-            .sorted(Comparator.comparing(CategoryDTO::getSort))
-            .collect(Collectors.toList());
+    private List<CategoryDTO> buildCategoryTreeFromIds(List<Long> rootIds, int level) {
+        return rootIds.stream()
+            .map(getSnapshot().categoryById::get)
+            .filter(Objects::nonNull)
+            .map(category -> buildCategoryNode(category, level))
+            .toList();
+    }
+
+    private CategoryDTO buildCategoryNode(CategoryDTO category, int level) {
+        CategoryDTO dto = cloneCategory(category);
+        dto.setLevel(level);
+        dto.setChildren(
+            getSnapshot().childrenByParent.getOrDefault(category.getId(), List.of()).stream()
+                .map(getSnapshot().categoryById::get)
+                .filter(Objects::nonNull)
+                .map(child -> buildCategoryNode(child, level + 1))
+                .toList()
+        );
+        return dto;
     }
 
     private String normalizeCategoryCode(String value) {
@@ -332,7 +337,7 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
     }
 
     private boolean isDescendant(Long potentialDescendantId, Long ancestorId) {
-        Category current = categoryMapper.selectById(potentialDescendantId);
+        CategoryDTO current = getSnapshot().categoryById.get(potentialDescendantId);
         while (current != null) {
             if (current.getParentId() != null && current.getParentId().equals(ancestorId)) {
                 return true;
@@ -340,22 +345,9 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
             if (current.getParentId() == null || current.getParentId() == 0) {
                 break;
             }
-            current = categoryMapper.selectById(current.getParentId());
+            current = getSnapshot().categoryById.get(current.getParentId());
         }
         return false;
-    }
-
-    private List<Category> collectDescendants(Long parentId, List<Category> allCategories) {
-        List<Category> descendants = new ArrayList<>();
-
-        for (Category category : allCategories) {
-            if (parentId.equals(category.getParentId())) {
-                descendants.add(category);
-                descendants.addAll(collectDescendants(category.getId(), allCategories));
-            }
-        }
-
-        return descendants;
     }
 
     private void deleteDescendants(Long parentId) {
@@ -388,5 +380,141 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
             normalized = "CATEGORY";
         }
         return normalized + "_" + System.currentTimeMillis();
+    }
+
+    private CategorySnapshot getSnapshot() {
+        CategorySnapshot snapshot = categorySnapshot;
+        if (snapshot != null) {
+            return snapshot;
+        }
+
+        synchronized (this) {
+            if (categorySnapshot == null) {
+                categorySnapshot = buildSnapshot();
+            }
+            return categorySnapshot;
+        }
+    }
+
+    private CategorySnapshot buildSnapshot() {
+        List<CategoryDTO> categories = categoryMapper.selectAllCategories().stream()
+            .map(this::convertToDTO)
+            .sorted(Comparator
+                .comparing(CategoryDTO::getSort, Comparator.nullsLast(Integer::compareTo))
+                .thenComparing(CategoryDTO::getId, Comparator.nullsLast(Long::compareTo)))
+            .toList();
+
+        Map<Long, CategoryDTO> categoryById = new LinkedHashMap<>();
+        Map<Long, List<Long>> childrenByParent = new LinkedHashMap<>();
+        List<Long> rootIds = new ArrayList<>();
+        List<Long> itemRootIds = new ArrayList<>();
+
+        for (CategoryDTO category : categories) {
+            if (category.getId() == null) {
+                continue;
+            }
+            categoryById.put(category.getId(), cloneCategory(category));
+            Long parentId = normalizeParentId(category.getParentId());
+            if (parentId == null) {
+                rootIds.add(category.getId());
+                if (ITEM_ROOT_CATEGORY_CODES.contains(normalizeCategoryCode(category.getCode()))) {
+                    itemRootIds.add(category.getId());
+                }
+            } else {
+                childrenByParent.computeIfAbsent(parentId, ignored -> new ArrayList<>()).add(category.getId());
+            }
+        }
+
+        Map<Long, String> categoryPathById = new LinkedHashMap<>();
+        for (Long categoryId : categoryById.keySet()) {
+            categoryPathById.put(categoryId, buildCategoryPath(categoryId, categoryById));
+        }
+
+        Map<Long, List<Long>> descendantIdsByParent = new LinkedHashMap<>();
+        for (Long categoryId : categoryById.keySet()) {
+            List<Long> descendants = new ArrayList<>();
+            collectDescendantIds(categoryId, childrenByParent, descendants);
+            descendantIdsByParent.put(categoryId, List.copyOf(descendants));
+        }
+
+        Map<Long, List<Long>> immutableChildrenByParent = childrenByParent.entrySet().stream()
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                entry -> List.copyOf(entry.getValue()),
+                (left, right) -> left,
+                LinkedHashMap::new
+            ));
+
+        return new CategorySnapshot(
+            List.copyOf(categories),
+            Collections.unmodifiableMap(categoryById),
+            Collections.unmodifiableMap(immutableChildrenByParent),
+            Collections.unmodifiableMap(new LinkedHashMap<>(categoryPathById)),
+            Collections.unmodifiableMap(new LinkedHashMap<>(descendantIdsByParent)),
+            List.copyOf(rootIds),
+            List.copyOf(itemRootIds)
+        );
+    }
+
+    private void collectDescendantIds(Long parentId, Map<Long, List<Long>> childrenByParent, List<Long> descendants) {
+        for (Long childId : childrenByParent.getOrDefault(parentId, List.of())) {
+            descendants.add(childId);
+            collectDescendantIds(childId, childrenByParent, descendants);
+        }
+    }
+
+    private String buildCategoryPath(Long categoryId, Map<Long, CategoryDTO> categoryById) {
+        List<String> names = new ArrayList<>();
+        CategoryDTO current = categoryById.get(categoryId);
+        while (current != null) {
+            if (current.getName() != null && !current.getName().isBlank()) {
+                names.add(current.getName());
+            }
+            if (current.getParentId() == null || current.getParentId() == 0) {
+                break;
+            }
+            current = categoryById.get(current.getParentId());
+        }
+        Collections.reverse(names);
+        return String.join(" / ", names);
+    }
+
+    private List<CategoryDTO> cloneCategoryList(List<CategoryDTO> categories) {
+        return categories.stream()
+            .map(this::cloneCategory)
+            .toList();
+    }
+
+    private CategoryDTO cloneCategory(CategoryDTO category) {
+        if (category == null) {
+            return null;
+        }
+        CategoryDTO clone = new CategoryDTO();
+        BeanUtils.copyProperties(category, clone);
+        if (category.getChildren() != null && !category.getChildren().isEmpty()) {
+            clone.setChildren(cloneCategoryList(category.getChildren()));
+        } else {
+            clone.setChildren(null);
+        }
+        return clone;
+    }
+
+    private Long normalizeParentId(Long parentId) {
+        return parentId == null || parentId == 0 ? null : parentId;
+    }
+
+    private void invalidateSnapshot() {
+        categorySnapshot = null;
+    }
+
+    private record CategorySnapshot(
+        List<CategoryDTO> orderedCategories,
+        Map<Long, CategoryDTO> categoryById,
+        Map<Long, List<Long>> childrenByParent,
+        Map<Long, String> categoryPathById,
+        Map<Long, List<Long>> descendantIdsByParent,
+        List<Long> rootCategoryIds,
+        List<Long> itemRootCategoryIds
+    ) {
     }
 }

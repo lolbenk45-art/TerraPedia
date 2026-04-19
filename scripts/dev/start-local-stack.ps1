@@ -170,14 +170,25 @@ if (-not (Test-Path $pnpmCmd)) {
   $pnpmCmd = (Get-Command 'pnpm.cmd' -ErrorAction Stop).Source
 }
 
+$verifyScript = Join-Path $PSScriptRoot 'verify-local-stack.ps1'
+if (-not (Test-Path $verifyScript)) {
+  throw "Missing required preflight script: $verifyScript"
+}
+
+Write-Host "Running preflight checks before local stack startup..."
+& 'powershell.exe' -NoProfile -ExecutionPolicy Bypass -File $verifyScript
+if ($LASTEXITCODE -ne 0) {
+  throw "Preflight checks failed. Fix compile/type errors before starting the local stack."
+}
+
 if (-not (Test-LocalPort $redisPort)) {
   $redisExe = $env:TERRAPEDIA_REDIS_SERVER_EXE
   if ([string]::IsNullOrWhiteSpace($redisExe)) {
     $redisExe = Resolve-ConfigPath ([string](Resolve-Setting 'TERRAPEDIA_REDIS_SERVER_EXE' (Get-ConfigValue $stackConfig @('redis', 'serverExe')) 'G:\Redis\redis-server.exe'))
   }
 
-  if ((Test-Path $redisExe)) {
-    $redisOut = Join-Path $reportDir 'redis-6380.log'
+if ((Test-Path $redisExe)) {
+    $redisOut = Join-Path $reportDir "redis-$redisPort.log"
     $resolvedRedis = Resolve-LogPath -BaseLogPath $redisOut
     $redisOut = $resolvedRedis.Out
     $redisErr = $resolvedRedis.Err
@@ -208,6 +219,7 @@ $env:TERRAPEDIA_DB_PORT = "$dbPort"
 $env:TERRAPEDIA_DB_URL = $dbUrl
 $env:TERRAPEDIA_DB_USERNAME = $dbUser
 $env:TERRAPEDIA_DB_PASSWORD = $dbPassword
+$env:TERRAPEDIA_BACKEND_ORIGIN = "http://localhost:$backPort"
 $env:TERRAPEDIA_REDIS_HOST = $redisHost
 $env:TERRAPEDIA_REDIS_PORT = "$redisPort"
 $env:TERRAPEDIA_REDIS_DATABASE = $redisDatabase
@@ -230,38 +242,14 @@ $springProfile = [string](Resolve-Setting 'SPRING_PROFILES_ACTIVE' (Get-ConfigVa
 $env:SPRING_PROFILES_ACTIVE = $springProfile
 $springFlywayOutOfOrder = Resolve-BoolString 'SPRING_FLYWAY_OUT_OF_ORDER' (Get-ConfigValue $stackConfig @('backend', 'flywayOutOfOrder')) $true
 $env:SPRING_FLYWAY_OUT_OF_ORDER = $springFlywayOutOfOrder
+$env:SPRING_DEVTOOLS_RESTART_ENABLED = 'false'
+$env:SPRING_DEVTOOLS_LIVERELOAD_ENABLED = 'false'
 
 if (-not (Test-LocalPort $backPort)) {
-  $backLog = Join-Path $reportDir 'back-dev.log'
+$backLog = Join-Path $reportDir 'back-dev.log'
   $backCmd = @"
 Set-Location '$backDir'
-`$env:APP_PORT = '$backPort'
-`$env:SPRING_PROFILES_ACTIVE = '$springProfile'
-`$env:SPRING_FLYWAY_OUT_OF_ORDER = '$springFlywayOutOfOrder'
-`$env:TERRAPEDIA_DB_NAME = '$dbName'
-`$env:TERRAPEDIA_DB_HOST = '$dbHost'
-`$env:TERRAPEDIA_DB_PORT = '$dbPort'
-`$env:TERRAPEDIA_DB_URL = '$dbUrl'
-`$env:TERRAPEDIA_DB_USERNAME = '$dbUser'
-`$env:TERRAPEDIA_DB_PASSWORD = '$dbPassword'
-`$env:TERRAPEDIA_REDIS_HOST = '$redisHost'
-`$env:TERRAPEDIA_REDIS_PORT = '$redisPort'
-`$env:TERRAPEDIA_REDIS_DATABASE = '$redisDatabase'
-`$env:TERRAPEDIA_MINIO_ENABLED = '$minioEnabled'
-`$env:TERRAPEDIA_ADMIN_USERNAME = '$adminUsername'
-`$env:TERRAPEDIA_ADMIN_PASSWORD = '$adminPassword'
-`$env:TERRAPEDIA_ADMIN_DISPLAY_NAME = '$adminDisplayName'
-`$env:TERRAPEDIA_AUTH_TOKEN_SECRET = '$adminTokenSecret'
-`$env:TERRAPEDIA_USER_TOKEN_SECRET = '$userTokenSecret'
-if ('$minioCredentialsFile' -ne '') {
-  `$env:TERRAPEDIA_MINIO_CREDENTIALS_FILE = '$minioCredentialsFile'
-}
-if ('$redisPassword' -ne '') {
-  `$env:TERRAPEDIA_REDIS_PASSWORD = '$redisPassword'
-} else {
-  Remove-Item Env:TERRAPEDIA_REDIS_PASSWORD -ErrorAction SilentlyContinue
-}
-& '$mavenCmd' 'clean' 'spring-boot:run'
+& '$mavenCmd' '-DskipTests' '-Dspring-boot.run.profiles=legacy' '-Dspring-boot.run.jvmArguments=-DAPP_PORT=$backPort -DTERRAPEDIA_MAIL_ENABLED=false' 'spring-boot:run'
 "@
   Write-Host "backend db: $dbName"
   Start-BackgroundPwsh -Name 'back' -Command $backCmd -LogPath $backLog

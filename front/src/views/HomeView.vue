@@ -1,7 +1,39 @@
 ﻿<template>
-  <div class="items-view">
+  <div class="items-view public-workbench item-workbench page-wrap">
+    <section class="public-page-hero item-workbench__hero">
+      <div class="public-page-hero__layout">
+        <div class="public-page-hero__copy">
+          <span class="section-eyebrow">Atlas Workbench</span>
+          <h1 class="section-title">Item Index</h1>
+          <p class="section-copy section-copy--wide">
+            Search, filter, and traverse the public Terraria item index without losing the calmer atlas shell built by
+            the homepage.
+          </p>
+        </div>
+
+        <div class="public-page-hero__meta item-workbench__summary">
+          <article class="public-hero-stat-card">
+            <span class="public-hero-stat-card__label">Indexed</span>
+            <strong class="public-hero-stat-card__value">{{ allItemsTotal || totalItems }}</strong>
+          </article>
+          <article class="public-hero-stat-card">
+            <span class="public-hero-stat-card__label">Current Slice</span>
+            <strong class="public-hero-stat-card__value">{{ selectedCategoryName }}</strong>
+          </article>
+          <article class="public-hero-stat-card">
+            <span class="public-hero-stat-card__label">Sort Mode</span>
+            <strong class="public-hero-stat-card__value">{{ sortModeLabel }}</strong>
+          </article>
+          <article class="public-hero-stat-card">
+            <span class="public-hero-stat-card__label">Page</span>
+            <strong class="public-hero-stat-card__value">{{ currentPage }} / {{ totalPages }}</strong>
+          </article>
+        </div>
+      </div>
+    </section>
+
     <!-- Main Content -->
-    <main class="py-4">
+    <main class="item-workbench__content">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Global Loading State -->
         <div v-if="isLoading && items.length === 0" class="flex flex-col items-center justify-center py-20">
@@ -13,8 +45,8 @@
           <!-- Desktop Layout -->
           <div class="hidden md:flex gap-4">
           <!-- Left Sidebar - Categories with Tree -->
-          <aside class="w-56 flex-shrink-0">
-            <div class="items-view__sidebar sticky top-20 rounded-xl p-3 border" style="background-color: var(--bg-secondary); border-color: var(--border-color);">
+          <aside class="w-56 flex-shrink-0 item-workbench__rail">
+            <div class="items-view__sidebar public-section-frame sticky top-20 rounded-xl p-3">
               <div class="flex items-center justify-between mb-3 px-2">
                 <h3 class="font-semibold text-sm" style="color: var(--text-primary);">物品分类</h3>
                 <span class="text-[10px] px-1.5 py-0.5 rounded-full" style="background-color: var(--bg-tertiary); color: var(--text-muted);">
@@ -49,7 +81,7 @@
                 :class="selectedCategory === null ? 'text-white' : 'hover:bg-[var(--bg-tertiary)]'"
                 :style="selectedCategory === null ? { backgroundColor: 'var(--accent-primary)' } : { color: 'var(--text-primary)' }"
               >
-                <span>📦</span>
+                <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-[var(--bg-primary)] px-1 text-[9px] font-semibold tracking-[0.08em]">IT</span>
                 <span class="truncate">全部物品</span>
                 <span class="ml-auto text-[10px] opacity-70">{{ allItemsTotal || totalItems }}</span>
               </button>
@@ -71,9 +103,9 @@
           </aside>
           
           <!-- Right Content -->
-          <div class="flex-1 min-w-0">
+          <div class="flex-1 min-w-0 item-workbench__results">
             <!-- Search Bar -->
-            <div class="mb-3">
+            <div class="mb-3 public-summary-strip">
               <ItemSearchInput
                 v-model="searchQuery"
                 placeholder="搜索物品..."
@@ -83,7 +115,7 @@
             </div>
             
             <!-- Toolbar -->
-            <div class="items-view__toolbar flex items-center justify-between gap-3 mb-3 min-w-0">
+            <div class="items-view__toolbar public-summary-strip__row flex items-center justify-between gap-3 mb-3 min-w-0">
               <h2 class="text-base font-semibold min-w-0 truncate" style="color: var(--text-primary);">
                 {{ selectedCategoryName }}
                 <span class="text-xs font-normal ml-1" style="color: var(--text-muted);">({{ totalItems }})</span>
@@ -209,7 +241,7 @@
                 title="返回首页"
               >
                 <div class="w-6 h-6 rounded flex items-center justify-center text-sm" style="background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));">
-                  📦
+                  TP
                 </div>
               </router-link>
               
@@ -481,6 +513,21 @@ const selectedCategoryName = computed(() => {
   if (!selectedCategory.value) return '全部物品'
   const cat = categories.value.find(c => c.id === selectedCategory.value)
   return cat?.name || '未知分类'
+})
+
+const sortModeLabel = computed(() => {
+  switch (sortMode.value) {
+    case 'name-asc':
+      return 'Name A-Z'
+    case 'name-desc':
+      return 'Name Z-A'
+    case 'rarity-desc':
+      return 'Rarity Desc'
+    case 'rarity-asc':
+      return 'Rarity Asc'
+    default:
+      return 'Default'
+  }
 })
 
 const categoryCountMap = computed(() => {

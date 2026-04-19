@@ -18,6 +18,16 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/ItemDetailView.vue'),
   },
   {
+    path: '/npcs',
+    name: 'npcs',
+    component: () => import('@/views/NpcListView.vue'),
+  },
+  {
+    path: '/npcs/:id',
+    name: 'npc-detail',
+    component: () => import('@/views/NpcDetailView.vue'),
+  },
+  {
     path: '/about',
     name: 'about',
     component: () => import('@/views/AboutView.vue'),

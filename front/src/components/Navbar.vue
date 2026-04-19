@@ -1,5 +1,5 @@
 <template>
-  <header class="navbar">
+  <header :class="['navbar', { 'navbar--home': route.path === '/' }]">
     <div class="navbar__shell surface-panel">
       <div class="navbar__inner">
         <router-link to="/" class="brand" aria-label="TerraPedia home">
@@ -8,13 +8,14 @@
           </span>
           <span class="brand__text">
             <strong>TerraPedia</strong>
-            <small>Terraria Field Guide</small>
+            <small>冒险图鉴</small>
           </span>
         </router-link>
 
         <nav class="nav nav--desktop" aria-label="Primary">
           <router-link to="/" :class="linkClass('/')">Home</router-link>
           <router-link to="/items" :class="linkClass('/items')">Items</router-link>
+          <router-link to="/npcs" :class="linkClass('/npcs')">NPCs</router-link>
           <router-link to="/articles" :class="linkClass('/articles')">Articles</router-link>
           <router-link to="/about" :class="linkClass('/about')">About</router-link>
         </nav>
@@ -34,6 +35,7 @@
                 <span>{{ authStore.displayName }}</span>
                 <span class="account-menu__caret" aria-hidden="true">v</span>
               </button>
+
               <div v-if="accountMenuOpen" class="account-menu__panel surface-panel" role="menu" aria-label="User menu">
                 <router-link to="/profile" role="menuitem" @click="closeAccountMenu">My Profile</router-link>
                 <router-link to="/articles/write" role="menuitem" @click="closeAccountMenu">Article Writer</router-link>
@@ -43,6 +45,7 @@
               </div>
             </div>
           </template>
+
           <template v-else>
             <router-link to="/login" class="btn btn-soft nav-cta">Sign in</router-link>
             <router-link to="/register" class="btn btn-brand nav-cta">Register</router-link>
@@ -63,6 +66,7 @@
       <div v-if="mobileOpen" class="nav nav--mobile surface-card surface-card--soft">
         <router-link to="/" @click="closeMobile">Home</router-link>
         <router-link to="/items" @click="closeMobile">Items</router-link>
+        <router-link to="/npcs" @click="closeMobile">NPCs</router-link>
         <router-link to="/articles" @click="closeMobile">Articles</router-link>
         <router-link to="/about" @click="closeMobile">About</router-link>
 
@@ -155,14 +159,92 @@ watch(
   top: 0;
   z-index: 40;
   padding: 0.85rem 1rem 0;
+  isolation: isolate;
+}
+
+.navbar::before,
+.navbar::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.navbar::before {
+  top: 0;
+  width: min(1240px, calc(100vw - 1rem));
+  height: 5.4rem;
+  border-radius: 0 0 2rem 2rem;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-primary) 62%, transparent), transparent 100%);
+}
+
+.navbar::after {
+  top: 0.75rem;
+  width: min(1120px, calc(100vw - 5rem));
+  height: 3.6rem;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--accent-primary) 18%, transparent), transparent 66%);
+  filter: blur(30px);
+  opacity: 0.72;
 }
 
 .navbar__shell {
   width: min(1180px, calc(100vw - 2rem));
   margin: 0 auto;
   padding: 0.42rem 0.55rem;
-  backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in srgb, var(--border-color) 44%, transparent);
+  border-radius: 1.5rem;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, white 18%, transparent),
+      color-mix(in srgb, var(--surface-elevated) 34%, transparent) 16%,
+      color-mix(in srgb, var(--surface-panel) 72%, var(--bg-secondary)) 100%
+    );
+  box-shadow:
+    0 18px 42px color-mix(in srgb, black 14%, transparent),
+    0 10px 24px color-mix(in srgb, var(--accent-primary) 8%, transparent),
+    inset 0 1px 0 rgb(255 255 255 / 0.22);
+  backdrop-filter: blur(14px);
   overflow: visible;
+}
+
+.navbar--home::before {
+  background:
+    linear-gradient(180deg, rgb(16 21 18 / 0.92), rgb(16 21 18 / 0.18) 72%, transparent 100%);
+}
+
+.navbar--home::after {
+  background:
+    radial-gradient(circle, rgb(147 193 106 / 0.16), transparent 66%);
+  opacity: 0.55;
+}
+
+.navbar--home .navbar__shell {
+  position: relative;
+  border-color: rgb(240 233 208 / 0.09);
+  border-bottom-color: rgb(240 233 208 / 0.04);
+  border-radius: 1.75rem 1.75rem 0 0;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.08), rgb(255 255 255 / 0.03) 12%, rgb(23 31 26 / 0.84) 100%);
+  box-shadow:
+    0 14px 32px rgb(0 0 0 / 0.16),
+    0 10px 24px rgb(154 194 107 / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.16);
+}
+
+.navbar--home .navbar__shell::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 2rem;
+  background:
+    linear-gradient(180deg, transparent 0%, rgb(23 31 26 / 0.46) 58%, rgb(23 31 26 / 0.86) 100%);
+  pointer-events: none;
 }
 
 .navbar__inner {
@@ -188,8 +270,10 @@ watch(
   width: 3rem;
   height: 3rem;
   border-radius: 1rem;
-  background: linear-gradient(145deg, color-mix(in srgb, var(--accent-primary) 82%, white 18%), color-mix(in srgb, var(--accent-secondary) 56%, var(--accent-primary)));
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.38), 0 10px 22px color-mix(in srgb, var(--accent-primary) 16%, transparent);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--accent-primary) 72%, white 28%), color-mix(in srgb, var(--accent-secondary) 40%, var(--accent-primary)));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.34),
+    0 10px 22px color-mix(in srgb, var(--accent-primary) 12%, transparent);
 }
 
 .brand__crest-core {
@@ -210,14 +294,22 @@ watch(
 .brand__text strong {
   font-size: 1.06rem;
   letter-spacing: 0.02em;
-  color: var(--text-primary);
+  color: color-mix(in srgb, var(--text-primary) 92%, #f6f0da);
 }
 
 .brand__text small {
-  color: var(--text-muted);
+  color: color-mix(in srgb, var(--text-muted) 90%, #d6dfcc);
   font-size: 0.7rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.navbar--home .brand__text strong {
+  color: #f0efdf;
+}
+
+.navbar--home .brand__text small {
+  color: color-mix(in srgb, var(--text-muted) 84%, #d6dfcc);
 }
 
 .nav {
@@ -227,6 +319,15 @@ watch(
 
 .nav--desktop {
   gap: 0.35rem;
+  padding: 0.22rem;
+  border: 1px solid color-mix(in srgb, var(--border-color) 28%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-primary) 14%, transparent);
+}
+
+.navbar--home .nav--desktop {
+  border-color: rgb(240 233 208 / 0.08);
+  background: rgb(255 255 255 / 0.03);
 }
 
 .nav__link {
@@ -237,22 +338,49 @@ watch(
   padding: 0.58rem 0.88rem;
   border-radius: 999px;
   text-decoration: none;
-  color: var(--text-secondary);
+  color: color-mix(in srgb, var(--text-secondary) 84%, var(--text-primary));
   font-size: 0.92rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+  transition: background-color 160ms ease, color 160ms ease, transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  border: 1px solid transparent;
+}
+
+.navbar--home .nav__link {
+  color: #c5cfba;
 }
 
 .nav__link:hover {
-  color: var(--text-primary);
-  background: color-mix(in srgb, var(--bg-secondary) 82%, white 18%);
+  color: color-mix(in srgb, var(--text-primary) 96%, white 4%);
+  background: color-mix(in srgb, var(--surface-elevated) 34%, transparent);
+  border-color: color-mix(in srgb, var(--border-color) 28%, transparent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+}
+
+.navbar--home .nav__link:hover {
+  color: #edf3de;
+  background: rgb(255 255 255 / 0.05);
+  border-color: rgb(240 233 208 / 0.08);
+  box-shadow: none;
 }
 
 .nav__link--active {
-  color: var(--accent-primary);
-  background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 12%, transparent);
+  color: color-mix(in srgb, var(--text-primary) 94%, white 6%);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--accent-primary) 22%, transparent),
+      color-mix(in srgb, var(--accent-primary) 12%, transparent)
+    );
+  border-color: color-mix(in srgb, var(--accent-primary) 28%, var(--border-color));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+}
+
+.navbar--home .nav__link--active {
+  color: #eaf5dc;
+  background: rgb(147 193 106 / 0.12);
+  border-color: rgb(147 193 106 / 0.18);
+  box-shadow: none;
 }
 
 .actions {
@@ -295,7 +423,7 @@ watch(
   border-radius: 0.95rem;
   padding: 0.8rem 0.9rem;
   text-align: left;
-  color: var(--text-primary);
+  color: #f0efdf;
   background: transparent;
   text-decoration: none;
   font: inherit;
@@ -307,7 +435,7 @@ watch(
 
 .account-menu__panel a:hover,
 .account-menu__logout:hover {
-  background: color-mix(in srgb, var(--bg-secondary) 84%, transparent);
+  background: rgb(255 255 255 / 0.05);
   transform: translateX(1px);
 }
 
@@ -316,10 +444,30 @@ watch(
   width: 2.8rem;
   height: 2.8rem;
   border-radius: 999px;
-  border: 1px solid var(--border-color);
-  background: color-mix(in srgb, var(--bg-secondary) 84%, white 16%);
-  color: var(--text-primary);
+  border: 1px solid color-mix(in srgb, var(--border-color) 44%, transparent);
+  background: color-mix(in srgb, var(--surface-panel) 76%, transparent);
+  color: color-mix(in srgb, var(--text-primary) 92%, white 8%);
   cursor: pointer;
+}
+
+.navbar--home :deep(.theme-switcher__button),
+.navbar--home .btn-soft,
+.navbar--home .menu-toggle {
+  border-color: rgb(240 233 208 / 0.12);
+  background: rgb(255 255 255 / 0.05);
+  color: #f0efdf;
+  box-shadow: none;
+}
+
+.navbar--home :deep(.theme-switcher__button:hover),
+.navbar--home .btn-soft:hover,
+.navbar--home .menu-toggle:hover {
+  background: rgb(255 255 255 / 0.08);
+  border-color: rgb(240 233 208 / 0.16);
+}
+
+.navbar--home .btn-brand {
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--accent-primary) 16%, transparent);
 }
 
 .menu-toggle span {
@@ -346,10 +494,18 @@ watch(
     padding: 0.75rem 0.75rem 0;
   }
 
+  .navbar::after {
+    width: calc(100vw - 3rem);
+  }
+
   .nav--desktop,
   .actions .nav-cta,
   .account-menu {
     display: none;
+  }
+
+  .navbar--home .navbar__shell {
+    border-radius: 1.5rem 1.5rem 0 0;
   }
 
   .menu-toggle {
@@ -389,6 +545,10 @@ watch(
 @media (max-width: 640px) {
   .brand__text small {
     display: none;
+  }
+
+  .navbar::before {
+    width: calc(100vw - 0.75rem);
   }
 
   .navbar__inner {

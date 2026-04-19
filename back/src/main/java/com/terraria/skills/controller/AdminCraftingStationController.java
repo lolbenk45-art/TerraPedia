@@ -31,6 +31,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,10 +48,13 @@ import java.util.stream.Collectors;
 @SecurityRequirement(name = "bearerAuth")
 public class AdminCraftingStationController {
 
+    private static final Duration STATION_SNAPSHOT_TTL = Duration.ofMinutes(5);
+
     private final CraftingStationMapper craftingStationMapper;
     private final ItemMapper itemMapper;
     private final RecipeMapper recipeMapper;
     private final RecipeStationMapper recipeStationMapper;
+    private volatile TimedValue<StationSnapshot> stationSnapshotCache;
 
     @GetMapping
     @Operation(summary = "Get crafting stations")
@@ -63,28 +69,24 @@ public class AdminCraftingStationController {
         int safeLimit = PaginationParams.resolveLimit(limit, size, 20, 100);
         String normalizedUsageState = normalizeUsageState(usageState);
 
-        LambdaQueryWrapper<CraftingStation> wrapper = new LambdaQueryWrapper<CraftingStation>()
-            .orderByAsc(CraftingStation::getSortOrder, CraftingStation::getId);
-        if (search != null && !search.isBlank()) {
-            String keyword = search.trim();
-            wrapper.and(w -> w.like(CraftingStation::getInternalName, keyword)
-                .or().like(CraftingStation::getNameEn, keyword)
-                .or().like(CraftingStation::getNameZh, keyword));
+        List<AdminCraftingStationDTO> stations = getStationSnapshot().orderedStations();
+        String normalizedSearch = trimToNull(search);
+        if (normalizedSearch != null) {
+            String needle = normalizedSearch.toLowerCase();
+            stations = stations.stream()
+                .filter(station -> containsIgnoreCase(station.getInternalName(), needle)
+                    || containsIgnoreCase(station.getNameEn(), needle)
+                    || containsIgnoreCase(station.getNameZh(), needle))
+                .toList();
         }
-
         if (normalizedUsageState != null) {
-            List<AdminCraftingStationDTO> allRecords = enrichStations(craftingStationMapper.selectList(wrapper)).stream()
+            stations = stations.stream()
                 .filter(station -> matchesUsageState(station, normalizedUsageState))
                 .toList();
-            Pagination pagination = new Pagination(allRecords.size(), safePage, safeLimit);
-            ApiResponse<List<AdminCraftingStationDTO>> response = ApiResponse.success(sliceStations(allRecords, safePage, safeLimit));
-            response.setPagination(pagination);
-            return ResponseEntity.ok(response);
         }
 
-        Page<CraftingStation> mpPage = craftingStationMapper.selectPage(new Page<>(safePage, safeLimit), wrapper);
-        Pagination pagination = new Pagination(mpPage.getTotal(), (int) mpPage.getCurrent(), (int) mpPage.getSize());
-        ApiResponse<List<AdminCraftingStationDTO>> response = ApiResponse.success(enrichStations(mpPage.getRecords()));
+        Pagination pagination = new Pagination(stations.size(), safePage, safeLimit);
+        ApiResponse<List<AdminCraftingStationDTO>> response = ApiResponse.success(sliceStations(stations, safePage, safeLimit));
         response.setPagination(pagination);
         return ResponseEntity.ok(response);
     }
@@ -92,11 +94,11 @@ public class AdminCraftingStationController {
     @GetMapping("/{id}")
     @Operation(summary = "Get crafting station detail")
     public ResponseEntity<ApiResponse<AdminCraftingStationDTO>> getCraftingStationById(@PathVariable Long id) {
-        CraftingStation station = craftingStationMapper.selectById(id);
+        AdminCraftingStationDTO station = getStationSnapshot().dtoById().get(id);
         if (station == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "Crafting station not found"));
         }
-        return ResponseEntity.ok(ApiResponse.success(enrichStation(station)));
+        return ResponseEntity.ok(ApiResponse.success(station));
     }
 
     @GetMapping("/{id}/usage-items")
@@ -107,20 +109,14 @@ public class AdminCraftingStationController {
         @RequestParam(required = false) Integer limit,
         @RequestParam(required = false) Integer size
     ) {
-        CraftingStation station = craftingStationMapper.selectById(id);
-        if (station == null) {
+        StationSnapshot snapshot = getStationSnapshot();
+        if (!snapshot.dtoById().containsKey(id)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "Crafting station not found"));
         }
 
         int safePage = PaginationParams.resolvePage(page);
         int safeLimit = PaginationParams.resolveLimit(limit, size, 20, 100);
-
-        List<RecipeStation> relevantRecipeStations = loadRelevantRecipeStations(List.of(station));
-        Map<Long, Recipe> recipeById = loadRecipesById(relevantRecipeStations.stream().map(RecipeStation::getRecipeId));
-        List<AdminCraftingStationUsageItemDTO> usageItems = hydrateUsageItems(
-            buildUsageItems(station, relevantRecipeStations, recipeById),
-            loadItemsById(recipeById.values().stream().map(Recipe::getResultItemId).filter(Objects::nonNull).distinct().toList())
-        );
+        List<AdminCraftingStationUsageItemDTO> usageItems = snapshot.usageItemsByStationId().getOrDefault(id, List.of());
 
         Pagination pagination = new Pagination(usageItems.size(), safePage, safeLimit);
         ApiResponse<List<AdminCraftingStationUsageItemDTO>> response = ApiResponse.success(sliceUsageItems(usageItems, safePage, safeLimit));
@@ -144,8 +140,9 @@ public class AdminCraftingStationController {
         CraftingStation station = new CraftingStation();
         applyFields(station, request, true);
         craftingStationMapper.insert(station);
+        invalidateStationSnapshot();
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.success(enrichStation(craftingStationMapper.selectById(station.getId())), "Crafting station created"));
+            .body(ApiResponse.success(getStationSnapshot().dtoById().get(station.getId()), "Crafting station created"));
     }
 
     @PutMapping("/{id}")
@@ -167,7 +164,8 @@ public class AdminCraftingStationController {
         }
         applyFields(existing, request, false);
         craftingStationMapper.updateById(existing);
-        return ResponseEntity.ok(ApiResponse.success(enrichStation(craftingStationMapper.selectById(id)), "Crafting station updated"));
+        invalidateStationSnapshot();
+        return ResponseEntity.ok(ApiResponse.success(getStationSnapshot().dtoById().get(id), "Crafting station updated"));
     }
 
     @DeleteMapping("/{id}")
@@ -183,12 +181,13 @@ public class AdminCraftingStationController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(400, "crafting station is still referenced by recipes"));
         }
-        int legacyReferences = loadRelevantRecipeStations(List.of(existing)).size();
+        int legacyReferences = getStationSnapshot().usageRecipeCountByStationId().getOrDefault(id, 0);
         if (legacyReferences > 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error(400, "crafting station is still referenced by recipes"));
         }
         craftingStationMapper.deleteById(id);
+        invalidateStationSnapshot();
         return ResponseEntity.ok(ApiResponse.success(null, "Crafting station deleted"));
     }
 
@@ -296,14 +295,27 @@ public class AdminCraftingStationController {
         return false;
     }
 
-    private List<AdminCraftingStationDTO> enrichStations(List<CraftingStation> stations) {
+    private StationSnapshot getStationSnapshot() {
+        TimedValue<StationSnapshot> cached = stationSnapshotCache;
+        if (isValid(cached)) {
+            return cached.value();
+        }
+
+        StationSnapshot snapshot = buildStationSnapshot();
+        stationSnapshotCache = new TimedValue<>(snapshot, System.currentTimeMillis() + STATION_SNAPSHOT_TTL.toMillis());
+        return snapshot;
+    }
+
+    private StationSnapshot buildStationSnapshot() {
+        List<CraftingStation> stations = craftingStationMapper.selectList(new LambdaQueryWrapper<CraftingStation>()
+            .orderByAsc(CraftingStation::getSortOrder, CraftingStation::getId));
         if (stations == null || stations.isEmpty()) {
-            return List.of();
+            return new StationSnapshot(List.of(), Map.of(), Map.of(), Map.of());
         }
 
         List<RecipeStation> relevantRecipeStations = loadRelevantRecipeStations(stations);
         Map<Long, Recipe> recipeById = loadRecipesById(relevantRecipeStations.stream().map(RecipeStation::getRecipeId));
-        Map<Long, StationUsageSummary> usageByStationId = buildUsageSummaryByStation(stations, relevantRecipeStations, recipeById);
+        StationRecipeMatches stationRecipeMatches = buildStationRecipeMatches(stations, relevantRecipeStations);
         Map<Long, Item> itemById = loadItemsById(StreamUtils.concat(
             stations.stream()
                 .map(CraftingStation::getItemId)
@@ -313,27 +325,34 @@ public class AdminCraftingStationController {
                 .filter(Objects::nonNull)
         ).distinct().toList());
 
-        return stations.stream()
-            .map(station -> toDto(station, itemById, usageByStationId.get(station.getId())))
-            .toList();
-    }
+        List<AdminCraftingStationDTO> orderedStations = new ArrayList<>();
+        Map<Long, AdminCraftingStationDTO> dtoById = new LinkedHashMap<>();
+        Map<Long, List<AdminCraftingStationUsageItemDTO>> usageItemsByStationId = new LinkedHashMap<>();
+        Map<Long, Integer> usageRecipeCountByStationId = new LinkedHashMap<>();
 
-    private AdminCraftingStationDTO enrichStation(CraftingStation station) {
-        if (station == null) {
-            return null;
+        for (CraftingStation station : stations) {
+            List<Long> recipeIds = stationRecipeMatches.recipeIdsByStationId().getOrDefault(station.getId(), List.of());
+            List<AdminCraftingStationUsageItemDTO> usageItems = hydrateUsageItems(buildUsageItems(recipeIds, recipeById), itemById);
+
+            StationUsageSummary usageSummary = new StationUsageSummary();
+            usageSummary.recipeCount = recipeIds.size();
+            usageSummary.recipeIds = recipeIds;
+            usageSummary.items = usageItems.stream().limit(6).toList();
+            usageSummary.itemCount = usageItems.size();
+
+            AdminCraftingStationDTO dto = toDto(station, itemById, usageSummary);
+            orderedStations.add(dto);
+            dtoById.put(station.getId(), dto);
+            usageItemsByStationId.put(station.getId(), usageItems);
+            usageRecipeCountByStationId.put(station.getId(), recipeIds.size());
         }
 
-        List<RecipeStation> relevantRecipeStations = loadRelevantRecipeStations(List.of(station));
-        Map<Long, Recipe> recipeById = loadRecipesById(relevantRecipeStations.stream().map(RecipeStation::getRecipeId));
-        StationUsageSummary usageSummary = buildUsageSummaryByStation(List.of(station), relevantRecipeStations, recipeById).get(station.getId());
-        Map<Long, Item> itemById = loadItemsById(StreamUtils.concat(
-            StreamUtils.ofNullable(station.getItemId()),
-            recipeById.values().stream()
-                .map(Recipe::getResultItemId)
-                .filter(Objects::nonNull)
-        ).distinct().toList());
-
-        return toDto(station, itemById, usageSummary);
+        return new StationSnapshot(
+            List.copyOf(orderedStations),
+            Map.copyOf(dtoById),
+            Map.copyOf(usageItemsByStationId),
+            Map.copyOf(usageRecipeCountByStationId)
+        );
     }
 
     private Map<Long, Item> loadItemsById(List<Long> itemIds) {
@@ -415,6 +434,57 @@ public class AdminCraftingStationController {
         return deduped.values().stream().toList();
     }
 
+    private StationRecipeMatches buildStationRecipeMatches(List<CraftingStation> stations, List<RecipeStation> relevantRecipeStations) {
+        if (stations == null || stations.isEmpty() || relevantRecipeStations == null || relevantRecipeStations.isEmpty()) {
+            return new StationRecipeMatches(Map.of(), Map.of());
+        }
+
+        Map<Long, List<RecipeStation>> byStationId = new LinkedHashMap<>();
+        Map<Long, List<RecipeStation>> byStationItemId = new LinkedHashMap<>();
+        Map<String, List<RecipeStation>> byStationInternalName = new LinkedHashMap<>();
+        Map<String, List<RecipeStation>> byStationNameRaw = new LinkedHashMap<>();
+        for (RecipeStation recipeStation : relevantRecipeStations) {
+            if (recipeStation == null) {
+                continue;
+            }
+            addToIndex(byStationId, recipeStation.getStationId(), recipeStation);
+            addToIndex(byStationItemId, recipeStation.getStationItemId(), recipeStation);
+            addToIndex(byStationInternalName, trimToNull(recipeStation.getStationInternalName()), recipeStation);
+            addToIndex(byStationNameRaw, trimToNull(recipeStation.getStationNameRaw()), recipeStation);
+        }
+
+        Map<Long, List<RecipeStation>> recipeStationsByStationId = new LinkedHashMap<>();
+        Map<Long, List<Long>> recipeIdsByStationId = new LinkedHashMap<>();
+        for (CraftingStation station : stations) {
+            if (station == null || station.getId() == null) {
+                continue;
+            }
+
+            LinkedHashMap<Long, RecipeStation> matchedRecipeStations = new LinkedHashMap<>();
+            collectRecipeStations(matchedRecipeStations, byStationId.get(station.getId()));
+            collectRecipeStations(matchedRecipeStations, byStationItemId.get(station.getItemId()));
+            collectRecipeStations(matchedRecipeStations, byStationInternalName.get(trimToNull(station.getInternalName())));
+            collectRecipeStations(matchedRecipeStations, byStationNameRaw.get(trimToNull(station.getNameEn())));
+            collectRecipeStations(matchedRecipeStations, byStationNameRaw.get(trimToNull(station.getNameZh())));
+
+            List<RecipeStation> matchedList = matchedRecipeStations.isEmpty()
+                ? List.of()
+                : List.copyOf(matchedRecipeStations.values());
+            recipeStationsByStationId.put(station.getId(), matchedList);
+            recipeIdsByStationId.put(
+                station.getId(),
+                matchedList.stream()
+                    .map(RecipeStation::getRecipeId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .sorted()
+                    .toList()
+            );
+        }
+
+        return new StationRecipeMatches(Map.copyOf(recipeStationsByStationId), Map.copyOf(recipeIdsByStationId));
+    }
+
     private void collectRecipeStations(Map<Long, RecipeStation> deduped, List<RecipeStation> recipeStations) {
         if (recipeStations == null || recipeStations.isEmpty()) {
             return;
@@ -424,6 +494,13 @@ public class AdminCraftingStationController {
                 deduped.putIfAbsent(recipeStation.getId(), recipeStation);
             }
         }
+    }
+
+    private <T> void addToIndex(Map<T, List<RecipeStation>> index, T key, RecipeStation recipeStation) {
+        if (key == null || recipeStation == null) {
+            return;
+        }
+        index.computeIfAbsent(key, unused -> new ArrayList<>()).add(recipeStation);
     }
 
     private Map<Long, Recipe> loadRecipesById(java.util.stream.Stream<Long> recipeIds) {
@@ -444,62 +521,10 @@ public class AdminCraftingStationController {
             .collect(Collectors.toMap(Recipe::getId, Function.identity(), (left, right) -> left));
     }
 
-    private Map<Long, StationUsageSummary> buildUsageSummaryByStation(List<CraftingStation> stations, List<RecipeStation> relevantRecipeStations, Map<Long, Recipe> recipeById) {
-        if (stations == null || stations.isEmpty()) {
-            return Map.of();
-        }
-
-        Map<Long, StationUsageSummary> usageByStation = new LinkedHashMap<>();
-        for (CraftingStation station : stations) {
-            if (station == null || station.getId() == null) {
-                continue;
-            }
-
-            List<RecipeStation> matchedRecipeStations = relevantRecipeStations.stream()
-                .filter(recipeStation -> matchesStation(station, recipeStation))
-                .toList();
-            if (matchedRecipeStations.isEmpty()) {
-                continue;
-            }
-
-            List<Long> recipeIds = matchedRecipeStations.stream()
-                .map(RecipeStation::getRecipeId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .sorted()
-                .toList();
-
-            List<AdminCraftingStationUsageItemDTO> usageItems = buildUsageItems(station, matchedRecipeStations, recipeById);
-            StationUsageSummary summary = new StationUsageSummary();
-            summary.recipeCount = recipeIds.size();
-            summary.recipeIds = recipeIds;
-            summary.items = usageItems.stream()
-                .limit(6)
-                .toList();
-            summary.itemCount = usageItems.size();
-            usageByStation.put(station.getId(), summary);
-        }
-        return usageByStation;
-    }
-
-    private List<AdminCraftingStationUsageItemDTO> buildUsageItems(CraftingStation station, List<RecipeStation> relevantRecipeStations, Map<Long, Recipe> recipeById) {
-        if (station == null || relevantRecipeStations == null || relevantRecipeStations.isEmpty()) {
+    private List<AdminCraftingStationUsageItemDTO> buildUsageItems(List<Long> recipeIds, Map<Long, Recipe> recipeById) {
+        if (recipeIds == null || recipeIds.isEmpty()) {
             return List.of();
         }
-
-        List<RecipeStation> matchedRecipeStations = relevantRecipeStations.stream()
-            .filter(recipeStation -> matchesStation(station, recipeStation))
-            .toList();
-        if (matchedRecipeStations.isEmpty()) {
-            return List.of();
-        }
-
-        List<Long> recipeIds = matchedRecipeStations.stream()
-            .map(RecipeStation::getRecipeId)
-            .filter(Objects::nonNull)
-            .distinct()
-            .sorted()
-            .toList();
 
         LinkedHashMap<String, UsageAccumulator> usageItems = new LinkedHashMap<>();
         for (Long recipeId : recipeIds) {
@@ -515,30 +540,6 @@ public class AdminCraftingStationController {
         return usageItems.values().stream()
             .map(UsageAccumulator::toDto)
             .toList();
-    }
-
-    private boolean matchesStation(CraftingStation station, RecipeStation recipeStation) {
-        if (station == null || recipeStation == null) {
-            return false;
-        }
-        if (station.getId() != null && station.getId().equals(recipeStation.getStationId())) {
-            return true;
-        }
-        if (station.getItemId() != null && station.getItemId().equals(recipeStation.getStationItemId())) {
-            return true;
-        }
-
-        String stationInternalName = trimToNull(station.getInternalName());
-        String recipeStationInternalName = trimToNull(recipeStation.getStationInternalName());
-        if (stationInternalName != null && stationInternalName.equals(recipeStationInternalName)) {
-            return true;
-        }
-
-        String recipeStationNameRaw = trimToNull(recipeStation.getStationNameRaw());
-        String stationNameEn = trimToNull(station.getNameEn());
-        String stationNameZh = trimToNull(station.getNameZh());
-        return (stationNameEn != null && stationNameEn.equals(recipeStationNameRaw))
-            || (stationNameZh != null && stationNameZh.equals(recipeStationNameRaw));
     }
 
     private String buildUsageItemKey(Recipe recipe) {
@@ -578,7 +579,7 @@ public class AdminCraftingStationController {
         dto.setUsageRecipeCount(usageSummary == null ? 0 : usageSummary.recipeCount);
         dto.setUsageItemCount(usageSummary == null ? 0 : usageSummary.itemCount);
         dto.setUsageRecipeIds(usageSummary == null ? List.of() : usageSummary.recipeIds);
-        dto.setUsageItems(usageSummary == null ? List.of() : hydrateUsageItems(usageSummary.items, itemById));
+        dto.setUsageItems(usageSummary == null ? List.of() : usageSummary.items);
         return dto;
     }
 
@@ -658,6 +659,35 @@ public class AdminCraftingStationController {
         }
         int toIndex = Math.min(fromIndex + limit, items.size());
         return items.subList(fromIndex, toIndex);
+    }
+
+    private boolean containsIgnoreCase(String value, String needleLowerCase) {
+        return value != null && needleLowerCase != null && value.toLowerCase().contains(needleLowerCase);
+    }
+
+    private boolean isValid(TimedValue<?> cached) {
+        return cached != null && cached.expiresAtMillis() > System.currentTimeMillis();
+    }
+
+    private void invalidateStationSnapshot() {
+        stationSnapshotCache = null;
+    }
+
+    private record StationRecipeMatches(
+        Map<Long, List<RecipeStation>> recipeStationsByStationId,
+        Map<Long, List<Long>> recipeIdsByStationId
+    ) {
+    }
+
+    private record StationSnapshot(
+        List<AdminCraftingStationDTO> orderedStations,
+        Map<Long, AdminCraftingStationDTO> dtoById,
+        Map<Long, List<AdminCraftingStationUsageItemDTO>> usageItemsByStationId,
+        Map<Long, Integer> usageRecipeCountByStationId
+    ) {
+    }
+
+    private record TimedValue<T>(T value, long expiresAtMillis) {
     }
 
     private static final class StreamUtils {

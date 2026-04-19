@@ -47,7 +47,7 @@
                   style="image-rendering: pixelated; image-rendering: crisp-edges;"
                   @error="imageError = true"
                 />
-                <div v-else class="flex h-20 w-20 items-center justify-center rounded-xl text-4xl" style="background-color: var(--bg-primary);">
+                <div v-else class="flex h-20 w-20 items-center justify-center rounded-xl text-sm font-semibold tracking-[0.12em]" style="background-color: var(--bg-primary);">
                   {{ itemIcon }}
                 </div>
               </div>
@@ -129,6 +129,7 @@ import { computed, ref } from 'vue'
 import { useAppStore } from '@/stores'
 import type { Item } from '@/types'
 import { getRarityPresentation } from '@/utils/rarity'
+import { getItemFallbackMark } from '@/utils/itemFallbackMark'
 
 interface Props {
   item: Item
@@ -161,9 +162,11 @@ const displayName = computed(() => props.item.nameZh?.trim() || props.item.name)
 const secondaryName = computed(() => props.item.nameZh?.trim() ? (props.item.name || props.item.internalName || '') : (props.item.internalName || ''))
 
 const itemIcon = computed(() => {
-  const icons = ['🗡️', '🛡️', '🏹', '🪓', '🔭', '💵', '🧪', '📐', '🧱', '⚙️', '📜', '🎵', '🔮', '✨', '🔥', '🦠', '⛏️', '🎲', '🏍']
-  const id = props.item.id || 0
-  return icons[id % icons.length]
+  return getItemFallbackMark({
+    id: props.item.id,
+    name: displayName.value,
+    category: props.item.categoryName || props.item.category,
+  })
 })
 
 const rarityInfo = computed(() => getRarityPresentation(props.item))

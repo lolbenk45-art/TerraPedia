@@ -3,6 +3,8 @@ import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const terrapediaBackendOrigin = (process.env.TERRAPEDIA_BACKEND_ORIGIN || 'http://localhost:18088').replace(/\/$/, '')
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -86,7 +88,7 @@ export default defineConfig({
     port: 5174,
     proxy: {
       '/api': {
-        target: 'http://localhost:8888',
+        target: terrapediaBackendOrigin,
         changeOrigin: true,
       },
     },

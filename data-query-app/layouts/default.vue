@@ -253,6 +253,7 @@ const menuSections: MenuSection[] = [
   {
     label: 'Entities',
     items: [
+      { name: '城镇 NPC 维护', path: '/entities/town-npcs', hint: '聚焦时期、功能与商店维护', icon: Users },
       { name: 'NPC 管理', path: '/entities/npcs', hint: '角色档案与分类', icon: Users },
       { name: 'Boss 管理', path: '/entities/bosses', hint: 'Boss 归组与阶段', icon: Crown },
       { name: 'Buff 管理', path: '/entities/buffs', hint: '效果与条件筛选', icon: FlaskConical },

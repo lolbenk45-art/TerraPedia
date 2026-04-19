@@ -77,7 +77,8 @@
           </div>
 
           <div v-if="selectedItem && contentMode === 'editor'">
-            <ItemRecipeEditor v-model="recipeDrafts" :crafting-stations="craftingStations" />
+            <div v-if="editorResourcesLoading" class="loading-state">正在加载配方编辑数据...</div>
+            <ItemRecipeEditor v-else v-model="recipeDrafts" :crafting-stations="craftingStations" />
           </div>
 
           <div v-else-if="selectedItem && contentMode === 'flow'" class="flow">
@@ -112,10 +113,46 @@
                 :class="{ 'thumb-card--active': index === activeDesktopRootIndex }"
                 @click="activeDesktopRootIndex = index"
               >
+                <div class="thumb-card__meta-row">
+                  <span class="thumb-card__recipe-id">{{ root.recipeId ? `Recipe #${root.recipeId}` : `路径 ${index + 1}` }}</span>
+                  <span class="thumb-card__yield">产出 ×{{ root.resultQuantity || 1 }}</span>
+                </div>
                 <img v-if="getRootImage(root)" :src="getRootImage(root)" alt="" class="thumb-card__image">
                 <div v-else class="thumb-card__fallback">{{ getRootAvatarLabel(root) }}</div>
                 <strong>{{ getRootLabel(root) }}</strong>
                 <p>{{ getRootIngredientCount(root) }} 原料 / {{ getRootStationCount(root) }} 站点</p>
+                <div v-if="getRootIngredientPreview(root).length" class="thumb-card__preview-row">
+                  <article
+                    v-for="ingredient in getRootIngredientPreview(root)"
+                    :key="`${root.recipeId || root.itemId || 'root'}-ingredient-${ingredient.key}`"
+                    class="thumb-card__preview-chip thumb-card__preview-chip--ingredient"
+                  >
+                    <img
+                      v-if="ingredient.image"
+                      :src="ingredient.image"
+                      :alt="ingredient.label"
+                      class="thumb-card__preview-image"
+                    >
+                    <span v-else class="thumb-card__preview-fallback">{{ ingredient.avatar }}</span>
+                    <span class="thumb-card__preview-text">{{ ingredient.label }}</span>
+                  </article>
+                </div>
+                <div v-if="getRootStationPreview(root).length" class="thumb-card__preview-row">
+                  <article
+                    v-for="station in getRootStationPreview(root)"
+                    :key="`${root.recipeId || root.itemId || 'root'}-station-${station.key}`"
+                    class="thumb-card__preview-chip thumb-card__preview-chip--station"
+                  >
+                    <img
+                      v-if="station.image"
+                      :src="station.image"
+                      :alt="station.label"
+                      class="thumb-card__preview-image"
+                    >
+                    <span v-else class="thumb-card__preview-fallback">{{ station.avatar }}</span>
+                    <span class="thumb-card__preview-text">{{ station.label }}</span>
+                  </article>
+                </div>
                 <span class="thumb-card__cta">查看路径</span>
               </button>
             </div>
@@ -177,6 +214,9 @@ const loadingRecipes = ref(false)
 const saving = ref(false)
 const contentMode = ref<'editor' | 'flow'>('flow')
 const activeDesktopRootIndex = ref(0)
+const editorResourcesLoading = ref(false)
+const editorLoadedItemId = ref<number | null>(null)
+const craftingStationsLoaded = ref(false)
 
 const totalIngredients = computed(() => recipeDrafts.value.reduce((sum, recipe) => sum + (recipe.ingredients?.length || 0), 0))
 const totalStations = computed(() => recipeDrafts.value.reduce((sum, recipe) => sum + (recipe.stations?.length || 0), 0))
@@ -294,6 +334,36 @@ function getRootIngredientCount(root: ItemRecipeTreeNode) {
 
 function getRootStationCount(root: ItemRecipeTreeNode) {
   return Array.isArray(root.stations) ? root.stations.length : 0
+}
+
+function getRootIngredientPreview(root: ItemRecipeTreeNode) {
+  return (root.children || [])
+    .slice(0, 2)
+    .map((child, index) => {
+      const label = child.itemNameZh || child.itemName || child.itemInternalName || ''
+      return {
+        key: String(child.itemId ?? child.itemInternalName ?? label ?? index),
+        label,
+        image: resolvePreviewImage(child.itemImageUrl || child.itemImage),
+        avatar: label.trim() ? label.trim().slice(0, 2).toUpperCase() : 'IT',
+      }
+    })
+    .filter((value) => Boolean(value.label && value.label.trim()))
+}
+
+function getRootStationPreview(root: ItemRecipeTreeNode) {
+  return (root.stations || [])
+    .slice(0, 2)
+    .map((station, index) => {
+      const label = getStationName(station)
+      return {
+        key: String(station.stationItemId ?? station.stationInternalName ?? station.stationNameRaw ?? index),
+        label,
+        image: resolvePreviewImage(station.itemImageUrl || station.itemImage),
+        avatar: label.trim() ? label.trim().slice(0, 2).toUpperCase() : 'ST',
+      }
+    })
+    .filter((value) => Boolean(value.label && value.label.trim()))
 }
 
 function sanitizeQuery(query: Record<string, string | undefined>) {
@@ -437,9 +507,13 @@ async function loadItemContext(itemId: number, options: { replaceRoute?: boolean
   if (!Number.isFinite(itemId) || itemId <= 0) return
   loadingRecipes.value = true
   try {
-    const [item, recipes, tree] = await Promise.all([
+    if (selectedItem.value?.id !== itemId) {
+      recipeDrafts.value = []
+      loadedRecipes.value = []
+      editorLoadedItemId.value = null
+    }
+    const [item, tree] = await Promise.all([
       itemsStore.fetchItemById(itemId),
-      itemsStore.fetchItemRecipes(itemId),
       itemsStore.fetchItemRecipeTree(itemId, 4),
     ])
     if (!item) {
@@ -449,9 +523,10 @@ async function loadItemContext(itemId: number, options: { replaceRoute?: boolean
     selectedItem.value = item
     lookupKeyword.value = ''
     recipeTree.value = tree
-    loadedRecipes.value = toRecipeDrafts(recipes)
-    recipeDrafts.value = cloneRecipePayloads(loadedRecipes.value)
     activeDesktopRootIndex.value = 0
+    if (contentMode.value === 'editor') {
+      await ensureEditorResources(item.id)
+    }
     if (options.replaceRoute !== false) {
       await router.replace({ path: '/recipes', query: buildRecipeRouteQuery(item.id) })
     }
@@ -468,18 +543,47 @@ async function handlePickItem(item: SuggestionItem) {
     loadedRecipes.value = []
     recipeTree.value = null
     activeDesktopRootIndex.value = 0
+    editorLoadedItemId.value = null
     await router.replace({ path: '/recipes', query: buildRecipeRouteQuery() })
     return
   }
   if (isDirty.value && !window.confirm('当前配方有未保存修改，确认切换物品吗？')) return
-    lookupKeyword.value = ''
-    await loadItemContext(item.id)
+  lookupKeyword.value = ''
+  await loadItemContext(item.id)
+}
+
+async function ensureCraftingStationsLoaded() {
+  if (craftingStationsLoaded.value) return
+  const result = await itemsStore.fetchCraftingStations(1, 200)
+  craftingStations.value = result.records
+  craftingStationsLoaded.value = true
+}
+
+async function ensureEditorResources(itemId?: number | null, options: { force?: boolean } = {}) {
+  if (!Number.isFinite(Number(itemId)) || Number(itemId) <= 0) return
+  const resolvedItemId = Number(itemId)
+  if (!options.force && editorLoadedItemId.value === resolvedItemId && craftingStationsLoaded.value) {
+    return
+  }
+  editorResourcesLoading.value = true
+  try {
+    const recipes = await itemsStore.fetchItemRecipes(resolvedItemId)
+    await ensureCraftingStationsLoaded()
+    loadedRecipes.value = toRecipeDrafts(recipes as ItemRecipeRelation[])
+    recipeDrafts.value = cloneRecipePayloads(loadedRecipes.value)
+    editorLoadedItemId.value = resolvedItemId
+  } finally {
+    editorResourcesLoading.value = false
+  }
 }
 
 async function reloadRecipes() {
   if (!selectedItem.value) return
   if (isDirty.value && !window.confirm('当前有未保存修改，确认重新加载吗？')) return
   await loadItemContext(selectedItem.value.id)
+  if (contentMode.value === 'editor') {
+    await ensureEditorResources(selectedItem.value.id, { force: true })
+  }
 }
 
 function resetToLoaded() {
@@ -488,6 +592,7 @@ function resetToLoaded() {
 
 async function saveRecipes() {
   if (!selectedItem.value) return
+  await ensureEditorResources(selectedItem.value.id)
   saving.value = true
   try {
     const saved = await itemsStore.updateItemRecipes(selectedItem.value.id, recipeDrafts.value, 'desktop')
@@ -522,9 +627,10 @@ watch(desktopTreeVariant, () => {
   activeDesktopRootIndex.value = 0
 })
 
-onMounted(async () => {
-  const result = await itemsStore.fetchCraftingStations(1, 200)
-  craftingStations.value = result.records
+watch(contentMode, async (mode) => {
+  if (mode === 'editor' && selectedItem.value?.id) {
+    await ensureEditorResources(selectedItem.value.id)
+  }
 })
 </script>
 
@@ -732,9 +838,78 @@ onMounted(async () => {
 .thumb-card { display: grid; gap: 8px; align-items: start; padding: 12px; border-radius: 16px; cursor: pointer; text-align: left; transition: border-color .18s ease, transform .18s ease, background-color .18s ease, box-shadow .18s ease; }
 .thumb-card:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border)); }
 .thumb-card--active { border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border)); background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg-secondary)); box-shadow: 0 18px 34px -30px color-mix(in srgb, var(--color-primary) 68%, transparent); }
+.thumb-card__meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.thumb-card__recipe-id,
+.thumb-card__yield {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: .64rem;
+  font-weight: 800;
+  letter-spacing: .03em;
+}
+.thumb-card__recipe-id {
+  color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--color-bg) 70%, var(--color-bg-secondary));
+}
+.thumb-card__yield {
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg-secondary));
+}
 .thumb-card__image,.thumb-card__fallback { width: 100%; aspect-ratio: 1 / 1; max-width: 80px; margin: 0 auto; border-radius: 16px; object-fit: contain; border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-secondary) 90%, transparent); display: grid; place-items: center; padding: 8px; }
 .thumb-card strong { color: var(--color-text); font-size: .88rem; line-height: 1.35; }
 .thumb-card p,.thumb-card small { margin: 0; color: var(--color-text-secondary); font-size: .74rem; line-height: 1.45; }
+.thumb-card__preview-row {
+  display: grid;
+  gap: 6px;
+}
+.thumb-card__preview-chip {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 5px 8px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
+}
+.thumb-card__preview-chip--ingredient {
+  background: color-mix(in srgb, #d97706 8%, var(--color-bg-secondary));
+}
+.thumb-card__preview-chip--station {
+  background: color-mix(in srgb, var(--color-bg) 72%, var(--color-bg-secondary));
+}
+.thumb-card__preview-image,
+.thumb-card__preview-fallback {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  object-fit: contain;
+  display: grid;
+  place-items: center;
+  background: transparent;
+}
+.thumb-card__preview-fallback {
+  color: var(--color-text-secondary);
+  font-size: .56rem;
+  font-weight: 800;
+}
+.thumb-card__preview-text {
+  color: var(--color-text-secondary);
+  font-size: .66rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .thumb-card__cta,.root-thumb-card__cta { display: inline-flex; align-items: center; justify-content: center; min-height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--color-primary) 36%, var(--color-border)); color: var(--color-primary-light); font-size: .72rem; font-weight: 800; background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg-secondary)); width: fit-content; }
 .detail { padding: 16px 18px; border-radius: 16px; background: color-mix(in srgb, var(--color-bg) 72%, var(--color-bg-secondary)); }
 .detail__head,.root-detail-panel__header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }

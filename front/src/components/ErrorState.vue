@@ -1,33 +1,32 @@
 <template>
   <div class="min-h-screen flex items-center justify-center px-4" :style="{ backgroundColor: 'var(--bg-primary)' }">
     <div class="max-w-md w-full text-center">
-      <!-- Error Icon with Animation -->
       <div class="mb-8 relative">
         <div class="error-icon-container">
           <svg class="error-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-            <path d="M12 7V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <circle cx="12" cy="16" r="1" fill="currentColor"/>
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+            <path d="M12 7V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <circle cx="12" cy="16" r="1" fill="currentColor" />
           </svg>
         </div>
       </div>
 
-      <!-- Error Title -->
       <h1 class="text-3xl font-bold mb-3" :style="{ color: 'var(--text-primary)' }">
         {{ title }}
       </h1>
 
-      <!-- Error Message -->
       <p class="text-base mb-6 leading-relaxed" :style="{ color: 'var(--text-secondary)' }">
         {{ message }}
       </p>
 
-      <!-- Error Details (if available) -->
-      <div v-if="details" class="mb-6 p-4 rounded-lg text-left text-sm" :style="{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)' }">
+      <div
+        v-if="details"
+        class="mb-6 p-4 rounded-lg text-left text-sm"
+        :style="{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)' }"
+      >
         <p class="font-mono text-xs break-all">{{ details }}</p>
       </div>
 
-      <!-- Action Buttons -->
       <div class="flex flex-col sm:flex-row gap-3 justify-center">
         <button
           @click="onRetry"
@@ -39,7 +38,7 @@
           </svg>
           重试
         </button>
-        
+
         <button
           @click="onGoHome"
           class="px-6 py-3 rounded-xl font-semibold border-2 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
@@ -52,10 +51,9 @@
         </button>
       </div>
 
-      <!-- Help Tips -->
       <div class="mt-8 p-4 rounded-xl" :style="{ backgroundColor: 'var(--bg-secondary)' }">
-        <h3 class="text-sm font-semibold mb-2" :style="{ color: 'var(--text-primary)' }">
-          💡 可能的原因
+        <h3 class="text-sm font-semibold mb-2 uppercase tracking-[0.08em]" :style="{ color: 'var(--text-primary)' }">
+          Possible Causes
         </h3>
         <ul class="text-xs space-y-1 text-left" :style="{ color: 'var(--text-muted)' }">
           <li class="flex items-start gap-2">
@@ -64,7 +62,7 @@
           </li>
           <li class="flex items-start gap-2">
             <span class="text-red-500 mt-0.5">•</span>
-            <span>后端服务器未启动或响应超时</span>
+            <span>后端服务未启动或响应超时</span>
           </li>
           <li class="flex items-start gap-2">
             <span class="text-red-500 mt-0.5">•</span>
@@ -93,36 +91,33 @@ const emit = defineEmits<{
 
 const router = useRouter()
 
-const title = computed(() => {
-  return props.title || '加载失败'
-})
+const title = computed(() => props.title || '加载失败')
 
 const message = computed(() => {
   if (props.message) {
     return props.message
   }
-  
+
   if (!props.error) {
-    return '未知错误，请稍后重试'
+    return '未知错误，请稍后重试。'
   }
-  
-  // 根据错误类型提供更友好的提示
+
   if (props.error.includes('网络')) {
     return props.error
   }
-  
+
   if (props.error.includes('超时')) {
-    return '请求超时，请检查网络连接后重试'
+    return '请求超时，请检查网络连接后重试。'
   }
-  
+
   if (props.error.includes('404')) {
-    return '请求的资源不存在'
+    return '请求的资源不存在。'
   }
-  
+
   if (props.error.includes('500')) {
-    return '服务器内部错误，请稍后重试'
+    return '服务器内部错误，请稍后重试。'
   }
-  
+
   return props.error
 })
 
@@ -156,10 +151,12 @@ const onGoHome = () => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
+
   50% {
     transform: scale(1.05);
     opacity: 0.8;
@@ -167,12 +164,15 @@ const onGoHome = () => {
 }
 
 @keyframes shake {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(0);
   }
+
   25% {
     transform: translateX(-5px);
   }
+
   75% {
     transform: translateX(5px);
   }

@@ -1,490 +1,340 @@
 <template>
-  <div class="item-detail-view py-8">
-    <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-      <div class="mb-6 flex flex-wrap items-center gap-2 text-sm" style="color: var(--text-secondary);">
-        <router-link to="/" class="transition-colors hover:text-[var(--accent-primary)]">首页</router-link>
-        <span style="color: var(--text-muted);">/</span>
-        <router-link to="/items" class="transition-colors hover:text-[var(--accent-primary)]">物品列表</router-link>
-        <template v-for="category in breadcrumbCategories" :key="category.id">
-          <span style="color: var(--text-muted);">/</span>
-          <span>{{ category.name }}</span>
-        </template>
-        <span style="color: var(--text-muted);">/</span>
-        <span style="color: var(--text-primary);">{{ item?.name || '物品详情' }}</span>
-      </div>
+  <div class="public-workbench entity-detail-shell item-detail-view page-wrap">
+    <div class="public-breadcrumbs item-detail-view__breadcrumbs">
+      <router-link to="/">Home</router-link>
+      <span>/</span>
+      <router-link to="/items">Items</router-link>
+      <template v-for="category in breadcrumbCategories" :key="category.id">
+        <span>/</span>
+        <span>{{ category.name }}</span>
+      </template>
+      <span>/</span>
+      <span class="public-breadcrumbs__current">{{ item ? displayName : 'Item Detail' }}</span>
+    </div>
 
-      <div class="mb-6">
-        <router-link
-          to="/items"
-          class="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-[var(--bg-tertiary)]"
-          style="border-color: var(--border-color); color: var(--text-primary);"
-        >
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-          </svg>
-          返回物品列表
-        </router-link>
-      </div>
+    <router-link to="/items" class="public-back-link item-detail-view__back-link">
+      <span aria-hidden="true">&larr;</span>
+      <span>Back to Item Index</span>
+    </router-link>
 
-      <div v-if="isLoading" class="flex flex-col items-center justify-center py-20">
-        <div
-          class="h-12 w-12 animate-spin rounded-full border-2"
-          style="border-color: var(--bg-tertiary); border-top-color: var(--accent-primary);"
-        ></div>
-        <p class="mt-4 text-sm" style="color: var(--text-secondary);">正在加载物品详情...</p>
-      </div>
+    <section v-if="isLoading" class="public-section-frame item-detail-view__state">
+      <div class="item-detail-view__spinner" aria-hidden="true"></div>
+      <p>Loading item detail...</p>
+    </section>
 
-      <div
-        v-else-if="error"
-        class="rounded-2xl border p-8 text-center"
-        style="background-color: var(--bg-secondary); border-color: var(--border-color);"
-      >
-        <p class="mb-4 text-sm text-red-500">{{ error }}</p>
-        <router-link
-          to="/items"
-          class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white"
-          style="background-color: var(--accent-primary);"
-        >
-          返回物品列表
-        </router-link>
-      </div>
+    <section v-else-if="error" class="public-section-frame item-detail-view__state item-detail-view__state--error">
+      <strong>Could not load item detail</strong>
+      <p>{{ error }}</p>
+      <button type="button" class="btn btn-brand" @click="loadItem">Retry</button>
+    </section>
 
-      <div
-        v-else-if="item"
-        class="space-y-6"
-      >
-        <section
-          class="item-detail-view__hero overflow-hidden rounded-3xl border shadow-lg"
-          style="background-color: var(--bg-secondary); border-color: var(--border-color);"
-        >
-          <div class="grid gap-0 lg:grid-cols-[280px_minmax(0,1fr)]">
-            <div
-              class="item-detail-view__media relative flex min-h-[280px] items-center justify-center overflow-hidden border-b p-8 lg:border-b-0 lg:border-r"
-              style="background: radial-gradient(circle at top, color-mix(in srgb, var(--accent-primary) 18%, var(--bg-primary)), var(--bg-primary) 60%); border-color: var(--border-color);"
-            >
-              <div
-                class="absolute inset-0 opacity-25"
-                style="background-image: radial-gradient(circle at 1px 1px, var(--text-muted) 1px, transparent 0); background-size: 18px 18px;"
-              ></div>
-              <img
-                v-if="item.image"
-                :src="getImageUrl(item.image)"
-                :alt="item.name"
-                class="item-detail-view__image relative z-10 max-h-56 w-full object-contain drop-shadow-2xl"
-              />
-              <div
-                v-else
-                class="item-detail-view__fallback relative z-10 flex h-36 w-36 items-center justify-center rounded-3xl text-6xl"
-                style="background-color: color-mix(in srgb, var(--bg-secondary) 75%, transparent);"
-              >
-                {{ categoryIcon(displayCategory) }}
-              </div>
+    <section v-else-if="notFound" class="public-section-frame item-detail-view__state">
+      <strong>Item not found</strong>
+      <p>The requested public item profile is unavailable.</p>
+    </section>
+
+    <template v-else-if="item">
+      <section class="public-page-hero item-detail-view__hero">
+        <div class="item-detail-view__hero-layout">
+          <div class="item-detail-view__media">
+            <img v-if="heroImageUrl" :src="heroImageUrl" :alt="displayName" class="item-detail-view__image" />
+            <div v-else class="item-detail-view__fallback">
+              <span class="item-detail-view__fallback-mark" aria-hidden="true">{{ fallbackMark }}</span>
+              <small>No artwork</small>
             </div>
 
-            <div class="p-6 lg:p-8">
-              <div class="flex flex-wrap items-start justify-between gap-4">
-                <div class="min-w-0 flex-1">
-                  <div class="mb-3 flex flex-wrap items-center gap-2">
-                    <span
-                      v-if="displayRarity"
-                      class="rounded-full px-3 py-1 text-xs font-semibold"
-                      :class="rarityClass"
-                    >
-                      {{ displayRarity }}
-                    </span>
-                    <span
-                      class="rounded-full border px-3 py-1 text-xs font-medium"
-                      style="border-color: var(--border-color); color: var(--text-secondary);"
-                    >
-                      {{ displayCategory }}
-                    </span>
-                    <span
-                      class="rounded-full border px-3 py-1 text-xs font-mono"
-                      style="border-color: var(--border-color); color: var(--text-muted);"
-                    >
-                      ID {{ item.id }}
-                    </span>
-                  </div>
-
-                  <h1 class="text-3xl font-bold lg:text-4xl" style="color: var(--text-primary);">{{ displayName }}</h1>
-                  <p
-                    v-if="secondaryName"
-                    class="mt-2 font-mono text-sm"
-                    style="color: var(--text-muted);"
-                  >
-                    {{ secondaryName }}
-                  </p>
-                </div>
-              </div>
-
-              <div
-                v-if="summaryText"
-                class="item-detail-view__summary mt-6 rounded-2xl border p-4"
-                style="background-color: var(--bg-primary); border-color: var(--border-color);"
-              >
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                  <div class="min-w-0 flex-1">
-                    <div class="text-xs font-semibold uppercase tracking-wide" style="color: var(--text-muted);">Content</div>
-                    <p class="mt-3 leading-7" style="color: var(--text-secondary);">{{ summaryText }}</p>
-                    <p
-                      v-if="summaryLanguageNote"
-                      class="mt-2 text-xs"
-                      style="color: var(--text-muted);"
-                    >
-                      {{ summaryLanguageNote }}
-                    </p>
-                  </div>
-
-                  <div
-                    v-if="hasLocalizedContent"
-                    class="inline-flex items-center rounded-full border p-1"
-                    style="border-color: var(--border-color); background-color: var(--bg-secondary);"
-                  >
-                    <button
-                      v-for="option in contentLanguageOptions"
-                      :key="option.value"
-                      type="button"
-                      class="rounded-full px-3 py-1.5 text-xs font-semibold transition-colors"
-                      :style="contentLanguage === option.value
-                        ? 'background-color: var(--accent-primary); color: white;'
-                        : 'color: var(--text-secondary);'"
-                      @click="contentLanguage = option.value"
-                    >
-                      {{ option.label }}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div
-                  v-for="stat in heroStats"
-                  :key="stat.label"
-                  class="item-detail-view__stat rounded-2xl border p-4"
-                  style="background-color: var(--bg-primary); border-color: var(--border-color);"
-                >
-                  <div class="text-xs font-medium" style="color: var(--text-muted);">{{ stat.label }}</div>
-                  <div class="mt-2 text-lg font-semibold" style="color: var(--text-primary);">{{ stat.value }}</div>
-                </div>
-              </div>
+            <div class="item-detail-view__media-meta">
+              <span>{{ imageCards.length }} image{{ imageCards.length === 1 ? '' : 's' }}</span>
+              <span>{{ relatedSources.length }} source{{ relatedSources.length === 1 ? '' : 's' }}</span>
             </div>
           </div>
-        </section>
 
-        <section class="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-          <div class="space-y-6">
-            <div
-              v-if="contentCards.length"
-              class="rounded-2xl border p-6"
-              style="background-color: var(--bg-secondary); border-color: var(--border-color);"
-            >
-              <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h2 class="text-lg font-semibold" style="color: var(--text-primary);">Description & Tooltip</h2>
-                  <p class="mt-1 text-sm" style="color: var(--text-secondary);">
-                    中文优先展示，缺失时自动回退到另一语言。
-                  </p>
-                </div>
-                <span
-                  class="rounded-full border px-3 py-1 text-xs font-semibold"
-                  style="border-color: var(--border-color); color: var(--text-primary);"
-                >
-                  {{ activeContentLanguageLabel }}
-                </span>
-              </div>
+          <div class="item-detail-view__hero-copy">
+            <div class="item-detail-view__badges">
+              <span v-if="displayRarity" class="item-detail-view__badge item-detail-view__badge--rarity" :style="rarityBadgeStyle">
+                {{ displayRarity }}
+              </span>
+              <span class="item-detail-view__badge">{{ displayCategory }}</span>
+              <span class="item-detail-view__badge">ID {{ item.id }}</span>
+              <span v-if="stackLabel" class="item-detail-view__badge">{{ stackLabel }}</span>
+            </div>
 
-              <div class="grid gap-4 md:grid-cols-2">
-                <div
-                  v-for="card in contentCards"
-                  :key="card.key"
-                  class="rounded-2xl border p-4"
-                  style="background-color: var(--bg-primary); border-color: var(--border-color);"
+            <div class="item-detail-view__heading">
+              <span class="section-eyebrow">Atlas Workbench</span>
+              <h1 class="section-title">{{ displayName }}</h1>
+              <p v-if="secondaryName" class="item-detail-view__secondary">{{ secondaryName }}</p>
+              <p class="item-detail-view__summary">
+                {{ summaryText }}
+              </p>
+              <p v-if="summaryFallbackNote" class="item-detail-view__summary-note">{{ summaryFallbackNote }}</p>
+            </div>
+
+            <div v-if="showLanguageToggle" class="item-detail-view__language">
+              <span class="item-detail-view__language-label">Content priority</span>
+              <div class="item-detail-view__language-toggle">
+                <button
+                  type="button"
+                  class="item-detail-view__language-button"
+                  :class="{ 'item-detail-view__language-button--active': contentLanguage === 'zh' }"
+                  @click="contentLanguage = 'zh'"
                 >
-                  <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <div class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">{{ card.label }}</div>
-                    <span
-                      v-if="card.fallbackMessage"
-                      class="rounded-full border px-2.5 py-1 text-[11px] font-medium"
-                      style="border-color: var(--border-color); color: var(--text-secondary);"
-                    >
-                      {{ card.fallbackMessage }}
-                    </span>
-                  </div>
-                  <p class="leading-7" style="color: var(--text-secondary);">{{ card.text }}</p>
-                </div>
+                  Chinese
+                </button>
+                <button
+                  type="button"
+                  class="item-detail-view__language-button"
+                  :class="{ 'item-detail-view__language-button--active': contentLanguage === 'en' }"
+                  @click="contentLanguage = 'en'"
+                >
+                  English
+                </button>
               </div>
             </div>
 
-            <div
-              v-if="false && contentCards.length"
-              class="rounded-2xl border p-6"
-              style="background-color: var(--bg-secondary); border-color: var(--border-color);"
-            >
-              <h2 class="mb-3 text-lg font-semibold" style="color: var(--text-primary);">说明与提示</h2>
-              <div class="grid gap-4 md:grid-cols-2">
-                <div class="rounded-2xl border p-4" style="background-color: var(--bg-primary); border-color: var(--border-color);">
-                  <div class="mb-2 text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">Description</div>
-                  <p class="leading-7" style="color: var(--text-secondary);">{{ descriptionText }}</p>
+            <div class="item-detail-view__stat-grid">
+              <article v-for="stat in heroStats" :key="stat.label" class="public-hero-stat-card">
+                <span class="public-hero-stat-card__label">{{ stat.label }}</span>
+                <strong class="public-hero-stat-card__value">{{ stat.value }}</strong>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="entity-detail-shell__content">
+        <div class="entity-detail-shell__main item-detail-view__main">
+          <article v-if="contentCards.length" class="public-section-frame item-detail-view__panel">
+            <div class="item-detail-view__panel-head">
+              <div>
+                <h2>Description</h2>
+                <p>Localized copy stays grouped in a calmer workbench panel.</p>
+              </div>
+              <span class="item-detail-view__panel-chip">{{ contentLanguageLabel }}</span>
+            </div>
+
+            <div class="item-detail-view__content-grid">
+              <article v-for="card in contentCards" :key="card.key" class="item-detail-view__content-card">
+                <div class="item-detail-view__content-head">
+                  <strong>{{ card.label }}</strong>
+                  <span>{{ card.languageLabel }}</span>
                 </div>
-                <div class="rounded-2xl border p-4" style="background-color: var(--bg-primary); border-color: var(--border-color);">
-                  <div class="mb-2 text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">Tooltip</div>
-                  <p class="leading-7" style="color: var(--text-secondary);">{{ tooltipText }}</p>
-                </div>
+                <p>{{ card.text }}</p>
+                <small v-if="card.fallbackMessage">{{ card.fallbackMessage }}</small>
+              </article>
+            </div>
+          </article>
+
+          <article v-if="detailSections.length" class="public-section-frame item-detail-view__panel">
+            <div class="item-detail-view__panel-head">
+              <div>
+                <h2>Detail bands</h2>
+                <p>Combat, economy, and registry data stay separated for faster scanning.</p>
               </div>
             </div>
 
-            <div
-              class="rounded-2xl border p-6"
-              style="background-color: var(--bg-secondary); border-color: var(--border-color);"
-            >
-              <h2 class="mb-5 text-lg font-semibold" style="color: var(--text-primary);">详细信息</h2>
-              <div class="grid gap-5 sm:grid-cols-2">
-                <div
-                  v-for="section in detailSections"
-                  :key="section.title"
-                  class="rounded-2xl border p-4"
-                  style="background-color: var(--bg-primary); border-color: var(--border-color);"
-                >
-                  <h3 class="mb-4 text-sm font-semibold uppercase tracking-wide" style="color: var(--text-muted);">
-                    {{ section.title }}
-                  </h3>
-                  <div class="space-y-3">
-                    <div
-                      v-for="field in section.fields"
-                      :key="field.label"
-                      class="flex items-start justify-between gap-4"
-                    >
-                      <span class="text-sm" style="color: var(--text-secondary);">{{ field.label }}</span>
-                      <span class="text-right text-sm font-medium" style="color: var(--text-primary);">{{ field.value }}</span>
-                    </div>
+            <div class="item-detail-view__section-grid">
+              <article v-for="section in detailSections" :key="section.title" class="item-detail-view__section-card">
+                <h3>{{ section.title }}</h3>
+                <dl class="item-detail-view__field-list">
+                  <div v-for="field in section.fields" :key="field.label" class="item-detail-view__field-row">
+                    <dt>{{ field.label }}</dt>
+                    <dd>{{ field.value }}</dd>
                   </div>
-                </div>
+                </dl>
+              </article>
+            </div>
+          </article>
+ 
+          <article class="public-section-frame item-detail-view__panel">
+            <div class="item-detail-view__panel-head">
+              <div>
+                <h2>Recipes</h2>
+                <p>Published recipe paths, crafting stations, and tree variants stay visible without overloading the page.</p>
               </div>
+              <span class="item-detail-view__panel-chip">{{ recipeCards.length }} cards</span>
             </div>
 
-            <div
-              class="rounded-2xl border p-6"
-              style="background-color: var(--bg-secondary); border-color: var(--border-color);"
-            >
-              <div class="mb-5 flex items-center justify-between gap-3">
-                <h2 class="text-lg font-semibold" style="color: var(--text-primary);">配方</h2>
-                <span class="text-sm" style="color: var(--text-secondary);">{{ relatedRecipes.length }} 条</span>
+            <div v-if="recipeVariants.length" class="item-detail-view__tree-block">
+              <div class="item-detail-view__variant-tabs">
+                <button
+                  v-for="(variant, index) in recipeVariants"
+                  :key="recipeVariantKey(variant, index)"
+                  type="button"
+                  class="item-detail-view__variant-button"
+                  :class="{
+                    'item-detail-view__variant-button--active': recipeVariantKey(variant, index) === activeVariantKey,
+                  }"
+                  @click="activeVariantKey = recipeVariantKey(variant, index)"
+                >
+                  {{ recipeVariantLabel(variant, index) }}
+                </button>
               </div>
 
-              <div v-if="desktopRecipeVariant" class="space-y-4">
-                <div
-                  v-if="desktopRecipeStations.length"
-                  class="rounded-2xl border p-4"
-                  style="background-color: var(--bg-primary); border-color: var(--border-color);"
-                >
-                  <div class="mb-3 flex items-center justify-between gap-3">
-                    <div>
-                      <h3 class="text-base font-semibold" style="color: var(--text-primary);">Desktop 制作站</h3>
-                      <p class="mt-1 text-sm" style="color: var(--text-secondary);">将工作台、熔炉、铁砧等制作站独立列出，先看站点再看流程。</p>
-                    </div>
-                    <span class="rounded-full border px-3 py-1 text-xs font-semibold" style="border-color: var(--border-color); color: var(--text-primary);">
-                      {{ desktopRecipeStations.length }} 个
-                    </span>
-                  </div>
-
-                  <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <article
-                      v-for="station in desktopRecipeStations"
-                      :key="`${station.stationItemId ?? station.stationInternalName ?? station.stationNameRaw}-${station.isAlternative}`"
-                      class="rounded-2xl border p-3"
-                      style="background-color: var(--bg-secondary); border-color: var(--border-color);"
-                    >
-                      <div class="flex items-center gap-3">
-                        <img
-                          v-if="getImageUrl(station.stationImage)"
-                          :src="getImageUrl(station.stationImage)"
-                          :alt="getRecipeStationName(station)"
-                          class="h-11 w-11 rounded-xl border object-contain p-1.5"
-                          style="background-color: var(--bg-primary); border-color: var(--border-color);"
-                        />
-                        <div class="min-w-0">
-                          <div class="text-sm font-semibold" style="color: var(--text-primary);">{{ getRecipeStationName(station) }}</div>
-                          <div class="mt-1 text-xs" style="color: var(--text-secondary);">
-                            {{ station.stationType === 'environment' ? '环境条件' : station.isAlternative ? '可替代制作站' : '主要制作站' }}
-                          </div>
-                        </div>
-                      </div>
-                    </article>
-                  </div>
-                </div>
-
-                <div
-                  class="rounded-2xl border p-4"
-                  style="background-color: var(--bg-primary); border-color: var(--border-color);"
-                >
-                  <RecipeFlowChart
-                    :variant="desktopRecipeVariant"
-                    :resolve-image="getImageUrl"
-                  />
-                </div>
+              <div class="item-detail-view__tree-meta">
+                <span>{{ activeTreeSummary }}</span>
+                <span v-if="treeDepthLabel">Depth {{ treeDepthLabel }}</span>
               </div>
 
-              <div v-else-if="relatedRecipes.length" class="space-y-4">
-                <article
-                  v-for="recipe in relatedRecipes"
-                  :key="recipe.id ?? recipe.versionScope ?? recipe.sourcePage"
-                  class="rounded-2xl border p-4"
-                  style="background-color: var(--bg-primary); border-color: var(--border-color);"
-                >
-                  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-                    <div class="flex items-center gap-3">
-                      <img
-                        v-if="getRecipeResultImage(recipe)"
-                        :src="getImageUrl(getRecipeResultImage(recipe))"
-                        :alt="getRecipeResultName(recipe)"
-                        class="h-12 w-12 rounded-xl border object-contain p-1.5"
-                        style="background-color: var(--bg-secondary); border-color: var(--border-color);"
-                      />
-                      <div>
-                        <strong style="color: var(--text-primary);">{{ formatVersionScope(recipe.versionScope) }}</strong>
-                        <div class="mt-1 text-sm font-medium" style="color: var(--text-primary);">{{ getRecipeResultName(recipe) }}</div>
-                        <p v-if="recipe.sourcePage || recipe.notes" class="mt-1 text-sm" style="color: var(--text-secondary);">
-                          {{ recipe.sourcePage || recipe.notes }}
-                        </p>
-                      </div>
-                    </div>
-                    <span
-                      class="rounded-full border px-3 py-1 text-sm font-medium"
-                      style="border-color: var(--border-color); color: var(--text-primary);"
-                    >
-                      产出 {{ recipe.resultQuantity ?? 1 }}
-                    </span>
-                  </div>
-
-                  <div class="mb-4 rounded-2xl border p-4" style="background-color: var(--bg-secondary); border-color: var(--border-color);">
-                    <div class="mb-3 text-xs font-semibold uppercase tracking-wide" style="color: var(--text-muted);">配方树</div>
-                    <RecipeTreeBranch
-                      :root-item-id="item.id"
-                      :root-item-name="displayName"
-                      :root-item-internal-name="item.internalName"
-                      :root-item-secondary-name="secondaryName"
-                      :root-item-image="item.image || ''"
-                      :recipe="recipe"
-                      :depth="0"
-                      :max-depth="3"
-                      :ancestry="[item.id]"
-                    />
-                  </div>
-
-                  <div class="grid gap-4 lg:grid-cols-2">
-                    <div class="rounded-2xl border p-4" style="background-color: var(--bg-secondary); border-color: var(--border-color);">
-                      <div class="mb-3 text-xs font-semibold uppercase tracking-wide" style="color: var(--text-muted);">原料</div>
-                      <ul v-if="recipe.ingredients?.length" class="space-y-2">
-                        <li
-                          v-for="ingredient in recipe.ingredients"
-                          :key="ingredient.id ?? ingredient.itemInternalName ?? ingredient.ingredientNameRaw"
-                          class="flex items-start justify-between gap-4 text-sm"
-                        >
-                          <span style="color: var(--text-primary);">{{ ingredient.itemNameZh || ingredient.itemName || ingredient.ingredientNameRaw || '未知原料' }}</span>
-                          <span style="color: var(--text-secondary);">{{ formatQuantity(ingredient.quantityText, ingredient.quantityMin, ingredient.quantityMax) }}</span>
-                        </li>
-                      </ul>
-                      <p v-else class="text-sm" style="color: var(--text-secondary);">暂无原料信息</p>
-                    </div>
-
-                    <div class="rounded-2xl border p-4" style="background-color: var(--bg-secondary); border-color: var(--border-color);">
-                      <div class="mb-3 text-xs font-semibold uppercase tracking-wide" style="color: var(--text-muted);">工作台</div>
-                      <ul v-if="recipe.stations?.length" class="space-y-2">
-                        <li
-                          v-for="station in recipe.stations"
-                          :key="station.id ?? station.itemInternalName ?? station.stationNameRaw"
-                          class="flex items-start justify-between gap-4 text-sm"
-                        >
-                          <span style="color: var(--text-primary);">{{ station.itemNameZh || station.itemName || station.stationNameRaw || '未知工作台' }}</span>
-                          <span v-if="station.isAlternative" style="color: var(--text-secondary);">可替代</span>
-                        </li>
-                      </ul>
-                      <p v-else class="text-sm" style="color: var(--text-secondary);">暂无工作台信息</p>
-                    </div>
+              <div v-if="treePreviewCards.length" class="item-detail-view__tree-grid">
+                <article v-for="card in treePreviewCards" :key="card.key" class="item-detail-view__tree-card">
+                  <strong>{{ card.title }}</strong>
+                  <p v-if="card.secondary">{{ card.secondary }}</p>
+                  <div class="item-detail-view__tree-card-meta">
+                    <span>{{ card.output }}</span>
+                    <span>{{ card.ingredients }} ingredients</span>
+                    <span>{{ card.stations }} stations</span>
                   </div>
                 </article>
               </div>
-
-              <p v-else class="text-sm" style="color: var(--text-secondary);">暂无可展示的配方数据。</p>
             </div>
-          </div>
 
-          <div class="space-y-6">
-            <div
-              class="rounded-2xl border p-6"
-              style="background-color: var(--bg-secondary); border-color: var(--border-color);"
-            >
-              <h2 class="mb-4 text-lg font-semibold" style="color: var(--text-primary);">分类路径</h2>
-              <div v-if="breadcrumbCategories.length" class="flex flex-wrap items-center gap-2">
-                <template v-for="category in breadcrumbCategories" :key="category.id">
-                  <span
-                    class="rounded-full border px-3 py-1 text-sm font-medium"
-                    style="border-color: var(--border-color); color: var(--text-primary);"
-                  >
-                    {{ category.name }}
-                  </span>
-                  <span style="color: var(--text-muted);">/</span>
-                </template>
-                <span
-                  class="rounded-full px-3 py-1 text-sm font-semibold text-white"
-                  style="background-color: var(--accent-primary);"
-                >
-                  {{ displayName }}
-                </span>
+            <div v-if="recipeCards.length" class="item-detail-view__recipe-list">
+              <article v-for="card in recipeCards" :key="card.key" class="item-detail-view__recipe-card">
+                <div class="item-detail-view__recipe-head">
+                  <div>
+                    <h3>{{ card.title }}</h3>
+                    <p v-if="card.secondary">{{ card.secondary }}</p>
+                  </div>
+                  <span>{{ card.quantity }}</span>
+                </div>
+
+                <p v-if="card.ingredients.length">
+                  <strong>Ingredients:</strong>
+                  {{ card.ingredients.join(' / ') }}
+                </p>
+                <p v-if="card.stations.length">
+                  <strong>Stations:</strong>
+                  {{ card.stations.join(' / ') }}
+                </p>
+                <p v-if="card.source">
+                  <strong>Scope:</strong>
+                  {{ card.source }}
+                </p>
+                <p v-if="card.notes">
+                  <strong>Notes:</strong>
+                  {{ card.notes }}
+                </p>
+              </article>
+            </div>
+
+            <p v-else class="item-detail-view__empty-copy">No published recipe data is available for this item yet.</p>
+          </article>
+
+          <article class="public-section-frame item-detail-view__panel">
+            <div class="item-detail-view__panel-head">
+              <div>
+                <h2>Source registry</h2>
+                <p>Drop rates, acquisition notes, and linked source records stay grouped in one ledger.</p>
               </div>
-              <p v-else class="text-sm" style="color: var(--text-secondary);">
-                当前接口未返回可追溯的分类路径，仅能确认所属分类为 {{ displayCategory }}。
-              </p>
+              <span class="item-detail-view__panel-chip">{{ sourceCards.length }} entries</span>
             </div>
 
-            <div
-              class="rounded-2xl border p-6"
-              style="background-color: var(--bg-secondary); border-color: var(--border-color);"
-            >
-              <h2 class="mb-4 text-lg font-semibold" style="color: var(--text-primary);">元数据</h2>
-              <div class="space-y-3">
-                <div class="rounded-xl border p-3" style="background-color: var(--bg-primary); border-color: var(--border-color);">
-                  <div class="mb-2 text-xs font-semibold uppercase tracking-wide" style="color: var(--text-muted);">Aggregate</div>
-                  <div class="grid grid-cols-3 gap-2 text-sm">
-                    <div style="color: var(--text-secondary);">图片 <span style="color: var(--text-primary);">{{ relatedSummary.images }}</span></div>
-                    <div style="color: var(--text-secondary);">来源 <span style="color: var(--text-primary);">{{ relatedSummary.sources }}</span></div>
-                    <div style="color: var(--text-secondary);">配方 <span style="color: var(--text-primary);">{{ relatedSummary.recipes }}</span></div>
+            <div v-if="sourceCards.length" class="item-detail-view__source-list">
+              <article v-for="card in sourceCards" :key="card.key" class="item-detail-view__source-card">
+                <div class="item-detail-view__source-head">
+                  <div>
+                    <h3>{{ card.title }}</h3>
+                    <p v-if="card.secondary">{{ card.secondary }}</p>
                   </div>
                 </div>
-                <div
-                  v-for="field in metadataFields"
-                  :key="field.label"
-                  class="flex items-start justify-between gap-4"
-                >
-                  <span class="text-sm" style="color: var(--text-secondary);">{{ field.label }}</span>
-                  <span class="text-right text-sm font-medium" style="color: var(--text-primary);">{{ field.value }}</span>
+                <div class="item-detail-view__source-meta">
+                  <span v-if="card.quantity">{{ card.quantity }}</span>
+                  <span v-if="card.chance">{{ card.chance }}</span>
                 </div>
+                <p v-if="card.notes">{{ card.notes }}</p>
+              </article>
+            </div>
+
+            <p v-else class="item-detail-view__empty-copy">No public source data has been attached to this item yet.</p>
+          </article>
+        </div>
+
+        <aside class="entity-detail-shell__sidebar item-detail-view__sidebar">
+          <article class="public-section-frame item-detail-view__sidebar-card">
+            <div class="item-detail-view__panel-head">
+              <div>
+                <h2>Metadata</h2>
+                <p>Aggregate counts, modules, and registry facts.</p>
               </div>
             </div>
-          </div>
-        </section>
-      </div>
 
-      <div
-        v-else
-        class="rounded-2xl border p-10 text-center"
-        style="background-color: var(--bg-secondary); border-color: var(--border-color);"
-      >
-        <p class="text-sm" style="color: var(--text-secondary);">物品不存在</p>
-      </div>
-    </div>
+            <div class="item-detail-view__aggregate-grid">
+              <article v-for="metric in aggregateMetrics" :key="metric.label" class="item-detail-view__aggregate-card">
+                <span>{{ metric.label }}</span>
+                <strong>{{ metric.value }}</strong>
+              </article>
+            </div>
+
+            <dl class="item-detail-view__sidebar-fields">
+              <div v-for="field in metadataFields" :key="field.label" class="item-detail-view__field-row">
+                <dt>{{ field.label }}</dt>
+                <dd>{{ field.value }}</dd>
+              </div>
+            </dl>
+
+            <div v-if="moduleRows.length" class="item-detail-view__module-list">
+              <div v-for="module in moduleRows" :key="module.label" class="item-detail-view__module-row">
+                <span>{{ module.label }}</span>
+                <strong>{{ module.value }}</strong>
+              </div>
+            </div>
+          </article>
+
+          <article class="public-section-frame item-detail-view__sidebar-card">
+            <div class="item-detail-view__panel-head">
+              <div>
+                <h2>Category trail</h2>
+                <p>Path inside the public atlas taxonomy.</p>
+              </div>
+            </div>
+
+            <div class="item-detail-view__trail">
+              <span v-for="category in breadcrumbTrail" :key="category" class="item-detail-view__trail-chip">
+                {{ category }}
+              </span>
+            </div>
+          </article>
+
+          <article class="public-section-frame item-detail-view__sidebar-card">
+            <div class="item-detail-view__panel-head">
+              <div>
+                <h2>Image registry</h2>
+                <p>Primary and related artwork collected for this entry.</p>
+              </div>
+            </div>
+
+            <div v-if="imageCards.length" class="item-detail-view__image-grid">
+              <article v-for="card in imageCards" :key="card.key" class="item-detail-view__image-card">
+                <img :src="card.url" :alt="card.alt" />
+                <span>{{ card.meta }}</span>
+              </article>
+            </div>
+
+            <p v-else class="item-detail-view__empty-copy">No public images have been attached to this item yet.</p>
+          </article>
+        </aside>
+      </section>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { fetchCategories, fetchItemAggregateById, fetchItemRecipeTree } from '@/api'
-import RecipeFlowChart from '@/components/RecipeFlowChart.vue'
-import RecipeTreeBranch from '@/components/RecipeTreeBranch.vue'
-import type { Category, Item, ItemImageRelation, ItemRecipeRelation, ItemRecipeTreeResponse, ItemRecipeTreeStation, ItemRecipeTreeVariant, ItemSourceRelation } from '@/types'
-import { formatCurrencyWithRaw } from '@/utils/currency'
+import type {
+  Category,
+  ItemAggregateData,
+  ItemRecipeTreeNode,
+  ItemRecipeTreeResponse,
+  ItemRecipeTreeVariant,
+  ItemSourceRelation,
+  RecipeIngredientRelation,
+} from '@/types'
+import { getItemFallbackMark } from '@/utils/itemFallbackMark'
 import { getRarityPresentation } from '@/utils/rarity'
+
+type ContentLanguage = 'zh' | 'en'
 
 type DetailField = {
   label: string
@@ -496,42 +346,105 @@ type DetailSection = {
   fields: DetailField[]
 }
 
-type ContentLanguage = 'zh' | 'en'
-
-type LocalizedContentState = {
+type ContentCard = {
+  key: string
+  label: string
   text: string
-  displayLanguage: ContentLanguage | null
-  fallbackFrom: ContentLanguage | null
+  languageLabel: string
+  fallbackMessage: string
+}
+
+type MetricCard = {
+  label: string
+  value: string
+}
+
+type RecipeCard = {
+  key: string
+  title: string
+  secondary: string
+  quantity: string
+  ingredients: string[]
+  stations: string[]
+  source: string
+  notes: string
+}
+
+type SourceCard = {
+  key: string
+  title: string
+  secondary: string
+  quantity: string
+  chance: string
+  notes: string
+}
+
+type ImageCard = {
+  key: string
+  url: string
+  alt: string
+  meta: string
+}
+
+type TreePreviewCard = {
+  key: string
+  title: string
+  secondary: string
+  output: string
+  ingredients: number
+  stations: number
 }
 
 const route = useRoute()
-const item = ref<Item | null>(null)
+
+const aggregate = ref<ItemAggregateData | null>(null)
 const categories = ref<Category[]>([])
-const relatedImages = ref<ItemImageRelation[]>([])
-const relatedSources = ref<ItemSourceRelation[]>([])
-const relatedRecipes = ref<ItemRecipeRelation[]>([])
 const recipeTree = ref<ItemRecipeTreeResponse | null>(null)
-const isLoading = ref(true)
+const isLoading = ref(false)
 const error = ref('')
+const notFound = ref(false)
 const contentLanguage = ref<ContentLanguage>('zh')
+const activeVariantKey = ref('')
 
-const contentLanguageOptions: Array<{ value: ContentLanguage, label: string }> = [
-  { value: 'zh', label: '中文优先' },
-  { value: 'en', label: 'English' },
-]
+const item = computed(() => aggregate.value?.item ?? null)
+const relatedImages = computed(() => aggregate.value?.images ?? [])
+const relatedSources = computed(() => aggregate.value?.sources ?? [])
+const relatedRecipes = computed(() => aggregate.value?.recipes ?? [])
+const moduleStatus = computed(() => aggregate.value?.moduleStatus ?? {})
 
-const flattenCategories = (nodes: Category[]): Category[] => {
-  const result: Category[] = []
+const hasChineseContent = computed(() =>
+  Boolean(textValue(item.value?.descriptionZh) || textValue(item.value?.tooltipZh)),
+)
+const hasEnglishContent = computed(() =>
+  Boolean(
+    textValue(item.value?.descriptionEn)
+      || textValue(item.value?.description)
+      || textValue(item.value?.tooltipEn)
+      || textValue(item.value?.tooltip),
+  ),
+)
 
-  nodes.forEach((node) => {
-    result.push(node)
-    if (node.children?.length) {
-      result.push(...flattenCategories(node.children))
-    }
-  })
+const showLanguageToggle = computed(() => hasChineseContent.value && hasEnglishContent.value)
+const contentLanguageLabel = computed(() => (contentLanguage.value === 'zh' ? 'Chinese first' : 'English first'))
 
-  return result
-}
+const displayName = computed(() =>
+  oneLine(item.value?.nameZh) || oneLine(item.value?.name) || 'Unknown item',
+)
+
+const secondaryName = computed(() => {
+  const englishName = oneLine(item.value?.name)
+  const internalName = oneLine(item.value?.internalName)
+
+  if (oneLine(item.value?.nameZh) && englishName && englishName !== displayName.value) {
+    return englishName
+  }
+
+  if (internalName && internalName !== displayName.value && internalName !== englishName) {
+    return internalName
+  }
+
+  return ''
+})
 
 const categoryMap = computed(() => {
   const map = new Map<number, Category>()
@@ -567,448 +480,1036 @@ const breadcrumbCategories = computed(() => {
 
 const displayCategory = computed(() => {
   const lastCategory = breadcrumbCategories.value[breadcrumbCategories.value.length - 1]
-  return lastCategory?.name ?? item.value?.categoryName ?? item.value?.category ?? '其他'
-})
-const displayName = computed(() => item.value?.nameZh?.trim() || item.value?.name || '未知物品')
-const secondaryName = computed(() => {
-  if (!item.value) return ''
-  if (item.value.nameZh?.trim()) {
-    return item.value.name || item.value.internalName || ''
-  }
-  return item.value.internalName || ''
+  return lastCategory?.name || oneLine(item.value?.categoryName) || oneLine(item.value?.category) || 'Uncategorized'
 })
 
-const rarityInfo = computed(() => getRarityPresentation(item.value))
-const displayRarity = computed(() => rarityInfo.value.label === '未知' ? '' : rarityInfo.value.label)
+const breadcrumbTrail = computed(() => {
+  const trail = breadcrumbCategories.value.map(category => category.name)
+  return trail.length ? trail : [displayCategory.value]
+})
 
-const localizedLanguageLabel: Record<ContentLanguage, string> = {
-  zh: '中文优先',
-  en: 'English',
-}
+const fallbackMark = computed(() =>
+  getItemFallbackMark({
+    id: item.value?.id,
+    name: displayName.value,
+    category: displayCategory.value,
+  }),
+)
 
-const normalizeLocalizedText = (value?: string | null): string => value?.trim() || ''
-
-const resolveLocalizedContent = (
-  zhText: string | null | undefined,
-  enText: string | null | undefined,
-  preferredLanguage: ContentLanguage,
-): LocalizedContentState => {
-  const zh = normalizeLocalizedText(zhText)
-  const en = normalizeLocalizedText(enText)
-
-  if (preferredLanguage === 'zh') {
-    if (zh) {
-      return { text: zh, displayLanguage: 'zh', fallbackFrom: null }
-    }
-    if (en) {
-      return { text: en, displayLanguage: 'en', fallbackFrom: 'zh' }
-    }
-  } else {
-    if (en) {
-      return { text: en, displayLanguage: 'en', fallbackFrom: null }
-    }
-    if (zh) {
-      return { text: zh, displayLanguage: 'zh', fallbackFrom: 'en' }
-    }
+const displayRarity = computed(() => {
+  const raw = oneLine(item.value?.rarity) || oneLine(item.value?.rare)
+  if (raw) {
+    return raw
   }
 
-  return { text: '', displayLanguage: null, fallbackFrom: null }
-}
-
-const buildFallbackMessage = (content: LocalizedContentState): string | null => {
-  if (!content.text || !content.displayLanguage || !content.fallbackFrom) {
-    return null
+  if (typeof item.value?.rarityId === 'number') {
+    return `Tier ${item.value.rarityId}`
   }
-  return `当前显示${localizedLanguageLabel[content.displayLanguage]}回退`
-}
 
-const descriptionContent = computed(() => resolveLocalizedContent(
-  item.value?.descriptionZh,
-  item.value?.descriptionEn ?? item.value?.description,
-  contentLanguage.value,
-))
-const tooltipContent = computed(() => resolveLocalizedContent(
-  item.value?.tooltipZh,
-  item.value?.tooltipEn ?? item.value?.tooltip,
-  contentLanguage.value,
-))
+  return ''
+})
 
-const descriptionText = computed(() => descriptionContent.value.text)
-const tooltipText = computed(() => tooltipContent.value.text)
-const hasLocalizedContent = computed(() => Boolean(descriptionText.value || tooltipText.value))
-const activeContentLanguageLabel = computed(() => localizedLanguageLabel[contentLanguage.value])
+const rarityBadgeStyle = computed(() =>
+  getRarityPresentation({
+    rarityId: item.value?.rarityId ?? null,
+    rarity: item.value?.rarity ?? null,
+    rare: item.value?.rare ?? null,
+  }).badgeStyle,
+)
 
-const contentCards = computed(() => {
-  const cards: Array<{ key: string; label: string; text: string; fallbackMessage: string | null }> = []
+const stackLabel = computed(() => {
+  const stackValue = item.value?.stack ?? item.value?.stackSize ?? null
+  if (typeof stackValue === 'number' && stackValue > 1) {
+    return `Stack x${stackValue}`
+  }
 
-  if (descriptionContent.value.text) {
+  if (item.value?.isStackable === false) {
+    return 'Single slot'
+  }
+
+  return ''
+})
+
+const heroImageUrl = computed(() => {
+  const primaryImage = relatedImages.value.find(image => image.isPrimary && resolveImage(image.imageUrl || image.cachedUrl || image.originalUrl))
+  return resolveImage(
+    item.value?.image
+      || primaryImage?.imageUrl
+      || primaryImage?.cachedUrl
+      || primaryImage?.originalUrl
+      || relatedImages.value[0]?.imageUrl
+      || relatedImages.value[0]?.cachedUrl
+      || relatedImages.value[0]?.originalUrl
+      || null,
+  )
+})
+
+const recipeVariants = computed(() => recipeTree.value?.variants ?? [])
+
+watch(
+  recipeVariants,
+  (variants) => {
+    if (!variants.length) {
+      activeVariantKey.value = ''
+      return
+    }
+
+    const hasActive = variants.some((variant, index) => recipeVariantKey(variant, index) === activeVariantKey.value)
+    if (!hasActive) {
+      activeVariantKey.value = recipeVariantKey(variants[0], 0)
+    }
+  },
+  { immediate: true },
+)
+
+const activeRecipeVariant = computed(() =>
+  recipeVariants.value.find((variant, index) => recipeVariantKey(variant, index) === activeVariantKey.value)
+  ?? recipeVariants.value[0]
+  ?? null,
+)
+
+const activeRecipeRoots = computed(() => activeRecipeVariant.value?.roots ?? [])
+
+const contentCards = computed<ContentCard[]>(() => {
+  const cards: ContentCard[] = []
+
+  const description = resolveLocalizedContent(
+    contentLanguage.value,
+    item.value?.descriptionZh,
+    item.value?.descriptionEn,
+    item.value?.description,
+  )
+  if (description.text) {
     cards.push({
       key: 'description',
       label: 'Description',
-      text: descriptionContent.value.text,
-      fallbackMessage: buildFallbackMessage(descriptionContent.value),
+      text: description.text,
+      languageLabel: description.languageLabel,
+      fallbackMessage: description.fallbackMessage,
     })
   }
 
-  if (tooltipContent.value.text && tooltipContent.value.text !== descriptionContent.value.text) {
+  const tooltip = resolveLocalizedContent(
+    contentLanguage.value,
+    item.value?.tooltipZh,
+    item.value?.tooltipEn,
+    item.value?.tooltip,
+  )
+  if (tooltip.text) {
     cards.push({
       key: 'tooltip',
       label: 'Tooltip',
-      text: tooltipContent.value.text,
-      fallbackMessage: buildFallbackMessage(tooltipContent.value),
-    })
-  } else if (!descriptionContent.value.text && tooltipContent.value.text) {
-    cards.push({
-      key: 'tooltip',
-      label: 'Tooltip',
-      text: tooltipContent.value.text,
-      fallbackMessage: buildFallbackMessage(tooltipContent.value),
+      text: tooltip.text,
+      languageLabel: tooltip.languageLabel,
+      fallbackMessage: tooltip.fallbackMessage,
     })
   }
 
   return cards
 })
 
-const summaryContent = computed(() => {
-  if (descriptionContent.value.text) {
-    return descriptionContent.value
+const summaryText = computed(() =>
+  contentCards.value[0]?.text || 'No public description has been published for this item yet.',
+)
+
+const summaryFallbackNote = computed(() => contentCards.value[0]?.fallbackMessage || '')
+
+const treeDepthLabel = computed(() => {
+  const configuredDepth = recipeTree.value?.treeMeta?.maxDepth
+  if (typeof configuredDepth === 'number' && configuredDepth > 0) {
+    return String(configuredDepth)
   }
-  return tooltipContent.value
+
+  const inferredDepth = activeRecipeRoots.value.length
+    ? Math.max(...activeRecipeRoots.value.map(root => inferTreeDepth(root)))
+    : 0
+
+  return inferredDepth > 0 ? String(inferredDepth) : ''
 })
-const summaryText = computed(() => summaryContent.value.text)
-const summaryLanguageNote = computed(() => buildFallbackMessage(summaryContent.value))
 
-const formatNullable = (value: unknown): string | null => {
-  if (value === null || value === undefined || value === '') {
-    return null
-  }
-  return String(value)
-}
+const heroStats = computed<MetricCard[]>(() => {
+  const stats: MetricCard[] = [
+    { label: 'Images', value: String(imageCards.value.length) },
+    { label: 'Sources', value: String(sourceCards.value.length) },
+    { label: 'Recipes', value: String(recipeCards.value.length) },
+  ]
 
-const formatBoolean = (value: boolean | undefined): string | null => {
-  if (value === undefined) {
-    return null
-  }
-  return value ? '是' : '否'
-}
-
-const formatNumber = (value: number | undefined): string | null => {
-  if (value === undefined || value === null) {
-    return null
-  }
-  return value.toLocaleString()
-}
-
-const formatCoinValue = (value: number | undefined): string | null => formatCurrencyWithRaw(value)
-
-const formatDateTime = (value: string | undefined): string | null => {
-  if (!value) {
-    return null
+  if (activeRecipeRoots.value.length) {
+    stats.push({ label: 'Tree Paths', value: String(activeRecipeRoots.value.length) })
+  } else if (stackLabel.value) {
+    stats.push({ label: 'Stack', value: stackLabel.value.replace(/^Stack\s+/, '') })
+  } else if (typeof item.value?.damage === 'number') {
+    stats.push({ label: 'Damage', value: String(item.value.damage) })
+  } else if (typeof item.value?.defense === 'number') {
+    stats.push({ label: 'Defense', value: String(item.value.defense) })
+  } else if (typeof item.value?.useTime === 'number') {
+    stats.push({ label: 'Use Time', value: String(item.value.useTime) })
+  } else {
+    stats.push({ label: 'Category', value: displayCategory.value })
   }
 
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return date.toLocaleString('zh-CN', {
-    hour12: false,
-  })
-}
-
-const formatQuantity = (text?: string | null, min?: number, max?: number): string => {
-  if (text?.trim()) {
-    return text.trim()
-  }
-  if (min != null && max != null && min !== max) {
-    return `${min}-${max}`
-  }
-  if (min != null) {
-    return String(min)
-  }
-  if (max != null) {
-    return String(max)
-  }
-  return '1'
-}
-
-const formatVersionScope = (value?: string | null): string => {
-  const text = value?.trim() ?? ''
-  if (!text) {
-    return '主版本配方'
-  }
-  const labels = ['Desktop version', 'Console version', 'Mobile version', 'Old-gen console version', 'Nintendo 3DS version']
-    .filter(label => text.includes(label))
-  return labels.length > 0 ? `${labels.join(' / ')} only` : text
-}
-
-const getRecipeResultName = (recipe: ItemRecipeRelation): string => (
-  recipe.resultItemNameZh?.trim()
-  || recipe.resultItemName?.trim()
-  || recipe.resultItemInternalName?.trim()
-  || displayName.value
-)
-
-const getRecipeResultImage = (recipe: ItemRecipeRelation): string => (
-  recipe.resultItemImage?.trim()
-  || item.value?.image?.trim()
-  || ''
-)
-
-const compactFields = (fields: Array<{ label: string; value: string | null }>): DetailField[] => {
-  return fields
-    .filter((field): field is { label: string; value: string } => field.value !== null)
-    .map((field) => ({ label: field.label, value: field.value }))
-}
-
-const heroStats = computed(() => {
-  if (!item.value) {
-    return []
-  }
-
-  return compactFields([
-    { label: '分类', value: displayCategory.value },
-    { label: '伤害', value: formatNumber(item.value.damage) },
-    { label: '防御', value: formatNumber(item.value.defense) },
-    { label: '堆叠上限', value: formatNumber(item.value.stackSize ?? item.value.stack) },
-    { label: '击退', value: formatNumber(item.value.knockback) },
-    { label: '使用时间', value: formatNumber(item.value.useTime) },
-  ]).slice(0, 4)
+  return stats
 })
 
 const detailSections = computed<DetailSection[]>(() => {
-  if (!item.value) {
-    return []
-  }
-
   const sections: DetailSection[] = []
 
-  const basicFields = compactFields([
-    { label: '分类名称', value: displayCategory.value },
-    { label: '分类路径', value: breadcrumbCategories.value.map((category) => category.name).join(' / ') || null },
-    { label: '稀有度', value: displayRarity.value || null },
-    { label: '可堆叠', value: formatBoolean(item.value.isStackable) },
-    { label: '堆叠上限', value: formatNumber(item.value.stackSize ?? item.value.stack) },
+  const combatFields: DetailField[] = compactFields([
+    numberField('Damage', item.value?.damage),
+    numberField('Defense', item.value?.defense),
+    numberField('Knockback', item.value?.knockback),
+    numberField('Use Time', item.value?.useTime),
   ])
-
-  if (basicFields.length) {
-    sections.push({ title: '基础属性', fields: basicFields })
-  }
-
-  const combatFields = compactFields([
-    { label: '伤害', value: formatNumber(item.value.damage) },
-    { label: '防御', value: formatNumber(item.value.defense) },
-    { label: '击退', value: formatNumber(item.value.knockback) },
-    { label: '使用时间', value: formatNumber(item.value.useTime) },
-    { label: '宽度', value: formatNumber(item.value.width) },
-    { label: '高度', value: formatNumber(item.value.height) },
-  ])
-
   if (combatFields.length) {
-    sections.push({ title: '战斗与尺寸', fields: combatFields })
+    sections.push({ title: 'Combat', fields: combatFields })
   }
 
-  const economyFields = compactFields([
-    { label: '购买价格', value: formatCoinValue(item.value.buy) },
-    { label: '出售价格', value: formatCoinValue(item.value.sell) },
-    { label: '游戏时期 ID', value: formatNullable(item.value.gamePeriodId) },
-    { label: '游戏模式 ID', value: formatNullable(item.value.gameModelId) },
+  const economyFields: DetailField[] = compactFields([
+    textField('Buy', formatCoins(item.value?.buy)),
+    textField('Sell', formatCoins(item.value?.sell)),
+    textField('Stack Size', stackValueLabel(item.value?.stack ?? item.value?.stackSize)),
+    textField('Rarity', displayRarity.value),
   ])
-
   if (economyFields.length) {
-    sections.push({ title: '经济与阶段', fields: economyFields })
+    sections.push({ title: 'Economy', fields: economyFields })
+  }
+
+  const profileFields: DetailField[] = compactFields([
+    textField('Internal Name', oneLine(item.value?.internalName)),
+    textField('Category', displayCategory.value),
+    numberField('Width', item.value?.width),
+    numberField('Height', item.value?.height),
+    numberField('Game Period', item.value?.gamePeriodId),
+    numberField('Game Model', item.value?.gameModelId),
+  ])
+  if (profileFields.length) {
+    sections.push({ title: 'Profile', fields: profileFields })
   }
 
   return sections
 })
 
-const metadataFields = computed<DetailField[]>(() => {
-  if (!item.value) {
-    return []
-  }
-
-  return compactFields([
-    { label: '物品 ID', value: formatNullable(item.value.id) },
-    { label: '分类 ID', value: formatNullable(item.value.categoryId) },
-    { label: '稀有度 ID', value: formatNullable(item.value.rarityId) },
-    { label: '内部名', value: item.value.internalName ?? null },
-    { label: '英文名', value: item.value.nameZh?.trim() ? item.value.name : null },
-    { label: '创建时间', value: formatDateTime(item.value.createdAt) },
-    { label: '更新时间', value: formatDateTime(item.value.updatedAt) },
-  ])
-})
-
-const relatedSummary = computed(() => ({
-  images: relatedImages.value.length,
-  sources: relatedSources.value.length,
-  recipes: (recipeTree.value?.variants?.length ?? 0) || relatedRecipes.value.length,
-}))
-
-const desktopRecipeVariant = computed<ItemRecipeTreeVariant | null>(() => {
-  const variants = recipeTree.value?.variants || []
-  if (!variants.length) {
-    return null
-  }
-
-  const desktopExact = variants.find((variant) => {
-    const scope = variant.versionScope?.toLowerCase() || ''
-    return scope.includes('desktop version')
-  })
-  if (desktopExact) {
-    return desktopExact
-  }
-
-  const desktopMixed = variants.find((variant) => {
-    const scope = variant.versionScope?.toLowerCase() || ''
-    return scope.includes('desktop')
-  })
-  if (desktopMixed) {
-    return desktopMixed
-  }
-
-  const baseVariant = variants.find((variant) => !variant.versionScope?.trim())
-  return baseVariant || variants[0] || null
-})
-
-const desktopRecipeStations = computed<ItemRecipeTreeStation[]>(() => {
-  const roots = desktopRecipeVariant.value?.roots || []
-  const deduped = new Map<string, ItemRecipeTreeStation>()
-
-  roots.forEach((root) => {
-    ;(root.stations || []).forEach((station) => {
-      const key = String(station.stationItemId ?? station.stationInternalName ?? station.stationNameRaw ?? '')
-      if (!key || deduped.has(key)) return
-      deduped.set(key, station)
-    })
-  })
-
-  return Array.from(deduped.values())
-})
-
-const rarityClass = computed(() => rarityInfo.value.badgeClass)
-
-const getImageUrl = (image?: string | null) => {
-  if (!image) return ''
-  if (image.startsWith('http')) return image
-  if (image.startsWith('localhost:')) return `http://${image}`
-  return image.startsWith('/') ? image : `/${image}`
-}
-
-const getRecipeStationName = (station: ItemRecipeTreeStation) => (
-  station.stationNameZh?.trim()
-  || station.stationName?.trim()
-  || station.stationNameRaw?.trim()
-  || station.stationInternalName?.trim()
-  || '未知制作站'
+const recipeCards = computed<RecipeCard[]>(() =>
+  relatedRecipes.value.slice(0, 8).map((recipe, index) => ({
+    key: String(recipe.id ?? `${recipe.versionScope ?? 'recipe'}-${index}`),
+    title:
+      oneLine(recipe.resultItemNameZh)
+      || oneLine(recipe.resultItemName)
+      || oneLine(recipe.resultItemInternalName)
+      || displayName.value,
+    secondary: oneLine(recipe.resultItemNameZh)
+      ? oneLine(recipe.resultItemName) || oneLine(recipe.resultItemInternalName)
+      : oneLine(recipe.resultItemInternalName),
+    quantity: `Output x${recipe.resultQuantity ?? 1}`,
+    ingredients: (recipe.ingredients ?? [])
+      .slice(0, 6)
+      .map(ingredient => `${ingredientLabel(ingredient)} x${formatQuantity(ingredient.quantityText, ingredient.quantityMin, ingredient.quantityMax)}`),
+    stations: (recipe.stations ?? [])
+      .slice(0, 4)
+      .map(station => oneLine(station.itemNameZh) || oneLine(station.itemName) || oneLine(station.stationNameRaw))
+      .filter(Boolean),
+    source: [oneLine(recipe.versionScope), oneLine(recipe.sourcePage)].filter(Boolean).join(' / '),
+    notes: oneLine(recipe.notes),
+  })),
 )
 
-const categoryIcon = (name: string) => {
-  const normalized = name.toLowerCase()
+const sourceCards = computed<SourceCard[]>(() =>
+  relatedSources.value.slice(0, 8).map((source, index) => ({
+    key: String(source.id ?? `${source.sourceRefType ?? source.sourceType ?? 'source'}-${index}`),
+    title:
+      oneLine(source.sourceRefName)
+      || oneLine(source.biomeNameZh)
+      || oneLine(source.biomeNameEn)
+      || oneLine(source.sourceType)
+      || 'Linked source',
+    secondary: [oneLine(source.sourceType), oneLine(source.sourceRefType)].filter(Boolean).join(' / '),
+    quantity: quantityLabel(source),
+    chance: chanceLabel(source),
+    notes: [oneLine(source.conditions), oneLine(source.notes)].filter(Boolean).join(' / '),
+  })),
+)
 
-  if (normalized.includes('weapon') || normalized.includes('sword') || normalized.includes('武器')) return '⚔️'
-  if (normalized.includes('tool') || normalized.includes('pickaxe') || normalized.includes('工具')) return '⛏️'
-  if (normalized.includes('armor') || normalized.includes('盔甲') || normalized.includes('护甲')) return '🛡️'
-  if (normalized.includes('consumable') || normalized.includes('药') || normalized.includes('消耗')) return '🧪'
-  if (normalized.includes('material') || normalized.includes('材料')) return '📦'
-  if (normalized.includes('furniture') || normalized.includes('家具')) return '🪑'
-  if (normalized.includes('block') || normalized.includes('方块')) return '🧱'
-  if (normalized.includes('ammo') || normalized.includes('arrow') || normalized.includes('弹药')) return '🏹'
-  return '📘'
+const imageCards = computed<ImageCard[]>(() =>
+  relatedImages.value
+    .map((image, index) => ({
+      key: String(image.id ?? index),
+      url: resolveImage(image.imageUrl || image.cachedUrl || image.originalUrl || null),
+      alt: image.sourceFileTitle || displayName.value,
+      meta: [image.role || (image.isPrimary ? 'primary' : ''), image.provider || 'public'].filter(Boolean).join(' / '),
+    }))
+    .filter(card => Boolean(card.url))
+    .slice(0, 8),
+)
+
+const treePreviewCards = computed<TreePreviewCard[]>(() =>
+  activeRecipeRoots.value.slice(0, 6).map((root, index) => ({
+    key: recipeNodeKey(root, index),
+    title: recipeNodeLabel(root),
+    secondary: recipeNodeSecondary(root),
+    output: `Output x${root.resultQuantity ?? 1}`,
+    ingredients: root.children?.length ?? 0,
+    stations: root.stations?.length ?? 0,
+  })),
+)
+
+const activeTreeSummary = computed(() => {
+  if (!activeRecipeVariant.value) {
+    return 'No recipe tree variant published'
+  }
+
+  const label = recipeVariantLabel(activeRecipeVariant.value, 0)
+  const count = activeRecipeVariant.value.recipeCount ?? activeRecipeRoots.value.length
+  const suffix = count === 1 ? 'path' : 'paths'
+  return `${label} / ${count} ${suffix}`
+})
+
+const aggregateMetrics = computed<MetricCard[]>(() => [
+  { label: 'Images', value: String(imageCards.value.length) },
+  { label: 'Sources', value: String(sourceCards.value.length) },
+  { label: 'Recipes', value: String(recipeCards.value.length) },
+  { label: 'Tree', value: recipeVariants.value.length ? `${recipeVariants.value.length} variants` : 'No tree' },
+])
+
+const metadataFields = computed<DetailField[]>(() =>
+  compactFields([
+    numberField('Item ID', item.value?.id),
+    textField('Category', displayCategory.value),
+    textField('Internal Name', oneLine(item.value?.internalName)),
+    textField('Rarity', displayRarity.value),
+    textField('Aggregated', formatDateTime(aggregate.value?.aggregatedAt)),
+    textField('Stack Cap', stackValueLabel(item.value?.stack ?? item.value?.stackSize)),
+  ]),
+)
+
+const moduleRows = computed<DetailField[]>(() => {
+  const rows: DetailField[] = []
+
+  rows.push({
+    label: 'Images',
+    value: oneLine(moduleStatus.value.images) || (imageCards.value.length ? 'ready' : 'empty'),
+  })
+  rows.push({
+    label: 'Sources',
+    value: oneLine(moduleStatus.value.sources) || (sourceCards.value.length ? 'ready' : 'empty'),
+  })
+  rows.push({
+    label: 'Recipes',
+    value: oneLine(moduleStatus.value.recipes) || (recipeCards.value.length ? 'ready' : 'empty'),
+  })
+
+  return rows
+})
+
+function textValue(value?: string | null) {
+  return typeof value === 'string' ? value.trim() : ''
 }
 
-const loadItem = async () => {
+function oneLine(value?: string | null) {
+  return textValue(value).replace(/\s+/g, ' ')
+}
+
+function compactFields(fields: Array<DetailField | null>) {
+  return fields.filter((field): field is DetailField => Boolean(field))
+}
+
+function textField(label: string, value?: string | null): DetailField | null {
+  const normalized = oneLine(value)
+  return normalized ? { label, value: normalized } : null
+}
+
+function numberField(label: string, value?: number | null): DetailField | null {
+  return typeof value === 'number' && Number.isFinite(value) ? { label, value: String(value) } : null
+}
+
+function stackValueLabel(value?: number | null) {
+  return typeof value === 'number' && value > 0 ? `x${value}` : ''
+}
+
+function formatDateTime(value?: string | null) {
+  const normalized = textValue(value)
+  if (!normalized) {
+    return ''
+  }
+
+  const date = new Date(normalized)
+  if (Number.isNaN(date.getTime())) {
+    return normalized
+  }
+
+  return date.toLocaleString('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+}
+
+function formatCoins(value?: number | null) {
+  if (value == null || !Number.isFinite(value)) {
+    return ''
+  }
+
+  const total = Math.max(0, Math.trunc(value))
+  const platinum = Math.floor(total / 1000000)
+  const gold = Math.floor((total % 1000000) / 10000)
+  const silver = Math.floor((total % 10000) / 100)
+  const copper = total % 100
+
+  const parts = [
+    platinum > 0 ? `${platinum}p` : '',
+    gold > 0 ? `${gold}g` : '',
+    silver > 0 ? `${silver}s` : '',
+    copper > 0 ? `${copper}c` : '',
+  ].filter(Boolean)
+
+  return `${parts.join(' ') || '0c'} (${total.toLocaleString()} copper)`
+}
+
+function formatQuantity(text?: string | null, min?: number | null, max?: number | null) {
+  const normalized = oneLine(text)
+  if (normalized) {
+    return normalized
+  }
+
+  if (typeof min === 'number' && typeof max === 'number' && min !== max) {
+    return `${min}-${max}`
+  }
+
+  if (typeof min === 'number') {
+    return String(min)
+  }
+
+  if (typeof max === 'number') {
+    return String(max)
+  }
+
+  return '1'
+}
+
+function quantityLabel(source: ItemSourceRelation) {
+  const value = formatQuantity(source.quantityText, source.quantityMin, source.quantityMax)
+  return value === '1' && source.quantityText == null && source.quantityMin == null && source.quantityMax == null
+    ? ''
+    : `Qty ${value}`
+}
+
+function chanceLabel(source: ItemSourceRelation) {
+  const normalized = oneLine(source.chanceText)
+  if (normalized) {
+    return `Chance ${normalized}`
+  }
+
+  if (typeof source.chanceValue === 'number') {
+    return `Chance ${source.chanceValue}%`
+  }
+
+  return ''
+}
+
+function ingredientLabel(recipeIngredient: RecipeIngredientRelation) {
+  return oneLine(recipeIngredient?.itemNameZh)
+    || oneLine(recipeIngredient?.itemName)
+    || oneLine(recipeIngredient?.ingredientNameRaw)
+    || oneLine(recipeIngredient?.itemInternalName)
+    || 'Unknown ingredient'
+}
+
+function resolveLocalizedContent(preferred: ContentLanguage, zh?: string | null, en?: string | null, shared?: string | null) {
+  const zhValue = textValue(zh)
+  const enValue = textValue(en)
+  const sharedValue = textValue(shared)
+
+  if (preferred === 'zh') {
+    if (zhValue) {
+      return { text: zhValue, languageLabel: 'Chinese', fallbackMessage: '' }
+    }
+    if (sharedValue) {
+      return { text: sharedValue, languageLabel: 'Shared', fallbackMessage: 'Chinese copy unavailable.' }
+    }
+    if (enValue) {
+      return { text: enValue, languageLabel: 'English', fallbackMessage: 'Chinese copy unavailable.' }
+    }
+  }
+
+  if (preferred === 'en') {
+    if (enValue) {
+      return { text: enValue, languageLabel: 'English', fallbackMessage: '' }
+    }
+    if (sharedValue) {
+      return { text: sharedValue, languageLabel: 'Shared', fallbackMessage: 'English copy unavailable.' }
+    }
+    if (zhValue) {
+      return { text: zhValue, languageLabel: 'Chinese', fallbackMessage: 'English copy unavailable.' }
+    }
+  }
+
+  return { text: '', languageLabel: '', fallbackMessage: '' }
+}
+
+function resolveImage(value?: string | null) {
+  const normalized = textValue(value)
+  if (!normalized) {
+    return ''
+  }
+
+  if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
+    return normalized
+  }
+
+  return normalized.startsWith('/') ? normalized : `/${normalized}`
+}
+
+function flattenCategories(nodes: Category[]) {
+  const result: Category[] = []
+
+  nodes.forEach((node) => {
+    result.push(node)
+    if (node.children?.length) {
+      result.push(...flattenCategories(node.children))
+    }
+  })
+
+  return result
+}
+
+function recipeVariantKey(variant: ItemRecipeTreeVariant, index = 0) {
+  return oneLine(variant.variantKey) || oneLine(variant.versionScope) || oneLine(variant.variantLabel) || `variant-${index}`
+}
+
+function recipeVariantLabel(variant: ItemRecipeTreeVariant, index = 0) {
+  return oneLine(variant.variantLabel) || oneLine(variant.versionScope) || `Variant ${index + 1}`
+}
+
+function recipeNodeLabel(node: ItemRecipeTreeNode) {
+  return oneLine(node.displayName)
+    || oneLine(node.itemNameZh)
+    || oneLine(node.itemName)
+    || oneLine(node.groupCanonicalName)
+    || oneLine(node.itemInternalName)
+    || 'Unknown item'
+}
+
+function recipeNodeSecondary(node: ItemRecipeTreeNode) {
+  if (oneLine(node.itemNameZh)) {
+    return oneLine(node.itemName) || oneLine(node.itemInternalName)
+  }
+
+  const display = recipeNodeLabel(node)
+  const internalName = oneLine(node.itemInternalName)
+  return internalName && internalName !== display ? internalName : ''
+}
+
+function recipeNodeKey(node: ItemRecipeTreeNode, index = 0) {
+  return String(node.recipeId ?? node.itemId ?? node.referenceKey ?? index)
+}
+
+function inferTreeDepth(node: ItemRecipeTreeNode): number {
+  if (!node.children?.length) {
+    return 1
+  }
+
+  return 1 + Math.max(...node.children.map(child => inferTreeDepth(child)))
+}
+
+async function loadItem() {
   const itemId = Number(route.params.id)
 
   if (!Number.isFinite(itemId) || itemId <= 0) {
-    error.value = '无效的物品 ID'
-    item.value = null
+    aggregate.value = null
+    categories.value = []
     recipeTree.value = null
+    error.value = 'Invalid item id'
+    notFound.value = false
     isLoading.value = false
     return
   }
 
-  try {
-    isLoading.value = true
-    error.value = ''
+  isLoading.value = true
+  error.value = ''
+  notFound.value = false
+  activeVariantKey.value = ''
 
-    const [itemResponse, categoriesResponse] = await Promise.all([
-      fetchItemAggregateById(itemId),
+  try {
+    const [aggregateRes, categoriesRes, recipeTreeRes] = await Promise.all([
+      fetchItemAggregateById(itemId, 'images,sources,recipes'),
       fetchCategories(),
+      fetchItemRecipeTree(itemId, 3),
     ])
 
-    if (!itemResponse.success || !itemResponse.data?.item?.id) {
-      throw new Error(itemResponse.message || '物品不存在')
+    if (!aggregateRes.success || !aggregateRes.data?.item?.id) {
+      const message = aggregateRes.message || 'Failed to fetch item detail'
+
+      if (aggregateRes.statusCode === 404 || /not found/i.test(message)) {
+        aggregate.value = null
+        categories.value = []
+        recipeTree.value = null
+        notFound.value = true
+        return
+      }
+
+      throw new Error(message)
     }
 
-    item.value = itemResponse.data.item
-    relatedImages.value = itemResponse.data.images || []
-    relatedSources.value = itemResponse.data.sources || []
-    relatedRecipes.value = itemResponse.data.recipes || []
-    categories.value = categoriesResponse.success ? flattenCategories(categoriesResponse.data || []) : []
-    recipeTree.value = await fetchItemRecipeTree(itemId, 4)
-  } catch (err) {
-    console.error('加载物品详情失败:', err)
-    item.value = null
+    aggregate.value = aggregateRes.data
+    categories.value = categoriesRes.success ? flattenCategories(categoriesRes.data || []) : []
+    recipeTree.value = recipeTreeRes
+  } catch (cause) {
+    console.error('Failed to load item detail:', cause)
+    aggregate.value = null
     categories.value = []
-    relatedImages.value = []
-    relatedSources.value = []
-    relatedRecipes.value = []
     recipeTree.value = null
-    error.value = err instanceof Error ? err.message : '加载物品详情失败'
+    notFound.value = false
+    error.value = cause instanceof Error ? cause.message : 'Failed to load item detail'
   } finally {
     isLoading.value = false
   }
 }
 
-onMounted(loadItem)
-
 watch(
   () => route.params.id,
   () => {
-    loadItem()
-  }
+    void loadItem()
+  },
+  { immediate: true },
 )
 </script>
 
 <style scoped>
 .item-detail-view {
+  display: grid;
+  gap: 1rem;
   color: var(--text-primary);
 }
 
+.item-detail-view__state {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: center;
+  text-align: center;
+  padding: 2rem 1.25rem;
+}
+
+.item-detail-view__state strong {
+  color: var(--text-primary);
+  font-size: 1.08rem;
+}
+
+.item-detail-view__state p {
+  color: var(--text-secondary);
+}
+
+.item-detail-view__state--error {
+  border-color: color-mix(in srgb, var(--accent-error) 24%, var(--border-color));
+}
+
+.item-detail-view__spinner {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--border-color) 86%, transparent);
+  border-top-color: var(--accent-primary);
+  animation: item-spin 900ms linear infinite;
+}
+
 .item-detail-view__hero {
-  box-shadow: 0 18px 40px rgba(42, 61, 49, 0.08) !important;
-  border-color: color-mix(in srgb, var(--border-color) 82%, transparent) !important;
+  gap: 1rem;
+}
+
+.item-detail-view__hero-layout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
 }
 
 .item-detail-view__media {
+  display: grid;
+  align-content: space-between;
+  gap: 1rem;
+  min-height: 320px;
+  padding: 1rem;
+  border-radius: 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--border-color) 86%, transparent);
   background:
-    radial-gradient(circle at top, color-mix(in srgb, var(--accent-primary) 10%, white 90%), color-mix(in srgb, var(--bg-primary) 92%, white 8%)) !important;
+    radial-gradient(circle at top, color-mix(in srgb, var(--accent-primary) 14%, transparent), transparent 56%),
+    linear-gradient(180deg, color-mix(in srgb, white 60%, var(--surface-panel)), var(--surface-panel));
+}
+
+.item-detail-view__image,
+.item-detail-view__fallback {
+  width: 100%;
+  min-height: 240px;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--border-color) 84%, transparent);
+  background: color-mix(in srgb, white 66%, var(--bg-secondary));
 }
 
 .item-detail-view__image {
-  filter: drop-shadow(0 10px 22px rgba(42, 61, 49, 0.12));
+  object-fit: contain;
+  padding: 1rem;
 }
 
 .item-detail-view__fallback {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  display: grid;
+  place-items: center;
+  gap: 0.55rem;
+  color: var(--text-muted);
 }
 
+.item-detail-view__fallback-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.75rem;
+  min-height: 4.75rem;
+  border-radius: 1.4rem;
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+  color: var(--accent-primary);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.item-detail-view__media-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.item-detail-view__media-meta span {
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-primary) 84%, transparent);
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.item-detail-view__hero-copy,
+.item-detail-view__main,
+.item-detail-view__sidebar {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.item-detail-view__badges,
+.item-detail-view__variant-tabs,
+.item-detail-view__trail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.item-detail-view__badge,
+.item-detail-view__panel-chip,
+.item-detail-view__variant-button,
+.item-detail-view__trail-chip {
+  padding: 0.38rem 0.72rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border-color) 86%, transparent);
+  background: color-mix(in srgb, white 58%, var(--bg-secondary));
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.item-detail-view__badge--rarity {
+  color: inherit;
+}
+
+.item-detail-view__heading {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.item-detail-view__secondary,
 .item-detail-view__summary,
-.item-detail-view__stat {
-  background-color: color-mix(in srgb, white 58%, var(--bg-primary)) !important;
+.item-detail-view__summary-note,
+.item-detail-view__panel-head p,
+.item-detail-view__recipe-card p,
+.item-detail-view__source-card p,
+.item-detail-view__tree-card p,
+.item-detail-view__empty-copy {
+  color: var(--text-secondary);
 }
 
-.item-detail-view h1 {
-  letter-spacing: -0.025em;
+.item-detail-view__summary {
+  margin: 0;
+  line-height: 1.8;
+  font-size: 1rem;
 }
 
-.item-detail-view .rounded-full {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+.item-detail-view__summary-note {
+  font-size: 0.84rem;
 }
 
-.item-detail-view .rounded-2xl.border,
-.item-detail-view .rounded-xl.border {
-  border-color: color-mix(in srgb, var(--border-color) 82%, transparent) !important;
-  box-shadow: 0 10px 20px rgba(42, 61, 49, 0.04);
+.item-detail-view__language {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.item-detail-view__language-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.item-detail-view__language-toggle {
+  display: inline-flex;
+  gap: 0.4rem;
+  padding: 0.35rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-primary) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-color) 86%, transparent);
+}
+
+.item-detail-view__language-button {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.item-detail-view__language-button--active {
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+  color: var(--accent-primary);
+}
+
+.item-detail-view__stat-grid,
+.item-detail-view__aggregate-grid,
+.item-detail-view__section-grid,
+.item-detail-view__content-grid,
+.item-detail-view__tree-grid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.item-detail-view__stat-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.item-detail-view__aggregate-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.item-detail-view__section-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.item-detail-view__content-grid,
+.item-detail-view__tree-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.item-detail-view__panel,
+.item-detail-view__sidebar-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.item-detail-view__panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.item-detail-view__panel-head h2 {
+  color: var(--text-primary);
+  font-size: 1.08rem;
+}
+
+.item-detail-view__content-card,
+.item-detail-view__section-card,
+.item-detail-view__recipe-card,
+.item-detail-view__source-card,
+.item-detail-view__tree-card,
+.item-detail-view__aggregate-card,
+.item-detail-view__image-card {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.9rem;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--border-color) 86%, transparent);
+  background: color-mix(in srgb, white 54%, var(--surface-soft));
+}
+
+.item-detail-view__content-head,
+.item-detail-view__recipe-head,
+.item-detail-view__source-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.item-detail-view__content-head strong,
+.item-detail-view__recipe-head h3,
+.item-detail-view__source-head h3,
+.item-detail-view__tree-card strong,
+.item-detail-view__section-card h3 {
+  color: var(--text-primary);
+}
+
+.item-detail-view__content-head span,
+.item-detail-view__content-card small,
+.item-detail-view__recipe-head span,
+.item-detail-view__recipe-head p,
+.item-detail-view__source-head p,
+.item-detail-view__tree-card-meta,
+.item-detail-view__image-card span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.item-detail-view__content-card p {
+  white-space: pre-line;
+  line-height: 1.75;
+  color: var(--text-secondary);
+}
+
+.item-detail-view__field-list,
+.item-detail-view__sidebar-fields,
+.item-detail-view__module-list,
+.item-detail-view__recipe-list,
+.item-detail-view__source-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.item-detail-view__field-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.item-detail-view__field-row dt {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.item-detail-view__field-row dd {
+  text-align: right;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.item-detail-view__tree-block {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.item-detail-view__variant-button {
+  cursor: pointer;
+}
+
+.item-detail-view__variant-button--active {
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+  color: var(--accent-primary);
+  border-color: color-mix(in srgb, var(--accent-primary) 28%, var(--border-color));
+}
+
+.item-detail-view__tree-meta,
+.item-detail-view__tree-card-meta,
+.item-detail-view__source-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.item-detail-view__tree-meta span,
+.item-detail-view__tree-card-meta span,
+.item-detail-view__source-meta span {
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-primary) 84%, transparent);
+}
+
+.item-detail-view__aggregate-card span {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.item-detail-view__aggregate-card strong,
+.item-detail-view__module-row strong {
+  color: var(--text-primary);
+}
+
+.item-detail-view__module-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--bg-primary) 84%, transparent);
+}
+
+.item-detail-view__module-row span {
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+}
+
+.item-detail-view__image-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.item-detail-view__image-card img {
+  width: 100%;
+  height: 110px;
+  object-fit: contain;
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
+}
+
+@keyframes item-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 960px) {
+  .item-detail-view__hero-layout,
+  .item-detail-view__section-grid,
+  .item-detail-view__content-grid,
+  .item-detail-view__tree-grid,
+  .item-detail-view__stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .item-detail-view__aggregate-grid,
+  .item-detail-view__image-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .item-detail-view__panel-head,
+  .item-detail-view__content-head,
+  .item-detail-view__recipe-head,
+  .item-detail-view__source-head,
+  .item-detail-view__field-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .item-detail-view__field-row dd {
+    text-align: left;
+  }
 }
 </style>

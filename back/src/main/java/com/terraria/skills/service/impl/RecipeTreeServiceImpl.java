@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,21 +44,32 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
 
     private static final int DEFAULT_MAX_DEPTH = 3;
     private static final int ABSOLUTE_MAX_DEPTH = 5;
+    private static final Duration TREE_CACHE_TTL = Duration.ofMinutes(5);
+    private static final Duration GROUP_REFERENCE_CACHE_TTL = Duration.ofMinutes(10);
 
     private final ItemService itemService;
     private final RecipeService recipeService;
     private final ObjectMapper objectMapper;
     private final ItemMapper itemMapper;
+    private final ConcurrentHashMap<String, TimedValue<RecipeTreeResponseDTO>> recipeTreeCache = new ConcurrentHashMap<>();
+    private volatile TimedValue<Map<String, RecipeGroupReference>> recipeGroupReferenceCache;
 
     @Override
     public RecipeTreeResponseDTO getRecipeTreeByItemId(Long itemId, int maxDepth) {
+        int resolvedMaxDepth = Math.max(1, Math.min(maxDepth <= 0 ? DEFAULT_MAX_DEPTH : maxDepth, ABSOLUTE_MAX_DEPTH));
+        String cacheKey = itemId + ":" + resolvedMaxDepth;
+        TimedValue<RecipeTreeResponseDTO> cached = recipeTreeCache.get(cacheKey);
+        if (isValid(cached)) {
+            return cached.value();
+        }
+
         ItemDTO item = itemService.getItemById(itemId);
         if (item == null) {
             throw new IllegalArgumentException("Item not found");
         }
 
-        int resolvedMaxDepth = Math.max(1, Math.min(maxDepth <= 0 ? DEFAULT_MAX_DEPTH : maxDepth, ABSOLUTE_MAX_DEPTH));
         List<RecipeDTO> recipes = safeRecipes(recipeService.getRecipesByResultItemId(itemId));
+        Map<String, RecipeGroupReference> groupReferences = getRecipeGroupReferences();
 
         RecipeTreeResponseDTO response = new RecipeTreeResponseDTO();
         response.setItem(toTreeItem(item));
@@ -92,13 +105,29 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
 
             List<RecipeTreeNodeDTO> roots = new ArrayList<>();
             for (RecipeDTO recipe : entry.getValue()) {
-                roots.add(buildRecipeRoot(recipe, recipe.getVersionScope(), 0, resolvedMaxDepth, rootPath, new LinkedHashSet<>(), recipeCache));
+                roots.add(buildRecipeRoot(
+                    recipe,
+                    recipe.getVersionScope(),
+                    0,
+                    resolvedMaxDepth,
+                    rootPath,
+                    new LinkedHashSet<>(),
+                    recipeCache,
+                    groupReferences
+                ));
             }
             variant.setRoots(roots);
             response.getVariants().add(variant);
         }
 
+        recipeTreeCache.put(cacheKey, new TimedValue<>(response, System.currentTimeMillis() + TREE_CACHE_TTL.toMillis()));
         return response;
+    }
+
+    @Override
+    public void invalidateCaches() {
+        recipeTreeCache.clear();
+        recipeGroupReferenceCache = null;
     }
 
     private RecipeTreeNodeDTO buildRecipeRoot(
@@ -108,7 +137,8 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         int maxDepth,
         Set<String> currentPath,
         Set<String> expandedKeys,
-        Map<String, List<RecipeDTO>> recipeCache
+        Map<String, List<RecipeDTO>> recipeCache,
+        Map<String, RecipeGroupReference> groupReferences
     ) {
         RecipeTreeNodeDTO root = new RecipeTreeNodeDTO();
         root.setNodeType("craft-result");
@@ -126,7 +156,16 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
 
         List<RecipeTreeNodeDTO> children = new ArrayList<>();
         for (RecipeIngredientDTO ingredient : safeIngredients(recipe.getIngredients())) {
-            children.add(buildIngredientNode(ingredient, variantScope, depth + 1, maxDepth, currentPath, expandedKeys, recipeCache));
+            children.add(buildIngredientNode(
+                ingredient,
+                variantScope,
+                depth + 1,
+                maxDepth,
+                currentPath,
+                expandedKeys,
+                recipeCache,
+                groupReferences
+            ));
         }
         root.setChildren(children);
         return root;
@@ -139,7 +178,8 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         int maxDepth,
         Set<String> currentPath,
         Set<String> expandedKeys,
-        Map<String, List<RecipeDTO>> recipeCache
+        Map<String, List<RecipeDTO>> recipeCache,
+        Map<String, RecipeGroupReference> groupReferences
     ) {
         RecipeTreeNodeDTO node = new RecipeTreeNodeDTO();
         node.setNodeType("ingredient");
@@ -158,7 +198,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         boolean groupNode = "group".equalsIgnoreCase(node.getIngredientGroupType());
         if (groupNode) {
             String fallbackGroupLabel = firstNonBlank(rawIngredientName, ingredient.getIngredientInternalName());
-            RecipeGroupReference reference = loadRecipeGroupReferences().get(normalizeKey(fallbackGroupLabel));
+            RecipeGroupReference reference = groupReferences.get(normalizeKey(fallbackGroupLabel));
             if (fallbackGroupLabel != null) {
                 if (node.getItemName() == null) {
                     node.setItemName(fallbackGroupLabel);
@@ -231,7 +271,16 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
 
         List<RecipeTreeNodeDTO> children = new ArrayList<>();
         for (RecipeDTO recipe : candidateRecipes) {
-            children.add(buildRecipeRoot(recipe, chooseVariantScope(variantScope, recipe), depth, maxDepth, nextPath, nextExpandedKeys, recipeCache));
+            children.add(buildRecipeRoot(
+                recipe,
+                chooseVariantScope(variantScope, recipe),
+                depth,
+                maxDepth,
+                nextPath,
+                nextExpandedKeys,
+                recipeCache,
+                groupReferences
+            ));
         }
         node.setChildren(children);
         return node;
@@ -400,6 +449,17 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     private String groupReferenceKey(String rawIngredientName) {
         String normalized = trimToNull(rawIngredientName);
         return normalized == null ? "group:unknown" : "group:" + normalized;
+    }
+
+    private Map<String, RecipeGroupReference> getRecipeGroupReferences() {
+        TimedValue<Map<String, RecipeGroupReference>> cached = recipeGroupReferenceCache;
+        if (isValid(cached)) {
+            return cached.value();
+        }
+
+        Map<String, RecipeGroupReference> loaded = loadRecipeGroupReferences();
+        recipeGroupReferenceCache = new TimedValue<>(loaded, System.currentTimeMillis() + GROUP_REFERENCE_CACHE_TTL.toMillis());
+        return loaded;
     }
 
     private Map<String, RecipeGroupReference> loadRecipeGroupReferences() {
@@ -577,6 +637,10 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         return null;
     }
 
+    private boolean isValid(TimedValue<?> cached) {
+        return cached != null && cached.expiresAtMillis() > System.currentTimeMillis();
+    }
+
     private String normalizeKey(String value) {
         String text = trimToNull(value);
         return text == null ? "" : text.toLowerCase();
@@ -615,6 +679,9 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         List<String> groupMemberNames,
         List<RecipeGroupMemberDTO> groupMembers
     ) {
+    }
+
+    private record TimedValue<T>(T value, long expiresAtMillis) {
     }
 
     private String firstNonBlank(String... values) {

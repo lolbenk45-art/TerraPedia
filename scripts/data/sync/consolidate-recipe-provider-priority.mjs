@@ -252,10 +252,27 @@ function selectPreferredProvider(providers) {
   return providerStats
     .slice()
     .sort((left, right) =>
-      right.uniqueRecipeCount - left.uniqueRecipeCount
+      providerQualityScore(right) - providerQualityScore(left)
+      || right.uniqueRecipeCount - left.uniqueRecipeCount
       || compareProviders(left.provider, right.provider)
       || right.rows.length - left.rows.length
     )?.[0]?.provider ?? '';
+}
+
+function providerQualityScore(provider) {
+  const rows = Array.isArray(provider?.rows) ? provider.rows : [];
+  const resolvedStationRefs = rows.reduce((sum, row) => sum + (Array.isArray(row.stations)
+    ? row.stations.filter((station) => station.stationId != null).length
+    : 0), 0);
+  const stationRows = rows.reduce((sum, row) => sum + (Array.isArray(row.stations) ? row.stations.length : 0), 0);
+  const ingredientRows = rows.reduce((sum, row) => sum + (Array.isArray(row.ingredients) ? row.ingredients.length : 0), 0);
+
+  return (
+    Number(provider?.uniqueRecipeCount ?? 0) * 1000
+    + resolvedStationRefs * 50
+    + stationRows * 5
+    + ingredientRows
+  );
 }
 
 function compareProviders(left, right) {

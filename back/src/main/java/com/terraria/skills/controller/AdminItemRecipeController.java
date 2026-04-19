@@ -54,6 +54,7 @@ public class AdminItemRecipeController {
         @RequestBody(required = false) List<AdminRecipeUpsertRequestDTO> request
     ) {
         List<RecipeDTO> recipes = recipeService.replaceRecipesForResultItemId(itemId, request, scopeMode);
+        recipeTreeService.invalidateCaches();
         return ResponseEntity.ok(ApiResponse.success(recipes, "Recipes updated"));
     }
 }

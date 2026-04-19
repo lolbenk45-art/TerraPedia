@@ -6,6 +6,9 @@ TerraPedia is a Terraria knowledge base project with:
 - `front`: user-facing frontend
 - `data-query-app`: admin/data-query frontend
 - `data`: standardized datasets used by import and sync tooling
+- `docs`: supplementary working docs, including `superpowers` outputs and research notes
+- `project-plan`: project scope, architecture, workflow, and milestone docs
+- `reports`: local logs, screenshots, benchmarks, and other generated run artifacts
 - `scripts`: local automation, grouped by `dev`, `data`, `lib`, and `tooling`
 
 ## Local Secrets

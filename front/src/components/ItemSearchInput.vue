@@ -1,12 +1,7 @@
 <template>
   <div ref="rootRef" class="item-search" :class="[`item-search--${variant}`]">
     <div class="item-search__control">
-      <svg
-        class="item-search__icon"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
+      <svg class="item-search__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
       </svg>
       <input
@@ -53,7 +48,7 @@
           @mousedown.prevent="selectSuggestion(suggestion)"
         >
           <div class="item-search__suggestion-main">
-            <span class="item-search__suggestion-icon">📦</span>
+            <span class="item-search__suggestion-icon">{{ suggestionMark(suggestion) }}</span>
             <div class="item-search__suggestion-text">
               <span class="item-search__suggestion-name">{{ suggestion.name }}</span>
               <span class="item-search__suggestion-meta">
@@ -88,6 +83,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { fetchItemSuggestions } from '@/api'
 import type { ItemSuggestion } from '@/types'
+import { getItemFallbackMark } from '@/utils/itemFallbackMark'
 
 const props = withDefaults(defineProps<{
   modelValue: string
@@ -139,6 +135,7 @@ const loadSuggestions = async (keyword: string) => {
     if (requestId !== activeRequestId) {
       return
     }
+
     suggestions.value = data
     highlightedIndex.value = -1
     open.value = true
@@ -174,6 +171,14 @@ const selectSuggestion = (suggestion: ItemSuggestion) => {
   emit('update:modelValue', suggestion.name)
   closeDropdown()
   emit('pick', suggestion)
+}
+
+const suggestionMark = (suggestion: ItemSuggestion) => {
+  return getItemFallbackMark({
+    id: suggestion.id,
+    name: suggestion.name,
+    category: suggestion.categoryName || suggestion.category,
+  })
 }
 
 const handleKeydown = (event: KeyboardEvent) => {
@@ -398,6 +403,9 @@ onBeforeUnmount(() => {
   border-radius: 0.75rem;
   background: color-mix(in srgb, var(--bg-tertiary) 60%, white 40%);
   color: var(--accent-primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .item-search__suggestion-text {

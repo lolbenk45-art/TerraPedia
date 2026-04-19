@@ -49,9 +49,11 @@ project-plan/plan-/Microsoft/Windows/PowerShell/ModuleAnalysisCache
 # OS/editor files
 .DS_Store
 Thumbs.db
+.worktrees/
 
 # Local run artifacts
 reports/run-logs/
+.codex-*.png
 task/
 cargo.txt
 crate_potion_parse.json

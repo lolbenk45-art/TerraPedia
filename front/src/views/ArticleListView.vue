@@ -1,53 +1,87 @@
 <template>
-  <div class="article-shell">
-    <section class="article-hero panel">
-      <div class="article-hero__copy">
-        <span class="section-eyebrow">Knowledge Log</span>
-        <h1>TerraPedia Articles</h1>
-        <p>
-          从管理端发布的物品解析、版本记录与专题内容会集中展示在这里，保持资料库与攻略内容的统一入口。
-        </p>
-      </div>
+  <div class="public-editorial article-ledger page-wrap">
+    <section class="public-editorial-hero article-ledger__hero">
+      <div class="public-editorial-hero__layout">
+        <div class="public-editorial-hero__copy">
+          <span class="section-eyebrow">Editorial Ledger</span>
+          <h1 class="section-title">TerraPedia Articles</h1>
+          <p class="section-copy section-copy--wide">
+            Published explainers, change notes, and topical dossiers from the public knowledge base, presented in a
+            quieter reading-first shell.
+          </p>
+        </div>
 
-      <form class="article-search panel-soft" @submit.prevent="loadArticles(1)">
+        <aside class="public-editorial-hero__aside article-ledger__hero-aside">
+          <article class="public-hero-stat-card">
+            <span class="public-hero-stat-card__label">Published</span>
+            <strong class="public-hero-stat-card__value">{{ pagination.total }}</strong>
+          </article>
+          <article class="public-hero-stat-card">
+            <span class="public-hero-stat-card__label">Query</span>
+            <strong class="public-hero-stat-card__value">{{ keyword || 'All entries' }}</strong>
+          </article>
+          <article class="public-hero-stat-card">
+            <span class="public-hero-stat-card__label">Page</span>
+            <strong class="public-hero-stat-card__value">{{ pagination.page }} / {{ pagination.totalPages }}</strong>
+          </article>
+        </aside>
+      </div>
+    </section>
+
+    <section class="public-summary-strip article-ledger__search">
+      <form class="article-search" @submit.prevent="loadArticles(1)">
         <label class="article-search__field">
-          <span>搜索文章</span>
-          <input v-model.trim="keyword" type="text" class="input" placeholder="按标题、摘要或关键词检索" />
+          <span>Search Articles</span>
+          <input
+            v-model.trim="keyword"
+            type="text"
+            class="input"
+            placeholder="Search by title, summary, or keyword"
+          />
         </label>
         <button type="submit" class="btn btn-primary article-search__submit">Search</button>
       </form>
+
+      <div class="public-summary-strip__meta">
+        <span class="public-chip public-chip--accent">{{ keyword ? 'Filtered ledger' : 'All published entries' }}</span>
+        <span class="public-chip">{{ pagination.total }} articles</span>
+        <span class="public-chip">Page {{ pagination.page }}</span>
+      </div>
     </section>
 
-    <section v-if="loading" class="article-state panel">
+    <section v-if="loading" class="article-state public-section-frame">
       <div class="article-state__spinner" aria-hidden="true"></div>
-      <p>正在加载文章列表...</p>
+      <p>Loading articles...</p>
     </section>
 
-    <section v-else-if="error" class="article-state article-state--error panel">
-      <strong>加载失败</strong>
+    <section v-else-if="error" class="article-state article-state--error public-section-frame">
+      <strong>Could not load articles</strong>
       <p>{{ error }}</p>
     </section>
 
-    <section v-else-if="articles.length === 0" class="article-state panel">
-      <strong>暂无已发布文章</strong>
-      <p>你可以先在管理端发布内容，或调整搜索词后重试。</p>
+    <section v-else-if="articles.length === 0" class="article-state public-section-frame">
+      <strong>No published articles yet</strong>
+      <p>Publish content from the admin side or broaden the search query.</p>
     </section>
 
     <section v-else class="article-grid">
       <article
         v-for="article in articles"
         :key="article.id"
-        class="article-card panel card-hover"
+        class="article-card public-section-frame card-hover"
         :class="{ 'article-card--no-cover': !article.coverImage }"
       >
         <figure v-if="article.coverImage" class="card-cover">
           <img :src="article.coverImage" :alt="article.title" loading="lazy" />
         </figure>
+        <figure v-else class="card-cover card-cover--fallback" aria-hidden="true">
+          <span class="card-cover__mark">LOG</span>
+        </figure>
 
         <div class="card-body">
           <div class="card-body__meta">
             <span>{{ formatDate(article.publishedAt || article.createdAt) }}</span>
-            <span v-if="article.authorDisplayName">作者 {{ article.authorDisplayName }}</span>
+            <span v-if="article.authorDisplayName">By {{ article.authorDisplayName }}</span>
           </div>
 
           <h2>
@@ -57,14 +91,14 @@
           <p class="summary">{{ getPreview(article) }}</p>
 
           <div class="card-body__footer">
-            <router-link class="read-link" :to="`/articles/${article.id}`">继续阅读</router-link>
+            <router-link class="read-link" :to="`/articles/${article.id}`">Read entry</router-link>
             <span class="read-marker">{{ String(article.id).padStart(4, '0') }}</span>
           </div>
         </div>
       </article>
     </section>
 
-    <section v-if="pagination.totalPages > 1" class="pager">
+    <section v-if="pagination.totalPages > 1" class="public-pager-shell article-ledger__pager">
       <button class="btn btn-secondary pager__btn" :disabled="pagination.page <= 1" @click="loadArticles(pagination.page - 1)">
         Prev
       </button>
@@ -140,40 +174,17 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.article-shell {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 2rem 1rem 3rem;
-  overflow-x: clip;
+.article-ledger__hero-aside {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.article-hero {
-  display: grid;
-  gap: 1.4rem;
-  padding: 1.35rem;
-}
-
-.article-hero__copy {
-  display: grid;
+.article-ledger__search {
   gap: 0.8rem;
-}
-
-.article-hero h1 {
-  font-size: clamp(1.85rem, 3.6vw, 2.9rem);
-  line-height: 1.12;
-  color: var(--text-primary);
-}
-
-.article-hero p {
-  max-width: 50rem;
-  color: var(--text-secondary);
-  line-height: 1.82;
 }
 
 .article-search {
   display: grid;
-  gap: 1rem;
-  padding: 0.9rem;
+  gap: 0.85rem;
 }
 
 .article-search__field {
@@ -182,7 +193,7 @@ onMounted(() => {
 }
 
 .article-search__field span {
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -190,26 +201,25 @@ onMounted(() => {
 }
 
 .article-search__submit {
-  width: 100%;
+  min-height: 2.9rem;
 }
 
 .article-grid {
   display: grid;
-  gap: 1.1rem;
-  margin-top: 1.5rem;
+  gap: 1rem;
   min-width: 0;
 }
 
 .article-card {
   display: grid;
-  grid-template-columns: clamp(240px, 28vw, 360px) minmax(0, 1fr);
+  grid-template-columns: clamp(240px, 28vw, 340px) minmax(0, 1fr);
+  padding: 0;
   overflow: hidden;
   min-width: 0;
-  box-shadow: var(--shadow-sm);
 }
 
 .article-card--no-cover {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .card-cover {
@@ -232,6 +242,28 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.card-cover--fallback {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary) 12%, transparent), transparent 30%),
+    linear-gradient(160deg, color-mix(in srgb, white 30%, var(--surface-soft)), var(--surface-soft));
+}
+
+.card-cover__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.5rem;
+  min-height: 4.5rem;
+  border-radius: 1.4rem;
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+  color: var(--accent-primary);
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
 }
 
 .card-body {
@@ -310,15 +342,12 @@ onMounted(() => {
   font-weight: 700;
   letter-spacing: 0.12em;
   color: var(--text-muted);
-  max-width: 100%;
-  overflow-wrap: anywhere;
 }
 
 .article-state {
   display: grid;
   justify-items: center;
   gap: 0.75rem;
-  margin-top: 1.5rem;
   padding: 2rem 1.4rem;
   text-align: center;
 }
@@ -341,14 +370,6 @@ onMounted(() => {
   animation: article-spin 700ms linear infinite;
 }
 
-.pager {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.8rem;
-  margin-top: 1.6rem;
-}
-
 .pager__btn {
   min-width: 6rem;
 }
@@ -366,14 +387,17 @@ onMounted(() => {
 }
 
 @media (min-width: 860px) {
-  .article-hero {
-    grid-template-columns: minmax(0, 1.25fr) minmax(18rem, 24rem);
+  .article-search {
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: end;
-    padding: 1.6rem;
   }
 }
 
 @media (max-width: 900px) {
+  .article-ledger__hero-aside {
+    grid-template-columns: 1fr;
+  }
+
   .article-card {
     grid-template-columns: 1fr;
   }
@@ -385,27 +409,6 @@ onMounted(() => {
 }
 
 @media (max-width: 640px) {
-  .article-shell {
-    padding-inline: 0.75rem;
-  }
-
-  .article-hero,
-  .card-body {
-    padding-inline: 1rem;
-  }
-
-  .article-hero {
-    border-radius: 1.15rem;
-  }
-
-  .article-search {
-    padding: 0.85rem;
-  }
-
-  .pager {
-    flex-direction: column;
-  }
-
   .pager__btn {
     width: 100%;
   }

@@ -14,7 +14,7 @@
           class="h-auto max-h-full w-auto max-w-full object-contain drop-shadow-sm transition-transform duration-300 group-hover:scale-105"
           @error="handleImageError"
         />
-        <div v-else class="flex h-8 w-8 items-center justify-center rounded-md text-lg sm:h-10 sm:w-10" style="background-color: var(--bg-primary);">
+        <div v-else class="flex h-8 w-8 items-center justify-center rounded-md text-[10px] font-semibold tracking-[0.08em] sm:h-10 sm:w-10 sm:text-xs" style="background-color: var(--bg-primary);">
           {{ itemIcon }}
         </div>
       </div>
@@ -58,6 +58,7 @@
 import { computed, ref } from 'vue'
 import type { Item } from '@/types'
 import { getRarityPresentation } from '@/utils/rarity'
+import { getItemFallbackMark } from '@/utils/itemFallbackMark'
 
 interface Props {
   item: Item
@@ -90,9 +91,11 @@ const displayName = computed(() => props.item.nameZh?.trim() || props.item.name)
 const secondaryName = computed(() => props.item.nameZh?.trim() ? (props.item.name || props.item.internalName || '') : (props.item.internalName || ''))
 
 const itemIcon = computed(() => {
-  const icons = ['🗡️', '🛡️', '🏹', '🪓', '🔭', '💵', '🧪', '📐', '🧱', '⚙️', '📜', '🎵', '🔮', '✨', '🔥', '🦠', '⛏️', '🎲', '🏍']
-  const id = props.item.id || 0
-  return icons[id % icons.length]
+  return getItemFallbackMark({
+    id: props.item.id,
+    name: displayName.value,
+    category: props.item.categoryName || props.item.category,
+  })
 })
 
 const rarityInfo = computed(() => getRarityPresentation(props.item))

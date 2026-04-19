@@ -45,6 +45,7 @@ public class ItemServiceImpl implements ItemService {
     private final CategoryManagementService categoryManagementService;
 
     @Override
+    @Cacheable(cacheNames = "item:list", key = "#root.target.buildListCacheKey(#pageQuery)", unless = "#result == null")
     public Page<ItemDTO> getItems(PageQuery pageQuery) {
         Page<ItemDTO> mpPage = new Page<>(pageQuery.getPage(), pageQuery.getLimit());
         Long rarityId = mapRarityToId(pageQuery.getRarity());
@@ -87,13 +88,19 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
+    @Cacheable(
+        cacheNames = "item:suggestions",
+        key = "#root.target.buildSuggestionsCacheKey(#keyword, #limit)",
+        condition = "#keyword != null && !#keyword.trim().isEmpty()",
+        unless = "#result == null"
+    )
     public List<ItemDTO> searchSuggestions(String keyword, int limit) {
-        String normalizedKeyword = keyword == null ? "" : keyword.trim();
+        String normalizedKeyword = trimToEmpty(keyword);
         if (normalizedKeyword.isBlank()) {
             return Collections.emptyList();
         }
 
-        int normalizedLimit = Math.max(1, Math.min(limit, 10));
+        int normalizedLimit = normalizeSuggestionLimit(limit);
         List<ItemDTO> suggestions = itemMapper.selectItemSuggestions(normalizedKeyword, normalizedLimit);
         suggestions.forEach(this::normalizeItemDTO);
         applyCategoryPaths(suggestions);
@@ -101,7 +108,12 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    @CacheEvict(cacheNames = "stats:overview", allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "item:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:suggestions", allEntries = true),
+        @CacheEvict(cacheNames = "item:aggregate", allEntries = true),
+        @CacheEvict(cacheNames = "stats:overview", allEntries = true)
+    })
     @Transactional
     public ItemDTO createItem(ItemDTO itemDTO) {
         validateItemInput(itemDTO);
@@ -123,6 +135,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     @Caching(evict = {
+        @CacheEvict(cacheNames = "item:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:suggestions", allEntries = true),
+        @CacheEvict(cacheNames = "item:aggregate", allEntries = true),
         @CacheEvict(cacheNames = "item:detail", key = "#id"),
         @CacheEvict(cacheNames = "stats:overview", allEntries = true)
     })
@@ -148,6 +163,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     @Caching(evict = {
+        @CacheEvict(cacheNames = "item:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:suggestions", allEntries = true),
+        @CacheEvict(cacheNames = "item:aggregate", allEntries = true),
         @CacheEvict(cacheNames = "item:detail", key = "#id"),
         @CacheEvict(cacheNames = "stats:overview", allEntries = true)
     })
@@ -188,13 +206,7 @@ public class ItemServiceImpl implements ItemService {
             return;
         }
 
-        List<CategoryDTO> allCategories = categoryManagementService.getAllCategories();
-        Map<Long, CategoryDTO> categoryById = new HashMap<>();
-        for (CategoryDTO category : allCategories) {
-            if (category.getId() != null) {
-                categoryById.put(category.getId(), category);
-            }
-        }
+        Map<Long, String> categoryPathById = categoryManagementService.getCategoryPathMap();
 
         for (ItemDTO item : items) {
             LinkedHashSet<Long> categoryIds = new LinkedHashSet<>();
@@ -212,32 +224,13 @@ public class ItemServiceImpl implements ItemService {
 
             List<String> paths = new ArrayList<>();
             for (Long categoryId : categoryIds) {
-                String path = buildCategoryPath(categoryId, categoryById);
+                String path = categoryPathById.get(categoryId);
                 if (path != null && !path.isBlank() && !paths.contains(path)) {
                     paths.add(path);
                 }
             }
             item.setCategoryPaths(paths);
         }
-    }
-
-    private String buildCategoryPath(Long categoryId, Map<Long, CategoryDTO> categoryById) {
-        if (categoryId == null) {
-            return null;
-        }
-        List<String> names = new ArrayList<>();
-        CategoryDTO current = categoryById.get(categoryId);
-        while (current != null) {
-            if (current.getName() != null && !current.getName().isBlank()) {
-                names.add(current.getName());
-            }
-            if (current.getParentId() == null || current.getParentId() == 0) {
-                break;
-            }
-            current = categoryById.get(current.getParentId());
-        }
-        Collections.reverse(names);
-        return String.join(" / ", names);
     }
 
     private Long resolveRarityId(ItemDTO itemDTO) {
@@ -319,6 +312,39 @@ public class ItemServiceImpl implements ItemService {
         return "asc".equalsIgnoreCase(sortDirection.trim()) ? "asc" : "desc";
     }
 
+    public String buildListCacheKey(PageQuery pageQuery) {
+        int page = pageQuery == null || pageQuery.getPage() < 1
+            ? 1
+            : pageQuery.getPage();
+        int limit = pageQuery == null || pageQuery.getLimit() < 1
+            ? 20
+            : pageQuery.getLimit();
+        String search = pageQuery == null ? "" : trimToEmpty(pageQuery.getSearch());
+        String categoryId = pageQuery == null || pageQuery.getCategoryId() == null ? "" : String.valueOf(pageQuery.getCategoryId());
+        String rarity = pageQuery == null ? "" : trimToEmpty(pageQuery.getRarity());
+        String gamePeriodId = pageQuery == null || pageQuery.getGamePeriodId() == null ? "" : String.valueOf(pageQuery.getGamePeriodId());
+        String sortBy = normalizeSortBy(pageQuery == null ? null : pageQuery.getSortBy());
+        String sortDirection = normalizeSortDirection(pageQuery == null ? null : pageQuery.getSortDirection());
+
+        return String.join("|",
+            String.valueOf(page),
+            String.valueOf(limit),
+            search,
+            categoryId,
+            rarity,
+            gamePeriodId,
+            sortBy,
+            sortDirection
+        );
+    }
+
+    public String buildSuggestionsCacheKey(String keyword, int limit) {
+        return String.join("|",
+            trimToEmpty(keyword),
+            String.valueOf(normalizeSuggestionLimit(limit))
+        );
+    }
+
     private List<Long> resolveCategoryIds(Long categoryId) {
         if (categoryId == null) {
             return null;
@@ -326,14 +352,20 @@ public class ItemServiceImpl implements ItemService {
 
         LinkedHashSet<Long> categoryIds = new LinkedHashSet<>();
         categoryIds.add(categoryId);
-
-        for (CategoryDTO descendant : categoryManagementService.getAllDescendants(categoryId)) {
-            if (descendant.getId() != null) {
-                categoryIds.add(descendant.getId());
-            }
-        }
+        categoryManagementService.getAllDescendants(categoryId).stream()
+            .map(CategoryDTO::getId)
+            .filter(Objects::nonNull)
+            .forEach(categoryIds::add);
 
         return new ArrayList<>(categoryIds);
+    }
+
+    private String trimToEmpty(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private int normalizeSuggestionLimit(int limit) {
+        return Math.max(1, Math.min(limit, 10));
     }
 
     private String generateInternalName(String name) {
@@ -379,9 +411,7 @@ public class ItemServiceImpl implements ItemService {
                 .forEach(categoryIds::add);
         }
 
-        Map<Long, CategoryDTO> categoryById = categoryManagementService.getAllCategories().stream()
-            .filter(category -> category.getId() != null)
-            .collect(HashMap::new, (map, category) -> map.put(category.getId(), category), HashMap::putAll);
+        Map<Long, CategoryDTO> categoryById = categoryManagementService.getCategoryMap();
 
         itemCategoryRelMapper.delete(new LambdaQueryWrapper<ItemCategoryRel>().eq(ItemCategoryRel::getItemId, itemId));
 

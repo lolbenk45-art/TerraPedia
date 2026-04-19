@@ -129,8 +129,14 @@ function collectRawRecipes(payload) {
       for (const row of Array.isArray(table?.rows) ? table.rows : []) {
         recipes.push({
           sourcePage: toText(page?.pageTitle),
+          tableCaption: toText(table?.caption),
           sourceRevisionTimestamp: toDateTime(page?.revisionTimestamp),
           stations: Array.isArray(table?.stations) ? table.stations.map((station) => toText(station)).filter(Boolean) : [],
+          stationRequirementMode: inferStationRequirementMode(
+            toText(table?.stationRequirementMode),
+            toText(table?.caption),
+            Array.isArray(table?.stations) ? table.stations : []
+          ),
           resultName: toText(row?.resultName),
           resultQuantity: toInt(row?.resultQuantity) ?? 1,
           versionScope: sanitizeVersionScope(row?.versionScope),
@@ -148,6 +154,32 @@ function collectRawRecipes(payload) {
     }
   }
   return recipes;
+}
+
+function inferStationRequirementMode(explicitMode, caption, stations) {
+  const normalizedExplicitMode = toText(explicitMode)?.toLowerCase();
+  if (normalizedExplicitMode === 'single' || normalizedExplicitMode === 'alternative' || normalizedExplicitMode === 'combination') {
+    return normalizedExplicitMode;
+  }
+
+  const stationCount = Array.isArray(stations) ? stations.filter(Boolean).length : 0;
+  if (stationCount <= 1) {
+    return 'single';
+  }
+
+  const text = toText(caption)?.toLowerCase() ?? '';
+  if (
+    /(^|[\s(])and([\s):]|$)/i.test(text)
+    || text.includes('同时')
+    || text.includes('并且')
+    || text.includes('以及')
+    || text.includes('且')
+    || text.includes('和')
+  ) {
+    return 'combination';
+  }
+
+  return 'alternative';
 }
 
 async function buildMetadataMap(rawRecipes, itemLookup, stationLookup) {
@@ -253,6 +285,25 @@ async function normalizeRawRecipe(rawRecipe, state) {
     });
   }
 
+  const stations = rawRecipe.stationRequirementMode === 'combination' && rawRecipe.stations.length > 1
+    ? await buildCombinationStations(rawRecipe, state)
+    : await buildDiscreteStations(rawRecipe, state);
+
+  return {
+    resultItemId: resultRef.id,
+    resultInternalName: resultRef.internalName,
+    resultQuantity: rawRecipe.resultQuantity,
+    versionScope: rawRecipe.versionScope,
+    notes: null,
+    sourceProvider: SOURCE_PROVIDER,
+    sourcePage: rawRecipe.sourcePage,
+    sourceRevisionTimestamp: rawRecipe.sourceRevisionTimestamp,
+    ingredients,
+    stations
+  };
+}
+
+async function buildDiscreteStations(rawRecipe, state) {
   const stations = [];
   for (const [index, stationName] of rawRecipe.stations.entries()) {
     const stationRef = await resolveStationRef(stationName, {
@@ -268,23 +319,49 @@ async function normalizeRawRecipe(rawRecipe, state) {
       stationItemId: stationRef.itemId ?? null,
       stationInternalName: stationRef.internalName ?? null,
       stationNameRaw: stationRef.nameZh ?? stationName,
-      isAlternative: index > 0,
+      isAlternative: rawRecipe.stationRequirementMode === 'alternative' ? index > 0 : false,
       sortOrder: index + 1
     });
   }
+  return stations;
+}
 
-  return {
-    resultItemId: resultRef.id,
-    resultInternalName: resultRef.internalName,
-    resultQuantity: rawRecipe.resultQuantity,
-    versionScope: rawRecipe.versionScope,
-    notes: null,
-    sourceProvider: SOURCE_PROVIDER,
+async function buildCombinationStations(rawRecipe, state) {
+  const componentStations = [];
+  for (const stationName of rawRecipe.stations) {
+    const stationRef = await resolveStationRef(stationName, {
+      sourcePage: rawRecipe.sourcePage,
+      sourceRevisionTimestamp: rawRecipe.sourceRevisionTimestamp,
+      state
+    });
+    if (stationRef?.id) {
+      componentStations.push(stationRef);
+    }
+  }
+
+  if (componentStations.length <= 1) {
+    return buildDiscreteStations({ ...rawRecipe, stationRequirementMode: 'single' }, state);
+  }
+
+  const combinationDescriptor = deriveCombinationStationDescriptor(rawRecipe.tableCaption, componentStations);
+  const combinationRef = await resolveCombinationStationRef(componentStations, {
+    descriptor: combinationDescriptor,
     sourcePage: rawRecipe.sourcePage,
     sourceRevisionTimestamp: rawRecipe.sourceRevisionTimestamp,
-    ingredients,
-    stations
-  };
+    state
+  });
+  if (!combinationRef?.id) {
+    return [];
+  }
+
+  return [{
+    stationId: combinationRef.id,
+    stationItemId: combinationRef.itemId ?? null,
+    stationInternalName: combinationRef.internalName ?? null,
+    stationNameRaw: combinationRef.nameZh ?? rawRecipe.stations.join(' + '),
+    isAlternative: false,
+    sortOrder: 1
+  }];
 }
 
 async function resolveItemRef(rawName, context) {
@@ -328,6 +405,111 @@ async function resolveItemRef(rawName, context) {
   return placeholder;
 }
 
+async function resolveCombinationStationRef(componentStations, context) {
+  const normalizedComponents = (Array.isArray(componentStations) ? componentStations : [])
+    .filter((station) => station && station.id != null)
+    .map((station) => ({
+      id: station.id,
+      itemId: station.itemId ?? null,
+      internalName: toText(station.internalName),
+      nameEn: toText(station.nameEn),
+      nameZh: toText(station.nameZh),
+      imageUrl: toText(
+        station.imageUrl
+        ?? context.state.itemLookup?.byId?.get?.(station.itemId ?? -1)?.image
+      )
+    }));
+
+  if (normalizedComponents.length <= 1) {
+    return normalizedComponents[0] ?? null;
+  }
+
+  const key = normalizedComponents
+    .map((station) => String(station.id))
+    .join('&&');
+  const cacheKey = `combo:${key}`;
+  const cached = context.state.stationResolutionCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const comboNameZh = context.descriptor?.nameZh
+    ?? normalizedComponents.map((station) => station.nameZh || station.nameEn || station.internalName || `站点${station.id}`).join(' + ');
+  const comboNameEn = context.descriptor?.nameEn
+    ?? normalizedComponents.map((station) => station.nameEn || station.nameZh || station.internalName || `Station ${station.id}`).join(' + ');
+  const comboInternalName = context.descriptor?.internalName ?? buildCombinationStationInternalName(normalizedComponents);
+  const comboImageUrl = context.descriptor?.imageUrl
+    ?? normalizedComponents.map((station) => toText(station.imageUrl)).find(Boolean)
+    ?? null;
+
+  const comboStation = await ensureCraftingStation({
+    itemId: null,
+    internalName: comboInternalName,
+    nameEn: comboNameEn,
+    nameZh: comboNameZh,
+    imageUrl: comboImageUrl,
+    stationType: 'crafting_station_combo',
+    notes: `Composite crafting station requiring all of: ${comboNameZh}.`,
+    sourcePage: context.sourcePage,
+    state: context.state
+  });
+  context.state.stationResolutionCache.set(cacheKey, comboStation);
+  return comboStation;
+}
+
+function deriveCombinationStationDescriptor(caption, componentStations) {
+  const groups = groupCombinationStationsByCaption(caption, componentStations);
+  const zhParts = groups.map((group) => formatCombinationGroup(group, 'nameZh'));
+  const enParts = groups.map((group) => formatCombinationGroup(group, 'nameEn'));
+  return {
+    groups,
+    nameZh: zhParts.join(' + '),
+    nameEn: enParts.join(' + '),
+    internalName: buildCombinationStationInternalName(groups),
+    imageUrl: chooseCombinationStationImage(groups)
+  };
+}
+
+function groupCombinationStationsByCaption(caption, componentStations) {
+  const stations = Array.isArray(componentStations) ? componentStations.filter(Boolean) : [];
+  if (stations.length <= 1) {
+    return stations.map((station) => [station]);
+  }
+
+  const sourceText = toText(caption) ?? '';
+  const plainText = sourceText.replace(/\([^)]*\)/g, ' ');
+  let cursor = 0;
+  const groups = [];
+
+  for (const station of stations) {
+    const label = station.nameZh || station.nameEn || station.internalName || '';
+    const index = label ? plainText.indexOf(label, cursor) : -1;
+    const connector = index >= 0 ? plainText.slice(cursor, index) : '';
+    const isAlternativeConnector = /(^|[\s])or([\s]|$)|或/.test(connector.toLowerCase());
+    if (isAlternativeConnector && groups.length > 0) {
+      groups[groups.length - 1].push(station);
+    } else {
+      groups.push([station]);
+    }
+    if (index >= 0) {
+      cursor = index + label.length;
+    }
+  }
+
+  return groups;
+}
+
+function formatCombinationGroup(group, key) {
+  const labels = (Array.isArray(group) ? group : [])
+    .map((station) => station?.[key] || station?.nameZh || station?.nameEn || station?.internalName)
+    .map((value) => toText(value))
+    .filter(Boolean);
+  if (labels.length <= 1) {
+    return labels[0] ?? '';
+  }
+  return `(${labels.join(' / ')})`;
+}
+
 async function resolveStationRef(rawName, context) {
   const name = toText(rawName);
   if (!name) {
@@ -360,6 +542,7 @@ async function resolveStationRef(rawName, context) {
       internalName: matchedItem.internalName,
       nameEn: metadata?.englishTitle ?? matchedItem.name,
       nameZh: metadata?.resolvedTitle ?? matchedItem.nameZh ?? name,
+      imageUrl: matchedItem.image ?? null,
       sourcePage: context.sourcePage,
       state: context.state
     });
@@ -372,6 +555,7 @@ async function resolveStationRef(rawName, context) {
     internalName: buildStationInternalName(metadata?.englishTitle ?? name),
     nameEn: choosePlaceholderEnglishName(name, metadata?.englishTitle),
     nameZh: metadata?.resolvedTitle ?? name,
+    imageUrl: null,
     sourcePage: context.sourcePage,
     state: context.state
   });
@@ -425,10 +609,21 @@ async function ensurePlaceholderItem({ displayNameZh, displayNameEn, sourcePage,
   return item;
 }
 
-async function ensureCraftingStation({ itemId, internalName, nameEn, nameZh, sourcePage, state }) {
+async function ensureCraftingStation({ itemId, internalName, nameEn, nameZh, imageUrl, stationType, notes, sourcePage, state }) {
   const lookupCandidates = dedupeTexts([internalName, nameEn, nameZh]);
   const existing = findStationByAnyName(state.stationLookup, lookupCandidates);
   if (existing) {
+    if (state.apply && imageUrl && !existing.imageUrl) {
+      await conn.execute(
+        `UPDATE crafting_stations
+            SET image_url = ?,
+                updated_at = NOW()
+          WHERE id = ?`,
+        [imageUrl, existing.id]
+      );
+      existing.imageUrl = imageUrl;
+      rememberStation(state.stationLookup, existing);
+    }
     return existing;
   }
 
@@ -436,15 +631,17 @@ async function ensureCraftingStation({ itemId, internalName, nameEn, nameZh, sou
   if (state.apply) {
     const [result] = await conn.execute(
       `INSERT INTO crafting_stations
-        (item_id, internal_name, name_en, name_zh, notes, sort_order, status, deleted)
+        (item_id, internal_name, name_en, name_zh, station_type, notes, image_url, sort_order, status, deleted)
        VALUES
-        (?, ?, ?, ?, ?, 0, 1, 0)`,
+        (?, ?, ?, ?, ?, ?, ?, 0, 1, 0)`,
       [
         itemId,
         internalName,
         nameEn,
         nameZh,
-        `Inserted from zh recipe import (${sourcePage ?? 'unknown source'}).`
+        stationType ?? 'crafting_station',
+        notes ?? `Inserted from zh recipe import (${sourcePage ?? 'unknown source'}).`,
+        imageUrl ?? null
       ]
     );
     id = Number(result.insertId);
@@ -455,7 +652,8 @@ async function ensureCraftingStation({ itemId, internalName, nameEn, nameZh, sou
     itemId,
     internalName,
     nameEn,
-    nameZh
+    nameZh,
+    imageUrl: imageUrl ?? null
   };
 
   rememberStation(state.stationLookup, station);
@@ -595,7 +793,7 @@ async function validateImportedRecipes(connection) {
 
 async function loadItemLookup(connection) {
   const [rows] = await connection.query(
-    `SELECT id, internal_name AS internalName, name, name_zh AS nameZh
+    `SELECT id, internal_name AS internalName, name, name_zh AS nameZh, image
        FROM items
       WHERE deleted = 0`
   );
@@ -609,7 +807,8 @@ async function loadItemLookup(connection) {
       id: Number(row.id),
       internalName: toText(row.internalName),
       name: toText(row.name),
-      nameZh: toText(row.nameZh)
+      nameZh: toText(row.nameZh),
+      image: toText(row.image)
     });
   }
   return lookup;
@@ -617,7 +816,7 @@ async function loadItemLookup(connection) {
 
 async function loadCraftingStationLookup(connection) {
   const [rows] = await connection.query(
-    `SELECT id, item_id AS itemId, internal_name AS internalName, name_en AS nameEn, name_zh AS nameZh
+    `SELECT id, item_id AS itemId, internal_name AS internalName, name_en AS nameEn, name_zh AS nameZh, image_url AS imageUrl
        FROM crafting_stations
       WHERE deleted = 0`
   );
@@ -632,7 +831,8 @@ async function loadCraftingStationLookup(connection) {
       itemId: row.itemId == null ? null : Number(row.itemId),
       internalName: toText(row.internalName),
       nameEn: toText(row.nameEn),
-      nameZh: toText(row.nameZh)
+      nameZh: toText(row.nameZh),
+      imageUrl: toText(row.imageUrl)
     });
   }
   return lookup;
@@ -662,6 +862,18 @@ function rememberStation(lookup, station) {
       lookup.byAny.set(key, station.id);
     }
   }
+}
+
+function chooseCombinationStationImage(groups) {
+  for (const group of Array.isArray(groups) ? groups : []) {
+    for (const station of Array.isArray(group) ? group : []) {
+      const imageUrl = toText(station?.imageUrl);
+      if (imageUrl) {
+        return imageUrl;
+      }
+    }
+  }
+  return null;
 }
 
 function findItemByAnyName(lookup, candidateNames) {
@@ -703,7 +915,6 @@ function buildRecipeSignature(recipe) {
     recipe.resultItemId,
     recipe.resultQuantity,
     toText(recipe.versionScope) ?? '',
-    toText(recipe.sourcePage) ?? '',
     recipe.ingredients.map((ingredient) => [
       ingredient.ingredientItemId ?? '',
       ingredient.ingredientInternalName ?? '',
@@ -779,6 +990,20 @@ function buildPlaceholderInternalName(displayNameZh, displayNameEn) {
 function buildStationInternalName(displayName) {
   const normalized = normalizeIdentifier(displayName);
   return normalized ? `ZH_STATION_${normalized}` : null;
+}
+
+function buildCombinationStationInternalName(componentStationsOrGroups) {
+  const groups = Array.isArray(componentStationsOrGroups?.[0])
+    ? componentStationsOrGroups
+    : (Array.isArray(componentStationsOrGroups) ? componentStationsOrGroups.map((station) => [station]) : []);
+  const normalized = groups
+    .map((group) => (Array.isArray(group) ? group : [])
+      .map((station) => normalizeIdentifier(station.internalName || station.nameEn || station.nameZh || String(station.id)))
+      .filter(Boolean)
+      .join('_OR_'))
+    .filter(Boolean)
+    .join('_AND_');
+  return normalized ? `ZH_STATION_COMBO_${normalized}` : null;
 }
 
 function buildUniqueInternalName(itemLookup, seed) {

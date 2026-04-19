@@ -519,6 +519,31 @@
               <article class="boss-detail__feature-card boss-detail__feature-card--accent">
                 <span class="boss-detail__feature-label">召唤方式</span>
                 <p>{{ getBossSummonMethod(detailRow) || '当前还没有补充召唤方式。' }}</p>
+                <div v-if="bossSummonItemsLoading || bossSummonItems.length" class="boss-detail__summon-showcase">
+                  <div class="boss-detail__summon-head">
+                    <strong>召唤物展示</strong>
+                    <span>{{ bossSummonItemsLoading ? '正在匹配物品图片...' : `已命中 ${bossSummonItems.length} 个召唤物，点击可跳转详情` }}</span>
+                  </div>
+                  <div v-if="bossSummonItems.length" class="boss-detail__summon-grid">
+                    <button
+                      v-for="item in bossSummonItems"
+                      :key="item.id"
+                      type="button"
+                      class="boss-detail__summon-item"
+                      @click="openBossSummonItem(item)"
+                    >
+                      <div class="boss-detail__summon-media">
+                        <img v-if="item.image" :src="item.image" :alt="item.nameZh || item.name" class="boss-detail__summon-image" loading="lazy" @error="handleImageError" />
+                        <div v-else class="boss-detail__summon-fallback">IT</div>
+                      </div>
+                      <div class="boss-detail__summon-body">
+                        <strong>{{ item.nameZh || item.name || `#${item.id}` }}</strong>
+                        <span>{{ item.nameZh && item.name ? item.name : item.internalName || `ID ${item.id}` }}</span>
+                      </div>
+                    </button>
+                  </div>
+                  <div v-else class="boss-detail__summon-empty">正在从召唤说明里识别对应物品。</div>
+                </div>
               </article>
               <article class="boss-detail__feature-card">
                 <span class="boss-detail__feature-label">Boss Notes</span>
@@ -1051,6 +1076,15 @@ interface EntityConfig {
   columns: Array<{ key: string; label: string }>
   fields: FieldConfig[]
 }
+interface SummonItemReference {
+  id: number
+  name: string
+  nameZh?: string
+  internalName?: string
+  image?: string
+  matchText?: string
+  matchIndex?: number
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -1348,11 +1382,14 @@ const bossSourceRows = ref<Array<Record<string, any>>>([])
 const previewExtras = ref<Record<string, any>>({})
 const detailRow = ref<Record<string, any> | null>(null)
 const linkedItem = ref<Item | null>(null)
+const bossSummonItems = ref<SummonItemReference[]>([])
+const bossSummonItemsLoading = ref(false)
 const lightboxImage = ref('')
 const lightboxTitle = ref('')
 const search = ref('')
 const pagination = reactive({ page: 1, size: 20, total: 0, totalPages: 0 })
 const form = reactive<Record<string, any>>({})
+let bossSummonLookupSerial = 0
 const hasActiveFilters = computed(() => {
   if (search.value) return true
   if (entityType.value === 'npcs' && selectedNpcCategoryId.value != null) return true
@@ -1397,6 +1434,75 @@ function pickFirstString(...values: unknown[]) {
     if (typeof value === 'string' && value.trim()) return value.trim()
   }
   return ''
+}
+
+function normalizeLookupToken(value: unknown) {
+  if (typeof value !== 'string') return ''
+  return value
+    .toLowerCase()
+    .replace(/['’`"]/g, '')
+    .replace(/[\s\-_.:：,，。；;!?！？/\\()[\]{}（）【】]/g, '')
+    .trim()
+}
+
+function normalizeSummonSuggestionItem(item: any): SummonItemReference | null {
+  const id = Number(item?.id ?? 0)
+  if (!Number.isFinite(id) || id <= 0) return null
+  return {
+    id,
+    name: String(item?.name ?? ''),
+    nameZh: String(item?.nameZh ?? item?.name_zh ?? ''),
+    internalName: String(item?.internalName ?? item?.internal_name ?? ''),
+    image: normalizeImageUrl(item?.image ?? item?.imageUrl ?? item?.image_url),
+  }
+}
+
+function getSummonItemAliases(item: Partial<SummonItemReference>) {
+  return [item.nameZh, item.name, item.internalName]
+    .map(value => normalizeLookupToken(value))
+    .filter((value): value is string => Boolean(value))
+}
+
+function collectBossSummonCandidates(text: string) {
+  const candidates = new Map<string, { value: string; index: number }>()
+  const stopwords = new Set([
+    '夜晚', '白天', '地牢', '海洋', '雪原', '神圣之地', '地表', '地下丛林', '困难模式', '宝藏袋', '波次', '事件',
+    'night', 'day', 'event', 'boss', 'army', 'summon',
+  ].map(normalizeLookupToken))
+
+  const register = (rawValue: unknown, index = Number.MAX_SAFE_INTEGER) => {
+    if (typeof rawValue !== 'string') return
+    const cleaned = rawValue
+      .replace(/^[\s,，。；;:：、]+|[\s,，。；;:：、]+$/g, '')
+      .trim()
+    const normalized = normalizeLookupToken(cleaned)
+    if (!normalized || stopwords.has(normalized)) return
+    const hasChinese = /[\u4e00-\u9fff]/.test(cleaned)
+    if ((hasChinese && cleaned.length < 2) || (!hasChinese && normalized.length < 4)) return
+    const existing = candidates.get(normalized)
+    if (!existing || index < existing.index || (index === existing.index && cleaned.length > existing.value.length)) {
+      candidates.set(normalized, { value: cleaned, index })
+    }
+  }
+
+  for (const match of text.matchAll(/[（(【[]([^（）()【】\[\]]{2,48})[）)】\]]/g)) {
+    register(match[1], match.index ?? Number.MAX_SAFE_INTEGER)
+  }
+
+  const triggerPatterns = [
+    /(?:使用|消耗|放置|装有|装备|用|投掷|献祭)\s*([\u4e00-\u9fffA-Za-z][\u4e00-\u9fffA-Za-z'·\-\s]{1,36}?)(?=(?:[（(]|即可|即|召唤|主动|并|的|后|于|时|来|开启|钓鱼|触发|中))/g,
+    /(?:use|using|consume|place|with)\s+([A-Za-z][A-Za-z' -]{2,40}?)(?=(?:[（(]|to summon|summon|while|during|after|in | on | and))/gi,
+  ]
+  for (const pattern of triggerPatterns) {
+    for (const match of text.matchAll(pattern)) {
+      register(match[1], match.index ?? Number.MAX_SAFE_INTEGER)
+    }
+  }
+
+  return Array.from(candidates.values())
+    .sort((left, right) => left.index - right.index || right.value.length - left.value.length)
+    .map(entry => entry.value)
+    .slice(0, 6)
 }
 
 function resolveImageFromRawJson(rawJson: unknown) {
@@ -1518,6 +1624,78 @@ function getBossSummonMethod(row: Record<string, any> | null | undefined) {
   return row.summonMethod.trim()
 }
 
+async function resolveBossSummonCandidate(candidate: string, summonText: string) {
+  const response: any = await get('/items/suggestions', { keyword: candidate, limit: 8 })
+  const rawList = response?.data ?? response ?? []
+  if (!Array.isArray(rawList) || !rawList.length) return null
+
+  const candidateToken = normalizeLookupToken(candidate)
+  const summonToken = normalizeLookupToken(summonText)
+  const matched = rawList
+    .map(normalizeSummonSuggestionItem)
+    .filter((item): item is SummonItemReference => item !== null)
+    .map(item => {
+      let score = 0
+      for (const alias of getSummonItemAliases(item)) {
+        if (!alias) continue
+        if (alias === candidateToken) score = Math.max(score, 400 + alias.length)
+        else if (candidateToken.includes(alias)) score = Math.max(score, 320 + alias.length)
+        else if (alias.includes(candidateToken)) score = Math.max(score, 260 + candidateToken.length)
+        if (summonToken.includes(alias)) score = Math.max(score, 180 + alias.length)
+      }
+      return { item, score }
+    })
+    .filter(entry => entry.score > 0)
+    .sort((left, right) => right.score - left.score)
+
+  return matched[0]?.item ?? null
+}
+
+async function loadBossSummonItems(row: Record<string, any> | null | undefined) {
+  const requestId = ++bossSummonLookupSerial
+  const summonText = getBossSummonMethod(row)
+  bossSummonItems.value = []
+
+  if (!summonText) {
+    bossSummonItemsLoading.value = false
+    return
+  }
+
+  const candidates = collectBossSummonCandidates(summonText)
+  if (!candidates.length) {
+    bossSummonItemsLoading.value = false
+    return
+  }
+
+  bossSummonItemsLoading.value = true
+  try {
+    const resolved: Array<SummonItemReference | null> = await Promise.all(candidates.map(async (candidate, index) => {
+      const item = await resolveBossSummonCandidate(candidate, summonText)
+      return item ? { ...item, matchText: candidate, matchIndex: index } : null
+    }))
+    if (requestId !== bossSummonLookupSerial) return
+
+    const deduped = new Map<number, SummonItemReference>()
+    for (const item of resolved) {
+      if (!item) continue
+      const existing = deduped.get(item.id)
+      if (!existing || (item.matchIndex ?? Number.MAX_SAFE_INTEGER) < (existing.matchIndex ?? Number.MAX_SAFE_INTEGER)) {
+        deduped.set(item.id, item)
+      }
+    }
+    bossSummonItems.value = Array.from(deduped.values())
+      .sort((left, right) => (left.matchIndex ?? Number.MAX_SAFE_INTEGER) - (right.matchIndex ?? Number.MAX_SAFE_INTEGER))
+  } catch (error) {
+    if (requestId !== bossSummonLookupSerial) return
+    console.error('Failed to resolve boss summon items:', error)
+    bossSummonItems.value = []
+  } finally {
+    if (requestId === bossSummonLookupSerial) {
+      bossSummonItemsLoading.value = false
+    }
+  }
+}
+
 function summarizeBossText(text: string, maxLength = 120) {
   const normalized = text.trim()
   if (!normalized) return ''
@@ -1629,6 +1807,13 @@ async function openDetailDialog(row: Record<string, any>) {
     }
   }
   detailRow.value = normalizeRow(detail)
+  if (entityType.value === 'bosses') {
+    void loadBossSummonItems(detailRow.value)
+  } else {
+    bossSummonLookupSerial += 1
+    bossSummonItemsLoading.value = false
+    bossSummonItems.value = []
+  }
   detailVisible.value = true
 }
 
@@ -1671,6 +1856,18 @@ async function openBossLootOwnerNpc() {
     query: searchToken ? { search: searchToken } : {},
   })
   detailVisible.value = false
+}
+
+async function openBossSummonItem(item: SummonItemReference) {
+  if (!item?.id) return
+  detailVisible.value = false
+  await router.push({
+    path: '/items',
+    query: {
+      itemId: String(item.id),
+      view: 'detail',
+    },
+  })
 }
 
 async function openEditDialog(row: Record<string, any>) {
@@ -2811,6 +3008,85 @@ function guessArmorItemGroup(item: Record<string, any>) {
   font-size: 1rem;
   line-height: 1.8;
 }
+.boss-detail__summon-showcase {
+  display: grid;
+  gap: 12px;
+  padding-top: 6px;
+}
+.boss-detail__summon-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.boss-detail__summon-head strong {
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+.boss-detail__summon-head span,
+.boss-detail__summon-empty {
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.boss-detail__summon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+  gap: 10px;
+}
+.boss-detail__summon-item {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg) 64%, transparent), transparent 44%),
+    color-mix(in srgb, var(--color-bg-secondary) 88%, transparent);
+  text-align: left;
+  cursor: pointer;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.boss-detail__summon-item:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+  box-shadow: 0 18px 30px -24px color-mix(in srgb, var(--color-primary) 78%, transparent);
+}
+.boss-detail__summon-media {
+  width: 100%;
+  min-height: 92px;
+  max-height: 108px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-bg-tertiary) 92%, transparent);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.boss-detail__summon-image,
+.boss-detail__summon-fallback {
+  width: 100%;
+  min-height: 76px;
+  max-height: 92px;
+  object-fit: contain;
+  display: grid;
+  place-items: center;
+}
+.boss-detail__summon-body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.boss-detail__summon-body strong {
+  color: var(--color-text);
+  line-height: 1.35;
+}
+.boss-detail__summon-body span {
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
 .boss-detail__group-list { display: grid; gap: 18px; }
 .boss-detail__group {
   display: grid;
@@ -2981,6 +3257,7 @@ function guessArmorItemGroup(item: Record<string, any>) {
 @media (max-width: 820px) {
   .entity-hero__stats,.form-grid,.preview-stats { grid-template-columns: 1fr; }
   .boss-type-strip,.boss-type-grid,.boss-gallery,.boss-detail__member-grid { grid-template-columns: 1fr; }
+  .boss-detail__summon-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .projectile-detail__lang-grid,.projectile-detail__chip-grid,.projectile-detail__note-grid { grid-template-columns: 1fr; }
   .boss-detail__loot-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .toolbar__actions,.table-card__head,.preview-card__head,.preview-json__head,.boss-browser__head,.boss-detail__section-head { flex-direction: column; align-items: flex-start; }
@@ -2989,6 +3266,7 @@ function guessArmorItemGroup(item: Record<string, any>) {
   .projectile-detail--buff .armor-detail__item-fallback { min-height: 92px; max-height: 108px; }
 }
 @media (max-width: 560px) {
+  .boss-detail__summon-grid,
   .boss-detail__loot-list { grid-template-columns: 1fr; }
 }
 </style>
