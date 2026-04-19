@@ -39,9 +39,7 @@
                   <button v-if="selectedRow?.suggestedGamePeriodId != null" type="button" class="field__action" @click="applySuggestedGamePeriod">使用 Wiki 建议</button>
                 </div>
                 <select v-model.number="form.gamePeriodId" class="input">
-                  <option :value="0">未设置</option>
-                  <option :value="1">前期</option>
-                  <option :value="2">困难模式</option>
+                  <option v-for="option in supportDomainsStore.gamePeriodOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
                 </select>
               </label>
 
@@ -152,6 +150,7 @@ const loading = ref(false)
 const saving = ref(false)
 const overview = ref<TownNpcOverview | null>(null)
 const editorDetail = ref<TownNpcEditorDetail | null>(null)
+const supportDomainsStore = useSupportDomainsStore()
 
 const form = reactive({
   gamePeriodId: 0,
@@ -175,6 +174,7 @@ async function loadPage() {
     const [overviewResult, detailResult] = await Promise.all([
       fetchTownNpcOverview(),
       fetchTownNpcEditorDetail(npcId.value),
+      supportDomainsStore.ensureLoaded(),
     ])
     overview.value = overviewResult
     editorDetail.value = detailResult

@@ -116,12 +116,14 @@ import { computed, ref, watch } from 'vue'
 import type { Item, ItemImageRelation, ItemRecipeRelation, ItemSourceRelation } from '~/stores/items'
 import { useCategoriesStore } from '~/stores/categories'
 import { useItemsStore } from '~/stores/items'
+import { useSupportDomainsStore } from '~/stores/supportDomains'
 import { formatCurrencyWithRaw } from '~/utils/currency'
 import { getRarityPresentation } from '~/utils/rarity'
 
 const props = defineProps<{ item: Item }>()
 const itemsStore = useItemsStore()
 const categoriesStore = useCategoriesStore()
+const supportDomainsStore = useSupportDomainsStore()
 const imageVisible = ref(true)
 const loadingRelated = ref(false)
 const itemImages = ref<ItemImageRelation[]>([])
@@ -174,6 +176,8 @@ const displaySources = computed(() => {
   return [...deduped.values()]
 })
 
+void supportDomainsStore.ensureLoaded().catch(() => {})
+
 watch(() => item.value.id, async (id) => {
   if (!id) return
   loadingRelated.value = true
@@ -195,7 +199,7 @@ watch(() => item.value.id, async (id) => {
 function handleImageError() { imageVisible.value = false }
 function getStatusType(status?: number | null) { if (status === 1) return 'success'; if (status === 0) return 'danger'; return 'info' }
 function getStatusLabel(status?: number | null) { if (status === 1) return '启用'; if (status === 0) return '禁用'; return '未知' }
-function getGamePeriodLabel(gamePeriodId?: number | null, gamePeriod?: string | null) { const map: Record<number, string> = { 0: '未设置', 1: '前期', 2: '困难模式' }; const id = gamePeriodId ?? 0; return gamePeriod?.trim() || map[id] || `阶段 ${id}` }
+function getGamePeriodLabel(gamePeriodId?: number | null, gamePeriod?: string | null) { return supportDomainsStore.getGamePeriodLabel(gamePeriodId, gamePeriod) }
 function getGameModelLabel(gameModelId?: number | null) { const map: Record<number, string> = { 0: '普通模式', 1: '专家模式', 2: '大师模式' }; const id = gameModelId ?? 0; return map[id] ?? `模式 ${id}` }
 function getStackLabel(isStackable?: boolean | null, stackSize?: number | null) { if (isStackable === false) return '不可堆叠'; if (stackSize != null) return String(stackSize); if (isStackable === true) return '可堆叠'; return '--' }
 function formatDate(date?: string | number | null) { if (!date) return '--'; return new Date(date).toLocaleString('zh-CN') }

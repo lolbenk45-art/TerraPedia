@@ -320,6 +320,7 @@
 
 <script setup lang="ts">
 import AdminItemLookupInput from '~/components/AdminItemLookupInput.vue'
+import { useSupportDomainsStore } from '~/stores/supportDomains'
 import type {
   CraftingStation,
   ItemRecipeConditionPayload,
@@ -362,8 +363,9 @@ const ingredientAdvancedExpanded = reactive<Record<string, boolean>>({})
 const stationAdvancedExpanded = reactive<Record<string, boolean>>({})
 const ingredientLookupQueries = reactive<Record<string, string>>({})
 const stationLookupQueries = reactive<Record<string, string>>({})
+const supportDomainsStore = useSupportDomainsStore()
 const biomeOptions = ref<ConditionOption[]>([])
-const worldContextOptions = ref<ConditionOption[]>([])
+const worldContextOptions = computed<ConditionOption[]>(() => supportDomainsStore.worldContextOptions)
 let syncingFromProps = false
 
 const createKey = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
@@ -781,20 +783,14 @@ const getConditionSubLabel = (condition: EditableRecipeCondition) => {
 
 onMounted(async () => {
   try {
-    const [biomesResponse, contextsResponse] = await Promise.all([
+    const [biomesResponse] = await Promise.all([
       get('/admin/biomes', { page: 1, limit: 500 }),
-      get('/admin/world-contexts', { page: 1, limit: 500 }),
+      supportDomainsStore.ensureLoaded(),
     ])
     const biomeRows = Array.isArray(biomesResponse?.data ?? biomesResponse) ? (biomesResponse?.data ?? biomesResponse) : []
     biomeOptions.value = biomeRows.map((row: any) => ({
       id: Number(row?.id ?? 0),
       label: String(row?.nameZh ?? row?.name_zh ?? row?.nameEn ?? row?.name_en ?? row?.code ?? ''),
-    })).filter((row: ConditionOption) => row.id > 0 && row.label)
-    const contextRows = Array.isArray(contextsResponse?.data ?? contextsResponse) ? (contextsResponse?.data ?? contextsResponse) : []
-    worldContextOptions.value = contextRows.map((row: any) => ({
-      id: Number(row?.id ?? 0),
-      label: String(row?.nameZh ?? row?.name_zh ?? row?.nameEn ?? row?.name_en ?? row?.code ?? ''),
-      contextType: String(row?.contextType ?? row?.context_type ?? ''),
     })).filter((row: ConditionOption) => row.id > 0 && row.label)
   } catch (error) {
     console.error('Failed to load recipe condition options:', error)

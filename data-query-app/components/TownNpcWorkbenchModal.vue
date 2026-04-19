@@ -192,9 +192,7 @@
                 <label class="field">
                   <span class="field__label">出现时期</span>
                   <select v-model.number="form.gamePeriodId" class="input">
-                    <option :value="0">未设置</option>
-                    <option :value="1">前期</option>
-                    <option :value="2">困难模式</option>
+                    <option v-for="option in supportDomainsStore.gamePeriodOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
                   </select>
                 </label>
 
@@ -467,6 +465,7 @@ const emit = defineEmits<{
   saved: [npcId: number]
 }>()
 
+const supportDomainsStore = useSupportDomainsStore()
 const row = computed(() => props.row)
 const coinIcons = computed(() => props.coinIcons || {})
 
@@ -602,7 +601,10 @@ onUnmounted(() => {
 async function loadDetail(npcId: number) {
   loadingDetail.value = true
   try {
-    const detail = await fetchTownNpcEditorDetail(npcId)
+    const [detail] = await Promise.all([
+      fetchTownNpcEditorDetail(npcId),
+      supportDomainsStore.ensureLoaded(),
+    ])
     form.gamePeriodId = Number(detail?.gamePeriodId || props.row?.gamePeriodId || 0)
     form.behaviorNotes = String(detail?.behaviorNotes || props.row?.behaviorNotes || '')
     shopEntryDrafts.value = normalizeShopEntries(Array.isArray(detail?.shopEntries) ? detail!.shopEntries : [])

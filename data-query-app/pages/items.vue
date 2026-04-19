@@ -47,8 +47,7 @@
           <span class="field__label">Period</span>
           <select v-model.number="searchForm.gamePeriodId" class="input">
             <option :value="null">全部时期</option>
-            <option :value="1">前期</option>
-            <option :value="2">困难模式</option>
+            <option v-for="option in gamePeriodFilterOptions" :key="`filter-${option.value}`" :value="option.value">{{ option.label }}</option>
           </select>
         </label>
 
@@ -227,9 +226,7 @@
             <label class="field">
               <span class="field__label">游戏阶段</span>
               <select v-model.number="form.gamePeriodId" class="input">
-                <option :value="0">未设置</option>
-                <option :value="1">前期</option>
-                <option :value="2">困难模式</option>
+                <option v-for="option in supportDomainsStore.gamePeriodOptions" :key="`form-${option.value}`" :value="option.value">{{ option.label }}</option>
               </select>
             </label>
             <label class="field">
@@ -355,6 +352,7 @@ const route = useRoute()
 const router = useRouter()
 const itemsStore = useItemsStore()
 const categoriesStore = useCategoriesStore()
+const supportDomainsStore = useSupportDomainsStore()
 const { items, loading, pagination } = storeToRefs(itemsStore)
 
 const rarityOptions = RARITY_FILTER_OPTIONS
@@ -396,6 +394,7 @@ const previewNarratives = computed(() => ([
   ['描述', form.description],
   ['提示文本', form.tooltip],
 ] as const).filter(([, value]) => typeof value === 'string' && value.trim()).map(([label, value]) => ({ label, value: String(value).trim() })))
+const gamePeriodFilterOptions = computed(() => supportDomainsStore.gamePeriodOptions.filter(option => option.value > 0))
 const relatedCategoryIdsModel = computed<number[]>({
   get: () => form.relatedCategoryIds ?? [],
   set: (value) => { form.relatedCategoryIds = value },
@@ -404,7 +403,7 @@ const relatedCategoryIdsModel = computed<number[]>({
 const getRarityInfo = (item: Partial<Item>) => getRarityPresentation({ rarity: item.rarity, rarityId: item.rarityId })
 const getStatusType = (status?: number | null) => (status === 1 ? 'success' : status === 0 ? 'danger' : 'info')
 const getStatusLabel = (status?: number | null) => (status === 1 ? '启用' : status === 0 ? '禁用' : '未知')
-const getGamePeriodLabel = (gamePeriodId?: number | null, gamePeriod?: string | null) => gamePeriod?.trim() || ({ 0: '未设置', 1: '前期', 2: '困难模式' }[gamePeriodId ?? 0] ?? `阶段 ${gamePeriodId}`)
+const getGamePeriodLabel = (gamePeriodId?: number | null, gamePeriod?: string | null) => supportDomainsStore.getGamePeriodLabel(gamePeriodId, gamePeriod)
 const getGameModelLabel = (gameModelId?: number | null) => ({ 0: '普通模式', 1: '专家模式', 2: '大师模式' }[gameModelId ?? 0] ?? `模式 ${gameModelId}`)
 const getStackLabel = (isStackable?: boolean, stackSize?: number | null) => (isStackable === false ? '不可堆叠' : stackSize != null ? String(stackSize) : '--')
 const getCategoryPathText = (item: Item) => {
@@ -696,6 +695,7 @@ onMounted(async () => {
   await Promise.all([
     itemsStore.fetchItems(pageFromQuery ?? 1, itemsStore.pagination.size),
     categoriesStore.fetchItemCategories(),
+    supportDomainsStore.ensureLoaded(),
   ])
 })
 
