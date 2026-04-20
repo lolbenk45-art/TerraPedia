@@ -46,6 +46,9 @@ export function shopConditionsLabel(entry: NpcShopEntry) {
         || condition.contextNameEn
         || condition.gamePeriodNameZh
         || condition.gamePeriodNameEn
+        || condition.refNpcNameZh
+        || condition.refNpcName
+        || condition.refNpcInternalName
         || condition.refItemNameZh
         || condition.refItemName
         || condition.refItemInternalName

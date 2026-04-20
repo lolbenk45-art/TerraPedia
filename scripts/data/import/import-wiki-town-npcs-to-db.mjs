@@ -459,6 +459,11 @@ async function loadTownNpcShopConditionLookup(connection) {
        FROM items
       WHERE deleted = 0`
   );
+  const [npcs] = await connection.query(
+    `SELECT id, internal_name AS internalName, name AS nameEn, name_zh AS nameZh
+       FROM npcs
+      WHERE deleted = 0`
+  );
   const [worldContexts] = await connection.query(
     `SELECT id, code, name_zh AS nameZh, name_en AS nameEn
        FROM world_contexts
@@ -472,6 +477,7 @@ async function loadTownNpcShopConditionLookup(connection) {
     biomes,
     gamePeriods,
     items,
+    npcs,
     worldContexts: mergedWorldContexts
   });
 }

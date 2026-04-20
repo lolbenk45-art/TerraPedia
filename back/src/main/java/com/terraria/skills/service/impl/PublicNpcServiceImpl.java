@@ -390,12 +390,16 @@ public class PublicNpcServiceImpl implements PublicNpcService {
               gp.display_name_zh AS gamePeriodNameZh,
               ri.name AS refItemName,
               ri.name_zh AS refItemNameZh,
-              ri.internal_name AS refItemInternalName
+              ri.internal_name AS refItemInternalName,
+              rn.name AS refNpcName,
+              rn.name_zh AS refNpcNameZh,
+              rn.internal_name AS refNpcInternalName
             FROM npc_shop_conditions nsc
             LEFT JOIN biomes b ON nsc.ref_type = 'BIOME' AND b.id = nsc.ref_id AND b.deleted = 0
             LEFT JOIN world_contexts wc ON nsc.ref_type = 'WORLD_CONTEXT' AND wc.id = nsc.ref_id AND wc.deleted = 0
             LEFT JOIN game_period gp ON nsc.ref_type = 'GAME_PERIOD' AND gp.id = nsc.ref_id AND gp.deleted = 0
             LEFT JOIN items ri ON nsc.ref_type = 'ITEM' AND ri.id = nsc.ref_id AND ri.deleted = 0
+            LEFT JOIN npcs rn ON nsc.ref_type = 'NPC' AND rn.id = nsc.ref_id AND rn.deleted = 0
             WHERE nsc.shop_entry_id IN (%s)
             ORDER BY nsc.sort_order ASC, nsc.id ASC
             """.formatted(placeholders),
@@ -490,6 +494,9 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setRefItemName(toStringValue(row.get("refItemName")));
         dto.setRefItemNameZh(toStringValue(row.get("refItemNameZh")));
         dto.setRefItemInternalName(toStringValue(row.get("refItemInternalName")));
+        dto.setRefNpcName(toStringValue(row.get("refNpcName")));
+        dto.setRefNpcNameZh(toStringValue(row.get("refNpcNameZh")));
+        dto.setRefNpcInternalName(toStringValue(row.get("refNpcInternalName")));
         return dto;
     }
 

@@ -29,4 +29,7 @@ public class NpcShopConditionDTO implements Serializable {
     private String refItemName;
     private String refItemNameZh;
     private String refItemInternalName;
+    private String refNpcName;
+    private String refNpcNameZh;
+    private String refNpcInternalName;
 }

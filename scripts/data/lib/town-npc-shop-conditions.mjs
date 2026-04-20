@@ -4,7 +4,8 @@ const BIOME_RULES = [
   { code: 'jungle_temple', patterns: ['\u4e1b\u6797\u795e\u5e99'] },
   { code: 'jungle', patterns: ['\u4e1b\u6797'] },
   { code: 'snow', patterns: ['\u96ea\u539f\u751f\u7269\u7fa4\u7cfb', '\u96ea\u539f'] },
-  { code: 'ice', patterns: ['\u51b0\u96ea\u7fa4\u7cfb'] },
+  { code: 'ice', patterns: ['\u51b0\u96ea\u7fa4\u7cfb', '\u51b0\u96ea\u751f\u7269\u7fa4\u7cfb'] },
+  { code: 'glowing_mushroom', patterns: ['\u53d1\u5149\u8611\u83c7\u751f\u7269\u7fa4\u7cfb', '\u53d1\u5149\u8611\u83c7\u7fa4\u7cfb'] },
   { code: 'desert', patterns: ['\u6c99\u6f20'] },
   { code: 'ocean', patterns: ['\u6d77\u6d0b'] },
   { code: 'dungeon', patterns: ['\u5730\u7262'] },
@@ -20,7 +21,8 @@ const GAME_PERIOD_RULES = [
 ];
 
 const WORLD_CONTEXT_RULES = [
-  { code: 'NIGHT', patterns: ['\u5728\u591c\u665a\u671f\u95f4', '\u591c\u665a\u671f\u95f4', '\u591c\u665a'] },
+  { code: 'DAY', patterns: ['\u767d\u5929', '\u5728 \u767d\u5929', '\u5728\u767d\u5929'] },
+  { code: 'NIGHT', patterns: ['\u5728\u591c\u665a\u671f\u95f4', '\u591c\u665a\u671f\u95f4', '\u591c\u665a', '\u591c\u95f4'] },
   { code: 'BLOOD_MOON', patterns: ['\u5728 \u8840\u6708 \u671f\u95f4', '\u8840\u6708\u671f\u95f4', '\u8840\u6708'] },
   { code: 'WINDY_DAY', patterns: ['\u5728 \u5927\u98ce\u5929 \u65f6', '\u5927\u98ce\u5929\u65f6', '\u5927\u98ce\u5929'] },
   { code: 'PARTY', patterns: ['\u5728 \u6d3e\u5bf9 \u671f\u95f4', '\u6d3e\u5bf9\u671f\u95f4', '\u6d3e\u5bf9 \u671f\u95f4', '\u6d3e\u5bf9\u8fdb\u884c\u4e2d\u65f6'] },
@@ -31,6 +33,8 @@ const WORLD_CONTEXT_RULES = [
   { code: 'VALENTINES_DAY', patterns: ['\u5728 \u60c5\u4eba\u8282 \u671f\u95f4', '\u60c5\u4eba\u8282\u671f\u95f4', '\u60c5\u4eba\u8282 \u671f\u95f4'] },
   { code: 'THANKSGIVING', patterns: ['\u5728 \u611f\u6069\u8282 \u671f\u95f4', '\u611f\u6069\u8282\u671f\u95f4', '\u611f\u6069\u8282 \u671f\u95f4'] },
   { code: 'OKTOBERFEST', patterns: ['\u5728 \u5341\u6708\u5564\u9152\u8282 \u671f\u95f4', '\u5341\u6708\u5564\u9152\u8282\u671f\u95f4', '\u5341\u6708\u5564\u9152\u8282 \u671f\u95f4'] },
+  { code: 'MOON_PHASE_1_4', patterns: ['\u6708\u76f8 1\u20134', '\u6708\u76f8 1-4', '\u5728 \u6708\u76f8 1\u20134 \u671f\u95f4', '\u5728 \u6708\u76f8 1-4 \u671f\u95f4'] },
+  { code: 'MOON_PHASE_LISTED', patterns: ['\u4ee5\u4e0b\u6708\u76f8', '\u4e0b\u5217 \u6708\u76f8', '\u5728\u4e0b\u5217 \u6708\u76f8 \u671f\u95f4', '\u4ee5\u4e0b\u6708\u76f8\u671f\u95f4'] },
   { code: 'FULL_MOON', patterns: ['\u6ee1\u6708'] },
   { code: 'NEW_MOON', patterns: ['\u65b0\u6708'] },
   { code: 'FIRST_QUARTER', patterns: ['\u4e0a\u5f26\u6708'] },
@@ -42,6 +46,16 @@ const WORLD_CONTEXT_RULES = [
 ];
 
 const REQUIRED_TOWN_NPC_WORLD_CONTEXTS = [
+  {
+    id: -900,
+    code: 'DAY',
+    nameEn: 'Day',
+    nameZh: '\u767d\u5929',
+    contextType: 'TIME',
+    description: 'Public NPC shop condition for daytime availability.',
+    sortOrder: 205,
+    status: 1,
+  },
   {
     id: -901,
     code: 'NIGHT',
@@ -80,6 +94,26 @@ const REQUIRED_TOWN_NPC_WORLD_CONTEXTS = [
     contextType: 'EVENT',
     description: 'Public NPC shop condition for party event availability.',
     sortOrder: 240,
+    status: 1,
+  },
+  {
+    id: -912,
+    code: 'MOON_PHASE_1_4',
+    nameEn: 'Moon Phase 1-4',
+    nameZh: '\u6708\u76f8 1\u20134',
+    contextType: 'MOON_PHASE',
+    description: 'Public NPC shop condition for moon phase 1-4 availability.',
+    sortOrder: 300,
+    status: 1,
+  },
+  {
+    id: -913,
+    code: 'MOON_PHASE_LISTED',
+    nameEn: 'Listed Moon Phases',
+    nameZh: '\u4ee5\u4e0b\u6708\u76f8',
+    contextType: 'MOON_PHASE',
+    description: 'Public NPC shop condition for listed moon phase availability.',
+    sortOrder: 310,
     status: 1,
   },
   {
@@ -173,6 +207,7 @@ export function buildTownNpcShopConditionLookup({ biomes, gamePeriods, items, wo
         .map((entry) => [entry.key, entry])
     ),
     itemsByAny: buildItemRefLookup(items),
+    npcsByAny: buildNpcRefLookup(arguments[0]?.npcs),
     worldContextsByCode: new Map(
       (Array.isArray(worldContexts) ? worldContexts : [])
         .map((entry) => normalizeRef(entry, 'WORLD_CONTEXT'))
@@ -192,6 +227,7 @@ export function extractTownNpcShopConditions(availability, lookup) {
     ...collectMatches(text, BIOME_RULES, lookup?.biomesByCode, 'BIOME'),
     ...collectMatches(text, GAME_PERIOD_RULES, lookup?.gamePeriodsByCode, 'GAME_PERIOD'),
     ...collectItemPossessionMatches(text, lookup?.itemsByAny),
+    ...collectNpcPresenceMatches(text, lookup?.npcsByAny),
     ...collectMatches(text, WORLD_CONTEXT_RULES, lookup?.worldContextsByCode, 'WORLD_CONTEXT'),
   ];
 
@@ -277,10 +313,65 @@ function collectItemPossessionMatches(text, itemMap) {
   return matches;
 }
 
+function collectNpcPresenceMatches(text, npcMap) {
+  if (!(npcMap instanceof Map) || npcMap.size === 0) {
+    return [];
+  }
+
+  const matches = [];
+  const patterns = [
+    /(?:^|[，。；：:（）()])\s*(?:若|当|如果|且当)?\s*([^，。；：:（）()]+?)\s*在场(?:时)?(?=$|[，。；：:（）()])/g
+  ];
+  for (const pattern of patterns) {
+    for (const match of text.matchAll(pattern)) {
+      const rawName = normalizeText(match[1]);
+      const key = normalizeLookupKey(rawName);
+      if (!key) {
+        continue;
+      }
+      const ref = npcMap.get(key);
+      if (!ref) {
+        continue;
+      }
+      const fullMatch = normalizeText(match[0]) ?? '';
+      const matchText = normalizeText(match[1]) ?? '';
+      const candidateIndex = Math.max(
+        match.index ?? 0,
+        (match.index ?? 0) + fullMatch.indexOf(matchText)
+      );
+      matches.push({
+        refType: 'NPC',
+        refId: ref.id,
+        code: ref.code,
+        label: ref.label,
+        matchIndex: candidateIndex,
+      });
+    }
+  }
+  return matches;
+}
+
 function buildItemRefLookup(items) {
   const result = new Map();
   for (const entry of Array.isArray(items) ? items : []) {
     const ref = normalizeRef(entry, 'ITEM');
+    if (!ref) {
+      continue;
+    }
+    for (const value of [entry?.internalName, entry?.nameEn, entry?.name, entry?.nameZh]) {
+      const key = normalizeLookupKey(value);
+      if (key && !result.has(key)) {
+        result.set(key, ref);
+      }
+    }
+  }
+  return result;
+}
+
+function buildNpcRefLookup(npcs) {
+  const result = new Map();
+  for (const entry of Array.isArray(npcs) ? npcs : []) {
+    const ref = normalizeRef(entry, 'NPC');
     if (!ref) {
       continue;
     }

@@ -37,6 +37,9 @@ export interface NpcShopConditionDomain {
   refItemName?: string | null
   refItemNameZh?: string | null
   refItemInternalName?: string | null
+  refNpcName?: string | null
+  refNpcNameZh?: string | null
+  refNpcInternalName?: string | null
 }
 
 export interface NpcLootEntryDomain {

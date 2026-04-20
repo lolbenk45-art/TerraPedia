@@ -35,6 +35,7 @@ describe('npc domain contracts', () => {
         { ref_type: 'WORLD_CONTEXT', ref_id: 3, condition_role: 'unlock', label: 'Goblin Army' },
         { ref_type: 'GAME_PERIOD', ref_id: 2, game_period_code: 'hardmode', game_period_name_zh: '\u56f0\u96be\u6a21\u5f0f' },
         { ref_type: 'ITEM', ref_id: 930, ref_item_name: 'Flare Gun', ref_item_name_zh: '\u4fe1\u53f7\u67aa', ref_item_internal_name: 'FlareGun' },
+        { ref_type: 'NPC', ref_id: 207, ref_npc_name: 'Pirate', ref_npc_name_zh: '\u6d77\u76d7', ref_npc_internal_name: 'Pirate' },
       ],
     } as any)
 
@@ -57,6 +58,13 @@ describe('npc domain contracts', () => {
       refItemNameZh: '\u4fe1\u53f7\u67aa',
       refItemInternalName: 'FlareGun',
       label: '\u4fe1\u53f7\u67aa',
+    })
+    expect(result.conditions?.[3]).toMatchObject({
+      refType: 'NPC',
+      refId: 207,
+      refNpcNameZh: '\u6d77\u76d7',
+      refNpcInternalName: 'Pirate',
+      label: '\u6d77\u76d7',
     })
   })
 

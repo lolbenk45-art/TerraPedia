@@ -69,6 +69,12 @@ export const normalizeNpcShopEntry = (entry: NpcShopEntryDomain): NpcShopEntryDo
           ?? condition?.game_period_name_zh
           ?? condition?.gamePeriodNameEn
           ?? condition?.game_period_name_en
+          ?? condition?.refNpcNameZh
+          ?? condition?.ref_npc_name_zh
+          ?? condition?.refNpcName
+          ?? condition?.ref_npc_name
+          ?? condition?.refNpcInternalName
+          ?? condition?.ref_npc_internal_name
           ?? condition?.refItemNameZh
           ?? condition?.ref_item_name_zh
           ?? condition?.refItemName
@@ -93,6 +99,9 @@ export const normalizeNpcShopEntry = (entry: NpcShopEntryDomain): NpcShopEntryDo
         refItemName: condition?.refItemName ?? condition?.ref_item_name ?? null,
         refItemNameZh: condition?.refItemNameZh ?? condition?.ref_item_name_zh ?? null,
         refItemInternalName: condition?.refItemInternalName ?? condition?.ref_item_internal_name ?? null,
+        refNpcName: condition?.refNpcName ?? condition?.ref_npc_name ?? null,
+        refNpcNameZh: condition?.refNpcNameZh ?? condition?.ref_npc_name_zh ?? null,
+        refNpcInternalName: condition?.refNpcInternalName ?? condition?.ref_npc_internal_name ?? null,
       }))
     : entry.conditions ?? null,
   notes: entry.notes ?? null,

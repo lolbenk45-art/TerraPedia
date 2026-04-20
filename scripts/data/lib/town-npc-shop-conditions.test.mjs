@@ -301,3 +301,92 @@ test('extractTownNpcShopConditions maps lantern night and solar eclipse event ph
     ]
   );
 });
+
+test('getRequiredTownNpcWorldContexts includes time-of-day and moon phase range contexts', () => {
+  const actual = getRequiredTownNpcWorldContexts();
+
+  assert.deepEqual(
+    actual
+      .filter((entry) => ['DAY', 'MOON_PHASE_1_4', 'MOON_PHASE_LISTED'].includes(entry.code))
+      .map((entry) => ({
+        code: entry.code,
+        nameZh: entry.nameZh,
+        contextType: entry.contextType
+      })),
+    [
+      { code: 'DAY', nameZh: '\u767d\u5929', contextType: 'TIME' },
+      { code: 'MOON_PHASE_1_4', nameZh: '\u6708\u76f8 1\u20134', contextType: 'MOON_PHASE' },
+      { code: 'MOON_PHASE_LISTED', nameZh: '\u4ee5\u4e0b\u6708\u76f8', contextType: 'MOON_PHASE' }
+    ]
+  );
+});
+
+test('extractTownNpcShopConditions maps time-of-day, biome, and moon phase range phrases', () => {
+  const lookup = buildTownNpcShopConditionLookup({
+    biomes: [
+      { id: 95, code: 'glowing_mushroom', nameZh: '\u53d1\u5149\u8611\u83c7\u7fa4\u7cfb', nameEn: 'Glowing Mushroom' },
+      { id: 96, code: 'ice', nameZh: '\u51b0\u96ea\u7fa4\u7cfb', nameEn: 'Ice biome' }
+    ],
+    worldContexts: [
+      { id: 50, code: 'DAY', nameZh: '\u767d\u5929', nameEn: 'Day', contextType: 'TIME' },
+      { id: 12, code: 'NIGHT', nameZh: '\u591c\u665a', nameEn: 'Night', contextType: 'TIME' },
+      { id: 51, code: 'MOON_PHASE_1_4', nameZh: '\u6708\u76f8 1\u20134', nameEn: 'Moon Phase 1-4', contextType: 'MOON_PHASE' },
+      { id: 52, code: 'MOON_PHASE_LISTED', nameZh: '\u4ee5\u4e0b\u6708\u76f8', nameEn: 'Listed Moon Phases', contextType: 'MOON_PHASE' }
+    ]
+  });
+
+  const actual = extractTownNpcShopConditions(
+    '\u5728 \u53d1\u5149\u8611\u83c7\u751f\u7269\u7fa4\u7cfb \u4e2d\u65f6\u3002\u5f53\u5728 \u51b0\u96ea\u751f\u7269\u7fa4\u7cfb \u4e2d\u4e0e\u5176\u4ea4\u8c08\u65f6\u3002\u5728 \u767d\u5929 \u3002\u591c\u95f4\u3002\u5728 \u6708\u76f8 1\u20134 \u671f\u95f4\uff1a\u4ee5\u4e0b\u6708\u76f8\u671f\u95f4\uff1a',
+    lookup
+  );
+
+  assert.deepEqual(
+    actual.map((condition) => ({
+      refType: condition.refType,
+      refId: condition.refId,
+      code: condition.code,
+      label: condition.label
+    })),
+    [
+      { refType: 'BIOME', refId: 95, code: 'glowing_mushroom', label: '\u53d1\u5149\u8611\u83c7\u7fa4\u7cfb' },
+      { refType: 'BIOME', refId: 96, code: 'ice', label: '\u51b0\u96ea\u7fa4\u7cfb' },
+      { refType: 'WORLD_CONTEXT', refId: 50, code: 'DAY', label: '\u767d\u5929' },
+      { refType: 'WORLD_CONTEXT', refId: 12, code: 'NIGHT', label: '\u591c\u665a' },
+      { refType: 'WORLD_CONTEXT', refId: 51, code: 'MOON_PHASE_1_4', label: '\u6708\u76f8 1\u20134' },
+      { refType: 'WORLD_CONTEXT', refId: 52, code: 'MOON_PHASE_LISTED', label: '\u4ee5\u4e0b\u6708\u76f8' }
+    ]
+  );
+});
+
+test('extractTownNpcShopConditions maps npc presence phrases alongside world context phrases', () => {
+  const lookup = buildTownNpcShopConditionLookup({
+    npcs: [
+      { id: 201, internalName: 'TaxCollector', nameEn: 'Tax Collector', nameZh: '\u7a0e\u6536\u5b98' },
+      { id: 202, internalName: 'Pirate', nameEn: 'Pirate', nameZh: '\u6d77\u76d7' },
+      { id: 203, internalName: 'Angler', nameEn: 'Angler', nameZh: '\u6e14\u592b' }
+    ],
+    worldContexts: [
+      { id: 52, code: 'MOON_PHASE_LISTED', nameZh: '\u4ee5\u4e0b\u6708\u76f8', nameEn: 'Listed Moon Phases', contextType: 'MOON_PHASE' }
+    ]
+  });
+
+  const actual = extractTownNpcShopConditions(
+    '\u82e5 \u7a0e\u6536\u5b98 \u5728\u573a\u3002\u6d77\u76d7 \u5728\u573a\u65f6\u3002\u5728\u4e0b\u5217 \u6708\u76f8 \u671f\u95f4\uff1a\uff0c\u5f53 \u6e14\u592b \u5728\u573a\u65f6\u3002',
+    lookup
+  );
+
+  assert.deepEqual(
+    actual.map((condition) => ({
+      refType: condition.refType,
+      refId: condition.refId,
+      code: condition.code,
+      label: condition.label
+    })),
+    [
+      { refType: 'NPC', refId: 201, code: 'TaxCollector', label: '\u7a0e\u6536\u5b98' },
+      { refType: 'NPC', refId: 202, code: 'Pirate', label: '\u6d77\u76d7' },
+      { refType: 'WORLD_CONTEXT', refId: 52, code: 'MOON_PHASE_LISTED', label: '\u4ee5\u4e0b\u6708\u76f8' },
+      { refType: 'NPC', refId: 203, code: 'Angler', label: '\u6e14\u592b' }
+    ]
+  );
+});

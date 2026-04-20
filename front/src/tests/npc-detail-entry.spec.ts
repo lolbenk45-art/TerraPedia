@@ -31,11 +31,12 @@ describe('npc detail entry helpers', () => {
         { biomeNameZh: '\u4e1b\u6797' } as any,
         { gamePeriodNameZh: '\u56f0\u96be\u6a21\u5f0f' } as any,
         { refItemNameZh: '\u4fe1\u53f7\u67aa' } as any,
+        { refNpcNameZh: '\u6d77\u76d7' } as any,
         { notes: 'Player has launcher' } as any,
       ],
     }
 
     expect(shopPriceLabel(shopEntry)).toBe('25 silver')
-    expect(shopConditionsLabel(shopEntry)).toBe('\u591c\u665a, \u4e1b\u6797, \u56f0\u96be\u6a21\u5f0f, \u4fe1\u53f7\u67aa, Player has launcher')
+    expect(shopConditionsLabel(shopEntry)).toBe('\u591c\u665a, \u4e1b\u6797, \u56f0\u96be\u6a21\u5f0f, \u4fe1\u53f7\u67aa, \u6d77\u76d7, Player has launcher')
   })
 })

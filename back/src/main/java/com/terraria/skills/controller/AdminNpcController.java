@@ -687,12 +687,16 @@ public class AdminNpcController {
               gp.display_name_zh AS gamePeriodNameZh,
               ri.name AS refItemName,
               ri.name_zh AS refItemNameZh,
-              ri.internal_name AS refItemInternalName
+              ri.internal_name AS refItemInternalName,
+              rn.name AS refNpcName,
+              rn.name_zh AS refNpcNameZh,
+              rn.internal_name AS refNpcInternalName
             FROM npc_shop_conditions nsc
             LEFT JOIN biomes b ON nsc.ref_type = 'BIOME' AND b.id = nsc.ref_id AND b.deleted = 0
             LEFT JOIN world_contexts wc ON nsc.ref_type = 'WORLD_CONTEXT' AND wc.id = nsc.ref_id AND wc.deleted = 0
             LEFT JOIN game_period gp ON nsc.ref_type = 'GAME_PERIOD' AND gp.id = nsc.ref_id AND gp.deleted = 0
             LEFT JOIN items ri ON nsc.ref_type = 'ITEM' AND ri.id = nsc.ref_id AND ri.deleted = 0
+            LEFT JOIN npcs rn ON nsc.ref_type = 'NPC' AND rn.id = nsc.ref_id AND rn.deleted = 0
             WHERE nsc.shop_entry_id IN (%s)
             ORDER BY nsc.sort_order ASC, nsc.id ASC
             """.formatted(placeholders),
@@ -893,6 +897,7 @@ public class AdminNpcController {
             case "BIOME" -> "BIOME";
             case "WORLD_CONTEXT", "CONTEXT", "ENVIRONMENT", "MOON_PHASE" -> "WORLD_CONTEXT";
             case "GAME_PERIOD", "PERIOD" -> "GAME_PERIOD";
+            case "NPC" -> "NPC";
             case "ITEM" -> "ITEM";
             default -> null;
         };
