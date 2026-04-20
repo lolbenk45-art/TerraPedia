@@ -149,6 +149,14 @@
                 <strong>{{ formatNumber(report.insertedStationRows) }}</strong>
               </div>
               <div class="kv-row">
+                <span>环境关系行</span>
+                <strong>{{ formatNumber(report.environmentRelationRows) }}</strong>
+              </div>
+              <div class="kv-row">
+                <span>替代制作站行</span>
+                <strong>{{ formatNumber(report.alternativeStationRows) }}</strong>
+              </div>
+              <div class="kv-row">
                 <span>任意物品组行</span>
                 <strong>{{ formatNumber(report.groupIngredientRows) }}</strong>
               </div>
@@ -340,6 +348,7 @@ import { showToast } from '~/composables/useToast'
 import { get } from '~/composables/useApi'
 import type {
   RecipeImportDistributionEntry,
+  RecipeImportLatestReport,
   RecipeImportOverview,
   RecipeImportSourcePageEntry,
 } from '~/types/recipeImport'
@@ -349,7 +358,7 @@ definePageMeta({ title: '中文配方导入', navSection: '/recipes', headerVari
 const loading = ref(false)
 const overview = ref<RecipeImportOverview | null>(null)
 
-const report = computed<Record<string, any>>(() => overview.value?.latestReport || {})
+const report = computed<RecipeImportLatestReport>(() => overview.value?.latestReport || {})
 const database = computed(() => ({
   recipeCount: Number(overview.value?.database?.recipeCount || 0),
   activeRecipeCount: Number(overview.value?.database?.activeRecipeCount || 0),

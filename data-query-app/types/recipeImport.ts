@@ -34,13 +34,32 @@ export interface RecipeImportPlaceholderItem extends Record<string, any> {
   updatedAt?: string | null
 }
 
+export interface RecipeImportCreatedStation extends Record<string, any> {
+  id?: number | null
+  internalName?: string | null
+  nameEn?: string | null
+  nameZh?: string | null
+}
+
+export interface RecipeImportLatestReport extends Record<string, any> {
+  insertedRecipes?: number | null
+  insertedIngredientRows?: number | null
+  insertedStationRows?: number | null
+  environmentRelationRows?: number | null
+  alternativeStationRows?: number | null
+  groupIngredientRows?: number | null
+  reusedItemsByZhOrEn?: number | null
+  resolvedViaLanglink?: number | null
+  createdStations?: RecipeImportCreatedStation[]
+}
+
 export interface RecipeImportOverview {
   sourceProvider?: string | null
   reportFound?: boolean
   reportFileName?: string | null
   reportPath?: string | null
   reportUpdatedAt?: string | null
-  latestReport?: Record<string, any> | null
+  latestReport?: RecipeImportLatestReport | null
   database?: RecipeImportDatabaseSnapshot | null
   topSourcePages?: RecipeImportSourcePageEntry[]
   activeTopSourcePages?: RecipeImportSourcePageEntry[]
