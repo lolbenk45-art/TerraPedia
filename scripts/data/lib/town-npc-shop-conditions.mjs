@@ -1,30 +1,70 @@
 const BIOME_RULES = [
-  { code: 'graveyard', patterns: ['墓地附近', '墓地'] },
-  { code: 'underground_jungle', patterns: ['地下丛林'] },
-  { code: 'jungle_temple', patterns: ['丛林神庙'] },
-  { code: 'jungle', patterns: ['丛林'] },
-  { code: 'snow', patterns: ['雪原生物群系', '雪原'] },
-  { code: 'ice', patterns: ['冰雪群系'] },
-  { code: 'desert', patterns: ['沙漠'] },
-  { code: 'ocean', patterns: ['海洋'] },
-  { code: 'dungeon', patterns: ['地牢'] },
-  { code: 'corruption', patterns: ['腐化之地', '腐化'] },
-  { code: 'crimson', patterns: ['猩红之地', '猩红'] },
-  { code: 'hallow', patterns: ['神圣之地', '神圣'] },
-  { code: 'forest', patterns: ['森林'] },
-  { code: 'town', patterns: ['城镇'] },
+  { code: 'graveyard', patterns: ['\u5893\u5730\u9644\u8fd1', '\u5893\u5730'] },
+  { code: 'underground_jungle', patterns: ['\u5730\u4e0b\u4e1b\u6797'] },
+  { code: 'jungle_temple', patterns: ['\u4e1b\u6797\u795e\u5e99'] },
+  { code: 'jungle', patterns: ['\u4e1b\u6797'] },
+  { code: 'snow', patterns: ['\u96ea\u539f\u751f\u7269\u7fa4\u7cfb', '\u96ea\u539f'] },
+  { code: 'ice', patterns: ['\u51b0\u96ea\u7fa4\u7cfb'] },
+  { code: 'desert', patterns: ['\u6c99\u6f20'] },
+  { code: 'ocean', patterns: ['\u6d77\u6d0b'] },
+  { code: 'dungeon', patterns: ['\u5730\u7262'] },
+  { code: 'corruption', patterns: ['\u8150\u5316\u4e4b\u5730', '\u8150\u5316'] },
+  { code: 'crimson', patterns: ['\u731d\u7ea2\u4e4b\u5730', '\u731d\u7ea2'] },
+  { code: 'hallow', patterns: ['\u795e\u5723\u4e4b\u5730', '\u795e\u5723'] },
+  { code: 'forest', patterns: ['\u68ee\u6797'] },
+  { code: 'town', patterns: ['\u57ce\u9547'] },
 ];
 
 const WORLD_CONTEXT_RULES = [
-  { code: 'FULL_MOON', patterns: ['满月'] },
-  { code: 'NEW_MOON', patterns: ['新月'] },
-  { code: 'FIRST_QUARTER', patterns: ['上弦月'] },
-  { code: 'LAST_QUARTER', patterns: ['下弦月'] },
-  { code: 'WAXING_CRESCENT', patterns: ['娥眉月'] },
-  { code: 'WANING_CRESCENT', patterns: ['残月'] },
-  { code: 'WAXING_GIBBOUS', patterns: ['盈凸月'] },
-  { code: 'WANING_GIBBOUS', patterns: ['亏凸月'] },
+  { code: 'NIGHT', patterns: ['\u5728\u591c\u665a\u671f\u95f4', '\u591c\u665a\u671f\u95f4', '\u591c\u665a'] },
+  { code: 'BLOOD_MOON', patterns: ['\u5728 \u8840\u6708 \u671f\u95f4', '\u8840\u6708\u671f\u95f4', '\u8840\u6708'] },
+  { code: 'WINDY_DAY', patterns: ['\u5728 \u5927\u98ce\u5929 \u65f6', '\u5927\u98ce\u5929\u65f6', '\u5927\u98ce\u5929'] },
+  { code: 'FULL_MOON', patterns: ['\u6ee1\u6708'] },
+  { code: 'NEW_MOON', patterns: ['\u65b0\u6708'] },
+  { code: 'FIRST_QUARTER', patterns: ['\u4e0a\u5f26\u6708'] },
+  { code: 'LAST_QUARTER', patterns: ['\u4e0b\u5f26\u6708'] },
+  { code: 'WAXING_CRESCENT', patterns: ['\u5a25\u7709\u6708'] },
+  { code: 'WANING_CRESCENT', patterns: ['\u6b8b\u6708'] },
+  { code: 'WAXING_GIBBOUS', patterns: ['\u76c8\u51f8\u6708'] },
+  { code: 'WANING_GIBBOUS', patterns: ['\u4e8f\u51f8\u6708'] },
 ];
+
+const REQUIRED_TOWN_NPC_WORLD_CONTEXTS = [
+  {
+    id: -901,
+    code: 'NIGHT',
+    nameEn: 'Night',
+    nameZh: '\u591c\u665a',
+    contextType: 'TIME',
+    description: 'Public NPC shop condition for night-only availability.',
+    sortOrder: 210,
+    status: 1,
+  },
+  {
+    id: -902,
+    code: 'BLOOD_MOON',
+    nameEn: 'Blood Moon',
+    nameZh: '\u8840\u6708',
+    contextType: 'EVENT',
+    description: 'Public NPC shop condition for Blood Moon availability.',
+    sortOrder: 220,
+    status: 1,
+  },
+  {
+    id: -903,
+    code: 'WINDY_DAY',
+    nameEn: 'Windy Day',
+    nameZh: '\u5927\u98ce\u5929',
+    contextType: 'WEATHER',
+    description: 'Public NPC shop condition for windy day availability.',
+    sortOrder: 230,
+    status: 1,
+  },
+];
+
+export function getRequiredTownNpcWorldContexts() {
+  return REQUIRED_TOWN_NPC_WORLD_CONTEXTS.map((entry) => ({ ...entry }));
+}
 
 export function buildTownNpcShopConditionLookup({ biomes, worldContexts }) {
   return {

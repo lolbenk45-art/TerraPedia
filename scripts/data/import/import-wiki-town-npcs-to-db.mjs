@@ -9,7 +9,8 @@ import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { parseCliArgs } from '../lib/wiki-item-utils.mjs';
 import {
   buildTownNpcShopConditionLookup,
-  extractTownNpcShopConditions
+  extractTownNpcShopConditions,
+  getRequiredTownNpcWorldContexts
 } from '../lib/town-npc-shop-conditions.mjs';
 
 const require = createRequire(import.meta.url);
@@ -19,130 +20,159 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 
-const args = parseCliArgs(process.argv.slice(2));
-const apply = booleanOption(args.apply, false);
-const allowNonPrimaryDb = booleanOption(
-  args['allow-non-primary-db'] ?? args.allowNonPrimaryDb ?? process.env.TERRAPEDIA_ALLOW_NON_PRIMARY_DB,
-  false
-);
-const replaceWhenNoMatchedShopEntries = booleanOption(
-  args['replace-when-no-matched-shop-entries'] ?? args.replaceWhenNoMatchedShopEntries,
-  false
-);
-const dateTag = new Date().toISOString().slice(0, 10);
-const inputPath = path.resolve(
-  args.input ?? path.join(repoRoot, 'data', 'generated', 'wiki-town-npc-maintenance.latest.json')
-);
-const latestReportPath = path.resolve(
-  args.output ?? path.join(repoRoot, 'data', 'generated', 'wiki-town-npc-import.latest.json')
-);
-const snapshotReportPath = path.resolve(
-  args['snapshot-output'] ?? path.join(repoRoot, 'reports', `wiki-town-npc-import-${dateTag}.json`)
-);
+export async function runImportWikiTownNpcsToDb(rawArgs = process.argv.slice(2)) {
+  const args = parseCliArgs(rawArgs);
+  const apply = booleanOption(args.apply, false);
+  const allowNonPrimaryDb = booleanOption(
+    args['allow-non-primary-db'] ?? args.allowNonPrimaryDb ?? process.env.TERRAPEDIA_ALLOW_NON_PRIMARY_DB,
+    false
+  );
+  const replaceWhenNoMatchedShopEntries = booleanOption(
+    args['replace-when-no-matched-shop-entries'] ?? args.replaceWhenNoMatchedShopEntries,
+    false
+  );
+  const dateTag = new Date().toISOString().slice(0, 10);
+  const inputPath = path.resolve(
+    args.input ?? path.join(repoRoot, 'data', 'generated', 'wiki-town-npc-maintenance.latest.json')
+  );
+  const latestReportPath = path.resolve(
+    args.output ?? path.join(repoRoot, 'data', 'generated', 'wiki-town-npc-import.latest.json')
+  );
+  const snapshotReportPath = path.resolve(
+    args['snapshot-output'] ?? path.join(repoRoot, 'reports', `wiki-town-npc-import-${dateTag}.json`)
+  );
 
-if (!fs.existsSync(inputPath)) {
-  throw new Error(`Input file not found: ${inputPath}`);
-}
+  if (!fs.existsSync(inputPath)) {
+    throw new Error(`Input file not found: ${inputPath}`);
+  }
 
-const config = loadLocalStackConfig(repoRoot);
-const db = {
-  host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? config.database?.host ?? '127.0.0.1',
-  port: Number(args.port ?? process.env.TERRAPEDIA_DB_PORT ?? config.database?.port ?? 3306),
-  user: args.user ?? process.env.TERRAPEDIA_DB_USERNAME ?? config.database?.username ?? 'root',
-  password: args.password ?? process.env.TERRAPEDIA_DB_PASSWORD ?? config.database?.password ?? 'root',
-  database: args.database ?? process.env.TERRAPEDIA_DB_NAME ?? config.database?.name ?? 'terria_v1_local'
-};
-
-assertPrimaryDb(db.database, apply, allowNonPrimaryDb);
-
-const payload = JSON.parse(await fs.promises.readFile(inputPath, 'utf8'));
-const records = Array.isArray(payload?.records) ? payload.records : [];
-
-const conn = await mysql.createConnection(db);
-try {
-  await conn.query('SET NAMES utf8mb4');
-
-  const npcLookup = await loadTownNpcLookup(conn);
-  const itemLookup = await loadItemLookup(conn);
-  const shopConditionLookup = await loadTownNpcShopConditionLookup(conn);
-  const summary = {
-    generatedAt: new Date().toISOString(),
-    apply,
-    database: db.database,
-    inputPath,
-    latestReportPath,
-    snapshotReportPath,
-    replaceWhenNoMatchedShopEntries,
-    totalRecords: records.length,
-    matchedNpcCount: 0,
-    unmatchedNpcCount: 0,
-    updatedGamePeriodCount: 0,
-    updatedBehaviorNotesCount: 0,
-    replacedShopNpcCount: 0,
-    deletedShopEntryCount: 0,
-    insertedShopEntryCount: 0,
-    insertedShopConditionCount: 0,
-    unmatchedShopItemCount: 0,
-    skippedShopReplaceCount: 0,
-    unmatchedNpcSamples: [],
-    unmatchedShopItemSamples: [],
-    npcResults: []
+  const config = loadLocalStackConfig(repoRoot);
+  const db = {
+    host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? config.database?.host ?? '127.0.0.1',
+    port: Number(args.port ?? process.env.TERRAPEDIA_DB_PORT ?? config.database?.port ?? 3306),
+    user: args.user ?? process.env.TERRAPEDIA_DB_USERNAME ?? config.database?.username ?? 'root',
+    password: args.password ?? process.env.TERRAPEDIA_DB_PASSWORD ?? config.database?.password ?? 'root',
+    database: args.database ?? process.env.TERRAPEDIA_DB_NAME ?? config.database?.name ?? 'terria_v1_local'
   };
 
-  if (apply) {
-    await conn.beginTransaction();
-  }
+  assertPrimaryDb(db.database, apply, allowNonPrimaryDb);
 
-  for (const record of records) {
-    const result = await importTownNpcRecord(conn, record, {
+  const payload = JSON.parse(await fs.promises.readFile(inputPath, 'utf8'));
+  const records = Array.isArray(payload?.records) ? payload.records : [];
+
+  const conn = await mysql.createConnection(db);
+  try {
+    await conn.query('SET NAMES utf8mb4');
+
+    const npcLookup = await loadTownNpcLookup(conn);
+    const itemLookup = await loadItemLookup(conn);
+    const summary = {
+      generatedAt: new Date().toISOString(),
       apply,
-      npcLookup,
-      itemLookup,
-      shopConditionLookup,
-      replaceWhenNoMatchedShopEntries
-    });
-    summary.npcResults.push(result);
-    if (result.npcMatched) summary.matchedNpcCount += 1;
-    else {
-      summary.unmatchedNpcCount += 1;
-      pushSample(summary.unmatchedNpcSamples, {
-        gameId: result.gameId,
-        internalName: result.internalName,
-        pageTitle: result.pageTitle
+      database: db.database,
+      inputPath,
+      latestReportPath,
+      snapshotReportPath,
+      replaceWhenNoMatchedShopEntries,
+      totalRecords: records.length,
+      matchedNpcCount: 0,
+      unmatchedNpcCount: 0,
+      updatedGamePeriodCount: 0,
+      updatedBehaviorNotesCount: 0,
+      replacedShopNpcCount: 0,
+      deletedShopEntryCount: 0,
+      insertedShopEntryCount: 0,
+      insertedShopConditionCount: 0,
+      createdWorldContextCount: 0,
+      unmatchedShopItemCount: 0,
+      skippedShopReplaceCount: 0,
+      unmatchedNpcSamples: [],
+      unmatchedShopItemSamples: [],
+      npcResults: []
+    };
+
+    const shopConditionContext = await prepareTownNpcShopConditionContext(conn, apply);
+    summary.createdWorldContextCount = shopConditionContext.createdWorldContextCount;
+
+    for (const record of records) {
+      const result = await importTownNpcRecord(conn, record, {
+        apply,
+        npcLookup,
+        itemLookup,
+        shopConditionLookup: shopConditionContext.shopConditionLookup,
+        replaceWhenNoMatchedShopEntries
       });
+      summary.npcResults.push(result);
+      if (result.npcMatched) summary.matchedNpcCount += 1;
+      else {
+        summary.unmatchedNpcCount += 1;
+        pushSample(summary.unmatchedNpcSamples, {
+          gameId: result.gameId,
+          internalName: result.internalName,
+          pageTitle: result.pageTitle
+        });
+      }
+      if (result.updatedGamePeriod) summary.updatedGamePeriodCount += 1;
+      if (result.updatedBehaviorNotes) summary.updatedBehaviorNotesCount += 1;
+      if (result.shopReplaced) summary.replacedShopNpcCount += 1;
+      summary.deletedShopEntryCount += result.deletedShopEntryCount;
+      summary.insertedShopEntryCount += result.insertedShopEntryCount;
+      summary.insertedShopConditionCount += result.insertedShopConditionCount;
+      summary.unmatchedShopItemCount += result.unmatchedShopItems.length;
+      if (result.shopReplaceSkipped) summary.skippedShopReplaceCount += 1;
+      for (const item of result.unmatchedShopItems) {
+        pushSample(summary.unmatchedShopItemSamples, {
+          npcGameId: result.gameId,
+          npcInternalName: result.internalName,
+          itemNameEn: item.nameEn,
+          priceText: item.priceText
+        });
+      }
     }
-    if (result.updatedGamePeriod) summary.updatedGamePeriodCount += 1;
-    if (result.updatedBehaviorNotes) summary.updatedBehaviorNotesCount += 1;
-    if (result.shopReplaced) summary.replacedShopNpcCount += 1;
-    summary.deletedShopEntryCount += result.deletedShopEntryCount;
-    summary.insertedShopEntryCount += result.insertedShopEntryCount;
-    summary.insertedShopConditionCount += result.insertedShopConditionCount;
-    summary.unmatchedShopItemCount += result.unmatchedShopItems.length;
-    if (result.shopReplaceSkipped) summary.skippedShopReplaceCount += 1;
-    for (const item of result.unmatchedShopItems) {
-      pushSample(summary.unmatchedShopItemSamples, {
-        npcGameId: result.gameId,
-        npcInternalName: result.internalName,
-        itemNameEn: item.nameEn,
-        priceText: item.priceText
-      });
+
+    if (apply) {
+      await conn.commit();
     }
+
+    await writeJson(latestReportPath, summary);
+    await writeJson(snapshotReportPath, summary);
+    return summary;
+  } catch (error) {
+    if (apply) {
+      await conn.rollback();
+    }
+    throw error;
+  } finally {
+    await conn.end();
+  }
+}
+
+export async function prepareTownNpcShopConditionContext(connection, shouldApply, dependencies = {}) {
+  const ensureWorldContexts = dependencies.ensureWorldContexts ?? ensureTownNpcWorldContexts;
+  const loadShopConditionLookup = dependencies.loadShopConditionLookup ?? loadTownNpcShopConditionLookup;
+
+  if (shouldApply) {
+    await connection.beginTransaction();
   }
 
-  if (apply) {
-    await conn.commit();
-  }
+  const createdWorldContextCount = await ensureWorldContexts(connection, shouldApply);
+  const shopConditionLookup = await loadShopConditionLookup(connection);
+  return {
+    createdWorldContextCount,
+    shopConditionLookup
+  };
+}
 
-  await writeJson(latestReportPath, summary);
-  await writeJson(snapshotReportPath, summary);
+function isDirectExecution() {
+  if (!process.argv[1]) {
+    return false;
+  }
+  return fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+}
+
+if (isDirectExecution()) {
+  const summary = await runImportWikiTownNpcsToDb();
   console.log(JSON.stringify(summary, null, 2));
-} catch (error) {
-  if (apply) {
-    await conn.rollback();
-  }
-  throw error;
-} finally {
-  await conn.end();
 }
 
 async function importTownNpcRecord(connection, rawRecord, context) {
@@ -424,7 +454,65 @@ async function loadTownNpcShopConditionLookup(connection) {
        FROM world_contexts
       WHERE deleted = 0`
   );
-  return buildTownNpcShopConditionLookup({ biomes, worldContexts });
+  const mergedWorldContexts = dedupeWorldContextsByCode([
+    ...worldContexts,
+    ...getRequiredTownNpcWorldContexts()
+  ]);
+  return buildTownNpcShopConditionLookup({ biomes, worldContexts: mergedWorldContexts });
+}
+
+async function ensureTownNpcWorldContexts(connection, shouldApply) {
+  const requiredContexts = getRequiredTownNpcWorldContexts();
+  if (requiredContexts.length === 0) {
+    return 0;
+  }
+
+  const [existingRows] = await connection.query(
+    `SELECT code
+       FROM world_contexts
+      WHERE deleted = 0`
+  );
+  const existingCodes = new Set(
+    existingRows
+      .map((row) => toText(row.code))
+      .filter(Boolean)
+  );
+
+  const missing = requiredContexts.filter((entry) => !existingCodes.has(entry.code));
+  if (!shouldApply || missing.length === 0) {
+    return missing.length;
+  }
+
+  for (const entry of missing) {
+    await connection.execute(
+      `INSERT INTO world_contexts
+        (code, name_en, name_zh, context_type, description, sort_order, status, deleted)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
+      [
+        entry.code,
+        entry.nameEn,
+        entry.nameZh,
+        entry.contextType,
+        entry.description ?? null,
+        entry.sortOrder ?? 0,
+        entry.status ?? 1
+      ]
+    );
+  }
+
+  return missing.length;
+}
+
+function dedupeWorldContextsByCode(rows) {
+  const result = new Map();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const code = toText(row?.code);
+    if (!code || result.has(code)) {
+      continue;
+    }
+    result.set(code, row);
+  }
+  return [...result.values()];
 }
 
 function buildBehaviorNotes(functionSummary, moveInSummary) {
