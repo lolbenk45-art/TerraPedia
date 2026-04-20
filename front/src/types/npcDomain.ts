@@ -23,6 +23,14 @@ export interface NpcShopConditionDomain {
   conditionRole?: string | null
   label?: string | null
   notes?: string | null
+  sortOrder?: number | null
+  biomeCode?: string | null
+  biomeNameEn?: string | null
+  biomeNameZh?: string | null
+  contextCode?: string | null
+  contextNameEn?: string | null
+  contextNameZh?: string | null
+  contextType?: string | null
 }
 
 export interface NpcLootEntryDomain {

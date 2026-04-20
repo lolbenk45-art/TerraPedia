@@ -7,6 +7,10 @@ import { fileURLToPath } from 'node:url';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { parseCliArgs } from '../lib/wiki-item-utils.mjs';
+import {
+  buildTownNpcShopConditionLookup,
+  extractTownNpcShopConditions
+} from '../lib/town-npc-shop-conditions.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -60,6 +64,7 @@ try {
 
   const npcLookup = await loadTownNpcLookup(conn);
   const itemLookup = await loadItemLookup(conn);
+  const shopConditionLookup = await loadTownNpcShopConditionLookup(conn);
   const summary = {
     generatedAt: new Date().toISOString(),
     apply,
@@ -76,6 +81,7 @@ try {
     replacedShopNpcCount: 0,
     deletedShopEntryCount: 0,
     insertedShopEntryCount: 0,
+    insertedShopConditionCount: 0,
     unmatchedShopItemCount: 0,
     skippedShopReplaceCount: 0,
     unmatchedNpcSamples: [],
@@ -88,7 +94,13 @@ try {
   }
 
   for (const record of records) {
-    const result = await importTownNpcRecord(conn, record, { apply, npcLookup, itemLookup, replaceWhenNoMatchedShopEntries });
+    const result = await importTownNpcRecord(conn, record, {
+      apply,
+      npcLookup,
+      itemLookup,
+      shopConditionLookup,
+      replaceWhenNoMatchedShopEntries
+    });
     summary.npcResults.push(result);
     if (result.npcMatched) summary.matchedNpcCount += 1;
     else {
@@ -104,6 +116,7 @@ try {
     if (result.shopReplaced) summary.replacedShopNpcCount += 1;
     summary.deletedShopEntryCount += result.deletedShopEntryCount;
     summary.insertedShopEntryCount += result.insertedShopEntryCount;
+    summary.insertedShopConditionCount += result.insertedShopConditionCount;
     summary.unmatchedShopItemCount += result.unmatchedShopItems.length;
     if (result.shopReplaceSkipped) summary.skippedShopReplaceCount += 1;
     for (const item of result.unmatchedShopItems) {
@@ -150,6 +163,7 @@ async function importTownNpcRecord(connection, rawRecord, context) {
     shopReplaceSkipped: false,
     deletedShopEntryCount: 0,
     insertedShopEntryCount: 0,
+    insertedShopConditionCount: 0,
     matchedShopItems: [],
     unmatchedShopItems: []
   };
@@ -192,7 +206,12 @@ async function importTownNpcRecord(connection, rawRecord, context) {
     result.updatedBehaviorNotes = Boolean(nextBehaviorNotes && normalizeMultiline(npc.behaviorNotes) !== normalizeMultiline(nextBehaviorNotes));
   }
 
-  const preparedShopEntries = prepareShopEntries(rawRecord?.shopItems, context.itemLookup, result);
+  const preparedShopEntries = prepareShopEntries(
+    rawRecord?.shopItems,
+    context.itemLookup,
+    context.shopConditionLookup,
+    result
+  );
   const shouldReplaceShop = preparedShopEntries.length > 0 || context.replaceWhenNoMatchedShopEntries;
 
   if (!shouldReplaceShop) {
@@ -218,7 +237,7 @@ async function importTownNpcRecord(connection, rawRecord, context) {
 
     for (let index = 0; index < preparedShopEntries.length; index += 1) {
       const entry = preparedShopEntries[index];
-      await connection.execute(
+      const [insertResult] = await connection.execute(
         `INSERT INTO npc_shop_entries
           (npc_id, item_id, source_item_id, price_text, notes, sort_order, status, deleted)
          VALUES (?, ?, ?, ?, ?, ?, 1, 0)`,
@@ -231,18 +250,41 @@ async function importTownNpcRecord(connection, rawRecord, context) {
           index + 1
         ]
       );
+      const shopEntryId = Number(insertResult?.insertId);
       result.insertedShopEntryCount += 1;
+
+      for (let conditionIndex = 0; conditionIndex < entry.conditions.length; conditionIndex += 1) {
+        const condition = entry.conditions[conditionIndex];
+        await connection.execute(
+          `INSERT INTO npc_shop_conditions
+            (shop_entry_id, ref_type, ref_id, condition_role, notes, sort_order)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            shopEntryId,
+            condition.refType,
+            condition.refId,
+            condition.conditionRole ?? 'required',
+            condition.notes ?? null,
+            conditionIndex
+          ]
+        );
+        result.insertedShopConditionCount += 1;
+      }
     }
     result.shopReplaced = true;
   } else {
     result.insertedShopEntryCount = preparedShopEntries.length;
+    result.insertedShopConditionCount = preparedShopEntries.reduce(
+      (sum, entry) => sum + entry.conditions.length,
+      0
+    );
     result.shopReplaced = true;
   }
 
   return result;
 }
 
-function prepareShopEntries(rawItems, itemLookup, result) {
+function prepareShopEntries(rawItems, itemLookup, shopConditionLookup, result) {
   const entries = [];
   const seenItemIds = new Set();
   for (const rawItem of Array.isArray(rawItems) ? rawItems : []) {
@@ -263,7 +305,8 @@ function prepareShopEntries(rawItems, itemLookup, result) {
     entries.push({
       itemId: matchedItem.id,
       priceText: toText(rawItem?.priceText),
-      notes: toText(rawItem?.availability)
+      notes: toText(rawItem?.availability),
+      conditions: extractTownNpcShopConditions(toText(rawItem?.availability), shopConditionLookup)
     });
     result.matchedShopItems.push({
       itemId: matchedItem.id,
@@ -368,6 +411,20 @@ async function loadItemLookup(connection) {
     }
   }
   return lookup;
+}
+
+async function loadTownNpcShopConditionLookup(connection) {
+  const [biomes] = await connection.query(
+    `SELECT id, code, name_zh AS nameZh, name_en AS nameEn
+       FROM biomes
+      WHERE deleted = 0`
+  );
+  const [worldContexts] = await connection.query(
+    `SELECT id, code, name_zh AS nameZh, name_en AS nameEn
+       FROM world_contexts
+      WHERE deleted = 0`
+  );
+  return buildTownNpcShopConditionLookup({ biomes, worldContexts });
 }
 
 function buildBehaviorNotes(functionSummary, moveInSummary) {

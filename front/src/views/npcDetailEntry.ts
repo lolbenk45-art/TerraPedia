@@ -40,7 +40,16 @@ export function shopConditionsLabel(entry: NpcShopEntry) {
 
   if (Array.isArray(entry.conditions)) {
     return entry.conditions
-      .map((condition: NpcShopCondition) => condition.label || condition.notes || condition.refType || '')
+      .map((condition: NpcShopCondition) =>
+        condition.label
+        || condition.contextNameZh
+        || condition.contextNameEn
+        || condition.biomeNameZh
+        || condition.biomeNameEn
+        || condition.notes
+        || condition.refType
+        || ''
+      )
       .filter(Boolean)
       .join(', ')
   }

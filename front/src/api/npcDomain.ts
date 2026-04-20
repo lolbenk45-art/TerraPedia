@@ -60,8 +60,25 @@ export const normalizeNpcShopEntry = (entry: NpcShopEntryDomain): NpcShopEntryDo
         refType: condition?.refType ?? condition?.ref_type ?? null,
         refId: condition?.refId ?? condition?.ref_id ?? null,
         conditionRole: condition?.conditionRole ?? condition?.condition_role ?? null,
-        label: condition?.label ?? null,
+        label: condition?.label
+          ?? condition?.contextNameZh
+          ?? condition?.context_name_zh
+          ?? condition?.contextNameEn
+          ?? condition?.context_name_en
+          ?? condition?.biomeNameZh
+          ?? condition?.biome_name_zh
+          ?? condition?.biomeNameEn
+          ?? condition?.biome_name_en
+          ?? null,
         notes: condition?.notes ?? null,
+        sortOrder: condition?.sortOrder ?? condition?.sort_order ?? null,
+        biomeCode: condition?.biomeCode ?? condition?.biome_code ?? null,
+        biomeNameEn: condition?.biomeNameEn ?? condition?.biome_name_en ?? null,
+        biomeNameZh: condition?.biomeNameZh ?? condition?.biome_name_zh ?? null,
+        contextCode: condition?.contextCode ?? condition?.context_code ?? null,
+        contextNameEn: condition?.contextNameEn ?? condition?.context_name_en ?? null,
+        contextNameZh: condition?.contextNameZh ?? condition?.context_name_zh ?? null,
+        contextType: condition?.contextType ?? condition?.context_type ?? null,
       }))
     : entry.conditions ?? null,
   notes: entry.notes ?? null,
