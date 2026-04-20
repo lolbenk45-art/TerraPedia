@@ -69,6 +69,10 @@ export const normalizeNpcShopEntry = (entry: NpcShopEntryDomain): NpcShopEntryDo
           ?? condition?.game_period_name_zh
           ?? condition?.gamePeriodNameEn
           ?? condition?.game_period_name_en
+          ?? condition?.refItemNameZh
+          ?? condition?.ref_item_name_zh
+          ?? condition?.refItemName
+          ?? condition?.ref_item_name
           ?? condition?.biomeNameZh
           ?? condition?.biome_name_zh
           ?? condition?.biomeNameEn
@@ -86,6 +90,9 @@ export const normalizeNpcShopEntry = (entry: NpcShopEntryDomain): NpcShopEntryDo
         gamePeriodCode: condition?.gamePeriodCode ?? condition?.game_period_code ?? null,
         gamePeriodNameEn: condition?.gamePeriodNameEn ?? condition?.game_period_name_en ?? null,
         gamePeriodNameZh: condition?.gamePeriodNameZh ?? condition?.game_period_name_zh ?? null,
+        refItemName: condition?.refItemName ?? condition?.ref_item_name ?? null,
+        refItemNameZh: condition?.refItemNameZh ?? condition?.ref_item_name_zh ?? null,
+        refItemInternalName: condition?.refItemInternalName ?? condition?.ref_item_internal_name ?? null,
       }))
     : entry.conditions ?? null,
   notes: entry.notes ?? null,

@@ -26,4 +26,7 @@ public class NpcShopConditionDTO implements Serializable {
     private String gamePeriodCode;
     private String gamePeriodNameEn;
     private String gamePeriodNameZh;
+    private String refItemName;
+    private String refItemNameZh;
+    private String refItemInternalName;
 }

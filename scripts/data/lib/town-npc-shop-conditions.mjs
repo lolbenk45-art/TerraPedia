@@ -136,7 +136,7 @@ export function getRequiredTownNpcWorldContexts() {
   return REQUIRED_TOWN_NPC_WORLD_CONTEXTS.map((entry) => ({ ...entry }));
 }
 
-export function buildTownNpcShopConditionLookup({ biomes, gamePeriods, worldContexts }) {
+export function buildTownNpcShopConditionLookup({ biomes, gamePeriods, items, worldContexts }) {
   return {
     biomesByCode: new Map(
       (Array.isArray(biomes) ? biomes : [])
@@ -150,6 +150,7 @@ export function buildTownNpcShopConditionLookup({ biomes, gamePeriods, worldCont
         .filter(Boolean)
         .map((entry) => [entry.key, entry])
     ),
+    itemsByAny: buildItemRefLookup(items),
     worldContextsByCode: new Map(
       (Array.isArray(worldContexts) ? worldContexts : [])
         .map((entry) => normalizeRef(entry, 'WORLD_CONTEXT'))
@@ -168,6 +169,7 @@ export function extractTownNpcShopConditions(availability, lookup) {
   const matches = [
     ...collectMatches(text, BIOME_RULES, lookup?.biomesByCode, 'BIOME'),
     ...collectMatches(text, GAME_PERIOD_RULES, lookup?.gamePeriodsByCode, 'GAME_PERIOD'),
+    ...collectItemPossessionMatches(text, lookup?.itemsByAny),
     ...collectMatches(text, WORLD_CONTEXT_RULES, lookup?.worldContextsByCode, 'WORLD_CONTEXT'),
   ];
 
@@ -220,6 +222,56 @@ function collectMatches(text, rules, refMap, refType) {
   return matches;
 }
 
+function collectItemPossessionMatches(text, itemMap) {
+  if (!(itemMap instanceof Map) || itemMap.size === 0) {
+    return [];
+  }
+
+  const matches = [];
+  const patterns = [
+    /\u5f53\u73a9\u5bb6\u7684\u7269\u54c1\u680f\u4e2d\u5e26\u6709\s*([^\u3002\uff1b\uff0c()（）]+?)\s*\u65f6/g,
+    /\u5f53\u73a9\u5bb6\u62e5\u6709\s*([^\u3002\uff1b\uff0c()（）]+?)\s*(?:\u65f6|$|[()（）])/g,
+  ];
+  for (const pattern of patterns) {
+    for (const match of text.matchAll(pattern)) {
+      const rawName = normalizeText(match[1]);
+      const key = normalizeLookupKey(rawName);
+      if (!key) {
+        continue;
+      }
+      const ref = itemMap.get(key);
+      if (!ref) {
+        continue;
+      }
+      matches.push({
+        refType: 'ITEM',
+        refId: ref.id,
+        code: ref.code,
+        label: ref.label,
+        matchIndex: match.index ?? 0,
+      });
+    }
+  }
+  return matches;
+}
+
+function buildItemRefLookup(items) {
+  const result = new Map();
+  for (const entry of Array.isArray(items) ? items : []) {
+    const ref = normalizeRef(entry, 'ITEM');
+    if (!ref) {
+      continue;
+    }
+    for (const value of [entry?.internalName, entry?.nameEn, entry?.name, entry?.nameZh]) {
+      const key = normalizeLookupKey(value);
+      if (key && !result.has(key)) {
+        result.set(key, ref);
+      }
+    }
+  }
+  return result;
+}
+
 function firstMatchIndex(text, patterns) {
   let best = -1;
   for (const pattern of patterns) {
@@ -237,8 +289,8 @@ function firstMatchIndex(text, patterns) {
 
 function normalizeRef(entry, fallbackType) {
   const id = toInt(entry?.id);
-  const code = normalizeText(entry?.code);
-  const key = normalizeCode(entry?.code);
+  const code = normalizeText(entry?.code ?? entry?.internalName ?? entry?.nameEn ?? entry?.name);
+  const key = normalizeCode(entry?.code ?? entry?.internalName ?? entry?.nameEn ?? entry?.name);
   if (id == null || !code || !key) {
     return null;
   }
@@ -255,6 +307,17 @@ function normalizeRef(entry, fallbackType) {
 function normalizeCode(value) {
   const text = normalizeText(value);
   return text ? text.toLowerCase() : null;
+}
+
+function normalizeLookupKey(value) {
+  const text = normalizeText(value);
+  return text
+    ? text
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase()
+    : null;
 }
 
 function normalizeText(value) {

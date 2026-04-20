@@ -200,3 +200,32 @@ test('extractTownNpcShopConditions maps hardmode as game period alongside world 
     ]
   );
 });
+
+test('extractTownNpcShopConditions maps player-owned item conditions to item refs', () => {
+  const lookup = buildTownNpcShopConditionLookup({
+    biomes: [],
+    items: [
+      { id: 930, internalName: 'FlareGun', nameEn: 'Flare Gun', nameZh: '\u4fe1\u53f7\u67aa' },
+      { id: 3105, internalName: 'NailGun', nameEn: 'Nail Gun', nameZh: '\u9489\u67aa' }
+    ],
+    worldContexts: []
+  });
+
+  const actual = extractTownNpcShopConditions(
+    '\u5f53\u73a9\u5bb6\u7684\u7269\u54c1\u680f\u4e2d\u5e26\u6709 \u4fe1\u53f7\u67aa \u65f6\u3002\u5f53\u73a9\u5bb6\u62e5\u6709 \u9489\u67aa \u65f6\u3002',
+    lookup
+  );
+
+  assert.deepEqual(
+    actual.map((condition) => ({
+      refType: condition.refType,
+      refId: condition.refId,
+      code: condition.code,
+      label: condition.label
+    })),
+    [
+      { refType: 'ITEM', refId: 930, code: 'FlareGun', label: '\u4fe1\u53f7\u67aa' },
+      { refType: 'ITEM', refId: 3105, code: 'NailGun', label: '\u9489\u67aa' }
+    ]
+  );
+});

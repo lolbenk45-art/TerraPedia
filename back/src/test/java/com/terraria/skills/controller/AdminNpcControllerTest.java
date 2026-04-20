@@ -234,7 +234,16 @@ class AdminNpcControllerTest {
         shopCondition.put("gamePeriodCode", "hardmode");
         shopCondition.put("gamePeriodNameZh", "困难模式");
         shopCondition.put("gamePeriodNameEn", "Hardmode");
-        when(jdbcTemplate.queryForList(contains("FROM npc_shop_conditions"), eq(21L))).thenReturn(List.of(shopCondition));
+        Map<String, Object> itemCondition = new LinkedHashMap<>();
+        itemCondition.put("id", 92L);
+        itemCondition.put("shopEntryId", 21L);
+        itemCondition.put("refType", "ITEM");
+        itemCondition.put("refId", 930L);
+        itemCondition.put("conditionRole", "required");
+        itemCondition.put("refItemName", "Flare Gun");
+        itemCondition.put("refItemNameZh", "信号枪");
+        itemCondition.put("refItemInternalName", "FlareGun");
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_conditions"), eq(21L))).thenReturn(List.of(shopCondition, itemCondition));
 
         mockMvc.perform(get("/admin/npcs/7").accept(APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -243,10 +252,13 @@ class AdminNpcControllerTest {
             .andExpect(jsonPath("$.data.behaviorNotes").value("Offers advice to new players."))
             .andExpect(jsonPath("$.data.shopEntries", hasSize(1)))
             .andExpect(jsonPath("$.data.shopEntries[0].itemName").value("Torch"))
-            .andExpect(jsonPath("$.data.shopEntries[0].conditions", hasSize(1)))
+            .andExpect(jsonPath("$.data.shopEntries[0].conditions", hasSize(2)))
             .andExpect(jsonPath("$.data.shopEntries[0].conditions[0].refType").value("GAME_PERIOD"))
             .andExpect(jsonPath("$.data.shopEntries[0].conditions[0].gamePeriodCode").value("hardmode"))
-            .andExpect(jsonPath("$.data.shopEntries[0].conditions[0].gamePeriodNameZh").value("困难模式"));
+            .andExpect(jsonPath("$.data.shopEntries[0].conditions[0].gamePeriodNameZh").value("困难模式"))
+            .andExpect(jsonPath("$.data.shopEntries[0].conditions[1].refType").value("ITEM"))
+            .andExpect(jsonPath("$.data.shopEntries[0].conditions[1].refItemNameZh").value("信号枪"))
+            .andExpect(jsonPath("$.data.shopEntries[0].conditions[1].refItemInternalName").value("FlareGun"));
     }
 
     @Test
