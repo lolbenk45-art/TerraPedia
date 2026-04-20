@@ -225,7 +225,16 @@ class AdminNpcControllerTest {
         shopEntry.put("itemName", "Torch");
         shopEntry.put("priceText", "50 copper");
         when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries nse"), eq(7L))).thenReturn(List.of(shopEntry));
-        when(jdbcTemplate.queryForList(contains("FROM npc_shop_conditions"), eq(21L))).thenReturn(List.of());
+        Map<String, Object> shopCondition = new LinkedHashMap<>();
+        shopCondition.put("id", 91L);
+        shopCondition.put("shopEntryId", 21L);
+        shopCondition.put("refType", "GAME_PERIOD");
+        shopCondition.put("refId", 2L);
+        shopCondition.put("conditionRole", "required");
+        shopCondition.put("gamePeriodCode", "hardmode");
+        shopCondition.put("gamePeriodNameZh", "困难模式");
+        shopCondition.put("gamePeriodNameEn", "Hardmode");
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_conditions"), eq(21L))).thenReturn(List.of(shopCondition));
 
         mockMvc.perform(get("/admin/npcs/7").accept(APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -233,7 +242,11 @@ class AdminNpcControllerTest {
             .andExpect(jsonPath("$.data.gamePeriodId").value(3))
             .andExpect(jsonPath("$.data.behaviorNotes").value("Offers advice to new players."))
             .andExpect(jsonPath("$.data.shopEntries", hasSize(1)))
-            .andExpect(jsonPath("$.data.shopEntries[0].itemName").value("Torch"));
+            .andExpect(jsonPath("$.data.shopEntries[0].itemName").value("Torch"))
+            .andExpect(jsonPath("$.data.shopEntries[0].conditions", hasSize(1)))
+            .andExpect(jsonPath("$.data.shopEntries[0].conditions[0].refType").value("GAME_PERIOD"))
+            .andExpect(jsonPath("$.data.shopEntries[0].conditions[0].gamePeriodCode").value("hardmode"))
+            .andExpect(jsonPath("$.data.shopEntries[0].conditions[0].gamePeriodNameZh").value("困难模式"));
     }
 
     @Test

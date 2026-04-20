@@ -21,19 +21,20 @@ describe('npc detail entry helpers', () => {
     expect(entrySecondary(buffEntry)).toBe('Well Fed')
   })
 
-  it('renders shop pricing and prefers structured biome/context labels for public shop conditions', () => {
+  it('renders shop pricing and prefers structured biome/context/game-period labels for public shop conditions', () => {
     const shopEntry: NpcShopEntry = {
       itemName: 'Bug Net',
       priceText: '',
       buyPriceText: '25 silver',
       conditions: [
-        { contextNameZh: '夜晚' } as any,
-        { biomeNameZh: '丛林' } as any,
-        { notes: 'Hardmode only' } as any,
+        { contextNameZh: '\u591c\u665a' } as any,
+        { biomeNameZh: '\u4e1b\u6797' } as any,
+        { gamePeriodNameZh: '\u56f0\u96be\u6a21\u5f0f' } as any,
+        { notes: 'Player has launcher' } as any,
       ],
     }
 
     expect(shopPriceLabel(shopEntry)).toBe('25 silver')
-    expect(shopConditionsLabel(shopEntry)).toBe('夜晚, 丛林, Hardmode only')
+    expect(shopConditionsLabel(shopEntry)).toBe('\u591c\u665a, \u4e1b\u6797, \u56f0\u96be\u6a21\u5f0f, Player has launcher')
   })
 })

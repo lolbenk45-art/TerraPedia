@@ -44,6 +44,8 @@ export function shopConditionsLabel(entry: NpcShopEntry) {
         condition.label
         || condition.contextNameZh
         || condition.contextNameEn
+        || condition.gamePeriodNameZh
+        || condition.gamePeriodNameEn
         || condition.biomeNameZh
         || condition.biomeNameEn
         || condition.notes

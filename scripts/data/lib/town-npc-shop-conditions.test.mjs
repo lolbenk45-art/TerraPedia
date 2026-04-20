@@ -170,3 +170,33 @@ test('extractTownNpcShopConditions maps stable seasonal and party event phrases'
     ]
   );
 });
+
+test('extractTownNpcShopConditions maps hardmode as game period alongside world contexts', () => {
+  const lookup = buildTownNpcShopConditionLookup({
+    biomes: [],
+    gamePeriods: [
+      { id: 2, code: 'hardmode', nameZh: '\u56f0\u96be\u6a21\u5f0f', nameEn: 'Hardmode' }
+    ],
+    worldContexts: [
+      { id: 21, code: 'BLOOD_MOON', nameZh: '\u8840\u6708', nameEn: 'Blood Moon', contextType: 'EVENT' }
+    ]
+  });
+
+  const actual = extractTownNpcShopConditions(
+    '\u5728 \u56f0\u96be\u6a21\u5f0f \u4e2d\u3001 \u8840\u6708 \u671f\u95f4\u3002',
+    lookup
+  );
+
+  assert.deepEqual(
+    actual.map((condition) => ({
+      refType: condition.refType,
+      refId: condition.refId,
+      code: condition.code,
+      label: condition.label
+    })),
+    [
+      { refType: 'GAME_PERIOD', refId: 2, code: 'hardmode', label: '\u56f0\u96be\u6a21\u5f0f' },
+      { refType: 'WORLD_CONTEXT', refId: 21, code: 'BLOOD_MOON', label: '\u8840\u6708' }
+    ]
+  );
+});

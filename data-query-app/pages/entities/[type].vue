@@ -1231,7 +1231,7 @@ const configs: Record<string, EntityConfig> = {
       { key: 'catchItemId', label: 'Catch Item DB ID', type: 'number' },
       { key: 'lootEntries', label: 'Loot Entries JSON', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: '结构化掉落数据。支持 itemId/sourceItemId、dropSourceKind、数量、概率、条件等。' },
       { key: 'buffRelations', label: 'Buff Relations JSON', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: 'NPC 附加或关联 Buff 的结构化关系。' },
-      { key: 'shopEntries', label: 'Shop Entries JSON', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: 'NPC 售卖骨架，条件数组支持 BIOME / WORLD_CONTEXT。' },
+      { key: 'shopEntries', label: 'Shop Entries JSON', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: 'NPC 售卖骨架，条件数组支持 BIOME / WORLD_CONTEXT / GAME_PERIOD。' },
       { key: 'rawJson', label: 'Raw JSON Payload', type: 'textarea', span: 'full', rows: 10, format: 'json', helper: '标准化补充数据预览字段，通常由同步脚本生成；手工编辑不会直接写回数据库结构化列。' },
     ],
   },

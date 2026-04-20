@@ -31,6 +31,9 @@ export interface NpcShopConditionDomain {
   contextNameEn?: string | null
   contextNameZh?: string | null
   contextType?: string | null
+  gamePeriodCode?: string | null
+  gamePeriodNameEn?: string | null
+  gamePeriodNameZh?: string | null
 }
 
 export interface NpcLootEntryDomain {

@@ -449,6 +449,11 @@ async function loadTownNpcShopConditionLookup(connection) {
        FROM biomes
       WHERE deleted = 0`
   );
+  const [gamePeriods] = await connection.query(
+    `SELECT id, code, display_name_zh AS nameZh, display_name_en AS nameEn
+       FROM game_period
+      WHERE deleted = 0`
+  );
   const [worldContexts] = await connection.query(
     `SELECT id, code, name_zh AS nameZh, name_en AS nameEn
        FROM world_contexts
@@ -458,7 +463,11 @@ async function loadTownNpcShopConditionLookup(connection) {
     ...worldContexts,
     ...getRequiredTownNpcWorldContexts()
   ]);
-  return buildTownNpcShopConditionLookup({ biomes, worldContexts: mergedWorldContexts });
+  return buildTownNpcShopConditionLookup({
+    biomes,
+    gamePeriods,
+    worldContexts: mergedWorldContexts
+  });
 }
 
 async function ensureTownNpcWorldContexts(connection, shouldApply) {

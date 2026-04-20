@@ -15,6 +15,10 @@ const BIOME_RULES = [
   { code: 'town', patterns: ['\u57ce\u9547'] },
 ];
 
+const GAME_PERIOD_RULES = [
+  { code: 'hardmode', patterns: ['\u5728 \u56f0\u96be\u6a21\u5f0f \u4e2d', '\u5728\u56f0\u96be\u6a21\u5f0f\u4e2d', '\u56f0\u96be\u6a21\u5f0f'] },
+];
+
 const WORLD_CONTEXT_RULES = [
   { code: 'NIGHT', patterns: ['\u5728\u591c\u665a\u671f\u95f4', '\u591c\u665a\u671f\u95f4', '\u591c\u665a'] },
   { code: 'BLOOD_MOON', patterns: ['\u5728 \u8840\u6708 \u671f\u95f4', '\u8840\u6708\u671f\u95f4', '\u8840\u6708'] },
@@ -132,11 +136,17 @@ export function getRequiredTownNpcWorldContexts() {
   return REQUIRED_TOWN_NPC_WORLD_CONTEXTS.map((entry) => ({ ...entry }));
 }
 
-export function buildTownNpcShopConditionLookup({ biomes, worldContexts }) {
+export function buildTownNpcShopConditionLookup({ biomes, gamePeriods, worldContexts }) {
   return {
     biomesByCode: new Map(
       (Array.isArray(biomes) ? biomes : [])
         .map((entry) => normalizeRef(entry, 'BIOME'))
+        .filter(Boolean)
+        .map((entry) => [entry.key, entry])
+    ),
+    gamePeriodsByCode: new Map(
+      (Array.isArray(gamePeriods) ? gamePeriods : [])
+        .map((entry) => normalizeRef(entry, 'GAME_PERIOD'))
         .filter(Boolean)
         .map((entry) => [entry.key, entry])
     ),
@@ -157,6 +167,7 @@ export function extractTownNpcShopConditions(availability, lookup) {
 
   const matches = [
     ...collectMatches(text, BIOME_RULES, lookup?.biomesByCode, 'BIOME'),
+    ...collectMatches(text, GAME_PERIOD_RULES, lookup?.gamePeriodsByCode, 'GAME_PERIOD'),
     ...collectMatches(text, WORLD_CONTEXT_RULES, lookup?.worldContextsByCode, 'WORLD_CONTEXT'),
   ];
 

@@ -438,10 +438,14 @@ public class AdminNpcRelationController {
               wc.code AS contextCode,
               wc.name_en AS contextNameEn,
               wc.name_zh AS contextNameZh,
-              wc.context_type AS contextType
+              wc.context_type AS contextType,
+              gp.code AS gamePeriodCode,
+              gp.display_name_en AS gamePeriodNameEn,
+              gp.display_name_zh AS gamePeriodNameZh
             FROM npc_shop_conditions nsc
             LEFT JOIN biomes b ON nsc.ref_type = 'BIOME' AND b.id = nsc.ref_id AND b.deleted = 0
             LEFT JOIN world_contexts wc ON nsc.ref_type = 'WORLD_CONTEXT' AND wc.id = nsc.ref_id AND wc.deleted = 0
+            LEFT JOIN game_period gp ON nsc.ref_type = 'GAME_PERIOD' AND gp.id = nsc.ref_id AND gp.deleted = 0
             WHERE nsc.shop_entry_id IN (%s)
             ORDER BY nsc.sort_order ASC, nsc.id ASC
             """.formatted(placeholders),
@@ -494,6 +498,7 @@ public class AdminNpcRelationController {
         return switch (normalized) {
             case "BIOME" -> "BIOME";
             case "WORLD_CONTEXT", "CONTEXT", "ENVIRONMENT", "MOON_PHASE" -> "WORLD_CONTEXT";
+            case "GAME_PERIOD", "PERIOD" -> "GAME_PERIOD";
             default -> null;
         };
     }

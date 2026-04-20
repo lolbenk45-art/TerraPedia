@@ -11,7 +11,7 @@ describe('npc domain contracts', () => {
       id: '7',
       game_id: 22,
       internal_name: 'Guide',
-      name_zh: '向导',
+      name_zh: 'Guide CN',
       is_town_npc: true,
       image_url: '/img/guide.png',
     } as any)
@@ -20,7 +20,7 @@ describe('npc domain contracts', () => {
       id: 7,
       gameId: 22,
       internalName: 'Guide',
-      nameZh: '向导',
+      nameZh: 'Guide CN',
       isTownNpc: true,
       imageUrl: '/img/guide.png',
     })
@@ -29,10 +29,11 @@ describe('npc domain contracts', () => {
   it('normalizes public NPC shop entry conditions', () => {
     const result = normalizeNpcShopEntry({
       item_id: 5,
-      item_name_zh: '火箭靴',
+      item_name_zh: 'Torch CN',
       price_text: '5 gold',
       conditions: [
         { ref_type: 'WORLD_CONTEXT', ref_id: 3, condition_role: 'unlock', label: 'Goblin Army' },
+        { ref_type: 'GAME_PERIOD', ref_id: 2, game_period_code: 'hardmode', game_period_name_zh: '\u56f0\u96be\u6a21\u5f0f' },
       ],
     } as any)
 
@@ -42,11 +43,18 @@ describe('npc domain contracts', () => {
       conditionRole: 'unlock',
       label: 'Goblin Army',
     })
+    expect(result.conditions?.[1]).toMatchObject({
+      refType: 'GAME_PERIOD',
+      refId: 2,
+      gamePeriodCode: 'hardmode',
+      gamePeriodNameZh: '\u56f0\u96be\u6a21\u5f0f',
+      label: '\u56f0\u96be\u6a21\u5f0f',
+    })
   })
 
   it('normalizes the aggregate payload through the frozen public domain shape', () => {
     const result = normalizeNpcPublicAggregate({
-      npc: { id: 1, name: 'Guide', name_zh: '向导', is_town_npc: true },
+      npc: { id: 1, name: 'Guide', name_zh: 'Guide CN', is_town_npc: true },
       loot: [],
       shopEntries: [{ item_id: 5, item_name: 'Rocket Boots', price_text: '5 gold', conditions: [] }],
       buffRelations: [],
@@ -54,7 +62,7 @@ describe('npc domain contracts', () => {
       aggregatedAt: '2026-04-18T12:00:00',
     } as any)
 
-    expect(result.npc.nameZh).toBe('向导')
+    expect(result.npc.nameZh).toBe('Guide CN')
     expect(result.shopEntries[0].priceText).toBe('5 gold')
     expect(result.moduleStatus.shop).toBe('ok')
   })
