@@ -229,3 +229,29 @@ test('extractTownNpcShopConditions maps player-owned item conditions to item ref
     ]
   );
 });
+
+test('extractTownNpcShopConditions maps active party phrasing to PARTY world context', () => {
+  const lookup = buildTownNpcShopConditionLookup({
+    biomes: [],
+    worldContexts: [
+      { id: 30, code: 'PARTY', nameZh: '\u6d3e\u5bf9', nameEn: 'Party', contextType: 'EVENT' }
+    ]
+  });
+
+  const actual = extractTownNpcShopConditions(
+    '\u6d3e\u5bf9\u8fdb\u884c\u4e2d\u65f6\u3002',
+    lookup
+  );
+
+  assert.deepEqual(
+    actual.map((condition) => ({
+      refType: condition.refType,
+      refId: condition.refId,
+      code: condition.code,
+      label: condition.label
+    })),
+    [
+      { refType: 'WORLD_CONTEXT', refId: 30, code: 'PARTY', label: '\u6d3e\u5bf9' }
+    ]
+  );
+});

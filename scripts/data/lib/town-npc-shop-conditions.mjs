@@ -23,7 +23,7 @@ const WORLD_CONTEXT_RULES = [
   { code: 'NIGHT', patterns: ['\u5728\u591c\u665a\u671f\u95f4', '\u591c\u665a\u671f\u95f4', '\u591c\u665a'] },
   { code: 'BLOOD_MOON', patterns: ['\u5728 \u8840\u6708 \u671f\u95f4', '\u8840\u6708\u671f\u95f4', '\u8840\u6708'] },
   { code: 'WINDY_DAY', patterns: ['\u5728 \u5927\u98ce\u5929 \u65f6', '\u5927\u98ce\u5929\u65f6', '\u5927\u98ce\u5929'] },
-  { code: 'PARTY', patterns: ['\u5728 \u6d3e\u5bf9 \u671f\u95f4', '\u6d3e\u5bf9\u671f\u95f4', '\u6d3e\u5bf9 \u671f\u95f4'] },
+  { code: 'PARTY', patterns: ['\u5728 \u6d3e\u5bf9 \u671f\u95f4', '\u6d3e\u5bf9\u671f\u95f4', '\u6d3e\u5bf9 \u671f\u95f4', '\u6d3e\u5bf9\u8fdb\u884c\u4e2d\u65f6'] },
   { code: 'HALLOWEEN', patterns: ['\u5728 \u4e07\u5723\u8282 \u671f\u95f4', '\u4e07\u5723\u8282\u671f\u95f4', '\u4e07\u5723\u8282 \u671f\u95f4'] },
   { code: 'CHRISTMAS', patterns: ['\u5728 \u5723\u8bde\u8282 \u671f\u95f4', '\u5723\u8bde\u8282\u671f\u95f4', '\u5723\u8bde\u8282 \u671f\u95f4'] },
   { code: 'VALENTINES_DAY', patterns: ['\u5728 \u60c5\u4eba\u8282 \u671f\u95f4', '\u60c5\u4eba\u8282\u671f\u95f4', '\u60c5\u4eba\u8282 \u671f\u95f4'] },
