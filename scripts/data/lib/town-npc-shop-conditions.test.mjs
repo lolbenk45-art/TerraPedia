@@ -255,3 +255,49 @@ test('extractTownNpcShopConditions maps active party phrasing to PARTY world con
     ]
   );
 });
+
+test('getRequiredTownNpcWorldContexts includes stable live event contexts', () => {
+  const actual = getRequiredTownNpcWorldContexts();
+
+  assert.deepEqual(
+    actual
+      .filter((entry) => ['LANTERN_NIGHT', 'SOLAR_ECLIPSE'].includes(entry.code))
+      .map((entry) => ({
+        code: entry.code,
+        nameZh: entry.nameZh,
+        contextType: entry.contextType
+      })),
+    [
+      { code: 'LANTERN_NIGHT', nameZh: '\u706f\u7b3c\u591c', contextType: 'EVENT' },
+      { code: 'SOLAR_ECLIPSE', nameZh: '\u65e5\u98df', contextType: 'EVENT' }
+    ]
+  );
+});
+
+test('extractTownNpcShopConditions maps lantern night and solar eclipse event phrases', () => {
+  const lookup = buildTownNpcShopConditionLookup({
+    biomes: [],
+    worldContexts: [
+      { id: 40, code: 'LANTERN_NIGHT', nameZh: '\u706f\u7b3c\u591c', nameEn: 'Lantern Night', contextType: 'EVENT' },
+      { id: 41, code: 'SOLAR_ECLIPSE', nameZh: '\u65e5\u98df', nameEn: 'Solar Eclipse', contextType: 'EVENT' }
+    ]
+  });
+
+  const actual = extractTownNpcShopConditions(
+    '\u706f\u7b3c\u591c \u671f\u95f4\u3002\u5728 \u65e5\u98df \u671f\u95f4\u3002',
+    lookup
+  );
+
+  assert.deepEqual(
+    actual.map((condition) => ({
+      refType: condition.refType,
+      refId: condition.refId,
+      code: condition.code,
+      label: condition.label
+    })),
+    [
+      { refType: 'WORLD_CONTEXT', refId: 40, code: 'LANTERN_NIGHT', label: '\u706f\u7b3c\u591c' },
+      { refType: 'WORLD_CONTEXT', refId: 41, code: 'SOLAR_ECLIPSE', label: '\u65e5\u98df' }
+    ]
+  );
+});
