@@ -68,11 +68,13 @@ test('getRequiredTownNpcWorldContexts includes stable public shop world contexts
   const actual = getRequiredTownNpcWorldContexts();
 
   assert.deepEqual(
-    actual.map((entry) => ({
-      code: entry.code,
-      nameZh: entry.nameZh,
-      contextType: entry.contextType
-    })),
+    actual
+      .filter((entry) => ['NIGHT', 'BLOOD_MOON', 'WINDY_DAY'].includes(entry.code))
+      .map((entry) => ({
+        code: entry.code,
+        nameZh: entry.nameZh,
+        contextType: entry.contextType
+      })),
     [
       { code: 'NIGHT', nameZh: '夜晚', contextType: 'TIME' },
       { code: 'BLOOD_MOON', nameZh: '血月', contextType: 'EVENT' },
@@ -107,6 +109,64 @@ test('extractTownNpcShopConditions maps stable public shop world context phrases
       { refType: 'WORLD_CONTEXT', refId: 20, code: 'NIGHT', label: '夜晚' },
       { refType: 'WORLD_CONTEXT', refId: 21, code: 'BLOOD_MOON', label: '血月' },
       { refType: 'WORLD_CONTEXT', refId: 22, code: 'WINDY_DAY', label: '大风天' }
+    ]
+  );
+});
+
+test('getRequiredTownNpcWorldContexts includes stable public shop event contexts', () => {
+  const actual = getRequiredTownNpcWorldContexts();
+
+  assert.deepEqual(
+    actual
+      .filter((entry) => ['PARTY', 'HALLOWEEN', 'CHRISTMAS', 'VALENTINES_DAY', 'THANKSGIVING', 'OKTOBERFEST'].includes(entry.code))
+      .map((entry) => ({
+        code: entry.code,
+        nameZh: entry.nameZh,
+        contextType: entry.contextType
+      })),
+    [
+      { code: 'PARTY', nameZh: '\u6d3e\u5bf9', contextType: 'EVENT' },
+      { code: 'HALLOWEEN', nameZh: '\u4e07\u5723\u8282', contextType: 'EVENT' },
+      { code: 'CHRISTMAS', nameZh: '\u5723\u8bde\u8282', contextType: 'EVENT' },
+      { code: 'VALENTINES_DAY', nameZh: '\u60c5\u4eba\u8282', contextType: 'EVENT' },
+      { code: 'THANKSGIVING', nameZh: '\u611f\u6069\u8282', contextType: 'EVENT' },
+      { code: 'OKTOBERFEST', nameZh: '\u5341\u6708\u5564\u9152\u8282', contextType: 'EVENT' }
+    ]
+  );
+});
+
+test('extractTownNpcShopConditions maps stable seasonal and party event phrases', () => {
+  const lookup = buildTownNpcShopConditionLookup({
+    biomes: [],
+    worldContexts: [
+      { id: 30, code: 'PARTY', nameZh: '\u6d3e\u5bf9', nameEn: 'Party', contextType: 'EVENT' },
+      { id: 31, code: 'HALLOWEEN', nameZh: '\u4e07\u5723\u8282', nameEn: 'Halloween', contextType: 'EVENT' },
+      { id: 32, code: 'CHRISTMAS', nameZh: '\u5723\u8bde\u8282', nameEn: 'Christmas', contextType: 'EVENT' },
+      { id: 33, code: 'VALENTINES_DAY', nameZh: '\u60c5\u4eba\u8282', nameEn: "Valentine's Day", contextType: 'EVENT' },
+      { id: 34, code: 'THANKSGIVING', nameZh: '\u611f\u6069\u8282', nameEn: 'Thanksgiving', contextType: 'EVENT' },
+      { id: 35, code: 'OKTOBERFEST', nameZh: '\u5341\u6708\u5564\u9152\u8282', nameEn: 'Oktoberfest', contextType: 'EVENT' }
+    ]
+  });
+
+  const actual = extractTownNpcShopConditions(
+    '\u6d3e\u5bf9 \u671f\u95f4\u3002\u5728 \u4e07\u5723\u8282 \u671f\u95f4\u3002\u5723\u8bde\u8282 \u671f\u95f4\u3002\u60c5\u4eba\u8282 \u671f\u95f4\u3002\u611f\u6069\u8282 \u671f\u95f4\u3002\u5341\u6708\u5564\u9152\u8282 \u671f\u95f4\u3002',
+    lookup
+  );
+
+  assert.deepEqual(
+    actual.map((condition) => ({
+      refType: condition.refType,
+      refId: condition.refId,
+      code: condition.code,
+      label: condition.label
+    })),
+    [
+      { refType: 'WORLD_CONTEXT', refId: 30, code: 'PARTY', label: '\u6d3e\u5bf9' },
+      { refType: 'WORLD_CONTEXT', refId: 31, code: 'HALLOWEEN', label: '\u4e07\u5723\u8282' },
+      { refType: 'WORLD_CONTEXT', refId: 32, code: 'CHRISTMAS', label: '\u5723\u8bde\u8282' },
+      { refType: 'WORLD_CONTEXT', refId: 33, code: 'VALENTINES_DAY', label: '\u60c5\u4eba\u8282' },
+      { refType: 'WORLD_CONTEXT', refId: 34, code: 'THANKSGIVING', label: '\u611f\u6069\u8282' },
+      { refType: 'WORLD_CONTEXT', refId: 35, code: 'OKTOBERFEST', label: '\u5341\u6708\u5564\u9152\u8282' }
     ]
   );
 });
