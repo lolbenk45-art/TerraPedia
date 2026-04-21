@@ -83,6 +83,24 @@
   - `plan` 模式输出
 - 真正的长跑执行应在后续补充状态落盘与恢复机制后再作为标准验收
 
+### P7：历史 recipe reference tracked 文件已被长跑 smoke 改写
+
+当前工作区存在：
+
+- `data/generated/recipe-material-reference.json`
+
+该文件是上一次长跑 smoke 的副产物，不纳入当前代码提交。  
+后续统一刷新入口已经改为使用：
+
+- `reports/backend-refresh/recipe-material-reference.latest.json`
+
+以避免继续默认污染 tracked 生成文件。
+
+结论：
+
+- 该文件当前保持未提交状态
+- 后续如果要回收，需要单独决定是保留本次生成结果还是恢复到 HEAD
+
 ### P4：`sync-standardized-entities-to-db.mjs` 仍只偏 `npcs / projectiles`
 
 当前脚本仍不承担“第一层主干域统一入库器”职责。  
@@ -165,6 +183,13 @@
 
 - build / audit 仍照常跑
 - import 层可单独切到 `--apply=false`
+
+### S5：统一刷新入口默认会改写 tracked recipe reference
+
+已解决：
+
+- `recipe-reference-sync` action 已显式写到 `reports/backend-refresh/recipe-material-reference.latest.json`
+- 不再默认写回 `data/generated/recipe-material-reference.json`
 
 ---
 

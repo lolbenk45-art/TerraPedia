@@ -30,7 +30,8 @@ export function buildBackendDataRefreshPlan(options = {}) {
       runner: 'node',
       timeoutMs: timeoutMs ?? 15 * 60 * 1000,
       args: [
-        'scripts/data/pipeline/run-recipe-reference-sync-pipeline.mjs'
+        'scripts/data/pipeline/run-recipe-reference-sync-pipeline.mjs',
+        '--recipe-reference=reports/backend-refresh/recipe-material-reference.latest.json'
       ]
     },
     {

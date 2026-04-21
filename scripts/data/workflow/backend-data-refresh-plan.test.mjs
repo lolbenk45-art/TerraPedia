@@ -28,6 +28,15 @@ test('buildBackendDataRefreshPlan returns the default primary backend refresh ac
     '--entity=items,npcs,bosses,biomes,categories'
   ]);
 
+  const recipeReferenceSync = plan.actions.find((action) => action.id === 'recipe-reference-sync');
+  assert.ok(recipeReferenceSync);
+  assert.ok(
+    recipeReferenceSync.args.some((arg) => arg.includes('--recipe-reference='))
+  );
+  assert.ok(
+    recipeReferenceSync.args.some((arg) => arg.includes('reports/backend-refresh/recipe-material-reference.latest.json'))
+  );
+
   const townNpcImport = plan.actions.find((action) => action.id === 'town-npc-import');
   assert.ok(townNpcImport);
   assert.ok(townNpcImport.args.includes('--apply=true'));

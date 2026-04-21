@@ -58,6 +58,20 @@
 
 这让 recipe reference pipeline 的 dry-run 行为开始变得更细粒度，而不是只能整段跳过 import。
 
+### 2.4 统一后端刷新入口避免默认污染 tracked recipe reference
+
+`run-backend-data-refresh` 的 `recipe-reference-sync` action 现在显式使用：
+
+```powershell
+--recipe-reference=reports/backend-refresh/recipe-material-reference.latest.json
+```
+
+目的：
+
+- 避免持续同步默认改写仓库内 tracked 文件 `data/generated/recipe-material-reference.json`
+- 把运行中产生的 recipe reference 放入运行产物目录
+- 降低后续自动刷新导致工作区变脏的风险
+
 ---
 
 ## 3. 验证
@@ -81,6 +95,7 @@ node --check scripts/data/import/import-recipes-from-external-data.mjs
 node --check scripts/data/import/recipe-import-mode.mjs
 node --check scripts/data/pipeline/recipe-reference-import-args.mjs
 node --check scripts/data/pipeline/run-recipe-reference-sync-pipeline.mjs
+node --test scripts/data/workflow/backend-data-refresh-plan.test.mjs
 ```
 
 结果：
