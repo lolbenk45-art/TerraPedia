@@ -72,6 +72,24 @@
 - 把运行中产生的 recipe reference 放入运行产物目录
 - 降低后续自动刷新导致工作区变脏的风险
 
+### 2.5 `run-item-detail-sync-pipeline.mjs` 支持最小 dry-run 语义
+
+新增：
+
+- `scripts/data/pipeline/item-detail-sync-mode.mjs`
+- `scripts/data/pipeline/item-detail-sync-mode.test.mjs`
+
+当前行为：
+
+- 默认仍是 apply 模式
+- 当传入 `--dry-run=true` 时：
+  - 跑 item 文件校验
+  - 跳过 item import
+  - 跳过 relation import
+  - 若启用 boss loot，则默认转为 boss loot dry-run
+
+这让 `item-detail-sync` 从“默认直接写入”提升到“至少可以无写入演练主链前半段”。
+
 ---
 
 ## 3. 验证
@@ -96,6 +114,9 @@ node --check scripts/data/import/recipe-import-mode.mjs
 node --check scripts/data/pipeline/recipe-reference-import-args.mjs
 node --check scripts/data/pipeline/run-recipe-reference-sync-pipeline.mjs
 node --test scripts/data/workflow/backend-data-refresh-plan.test.mjs
+node --test scripts/data/pipeline/item-detail-sync-mode.test.mjs
+node --check scripts/data/pipeline/item-detail-sync-mode.mjs
+node --check scripts/data/pipeline/run-item-detail-sync-pipeline.mjs
 ```
 
 结果：
@@ -123,5 +144,5 @@ node --test scripts/data/workflow/backend-data-refresh-plan.test.mjs
 继续沿 `M9-R1` 收口：
 
 1. 评估 `run-recipe-reference-sync-pipeline.mjs` 是否要把 dry-run 明确透传到 import 层
-2. 继续审查 `item-detail-sync` 链的 dry-run 语义是否一致
+2. 继续评估 item / relation import 是否需要更细粒度 dry-run，而不只是 pipeline 层 skip
 3. 逐步把 `Items / Item Relations / Recipes` 拉到同一套持续同步口径

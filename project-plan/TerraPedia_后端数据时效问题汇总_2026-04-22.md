@@ -191,6 +191,19 @@
 - `recipe-reference-sync` action 已显式写到 `reports/backend-refresh/recipe-material-reference.latest.json`
 - 不再默认写回 `data/generated/recipe-material-reference.json`
 
+### S6：item-detail-sync 缺少 pipeline 级 dry-run 语义
+
+已解决到最小可用状态：
+
+- 新增 `item-detail-sync-mode.mjs`
+- `run-item-detail-sync-pipeline.mjs` 现在支持 `--dry-run=true`
+
+当前效果：
+
+- 校验继续执行
+- item / relation import 在 dry-run 模式下跳过
+- boss loot 默认切到 dry-run
+
 ---
 
 ## 3. 建议后续处理顺序
