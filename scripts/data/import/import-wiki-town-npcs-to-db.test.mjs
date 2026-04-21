@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { findItem, prepareTownNpcShopConditionContext } from './import-wiki-town-npcs-to-db.mjs';
+import {
+  classifyTownNpcShopItemDisposition,
+  findItem,
+  prepareTownNpcShopConditionContext,
+} from './import-wiki-town-npcs-to-db.mjs';
 
 test('prepareTownNpcShopConditionContext starts a transaction before mutating world contexts in apply mode', async () => {
   const calls = [];
@@ -92,4 +96,26 @@ test('findItem resolves known town npc shop legacy rename aliases', () => {
   });
 
   assert.deepEqual(actual, matchedItem);
+});
+
+test('classifyTownNpcShopItemDisposition marks verified legacy-only shop items as excluded', () => {
+  const actual = classifyTownNpcShopItemDisposition({
+    nameZh: '节日大礼帽',
+    nameEn: '节日大礼帽',
+  });
+
+  assert.deepEqual(actual, {
+    kind: 'ignored_legacy_only',
+    canonicalName: null,
+    reason: 'legacy_only_shop_item',
+  });
+});
+
+test('classifyTownNpcShopItemDisposition keeps unresolved modern placeholders unmatched', () => {
+  const actual = classifyTownNpcShopItemDisposition({
+    nameZh: '任何晶塔',
+    nameEn: '任何晶塔',
+  });
+
+  assert.equal(actual, null);
 });

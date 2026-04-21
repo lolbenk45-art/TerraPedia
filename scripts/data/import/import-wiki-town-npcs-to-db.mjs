@@ -24,6 +24,16 @@ const TOWN_NPC_SHOP_ITEM_ALIASES = new Map([
   ['闪耀翅膀', ["Cenx's Wings", 'Cenx的翅膀']],
 ]);
 
+const TOWN_NPC_SHOP_ITEM_LEGACY_ONLY = new Set([
+  '情人节戒指',
+  'Wiesnbräu啤酒',
+  '火鸡羽毛',
+  '心箭',
+  '节日大礼帽',
+  '罗马焰火筒',
+  '505顶饰',
+]);
+
 export async function runImportWikiTownNpcsToDb(rawArgs = process.argv.slice(2)) {
   const args = parseCliArgs(rawArgs);
   const apply = booleanOption(args.apply, false);
@@ -89,9 +99,11 @@ export async function runImportWikiTownNpcsToDb(rawArgs = process.argv.slice(2))
       insertedShopConditionCount: 0,
       createdWorldContextCount: 0,
       unmatchedShopItemCount: 0,
+      ignoredLegacyShopItemCount: 0,
       skippedShopReplaceCount: 0,
       unmatchedNpcSamples: [],
       unmatchedShopItemSamples: [],
+      ignoredLegacyShopItemSamples: [],
       npcResults: []
     };
 
@@ -123,6 +135,7 @@ export async function runImportWikiTownNpcsToDb(rawArgs = process.argv.slice(2))
       summary.insertedShopEntryCount += result.insertedShopEntryCount;
       summary.insertedShopConditionCount += result.insertedShopConditionCount;
       summary.unmatchedShopItemCount += result.unmatchedShopItems.length;
+      summary.ignoredLegacyShopItemCount += result.ignoredLegacyShopItems.length;
       if (result.shopReplaceSkipped) summary.skippedShopReplaceCount += 1;
       for (const item of result.unmatchedShopItems) {
         pushSample(summary.unmatchedShopItemSamples, {
@@ -130,6 +143,15 @@ export async function runImportWikiTownNpcsToDb(rawArgs = process.argv.slice(2))
           npcInternalName: result.internalName,
           itemNameEn: item.nameEn,
           priceText: item.priceText
+        });
+      }
+      for (const item of result.ignoredLegacyShopItems) {
+        pushSample(summary.ignoredLegacyShopItemSamples, {
+          npcGameId: result.gameId,
+          npcInternalName: result.internalName,
+          itemNameEn: item.nameEn,
+          priceText: item.priceText,
+          reason: item.reason
         });
       }
     }
@@ -199,6 +221,7 @@ async function importTownNpcRecord(connection, rawRecord, context) {
     insertedShopEntryCount: 0,
     insertedShopConditionCount: 0,
     matchedShopItems: [],
+    ignoredLegacyShopItems: [],
     unmatchedShopItems: []
   };
 
@@ -324,6 +347,17 @@ function prepareShopEntries(rawItems, itemLookup, shopConditionLookup, result) {
   for (const rawItem of Array.isArray(rawItems) ? rawItems : []) {
     const matchedItem = findItem(itemLookup, rawItem);
     if (!matchedItem?.id) {
+      const disposition = classifyTownNpcShopItemDisposition(rawItem);
+      if (disposition?.kind === 'ignored_legacy_only') {
+        result.ignoredLegacyShopItems.push({
+          nameZh: toText(rawItem?.nameZh),
+          nameEn: toText(rawItem?.nameEn),
+          priceText: toText(rawItem?.priceText),
+          availability: toText(rawItem?.availability),
+          reason: disposition.reason,
+        });
+        continue;
+      }
       result.unmatchedShopItems.push({
         nameZh: toText(rawItem?.nameZh),
         nameEn: toText(rawItem?.nameEn),
@@ -351,6 +385,23 @@ function prepareShopEntries(rawItems, itemLookup, shopConditionLookup, result) {
     });
   }
   return entries;
+}
+
+export function classifyTownNpcShopItemDisposition(rawItem) {
+  const names = [
+    toText(rawItem?.nameZh),
+    toText(rawItem?.nameEn),
+  ].filter(Boolean);
+  for (const name of names) {
+    if (TOWN_NPC_SHOP_ITEM_LEGACY_ONLY.has(name)) {
+      return {
+        kind: 'ignored_legacy_only',
+        canonicalName: null,
+        reason: 'legacy_only_shop_item',
+      };
+    }
+  }
+  return null;
 }
 
 export function findItem(itemLookup, rawItem) {
