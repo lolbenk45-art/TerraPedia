@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { resolveIndependentEntityImportApply } from './independent-entity-import-mode.mjs';
 import { loadStandardizedDataset } from '../lib/load-standardized-dataset.mjs';
 
 const require = createRequire(import.meta.url);
@@ -608,6 +609,7 @@ async function importArmorSets(conn, records, itemLookup, sourceItemLookup, stat
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  const apply = resolveIndependentEntityImportApply(args);
   const dataDir = path.resolve(
     args['data-dir']
     ?? process.env.TERRAPEDIA_STANDARDIZED_OUTPUT_DIR
@@ -635,6 +637,7 @@ async function main() {
   const summary = {
     generatedAt: new Date().toISOString(),
     database: conn.config.database,
+    apply,
     buffs: makeStats(),
     npcs: makeStats(),
     projectiles: makeStats(),
@@ -658,7 +661,11 @@ async function main() {
     await importNpcs(conn, npcs, itemLookup, sourceItemLookup, categoryByCode, summary.npcs, summary.npcItemLinks);
     await importProjectiles(conn, projectiles, summary.projectiles);
     await importArmorSets(conn, armorSets, itemLookup, sourceItemLookup, summary.armorSets, summary.armorSetItems);
-    await conn.commit();
+    if (apply) {
+      await conn.commit();
+    } else {
+      await conn.rollback();
+    }
   } catch (error) {
     await conn.rollback();
     throw error;

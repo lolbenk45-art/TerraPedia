@@ -247,6 +247,18 @@
 这意味着它不是完全独立的 biome importer。  
 当前不阻塞继续推进，但后续若要细化治理，应考虑拆出独立 biome import。
 
+### S10：Buffs / Projectiles / Armor Sets 未并入统一刷新入口
+
+已解决到最小可用状态：
+
+- 新增 `run-independent-entity-sync-pipeline.mjs`
+- backend refresh 已接入 `independent-entity-sync`
+- `import-independent-entities-to-db.mjs` 支持 dry-run / apply
+
+当前效果：
+
+- Buffs / Projectiles / Armor Sets 已进入统一后端刷新主线
+
 ---
 
 ## 3. 建议后续处理顺序

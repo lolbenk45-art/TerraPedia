@@ -69,6 +69,15 @@ export function buildBackendDataRefreshPlan(options = {}) {
         'scripts/data/pipeline/run-town-npc-sync-pipeline.mjs',
         '--apply=true'
       ]
+    },
+    {
+      id: 'independent-entity-sync',
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/pipeline/run-independent-entity-sync-pipeline.mjs',
+        '--apply=true'
+      ]
     }
   ];
 
