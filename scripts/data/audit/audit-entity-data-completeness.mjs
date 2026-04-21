@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { resolveAdminAuth } from '../../lib/local-runtime-config.mjs';
+import { resolveArmorSetDetailPath } from './entity-audit-api-path.mjs';
+import { getBuffAuditStatsSql } from './entity-audit-sql.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -76,12 +78,7 @@ async function auditItems() {
 
 async function auditBuffs() {
   const standardized = readStandardized(standardizedFiles.buffs);
-  const [dbStats] = await conn.query(`
-    SELECT COUNT(*) AS total,
-           SUM(name IS NOT NULL AND TRIM(name) <> '') AS zh_name,
-           SUM(image_path LIKE 'http://localhost:9000/%') AS minio_image
-    FROM buffs
-  `);
+  const [dbStats] = await conn.query(getBuffAuditStatsSql());
   const api = await fetchJson('/admin/buffs?page=1&limit=1', true);
   return summarizeModule('buffs', standardized, dbStats[0], api, {
     zhFields: ['nameZh'],
@@ -130,7 +127,9 @@ async function auditArmorSets() {
            SUM(female_images LIKE '%http://localhost:9000/%') AS female_minio
     FROM armor_sets
   `);
-  const api = await fetchJson('/admin/armor-sets/2', true);
+  const listApi = await fetchJson('/admin/armor-sets?page=1&limit=1', true);
+  const detailPath = resolveArmorSetDetailPath(listApi?.data ?? listApi);
+  const api = detailPath ? await fetchJson(detailPath, true) : listApi;
   return summarizeModule('armorSets', standardized, dbStats[0], api, {
     zhFields: ['nameZh', 'textZh', 'benefitZh'],
     enFields: ['nameEn', 'textEn', 'benefitEn'],
