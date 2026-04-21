@@ -349,13 +349,8 @@ function prepareShopEntries(rawItems, itemLookup, shopConditionLookup, result) {
   return entries;
 }
 
-function findItem(itemLookup, rawItem) {
-  const candidates = [
-    toText(rawItem?.nameZh),
-    toText(rawItem?.nameEn),
-    normalizeUnderscoreText(rawItem?.nameEn),
-    normalizeUnderscoreText(rawItem?.nameZh)
-  ].filter(Boolean);
+export function findItem(itemLookup, rawItem) {
+  const candidates = buildItemMatchCandidates(rawItem);
   for (const candidate of candidates) {
     const key = normalizeLookupKey(candidate);
     if (!key) continue;
@@ -365,6 +360,41 @@ function findItem(itemLookup, rawItem) {
     }
   }
   return null;
+}
+
+function buildItemMatchCandidates(rawItem) {
+  const baseCandidates = [
+    toText(rawItem?.nameZh),
+    toText(rawItem?.nameEn),
+    normalizeUnderscoreText(rawItem?.nameEn),
+    normalizeUnderscoreText(rawItem?.nameZh)
+  ].filter(Boolean);
+
+  const candidates = [];
+  const seen = new Set();
+  for (const candidate of baseCandidates) {
+    pushCandidate(candidates, seen, candidate);
+    pushCandidate(candidates, seen, stripTrailingItemQualifier(candidate));
+  }
+  return candidates;
+}
+
+function pushCandidate(candidates, seen, value) {
+  const text = toText(value);
+  if (!text || seen.has(text)) {
+    return;
+  }
+  seen.add(text);
+  candidates.push(text);
+}
+
+function stripTrailingItemQualifier(value) {
+  const text = toText(value);
+  if (!text) {
+    return null;
+  }
+  const stripped = text.replace(/\s*[（(][^（）()]+[）)]\s*$/u, '').trim();
+  return stripped === text ? null : stripped;
 }
 
 function findNpc(npcLookup, gameId, internalName) {

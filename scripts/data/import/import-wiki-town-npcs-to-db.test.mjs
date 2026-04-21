@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { prepareTownNpcShopConditionContext } from './import-wiki-town-npcs-to-db.mjs';
+import { findItem, prepareTownNpcShopConditionContext } from './import-wiki-town-npcs-to-db.mjs';
 
 test('prepareTownNpcShopConditionContext starts a transaction before mutating world contexts in apply mode', async () => {
   const calls = [];
@@ -49,4 +49,25 @@ test('prepareTownNpcShopConditionContext skips transactions in dry-run mode', as
   assert.deepEqual(calls, ['ensure:false', 'load']);
   assert.equal(actual.createdWorldContextCount, 0);
   assert.deepEqual(actual.shopConditionLookup, { loaded: true });
+});
+
+test('findItem falls back to canonical item name after stripping trailing qualifiers', () => {
+  const matchedItem = {
+    id: 6124,
+    internalName: 'PrincessDress',
+    name: 'Princess Dress',
+    nameZh: '公主裙',
+  };
+  const itemLookup = {
+    byAny: new Map([
+      ['公主裙', matchedItem],
+    ]),
+  };
+
+  const actual = findItem(itemLookup, {
+    nameZh: '公主裙（服装商）',
+    nameEn: '公主裙（服装商）',
+  });
+
+  assert.deepEqual(actual, matchedItem);
 });
