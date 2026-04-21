@@ -80,9 +80,21 @@ export function buildBackendDataRefreshReport(plan, actionResults = []) {
     totalActions: actions.length,
     completedActions: actions.filter((action) => action.status === 'completed').length,
     failedActions: actions.filter((action) => action.status === 'failed').length,
+    runningActions: actions.filter((action) => action.status === 'running').length,
     pendingActions: actions.filter((action) => action.status === 'pending').length,
     actions
   };
+}
+
+export function resolvePendingBackendDataRefreshActions(plan, report) {
+  const completedIds = new Set(
+    Array.isArray(report?.actions)
+      ? report.actions
+        .filter((action) => action?.status === 'completed')
+        .map((action) => action.id)
+      : []
+  );
+  return plan.actions.filter((action) => !completedIds.has(action.id));
 }
 
 function normalizePositiveInteger(value, fallback) {

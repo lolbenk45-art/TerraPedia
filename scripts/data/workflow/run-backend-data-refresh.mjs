@@ -4,12 +4,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-import { buildBackendDataRefreshPlan, buildBackendDataRefreshReport } from './backend-data-refresh-plan.mjs';
+import {
+  buildBackendDataRefreshPlan,
+  buildBackendDataRefreshReport,
+  resolvePendingBackendDataRefreshActions
+} from './backend-data-refresh-plan.mjs';
 
 const options = parseArgs(process.argv.slice(2));
 const mode = String(options.mode ?? 'plan').trim().toLowerCase();
 const itemPageLimit = options['item-page-limit'] ?? options.itemPageLimit;
 const steps = options.steps;
+const resume = options.resume === 'true';
 const plan = buildBackendDataRefreshPlan({ itemPageLimit, steps });
 const outputPath = path.resolve(
   options.output
@@ -25,16 +30,25 @@ if (mode !== 'apply') {
   throw new Error(`Unsupported --mode value: ${mode}`);
 }
 
-const actionResults = [];
+let actionResults = loadExistingActionResults(outputPath);
+const actionsToRun = resume
+  ? resolvePendingBackendDataRefreshActions(plan, buildBackendDataRefreshReport(plan, actionResults))
+  : plan.actions;
 
-for (const action of plan.actions) {
+for (const action of actionsToRun) {
   const command = action.runner === 'python' ? 'python' : process.execPath;
   const startedAt = Date.now();
+  actionResults = upsertActionResult(actionResults, {
+    id: action.id,
+    status: 'running',
+    durationMs: null
+  });
+  writeReport(outputPath, buildBackendDataRefreshReport(plan, actionResults));
   const result = spawnSync(command, action.args, {
     cwd: process.cwd(),
     stdio: 'inherit'
   });
-  actionResults.push({
+  actionResults = upsertActionResult(actionResults, {
     id: action.id,
     status: result.status === 0 ? 'completed' : 'failed',
     durationMs: Date.now() - startedAt
@@ -74,4 +88,32 @@ function parseArgs(argv) {
 function writeReport(outputPath, report) {
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, JSON.stringify(report, null, 2), 'utf8');
+}
+
+function loadExistingActionResults(outputPath) {
+  if (!fs.existsSync(outputPath)) {
+    return [];
+  }
+  const report = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
+  return Array.isArray(report?.actions)
+    ? report.actions.map((action) => ({
+      id: action.id,
+      status: action.status,
+      durationMs: action.durationMs ?? null
+    }))
+    : [];
+}
+
+function upsertActionResult(actionResults, nextResult) {
+  const results = Array.isArray(actionResults) ? [...actionResults] : [];
+  const index = results.findIndex((entry) => entry.id === nextResult.id);
+  if (index === -1) {
+    results.push(nextResult);
+    return results;
+  }
+  results[index] = {
+    ...results[index],
+    ...nextResult
+  };
+  return results;
 }

@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildBackendDataRefreshPlan, buildBackendDataRefreshReport } from './backend-data-refresh-plan.mjs';
+import {
+  buildBackendDataRefreshPlan,
+  buildBackendDataRefreshReport,
+  resolvePendingBackendDataRefreshActions
+} from './backend-data-refresh-plan.mjs';
 
 test('buildBackendDataRefreshPlan returns the default primary backend refresh actions', () => {
   const plan = buildBackendDataRefreshPlan();
@@ -58,6 +62,36 @@ test('buildBackendDataRefreshReport summarizes action statuses', () => {
   assert.equal(report.completedActions, 1);
   assert.equal(report.failedActions, 1);
   assert.equal(report.pendingActions, 4);
+  assert.equal(report.runningActions, 0);
   assert.equal(report.actions[0].status, 'completed');
   assert.equal(report.actions[1].status, 'failed');
+});
+
+test('buildBackendDataRefreshReport counts running action statuses', () => {
+  const plan = buildBackendDataRefreshPlan({ steps: ['wiki-core-refresh'] });
+  const report = buildBackendDataRefreshReport(plan, [
+    { id: 'wiki-core-refresh', status: 'running' }
+  ]);
+
+  assert.equal(report.runningActions, 1);
+  assert.equal(report.pendingActions, 0);
+});
+
+test('resolvePendingBackendDataRefreshActions skips completed actions for resume', () => {
+  const plan = buildBackendDataRefreshPlan();
+  const report = buildBackendDataRefreshReport(plan, [
+    { id: 'wiki-core-refresh', status: 'completed' },
+    { id: 'item-pages-refresh', status: 'failed' }
+  ]);
+
+  assert.deepEqual(
+    resolvePendingBackendDataRefreshActions(plan, report).map((action) => action.id),
+    [
+      'item-pages-refresh',
+      'recipe-reference-sync',
+      'item-detail-sync',
+      'town-npc-fetch',
+      'town-npc-import'
+    ]
+  );
 });
