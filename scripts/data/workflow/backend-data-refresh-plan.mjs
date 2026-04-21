@@ -118,7 +118,10 @@ export function buildBackendDataRefreshReport(plan, actionResults = []) {
       status: result.status ?? 'pending',
       timeoutMs: action.timeoutMs,
       durationMs: Number.isFinite(Number(result.durationMs)) ? Number(result.durationMs) : null,
-      timedOut: Boolean(result.timedOut)
+      timedOut: Boolean(result.timedOut),
+      heartbeatPath: result.heartbeatPath ?? null,
+      snapshotPath: result.snapshotPath ?? null,
+      updatedAt: result.updatedAt ?? null
     };
   });
 

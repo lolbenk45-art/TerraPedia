@@ -282,3 +282,26 @@
    - 把主干域真正收成持续同步闭环
 4. 文档清理
    - 补掉仓库内残留的 `8888` 历史说明
+
+---
+
+## 4. 追加解决记录
+
+### S12：统一后端刷新入口已补 heartbeat 与 action 运行态快照
+
+已解决到最小可用状态：
+
+- 新增 `backend-refresh-runtime-state.mjs`
+- action 运行中会写 heartbeat
+- action 前后会写 snapshot
+- 最终 report 会带出：
+  - `heartbeatPath`
+  - `snapshotPath`
+  - `updatedAt`
+
+结论：
+
+- `heartbeat / snapshot` 已不再是阻塞项
+- 后续更深一层的运维增强主要剩：
+  - 更细粒度 daemon heartbeat
+  - 更丰富的 action 中间摘要
