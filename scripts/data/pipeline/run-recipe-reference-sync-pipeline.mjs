@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { parseCliArgs, sharedDataPath } from '../lib/wiki-item-utils.mjs';
+import { buildRecipeReferenceImportArgs } from './recipe-reference-import-args.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,7 +52,7 @@ if (booleanOption(options['dry-run'] ?? options.dryRun, false) || booleanOption(
   process.exit(0);
 }
 
-const importArgs = [`--input=${recipeReferencePath}`];
+const importArgs = buildRecipeReferenceImportArgs(options, recipeReferencePath);
 for (const key of ['host', 'port', 'user', 'password', 'database']) {
   if (typeof options[key] === 'string' && options[key].trim() !== '') {
     importArgs.push(`--${key}=${options[key].trim()}`);

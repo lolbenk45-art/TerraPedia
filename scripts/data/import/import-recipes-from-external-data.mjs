@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { resolveRecipeImportApply } from './recipe-import-mode.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -10,6 +11,7 @@ const mysql = require('mysql2/promise');
 const args = parseArgs(process.argv.slice(2));
 const sourceRoot = path.resolve(args['data-root'] ?? 'G:/ClaudeCode/data/terraPedia');
 const explicitInputPath = args.input ? path.resolve(args.input) : null;
+const apply = resolveRecipeImportApply(args);
 
 const db = {
   host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? '127.0.0.1',
@@ -36,10 +38,14 @@ try {
   await conn.beginTransaction();
 
   const itemLookup = await loadItemLookup(conn);
-  const summary = { input: recipes.length, created: 0, updated: 0, skipped: 0, duplicateRecipesRemoved: 0, staleRecipesRemoved: 0, ingredientRows: 0, stationRows: 0 };
+  const summary = { apply, input: recipes.length, created: 0, updated: 0, skipped: 0, duplicateRecipesRemoved: 0, staleRecipesRemoved: 0, ingredientRows: 0, stationRows: 0 };
   await importRecipes(conn, recipes, itemLookup, summary);
 
-  await conn.commit();
+  if (apply) {
+    await conn.commit();
+  } else {
+    await conn.rollback();
+  }
   console.log(JSON.stringify({ sourceRoot, database: db.database, summary }, null, 2));
 } catch (error) {
   await conn.rollback();

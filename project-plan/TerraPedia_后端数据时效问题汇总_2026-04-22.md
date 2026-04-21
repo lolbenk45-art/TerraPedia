@@ -140,6 +140,32 @@
 - 新增 `backend-data-refresh-plan.mjs`
 - 已能统一输出第一批后端主线动作列表
 
+### S3：Recipe 导入缺少脚本级 dry-run / apply 语义
+
+已解决到最小可用状态：
+
+- 新增 `recipe-import-mode.mjs`
+- `import-recipes-from-external-data.mjs` 现在支持：
+  - `--dry-run=true`
+  - `--apply=false`
+
+当前做法是：
+
+- 完整演练导入逻辑
+- 非 apply 模式下回滚事务
+
+### S4：Recipe reference pipeline 无法细粒度切换 import dry-run
+
+已解决到最小可用状态：
+
+- 新增 `recipe-reference-import-args.mjs`
+- `run-recipe-reference-sync-pipeline.mjs` 现在支持 `--import-dry-run=true`
+
+当前效果：
+
+- build / audit 仍照常跑
+- import 层可单独切到 `--apply=false`
+
 ---
 
 ## 3. 建议后续处理顺序
