@@ -34,7 +34,12 @@ const WORLD_CONTEXT_RULES = [
   { code: 'THANKSGIVING', patterns: ['\u5728 \u611f\u6069\u8282 \u671f\u95f4', '\u611f\u6069\u8282\u671f\u95f4', '\u611f\u6069\u8282 \u671f\u95f4'] },
   { code: 'OKTOBERFEST', patterns: ['\u5728 \u5341\u6708\u5564\u9152\u8282 \u671f\u95f4', '\u5341\u6708\u5564\u9152\u8282\u671f\u95f4', '\u5341\u6708\u5564\u9152\u8282 \u671f\u95f4'] },
   { code: 'MOON_PHASE_1_4', patterns: ['\u6708\u76f8 1\u20134', '\u6708\u76f8 1-4', '\u5728 \u6708\u76f8 1\u20134 \u671f\u95f4', '\u5728 \u6708\u76f8 1-4 \u671f\u95f4'] },
-  { code: 'MOON_PHASE_LISTED', patterns: ['\u4ee5\u4e0b\u6708\u76f8', '\u4e0b\u5217 \u6708\u76f8', '\u5728\u4e0b\u5217 \u6708\u76f8 \u671f\u95f4', '\u4ee5\u4e0b\u6708\u76f8\u671f\u95f4'] },
+  { code: 'MOON_PHASE_LISTED', patterns: ['\u4ee5\u4e0b\u6708\u76f8', '\u4ee5\u4e0b \u6708\u76f8', '\u4e0b\u5217 \u6708\u76f8', '\u5728\u4e0b\u5217 \u6708\u76f8 \u671f\u95f4', '\u5728\u4ee5\u4e0b \u6708\u76f8 \u671f\u95f4', '\u4ee5\u4e0b\u6708\u76f8\u671f\u95f4'] },
+  { code: 'MARTIAN_MADNESS_COMPLETED', patterns: ['\u5728\u6253\u8d25\u4e86 \u706b\u661f\u66b4\u4e71 \u4e8b\u4ef6\u540e', '\u6253\u8d25\u4e86 \u706b\u661f\u66b4\u4e71 \u4e8b\u4ef6\u540e', '\u706b\u661f\u66b4\u4e71 \u4e8b\u4ef6\u540e', '\u706b\u661f\u66b4\u4e71\u4e8b\u4ef6\u540e'] },
+  { code: 'PIRATE_INVASION_COMPLETED', patterns: ['\u6d77\u76d7\u5165\u4fb5 \u5df2\u88ab\u6253\u8d25', '\u6253\u8d25 \u6d77\u76d7\u5165\u4fb5 \u540e', '\u6253\u8d25\u4e86 \u6d77\u76d7\u5165\u4fb5 \u540e', '\u5df2\u6253\u8d25 \u6d77\u76d7\u5165\u4fb5'] },
+  { code: 'SNOW_LEGION_COMPLETED', patterns: ['\u96ea\u4eba\u519b\u56e2 \u5df2\u88ab\u6253\u8d25', '\u6253\u8d25 \u96ea\u4eba\u519b\u56e2 \u540e', '\u6253\u8d25\u4e86 \u96ea\u4eba\u519b\u56e2 \u540e', '\u5df2\u6253\u8d25 \u96ea\u4eba\u519b\u56e2'] },
+  { code: 'ANY_MECH_BOSS_DEFEATED', patterns: ['\u4efb\u4f55 \u673a\u68b0 Boss \u88ab\u6253\u8d25\u540e', '\u4efb\u610f \u673a\u68b0 Boss \u88ab\u6253\u8d25\u540e', '\u81f3\u5c11\u4e00\u4e2a \u673a\u68b0 Boss \u540e', '\u6253\u8d25\u81f3\u5c11\u4e00\u4e2a \u673a\u68b0 Boss \u4e4b\u540e', '\u6253\u8d25\u81f3\u5c11\u4e00\u4e2a \u673a\u68b0 Boss \u540e', '\u6253\u8d25\u4e86\u81f3\u5c11\u4e00\u4e2a \u673a\u68b0 Boss \u540e', '\u6709\u4efb\u4e00 \u673a\u68b0 Boss \u5df2\u88ab\u6253\u8d25', '\u4efb\u4e00 \u673a\u68b0 Boss \u5df2\u88ab\u6253\u8d25'] },
+  { code: 'ALL_MECH_BOSSES_DEFEATED', patterns: ['\u5168\u90e8\u4e09\u4e2a \u673a\u68b0 Boss \u90fd\u5df2\u88ab\u6253\u8d25', '\u5168\u90e8\u4e09\u4e2a \u673a\u68b0 Boss \u5df2\u88ab\u6253\u8d25'] },
   { code: 'FULL_MOON', patterns: ['\u6ee1\u6708'] },
   { code: 'NEW_MOON', patterns: ['\u65b0\u6708'] },
   { code: 'FIRST_QUARTER', patterns: ['\u4e0a\u5f26\u6708'] },
@@ -117,6 +122,56 @@ const REQUIRED_TOWN_NPC_WORLD_CONTEXTS = [
     status: 1,
   },
   {
+    id: -914,
+    code: 'MARTIAN_MADNESS_COMPLETED',
+    nameEn: 'Martian Madness Completed',
+    nameZh: '\u706b\u661f\u66b4\u4e71\u5df2\u5b8c\u6210',
+    contextType: 'PROGRESSION',
+    description: 'Public NPC shop condition for Martian Madness completion unlocks.',
+    sortOrder: 320,
+    status: 1,
+  },
+  {
+    id: -915,
+    code: 'PIRATE_INVASION_COMPLETED',
+    nameEn: 'Pirate Invasion Completed',
+    nameZh: '\u6d77\u76d7\u5165\u4fb5\u5df2\u5b8c\u6210',
+    contextType: 'PROGRESSION',
+    description: 'Public NPC shop condition for Pirate Invasion completion unlocks.',
+    sortOrder: 330,
+    status: 1,
+  },
+  {
+    id: -916,
+    code: 'SNOW_LEGION_COMPLETED',
+    nameEn: 'Snow Legion Completed',
+    nameZh: '\u96ea\u4eba\u519b\u56e2\u5df2\u5b8c\u6210',
+    contextType: 'PROGRESSION',
+    description: 'Public NPC shop condition for Snow Legion completion unlocks.',
+    sortOrder: 340,
+    status: 1,
+  },
+  {
+    id: -917,
+    code: 'ANY_MECH_BOSS_DEFEATED',
+    nameEn: 'Any Mechanical Boss Defeated',
+    nameZh: '\u4efb\u4e00\u673a\u68b0Boss\u5df2\u51fb\u8d25',
+    contextType: 'PROGRESSION',
+    description: 'Public NPC shop condition for any mechanical boss defeat unlocks.',
+    sortOrder: 350,
+    status: 1,
+  },
+  {
+    id: -918,
+    code: 'ALL_MECH_BOSSES_DEFEATED',
+    nameEn: 'All Mechanical Bosses Defeated',
+    nameZh: '\u5168\u90e8\u673a\u68b0Boss\u5df2\u51fb\u8d25',
+    contextType: 'PROGRESSION',
+    description: 'Public NPC shop condition for all mechanical bosses defeat unlocks.',
+    sortOrder: 360,
+    status: 1,
+  },
+  {
     id: -905,
     code: 'LANTERN_NIGHT',
     nameEn: 'Lantern Night',
@@ -192,7 +247,7 @@ export function getRequiredTownNpcWorldContexts() {
   return REQUIRED_TOWN_NPC_WORLD_CONTEXTS.map((entry) => ({ ...entry }));
 }
 
-export function buildTownNpcShopConditionLookup({ biomes, gamePeriods, items, worldContexts }) {
+export function buildTownNpcShopConditionLookup({ biomes, gamePeriods, items, npcs, worldContexts }) {
   return {
     biomesByCode: new Map(
       (Array.isArray(biomes) ? biomes : [])
@@ -207,7 +262,7 @@ export function buildTownNpcShopConditionLookup({ biomes, gamePeriods, items, wo
         .map((entry) => [entry.key, entry])
     ),
     itemsByAny: buildItemRefLookup(items),
-    npcsByAny: buildNpcRefLookup(arguments[0]?.npcs),
+    npcsByAny: buildNpcRefLookup(npcs),
     worldContextsByCode: new Map(
       (Array.isArray(worldContexts) ? worldContexts : [])
         .map((entry) => normalizeRef(entry, 'WORLD_CONTEXT'))
@@ -227,6 +282,7 @@ export function extractTownNpcShopConditions(availability, lookup) {
     ...collectMatches(text, BIOME_RULES, lookup?.biomesByCode, 'BIOME'),
     ...collectMatches(text, GAME_PERIOD_RULES, lookup?.gamePeriodsByCode, 'GAME_PERIOD'),
     ...collectItemPossessionMatches(text, lookup?.itemsByAny),
+    ...collectNpcDefeatMatches(text, lookup?.npcsByAny),
     ...collectNpcPresenceMatches(text, lookup?.npcsByAny),
     ...collectMatches(text, WORLD_CONTEXT_RULES, lookup?.worldContextsByCode, 'WORLD_CONTEXT'),
   ];
@@ -351,6 +407,52 @@ function collectNpcPresenceMatches(text, npcMap) {
   return matches;
 }
 
+function collectNpcDefeatMatches(text, npcMap) {
+  if (!(npcMap instanceof Map) || npcMap.size === 0) {
+    return [];
+  }
+
+  const matches = [];
+  const patterns = [
+    /(?:\u5982\u679c\u5df2\u6253\u8d25|\u82e5\u5df2\u6253\u8d25)\s*([^\u3002\uff1b\uff0c\uff1a:()锛堬級]+?)(?=$|[\u3002\uff1b\uff0c\uff1a:()锛堬級])/g,
+    /(?:\u6253\u8d25\u4e86|\u6253\u8d25|\u51fb\u8d25)\s*([^\u3002\uff1b\uff0c\uff1a:()锛堬級]+?)\s*\u540e/g,
+    /([^\u3002\uff1b\uff0c\uff1a:()锛堬級]+?)\s*\u5df2\u88ab\u6253\u8d25(?:\u65f6|\u540e)?/g,
+    /([^\u3002\uff1b\uff0c\uff1a:()锛堬級]+?)\s*\u88ab(?:\u6253|\u51fb)\u8d25\u540e/g,
+  ];
+
+  for (const pattern of patterns) {
+    for (const match of text.matchAll(pattern)) {
+      const rawTarget = normalizeNpcDefeatTarget(match[1]);
+      if (!rawTarget || looksLikeCompositeDefeatTarget(rawTarget)) {
+        continue;
+      }
+      const key = normalizeLookupKey(rawTarget);
+      if (!key) {
+        continue;
+      }
+      const ref = npcMap.get(key);
+      if (!ref) {
+        continue;
+      }
+      const fullMatch = normalizeText(match[0]) ?? '';
+      const matchText = normalizeText(match[1]) ?? '';
+      const candidateIndex = Math.max(
+        match.index ?? 0,
+        (match.index ?? 0) + fullMatch.indexOf(matchText)
+      );
+      matches.push({
+        refType: 'NPC',
+        refId: ref.id,
+        code: ref.code,
+        label: ref.label,
+        matchIndex: candidateIndex,
+      });
+    }
+  }
+
+  return matches;
+}
+
 function buildItemRefLookup(items) {
   const result = new Map();
   for (const entry of Array.isArray(items) ? items : []) {
@@ -383,6 +485,23 @@ function buildNpcRefLookup(npcs) {
     }
   }
   return result;
+}
+
+function looksLikeCompositeDefeatTarget(value) {
+  const text = normalizeText(value) ?? '';
+  if (text === '') {
+    return true;
+  }
+  return /[、/]|(?:\s*[和或及与]\s*)|(?:\u81f3\u5c11\u4e00\u4e2a)|(?:\u4efb\u610f)|(?:\u5168\u90e8)|(?:\u4e8b\u4ef6)|(?:\u5165\u4fb5)|(?:\u519b\u56e2)|(?:boss)/i.test(text);
+}
+
+function normalizeNpcDefeatTarget(value) {
+  const text = normalizeText(value);
+  if (!text) {
+    return null;
+  }
+  const normalized = text.replace(/^(?:(?:\u5f53|\u5982\u679c|\u82e5|\u5728)\s*)+/, '').trim();
+  return normalized === '' ? null : normalized;
 }
 
 function firstMatchIndex(text, patterns) {

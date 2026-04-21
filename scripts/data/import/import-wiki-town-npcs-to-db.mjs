@@ -462,7 +462,8 @@ async function loadTownNpcShopConditionLookup(connection) {
   const [npcs] = await connection.query(
     `SELECT id, internal_name AS internalName, name AS nameEn, name_zh AS nameZh
        FROM npcs
-      WHERE deleted = 0`
+      WHERE deleted = 0
+      ORDER BY id ASC`
   );
   const [worldContexts] = await connection.query(
     `SELECT id, code, name_zh AS nameZh, name_en AS nameEn
