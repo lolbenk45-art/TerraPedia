@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
+import { resolveBossLootSchemaSqlPath } from './boss-loot-schema-path.mjs';
 import { buildBossLootBundle } from '../generate/generate-boss-loot-bundle.mjs';
 import {
   parseCliArgs,
@@ -410,7 +411,7 @@ async function countExistingLootRows(conn, npcId) {
 }
 
 async function ensureSchema(conn) {
-  const sqlPath = path.join(repoRoot, 'back', 'src', 'main', 'resources', 'db', 'migration', 'V34__add_drop_source_kind_to_npc_loot_entries.sql');
+  const sqlPath = resolveBossLootSchemaSqlPath(repoRoot);
   await conn.query(fs.readFileSync(sqlPath, 'utf8'));
 }
 
