@@ -5,6 +5,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { resolveAdminAuth } from '../../lib/local-runtime-config.mjs';
+import { shouldFailBossImportStrictMode } from './boss-import-strict-mode.mjs';
+import { resolveReferenceOnlyBossSource } from './boss-reference-source.mjs';
 import {
   createMinioImageUploader,
   DEFAULT_MANAGED_URL_PREFIX,
@@ -230,18 +232,20 @@ async function main() {
         );
       }
 
-      if (memberMapping.members.length > 0) {
+      if (memberMapping.members.length > 0 || memberMapping.sourceMode === 'reference') {
         summary.mappedBosses += 1;
         summary.totalMemberAssignments += memberMapping.members.length;
       } else {
         summary.unmappedBosses += 1;
       }
 
-      if (memberMapping.unresolved.length > 0 || memberMapping.members.length === 0) {
+      if (memberMapping.unresolved.length > 0 || (memberMapping.members.length === 0 && memberMapping.sourceMode !== 'reference')) {
         summary.unresolvedBosses.push({
           titleEn: record.titleEn,
           titleZh: record.titleZh ?? null,
           bossType: record.groupType,
+          sourceMode: memberMapping.sourceMode,
+          referenceBossCodes: memberMapping.referenceBossCodes ?? [],
           unresolved: memberMapping.unresolved,
           matchedMembers: memberMapping.members.map((member) => ({
             id: member.id,
@@ -260,20 +264,14 @@ async function main() {
           titleZh: record.titleZh ?? null,
           bossType: record.groupType,
           imageUrl,
+          sourceMode: memberMapping.sourceMode,
           memberCount: memberMapping.members.length,
           memberInternalNames: memberMapping.members.map((member) => member.internalName),
         });
       }
     }
 
-    if (strictMode && (
-      summary.unresolvedBosses.length > 0 ||
-      summary.remainingWikiBossImages > 0 ||
-      summary.remainingWikiBossMemberImages > 0 ||
-      summary.bossMemberImageMissingSource > 0 ||
-      summary.failedBossImages > 0 ||
-      summary.failedBossMemberImages > 0
-    )) {
+    if (strictMode && shouldFailBossImportStrictMode(summary)) {
       throw new Error(
         `Strict mode failed: unresolvedBosses=${summary.unresolvedBosses.length}, remainingWikiBossImages=${summary.remainingWikiBossImages}, `
         + `remainingWikiBossMemberImages=${summary.remainingWikiBossMemberImages}, missingBossMemberImageSource=${summary.bossMemberImageMissingSource}, `
@@ -349,6 +347,15 @@ async function loadNpcLookup(conn) {
 
 function mapBossMembers(record, npcLookup) {
   const titleEn = toText(record.titleEn) ?? '';
+  const referenceSource = resolveReferenceOnlyBossSource(titleEn);
+  if (referenceSource) {
+    return {
+      members: [],
+      unresolved: [],
+      sourceMode: referenceSource.sourceMode,
+      referenceBossCodes: referenceSource.referenceBossCodes,
+    };
+  }
   const explicitDefs = EXPLICIT_MEMBER_DEFS[titleEn] ?? null;
   if (explicitDefs) {
     const members = [];
@@ -361,7 +368,7 @@ function mapBossMembers(record, npcLookup) {
       }
       members.push(toMember(match, def.role));
     }
-    return { members: dedupeMembers(members), unresolved };
+    return { members: dedupeMembers(members), unresolved, sourceMode: 'assigned', referenceBossCodes: [] };
   }
 
   const titleKey = normalizeKey(titleEn);
@@ -380,6 +387,8 @@ function mapBossMembers(record, npcLookup) {
   const members = candidates.map((candidate, index) => toMember(candidate, index === 0 ? 'primary' : 'part'));
   return {
     members,
+    sourceMode: 'assigned',
+    referenceBossCodes: [],
     unresolved: members.length === 0 ? [{ reason: 'no_candidate_members_found', titleEn }] : [],
   };
 }
