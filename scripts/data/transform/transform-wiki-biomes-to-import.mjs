@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { isOverviewFallbackBiomeRecord } from './biome-transform-filters.mjs';
 
 const repoRoot = process.cwd();
 const generatedAt = new Date().toISOString();
@@ -116,7 +117,9 @@ for (const record of payload.records || []) {
   biomeByTitle.set(record.title, record);
 }
 
-const biomes = (payload.records || []).map(record => {
+const filteredRecords = (payload.records || []).filter(record => !isOverviewFallbackBiomeRecord(record));
+
+const biomes = filteredRecords.map(record => {
   const code = deriveCode(record.title);
   const aliasEn = dedupe(record.aliases || [])
     .filter(alias => alias !== record.title)
