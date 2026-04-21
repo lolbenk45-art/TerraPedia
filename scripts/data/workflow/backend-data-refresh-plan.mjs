@@ -87,6 +87,15 @@ export function buildBackendDataRefreshPlan(options = {}) {
         'scripts/data/pipeline/run-shimmer-sync-pipeline.mjs',
         '--apply=true'
       ]
+    },
+    {
+      id: 'support-sync',
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/pipeline/run-support-sync-pipeline.mjs',
+        '--apply=true'
+      ]
     }
   ];
 

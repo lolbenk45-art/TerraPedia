@@ -20,7 +20,8 @@ test('buildBackendDataRefreshPlan returns the default primary backend refresh ac
     'biome-sync',
     'town-npc-sync',
     'independent-entity-sync',
-    'shimmer-sync'
+    'shimmer-sync',
+    'support-sync'
   ]);
 
   const wikiCore = plan.actions.find((action) => action.id === 'wiki-core-refresh');
@@ -64,6 +65,11 @@ test('buildBackendDataRefreshPlan returns the default primary backend refresh ac
   assert.ok(shimmerSync);
   assert.ok(shimmerSync.args.includes('scripts/data/pipeline/run-shimmer-sync-pipeline.mjs'));
   assert.ok(shimmerSync.args.includes('--apply=true'));
+
+  const supportSync = plan.actions.find((action) => action.id === 'support-sync');
+  assert.ok(supportSync);
+  assert.ok(supportSync.args.includes('scripts/data/pipeline/run-support-sync-pipeline.mjs'));
+  assert.ok(supportSync.args.includes('--apply=true'));
 });
 
 test('buildBackendDataRefreshPlan allows overriding item page limit', () => {
@@ -99,10 +105,10 @@ test('buildBackendDataRefreshReport summarizes action statuses', () => {
     { id: 'item-pages-refresh', status: 'failed', durationMs: 300 }
   ]);
 
-  assert.equal(report.totalActions, 9);
+  assert.equal(report.totalActions, 10);
   assert.equal(report.completedActions, 1);
   assert.equal(report.failedActions, 1);
-  assert.equal(report.pendingActions, 7);
+  assert.equal(report.pendingActions, 8);
   assert.equal(report.runningActions, 0);
   assert.equal(report.actions[0].status, 'completed');
   assert.equal(report.actions[1].status, 'failed');
@@ -146,7 +152,8 @@ test('resolvePendingBackendDataRefreshActions skips completed actions for resume
       'biome-sync',
       'town-npc-sync',
       'independent-entity-sync',
-      'shimmer-sync'
+      'shimmer-sync',
+      'support-sync'
     ]
   );
 });
