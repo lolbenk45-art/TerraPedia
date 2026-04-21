@@ -594,3 +594,30 @@ test('extractTownNpcShopConditions maps at-least-one mechanical boss defeat phra
     ]
   );
 });
+
+test('extractTownNpcShopConditions maps safe dual-boss AND defeat phrasing to npc refs', () => {
+  const lookup = buildTownNpcShopConditionLookup({
+    npcs: [
+      { id: 116, internalName: 'KingSlime', nameEn: 'King Slime', nameZh: '\u53f2\u83b1\u59c6\u738b' },
+      { id: 723, internalName: 'QueenSlimeBoss', nameEn: 'Queen Slime', nameZh: '\u53f2\u83b1\u59c6\u7687\u540e' }
+    ]
+  });
+
+  const actual = extractTownNpcShopConditions(
+    '\u5f53 \u53f2\u83b1\u59c6\u738b \u548c \u53f2\u83b1\u59c6\u7687\u540e \u90fd\u88ab\u51fb\u8d25\u540e\u3002',
+    lookup
+  );
+
+  assert.deepEqual(
+    actual.map((condition) => ({
+      refType: condition.refType,
+      refId: condition.refId,
+      code: condition.code,
+      label: condition.label
+    })),
+    [
+      { refType: 'NPC', refId: 116, code: 'KingSlime', label: '\u53f2\u83b1\u59c6\u738b' },
+      { refType: 'NPC', refId: 723, code: 'QueenSlimeBoss', label: '\u53f2\u83b1\u59c6\u7687\u540e' }
+    ]
+  );
+});

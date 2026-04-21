@@ -282,6 +282,7 @@ export function extractTownNpcShopConditions(availability, lookup) {
     ...collectMatches(text, BIOME_RULES, lookup?.biomesByCode, 'BIOME'),
     ...collectMatches(text, GAME_PERIOD_RULES, lookup?.gamePeriodsByCode, 'GAME_PERIOD'),
     ...collectItemPossessionMatches(text, lookup?.itemsByAny),
+    ...collectNpcDefeatAndMatches(text, lookup?.npcsByAny),
     ...collectNpcDefeatMatches(text, lookup?.npcsByAny),
     ...collectNpcPresenceMatches(text, lookup?.npcsByAny),
     ...collectMatches(text, WORLD_CONTEXT_RULES, lookup?.worldContextsByCode, 'WORLD_CONTEXT'),
@@ -451,6 +452,77 @@ function collectNpcDefeatMatches(text, npcMap) {
   }
 
   return matches;
+}
+
+function collectNpcDefeatAndMatches(text, npcMap) {
+  if (!(npcMap instanceof Map) || npcMap.size === 0) {
+    return [];
+  }
+
+  const matches = [];
+  const patterns = [
+    /(?:^|[\u3002\uff1b\uff0c\uff1a:()])\s*(?:\u5f53|\u5982\u679c|\u82e5|\u5728)?\s*([^\u3002\uff1b\uff0c\uff1a:()]+?)\s*(?:\u90fd|\u5747|\u7686)\s*(?:\u5df2)?\u88ab(?:\u6253|\u51fb)\u8d25(?:\u65f6|\u540e)?/g,
+  ];
+
+  for (const pattern of patterns) {
+    for (const match of text.matchAll(pattern)) {
+      const rawTargets = normalizeNpcDefeatTarget(match[1]);
+      const targetNames = splitSafeNpcDefeatAndTargets(rawTargets);
+      if (targetNames.length !== 2) {
+        continue;
+      }
+
+      const refs = [];
+      let allResolved = true;
+      for (const rawTargetName of targetNames) {
+        const key = normalizeLookupKey(rawTargetName);
+        const ref = key ? npcMap.get(key) : null;
+        if (!ref) {
+          allResolved = false;
+          break;
+        }
+        refs.push({ rawTargetName, ref });
+      }
+      if (!allResolved) {
+        continue;
+      }
+
+      const fullMatch = normalizeText(match[0]) ?? '';
+      const fullMatchOffset = match.index ?? 0;
+      for (const { rawTargetName, ref } of refs) {
+        const targetOffset = fullMatch.indexOf(rawTargetName);
+        matches.push({
+          refType: 'NPC',
+          refId: ref.id,
+          code: ref.code,
+          label: ref.label,
+          matchIndex: Math.max(
+            fullMatchOffset,
+            targetOffset >= 0 ? fullMatchOffset + targetOffset : fullMatchOffset
+          ),
+        });
+      }
+    }
+  }
+
+  return matches;
+}
+
+function splitSafeNpcDefeatAndTargets(value) {
+  const text = normalizeText(value);
+  if (!text) {
+    return [];
+  }
+  if (/[\u3001]|(?:\u6216)|(?:\u4efb\u4f55)|(?:\u4efb\u610f)|(?:\u81f3\u5c11)|(?:\u5168\u90e8)|(?:\u4e8b\u4ef6)|(?:\u5165\u4fb5)|(?:\u519b\u56e2)|(?:boss)/i.test(text)) {
+    return [];
+  }
+
+  const parts = text.split(/\s*(?:\u548c|\u4e0e|\u53ca)\s*/).map((part) => normalizeNpcDefeatTarget(part));
+  if (parts.length !== 2 || parts.some((part) => !part || looksLikeCompositeDefeatTarget(part))) {
+    return [];
+  }
+
+  return parts;
 }
 
 function buildItemRefLookup(items) {
