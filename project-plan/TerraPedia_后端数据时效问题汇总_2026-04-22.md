@@ -204,6 +204,18 @@
 - item / relation import 在 dry-run 模式下跳过
 - boss loot 默认切到 dry-run
 
+### S7：Town NPC 仍只有分散 fetch/import 入口
+
+已解决到最小可用状态：
+
+- 新增 `run-town-npc-sync-pipeline.mjs`
+- backend refresh action 已改为单个 `town-npc-sync`
+
+当前效果：
+
+- `Town NPC` 已经从两段散动作收敛成单个 pipeline 动作
+- 后续可以继续在这条 pipeline 上补 report 与恢复能力
+
 ---
 
 ## 3. 建议后续处理顺序

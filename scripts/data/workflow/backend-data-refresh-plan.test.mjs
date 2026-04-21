@@ -16,8 +16,7 @@ test('buildBackendDataRefreshPlan returns the default primary backend refresh ac
     'item-pages-refresh',
     'recipe-reference-sync',
     'item-detail-sync',
-    'town-npc-fetch',
-    'town-npc-import'
+    'town-npc-sync'
   ]);
 
   const wikiCore = plan.actions.find((action) => action.id === 'wiki-core-refresh');
@@ -37,9 +36,10 @@ test('buildBackendDataRefreshPlan returns the default primary backend refresh ac
     recipeReferenceSync.args.some((arg) => arg.includes('reports/backend-refresh/recipe-material-reference.latest.json'))
   );
 
-  const townNpcImport = plan.actions.find((action) => action.id === 'town-npc-import');
-  assert.ok(townNpcImport);
-  assert.ok(townNpcImport.args.includes('--apply=true'));
+  const townNpcSync = plan.actions.find((action) => action.id === 'town-npc-sync');
+  assert.ok(townNpcSync);
+  assert.ok(townNpcSync.args.includes('scripts/data/pipeline/run-town-npc-sync-pipeline.mjs'));
+  assert.ok(townNpcSync.args.includes('--apply=true'));
 });
 
 test('buildBackendDataRefreshPlan allows overriding item page limit', () => {
@@ -56,7 +56,7 @@ test('buildBackendDataRefreshPlan allows selecting a subset of action ids', () =
 
   assert.deepEqual(
     plan.actions.map((action) => action.id),
-    ['wiki-core-refresh', 'town-npc-fetch']
+    ['wiki-core-refresh']
   );
 });
 
@@ -75,10 +75,10 @@ test('buildBackendDataRefreshReport summarizes action statuses', () => {
     { id: 'item-pages-refresh', status: 'failed', durationMs: 300 }
   ]);
 
-  assert.equal(report.totalActions, 6);
+  assert.equal(report.totalActions, 5);
   assert.equal(report.completedActions, 1);
   assert.equal(report.failedActions, 1);
-  assert.equal(report.pendingActions, 4);
+  assert.equal(report.pendingActions, 3);
   assert.equal(report.runningActions, 0);
   assert.equal(report.actions[0].status, 'completed');
   assert.equal(report.actions[1].status, 'failed');
@@ -118,8 +118,7 @@ test('resolvePendingBackendDataRefreshActions skips completed actions for resume
       'item-pages-refresh',
       'recipe-reference-sync',
       'item-detail-sync',
-      'town-npc-fetch',
-      'town-npc-import'
+      'town-npc-sync'
     ]
   );
 });

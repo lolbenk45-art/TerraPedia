@@ -44,19 +44,11 @@ export function buildBackendDataRefreshPlan(options = {}) {
       ]
     },
     {
-      id: 'town-npc-fetch',
-      runner: 'python',
+      id: 'town-npc-sync',
+      runner: 'node',
       timeoutMs: timeoutMs ?? 20 * 60 * 1000,
       args: [
-        'scripts/data/fetch/fetch-wiki-town-npc-maintenance.py'
-      ]
-    },
-    {
-      id: 'town-npc-import',
-      runner: 'node',
-      timeoutMs: timeoutMs ?? 15 * 60 * 1000,
-      args: [
-        'scripts/data/import/import-wiki-town-npcs-to-db.mjs',
+        'scripts/data/pipeline/run-town-npc-sync-pipeline.mjs',
         '--apply=true'
       ]
     }
