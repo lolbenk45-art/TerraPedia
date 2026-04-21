@@ -33,7 +33,7 @@ function Get-ConfigPort([object]$Root, [string[]]$PathSegments, [int]$Fallback) 
 }
 
 $redisPort = Get-ConfigPort -Root $stackConfig -PathSegments @('redis', 'port') -Fallback 6380
-$backPort = Get-ConfigPort -Root $stackConfig -PathSegments @('backend', 'port') -Fallback 8888
+$backPort = Get-ConfigPort -Root $stackConfig -PathSegments @('backend', 'port') -Fallback 18088
 $frontPort = Get-ConfigPort -Root $stackConfig -PathSegments @('front', 'port') -Fallback 5174
 $adminPort = Get-ConfigPort -Root $stackConfig -PathSegments @('admin', 'port') -Fallback 3001
 $ports = @($redisPort, $backPort, $frontPort, $adminPort, 3000, 6380) | Select-Object -Unique

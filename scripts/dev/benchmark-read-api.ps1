@@ -17,7 +17,7 @@ if (-not (Test-Path $ConfigPath)) {
 
 $config = Get-Content -Path $ConfigPath -Raw | ConvertFrom-Json
 if ([string]::IsNullOrWhiteSpace($ApiBase)) {
-    $backendPort = if ($config.backend.port) { [int]$config.backend.port } else { 8888 }
+    $backendPort = if ($config.backend.port) { [int]$config.backend.port } else { 18088 }
     $ApiBase = "http://127.0.0.1:$backendPort/api"
 }
 $ApiBase = $ApiBase.TrimEnd("/")

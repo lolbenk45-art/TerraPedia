@@ -54,5 +54,5 @@ mvn clean package
 
 ## Local URLs
 
-- Backend API: `http://localhost:8888/api`
-- Swagger UI: `http://localhost:8888/api/swagger-ui.html`
+- Backend API: `http://localhost:18088/api`
+- Swagger UI: `http://localhost:18088/api/swagger-ui.html`

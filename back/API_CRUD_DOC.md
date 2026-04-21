@@ -2,7 +2,7 @@
 
 ## 概览
 
-- 服务地址：`http://localhost:8888/api`
+- 服务地址：`http://localhost:18088/api`
 - 响应格式：统一返回 `ApiResponse<T>`
 - 已实测跑通：
   - `items`：列表、详情、新增、更新、删除

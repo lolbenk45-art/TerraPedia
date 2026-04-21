@@ -77,7 +77,7 @@ $dbPort = [int](Resolve-Setting 'TERRAPEDIA_DB_PORT' (Get-ConfigValue $stackConf
 $dbUser = [string](Resolve-Setting 'TERRAPEDIA_DB_USERNAME' (Get-ConfigValue $stackConfig @('database', 'username')) 'root')
 $dbPassword = [string](Resolve-Setting 'TERRAPEDIA_DB_PASSWORD' (Get-ConfigValue $stackConfig @('database', 'password')) 'root')
 $dbUrl = [string](Resolve-Setting 'TERRAPEDIA_DB_URL' (Get-ConfigValue $stackConfig @('database', 'url')) "jdbc:mysql://$dbHost`:$dbPort/$dbName?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true")
-$backPort = [int](Resolve-Setting 'APP_PORT' (Get-ConfigValue $stackConfig @('backend', 'port')) 8888)
+$backPort = [int](Resolve-Setting 'APP_PORT' (Get-ConfigValue $stackConfig @('backend', 'port')) 18088)
 $frontPort = [int](Resolve-Setting 'TERRAPEDIA_FRONT_PORT' (Get-ConfigValue $stackConfig @('front', 'port')) 5174)
 $adminPort = [int](Resolve-Setting 'TERRAPEDIA_ADMIN_PORT' (Get-ConfigValue $stackConfig @('admin', 'port')) 3001)
 $redisHost = [string](Resolve-Setting 'TERRAPEDIA_REDIS_HOST' (Get-ConfigValue $stackConfig @('redis', 'host')) '127.0.0.1')
