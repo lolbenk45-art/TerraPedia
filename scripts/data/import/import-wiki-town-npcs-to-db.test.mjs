@@ -119,3 +119,28 @@ test('classifyTownNpcShopItemDisposition keeps unresolved modern placeholders un
 
   assert.equal(actual, null);
 });
+
+test('classifyTownNpcShopItemDisposition marks clothier variant-exclusive vanity items as excluded', () => {
+  const samples = [
+    '老手杖',
+    'George的帽子',
+    'George的西装上衣',
+    'George的裤子',
+    '绝妙丝带',
+    '多乐头部',
+    '粉白美头部',
+    '希炼衣',
+  ];
+
+  for (const sample of samples) {
+    assert.deepEqual(
+      classifyTownNpcShopItemDisposition({ nameZh: sample, nameEn: sample }),
+      {
+        kind: 'ignored_legacy_only',
+        canonicalName: null,
+        reason: 'legacy_only_shop_item',
+      },
+      sample,
+    );
+  }
+});
