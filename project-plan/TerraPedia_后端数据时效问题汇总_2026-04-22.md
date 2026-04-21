@@ -259,6 +259,17 @@
 
 - Buffs / Projectiles / Armor Sets 已进入统一后端刷新主线
 
+### S11：Shimmer 仍是独立 extraction/import 链
+
+已解决到最小可用状态：
+
+- 新增 `run-shimmer-sync-pipeline.mjs`
+- backend refresh 已接入 `shimmer-sync`
+
+当前效果：
+
+- Shimmer extraction + import 已能作为单个统一刷新动作执行
+
 ---
 
 ## 3. 建议后续处理顺序
