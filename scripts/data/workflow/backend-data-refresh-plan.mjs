@@ -44,6 +44,24 @@ export function buildBackendDataRefreshPlan(options = {}) {
       ]
     },
     {
+      id: 'boss-sync',
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/pipeline/run-boss-sync-pipeline.mjs',
+        '--apply=true'
+      ]
+    },
+    {
+      id: 'biome-sync',
+      runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
+      args: [
+        'scripts/data/pipeline/run-biome-sync-pipeline.mjs',
+        '--apply=true'
+      ]
+    },
+    {
       id: 'town-npc-sync',
       runner: 'node',
       timeoutMs: timeoutMs ?? 20 * 60 * 1000,

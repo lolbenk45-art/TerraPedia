@@ -16,6 +16,8 @@ test('buildBackendDataRefreshPlan returns the default primary backend refresh ac
     'item-pages-refresh',
     'recipe-reference-sync',
     'item-detail-sync',
+    'boss-sync',
+    'biome-sync',
     'town-npc-sync'
   ]);
 
@@ -40,6 +42,16 @@ test('buildBackendDataRefreshPlan returns the default primary backend refresh ac
   assert.ok(townNpcSync);
   assert.ok(townNpcSync.args.includes('scripts/data/pipeline/run-town-npc-sync-pipeline.mjs'));
   assert.ok(townNpcSync.args.includes('--apply=true'));
+
+  const bossSync = plan.actions.find((action) => action.id === 'boss-sync');
+  assert.ok(bossSync);
+  assert.ok(bossSync.args.includes('scripts/data/pipeline/run-boss-sync-pipeline.mjs'));
+  assert.ok(bossSync.args.includes('--apply=true'));
+
+  const biomeSync = plan.actions.find((action) => action.id === 'biome-sync');
+  assert.ok(biomeSync);
+  assert.ok(biomeSync.args.includes('scripts/data/pipeline/run-biome-sync-pipeline.mjs'));
+  assert.ok(biomeSync.args.includes('--apply=true'));
 });
 
 test('buildBackendDataRefreshPlan allows overriding item page limit', () => {
@@ -75,10 +87,10 @@ test('buildBackendDataRefreshReport summarizes action statuses', () => {
     { id: 'item-pages-refresh', status: 'failed', durationMs: 300 }
   ]);
 
-  assert.equal(report.totalActions, 5);
+  assert.equal(report.totalActions, 7);
   assert.equal(report.completedActions, 1);
   assert.equal(report.failedActions, 1);
-  assert.equal(report.pendingActions, 3);
+  assert.equal(report.pendingActions, 5);
   assert.equal(report.runningActions, 0);
   assert.equal(report.actions[0].status, 'completed');
   assert.equal(report.actions[1].status, 'failed');
@@ -118,6 +130,8 @@ test('resolvePendingBackendDataRefreshActions skips completed actions for resume
       'item-pages-refresh',
       'recipe-reference-sync',
       'item-detail-sync',
+      'boss-sync',
+      'biome-sync',
       'town-npc-sync'
     ]
   );

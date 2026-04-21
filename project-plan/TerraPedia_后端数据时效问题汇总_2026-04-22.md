@@ -216,6 +216,37 @@
 - `Town NPC` 已经从两段散动作收敛成单个 pipeline 动作
 - 后续可以继续在这条 pipeline 上补 report 与恢复能力
 
+### S8：Boss / Boss Loot 缺少统一 pipeline
+
+已解决到最小可用状态：
+
+- 新增 `run-boss-sync-pipeline.mjs`
+- backend refresh 已接入 `boss-sync`
+
+当前效果：
+
+- Boss fetch / import / boss loot 已能作为单个主线动作执行
+
+### S9：Biomes 未纳入统一后端刷新入口
+
+已解决到最小可用状态：
+
+- 新增 `run-biome-sync-pipeline.mjs`
+- backend refresh 已接入 `biome-sync`
+
+当前效果：
+
+- fetch / transform / optional import 已能作为单个主线动作执行
+
+### P8：Biome import 仍依赖宽口径 standardized importer
+
+当前 `run-biome-sync-pipeline` 的 import 仍依赖：
+
+- `import-standardized-to-db.mjs`
+
+这意味着它不是完全独立的 biome importer。  
+当前不阻塞继续推进，但后续若要细化治理，应考虑拆出独立 biome import。
+
 ---
 
 ## 3. 建议后续处理顺序
