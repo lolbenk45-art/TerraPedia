@@ -1,10 +1,12 @@
 export function buildBackendDataRefreshPlan(options = {}) {
   const itemPageLimit = normalizePositiveInteger(options.itemPageLimit, 100);
   const requestedSteps = normalizeSteps(options.steps);
+  const timeoutMs = normalizePositiveInteger(options.timeoutMs, null);
   const actions = [
     {
       id: 'wiki-core-refresh',
       runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
       args: [
         'scripts/data/workflow/run-wiki-sync.mjs',
         '--mode=apply',
@@ -14,6 +16,7 @@ export function buildBackendDataRefreshPlan(options = {}) {
     {
       id: 'item-pages-refresh',
       runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
       args: [
         'scripts/data/workflow/run-wiki-sync.mjs',
         '--mode=apply',
@@ -25,6 +28,7 @@ export function buildBackendDataRefreshPlan(options = {}) {
     {
       id: 'recipe-reference-sync',
       runner: 'node',
+      timeoutMs: timeoutMs ?? 15 * 60 * 1000,
       args: [
         'scripts/data/pipeline/run-recipe-reference-sync-pipeline.mjs'
       ]
@@ -32,6 +36,7 @@ export function buildBackendDataRefreshPlan(options = {}) {
     {
       id: 'item-detail-sync',
       runner: 'node',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
       args: [
         'scripts/data/pipeline/run-item-detail-sync-pipeline.mjs',
         '--with-boss-loot=true'
@@ -40,6 +45,7 @@ export function buildBackendDataRefreshPlan(options = {}) {
     {
       id: 'town-npc-fetch',
       runner: 'python',
+      timeoutMs: timeoutMs ?? 20 * 60 * 1000,
       args: [
         'scripts/data/fetch/fetch-wiki-town-npc-maintenance.py'
       ]
@@ -47,6 +53,7 @@ export function buildBackendDataRefreshPlan(options = {}) {
     {
       id: 'town-npc-import',
       runner: 'node',
+      timeoutMs: timeoutMs ?? 15 * 60 * 1000,
       args: [
         'scripts/data/import/import-wiki-town-npcs-to-db.mjs',
         '--apply=true'
@@ -71,7 +78,9 @@ export function buildBackendDataRefreshReport(plan, actionResults = []) {
       runner: action.runner,
       args: action.args,
       status: result.status ?? 'pending',
-      durationMs: Number.isFinite(Number(result.durationMs)) ? Number(result.durationMs) : null
+      timeoutMs: action.timeoutMs,
+      durationMs: Number.isFinite(Number(result.durationMs)) ? Number(result.durationMs) : null,
+      timedOut: Boolean(result.timedOut)
     };
   });
 
@@ -81,6 +90,7 @@ export function buildBackendDataRefreshReport(plan, actionResults = []) {
     completedActions: actions.filter((action) => action.status === 'completed').length,
     failedActions: actions.filter((action) => action.status === 'failed').length,
     runningActions: actions.filter((action) => action.status === 'running').length,
+    timedOutActions: actions.filter((action) => action.timedOut).length,
     pendingActions: actions.filter((action) => action.status === 'pending').length,
     actions
   };

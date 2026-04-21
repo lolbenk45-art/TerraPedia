@@ -51,6 +51,14 @@ test('buildBackendDataRefreshPlan allows selecting a subset of action ids', () =
   );
 });
 
+test('buildBackendDataRefreshPlan assigns action timeouts and supports override', () => {
+  const defaultPlan = buildBackendDataRefreshPlan();
+  const overriddenPlan = buildBackendDataRefreshPlan({ timeoutMs: 1234 });
+
+  assert.ok(defaultPlan.actions.every((action) => Number(action.timeoutMs) > 0));
+  assert.ok(overriddenPlan.actions.every((action) => action.timeoutMs === 1234));
+});
+
 test('buildBackendDataRefreshReport summarizes action statuses', () => {
   const plan = buildBackendDataRefreshPlan();
   const report = buildBackendDataRefreshReport(plan, [
@@ -75,6 +83,17 @@ test('buildBackendDataRefreshReport counts running action statuses', () => {
 
   assert.equal(report.runningActions, 1);
   assert.equal(report.pendingActions, 0);
+});
+
+test('buildBackendDataRefreshReport counts timed out actions', () => {
+  const plan = buildBackendDataRefreshPlan({ steps: ['wiki-core-refresh'] });
+  const report = buildBackendDataRefreshReport(plan, [
+    { id: 'wiki-core-refresh', status: 'failed', timedOut: true }
+  ]);
+
+  assert.equal(report.failedActions, 1);
+  assert.equal(report.timedOutActions, 1);
+  assert.equal(report.actions[0].timedOut, true);
 });
 
 test('resolvePendingBackendDataRefreshActions skips completed actions for resume', () => {

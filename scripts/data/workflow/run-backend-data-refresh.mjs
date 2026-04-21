@@ -15,7 +15,8 @@ const mode = String(options.mode ?? 'plan').trim().toLowerCase();
 const itemPageLimit = options['item-page-limit'] ?? options.itemPageLimit;
 const steps = options.steps;
 const resume = options.resume === 'true';
-const plan = buildBackendDataRefreshPlan({ itemPageLimit, steps });
+const timeoutMs = options['timeout-ms'] ?? options.timeoutMs;
+const plan = buildBackendDataRefreshPlan({ itemPageLimit, steps, timeoutMs });
 const outputPath = path.resolve(
   options.output
   ?? path.join(process.cwd(), 'reports', `backend-data-refresh-${new Date().toISOString().slice(0, 10)}.json`)
@@ -41,17 +42,21 @@ for (const action of actionsToRun) {
   actionResults = upsertActionResult(actionResults, {
     id: action.id,
     status: 'running',
-    durationMs: null
+    durationMs: null,
+    timedOut: false
   });
   writeReport(outputPath, buildBackendDataRefreshReport(plan, actionResults));
   const result = spawnSync(command, action.args, {
     cwd: process.cwd(),
-    stdio: 'inherit'
+    stdio: 'inherit',
+    timeout: action.timeoutMs
   });
+  const timedOut = result.error?.code === 'ETIMEDOUT';
   actionResults = upsertActionResult(actionResults, {
     id: action.id,
     status: result.status === 0 ? 'completed' : 'failed',
-    durationMs: Date.now() - startedAt
+    durationMs: Date.now() - startedAt,
+    timedOut
   });
   if (result.status !== 0) {
     writeReport(outputPath, buildBackendDataRefreshReport(plan, actionResults));

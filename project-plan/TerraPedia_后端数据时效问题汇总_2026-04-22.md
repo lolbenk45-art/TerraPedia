@@ -23,11 +23,13 @@
 - 执行摘要输出
 - `running / completed / failed / pending` 状态汇总
 - `--resume=true` 跳过已完成步骤
+- `timeoutMs` 与 `timedOut` 标记
 
 当前剩余缺口包括：
 
 - 没有第二层成熟域编排
-- 没有 action timeout / heartbeat
+- 没有 heartbeat
+- 没有 action 级中间日志快照
 
 结论：
 
