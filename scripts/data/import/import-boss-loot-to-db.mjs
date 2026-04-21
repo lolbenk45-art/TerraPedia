@@ -7,6 +7,7 @@ import { createRequire } from 'node:module';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { resolveBossLootSchemaSqlPath } from './boss-loot-schema-path.mjs';
+import { resolveBossLootOwnerContext } from './boss-loot-owner.mjs';
 import { buildBossLootBundle } from '../generate/generate-boss-loot-bundle.mjs';
 import {
   parseCliArgs,
@@ -86,6 +87,7 @@ async function main() {
     directBossRows: 0,
     treasureBagRows: 0,
     unresolvedBosses: [],
+    referenceOnlyBosses: [],
     unresolvedItems: [],
     samples: [],
   };
@@ -106,14 +108,21 @@ async function main() {
       }
 
       summary.targetedBossGroups += 1;
-      const ownerNpc = resolveOwnerNpc(bossGroup.members);
+      const ownerContext = resolveBossLootOwnerContext(bossGroup);
+      const ownerNpc = ownerContext.ownerNpc;
       if (!ownerNpc) {
-        recordSample(summary.unresolvedBosses, {
+        const unresolvedRecord = {
           bossName: bossRecord?.bossName ?? null,
           bossGroupCode: bossGroup.code,
-          reason: 'primary_owner_npc_not_found',
+          reason: ownerContext.skipReason,
           memberCount: bossGroup.members.length,
-        });
+          ownerMode: ownerContext.ownerMode,
+        };
+        if (ownerContext.ownerMode === 'reference_only_composite_without_npc_owner') {
+          recordSample(summary.referenceOnlyBosses, unresolvedRecord);
+        } else {
+          recordSample(summary.unresolvedBosses, unresolvedRecord);
+        }
         summary.skippedBosses += 1;
         continue;
       }
@@ -331,13 +340,6 @@ async function loadBossGroups(conn) {
     }
   }
   return { byName };
-}
-
-function resolveOwnerNpc(members) {
-  if (!Array.isArray(members) || members.length == 0) {
-    return null;
-  }
-  return members.find((member) => normalizeKey(member.bossRole) === 'primary') ?? null;
 }
 
 async function loadItemLookup(conn) {
