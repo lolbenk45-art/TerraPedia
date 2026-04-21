@@ -61,6 +61,33 @@ export function resolveAdminAuth(rawOptions = {}, options = {}) {
   return { username, password };
 }
 
+export function resolveBackendApiBase(rawOptions = {}, options = {}) {
+  const explicit = firstText(
+    rawOptions.apiBase,
+    rawOptions['api-base'],
+    process.env.TERRAPEDIA_API_BASE
+  );
+  if (explicit) {
+    return trimTrailingSlash(explicit);
+  }
+
+  const repoRoot = path.resolve(options.repoRoot ?? DEFAULT_REPO_ROOT);
+  const config = loadLocalStackConfig(repoRoot);
+  const backendConfig = getConfigValue(config, ['backend']) ?? {};
+  const host = firstText(
+    backendConfig.host,
+    process.env.TERRAPEDIA_BACKEND_HOST,
+    '127.0.0.1'
+  );
+  const port = Number(
+    backendConfig.port
+    ?? process.env.TERRAPEDIA_BACKEND_PORT
+    ?? 18088
+  );
+
+  return `http://${host}:${Number.isFinite(port) ? port : 18088}/api`;
+}
+
 function getConfigValue(root, segments) {
   let current = root;
   for (const segment of segments) {
@@ -95,4 +122,12 @@ function toText(value) {
     return '';
   }
   return String(value).trim();
+}
+
+function trimTrailingSlash(value) {
+  let result = String(value).trim();
+  while (result.endsWith('/')) {
+    result = result.slice(0, -1);
+  }
+  return result;
 }

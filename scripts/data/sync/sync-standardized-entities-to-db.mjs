@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { resolveAdminAuth } from '../../lib/local-runtime-config.mjs';
+import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
 import { createMinioImageUploader, guessExtensionFromUrl } from '../lib/minio-image-upload.mjs';
 
 const require = createRequire(import.meta.url);
@@ -11,7 +11,7 @@ const mysql = require('mysql2/promise');
 
 const args = parseArgs(process.argv.slice(2));
 const apply = args.apply === 'true';
-const apiBase = trimTrailingSlash(args.apiBase || 'http://127.0.0.1:8888/api');
+const apiBase = trimTrailingSlash(resolveBackendApiBase(args));
 const { username: adminUsername, password: adminPassword } = resolveAdminAuth(args, {
   usernameKey: 'adminUsername',
   passwordKey: 'adminPassword',

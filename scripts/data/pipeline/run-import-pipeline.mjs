@@ -1,4 +1,5 @@
 import { importNormalizedItems } from '../import/import-items.mjs';
+import { resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
 import { parseCliArgs, sharedDataPath } from '../lib/wiki-item-utils.mjs';
 import { validateNormalizedItems } from '../normalize/validate-normalized-items.mjs';
 
@@ -22,7 +23,7 @@ if (!validation.report.valid) {
 
 const importResult = await importNormalizedItems({
   inputPath,
-  importUrl: options.url ?? process.env.TERRAPEDIA_IMPORT_URL ?? 'http://localhost:8888/api/items/import',
+  importUrl: options.url ?? process.env.TERRAPEDIA_IMPORT_URL ?? `${resolveBackendApiBase()}/items/import`,
   source: options.source,
   overwriteExisting: options['overwrite-existing'] ?? options.overwriteExisting,
   token: options.token,

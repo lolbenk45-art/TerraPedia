@@ -2,11 +2,11 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { resolveAdminAuth } from '../../lib/local-runtime-config.mjs';
+import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
 
 const args = parseArgs(process.argv.slice(2));
 const apply = args.apply === 'true';
-const apiBase = trimTrailingSlash(args.apiBase || 'http://127.0.0.1:8888/api');
+const apiBase = trimTrailingSlash(resolveBackendApiBase(args));
 const skipUpload = args.skipUpload === 'true';
 const { username: adminUsername, password: adminPassword } = resolveAdminAuth(args, {
   usernameKey: 'adminUsername',

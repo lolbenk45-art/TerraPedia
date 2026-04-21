@@ -1,5 +1,6 @@
 import { importNormalizedItems } from '../import/import-items.mjs';
 import { importItemRelations } from '../import/import-item-relations.mjs';
+import { resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
 import { parseCliArgs, sharedDataPath } from '../lib/wiki-item-utils.mjs';
 import { validateNormalizedItems } from '../normalize/validate-normalized-items.mjs';
 import { spawnSync } from 'node:child_process';
@@ -27,7 +28,7 @@ if (!validation.report.valid) {
 
 const itemImportResult = await importNormalizedItems({
   inputPath: itemInputPath,
-  importUrl: options.url ?? process.env.TERRAPEDIA_IMPORT_URL ?? 'http://localhost:8888/api/items/import',
+  importUrl: options.url ?? process.env.TERRAPEDIA_IMPORT_URL ?? `${resolveBackendApiBase()}/items/import`,
   source: options.source,
   overwriteExisting: options['overwrite-existing'] ?? options.overwriteExisting,
   token: options.token,
@@ -43,7 +44,7 @@ if (!itemImportResult.ok) {
 
 const relationImportResult = await importItemRelations({
   inputPath: relationInputPath,
-  importUrl: options['relation-url'] ?? process.env.TERRAPEDIA_RELATION_IMPORT_URL ?? 'http://localhost:8888/api/items/import/relations',
+  importUrl: options['relation-url'] ?? process.env.TERRAPEDIA_RELATION_IMPORT_URL ?? `${resolveBackendApiBase()}/items/import/relations`,
   token: options.token,
   authUrl: options['auth-url'] ?? options.authUrl,
   username: options.username,

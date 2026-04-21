@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
 import { parseCliArgs, sharedDataPath } from '../lib/wiki-item-utils.mjs';
 import { deriveAuthUrl, resolveImportAuthorization } from './import-items.mjs';
 
@@ -10,7 +11,7 @@ fs.mkdirSync(reportDir, { recursive: true });
 
 export async function importItemRelations({
   inputPath = sharedDataPath('normalized', 'item-relations.bundle.json'),
-  importUrl = process.env.TERRAPEDIA_RELATION_IMPORT_URL ?? 'http://localhost:8888/api/items/import/relations',
+  importUrl = process.env.TERRAPEDIA_RELATION_IMPORT_URL ?? `${resolveBackendApiBase()}/items/import/relations`,
   token,
   authUrl,
   username,
@@ -125,9 +126,9 @@ if (isDirectExecution()) {
   const positionalInput = process.argv.slice(2).find((arg) => !arg.startsWith('--'));
   const result = await importItemRelations({
     inputPath: positionalInput ?? cliOptions.input ?? sharedDataPath('normalized', 'item-relations.bundle.json'),
-    importUrl: cliOptions.url ?? process.env.TERRAPEDIA_RELATION_IMPORT_URL ?? 'http://localhost:8888/api/items/import/relations',
+    importUrl: cliOptions.url ?? process.env.TERRAPEDIA_RELATION_IMPORT_URL ?? `${resolveBackendApiBase()}/items/import/relations`,
     token: cliOptions.token,
-    authUrl: cliOptions['auth-url'] ?? cliOptions.authUrl ?? deriveAuthUrl(cliOptions.url ?? process.env.TERRAPEDIA_RELATION_IMPORT_URL ?? 'http://localhost:8888/api/items/import/relations'),
+    authUrl: cliOptions['auth-url'] ?? cliOptions.authUrl ?? deriveAuthUrl(cliOptions.url ?? process.env.TERRAPEDIA_RELATION_IMPORT_URL ?? `${resolveBackendApiBase()}/items/import/relations`),
     username: cliOptions.username,
     password: cliOptions.password
   });

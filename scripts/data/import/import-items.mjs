@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { resolveAdminAuth } from '../../lib/local-runtime-config.mjs';
+import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
 import { parseCliArgs, sharedDataPath } from '../lib/wiki-item-utils.mjs';
 
 const reportDir = sharedDataPath('reports', 'import');
@@ -10,7 +10,7 @@ fs.mkdirSync(reportDir, { recursive: true });
 
 export async function importNormalizedItems({
   inputPath = sharedDataPath('normalized', 'items.sample.json'),
-  importUrl = process.env.TERRAPEDIA_IMPORT_URL ?? 'http://localhost:8888/api/items/import',
+  importUrl = process.env.TERRAPEDIA_IMPORT_URL ?? `${resolveBackendApiBase()}/items/import`,
   source,
   overwriteExisting,
   token,
@@ -224,7 +224,7 @@ if (isDirectExecution()) {
   const inputPath = positionalInput ?? cliOptions.input ?? sharedDataPath('normalized', 'items.sample.json');
   const result = await importNormalizedItems({
     inputPath,
-    importUrl: cliOptions.url ?? process.env.TERRAPEDIA_IMPORT_URL ?? 'http://localhost:8888/api/items/import',
+    importUrl: cliOptions.url ?? process.env.TERRAPEDIA_IMPORT_URL ?? `${resolveBackendApiBase()}/items/import`,
     source: cliOptions.source,
     overwriteExisting: cliOptions['overwrite-existing'] ?? cliOptions.overwriteExisting,
     token: cliOptions.token,

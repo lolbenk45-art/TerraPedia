@@ -1,10 +1,9 @@
-import { resolveAdminAuth } from '../../lib/local-runtime-config.mjs';
+import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
 
-const DEFAULT_API_BASE = 'http://127.0.0.1:8888/api';
 export const DEFAULT_MANAGED_URL_PREFIX = 'http://localhost:9000/terrapedia-images';
 
 export async function createMinioImageUploader(options = {}) {
-  const apiBase = trimTrailingSlash(toText(options.apiBase) || DEFAULT_API_BASE);
+  const apiBase = trimTrailingSlash(toText(options.apiBase) || resolveBackendApiBase({}, { repoRoot: options.repoRoot }));
   const { username: adminUsername, password: adminPassword } = resolveAdminAuth(
     {
       adminUsername: options.adminUsername,

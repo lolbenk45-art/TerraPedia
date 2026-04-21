@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import { resolveAdminAuth } from '../../lib/local-runtime-config.mjs';
+import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
 
 const args = parseArgs(process.argv.slice(2));
-const apiBase = trimTrailingSlash(args.apiBase || 'http://127.0.0.1:8888/api');
+const apiBase = trimTrailingSlash(resolveBackendApiBase(args));
 const { username, password } = resolveAdminAuth(args);
 const minioEnabled = String(args.minioEnabled ?? process.env.TERRAPEDIA_MINIO_ENABLED ?? 'false').toLowerCase() === 'true';
 

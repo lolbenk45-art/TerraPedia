@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { resolveAdminAuth } from '../../lib/local-runtime-config.mjs';
+import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
 import { resolveArmorSetDetailPath } from './entity-audit-api-path.mjs';
 import { getBuffAuditStatsSql } from './entity-audit-sql.mjs';
 
@@ -12,7 +12,7 @@ const mysql = require('mysql2/promise');
 
 const args = parseArgs(process.argv.slice(2));
 const output = args.output || path.join(process.cwd(), 'reports', '实体数据完整性审计_2026-03-30.json');
-const apiBase = trimTrailingSlash(args.apiBase || 'http://127.0.0.1:8888/api');
+const apiBase = trimTrailingSlash(resolveBackendApiBase(args));
 const { username, password } = resolveAdminAuth(args);
 
 const standardizedFiles = {

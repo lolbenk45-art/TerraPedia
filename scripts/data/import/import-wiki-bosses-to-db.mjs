@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
-import { resolveAdminAuth } from '../../lib/local-runtime-config.mjs';
+import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
 import { shouldFailBossImportStrictMode } from './boss-import-strict-mode.mjs';
 import { resolveReferenceOnlyBossSource } from './boss-reference-source.mjs';
 import {
@@ -26,7 +26,7 @@ const dateTag = new Date().toISOString().slice(0, 10);
 const reportPath = path.resolve(args['report-json'] ?? path.join(repoRoot, 'reports', `wiki-bosses-import-${dateTag}.json`));
 const dryRun = booleanOption(args['dry-run'], false);
 const strictMode = booleanOption(args.strict, false);
-const apiBase = args.apiBase ?? 'http://127.0.0.1:8888/api';
+const apiBase = resolveBackendApiBase(args, { repoRoot });
 const { username: adminUsername, password: adminPassword } = resolveAdminAuth(args, {
   usernameKey: 'adminUsername',
   passwordKey: 'adminPassword',
