@@ -219,3 +219,20 @@ data/generated/recipe-material-reference.json
 1. 调度化运行
 2. heartbeat / 中间快照
 3. 文档口径清理
+
+---
+
+## 8. 后续追加结果
+
+`M11` 后续批次已继续补齐：
+
+- `M11-R1`：后端调度化 daemon
+- `M11-R2`：Windows 任务计划接入
+- `M11-R3`：action heartbeat / snapshot
+- `M11-R4`：默认运行口径切到 `18088`
+
+因此本文件中的剩余项，当前只应继续视为历史收口前状态；最新口径以：
+
+- `TerraPedia_M11_R5_后端时效主线最终验收收口_2026-04-22.md`
+
+为准。
