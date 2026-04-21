@@ -111,13 +111,25 @@ test('classifyTownNpcShopItemDisposition marks verified legacy-only shop items a
   });
 });
 
-test('classifyTownNpcShopItemDisposition keeps unresolved modern placeholders unmatched', () => {
-  const actual = classifyTownNpcShopItemDisposition({
-    nameZh: '任何晶塔',
-    nameEn: '任何晶塔',
-  });
+test('classifyTownNpcShopItemDisposition marks generic choice placeholders as deferred placeholders', () => {
+  const samples = [
+    '任何晶塔',
+    '堆石器',
+    '逻辑门',
+    '传送带',
+  ];
 
-  assert.equal(actual, null);
+  for (const sample of samples) {
+    assert.deepEqual(
+      classifyTownNpcShopItemDisposition({ nameZh: sample, nameEn: sample }),
+      {
+        kind: 'generic_choice_placeholder',
+        canonicalName: null,
+        reason: 'generic_choice_placeholder',
+      },
+      sample,
+    );
+  }
 });
 
 test('classifyTownNpcShopItemDisposition marks clothier variant-exclusive vanity items as excluded', () => {
