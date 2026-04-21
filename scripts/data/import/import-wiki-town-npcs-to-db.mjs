@@ -20,6 +20,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 
+const TOWN_NPC_SHOP_ITEM_ALIASES = new Map([
+  ['闪耀翅膀', ["Cenx's Wings", 'Cenx的翅膀']],
+]);
+
 export async function runImportWikiTownNpcsToDb(rawArgs = process.argv.slice(2)) {
   const args = parseCliArgs(rawArgs);
   const apply = booleanOption(args.apply, false);
@@ -375,6 +379,9 @@ function buildItemMatchCandidates(rawItem) {
   for (const candidate of baseCandidates) {
     pushCandidate(candidates, seen, candidate);
     pushCandidate(candidates, seen, stripTrailingItemQualifier(candidate));
+    for (const alias of resolveTownNpcShopItemAliases(candidate)) {
+      pushCandidate(candidates, seen, alias);
+    }
   }
   return candidates;
 }
@@ -395,6 +402,14 @@ function stripTrailingItemQualifier(value) {
   }
   const stripped = text.replace(/\s*[（(][^（）()]+[）)]\s*$/u, '').trim();
   return stripped === text ? null : stripped;
+}
+
+function resolveTownNpcShopItemAliases(value) {
+  const text = toText(value);
+  if (!text) {
+    return [];
+  }
+  return TOWN_NPC_SHOP_ITEM_ALIASES.get(text) ?? [];
 }
 
 function findNpc(npcLookup, gameId, internalName) {
