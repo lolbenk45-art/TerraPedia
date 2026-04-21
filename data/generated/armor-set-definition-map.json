@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-04-04T04:11:53.775Z",
+  "generatedAt": "2026-04-21T20:09:17.247Z",
   "total": 88,
   "mapped": 71,
   "placeholder": 17,
   "records": {
-    "1": {
-      "armorSetId": 1,
-      "name": "挖矿盔甲套装",
+    "236": {
+      "armorSetId": 236,
+      "name": "挖矿盔甲",
       "internalCode": "挖矿盔甲",
       "itemIds": [
         88,
@@ -51,9 +51,9 @@
         ]
       }
     },
-    "2": {
-      "armorSetId": 2,
-      "name": "木盔甲套装",
+    "237": {
+      "armorSetId": 237,
+      "name": "木盔甲",
       "internalCode": "木盔甲",
       "itemIds": [
         727,
@@ -126,9 +126,9 @@
         ]
       }
     },
-    "3": {
-      "armorSetId": 3,
-      "name": "红木盔甲套装",
+    "238": {
+      "armorSetId": 238,
+      "name": "红木盔甲",
       "internalCode": "红木盔甲",
       "itemIds": [
         733,
@@ -201,9 +201,9 @@
         ]
       }
     },
-    "4": {
-      "armorSetId": 4,
-      "name": "针叶木盔甲套装",
+    "239": {
+      "armorSetId": 239,
+      "name": "针叶木盔甲",
       "internalCode": "针叶木盔甲",
       "itemIds": [
         2509,
@@ -276,9 +276,9 @@
         ]
       }
     },
-    "5": {
-      "armorSetId": 5,
-      "name": "棕榈木盔甲套装",
+    "240": {
+      "armorSetId": 240,
+      "name": "棕榈木盔甲",
       "internalCode": "棕榈木盔甲",
       "itemIds": [
         2512,
@@ -351,9 +351,9 @@
         ]
       }
     },
-    "6": {
-      "armorSetId": 6,
-      "name": "乌木盔甲套装",
+    "241": {
+      "armorSetId": 241,
+      "name": "乌木盔甲",
       "internalCode": "乌木盔甲",
       "itemIds": [
         730,
@@ -426,9 +426,9 @@
         ]
       }
     },
-    "7": {
-      "armorSetId": 7,
-      "name": "暗影木盔甲套装",
+    "242": {
+      "armorSetId": 242,
+      "name": "暗影木盔甲",
       "internalCode": "暗影木盔甲",
       "itemIds": [
         924,
@@ -501,9 +501,9 @@
         ]
       }
     },
-    "8": {
-      "armorSetId": 8,
-      "name": "灰烬木盔甲套装",
+    "243": {
+      "armorSetId": 243,
+      "name": "灰烬木盔甲",
       "internalCode": "灰烬木盔甲",
       "itemIds": [
         5279,
@@ -558,9 +558,9 @@
         ]
       }
     },
-    "9": {
-      "armorSetId": 9,
-      "name": "雨具盔甲套装",
+    "244": {
+      "armorSetId": 244,
+      "name": "雨具盔甲",
       "internalCode": "雨具盔甲",
       "itemIds": [
         1135,
@@ -570,7 +570,7 @@
       "candidates": [],
       "definition": {
         "textKey": null,
-        "textZh": "雨具盔甲套装",
+        "textZh": "雨具盔甲",
         "textEn": "雨具盔甲",
         "benefitExpression": null,
         "benefitZh": null,
@@ -583,9 +583,9 @@
         ]
       }
     },
-    "10": {
-      "armorSetId": 10,
-      "name": "防雪盔甲套装",
+    "245": {
+      "armorSetId": 245,
+      "name": "防雪盔甲",
       "internalCode": "防雪盔甲",
       "itemIds": [
         803,
@@ -628,9 +628,9 @@
         ]
       }
     },
-    "11": {
-      "armorSetId": 11,
-      "name": "粉色防雪盔甲套装",
+    "246": {
+      "armorSetId": 246,
+      "name": "粉色防雪盔甲",
       "internalCode": "粉色防雪盔甲",
       "itemIds": [
         978,
@@ -673,9 +673,9 @@
         ]
       }
     },
-    "12": {
-      "armorSetId": 12,
-      "name": "渔夫盔甲套装",
+    "247": {
+      "armorSetId": 247,
+      "name": "渔夫盔甲",
       "internalCode": "渔夫盔甲",
       "itemIds": [
         2367,
@@ -718,9 +718,9 @@
         ]
       }
     },
-    "13": {
-      "armorSetId": 13,
-      "name": "仙人掌盔甲套装",
+    "248": {
+      "armorSetId": 248,
+      "name": "仙人掌盔甲",
       "internalCode": "仙人掌盔甲",
       "itemIds": [
         894,
@@ -757,9 +757,9 @@
         ]
       }
     },
-    "14": {
-      "armorSetId": 14,
-      "name": "铜盔甲套装",
+    "249": {
+      "armorSetId": 249,
+      "name": "铜盔甲",
       "internalCode": "铜盔甲",
       "itemIds": [
         76,
@@ -810,9 +810,9 @@
         ]
       }
     },
-    "15": {
-      "armorSetId": 15,
-      "name": "锡盔甲套装",
+    "250": {
+      "armorSetId": 250,
+      "name": "锡盔甲",
       "internalCode": "锡盔甲",
       "itemIds": [
         687,
@@ -863,9 +863,9 @@
         ]
       }
     },
-    "16": {
-      "armorSetId": 16,
-      "name": "南瓜盔甲套装",
+    "251": {
+      "armorSetId": 251,
+      "name": "南瓜盔甲",
       "internalCode": "南瓜盔甲",
       "itemIds": [
         1731,
@@ -902,9 +902,9 @@
         ]
       }
     },
-    "17": {
-      "armorSetId": 17,
-      "name": "忍者盔甲套装",
+    "252": {
+      "armorSetId": 252,
+      "name": "忍者盔甲",
       "internalCode": "忍者盔甲",
       "itemIds": [
         256,
@@ -941,9 +941,9 @@
         ]
       }
     },
-    "18": {
-      "armorSetId": 18,
-      "name": "铁盔甲套装",
+    "253": {
+      "armorSetId": 253,
+      "name": "铁盔甲",
       "internalCode": "铁盔甲",
       "itemIds": [
         77,
@@ -994,9 +994,9 @@
         ]
       }
     },
-    "19": {
-      "armorSetId": 19,
-      "name": "铅盔甲套装",
+    "254": {
+      "armorSetId": 254,
+      "name": "铅盔甲",
       "internalCode": "铅盔甲",
       "itemIds": [
         690,
@@ -1053,9 +1053,9 @@
         ]
       }
     },
-    "20": {
-      "armorSetId": 20,
-      "name": "银盔甲套装",
+    "255": {
+      "armorSetId": 255,
+      "name": "银盔甲",
       "internalCode": "银盔甲",
       "itemIds": [
         78,
@@ -1112,9 +1112,9 @@
         ]
       }
     },
-    "21": {
-      "armorSetId": 21,
-      "name": "钨盔甲套装",
+    "256": {
+      "armorSetId": 256,
+      "name": "钨盔甲",
       "internalCode": "钨盔甲",
       "itemIds": [
         693,
@@ -1171,9 +1171,9 @@
         ]
       }
     },
-    "22": {
-      "armorSetId": 22,
-      "name": "金盔甲套装",
+    "257": {
+      "armorSetId": 257,
+      "name": "金盔甲",
       "internalCode": "金盔甲",
       "itemIds": [
         79,
@@ -1230,9 +1230,9 @@
         ]
       }
     },
-    "23": {
-      "armorSetId": 23,
-      "name": "铂金盔甲套装",
+    "258": {
+      "armorSetId": 258,
+      "name": "铂金盔甲",
       "internalCode": "铂金盔甲",
       "itemIds": [
         696,
@@ -1279,9 +1279,9 @@
         ]
       }
     },
-    "24": {
-      "armorSetId": 24,
-      "name": "化石盔甲套装",
+    "259": {
+      "armorSetId": 259,
+      "name": "化石盔甲",
       "internalCode": "化石盔甲",
       "itemIds": [
         3374,
@@ -1318,9 +1318,9 @@
         ]
       }
     },
-    "25": {
-      "armorSetId": 25,
-      "name": "蜜蜂盔甲套装",
+    "260": {
+      "armorSetId": 260,
+      "name": "蜜蜂盔甲",
       "internalCode": "蜜蜂盔甲",
       "itemIds": [
         2361,
@@ -1357,9 +1357,9 @@
         ]
       }
     },
-    "26": {
-      "armorSetId": 26,
-      "name": "黑曜石盔甲套装",
+    "261": {
+      "armorSetId": 261,
+      "name": "黑曜石盔甲",
       "internalCode": "黑曜石盔甲",
       "itemIds": [
         3266,
@@ -1396,9 +1396,9 @@
         ]
       }
     },
-    "27": {
-      "armorSetId": 27,
-      "name": "角斗士盔甲套装",
+    "262": {
+      "armorSetId": 262,
+      "name": "角斗士盔甲",
       "internalCode": "角斗士盔甲",
       "itemIds": [
         3187,
@@ -1435,9 +1435,9 @@
         ]
       }
     },
-    "28": {
-      "armorSetId": 28,
-      "name": "流星盔甲套装",
+    "263": {
+      "armorSetId": 263,
+      "name": "流星盔甲",
       "internalCode": "流星盔甲",
       "itemIds": [
         123,
@@ -1474,9 +1474,9 @@
         ]
       }
     },
-    "29": {
-      "armorSetId": 29,
-      "name": "丛林盔甲套装",
+    "264": {
+      "armorSetId": 264,
+      "name": "丛林盔甲",
       "internalCode": "丛林盔甲",
       "itemIds": [
         228,
@@ -1519,9 +1519,9 @@
         ]
       }
     },
-    "30": {
-      "armorSetId": 30,
-      "name": "远古钴盔甲套装",
+    "265": {
+      "armorSetId": 265,
+      "name": "远古钴盔甲",
       "internalCode": "远古钴盔甲",
       "itemIds": [
         960,
@@ -1564,9 +1564,9 @@
         ]
       }
     },
-    "31": {
-      "armorSetId": 31,
-      "name": "死灵盔甲套装",
+    "266": {
+      "armorSetId": 266,
+      "name": "死灵盔甲",
       "internalCode": "死灵盔甲",
       "itemIds": [
         151,
@@ -1605,9 +1605,9 @@
         ]
       }
     },
-    "32": {
-      "armorSetId": 32,
-      "name": "暗影盔甲套装",
+    "267": {
+      "armorSetId": 267,
+      "name": "暗影盔甲",
       "internalCode": "暗影盔甲",
       "itemIds": [
         924,
@@ -1680,9 +1680,9 @@
         ]
       }
     },
-    "33": {
-      "armorSetId": 33,
-      "name": "远古暗影盔甲套装",
+    "268": {
+      "armorSetId": 268,
+      "name": "远古暗影盔甲",
       "internalCode": "远古暗影盔甲",
       "itemIds": [
         956,
@@ -1725,9 +1725,9 @@
         ]
       }
     },
-    "34": {
-      "armorSetId": 34,
-      "name": "猩红盔甲套装",
+    "269": {
+      "armorSetId": 269,
+      "name": "猩红盔甲",
       "internalCode": "猩红盔甲",
       "itemIds": [
         792,
@@ -1764,9 +1764,9 @@
         ]
       }
     },
-    "35": {
-      "armorSetId": 35,
-      "name": "熔岩盔甲套装",
+    "270": {
+      "armorSetId": 270,
+      "name": "熔岩盔甲",
       "internalCode": "熔岩盔甲",
       "itemIds": [
         231,
@@ -1803,9 +1803,9 @@
         ]
       }
     },
-    "36": {
-      "armorSetId": 36,
-      "name": "珍珠木盔甲套装",
+    "271": {
+      "armorSetId": 271,
+      "name": "珍珠木盔甲",
       "internalCode": "珍珠木盔甲",
       "itemIds": [
         736,
@@ -1878,9 +1878,9 @@
         ]
       }
     },
-    "37": {
-      "armorSetId": 37,
-      "name": "蜘蛛盔甲套装",
+    "272": {
+      "armorSetId": 272,
+      "name": "蜘蛛盔甲",
       "internalCode": "蜘蛛盔甲",
       "itemIds": [
         2370,
@@ -1917,9 +1917,9 @@
         ]
       }
     },
-    "38": {
-      "armorSetId": 38,
-      "name": "钴盔甲套装",
+    "273": {
+      "armorSetId": 273,
+      "name": "钴盔甲",
       "internalCode": "钴盔甲",
       "itemIds": [
         372,
@@ -1930,7 +1930,7 @@
       "candidates": [],
       "definition": {
         "textKey": null,
-        "textZh": "钴盔甲套装",
+        "textZh": "钴盔甲",
         "textEn": "钴盔甲",
         "benefitExpression": null,
         "benefitZh": null,
@@ -1944,9 +1944,9 @@
         ]
       }
     },
-    "39": {
-      "armorSetId": 39,
-      "name": "钯金盔甲套装",
+    "274": {
+      "armorSetId": 274,
+      "name": "钯金盔甲",
       "internalCode": "钯金盔甲",
       "itemIds": [
         1205,
@@ -1987,9 +1987,9 @@
         ]
       }
     },
-    "40": {
-      "armorSetId": 40,
-      "name": "秘银盔甲套装",
+    "275": {
+      "armorSetId": 275,
+      "name": "秘银盔甲",
       "internalCode": "秘银盔甲",
       "itemIds": [
         377,
@@ -2000,7 +2000,7 @@
       "candidates": [],
       "definition": {
         "textKey": null,
-        "textZh": "秘银盔甲套装",
+        "textZh": "秘银盔甲",
         "textEn": "秘银盔甲",
         "benefitExpression": null,
         "benefitZh": null,
@@ -2014,9 +2014,9 @@
         ]
       }
     },
-    "41": {
-      "armorSetId": 41,
-      "name": "山铜盔甲套装",
+    "276": {
+      "armorSetId": 276,
+      "name": "山铜盔甲",
       "internalCode": "山铜盔甲",
       "itemIds": [
         1210,
@@ -2057,9 +2057,9 @@
         ]
       }
     },
-    "42": {
-      "armorSetId": 42,
-      "name": "精金盔甲套装",
+    "277": {
+      "armorSetId": 277,
+      "name": "精金盔甲",
       "internalCode": "精金盔甲",
       "itemIds": [
         401,
@@ -2070,7 +2070,7 @@
       "candidates": [],
       "definition": {
         "textKey": null,
-        "textZh": "精金盔甲套装",
+        "textZh": "精金盔甲",
         "textEn": "精金盔甲",
         "benefitExpression": null,
         "benefitZh": null,
@@ -2084,9 +2084,9 @@
         ]
       }
     },
-    "43": {
-      "armorSetId": 43,
-      "name": "钛金盔甲套装",
+    "278": {
+      "armorSetId": 278,
+      "name": "钛金盔甲",
       "internalCode": "钛金盔甲",
       "itemIds": [
         1215,
@@ -2127,9 +2127,9 @@
         ]
       }
     },
-    "44": {
-      "armorSetId": 44,
-      "name": "水晶刺客盔甲套装",
+    "279": {
+      "armorSetId": 279,
+      "name": "水晶刺客盔甲",
       "internalCode": "水晶刺客盔甲",
       "itemIds": [
         4982,
@@ -2166,9 +2166,9 @@
         ]
       }
     },
-    "45": {
-      "armorSetId": 45,
-      "name": "寒霜盔甲套装",
+    "280": {
+      "armorSetId": 280,
+      "name": "寒霜盔甲",
       "internalCode": "寒霜盔甲",
       "itemIds": [
         684,
@@ -2205,9 +2205,9 @@
         ]
       }
     },
-    "46": {
-      "armorSetId": 46,
-      "name": "禁戒盔甲套装",
+    "281": {
+      "armorSetId": 281,
+      "name": "禁戒盔甲",
       "internalCode": "禁戒盔甲",
       "itemIds": [
         3776,
@@ -2244,9 +2244,9 @@
         ]
       }
     },
-    "47": {
-      "armorSetId": 47,
-      "name": "侍卫盔甲套装",
+    "282": {
+      "armorSetId": 282,
+      "name": "侍卫盔甲",
       "internalCode": "侍卫盔甲",
       "itemIds": [
         3800,
@@ -2283,9 +2283,9 @@
         ]
       }
     },
-    "48": {
-      "armorSetId": 48,
-      "name": "武僧盔甲套装",
+    "283": {
+      "armorSetId": 283,
+      "name": "武僧盔甲",
       "internalCode": "武僧盔甲",
       "itemIds": [
         3806,
@@ -2322,9 +2322,9 @@
         ]
       }
     },
-    "49": {
-      "armorSetId": 49,
-      "name": "女猎人盔甲套装",
+    "284": {
+      "armorSetId": 284,
+      "name": "女猎人盔甲",
       "internalCode": "女猎人盔甲",
       "itemIds": [
         3803,
@@ -2361,9 +2361,9 @@
         ]
       }
     },
-    "50": {
-      "armorSetId": 50,
-      "name": "学徒盔甲套装",
+    "285": {
+      "armorSetId": 285,
+      "name": "学徒盔甲",
       "internalCode": "学徒盔甲",
       "itemIds": [
         3797,
@@ -2400,9 +2400,9 @@
         ]
       }
     },
-    "51": {
-      "armorSetId": 51,
-      "name": "神圣盔甲套装",
+    "286": {
+      "armorSetId": 286,
+      "name": "神圣盔甲",
       "internalCode": "神圣盔甲",
       "itemIds": [
         551,
@@ -2453,9 +2453,9 @@
         ]
       }
     },
-    "52": {
-      "armorSetId": 52,
-      "name": "远古神圣盔甲套装",
+    "287": {
+      "armorSetId": 287,
+      "name": "远古神圣盔甲",
       "internalCode": "远古神圣盔甲",
       "itemIds": [
         4899,
@@ -2502,9 +2502,9 @@
         ]
       }
     },
-    "53": {
-      "armorSetId": 53,
-      "name": "叶绿盔甲套装",
+    "288": {
+      "armorSetId": 288,
+      "name": "叶绿盔甲",
       "internalCode": "叶绿盔甲",
       "itemIds": [
         1001,
@@ -2530,9 +2530,9 @@
         ]
       }
     },
-    "54": {
-      "armorSetId": 54,
-      "name": "海龟盔甲套装",
+    "289": {
+      "armorSetId": 289,
+      "name": "海龟盔甲",
       "internalCode": "海龟盔甲",
       "itemIds": [
         1316,
@@ -2569,9 +2569,9 @@
         ]
       }
     },
-    "55": {
-      "armorSetId": 55,
-      "name": "提基盔甲套装",
+    "290": {
+      "armorSetId": 290,
+      "name": "提基盔甲",
       "internalCode": "提基盔甲",
       "itemIds": [
         1159,
@@ -2608,9 +2608,9 @@
         ]
       }
     },
-    "56": {
-      "armorSetId": 56,
-      "name": "甲虫盔甲套装",
+    "291": {
+      "armorSetId": 291,
+      "name": "甲虫盔甲",
       "internalCode": "甲虫盔甲",
       "itemIds": [
         2199,
@@ -2621,7 +2621,7 @@
       "candidates": [],
       "definition": {
         "textKey": null,
-        "textZh": "甲虫盔甲套装",
+        "textZh": "甲虫盔甲",
         "textEn": "甲虫盔甲",
         "benefitExpression": null,
         "benefitZh": null,
@@ -2635,9 +2635,9 @@
         ]
       }
     },
-    "57": {
-      "armorSetId": 57,
-      "name": "蘑菇矿盔甲套装",
+    "292": {
+      "armorSetId": 292,
+      "name": "蘑菇矿盔甲",
       "internalCode": "蘑菇矿盔甲",
       "itemIds": [
         1546,
@@ -2648,7 +2648,7 @@
       "candidates": [],
       "definition": {
         "textKey": null,
-        "textZh": "蘑菇矿盔甲套装",
+        "textZh": "蘑菇矿盔甲",
         "textEn": "蘑菇矿盔甲",
         "benefitExpression": null,
         "benefitZh": null,
@@ -2662,9 +2662,9 @@
         ]
       }
     },
-    "58": {
-      "armorSetId": 58,
-      "name": "幽灵盔甲套装",
+    "293": {
+      "armorSetId": 293,
+      "name": "幽灵盔甲",
       "internalCode": "幽灵盔甲",
       "itemIds": [
         1504,
@@ -2675,7 +2675,7 @@
       "candidates": [],
       "definition": {
         "textKey": null,
-        "textZh": "幽灵盔甲套装",
+        "textZh": "幽灵盔甲",
         "textEn": "幽灵盔甲",
         "benefitExpression": null,
         "benefitZh": null,
@@ -2689,9 +2689,9 @@
         ]
       }
     },
-    "59": {
-      "armorSetId": 59,
-      "name": "阴森盔甲套装",
+    "294": {
+      "armorSetId": 294,
+      "name": "阴森盔甲",
       "internalCode": "阴森盔甲",
       "itemIds": [
         1832,
@@ -2728,9 +2728,9 @@
         ]
       }
     },
-    "60": {
-      "armorSetId": 60,
-      "name": "英灵殿骑士盔甲套装",
+    "295": {
+      "armorSetId": 295,
+      "name": "英灵殿骑士盔甲",
       "internalCode": "英灵殿骑士盔甲",
       "itemIds": [
         3871,
@@ -2767,9 +2767,9 @@
         ]
       }
     },
-    "61": {
-      "armorSetId": 61,
-      "name": "渗透忍者盔甲套装",
+    "296": {
+      "armorSetId": 296,
+      "name": "渗透忍者盔甲",
       "internalCode": "渗透忍者盔甲",
       "itemIds": [
         3880,
@@ -2806,9 +2806,9 @@
         ]
       }
     },
-    "62": {
-      "armorSetId": 62,
-      "name": "红色骑术盔甲套装",
+    "297": {
+      "armorSetId": 297,
+      "name": "红色骑术盔甲",
       "internalCode": "红色骑术盔甲",
       "itemIds": [
         3877,
@@ -2845,9 +2845,9 @@
         ]
       }
     },
-    "63": {
-      "armorSetId": 63,
-      "name": "暗黑艺术家盔甲套装",
+    "298": {
+      "armorSetId": 298,
+      "name": "暗黑艺术家盔甲",
       "internalCode": "暗黑艺术家盔甲",
       "itemIds": [
         3874,
@@ -2884,9 +2884,9 @@
         ]
       }
     },
-    "64": {
-      "armorSetId": 64,
-      "name": "耀斑盔甲套装",
+    "299": {
+      "armorSetId": 299,
+      "name": "耀斑盔甲",
       "internalCode": "耀斑盔甲",
       "itemIds": [
         2763,
@@ -2923,9 +2923,9 @@
         ]
       }
     },
-    "65": {
-      "armorSetId": 65,
-      "name": "星旋盔甲套装",
+    "300": {
+      "armorSetId": 300,
+      "name": "星旋盔甲",
       "internalCode": "星旋盔甲",
       "itemIds": [
         2757,
@@ -2962,9 +2962,9 @@
         ]
       }
     },
-    "66": {
-      "armorSetId": 66,
-      "name": "星云盔甲套装",
+    "301": {
+      "armorSetId": 301,
+      "name": "星云盔甲",
       "internalCode": "星云盔甲",
       "itemIds": [
         2760,
@@ -3001,9 +3001,9 @@
         ]
       }
     },
-    "67": {
-      "armorSetId": 67,
-      "name": "星尘盔甲套装",
+    "302": {
+      "armorSetId": 302,
+      "name": "星尘盔甲",
       "internalCode": "星尘盔甲",
       "itemIds": [
         3381,
@@ -3040,9 +3040,9 @@
         ]
       }
     },
-    "68": {
-      "armorSetId": 68,
-      "name": "魔法帽套装",
+    "303": {
+      "armorSetId": 303,
+      "name": "魔法帽",
       "internalCode": "魔法帽",
       "itemIds": [
         1282,
@@ -3092,9 +3092,9 @@
         ]
       }
     },
-    "69": {
-      "armorSetId": 69,
-      "name": "巫师帽套装",
+    "304": {
+      "armorSetId": 304,
+      "name": "巫师帽",
       "internalCode": "巫师帽",
       "itemIds": [
         1282,
@@ -3125,9 +3125,9 @@
         ]
       }
     },
-    "70": {
-      "armorSetId": 70,
-      "name": "紫晶长袍套装",
+    "305": {
+      "armorSetId": 305,
+      "name": "紫晶长袍",
       "internalCode": "紫晶长袍",
       "itemIds": [
         1282,
@@ -3177,9 +3177,9 @@
         ]
       }
     },
-    "71": {
-      "armorSetId": 71,
-      "name": "黄玉长袍套装",
+    "306": {
+      "armorSetId": 306,
+      "name": "黄玉长袍",
       "internalCode": "黄玉长袍",
       "itemIds": [
         1283,
@@ -3229,9 +3229,9 @@
         ]
       }
     },
-    "72": {
-      "armorSetId": 72,
-      "name": "蓝玉长袍套装",
+    "307": {
+      "armorSetId": 307,
+      "name": "蓝玉长袍",
       "internalCode": "蓝玉长袍",
       "itemIds": [
         1284,
@@ -3281,9 +3281,9 @@
         ]
       }
     },
-    "73": {
-      "armorSetId": 73,
-      "name": "翡翠长袍套装",
+    "308": {
+      "armorSetId": 308,
+      "name": "翡翠长袍",
       "internalCode": "翡翠长袍",
       "itemIds": [
         1285,
@@ -3333,9 +3333,9 @@
         ]
       }
     },
-    "74": {
-      "armorSetId": 74,
-      "name": "红玉长袍套装",
+    "309": {
+      "armorSetId": 309,
+      "name": "红玉长袍",
       "internalCode": "红玉长袍",
       "itemIds": [
         1286,
@@ -3385,9 +3385,9 @@
         ]
       }
     },
-    "75": {
-      "armorSetId": 75,
-      "name": "琥珀长袍套装",
+    "310": {
+      "armorSetId": 310,
+      "name": "琥珀长袍",
       "internalCode": "琥珀长袍",
       "itemIds": [
         2275,
@@ -3437,9 +3437,9 @@
         ]
       }
     },
-    "76": {
-      "armorSetId": 76,
-      "name": "钻石长袍套装",
+    "311": {
+      "armorSetId": 311,
+      "name": "钻石长袍",
       "internalCode": "钻石长袍",
       "itemIds": [
         1287,
@@ -3489,9 +3489,9 @@
         ]
       }
     },
-    "77": {
-      "armorSetId": 77,
-      "name": "神秘长袍套装",
+    "312": {
+      "armorSetId": 312,
+      "name": "神秘长袍",
       "internalCode": "神秘长袍",
       "itemIds": [
         2275,
@@ -3541,9 +3541,9 @@
         ]
       }
     },
-    "78": {
-      "armorSetId": 78,
-      "name": "空桶套装",
+    "313": {
+      "armorSetId": 313,
+      "name": "空桶",
       "internalCode": "空桶",
       "itemIds": [
         205
@@ -3552,7 +3552,7 @@
       "candidates": [],
       "definition": {
         "textKey": null,
-        "textZh": "空桶套装",
+        "textZh": "空桶",
         "textEn": "空桶",
         "benefitExpression": null,
         "benefitZh": null,
@@ -3564,9 +3564,9 @@
         ]
       }
     },
-    "79": {
-      "armorSetId": 79,
-      "name": "护目镜套装",
+    "314": {
+      "armorSetId": 314,
+      "name": "护目镜",
       "internalCode": "护目镜",
       "itemIds": [
         37
@@ -3575,7 +3575,7 @@
       "candidates": [],
       "definition": {
         "textKey": null,
-        "textZh": "护目镜套装",
+        "textZh": "护目镜",
         "textEn": "护目镜",
         "benefitExpression": null,
         "benefitZh": null,
@@ -3587,9 +3587,9 @@
         ]
       }
     },
-    "80": {
-      "armorSetId": 80,
-      "name": "绿帽套装",
+    "315": {
+      "armorSetId": 315,
+      "name": "绿帽",
       "internalCode": "绿帽",
       "itemIds": [
         867
@@ -3598,7 +3598,7 @@
       "candidates": [],
       "definition": {
         "textKey": null,
-        "textZh": "绿帽套装",
+        "textZh": "绿帽",
         "textEn": "绿帽",
         "benefitExpression": null,
         "benefitZh": null,
@@ -3610,9 +3610,9 @@
         ]
       }
     },
-    "81": {
-      "armorSetId": 81,
-      "name": "潜水头盔套装",
+    "316": {
+      "armorSetId": 316,
+      "name": "潜水头盔",
       "internalCode": "潜水头盔",
       "itemIds": [
         268
@@ -3621,7 +3621,7 @@
       "candidates": [],
       "definition": {
         "textKey": null,
-        "textZh": "潜水头盔套装",
+        "textZh": "潜水头盔",
         "textEn": "潜水头盔",
         "benefitExpression": null,
         "benefitZh": null,
@@ -3633,9 +3633,9 @@
         ]
       }
     },
-    "82": {
-      "armorSetId": 82,
-      "name": "夜视头盔套装",
+    "317": {
+      "armorSetId": 317,
+      "name": "夜视头盔",
       "internalCode": "夜视头盔",
       "itemIds": [
         3109
@@ -3644,7 +3644,7 @@
       "candidates": [],
       "definition": {
         "textKey": null,
-        "textZh": "夜视头盔套装",
+        "textZh": "夜视头盔",
         "textEn": "夜视头盔",
         "benefitExpression": null,
         "benefitZh": null,
@@ -3656,9 +3656,9 @@
         ]
       }
     },
-    "83": {
-      "armorSetId": 83,
-      "name": "维京海盗头盔套装",
+    "318": {
+      "armorSetId": 318,
+      "name": "维京海盗头盔",
       "internalCode": "维京海盗头盔",
       "itemIds": [
         879
@@ -3667,7 +3667,7 @@
       "candidates": [],
       "definition": {
         "textKey": null,
-        "textZh": "维京海盗头盔套装",
+        "textZh": "维京海盗头盔",
         "textEn": "维京海盗头盔",
         "benefitExpression": null,
         "benefitZh": null,
@@ -3679,9 +3679,9 @@
         ]
       }
     },
-    "84": {
-      "armorSetId": 84,
-      "name": "超亮头盔套装",
+    "319": {
+      "armorSetId": 319,
+      "name": "超亮头盔",
       "internalCode": "超亮头盔",
       "itemIds": [
         4008
@@ -3724,9 +3724,9 @@
         ]
       }
     },
-    "85": {
-      "armorSetId": 85,
-      "name": "小雪怪皮毛外套套装",
+    "320": {
+      "armorSetId": 320,
+      "name": "小雪怪皮毛外套",
       "internalCode": "小雪怪皮毛外套",
       "itemIds": [
         5068
@@ -3735,7 +3735,7 @@
       "candidates": [],
       "definition": {
         "textKey": null,
-        "textZh": "小雪怪皮毛外套套装",
+        "textZh": "小雪怪皮毛外套",
         "textEn": "小雪怪皮毛外套",
         "benefitExpression": null,
         "benefitZh": null,
@@ -3747,9 +3747,9 @@
         ]
       }
     },
-    "86": {
-      "armorSetId": 86,
-      "name": "稽古衣套装",
+    "321": {
+      "armorSetId": 321,
+      "name": "稽古衣",
       "internalCode": "稽古衣",
       "itemIds": [
         2277
@@ -3758,7 +3758,7 @@
       "candidates": [],
       "definition": {
         "textKey": null,
-        "textZh": "稽古衣套装",
+        "textZh": "稽古衣",
         "textEn": "稽古衣",
         "benefitExpression": null,
         "benefitZh": null,
@@ -3770,9 +3770,9 @@
         ]
       }
     },
-    "87": {
-      "armorSetId": 87,
-      "name": "神灵诅咒套装",
+    "322": {
+      "armorSetId": 322,
+      "name": "神灵诅咒",
       "internalCode": "神灵诅咒",
       "itemIds": [
         3770
@@ -3781,7 +3781,7 @@
       "candidates": [],
       "definition": {
         "textKey": null,
-        "textZh": "神灵诅咒套装",
+        "textZh": "神灵诅咒",
         "textEn": "神灵诅咒",
         "benefitExpression": null,
         "benefitZh": null,
@@ -3793,9 +3793,9 @@
         ]
       }
     },
-    "88": {
-      "armorSetId": 88,
-      "name": "月亮领主腿套装",
+    "323": {
+      "armorSetId": 323,
+      "name": "月亮领主腿",
       "internalCode": "月亮领主腿",
       "itemIds": [
         5001
@@ -3804,7 +3804,7 @@
       "candidates": [],
       "definition": {
         "textKey": null,
-        "textZh": "月亮领主腿套装",
+        "textZh": "月亮领主腿",
         "textEn": "月亮领主腿",
         "benefitExpression": null,
         "benefitZh": null,

@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { toArmorSetDefinitionSeedRow } from './armor-set-definition-source.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -37,8 +38,9 @@ const manualDefinitionOverrides = new Map([
 const conn = await mysql.createConnection(db);
 try {
   const [rows] = await conn.query(`
-    SELECT id, name, internal_code, armor_head_id, armor_body_id, armor_legs_id
+    SELECT id, source_key, text_key, unique_item_ids_json, sets_json
     FROM armor_sets
+    WHERE deleted = 0
     ORDER BY id ASC
   `);
 
@@ -47,7 +49,8 @@ try {
   let placeholder = 0;
 
   for (const row of rows) {
-    const ids = [row.armor_head_id, row.armor_body_id, row.armor_legs_id].filter(v => v != null).map(Number).sort((a, b) => a - b);
+    const seed = toArmorSetDefinitionSeedRow(row);
+    const ids = [...seed.itemIds].sort((a, b) => a - b);
     const matches = defs.filter(def => {
       const uniq = (Array.isArray(def.uniqueItemIds) ? def.uniqueItemIds : []).filter(v => Number(v) > 0).map(Number);
       const uniqSet = new Set(uniq);
@@ -55,9 +58,9 @@ try {
     });
 
     const entry = {
-      armorSetId: Number(row.id),
-      name: row.name,
-      internalCode: row.internal_code,
+      armorSetId: seed.armorSetId,
+      name: seed.name,
+      internalCode: seed.internalCode,
       itemIds: ids,
       status: matches.length === 1 ? 'mapped' : 'placeholder',
       candidates: matches.map(def => ({
@@ -70,7 +73,7 @@ try {
       definition: null,
     };
 
-    const manualDefinition = definitionByTextKey.get(manualDefinitionOverrides.get(String(row.internal_code)));
+    const manualDefinition = definitionByTextKey.get(manualDefinitionOverrides.get(String(seed.internalCode)));
 
     if (matches.length === 1 || manualDefinition) {
       const def = manualDefinition || matches[0];
@@ -90,8 +93,8 @@ try {
     } else {
       entry.definition = {
         textKey: null,
-        textZh: row.name ?? null,
-        textEn: row.internal_code ?? null,
+        textZh: seed.name ?? null,
+        textEn: seed.internalCode ?? null,
         benefitExpression: null,
         benefitZh: null,
         benefitEn: null,
