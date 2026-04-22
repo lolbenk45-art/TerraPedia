@@ -191,3 +191,29 @@ reports/backend-refresh/history/<report-name>.summary.json
 - `TerraPedia_M12_R3_运维增强收口_2026-04-22.md`
 
 为准。
+
+---
+
+## 10. 生产化托管追加结果
+
+`M13` 已继续补齐：
+
+- `M13-R1`：Windows daemon 托管入口
+- `M13-R2`：watchdog 检查与恢复入口
+- `M13-R3`：生产化托管收口
+
+新增入口：
+
+```text
+scripts/ops/run-backend-refresh-daemon-host.ps1
+scripts/ops/register-backend-refresh-daemon-task.ps1
+scripts/ops/unregister-backend-refresh-daemon-task.ps1
+scripts/ops/check-backend-refresh-daemon-heartbeat.ps1
+scripts/ops/recover-backend-refresh-daemon.ps1
+```
+
+最新托管口径以：
+
+- `TerraPedia_M13_R3_生产化托管收口_2026-04-22.md`
+
+为准。
