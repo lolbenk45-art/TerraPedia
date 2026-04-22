@@ -10,6 +10,10 @@ import {
   resolvePendingBackendDataRefreshActions
 } from './backend-data-refresh-plan.mjs';
 import {
+  buildBackendRefreshSummary,
+  buildBackendRefreshSummaryPath
+} from './backend-refresh-summary.mjs';
+import {
   buildActionHeartbeatPayload,
   buildActionRuntimePaths,
   buildActionSnapshotPayload,
@@ -111,6 +115,7 @@ for (const action of actionsToRun) {
 
 const report = buildBackendDataRefreshReport(plan, actionResults);
 writeReport(outputPath, report);
+writeReport(buildBackendRefreshSummaryPath(outputPath), buildBackendRefreshSummary({ outputPath, report }));
 console.log(JSON.stringify({
   outputPath,
   completed: report.completedActions,
