@@ -168,3 +168,26 @@ node --check scripts/data/workflow/run-backend-data-refresh-daemon.mjs
 1. daemon 细粒度 heartbeat
 2. action 中间摘要增强
 3. 真正的生产化部署/托管
+
+---
+
+## 9. 后续追加结果
+
+`M12` 已继续补齐：
+
+- `M12-R1`：daemon heartbeat
+- `M12-R2`：cycle summary
+- `M12-R3`：运维增强收口
+
+新增观测文件：
+
+```text
+reports/backend-refresh/backend-refresh-daemon.heartbeat.json
+reports/backend-refresh/history/<report-name>.summary.json
+```
+
+最新运维增强口径以：
+
+- `TerraPedia_M12_R3_运维增强收口_2026-04-22.md`
+
+为准。
