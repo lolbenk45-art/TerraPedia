@@ -18,12 +18,17 @@ export function buildBackendRefreshScheduleConfig(rawOptions = {}, options = {})
     rawOptions.staleLockMinutes ?? rawOptions['stale-lock-minutes'] ?? scheduleConfig.staleLockMinutes,
     intervalMinutes * 2
   );
+  const heartbeatSeconds = normalizePositiveInteger(
+    rawOptions.heartbeatSeconds ?? rawOptions['heartbeat-seconds'] ?? scheduleConfig.heartbeatSeconds,
+    15
+  );
 
   return {
     enabled: isTrue(rawOptions.enabled ?? scheduleConfig.enabled),
     intervalMs: intervalMinutes * 60 * 1000,
     startupDelayMs: startupDelaySeconds * 1000,
     staleLockMs: staleLockMinutes * 60 * 1000,
+    heartbeatMs: heartbeatSeconds * 1000,
     resume: booleanWithFallback(rawOptions.resume, scheduleConfig.resume, true),
     mode: normalizeMode(rawOptions.mode ?? scheduleConfig.mode),
     timeoutMs: normalizeNullablePositiveInteger(rawOptions.timeoutMs ?? rawOptions['timeout-ms'] ?? scheduleConfig.timeoutMs),
@@ -39,6 +44,10 @@ export function buildBackendRefreshScheduleConfig(rawOptions = {}, options = {})
     stateFile: path.resolve(
       repoRoot,
       String(rawOptions.stateFile ?? scheduleConfig.stateFile ?? path.join('reports', 'backend-refresh', 'backend-refresh-scheduler.latest.json'))
+    ),
+    heartbeatFile: path.resolve(
+      repoRoot,
+      String(rawOptions.heartbeatFile ?? scheduleConfig.heartbeatFile ?? path.join('reports', 'backend-refresh', 'backend-refresh-daemon.heartbeat.json'))
     )
   };
 }

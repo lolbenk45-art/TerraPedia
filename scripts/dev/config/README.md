@@ -28,3 +28,7 @@ Scheduler notes:
   - Lock file used to prevent overlapping refresh cycles
 - `dataRefresh.stateFile`
   - Latest scheduler state snapshot for ops review
+- `dataRefresh.heartbeatSeconds`
+  - Interval for daemon-level heartbeat updates
+- `dataRefresh.heartbeatFile`
+  - Latest daemon heartbeat snapshot for watchdogs and ops review

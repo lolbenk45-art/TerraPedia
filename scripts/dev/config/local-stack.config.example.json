@@ -42,12 +42,14 @@
     "mode": "apply",
     "intervalMinutes": 180,
     "startupDelaySeconds": 30,
+    "heartbeatSeconds": 15,
     "staleLockMinutes": 360,
     "resume": true,
     "timeoutMs": 1200000,
     "steps": "",
     "reportDir": "reports/backend-refresh/history",
     "lockFile": "reports/backend-refresh/backend-refresh.lock.json",
-    "stateFile": "reports/backend-refresh/backend-refresh-scheduler.latest.json"
+    "stateFile": "reports/backend-refresh/backend-refresh-scheduler.latest.json",
+    "heartbeatFile": "reports/backend-refresh/backend-refresh-daemon.heartbeat.json"
   }
 }

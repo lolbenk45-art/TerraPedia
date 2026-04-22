@@ -2,13 +2,21 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 
 import {
   buildBackendRefreshScheduleConfig,
   buildBackendRefreshScheduleRun,
   isRefreshLockStale
 } from './backend-refresh-schedule-config.mjs';
+import {
+  buildBackendRefreshSummary,
+  buildBackendRefreshSummaryPath
+} from './backend-refresh-summary.mjs';
+import {
+  buildDaemonHeartbeatPayload,
+  buildDaemonStatePayload
+} from './backend-refresh-daemon-state.mjs';
 
 const rawOptions = parseArgs(process.argv.slice(2));
 const scheduleConfig = buildBackendRefreshScheduleConfig(rawOptions, { repoRoot: process.cwd() });
@@ -23,9 +31,10 @@ writeSchedulerState(scheduleConfig.stateFile, {
   generatedAt: new Date().toISOString(),
   config: sanitizeConfig(scheduleConfig)
 });
+writeDaemonHeartbeat(scheduleConfig, { status: 'booting' });
 
 if (once) {
-  const result = runRefreshCycle(scheduleConfig, 'manual_once');
+  const result = await runRefreshCycle(scheduleConfig, 'manual_once');
   process.exit(result.exitCode);
 }
 
@@ -35,14 +44,15 @@ console.log(JSON.stringify({
   startupDelayMs: scheduleConfig.startupDelayMs,
   reportDir: scheduleConfig.reportDir,
   lockFile: scheduleConfig.lockFile,
-  stateFile: scheduleConfig.stateFile
+  stateFile: scheduleConfig.stateFile,
+  heartbeatFile: scheduleConfig.heartbeatFile
 }, null, 2));
 
-await sleep(scheduleConfig.startupDelayMs);
+await sleepWithHeartbeat(scheduleConfig, scheduleConfig.startupDelayMs, 'startup_wait');
 
 while (true) {
   const cycleStartedAt = Date.now();
-  runRefreshCycle(scheduleConfig, 'scheduled');
+  await runRefreshCycle(scheduleConfig, 'scheduled');
   const elapsedMs = Date.now() - cycleStartedAt;
   const waitMs = Math.max(0, scheduleConfig.intervalMs - elapsedMs);
   writeSchedulerState(scheduleConfig.stateFile, {
@@ -51,10 +61,10 @@ while (true) {
     lastCycleDurationMs: elapsedMs,
     nextPlannedAt: new Date(Date.now() + waitMs).toISOString()
   }, { merge: true });
-  await sleep(waitMs);
+  await sleepWithHeartbeat(scheduleConfig, waitMs, 'sleeping');
 }
 
-function runRefreshCycle(scheduleConfig, trigger) {
+async function runRefreshCycle(scheduleConfig, trigger) {
   const now = new Date();
   const lockStatus = acquireLock(scheduleConfig.lockFile, {
     staleLockMs: scheduleConfig.staleLockMs,
@@ -69,6 +79,7 @@ function runRefreshCycle(scheduleConfig, trigger) {
       lockFile: scheduleConfig.lockFile,
       lockPayload: lockStatus.lockPayload ?? null
     }, { merge: true });
+    writeDaemonHeartbeat(scheduleConfig, { status: 'skipped_locked' });
     console.warn(`Skipped backend refresh cycle because lock is held: ${scheduleConfig.lockFile}`);
     return { exitCode: 0, skipped: true };
   }
@@ -81,22 +92,30 @@ function runRefreshCycle(scheduleConfig, trigger) {
     lastStartedAt: now.toISOString(),
     lastOutputPath: run.outputPath
   }, { merge: true });
+  writeDaemonHeartbeat(scheduleConfig, {
+    status: 'running',
+    lastOutputPath: run.outputPath
+  });
 
   try {
-    const result = spawnSync(process.execPath, run.args, {
-      cwd: process.cwd(),
-      stdio: 'inherit'
-    });
+    const result = await runRefreshProcess(scheduleConfig, run);
     const completedAt = new Date().toISOString();
     const exitCode = Number(result.status ?? 1);
+    const summaryPath = buildBackendRefreshSummaryPath(run.outputPath);
     writeSchedulerState(scheduleConfig.stateFile, {
       status: exitCode === 0 ? 'completed' : 'failed',
       generatedAt: completedAt,
       lastTrigger: trigger,
       lastCompletedAt: completedAt,
       lastExitCode: exitCode,
-      lastOutputPath: run.outputPath
+      lastOutputPath: run.outputPath,
+      lastSummaryPath: summaryPath
     }, { merge: true });
+    writeSummaryIfExists(run.outputPath, summaryPath);
+    writeDaemonHeartbeat(scheduleConfig, {
+      status: exitCode === 0 ? 'completed' : 'failed',
+      lastOutputPath: run.outputPath
+    });
     return { exitCode };
   } finally {
     releaseLock(scheduleConfig.lockFile);
@@ -153,6 +172,26 @@ function writeSchedulerState(stateFile, payload, options = {}) {
   fs.writeFileSync(stateFile, `${JSON.stringify(nextState, null, 2)}\n`, 'utf8');
 }
 
+function writeDaemonHeartbeat(scheduleConfig, payload = {}) {
+  writeJsonFile(scheduleConfig.heartbeatFile, buildDaemonHeartbeatPayload({
+    pid: process.pid,
+    ...payload
+  }));
+}
+
+function writeSummaryIfExists(outputPath, summaryPath) {
+  const report = readJsonFile(outputPath);
+  if (!report || typeof report !== 'object') {
+    return;
+  }
+  writeJsonFile(summaryPath, buildBackendRefreshSummary({ outputPath, report }));
+}
+
+function writeJsonFile(filePath, payload) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+}
+
 function readJsonFile(filePath) {
   try {
     if (!fs.existsSync(filePath)) {
@@ -176,7 +215,9 @@ function sanitizeConfig(config) {
     steps: config.steps,
     reportDir: config.reportDir,
     lockFile: config.lockFile,
-    stateFile: config.stateFile
+    stateFile: config.stateFile,
+    heartbeatFile: config.heartbeatFile,
+    heartbeatMs: config.heartbeatMs
   };
 }
 
@@ -201,6 +242,45 @@ function isTrue(value) {
   return value === true || value === 'true' || value === '1' || value === 'yes';
 }
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+function runRefreshProcess(scheduleConfig, run) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, run.args, {
+      cwd: process.cwd(),
+      stdio: 'inherit'
+    });
+    const heartbeatTimer = setInterval(() => {
+      writeDaemonHeartbeat(scheduleConfig, {
+        status: 'running',
+        activeChildPid: child.pid,
+        lastOutputPath: run.outputPath
+      });
+    }, scheduleConfig.heartbeatMs);
+
+    child.on('close', (code) => {
+      clearInterval(heartbeatTimer);
+      resolve({ status: code === 0 ? 0 : 1, pid: child.pid });
+    });
+    child.on('error', () => {
+      clearInterval(heartbeatTimer);
+      resolve({ status: 1, pid: child.pid });
+    });
+  });
+}
+
+function sleepWithHeartbeat(scheduleConfig, ms, status) {
+  return new Promise((resolve) => {
+    const durationMs = Math.max(0, Number(ms) || 0);
+    writeDaemonHeartbeat(scheduleConfig, { status });
+    if (durationMs === 0) {
+      resolve();
+      return;
+    }
+    const heartbeatTimer = setInterval(() => {
+      writeDaemonHeartbeat(scheduleConfig, { status });
+    }, scheduleConfig.heartbeatMs);
+    setTimeout(() => {
+      clearInterval(heartbeatTimer);
+      resolve();
+    }, durationMs);
+  });
 }

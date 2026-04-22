@@ -13,11 +13,13 @@ test('buildBackendRefreshScheduleConfig returns default scheduler settings', () 
   assert.equal(config.enabled, false);
   assert.equal(config.intervalMs, 180 * 60 * 1000);
   assert.equal(config.startupDelayMs, 30 * 1000);
+  assert.equal(config.heartbeatMs, 15 * 1000);
   assert.equal(config.resume, true);
   assert.equal(config.timeoutMs, null);
   assert.deepEqual(config.steps, []);
   assert.match(config.reportDir, /reports[\\/]+backend-refresh[\\/]+history$/);
   assert.match(config.lockFile, /reports[\\/]+backend-refresh[\\/]+backend-refresh\.lock\.json$/);
+  assert.match(config.heartbeatFile, /reports[\\/]+backend-refresh[\\/]+backend-refresh-daemon\.heartbeat\.json$/);
 });
 
 test('buildBackendRefreshScheduleConfig applies config file and cli overrides', () => {
@@ -33,9 +35,11 @@ test('buildBackendRefreshScheduleConfig applies config file and cli overrides', 
         dataRefresh: {
           intervalMinutes: 120,
           startupDelaySeconds: 90,
+          heartbeatSeconds: 20,
           resume: false,
           reportDir: 'reports/custom-history',
-          lockFile: 'reports/custom-lock.json'
+          lockFile: 'reports/custom-lock.json',
+          heartbeatFile: 'reports/custom-heartbeat.json'
         }
       }
     }
@@ -44,11 +48,13 @@ test('buildBackendRefreshScheduleConfig applies config file and cli overrides', 
   assert.equal(config.enabled, true);
   assert.equal(config.intervalMs, 45 * 60 * 1000);
   assert.equal(config.startupDelayMs, 90 * 1000);
+  assert.equal(config.heartbeatMs, 20 * 1000);
   assert.equal(config.resume, false);
   assert.equal(config.timeoutMs, 900000);
   assert.deepEqual(config.steps, ['boss-sync', 'support-sync']);
   assert.match(config.reportDir, /reports[\\/]+custom-history$/);
   assert.match(config.lockFile, /reports[\\/]+custom-lock\.json$/);
+  assert.match(config.heartbeatFile, /reports[\\/]+custom-heartbeat\.json$/);
 });
 
 test('buildBackendRefreshScheduleRun builds timestamped apply command', () => {
