@@ -9,6 +9,9 @@ import { fileURLToPath } from 'node:url';
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { parseIteminfoModulePayload } from '../lib/wiki-item-utils.mjs';
 import { buildMaintSchemaSql } from './maint-schema.mjs';
+import { extractCategoryItemRecords } from './category-item-structured-parser.mjs';
+import { extractItemPageRecipeRecords, extractRecipePageRecipeRecords } from './page-recipe-structured-parser.mjs';
+import { extractShimmerStructuredRecords } from './shimmer-structured-parser.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -244,7 +247,40 @@ function extractItemPageMaintRows(landingRow, payload) {
     recipesMarkup: payload.recipesMarkup ?? null,
     rawJson: JSON.stringify(payload),
   };
-  return [row];
+  const recipeRows = extractItemPageRecipeRecords(payload).map((record) => ({
+    scope: 'item_pages',
+    tableName: 'maint_item_page_recipes',
+    recordKey: createRecordKey({
+      datasetType: landingRow.dataset_type,
+      pageTitle: record.pageTitle,
+      recipeIndex: record.recipeIndex,
+      contentHash: landingRow.content_hash,
+    }),
+    pageTitle: record.pageTitle,
+    itemInternalName: record.itemInternalName,
+    itemName: record.itemName,
+    resultInternalName: record.resultInternalName,
+    resultName: record.resultName,
+    resultQuantity: record.resultQuantity,
+    versionScope: record.versionScope,
+    sourceContextPage: record.sourceContextPage,
+    sourceContextPageSlug: record.sourceContextPageSlug,
+    sourceContextDisplayName: record.sourceContextDisplayName,
+    ingredientsJson: JSON.stringify(record.ingredients ?? []),
+    stationsJson: JSON.stringify(record.stations ?? []),
+    sortOrder: Number(record.recipeIndex ?? 0),
+    sourceProvider: landingRow.provider,
+    sourcePage: landingRow.source_page,
+    sourceRevisionTimestamp: payload.revisionTimestamp ?? landingRow.source_revision_timestamp,
+    landingSourceId: Number(landingRow.id),
+    landingSourceKey: landingRow.source_key,
+    landingSourcePage: landingRow.source_page,
+    landingContentHash: landingRow.content_hash,
+    landingFetchedAt: landingRow.fetched_at,
+    landingParsedAt: landingRow.parsed_at,
+    rawJson: JSON.stringify(record),
+  }));
+  return [row, ...recipeRows];
 }
 
 function extractRecipePageMaintRows(landingRow, payload) {
@@ -281,7 +317,42 @@ function extractRecipePageMaintRows(landingRow, payload) {
     recipeTablesJson: JSON.stringify(payload.recipeTables ?? []),
     rawJson: JSON.stringify(payload),
   };
-  return [row];
+  const recipeRows = extractRecipePageRecipeRecords(payload).map((record, index) => ({
+    scope: 'recipe_pages',
+    tableName: 'maint_recipe_page_recipes',
+    recordKey: createRecordKey({
+      datasetType: landingRow.dataset_type,
+      pageTitle: record.pageTitle,
+      tableCaption: record.tableCaption,
+      sortOrder: Number(index),
+      contentHash: landingRow.content_hash,
+    }),
+    pageTitle: record.pageTitle,
+    pageSlug: record.pageSlug,
+    tableCaption: record.tableCaption,
+    resultInternalName: record.resultInternalName,
+    resultName: record.resultName,
+    resultQuantity: record.resultQuantity,
+    versionScope: record.versionScope,
+    sourceContextPage: record.sourceContextPage,
+    sourceContextPageSlug: record.sourceContextPageSlug,
+    sourceContextDisplayName: record.sourceContextDisplayName,
+    sourceContextUrl: record.sourceContextUrl,
+    ingredientsJson: JSON.stringify(record.ingredients ?? []),
+    stationsJson: JSON.stringify(record.stations ?? []),
+    sortOrder: Number(index),
+    sourceProvider: landingRow.provider,
+    sourcePage: landingRow.source_page,
+    sourceRevisionTimestamp: payload.revisionTimestamp ?? landingRow.source_revision_timestamp,
+    landingSourceId: Number(landingRow.id),
+    landingSourceKey: landingRow.source_key,
+    landingSourcePage: landingRow.source_page,
+    landingContentHash: landingRow.content_hash,
+    landingFetchedAt: landingRow.fetched_at,
+    landingParsedAt: landingRow.parsed_at,
+    rawJson: JSON.stringify(record),
+  }));
+  return [row, ...recipeRows];
 }
 
 function extractItemImageMaintRows(landingRow, payload) {
@@ -502,7 +573,7 @@ function extractArmorSetMaintRows(landingRow, payload) {
 }
 
 function extractCategoryMaintRows(landingRow, payload) {
-  return [{
+  const categoryRow = {
     scope: 'categories',
     tableName: 'maint_categories',
     recordKey: createRecordKey(payload),
@@ -524,11 +595,149 @@ function extractCategoryMaintRows(landingRow, payload) {
     landingFetchedAt: landingRow.fetched_at,
     landingParsedAt: landingRow.parsed_at,
     rawJson: JSON.stringify(payload),
-  }];
+  };
+  const itemRows = extractCategoryItemRecords(payload).map((record, index) => ({
+    scope: 'categories',
+    tableName: 'maint_item_categories',
+    recordKey: createRecordKey({
+      datasetType: landingRow.dataset_type,
+      templateTitle: record.templateTitle,
+      sectionTitle: record.sectionTitle,
+      groupName: record.groupName,
+      itemName: record.itemName,
+      parentItemName: record.parentItemName,
+      depth: record.depth,
+      index,
+      contentHash: landingRow.content_hash,
+    }),
+    topLevel: record.topLevel,
+    templateTitle: record.templateTitle,
+    sectionTitle: record.sectionTitle,
+    groupName: record.groupName,
+    itemInternalName: record.itemInternalName,
+    itemEnglishName: record.itemEnglishName,
+    itemName: record.itemName,
+    itemHref: record.itemHref,
+    itemCount: record.itemCount,
+    parentItemName: record.parentItemName,
+    depth: record.depth,
+    isGroupNode: Boolean(record.isGroupNode),
+    sourceProvider: landingRow.provider,
+    sourcePage: landingRow.source_page,
+    sourceRevisionTimestamp: payload.sourceRevisionTimestamp ?? landingRow.source_revision_timestamp,
+    landingSourceId: Number(landingRow.id),
+    landingSourceKey: landingRow.source_key,
+    landingSourcePage: landingRow.source_page,
+    landingContentHash: landingRow.content_hash,
+    landingFetchedAt: landingRow.fetched_at,
+    landingParsedAt: landingRow.parsed_at,
+    rawJson: JSON.stringify(record),
+  }));
+  return [categoryRow, ...itemRows];
+}
+
+function buildShimmerBaseMaintRow(landingRow, record, extra = {}) {
+  return {
+    scope: 'shimmer',
+    recordKey: createRecordKey({
+      tableName: extra.tableName,
+      sourcePage: payloadPageTitleOrSource(record, landingRow),
+      code: record.code,
+    }),
+    code: normalizeText(record.code),
+    sourceSection: normalizeText(record.sourceSection),
+    sourceProvider: landingRow.provider,
+    sourcePage: normalizeText(record.sourcePage) ?? landingRow.source_page,
+    sourceRevisionTimestamp: record.sourceRevisionTimestamp ?? landingRow.source_revision_timestamp,
+    landingSourceId: Number(landingRow.id),
+    landingSourceKey: landingRow.source_key,
+    landingSourcePage: landingRow.source_page,
+    landingContentHash: landingRow.content_hash,
+    landingFetchedAt: landingRow.fetched_at,
+    landingParsedAt: landingRow.parsed_at,
+    rawJson: JSON.stringify(record),
+    ...extra,
+  };
+}
+
+function payloadPageTitleOrSource(record, landingRow) {
+  return normalizeText(record?.sourcePage) ?? normalizeText(landingRow.source_page);
+}
+
+function extractShimmerItemTransformMaintRows(landingRow, records) {
+  return records.map((record, index) => ({
+    ...buildShimmerBaseMaintRow(landingRow, record, {
+      tableName: 'maint_shimmer_item_transforms',
+    }),
+    inputKind: normalizeText(record.inputKind) ?? 'item',
+    inputNameZh: normalizeText(record.inputNameZh),
+    inputNameEn: normalizeText(record.inputNameEn),
+    inputInternalName: normalizeText(record.inputInternalName),
+    outputKind: normalizeText(record.outputKind) ?? 'item',
+    outputNameZh: normalizeText(record.outputNameZh),
+    outputNameEn: normalizeText(record.outputNameEn),
+    outputInternalName: normalizeText(record.outputInternalName),
+    conditionsJson: JSON.stringify(record.conditions ?? []),
+    notes: normalizeText(record.notes),
+    sortOrder: Number(index + 1),
+  }));
+}
+
+function extractShimmerDecraftRuleMaintRows(landingRow, records) {
+  return records.map((record, index) => ({
+    ...buildShimmerBaseMaintRow(landingRow, record, {
+      tableName: 'maint_shimmer_decraft_rules',
+    }),
+    ruleType: normalizeText(record.ruleType),
+    groupLabel: normalizeText(record.groupLabel),
+    inputKind: normalizeText(record.input?.kind) ?? 'item',
+    inputNameZh: normalizeText(record.input?.nameZh),
+    inputNameEn: normalizeText(record.input?.nameEn),
+    inputInternalName: normalizeText(record.input?.internalName),
+    outputsJson: JSON.stringify(record.outputs ?? []),
+    conditionsJson: JSON.stringify(record.conditions ?? []),
+    notes: normalizeText(record.notes),
+    sortOrder: Number(index + 1),
+  }));
+}
+
+function extractShimmerEntityTransformMaintRows(landingRow, records) {
+  return records.map((record, index) => ({
+    ...buildShimmerBaseMaintRow(landingRow, record, {
+      tableName: 'maint_shimmer_entity_transforms',
+    }),
+    transformGroup: normalizeText(record.transformGroup),
+    inputEntityType: normalizeText(record.input?.kind),
+    inputNameZh: normalizeText(record.input?.nameZh),
+    inputNameEn: normalizeText(record.input?.nameEn),
+    inputInternalName: normalizeText(record.input?.internalName),
+    outputEntityType: normalizeText(record.output?.kind),
+    outputNameZh: normalizeText(record.output?.nameZh),
+    outputNameEn: normalizeText(record.output?.nameEn),
+    outputInternalName: normalizeText(record.output?.internalName),
+    sortOrder: Number(index + 1),
+  }));
+}
+
+function extractShimmerNpcTransformMaintRows(landingRow, records) {
+  return records.map((record, index) => ({
+    ...buildShimmerBaseMaintRow(landingRow, record, {
+      tableName: 'maint_shimmer_npc_transforms',
+    }),
+    npcNameZh: normalizeText(record.npc?.nameZh),
+    npcNameEn: normalizeText(record.npc?.nameEn),
+    npcInternalName: normalizeText(record.npc?.internalName),
+    appearanceVariant: normalizeText(record.appearanceVariant),
+    effectType: normalizeText(record.effectType),
+    variantImageUrl: normalizeText(record.variantImageUrl),
+    variantImageAlt: normalizeText(record.variantImageAlt),
+    notes: normalizeText(record.notes),
+    sortOrder: Number(index + 1),
+  }));
 }
 
 function extractShimmerMaintRows(landingRow, payload) {
-  return [{
+  const pageRow = {
     scope: 'shimmer',
     tableName: 'maint_shimmer_pages',
     recordKey: createRecordKey(payload),
@@ -552,7 +761,15 @@ function extractShimmerMaintRows(landingRow, payload) {
     landingFetchedAt: landingRow.fetched_at,
     landingParsedAt: landingRow.parsed_at,
     rawJson: JSON.stringify(payload),
-  }];
+  };
+  const structured = extractShimmerStructuredRecords(payload);
+  return [
+    pageRow,
+    ...extractShimmerItemTransformMaintRows(landingRow, structured.itemTransforms),
+    ...extractShimmerDecraftRuleMaintRows(landingRow, structured.decraftRules),
+    ...extractShimmerEntityTransformMaintRows(landingRow, structured.entityTransforms),
+    ...extractShimmerNpcTransformMaintRows(landingRow, structured.npcTransforms),
+  ];
 }
 
 export async function extractMaintEntitiesFromLandingRow(landingRow) {
@@ -770,6 +987,43 @@ async function upsertRecordKeyRow(connection, row) {
     return 'inserted';
   }
 
+  if (row.tableName === 'maint_item_page_recipes') {
+    const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
+    const existing = existingRows[0] ?? null;
+    if (existing) {
+      await connection.execute(
+        `UPDATE \`${row.tableName}\`
+         SET page_title = ?, item_internal_name = ?, item_name = ?, result_internal_name = ?, result_name = ?, result_quantity = ?, version_scope = ?,
+             source_context_page = ?, source_context_page_slug = ?, source_context_display_name = ?, ingredients_json = ?, stations_json = ?, sort_order = ?,
+             source_provider = ?, source_page = ?, source_revision_timestamp = ?, landing_source_id = ?, landing_source_key = ?, landing_source_page = ?,
+             landing_content_hash = ?, landing_fetched_at = ?, landing_parsed_at = ?, raw_json = ?, status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [
+          row.pageTitle, row.itemInternalName, row.itemName, row.resultInternalName, row.resultName, row.resultQuantity, row.versionScope,
+          row.sourceContextPage, row.sourceContextPageSlug, row.sourceContextDisplayName, row.ingredientsJson, row.stationsJson, row.sortOrder,
+          row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage,
+          row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.rawJson, Number(existing.id),
+        ],
+      );
+      return 'updated';
+    }
+    await connection.execute(
+      `INSERT INTO \`${row.tableName}\`
+       (\`record_key\`, \`page_title\`, \`item_internal_name\`, \`item_name\`, \`result_internal_name\`, \`result_name\`, \`result_quantity\`, \`version_scope\`,
+        \`source_context_page\`, \`source_context_page_slug\`, \`source_context_display_name\`, \`ingredients_json\`, \`stations_json\`, \`sort_order\`,
+        \`source_provider\`, \`source_page\`, \`source_revision_timestamp\`, \`landing_source_id\`, \`landing_source_key\`, \`landing_source_page\`,
+        \`landing_content_hash\`, \`landing_fetched_at\`, \`landing_parsed_at\`, \`raw_json\`, \`status\`, \`deleted\`)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+      [
+        row.recordKey, row.pageTitle, row.itemInternalName, row.itemName, row.resultInternalName, row.resultName, row.resultQuantity, row.versionScope,
+        row.sourceContextPage, row.sourceContextPageSlug, row.sourceContextDisplayName, row.ingredientsJson, row.stationsJson, row.sortOrder,
+        row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage,
+        row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.rawJson,
+      ],
+    );
+    return 'inserted';
+  }
+
   if (row.tableName === 'maint_item_images') {
     const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
     const existing = existingRows[0] ?? null;
@@ -841,6 +1095,43 @@ async function upsertRecordKeyRow(connection, row) {
         row.sourceProvider, row.sourcePage, row.sourceUrl, toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage,
         row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.introParagraphsJson, row.sectionsJson, row.childPagesJson,
         row.childPageCount, row.recipeTableCount, row.recipeRowCount, row.recipeTablesJson, row.rawJson,
+      ],
+    );
+    return 'inserted';
+  }
+
+  if (row.tableName === 'maint_recipe_page_recipes') {
+    const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
+    const existing = existingRows[0] ?? null;
+    if (existing) {
+      await connection.execute(
+        `UPDATE \`${row.tableName}\`
+         SET page_title = ?, page_slug = ?, table_caption = ?, result_internal_name = ?, result_name = ?, result_quantity = ?, version_scope = ?,
+             source_context_page = ?, source_context_page_slug = ?, source_context_display_name = ?, source_context_url = ?, ingredients_json = ?, stations_json = ?, sort_order = ?,
+             source_provider = ?, source_page = ?, source_revision_timestamp = ?, landing_source_id = ?, landing_source_key = ?, landing_source_page = ?,
+             landing_content_hash = ?, landing_fetched_at = ?, landing_parsed_at = ?, raw_json = ?, status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [
+          row.pageTitle, row.pageSlug, row.tableCaption, row.resultInternalName, row.resultName, row.resultQuantity, row.versionScope,
+          row.sourceContextPage, row.sourceContextPageSlug, row.sourceContextDisplayName, row.sourceContextUrl, row.ingredientsJson, row.stationsJson, row.sortOrder,
+          row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage,
+          row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.rawJson, Number(existing.id),
+        ],
+      );
+      return 'updated';
+    }
+    await connection.execute(
+      `INSERT INTO \`${row.tableName}\`
+       (\`record_key\`, \`page_title\`, \`page_slug\`, \`table_caption\`, \`result_internal_name\`, \`result_name\`, \`result_quantity\`, \`version_scope\`,
+        \`source_context_page\`, \`source_context_page_slug\`, \`source_context_display_name\`, \`source_context_url\`, \`ingredients_json\`, \`stations_json\`, \`sort_order\`,
+        \`source_provider\`, \`source_page\`, \`source_revision_timestamp\`, \`landing_source_id\`, \`landing_source_key\`, \`landing_source_page\`,
+        \`landing_content_hash\`, \`landing_fetched_at\`, \`landing_parsed_at\`, \`raw_json\`, \`status\`, \`deleted\`)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+      [
+        row.recordKey, row.pageTitle, row.pageSlug, row.tableCaption, row.resultInternalName, row.resultName, row.resultQuantity, row.versionScope,
+        row.sourceContextPage, row.sourceContextPageSlug, row.sourceContextDisplayName, row.sourceContextUrl, row.ingredientsJson, row.stationsJson, row.sortOrder,
+        row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage,
+        row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.rawJson,
       ],
     );
     return 'inserted';
@@ -1121,6 +1412,43 @@ async function upsertRecordKeyRow(connection, row) {
     return 'inserted';
   }
 
+  if (row.tableName === 'maint_item_categories') {
+    const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
+    const existing = existingRows[0] ?? null;
+    if (existing) {
+      await connection.execute(
+        `UPDATE \`${row.tableName}\`
+         SET top_level = ?, template_title = ?, section_title = ?, group_name = ?, item_internal_name = ?, item_english_name = ?, item_name = ?, item_href = ?,
+             item_count = ?, parent_item_name = ?, depth = ?, is_group_node = ?, source_provider = ?, source_page = ?, source_revision_timestamp = ?,
+             landing_source_id = ?, landing_source_key = ?, landing_source_page = ?, landing_content_hash = ?, landing_fetched_at = ?, landing_parsed_at = ?,
+             raw_json = ?, status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [
+          row.topLevel, row.templateTitle, row.sectionTitle, row.groupName, row.itemInternalName, row.itemEnglishName, row.itemName, row.itemHref,
+          row.itemCount, row.parentItemName, row.depth, row.isGroupNode ? 1 : 0, row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp),
+          row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt),
+          row.rawJson, Number(existing.id),
+        ],
+      );
+      return 'updated';
+    }
+    await connection.execute(
+      `INSERT INTO \`${row.tableName}\`
+       (\`record_key\`, \`top_level\`, \`template_title\`, \`section_title\`, \`group_name\`, \`item_internal_name\`, \`item_english_name\`, \`item_name\`, \`item_href\`,
+        \`item_count\`, \`parent_item_name\`, \`depth\`, \`is_group_node\`, \`source_provider\`, \`source_page\`, \`source_revision_timestamp\`,
+        \`landing_source_id\`, \`landing_source_key\`, \`landing_source_page\`, \`landing_content_hash\`, \`landing_fetched_at\`, \`landing_parsed_at\`,
+        \`raw_json\`, \`status\`, \`deleted\`)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+      [
+        row.recordKey, row.topLevel, row.templateTitle, row.sectionTitle, row.groupName, row.itemInternalName, row.itemEnglishName, row.itemName, row.itemHref,
+        row.itemCount, row.parentItemName, row.depth, row.isGroupNode ? 1 : 0, row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp),
+        row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt),
+        row.rawJson,
+      ],
+    );
+    return 'inserted';
+  }
+
   if (row.tableName === 'maint_shimmer_pages') {
     const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
     const existing = existingRows[0] ?? null;
@@ -1148,6 +1476,154 @@ async function upsertRecordKeyRow(connection, row) {
       [
         row.recordKey, row.entity, toMysqlDateTime(row.generatedAt), row.requestedPageTitle, row.pageTitle, row.pageId, row.revisionId, row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp),
         toMysqlDateTime(row.fetchedAt), row.sectionsJson, row.wikitext, row.html, row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt),
+        row.rawJson,
+      ],
+    );
+    return 'inserted';
+  }
+
+  if (row.tableName === 'maint_shimmer_item_transforms') {
+    const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
+    const existing = existingRows[0] ?? null;
+    if (existing) {
+      await connection.execute(
+        `UPDATE \`${row.tableName}\`
+         SET code = ?, source_section = ?, input_kind = ?, input_name_zh = ?, input_name_en = ?, input_internal_name = ?,
+             output_kind = ?, output_name_zh = ?, output_name_en = ?, output_internal_name = ?, conditions_json = ?, notes = ?, sort_order = ?,
+             source_provider = ?, source_page = ?, source_revision_timestamp = ?, landing_source_id = ?, landing_source_key = ?, landing_source_page = ?,
+             landing_content_hash = ?, landing_fetched_at = ?, landing_parsed_at = ?, raw_json = ?, status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [
+          row.code, row.sourceSection, row.inputKind, row.inputNameZh, row.inputNameEn, row.inputInternalName,
+          row.outputKind, row.outputNameZh, row.outputNameEn, row.outputInternalName, row.conditionsJson, row.notes, row.sortOrder,
+          row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage,
+          row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.rawJson, Number(existing.id),
+        ],
+      );
+      return 'updated';
+    }
+    await connection.execute(
+      `INSERT INTO \`${row.tableName}\`
+       (\`record_key\`, \`code\`, \`source_section\`, \`input_kind\`, \`input_name_zh\`, \`input_name_en\`, \`input_internal_name\`,
+        \`output_kind\`, \`output_name_zh\`, \`output_name_en\`, \`output_internal_name\`, \`conditions_json\`, \`notes\`, \`sort_order\`,
+        \`source_provider\`, \`source_page\`, \`source_revision_timestamp\`, \`landing_source_id\`, \`landing_source_key\`, \`landing_source_page\`,
+        \`landing_content_hash\`, \`landing_fetched_at\`, \`landing_parsed_at\`, \`raw_json\`, \`status\`, \`deleted\`)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+      [
+        row.recordKey, row.code, row.sourceSection, row.inputKind, row.inputNameZh, row.inputNameEn, row.inputInternalName,
+        row.outputKind, row.outputNameZh, row.outputNameEn, row.outputInternalName, row.conditionsJson, row.notes, row.sortOrder,
+        row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage,
+        row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.rawJson,
+      ],
+    );
+    return 'inserted';
+  }
+
+  if (row.tableName === 'maint_shimmer_decraft_rules') {
+    const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
+    const existing = existingRows[0] ?? null;
+    if (existing) {
+      await connection.execute(
+        `UPDATE \`${row.tableName}\`
+         SET code = ?, rule_type = ?, group_label = ?, source_section = ?, input_kind = ?, input_name_zh = ?, input_name_en = ?, input_internal_name = ?,
+             outputs_json = ?, conditions_json = ?, notes = ?, sort_order = ?, source_provider = ?, source_page = ?, source_revision_timestamp = ?,
+             landing_source_id = ?, landing_source_key = ?, landing_source_page = ?, landing_content_hash = ?, landing_fetched_at = ?, landing_parsed_at = ?,
+             raw_json = ?, status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [
+          row.code, row.ruleType, row.groupLabel, row.sourceSection, row.inputKind, row.inputNameZh, row.inputNameEn, row.inputInternalName,
+          row.outputsJson, row.conditionsJson, row.notes, row.sortOrder, row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp),
+          row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt),
+          row.rawJson, Number(existing.id),
+        ],
+      );
+      return 'updated';
+    }
+    await connection.execute(
+      `INSERT INTO \`${row.tableName}\`
+       (\`record_key\`, \`code\`, \`rule_type\`, \`group_label\`, \`source_section\`, \`input_kind\`, \`input_name_zh\`, \`input_name_en\`, \`input_internal_name\`,
+        \`outputs_json\`, \`conditions_json\`, \`notes\`, \`sort_order\`, \`source_provider\`, \`source_page\`, \`source_revision_timestamp\`,
+        \`landing_source_id\`, \`landing_source_key\`, \`landing_source_page\`, \`landing_content_hash\`, \`landing_fetched_at\`, \`landing_parsed_at\`,
+        \`raw_json\`, \`status\`, \`deleted\`)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+      [
+        row.recordKey, row.code, row.ruleType, row.groupLabel, row.sourceSection, row.inputKind, row.inputNameZh, row.inputNameEn, row.inputInternalName,
+        row.outputsJson, row.conditionsJson, row.notes, row.sortOrder, row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp),
+        row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt),
+        row.rawJson,
+      ],
+    );
+    return 'inserted';
+  }
+
+  if (row.tableName === 'maint_shimmer_entity_transforms') {
+    const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
+    const existing = existingRows[0] ?? null;
+    if (existing) {
+      await connection.execute(
+        `UPDATE \`${row.tableName}\`
+         SET code = ?, transform_group = ?, source_section = ?, input_entity_type = ?, input_name_zh = ?, input_name_en = ?, input_internal_name = ?,
+             output_entity_type = ?, output_name_zh = ?, output_name_en = ?, output_internal_name = ?, sort_order = ?, source_provider = ?, source_page = ?,
+             source_revision_timestamp = ?, landing_source_id = ?, landing_source_key = ?, landing_source_page = ?, landing_content_hash = ?, landing_fetched_at = ?,
+             landing_parsed_at = ?, raw_json = ?, status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [
+          row.code, row.transformGroup, row.sourceSection, row.inputEntityType, row.inputNameZh, row.inputNameEn, row.inputInternalName,
+          row.outputEntityType, row.outputNameZh, row.outputNameEn, row.outputInternalName, row.sortOrder, row.sourceProvider, row.sourcePage,
+          toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt),
+          toMysqlDateTime(row.landingParsedAt), row.rawJson, Number(existing.id),
+        ],
+      );
+      return 'updated';
+    }
+    await connection.execute(
+      `INSERT INTO \`${row.tableName}\`
+       (\`record_key\`, \`code\`, \`transform_group\`, \`source_section\`, \`input_entity_type\`, \`input_name_zh\`, \`input_name_en\`, \`input_internal_name\`,
+        \`output_entity_type\`, \`output_name_zh\`, \`output_name_en\`, \`output_internal_name\`, \`sort_order\`, \`source_provider\`, \`source_page\`,
+        \`source_revision_timestamp\`, \`landing_source_id\`, \`landing_source_key\`, \`landing_source_page\`, \`landing_content_hash\`, \`landing_fetched_at\`,
+        \`landing_parsed_at\`, \`raw_json\`, \`status\`, \`deleted\`)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+      [
+        row.recordKey, row.code, row.transformGroup, row.sourceSection, row.inputEntityType, row.inputNameZh, row.inputNameEn, row.inputInternalName,
+        row.outputEntityType, row.outputNameZh, row.outputNameEn, row.outputInternalName, row.sortOrder, row.sourceProvider, row.sourcePage,
+        toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt),
+        toMysqlDateTime(row.landingParsedAt), row.rawJson,
+      ],
+    );
+    return 'inserted';
+  }
+
+  if (row.tableName === 'maint_shimmer_npc_transforms') {
+    const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
+    const existing = existingRows[0] ?? null;
+    if (existing) {
+      await connection.execute(
+        `UPDATE \`${row.tableName}\`
+         SET code = ?, source_section = ?, npc_name_zh = ?, npc_name_en = ?, npc_internal_name = ?, appearance_variant = ?, effect_type = ?,
+             variant_image_url = ?, variant_image_alt = ?, notes = ?, sort_order = ?, source_provider = ?, source_page = ?, source_revision_timestamp = ?,
+             landing_source_id = ?, landing_source_key = ?, landing_source_page = ?, landing_content_hash = ?, landing_fetched_at = ?, landing_parsed_at = ?,
+             raw_json = ?, status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [
+          row.code, row.sourceSection, row.npcNameZh, row.npcNameEn, row.npcInternalName, row.appearanceVariant, row.effectType,
+          row.variantImageUrl, row.variantImageAlt, row.notes, row.sortOrder, row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp),
+          row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt),
+          row.rawJson, Number(existing.id),
+        ],
+      );
+      return 'updated';
+    }
+    await connection.execute(
+      `INSERT INTO \`${row.tableName}\`
+       (\`record_key\`, \`code\`, \`source_section\`, \`npc_name_zh\`, \`npc_name_en\`, \`npc_internal_name\`, \`appearance_variant\`, \`effect_type\`,
+        \`variant_image_url\`, \`variant_image_alt\`, \`notes\`, \`sort_order\`, \`source_provider\`, \`source_page\`, \`source_revision_timestamp\`,
+        \`landing_source_id\`, \`landing_source_key\`, \`landing_source_page\`, \`landing_content_hash\`, \`landing_fetched_at\`, \`landing_parsed_at\`,
+        \`raw_json\`, \`status\`, \`deleted\`)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+      [
+        row.recordKey, row.code, row.sourceSection, row.npcNameZh, row.npcNameEn, row.npcInternalName, row.appearanceVariant, row.effectType,
+        row.variantImageUrl, row.variantImageAlt, row.notes, row.sortOrder, row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp),
+        row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt),
         row.rawJson,
       ],
     );

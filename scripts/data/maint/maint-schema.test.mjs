@@ -15,8 +15,10 @@ test('buildMaintSchemaSql creates all maint tables', () => {
     'maint_projectiles',
     'maint_buffs',
     'maint_item_pages',
+    'maint_item_page_recipes',
     'maint_item_images',
     'maint_recipe_pages',
+    'maint_recipe_page_recipes',
     'maint_item_recipes',
     'maint_item_sources',
     'maint_item_biomes',
@@ -25,15 +27,22 @@ test('buildMaintSchemaSql creates all maint tables', () => {
     'maint_biomes',
     'maint_armor_sets',
     'maint_categories',
+    'maint_item_categories',
     'maint_shimmer_pages',
+    'maint_shimmer_item_transforms',
+    'maint_shimmer_decraft_rules',
+    'maint_shimmer_entity_transforms',
+    'maint_shimmer_npc_transforms',
   ]);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_items`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_npcs`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_projectiles`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_buffs`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_pages`/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_page_recipes`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_images`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_recipe_pages`/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_recipe_page_recipes`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_recipes`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_sources`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_biomes`/);
@@ -42,7 +51,12 @@ test('buildMaintSchemaSql creates all maint tables', () => {
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_biomes`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_armor_sets`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_categories`/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_categories`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_shimmer_pages`/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_shimmer_item_transforms`/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_shimmer_decraft_rules`/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_shimmer_entity_transforms`/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_shimmer_npc_transforms`/);
   assert.match(sql, /`landing_source_key` VARCHAR\(255\) NOT NULL/);
   assert.match(sql, /`landing_content_hash` CHAR\(64\) NOT NULL/);
   assert.match(sql, /`record_key` CHAR\(64\) NOT NULL/);

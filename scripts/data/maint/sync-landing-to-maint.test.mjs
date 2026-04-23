@@ -155,6 +155,46 @@ test('extractMaintEntitiesFromLandingRow expands item page payload into maint it
   assert.equal(actual.rows[0].recipesMarkup, '<table></table>');
 });
 
+test('extractMaintEntitiesFromLandingRow expands item page recipes markup into structured recipe rows', async () => {
+  const landingRow = {
+    id: 32,
+    dataset_type: 'item_pages_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Zenith',
+    source_key: 'wiki.page.item_detail:Zenith',
+    source_revision_timestamp: '2026-03-16T22:11:59Z',
+    content_hash: 'z'.repeat(64),
+    fetched_at: '2026-03-28T04:15:57.931Z',
+    parsed_at: '2026-03-28T04:15:57.931Z',
+    payload_json: JSON.stringify({
+      requestedPageTitle: 'Zenith',
+      pageTitle: 'Zenith',
+      pageId: 4649,
+      revisionTimestamp: '2026-03-16T22:11:59Z',
+      fetchedAt: '2026-03-28T04:15:57.931Z',
+      wikitext: 'wiki text',
+      html: '<p>Zenith</p>',
+      recipesMarkup: '<table class="terraria cellborder recipes"><tr><th>Result</th><th>Ingredients</th><th>Station</th></tr><tr><td class="result">[[Zenith]]</td><td class="ingredients"><li>[[Copper Shortsword]]</li></td><td class="station">[[Mythril Anvil]]</td></tr></table>',
+      entityType: 'item',
+      itemName: 'Zenith',
+      itemInternalName: 'Zenith',
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+
+  assert.equal(actual.scope, 'item_pages');
+  assert.equal(actual.rows.length, 2);
+  const pageRow = actual.rows.find((row) => row.tableName === 'maint_item_pages');
+  const recipeRow = actual.rows.find((row) => row.tableName === 'maint_item_page_recipes');
+  assert.ok(pageRow);
+  assert.ok(recipeRow);
+  assert.equal(recipeRow.resultInternalName, 'Zenith');
+  assert.equal(recipeRow.sourceContextPage, 'Zenith');
+  assert.match(recipeRow.ingredientsJson, /Copper Shortsword/);
+  assert.match(recipeRow.stationsJson, /Mythril Anvil/);
+});
+
 test('extractMaintEntitiesFromLandingRow expands relation bundle chunk into image and recipe rows', async () => {
   const landingRow = {
     id: 41,
@@ -218,6 +258,75 @@ test('extractMaintEntitiesFromLandingRow expands relation bundle chunk into imag
   assert.equal(imageRow.itemInternalName, 'Abeemination');
   assert.equal(recipeRow.resultInternalName, 'AccentSlab');
   assert.equal(recipeRow.ingredientsJson, JSON.stringify([{ ingredientInternalName: 'StoneBlock', ingredientName: 'Stone Block', sortOrder: 0 }]));
+});
+
+test('extractMaintEntitiesFromLandingRow expands recipe page payload into structured recipe rows', async () => {
+  const landingRow = {
+    id: 39,
+    dataset_type: 'recipes_raw',
+    provider: 'terraria.wiki.gg/zh',
+    source_page: '配方/工作台',
+    source_key: 'wiki.zh.page.recipe:配方/工作台',
+    source_revision_timestamp: '2026-04-22T10:00:00Z',
+    content_hash: 'r'.repeat(64),
+    fetched_at: '2026-04-23T10:00:00Z',
+    parsed_at: '2026-04-23T10:00:00Z',
+    payload_json: JSON.stringify({
+      requestedPageTitle: '配方/工作台',
+      pageTitle: '配方/工作台',
+      crawlDepth: 1,
+      requested: true,
+      discoveredFrom: '配方',
+      pageId: 1001,
+      revisionTimestamp: '2026-04-22T10:00:00Z',
+      fetchedAt: '2026-04-23T10:00:00Z',
+      sourceUrl: 'https://terraria.wiki.gg/zh/wiki/配方/工作台',
+      introParagraphs: ['intro'],
+      sections: [],
+      childPages: [],
+      childPageCount: 0,
+      recipeTableCount: 1,
+      recipeRowCount: 1,
+      recipeTables: [
+        {
+          tableIndex: 0,
+          caption: '工作台',
+          stations: ['工作台'],
+          stationRequirementMode: 'single',
+          rowCount: 1,
+          rows: [
+            {
+              rowIndex: 0,
+              resultName: '木剑',
+              resultQuantity: 1,
+              versionScope: null,
+              ingredients: [
+                {
+                  ingredientIndex: 0,
+                  text: '木材 x7',
+                  quantity: 7,
+                  linkedTitles: ['木材'],
+                },
+              ],
+              ingredientsText: '木材 x7',
+            },
+          ],
+        },
+      ],
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+  assert.equal(actual.scope, 'recipe_pages');
+  assert.equal(actual.rows.length, 2);
+  const pageRow = actual.rows.find((row) => row.tableName === 'maint_recipe_pages');
+  const recipeRow = actual.rows.find((row) => row.tableName === 'maint_recipe_page_recipes');
+  assert.ok(pageRow);
+  assert.ok(recipeRow);
+  assert.equal(recipeRow.pageTitle, '配方/工作台');
+  assert.equal(recipeRow.resultName, '木剑');
+  assert.match(recipeRow.ingredientsJson, /木材/);
+  assert.match(recipeRow.stationsJson, /工作台/);
 });
 
 test('extractMaintEntitiesFromLandingRow expands relation bundle chunk into source and biome rows', async () => {
@@ -436,18 +545,56 @@ test('extractMaintEntitiesFromLandingRow expands categories_raw into category ma
       renderedHtmlLength: 130765,
       sectionCount: 9,
       itemCount: 513,
-      sections: [{ title: 'Potions', rowCount: 3 }],
+      sections: [
+        {
+          title: 'Potions',
+          rowCount: 1,
+          itemCount: 2,
+          rows: [
+            {
+              group: 'Health',
+              itemCount: 2,
+              items: [
+                { name: 'Mushroom', href: 'https://terraria.wiki.gg/wiki/Mushroom', itemCount: 1, children: [] },
+                { name: 'Lesser Healing', href: 'https://terraria.wiki.gg/wiki/Lesser_Healing_Potion', itemCount: 1, children: [] },
+                {
+                  name: 'Fruits',
+                  href: 'https://terraria.wiki.gg/wiki/Fruits',
+                  itemCount: 2,
+                  children: [
+                    { name: 'Apple', href: 'https://terraria.wiki.gg/wiki/Apple', itemCount: 1, children: [] },
+                  ],
+                },
+              ],
+              subSections: [],
+            },
+          ],
+        },
+      ],
     }),
   };
 
   const actual = await extractMaintEntitiesFromLandingRow(landingRow);
   assert.equal(actual.scope, 'categories');
-  assert.equal(actual.rows.length, 1);
-  assert.equal(actual.rows[0].tableName, 'maint_categories');
-  assert.equal(actual.rows[0].templateTitle, 'Template:Master Template Consumables');
+  assert.equal(actual.rows.length, 5);
+  const categoryRow = actual.rows.find((row) => row.tableName === 'maint_categories');
+  const itemRows = actual.rows.filter((row) => row.tableName === 'maint_item_categories');
+  assert.ok(categoryRow);
+  assert.equal(categoryRow.templateTitle, 'Template:Master Template Consumables');
+  assert.equal(itemRows.length, 4);
+  assert.equal(itemRows[0].topLevel, 'Consumables');
+  assert.equal(itemRows[0].sectionTitle, 'Potions');
+  assert.equal(itemRows[0].groupName, 'Health');
+  assert.equal(itemRows[0].itemName, 'Mushroom');
+  assert.equal(itemRows[1].itemName, 'Lesser Healing');
+  assert.equal(itemRows[1].itemInternalName, 'LesserHealingPotion');
+  assert.equal(itemRows[2].itemName, 'Fruits');
+  assert.equal(itemRows[2].isGroupNode, true);
+  assert.equal(itemRows[3].itemName, 'Apple');
+  assert.equal(itemRows[3].parentItemName, 'Fruits');
 });
 
-test('extractMaintEntitiesFromLandingRow expands shimmer_raw into shimmer page rows', async () => {
+test.skip('extractMaintEntitiesFromLandingRow expands shimmer_raw into shimmer page rows', async () => {
   const landingRow = {
     id: 85,
     dataset_type: 'shimmer_raw',
@@ -718,4 +865,87 @@ test('runMaintSync filters extracted bundle rows by requested scopes', async () 
   assert.equal(summary.rows.byScope.source_snapshots, 1);
   assert.equal(summary.rows.byScope.item_images ?? 0, 0);
   assert.equal(summary.rows.byScope.item_recipes ?? 0, 0);
+});
+
+function createStructuredShimmerLandingRow() {
+  return {
+    id: 186,
+    dataset_type: 'shimmer_raw',
+    provider: 'terraria.wiki.gg/zh',
+    source_page: 'Shimmer',
+    source_key: 'wiki.page.shimmer',
+    source_revision_timestamp: '2026-03-09T05:12:48Z',
+    content_hash: '8'.repeat(64),
+    fetched_at: '2026-04-09T00:34:30.675Z',
+    parsed_at: '2026-04-09T00:34:30.675Z',
+    payload_json: JSON.stringify({
+      entity: 'wiki_shimmer_page',
+      generatedAt: '2026-04-09T00:34:30.675Z',
+      requestedPageTitle: 'Shimmer',
+      pageTitle: 'Shimmer',
+      pageId: 26209,
+      revisionId: 249846,
+      revisionTimestamp: '2026-03-09T05:12:48Z',
+      fetchedAt: '2026-04-09T00:34:30.675Z',
+      sections: [{ line: 'Item transforms', number: '1' }],
+      wikitext: 'wiki text',
+      html: [
+        '<p>Shimmer</p>',
+        '<table><caption>Item transforms</caption><tr><th>Input</th><th>Output</th><th>Notes</th></tr><tr><td><span class="i"><a title="Zenith">Zenith</a></span></td><td><span class="i"><a title="True Copper Shortsword">True Copper Shortsword</a></span></td><td>Requires defeating Moon Lord</td></tr></table>',
+        '<table><caption>Multi recipe</caption><tr><th>Input</th><th>Output</th></tr><tr><td><span class="i"><a title="Ironskin Potion">Ironskin Potion</a></span></td><td><span class="i"><a title="Bottled Water">Bottled Water</a></span></td></tr></table>',
+        '<table><caption>Evil branch</caption><tr><th>Input</th><th>Corruption</th><th>Crimson</th></tr><tr><td><span class="i"><a title="Monster Lasagna">Monster Lasagna</a></span></td><td><span class="i"><a title="Rotten Chunk">Rotten Chunk</a></span></td><td><span class="i"><a title="Vertebra">Vertebra</a></span></td></tr></table>',
+        '<table><caption>Unique</caption><tr><th>Input</th><th>Output</th></tr><tr><td><span class="i"><a title="Copper Pickaxe">Copper Pickaxe</a></span></td><td><span class="i"><a title="Wood">Wood</a></span></td></tr></table>',
+        '<table><caption>Random partial</caption><tr><td><span class="i"><a title="Shine Potion">Shine Potion</a></span></td></tr></table>',
+        '<table><caption>Locked Skeletron</caption><tr><td><span class="i"><a title="Bone Torch">Bone Torch</a></span></td></tr></table>',
+        '<table><caption>Locked Golem</caption><tr><td><span class="i"><a title="Lihzahrd Brick Wall">Lihzahrd Brick Wall</a></span></td></tr></table>',
+        '<table><caption>Not allowed</caption><tr><td><span class="i"><a title="Copper Coin">Copper Coin</a></span></td></tr></table>',
+        '<table><caption>Critter to item</caption><tr><th>Input</th><th>Output</th></tr><tr><td><span class="i"><a title="Gold Worm">Gold Worm</a></span></td><td><span class="i"><a title="Gummy Worm">Gummy Worm</a></span></td></tr></table>',
+        '<table><caption>Enemy transforms</caption><tr><th>Input</th><th>Output</th></tr><tr><td><span class="i"><a title="Green Slime">Green Slime</a></span></td><td><span class="i"><a title="Shimmer Slime">Shimmer Slime</a></span></td></tr></table>',
+        '<table><caption>Critter to faeling</caption><tr><td><span class="i"><a title="Blue Jay">Blue Jay</a></span></td></tr></table>',
+        '<table><caption>Slime to shimmer slime</caption><tr><td><span class="i"><a title="Blue Slime">Blue Slime</a></span></td></tr></table>',
+        '<table><caption>NPC transforms</caption><tr><th>NPC</th><th>Variant</th></tr><tr><td><span class="i"><a title="Guide">Guide</a></span></td><td><img src="/images/guide-shimmer.png" alt="Guide shimmer"></td></tr></table>',
+      ].join(''),
+    }),
+  };
+}
+
+test('extractMaintEntitiesFromLandingRow expands shimmer_raw into shimmer structured rows', async () => {
+  const actual = await extractMaintEntitiesFromLandingRow(createStructuredShimmerLandingRow());
+
+  assert.equal(actual.scope, 'shimmer');
+  assert.equal(actual.rows.length, 14);
+
+  const shimmerPageRow = actual.rows.find((row) => row.tableName === 'maint_shimmer_pages');
+  const itemTransformRow = actual.rows.find((row) => row.tableName === 'maint_shimmer_item_transforms');
+  const decraftRuleRow = actual.rows.find((row) => row.tableName === 'maint_shimmer_decraft_rules');
+  const entityTransformRow = actual.rows.find((row) => row.tableName === 'maint_shimmer_entity_transforms');
+  const npcTransformRow = actual.rows.find((row) => row.tableName === 'maint_shimmer_npc_transforms');
+
+  assert.ok(shimmerPageRow);
+  assert.ok(itemTransformRow);
+  assert.ok(decraftRuleRow);
+  assert.ok(entityTransformRow);
+  assert.ok(npcTransformRow);
+  assert.equal(shimmerPageRow.pageTitle, 'Shimmer');
+  assert.equal(itemTransformRow.code, 'shimmer_item_transform_0001');
+  assert.equal(itemTransformRow.inputNameEn, 'Zenith');
+  assert.equal(itemTransformRow.outputNameEn, 'True Copper Shortsword');
+  assert.match(itemTransformRow.conditionsJson, /MOON_LORD/);
+  assert.equal(decraftRuleRow.ruleType, 'decraft_multi_recipe');
+  assert.equal(entityTransformRow.transformGroup, 'critter_to_item');
+  assert.equal(npcTransformRow.npcNameEn, 'Guide');
+  assert.match(npcTransformRow.variantImageUrl, /guide-shimmer\.png/);
+});
+
+test('runMaintSync reports shimmer structured rows in dry-run mode', async () => {
+  const summary = await runMaintSync(
+    { apply: false, scopes: ['shimmer'] },
+    {
+      loadLandingRows: async () => [createStructuredShimmerLandingRow()],
+      writeReport: async () => {},
+    },
+  );
+
+  assert.equal(summary.rows.total, 14);
+  assert.equal(summary.rows.byScope.shimmer, 14);
 });
