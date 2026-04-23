@@ -118,6 +118,108 @@ test('extractMaintEntitiesFromLandingRow expands parsed npc payload into maint n
   assert.equal(actual.rows[0].flagsJson, JSON.stringify({ friendly: true, townNpc: true, boss: false }));
 });
 
+test('extractMaintEntitiesFromLandingRow expands item page payload into maint item page rows', async () => {
+  const landingRow = {
+    id: 31,
+    dataset_type: 'item_pages_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Zenith',
+    source_key: 'wiki.page.item_detail:Zenith',
+    source_revision_timestamp: '2026-03-16T22:11:59Z',
+    content_hash: 'c'.repeat(64),
+    fetched_at: '2026-03-28T04:15:57.931Z',
+    parsed_at: '2026-03-28T04:15:57.931Z',
+    payload_json: JSON.stringify({
+      requestedPageTitle: 'Zenith',
+      pageTitle: 'Zenith',
+      pageId: 4649,
+      revisionTimestamp: '2026-03-16T22:11:59Z',
+      fetchedAt: '2026-03-28T04:15:57.931Z',
+      wikitext: 'wiki text',
+      html: '<p>Zenith</p>',
+      recipesMarkup: '<table></table>',
+      entityType: 'item',
+      itemName: 'Zenith',
+      itemInternalName: 'Zenith',
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+
+  assert.equal(actual.scope, 'item_pages');
+  assert.equal(actual.rows.length, 1);
+  assert.equal(actual.rows[0].tableName, 'maint_item_pages');
+  assert.equal(actual.rows[0].recordKey.length, 64);
+  assert.equal(actual.rows[0].itemInternalName, 'Zenith');
+  assert.equal(actual.rows[0].pageId, 4649);
+  assert.equal(actual.rows[0].recipesMarkup, '<table></table>');
+});
+
+test('extractMaintEntitiesFromLandingRow expands relation bundle chunk into image and recipe rows', async () => {
+  const landingRow = {
+    id: 41,
+    dataset_type: 'item_relations_bundle_raw',
+    provider: 'terrapedia.generated',
+    source_page: 'item-relations.bundle#snapshots/1',
+    source_key: 'generated.item_relations_bundle:chunk:0001',
+    source_revision_timestamp: null,
+    content_hash: 'd'.repeat(64),
+    fetched_at: '2026-04-21T21:28:48.044Z',
+    parsed_at: '2026-04-21T21:28:48.044Z',
+    payload_json: JSON.stringify({
+      source: 'terraria.wiki.gg:item-page-assembly',
+      itemImages: [
+        {
+          itemInternalName: 'Abeemination',
+          itemName: 'Abeemination',
+          role: 'icon',
+          provider: 'wiki_gg',
+          sourceFileTitle: 'Abeemination.png',
+          sourcePage: 'Abeemination',
+          originalUrl: 'https://terraria.wiki.gg/images/Abeemination.png',
+          cachedUrl: 'https://terraria.wiki.gg/images/Abeemination.png',
+          width: 32,
+          height: 34,
+          contentType: 'image/png',
+          isPrimary: true,
+          sortOrder: 0,
+        },
+      ],
+      recipes: [
+        {
+          resultInternalName: 'AccentSlab',
+          resultName: 'Stone Accent Slab',
+          resultQuantity: 1,
+          versionScope: null,
+          notes: null,
+          sourceProvider: 'wiki_gg',
+          sourcePage: 'Recipes/Ecto Mist',
+          sourceContextPage: 'Recipes/Ecto Mist',
+          sourceContextPageSlug: 'Ecto_Mist',
+          sourceContextDisplayName: 'Ecto Mist',
+          sourceContextUrl: 'https://terraria.wiki.gg/wiki/Recipes/Ecto%20Mist',
+          sourceContextRevisionId: 961725,
+          sourceFetchedAt: '2026-04-21T21:28:48.044Z',
+          ingredients: [{ ingredientInternalName: 'StoneBlock', ingredientName: 'Stone Block', sortOrder: 0 }],
+          stations: [{ stationInternalName: 'HeavyWorkBench', stationName: 'Heavy Assembler', sortOrder: 0 }],
+        },
+      ],
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+
+  assert.equal(actual.scope, 'bundle_relations');
+  assert.equal(actual.rows.length, 2);
+  const imageRow = actual.rows.find((row) => row.tableName === 'maint_item_images');
+  const recipeRow = actual.rows.find((row) => row.tableName === 'maint_item_recipes');
+  assert.ok(imageRow);
+  assert.ok(recipeRow);
+  assert.equal(imageRow.itemInternalName, 'Abeemination');
+  assert.equal(recipeRow.resultInternalName, 'AccentSlab');
+  assert.equal(recipeRow.ingredientsJson, JSON.stringify([{ ingredientInternalName: 'StoneBlock', ingredientName: 'Stone Block', sortOrder: 0 }]));
+});
+
 test('buildMaintSyncSummary groups expanded rows by scope', () => {
   const summary = buildMaintSyncSummary(
     { apply: false, scopes: ['items', 'npcs'] },
@@ -217,4 +319,105 @@ test('runMaintSync updates existing maint rows on repeated apply', async () => {
   assert.ok(updateCall);
   assert.equal(updateCall.params.length, 24);
   assert.equal(summary.writes.updated, 1);
+});
+
+test('runMaintSync processes async iterable landing rows incrementally', async () => {
+  async function* loadLandingRows() {
+    yield {
+      id: 31,
+      dataset_type: 'item_pages_raw',
+      provider: 'terraria.wiki.gg',
+      source_page: 'Zenith',
+      source_key: 'wiki.page.item_detail:Zenith',
+      source_revision_timestamp: '2026-03-16T22:11:59Z',
+      content_hash: 'c'.repeat(64),
+      fetched_at: '2026-03-28T04:15:57.931Z',
+      parsed_at: '2026-03-28T04:15:57.931Z',
+      payload_json: JSON.stringify({
+        requestedPageTitle: 'Zenith',
+        pageTitle: 'Zenith',
+        pageId: 4649,
+        revisionTimestamp: '2026-03-16T22:11:59Z',
+        fetchedAt: '2026-03-28T04:15:57.931Z',
+        wikitext: 'wiki text',
+        html: '<p>Zenith</p>',
+        recipesMarkup: '<table></table>',
+        entityType: 'item',
+        itemName: 'Zenith',
+        itemInternalName: 'Zenith',
+      }),
+    };
+  }
+
+  const summary = await runMaintSync(
+    { apply: false, scopes: ['item_pages'] },
+    {
+      loadLandingRows,
+      writeReport: async () => {},
+    },
+  );
+
+  assert.equal(summary.rows.total, 1);
+  assert.equal(summary.rows.byScope.item_pages, 1);
+});
+
+test('runMaintSync de-duplicates record_key rows across bundle chunks', async () => {
+  async function* loadLandingRows() {
+    const payload = JSON.stringify({
+      source: 'terraria.wiki.gg:item-page-assembly',
+      itemImages: [
+        {
+          itemInternalName: 'Abeemination',
+          itemName: 'Abeemination',
+          role: 'icon',
+          provider: 'wiki_gg',
+          sourceFileTitle: 'Abeemination.png',
+          sourcePage: 'Abeemination',
+          originalUrl: 'https://terraria.wiki.gg/images/Abeemination.png',
+          cachedUrl: 'https://terraria.wiki.gg/images/Abeemination.png',
+          width: 32,
+          height: 34,
+          contentType: 'image/png',
+          isPrimary: true,
+          sortOrder: 0,
+        },
+      ],
+      recipes: [],
+    });
+    yield {
+      id: 41,
+      dataset_type: 'item_relations_bundle_raw',
+      provider: 'terrapedia.generated',
+      source_page: 'item-relations.bundle#snapshots/1',
+      source_key: 'generated.item_relations_bundle:chunk:0001',
+      source_revision_timestamp: null,
+      content_hash: 'd'.repeat(64),
+      fetched_at: '2026-04-21T21:28:48.044Z',
+      parsed_at: '2026-04-21T21:28:48.044Z',
+      payload_json: payload,
+    };
+    yield {
+      id: 42,
+      dataset_type: 'item_relations_bundle_raw',
+      provider: 'terrapedia.generated',
+      source_page: 'item-relations.bundle#snapshots/2',
+      source_key: 'generated.item_relations_bundle:chunk:0002',
+      source_revision_timestamp: null,
+      content_hash: 'e'.repeat(64),
+      fetched_at: '2026-04-21T21:28:48.044Z',
+      parsed_at: '2026-04-21T21:28:48.044Z',
+      payload_json: payload,
+    };
+  }
+
+  const summary = await runMaintSync(
+    { apply: false, scopes: ['item_images'] },
+    {
+      loadLandingRows,
+      writeReport: async () => {},
+    },
+  );
+
+  assert.equal(summary.rows.total, 1);
+  assert.equal(summary.rows.byScope.item_images, 1);
 });
