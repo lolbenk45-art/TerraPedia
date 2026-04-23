@@ -29,6 +29,11 @@ const SCOPE_TO_DATASETS = {
   item_sources: ['item_relations_bundle_raw'],
   item_biomes: ['item_relations_bundle_raw'],
   source_snapshots: ['item_relations_bundle_raw'],
+  bosses: ['bosses_raw'],
+  biomes: ['biomes_raw'],
+  armor_sets: ['armor_sets_raw'],
+  categories: ['categories_raw'],
+  shimmer: ['shimmer_raw'],
 };
 
 const SCOPE_TO_TABLE = {
@@ -43,6 +48,11 @@ const SCOPE_TO_TABLE = {
   item_sources: 'maint_item_sources',
   item_biomes: 'maint_item_biomes',
   source_snapshots: 'maint_source_snapshots',
+  bosses: 'maint_bosses',
+  biomes: 'maint_biomes',
+  armor_sets: 'maint_armor_sets',
+  categories: 'maint_categories',
+  shimmer: 'maint_shimmer_pages',
 };
 
 export function parseArgs(argv) {
@@ -92,7 +102,7 @@ function formatDateTag(value) {
 }
 
 function resolveScopes(rawScopes) {
-  const scopes = String(rawScopes ?? 'items,npcs,projectiles,buffs,item_pages,item_images,recipe_pages,item_recipes,item_sources,item_biomes,source_snapshots')
+  const scopes = String(rawScopes ?? 'items,npcs,projectiles,buffs,item_pages,item_images,recipe_pages,item_recipes,item_sources,item_biomes,source_snapshots,bosses,biomes,armor_sets,categories,shimmer')
     .split(',')
     .map((entry) => entry.trim())
     .filter(Boolean)
@@ -407,6 +417,144 @@ function extractSnapshotMaintRows(landingRow, payload) {
   }));
 }
 
+function extractBossMaintRows(landingRow, payload) {
+  return [{
+    scope: 'bosses',
+    tableName: 'maint_bosses',
+    recordKey: createRecordKey(payload),
+    progressionOrder: Number(payload.progressionOrder ?? 0) || null,
+    orderWithinGroup: Number(payload.orderWithinGroup ?? 0) || null,
+    groupNameEn: normalizeText(payload.groupNameEn),
+    groupNameZh: normalizeText(payload.groupNameZh),
+    groupType: normalizeText(payload.groupType),
+    titleEn: normalizeText(payload.titleEn),
+    titleZh: normalizeText(payload.titleZh),
+    pageTitleEn: normalizeText(payload.pageTitleEn),
+    pageTitleZh: normalizeText(payload.pageTitleZh),
+    pageId: Number(payload.pageId ?? 0) || null,
+    revisionId: Number(payload.revisionId ?? 0) || null,
+    sourceProvider: landingRow.provider,
+    sourcePage: landingRow.source_page,
+    sourceUrl: normalizeText(payload.sourceUrl),
+    sourceUrlZh: normalizeText(payload.sourceUrlZh),
+    sourceRevisionTimestamp: payload.revisionTimestamp ?? landingRow.source_revision_timestamp,
+    imageUrl: normalizeText(payload.imageUrl),
+    notes: normalizeText(payload.notes),
+    landingSourceId: Number(landingRow.id),
+    landingSourceKey: landingRow.source_key,
+    landingSourcePage: landingRow.source_page,
+    landingContentHash: landingRow.content_hash,
+    landingFetchedAt: landingRow.fetched_at,
+    landingParsedAt: landingRow.parsed_at,
+    rawJson: JSON.stringify(payload),
+  }];
+}
+
+function extractBiomeMaintRows(landingRow, payload) {
+  return [{
+    scope: 'biomes',
+    tableName: 'maint_biomes',
+    recordKey: createRecordKey(payload),
+    biomeCode: normalizeText(payload.biomeCode),
+    entityType: normalizeText(payload.entityType),
+    requestedPageTitle: normalizeText(payload.requestedPageTitle),
+    pageTitle: normalizeText(payload.pageTitle),
+    pageId: Number(payload.pageId ?? 0) || null,
+    sourceProvider: landingRow.provider,
+    sourcePage: landingRow.source_page,
+    sourceRevisionTimestamp: payload.revisionTimestamp ?? landingRow.source_revision_timestamp,
+    wikitext: payload.wikitext ?? null,
+    html: payload.html ?? null,
+    landingSourceId: Number(landingRow.id),
+    landingSourceKey: landingRow.source_key,
+    landingSourcePage: landingRow.source_page,
+    landingContentHash: landingRow.content_hash,
+    landingFetchedAt: landingRow.fetched_at,
+    landingParsedAt: landingRow.parsed_at,
+    rawJson: JSON.stringify(payload),
+  }];
+}
+
+function extractArmorSetMaintRows(landingRow, payload) {
+  return (Array.isArray(payload.armorSets) ? payload.armorSets : []).map((record) => ({
+    scope: 'armor_sets',
+    tableName: 'maint_armor_sets',
+    recordKey: createRecordKey(record),
+    textKey: normalizeText(record.textKey),
+    benefitExpression: normalizeText(record.benefitExpression),
+    primaryPart: Number(record.primaryPart ?? 0) || null,
+    setCount: Number(record.setCount ?? 0) || null,
+    uniqueItemCount: Array.isArray(record.uniqueItemIds) ? record.uniqueItemIds.length : 0,
+    setsJson: JSON.stringify(record.sets ?? []),
+    uniqueItemIdsJson: JSON.stringify(record.uniqueItemIds ?? []),
+    terrariaVersion: normalizeText(payload.terrariaVersion),
+    sourceProvider: landingRow.provider,
+    sourcePage: landingRow.source_page,
+    sourceRevisionTimestamp: payload.sourceRevisionTimestamp ?? landingRow.source_revision_timestamp,
+    landingSourceId: Number(landingRow.id),
+    landingSourceKey: landingRow.source_key,
+    landingSourcePage: landingRow.source_page,
+    landingContentHash: landingRow.content_hash,
+    landingFetchedAt: landingRow.fetched_at,
+    landingParsedAt: landingRow.parsed_at,
+    rawJson: JSON.stringify(record),
+  }));
+}
+
+function extractCategoryMaintRows(landingRow, payload) {
+  return [{
+    scope: 'categories',
+    tableName: 'maint_categories',
+    recordKey: createRecordKey(payload),
+    topLevel: normalizeText(payload.topLevel),
+    templateTitle: normalizeText(payload.templateTitle),
+    sourcePageId: Number(payload.sourcePageId ?? 0) || null,
+    sourceRevisionId: Number(payload.sourceRevisionId ?? 0) || null,
+    sourceRevisionTimestamp: payload.sourceRevisionTimestamp ?? landingRow.source_revision_timestamp,
+    renderedHtmlLength: Number(payload.renderedHtmlLength ?? 0) || null,
+    sectionCount: Number(payload.sectionCount ?? 0) || null,
+    itemCount: Number(payload.itemCount ?? 0) || null,
+    sectionsJson: JSON.stringify(payload.sections ?? []),
+    sourceProvider: landingRow.provider,
+    sourcePage: landingRow.source_page,
+    landingSourceId: Number(landingRow.id),
+    landingSourceKey: landingRow.source_key,
+    landingSourcePage: landingRow.source_page,
+    landingContentHash: landingRow.content_hash,
+    landingFetchedAt: landingRow.fetched_at,
+    landingParsedAt: landingRow.parsed_at,
+    rawJson: JSON.stringify(payload),
+  }];
+}
+
+function extractShimmerMaintRows(landingRow, payload) {
+  return [{
+    scope: 'shimmer',
+    tableName: 'maint_shimmer_pages',
+    recordKey: createRecordKey(payload),
+    entity: normalizeText(payload.entity),
+    generatedAt: payload.generatedAt ?? null,
+    requestedPageTitle: normalizeText(payload.requestedPageTitle),
+    pageTitle: normalizeText(payload.pageTitle),
+    pageId: Number(payload.pageId ?? 0) || null,
+    revisionId: Number(payload.revisionId ?? 0) || null,
+    sourceProvider: landingRow.provider,
+    sourcePage: landingRow.source_page,
+    sourceRevisionTimestamp: payload.revisionTimestamp ?? landingRow.source_revision_timestamp,
+    fetchedAt: payload.fetchedAt ?? null,
+    sectionsJson: JSON.stringify(payload.sections ?? []),
+    wikitext: payload.wikitext ?? null,
+    html: payload.html ?? null,
+    landingSourceId: Number(landingRow.id),
+    landingSourceKey: landingRow.source_key,
+    landingSourcePage: landingRow.source_page,
+    landingContentHash: landingRow.content_hash,
+    landingFetchedAt: landingRow.fetched_at,
+    landingParsedAt: landingRow.parsed_at,
+    rawJson: JSON.stringify(payload),
+  }];
+}
+
 export async function extractMaintEntitiesFromLandingRow(landingRow) {
   const payload = normalizeLandingPayload(landingRow);
   const datasetType = landingRow.dataset_type;
@@ -443,6 +591,26 @@ export async function extractMaintEntitiesFromLandingRow(landingRow) {
       ...extractSnapshotMaintRows(landingRow, payload),
     ];
     return { scope: 'bundle_relations', rows };
+  }
+  if (datasetType === 'bosses_raw') {
+    const rows = extractBossMaintRows(landingRow, payload);
+    return { scope: 'bosses', rows };
+  }
+  if (datasetType === 'biomes_raw') {
+    const rows = extractBiomeMaintRows(landingRow, payload);
+    return { scope: 'biomes', rows };
+  }
+  if (datasetType === 'armor_sets_raw') {
+    const rows = extractArmorSetMaintRows(landingRow, payload);
+    return { scope: 'armor_sets', rows };
+  }
+  if (datasetType === 'categories_raw') {
+    const rows = extractCategoryMaintRows(landingRow, payload);
+    return { scope: 'categories', rows };
+  }
+  if (datasetType === 'shimmer_raw') {
+    const rows = extractShimmerMaintRows(landingRow, payload);
+    return { scope: 'shimmer', rows };
   }
   return { scope: null, rows: [] };
 }
@@ -813,6 +981,173 @@ async function upsertRecordKeyRow(connection, row) {
         row.recordKey, row.entityType, row.itemInternalName, row.itemName, row.sourceProvider, row.sourceKind, row.sourceLocator, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp),
         row.snapshotPayloadJson, toMysqlDateTime(row.snapshotFetchedAt), row.isCurrent ? 1 : 0, row.parseStatus,
         row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt),
+        row.rawJson,
+      ],
+    );
+    return 'inserted';
+  }
+
+  if (row.tableName === 'maint_bosses') {
+    const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
+    const existing = existingRows[0] ?? null;
+    if (existing) {
+      await connection.execute(
+        `UPDATE \`${row.tableName}\`
+         SET progression_order = ?, order_within_group = ?, group_name_en = ?, group_name_zh = ?, group_type = ?, title_en = ?, title_zh = ?, page_title_en = ?, page_title_zh = ?,
+             page_id = ?, revision_id = ?, source_provider = ?, source_page = ?, source_url = ?, source_url_zh = ?, source_revision_timestamp = ?, image_url = ?, notes = ?,
+             landing_source_id = ?, landing_source_key = ?, landing_source_page = ?, landing_content_hash = ?, landing_fetched_at = ?, landing_parsed_at = ?, raw_json = ?,
+             status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [
+          row.progressionOrder, row.orderWithinGroup, row.groupNameEn, row.groupNameZh, row.groupType, row.titleEn, row.titleZh, row.pageTitleEn, row.pageTitleZh,
+          row.pageId, row.revisionId, row.sourceProvider, row.sourcePage, row.sourceUrl, row.sourceUrlZh, toMysqlDateTime(row.sourceRevisionTimestamp), row.imageUrl, row.notes,
+          row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.rawJson,
+          Number(existing.id),
+        ],
+      );
+      return 'updated';
+    }
+    await connection.execute(
+      `INSERT INTO \`${row.tableName}\`
+       (\`record_key\`, \`progression_order\`, \`order_within_group\`, \`group_name_en\`, \`group_name_zh\`, \`group_type\`, \`title_en\`, \`title_zh\`, \`page_title_en\`, \`page_title_zh\`,
+        \`page_id\`, \`revision_id\`, \`source_provider\`, \`source_page\`, \`source_url\`, \`source_url_zh\`, \`source_revision_timestamp\`, \`image_url\`, \`notes\`,
+        \`landing_source_id\`, \`landing_source_key\`, \`landing_source_page\`, \`landing_content_hash\`, \`landing_fetched_at\`, \`landing_parsed_at\`, \`raw_json\`, \`status\`, \`deleted\`)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+      [
+        row.recordKey, row.progressionOrder, row.orderWithinGroup, row.groupNameEn, row.groupNameZh, row.groupType, row.titleEn, row.titleZh, row.pageTitleEn, row.pageTitleZh,
+        row.pageId, row.revisionId, row.sourceProvider, row.sourcePage, row.sourceUrl, row.sourceUrlZh, toMysqlDateTime(row.sourceRevisionTimestamp), row.imageUrl, row.notes,
+        row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.rawJson,
+      ],
+    );
+    return 'inserted';
+  }
+
+  if (row.tableName === 'maint_biomes') {
+    const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
+    const existing = existingRows[0] ?? null;
+    if (existing) {
+      await connection.execute(
+        `UPDATE \`${row.tableName}\`
+         SET biome_code = ?, entity_type = ?, requested_page_title = ?, page_title = ?, page_id = ?, source_provider = ?, source_page = ?, source_revision_timestamp = ?,
+             wikitext = ?, html = ?, landing_source_id = ?, landing_source_key = ?, landing_source_page = ?, landing_content_hash = ?, landing_fetched_at = ?, landing_parsed_at = ?,
+             raw_json = ?, status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [
+          row.biomeCode, row.entityType, row.requestedPageTitle, row.pageTitle, row.pageId, row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp),
+          row.wikitext, row.html, row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt),
+          row.rawJson, Number(existing.id),
+        ],
+      );
+      return 'updated';
+    }
+    await connection.execute(
+      `INSERT INTO \`${row.tableName}\`
+       (\`record_key\`, \`biome_code\`, \`entity_type\`, \`requested_page_title\`, \`page_title\`, \`page_id\`, \`source_provider\`, \`source_page\`, \`source_revision_timestamp\`,
+        \`wikitext\`, \`html\`, \`landing_source_id\`, \`landing_source_key\`, \`landing_source_page\`, \`landing_content_hash\`, \`landing_fetched_at\`, \`landing_parsed_at\`,
+        \`raw_json\`, \`status\`, \`deleted\`)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+      [
+        row.recordKey, row.biomeCode, row.entityType, row.requestedPageTitle, row.pageTitle, row.pageId, row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp),
+        row.wikitext, row.html, row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt),
+        row.rawJson,
+      ],
+    );
+    return 'inserted';
+  }
+
+  if (row.tableName === 'maint_armor_sets') {
+    const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
+    const existing = existingRows[0] ?? null;
+    if (existing) {
+      await connection.execute(
+        `UPDATE \`${row.tableName}\`
+         SET text_key = ?, benefit_expression = ?, primary_part = ?, set_count = ?, unique_item_count = ?, sets_json = ?, unique_item_ids_json = ?, terraria_version = ?,
+             source_provider = ?, source_page = ?, source_revision_timestamp = ?, landing_source_id = ?, landing_source_key = ?, landing_source_page = ?, landing_content_hash = ?,
+             landing_fetched_at = ?, landing_parsed_at = ?, raw_json = ?, status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [
+          row.textKey, row.benefitExpression, row.primaryPart, row.setCount, row.uniqueItemCount, row.setsJson, row.uniqueItemIdsJson, row.terrariaVersion,
+          row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash,
+          toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.rawJson, Number(existing.id),
+        ],
+      );
+      return 'updated';
+    }
+    await connection.execute(
+      `INSERT INTO \`${row.tableName}\`
+       (\`record_key\`, \`text_key\`, \`benefit_expression\`, \`primary_part\`, \`set_count\`, \`unique_item_count\`, \`sets_json\`, \`unique_item_ids_json\`, \`terraria_version\`,
+        \`source_provider\`, \`source_page\`, \`source_revision_timestamp\`, \`landing_source_id\`, \`landing_source_key\`, \`landing_source_page\`, \`landing_content_hash\`,
+        \`landing_fetched_at\`, \`landing_parsed_at\`, \`raw_json\`, \`status\`, \`deleted\`)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+      [
+        row.recordKey, row.textKey, row.benefitExpression, row.primaryPart, row.setCount, row.uniqueItemCount, row.setsJson, row.uniqueItemIdsJson, row.terrariaVersion,
+        row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash,
+        toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.rawJson,
+      ],
+    );
+    return 'inserted';
+  }
+
+  if (row.tableName === 'maint_categories') {
+    const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
+    const existing = existingRows[0] ?? null;
+    if (existing) {
+      await connection.execute(
+        `UPDATE \`${row.tableName}\`
+         SET top_level = ?, template_title = ?, source_page_id = ?, source_revision_id = ?, source_revision_timestamp = ?, rendered_html_length = ?, section_count = ?, item_count = ?,
+             sections_json = ?, source_provider = ?, source_page = ?, landing_source_id = ?, landing_source_key = ?, landing_source_page = ?, landing_content_hash = ?, landing_fetched_at = ?, landing_parsed_at = ?,
+             raw_json = ?, status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [
+          row.topLevel, row.templateTitle, row.sourcePageId, row.sourceRevisionId, toMysqlDateTime(row.sourceRevisionTimestamp), row.renderedHtmlLength, row.sectionCount, row.itemCount,
+          row.sectionsJson, row.sourceProvider, row.sourcePage, row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt),
+          row.rawJson, Number(existing.id),
+        ],
+      );
+      return 'updated';
+    }
+    await connection.execute(
+      `INSERT INTO \`${row.tableName}\`
+       (\`record_key\`, \`top_level\`, \`template_title\`, \`source_page_id\`, \`source_revision_id\`, \`source_revision_timestamp\`, \`rendered_html_length\`, \`section_count\`, \`item_count\`,
+        \`sections_json\`, \`source_provider\`, \`source_page\`, \`landing_source_id\`, \`landing_source_key\`, \`landing_source_page\`, \`landing_content_hash\`, \`landing_fetched_at\`, \`landing_parsed_at\`,
+        \`raw_json\`, \`status\`, \`deleted\`)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+      [
+        row.recordKey, row.topLevel, row.templateTitle, row.sourcePageId, row.sourceRevisionId, toMysqlDateTime(row.sourceRevisionTimestamp), row.renderedHtmlLength, row.sectionCount, row.itemCount,
+        row.sectionsJson, row.sourceProvider, row.sourcePage, row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt),
+        row.rawJson,
+      ],
+    );
+    return 'inserted';
+  }
+
+  if (row.tableName === 'maint_shimmer_pages') {
+    const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
+    const existing = existingRows[0] ?? null;
+    if (existing) {
+      await connection.execute(
+        `UPDATE \`${row.tableName}\`
+         SET entity = ?, generated_at = ?, requested_page_title = ?, page_title = ?, page_id = ?, revision_id = ?, source_provider = ?, source_page = ?, source_revision_timestamp = ?,
+             fetched_at = ?, sections_json = ?, wikitext = ?, html = ?, landing_source_id = ?, landing_source_key = ?, landing_source_page = ?, landing_content_hash = ?, landing_fetched_at = ?, landing_parsed_at = ?,
+             raw_json = ?, status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [
+          row.entity, toMysqlDateTime(row.generatedAt), row.requestedPageTitle, row.pageTitle, row.pageId, row.revisionId, row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp),
+          toMysqlDateTime(row.fetchedAt), row.sectionsJson, row.wikitext, row.html, row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt),
+          row.rawJson, Number(existing.id),
+        ],
+      );
+      return 'updated';
+    }
+    await connection.execute(
+      `INSERT INTO \`${row.tableName}\`
+       (\`record_key\`, \`entity\`, \`generated_at\`, \`requested_page_title\`, \`page_title\`, \`page_id\`, \`revision_id\`, \`source_provider\`, \`source_page\`, \`source_revision_timestamp\`,
+        \`fetched_at\`, \`sections_json\`, \`wikitext\`, \`html\`, \`landing_source_id\`, \`landing_source_key\`, \`landing_source_page\`, \`landing_content_hash\`, \`landing_fetched_at\`, \`landing_parsed_at\`,
+        \`raw_json\`, \`status\`, \`deleted\`)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+      [
+        row.recordKey, row.entity, toMysqlDateTime(row.generatedAt), row.requestedPageTitle, row.pageTitle, row.pageId, row.revisionId, row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp),
+        toMysqlDateTime(row.fetchedAt), row.sectionsJson, row.wikitext, row.html, row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt),
         row.rawJson,
       ],
     );

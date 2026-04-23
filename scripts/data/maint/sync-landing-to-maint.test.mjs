@@ -312,6 +312,174 @@ test('extractMaintEntitiesFromLandingRow expands relation bundle chunk into snap
   assert.equal(snapshotRow.parseStatus, 'parsed');
 });
 
+test('extractMaintEntitiesFromLandingRow expands bosses_raw into boss maint rows', async () => {
+  const landingRow = {
+    id: 81,
+    dataset_type: 'bosses_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Betsy',
+    source_key: 'wiki.page.boss:Betsy',
+    source_revision_timestamp: '2026-02-13T16:16:41Z',
+    content_hash: '3'.repeat(64),
+    fetched_at: '2026-04-21T21:14:46.349Z',
+    parsed_at: '2026-04-21T21:14:46.349Z',
+    payload_json: JSON.stringify({
+      progressionOrder: 21,
+      orderWithinGroup: 3,
+      groupNameEn: 'Event bosses',
+      groupNameZh: '事件 Boss',
+      groupType: 'EVENT',
+      titleEn: 'Betsy',
+      pageTitleEn: 'Betsy',
+      status: 'ok',
+      pageId: 13003,
+      revisionId: 974390,
+      revisionTimestamp: '2026-02-13T16:16:41Z',
+      titleZh: '双足翼龙',
+      pageTitleZh: '双足翼龙',
+      sourceUrl: 'https://terraria.wiki.gg/wiki/Betsy',
+      sourceUrlZh: 'https://terraria.wiki.gg/zh/wiki/Betsy',
+      imageUrl: 'https://terraria.wiki.gg/images/Betsy.gif',
+      notes: 'note',
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+  assert.equal(actual.scope, 'bosses');
+  assert.equal(actual.rows.length, 1);
+  assert.equal(actual.rows[0].tableName, 'maint_bosses');
+  assert.equal(actual.rows[0].titleEn, 'Betsy');
+  assert.equal(actual.rows[0].groupType, 'EVENT');
+});
+
+test('extractMaintEntitiesFromLandingRow expands biomes_raw into biome maint rows', async () => {
+  const landingRow = {
+    id: 82,
+    dataset_type: 'biomes_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Desert',
+    source_key: 'wiki.page.biome_detail:desert',
+    source_revision_timestamp: '2026-03-05T15:29:17Z',
+    content_hash: '4'.repeat(64),
+    fetched_at: '2026-03-27T11:05:57.197Z',
+    parsed_at: '2026-03-27T11:05:57.197Z',
+    payload_json: JSON.stringify({
+      requestedPageTitle: 'Desert',
+      pageTitle: 'Desert',
+      pageId: 4078,
+      revisionTimestamp: '2026-03-05T15:29:17Z',
+      fetchedAt: '2026-03-27T11:05:57.197Z',
+      wikitext: 'wiki text',
+      html: '<p>Desert</p>',
+      entityType: 'biome',
+      biomeCode: 'desert',
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+  assert.equal(actual.scope, 'biomes');
+  assert.equal(actual.rows.length, 1);
+  assert.equal(actual.rows[0].tableName, 'maint_biomes');
+  assert.equal(actual.rows[0].biomeCode, 'desert');
+});
+
+test('extractMaintEntitiesFromLandingRow expands armor_sets_raw into armor set rows', async () => {
+  const landingRow = {
+    id: 83,
+    dataset_type: 'armor_sets_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Module:Armorsetbonuses',
+    source_key: 'wiki.module.armorsetbonuses',
+    source_revision_timestamp: '2026-04-07T02:20:00Z',
+    content_hash: '5'.repeat(64),
+    fetched_at: '2026-04-07T02:20:00Z',
+    parsed_at: '2026-04-07T02:20:00Z',
+    payload_json: JSON.stringify({
+      terrariaVersion: '1.4.5.6',
+      armorSets: [
+        {
+          benefitExpression: 'ArmorSetBonuses.Benefits.Wood',
+          primaryPart: null,
+          setCount: 7,
+          sets: [[727, 728, 729]],
+          textKey: 'ArmorSetBonus.Wood',
+          uniqueItemIds: [727, 728, 729],
+        },
+      ],
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+  assert.equal(actual.scope, 'armor_sets');
+  assert.equal(actual.rows.length, 1);
+  assert.equal(actual.rows[0].tableName, 'maint_armor_sets');
+  assert.equal(actual.rows[0].textKey, 'ArmorSetBonus.Wood');
+});
+
+test('extractMaintEntitiesFromLandingRow expands categories_raw into category maint rows', async () => {
+  const landingRow = {
+    id: 84,
+    dataset_type: 'categories_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Template:Master Template Consumables',
+    source_key: 'wiki.template.item_categories:Template:Master Template Consumables',
+    source_revision_timestamp: '2025-03-27T07:53:44Z',
+    content_hash: '6'.repeat(64),
+    fetched_at: '2026-04-07T02:17:22.790Z',
+    parsed_at: '2026-04-07T02:17:22.790Z',
+    payload_json: JSON.stringify({
+      topLevel: 'Consumables',
+      templateTitle: 'Template:Master Template Consumables',
+      sourcePageId: 53962,
+      sourceRevisionId: 932898,
+      sourceRevisionTimestamp: '2025-03-27T07:53:44Z',
+      renderedHtmlLength: 130765,
+      sectionCount: 9,
+      itemCount: 513,
+      sections: [{ title: 'Potions', rowCount: 3 }],
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+  assert.equal(actual.scope, 'categories');
+  assert.equal(actual.rows.length, 1);
+  assert.equal(actual.rows[0].tableName, 'maint_categories');
+  assert.equal(actual.rows[0].templateTitle, 'Template:Master Template Consumables');
+});
+
+test('extractMaintEntitiesFromLandingRow expands shimmer_raw into shimmer page rows', async () => {
+  const landingRow = {
+    id: 85,
+    dataset_type: 'shimmer_raw',
+    provider: 'terraria.wiki.gg/zh',
+    source_page: '微光',
+    source_key: 'wiki.page.shimmer',
+    source_revision_timestamp: '2026-03-09T05:12:48Z',
+    content_hash: '7'.repeat(64),
+    fetched_at: '2026-04-09T00:34:30.675Z',
+    parsed_at: '2026-04-09T00:34:30.675Z',
+    payload_json: JSON.stringify({
+      entity: 'wiki_shimmer_page',
+      generatedAt: '2026-04-09T00:34:30.675Z',
+      requestedPageTitle: '微光',
+      pageTitle: '微光',
+      pageId: 26209,
+      revisionId: 249846,
+      revisionTimestamp: '2026-03-09T05:12:48Z',
+      fetchedAt: '2026-04-09T00:34:30.675Z',
+      sections: [{ line: '物品嬗变', number: '1' }],
+      wikitext: 'wiki text',
+      html: '<p>微光</p>',
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+  assert.equal(actual.scope, 'shimmer');
+  assert.equal(actual.rows.length, 1);
+  assert.equal(actual.rows[0].tableName, 'maint_shimmer_pages');
+  assert.equal(actual.rows[0].pageTitle, '微光');
+});
+
 test('buildMaintSyncSummary groups expanded rows by scope', () => {
   const summary = buildMaintSyncSummary(
     { apply: false, scopes: ['items', 'npcs'] },
