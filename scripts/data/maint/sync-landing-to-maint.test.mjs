@@ -220,6 +220,98 @@ test('extractMaintEntitiesFromLandingRow expands relation bundle chunk into imag
   assert.equal(recipeRow.ingredientsJson, JSON.stringify([{ ingredientInternalName: 'StoneBlock', ingredientName: 'Stone Block', sortOrder: 0 }]));
 });
 
+test('extractMaintEntitiesFromLandingRow expands relation bundle chunk into source and biome rows', async () => {
+  const landingRow = {
+    id: 51,
+    dataset_type: 'item_relations_bundle_raw',
+    provider: 'terrapedia.generated',
+    source_page: 'item-relations.bundle#snapshots/1',
+    source_key: 'generated.item_relations_bundle:chunk:0001',
+    source_revision_timestamp: null,
+    content_hash: 'f'.repeat(64),
+    fetched_at: '2026-04-21T21:28:48.044Z',
+    parsed_at: '2026-04-21T21:28:48.044Z',
+    payload_json: JSON.stringify({
+      itemSources: [
+        {
+          itemInternalName: 'Acorn',
+          itemName: 'Acorn',
+          sourceType: 'shop',
+          sourceRefType: 'npc',
+          sourceRefName: 'Dryad',
+          sortOrder: 0,
+          biomeCode: 'crimson',
+          sourceProvider: 'wiki_gg',
+          sourcePage: 'Acorn',
+          sourceRevisionTimestamp: '2026-03-20T17:40:48Z',
+        },
+      ],
+      itemBiomes: [
+        {
+          itemInternalName: 'Acorn',
+          itemName: 'Acorn',
+          biomeCode: 'crimson',
+          relationType: 'found_in',
+          notes: 'Inferred from Acorn page text',
+          sortOrder: 0,
+        },
+      ],
+      snapshots: [],
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+  const sourceRow = actual.rows.find((row) => row.tableName === 'maint_item_sources');
+  const biomeRow = actual.rows.find((row) => row.tableName === 'maint_item_biomes');
+  assert.ok(sourceRow);
+  assert.ok(biomeRow);
+  assert.equal(sourceRow.itemInternalName, 'Acorn');
+  assert.equal(sourceRow.sourceType, 'shop');
+  assert.equal(biomeRow.biomeCode, 'crimson');
+  assert.equal(biomeRow.relationType, 'found_in');
+});
+
+test('extractMaintEntitiesFromLandingRow expands relation bundle chunk into snapshot rows', async () => {
+  const landingRow = {
+    id: 61,
+    dataset_type: 'item_relations_bundle_raw',
+    provider: 'terrapedia.generated',
+    source_page: 'item-relations.bundle#snapshots/1',
+    source_key: 'generated.item_relations_bundle:chunk:0001',
+    source_revision_timestamp: null,
+    content_hash: '1'.repeat(64),
+    fetched_at: '2026-04-21T21:28:48.044Z',
+    parsed_at: '2026-04-21T21:28:48.044Z',
+    payload_json: JSON.stringify({
+      itemSources: [],
+      itemBiomes: [],
+      snapshots: [
+        {
+          entityType: 'item',
+          itemInternalName: 'AaronsBreastplate',
+          itemName: "Aaron's Breastplate",
+          provider: 'wiki_gg',
+          sourceKind: 'page',
+          sourceLocator: "Aaron's Breastplate",
+          sourcePage: "Aaron's Breastplate",
+          sourceRevisionTimestamp: '2025-07-23T17:26:26Z',
+          payloadJson: "{\"pageTitle\":\"Aaron's Breastplate\"}",
+          fetchedAt: '2026-03-28T02:15:05.844Z',
+          isCurrent: true,
+          parseStatus: 'parsed',
+        },
+      ],
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+  const snapshotRow = actual.rows.find((row) => row.tableName === 'maint_source_snapshots');
+  assert.ok(snapshotRow);
+  assert.equal(snapshotRow.entityType, 'item');
+  assert.equal(snapshotRow.itemInternalName, 'AaronsBreastplate');
+  assert.equal(snapshotRow.parseStatus, 'parsed');
+});
+
 test('buildMaintSyncSummary groups expanded rows by scope', () => {
   const summary = buildMaintSyncSummary(
     { apply: false, scopes: ['items', 'npcs'] },
@@ -420,4 +512,42 @@ test('runMaintSync de-duplicates record_key rows across bundle chunks', async ()
 
   assert.equal(summary.rows.total, 1);
   assert.equal(summary.rows.byScope.item_images, 1);
+});
+
+test('runMaintSync filters extracted bundle rows by requested scopes', async () => {
+  async function* loadLandingRows() {
+    yield {
+      id: 71,
+      dataset_type: 'item_relations_bundle_raw',
+      provider: 'terrapedia.generated',
+      source_page: 'item-relations.bundle#snapshots/1',
+      source_key: 'generated.item_relations_bundle:chunk:0001',
+      source_revision_timestamp: null,
+      content_hash: '2'.repeat(64),
+      fetched_at: '2026-04-21T21:28:48.044Z',
+      parsed_at: '2026-04-21T21:28:48.044Z',
+      payload_json: JSON.stringify({
+        itemImages: [{ itemInternalName: 'A', itemName: 'A', role: 'icon', provider: 'wiki_gg', sourceFileTitle: 'A.png', sourcePage: 'A' }],
+        recipes: [{ resultInternalName: 'B', resultName: 'B', ingredients: [], stations: [] }],
+        itemSources: [{ itemInternalName: 'C', itemName: 'C', sourceType: 'shop' }],
+        itemBiomes: [{ itemInternalName: 'D', itemName: 'D', biomeCode: 'forest', relationType: 'found_in' }],
+        snapshots: [{ entityType: 'item', itemInternalName: 'E', itemName: 'E', provider: 'wiki_gg', sourceKind: 'page', sourceLocator: 'E', sourcePage: 'E' }],
+      }),
+    };
+  }
+
+  const summary = await runMaintSync(
+    { apply: false, scopes: ['item_sources', 'item_biomes', 'source_snapshots'] },
+    {
+      loadLandingRows,
+      writeReport: async () => {},
+    },
+  );
+
+  assert.equal(summary.rows.total, 3);
+  assert.equal(summary.rows.byScope.item_sources, 1);
+  assert.equal(summary.rows.byScope.item_biomes, 1);
+  assert.equal(summary.rows.byScope.source_snapshots, 1);
+  assert.equal(summary.rows.byScope.item_images ?? 0, 0);
+  assert.equal(summary.rows.byScope.item_recipes ?? 0, 0);
 });

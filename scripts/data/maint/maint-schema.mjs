@@ -7,6 +7,9 @@ export const MAINT_TABLE_NAMES = [
   'maint_item_images',
   'maint_recipe_pages',
   'maint_item_recipes',
+  'maint_item_sources',
+  'maint_item_biomes',
+  'maint_source_snapshots',
 ];
 
 export function buildMaintSchemaSql() {
@@ -280,6 +283,88 @@ CREATE TABLE IF NOT EXISTS \`maint_item_recipes\` (
   \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (\`id\`),
   UNIQUE KEY \`uk_maint_item_recipes_record_key\` (\`record_key\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS \`maint_item_sources\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) NOT NULL,
+  \`item_internal_name\` VARCHAR(255) DEFAULT NULL,
+  \`item_name\` VARCHAR(255) DEFAULT NULL,
+  \`source_type\` VARCHAR(64) DEFAULT NULL,
+  \`source_ref_type\` VARCHAR(64) DEFAULT NULL,
+  \`source_ref_name\` VARCHAR(255) DEFAULT NULL,
+  \`sort_order\` INT DEFAULT NULL,
+  \`biome_code\` VARCHAR(64) DEFAULT NULL,
+  \`source_provider\` VARCHAR(128) NOT NULL,
+  \`source_page\` VARCHAR(255) DEFAULT NULL,
+  \`source_revision_timestamp\` DATETIME DEFAULT NULL,
+  \`landing_source_id\` BIGINT NOT NULL,
+  \`landing_source_key\` VARCHAR(255) NOT NULL,
+  \`landing_source_page\` VARCHAR(255) DEFAULT NULL,
+  \`landing_content_hash\` CHAR(64) NOT NULL,
+  \`landing_fetched_at\` DATETIME DEFAULT NULL,
+  \`landing_parsed_at\` DATETIME DEFAULT NULL,
+  \`raw_json\` LONGTEXT NOT NULL,
+  \`status\` INT NOT NULL DEFAULT 1,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_maint_item_sources_record_key\` (\`record_key\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS \`maint_item_biomes\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) NOT NULL,
+  \`item_internal_name\` VARCHAR(255) DEFAULT NULL,
+  \`item_name\` VARCHAR(255) DEFAULT NULL,
+  \`biome_code\` VARCHAR(64) DEFAULT NULL,
+  \`relation_type\` VARCHAR(64) DEFAULT NULL,
+  \`notes\` TEXT DEFAULT NULL,
+  \`sort_order\` INT DEFAULT NULL,
+  \`landing_source_id\` BIGINT NOT NULL,
+  \`landing_source_key\` VARCHAR(255) NOT NULL,
+  \`landing_source_page\` VARCHAR(255) DEFAULT NULL,
+  \`landing_content_hash\` CHAR(64) NOT NULL,
+  \`landing_fetched_at\` DATETIME DEFAULT NULL,
+  \`landing_parsed_at\` DATETIME DEFAULT NULL,
+  \`raw_json\` LONGTEXT NOT NULL,
+  \`status\` INT NOT NULL DEFAULT 1,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_maint_item_biomes_record_key\` (\`record_key\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS \`maint_source_snapshots\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) NOT NULL,
+  \`entity_type\` VARCHAR(64) DEFAULT NULL,
+  \`item_internal_name\` VARCHAR(255) DEFAULT NULL,
+  \`item_name\` VARCHAR(255) DEFAULT NULL,
+  \`source_provider\` VARCHAR(128) NOT NULL,
+  \`source_kind\` VARCHAR(64) DEFAULT NULL,
+  \`source_locator\` VARCHAR(500) DEFAULT NULL,
+  \`source_page\` VARCHAR(255) DEFAULT NULL,
+  \`source_revision_timestamp\` DATETIME DEFAULT NULL,
+  \`snapshot_payload_json\` LONGTEXT DEFAULT NULL,
+  \`snapshot_fetched_at\` DATETIME DEFAULT NULL,
+  \`is_current\` TINYINT(1) NOT NULL DEFAULT 1,
+  \`parse_status\` VARCHAR(64) DEFAULT NULL,
+  \`landing_source_id\` BIGINT NOT NULL,
+  \`landing_source_key\` VARCHAR(255) NOT NULL,
+  \`landing_source_page\` VARCHAR(255) DEFAULT NULL,
+  \`landing_content_hash\` CHAR(64) NOT NULL,
+  \`landing_fetched_at\` DATETIME DEFAULT NULL,
+  \`landing_parsed_at\` DATETIME DEFAULT NULL,
+  \`raw_json\` LONGTEXT NOT NULL,
+  \`status\` INT NOT NULL DEFAULT 1,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_maint_source_snapshots_record_key\` (\`record_key\`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 `.trim();
 }

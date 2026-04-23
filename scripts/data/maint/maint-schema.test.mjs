@@ -18,6 +18,9 @@ test('buildMaintSchemaSql creates all maint tables', () => {
     'maint_item_images',
     'maint_recipe_pages',
     'maint_item_recipes',
+    'maint_item_sources',
+    'maint_item_biomes',
+    'maint_source_snapshots',
   ]);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_items`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_npcs`/);
@@ -27,6 +30,9 @@ test('buildMaintSchemaSql creates all maint tables', () => {
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_images`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_recipe_pages`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_recipes`/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_sources`/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_biomes`/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_source_snapshots`/);
   assert.match(sql, /`landing_source_key` VARCHAR\(255\) NOT NULL/);
   assert.match(sql, /`landing_content_hash` CHAR\(64\) NOT NULL/);
   assert.match(sql, /`record_key` CHAR\(64\) NOT NULL/);
