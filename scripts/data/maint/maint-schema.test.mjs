@@ -28,6 +28,8 @@ test('buildMaintSchemaSql creates all maint tables', () => {
     'maint_armor_sets',
     'maint_categories',
     'maint_item_categories',
+    'maint_category_nodes',
+    'maint_item_category_assignments',
     'maint_shimmer_pages',
     'maint_shimmer_item_transforms',
     'maint_shimmer_decraft_rules',
@@ -52,6 +54,8 @@ test('buildMaintSchemaSql creates all maint tables', () => {
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_armor_sets`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_categories`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_categories`/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_category_nodes`/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_category_assignments`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_shimmer_pages`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_shimmer_item_transforms`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_shimmer_decraft_rules`/);
@@ -61,4 +65,6 @@ test('buildMaintSchemaSql creates all maint tables', () => {
   assert.match(sql, /`landing_content_hash` CHAR\(64\) NOT NULL/);
   assert.match(sql, /`record_key` CHAR\(64\) NOT NULL/);
   assert.match(sql, /`raw_json` LONGTEXT NOT NULL/);
+  assert.match(sql, /`node_key` VARCHAR\(1000\) NOT NULL/);
+  assert.match(sql, /`is_primary` TINYINT\(1\) NOT NULL DEFAULT 0/);
 });

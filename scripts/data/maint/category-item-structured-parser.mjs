@@ -27,6 +27,7 @@ export function extractCategoryItemRecords(payload) {
           sectionTitle,
           groupName,
           parentItemName: null,
+          pathNames: [],
           depth: 0,
           records,
           itemLookup,
@@ -46,6 +47,7 @@ function flattenCategoryItemNode(context) {
     sectionTitle,
     groupName,
     parentItemName,
+    pathNames,
     depth,
     records,
     itemLookup,
@@ -58,6 +60,7 @@ function flattenCategoryItemNode(context) {
 
   const matchedItem = resolveItem(itemName, normalizeText(node?.href), itemLookup);
   const children = Array.isArray(node?.children) ? node.children : [];
+  const nextPathNames = [...pathNames, itemName];
   records.push({
     topLevel,
     templateTitle,
@@ -69,6 +72,7 @@ function flattenCategoryItemNode(context) {
     itemInternalName: matchedItem?.internalName ?? null,
     itemEnglishName: matchedItem?.name ?? itemName,
     parentItemName,
+    pathNames: nextPathNames,
     depth,
     isGroupNode: children.length > 0,
   });
@@ -81,6 +85,7 @@ function flattenCategoryItemNode(context) {
       sectionTitle,
       groupName,
       parentItemName: itemName,
+      pathNames: nextPathNames,
       depth: depth + 1,
       records,
       itemLookup,

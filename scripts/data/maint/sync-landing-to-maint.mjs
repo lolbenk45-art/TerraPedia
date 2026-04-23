@@ -596,7 +596,8 @@ function extractCategoryMaintRows(landingRow, payload) {
     landingParsedAt: landingRow.parsed_at,
     rawJson: JSON.stringify(payload),
   };
-  const itemRows = extractCategoryItemRecords(payload).map((record, index) => ({
+  const itemRecords = extractCategoryItemRecords(payload);
+  const itemRows = itemRecords.map((record, index) => ({
     scope: 'categories',
     tableName: 'maint_item_categories',
     recordKey: createRecordKey({
@@ -633,7 +634,226 @@ function extractCategoryMaintRows(landingRow, payload) {
     landingParsedAt: landingRow.parsed_at,
     rawJson: JSON.stringify(record),
   }));
-  return [categoryRow, ...itemRows];
+  const categoryRuleResult = extractCategoryRuleMaintRows(landingRow, categoryRow, itemRows, itemRecords);
+  return {
+    rows: [categoryRow, ...itemRows, ...categoryRuleResult.rows],
+    categoryRules: categoryRuleResult.summary,
+  };
+}
+
+function extractCategoryRuleMaintRows(landingRow, categoryRow, itemRows, itemRecords) {
+  const nodeMap = new Map();
+  const assignmentCandidates = new Map();
+  const summary = {
+    nodeRows: 0,
+    assignmentRows: 0,
+    unmatchedItems: 0,
+    primaryAssignments: 0,
+    secondaryAssignments: 0,
+  };
+
+  for (let index = 0; index < itemRows.length; index += 1) {
+    const itemRow = itemRows[index];
+    const itemRecord = itemRecords[index] ?? {};
+    const displaySegments = buildCategoryDisplaySegments(itemRecord);
+    if (displaySegments.length === 0) {
+      continue;
+    }
+
+    for (let segmentIndex = 0; segmentIndex < displaySegments.length; segmentIndex += 1) {
+      const currentSegments = displaySegments.slice(0, segmentIndex + 1);
+      const pathText = currentSegments.join(' > ');
+      const nodeKey = buildCategoryNodeKey(currentSegments);
+      const parentSegments = currentSegments.slice(0, -1);
+      const parentNodeKey = parentSegments.length ? buildCategoryNodeKey(parentSegments) : null;
+      const isLeafNode = segmentIndex === displaySegments.length - 1;
+      const nodeRow = {
+        scope: 'categories',
+        tableName: 'maint_category_nodes',
+        recordKey: createRecordKey({
+          tableName: 'maint_category_nodes',
+          nodeKey,
+        }),
+        nodeKey,
+        parentNodeKey,
+        topLevel: itemRow.topLevel,
+        sectionTitle: itemRow.sectionTitle,
+        groupName: itemRow.groupName,
+        nodeName: currentSegments[currentSegments.length - 1],
+        pathText,
+        depth: segmentIndex,
+        isGroupNode: isLeafNode ? Boolean(itemRow.isGroupNode) : false,
+        sourceTemplateTitle: itemRow.templateTitle,
+        sourceMaintCategoryRecordKey: categoryRow.recordKey,
+        sourceMaintItemCategoryRecordKey: itemRow.recordKey,
+        sourceProvider: itemRow.sourceProvider,
+        sourcePage: itemRow.sourcePage,
+        sourceRevisionTimestamp: itemRow.sourceRevisionTimestamp,
+        landingSourceId: itemRow.landingSourceId,
+        landingSourceKey: itemRow.landingSourceKey,
+        landingSourcePage: itemRow.landingSourcePage,
+        landingContentHash: itemRow.landingContentHash,
+        landingFetchedAt: itemRow.landingFetchedAt,
+        landingParsedAt: itemRow.landingParsedAt,
+        rawJson: JSON.stringify({
+          templateTitle: itemRow.templateTitle,
+          pathSegments: currentSegments,
+          sourceItemName: itemRow.itemName,
+          sourceItemRecordKey: itemRow.recordKey,
+        }),
+      };
+      if (!nodeMap.has(nodeKey)) {
+        nodeMap.set(nodeKey, nodeRow);
+      }
+    }
+
+    if (!itemRow.itemInternalName) {
+      summary.unmatchedItems += 1;
+      continue;
+    }
+
+    const leafNodeKey = buildCategoryNodeKey(displaySegments);
+    const categoryPathText = displaySegments.join(' > ');
+    const pairKey = `${itemRow.itemInternalName}::${leafNodeKey}`;
+    const candidate = {
+      itemInternalName: itemRow.itemInternalName,
+      itemName: itemRow.itemEnglishName ?? itemRow.itemName,
+      categoryNodeKey: leafNodeKey,
+      categoryPathText,
+      sourceTemplateTitle: itemRow.templateTitle,
+      sourceItemName: itemRow.itemName,
+      sourceParentItemName: itemRow.parentItemName,
+      sourceMaintCategoryRecordKey: categoryRow.recordKey,
+      sourceMaintItemCategoryRecordKey: itemRow.recordKey,
+      sourceProvider: itemRow.sourceProvider,
+      sourcePage: itemRow.sourcePage,
+      sourceRevisionTimestamp: itemRow.sourceRevisionTimestamp,
+      landingSourceId: itemRow.landingSourceId,
+      landingSourceKey: itemRow.landingSourceKey,
+      landingSourcePage: itemRow.landingSourcePage,
+      landingContentHash: itemRow.landingContentHash,
+      landingFetchedAt: itemRow.landingFetchedAt,
+      landingParsedAt: itemRow.landingParsedAt,
+      isGroupNode: Boolean(itemRow.isGroupNode),
+      categoryDepth: displaySegments.length - 1,
+      rawJson: JSON.stringify({
+        templateTitle: itemRow.templateTitle,
+        itemInternalName: itemRow.itemInternalName,
+        itemName: itemRow.itemName,
+        categoryPathText,
+        sourceMaintItemCategoryRecordKey: itemRow.recordKey,
+      }),
+    };
+    const current = assignmentCandidates.get(pairKey);
+    if (!current || compareCategoryAssignmentCandidates(candidate, current) < 0) {
+      assignmentCandidates.set(pairKey, candidate);
+    }
+  }
+
+  const groupedAssignments = new Map();
+  for (const candidate of assignmentCandidates.values()) {
+    const list = groupedAssignments.get(candidate.itemInternalName) ?? [];
+    list.push(candidate);
+    groupedAssignments.set(candidate.itemInternalName, list);
+  }
+
+  const assignmentRows = [];
+  for (const candidates of groupedAssignments.values()) {
+    candidates.sort(compareCategoryAssignmentCandidates);
+    candidates.forEach((candidate, index) => {
+      const isPrimary = index === 0;
+      assignmentRows.push({
+        scope: 'categories',
+        tableName: 'maint_item_category_assignments',
+        recordKey: createRecordKey({
+          tableName: 'maint_item_category_assignments',
+          itemInternalName: candidate.itemInternalName,
+          categoryNodeKey: candidate.categoryNodeKey,
+        }),
+        itemInternalName: candidate.itemInternalName,
+        itemName: candidate.itemName,
+        categoryNodeKey: candidate.categoryNodeKey,
+        categoryPathText: candidate.categoryPathText,
+        isPrimary,
+        assignmentReason: isPrimary ? 'priority:non_group_deepest_path' : 'priority:secondary_non_group_deepest_path',
+        sourceTemplateTitle: candidate.sourceTemplateTitle,
+        sourceItemName: candidate.sourceItemName,
+        sourceParentItemName: candidate.sourceParentItemName,
+        sourceMaintCategoryRecordKey: candidate.sourceMaintCategoryRecordKey,
+        sourceMaintItemCategoryRecordKey: candidate.sourceMaintItemCategoryRecordKey,
+        sourceProvider: candidate.sourceProvider,
+        sourcePage: candidate.sourcePage,
+        sourceRevisionTimestamp: candidate.sourceRevisionTimestamp,
+        landingSourceId: candidate.landingSourceId,
+        landingSourceKey: candidate.landingSourceKey,
+        landingSourcePage: candidate.landingSourcePage,
+        landingContentHash: candidate.landingContentHash,
+        landingFetchedAt: candidate.landingFetchedAt,
+        landingParsedAt: candidate.landingParsedAt,
+        rawJson: candidate.rawJson,
+      });
+      if (isPrimary) summary.primaryAssignments += 1;
+      else summary.secondaryAssignments += 1;
+    });
+  }
+
+  summary.nodeRows = nodeMap.size;
+  summary.assignmentRows = assignmentRows.length;
+
+  return {
+    rows: [...nodeMap.values(), ...assignmentRows],
+    summary,
+  };
+}
+
+function buildCategoryDisplaySegments(record) {
+  const segments = [];
+  pushCategorySegment(segments, record.topLevel);
+  pushCategorySegment(segments, record.sectionTitle);
+  pushCategorySegment(segments, record.groupName);
+  for (const pathName of Array.isArray(record.pathNames) ? record.pathNames : []) {
+    pushCategorySegment(segments, pathName);
+  }
+  if (segments.length === 0) {
+    pushCategorySegment(segments, record.itemName);
+  }
+  return segments;
+}
+
+function pushCategorySegment(target, value) {
+  const text = normalizeText(value);
+  if (text) {
+    target.push(text);
+  }
+}
+
+function buildCategoryNodeKey(segments) {
+  return segments
+    .map((segment) => normalizeCategoryKeySegment(segment))
+    .filter(Boolean)
+    .join('::');
+}
+
+function normalizeCategoryKeySegment(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function compareCategoryAssignmentCandidates(left, right) {
+  if (left.isGroupNode !== right.isGroupNode) {
+    return left.isGroupNode ? 1 : -1;
+  }
+  if (left.categoryDepth !== right.categoryDepth) {
+    return right.categoryDepth - left.categoryDepth;
+  }
+  const pathCompare = String(left.categoryPathText).localeCompare(String(right.categoryPathText));
+  if (pathCompare !== 0) {
+    return pathCompare;
+  }
+  return String(left.sourceMaintItemCategoryRecordKey).localeCompare(String(right.sourceMaintItemCategoryRecordKey));
 }
 
 function buildShimmerBaseMaintRow(landingRow, record, extra = {}) {
@@ -822,8 +1042,8 @@ export async function extractMaintEntitiesFromLandingRow(landingRow) {
     return { scope: 'armor_sets', rows };
   }
   if (datasetType === 'categories_raw') {
-    const rows = extractCategoryMaintRows(landingRow, payload);
-    return { scope: 'categories', rows };
+    const categoryResult = extractCategoryMaintRows(landingRow, payload);
+    return { scope: 'categories', rows: categoryResult.rows, categoryRules: categoryResult.categoryRules };
   }
   if (datasetType === 'shimmer_raw') {
     const rows = extractShimmerMaintRows(landingRow, payload);
@@ -849,6 +1069,7 @@ export function buildMaintSyncSummary(options, entityRows) {
       inserted: 0,
       updated: 0,
     },
+    categoryRules: null,
   };
 }
 
@@ -865,7 +1086,28 @@ function createEmptyStreamSummary(options) {
       inserted: 0,
       updated: 0,
     },
+    categoryRules: null,
   };
+}
+
+function mergeCategoryRuleSummary(summary, categoryRules) {
+  if (!categoryRules) {
+    return;
+  }
+  if (!summary.categoryRules) {
+    summary.categoryRules = {
+      nodeRows: 0,
+      assignmentRows: 0,
+      unmatchedItems: 0,
+      primaryAssignments: 0,
+      secondaryAssignments: 0,
+    };
+  }
+  summary.categoryRules.nodeRows += Number(categoryRules.nodeRows ?? 0);
+  summary.categoryRules.assignmentRows += Number(categoryRules.assignmentRows ?? 0);
+  summary.categoryRules.unmatchedItems += Number(categoryRules.unmatchedItems ?? 0);
+  summary.categoryRules.primaryAssignments += Number(categoryRules.primaryAssignments ?? 0);
+  summary.categoryRules.secondaryAssignments += Number(categoryRules.secondaryAssignments ?? 0);
 }
 
 function addRowsToStreamSummary(summary, rows) {
@@ -892,6 +1134,15 @@ function dedupeEntityRows(rows, seenRecordKeys) {
 function filterRowsByScopes(rows, scopes) {
   const scopeSet = new Set(scopes);
   return rows.filter((row) => scopeSet.has(row.scope));
+}
+
+function shouldInvalidateCurrentCategoryRuleTables(scopes) {
+  return Array.isArray(scopes) && scopes.includes('categories');
+}
+
+async function invalidateCurrentCategoryRuleTables(connection) {
+  await connection.execute('UPDATE `maint_category_nodes` SET status = 0, deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE deleted = 0');
+  await connection.execute('UPDATE `maint_item_category_assignments` SET status = 0, deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE deleted = 0');
 }
 
 async function defaultLoadLandingRows(scopes, connection) {
@@ -1449,6 +1700,80 @@ async function upsertRecordKeyRow(connection, row) {
     return 'inserted';
   }
 
+  if (row.tableName === 'maint_category_nodes') {
+    const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
+    const existing = existingRows[0] ?? null;
+    if (existing) {
+      await connection.execute(
+        `UPDATE \`${row.tableName}\`
+         SET node_key = ?, parent_node_key = ?, top_level = ?, section_title = ?, group_name = ?, node_name = ?, path_text = ?, depth = ?, is_group_node = ?,
+             source_template_title = ?, source_maint_category_record_key = ?, source_maint_item_category_record_key = ?,
+             source_provider = ?, source_page = ?, source_revision_timestamp = ?, landing_source_id = ?, landing_source_key = ?, landing_source_page = ?,
+             landing_content_hash = ?, landing_fetched_at = ?, landing_parsed_at = ?, raw_json = ?, status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [
+          row.nodeKey, row.parentNodeKey, row.topLevel, row.sectionTitle, row.groupName, row.nodeName, row.pathText, row.depth, row.isGroupNode ? 1 : 0,
+          row.sourceTemplateTitle, row.sourceMaintCategoryRecordKey, row.sourceMaintItemCategoryRecordKey,
+          row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage,
+          row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.rawJson, Number(existing.id),
+        ],
+      );
+      return 'updated';
+    }
+    await connection.execute(
+      `INSERT INTO \`${row.tableName}\`
+       (\`record_key\`, \`node_key\`, \`parent_node_key\`, \`top_level\`, \`section_title\`, \`group_name\`, \`node_name\`, \`path_text\`, \`depth\`, \`is_group_node\`,
+        \`source_template_title\`, \`source_maint_category_record_key\`, \`source_maint_item_category_record_key\`,
+        \`source_provider\`, \`source_page\`, \`source_revision_timestamp\`, \`landing_source_id\`, \`landing_source_key\`, \`landing_source_page\`,
+        \`landing_content_hash\`, \`landing_fetched_at\`, \`landing_parsed_at\`, \`raw_json\`, \`status\`, \`deleted\`)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+      [
+        row.recordKey, row.nodeKey, row.parentNodeKey, row.topLevel, row.sectionTitle, row.groupName, row.nodeName, row.pathText, row.depth, row.isGroupNode ? 1 : 0,
+        row.sourceTemplateTitle, row.sourceMaintCategoryRecordKey, row.sourceMaintItemCategoryRecordKey,
+        row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage,
+        row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.rawJson,
+      ],
+    );
+    return 'inserted';
+  }
+
+  if (row.tableName === 'maint_item_category_assignments') {
+    const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
+    const existing = existingRows[0] ?? null;
+    if (existing) {
+      await connection.execute(
+        `UPDATE \`${row.tableName}\`
+         SET item_internal_name = ?, item_name = ?, category_node_key = ?, category_path_text = ?, is_primary = ?, assignment_reason = ?,
+             source_template_title = ?, source_item_name = ?, source_parent_item_name = ?, source_maint_category_record_key = ?, source_maint_item_category_record_key = ?,
+             source_provider = ?, source_page = ?, source_revision_timestamp = ?, landing_source_id = ?, landing_source_key = ?, landing_source_page = ?,
+             landing_content_hash = ?, landing_fetched_at = ?, landing_parsed_at = ?, raw_json = ?, status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [
+          row.itemInternalName, row.itemName, row.categoryNodeKey, row.categoryPathText, row.isPrimary ? 1 : 0, row.assignmentReason,
+          row.sourceTemplateTitle, row.sourceItemName, row.sourceParentItemName, row.sourceMaintCategoryRecordKey, row.sourceMaintItemCategoryRecordKey,
+          row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage,
+          row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.rawJson, Number(existing.id),
+        ],
+      );
+      return 'updated';
+    }
+    await connection.execute(
+      `INSERT INTO \`${row.tableName}\`
+       (\`record_key\`, \`item_internal_name\`, \`item_name\`, \`category_node_key\`, \`category_path_text\`, \`is_primary\`, \`assignment_reason\`,
+        \`source_template_title\`, \`source_item_name\`, \`source_parent_item_name\`, \`source_maint_category_record_key\`, \`source_maint_item_category_record_key\`,
+        \`source_provider\`, \`source_page\`, \`source_revision_timestamp\`, \`landing_source_id\`, \`landing_source_key\`, \`landing_source_page\`,
+        \`landing_content_hash\`, \`landing_fetched_at\`, \`landing_parsed_at\`, \`raw_json\`, \`status\`, \`deleted\`)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+      [
+        row.recordKey, row.itemInternalName, row.itemName, row.categoryNodeKey, row.categoryPathText, row.isPrimary ? 1 : 0, row.assignmentReason,
+        row.sourceTemplateTitle, row.sourceItemName, row.sourceParentItemName, row.sourceMaintCategoryRecordKey, row.sourceMaintItemCategoryRecordKey,
+        row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage,
+        row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.rawJson,
+      ],
+    );
+    return 'inserted';
+  }
+
   if (row.tableName === 'maint_shimmer_pages') {
     const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
     const existing = existingRows[0] ?? null;
@@ -1745,19 +2070,37 @@ export async function runMaintSync(options, dependencies = {}) {
   const canUseArrayMode = Array.isArray(loaded);
   if (canUseArrayMode) {
     const extracted = [];
+    const categoryRuleSummary = {
+      nodeRows: 0,
+      assignmentRows: 0,
+      unmatchedItems: 0,
+      primaryAssignments: 0,
+      secondaryAssignments: 0,
+    };
+    let hasCategoryRuleSummary = false;
     const seenRecordKeys = new Set();
     for (const landingRow of loaded) {
       const result = await extractMaintEntitiesFromLandingRow(landingRow);
+      if (result.categoryRules) {
+        mergeCategoryRuleSummary({ categoryRules: categoryRuleSummary }, result.categoryRules);
+        hasCategoryRuleSummary = true;
+      }
       extracted.push(...filterRowsByScopes(dedupeEntityRows(result.rows, seenRecordKeys), scopes));
     }
 
     const summary = buildMaintSyncSummary({ apply: options.apply, scopes }, extracted);
+    if (hasCategoryRuleSummary) {
+      summary.categoryRules = categoryRuleSummary;
+    }
 
     if (options.apply) {
       const connection = await mysqlModule.createConnection(connectionConfig);
       try {
         await connection.beginTransaction();
         await connection.query(buildMaintSchemaSql());
+        if (shouldInvalidateCurrentCategoryRuleTables(scopes)) {
+          await invalidateCurrentCategoryRuleTables(connection);
+        }
         for (const row of extracted) {
           const action = await upsertMaintRow(connection, row);
           summary.writes[action] += 1;
@@ -1786,6 +2129,9 @@ export async function runMaintSync(options, dependencies = {}) {
     if (writeConnection) {
       await writeConnection.beginTransaction();
       await writeConnection.query(buildMaintSchemaSql());
+      if (shouldInvalidateCurrentCategoryRuleTables(scopes)) {
+        await invalidateCurrentCategoryRuleTables(writeConnection);
+      }
     }
 
     const landingIterable = isAsyncIterable(loaded)
@@ -1802,6 +2148,7 @@ export async function runMaintSync(options, dependencies = {}) {
 
     for await (const landingRow of source) {
       const result = await extractMaintEntitiesFromLandingRow(landingRow);
+      mergeCategoryRuleSummary(summary, result.categoryRules);
       const dedupedRows = filterRowsByScopes(dedupeEntityRows(result.rows, seenRecordKeys), scopes);
       addRowsToStreamSummary(summary, dedupedRows);
       if (writeConnection) {

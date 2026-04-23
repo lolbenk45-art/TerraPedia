@@ -576,7 +576,7 @@ test('extractMaintEntitiesFromLandingRow expands categories_raw into category ma
 
   const actual = await extractMaintEntitiesFromLandingRow(landingRow);
   assert.equal(actual.scope, 'categories');
-  assert.equal(actual.rows.length, 5);
+  assert.ok(actual.rows.length > 5);
   const categoryRow = actual.rows.find((row) => row.tableName === 'maint_categories');
   const itemRows = actual.rows.filter((row) => row.tableName === 'maint_item_categories');
   assert.ok(categoryRow);
@@ -592,6 +592,80 @@ test('extractMaintEntitiesFromLandingRow expands categories_raw into category ma
   assert.equal(itemRows[2].isGroupNode, true);
   assert.equal(itemRows[3].itemName, 'Apple');
   assert.equal(itemRows[3].parentItemName, 'Fruits');
+});
+
+test('extractMaintEntitiesFromLandingRow derives category rule rows and primary assignments from categories_raw', async () => {
+  const landingRow = {
+    id: 184,
+    dataset_type: 'categories_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Template:Master Template Consumables',
+    source_key: 'wiki.template.item_categories:Template:Master Template Consumables',
+    source_revision_timestamp: '2025-03-27T07:53:44Z',
+    content_hash: '8'.repeat(64),
+    fetched_at: '2026-04-07T02:17:22.790Z',
+    parsed_at: '2026-04-07T02:17:22.790Z',
+    payload_json: JSON.stringify({
+      topLevel: 'Consumables',
+      templateTitle: 'Template:Master Template Consumables',
+      sourcePageId: 53962,
+      sourceRevisionId: 932898,
+      sourceRevisionTimestamp: '2025-03-27T07:53:44Z',
+      renderedHtmlLength: 130765,
+      sectionCount: 2,
+      itemCount: 3,
+      sections: [
+        {
+          title: 'Potions',
+          rows: [
+            {
+              group: 'Health',
+              items: [
+                { name: 'Lesser Healing', href: 'https://terraria.wiki.gg/wiki/Lesser_Healing_Potion', itemCount: 1, children: [] },
+                { name: 'Unknown Draft', href: 'https://terraria.wiki.gg/wiki/Unknown_Draft', itemCount: 1, children: [] },
+              ],
+            },
+          ],
+        },
+        {
+          title: 'Utility',
+          rows: [
+            {
+              group: 'Basics',
+              items: [
+                { name: 'Lesser Healing', href: 'https://terraria.wiki.gg/wiki/Lesser_Healing_Potion', itemCount: 1, children: [] },
+              ],
+            },
+          ],
+        },
+      ],
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+
+  const categoryRows = actual.rows.filter((row) => row.tableName === 'maint_category_nodes');
+  const assignmentRows = actual.rows.filter((row) => row.tableName === 'maint_item_category_assignments');
+
+  assert.equal(actual.scope, 'categories');
+  assert.ok(categoryRows.length >= 3);
+  assert.equal(assignmentRows.length, 2);
+
+  const unmatchedAssignment = assignmentRows.find((row) => row.sourceItemName === 'Unknown Draft');
+  assert.equal(unmatchedAssignment, undefined);
+
+  const healthNode = categoryRows.find((row) => row.pathText === 'Consumables > Potions > Health > Lesser Healing');
+  const utilityNode = categoryRows.find((row) => row.pathText === 'Consumables > Utility > Basics > Lesser Healing');
+  assert.ok(healthNode);
+  assert.ok(utilityNode);
+
+  const primaryAssignment = assignmentRows.find((row) => row.isPrimary === true);
+  const secondaryAssignment = assignmentRows.find((row) => row.isPrimary === false);
+  assert.ok(primaryAssignment);
+  assert.ok(secondaryAssignment);
+  assert.equal(primaryAssignment.itemInternalName, 'LesserHealingPotion');
+  assert.equal(secondaryAssignment.itemInternalName, 'LesserHealingPotion');
+  assert.match(primaryAssignment.assignmentReason, /deepest|priority/);
 });
 
 test.skip('extractMaintEntitiesFromLandingRow expands shimmer_raw into shimmer page rows', async () => {
@@ -726,6 +800,76 @@ test('runMaintSync updates existing maint rows on repeated apply', async () => {
   assert.ok(updateCall);
   assert.equal(updateCall.params.length, 24);
   assert.equal(summary.writes.updated, 1);
+});
+
+test('runMaintSync invalidates old category rule rows before applying current category results', async () => {
+  const executeCalls = [];
+  const summary = await runMaintSync(
+    { apply: true, scopes: ['categories'] },
+    {
+      loadLandingRows: async () => [
+        {
+          id: 184,
+          dataset_type: 'categories_raw',
+          provider: 'terraria.wiki.gg',
+          source_page: 'Template:Master Template Consumables',
+          source_key: 'wiki.template.item_categories:Template:Master Template Consumables',
+          source_revision_timestamp: '2025-03-27T07:53:44Z',
+          content_hash: '8'.repeat(64),
+          fetched_at: '2026-04-07T02:17:22.790Z',
+          parsed_at: '2026-04-07T02:17:22.790Z',
+          payload_json: JSON.stringify({
+            topLevel: 'Consumables',
+            templateTitle: 'Template:Master Template Consumables',
+            sourcePageId: 53962,
+            sourceRevisionId: 932898,
+            sourceRevisionTimestamp: '2025-03-27T07:53:44Z',
+            renderedHtmlLength: 130765,
+            sectionCount: 1,
+            itemCount: 1,
+            sections: [
+              {
+                title: 'Potions',
+                rows: [
+                  {
+                    group: 'Health',
+                    items: [
+                      { name: 'Lesser Healing', href: 'https://terraria.wiki.gg/wiki/Lesser_Healing_Potion', itemCount: 1, children: [] },
+                    ],
+                  },
+                ],
+              },
+            ],
+          }),
+        },
+      ],
+      mysqlModule: {
+        async createConnection() {
+          return {
+            async beginTransaction() {},
+            async query() {},
+            async execute(sql, params) {
+              executeCalls.push({ sql, params });
+              if (sql.startsWith('SELECT id FROM')) {
+                return [[]];
+              }
+              return [{}];
+            },
+            async commit() {},
+            async rollback() {},
+            async end() {},
+          };
+        },
+      },
+      writeReport: async () => {},
+    },
+  );
+
+  assert.ok(executeCalls.some((call) => call.sql.startsWith('UPDATE `maint_category_nodes` SET status = 0, deleted = 1')));
+  assert.ok(executeCalls.some((call) => call.sql.startsWith('UPDATE `maint_item_category_assignments` SET status = 0, deleted = 1')));
+  assert.ok(executeCalls.some((call) => call.sql.startsWith('INSERT INTO `maint_category_nodes`')));
+  assert.ok(executeCalls.some((call) => call.sql.startsWith('INSERT INTO `maint_item_category_assignments`')));
+  assert.ok(summary.writes.inserted >= 4);
 });
 
 test('runMaintSync processes async iterable landing rows incrementally', async () => {
@@ -948,4 +1092,49 @@ test('runMaintSync reports shimmer structured rows in dry-run mode', async () =>
 
   assert.equal(summary.rows.total, 14);
   assert.equal(summary.rows.byScope.shimmer, 14);
+});
+
+test('runMaintSync reports category rule diagnostics in dry-run mode', async () => {
+  const summary = await runMaintSync(
+    { apply: false, scopes: ['categories'] },
+    {
+      loadLandingRows: async () => [
+        {
+          id: 184,
+          dataset_type: 'categories_raw',
+          provider: 'terraria.wiki.gg',
+          source_page: 'Template:Master Template Consumables',
+          source_key: 'wiki.template.item_categories:Template:Master Template Consumables',
+          source_revision_timestamp: '2025-03-27T07:53:44Z',
+          content_hash: '8'.repeat(64),
+          fetched_at: '2026-04-07T02:17:22.790Z',
+          parsed_at: '2026-04-07T02:17:22.790Z',
+          payload_json: JSON.stringify({
+            topLevel: 'Consumables',
+            templateTitle: 'Template:Master Template Consumables',
+            sections: [
+              {
+                title: 'Potions',
+                rows: [
+                  {
+                    group: 'Health',
+                    items: [
+                      { name: 'Lesser Healing', href: 'https://terraria.wiki.gg/wiki/Lesser_Healing_Potion', itemCount: 1, children: [] },
+                      { name: 'Unknown Draft', href: 'https://terraria.wiki.gg/wiki/Unknown_Draft', itemCount: 1, children: [] },
+                    ],
+                  },
+                ],
+              },
+            ],
+          }),
+        },
+      ],
+      writeReport: async () => {},
+    },
+  );
+
+  assert.ok(summary.categoryRules);
+  assert.equal(summary.categoryRules.unmatchedItems, 1);
+  assert.equal(summary.categoryRules.primaryAssignments, 1);
+  assert.equal(summary.categoryRules.secondaryAssignments, 0);
 });
