@@ -1,0 +1,601 @@
+{
+  "generatedAt": "2026-04-25T00:12:25.994Z",
+  "summary": {
+    "switchableDomains": [
+      "buffs"
+    ],
+    "blockedDomains": [
+      "items",
+      "npcs",
+      "projectiles"
+    ]
+  },
+  "domainResults": {
+    "items": {
+      "domain": "items",
+      "status": "blocked",
+      "localRowCount": 6134,
+      "projectionRowCount": 6146,
+      "sharedRowCount": 6131,
+      "missingInProjection": [
+        "ZH_RECIPE_BLUE_JELLYFISH_BAIT",
+        "ZH_RECIPE_GREEN_JELLYFISH_BAIT",
+        "ZH_RECIPE_PINK_JELLYFISH_BAIT"
+      ],
+      "extraInProjection": [
+        "Fake_newchest1",
+        "Fake_newchest2",
+        "OgreMask",
+        "GoblinMask",
+        "GoblinBomberCap",
+        "EtherianJavelin",
+        "KoboldDynamiteBackpack",
+        "BoringBow",
+        "BossBagOgre",
+        "BossBagDarkMage"
+      ],
+      "blockingFields": [
+        {
+          "field": "name_zh",
+          "localNonNull": 6131,
+          "projectionNonNull": 0,
+          "gap": 6131,
+          "missingExamples": [
+            {
+              "key": "IronPickaxe",
+              "localValue": "铁镐",
+              "projectionValue": null
+            },
+            {
+              "key": "DirtBlock",
+              "localValue": "土块",
+              "projectionValue": null
+            },
+            {
+              "key": "StoneBlock",
+              "localValue": "石块",
+              "projectionValue": null
+            },
+            {
+              "key": "IronBroadsword",
+              "localValue": "铁阔剑",
+              "projectionValue": null
+            },
+            {
+              "key": "Mushroom",
+              "localValue": "蘑菇",
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "image",
+          "localNonNull": 6131,
+          "projectionNonNull": 2119,
+          "gap": 4012,
+          "missingExamples": [
+            {
+              "key": "Torch",
+              "localValue": "http://localhost:9000/terrapedia-images/items/2026/04/06/ea78b9e2dde74511a57b334a9ed01270.png",
+              "projectionValue": null
+            },
+            {
+              "key": "Wood",
+              "localValue": "http://localhost:9000/terrapedia-images/items/2026/04/06/07a86ac231f84bd08e4bb15eaae3ced7.png",
+              "projectionValue": null
+            },
+            {
+              "key": "WoodenDoor",
+              "localValue": "http://localhost:9000/terrapedia-images/items/2026/04/06/91a0dc3cbcc04f739f77c9de62f1a864.png",
+              "projectionValue": null
+            },
+            {
+              "key": "WoodenTable",
+              "localValue": "http://localhost:9000/terrapedia-images/items/2026/04/06/6b83d385e68f4ba0a6b1e5256949c63f.png",
+              "projectionValue": null
+            },
+            {
+              "key": "WoodenChair",
+              "localValue": "http://localhost:9000/terrapedia-images/items/2026/04/06/3fb7d75e2e8f41b1bd9a330bdb5e6164.png",
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "damage",
+          "localNonNull": 6131,
+          "projectionNonNull": 757,
+          "gap": 5374,
+          "missingExamples": [
+            {
+              "key": "DirtBlock",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "StoneBlock",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "Mushroom",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "Torch",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "Wood",
+              "localValue": 0,
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "defense",
+          "localNonNull": 6131,
+          "projectionNonNull": 264,
+          "gap": 5867,
+          "missingExamples": [
+            {
+              "key": "IronPickaxe",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "DirtBlock",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "StoneBlock",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "IronBroadsword",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "Mushroom",
+              "localValue": 0,
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "knockback",
+          "localNonNull": 6131,
+          "projectionNonNull": 624,
+          "gap": 5507,
+          "missingExamples": [
+            {
+              "key": "DirtBlock",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "StoneBlock",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "Mushroom",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "Torch",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "Wood",
+              "localValue": 0,
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "use_time",
+          "localNonNull": 6131,
+          "projectionNonNull": 4655,
+          "gap": 1476,
+          "missingExamples": [
+            {
+              "key": "Goggles",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "WoodenArrow",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "FlamingArrow",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "UnholyArrow",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "CopperGreaves",
+              "localValue": 0,
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "buy",
+          "localNonNull": 6131,
+          "projectionNonNull": 5263,
+          "gap": 868,
+          "missingExamples": [
+            {
+              "key": "DirtBlock",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "StoneBlock",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "Wood",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "SuspiciousLookingEye",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "WormFood",
+              "localValue": 0,
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "sell",
+          "localNonNull": 5263,
+          "projectionNonNull": 0,
+          "gap": 5263,
+          "missingExamples": [
+            {
+              "key": "IronPickaxe",
+              "localValue": 400,
+              "projectionValue": null
+            },
+            {
+              "key": "IronBroadsword",
+              "localValue": 360,
+              "projectionValue": null
+            },
+            {
+              "key": "Mushroom",
+              "localValue": 250,
+              "projectionValue": null
+            },
+            {
+              "key": "IronShortsword",
+              "localValue": 280,
+              "projectionValue": null
+            },
+            {
+              "key": "IronHammer",
+              "localValue": 320,
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "tooltip_zh",
+          "localNonNull": 6,
+          "projectionNonNull": 0,
+          "gap": 6,
+          "missingExamples": [
+            {
+              "key": "IronPickaxe",
+              "localValue": "可开采流星矿以下的方块",
+              "projectionValue": null
+            },
+            {
+              "key": "IronOre",
+              "localValue": "在地下较常见",
+              "projectionValue": null
+            },
+            {
+              "key": "Furnace",
+              "localValue": "基础制作站",
+              "projectionValue": null
+            },
+            {
+              "key": "IronAnvil",
+              "localValue": "基础金属制作站",
+              "projectionValue": null
+            },
+            {
+              "key": "IronBar",
+              "localValue": "可用于制作铁系装备与工具",
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "stack_size",
+          "localNonNull": 6131,
+          "projectionNonNull": 13,
+          "gap": 6118,
+          "missingExamples": [
+            {
+              "key": "IronPickaxe",
+              "localValue": 1,
+              "projectionValue": null
+            },
+            {
+              "key": "DirtBlock",
+              "localValue": 9999,
+              "projectionValue": null
+            },
+            {
+              "key": "StoneBlock",
+              "localValue": 9999,
+              "projectionValue": null
+            },
+            {
+              "key": "IronBroadsword",
+              "localValue": 1,
+              "projectionValue": null
+            },
+            {
+              "key": "Mushroom",
+              "localValue": 9999,
+              "projectionValue": null
+            }
+          ]
+        }
+      ]
+    },
+    "npcs": {
+      "domain": "npcs",
+      "status": "blocked",
+      "localRowCount": 762,
+      "projectionRowCount": 762,
+      "sharedRowCount": 762,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "blockingFields": [
+        {
+          "field": "name_zh",
+          "localNonNull": 757,
+          "projectionNonNull": 0,
+          "gap": 757,
+          "missingExamples": [
+            {
+              "key": "BigHornetStingy",
+              "localValue": "黄蜂",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetStingy",
+              "localValue": "黄蜂",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetSpikey",
+              "localValue": "黄蜂",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetSpikey",
+              "localValue": "黄蜂",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetLeafy",
+              "localValue": "黄蜂",
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "sub_name_zh",
+          "localNonNull": 206,
+          "projectionNonNull": 0,
+          "gap": 206,
+          "missingExamples": [
+            {
+              "key": "BigHornetStingy",
+              "localValue": "大毒刺黄蜂",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetStingy",
+              "localValue": "小毒刺黄蜂",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetSpikey",
+              "localValue": "大尖刺黄蜂",
+              "projectionValue": null
+            },
+            {
+              "key": "LittleHornetSpikey",
+              "localValue": "小尖刺黄蜂",
+              "projectionValue": null
+            },
+            {
+              "key": "BigHornetLeafy",
+              "localValue": "大多叶黄蜂",
+              "projectionValue": null
+            }
+          ]
+        }
+      ]
+    },
+    "projectiles": {
+      "domain": "projectiles",
+      "status": "blocked",
+      "localRowCount": 1111,
+      "projectionRowCount": 1111,
+      "sharedRowCount": 1111,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "blockingFields": [
+        {
+          "field": "name_zh",
+          "localNonNull": 1006,
+          "projectionNonNull": 0,
+          "gap": 1006,
+          "missingExamples": [
+            {
+              "key": "WoodenArrowFriendly",
+              "localValue": "木箭",
+              "projectionValue": null
+            },
+            {
+              "key": "FireArrow",
+              "localValue": "烈火箭",
+              "projectionValue": null
+            },
+            {
+              "key": "Shuriken",
+              "localValue": "手里剑",
+              "projectionValue": null
+            },
+            {
+              "key": "UnholyArrow",
+              "localValue": "邪箭",
+              "projectionValue": null
+            },
+            {
+              "key": "JestersArrow",
+              "localValue": "小丑之箭",
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "friendly",
+          "localNonNull": 1111,
+          "projectionNonNull": 828,
+          "gap": 283,
+          "missingExamples": [
+            {
+              "key": "HarpyFeather",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "Tombstone",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "DemonSickle",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "Glowstick",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "StickyGlowstick",
+              "localValue": 0,
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "hostile",
+          "localNonNull": 1111,
+          "projectionNonNull": 175,
+          "gap": 936,
+          "missingExamples": [
+            {
+              "key": "WoodenArrowFriendly",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "FireArrow",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "Shuriken",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "UnholyArrow",
+              "localValue": 0,
+              "projectionValue": null
+            },
+            {
+              "key": "JestersArrow",
+              "localValue": 0,
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "tile_collide",
+          "localNonNull": 1111,
+          "projectionNonNull": 393,
+          "gap": 718,
+          "missingExamples": [
+            {
+              "key": "WoodenArrowFriendly",
+              "localValue": 1,
+              "projectionValue": null
+            },
+            {
+              "key": "FireArrow",
+              "localValue": 1,
+              "projectionValue": null
+            },
+            {
+              "key": "Shuriken",
+              "localValue": 1,
+              "projectionValue": null
+            },
+            {
+              "key": "UnholyArrow",
+              "localValue": 1,
+              "projectionValue": null
+            },
+            {
+              "key": "JestersArrow",
+              "localValue": 1,
+              "projectionValue": null
+            }
+          ]
+        }
+      ]
+    },
+    "buffs": {
+      "domain": "buffs",
+      "status": "switchable",
+      "localRowCount": 388,
+      "projectionRowCount": 388,
+      "sharedRowCount": 388,
+      "missingInProjection": [],
+      "extraInProjection": [],
+      "blockingFields": []
+    }
+  }
+}
