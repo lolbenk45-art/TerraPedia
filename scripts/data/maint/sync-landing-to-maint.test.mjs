@@ -118,6 +118,80 @@ test('extractMaintEntitiesFromLandingRow expands parsed npc payload into maint n
   assert.equal(actual.rows[0].flagsJson, JSON.stringify({ friendly: true, townNpc: true, boss: false }));
 });
 
+test('extractMaintEntitiesFromLandingRow overlays item zh names from provided source indexes', async () => {
+  const itemLandingRow = {
+    id: 12,
+    dataset_type: 'items_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Module:Iteminfo/data',
+    source_key: 'wiki.module.iteminfo',
+    source_revision_timestamp: '2026-04-22T10:00:00Z',
+    content_hash: 'h'.repeat(64),
+    fetched_at: '2026-04-23T10:00:00Z',
+    parsed_at: '2026-04-23T10:00:00Z',
+    payload_json: JSON.stringify({
+      moduleContent: 'return { ["data"] = [=====[{"_generated":"2026-04-22 10:00:00 (+00:00)","_terrariaversion":"1.4.5.6","1":{"name":"Iron Pickaxe","internalName":"IronPickaxe","damage":5}}]=====] }',
+      pageTitle: 'Module:Iteminfo/data',
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(itemLandingRow, {
+    zhSourceIndexes: {
+      itemsByInternalName: new Map([
+        ['ironpickaxe', { nameZh: '铁镐' }],
+      ]),
+    },
+  });
+
+  assert.equal(actual.rows[0].nameZh, '铁镐');
+});
+
+test('extractMaintEntitiesFromLandingRow overlays npc and projectile zh names from provided source indexes', async () => {
+  const npcLandingRow = {
+    id: 22,
+    dataset_type: 'npcs_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Module:Npcinfo/data',
+    source_key: 'wiki.module.npcinfo',
+    source_revision_timestamp: '2026-04-22T11:00:00Z',
+    content_hash: 'i'.repeat(64),
+    fetched_at: '2026-04-23T11:00:00Z',
+    parsed_at: '2026-04-23T11:00:00Z',
+    payload_json: JSON.stringify({
+      moduleGeneratedAt: '2026-04-22 11:00:00 (+00:00)',
+      wikiVersion: '1.4.5.1',
+      npcs: [{ id: 17, internalName: 'Merchant', name: 'Merchant' }],
+    }),
+  };
+  const projectileLandingRow = {
+    id: 23,
+    dataset_type: 'projectiles_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Module:Projectiles/data',
+    source_key: 'wiki.module.projectileinfo',
+    source_revision_timestamp: '2026-04-22T11:00:00Z',
+    content_hash: 'j'.repeat(64),
+    fetched_at: '2026-04-23T11:00:00Z',
+    parsed_at: '2026-04-23T11:00:00Z',
+    payload_json: JSON.stringify({
+      moduleGeneratedAt: '2026-04-22 11:00:00 (+00:00)',
+      moduleGeneratedFrom: '1.4.5.1',
+      projectiles: [{ id: 1, internalName: 'WoodenArrowFriendly', name: 'Wooden Arrow (friendly)' }],
+    }),
+  };
+
+  const zhSourceIndexes = {
+    npcsByInternalName: new Map([['merchant', { nameZh: '商人' }]]),
+    projectilesByInternalName: new Map([['woodenarrowfriendly', { nameZh: '木箭' }]]),
+  };
+
+  const npcActual = await extractMaintEntitiesFromLandingRow(npcLandingRow, { zhSourceIndexes });
+  const projectileActual = await extractMaintEntitiesFromLandingRow(projectileLandingRow, { zhSourceIndexes });
+
+  assert.equal(npcActual.rows[0].nameZh, '商人');
+  assert.equal(projectileActual.rows[0].nameZh, '木箭');
+});
+
 test('extractMaintEntitiesFromLandingRow expands item page payload into maint item page rows', async () => {
   const landingRow = {
     id: 31,
@@ -136,7 +210,7 @@ test('extractMaintEntitiesFromLandingRow expands item page payload into maint it
       revisionTimestamp: '2026-03-16T22:11:59Z',
       fetchedAt: '2026-03-28T04:15:57.931Z',
       wikitext: 'wiki text',
-      html: '<p>Zenith</p>',
+      html: '<div class="section statistics"><table class="stat"><tbody><tr><th><a href="/wiki/Value" title="Value">Sell</a></th><td><span class="coin" data-sort-value="500000"><span class="gc">50<i> GC</i></span></span></td></tr></tbody></table></div>',
       recipesMarkup: '<table></table>',
       entityType: 'item',
       itemName: 'Zenith',
@@ -153,6 +227,8 @@ test('extractMaintEntitiesFromLandingRow expands item page payload into maint it
   assert.equal(actual.rows[0].itemInternalName, 'Zenith');
   assert.equal(actual.rows[0].pageId, 4649);
   assert.equal(actual.rows[0].recipesMarkup, '<table></table>');
+  assert.equal(actual.rows[0].sellText, '50 GC');
+  assert.equal(actual.rows[0].sellValue, 500000);
 });
 
 test('extractMaintEntitiesFromLandingRow expands item page recipes markup into structured recipe rows', async () => {

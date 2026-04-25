@@ -1,0 +1,585 @@
+{
+  "generatedAt": "2026-04-25T08:15:25.900Z",
+  "records": {
+    "DemonEye2": {
+      "internalName": "DemonEye2",
+      "nameZh": "恶魔眼"
+    },
+    "PurpleEye2": {
+      "internalName": "PurpleEye2",
+      "nameZh": "恶魔眼"
+    },
+    "GreenEye2": {
+      "internalName": "GreenEye2",
+      "nameZh": "恶魔眼"
+    },
+    "DialatedEye2": {
+      "internalName": "DialatedEye2",
+      "nameZh": "恶魔眼"
+    },
+    "SleepyEye2": {
+      "internalName": "SleepyEye2",
+      "nameZh": "恶魔眼"
+    },
+    "CataractEye2": {
+      "internalName": "CataractEye2",
+      "nameZh": "恶魔眼"
+    },
+    "RedSlime": {
+      "internalName": "RedSlime",
+      "nameZh": "红史莱姆"
+    },
+    "DemonEye": {
+      "internalName": "DemonEye",
+      "nameZh": "恶魔眼"
+    },
+    "ServantofCthulhu": {
+      "internalName": "ServantofCthulhu",
+      "nameZh": "克苏鲁之仆"
+    },
+    "DevourerHead": {
+      "internalName": "DevourerHead",
+      "nameZh": "吞噬怪"
+    },
+    "DevourerBody": {
+      "internalName": "DevourerBody",
+      "nameZh": "吞噬怪"
+    },
+    "DevourerTail": {
+      "internalName": "DevourerTail",
+      "nameZh": "吞噬怪"
+    },
+    "Dryad": {
+      "internalName": "Dryad",
+      "nameZh": "树妖"
+    },
+    "Guide": {
+      "internalName": "Guide",
+      "nameZh": "向导"
+    },
+    "GoblinThief": {
+      "internalName": "GoblinThief",
+      "nameZh": "哥布林盗贼"
+    },
+    "CursedSkull": {
+      "internalName": "CursedSkull",
+      "nameZh": "诅咒骷髅头"
+    },
+    "OldMan": {
+      "internalName": "OldMan",
+      "nameZh": "老人"
+    },
+    "Tim": {
+      "internalName": "Tim",
+      "nameZh": "蒂姆"
+    },
+    "JungleBat": {
+      "internalName": "JungleBat",
+      "nameZh": "丛林蝙蝠"
+    },
+    "Goldfish": {
+      "internalName": "Goldfish",
+      "nameZh": "金鱼"
+    },
+    "Shark": {
+      "internalName": "Shark",
+      "nameZh": "鲨鱼"
+    },
+    "DungeonGuardian": {
+      "internalName": "DungeonGuardian",
+      "nameZh": "地牢守卫"
+    },
+    "BlazingWheel": {
+      "internalName": "BlazingWheel",
+      "nameZh": "烈焰火轮"
+    },
+    "Pixie": {
+      "internalName": "Pixie",
+      "nameZh": "妖精"
+    },
+    "Wraith": {
+      "internalName": "Wraith",
+      "nameZh": "幻灵"
+    },
+    "Unicorn": {
+      "internalName": "Unicorn",
+      "nameZh": "独角兽"
+    },
+    "Corruptor": {
+      "internalName": "Corruptor",
+      "nameZh": "腐化者"
+    },
+    "DiggerHead": {
+      "internalName": "DiggerHead",
+      "nameZh": "挖掘怪"
+    },
+    "DiggerBody": {
+      "internalName": "DiggerBody",
+      "nameZh": "挖掘怪"
+    },
+    "DiggerTail": {
+      "internalName": "DiggerTail",
+      "nameZh": "挖掘怪"
+    },
+    "SkeletonArcher": {
+      "internalName": "SkeletonArcher",
+      "nameZh": "骷髅弓箭手"
+    },
+    "GoblinArcher": {
+      "internalName": "GoblinArcher",
+      "nameZh": "哥布林弓箭手"
+    },
+    "ChaosElemental": {
+      "internalName": "ChaosElemental",
+      "nameZh": "混沌精"
+    },
+    "WanderingEye": {
+      "internalName": "WanderingEye",
+      "nameZh": "游荡眼球怪"
+    },
+    "IlluminantSlime": {
+      "internalName": "IlluminantSlime",
+      "nameZh": "夜明史莱姆"
+    },
+    "Probe": {
+      "internalName": "Probe",
+      "nameZh": "探测怪"
+    },
+    "PossessedArmor": {
+      "internalName": "PossessedArmor",
+      "nameZh": "装甲幻影魔"
+    },
+    "GiantTortoise": {
+      "internalName": "GiantTortoise",
+      "nameZh": "巨型陆龟"
+    },
+    "Wolf": {
+      "internalName": "Wolf",
+      "nameZh": "狼"
+    },
+    "Frankenstein": {
+      "internalName": "Frankenstein",
+      "nameZh": "科学怪人"
+    },
+    "RuneWizard": {
+      "internalName": "RuneWizard",
+      "nameZh": "符文巫师"
+    },
+    "AngryTrapper": {
+      "internalName": "AngryTrapper",
+      "nameZh": "愤怒捕手"
+    },
+    "Steampunker": {
+      "internalName": "Steampunker",
+      "nameZh": "蒸汽朋克人"
+    },
+    "CataractEye": {
+      "internalName": "CataractEye",
+      "nameZh": "恶魔眼"
+    },
+    "SleepyEye": {
+      "internalName": "SleepyEye",
+      "nameZh": "恶魔眼"
+    },
+    "DialatedEye": {
+      "internalName": "DialatedEye",
+      "nameZh": "恶魔眼"
+    },
+    "GreenEye": {
+      "internalName": "GreenEye",
+      "nameZh": "恶魔眼"
+    },
+    "PurpleEye": {
+      "internalName": "PurpleEye",
+      "nameZh": "恶魔眼"
+    },
+    "PartyGirl": {
+      "internalName": "PartyGirl",
+      "nameZh": "派对女孩"
+    },
+    "PirateCorsair": {
+      "internalName": "PirateCorsair",
+      "nameZh": "私船海盗"
+    },
+    "CyanBeetle": {
+      "internalName": "CyanBeetle",
+      "nameZh": "青壳虫"
+    },
+    "QueenBee": {
+      "internalName": "QueenBee",
+      "nameZh": "蜂王"
+    },
+    "ZombieRaincoat": {
+      "internalName": "ZombieRaincoat",
+      "nameZh": "雨衣僵尸"
+    },
+    "Pirate": {
+      "internalName": "Pirate",
+      "nameZh": "海盗"
+    },
+    "GoldfishWalker": {
+      "internalName": "GoldfishWalker",
+      "nameZh": "金鱼"
+    },
+    "RainbowSlime": {
+      "internalName": "RainbowSlime",
+      "nameZh": "彩虹史莱姆"
+    },
+    "Eyezor": {
+      "internalName": "Eyezor",
+      "nameZh": "眼怪"
+    },
+    "ZombieMushroom": {
+      "internalName": "ZombieMushroom",
+      "nameZh": "孢子僵尸"
+    },
+    "ZombieMushroomHat": {
+      "internalName": "ZombieMushroomHat",
+      "nameZh": "孢子僵尸"
+    },
+    "MushiLadybug": {
+      "internalName": "MushiLadybug",
+      "nameZh": "蘑菇瓢虫"
+    },
+    "FungiBulb": {
+      "internalName": "FungiBulb",
+      "nameZh": "真菌球怪"
+    },
+    "RustyArmoredBonesAxe": {
+      "internalName": "RustyArmoredBonesAxe",
+      "nameZh": "生锈装甲骷髅"
+    },
+    "RustyArmoredBonesFlail": {
+      "internalName": "RustyArmoredBonesFlail",
+      "nameZh": "生锈装甲骷髅"
+    },
+    "RustyArmoredBonesSword": {
+      "internalName": "RustyArmoredBonesSword",
+      "nameZh": "生锈装甲骷髅"
+    },
+    "RustyArmoredBonesSwordNoArmor": {
+      "internalName": "RustyArmoredBonesSwordNoArmor",
+      "nameZh": "生锈装甲骷髅"
+    },
+    "BlueArmoredBones": {
+      "internalName": "BlueArmoredBones",
+      "nameZh": "蓝装甲骷髅"
+    },
+    "BlueArmoredBonesMace": {
+      "internalName": "BlueArmoredBonesMace",
+      "nameZh": "蓝装甲骷髅"
+    },
+    "BlueArmoredBonesNoPants": {
+      "internalName": "BlueArmoredBonesNoPants",
+      "nameZh": "蓝装甲骷髅"
+    },
+    "BlueArmoredBonesSword": {
+      "internalName": "BlueArmoredBonesSword",
+      "nameZh": "蓝装甲骷髅"
+    },
+    "HellArmoredBones": {
+      "internalName": "HellArmoredBones",
+      "nameZh": "地狱装甲骷髅"
+    },
+    "HellArmoredBonesSpikeShield": {
+      "internalName": "HellArmoredBonesSpikeShield",
+      "nameZh": "地狱装甲骷髅"
+    },
+    "HellArmoredBonesMace": {
+      "internalName": "HellArmoredBonesMace",
+      "nameZh": "地狱装甲骷髅"
+    },
+    "HellArmoredBonesSword": {
+      "internalName": "HellArmoredBonesSword",
+      "nameZh": "地狱装甲骷髅"
+    },
+    "DemonEyeOwl": {
+      "internalName": "DemonEyeOwl",
+      "nameZh": "恶魔眼"
+    },
+    "DemonEyeSpaceship": {
+      "internalName": "DemonEyeSpaceship",
+      "nameZh": "恶魔眼"
+    },
+    "Splinterling": {
+      "internalName": "Splinterling",
+      "nameZh": "树精"
+    },
+    "Pumpking": {
+      "internalName": "Pumpking",
+      "nameZh": "南瓜王"
+    },
+    "PumpkingBlade": {
+      "internalName": "PumpkingBlade",
+      "nameZh": "南瓜王"
+    },
+    "Hellhound": {
+      "internalName": "Hellhound",
+      "nameZh": "地狱犬"
+    },
+    "IceQueen": {
+      "internalName": "IceQueen",
+      "nameZh": "冰雪女王"
+    },
+    "ElfCopter": {
+      "internalName": "ElfCopter",
+      "nameZh": "精灵直升机"
+    },
+    "LightningBug": {
+      "internalName": "LightningBug",
+      "nameZh": "荧光虫"
+    },
+    "TravellingMerchant": {
+      "internalName": "TravellingMerchant",
+      "nameZh": "旅商"
+    },
+    "Angler": {
+      "internalName": "Angler",
+      "nameZh": "渔夫"
+    },
+    "ChatteringTeethBomb": {
+      "internalName": "ChatteringTeethBomb",
+      "nameZh": "嗒嗒牙齿炸弹"
+    },
+    "RayGunner": {
+      "internalName": "RayGunner",
+      "nameZh": "激光枪手"
+    },
+    "MartianEngineer": {
+      "internalName": "MartianEngineer",
+      "nameZh": "火星工程师"
+    },
+    "GigaZapper": {
+      "internalName": "GigaZapper",
+      "nameZh": "电击怪"
+    },
+    "Scutlix": {
+      "internalName": "Scutlix",
+      "nameZh": "鳞甲怪"
+    },
+    "StardustJellyfishBig": {
+      "internalName": "StardustJellyfishBig",
+      "nameZh": "流体入侵怪"
+    },
+    "StardustJellyfishSmall": {
+      "internalName": "StardustJellyfishSmall",
+      "nameZh": "流体入侵怪"
+    },
+    "StardustSpiderBig": {
+      "internalName": "StardustSpiderBig",
+      "nameZh": "闪耀炮手"
+    },
+    "SolarSroller": {
+      "internalName": "SolarSroller",
+      "nameZh": "火滚怪"
+    },
+    "TaxCollector": {
+      "internalName": "TaxCollector",
+      "nameZh": "税收官"
+    },
+    "GoldWorm": {
+      "internalName": "GoldWorm",
+      "nameZh": "金蠕虫"
+    },
+    "CreatureFromTheDeep": {
+      "internalName": "CreatureFromTheDeep",
+      "nameZh": "水月怪"
+    },
+    "Nailhead": {
+      "internalName": "Nailhead",
+      "nameZh": "钉头"
+    },
+    "CrimsonBunny": {
+      "internalName": "CrimsonBunny",
+      "nameZh": "毒兔兔"
+    },
+    "DeadlySphere": {
+      "internalName": "DeadlySphere",
+      "nameZh": "致命球"
+    },
+    "GoblinSummoner": {
+      "internalName": "GoblinSummoner",
+      "nameZh": "哥布林术士"
+    },
+    "Mothron": {
+      "internalName": "Mothron",
+      "nameZh": "蛾怪"
+    },
+    "Grubby": {
+      "internalName": "Grubby",
+      "nameZh": "蛆虫"
+    },
+    "TargetDummy": {
+      "internalName": "TargetDummy",
+      "nameZh": "训练假人"
+    },
+    "BloodZombie": {
+      "internalName": "BloodZombie",
+      "nameZh": "血腥僵尸"
+    },
+    "PirateShip": {
+      "internalName": "PirateShip",
+      "nameZh": "荷兰飞盗船"
+    },
+    "DuneSplicerHead": {
+      "internalName": "DuneSplicerHead",
+      "nameZh": "沙虫"
+    },
+    "DuneSplicerBody": {
+      "internalName": "DuneSplicerBody",
+      "nameZh": "沙虫"
+    },
+    "DuneSplicerTail": {
+      "internalName": "DuneSplicerTail",
+      "nameZh": "沙虫"
+    },
+    "SolarGoop": {
+      "internalName": "SolarGoop",
+      "nameZh": "日耀碎片"
+    },
+    "DesertLamiaLight": {
+      "internalName": "DesertLamiaLight",
+      "nameZh": "拉弥亚"
+    },
+    "DesertLamiaDark": {
+      "internalName": "DesertLamiaDark",
+      "nameZh": "拉弥亚"
+    },
+    "DesertDjinn": {
+      "internalName": "DesertDjinn",
+      "nameZh": "沙漠幽魂"
+    },
+    "DD2GoblinT1": {
+      "internalName": "DD2GoblinT1",
+      "nameZh": "埃特尼亚哥布林"
+    },
+    "DD2GoblinT2": {
+      "internalName": "DD2GoblinT2",
+      "nameZh": "埃特尼亚哥布林"
+    },
+    "DD2GoblinT3": {
+      "internalName": "DD2GoblinT3",
+      "nameZh": "埃特尼亚哥布林"
+    },
+    "DD2JavelinstT1": {
+      "internalName": "DD2JavelinstT1",
+      "nameZh": "埃特尼亚标枪投掷怪"
+    },
+    "DD2JavelinstT2": {
+      "internalName": "DD2JavelinstT2",
+      "nameZh": "埃特尼亚标枪投掷怪"
+    },
+    "DD2JavelinstT3": {
+      "internalName": "DD2JavelinstT3",
+      "nameZh": "埃特尼亚标枪投掷怪"
+    },
+    "DD2KoboldFlyerT2": {
+      "internalName": "DD2KoboldFlyerT2",
+      "nameZh": "小妖魔滑翔怪"
+    },
+    "DD2KoboldFlyerT3": {
+      "internalName": "DD2KoboldFlyerT3",
+      "nameZh": "小妖魔滑翔怪"
+    },
+    "DD2OgreT2": {
+      "internalName": "DD2OgreT2",
+      "nameZh": "食人魔"
+    },
+    "DD2OgreT3": {
+      "internalName": "DD2OgreT3",
+      "nameZh": "食人魔"
+    },
+    "Golfer": {
+      "internalName": "Golfer",
+      "nameZh": "高尔夫球手"
+    },
+    "GolferRescue": {
+      "internalName": "GolferRescue",
+      "nameZh": "高尔夫球手"
+    },
+    "GoldDragonfly": {
+      "internalName": "GoldDragonfly",
+      "nameZh": "金蜻蜓"
+    },
+    "Maggot": {
+      "internalName": "Maggot",
+      "nameZh": "蝇蛆"
+    },
+    "Grebe": {
+      "internalName": "Grebe",
+      "nameZh": "䴙䴘"
+    },
+    "Grebe2": {
+      "internalName": "Grebe2",
+      "nameZh": "䴙䴘"
+    },
+    "Dolphin": {
+      "internalName": "Dolphin",
+      "nameZh": "海豚"
+    },
+    "BloodSquid": {
+      "internalName": "BloodSquid",
+      "nameZh": "血乌贼"
+    },
+    "GoblinShark": {
+      "internalName": "GoblinShark",
+      "nameZh": "血浆哥布林鲨鱼"
+    },
+    "SeaTurtle": {
+      "internalName": "SeaTurtle",
+      "nameZh": "海龟"
+    },
+    "QueenSlimeBoss": {
+      "internalName": "QueenSlimeBoss",
+      "nameZh": "史莱姆皇后"
+    },
+    "QueenSlimeMinionBlue": {
+      "internalName": "QueenSlimeMinionBlue",
+      "nameZh": "水晶史莱姆"
+    },
+    "QueenSlimeMinionPurple": {
+      "internalName": "QueenSlimeMinionPurple",
+      "nameZh": "飞翔史莱姆"
+    },
+    "PirateGhost": {
+      "internalName": "PirateGhost",
+      "nameZh": "海盗诅咒"
+    },
+    "Princess": {
+      "internalName": "Princess",
+      "nameZh": "公主"
+    },
+    "TorchGod": {
+      "internalName": "TorchGod",
+      "nameZh": "火把神"
+    },
+    "Toucan": {
+      "internalName": "Toucan",
+      "nameZh": "巨嘴鸟"
+    },
+    "ShimmerSlime": {
+      "internalName": "ShimmerSlime",
+      "nameZh": "微光史莱姆"
+    },
+    "Shimmerfly": {
+      "internalName": "Shimmerfly",
+      "nameZh": "飞灵"
+    },
+    "BoundTownSlimeOld": {
+      "internalName": "BoundTownSlimeOld",
+      "nameZh": "老旧摇摇箱"
+    },
+    "BoundTownSlimePurple": {
+      "internalName": "BoundTownSlimePurple",
+      "nameZh": "笨拙气球史莱姆"
+    },
+    "BoundTownSlimeYellow": {
+      "internalName": "BoundTownSlimeYellow",
+      "nameZh": "神秘青蛙"
+    },
+    "LibrarianSkeleton": {
+      "internalName": "LibrarianSkeleton",
+      "nameZh": "图书管理员骷髅"
+    }
+  }
+}

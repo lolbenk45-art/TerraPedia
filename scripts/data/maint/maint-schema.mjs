@@ -3,6 +3,7 @@ export const MAINT_TABLE_NAMES = [
   'maint_npcs',
   'maint_projectiles',
   'maint_buffs',
+  'maint_npc_images',
   'maint_item_pages',
   'maint_item_page_recipes',
   'maint_item_images',
@@ -168,6 +169,32 @@ CREATE TABLE IF NOT EXISTS \`maint_buffs\` (
   UNIQUE KEY \`uk_maint_buffs_internal_name\` (\`internal_name\`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS \`maint_npc_images\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) NOT NULL,
+  \`npc_internal_name\` VARCHAR(255) DEFAULT NULL,
+  \`npc_name\` VARCHAR(255) DEFAULT NULL,
+  \`role\` VARCHAR(64) DEFAULT NULL,
+  \`source_provider\` VARCHAR(128) NOT NULL,
+  \`source_file_title\` VARCHAR(255) DEFAULT NULL,
+  \`source_page\` VARCHAR(255) DEFAULT NULL,
+  \`source_revision_timestamp\` DATETIME DEFAULT NULL,
+  \`original_url\` VARCHAR(1000) DEFAULT NULL,
+  \`cached_url\` VARCHAR(1000) DEFAULT NULL,
+  \`width\` INT DEFAULT NULL,
+  \`height\` INT DEFAULT NULL,
+  \`content_type\` VARCHAR(128) DEFAULT NULL,
+  \`is_primary\` TINYINT(1) NOT NULL DEFAULT 0,
+  \`sort_order\` INT DEFAULT NULL,
+  \`raw_json\` LONGTEXT NOT NULL,
+  \`status\` INT NOT NULL DEFAULT 1,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_maint_npc_images_record_key\` (\`record_key\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS \`maint_item_pages\` (
   \`id\` BIGINT NOT NULL AUTO_INCREMENT,
   \`record_key\` CHAR(64) NOT NULL,
@@ -189,6 +216,8 @@ CREATE TABLE IF NOT EXISTS \`maint_item_pages\` (
   \`wikitext\` LONGTEXT DEFAULT NULL,
   \`html\` LONGTEXT DEFAULT NULL,
   \`recipes_markup\` LONGTEXT DEFAULT NULL,
+  \`sell_text\` VARCHAR(255) DEFAULT NULL,
+  \`sell_value\` INT DEFAULT NULL,
   \`raw_json\` LONGTEXT NOT NULL,
   \`status\` INT NOT NULL DEFAULT 1,
   \`deleted\` TINYINT NOT NULL DEFAULT 0,

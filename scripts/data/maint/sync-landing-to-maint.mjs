@@ -12,6 +12,8 @@ import { buildMaintSchemaSql } from './maint-schema.mjs';
 import { extractCategoryItemRecords } from './category-item-structured-parser.mjs';
 import { extractItemPageRecipeRecords, extractRecipePageRecipeRecords } from './page-recipe-structured-parser.mjs';
 import { extractShimmerStructuredRecords } from './shimmer-structured-parser.mjs';
+import { extractItemSellStat } from './item-page-statistics-parser.mjs';
+import { loadZhSourceIndexes } from './zh-source-index.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -96,6 +98,11 @@ function normalizeText(value) {
   return text.length ? text : null;
 }
 
+function normalizeKey(value) {
+  const text = normalizeText(value);
+  return text ? text.toLowerCase() : null;
+}
+
 function formatDateTag(value) {
   const date = value instanceof Date ? value : new Date(value);
   const year = String(date.getFullYear());
@@ -128,7 +135,7 @@ function buildBaseMaintRow(scope, landingRow, rawRecord, extra = {}) {
     sourceId: Number(rawRecord.id),
     internalName: normalizeText(rawRecord.internalName),
     englishName: normalizeText(rawRecord.name ?? rawRecord.englishName),
-    nameZh: normalizeText(rawRecord.localized?.zh?.name),
+    nameZh: extra.nameZh === undefined ? normalizeText(rawRecord.localized?.zh?.name) : normalizeText(extra.nameZh),
     sourceProvider: landingRow.provider,
     sourcePage: landingRow.source_page,
     sourceRevisionTimestamp: landingRow.source_revision_timestamp,
@@ -152,7 +159,7 @@ function buildBaseMaintRow(scope, landingRow, rawRecord, extra = {}) {
   };
 }
 
-function extractItemsMaintRows(landingRow, payload) {
+function extractItemsMaintRows(landingRow, payload, zhSourceIndexes = null) {
   const parsed = parseIteminfoModulePayload(payload.moduleContent);
   const moduleGeneratedAt = normalizeText(parsed._generated);
   const terrariaVersion = normalizeText(parsed._terrariaversion);
@@ -160,6 +167,7 @@ function extractItemsMaintRows(landingRow, payload) {
   return Object.entries(parsed)
     .filter(([key, value]) => /^\d+$/.test(key) && Number(key) > 0 && value && typeof value === 'object')
     .map(([key, value]) => buildBaseMaintRow('items', landingRow, { id: Number(key), ...value }, {
+      nameZh: zhSourceIndexes?.itemsByInternalName?.get(normalizeKey(value.internalName))?.nameZh,
       moduleGeneratedAt,
       terrariaVersion,
       majorValue: Number(value.value ?? 0) || null,
@@ -172,8 +180,9 @@ function extractItemsMaintRows(landingRow, payload) {
     }));
 }
 
-function extractNpcsMaintRows(landingRow, payload) {
+function extractNpcsMaintRows(landingRow, payload, zhSourceIndexes = null) {
   return (Array.isArray(payload.npcs) ? payload.npcs : []).map((record) => buildBaseMaintRow('npcs', landingRow, record, {
+    nameZh: zhSourceIndexes?.npcsByInternalName?.get(normalizeKey(record.internalName))?.nameZh,
     moduleGeneratedAt: normalizeText(payload.moduleGeneratedAt),
     terrariaVersion: normalizeText(payload.wikiVersion),
     majorValue: Number(record.value ?? 0) || null,
@@ -189,8 +198,9 @@ function extractNpcsMaintRows(landingRow, payload) {
   }));
 }
 
-function extractProjectilesMaintRows(landingRow, payload) {
+function extractProjectilesMaintRows(landingRow, payload, zhSourceIndexes = null) {
   return (Array.isArray(payload.projectiles) ? payload.projectiles : []).map((record) => buildBaseMaintRow('projectiles', landingRow, record, {
+    nameZh: zhSourceIndexes?.projectilesByInternalName?.get(normalizeKey(record.internalName))?.nameZh,
     moduleGeneratedAt: normalizeText(payload.moduleGeneratedAt),
     terrariaVersion: normalizeText(payload.moduleGeneratedFrom),
     combatValue: Number(record.damage ?? 0) || null,
@@ -218,6 +228,7 @@ function extractBuffsMaintRows(landingRow, payload) {
 }
 
 function extractItemPageMaintRows(landingRow, payload) {
+  const sellStat = extractItemSellStat(payload.html ?? null);
   const row = {
     scope: 'item_pages',
     tableName: 'maint_item_pages',
@@ -245,6 +256,8 @@ function extractItemPageMaintRows(landingRow, payload) {
     wikitext: payload.wikitext ?? null,
     html: payload.html ?? null,
     recipesMarkup: payload.recipesMarkup ?? null,
+    sellText: sellStat.sellText,
+    sellValue: sellStat.sellValue,
     rawJson: JSON.stringify(payload),
   };
   const recipeRows = extractItemPageRecipeRecords(payload).map((record) => ({
@@ -992,19 +1005,20 @@ function extractShimmerMaintRows(landingRow, payload) {
   ];
 }
 
-export async function extractMaintEntitiesFromLandingRow(landingRow) {
+export async function extractMaintEntitiesFromLandingRow(landingRow, options = {}) {
   const payload = normalizeLandingPayload(landingRow);
   const datasetType = landingRow.dataset_type;
+  const zhSourceIndexes = options.zhSourceIndexes ?? null;
   if (datasetType === 'items_raw') {
-    const rows = extractItemsMaintRows(landingRow, payload);
+    const rows = extractItemsMaintRows(landingRow, payload, zhSourceIndexes);
     return { scope: 'items', rows };
   }
   if (datasetType === 'npcs_raw') {
-    const rows = extractNpcsMaintRows(landingRow, payload);
+    const rows = extractNpcsMaintRows(landingRow, payload, zhSourceIndexes);
     return { scope: 'npcs', rows };
   }
   if (datasetType === 'projectiles_raw') {
-    const rows = extractProjectilesMaintRows(landingRow, payload);
+    const rows = extractProjectilesMaintRows(landingRow, payload, zhSourceIndexes);
     return { scope: 'projectiles', rows };
   }
   if (datasetType === 'buffs_raw') {
@@ -1211,13 +1225,13 @@ async function upsertRecordKeyRow(connection, row) {
         `UPDATE \`${row.tableName}\`
          SET item_internal_name = ?, item_name = ?, entity_type = ?, requested_page_title = ?, page_title = ?, page_id = ?,
              source_provider = ?, source_page = ?, source_revision_timestamp = ?, landing_source_id = ?, landing_source_key = ?, landing_source_page = ?,
-             landing_content_hash = ?, landing_fetched_at = ?, landing_parsed_at = ?, wikitext = ?, html = ?, recipes_markup = ?, raw_json = ?,
+             landing_content_hash = ?, landing_fetched_at = ?, landing_parsed_at = ?, wikitext = ?, html = ?, recipes_markup = ?, sell_text = ?, sell_value = ?, raw_json = ?,
              status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
          WHERE id = ?`,
         [
           row.itemInternalName, row.itemName, row.entityType, row.requestedPageTitle, row.pageTitle, row.pageId,
           row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage,
-          row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.wikitext, row.html, row.recipesMarkup, row.rawJson,
+          row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.wikitext, row.html, row.recipesMarkup, row.sellText, row.sellValue, row.rawJson,
           Number(existing.id),
         ],
       );
@@ -1227,12 +1241,12 @@ async function upsertRecordKeyRow(connection, row) {
       `INSERT INTO \`${row.tableName}\`
        (\`record_key\`, \`item_internal_name\`, \`item_name\`, \`entity_type\`, \`requested_page_title\`, \`page_title\`, \`page_id\`,
         \`source_provider\`, \`source_page\`, \`source_revision_timestamp\`, \`landing_source_id\`, \`landing_source_key\`, \`landing_source_page\`,
-        \`landing_content_hash\`, \`landing_fetched_at\`, \`landing_parsed_at\`, \`wikitext\`, \`html\`, \`recipes_markup\`, \`raw_json\`, \`status\`, \`deleted\`)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+        \`landing_content_hash\`, \`landing_fetched_at\`, \`landing_parsed_at\`, \`wikitext\`, \`html\`, \`recipes_markup\`, \`sell_text\`, \`sell_value\`, \`raw_json\`, \`status\`, \`deleted\`)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
       [
         row.recordKey, row.itemInternalName, row.itemName, row.entityType, row.requestedPageTitle, row.pageTitle, row.pageId,
         row.sourceProvider, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp), row.landingSourceId, row.landingSourceKey, row.landingSourcePage,
-        row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.wikitext, row.html, row.recipesMarkup, row.rawJson,
+        row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.wikitext, row.html, row.recipesMarkup, row.sellText, row.sellValue, row.rawJson,
       ],
     );
     return 'inserted';
@@ -2049,11 +2063,45 @@ async function upsertMaintRow(connection, row) {
   return 'inserted';
 }
 
+async function getTableColumns(connection, tableName) {
+  const result = await connection.query(
+    `SELECT COLUMN_NAME FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ?`,
+    [tableName]
+  );
+  const rows = Array.isArray(result) ? result[0] : [];
+  return new Set(rows.map((row) => row.COLUMN_NAME));
+}
+
+async function ensureMaintMigrations(connection) {
+  const migrations = [
+    {
+      tableName: 'maint_item_pages',
+      columns: [
+        ['sell_text', 'VARCHAR(255) DEFAULT NULL AFTER `recipes_markup`'],
+        ['sell_value', 'INT DEFAULT NULL AFTER `sell_text`']
+      ]
+    }
+  ];
+
+  for (const migration of migrations) {
+    const existingColumns = await getTableColumns(connection, migration.tableName);
+    for (const [columnName, definition] of migration.columns) {
+      if (existingColumns.has(columnName)) {
+        continue;
+      }
+      await connection.query(`ALTER TABLE \`${migration.tableName}\` ADD COLUMN \`${columnName}\` ${definition}`);
+      existingColumns.add(columnName);
+    }
+  }
+}
+
 export async function runMaintSync(options, dependencies = {}) {
   const mysqlModule = dependencies.mysqlModule ?? mysql;
   const writeReport = dependencies.writeReport ?? defaultWriteReport;
   const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
   const scopes = Array.isArray(options.scopes) ? options.scopes : resolveScopes(options.scopes);
+  const zhSourceIndexes = dependencies.zhSourceIndexes
+    ?? (dependencies.loadZhSourceIndexes ? await dependencies.loadZhSourceIndexes() : loadZhSourceIndexes({ repoRoot }));
   const connectionConfig = {
     host: options.host ?? process.env.TERRAPEDIA_DB_HOST ?? config.database?.host ?? '127.0.0.1',
     port: Number(options.port ?? process.env.TERRAPEDIA_DB_PORT ?? config.database?.port ?? 3306),
@@ -2080,7 +2128,7 @@ export async function runMaintSync(options, dependencies = {}) {
     let hasCategoryRuleSummary = false;
     const seenRecordKeys = new Set();
     for (const landingRow of loaded) {
-      const result = await extractMaintEntitiesFromLandingRow(landingRow);
+      const result = await extractMaintEntitiesFromLandingRow(landingRow, { zhSourceIndexes });
       if (result.categoryRules) {
         mergeCategoryRuleSummary({ categoryRules: categoryRuleSummary }, result.categoryRules);
         hasCategoryRuleSummary = true;
@@ -2098,6 +2146,7 @@ export async function runMaintSync(options, dependencies = {}) {
       try {
         await connection.beginTransaction();
         await connection.query(buildMaintSchemaSql());
+        await ensureMaintMigrations(connection);
         if (shouldInvalidateCurrentCategoryRuleTables(scopes)) {
           await invalidateCurrentCategoryRuleTables(connection);
         }
@@ -2129,6 +2178,7 @@ export async function runMaintSync(options, dependencies = {}) {
     if (writeConnection) {
       await writeConnection.beginTransaction();
       await writeConnection.query(buildMaintSchemaSql());
+      await ensureMaintMigrations(writeConnection);
       if (shouldInvalidateCurrentCategoryRuleTables(scopes)) {
         await invalidateCurrentCategoryRuleTables(writeConnection);
       }
@@ -2147,7 +2197,7 @@ export async function runMaintSync(options, dependencies = {}) {
     }
 
     for await (const landingRow of source) {
-      const result = await extractMaintEntitiesFromLandingRow(landingRow);
+      const result = await extractMaintEntitiesFromLandingRow(landingRow, { zhSourceIndexes });
       mergeCategoryRuleSummary(summary, result.categoryRules);
       const dedupedRows = filterRowsByScopes(dedupeEntityRows(result.rows, seenRecordKeys), scopes);
       addRowsToStreamSummary(summary, dedupedRows);

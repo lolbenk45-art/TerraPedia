@@ -14,6 +14,7 @@ test('buildMaintSchemaSql creates all maint tables', () => {
     'maint_npcs',
     'maint_projectiles',
     'maint_buffs',
+    'maint_npc_images',
     'maint_item_pages',
     'maint_item_page_recipes',
     'maint_item_images',
@@ -40,7 +41,10 @@ test('buildMaintSchemaSql creates all maint tables', () => {
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_npcs`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_projectiles`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_buffs`/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_npc_images`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_pages`/);
+  assert.match(sql, /`sell_text` VARCHAR\(255\) DEFAULT NULL/);
+  assert.match(sql, /`sell_value` INT DEFAULT NULL/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_page_recipes`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_images`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_recipe_pages`/);
