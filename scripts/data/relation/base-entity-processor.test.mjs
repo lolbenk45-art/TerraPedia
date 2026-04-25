@@ -37,6 +37,7 @@ test('buildBaseEntityRelations mirrors maint entity rows into relation base tabl
       internal_name: 'BigHornetStingy',
       english_name: 'Hornet',
       name_zh: null,
+      sub_name_zh: '大毒刺黄蜂',
       flags_json: '{"boss":false}',
       raw_json: '{}'
     }],
@@ -48,6 +49,11 @@ test('buildBaseEntityRelations mirrors maint entity rows into relation base tabl
       english_name: null,
       name_zh: null,
       raw_json: '{}'
+    }],
+    maintItemPages: [{
+      item_internal_name: 'IronPickaxe',
+      sell_text: '10 SC',
+      sell_value: 1000
     }]
   });
 
@@ -57,8 +63,11 @@ test('buildBaseEntityRelations mirrors maint entity rows into relation base tabl
   assert.equal(actual.relationItems[0].internalName, 'IronPickaxe');
   assert.equal(actual.relationItems[0].rareRaw, 1);
   assert.equal(actual.relationItems[0].valueRaw, 2000);
+  assert.equal(actual.relationItems[0].sellTextRaw, '10 SC');
+  assert.equal(actual.relationItems[0].sellRaw, 1000);
   assert.equal(actual.relationItems[0].reviewStatus, 'resolved');
   assert.equal(actual.relationItems[0].sourceMaintTable, 'maint_items');
   assert.equal(actual.relationNpcs[0].sourceMaintTable, 'maint_npcs');
+  assert.equal(actual.relationNpcs[0].subNameZh, '大毒刺黄蜂');
   assert.equal(actual.relationProjectiles[0].sourceMaintTable, 'maint_projectiles');
 });

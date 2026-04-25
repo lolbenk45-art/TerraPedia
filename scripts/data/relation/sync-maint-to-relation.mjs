@@ -175,7 +175,15 @@ async function ensureRelationMigrations(connection, databaseName) {
       tableName: 'relation_items',
       columns: [
         ['rare_raw', 'INT DEFAULT NULL AFTER `height`'],
-        ['value_raw', 'INT DEFAULT NULL AFTER `rare_raw`']
+        ['value_raw', 'INT DEFAULT NULL AFTER `rare_raw`'],
+        ['sell_raw', 'INT DEFAULT NULL AFTER `value_raw`'],
+        ['sell_text_raw', 'VARCHAR(255) DEFAULT NULL AFTER `sell_raw`']
+      ]
+    },
+    {
+      tableName: 'relation_npcs',
+      columns: [
+        ['sub_name_zh', 'VARCHAR(255) DEFAULT NULL AFTER `name_zh`']
       ]
     },
     {
@@ -349,7 +357,8 @@ export async function runSync(options, dependencies = {}) {
     maintItems,
     maintProjectiles,
     maintNpcs,
-    itemImageRows
+    itemImageRows,
+    maintItemPages
   ] = await Promise.all([
     queryMaint('SELECT * FROM maint_categories'),
     queryMaint('SELECT * FROM maint_item_categories'),
@@ -364,13 +373,15 @@ export async function runSync(options, dependencies = {}) {
     queryMaint('SELECT * FROM maint_items'),
     queryMaint('SELECT * FROM maint_projectiles'),
     queryMaint('SELECT * FROM maint_npcs'),
-    queryMaint('SELECT * FROM maint_item_images')
+    queryMaint('SELECT * FROM maint_item_images'),
+    queryMaint('SELECT item_internal_name, sell_text, sell_value, source_revision_timestamp, updated_at FROM maint_item_pages')
   ]);
 
   const itemIndex = buildItemIndex(maintItems);
   const npcIndex = buildNpcIndex(maintNpcs);
   const baseEntities = buildBaseEntityRelations({
     maintItems,
+    maintItemPages,
     maintNpcs,
     maintProjectiles
   });

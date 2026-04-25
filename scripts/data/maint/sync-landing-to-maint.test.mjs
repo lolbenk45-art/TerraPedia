@@ -43,6 +43,7 @@ test('extractMaintEntitiesFromLandingRow expands items_raw into maint item rows'
     internalName: 'IronPickaxe',
     englishName: 'Iron Pickaxe',
     nameZh: null,
+    subNameZh: null,
     sourceProvider: 'terraria.wiki.gg',
     sourcePage: 'Module:Iteminfo/data',
     sourceRevisionTimestamp: '2026-04-22T10:00:00Z',
@@ -181,7 +182,7 @@ test('extractMaintEntitiesFromLandingRow overlays npc and projectile zh names fr
   };
 
   const zhSourceIndexes = {
-    npcsByInternalName: new Map([['merchant', { nameZh: '商人' }]]),
+    npcsByInternalName: new Map([['merchant', { nameZh: '商人', subNameZh: '城镇商贩' }]]),
     projectilesByInternalName: new Map([['woodenarrowfriendly', { nameZh: '木箭' }]]),
   };
 
@@ -189,6 +190,7 @@ test('extractMaintEntitiesFromLandingRow overlays npc and projectile zh names fr
   const projectileActual = await extractMaintEntitiesFromLandingRow(projectileLandingRow, { zhSourceIndexes });
 
   assert.equal(npcActual.rows[0].nameZh, '商人');
+  assert.equal(npcActual.rows[0].subNameZh, '城镇商贩');
   assert.equal(projectileActual.rows[0].nameZh, '木箭');
 });
 

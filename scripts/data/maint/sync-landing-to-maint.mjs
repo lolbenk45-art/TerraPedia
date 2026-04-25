@@ -136,6 +136,7 @@ function buildBaseMaintRow(scope, landingRow, rawRecord, extra = {}) {
     internalName: normalizeText(rawRecord.internalName),
     englishName: normalizeText(rawRecord.name ?? rawRecord.englishName),
     nameZh: extra.nameZh === undefined ? normalizeText(rawRecord.localized?.zh?.name) : normalizeText(extra.nameZh),
+    subNameZh: extra.subNameZh === undefined ? normalizeText(rawRecord.localized?.zh?.namesub) : normalizeText(extra.subNameZh),
     sourceProvider: landingRow.provider,
     sourcePage: landingRow.source_page,
     sourceRevisionTimestamp: landingRow.source_revision_timestamp,
@@ -183,6 +184,7 @@ function extractItemsMaintRows(landingRow, payload, zhSourceIndexes = null) {
 function extractNpcsMaintRows(landingRow, payload, zhSourceIndexes = null) {
   return (Array.isArray(payload.npcs) ? payload.npcs : []).map((record) => buildBaseMaintRow('npcs', landingRow, record, {
     nameZh: zhSourceIndexes?.npcsByInternalName?.get(normalizeKey(record.internalName))?.nameZh,
+    subNameZh: zhSourceIndexes?.npcsByInternalName?.get(normalizeKey(record.internalName))?.subNameZh,
     moduleGeneratedAt: normalizeText(payload.moduleGeneratedAt),
     terrariaVersion: normalizeText(payload.wikiVersion),
     majorValue: Number(record.value ?? 0) || null,
@@ -2032,6 +2034,10 @@ async function upsertMaintRow(connection, row) {
     1,
     0,
   ];
+  if (row.tableName === 'maint_npcs') {
+    nowFields.splice(4, 0, 'sub_name_zh');
+    values.splice(4, 0, row.subNameZh ?? null);
+  }
 
   const [existingRows] = await connection.execute(
     `SELECT id FROM \`${row.tableName}\` WHERE source_id = ? LIMIT 1`,
@@ -2041,13 +2047,13 @@ async function upsertMaintRow(connection, row) {
   if (existing) {
     await connection.execute(
       `UPDATE \`${row.tableName}\`
-       SET internal_name = ?, english_name = ?, name_zh = ?, source_provider = ?, source_page = ?, source_revision_timestamp = ?,
-           landing_source_id = ?, landing_source_key = ?, landing_source_page = ?, landing_content_hash = ?, landing_fetched_at = ?, landing_parsed_at = ?,
-           module_generated_at = ?, terraria_version = ?, major_value = ?, combat_value = ?, defense_value = ?, use_time = ?, stack_size = ?,
-           width = ?, height = ?, flags_json = ?, raw_json = ?, status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
+       SET ${nowFields
+         .filter((field) => field !== 'source_id' && field !== 'status' && field !== 'deleted')
+         .map((field) => `\`${field}\` = ?`)
+         .join(', ')}, status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`,
       [
-        ...values.slice(1, 24),
+        ...values.slice(1, values.length - 2),
         Number(existing.id),
       ],
     );
@@ -2074,6 +2080,12 @@ async function getTableColumns(connection, tableName) {
 
 async function ensureMaintMigrations(connection) {
   const migrations = [
+    {
+      tableName: 'maint_npcs',
+      columns: [
+        ['sub_name_zh', 'VARCHAR(255) DEFAULT NULL AFTER `name_zh`']
+      ]
+    },
     {
       tableName: 'maint_item_pages',
       columns: [

@@ -119,9 +119,12 @@ test('table-scoped relation run metadata columns are correct', () => {
   assert.match(relationItems, /`module_generated_at` VARCHAR\(64\) DEFAULT NULL/);
   assert.match(relationItems, /`rare_raw` INT DEFAULT NULL/);
   assert.match(relationItems, /`value_raw` INT DEFAULT NULL/);
+  assert.match(relationItems, /`sell_raw` INT DEFAULT NULL/);
+  assert.match(relationItems, /`sell_text_raw` VARCHAR\(255\) DEFAULT NULL/);
   assert.match(relationItems, /UNIQUE KEY `uk_relation_items_record_key` \(`record_key`\)/);
 
   assert.match(relationNpcs, /`source_id` INT DEFAULT NULL/);
+  assert.match(relationNpcs, /`sub_name_zh` VARCHAR\(255\) DEFAULT NULL/);
   assert.match(relationNpcs, /`flags_json` LONGTEXT/);
   assert.match(relationNpcs, /UNIQUE KEY `uk_relation_npcs_record_key` \(`record_key`\)/);
 

@@ -57,3 +57,21 @@ test('buildZhSourceIndexes merges town npc maintenance and generated npc maps', 
   assert.equal(actual.npcsByInternalName.get('guide')?.nameZh, '向导');
   assert.equal(actual.npcsByInternalName.get('guide')?.subNameZh, '城镇 NPC');
 });
+
+test('buildZhSourceIndexes preserves existing npc subNameZh when later sources only provide nameZh', () => {
+  const actual = buildZhSourceIndexes({
+    npcIdRows: {
+      records: [
+        { internalName: 'DemonEye2', nameZh: '恶魔眼', subNameZh: '恶魔眼' },
+      ],
+    },
+    npcZhMap: {
+      records: {
+        DemonEye2: { nameZh: '恶魔眼' },
+      },
+    },
+  });
+
+  assert.equal(actual.npcsByInternalName.get('demoneye2')?.nameZh, '恶魔眼');
+  assert.equal(actual.npcsByInternalName.get('demoneye2')?.subNameZh, '恶魔眼');
+});

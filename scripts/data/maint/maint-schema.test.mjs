@@ -39,6 +39,7 @@ test('buildMaintSchemaSql creates all maint tables', () => {
   ]);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_items`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_npcs`/);
+  assert.match(sql, /`sub_name_zh` VARCHAR\(255\) DEFAULT NULL/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_projectiles`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_buffs`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_npc_images`/);

@@ -26,9 +26,10 @@ function upsertZhEntry(map, key, value) {
   if (!normalizedKey || (!nameZh && !subNameZh)) {
     return;
   }
+  const previous = map.get(normalizedKey) ?? {};
   map.set(normalizedKey, {
-    nameZh,
-    subNameZh,
+    nameZh: nameZh ?? previous.nameZh ?? null,
+    subNameZh: subNameZh ?? previous.subNameZh ?? null,
   });
 }
 

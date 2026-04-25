@@ -68,16 +68,51 @@ function buildBaseEntityRecord(sourceMaintTable, row) {
     base.valueRaw = toNullableNumber(raw.value);
   }
 
+  if (sourceMaintTable === 'maint_npcs') {
+    base.subNameZh = normalizeText(row.sub_name_zh);
+  }
+
   return base;
+}
+
+function buildItemPageIndex(maintItemPages = []) {
+  const index = new Map();
+  for (const row of maintItemPages) {
+    const key = normalizeText(row.item_internal_name);
+    if (!key) {
+      continue;
+    }
+    const current = index.get(key);
+    if (!current) {
+      index.set(key, row);
+      continue;
+    }
+    const currentRevision = current.source_revision_timestamp ?? current.updated_at ?? null;
+    const nextRevision = row.source_revision_timestamp ?? row.updated_at ?? null;
+    if (String(nextRevision ?? '') >= String(currentRevision ?? '')) {
+      index.set(key, row);
+    }
+  }
+  return index;
 }
 
 export function buildBaseEntityRelations({
   maintItems = [],
+  maintItemPages = [],
   maintNpcs = [],
   maintProjectiles = []
 } = {}) {
+  const itemPagesByInternalName = buildItemPageIndex(maintItemPages);
   return {
-    relationItems: maintItems.map((row) => buildBaseEntityRecord('maint_items', row)),
+    relationItems: maintItems.map((row) => {
+      const record = buildBaseEntityRecord('maint_items', row);
+      const itemPage = itemPagesByInternalName.get(record.internalName);
+      if (itemPage) {
+        record.sellTextRaw = normalizeText(itemPage.sell_text);
+        record.sellRaw = toNullableNumber(itemPage.sell_value);
+      }
+      return record;
+    }),
     relationNpcs: maintNpcs.map((row) => buildBaseEntityRecord('maint_npcs', row)),
     relationProjectiles: maintProjectiles.map((row) => buildBaseEntityRecord('maint_projectiles', row))
   };

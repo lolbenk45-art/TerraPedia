@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS \`maint_npcs\` (
   \`internal_name\` VARCHAR(255) NOT NULL,
   \`english_name\` VARCHAR(255) DEFAULT NULL,
   \`name_zh\` VARCHAR(255) DEFAULT NULL,
+  \`sub_name_zh\` VARCHAR(255) DEFAULT NULL,
   \`source_provider\` VARCHAR(128) NOT NULL,
   \`source_page\` VARCHAR(255) DEFAULT NULL,
   \`source_revision_timestamp\` DATETIME DEFAULT NULL,
