@@ -16,6 +16,8 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
         width: 24,
         height: 28,
         stackSize: 1,
+        rareRaw: 1,
+        valueRaw: 2000,
         sourceProvider: 'terraria.wiki.gg',
         sourcePage: 'Module:Iteminfo/data',
         sourceRevisionTimestamp: '2026-03-09T14:52:58.000Z',
@@ -24,6 +26,9 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
     ],
     relationItemImages: [
       { itemInternalName: 'IronPickaxe', cachedUrl: 'http://localhost/iron.png', isPrimary: 1 }
+    ],
+    relationItemRarities: [
+      { id: 1, code: 'blue', displayNameZh: '蓝色', displayNameEn: 'Blue' }
     ],
     relationNpcs: [
       {
@@ -79,6 +84,7 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
   assert.equal(actual.projectionItems[0].image, 'http://localhost/iron.png');
   assert.equal(actual.projectionItems[0].damage, 5);
   assert.equal(actual.projectionItems[0].buy, 2000);
+  assert.equal(actual.projectionItems[0].rarityId, 1);
   assert.equal(actual.projectionItems[0].isStackable, 0);
 
   assert.equal(actual.projectionNpcs.length, 1);

@@ -16,6 +16,7 @@ const EXPECTED_TABLE_NAMES = [
   'relation_projectiles',
   'relation_buffs',
   'relation_bosses',
+  'relation_item_rarities',
   'relation_item_images',
   'relation_npc_images',
   'relation_projectile_images',
@@ -30,8 +31,6 @@ const EXPECTED_TABLE_NAMES = [
   'item_source_details',
   'item_npc_shop_relations',
   'item_npc_loot_relations',
-  'item_npc_shop_candidates',
-  'item_npc_loot_candidates',
   'item_buff_relations',
   'item_biome_relations',
   'item_projectile_audits',
@@ -94,6 +93,7 @@ test('table-scoped relation run metadata columns are correct', () => {
   const relationProjectiles = extractTableDdl(sql, 'relation_projectiles');
   const relationBuffs = extractTableDdl(sql, 'relation_buffs');
   const relationBosses = extractTableDdl(sql, 'relation_bosses');
+  const relationItemRarities = extractTableDdl(sql, 'relation_item_rarities');
   const relationItemImages = extractTableDdl(sql, 'relation_item_images');
   const relationNpcImages = extractTableDdl(sql, 'relation_npc_images');
   const relationProjectileImages = extractTableDdl(sql, 'relation_projectile_images');
@@ -117,6 +117,8 @@ test('table-scoped relation run metadata columns are correct', () => {
   assert.match(relationItems, /`source_id` INT DEFAULT NULL/);
   assert.match(relationItems, /`internal_name` VARCHAR\(255\) DEFAULT NULL/);
   assert.match(relationItems, /`module_generated_at` VARCHAR\(64\) DEFAULT NULL/);
+  assert.match(relationItems, /`rare_raw` INT DEFAULT NULL/);
+  assert.match(relationItems, /`value_raw` INT DEFAULT NULL/);
   assert.match(relationItems, /UNIQUE KEY `uk_relation_items_record_key` \(`record_key`\)/);
 
   assert.match(relationNpcs, /`source_id` INT DEFAULT NULL/);
@@ -136,6 +138,10 @@ test('table-scoped relation run metadata columns are correct', () => {
   assert.match(relationBosses, /`group_type` VARCHAR\(64\) DEFAULT NULL/);
   assert.match(relationBosses, /`npc_match_status` VARCHAR\(64\) DEFAULT NULL/);
   assert.match(relationBosses, /UNIQUE KEY `uk_relation_bosses_record_key` \(`record_key`\)/);
+
+  assert.match(relationItemRarities, /`code` VARCHAR\(32\) NOT NULL/);
+  assert.match(relationItemRarities, /`display_name_zh` VARCHAR\(64\) NOT NULL/);
+  assert.match(relationItemRarities, /UNIQUE KEY `uk_relation_item_rarities_record_key` \(`record_key`\)/);
 
   assert.match(relationItemImages, /`item_internal_name` VARCHAR\(255\) DEFAULT NULL/);
   assert.match(relationItemImages, /`role` VARCHAR\(64\) DEFAULT NULL/);
@@ -189,8 +195,6 @@ test('table-scoped domain columns and lookup indexes are present', () => {
   const sourceDetails = extractTableDdl(sql, 'item_source_details');
   const shopRelations = extractTableDdl(sql, 'item_npc_shop_relations');
   const lootRelations = extractTableDdl(sql, 'item_npc_loot_relations');
-  const shopCandidates = extractTableDdl(sql, 'item_npc_shop_candidates');
-  const lootCandidates = extractTableDdl(sql, 'item_npc_loot_candidates');
   const bossRewards = extractTableDdl(sql, 'boss_item_reward_relations');
   const bossEffects = extractTableDdl(sql, 'boss_effect_relations');
   const npcSeriesNodes = extractTableDdl(sql, 'npc_series_nodes');
@@ -251,24 +255,6 @@ test('table-scoped domain columns and lookup indexes are present', () => {
     lootRelations,
     /CONSTRAINT `fk_item_npc_loot_relations_source_fact_key`\s+FOREIGN KEY \(`source_fact_key`\) REFERENCES `terria_v1_relation`\.`item_source_facts` \(`record_key`\)/
   );
-  assert.match(shopCandidates, /`source_fact_key` CHAR\(64\) COLLATE utf8mb4_bin NOT NULL/);
-  assert.match(
-    shopCandidates,
-    /KEY `idx_item_npc_shop_candidates_source_fact_key` \(`source_fact_key`\)/
-  );
-  assert.match(
-    shopCandidates,
-    /CONSTRAINT `fk_item_npc_shop_candidates_source_fact_key`\s+FOREIGN KEY \(`source_fact_key`\) REFERENCES `terria_v1_relation`\.`item_source_facts` \(`record_key`\)/
-  );
-  assert.match(lootCandidates, /`source_fact_key` CHAR\(64\) COLLATE utf8mb4_bin NOT NULL/);
-  assert.match(
-    lootCandidates,
-    /KEY `idx_item_npc_loot_candidates_source_fact_key` \(`source_fact_key`\)/
-  );
-  assert.match(
-    lootCandidates,
-    /CONSTRAINT `fk_item_npc_loot_candidates_source_fact_key`\s+FOREIGN KEY \(`source_fact_key`\) REFERENCES `terria_v1_relation`\.`item_source_facts` \(`record_key`\)/
-  );
   assert.match(bossRewards, /`boss_record_key` CHAR\(64\) COLLATE utf8mb4_bin NOT NULL/);
   assert.match(bossRewards, /`reward_source_fact_keys_json` LONGTEXT/);
   assert.match(bossRewards, /KEY `idx_boss_item_reward_relations_boss_record_key` \(`boss_record_key`\)/);
@@ -290,6 +276,8 @@ test('text/blob family columns do not emit DEFAULT NULL and all tables pin colla
     const ddl = extractTableDdl(sql, tableName);
     assert.match(ddl, /ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;/);
   }
+  assert.doesNotMatch(sql, /item_npc_shop_candidates/);
+  assert.doesNotMatch(sql, /item_npc_loot_candidates/);
 });
 
 test('statement-oriented API is safe per statement without session-scoped USE', () => {
@@ -311,6 +299,7 @@ test('record key unique indexes exist on all relation result tables', () => {
   const sql = buildRelationSchemaSql();
   const tablesWithRecordKeyUnique = [
     'relation_buffs',
+    'relation_item_rarities',
     'relation_item_images',
     'relation_npc_images',
     'relation_projectile_images',
@@ -325,8 +314,6 @@ test('record key unique indexes exist on all relation result tables', () => {
     'item_source_details',
     'item_npc_shop_relations',
     'item_npc_loot_relations',
-    'item_npc_shop_candidates',
-    'item_npc_loot_candidates',
     'item_buff_relations',
     'item_biome_relations',
     'item_projectile_audits'
@@ -340,4 +327,7 @@ test('record key unique indexes exist on all relation result tables', () => {
       `missing record_key unique index in ${tableName}`
     );
   }
+
+  assert.doesNotMatch(sql, /item_npc_shop_candidates/);
+  assert.doesNotMatch(sql, /item_npc_loot_candidates/);
 });

@@ -130,6 +130,7 @@ test('runSync dry-run reads maint only and does not write relation rows', async 
   assert.equal(result.summary.domainSummary.base, 4);
   assert.equal(result.summary.domainSummary.image, 3);
   assert.equal(result.results.relationBuffs.length, 1);
+  assert.equal(result.results.relationItemRarities.length, 16);
   assert.equal(result.results.itemRecipeGroupExpansions.length, 0);
   assert.equal(result.results.itemNpcShopRelations.length, 0);
   assert.equal(result.results.itemNpcLootRelations.length, 0);
@@ -218,5 +219,10 @@ test('runSync apply mode clears stale relation tables before writing current sna
   );
 
   assert.ok(statements.some((sql) => sql.includes('DELETE FROM `relation_items`')));
+  assert.ok(statements.some((sql) => sql.includes('DELETE FROM `relation_item_rarities`')));
   assert.ok(statements.some((sql) => sql.includes('DELETE FROM `item_npc_shop_relations`')));
+  assert.ok(statements.some((sql) => sql.includes('DROP TABLE IF EXISTS `terria_v1_relation`.`item_npc_shop_candidates`')));
+  assert.ok(statements.some((sql) => sql.includes('DROP TABLE IF EXISTS `terria_v1_relation`.`item_npc_loot_candidates`')));
+  assert.ok(statements.every((sql) => !sql.includes('item_npc_shop_candidates` (`record_key`')));
+  assert.ok(statements.every((sql) => !sql.includes('item_npc_loot_candidates` (`record_key`')));
 });

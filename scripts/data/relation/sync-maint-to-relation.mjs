@@ -6,7 +6,11 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
-import { buildRelationSchemaStatements } from './relation-schema.mjs';
+import {
+  DEPRECATED_RELATION_TABLE_NAMES,
+  RELATION_DATABASE_NAME,
+  buildRelationSchemaStatements
+} from './relation-schema.mjs';
 import { createRecordKey } from './relation-trace.mjs';
 import { buildBaseEntityRelations } from './base-entity-processor.mjs';
 import { buildBuffEntityRelations } from './buff-entity-processor.mjs';
@@ -18,6 +22,7 @@ import { buildItemSourceRelations } from './item-source-relation-processor.mjs';
 import { buildSecondaryRelations } from './secondary-relation-processor.mjs';
 import { buildBossSeriesRelations } from './boss-series-processor.mjs';
 import { buildNpcSeriesRelations } from './npc-series-processor.mjs';
+import { buildRelationItemRarities } from './item-rarity-support-processor.mjs';
 import { buildProjectionSchemaStatements } from './projection-schema.mjs';
 import { buildProjectionPayload } from './projection-sync.mjs';
 import { writeRelationReports } from './relation-report.mjs';
@@ -150,6 +155,12 @@ async function clearRelationSnapshotTables(connection, tableNames) {
   }
 }
 
+async function dropDeprecatedRelationTables(connection, databaseName = RELATION_DATABASE_NAME) {
+  for (const tableName of DEPRECATED_RELATION_TABLE_NAMES) {
+    await connection.query(`DROP TABLE IF EXISTS \`${databaseName}\`.\`${tableName}\``);
+  }
+}
+
 async function getTableColumns(connection, databaseName, tableName) {
   const [rows] = await connection.query(
     `SELECT COLUMN_NAME FROM information_schema.columns WHERE table_schema = ? AND table_name = ?`,
@@ -160,6 +171,13 @@ async function getTableColumns(connection, databaseName, tableName) {
 
 async function ensureRelationMigrations(connection, databaseName) {
   const migrations = [
+    {
+      tableName: 'relation_items',
+      columns: [
+        ['rare_raw', 'INT DEFAULT NULL AFTER `height`'],
+        ['value_raw', 'INT DEFAULT NULL AFTER `rare_raw`']
+      ]
+    },
     {
       tableName: 'item_npc_shop_relations',
       columns: [
@@ -260,6 +278,7 @@ function flattenResults(category, recipe, itemSource, secondary, bossSeries, npc
     relationProjectiles: [],
     relationBuffs: [],
     relationBosses: [],
+    relationItemRarities: [],
     relationItemImages: [],
     relationNpcImages: [],
     relationProjectileImages: [],
@@ -274,8 +293,6 @@ function flattenResults(category, recipe, itemSource, secondary, bossSeries, npc
     itemSourceDetails: itemSource.sourceDetails,
     itemNpcShopRelations: itemSource.npcShopRelations,
     itemNpcLootRelations: itemSource.npcLootRelations,
-    itemNpcShopCandidates: itemSource.npcShopCandidates,
-    itemNpcLootCandidates: itemSource.npcLootCandidates,
     itemBuffRelations: secondary.itemBuffRelations,
     itemBiomeRelations: secondary.itemBiomeRelations,
     itemProjectileAudits: secondary.itemProjectileAudits,
@@ -366,6 +383,7 @@ export async function runSync(options, dependencies = {}) {
     maintProjectiles,
     maintBuffs: maintBuffRows
   });
+  const relationItemRarities = buildRelationItemRarities();
 
   const category = buildCategoryRelations({ categoryRows, itemCategoryRows });
   const recipe = buildRecipeRelations({ itemRecipes, itemPageRecipes, recipePageRecipes, itemIndex });
@@ -402,6 +420,7 @@ export async function runSync(options, dependencies = {}) {
   results.relationProjectiles = baseEntities.relationProjectiles;
   results.relationBuffs = buffEntities.relationBuffs;
   results.relationBosses = bossSeries.relationBosses;
+  results.relationItemRarities = relationItemRarities;
   results.relationItemImages = imageEntities.relationItemImages;
   results.relationNpcImages = imageEntities.relationNpcImages;
   results.relationProjectileImages = imageEntities.relationProjectileImages;
@@ -410,6 +429,7 @@ export async function runSync(options, dependencies = {}) {
   const projection = buildProjectionPayload({
     relationItems: results.relationItems,
     relationItemImages: results.relationItemImages,
+    relationItemRarities: results.relationItemRarities,
     relationNpcs: results.relationNpcs,
     relationNpcImages: results.relationNpcImages,
     relationProjectiles: results.relationProjectiles,
@@ -441,7 +461,10 @@ export async function runSync(options, dependencies = {}) {
         + results.relationBuffImages.length,
       category: results.categoryNodes.length + results.itemCategoryAssignments.length,
       recipe: results.itemRecipeHeads.length + results.itemRecipeIngredients.length + results.itemRecipeStations.length,
-      npc: results.itemSourceFacts.length + results.itemSourceDetails.length + results.itemNpcShopCandidates.length + results.itemNpcLootCandidates.length,
+      npc: results.itemSourceFacts.length
+        + results.itemSourceDetails.length
+        + results.itemNpcShopRelations.length
+        + results.itemNpcLootRelations.length,
       buff: results.itemBuffRelations.length,
       biome: results.itemBiomeRelations.length,
       projectile: results.itemProjectileAudits.length,
@@ -474,6 +497,7 @@ export async function runSync(options, dependencies = {}) {
           await adminConnection.query(statement);
         }
         await ensureRelationMigrations(adminConnection, options.relationDatabase);
+        await dropDeprecatedRelationTables(adminConnection, options.relationDatabase);
       } finally {
         await adminConnection.end();
       }
@@ -486,6 +510,7 @@ export async function runSync(options, dependencies = {}) {
           await connection.query(statement);
         }
         await ensureRelationMigrations(connection, options.relationDatabase);
+        await dropDeprecatedRelationTables(connection, options.relationDatabase);
       });
     }
 
@@ -512,8 +537,6 @@ export async function runSync(options, dependencies = {}) {
         'category_nodes',
         'item_npc_shop_relations',
         'item_npc_loot_relations',
-        'item_npc_shop_candidates',
-        'item_npc_loot_candidates',
         'item_source_details',
         'item_source_facts',
         'item_buff_relations',
@@ -524,6 +547,7 @@ export async function runSync(options, dependencies = {}) {
         'npc_series_item_relations',
         'npc_series_memberships',
         'npc_series_nodes',
+        'relation_item_rarities',
         'relation_item_images',
         'relation_npc_images',
         'relation_projectile_images',
@@ -544,6 +568,7 @@ export async function runSync(options, dependencies = {}) {
       await upsertRows(connection, 'relation_projectiles', results.relationProjectiles);
       await upsertRows(connection, 'relation_buffs', results.relationBuffs);
       await upsertRows(connection, 'relation_bosses', results.relationBosses);
+      await upsertRows(connection, 'relation_item_rarities', results.relationItemRarities);
       await upsertRows(connection, 'relation_item_images', results.relationItemImages);
       await upsertRows(connection, 'relation_npc_images', results.relationNpcImages);
       await upsertRows(connection, 'relation_projectile_images', results.relationProjectileImages);
@@ -558,8 +583,6 @@ export async function runSync(options, dependencies = {}) {
       await upsertRows(connection, 'item_source_details', results.itemSourceDetails);
       await upsertRows(connection, 'item_npc_shop_relations', results.itemNpcShopRelations);
       await upsertRows(connection, 'item_npc_loot_relations', results.itemNpcLootRelations);
-      await upsertRows(connection, 'item_npc_shop_candidates', results.itemNpcShopCandidates);
-      await upsertRows(connection, 'item_npc_loot_candidates', results.itemNpcLootCandidates);
       await upsertRows(connection, 'item_buff_relations', results.itemBuffRelations);
       await upsertRows(connection, 'item_biome_relations', results.itemBiomeRelations);
       await upsertRows(connection, 'item_projectile_audits', results.itemProjectileAudits);

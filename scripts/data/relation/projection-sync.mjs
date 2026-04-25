@@ -42,6 +42,7 @@ function buildImageIndex(rows = [], entityKey) {
 export function buildProjectionPayload({
   relationItems = [],
   relationItemImages = [],
+  relationItemRarities = [],
   relationNpcs = [],
   relationNpcImages = [],
   relationProjectiles = [],
@@ -50,6 +51,11 @@ export function buildProjectionPayload({
   relationBuffImages = []
 } = {}) {
   const itemImages = buildImageIndex(relationItemImages, 'itemInternalName');
+  const itemRarities = new Map(
+    relationItemRarities
+      .filter((row) => row?.id != null)
+      .map((row) => [Number(row.id), row])
+  );
   const npcImages = buildImageIndex(relationNpcImages, 'npcInternalName');
   const projectileImages = buildImageIndex(relationProjectileImages, 'projectileInternalName');
   const buffImages = buildImageIndex(relationBuffImages, 'buffInternalName');
@@ -57,6 +63,8 @@ export function buildProjectionPayload({
   const projectionItems = relationItems.map((row) => {
     const raw = parseJsonObject(row.rawJson);
     const image = itemImages.get(row.internalName)?.cachedUrl ?? null;
+    const rareRaw = toNullableNumber(row.rareRaw ?? raw.rare);
+    const valueRaw = toNullableNumber(row.valueRaw ?? raw.value);
     return {
       id: toNullableNumber(row.sourceId),
       relationRecordKey: row.recordKey,
@@ -74,7 +82,7 @@ export function buildProjectionPayload({
       useTime: toNullableNumber(row.useTime ?? raw.useTime),
       width: toNullableNumber(row.width),
       height: toNullableNumber(row.height),
-      buy: toNullableNumber(raw.value),
+      buy: valueRaw,
       sell: null,
       tooltip: null,
       tooltipZh: null,
@@ -82,7 +90,7 @@ export function buildProjectionPayload({
       sourcePage: row.sourcePage ?? null,
       sourceRevisionTimestamp: row.sourceRevisionTimestamp ?? null,
       lastSyncedAt: null,
-      rarityId: null,
+      rarityId: rareRaw != null && itemRarities.has(rareRaw) ? rareRaw : null,
       gamePeriodId: null,
       gameModelId: null,
       isStackable: toFlag(toNullableNumber(row.stackSize) > 1),

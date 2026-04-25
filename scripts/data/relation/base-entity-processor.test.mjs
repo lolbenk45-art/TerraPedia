@@ -22,7 +22,7 @@ test('buildBaseEntityRelations mirrors maint entity rows into relation base tabl
       width: 24,
       height: 28,
       flags_json: null,
-      raw_json: '{}',
+      raw_json: '{"value":2000,"rare":1}',
       landing_source_id: 100,
       landing_source_key: 'wiki.module.iteminfo',
       landing_content_hash: 'b'.repeat(64),
@@ -55,6 +55,8 @@ test('buildBaseEntityRelations mirrors maint entity rows into relation base tabl
   assert.equal(actual.relationNpcs.length, 1);
   assert.equal(actual.relationProjectiles.length, 1);
   assert.equal(actual.relationItems[0].internalName, 'IronPickaxe');
+  assert.equal(actual.relationItems[0].rareRaw, 1);
+  assert.equal(actual.relationItems[0].valueRaw, 2000);
   assert.equal(actual.relationItems[0].reviewStatus, 'resolved');
   assert.equal(actual.relationItems[0].sourceMaintTable, 'maint_items');
   assert.equal(actual.relationNpcs[0].sourceMaintTable, 'maint_npcs');

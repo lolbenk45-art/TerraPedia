@@ -173,3 +173,43 @@
 - Decision needed:
 - Temporary handling:
 ```
+### [INFO] 2026-04-25 10:31 - relation duplicate candidate tables removed and catalog added
+
+- Domain: relation-hygiene
+- Status: closed
+- Impact: `item_npc_shop_candidates` and `item_npc_loot_candidates` no longer remain in `terria_v1_relation`; downstream reuse should target the formal `item_npc_*_relations` tables and the new table catalog doc.
+- Evidence:
+  - `information_schema.tables` query on `terria_v1_relation` returns no rows for `item_npc_shop_candidates` or `item_npc_loot_candidates`
+  - relation sync now runs `DROP TABLE IF EXISTS terria_v1_relation.item_npc_shop_candidates`
+  - relation sync now runs `DROP TABLE IF EXISTS terria_v1_relation.item_npc_loot_candidates`
+  - catalog doc: `docs/superpowers/specs/2026-04-25-relation-table-catalog.md`
+- Decision needed: none
+- Temporary handling: future relation reuse should treat `item_npc_shop_relations` and `item_npc_loot_relations` as the only canonical NPC commerce and loot tables; `projection_*` remains a derived compatibility layer rather than a fact source.
+### [INFO] 2026-04-25 14:29 - item attribute storage decisions landed in relation
+
+- Domain: item-attribute-modeling
+- Status: closed
+- Impact: `relation_items` now carries source-backed `rare_raw` and `value_raw`; `relation_item_rarities` is materialized as a support-domain dictionary; `projection_items.rarity_id` now maps from relation-side rarity facts rather than staying empty.
+- Evidence:
+  - `relation_item_rarities = 16`
+  - `relation_items.rare_raw IS NOT NULL = 2893`
+  - `relation_items.value_raw IS NOT NULL = 5267`
+  - `projection_items.rarity_id IS NOT NULL = 2893`
+  - `projection_items.buy IS NOT NULL = 5267`
+  - `projection_items.sell IS NOT NULL = 0`
+- Decision needed: none
+- Temporary handling: rarity display semantics are treated as a support-domain dictionary, while raw rarity facts remain on `relation_items`.
+
+### [INFO] 2026-04-25 14:29 - item tooltip/description/sell still blocked by missing upstream facts
+
+- Domain: item-attribute-modeling
+- Status: open
+- Impact: `projection_items` still cannot replace `local.items` on these fields because source-backed item-level facts are missing or intentionally withheld.
+- Evidence:
+  - `maint_items.raw_json LIKE '%tooltip%' = 0`
+  - `maint_items.raw_json LIKE '%description%' = 0`
+  - `maint_items.raw_json LIKE '%localized%' = 0`
+  - readiness report: `items.blocking fields` still includes `sell`, `tooltip_zh`, and multiple other fields
+  - readiness report: `rarity_id(gap=3242)` because only source-backed `rare` rows were projected
+- Decision needed: none
+- Temporary handling: keep `sell` null until a formal source or approved derived rule exists; keep item tooltip/description fields empty until source-backed item-level text is available; unresolved gaps remain in readiness reports instead of being guessed.

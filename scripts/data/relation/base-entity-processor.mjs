@@ -14,9 +14,28 @@ function toNullableNumber(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
+function parseJsonObject(value) {
+  if (value == null || value === '') {
+    return {};
+  }
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    return value;
+  }
+  if (typeof value !== 'string') {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 function buildBaseEntityRecord(sourceMaintTable, row) {
   const trace = normalizeTrace(sourceMaintTable, row);
-  return {
+  const raw = parseJsonObject(row.raw_json);
+  const base = {
     recordKey: createRecordKey({
       type: sourceMaintTable,
       sourceMaintRecordKey: trace.sourceMaintRecordKey ?? null,
@@ -43,6 +62,13 @@ function buildBaseEntityRecord(sourceMaintTable, row) {
     rawJson: row.raw_json ?? null,
     ...trace
   };
+
+  if (sourceMaintTable === 'maint_items') {
+    base.rareRaw = toNullableNumber(raw.rare);
+    base.valueRaw = toNullableNumber(raw.value);
+  }
+
+  return base;
 }
 
 export function buildBaseEntityRelations({

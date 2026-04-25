@@ -19,7 +19,7 @@ const DOMAIN_CONFIG = {
     localTable: 'items',
     projectionTable: 'projection_items',
     key: 'internal_name',
-    fields: ['name', 'name_zh', 'image', 'damage', 'defense', 'knockback', 'use_time', 'buy', 'sell', 'tooltip', 'tooltip_zh', 'is_stackable', 'stack_size']
+    fields: ['name', 'name_zh', 'image', 'damage', 'defense', 'knockback', 'use_time', 'buy', 'sell', 'tooltip', 'tooltip_zh', 'rarity_id', 'is_stackable', 'stack_size']
   },
   npcs: {
     localTable: 'npcs',

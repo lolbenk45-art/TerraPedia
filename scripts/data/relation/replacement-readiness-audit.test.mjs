@@ -7,8 +7,8 @@ test('buildReplacementReadinessAudit reports blocked domains and sample field ga
   const actual = buildReplacementReadinessAudit({
     localData: {
       items: [
-        { internal_name: 'IronPickaxe', name: 'Iron Pickaxe', name_zh: '铁镐', image: 'a.png', damage: 5, buy: 2000 },
-        { internal_name: 'CopperShortsword', name: 'Copper Shortsword', name_zh: '铜短剑', image: 'b.png', damage: 4, buy: 500 }
+        { internal_name: 'IronPickaxe', name: 'Iron Pickaxe', name_zh: '铁镐', image: 'a.png', damage: 5, buy: 2000, rarity_id: 1 },
+        { internal_name: 'CopperShortsword', name: 'Copper Shortsword', name_zh: '铜短剑', image: 'b.png', damage: 4, buy: 500, rarity_id: 0 }
       ],
       npcs: [
         { internal_name: 'Merchant', name: 'Merchant', name_zh: '商人', is_boss: 0 }
@@ -18,8 +18,8 @@ test('buildReplacementReadinessAudit reports blocked domains and sample field ga
     },
     projectionData: {
       projection_items: [
-        { internal_name: 'IronPickaxe', name: 'Iron Pickaxe', name_zh: null, image: 'a.png', damage: 5, buy: 2000 },
-        { internal_name: 'CopperShortsword', name: 'Copper Shortsword', name_zh: null, image: null, damage: 4, buy: 500 }
+        { internal_name: 'IronPickaxe', name: 'Iron Pickaxe', name_zh: null, image: 'a.png', damage: 5, buy: 2000, rarity_id: 1 },
+        { internal_name: 'CopperShortsword', name: 'Copper Shortsword', name_zh: null, image: null, damage: 4, buy: 500, rarity_id: 0 }
       ],
       projection_npcs: [
         { internal_name: 'Merchant', name: 'Merchant', name_zh: null, is_boss: 0 }

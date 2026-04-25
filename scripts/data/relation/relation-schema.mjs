@@ -8,6 +8,7 @@ export const RELATION_TABLE_NAMES = [
   'relation_projectiles',
   'relation_buffs',
   'relation_bosses',
+  'relation_item_rarities',
   'relation_item_images',
   'relation_npc_images',
   'relation_projectile_images',
@@ -22,8 +23,6 @@ export const RELATION_TABLE_NAMES = [
   'item_source_details',
   'item_npc_shop_relations',
   'item_npc_loot_relations',
-  'item_npc_shop_candidates',
-  'item_npc_loot_candidates',
   'item_buff_relations',
   'item_biome_relations',
   'item_projectile_audits',
@@ -32,6 +31,11 @@ export const RELATION_TABLE_NAMES = [
   'npc_series_nodes',
   'npc_series_memberships',
   'npc_series_item_relations'
+];
+
+export const DEPRECATED_RELATION_TABLE_NAMES = [
+  'item_npc_shop_candidates',
+  'item_npc_loot_candidates'
 ];
 
 const TRACE_COLUMNS = `
@@ -127,6 +131,8 @@ function buildTableStatements() {
   \`stack_size\` INT DEFAULT NULL,
   \`width\` INT DEFAULT NULL,
   \`height\` INT DEFAULT NULL,
+  \`rare_raw\` INT DEFAULT NULL,
+  \`value_raw\` INT DEFAULT NULL,
   \`flags_json\` LONGTEXT,
   ${TRACE_COLUMNS},
   ${AUDIT_COLUMNS},
@@ -230,6 +236,19 @@ function buildTableStatements() {
   UNIQUE KEY \`uk_relation_bosses_record_key\` (\`record_key\`),
   KEY \`idx_relation_bosses_boss_title_en\` (\`boss_title_en\`),
   KEY \`idx_relation_bosses_npc_internal_name\` (\`npc_internal_name\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+    `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`relation_item_rarities\` (
+  \`id\` BIGINT NOT NULL,
+  \`record_key\` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
+  \`code\` VARCHAR(32) NOT NULL,
+  \`display_name_zh\` VARCHAR(64) NOT NULL,
+  \`display_name_en\` VARCHAR(64) NOT NULL,
+  \`sort_order\` INT NOT NULL DEFAULT 0,
+  ${TRACE_COLUMNS},
+  ${AUDIT_COLUMNS},
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_relation_item_rarities_record_key\` (\`record_key\`),
+  UNIQUE KEY \`uk_relation_item_rarities_code\` (\`code\`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
     buildRelationImageTableStatement({
       tableName: 'relation_item_images',
@@ -455,46 +474,6 @@ function buildTableStatements() {
   UNIQUE KEY \`uk_item_npc_loot_relations_record_key\` (\`record_key\`),
   KEY \`idx_item_npc_loot_relations_source_fact_key\` (\`source_fact_key\`),
   CONSTRAINT \`fk_item_npc_loot_relations_source_fact_key\`
-    FOREIGN KEY (\`source_fact_key\`) REFERENCES \`${RELATION_DATABASE_NAME}\`.\`item_source_facts\` (\`record_key\`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
-    `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`item_npc_shop_candidates\` (
-  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
-  \`record_key\` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
-  \`source_fact_key\` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
-  \`item_internal_name\` VARCHAR(255) DEFAULT NULL,
-  \`npc_source_id\` INT DEFAULT NULL,
-  \`npc_internal_name\` VARCHAR(255) DEFAULT NULL,
-  \`npc_name\` VARCHAR(255) DEFAULT NULL,
-  \`price_text\` VARCHAR(255) DEFAULT NULL,
-  \`conditions\` TEXT,
-  ${TRACE_COLUMNS},
-  ${AUDIT_COLUMNS},
-  PRIMARY KEY (\`id\`),
-  UNIQUE KEY \`uk_item_npc_shop_candidates_record_key\` (\`record_key\`),
-  KEY \`idx_item_npc_shop_candidates_source_fact_key\` (\`source_fact_key\`),
-  CONSTRAINT \`fk_item_npc_shop_candidates_source_fact_key\`
-    FOREIGN KEY (\`source_fact_key\`) REFERENCES \`${RELATION_DATABASE_NAME}\`.\`item_source_facts\` (\`record_key\`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
-    `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`item_npc_loot_candidates\` (
-  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
-  \`record_key\` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
-  \`source_fact_key\` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
-  \`item_internal_name\` VARCHAR(255) DEFAULT NULL,
-  \`npc_source_id\` INT DEFAULT NULL,
-  \`npc_internal_name\` VARCHAR(255) DEFAULT NULL,
-  \`npc_name\` VARCHAR(255) DEFAULT NULL,
-  \`quantity_min\` INT DEFAULT NULL,
-  \`quantity_max\` INT DEFAULT NULL,
-  \`quantity_text\` VARCHAR(255) DEFAULT NULL,
-  \`chance_value\` DECIMAL(10,6) DEFAULT NULL,
-  \`chance_text\` VARCHAR(255) DEFAULT NULL,
-  \`conditions\` TEXT,
-  ${TRACE_COLUMNS},
-  ${AUDIT_COLUMNS},
-  PRIMARY KEY (\`id\`),
-  UNIQUE KEY \`uk_item_npc_loot_candidates_record_key\` (\`record_key\`),
-  KEY \`idx_item_npc_loot_candidates_source_fact_key\` (\`source_fact_key\`),
-  CONSTRAINT \`fk_item_npc_loot_candidates_source_fact_key\`
     FOREIGN KEY (\`source_fact_key\`) REFERENCES \`${RELATION_DATABASE_NAME}\`.\`item_source_facts\` (\`record_key\`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
     `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`item_buff_relations\` (

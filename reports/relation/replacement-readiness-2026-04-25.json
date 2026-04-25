@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T00:12:25.994Z",
+  "generatedAt": "2026-04-25T06:28:10.109Z",
   "summary": {
     "switchableDomains": [
       "buffs"
@@ -328,6 +328,39 @@
             {
               "key": "IronBar",
               "localValue": "可用于制作铁系装备与工具",
+              "projectionValue": null
+            }
+          ]
+        },
+        {
+          "field": "rarity_id",
+          "localNonNull": 6131,
+          "projectionNonNull": 2889,
+          "gap": 3242,
+          "missingExamples": [
+            {
+              "key": "IronPickaxe",
+              "localValue": 1,
+              "projectionValue": null
+            },
+            {
+              "key": "DirtBlock",
+              "localValue": 1,
+              "projectionValue": null
+            },
+            {
+              "key": "StoneBlock",
+              "localValue": 1,
+              "projectionValue": null
+            },
+            {
+              "key": "IronBroadsword",
+              "localValue": 1,
+              "projectionValue": null
+            },
+            {
+              "key": "Mushroom",
+              "localValue": 1,
               "projectionValue": null
             }
           ]
