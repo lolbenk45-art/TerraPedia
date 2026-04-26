@@ -2100,6 +2100,12 @@ async function ensureMaintMigrations(connection) {
         ['sell_text', 'VARCHAR(255) DEFAULT NULL AFTER `recipes_markup`'],
         ['sell_value', 'INT DEFAULT NULL AFTER `sell_text`']
       ]
+    },
+    {
+      tableName: 'maint_item_text_overrides',
+      columns: [
+        ['description_zh', 'TEXT AFTER `tooltip_zh`']
+      ]
     }
   ];
 

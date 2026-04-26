@@ -342,6 +342,7 @@ CREATE TABLE IF NOT EXISTS \`maint_item_text_overrides\` (
   \`record_key\` CHAR(64) NOT NULL,
   \`item_internal_name\` VARCHAR(255) NOT NULL,
   \`tooltip_zh\` TEXT,
+  \`description_zh\` TEXT,
   \`source_provider\` VARCHAR(128) NOT NULL,
   \`source_page\` VARCHAR(255) DEFAULT NULL,
   \`raw_json\` LONGTEXT NOT NULL,

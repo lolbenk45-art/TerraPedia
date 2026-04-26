@@ -60,6 +60,7 @@ const FIELD_CONFIG = {
   tooltipZh: {
     rawPath: 'tooltipZh',
     normalizedFromItem: () => false,
+    normalizedFromTextOverride: (row) => row.tooltip_zh !== null && row.tooltip_zh !== undefined && row.tooltip_zh !== '',
   },
   description: {
     rawPath: 'description',
@@ -68,6 +69,7 @@ const FIELD_CONFIG = {
   descriptionZh: {
     rawPath: 'descriptionZh',
     normalizedFromItem: () => false,
+    normalizedFromTextOverride: (row) => row.description_zh !== null && row.description_zh !== undefined && row.description_zh !== '',
   },
 };
 
@@ -122,6 +124,7 @@ export function buildItemFieldCoverageAudit({
   maintItems = [],
   maintItemPages = [],
   maintItemImages = [],
+  maintItemTextOverrides = [],
 } = {}) {
   const pagesByInternalName = new Map(
     maintItemPages
@@ -133,6 +136,11 @@ export function buildItemFieldCoverageAudit({
       .map((row) => row?.item_internal_name)
       .filter(Boolean)
   );
+  const textOverridesByInternalName = new Map(
+    maintItemTextOverrides
+      .filter((row) => row?.item_internal_name)
+      .map((row) => [row.item_internal_name, row])
+  );
 
   const fields = Object.fromEntries(
     Object.keys(FIELD_CONFIG).map((name) => [name, createFieldResult()])
@@ -142,6 +150,7 @@ export function buildItemFieldCoverageAudit({
     const internalName = row.internal_name ?? null;
     const pageRow = pagesByInternalName.get(internalName) ?? null;
     const hasImageRow = imagesByInternalName.has(internalName);
+    const textOverrideRow = textOverridesByInternalName.get(internalName) ?? null;
 
     for (const [fieldName, config] of Object.entries(FIELD_CONFIG)) {
       const result = fields[fieldName];
@@ -150,6 +159,7 @@ export function buildItemFieldCoverageAudit({
         (config.normalizedFromItem && config.normalizedFromItem(row))
         || (config.normalizedFromPage && pageRow && config.normalizedFromPage(pageRow))
         || (config.normalizedFromImage && hasImageRow && config.normalizedFromImage(hasImageRow))
+        || (config.normalizedFromTextOverride && textOverrideRow && config.normalizedFromTextOverride(textOverrideRow))
       );
 
       if (rawPresent) result.rawPresent += 1;
@@ -171,6 +181,7 @@ export function buildItemFieldCoverageAudit({
       itemCount: maintItems.length,
       itemPageCount: maintItemPages.length,
       itemImageCount: imagesByInternalName.size,
+      itemTextOverrideCount: textOverridesByInternalName.size,
     },
     fields,
   };
@@ -184,6 +195,7 @@ function buildMarkdown(audit) {
     `Item Count: ${audit.summary.itemCount}`,
     `Item Page Count: ${audit.summary.itemPageCount}`,
     `Item Image Count: ${audit.summary.itemImageCount}`,
+    `Item Text Override Count: ${audit.summary.itemTextOverrideCount}`,
   ];
 
   for (const [fieldName, result] of Object.entries(audit.fields)) {
@@ -214,7 +226,8 @@ export async function runItemFieldCoverageAudit({ database = 'terria_v1_maint', 
     const [maintItems] = await connection.query('SELECT internal_name, raw_json, combat_value, defense_value, use_time, stack_size, major_value FROM maint_items WHERE deleted = 0');
     const [maintItemPages] = await connection.query('SELECT item_internal_name, sell_value FROM maint_item_pages WHERE deleted = 0');
     const [maintItemImages] = await connection.query('SELECT item_internal_name FROM maint_item_images WHERE deleted = 0');
-    const audit = buildItemFieldCoverageAudit({ maintItems, maintItemPages, maintItemImages });
+    const [maintItemTextOverrides] = await connection.query('SELECT item_internal_name, tooltip_zh, description_zh FROM maint_item_text_overrides WHERE deleted = 0');
+    const audit = buildItemFieldCoverageAudit({ maintItems, maintItemPages, maintItemImages, maintItemTextOverrides });
     const resolvedOutput = output ?? path.join(repoRoot, 'reports', 'relation', `item-cutover-baseline-${new Date().toISOString().slice(0, 10)}.json`);
     const markdownPath = resolvedOutput.replace(/\.json$/i, '.md');
     await fs.mkdir(path.dirname(resolvedOutput), { recursive: true });

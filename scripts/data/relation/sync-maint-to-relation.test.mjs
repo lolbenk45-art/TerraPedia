@@ -16,6 +16,7 @@ test('parseArgs parses relation sync defaults and scopes', () => {
     createDatabase: false,
     maintDatabase: 'terria_v1_maint',
     localDatabase: null,
+    allowLocalItemImageFallback: true,
     relationDatabase: 'terria_v1_relation',
     scopes: ['category', 'recipe', 'npc', 'buff', 'biome', 'projectile']
   });
@@ -129,6 +130,8 @@ test('runSync dry-run reads maint only and does not write relation rows', async 
   assert.equal(writeCalled, false);
   assert.equal(result.summary.domainSummary.base, 4);
   assert.equal(result.summary.domainSummary.image, 3);
+  assert.equal(result.summary.bridgeBreakdown.itemTextOverrideRows, 0);
+  assert.equal(result.summary.bridgeBreakdown.localItemImageFallbackEnabled, false);
   assert.equal(result.results.relationBuffs.length, 1);
   assert.equal(result.results.relationItemRarities.length, 16);
   assert.equal(result.results.itemRecipeGroupExpansions.length, 0);
@@ -277,7 +280,8 @@ test('runSync projects maint numeric and text overrides into projection items du
         if (sql.includes('maint_item_text_overrides')) {
           return [{
             item_internal_name: 'Torch',
-            tooltip_zh: '基础照明'
+            tooltip_zh: '基础照明',
+            description_zh: '基础光源'
           }];
         }
         return [];
@@ -302,4 +306,63 @@ test('runSync projects maint numeric and text overrides into projection items du
   assert.equal(result.results.projectionItems[0].buy, 0);
   assert.equal(result.results.projectionItems[0].sell, 10);
   assert.equal(result.results.projectionItems[0].tooltipZh, '基础照明');
+  assert.equal(result.results.projectionItems[0].descriptionZh, '基础光源');
+  assert.equal(result.summary.bridgeBreakdown.itemTextOverrideRows, 1);
+});
+
+test('runSync apply mode can disable local item image fallback explicitly', async () => {
+  const statements = [];
+
+  await runSync(
+    {
+      apply: true,
+      createDatabase: false,
+      maintDatabase: 'terria_v1_maint',
+      localDatabase: 'terria_v1_local',
+      allowLocalItemImageFallback: false,
+      relationDatabase: 'terria_v1_relation',
+      scopes: ['category', 'recipe', 'npc', 'buff', 'biome', 'projectile']
+    },
+    {
+      config: {
+        database: {
+          host: '127.0.0.1',
+          port: 3306,
+          username: 'root',
+          password: 'root'
+        }
+      },
+      queryMaint: async (sql) => {
+        if (sql.includes('maint_items')) {
+          return [{ id: 1, source_id: 1, internal_name: 'AmmoBox', english_name: 'Ammo Box', raw_json: '{}' }];
+        }
+        if (sql.includes('maint_npcs')) {
+          return [{ id: 2, source_id: 17, internal_name: 'ArmsDealer', english_name: 'Arms Dealer', raw_json: '{}' }];
+        }
+        return [];
+      },
+      writeReports: async () => ({
+        auditJsonPath: 'reports/relation/relation-audit-2026-04-26.json',
+        auditMdPath: 'reports/relation/relation-audit-2026-04-26.md',
+        conflictsPath: 'reports/relation/relation-conflicts-2026-04-26.json',
+        unresolvedPath: 'reports/relation/relation-unresolved-2026-04-26.json'
+      }),
+      executeRelation: async (fn) => fn({
+        query: async (sql) => {
+          statements.push(sql);
+          if (sql.includes('information_schema.columns')) {
+            return [[], []];
+          }
+          return [{ affectedRows: 0 }, []];
+        },
+        execute: async (sql) => {
+          statements.push(sql);
+          return [[], []];
+        }
+      })
+    }
+  );
+
+  assert.ok(statements.some((sql) => sql.includes('SET pi.image = COALESCE(mi.cached_url, mi.original_url)')));
+  assert.ok(statements.every((sql) => !sql.includes('INNER JOIN `terria_v1_local`.`items` li')));
 });

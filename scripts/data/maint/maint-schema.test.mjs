@@ -54,6 +54,7 @@ test('buildMaintSchemaSql creates all maint tables', () => {
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_numeric_overrides`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_rarity_overrides`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_text_overrides`/);
+  assert.match(sql, /`description_zh` TEXT/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_recipe_pages`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_recipe_page_recipes`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_recipes`/);

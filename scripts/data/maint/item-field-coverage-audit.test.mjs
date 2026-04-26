@@ -32,6 +32,9 @@ test('buildItemFieldCoverageAudit reports raw-vs-normalized coverage gaps per it
     maintItemImages: [
       { item_internal_name: 'IronPickaxe' },
     ],
+    maintItemTextOverrides: [
+      { item_internal_name: 'Torch', tooltip_zh: '火把', description_zh: '基础光源' },
+    ],
   });
 
   assert.equal(audit.summary.itemCount, 2);
@@ -41,6 +44,8 @@ test('buildItemFieldCoverageAudit reports raw-vs-normalized coverage gaps per it
   assert.equal(audit.fields.stackSize.normalizedPresent, 1);
   assert.equal(audit.fields.sell.normalizedPresent, 1);
   assert.equal(audit.fields.image.normalizedPresent, 1);
+  assert.equal(audit.fields.tooltipZh.normalizedPresent, 1);
+  assert.equal(audit.fields.descriptionZh.normalizedPresent, 1);
   assert.deepEqual(audit.fields.damage.sampleRawOnlyItems, ['Torch']);
   assert.deepEqual(audit.fields.stackSize.sampleRawOnlyItems, ['Torch']);
 });

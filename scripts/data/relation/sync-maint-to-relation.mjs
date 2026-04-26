@@ -57,6 +57,7 @@ export function parseArgs(argv) {
     createDatabase: booleanOption(raw['create-database'] ?? raw.createDatabase, false),
     maintDatabase: raw['maint-database'] ?? raw.maintDatabase ?? 'terria_v1_maint',
     localDatabase: raw['local-database'] ?? raw.localDatabase ?? null,
+    allowLocalItemImageFallback: booleanOption(raw['allow-local-item-image-fallback'] ?? raw.allowLocalItemImageFallback, true),
     relationDatabase: raw['relation-database'] ?? raw.relationDatabase ?? 'terria_v1_relation',
     scopes: String(raw.scopes ?? 'category,recipe,npc,buff,biome,projectile')
       .split(',')
@@ -177,7 +178,7 @@ async function reconcileItemStackSizeFromMaint(connection, maintDatabase) {
 }
 
 async function reconcileProjectionItemImageFromMaint(connection, maintDatabase) {
-  await connection.query(
+  const [result] = await connection.query(
     `
     UPDATE \`projection_items\` pi
     INNER JOIN \`${maintDatabase}\`.\`maint_item_images\` mi
@@ -197,14 +198,15 @@ async function reconcileProjectionItemImageFromMaint(connection, maintDatabase) 
       AND COALESCE(mi.cached_url, mi.original_url) IS NOT NULL
     `.trim()
   );
+  return Number(result?.affectedRows ?? 0);
 }
 
-async function reconcileProjectionItemImageFromLocal(connection, localDatabase) {
-  if (!localDatabase) {
-    return;
+async function reconcileProjectionItemImageFromLocal(connection, localDatabase, enabled = true) {
+  if (!localDatabase || !enabled) {
+    return 0;
   }
 
-  await connection.query(
+  const [result] = await connection.query(
     `
     UPDATE \`projection_items\` pi
     INNER JOIN \`${localDatabase}\`.\`items\` li
@@ -217,6 +219,7 @@ async function reconcileProjectionItemImageFromLocal(connection, localDatabase) 
       AND TRIM(li.image) <> ''
     `.trim()
   );
+  return Number(result?.affectedRows ?? 0);
 }
 
 async function clearRelationSnapshotTables(connection, tableNames) {
@@ -456,7 +459,7 @@ export async function runSync(options, dependencies = {}) {
     queryMaint('SELECT item_internal_name, sell_text, sell_value, source_revision_timestamp, updated_at FROM maint_item_pages'),
     queryMaint('SELECT item_internal_name, damage_value, defense_value, knockback_value, use_time, buy_value, sell_value FROM maint_item_numeric_overrides WHERE deleted = 0'),
     queryMaint('SELECT item_internal_name, rarity_id FROM maint_item_rarity_overrides WHERE deleted = 0'),
-    queryMaint('SELECT item_internal_name, tooltip_zh FROM maint_item_text_overrides WHERE deleted = 0')
+    queryMaint('SELECT item_internal_name, tooltip_zh, description_zh FROM maint_item_text_overrides WHERE deleted = 0')
   ]);
 
   const itemIndex = buildItemIndex(maintItems);
@@ -540,6 +543,7 @@ export async function runSync(options, dependencies = {}) {
     itemTextOverrides: maintItemTextOverrides.map((row) => ({
       itemInternalName: row.item_internal_name,
       tooltipZh: row.tooltip_zh,
+      descriptionZh: row.description_zh,
     })),
     relationNpcs: results.relationNpcs,
     relationNpcImages: results.relationNpcImages,
@@ -593,6 +597,12 @@ export async function runSync(options, dependencies = {}) {
       npc: results.relationNpcImages.length,
       projectile: results.relationProjectileImages.length,
       buff: results.relationBuffImages.length
+    },
+    bridgeBreakdown: {
+      itemTextOverrideRows: maintItemTextOverrides.length,
+      localItemImageFallbackEnabled: Boolean(options.allowLocalItemImageFallback && options.localDatabase),
+      maintItemImageFillRows: 0,
+      localItemImageFallbackRows: 0,
     },
     unresolvedSamples: results.issues.slice(0, 20)
   };
@@ -707,8 +717,12 @@ export async function runSync(options, dependencies = {}) {
       await upsertRows(connection, 'projection_projectiles', results.projectionProjectiles);
       await upsertRows(connection, 'projection_buffs', results.projectionBuffs);
       await reconcileItemStackSizeFromMaint(connection, options.maintDatabase);
-      await reconcileProjectionItemImageFromMaint(connection, options.maintDatabase);
-      await reconcileProjectionItemImageFromLocal(connection, options.localDatabase);
+      summary.bridgeBreakdown.maintItemImageFillRows = await reconcileProjectionItemImageFromMaint(connection, options.maintDatabase);
+      summary.bridgeBreakdown.localItemImageFallbackRows = await reconcileProjectionItemImageFromLocal(
+        connection,
+        options.localDatabase,
+        options.allowLocalItemImageFallback
+      );
     });
   }
 

@@ -19,6 +19,90 @@
 
 ## Open Items
 
+### [INFO] 2026-04-26 16:09 - local core tables have now been materially replaced with relation/projection data after fresh backup
+
+- Domain: runtime-cutover
+- Status: open
+- Impact: `terria_v1_local.items/npcs/projectiles/buffs` remain `BASE TABLE`, but their old data snapshot has been replaced in-place from `terria_v1_relation` compat views, so the local runtime now reads three-layer-sourced core data without changing the backend datasource.
+- Evidence:
+  - backup report: `reports/relation/local-cutover-backup-20260426_160000.json`
+  - materialization report: `reports/relation/local-core-materialization-2026-04-26.json`
+  - smoke check: `reports/relation/local-compat-smoke-check-2026-04-26.json`
+  - readiness report: `reports/relation/replacement-readiness-2026-04-26.json`
+  - `local.items 6134 -> 6146`
+  - `local.items.description_zh = 6`
+  - `local.items.tooltip_zh = 6`
+  - `local.items.image = 6131`
+  - `switchableDomains = items, npcs, projectiles, buffs`
+- Decision needed: none
+- Temporary handling: treat `items_backup_20260426_160000 / npcs_backup_20260426_160000 / projectiles_backup_20260426_160000 / buffs_backup_20260426_160000` as the immediate rollback anchors; future core refreshes should continue through `maint -> relation -> projection -> local materialization`, not direct local edits.
+
+### [INFO] 2026-04-26 16:09 - legacy script surface still contains direct local-core writers
+
+- Domain: write-path-hardening
+- Status: open
+- Impact: source-of-truth replacement is complete for the current runtime snapshot, but multiple legacy import/backfill/sync scripts still contain direct DML against `items/npcs/projectiles/buffs`, so ad-hoc reruns can reintroduce drift if not retired or guarded.
+- Evidence:
+  - `rg -n "INSERT INTO|UPDATE|DELETE FROM" scripts/data/import scripts/data/sync scripts/data/backfill`
+  - examples:
+    - `scripts/data/import/import-standardized-to-db.mjs`
+    - `scripts/data/import/import-independent-entities-to-db.mjs`
+    - `scripts/data/import/import-buffs-to-db.mjs`
+    - `scripts/data/import/import-wiki-town-npcs-to-db.mjs`
+    - `scripts/data/sync/sync-standardized-entities-to-db.mjs`
+    - `scripts/data/backfill/backfill-missing-item-images.mjs`
+- Decision needed: none
+- Temporary handling: current runtime data is already replaced, but these scripts should be treated as legacy/manual tools and not used as routine refresh paths until an explicit write-path hardening pass is completed.
+
+### [INFO] 2026-04-26 15:39 - runtime state differs from the earlier cutover assumption: local core tables are still base tables
+
+- Domain: runtime-cutover
+- Status: open
+- Impact: the repository has relation-side compatibility views ready, but the actual runtime still reads `terria_v1_local` base tables by default; local replacement is therefore a planned migration step, not the current production reality.
+- Evidence:
+  - `information_schema.tables`
+  - `terria_v1_local.items/npcs/projectiles/buffs = BASE TABLE`
+  - `terria_v1_relation.items/npcs/projectiles/buffs = VIEW`
+  - `SHOW CREATE TABLE terria_v1_local.items`
+  - `SHOW CREATE TABLE terria_v1_relation.items`
+- Decision needed: none
+- Temporary handling: treat current work as “build and verify three-layer source truth first, then migrate runtime consumers later”; do not assume local core tables are already relation-backed during audits or execution planning.
+
+### [INFO] 2026-04-26 15:08 - refreshed M1 baseline narrows active field gaps to item image plus item text sources
+
+- Domain: source-governance
+- Status: open
+- Impact: fresh M1 baselines show the current three-layer migration is materially better than the 2026-04-25 snapshot; the main remaining source gaps are now concentrated in item images and item description / tooltip sourcing, not projectile flags or npc sub names.
+- Evidence:
+  - `reports/relation/entity-coverage-baseline-2026-04-26.json`
+  - `reports/relation/item-cutover-baseline-2026-04-26.json`
+  - `reports/relation/core-field-source-matrix-2026-04-26.json`
+  - `items.image gap = 3868`
+  - `items.nameZh gap = 3`
+  - `items.descriptionZh gap = 6`
+  - `items.tooltipZh relation gap = 6`
+  - `npcs.subNameZh gap = 0` after fixing `scripts/data/relation/entity-coverage-baseline.mjs`
+  - `projectiles.nameZh gap = 0`
+  - `stackSize.normalizedPresent = 6131 / 6146`
+  - `tooltip raw present = 0 / 6146`
+  - `description raw present = 0 / 6146`
+- Decision needed: none
+- Temporary handling: treat `items.image` as the primary M2 blocker, treat `items.tooltip_zh` as an explicit local bridge rather than a missing field, and treat English `tooltip/description` plus `description_zh` as true upstream modeling gaps until new maint-backed sources exist.
+
+### [INFO] 2026-04-26 14:40 - M1 source matrix confirms two live local bridges remain in the core item pipeline
+
+- Domain: source-governance
+- Status: open
+- Impact: the three-layer source chain is now explicit, but `items.tooltip_zh` and `items.image` still depend on legacy-local bridge logic, so `local` cannot fully retire yet.
+- Evidence:
+  - `reports/relation/core-field-source-matrix-2026-04-26.json`
+  - `scripts/data/maint/sync-local-item-tooltip-zh-to-maint.mjs`
+  - `scripts/data/relation/sync-maint-to-relation.mjs::reconcileProjectionItemImageFromLocal`
+  - `localBridgeFieldCount = 2`
+  - bridge fields: `items.tooltip_zh`, `items.image`
+- Decision needed: none
+- Temporary handling: keep both bridges explicit in reports and code comments, forbid adding new `local -> maint` or `local -> projection` shortcuts outside the current recorded bridge list, and prioritize removing `reconcileProjectionItemImageFromLocal` in M2 after image-source coverage is raised.
+
 ### [INFO] 2026-04-26 04:42 - item stack_size gap confirmed as upstream coverage gap, not maint normalization loss
 
 - Domain: item-attribute-modeling
@@ -228,3 +312,69 @@
   - readiness report: `rarity_id(gap=3242)` because only source-backed `rare` rows were projected
 - Decision needed: none
 - Temporary handling: keep `sell` null until a formal source or approved derived rule exists; keep item tooltip/description fields empty until source-backed item-level text is available; unresolved gaps remain in readiness reports instead of being guessed.
+
+### [INFO] 2026-04-26 11:52 - item row-set parity exceptions accepted for current cutover
+
+- Domain: replacement-readiness
+- Status: open
+- Impact: the remaining 13 item row-set mismatches are now recorded as accepted exceptions for the current `relation -> local` replacement track and should not block field-complete cutover work.
+- Evidence:
+  - latest readiness report: `reports/relation/replacement-readiness-2026-04-26.json`
+  - `items.blockingFields = []`
+  - `missingInProjection = 3`
+    - `ZH_RECIPE_BLUE_JELLYFISH_BAIT`
+    - `ZH_RECIPE_GREEN_JELLYFISH_BAIT`
+    - `ZH_RECIPE_PINK_JELLYFISH_BAIT`
+  - `extraInProjection = 10`
+    - `Fake_newchest1`
+    - `Fake_newchest2`
+    - `OgreMask`
+    - `GoblinMask`
+    - `GoblinBomberCap`
+    - `EtherianJavelin`
+    - `KoboldDynamiteBackpack`
+    - `BoringBow`
+    - `BossBagOgre`
+    - `BossBagDarkMage`
+- Decision needed: none for the current milestone track
+- Temporary handling:
+  - treat the 3 missing rows as accepted local-only legacy exceptions
+  - treat the 10 extra rows as accepted weak-source projection exceptions
+  - do not let these 13 rows block current cutover planning or field-completeness acceptance
+
+### [INFO] 2026-04-26 13:12 - item row-set exception count corrected after full compat-table audit
+
+- Domain: replacement-readiness
+- Status: open
+- Impact: the earlier `extraInProjection = 10` reading came from the readiness report sample limit, not the full set; the actual effective-cutover exception list for `items` is `3 missing + 15 extra`.
+- Evidence:
+  - `reports/relation/item-row-set-audit-2026-04-26.json`
+  - `strictStatus = blocked`
+  - `effectiveStatus = switchable_with_exceptions`
+  - `missingCount = 3`
+  - `extraCount = 15`
+  - additional extra rows beyond the previous sampled 10:
+    - `ColorOnlyDye`
+    - `FirstFractal`
+    - `FoxparksTagEffect`
+    - `ManaCloakStar`
+    - `SleepingIcon`
+- Decision needed: none for the current execution track
+- Temporary handling:
+  - replace the earlier shorthand “13 exceptions” with the audited full set “18 exceptions”
+  - continue treating these rows as accepted exceptions for effective cutover only
+
+### [INFO] 2026-04-26 13:12 - current item image parity still depends heavily on local fallback
+
+- Domain: replacement-readiness
+- Status: open
+- Impact: current `items` compatibility is operationally usable, but the majority of image parity still depends on `local.items.image` rather than `maint_item_images`.
+- Evidence:
+  - `reports/relation/item-image-fallback-audit-2026-04-26.json`
+  - `maintBackedImageCount = 2263`
+  - `localFallbackOnlyImageCount = 3868`
+  - `stillMissingImageCount = 15`
+- Decision needed: none for the current execution track
+- Temporary handling:
+  - allow current local image fallback to remain in place for effective cutover
+  - keep maint-only image parity as a later cleanup goal rather than a current blocker

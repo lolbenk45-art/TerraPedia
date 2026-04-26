@@ -152,6 +152,41 @@ test('buildProjectionPayload falls back to maint rarity overrides when relation 
   assert.equal(actual.projectionItems[0].rarityId, 1);
 });
 
+test('buildProjectionPayload falls back to internalName when english names are missing', () => {
+  const actual = buildProjectionPayload({
+    relationItems: [
+      {
+        recordKey: 'item-rk-missing-name',
+        sourceId: 99,
+        internalName: 'BoringBow',
+        englishName: null,
+        rawJson: '{}',
+      },
+    ],
+    relationProjectiles: [
+      {
+        recordKey: 'proj-rk-missing-name',
+        sourceId: 77,
+        internalName: 'FallbackProjectile',
+        englishName: null,
+        rawJson: '{}',
+      },
+    ],
+    relationBuffs: [
+      {
+        recordKey: 'buff-rk-missing-name',
+        sourceId: 88,
+        internalName: 'FallbackBuff',
+        englishName: null,
+      },
+    ],
+  });
+
+  assert.equal(actual.projectionItems[0].name, 'BoringBow');
+  assert.equal(actual.projectionProjectiles[0].name, 'FallbackProjectile');
+  assert.equal(actual.projectionBuffs[0].englishName, 'FallbackBuff');
+});
+
 test('buildProjectionPayload prefers projectile flagsJson and only falls back to rawJson when flags are missing', () => {
   const actual = buildProjectionPayload({
     relationProjectiles: [
@@ -228,6 +263,7 @@ test('buildProjectionPayload prefers maint item numeric and text overrides for i
       {
         itemInternalName: 'Torch',
         tooltipZh: '基础照明',
+        descriptionZh: '基础光源',
       },
     ],
   });
@@ -240,4 +276,5 @@ test('buildProjectionPayload prefers maint item numeric and text overrides for i
   assert.equal(actual.projectionItems[0].buy, 0);
   assert.equal(actual.projectionItems[0].sell, 10);
   assert.equal(actual.projectionItems[0].tooltipZh, '基础照明');
+  assert.equal(actual.projectionItems[0].descriptionZh, '基础光源');
 });

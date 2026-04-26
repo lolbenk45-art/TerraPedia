@@ -45,17 +45,20 @@ export function buildMaintItemTextOverrides({
     .map((row) => ({
       itemInternalName: normalizeText(row?.internal_name),
       tooltipZh: normalizeText(row?.tooltip_zh),
+      descriptionZh: normalizeText(row?.description_zh),
     }))
-    .filter((row) => row.itemInternalName && row.tooltipZh)
+    .filter((row) => row.itemInternalName && (row.tooltipZh || row.descriptionZh))
     .map((row) => ({
-      recordKey: buildRecordKey(`maint_item_text_overrides:${row.itemInternalName}:tooltip_zh`),
+      recordKey: buildRecordKey(`maint_item_text_overrides:${row.itemInternalName}:zh_text`),
       itemInternalName: row.itemInternalName,
       tooltipZh: row.tooltipZh,
+      descriptionZh: row.descriptionZh,
       sourceProvider: 'terria_v1_local',
-      sourcePage: 'items.tooltip_zh',
+      sourcePage: 'items.tooltip_zh+description_zh',
       rawJson: JSON.stringify({
         internalName: row.itemInternalName,
         tooltipZh: row.tooltipZh,
+        descriptionZh: row.descriptionZh,
       }),
       status: 1,
       deleted: 0,
@@ -102,7 +105,13 @@ async function run() {
 
   try {
     const [localItems] = await connection.query(
-      `SELECT internal_name, tooltip_zh FROM \`${sourceDatabase}\`.\`items\` WHERE deleted = 0 AND tooltip_zh IS NOT NULL AND TRIM(tooltip_zh) <> ''`
+      `SELECT internal_name, tooltip_zh, description_zh
+       FROM \`${sourceDatabase}\`.\`items\`
+       WHERE deleted = 0
+         AND (
+           (tooltip_zh IS NOT NULL AND TRIM(tooltip_zh) <> '')
+           OR (description_zh IS NOT NULL AND TRIM(description_zh) <> '')
+         )`
     );
     const rows = buildMaintItemTextOverrides({ localItems });
     if (apply && rows.length > 0) {

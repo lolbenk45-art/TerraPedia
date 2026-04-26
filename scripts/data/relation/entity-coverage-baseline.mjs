@@ -121,7 +121,7 @@ async function run(options, dependencies = {}) {
       queryOne(maint, 'SELECT COUNT(*) total, SUM(name_zh IS NOT NULL AND TRIM(name_zh) <> \'\') nameZh FROM maint_projectiles WHERE deleted=0'),
       queryOne(maint, 'SELECT COUNT(*) total, SUM(name_zh IS NOT NULL AND TRIM(name_zh) <> \'\') nameZh FROM maint_buffs WHERE deleted=0'),
       queryOne(relation, 'SELECT COUNT(*) total, SUM(name_zh IS NOT NULL AND TRIM(name_zh) <> \'\') nameZh FROM relation_items WHERE deleted=0'),
-      queryOne(relation, 'SELECT COUNT(*) total, SUM(name_zh IS NOT NULL AND TRIM(name_zh) <> \'\') nameZh FROM relation_npcs WHERE deleted=0'),
+      queryOne(relation, 'SELECT COUNT(*) total, SUM(name_zh IS NOT NULL AND TRIM(name_zh) <> \'\') nameZh, SUM(sub_name_zh IS NOT NULL AND TRIM(sub_name_zh) <> \'\') subNameZh FROM relation_npcs WHERE deleted=0'),
       queryOne(relation, 'SELECT COUNT(*) total, SUM(name_zh IS NOT NULL AND TRIM(name_zh) <> \'\') nameZh FROM relation_projectiles WHERE deleted=0'),
       queryOne(relation, 'SELECT COUNT(*) total, SUM(name_zh IS NOT NULL AND TRIM(name_zh) <> \'\') nameZh, SUM(tooltip_zh IS NOT NULL AND TRIM(tooltip_zh) <> \'\') tooltipZh FROM relation_buffs WHERE deleted=0'),
       queryOne(relation, 'SELECT COUNT(DISTINCT item_internal_name) total FROM relation_item_images WHERE deleted=0'),
@@ -139,7 +139,7 @@ async function run(options, dependencies = {}) {
 
     const relationSummary = {
       items: { total: Number(relationItems.total ?? 0), nameZh: Number(relationItems.nameZh ?? 0), image: Number(relationItemImages.total ?? 0), descriptionZh: 0, tooltipZh: 0 },
-      npcs: { total: Number(relationNpcs.total ?? 0), nameZh: Number(relationNpcs.nameZh ?? 0), image: Number(relationNpcImages.total ?? 0), subNameZh: 0 },
+      npcs: { total: Number(relationNpcs.total ?? 0), nameZh: Number(relationNpcs.nameZh ?? 0), image: Number(relationNpcImages.total ?? 0), subNameZh: Number(relationNpcs.subNameZh ?? 0) },
       projectiles: { total: Number(relationProjectiles.total ?? 0), nameZh: Number(relationProjectiles.nameZh ?? 0), image: Number(relationProjectileImages.total ?? 0) },
       buffs: { total: Number(relationBuffs.total ?? 0), nameZh: Number(relationBuffs.nameZh ?? 0), image: Number(relationBuffImages.total ?? 0), tooltipZh: Number(relationBuffs.tooltipZh ?? 0) }
     };
