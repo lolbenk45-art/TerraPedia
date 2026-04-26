@@ -39,4 +39,21 @@ class ItemMapperPreferredImageSqlTest {
         assertTrue(preferredImageExpr.contains("LOWER(TRIM(ii.original_url)) NOT LIKE '%28placed%29%'"), "item_images.original_url placed URLs must be ignored");
         assertTrue(preferredImageExpr.contains("LOWER(TRIM(ii.cached_url)) NOT LIKE '%28placed%29%'"), "item_images.cached_url placed URLs must be ignored");
     }
+
+    @Test
+    void preferredItemImageSqlShouldTreatDemoAndPlacedUnderscoresAsLiterals() throws Exception {
+        String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ItemMapper.xml"));
+        String preferredImageExpr = mapperXml.substring(
+            mapperXml.indexOf("<sql id=\"PreferredItemImageExpr\">"),
+            mapperXml.indexOf("</sql>", mapperXml.indexOf("<sql id=\"PreferredItemImageExpr\">"))
+        );
+
+        assertFalse(preferredImageExpr.contains("LIKE '%_demo%'"), "SQL LIKE underscore wildcard must not reject Demon_* item images");
+        assertFalse(preferredImageExpr.contains("LIKE '%!_demo%'"), "Broad _demo token matching must not reject Living_Demon_* item images");
+        assertFalse(preferredImageExpr.contains("LIKE '%_placed%'"), "SQL LIKE underscore wildcard must not reject valid names containing placed");
+        assertFalse(preferredImageExpr.contains("LIKE '%!_placed%'"), "Broad _placed token matching must be replaced by token-aware matching");
+        assertFalse(preferredImageExpr.contains("LIKE '%/placed_%'"), "SQL LIKE underscore wildcard must not reject unrelated placed-like paths");
+        assertTrue(preferredImageExpr.contains("NOT REGEXP '(^|[/_[:space:]-])demo([._?&#/-]|$)'"), "demo filter must be token-aware");
+        assertTrue(preferredImageExpr.contains("NOT REGEXP '(^|[/_[:space:]-])placed([._?&#/-]|$)'"), "placed filter must be token-aware");
+    }
 }

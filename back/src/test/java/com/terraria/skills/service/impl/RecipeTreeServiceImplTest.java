@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.List;
 
@@ -254,6 +255,21 @@ class RecipeTreeServiceImplTest {
         assertEquals(22L, groupNode.getGroupMembers().get(0).getItemId());
         assertEquals("https://terraria.wiki.gg/images/Iron_Bar.png", groupNode.getGroupMembers().get(0).getImage());
         assertEquals("https://terraria.wiki.gg/images/Lead_Bar.png", groupNode.getGroupMembers().get(1).getImage());
+    }
+
+    @Test
+    void shouldNotRejectDemonRecipeMemberImagesAsDemoImages() throws Exception {
+        RecipeTreeServiceImpl service = new RecipeTreeServiceImpl(
+            itemService,
+            recipeService,
+            new ObjectMapper(),
+            itemMapper
+        );
+        Method method = RecipeTreeServiceImpl.class.getDeclaredMethod("acceptableWikiItemIconUrl", String.class);
+        method.setAccessible(true);
+
+        assertEquals(Boolean.TRUE, method.invoke(service, "https://terraria.wiki.gg/images/Living_Demon_Fire_Block.png"));
+        assertEquals(Boolean.FALSE, method.invoke(service, "https://terraria.wiki.gg/images/Work_Bench_demo.png"));
     }
 
     private ItemDTO recipeTreeItem(Long id, String internalName, String name, String nameZh) {

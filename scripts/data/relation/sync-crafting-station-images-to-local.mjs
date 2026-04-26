@@ -112,10 +112,12 @@ function isAcceptableItemIconUrl(value) {
   }
   const decoded = decodeURIComponent(text).toLowerCase();
   return !decoded.includes('(demo)')
-    && !decoded.includes('_demo')
     && !decoded.includes('(placed)')
-    && !decoded.includes('_placed')
-    && !decoded.includes('/placed_');
+    && !hasBlockedItemIconVariantToken(decoded);
+}
+
+function hasBlockedItemIconVariantToken(value) {
+  return /(^|[/_\s-])(demo|placed)([._?&#/-]|$)/i.test(String(value ?? ''));
 }
 
 function acceptableWikiItemIconSql(expression) {
@@ -123,11 +125,10 @@ function acceptableWikiItemIconSql(expression) {
         ${expression} LIKE 'https://terraria.wiki.gg/%'
         AND LOWER(TRIM(${expression})) NOT LIKE '%(demo)%'
         AND LOWER(TRIM(${expression})) NOT LIKE '%28demo%29%'
-        AND LOWER(TRIM(${expression})) NOT LIKE '%_demo%'
+        AND LOWER(TRIM(${expression})) NOT REGEXP '(^|[/_[:space:]-])demo([._?&#/-]|$)'
         AND LOWER(TRIM(${expression})) NOT LIKE '%(placed)%'
         AND LOWER(TRIM(${expression})) NOT LIKE '%28placed%29%'
-        AND LOWER(TRIM(${expression})) NOT LIKE '%_placed%'
-        AND LOWER(TRIM(${expression})) NOT LIKE '%/placed_%'
+        AND LOWER(TRIM(${expression})) NOT REGEXP '(^|[/_[:space:]-])placed([._?&#/-]|$)'
   `.trim();
 }
 

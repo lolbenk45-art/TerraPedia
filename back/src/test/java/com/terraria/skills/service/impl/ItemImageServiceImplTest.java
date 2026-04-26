@@ -186,4 +186,22 @@ class ItemImageServiceImplTest {
         assertEquals(1, images.size());
         assertEquals("https://terraria.wiki.gg/images/Work_Bench.png", images.get(0).getCachedUrl());
     }
+
+    @Test
+    void shouldNotRejectDemonItemImagesAsDemoRows() {
+        ItemImage demon = new ItemImage();
+        demon.setId(11L);
+        demon.setItemId(7L);
+        demon.setRole("icon");
+        demon.setOriginalUrl("https://terraria.wiki.gg/images/Living_Demon_Fire_Block.png");
+        demon.setIsPrimary(Boolean.TRUE);
+        demon.setSortOrder(0);
+
+        when(itemImageMapper.selectList(any())).thenReturn(List.of(demon));
+
+        List<ItemImageDTO> images = itemImageService.getImagesByItemId(7L);
+
+        assertEquals(1, images.size());
+        assertEquals("https://terraria.wiki.gg/images/Living_Demon_Fire_Block.png", images.get(0).getCachedUrl());
+    }
 }

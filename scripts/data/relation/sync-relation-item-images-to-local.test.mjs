@@ -60,6 +60,26 @@ test('relation item image sync rejects demo and placed wiki images as preferred 
   assert.match(combinedSql, /LOWER\(rii\.`cached_url`\) NOT LIKE '%28placed%29%'/i);
 });
 
+test('relation item image sync treats demo and placed underscores as literals', () => {
+  const insertSql = buildInsertLocalItemImagesSql({
+    localDatabase: 'terria_v1_local',
+    relationDatabase: 'terria_v1_relation'
+  });
+  const updateSql = buildUpdateLocalItemsImageSql({
+    localDatabase: 'terria_v1_local',
+    relationDatabase: 'terria_v1_relation'
+  });
+  const combinedSql = `${insertSql}\n${updateSql}`;
+
+  assert.doesNotMatch(combinedSql, /LIKE '%_demo%'/i);
+  assert.doesNotMatch(combinedSql, /LIKE '%!_demo%'/i);
+  assert.doesNotMatch(combinedSql, /LIKE '%_placed%'/i);
+  assert.doesNotMatch(combinedSql, /LIKE '%!_placed%'/i);
+  assert.doesNotMatch(combinedSql, /LIKE '%\/placed_%'/i);
+  assert.match(combinedSql, /NOT REGEXP '\(\^\|\[\/_\[:space:\]-\]\)demo\(\[\._\?\&#\/-\]\|\$\)'/i);
+  assert.match(combinedSql, /NOT REGEXP '\(\^\|\[\/_\[:space:\]-\]\)placed\(\[\._\?\&#\/-\]\|\$\)'/i);
+});
+
 test('buildClearLocalMinioItemImagesSql removes legacy MinIO item images from direct items.image consumers', () => {
   const sql = buildClearLocalMinioItemImagesSql({
     localDatabase: 'terria_v1_local'

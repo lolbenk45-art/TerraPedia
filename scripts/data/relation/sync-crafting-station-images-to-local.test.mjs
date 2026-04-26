@@ -32,6 +32,10 @@ test('buildLoadLocalItemsSql rejects demo and placed wiki images before station 
   assert.match(sql, /LOWER\(TRIM\(i\.`image`\)\) NOT LIKE '%28demo%29%'/i);
   assert.match(sql, /LOWER\(TRIM\(ii\.`original_url`\)\) NOT LIKE '%28demo%29%'/i);
   assert.match(sql, /LOWER\(TRIM\(ii\.`cached_url`\)\) NOT LIKE '%28placed%29%'/i);
+  assert.doesNotMatch(sql, /LIKE '%!_demo%'/i);
+  assert.doesNotMatch(sql, /LIKE '%!_placed%'/i);
+  assert.match(sql, /NOT REGEXP '\(\^\|\[\/_\[:space:\]-\]\)demo\(\[\._\?\&#\/-\]\|\$\)'/i);
+  assert.match(sql, /NOT REGEXP '\(\^\|\[\/_\[:space:\]-\]\)placed\(\[\._\?\&#\/-\]\|\$\)'/i);
 });
 
 test('buildCraftingStationImageRepairPlan rebinds exact stations and uses wiki item image', async () => {
@@ -155,6 +159,27 @@ test('buildCraftingStationImageRepairPlan replaces demo item image with direct w
     imageUrl: 'https://terraria.wiki.gg/images/Work_Bench.png',
     sourceFileTitle: 'Work Bench.png'
   }]);
+});
+
+test('buildCraftingStationImageRepairPlan does not reject Demon item images as demo images', async () => {
+  const plan = await buildCraftingStationImageRepairPlan({
+    localItems: [
+      item(2752, 'LivingDemonFireBlock', 'Living Demon Fire Block', 'Demon fire zh', 'https://terraria.wiki.gg/images/Living_Demon_Fire_Block.png')
+    ],
+    localCraftingStations: [
+      station(88, 'LivingDemonFireBlock', 'Living Demon Fire Block', 'Demon fire zh', 'crafting_station', 2752, null)
+    ],
+    recipeStations: [],
+    fetchWikiImageForItem: async () => {
+      throw new Error('Demon item icon should be accepted without fetching a replacement');
+    }
+  });
+
+  assert.deepEqual(pickStationUpdate(plan, 88), {
+    id: 88,
+    itemId: 2752,
+    imageUrl: 'https://terraria.wiki.gg/images/Living_Demon_Fire_Block.png'
+  });
 });
 
 test('buildCraftingStationImageRepairPlan uses first item-backed component for combo station image', async () => {

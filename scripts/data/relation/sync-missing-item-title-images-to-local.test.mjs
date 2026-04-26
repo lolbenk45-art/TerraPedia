@@ -19,6 +19,17 @@ test('parseArgs defaults missing item title image sync to dry-run for material a
   });
 });
 
+test('parseArgs supports all category title image sync', () => {
+  assert.deepEqual(parseArgs(['--all-categories']), {
+    apply: false,
+    localDatabase: 'terria_v1_local',
+    pageRecordsPath: 'data/standardized/item_pages.standardized.json',
+    categoryIds: [],
+    dateTag: null,
+    backupSuffix: null
+  });
+});
+
 test('deriveWikiPngUrl builds deterministic wiki image URL from page title', () => {
   assert.equal(
     deriveWikiPngUrl('Blue Mossy Wall'),
@@ -58,6 +69,34 @@ test('buildMissingItemTitleImagePlan maps missing local images to standardized p
     pageTitle: 'Blue Mossy Wall',
     sourceFileTitle: 'Blue Mossy Wall.png',
     imageUrl: 'https://terraria.wiki.gg/images/Blue_Mossy_Wall.png'
+  }]);
+});
+
+test('buildMissingItemTitleImagePlan treats placed images as missing but keeps Demon item icons', () => {
+  const plan = buildMissingItemTitleImagePlan({
+    localItems: [
+      item(52, 'AngelStatue', 'Angel Statue', 'https://terraria.wiki.gg/images/Angel_Statue_%28placed%29.png?735099', 144),
+      item(2752, 'LivingDemonFireBlock', 'Living Demon Fire Block', 'https://terraria.wiki.gg/images/Living_Demon_Fire_Block.png', 48)
+    ],
+    pageRecords: [
+      { itemInternalName: 'AngelStatue', pageTitle: 'Angel Statue' },
+      { itemInternalName: 'LivingDemonFireBlock', pageTitle: 'Living Demon Fire Block' }
+    ],
+    categoryIds: []
+  });
+
+  assert.deepEqual(plan.summary, {
+    localItemCount: 2,
+    missingCandidateCount: 1,
+    plannedUpdateCount: 1,
+    skippedWithoutPageCount: 0
+  });
+  assert.deepEqual(plan.updates.map((entry) => ({
+    itemId: entry.itemId,
+    imageUrl: entry.imageUrl
+  })), [{
+    itemId: 52,
+    imageUrl: 'https://terraria.wiki.gg/images/Angel_Statue.png'
   }]);
 });
 

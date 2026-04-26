@@ -66,11 +66,10 @@ function acceptableWikiUrlSql(expression) {
         ${expression} NOT LIKE '%/terrapedia-images/%'
         AND LOWER(${expression}) NOT LIKE '%(demo)%'
         AND LOWER(${expression}) NOT LIKE '%28demo%29%'
-        AND LOWER(${expression}) NOT LIKE '%_demo%'
+        AND LOWER(TRIM(${expression})) NOT REGEXP '(^|[/_[:space:]-])demo([._?&#/-]|$)'
         AND LOWER(${expression}) NOT LIKE '%(placed)%'
         AND LOWER(${expression}) NOT LIKE '%28placed%29%'
-        AND LOWER(${expression}) NOT LIKE '%_placed%'
-        AND LOWER(${expression}) NOT LIKE '%/placed_%'
+        AND LOWER(TRIM(${expression})) NOT REGEXP '(^|[/_[:space:]-])placed([._?&#/-]|$)'
   `.trim();
 }
 
@@ -91,9 +90,9 @@ function acceptableSourceTitleCondition(alias) {
           OR TRIM(${expression}) = ''
           OR (
             LOWER(${expression}) NOT LIKE '%(demo)%'
-            AND LOWER(${expression}) NOT LIKE '%_demo%'
+            AND LOWER(TRIM(${expression})) NOT REGEXP '(^|[/_[:space:]-])demo([._?&#/-]|$)'
             AND LOWER(${expression}) NOT LIKE '%(placed)%'
-            AND LOWER(${expression}) NOT LIKE '%_placed%'
+            AND LOWER(TRIM(${expression})) NOT REGEXP '(^|[/_[:space:]-])placed([._?&#/-]|$)'
           )
         )
   `.trim();
@@ -211,11 +210,10 @@ WHERE i.\`deleted\` = 0
   AND best.\`wiki_url\` NOT LIKE '%/terrapedia-images/%'
   AND LOWER(best.\`wiki_url\`) NOT LIKE '%(demo)%'
   AND LOWER(best.\`wiki_url\`) NOT LIKE '%28demo%29%'
-  AND LOWER(best.\`wiki_url\`) NOT LIKE '%_demo%'
+  AND LOWER(TRIM(best.\`wiki_url\`)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&#/-]|$)'
   AND LOWER(best.\`wiki_url\`) NOT LIKE '%(placed)%'
   AND LOWER(best.\`wiki_url\`) NOT LIKE '%28placed%29%'
-  AND LOWER(best.\`wiki_url\`) NOT LIKE '%_placed%'
-  AND LOWER(best.\`wiki_url\`) NOT LIKE '%/placed_%'
+  AND LOWER(TRIM(best.\`wiki_url\`)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&#/-]|$)'
   AND (
     i.\`image\` IS NULL
     OR TRIM(i.\`image\`) = ''

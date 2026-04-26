@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +28,8 @@ public class ItemImageServiceImpl implements ItemImageService {
 
     private static final String MANAGED_IMAGE_PATH_SEGMENT = "/terrapedia-images/";
     private static final String WIKI_IMAGE_HOST = "terraria.wiki.gg";
+    private static final Pattern NON_ITEM_ICON_VARIANT_TOKEN =
+        Pattern.compile("(^|[/_\\s-])(demo|placed)([._?&#/-]|$)");
 
     private final ItemImageMapper itemImageMapper;
     private final ItemMapper itemMapper;
@@ -128,10 +131,8 @@ public class ItemImageServiceImpl implements ItemImageService {
             && normalized.contains(WIKI_IMAGE_HOST)
             && !normalized.contains(MANAGED_IMAGE_PATH_SEGMENT)
             && !normalized.contains("(demo)")
-            && !normalized.contains("_demo")
             && !normalized.contains("(placed)")
-            && !normalized.contains("_placed")
-            && !normalized.contains("/placed_");
+            && !NON_ITEM_ICON_VARIANT_TOKEN.matcher(normalized).find();
     }
 
     private static String safeDecode(String value) {

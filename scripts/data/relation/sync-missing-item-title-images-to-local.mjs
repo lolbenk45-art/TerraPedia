@@ -49,7 +49,9 @@ export function parseArgs(argv) {
     apply: booleanOption(raw.apply, false),
     localDatabase: raw['local-database'] ?? raw.localDatabase ?? 'terria_v1_local',
     pageRecordsPath: raw['page-records'] ?? raw.pageRecordsPath ?? DEFAULT_PAGE_RECORDS_PATH,
-    categoryIds: parseNumberList(raw['category-ids'] ?? raw.categoryIds, DEFAULT_CATEGORY_IDS),
+    categoryIds: booleanOption(raw['all-categories'] ?? raw.allCategories, false)
+      ? []
+      : parseNumberList(raw['category-ids'] ?? raw.categoryIds, DEFAULT_CATEGORY_IDS),
     dateTag: raw['date-tag'] ?? raw.dateTag ?? null,
     backupSuffix: raw['backup-suffix'] ?? raw.backupSuffix ?? null
   };
@@ -113,8 +115,32 @@ function buildPageTitleLookup(pageRecords) {
   return lookup;
 }
 
-function hasImage(item) {
-  return toNullableText(item?.image ?? item?.image_url) != null;
+function safeDecodeURIComponent(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function hasBlockedItemIconVariantToken(value) {
+  return /(^|[/_\s-])(demo|placed)([._?&#/-]|$)/i.test(String(value ?? ''));
+}
+
+function isAcceptableItemIconUrl(value) {
+  const text = toNullableText(value);
+  if (!text) return false;
+  const decoded = safeDecodeURIComponent(text).toLowerCase();
+  return /^https?:\/\//i.test(decoded)
+    && decoded.includes('terraria.wiki.gg')
+    && !decoded.includes('/terrapedia-images/')
+    && !decoded.includes('(demo)')
+    && !decoded.includes('(placed)')
+    && !hasBlockedItemIconVariantToken(decoded);
+}
+
+function hasAcceptableImage(item) {
+  return isAcceptableItemIconUrl(item?.image ?? item?.image_url);
 }
 
 export function buildMissingItemTitleImagePlan({ localItems = [], pageRecords = [], categoryIds = DEFAULT_CATEGORY_IDS } = {}) {
@@ -128,7 +154,7 @@ export function buildMissingItemTitleImagePlan({ localItems = [], pageRecords = 
     if (!Number.isFinite(itemId)) continue;
     const categoryId = Number(item?.category_id ?? item?.categoryId);
     if (categorySet.size && !categorySet.has(categoryId)) continue;
-    if (hasImage(item)) continue;
+    if (hasAcceptableImage(item)) continue;
     const internalName = toNullableText(item?.internal_name ?? item?.internalName);
     const pageTitle = internalName ? pageTitleByInternal.get(internalName.toLowerCase()) : null;
     if (!pageTitle) {
@@ -190,7 +216,19 @@ async function defaultLoadLocalItems(connection, { localDatabase, categoryIds })
       FROM ${qualified(localDatabase, 'items')}
      WHERE \`deleted\` = 0
        AND \`status\` = 1
-       AND (\`image\` IS NULL OR TRIM(\`image\`) = '')
+       AND (
+         \`image\` IS NULL
+         OR TRIM(\`image\`) = ''
+         OR \`image\` LIKE '%/terrapedia-images/%'
+         OR LOWER(TRIM(\`image\`)) NOT LIKE 'http%'
+         OR LOWER(TRIM(\`image\`)) NOT LIKE '%terraria.wiki.gg%'
+         OR LOWER(TRIM(\`image\`)) LIKE '%(demo)%'
+         OR LOWER(TRIM(\`image\`)) LIKE '%28demo%29%'
+         OR LOWER(TRIM(\`image\`)) REGEXP '(^|[/_[:space:]-])demo([._?&#/-]|$)'
+         OR LOWER(TRIM(\`image\`)) LIKE '%(placed)%'
+         OR LOWER(TRIM(\`image\`)) LIKE '%28placed%29%'
+         OR LOWER(TRIM(\`image\`)) REGEXP '(^|[/_[:space:]-])placed([._?&#/-]|$)'
+       )
        ${categoryFilter}
      ORDER BY \`id\` ASC
   `, categoryIds ?? []);
@@ -224,8 +262,7 @@ async function applyPlan(connection, localDatabase, plan, backupSuffix) {
         `UPDATE ${qualified(localDatabase, 'items')}
             SET \`image\` = ?,
                 \`updated_at\` = NOW()
-          WHERE \`id\` = ?
-            AND (\`image\` IS NULL OR TRIM(\`image\`) = '')`,
+          WHERE \`id\` = ?`,
         [update.imageUrl, update.itemId]
       );
       await connection.query(

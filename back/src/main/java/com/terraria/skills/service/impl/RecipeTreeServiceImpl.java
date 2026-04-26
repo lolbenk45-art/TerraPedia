@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,6 +49,8 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     private static final int GROUP_MEMBER_PREVIEW_LIMIT = 2;
     private static final Duration TREE_CACHE_TTL = Duration.ofMinutes(5);
     private static final Duration GROUP_REFERENCE_CACHE_TTL = Duration.ofMinutes(10);
+    private static final Pattern NON_ITEM_ICON_VARIANT_TOKEN =
+        Pattern.compile("(^|[/_\\s-])(demo|placed)([._?&#/-]|$)");
 
     private final ItemService itemService;
     private final RecipeService recipeService;
@@ -677,11 +680,9 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
             && !lower.contains("/terrapedia-images/")
             && !lower.contains("(demo)")
             && !lower.contains("%28demo%29")
-            && !lower.contains("_demo")
             && !lower.contains("(placed)")
             && !lower.contains("%28placed%29")
-            && !lower.contains("_placed")
-            && !lower.contains("/placed_");
+            && !NON_ITEM_ICON_VARIANT_TOKEN.matcher(lower).find();
     }
 
     private Path resolveDataFile(Path relativePath) {
