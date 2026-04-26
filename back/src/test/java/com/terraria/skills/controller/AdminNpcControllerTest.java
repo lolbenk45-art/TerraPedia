@@ -120,6 +120,52 @@ class AdminNpcControllerTest {
     }
 
     @Test
+    void shouldPreferNpcWikiImageUrlColumnOverSupplementImage() throws Exception {
+        Npc npc = new Npc();
+        npc.setId(1L);
+        npc.setGameId(-65L);
+        npc.setInternalName("BigHornetStingy");
+        npc.setName("Hornet");
+        npc.setImageUrl("https://terraria.wiki.gg/images/Stingy%20Hornet.gif");
+        npc.setStatus(1);
+
+        when(npcMapper.selectById(1L)).thenReturn(npc);
+        when(jdbcTemplate.queryForObject(
+            contains("FROM npc_loot_entries"),
+            eq(Integer.class),
+            eq(1L)
+        )).thenReturn(0);
+        when(jdbcTemplate.queryForObject(
+            contains("FROM npc_buff_relations"),
+            eq(Integer.class),
+            eq(1L)
+        )).thenReturn(0);
+        when(jdbcTemplate.queryForObject(
+            contains("FROM npc_shop_entries"),
+            eq(Integer.class),
+            eq(1L)
+        )).thenReturn(0);
+        when(jdbcTemplate.queryForObject(
+            contains("source_ref_id = ?"),
+            eq(Integer.class),
+            eq(-65L)
+        )).thenReturn(0);
+        when(jdbcTemplate.queryForObject(
+            contains("LOWER(TRIM(source_ref_name)) = LOWER(TRIM(?))"),
+            eq(Integer.class),
+            eq("Hornet")
+        )).thenReturn(0);
+        when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries nle"), eq(1L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("source_ref_id IS NULL"), eq("Hornet"))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(1L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries nse"), eq(1L))).thenReturn(List.of());
+
+        mockMvc.perform(get("/admin/npcs/1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.imageUrl").value("https://terraria.wiki.gg/images/Stingy%20Hornet.gif"));
+    }
+
+    @Test
     void shouldFallbackDerivedLootLookupToNpcNameWhenSourceRefIdMissing() throws Exception {
         Npc npc = new Npc();
         npc.setId(67L);

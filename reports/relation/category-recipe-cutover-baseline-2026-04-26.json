@@ -1,0 +1,65 @@
+{
+  "generatedAt": "2026-04-26",
+  "runtimeDatabase": "terria_v1_local",
+  "relationDatabase": "terria_v1_relation",
+  "maintDatabase": "terria_v1_maint",
+  "counts": {
+    "local": {
+      "category": 137,
+      "item_category_rel": 13061,
+      "recipes": 8539,
+      "recipe_ingredients": 14409,
+      "recipe_stations": 11576
+    },
+    "relation": {
+      "category_nodes": 2175,
+      "item_category_assignments": 1758,
+      "item_recipe_heads": 7399,
+      "item_recipe_ingredients": 12345,
+      "item_recipe_stations": 10146
+    },
+    "maint": {
+      "maint_categories": 6,
+      "maint_item_categories": 2047,
+      "maint_item_recipes": 3203,
+      "maint_item_page_recipes": 1171,
+      "maint_recipe_page_recipes": 3663,
+      "maint_category_nodes": 0,
+      "maint_item_category_assignments": 0
+    }
+  },
+  "coverage": {
+    "local_recipe_active_rows": 6840,
+    "relation_recipe_resolved": 3829,
+    "relation_recipe_unresolved": 3570,
+    "local_category_root_rows": 20,
+    "local_item_category_primary_rel_rows": 6131,
+    "relation_item_category_primary_rows": 1539,
+    "relation_item_category_secondary_rows": 219
+  },
+  "entrypoints": {
+    "category": [
+      "back/src/main/java/com/terraria/skills/controller/CategoryController.java",
+      "back/src/main/java/com/terraria/skills/service/impl/CategoryManagementServiceImpl.java",
+      "back/src/main/resources/mapper/ItemMapper.xml"
+    ],
+    "recipe": [
+      "back/src/main/java/com/terraria/skills/controller/ItemRecipeController.java",
+      "back/src/main/java/com/terraria/skills/service/impl/RecipeServiceImpl.java",
+      "back/src/main/java/com/terraria/skills/service/impl/RecipeTreeServiceImpl.java"
+    ],
+    "scripts": [
+      "scripts/data/relation/recipe-relation-processor.mjs",
+      "scripts/data/relation/category-relation-processor.mjs",
+      "scripts/data/relation/sync-maint-to-relation.mjs",
+      "scripts/data/sync/sync-item-categories-from-wiki-pages.mjs"
+    ]
+  },
+  "risks": [
+    "Current local recipe rows are stale and can point result_item_id at the wrong item.",
+    "Raw relation category_nodes is wiki taxonomy and cannot directly replace the app category tree.",
+    "Category import must preserve app codes consumed by CategoryManagementServiceImpl.",
+    "Recipe import must map relation internal names back to local items and crafting stations deterministically.",
+    "Unresolved relation recipe rows must be reported instead of guessed into local tables."
+  ]
+}

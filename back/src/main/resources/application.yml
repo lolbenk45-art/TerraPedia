@@ -100,6 +100,12 @@ springdoc:
     path: /swagger-ui.html
 
 terraria:
+  relation:
+    compatibility:
+      relation-database: ${TERRAPEDIA_RELATION_DB_NAME:terria_v1_relation}
+      startup-check-enabled: ${TERRAPEDIA_RELATION_STARTUP_CHECK_ENABLED:false}
+      fail-on-startup-mismatch: ${TERRAPEDIA_RELATION_FAIL_ON_STARTUP_MISMATCH:true}
+      sample-limit: ${TERRAPEDIA_RELATION_SAMPLE_LIMIT:10}
   article:
     review:
       enforce-strict: ${TERRAPEDIA_ARTICLE_REVIEW_ENFORCE_STRICT:false}

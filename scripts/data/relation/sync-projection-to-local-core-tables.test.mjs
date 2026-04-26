@@ -1,0 +1,157 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+  buildInsertProjectionSql,
+  parseArgs,
+  runProjectionToLocalCoreSync
+} from './sync-projection-to-local-core-tables.mjs';
+
+test('parseArgs defaults to dry-run local core sync', () => {
+  const actual = parseArgs([]);
+
+  assert.deepEqual(actual, {
+    apply: false,
+    localDatabase: 'terria_v1_local',
+    relationDatabase: 'terria_v1_relation',
+    domains: null,
+    dateTag: null,
+    backupSuffix: null
+  });
+});
+
+test('parseArgs accepts a domain filter for partial local core sync', () => {
+  const actual = parseArgs(['--domains=npcs,projectiles']);
+
+  assert.deepEqual(actual, {
+    apply: false,
+    localDatabase: 'terria_v1_local',
+    relationDatabase: 'terria_v1_relation',
+    domains: ['npcs', 'projectiles'],
+    dateTag: null,
+    backupSuffix: null
+  });
+});
+
+test('buildInsertProjectionSql only copies columns shared by local and projection tables', () => {
+  const sql = buildInsertProjectionSql({
+    localDatabase: 'terria_v1_local',
+    relationDatabase: 'terria_v1_relation',
+    localTable: 'items',
+    projectionTable: 'projection_items',
+    columns: ['id', 'name', 'internal_name', 'created_at']
+  });
+
+  assert.match(sql, /INSERT INTO `terria_v1_local`\.`items` \(`id`, `name`, `internal_name`, `created_at`\)/);
+  assert.match(sql, /SELECT `id`, `name`, `internal_name`, `created_at` FROM `terria_v1_relation`\.`projection_items`/);
+});
+
+test('runProjectionToLocalCoreSync dry-run writes a report without mutating local tables', async () => {
+  const mutations = [];
+  let reportPayload = null;
+
+  const result = await runProjectionToLocalCoreSync(
+    {
+      apply: false,
+      localDatabase: 'terria_v1_local',
+      relationDatabase: 'terria_v1_relation',
+      dateTag: '2026-04-26',
+      backupSuffix: '20260426120000'
+    },
+    {
+      executeLocal: async (fn) => fn({
+        query: async (sql) => {
+          mutations.push(sql);
+          return [{ affectedRows: 0 }];
+        }
+      }),
+      listColumns: async (_connection, _database, table) => {
+        if (table === 'projection_items') return ['id', 'relation_record_key', 'name', 'internal_name'];
+        return ['id', 'name', 'internal_name'];
+      },
+      countRows: async (_connection, _database, table) => (table.includes('items') ? 2 : 0),
+      writeReport: async (payload) => {
+        reportPayload = payload;
+        return 'reports/relation/projection-to-local-core-sync-2026-04-26.json';
+      }
+    }
+  );
+
+  assert.equal(result.report.apply, false);
+  assert.equal(result.report.domains.items.columnsToSync.length, 3);
+  assert.equal(result.reportPath, 'reports/relation/projection-to-local-core-sync-2026-04-26.json');
+  assert.equal(reportPayload.summary.totalProjectionRows, 2);
+  assert.ok(mutations.every((sql) => !/DELETE FROM|INSERT INTO|CREATE TABLE/i.test(sql)));
+});
+
+test('runProjectionToLocalCoreSync apply backs up and replaces only the four core local tables', async () => {
+  const statements = [];
+
+  await runProjectionToLocalCoreSync(
+    {
+      apply: true,
+      localDatabase: 'terria_v1_local',
+      relationDatabase: 'terria_v1_relation',
+      dateTag: '2026-04-26',
+      backupSuffix: '20260426120000'
+    },
+    {
+      executeLocal: async (fn) => fn({
+        query: async (sql) => {
+          statements.push(sql);
+          return [{ affectedRows: 1 }];
+        }
+      }),
+      listColumns: async () => ['id', 'source_id', 'name', 'internal_name', 'status', 'deleted'],
+      countRows: async () => 1,
+      writeReport: async () => 'reports/relation/projection-to-local-core-sync-2026-04-26.json'
+    }
+  );
+
+  for (const table of ['items', 'npcs', 'projectiles', 'buffs']) {
+    assert.ok(statements.some((sql) => sql.includes(`CREATE TABLE \`terria_v1_local\`.\`${table}_relation_backup_20260426120000\` LIKE \`terria_v1_local\`.\`${table}\``)));
+    assert.ok(statements.some((sql) => sql.includes(`INSERT INTO \`terria_v1_local\`.\`${table}_relation_backup_20260426120000\` SELECT * FROM \`terria_v1_local\`.\`${table}\``)));
+    assert.ok(statements.some((sql) => sql.includes(`DELETE FROM \`terria_v1_local\`.\`${table}\``)));
+  }
+  assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_relation`.`projection_items`')));
+  assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_relation`.`projection_npcs`')));
+  assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_relation`.`projection_projectiles`')));
+  assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_relation`.`projection_buffs`')));
+  assert.ok(statements.every((sql) => !sql.includes('category')));
+  assert.ok(statements.every((sql) => !sql.includes('recipes')));
+});
+
+test('runProjectionToLocalCoreSync apply can target only selected domains', async () => {
+  const statements = [];
+
+  await runProjectionToLocalCoreSync(
+    {
+      apply: true,
+      localDatabase: 'terria_v1_local',
+      relationDatabase: 'terria_v1_relation',
+      domains: ['npcs', 'projectiles'],
+      dateTag: '2026-04-26',
+      backupSuffix: '20260426120000'
+    },
+    {
+      executeLocal: async (fn) => fn({
+        query: async (sql) => {
+          statements.push(sql);
+          return [{ affectedRows: 1 }];
+        }
+      }),
+      listColumns: async () => ['id', 'source_id', 'name', 'internal_name', 'image_url', 'status', 'deleted'],
+      countRows: async () => 1,
+      writeReport: async () => 'reports/relation/projection-to-local-core-sync-2026-04-26.json'
+    }
+  );
+
+  assert.ok(statements.some((sql) => sql.includes('`npcs_relation_backup_20260426120000`')));
+  assert.ok(statements.some((sql) => sql.includes('`projectiles_relation_backup_20260426120000`')));
+  assert.ok(statements.every((sql) => !sql.includes('`items_relation_backup_20260426120000`')));
+  assert.ok(statements.every((sql) => !sql.includes('`buffs_relation_backup_20260426120000`')));
+  assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_relation`.`projection_npcs`')));
+  assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_relation`.`projection_projectiles`')));
+  assert.ok(statements.every((sql) => !sql.includes('FROM `terria_v1_relation`.`projection_items`')));
+  assert.ok(statements.every((sql) => !sql.includes('FROM `terria_v1_relation`.`projection_buffs`')));
+});

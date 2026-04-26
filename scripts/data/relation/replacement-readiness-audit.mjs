@@ -14,7 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 
-const DOMAIN_CONFIG = {
+export const DOMAIN_CONFIG = {
   items: {
     localTable: 'items',
     projectionTable: 'projection_items',
@@ -25,13 +25,13 @@ const DOMAIN_CONFIG = {
     localTable: 'npcs',
     projectionTable: 'projection_npcs',
     key: 'internal_name',
-    fields: ['name', 'name_zh', 'sub_name', 'sub_name_zh', 'is_boss', 'is_friendly', 'is_town_npc', 'damage', 'defense', 'life_max', 'knock_back_resist', 'scale', 'value', 'buff_immune']
+    fields: ['name', 'name_zh', 'sub_name', 'sub_name_zh', 'image_url', 'is_boss', 'is_friendly', 'is_town_npc', 'damage', 'defense', 'life_max', 'knock_back_resist', 'scale', 'value', 'buff_immune']
   },
   projectiles: {
     localTable: 'projectiles',
     projectionTable: 'projection_projectiles',
     key: 'internal_name',
-    fields: ['name', 'name_zh', 'ai_style', 'damage', 'knock_back', 'penetrate', 'time_left', 'scale', 'friendly', 'hostile', 'tile_collide']
+    fields: ['name', 'name_zh', 'image_url', 'ai_style', 'damage', 'knock_back', 'penetrate', 'time_left', 'scale', 'friendly', 'hostile', 'tile_collide']
   },
   buffs: {
     localTable: 'buffs',
@@ -91,10 +91,12 @@ function buildDomainAudit(name, config, localRows = [], projectionRows = []) {
 
   return {
     domain: name,
-    status: missingInProjection.length === 0 && blockingFields.length === 0 ? 'switchable' : 'blocked',
+    status: missingInProjection.length === 0 && extraInProjection.length === 0 && blockingFields.length === 0 ? 'switchable' : 'blocked',
     localRowCount: localRows.length,
     projectionRowCount: projectionRows.length,
     sharedRowCount: sharedKeys.length,
+    missingInProjectionCount: missingInProjection.length,
+    extraInProjectionCount: extraInProjection.length,
     missingInProjection: sampleList(missingInProjection),
     extraInProjection: sampleList(extraInProjection),
     blockingFields
@@ -164,10 +166,47 @@ async function loadTable(connection, table) {
   return rows;
 }
 
+export async function loadFourDomainData({ localConn, relationConn }) {
+  const localData = {};
+  const projectionData = {};
+  for (const configEntry of Object.values(DOMAIN_CONFIG)) {
+    localData[configEntry.localTable] = await loadTable(localConn, configEntry.localTable);
+    projectionData[configEntry.projectionTable] = await loadTable(relationConn, configEntry.projectionTable);
+  }
+  return { localData, projectionData };
+}
+
+function booleanOption(value, fallback = false) {
+  if (value == null || value === '') return fallback;
+  const normalized = String(value).trim().toLowerCase();
+  if (['true', '1', 'yes', 'y', 'on'].includes(normalized)) return true;
+  if (['false', '0', 'no', 'n', 'off'].includes(normalized)) return false;
+  return fallback;
+}
+
+export function parseArgs(argv) {
+  const raw = {};
+  for (const token of argv) {
+    if (!token.startsWith('--')) continue;
+    const body = token.slice(2);
+    const index = body.indexOf('=');
+    if (index >= 0) raw[body.slice(0, index)] = body.slice(index + 1);
+    else raw[body] = 'true';
+  }
+
+  return {
+    localDatabase: raw['local-database'] ?? raw.localDatabase ?? 'terria_v1_local',
+    relationDatabase: raw['relation-database'] ?? raw.relationDatabase ?? 'terria_v1_relation',
+    dateTag: raw['date-tag'] ?? raw.dateTag ?? null,
+    writeMarkdown: booleanOption(raw['write-markdown'] ?? raw.writeMarkdown, true)
+  };
+}
+
 export async function runReplacementReadinessAudit({
   localDatabase = 'terria_v1_local',
   relationDatabase = 'terria_v1_relation',
-  dateTag = new Date().toISOString().slice(0, 10)
+  dateTag = new Date().toISOString().slice(0, 10),
+  writeMarkdown = true
 } = {}) {
   const config = loadLocalStackConfig(repoRoot);
   const mysqlOptions = {
@@ -180,20 +219,16 @@ export async function runReplacementReadinessAudit({
   const relationConn = await mysql.createConnection({ ...mysqlOptions, database: relationDatabase });
 
   try {
-    const localData = {};
-    const projectionData = {};
-    for (const configEntry of Object.values(DOMAIN_CONFIG)) {
-      localData[configEntry.localTable] = await loadTable(localConn, configEntry.localTable);
-      projectionData[configEntry.projectionTable] = await loadTable(relationConn, configEntry.projectionTable);
-    }
-
+    const { localData, projectionData } = await loadFourDomainData({ localConn, relationConn });
     const audit = buildReplacementReadinessAudit({ localData, projectionData });
     const reportsDir = path.join(repoRoot, 'reports', 'relation');
     await fs.mkdir(reportsDir, { recursive: true });
     const jsonPath = path.join(reportsDir, `replacement-readiness-${dateTag}.json`);
     const mdPath = path.join(reportsDir, `replacement-readiness-${dateTag}.md`);
     await fs.writeFile(jsonPath, JSON.stringify(audit, null, 2));
-    await fs.writeFile(mdPath, buildMarkdown(audit));
+    if (writeMarkdown) {
+      await fs.writeFile(mdPath, buildMarkdown(audit));
+    }
     return { audit, jsonPath, mdPath };
   } finally {
     await localConn.end();
@@ -202,6 +237,10 @@ export async function runReplacementReadinessAudit({
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  const result = await runReplacementReadinessAudit();
+  const cliOptions = parseArgs(process.argv.slice(2));
+  const result = await runReplacementReadinessAudit({
+    ...cliOptions,
+    dateTag: cliOptions.dateTag ?? new Date().toISOString().slice(0, 10)
+  });
   console.log(`Replacement readiness report: ${result.jsonPath}`);
 }

@@ -201,6 +201,9 @@ public class AdminNpcController {
         if (request.containsKey("subNameZh")) {
             npc.setSubNameZh(trimToNull(request.get("subNameZh")));
         }
+        if (request.containsKey("imageUrl")) {
+            npc.setImageUrl(trimToNull(request.get("imageUrl")));
+        }
         if (request.containsKey("categoryId")) npc.setCategoryId(toLong(request.get("categoryId")));
         if (request.containsKey("gamePeriodId")) npc.setGamePeriodId(toLong(request.get("gamePeriodId")));
         if (request.containsKey("gameModelId")) npc.setGameModelId(toLong(request.get("gameModelId")));
@@ -310,7 +313,7 @@ public class AdminNpcController {
         payload.put("value", toInteger(supplement.get("value")));
         payload.put("buffImmune", trimToNull(supplement.get("buffImmune")));
         payload.put("rawJson", trimToNull(supplement.get("rawJson")));
-        payload.put("imageUrl", trimToNull(supplement.get("imageUrl")));
+        payload.put("imageUrl", firstNonBlank(npc.getImageUrl(), trimToNull(supplement.get("imageUrl"))));
         payload.put("bannerSourceItemId", npc.getBannerSourceItemId());
         payload.put("bannerItemId", npc.getBannerItemId());
         payload.put("catchSourceItemId", npc.getCatchSourceItemId());
@@ -381,7 +384,7 @@ public class AdminNpcController {
         payload.put("value", toInteger(supplement.get("value")));
         payload.put("buffImmune", trimToNull(supplement.get("buffImmune")));
         payload.put("rawJson", trimToNull(supplement.get("rawJson")));
-        payload.put("imageUrl", trimToNull(supplement.get("imageUrl")));
+        payload.put("imageUrl", firstNonBlank(npc.getImageUrl(), trimToNull(supplement.get("imageUrl"))));
         payload.put("bannerSourceItemId", npc.getBannerSourceItemId());
         payload.put("bannerItemId", npc.getBannerItemId());
         payload.put("catchSourceItemId", npc.getCatchSourceItemId());

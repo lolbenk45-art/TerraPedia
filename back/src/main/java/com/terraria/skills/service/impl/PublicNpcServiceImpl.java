@@ -244,7 +244,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setIsBoss(firstNonNullBoolean(npc.getIsBoss(), supplement.isBoss));
         dto.setIsFriendly(firstNonNullBoolean(npc.getIsFriendly(), supplement.isFriendly));
         dto.setIsTownNpc(firstNonNullBoolean(npc.getIsTownNpc(), supplement.isTownNpc));
-        dto.setImageUrl(supplement.imageUrl);
+        dto.setImageUrl(firstNonBlank(npc.getImageUrl(), supplement.imageUrl));
         return dto;
     }
 

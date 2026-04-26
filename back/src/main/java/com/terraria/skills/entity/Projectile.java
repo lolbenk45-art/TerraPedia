@@ -32,6 +32,9 @@ public class Projectile implements Serializable {
     @TableField("name_zh")
     private String nameZh;
 
+    @TableField("image_url")
+    private String imageUrl;
+
     @TableField("ai_style")
     private Integer aiStyle;
 

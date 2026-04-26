@@ -53,7 +53,7 @@ const TABLE_ZH = {
   },
   relation_items: {
     purposeZh: '规范化后的 item 基础实体主表。',
-    notesZh: '是 relation 与 projection 的 item 身份主层。'
+    notesZh: '是 relation 与 projection 的 item 身份主层，并保留 rare/value/sell 的原始事实。'
   },
   relation_npcs: {
     purposeZh: '规范化后的 NPC 基础实体主表。',
@@ -215,7 +215,7 @@ const TABLE_DEFINITIONS = [
     purpose: 'Canonical item base entity table.',
     source: 'maint_items',
     primaryKeys: ['record_key', 'source_id', 'internal_name'],
-    notes: 'Primary item identity layer for relation and projection; now also carries source-backed rare/value raw facts.'
+    notes: 'Primary item identity layer for relation and projection; now also carries source-backed rare/value/sell raw facts.'
   },
   {
     tableName: 'relation_npcs',

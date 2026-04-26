@@ -3,27 +3,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
 
-const repoRoot = process.cwd();
-const args = parseArgs(process.argv.slice(2));
-const apply = args.apply === 'true';
-const reportPath = args.report || path.join(repoRoot, 'reports', `items-wiki-category-sync-${new Date().toISOString().slice(0, 10)}.json`);
-const itemPagesDir = path.resolve(
-  repoRoot,
-  args.itemPagesDir || path.join('..', 'data', 'terraPedia', 'raw', 'wiki', 'item-pages')
-);
-const standardizedPath = path.join(repoRoot, 'data', 'standardized', 'items.standardized.json');
-
-const db = {
-  host: process.env.TERRAPEDIA_DB_HOST || '127.0.0.1',
-  port: Number(process.env.TERRAPEDIA_DB_PORT || '3306'),
-  user: process.env.TERRAPEDIA_DB_USERNAME || 'root',
-  password: process.env.TERRAPEDIA_DB_PASSWORD || 'root',
-  database: process.env.TERRAPEDIA_DB_NAME || 'terria_v1_local',
-};
+const __filename = fileURLToPath(import.meta.url);
 
 const CATEGORY_DEFINITIONS = [
   { code: 'ACCESSORY', name: '饰品', parentCode: null, topType: 'ACCESSORY', sort: 51 },
@@ -56,127 +41,149 @@ const CATEGORY_DEFINITIONS = [
   { code: 'MATERIAL_KEY', name: '钥匙', parentCode: 'MATERIAL', topType: 'MATERIAL', sort: 5 },
 ];
 
-if (!fs.existsSync(itemPagesDir)) {
-  console.error(`Item pages directory not found: ${itemPagesDir}`);
-  process.exit(1);
-}
+export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice(2)), dependencies = {}) {
+  const repoRoot = path.resolve(dependencies.repoRoot || process.cwd());
+  const apply = rawArgs.apply === true || rawArgs.apply === 'true';
+  const reportPath = rawArgs.report || path.join(repoRoot, 'reports', `items-wiki-category-sync-${new Date().toISOString().slice(0, 10)}.json`);
+  const itemPagesDir = path.resolve(
+    repoRoot,
+    rawArgs.itemPagesDir || path.join('..', 'data', 'terraPedia', 'raw', 'wiki', 'item-pages')
+  );
+  const standardizedPath = path.join(repoRoot, 'data', 'standardized', 'items.standardized.json');
+  const db = dependencies.db || {
+    host: process.env.TERRAPEDIA_DB_HOST || '127.0.0.1',
+    port: Number(process.env.TERRAPEDIA_DB_PORT || '3306'),
+    user: process.env.TERRAPEDIA_DB_USERNAME || 'root',
+    password: process.env.TERRAPEDIA_DB_PASSWORD || 'root',
+    database: process.env.TERRAPEDIA_DB_NAME || 'terria_v1_local',
+  };
 
-if (!fs.existsSync(standardizedPath)) {
-  console.error(`Standardized items dataset not found: ${standardizedPath}`);
-  process.exit(1);
-}
-
-const standardized = JSON.parse(fs.readFileSync(standardizedPath, 'utf8'));
-const standardizedByInternal = new Map();
-for (const record of standardized.records || []) {
-  const internalName = toText(record?.internalName);
-  if (internalName) standardizedByInternal.set(internalName, record);
-}
-
-const wikiPagesByInternal = loadWikiPages(itemPagesDir);
-const connection = await mysql.createConnection(db);
-
-try {
-  if (apply) {
-    await connection.beginTransaction();
+  if (!dependencies.wikiPagesByInternal && !fs.existsSync(itemPagesDir)) {
+    throw new Error(`Item pages directory not found: ${itemPagesDir}`);
+  }
+  if (!dependencies.standardizedByInternal && !fs.existsSync(standardizedPath)) {
+    throw new Error(`Standardized items dataset not found: ${standardizedPath}`);
   }
 
-  const categoryLookup = await ensureCategories(connection, apply);
-  const [items] = await connection.query(`
-    SELECT i.id, i.name, i.internal_name, i.category_id, i.status, c.code AS current_category_code
-    FROM items i
-    LEFT JOIN category c ON c.id = i.category_id AND c.deleted = 0
-    WHERE i.deleted = 0
-    ORDER BY i.id ASC
-  `);
+  const standardizedByInternal = dependencies.standardizedByInternal || buildStandardizedIndex(
+    JSON.parse(fs.readFileSync(standardizedPath, 'utf8'))
+  );
+  const wikiPagesByInternal = dependencies.wikiPagesByInternal || loadWikiPages(itemPagesDir);
+  const ownConnection = !dependencies.connection;
+  const connection = dependencies.connection || await mysql.createConnection(db);
 
-  let scanned = 0;
-  let wikiMatched = 0;
-  let classified = 0;
-  let updated = 0;
-  let skippedInactive = 0;
-  let skippedNoWiki = 0;
-  let skippedNoCategory = 0;
-  const samples = [];
-
-  for (const item of items) {
-    scanned += 1;
-    if (Number(item.status || 0) !== 1) {
-      skippedInactive += 1;
-      continue;
+  try {
+    if (apply) {
+      await connection.beginTransaction();
     }
 
-    const internalName = toText(item.internal_name);
-    const wiki = internalName ? wikiPagesByInternal.get(internalName) : null;
-    if (!wiki) {
-      skippedNoWiki += 1;
-      continue;
-    }
+    const categoryLookup = await ensureCategories(connection, apply);
+    const items = dependencies.items || await loadItems(connection);
 
-    wikiMatched += 1;
-    const standardizedRecord = internalName ? standardizedByInternal.get(internalName) : null;
-    const result = classifyItem({
-      item,
-      wiki,
-      standardizedRecord,
-      categoryLookup,
-    });
+    let scanned = 0;
+    let wikiMatched = 0;
+    let classified = 0;
+    let updated = 0;
+    let skippedInactive = 0;
+    let skippedNoWiki = 0;
+    let skippedNoCategory = 0;
+    const samples = [];
 
-    if (!result?.categoryCode) {
-      skippedNoCategory += 1;
-      if (samples.length < 40) {
-        samples.push({
-          id: item.id,
-          internalName,
-          currentCategoryCode: item.current_category_code || null,
-          reason: result?.reason || 'unclassified',
-        });
+    for (const item of items) {
+      scanned += 1;
+      if (Number(item.status || 0) !== 1) {
+        skippedInactive += 1;
+        continue;
       }
-      continue;
-    }
 
-    const nextCategory = categoryLookup.byCode.get(result.categoryCode);
-    if (!nextCategory?.id) {
-      skippedNoCategory += 1;
-      if (samples.length < 40) {
-        samples.push({
-          id: item.id,
-          internalName,
-          currentCategoryCode: item.current_category_code || null,
-          categoryCode: result.categoryCode,
-          reason: 'missing_category_row',
-        });
+      const internalName = toText(item.internal_name);
+      const wiki = internalName ? wikiPagesByInternal.get(internalName) : null;
+      if (!wiki) {
+        skippedNoWiki += 1;
+        continue;
       }
-      continue;
-    }
 
-    classified += 1;
-    const currentCode = toText(item.current_category_code);
-    const relatedCategoryCodes = buildRelatedCategoryCodes({
-      primaryCode: result.categoryCode,
-      wiki,
-      categoryLookup,
-    });
-    const shouldUpdate = shouldApplyCategoryChange({
-      currentCode,
-      nextCode: result.categoryCode,
-      categoryLookup,
-      reason: result.reason,
-    });
-
-    if (samples.length < 40) {
-      samples.push({
-        id: item.id,
-        internalName,
-        currentCategoryCode: currentCode,
-        nextCategoryCode: result.categoryCode,
-        reason: result.reason,
-        willUpdate: shouldUpdate,
+      wikiMatched += 1;
+      const standardizedRecord = internalName ? standardizedByInternal.get(internalName) : null;
+      const result = classifyItem({
+        item,
+        wiki,
+        standardizedRecord,
+        categoryLookup,
       });
-    }
 
-    if (!shouldUpdate) {
+      if (!result?.categoryCode) {
+        skippedNoCategory += 1;
+        if (samples.length < 40) {
+          samples.push({
+            id: item.id,
+            internalName,
+            currentCategoryCode: item.current_category_code || null,
+            reason: result?.reason || 'unclassified',
+          });
+        }
+        continue;
+      }
+
+      const nextCategory = categoryLookup.byCode.get(result.categoryCode);
+      if (!nextCategory?.id) {
+        skippedNoCategory += 1;
+        if (samples.length < 40) {
+          samples.push({
+            id: item.id,
+            internalName,
+            currentCategoryCode: item.current_category_code || null,
+            categoryCode: result.categoryCode,
+            reason: 'missing_category_row',
+          });
+        }
+        continue;
+      }
+
+      classified += 1;
+      const currentCode = toText(item.current_category_code);
+      const relatedCategoryCodes = buildRelatedCategoryCodes({
+        primaryCode: result.categoryCode,
+        wiki,
+        categoryLookup,
+      });
+      const shouldUpdate = shouldApplyCategoryChange({
+        currentCode,
+        nextCode: result.categoryCode,
+        categoryLookup,
+        reason: result.reason,
+      });
+
+      if (samples.length < 40) {
+        samples.push({
+          id: item.id,
+          internalName,
+          currentCategoryCode: currentCode,
+          nextCategoryCode: result.categoryCode,
+          reason: result.reason,
+          willUpdate: shouldUpdate,
+        });
+      }
+
+      if (!shouldUpdate) {
+        if (apply) {
+          await syncItemCategoryRelations(connection, {
+            itemId: item.id,
+            categoryCodes: relatedCategoryCodes,
+            primaryCode: result.categoryCode,
+            wiki,
+            categoryLookup,
+          });
+        }
+        continue;
+      }
+
       if (apply) {
+        const [updateResult] = await connection.execute(
+          'UPDATE items SET category_id = ?, updated_at = NOW() WHERE id = ?',
+          [nextCategory.id, item.id]
+        );
+        updated += Number(updateResult.affectedRows || 0);
         await syncItemCategoryRelations(connection, {
           itemId: item.id,
           categoryCodes: relatedCategoryCodes,
@@ -184,59 +191,68 @@ try {
           wiki,
           categoryLookup,
         });
+      } else {
+        updated += 1;
       }
-      continue;
     }
 
     if (apply) {
-      const [updateResult] = await connection.execute(
-        'UPDATE items SET category_id = ?, updated_at = NOW() WHERE id = ?',
-        [nextCategory.id, item.id]
-      );
-      updated += Number(updateResult.affectedRows || 0);
-      await syncItemCategoryRelations(connection, {
-        itemId: item.id,
-        categoryCodes: relatedCategoryCodes,
-        primaryCode: result.categoryCode,
-        wiki,
-        categoryLookup,
-      });
-    } else {
-      updated += 1;
+      await connection.commit();
+    }
+
+    const report = {
+      apply,
+      db,
+      itemPagesDir,
+      scanned,
+      wikiMatched,
+      classified,
+      updated,
+      skippedInactive,
+      skippedNoWiki,
+      skippedNoCategory,
+      samples,
+    };
+
+    if (!dependencies.skipWriteReport) {
+      fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+      fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+    }
+
+    return { report, reportPath };
+  } catch (error) {
+    if (apply) {
+      await connection.rollback();
+    }
+    throw error;
+  } finally {
+    if (ownConnection) {
+      await connection.end();
     }
   }
-
-  if (apply) {
-    await connection.commit();
-  }
-
-  const report = {
-    apply,
-    db,
-    itemPagesDir,
-    scanned,
-    wikiMatched,
-    classified,
-    updated,
-    skippedInactive,
-    skippedNoWiki,
-    skippedNoCategory,
-    samples,
-  };
-
-  fs.mkdirSync(path.dirname(reportPath), { recursive: true });
-  fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-  console.log(JSON.stringify({ ...report, reportPath }, null, 2));
-} catch (error) {
-  if (apply) {
-    await connection.rollback();
-  }
-  throw error;
-} finally {
-  await connection.end();
 }
 
-async function ensureCategories(connection, applyChanges) {
+async function loadItems(connection) {
+  const [items] = await connection.query(`
+    SELECT i.id, i.name, i.internal_name, i.category_id, i.status, c.code AS current_category_code
+    FROM items i
+    LEFT JOIN category c ON c.id = i.category_id AND c.deleted = 0
+    WHERE i.deleted = 0
+    ORDER BY i.id ASC
+  `);
+  return items;
+}
+
+function buildStandardizedIndex(standardized) {
+  const standardizedByInternal = new Map();
+  for (const record of standardized.records || []) {
+    const internalName = toText(record?.internalName);
+    if (internalName) standardizedByInternal.set(internalName, record);
+  }
+  return standardizedByInternal;
+}
+
+export async function ensureCategories(connection, applyChanges) {
   const [categoryRows] = await connection.query(
     'SELECT id, parent_id, code, name FROM category WHERE deleted = 0 ORDER BY id ASC'
   );
@@ -313,7 +329,7 @@ function buildCategoryLookup(rows) {
   return { byCode, depthByCode, parentCodeByCode };
 }
 
-function classifyItem({ item, wiki, standardizedRecord }) {
+export function classifyItem({ item, wiki, standardizedRecord }) {
   const text = String(wiki.wikitext || '');
   const normalizedText = text.toLowerCase();
   const infoboxText = extractItemInfobox(text);
@@ -608,7 +624,7 @@ function classifyByStandardizedRoot(code) {
   }
 }
 
-function buildRelatedCategoryCodes({ primaryCode, wiki, categoryLookup }) {
+export function buildRelatedCategoryCodes({ primaryCode, wiki, categoryLookup }) {
   const codes = new Set();
 
   let currentCode = primaryCode;
@@ -695,7 +711,7 @@ async function syncItemCategoryRelations(connection, { itemId, categoryCodes, pr
   }
 }
 
-function shouldApplyCategoryChange({ currentCode, nextCode, categoryLookup, reason }) {
+export function shouldApplyCategoryChange({ currentCode, nextCode, categoryLookup, reason }) {
   if (!nextCode) return false;
   if (!currentCode) return true;
   if (currentCode === nextCode) return false;
@@ -810,7 +826,7 @@ function containsAny(text, keywords) {
   return keywords.some((keyword) => source.includes(String(keyword).toLowerCase()));
 }
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const out = {};
   for (const token of argv) {
     if (!token.startsWith('--')) continue;
@@ -835,4 +851,9 @@ function normalizeSqlDateTime(value) {
   if (Number.isNaN(date.getTime())) return null;
   const pad = (num) => String(num).padStart(2, '0');
   return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`;
+}
+
+if (process.argv[1] && __filename === path.resolve(process.argv[1])) {
+  const { report, reportPath } = await runItemCategorySync(parseArgs(process.argv.slice(2)));
+  console.log(JSON.stringify({ ...report, reportPath }, null, 2));
 }

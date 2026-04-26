@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-04-25T06:28:10.109Z",
+  "generatedAt": "2026-04-25T19:46:41.517Z",
   "summary": {
     "switchableDomains": [
+      "npcs",
+      "projectiles",
       "buffs"
     ],
     "blockedDomains": [
-      "items",
-      "npcs",
-      "projectiles"
+      "items"
     ]
   },
   "domainResults": {
@@ -35,39 +35,6 @@
         "BossBagDarkMage"
       ],
       "blockingFields": [
-        {
-          "field": "name_zh",
-          "localNonNull": 6131,
-          "projectionNonNull": 0,
-          "gap": 6131,
-          "missingExamples": [
-            {
-              "key": "IronPickaxe",
-              "localValue": "铁镐",
-              "projectionValue": null
-            },
-            {
-              "key": "DirtBlock",
-              "localValue": "土块",
-              "projectionValue": null
-            },
-            {
-              "key": "StoneBlock",
-              "localValue": "石块",
-              "projectionValue": null
-            },
-            {
-              "key": "IronBroadsword",
-              "localValue": "铁阔剑",
-              "projectionValue": null
-            },
-            {
-              "key": "Mushroom",
-              "localValue": "蘑菇",
-              "projectionValue": null
-            }
-          ]
-        },
         {
           "field": "image",
           "localNonNull": 6131,
@@ -269,32 +236,32 @@
         {
           "field": "sell",
           "localNonNull": 5263,
-          "projectionNonNull": 0,
-          "gap": 5263,
+          "projectionNonNull": 1741,
+          "gap": 3522,
           "missingExamples": [
             {
-              "key": "IronPickaxe",
-              "localValue": 400,
+              "key": "Torch",
+              "localValue": 10,
               "projectionValue": null
             },
             {
-              "key": "IronBroadsword",
-              "localValue": 360,
+              "key": "WoodenDoor",
+              "localValue": 40,
               "projectionValue": null
             },
             {
-              "key": "Mushroom",
-              "localValue": 250,
+              "key": "WoodenTable",
+              "localValue": 60,
               "projectionValue": null
             },
             {
-              "key": "IronShortsword",
-              "localValue": 280,
+              "key": "WoodenChair",
+              "localValue": 30,
               "projectionValue": null
             },
             {
-              "key": "IronHammer",
-              "localValue": 320,
+              "key": "IronAnvil",
+              "localValue": 1000,
               "projectionValue": null
             }
           ]
@@ -402,223 +369,23 @@
     },
     "npcs": {
       "domain": "npcs",
-      "status": "blocked",
+      "status": "switchable",
       "localRowCount": 762,
       "projectionRowCount": 762,
       "sharedRowCount": 762,
       "missingInProjection": [],
       "extraInProjection": [],
-      "blockingFields": [
-        {
-          "field": "name_zh",
-          "localNonNull": 757,
-          "projectionNonNull": 0,
-          "gap": 757,
-          "missingExamples": [
-            {
-              "key": "BigHornetStingy",
-              "localValue": "黄蜂",
-              "projectionValue": null
-            },
-            {
-              "key": "LittleHornetStingy",
-              "localValue": "黄蜂",
-              "projectionValue": null
-            },
-            {
-              "key": "BigHornetSpikey",
-              "localValue": "黄蜂",
-              "projectionValue": null
-            },
-            {
-              "key": "LittleHornetSpikey",
-              "localValue": "黄蜂",
-              "projectionValue": null
-            },
-            {
-              "key": "BigHornetLeafy",
-              "localValue": "黄蜂",
-              "projectionValue": null
-            }
-          ]
-        },
-        {
-          "field": "sub_name_zh",
-          "localNonNull": 206,
-          "projectionNonNull": 0,
-          "gap": 206,
-          "missingExamples": [
-            {
-              "key": "BigHornetStingy",
-              "localValue": "大毒刺黄蜂",
-              "projectionValue": null
-            },
-            {
-              "key": "LittleHornetStingy",
-              "localValue": "小毒刺黄蜂",
-              "projectionValue": null
-            },
-            {
-              "key": "BigHornetSpikey",
-              "localValue": "大尖刺黄蜂",
-              "projectionValue": null
-            },
-            {
-              "key": "LittleHornetSpikey",
-              "localValue": "小尖刺黄蜂",
-              "projectionValue": null
-            },
-            {
-              "key": "BigHornetLeafy",
-              "localValue": "大多叶黄蜂",
-              "projectionValue": null
-            }
-          ]
-        }
-      ]
+      "blockingFields": []
     },
     "projectiles": {
       "domain": "projectiles",
-      "status": "blocked",
+      "status": "switchable",
       "localRowCount": 1111,
       "projectionRowCount": 1111,
       "sharedRowCount": 1111,
       "missingInProjection": [],
       "extraInProjection": [],
-      "blockingFields": [
-        {
-          "field": "name_zh",
-          "localNonNull": 1006,
-          "projectionNonNull": 0,
-          "gap": 1006,
-          "missingExamples": [
-            {
-              "key": "WoodenArrowFriendly",
-              "localValue": "木箭",
-              "projectionValue": null
-            },
-            {
-              "key": "FireArrow",
-              "localValue": "烈火箭",
-              "projectionValue": null
-            },
-            {
-              "key": "Shuriken",
-              "localValue": "手里剑",
-              "projectionValue": null
-            },
-            {
-              "key": "UnholyArrow",
-              "localValue": "邪箭",
-              "projectionValue": null
-            },
-            {
-              "key": "JestersArrow",
-              "localValue": "小丑之箭",
-              "projectionValue": null
-            }
-          ]
-        },
-        {
-          "field": "friendly",
-          "localNonNull": 1111,
-          "projectionNonNull": 828,
-          "gap": 283,
-          "missingExamples": [
-            {
-              "key": "HarpyFeather",
-              "localValue": 0,
-              "projectionValue": null
-            },
-            {
-              "key": "Tombstone",
-              "localValue": 0,
-              "projectionValue": null
-            },
-            {
-              "key": "DemonSickle",
-              "localValue": 0,
-              "projectionValue": null
-            },
-            {
-              "key": "Glowstick",
-              "localValue": 0,
-              "projectionValue": null
-            },
-            {
-              "key": "StickyGlowstick",
-              "localValue": 0,
-              "projectionValue": null
-            }
-          ]
-        },
-        {
-          "field": "hostile",
-          "localNonNull": 1111,
-          "projectionNonNull": 175,
-          "gap": 936,
-          "missingExamples": [
-            {
-              "key": "WoodenArrowFriendly",
-              "localValue": 0,
-              "projectionValue": null
-            },
-            {
-              "key": "FireArrow",
-              "localValue": 0,
-              "projectionValue": null
-            },
-            {
-              "key": "Shuriken",
-              "localValue": 0,
-              "projectionValue": null
-            },
-            {
-              "key": "UnholyArrow",
-              "localValue": 0,
-              "projectionValue": null
-            },
-            {
-              "key": "JestersArrow",
-              "localValue": 0,
-              "projectionValue": null
-            }
-          ]
-        },
-        {
-          "field": "tile_collide",
-          "localNonNull": 1111,
-          "projectionNonNull": 393,
-          "gap": 718,
-          "missingExamples": [
-            {
-              "key": "WoodenArrowFriendly",
-              "localValue": 1,
-              "projectionValue": null
-            },
-            {
-              "key": "FireArrow",
-              "localValue": 1,
-              "projectionValue": null
-            },
-            {
-              "key": "Shuriken",
-              "localValue": 1,
-              "projectionValue": null
-            },
-            {
-              "key": "UnholyArrow",
-              "localValue": 1,
-              "projectionValue": null
-            },
-            {
-              "key": "JestersArrow",
-              "localValue": 1,
-              "projectionValue": null
-            }
-          ]
-        }
-      ]
+      "blockingFields": []
     },
     "buffs": {
       "domain": "buffs",

@@ -113,6 +113,7 @@ public class AdminProjectileController {
         if (request.getInternalName() != null && !request.getInternalName().isBlank()) existing.setInternalName(request.getInternalName().trim());
         if (request.getName() != null) existing.setName(request.getName());
         if (request.getNameZh() != null) existing.setNameZh(request.getNameZh());
+        if (request.getImageUrl() != null) existing.setImageUrl(request.getImageUrl());
         if (request.getAiStyle() != null) existing.setAiStyle(request.getAiStyle());
         if (request.getDamage() != null) existing.setDamage(request.getDamage());
         if (request.getKnockBack() != null) existing.setKnockBack(request.getKnockBack());
@@ -165,8 +166,16 @@ public class AdminProjectileController {
         payload.put("deleted", projectile.getDeleted());
         payload.put("createdAt", projectile.getCreatedAt());
         payload.put("updatedAt", projectile.getUpdatedAt());
-        payload.put("imageUrl", extractImageUrl(projectile.getRawJson()));
+        payload.put("imageUrl", firstNonBlank(projectile.getImageUrl(), extractImageUrl(projectile.getRawJson())));
         return payload;
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) return null;
+        for (String value : values) {
+            if (value != null && !value.isBlank()) return value;
+        }
+        return null;
     }
 
     private String extractImageUrl(String rawJson) {

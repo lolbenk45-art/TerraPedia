@@ -57,7 +57,14 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
         }),
       },
     ],
-    relationNpcImages: [],
+    relationNpcImages: [
+      {
+        npcInternalName: 'BigHornetStingy',
+        originalUrl: 'https://terraria.wiki.gg/images/Stingy%20Hornet.gif',
+        cachedUrl: 'http://localhost:9000/terrapedia-images/items/stingy-hornet.gif',
+        isPrimary: 1,
+      },
+    ],
     relationProjectiles: [
       {
         recordKey: 'proj-rk',
@@ -115,6 +122,7 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
   assert.equal(actual.projectionNpcs[0].gameId, -65);
   assert.equal(actual.projectionNpcs[0].npcType, 235);
   assert.equal(actual.projectionNpcs[0].subNameZh, 'big stingy hornet zh');
+  assert.equal(actual.projectionNpcs[0].imageUrl, 'https://terraria.wiki.gg/images/Stingy%20Hornet.gif');
   assert.equal(actual.projectionNpcs[0].isBoss, 0);
   assert.equal(actual.projectionNpcs[0].lifeMax, 45);
 
@@ -125,4 +133,90 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
   assert.equal(actual.projectionBuffs.length, 1);
   assert.equal(actual.projectionBuffs[0].image, 'http://localhost/buff.png');
   assert.equal(actual.projectionBuffs[0].buffType, 'buff');
+});
+
+test('buildProjectionPayload uses wiki original URLs for npc and projectile images instead of MinIO cache URLs', () => {
+  const actual = buildProjectionPayload({
+    relationNpcs: [
+      {
+        recordKey: 'npc-rk',
+        sourceId: -65,
+        internalName: 'BigHornetStingy',
+        englishName: 'Hornet',
+        rawJson: '{}',
+      },
+    ],
+    relationNpcImages: [
+      {
+        npcInternalName: 'BigHornetStingy',
+        originalUrl: 'https://terraria.wiki.gg/images/Stingy%20Hornet.gif',
+        cachedUrl: 'http://localhost:9000/terrapedia-images/items/stingy-hornet.gif',
+        isPrimary: 1,
+      },
+    ],
+    relationProjectiles: [
+      {
+        recordKey: 'projectile-rk',
+        sourceId: 1,
+        internalName: 'WoodenArrowFriendly',
+        englishName: 'Wooden Arrow (friendly)',
+        rawJson: '{}',
+      },
+    ],
+    relationProjectileImages: [
+      {
+        projectileInternalName: 'WoodenArrowFriendly',
+        originalUrl: 'https://terraria.wiki.gg/images/Wooden%20Arrow.png',
+        cachedUrl: 'http://localhost:9000/terrapedia-images/items/wooden-arrow.png',
+        isPrimary: 1,
+      },
+    ],
+  });
+
+  assert.equal(actual.projectionNpcs[0].imageUrl, 'https://terraria.wiki.gg/images/Stingy%20Hornet.gif');
+  assert.equal(actual.projectionProjectiles[0].imageUrl, 'https://terraria.wiki.gg/images/Wooden%20Arrow.png');
+});
+
+test('buildProjectionPayload prefers projectile flagsJson and only falls back to rawJson when flags are missing', () => {
+  const actual = buildProjectionPayload({
+    relationProjectiles: [
+      {
+        recordKey: 'proj-flags-rk',
+        sourceId: 2,
+        internalName: 'Tombstone',
+        englishName: 'Tombstone',
+        nameZh: 'tombstone zh',
+        flagsJson: JSON.stringify({
+          friendly: false,
+          hostile: false,
+          tileCollide: true,
+        }),
+        rawJson: JSON.stringify({
+          friendly: true,
+          hostile: true,
+          tileCollide: false,
+        }),
+      },
+      {
+        recordKey: 'proj-raw-rk',
+        sourceId: 3,
+        internalName: 'FallbackProjectile',
+        englishName: 'Fallback Projectile',
+        nameZh: 'fallback projectile zh',
+        rawJson: JSON.stringify({
+          friendly: true,
+          hostile: false,
+          tileCollide: true,
+        }),
+      },
+    ],
+  });
+
+  assert.equal(actual.projectionProjectiles.length, 2);
+  assert.equal(actual.projectionProjectiles[0].friendly, 0);
+  assert.equal(actual.projectionProjectiles[0].hostile, 0);
+  assert.equal(actual.projectionProjectiles[0].tileCollide, 1);
+  assert.equal(actual.projectionProjectiles[1].friendly, 1);
+  assert.equal(actual.projectionProjectiles[1].hostile, 0);
+  assert.equal(actual.projectionProjectiles[1].tileCollide, 1);
 });

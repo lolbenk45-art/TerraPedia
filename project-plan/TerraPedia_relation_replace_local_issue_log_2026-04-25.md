@@ -213,3 +213,17 @@
   - readiness report: `rarity_id(gap=3242)` because only source-backed `rare` rows were projected
 - Decision needed: none
 - Temporary handling: keep `sell` null until a formal source or approved derived rule exists; keep item tooltip/description fields empty until source-backed item-level text is available; unresolved gaps remain in readiness reports instead of being guessed.
+
+### [INFO] 2026-04-25 15:12 - source-backed item sell landed from item page statistics
+
+- Domain: item-attribute-modeling
+- Status: closed
+- Impact: item-level `sell` is no longer purely missing; it is now sourced from item page statistics infobox rows and propagated into maint, relation, and projection.
+- Evidence:
+  - `maint_item_pages.sell_value IS NOT NULL = 1741`
+  - `relation_items.sell_raw IS NOT NULL = 1741`
+  - `projection_items.sell IS NOT NULL = 1741`
+  - sample: `CompanionCube buy=5000000 sell=1000000`
+  - sample: `Clentaminator buy=2000000 sell=400000`
+- Decision needed: none
+- Temporary handling: keep `sell` empty for items whose page infobox has no source-backed sell row; do not infer from `buy` or from legacy local values.

@@ -55,25 +55,25 @@ class AdminBuffControllerTest {
         buff.setInternalName("Poisoned");
         buff.setEnglishName("Poisoned");
         buff.setImmuneNpcCount(1);
-        buff.setImmuneNpcSampleJson("[{\"internalName\":\"BigHornetStingy\",\"name\":\"Hornet\",\"npcId\":-65}]");
+        buff.setImmuneNpcSampleJson("[{\"internalName\":\"TestHornetStingy\",\"name\":\"Hornet\",\"npcId\":-650001}]");
 
         when(buffMapper.selectById(30L)).thenReturn(buff);
         when(jdbcTemplate.queryForList(
             contains("FROM npcs"),
-            eq("BigHornetStingy")
+            eq("TestHornetStingy")
         )).thenReturn(List.of(Map.of(
-            "npcId", -65,
-            "internalName", "BigHornetStingy",
+            "npcId", -650001,
+            "internalName", "TestHornetStingy",
             "name", "Hornet",
             "nameZh", "Hornet ZH",
             "subNameZh", "Large Stingy Hornet",
-            "rawJson", "{\"imageUrl\":\"https://example.invalid/stale.png\"}"
+            "rawJson", "{\"imageUrl\":\"https://cdn.example.com/npcs/Stingy_Hornet.png\"}"
         )));
 
         mockMvc.perform(get("/admin/buffs/30"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.immuneNpcSampleJson").value("[{\"internalName\":\"BigHornetStingy\",\"name\":\"Hornet\",\"npcId\":-65}]"))
-            .andExpect(jsonPath("$.data.immuneNpcSamples[0].npcId").value(-65))
+            .andExpect(jsonPath("$.data.immuneNpcSampleJson").value("[{\"internalName\":\"TestHornetStingy\",\"name\":\"Hornet\",\"npcId\":-650001}]"))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].npcId").value(-650001))
             .andExpect(jsonPath("$.data.immuneNpcSamples[0].nameZh").value("Hornet ZH"))
             .andExpect(jsonPath("$.data.immuneNpcSamples[0].subNameZh").value("Large Stingy Hornet"))
             .andExpect(jsonPath("$.data.immuneNpcSamples[0].image").value(containsString("Stingy_Hornet")));

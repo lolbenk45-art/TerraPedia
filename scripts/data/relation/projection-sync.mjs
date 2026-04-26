@@ -21,6 +21,15 @@ function toFlag(value) {
   return value ? 1 : 0;
 }
 
+function coalesceDefined(...values) {
+  for (const value of values) {
+    if (value !== null && value !== undefined) {
+      return value;
+    }
+  }
+  return null;
+}
+
 function toSlug(value) {
   const text = String(value ?? '').trim();
   return text ? text.toLowerCase() : null;
@@ -37,6 +46,10 @@ function buildImageIndex(rows = [], entityKey) {
     }
   }
   return index;
+}
+
+function resolveWikiImageUrl(imageRow) {
+  return imageRow?.originalUrl ?? imageRow?.cachedUrl ?? null;
 }
 
 export function buildProjectionPayload({
@@ -105,7 +118,7 @@ export function buildProjectionPayload({
   const projectionNpcs = relationNpcs.map((row) => {
     const raw = parseJsonObject(row.rawJson);
     const flags = parseJsonObject(row.flagsJson);
-    void npcImages;
+    const image = npcImages.get(row.internalName);
     return {
       id: toNullableNumber(row.sourceId),
       relationRecordKey: row.recordKey,
@@ -116,6 +129,7 @@ export function buildProjectionPayload({
       nameZh: row.nameZh ?? null,
       subName: null,
       subNameZh: row.subNameZh ?? null,
+      imageUrl: resolveWikiImageUrl(image),
       categoryId: null,
       gamePeriodId: null,
       gameModelId: null,
@@ -151,7 +165,8 @@ export function buildProjectionPayload({
 
   const projectionProjectiles = relationProjectiles.map((row) => {
     const raw = parseJsonObject(row.rawJson);
-    void projectileImages;
+    const flags = parseJsonObject(row.flagsJson);
+    const image = projectileImages.get(row.internalName);
     return {
       id: toNullableNumber(row.sourceId),
       relationRecordKey: row.recordKey,
@@ -159,6 +174,7 @@ export function buildProjectionPayload({
       internalName: row.internalName ?? null,
       name: row.englishName ?? null,
       nameZh: row.nameZh ?? null,
+      imageUrl: resolveWikiImageUrl(image),
       aiStyle: toNullableNumber(raw.aiStyle),
       damage: toNullableNumber(raw.damage ?? row.combatValue),
       knockBack: toNullableNumber(raw.knockBack),
@@ -167,9 +183,9 @@ export function buildProjectionPayload({
       width: toNullableNumber(row.width),
       height: toNullableNumber(row.height),
       scale: toNullableNumber(raw.scale),
-      friendly: toFlag(raw.friendly),
-      hostile: toFlag(raw.hostile),
-      tileCollide: toFlag(raw.tileCollide),
+      friendly: toFlag(coalesceDefined(flags.friendly, raw.friendly)),
+      hostile: toFlag(coalesceDefined(flags.hostile, raw.hostile)),
+      tileCollide: toFlag(coalesceDefined(flags.tileCollide, raw.tileCollide)),
       rawJson: row.rawJson ?? null,
       status: 1,
       deleted: 0,

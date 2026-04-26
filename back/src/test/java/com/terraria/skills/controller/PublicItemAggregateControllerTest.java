@@ -3,18 +3,15 @@ package com.terraria.skills.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.terraria.skills.dto.ItemAggregateDTO;
 import com.terraria.skills.dto.ItemDTO;
 import com.terraria.skills.dto.ItemImageDTO;
 import com.terraria.skills.dto.ItemSourceDTO;
 import com.terraria.skills.dto.RecipeDTO;
-import com.terraria.skills.service.ItemImageService;
-import com.terraria.skills.service.ItemService;
-import com.terraria.skills.service.ItemSourceService;
-import com.terraria.skills.service.RecipeService;
+import com.terraria.skills.service.impl.PublicItemAggregateService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
@@ -24,7 +21,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -35,24 +31,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class PublicItemAggregateControllerTest {
 
     @Mock
-    private ItemService itemService;
-
-    @Mock
-    private ItemImageService itemImageService;
-
-    @Mock
-    private ItemSourceService itemSourceService;
-
-    @Mock
-    private RecipeService recipeService;
-
-    @InjectMocks
-    private PublicItemAggregateController publicItemAggregateController;
+    private PublicItemAggregateService publicItemAggregateService;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
+        PublicItemAggregateController publicItemAggregateController = new PublicItemAggregateController(publicItemAggregateService);
         ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -86,10 +71,17 @@ class PublicItemAggregateControllerTest {
         recipe.setResultItemId(1L);
         recipe.setResultQuantity(1);
 
-        when(itemService.getItemById(1L)).thenReturn(item);
-        when(itemImageService.getImagesByItemId(1L)).thenReturn(List.of(image));
-        when(itemSourceService.getSourcesByItemId(1L)).thenReturn(List.of(source));
-        when(recipeService.getRecipesByResultItemId(1L)).thenReturn(List.of(recipe));
+        ItemAggregateDTO aggregate = new ItemAggregateDTO();
+        aggregate.setItem(item);
+        aggregate.setImages(List.of(image));
+        aggregate.setSources(List.of(source));
+        aggregate.setRecipes(List.of(recipe));
+        aggregate.getModuleStatus().put("images", "ok");
+        aggregate.getModuleStatus().put("sources", "ok");
+        aggregate.getModuleStatus().put("recipes", "ok");
+        aggregate.setAggregatedAt(java.time.LocalDateTime.of(2026, 4, 26, 12, 0));
+
+        when(publicItemAggregateService.getItemAggregate(1L, "images,sources,recipes")).thenReturn(aggregate);
 
         mockMvc.perform(get("/public/items/1/aggregate")
                 .param("include", "images,sources,recipes")
@@ -106,10 +98,7 @@ class PublicItemAggregateControllerTest {
             .andExpect(jsonPath("$.data.moduleStatus.recipes").value("ok"))
             .andExpect(jsonPath("$.data.aggregatedAt").exists());
 
-        verify(itemService).getItemById(1L);
-        verify(itemImageService).getImagesByItemId(1L);
-        verify(itemSourceService).getSourcesByItemId(1L);
-        verify(recipeService).getRecipesByResultItemId(1L);
+        verify(publicItemAggregateService).getItemAggregate(1L, "images,sources,recipes");
     }
 
     @Test
@@ -123,8 +112,14 @@ class PublicItemAggregateControllerTest {
         image.setItemId(1L);
         image.setCachedUrl("https://cdn.example.com/items/1.png");
 
-        when(itemService.getItemById(1L)).thenReturn(item);
-        when(itemImageService.getImagesByItemId(1L)).thenReturn(List.of(image));
+        ItemAggregateDTO aggregate = new ItemAggregateDTO();
+        aggregate.setItem(item);
+        aggregate.setImages(List.of(image));
+        aggregate.getModuleStatus().put("images", "ok");
+        aggregate.getModuleStatus().put("sources", "skipped");
+        aggregate.getModuleStatus().put("recipes", "skipped");
+
+        when(publicItemAggregateService.getItemAggregate(1L, "images")).thenReturn(aggregate);
 
         mockMvc.perform(get("/public/items/1/aggregate")
                 .param("include", "images")
@@ -138,15 +133,12 @@ class PublicItemAggregateControllerTest {
             .andExpect(jsonPath("$.data.moduleStatus.sources").value("skipped"))
             .andExpect(jsonPath("$.data.moduleStatus.recipes").value("skipped"));
 
-        verify(itemService).getItemById(1L);
-        verify(itemImageService).getImagesByItemId(1L);
-        verify(itemSourceService, never()).getSourcesByItemId(1L);
-        verify(recipeService, never()).getRecipesByResultItemId(1L);
+        verify(publicItemAggregateService).getItemAggregate(1L, "images");
     }
 
     @Test
     void shouldReturn404WhenItemDoesNotExist() throws Exception {
-        when(itemService.getItemById(99L)).thenReturn(null);
+        when(publicItemAggregateService.getItemAggregate(99L, "images,sources,recipes")).thenReturn(null);
 
         mockMvc.perform(get("/public/items/99/aggregate")
                 .accept(MediaType.APPLICATION_JSON))
@@ -155,9 +147,6 @@ class PublicItemAggregateControllerTest {
             .andExpect(jsonPath("$.statusCode").value(404))
             .andExpect(jsonPath("$.message").value("Item not found"));
 
-        verify(itemService).getItemById(99L);
-        verify(itemImageService, never()).getImagesByItemId(99L);
-        verify(itemSourceService, never()).getSourcesByItemId(99L);
-        verify(recipeService, never()).getRecipesByResultItemId(99L);
+        verify(publicItemAggregateService).getItemAggregate(99L, "images,sources,recipes");
     }
 }

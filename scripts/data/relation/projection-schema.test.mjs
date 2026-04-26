@@ -24,3 +24,12 @@ test('buildProjectionSchemaStatements emits schema-qualified create statements',
     assert.match(statement, /^CREATE TABLE IF NOT EXISTS `terria_v1_relation`\.`projection_/);
   }
 });
+
+test('projection npc and projectile schemas include wiki image url columns', () => {
+  const statements = buildProjectionSchemaStatements();
+  const npcStatement = statements.find((sql) => sql.includes('`projection_npcs`'));
+  const projectileStatement = statements.find((sql) => sql.includes('`projection_projectiles`'));
+
+  assert.match(npcStatement, /`image_url` VARCHAR\(500\) DEFAULT NULL/);
+  assert.match(projectileStatement, /`image_url` VARCHAR\(500\) DEFAULT NULL/);
+});

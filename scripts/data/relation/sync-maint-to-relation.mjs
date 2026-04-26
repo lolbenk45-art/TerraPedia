@@ -187,6 +187,18 @@ async function ensureRelationMigrations(connection, databaseName) {
       ]
     },
     {
+      tableName: 'projection_npcs',
+      columns: [
+        ['image_url', 'VARCHAR(500) DEFAULT NULL AFTER `sub_name_zh`']
+      ]
+    },
+    {
+      tableName: 'projection_projectiles',
+      columns: [
+        ['image_url', 'VARCHAR(500) DEFAULT NULL AFTER `name_zh`']
+      ]
+    },
+    {
       tableName: 'item_npc_shop_relations',
       columns: [
         ['condition_source_text', 'TEXT AFTER `conditions`'],

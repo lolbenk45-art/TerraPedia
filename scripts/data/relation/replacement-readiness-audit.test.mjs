@@ -38,3 +38,30 @@ test('buildReplacementReadinessAudit reports blocked domains and sample field ga
   assert.ok(actual.summary.blockedDomains.includes('items'));
   assert.ok(actual.summary.blockedDomains.includes('npcs'));
 });
+
+test('buildReplacementReadinessAudit blocks domains with projection-only keys', () => {
+  const actual = buildReplacementReadinessAudit({
+    localData: {
+      items: [
+        { internal_name: 'IronPickaxe', name: 'Iron Pickaxe' }
+      ],
+      npcs: [],
+      projectiles: [],
+      buffs: []
+    },
+    projectionData: {
+      projection_items: [
+        { internal_name: 'IronPickaxe', name: 'Iron Pickaxe' },
+        { internal_name: 'ProjectionOnly', name: 'Projection Only' }
+      ],
+      projection_npcs: [],
+      projection_projectiles: [],
+      projection_buffs: []
+    }
+  });
+
+  assert.equal(actual.domainResults.items.status, 'blocked');
+  assert.equal(actual.domainResults.items.extraInProjectionCount, 1);
+  assert.deepEqual(actual.domainResults.items.extraInProjection, ['ProjectionOnly']);
+  assert.ok(actual.summary.blockedDomains.includes('items'));
+});

@@ -15,6 +15,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 @EnableConfigurationProperties({
     ArticleReviewProperties.class,
+    RelationCompatibilityProperties.class,
     AdminAuthProperties.class,
     UserAuthProperties.class,
     LoginRateLimitProperties.class,

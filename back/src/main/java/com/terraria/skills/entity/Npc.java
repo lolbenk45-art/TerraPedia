@@ -36,6 +36,9 @@ public class Npc implements Serializable {
     @TableField("sub_name_zh")
     private String subNameZh;
 
+    @TableField("image_url")
+    private String imageUrl;
+
     @TableField("category_id")
     private Long categoryId;
 

@@ -1,6 +1,6 @@
 # Relation Table Catalog
 
-generated_at: 2026-04-25T06:28:09.980Z
+generated_at: 2026-04-25T07:19:45.787Z
 
 This catalog explains the purpose and status of each relation-side table so later tasks can reuse the right layer.
 这份目录用于说明 relation 侧每张表保存的内容、当前状态，以及后续任务应该复用哪一层。
@@ -26,7 +26,7 @@ This catalog explains the purpose and status of each relation-side table so late
 - status_zh: 保留
 - layer: system
 - layer_zh: 系统层
-- rows: 56
+- rows: 60
 - source: writeRelationReports output metadata
 - source_zh: 来源链保留原始英文表名，避免数据链歧义。
 - primary_keys: id, run_key, report_kind
@@ -47,8 +47,8 @@ This catalog explains the purpose and status of each relation-side table so late
 - primary_keys: record_key, source_id, internal_name
 - purpose: Canonical item base entity table.
 - purpose_zh: 规范化后的 item 基础实体主表。
-- notes: Primary item identity layer for relation and projection; now also carries source-backed rare/value raw facts.
-- notes_zh: 是 relation 与 projection 的 item 身份主层。
+- notes: Primary item identity layer for relation and projection; now also carries source-backed rare/value/sell raw facts.
+- notes_zh: 是 relation 与 projection 的 item 身份主层，并保留 rare/value/sell 的原始事实。
 
 ## relation_npcs
 
