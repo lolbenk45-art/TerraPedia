@@ -77,6 +77,33 @@ test('extractMaintEntitiesFromLandingRow expands items_raw into maint item rows'
   });
 });
 
+test('extractMaintEntitiesFromLandingRow preserves explicit zero-valued item facts instead of coercing them to null', async () => {
+  const itemLandingRow = {
+    id: 41,
+    dataset_type: 'items_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Module:Iteminfo/data',
+    source_key: 'wiki.module.iteminfo',
+    source_revision_timestamp: '2026-04-26T02:00:00Z',
+    content_hash: 'z'.repeat(64),
+    fetched_at: '2026-04-26T02:00:00Z',
+    parsed_at: '2026-04-26T02:00:00Z',
+    payload_json: JSON.stringify({
+      moduleContent: 'return { ["data"] = [=====[{"_generated":"2026-04-26 02:00:00 (+00:00)","_terrariaversion":"1.4.5.6","1":{"name":"Torch","internalName":"Torch","damage":0,"defense":0,"useTime":0,"maxStack":9999,"value":0,"width":10,"height":12}}]=====] }',
+      pageTitle: 'Module:Iteminfo/data',
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(itemLandingRow);
+  const row = actual.rows[0];
+
+  assert.equal(row.combatValue, 0);
+  assert.equal(row.defenseValue, 0);
+  assert.equal(row.useTime, 0);
+  assert.equal(row.stackSize, 9999);
+  assert.equal(row.majorValue, 0);
+});
+
 test('extractMaintEntitiesFromLandingRow expands parsed npc payload into maint npc rows', async () => {
   const npcLandingRow = {
     id: 21,

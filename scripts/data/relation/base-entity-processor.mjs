@@ -32,6 +32,15 @@ function parseJsonObject(value) {
   }
 }
 
+function coalesceDefined(...values) {
+  for (const value of values) {
+    if (value !== null && value !== undefined) {
+      return value;
+    }
+  }
+  return null;
+}
+
 function buildBaseEntityRecord(sourceMaintTable, row) {
   const trace = normalizeTrace(sourceMaintTable, row);
   const raw = parseJsonObject(row.raw_json);
@@ -96,20 +105,50 @@ function buildItemPageIndex(maintItemPages = []) {
   return index;
 }
 
+function buildItemNumericOverrideIndex(maintItemNumericOverrides = []) {
+  const index = new Map();
+  for (const row of maintItemNumericOverrides) {
+    const key = normalizeText(row.item_internal_name);
+    if (!key) {
+      continue;
+    }
+    index.set(key, {
+      damageValue: toNullableNumber(row.damage_value),
+      defenseValue: toNullableNumber(row.defense_value),
+      useTime: toNullableNumber(row.use_time),
+      buyValue: toNullableNumber(row.buy_value),
+      sellValue: toNullableNumber(row.sell_value),
+    });
+  }
+  return index;
+}
+
 export function buildBaseEntityRelations({
   maintItems = [],
+  maintItemNumericOverrides = [],
   maintItemPages = [],
   maintNpcs = [],
   maintProjectiles = []
 } = {}) {
   const itemPagesByInternalName = buildItemPageIndex(maintItemPages);
+  const itemNumericOverridesByInternalName = buildItemNumericOverrideIndex(maintItemNumericOverrides);
   return {
     relationItems: maintItems.map((row) => {
       const record = buildBaseEntityRecord('maint_items', row);
+      const numericOverride = itemNumericOverridesByInternalName.get(record.internalName);
       const itemPage = itemPagesByInternalName.get(record.internalName);
+      if (numericOverride) {
+        record.combatValue = toNullableNumber(coalesceDefined(numericOverride.damageValue, record.combatValue));
+        record.defenseValue = toNullableNumber(coalesceDefined(numericOverride.defenseValue, record.defenseValue));
+        record.useTime = toNullableNumber(coalesceDefined(numericOverride.useTime, record.useTime));
+        record.majorValue = toNullableNumber(coalesceDefined(numericOverride.buyValue, record.majorValue));
+      }
       if (itemPage) {
         record.sellTextRaw = normalizeText(itemPage.sell_text);
         record.sellRaw = toNullableNumber(itemPage.sell_value);
+      }
+      if (numericOverride) {
+        record.sellRaw = toNullableNumber(coalesceDefined(numericOverride.sellValue, record.sellRaw));
       }
       return record;
     }),

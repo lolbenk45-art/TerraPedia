@@ -95,12 +95,7 @@ export async function fetchWikiPagePayload({
     throw new Error('pageTitle is required');
   }
 
-  const parseUrl = new URL(apiUrl);
-  parseUrl.searchParams.set('action', 'parse');
-  parseUrl.searchParams.set('page', pageTitle);
-  parseUrl.searchParams.set('prop', 'wikitext|text');
-  parseUrl.searchParams.set('format', 'json');
-  parseUrl.searchParams.set('formatversion', '2');
+  const parseUrl = buildWikiPageParseUrl({ pageTitle, apiUrl });
 
   const parseBody = await wikiRequestGate.runJsonRequest(parseUrl, {
     profile: 'parse',
@@ -123,6 +118,24 @@ export async function fetchWikiPagePayload({
     wikitext: parsed.wikitext,
     html: parsed.text
   };
+}
+
+export function buildWikiPageParseUrl({
+  pageTitle,
+  apiUrl = DEFAULT_WIKI_API_URL
+} = {}) {
+  if (typeof pageTitle !== 'string' || pageTitle.trim() === '') {
+    throw new Error('pageTitle is required');
+  }
+
+  const parseUrl = new URL(apiUrl);
+  parseUrl.searchParams.set('action', 'parse');
+  parseUrl.searchParams.set('page', pageTitle);
+  parseUrl.searchParams.set('prop', 'wikitext|text');
+  parseUrl.searchParams.set('format', 'json');
+  parseUrl.searchParams.set('formatversion', '2');
+  parseUrl.searchParams.set('redirects', '1');
+  return parseUrl;
 }
 
 export async function fetchWikiPageRevisionTimestamp({

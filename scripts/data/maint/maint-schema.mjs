@@ -7,6 +7,9 @@ export const MAINT_TABLE_NAMES = [
   'maint_item_pages',
   'maint_item_page_recipes',
   'maint_item_images',
+  'maint_item_numeric_overrides',
+  'maint_item_rarity_overrides',
+  'maint_item_text_overrides',
   'maint_recipe_pages',
   'maint_recipe_page_recipes',
   'maint_item_recipes',
@@ -292,6 +295,63 @@ CREATE TABLE IF NOT EXISTS \`maint_item_images\` (
   \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (\`id\`),
   UNIQUE KEY \`uk_maint_item_images_record_key\` (\`record_key\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS \`maint_item_numeric_overrides\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) NOT NULL,
+  \`item_internal_name\` VARCHAR(255) NOT NULL,
+  \`damage_value\` INT DEFAULT NULL,
+  \`defense_value\` INT DEFAULT NULL,
+  \`knockback_value\` INT DEFAULT NULL,
+  \`use_time\` INT DEFAULT NULL,
+  \`buy_value\` INT DEFAULT NULL,
+  \`sell_value\` INT DEFAULT NULL,
+  \`source_provider\` VARCHAR(128) NOT NULL,
+  \`source_page\` VARCHAR(255) DEFAULT NULL,
+  \`raw_json\` LONGTEXT NOT NULL,
+  \`status\` INT NOT NULL DEFAULT 1,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_maint_item_numeric_overrides_record_key\` (\`record_key\`),
+  UNIQUE KEY \`uk_maint_item_numeric_overrides_item_internal_name\` (\`item_internal_name\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS \`maint_item_rarity_overrides\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) NOT NULL,
+  \`item_internal_name\` VARCHAR(255) NOT NULL,
+  \`rarity_id\` INT NOT NULL,
+  \`rarity_code\` VARCHAR(64) DEFAULT NULL,
+  \`source_provider\` VARCHAR(128) NOT NULL,
+  \`source_page\` VARCHAR(255) DEFAULT NULL,
+  \`raw_json\` LONGTEXT NOT NULL,
+  \`status\` INT NOT NULL DEFAULT 1,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_maint_item_rarity_overrides_record_key\` (\`record_key\`),
+  UNIQUE KEY \`uk_maint_item_rarity_overrides_item_internal_name\` (\`item_internal_name\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS \`maint_item_text_overrides\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) NOT NULL,
+  \`item_internal_name\` VARCHAR(255) NOT NULL,
+  \`tooltip_zh\` TEXT,
+  \`source_provider\` VARCHAR(128) NOT NULL,
+  \`source_page\` VARCHAR(255) DEFAULT NULL,
+  \`raw_json\` LONGTEXT NOT NULL,
+  \`status\` INT NOT NULL DEFAULT 1,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_maint_item_text_overrides_record_key\` (\`record_key\`),
+  UNIQUE KEY \`uk_maint_item_text_overrides_item_internal_name\` (\`item_internal_name\`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS \`maint_recipe_pages\` (

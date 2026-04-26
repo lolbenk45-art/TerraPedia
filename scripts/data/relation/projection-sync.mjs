@@ -21,6 +21,15 @@ function toFlag(value) {
   return value ? 1 : 0;
 }
 
+function coalesceDefined(...values) {
+  for (const value of values) {
+    if (value !== null && value !== undefined) {
+      return value;
+    }
+  }
+  return null;
+}
+
 function toSlug(value) {
   const text = String(value ?? '').trim();
   return text ? text.toLowerCase() : null;
@@ -43,6 +52,9 @@ export function buildProjectionPayload({
   relationItems = [],
   relationItemImages = [],
   relationItemRarities = [],
+  itemNumericOverrides = [],
+  itemRarityOverrides = [],
+  itemTextOverrides = [],
   relationNpcs = [],
   relationNpcImages = [],
   relationProjectiles = [],
@@ -56,6 +68,21 @@ export function buildProjectionPayload({
       .filter((row) => row?.id != null)
       .map((row) => [Number(row.id), row])
   );
+  const rarityOverrides = new Map(
+    itemRarityOverrides
+      .filter((row) => row?.itemInternalName && row?.rarityId != null)
+      .map((row) => [row.itemInternalName, Number(row.rarityId)])
+  );
+  const numericOverrides = new Map(
+    itemNumericOverrides
+      .filter((row) => row?.itemInternalName)
+      .map((row) => [row.itemInternalName, row])
+  );
+  const textOverrides = new Map(
+    itemTextOverrides
+      .filter((row) => row?.itemInternalName)
+      .map((row) => [row.itemInternalName, row])
+  );
   const npcImages = buildImageIndex(relationNpcImages, 'npcInternalName');
   const projectileImages = buildImageIndex(relationProjectileImages, 'projectileInternalName');
   const buffImages = buildImageIndex(relationBuffImages, 'buffInternalName');
@@ -63,6 +90,8 @@ export function buildProjectionPayload({
   const projectionItems = relationItems.map((row) => {
     const raw = parseJsonObject(row.rawJson);
     const image = itemImages.get(row.internalName)?.cachedUrl ?? null;
+    const numericOverride = numericOverrides.get(row.internalName) ?? null;
+    const textOverride = textOverrides.get(row.internalName) ?? null;
     const rareRaw = toNullableNumber(row.rareRaw ?? raw.rare);
     const valueRaw = toNullableNumber(row.valueRaw ?? raw.value);
     return {
@@ -76,21 +105,23 @@ export function buildProjectionPayload({
       categoryId: null,
       description: null,
       descriptionZh: null,
-      damage: toNullableNumber(raw.damage),
-      defense: toNullableNumber(raw.defense ?? row.defenseValue),
-      knockback: toNullableNumber(raw.knockBack),
-      useTime: toNullableNumber(row.useTime ?? raw.useTime),
+      damage: toNullableNumber(coalesceDefined(numericOverride?.damageValue, row.combatValue, raw.damage)),
+      defense: toNullableNumber(coalesceDefined(numericOverride?.defenseValue, row.defenseValue, raw.defense)),
+      knockback: toNullableNumber(coalesceDefined(numericOverride?.knockbackValue, raw.knockBack)),
+      useTime: toNullableNumber(coalesceDefined(numericOverride?.useTime, row.useTime, raw.useTime)),
       width: toNullableNumber(row.width),
       height: toNullableNumber(row.height),
-      buy: valueRaw,
-      sell: toNullableNumber(row.sellRaw),
+      buy: toNullableNumber(coalesceDefined(numericOverride?.buyValue, row.majorValue, valueRaw)),
+      sell: toNullableNumber(coalesceDefined(numericOverride?.sellValue, row.sellRaw)),
       tooltip: null,
-      tooltipZh: null,
+      tooltipZh: textOverride?.tooltipZh ?? null,
       sourceProvider: row.sourceProvider ?? null,
       sourcePage: row.sourcePage ?? null,
       sourceRevisionTimestamp: row.sourceRevisionTimestamp ?? null,
       lastSyncedAt: null,
-      rarityId: rareRaw != null && itemRarities.has(rareRaw) ? rareRaw : null,
+      rarityId: rareRaw != null && itemRarities.has(rareRaw)
+        ? rareRaw
+        : (rarityOverrides.get(row.internalName) ?? null),
       gamePeriodId: null,
       gameModelId: null,
       isStackable: toFlag(toNullableNumber(row.stackSize) > 1),
@@ -151,6 +182,7 @@ export function buildProjectionPayload({
 
   const projectionProjectiles = relationProjectiles.map((row) => {
     const raw = parseJsonObject(row.rawJson);
+    const flags = parseJsonObject(row.flagsJson);
     void projectileImages;
     return {
       id: toNullableNumber(row.sourceId),
@@ -167,9 +199,9 @@ export function buildProjectionPayload({
       width: toNullableNumber(row.width),
       height: toNullableNumber(row.height),
       scale: toNullableNumber(raw.scale),
-      friendly: toFlag(raw.friendly),
-      hostile: toFlag(raw.hostile),
-      tileCollide: toFlag(raw.tileCollide),
+      friendly: toFlag(coalesceDefined(flags.friendly, raw.friendly)),
+      hostile: toFlag(coalesceDefined(flags.hostile, raw.hostile)),
+      tileCollide: toFlag(coalesceDefined(flags.tileCollide, raw.tileCollide)),
       rawJson: row.rawJson ?? null,
       status: 1,
       deleted: 0,

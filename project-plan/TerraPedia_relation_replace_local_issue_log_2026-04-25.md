@@ -19,6 +19,21 @@
 
 ## Open Items
 
+### [INFO] 2026-04-26 04:42 - item stack_size gap confirmed as upstream coverage gap, not maint normalization loss
+
+- Domain: item-attribute-modeling
+- Status: open
+- Impact: `stack_size` remains a blocker for `projection_items`, but further work should focus on upstream source expansion rather than another maint zero-normalization pass.
+- Evidence:
+  - `reports/relation/item-cutover-baseline-2026-04-26.json`
+  - `reports/relation/item-cutover-zero-safe-postapply-2026-04-26.json`
+  - `stackSize.rawPresent = 13 / 6146`
+  - `stackSize.normalizedPresent = 13 / 6146`
+  - zero-safe item maint resync changed `damage.rawOnlyCount 124 -> 0`
+  - zero-safe item maint resync changed `useTime.rawOnlyCount 27 -> 0`
+- Decision needed: none
+- Temporary handling: keep `stack_size` in the item blocker list; audit upstream item-module payload shape and alternate item-page or standardized sources before changing maint normalization again.
+
 ### [INFO] 2026-04-25 21:00 - M1 实体总量已对齐但中文字段缺口仍大
 
 - Domain: entity-foundation
