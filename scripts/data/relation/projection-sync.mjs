@@ -75,7 +75,7 @@ export function buildProjectionPayload({
 
   const projectionItems = relationItems.map((row) => {
     const raw = parseJsonObject(row.rawJson);
-    const image = itemImages.get(row.internalName)?.cachedUrl ?? null;
+    const image = resolveWikiImageUrl(itemImages.get(row.internalName));
     const rareRaw = toNullableNumber(row.rareRaw ?? raw.rare);
     const valueRaw = toNullableNumber(row.valueRaw ?? raw.value);
     return {

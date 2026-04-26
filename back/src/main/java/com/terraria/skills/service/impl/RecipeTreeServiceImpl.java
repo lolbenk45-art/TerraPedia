@@ -45,6 +45,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
 
     private static final int DEFAULT_MAX_DEPTH = 3;
     private static final int ABSOLUTE_MAX_DEPTH = 5;
+    private static final int GROUP_MEMBER_PREVIEW_LIMIT = 2;
     private static final Duration TREE_CACHE_TTL = Duration.ofMinutes(5);
     private static final Duration GROUP_REFERENCE_CACHE_TTL = Duration.ofMinutes(10);
 
@@ -238,7 +239,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
             node.setSecondaryName(reference == null ? null : firstNonBlank(reference.displayNameEn(), reference.canonicalName()));
             node.setGroupCanonicalName(reference == null ? fallbackGroupLabel : reference.canonicalName());
             node.setGroupMemberNames(reference == null ? Collections.emptyList() : reference.groupMemberNames());
-            node.setGroupMembers(reference == null ? Collections.emptyList() : reference.groupMembers());
+            node.setGroupMembers(reference == null ? Collections.emptyList() : previewGroupMembers(reference.groupMembers()));
         }
         boolean hasItemId = ingredient.getIngredientItemId() != null;
         String refKey = groupNode
@@ -635,7 +636,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
             dto.setInternalName(firstNonBlank(member.getInternalName(), resolved == null ? null : resolved.getInternalName()));
             dto.setName(firstNonBlank(member.getName(), resolved == null ? null : resolved.getName()));
             dto.setNameZh(firstNonBlank(member.getNameZh(), resolved == null ? null : resolved.getNameZh()));
-            dto.setImage(firstNonBlank(member.getImage(), resolved == null ? null : resolved.getImage()));
+            dto.setImage(resolveGroupMemberImage(member, resolved));
             String key = normalizeKey(firstNonBlank(dto.getInternalName(), dto.getName(), dto.getNameZh()));
             if (!key.isEmpty() && !deduped.containsKey(key)) {
                 deduped.put(key, dto);
@@ -646,6 +647,41 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
 
     private String resolveMemberLabel(RecipeGroupMemberDTO member) {
         return firstNonBlank(member.getNameZh(), member.getName(), member.getInternalName());
+    }
+
+    private List<RecipeGroupMemberDTO> previewGroupMembers(List<RecipeGroupMemberDTO> members) {
+        if (members == null || members.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return members.stream()
+            .limit(GROUP_MEMBER_PREVIEW_LIMIT)
+            .toList();
+    }
+
+    private String resolveGroupMemberImage(RecipeGroupMemberDTO member, Item resolved) {
+        String resolvedImage = resolved == null ? null : resolved.getImage();
+        String memberImage = member == null ? null : member.getImage();
+        return firstNonBlank(
+            acceptableWikiItemIconUrl(resolvedImage) ? resolvedImage : null,
+            acceptableWikiItemIconUrl(memberImage) ? memberImage : null
+        );
+    }
+
+    private boolean acceptableWikiItemIconUrl(String value) {
+        String text = trimToNull(value);
+        if (text == null) {
+            return false;
+        }
+        String lower = text.toLowerCase();
+        return lower.startsWith("https://terraria.wiki.gg/")
+            && !lower.contains("/terrapedia-images/")
+            && !lower.contains("(demo)")
+            && !lower.contains("%28demo%29")
+            && !lower.contains("_demo")
+            && !lower.contains("(placed)")
+            && !lower.contains("%28placed%29")
+            && !lower.contains("_placed")
+            && !lower.contains("/placed_");
     }
 
     private Path resolveDataFile(Path relativePath) {

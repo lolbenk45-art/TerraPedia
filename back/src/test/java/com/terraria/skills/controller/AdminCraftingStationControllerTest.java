@@ -1,9 +1,8 @@
 package com.terraria.skills.controller;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.terraria.skills.common.ApiResponse;
+import com.terraria.skills.dto.AdminCraftingStationDTO;
 import com.terraria.skills.entity.CraftingStation;
 import com.terraria.skills.entity.Item;
 import com.terraria.skills.entity.Recipe;
@@ -12,30 +11,22 @@ import com.terraria.skills.mapper.CraftingStationMapper;
 import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.mapper.RecipeMapper;
 import com.terraria.skills.mapper.RecipeStationMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.MediaType;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 
-import static org.mockito.Mockito.any;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
 class AdminCraftingStationControllerTest {
@@ -52,255 +43,293 @@ class AdminCraftingStationControllerTest {
     @Mock
     private RecipeStationMapper recipeStationMapper;
 
-    @InjectMocks
-    private AdminCraftingStationController controller;
+    @Test
+    void shouldReturnCraftingStations() {
+        when(craftingStationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(
+            station(1L, 33L, "WorkBench", "Workbench", "Workbench zh", "crafting_station", "https://terraria.wiki.gg/images/Work_Bench.png")
+        ));
+        when(recipeStationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(
+            recipeStation(99L, 7L, 1L, 33L, "WorkBench", "Workbench")
+        ));
+        when(recipeMapper.selectBatchIds(any())).thenReturn(List.of(recipe(7L, 101L)));
+        when(itemMapper.selectBatchIds(any())).thenReturn(List.of(
+            item(33L, "WorkBench", "Work Bench", "Workbench zh", "https://terraria.wiki.gg/images/Work_Bench.png"),
+            item(101L, "IronBroadsword", "Iron Broadsword", "Iron Broadsword zh", "https://terraria.wiki.gg/images/Iron_Broadsword.png")
+        ));
 
-    private MockMvc mockMvc;
-    private ObjectMapper objectMapper;
+        ResponseEntity<ApiResponse<List<AdminCraftingStationDTO>>> response = controller().getCraftingStations(1, 20, null, null, null);
 
-    @BeforeEach
-    void setUp() {
-        objectMapper = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-
-        mockMvc = MockMvcBuilders.standaloneSetup(controller)
-            .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
-            .build();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(1, response.getBody().getData().size());
+        AdminCraftingStationDTO dto = response.getBody().getData().get(0);
+        assertEquals("Workbench", dto.getNameEn());
+        assertEquals("Work Bench", dto.getItemName());
+        assertEquals(1, dto.getUsageRecipeCount());
+        assertEquals(1, dto.getUsageItemCount());
+        assertEquals(List.of(7L), dto.getUsageRecipeIds());
+        assertEquals("Iron Broadsword", dto.getUsageItems().get(0).getResultItemName());
     }
 
     @Test
-    void shouldReturnCraftingStations() throws Exception {
-        CraftingStation station = new CraftingStation();
-        station.setId(1L);
-        station.setNameEn("Workbench");
-        station.setItemId(33L);
-
-        Item item = new Item();
-        item.setId(33L);
-        item.setName("Work Bench");
-        item.setNameZh("工作台");
-
-        RecipeStation recipeStation = new RecipeStation();
-        recipeStation.setId(99L);
-        recipeStation.setStationId(1L);
-        recipeStation.setRecipeId(7L);
-
-        Recipe recipe = new Recipe();
-        recipe.setId(7L);
-        recipe.setResultItemId(101L);
-        recipe.setVersionScope("Desktop version");
-
-        Item resultItem = new Item();
-        resultItem.setId(101L);
-        resultItem.setName("Iron Broadsword");
-        resultItem.setNameZh("铁阔剑");
-
-        Page<CraftingStation> page = new Page<>(1, 20);
-        page.setRecords(List.of(station));
-        page.setTotal(1);
-
-        when(craftingStationMapper.selectPage(any(Page.class), any())).thenReturn(page);
-        when(recipeStationMapper.selectList(any())).thenReturn(List.of(recipeStation));
-        when(recipeMapper.selectBatchIds(any())).thenReturn(List.of(recipe));
-        when(itemMapper.selectBatchIds(any())).thenReturn(List.of(item, resultItem));
-
-        mockMvc.perform(get("/admin/crafting-stations").accept(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.length()").value(1))
-            .andExpect(jsonPath("$.data[0].nameEn").value("Workbench"))
-            .andExpect(jsonPath("$.data[0].itemName").value("Work Bench"))
-            .andExpect(jsonPath("$.data[0].itemNameZh").value("工作台"))
-            .andExpect(jsonPath("$.data[0].usageRecipeCount").value(1))
-            .andExpect(jsonPath("$.data[0].usageItemCount").value(1))
-            .andExpect(jsonPath("$.data[0].usageRecipeIds[0]").value(7))
-            .andExpect(jsonPath("$.data[0].usageItems[0].resultItemNameZh").value("铁阔剑"));
-    }
-
-    @Test
-    void shouldRejectCreateWhenNamesMissing() throws Exception {
+    void shouldRejectCreateWhenNamesMissing() {
         CraftingStation request = new CraftingStation();
         request.setStationType("crafting_station");
 
-        mockMvc.perform(post("/admin/crafting-stations")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.success").value(false));
+        ResponseEntity<ApiResponse<AdminCraftingStationDTO>> response = controller().createCraftingStation(request);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertFalse(response.getBody().isSuccess());
     }
 
     @Test
-    void shouldReturnPagedUsageItems() throws Exception {
-        CraftingStation station = new CraftingStation();
-        station.setId(12L);
-        station.setItemId(33L);
+    void shouldReturnPagedUsageItems() {
+        when(craftingStationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(
+            station(12L, 33L, "WorkBench", "Workbench", "Workbench zh", "crafting_station", "https://terraria.wiki.gg/images/Work_Bench.png")
+        ));
+        when(recipeStationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(
+            recipeStation(201L, 301L, 12L, 33L, "WorkBench", "Workbench"),
+            recipeStation(202L, 302L, 12L, 33L, "WorkBench", "Workbench")
+        ));
+        when(recipeMapper.selectBatchIds(any())).thenReturn(List.of(
+            recipe(301L, 501L),
+            recipe(302L, 502L)
+        ));
+        when(itemMapper.selectBatchIds(any())).thenReturn(List.of(
+            item(33L, "WorkBench", "Work Bench", "Workbench zh", "https://terraria.wiki.gg/images/Work_Bench.png"),
+            item(501L, "BuilderPotion", "Builder Potion", "Builder Potion zh", "https://terraria.wiki.gg/images/Builder_Potion.png"),
+            item(502L, "BattlePotion", "Battle Potion", "Battle Potion zh", "https://terraria.wiki.gg/images/Battle_Potion.png")
+        ));
 
-        RecipeStation first = new RecipeStation();
-        first.setId(201L);
-        first.setRecipeId(301L);
-        first.setStationId(12L);
+        ResponseEntity<ApiResponse<List<com.terraria.skills.dto.AdminCraftingStationUsageItemDTO>>> response =
+            controller().getCraftingStationUsageItems(12L, 1, 1, null);
 
-        RecipeStation second = new RecipeStation();
-        second.setId(202L);
-        second.setRecipeId(302L);
-        second.setStationId(12L);
-
-        Recipe recipeOne = new Recipe();
-        recipeOne.setId(301L);
-        recipeOne.setResultItemId(501L);
-        recipeOne.setVersionScope("Desktop version");
-
-        Recipe recipeTwo = new Recipe();
-        recipeTwo.setId(302L);
-        recipeTwo.setResultItemId(502L);
-        recipeTwo.setVersionScope("Desktop version");
-
-        Item itemOne = new Item();
-        itemOne.setId(501L);
-        itemOne.setName("Builder Potion");
-        itemOne.setNameZh("建造药水");
-
-        Item itemTwo = new Item();
-        itemTwo.setId(502L);
-        itemTwo.setName("Battle Potion");
-        itemTwo.setNameZh("战斗药水");
-
-        when(craftingStationMapper.selectById(12L)).thenReturn(station);
-        when(recipeStationMapper.selectList(any())).thenReturn(List.of(first, second));
-        when(recipeMapper.selectBatchIds(any())).thenReturn(List.of(recipeOne, recipeTwo));
-        when(itemMapper.selectBatchIds(any())).thenReturn(List.of(itemOne, itemTwo));
-
-        mockMvc.perform(get("/admin/crafting-stations/12/usage-items?page=1&limit=1").accept(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.length()").value(1))
-            .andExpect(jsonPath("$.pagination.total").value(2));
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(1, response.getBody().getData().size());
+        assertEquals(2L, response.getBody().getPagination().getTotal());
     }
 
     @Test
-    void shouldRejectCreateWhenItemDoesNotExist() throws Exception {
+    void shouldRejectCreateWhenItemDoesNotExist() {
         CraftingStation request = new CraftingStation();
         request.setNameEn("Workbench");
         request.setItemId(999L);
 
         when(itemMapper.selectById(999L)).thenReturn(null);
 
-        mockMvc.perform(post("/admin/crafting-stations")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("itemId does not reference an existing item"));
+        ResponseEntity<ApiResponse<AdminCraftingStationDTO>> response = controller().createCraftingStation(request);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("itemId does not reference an existing item", response.getBody().getMessage());
     }
 
     @Test
-    void shouldCreateCraftingStation() throws Exception {
+    void shouldCreateCraftingStation() {
         CraftingStation request = new CraftingStation();
         request.setNameEn("Workbench");
         request.setInternalName("WorkBench");
 
-        CraftingStation saved = new CraftingStation();
-        saved.setId(5L);
-        saved.setNameEn("Workbench");
-        saved.setInternalName("WorkBench");
+        CraftingStation saved = station(5L, null, "WorkBench", "Workbench", null, "crafting_station", null);
 
-        when(craftingStationMapper.selectCount(any())).thenReturn(0L);
+        when(craftingStationMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
         doAnswer(invocation -> {
             CraftingStation target = invocation.getArgument(0);
             target.setId(5L);
             return 1;
         }).when(craftingStationMapper).insert(any(CraftingStation.class));
-        when(craftingStationMapper.selectById(5L)).thenReturn(saved);
+        when(craftingStationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(saved));
 
-        mockMvc.perform(post("/admin/crafting-stations")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.id").value(5));
+        ResponseEntity<ApiResponse<AdminCraftingStationDTO>> response = controller().createCraftingStation(request);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(5L, response.getBody().getData().getId());
     }
 
     @Test
-    void shouldRejectDuplicateCraftingStation() throws Exception {
+    void shouldRejectDuplicateCraftingStation() {
         CraftingStation request = new CraftingStation();
         request.setInternalName("WorkBench");
 
-        when(craftingStationMapper.selectCount(any())).thenReturn(1L);
+        when(craftingStationMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(1L);
 
-        mockMvc.perform(post("/admin/crafting-stations")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("crafting station already exists"));
+        ResponseEntity<ApiResponse<AdminCraftingStationDTO>> response = controller().createCraftingStation(request);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("crafting station already exists", response.getBody().getMessage());
     }
 
     @Test
-    void shouldUpdateCraftingStation() throws Exception {
-        CraftingStation existing = new CraftingStation();
-        existing.setId(3L);
-        existing.setNameEn("Workbench");
-
+    void shouldUpdateCraftingStation() {
+        CraftingStation existing = station(3L, null, "WorkBench", "Workbench", null, "crafting_station", null);
         CraftingStation request = new CraftingStation();
         request.setNameEn("Heavy Work Bench");
+        CraftingStation updated = station(3L, null, "WorkBench", "Heavy Work Bench", null, "crafting_station", null);
 
-        CraftingStation updated = new CraftingStation();
-        updated.setId(3L);
-        updated.setNameEn("Heavy Work Bench");
+        when(craftingStationMapper.selectById(3L)).thenReturn(existing);
+        when(craftingStationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(updated));
 
-        when(craftingStationMapper.selectById(3L)).thenReturn(existing, updated);
+        ResponseEntity<ApiResponse<AdminCraftingStationDTO>> response = controller().updateCraftingStation(3L, request);
 
-        mockMvc.perform(put("/admin/crafting-stations/3")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.nameEn").value("Heavy Work Bench"));
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Heavy Work Bench", response.getBody().getData().getNameEn());
     }
 
     @Test
-    void shouldBlockDeleteWhenReferenced() throws Exception {
-        CraftingStation existing = new CraftingStation();
-        existing.setId(7L);
+    void shouldBlockDeleteWhenReferenced() {
+        CraftingStation existing = station(7L, null, "WorkBench", "Workbench", null, "crafting_station", null);
 
         when(craftingStationMapper.selectById(7L)).thenReturn(existing);
-        when(recipeStationMapper.selectCount(any())).thenReturn(2L);
+        when(recipeStationMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(2L);
 
-        mockMvc.perform(delete("/admin/crafting-stations/7"))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("crafting station is still referenced by recipes"));
+        ResponseEntity<ApiResponse<Void>> response = controller().deleteCraftingStation(7L);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("crafting station is still referenced by recipes", response.getBody().getMessage());
     }
 
     @Test
-    void shouldDeleteUnreferencedCraftingStation() throws Exception {
-        CraftingStation existing = new CraftingStation();
-        existing.setId(8L);
+    void shouldDeleteUnreferencedCraftingStation() {
+        CraftingStation existing = station(8L, null, "WorkBench", "Workbench", null, "crafting_station", null);
 
         when(craftingStationMapper.selectById(8L)).thenReturn(existing);
-        when(recipeStationMapper.selectCount(any())).thenReturn(0L);
+        when(recipeStationMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
+        when(craftingStationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(existing));
+        when(recipeStationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of());
 
-        mockMvc.perform(delete("/admin/crafting-stations/8"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.success").value(true));
+        ResponseEntity<ApiResponse<Void>> response = controller().deleteCraftingStation(8L);
 
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
         verify(craftingStationMapper).deleteById(8L);
     }
 
     @Test
-    void shouldBlockDeleteWhenLegacyReferenceExists() throws Exception {
-        CraftingStation existing = new CraftingStation();
-        existing.setId(9L);
-        existing.setItemId(33L);
-
-        RecipeStation legacyReference = new RecipeStation();
-        legacyReference.setId(11L);
-        legacyReference.setRecipeId(22L);
-        legacyReference.setStationItemId(33L);
+    void shouldBlockDeleteWhenLegacyReferenceExists() {
+        CraftingStation existing = station(9L, 33L, "WorkBench", "Workbench", null, "crafting_station", null);
 
         when(craftingStationMapper.selectById(9L)).thenReturn(existing);
-        when(recipeStationMapper.selectCount(any())).thenReturn(0L);
-        when(recipeStationMapper.selectList(any())).thenReturn(List.of(), List.of(legacyReference), List.of(), List.of(), List.of());
+        when(recipeStationMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
+        when(craftingStationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(existing));
+        when(recipeStationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(
+            recipeStation(11L, 22L, null, 33L, null, null)
+        ));
+        when(recipeMapper.selectBatchIds(any())).thenReturn(List.of(recipe(22L, 500L)));
+        when(itemMapper.selectBatchIds(any())).thenReturn(List.of(
+            item(33L, "WorkBench", "Work Bench", "Workbench zh", "https://terraria.wiki.gg/images/Work_Bench.png"),
+            item(500L, "LegacyResult", "Legacy Result", "Legacy Result zh", "https://terraria.wiki.gg/images/Legacy_Result.png")
+        ));
 
-        mockMvc.perform(delete("/admin/crafting-stations/9"))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("crafting station is still referenced by recipes"));
+        ResponseEntity<ApiResponse<Void>> response = controller().deleteCraftingStation(9L);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("crafting station is still referenced by recipes", response.getBody().getMessage());
+    }
+
+    @Test
+    void shouldAggregateComboStationUsageFromComponentStations() {
+        when(craftingStationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(
+            station(6L, 36L, "WorkBench", "Work Bench", "工作台", "crafting_station", "https://terraria.wiki.gg/images/Work_Bench.png"),
+            station(14L, null, null, "Ecto Mist", "灵雾", "environment", null),
+            station(70L, null, "ZH_STATION_COMBO_WORKBENCH_AND_ECTO_MIST", "Work Bench + Ecto Mist", "工作台 + 灵雾", "crafting_station_combo", "https://terraria.wiki.gg/images/Work_Bench.png")
+        ));
+        when(recipeStationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(List.of(
+            recipeStation(101L, 501L, 6L, 36L, "WorkBench", "工作台"),
+            recipeStation(102L, 501L, 14L, null, null, "灵雾"),
+            recipeStation(103L, 502L, 6L, 36L, "WorkBench", "工作台")
+        ));
+        when(recipeMapper.selectBatchIds(any())).thenReturn(List.of(
+            recipe(501L, 9001L),
+            recipe(502L, 9002L)
+        ));
+        when(itemMapper.selectBatchIds(any())).thenReturn(List.of(
+            item(36L, "WorkBench", "Work Bench", "工作台", "https://terraria.wiki.gg/images/Work_Bench.png"),
+            item(9001L, "BrownMossyWall", "Brown Mossy Wall", "棕苔藓墙", "https://terraria.wiki.gg/images/Brown_Mossy_Wall.png"),
+            item(9002L, "WoodenChair", "Wooden Chair", "木椅", "https://terraria.wiki.gg/images/Wooden_Chair.png")
+        ));
+
+        AdminCraftingStationController controller = new AdminCraftingStationController(
+            craftingStationMapper,
+            itemMapper,
+            recipeMapper,
+            recipeStationMapper
+        );
+
+        ResponseEntity<ApiResponse<List<AdminCraftingStationDTO>>> response = controller.getCraftingStations(1, 20, null, null, null);
+        List<AdminCraftingStationDTO> stations = response.getBody().getData();
+
+        AdminCraftingStationDTO combo = stations.stream()
+            .filter(station -> Long.valueOf(70L).equals(station.getId()))
+            .findFirst()
+            .orElseThrow();
+
+        assertEquals(1, combo.getUsageRecipeCount());
+        assertEquals(1, combo.getUsageItemCount());
+        assertEquals(List.of(501L), combo.getUsageRecipeIds());
+        assertEquals("Brown Mossy Wall", combo.getUsageItems().get(0).getResultItemName());
+    }
+
+    private AdminCraftingStationController controller() {
+        return new AdminCraftingStationController(
+            craftingStationMapper,
+            itemMapper,
+            recipeMapper,
+            recipeStationMapper
+        );
+    }
+
+    private CraftingStation station(Long id, Long itemId, String internalName, String nameEn, String nameZh, String stationType, String imageUrl) {
+        CraftingStation station = new CraftingStation();
+        station.setId(id);
+        station.setItemId(itemId);
+        station.setInternalName(internalName);
+        station.setNameEn(nameEn);
+        station.setNameZh(nameZh);
+        station.setStationType(stationType);
+        station.setImageUrl(imageUrl);
+        station.setSortOrder(id.intValue());
+        station.setStatus(1);
+        station.setDeleted(0);
+        return station;
+    }
+
+    private RecipeStation recipeStation(Long id, Long recipeId, Long stationId, Long stationItemId, String stationInternalName, String stationNameRaw) {
+        RecipeStation station = new RecipeStation();
+        station.setId(id);
+        station.setRecipeId(recipeId);
+        station.setStationId(stationId);
+        station.setStationItemId(stationItemId);
+        station.setStationInternalName(stationInternalName);
+        station.setStationNameRaw(stationNameRaw);
+        station.setIsAlternative(false);
+        station.setSortOrder(id.intValue());
+        return station;
+    }
+
+    private Recipe recipe(Long id, Long resultItemId) {
+        Recipe recipe = new Recipe();
+        recipe.setId(id);
+        recipe.setResultItemId(resultItemId);
+        recipe.setResultQuantity(1);
+        recipe.setStatus(1);
+        recipe.setDeleted(0);
+        return recipe;
+    }
+
+    private Item item(Long id, String internalName, String name, String nameZh, String image) {
+        Item item = new Item();
+        item.setId(id);
+        item.setInternalName(internalName);
+        item.setName(name);
+        item.setNameZh(nameZh);
+        item.setImage(image);
+        return item;
     }
 }

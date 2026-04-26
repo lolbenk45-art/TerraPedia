@@ -12,16 +12,21 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 public class ItemImageServiceImpl implements ItemImageService {
 
     private static final String MANAGED_IMAGE_PATH_SEGMENT = "/terrapedia-images/";
+    private static final String WIKI_IMAGE_HOST = "terraria.wiki.gg";
 
     private final ItemImageMapper itemImageMapper;
     private final ItemMapper itemMapper;
@@ -34,25 +39,17 @@ public class ItemImageServiceImpl implements ItemImageService {
             .orderByAsc(ItemImage::getSortOrder, ItemImage::getId));
 
         if (images != null && !images.isEmpty()) {
-            List<ItemImageDTO> mappedImages = new ArrayList<>(images.stream().map(this::toDto).toList());
-            String legacyImage = null;
-            if (mappedImages.stream().noneMatch(ItemImageServiceImpl::isManagedImage)) {
-                Item item = itemMapper.selectById(itemId);
-                legacyImage = item == null ? null : trimToNull(item.getImage());
-            }
-            String managedLegacyImage = legacyImage;
-            if (isManagedUrl(managedLegacyImage) && mappedImages.stream().noneMatch(image -> sameUrl(image.getCachedUrl(), managedLegacyImage))) {
-                ItemImageDTO fallback = buildLegacyFallback(itemId, managedLegacyImage);
-                if (fallback != null) {
-                    mappedImages.add(fallback);
-                }
-            }
+            List<ItemImageDTO> mappedImages = new ArrayList<>(images.stream()
+                .map(this::toDto)
+                .filter(Objects::nonNull)
+                .toList());
             mappedImages.sort(Comparator
-                .comparing(ItemImageServiceImpl::isManagedImage, Comparator.reverseOrder())
-                .thenComparing(ItemImageServiceImpl::isPrimaryImage, Comparator.reverseOrder())
+                .comparing(ItemImageServiceImpl::isPrimaryImage, Comparator.reverseOrder())
                 .thenComparing(ItemImageServiceImpl::safeSortOrder)
                 .thenComparing(ItemImageDTO::getId, Comparator.nullsLast(Long::compareTo)));
-            return mappedImages;
+            if (!mappedImages.isEmpty()) {
+                return mappedImages;
+            }
         }
 
         Item item = itemMapper.selectById(itemId);
@@ -62,14 +59,16 @@ public class ItemImageServiceImpl implements ItemImageService {
     }
 
     private ItemImageDTO buildLegacyFallback(Long itemId, String imageUrl) {
-        if (!StringUtils.hasText(imageUrl)) {
+        String preferredUrl = preferredWikiItemIconUrl(imageUrl, imageUrl);
+        if (preferredUrl == null) {
             return null;
         }
 
         ItemImageDTO fallback = new ItemImageDTO();
         fallback.setItemId(itemId);
         fallback.setRole("icon");
-        fallback.setCachedUrl(imageUrl);
+        fallback.setOriginalUrl(preferredUrl);
+        fallback.setCachedUrl(preferredUrl);
         fallback.setIsPrimary(Boolean.TRUE);
         fallback.setSortOrder(1);
         fallback.setSourcePage("items.image");
@@ -79,11 +78,13 @@ public class ItemImageServiceImpl implements ItemImageService {
     private ItemImageDTO toDto(ItemImage image) {
         ItemImageDTO dto = new ItemImageDTO();
         BeanUtils.copyProperties(image, dto);
+        String preferredUrl = preferredWikiItemIconUrl(dto.getOriginalUrl(), dto.getCachedUrl());
+        if (preferredUrl == null) {
+            return null;
+        }
+        dto.setOriginalUrl(preferredUrl);
+        dto.setCachedUrl(preferredUrl);
         return dto;
-    }
-
-    private static boolean isManagedImage(ItemImageDTO image) {
-        return image != null && isManagedUrl(image.getCachedUrl());
     }
 
     private static boolean isPrimaryImage(ItemImageDTO image) {
@@ -97,10 +98,6 @@ public class ItemImageServiceImpl implements ItemImageService {
         return image.getSortOrder();
     }
 
-    private static boolean isManagedUrl(String value) {
-        return trimToNull(value) != null && value.contains(MANAGED_IMAGE_PATH_SEGMENT);
-    }
-
     private static String trimToNull(String value) {
         if (!StringUtils.hasText(value)) {
             return null;
@@ -109,12 +106,39 @@ public class ItemImageServiceImpl implements ItemImageService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private static boolean sameUrl(String left, String right) {
-        String normalizedLeft = trimToNull(left);
-        String normalizedRight = trimToNull(right);
-        if (normalizedLeft == null || normalizedRight == null) {
+    private static String preferredWikiItemIconUrl(String originalUrl, String cachedUrl) {
+        String original = trimToNull(originalUrl);
+        if (isAcceptableWikiItemIconUrl(original)) {
+            return original;
+        }
+        String cached = trimToNull(cachedUrl);
+        if (isAcceptableWikiItemIconUrl(cached)) {
+            return cached;
+        }
+        return null;
+    }
+
+    private static boolean isAcceptableWikiItemIconUrl(String value) {
+        String text = trimToNull(value);
+        if (text == null) {
             return false;
         }
-        return normalizedLeft.equalsIgnoreCase(normalizedRight);
+        String normalized = safeDecode(text).toLowerCase(Locale.ROOT);
+        return (normalized.startsWith("https://") || normalized.startsWith("http://"))
+            && normalized.contains(WIKI_IMAGE_HOST)
+            && !normalized.contains(MANAGED_IMAGE_PATH_SEGMENT)
+            && !normalized.contains("(demo)")
+            && !normalized.contains("_demo")
+            && !normalized.contains("(placed)")
+            && !normalized.contains("_placed")
+            && !normalized.contains("/placed_");
+    }
+
+    private static String safeDecode(String value) {
+        try {
+            return URLDecoder.decode(value, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException ignored) {
+            return value;
+        }
     }
 }

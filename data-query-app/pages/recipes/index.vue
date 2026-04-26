@@ -127,13 +127,30 @@
                     :key="`${root.recipeId || root.itemId || 'root'}-ingredient-${ingredient.key}`"
                     class="thumb-card__preview-chip thumb-card__preview-chip--ingredient"
                   >
-                    <img
-                      v-if="ingredient.image"
-                      :src="ingredient.image"
-                      :alt="ingredient.label"
-                      class="thumb-card__preview-image"
-                    >
-                    <span v-else class="thumb-card__preview-fallback">{{ ingredient.avatar }}</span>
+                    <span v-if="ingredient.members.length" class="thumb-card__preview-pair" :title="ingredient.members.map((member) => member.label).join(' / ')">
+                      <template
+                        v-for="(member, memberIndex) in ingredient.members"
+                        :key="`${ingredient.key}-member-${member.key}`"
+                      >
+                        <img
+                          v-if="member.image"
+                          :src="member.image"
+                          :alt="member.label"
+                          class="thumb-card__preview-image"
+                        >
+                        <span v-else class="thumb-card__preview-fallback">{{ member.avatar }}</span>
+                        <span v-if="memberIndex === 0 && ingredient.members.length > 1" class="thumb-card__preview-divider">/</span>
+                      </template>
+                    </span>
+                    <template v-else>
+                      <img
+                        v-if="ingredient.image"
+                        :src="ingredient.image"
+                        :alt="ingredient.label"
+                        class="thumb-card__preview-image"
+                      >
+                      <span v-else class="thumb-card__preview-fallback">{{ ingredient.avatar }}</span>
+                    </template>
                     <span class="thumb-card__preview-text">{{ ingredient.label }}</span>
                   </article>
                 </div>
@@ -194,7 +211,7 @@
 <script setup lang="ts">
 import AdminRecipeTreeBranch from '~/components/AdminRecipeTreeBranch.vue'
 import { showToast } from '~/composables/useToast'
-import type { CraftingStation, Item, ItemRecipePayload, ItemRecipeRelation, ItemRecipeTreeNode, ItemRecipeTreeResponse, ItemRecipeTreeStation, ItemRecipeTreeVariant } from '~/stores/items'
+import type { CraftingStation, Item, ItemRecipePayload, ItemRecipeRelation, ItemRecipeTreeGroupMember, ItemRecipeTreeNode, ItemRecipeTreeResponse, ItemRecipeTreeStation, ItemRecipeTreeVariant } from '~/stores/items'
 
 definePageMeta({ title: '配方管理', navSection: '/recipes', headerVariant: 'compact' })
 
@@ -345,15 +362,40 @@ function getRootIngredientPreview(root: ItemRecipeTreeNode) {
   return (root.children || [])
     .slice(0, 2)
     .map((child, index) => {
-      const label = child.itemNameZh || child.itemName || child.itemInternalName || ''
+      const label = child.displayName || child.itemNameZh || child.itemName || child.groupCanonicalName || child.itemInternalName || ''
+      const members = child.ingredientGroupType === 'group'
+        ? getGroupPreviewMembers(child)
+            .map((member, memberIndex) => {
+              const memberLabel = member.nameZh || member.name || member.internalName || ''
+              return {
+                key: String(member.itemId ?? member.internalName ?? memberLabel ?? memberIndex),
+                label: memberLabel,
+                image: resolvePreviewImage(member.imageUrl || member.image),
+                avatar: getPreviewAvatar(memberLabel, 'IT'),
+              }
+            })
+            .filter((member) => Boolean(member.label.trim()))
+        : []
       return {
         key: String(child.itemId ?? child.itemInternalName ?? label ?? index),
         label,
         image: resolvePreviewImage(child.itemImageUrl || child.itemImage),
-        avatar: label.trim() ? label.trim().slice(0, 2).toUpperCase() : 'IT',
+        avatar: getPreviewAvatar(label, 'IT'),
+        members,
       }
     })
     .filter((value) => Boolean(value.label && value.label.trim()))
+}
+
+function getGroupPreviewMembers(node: ItemRecipeTreeNode): ItemRecipeTreeGroupMember[] {
+  if (node.ingredientGroupType !== 'group' || !Array.isArray(node.groupMembers)) {
+    return []
+  }
+  return node.groupMembers.slice(0, 2)
+}
+
+function getPreviewAvatar(label: string, fallback: string) {
+  return label.trim() ? label.trim().slice(0, 2).toUpperCase() : fallback
 }
 
 function getRootStationPreview(root: ItemRecipeTreeNode) {
@@ -879,7 +921,7 @@ watch(contentMode, async (mode) => {
 }
 .thumb-card__preview-chip {
   display: grid;
-  grid-template-columns: 20px minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 8px;
   align-items: center;
   min-width: 0;
@@ -907,6 +949,18 @@ watch(contentMode, async (mode) => {
   color: var(--color-text-secondary);
   font-size: .56rem;
   font-weight: 800;
+}
+.thumb-card__preview-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 20px;
+}
+.thumb-card__preview-divider {
+  color: color-mix(in srgb, var(--color-text-secondary) 82%, transparent);
+  font-size: .72rem;
+  font-weight: 800;
+  line-height: 1;
 }
 .thumb-card__preview-text {
   color: var(--color-text-secondary);

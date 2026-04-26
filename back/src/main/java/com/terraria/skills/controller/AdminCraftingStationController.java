@@ -35,9 +35,11 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -217,6 +219,19 @@ public class AdminCraftingStationController {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            String trimmed = trimToNull(value);
+            if (trimmed != null) {
+                return trimmed;
+            }
+        }
+        return null;
     }
 
     private String validateRequest(CraftingStation request) {
@@ -482,7 +497,143 @@ public class AdminCraftingStationController {
             );
         }
 
+        appendComboStationRecipeMatches(stations, recipeStationsByStationId, recipeIdsByStationId);
+
         return new StationRecipeMatches(Map.copyOf(recipeStationsByStationId), Map.copyOf(recipeIdsByStationId));
+    }
+
+    private void appendComboStationRecipeMatches(
+        List<CraftingStation> stations,
+        Map<Long, List<RecipeStation>> recipeStationsByStationId,
+        Map<Long, List<Long>> recipeIdsByStationId
+    ) {
+        Map<String, List<CraftingStation>> stationLookup = buildComboComponentLookup(stations);
+        for (CraftingStation station : stations) {
+            if (station == null || station.getId() == null || !"crafting_station_combo".equals(station.getStationType())) {
+                continue;
+            }
+
+            List<Set<Long>> componentGroups = resolveComboComponentGroups(station, stationLookup);
+            if (componentGroups.isEmpty()) {
+                continue;
+            }
+
+            Set<Long> matchedRecipeIds = null;
+            List<RecipeStation> componentRecipeStations = new ArrayList<>();
+            for (Set<Long> groupStationIds : componentGroups) {
+                LinkedHashMap<Long, RecipeStation> groupRecipeStationsById = new LinkedHashMap<>();
+                for (Long groupStationId : groupStationIds) {
+                    collectRecipeStations(groupRecipeStationsById, recipeStationsByStationId.get(groupStationId));
+                }
+                Set<Long> groupRecipeIds = groupRecipeStationsById.values().stream()
+                    .map(RecipeStation::getRecipeId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+                if (matchedRecipeIds == null) {
+                    matchedRecipeIds = new LinkedHashSet<>(groupRecipeIds);
+                } else {
+                    matchedRecipeIds.retainAll(groupRecipeIds);
+                }
+                componentRecipeStations.addAll(groupRecipeStationsById.values());
+            }
+
+            if (matchedRecipeIds == null || matchedRecipeIds.isEmpty()) {
+                continue;
+            }
+
+            LinkedHashMap<Long, RecipeStation> comboRecipeStationsById = new LinkedHashMap<>();
+            collectRecipeStations(comboRecipeStationsById, recipeStationsByStationId.get(station.getId()));
+            for (RecipeStation recipeStation : componentRecipeStations) {
+                if (recipeStation != null
+                    && recipeStation.getId() != null
+                    && matchedRecipeIds.contains(recipeStation.getRecipeId())) {
+                    comboRecipeStationsById.putIfAbsent(recipeStation.getId(), recipeStation);
+                }
+            }
+
+            List<RecipeStation> matchedList = List.copyOf(comboRecipeStationsById.values());
+            recipeStationsByStationId.put(station.getId(), matchedList);
+            recipeIdsByStationId.put(
+                station.getId(),
+                matchedRecipeIds.stream()
+                    .sorted()
+                    .toList()
+            );
+        }
+    }
+
+    private Map<String, List<CraftingStation>> buildComboComponentLookup(List<CraftingStation> stations) {
+        Map<String, List<CraftingStation>> lookup = new LinkedHashMap<>();
+        for (CraftingStation station : stations) {
+            if (station == null || station.getId() == null || "crafting_station_combo".equals(station.getStationType())) {
+                continue;
+            }
+            addStationLookup(lookup, station.getInternalName(), station);
+            addStationLookup(lookup, station.getNameEn(), station);
+            addStationLookup(lookup, station.getNameZh(), station);
+        }
+        return lookup;
+    }
+
+    private void addStationLookup(Map<String, List<CraftingStation>> lookup, String value, CraftingStation station) {
+        String key = normalizeComboComponentKey(value);
+        if (key != null) {
+            lookup.computeIfAbsent(key, unused -> new ArrayList<>()).add(station);
+        }
+    }
+
+    private List<Set<Long>> resolveComboComponentGroups(CraftingStation station, Map<String, List<CraftingStation>> stationLookup) {
+        String descriptor = firstNonBlank(station.getNameEn(), station.getNameZh(), station.getInternalName());
+        if (descriptor == null) {
+            return List.of();
+        }
+
+        List<Set<Long>> groups = new ArrayList<>();
+        for (String groupText : descriptor.replaceAll("(?i)\\band\\b", "+").split("\\+")) {
+            Set<Long> groupStationIds = new LinkedHashSet<>();
+            String normalizedGroupText = groupText.replace("(", " ").replace(")", " ");
+            for (String part : normalizedGroupText.replaceAll("(?i)\\bor\\b", "/").split("/")) {
+                String key = normalizeComboComponentKey(part);
+                if (key == null) {
+                    continue;
+                }
+                List<CraftingStation> matchedStations = stationLookup.getOrDefault(key, List.of());
+                for (CraftingStation matchedStation : matchedStations) {
+                    groupStationIds.add(matchedStation.getId());
+                }
+            }
+            if (groupStationIds.isEmpty()) {
+                return List.of();
+            }
+            groups.add(groupStationIds);
+        }
+        return groups;
+    }
+
+    private String normalizeComboComponentKey(String value) {
+        String trimmed = trimToNull(value);
+        if (trimmed == null) {
+            return null;
+        }
+        String normalized = trimmed
+            .replaceAll("([a-z0-9])([A-Z])", "$1 $2")
+            .replaceAll("([A-Z]+)([A-Z][a-z])", "$1 $2")
+            .replaceAll("[_\\-]+", " ")
+            .replace("'", "")
+            .replace("’", "")
+            .replaceAll("\\s+", " ")
+            .trim()
+            .toLowerCase();
+        normalized = normalized
+            .replaceAll("\\bbenches\\b", "bench")
+            .replaceAll("\\bbookcases\\b", "bookcase")
+            .replaceAll("\\bfountains\\b", "fountain")
+            .replaceAll("\\bsinks\\b", "sink")
+            .replaceAll("\\bchairs\\b", "chair")
+            .replaceAll("\\btables\\b", "table")
+            .replaceAll("\\s+", " ")
+            .trim();
+        return normalized.isEmpty() ? null : normalized;
     }
 
     private void collectRecipeStations(Map<Long, RecipeStation> deduped, List<RecipeStation> recipeStations) {

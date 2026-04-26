@@ -27,7 +27,12 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
       },
     ],
     relationItemImages: [
-      { itemInternalName: 'IronPickaxe', cachedUrl: 'http://localhost/iron.png', isPrimary: 1 },
+      {
+        itemInternalName: 'IronPickaxe',
+        originalUrl: 'https://terraria.wiki.gg/images/Iron_Pickaxe.png',
+        cachedUrl: 'http://localhost/iron.png',
+        isPrimary: 1,
+      },
     ],
     relationItemRarities: [
       { id: 1, code: 'blue', displayNameZh: 'blue zh', displayNameEn: 'Blue' },
@@ -111,7 +116,7 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
   assert.equal(actual.projectionItems.length, 1);
   assert.equal(actual.projectionItems[0].name, 'Iron Pickaxe');
   assert.equal(actual.projectionItems[0].slug, 'ironpickaxe');
-  assert.equal(actual.projectionItems[0].image, 'http://localhost/iron.png');
+  assert.equal(actual.projectionItems[0].image, 'https://terraria.wiki.gg/images/Iron_Pickaxe.png');
   assert.equal(actual.projectionItems[0].damage, 5);
   assert.equal(actual.projectionItems[0].buy, 2000);
   assert.equal(actual.projectionItems[0].sell, 1000);
@@ -175,6 +180,30 @@ test('buildProjectionPayload uses wiki original URLs for npc and projectile imag
 
   assert.equal(actual.projectionNpcs[0].imageUrl, 'https://terraria.wiki.gg/images/Stingy%20Hornet.gif');
   assert.equal(actual.projectionProjectiles[0].imageUrl, 'https://terraria.wiki.gg/images/Wooden%20Arrow.png');
+});
+
+test('buildProjectionPayload uses wiki original URLs for item images instead of MinIO cache URLs', () => {
+  const actual = buildProjectionPayload({
+    relationItems: [
+      {
+        recordKey: 'item-rk',
+        sourceId: 55,
+        internalName: 'EnchantedBoomerang',
+        englishName: 'Enchanted Boomerang',
+        rawJson: '{}',
+      },
+    ],
+    relationItemImages: [
+      {
+        itemInternalName: 'EnchantedBoomerang',
+        originalUrl: 'https://terraria.wiki.gg/images/Enchanted_Boomerang.png?56c041',
+        cachedUrl: 'http://localhost:9000/terrapedia-images/items/wiki/item-images/61/enchanted-boomerang.png',
+        isPrimary: 1,
+      },
+    ],
+  });
+
+  assert.equal(actual.projectionItems[0].image, 'https://terraria.wiki.gg/images/Enchanted_Boomerang.png?56c041');
 });
 
 test('buildProjectionPayload prefers projectile flagsJson and only falls back to rawJson when flags are missing', () => {
