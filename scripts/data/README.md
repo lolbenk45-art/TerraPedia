@@ -6,14 +6,20 @@ Default shared data root:
 
 ## Directory Layout
 
+- `scripts/data/crawler`
+  - Target home for crawler source code. Existing `data/wiki-crawler/src` is not migrated yet.
 - `scripts/data/monitor`
   - Upstream source change detection
 - `scripts/data/fetch`
   - Raw fetch scripts for Wiki.gg modules and pages
 - `scripts/data/normalize`
   - Normalize raw wiki payloads into importable JSON
+- `scripts/data/canonical`
+  - Convert normalized data into audited canonical datasets
 - `scripts/data/import`
   - Import normalized payloads into backend APIs and DB flows
+- `scripts/data/export`
+  - Export canonical or database data for consumers
 - `scripts/data/pipeline`
   - Compose validate + import workflows
 - `scripts/data/audit`
@@ -28,6 +34,19 @@ Default shared data root:
   - Convert raw/shared datasets into local standardized outputs
 - `scripts/data/lib`
   - Shared MediaWiki, parsing, and upload utilities
+
+## Target Lifecycle
+
+```text
+fetch -> raw -> normalize -> normalized -> canonicalize -> canonical -> audit -> import/backfill -> database -> export
+```
+
+Rules:
+
+- Fetch and crawler scripts write raw source data, not final business inputs.
+- Import and backfill scripts should prefer `data/canonical/` as the trusted file input layer.
+- Scripts that read legacy data must make that explicit in arguments, logs, and reports.
+- New scripts must print actual input path, output path, target database, and target table when applicable.
 
 ## Monitor
 

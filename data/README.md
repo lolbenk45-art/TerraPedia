@@ -1,9 +1,20 @@
-# Standardized Data
+# Data Directory
 
-This directory now mainly keeps documentation.
-Active data outputs have been centralized into:
+This directory stores data layers and generated datasets.
+
+Active shared data outputs are currently centralized into:
 
 - `G:\ClaudeCode\data\terraPedia`
+
+## Target Data Layers
+
+- `data/raw/`: external source payloads with minimal transformation.
+- `data/normalized/`: cleaned and normalized intermediate data.
+- `data/canonical/`: audited trusted data used by import and replacement scripts.
+- `data/exports/`: generated outputs consumed by frontend, admin tools, or external tools.
+- `data/legacy/`: old datasets and migration comparison snapshots.
+
+New category replacement work should use `data/canonical/category/` as the trusted file input layer. Legacy category data should not be mixed into canonical outputs.
 
 ## Output Location
 
@@ -16,6 +27,8 @@ Current active locations:
 - `G:\ClaudeCode\data\terraPedia\standardized`
 - `G:\ClaudeCode\data\terraPedia\standardized-view`
 - `G:\ClaudeCode\data\terraPedia\generated`
+
+The existing `standardized`, `standardized-view`, and `generated` directories are historical active outputs. They should not be treated as the default location for new category replacement contracts unless a migration plan explicitly says so.
 
 ## Upstream Source Monitor
 

@@ -4,7 +4,7 @@
 
 状态：设计方案，尚未执行目录迁移。
 
-依据：[项目结构审计报告](../project-structure-audit-2026-04-27.md)
+依据：[项目结构审计报告](../audits/structure/project-structure-audit-2026-04-27.md)
 
 ## 设计目标
 
@@ -395,4 +395,3 @@ docs/plans/
 - 新增报告能明确判断是否应该进入 git。
 - 新增计划能明确判断放 `docs/plans/`、`project-plan/active/` 还是 `task/`。
 - 任意启动或写库脚本都能打印实际配置路径、数据根路径、目标数据库。
-
