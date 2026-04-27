@@ -9,10 +9,10 @@
                   AND TRIM(i.image) NOT LIKE '%/terrapedia-images/%'
                   AND LOWER(TRIM(i.image)) NOT LIKE '%(demo)%'
                   AND LOWER(TRIM(i.image)) NOT LIKE '%28demo%29%'
-                  AND LOWER(TRIM(i.image)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&#/-]|$)'
+                  AND LOWER(TRIM(i.image)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'
                   AND LOWER(TRIM(i.image)) NOT LIKE '%(placed)%'
                   AND LOWER(TRIM(i.image)) NOT LIKE '%28placed%29%'
-                  AND LOWER(TRIM(i.image)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&#/-]|$)'
+                  AND LOWER(TRIM(i.image)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&amp;#/-]|$)'
                   THEN TRIM(i.image)
             END,
             (
@@ -22,10 +22,10 @@
                           AND TRIM(ii.original_url) NOT LIKE '%/terrapedia-images/%'
                           AND LOWER(TRIM(ii.original_url)) NOT LIKE '%(demo)%'
                           AND LOWER(TRIM(ii.original_url)) NOT LIKE '%28demo%29%'
-                          AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&#/-]|$)'
+                          AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'
                           AND LOWER(TRIM(ii.original_url)) NOT LIKE '%(placed)%'
                           AND LOWER(TRIM(ii.original_url)) NOT LIKE '%28placed%29%'
-                          AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&#/-]|$)'
+                          AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&amp;#/-]|$)'
                           THEN TRIM(ii.original_url)
                     END,
                     CASE
@@ -33,10 +33,10 @@
                           AND TRIM(ii.cached_url) NOT LIKE '%/terrapedia-images/%'
                           AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%(demo)%'
                           AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%28demo%29%'
-                          AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&#/-]|$)'
+                          AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'
                           AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%(placed)%'
                           AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%28placed%29%'
-                          AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&#/-]|$)'
+                          AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&amp;#/-]|$)'
                           THEN TRIM(ii.cached_url)
                     END
                 )
@@ -51,10 +51,10 @@
                           AND ii.original_url NOT LIKE '%/terrapedia-images/%'
                           AND LOWER(TRIM(ii.original_url)) NOT LIKE '%(demo)%'
                           AND LOWER(TRIM(ii.original_url)) NOT LIKE '%28demo%29%'
-                          AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&#/-]|$)'
+                          AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'
                           AND LOWER(TRIM(ii.original_url)) NOT LIKE '%(placed)%'
                           AND LOWER(TRIM(ii.original_url)) NOT LIKE '%28placed%29%'
-                          AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&#/-]|$)'
+                          AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&amp;#/-]|$)'
                       )
                       OR (
                           ii.cached_url IS NOT NULL
@@ -62,10 +62,10 @@
                           AND ii.cached_url NOT LIKE '%/terrapedia-images/%'
                           AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%(demo)%'
                           AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%28demo%29%'
-                          AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&#/-]|$)'
+                          AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'
                           AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%(placed)%'
                           AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%28placed%29%'
-                          AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&#/-]|$)'
+                          AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&amp;#/-]|$)'
                       )
                   )
                 ORDER BY
@@ -74,10 +74,10 @@
                           AND ii.original_url NOT LIKE '%/terrapedia-images/%'
                           AND LOWER(TRIM(ii.original_url)) NOT LIKE '%(demo)%'
                           AND LOWER(TRIM(ii.original_url)) NOT LIKE '%28demo%29%'
-                          AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&#/-]|$)'
+                          AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'
                           AND LOWER(TRIM(ii.original_url)) NOT LIKE '%(placed)%'
                           AND LOWER(TRIM(ii.original_url)) NOT LIKE '%28placed%29%'
-                          AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&#/-]|$)'
+                          AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&amp;#/-]|$)'
                           THEN 0
                         ELSE 1
                     END,

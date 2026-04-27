@@ -244,12 +244,13 @@ $springFlywayOutOfOrder = Resolve-BoolString 'SPRING_FLYWAY_OUT_OF_ORDER' (Get-C
 $env:SPRING_FLYWAY_OUT_OF_ORDER = $springFlywayOutOfOrder
 $env:SPRING_DEVTOOLS_RESTART_ENABLED = 'false'
 $env:SPRING_DEVTOOLS_LIVERELOAD_ENABLED = 'false'
+$env:MANAGEMENT_HEALTH_MAIL_ENABLED = 'false'
 
 if (-not (Test-LocalPort $backPort)) {
 $backLog = Join-Path $reportDir 'back-dev.log'
   $backCmd = @"
 Set-Location '$backDir'
-& '$mavenCmd' '-DskipTests' '-Dspring-boot.run.profiles=legacy' '-Dspring-boot.run.jvmArguments=-DAPP_PORT=$backPort -DTERRAPEDIA_MAIL_ENABLED=false' 'spring-boot:run'
+& '$mavenCmd' '-DskipTests' '-Dspring-boot.run.profiles=legacy' '-Dspring-boot.run.jvmArguments=-DAPP_PORT=$backPort -DTERRAPEDIA_MAIL_ENABLED=false -Dmanagement.health.mail.enabled=false' 'spring-boot:run'
 "@
   Write-Host "backend db: $dbName"
   Start-BackgroundPwsh -Name 'back' -Command $backCmd -LogPath $backLog
