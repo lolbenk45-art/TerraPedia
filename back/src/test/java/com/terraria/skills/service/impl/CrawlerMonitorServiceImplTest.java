@@ -156,6 +156,70 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldPairFallbackLatestFullReportWithItsSiblingSummary() throws Exception {
+        Path staleSummaryPath = historyDir.resolve("backend-data-refresh-2026-04-27T00-00-00-000Z.summary.json");
+        Path latestOutputPath = historyDir.resolve("backend-data-refresh-2026-04-27T01-00-00-000Z.json");
+        Path latestSummaryPath = historyDir.resolve("backend-data-refresh-2026-04-27T01-00-00-000Z.summary.json");
+
+        writeJson(refreshDir.resolve("backend-refresh-scheduler.latest.json"), Map.of(
+            "status", "running",
+            "generatedAt", "2026-04-27T01:00:00Z",
+            "lastOutputPath", historyDir.resolve("missing-report.json").toString(),
+            "lastSummaryPath", staleSummaryPath.toString()
+        ));
+        writeJson(staleSummaryPath, Map.of(
+            "generatedAt", "2026-04-27T00:00:00Z",
+            "outputPath", historyDir.resolve("missing-report.json").toString(),
+            "totalActions", 0,
+            "completedActions", 0,
+            "failedActions", 0,
+            "runningActions", 0,
+            "pendingActions", 0,
+            "timedOutActions", 0,
+            "totalDurationMs", 0
+        ));
+        writeJson(latestOutputPath, Map.of(
+            "generatedAt", "2026-04-27T01:00:00Z",
+            "totalActions", 2,
+            "completedActions", 1,
+            "failedActions", 0,
+            "runningActions", 1,
+            "pendingActions", 0,
+            "timedOutActions", 0,
+            "actions", List.of(
+                Map.of("id", "wiki-core-refresh", "runner", "node", "status", "completed", "timedOut", false),
+                Map.of("id", "item-pages-refresh", "runner", "node", "status", "running", "timedOut", false)
+            )
+        ));
+        writeJson(latestSummaryPath, Map.of(
+            "generatedAt", "2026-04-27T01:00:00Z",
+            "outputPath", latestOutputPath.toString(),
+            "lastActionId", "item-pages-refresh",
+            "totalActions", 2,
+            "completedActions", 1,
+            "failedActions", 0,
+            "runningActions", 1,
+            "pendingActions", 0,
+            "timedOutActions", 0,
+            "totalDurationMs", 1200
+        ));
+        Files.setLastModifiedTime(staleSummaryPath, FileTime.from(Instant.parse("2026-04-27T00:00:00Z")));
+        Files.setLastModifiedTime(latestOutputPath, FileTime.from(Instant.parse("2026-04-27T01:00:00Z")));
+        Files.setLastModifiedTime(latestSummaryPath, FileTime.from(Instant.parse("2026-04-27T01:00:00Z")));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+
+        assertEquals("reports/backend-refresh/history/backend-data-refresh-2026-04-27T01-00-00-000Z.json", overview.getLatestRun().getPath());
+        assertEquals("reports/backend-refresh/history/backend-data-refresh-2026-04-27T01-00-00-000Z.summary.json", overview.getLatestRun().getSummaryPath());
+        assertEquals(2, overview.getLatestRun().getTotalActions());
+        assertEquals(1, overview.getLatestRun().getRunningActions());
+        assertEquals("item-pages-refresh", overview.getLatestRun().getLastActionId());
+        assertEquals(2, overview.getLatestRun().getActions().size());
+    }
+
+    @Test
     void shouldExposeReadErrorForCorruptJson() throws Exception {
         Files.writeString(refreshDir.resolve("backend-refresh.lock.json"), "{ broken-json");
 

@@ -82,18 +82,24 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private CrawlerMonitorOverviewDTO.MonitorRunDTO buildLatestRun(Path repoRoot, Map<String, Object> schedulerPayload) {
         Path historyDir = repoRoot.resolve(HISTORY_DIR).normalize();
-        Path outputPath = resolvePayloadPathInsideRepo(repoRoot, schedulerPayload.get("lastOutputPath"));
-        if (outputPath == null || !Files.exists(outputPath)) {
-            outputPath = findLatestFullReport(historyDir);
-        }
+        Path schedulerOutputPath = resolvePayloadPathInsideRepo(repoRoot, schedulerPayload.get("lastOutputPath"));
+        boolean usingSchedulerOutput = schedulerOutputPath != null && Files.exists(schedulerOutputPath);
+        Path outputPath = usingSchedulerOutput ? schedulerOutputPath : findLatestFullReport(historyDir);
 
-        Path summaryPath = resolvePayloadPathInsideRepo(repoRoot, schedulerPayload.get("lastSummaryPath"));
-        if ((summaryPath == null || !Files.exists(summaryPath)) && outputPath != null) {
+        Path summaryPath = null;
+        if (outputPath != null) {
             Path siblingSummary = buildSummaryPath(outputPath);
             if (Files.exists(siblingSummary)) {
                 summaryPath = siblingSummary;
             }
         }
+
+        Path schedulerSummaryPath = resolvePayloadPathInsideRepo(repoRoot, schedulerPayload.get("lastSummaryPath"));
+        if (summaryPath == null && (usingSchedulerOutput || outputPath == null)
+            && schedulerSummaryPath != null && Files.exists(schedulerSummaryPath)) {
+            summaryPath = schedulerSummaryPath;
+        }
+
         if (summaryPath == null || !Files.exists(summaryPath)) {
             summaryPath = findLatestSummary(historyDir);
         }
