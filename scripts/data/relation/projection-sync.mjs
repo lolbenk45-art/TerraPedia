@@ -76,6 +76,10 @@ function buildRowsByKey(rows, keyName) {
   return map;
 }
 
+const ARMOR_SET_IMAGE_ALIASES = new Map([
+  ['ArmorSetBonus.HallowedSummoner', 'ArmorSetBonus.Hallowed']
+]);
+
 function pickArmorSetImageUrl(rows, role) {
   const candidates = rows
     .filter((row) => row?.imageRole === role)
@@ -85,6 +89,40 @@ function pickArmorSetImageUrl(rows, role) {
       return Number(left.sortOrder ?? 0) - Number(right.sortOrder ?? 0);
     });
   return resolveWikiImageUrl(candidates[0]);
+}
+
+function findArmorSetImageRows(row, imagesByRecordKey, imagesByTextKey) {
+  const directRows = imagesByRecordKey.get(row.recordKey) ?? [];
+  if (directRows.length) return directRows;
+  const textKeyRows = imagesByTextKey.get(row.textKey) ?? [];
+  if (textKeyRows.length) return textKeyRows;
+  const aliasTextKey = ARMOR_SET_IMAGE_ALIASES.get(row.textKey);
+  return aliasTextKey ? (imagesByTextKey.get(aliasTextKey) ?? []) : [];
+}
+
+function normalizeImageComparable(value) {
+  return String(value ?? '')
+    .replace(/\.[^.]+$/, '')
+    .replace(/[^A-Za-z0-9]+/g, '')
+    .toLowerCase();
+}
+
+function findArmorSetPartImageUrl(item, images) {
+  const keys = [
+    normalizeImageComparable(item?.itemInternalName),
+    normalizeImageComparable(item?.itemName)
+  ].filter(Boolean);
+  if (!keys.length) return null;
+  const candidates = images
+    .filter((row) => row?.imageRole === 'part')
+    .sort((left, right) => Number(left.sortOrder ?? 0) - Number(right.sortOrder ?? 0));
+  for (const image of candidates) {
+    const imageKey = normalizeImageComparable(image.sourceFileTitle);
+    if (keys.some((key) => imageKey === key || imageKey.includes(key))) {
+      return resolveWikiImageUrl(image);
+    }
+  }
+  return null;
 }
 
 export function buildProjectionPayload({
@@ -130,6 +168,7 @@ export function buildProjectionPayload({
   const buffImages = buildImageIndex(relationBuffImages, 'buffInternalName');
   const armorSetItemsByRecordKey = buildRowsByKey(relationArmorSetItems, 'armorSetRecordKey');
   const armorSetImagesByRecordKey = buildRowsByKey(relationArmorSetImages, 'armorSetRecordKey');
+  const armorSetImagesByTextKey = buildRowsByKey(relationArmorSetImages, 'textKey');
 
   const projectionItems = relationItems.map((row) => {
     const raw = parseJsonObject(row.rawJson);
@@ -176,6 +215,11 @@ export function buildProjectionPayload({
       updatedAt: null
     };
   });
+  const projectionItemBySourceId = new Map(
+    projectionItems
+      .filter((row) => row?.id != null)
+      .map((row) => [Number(row.id), row])
+  );
 
   const projectionNpcs = relationNpcs.map((row) => {
     const raw = parseJsonObject(row.rawJson);
@@ -285,22 +329,30 @@ export function buildProjectionPayload({
         if (variantDelta !== 0) return variantDelta;
         return Number(left.partIndex ?? 0) - Number(right.partIndex ?? 0);
       });
-    const images = armorSetImagesByRecordKey.get(row.recordKey) ?? [];
+    const images = findArmorSetImageRows(row, armorSetImagesByRecordKey, armorSetImagesByTextKey);
     const currentItemIds = [...new Set(
       setItems
         .map((item) => toNullableNumber(item.itemSourceId))
         .filter((id) => id != null && id > 0)
     )];
-    const relatedItems = setItems.map((item) => ({
-      sourceId: toNullableNumber(item.itemSourceId),
-      internalName: item.itemInternalName ?? null,
-      name: item.itemName ?? null,
-      partRole: item.partRole ?? null,
-      slotType: item.slotType ?? null,
-      equipmentSlotId: toNullableNumber(item.equipmentSlotId),
-      setVariantIndex: toNullableNumber(item.setVariantIndex) ?? 0,
-      partIndex: toNullableNumber(item.partIndex) ?? 0
-    }));
+    const relatedItems = setItems.map((item) => {
+      const sourceId = toNullableNumber(item.itemSourceId);
+      const projectionItem = sourceId == null ? null : projectionItemBySourceId.get(sourceId);
+      return {
+        id: projectionItem?.id ?? sourceId ?? null,
+        itemId: projectionItem?.id ?? sourceId ?? null,
+        sourceId,
+        internalName: item.itemInternalName ?? null,
+        name: item.itemName ?? null,
+        nameZh: projectionItem?.nameZh ?? null,
+        image: projectionItem?.image ?? findArmorSetPartImageUrl(item, images),
+        partRole: item.partRole ?? null,
+        slotType: item.slotType ?? null,
+        equipmentSlotId: toNullableNumber(item.equipmentSlotId),
+        setVariantIndex: toNullableNumber(item.setVariantIndex) ?? 0,
+        partIndex: toNullableNumber(item.partIndex) ?? 0
+      };
+    });
     const hasUnresolved = setItems.some((item) => item.reviewStatus === 'unresolved' || !item.itemInternalName);
 
     return {

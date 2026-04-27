@@ -36,6 +36,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @RestController
@@ -47,9 +49,17 @@ public class AdminArmorSetController {
 
     private static final String RELATION_DATABASE_NAME = "terria_v1_relation";
     private static final String PROJECTION_ARMOR_SETS_TABLE = "projection_armor_sets";
+    private static final String PROJECTION_ITEMS_TABLE = "projection_items";
+    private static final Map<String, String> ARMOR_SET_IMAGE_ALIASES = Map.of(
+        "ArmorSetBonus.HallowedSummoner", "ArmorSetBonus.Hallowed"
+    );
+    private static final Pattern ARMOR_EFFECT_ADD_PATTERN = Pattern.compile("player\\.([A-Za-z0-9_]+) \\+= ([0-9.]+)f?");
+    private static final Pattern ARMOR_EFFECT_SUBTRACT_PATTERN = Pattern.compile("player\\.([A-Za-z0-9_]+) -= ([0-9.]+)f?");
+    private static final Pattern ARMOR_EFFECT_FLAG_PATTERN = Pattern.compile("player\\.([A-Za-z0-9_]+) = true");
 
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
+    private Map<String, List<String>> armorBenefitStatementCache;
 
     @GetMapping
     @Operation(summary = "Get armor sets")
@@ -212,7 +222,8 @@ public class AdminArmorSetController {
             queryArgs.toArray()
         );
 
-        List<Map<String, Object>> payload = rows.stream().map(this::normalizeProjectionArmorSetRow).toList();
+        Map<String, ArmorSetImageGroup> snapshotImages = loadArmorSetImageSnapshot();
+        List<Map<String, Object>> payload = rows.stream().map(row -> normalizeProjectionArmorSetRow(row, snapshotImages)).toList();
         Pagination pagination = new Pagination(total == null ? 0 : total, safePage, safeLimit);
         ApiResponse<List<Map<String, Object>>> response = ApiResponse.success(payload);
         response.setPagination(pagination);
@@ -234,7 +245,7 @@ public class AdminArmorSetController {
         if (rows.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "ArmorSet not found"));
         }
-        return ResponseEntity.ok(ApiResponse.success(normalizeProjectionArmorSetRow(rows.get(0))));
+        return ResponseEntity.ok(ApiResponse.success(normalizeProjectionArmorSetRow(rows.get(0), loadArmorSetImageSnapshot())));
     }
 
     @PostMapping
@@ -363,17 +374,26 @@ public class AdminArmorSetController {
         return " WHERE (source_key LIKE ? OR text_key LIKE ? OR benefit_expression LIKE ? OR source_key LIKE ? OR text_key LIKE ?)";
     }
 
-    private Map<String, Object> normalizeProjectionArmorSetRow(Map<String, Object> row) {
+    private Map<String, Object> normalizeProjectionArmorSetRow(Map<String, Object> row, Map<String, ArmorSetImageGroup> snapshotImages) {
         Map<String, Object> payload = new LinkedHashMap<>();
         String textKey = trimToNull(row.get("text_key"));
         String nameZh = firstNonBlank(trimToNull(row.get("name_zh")), trimToNull(row.get("name")), textKey);
         String nameEn = firstNonBlank(trimToNull(row.get("name_en")), trimToNull(row.get("name")), textKey);
         String benefitExpression = trimToNull(row.get("benefit_expression"));
-        String maleImages = trimToNull(row.get("male_images"));
-        String femaleImages = trimToNull(row.get("female_images"));
-        String specialImages = trimToNull(row.get("special_images"));
-        String previewImage = firstNonBlank(maleImages, femaleImages, specialImages);
-        List<Map<String, Object>> equipmentItems = normalizeArmorEquipmentItems(parseJson(row.get("related_items_json")));
+        ArmorSetImageGroup snapshotImageGroup = findArmorSetImageGroup(textKey, snapshotImages);
+        String snapshotMaleImages = snapshotImageGroup == null ? null : snapshotImageGroup.maleCsv();
+        String snapshotFemaleImages = snapshotImageGroup == null ? null : snapshotImageGroup.femaleCsv();
+        String snapshotSpecialImages = snapshotImageGroup == null ? null : snapshotImageGroup.specialCsv();
+        String maleImages = firstNonBlank(trimToNull(row.get("male_images")), snapshotMaleImages);
+        String femaleImages = firstNonBlank(trimToNull(row.get("female_images")), snapshotFemaleImages);
+        String specialImages = firstNonBlank(trimToNull(row.get("special_images")), snapshotSpecialImages);
+        List<Map<String, Object>> equipmentItems = enrichProjectionEquipmentItems(normalizeArmorEquipmentItems(parseJson(row.get("related_items_json"))));
+        String relatedPreviewImage = equipmentItems.stream()
+            .map(item -> trimToNull(item.get("image")))
+            .filter(value -> value != null && !value.isBlank())
+            .findFirst()
+            .orElse(null);
+        String previewImage = firstNonBlank(maleImages, femaleImages, specialImages, relatedPreviewImage);
         String mappingStatus = firstNonBlank(trimToNull(row.get("mapping_status")), "mapped");
 
         payload.put("id", toLong(row.get("id")));
@@ -414,6 +434,7 @@ public class AdminArmorSetController {
         payload.put("relatedItems", equipmentItems);
         payload.put("equipmentItems", equipmentItems);
         payload.put("setVariants", buildArmorSetVariants(textKey, parseJson(row.get("sets_json")), equipmentItems));
+        payload.put("replacementGroups", buildArmorReplacementGroups(equipmentItems));
         payload.put("effectRows", buildArmorEffectRows(benefitZh(payload), benefitEn(payload), benefitExpression, row.get("primary_part"), mappingStatus));
         payload.put("createdAt", row.get("created_at"));
         payload.put("updatedAt", row.get("updated_at"));
@@ -511,6 +532,7 @@ public class AdminArmorSetController {
         payload.put("relatedItems", equipmentItems);
         payload.put("equipmentItems", equipmentItems);
         payload.put("setVariants", buildArmorSetVariants(String.valueOf(payload.getOrDefault("textKey", textKey)), parseJson(payload.get("setsJson")), equipmentItems));
+        payload.put("replacementGroups", buildArmorReplacementGroups(equipmentItems));
         payload.put(
             "effectRows",
             buildArmorEffectRows(
@@ -561,6 +583,130 @@ public class AdminArmorSetController {
             result.add(payload);
         }
         return result;
+    }
+
+    private List<Map<String, Object>> enrichProjectionEquipmentItems(List<Map<String, Object>> equipmentItems) {
+        if (equipmentItems == null || equipmentItems.isEmpty()) {
+            return List.of();
+        }
+        List<Long> sourceIds = equipmentItems.stream()
+            .map(item -> firstNonNullLong(item.get("sourceId"), item.get("id")))
+            .filter(value -> value != null && value > 0)
+            .distinct()
+            .toList();
+        if (sourceIds.isEmpty()) {
+            return equipmentItems;
+        }
+
+        String projectionItemsTable = resolveProjectionItemsTable();
+        if (projectionItemsTable == null) {
+            return equipmentItems;
+        }
+
+        String placeholders = String.join(",", sourceIds.stream().map(id -> "?").toList());
+        Map<Long, Map<String, Object>> itemById = new LinkedHashMap<>();
+        try {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT id, name, name_zh, internal_name, image FROM " + projectionItemsTable + " WHERE id IN (" + placeholders + ")",
+                sourceIds.toArray()
+            );
+            for (Map<String, Object> row : rows) {
+                Long id = toLong(row.get("id"));
+                if (id != null) {
+                    itemById.put(id, row);
+                }
+            }
+        } catch (Exception exception) {
+            log.debug("Failed to enrich projection armor equipment items", exception);
+            return equipmentItems;
+        }
+
+        if (itemById.isEmpty()) {
+            return equipmentItems;
+        }
+
+        List<Map<String, Object>> enriched = new ArrayList<>();
+        for (Map<String, Object> item : equipmentItems) {
+            Map<String, Object> copy = new LinkedHashMap<>(item);
+            Long sourceId = firstNonNullLong(copy.get("sourceId"), copy.get("id"));
+            Map<String, Object> projectionItem = sourceId == null ? null : itemById.get(sourceId);
+            if (projectionItem != null) {
+                Long projectionId = toLong(projectionItem.get("id"));
+                copy.put("id", firstNonNullLong(copy.get("id"), projectionId));
+                copy.put("itemId", firstNonNullLong(copy.get("itemId"), projectionId));
+                copy.put("sourceId", firstNonNullLong(copy.get("sourceId"), projectionId));
+                copy.put("name", firstNonBlank(trimToNull(copy.get("name")), trimToNull(projectionItem.get("name"))));
+                copy.put("nameZh", firstNonBlank(trimToNull(copy.get("nameZh")), trimToNull(projectionItem.get("name_zh"))));
+                copy.put("internalName", firstNonBlank(trimToNull(copy.get("internalName")), trimToNull(projectionItem.get("internal_name"))));
+                copy.put("image", firstNonBlank(trimToNull(copy.get("image")), trimToNull(projectionItem.get("image"))));
+            }
+            enriched.add(copy);
+        }
+        return enriched;
+    }
+
+    private String resolveProjectionItemsTable() {
+        if (tableExistsInCurrentDatabase(PROJECTION_ITEMS_TABLE)) {
+            return PROJECTION_ITEMS_TABLE;
+        }
+        if (tableExists(RELATION_DATABASE_NAME, PROJECTION_ITEMS_TABLE)) {
+            return "`" + RELATION_DATABASE_NAME + "`.`" + PROJECTION_ITEMS_TABLE + "`";
+        }
+        return null;
+    }
+
+    private List<Map<String, Object>> buildArmorReplacementGroups(List<Map<String, Object>> equipmentItems) {
+        if (equipmentItems == null || equipmentItems.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, Map<Long, Map<String, Object>>> grouped = new LinkedHashMap<>();
+        for (Map<String, Object> item : equipmentItems) {
+            String partRole = normalizeArmorPartRole(trimToNull(item.get("partRole")));
+            Long sourceId = firstNonNullLong(item.get("sourceId"), item.get("id"));
+            if (sourceId == null || sourceId <= 0) {
+                continue;
+            }
+            grouped.computeIfAbsent(partRole, ignored -> new LinkedHashMap<>()).putIfAbsent(sourceId, item);
+        }
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map.Entry<String, Map<Long, Map<String, Object>>> entry : grouped.entrySet()) {
+            if (entry.getValue().size() <= 1) {
+                continue;
+            }
+            Map<String, Object> group = new LinkedHashMap<>();
+            List<Map<String, Object>> items = new ArrayList<>(entry.getValue().values());
+            group.put("partRole", entry.getKey());
+            group.put("label", armorPartRoleLabel(entry.getKey()));
+            group.put("sourceIds", new ArrayList<>(entry.getValue().keySet()));
+            group.put("items", items);
+            result.add(group);
+        }
+        return result;
+    }
+
+    private String normalizeArmorPartRole(String partRole) {
+        if (partRole == null) {
+            return "other";
+        }
+        String normalized = partRole.trim().toLowerCase();
+        if ("leg".equals(normalized)) {
+            return "legs";
+        }
+        if ("head".equals(normalized) || "body".equals(normalized) || "legs".equals(normalized)) {
+            return normalized;
+        }
+        return "other";
+    }
+
+    private String armorPartRoleLabel(String partRole) {
+        return switch (partRole) {
+            case "head" -> "\u5934\u90e8\u53ef\u66ff\u6362";
+            case "body" -> "\u8eab\u4f53\u53ef\u66ff\u6362";
+            case "legs" -> "\u817f\u90e8\u53ef\u66ff\u6362";
+            default -> "\u5176\u4ed6\u53ef\u66ff\u6362";
+        };
     }
 
     private List<Map<String, Object>> buildArmorSetVariants(String textKey, Object rawSets, List<Map<String, Object>> equipmentItems) {
@@ -635,12 +781,200 @@ public class AdminArmorSetController {
         Object mappingStatus
     ) {
         List<Map<String, Object>> rows = new ArrayList<>();
-        addEffectRow(rows, "中文效果", benefitZh);
-        addEffectRow(rows, "英文效果", benefitEn);
+        List<String> statements = loadArmorBenefitStatements().getOrDefault(benefitExpression, List.of());
+        int effectIndex = 1;
+        for (String statement : statements) {
+            addEffectRow(rows, "\u6e38\u620f\u6548\u679c " + effectIndex, humanizeArmorBenefitStatement(statement));
+            effectIndex += 1;
+        }
+        if (!isBenefitExpressionValue(benefitZh, benefitExpression)) {
+            addEffectRow(rows, "\u4e2d\u6587\u6548\u679c", benefitZh);
+        }
+        if (!isBenefitExpressionValue(benefitEn, benefitExpression)) {
+            addEffectRow(rows, "\u82f1\u6587\u6548\u679c", benefitEn);
+        }
         addEffectRow(rows, "Benefit Expression", benefitExpression);
         addEffectRow(rows, "Primary Part", trimToNull(primaryPart));
         addEffectRow(rows, "Mapping Status", trimToNull(mappingStatus));
         return rows;
+    }
+
+    private boolean isBenefitExpressionValue(String value, String benefitExpression) {
+        String text = trimToNull(value);
+        if (text == null) {
+            return true;
+        }
+        return text.equals(benefitExpression) || text.startsWith("ArmorSetBonuses.Benefits.");
+    }
+
+    private Map<String, List<String>> loadArmorBenefitStatements() {
+        if (armorBenefitStatementCache != null) {
+            return armorBenefitStatementCache;
+        }
+        Path path = resolveDataFile(Path.of("generated", "wiki-armorsetbonuses.latest.json"));
+        if (path == null) {
+            armorBenefitStatementCache = Map.of();
+            return armorBenefitStatementCache;
+        }
+
+        try {
+            Map<String, Object> root = objectMapper.readValue(path.toFile(), new TypeReference<>() {});
+            String content = trimToNull(root.get("content"));
+            armorBenefitStatementCache = content == null ? Map.of() : parseArmorBenefitStatements(content);
+            return armorBenefitStatementCache;
+        } catch (Exception exception) {
+            log.debug("Failed to load armor set benefit source", exception);
+            armorBenefitStatementCache = Map.of();
+            return armorBenefitStatementCache;
+        }
+    }
+
+    private Map<String, List<String>> parseArmorBenefitStatements(String content) {
+        Map<String, List<String>> result = new LinkedHashMap<>();
+        String marker = "ArmorSetBonuses.Benefits.";
+        int cursor = 0;
+        while (cursor >= 0 && cursor < content.length()) {
+            int markerIndex = content.indexOf(marker, cursor);
+            if (markerIndex < 0) {
+                break;
+            }
+            int functionNameStart = markerIndex + marker.length();
+            int functionNameEnd = content.indexOf(" = function", functionNameStart);
+            if (functionNameEnd < 0) {
+                cursor = functionNameStart;
+                continue;
+            }
+
+            String functionName = content.substring(functionNameStart, functionNameEnd).trim();
+            int nextMarker = content.indexOf(marker, functionNameEnd + 1);
+            int blockStart = content.indexOf("--[[", functionNameEnd);
+            int blockEnd = blockStart < 0 ? -1 : content.indexOf("]]", blockStart);
+            if (blockStart > 0 && blockEnd > blockStart && (nextMarker < 0 || blockStart < nextMarker)) {
+                String block = content.substring(blockStart + 4, blockEnd);
+                List<String> statements = new ArrayList<>();
+                for (String rawLine : block.split("\\R")) {
+                    String line = rawLine.trim();
+                    if (line.isBlank() || "{".equals(line) || "}".equals(line) || line.startsWith("//")) {
+                        continue;
+                    }
+                    statements.add(line.endsWith(";") ? line.substring(0, line.length() - 1) : line);
+                }
+                if (!statements.isEmpty()) {
+                    result.put("ArmorSetBonuses.Benefits." + functionName, statements);
+                }
+            }
+            cursor = nextMarker < 0 ? content.length() : nextMarker;
+        }
+        return result;
+    }
+
+    private String humanizeArmorBenefitStatement(String statement) {
+        String text = trimToNull(statement);
+        if (text == null) {
+            return null;
+        }
+        if ("player.maxMinions++".equals(text)) {
+            return "\u4ec6\u4ece\u4e0a\u9650 +1";
+        }
+        Matcher addMatcher = ARMOR_EFFECT_ADD_PATTERN.matcher(text);
+        if (addMatcher.matches()) {
+            return formatArmorEffectDelta(addMatcher.group(1), addMatcher.group(2), true);
+        }
+        Matcher subtractMatcher = ARMOR_EFFECT_SUBTRACT_PATTERN.matcher(text);
+        if (subtractMatcher.matches()) {
+            return formatArmorEffectDelta(subtractMatcher.group(1), subtractMatcher.group(2), false);
+        }
+        Matcher flagMatcher = ARMOR_EFFECT_FLAG_PATTERN.matcher(text);
+        if (flagMatcher.matches()) {
+            return formatArmorEffectFlag(flagMatcher.group(1));
+        }
+        if (text.startsWith("player.ApplySetBonus_")) {
+            return "\u542f\u7528 " + text.replace("player.", "");
+        }
+        if (text.startsWith("player.AddBuff(")) {
+            return "\u8ffd\u52a0 Buff " + text.replace("player.", "");
+        }
+        return text;
+    }
+
+    private String formatArmorEffectDelta(String field, String rawNumber, boolean positive) {
+        String label = armorEffectFieldLabel(field);
+        String sign = positive ? "+" : "-";
+        if (isArmorEffectPercentField(field)) {
+            return label + " " + sign + formatPercent(rawNumber);
+        }
+        return label + " " + sign + trimTrailingZero(rawNumber);
+    }
+
+    private String armorEffectFieldLabel(String field) {
+        return switch (field) {
+            case "maxMinions" -> "\u4ec6\u4ece\u4e0a\u9650";
+            case "maxTurrets" -> "\u54e8\u5175\u4e0a\u9650";
+            case "minionDamage" -> "\u53ec\u5524\u4f24\u5bb3";
+            case "meleeDamage" -> "\u8fd1\u6218\u4f24\u5bb3";
+            case "rangedDamage" -> "\u8fdc\u7a0b\u4f24\u5bb3";
+            case "magicDamage" -> "\u9b54\u6cd5\u4f24\u5bb3";
+            case "meleeCrit" -> "\u8fd1\u6218\u66b4\u51fb";
+            case "rangedCrit" -> "\u8fdc\u7a0b\u66b4\u51fb";
+            case "magicCrit" -> "\u9b54\u6cd5\u66b4\u51fb";
+            case "manaCost" -> "\u9b54\u529b\u6d88\u8017";
+            case "meleeSpeed" -> "\u8fd1\u6218\u901f\u5ea6";
+            case "moveSpeed" -> "\u79fb\u52a8\u901f\u5ea6";
+            case "whipRangeMultiplier" -> "\u97ad\u8303\u56f4";
+            case "whipUseTimeMultiplier" -> "\u97ad\u4f7f\u7528\u95f4\u9694";
+            case "pickSpeed" -> "\u6316\u6398\u95f4\u9694";
+            case "statManaMax2" -> "\u6700\u5927\u9b54\u529b";
+            case "endurance" -> "\u4f24\u5bb3\u51cf\u514d";
+            default -> field;
+        };
+    }
+
+    private boolean isArmorEffectPercentField(String field) {
+        return Set.of(
+            "minionDamage",
+            "meleeDamage",
+            "rangedDamage",
+            "magicDamage",
+            "manaCost",
+            "meleeSpeed",
+            "moveSpeed",
+            "whipRangeMultiplier",
+            "whipUseTimeMultiplier",
+            "pickSpeed",
+            "endurance"
+        ).contains(field);
+    }
+
+    private String formatArmorEffectFlag(String flag) {
+        return switch (flag) {
+            case "onHitDodge" -> "\u542f\u7528\u795e\u5723\u95ea\u907f (Holy Protection)";
+            case "ammoCost80" -> "80% \u51e0\u7387\u4e0d\u6d88\u8017\u5f39\u836f";
+            case "ammoCost75" -> "75% \u51e0\u7387\u4e0d\u6d88\u8017\u5f39\u836f";
+            case "spaceGun" -> "\u7a7a\u95f4\u67aa\u9b54\u529b\u6d88\u8017\u5f52\u96f6";
+            case "fireWalk" -> "\u53ef\u5728\u706b\u5757\u4e0a\u884c\u8d70";
+            case "frostBurn" -> "\u8fd1\u6218/\u8fdc\u7a0b\u653b\u51fb\u9644\u5e26\u971c\u51bb\u706b\u7130";
+            default -> "\u542f\u7528 " + flag;
+        };
+    }
+
+    private String formatPercent(String rawNumber) {
+        try {
+            double value = Double.parseDouble(rawNumber) * 100;
+            return trimTrailingZero(String.valueOf(value)) + "%";
+        } catch (NumberFormatException exception) {
+            return rawNumber + "%";
+        }
+    }
+
+    private String trimTrailingZero(String rawNumber) {
+        if (rawNumber == null) {
+            return "";
+        }
+        String text = rawNumber.endsWith("f") ? rawNumber.substring(0, rawNumber.length() - 1) : rawNumber;
+        if (text.endsWith(".0")) {
+            return text.substring(0, text.length() - 2);
+        }
+        return text;
     }
 
     private void addEffectRow(List<Map<String, Object>> rows, String label, String value) {
@@ -671,6 +1005,18 @@ public class AdminArmorSetController {
             }
         }
         return null;
+    }
+
+    private ArmorSetImageGroup findArmorSetImageGroup(String textKey, Map<String, ArmorSetImageGroup> snapshotImages) {
+        if (textKey == null || snapshotImages == null || snapshotImages.isEmpty()) {
+            return null;
+        }
+        ArmorSetImageGroup direct = snapshotImages.get(textKey);
+        if (direct != null) {
+            return direct;
+        }
+        String alias = ARMOR_SET_IMAGE_ALIASES.get(textKey);
+        return alias == null ? null : snapshotImages.get(alias);
     }
 
     private Map<String, ArmorSetImageGroup> loadArmorSetImageSnapshot() {
@@ -1088,7 +1434,7 @@ public class AdminArmorSetController {
                 male.add(url);
             } else if ("female".equals(normalizedRole)) {
                 female.add(url);
-            } else if ("special".equals(normalizedRole)) {
+            } else if ("special".equals(normalizedRole) || "demo".equals(normalizedRole) || "other".equals(normalizedRole)) {
                 special.add(url);
             }
         }

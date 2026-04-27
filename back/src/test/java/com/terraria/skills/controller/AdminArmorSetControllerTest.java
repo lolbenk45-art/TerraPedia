@@ -35,8 +35,10 @@ class AdminArmorSetControllerTest {
         Path repoRoot = tempDir.resolve("repo");
         Files.createDirectories(repoRoot.resolve("back"));
         Files.createDirectories(repoRoot.resolve("data/terraPedia/raw/wiki"));
+        Files.createDirectories(repoRoot.resolve("data/generated"));
         System.setProperty("user.dir", repoRoot.resolve("back").toString());
         writeArmorSetImageSnapshot(repoRoot);
+        writeArmorSetBonusSource(repoRoot);
     }
 
     @AfterEach
@@ -90,6 +92,31 @@ class AdminArmorSetControllerTest {
         assertEquals("head", equipmentItems.get(0).get("partRole"));
         assertEquals("headSlot", equipmentItems.get(0).get("slotType"));
         assertEquals(52, equipmentItems.get(0).get("equipmentSlotId"));
+    }
+
+    @Test
+    void projectionDetailEnrichesEquipmentImagesReplacementGroupsAndEffectRows() {
+        FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(true, "hallowedSummoner");
+        AdminArmorSetController controller = new AdminArmorSetController(jdbcTemplate, new ObjectMapper());
+
+        ResponseEntity<ApiResponse<Map<String, Object>>> response = controller.getArmorSetById(303L);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        Map<String, Object> data = response.getBody().getData();
+        assertEquals("https://terraria.wiki.gg/images/Hallowed_armor.png?8ccbab", data.get("maleImages"));
+
+        List<Map<String, Object>> equipmentItems = asMapList(data.get("equipmentItems"));
+        assertEquals("神圣兜帽", equipmentItems.get(0).get("nameZh"));
+        assertEquals("https://terraria.wiki.gg/images/Hallowed_Hood.png", equipmentItems.get(0).get("image"));
+
+        List<Map<String, Object>> replacementGroups = asMapList(data.get("replacementGroups"));
+        assertTrue(replacementGroups.stream().anyMatch(group -> "body".equals(group.get("partRole")) && asMapList(group.get("items")).size() == 2));
+        assertTrue(replacementGroups.stream().anyMatch(group -> "legs".equals(group.get("partRole")) && asMapList(group.get("items")).size() == 2));
+
+        List<Map<String, Object>> effectRows = asMapList(data.get("effectRows"));
+        assertTrue(effectRows.stream().anyMatch(row -> String.valueOf(row.get("value")).contains("仆从上限 +2")));
+        assertTrue(effectRows.stream().anyMatch(row -> String.valueOf(row.get("value")).contains("启用神圣闪避")));
     }
 
     @Test
@@ -175,8 +202,31 @@ class AdminArmorSetControllerTest {
                   "pageTitle": "Wood armor",
                   "imageRole": "part",
                   "originalUrl": "https://terraria.wiki.gg/images/Wood_Helmet.png?90520e"
+                },
+                {
+                  "textKey": "ArmorSetBonus.Hallowed",
+                  "pageTitle": "Hallowed armor",
+                  "imageRole": "male",
+                  "originalUrl": "https://terraria.wiki.gg/images/Hallowed_armor.png?8ccbab"
+                },
+                {
+                  "textKey": "ArmorSetBonus.Hallowed",
+                  "pageTitle": "Hallowed armor",
+                  "imageRole": "female",
+                  "originalUrl": "https://terraria.wiki.gg/images/Hallowed_armor_female.png?d683aa"
                 }
               ]
+            }
+            """
+        );
+    }
+
+    private void writeArmorSetBonusSource(Path repoRoot) throws IOException {
+        Files.writeString(
+            repoRoot.resolve("data/generated/wiki-armorsetbonuses.latest.json"),
+            """
+            {
+              "content": "ArmorSetBonuses.Benefits.HallowedSummoner = function (player)\\n\\t--[[\\n\\tplayer.maxMinions += 2;\\n\\tplayer.onHitDodge = true;\\n\\t]]\\nend\\nArmorSetBonuses.Benefits.Wood = function (player)\\n\\t--[[\\n\\tplayer.statDefense += 1;\\n\\t]]\\nend"
             }
             """
         );
@@ -191,15 +241,25 @@ class AdminArmorSetControllerTest {
     static class FakeJdbcTemplate extends JdbcTemplate {
         private final boolean projectionExists;
         private final boolean relationProjectionExists;
+        private final String projectionScenario;
         private final List<String> sqlLog = new ArrayList<>();
 
         FakeJdbcTemplate(boolean projectionExists) {
-            this(projectionExists, false);
+            this(projectionExists, false, "wood");
+        }
+
+        FakeJdbcTemplate(boolean projectionExists, String projectionScenario) {
+            this(projectionExists, false, projectionScenario);
         }
 
         FakeJdbcTemplate(boolean projectionExists, boolean relationProjectionExists) {
+            this(projectionExists, relationProjectionExists, "wood");
+        }
+
+        FakeJdbcTemplate(boolean projectionExists, boolean relationProjectionExists, String projectionScenario) {
             this.projectionExists = projectionExists;
             this.relationProjectionExists = relationProjectionExists;
+            this.projectionScenario = projectionScenario;
         }
 
         @Override
@@ -229,6 +289,9 @@ class AdminArmorSetControllerTest {
             if (sql.contains("projection_armor_sets")) {
                 return List.of(projectionRow());
             }
+            if (sql.contains("projection_items")) {
+                return projectionItemRows(args);
+            }
             if (sql.contains("FROM armor_sets")) {
                 return List.of(legacyRow());
             }
@@ -254,6 +317,9 @@ class AdminArmorSetControllerTest {
         }
 
         private Map<String, Object> projectionRow() {
+            if ("hallowedSummoner".equals(projectionScenario)) {
+                return hallowedSummonerProjectionRow();
+            }
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("id", 101L);
             row.put("relation_record_key", "armor-rk");
@@ -288,6 +354,102 @@ class AdminArmorSetControllerTest {
             row.put("status", 1);
             row.put("created_at", null);
             row.put("updated_at", null);
+            return row;
+        }
+
+        private Map<String, Object> hallowedSummonerProjectionRow() {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", 303L);
+            row.put("relation_record_key", "hallowed-summoner-rk");
+            row.put("text_key", "ArmorSetBonus.HallowedSummoner");
+            row.put("name", "ArmorSetBonus.HallowedSummoner");
+            row.put("name_zh", "ArmorSetBonus.HallowedSummoner");
+            row.put("name_en", "ArmorSetBonus.HallowedSummoner");
+            row.put("source_key", "ArmorSetBonus.HallowedSummoner");
+            row.put("benefit_expression", "ArmorSetBonuses.Benefits.HallowedSummoner");
+            row.put("benefit_zh", "ArmorSetBonuses.Benefits.HallowedSummoner");
+            row.put("benefit_en", "ArmorSetBonuses.Benefits.HallowedSummoner");
+            row.put("primary_part", "Head");
+            row.put("set_count", 4);
+            row.put("unique_item_count", 6);
+            row.put("sets_json", "[[4873,551,552],[4873,551,4901],[4873,4900,552],[4873,4900,4901]]");
+            row.put("unique_item_ids_json", "[4873,551,552,4900,4901]");
+            row.put("current_item_ids_json", "[4873,551,552,4900,4901]");
+            row.put(
+                "related_items_json",
+                """
+                [
+                  {"sourceId":4873,"internalName":"HallowedHood","name":"Hallowed Hood","partRole":"head","slotType":"headSlot","equipmentSlotId":254,"setVariantIndex":0,"partIndex":0},
+                  {"sourceId":551,"internalName":"HallowedPlateMail","name":"Hallowed Plate Mail","partRole":"body","slotType":"bodySlot","equipmentSlotId":24,"setVariantIndex":0,"partIndex":1},
+                  {"sourceId":552,"internalName":"HallowedGreaves","name":"Hallowed Greaves","partRole":"legs","slotType":"legSlot","equipmentSlotId":23,"setVariantIndex":0,"partIndex":2},
+                  {"sourceId":4873,"internalName":"HallowedHood","name":"Hallowed Hood","partRole":"head","slotType":"headSlot","equipmentSlotId":254,"setVariantIndex":1,"partIndex":0},
+                  {"sourceId":551,"internalName":"HallowedPlateMail","name":"Hallowed Plate Mail","partRole":"body","slotType":"bodySlot","equipmentSlotId":24,"setVariantIndex":1,"partIndex":1},
+                  {"sourceId":4901,"internalName":"AncientHallowedGreaves","name":"Ancient Hallowed Greaves","partRole":"legs","slotType":"legSlot","equipmentSlotId":212,"setVariantIndex":1,"partIndex":2},
+                  {"sourceId":4873,"internalName":"HallowedHood","name":"Hallowed Hood","partRole":"head","slotType":"headSlot","equipmentSlotId":254,"setVariantIndex":2,"partIndex":0},
+                  {"sourceId":4900,"internalName":"AncientHallowedPlateMail","name":"Ancient Hallowed Plate Mail","partRole":"body","slotType":"bodySlot","equipmentSlotId":229,"setVariantIndex":2,"partIndex":1},
+                  {"sourceId":552,"internalName":"HallowedGreaves","name":"Hallowed Greaves","partRole":"legs","slotType":"legSlot","equipmentSlotId":23,"setVariantIndex":2,"partIndex":2},
+                  {"sourceId":4873,"internalName":"HallowedHood","name":"Hallowed Hood","partRole":"head","slotType":"headSlot","equipmentSlotId":254,"setVariantIndex":3,"partIndex":0},
+                  {"sourceId":4900,"internalName":"AncientHallowedPlateMail","name":"Ancient Hallowed Plate Mail","partRole":"body","slotType":"bodySlot","equipmentSlotId":229,"setVariantIndex":3,"partIndex":1},
+                  {"sourceId":4901,"internalName":"AncientHallowedGreaves","name":"Ancient Hallowed Greaves","partRole":"legs","slotType":"legSlot","equipmentSlotId":212,"setVariantIndex":3,"partIndex":2}
+                ]
+                """
+            );
+            row.put("male_images", null);
+            row.put("female_images", null);
+            row.put("special_images", null);
+            row.put("mapping_status", "mapped");
+            row.put("status", 1);
+            row.put("created_at", null);
+            row.put("updated_at", null);
+            return row;
+        }
+
+        private List<Map<String, Object>> projectionItemRows(Object... args) {
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (Object arg : args) {
+                Long id = arg instanceof Number number ? number.longValue() : null;
+                if (id == null) {
+                    continue;
+                }
+                rows.add(projectionItemRow(id));
+            }
+            return rows;
+        }
+
+        private Map<String, Object> projectionItemRow(Long id) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", id);
+            if (id == 4873L) {
+                row.put("name", "Hallowed Hood");
+                row.put("name_zh", "神圣兜帽");
+                row.put("internal_name", "HallowedHood");
+                row.put("image", "https://terraria.wiki.gg/images/Hallowed_Hood.png");
+            } else if (id == 551L) {
+                row.put("name", "Hallowed Plate Mail");
+                row.put("name_zh", "神圣板甲");
+                row.put("internal_name", "HallowedPlateMail");
+                row.put("image", "https://terraria.wiki.gg/images/Hallowed_Plate_Mail.png");
+            } else if (id == 552L) {
+                row.put("name", "Hallowed Greaves");
+                row.put("name_zh", "神圣护胫");
+                row.put("internal_name", "HallowedGreaves");
+                row.put("image", "https://terraria.wiki.gg/images/Hallowed_Greaves.png");
+            } else if (id == 4900L) {
+                row.put("name", "Ancient Hallowed Plate Mail");
+                row.put("name_zh", "远古神圣板甲");
+                row.put("internal_name", "AncientHallowedPlateMail");
+                row.put("image", "https://terraria.wiki.gg/images/Ancient_Hallowed_Plate_Mail.png");
+            } else if (id == 4901L) {
+                row.put("name", "Ancient Hallowed Greaves");
+                row.put("name_zh", "远古神圣护胫");
+                row.put("internal_name", "AncientHallowedGreaves");
+                row.put("image", "https://terraria.wiki.gg/images/Ancient_Hallowed_Greaves.png");
+            } else {
+                row.put("name", "Wood Helmet");
+                row.put("name_zh", "木头盔");
+                row.put("internal_name", "WoodHelmet");
+                row.put("image", "https://terraria.wiki.gg/images/Wood_Helmet.png");
+            }
             return row;
         }
 

@@ -357,6 +357,22 @@ test('buildProjectionPayload prefers maint item numeric and text overrides for i
 
 test('buildProjectionPayload maps armor set relations into projection armor sets', () => {
   const actual = buildProjectionPayload({
+    relationItems: [
+      {
+        sourceId: 727,
+        recordKey: 'item-wood-helmet',
+        internalName: 'WoodHelmet',
+        englishName: 'Wood Helmet',
+        nameZh: '木头盔'
+      }
+    ],
+    relationItemImages: [
+      {
+        itemInternalName: 'WoodHelmet',
+        originalUrl: 'https://terraria.wiki.gg/images/Wood_Helmet.png',
+        isPrimary: 1
+      }
+    ],
     relationArmorSets: [
       {
         recordKey: 'armor-rk',
@@ -435,4 +451,65 @@ test('buildProjectionPayload maps armor set relations into projection armor sets
   assert.equal(actual.projectionArmorSets[0].specialImages, 'https://terraria.wiki.gg/images/Wood_armor_demo.gif');
   assert.deepEqual(JSON.parse(actual.projectionArmorSets[0].currentItemIdsJson), [727, 728, 729]);
   assert.deepEqual(JSON.parse(actual.projectionArmorSets[0].relatedItemsJson).map((item) => item.partRole), ['head', 'body', 'legs']);
+  assert.equal(JSON.parse(actual.projectionArmorSets[0].relatedItemsJson)[0].nameZh, '木头盔');
+  assert.equal(JSON.parse(actual.projectionArmorSets[0].relatedItemsJson)[0].image, 'https://terraria.wiki.gg/images/Wood_Helmet.png');
+});
+
+test('buildProjectionPayload reuses Hallowed armor images for Hallowed Summoner variants', () => {
+  const actual = buildProjectionPayload({
+    relationArmorSets: [
+      {
+        recordKey: 'hallowed-summoner-rk',
+        textKey: 'ArmorSetBonus.HallowedSummoner',
+        benefitExpression: 'ArmorSetBonuses.Benefits.HallowedSummoner',
+        primaryPart: 'Head',
+        setCount: 1,
+        uniqueItemCount: 3,
+        setsJson: JSON.stringify([[4873, 551, 552]]),
+        uniqueItemIdsJson: JSON.stringify([4873, 551, 552])
+      }
+    ],
+    relationArmorSetItems: [
+      {
+        armorSetRecordKey: 'hallowed-summoner-rk',
+        itemSourceId: 4873,
+        itemInternalName: 'HallowedHood',
+        itemName: 'Hallowed Hood',
+        partRole: 'head',
+        slotType: 'headSlot',
+        equipmentSlotId: 254
+      }
+    ],
+    relationArmorSetImages: [
+      {
+        armorSetRecordKey: 'hallowed-rk',
+        textKey: 'ArmorSetBonus.Hallowed',
+        imageRole: 'male',
+        originalUrl: 'https://terraria.wiki.gg/images/Hallowed_armor.png?8ccbab',
+        isPrimary: 1,
+        sortOrder: 0
+      },
+      {
+        armorSetRecordKey: 'hallowed-rk',
+        textKey: 'ArmorSetBonus.Hallowed',
+        imageRole: 'female',
+        originalUrl: 'https://terraria.wiki.gg/images/Hallowed_armor_female.png?d683aa',
+        isPrimary: 1,
+        sortOrder: 1
+      },
+      {
+        armorSetRecordKey: 'hallowed-rk',
+        textKey: 'ArmorSetBonus.Hallowed',
+        imageRole: 'part',
+        sourceFileTitle: 'Hallowed_Hood.png',
+        originalUrl: 'https://terraria.wiki.gg/images/Hallowed_Hood.png?82498e',
+        isPrimary: 0,
+        sortOrder: 2
+      }
+    ]
+  });
+
+  assert.equal(actual.projectionArmorSets[0].maleImages, 'https://terraria.wiki.gg/images/Hallowed_armor.png?8ccbab');
+  assert.equal(actual.projectionArmorSets[0].femaleImages, 'https://terraria.wiki.gg/images/Hallowed_armor_female.png?d683aa');
+  assert.equal(JSON.parse(actual.projectionArmorSets[0].relatedItemsJson)[0].image, 'https://terraria.wiki.gg/images/Hallowed_Hood.png?82498e');
 });

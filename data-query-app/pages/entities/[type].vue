@@ -465,6 +465,41 @@
             </div>
           </section>
 
+          <section v-if="armorSetReplacementGroups.length" class="armor-detail__section">
+            <div class="armor-detail__section-head">
+              <h4>可替换部件</h4>
+              <span>{{ armorSetReplacementGroups.length }} 组</span>
+            </div>
+            <p class="armor-detail__helper">同一套装效果下可互换的部件会按头部、身体和腿部分组展示，例如神圣与远古神圣部件可在同一套装构成中替换。</p>
+            <div class="armor-detail__replacement-grid">
+              <article v-for="group in armorSetReplacementGroups" :key="group.partRole" class="armor-detail__replacement-card">
+                <div class="armor-detail__section-head armor-detail__section-head--sub">
+                  <div class="armor-detail__section-copy">
+                    <strong>{{ group.label || formatArmorPartRole(group.partRole) }}</strong>
+                    <p>{{ getArmorReplacementGroupDescription(group) }}</p>
+                  </div>
+                  <span>{{ group.items.length }} 件</span>
+                </div>
+                <div class="armor-detail__replacement-items">
+                  <article v-for="item in group.items" :key="`${group.partRole}-${getArmorItemSourceId(item) || item.internalName}`" class="armor-detail__item-card armor-detail__item-card--compact">
+                    <button type="button" class="armor-detail__item-media" @click="item.image ? openImageLightbox(item.image, item.nameZh || item.name || item.internalName || '物品图片') : null">
+                      <img v-if="item.image" :src="item.image" class="armor-detail__item-image" alt="" @error="handleImageError" />
+                      <div v-else class="armor-detail__item-fallback">IT</div>
+                    </button>
+                    <div class="armor-detail__item-body">
+                      <strong>{{ item.nameZh || item.name || item.internalName || `Item ${getArmorItemSourceId(item) || '--'}` }}</strong>
+                      <span>{{ item.internalName || `源 ID ${getArmorItemSourceId(item) || '--'}` }}</span>
+                      <div class="armor-detail__item-meta">
+                        <span v-if="getArmorItemSourceId(item)">源 ID {{ getArmorItemSourceId(item) }}</span>
+                        <span v-if="getArmorItemSlotLabel(item)">{{ getArmorItemSlotLabel(item) }}</span>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </article>
+            </div>
+          </section>
+
           <section v-if="armorSetDetailImageGroups.length" class="armor-detail__section">
             <div class="armor-detail__section-head">
               <h4>穿戴套装展示</h4>
@@ -2198,6 +2233,16 @@ const armorSetVariantRows = computed(() => {
   if (!detailRow.value || entityType.value !== 'armor-sets') return []
   return normalizeArmorSetVariantRows(detailRow.value, detailRelatedItems.value)
 })
+const armorSetReplacementGroups = computed(() => {
+  if (!detailRow.value || entityType.value !== 'armor-sets') return []
+  if (Array.isArray(detailRow.value.replacementGroups) && detailRow.value.replacementGroups.length) {
+    return detailRow.value.replacementGroups
+      .filter(group => group && typeof group === 'object')
+      .map((group, index) => normalizeArmorReplacementGroup(group as Record<string, any>, index))
+      .filter(group => group.items.length > 1)
+  }
+  return buildArmorReplacementGroups(detailRelatedItems.value)
+})
 const detailRelatedItemGroups = computed(() => {
   if (!detailRelatedItems.value.length) return []
   const groups = [
@@ -2726,6 +2771,48 @@ function normalizeArmorVariant(variant: Record<string, any>, fallbackIndex: numb
   }
 }
 
+function buildArmorReplacementGroups(equipmentItems: Array<Record<string, any>>) {
+  const grouped = new Map<string, Map<number, Record<string, any>>>()
+  for (const item of equipmentItems) {
+    const sourceId = getArmorItemSourceId(item)
+    if (!sourceId) continue
+    const role = normalizeArmorPartRole(item.partRole)
+    if (!grouped.has(role)) grouped.set(role, new Map())
+    grouped.get(role)!.set(sourceId, item)
+  }
+  return Array.from(grouped.entries())
+    .map(([partRole, itemsBySourceId], index) => normalizeArmorReplacementGroup({
+      partRole,
+      sourceIds: Array.from(itemsBySourceId.keys()),
+      items: Array.from(itemsBySourceId.values()),
+    }, index))
+    .filter(group => group.items.length > 1)
+}
+
+function normalizeArmorReplacementGroup(group: Record<string, any>, fallbackIndex: number) {
+  const rawItems = Array.isArray(group.items) ? group.items : []
+  const items = rawItems.filter(item => item && typeof item === 'object') as Array<Record<string, any>>
+  const partRole = normalizeArmorPartRole(group.partRole || items[0]?.partRole || `group-${fallbackIndex}`)
+  return {
+    partRole,
+    label: String(group.label || `${formatArmorPartRole(partRole)}可替换`),
+    sourceIds: Array.isArray(group.sourceIds) ? group.sourceIds : items.map(getArmorItemSourceId).filter(Boolean),
+    items,
+  }
+}
+
+function normalizeArmorPartRole(value: unknown) {
+  const role = typeof value === 'string' ? value.trim().toLowerCase() : ''
+  if (role === 'leg') return 'legs'
+  if (role === 'head' || role === 'body' || role === 'legs') return role
+  return 'other'
+}
+
+function getArmorReplacementGroupDescription(group: Record<string, any>) {
+  const ids = Array.isArray(group.sourceIds) ? group.sourceIds.filter(Boolean) : []
+  return ids.length ? `可选源 ID：${ids.join(' / ')}` : '这些部件可用于同一套装效果的等价替换。'
+}
+
 function getArmorItemSourceId(item: Record<string, any>) {
   const value = Number(item?.sourceId ?? item?.itemSourceId ?? item?.source_id ?? 0)
   return Number.isFinite(value) && value > 0 ? value : null
@@ -3017,7 +3104,7 @@ function formatArmorPartRole(value: unknown) {
 .armor-detail__effect-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
 .armor-detail__effect-card { display: grid; gap: 6px; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-tertiary) 88%, transparent); }
 .armor-detail__effect-card span { color: var(--color-text-muted); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; }
-.armor-detail__effect-card p { margin: 0; color: var(--color-text); line-height: 1.55; word-break: break-word; }
+.armor-detail__effect-card p { margin: 0; color: var(--color-text); line-height: 1.55; word-break: break-word; white-space: pre-line; }
 .armor-detail__variant-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
 .armor-detail__variant-card { display: grid; gap: 12px; padding: 14px; border-radius: var(--radius-lg); border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-secondary) 90%, transparent); }
 .armor-detail__variant-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent); }
@@ -3028,18 +3115,22 @@ function formatArmorPartRole(value: unknown) {
 .armor-detail__variant-item strong { color: var(--color-text); font-size: 0.9rem; }
 .armor-detail__variant-item small,.armor-detail__variant-missing { color: var(--color-text-secondary); font-size: 0.78rem; }
 .armor-detail__variant-missing { padding: 8px 10px; border-radius: var(--radius-md); border: 1px dashed var(--color-border); }
+.armor-detail__replacement-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.armor-detail__replacement-card { display: grid; gap: 12px; padding: 14px; border-radius: var(--radius-lg); border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-secondary) 90%, transparent); }
+.armor-detail__replacement-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)); gap: 10px; }
 .armor-detail__wear-groups { display: grid; gap: 18px; }
 .armor-detail__wear-group { display: grid; gap: 12px; padding: 16px; border-radius: var(--radius-lg); border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-secondary) 90%, transparent); }
 .armor-detail__wear-layout { display: grid; grid-template-columns: minmax(240px, 0.9fr) minmax(0, 1.1fr); gap: 14px; align-items: start; }
 .armor-detail__wear-feature { border: 0; padding: 0; background: transparent; cursor: zoom-in; }
-.armor-detail__wear-feature-image { width: 100%; aspect-ratio: 4 / 3; min-height: 180px; max-height: 260px; padding: 12px; object-fit: contain; border-radius: var(--radius-lg); border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-tertiary) 92%, transparent); }
+.armor-detail__wear-feature-image { width: 100%; aspect-ratio: 4 / 3; min-height: 150px; max-height: 220px; padding: 12px; object-fit: contain; border-radius: var(--radius-lg); border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-tertiary) 92%, transparent); }
 .armor-detail__wear-strip { align-content: start; }
 .armor-detail__item-groups { display: grid; gap: 18px; }
 .armor-detail__item-group { display: grid; gap: 12px; padding: 16px; border-radius: var(--radius-lg); border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-secondary) 90%, transparent); }
-.armor-detail__item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.armor-detail__item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 .armor-detail__item-card { display: grid; gap: 10px; padding: 12px; border-radius: var(--radius-lg); border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-secondary) 90%, transparent); }
+.armor-detail__item-card--compact { padding: 10px; gap: 8px; }
 .armor-detail__item-media { border: 0; padding: 0; background: transparent; cursor: pointer; }
-.armor-detail__item-image,.armor-detail__item-fallback { width: 100%; aspect-ratio: 1 / 1; min-height: 104px; max-height: 128px; padding: 8px; object-fit: contain; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-tertiary) 92%, transparent); display: grid; place-items: center; }
+.armor-detail__item-image,.armor-detail__item-fallback { width: 100%; aspect-ratio: 1 / 1; min-height: 88px; max-height: 108px; padding: 8px; object-fit: contain; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-tertiary) 92%, transparent); display: grid; place-items: center; }
 .armor-detail__item-body { display: grid; gap: 4px; }
 .armor-detail__item-body strong { color: var(--color-text); }
 .armor-detail__item-body span { color: var(--color-text-secondary); font-size: 0.82rem; }
