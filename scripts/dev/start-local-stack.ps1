@@ -1,3 +1,7 @@
+param(
+  [switch]$ReuseExisting
+)
+
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
@@ -14,6 +18,14 @@ $configPath = $configCandidates | Where-Object { Test-Path $_ } | Select-Object 
 $stackConfig = $null
 if ($configPath -and (Test-Path $configPath)) {
   $stackConfig = Get-Content -Path $configPath -Raw | ConvertFrom-Json
+}
+
+if (-not $ReuseExisting) {
+  $stopScript = Join-Path $PSScriptRoot 'stop-local-stack.ps1'
+  if (Test-Path $stopScript) {
+    Write-Host "Stopping recorded local stack processes before startup..."
+    & 'powershell.exe' -NoProfile -ExecutionPolicy Bypass -File $stopScript
+  }
 }
 
 function Resolve-Setting([string]$EnvName, [object]$ConfigValue, [object]$Fallback) {
@@ -150,6 +162,7 @@ function Start-BackgroundPwsh([string]$Name, [string]$Command, [string]$LogPath)
     -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $Command `
     -RedirectStandardOutput $outPath `
     -RedirectStandardError $errPath `
+    -WindowStyle Hidden `
     -PassThru
   Write-PidFile -Name $Name -ProcessId $p.Id
   Write-Host "$Name PID=$($p.Id) log=$outPath"
@@ -197,6 +210,7 @@ if ((Test-Path $redisExe)) {
       -ArgumentList '--port', "$redisPort", '--bind', $redisHost, '--protected-mode', 'yes', '--requirepass', $redisPassword `
       -RedirectStandardOutput $redisOut `
       -RedirectStandardError $redisErr `
+      -WindowStyle Hidden `
       -PassThru
     Write-PidFile -Name "redis-$redisPort" -ProcessId $redis.Id
     Write-Host "redis PID=$($redis.Id)"

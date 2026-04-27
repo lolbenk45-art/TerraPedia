@@ -79,7 +79,8 @@ public class AdminArmorSetController {
             queryArgs.toArray()
         );
 
-        List<Map<String, Object>> payload = rows.stream().map(this::normalizeArmorSetRow).toList();
+        Map<String, ArmorSetImageGroup> snapshotImages = loadArmorSetImageSnapshot();
+        List<Map<String, Object>> payload = rows.stream().map(row -> normalizeArmorSetRow(row, snapshotImages)).toList();
         Pagination pagination = new Pagination(total == null ? 0 : total, safePage, safeLimit);
         ApiResponse<List<Map<String, Object>>> response = ApiResponse.success(payload);
         response.setPagination(pagination);
@@ -100,7 +101,7 @@ public class AdminArmorSetController {
         if (rows.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "ArmorSet not found"));
         }
-        return ResponseEntity.ok(ApiResponse.success(normalizeArmorSetRow(rows.get(0))));
+        return ResponseEntity.ok(ApiResponse.success(normalizeArmorSetRow(rows.get(0), loadArmorSetImageSnapshot())));
     }
 
     @PostMapping
@@ -225,7 +226,7 @@ public class AdminArmorSetController {
         return " WHERE (source_key LIKE ? OR text_key LIKE ? OR benefit_expression LIKE ? OR source_key LIKE ? OR text_key LIKE ?)";
     }
 
-    private Map<String, Object> normalizeArmorSetRow(Map<String, Object> row) {
+    private Map<String, Object> normalizeArmorSetRow(Map<String, Object> row, Map<String, ArmorSetImageGroup> snapshotImages) {
         Map<String, Object> payload = new LinkedHashMap<>();
         Long armorSetId = toLong(row.get("id"));
         List<Long> persistedItemIds = loadArmorSetItemIds(armorSetId);
@@ -264,12 +265,18 @@ public class AdminArmorSetController {
             trimToNull(definition.get("benefitEn")),
             benefitExpression
         );
+        ArmorSetImageGroup snapshotImageGroup = snapshotImages.get(textKey);
+        String snapshotMaleImages = snapshotImageGroup == null ? null : snapshotImageGroup.maleCsv();
+        String snapshotFemaleImages = snapshotImageGroup == null ? null : snapshotImageGroup.femaleCsv();
+        String snapshotSpecialImages = snapshotImageGroup == null ? null : snapshotImageGroup.specialCsv();
+        String snapshotPreviewImage = firstNonBlank(snapshotMaleImages, snapshotFemaleImages, snapshotSpecialImages);
         List<Map<String, Object>> relatedItems = loadRelatedItems(definition, currentItemIds);
-        String previewImage = relatedItems.stream()
+        String relatedPreviewImage = relatedItems.stream()
             .map(item -> trimToNull(item.get("image")))
             .filter(value -> value != null && !value.isBlank())
             .findFirst()
             .orElse(null);
+        String previewImage = firstNonBlank(snapshotPreviewImage, relatedPreviewImage);
 
         payload.put("id", toLong(row.get("id")));
         payload.put("name", nameZh);
@@ -303,13 +310,48 @@ public class AdminArmorSetController {
         payload.put("armorLegsId", null);
         payload.put("image", previewImage);
         payload.put("imageUrl", previewImage);
-        payload.put("maleImages", firstNonBlank(trimToNull(row.get("male_images")), trimToNull(definition.get("maleImages")), previewImage));
-        payload.put("femaleImages", firstNonBlank(trimToNull(row.get("female_images")), trimToNull(definition.get("femaleImages"))));
-        payload.put("specialImages", firstNonBlank(trimToNull(row.get("special_images")), trimToNull(definition.get("specialImages"))));
+        payload.put("maleImages", firstNonBlank(trimToNull(row.get("male_images")), trimToNull(definition.get("maleImages")), snapshotMaleImages, previewImage));
+        payload.put("femaleImages", firstNonBlank(trimToNull(row.get("female_images")), trimToNull(definition.get("femaleImages")), snapshotFemaleImages));
+        payload.put("specialImages", firstNonBlank(trimToNull(row.get("special_images")), trimToNull(definition.get("specialImages")), snapshotSpecialImages));
         payload.put("relatedItems", relatedItems);
         payload.put("createdAt", row.get("created_at"));
         payload.put("updatedAt", row.get("updated_at"));
         return payload;
+    }
+
+    private Map<String, ArmorSetImageGroup> loadArmorSetImageSnapshot() {
+        Path path = resolveDataFile(Path.of("terraPedia", "raw", "wiki", "armor_set_images.parsed.latest.json"));
+        if (path == null) {
+            return Map.of();
+        }
+
+        try {
+            Map<String, Object> root = objectMapper.readValue(path.toFile(), new TypeReference<>() {});
+            Object imagesRaw = root.get("armorSetImages");
+            if (!(imagesRaw instanceof List<?> images)) {
+                return Map.of();
+            }
+
+            Map<String, ArmorSetImageGroup> result = new LinkedHashMap<>();
+            for (Object imageRaw : images) {
+                if (!(imageRaw instanceof Map<?, ?> image)) {
+                    continue;
+                }
+                String textKey = trimToNull(image.get("textKey"));
+                String role = trimToNull(image.get("imageRole"));
+                String url = firstNonBlank(trimToNull(image.get("cachedUrl")), trimToNull(image.get("originalUrl")));
+                if (textKey == null || role == null || url == null) {
+                    continue;
+                }
+
+                ArmorSetImageGroup group = result.computeIfAbsent(textKey, ignored -> new ArmorSetImageGroup());
+                group.add(role, url);
+            }
+            return result;
+        } catch (Exception exception) {
+            log.warn("Failed to load armor set image snapshot", exception);
+            return Map.of();
+        }
     }
 
     private Map<String, Object> matchArmorDefinition(Long armorSetId, List<Long> parts) {
@@ -665,5 +707,42 @@ public class AdminArmorSetController {
             if (Files.exists(candidate)) return candidate;
         }
         return null;
+    }
+
+    private static final class ArmorSetImageGroup {
+
+        private final List<String> male = new ArrayList<>();
+        private final List<String> female = new ArrayList<>();
+        private final List<String> special = new ArrayList<>();
+
+        private void add(String role, String url) {
+            if (role == null || url == null || url.isBlank()) {
+                return;
+            }
+            String normalizedRole = role.trim().toLowerCase();
+            if ("male".equals(normalizedRole)) {
+                male.add(url);
+            } else if ("female".equals(normalizedRole)) {
+                female.add(url);
+            } else if ("special".equals(normalizedRole)) {
+                special.add(url);
+            }
+        }
+
+        private String maleCsv() {
+            return toCsv(male);
+        }
+
+        private String femaleCsv() {
+            return toCsv(female);
+        }
+
+        private String specialCsv() {
+            return toCsv(special);
+        }
+
+        private String toCsv(List<String> values) {
+            return values.isEmpty() ? null : String.join(",", values);
+        }
     }
 }
