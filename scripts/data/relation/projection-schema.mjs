@@ -4,7 +4,8 @@ export const PROJECTION_TABLE_NAMES = [
   'projection_items',
   'projection_npcs',
   'projection_projectiles',
-  'projection_buffs'
+  'projection_buffs',
+  'projection_armor_sets'
 ];
 
 function buildProjectionStatements() {
@@ -138,6 +139,38 @@ function buildProjectionStatements() {
   \`updated_at\` DATETIME DEFAULT NULL,
   PRIMARY KEY (\`id\`),
   UNIQUE KEY \`uk_projection_buffs_internal_name\` (\`internal_name\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+    `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`projection_armor_sets\` (
+  \`id\` BIGINT NOT NULL,
+  \`relation_record_key\` CHAR(64) COLLATE utf8mb4_bin DEFAULT NULL,
+  \`text_key\` VARCHAR(255) DEFAULT NULL,
+  \`name\` VARCHAR(255) DEFAULT NULL,
+  \`name_zh\` VARCHAR(255) DEFAULT NULL,
+  \`name_en\` VARCHAR(255) DEFAULT NULL,
+  \`source_key\` VARCHAR(255) DEFAULT NULL,
+  \`benefit_expression\` VARCHAR(255) DEFAULT NULL,
+  \`benefit_zh\` TEXT,
+  \`benefit_en\` TEXT,
+  \`primary_part\` VARCHAR(64) DEFAULT NULL,
+  \`set_count\` INT DEFAULT NULL,
+  \`unique_item_count\` INT DEFAULT NULL,
+  \`sets_json\` LONGTEXT,
+  \`unique_item_ids_json\` LONGTEXT,
+  \`current_item_ids_json\` LONGTEXT,
+  \`related_items_json\` LONGTEXT,
+  \`male_images\` TEXT,
+  \`female_images\` TEXT,
+  \`special_images\` TEXT,
+  \`mapping_status\` VARCHAR(64) DEFAULT NULL,
+  \`source_provider\` VARCHAR(64) DEFAULT NULL,
+  \`source_page\` VARCHAR(255) DEFAULT NULL,
+  \`source_revision_timestamp\` DATETIME DEFAULT NULL,
+  \`status\` INT NOT NULL DEFAULT 1,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT NULL,
+  \`updated_at\` DATETIME DEFAULT NULL,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_projection_armor_sets_text_key\` (\`text_key\`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`
   ];
 }

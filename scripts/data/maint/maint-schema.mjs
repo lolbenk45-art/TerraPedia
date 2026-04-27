@@ -19,6 +19,7 @@ export const MAINT_TABLE_NAMES = [
   'maint_bosses',
   'maint_biomes',
   'maint_armor_sets',
+  'maint_armor_set_images',
   'maint_categories',
   'maint_item_categories',
   'maint_category_nodes',
@@ -632,6 +633,39 @@ CREATE TABLE IF NOT EXISTS \`maint_armor_sets\` (
   \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (\`id\`),
   UNIQUE KEY \`uk_maint_armor_sets_record_key\` (\`record_key\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS \`maint_armor_set_images\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) NOT NULL,
+  \`text_key\` VARCHAR(255) DEFAULT NULL,
+  \`page_title\` VARCHAR(255) DEFAULT NULL,
+  \`image_role\` VARCHAR(64) DEFAULT NULL,
+  \`source_provider\` VARCHAR(128) NOT NULL,
+  \`source_file_title\` VARCHAR(255) DEFAULT NULL,
+  \`source_page\` VARCHAR(255) DEFAULT NULL,
+  \`source_revision_timestamp\` DATETIME DEFAULT NULL,
+  \`original_url\` VARCHAR(1000) DEFAULT NULL,
+  \`cached_url\` VARCHAR(1000) DEFAULT NULL,
+  \`width\` INT DEFAULT NULL,
+  \`height\` INT DEFAULT NULL,
+  \`content_type\` VARCHAR(128) DEFAULT NULL,
+  \`is_primary\` TINYINT(1) NOT NULL DEFAULT 0,
+  \`sort_order\` INT DEFAULT NULL,
+  \`landing_source_id\` BIGINT NOT NULL,
+  \`landing_source_key\` VARCHAR(255) NOT NULL,
+  \`landing_source_page\` VARCHAR(255) DEFAULT NULL,
+  \`landing_content_hash\` CHAR(64) NOT NULL,
+  \`landing_fetched_at\` DATETIME DEFAULT NULL,
+  \`landing_parsed_at\` DATETIME DEFAULT NULL,
+  \`raw_json\` LONGTEXT NOT NULL,
+  \`status\` INT NOT NULL DEFAULT 1,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_maint_armor_set_images_record_key\` (\`record_key\`),
+  KEY \`idx_maint_armor_set_images_text_key\` (\`text_key\`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS \`maint_categories\` (

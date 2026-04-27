@@ -23,6 +23,7 @@ import { buildSecondaryRelations } from './secondary-relation-processor.mjs';
 import { buildBossSeriesRelations } from './boss-series-processor.mjs';
 import { buildNpcSeriesRelations } from './npc-series-processor.mjs';
 import { buildRelationItemRarities } from './item-rarity-support-processor.mjs';
+import { buildArmorSetRelations } from './armor-set-processor.mjs';
 import { buildProjectionSchemaStatements } from './projection-schema.mjs';
 import { buildProjectionPayload } from './projection-sync.mjs';
 import { writeRelationReports } from './relation-report.mjs';
@@ -97,6 +98,19 @@ async function loadDataset(mysqlOptions, database, sql) {
     return await queryRows(connection, sql);
   } finally {
     await connection.end();
+  }
+}
+
+async function queryMaintOptional(queryMaint, sql, fallback = []) {
+  try {
+    return await queryMaint(sql);
+  } catch (error) {
+    const code = error?.code ?? '';
+    const message = error instanceof Error ? error.message : String(error);
+    if (code === 'ER_NO_SUCH_TABLE' || /doesn't exist|does not exist|unknown table/i.test(message)) {
+      return fallback;
+    }
+    throw error;
   }
 }
 
@@ -369,13 +383,16 @@ async function insertReportRows(connection, runKey, reportPaths) {
   }
 }
 
-function flattenResults(category, recipe, itemSource, secondary, bossSeries, npcSeries) {
+function flattenResults(category, recipe, itemSource, secondary, bossSeries, npcSeries, armorSet) {
   return {
     relationItems: [],
     relationNpcs: [],
     relationProjectiles: [],
     relationBuffs: [],
     relationBosses: [],
+    relationArmorSets: armorSet.relationArmorSets,
+    relationArmorSetItems: armorSet.relationArmorSetItems,
+    relationArmorSetImages: armorSet.relationArmorSetImages,
     relationItemRarities: [],
     relationItemImages: [],
     relationNpcImages: [],
@@ -403,12 +420,14 @@ function flattenResults(category, recipe, itemSource, secondary, bossSeries, npc
     projectionNpcs: [],
     projectionProjectiles: [],
     projectionBuffs: [],
+    projectionArmorSets: [],
     issues: [
       ...category.issues,
       ...recipe.issues,
       ...itemSource.issues,
       ...bossSeries.issues,
-      ...npcSeries.issues
+      ...npcSeries.issues,
+      ...armorSet.issues
     ]
   };
 }
@@ -452,7 +471,9 @@ export async function runSync(options, dependencies = {}) {
     maintItemNumericOverrides,
     maintItemRarityOverrides
     ,
-    maintItemTextOverrides
+    maintItemTextOverrides,
+    maintArmorSets,
+    maintArmorSetImages
   ] = await Promise.all([
     queryMaint('SELECT * FROM maint_categories'),
     queryMaint('SELECT * FROM maint_item_categories'),
@@ -471,7 +492,9 @@ export async function runSync(options, dependencies = {}) {
     queryMaint('SELECT item_internal_name, sell_text, sell_value, source_revision_timestamp, updated_at FROM maint_item_pages'),
     queryMaint('SELECT item_internal_name, damage_value, defense_value, knockback_value, use_time, buy_value, sell_value FROM maint_item_numeric_overrides WHERE deleted = 0'),
     queryMaint('SELECT item_internal_name, rarity_id FROM maint_item_rarity_overrides WHERE deleted = 0'),
-    queryMaint('SELECT item_internal_name, tooltip_zh, description_zh FROM maint_item_text_overrides WHERE deleted = 0')
+    queryMaint('SELECT item_internal_name, tooltip_zh, description_zh FROM maint_item_text_overrides WHERE deleted = 0'),
+    queryMaint('SELECT * FROM maint_armor_sets WHERE deleted = 0'),
+    queryMaintOptional(queryMaint, 'SELECT * FROM maint_armor_set_images WHERE deleted = 0', [])
   ]);
 
   const itemIndex = buildItemIndex(maintItems);
@@ -522,8 +545,13 @@ export async function runSync(options, dependencies = {}) {
     itemNpcShopRelations: itemSource.npcShopRelations,
     itemNpcLootRelations: itemSource.npcLootRelations
   });
+  const armorSet = buildArmorSetRelations({
+    maintArmorSets,
+    maintItems,
+    maintArmorSetImages
+  });
 
-  const results = flattenResults(category, recipe, itemSource, secondary, bossSeries, npcSeries);
+  const results = flattenResults(category, recipe, itemSource, secondary, bossSeries, npcSeries, armorSet);
   results.relationItems = baseEntities.relationItems;
   results.relationNpcs = baseEntities.relationNpcs;
   results.relationProjectiles = baseEntities.relationProjectiles;
@@ -562,12 +590,16 @@ export async function runSync(options, dependencies = {}) {
     relationProjectiles: results.relationProjectiles,
     relationProjectileImages: results.relationProjectileImages,
     relationBuffs: results.relationBuffs,
-    relationBuffImages: results.relationBuffImages
+    relationBuffImages: results.relationBuffImages,
+    relationArmorSets: results.relationArmorSets,
+    relationArmorSetItems: results.relationArmorSetItems,
+    relationArmorSetImages: results.relationArmorSetImages
   });
   results.projectionItems = projection.projectionItems;
   results.projectionNpcs = projection.projectionNpcs;
   results.projectionProjectiles = projection.projectionProjectiles;
   results.projectionBuffs = projection.projectionBuffs;
+  results.projectionArmorSets = projection.projectionArmorSets;
   const runKey = createRecordKey({
     dateTag: toDateTag(),
     scopes: options.scopes,
@@ -596,19 +628,22 @@ export async function runSync(options, dependencies = {}) {
       biome: results.itemBiomeRelations.length,
       projectile: results.itemProjectileAudits.length,
       boss: results.relationBosses.length + results.bossItemRewardRelations.length + results.bossEffectRelations.length,
-      npcSeries: results.npcSeriesNodes.length + results.npcSeriesMemberships.length + results.npcSeriesItemRelations.length
+      npcSeries: results.npcSeriesNodes.length + results.npcSeriesMemberships.length + results.npcSeriesItemRelations.length,
+      armorSet: results.relationArmorSets.length + results.relationArmorSetItems.length + results.relationArmorSetImages.length
     },
     entityBreakdown: {
       item: results.relationItems.length,
       npc: results.relationNpcs.length,
       projectile: results.relationProjectiles.length,
-      buff: results.relationBuffs.length
+      buff: results.relationBuffs.length,
+      armorSet: results.relationArmorSets.length
     },
     imageBreakdown: {
       item: results.relationItemImages.length,
       npc: results.relationNpcImages.length,
       projectile: results.relationProjectileImages.length,
-      buff: results.relationBuffImages.length
+      buff: results.relationBuffImages.length,
+      armorSet: results.relationArmorSetImages.length
     },
     bridgeBreakdown: {
       itemTextOverrideRows: maintItemTextOverrides.length,
@@ -680,6 +715,9 @@ export async function runSync(options, dependencies = {}) {
         'npc_series_item_relations',
         'npc_series_memberships',
         'npc_series_nodes',
+        'relation_armor_set_images',
+        'relation_armor_set_items',
+        'relation_armor_sets',
         'relation_item_rarities',
         'relation_item_images',
         'relation_npc_images',
@@ -690,6 +728,7 @@ export async function runSync(options, dependencies = {}) {
         'projection_npcs',
         'projection_projectiles',
         'projection_buffs',
+        'projection_armor_sets',
         'relation_items',
         'relation_npcs',
         'relation_projectiles',
@@ -701,11 +740,14 @@ export async function runSync(options, dependencies = {}) {
       await upsertRows(connection, 'relation_projectiles', results.relationProjectiles);
       await upsertRows(connection, 'relation_buffs', results.relationBuffs);
       await upsertRows(connection, 'relation_bosses', results.relationBosses);
+      await upsertRows(connection, 'relation_armor_sets', results.relationArmorSets);
+      await upsertRows(connection, 'relation_armor_set_items', results.relationArmorSetItems);
       await upsertRows(connection, 'relation_item_rarities', results.relationItemRarities);
       await upsertRows(connection, 'relation_item_images', results.relationItemImages);
       await upsertRows(connection, 'relation_npc_images', results.relationNpcImages);
       await upsertRows(connection, 'relation_projectile_images', results.relationProjectileImages);
       await upsertRows(connection, 'relation_buff_images', results.relationBuffImages);
+      await upsertRows(connection, 'relation_armor_set_images', results.relationArmorSetImages);
       await upsertRows(connection, 'category_nodes', results.categoryNodes);
       await upsertRows(connection, 'item_category_assignments', results.itemCategoryAssignments);
       await upsertRows(connection, 'item_recipe_heads', results.itemRecipeHeads);
@@ -728,6 +770,7 @@ export async function runSync(options, dependencies = {}) {
       await upsertRows(connection, 'projection_npcs', results.projectionNpcs);
       await upsertRows(connection, 'projection_projectiles', results.projectionProjectiles);
       await upsertRows(connection, 'projection_buffs', results.projectionBuffs);
+      await upsertRows(connection, 'projection_armor_sets', results.projectionArmorSets);
       await reconcileItemStackSizeFromMaint(connection, options.maintDatabase);
       summary.bridgeBreakdown.maintItemImageFillRows = await reconcileProjectionItemImageFromMaint(connection, options.maintDatabase);
       summary.bridgeBreakdown.localItemImageFallbackRows = await reconcileProjectionItemImageFromLocal(

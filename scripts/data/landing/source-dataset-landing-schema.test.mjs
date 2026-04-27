@@ -41,6 +41,7 @@ test('landing schema exports the planned dataset types and parse statuses', () =
     'npcs_raw',
     'projectiles_raw',
     'armor_sets_raw',
+    'armor_set_images_raw',
     'buffs_raw',
     'bosses_raw',
     'biomes_raw',

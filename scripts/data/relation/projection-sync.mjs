@@ -35,6 +35,17 @@ function toSlug(value) {
   return text ? text.toLowerCase() : null;
 }
 
+function stablePositiveBigIntId(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return null;
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash === 0 ? 1 : hash;
+}
+
 function buildImageIndex(rows = [], entityKey) {
   const index = new Map();
   for (const row of rows) {
@@ -52,6 +63,30 @@ function resolveWikiImageUrl(imageRow) {
   return imageRow?.originalUrl ?? imageRow?.cachedUrl ?? null;
 }
 
+function buildRowsByKey(rows, keyName) {
+  const map = new Map();
+  for (const row of rows) {
+    const key = row?.[keyName];
+    if (!key) continue;
+    if (!map.has(key)) {
+      map.set(key, []);
+    }
+    map.get(key).push(row);
+  }
+  return map;
+}
+
+function pickArmorSetImageUrl(rows, role) {
+  const candidates = rows
+    .filter((row) => row?.imageRole === role)
+    .sort((left, right) => {
+      const primaryDelta = Number(right.isPrimary ?? 0) - Number(left.isPrimary ?? 0);
+      if (primaryDelta !== 0) return primaryDelta;
+      return Number(left.sortOrder ?? 0) - Number(right.sortOrder ?? 0);
+    });
+  return resolveWikiImageUrl(candidates[0]);
+}
+
 export function buildProjectionPayload({
   relationItems = [],
   relationItemImages = [],
@@ -64,7 +99,10 @@ export function buildProjectionPayload({
   relationProjectiles = [],
   relationProjectileImages = [],
   relationBuffs = [],
-  relationBuffImages = []
+  relationBuffImages = [],
+  relationArmorSets = [],
+  relationArmorSetItems = [],
+  relationArmorSetImages = []
 } = {}) {
   const itemImages = buildImageIndex(relationItemImages, 'itemInternalName');
   const itemRarities = new Map(
@@ -90,6 +128,8 @@ export function buildProjectionPayload({
   const npcImages = buildImageIndex(relationNpcImages, 'npcInternalName');
   const projectileImages = buildImageIndex(relationProjectileImages, 'projectileInternalName');
   const buffImages = buildImageIndex(relationBuffImages, 'buffInternalName');
+  const armorSetItemsByRecordKey = buildRowsByKey(relationArmorSetItems, 'armorSetRecordKey');
+  const armorSetImagesByRecordKey = buildRowsByKey(relationArmorSetImages, 'armorSetRecordKey');
 
   const projectionItems = relationItems.map((row) => {
     const raw = parseJsonObject(row.rawJson);
@@ -237,10 +277,69 @@ export function buildProjectionPayload({
     updatedAt: null
   }));
 
+  const projectionArmorSets = relationArmorSets.map((row) => {
+    const setItems = (armorSetItemsByRecordKey.get(row.recordKey) ?? [])
+      .slice()
+      .sort((left, right) => {
+        const variantDelta = Number(left.setVariantIndex ?? 0) - Number(right.setVariantIndex ?? 0);
+        if (variantDelta !== 0) return variantDelta;
+        return Number(left.partIndex ?? 0) - Number(right.partIndex ?? 0);
+      });
+    const images = armorSetImagesByRecordKey.get(row.recordKey) ?? [];
+    const currentItemIds = [...new Set(
+      setItems
+        .map((item) => toNullableNumber(item.itemSourceId))
+        .filter((id) => id != null && id > 0)
+    )];
+    const relatedItems = setItems.map((item) => ({
+      sourceId: toNullableNumber(item.itemSourceId),
+      internalName: item.itemInternalName ?? null,
+      name: item.itemName ?? null,
+      partRole: item.partRole ?? null,
+      slotType: item.slotType ?? null,
+      equipmentSlotId: toNullableNumber(item.equipmentSlotId),
+      setVariantIndex: toNullableNumber(item.setVariantIndex) ?? 0,
+      partIndex: toNullableNumber(item.partIndex) ?? 0
+    }));
+    const hasUnresolved = setItems.some((item) => item.reviewStatus === 'unresolved' || !item.itemInternalName);
+
+    return {
+      id: stablePositiveBigIntId(row.textKey ?? row.recordKey),
+      relationRecordKey: row.recordKey,
+      textKey: row.textKey ?? null,
+      name: row.textKey ?? null,
+      nameZh: row.textKey ?? null,
+      nameEn: row.textKey ?? null,
+      sourceKey: row.textKey ?? null,
+      benefitExpression: row.benefitExpression ?? null,
+      benefitZh: row.benefitExpression ?? null,
+      benefitEn: row.benefitExpression ?? null,
+      primaryPart: row.primaryPart ?? null,
+      setCount: toNullableNumber(row.setCount),
+      uniqueItemCount: toNullableNumber(row.uniqueItemCount),
+      setsJson: row.setsJson ?? null,
+      uniqueItemIdsJson: row.uniqueItemIdsJson ?? null,
+      currentItemIdsJson: JSON.stringify(currentItemIds),
+      relatedItemsJson: JSON.stringify(relatedItems),
+      maleImages: pickArmorSetImageUrl(images, 'male') ?? null,
+      femaleImages: pickArmorSetImageUrl(images, 'female') ?? null,
+      specialImages: pickArmorSetImageUrl(images, 'demo') ?? pickArmorSetImageUrl(images, 'other') ?? null,
+      mappingStatus: hasUnresolved ? 'partial' : 'mapped',
+      sourceProvider: row.sourceProvider ?? null,
+      sourcePage: row.sourcePage ?? null,
+      sourceRevisionTimestamp: row.sourceRevisionTimestamp ?? null,
+      status: 1,
+      deleted: 0,
+      createdAt: null,
+      updatedAt: null
+    };
+  });
+
   return {
     projectionItems,
     projectionNpcs,
     projectionProjectiles,
-    projectionBuffs
+    projectionBuffs,
+    projectionArmorSets
   };
 }

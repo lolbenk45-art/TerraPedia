@@ -45,6 +45,9 @@ import java.util.Set;
 @SecurityRequirement(name = "bearerAuth")
 public class AdminArmorSetController {
 
+    private static final String RELATION_DATABASE_NAME = "terria_v1_relation";
+    private static final String PROJECTION_ARMOR_SETS_TABLE = "projection_armor_sets";
+
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
 
@@ -56,6 +59,11 @@ public class AdminArmorSetController {
         @RequestParam(required = false) Integer size,
         @RequestParam(required = false) String search
     ) {
+        String projectionTable = resolveProjectionArmorSetsTable();
+        if (projectionTable != null) {
+            return getProjectionArmorSets(projectionTable, page, limit, size, search);
+        }
+
         int safePage = PaginationParams.resolvePage(page);
         int safeLimit = PaginationParams.resolveLimit(limit, size, 20, 100);
         int offset = (safePage - 1) * safeLimit;
@@ -90,6 +98,23 @@ public class AdminArmorSetController {
     @GetMapping("/{id}")
     @Operation(summary = "Get armor set detail")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getArmorSetById(@PathVariable Long id) {
+        String projectionTable = resolveProjectionArmorSetsTable();
+        if (projectionTable != null) {
+            return getProjectionArmorSetById(projectionTable, id);
+        }
+
+        return getLegacyArmorSetById(id);
+    }
+
+    private ResponseEntity<ApiResponse<Map<String, Object>>> getLegacyArmorSetById(Long id) {
+        Map<String, Object> payload = findLegacyArmorSetPayload(id);
+        if (payload == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "ArmorSet not found"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(payload));
+    }
+
+    private Map<String, Object> findLegacyArmorSetPayload(Long id) {
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
             """
             SELECT id, source_key, text_key, benefit_expression, primary_part, set_count, unique_item_count,
@@ -99,9 +124,117 @@ public class AdminArmorSetController {
             id
         );
         if (rows.isEmpty()) {
+            return null;
+        }
+        return normalizeArmorSetRow(rows.get(0), loadArmorSetImageSnapshot());
+    }
+
+    private String resolveProjectionArmorSetsTable() {
+        if (tableExistsInCurrentDatabase(PROJECTION_ARMOR_SETS_TABLE)) {
+            return PROJECTION_ARMOR_SETS_TABLE;
+        }
+        if (tableExists(RELATION_DATABASE_NAME, PROJECTION_ARMOR_SETS_TABLE)) {
+            return "`" + RELATION_DATABASE_NAME + "`.`" + PROJECTION_ARMOR_SETS_TABLE + "`";
+        }
+        return null;
+    }
+
+    private boolean tableExistsInCurrentDatabase(String tableName) {
+        try {
+            Long count = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM information_schema.tables
+                WHERE table_schema = DATABASE() AND table_name = ?
+                """,
+                Long.class,
+                tableName
+            );
+            return count != null && count > 0;
+        } catch (Exception exception) {
+            log.debug("{} is not available in current database", tableName, exception);
+            return false;
+        }
+    }
+
+    private boolean tableExists(String schemaName, String tableName) {
+        try {
+            Long count = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM information_schema.tables
+                WHERE table_schema = ? AND table_name = ?
+                """,
+                Long.class,
+                schemaName,
+                tableName
+            );
+            return count != null && count > 0;
+        } catch (Exception exception) {
+            log.debug("{}.{} is not available", schemaName, tableName, exception);
+            return false;
+        }
+    }
+
+    private ResponseEntity<ApiResponse<List<Map<String, Object>>>> getProjectionArmorSets(
+        String projectionTable,
+        Integer page,
+        Integer limit,
+        Integer size,
+        String search
+    ) {
+        int safePage = PaginationParams.resolvePage(page);
+        int safeLimit = PaginationParams.resolveLimit(limit, size, 20, 100);
+        int offset = (safePage - 1) * safeLimit;
+
+        List<Object> countArgs = new ArrayList<>();
+        String where = buildArmorSearchWhere(search, countArgs);
+        Long total = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM " + projectionTable + where,
+            Long.class,
+            countArgs.toArray()
+        );
+
+        List<Object> queryArgs = new ArrayList<>(countArgs);
+        queryArgs.add(offset);
+        queryArgs.add(safeLimit);
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            """
+            SELECT id, relation_record_key, text_key, name, name_zh, name_en, source_key,
+                   benefit_expression, benefit_zh, benefit_en, primary_part, set_count, unique_item_count,
+                   sets_json, unique_item_ids_json, current_item_ids_json, related_items_json,
+                   male_images, female_images, special_images, mapping_status, status, created_at, updated_at
+            FROM """ + projectionTable + """
+            """ + where + """
+            ORDER BY id ASC
+            LIMIT ?, ?
+            """,
+            queryArgs.toArray()
+        );
+
+        List<Map<String, Object>> payload = rows.stream().map(this::normalizeProjectionArmorSetRow).toList();
+        Pagination pagination = new Pagination(total == null ? 0 : total, safePage, safeLimit);
+        ApiResponse<List<Map<String, Object>>> response = ApiResponse.success(payload);
+        response.setPagination(pagination);
+        return ResponseEntity.ok(response);
+    }
+
+    private ResponseEntity<ApiResponse<Map<String, Object>>> getProjectionArmorSetById(String projectionTable, Long id) {
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            """
+            SELECT id, relation_record_key, text_key, name, name_zh, name_en, source_key,
+                   benefit_expression, benefit_zh, benefit_en, primary_part, set_count, unique_item_count,
+                   sets_json, unique_item_ids_json, current_item_ids_json, related_items_json,
+                   male_images, female_images, special_images, mapping_status, status, created_at, updated_at
+            FROM """ + projectionTable + """
+            WHERE id = ? LIMIT 1
+            """,
+            id
+        );
+        if (rows.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "ArmorSet not found"));
         }
-        return ResponseEntity.ok(ApiResponse.success(normalizeArmorSetRow(rows.get(0), loadArmorSetImageSnapshot())));
+        return ResponseEntity.ok(ApiResponse.success(normalizeProjectionArmorSetRow(rows.get(0))));
     }
 
     @PostMapping
@@ -140,7 +273,7 @@ public class AdminArmorSetController {
 
         Long id = keyHolder.getKey() == null ? null : keyHolder.getKey().longValue();
         syncArmorSetItems(id, request);
-        return getArmorSetById(id);
+        return getLegacyArmorSetById(id);
     }
 
     @PutMapping("/{id}")
@@ -200,7 +333,11 @@ public class AdminArmorSetController {
         );
 
         syncArmorSetItems(id, request);
-        return ResponseEntity.ok(ApiResponse.success(getArmorSetById(id).getBody().getData(), "ArmorSet updated"));
+        Map<String, Object> payload = findLegacyArmorSetPayload(id);
+        if (payload == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "ArmorSet not found"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(payload, "ArmorSet updated"));
     }
 
     @DeleteMapping("/{id}")
@@ -224,6 +361,63 @@ public class AdminArmorSetController {
         args.add(pattern);
         args.add(pattern);
         return " WHERE (source_key LIKE ? OR text_key LIKE ? OR benefit_expression LIKE ? OR source_key LIKE ? OR text_key LIKE ?)";
+    }
+
+    private Map<String, Object> normalizeProjectionArmorSetRow(Map<String, Object> row) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        String textKey = trimToNull(row.get("text_key"));
+        String nameZh = firstNonBlank(trimToNull(row.get("name_zh")), trimToNull(row.get("name")), textKey);
+        String nameEn = firstNonBlank(trimToNull(row.get("name_en")), trimToNull(row.get("name")), textKey);
+        String benefitExpression = trimToNull(row.get("benefit_expression"));
+        String maleImages = trimToNull(row.get("male_images"));
+        String femaleImages = trimToNull(row.get("female_images"));
+        String specialImages = trimToNull(row.get("special_images"));
+        String previewImage = firstNonBlank(maleImages, femaleImages, specialImages);
+        List<Map<String, Object>> equipmentItems = normalizeArmorEquipmentItems(parseJson(row.get("related_items_json")));
+        String mappingStatus = firstNonBlank(trimToNull(row.get("mapping_status")), "mapped");
+
+        payload.put("id", toLong(row.get("id")));
+        payload.put("name", firstNonBlank(nameZh, nameEn, textKey));
+        payload.put("nameZh", nameZh);
+        payload.put("nameEn", nameEn);
+        payload.put("internalCode", firstNonBlank(trimToNull(row.get("source_key")), textKey));
+        payload.put("textKey", textKey);
+        payload.put("textZh", nameZh);
+        payload.put("textEn", nameEn);
+        payload.put("sourceKey", firstNonBlank(trimToNull(row.get("source_key")), textKey));
+        payload.put("benefitExpression", benefitExpression);
+        payload.put("benefitZh", firstNonBlank(trimToNull(row.get("benefit_zh")), benefitExpression));
+        payload.put("benefitEn", firstNonBlank(trimToNull(row.get("benefit_en")), benefitExpression));
+        payload.put("primaryPart", row.get("primary_part"));
+        payload.put("setCount", toInt(row.get("set_count"), 0));
+        payload.put("uniqueItemCount", toInt(row.get("unique_item_count"), 0));
+        payload.put("setsJson", firstNonBlank(trimToNull(row.get("sets_json")), "[]"));
+        payload.put("uniqueItemIdsJson", firstNonBlank(trimToNull(row.get("unique_item_ids_json")), "[]"));
+        payload.put("currentItemIdsJson", firstNonBlank(trimToNull(row.get("current_item_ids_json")), "[]"));
+        payload.put("definitionTextKey", textKey);
+        payload.put("definitionBenefitExpression", benefitExpression);
+        payload.put("definitionPrimaryPart", row.get("primary_part"));
+        payload.put("definitionSetCount", toInt(row.get("set_count"), 0));
+        payload.put("definitionSetsJson", firstNonBlank(trimToNull(row.get("sets_json")), "[]"));
+        payload.put("definitionUniqueItemIdsJson", firstNonBlank(trimToNull(row.get("unique_item_ids_json")), "[]"));
+        payload.put("definitionMappingStatus", mappingStatus);
+        payload.put("status", toInt(row.get("status"), 1));
+        payload.put("categoryId", null);
+        payload.put("armorHeadId", null);
+        payload.put("armorBodyId", null);
+        payload.put("armorLegsId", null);
+        payload.put("image", previewImage);
+        payload.put("imageUrl", previewImage);
+        payload.put("maleImages", maleImages);
+        payload.put("femaleImages", femaleImages);
+        payload.put("specialImages", specialImages);
+        payload.put("relatedItems", equipmentItems);
+        payload.put("equipmentItems", equipmentItems);
+        payload.put("setVariants", buildArmorSetVariants(textKey, parseJson(row.get("sets_json")), equipmentItems));
+        payload.put("effectRows", buildArmorEffectRows(benefitZh(payload), benefitEn(payload), benefitExpression, row.get("primary_part"), mappingStatus));
+        payload.put("createdAt", row.get("created_at"));
+        payload.put("updatedAt", row.get("updated_at"));
+        return payload;
     }
 
     private Map<String, Object> normalizeArmorSetRow(Map<String, Object> row, Map<String, ArmorSetImageGroup> snapshotImages) {
@@ -271,6 +465,7 @@ public class AdminArmorSetController {
         String snapshotSpecialImages = snapshotImageGroup == null ? null : snapshotImageGroup.specialCsv();
         String snapshotPreviewImage = firstNonBlank(snapshotMaleImages, snapshotFemaleImages, snapshotSpecialImages);
         List<Map<String, Object>> relatedItems = loadRelatedItems(definition, currentItemIds);
+        List<Map<String, Object>> equipmentItems = normalizeArmorEquipmentItems(relatedItems);
         String relatedPreviewImage = relatedItems.stream()
             .map(item -> trimToNull(item.get("image")))
             .filter(value -> value != null && !value.isBlank())
@@ -313,10 +508,169 @@ public class AdminArmorSetController {
         payload.put("maleImages", firstNonBlank(trimToNull(row.get("male_images")), trimToNull(definition.get("maleImages")), snapshotMaleImages, previewImage));
         payload.put("femaleImages", firstNonBlank(trimToNull(row.get("female_images")), trimToNull(definition.get("femaleImages")), snapshotFemaleImages));
         payload.put("specialImages", firstNonBlank(trimToNull(row.get("special_images")), trimToNull(definition.get("specialImages")), snapshotSpecialImages));
-        payload.put("relatedItems", relatedItems);
+        payload.put("relatedItems", equipmentItems);
+        payload.put("equipmentItems", equipmentItems);
+        payload.put("setVariants", buildArmorSetVariants(String.valueOf(payload.getOrDefault("textKey", textKey)), parseJson(payload.get("setsJson")), equipmentItems));
+        payload.put(
+            "effectRows",
+            buildArmorEffectRows(
+                trimToNull(payload.get("benefitZh")),
+                trimToNull(payload.get("benefitEn")),
+                benefitExpression,
+                payload.get("primaryPart"),
+                payload.get("definitionMappingStatus")
+            )
+        );
         payload.put("createdAt", row.get("created_at"));
         payload.put("updatedAt", row.get("updated_at"));
         return payload;
+    }
+
+    private String benefitZh(Map<String, Object> payload) {
+        return trimToNull(payload.get("benefitZh"));
+    }
+
+    private String benefitEn(Map<String, Object> payload) {
+        return trimToNull(payload.get("benefitEn"));
+    }
+
+    private List<Map<String, Object>> normalizeArmorEquipmentItems(Object rawItems) {
+        if (!(rawItems instanceof List<?> items)) {
+            return List.of();
+        }
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Object rawItem : items) {
+            if (!(rawItem instanceof Map<?, ?> item)) {
+                continue;
+            }
+            Map<String, Object> payload = new LinkedHashMap<>();
+            Long id = toLong(firstMapValue(item, "id", "itemId", "item_id"));
+            Long sourceId = toLong(firstMapValue(item, "sourceId", "source_id", "itemSourceId", "item_source_id"));
+            payload.put("id", id);
+            payload.put("itemId", id);
+            payload.put("sourceId", sourceId);
+            payload.put("internalName", firstNonBlank(trimToNull(firstMapValue(item, "internalName", "internal_name", "itemInternalName", "item_internal_name"))));
+            payload.put("name", firstNonBlank(trimToNull(firstMapValue(item, "name", "itemName", "item_name"))));
+            payload.put("nameZh", firstNonBlank(trimToNull(firstMapValue(item, "nameZh", "name_zh", "itemNameZh", "item_name_zh"))));
+            payload.put("image", firstNonBlank(trimToNull(firstMapValue(item, "image", "imageUrl", "image_url", "itemImage", "item_image"))));
+            payload.put("partRole", firstNonBlank(trimToNull(firstMapValue(item, "partRole", "part_role"))));
+            payload.put("slotType", firstNonBlank(trimToNull(firstMapValue(item, "slotType", "slot_type"))));
+            payload.put("equipmentSlotId", toNullableInt(firstMapValue(item, "equipmentSlotId", "equipment_slot_id")));
+            payload.put("setVariantIndex", toInt(firstMapValue(item, "setVariantIndex", "set_variant_index"), 0));
+            payload.put("partIndex", toInt(firstMapValue(item, "partIndex", "part_index"), result.size()));
+            result.add(payload);
+        }
+        return result;
+    }
+
+    private List<Map<String, Object>> buildArmorSetVariants(String textKey, Object rawSets, List<Map<String, Object>> equipmentItems) {
+        List<List<Long>> sets = extractSetVariants(rawSets);
+        if (sets.isEmpty() && !equipmentItems.isEmpty()) {
+            List<Long> fallbackIds = equipmentItems.stream()
+                .map(item -> firstNonNullLong(item.get("sourceId"), item.get("id")))
+                .filter(value -> value != null && value > 0)
+                .toList();
+            if (!fallbackIds.isEmpty()) {
+                sets = List.of(fallbackIds);
+            }
+        }
+
+        List<Map<String, Object>> variants = new ArrayList<>();
+        for (int index = 0; index < sets.size(); index += 1) {
+            List<Long> itemSourceIds = sets.get(index);
+            int variantIndex = index;
+            List<Map<String, Object>> items = equipmentItems.stream()
+                .filter(item -> toInt(item.get("setVariantIndex"), 0) == variantIndex)
+                .filter(item -> {
+                    Long sourceId = firstNonNullLong(item.get("sourceId"), item.get("id"));
+                    return sourceId == null || itemSourceIds.isEmpty() || itemSourceIds.contains(sourceId);
+                })
+                .toList();
+            if (items.isEmpty() && index == 0 && !equipmentItems.isEmpty()) {
+                items = equipmentItems;
+            }
+
+            Map<String, Object> variant = new LinkedHashMap<>();
+            variant.put("variantIndex", index);
+            variant.put("setId", firstNonBlank(textKey, "ArmorSet") + "#" + index);
+            variant.put("itemSourceIds", itemSourceIds);
+            variant.put("items", items);
+            variants.add(variant);
+        }
+        return variants;
+    }
+
+    private List<List<Long>> extractSetVariants(Object rawSets) {
+        if (!(rawSets instanceof List<?> list) || list.isEmpty()) {
+            return List.of();
+        }
+        if (list.stream().noneMatch(List.class::isInstance)) {
+            List<Long> single = list.stream()
+                .map(this::toLong)
+                .filter(value -> value != null && value > 0)
+                .toList();
+            return single.isEmpty() ? List.of() : List.of(single);
+        }
+        List<List<Long>> variants = new ArrayList<>();
+        for (Object rawVariant : list) {
+            if (!(rawVariant instanceof List<?> variant)) {
+                continue;
+            }
+            List<Long> ids = variant.stream()
+                .map(this::toLong)
+                .filter(value -> value != null && value > 0)
+                .toList();
+            if (!ids.isEmpty()) {
+                variants.add(ids);
+            }
+        }
+        return variants;
+    }
+
+    private List<Map<String, Object>> buildArmorEffectRows(
+        String benefitZh,
+        String benefitEn,
+        String benefitExpression,
+        Object primaryPart,
+        Object mappingStatus
+    ) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        addEffectRow(rows, "中文效果", benefitZh);
+        addEffectRow(rows, "英文效果", benefitEn);
+        addEffectRow(rows, "Benefit Expression", benefitExpression);
+        addEffectRow(rows, "Primary Part", trimToNull(primaryPart));
+        addEffectRow(rows, "Mapping Status", trimToNull(mappingStatus));
+        return rows;
+    }
+
+    private void addEffectRow(List<Map<String, Object>> rows, String label, String value) {
+        String text = trimToNull(value);
+        if (text == null) {
+            return;
+        }
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("label", label);
+        row.put("value", text);
+        rows.add(row);
+    }
+
+    private Object firstMapValue(Map<?, ?> map, String... keys) {
+        for (String key : keys) {
+            if (map.containsKey(key) && map.get(key) != null) {
+                return map.get(key);
+            }
+        }
+        return null;
+    }
+
+    private Long firstNonNullLong(Object... values) {
+        for (Object value : values) {
+            Long current = toLong(value);
+            if (current != null) {
+                return current;
+            }
+        }
+        return null;
     }
 
     private Map<String, ArmorSetImageGroup> loadArmorSetImageSnapshot() {
@@ -639,6 +993,16 @@ public class AdminArmorSetController {
             return Integer.parseInt(String.valueOf(value));
         } catch (NumberFormatException exception) {
             return fallback;
+        }
+    }
+
+    private Integer toNullableInt(Object value) {
+        if (value == null) return null;
+        if (value instanceof Number number) return number.intValue();
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException exception) {
+            return null;
         }
     }
 

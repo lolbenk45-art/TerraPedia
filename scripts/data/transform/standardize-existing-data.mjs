@@ -360,6 +360,7 @@ function normalizeItem(item, itemMaps) {
     rarityId: toFiniteNumber(item.rarityId),
     description: nullableString(item.description),
     tooltip: nullableString(item.tooltip),
+    equipment: normalizeEquipmentSlots(item.equipment),
     status: toFiniteNumber(item.status),
     stats: {
       damage: toFiniteNumber(item.damage),
@@ -378,6 +379,26 @@ function normalizeItem(item, itemMaps) {
       stackSize: toFiniteNumber(item.stackSize)
     }
   });
+}
+
+function normalizeEquipmentSlots(value) {
+  const equipment = isObject(value) ? value : {};
+  return deepSortObject({
+    headSlot: toNullableSlot(equipment.headSlot),
+    bodySlot: toNullableSlot(equipment.bodySlot),
+    legSlot: toNullableSlot(equipment.legSlot)
+  });
+}
+
+function toNullableSlot(value) {
+  if (value == null || value === '') {
+    return null;
+  }
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0) {
+    return null;
+  }
+  return Math.round(number);
 }
 
 function normalizeBuff(buff) {

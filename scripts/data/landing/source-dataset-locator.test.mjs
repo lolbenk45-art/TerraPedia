@@ -51,6 +51,13 @@ test('listSourceDatasetLandingInputs locates single-file and multi-file landing 
     fetchedAt: '2026-04-23T01:04:00.000Z',
     revisionTimestamp: '2026-04-22T10:04:00Z',
   });
+  await writeJson(path.join(sharedDataRoot, 'raw', 'wiki', 'armor_set_images.parsed.latest.json'), {
+    sourcePageTitle: 'Armor set pages',
+    fetchedAt: '2026-04-23T01:05:00.000Z',
+    sourceRevisionTimestamp: null,
+    armorSetImages: [],
+    warnings: [],
+  });
   await writeJson(path.join(repoRoot, 'data', 'generated', 'wiki-bosses.latest.json'), {
     generatedAt: '2026-04-23T02:00:00.000Z',
     records: [
@@ -105,6 +112,7 @@ test('listSourceDatasetLandingInputs locates single-file and multi-file landing 
   assert.equal(datasetCounts.npcs_raw, 1);
   assert.equal(datasetCounts.item_pages_raw, 2);
   assert.equal(datasetCounts.biomes_raw, 1);
+  assert.equal(datasetCounts.armor_set_images_raw, 1);
   assert.equal(datasetCounts.bosses_raw, 2);
   assert.equal(datasetCounts.categories_raw, 2);
   assert.equal(datasetCounts.recipes_raw, 1);

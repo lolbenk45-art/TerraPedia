@@ -142,6 +142,93 @@ test('runSync dry-run reads maint only and does not write relation rows', async 
   assert.equal(result.results.relationNpcImages.length, 1);
 });
 
+test('runSync dry-run builds armor set relation and projection rows from maint sources', async () => {
+  const result = await runSync(
+    {
+      apply: false,
+      createDatabase: false,
+      maintDatabase: 'terria_v1_maint',
+      localDatabase: null,
+      relationDatabase: 'terria_v1_relation',
+      scopes: ['armor_set']
+    },
+    {
+      config: {
+        database: {
+          host: '127.0.0.1',
+          port: 3306,
+          username: 'root',
+          password: 'root'
+        }
+      },
+      queryMaint: async (sql) => {
+        if (sql.includes('maint_armor_sets')) {
+          return [{
+            id: 1,
+            record_key: 'armor-maint-key',
+            text_key: 'ArmorSetBonus.Wood',
+            benefit_expression: 'ArmorSetBonuses.Benefits.Wood',
+            primary_part: null,
+            set_count: 1,
+            unique_item_count: 3,
+            sets_json: JSON.stringify([[727, 728, 729]]),
+            unique_item_ids_json: JSON.stringify([727, 728, 729]),
+            raw_json: '{}',
+            source_provider: 'terraria.wiki.gg',
+            source_page: 'Module:ArmorSetBonuses',
+            landing_source_id: 10,
+            landing_source_key: 'wiki.module.armorsetbonuses',
+            landing_content_hash: 'a'.repeat(64)
+          }];
+        }
+        if (sql.includes('maint_items')) {
+          return [
+            {
+              source_id: 727,
+              internal_name: 'WoodHelmet',
+              english_name: 'Wood Helmet',
+              raw_json: JSON.stringify({ headSlot: 52 })
+            },
+            {
+              source_id: 728,
+              internal_name: 'WoodBreastplate',
+              english_name: 'Wood Breastplate',
+              raw_json: JSON.stringify({ bodySlot: 32 })
+            },
+            {
+              source_id: 729,
+              internal_name: 'WoodGreaves',
+              english_name: 'Wood Greaves',
+              raw_json: JSON.stringify({ legSlot: 31 })
+            }
+          ];
+        }
+        if (sql.includes('maint_armor_set_images')) {
+          return [];
+        }
+        return [];
+      },
+      writeReports: async () => ({
+        auditJsonPath: 'reports/relation/relation-audit-2026-04-27.json',
+        auditMdPath: 'reports/relation/relation-audit-2026-04-27.md',
+        conflictsPath: 'reports/relation/relation-conflicts-2026-04-27.json',
+        unresolvedPath: 'reports/relation/relation-unresolved-2026-04-27.json'
+      }),
+      executeRelation: async () => {
+        throw new Error('should not write in dry-run');
+      }
+    }
+  );
+
+  assert.equal(result.results.relationArmorSets.length, 1);
+  assert.equal(result.results.relationArmorSetItems.length, 3);
+  assert.equal(result.results.relationArmorSetImages.length, 0);
+  assert.equal(result.results.projectionArmorSets.length, 1);
+  assert.equal(result.summary.domainSummary.armorSet, 4);
+  assert.equal(result.results.projectionArmorSets[0].textKey, 'ArmorSetBonus.Wood');
+  assert.deepEqual(JSON.parse(result.results.projectionArmorSets[0].currentItemIdsJson), [727, 728, 729]);
+});
+
 test('runSync apply mode clears stale relation tables before writing current snapshot', async () => {
   const statements = [];
 

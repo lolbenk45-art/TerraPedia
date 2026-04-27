@@ -630,6 +630,45 @@ test('extractMaintEntitiesFromLandingRow expands armor_sets_raw into armor set r
   assert.equal(actual.rows[0].textKey, 'ArmorSetBonus.Wood');
 });
 
+test('extractMaintEntitiesFromLandingRow expands armor_set_images_raw into maint image rows', async () => {
+  const landingRow = {
+    id: 84,
+    dataset_type: 'armor_set_images_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Armor set image crawler',
+    source_key: 'wiki.armor_set_images',
+    source_revision_timestamp: '2026-04-07T02:20:00Z',
+    content_hash: '6'.repeat(64),
+    fetched_at: '2026-04-07T02:20:00Z',
+    parsed_at: '2026-04-07T02:20:00Z',
+    payload_json: JSON.stringify({
+      sourceRevisionTimestamp: '2026-04-07T02:20:00Z',
+      armorSetImages: [
+        {
+          textKey: 'ArmorSetBonus.Wood',
+          pageTitle: 'Wood armor',
+          imageRole: 'male',
+          sourceFileTitle: 'Wood armor.png',
+          originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png',
+          width: 64,
+          height: 64,
+          contentType: 'image/png',
+          isPrimary: true,
+          sortOrder: 0,
+        },
+      ],
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+  assert.equal(actual.scope, 'armor_set_images');
+  assert.equal(actual.rows.length, 1);
+  assert.equal(actual.rows[0].tableName, 'maint_armor_set_images');
+  assert.equal(actual.rows[0].textKey, 'ArmorSetBonus.Wood');
+  assert.equal(actual.rows[0].imageRole, 'male');
+  assert.equal(actual.rows[0].sourceFileTitle, 'Wood armor.png');
+});
+
 test('extractMaintEntitiesFromLandingRow expands categories_raw into category maint rows', async () => {
   const landingRow = {
     id: 84,

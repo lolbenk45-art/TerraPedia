@@ -229,6 +229,26 @@ export async function listSourceDatasetLandingInputs(options = {}) {
   );
 
   await pushFileDescriptor(
+    'armor_set_images_raw',
+    path.join(sharedDataRoot, 'raw', 'wiki', 'armor_set_images.parsed.latest.json'),
+    (filePath, payload) => buildFileDescriptor({
+      datasetType: 'armor_set_images_raw',
+      filePath,
+      payload,
+      provider: 'terraria.wiki.gg',
+      sourceKind: 'page_imageinfo',
+      sourceKey: 'wiki.armor_set_images',
+      sourcePage: payload.sourcePageTitle ?? 'Armor set pages',
+      sourceRevisionTimestamp: payload.sourceRevisionTimestamp ?? null,
+      fetchedAt: payload.fetchedAt,
+      parsedAt: payload.fetchedAt,
+      parseStatus: Array.isArray(payload.warnings) && payload.warnings.length > 0 ? 'partial' : 'ok',
+      repoRoot,
+      sharedDataRoot,
+    }),
+  );
+
+  await pushFileDescriptor(
     'buffs_raw',
     path.join(sharedDataRoot, 'raw', 'wiki', 'template__getbuffinfo.parsed.latest.json'),
     (filePath, payload) => buildFileDescriptor({

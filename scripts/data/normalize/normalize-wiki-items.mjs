@@ -198,6 +198,7 @@ function normalizeItem(item, mappingOverrides) {
     categoryCode,
     description: tooltip,
     tooltip,
+    equipment: normalizeEquipmentSlots(item),
     rarity: rarity.label,
     rarityId: rarity.id,
     damage: nullableInteger(item.damage),
@@ -211,6 +212,14 @@ function normalizeItem(item, mappingOverrides) {
     isStackable: stackSize > 1,
     stackSize,
     status: 1
+  };
+}
+
+function normalizeEquipmentSlots(item) {
+  return {
+    headSlot: nullableSlot(item.headSlot),
+    bodySlot: nullableSlot(item.bodySlot),
+    legSlot: nullableSlot(item.legSlot)
   };
 }
 
@@ -233,6 +242,14 @@ function mapRarity(item) {
 }
 
 function nullableInteger(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0) {
+    return null;
+  }
+  return Math.round(number);
+}
+
+function nullableSlot(value) {
   const number = Number(value);
   if (!Number.isFinite(number) || number < 0) {
     return null;

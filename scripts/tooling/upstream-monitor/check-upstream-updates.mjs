@@ -27,6 +27,8 @@ const MODULE_ALIASES = {
   projectiles: 'projectileinfo',
   projectile: 'projectileinfo',
   projectileinfo: 'projectileinfo',
+  armor_sets: 'armorsetbonuses',
+  armor_set: 'armorsetbonuses',
   armorsets: 'armorsetbonuses',
   armorsetbonuses: 'armorsetbonuses',
   armorset: 'armorsetbonuses',
@@ -583,6 +585,25 @@ function loadBaseline(manifestPath) {
 }
 
 async function loadWikiUtils() {
+  const stubModulesRaw = nullableString(process.env.TERRAPEDIA_UPSTREAM_MONITOR_STUB_MODULES);
+  if (stubModulesRaw) {
+    const stubModules = JSON.parse(stubModulesRaw);
+    return {
+      fetchWikiModuleContent: async ({ moduleTitle, apiUrl }) => {
+        const payload = stubModules?.[moduleTitle];
+        if (!payload) {
+          throw new Error(`Stub wiki module missing: ${moduleTitle}`);
+        }
+        return {
+          ...payload,
+          apiUrl: payload.apiUrl ?? apiUrl,
+          moduleTitle: payload.moduleTitle ?? moduleTitle,
+          pageTitle: payload.pageTitle ?? moduleTitle
+        };
+      }
+    };
+  }
+
   const utilityPath = path.join(repoRoot, 'scripts', 'data', 'lib', 'wiki-item-utils.mjs');
   const utilityUrl = pathToFileURL(utilityPath).href;
   const module = await import(utilityUrl);

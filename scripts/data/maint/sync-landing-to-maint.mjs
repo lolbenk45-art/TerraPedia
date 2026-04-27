@@ -37,6 +37,7 @@ const SCOPE_TO_DATASETS = {
   bosses: ['bosses_raw'],
   biomes: ['biomes_raw'],
   armor_sets: ['armor_sets_raw'],
+  armor_set_images: ['armor_set_images_raw'],
   categories: ['categories_raw'],
   shimmer: ['shimmer_raw'],
 };
@@ -56,6 +57,7 @@ const SCOPE_TO_TABLE = {
   bosses: 'maint_bosses',
   biomes: 'maint_biomes',
   armor_sets: 'maint_armor_sets',
+  armor_set_images: 'maint_armor_set_images',
   categories: 'maint_categories',
   shimmer: 'maint_shimmer_pages',
 };
@@ -120,7 +122,7 @@ function formatDateTag(value) {
 }
 
 function resolveScopes(rawScopes) {
-  const scopes = String(rawScopes ?? 'items,npcs,projectiles,buffs,item_pages,item_images,recipe_pages,item_recipes,item_sources,item_biomes,source_snapshots,bosses,biomes,armor_sets,categories,shimmer')
+  const scopes = String(rawScopes ?? 'items,npcs,projectiles,buffs,item_pages,item_images,recipe_pages,item_recipes,item_sources,item_biomes,source_snapshots,bosses,biomes,armor_sets,armor_set_images,categories,shimmer')
     .split(',')
     .map((entry) => entry.trim())
     .filter(Boolean)
@@ -585,6 +587,42 @@ function extractArmorSetMaintRows(landingRow, payload) {
     sourceProvider: landingRow.provider,
     sourcePage: landingRow.source_page,
     sourceRevisionTimestamp: payload.sourceRevisionTimestamp ?? landingRow.source_revision_timestamp,
+    landingSourceId: Number(landingRow.id),
+    landingSourceKey: landingRow.source_key,
+    landingSourcePage: landingRow.source_page,
+    landingContentHash: landingRow.content_hash,
+    landingFetchedAt: landingRow.fetched_at,
+    landingParsedAt: landingRow.parsed_at,
+    rawJson: JSON.stringify(record),
+  }));
+}
+
+function extractArmorSetImageMaintRows(landingRow, payload) {
+  return (Array.isArray(payload.armorSetImages) ? payload.armorSetImages : []).map((record, index) => ({
+    scope: 'armor_set_images',
+    tableName: 'maint_armor_set_images',
+    recordKey: createRecordKey({
+      datasetType: landingRow.dataset_type,
+      textKey: record.textKey,
+      imageRole: record.imageRole,
+      sourceFileTitle: record.sourceFileTitle,
+      sortOrder: record.sortOrder ?? index,
+      contentHash: landingRow.content_hash,
+    }),
+    textKey: normalizeText(record.textKey),
+    pageTitle: normalizeText(record.pageTitle),
+    imageRole: normalizeText(record.imageRole),
+    sourceProvider: landingRow.provider,
+    sourceFileTitle: normalizeText(record.sourceFileTitle),
+    sourcePage: normalizeText(record.pageTitle) ?? landingRow.source_page,
+    sourceRevisionTimestamp: record.sourceRevisionTimestamp ?? payload.sourceRevisionTimestamp ?? landingRow.source_revision_timestamp,
+    originalUrl: normalizeText(record.originalUrl),
+    cachedUrl: normalizeText(record.cachedUrl),
+    width: toNullableNumber(record.width),
+    height: toNullableNumber(record.height),
+    contentType: normalizeText(record.contentType),
+    isPrimary: Boolean(record.isPrimary),
+    sortOrder: toNullableNumber(record.sortOrder) ?? index,
     landingSourceId: Number(landingRow.id),
     landingSourceKey: landingRow.source_key,
     landingSourcePage: landingRow.source_page,
@@ -1065,6 +1103,10 @@ export async function extractMaintEntitiesFromLandingRow(landingRow, options = {
     const rows = extractArmorSetMaintRows(landingRow, payload);
     return { scope: 'armor_sets', rows };
   }
+  if (datasetType === 'armor_set_images_raw') {
+    const rows = extractArmorSetImageMaintRows(landingRow, payload);
+    return { scope: 'armor_set_images', rows };
+  }
   if (datasetType === 'categories_raw') {
     const categoryResult = extractCategoryMaintRows(landingRow, payload);
     return { scope: 'categories', rows: categoryResult.rows, categoryRules: categoryResult.categoryRules };
@@ -1328,6 +1370,43 @@ async function upsertRecordKeyRow(connection, row) {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
       [
         row.recordKey, row.itemInternalName, row.itemName, row.role, row.sourceProvider, row.sourceFileTitle, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp),
+        row.originalUrl, row.cachedUrl, row.width, row.height, row.contentType, row.isPrimary ? 1 : 0, row.sortOrder,
+        row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt),
+        row.rawJson,
+      ],
+    );
+    return 'inserted';
+  }
+
+  if (row.tableName === 'maint_armor_set_images') {
+    const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
+    const existing = existingRows[0] ?? null;
+    if (existing) {
+      await connection.execute(
+        `UPDATE \`${row.tableName}\`
+         SET text_key = ?, page_title = ?, image_role = ?, source_provider = ?, source_file_title = ?, source_page = ?, source_revision_timestamp = ?,
+             original_url = ?, cached_url = ?, width = ?, height = ?, content_type = ?, is_primary = ?, sort_order = ?,
+             landing_source_id = ?, landing_source_key = ?, landing_source_page = ?, landing_content_hash = ?, landing_fetched_at = ?, landing_parsed_at = ?,
+             raw_json = ?, status = 1, deleted = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [
+          row.textKey, row.pageTitle, row.imageRole, row.sourceProvider, row.sourceFileTitle, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp),
+          row.originalUrl, row.cachedUrl, row.width, row.height, row.contentType, row.isPrimary ? 1 : 0, row.sortOrder,
+          row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt),
+          row.rawJson, Number(existing.id),
+        ],
+      );
+      return 'updated';
+    }
+    await connection.execute(
+      `INSERT INTO \`${row.tableName}\`
+       (\`record_key\`, \`text_key\`, \`page_title\`, \`image_role\`, \`source_provider\`, \`source_file_title\`, \`source_page\`, \`source_revision_timestamp\`,
+        \`original_url\`, \`cached_url\`, \`width\`, \`height\`, \`content_type\`, \`is_primary\`, \`sort_order\`,
+        \`landing_source_id\`, \`landing_source_key\`, \`landing_source_page\`, \`landing_content_hash\`, \`landing_fetched_at\`, \`landing_parsed_at\`,
+        \`raw_json\`, \`status\`, \`deleted\`)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)`,
+      [
+        row.recordKey, row.textKey, row.pageTitle, row.imageRole, row.sourceProvider, row.sourceFileTitle, row.sourcePage, toMysqlDateTime(row.sourceRevisionTimestamp),
         row.originalUrl, row.cachedUrl, row.width, row.height, row.contentType, row.isPrimary ? 1 : 0, row.sortOrder,
         row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash, toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt),
         row.rawJson,

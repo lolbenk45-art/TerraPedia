@@ -354,3 +354,85 @@ test('buildProjectionPayload prefers maint item numeric and text overrides for i
   assert.equal(actual.projectionItems[0].tooltipZh, 'Basic lighting');
   assert.equal(actual.projectionItems[0].descriptionZh, 'Basic light source');
 });
+
+test('buildProjectionPayload maps armor set relations into projection armor sets', () => {
+  const actual = buildProjectionPayload({
+    relationArmorSets: [
+      {
+        recordKey: 'armor-rk',
+        textKey: 'ArmorSetBonus.Wood',
+        benefitExpression: 'ArmorSetBonuses.Benefits.Wood',
+        primaryPart: null,
+        setCount: 1,
+        uniqueItemCount: 3,
+        setsJson: JSON.stringify([[727, 728, 729]]),
+        uniqueItemIdsJson: JSON.stringify([727, 728, 729]),
+        sourceProvider: 'terraria.wiki.gg',
+        sourcePage: 'Module:ArmorSetBonuses',
+        sourceRevisionTimestamp: '2026-04-26T00:00:00.000Z'
+      }
+    ],
+    relationArmorSetItems: [
+      {
+        armorSetRecordKey: 'armor-rk',
+        itemSourceId: 727,
+        itemInternalName: 'WoodHelmet',
+        itemName: 'Wood Helmet',
+        partRole: 'head',
+        slotType: 'headSlot',
+        equipmentSlotId: 52
+      },
+      {
+        armorSetRecordKey: 'armor-rk',
+        itemSourceId: 728,
+        itemInternalName: 'WoodBreastplate',
+        itemName: 'Wood Breastplate',
+        partRole: 'body',
+        slotType: 'bodySlot',
+        equipmentSlotId: 32
+      },
+      {
+        armorSetRecordKey: 'armor-rk',
+        itemSourceId: 729,
+        itemInternalName: 'WoodGreaves',
+        itemName: 'Wood Greaves',
+        partRole: 'legs',
+        slotType: 'legSlot',
+        equipmentSlotId: 31
+      }
+    ],
+    relationArmorSetImages: [
+      {
+        armorSetRecordKey: 'armor-rk',
+        imageRole: 'male',
+        originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png',
+        isPrimary: 1,
+        sortOrder: 0
+      },
+      {
+        armorSetRecordKey: 'armor-rk',
+        imageRole: 'female',
+        originalUrl: 'https://terraria.wiki.gg/images/Wood_armor_female.png',
+        isPrimary: 0,
+        sortOrder: 1
+      },
+      {
+        armorSetRecordKey: 'armor-rk',
+        imageRole: 'demo',
+        originalUrl: 'https://terraria.wiki.gg/images/Wood_armor_demo.gif',
+        isPrimary: 0,
+        sortOrder: 2
+      }
+    ]
+  });
+
+  assert.equal(actual.projectionArmorSets.length, 1);
+  assert.ok(Number.isInteger(actual.projectionArmorSets[0].id));
+  assert.ok(actual.projectionArmorSets[0].id > 0);
+  assert.equal(actual.projectionArmorSets[0].textKey, 'ArmorSetBonus.Wood');
+  assert.equal(actual.projectionArmorSets[0].maleImages, 'https://terraria.wiki.gg/images/Wood_armor.png');
+  assert.equal(actual.projectionArmorSets[0].femaleImages, 'https://terraria.wiki.gg/images/Wood_armor_female.png');
+  assert.equal(actual.projectionArmorSets[0].specialImages, 'https://terraria.wiki.gg/images/Wood_armor_demo.gif');
+  assert.deepEqual(JSON.parse(actual.projectionArmorSets[0].currentItemIdsJson), [727, 728, 729]);
+  assert.deepEqual(JSON.parse(actual.projectionArmorSets[0].relatedItemsJson).map((item) => item.partRole), ['head', 'body', 'legs']);
+});

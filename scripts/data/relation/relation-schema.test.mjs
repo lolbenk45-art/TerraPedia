@@ -16,11 +16,14 @@ const EXPECTED_TABLE_NAMES = [
   'relation_projectiles',
   'relation_buffs',
   'relation_bosses',
+  'relation_armor_sets',
+  'relation_armor_set_items',
   'relation_item_rarities',
   'relation_item_images',
   'relation_npc_images',
   'relation_projectile_images',
   'relation_buff_images',
+  'relation_armor_set_images',
   'category_nodes',
   'item_category_assignments',
   'item_recipe_heads',
@@ -93,11 +96,14 @@ test('table-scoped relation run metadata columns are correct', () => {
   const relationProjectiles = extractTableDdl(sql, 'relation_projectiles');
   const relationBuffs = extractTableDdl(sql, 'relation_buffs');
   const relationBosses = extractTableDdl(sql, 'relation_bosses');
+  const relationArmorSets = extractTableDdl(sql, 'relation_armor_sets');
+  const relationArmorSetItems = extractTableDdl(sql, 'relation_armor_set_items');
   const relationItemRarities = extractTableDdl(sql, 'relation_item_rarities');
   const relationItemImages = extractTableDdl(sql, 'relation_item_images');
   const relationNpcImages = extractTableDdl(sql, 'relation_npc_images');
   const relationProjectileImages = extractTableDdl(sql, 'relation_projectile_images');
   const relationBuffImages = extractTableDdl(sql, 'relation_buff_images');
+  const relationArmorSetImages = extractTableDdl(sql, 'relation_armor_set_images');
 
   assert.match(runs, /`run_key` CHAR\(64\) COLLATE utf8mb4_bin NOT NULL/);
   assert.match(runs, /`apply_mode` TINYINT\(1\) NOT NULL DEFAULT 0/);
@@ -142,6 +148,17 @@ test('table-scoped relation run metadata columns are correct', () => {
   assert.match(relationBosses, /`npc_match_status` VARCHAR\(64\) DEFAULT NULL/);
   assert.match(relationBosses, /UNIQUE KEY `uk_relation_bosses_record_key` \(`record_key`\)/);
 
+  assert.match(relationArmorSets, /`text_key` VARCHAR\(255\) DEFAULT NULL/);
+  assert.match(relationArmorSets, /`sets_json` LONGTEXT/);
+  assert.match(relationArmorSets, /`unique_item_ids_json` LONGTEXT/);
+  assert.match(relationArmorSets, /UNIQUE KEY `uk_relation_armor_sets_record_key` \(`record_key`\)/);
+
+  assert.match(relationArmorSetItems, /`armor_set_record_key` CHAR\(64\) COLLATE utf8mb4_bin NOT NULL/);
+  assert.match(relationArmorSetItems, /`item_source_id` INT DEFAULT NULL/);
+  assert.match(relationArmorSetItems, /`part_role` VARCHAR\(64\) DEFAULT NULL/);
+  assert.match(relationArmorSetItems, /`equipment_slot_id` INT DEFAULT NULL/);
+  assert.match(relationArmorSetItems, /KEY `idx_relation_armor_set_items_set` \(`armor_set_record_key`\)/);
+
   assert.match(relationItemRarities, /`code` VARCHAR\(32\) NOT NULL/);
   assert.match(relationItemRarities, /`display_name_zh` VARCHAR\(64\) NOT NULL/);
   assert.match(relationItemRarities, /UNIQUE KEY `uk_relation_item_rarities_record_key` \(`record_key`\)/);
@@ -166,6 +183,11 @@ test('table-scoped relation run metadata columns are correct', () => {
   assert.match(relationBuffImages, /`buff_internal_name` VARCHAR\(255\) DEFAULT NULL/);
   assert.match(relationBuffImages, /`content_type` VARCHAR\(128\) DEFAULT NULL/);
   assert.match(relationBuffImages, /UNIQUE KEY `uk_relation_buff_images_record_key` \(`record_key`\)/);
+
+  assert.match(relationArmorSetImages, /`armor_set_record_key` CHAR\(64\) COLLATE utf8mb4_bin NOT NULL/);
+  assert.match(relationArmorSetImages, /`image_role` VARCHAR\(64\) DEFAULT NULL/);
+  assert.match(relationArmorSetImages, /`original_url` VARCHAR\(1000\) DEFAULT NULL/);
+  assert.match(relationArmorSetImages, /UNIQUE KEY `uk_relation_armor_set_images_record_key` \(`record_key`\)/);
 });
 
 test('table-scoped trace and audit columns include required types/defaults', () => {
@@ -302,11 +324,14 @@ test('record key unique indexes exist on all relation result tables', () => {
   const sql = buildRelationSchemaSql();
   const tablesWithRecordKeyUnique = [
     'relation_buffs',
+    'relation_armor_sets',
+    'relation_armor_set_items',
     'relation_item_rarities',
     'relation_item_images',
     'relation_npc_images',
     'relation_projectile_images',
     'relation_buff_images',
+    'relation_armor_set_images',
     'category_nodes',
     'item_category_assignments',
     'item_recipe_heads',

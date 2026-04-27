@@ -30,6 +30,7 @@ test('buildMaintSchemaSql creates all maint tables', () => {
     'maint_bosses',
     'maint_biomes',
     'maint_armor_sets',
+    'maint_armor_set_images',
     'maint_categories',
     'maint_item_categories',
     'maint_category_nodes',
@@ -64,6 +65,8 @@ test('buildMaintSchemaSql creates all maint tables', () => {
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_bosses`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_biomes`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_armor_sets`/);
+  assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_armor_set_images`/);
+  assert.match(sql, /`image_role` VARCHAR\(64\) DEFAULT NULL/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_categories`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_item_categories`/);
   assert.match(sql, /CREATE TABLE IF NOT EXISTS `maint_category_nodes`/);
