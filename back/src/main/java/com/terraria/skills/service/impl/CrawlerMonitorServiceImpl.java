@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.service.CrawlerMonitorService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -33,6 +34,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private final ObjectMapper objectMapper;
     private final Path repoRootOverride;
 
+    @Autowired
     public CrawlerMonitorServiceImpl(ObjectMapper objectMapper) {
         this(objectMapper, null);
     }

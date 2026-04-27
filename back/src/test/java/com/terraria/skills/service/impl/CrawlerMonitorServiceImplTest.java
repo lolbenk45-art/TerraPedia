@@ -5,8 +5,10 @@ import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
@@ -36,6 +38,13 @@ class CrawlerMonitorServiceImplTest {
         Files.createDirectories(repoRoot.resolve("scripts"));
         refreshDir = Files.createDirectories(repoRoot.resolve("reports/backend-refresh"));
         historyDir = Files.createDirectories(refreshDir.resolve("history"));
+    }
+
+    @Test
+    void shouldDeclareSpringInjectionConstructorWhenTestConstructorAlsoExists() throws Exception {
+        Constructor<CrawlerMonitorServiceImpl> constructor = CrawlerMonitorServiceImpl.class.getConstructor(ObjectMapper.class);
+
+        assertTrue(constructor.isAnnotationPresent(Autowired.class));
     }
 
     @Test
