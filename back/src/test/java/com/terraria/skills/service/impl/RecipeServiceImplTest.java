@@ -119,6 +119,22 @@ class RecipeServiceImplTest {
             recipe(41L, "wiki_zh"),
             recipe(42L, "wiki_zh")
         ));
+        RecipeIngredient leftIngredient = new RecipeIngredient();
+        leftIngredient.setRecipeId(41L);
+        leftIngredient.setIngredientItemId(150L);
+        leftIngredient.setIngredientInternalName("Cobweb");
+        leftIngredient.setIngredientNameRaw("蛛网");
+        leftIngredient.setIngredientGroupType("item");
+        leftIngredient.setSortOrder(1);
+
+        RecipeIngredient rightIngredient = new RecipeIngredient();
+        rightIngredient.setRecipeId(42L);
+        rightIngredient.setIngredientItemId(9L);
+        rightIngredient.setIngredientInternalName("Wood");
+        rightIngredient.setIngredientNameRaw("木材");
+        rightIngredient.setIngredientGroupType("item");
+        rightIngredient.setSortOrder(1);
+        when(recipeIngredientMapper.selectList(any())).thenReturn(List.of(leftIngredient, rightIngredient));
 
         List<RecipeDTO> recipes = service.getRecipesByResultItemId(1L);
 
