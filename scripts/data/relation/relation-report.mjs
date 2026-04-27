@@ -15,6 +15,7 @@ export function buildRelationAuditMarkdown(summary = {}) {
   const domainSummary = summary.domainSummary ?? {};
   const entityBreakdown = summary.entityBreakdown ?? {};
   const imageBreakdown = summary.imageBreakdown ?? {};
+  const bridgeBreakdown = summary.bridgeBreakdown ?? {};
   const unresolvedSamples = ensureArray(summary.unresolvedSamples);
   const lines = [
     '# Relation Audit',
@@ -34,6 +35,12 @@ export function buildRelationAuditMarkdown(summary = {}) {
     `- npc: ${imageBreakdown.npc ?? 0}`,
     `- projectile: ${imageBreakdown.projectile ?? 0}`,
     `- buff: ${imageBreakdown.buff ?? 0}`,
+    `- maint item image fills: ${bridgeBreakdown.maintItemImageFillRows ?? 0}`,
+    `- local item image fallback enabled: ${bridgeBreakdown.localItemImageFallbackEnabled ?? false}`,
+    `- local item image fallback rows: ${bridgeBreakdown.localItemImageFallbackRows ?? 0}`,
+    '',
+    '## Source Bridges',
+    `- item zh text override rows: ${bridgeBreakdown.itemTextOverrideRows ?? 0}`,
     '',
     '## Category',
     `- rows: ${domainSummary.category ?? 0}`,

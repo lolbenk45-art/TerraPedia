@@ -56,6 +56,9 @@ export function buildProjectionPayload({
   relationItems = [],
   relationItemImages = [],
   relationItemRarities = [],
+  itemNumericOverrides = [],
+  itemRarityOverrides = [],
+  itemTextOverrides = [],
   relationNpcs = [],
   relationNpcImages = [],
   relationProjectiles = [],
@@ -69,6 +72,21 @@ export function buildProjectionPayload({
       .filter((row) => row?.id != null)
       .map((row) => [Number(row.id), row])
   );
+  const rarityOverrides = new Map(
+    itemRarityOverrides
+      .filter((row) => row?.itemInternalName && row?.rarityId != null)
+      .map((row) => [row.itemInternalName, Number(row.rarityId)])
+  );
+  const numericOverrides = new Map(
+    itemNumericOverrides
+      .filter((row) => row?.itemInternalName)
+      .map((row) => [row.itemInternalName, row])
+  );
+  const textOverrides = new Map(
+    itemTextOverrides
+      .filter((row) => row?.itemInternalName)
+      .map((row) => [row.itemInternalName, row])
+  );
   const npcImages = buildImageIndex(relationNpcImages, 'npcInternalName');
   const projectileImages = buildImageIndex(relationProjectileImages, 'projectileInternalName');
   const buffImages = buildImageIndex(relationBuffImages, 'buffInternalName');
@@ -76,34 +94,38 @@ export function buildProjectionPayload({
   const projectionItems = relationItems.map((row) => {
     const raw = parseJsonObject(row.rawJson);
     const image = resolveWikiImageUrl(itemImages.get(row.internalName));
+    const numericOverride = numericOverrides.get(row.internalName) ?? null;
+    const textOverride = textOverrides.get(row.internalName) ?? null;
     const rareRaw = toNullableNumber(row.rareRaw ?? raw.rare);
     const valueRaw = toNullableNumber(row.valueRaw ?? raw.value);
     return {
       id: toNullableNumber(row.sourceId),
       relationRecordKey: row.recordKey,
-      name: row.englishName ?? null,
+      name: row.englishName ?? row.internalName ?? null,
       nameZh: row.nameZh ?? null,
       internalName: row.internalName ?? null,
       slug: toSlug(row.internalName),
       image,
       categoryId: null,
       description: null,
-      descriptionZh: null,
-      damage: toNullableNumber(raw.damage),
-      defense: toNullableNumber(raw.defense ?? row.defenseValue),
-      knockback: toNullableNumber(raw.knockBack),
-      useTime: toNullableNumber(row.useTime ?? raw.useTime),
+      descriptionZh: textOverride?.descriptionZh ?? null,
+      damage: toNullableNumber(coalesceDefined(numericOverride?.damageValue, row.combatValue, raw.damage)),
+      defense: toNullableNumber(coalesceDefined(numericOverride?.defenseValue, row.defenseValue, raw.defense)),
+      knockback: toNullableNumber(coalesceDefined(numericOverride?.knockbackValue, raw.knockBack)),
+      useTime: toNullableNumber(coalesceDefined(numericOverride?.useTime, row.useTime, raw.useTime)),
       width: toNullableNumber(row.width),
       height: toNullableNumber(row.height),
-      buy: valueRaw,
-      sell: toNullableNumber(row.sellRaw),
+      buy: toNullableNumber(coalesceDefined(numericOverride?.buyValue, row.majorValue, valueRaw)),
+      sell: toNullableNumber(coalesceDefined(numericOverride?.sellValue, row.sellRaw)),
       tooltip: null,
-      tooltipZh: null,
+      tooltipZh: textOverride?.tooltipZh ?? null,
       sourceProvider: row.sourceProvider ?? null,
       sourcePage: row.sourcePage ?? null,
       sourceRevisionTimestamp: row.sourceRevisionTimestamp ?? null,
       lastSyncedAt: null,
-      rarityId: rareRaw != null && itemRarities.has(rareRaw) ? rareRaw : null,
+      rarityId: rareRaw != null && itemRarities.has(rareRaw)
+        ? rareRaw
+        : (rarityOverrides.get(row.internalName) ?? null),
       gamePeriodId: null,
       gameModelId: null,
       isStackable: toFlag(toNullableNumber(row.stackSize) > 1),
@@ -125,7 +147,7 @@ export function buildProjectionPayload({
       gameId: toNullableNumber(row.sourceId),
       sourceId: toNullableNumber(row.sourceId),
       internalName: row.internalName ?? null,
-      name: row.englishName ?? null,
+      name: row.englishName ?? row.internalName ?? null,
       nameZh: row.nameZh ?? null,
       subName: null,
       subNameZh: row.subNameZh ?? null,
@@ -172,7 +194,7 @@ export function buildProjectionPayload({
       relationRecordKey: row.recordKey,
       sourceId: toNullableNumber(row.sourceId),
       internalName: row.internalName ?? null,
-      name: row.englishName ?? null,
+      name: row.englishName ?? row.internalName ?? null,
       nameZh: row.nameZh ?? null,
       imageUrl: resolveWikiImageUrl(image),
       aiStyle: toNullableNumber(raw.aiStyle),
@@ -199,7 +221,7 @@ export function buildProjectionPayload({
     relationRecordKey: row.recordKey,
     sourceId: toNullableNumber(row.sourceId),
     internalName: row.internalName ?? null,
-    englishName: row.englishName ?? null,
+    englishName: row.englishName ?? row.internalName ?? null,
     nameZh: row.nameZh ?? null,
     tooltipEn: row.tooltipEn ?? null,
     tooltipZh: row.tooltipZh ?? null,

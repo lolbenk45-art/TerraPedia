@@ -1,6 +1,6 @@
 # Replacement Readiness
 
-Generated At: 2026-04-25T19:46:41.517Z
+Generated At: 2026-04-25T23:51:37.834Z
 
 Switchable Domains: npcs, projectiles, buffs
 Blocked Domains: items
@@ -12,7 +12,7 @@ Blocked Domains: items
 - shared rows: 6131
 - missing in projection: ZH_RECIPE_BLUE_JELLYFISH_BAIT, ZH_RECIPE_GREEN_JELLYFISH_BAIT, ZH_RECIPE_PINK_JELLYFISH_BAIT
 - extra in projection: Fake_newchest1, Fake_newchest2, OgreMask, GoblinMask, GoblinBomberCap, EtherianJavelin, KoboldDynamiteBackpack, BoringBow, BossBagOgre, BossBagDarkMage
-- blocking fields: image(gap=4012), damage(gap=5374), defense(gap=5867), knockback(gap=5507), use_time(gap=1476), buy(gap=868), sell(gap=3522), tooltip_zh(gap=6), rarity_id(gap=3242), stack_size(gap=6118)
+- blocking fields: image(gap=4012), damage(gap=5374), defense(gap=5867), knockback(gap=5507), use_time(gap=1476), buy(gap=868), sell(gap=3422), tooltip_zh(gap=6), rarity_id(gap=3242)
 
 ## npcs
 - status: switchable

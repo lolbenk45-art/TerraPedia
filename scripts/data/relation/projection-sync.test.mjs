@@ -206,6 +206,63 @@ test('buildProjectionPayload uses wiki original URLs for item images instead of 
   assert.equal(actual.projectionItems[0].image, 'https://terraria.wiki.gg/images/Enchanted_Boomerang.png?56c041');
 });
 
+test('buildProjectionPayload falls back to maint rarity overrides when relation rareRaw is missing', () => {
+  const actual = buildProjectionPayload({
+    relationItems: [
+      {
+        recordKey: 'item-rk-2',
+        sourceId: 8,
+        internalName: 'Torch',
+        englishName: 'Torch',
+        rawJson: '{}',
+      },
+    ],
+    relationItemRarities: [
+      { id: 1, code: 'common', displayNameZh: 'common zh', displayNameEn: 'Common' },
+    ],
+    itemRarityOverrides: [
+      { itemInternalName: 'Torch', rarityId: 1 },
+    ],
+  });
+
+  assert.equal(actual.projectionItems[0].rarityId, 1);
+});
+
+test('buildProjectionPayload falls back to internalName when english names are missing', () => {
+  const actual = buildProjectionPayload({
+    relationItems: [
+      {
+        recordKey: 'item-rk-missing-name',
+        sourceId: 99,
+        internalName: 'BoringBow',
+        englishName: null,
+        rawJson: '{}',
+      },
+    ],
+    relationProjectiles: [
+      {
+        recordKey: 'proj-rk-missing-name',
+        sourceId: 77,
+        internalName: 'FallbackProjectile',
+        englishName: null,
+        rawJson: '{}',
+      },
+    ],
+    relationBuffs: [
+      {
+        recordKey: 'buff-rk-missing-name',
+        sourceId: 88,
+        internalName: 'FallbackBuff',
+        englishName: null,
+      },
+    ],
+  });
+
+  assert.equal(actual.projectionItems[0].name, 'BoringBow');
+  assert.equal(actual.projectionProjectiles[0].name, 'FallbackProjectile');
+  assert.equal(actual.projectionBuffs[0].englishName, 'FallbackBuff');
+});
+
 test('buildProjectionPayload prefers projectile flagsJson and only falls back to rawJson when flags are missing', () => {
   const actual = buildProjectionPayload({
     relationProjectiles: [
@@ -248,4 +305,52 @@ test('buildProjectionPayload prefers projectile flagsJson and only falls back to
   assert.equal(actual.projectionProjectiles[1].friendly, 1);
   assert.equal(actual.projectionProjectiles[1].hostile, 0);
   assert.equal(actual.projectionProjectiles[1].tileCollide, 1);
+});
+
+test('buildProjectionPayload prefers maint item numeric and text overrides for item coverage fields', () => {
+  const actual = buildProjectionPayload({
+    relationItems: [
+      {
+        recordKey: 'item-rk-override',
+        sourceId: 8,
+        internalName: 'Torch',
+        englishName: 'Torch',
+        nameZh: 'Torch zh',
+        combatValue: 5,
+        defenseValue: 2,
+        useTime: 10,
+        majorValue: 50,
+        sellRaw: 5,
+        rawJson: JSON.stringify({ damage: 5, defense: 2, knockBack: 2, useTime: 10, value: 50 }),
+      },
+    ],
+    itemNumericOverrides: [
+      {
+        itemInternalName: 'Torch',
+        damageValue: 0,
+        defenseValue: 0,
+        knockbackValue: 0,
+        useTime: 15,
+        buyValue: 0,
+        sellValue: 10,
+      },
+    ],
+    itemTextOverrides: [
+      {
+        itemInternalName: 'Torch',
+        tooltipZh: 'Basic lighting',
+        descriptionZh: 'Basic light source',
+      },
+    ],
+  });
+
+  assert.equal(actual.projectionItems.length, 1);
+  assert.equal(actual.projectionItems[0].damage, 0);
+  assert.equal(actual.projectionItems[0].defense, 0);
+  assert.equal(actual.projectionItems[0].knockback, 0);
+  assert.equal(actual.projectionItems[0].useTime, 15);
+  assert.equal(actual.projectionItems[0].buy, 0);
+  assert.equal(actual.projectionItems[0].sell, 10);
+  assert.equal(actual.projectionItems[0].tooltipZh, 'Basic lighting');
+  assert.equal(actual.projectionItems[0].descriptionZh, 'Basic light source');
 });

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-25T19:46:41.517Z",
+  "generatedAt": "2026-04-25T23:51:37.834Z",
   "summary": {
     "switchableDomains": [
       "npcs",
@@ -236,8 +236,8 @@
         {
           "field": "sell",
           "localNonNull": 5263,
-          "projectionNonNull": 1741,
-          "gap": 3522,
+          "projectionNonNull": 1841,
+          "gap": 3422,
           "missingExamples": [
             {
               "key": "Torch",
@@ -245,23 +245,23 @@
               "projectionValue": null
             },
             {
-              "key": "WoodenDoor",
-              "localValue": 40,
+              "key": "CopperGreaves",
+              "localValue": 200,
               "projectionValue": null
             },
             {
-              "key": "WoodenTable",
-              "localValue": 60,
+              "key": "IronGreaves",
+              "localValue": 800,
               "projectionValue": null
             },
             {
-              "key": "WoodenChair",
-              "localValue": 30,
+              "key": "SilverGreaves",
+              "localValue": 2000,
               "projectionValue": null
             },
             {
-              "key": "IronAnvil",
-              "localValue": 1000,
+              "key": "GoldGreaves",
+              "localValue": 4000,
               "projectionValue": null
             }
           ]
@@ -328,39 +328,6 @@
             {
               "key": "Mushroom",
               "localValue": 1,
-              "projectionValue": null
-            }
-          ]
-        },
-        {
-          "field": "stack_size",
-          "localNonNull": 6131,
-          "projectionNonNull": 13,
-          "gap": 6118,
-          "missingExamples": [
-            {
-              "key": "IronPickaxe",
-              "localValue": 1,
-              "projectionValue": null
-            },
-            {
-              "key": "DirtBlock",
-              "localValue": 9999,
-              "projectionValue": null
-            },
-            {
-              "key": "StoneBlock",
-              "localValue": 9999,
-              "projectionValue": null
-            },
-            {
-              "key": "IronBroadsword",
-              "localValue": 1,
-              "projectionValue": null
-            },
-            {
-              "key": "Mushroom",
-              "localValue": 9999,
               "projectionValue": null
             }
           ]

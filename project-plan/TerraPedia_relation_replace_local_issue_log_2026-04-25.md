@@ -227,3 +227,43 @@
   - sample: `Clentaminator buy=2000000 sell=400000`
 - Decision needed: none
 - Temporary handling: keep `sell` empty for items whose page infobox has no source-backed sell row; do not infer from `buy` or from legacy local values.
+
+### [INFO] 2026-04-26 11:52 - item row-set parity exceptions accepted for current cutover
+
+- Domain: replacement-readiness
+- Status: open
+- Impact: the remaining item row-set mismatches are recorded as accepted exceptions for the current `relation -> local` replacement track and should not block field-complete cutover work.
+- Evidence:
+  - report: `reports/relation/replacement-readiness-2026-04-26.json`
+  - `items.blockingFields = []`
+  - `missingInProjection = 3`
+  - `extraInProjection = 10`
+- Decision needed: none for the current milestone track
+- Temporary handling: treat the 3 missing rows as local-only legacy exceptions and the 10 extra rows as weak-source projection exceptions for effective cutover planning.
+
+### [INFO] 2026-04-26 13:12 - item row-set exception count corrected after full compat-table audit
+
+- Domain: replacement-readiness
+- Status: open
+- Impact: the earlier `extraInProjection = 10` reading came from the readiness report sample limit; the audited effective-cutover exception list is `3 missing + 15 extra`.
+- Evidence:
+  - report: `reports/relation/item-row-set-audit-2026-04-26.json`
+  - `strictStatus = blocked`
+  - `effectiveStatus = switchable_with_exceptions`
+  - `missingCount = 3`
+  - `extraCount = 15`
+- Decision needed: none for the current execution track
+- Temporary handling: keep these rows as accepted exceptions for effective cutover only; strict replacement remains blocked until they are resolved.
+
+### [INFO] 2026-04-26 13:12 - current item image parity still depends heavily on local fallback
+
+- Domain: replacement-readiness
+- Status: open
+- Impact: current `items` compatibility is operationally usable, but most image parity still depends on `local.items.image` rather than `maint_item_images`.
+- Evidence:
+  - report: `reports/relation/item-image-fallback-audit-2026-04-26.json`
+  - `maintBackedImageCount = 2263`
+  - `localFallbackOnlyImageCount = 3868`
+  - `stillMissingImageCount = 15`
+- Decision needed: none for the current execution track
+- Temporary handling: allow current local image fallback to remain for effective cutover; keep maint-only image parity as a later cleanup goal.

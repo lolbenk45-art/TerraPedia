@@ -98,6 +98,14 @@ function normalizeText(value) {
   return text.length ? text : null;
 }
 
+function toNullableNumber(value) {
+  if (value == null || value === '') {
+    return null;
+  }
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
 function normalizeKey(value) {
   const text = normalizeText(value);
   return text ? text.toLowerCase() : null;
@@ -171,13 +179,13 @@ function extractItemsMaintRows(landingRow, payload, zhSourceIndexes = null) {
       nameZh: zhSourceIndexes?.itemsByInternalName?.get(normalizeKey(value.internalName))?.nameZh,
       moduleGeneratedAt,
       terrariaVersion,
-      majorValue: Number(value.value ?? 0) || null,
-      combatValue: Number(value.damage ?? 0) || null,
-      defenseValue: Number(value.defense ?? 0) || null,
-      useTime: Number(value.useTime ?? 0) || null,
-      stackSize: Number(value.maxStack ?? 0) || null,
-      width: Number(value.width ?? 0) || null,
-      height: Number(value.height ?? 0) || null,
+      majorValue: toNullableNumber(value.value),
+      combatValue: toNullableNumber(value.damage),
+      defenseValue: toNullableNumber(value.defense),
+      useTime: toNullableNumber(value.useTime),
+      stackSize: toNullableNumber(value.maxStack),
+      width: toNullableNumber(value.width),
+      height: toNullableNumber(value.height),
     }));
 }
 
@@ -2091,6 +2099,12 @@ async function ensureMaintMigrations(connection) {
       columns: [
         ['sell_text', 'VARCHAR(255) DEFAULT NULL AFTER `recipes_markup`'],
         ['sell_value', 'INT DEFAULT NULL AFTER `sell_text`']
+      ]
+    },
+    {
+      tableName: 'maint_item_text_overrides',
+      columns: [
+        ['description_zh', 'TEXT AFTER `tooltip_zh`']
       ]
     }
   ];

@@ -71,3 +71,40 @@ test('buildBaseEntityRelations mirrors maint entity rows into relation base tabl
   assert.equal(actual.relationNpcs[0].subNameZh, '大毒刺黄蜂');
   assert.equal(actual.relationProjectiles[0].sourceMaintTable, 'maint_projectiles');
 });
+
+test('buildBaseEntityRelations prefers maint item numeric overrides over landing/page values', () => {
+  const actual = buildBaseEntityRelations({
+    maintItems: [{
+      source_id: 8,
+      internal_name: 'Torch',
+      english_name: 'Torch',
+      major_value: 50,
+      combat_value: null,
+      defense_value: null,
+      use_time: 10,
+      raw_json: '{"value":50,"rare":1}',
+    }],
+    maintItemPages: [{
+      item_internal_name: 'Torch',
+      sell_text: '1 SC',
+      sell_value: 5
+    }],
+    maintItemNumericOverrides: [{
+      item_internal_name: 'Torch',
+      damage_value: 0,
+      defense_value: 0,
+      knockback_value: 0,
+      use_time: 15,
+      buy_value: 0,
+      sell_value: 10
+    }]
+  });
+
+  assert.equal(actual.relationItems.length, 1);
+  assert.equal(actual.relationItems[0].combatValue, 0);
+  assert.equal(actual.relationItems[0].defenseValue, 0);
+  assert.equal(actual.relationItems[0].useTime, 15);
+  assert.equal(actual.relationItems[0].majorValue, 0);
+  assert.equal(actual.relationItems[0].sellRaw, 10);
+  assert.equal(actual.relationItems[0].sellTextRaw, '1 SC');
+});

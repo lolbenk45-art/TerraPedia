@@ -57,6 +57,7 @@ export function parseArgs(argv) {
     createDatabase: booleanOption(raw['create-database'] ?? raw.createDatabase, false),
     maintDatabase: raw['maint-database'] ?? raw.maintDatabase ?? 'terria_v1_maint',
     localDatabase: raw['local-database'] ?? raw.localDatabase ?? null,
+    allowLocalItemImageFallback: booleanOption(raw['allow-local-item-image-fallback'] ?? raw.allowLocalItemImageFallback, true),
     relationDatabase: raw['relation-database'] ?? raw.relationDatabase ?? 'terria_v1_relation',
     scopes: String(raw.scopes ?? 'category,recipe,npc,buff,biome,projectile')
       .split(',')
@@ -142,6 +143,83 @@ ON DUPLICATE KEY UPDATE ${updates || '`record_key` = VALUES(`record_key`)'}
     total += 1;
   }
   return total;
+}
+
+async function reconcileItemStackSizeFromMaint(connection, maintDatabase) {
+  await connection.query(
+    `
+    UPDATE \`relation_items\` ri
+    INNER JOIN \`${maintDatabase}\`.\`maint_items\` mi
+      ON mi.source_id = ri.source_id
+    SET ri.stack_size = mi.stack_size
+    WHERE ri.deleted = 0
+      AND mi.deleted = 0
+      AND mi.stack_size IS NOT NULL
+    `.trim()
+  );
+
+  await connection.query(
+    `
+    UPDATE \`projection_items\` pi
+    INNER JOIN \`relation_items\` ri
+      ON ri.record_key = pi.relation_record_key
+    SET
+      pi.stack_size = ri.stack_size,
+      pi.is_stackable = CASE
+        WHEN ri.stack_size IS NULL THEN NULL
+        WHEN ri.stack_size > 1 THEN 1
+        ELSE 0
+      END
+    WHERE pi.deleted = 0
+      AND ri.deleted = 0
+      AND ri.stack_size IS NOT NULL
+    `.trim()
+  );
+}
+
+async function reconcileProjectionItemImageFromMaint(connection, maintDatabase) {
+  const [result] = await connection.query(
+    `
+    UPDATE \`projection_items\` pi
+    INNER JOIN \`${maintDatabase}\`.\`maint_item_images\` mi
+      ON mi.item_internal_name COLLATE utf8mb4_unicode_ci = pi.internal_name COLLATE utf8mb4_unicode_ci
+    INNER JOIN (
+      SELECT item_internal_name, MAX(is_primary) AS max_primary, MIN(COALESCE(sort_order, 0)) AS min_sort_order
+      FROM \`${maintDatabase}\`.\`maint_item_images\`
+      WHERE deleted = 0
+      GROUP BY item_internal_name
+    ) picked
+      ON picked.item_internal_name COLLATE utf8mb4_unicode_ci = mi.item_internal_name COLLATE utf8mb4_unicode_ci
+     AND picked.max_primary = mi.is_primary
+     AND picked.min_sort_order = COALESCE(mi.sort_order, 0)
+    SET pi.image = COALESCE(mi.cached_url, mi.original_url)
+    WHERE pi.deleted = 0
+      AND mi.deleted = 0
+      AND COALESCE(mi.cached_url, mi.original_url) IS NOT NULL
+    `.trim()
+  );
+  return Number(result?.affectedRows ?? 0);
+}
+
+async function reconcileProjectionItemImageFromLocal(connection, localDatabase, enabled = true) {
+  if (!localDatabase || !enabled) {
+    return 0;
+  }
+
+  const [result] = await connection.query(
+    `
+    UPDATE \`projection_items\` pi
+    INNER JOIN \`${localDatabase}\`.\`items\` li
+      ON li.internal_name COLLATE utf8mb4_unicode_ci = pi.internal_name COLLATE utf8mb4_unicode_ci
+    SET pi.image = li.image
+    WHERE pi.deleted = 0
+      AND li.deleted = 0
+      AND (pi.image IS NULL OR TRIM(pi.image) = '')
+      AND li.image IS NOT NULL
+      AND TRIM(li.image) <> ''
+    `.trim()
+  );
+  return Number(result?.affectedRows ?? 0);
 }
 
 async function clearRelationSnapshotTables(connection, tableNames) {
@@ -370,7 +448,11 @@ export async function runSync(options, dependencies = {}) {
     maintProjectiles,
     maintNpcs,
     itemImageRows,
-    maintItemPages
+    maintItemPages,
+    maintItemNumericOverrides,
+    maintItemRarityOverrides
+    ,
+    maintItemTextOverrides
   ] = await Promise.all([
     queryMaint('SELECT * FROM maint_categories'),
     queryMaint('SELECT * FROM maint_item_categories'),
@@ -386,13 +468,17 @@ export async function runSync(options, dependencies = {}) {
     queryMaint('SELECT * FROM maint_projectiles'),
     queryMaint('SELECT * FROM maint_npcs'),
     queryMaint('SELECT * FROM maint_item_images'),
-    queryMaint('SELECT item_internal_name, sell_text, sell_value, source_revision_timestamp, updated_at FROM maint_item_pages')
+    queryMaint('SELECT item_internal_name, sell_text, sell_value, source_revision_timestamp, updated_at FROM maint_item_pages'),
+    queryMaint('SELECT item_internal_name, damage_value, defense_value, knockback_value, use_time, buy_value, sell_value FROM maint_item_numeric_overrides WHERE deleted = 0'),
+    queryMaint('SELECT item_internal_name, rarity_id FROM maint_item_rarity_overrides WHERE deleted = 0'),
+    queryMaint('SELECT item_internal_name, tooltip_zh, description_zh FROM maint_item_text_overrides WHERE deleted = 0')
   ]);
 
   const itemIndex = buildItemIndex(maintItems);
   const npcIndex = buildNpcIndex(maintNpcs);
   const baseEntities = buildBaseEntityRelations({
     maintItems,
+    maintItemNumericOverrides,
     maintItemPages,
     maintNpcs,
     maintProjectiles
@@ -453,6 +539,24 @@ export async function runSync(options, dependencies = {}) {
     relationItems: results.relationItems,
     relationItemImages: results.relationItemImages,
     relationItemRarities: results.relationItemRarities,
+    itemNumericOverrides: maintItemNumericOverrides.map((row) => ({
+      itemInternalName: row.item_internal_name,
+      damageValue: row.damage_value,
+      defenseValue: row.defense_value,
+      knockbackValue: row.knockback_value,
+      useTime: row.use_time,
+      buyValue: row.buy_value,
+      sellValue: row.sell_value,
+    })),
+    itemRarityOverrides: maintItemRarityOverrides.map((row) => ({
+      itemInternalName: row.item_internal_name,
+      rarityId: row.rarity_id,
+    })),
+    itemTextOverrides: maintItemTextOverrides.map((row) => ({
+      itemInternalName: row.item_internal_name,
+      tooltipZh: row.tooltip_zh,
+      descriptionZh: row.description_zh,
+    })),
     relationNpcs: results.relationNpcs,
     relationNpcImages: results.relationNpcImages,
     relationProjectiles: results.relationProjectiles,
@@ -505,6 +609,12 @@ export async function runSync(options, dependencies = {}) {
       npc: results.relationNpcImages.length,
       projectile: results.relationProjectileImages.length,
       buff: results.relationBuffImages.length
+    },
+    bridgeBreakdown: {
+      itemTextOverrideRows: maintItemTextOverrides.length,
+      localItemImageFallbackEnabled: Boolean(options.allowLocalItemImageFallback && options.localDatabase),
+      maintItemImageFillRows: 0,
+      localItemImageFallbackRows: 0,
     },
     unresolvedSamples: results.issues.slice(0, 20)
   };
@@ -618,6 +728,13 @@ export async function runSync(options, dependencies = {}) {
       await upsertRows(connection, 'projection_npcs', results.projectionNpcs);
       await upsertRows(connection, 'projection_projectiles', results.projectionProjectiles);
       await upsertRows(connection, 'projection_buffs', results.projectionBuffs);
+      await reconcileItemStackSizeFromMaint(connection, options.maintDatabase);
+      summary.bridgeBreakdown.maintItemImageFillRows = await reconcileProjectionItemImageFromMaint(connection, options.maintDatabase);
+      summary.bridgeBreakdown.localItemImageFallbackRows = await reconcileProjectionItemImageFromLocal(
+        connection,
+        options.localDatabase,
+        options.allowLocalItemImageFallback
+      );
     });
   }
 
