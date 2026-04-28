@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 
+import { listSourceDatasetLandingInputs } from '../landing/source-dataset-locator.mjs';
 import {
   buildMaintSyncSummary,
   extractMaintEntitiesFromLandingRow,
@@ -190,6 +194,195 @@ test('extractMaintEntitiesFromLandingRow expands standardized npc records and pr
   assert.equal(actual.rows[0].height, 40);
   assert.equal(actual.rows[0].flagsJson, JSON.stringify({ friendly: false, townNpc: false, boss: true }));
   assert.equal(JSON.parse(actual.rows[0].rawJson).wikiCrawler.combat.projectileId, '24');
+});
+
+test('listSourceDatasetLandingInputs locates generated NPC item relation bundles', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-npc-bundle-'));
+  const repoRoot = path.join(tempRoot, 'repo');
+  const sharedDataRoot = path.join(tempRoot, 'shared');
+  const payload = {
+    schemaVersion: 1,
+    source: 'wiki-crawler:npc',
+    generatedAt: '2026-04-29T00:00:00.000Z',
+    records: [],
+    backfillCandidates: []
+  };
+  await writeJson(path.join(repoRoot, 'data', 'generated', 'npc-item-relations.bundle.json'), payload);
+
+  const actual = await listSourceDatasetLandingInputs({ repoRoot, sharedDataRoot });
+  const entry = actual.find((candidate) => candidate.datasetType === 'npc_item_relations_bundle_raw');
+
+  assert.ok(entry);
+  assert.equal(entry.provider, 'terrapedia.generated');
+  assert.equal(entry.sourceKind, 'generated_bundle');
+  assert.equal(entry.sourceKey, 'generated.npc_item_relations_bundle');
+  assert.equal(entry.sourcePage, 'npc-item-relations.bundle');
+  assert.equal(entry.sourceLocator, 'repo://data/generated/npc-item-relations.bundle.json');
+  assert.deepEqual(await entry.loadPayload(), payload);
+});
+
+test('extractMaintEntitiesFromLandingRow expands NPC item relation bundles into item source and backfill rows', async () => {
+  const landingRow = {
+    id: 91,
+    dataset_type: 'npc_item_relations_bundle_raw',
+    provider: 'terrapedia.generated',
+    source_page: 'npc-item-relations.bundle',
+    source_key: 'generated.npc_item_relations_bundle',
+    source_revision_timestamp: null,
+    content_hash: 'n'.repeat(64),
+    fetched_at: '2026-04-29T00:00:00Z',
+    parsed_at: '2026-04-29T00:00:00Z',
+    payload_json: JSON.stringify({
+      schemaVersion: 1,
+      source: 'wiki-crawler:npc',
+      records: [
+        {
+          recordKey: 'npc-item:merchant:shop:lesser-healing-potion',
+          relationType: 'shop',
+          npcInternalName: 'Merchant',
+          npcName: 'Merchant',
+          itemName: 'Lesser Healing Potion',
+          priceText: '3 silver',
+          conditionText: 'Always',
+          sourceUrl: 'https://terraria.wiki.gg/wiki/Merchant',
+          raw: { itemName: 'Lesser Healing Potion' }
+        },
+        {
+          recordKey: 'npc-item:zombie:loot:shackle',
+          relationType: 'loot',
+          npcInternalName: 'Zombie',
+          npcName: 'Zombie',
+          itemName: 'Shackle',
+          chanceText: '2%',
+          quantityText: '1',
+          conditionText: 'Expert Mode',
+          sourceUrl: 'https://terraria.wiki.gg/wiki/Zombie',
+          raw: { itemName: 'Shackle' }
+        }
+      ],
+      backfillCandidates: [
+        {
+          candidateKey: 'd'.repeat(64),
+          domain: 'npc_item_relation',
+          entityType: 'npc',
+          entityInternalName: 'UnknownNpc',
+          entitySourceId: 1001,
+          missingField: 'loot',
+          recommendedAction: 'crawl_npc_page',
+          evidenceJson: [{ sourcePage: 'Unknown NPC', parserSection: 'drops' }],
+          status: 'open'
+        }
+      ]
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+
+  assert.equal(actual.scope, 'npc_item_relations');
+  assert.equal(actual.rows.length, 3);
+
+  const shopRow = actual.rows.find((row) => row.sourceType === 'shop');
+  const lootRow = actual.rows.find((row) => row.sourceType === 'drop');
+  const candidateRow = actual.rows.find((row) => row.tableName === 'maint_backfill_candidates');
+
+  assert.ok(shopRow);
+  assert.equal(shopRow.tableName, 'maint_item_sources');
+  assert.equal(shopRow.recordKey, 'npc-item:merchant:shop:lesser-healing-potion');
+  assert.equal(shopRow.itemName, 'Lesser Healing Potion');
+  assert.equal(shopRow.sourceRefType, 'npc');
+  assert.equal(shopRow.sourceRefName, 'Merchant');
+  assert.equal(JSON.parse(shopRow.rawJson).priceText, '3 silver');
+
+  assert.ok(lootRow);
+  assert.equal(lootRow.tableName, 'maint_item_sources');
+  assert.equal(lootRow.recordKey, 'npc-item:zombie:loot:shackle');
+  assert.equal(lootRow.itemName, 'Shackle');
+  assert.equal(lootRow.sourceRefType, 'npc');
+  assert.equal(lootRow.sourceRefName, 'Zombie');
+  assert.equal(JSON.parse(lootRow.rawJson).chanceText, '2%');
+
+  assert.ok(candidateRow);
+  assert.equal(candidateRow.candidateKey, 'd'.repeat(64));
+  assert.equal(candidateRow.domain, 'npc_item_relation');
+  assert.equal(candidateRow.entityType, 'npc');
+  assert.equal(candidateRow.entityInternalName, 'UnknownNpc');
+  assert.equal(candidateRow.entitySourceId, '1001');
+  assert.equal(candidateRow.missingField, 'loot');
+  assert.equal(candidateRow.recommendedAction, 'crawl_npc_page');
+  assert.equal(candidateRow.status, 'open');
+  assert.deepEqual(JSON.parse(candidateRow.evidenceJson), [{ sourcePage: 'Unknown NPC', parserSection: 'drops' }]);
+});
+
+test('runMaintSync includes NPC item bundle item source and candidate rows for npc scope dry runs', async () => {
+  const summary = await runMaintSync(
+    { apply: false, scopes: ['npcs'] },
+    {
+      loadLandingRows: async () => [
+        {
+          id: 24,
+          dataset_type: 'npcs_raw',
+          provider: 'terrapedia.generated',
+          source_page: 'npcs.standardized',
+          source_key: 'generated.wiki_crawler_npc_bridge',
+          source_revision_timestamp: null,
+          content_hash: 'k'.repeat(64),
+          fetched_at: '2026-04-28T01:00:00Z',
+          parsed_at: '2026-04-28T01:00:00Z',
+          payload_json: JSON.stringify({
+            entity: 'npcs',
+            records: [{ id: 17, internalName: 'Merchant', name: 'Merchant' }],
+          }),
+        },
+        createNpcItemBundleLandingRow(),
+      ],
+      writeReport: async () => {},
+    },
+  );
+
+  assert.equal(summary.rows.byScope.npcs, 1);
+  assert.equal(summary.rows.byScope.item_sources, 1);
+  assert.equal(summary.rows.byScope.backfill_candidates, 1);
+});
+
+test('runMaintSync upserts NPC item bundle source and backfill rows on apply', async () => {
+  const executeCalls = [];
+  const queryCalls = [];
+  const summary = await runMaintSync(
+    { apply: true, scopes: ['npcs'] },
+    {
+      loadLandingRows: async () => [createNpcItemBundleLandingRow()],
+      mysqlModule: {
+        async createConnection() {
+          return {
+            async beginTransaction() {},
+            async query(sql, params) {
+              queryCalls.push({ sql, params });
+              if (String(sql).includes('information_schema.columns')) {
+                return [[]];
+              }
+              return [{}];
+            },
+            async execute(sql, params) {
+              executeCalls.push({ sql, params });
+              if (sql.startsWith('SELECT id FROM')) {
+                return [[]];
+              }
+              return [{}];
+            },
+            async commit() {},
+            async rollback() {},
+            async end() {},
+          };
+        },
+      },
+      writeReport: async () => {},
+    },
+  );
+
+  assert.ok(queryCalls.some((call) => call.sql.includes('CREATE TABLE IF NOT EXISTS `maint_backfill_candidates`')));
+  assert.ok(executeCalls.some((call) => call.sql.startsWith('INSERT INTO `maint_item_sources`')));
+  assert.ok(executeCalls.some((call) => call.sql.startsWith('INSERT INTO `maint_backfill_candidates`')));
+  assert.equal(summary.writes.inserted, 2);
 });
 
 test('extractMaintEntitiesFromLandingRow overlays item zh names from provided source indexes', async () => {
@@ -1200,6 +1393,55 @@ test('runMaintSync filters extracted bundle rows by requested scopes', async () 
   assert.equal(summary.rows.byScope.item_images ?? 0, 0);
   assert.equal(summary.rows.byScope.item_recipes ?? 0, 0);
 });
+
+async function writeJson(filePath, value) {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, JSON.stringify(value, null, 2), 'utf8');
+}
+
+function createNpcItemBundleLandingRow() {
+  return {
+    id: 91,
+    dataset_type: 'npc_item_relations_bundle_raw',
+    provider: 'terrapedia.generated',
+    source_page: 'npc-item-relations.bundle',
+    source_key: 'generated.npc_item_relations_bundle',
+    source_revision_timestamp: null,
+    content_hash: 'n'.repeat(64),
+    fetched_at: '2026-04-29T00:00:00Z',
+    parsed_at: '2026-04-29T00:00:00Z',
+    payload_json: JSON.stringify({
+      schemaVersion: 1,
+      source: 'wiki-crawler:npc',
+      records: [
+        {
+          recordKey: 'npc-item:merchant:shop:lesser-healing-potion',
+          relationType: 'shop',
+          npcInternalName: 'Merchant',
+          npcName: 'Merchant',
+          itemName: 'Lesser Healing Potion',
+          priceText: '3 silver',
+          conditionText: 'Always',
+          sourceUrl: 'https://terraria.wiki.gg/wiki/Merchant',
+          raw: { itemName: 'Lesser Healing Potion' }
+        }
+      ],
+      backfillCandidates: [
+        {
+          candidateKey: 'd'.repeat(64),
+          domain: 'npc_item_relation',
+          entityType: 'npc',
+          entityInternalName: 'Merchant',
+          entitySourceId: 17,
+          missingField: 'loot',
+          recommendedAction: 'crawl_npc_page',
+          evidenceJson: [{ sourcePage: 'Merchant', parserSection: 'drops' }],
+          status: 'open'
+        }
+      ]
+    }),
+  };
+}
 
 function createStructuredShimmerLandingRow() {
   return {

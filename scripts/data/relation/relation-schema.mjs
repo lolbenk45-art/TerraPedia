@@ -26,6 +26,7 @@ export const RELATION_TABLE_NAMES = [
   'item_source_details',
   'item_npc_shop_relations',
   'item_npc_loot_relations',
+  'item_npc_relation_audits',
   'item_buff_relations',
   'item_biome_relations',
   'item_projectile_relations',
@@ -493,6 +494,7 @@ function buildTableStatements() {
   \`record_key\` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
   \`source_fact_key\` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
   \`item_internal_name\` VARCHAR(255) DEFAULT NULL,
+  \`item_name\` VARCHAR(255) DEFAULT NULL,
   \`npc_source_id\` INT DEFAULT NULL,
   \`npc_internal_name\` VARCHAR(255) DEFAULT NULL,
   \`npc_name\` VARCHAR(255) DEFAULT NULL,
@@ -519,6 +521,7 @@ function buildTableStatements() {
   \`record_key\` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
   \`source_fact_key\` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
   \`item_internal_name\` VARCHAR(255) DEFAULT NULL,
+  \`item_name\` VARCHAR(255) DEFAULT NULL,
   \`npc_source_id\` INT DEFAULT NULL,
   \`npc_internal_name\` VARCHAR(255) DEFAULT NULL,
   \`npc_name\` VARCHAR(255) DEFAULT NULL,
@@ -543,6 +546,25 @@ function buildTableStatements() {
   KEY \`idx_item_npc_loot_relations_source_fact_key\` (\`source_fact_key\`),
   CONSTRAINT \`fk_item_npc_loot_relations_source_fact_key\`
     FOREIGN KEY (\`source_fact_key\`) REFERENCES \`${RELATION_DATABASE_NAME}\`.\`item_source_facts\` (\`record_key\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+    `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`item_npc_relation_audits\` (
+  \`audit_key\` VARCHAR(255) NOT NULL,
+  \`relation_kind\` VARCHAR(32) NOT NULL,
+  \`source_fact_key\` VARCHAR(255) DEFAULT NULL,
+  \`item_internal_name\` VARCHAR(255) DEFAULT NULL,
+  \`item_name\` VARCHAR(255) DEFAULT NULL,
+  \`source_ref_name\` VARCHAR(255) DEFAULT NULL,
+  \`source_ref_normalized\` VARCHAR(255) DEFAULT NULL,
+  \`candidate_npc_internal_name\` VARCHAR(255) DEFAULT NULL,
+  \`audit_status\` VARCHAR(32) NOT NULL,
+  \`reason_code\` VARCHAR(64) NOT NULL,
+  \`evidence_json\` LONGTEXT,
+  ${TRACE_COLUMNS},
+  \`created_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`audit_key\`),
+  KEY \`idx_item_npc_relation_audits_source_fact_key\` (\`source_fact_key\`),
+  KEY \`idx_item_npc_relation_audits_status\` (\`audit_status\`, \`reason_code\`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
     `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`item_buff_relations\` (
   \`id\` BIGINT NOT NULL AUTO_INCREMENT,
@@ -740,6 +762,7 @@ export function buildRelationSchemaSql() {
 export function buildRelationMigrationStatements() {
   return [
     `ALTER TABLE \`${RELATION_DATABASE_NAME}\`.\`item_npc_shop_relations\`
+      ADD COLUMN IF NOT EXISTS \`item_name\` VARCHAR(255) DEFAULT NULL AFTER \`item_internal_name\`,
       ADD COLUMN IF NOT EXISTS \`condition_source_text\` TEXT AFTER \`conditions\`,
       ADD COLUMN IF NOT EXISTS \`condition_parse_status\` VARCHAR(64) DEFAULT NULL AFTER \`condition_source_text\`,
       ADD COLUMN IF NOT EXISTS \`condition_biome_code\` VARCHAR(64) DEFAULT NULL AFTER \`condition_parse_status\`,
@@ -749,6 +772,7 @@ export function buildRelationMigrationStatements() {
       ADD COLUMN IF NOT EXISTS \`condition_events_json\` LONGTEXT AFTER \`condition_weather_code\`,
       ADD COLUMN IF NOT EXISTS \`special_flags_json\` LONGTEXT AFTER \`condition_events_json\`;`,
     `ALTER TABLE \`${RELATION_DATABASE_NAME}\`.\`item_npc_loot_relations\`
+      ADD COLUMN IF NOT EXISTS \`item_name\` VARCHAR(255) DEFAULT NULL AFTER \`item_internal_name\`,
       ADD COLUMN IF NOT EXISTS \`condition_source_text\` TEXT AFTER \`conditions\`,
       ADD COLUMN IF NOT EXISTS \`condition_parse_status\` VARCHAR(64) DEFAULT NULL AFTER \`condition_source_text\`,
       ADD COLUMN IF NOT EXISTS \`condition_biome_code\` VARCHAR(64) DEFAULT NULL AFTER \`condition_parse_status\`,

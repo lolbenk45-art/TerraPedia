@@ -2,10 +2,13 @@ import {
   extractNpcHappiness,
   extractNpcInfobox,
   extractNpcLeadSummary,
+  extractNpcLoot,
   extractNpcSectionBlocks,
   extractNpcShop,
   extractNpcSpecialForms
 } from './npc-parser.mjs';
+import { buildNpcBackfillCandidates } from './backfill-candidate-domain.mjs';
+import { normalizeNpcShopRows } from './npc-shop-normalizer.mjs';
 import {
   extractNpcGroupMembers,
   getNpcDisplayName
@@ -38,6 +41,26 @@ export function buildNpcNormalizedLight(raw) {
     leadText,
     pageDescription: source.pageDescription ?? ''
   });
+  const npcContext = {
+    npcInternalName: source.entityId ?? null,
+    npcName: getNpcDisplayName({
+      pageTitle: source.pageTitle ?? '',
+      fallbackName: source.pageTitle ?? ''
+    })
+  };
+  const normalizedShopRows = normalizeNpcShopRows(shop.items, npcContext);
+  const loot = extractNpcLoot(revisionText, npcContext).items;
+  const backfillCandidates = buildNpcBackfillCandidates({
+    entityId: source.entityId ?? null,
+    entitySourceId: source.sourceId ?? source.id ?? null,
+    pageTitle: source.pageTitle ?? '',
+    revisionText,
+    profileKind: inferredKind,
+    leadText,
+    pageDescription: source.pageDescription ?? '',
+    lootRows: loot,
+    projectileId: inferredCombat.projectileId
+  });
 
   return {
     entityId: source.entityId ?? '',
@@ -46,10 +69,7 @@ export function buildNpcNormalizedLight(raw) {
       pageDescription: source.pageDescription ?? ''
     },
     display: {
-      name: getNpcDisplayName({
-        pageTitle: source.pageTitle ?? '',
-        fallbackName: source.pageTitle ?? ''
-      })
+      name: npcContext.npcName
     },
     summary: {
       leadText,
@@ -67,7 +87,12 @@ export function buildNpcNormalizedLight(raw) {
       extraDamageText: inferredCombat.extraDamageText,
       projectileId: inferredCombat.projectileId
     },
-    shop,
+    shop: {
+      ...shop,
+      normalizedRows: normalizedShopRows
+    },
+    loot,
+    backfillCandidates,
     happiness,
     relationships: {
       relatedNpcs: source.relations?.relatedNpcs ?? [],

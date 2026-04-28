@@ -202,3 +202,100 @@ test('runProjectionToLocalCoreSync syncs projectile source json columns when bot
   assert.match(insertSql, /`source_items_json`, `source_npcs_json`/);
   assert.match(insertSql, /SELECT `id`, `source_id`, `internal_name`, `source_items_json`, `source_npcs_json`, `status`, `deleted` FROM `terria_v1_relation`\.`projection_projectiles`/);
 });
+
+test('runProjectionToLocalCoreSync syncs item and npc relation json columns only when local columns exist', async () => {
+  const statements = [];
+
+  const result = await runProjectionToLocalCoreSync(
+    {
+      apply: true,
+      localDatabase: 'terria_v1_local',
+      relationDatabase: 'terria_v1_relation',
+      domains: ['items', 'npcs'],
+      dateTag: '2026-04-29',
+      backupSuffix: '20260429120000'
+    },
+    {
+      executeLocal: async (fn) => fn({
+        query: async (sql) => {
+          statements.push(sql);
+          return [{ affectedRows: 1 }];
+        }
+      }),
+      listColumns: async (_connection, _database, table) => {
+        if (table === 'items' || table === 'projection_items') {
+          return ['id', 'internal_name', 'source_npcs_json', 'status', 'deleted'];
+        }
+        if (table === 'npcs') {
+          return ['id', 'internal_name', 'loot_items_json', 'shop_items_json', 'status', 'deleted'];
+        }
+        if (table === 'projection_npcs') {
+          return [
+            'id',
+            'internal_name',
+            'loot_items_json',
+            'shop_items_json',
+            'source_items_json',
+            'status',
+            'deleted'
+          ];
+        }
+        return [];
+      },
+      countRows: async () => 1,
+      writeReport: async () => 'reports/relation/projection-to-local-core-sync-2026-04-29.json'
+    }
+  );
+
+  assert.deepEqual(result.report.domains.items.columnsToSync, [
+    'id',
+    'internal_name',
+    'source_npcs_json',
+    'status',
+    'deleted'
+  ]);
+  assert.deepEqual(result.report.domains.npcs.columnsToSync, [
+    'id',
+    'internal_name',
+    'loot_items_json',
+    'shop_items_json',
+    'status',
+    'deleted'
+  ]);
+  const itemInsertSql = statements.find((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`items`'));
+  const npcInsertSql = statements.find((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`npcs`'));
+  assert.match(itemInsertSql, /`source_npcs_json`/);
+  assert.match(npcInsertSql, /`loot_items_json`, `shop_items_json`/);
+  assert.doesNotMatch(npcInsertSql, /`source_items_json`/);
+});
+
+test('runProjectionToLocalCoreSync apply refuses to replace populated local tables from empty projection tables', async () => {
+  const statements = [];
+
+  await assert.rejects(
+    runProjectionToLocalCoreSync(
+      {
+        apply: true,
+        localDatabase: 'terria_v1_local',
+        relationDatabase: 'terria_v1_relation',
+        domains: ['items'],
+        dateTag: '2026-04-29',
+        backupSuffix: '20260429121500'
+      },
+      {
+        executeLocal: async (fn) => fn({
+          query: async (sql) => {
+            statements.push(sql);
+            return [{ affectedRows: 1 }];
+          }
+        }),
+        listColumns: async () => ['id', 'internal_name', 'status', 'deleted'],
+        countRows: async (_connection, _database, table) => (table === 'items' ? 6146 : 0),
+        writeReport: async () => 'reports/relation/projection-to-local-core-sync-2026-04-29.json'
+      }
+    ),
+    /Refusing to replace terria_v1_local\.items from empty terria_v1_relation\.projection_items/
+  );
+
+  assert.ok(statements.every((sql) => !/DELETE FROM|INSERT INTO `terria_v1_local`\.`items`/i.test(sql)));
+});

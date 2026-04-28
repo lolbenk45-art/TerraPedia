@@ -50,6 +50,7 @@ test('landing schema exports the planned dataset types and parse statuses', () =
     'shimmer_raw',
     'recipes_raw',
     'item_relations_bundle_raw',
+    'npc_item_relations_bundle_raw',
   ]);
   assert.deepEqual(LANDING_PARSE_STATUSES, ['ok', 'partial', 'error', 'skipped']);
 });
@@ -57,6 +58,7 @@ test('landing schema exports the planned dataset types and parse statuses', () =
 test('validateLandingDatasetType only accepts registered dataset types', () => {
   assert.equal(validateLandingDatasetType('items_raw'), true);
   assert.equal(validateLandingDatasetType('recipes_raw'), true);
+  assert.equal(validateLandingDatasetType('npc_item_relations_bundle_raw'), true);
   assert.equal(validateLandingDatasetType('unknown_raw'), false);
   assert.equal(validateLandingDatasetType(''), false);
 });

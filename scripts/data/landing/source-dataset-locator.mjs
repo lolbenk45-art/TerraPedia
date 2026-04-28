@@ -438,6 +438,26 @@ export async function listSourceDatasetLandingInputs(options = {}) {
     }),
   );
 
+  await pushFileDescriptor(
+    'npc_item_relations_bundle_raw',
+    path.join(repoRoot, 'data', 'generated', 'npc-item-relations.bundle.json'),
+    (filePath, payload) => buildFileDescriptor({
+      datasetType: 'npc_item_relations_bundle_raw',
+      filePath,
+      payload,
+      provider: 'terrapedia.generated',
+      sourceKind: 'generated_bundle',
+      sourceKey: 'generated.npc_item_relations_bundle',
+      sourcePage: 'npc-item-relations.bundle',
+      sourceRevisionTimestamp: null,
+      fetchedAt: payload.generatedAt,
+      parsedAt: payload.generatedAt,
+      parseStatus: 'ok',
+      repoRoot,
+      sharedDataRoot,
+    }),
+  );
+
   entries.sort((left, right) => {
     if (left.datasetType !== right.datasetType) {
       return left.datasetType.localeCompare(right.datasetType);

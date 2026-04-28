@@ -66,6 +66,10 @@ function intersectColumns(localColumns, projectionColumns) {
   return localColumns.filter((column) => projectionSet.has(column));
 }
 
+function formatTableName(database, table) {
+  return `${database}.${table}`;
+}
+
 export function buildInsertProjectionSql({
   localDatabase,
   relationDatabase,
@@ -185,6 +189,14 @@ export async function runProjectionToLocalCoreSync(options = {}, dependencies = 
     }
 
     if (normalized.apply) {
+      const emptyProjectionBlockers = Object.values(domains)
+        .filter((domain) => domain.localRowsBefore > 0 && domain.projectionRows === 0);
+      if (emptyProjectionBlockers.length > 0) {
+        const details = emptyProjectionBlockers
+          .map((domain) => `Refusing to replace ${formatTableName(normalized.localDatabase, domain.localTable)} from empty ${formatTableName(normalized.relationDatabase, domain.projectionTable)}`)
+          .join('; ');
+        throw new Error(`${details}. Rebuild relation projections before applying local core sync.`);
+      }
       await connection.query('SET FOREIGN_KEY_CHECKS = 0');
       try {
         for (const domain of Object.values(domains)) {

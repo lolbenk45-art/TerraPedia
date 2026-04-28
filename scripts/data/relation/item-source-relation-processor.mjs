@@ -239,6 +239,123 @@ function buildLootCandidateFromRelation(row) {
   };
 }
 
+function asCandidateList(value) {
+  if (Array.isArray(value)) {
+    return value.filter(Boolean);
+  }
+  return value ? [value] : [];
+}
+
+function candidateIdentity(candidate) {
+  return JSON.stringify([
+    toNullableNumber(candidate?.source_id ?? candidate?.sourceId),
+    normalizeText(candidate?.internal_name ?? candidate?.internalName)
+  ]);
+}
+
+function dedupeCandidates(candidates) {
+  const seen = new Set();
+  const deduped = [];
+  for (const candidate of candidates) {
+    const key = candidateIdentity(candidate);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(candidate);
+  }
+  return deduped;
+}
+
+function candidateInternalName(candidate) {
+  return normalizeText(candidate?.internal_name ?? candidate?.internalName);
+}
+
+function relationKindForSourceType(sourceType) {
+  if (sourceType === 'shop') return 'shop';
+  if (sourceType === 'drop' || sourceType === 'loot') return 'loot';
+  if (sourceType === 'reward') return 'reward';
+  return 'source_item';
+}
+
+function buildRelationEvidence({
+  raw,
+  row,
+  sourceType,
+  sourceRefType,
+  sourceRefName,
+  sourceRefNormalized,
+  npcResolution
+}) {
+  return JSON.stringify({
+    sourceType,
+    sourceRefType,
+    sourceRefName,
+    sourceRefNormalized,
+    sourceRefResolution: npcResolution?.sourceRefResolution ?? null,
+    candidateNpcInternalNames: npcResolution?.candidateNpcInternalNames ?? [],
+    row: {
+      id: row.id ?? null,
+      recordKey: row.record_key ?? null,
+      sourcePage: row.source_page ?? null
+    },
+    raw
+  });
+}
+
+function buildItemNpcRelationAudit({
+  row,
+  raw,
+  sourceType,
+  sourceRefType,
+  sourceFactKey,
+  sourceRefName,
+  sourceRefNormalized,
+  npcResolution,
+  auditStatus,
+  reasonCode,
+  trace
+}) {
+  return {
+    auditKey: createRecordKey({
+      type: 'item_npc_relation_audit',
+      sourceFactKey,
+      auditStatus,
+      reasonCode
+    }),
+    relationKind: relationKindForSourceType(sourceType),
+    sourceFactKey,
+    itemInternalName: normalizeText(row.item_internal_name),
+    itemName: normalizeText(row.item_name),
+    sourceRefName,
+    sourceRefNormalized,
+    candidateNpcInternalName:
+      npcResolution?.npcInternalName
+      ?? npcResolution?.candidateNpcInternalNames?.[0]
+      ?? null,
+    auditStatus,
+    reasonCode,
+    evidenceJson: buildRelationEvidence({
+      raw,
+      row,
+      sourceType,
+      sourceRefType,
+      sourceRefName,
+      sourceRefNormalized,
+      npcResolution
+    }),
+    ...trace
+  };
+}
+
+function buildRelationRawJson(raw, sourceRefName, npcResolution) {
+  return JSON.stringify({
+    ...raw,
+    sourceRefOriginalName: sourceRefName ?? raw.sourceRefName ?? null,
+    sourceRefName: npcResolution?.sourceRefNormalized ?? sourceRefName ?? raw.sourceRefName ?? null,
+    sourceRefInternalName: npcResolution?.npcInternalName ?? raw.sourceRefInternalName ?? null,
+    sourceRefResolution: npcResolution?.sourceRefResolution ?? raw.sourceRefResolution ?? null
+  });
+}
+
 export function resolveNpcRef(row = {}, npcIndex = new Map()) {
   const raw = parseRawJson(row);
   const sourceRefName = pickText(row.source_ref_name, raw.sourceRefName);
@@ -260,25 +377,48 @@ export function resolveNpcRef(row = {}, npcIndex = new Map()) {
     };
   }
 
-  let match = npcIndex.get(normalizedRefName) ?? null;
-  if (!match && rawResolution === 'resolved' && rawInternalName) {
-    for (const candidate of npcIndex.values()) {
-      if (normalizeText(candidate?.internal_name ?? candidate?.internalName) === rawInternalName) {
-        match = candidate;
-        break;
+  let candidates = asCandidateList(npcIndex.get(normalizedRefName));
+  if (candidates.length && rawResolution === 'resolved' && rawInternalName) {
+    const exactCandidates = candidates.filter((candidate) => candidateInternalName(candidate) === rawInternalName);
+    if (exactCandidates.length === 1) {
+      candidates = exactCandidates;
+    }
+  }
+  if (!candidates.length && rawResolution === 'resolved' && rawInternalName) {
+    for (const candidateValue of npcIndex.values()) {
+      for (const candidate of asCandidateList(candidateValue)) {
+        if (candidateInternalName(candidate) === rawInternalName) {
+          candidates.push(candidate);
+        }
       }
     }
   }
-  if (!match) {
+  if (!candidates.length) {
     const lowered = normalizedRefName.toLowerCase();
     for (const [name, candidate] of npcIndex.entries()) {
       if (normalizeText(name)?.toLowerCase() === lowered) {
-        match = candidate;
-        break;
+        candidates.push(...asCandidateList(candidate));
       }
     }
   }
 
+  candidates = dedupeCandidates(candidates);
+  if (candidates.length > 1) {
+    return {
+      status: 'ambiguous',
+      npcSourceId: null,
+      npcInternalName: null,
+      npcName: null,
+      sourceRefName,
+      sourceRefNormalized: normalizedRefName,
+      sourceRefResolution: 'ambiguous',
+      candidateNpcInternalNames: candidates.map(candidateInternalName).filter(Boolean),
+      confidence: confidence.low,
+      reason: 'npc_source_ambiguous'
+    };
+  }
+
+  const match = candidates[0] ?? null;
   if (!match) {
     return {
       status: relationStatus.unresolved,
@@ -311,6 +451,7 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
   const sourceDetails = [];
   const npcShopRelationRows = [];
   const npcLootRelationRows = [];
+  const itemNpcRelationAudits = [];
   const issues = [];
 
   for (let index = 0; index < itemSourceRows.length; index += 1) {
@@ -319,6 +460,7 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
     const trace = normalizeTrace('maint_item_sources', row);
     const sourceType = normalizeText(row.source_type)?.toLowerCase() ?? null;
     const sourceRefType = normalizeText(row.source_ref_type)?.toLowerCase() ?? null;
+    const itemInternalName = normalizeText(row.item_internal_name);
     const sourceRefName = pickText(row.source_ref_name, raw.sourceRefName);
     const sourceRefNormalized = normalizeSourceRefName(sourceRefName);
     const sourceFactKey = createRecordKey({
@@ -335,7 +477,7 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
     sourceFacts.push({
       recordKey: sourceFactKey,
       itemSourceId: toNullableNumber(row.item_source_id ?? row.item_id ?? row.source_id),
-      itemInternalName: normalizeText(row.item_internal_name),
+      itemInternalName,
       itemName: normalizeText(row.item_name),
       sourceType,
       sourceRefType,
@@ -343,16 +485,19 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
       sourceRefNormalized,
       biomeCode: normalizeText(row.biome_code),
       sortOrder: toSortOrder(row.sort_order, index),
-      reviewStatus:
-        sourceRefType === 'npc'
+      reviewStatus: !itemInternalName
+        ? relationStatus.unresolved
+        : sourceRefType === 'npc'
           ? npcResolution?.status ?? relationStatus.unresolved
           : relationStatus.resolved,
-      confidence:
-        sourceRefType === 'npc'
+      confidence: !itemInternalName
+        ? confidence.none
+        : sourceRefType === 'npc'
           ? npcResolution?.confidence ?? confidence.none
           : confidence.high,
-      reason:
-        sourceRefType === 'npc'
+      reason: !itemInternalName
+        ? 'item_unresolved'
+        : sourceRefType === 'npc'
           ? npcResolution?.reason ?? 'npc_source_unresolved'
           : 'item_source_captured',
       rawJson: row.raw_json ?? null,
@@ -396,7 +541,7 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
           sourceFactKey
         }),
         sourceFactKey,
-        itemInternalName: normalizeText(row.item_internal_name),
+        itemInternalName,
         sourceType,
         sourceRefType,
         sourceRefName,
@@ -406,6 +551,19 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
         reason: 'source_ref_text_polluted',
         ...trace
       });
+      itemNpcRelationAudits.push(buildItemNpcRelationAudit({
+        row,
+        raw,
+        sourceType,
+        sourceRefType,
+        sourceFactKey,
+        sourceRefName,
+        sourceRefNormalized,
+        npcResolution,
+        auditStatus: 'polluted',
+        reasonCode: 'source_text_polluted',
+        trace
+      }));
     }
 
     if (sourceRefType === 'npc' && npcResolution?.status !== relationStatus.resolved) {
@@ -416,7 +574,7 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
           sourceFactKey
         }),
         sourceFactKey,
-        itemInternalName: normalizeText(row.item_internal_name),
+        itemInternalName,
         sourceType,
         sourceRefType,
         sourceRefName,
@@ -426,9 +584,55 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
         reason: 'npc_source_unresolved',
         ...trace
       });
+      itemNpcRelationAudits.push(buildItemNpcRelationAudit({
+        row,
+        raw,
+        sourceType,
+        sourceRefType,
+        sourceFactKey,
+        sourceRefName,
+        sourceRefNormalized,
+        npcResolution,
+        auditStatus: npcResolution?.status === 'ambiguous' ? 'ambiguous' : 'unresolved',
+        reasonCode: npcResolution?.reason ?? 'npc_source_unresolved',
+        trace
+      }));
     }
 
-    if (sourceRefType === 'npc' && npcResolution?.status === relationStatus.resolved && sourceType === 'shop') {
+    if (sourceRefType === 'npc' && npcResolution?.status === relationStatus.resolved && !itemInternalName) {
+      issues.push({
+        issueKey: createRecordKey({
+          type: 'item_source_issue',
+          reason: 'item_unresolved',
+          sourceFactKey
+        }),
+        sourceFactKey,
+        itemInternalName,
+        sourceType,
+        sourceRefType,
+        sourceRefName,
+        sourceRefNormalized,
+        reviewStatus: relationStatus.unresolved,
+        confidence: confidence.none,
+        reason: 'item_unresolved',
+        ...trace
+      });
+      itemNpcRelationAudits.push(buildItemNpcRelationAudit({
+        row,
+        raw,
+        sourceType,
+        sourceRefType,
+        sourceFactKey,
+        sourceRefName,
+        sourceRefNormalized,
+        npcResolution,
+        auditStatus: 'unresolved',
+        reasonCode: 'item_unresolved',
+        trace
+      }));
+    }
+
+    if (sourceRefType === 'npc' && npcResolution?.status === relationStatus.resolved && itemInternalName && sourceType === 'shop') {
       const normalizedConditions = normalizeSourceConditionFields({
         conditions: pickText(raw.conditions, row.conditions),
         notes: extractRelevantNotes(sourceType, pickText(raw.notes, row.notes)),
@@ -441,7 +645,8 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
           sourceFactKey
         }),
         sourceFactKey,
-        itemInternalName: normalizeText(row.item_internal_name),
+        itemInternalName,
+        itemName: normalizeText(row.item_name),
         npcSourceId: npcResolution.npcSourceId,
         npcInternalName: npcResolution.npcInternalName,
         npcName: npcResolution.npcName,
@@ -451,12 +656,13 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
         reviewStatus: relationStatus.resolved,
         confidence: confidence.high,
         reason: 'npc_shop_relation_resolved',
+        rawJson: buildRelationRawJson(raw, sourceRefName, npcResolution),
         ...trace
       };
       npcShopRelationRows.push(relationRow);
     }
 
-    if (sourceRefType === 'npc' && npcResolution?.status === relationStatus.resolved && sourceType === 'drop') {
+    if (sourceRefType === 'npc' && npcResolution?.status === relationStatus.resolved && itemInternalName && sourceType === 'drop') {
       const normalizedConditions = normalizeSourceConditionFields({
         conditions:
           pickText(raw.conditions, row.conditions)
@@ -470,7 +676,8 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
           sourceFactKey
         }),
         sourceFactKey,
-        itemInternalName: normalizeText(row.item_internal_name),
+        itemInternalName,
+        itemName: normalizeText(row.item_name),
         npcSourceId: npcResolution.npcSourceId,
         npcInternalName: npcResolution.npcInternalName,
         npcName: npcResolution.npcName,
@@ -484,6 +691,7 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
         reviewStatus: relationStatus.resolved,
         confidence: confidence.high,
         reason: 'npc_loot_relation_resolved',
+        rawJson: buildRelationRawJson(raw, sourceRefName, npcResolution),
         ...trace
       };
       npcLootRelationRows.push(relationRow);
@@ -492,16 +700,13 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
 
   const npcShopRelations = dedupeShopRelations(npcShopRelationRows);
   const npcLootRelations = dedupeLootRelations(npcLootRelationRows);
-  const npcShopCandidates = npcShopRelations.map((row) => buildShopCandidateFromRelation(row));
-  const npcLootCandidates = npcLootRelations.map((row) => buildLootCandidateFromRelation(row));
 
   return {
     sourceFacts,
     sourceDetails,
     npcShopRelations,
     npcLootRelations,
-    npcShopCandidates,
-    npcLootCandidates,
+    itemNpcRelationAudits,
     issues,
     summary: {
       inputRows: itemSourceRows.length,
@@ -509,8 +714,7 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
       sourceDetails: sourceDetails.length,
       npcShopRelations: npcShopRelations.length,
       npcLootRelations: npcLootRelations.length,
-      npcShopCandidates: npcShopCandidates.length,
-      npcLootCandidates: npcLootCandidates.length,
+      itemNpcRelationAudits: itemNpcRelationAudits.length,
       unresolvedNpcSources: issues.filter((issue) => issue.reason === 'npc_source_unresolved').length,
       pollutedSourceRefs: issues.filter((issue) => issue.reason === 'source_ref_text_polluted').length
     }

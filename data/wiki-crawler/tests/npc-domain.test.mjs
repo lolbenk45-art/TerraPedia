@@ -23,6 +23,122 @@ test('buildNpcNormalizedLight assembles summary, profile, shop, happiness, relat
   assert.ok(record.contentBlocks.dialogue.includes('Line one'));
 });
 
+test('buildNpcNormalizedLight preserves normalized shop, loot, projectile, and backfill evidence', () => {
+  const record = buildNpcNormalizedLight({
+    entityId: 'zombie',
+    pageTitle: 'Zombie',
+    pageDescription: 'Zombie is a common enemy.',
+    revisionText: [
+      '{{npc infobox',
+      '| type = Enemy',
+      '| id projectile = 24',
+      '}}',
+      "'''Zombie''' is a common enemy.",
+      '',
+      '{{shop|{{shop row|Lesser Healing Potion|value=3 silver|Always}}}}',
+      '',
+      '== Drops ==',
+      '{| class="terraria drop"',
+      '! Item !! Quantity !! Chance !! Condition',
+      '|-',
+      '| [[Shackle]] || 1 || 2% || Expert Mode',
+      '|}'
+    ].join('\n')
+  });
+
+  assert.equal(record.combat.projectileId, '24');
+  assert.deepEqual(record.shop.normalizedRows, [
+    {
+      relationType: 'shop',
+      itemName: 'Lesser Healing Potion',
+      priceText: '3 silver',
+      conditionText: 'Always',
+      npcInternalName: 'zombie',
+      npcName: 'Zombie',
+      sourceSection: 'shop',
+      sourceRowIndex: 0,
+      raw: {
+        name: 'Lesser Healing Potion',
+        valueText: '3 silver',
+        availabilityNote: 'Always'
+      }
+    }
+  ]);
+  assert.deepEqual(record.loot, [
+    {
+      relationType: 'loot',
+      itemName: 'Shackle',
+      chanceText: '2%',
+      quantityText: '1',
+      conditionText: 'Expert Mode',
+      npcInternalName: 'zombie',
+      npcName: 'Zombie',
+      sourceSection: 'drops',
+      sourceRowIndex: 0,
+      raw: {
+        itemName: 'Shackle',
+        quantityText: '1',
+        chanceText: '2%',
+        conditionText: 'Expert Mode',
+        sourceSection: 'drops'
+      }
+    }
+  ]);
+  assert.deepEqual(record.backfillCandidates, []);
+});
+
+test('buildNpcNormalizedLight creates open backfill candidates when NPC item and projectile evidence is missing', () => {
+  const record = buildNpcNormalizedLight({
+    entityId: 'mystery-caster',
+    pageTitle: 'Mystery Caster',
+    pageDescription: 'Mystery Caster is an enemy with ranged attacks.',
+    revisionText: [
+      '{{npc infobox',
+      '| type = Enemy',
+      '| damage = 20',
+      '}}',
+      "'''Mystery Caster''' is an enemy.",
+      '',
+      '== Combat ==',
+      'Mystery Caster fires a magic bolt at the player.'
+    ].join('\n')
+  });
+
+  assert.equal(record.loot.length, 0);
+  assert.equal(record.shop.normalizedRows.length, 0);
+  assert.equal(record.backfillCandidates.length, 2);
+  assert.deepEqual(
+    record.backfillCandidates.map((candidate) => ({
+      domain: candidate.domain,
+      entityType: candidate.entityType,
+      entityInternalName: candidate.entityInternalName,
+      missingField: candidate.missingField,
+      recommendedAction: candidate.recommendedAction,
+      status: candidate.status
+    })),
+    [
+      {
+        domain: 'npc_item_relation',
+        entityType: 'npc',
+        entityInternalName: 'mystery-caster',
+        missingField: 'loot',
+        recommendedAction: 'crawl_npc_page',
+        status: 'open'
+      },
+      {
+        domain: 'npc_projectile_relation',
+        entityType: 'npc',
+        entityInternalName: 'mystery-caster',
+        missingField: 'projectileId',
+        recommendedAction: 'crawl_npc_page',
+        status: 'open'
+      }
+    ]
+  );
+  assert.ok(record.backfillCandidates.every((candidate) => candidate.candidateKey.length === 64));
+  assert.ok(record.backfillCandidates.every((candidate) => Array.isArray(candidate.evidenceJson)));
+});
+
 test('buildNpcNormalizedLight infers hostile npc quality fields for Medusa-style pages', async () => {
   const fixture = JSON.parse(await fs.readFile(medusaFixturePath, 'utf8'));
   const record = buildNpcNormalizedLight(fixture);

@@ -145,7 +145,14 @@ function buildNpcIndex(rows) {
       row.internal_name
     ].filter(Boolean);
     for (const candidate of candidates) {
-      index.set(candidate, row);
+      const existing = index.get(candidate);
+      if (!existing) {
+        index.set(candidate, row);
+      } else if (Array.isArray(existing)) {
+        existing.push(row);
+      } else {
+        index.set(candidate, [existing, row]);
+      }
     }
   }
   return index;
@@ -303,7 +310,16 @@ async function ensureRelationMigrations(connection, databaseName) {
     {
       tableName: 'projection_npcs',
       columns: [
-        ['image_url', 'VARCHAR(500) DEFAULT NULL AFTER `sub_name_zh`']
+        ['image_url', 'VARCHAR(500) DEFAULT NULL AFTER `sub_name_zh`'],
+        ['loot_items_json', 'LONGTEXT AFTER `raw_json`'],
+        ['shop_items_json', 'LONGTEXT AFTER `loot_items_json`'],
+        ['source_items_json', 'LONGTEXT AFTER `shop_items_json`']
+      ]
+    },
+    {
+      tableName: 'projection_items',
+      columns: [
+        ['source_npcs_json', 'LONGTEXT AFTER `stack_size`']
       ]
     },
     {
@@ -324,6 +340,7 @@ async function ensureRelationMigrations(connection, databaseName) {
     {
       tableName: 'item_npc_shop_relations',
       columns: [
+        ['item_name', 'VARCHAR(255) DEFAULT NULL AFTER `item_internal_name`'],
         ['condition_source_text', 'TEXT AFTER `conditions`'],
         ['condition_parse_status', 'VARCHAR(64) DEFAULT NULL AFTER `condition_source_text`'],
         ['condition_biome_code', 'VARCHAR(64) DEFAULT NULL AFTER `condition_parse_status`'],
@@ -337,6 +354,7 @@ async function ensureRelationMigrations(connection, databaseName) {
     {
       tableName: 'item_npc_loot_relations',
       columns: [
+        ['item_name', 'VARCHAR(255) DEFAULT NULL AFTER `item_internal_name`'],
         ['condition_source_text', 'TEXT AFTER `conditions`'],
         ['condition_parse_status', 'VARCHAR(64) DEFAULT NULL AFTER `condition_source_text`'],
         ['condition_biome_code', 'VARCHAR(64) DEFAULT NULL AFTER `condition_parse_status`'],
@@ -439,6 +457,7 @@ function flattenResults(category, recipe, itemSource, secondary, bossSeries, npc
     itemSourceDetails: itemSource.sourceDetails,
     itemNpcShopRelations: itemSource.npcShopRelations,
     itemNpcLootRelations: itemSource.npcLootRelations,
+    itemNpcRelationAudits: itemSource.itemNpcRelationAudits,
     itemBuffRelations: secondary.itemBuffRelations,
     itemBiomeRelations: secondary.itemBiomeRelations,
     itemProjectileRelations: secondary.itemProjectileRelations,
@@ -626,6 +645,8 @@ export async function runSync(options, dependencies = {}) {
     relationNpcImages: results.relationNpcImages,
     relationProjectiles: results.relationProjectiles,
     relationProjectileImages: results.relationProjectileImages,
+    itemNpcShopRelations: results.itemNpcShopRelations,
+    itemNpcLootRelations: results.itemNpcLootRelations,
     itemProjectileRelations: results.itemProjectileRelations,
     npcProjectileRelations: results.npcProjectileRelations,
     relationBuffs: results.relationBuffs,
@@ -662,7 +683,8 @@ export async function runSync(options, dependencies = {}) {
       npc: results.itemSourceFacts.length
         + results.itemSourceDetails.length
         + results.itemNpcShopRelations.length
-        + results.itemNpcLootRelations.length,
+        + results.itemNpcLootRelations.length
+        + results.itemNpcRelationAudits.length,
       buff: results.itemBuffRelations.length,
       biome: results.itemBiomeRelations.length,
       projectile: results.itemProjectileRelations.length
@@ -695,6 +717,8 @@ export async function runSync(options, dependencies = {}) {
     },
     unresolvedSamples: results.issues.slice(0, 20)
   };
+
+  const applyStartedAt = new Date();
 
   if (options.apply) {
     if (options.createDatabase) {
@@ -733,9 +757,9 @@ export async function runSync(options, dependencies = {}) {
         relationDatabase: options.relationDatabase,
         scopes: options.scopes,
         summaryJson: summary,
-        startedAt: new Date(),
-        finishedAt: new Date(),
-        status: 'succeeded'
+        startedAt: applyStartedAt,
+        finishedAt: null,
+        status: 'running'
       });
 
       await clearRelationSnapshotTables(connection, [
@@ -747,6 +771,7 @@ export async function runSync(options, dependencies = {}) {
         'category_nodes',
         'item_npc_shop_relations',
         'item_npc_loot_relations',
+        'item_npc_relation_audits',
         'item_source_details',
         'item_source_facts',
         'item_buff_relations',
@@ -803,6 +828,7 @@ export async function runSync(options, dependencies = {}) {
       await upsertRows(connection, 'item_source_details', results.itemSourceDetails);
       await upsertRows(connection, 'item_npc_shop_relations', results.itemNpcShopRelations);
       await upsertRows(connection, 'item_npc_loot_relations', results.itemNpcLootRelations);
+      await upsertRows(connection, 'item_npc_relation_audits', results.itemNpcRelationAudits);
       await upsertRows(connection, 'item_buff_relations', results.itemBuffRelations);
       await upsertRows(connection, 'item_biome_relations', results.itemBiomeRelations);
       await upsertRows(connection, 'item_projectile_relations', results.itemProjectileRelations);
@@ -838,7 +864,21 @@ export async function runSync(options, dependencies = {}) {
   });
 
   if (options.apply) {
-    await executeRelation((connection) => insertReportRows(connection, runKey, reportPaths));
+    await executeRelation(async (connection) => {
+      await insertReportRows(connection, runKey, reportPaths);
+      await insertRun(connection, {
+        runKey,
+        applyMode: 1,
+        maintDatabase: options.maintDatabase,
+        localDatabase: null,
+        relationDatabase: options.relationDatabase,
+        scopes: options.scopes,
+        summaryJson: summary,
+        startedAt: applyStartedAt,
+        finishedAt: new Date(),
+        status: 'succeeded'
+      });
+    });
   }
 
   return {

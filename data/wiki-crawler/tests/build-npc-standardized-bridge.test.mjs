@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { buildNpcStandardizedBridge } from '../src/bridge/build-npc-standardized-bridge.mjs';
+import { buildNpcItemRelationsBundle } from '../../../scripts/data/fetch/build-npc-item-relations-bundle.mjs';
 
 test('buildNpcStandardizedBridge overlays wikiCrawler data without breaking the standardized npc shape', () => {
   const standardizedPayload = {
@@ -25,7 +26,37 @@ test('buildNpcStandardizedBridge overlays wikiCrawler data without breaking the 
       combat: { projectileId: '24' },
       summary: { leadText: 'Medusa is a Hardmode enemy.' },
       profile: { kind: 'enemy' },
-      shop: { items: [] },
+      shop: {
+        items: [],
+        normalizedRows: [
+          {
+            relationType: 'shop',
+            itemName: 'Lesser Healing Potion',
+            priceText: '3 silver',
+            conditionText: 'Always'
+          }
+        ]
+      },
+      loot: [
+        {
+          relationType: 'loot',
+          itemName: 'Pocket Mirror',
+          chanceText: '1%',
+          quantityText: '1'
+        }
+      ],
+      backfillCandidates: [
+        {
+          candidateKey: 'a'.repeat(64),
+          domain: 'npc_item_relation',
+          entityType: 'npc',
+          entityInternalName: 'medusa',
+          missingField: 'shop',
+          recommendedAction: 'crawl_npc_page',
+          evidenceJson: [{ sourcePage: 'Medusa' }],
+          status: 'open'
+        }
+      ],
       happiness: { sourceTemplatePresent: false, notes: [] },
       relationships: { relatedNpcs: [], relatedItems: [], relatedBiomes: [] },
       contentBlocks: { dialogue: '', tips: '', history: '' },
@@ -43,6 +74,9 @@ test('buildNpcStandardizedBridge overlays wikiCrawler data without breaking the 
   assert.equal(result.records[0].internalName, 'Medusa');
   assert.equal(result.records[0].combat.damage, 30);
   assert.equal(result.records[0].wikiCrawler.combat.projectileId, '24');
+  assert.equal(result.records[0].wikiCrawler.shop[0].itemName, 'Lesser Healing Potion');
+  assert.equal(result.records[0].wikiCrawler.loot[0].itemName, 'Pocket Mirror');
+  assert.equal(result.records[0].wikiCrawler.backfillCandidates[0].candidateKey, 'a'.repeat(64));
   assert.equal(result.records[0].wikiCrawler.summary.leadText, 'Medusa is a Hardmode enemy.');
   assert.equal(result.summary.matched, 1);
   assert.equal(result.summary.unmatchedCrawler, 0);
@@ -80,4 +114,94 @@ test('buildNpcStandardizedBridge enriches every standardized npc record that sha
   assert.equal(result.records[0].wikiCrawler.summary.leadText, 'Zombie is a common enemy.');
   assert.equal(result.records[1].wikiCrawler.summary.leadText, 'Zombie is a common enemy.');
   assert.equal(result.summary.matched, 2);
+});
+
+test('buildNpcItemRelationsBundle materializes standardized NPC shop, loot, and backfill candidates', () => {
+  const bundle = buildNpcItemRelationsBundle({
+    generatedAt: '2026-04-29T00:00:00.000Z',
+    standardizedPayload: {
+      entity: 'npcs',
+      records: [
+        {
+          id: 17,
+          internalName: 'Merchant',
+          name: 'Merchant',
+          wikiCrawler: {
+            pageTitle: 'Merchant',
+            shop: [
+              {
+                relationType: 'shop',
+                itemName: 'Lesser Healing Potion',
+                priceText: '3 silver',
+                conditionText: 'Always',
+                sourceSection: 'shop',
+                sourceRowIndex: 0,
+                raw: { itemName: 'Lesser Healing Potion' }
+              }
+            ],
+            loot: [
+              {
+                relationType: 'loot',
+                itemName: 'Merchant Hat',
+                chanceText: '100%',
+                quantityText: '1',
+                sourceSection: 'drops',
+                sourceRowIndex: 0,
+                raw: { itemName: 'Merchant Hat' }
+              }
+            ],
+            backfillCandidates: [
+              {
+                candidateKey: 'b'.repeat(64),
+                domain: 'npc_item_relation',
+                entityType: 'npc',
+                entityInternalName: 'Merchant',
+                entitySourceId: 17,
+                missingField: 'loot',
+                recommendedAction: 'crawl_npc_page',
+                evidenceJson: [{ sourcePage: 'Merchant' }],
+                status: 'open'
+              }
+            ]
+          }
+        }
+      ]
+    }
+  });
+
+  assert.equal(bundle.schemaVersion, 1);
+  assert.equal(bundle.source, 'wiki-crawler:npc');
+  assert.equal(bundle.generatedAt, '2026-04-29T00:00:00.000Z');
+  assert.deepEqual(
+    bundle.records.map((record) => ({
+      recordKey: record.recordKey,
+      relationType: record.relationType,
+      npcInternalName: record.npcInternalName,
+      itemName: record.itemName,
+      priceText: record.priceText,
+      chanceText: record.chanceText,
+      sourceUrl: record.sourceUrl
+    })),
+    [
+      {
+        recordKey: 'npc-item:merchant:shop:lesser-healing-potion',
+        relationType: 'shop',
+        npcInternalName: 'Merchant',
+        itemName: 'Lesser Healing Potion',
+        priceText: '3 silver',
+        chanceText: null,
+        sourceUrl: 'https://terraria.wiki.gg/wiki/Merchant'
+      },
+      {
+        recordKey: 'npc-item:merchant:loot:merchant-hat',
+        relationType: 'loot',
+        npcInternalName: 'Merchant',
+        itemName: 'Merchant Hat',
+        priceText: null,
+        chanceText: '100%',
+        sourceUrl: 'https://terraria.wiki.gg/wiki/Merchant'
+      }
+    ]
+  );
+  assert.equal(bundle.backfillCandidates[0].candidateKey, 'b'.repeat(64));
 });

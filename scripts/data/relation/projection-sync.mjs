@@ -126,6 +126,153 @@ function collectMappedValues(map, keys) {
   return values;
 }
 
+function displaySortValue(value) {
+  return String(value ?? '').toLocaleLowerCase('en-US');
+}
+
+function compareProjectionSummary(left, right) {
+  const leftName = displaySortValue(left.name ?? left.itemName ?? left.npcName);
+  const rightName = displaySortValue(right.name ?? right.itemName ?? right.npcName);
+  if (leftName !== rightName) return leftName.localeCompare(rightName);
+
+  const leftInternalName = displaySortValue(left.internalName ?? left.itemInternalName ?? left.npcInternalName);
+  const rightInternalName = displaySortValue(right.internalName ?? right.itemInternalName ?? right.npcInternalName);
+  if (leftInternalName !== rightInternalName) return leftInternalName.localeCompare(rightInternalName);
+
+  return displaySortValue(left.sourceFactKey).localeCompare(displaySortValue(right.sourceFactKey));
+}
+
+function dedupeProjectionSummaries(rows, keyBuilder) {
+  const seen = new Set();
+  return rows
+    .filter(Boolean)
+    .filter((row) => {
+      const key = keyBuilder(row);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort(compareProjectionSummary);
+}
+
+function appendProjectionSummary(map, key, row, keyBuilder) {
+  if (key == null || key === '') return;
+  const normalizedKey = String(key);
+  const current = map.get(normalizedKey) ?? [];
+  current.push(row);
+  map.set(normalizedKey, dedupeProjectionSummaries(current, keyBuilder));
+}
+
+function projectionItemForRelation(relation, itemIndexes) {
+  const sourceId = toNullableNumber(relation?.itemSourceId);
+  return (sourceId == null ? null : itemIndexes.bySourceId.get(sourceId))
+    ?? itemIndexes.byInternalName.get(relation?.itemInternalName)
+    ?? null;
+}
+
+function projectionNpcForRelation(relation, npcIndexes) {
+  const sourceId = toNullableNumber(relation?.npcSourceId);
+  return (sourceId == null ? null : npcIndexes.bySourceId.get(sourceId))
+    ?? npcIndexes.byInternalName.get(relation?.npcInternalName)
+    ?? null;
+}
+
+function itemRelationKeys(relation) {
+  return [
+    relation?.itemInternalName,
+    relation?.itemSourceId == null ? null : `source:${Number(relation.itemSourceId)}`
+  ].filter((key) => key != null && key !== '');
+}
+
+function npcRelationKeys(relation) {
+  return [
+    relation?.npcInternalName,
+    relation?.npcSourceId == null ? null : `source:${Number(relation.npcSourceId)}`
+  ].filter((key) => key != null && key !== '');
+}
+
+function buildSourceNpcSummary(relation, projectionNpc, relationType) {
+  return {
+    relationType,
+    npcId: projectionNpc?.id ?? toNullableNumber(relation.npcSourceId),
+    npcSourceId: toNullableNumber(relation.npcSourceId),
+    npcInternalName: relation.npcInternalName ?? projectionNpc?.internalName ?? null,
+    npcName: relation.npcName ?? projectionNpc?.name ?? null,
+    npcNameZh: projectionNpc?.nameZh ?? null,
+    npcImageUrl: projectionNpc?.imageUrl ?? null,
+    chanceText: relation.chanceText ?? null,
+    quantityText: relation.quantityText ?? null,
+    priceText: relation.priceText ?? null,
+    conditionText: relation.conditionSourceText ?? relation.conditions ?? null,
+    sourceFactKey: relation.sourceFactKey ?? null
+  };
+}
+
+function buildNpcItemSummary(relation, projectionItem, relationType) {
+  return {
+    relationType,
+    itemId: projectionItem?.id ?? toNullableNumber(relation.itemSourceId),
+    itemSourceId: toNullableNumber(relation.itemSourceId) ?? projectionItem?.id ?? null,
+    itemInternalName: relation.itemInternalName ?? projectionItem?.internalName ?? null,
+    itemName: relation.itemName ?? projectionItem?.name ?? null,
+    itemNameZh: projectionItem?.nameZh ?? null,
+    itemImageUrl: projectionItem?.image ?? null,
+    chanceText: relation.chanceText ?? null,
+    quantityText: relation.quantityText ?? null,
+    priceText: relation.priceText ?? null,
+    conditionText: relation.conditionSourceText ?? relation.conditions ?? null,
+    sourceFactKey: relation.sourceFactKey ?? null
+  };
+}
+
+function buildNpcSourceItemRows(raw, npcRow) {
+  const rows = Array.isArray(raw?.sourceItems) ? [...raw.sourceItems] : [];
+  const npcKey = npcRow?.internalName ?? npcRow?.internal_name ?? npcRow?.sourceId ?? npcRow?.source_id ?? 'unknown';
+  const bannerSourceId = toNullableNumber(raw?.banner ?? raw?.bannerSourceItemId ?? raw?.banner_source_item_id);
+  if (bannerSourceId != null && bannerSourceId > 0) {
+    rows.push({
+      relationType: 'banner',
+      itemSourceId: bannerSourceId,
+      conditionText: 'NPC banner item',
+      sourceFactKey: `npc-source-item:banner:${npcKey}:${bannerSourceId}`
+    });
+  }
+  const catchSourceId = toNullableNumber(raw?.catchItem ?? raw?.catchSourceItemId ?? raw?.catch_item ?? raw?.catch_source_item_id);
+  if (catchSourceId != null && catchSourceId > 0) {
+    rows.push({
+      relationType: 'catch',
+      itemSourceId: catchSourceId,
+      conditionText: 'Caught NPC item',
+      sourceFactKey: `npc-source-item:catch:${npcKey}:${catchSourceId}`
+    });
+  }
+  return rows;
+}
+
+function buildNpcSourceItems(raw, itemIndexes, npcRow) {
+  const rows = buildNpcSourceItemRows(raw, npcRow);
+  return dedupeProjectionSummaries(
+    rows.map((sourceItem) => {
+      const sourceId = toNullableNumber(sourceItem.itemSourceId ?? sourceItem.itemId ?? sourceItem.sourceId);
+      const projectionItem = (sourceId == null ? null : itemIndexes.bySourceId.get(sourceId))
+        ?? itemIndexes.byInternalName.get(sourceItem.itemInternalName ?? sourceItem.internalName)
+        ?? null;
+      return {
+        relationType: sourceItem.relationType ?? null,
+        itemId: projectionItem?.id ?? sourceId,
+        itemSourceId: sourceId ?? projectionItem?.id ?? null,
+        itemInternalName: sourceItem.itemInternalName ?? sourceItem.internalName ?? projectionItem?.internalName ?? null,
+        itemName: sourceItem.itemName ?? sourceItem.name ?? projectionItem?.name ?? null,
+        itemNameZh: projectionItem?.nameZh ?? null,
+        itemImageUrl: projectionItem?.image ?? null,
+        conditionText: sourceItem.conditionText ?? sourceItem.conditions ?? null,
+        sourceFactKey: sourceItem.sourceFactKey ?? null
+      };
+    }),
+    (row) => JSON.stringify([row.relationType, row.itemInternalName, row.sourceFactKey])
+  );
+}
+
 const ARMOR_SET_IMAGE_ALIASES = new Map([
   ['ArmorSetBonus.HallowedSummoner', 'ArmorSetBonus.Hallowed']
 ]);
@@ -204,6 +351,8 @@ export function buildProjectionPayload({
   relationNpcImages = [],
   relationProjectiles = [],
   relationProjectileImages = [],
+  itemNpcShopRelations = [],
+  itemNpcLootRelations = [],
   itemProjectileRelations = [],
   npcProjectileRelations = [],
   relationBuffs = [],
@@ -279,6 +428,7 @@ export function buildProjectionPayload({
       gameModelId: null,
       isStackable: toFlag(toNullableNumber(row.stackSize) > 1),
       stackSize: toNullableNumber(row.stackSize),
+      sourceNpcsJson: JSON.stringify([]),
       status: 1,
       deleted: 0,
       createdAt: null,
@@ -333,6 +483,9 @@ export function buildProjectionPayload({
       catchItemId: null,
       buffImmune: raw.buffImmune ?? null,
       rawJson: row.rawJson ?? null,
+      lootItemsJson: JSON.stringify([]),
+      shopItemsJson: JSON.stringify([]),
+      sourceItemsJson: JSON.stringify(buildNpcSourceItems(raw, projectionItemIndexes, row)),
       status: 1,
       deleted: 0,
       createdAt: null,
@@ -340,6 +493,84 @@ export function buildProjectionPayload({
     };
   });
   const projectionNpcIndexes = buildProjectionRowIndexes(projectionNpcs);
+
+  const sourceNpcsByItemKey = new Map();
+  const lootItemsByNpcKey = new Map();
+  const shopItemsByNpcKey = new Map();
+
+  for (const relation of itemNpcLootRelations) {
+    const projectionItem = projectionItemForRelation(relation, projectionItemIndexes);
+    const projectionNpc = projectionNpcForRelation(relation, projectionNpcIndexes);
+    const sourceNpcSummary = buildSourceNpcSummary(relation, projectionNpc, 'drop');
+    for (const key of itemRelationKeys(relation)) {
+      appendProjectionSummary(
+        sourceNpcsByItemKey,
+        key,
+        sourceNpcSummary,
+        (row) => JSON.stringify([row.relationType, row.npcInternalName, row.sourceFactKey])
+      );
+    }
+
+    const lootItemSummary = buildNpcItemSummary(relation, projectionItem, 'loot');
+    for (const key of npcRelationKeys(relation)) {
+      appendProjectionSummary(
+        lootItemsByNpcKey,
+        key,
+        lootItemSummary,
+        (row) => JSON.stringify([row.relationType, row.itemInternalName, row.sourceFactKey])
+      );
+    }
+  }
+
+  for (const relation of itemNpcShopRelations) {
+    const projectionItem = projectionItemForRelation(relation, projectionItemIndexes);
+    const projectionNpc = projectionNpcForRelation(relation, projectionNpcIndexes);
+    const sourceNpcSummary = buildSourceNpcSummary(relation, projectionNpc, 'shop');
+    for (const key of itemRelationKeys(relation)) {
+      appendProjectionSummary(
+        sourceNpcsByItemKey,
+        key,
+        sourceNpcSummary,
+        (row) => JSON.stringify([row.relationType, row.npcInternalName, row.sourceFactKey])
+      );
+    }
+
+    const shopItemSummary = buildNpcItemSummary(relation, projectionItem, 'shop');
+    for (const key of npcRelationKeys(relation)) {
+      appendProjectionSummary(
+        shopItemsByNpcKey,
+        key,
+        shopItemSummary,
+        (row) => JSON.stringify([row.relationType, row.itemInternalName, row.sourceFactKey])
+      );
+    }
+  }
+
+  for (const row of projectionItems) {
+    const values = collectMappedValues(sourceNpcsByItemKey, [
+      row.internalName,
+      row.id == null ? null : `source:${Number(row.id)}`
+    ].filter(Boolean));
+    row.sourceNpcsJson = JSON.stringify(dedupeProjectionSummaries(
+      values,
+      (entry) => JSON.stringify([entry.relationType, entry.npcInternalName, entry.sourceFactKey])
+    ));
+  }
+
+  for (const row of projectionNpcs) {
+    const npcKeys = [
+      row.internalName,
+      row.sourceId == null ? null : `source:${Number(row.sourceId)}`
+    ].filter(Boolean);
+    row.lootItemsJson = JSON.stringify(dedupeProjectionSummaries(
+      collectMappedValues(lootItemsByNpcKey, npcKeys),
+      (entry) => JSON.stringify([entry.relationType, entry.itemInternalName, entry.sourceFactKey])
+    ));
+    row.shopItemsJson = JSON.stringify(dedupeProjectionSummaries(
+      collectMappedValues(shopItemsByNpcKey, npcKeys),
+      (entry) => JSON.stringify([entry.relationType, entry.itemInternalName, entry.sourceFactKey])
+    ));
+  }
 
   const sourceItemsByProjectileKey = new Map();
   for (const relation of itemProjectileRelations) {

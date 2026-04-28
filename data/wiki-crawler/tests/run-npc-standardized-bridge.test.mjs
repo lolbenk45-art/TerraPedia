@@ -43,7 +43,37 @@ test('runNpcStandardizedBridge generates a standardized-compatible bridge dir an
     display: { name: 'Goblin Tinkerer' },
     summary: { leadText: 'Helpful NPC vendor.' },
     profile: { kind: 'NPC' },
-    shop: { items: [] },
+    shop: {
+      items: [],
+      normalizedRows: [
+        {
+          relationType: 'shop',
+          itemName: 'Rocket Boots',
+          priceText: '5 gold',
+          conditionText: 'After Goblin Army'
+        }
+      ]
+    },
+    loot: [
+      {
+        relationType: 'loot',
+        itemName: 'Tinkerers Workshop',
+        chanceText: '100%',
+        quantityText: '1'
+      }
+    ],
+    backfillCandidates: [
+      {
+        candidateKey: 'c'.repeat(64),
+        domain: 'npc_projectile_relation',
+        entityType: 'npc',
+        entityInternalName: 'goblin-tinkerer',
+        missingField: 'projectileId',
+        recommendedAction: 'crawl_npc_page',
+        evidenceJson: [{ sourcePage: 'Goblin Tinkerer' }],
+        status: 'open'
+      }
+    ],
     happiness: { sourceTemplatePresent: false, notes: [] },
     relationships: { relatedNpcs: [], relatedItems: [], relatedBiomes: [] },
     contentBlocks: { dialogue: '', tips: '', history: '' }
@@ -83,7 +113,11 @@ test('runNpcStandardizedBridge generates a standardized-compatible bridge dir an
   const bridgedNpcs = JSON.parse(await fs.readFile(path.join(result.standardizedDir, 'npcs.standardized.json'), 'utf8'));
   const report = JSON.parse(await fs.readFile(result.reportPath, 'utf8'));
   const medusa = bridgedNpcs.records.find((record) => record.internalName === 'Medusa');
+  const goblin = bridgedNpcs.records.find((record) => record.internalName === 'GoblinTinkerer');
 
+  assert.equal(goblin.wikiCrawler.shop[0].itemName, 'Rocket Boots');
+  assert.equal(goblin.wikiCrawler.loot[0].itemName, 'Tinkerers Workshop');
+  assert.equal(goblin.wikiCrawler.backfillCandidates[0].candidateKey, 'c'.repeat(64));
   assert.equal(medusa.wikiCrawler.audit.status, 'warn');
   assert.equal(medusa.wikiCrawler.sourceMetadata.entityId, 'medusa');
   assert.equal(report.matched, 2);

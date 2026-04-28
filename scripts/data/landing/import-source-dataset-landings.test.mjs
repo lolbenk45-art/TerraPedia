@@ -119,7 +119,7 @@ test('planLandingImportExecution returns dry-run summary without write actions',
   assert.equal(summary.database, 'terria_v1_local');
   assert.equal(summary.tableName, 'source_dataset_landings');
   assert.equal(summary.schema.willApply, false);
-  assert.equal(summary.schema.datasetTypes.length, 13);
+  assert.equal(summary.schema.datasetTypes.length, 14);
   assert.deepEqual(summary.datasets.requested, ['items_raw']);
   assert.equal(summary.datasets.located, 2);
   assert.equal(summary.datasets.byType.items_raw, 2);

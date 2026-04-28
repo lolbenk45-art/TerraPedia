@@ -5,10 +5,13 @@ import {
   extractNpcHappiness,
   extractNpcLeadSummary,
   extractNpcInfobox,
+  extractNpcLoot,
   extractNpcSectionBlocks,
   extractNpcShop,
   extractNpcSpecialForms
 } from '../src/domains/npc-parser.mjs';
+import { normalizeNpcLootRows } from '../src/domains/npc-loot-parser.mjs';
+import { normalizeNpcShopRows } from '../src/domains/npc-shop-normalizer.mjs';
 
 const SAMPLE = `{{npc infobox
 | type = NPC
@@ -218,6 +221,103 @@ test('extractNpcShop keeps item name, valueText, and availability note', () => {
       }
     ]
   });
+});
+
+test('normalizeNpcShopRows maps raw shop rows to NPC item relation evidence', () => {
+  assert.deepEqual(
+    normalizeNpcShopRows(
+      [
+        {
+          item: 'Rocket Boots',
+          price: '5 gold',
+          condition: 'Sold after Goblin Army',
+          sourceSection: 'shop'
+        },
+        { item: '', price: '1 silver' }
+      ],
+      { npcInternalName: 'GoblinTinkerer', npcName: 'Goblin Tinkerer' }
+    ),
+    [
+      {
+        relationType: 'shop',
+        itemName: 'Rocket Boots',
+        priceText: '5 gold',
+        conditionText: 'Sold after Goblin Army',
+        npcInternalName: 'GoblinTinkerer',
+        npcName: 'Goblin Tinkerer',
+        sourceSection: 'shop',
+        sourceRowIndex: 0,
+        raw: {
+          item: 'Rocket Boots',
+          price: '5 gold',
+          condition: 'Sold after Goblin Army',
+          sourceSection: 'shop'
+        }
+      }
+    ]
+  );
+});
+
+test('extractNpcLoot parses drop table evidence from NPC page wikitext', () => {
+  const sample = [
+    '== Drops ==',
+    '{| class="terraria drop"',
+    '! Item !! Quantity !! Chance !! Condition',
+    '|-',
+    '| [[Shackle]] || 1 || 2% || Expert Mode',
+    '|}'
+  ].join('\n');
+
+  assert.deepEqual(extractNpcLoot(sample), {
+    items: [
+      {
+        relationType: 'loot',
+        itemName: 'Shackle',
+        chanceText: '2%',
+        quantityText: '1',
+        conditionText: 'Expert Mode',
+        npcInternalName: null,
+        npcName: null,
+        sourceSection: 'drops',
+        sourceRowIndex: 0,
+        raw: {
+          itemName: 'Shackle',
+          quantityText: '1',
+          chanceText: '2%',
+          conditionText: 'Expert Mode',
+          sourceSection: 'drops'
+        }
+      }
+    ]
+  });
+});
+
+test('normalizeNpcLootRows maps raw loot rows to NPC item relation evidence', () => {
+  assert.deepEqual(
+    normalizeNpcLootRows(
+      [{ itemName: 'Shackle', chanceText: '2%', quantityText: '1', conditionText: 'Expert Mode' }],
+      { npcInternalName: 'Zombie', npcName: 'Zombie' }
+    ),
+    [
+      {
+        relationType: 'loot',
+        itemName: 'Shackle',
+        chanceText: '2%',
+        quantityText: '1',
+        conditionText: 'Expert Mode',
+        npcInternalName: 'Zombie',
+        npcName: 'Zombie',
+        sourceSection: 'drops',
+        sourceRowIndex: 0,
+        raw: {
+          itemName: 'Shackle',
+          chanceText: '2%',
+          quantityText: '1',
+          conditionText: 'Expert Mode'
+        }
+      }
+    ]
+  );
 });
 
 test('extractNpcHappiness marks template presence and preserves notes', () => {

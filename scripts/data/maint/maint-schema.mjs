@@ -14,6 +14,7 @@ export const MAINT_TABLE_NAMES = [
   'maint_recipe_page_recipes',
   'maint_item_recipes',
   'maint_item_sources',
+  'maint_backfill_candidates',
   'maint_item_biomes',
   'maint_source_snapshots',
   'maint_bosses',
@@ -486,6 +487,30 @@ CREATE TABLE IF NOT EXISTS \`maint_item_sources\` (
   \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (\`id\`),
   UNIQUE KEY \`uk_maint_item_sources_record_key\` (\`record_key\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS \`maint_backfill_candidates\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`candidate_key\` CHAR(64) NOT NULL,
+  \`domain\` VARCHAR(64) NOT NULL,
+  \`entity_type\` VARCHAR(64) NOT NULL,
+  \`entity_internal_name\` VARCHAR(255) DEFAULT NULL,
+  \`entity_source_id\` VARCHAR(64) DEFAULT NULL,
+  \`missing_field\` VARCHAR(64) NOT NULL,
+  \`recommended_action\` VARCHAR(64) NOT NULL,
+  \`evidence_json\` LONGTEXT NOT NULL,
+  \`status\` VARCHAR(32) NOT NULL DEFAULT 'open',
+  \`landing_source_id\` BIGINT NOT NULL,
+  \`landing_source_key\` VARCHAR(255) NOT NULL,
+  \`landing_source_page\` VARCHAR(255) DEFAULT NULL,
+  \`landing_content_hash\` CHAR(64) NOT NULL,
+  \`landing_fetched_at\` DATETIME DEFAULT NULL,
+  \`landing_parsed_at\` DATETIME DEFAULT NULL,
+  \`raw_json\` LONGTEXT NOT NULL,
+  \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_maint_backfill_candidates_candidate_key\` (\`candidate_key\`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS \`maint_item_biomes\` (

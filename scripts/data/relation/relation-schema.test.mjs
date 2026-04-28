@@ -34,6 +34,7 @@ const EXPECTED_TABLE_NAMES = [
   'item_source_details',
   'item_npc_shop_relations',
   'item_npc_loot_relations',
+  'item_npc_relation_audits',
   'item_buff_relations',
   'item_biome_relations',
   'item_projectile_relations',
@@ -223,6 +224,7 @@ test('table-scoped domain columns and lookup indexes are present', () => {
   const sourceDetails = extractTableDdl(sql, 'item_source_details');
   const shopRelations = extractTableDdl(sql, 'item_npc_shop_relations');
   const lootRelations = extractTableDdl(sql, 'item_npc_loot_relations');
+  const relationAudits = extractTableDdl(sql, 'item_npc_relation_audits');
   const itemProjectileRelations = extractTableDdl(sql, 'item_projectile_relations');
   const npcProjectileRelations = extractTableDdl(sql, 'npc_projectile_relations');
   const npcProjectileAudits = extractTableDdl(sql, 'npc_projectile_audits');
@@ -265,6 +267,7 @@ test('table-scoped domain columns and lookup indexes are present', () => {
     /CONSTRAINT `fk_item_source_details_source_fact_key`\s+FOREIGN KEY \(`source_fact_key`\) REFERENCES `terria_v1_relation`\.`item_source_facts` \(`record_key`\)/
   );
   assert.match(shopRelations, /`source_fact_key` CHAR\(64\) COLLATE utf8mb4_bin NOT NULL/);
+  assert.match(shopRelations, /`item_name` VARCHAR\(255\) DEFAULT NULL/);
   assert.match(shopRelations, /`condition_parse_status` VARCHAR\(64\) DEFAULT NULL/);
   assert.match(shopRelations, /`condition_events_json` LONGTEXT/);
   assert.match(
@@ -276,6 +279,7 @@ test('table-scoped domain columns and lookup indexes are present', () => {
     /CONSTRAINT `fk_item_npc_shop_relations_source_fact_key`\s+FOREIGN KEY \(`source_fact_key`\) REFERENCES `terria_v1_relation`\.`item_source_facts` \(`record_key`\)/
   );
   assert.match(lootRelations, /`source_fact_key` CHAR\(64\) COLLATE utf8mb4_bin NOT NULL/);
+  assert.match(lootRelations, /`item_name` VARCHAR\(255\) DEFAULT NULL/);
   assert.match(lootRelations, /`condition_time_code` VARCHAR\(64\) DEFAULT NULL/);
   assert.match(lootRelations, /`special_flags_json` LONGTEXT/);
   assert.match(
@@ -286,6 +290,18 @@ test('table-scoped domain columns and lookup indexes are present', () => {
     lootRelations,
     /CONSTRAINT `fk_item_npc_loot_relations_source_fact_key`\s+FOREIGN KEY \(`source_fact_key`\) REFERENCES `terria_v1_relation`\.`item_source_facts` \(`record_key`\)/
   );
+  assert.match(relationAudits, /`audit_key` VARCHAR\(255\) NOT NULL/);
+  assert.match(relationAudits, /`relation_kind` VARCHAR\(32\) NOT NULL/);
+  assert.match(relationAudits, /`source_fact_key` VARCHAR\(255\)/);
+  assert.match(relationAudits, /`item_internal_name` VARCHAR\(255\)/);
+  assert.match(relationAudits, /`item_name` VARCHAR\(255\)/);
+  assert.match(relationAudits, /`source_ref_name` VARCHAR\(255\)/);
+  assert.match(relationAudits, /`source_ref_normalized` VARCHAR\(255\)/);
+  assert.match(relationAudits, /`candidate_npc_internal_name` VARCHAR\(255\)/);
+  assert.match(relationAudits, /`audit_status` VARCHAR\(32\) NOT NULL/);
+  assert.match(relationAudits, /`reason_code` VARCHAR\(64\) NOT NULL/);
+  assert.match(relationAudits, /`evidence_json` LONGTEXT/);
+  assert.match(relationAudits, /PRIMARY KEY \(`audit_key`\)/);
   assert.match(itemProjectileRelations, /`item_source_id` INT DEFAULT NULL/);
   assert.match(itemProjectileRelations, /`item_internal_name` VARCHAR\(255\) DEFAULT NULL/);
   assert.match(itemProjectileRelations, /`projectile_source_id` INT DEFAULT NULL/);

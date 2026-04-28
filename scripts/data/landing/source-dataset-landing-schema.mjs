@@ -14,6 +14,7 @@ export const LANDING_DATASET_TYPES = [
   'shimmer_raw',
   'recipes_raw',
   'item_relations_bundle_raw',
+  'npc_item_relations_bundle_raw',
 ];
 
 export const LANDING_PARSE_STATUSES = ['ok', 'partial', 'error', 'skipped'];

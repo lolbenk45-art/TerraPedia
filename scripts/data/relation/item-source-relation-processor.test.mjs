@@ -72,16 +72,20 @@ test('buildItemSourceRelations splits resolved shop and unresolved drops', () =>
 
   assert.equal(actual.sourceFacts.length, 3);
   assert.equal(actual.sourceDetails.length, 3);
-  assert.equal(actual.npcShopCandidates.length, 1);
   assert.equal(actual.npcShopRelations.length, 1);
-  assert.equal(actual.npcLootCandidates.length, 0);
   assert.equal(actual.npcLootRelations.length, 0);
   assert.ok(actual.issues.some((issue) => issue.reason === 'npc_source_unresolved'));
+  assert.ok(actual.itemNpcRelationAudits.some((audit) => audit.auditStatus === 'unresolved'));
+  assert.ok(actual.itemNpcRelationAudits.some((audit) => audit.auditStatus === 'polluted'));
+  assert.equal(actual.npcShopCandidates, undefined);
+  assert.equal(actual.npcLootCandidates, undefined);
   const pollutedIssue = actual.issues.find((issue) => issue.reason === 'source_ref_text_polluted');
   assert.ok(pollutedIssue);
   assert.equal(pollutedIssue.reviewStatus, 'candidate_low_confidence');
   assert.equal(pollutedIssue.confidence, 0.4);
   assert.equal(actual.npcShopRelations[0].npcInternalName, 'Dryad');
+  assert.equal(actual.npcShopRelations[0].itemName, 'Acorn');
+  assert.equal(JSON.parse(actual.npcShopRelations[0].rawJson).sourceRefName, 'Dryad');
   assert.equal(actual.npcShopRelations[0].reason, 'npc_shop_relation_resolved');
   assert.equal(actual.npcShopRelations[0].conditionParseStatus, 'unparsed');
   assert.equal(actual.npcShopRelations[0].conditionBiomeCode, null);
@@ -127,8 +131,9 @@ test('buildItemSourceRelations respects upstream resolved internal-name metadata
     npcIndex: new Map([['Dryad', { source_id: 20, internal_name: 'Dryad', name: 'Dryad' }]])
   });
 
-  assert.equal(actual.npcLootCandidates.length, 1);
   assert.equal(actual.npcLootRelations.length, 1);
+  assert.equal(actual.npcLootRelations[0].itemName, 'Acorn');
+  assert.equal(JSON.parse(actual.npcLootRelations[0].rawJson).sourceRefInternalName, 'Dryad');
   assert.equal(actual.issues.filter((issue) => issue.reason === 'npc_source_unresolved').length, 0);
 
   const detail = actual.sourceDetails[0];
@@ -203,4 +208,72 @@ test('buildItemSourceRelations keeps loot biome as source_fields_only when chanc
   assert.equal(actual.npcLootRelations[0].conditionSourceText, null);
   assert.equal(actual.npcLootRelations[0].conditionBiomeCode, 'desert');
   assert.equal(actual.npcLootRelations[0].conditionParseStatus, 'source_fields_only');
+});
+
+test('buildItemSourceRelations audits ambiguous npc refs instead of promoting formal relations', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 7,
+        record_key: '7'.repeat(64),
+        item_internal_name: 'Shackle',
+        item_name: 'Shackle',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Zombie',
+        sort_order: 0,
+        raw_json: JSON.stringify({ sourceRefName: 'Zombie', chanceText: '2%' }),
+        landing_source_id: 54,
+        landing_source_key: 'generated.item_relations_bundle:chunk:0002',
+        landing_content_hash: 'c'.repeat(64),
+        source_provider: 'wiki_gg',
+        source_page: 'Shackle'
+      }
+    ],
+    npcIndex: new Map([
+      ['Zombie', [
+        { source_id: 3, internal_name: 'Zombie', name: 'Zombie' },
+        { source_id: -26, internal_name: 'SmallZombie', name: 'Zombie' }
+      ]]
+    ])
+  });
+
+  assert.equal(actual.npcLootRelations.length, 0);
+  assert.equal(actual.itemNpcRelationAudits.length, 1);
+  assert.equal(actual.itemNpcRelationAudits[0].auditStatus, 'ambiguous');
+  assert.equal(actual.itemNpcRelationAudits[0].reasonCode, 'npc_source_ambiguous');
+  assert.equal(actual.itemNpcRelationAudits[0].relationKind, 'loot');
+  assert.equal(actual.itemNpcRelationAudits[0].itemName, 'Shackle');
+  assert.equal(Object.hasOwn(actual.itemNpcRelationAudits[0], 'createdAt'), false);
+  assert.equal(Object.hasOwn(actual.itemNpcRelationAudits[0], 'updatedAt'), false);
+  assert.deepEqual(
+    JSON.parse(actual.itemNpcRelationAudits[0].evidenceJson).candidateNpcInternalNames,
+    ['Zombie', 'SmallZombie']
+  );
+});
+
+test('buildItemSourceRelations audits resolved npc refs with unresolved items instead of promoting formal relations', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 8,
+        record_key: '8'.repeat(64),
+        item_internal_name: null,
+        item_name: 'Any Pylon',
+        source_type: 'shop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Merchant',
+        raw_json: JSON.stringify({ sourceRefName: 'Merchant', priceText: '{{iteminfo' })
+      }
+    ],
+    npcIndex: new Map([
+      ['Merchant', { source_id: 17, internal_name: 'Merchant', name: 'Merchant' }]
+    ])
+  });
+
+  assert.equal(actual.npcShopRelations.length, 0);
+  assert.equal(actual.itemNpcRelationAudits.length, 1);
+  assert.equal(actual.itemNpcRelationAudits[0].auditStatus, 'unresolved');
+  assert.equal(actual.itemNpcRelationAudits[0].reasonCode, 'item_unresolved');
+  assert.equal(actual.sourceFacts[0].reviewStatus, 'unresolved');
 });

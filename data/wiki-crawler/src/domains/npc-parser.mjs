@@ -1,3 +1,5 @@
+import { normalizeNpcLootRows } from './npc-loot-parser.mjs';
+
 const LIFEFORM_PATTERN = /\{\{Lifeform Analyzer note\|([\s\S]*?)\}\}/i;
 const SHIMMER_PATTERN = /\{\{NPC shimmered form\|([\s\S]*?)\}\}/i;
 const LIVING_PREFERENCES_PATTERN = /\{\{living preferences\|([\s\S]*?)\}\}/i;
@@ -244,6 +246,67 @@ export function extractNpcShop(revisionText) {
   }
 
   return { items };
+}
+
+function cleanWikiCell(value) {
+  return String(value ?? '')
+    .replace(/\[\[[^|\]]+\|([^\]]+)\]\]/g, '$1')
+    .replace(/\[\[([^\]]+)\]\]/g, '$1')
+    .replace(/'''+/g, '')
+    .replace(/''/g, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractDropsSection(revisionText) {
+  const text = String(revisionText ?? '');
+  const headingPattern = /^==\s*(?:Drops?|Loot)\s*==\s*$/gim;
+  const heading = headingPattern.exec(text);
+  if (!heading) {
+    return '';
+  }
+  const sectionStart = heading.index + heading[0].length;
+  const nextHeadingPattern = /^==\s*[^=]+?\s*==\s*$/gim;
+  nextHeadingPattern.lastIndex = sectionStart;
+  const nextHeading = nextHeadingPattern.exec(text);
+  return text.slice(sectionStart, nextHeading?.index ?? text.length);
+}
+
+export function extractNpcLoot(revisionText, context = {}) {
+  const section = extractDropsSection(revisionText);
+  if (!section) {
+    return { items: [] };
+  }
+
+  const rows = [];
+  const lines = section.split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('|') || trimmed.startsWith('|-') || trimmed.startsWith('|}')) {
+      continue;
+    }
+    const cells = trimmed
+      .replace(/^\|+/, '')
+      .split('||')
+      .map((cell) => cleanWikiCell(cell))
+      .filter(Boolean);
+    if (cells.length < 3) {
+      continue;
+    }
+    const [itemName, quantityText, chanceText, conditionText = null] = cells;
+    rows.push({
+      itemName,
+      quantityText,
+      chanceText,
+      conditionText,
+      sourceSection: 'drops'
+    });
+  }
+
+  return {
+    items: normalizeNpcLootRows(rows, context)
+  };
 }
 
 export function extractNpcHappiness(revisionText) {

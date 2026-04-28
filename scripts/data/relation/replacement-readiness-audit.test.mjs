@@ -1,7 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import path from 'node:path';
 
-import { buildReplacementReadinessAudit } from './replacement-readiness-audit.mjs';
+import {
+  buildReplacementReadinessAudit,
+  resolveMysqlRequirePath
+} from './replacement-readiness-audit.mjs';
+
+test('resolveMysqlRequirePath resolves mysql2 relative to data-query-app package manifest', () => {
+  const relativePath = path.relative(process.cwd(), resolveMysqlRequirePath()).replaceAll(path.sep, '/');
+
+  assert.equal(relativePath, 'data-query-app/package.json');
+});
 
 test('buildReplacementReadinessAudit reports blocked domains and sample field gaps', () => {
   const actual = buildReplacementReadinessAudit({

@@ -24,7 +24,7 @@ const repoRoot = path.resolve(__dirname, '..', '..', '..');
 
 const SCOPE_TO_DATASETS = {
   items: ['items_raw'],
-  npcs: ['npcs_raw'],
+  npcs: ['npcs_raw', 'npc_item_relations_bundle_raw'],
   projectiles: ['projectiles_raw'],
   buffs: ['buffs_raw'],
   item_pages: ['item_pages_raw'],
@@ -52,6 +52,7 @@ const SCOPE_TO_TABLE = {
   recipe_pages: 'maint_recipe_pages',
   item_recipes: 'maint_item_recipes',
   item_sources: 'maint_item_sources',
+  backfill_candidates: 'maint_backfill_candidates',
   item_biomes: 'maint_item_biomes',
   source_snapshots: 'maint_source_snapshots',
   bosses: 'maint_bosses',
@@ -457,6 +458,58 @@ function extractItemSourceMaintRows(landingRow, payload) {
     sourceProvider: normalizeText(record.sourceProvider) ?? landingRow.provider,
     sourcePage: normalizeText(record.sourcePage) ?? landingRow.source_page,
     sourceRevisionTimestamp: record.sourceRevisionTimestamp ?? landingRow.source_revision_timestamp,
+    landingSourceId: Number(landingRow.id),
+    landingSourceKey: landingRow.source_key,
+    landingSourcePage: landingRow.source_page,
+    landingContentHash: landingRow.content_hash,
+    landingFetchedAt: landingRow.fetched_at,
+    landingParsedAt: landingRow.parsed_at,
+    rawJson: JSON.stringify(record),
+  }));
+}
+
+function extractNpcItemSourceMaintRows(landingRow, payload) {
+  return (Array.isArray(payload.records) ? payload.records : []).map((record, index) => ({
+    scope: 'item_sources',
+    tableName: 'maint_item_sources',
+    recordKey: normalizeText(record.recordKey) ?? createRecordKey({
+      datasetType: landingRow.dataset_type,
+      index,
+      record
+    }),
+    itemInternalName: normalizeText(record.itemInternalName),
+    itemName: normalizeText(record.itemName),
+    sourceType: record.relationType === 'loot' ? 'drop' : normalizeText(record.relationType),
+    sourceRefType: 'npc',
+    sourceRefName: normalizeText(record.npcName ?? record.npcInternalName),
+    sortOrder: Number(record.sourceRowIndex ?? index) || 0,
+    biomeCode: null,
+    sourceProvider: landingRow.provider,
+    sourcePage: normalizeText(record.sourceUrl ?? record.sourcePage) ?? landingRow.source_page,
+    sourceRevisionTimestamp: record.sourceRevisionTimestamp ?? landingRow.source_revision_timestamp,
+    landingSourceId: Number(landingRow.id),
+    landingSourceKey: landingRow.source_key,
+    landingSourcePage: landingRow.source_page,
+    landingContentHash: landingRow.content_hash,
+    landingFetchedAt: landingRow.fetched_at,
+    landingParsedAt: landingRow.parsed_at,
+    rawJson: JSON.stringify(record),
+  }));
+}
+
+function extractNpcBackfillCandidateMaintRows(landingRow, payload) {
+  return (Array.isArray(payload.backfillCandidates) ? payload.backfillCandidates : []).map((record) => ({
+    scope: 'backfill_candidates',
+    tableName: 'maint_backfill_candidates',
+    candidateKey: normalizeText(record.candidateKey) ?? createRecordKey(record),
+    domain: normalizeText(record.domain),
+    entityType: normalizeText(record.entityType),
+    entityInternalName: normalizeText(record.entityInternalName),
+    entitySourceId: normalizeText(record.entitySourceId),
+    missingField: normalizeText(record.missingField),
+    recommendedAction: normalizeText(record.recommendedAction),
+    evidenceJson: JSON.stringify(record.evidenceJson ?? []),
+    status: normalizeText(record.status) ?? 'open',
     landingSourceId: Number(landingRow.id),
     landingSourceKey: landingRow.source_key,
     landingSourcePage: landingRow.source_page,
@@ -1093,6 +1146,13 @@ export async function extractMaintEntitiesFromLandingRow(landingRow, options = {
     ];
     return { scope: 'bundle_relations', rows };
   }
+  if (datasetType === 'npc_item_relations_bundle_raw') {
+    const rows = [
+      ...extractNpcItemSourceMaintRows(landingRow, payload),
+      ...extractNpcBackfillCandidateMaintRows(landingRow, payload),
+    ];
+    return { scope: 'npc_item_relations', rows };
+  }
   if (datasetType === 'bosses_raw') {
     const rows = extractBossMaintRows(landingRow, payload);
     return { scope: 'bosses', rows };
@@ -1188,11 +1248,12 @@ function addRowsToStreamSummary(summary, rows) {
 function dedupeEntityRows(rows, seenRecordKeys) {
   const deduped = [];
   for (const row of rows) {
-    if (row.recordKey) {
-      if (seenRecordKeys.has(row.recordKey)) {
+    const uniqueKey = row.recordKey ?? row.candidateKey ?? null;
+    if (uniqueKey) {
+      if (seenRecordKeys.has(uniqueKey)) {
         continue;
       }
-      seenRecordKeys.add(row.recordKey);
+      seenRecordKeys.add(uniqueKey);
     }
     deduped.push(row);
   }
@@ -1201,6 +1262,10 @@ function dedupeEntityRows(rows, seenRecordKeys) {
 
 function filterRowsByScopes(rows, scopes) {
   const scopeSet = new Set(scopes);
+  if (scopeSet.has('npcs')) {
+    scopeSet.add('item_sources');
+    scopeSet.add('backfill_candidates');
+  }
   return rows.filter((row) => scopeSet.has(row.scope));
 }
 
@@ -2064,6 +2129,9 @@ async function upsertRecordKeyRow(connection, row) {
 }
 
 async function upsertMaintRow(connection, row) {
+  if (row.tableName === 'maint_backfill_candidates') {
+    return upsertBackfillCandidateRow(connection, row);
+  }
   if (row.recordKey) {
     return upsertRecordKeyRow(connection, row);
   }
@@ -2154,6 +2222,43 @@ async function upsertMaintRow(connection, row) {
       ${nowFields.map((field) => `\`${field}\``).join(', ')}
     ) VALUES (${nowFields.map(() => '?').join(', ')})`,
     values,
+  );
+  return 'inserted';
+}
+
+async function upsertBackfillCandidateRow(connection, row) {
+  const [existingRows] = await connection.execute(
+    'SELECT id FROM `maint_backfill_candidates` WHERE candidate_key = ? LIMIT 1',
+    [row.candidateKey],
+  );
+  const existing = existingRows[0] ?? null;
+  if (existing) {
+    await connection.execute(
+      `UPDATE \`maint_backfill_candidates\`
+       SET domain = ?, entity_type = ?, entity_internal_name = ?, entity_source_id = ?, missing_field = ?, recommended_action = ?,
+           evidence_json = ?, status = ?, landing_source_id = ?, landing_source_key = ?, landing_source_page = ?, landing_content_hash = ?,
+           landing_fetched_at = ?, landing_parsed_at = ?, raw_json = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [
+        row.domain, row.entityType, row.entityInternalName, row.entitySourceId, row.missingField, row.recommendedAction,
+        row.evidenceJson, row.status, row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash,
+        toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.rawJson, Number(existing.id),
+      ],
+    );
+    return 'updated';
+  }
+
+  await connection.execute(
+    `INSERT INTO \`maint_backfill_candidates\`
+     (\`candidate_key\`, \`domain\`, \`entity_type\`, \`entity_internal_name\`, \`entity_source_id\`, \`missing_field\`, \`recommended_action\`,
+      \`evidence_json\`, \`status\`, \`landing_source_id\`, \`landing_source_key\`, \`landing_source_page\`, \`landing_content_hash\`,
+      \`landing_fetched_at\`, \`landing_parsed_at\`, \`raw_json\`)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      row.candidateKey, row.domain, row.entityType, row.entityInternalName, row.entitySourceId, row.missingField, row.recommendedAction,
+      row.evidenceJson, row.status, row.landingSourceId, row.landingSourceKey, row.landingSourcePage, row.landingContentHash,
+      toMysqlDateTime(row.landingFetchedAt), toMysqlDateTime(row.landingParsedAt), row.rawJson,
+    ],
   );
   return 'inserted';
 }

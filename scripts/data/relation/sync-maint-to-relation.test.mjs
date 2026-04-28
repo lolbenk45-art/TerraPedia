@@ -152,6 +152,7 @@ test('runSync dry-run reads maint only and does not write relation rows', async 
   assert.equal(result.results.itemRecipeGroupExpansions.length, 0);
   assert.equal(result.results.itemNpcShopRelations.length, 0);
   assert.equal(result.results.itemNpcLootRelations.length, 0);
+  assert.equal(result.results.itemNpcRelationAudits.length, 0);
   assert.equal(result.results.relationProjectileImages.length, 1);
   assert.equal(result.results.relationBuffImages.length, 1);
   assert.equal(result.results.relationNpcImages.length, 1);
@@ -160,6 +161,78 @@ test('runSync dry-run reads maint only and does not write relation rows', async 
   assert.equal(result.results.itemProjectileAudits.length, 1);
   assert.deepEqual(JSON.parse(result.results.projectionProjectiles[0].sourceItemsJson).map((item) => item.internalName), ['LesserHealingPotion']);
   assert.deepEqual(JSON.parse(result.results.projectionProjectiles[0].sourceNpcsJson).map((npc) => npc.internalName), ['BigHornetStingy']);
+});
+
+test('runSync dry-run carries item npc relation audits into results and summary', async () => {
+  const result = await runSync(
+    {
+      apply: false,
+      createDatabase: false,
+      maintDatabase: 'terria_v1_maint',
+      localDatabase: null,
+      relationDatabase: 'terria_v1_relation',
+      scopes: ['npc']
+    },
+    {
+      config: {
+        database: {
+          host: '127.0.0.1',
+          port: 3306,
+          username: 'root',
+          password: 'root'
+        }
+      },
+      queryMaint: async (sql) => {
+        if (sql.includes('maint_item_sources')) {
+          return [
+            {
+              id: 21,
+              record_key: '2'.repeat(64),
+              item_internal_name: 'Shackle',
+              item_name: 'Shackle',
+              source_type: 'drop',
+              source_ref_type: 'npc',
+              source_ref_name: 'Unknown Zombie',
+              raw_json: JSON.stringify({
+                sourceRefName: 'Unknown Zombie',
+                chanceText: '2%'
+              }),
+              landing_source_id: 51,
+              landing_source_key: 'generated.item_relations_bundle:chunk:0001',
+              landing_content_hash: 'f'.repeat(64),
+              source_provider: 'wiki_gg',
+              source_page: 'Shackle'
+            }
+          ];
+        }
+        if (sql.includes('maint_items')) {
+          return [{
+            source_id: 216,
+            internal_name: 'Shackle',
+            english_name: 'Shackle',
+            raw_json: '{}'
+          }];
+        }
+        if (sql.includes('maint_npcs')) return [];
+        return [];
+      },
+      writeReports: async () => ({
+        auditJsonPath: 'reports/relation/relation-audit-2026-04-29.json',
+        auditMdPath: 'reports/relation/relation-audit-2026-04-29.md',
+        conflictsPath: 'reports/relation/relation-conflicts-2026-04-29.json',
+        unresolvedPath: 'reports/relation/relation-unresolved-2026-04-29.json'
+      }),
+      executeRelation: async () => {
+        throw new Error('should not write in dry-run');
+      }
+    }
+  );
+
+  assert.equal(result.results.itemSourceFacts.length, 1);
+  assert.equal(result.results.itemNpcLootRelations.length, 0);
+  assert.equal(result.results.itemNpcRelationAudits.length, 1);
+  assert.equal(result.results.itemNpcRelationAudits[0].auditStatus, 'unresolved');
+  assert.equal(result.summary.domainSummary.npc, 3);
 });
 
 test('runSync dry-run surfaces projectile crawl candidates for maint items and npcs without projectile fields', async () => {
@@ -411,12 +484,14 @@ test('runSync apply mode clears stale relation tables before writing current sna
   assert.ok(statements.some((sql) => sql.includes('DELETE FROM `relation_items`')));
   assert.ok(statements.some((sql) => sql.includes('DELETE FROM `relation_item_rarities`')));
   assert.ok(statements.some((sql) => sql.includes('DELETE FROM `item_npc_shop_relations`')));
+  assert.ok(statements.some((sql) => sql.includes('DELETE FROM `item_npc_relation_audits`')));
   assert.ok(statements.some((sql) => sql.includes('DELETE FROM `item_projectile_relations`')));
   assert.ok(statements.some((sql) => sql.includes('DELETE FROM `npc_projectile_relations`')));
   assert.ok(statements.some((sql) => sql.includes('INSERT INTO `item_projectile_relations`')));
   assert.ok(statements.some((sql) => sql.includes('INSERT INTO `npc_projectile_relations`')));
   assert.ok(statements.some((sql) => sql.includes('DELETE FROM `npc_projectile_audits`')));
   assert.ok(statements.some((sql) => sql.includes('INSERT INTO `npc_projectile_audits`')));
+  assert.ok(statements.some((sql) => sql.includes('INSERT INTO `item_npc_relation_audits`')));
   assert.ok(statements.some((sql) => sql.includes('UPDATE `relation_items` ri')));
   assert.ok(statements.some((sql) => sql.includes('SET ri.stack_size = mi.stack_size')));
   assert.ok(statements.some((sql) => sql.includes('UPDATE `projection_items` pi')));
@@ -501,6 +576,61 @@ test('runSync projects maint numeric and text overrides into projection items du
   assert.equal(result.results.projectionItems[0].tooltipZh, '基础照明');
   assert.equal(result.results.projectionItems[0].descriptionZh, '基础光源');
   assert.equal(result.summary.bridgeBreakdown.itemTextOverrideRows, 1);
+});
+
+test('runSync marks apply runs succeeded only after snapshot rows and report rows are written', async () => {
+  const events = [];
+
+  await runSync(
+    {
+      apply: true,
+      createDatabase: false,
+      maintDatabase: 'terria_v1_maint',
+      localDatabase: null,
+      relationDatabase: 'terria_v1_relation',
+      scopes: ['category', 'recipe', 'npc', 'buff', 'biome', 'projectile']
+    },
+    {
+      config: {
+        database: {
+          host: '127.0.0.1',
+          port: 3306,
+          username: 'root',
+          password: 'root'
+        }
+      },
+      queryMaint: async (sql) => {
+        if (sql.includes('maint_items')) {
+          return [{ source_id: 1, internal_name: 'Torch', english_name: 'Torch', raw_json: '{}' }];
+        }
+        return [];
+      },
+      writeReports: async () => ({
+        auditJsonPath: 'reports/relation/relation-audit-2026-04-29.json',
+        auditMdPath: 'reports/relation/relation-audit-2026-04-29.md',
+        conflictsPath: 'reports/relation/relation-conflicts-2026-04-29.json',
+        unresolvedPath: 'reports/relation/relation-unresolved-2026-04-29.json'
+      }),
+      executeRelation: async (fn) => fn({
+        query: async (sql) => {
+          if (sql.includes('DELETE FROM `relation_items`')) events.push('clear-relation-items');
+          if (sql.includes('UPDATE `projection_items` pi')) events.push('reconcile-projection-items');
+          return [[], []];
+        },
+        execute: async (sql, params = []) => {
+          if (sql.includes('INSERT INTO `relation_runs`')) events.push(`run-${params[9]}`);
+          if (sql.includes('INSERT INTO `projection_items`')) events.push('projection-items');
+          if (sql.includes('INSERT INTO `relation_run_reports`')) events.push('report-row');
+          return [[], []];
+        }
+      })
+    }
+  );
+
+  assert.deepEqual(events.filter((event) => event.startsWith('run-')), ['run-running', 'run-succeeded']);
+  assert.ok(events.indexOf('run-running') < events.indexOf('clear-relation-items'));
+  assert.ok(events.indexOf('projection-items') < events.indexOf('report-row'));
+  assert.ok(events.lastIndexOf('report-row') < events.indexOf('run-succeeded'));
 });
 
 test('runSync apply mode can disable local item image fallback explicitly', async () => {

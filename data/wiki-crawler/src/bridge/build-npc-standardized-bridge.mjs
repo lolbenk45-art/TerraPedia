@@ -33,13 +33,22 @@ export function buildNpcStandardizedBridge({
 
     matched += match.records.length;
     for (const record of match.records) {
+      const shopRows = Array.isArray(crawlerRecord?.shop)
+        ? crawlerRecord.shop
+        : Array.isArray(crawlerRecord?.shop?.normalizedRows)
+          ? crawlerRecord.shop.normalizedRows
+          : Array.isArray(crawlerRecord?.shop?.items)
+            ? crawlerRecord.shop.items
+            : [];
       record.wikiCrawler = {
         pageTitle: crawlerRecord?.source?.pageTitle ?? '',
         groupMember: crawlerRecord?.groupMember ?? null,
         summary: crawlerRecord?.summary ?? {},
         combat: crawlerRecord?.combat ?? {},
         profile: crawlerRecord?.profile ?? {},
-        shop: crawlerRecord?.shop ?? { items: [] },
+        shop: shopRows,
+        loot: Array.isArray(crawlerRecord?.loot) ? crawlerRecord.loot : [],
+        backfillCandidates: Array.isArray(crawlerRecord?.backfillCandidates) ? crawlerRecord.backfillCandidates : [],
         happiness: crawlerRecord?.happiness ?? { sourceTemplatePresent: false, notes: [] },
         relationships: crawlerRecord?.relationships ?? { relatedNpcs: [], relatedItems: [], relatedBiomes: [] },
         contentBlocks: crawlerRecord?.contentBlocks ?? { dialogue: '', tips: '', history: '' },

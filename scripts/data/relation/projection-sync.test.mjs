@@ -497,6 +497,198 @@ test('buildProjectionPayload maps armor set relations into projection armor sets
   assert.equal(JSON.parse(actual.projectionArmorSets[0].relatedItemsJson)[0].image, 'https://terraria.wiki.gg/images/Wood_Helmet.png');
 });
 
+test('buildProjectionPayload builds bidirectional item and npc relation json without changing projectile source json', () => {
+  const actual = buildProjectionPayload({
+    relationItems: [
+      { recordKey: 'item-shackle', sourceId: 10, internalName: 'Shackle', englishName: 'Shackle', rawJson: '{}' },
+      { recordKey: 'item-potion', sourceId: 11, internalName: 'LesserHealingPotion', englishName: 'Lesser Healing Potion', rawJson: '{}' },
+      { recordKey: 'item-torch', sourceId: 12, internalName: 'Torch', englishName: 'Torch', rawJson: '{}' },
+      { recordKey: 'item-eye', sourceId: 13, internalName: 'SuspiciousLookingEye', englishName: 'Suspicious Looking Eye', rawJson: '{}' },
+    ],
+    relationItemImages: [
+      { itemInternalName: 'Shackle', originalUrl: '/assets/items/shackle.png', isPrimary: 1 },
+      { itemInternalName: 'LesserHealingPotion', originalUrl: '/assets/items/lesser_healing_potion.png', isPrimary: 1 },
+      { itemInternalName: 'Torch', originalUrl: '/assets/items/torch.png', isPrimary: 1 },
+      { itemInternalName: 'SuspiciousLookingEye', originalUrl: '/assets/items/suspicious_looking_eye.png', isPrimary: 1 },
+    ],
+    relationNpcs: [
+      {
+        recordKey: 'npc-zombie',
+        sourceId: 3,
+        internalName: 'Zombie',
+        englishName: 'Zombie',
+        rawJson: '{}',
+      },
+      {
+        recordKey: 'npc-demon-eye',
+        sourceId: 4,
+        internalName: 'DemonEye',
+        englishName: 'Demon Eye',
+        rawJson: JSON.stringify({
+          sourceItems: [
+            {
+              relationType: 'summon',
+              itemId: 13,
+              internalName: 'SuspiciousLookingEye',
+              conditionText: 'Summons this boss',
+              sourceFactKey: 'npc-source-item:demon-eye'
+            }
+          ]
+        }),
+      },
+      {
+        recordKey: 'npc-merchant',
+        sourceId: 17,
+        internalName: 'Merchant',
+        englishName: 'Merchant',
+        rawJson: '{}',
+      },
+    ],
+    relationNpcImages: [
+      { npcInternalName: 'Zombie', originalUrl: '/assets/npcs/zombie.png', isPrimary: 1 },
+      { npcInternalName: 'DemonEye', originalUrl: '/assets/npcs/demon_eye.png', isPrimary: 1 },
+      { npcInternalName: 'Merchant', originalUrl: '/assets/npcs/merchant.png', isPrimary: 1 },
+    ],
+    itemNpcLootRelations: [
+      {
+        sourceFactKey: 'item-source:drop:npc:zombie:shackle',
+        itemInternalName: 'Shackle',
+        itemName: 'Shackle',
+        npcSourceId: 3,
+        npcInternalName: 'Zombie',
+        npcName: 'Zombie',
+        chanceText: '2%',
+        quantityText: '1',
+        conditionSourceText: 'Expert Mode'
+      },
+      {
+        sourceFactKey: 'item-source:drop:npc:demon-eye:shackle',
+        itemInternalName: 'Shackle',
+        itemName: 'Shackle',
+        npcSourceId: 4,
+        npcInternalName: 'DemonEye',
+        npcName: 'Demon Eye',
+        chanceText: '1%',
+        quantityText: '1',
+        conditionSourceText: null
+      },
+    ],
+    itemNpcShopRelations: [
+      {
+        sourceFactKey: 'item-source:shop:npc:merchant:potion',
+        itemInternalName: 'LesserHealingPotion',
+        itemName: 'Lesser Healing Potion',
+        npcSourceId: 17,
+        npcInternalName: 'Merchant',
+        npcName: 'Merchant',
+        priceText: '3 silver',
+        conditionSourceText: 'Always'
+      },
+      {
+        sourceFactKey: 'item-source:shop:npc:merchant:torch',
+        itemInternalName: 'Torch',
+        itemName: 'Torch',
+        npcSourceId: 17,
+        npcInternalName: 'Merchant',
+        npcName: 'Merchant',
+        priceText: '50 copper',
+        conditionSourceText: 'Always'
+      },
+    ],
+    relationProjectiles: [
+      {
+        recordKey: 'proj-rk',
+        sourceId: 1,
+        internalName: 'WoodenArrowFriendly',
+        englishName: 'Wooden Arrow (friendly)',
+        rawJson: '{}',
+      },
+    ],
+    itemProjectileRelations: [
+      {
+        itemSourceId: 12,
+        itemInternalName: 'Torch',
+        itemName: 'Torch',
+        projectileSourceId: 1,
+        projectileInternalName: 'WoodenArrowFriendly',
+        relationType: 'item_direct_shoot'
+      }
+    ],
+  });
+
+  const shackle = actual.projectionItems.find((row) => row.internalName === 'Shackle');
+  assert.deepEqual(JSON.parse(shackle.sourceNpcsJson).map((row) => row.npcInternalName), ['DemonEye', 'Zombie']);
+  assert.deepEqual(JSON.parse(shackle.sourceNpcsJson).map((row) => row.relationType), ['drop', 'drop']);
+
+  const merchant = actual.projectionNpcs.find((row) => row.internalName === 'Merchant');
+  assert.deepEqual(JSON.parse(merchant.shopItemsJson).map((row) => row.itemInternalName), ['LesserHealingPotion', 'Torch']);
+  assert.deepEqual(JSON.parse(merchant.lootItemsJson), []);
+
+  const zombie = actual.projectionNpcs.find((row) => row.internalName === 'Zombie');
+  assert.deepEqual(JSON.parse(zombie.lootItemsJson).map((row) => row.itemInternalName), ['Shackle']);
+
+  const demonEye = actual.projectionNpcs.find((row) => row.internalName === 'DemonEye');
+  assert.deepEqual(JSON.parse(demonEye.sourceItemsJson), [
+    {
+      relationType: 'summon',
+      itemId: 13,
+      itemSourceId: 13,
+      itemInternalName: 'SuspiciousLookingEye',
+      itemName: 'Suspicious Looking Eye',
+      itemNameZh: null,
+      itemImageUrl: '/assets/items/suspicious_looking_eye.png',
+      conditionText: 'Summons this boss',
+      sourceFactKey: 'npc-source-item:demon-eye'
+    }
+  ]);
+
+  assert.deepEqual(JSON.parse(actual.projectionProjectiles[0].sourceItemsJson).map((row) => row.internalName), ['Torch']);
+});
+
+test('buildProjectionPayload projects NPC banner and catch items as source item JSON', () => {
+  const actual = buildProjectionPayload({
+    relationItems: [
+      { recordKey: 'item-banner', sourceId: 1661, internalName: 'HornetBanner', englishName: 'Hornet Banner', rawJson: '{}' },
+      { recordKey: 'item-catch', sourceId: 2001, internalName: 'GoldBunny', englishName: 'Gold Bunny', rawJson: '{}' }
+    ],
+    relationNpcs: [
+      {
+        recordKey: 'npc-hornet',
+        sourceId: 42,
+        internalName: 'BigHornetStingy',
+        englishName: 'Hornet',
+        rawJson: JSON.stringify({ banner: 1661, catchItem: 2001 })
+      }
+    ]
+  });
+
+  const hornet = actual.projectionNpcs.find((row) => row.internalName === 'BigHornetStingy');
+  assert.deepEqual(JSON.parse(hornet.sourceItemsJson), [
+    {
+      relationType: 'catch',
+      itemId: 2001,
+      itemSourceId: 2001,
+      itemInternalName: 'GoldBunny',
+      itemName: 'Gold Bunny',
+      itemNameZh: null,
+      itemImageUrl: null,
+      conditionText: 'Caught NPC item',
+      sourceFactKey: 'npc-source-item:catch:BigHornetStingy:2001'
+    },
+    {
+      relationType: 'banner',
+      itemId: 1661,
+      itemSourceId: 1661,
+      itemInternalName: 'HornetBanner',
+      itemName: 'Hornet Banner',
+      itemNameZh: null,
+      itemImageUrl: null,
+      conditionText: 'NPC banner item',
+      sourceFactKey: 'npc-source-item:banner:BigHornetStingy:1661'
+    }
+  ]);
+});
+
 test('buildProjectionPayload uses wiki armor row metadata for display names and effects', () => {
   const actual = buildProjectionPayload({
     relationItems: [
