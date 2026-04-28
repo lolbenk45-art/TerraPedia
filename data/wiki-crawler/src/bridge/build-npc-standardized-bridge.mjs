@@ -37,6 +37,7 @@ export function buildNpcStandardizedBridge({
         pageTitle: crawlerRecord?.source?.pageTitle ?? '',
         groupMember: crawlerRecord?.groupMember ?? null,
         summary: crawlerRecord?.summary ?? {},
+        combat: crawlerRecord?.combat ?? {},
         profile: crawlerRecord?.profile ?? {},
         shop: crawlerRecord?.shop ?? { items: [] },
         happiness: crawlerRecord?.happiness ?? { sourceTemplatePresent: false, notes: [] },

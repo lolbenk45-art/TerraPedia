@@ -192,20 +192,22 @@ function extractItemsMaintRows(landingRow, payload, zhSourceIndexes = null) {
 }
 
 function extractNpcsMaintRows(landingRow, payload, zhSourceIndexes = null) {
-  return (Array.isArray(payload.npcs) ? payload.npcs : []).map((record) => buildBaseMaintRow('npcs', landingRow, record, {
+  const records = Array.isArray(payload.records) ? payload.records : Array.isArray(payload.npcs) ? payload.npcs : [];
+  const isStandardizedPayload = Array.isArray(payload.records);
+  return records.map((record) => buildBaseMaintRow('npcs', landingRow, record, {
     nameZh: zhSourceIndexes?.npcsByInternalName?.get(normalizeKey(record.internalName))?.nameZh,
     subNameZh: zhSourceIndexes?.npcsByInternalName?.get(normalizeKey(record.internalName))?.subNameZh,
-    moduleGeneratedAt: normalizeText(payload.moduleGeneratedAt),
+    moduleGeneratedAt: normalizeText(payload.moduleGeneratedAt ?? payload.generatedAt),
     terrariaVersion: normalizeText(payload.wikiVersion),
-    majorValue: Number(record.value ?? 0) || null,
-    combatValue: Number(record.damage ?? 0) || null,
-    defenseValue: Number(record.defense ?? 0) || null,
-    width: Number(record.width ?? 0) || null,
-    height: Number(record.height ?? 0) || null,
+    majorValue: isStandardizedPayload ? toNullableNumber(record.economy?.value ?? record.value) : Number(record.value ?? 0) || null,
+    combatValue: isStandardizedPayload ? toNullableNumber(record.combat?.damage ?? record.damage) : Number(record.damage ?? 0) || null,
+    defenseValue: isStandardizedPayload ? toNullableNumber(record.combat?.defense ?? record.defense) : Number(record.defense ?? 0) || null,
+    width: isStandardizedPayload ? toNullableNumber(record.dimensions?.width ?? record.width) : Number(record.width ?? 0) || null,
+    height: isStandardizedPayload ? toNullableNumber(record.dimensions?.height ?? record.height) : Number(record.height ?? 0) || null,
     flagsJson: JSON.stringify({
-      friendly: Boolean(record.friendly),
-      townNpc: Boolean(record.townNPC),
-      boss: Boolean(record.boss),
+      friendly: Boolean(isStandardizedPayload ? record.flags?.friendly ?? record.friendly : record.friendly),
+      townNpc: Boolean(isStandardizedPayload ? record.flags?.townNPC ?? record.flags?.townNpc ?? record.townNPC : record.townNPC),
+      boss: Boolean(isStandardizedPayload ? record.flags?.boss ?? record.boss : record.boss),
     }),
   }));
 }

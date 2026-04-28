@@ -31,6 +31,7 @@ export const RELATION_TABLE_NAMES = [
   'item_projectile_relations',
   'npc_projectile_relations',
   'item_projectile_audits',
+  'npc_projectile_audits',
   'boss_item_reward_relations',
   'boss_effect_relations',
   'npc_series_nodes',
@@ -624,6 +625,20 @@ function buildTableStatements() {
   ${AUDIT_COLUMNS},
   PRIMARY KEY (\`id\`),
   UNIQUE KEY \`uk_item_projectile_audits_record_key\` (\`record_key\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+    `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`npc_projectile_audits\` (
+  \`id\` BIGINT NOT NULL AUTO_INCREMENT,
+  \`record_key\` CHAR(64) COLLATE utf8mb4_bin NOT NULL,
+  \`npc_source_id\` INT DEFAULT NULL,
+  \`npc_internal_name\` VARCHAR(255) DEFAULT NULL,
+  \`projectile_source_id\` INT DEFAULT NULL,
+  \`projectile_internal_name\` VARCHAR(255) DEFAULT NULL,
+  \`audit_status\` VARCHAR(64) NOT NULL,
+  \`available_fields_json\` LONGTEXT,
+  ${TRACE_COLUMNS},
+  ${AUDIT_COLUMNS},
+  PRIMARY KEY (\`id\`),
+  UNIQUE KEY \`uk_npc_projectile_audits_record_key\` (\`record_key\`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
     `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`boss_item_reward_relations\` (
   \`id\` BIGINT NOT NULL AUTO_INCREMENT,

@@ -155,3 +155,50 @@ test('runProjectionToLocalCoreSync apply can target only selected domains', asyn
   assert.ok(statements.every((sql) => !sql.includes('FROM `terria_v1_relation`.`projection_items`')));
   assert.ok(statements.every((sql) => !sql.includes('FROM `terria_v1_relation`.`projection_buffs`')));
 });
+
+test('runProjectionToLocalCoreSync syncs projectile source json columns when both sides expose them', async () => {
+  const statements = [];
+
+  const result = await runProjectionToLocalCoreSync(
+    {
+      apply: true,
+      localDatabase: 'terria_v1_local',
+      relationDatabase: 'terria_v1_relation',
+      domains: ['projectiles'],
+      dateTag: '2026-04-28',
+      backupSuffix: '20260428120000'
+    },
+    {
+      executeLocal: async (fn) => fn({
+        query: async (sql) => {
+          statements.push(sql);
+          return [{ affectedRows: 1 }];
+        }
+      }),
+      listColumns: async () => [
+        'id',
+        'source_id',
+        'internal_name',
+        'source_items_json',
+        'source_npcs_json',
+        'status',
+        'deleted'
+      ],
+      countRows: async () => 1,
+      writeReport: async () => 'reports/relation/projection-to-local-core-sync-2026-04-28.json'
+    }
+  );
+
+  assert.deepEqual(result.report.domains.projectiles.columnsToSync, [
+    'id',
+    'source_id',
+    'internal_name',
+    'source_items_json',
+    'source_npcs_json',
+    'status',
+    'deleted'
+  ]);
+  const insertSql = statements.find((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`projectiles`'));
+  assert.match(insertSql, /`source_items_json`, `source_npcs_json`/);
+  assert.match(insertSql, /SELECT `id`, `source_id`, `internal_name`, `source_items_json`, `source_npcs_json`, `status`, `deleted` FROM `terria_v1_relation`\.`projection_projectiles`/);
+});

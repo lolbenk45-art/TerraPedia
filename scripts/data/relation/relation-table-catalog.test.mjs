@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildRelationTableCatalogMarkdown } from './relation-table-catalog.mjs';
+import {
+  buildRelationTableCatalogMarkdown,
+  getRelationTableDefinitions
+} from './relation-table-catalog.mjs';
 
 test('buildRelationTableCatalogMarkdown documents kept and deprecated relation tables', () => {
   const markdown = buildRelationTableCatalogMarkdown({
@@ -35,4 +38,15 @@ test('buildRelationTableCatalogMarkdown documents kept and deprecated relation t
   assert.match(markdown, /status: kept/);
   assert.match(markdown, /item_npc_shop_candidates/);
   assert.match(markdown, /status: removed/);
+});
+
+test('getRelationTableDefinitions documents npc projectile audits', () => {
+  const table = getRelationTableDefinitions()
+    .find((entry) => entry.tableName === 'npc_projectile_audits');
+
+  assert.ok(table);
+  assert.equal(table.status, 'kept');
+  assert.equal(table.layer, 'audit');
+  assert.match(table.purpose, /NPC-to-projectile/);
+  assert.ok(table.primaryKeys.includes('npc_internal_name'));
 });

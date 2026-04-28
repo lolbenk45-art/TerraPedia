@@ -147,6 +147,10 @@ const TABLE_ZH = {
     purposeZh: 'Formal NPC-to-projectile firing relation rows.',
     notesZh: 'Canonical relation promoted only from explicit NPC crawler projectile evidence.'
   },
+  npc_projectile_audits: {
+    purposeZh: 'NPC projectile evidence audit rows.',
+    notesZh: 'Records crawl and backfill candidates for NPC projectile evidence.'
+  },
   item_projectile_audits: {
     purposeZh: 'item 与 projectile 证据交叉审计表，记录抽取状态。',
     notesZh: '是审计辅助表，不是正式游戏事实关系。'
@@ -440,6 +444,15 @@ const TABLE_DEFINITIONS = [
     source: 'maint_items + maint_projectiles + maint_item_images',
     primaryKeys: ['record_key', 'item_internal_name', 'projectile_internal_name'],
     notes: 'Audit helper, not a canonical gameplay relation.'
+  },
+  {
+    tableName: 'npc_projectile_audits',
+    status: 'kept',
+    layer: 'audit',
+    purpose: 'NPC-to-projectile evidence audit rows for crawl and backfill candidates.',
+    source: 'maint_npcs + maint_projectiles',
+    primaryKeys: ['record_key', 'npc_internal_name', 'projectile_internal_name'],
+    notes: 'Audit helper for explicit NPC projectile fields; aiStyle is still not inferred.'
   },
   {
     tableName: 'boss_item_reward_relations',

@@ -36,6 +36,19 @@ test('listSourceDatasetLandingInputs locates single-file and multi-file landing 
     fetchedAt: '2026-04-23T01:01:00.000Z',
     sourceRevisionTimestamp: '2026-04-22T10:01:00Z',
   });
+  await writeJson(path.join(repoRoot, 'data', 'generated', 'wiki-crawler-npc-bridge', 'standardized', 'npcs.standardized.json'), {
+    entity: 'npcs',
+    generatedAt: '2026-04-23T01:01:30.000Z',
+    records: [
+      {
+        id: 480,
+        internalName: 'Medusa',
+        name: 'Medusa',
+        combat: { damage: 30 },
+        wikiCrawler: { combat: { projectileId: '24' } },
+      },
+    ],
+  });
   await writeJson(path.join(sharedDataRoot, 'raw', 'wiki', 'item-pages', 'zenith.latest.json'), {
     pageTitle: 'Zenith',
     fetchedAt: '2026-04-23T01:02:00.000Z',
@@ -125,6 +138,11 @@ test('listSourceDatasetLandingInputs locates single-file and multi-file landing 
   assert.equal(itemPageEntry.parseStatus, 'ok');
   assert.equal(typeof itemPageEntry.contentHash, 'string');
   assert.equal(itemPageEntry.contentHash.length, 64);
+
+  const npcEntry = actual.find((entry) => entry.datasetType === 'npcs_raw');
+  assert.equal(npcEntry.provider, 'terrapedia.generated');
+  assert.equal(npcEntry.sourceKind, 'generated_standardized_bridge');
+  assert.equal(npcEntry.sourceLocator, 'repo://data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json');
 });
 
 test('listSourceDatasetLandingInputs respects requested dataset filters', async () => {

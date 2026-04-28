@@ -444,6 +444,7 @@ function flattenResults(category, recipe, itemSource, secondary, bossSeries, npc
     itemProjectileRelations: secondary.itemProjectileRelations,
     npcProjectileRelations: secondary.npcProjectileRelations,
     itemProjectileAudits: secondary.itemProjectileAudits,
+    npcProjectileAudits: secondary.npcProjectileAudits,
     bossItemRewardRelations: bossSeries.bossItemRewardRelations,
     bossEffectRelations: bossSeries.bossEffectRelations,
     npcSeriesNodes: npcSeries.npcSeriesNodes,
@@ -666,7 +667,8 @@ export async function runSync(options, dependencies = {}) {
       biome: results.itemBiomeRelations.length,
       projectile: results.itemProjectileRelations.length
         + results.npcProjectileRelations.length
-        + results.itemProjectileAudits.length,
+        + results.itemProjectileAudits.length
+        + results.npcProjectileAudits.length,
       boss: results.relationBosses.length + results.bossItemRewardRelations.length + results.bossEffectRelations.length,
       npcSeries: results.npcSeriesNodes.length + results.npcSeriesMemberships.length + results.npcSeriesItemRelations.length,
       armorSet: results.relationArmorSets.length + results.relationArmorSetItems.length + results.relationArmorSetImages.length
@@ -752,6 +754,7 @@ export async function runSync(options, dependencies = {}) {
         'item_projectile_relations',
         'npc_projectile_relations',
         'item_projectile_audits',
+        'npc_projectile_audits',
         'boss_item_reward_relations',
         'boss_effect_relations',
         'npc_series_item_relations',
@@ -805,6 +808,7 @@ export async function runSync(options, dependencies = {}) {
       await upsertRows(connection, 'item_projectile_relations', results.itemProjectileRelations);
       await upsertRows(connection, 'npc_projectile_relations', results.npcProjectileRelations);
       await upsertRows(connection, 'item_projectile_audits', results.itemProjectileAudits);
+      await upsertRows(connection, 'npc_projectile_audits', results.npcProjectileAudits);
       await upsertRows(connection, 'boss_item_reward_relations', results.bossItemRewardRelations);
       await upsertRows(connection, 'boss_effect_relations', results.bossEffectRelations);
       await upsertRows(connection, 'npc_series_nodes', results.npcSeriesNodes);

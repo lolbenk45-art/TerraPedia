@@ -65,3 +65,38 @@ test('buildReplacementReadinessAudit blocks domains with projection-only keys', 
   assert.deepEqual(actual.domainResults.items.extraInProjection, ['ProjectionOnly']);
   assert.ok(actual.summary.blockedDomains.includes('items'));
 });
+
+test('buildReplacementReadinessAudit includes projectile source relation json fields', () => {
+  const actual = buildReplacementReadinessAudit({
+    localData: {
+      items: [],
+      npcs: [],
+      projectiles: [
+        {
+          internal_name: 'WoodenArrowFriendly',
+          source_items_json: '[{"internalName":"TrainingBow"}]',
+          source_npcs_json: '[{"internalName":"TrainingTarget"}]'
+        }
+      ],
+      buffs: []
+    },
+    projectionData: {
+      projection_items: [],
+      projection_npcs: [],
+      projection_projectiles: [
+        {
+          internal_name: 'WoodenArrowFriendly',
+          source_items_json: null,
+          source_npcs_json: null
+        }
+      ],
+      projection_buffs: []
+    }
+  });
+
+  assert.equal(actual.domainResults.projectiles.status, 'blocked');
+  assert.deepEqual(
+    actual.domainResults.projectiles.blockingFields.map((field) => field.field),
+    ['source_items_json', 'source_npcs_json']
+  );
+});

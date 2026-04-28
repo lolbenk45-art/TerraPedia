@@ -41,7 +41,50 @@ function normalizeBiomePairKey(itemInternalName, biomeCode) {
   return `${item}::${biome}`;
 }
 
-function extractProjectileField(rawJson, candidates) {
+const ITEM_PROJECTILE_FIELD_CANDIDATES = [
+  { path: ['shoot'] },
+  { path: ['projectileId'] },
+  { path: ['projectile_id'] }
+];
+
+const NPC_PROJECTILE_FIELD_CANDIDATES = [
+  { path: ['wikiCrawler', 'combat', 'projectileId'] },
+  { path: ['combat', 'projectileId'] },
+  { path: ['projectileId'] },
+  { path: ['projectile_id'] }
+];
+
+function expectedRawJsonFields(candidates) {
+  return candidates.map((candidate) => `raw_json.${candidate.path.join('.')}`);
+}
+
+function availableRawJsonFields(rawJson) {
+  return Object.keys(parseJsonObject(rawJson));
+}
+
+function parseProjectileIdValues(value) {
+  if (value == null || value === '') {
+    return [];
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) && value > 0 ? [value] : [];
+  }
+  const text = String(value);
+  const matches = text.match(/\d+/g) ?? [];
+  const seen = new Set();
+  const values = [];
+  for (const match of matches) {
+    const numeric = Number(match);
+    if (!Number.isFinite(numeric) || numeric <= 0 || seen.has(numeric)) {
+      continue;
+    }
+    seen.add(numeric);
+    values.push(numeric);
+  }
+  return values;
+}
+
+function extractProjectileFields(rawJson, candidates) {
   const parsed = parseJsonObject(rawJson);
   for (const candidate of candidates) {
     let current = parsed;
@@ -52,33 +95,96 @@ function extractProjectileField(rawJson, candidates) {
       }
       current = current[segment];
     }
-    const numeric = toNullableNumber(current);
-    if (numeric != null && numeric > 0) {
-      return {
-        value: numeric,
+    const values = parseProjectileIdValues(current);
+    if (values.length > 0) {
+      return values.map((value) => ({
+        value,
         sourceField: `raw_json.${candidate.path.join('.')}`,
         sourceValue: String(current)
-      };
+      }));
     }
+  }
+  return [];
+}
+
+function extractProjectileField(rawJson, candidates) {
+  const fields = extractProjectileFields(rawJson, candidates);
+  if (fields.length > 0) {
+    return fields[0];
   }
   return null;
 }
 
 function extractShootValue(rawJson) {
-  return extractProjectileField(rawJson, [
-    { path: ['shoot'] },
-    { path: ['projectileId'] },
-    { path: ['projectile_id'] }
-  ]);
+  return extractProjectileField(rawJson, ITEM_PROJECTILE_FIELD_CANDIDATES);
 }
 
 function extractNpcProjectileValue(rawJson) {
-  return extractProjectileField(rawJson, [
-    { path: ['wikiCrawler', 'combat', 'projectileId'] },
-    { path: ['combat', 'projectileId'] },
-    { path: ['projectileId'] },
-    { path: ['projectile_id'] }
-  ]);
+  return extractProjectileField(rawJson, NPC_PROJECTILE_FIELD_CANDIDATES);
+}
+
+function extractNpcProjectileValues(rawJson) {
+  return extractProjectileFields(rawJson, NPC_PROJECTILE_FIELD_CANDIDATES);
+}
+
+function buildMissingProjectileFieldAudit({
+  entityType,
+  row,
+  sourceMaintTable,
+  candidates
+}) {
+  const trace = normalizeTrace(sourceMaintTable, {
+    ...row,
+    record_key: row.record_key ?? null
+  });
+  const identity = entityType === 'item'
+    ? {
+        itemSourceId: toNullableNumber(row.source_id),
+        itemInternalName: normalizeText(row.internal_name ?? row.item_internal_name),
+        type: 'item_projectile_audit',
+        sourceIdKey: 'itemSourceId',
+        internalNameKey: 'itemInternalName',
+        reason: 'item_projectile_field_missing'
+      }
+    : {
+        npcSourceId: toNullableNumber(row.source_id),
+        npcInternalName: normalizeText(row.internal_name ?? row.npc_internal_name),
+        type: 'npc_projectile_audit',
+        sourceIdKey: 'npcSourceId',
+        internalNameKey: 'npcInternalName',
+        reason: 'npc_projectile_field_missing'
+      };
+
+  const {
+    type,
+    sourceIdKey,
+    internalNameKey,
+    reason,
+    ...entityColumns
+  } = identity;
+
+  return {
+    recordKey: createRecordKey({
+      type,
+      [sourceIdKey]: row.source_id ?? null,
+      [internalNameKey]: row.internal_name ?? row.item_internal_name ?? row.npc_internal_name ?? null,
+      auditStatus: 'crawl_candidate'
+    }),
+    ...entityColumns,
+    projectileSourceId: null,
+    projectileInternalName: null,
+    auditStatus: 'crawl_candidate',
+    availableFieldsJson: JSON.stringify({
+      candidateKind: 'crawl_candidate',
+      entityType,
+      availableFields: availableRawJsonFields(row.raw_json),
+      expectedFields: expectedRawJsonFields(candidates)
+    }),
+    reviewStatus: relationStatus.unresolved,
+    confidence: confidence.none,
+    reason,
+    ...trace
+  };
 }
 
 export function buildSecondaryRelations({
@@ -152,7 +258,12 @@ export function buildSecondaryRelations({
     .map((row) => {
       const projectileField = extractShootValue(row.raw_json);
       if (projectileField == null) {
-        return null;
+        return buildMissingProjectileFieldAudit({
+          entityType: 'item',
+          row,
+          sourceMaintTable: 'maint_items',
+          candidates: ITEM_PROJECTILE_FIELD_CANDIDATES
+        });
       }
       const projectile = projectilesBySourceId.get(projectileField.value) ?? null;
       const trace = normalizeTrace('maint_items', {
@@ -206,41 +317,74 @@ export function buildSecondaryRelations({
     })
     .filter(Boolean);
 
+  const npcProjectileAudits = [];
   const npcProjectileRelations = maintNpcRows
-    .map((row) => {
-      const projectileField = extractNpcProjectileValue(row.raw_json);
-      if (projectileField == null) {
-        return null;
-      }
-      const projectile = projectilesBySourceId.get(projectileField.value) ?? null;
-      if (!projectile) {
-        return null;
+    .flatMap((row) => {
+      const projectileFields = extractNpcProjectileValues(row.raw_json);
+      if (projectileFields.length === 0) {
+        npcProjectileAudits.push(buildMissingProjectileFieldAudit({
+          entityType: 'npc',
+          row,
+          sourceMaintTable: 'maint_npcs',
+          candidates: NPC_PROJECTILE_FIELD_CANDIDATES
+        }));
+        return [];
       }
       const trace = normalizeTrace('maint_npcs', {
         ...row,
         record_key: row.record_key ?? null
       });
-      return {
-        recordKey: createRecordKey({
-          type: 'npc_projectile_relation',
-          npcSourceId: row.source_id ?? null,
+      const relations = [];
+      for (const projectileField of projectileFields) {
+        const projectile = projectilesBySourceId.get(projectileField.value) ?? null;
+        npcProjectileAudits.push({
+          recordKey: createRecordKey({
+            type: 'npc_projectile_audit',
+            npcSourceId: row.source_id ?? null,
+            projectileSourceId: projectileField.value
+          }),
+          npcSourceId: toNullableNumber(row.source_id),
+          npcInternalName: normalizeText(row.internal_name ?? row.npc_internal_name),
           projectileSourceId: projectileField.value,
-          sourceField: projectileField.sourceField
-        }),
-        npcSourceId: toNullableNumber(row.source_id),
-        npcInternalName: normalizeText(row.internal_name ?? row.npc_internal_name),
-        npcName: normalizeText(row.english_name ?? row.name ?? row.npc_name),
-        projectileSourceId: projectileField.value,
-        projectileInternalName: normalizeText(projectile.internal_name),
-        projectileName: normalizeText(projectile.english_name ?? projectile.name),
-        relationType: 'npc_infobox_projectile',
-        sourceField: projectileField.sourceField,
-        sourceValue: projectileField.sourceValue,
-        reviewStatus: relationStatus.resolved,
-        confidence: confidence.high,
-        reason: 'npc_infobox_projectile_id',
-        ...trace
-      };
+          projectileInternalName: normalizeText(projectile?.internal_name),
+          auditStatus: projectile ? 'promoted_to_relation' : 'projectile_missing',
+          availableFieldsJson: JSON.stringify({
+            candidateKind: projectile ? 'audit' : 'backfill_candidate',
+            npcProjectile: projectileField.value,
+            sourceField: projectileField.sourceField,
+            projectileFound: Boolean(projectile)
+          }),
+          reviewStatus: projectile ? relationStatus.resolved : relationStatus.unresolved,
+          confidence: projectile ? confidence.high : confidence.none,
+          reason: projectile ? 'projectile_relation_promoted' : 'projectile_not_found',
+          ...trace
+        });
+        if (!projectile) {
+          continue;
+        }
+        relations.push({
+          recordKey: createRecordKey({
+            type: 'npc_projectile_relation',
+            npcSourceId: row.source_id ?? null,
+            projectileSourceId: projectileField.value,
+            sourceField: projectileField.sourceField
+          }),
+          npcSourceId: toNullableNumber(row.source_id),
+          npcInternalName: normalizeText(row.internal_name ?? row.npc_internal_name),
+          npcName: normalizeText(row.english_name ?? row.name ?? row.npc_name),
+          projectileSourceId: projectileField.value,
+          projectileInternalName: normalizeText(projectile.internal_name),
+          projectileName: normalizeText(projectile.english_name ?? projectile.name),
+          relationType: 'npc_infobox_projectile',
+          sourceField: projectileField.sourceField,
+          sourceValue: projectileField.sourceValue,
+          reviewStatus: relationStatus.resolved,
+          confidence: confidence.high,
+          reason: 'npc_infobox_projectile_id',
+          ...trace
+        });
+      }
+      return relations;
     })
     .filter(Boolean);
 
@@ -250,6 +394,7 @@ export function buildSecondaryRelations({
     itemProjectileRelations,
     npcProjectileRelations,
     itemProjectileAudits,
+    npcProjectileAudits,
     summary: {
       biomeRows: itemBiomeRelations.length,
       localBiomeMissing: 0,
@@ -257,7 +402,9 @@ export function buildSecondaryRelations({
       buffRows: itemBuffRelations.length,
       itemProjectileRows: itemProjectileRelations.length,
       npcProjectileRows: npcProjectileRelations.length,
-      projectileAuditRows: itemProjectileAudits.length,
+      itemProjectileAuditRows: itemProjectileAudits.length,
+      npcProjectileAuditRows: npcProjectileAudits.length,
+      projectileAuditRows: itemProjectileAudits.length + npcProjectileAudits.length,
       imageCoverageRows: itemImageRows.length
     }
   };

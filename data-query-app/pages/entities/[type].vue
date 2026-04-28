@@ -921,6 +921,8 @@
               <div class="preview-pills">
                 <span class="preview-pill preview-pill--accent">PROJECTILE PROFILE</span>
                 <span class="preview-pill">{{ getProjectileNameZh(detailRow) ? 'ZH + EN' : 'EN only' }}</span>
+                <span class="preview-pill">来源物品 {{ projectileSourceItems.length }}</span>
+                <span class="preview-pill">来源 NPC {{ projectileSourceNpcs.length }}</span>
                 <span v-for="tag in getProjectileTags(detailRow).slice(0, 4)" :key="`detail-${tag}`" class="preview-pill">{{ tag }}</span>
               </div>
               <h3>{{ detailTitle }}</h3>
@@ -959,6 +961,75 @@
                 <strong>{{ note.value }}</strong>
               </article>
             </div>
+          </section>
+
+          <section class="projectile-detail__section">
+            <div class="projectile-detail__section-head">
+              <h4>来源关系</h4>
+              <span>{{ projectileSourceSummary }}</span>
+            </div>
+            <div v-if="projectileHasSourceContent" class="projectile-source-grid">
+              <article class="projectile-source-group">
+                <div class="projectile-source-group__head">
+                  <strong>来源物品</strong>
+                  <span>{{ projectileSourceItems.length ? `${projectileSourceItems.length} 条` : (projectileSourceItemsJsonFallback ? 'JSON fallback' : 'empty') }}</span>
+                </div>
+                <div v-if="projectileSourceItems.length" class="armor-detail__item-grid">
+                  <article v-for="(item, index) in projectileSourceItems" :key="`${item.itemId ?? item.sourceItemId ?? item.internalName ?? index}`" class="armor-detail__item-card">
+                    <button type="button" class="armor-detail__item-media" @click="openProjectileSourceImage(item, getProjectileSourceItemTitle(item, index))">
+                      <img v-if="getProjectileSourceImage(item)" :src="getProjectileSourceImage(item)" class="armor-detail__item-image" alt="" @error="handleImageError" />
+                      <div v-else class="armor-detail__item-fallback">IT</div>
+                    </button>
+                    <div class="armor-detail__item-body">
+                      <strong>{{ getProjectileSourceItemTitle(item, index) }}</strong>
+                      <span>{{ getProjectileSourceItemSubtitle(item) }}</span>
+                      <div v-if="getProjectileSourceItemMeta(item).length" class="armor-detail__item-meta">
+                        <span v-for="meta in getProjectileSourceItemMeta(item)" :key="meta">{{ meta }}</span>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+                <article v-else-if="projectileSourceItemsJsonFallback" class="preview-json projectile-source-json">
+                  <div class="preview-json__head">
+                    <strong>Source Items JSON</strong>
+                    <span>array fallback</span>
+                  </div>
+                  <pre>{{ projectileSourceItemsJsonFallback }}</pre>
+                </article>
+                <p v-else class="projectile-detail__empty">暂无来源物品。</p>
+              </article>
+
+              <article class="projectile-source-group">
+                <div class="projectile-source-group__head">
+                  <strong>来源 NPC</strong>
+                  <span>{{ projectileSourceNpcs.length ? `${projectileSourceNpcs.length} 条` : (projectileSourceNpcsJsonFallback ? 'JSON fallback' : 'empty') }}</span>
+                </div>
+                <div v-if="projectileSourceNpcs.length" class="armor-detail__item-grid">
+                  <article v-for="(npc, index) in projectileSourceNpcs" :key="`${npc.npcId ?? npc.gameId ?? npc.internalName ?? index}`" class="armor-detail__item-card">
+                    <button type="button" class="armor-detail__item-media" @click="openProjectileSourceImage(npc, getProjectileSourceNpcTitle(npc, index))">
+                      <img v-if="getProjectileSourceImage(npc)" :src="getProjectileSourceImage(npc)" class="armor-detail__item-image" alt="" @error="handleImageError" />
+                      <div v-else class="armor-detail__item-fallback">NP</div>
+                    </button>
+                    <div class="armor-detail__item-body">
+                      <strong>{{ getProjectileSourceNpcTitle(npc, index) }}</strong>
+                      <span>{{ getProjectileSourceNpcSubtitle(npc) }}</span>
+                      <div v-if="getProjectileSourceNpcMeta(npc).length" class="armor-detail__item-meta">
+                        <span v-for="meta in getProjectileSourceNpcMeta(npc)" :key="meta">{{ meta }}</span>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+                <article v-else-if="projectileSourceNpcsJsonFallback" class="preview-json projectile-source-json">
+                  <div class="preview-json__head">
+                    <strong>Source NPCs JSON</strong>
+                    <span>array fallback</span>
+                  </div>
+                  <pre>{{ projectileSourceNpcsJsonFallback }}</pre>
+                </article>
+                <p v-else class="projectile-detail__empty">暂无来源 NPC。</p>
+              </article>
+            </div>
+            <p v-else class="projectile-detail__empty">暂无来源物品或来源 NPC 数据。</p>
           </section>
 
           <section v-if="projectileRawJsonHighlights.length" class="projectile-detail__section">
@@ -2320,6 +2391,123 @@ const detailModalTitle = computed(() => {
   if (entityType.value === 'bosses') return 'Boss 详情'
   return '套装详情'
 })
+function normalizeSourceEntries(value: unknown): Array<Record<string, any>> {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((item): item is Record<string, any> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+    .map(item => normalizeRow(item))
+}
+
+function getProjectileSourceArray(arrayKey: 'sourceItems' | 'sourceNpcs', jsonKey: 'sourceItemsJson' | 'sourceNpcsJson'): Array<Record<string, any>> {
+  if (!detailRow.value || entityType.value !== 'projectiles') return []
+  const hasDirectArray = Object.prototype.hasOwnProperty.call(detailRow.value, arrayKey)
+  const directRows = normalizeSourceEntries(detailRow.value[arrayKey])
+  if (directRows.length || hasDirectArray) return directRows
+  const rawJson = detailRow.value[jsonKey]
+  const parsed = typeof rawJson === 'string' ? tryParseJson(rawJson) : rawJson
+  return normalizeSourceEntries(parsed)
+}
+
+function hasProjectileSourceJson(value: unknown) {
+  if (typeof value === 'string') return Boolean(value.trim())
+  if (Array.isArray(value)) return value.length > 0
+  return Boolean(value && typeof value === 'object' && Object.keys(value as Record<string, any>).length > 0)
+}
+
+function getProjectileSourceJsonFallback(jsonKey: 'sourceItemsJson' | 'sourceNpcsJson', rows: Array<Record<string, any>>) {
+  if (!detailRow.value || entityType.value !== 'projectiles' || rows.length) return ''
+  const rawJson = detailRow.value[jsonKey]
+  return hasProjectileSourceJson(rawJson) ? formatPrettyJson(rawJson) : ''
+}
+
+const projectileSourceItems = computed<Array<Record<string, any>>>(() => getProjectileSourceArray('sourceItems', 'sourceItemsJson'))
+const projectileSourceNpcs = computed<Array<Record<string, any>>>(() => getProjectileSourceArray('sourceNpcs', 'sourceNpcsJson'))
+const projectileSourceItemsJsonFallback = computed(() => getProjectileSourceJsonFallback('sourceItemsJson', projectileSourceItems.value))
+const projectileSourceNpcsJsonFallback = computed(() => getProjectileSourceJsonFallback('sourceNpcsJson', projectileSourceNpcs.value))
+const projectileHasSourceContent = computed(() => Boolean(
+  projectileSourceItems.value.length
+  || projectileSourceNpcs.value.length
+  || projectileSourceItemsJsonFallback.value
+  || projectileSourceNpcsJsonFallback.value
+))
+const projectileSourceSummary = computed(() => {
+  if (projectileSourceItems.value.length || projectileSourceNpcs.value.length) {
+    return `物品 ${projectileSourceItems.value.length} / NPC ${projectileSourceNpcs.value.length}`
+  }
+  if (projectileSourceItemsJsonFallback.value || projectileSourceNpcsJsonFallback.value) return 'JSON fallback'
+  return 'empty'
+})
+
+function getProjectileSourceImage(entry: Record<string, any>) {
+  return normalizeImageUrl(
+    entry.__imageUrl
+    || entry.imageUrl
+    || entry.image
+    || entry.itemImage
+    || entry.npcImage
+    || entry.image_url
+    || entry.item_image
+    || entry.npc_image
+  )
+}
+
+function openProjectileSourceImage(entry: Record<string, any>, title: string) {
+  const image = getProjectileSourceImage(entry)
+  if (image) openImageLightbox(image, title)
+}
+
+function getProjectileSourceItemTitle(item: Record<string, any>, index: number) {
+  return pickFirstString(
+    item.nameZh,
+    item.itemNameZh,
+    item.name,
+    item.nameEn,
+    item.itemName,
+    item.internalName,
+    item.itemInternalName,
+  ) || `Item ${item.itemId ?? item.sourceItemId ?? item.id ?? index + 1}`
+}
+
+function getProjectileSourceNpcTitle(npc: Record<string, any>, index: number) {
+  return pickFirstString(
+    npc.nameZh,
+    npc.npcNameZh,
+    npc.name,
+    npc.nameEn,
+    npc.npcName,
+    npc.internalName,
+    npc.npcInternalName,
+  ) || `NPC ${npc.npcId ?? npc.gameId ?? npc.sourceId ?? npc.id ?? index + 1}`
+}
+
+function getProjectileSourceItemSubtitle(item: Record<string, any>) {
+  return pickFirstString(item.internalName, item.itemInternalName, item.nameEn, item.itemName) || '--'
+}
+
+function getProjectileSourceNpcSubtitle(npc: Record<string, any>) {
+  return pickFirstString(npc.internalName, npc.npcInternalName, npc.nameEn, npc.npcName) || '--'
+}
+
+function formatSourceMeta(label: string, value: unknown) {
+  if (value == null || value === '') return ''
+  return `${label} ${value}`
+}
+
+function getProjectileSourceItemMeta(item: Record<string, any>) {
+  return [
+    formatSourceMeta('Item ID', item.itemId ?? item.sourceItemId),
+    formatSourceMeta('DB ID', item.id),
+    formatSourceMeta('Source ID', item.sourceId),
+  ].filter(Boolean)
+}
+
+function getProjectileSourceNpcMeta(npc: Record<string, any>) {
+  return [
+    formatSourceMeta('NPC ID', npc.npcId ?? npc.gameId ?? npc.sourceId),
+    formatSourceMeta('DB ID', npc.id),
+    formatSourceMeta('Type', npc.npcType),
+  ].filter(Boolean)
+}
 const detailSourceItems = computed(() => {
   if (!detailRow.value || entityType.value !== 'buffs') return []
   if (Array.isArray(detailRow.value.linkedSourceItems)) {

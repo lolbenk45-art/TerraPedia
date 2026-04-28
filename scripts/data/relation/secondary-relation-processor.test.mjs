@@ -94,3 +94,130 @@ test('buildSecondaryRelations does not infer npc projectile facts from aiStyle',
 
   assert.equal(actual.npcProjectileRelations.length, 0);
 });
+
+test('buildSecondaryRelations records crawl candidates when projectile fields are absent', () => {
+  const actual = buildSecondaryRelations({
+    maintItemRows: [
+      {
+        id: 1,
+        source_id: 100,
+        internal_name: 'TrainingBow',
+        english_name: 'Training Bow',
+        raw_json: JSON.stringify({ damage: 4 })
+      }
+    ],
+    maintNpcRows: [
+      {
+        id: 2,
+        source_id: 200,
+        internal_name: 'TrainingTarget',
+        english_name: 'Training Target',
+        raw_json: JSON.stringify({ aiStyle: 5 })
+      }
+    ]
+  });
+
+  assert.equal(actual.itemProjectileRelations.length, 0);
+  assert.equal(actual.npcProjectileRelations.length, 0);
+  assert.equal(actual.itemProjectileAudits.length, 1);
+  assert.equal(actual.npcProjectileAudits.length, 1);
+
+  assert.equal(actual.itemProjectileAudits[0].itemInternalName, 'TrainingBow');
+  assert.equal(actual.itemProjectileAudits[0].auditStatus, 'crawl_candidate');
+  assert.equal(actual.itemProjectileAudits[0].reviewStatus, 'unresolved');
+  assert.equal(actual.itemProjectileAudits[0].reason, 'item_projectile_field_missing');
+  assert.deepEqual(JSON.parse(actual.itemProjectileAudits[0].availableFieldsJson), {
+    candidateKind: 'crawl_candidate',
+    entityType: 'item',
+    availableFields: ['damage'],
+    expectedFields: ['raw_json.shoot', 'raw_json.projectileId', 'raw_json.projectile_id']
+  });
+
+  assert.equal(actual.npcProjectileAudits[0].npcInternalName, 'TrainingTarget');
+  assert.equal(actual.npcProjectileAudits[0].auditStatus, 'crawl_candidate');
+  assert.equal(actual.npcProjectileAudits[0].reviewStatus, 'unresolved');
+  assert.equal(actual.npcProjectileAudits[0].reason, 'npc_projectile_field_missing');
+  assert.deepEqual(JSON.parse(actual.npcProjectileAudits[0].availableFieldsJson), {
+    candidateKind: 'crawl_candidate',
+    entityType: 'npc',
+    availableFields: ['aiStyle'],
+    expectedFields: [
+      'raw_json.wikiCrawler.combat.projectileId',
+      'raw_json.combat.projectileId',
+      'raw_json.projectileId',
+      'raw_json.projectile_id'
+    ]
+  });
+  assert.equal(actual.summary.itemProjectileAuditRows, 1);
+  assert.equal(actual.summary.npcProjectileAuditRows, 1);
+  assert.equal(actual.summary.projectileAuditRows, 2);
+});
+
+test('buildSecondaryRelations audits npc projectile ids that need projectile backfill', () => {
+  const actual = buildSecondaryRelations({
+    maintNpcRows: [
+      {
+        source_id: 210,
+        internal_name: 'RangedTrainingNpc',
+        english_name: 'Ranged Training NPC',
+        raw_json: JSON.stringify({
+          wikiCrawler: {
+            combat: {
+              projectileId: 999
+            }
+          }
+        })
+      }
+    ]
+  });
+
+  assert.equal(actual.npcProjectileRelations.length, 0);
+  assert.equal(actual.npcProjectileAudits.length, 1);
+  assert.equal(actual.npcProjectileAudits[0].projectileSourceId, 999);
+  assert.equal(actual.npcProjectileAudits[0].auditStatus, 'projectile_missing');
+  assert.equal(actual.npcProjectileAudits[0].reviewStatus, 'unresolved');
+  assert.equal(actual.npcProjectileAudits[0].reason, 'projectile_not_found');
+  assert.deepEqual(JSON.parse(actual.npcProjectileAudits[0].availableFieldsJson), {
+    candidateKind: 'backfill_candidate',
+    npcProjectile: 999,
+    sourceField: 'raw_json.wikiCrawler.combat.projectileId',
+    projectileFound: false
+  });
+});
+
+test('buildSecondaryRelations promotes multiple npc projectile ids from crawler text fields', () => {
+  const actual = buildSecondaryRelations({
+    maintProjectileRows: [
+      { source_id: 1, internal_name: 'WoodenArrowFriendly', english_name: 'Wooden Arrow', raw_json: '{}' },
+      { source_id: 2, internal_name: 'FireArrow', english_name: 'Fire Arrow', raw_json: '{}' }
+    ],
+    maintNpcRows: [
+      {
+        source_id: 22,
+        internal_name: 'Guide',
+        english_name: 'Guide',
+        raw_json: JSON.stringify({
+          wikiCrawler: {
+            combat: {
+              projectileId: '1, 2'
+            }
+          }
+        })
+      }
+    ]
+  });
+
+  assert.deepEqual(
+    actual.npcProjectileRelations.map((relation) => relation.projectileSourceId),
+    [1, 2]
+  );
+  assert.deepEqual(
+    actual.npcProjectileRelations.map((relation) => relation.projectileInternalName),
+    ['WoodenArrowFriendly', 'FireArrow']
+  );
+  assert.equal(actual.npcProjectileAudits.length, 2);
+  assert.deepEqual(
+    actual.npcProjectileAudits.map((audit) => audit.auditStatus),
+    ['promoted_to_relation', 'promoted_to_relation']
+  );
+});

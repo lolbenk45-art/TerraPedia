@@ -162,6 +162,65 @@ test('runSync dry-run reads maint only and does not write relation rows', async 
   assert.deepEqual(JSON.parse(result.results.projectionProjectiles[0].sourceNpcsJson).map((npc) => npc.internalName), ['BigHornetStingy']);
 });
 
+test('runSync dry-run surfaces projectile crawl candidates for maint items and npcs without projectile fields', async () => {
+  const result = await runSync(
+    {
+      apply: false,
+      createDatabase: false,
+      maintDatabase: 'terria_v1_maint',
+      localDatabase: null,
+      relationDatabase: 'terria_v1_relation',
+      scopes: ['category', 'recipe', 'npc', 'buff', 'biome', 'projectile']
+    },
+    {
+      config: {
+        database: {
+          host: '127.0.0.1',
+          port: 3306,
+          username: 'root',
+          password: 'root'
+        }
+      },
+      queryMaint: async (sql) => {
+        if (sql.includes('maint_items')) {
+          return [{
+            id: 1,
+            source_id: 100,
+            internal_name: 'TrainingBow',
+            english_name: 'Training Bow',
+            raw_json: JSON.stringify({ damage: 4 })
+          }];
+        }
+        if (sql.includes('maint_npcs')) {
+          return [{
+            id: 2,
+            source_id: 200,
+            internal_name: 'TrainingTarget',
+            english_name: 'Training Target',
+            raw_json: JSON.stringify({ aiStyle: 5 })
+          }];
+        }
+        return [];
+      },
+      writeReports: async () => ({
+        auditJsonPath: 'reports/relation/relation-audit-2026-04-28.json',
+        auditMdPath: 'reports/relation/relation-audit-2026-04-28.md',
+        conflictsPath: 'reports/relation/relation-conflicts-2026-04-28.json',
+        unresolvedPath: 'reports/relation/relation-unresolved-2026-04-28.json'
+      }),
+      executeRelation: async () => {
+        throw new Error('should not write in dry-run');
+      }
+    }
+  );
+
+  assert.equal(result.results.itemProjectileAudits.length, 1);
+  assert.equal(result.results.itemProjectileAudits[0].auditStatus, 'crawl_candidate');
+  assert.equal(result.results.npcProjectileAudits.length, 1);
+  assert.equal(result.results.npcProjectileAudits[0].auditStatus, 'crawl_candidate');
+  assert.equal(result.summary.domainSummary.projectile, 2);
+});
+
 test('runSync dry-run builds armor set relation and projection rows from maint sources', async () => {
   const result = await runSync(
     {
@@ -356,6 +415,8 @@ test('runSync apply mode clears stale relation tables before writing current sna
   assert.ok(statements.some((sql) => sql.includes('DELETE FROM `npc_projectile_relations`')));
   assert.ok(statements.some((sql) => sql.includes('INSERT INTO `item_projectile_relations`')));
   assert.ok(statements.some((sql) => sql.includes('INSERT INTO `npc_projectile_relations`')));
+  assert.ok(statements.some((sql) => sql.includes('DELETE FROM `npc_projectile_audits`')));
+  assert.ok(statements.some((sql) => sql.includes('INSERT INTO `npc_projectile_audits`')));
   assert.ok(statements.some((sql) => sql.includes('UPDATE `relation_items` ri')));
   assert.ok(statements.some((sql) => sql.includes('SET ri.stack_size = mi.stack_size')));
   assert.ok(statements.some((sql) => sql.includes('UPDATE `projection_items` pi')));

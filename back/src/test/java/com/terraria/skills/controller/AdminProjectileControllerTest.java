@@ -1,5 +1,6 @@
 package com.terraria.skills.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.entity.Projectile;
 import com.terraria.skills.mapper.ProjectileMapper;
@@ -12,6 +13,9 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -32,6 +36,34 @@ class AdminProjectileControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
             .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
             .build();
+    }
+
+    @Test
+    void shouldReturnProjectileSourceJsonAndParsedSourcesInListPayload() throws Exception {
+        Projectile projectile = new Projectile();
+        projectile.setId(1L);
+        projectile.setSourceId(1);
+        projectile.setInternalName("WoodenArrowFriendly");
+        projectile.setName("Wooden Arrow (friendly)");
+        projectile.setSourceItemsJson("[{\"internalName\":\"WoodenArrow\",\"itemId\":40}]");
+        projectile.setSourceNpcsJson("[{\"internalName\":\"Zombie\",\"npcId\":3}]");
+        projectile.setStatus(1);
+
+        Page<Projectile> page = new Page<>(1, 20);
+        page.setTotal(1);
+        page.setRecords(List.of(projectile));
+
+        when(projectileMapper.selectPage(any(Page.class), any())).thenReturn(page);
+
+        mockMvc.perform(get("/admin/projectiles").param("page", "1").param("limit", "20"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data[0].sourceItemsJson").value("[{\"internalName\":\"WoodenArrow\",\"itemId\":40}]"))
+            .andExpect(jsonPath("$.data[0].sourceNpcsJson").value("[{\"internalName\":\"Zombie\",\"npcId\":3}]"))
+            .andExpect(jsonPath("$.data[0].sourceItems[0].internalName").value("WoodenArrow"))
+            .andExpect(jsonPath("$.data[0].sourceItems[0].itemId").value(40))
+            .andExpect(jsonPath("$.data[0].sourceNpcs[0].internalName").value("Zombie"))
+            .andExpect(jsonPath("$.data[0].sourceNpcs[0].npcId").value(3));
     }
 
     @Test

@@ -33,4 +33,5 @@ test('projectile compatibility view exposes source relation json columns', () =>
 
   assert.match(sql, /`source_items_json`/);
   assert.match(sql, /`source_npcs_json`/);
+  assert.match(sql, /`image_url`/);
 });

@@ -31,7 +31,7 @@ export const DOMAIN_CONFIG = {
     localTable: 'projectiles',
     projectionTable: 'projection_projectiles',
     key: 'internal_name',
-    fields: ['name', 'name_zh', 'image_url', 'ai_style', 'damage', 'knock_back', 'penetrate', 'time_left', 'scale', 'friendly', 'hostile', 'tile_collide']
+    fields: ['name', 'name_zh', 'image_url', 'ai_style', 'damage', 'knock_back', 'penetrate', 'time_left', 'scale', 'friendly', 'hostile', 'tile_collide', 'source_items_json', 'source_npcs_json']
   },
   buffs: {
     localTable: 'buffs',

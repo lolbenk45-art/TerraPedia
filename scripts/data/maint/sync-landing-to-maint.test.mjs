@@ -146,6 +146,52 @@ test('extractMaintEntitiesFromLandingRow expands parsed npc payload into maint n
   assert.equal(actual.rows[0].flagsJson, JSON.stringify({ friendly: true, townNpc: true, boss: false }));
 });
 
+test('extractMaintEntitiesFromLandingRow expands standardized npc records and preserves crawler projectile id in raw json', async () => {
+  const npcLandingRow = {
+    id: 24,
+    dataset_type: 'npcs_raw',
+    provider: 'terrapedia.generated',
+    source_page: 'npcs.standardized',
+    source_key: 'generated.wiki_crawler_npc_bridge',
+    source_revision_timestamp: null,
+    content_hash: 'k'.repeat(64),
+    fetched_at: '2026-04-28T01:00:00Z',
+    parsed_at: '2026-04-28T01:00:00Z',
+    payload_json: JSON.stringify({
+      entity: 'npcs',
+      generatedAt: '2026-04-28T01:00:00Z',
+      records: [
+        {
+          id: 480,
+          internalName: 'Medusa',
+          name: 'Medusa',
+          combat: { damage: 30, defense: 10 },
+          dimensions: { width: 18, height: 40 },
+          economy: { value: 1000 },
+          flags: { friendly: false, townNPC: false, boss: true },
+          wikiCrawler: {
+            combat: { projectileId: '24' },
+            summary: { leadText: 'Medusa is a Hardmode enemy.' },
+          },
+        },
+      ],
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(npcLandingRow);
+
+  assert.equal(actual.scope, 'npcs');
+  assert.equal(actual.rows.length, 1);
+  assert.equal(actual.rows[0].internalName, 'Medusa');
+  assert.equal(actual.rows[0].combatValue, 30);
+  assert.equal(actual.rows[0].defenseValue, 10);
+  assert.equal(actual.rows[0].majorValue, 1000);
+  assert.equal(actual.rows[0].width, 18);
+  assert.equal(actual.rows[0].height, 40);
+  assert.equal(actual.rows[0].flagsJson, JSON.stringify({ friendly: false, townNpc: false, boss: true }));
+  assert.equal(JSON.parse(actual.rows[0].rawJson).wikiCrawler.combat.projectileId, '24');
+});
+
 test('extractMaintEntitiesFromLandingRow overlays item zh names from provided source indexes', async () => {
   const itemLandingRow = {
     id: 12,

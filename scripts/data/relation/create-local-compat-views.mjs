@@ -20,7 +20,7 @@ export const RELATION_COMPAT_VIEWS = {
   },
   projectiles: {
     sourceTable: 'projection_projectiles',
-    columns: ['id', 'source_id', 'internal_name', 'name', 'name_zh', 'ai_style', 'damage', 'knock_back', 'penetrate', 'time_left', 'width', 'height', 'scale', 'friendly', 'hostile', 'tile_collide', 'source_items_json', 'source_npcs_json', 'raw_json', 'status', 'deleted', 'created_at', 'updated_at'],
+    columns: ['id', 'source_id', 'internal_name', 'name', 'name_zh', 'image_url', 'ai_style', 'damage', 'knock_back', 'penetrate', 'time_left', 'width', 'height', 'scale', 'friendly', 'hostile', 'tile_collide', 'source_items_json', 'source_npcs_json', 'raw_json', 'status', 'deleted', 'created_at', 'updated_at'],
   },
   buffs: {
     sourceTable: 'projection_buffs',

@@ -39,6 +39,7 @@ const EXPECTED_TABLE_NAMES = [
   'item_projectile_relations',
   'npc_projectile_relations',
   'item_projectile_audits',
+  'npc_projectile_audits',
   'boss_item_reward_relations',
   'boss_effect_relations',
   'npc_series_nodes',
@@ -224,6 +225,7 @@ test('table-scoped domain columns and lookup indexes are present', () => {
   const lootRelations = extractTableDdl(sql, 'item_npc_loot_relations');
   const itemProjectileRelations = extractTableDdl(sql, 'item_projectile_relations');
   const npcProjectileRelations = extractTableDdl(sql, 'npc_projectile_relations');
+  const npcProjectileAudits = extractTableDdl(sql, 'npc_projectile_audits');
   const bossRewards = extractTableDdl(sql, 'boss_item_reward_relations');
   const bossEffects = extractTableDdl(sql, 'boss_effect_relations');
   const npcSeriesNodes = extractTableDdl(sql, 'npc_series_nodes');
@@ -299,6 +301,12 @@ test('table-scoped domain columns and lookup indexes are present', () => {
   assert.match(npcProjectileRelations, /`relation_type` VARCHAR\(64\) NOT NULL/);
   assert.match(npcProjectileRelations, /`source_field` VARCHAR\(64\) NOT NULL/);
   assert.match(npcProjectileRelations, /KEY `idx_npc_projectile_relations_projectile` \(`projectile_source_id`, `projectile_internal_name`\)/);
+  assert.match(npcProjectileAudits, /`npc_source_id` INT DEFAULT NULL/);
+  assert.match(npcProjectileAudits, /`npc_internal_name` VARCHAR\(255\) DEFAULT NULL/);
+  assert.match(npcProjectileAudits, /`projectile_source_id` INT DEFAULT NULL/);
+  assert.match(npcProjectileAudits, /`projectile_internal_name` VARCHAR\(255\) DEFAULT NULL/);
+  assert.match(npcProjectileAudits, /`audit_status` VARCHAR\(64\) NOT NULL/);
+  assert.match(npcProjectileAudits, /`available_fields_json` LONGTEXT/);
   assert.match(bossRewards, /`boss_record_key` CHAR\(64\) COLLATE utf8mb4_bin NOT NULL/);
   assert.match(bossRewards, /`reward_source_fact_keys_json` LONGTEXT/);
   assert.match(bossRewards, /KEY `idx_boss_item_reward_relations_boss_record_key` \(`boss_record_key`\)/);
@@ -365,7 +373,8 @@ test('record key unique indexes exist on all relation result tables', () => {
     'item_biome_relations',
     'item_projectile_relations',
     'npc_projectile_relations',
-    'item_projectile_audits'
+    'item_projectile_audits',
+    'npc_projectile_audits'
   ];
 
   for (const tableName of tablesWithRecordKeyUnique) {

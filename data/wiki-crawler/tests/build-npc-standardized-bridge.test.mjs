@@ -22,6 +22,7 @@ test('buildNpcStandardizedBridge overlays wikiCrawler data without breaking the 
       entityId: 'medusa',
       display: { name: 'Medusa' },
       source: { pageTitle: 'Medusa' },
+      combat: { projectileId: '24' },
       summary: { leadText: 'Medusa is a Hardmode enemy.' },
       profile: { kind: 'enemy' },
       shop: { items: [] },
@@ -41,6 +42,7 @@ test('buildNpcStandardizedBridge overlays wikiCrawler data without breaking the 
   assert.equal(result.records.length, 1);
   assert.equal(result.records[0].internalName, 'Medusa');
   assert.equal(result.records[0].combat.damage, 30);
+  assert.equal(result.records[0].wikiCrawler.combat.projectileId, '24');
   assert.equal(result.records[0].wikiCrawler.summary.leadText, 'Medusa is a Hardmode enemy.');
   assert.equal(result.summary.matched, 1);
   assert.equal(result.summary.unmatchedCrawler, 0);
