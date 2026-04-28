@@ -455,6 +455,116 @@ test('buildProjectionPayload maps armor set relations into projection armor sets
   assert.equal(JSON.parse(actual.projectionArmorSets[0].relatedItemsJson)[0].image, 'https://terraria.wiki.gg/images/Wood_Helmet.png');
 });
 
+test('buildProjectionPayload uses wiki armor row metadata for display names and effects', () => {
+  const actual = buildProjectionPayload({
+    relationItems: [
+      {
+        sourceId: 371,
+        recordKey: 'item-cobalt-hat',
+        internalName: 'CobaltHat',
+        englishName: 'Cobalt Hat',
+        nameZh: '钴帽'
+      }
+    ],
+    relationItemImages: [
+      {
+        itemInternalName: 'CobaltHat',
+        originalUrl: 'https://terraria.wiki.gg/images/Cobalt_Hat.png',
+        isPrimary: 1
+      }
+    ],
+    relationArmorSets: [
+      {
+        recordKey: 'wiki-cobalt-rk',
+        textKey: 'WikiArmorSet.Cobalt armor',
+        benefitExpression: 'WikiArmorSet.Cobalt armor',
+        setCount: 3,
+        uniqueItemCount: 5,
+        setsJson: JSON.stringify([[371, 374, 375], [372, 374, 375], [373, 374, 375]]),
+        uniqueItemIdsJson: JSON.stringify([371, 372, 373, 374, 375]),
+        rawJson: JSON.stringify({
+          nameZh: '钴盔甲',
+          nameEn: 'Cobalt armor',
+          effectText: '套装奖励：按头盔提供魔法、远程或近战效果。',
+          section: 'hardmode'
+        })
+      }
+    ],
+    relationArmorSetItems: [
+      {
+        armorSetRecordKey: 'wiki-cobalt-rk',
+        itemSourceId: 371,
+        itemInternalName: 'CobaltHat',
+        itemName: 'Cobalt Hat',
+        partRole: 'head',
+        slotType: 'headSlot',
+        equipmentSlotId: 29
+      }
+    ],
+    relationArmorSetImages: [
+      {
+        armorSetRecordKey: 'wiki-cobalt-rk',
+        imageRole: 'male',
+        originalUrl: 'https://terraria.wiki.gg/images/Cobalt_armor.png',
+        isPrimary: 1,
+        sortOrder: 0
+      }
+    ]
+  });
+
+  const row = actual.projectionArmorSets[0];
+  assert.equal(row.nameZh, '钴盔甲');
+  assert.equal(row.nameEn, 'Cobalt armor');
+  assert.equal(row.sourceKey, 'Cobalt armor');
+  assert.equal(row.benefitZh, '套装奖励：按头盔提供魔法、远程或近战效果。');
+  assert.equal(row.maleImages, 'https://terraria.wiki.gg/images/Cobalt_armor.png');
+  assert.equal(JSON.parse(row.relatedItemsJson)[0].nameZh, '钴帽');
+  assert.equal(JSON.parse(row.relatedItemsJson)[0].image, 'https://terraria.wiki.gg/images/Cobalt_Hat.png');
+});
+
+test('buildProjectionPayload falls back to wiki item file URLs for armor equipment images only', () => {
+  const actual = buildProjectionPayload({
+    relationArmorSets: [
+      {
+        recordKey: 'wiki-hallowed-rk',
+        textKey: 'WikiArmorSet.Hallowed armor',
+        benefitExpression: 'WikiArmorSet.Hallowed armor',
+        setCount: 1,
+        uniqueItemCount: 3,
+        setsJson: JSON.stringify([[553, 551, 552]]),
+        uniqueItemIdsJson: JSON.stringify([553, 551, 552]),
+        rawJson: JSON.stringify({
+          nameZh: '神圣盔甲',
+          nameEn: 'Hallowed armor'
+        })
+      }
+    ],
+    relationArmorSetItems: [
+      {
+        armorSetRecordKey: 'wiki-hallowed-rk',
+        itemSourceId: 551,
+        itemInternalName: 'HallowedPlateMail',
+        itemName: 'Hallowed Plate Mail',
+        partRole: 'body',
+        slotType: 'bodySlot',
+        equipmentSlotId: 24
+      }
+    ],
+    relationArmorSetImages: [
+      {
+        armorSetRecordKey: 'wiki-hallowed-rk',
+        imageRole: 'male',
+        originalUrl: 'https://terraria.wiki.gg/images/Hallowed_armor.png',
+        isPrimary: 1
+      }
+    ]
+  });
+
+  const related = JSON.parse(actual.projectionArmorSets[0].relatedItemsJson);
+  assert.equal(related[0].image, 'https://terraria.wiki.gg/images/Hallowed_Plate_Mail.png');
+  assert.equal(actual.projectionArmorSets[0].maleImages, 'https://terraria.wiki.gg/images/Hallowed_armor.png');
+});
+
 test('buildProjectionPayload reuses Hallowed armor images for Hallowed Summoner variants', () => {
   const actual = buildProjectionPayload({
     relationArmorSets: [

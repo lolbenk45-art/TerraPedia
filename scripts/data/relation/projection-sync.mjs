@@ -125,6 +125,24 @@ function findArmorSetPartImageUrl(item, images) {
   return null;
 }
 
+function wikiItemFileUrl(item) {
+  const itemName = item?.itemName ?? item?.name;
+  if (typeof itemName !== 'string' || itemName.trim() === '') {
+    return null;
+  }
+  const fileName = `${itemName.trim().replace(/\s+/g, '_')}.png`;
+  return `https://terraria.wiki.gg/images/${encodeURIComponent(fileName).replace(/%2F/gi, '/')}`;
+}
+
+function displayArmorSetSourceKey(row, raw) {
+  if (raw.pageTitle) return raw.pageTitle;
+  const textKey = row.textKey ?? null;
+  if (typeof textKey === 'string' && textKey.startsWith('WikiArmorSet.')) {
+    return textKey.slice('WikiArmorSet.'.length);
+  }
+  return textKey;
+}
+
 export function buildProjectionPayload({
   relationItems = [],
   relationItemImages = [],
@@ -322,6 +340,7 @@ export function buildProjectionPayload({
   }));
 
   const projectionArmorSets = relationArmorSets.map((row) => {
+    const raw = parseJsonObject(row.rawJson);
     const setItems = (armorSetItemsByRecordKey.get(row.recordKey) ?? [])
       .slice()
       .sort((left, right) => {
@@ -345,7 +364,7 @@ export function buildProjectionPayload({
         internalName: item.itemInternalName ?? null,
         name: item.itemName ?? null,
         nameZh: projectionItem?.nameZh ?? null,
-        image: projectionItem?.image ?? findArmorSetPartImageUrl(item, images),
+        image: projectionItem?.image ?? findArmorSetPartImageUrl(item, images) ?? wikiItemFileUrl(item),
         partRole: item.partRole ?? null,
         slotType: item.slotType ?? null,
         equipmentSlotId: toNullableNumber(item.equipmentSlotId),
@@ -359,13 +378,13 @@ export function buildProjectionPayload({
       id: stablePositiveBigIntId(row.textKey ?? row.recordKey),
       relationRecordKey: row.recordKey,
       textKey: row.textKey ?? null,
-      name: row.textKey ?? null,
-      nameZh: row.textKey ?? null,
-      nameEn: row.textKey ?? null,
-      sourceKey: row.textKey ?? null,
+      name: raw.nameZh ?? raw.nameEn ?? raw.pageTitle ?? row.textKey ?? null,
+      nameZh: raw.nameZh ?? raw.nameEn ?? raw.pageTitle ?? row.textKey ?? null,
+      nameEn: raw.nameEn ?? raw.pageTitle ?? row.textKey ?? null,
+      sourceKey: displayArmorSetSourceKey(row, raw),
       benefitExpression: row.benefitExpression ?? null,
-      benefitZh: row.benefitExpression ?? null,
-      benefitEn: row.benefitExpression ?? null,
+      benefitZh: raw.effectText ?? row.benefitExpression ?? null,
+      benefitEn: raw.effectTextEn ?? raw.effectText ?? row.benefitExpression ?? null,
       primaryPart: row.primaryPart ?? null,
       setCount: toNullableNumber(row.setCount),
       uniqueItemCount: toNullableNumber(row.uniqueItemCount),

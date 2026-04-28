@@ -60,11 +60,33 @@ export function parseArgs(argv) {
     localDatabase: raw['local-database'] ?? raw.localDatabase ?? null,
     allowLocalItemImageFallback: booleanOption(raw['allow-local-item-image-fallback'] ?? raw.allowLocalItemImageFallback, true),
     relationDatabase: raw['relation-database'] ?? raw.relationDatabase ?? 'terria_v1_relation',
+    wikiArmorSetsInput: raw['wiki-armor-sets-input'] ?? raw.wikiArmorSetsInput ?? path.join(repoRoot, 'data', 'generated', 'wiki-armor-sets.latest.json'),
     scopes: String(raw.scopes ?? 'category,recipe,npc,buff,biome,projectile')
       .split(',')
       .map((entry) => entry.trim())
       .filter(Boolean)
   };
+}
+
+function readWikiArmorSets(inputPath) {
+  if (!inputPath) {
+    return [];
+  }
+  const resolved = path.resolve(process.cwd(), inputPath);
+  if (!fs.existsSync(resolved)) {
+    return [];
+  }
+  const payload = JSON.parse(fs.readFileSync(resolved, 'utf8'));
+  if (Array.isArray(payload.records)) {
+    return payload.records;
+  }
+  if (Array.isArray(payload.armorSets)) {
+    return payload.armorSets;
+  }
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  return [];
 }
 
 function toDateTag(value = new Date()) {
@@ -497,6 +519,7 @@ export async function runSync(options, dependencies = {}) {
     queryMaintOptional(queryMaint, 'SELECT * FROM maint_armor_set_images WHERE deleted = 0', [])
   ]);
 
+  const wikiArmorSets = readWikiArmorSets(options.wikiArmorSetsInput);
   const itemIndex = buildItemIndex(maintItems);
   const npcIndex = buildNpcIndex(maintNpcs);
   const baseEntities = buildBaseEntityRelations({
@@ -546,6 +569,7 @@ export async function runSync(options, dependencies = {}) {
     itemNpcLootRelations: itemSource.npcLootRelations
   });
   const armorSet = buildArmorSetRelations({
+    wikiArmorSets,
     maintArmorSets,
     maintItems,
     maintArmorSetImages

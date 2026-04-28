@@ -150,3 +150,81 @@ test('buildArmorSetRelations preserves set variant index and reports missing ite
   assert.equal(actual.issues[0].textKey, 'ArmorSetBonus.Adamantite');
   assert.equal(actual.issues[0].itemSourceId, 403);
 });
+
+test('buildArmorSetRelations prefers wiki armor page sets over effect-key pseudo sets', () => {
+  const actual = buildArmorSetRelations({
+    wikiArmorSets: [
+      {
+        pageTitle: 'Cobalt armor',
+        nameZh: '钴盔甲',
+        section: 'hardmode',
+        effectText: '套装奖励：按头盔提供魔法、远程或近战效果。',
+        images: [
+          {
+            role: 'male',
+            fileTitle: 'Cobalt armor.png',
+            url: 'https://terraria.wiki.gg/images/Cobalt_armor.png',
+            width: 26,
+            height: 46,
+            contentType: 'image/png'
+          },
+          {
+            role: 'female',
+            fileTitle: 'Cobalt armor female.png',
+            url: 'https://terraria.wiki.gg/images/Cobalt_armor_female.png',
+            width: 26,
+            height: 46,
+            contentType: 'image/png'
+          }
+        ],
+        sourceRevisionTimestamp: '2026-04-28T00:00:00Z'
+      }
+    ],
+    maintArmorSets: [
+      {
+        id: 31,
+        record_key: 'cobalt-caster',
+        text_key: 'ArmorSetBonus.CobaltCaster',
+        benefit_expression: 'ArmorSetBonuses.Benefits.CobaltMagic',
+        set_count: 1,
+        unique_item_count: 3,
+        sets_json: JSON.stringify([[0, 371, 374]]),
+        unique_item_ids_json: JSON.stringify([0, 371, 374]),
+        ...baseTrace
+      },
+      {
+        id: 32,
+        record_key: 'cobalt-melee',
+        text_key: 'ArmorSetBonus.CobaltMelee',
+        benefit_expression: 'ArmorSetBonuses.Benefits.CobaltMelee',
+        set_count: 1,
+        unique_item_count: 3,
+        sets_json: JSON.stringify([[0, 372, 374]]),
+        unique_item_ids_json: JSON.stringify([0, 372, 374]),
+        ...baseTrace
+      }
+    ],
+    maintItems: [
+      item(371, 'CobaltHat', 'Cobalt Hat', { headSlot: 29 }),
+      item(372, 'CobaltHelmet', 'Cobalt Helmet', { headSlot: 30 }),
+      item(373, 'CobaltMask', 'Cobalt Mask', { headSlot: 31 }),
+      item(374, 'CobaltBreastplate', 'Cobalt Breastplate', { bodySlot: 17 }),
+      item(375, 'CobaltLeggings', 'Cobalt Leggings', { legSlot: 16 })
+    ]
+  });
+
+  assert.equal(actual.relationArmorSets.length, 1);
+  assert.equal(actual.relationArmorSets[0].textKey, 'WikiArmorSet.Cobalt armor');
+  assert.equal(actual.relationArmorSets[0].sourceRevisionTimestamp, '2026-04-28 00:00:00');
+  assert.equal(actual.relationArmorSets[0].setCount, 3);
+  assert.equal(actual.relationArmorSets[0].uniqueItemCount, 5);
+  assert.deepEqual(JSON.parse(actual.relationArmorSets[0].setsJson), [
+    [371, 374, 375],
+    [372, 374, 375],
+    [373, 374, 375]
+  ]);
+  assert.equal(JSON.parse(actual.relationArmorSets[0].rawJson).nameZh, '钴盔甲');
+  assert.equal(actual.relationArmorSetItems.length, 9);
+  assert.equal(actual.relationArmorSetImages.length, 2);
+  assert.deepEqual(actual.issues, []);
+});

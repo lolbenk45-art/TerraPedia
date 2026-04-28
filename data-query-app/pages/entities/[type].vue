@@ -1595,19 +1595,13 @@ function resolveImageFromRawJson(rawJson: unknown) {
 function resolveRowImageUrl(row: Record<string, any>) {
   const wearImages = [...splitImageCsv(row.maleImages), ...splitImageCsv(row.femaleImages), ...splitImageCsv(row.specialImages)]
   if (wearImages.length > 0) return wearImages[0]
-  if (entityType.value === 'armor-sets' && Array.isArray(row.relatedItems)) {
-    const relatedImage = row.relatedItems
-      .map((item: Record<string, any>) => normalizeImageUrl(item?.image ?? item?.imageUrl))
-      .find((value: string) => Boolean(value))
-    if (relatedImage) return relatedImage
-  }
+  if (entityType.value === 'armor-sets') return ''
   const iconUrl = normalizeImageUrl(row.iconUrl)
   if (iconUrl) return iconUrl
   const imageUrl = normalizeImageUrl(row.imageUrl)
   if (imageUrl) return imageUrl
   const image = normalizeImageUrl(row.image)
   if (image) return image
-  if (entityType.value === 'armor-sets') return ''
   return resolveImageFromRawJson(row.rawJson)
 }
 
@@ -2211,8 +2205,10 @@ const armorSetDetailImageGroups = computed(() => {
 })
 const detailRelatedItems = computed(() => {
   if (!detailRow.value || entityType.value !== 'armor-sets') return []
-  if (Array.isArray(detailRow.value.equipmentItems)) return detailRow.value.equipmentItems
-  return Array.isArray(detailRow.value.relatedItems) ? detailRow.value.relatedItems : []
+  const items = Array.isArray(detailRow.value.equipmentItems)
+    ? detailRow.value.equipmentItems
+    : Array.isArray(detailRow.value.relatedItems) ? detailRow.value.relatedItems : []
+  return dedupeArmorItems(items)
 })
 const armorSetEffectRows = computed(() => {
   if (!detailRow.value || entityType.value !== 'armor-sets') return []
@@ -2787,6 +2783,20 @@ function buildArmorReplacementGroups(equipmentItems: Array<Record<string, any>>)
       items: Array.from(itemsBySourceId.values()),
     }, index))
     .filter(group => group.items.length > 1)
+}
+
+function dedupeArmorItems(items: Array<Record<string, any>>) {
+  const result: Array<Record<string, any>> = []
+  const seen = new Set<string>()
+  for (const item of items) {
+    if (!item || typeof item !== 'object') continue
+    const sourceId = getArmorItemSourceId(item)
+    const key = sourceId ? `source:${sourceId}` : `item:${item.id ?? item.internalName ?? result.length}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    result.push(item)
+  }
+  return result
 }
 
 function normalizeArmorReplacementGroup(group: Record<string, any>, fallbackIndex: number) {
