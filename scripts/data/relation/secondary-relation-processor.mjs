@@ -14,6 +14,24 @@ function toNullableNumber(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
+function parseJsonObject(value) {
+  if (value == null) {
+    return {};
+  }
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    return value;
+  }
+  if (typeof value !== 'string') {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 function normalizeBiomePairKey(itemInternalName, biomeCode) {
   const item = normalizeText(itemInternalName);
   const biome = normalizeText(biomeCode);
@@ -23,16 +41,44 @@ function normalizeBiomePairKey(itemInternalName, biomeCode) {
   return `${item}::${biome}`;
 }
 
-function extractShootValue(rawJson) {
-  try {
-    const parsed = typeof rawJson === 'string' ? JSON.parse(rawJson) : rawJson;
-    if (!parsed || typeof parsed !== 'object') {
-      return null;
+function extractProjectileField(rawJson, candidates) {
+  const parsed = parseJsonObject(rawJson);
+  for (const candidate of candidates) {
+    let current = parsed;
+    for (const segment of candidate.path) {
+      if (!current || typeof current !== 'object' || !Object.hasOwn(current, segment)) {
+        current = undefined;
+        break;
+      }
+      current = current[segment];
     }
-    return toNullableNumber(parsed.shoot ?? parsed.projectileId ?? parsed.projectile_id);
-  } catch {
-    return null;
+    const numeric = toNullableNumber(current);
+    if (numeric != null && numeric > 0) {
+      return {
+        value: numeric,
+        sourceField: `raw_json.${candidate.path.join('.')}`,
+        sourceValue: String(current)
+      };
+    }
   }
+  return null;
+}
+
+function extractShootValue(rawJson) {
+  return extractProjectileField(rawJson, [
+    { path: ['shoot'] },
+    { path: ['projectileId'] },
+    { path: ['projectile_id'] }
+  ]);
+}
+
+function extractNpcProjectileValue(rawJson) {
+  return extractProjectileField(rawJson, [
+    { path: ['wikiCrawler', 'combat', 'projectileId'] },
+    { path: ['combat', 'projectileId'] },
+    { path: ['projectileId'] },
+    { path: ['projectile_id'] }
+  ]);
 }
 
 export function buildSecondaryRelations({
@@ -40,6 +86,7 @@ export function buildSecondaryRelations({
   maintBuffRows = [],
   maintProjectileRows = [],
   maintItemRows = [],
+  maintNpcRows = [],
   itemImageRows = []
 } = {}) {
   const itemBiomeRelations = itemBiomeRows.map((row) => {
@@ -100,35 +147,98 @@ export function buildSecondaryRelations({
       .filter(([key]) => key != null)
   );
 
+  const itemProjectileRelations = [];
   const itemProjectileAudits = maintItemRows
     .map((row) => {
-      const shootValue = extractShootValue(row.raw_json);
-      if (shootValue == null) {
+      const projectileField = extractShootValue(row.raw_json);
+      if (projectileField == null) {
         return null;
       }
-      const projectile = projectilesBySourceId.get(shootValue) ?? null;
+      const projectile = projectilesBySourceId.get(projectileField.value) ?? null;
       const trace = normalizeTrace('maint_items', {
+        ...row,
+        record_key: row.record_key ?? null
+      });
+      if (projectile) {
+        itemProjectileRelations.push({
+          recordKey: createRecordKey({
+            type: 'item_projectile_relation',
+            itemSourceId: row.source_id ?? null,
+            projectileSourceId: projectileField.value,
+            sourceField: projectileField.sourceField
+          }),
+          itemSourceId: toNullableNumber(row.source_id),
+          itemInternalName: normalizeText(row.internal_name ?? row.item_internal_name),
+          itemName: normalizeText(row.english_name ?? row.name ?? row.item_name),
+          projectileSourceId: projectileField.value,
+          projectileInternalName: normalizeText(projectile.internal_name),
+          projectileName: normalizeText(projectile.english_name ?? projectile.name),
+          relationType: 'item_direct_shoot',
+          sourceField: projectileField.sourceField,
+          sourceValue: projectileField.sourceValue,
+          reviewStatus: relationStatus.resolved,
+          confidence: confidence.high,
+          reason: 'maint_item_raw_json_shoot',
+          ...trace
+        });
+      }
+      return {
+        recordKey: createRecordKey({
+          type: 'item_projectile_audit',
+          itemSourceId: row.source_id ?? null,
+          projectileSourceId: projectileField.value
+        }),
+        itemSourceId: toNullableNumber(row.source_id),
+        itemInternalName: normalizeText(row.internal_name ?? row.item_internal_name),
+        projectileSourceId: projectileField.value,
+        projectileInternalName: normalizeText(projectile?.internal_name),
+        auditStatus: projectile ? 'promoted_to_relation' : 'projectile_missing',
+        availableFieldsJson: JSON.stringify({
+          itemShoot: projectileField.value,
+          sourceField: projectileField.sourceField,
+          projectileFound: Boolean(projectile)
+        }),
+        reviewStatus: projectile ? relationStatus.resolved : relationStatus.unresolved,
+        confidence: projectile ? confidence.high : confidence.none,
+        reason: projectile ? 'projectile_relation_promoted' : 'projectile_not_found',
+        ...trace
+      };
+    })
+    .filter(Boolean);
+
+  const npcProjectileRelations = maintNpcRows
+    .map((row) => {
+      const projectileField = extractNpcProjectileValue(row.raw_json);
+      if (projectileField == null) {
+        return null;
+      }
+      const projectile = projectilesBySourceId.get(projectileField.value) ?? null;
+      if (!projectile) {
+        return null;
+      }
+      const trace = normalizeTrace('maint_npcs', {
         ...row,
         record_key: row.record_key ?? null
       });
       return {
         recordKey: createRecordKey({
-          type: 'item_projectile_audit',
-          itemSourceId: row.source_id ?? null,
-          projectileSourceId: shootValue
+          type: 'npc_projectile_relation',
+          npcSourceId: row.source_id ?? null,
+          projectileSourceId: projectileField.value,
+          sourceField: projectileField.sourceField
         }),
-        itemSourceId: toNullableNumber(row.source_id),
-        itemInternalName: normalizeText(row.internal_name ?? row.item_internal_name),
-        projectileSourceId: shootValue,
-        projectileInternalName: normalizeText(projectile?.internal_name),
-        auditStatus: 'not_promoted_first_stage',
-        availableFieldsJson: JSON.stringify({
-          itemShoot: shootValue,
-          projectileFound: Boolean(projectile)
-        }),
-        reviewStatus: relationStatus.candidateLowConfidence,
-        confidence: confidence.low,
-        reason: 'projectile_audit_only_first_stage',
+        npcSourceId: toNullableNumber(row.source_id),
+        npcInternalName: normalizeText(row.internal_name ?? row.npc_internal_name),
+        npcName: normalizeText(row.english_name ?? row.name ?? row.npc_name),
+        projectileSourceId: projectileField.value,
+        projectileInternalName: normalizeText(projectile.internal_name),
+        projectileName: normalizeText(projectile.english_name ?? projectile.name),
+        relationType: 'npc_infobox_projectile',
+        sourceField: projectileField.sourceField,
+        sourceValue: projectileField.sourceValue,
+        reviewStatus: relationStatus.resolved,
+        confidence: confidence.high,
+        reason: 'npc_infobox_projectile_id',
         ...trace
       };
     })
@@ -137,12 +247,16 @@ export function buildSecondaryRelations({
   return {
     itemBiomeRelations,
     itemBuffRelations,
+    itemProjectileRelations,
+    npcProjectileRelations,
     itemProjectileAudits,
     summary: {
       biomeRows: itemBiomeRelations.length,
       localBiomeMissing: 0,
       buffCrossCheckRows: 0,
       buffRows: itemBuffRelations.length,
+      itemProjectileRows: itemProjectileRelations.length,
+      npcProjectileRows: npcProjectileRelations.length,
       projectileAuditRows: itemProjectileAudits.length,
       imageCoverageRows: itemImageRows.length
     }

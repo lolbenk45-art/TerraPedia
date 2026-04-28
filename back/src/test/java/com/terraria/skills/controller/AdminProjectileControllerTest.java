@@ -51,4 +51,45 @@ class AdminProjectileControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.imageUrl").value("https://terraria.wiki.gg/images/Wooden%20Arrow.png"));
     }
+
+    @Test
+    void shouldReturnProjectileSourceJsonAndParsedSources() throws Exception {
+        Projectile projectile = new Projectile();
+        projectile.setId(1L);
+        projectile.setSourceId(1);
+        projectile.setInternalName("WoodenArrowFriendly");
+        projectile.setName("Wooden Arrow (friendly)");
+        projectile.setSourceItemsJson("[{\"internalName\":\"WoodenArrow\",\"itemId\":40}]");
+        projectile.setSourceNpcsJson("[{\"internalName\":\"Zombie\",\"npcId\":3}]");
+        projectile.setStatus(1);
+
+        when(projectileMapper.selectById(1L)).thenReturn(projectile);
+
+        mockMvc.perform(get("/admin/projectiles/1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.sourceItemsJson").value("[{\"internalName\":\"WoodenArrow\",\"itemId\":40}]"))
+            .andExpect(jsonPath("$.data.sourceNpcsJson").value("[{\"internalName\":\"Zombie\",\"npcId\":3}]"))
+            .andExpect(jsonPath("$.data.sourceItems[0].internalName").value("WoodenArrow"))
+            .andExpect(jsonPath("$.data.sourceNpcs[0].internalName").value("Zombie"));
+    }
+
+    @Test
+    void shouldReturnEmptySourceArraysForInvalidProjectileSourceJson() throws Exception {
+        Projectile projectile = new Projectile();
+        projectile.setId(1L);
+        projectile.setSourceId(1);
+        projectile.setInternalName("WoodenArrowFriendly");
+        projectile.setSourceItemsJson("{\"internalName\":\"WoodenArrow\"}");
+        projectile.setSourceNpcsJson("not-json");
+        projectile.setStatus(1);
+
+        when(projectileMapper.selectById(1L)).thenReturn(projectile);
+
+        mockMvc.perform(get("/admin/projectiles/1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.sourceItems").isArray())
+            .andExpect(jsonPath("$.data.sourceItems").isEmpty())
+            .andExpect(jsonPath("$.data.sourceNpcs").isArray())
+            .andExpect(jsonPath("$.data.sourceNpcs").isEmpty());
+    }
 }

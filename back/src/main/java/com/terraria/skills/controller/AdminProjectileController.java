@@ -126,6 +126,8 @@ public class AdminProjectileController {
         if (request.getHostile() != null) existing.setHostile(request.getHostile());
         if (request.getTileCollide() != null) existing.setTileCollide(request.getTileCollide());
         if (request.getRawJson() != null) existing.setRawJson(request.getRawJson());
+        if (request.getSourceItemsJson() != null) existing.setSourceItemsJson(request.getSourceItemsJson());
+        if (request.getSourceNpcsJson() != null) existing.setSourceNpcsJson(request.getSourceNpcsJson());
         if (request.getStatus() != null) existing.setStatus(request.getStatus());
         projectileMapper.updateById(existing);
         return ResponseEntity.ok(ApiResponse.success(toPayload(projectileMapper.selectById(id)), "Projectile updated"));
@@ -162,6 +164,10 @@ public class AdminProjectileController {
         payload.put("hostile", projectile.getHostile());
         payload.put("tileCollide", projectile.getTileCollide());
         payload.put("rawJson", projectile.getRawJson());
+        payload.put("sourceItemsJson", projectile.getSourceItemsJson());
+        payload.put("sourceNpcsJson", projectile.getSourceNpcsJson());
+        payload.put("sourceItems", parseJsonArray(projectile.getSourceItemsJson()));
+        payload.put("sourceNpcs", parseJsonArray(projectile.getSourceNpcsJson()));
         payload.put("status", projectile.getStatus());
         payload.put("deleted", projectile.getDeleted());
         payload.put("createdAt", projectile.getCreatedAt());
@@ -176,6 +182,16 @@ public class AdminProjectileController {
             if (value != null && !value.isBlank()) return value;
         }
         return null;
+    }
+
+    private List<?> parseJsonArray(String rawJson) {
+        if (rawJson == null || rawJson.isBlank()) return List.of();
+        try {
+            Object parsed = objectMapper.readValue(rawJson, Object.class);
+            return parsed instanceof List<?> list ? list : List.of();
+        } catch (Exception ignored) {
+            return List.of();
+        }
     }
 
     private String extractImageUrl(String rawJson) {

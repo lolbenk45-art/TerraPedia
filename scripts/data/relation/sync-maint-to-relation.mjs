@@ -309,7 +309,9 @@ async function ensureRelationMigrations(connection, databaseName) {
     {
       tableName: 'projection_projectiles',
       columns: [
-        ['image_url', 'VARCHAR(500) DEFAULT NULL AFTER `name_zh`']
+        ['image_url', 'VARCHAR(500) DEFAULT NULL AFTER `name_zh`'],
+        ['source_items_json', 'LONGTEXT AFTER `tile_collide`'],
+        ['source_npcs_json', 'LONGTEXT AFTER `source_items_json`']
       ]
     },
     {
@@ -439,6 +441,8 @@ function flattenResults(category, recipe, itemSource, secondary, bossSeries, npc
     itemNpcLootRelations: itemSource.npcLootRelations,
     itemBuffRelations: secondary.itemBuffRelations,
     itemBiomeRelations: secondary.itemBiomeRelations,
+    itemProjectileRelations: secondary.itemProjectileRelations,
+    npcProjectileRelations: secondary.npcProjectileRelations,
     itemProjectileAudits: secondary.itemProjectileAudits,
     bossItemRewardRelations: bossSeries.bossItemRewardRelations,
     bossEffectRelations: bossSeries.bossEffectRelations,
@@ -563,6 +567,7 @@ export async function runSync(options, dependencies = {}) {
     maintBuffRows,
     maintProjectileRows: maintProjectiles,
     maintItemRows: maintItems,
+    maintNpcRows: maintNpcs,
     itemImageRows
   });
   const bossSeries = buildBossSeriesRelations({
@@ -620,6 +625,8 @@ export async function runSync(options, dependencies = {}) {
     relationNpcImages: results.relationNpcImages,
     relationProjectiles: results.relationProjectiles,
     relationProjectileImages: results.relationProjectileImages,
+    itemProjectileRelations: results.itemProjectileRelations,
+    npcProjectileRelations: results.npcProjectileRelations,
     relationBuffs: results.relationBuffs,
     relationBuffImages: results.relationBuffImages,
     relationArmorSets: results.relationArmorSets,
@@ -657,7 +664,9 @@ export async function runSync(options, dependencies = {}) {
         + results.itemNpcLootRelations.length,
       buff: results.itemBuffRelations.length,
       biome: results.itemBiomeRelations.length,
-      projectile: results.itemProjectileAudits.length,
+      projectile: results.itemProjectileRelations.length
+        + results.npcProjectileRelations.length
+        + results.itemProjectileAudits.length,
       boss: results.relationBosses.length + results.bossItemRewardRelations.length + results.bossEffectRelations.length,
       npcSeries: results.npcSeriesNodes.length + results.npcSeriesMemberships.length + results.npcSeriesItemRelations.length,
       armorSet: results.relationArmorSets.length + results.relationArmorSetItems.length + results.relationArmorSetImages.length
@@ -740,6 +749,8 @@ export async function runSync(options, dependencies = {}) {
         'item_source_facts',
         'item_buff_relations',
         'item_biome_relations',
+        'item_projectile_relations',
+        'npc_projectile_relations',
         'item_projectile_audits',
         'boss_item_reward_relations',
         'boss_effect_relations',
@@ -791,6 +802,8 @@ export async function runSync(options, dependencies = {}) {
       await upsertRows(connection, 'item_npc_loot_relations', results.itemNpcLootRelations);
       await upsertRows(connection, 'item_buff_relations', results.itemBuffRelations);
       await upsertRows(connection, 'item_biome_relations', results.itemBiomeRelations);
+      await upsertRows(connection, 'item_projectile_relations', results.itemProjectileRelations);
+      await upsertRows(connection, 'npc_projectile_relations', results.npcProjectileRelations);
       await upsertRows(connection, 'item_projectile_audits', results.itemProjectileAudits);
       await upsertRows(connection, 'boss_item_reward_relations', results.bossItemRewardRelations);
       await upsertRows(connection, 'boss_effect_relations', results.bossEffectRelations);

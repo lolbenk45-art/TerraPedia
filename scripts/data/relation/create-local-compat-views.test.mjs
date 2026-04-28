@@ -22,3 +22,15 @@ test('buildCreateViewSql creates relation-side items compatibility view over pro
 test('relation compatibility view config covers items nocs projectiles and buffs', () => {
   assert.deepEqual(Object.keys(RELATION_COMPAT_VIEWS), ['items', 'npcs', 'projectiles', 'buffs']);
 });
+
+test('projectile compatibility view exposes source relation json columns', () => {
+  const sql = buildCreateViewSql({
+    targetDatabase: 'terria_v1_relation',
+    viewName: 'projectiles',
+    sourceTable: 'projection_projectiles',
+    columns: RELATION_COMPAT_VIEWS.projectiles.columns,
+  });
+
+  assert.match(sql, /`source_items_json`/);
+  assert.match(sql, /`source_npcs_json`/);
+});

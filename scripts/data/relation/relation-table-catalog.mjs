@@ -139,6 +139,14 @@ const TABLE_ZH = {
     purposeZh: 'item 与 biome 的关系表。',
     notesZh: '属于次级领域关系层。'
   },
+  item_projectile_relations: {
+    purposeZh: 'Formal item-to-projectile firing relation rows.',
+    notesZh: 'Canonical relation promoted from explicit item raw_json projectile fields.'
+  },
+  npc_projectile_relations: {
+    purposeZh: 'Formal NPC-to-projectile firing relation rows.',
+    notesZh: 'Canonical relation promoted only from explicit NPC crawler projectile evidence.'
+  },
   item_projectile_audits: {
     purposeZh: 'item 与 projectile 证据交叉审计表，记录抽取状态。',
     notesZh: '是审计辅助表，不是正式游戏事实关系。'
@@ -405,6 +413,24 @@ const TABLE_DEFINITIONS = [
     source: 'maint_item_biomes',
     primaryKeys: ['record_key', 'item_internal_name', 'biome_key'],
     notes: 'Secondary domain relation layer.'
+  },
+  {
+    tableName: 'item_projectile_relations',
+    status: 'kept',
+    layer: 'fact',
+    purpose: 'Formal item-to-projectile firing facts.',
+    source: 'maint_items.raw_json explicit projectile fields + relation_projectiles',
+    primaryKeys: ['record_key', 'item_internal_name', 'projectile_internal_name'],
+    notes: 'Canonical projectile source relation for items; item_projectile_audits remains the extraction audit.'
+  },
+  {
+    tableName: 'npc_projectile_relations',
+    status: 'kept',
+    layer: 'fact',
+    purpose: 'Formal NPC-to-projectile firing facts.',
+    source: 'maint_npcs.raw_json explicit crawler projectile fields + relation_projectiles',
+    primaryKeys: ['record_key', 'npc_internal_name', 'projectile_internal_name'],
+    notes: 'Canonical projectile source relation for NPCs; aiStyle is intentionally not inferred.'
   },
   {
     tableName: 'item_projectile_audits',

@@ -98,7 +98,7 @@ test('runSync dry-run reads maint only and does not write relation rows', async 
           }];
         }
         if (sql.includes('maint_items')) {
-          return [{ source_id: 1, internal_name: 'LesserHealingPotion', raw_json: '{}' }];
+          return [{ source_id: 1, internal_name: 'LesserHealingPotion', english_name: 'Lesser Healing Potion', raw_json: JSON.stringify({ shoot: 1 }) }];
         }
         if (sql.includes('maint_projectiles')) {
           return [{
@@ -109,7 +109,20 @@ test('runSync dry-run reads maint only and does not write relation rows', async 
             raw_json: JSON.stringify({ image: 'Wooden Arrow.png' })
           }];
         }
-        if (sql.includes('maint_npcs')) return [{ source_id: -65, internal_name: 'BigHornetStingy', raw_json: '{}' }];
+        if (sql.includes('maint_npcs')) {
+          return [{
+            source_id: -65,
+            internal_name: 'BigHornetStingy',
+            english_name: 'Hornet',
+            raw_json: JSON.stringify({
+              wikiCrawler: {
+                combat: {
+                  projectileId: 1
+                }
+              }
+            })
+          }];
+        }
         if (sql.includes('maint_item_biomes')) return [];
         if (sql.includes('maint_item_images')) return [];
         return [];
@@ -142,6 +155,11 @@ test('runSync dry-run reads maint only and does not write relation rows', async 
   assert.equal(result.results.relationProjectileImages.length, 1);
   assert.equal(result.results.relationBuffImages.length, 1);
   assert.equal(result.results.relationNpcImages.length, 1);
+  assert.equal(result.results.itemProjectileRelations.length, 1);
+  assert.equal(result.results.npcProjectileRelations.length, 1);
+  assert.equal(result.results.itemProjectileAudits.length, 1);
+  assert.deepEqual(JSON.parse(result.results.projectionProjectiles[0].sourceItemsJson).map((item) => item.internalName), ['LesserHealingPotion']);
+  assert.deepEqual(JSON.parse(result.results.projectionProjectiles[0].sourceNpcsJson).map((npc) => npc.internalName), ['BigHornetStingy']);
 });
 
 test('runSync dry-run builds armor set relation and projection rows from maint sources', async () => {
@@ -274,13 +292,34 @@ test('runSync apply mode clears stale relation tables before writing current sna
           }];
         }
         if (sql.includes('maint_items')) {
-          return [{ id: 1, source_id: 1, internal_name: 'AmmoBox', english_name: 'Ammo Box', raw_json: '{}' }];
+          return [{
+            id: 1,
+            source_id: 1,
+            internal_name: 'AmmoBox',
+            english_name: 'Ammo Box',
+            raw_json: JSON.stringify({ shoot: 1 })
+          }];
         }
         if (sql.includes('maint_npcs')) {
-          return [{ id: 2, source_id: 17, internal_name: 'ArmsDealer', english_name: 'Arms Dealer', name: 'Arms Dealer', raw_json: '{}' }];
+          return [{
+            id: 2,
+            source_id: 17,
+            internal_name: 'ArmsDealer',
+            english_name: 'Arms Dealer',
+            name: 'Arms Dealer',
+            raw_json: JSON.stringify({ wikiCrawler: { combat: { projectileId: 1 } } })
+          }];
         }
         if (sql.includes('maint_buffs')) return [];
-        if (sql.includes('maint_projectiles')) return [];
+        if (sql.includes('maint_projectiles')) {
+          return [{
+            id: 3,
+            source_id: 1,
+            internal_name: 'WoodenArrowFriendly',
+            english_name: 'Wooden Arrow (friendly)',
+            raw_json: '{}'
+          }];
+        }
         if (sql.includes('maint_npc_images')) return [];
         if (sql.includes('maint_item_images')) return [];
         if (sql.includes('maint_item_categories')) return [];
@@ -313,6 +352,10 @@ test('runSync apply mode clears stale relation tables before writing current sna
   assert.ok(statements.some((sql) => sql.includes('DELETE FROM `relation_items`')));
   assert.ok(statements.some((sql) => sql.includes('DELETE FROM `relation_item_rarities`')));
   assert.ok(statements.some((sql) => sql.includes('DELETE FROM `item_npc_shop_relations`')));
+  assert.ok(statements.some((sql) => sql.includes('DELETE FROM `item_projectile_relations`')));
+  assert.ok(statements.some((sql) => sql.includes('DELETE FROM `npc_projectile_relations`')));
+  assert.ok(statements.some((sql) => sql.includes('INSERT INTO `item_projectile_relations`')));
+  assert.ok(statements.some((sql) => sql.includes('INSERT INTO `npc_projectile_relations`')));
   assert.ok(statements.some((sql) => sql.includes('UPDATE `relation_items` ri')));
   assert.ok(statements.some((sql) => sql.includes('SET ri.stack_size = mi.stack_size')));
   assert.ok(statements.some((sql) => sql.includes('UPDATE `projection_items` pi')));

@@ -92,6 +92,26 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
       },
     ],
     relationProjectileImages: [],
+    itemProjectileRelations: [
+      {
+        itemSourceId: 1,
+        itemInternalName: 'IronPickaxe',
+        itemName: 'Iron Pickaxe',
+        projectileSourceId: 1,
+        projectileInternalName: 'WoodenArrowFriendly',
+        relationType: 'item_direct_shoot'
+      }
+    ],
+    npcProjectileRelations: [
+      {
+        npcSourceId: -65,
+        npcInternalName: 'BigHornetStingy',
+        npcName: 'Hornet',
+        projectileSourceId: 1,
+        projectileInternalName: 'WoodenArrowFriendly',
+        relationType: 'npc_infobox_projectile'
+      }
+    ],
     relationBuffs: [
       {
         recordKey: 'buff-rk',
@@ -134,6 +154,28 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
   assert.equal(actual.projectionProjectiles.length, 1);
   assert.equal(actual.projectionProjectiles[0].friendly, 1);
   assert.equal(actual.projectionProjectiles[0].timeLeft, 1200);
+  assert.deepEqual(JSON.parse(actual.projectionProjectiles[0].sourceItemsJson), [
+    {
+      itemId: 1,
+      sourceId: 1,
+      internalName: 'IronPickaxe',
+      name: 'Iron Pickaxe',
+      nameZh: 'iron pickaxe zh',
+      image: 'https://terraria.wiki.gg/images/Iron_Pickaxe.png',
+      relationType: 'item_direct_shoot'
+    }
+  ]);
+  assert.deepEqual(JSON.parse(actual.projectionProjectiles[0].sourceNpcsJson), [
+    {
+      npcId: -65,
+      sourceId: -65,
+      internalName: 'BigHornetStingy',
+      name: 'Hornet',
+      nameZh: 'hornet zh',
+      image: 'https://terraria.wiki.gg/images/Stingy%20Hornet.gif',
+      relationType: 'npc_infobox_projectile'
+    }
+  ]);
 
   assert.equal(actual.projectionBuffs.length, 1);
   assert.equal(actual.projectionBuffs[0].image, 'http://localhost/buff.png');

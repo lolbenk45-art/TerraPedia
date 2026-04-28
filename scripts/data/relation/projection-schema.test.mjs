@@ -33,6 +33,8 @@ test('projection npc and projectile schemas include wiki image url columns', () 
 
   assert.match(npcStatement, /`image_url` VARCHAR\(500\) DEFAULT NULL/);
   assert.match(projectileStatement, /`image_url` VARCHAR\(500\) DEFAULT NULL/);
+  assert.match(projectileStatement, /`source_items_json` LONGTEXT/);
+  assert.match(projectileStatement, /`source_npcs_json` LONGTEXT/);
 });
 
 test('projection armor set schema includes display images and related item json columns', () => {

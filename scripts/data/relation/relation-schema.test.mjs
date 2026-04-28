@@ -36,6 +36,8 @@ const EXPECTED_TABLE_NAMES = [
   'item_npc_loot_relations',
   'item_buff_relations',
   'item_biome_relations',
+  'item_projectile_relations',
+  'npc_projectile_relations',
   'item_projectile_audits',
   'boss_item_reward_relations',
   'boss_effect_relations',
@@ -220,6 +222,8 @@ test('table-scoped domain columns and lookup indexes are present', () => {
   const sourceDetails = extractTableDdl(sql, 'item_source_details');
   const shopRelations = extractTableDdl(sql, 'item_npc_shop_relations');
   const lootRelations = extractTableDdl(sql, 'item_npc_loot_relations');
+  const itemProjectileRelations = extractTableDdl(sql, 'item_projectile_relations');
+  const npcProjectileRelations = extractTableDdl(sql, 'npc_projectile_relations');
   const bossRewards = extractTableDdl(sql, 'boss_item_reward_relations');
   const bossEffects = extractTableDdl(sql, 'boss_effect_relations');
   const npcSeriesNodes = extractTableDdl(sql, 'npc_series_nodes');
@@ -280,6 +284,21 @@ test('table-scoped domain columns and lookup indexes are present', () => {
     lootRelations,
     /CONSTRAINT `fk_item_npc_loot_relations_source_fact_key`\s+FOREIGN KEY \(`source_fact_key`\) REFERENCES `terria_v1_relation`\.`item_source_facts` \(`record_key`\)/
   );
+  assert.match(itemProjectileRelations, /`item_source_id` INT DEFAULT NULL/);
+  assert.match(itemProjectileRelations, /`item_internal_name` VARCHAR\(255\) DEFAULT NULL/);
+  assert.match(itemProjectileRelations, /`projectile_source_id` INT DEFAULT NULL/);
+  assert.match(itemProjectileRelations, /`projectile_internal_name` VARCHAR\(255\) DEFAULT NULL/);
+  assert.match(itemProjectileRelations, /`relation_type` VARCHAR\(64\) NOT NULL/);
+  assert.match(itemProjectileRelations, /`source_field` VARCHAR\(64\) NOT NULL/);
+  assert.match(itemProjectileRelations, /`source_value` VARCHAR\(255\) DEFAULT NULL/);
+  assert.match(itemProjectileRelations, /KEY `idx_item_projectile_relations_projectile` \(`projectile_source_id`, `projectile_internal_name`\)/);
+  assert.match(npcProjectileRelations, /`npc_source_id` INT DEFAULT NULL/);
+  assert.match(npcProjectileRelations, /`npc_internal_name` VARCHAR\(255\) DEFAULT NULL/);
+  assert.match(npcProjectileRelations, /`projectile_source_id` INT DEFAULT NULL/);
+  assert.match(npcProjectileRelations, /`projectile_internal_name` VARCHAR\(255\) DEFAULT NULL/);
+  assert.match(npcProjectileRelations, /`relation_type` VARCHAR\(64\) NOT NULL/);
+  assert.match(npcProjectileRelations, /`source_field` VARCHAR\(64\) NOT NULL/);
+  assert.match(npcProjectileRelations, /KEY `idx_npc_projectile_relations_projectile` \(`projectile_source_id`, `projectile_internal_name`\)/);
   assert.match(bossRewards, /`boss_record_key` CHAR\(64\) COLLATE utf8mb4_bin NOT NULL/);
   assert.match(bossRewards, /`reward_source_fact_keys_json` LONGTEXT/);
   assert.match(bossRewards, /KEY `idx_boss_item_reward_relations_boss_record_key` \(`boss_record_key`\)/);
@@ -344,6 +363,8 @@ test('record key unique indexes exist on all relation result tables', () => {
     'item_npc_loot_relations',
     'item_buff_relations',
     'item_biome_relations',
+    'item_projectile_relations',
+    'npc_projectile_relations',
     'item_projectile_audits'
   ];
 

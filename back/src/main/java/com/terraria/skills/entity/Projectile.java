@@ -71,6 +71,12 @@ public class Projectile implements Serializable {
     @TableField("raw_json")
     private String rawJson;
 
+    @TableField("source_items_json")
+    private String sourceItemsJson;
+
+    @TableField("source_npcs_json")
+    private String sourceNpcsJson;
+
     @TableField("status")
     private Integer status;
 

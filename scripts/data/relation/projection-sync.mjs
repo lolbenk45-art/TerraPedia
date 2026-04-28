@@ -76,6 +76,56 @@ function buildRowsByKey(rows, keyName) {
   return map;
 }
 
+function buildProjectionRowIndexes(rows = []) {
+  const bySourceId = new Map();
+  const byInternalName = new Map();
+  for (const row of rows) {
+    if (row?.id != null) {
+      bySourceId.set(Number(row.id), row);
+    }
+    if (row?.internalName) {
+      byInternalName.set(row.internalName, row);
+    }
+  }
+  return { bySourceId, byInternalName };
+}
+
+function appendMappedValue(map, key, value) {
+  if (key == null || key === '') return;
+  const normalizedKey = String(key);
+  if (!map.has(normalizedKey)) {
+    map.set(normalizedKey, []);
+  }
+  map.get(normalizedKey).push(value);
+}
+
+function sourceProjectileKeys(row) {
+  return [
+    row?.projectileInternalName,
+    row?.projectileSourceId == null ? null : `source:${Number(row.projectileSourceId)}`
+  ].filter((key) => key != null && key !== '');
+}
+
+function projectionProjectileKeys(row) {
+  return [
+    row?.internalName,
+    row?.sourceId == null ? null : `source:${Number(row.sourceId)}`
+  ].filter((key) => key != null && key !== '');
+}
+
+function collectMappedValues(map, keys) {
+  const seen = new Set();
+  const values = [];
+  for (const key of keys) {
+    for (const value of map.get(String(key)) ?? []) {
+      if (seen.has(value)) continue;
+      seen.add(value);
+      values.push(value);
+    }
+  }
+  return values;
+}
+
 const ARMOR_SET_IMAGE_ALIASES = new Map([
   ['ArmorSetBonus.HallowedSummoner', 'ArmorSetBonus.Hallowed']
 ]);
@@ -154,6 +204,8 @@ export function buildProjectionPayload({
   relationNpcImages = [],
   relationProjectiles = [],
   relationProjectileImages = [],
+  itemProjectileRelations = [],
+  npcProjectileRelations = [],
   relationBuffs = [],
   relationBuffImages = [],
   relationArmorSets = [],
@@ -238,6 +290,7 @@ export function buildProjectionPayload({
       .filter((row) => row?.id != null)
       .map((row) => [Number(row.id), row])
   );
+  const projectionItemIndexes = buildProjectionRowIndexes(projectionItems);
 
   const projectionNpcs = relationNpcs.map((row) => {
     const raw = parseJsonObject(row.rawJson);
@@ -286,11 +339,55 @@ export function buildProjectionPayload({
       updatedAt: null
     };
   });
+  const projectionNpcIndexes = buildProjectionRowIndexes(projectionNpcs);
+
+  const sourceItemsByProjectileKey = new Map();
+  for (const relation of itemProjectileRelations) {
+    const itemSourceId = toNullableNumber(relation.itemSourceId);
+    const projectionItem = (itemSourceId == null ? null : projectionItemIndexes.bySourceId.get(itemSourceId))
+      ?? projectionItemIndexes.byInternalName.get(relation.itemInternalName)
+      ?? null;
+    const summary = {
+      itemId: projectionItem?.id ?? itemSourceId,
+      sourceId: itemSourceId,
+      internalName: relation.itemInternalName ?? null,
+      name: relation.itemName ?? projectionItem?.name ?? null,
+      nameZh: projectionItem?.nameZh ?? null,
+      image: projectionItem?.image ?? null,
+      relationType: relation.relationType ?? null
+    };
+    for (const key of sourceProjectileKeys(relation)) {
+      appendMappedValue(sourceItemsByProjectileKey, key, summary);
+    }
+  }
+
+  const sourceNpcsByProjectileKey = new Map();
+  for (const relation of npcProjectileRelations) {
+    const npcSourceId = toNullableNumber(relation.npcSourceId);
+    const projectionNpc = (npcSourceId == null ? null : projectionNpcIndexes.bySourceId.get(npcSourceId))
+      ?? projectionNpcIndexes.byInternalName.get(relation.npcInternalName)
+      ?? null;
+    const summary = {
+      npcId: projectionNpc?.id ?? npcSourceId,
+      sourceId: npcSourceId,
+      internalName: relation.npcInternalName ?? null,
+      name: relation.npcName ?? projectionNpc?.name ?? null,
+      nameZh: projectionNpc?.nameZh ?? null,
+      image: projectionNpc?.imageUrl ?? null,
+      relationType: relation.relationType ?? null
+    };
+    for (const key of sourceProjectileKeys(relation)) {
+      appendMappedValue(sourceNpcsByProjectileKey, key, summary);
+    }
+  }
 
   const projectionProjectiles = relationProjectiles.map((row) => {
     const raw = parseJsonObject(row.rawJson);
     const flags = parseJsonObject(row.flagsJson);
     const image = projectileImages.get(row.internalName);
+    const projectileKeys = projectionProjectileKeys(row);
+    const sourceItems = collectMappedValues(sourceItemsByProjectileKey, projectileKeys);
+    const sourceNpcs = collectMappedValues(sourceNpcsByProjectileKey, projectileKeys);
     return {
       id: toNullableNumber(row.sourceId),
       relationRecordKey: row.recordKey,
@@ -310,6 +407,8 @@ export function buildProjectionPayload({
       friendly: toFlag(coalesceDefined(flags.friendly, raw.friendly)),
       hostile: toFlag(coalesceDefined(flags.hostile, raw.hostile)),
       tileCollide: toFlag(coalesceDefined(flags.tileCollide, raw.tileCollide)),
+      sourceItemsJson: JSON.stringify(sourceItems),
+      sourceNpcsJson: JSON.stringify(sourceNpcs),
       rawJson: row.rawJson ?? null,
       status: 1,
       deleted: 0,

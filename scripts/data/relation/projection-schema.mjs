@@ -110,6 +110,8 @@ function buildProjectionStatements() {
   \`friendly\` TINYINT(1) DEFAULT NULL,
   \`hostile\` TINYINT(1) DEFAULT NULL,
   \`tile_collide\` TINYINT(1) DEFAULT NULL,
+  \`source_items_json\` LONGTEXT,
+  \`source_npcs_json\` LONGTEXT,
   \`raw_json\` LONGTEXT,
   \`status\` INT NOT NULL DEFAULT 1,
   \`deleted\` TINYINT NOT NULL DEFAULT 0,
