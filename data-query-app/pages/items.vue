@@ -136,7 +136,7 @@
                     {{ switchingStatusId === row.id ? '切换中...' : getStatusLabel(row.status) }}
                   </button>
                 </td>
-                <td>{{ getGamePeriodLabel(row.gamePeriodId, row.gamePeriod) }} / {{ getGameModelLabel(row.gameModelId) }}</td>
+                <td>{{ getGamePeriodLabel(row.gamePeriodId, row.gamePeriod) }}</td>
                 <td>{{ getStackLabel(row.isStackable, row.stackSize) }}</td>
                 <td>{{ formatDateTime(row.updatedAt) }}</td>
                 <td>
@@ -404,7 +404,7 @@ const getRarityInfo = (item: Partial<Item>) => getRarityPresentation({ rarity: i
 const getStatusType = (status?: number | null) => (status === 1 ? 'success' : status === 0 ? 'danger' : 'info')
 const getStatusLabel = (status?: number | null) => (status === 1 ? '启用' : status === 0 ? '禁用' : '未知')
 const getGamePeriodLabel = (gamePeriodId?: number | null, gamePeriod?: string | null) => supportDomainsStore.getGamePeriodLabel(gamePeriodId, gamePeriod)
-const getGameModelLabel = (gameModelId?: number | null) => ({ 0: '普通模式', 1: '专家模式', 2: '大师模式' }[gameModelId ?? 0] ?? `模式 ${gameModelId}`)
+const getGameModelLabel = (gameModelId?: number | null) => gameModelId == null ? '未设置' : ({ 0: '普通模式', 1: '专家模式', 2: '大师模式' }[gameModelId] ?? `模式 ${gameModelId}`)
 const getStackLabel = (isStackable?: boolean, stackSize?: number | null) => (isStackable === false ? '不可堆叠' : stackSize != null ? String(stackSize) : '--')
 const getCategoryPathText = (item: Item) => {
   if (Array.isArray(item.categoryPaths) && item.categoryPaths.length > 0) {

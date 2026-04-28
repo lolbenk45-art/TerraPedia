@@ -200,7 +200,7 @@ function handleImageError() { imageVisible.value = false }
 function getStatusType(status?: number | null) { if (status === 1) return 'success'; if (status === 0) return 'danger'; return 'info' }
 function getStatusLabel(status?: number | null) { if (status === 1) return '启用'; if (status === 0) return '禁用'; return '未知' }
 function getGamePeriodLabel(gamePeriodId?: number | null, gamePeriod?: string | null) { return supportDomainsStore.getGamePeriodLabel(gamePeriodId, gamePeriod) }
-function getGameModelLabel(gameModelId?: number | null) { const map: Record<number, string> = { 0: '普通模式', 1: '专家模式', 2: '大师模式' }; const id = gameModelId ?? 0; return map[id] ?? `模式 ${id}` }
+function getGameModelLabel(gameModelId?: number | null) { if (gameModelId == null) return '未设置'; const map: Record<number, string> = { 0: '普通模式', 1: '专家模式', 2: '大师模式' }; return map[gameModelId] ?? `模式 ${gameModelId}` }
 function getStackLabel(isStackable?: boolean | null, stackSize?: number | null) { if (isStackable === false) return '不可堆叠'; if (stackSize != null) return String(stackSize); if (isStackable === true) return '可堆叠'; return '--' }
 function formatDate(date?: string | number | null) { if (!date) return '--'; return new Date(date).toLocaleString('zh-CN') }
 function formatText(value?: string | null) { return value && value.trim() ? value : '--' }

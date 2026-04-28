@@ -1,0 +1,1963 @@
+{
+  "source": "terraria.wiki.gg/zh/wiki/盔甲",
+  "sourceApi": "https://terraria.wiki.gg/zh/api.php",
+  "sourcePageTitle": "盔甲",
+  "sourceRevisionTimestamp": "2026-04-04T07:46:03Z",
+  "fetchedAt": "2026-04-27T23:31:32.948Z",
+  "generatedAt": "2026-04-27T23:31:32.955Z",
+  "total": 67,
+  "records": [
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Mining armor",
+      "nameEn": "Mining armor",
+      "nameZh": "挖矿盔甲",
+      "images": [
+        {
+          "fileTitle": "Mining armor.png",
+          "url": "https://terraria.wiki.gg/images/Mining_armor.png?557b30",
+          "width": 24,
+          "height": 44,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Mining armor female.png",
+          "url": "https://terraria.wiki.gg/images/Mining_armor_female.png?25a7d6",
+          "width": 24,
+          "height": 44,
+          "role": "female",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Ultrabright Helmet (equipped).png",
+          "url": "https://terraria.wiki.gg/images/Ultrabright_Helmet_%28equipped%29.png?390bcf",
+          "width": 24,
+          "height": 46,
+          "role": "other",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Ultrabright Helmet (equipped) female.png",
+          "url": "https://terraria.wiki.gg/images/Ultrabright_Helmet_%28equipped%29_female.png?dfe8e1",
+          "width": 30,
+          "height": 46,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+20% 挖矿速度\n挖矿头盔和超亮头盔可以互换\n套装奖励：+10% 挖矿速度（总共 +30%）\n效果：头盔部件会发光\n超亮头盔额外提供类似夜猫子药水的效果",
+      "sourceText": "挖矿头盔：由商人以 4 GC 的价格出售\n挖矿头盔罕见掉落自不死矿工\n超亮头盔：用挖矿头盔和 夜视头盔(电脑版、主机版、和移动版)在工匠作坊制作\n裤装和上衣：罕见掉落自不死矿工",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Wood armor",
+      "nameEn": "Wood armor",
+      "nameZh": "木盔甲",
+      "images": [
+        {
+          "fileTitle": "Wood armor.png",
+          "url": "https://terraria.wiki.gg/images/Wood_armor.png?ef83ed",
+          "width": 26,
+          "height": 44,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Wood armor female.png",
+          "url": "https://terraria.wiki.gg/images/Wood_armor_female.png?d68c10",
+          "width": 26,
+          "height": 44,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：+1 防御",
+      "sourceText": "75 木材\n在工作台制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Rich Mahogany armor",
+      "nameEn": "Rich Mahogany armor",
+      "nameZh": "红木盔甲",
+      "images": [
+        {
+          "fileTitle": "Rich Mahogany armor.png",
+          "url": "https://terraria.wiki.gg/images/Rich_Mahogany_armor.png?c357dd",
+          "width": 26,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Rich Mahogany armor female.png",
+          "url": "https://terraria.wiki.gg/images/Rich_Mahogany_armor_female.png?cb76c1",
+          "width": 26,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：+1 防御",
+      "sourceText": "75 红木\n在工作台制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Boreal Wood armor",
+      "nameEn": "Boreal Wood armor",
+      "nameZh": "针叶木盔甲",
+      "images": [
+        {
+          "fileTitle": "Boreal Wood armor.png",
+          "url": "https://terraria.wiki.gg/images/Boreal_Wood_armor.png?b3dfd3",
+          "width": 26,
+          "height": 52,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Boreal Wood armor female.png",
+          "url": "https://terraria.wiki.gg/images/Boreal_Wood_armor_female.png?ab53d6",
+          "width": 26,
+          "height": 52,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：+1 防御",
+      "sourceText": "75 针叶木(电脑版、主机版、前代主机版、和移动版)\n在工作台制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Palm Wood armor",
+      "nameEn": "Palm Wood armor",
+      "nameZh": "棕榈木盔甲",
+      "images": [
+        {
+          "fileTitle": "Palm Wood armor.png",
+          "url": "https://terraria.wiki.gg/images/Palm_Wood_armor.png?688ddd",
+          "width": 26,
+          "height": 46,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Palm Wood armor female.png",
+          "url": "https://terraria.wiki.gg/images/Palm_Wood_armor_female.png?e129b0",
+          "width": 26,
+          "height": 46,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：+1 防御",
+      "sourceText": "75 棕榈木(电脑版、主机版、前代主机版、和移动版)\n在工作台制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Ebonwood armor",
+      "nameEn": "Ebonwood armor",
+      "nameZh": "乌木盔甲",
+      "images": [
+        {
+          "fileTitle": "Ebonwood armor.png",
+          "url": "https://terraria.wiki.gg/images/Ebonwood_armor.png?ac372f",
+          "width": 26,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Ebonwood armor female.png",
+          "url": "https://terraria.wiki.gg/images/Ebonwood_armor_female.png?bc9edf",
+          "width": 26,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：+1 防御",
+      "sourceText": "75 乌木\n在工作台制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Shadewood armor",
+      "nameEn": "Shadewood armor",
+      "nameZh": "暗影木盔甲",
+      "images": [
+        {
+          "fileTitle": "Shadewood armor.png",
+          "url": "https://terraria.wiki.gg/images/Shadewood_armor.png?1bc5b4",
+          "width": 28,
+          "height": 46,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Shadewood armor female.png",
+          "url": "https://terraria.wiki.gg/images/Shadewood_armor_female.png?d742ba",
+          "width": 28,
+          "height": 46,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：+1 防御",
+      "sourceText": "75 暗影木\n在工作台制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Ash Wood armor",
+      "nameEn": "Ash Wood armor",
+      "nameZh": "灰烬木盔甲",
+      "images": [
+        {
+          "fileTitle": "Ash Wood armor.png",
+          "url": "https://terraria.wiki.gg/images/Ash_Wood_armor.png?64335e",
+          "width": 28,
+          "height": 50,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Ash Wood armor female.png",
+          "url": "https://terraria.wiki.gg/images/Ash_Wood_armor_female.png?d3ca8f",
+          "width": 28,
+          "height": 50,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：将熔岩的接触伤害和所造成的着火了！减益持续时间降低 50%",
+      "sourceText": "75 灰烬木(电脑版、主机版、和移动版)\n在工作台制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Rain armor",
+      "nameEn": "Rain armor",
+      "nameZh": "雨具盔甲",
+      "images": [
+        {
+          "fileTitle": "Rain armor.png",
+          "url": "https://terraria.wiki.gg/images/Rain_armor.png?b8a97d",
+          "width": 32,
+          "height": 46,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Rain armor female.png",
+          "url": "https://terraria.wiki.gg/images/Rain_armor_female.png?fa034e",
+          "width": 34,
+          "height": 46,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "",
+      "sourceText": "罕见掉落自雨衣僵尸",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Snow armor",
+      "nameEn": "Snow armor",
+      "nameZh": "防雪盔甲",
+      "images": [
+        {
+          "fileTitle": "Snow armor.png",
+          "url": "https://terraria.wiki.gg/images/Snow_armor.png?efed40",
+          "width": 24,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Snow armor female.png",
+          "url": "https://terraria.wiki.gg/images/Snow_armor_female.png?da8406",
+          "width": 24,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：免疫冷冻和冰冻减益",
+      "sourceText": "罕见掉落自冰冻僵尸",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Pink Snow armor",
+      "nameEn": "Pink Snow armor",
+      "nameZh": "粉色防雪盔甲",
+      "images": [
+        {
+          "fileTitle": "Pink Snow armor.png",
+          "url": "https://terraria.wiki.gg/images/Pink_Snow_armor.png?473779",
+          "width": 24,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Pink Snow armor female.png",
+          "url": "https://terraria.wiki.gg/images/Pink_Snow_armor_female.png?6e71fb",
+          "width": 24,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：免疫冷冻和冰冻减益",
+      "sourceText": "1 防雪兜帽(电脑版、主机版、和移动版)\n1 防雪大衣(电脑版、主机版、和移动版)\n1 防雪裤(电脑版、主机版、和移动版)\n9 粉线\n在工作台制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Angler armor",
+      "nameEn": "Angler armor",
+      "nameZh": "渔夫盔甲",
+      "images": [
+        {
+          "fileTitle": "Angler armor.png",
+          "url": "https://terraria.wiki.gg/images/Angler_armor.png?dbcd0b",
+          "width": 24,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Angler armor female.png",
+          "url": "https://terraria.wiki.gg/images/Angler_armor_female.png?6cd330",
+          "width": 30,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+15 渔力\n套装奖励：降低敌怪生成速度",
+      "sourceText": "来自渔夫的任务奖励",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Cactus armor",
+      "nameEn": "Cactus armor",
+      "nameZh": "仙人掌盔甲",
+      "images": [
+        {
+          "fileTitle": "Cactus armor.png",
+          "url": "https://terraria.wiki.gg/images/Cactus_armor.png?1bdd59",
+          "width": 34,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Cactus armor female.png",
+          "url": "https://terraria.wiki.gg/images/Cactus_armor_female.png?33b212",
+          "width": 34,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：提供荆棘效果，造成 15 / 30 / 45 伤害和 10 击退",
+      "sourceText": "75 仙人掌\n在工作台制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Copper armor",
+      "nameEn": "Copper armor",
+      "nameZh": "铜盔甲",
+      "images": [
+        {
+          "fileTitle": "Copper armor.png",
+          "url": "https://terraria.wiki.gg/images/Copper_armor.png?22d599",
+          "width": 26,
+          "height": 44,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Copper armor female.png",
+          "url": "https://terraria.wiki.gg/images/Copper_armor_female.png?3efc20",
+          "width": 26,
+          "height": 44,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：+2 防御",
+      "sourceText": "48 铜锭\n在铁砧/铅砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Tin armor",
+      "nameEn": "Tin armor",
+      "nameZh": "锡盔甲",
+      "images": [
+        {
+          "fileTitle": "Tin armor.png",
+          "url": "https://terraria.wiki.gg/images/Tin_armor.png?a360e1",
+          "width": 26,
+          "height": 44,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Tin armor female.png",
+          "url": "https://terraria.wiki.gg/images/Tin_armor_female.png?2e7121",
+          "width": 26,
+          "height": 44,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：+2 防御",
+      "sourceText": "48 锡锭\n在铁砧/铅砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Pumpkin armor",
+      "nameEn": "Pumpkin armor",
+      "nameZh": "南瓜盔甲",
+      "images": [
+        {
+          "fileTitle": "Pumpkin armor.png",
+          "url": "https://terraria.wiki.gg/images/Pumpkin_armor.png?663006",
+          "width": 26,
+          "height": 50,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Pumpkin armor female.png",
+          "url": "https://terraria.wiki.gg/images/Pumpkin_armor_female.png?948938",
+          "width": 26,
+          "height": 50,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：+10% 伤害",
+      "sourceText": "75 南瓜\n在工作台制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Ninja armor",
+      "nameEn": "Ninja armor",
+      "nameZh": "忍者盔甲",
+      "images": [
+        {
+          "fileTitle": "Ninja armor.png",
+          "url": "https://terraria.wiki.gg/images/Ninja_armor.png?4fb514",
+          "width": 24,
+          "height": 44,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Ninja armor female.png",
+          "url": "https://terraria.wiki.gg/images/Ninja_armor_female.png?798f68",
+          "width": 24,
+          "height": 44,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+9% 暴击率\n套装奖励：+20% 移动速度\n套装效果：移动时身后有拖影效果",
+      "sourceText": "掉落自史莱姆王",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Iron armor",
+      "nameEn": "Iron armor",
+      "nameZh": "铁盔甲",
+      "images": [
+        {
+          "fileTitle": "Iron armor.png",
+          "url": "https://terraria.wiki.gg/images/Iron_armor.png?2d6066",
+          "width": 26,
+          "height": 44,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Iron armor female.png",
+          "url": "https://terraria.wiki.gg/images/Iron_armor_female.png?8020aa",
+          "width": 26,
+          "height": 44,
+          "role": "female",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Ancient Iron Helmet (equipped).png",
+          "url": "https://terraria.wiki.gg/images/Ancient_Iron_Helmet_%28equipped%29.png?6108b9",
+          "width": 26,
+          "height": 46,
+          "role": "other",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Ancient Iron Helmet (equipped) female.png",
+          "url": "https://terraria.wiki.gg/images/Ancient_Iron_Helmet_%28equipped%29_female.png?6947f6",
+          "width": 26,
+          "height": 46,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：+2 防御\n远古铁头盔和铁头盔可以互换",
+      "sourceText": "60 铁锭\n在铁砧/铅砧制作\n远古铁头盔罕见掉落自骷髅",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Lead armor",
+      "nameEn": "Lead armor",
+      "nameZh": "铅盔甲",
+      "images": [
+        {
+          "fileTitle": "Lead armor.png",
+          "url": "https://terraria.wiki.gg/images/Lead_armor.png?b791d6",
+          "width": 28,
+          "height": 44,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Lead armor female.png",
+          "url": "https://terraria.wiki.gg/images/Lead_armor_female.png?d00f2a",
+          "width": 28,
+          "height": 44,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：+3 防御",
+      "sourceText": "60 铅锭\n在铁砧/铅砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Silver armor",
+      "nameEn": "Silver armor",
+      "nameZh": "银盔甲",
+      "images": [
+        {
+          "fileTitle": "Silver armor.png",
+          "url": "https://terraria.wiki.gg/images/Silver_armor.png?56f205",
+          "width": 26,
+          "height": 46,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Silver armor female.png",
+          "url": "https://terraria.wiki.gg/images/Silver_armor_female.png?5d385d",
+          "width": 26,
+          "height": 46,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：+3 防御",
+      "sourceText": "60 银锭\n在铁砧/铅砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Tungsten armor",
+      "nameEn": "Tungsten armor",
+      "nameZh": "钨盔甲",
+      "images": [
+        {
+          "fileTitle": "Tungsten armor.png",
+          "url": "https://terraria.wiki.gg/images/Tungsten_armor.png?b947cd",
+          "width": 26,
+          "height": 44,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Tungsten armor female.png",
+          "url": "https://terraria.wiki.gg/images/Tungsten_armor_female.png?f0dea9",
+          "width": 26,
+          "height": 44,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：+3 防御",
+      "sourceText": "60 钨锭\n在铁砧/铅砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Gold armor",
+      "nameEn": "Gold armor",
+      "nameZh": "金盔甲",
+      "images": [
+        {
+          "fileTitle": "Gold armor.png",
+          "url": "https://terraria.wiki.gg/images/Gold_armor.png?d37381",
+          "width": 28,
+          "height": 46,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Gold armor female.png",
+          "url": "https://terraria.wiki.gg/images/Gold_armor_female.png?d75cff",
+          "width": 28,
+          "height": 46,
+          "role": "female",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Ancient Gold Helmet (equipped).png",
+          "url": "https://terraria.wiki.gg/images/Ancient_Gold_Helmet_%28equipped%29.png?5ef2d7",
+          "width": 26,
+          "height": 46,
+          "role": "other",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Ancient Gold Helmet (equipped) female.png",
+          "url": "https://terraria.wiki.gg/images/Ancient_Gold_Helmet_%28equipped%29_female.png?c8e231",
+          "width": 26,
+          "height": 46,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：+3 防御\n远古金头盔和金头盔可以互换",
+      "sourceText": "75 金锭\n在铁砧/铅砧制作\n远古金头盔罕见掉落自骷髅",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Platinum armor",
+      "nameEn": "Platinum armor",
+      "nameZh": "铂金盔甲",
+      "images": [
+        {
+          "fileTitle": "Platinum armor.png",
+          "url": "https://terraria.wiki.gg/images/Platinum_armor.png?ce5552",
+          "width": 28,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Platinum armor female.png",
+          "url": "https://terraria.wiki.gg/images/Platinum_armor_female.png?5dae15",
+          "width": 28,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：+4 防御",
+      "sourceText": "75 铂金锭\n在铁砧/铅砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Fossil armor",
+      "nameEn": "Fossil armor",
+      "nameZh": "化石盔甲",
+      "images": [
+        {
+          "fileTitle": "Fossil armor.png",
+          "url": "https://terraria.wiki.gg/images/Fossil_armor.png?b871c3",
+          "width": 28,
+          "height": 44,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Fossil armor female.png",
+          "url": "https://terraria.wiki.gg/images/Fossil_armor_female.png?505d3c",
+          "width": 28,
+          "height": 44,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+5% 远程伤害\n+8% 远程暴击率\n套装奖励：20% 的几率不消耗弹药",
+      "sourceText": "60 坚固化石(电脑版、主机版、和移动版)\n在铁砧/铅砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Bee armor",
+      "nameEn": "Bee armor",
+      "nameZh": "蜜蜂盔甲",
+      "images": [
+        {
+          "fileTitle": "Bee armor.png",
+          "url": "https://terraria.wiki.gg/images/Bee_armor.png?7a41cc",
+          "width": 26,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Bee armor female.png",
+          "url": "https://terraria.wiki.gg/images/Bee_armor_female.png?110a98",
+          "width": 26,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+13% 召唤伤害\n+2 仆从容量\n套装奖励：+10% 召唤伤害（总共 +23%）",
+      "sourceText": "30 蜂蜡(电脑版、主机版、前代主机版、和移动版)\n在铁砧/铅砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Obsidian armor",
+      "nameEn": "Obsidian armor",
+      "nameZh": "黑曜石盔甲",
+      "images": [
+        {
+          "fileTitle": "Obsidian armor.png",
+          "url": "https://terraria.wiki.gg/images/Obsidian_armor.png?1eb617",
+          "width": 34,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Obsidian armor female.png",
+          "url": "https://terraria.wiki.gg/images/Obsidian_armor_female.png?da6aa6",
+          "width": 34,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+16% 召唤伤害\n+1 仆从容量\n套装奖励：+15% 召唤伤害（总计 +31%）、+30% 鞭范围、+15% 鞭速度",
+      "sourceText": "60 黑曜石\n30 丝绸\n20 暗影鳞片 或 组织样本\n在地狱熔炉制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Gladiator armor",
+      "nameEn": "Gladiator armor",
+      "nameZh": "角斗士盔甲",
+      "images": [
+        {
+          "fileTitle": "Gladiator armor.png",
+          "url": "https://terraria.wiki.gg/images/Gladiator_armor.png?36ce52",
+          "width": 26,
+          "height": 54,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Gladiator armor female.png",
+          "url": "https://terraria.wiki.gg/images/Gladiator_armor_female.png?51c230",
+          "width": 26,
+          "height": 54,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：免疫击退",
+      "sourceText": "罕见掉落自装甲步兵",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Meteor armor",
+      "nameEn": "Meteor armor",
+      "nameZh": "流星盔甲",
+      "images": [
+        {
+          "fileTitle": "Meteor armor.png",
+          "url": "https://terraria.wiki.gg/images/Meteor_armor.png?767b93",
+          "width": 26,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Meteor armor female.png",
+          "url": "https://terraria.wiki.gg/images/Meteor_armor_female.png?aea32e",
+          "width": 26,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+27% 魔法伤害\n套装奖励：将太空枪、激光步枪、灰冲击枪、和橙冲击枪的魔力消耗降低至 0\n套装效果：移动时有火焰粒子（类似于火箭靴，但不发光）",
+      "sourceText": "45 陨石锭\n在铁砧/铅砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Jungle armor",
+      "nameEn": "Jungle armor",
+      "nameZh": "丛林盔甲",
+      "images": [
+        {
+          "fileTitle": "Jungle armor.png",
+          "url": "https://terraria.wiki.gg/images/Jungle_armor.png?2e65d1",
+          "width": 28,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Jungle armor female.png",
+          "url": "https://terraria.wiki.gg/images/Jungle_armor_female.png?ca3243",
+          "width": 28,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+6% 魔法伤害\n魔法暴击率增加 12%\n+80 最大魔力\n每个部件都可以和远古钴盔甲的部件互换\n套装奖励：−16% 魔力花费\n套装效果：移动时有草粒子",
+      "sourceText": "32 丛林孢子\n10 毒刺\n2 藤蔓\n在铁砧/铅砧制作",
+      "interchangeableSetTitles": [
+        "Ancient Cobalt armor"
+      ],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Ancient Cobalt armor",
+      "nameEn": "Ancient Cobalt armor",
+      "nameZh": "远古钴盔甲",
+      "images": [
+        {
+          "fileTitle": "Ancient Cobalt armor.png",
+          "url": "https://terraria.wiki.gg/images/Ancient_Cobalt_armor.png?fb4e68",
+          "width": 26,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Ancient Cobalt armor female.png",
+          "url": "https://terraria.wiki.gg/images/Ancient_Cobalt_armor_female.png?d7548c",
+          "width": 26,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+6% 魔法伤害\n魔法暴击率增加 12%\n+80 最大魔力\n每个部件都可以和丛林盔甲的部件互换\n套装奖励：−16% 魔力花费\n套装效果：移动时身后有拖影",
+      "sourceText": "罕见掉落自黄蜂和食人怪",
+      "interchangeableSetTitles": [
+        "Jungle armor"
+      ],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Necro armor",
+      "nameEn": "Necro armor",
+      "nameZh": "死灵盔甲",
+      "images": [
+        {
+          "fileTitle": "Necro armor.png",
+          "url": "https://terraria.wiki.gg/images/Necro_armor.png?da8a39",
+          "width": 28,
+          "height": 52,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Necro armor female.png",
+          "url": "https://terraria.wiki.gg/images/Necro_armor_female.png?dd4955",
+          "width": 28,
+          "height": 52,
+          "role": "female",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Ancient Necro Helmet (equipped).png",
+          "url": "https://terraria.wiki.gg/images/Ancient_Necro_Helmet_%28equipped%29.png?83dd57",
+          "width": 30,
+          "height": 46,
+          "role": "other",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Ancient Necro Helmet (equipped) female.png",
+          "url": "https://terraria.wiki.gg/images/Ancient_Necro_Helmet_%28equipped%29_female.png?61135f",
+          "width": 30,
+          "height": 46,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+15% 远程伤害\n套装奖励：+10% 远程暴击率\n套装效果：移动时身后有拖影，受伤时发出骨头碎裂的声音\n远古死灵头盔和死灵头盔可以互换",
+      "sourceText": "135 蛛网\n150 骨头\n在工作台制作\n远古死灵头盔罕见掉落自愤怒骷髅怪",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Shadow armor",
+      "nameEn": "Shadow armor",
+      "nameZh": "暗影盔甲",
+      "images": [
+        {
+          "fileTitle": "Shadow armor.png",
+          "url": "https://terraria.wiki.gg/images/Shadow_armor.png?342cd5",
+          "width": 26,
+          "height": 50,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Shadow armor female.png",
+          "url": "https://terraria.wiki.gg/images/Shadow_armor_female.png?2ca7a9",
+          "width": 26,
+          "height": 50,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+15% 暴击率\n每个部件都可以和远古暗影盔甲的部件互换\n套装奖励：+75% 加速度和减速度，最大移动速度 ×1.15\n套装效果：移动时身后有拖影，且火箭靴的火焰变为紫色",
+      "sourceText": "60 魔矿锭\n45 暗影鳞片\n在铁砧/铅砧制作",
+      "interchangeableSetTitles": [
+        "Ancient shadow armor"
+      ],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Ancient Shadow armor",
+      "nameEn": "Ancient Shadow armor",
+      "nameZh": "远古暗影盔甲",
+      "images": [
+        {
+          "fileTitle": "Ancient Shadow armor.png",
+          "url": "https://terraria.wiki.gg/images/Ancient_Shadow_armor.png?ce084e",
+          "width": 26,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Ancient Shadow armor female.png",
+          "url": "https://terraria.wiki.gg/images/Ancient_Shadow_armor_female.png?95d8c6",
+          "width": 26,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+15% 暴击率\n每个部件都可以和暗影盔甲的部件互换\n套装奖励：+75% 加速度和减速度，最大移动速度 ×1.15\n套装效果：移动时身后有拖影，且火箭靴的火焰变为紫色",
+      "sourceText": "罕见掉落自噬魂怪",
+      "interchangeableSetTitles": [
+        "shadow armor"
+      ],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Crimson armor",
+      "nameEn": "Crimson armor",
+      "nameZh": "猩红盔甲",
+      "images": [
+        {
+          "fileTitle": "Crimson armor.png",
+          "url": "https://terraria.wiki.gg/images/Crimson_armor.png?ace319",
+          "width": 28,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Crimson armor female.png",
+          "url": "https://terraria.wiki.gg/images/Crimson_armor_female.png?d0a37d",
+          "width": 28,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+9% 伤害\n套装奖励：大幅提高生命再生速度\n套装效果：在移动时与再生生命时会发出红色粒子",
+      "sourceText": "60 猩红矿锭\n45 组织样本\n在铁砧/铅砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "pre-hardmode",
+      "pageTitle": "Molten armor",
+      "nameEn": "Molten armor",
+      "nameZh": "熔岩盔甲",
+      "images": [
+        {
+          "fileTitle": "Molten armor.png",
+          "url": "https://terraria.wiki.gg/images/Molten_armor.png?d73048",
+          "width": 26,
+          "height": 42,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Molten armor female.png",
+          "url": "https://terraria.wiki.gg/images/Molten_armor_female.png?6611cf",
+          "width": 26,
+          "height": 42,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+7% 近战伤害\n+7% 近战暴击率\n+7% 近战速度\n套装奖励：免疫着火了！\n+10% 近战伤害（总计 +17%）\n套装效果：移动时有火焰粒子",
+      "sourceText": "45 狱石锭\n在铁砧/铅砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Pearlwood armor",
+      "nameEn": "Pearlwood armor",
+      "nameZh": "珍珠木盔甲",
+      "images": [
+        {
+          "fileTitle": "Pearlwood armor.png",
+          "url": "https://terraria.wiki.gg/images/Pearlwood_armor.png?f328f9",
+          "width": 30,
+          "height": 50,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Pearlwood armor female.png",
+          "url": "https://terraria.wiki.gg/images/Pearlwood_armor_female.png?ae9e6f",
+          "width": 30,
+          "height": 50,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "套装奖励：+1 防御",
+      "sourceText": "75 珍珠木\n在工作台制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Spider armor",
+      "nameEn": "Spider armor",
+      "nameZh": "蜘蛛盔甲",
+      "images": [
+        {
+          "fileTitle": "Spider armor.png",
+          "url": "https://terraria.wiki.gg/images/Spider_armor.png?5e8a58",
+          "width": 46,
+          "height": 46,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Spider armor female.png",
+          "url": "https://terraria.wiki.gg/images/Spider_armor_female.png?8c8a8d",
+          "width": 46,
+          "height": 46,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+16% 召唤伤害\n+3 仆从容量\n套装奖励：+12% 召唤伤害（总共 +28%）",
+      "sourceText": "36 蜘蛛牙(电脑版、主机版、前代主机版、和移动版)\n在秘银砧/山铜砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Cobalt armor",
+      "nameEn": "Cobalt armor",
+      "nameZh": "钴盔甲",
+      "images": [
+        {
+          "fileTitle": "Cobalt armor.png",
+          "url": "https://terraria.wiki.gg/images/Cobalt_armor.png?459f3c",
+          "width": 92,
+          "height": 46,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Cobalt armor female.png",
+          "url": "https://terraria.wiki.gg/images/Cobalt_armor_female.png?32be49",
+          "width": 96,
+          "height": 46,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+3% 伤害\n+5% 暴击率\n+10% 移动速度\n钴帽：+10% 魔法伤害、+9% 魔法暴击率、+40 最大魔力\n套装奖励：−14% 魔力花费\n钴面具：+10% 远程伤害、+10% 远程暴击率\n套装奖励：20% 的几率不消耗弹药\n钴头盔：+15% 近战伤害、+10% 移动速度\n套装奖励：+15% 近战速度\n套装效果：移动时身后有拖影效果",
+      "sourceText": "45 钴锭\n在铁砧/铅砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Palladium armor",
+      "nameEn": "Palladium armor",
+      "nameZh": "钯金盔甲",
+      "images": [
+        {
+          "fileTitle": "Palladium armor.png",
+          "url": "https://terraria.wiki.gg/images/Palladium_armor.png?448871",
+          "width": 98,
+          "height": 50,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Palladium armor female.png",
+          "url": "https://terraria.wiki.gg/images/Palladium_armor_female.png?8dd17c",
+          "width": 98,
+          "height": 50,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+5% 伤害\n+3% 暴击率\n钯金头饰：+9% 魔法伤害、+9% 魔法暴击率、+60 最大魔力\n钯金头盔：+9% 远程伤害、+9% 远程暴击率\n钯金面具：+12% 近战伤害、+12% 近战速度\n套装奖励：击中敌怪后提供快速治疗增益，提高生命再生，持续 5 秒",
+      "sourceText": "54 钯金锭\n在铁砧/铅砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Mythril armor",
+      "nameEn": "Mythril armor",
+      "nameZh": "秘银盔甲",
+      "images": [
+        {
+          "fileTitle": "Mythril armor.png",
+          "url": "https://terraria.wiki.gg/images/Mythril_armor.png?863af7",
+          "width": 92,
+          "height": 46,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Mythril armor female.png",
+          "url": "https://terraria.wiki.gg/images/Mythril_armor_female.png?39f2b5",
+          "width": 92,
+          "height": 46,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+7% 伤害\n+10% 暴击率\n秘银兜帽：+15% 魔法伤害、+60 最大魔力\n套装奖励：魔力消耗降低 17%\n秘银帽：+12% 远程伤害、+7% 远程暴击率\n套装奖励：20% 的几率不消耗弹药\n秘银头盔：+10% 近战伤害、+8% 近战暴击率\n套装奖励：+10% 近战暴击率（总共 +28%）",
+      "sourceText": "45 秘银锭\n在秘银砧/山铜砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Orichalcum armor",
+      "nameEn": "Orichalcum armor",
+      "nameZh": "山铜盔甲",
+      "images": [
+        {
+          "fileTitle": "Orichalcum armor.png",
+          "url": "https://terraria.wiki.gg/images/Orichalcum_armor.png?4f3798",
+          "width": 92,
+          "height": 52,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Orichalcum armor female.png",
+          "url": "https://terraria.wiki.gg/images/Orichalcum_armor_female.png?1ba291",
+          "width": 92,
+          "height": 52,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+8% 伤害\n+6% 暴击率\n+11% 移动速度\n山铜头饰：+18% 魔法暴击率、+80 最大魔力\n山铜头盔：+15% 远程暴击率、+8% 移动速度\n山铜面具：+11% 近战伤害、+11% 近战速度、+7% 移动速度\n套装奖励：击中敌怪后发射一个花瓣，造成 36 伤害且能无限穿透敌怪",
+      "sourceText": "54 山铜锭\n在秘银砧/山铜砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Adamantite armor",
+      "nameEn": "Adamantite armor",
+      "nameZh": "精金盔甲",
+      "images": [
+        {
+          "fileTitle": "Adamantite armor.png",
+          "url": "https://terraria.wiki.gg/images/Adamantite_armor.png?4debb0",
+          "width": 94,
+          "height": 50,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Adamantite armor female.png",
+          "url": "https://terraria.wiki.gg/images/Adamantite_armor_female.png?222877",
+          "width": 94,
+          "height": 50,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+8% 伤害\n+7% 暴击率\n+5% 移动速度\n精金头饰：+12% 魔法伤害、+12% 暴击率、+80 最大魔力\n套装奖励：−19% 魔力消耗\n精金面具：+14% 远程伤害、+10% 远程暴击率\n套装奖励：25%的几率不消耗弹药\n精金头盔：+14% 近战伤害、+7% 近战暴击率\n套装奖励：+20% 近战速度、+20% 移动速度（总计 +25%）\n套装效果：玩家的轮廓有脉动效果",
+      "sourceText": "54 精金锭\n在秘银砧/山铜砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Titanium armor",
+      "nameEn": "Titanium armor",
+      "nameZh": "钛金盔甲",
+      "images": [
+        {
+          "fileTitle": "Titanium armor.png",
+          "url": "https://terraria.wiki.gg/images/Titanium_armor.png?2237cf",
+          "width": 100,
+          "height": 50,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Titanium armor female.png",
+          "url": "https://terraria.wiki.gg/images/Titanium_armor_female.png?66fa51",
+          "width": 100,
+          "height": 50,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+7% 伤害\n+6% 暴击率\n+6% 移动速度\n钛金头饰：+16% 魔法伤害、+7% 魔法暴击率、+100 最大魔力\n钛金头盔：+16% 远程伤害、+7% 远程暴击率\n钛金面具：+9% 近战伤害、+9% 近战暴击率、+9% 近战速度\n套装奖励：击中敌怪后提供钛金屏障增益，在玩家周围召唤钛金碎片造成 50 伤害和 15 击退，持续 10 秒",
+      "sourceText": "59 钛金锭\n在秘银砧/山铜砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Crystal Assassin armor",
+      "nameEn": "Crystal Assassin armor",
+      "nameZh": "水晶刺客盔甲",
+      "images": [
+        {
+          "fileTitle": "Crystal Assassin armor.png",
+          "url": "https://terraria.wiki.gg/images/Crystal_Assassin_armor.png?8d4fbe",
+          "width": 32,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Crystal Assassin armor female.png",
+          "url": "https://terraria.wiki.gg/images/Crystal_Assassin_armor_female.png?1e2625",
+          "width": 32,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+5% 伤害\n+5% 暴击率\n+10% 近战速度\n10% 的几率不消耗弹药\n−10% 魔力消耗\n+20% 移动速度\n套装奖励：允许猛冲、+10% 伤害（总计 +15%）、+10% 暴击率（总计 +15%）。",
+      "sourceText": "掉落自史莱姆皇后",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Frost armor",
+      "nameEn": "Frost armor",
+      "nameZh": "寒霜盔甲",
+      "images": [
+        {
+          "fileTitle": "Frost armor.png",
+          "url": "https://terraria.wiki.gg/images/Frost_armor.png?64f8e0",
+          "width": 28,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Frost armor female.png",
+          "url": "https://terraria.wiki.gg/images/Frost_armor_female.png?2de9a7",
+          "width": 28,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+16% 近战伤害\n+16% 远程伤害\n+11% 近战暴击率\n+11% 远程暴击率\n+10% 近战攻击速度\n+8% 移动速度\n套装奖励：近战和远程攻击造成冻伤\n+10% melee damage (+26% total),\n套装效果：移动时有雪花尾迹，受伤时发出冰破碎的声音",
+      "sourceText": "46 钛金锭或精金锭\n3 寒霜核(电脑版、主机版、前代主机版、和移动版)\n在秘银砧/山铜砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Forbidden armor",
+      "nameEn": "Forbidden armor",
+      "nameZh": "禁戒盔甲",
+      "images": [
+        {
+          "fileTitle": "Forbidden armor.png",
+          "url": "https://terraria.wiki.gg/images/Forbidden_armor.png?b4e054",
+          "width": 32,
+          "height": 50,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Forbidden armor female.png",
+          "url": "https://terraria.wiki.gg/images/Forbidden_armor_female.png?e28f92",
+          "width": 32,
+          "height": 50,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+25% 魔法伤害\n+25% 召唤伤害\n+80 最大魔力\n+2 仆从容量\n套装奖励：双击▼ 下/▲ 上[a]可消耗 20 魔力召唤远古风暴到光标位置，持续造成 20 伤害\n套装效果：移动时身后有拖影效果",
+      "sourceText": "46 钛金锭或精金锭\n3 禁戒碎片(电脑版、主机版、和移动版)\n在秘银砧/山铜砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Squire armor",
+      "nameEn": "Squire armor",
+      "nameZh": "侍卫盔甲",
+      "images": [
+        {
+          "fileTitle": "Squire armor.png",
+          "url": "https://terraria.wiki.gg/images/Squire_armor.png?78da73",
+          "width": 26,
+          "height": 52,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Squire armor female.png",
+          "url": "https://terraria.wiki.gg/images/Squire_armor_female.png?49b0c0",
+          "width": 26,
+          "height": 52,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+15% 近战伤害\n+30% 召唤伤害\n+15% 近战暴击率\n+1 哨兵容量\n+15% 移动速度\n生命再生速度提高\n套装奖励：\n+1 哨兵容量（总计 +2）\n弩车的射弹速度和穿透提升\n受到伤害时提供弩车恐慌！增益，提高弩车的攻击速度",
+      "sourceText": "由酒馆老板出售，价格为 450000*45 （全套）",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Monk armor",
+      "nameEn": "Monk armor",
+      "nameZh": "武僧盔甲",
+      "images": [
+        {
+          "fileTitle": "Monk armor.png",
+          "url": "https://terraria.wiki.gg/images/Monk_armor.png?e71078",
+          "width": 24,
+          "height": 42,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Monk armor female.png",
+          "url": "https://terraria.wiki.gg/images/Monk_armor_female.png?2e1fcc",
+          "width": 24,
+          "height": 42,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+20% 近战伤害\n+30% 召唤伤害\n+15% 近战暴击率\n+20% 近战速度\n+1 哨兵容量\n+20% 移动速度\n套装奖励：\n+1 哨兵容量（总计 +2）\n闪电光环的攻击速度提高，且具有 1/6 (16.67%) 的固定暴击率",
+      "sourceText": "由酒馆老板出售，价格为 450000*45 （全套）",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Huntress armor",
+      "nameEn": "Huntress armor",
+      "nameZh": "女猎人盔甲",
+      "images": [
+        {
+          "fileTitle": "Huntress armor.png",
+          "url": "https://terraria.wiki.gg/images/Huntress_armor.png?7c5971",
+          "width": 28,
+          "height": 46,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Huntress armor female.png",
+          "url": "https://terraria.wiki.gg/images/Huntress_armor_female.png?3c27a9",
+          "width": 28,
+          "height": 46,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+20% 远程伤害\n+30% 召唤伤害\n+10% 远程暴击率\n10% 的几率不消耗弹药\n+1 哨兵容量\n+20% 移动速度\n套装奖励：\n+1 哨兵容量（总计 +2）\n爆炸陷阱的攻击速度提高，造成涂油减益，提高火焰减益对敌怪的伤害",
+      "sourceText": "由酒馆老板出售，价格为 450000*45 （全套）",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Apprentice armor",
+      "nameEn": "Apprentice armor",
+      "nameZh": "学徒盔甲",
+      "images": [
+        {
+          "fileTitle": "Apprentice armor.png",
+          "url": "https://terraria.wiki.gg/images/Apprentice_armor.png?54e6a2",
+          "width": 30,
+          "height": 52,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Apprentice armor female.png",
+          "url": "https://terraria.wiki.gg/images/Apprentice_armor_female.png?8846b2",
+          "width": 30,
+          "height": 52,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+20% 魔法伤害\n+30% 召唤伤害\n+20% 魔法暴击率\n−10% 魔力消耗\n+1 哨兵容量\n+20% 移动速度\n套装奖励：\n+1 哨兵容量（总计 +2）\n爆炸烈焰的攻击范围提高 50%、射弹速度提高 40%、增加视野",
+      "sourceText": "由酒馆老板出售，价格为 450000*45 （全套）",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Hallowed armor",
+      "nameEn": "Hallowed armor",
+      "nameZh": "神圣盔甲",
+      "images": [
+        {
+          "fileTitle": "Hallowed armor.png",
+          "url": "https://terraria.wiki.gg/images/Hallowed_armor.png?8ccbab",
+          "width": 129,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Hallowed armor female.png",
+          "url": "https://terraria.wiki.gg/images/Hallowed_armor_female.png?d683aa",
+          "width": 129,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+7% 伤害\n+7% 暴击率\n+8% 移动速度\n每个部件都可以和远古神圣盔甲的部件互换\n神圣兜帽：+10% 召唤伤害、+1 仆从容量\n套装奖励：+2 仆从容量（总计 +3）\n神圣头饰：+12% 魔法伤害、+12% 暴击率、+100 最大魔力\n神圣头盔：+15% 远程伤害、+8% 远程暴击率\n神圣面具：+10% 近战伤害、+10% 暴击率、+10% 近战速度\n套装奖励：击中敌怪后提供神圣防护增益，允许闪避下一次攻击\n套装效果：身后拖影和脉动效果",
+      "sourceText": "54 神圣锭\n在秘银砧/山铜砧制作",
+      "interchangeableSetTitles": [
+        "Ancient Hallowed armor"
+      ],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Ancient Hallowed armor",
+      "nameEn": "Ancient Hallowed armor",
+      "nameZh": "远古神圣盔甲",
+      "images": [
+        {
+          "fileTitle": "Ancient Hallowed armor.png",
+          "url": "https://terraria.wiki.gg/images/Ancient_Hallowed_armor.png?ed7da6",
+          "width": 127,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Ancient Hallowed armor female.png",
+          "url": "https://terraria.wiki.gg/images/Ancient_Hallowed_armor_female.png?610c5b",
+          "width": 127,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+7% 伤害\n+7% 暴击率\n+8% 移动速度\n每个部件都可以和神圣盔甲的部件互换\n远古神圣兜帽：+10% 召唤伤害、+1 仆从容量\n套装奖励：+2 仆从容量（总计 +3）\n远古神圣头饰：+12% 魔法伤害、+12% 暴击率、+100 最大魔力\n远古神圣头盔：+15% 远程伤害、+8% 远程暴击率\n远古神圣面具：+10% 近战伤害、+10% 暴击率、+10% 近战速度\n套装奖励：击中敌怪后提供神圣防护增益，允许闪避下一次攻击\n套装效果：身后拖影和脉动效果",
+      "sourceText": "54 神圣锭\n在恶魔祭坛/猩红祭坛处制作。",
+      "interchangeableSetTitles": [
+        "Hallowed armor"
+      ],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Chlorophyte armor",
+      "nameEn": "Chlorophyte armor",
+      "nameZh": "叶绿盔甲",
+      "images": [
+        {
+          "fileTitle": "Chlorophyte armor.png",
+          "url": "https://terraria.wiki.gg/images/Chlorophyte_armor.png?61e620",
+          "width": 149,
+          "height": 50,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Chlorophyte armor female.png",
+          "url": "https://terraria.wiki.gg/images/Chlorophyte_armor_female.png?444724",
+          "width": 149,
+          "height": 50,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+5% 伤害\n+15% 暴击率\n+5% 移动速度\n叶绿面罩：+12% 召唤伤害、+1 仆从容量\n套装奖励：+2 仆从容量（总计 +3）\n叶绿头饰：+16% 魔法伤害、+80 最大魔力、−17% 魔力消耗\n叶绿头盔：+16% 远程伤害、20% 的几率不消耗弹药\n叶绿面具：+16% 近战伤害、+6% 近战暴击率\n套装奖励：5% 伤害减免\n套装奖励：玩家头上会出现永久存在的叶状水晶，攻击敌怪，造成100基础伤害",
+      "sourceText": "54 叶绿锭\n在秘银砧/山铜砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Turtle armor",
+      "nameEn": "Turtle armor",
+      "nameZh": "海龟盔甲",
+      "images": [
+        {
+          "fileTitle": "Turtle armor.png",
+          "url": "https://terraria.wiki.gg/images/Turtle_armor.png?b6f6c2",
+          "width": 32,
+          "height": 50,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Turtle armor female.png",
+          "url": "https://terraria.wiki.gg/images/Turtle_armor_female.png?79f9b3",
+          "width": 32,
+          "height": 50,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+14% 近战伤害\n+12% 近战暴击率\n+750 仇恨\n套装奖励：提供荆棘效果，造成敌怪接触伤害的 200% 伤害和 10 击退\n15% 伤害减免",
+      "sourceText": "54 叶绿锭\n3 海龟壳\n在秘银砧/山铜砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Tiki armor",
+      "nameEn": "Tiki armor",
+      "nameZh": "提基盔甲",
+      "images": [
+        {
+          "fileTitle": "Tiki armor.png",
+          "url": "https://terraria.wiki.gg/images/Tiki_armor.png?c365c6",
+          "width": 30,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Tiki armor female.png",
+          "url": "https://terraria.wiki.gg/images/Tiki_armor_female.png?dfcf24",
+          "width": 30,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+30% 召唤伤害\n+3 仆从容量\n+10% 鞭范围\n套装奖励：+1 仆从容量（总计 +4）、+20% 鞭范围（总计 +30%）",
+      "sourceText": "击败世纪之花后由巫医出售，价格为 1 PC50 GC（全套）",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Beetle armor",
+      "nameEn": "Beetle armor",
+      "nameZh": "甲虫盔甲",
+      "images": [
+        {
+          "fileTitle": "Beetle armor.png",
+          "url": "https://terraria.wiki.gg/images/Beetle_armor.png?343dd6",
+          "width": 62,
+          "height": 46,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Beetle armor female.png",
+          "url": "https://terraria.wiki.gg/images/Beetle_armor_female.png?cb8854",
+          "width": 62,
+          "height": 46,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+6% 近战伤害\n+6% 近战速度\n+6% 移动速度\n+500 仇恨\n甲虫壳：+5% 近战伤害（总计 +11%）、+5% 近战暴击率、+400 仇恨（总计 +900）\n套装奖励：玩家不受伤害时，每 3 秒提供不断累积的甲虫耐力增益，每级提供 15% 伤害减免，最高 45% 伤害减免\n增益在受伤时降低一级\n甲虫铠甲：+8% 近战伤害（总计 +14%）、+8% 近战暴击率、+6% 移动速度（总计 +12%）、+6% 近战速度（总计 +12%）\n套装奖励：对敌怪造成近战伤害后提供不断累积的甲虫力量增益，每级提供 10% 近战伤害和近战速度，最高 30% 近战伤害和近战速度",
+      "sourceText": "18 甲虫外壳 能完成套装（26个能做出所有部件）\n完整的海龟盔甲套装（如果打算两个胸部部件都做，还额外多要一个海龟铠甲）\n在秘银砧/山铜砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Shroomite armor",
+      "nameEn": "Shroomite armor",
+      "nameZh": "蘑菇矿盔甲",
+      "images": [
+        {
+          "fileTitle": "Shroomite armor.png",
+          "url": "https://terraria.wiki.gg/images/Shroomite_armor.png?6bdb4c",
+          "width": 90,
+          "height": 46,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Shroomite armor female.png",
+          "url": "https://terraria.wiki.gg/images/Shroomite_armor_female.png?21e93f",
+          "width": 94,
+          "height": 46,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+13% 远程伤害\n+25% 远程暴击率\n20% 几率不消耗弹药\n+12% 移动速度\n蘑菇矿头饰：为弓和连弩提供 1.15× 伤害倍率\n蘑菇矿面具：为枪提供 1.15× 伤害倍率\n蘑菇矿头盔：为特定远程武器（如非消耗性的非弓、连弩、或枪的武器，钱币枪除外）提供 1.15× 伤害倍率\n套装奖励：站立不动时有隐形效果：\n−750 仇恨\n最多 +60% 远程伤害、+10% 远程暴击率、和 +50% 远程击退",
+      "sourceText": "54 蘑菇矿锭\n在秘银砧/山铜砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Spectre armor",
+      "nameEn": "Spectre armor",
+      "nameZh": "幽灵盔甲",
+      "images": [
+        {
+          "fileTitle": "Spectre armor.png",
+          "url": "https://terraria.wiki.gg/images/Spectre_armor.png?bace56",
+          "width": 66,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Spectre armor female.png",
+          "url": "https://terraria.wiki.gg/images/Spectre_armor_female.png?72c6ee",
+          "width": 66,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+15% 魔法伤害\n+7% 魔法暴击率\n+8% 移动速度\n幽灵兜帽：\n套装奖励：−40% 魔法伤害（总计 −25%）\n对敌怪造成的魔法伤害的 20% 会治疗自己或附近同盟玩家中生命最低的那个\n幽灵面具：+10% 魔法伤害（总计 +25%）、+10% 魔法暴击率（总计 +17%）、+60 最大魔力、−13% 魔力消耗\n套装奖励：对敌怪造成的魔法伤害会生成能够自动追踪的球体，其伤害为造成伤害的 100%\n套装效果：半透明的视觉效果",
+      "sourceText": "54 幽灵锭(电脑版、主机版、和移动版)\n在秘银砧/山铜砧制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Spooky armor",
+      "nameEn": "Spooky armor",
+      "nameZh": "阴森盔甲",
+      "images": [
+        {
+          "fileTitle": "Spooky armor.png",
+          "url": "https://terraria.wiki.gg/images/Spooky_armor.png?31e032",
+          "width": 30,
+          "height": 52,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Spooky armor female.png",
+          "url": "https://terraria.wiki.gg/images/Spooky_armor_female.png?9b28ed",
+          "width": 30,
+          "height": 52,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+33% 召唤伤害\n+4 仆从容量\n+20% 移动速度\n套装奖励：+25% 召唤伤害（总计 +58%）\n套装效果：轮廓有脉动效果",
+      "sourceText": "750 阴森木\n在工作台制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Valhalla Knight armor",
+      "nameEn": "Valhalla Knight armor",
+      "nameZh": "英灵殿骑士盔甲",
+      "images": [
+        {
+          "fileTitle": "Valhalla Knight armor.png",
+          "url": "https://terraria.wiki.gg/images/Valhalla_Knight_armor.png?3c26b9",
+          "width": 28,
+          "height": 50,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Valhalla Knight armor female.png",
+          "url": "https://terraria.wiki.gg/images/Valhalla_Knight_armor_female.png?e64287",
+          "width": 28,
+          "height": 50,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+10% 近战伤害\n+60% 召唤伤害\n+20% 近战暴击率\n+2 哨兵容量\n+20% 移动速度\n生命再生速度提高\n套装奖励：\n+1 哨兵容量（总计 +3）\n弩车的射弹速度提升、攻击速度大幅提升、穿透提升\n受到伤害时提供弩车恐慌！增益，进一步提高弩车的攻击速度",
+      "sourceText": "由酒馆老板出售，价格为 1500000*150 （全套）",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Shinobi Infiltrator armor",
+      "nameEn": "Shinobi Infiltrator armor",
+      "nameZh": "渗透忍者盔甲",
+      "images": [
+        {
+          "fileTitle": "Shinobi Infiltrator armor.png",
+          "url": "https://terraria.wiki.gg/images/Shinobi_Infiltrator_armor.png?afed9d",
+          "width": 30,
+          "height": 46,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Shinobi Infiltrator armor female.png",
+          "url": "https://terraria.wiki.gg/images/Shinobi_Infiltrator_armor_female.png?7d70d0",
+          "width": 30,
+          "height": 46,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+20% 近战伤害\n+60% 召唤伤害\n+25% 近战暴击率\n+20% 近战速度\n+2 哨兵容量\n+30% 移动速度\n套装奖励：\n+1 哨兵容量（总计 +3）\n闪电光环的攻击速度和范围提高，且具有 25% 的固定暴击率",
+      "sourceText": "由酒馆老板出售，价格为 1500000*150 （全套）",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Red Riding armor",
+      "nameEn": "Red Riding armor",
+      "nameZh": "红色骑术盔甲",
+      "images": [
+        {
+          "fileTitle": "Red Riding armor.png",
+          "url": "https://terraria.wiki.gg/images/Red_Riding_armor.png?205e77",
+          "width": 32,
+          "height": 50,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Red Riding armor female.png",
+          "url": "https://terraria.wiki.gg/images/Red_Riding_armor_female.png?6f5d54",
+          "width": 32,
+          "height": 50,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+25% 远程伤害\n+60% 召唤伤害\n+20% 远程暴击率\n+20% 减少弹药消耗\n+2 哨兵容量\n+20% 移动速度\n套装奖励：\n+1 哨兵容量（总计 +3）\n爆炸陷阱的攻击速度提高，造成涂油减益，提高火焰减益对敌怪的伤害",
+      "sourceText": "由酒馆老板出售，价格为 1500000*150 （全套）",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Dark Artist armor",
+      "nameEn": "Dark Artist armor",
+      "nameZh": "暗黑艺术家盔甲",
+      "images": [
+        {
+          "fileTitle": "Dark Artist armor.png",
+          "url": "https://terraria.wiki.gg/images/Dark_Artist_armor.png?c2c98e",
+          "width": 32,
+          "height": 50,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Dark Artist armor female.png",
+          "url": "https://terraria.wiki.gg/images/Dark_Artist_armor_female.png?c2c98e",
+          "width": 32,
+          "height": 50,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+25% 魔法伤害\n+60% 召唤伤害\n+25% 魔法暴击率\n−15% 魔力消耗\n+2 哨兵容量\n+20% 移动速度\n套装奖励：\n+1 哨兵容量（总计 +3）\n爆炸烈焰的攻击范围提高 50%、射弹速度提高 40%、视野增加、以及更大的射弹爆炸半径\n幽灵凤凰的Phoenix projectile有更大的爆炸半径",
+      "sourceText": "由酒馆老板出售，价格为 1500000*150 （全套）",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Solar Flare armor",
+      "nameEn": "Solar Flare armor",
+      "nameZh": "耀斑盔甲",
+      "images": [
+        {
+          "fileTitle": "Solar Flare armor.png",
+          "url": "https://terraria.wiki.gg/images/Solar_Flare_armor.png?e503bc",
+          "width": 34,
+          "height": 46,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Solar Flare armor female.png",
+          "url": "https://terraria.wiki.gg/images/Solar_Flare_armor_female.png?58b2c1",
+          "width": 34,
+          "height": 46,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+29% 近战伤害\n+26% 近战暴击率\n+15% 近战速度\n12% 伤害减免\n+15% 移动速度\n+900 仇恨\n生命再生速度提高\n套装奖励：玩家不受伤害时，每 3 秒提供不断累积的日耀烈焰增益，提供 20% 伤害减免（总计 30.7%；见伤害减免 § 备注）和猛冲能力，可造成 150 伤害和 9 击退\n接触敌怪时消耗一层增益充能产生造成 150 伤害和 9 击退的爆炸\n套装效果：移动时身后有拖影",
+      "sourceText": "45 日耀碎片(电脑版、主机版、和移动版)\n36 夜明锭(电脑版、主机版、和移动版)\n在远古操纵机(电脑版、主机版、和移动版)制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Vortex armor",
+      "nameEn": "Vortex armor",
+      "nameZh": "星旋盔甲",
+      "images": [
+        {
+          "fileTitle": "Vortex armor.png",
+          "url": "https://terraria.wiki.gg/images/Vortex_armor.png?fc6ffc",
+          "width": 30,
+          "height": 44,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Vortex armor female.png",
+          "url": "https://terraria.wiki.gg/images/Vortex_armor_female.png?2df5fe",
+          "width": 30,
+          "height": 44,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+36% 远程伤害\n+27% 远程暴击率\n25% 的几率不消耗弹药\n+10% 移动速度\n套装奖励：双击 ▼ 下/▲ 上[a] 以开启隐形：\n−1200 仇恨\n最多 +80% 远程伤害、+20% 远程暴击率、和 +50% 远程击退\n移动速度 ×0.3\n效果：会发光，每多装备一个部件发出的光会更强",
+      "sourceText": "45 星旋碎片(电脑版、主机版、和移动版)\n36 夜明锭(电脑版、主机版、和移动版)\n在远古操纵机(电脑版、主机版、和移动版)制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Nebula armor",
+      "nameEn": "Nebula armor",
+      "nameZh": "星云盔甲",
+      "images": [
+        {
+          "fileTitle": "Nebula armor.png",
+          "url": "https://terraria.wiki.gg/images/Nebula_armor.png?f94489",
+          "width": 28,
+          "height": 50,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Nebula armor female.png",
+          "url": "https://terraria.wiki.gg/images/Nebula_armor_female.png?690734",
+          "width": 28,
+          "height": 50,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+26% 魔法伤害\n+16% 魔法暴击率\n+60 最大魔力\n−15% 魔力消耗\n+10% 移动速度\n套装奖励：对敌怪的魔法伤害有几率生成各种可叠加的增益强化：伤害强化焰、生命强化焰、和魔力强化焰，分别提供最多 +45% 伤害、生命再生、和魔力再生\n增益持续 8 秒，然后会下降一级",
+      "sourceText": "45 星云碎片(电脑版、主机版、和移动版)\n36 夜明锭(电脑版、主机版、和移动版)\n在远古操纵机(电脑版、主机版、和移动版)制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    },
+    {
+      "section": "hardmode",
+      "pageTitle": "Stardust armor",
+      "nameEn": "Stardust armor",
+      "nameZh": "星尘盔甲",
+      "images": [
+        {
+          "fileTitle": "Stardust armor.png",
+          "url": "https://terraria.wiki.gg/images/Stardust_armor.png?704b11",
+          "width": 34,
+          "height": 48,
+          "role": "male",
+          "contentType": "image/png"
+        },
+        {
+          "fileTitle": "Stardust armor female.png",
+          "url": "https://terraria.wiki.gg/images/Stardust_armor_female.png?ac8a9b",
+          "width": 34,
+          "height": 48,
+          "role": "female",
+          "contentType": "image/png"
+        }
+      ],
+      "effectText": "+66% 召唤伤害\n+5 仆从容量\n+1 哨兵容量\n+30% 鞭范围\n套装奖励：召唤跟随并保护玩家的星尘守卫。",
+      "sourceText": "45 星尘碎片(电脑版、主机版、和移动版)\n36 夜明锭(电脑版、主机版、和移动版)\n在远古操纵机(电脑版、主机版、和移动版)制作",
+      "interchangeableSetTitles": [],
+      "sourceRevisionTimestamp": "2026-04-04T07:46:03Z"
+    }
+  ]
+}

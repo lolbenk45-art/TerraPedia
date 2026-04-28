@@ -440,7 +440,7 @@ async function ensureLookupTables(conn) {
     INSERT INTO game_period (id, code, display_name_zh, display_name_en, sort_order, status, deleted)
     VALUES
       (1, 'pre_hardmode', '困难模式前', 'Pre-Hardmode', 1, 1, 0),
-      (2, 'hardmode', '困难模式', 'Hardmode', 2, 1, 0)
+      (2, 'hardmode', '困难模式后', 'Hardmode', 2, 1, 0)
     ON DUPLICATE KEY UPDATE
       code = VALUES(code),
       display_name_zh = VALUES(display_name_zh),
