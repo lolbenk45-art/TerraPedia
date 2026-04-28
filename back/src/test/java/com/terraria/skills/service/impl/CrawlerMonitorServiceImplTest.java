@@ -2,6 +2,7 @@ package com.terraria.skills.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
+import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -328,6 +329,84 @@ class CrawlerMonitorServiceImplTest {
         assertEquals(10, overview.getHistory().size());
         assertEquals(11, overview.getHistory().get(0).getTotalActions());
         assertEquals(2, overview.getHistory().get(9).getTotalActions());
+    }
+
+    @Test
+    void shouldReadWriteAndResetManualMonitorTestStateWithoutTouchingRealMonitorFiles() throws Exception {
+        Path daemonPath = refreshDir.resolve("backend-refresh-daemon.heartbeat.json");
+        Path schedulerPath = refreshDir.resolve("backend-refresh-scheduler.latest.json");
+        writeJson(daemonPath, Map.of("status", "real-daemon"));
+        writeJson(schedulerPath, Map.of("status", "real-scheduler"));
+        FileTime daemonModifiedAt = FileTime.from(Instant.parse("2026-04-27T00:00:00Z"));
+        FileTime schedulerModifiedAt = FileTime.from(Instant.parse("2026-04-27T00:00:00Z"));
+        Files.setLastModifiedTime(daemonPath, daemonModifiedAt);
+        Files.setLastModifiedTime(schedulerPath, schedulerModifiedAt);
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-04-28T03:00:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorTestStateDTO missing = service.getTestState();
+
+        assertEquals("reports/backend-refresh/manual-monitor-test.json", missing.getPath());
+        assertFalse(missing.isFound());
+        assertFalse(missing.isReadable());
+        assertTrue(missing.getPayload().isEmpty());
+        assertNotNull(missing.getOverview());
+        assertEquals("reports/backend-refresh/manual-monitor-test.json", missing.getOverview().getDaemon().getPath());
+        assertTrue(missing.getOverview().getDaemon().getPayload().isEmpty());
+        assertTrue(missing.getOverview().getScheduler().getPayload().isEmpty());
+
+        CrawlerMonitorTestStateDTO written = service.writeTestState(Map.of(
+            "scenario", "manual-running",
+            "generatedAt", "2026-04-28T03:00:00Z",
+            "daemonStatus", "running",
+            "schedulerStatus", "sleeping",
+            "lockFound", true,
+            "refreshStale", true,
+            "refreshLastActivityAt", "2026-04-28T02:30:00Z",
+            "refreshStaleReason", "manual stale scenario",
+            "latestRun", Map.of(
+                "generatedAt", "2026-04-28T02:45:00Z",
+                "totalActions", 3,
+                "completedActions", 1,
+                "failedActions", 1,
+                "runningActions", 1,
+                "actions", List.of(
+                    Map.of("id", "manual-action", "runner", "manual", "status", "running")
+                )
+            )
+        ));
+
+        assertTrue(written.isFound());
+        assertTrue(written.isReadable());
+        assertEquals("manual-running", written.getPayload().get("scenario"));
+        assertEquals("running", written.getOverview().getDaemon().getPayload().get("status"));
+        assertEquals("sleeping", written.getOverview().getScheduler().getPayload().get("status"));
+        assertTrue(written.getOverview().getLock().isFound());
+        assertTrue(written.getOverview().isRefreshStale());
+        assertEquals("manual stale scenario", written.getOverview().getRefreshStaleReason());
+        assertEquals(3, written.getOverview().getLatestRun().getTotalActions());
+        assertEquals(1, written.getOverview().getLatestRun().getActions().size());
+        assertEquals("manual-action", written.getOverview().getLatestRun().getActions().get(0).getId());
+
+        CrawlerMonitorTestStateDTO reset = service.resetTestState();
+
+        assertTrue(reset.isFound());
+        assertTrue(reset.isReadable());
+        assertEquals("idle", reset.getPayload().get("scenario"));
+        assertEquals("idle", reset.getOverview().getDaemon().getPayload().get("status"));
+        assertEquals("idle", reset.getOverview().getScheduler().getPayload().get("status"));
+        assertFalse(reset.getOverview().getLock().isFound());
+        assertFalse(reset.getOverview().isRefreshStale());
+        assertEquals(0, reset.getOverview().getLatestRun().getTotalActions());
+
+        assertEquals(Map.of("status", "real-daemon"), new ObjectMapper().readValue(daemonPath.toFile(), Map.class));
+        assertEquals(Map.of("status", "real-scheduler"), new ObjectMapper().readValue(schedulerPath.toFile(), Map.class));
+        assertEquals(daemonModifiedAt, Files.getLastModifiedTime(daemonPath));
+        assertEquals(schedulerModifiedAt, Files.getLastModifiedTime(schedulerPath));
     }
 
     private void writeJson(Path path, Map<String, Object> payload) throws IOException {

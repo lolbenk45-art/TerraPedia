@@ -63,3 +63,17 @@ export interface CrawlerMonitorOverview {
   history?: CrawlerMonitorRun[]
   recentReports?: CrawlerMonitorReport[]
 }
+
+export type CrawlerMonitorTestPayload = CrawlerMonitorOverview & Record<string, any>
+
+export interface CrawlerMonitorTestState {
+  generatedAt?: string | null
+  filePath?: string | null
+  path?: string | null
+  found?: boolean
+  readable?: boolean
+  updatedAt?: string | null
+  payload?: CrawlerMonitorTestPayload | null
+  overview?: CrawlerMonitorOverview | null
+  errorMessage?: string | null
+}

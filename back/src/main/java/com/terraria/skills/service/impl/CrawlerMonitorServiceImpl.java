@@ -3,6 +3,7 @@ package com.terraria.skills.service.impl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
+import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
 import com.terraria.skills.service.CrawlerMonitorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path DAEMON_HEARTBEAT = REFRESH_DIR.resolve("backend-refresh-daemon.heartbeat.json");
     private static final Path SCHEDULER_STATE = REFRESH_DIR.resolve("backend-refresh-scheduler.latest.json");
     private static final Path LOCK_FILE = REFRESH_DIR.resolve("backend-refresh.lock.json");
+    private static final Path TEST_STATE_FILE = REFRESH_DIR.resolve("manual-monitor-test.json");
     private static final int HISTORY_LIMIT = 10;
     private static final int RECENT_REPORT_LIMIT = 20;
     private static final long REFRESH_STALE_THRESHOLD_MS = Duration.ofHours(24).toMillis();
@@ -69,6 +71,109 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         overview.setRecentReports(loadRecentReports(repoRoot));
         applyRefreshStaleState(repoRoot, overview);
         return overview;
+    }
+
+    @Override
+    public CrawlerMonitorTestStateDTO getTestState() {
+        Path repoRoot = resolveRepoRoot();
+        Path absolutePath = repoRoot.resolve(TEST_STATE_FILE).normalize();
+        ReadResult result = readJsonMap(absolutePath);
+        return buildTestState(repoRoot, absolutePath, result);
+    }
+
+    @Override
+    public CrawlerMonitorTestStateDTO writeTestState(Map<String, Object> payload) {
+        Path repoRoot = resolveRepoRoot();
+        Path absolutePath = repoRoot.resolve(TEST_STATE_FILE).normalize();
+        try {
+            Files.createDirectories(absolutePath.getParent());
+            objectMapper.writerWithDefaultPrettyPrinter().writeValue(absolutePath.toFile(), copyPayload(payload));
+        } catch (IOException exception) {
+            throw new IllegalStateException("Failed to write manual crawler monitor test state.", exception);
+        }
+        return getTestState();
+    }
+
+    @Override
+    public CrawlerMonitorTestStateDTO resetTestState() {
+        return writeTestState(defaultTestStatePayload());
+    }
+
+    private CrawlerMonitorTestStateDTO buildTestState(Path repoRoot, Path absolutePath, ReadResult result) {
+        CrawlerMonitorTestStateDTO dto = new CrawlerMonitorTestStateDTO();
+        dto.setPath(toDisplayPath(repoRoot, absolutePath));
+        dto.setFound(result.found());
+        dto.setReadable(result.readable());
+        dto.setUpdatedAt(readLastModifiedIso(absolutePath));
+        dto.setErrorMessage(result.errorMessage());
+        dto.setPayload(copyPayload(result.payload()));
+        dto.setOverview(buildTestOverview(repoRoot, result));
+        return dto;
+    }
+
+    private CrawlerMonitorOverviewDTO buildTestOverview(Path repoRoot, ReadResult result) {
+        Map<String, Object> payload = result.payload();
+        CrawlerMonitorOverviewDTO overview = new CrawlerMonitorOverviewDTO();
+        overview.setGeneratedAt(firstInstant(payload.get("generatedAt"), Instant.now(clock)));
+        overview.setRepoRoot(repoRoot.toString());
+        overview.setDaemon(testMonitorFile(repoRoot, result, "daemonStatus"));
+        overview.setScheduler(testMonitorFile(repoRoot, result, "schedulerStatus"));
+        overview.setLock(testLockFile(repoRoot, result));
+        overview.setLatestRun(testLatestRun(repoRoot, result));
+        overview.setHistory(List.of());
+        overview.setRecentReports(List.of());
+        overview.setRefreshStale(asBoolean(payload.get("refreshStale")));
+        overview.setRefreshLastActivityAt(asString(payload.get("refreshLastActivityAt")));
+        overview.setRefreshStaleThresholdMs(REFRESH_STALE_THRESHOLD_MS);
+        overview.setRefreshStaleReason(asString(payload.get("refreshStaleReason")));
+        return overview;
+    }
+
+    private CrawlerMonitorOverviewDTO.MonitorFileDTO testMonitorFile(Path repoRoot, ReadResult result, String statusKey) {
+        CrawlerMonitorOverviewDTO.MonitorFileDTO dto = new CrawlerMonitorOverviewDTO.MonitorFileDTO();
+        dto.setPath(toDisplayPath(repoRoot, repoRoot.resolve(TEST_STATE_FILE).normalize()));
+        dto.setFound(result.found());
+        dto.setReadable(result.readable());
+        dto.setUpdatedAt(readLastModifiedIso(repoRoot.resolve(TEST_STATE_FILE).normalize()));
+        dto.setErrorMessage(result.errorMessage());
+        dto.setPayload(result.readable()
+            ? Map.of("status", firstNonBlank(asString(result.payload().get(statusKey)), "idle"))
+            : Map.of());
+        return dto;
+    }
+
+    private CrawlerMonitorOverviewDTO.MonitorFileDTO testLockFile(Path repoRoot, ReadResult result) {
+        boolean lockFound = asBoolean(result.payload().get("lockFound"));
+        CrawlerMonitorOverviewDTO.MonitorFileDTO dto = new CrawlerMonitorOverviewDTO.MonitorFileDTO();
+        dto.setPath(toDisplayPath(repoRoot, repoRoot.resolve(TEST_STATE_FILE).normalize()));
+        dto.setFound(lockFound);
+        dto.setReadable(lockFound && result.readable());
+        dto.setUpdatedAt(lockFound ? readLastModifiedIso(repoRoot.resolve(TEST_STATE_FILE).normalize()) : null);
+        dto.setErrorMessage(result.errorMessage());
+        dto.setPayload(lockFound ? Map.of("status", "locked") : Map.of());
+        return dto;
+    }
+
+    private CrawlerMonitorOverviewDTO.MonitorRunDTO testLatestRun(Path repoRoot, ReadResult result) {
+        Map<String, Object> latestRun = asMap(result.payload().get("latestRun"));
+        CrawlerMonitorOverviewDTO.MonitorRunDTO run = new CrawlerMonitorOverviewDTO.MonitorRunDTO();
+        run.setFound(result.found());
+        run.setReadable(result.readable());
+        run.setPath(toDisplayPath(repoRoot, repoRoot.resolve(TEST_STATE_FILE).normalize()));
+        run.setSummaryPath(toDisplayPath(repoRoot, repoRoot.resolve(TEST_STATE_FILE).normalize()));
+        run.setGeneratedAt(asString(latestRun.get("generatedAt")));
+        run.setOutputPath(normalizePayloadPath(repoRoot, latestRun.get("outputPath")));
+        run.setLastActionId(asString(latestRun.get("lastActionId")));
+        run.setTotalActions(asLong(latestRun.get("totalActions")));
+        run.setCompletedActions(asLong(latestRun.get("completedActions")));
+        run.setFailedActions(asLong(latestRun.get("failedActions")));
+        run.setRunningActions(asLong(latestRun.get("runningActions")));
+        run.setPendingActions(asLong(latestRun.get("pendingActions")));
+        run.setTimedOutActions(asLong(latestRun.get("timedOutActions")));
+        run.setTotalDurationMs(asLong(latestRun.get("totalDurationMs")));
+        run.setErrorMessage(result.errorMessage());
+        run.setActions(toActions(repoRoot, latestRun.get("actions")));
+        return run;
     }
 
     private CrawlerMonitorOverviewDTO.MonitorFileDTO readMonitorFile(Path repoRoot, Path relativePath) {
@@ -459,8 +564,34 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
     }
 
+    private Instant firstInstant(Object value, Instant fallback) {
+        Instant instant = parseInstant(asString(value));
+        return instant == null ? fallback : instant;
+    }
+
     private String asString(Object value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    private Map<String, Object> asMap(Object value) {
+        if (!(value instanceof Map<?, ?> map)) {
+            return Map.of();
+        }
+        LinkedHashMap<String, Object> copy = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            copy.put(String.valueOf(entry.getKey()), entry.getValue());
+        }
+        return copy;
+    }
+
+    private boolean asBoolean(Object value) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value == null || String.valueOf(value).isBlank()) {
+            return false;
+        }
+        return Boolean.parseBoolean(String.valueOf(value));
     }
 
     private long asLong(Object value) {
@@ -496,6 +627,33 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             return first;
         }
         return second == null || second.isBlank() ? null : second;
+    }
+
+    private LinkedHashMap<String, Object> copyPayload(Map<String, Object> payload) {
+        return payload == null ? new LinkedHashMap<>() : new LinkedHashMap<>(payload);
+    }
+
+    private Map<String, Object> defaultTestStatePayload() {
+        LinkedHashMap<String, Object> payload = new LinkedHashMap<>();
+        payload.put("scenario", "idle");
+        payload.put("generatedAt", Instant.now(clock).toString());
+        payload.put("daemonStatus", "idle");
+        payload.put("schedulerStatus", "idle");
+        payload.put("lockFound", false);
+        payload.put("refreshStale", false);
+
+        LinkedHashMap<String, Object> latestRun = new LinkedHashMap<>();
+        latestRun.put("generatedAt", Instant.now(clock).toString());
+        latestRun.put("totalActions", 0);
+        latestRun.put("completedActions", 0);
+        latestRun.put("failedActions", 0);
+        latestRun.put("runningActions", 0);
+        latestRun.put("pendingActions", 0);
+        latestRun.put("timedOutActions", 0);
+        latestRun.put("totalDurationMs", 0);
+        latestRun.put("actions", List.of());
+        payload.put("latestRun", latestRun);
+        return payload;
     }
 
     private record ReadResult(

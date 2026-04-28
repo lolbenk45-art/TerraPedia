@@ -170,6 +170,7 @@
 import type { Component } from 'vue'
 import {
   Activity,
+  Beaker,
   ChevronDown,
   ChevronRight,
   Crown,
@@ -272,6 +273,7 @@ const menuSections: MenuSection[] = [
     label: 'Operations',
     items: [
       { name: '爬取监控', path: '/operations/crawler-monitor', hint: '查看刷新进度与运行日志', icon: Activity },
+      { name: '监控测试页', path: '/operations/crawler-monitor-test', hint: '手动观察测试状态', icon: Beaker },
       { name: '用户管理', path: '/users', hint: '账号与权限', icon: UserRound },
       { name: '文章管理', path: '/articles', hint: '内容工作台', icon: Newspaper },
       { name: '数据查询', path: '/query', hint: '调试与只读查询', icon: FileSearch },

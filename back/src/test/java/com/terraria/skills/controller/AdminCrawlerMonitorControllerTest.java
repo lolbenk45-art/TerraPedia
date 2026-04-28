@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
+import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
 import com.terraria.skills.service.CrawlerMonitorService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,11 +17,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -91,5 +96,90 @@ class AdminCrawlerMonitorControllerTest {
             .andExpect(jsonPath("$.data.recentReports[0].category").value("test"));
 
         verify(crawlerMonitorService).getOverview();
+    }
+
+    @Test
+    void shouldReturnManualMonitorTestState() throws Exception {
+        CrawlerMonitorTestStateDTO state = testState("manual-running", "running", true, 3);
+
+        when(crawlerMonitorService.getTestState()).thenReturn(state);
+
+        mockMvc.perform(get("/admin/crawler-monitor/test-state"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.path").value("reports/backend-refresh/manual-monitor-test.json"))
+            .andExpect(jsonPath("$.data.payload.scenario").value("manual-running"))
+            .andExpect(jsonPath("$.data.overview.daemon.payload.status").value("running"))
+            .andExpect(jsonPath("$.data.overview.lock.found").value(true))
+            .andExpect(jsonPath("$.data.overview.latestRun.totalActions").value(3));
+
+        verify(crawlerMonitorService).getTestState();
+    }
+
+    @Test
+    void shouldWriteManualMonitorTestState() throws Exception {
+        CrawlerMonitorTestStateDTO state = testState("manual-failed", "sleeping", false, 4);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("scenario", "manual-failed");
+        payload.put("daemonStatus", "sleeping");
+
+        when(crawlerMonitorService.writeTestState(payload)).thenReturn(state);
+
+        mockMvc.perform(put("/admin/crawler-monitor/test-state")
+                .contentType("application/json")
+                .content("{\"scenario\":\"manual-failed\",\"daemonStatus\":\"sleeping\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.payload.scenario").value("manual-failed"))
+            .andExpect(jsonPath("$.data.overview.daemon.payload.status").value("sleeping"))
+            .andExpect(jsonPath("$.data.overview.latestRun.totalActions").value(4));
+
+        verify(crawlerMonitorService).writeTestState(payload);
+    }
+
+    @Test
+    void shouldResetManualMonitorTestState() throws Exception {
+        CrawlerMonitorTestStateDTO state = testState("idle", "idle", false, 0);
+
+        when(crawlerMonitorService.resetTestState()).thenReturn(state);
+
+        mockMvc.perform(post("/admin/crawler-monitor/test-state/reset"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.payload.scenario").value("idle"))
+            .andExpect(jsonPath("$.data.overview.lock.found").value(false));
+
+        verify(crawlerMonitorService).resetTestState();
+    }
+
+    private CrawlerMonitorTestStateDTO testState(String scenario, String daemonStatus, boolean lockFound, long totalActions) {
+        CrawlerMonitorOverviewDTO.MonitorFileDTO daemon = new CrawlerMonitorOverviewDTO.MonitorFileDTO();
+        daemon.setFound(true);
+        daemon.setReadable(true);
+        daemon.setPath("reports/backend-refresh/manual-monitor-test.json");
+        daemon.setPayload(Map.of("status", daemonStatus));
+
+        CrawlerMonitorOverviewDTO.MonitorFileDTO lock = new CrawlerMonitorOverviewDTO.MonitorFileDTO();
+        lock.setFound(lockFound);
+        lock.setReadable(lockFound);
+        lock.setPath("reports/backend-refresh/manual-monitor-test.json");
+
+        CrawlerMonitorOverviewDTO.MonitorRunDTO latestRun = new CrawlerMonitorOverviewDTO.MonitorRunDTO();
+        latestRun.setFound(true);
+        latestRun.setReadable(true);
+        latestRun.setTotalActions(totalActions);
+
+        CrawlerMonitorOverviewDTO overview = new CrawlerMonitorOverviewDTO();
+        overview.setDaemon(daemon);
+        overview.setLock(lock);
+        overview.setLatestRun(latestRun);
+
+        CrawlerMonitorTestStateDTO state = new CrawlerMonitorTestStateDTO();
+        state.setPath("reports/backend-refresh/manual-monitor-test.json");
+        state.setFound(true);
+        state.setReadable(true);
+        state.setPayload(Map.of("scenario", scenario));
+        state.setOverview(overview);
+        return state;
     }
 }

@@ -1,4 +1,4 @@
-import type { CrawlerMonitorOverview } from '~/types/crawlerMonitor'
+import type { CrawlerMonitorOverview, CrawlerMonitorTestState } from '~/types/crawlerMonitor'
 
 const overview: CrawlerMonitorOverview = {
   generatedAt: '2026-04-27T00:00:00Z',
@@ -44,3 +44,62 @@ const overview: CrawlerMonitorOverview = {
 }
 
 void overview
+
+const testState: CrawlerMonitorTestState = {
+  generatedAt: '2026-04-28T00:00:00Z',
+  path: 'reports/backend-refresh/manual-monitor-test.json',
+  found: true,
+  readable: true,
+  payload: {
+    scenario: 'running',
+    daemonStatus: 'running',
+    schedulerStatus: 'sleeping',
+    lockFound: false,
+    latestRun: {
+      totalActions: 2,
+      completedActions: 1,
+      runningActions: 1,
+    },
+  },
+  overview: {
+    refreshStale: false,
+    daemon: {
+      found: true,
+      readable: true,
+      path: 'reports/backend-refresh/backend-refresh-daemon.heartbeat.json',
+      payload: {
+        status: 'idle',
+      },
+    },
+    scheduler: {
+      found: true,
+      readable: true,
+      path: 'reports/backend-refresh/backend-refresh-scheduler-state.json',
+      payload: {
+        status: 'sleeping',
+      },
+    },
+    lock: {
+      found: false,
+      readable: false,
+      path: 'reports/backend-refresh/backend-refresh.lock',
+    },
+    latestRun: {
+      found: true,
+      readable: true,
+      totalActions: 2,
+      completedActions: 1,
+      runningActions: 1,
+      actions: [
+        {
+          id: 'wiki-refresh',
+          runner: 'node',
+          status: 'running',
+          durationMs: 1200,
+        },
+      ],
+    },
+  },
+}
+
+void testState
