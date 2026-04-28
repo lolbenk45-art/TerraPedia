@@ -19,7 +19,12 @@ public class CrawlerMonitorOverviewDTO {
     private MonitorFileDTO scheduler;
     private MonitorFileDTO lock;
     private MonitorRunDTO latestRun;
+    private boolean refreshStale;
+    private String refreshLastActivityAt;
+    private Long refreshStaleThresholdMs;
+    private String refreshStaleReason;
     private List<MonitorRunDTO> history = new ArrayList<>();
+    private List<MonitorReportDTO> recentReports = new ArrayList<>();
 
     @Data
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -66,5 +71,15 @@ public class CrawlerMonitorOverviewDTO {
         private String heartbeatPath;
         private String snapshotPath;
         private String updatedAt;
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class MonitorReportDTO {
+        private String name;
+        private String path;
+        private String category;
+        private String updatedAt;
+        private Long sizeBytes;
     }
 }

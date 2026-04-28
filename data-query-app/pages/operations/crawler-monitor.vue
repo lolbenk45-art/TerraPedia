@@ -47,6 +47,17 @@
       </article>
     </section>
 
+    <section v-if="refreshStale" class="stale-alert">
+      <span class="stale-alert__icon">
+        <AlertTriangle :size="20" />
+      </span>
+      <div>
+        <strong>backend-refresh 监控链路已过期</strong>
+        <p>{{ overview?.refreshStaleReason || '最近没有 backend-refresh 活动，近期爬虫、审计或测试报告可能在下方外部报告中。' }}</p>
+        <code>最后活动：{{ formatDate(overview?.refreshLastActivityAt) }}</code>
+      </div>
+    </section>
+
     <section class="monitor-layout">
       <div class="monitor-main">
         <section class="section-card monitor-panel">
@@ -175,6 +186,30 @@
             </div>
           </div>
         </section>
+
+        <section class="section-card monitor-panel">
+          <div class="section-head">
+            <div>
+              <h2 class="section-card__title">近期外部报告</h2>
+              <p class="section-card__subtitle">这些文件不属于 backend-refresh 队列，但能解释近期实际发生过的爬取、测试、审计或验证。</p>
+            </div>
+          </div>
+
+          <div class="report-list">
+            <article v-for="report in recentReports" :key="report.path || report.name || 'report'" class="report-row">
+              <span class="status-pill" :class="reportTone(report.category)">{{ report.category || 'report' }}</span>
+              <div>
+                <strong>{{ report.name || report.path || 'unknown-report' }}</strong>
+                <small>{{ formatDate(report.updatedAt) }} · {{ formatBytes(report.sizeBytes) }}</small>
+                <code>{{ report.path || '--' }}</code>
+              </div>
+            </article>
+            <div v-if="!recentReports.length" class="empty-block empty-block--compact">
+              <FileJson :size="20" />
+              <span>暂无外部报告</span>
+            </div>
+          </div>
+        </section>
       </aside>
     </section>
   </div>
@@ -199,6 +234,7 @@ import type {
   CrawlerMonitorAction,
   CrawlerMonitorFile,
   CrawlerMonitorOverview,
+  CrawlerMonitorReport,
   CrawlerMonitorRun,
 } from '~/types/crawlerMonitor'
 
@@ -223,6 +259,8 @@ const lockFile = computed(() => overview.value?.lock || null)
 const latestRun = computed<CrawlerMonitorRun>(() => overview.value?.latestRun || {})
 const actions = computed<CrawlerMonitorAction[]>(() => Array.isArray(latestRun.value.actions) ? latestRun.value.actions : [])
 const history = computed<CrawlerMonitorRun[]>(() => Array.isArray(overview.value?.history) ? overview.value!.history! : [])
+const recentReports = computed<CrawlerMonitorReport[]>(() => Array.isArray(overview.value?.recentReports) ? overview.value!.recentReports! : [])
+const refreshStale = computed(() => Boolean(overview.value?.refreshStale))
 const latestRunStatus = computed(() => {
   if (!latestRun.value.found) return 'missing'
   if (Number(latestRun.value.failedActions || 0) > 0) return 'failed'
@@ -241,6 +279,13 @@ const summaryCards = computed(() => [
 ])
 
 const statusCards = computed<StatusCard[]>(() => [
+  {
+    label: 'Refresh State',
+    value: refreshStale.value ? 'stale' : 'current',
+    detail: `last ${formatDate(overview.value?.refreshLastActivityAt)}`,
+    icon: AlertTriangle,
+    tone: refreshStale.value ? 'danger' : 'success',
+  },
   {
     label: 'Daemon',
     value: payloadValue(daemon.value, 'status') || fileStateText(daemon.value),
@@ -359,6 +404,14 @@ function statusTone(status?: string | null) {
   return 'muted'
 }
 
+function reportTone(category?: string | null) {
+  const normalized = String(category || '').toLowerCase()
+  if (normalized === 'test') return 'success'
+  if (normalized === 'crawler') return 'info'
+  if (normalized === 'audit') return 'warning'
+  return 'muted'
+}
+
 function actionProgress(action: CrawlerMonitorAction) {
   const status = String(action.status || '').toLowerCase()
   if (status === 'completed') return '100%'
@@ -388,6 +441,16 @@ function formatDuration(value: number | string | null | undefined) {
   const minutes = Math.floor(seconds / 60)
   const rest = seconds % 60
   return rest ? `${minutes}m ${rest}s` : `${minutes}m`
+}
+
+function formatBytes(value: number | string | null | undefined) {
+  const bytes = Number(value || 0)
+  if (!Number.isFinite(bytes) || bytes <= 0) return '--'
+  if (bytes < 1024) return `${bytes} B`
+  const kb = bytes / 1024
+  if (kb < 1024) return `${kb.toFixed(kb >= 10 ? 0 : 1)} KB`
+  const mb = kb / 1024
+  return `${mb.toFixed(mb >= 10 ? 0 : 1)} MB`
 }
 
 function shortArgs(args?: string[]) {
@@ -462,6 +525,45 @@ function shortArgs(args?: string[]) {
   margin-top: 5px;
   color: var(--color-text-secondary);
   font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.stale-alert {
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #fecaca;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fff1f2, #fff7ed);
+  color: #7f1d1d;
+}
+
+.stale-alert__icon {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.stale-alert strong,
+.stale-alert p,
+.stale-alert code {
+  display: block;
+}
+
+.stale-alert p {
+  margin: 4px 0 0;
+  color: #991b1b;
+}
+
+.stale-alert code {
+  margin-top: 6px;
+  color: #92400e;
   overflow-wrap: anywhere;
 }
 
@@ -612,13 +714,15 @@ function shortArgs(args?: string[]) {
 }
 
 .file-list,
-.history-list {
+.history-list,
+.report-list {
   display: grid;
   gap: 12px;
 }
 
 .file-row,
-.history-row {
+.history-row,
+.report-row {
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -629,7 +733,8 @@ function shortArgs(args?: string[]) {
 }
 
 .file-row > div,
-.history-row > div {
+.history-row > div,
+.report-row > div {
   min-width: 0;
   flex: 1;
 }
@@ -639,14 +744,19 @@ function shortArgs(args?: string[]) {
 .file-row code,
 .file-row em,
 .history-row strong,
-.history-row small {
+.history-row small,
+.report-row strong,
+.report-row small,
+.report-row code {
   display: block;
 }
 
 .file-row small,
 .file-row code,
 .file-row em,
-.history-row small {
+.history-row small,
+.report-row small,
+.report-row code {
   margin-top: 4px;
   color: var(--color-text-secondary);
   font-size: 12px;

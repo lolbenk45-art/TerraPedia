@@ -60,12 +60,24 @@ class AdminCrawlerMonitorControllerTest {
         latestRun.setCompletedActions(2);
         latestRun.setFailedActions(1);
 
+        CrawlerMonitorOverviewDTO.MonitorReportDTO recentReport = new CrawlerMonitorOverviewDTO.MonitorReportDTO();
+        recentReport.setName("TEST-com.terraria.skills.CrawlerMonitorServiceImplTest.xml");
+        recentReport.setPath("back/target/surefire-reports/TEST-com.terraria.skills.CrawlerMonitorServiceImplTest.xml");
+        recentReport.setCategory("test");
+        recentReport.setUpdatedAt("2026-04-28T02:00:00Z");
+        recentReport.setSizeBytes(2400L);
+
         CrawlerMonitorOverviewDTO overview = new CrawlerMonitorOverviewDTO();
         overview.setGeneratedAt(Instant.parse("2026-04-27T00:00:00Z"));
         overview.setRepoRoot("G:/ClaudeCode/TerraPedia-dev");
         overview.setDaemon(daemon);
         overview.setLatestRun(latestRun);
         overview.setHistory(List.of(latestRun));
+        overview.setRefreshStale(true);
+        overview.setRefreshLastActivityAt("2026-04-26T00:00:00Z");
+        overview.setRefreshStaleThresholdMs(86_400_000L);
+        overview.setRefreshStaleReason("backend-refresh monitor has no activity for more than 24 hours");
+        overview.setRecentReports(List.of(recentReport));
 
         when(crawlerMonitorService.getOverview()).thenReturn(overview);
 
@@ -74,7 +86,9 @@ class AdminCrawlerMonitorControllerTest {
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.daemon.path").value("reports/backend-refresh/backend-refresh-daemon.heartbeat.json"))
             .andExpect(jsonPath("$.data.latestRun.totalActions").value(3))
-            .andExpect(jsonPath("$.data.latestRun.failedActions").value(1));
+            .andExpect(jsonPath("$.data.latestRun.failedActions").value(1))
+            .andExpect(jsonPath("$.data.refreshStale").value(true))
+            .andExpect(jsonPath("$.data.recentReports[0].category").value("test"));
 
         verify(crawlerMonitorService).getOverview();
     }

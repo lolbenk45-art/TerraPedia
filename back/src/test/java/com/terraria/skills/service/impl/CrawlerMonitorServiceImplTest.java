@@ -12,7 +12,9 @@ import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
@@ -132,6 +134,76 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("reports/backend-refresh/history/backend-data-refresh-2026-04-27T00-00-00-000Z.runtime/wiki-core-refresh.heartbeat.json", overview.getLatestRun().getActions().get(0).getHeartbeatPath());
         assertEquals(1, overview.getHistory().size());
         assertEquals(3, overview.getHistory().get(0).getTotalActions());
+        assertFalse(overview.isRefreshStale());
+    }
+
+    @Test
+    void shouldFlagStaleBackendRefreshAndListRecentExternalReports() throws Exception {
+        Path outputPath = historyDir.resolve("backend-data-refresh-2026-04-26T00-00-00-000Z.json");
+        Path summaryPath = historyDir.resolve("backend-data-refresh-2026-04-26T00-00-00-000Z.summary.json");
+        Path fetchReport = repoRoot.resolve("reports/fetch/fetch-armor-set-images-2026-04-27.json");
+        Path relationReport = repoRoot.resolve("reports/relation/relation-audit-2026-04-28.json");
+        Path testReport = repoRoot.resolve("back/target/surefire-reports/TEST-com.terraria.skills.CrawlerMonitorServiceImplTest.xml");
+
+        writeJson(refreshDir.resolve("backend-refresh-daemon.heartbeat.json"), Map.of(
+            "status", "sleeping",
+            "generatedAt", "2026-04-26T00:00:00Z"
+        ));
+        writeJson(refreshDir.resolve("backend-refresh-scheduler.latest.json"), Map.of(
+            "status", "sleeping",
+            "generatedAt", "2026-04-26T00:00:00Z",
+            "lastOutputPath", outputPath.toString(),
+            "lastSummaryPath", summaryPath.toString()
+        ));
+        writeJson(outputPath, Map.of("generatedAt", "2026-04-26T00:00:00Z", "actions", List.of()));
+        writeJson(summaryPath, Map.of(
+            "generatedAt", "2026-04-26T00:00:00Z",
+            "outputPath", outputPath.toString(),
+            "totalActions", 0,
+            "completedActions", 0,
+            "failedActions", 0,
+            "runningActions", 0,
+            "pendingActions", 0,
+            "timedOutActions", 0,
+            "totalDurationMs", 0
+        ));
+        writeJson(fetchReport, Map.of("ok", true));
+        writeJson(relationReport, Map.of("ok", true));
+        Files.createDirectories(testReport.getParent());
+        Files.writeString(testReport, "<testsuite tests=\"7\" failures=\"0\" errors=\"0\" />");
+
+        Files.setLastModifiedTime(refreshDir.resolve("backend-refresh-daemon.heartbeat.json"), FileTime.from(Instant.parse("2026-04-26T00:00:00Z")));
+        Files.setLastModifiedTime(refreshDir.resolve("backend-refresh-scheduler.latest.json"), FileTime.from(Instant.parse("2026-04-26T00:00:00Z")));
+        Files.setLastModifiedTime(outputPath, FileTime.from(Instant.parse("2026-04-26T00:00:00Z")));
+        Files.setLastModifiedTime(summaryPath, FileTime.from(Instant.parse("2026-04-26T00:00:00Z")));
+        Files.setLastModifiedTime(fetchReport, FileTime.from(Instant.parse("2026-04-27T00:00:00Z")));
+        Files.setLastModifiedTime(relationReport, FileTime.from(Instant.parse("2026-04-28T01:00:00Z")));
+        Files.setLastModifiedTime(testReport, FileTime.from(Instant.parse("2026-04-28T02:00:00Z")));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-04-28T03:00:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+
+        assertTrue(overview.isRefreshStale());
+        assertEquals("2026-04-26T00:00:00Z", overview.getRefreshLastActivityAt());
+        assertEquals(86_400_000L, overview.getRefreshStaleThresholdMs());
+        assertTrue(overview.getRefreshStaleReason().contains("backend-refresh"));
+        assertEquals(3, overview.getRecentReports().size());
+        assertEquals("test", overview.getRecentReports().get(0).getCategory());
+        assertEquals("back/target/surefire-reports/TEST-com.terraria.skills.CrawlerMonitorServiceImplTest.xml", overview.getRecentReports().get(0).getPath());
+        assertTrue(overview.getRecentReports().stream().anyMatch(report ->
+            "crawler".equals(report.getCategory()) && "reports/fetch/fetch-armor-set-images-2026-04-27.json".equals(report.getPath())
+        ));
+        assertTrue(overview.getRecentReports().stream().anyMatch(report ->
+            "audit".equals(report.getCategory()) && "reports/relation/relation-audit-2026-04-28.json".equals(report.getPath())
+        ));
+        assertFalse(overview.getRecentReports().stream().anyMatch(report ->
+            report.getPath().startsWith("reports/backend-refresh/")
+        ));
     }
 
     @Test

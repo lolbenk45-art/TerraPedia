@@ -11,12 +11,15 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -30,18 +33,26 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path SCHEDULER_STATE = REFRESH_DIR.resolve("backend-refresh-scheduler.latest.json");
     private static final Path LOCK_FILE = REFRESH_DIR.resolve("backend-refresh.lock.json");
     private static final int HISTORY_LIMIT = 10;
+    private static final int RECENT_REPORT_LIMIT = 20;
+    private static final long REFRESH_STALE_THRESHOLD_MS = Duration.ofHours(24).toMillis();
 
     private final ObjectMapper objectMapper;
     private final Path repoRootOverride;
+    private final Clock clock;
 
     @Autowired
     public CrawlerMonitorServiceImpl(ObjectMapper objectMapper) {
-        this(objectMapper, null);
+        this(objectMapper, null, Clock.systemUTC());
     }
 
     CrawlerMonitorServiceImpl(ObjectMapper objectMapper, Path repoRootOverride) {
+        this(objectMapper, repoRootOverride, Clock.systemUTC());
+    }
+
+    CrawlerMonitorServiceImpl(ObjectMapper objectMapper, Path repoRootOverride, Clock clock) {
         this.objectMapper = objectMapper;
         this.repoRootOverride = repoRootOverride == null ? null : repoRootOverride.toAbsolutePath().normalize();
+        this.clock = clock == null ? Clock.systemUTC() : clock;
     }
 
     @Override
@@ -55,6 +66,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         overview.setLock(readMonitorFile(repoRoot, LOCK_FILE));
         overview.setLatestRun(buildLatestRun(repoRoot, overview.getScheduler().getPayload()));
         overview.setHistory(loadHistory(repoRoot));
+        overview.setRecentReports(loadRecentReports(repoRoot));
+        applyRefreshStaleState(repoRoot, overview);
         return overview;
     }
 
@@ -123,6 +136,118 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 .toList();
         } catch (IOException ignored) {
             return List.of();
+        }
+    }
+
+    private List<CrawlerMonitorOverviewDTO.MonitorReportDTO> loadRecentReports(Path repoRoot) {
+        List<Path> candidates = new ArrayList<>();
+        collectReportFiles(repoRoot, repoRoot.resolve("reports").normalize(), candidates);
+        collectReportFiles(repoRoot, repoRoot.resolve("back").resolve("target").resolve("surefire-reports").normalize(), candidates);
+
+        return candidates.stream()
+            .sorted(Comparator.comparingLong(this::safeLastModifiedMillis).reversed())
+            .limit(RECENT_REPORT_LIMIT)
+            .map(path -> toReportDTO(repoRoot, path))
+            .toList();
+    }
+
+    private void collectReportFiles(Path repoRoot, Path root, List<Path> candidates) {
+        if (!Files.isDirectory(root)) {
+            return;
+        }
+        Path backendRefreshDir = repoRoot.resolve(REFRESH_DIR).normalize();
+        try (Stream<Path> stream = Files.walk(root)) {
+            stream
+                .filter(Files::isRegularFile)
+                .filter(path -> !path.normalize().startsWith(backendRefreshDir))
+                .filter(this::isReportLikeFile)
+                .forEach(candidates::add);
+        } catch (IOException ignored) {
+            // Best-effort diagnostics should not break the monitor endpoint.
+        }
+    }
+
+    private boolean isReportLikeFile(Path path) {
+        String fileName = path.getFileName().toString().toLowerCase(Locale.ROOT);
+        return fileName.endsWith(".json")
+            || fileName.endsWith(".md")
+            || fileName.endsWith(".xml")
+            || fileName.endsWith(".txt");
+    }
+
+    private CrawlerMonitorOverviewDTO.MonitorReportDTO toReportDTO(Path repoRoot, Path path) {
+        CrawlerMonitorOverviewDTO.MonitorReportDTO dto = new CrawlerMonitorOverviewDTO.MonitorReportDTO();
+        dto.setName(path.getFileName().toString());
+        dto.setPath(toDisplayPath(repoRoot, path));
+        dto.setCategory(reportCategory(repoRoot, path));
+        dto.setUpdatedAt(readLastModifiedIso(path));
+        dto.setSizeBytes(safeSize(path));
+        return dto;
+    }
+
+    private String reportCategory(Path repoRoot, Path path) {
+        String displayPath = toDisplayPath(repoRoot, path).toLowerCase(Locale.ROOT).replace('\\', '/');
+        String fileName = path.getFileName().toString().toLowerCase(Locale.ROOT);
+        if (displayPath.contains("surefire-reports") || fileName.startsWith("test-")) {
+            return "test";
+        }
+        if (displayPath.contains("/fetch/") || displayPath.contains("crawler") || displayPath.contains("crawl") || displayPath.contains("wiki")) {
+            return "crawler";
+        }
+        if (displayPath.contains("audit")
+            || displayPath.contains("check")
+            || displayPath.contains("verification")
+            || displayPath.contains("verify")
+            || displayPath.contains("postcheck")
+            || displayPath.contains("readiness")
+            || displayPath.contains("coverage")
+            || displayPath.contains("smoke")) {
+            return "audit";
+        }
+        return "report";
+    }
+
+    private void applyRefreshStaleState(Path repoRoot, CrawlerMonitorOverviewDTO overview) {
+        Instant lastActivity = findRefreshLastActivity(repoRoot, overview);
+        overview.setRefreshStaleThresholdMs(REFRESH_STALE_THRESHOLD_MS);
+
+        if (lastActivity == null) {
+            overview.setRefreshStale(true);
+            overview.setRefreshStaleReason("backend-refresh monitor files are missing or unreadable.");
+            return;
+        }
+
+        overview.setRefreshLastActivityAt(lastActivity.toString());
+        long ageMs = Duration.between(lastActivity, Instant.now(clock)).toMillis();
+        boolean stale = ageMs > REFRESH_STALE_THRESHOLD_MS;
+        overview.setRefreshStale(stale);
+        if (stale) {
+            overview.setRefreshStaleReason("backend-refresh monitor has no activity for more than 24 hours; recent crawler/test reports may live outside this refresh chain.");
+        }
+    }
+
+    private Instant findRefreshLastActivity(Path repoRoot, CrawlerMonitorOverviewDTO overview) {
+        List<Instant> candidates = new ArrayList<>();
+        addLastModifiedCandidate(candidates, repoRoot.resolve(DAEMON_HEARTBEAT).normalize());
+        addLastModifiedCandidate(candidates, repoRoot.resolve(SCHEDULER_STATE).normalize());
+        addLastModifiedCandidate(candidates, repoRoot.resolve(LOCK_FILE).normalize());
+        addLastModifiedCandidate(candidates, resolvePayloadPathInsideRepo(repoRoot, overview.getLatestRun().getPath()));
+        addLastModifiedCandidate(candidates, resolvePayloadPathInsideRepo(repoRoot, overview.getLatestRun().getSummaryPath()));
+        addInstantCandidate(candidates, overview.getLatestRun().getGeneratedAt());
+        return candidates.stream().max(Comparator.naturalOrder()).orElse(null);
+    }
+
+    private void addLastModifiedCandidate(List<Instant> candidates, Path path) {
+        Instant instant = readLastModifiedInstant(path);
+        if (instant != null) {
+            candidates.add(instant);
+        }
+    }
+
+    private void addInstantCandidate(List<Instant> candidates, String value) {
+        Instant instant = parseInstant(value);
+        if (instant != null) {
+            candidates.add(instant);
         }
     }
 
@@ -296,11 +421,41 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
     }
 
+    private Instant readLastModifiedInstant(Path path) {
+        try {
+            if (path == null || !Files.exists(path)) {
+                return null;
+            }
+            return Files.getLastModifiedTime(path).toInstant();
+        } catch (IOException ignored) {
+            return null;
+        }
+    }
+
     private long safeLastModifiedMillis(Path path) {
         try {
             return Files.getLastModifiedTime(path).toMillis();
         } catch (IOException ignored) {
             return Long.MIN_VALUE;
+        }
+    }
+
+    private Long safeSize(Path path) {
+        try {
+            return Files.size(path);
+        } catch (IOException ignored) {
+            return null;
+        }
+    }
+
+    private Instant parseInstant(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Instant.parse(value);
+        } catch (Exception ignored) {
+            return null;
         }
     }
 
