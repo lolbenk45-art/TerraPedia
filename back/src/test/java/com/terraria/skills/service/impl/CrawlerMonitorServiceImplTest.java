@@ -54,6 +54,7 @@ class CrawlerMonitorServiceImplTest {
     void shouldAggregateSchedulerHeartbeatLatestRunAndHistory() throws Exception {
         Path outputPath = historyDir.resolve("backend-data-refresh-2026-04-27T00-00-00-000Z.json");
         Path summaryPath = historyDir.resolve("backend-data-refresh-2026-04-27T00-00-00-000Z.summary.json");
+        Path childStatusPath = historyDir.resolve("backend-data-refresh-2026-04-27T00-00-00-000Z.runtime/wiki-core-refresh.child-status.json");
 
         writeJson(refreshDir.resolve("backend-refresh-daemon.heartbeat.json"), Map.of(
             "status", "running",
@@ -83,17 +84,18 @@ class CrawlerMonitorServiceImplTest {
             "pendingActions", 0,
             "timedOutActions", 0,
             "actions", List.of(
-                Map.of(
-                    "id", "wiki-core-refresh",
-                    "runner", "node",
-                    "args", List.of("scripts/data/workflow/run-wiki-sync.mjs"),
-                    "status", "completed",
-                    "timeoutMs", 1200000,
-                    "durationMs", 2000,
-                    "timedOut", false,
-                    "heartbeatPath", historyDir.resolve("backend-data-refresh-2026-04-27T00-00-00-000Z.runtime/wiki-core-refresh.heartbeat.json").toString(),
-                    "snapshotPath", historyDir.resolve("backend-data-refresh-2026-04-27T00-00-00-000Z.runtime/wiki-core-refresh.snapshot.json").toString(),
-                    "updatedAt", "2026-04-27T00:01:00Z"
+                Map.ofEntries(
+                    Map.entry("id", "wiki-core-refresh"),
+                    Map.entry("runner", "node"),
+                    Map.entry("args", List.of("scripts/data/workflow/run-wiki-sync.mjs")),
+                    Map.entry("status", "completed"),
+                    Map.entry("timeoutMs", 1200000),
+                    Map.entry("durationMs", 2000),
+                    Map.entry("timedOut", false),
+                    Map.entry("heartbeatPath", historyDir.resolve("backend-data-refresh-2026-04-27T00-00-00-000Z.runtime/wiki-core-refresh.heartbeat.json").toString()),
+                    Map.entry("snapshotPath", historyDir.resolve("backend-data-refresh-2026-04-27T00-00-00-000Z.runtime/wiki-core-refresh.snapshot.json").toString()),
+                    Map.entry("childStatusPath", childStatusPath.toString()),
+                    Map.entry("updatedAt", "2026-04-27T00:01:00Z")
                 ),
                 Map.of("id", "item-pages-refresh", "runner", "node", "status", "failed", "timedOut", false),
                 Map.of("id", "recipe-reference-sync", "runner", "node", "status", "running", "timedOut", false)
@@ -110,6 +112,16 @@ class CrawlerMonitorServiceImplTest {
             "pendingActions", 0,
             "timedOutActions", 0,
             "totalDurationMs", 3000
+        ));
+        writeJson(childStatusPath, Map.of(
+            "actionId", "wiki-core-refresh",
+            "status", "running",
+            "phase", "apply",
+            "message", "running wiki action 2 of 5",
+            "current", 2,
+            "total", 5,
+            "percent", 40,
+            "generatedAt", "2026-04-27T00:00:30Z"
         ));
 
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
@@ -133,9 +145,108 @@ class CrawlerMonitorServiceImplTest {
         assertEquals(3, overview.getLatestRun().getActions().size());
         assertEquals("wiki-core-refresh", overview.getLatestRun().getActions().get(0).getId());
         assertEquals("reports/backend-refresh/history/backend-data-refresh-2026-04-27T00-00-00-000Z.runtime/wiki-core-refresh.heartbeat.json", overview.getLatestRun().getActions().get(0).getHeartbeatPath());
+        assertEquals("reports/backend-refresh/history/backend-data-refresh-2026-04-27T00-00-00-000Z.runtime/wiki-core-refresh.child-status.json", overview.getLatestRun().getActions().get(0).getChildStatusPath());
+        assertEquals(2, overview.getLatestRun().getActions().get(0).getCurrent());
+        assertEquals(5, overview.getLatestRun().getActions().get(0).getTotal());
+        assertEquals(40.0, overview.getLatestRun().getActions().get(0).getPercent());
+        assertEquals("apply", overview.getLatestRun().getActions().get(0).getPhase());
+        assertEquals("running wiki action 2 of 5", overview.getLatestRun().getActions().get(0).getMessage());
+        assertEquals("2026-04-27T00:00:30Z", overview.getLatestRun().getActions().get(0).getLastHeartbeatAt());
         assertEquals(1, overview.getHistory().size());
         assertEquals(3, overview.getHistory().get(0).getTotalActions());
         assertFalse(overview.isRefreshStale());
+    }
+
+    @Test
+    void shouldSurfaceStandaloneWikiSyncProgressWhenBackendRefreshRunIsMissing() throws Exception {
+        Path progressPath = repoRoot.resolve("data/generated/wiki-sync-progress.latest.json");
+        writeJson(progressPath, Map.of(
+            "actionId", "wiki-sync",
+            "status", "running",
+            "phase", "apply",
+            "message", "running standalone wiki sync action 3 of 8",
+            "current", 3,
+            "total", 8,
+            "percent", 37.5,
+            "generatedAt", "2026-04-29T00:00:30Z"
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-04-29T00:01:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+
+        assertTrue(overview.getLatestRun().isFound());
+        assertTrue(overview.getLatestRun().isReadable());
+        assertEquals(1, overview.getLatestRun().getTotalActions());
+        assertEquals(1, overview.getLatestRun().getRunningActions());
+        assertEquals("wiki-sync", overview.getLatestRun().getLastActionId());
+        assertEquals(1, overview.getLatestRun().getActions().size());
+        CrawlerMonitorOverviewDTO.MonitorActionDTO action = overview.getLatestRun().getActions().get(0);
+        assertEquals("wiki-sync", action.getId());
+        assertEquals("external", action.getRunner());
+        assertEquals("running", action.getStatus());
+        assertEquals("data/generated/wiki-sync-progress.latest.json", action.getChildStatusPath());
+        assertEquals(3, action.getCurrent());
+        assertEquals(8, action.getTotal());
+        assertEquals(37.5, action.getPercent());
+        assertEquals("apply", action.getPhase());
+        assertEquals("running standalone wiki sync action 3 of 8", action.getMessage());
+        assertEquals("2026-04-29T00:00:30Z", action.getLastHeartbeatAt());
+        assertFalse(overview.isRefreshStale());
+    }
+
+    @Test
+    void shouldPreferRunningStandaloneWikiSyncProgressOverStaleBackendRefreshRun() throws Exception {
+        Path outputPath = historyDir.resolve("backend-data-refresh-2026-04-26T00-00-00-000Z.json");
+        Path summaryPath = historyDir.resolve("backend-data-refresh-2026-04-26T00-00-00-000Z.summary.json");
+        Path progressPath = repoRoot.resolve("data/generated/wiki-sync-progress.latest.json");
+
+        writeJson(outputPath, Map.of(
+            "generatedAt", "2026-04-26T00:00:00Z",
+            "totalActions", 1,
+            "completedActions", 1,
+            "failedActions", 0,
+            "runningActions", 0,
+            "pendingActions", 0,
+            "actions", List.of(Map.of("id", "old-refresh", "runner", "node", "status", "completed"))
+        ));
+        writeJson(summaryPath, Map.of(
+            "generatedAt", "2026-04-26T00:00:00Z",
+            "outputPath", outputPath.toString(),
+            "totalActions", 1,
+            "completedActions", 1,
+            "failedActions", 0,
+            "runningActions", 0,
+            "pendingActions", 0
+        ));
+        Files.setLastModifiedTime(outputPath, FileTime.from(Instant.parse("2026-04-26T00:00:00Z")));
+        Files.setLastModifiedTime(summaryPath, FileTime.from(Instant.parse("2026-04-26T00:00:00Z")));
+        writeJson(progressPath, Map.of(
+            "actionId", "wiki-sync",
+            "status", "running",
+            "phase", "apply",
+            "message", "new standalone wiki sync is running",
+            "current", 4,
+            "total", 8,
+            "percent", 50,
+            "generatedAt", "2026-04-29T00:00:30Z"
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-04-29T00:01:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+
+        assertEquals("wiki-sync", overview.getLatestRun().getLastActionId());
+        assertEquals(1, overview.getLatestRun().getRunningActions());
+        assertEquals("new standalone wiki sync is running", overview.getLatestRun().getActions().get(0).getMessage());
     }
 
     @Test

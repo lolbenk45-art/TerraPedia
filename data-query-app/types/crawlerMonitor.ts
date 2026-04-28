@@ -19,6 +19,13 @@ export interface CrawlerMonitorAction {
   timedOut?: boolean
   heartbeatPath?: string | null
   snapshotPath?: string | null
+  childStatusPath?: string | null
+  current?: number | null
+  total?: number | null
+  percent?: number | null
+  phase?: string | null
+  message?: string | null
+  lastHeartbeatAt?: string | null
   updatedAt?: string | null
 }
 

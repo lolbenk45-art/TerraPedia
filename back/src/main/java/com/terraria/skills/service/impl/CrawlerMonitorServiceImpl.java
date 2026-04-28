@@ -34,6 +34,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path SCHEDULER_STATE = REFRESH_DIR.resolve("backend-refresh-scheduler.latest.json");
     private static final Path LOCK_FILE = REFRESH_DIR.resolve("backend-refresh.lock.json");
     private static final Path TEST_STATE_FILE = REFRESH_DIR.resolve("manual-monitor-test.json");
+    private static final Path WIKI_SYNC_PROGRESS_FILE = Path.of("data", "generated", "wiki-sync-progress.latest.json");
     private static final int HISTORY_LIMIT = 10;
     private static final int RECENT_REPORT_LIMIT = 20;
     private static final long REFRESH_STALE_THRESHOLD_MS = Duration.ofHours(24).toMillis();
@@ -222,7 +223,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             summaryPath = findLatestSummary(historyDir);
         }
 
-        return buildRun(repoRoot, outputPath, summaryPath);
+        CrawlerMonitorOverviewDTO.MonitorRunDTO run = buildRun(repoRoot, outputPath, summaryPath);
+        CrawlerMonitorOverviewDTO.MonitorRunDTO standaloneProgress = buildStandaloneProgressRun(repoRoot);
+        if (shouldPreferStandaloneProgress(run, standaloneProgress)) {
+            return standaloneProgress;
+        }
+        return run;
     }
 
     private List<CrawlerMonitorOverviewDTO.MonitorRunDTO> loadHistory(Path repoRoot) {
@@ -401,10 +407,107 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             action.setTimedOut(Boolean.TRUE.equals(map.get("timedOut")));
             action.setHeartbeatPath(normalizePayloadPath(repoRoot, map.get("heartbeatPath")));
             action.setSnapshotPath(normalizePayloadPath(repoRoot, map.get("snapshotPath")));
+            action.setChildStatusPath(normalizePayloadPath(repoRoot, map.get("childStatusPath")));
             action.setUpdatedAt(asString(map.get("updatedAt")));
+            Map<String, Object> childStatus = readChildStatusPayload(repoRoot, action.getChildStatusPath());
+            applyProgressFields(repoRoot, action, map);
+            applyProgressFields(repoRoot, action, childStatus);
             actions.add(action);
         }
         return actions;
+    }
+
+    private boolean shouldPreferStandaloneProgress(
+        CrawlerMonitorOverviewDTO.MonitorRunDTO run,
+        CrawlerMonitorOverviewDTO.MonitorRunDTO standaloneProgress
+    ) {
+        if (standaloneProgress == null || !standaloneProgress.isFound() || !standaloneProgress.isReadable()) {
+            return false;
+        }
+        if (run == null || !run.isFound()) {
+            return true;
+        }
+        Instant standaloneAt = parseInstant(standaloneProgress.getGeneratedAt());
+        Instant runAt = parseInstant(run.getGeneratedAt());
+        return standaloneAt != null && (runAt == null || standaloneAt.isAfter(runAt));
+    }
+
+    private CrawlerMonitorOverviewDTO.MonitorRunDTO buildStandaloneProgressRun(Path repoRoot) {
+        Path progressPath = repoRoot.resolve(WIKI_SYNC_PROGRESS_FILE).normalize();
+        ReadResult result = readJsonMap(progressPath);
+        CrawlerMonitorOverviewDTO.MonitorRunDTO run = new CrawlerMonitorOverviewDTO.MonitorRunDTO();
+        run.setFound(result.found());
+        run.setReadable(result.readable());
+        run.setPath(toDisplayPath(repoRoot, progressPath));
+        run.setSummaryPath(toDisplayPath(repoRoot, progressPath));
+        run.setGeneratedAt(asString(result.payload().get("generatedAt")));
+        run.setOutputPath(toDisplayPath(repoRoot, progressPath));
+        run.setLastActionId(firstNonBlank(asString(result.payload().get("actionId")), "wiki-sync"));
+        run.setTotalActions(result.found() ? 1L : 0L);
+        String status = asString(result.payload().get("status"));
+        run.setCompletedActions("completed".equalsIgnoreCase(status) ? 1L : 0L);
+        run.setFailedActions("failed".equalsIgnoreCase(status) ? 1L : 0L);
+        run.setRunningActions("running".equalsIgnoreCase(status) ? 1L : 0L);
+        run.setPendingActions("pending".equalsIgnoreCase(status) ? 1L : 0L);
+        run.setErrorMessage(result.errorMessage());
+
+        if (result.readable()) {
+            CrawlerMonitorOverviewDTO.MonitorActionDTO action = new CrawlerMonitorOverviewDTO.MonitorActionDTO();
+            action.setId(run.getLastActionId());
+            action.setRunner("external");
+            action.setStatus(status);
+            action.setChildStatusPath(toDisplayPath(repoRoot, progressPath));
+            action.setUpdatedAt(asString(result.payload().get("generatedAt")));
+            applyProgressFields(repoRoot, action, result.payload());
+            run.setActions(List.of(action));
+        }
+        return run;
+    }
+
+    private Map<String, Object> readChildStatusPayload(Path repoRoot, String childStatusPath) {
+        Path resolved = resolvePayloadPathInsideRepo(repoRoot, childStatusPath);
+        if (resolved == null) {
+            return Map.of();
+        }
+        ReadResult result = readJsonMap(resolved);
+        return result.readable() ? result.payload() : Map.of();
+    }
+
+    private void applyProgressFields(Path repoRoot, CrawlerMonitorOverviewDTO.MonitorActionDTO action, Map<?, ?> payload) {
+        if (payload == null || payload.isEmpty()) {
+            return;
+        }
+        Long current = asNullableLong(payload.get("current"));
+        Long total = asNullableLong(payload.get("total"));
+        Double percent = asNullableDouble(payload.get("percent"));
+        if (current != null) {
+            action.setCurrent(current);
+        }
+        if (total != null) {
+            action.setTotal(total);
+        }
+        if (percent == null && current != null && total != null && total > 0) {
+            percent = (current.doubleValue() / total.doubleValue()) * 100.0d;
+        }
+        if (percent != null) {
+            action.setPercent(clampPercent(percent));
+        }
+        String phase = asString(payload.get("phase"));
+        if (phase != null && !phase.isBlank()) {
+            action.setPhase(phase);
+        }
+        String message = asString(payload.get("message"));
+        if (message != null && !message.isBlank()) {
+            action.setMessage(message);
+        }
+        String lastHeartbeatAt = firstNonBlank(asString(payload.get("lastHeartbeatAt")), asString(payload.get("generatedAt")));
+        if (lastHeartbeatAt != null && !lastHeartbeatAt.isBlank()) {
+            action.setLastHeartbeatAt(lastHeartbeatAt);
+        }
+        String childStatusPath = normalizePayloadPath(repoRoot, payload.get("childStatusPath"));
+        if (childStatusPath != null && !childStatusPath.isBlank()) {
+            action.setChildStatusPath(childStatusPath);
+        }
     }
 
     private ReadResult readJsonMap(Path path) {
@@ -611,6 +714,27 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         } catch (NumberFormatException ignored) {
             return null;
         }
+    }
+
+    private Double asNullableDouble(Object value) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value == null || String.valueOf(value).isBlank()) {
+            return null;
+        }
+        try {
+            return Double.parseDouble(String.valueOf(value));
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private Double clampPercent(Double value) {
+        if (value == null) {
+            return null;
+        }
+        return Math.max(0.0d, Math.min(100.0d, value));
     }
 
     private List<String> toStringList(Object value) {

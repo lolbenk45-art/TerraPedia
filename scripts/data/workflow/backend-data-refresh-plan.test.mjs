@@ -101,7 +101,18 @@ test('buildBackendDataRefreshPlan assigns action timeouts and supports override'
 test('buildBackendDataRefreshReport summarizes action statuses', () => {
   const plan = buildBackendDataRefreshPlan();
   const report = buildBackendDataRefreshReport(plan, [
-    { id: 'wiki-core-refresh', status: 'completed', durationMs: 1200 },
+    {
+      id: 'wiki-core-refresh',
+      status: 'completed',
+      durationMs: 1200,
+      childStatusPath: 'reports/backend-refresh/history/run.runtime/wiki-core-refresh.child-status.json',
+      current: 5,
+      total: 5,
+      percent: 100,
+      phase: 'apply',
+      message: 'completed wiki sync',
+      lastHeartbeatAt: '2026-04-29T00:00:05.000Z'
+    },
     { id: 'item-pages-refresh', status: 'failed', durationMs: 300 }
   ]);
 
@@ -111,6 +122,13 @@ test('buildBackendDataRefreshReport summarizes action statuses', () => {
   assert.equal(report.pendingActions, 8);
   assert.equal(report.runningActions, 0);
   assert.equal(report.actions[0].status, 'completed');
+  assert.equal(report.actions[0].childStatusPath, 'reports/backend-refresh/history/run.runtime/wiki-core-refresh.child-status.json');
+  assert.equal(report.actions[0].current, 5);
+  assert.equal(report.actions[0].total, 5);
+  assert.equal(report.actions[0].percent, 100);
+  assert.equal(report.actions[0].phase, 'apply');
+  assert.equal(report.actions[0].message, 'completed wiki sync');
+  assert.equal(report.actions[0].lastHeartbeatAt, '2026-04-29T00:00:05.000Z');
   assert.equal(report.actions[1].status, 'failed');
 });
 

@@ -70,6 +70,13 @@ public class CrawlerMonitorOverviewDTO {
         private boolean timedOut;
         private String heartbeatPath;
         private String snapshotPath;
+        private String childStatusPath;
+        private Long current;
+        private Long total;
+        private Double percent;
+        private String phase;
+        private String message;
+        private String lastHeartbeatAt;
         private String updatedAt;
     }
 

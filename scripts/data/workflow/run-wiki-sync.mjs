@@ -27,11 +27,16 @@ import {
   saveWikiSyncPlan,
   upsertManifestRecord
 } from '../lib/wiki-sync-manifest.mjs';
+import {
+  buildActionProgressPayload,
+  writeJsonFile
+} from './backend-refresh-runtime-state.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const generatedRoot = path.resolve(repoRoot, 'data', 'generated');
+const DEFAULT_WIKI_SYNC_PROGRESS_PATH = path.join(generatedRoot, 'wiki-sync-progress.latest.json');
 const sharedRawWikiRoot = sharedDataPath('raw', 'wiki');
 const seedScriptPath = path.join(repoRoot, 'scripts', 'data', 'workflow', 'seed-wiki-source-manifest.mjs');
 const zhEnrichScriptPath = path.join(repoRoot, 'scripts', 'data', 'workflow', 'run-zh-enrich.mjs');
@@ -193,6 +198,10 @@ const mode = String(options.mode ?? 'monitor').trim().toLowerCase();
 const monitorStatePath = path.resolve(process.cwd(), options['monitor-state'] ?? DEFAULT_WIKI_MONITOR_STATE_PATH);
 const manifestPath = path.resolve(process.cwd(), options['manifest-path'] ?? DEFAULT_WIKI_SOURCE_MANIFEST_PATH);
 const planPath = path.resolve(process.cwd(), options['plan-path'] ?? DEFAULT_WIKI_SYNC_PLAN_PATH);
+const progressPath = path.resolve(
+  process.cwd(),
+  options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_WIKI_SYNC_PROGRESS_PATH
+);
 const requestedEntities = resolveRequestedEntities(options);
 
 if (options['clear-cooldown'] === true || String(options['clear-cooldown'] ?? '').toLowerCase() === 'true') {
@@ -221,10 +230,26 @@ async function runMonitor() {
   const previousByKey = new Map((previousState.sources ?? []).map((entry) => [entry.key, entry]));
   const checkedAt = new Date().toISOString();
   const sources = [];
+  writeWikiSyncProgress({
+    status: 'running',
+    phase: 'monitor',
+    message: `checking ${requestedEntities.length} wiki source group(s)`,
+    current: 0,
+    total: requestedEntities.length,
+    generatedAt: checkedAt
+  });
 
-  for (const entityName of requestedEntities) {
+  for (let entityIndex = 0; entityIndex < requestedEntities.length; entityIndex += 1) {
+    const entityName = requestedEntities[entityIndex];
     const config = ENTITY_CONFIG[entityName];
     if (!config || config.titles.length === 0) {
+      writeWikiSyncProgress({
+        status: 'running',
+        phase: 'monitor',
+        message: `checked ${entityName}`,
+        current: entityIndex + 1,
+        total: requestedEntities.length
+      });
       continue;
     }
     const pages = await fetchWikiPageMetadataBatch({
@@ -249,6 +274,13 @@ async function runMonitor() {
         status: page.missing ? 'missing' : 'ok'
       });
     }
+    writeWikiSyncProgress({
+      status: 'running',
+      phase: 'monitor',
+      message: `checked ${entityName}`,
+      current: entityIndex + 1,
+      total: requestedEntities.length
+    });
   }
 
   const state = {
@@ -257,6 +289,13 @@ async function runMonitor() {
     sources
   };
   saveWikiMonitorState(monitorStatePath, state);
+  writeWikiSyncProgress({
+    status: 'completed',
+    phase: 'monitor',
+    message: `checked ${sources.length} wiki source(s)`,
+    current: requestedEntities.length,
+    total: requestedEntities.length
+  });
 
   console.log(JSON.stringify({
     checkedAt,
@@ -268,6 +307,13 @@ async function runMonitor() {
 }
 
 async function runPlan() {
+  writeWikiSyncProgress({
+    status: 'running',
+    phase: 'plan',
+    message: `planning ${requestedEntities.join(', ')}`,
+    current: 0,
+    total: requestedEntities.length
+  });
   ensureSeededManifest();
   const manifest = loadWikiSourceManifest(manifestPath);
   const monitorState = await ensureMonitorState();
@@ -349,6 +395,13 @@ async function runPlan() {
       .map((entry) => ({ entityFamily: entry.entityFamily, estimatedRequests: entry.estimatedRequests }))
   };
   saveWikiSyncPlan(planPath, plan);
+  writeWikiSyncProgress({
+    status: 'completed',
+    phase: 'plan',
+    message: `planned ${actions.length} wiki sync action(s)`,
+    current: actions.length,
+    total: actions.length
+  });
 
   console.log(JSON.stringify({
     actionCount: actions.length,
@@ -361,6 +414,13 @@ async function runPlan() {
 }
 
 async function runApply({ resume }) {
+  writeWikiSyncProgress({
+    status: 'running',
+    phase: resume ? 'resume' : 'apply',
+    message: resume ? 'resuming wiki sync plan' : 'preparing wiki sync plan',
+    current: 0,
+    total: 0
+  });
   ensureSeededManifest();
   let plan = loadWikiSyncPlan(planPath);
   if (!resume || plan.actions.length === 0) {
@@ -369,18 +429,47 @@ async function runApply({ resume }) {
   }
 
   let manifest = loadWikiSourceManifest(manifestPath);
-  for (const action of plan.actions) {
+  for (let actionIndex = 0; actionIndex < plan.actions.length; actionIndex += 1) {
+    const action = plan.actions[actionIndex];
     if (action.status === 'completed') {
+      writeWikiSyncProgress({
+        status: 'running',
+        phase: resume ? 'resume' : 'apply',
+        message: `skipped completed ${action.id}`,
+        current: actionIndex + 1,
+        total: plan.actions.length
+      });
       continue;
     }
 
+    plan = markAction(plan, action.id, 'running');
+    saveWikiSyncPlan(planPath, plan);
+    writeWikiSyncProgress({
+      status: 'running',
+      phase: resume ? 'resume' : 'apply',
+      message: `running ${action.id} (${actionIndex + 1}/${plan.actions.length})`,
+      current: actionIndex,
+      total: plan.actions.length
+    });
     const result = spawnSync(action.command, action.args, {
       cwd: repoRoot,
+      env: {
+        ...process.env,
+        TERRAPEDIA_CRAWLER_ACTION_ID: action.id,
+        TERRAPEDIA_CRAWLER_PROGRESS_PATH: progressPath
+      },
       stdio: 'inherit'
     });
     if (result.status !== 0) {
       plan = markAction(plan, action.id, 'failed');
       saveWikiSyncPlan(planPath, plan);
+      writeWikiSyncProgress({
+        status: 'failed',
+        phase: resume ? 'resume' : 'apply',
+        message: `failed ${action.id}`,
+        current: actionIndex,
+        total: plan.actions.length
+      });
       throw new Error(`Workflow action failed: ${action.id}`);
     }
 
@@ -391,7 +480,22 @@ async function runApply({ resume }) {
 
     plan = markAction(plan, action.id, 'completed');
     saveWikiSyncPlan(planPath, plan);
+    writeWikiSyncProgress({
+      status: 'running',
+      phase: resume ? 'resume' : 'apply',
+      message: `completed ${action.id} (${actionIndex + 1}/${plan.actions.length})`,
+      current: actionIndex + 1,
+      total: plan.actions.length
+    });
   }
+
+  writeWikiSyncProgress({
+    status: 'completed',
+    phase: resume ? 'resume' : 'apply',
+    message: `completed ${plan.actions.filter((entry) => entry.status === 'completed').length} wiki sync action(s)`,
+    current: plan.actions.length,
+    total: plan.actions.length
+  });
 
   console.log(JSON.stringify({
     actionCount: plan.actions.length,
@@ -573,6 +677,25 @@ function markAction(plan, actionId, status) {
       };
     })
   };
+}
+
+function writeWikiSyncProgress(progress) {
+  const generatedAt = progress.generatedAt ?? new Date().toISOString();
+  const actionId = process.env.TERRAPEDIA_CRAWLER_ACTION_ID ?? 'wiki-sync';
+  const payload = buildActionProgressPayload({
+    ...progress,
+    actionId,
+    generatedAt,
+    lastHeartbeatAt: generatedAt,
+    childStatusPath: progressPath
+  });
+  writeJsonFile(progressPath, payload);
+  if (progressPath !== DEFAULT_WIKI_SYNC_PROGRESS_PATH) {
+    writeJsonFile(DEFAULT_WIKI_SYNC_PROGRESS_PATH, {
+      ...payload,
+      childStatusPath: DEFAULT_WIKI_SYNC_PROGRESS_PATH
+    });
+  }
 }
 
 function slugify(value) {

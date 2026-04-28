@@ -121,6 +121,13 @@ export function buildBackendDataRefreshReport(plan, actionResults = []) {
       timedOut: Boolean(result.timedOut),
       heartbeatPath: result.heartbeatPath ?? null,
       snapshotPath: result.snapshotPath ?? null,
+      childStatusPath: result.childStatusPath ?? null,
+      current: Number.isFinite(Number(result.current)) ? Number(result.current) : null,
+      total: Number.isFinite(Number(result.total)) ? Number(result.total) : null,
+      percent: Number.isFinite(Number(result.percent)) ? Number(result.percent) : null,
+      phase: result.phase ?? null,
+      message: result.message ?? null,
+      lastHeartbeatAt: result.lastHeartbeatAt ?? null,
       updatedAt: result.updatedAt ?? null
     };
   });

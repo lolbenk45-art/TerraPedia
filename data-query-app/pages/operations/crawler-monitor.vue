@@ -77,8 +77,12 @@
               </div>
               <div class="action-card__meta">
                 <span>{{ action.runner || 'runner unknown' }}</span>
-                <span>{{ formatDuration(action.durationMs) }}</span>
+                <span>{{ actionProgressLabel(action) }}</span>
               </div>
+              <p v-if="action.phase || action.message" class="action-card__message">
+                <span v-if="action.phase">{{ action.phase }}</span>
+                {{ action.message || '' }}
+              </p>
               <div class="progress-track">
                 <span :style="{ width: actionProgress(action) }" :class="statusTone(action.status)" />
               </div>
@@ -107,6 +111,7 @@
                   <th>Action</th>
                   <th>Runner</th>
                   <th>Status</th>
+                  <th>Progress</th>
                   <th>Duration</th>
                   <th>Updated</th>
                   <th>Runtime Files</th>
@@ -120,16 +125,21 @@
                   </td>
                   <td>{{ action.runner || '--' }}</td>
                   <td><span class="status-pill" :class="statusTone(action.status)">{{ action.status || 'unknown' }}</span></td>
+                  <td>
+                    <strong>{{ actionProgressLabel(action) }}</strong>
+                    <small v-if="action.phase || action.message">{{ [action.phase, action.message].filter(Boolean).join(' · ') }}</small>
+                  </td>
                   <td>{{ formatDuration(action.durationMs) }}</td>
-                  <td>{{ formatDate(action.updatedAt) }}</td>
+                  <td>{{ formatDate(action.lastHeartbeatAt || action.updatedAt) }}</td>
                   <td>
                     <code v-if="action.heartbeatPath">{{ action.heartbeatPath }}</code>
                     <code v-if="action.snapshotPath">{{ action.snapshotPath }}</code>
-                    <span v-if="!action.heartbeatPath && !action.snapshotPath">--</span>
+                    <code v-if="action.childStatusPath">{{ action.childStatusPath }}</code>
+                    <span v-if="!action.heartbeatPath && !action.snapshotPath && !action.childStatusPath">--</span>
                   </td>
                 </tr>
                 <tr v-if="!actions.length">
-                  <td colspan="6" class="table-empty">暂无 action 明细</td>
+                  <td colspan="7" class="table-empty">暂无 action 明细</td>
                 </tr>
               </tbody>
             </table>
@@ -413,11 +423,45 @@ function reportTone(category?: string | null) {
 }
 
 function actionProgress(action: CrawlerMonitorAction) {
+  const percent = actionProgressPercent(action)
+  if (percent != null) return `${percent}%`
   const status = String(action.status || '').toLowerCase()
   if (status === 'completed') return '100%'
   if (status === 'running') return '62%'
   if (status === 'failed') return '100%'
   return '18%'
+}
+
+function actionProgressPercent(action: CrawlerMonitorAction) {
+  const explicit = Number(action.percent)
+  if (Number.isFinite(explicit)) return clampPercent(explicit)
+  const current = Number(action.current)
+  const total = Number(action.total)
+  if (Number.isFinite(current) && Number.isFinite(total) && total > 0) {
+    return clampPercent((current / total) * 100)
+  }
+  return null
+}
+
+function actionProgressLabel(action: CrawlerMonitorAction) {
+  const current = Number(action.current)
+  const total = Number(action.total)
+  const percent = actionProgressPercent(action)
+  if (Number.isFinite(current) && Number.isFinite(total) && total > 0) {
+    const suffix = percent == null ? '' : ` · ${formatPercent(percent)}`
+    return `${formatNumber(current)}/${formatNumber(total)}${suffix}`
+  }
+  if (percent != null) return formatPercent(percent)
+  return formatDuration(action.durationMs)
+}
+
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(100, value))
+}
+
+function formatPercent(value: number) {
+  const rounded = Math.round(value * 10) / 10
+  return `${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1)}%`
 }
 
 function formatNumber(value: number | string | null | undefined) {
@@ -615,6 +659,22 @@ function shortArgs(args?: string[]) {
 .action-card__meta {
   color: var(--color-text-secondary);
   font-size: 13px;
+}
+
+.action-card__message {
+  min-height: 18px;
+  margin: -4px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.action-card__message span {
+  display: inline-flex;
+  margin-right: 6px;
+  color: var(--color-text);
+  font-weight: 800;
 }
 
 .progress-track {

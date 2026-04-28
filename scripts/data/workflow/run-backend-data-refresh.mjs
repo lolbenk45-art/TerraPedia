@@ -15,6 +15,7 @@ import {
 } from './backend-refresh-summary.mjs';
 import {
   buildActionHeartbeatPayload,
+  buildActionProgressPayload,
   buildActionRuntimePaths,
   buildActionSnapshotPayload,
   writeJsonFile
@@ -52,6 +53,16 @@ for (const action of actionsToRun) {
   const startedAt = Date.now();
   const startedAtIso = new Date(startedAt).toISOString();
   const runtimePaths = buildActionRuntimePaths({ outputPath, actionId: action.id });
+  const initialProgress = buildActionProgressPayload({
+    actionId: action.id,
+    status: 'running',
+    phase: 'action',
+    message: `running ${action.id}`,
+    current: 0,
+    total: 1,
+    generatedAt: startedAtIso,
+    childStatusPath: runtimePaths.childStatusPath
+  });
   actionResults = upsertActionResult(actionResults, {
     id: action.id,
     status: 'running',
@@ -59,14 +70,18 @@ for (const action of actionsToRun) {
     timedOut: false,
     heartbeatPath: runtimePaths.heartbeatPath,
     snapshotPath: runtimePaths.snapshotPath,
-    updatedAt: startedAtIso
+    childStatusPath: runtimePaths.childStatusPath,
+    updatedAt: startedAtIso,
+    ...toActionProgressResult(initialProgress)
   });
+  writeJsonFile(runtimePaths.childStatusPath, initialProgress);
   writeJsonFile(runtimePaths.snapshotPath, buildActionSnapshotPayload({
     action,
     status: 'running',
     startedAt: startedAtIso,
     generatedAt: startedAtIso,
-    outputPath
+    outputPath,
+    progress: initialProgress
   }));
   writeReport(outputPath, buildBackendDataRefreshReport(plan, actionResults));
   const result = await runAction(command, action.args, {
@@ -80,32 +95,51 @@ for (const action of actionsToRun) {
     timeoutMs: action.timeoutMs
   });
   const completedAtIso = new Date().toISOString();
+  const finalStatus = result.status === 0 ? 'completed' : 'failed';
+  const childProgress = readActionProgress(runtimePaths.childStatusPath);
+  const finalProgress = buildActionProgressPayload({
+    ...childProgress,
+    actionId: action.id,
+    status: finalStatus,
+    phase: childProgress?.phase ?? 'action',
+    message: childProgress?.message ?? `${finalStatus} ${action.id}`,
+    current: childProgress?.current ?? (result.status === 0 ? 1 : null),
+    total: childProgress?.total ?? (result.status === 0 ? 1 : null),
+    generatedAt: completedAtIso,
+    lastHeartbeatAt: completedAtIso,
+    childStatusPath: runtimePaths.childStatusPath
+  });
   actionResults = upsertActionResult(actionResults, {
     id: action.id,
-    status: result.status === 0 ? 'completed' : 'failed',
+    status: finalStatus,
     durationMs: Date.now() - startedAt,
     timedOut: result.timedOut,
     heartbeatPath: runtimePaths.heartbeatPath,
     snapshotPath: runtimePaths.snapshotPath,
-    updatedAt: completedAtIso
+    childStatusPath: runtimePaths.childStatusPath,
+    updatedAt: completedAtIso,
+    ...toActionProgressResult(finalProgress)
   });
+  writeJsonFile(runtimePaths.childStatusPath, finalProgress);
   writeJsonFile(runtimePaths.snapshotPath, buildActionSnapshotPayload({
     action,
-    status: result.status === 0 ? 'completed' : 'failed',
+    status: finalStatus,
     startedAt: startedAtIso,
     completedAt: completedAtIso,
     durationMs: Date.now() - startedAt,
     generatedAt: completedAtIso,
     outputPath,
-    timedOut: result.timedOut
+    timedOut: result.timedOut,
+    progress: finalProgress
   }));
   writeJsonFile(runtimePaths.heartbeatPath, buildActionHeartbeatPayload({
     actionId: action.id,
     generatedAt: completedAtIso,
     pid: result.pid,
-    status: result.status === 0 ? 'completed' : 'failed',
+    status: finalStatus,
     outputPath,
-    snapshotPath: runtimePaths.snapshotPath
+    snapshotPath: runtimePaths.snapshotPath,
+    progress: finalProgress
   }));
   if (result.status !== 0) {
     writeReport(outputPath, buildBackendDataRefreshReport(plan, actionResults));
@@ -154,7 +188,18 @@ function loadExistingActionResults(outputPath) {
     ? report.actions.map((action) => ({
       id: action.id,
       status: action.status,
-      durationMs: action.durationMs ?? null
+      durationMs: action.durationMs ?? null,
+      timedOut: action.timedOut ?? false,
+      heartbeatPath: action.heartbeatPath ?? null,
+      snapshotPath: action.snapshotPath ?? null,
+      childStatusPath: action.childStatusPath ?? null,
+      current: action.current ?? null,
+      total: action.total ?? null,
+      percent: action.percent ?? null,
+      phase: action.phase ?? null,
+      message: action.message ?? null,
+      lastHeartbeatAt: action.lastHeartbeatAt ?? null,
+      updatedAt: action.updatedAt ?? null
     }))
     : [];
 }
@@ -177,6 +222,11 @@ function runAction(command, args, options = {}) {
   return new Promise((resolve) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
+      env: {
+        ...process.env,
+        TERRAPEDIA_CRAWLER_ACTION_ID: options.action.id,
+        TERRAPEDIA_CRAWLER_PROGRESS_PATH: options.runtimePaths.childStatusPath
+      },
       stdio: 'inherit'
     });
     let settled = false;
@@ -188,7 +238,8 @@ function runAction(command, args, options = {}) {
       pid: child.pid,
       status: 'running',
       outputPath: options.outputPath,
-      snapshotPath: options.runtimePaths.snapshotPath
+      snapshotPath: options.runtimePaths.snapshotPath,
+      progress: readActionProgress(options.runtimePaths.childStatusPath)
     }));
 
     const heartbeatTimer = setInterval(() => {
@@ -198,7 +249,8 @@ function runAction(command, args, options = {}) {
         pid: child.pid,
         status: 'running',
         outputPath: options.outputPath,
-        snapshotPath: options.runtimePaths.snapshotPath
+        snapshotPath: options.runtimePaths.snapshotPath,
+        progress: readActionProgress(options.runtimePaths.childStatusPath)
       }));
     }, options.heartbeatMs);
 
@@ -251,4 +303,35 @@ function normalizePositiveInteger(value, fallback) {
     return fallback;
   }
   return Math.trunc(numeric);
+}
+
+function readActionProgress(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) {
+    return null;
+  }
+  try {
+    const payload = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return {
+      ...payload,
+      childStatusPath: payload.childStatusPath ?? filePath
+    };
+  } catch {
+    return {
+      childStatusPath: filePath,
+      message: 'progress file is not readable',
+      phase: 'monitor'
+    };
+  }
+}
+
+function toActionProgressResult(progress) {
+  return {
+    childStatusPath: progress?.childStatusPath ?? null,
+    current: progress?.current ?? null,
+    total: progress?.total ?? null,
+    percent: progress?.percent ?? null,
+    phase: progress?.phase ?? null,
+    message: progress?.message ?? null,
+    lastHeartbeatAt: progress?.lastHeartbeatAt ?? progress?.generatedAt ?? null
+  };
 }
