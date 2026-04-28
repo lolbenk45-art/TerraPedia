@@ -39,19 +39,21 @@ const fixtureWikitext = `
 * 54 {{item|Hallowed Bar}}
 |}
 
-== [[{{tr|Wizard set}}]] ==
+=== [[{{tr|Wizard set}}]] ===
 {| class="terraria lined"
 |-
 | [[File:Magic Hat (equipped).png|link=]]
 | {{item|mode=text|wrap=y|Magic Hat}}
 |}
 
-== Other armor ==
+== 其他盔甲 ==
 {| class="terraria lined"
 |-
 | [[File:Night Vision Helmet.png|link=]]
-| {{item|mode=text|wrap=y|Night Vision Helmet}}
+| [[{{tr|Night Vision Helmet}}]]
 |}
+
+== 成就 ==
 `;
 
 const fixtureHtml = `
@@ -81,20 +83,34 @@ const fixtureHtml = `
 <table><tbody>
 <tr><td><img alt="Magic Hat (equipped).png" src="https://terraria.wiki.gg/images/Magic_Hat_%28equipped%29.png" /></td><td><a title="魔法帽">魔法帽</a></td></tr>
 </tbody></table>
+<h3>Other armor</h3>
+<table><tbody>
+<tr><td><img alt="Night Vision Helmet.png" src="https://terraria.wiki.gg/images/Night_Vision_Helmet.png" /></td><td><a title="Night Vision Helmet">Night Vision Helmet</a></td></tr>
+</tbody></table>
 `;
 
-test('parseWikiArmorSetRows extracts traditional armor sets and excludes wizard/other single items', () => {
+test('parseWikiArmorSetRows treats traditional, single-piece, and nonstandard armor rows as armor sets', () => {
   const actual = parseWikiArmorSetRows({
     wikitext: fixtureWikitext,
     html: fixtureHtml,
     sourceRevisionTimestamp: '2026-04-28T00:00:00Z'
   });
 
-  assert.deepEqual(actual.map((row) => row.pageTitle), ['Wood armor', 'Hallowed armor']);
+  assert.deepEqual(
+    actual.map((row) => [row.pageTitle, row.entityType, row.compositionKind]),
+    [
+      ['Wood armor', 'armor_set', 'traditional_set'],
+      ['Hallowed armor', 'armor_set', 'traditional_set'],
+      ['Magic Hat', 'armor_set', 'single_piece_set'],
+      ['Night Vision Helmet', 'armor_set', 'nonstandard_piece_set']
+    ]
+  );
   assert.equal(actual[0].nameZh, '木盔甲');
   assert.equal(actual[0].images[0].role, 'male');
   assert.equal(actual[0].images[0].url, 'https://terraria.wiki.gg/images/Wood_armor.png?x');
   assert.equal(actual[1].nameZh, '神圣盔甲');
   assert.deepEqual(actual[1].interchangeableSetTitles, ['Ancient Hallowed armor']);
   assert.match(actual[1].effectText, /套装奖励/);
+  assert.equal(actual[2].images[0].fileTitle, 'Magic Hat (equipped).png');
+  assert.equal(actual[3].nameZh, 'Night Vision Helmet');
 });

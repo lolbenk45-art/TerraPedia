@@ -19,15 +19,31 @@ const DEFAULT_ARMOR_PAGE_TITLE = '盔甲';
 const WIKI_SECTIONS = [
   {
     code: 'pre-hardmode',
+    compositionKind: 'traditional_set',
     wikiStart: '== [[{{tr|Pre-Hardmode}}]] ==',
     wikiEnd: '== [[{{tr|Hardmode}}]] ==',
-    htmlHeading: '困难模式之前'
+    htmlHeadings: ['困难模式之前']
   },
   {
     code: 'hardmode',
+    compositionKind: 'traditional_set',
     wikiStart: '== [[{{tr|Hardmode}}]] ==',
-    wikiEnd: '== [[{{tr|Wizard set}}]] ==',
-    htmlHeading: '困难模式'
+    wikiEnd: ['=== [[{{tr|Wizard set}}]] ===', '== [[{{tr|Wizard set}}]] =='],
+    htmlHeadings: ['困难模式']
+  },
+  {
+    code: 'wizard-set',
+    compositionKind: 'single_piece_set',
+    wikiStart: ['=== [[{{tr|Wizard set}}]] ===', '== [[{{tr|Wizard set}}]] =='],
+    wikiEnd: ['== 其他盔甲 ==', '== Other armor =='],
+    htmlHeadings: ['巫师套装']
+  },
+  {
+    code: 'other-armor',
+    compositionKind: 'nonstandard_piece_set',
+    wikiStart: ['== 其他盔甲 ==', '== Other armor =='],
+    wikiEnd: ['== 成就 ==', '== Vanity items =='],
+    htmlHeadings: ['其他盔甲', 'Other armor']
   }
 ];
 
@@ -91,6 +107,16 @@ function extractHtmlSection(html, heading) {
   return String(html).slice(startIndex, end ? end.index : undefined);
 }
 
+function extractHtmlSectionByHeadings(html, headings) {
+  for (const heading of headings) {
+    const sectionHtml = extractHtmlSection(html, heading);
+    if (sectionHtml) {
+      return sectionHtml;
+    }
+  }
+  return '';
+}
+
 function classifyAppearanceImageRole(entry, seenRoles) {
   const title = String(entry.fileTitle ?? entry.alt ?? '').toLowerCase();
   if (title.includes('female')) return 'female';
@@ -134,7 +160,7 @@ function extractPrimaryLinkTitle(cellHtml) {
 function extractHtmlRows(html) {
   const rows = [];
   for (const section of WIKI_SECTIONS) {
-    const sectionHtml = extractHtmlSection(html, section.htmlHeading);
+    const sectionHtml = extractHtmlSectionByHeadings(html, section.htmlHeadings ?? [section.htmlHeading]);
     for (const rowHtml of splitHtmlRows(sectionHtml)) {
       const cells = splitHtmlCells(rowHtml);
       if (cells.length < 2) {
@@ -146,6 +172,7 @@ function extractHtmlRows(html) {
       }
       rows.push({
         section: section.code,
+        compositionKind: section.compositionKind,
         nameZh,
         images: extractHtmlImages(cells[0]),
         effectText: htmlToText(cells.length >= 8 ? cells[6] : cells[cells.length - 2]),
@@ -156,25 +183,40 @@ function extractHtmlRows(html) {
   return rows;
 }
 
+function findMarkerIndex(text, markers, fromIndex = 0) {
+  const candidates = (Array.isArray(markers) ? markers : [markers])
+    .map((marker) => String(text ?? '').indexOf(marker, fromIndex))
+    .filter((index) => index >= 0);
+  return candidates.length ? Math.min(...candidates) : -1;
+}
+
 function extractWikiSection(wikitext, startMarker, endMarker) {
-  const start = String(wikitext ?? '').indexOf(startMarker);
+  const text = String(wikitext ?? '');
+  const start = findMarkerIndex(text, startMarker);
   if (start < 0) {
     return '';
   }
-  const end = String(wikitext).indexOf(endMarker, start + startMarker.length);
-  return String(wikitext).slice(start, end < 0 ? undefined : end);
+  const end = findMarkerIndex(text, endMarker, start + 1);
+  return text.slice(start, end < 0 ? undefined : end);
 }
 
 function splitWikiRows(sectionText) {
   return String(sectionText ?? '')
     .split(/\n\|-\s*\n/)
     .slice(1)
-    .filter((row) => /\{\{item\|[^{}]*mode=text[^{}]*\|[^{}|]+\}\}/.test(row));
+    .filter((row) => (
+      /\{\{item\|[^{}]*mode=text[^{}]*\|[^{}|]+\}\}/.test(row)
+      || /\[\[\{\{tr\|([^{}|]+)\}\}\]\]/.test(row)
+    ));
 }
 
 function extractWikiSetTitle(rowText) {
-  const match = String(rowText ?? '').match(/\{\{item\|[^{}]*mode=text[^{}]*\|([^{}|]+)\}\}/);
-  return match?.[1]?.trim() ?? null;
+  const itemMatch = String(rowText ?? '').match(/\{\{item\|[^{}]*mode=text[^{}]*\|([^{}|]+)\}\}/);
+  if (itemMatch?.[1]) {
+    return itemMatch[1].trim();
+  }
+  const trLinkMatch = String(rowText ?? '').match(/\[\[\{\{tr\|([^{}|]+)\}\}\]\]/);
+  return trLinkMatch?.[1]?.trim() ?? null;
 }
 
 function extractInterchangeableSetTitles(rowText, pageTitle) {
@@ -200,6 +242,7 @@ function extractWikiRows(wikitext) {
       }
       rows.push({
         section: section.code,
+        compositionKind: section.compositionKind,
         pageTitle,
         interchangeableSetTitles: extractInterchangeableSetTitles(rowText, pageTitle)
       });
@@ -219,6 +262,8 @@ export function parseWikiArmorSetRows({
     const htmlRow = htmlRows[index] ?? {};
     return {
       section: row.section,
+      entityType: 'armor_set',
+      compositionKind: row.compositionKind,
       pageTitle: row.pageTitle,
       nameEn: row.pageTitle,
       nameZh: htmlRow.nameZh ?? row.pageTitle,

@@ -522,6 +522,68 @@ test('buildProjectionPayload uses wiki armor row metadata for display names and 
   assert.equal(JSON.parse(row.relatedItemsJson)[0].image, 'https://terraria.wiki.gg/images/Cobalt_Hat.png');
 });
 
+test('buildProjectionPayload maps single-piece armor set relations', () => {
+  const actual = buildProjectionPayload({
+    relationItems: [
+      {
+        sourceId: 2275,
+        recordKey: 'item-magic-hat',
+        internalName: 'MagicHat',
+        englishName: 'Magic Hat',
+        nameZh: 'Magic Hat'
+      }
+    ],
+    relationItemImages: [
+      {
+        itemInternalName: 'MagicHat',
+        originalUrl: 'https://terraria.wiki.gg/images/Magic_Hat.png',
+        isPrimary: 1
+      }
+    ],
+    relationArmorSets: [
+      {
+        recordKey: 'wiki-magic-hat-rk',
+        textKey: 'WikiArmorSet.Magic Hat',
+        benefitExpression: 'WikiArmorSet.Magic Hat',
+        setCount: 1,
+        uniqueItemCount: 1,
+        setsJson: JSON.stringify([[2275]]),
+        uniqueItemIdsJson: JSON.stringify([2275]),
+        rawJson: JSON.stringify({
+          entityType: 'armor_set',
+          compositionKind: 'single_piece_set',
+          pageTitle: 'Magic Hat',
+          nameEn: 'Magic Hat',
+          effectText: '+60 mana'
+        })
+      }
+    ],
+    relationArmorSetItems: [
+      {
+        armorSetRecordKey: 'wiki-magic-hat-rk',
+        itemSourceId: 2275,
+        itemInternalName: 'MagicHat',
+        itemName: 'Magic Hat',
+        partRole: 'head',
+        slotType: 'headSlot',
+        equipmentSlotId: 80
+      }
+    ]
+  });
+
+  const row = actual.projectionArmorSets[0];
+  assert.equal(row.entityType, 'armor_set');
+  assert.equal(row.compositionKind, 'single_piece_set');
+  assert.equal(row.setCount, 1);
+  assert.equal(row.uniqueItemCount, 1);
+  assert.deepEqual(JSON.parse(row.currentItemIdsJson), [2275]);
+  const related = JSON.parse(row.relatedItemsJson);
+  assert.equal(related.length, 1);
+  assert.equal(related[0].partRole, 'head');
+  assert.equal(related[0].image, 'https://terraria.wiki.gg/images/Magic_Hat.png');
+  assert.equal(row.mappingStatus, 'mapped');
+});
+
 test('buildProjectionPayload falls back to wiki item file URLs for armor equipment images only', () => {
   const actual = buildProjectionPayload({
     relationArmorSets: [

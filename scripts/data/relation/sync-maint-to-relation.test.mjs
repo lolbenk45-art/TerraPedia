@@ -18,8 +18,10 @@ test('parseArgs parses relation sync defaults and scopes', () => {
     localDatabase: null,
     allowLocalItemImageFallback: true,
     relationDatabase: 'terria_v1_relation',
+    wikiArmorSetsInput: actual.wikiArmorSetsInput,
     scopes: ['category', 'recipe', 'npc', 'buff', 'biome', 'projectile']
   });
+  assert.match(actual.wikiArmorSetsInput, /data[\\/]+generated[\\/]+wiki-armor-sets\.latest\.json$/);
 });
 
 test('runSync dry-run reads maint only and does not write relation rows', async () => {

@@ -228,3 +228,44 @@ test('buildArmorSetRelations prefers wiki armor page sets over effect-key pseudo
   assert.equal(actual.relationArmorSetImages.length, 2);
   assert.deepEqual(actual.issues, []);
 });
+
+test('buildArmorSetRelations preserves single-piece composition metadata', () => {
+  const actual = buildArmorSetRelations({
+    wikiArmorSets: [
+      {
+        pageTitle: 'Magic Hat',
+        nameEn: 'Magic Hat',
+        nameZh: 'Magic Hat',
+        entityType: 'armor_set',
+        compositionKind: 'single_piece_set',
+        section: 'wizard-set',
+        effectText: '+60 mana',
+        images: [
+          {
+            role: 'male',
+            fileTitle: 'Magic Hat (equipped).png',
+            url: 'https://terraria.wiki.gg/images/Magic_Hat_%28equipped%29.png',
+            contentType: 'image/png'
+          }
+        ],
+        sourceRevisionTimestamp: '2026-04-28T00:00:00Z'
+      }
+    ],
+    maintItems: [
+      item(2275, 'MagicHat', 'Magic Hat', { headSlot: 80 })
+    ]
+  });
+
+  assert.equal(actual.relationArmorSets.length, 1);
+  const raw = JSON.parse(actual.relationArmorSets[0].rawJson);
+  assert.equal(raw.entityType, 'armor_set');
+  assert.equal(raw.compositionKind, 'single_piece_set');
+  assert.deepEqual(JSON.parse(actual.relationArmorSets[0].setsJson), [[2275]]);
+  assert.deepEqual(JSON.parse(actual.relationArmorSets[0].uniqueItemIdsJson), [2275]);
+  assert.equal(actual.relationArmorSetItems.length, 1);
+  assert.equal(actual.relationArmorSetItems[0].setVariantIndex, 0);
+  assert.equal(actual.relationArmorSetItems[0].partIndex, 0);
+  assert.equal(actual.relationArmorSetItems[0].itemSourceId, 2275);
+  assert.equal(actual.relationArmorSetItems[0].partRole, 'head');
+  assert.deepEqual(actual.issues, []);
+});

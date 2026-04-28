@@ -63,9 +63,26 @@ class AdminArmorSetControllerTest {
         assertEquals(1, response.getBody().getData().size());
         Map<String, Object> armorSet = response.getBody().getData().get(0);
         assertEquals("ArmorSetBonus.Wood", armorSet.get("textKey"));
+        assertEquals("armor_set", armorSet.get("entityType"));
+        assertEquals("traditional_set", armorSet.get("compositionKind"));
         assertEquals("https://terraria.wiki.gg/images/Wood_armor.png", armorSet.get("maleImages"));
         assertTrue(jdbcTemplate.sqlLog.stream().anyMatch(sql -> sql.contains("FROM projection_armor_sets")));
         assertFalse(jdbcTemplate.sqlLog.stream().anyMatch(sql -> sql.contains("FROM armor_sets")));
+    }
+
+    @Test
+    void projectionSearchIncludesDisplayNameColumns() {
+        FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(true);
+        AdminArmorSetController controller = new AdminArmorSetController(jdbcTemplate, new ObjectMapper());
+
+        controller.getArmorSets(1, 20, null, "神圣");
+
+        assertTrue(jdbcTemplate.sqlLog.stream().anyMatch(sql ->
+            sql.contains("name_zh LIKE ?")
+                && sql.contains("name_en LIKE ?")
+                && sql.contains("benefit_zh LIKE ?")
+                && sql.contains("benefit_en LIKE ?")
+        ));
     }
 
     @Test
@@ -324,6 +341,8 @@ class AdminArmorSetControllerTest {
             row.put("id", 101L);
             row.put("relation_record_key", "armor-rk");
             row.put("text_key", "ArmorSetBonus.Wood");
+            row.put("entity_type", "armor_set");
+            row.put("composition_kind", "traditional_set");
             row.put("name", "ArmorSetBonus.Wood");
             row.put("name_zh", "ArmorSetBonus.Wood");
             row.put("name_en", "ArmorSetBonus.Wood");
@@ -362,6 +381,8 @@ class AdminArmorSetControllerTest {
             row.put("id", 303L);
             row.put("relation_record_key", "hallowed-summoner-rk");
             row.put("text_key", "ArmorSetBonus.HallowedSummoner");
+            row.put("entity_type", "armor_set");
+            row.put("composition_kind", "traditional_set");
             row.put("name", "ArmorSetBonus.HallowedSummoner");
             row.put("name_zh", "ArmorSetBonus.HallowedSummoner");
             row.put("name_en", "ArmorSetBonus.HallowedSummoner");

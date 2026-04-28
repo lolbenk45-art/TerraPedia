@@ -313,6 +313,13 @@ async function ensureRelationMigrations(connection, databaseName) {
       ]
     },
     {
+      tableName: 'projection_armor_sets',
+      columns: [
+        ['entity_type', 'VARCHAR(64) DEFAULT NULL AFTER `text_key`'],
+        ['composition_kind', 'VARCHAR(64) DEFAULT NULL AFTER `entity_type`']
+      ]
+    },
+    {
       tableName: 'item_npc_shop_relations',
       columns: [
         ['condition_source_text', 'TEXT AFTER `conditions`'],

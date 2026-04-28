@@ -144,6 +144,8 @@ function buildProjectionStatements() {
   \`id\` BIGINT NOT NULL,
   \`relation_record_key\` CHAR(64) COLLATE utf8mb4_bin DEFAULT NULL,
   \`text_key\` VARCHAR(255) DEFAULT NULL,
+  \`entity_type\` VARCHAR(64) DEFAULT NULL,
+  \`composition_kind\` VARCHAR(64) DEFAULT NULL,
   \`name\` VARCHAR(255) DEFAULT NULL,
   \`name_zh\` VARCHAR(255) DEFAULT NULL,
   \`name_en\` VARCHAR(255) DEFAULT NULL,

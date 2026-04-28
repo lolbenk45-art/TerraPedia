@@ -198,7 +198,7 @@ public class AdminArmorSetController {
         int offset = (safePage - 1) * safeLimit;
 
         List<Object> countArgs = new ArrayList<>();
-        String where = buildArmorSearchWhere(search, countArgs);
+        String where = buildProjectionArmorSearchWhere(search, countArgs);
         Long total = jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM " + projectionTable + where,
             Long.class,
@@ -210,7 +210,7 @@ public class AdminArmorSetController {
         queryArgs.add(safeLimit);
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
             """
-            SELECT id, relation_record_key, text_key, name, name_zh, name_en, source_key,
+            SELECT id, relation_record_key, text_key, entity_type, composition_kind, name, name_zh, name_en, source_key,
                    benefit_expression, benefit_zh, benefit_en, primary_part, set_count, unique_item_count,
                    sets_json, unique_item_ids_json, current_item_ids_json, related_items_json,
                    male_images, female_images, special_images, mapping_status, status, created_at, updated_at
@@ -233,7 +233,7 @@ public class AdminArmorSetController {
     private ResponseEntity<ApiResponse<Map<String, Object>>> getProjectionArmorSetById(String projectionTable, Long id) {
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
             """
-            SELECT id, relation_record_key, text_key, name, name_zh, name_en, source_key,
+            SELECT id, relation_record_key, text_key, entity_type, composition_kind, name, name_zh, name_en, source_key,
                    benefit_expression, benefit_zh, benefit_en, primary_part, set_count, unique_item_count,
                    sets_json, unique_item_ids_json, current_item_ids_json, related_items_json,
                    male_images, female_images, special_images, mapping_status, status, created_at, updated_at
@@ -369,9 +369,22 @@ public class AdminArmorSetController {
         args.add(pattern);
         args.add(pattern);
         args.add(pattern);
-        args.add(pattern);
-        args.add(pattern);
-        return " WHERE (source_key LIKE ? OR text_key LIKE ? OR benefit_expression LIKE ? OR source_key LIKE ? OR text_key LIKE ?)";
+        return " WHERE (source_key LIKE ? OR text_key LIKE ? OR benefit_expression LIKE ?)";
+    }
+
+    private String buildProjectionArmorSearchWhere(String search, List<Object> args) {
+        String keyword = trimToNull(search);
+        if (keyword == null) return "";
+        String pattern = "%" + keyword + "%";
+        for (int index = 0; index < 8; index += 1) {
+            args.add(pattern);
+        }
+        return """
+            WHERE (
+              source_key LIKE ? OR text_key LIKE ? OR name LIKE ? OR name_zh LIKE ? OR name_en LIKE ?
+              OR benefit_expression LIKE ? OR benefit_zh LIKE ? OR benefit_en LIKE ?
+            )
+            """;
     }
 
     private Map<String, Object> normalizeProjectionArmorSetRow(Map<String, Object> row, Map<String, ArmorSetImageGroup> snapshotImages) {
@@ -395,8 +408,12 @@ public class AdminArmorSetController {
             .orElse(null);
         String previewImage = firstNonBlank(maleImages, femaleImages, specialImages, relatedPreviewImage);
         String mappingStatus = firstNonBlank(trimToNull(row.get("mapping_status")), "mapped");
+        String entityType = firstNonBlank(trimToNull(row.get("entity_type")), "armor_set");
+        String compositionKind = firstNonBlank(trimToNull(row.get("composition_kind")), inferArmorSetCompositionKind(row));
 
         payload.put("id", toLong(row.get("id")));
+        payload.put("entityType", entityType);
+        payload.put("compositionKind", compositionKind);
         payload.put("name", firstNonBlank(nameZh, nameEn, textKey));
         payload.put("nameZh", nameZh);
         payload.put("nameEn", nameEn);
@@ -439,6 +456,14 @@ public class AdminArmorSetController {
         payload.put("createdAt", row.get("created_at"));
         payload.put("updatedAt", row.get("updated_at"));
         return payload;
+    }
+
+    private String inferArmorSetCompositionKind(Map<String, Object> row) {
+        int uniqueItemCount = toInt(row.get("unique_item_count"), 0);
+        if (uniqueItemCount == 1) {
+            return "single_piece_set";
+        }
+        return "traditional_set";
     }
 
     private Map<String, Object> normalizeArmorSetRow(Map<String, Object> row, Map<String, ArmorSetImageGroup> snapshotImages) {

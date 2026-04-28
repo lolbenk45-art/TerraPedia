@@ -378,6 +378,8 @@ export function buildProjectionPayload({
       id: stablePositiveBigIntId(row.textKey ?? row.recordKey),
       relationRecordKey: row.recordKey,
       textKey: row.textKey ?? null,
+      entityType: raw.entityType ?? 'armor_set',
+      compositionKind: raw.compositionKind ?? 'traditional_set',
       name: raw.nameZh ?? raw.nameEn ?? raw.pageTitle ?? row.textKey ?? null,
       nameZh: raw.nameZh ?? raw.nameEn ?? raw.pageTitle ?? row.textKey ?? null,
       nameEn: raw.nameEn ?? raw.pageTitle ?? row.textKey ?? null,

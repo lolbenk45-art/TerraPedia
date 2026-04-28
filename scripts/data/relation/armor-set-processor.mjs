@@ -173,6 +173,25 @@ function findWikiArmorItems(record, slotItems) {
   return [...matchedBySourceId.values()].sort((left, right) => left.sourceId - right.sourceId);
 }
 
+function findWikiSinglePieceArmorSetItem(record, slotItems) {
+  const pageKey = normalizeNameKey(record.pageTitle);
+  if (!pageKey) {
+    return [];
+  }
+  return slotItems
+    .filter((entry) => {
+      const itemKey = normalizeNameKey(
+        entry.item.english_name
+          ?? entry.item.englishName
+          ?? entry.item.name
+          ?? entry.item.internal_name
+          ?? entry.item.internalName
+      );
+      return itemKey === pageKey;
+    })
+    .slice(0, 1);
+}
+
 function cartesianArmorSets(groups) {
   const activeGroups = groups.filter((group) => group.items.length > 0);
   if (activeGroups.length === 0) {
@@ -195,6 +214,8 @@ function buildWikiArmorSetRecord(record, setItems, variants, uniqueItemIds) {
   const pageTitle = normalizeText(record.pageTitle);
   const textKey = armorSetTextKey(pageTitle);
   const raw = {
+    entityType: normalizeText(record.entityType) ?? 'armor_set',
+    compositionKind: normalizeText(record.compositionKind) ?? 'traditional_set',
     pageTitle,
     nameZh: normalizeText(record.nameZh),
     nameEn: normalizeText(record.nameEn) ?? pageTitle,
@@ -282,7 +303,10 @@ function buildWikiArmorSetRelations({ wikiArmorSets = [], maintItems = [] } = {}
     if (!pageTitle) {
       continue;
     }
-    const setItems = findWikiArmorItems(record, slotItems);
+    const compositionKind = normalizeText(record.compositionKind) ?? 'traditional_set';
+    const setItems = compositionKind === 'traditional_set'
+      ? findWikiArmorItems(record, slotItems)
+      : findWikiSinglePieceArmorSetItem(record, slotItems);
     const itemsByRole = new Map();
     for (const entry of setItems) {
       const role = entry.slot.partRole;
@@ -294,7 +318,9 @@ function buildWikiArmorSetRelations({ wikiArmorSets = [], maintItems = [] } = {}
     const groups = ['head', 'body', 'legs']
       .map((role) => ({ role, items: itemsByRole.get(role) ?? [] }))
       .filter((group) => group.items.length > 0);
-    const variants = cartesianArmorSets(groups);
+    const variants = compositionKind === 'traditional_set'
+      ? cartesianArmorSets(groups)
+      : setItems.map((entry) => [entry.sourceId]);
     const uniqueItemIds = stableUnique(setItems.map((entry) => entry.sourceId));
     const armorSet = buildWikiArmorSetRecord(record, setItems, variants, uniqueItemIds);
     relationArmorSets.push(armorSet);

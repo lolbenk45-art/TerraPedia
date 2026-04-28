@@ -40,6 +40,8 @@ test('projection armor set schema includes display images and related item json 
   const armorStatement = statements.find((sql) => sql.includes('`projection_armor_sets`'));
 
   assert.match(armorStatement, /`text_key` VARCHAR\(255\) DEFAULT NULL/);
+  assert.match(armorStatement, /`entity_type` VARCHAR\(64\) DEFAULT NULL/);
+  assert.match(armorStatement, /`composition_kind` VARCHAR\(64\) DEFAULT NULL/);
   assert.match(armorStatement, /`male_images` TEXT/);
   assert.match(armorStatement, /`female_images` TEXT/);
   assert.match(armorStatement, /`special_images` TEXT/);
