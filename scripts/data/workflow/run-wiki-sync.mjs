@@ -145,7 +145,7 @@ const ENTITY_CONFIG = {
       args.push('--concurrency=1');
       args.push('--delay-ms=5000');
       args.push('--jitter-ms=2000');
-      args.push('--only-changed=true');
+      args.push(`--only-changed=${booleanOption(options['only-changed'] ?? options.onlyChanged, true)}`);
       args.push(`--with-recipes=${booleanOption(options['with-recipes'] ?? options.withRecipes, false)}`);
       if (booleanOption(options['allow-full-corpus'] ?? options.allowFullCorpus, false)) {
         args.push('--allow-full-corpus=true');

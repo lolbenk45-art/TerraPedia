@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
   ensureDir,
@@ -11,11 +12,20 @@ import {
   sharedDataPath,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
+import {
+  buildActionProgressPayload,
+  writeJsonFile
+} from '../workflow/backend-refresh-runtime-state.mjs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const DEFAULT_WIKI_SYNC_PROGRESS_PATH = path.join(repoRoot, 'data', 'generated', 'wiki-sync-progress.latest.json');
 
 const options = parseCliArgs(process.argv.slice(2));
 const inputPath = path.resolve(process.cwd(), options.input ?? sharedDataPath('normalized', 'items.wiki.json'));
 const rawDir = path.resolve(process.cwd(), options['raw-dir'] ?? sharedDataPath('raw', 'wiki', 'item-pages'));
-const reportDir = sharedDataPath('reports', 'fetch');
+const reportDir = path.resolve(process.cwd(), options['report-dir'] ?? sharedDataPath('reports', 'fetch'));
 const allowFullCorpus = booleanOption(options['allow-full-corpus'] ?? options.allowFullCorpus, false);
 const requestedLimit = numericOption(options.limit, allowFullCorpus ? null : 100);
 const limit = Number.isFinite(requestedLimit) && requestedLimit > 0 ? requestedLimit : null;
@@ -27,6 +37,8 @@ const withRecipes = booleanOption(options['with-recipes'] ?? options.withRecipes
 const delayMs = Math.max(0, numericOption(options['delay-ms'] ?? options.delayMs, 5_000));
 const jitterMs = Math.max(0, numericOption(options['jitter-ms'] ?? options.jitterMs, 2_000));
 const maxAttempts = Math.max(1, numericOption(options['max-attempts'] ?? options.maxAttempts, 8));
+const progressPath = options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? null;
+const progressActionId = process.env.TERRAPEDIA_CRAWLER_ACTION_ID ?? 'fetch-item-pages';
 const requestedItems = new Set(
   String(options.items ?? '')
     .split(',')
@@ -83,6 +95,14 @@ const timestamp = new Date().toISOString().replaceAll(':', '-');
 const errors = [];
 const successes = [];
 
+writeFetchProgress({
+  status: 'running',
+  phase: 'select',
+  message: `selected ${selectedItems.length} item page(s); skipped unchanged ${skippedUnchanged}`,
+  current: 0,
+  total: selectedItems.length
+});
+
 for (let index = 0; index < selectedItems.length; index += concurrency) {
   const batch = selectedItems.slice(index, index + concurrency);
   const results = await Promise.allSettled(batch.map((item) => fetchAndPersistItemPage(item, rawDir)));
@@ -105,6 +125,13 @@ for (let index = 0; index < selectedItems.length; index += concurrency) {
   if (finished % Math.max(concurrency * 10, 50) === 0 || finished === selectedItems.length) {
     console.log(`Progress: ${finished}/${selectedItems.length} (ok=${successes.length}, failed=${errors.length})`);
   }
+  writeFetchProgress({
+    status: 'running',
+    phase: 'fetch',
+    message: `fetched ${finished}/${selectedItems.length} item page(s); ok=${successes.length}; failed=${errors.length}`,
+    current: finished,
+    total: selectedItems.length
+  });
 }
 
 const reportPath = path.join(reportDir, `fetch-item-pages-${timestamp}.json`);
@@ -135,6 +162,14 @@ if (onlyChanged) {
 console.log(`Fetched pages: ${successes.length}`);
 console.log(`Failed pages: ${errors.length}`);
 console.log(`Report: ${reportPath}`);
+
+writeFetchProgress({
+  status: errors.length > 0 ? 'failed' : 'completed',
+  phase: 'fetch',
+  message: `finished item page fetch; ok=${successes.length}; failed=${errors.length}; skipped unchanged=${skippedUnchanged}`,
+  current: selectedItems.length,
+  total: selectedItems.length
+});
 
 async function fetchAndPersistItemPage(item, outputDir) {
   await sleep(computeDelayMs());
@@ -221,6 +256,27 @@ function booleanOption(value, fallback) {
     return false;
   }
   return fallback;
+}
+
+function writeFetchProgress(progress) {
+  if (!progressPath) {
+    return;
+  }
+  const generatedAt = new Date().toISOString();
+  const payload = buildActionProgressPayload({
+    ...progress,
+    actionId: progressActionId,
+    generatedAt,
+    lastHeartbeatAt: generatedAt,
+    childStatusPath: progressPath
+  });
+  writeJsonFile(progressPath, payload);
+  if (path.resolve(process.cwd(), progressPath) !== DEFAULT_WIKI_SYNC_PROGRESS_PATH) {
+    writeJsonFile(DEFAULT_WIKI_SYNC_PROGRESS_PATH, {
+      ...payload,
+      childStatusPath: DEFAULT_WIKI_SYNC_PROGRESS_PATH
+    });
+  }
 }
 
 function sanitizeFileName(value) {
