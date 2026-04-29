@@ -36,7 +36,7 @@ class CrawlerMonitorServiceImplTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        repoRoot = tempDir;
+        repoRoot = Files.createDirectories(tempDir.resolve("TerraPedia-dev"));
         Files.createDirectories(repoRoot.resolve("back"));
         Files.createDirectories(repoRoot.resolve("data-query-app"));
         Files.createDirectories(repoRoot.resolve("scripts"));
@@ -315,6 +315,103 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("completed", taskById(tasks, "local-compat-sync").getStatus());
         assertEquals("warning", taskById(tasks, "relation-health").getStatus());
         assertEquals("pending", taskById(tasks, "transform-standardize").getStatus());
+    }
+
+    @Test
+    void shouldExposeThreeArchitectureLayersWithFileStatus() throws Exception {
+        Path sharedDataRoot = repoRoot.getParent().resolve("data/terraPedia");
+        Path rawItemPageDir = sharedDataRoot.resolve("raw/wiki/item-pages");
+        Path sharedStandardizedDir = sharedDataRoot.resolve("standardized");
+        Path sharedStandardizedViewDir = sharedDataRoot.resolve("standardized-view/item_pages");
+
+        writeJson(rawItemPageDir.resolve("copperpickaxe.latest.json"), Map.of("itemName", "Copper Pickaxe"));
+        writeJson(rawItemPageDir.resolve("torch.latest.json"), Map.of("itemName", "Torch"));
+        writeJson(repoRoot.resolve("data/generated/wiki-sync-progress.latest.json"), Map.of(
+            "status", "running",
+            "overallCurrent", 2675,
+            "overallTotal", 6131,
+            "generatedAt", "2026-04-29T09:00:00Z"
+        ));
+        Files.createDirectories(repoRoot.resolve("reports/crawler-monitor"));
+        Files.writeString(repoRoot.resolve("reports/crawler-monitor/item-pages-detached-runner.log"), "running");
+
+        writeJson(sharedStandardizedDir.resolve("_manifest.standardized.json"), Map.of(
+            "generatedAt", "2026-04-29T09:10:00Z",
+            "datasets", List.of(Map.of(
+                "entity", "item_pages",
+                "totalRecords", 6131
+            ))
+        ));
+        writeJson(sharedStandardizedDir.resolve("item_pages.standardized.json"), Map.of(
+            "entity", "item_pages",
+            "totalRecords", 6131,
+            "records", List.of(Map.of("id", "torch"))
+        ));
+        writeJson(sharedStandardizedViewDir.resolve("_meta.json"), Map.of("entity", "item_pages", "partCount", 1));
+        writeJson(sharedStandardizedViewDir.resolve("part-0001.json"), Map.of("records", List.of(Map.of("id", "torch"))));
+
+        writeJson(repoRoot.resolve("reports/source-dataset-landings-schema-2026-04-29.json"), Map.of("status", "completed"));
+        writeJson(repoRoot.resolve("reports/maint-sync-2026-04-29.json"), Map.of("status", "completed"));
+        writeJson(repoRoot.resolve("reports/relation/relation-audit-2026-04-29.json"), Map.of("status", "completed"));
+        writeJson(repoRoot.resolve("reports/relation/projection-to-local-core-sync-2026-04-29.json"), Map.of("status", "completed"));
+        writeJson(repoRoot.resolve("reports/relation/relation-to-local-compat-sync-2026-04-29.json"), Map.of("status", "completed"));
+        writeJson(repoRoot.resolve("reports/relation/relation-health-2026-04-29.json"), Map.of("summary", Map.of("status", "ok")));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+
+        assertEquals(3, overview.getArchitectureLayers().size());
+
+        CrawlerMonitorOverviewDTO.ArchitectureLayerDTO rawLayer = architectureLayerById(overview, "raw-source");
+        assertEquals("success", rawLayer.getStatus());
+        assertEquals(3, rawLayer.getReadableCount());
+        assertEquals(0, rawLayer.getMissingCount());
+        assertEquals(0, rawLayer.getErrorCount());
+        assertTrue(rawLayer.getSummary().contains("3/3"));
+        assertNotNull(rawLayer.getUpdatedAt());
+        assertEquals(2, architectureFileByLabel(rawLayer, "Item page raw latest files").getCount());
+        assertEquals(2675, architectureFileByLabel(rawLayer, "Standalone item crawl progress").getCount());
+        assertEquals(1, architectureFileByLabel(rawLayer, "Crawler monitor artifacts").getCount());
+
+        CrawlerMonitorOverviewDTO.ArchitectureLayerDTO transformLayer = architectureLayerById(overview, "standardized-transform");
+        assertEquals("success", transformLayer.getStatus());
+        assertEquals(4, transformLayer.getReadableCount());
+        assertEquals(6131, architectureFileByLabel(transformLayer, "Shared standardized manifest").getCount());
+        assertEquals(6131, architectureFileByLabel(transformLayer, "Shared item pages standardized").getCount());
+        assertEquals(1, architectureFileByLabel(transformLayer, "Shared item page view parts").getCount());
+
+        CrawlerMonitorOverviewDTO.ArchitectureLayerDTO syncLayer = architectureLayerById(overview, "sync-report");
+        assertEquals("success", syncLayer.getStatus());
+        assertEquals(6, syncLayer.getReadableCount());
+        assertEquals(1, architectureFileByLabel(syncLayer, "Relation health reports").getCount());
+        assertEquals("reports/relation/relation-health-2026-04-29.json", architectureFileByLabel(syncLayer, "Relation health reports").getLatestPath());
+    }
+
+    @Test
+    void shouldMarkMissingOrUnreadableArchitectureFilesWithoutBreakingOverview() throws Exception {
+        Path sharedDataRoot = repoRoot.getParent().resolve("data/terraPedia");
+        Path rawItemPageDir = sharedDataRoot.resolve("raw/wiki/item-pages");
+        writeJson(rawItemPageDir.resolve("torch.latest.json"), Map.of("itemName", "Torch"));
+        Files.createDirectories(repoRoot.resolve("reports/relation"));
+        Files.writeString(repoRoot.resolve("reports/relation/relation-health-broken.json"), "{ broken-json");
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+
+        CrawlerMonitorOverviewDTO.ArchitectureLayerDTO rawLayer = architectureLayerById(overview, "raw-source");
+        assertEquals("warning", rawLayer.getStatus());
+        assertEquals(1, architectureFileByLabel(rawLayer, "Item page raw latest files").getCount());
+        assertFalse(architectureFileByLabel(rawLayer, "Standalone item crawl progress").isFound());
+
+        CrawlerMonitorOverviewDTO.ArchitectureLayerDTO syncLayer = architectureLayerById(overview, "sync-report");
+        assertEquals("blocked", syncLayer.getStatus());
+        assertEquals(1, syncLayer.getErrorCount());
+        CrawlerMonitorOverviewDTO.ArchitectureFileDTO healthFile = architectureFileByLabel(syncLayer, "Relation health reports");
+        assertTrue(healthFile.isFound());
+        assertFalse(healthFile.isReadable());
+        assertNotNull(healthFile.getErrorMessage());
     }
 
     @Test
@@ -707,5 +804,25 @@ class CrawlerMonitorServiceImplTest {
             .filter(task -> id.equals(task.getId()))
             .findFirst()
             .orElseThrow(() -> new AssertionError("Missing registered task " + id));
+    }
+
+    private CrawlerMonitorOverviewDTO.ArchitectureLayerDTO architectureLayerById(
+        CrawlerMonitorOverviewDTO overview,
+        String id
+    ) {
+        return overview.getArchitectureLayers().stream()
+            .filter(layer -> id.equals(layer.getId()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("Missing architecture layer " + id));
+    }
+
+    private CrawlerMonitorOverviewDTO.ArchitectureFileDTO architectureFileByLabel(
+        CrawlerMonitorOverviewDTO.ArchitectureLayerDTO layer,
+        String label
+    ) {
+        return layer.getFiles().stream()
+            .filter(file -> label.equals(file.getLabel()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("Missing architecture file " + label));
     }
 }

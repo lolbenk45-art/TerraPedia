@@ -149,6 +149,71 @@
       </article>
     </section>
 
+    <section v-if="architectureLayers.length" class="architecture-layers" aria-label="Three layer file status">
+      <article v-for="layer in architectureLayers" :key="layer.id || layer.label || 'architecture-layer'" class="architecture-layer">
+        <div class="architecture-layer__head">
+          <span class="architecture-layer__icon" :class="statusTone(layer.status)">
+            <component :is="architectureLayerIcon(layer.id)" :size="18" />
+          </span>
+          <div>
+            <span class="ops-card__label">{{ layer.id || 'layer' }}</span>
+            <strong>{{ layer.label || 'Data layer' }}</strong>
+            <small>{{ layer.summary || `${architectureLayerCount(layer)} readable` }}</small>
+          </div>
+          <span class="status-pill" :class="statusTone(layer.status)">{{ layer.status || 'unknown' }}</span>
+        </div>
+
+        <div class="architecture-layer__metrics">
+          <span>
+            <small>Readable</small>
+            <strong>{{ architectureLayerCount(layer) }}</strong>
+          </span>
+          <span>
+            <small>Missing</small>
+            <strong>{{ formatNumber(layer.missingCount) }}</strong>
+          </span>
+          <span>
+            <small>Updated</small>
+            <strong>{{ formatDate(layer.updatedAt) }}</strong>
+          </span>
+        </div>
+        <div class="progress-track">
+          <span :style="{ width: architectureLayerProgress(layer) }" :class="statusTone(layer.status)" />
+        </div>
+
+        <div class="architecture-file-list">
+          <div
+            v-for="file in architectureFiles(layer)"
+            :key="`${layer.id || 'layer'}-${file.label || file.path || file.latestPath}`"
+            class="architecture-file-row"
+            :class="`architecture-file-row--${architectureFileTone(file)}`"
+          >
+            <div class="architecture-file-row__top">
+              <strong>{{ file.label || 'File group' }}</strong>
+              <span class="status-pill" :class="statusTone(architectureFileState(file))">{{ architectureFileState(file) }}</span>
+            </div>
+            <div class="architecture-file-row__meta">
+              <span>{{ architectureFileCountLabel(file) }} count</span>
+              <span>{{ formatDate(file.updatedAt) }}</span>
+              <span>{{ formatBytes(file.sizeBytes) }}</span>
+            </div>
+            <code>{{ architectureFilePath(file) || '--' }}</code>
+            <em v-if="file.errorMessage">{{ file.errorMessage }}</em>
+            <button
+              v-if="isPreviewableReportPath(architectureFilePath(file))"
+              type="button"
+              class="inline-report-button inline-report-button--compact"
+              :disabled="isPreviewLoading(architectureFilePath(file))"
+              @click="openReportPreview(architectureFilePath(file))"
+            >
+              <Eye :size="14" />
+              <span>{{ isPreviewLoading(architectureFilePath(file)) ? '加载中' : '预览' }}</span>
+            </button>
+          </div>
+        </div>
+      </article>
+    </section>
+
     <section class="monitor-layout">
       <div class="monitor-main">
         <section class="section-card monitor-panel">
@@ -413,8 +478,11 @@ import {
   Activity,
   AlertTriangle,
   Clock3,
+  Database,
   Eye,
   FileJson,
+  FileStack,
+  FolderTree,
   LockKeyhole,
   RefreshCw,
   ServerCog,
@@ -425,6 +493,8 @@ import { get } from '~/composables/useApi'
 import { showToast } from '~/composables/useToast'
 import type {
   CrawlerMonitorAction,
+  CrawlerMonitorArchitectureFile,
+  CrawlerMonitorArchitectureLayer,
   CrawlerMonitorFile,
   CrawlerMonitorOverview,
   CrawlerMonitorRegisteredTask,
@@ -459,6 +529,7 @@ const latestRun = computed<CrawlerMonitorRun>(() => overview.value?.latestRun ||
 const actions = computed<CrawlerMonitorAction[]>(() => Array.isArray(latestRun.value.actions) ? latestRun.value.actions : [])
 const history = computed<CrawlerMonitorRun[]>(() => Array.isArray(overview.value?.history) ? overview.value!.history! : [])
 const recentReports = computed<CrawlerMonitorReport[]>(() => Array.isArray(overview.value?.recentReports) ? overview.value!.recentReports! : [])
+const architectureLayers = computed<CrawlerMonitorArchitectureLayer[]>(() => Array.isArray(overview.value?.architectureLayers) ? overview.value!.architectureLayers! : [])
 const registeredTasks = computed<CrawlerMonitorRegisteredTask[]>(() => Array.isArray(overview.value?.registeredTasks) ? overview.value!.registeredTasks! : [])
 const refreshStale = computed(() => Boolean(overview.value?.refreshStale))
 const latestRunStatus = computed(() => {
@@ -676,12 +747,54 @@ function fileCard(label: string, file: CrawlerMonitorFile | null, icon: Componen
   }
 }
 
+function architectureLayerIcon(layerId?: string | null) {
+  const normalized = String(layerId || '').toLowerCase()
+  if (normalized.includes('raw')) return FolderTree
+  if (normalized.includes('standardized')) return FileStack
+  if (normalized.includes('sync') || normalized.includes('report')) return Database
+  return FileJson
+}
+
+function architectureLayerCount(layer: CrawlerMonitorArchitectureLayer) {
+  return `${formatNumber(layer.readableCount)}/${formatNumber(layer.fileCount)}`
+}
+
+function architectureLayerProgress(layer: CrawlerMonitorArchitectureLayer) {
+  const readable = finiteNumber(layer.readableCount)
+  const total = finiteNumber(layer.fileCount)
+  if (readable == null || total == null || total <= 0) return '0%'
+  return `${clampPercent((readable / total) * 100)}%`
+}
+
+function architectureFiles(layer: CrawlerMonitorArchitectureLayer) {
+  return Array.isArray(layer.files) ? layer.files.slice(0, 6) : []
+}
+
+function architectureFileState(file: CrawlerMonitorArchitectureFile) {
+  if (!file.found) return 'missing'
+  return file.readable ? 'readable' : 'read error'
+}
+
+function architectureFileTone(file: CrawlerMonitorArchitectureFile) {
+  if (!file.found) return 'warning'
+  return file.readable ? 'success' : 'danger'
+}
+
+function architectureFilePath(file: CrawlerMonitorArchitectureFile) {
+  return file.latestPath || file.path || ''
+}
+
+function architectureFileCountLabel(file: CrawlerMonitorArchitectureFile) {
+  const count = finiteNumber(file.count)
+  return count == null ? '--' : formatNumber(count)
+}
+
 function statusTone(status?: string | null) {
   const normalized = String(status || '').toLowerCase()
   if (['completed', 'success', 'ok', 'readable', 'free'].includes(normalized)) return 'success'
-  if (['failed', 'error', 'missing', 'read error'].includes(normalized)) return 'danger'
+  if (['failed', 'error', 'missing', 'read error', 'blocked'].includes(normalized)) return 'danger'
   if (['running', 'active'].includes(normalized)) return 'info'
-  if (['pending', 'sleeping', 'locked'].includes(normalized)) return 'warning'
+  if (['pending', 'sleeping', 'locked', 'queued', 'warning'].includes(normalized)) return 'warning'
   return 'muted'
 }
 
@@ -1200,6 +1313,159 @@ function shortArgs(args?: string[]) {
   flex: 1;
 }
 
+.architecture-layers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.architecture-layer {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 86%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 68%, var(--color-bg));
+}
+
+.architecture-layer__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.architecture-layer__head strong,
+.architecture-layer__head small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.architecture-layer__head strong {
+  margin-top: 3px;
+  color: var(--color-text);
+  font-size: 15px;
+}
+
+.architecture-layer__head small {
+  margin-top: 3px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.architecture-layer__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.architecture-layer__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.architecture-layer__metrics span {
+  min-width: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg) 76%, transparent);
+}
+
+.architecture-layer__metrics small,
+.architecture-layer__metrics strong {
+  display: block;
+}
+
+.architecture-layer__metrics small {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.architecture-layer__metrics strong {
+  margin-top: 3px;
+  color: var(--color-text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.architecture-file-list {
+  display: grid;
+  gap: 8px;
+  max-height: 300px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.architecture-file-row {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 9px 10px;
+  border-left: 3px solid transparent;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg) 78%, transparent);
+}
+
+.architecture-file-row--success {
+  border-left-color: #16a34a;
+}
+
+.architecture-file-row--warning {
+  border-left-color: #d97706;
+}
+
+.architecture-file-row--danger {
+  border-left-color: #dc2626;
+}
+
+.architecture-file-row__top,
+.architecture-file-row__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.architecture-file-row__top strong {
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.architecture-file-row__meta {
+  flex-wrap: wrap;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.architecture-file-row code,
+.architecture-file-row em {
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.architecture-file-row em {
+  color: #b91c1c;
+  font-style: normal;
+}
+
 .empty-line {
   padding: 12px;
   border: 1px dashed color-mix(in srgb, var(--color-border) 88%, transparent);
@@ -1668,6 +1934,10 @@ function shortArgs(args?: string[]) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .architecture-layers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .monitor-layout {
     grid-template-columns: 1fr;
   }
@@ -1679,6 +1949,15 @@ function shortArgs(args?: string[]) {
   }
 
   .operations-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .architecture-layers,
+  .architecture-layer__head {
+    grid-template-columns: 1fr;
+  }
+
+  .architecture-layer__metrics {
     grid-template-columns: 1fr;
   }
 

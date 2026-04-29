@@ -56,6 +56,31 @@ const overview: CrawlerMonitorOverview = {
       sizeBytes: 2400,
     },
   ],
+  architectureLayers: [
+    {
+      id: 'sync-report',
+      label: 'Sync / Report Evidence',
+      status: 'success',
+      fileCount: 1,
+      readableCount: 1,
+      missingCount: 0,
+      errorCount: 0,
+      updatedAt: '2026-04-29T08:00:00Z',
+      summary: '1/1 readable',
+      files: [
+        {
+          label: 'Relation health reports',
+          path: 'reports/relation/relation-health*.json',
+          latestPath: 'reports/relation/relation-health-2026-04-29.json',
+          found: true,
+          readable: true,
+          count: 4,
+          sizeBytes: 1024,
+          updatedAt: '2026-04-29T08:00:00Z',
+        },
+      ],
+    },
+  ],
   registeredTasks: [
     {
       id: 'item-pages-refresh',

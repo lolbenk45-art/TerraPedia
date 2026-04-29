@@ -25,6 +25,7 @@ public class CrawlerMonitorOverviewDTO {
     private String refreshStaleReason;
     private List<MonitorRunDTO> history = new ArrayList<>();
     private List<MonitorReportDTO> recentReports = new ArrayList<>();
+    private List<ArchitectureLayerDTO> architectureLayers = new ArrayList<>();
     private List<RegisteredTaskDTO> registeredTasks = new ArrayList<>();
 
     @Data
@@ -97,6 +98,35 @@ public class CrawlerMonitorOverviewDTO {
         private String category;
         private String updatedAt;
         private Long sizeBytes;
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class ArchitectureLayerDTO {
+        private String id;
+        private String label;
+        private String status;
+        private Long fileCount;
+        private Long readableCount;
+        private Long missingCount;
+        private Long errorCount;
+        private String updatedAt;
+        private String summary;
+        private List<ArchitectureFileDTO> files = new ArrayList<>();
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class ArchitectureFileDTO {
+        private String label;
+        private String path;
+        private String latestPath;
+        private boolean found;
+        private boolean readable;
+        private Long count;
+        private Long sizeBytes;
+        private String updatedAt;
+        private String errorMessage;
     }
 
     @Data

@@ -26,6 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 @Service
@@ -40,6 +41,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path TEST_STATE_FILE = REFRESH_DIR.resolve("manual-monitor-test.json");
     private static final Path WIKI_SYNC_PROGRESS_FILE = Path.of("data", "generated", "wiki-sync-progress.latest.json");
     private static final Path NPC_COVERAGE_REPORT = Path.of("data", "wiki-crawler", "report", "npc", "coverage-audit.latest.json");
+    private static final Path RAW_ITEM_PAGES_DIR = Path.of("raw", "wiki", "item-pages");
+    private static final Path STANDARDIZED_DIR = Path.of("standardized");
+    private static final Path STANDARDIZED_VIEW_ITEM_PAGES_DIR = Path.of("standardized-view", "item_pages");
     private static final Path REPORTS_DIR = Path.of("reports");
     private static final Path RELATION_REPORTS_DIR = Path.of("reports", "relation");
     private static final int HISTORY_LIMIT = 10;
@@ -78,6 +82,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         overview.setLatestRun(buildLatestRun(repoRoot, overview.getScheduler().getPayload()));
         overview.setHistory(loadHistory(repoRoot));
         overview.setRecentReports(loadRecentReports(repoRoot));
+        overview.setArchitectureLayers(buildArchitectureLayers(repoRoot));
         overview.setRegisteredTasks(buildRegisteredTasks(repoRoot, overview.getLatestRun()));
         applyRefreshStaleState(repoRoot, overview);
         return overview;
@@ -316,6 +321,254 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             .limit(RECENT_REPORT_LIMIT)
             .map(path -> toReportDTO(repoRoot, path))
             .toList();
+    }
+
+    private List<CrawlerMonitorOverviewDTO.ArchitectureLayerDTO> buildArchitectureLayers(Path repoRoot) {
+        Path sharedDataRoot = resolveSharedDataRoot(repoRoot);
+        Path standardizedRoot = resolveStandardizedRoot(repoRoot, sharedDataRoot);
+        Path standardizedViewRoot = standardizedRoot.getParent() == null
+            ? sharedDataRoot.resolve("standardized-view").normalize()
+            : standardizedRoot.getParent().resolve("standardized-view").normalize();
+
+        return List.of(
+            buildArchitectureLayer(
+                "raw-source",
+                "Raw / Source Crawl",
+                List.of(
+                    buildGlobFileStatus(
+                        repoRoot,
+                        "Item page raw latest files",
+                        sharedDataRoot.resolve(RAW_ITEM_PAGES_DIR).normalize(),
+                        "*.latest.json",
+                        false
+                    ),
+                    buildJsonFileStatus(
+                        repoRoot,
+                        "Standalone item crawl progress",
+                        repoRoot.resolve(WIKI_SYNC_PROGRESS_FILE).normalize(),
+                        payload -> firstLong(payload, "overallCurrent", "current", "total")
+                    ),
+                    buildGlobFileStatus(
+                        repoRoot,
+                        "Crawler monitor artifacts",
+                        repoRoot.resolve("reports").resolve("crawler-monitor").normalize(),
+                        "*",
+                        false
+                    )
+                )
+            ),
+            buildArchitectureLayer(
+                "standardized-transform",
+                "Standardized / Transform",
+                List.of(
+                    buildJsonFileStatus(
+                        repoRoot,
+                        "Shared standardized manifest",
+                        standardizedRoot.resolve("_manifest.standardized.json").normalize(),
+                        payload -> manifestDatasetCount(payload, "item_pages")
+                    ),
+                    buildJsonFileStatus(
+                        repoRoot,
+                        "Shared item pages standardized",
+                        standardizedRoot.resolve("item_pages.standardized.json").normalize(),
+                        this::datasetRecordCount
+                    ),
+                    buildJsonFileStatus(
+                        repoRoot,
+                        "Shared item page view meta",
+                        standardizedViewRoot.resolve(STANDARDIZED_VIEW_ITEM_PAGES_DIR.getFileName()).resolve("_meta.json").normalize(),
+                        payload -> firstLong(payload, "totalRecords", "partCount", "totalParts", "fileCount", "count")
+                    ),
+                    buildGlobFileStatus(
+                        repoRoot,
+                        "Shared item page view parts",
+                        standardizedViewRoot.resolve(STANDARDIZED_VIEW_ITEM_PAGES_DIR.getFileName()).normalize(),
+                        "part-*.json",
+                        false
+                    )
+                )
+            ),
+            buildArchitectureLayer(
+                "sync-report",
+                "Sync / Report Evidence",
+                List.of(
+                    buildGlobFileStatus(repoRoot, "Source landing schema reports", repoRoot.resolve(REPORTS_DIR).normalize(), "source-dataset-landings-schema-*.json", true),
+                    buildGlobFileStatus(repoRoot, "Maint sync reports", repoRoot.resolve(REPORTS_DIR).normalize(), "maint-sync-*.json", true),
+                    buildGlobFileStatus(repoRoot, "Relation audit reports", repoRoot.resolve(RELATION_REPORTS_DIR).normalize(), "relation-audit-*.json", true),
+                    buildGlobFileStatus(repoRoot, "Projection core sync reports", repoRoot.resolve(RELATION_REPORTS_DIR).normalize(), "projection-to-local-core-sync-*.json", true),
+                    buildGlobFileStatus(repoRoot, "Local compat sync reports", repoRoot.resolve(RELATION_REPORTS_DIR).normalize(), "relation-to-local-compat-sync-*.json", true),
+                    buildGlobFileStatus(repoRoot, "Relation health reports", repoRoot.resolve(RELATION_REPORTS_DIR).normalize(), "relation-health*.json", true)
+                )
+            )
+        );
+    }
+
+    private CrawlerMonitorOverviewDTO.ArchitectureLayerDTO buildArchitectureLayer(
+        String id,
+        String label,
+        List<CrawlerMonitorOverviewDTO.ArchitectureFileDTO> files
+    ) {
+        long fileCount = files.size();
+        long readableCount = files.stream().filter(CrawlerMonitorOverviewDTO.ArchitectureFileDTO::isReadable).count();
+        long missingCount = files.stream().filter(file -> !file.isFound()).count();
+        long errorCount = files.stream().filter(file -> file.isFound() && !file.isReadable()).count();
+
+        CrawlerMonitorOverviewDTO.ArchitectureLayerDTO layer = new CrawlerMonitorOverviewDTO.ArchitectureLayerDTO();
+        layer.setId(id);
+        layer.setLabel(label);
+        layer.setFiles(files);
+        layer.setFileCount(fileCount);
+        layer.setReadableCount(readableCount);
+        layer.setMissingCount(missingCount);
+        layer.setErrorCount(errorCount);
+        layer.setStatus(errorCount > 0 ? "blocked" : missingCount > 0 ? "warning" : "success");
+        layer.setUpdatedAt(latestFileUpdatedAt(files));
+        layer.setSummary(formatLayerSummary(readableCount, fileCount, missingCount, errorCount));
+        return layer;
+    }
+
+    private CrawlerMonitorOverviewDTO.ArchitectureFileDTO buildJsonFileStatus(
+        Path repoRoot,
+        String label,
+        Path path,
+        Function<Map<String, Object>, Long> countResolver
+    ) {
+        CrawlerMonitorOverviewDTO.ArchitectureFileDTO dto = new CrawlerMonitorOverviewDTO.ArchitectureFileDTO();
+        dto.setLabel(label);
+        dto.setPath(toDisplayPath(repoRoot, path));
+
+        ReadResult result = readJsonMap(path);
+        dto.setFound(result.found());
+        dto.setReadable(result.readable());
+        dto.setUpdatedAt(readLastModifiedIso(path));
+        dto.setSizeBytes(safeSize(path));
+        dto.setErrorMessage(result.errorMessage());
+        if (result.readable()) {
+            dto.setCount(countResolver == null ? null : countResolver.apply(result.payload()));
+        }
+        return dto;
+    }
+
+    private CrawlerMonitorOverviewDTO.ArchitectureFileDTO buildGlobFileStatus(
+        Path repoRoot,
+        String label,
+        Path dir,
+        String glob,
+        boolean validateLatestJson
+    ) {
+        List<Path> files = listMatchingFiles(dir, glob);
+        Path latest = files.stream()
+            .max(Comparator.comparingLong(this::safeLastModifiedMillis))
+            .orElse(null);
+
+        CrawlerMonitorOverviewDTO.ArchitectureFileDTO dto = new CrawlerMonitorOverviewDTO.ArchitectureFileDTO();
+        dto.setLabel(label);
+        dto.setPath(toDisplayPattern(repoRoot, dir, glob));
+        dto.setLatestPath(latest == null ? null : toDisplayPath(repoRoot, latest));
+        dto.setFound(!files.isEmpty());
+        dto.setReadable(!files.isEmpty());
+        dto.setCount((long) files.size());
+        dto.setUpdatedAt(readLastModifiedIso(latest));
+        dto.setSizeBytes(safeSize(latest));
+
+        if (latest != null && validateLatestJson) {
+            ReadResult result = readJsonMap(latest);
+            dto.setReadable(result.readable());
+            dto.setErrorMessage(result.errorMessage());
+        }
+        return dto;
+    }
+
+    private List<Path> listMatchingFiles(Path dir, String glob) {
+        if (!Files.isDirectory(dir)) {
+            return List.of();
+        }
+        var matcher = dir.getFileSystem().getPathMatcher("glob:" + glob);
+        try (Stream<Path> stream = Files.list(dir)) {
+            return stream
+                .filter(Files::isRegularFile)
+                .filter(path -> matcher.matches(path.getFileName()))
+                .sorted()
+                .toList();
+        } catch (IOException ignored) {
+            return List.of();
+        }
+    }
+
+    private Long manifestDatasetCount(Map<String, Object> payload, String entity) {
+        Object datasets = payload.get("datasets");
+        if (!(datasets instanceof List<?> rows)) {
+            return firstLong(payload, "totalRecords", "recordCount", "count");
+        }
+        for (Object row : rows) {
+            Map<String, Object> dataset = asMap(row);
+            String datasetName = firstNonBlank(
+                asString(dataset.get("entity")),
+                firstNonBlank(asString(dataset.get("name")), asString(dataset.get("dataset")))
+            );
+            if (entity.equals(datasetName)) {
+                return firstLong(dataset, "totalRecords", "recordCount", "count");
+            }
+        }
+        return null;
+    }
+
+    private Long datasetRecordCount(Map<String, Object> payload) {
+        Long explicit = firstLong(payload, "totalRecords", "recordCount", "count");
+        return explicit == null ? collectionSize(payload.get("records")) : explicit;
+    }
+
+    private String latestFileUpdatedAt(List<CrawlerMonitorOverviewDTO.ArchitectureFileDTO> files) {
+        return files.stream()
+            .map(file -> parseInstant(file.getUpdatedAt()))
+            .filter(instant -> instant != null)
+            .max(Comparator.naturalOrder())
+            .map(Instant::toString)
+            .orElse(null);
+    }
+
+    private String formatLayerSummary(long readableCount, long fileCount, long missingCount, long errorCount) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(readableCount).append('/').append(fileCount).append(" readable");
+        if (missingCount > 0) {
+            builder.append(", ").append(missingCount).append(" missing");
+        }
+        if (errorCount > 0) {
+            builder.append(", ").append(errorCount).append(" error");
+        }
+        return builder.toString();
+    }
+
+    private Path resolveSharedDataRoot(Path repoRoot) {
+        String configured = System.getenv("TERRAPEDIA_SOURCE_DATA_DIR");
+        if (configured != null && !configured.isBlank()) {
+            return resolveConfiguredPath(repoRoot, configured);
+        }
+        Path workspaceRoot = repoRoot.getParent();
+        return (workspaceRoot == null ? repoRoot.resolve("data").resolve("terraPedia") : workspaceRoot.resolve("data").resolve("terraPedia"))
+            .toAbsolutePath()
+            .normalize();
+    }
+
+    private Path resolveStandardizedRoot(Path repoRoot, Path sharedDataRoot) {
+        String configured = System.getenv("TERRAPEDIA_STANDARDIZED_OUTPUT_DIR");
+        if (configured != null && !configured.isBlank()) {
+            return resolveConfiguredPath(repoRoot, configured);
+        }
+        return sharedDataRoot.resolve(STANDARDIZED_DIR).toAbsolutePath().normalize();
+    }
+
+    private Path resolveConfiguredPath(Path repoRoot, String rawPath) {
+        Path path = Path.of(rawPath);
+        return (path.isAbsolute() ? path : repoRoot.resolve(path)).toAbsolutePath().normalize();
+    }
+
+    private String toDisplayPattern(Path repoRoot, Path dir, String glob) {
+        String displayDir = toDisplayPath(repoRoot, dir);
+        if (displayDir == null || displayDir.isBlank()) {
+            return glob;
+        }
+        return displayDir.replace('\\', '/') + "/" + glob;
     }
 
     private List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> buildRegisteredTasks(
@@ -1248,6 +1501,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private String readLastModifiedIso(Path path) {
         try {
+            if (path == null) {
+                return null;
+            }
             FileTime fileTime = Files.getLastModifiedTime(path);
             return fileTime.toInstant().toString();
         } catch (IOException ignored) {
@@ -1268,6 +1524,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private long safeLastModifiedMillis(Path path) {
         try {
+            if (path == null) {
+                return Long.MIN_VALUE;
+            }
             return Files.getLastModifiedTime(path).toMillis();
         } catch (IOException ignored) {
             return Long.MIN_VALUE;
@@ -1276,6 +1535,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private Long safeSize(Path path) {
         try {
+            if (path == null) {
+                return null;
+            }
             return Files.size(path);
         } catch (IOException ignored) {
             return null;

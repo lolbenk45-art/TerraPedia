@@ -74,6 +74,31 @@ export interface CrawlerMonitorReportDetail extends CrawlerMonitorReport {
   errorMessage?: string | null
 }
 
+export interface CrawlerMonitorArchitectureFile {
+  label?: string | null
+  path?: string | null
+  latestPath?: string | null
+  found?: boolean
+  readable?: boolean
+  count?: number | null
+  sizeBytes?: number | null
+  updatedAt?: string | null
+  errorMessage?: string | null
+}
+
+export interface CrawlerMonitorArchitectureLayer {
+  id?: string | null
+  label?: string | null
+  status?: string | null
+  fileCount?: number | null
+  readableCount?: number | null
+  missingCount?: number | null
+  errorCount?: number | null
+  updatedAt?: string | null
+  summary?: string | null
+  files?: CrawlerMonitorArchitectureFile[]
+}
+
 export interface CrawlerMonitorRegisteredTask {
   id?: string | null
   label?: string | null
@@ -110,6 +135,7 @@ export interface CrawlerMonitorOverview {
   refreshStaleReason?: string | null
   history?: CrawlerMonitorRun[]
   recentReports?: CrawlerMonitorReport[]
+  architectureLayers?: CrawlerMonitorArchitectureLayer[]
   registeredTasks?: CrawlerMonitorRegisteredTask[]
 }
 

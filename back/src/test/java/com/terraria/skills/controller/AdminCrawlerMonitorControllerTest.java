@@ -73,6 +73,26 @@ class AdminCrawlerMonitorControllerTest {
         recentReport.setUpdatedAt("2026-04-28T02:00:00Z");
         recentReport.setSizeBytes(2400L);
 
+        CrawlerMonitorOverviewDTO.ArchitectureFileDTO architectureFile = new CrawlerMonitorOverviewDTO.ArchitectureFileDTO();
+        architectureFile.setLabel("Relation health reports");
+        architectureFile.setPath("reports/relation/relation-health*.json");
+        architectureFile.setLatestPath("reports/relation/relation-health-2026-04-29.json");
+        architectureFile.setFound(true);
+        architectureFile.setReadable(true);
+        architectureFile.setCount(4L);
+        architectureFile.setUpdatedAt("2026-04-29T08:00:00Z");
+
+        CrawlerMonitorOverviewDTO.ArchitectureLayerDTO architectureLayer = new CrawlerMonitorOverviewDTO.ArchitectureLayerDTO();
+        architectureLayer.setId("sync-report");
+        architectureLayer.setLabel("Sync / Report Evidence");
+        architectureLayer.setStatus("success");
+        architectureLayer.setFileCount(1L);
+        architectureLayer.setReadableCount(1L);
+        architectureLayer.setMissingCount(0L);
+        architectureLayer.setErrorCount(0L);
+        architectureLayer.setSummary("1/1 readable");
+        architectureLayer.setFiles(List.of(architectureFile));
+
         CrawlerMonitorOverviewDTO overview = new CrawlerMonitorOverviewDTO();
         overview.setGeneratedAt(Instant.parse("2026-04-27T00:00:00Z"));
         overview.setRepoRoot("G:/ClaudeCode/TerraPedia-dev");
@@ -84,6 +104,7 @@ class AdminCrawlerMonitorControllerTest {
         overview.setRefreshStaleThresholdMs(86_400_000L);
         overview.setRefreshStaleReason("backend-refresh monitor has no activity for more than 24 hours");
         overview.setRecentReports(List.of(recentReport));
+        overview.setArchitectureLayers(List.of(architectureLayer));
 
         when(crawlerMonitorService.getOverview()).thenReturn(overview);
 
@@ -94,7 +115,10 @@ class AdminCrawlerMonitorControllerTest {
             .andExpect(jsonPath("$.data.latestRun.totalActions").value(3))
             .andExpect(jsonPath("$.data.latestRun.failedActions").value(1))
             .andExpect(jsonPath("$.data.refreshStale").value(true))
-            .andExpect(jsonPath("$.data.recentReports[0].category").value("test"));
+            .andExpect(jsonPath("$.data.recentReports[0].category").value("test"))
+            .andExpect(jsonPath("$.data.architectureLayers[0].id").value("sync-report"))
+            .andExpect(jsonPath("$.data.architectureLayers[0].files[0].latestPath").value("reports/relation/relation-health-2026-04-29.json"))
+            .andExpect(jsonPath("$.data.architectureLayers[0].files[0].count").value(4));
 
         verify(crawlerMonitorService).getOverview();
     }
