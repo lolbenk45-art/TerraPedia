@@ -64,6 +64,16 @@ export interface CrawlerMonitorReport {
   sizeBytes?: number | null
 }
 
+export interface CrawlerMonitorReportDetail extends CrawlerMonitorReport {
+  found?: boolean
+  readable?: boolean
+  contentType?: string | null
+  content?: string | null
+  truncated?: boolean
+  maxBytes?: number | null
+  errorMessage?: string | null
+}
+
 export interface CrawlerMonitorRegisteredTask {
   id?: string | null
   label?: string | null

@@ -1,16 +1,20 @@
 package com.terraria.skills.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
+import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
 import com.terraria.skills.service.CrawlerMonitorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
 import java.time.Clock;
 import java.time.Duration;
@@ -40,6 +44,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path RELATION_REPORTS_DIR = Path.of("reports", "relation");
     private static final int HISTORY_LIMIT = 10;
     private static final int RECENT_REPORT_LIMIT = 20;
+    private static final int REPORT_PREVIEW_MAX_BYTES = 200_000;
     private static final long REFRESH_STALE_THRESHOLD_MS = Duration.ofHours(24).toMillis();
 
     private final ObjectMapper objectMapper;
@@ -76,6 +81,53 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         overview.setRegisteredTasks(buildRegisteredTasks(repoRoot, overview.getLatestRun()));
         applyRefreshStaleState(repoRoot, overview);
         return overview;
+    }
+
+    @Override
+    public CrawlerMonitorReportDetailDTO getReportDetail(String path) {
+        Path repoRoot = resolveRepoRoot();
+        CrawlerMonitorReportDetailDTO detail = new CrawlerMonitorReportDetailDTO();
+        detail.setPath(path);
+        detail.setMaxBytes((long) REPORT_PREVIEW_MAX_BYTES);
+
+        Path resolved = resolvePayloadPathInsideRepo(repoRoot, path);
+        if (resolved == null || !isAllowedReportPreviewPath(repoRoot, resolved)) {
+            detail.setFound(false);
+            detail.setReadable(false);
+            detail.setErrorMessage("Report path is not allowed.");
+            return detail;
+        }
+
+        detail.setName(resolved.getFileName().toString());
+        detail.setPath(toDisplayPath(repoRoot, resolved));
+        detail.setCategory(reportCategory(repoRoot, resolved));
+        detail.setContentType(reportContentType(resolved));
+        if (!Files.exists(resolved)) {
+            detail.setFound(false);
+            detail.setReadable(false);
+            detail.setErrorMessage("Report file was not found.");
+            return detail;
+        }
+        if (!Files.isRegularFile(resolved)) {
+            detail.setFound(true);
+            detail.setReadable(false);
+            detail.setErrorMessage("Report path is not a regular file.");
+            return detail;
+        }
+
+        detail.setFound(true);
+        detail.setUpdatedAt(readLastModifiedIso(resolved));
+        detail.setSizeBytes(safeSize(resolved));
+        try {
+            byte[] bytes = readPreviewBytes(resolved, REPORT_PREVIEW_MAX_BYTES);
+            detail.setTruncated(detail.getSizeBytes() != null && detail.getSizeBytes() > REPORT_PREVIEW_MAX_BYTES);
+            detail.setContent(formatReportPreviewContent(resolved, bytes, detail.isTruncated()));
+            detail.setReadable(true);
+        } catch (IOException exception) {
+            detail.setReadable(false);
+            detail.setErrorMessage(exception.getMessage());
+        }
+        return detail;
     }
 
     @Override
@@ -751,6 +803,81 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             || fileName.endsWith(".md")
             || fileName.endsWith(".xml")
             || fileName.endsWith(".txt");
+    }
+
+    private boolean isAllowedReportPreviewPath(Path repoRoot, Path path) {
+        Path normalized = path.toAbsolutePath().normalize();
+        if (!isReportLikeFile(normalized)) {
+            return false;
+        }
+
+        Path reportsRoot = repoRoot.resolve("reports").normalize();
+        Path testReportsRoot = repoRoot.resolve("back").resolve("target").resolve("surefire-reports").normalize();
+        if (!normalized.startsWith(reportsRoot) && !normalized.startsWith(testReportsRoot)) {
+            return false;
+        }
+        if (!Files.exists(normalized)) {
+            return true;
+        }
+
+        try {
+            Path realPath = normalized.toRealPath();
+            return realPath.startsWith(realRoot(reportsRoot)) || realPath.startsWith(realRoot(testReportsRoot));
+        } catch (IOException ignored) {
+            return false;
+        }
+    }
+
+    private Path realRoot(Path root) throws IOException {
+        return Files.exists(root) ? root.toRealPath() : root.toAbsolutePath().normalize();
+    }
+
+    private byte[] readPreviewBytes(Path path, int maxBytes) throws IOException {
+        long size = Files.size(path);
+        int length = (int) Math.min(size, maxBytes);
+        byte[] bytes = new byte[length];
+        try (var input = Files.newInputStream(path, StandardOpenOption.READ)) {
+            int offset = 0;
+            while (offset < length) {
+                int read = input.read(bytes, offset, length - offset);
+                if (read < 0) {
+                    break;
+                }
+                offset += read;
+            }
+            if (offset == length) {
+                return bytes;
+            }
+            byte[] resized = new byte[offset];
+            System.arraycopy(bytes, 0, resized, 0, offset);
+            return resized;
+        }
+    }
+
+    private String formatReportPreviewContent(Path path, byte[] bytes, boolean truncated) throws IOException {
+        String content = new String(bytes, StandardCharsets.UTF_8);
+        if (!truncated && "json".equals(reportContentType(path))) {
+            JsonNode node = objectMapper.readTree(content);
+            return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+        }
+        return content;
+    }
+
+    private String reportContentType(Path path) {
+        String fileName = path.getFileName().toString().toLowerCase(Locale.ROOT);
+        if (fileName.endsWith(".json")) {
+            return "json";
+        }
+        if (fileName.endsWith(".md")) {
+            return "markdown";
+        }
+        if (fileName.endsWith(".xml")) {
+            return "xml";
+        }
+        if (fileName.endsWith(".txt")) {
+            return "text";
+        }
+        return "text";
     }
 
     private CrawlerMonitorOverviewDTO.MonitorReportDTO toReportDTO(Path repoRoot, Path path) {

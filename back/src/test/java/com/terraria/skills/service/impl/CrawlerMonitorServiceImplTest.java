@@ -2,6 +2,7 @@ package com.terraria.skills.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
+import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -433,6 +434,62 @@ class CrawlerMonitorServiceImplTest {
         assertFalse(overview.getRecentReports().stream().anyMatch(report ->
             report.getPath().startsWith("reports/backend-refresh/")
         ));
+    }
+
+    @Test
+    void shouldReadSmallReportPreviewFromAllowedReportPath() throws Exception {
+        Path reportPath = repoRoot.resolve("reports/relation/relation-health-smoke.json");
+        writeJson(reportPath, Map.of(
+            "status", "ok",
+            "blockingCount", 0
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        CrawlerMonitorReportDetailDTO detail = service.getReportDetail("reports/relation/relation-health-smoke.json");
+
+        assertTrue(detail.isFound());
+        assertTrue(detail.isReadable());
+        assertFalse(detail.isTruncated());
+        assertEquals("relation-health-smoke.json", detail.getName());
+        assertEquals("reports/relation/relation-health-smoke.json", detail.getPath());
+        assertEquals("json", detail.getContentType());
+        assertTrue(detail.getContent().contains("\"status\" : \"ok\""));
+        assertTrue(detail.getContent().contains("\"blockingCount\" : 0"));
+    }
+
+    @Test
+    void shouldRejectReportPreviewPathOutsideAllowedRoots() throws Exception {
+        Path outsidePath = tempDir.resolveSibling("outside-secret-report.json");
+        Files.writeString(outsidePath, "{\"secret\":true}");
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        CrawlerMonitorReportDetailDTO detail = service.getReportDetail(outsidePath.toString());
+
+        assertFalse(detail.isFound());
+        assertFalse(detail.isReadable());
+        assertFalse(detail.isTruncated());
+        assertEquals(outsidePath.toString(), detail.getPath());
+        assertNotNull(detail.getErrorMessage());
+        assertTrue(detail.getErrorMessage().contains("not allowed"));
+    }
+
+    @Test
+    void shouldTruncateLargeReportPreviewWithoutLoadingWholeFile() throws Exception {
+        Path reportPath = repoRoot.resolve("reports/relation/relation-unresolved-large.txt");
+        Files.createDirectories(reportPath.getParent());
+        Files.writeString(reportPath, "x".repeat(250_000));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        CrawlerMonitorReportDetailDTO detail = service.getReportDetail("reports/relation/relation-unresolved-large.txt");
+
+        assertTrue(detail.isFound());
+        assertTrue(detail.isReadable());
+        assertTrue(detail.isTruncated());
+        assertEquals(250_000L, detail.getSizeBytes());
+        assertEquals(detail.getMaxBytes().longValue(), detail.getContent().length());
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.terraria.skills.controller;
 
 import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
+import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
 import com.terraria.skills.service.CrawlerMonitorService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
@@ -30,6 +32,12 @@ public class AdminCrawlerMonitorController {
     @Operation(summary = "Get crawler monitor overview")
     public ApiResponse<CrawlerMonitorOverviewDTO> overview() {
         return ApiResponse.success(crawlerMonitorService.getOverview());
+    }
+
+    @GetMapping("/report")
+    @Operation(summary = "Preview a crawler monitor report")
+    public ApiResponse<CrawlerMonitorReportDetailDTO> report(@RequestParam String path) {
+        return ApiResponse.success(crawlerMonitorService.getReportDetail(path));
     }
 
     @GetMapping("/test-state")

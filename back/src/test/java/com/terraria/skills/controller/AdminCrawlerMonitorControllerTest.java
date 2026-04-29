@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
+import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
 import com.terraria.skills.service.CrawlerMonitorService;
 import org.junit.jupiter.api.BeforeEach;
@@ -96,6 +97,34 @@ class AdminCrawlerMonitorControllerTest {
             .andExpect(jsonPath("$.data.recentReports[0].category").value("test"));
 
         verify(crawlerMonitorService).getOverview();
+    }
+
+    @Test
+    void shouldReturnCrawlerMonitorReportDetail() throws Exception {
+        CrawlerMonitorReportDetailDTO detail = new CrawlerMonitorReportDetailDTO();
+        detail.setName("relation-health-smoke.json");
+        detail.setPath("reports/relation/relation-health-smoke.json");
+        detail.setCategory("audit");
+        detail.setFound(true);
+        detail.setReadable(true);
+        detail.setContentType("json");
+        detail.setContent("{\"status\":\"ok\"}");
+        detail.setSizeBytes(15L);
+        detail.setMaxBytes(200_000L);
+        detail.setTruncated(false);
+
+        when(crawlerMonitorService.getReportDetail("reports/relation/relation-health-smoke.json")).thenReturn(detail);
+
+        mockMvc.perform(get("/admin/crawler-monitor/report")
+                .param("path", "reports/relation/relation-health-smoke.json"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.path").value("reports/relation/relation-health-smoke.json"))
+            .andExpect(jsonPath("$.data.contentType").value("json"))
+            .andExpect(jsonPath("$.data.truncated").value(false))
+            .andExpect(jsonPath("$.data.content").value("{\"status\":\"ok\"}"));
+
+        verify(crawlerMonitorService).getReportDetail("reports/relation/relation-health-smoke.json");
     }
 
     @Test

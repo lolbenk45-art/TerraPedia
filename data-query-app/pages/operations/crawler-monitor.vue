@@ -130,7 +130,19 @@
           <div v-for="task in pathTasks" :key="task.id || task.label || 'path-task'" class="path-row">
             <strong>{{ task.label || task.id || 'unknown task' }}</strong>
             <small>{{ task.dataStage || task.status || '--' }}</small>
-            <code v-for="path in taskPaths(task)" :key="path">{{ path }}</code>
+            <span v-for="path in taskPaths(task)" :key="path" class="path-token">
+              <code>{{ path }}</code>
+              <button
+                v-if="isPreviewableReportPath(path)"
+                type="button"
+                class="inline-report-button inline-report-button--compact"
+                :disabled="isPreviewLoading(path)"
+                @click="openReportPreview(path)"
+              >
+                <Eye :size="14" />
+                <span>{{ isPreviewLoading(path) ? 'Loading' : 'View' }}</span>
+              </button>
+            </span>
           </div>
           <div v-if="!pathTasks.length" class="empty-line">No registered path.</div>
         </div>
@@ -208,6 +220,16 @@
               <span class="status-pill" :class="run.failedActions ? 'danger' : 'success'">
                 {{ run.failedActions ? `${run.failedActions} failed` : 'ok' }}
               </span>
+              <button
+                v-if="isPreviewableReportPath(run.summaryPath || run.path)"
+                type="button"
+                class="inline-report-button"
+                :disabled="isPreviewLoading(run.summaryPath || run.path)"
+                @click="openReportPreview(run.summaryPath || run.path)"
+              >
+                <Eye :size="14" />
+                <span>{{ isPreviewLoading(run.summaryPath || run.path) ? 'Loading' : 'View' }}</span>
+              </button>
             </article>
             <div v-if="!history.length" class="empty-block empty-block--compact">
               <FileJson :size="20" />
@@ -292,6 +314,16 @@
                 <small>{{ file.status }}</small>
                 <code>{{ file.path || '--' }}</code>
                 <em v-if="file.error">{{ file.error }}</em>
+                <button
+                  v-if="file.previewPath"
+                  type="button"
+                  class="inline-report-button inline-report-button--compact"
+                  :disabled="isPreviewLoading(file.previewPath)"
+                  @click="openReportPreview(file.previewPath)"
+                >
+                  <Eye :size="14" />
+                  <span>{{ isPreviewLoading(file.previewPath) ? 'Loading' : 'View' }}</span>
+                </button>
               </div>
             </article>
           </div>
@@ -306,17 +338,60 @@
           </div>
 
           <div class="report-list">
-            <article v-for="report in recentReports" :key="report.path || report.name || 'report'" class="report-row">
+            <article
+              v-for="report in recentReports"
+              :key="report.path || report.name || 'report'"
+              class="report-row"
+              :class="{ 'report-row--active': selectedReportPath === report.path }"
+            >
               <span class="status-pill" :class="reportTone(report.category)">{{ report.category || 'report' }}</span>
-              <div>
+              <div class="report-row__body">
                 <strong>{{ report.name || report.path || 'unknown-report' }}</strong>
                 <small>{{ formatDate(report.updatedAt) }} · {{ formatBytes(report.sizeBytes) }}</small>
                 <code>{{ report.path || '--' }}</code>
               </div>
+              <button
+                v-if="isPreviewableReportPath(report.path)"
+                type="button"
+                class="inline-report-button"
+                :disabled="isPreviewLoading(report.path)"
+                @click="openReportPreview(report.path)"
+              >
+                <Eye :size="14" />
+                <span>{{ isPreviewLoading(report.path) ? 'Loading' : 'View' }}</span>
+              </button>
             </article>
             <div v-if="!recentReports.length" class="empty-block empty-block--compact">
               <FileJson :size="20" />
               <span>暂无外部报告</span>
+            </div>
+          </div>
+
+          <div v-if="selectedReportPath || reportPreview || reportPreviewError" class="report-preview">
+            <div class="report-preview__head">
+              <div>
+                <strong>{{ reportPreview?.name || selectedReportPath || 'Report preview' }}</strong>
+                <small>
+                  {{ reportPreview?.path || selectedReportPath }}
+                  <template v-if="reportPreview?.sizeBytes"> - {{ formatBytes(reportPreview.sizeBytes) }}</template>
+                </small>
+              </div>
+              <button type="button" class="icon-close-button" aria-label="Close report preview" @click="closeReportPreview">
+                <X :size="16" />
+              </button>
+            </div>
+
+            <div class="report-preview__meta">
+              <span class="status-pill" :class="reportTone(reportPreview?.category)">{{ reportPreview?.category || 'report' }}</span>
+              <span class="status-pill" :class="reportPreview?.readable ? 'success' : reportPreviewError ? 'danger' : 'muted'">
+                {{ reportPreviewLoading ? 'loading' : reportPreview?.readable ? 'readable' : reportPreviewError ? 'error' : 'pending' }}
+              </span>
+              <span v-if="reportPreview?.truncated" class="status-pill warning">truncated {{ formatBytes(reportPreview.maxBytes) }}</span>
+            </div>
+
+            <pre v-if="reportPreview?.readable" class="report-preview__content">{{ reportPreview.content || '' }}</pre>
+            <div v-else class="report-preview__empty">
+              {{ reportPreviewLoading ? 'Loading report preview...' : (reportPreview?.errorMessage || reportPreviewError || 'No report content loaded.') }}
             </div>
           </div>
         </section>
@@ -331,11 +406,13 @@ import {
   Activity,
   AlertTriangle,
   Clock3,
+  Eye,
   FileJson,
   LockKeyhole,
   RefreshCw,
   ServerCog,
   TimerReset,
+  X,
 } from 'lucide-vue-next'
 import { get } from '~/composables/useApi'
 import { showToast } from '~/composables/useToast'
@@ -345,6 +422,7 @@ import type {
   CrawlerMonitorOverview,
   CrawlerMonitorRegisteredTask,
   CrawlerMonitorReport,
+  CrawlerMonitorReportDetail,
   CrawlerMonitorRun,
 } from '~/types/crawlerMonitor'
 
@@ -361,6 +439,10 @@ type StatusCard = {
 const overview = ref<CrawlerMonitorOverview | null>(null)
 const loading = ref(false)
 const autoRefresh = ref(true)
+const selectedReportPath = ref<string | null>(null)
+const reportPreview = ref<CrawlerMonitorReportDetail | null>(null)
+const reportPreviewLoading = ref(false)
+const reportPreviewError = ref('')
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 
 const daemon = computed(() => overview.value?.daemon || null)
@@ -482,6 +564,9 @@ const fileCards = computed(() => [
     error: latestRun.value.errorMessage || null,
     icon: FileJson,
     tone: latestRun.value.found ? (latestRun.value.readable ? 'success' : 'danger') : 'muted',
+    previewPath: latestRun.value.found && isPreviewableReportPath(latestRun.value.path || latestRun.value.summaryPath)
+      ? latestRun.value.path || latestRun.value.summaryPath || null
+      : null,
   },
 ])
 
@@ -509,6 +594,38 @@ async function loadOverview() {
   } finally {
     loading.value = false
   }
+}
+
+async function openReportPreview(path?: string | null) {
+  if (!isPreviewableReportPath(path)) return
+  selectedReportPath.value = path || null
+  reportPreviewLoading.value = true
+  reportPreviewError.value = ''
+  try {
+    const response: any = await get('/admin/crawler-monitor/report', { path })
+    reportPreview.value = (response?.data ?? response) || null
+    if (reportPreview.value?.errorMessage) {
+      reportPreviewError.value = reportPreview.value.errorMessage
+    }
+  } catch (error: any) {
+    console.error('Failed to load crawler monitor report preview:', error)
+    reportPreview.value = null
+    reportPreviewError.value = error?.data?.message || error?.message || 'Failed to load report preview'
+    showToast(reportPreviewError.value, 'error')
+  } finally {
+    reportPreviewLoading.value = false
+  }
+}
+
+function closeReportPreview() {
+  selectedReportPath.value = null
+  reportPreview.value = null
+  reportPreviewError.value = ''
+  reportPreviewLoading.value = false
+}
+
+function isPreviewLoading(path?: string | null) {
+  return reportPreviewLoading.value && selectedReportPath.value === path
 }
 
 function syncAutoRefresh() {
@@ -540,13 +657,15 @@ function fileStateText(file: CrawlerMonitorFile | null) {
 }
 
 function fileCard(label: string, file: CrawlerMonitorFile | null, icon: Component) {
+  const path = file?.path || null
   return {
     label,
-    path: file?.path || null,
+    path,
     status: fileStateText(file),
     error: file?.errorMessage || null,
     icon,
     tone: file?.found ? (file.readable ? 'success' : 'danger') : 'muted',
+    previewPath: file?.found && isPreviewableReportPath(path) ? path : null,
   }
 }
 
@@ -624,6 +743,15 @@ function taskPaths(task: CrawlerMonitorRegisteredTask) {
   const paths = [task.progressPath, task.reportPath, task.outputPath, task.inputPath]
     .filter((path): path is string => Boolean(path))
   return [...new Set(paths)].slice(0, 4)
+}
+
+function isPreviewableReportPath(path?: string | null) {
+  const normalized = String(path || '').replace(/\\/g, '/').toLowerCase()
+  if (!normalized) return false
+  if (normalized.includes('*') || normalized.includes('?')) return false
+  const allowedRoot = normalized.startsWith('reports/') || normalized.startsWith('back/target/surefire-reports/')
+  const allowedSuffix = ['.json', '.md', '.xml', '.txt'].some((suffix) => normalized.endsWith(suffix))
+  return allowedRoot && allowedSuffix
 }
 
 function actionProgress(action: CrawlerMonitorAction) {
@@ -1053,6 +1181,18 @@ function shortArgs(args?: string[]) {
   font-size: 12px;
 }
 
+.path-token {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.path-token code {
+  min-width: 0;
+  flex: 1;
+}
+
 .empty-line {
   padding: 12px;
   border: 1px dashed color-mix(in srgb, var(--color-border) 88%, transparent);
@@ -1260,7 +1400,7 @@ function shortArgs(args?: string[]) {
 
 .recent-run-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto auto;
   align-items: center;
   gap: 12px;
   min-width: 0;
@@ -1318,6 +1458,11 @@ function shortArgs(args?: string[]) {
   background: color-mix(in srgb, var(--color-bg) 82%, var(--color-bg-secondary));
 }
 
+.report-row--active {
+  border-color: color-mix(in srgb, #2563eb 42%, var(--color-border));
+  background: color-mix(in srgb, #eff6ff 42%, var(--color-bg));
+}
+
 .file-row > div,
 .history-row > div,
 .report-row > div {
@@ -1352,6 +1497,106 @@ function shortArgs(args?: string[]) {
 .file-row em {
   color: #b91c1c;
   font-style: normal;
+}
+
+.inline-report-button,
+.icon-close-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 32px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 86%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg) 90%, transparent);
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.inline-report-button {
+  flex-shrink: 0;
+  padding: 0 9px;
+}
+
+.inline-report-button--compact {
+  margin-top: 8px;
+}
+
+.inline-report-button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.icon-close-button {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.report-preview {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
+}
+
+.report-preview__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.report-preview__head > div {
+  min-width: 0;
+}
+
+.report-preview__head strong,
+.report-preview__head small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.report-preview__head strong {
+  color: var(--color-text);
+}
+
+.report-preview__head small {
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.report-preview__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.report-preview__content,
+.report-preview__empty {
+  max-height: 360px;
+  overflow: auto;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 64%, var(--color-bg));
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.report-preview__empty {
+  color: var(--color-text-secondary);
+  white-space: normal;
 }
 
 .history-row {

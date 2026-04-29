@@ -1,4 +1,4 @@
-import type { CrawlerMonitorOverview, CrawlerMonitorTestState } from '~/types/crawlerMonitor'
+import type { CrawlerMonitorOverview, CrawlerMonitorReportDetail, CrawlerMonitorTestState } from '~/types/crawlerMonitor'
 
 const overview: CrawlerMonitorOverview = {
   generatedAt: '2026-04-27T00:00:00Z',
@@ -82,6 +82,22 @@ const overview: CrawlerMonitorOverview = {
 }
 
 void overview
+
+const reportDetail: CrawlerMonitorReportDetail = {
+  found: true,
+  readable: true,
+  name: 'relation-health-smoke.json',
+  path: 'reports/relation/relation-health-smoke.json',
+  category: 'audit',
+  updatedAt: '2026-04-29T08:00:00Z',
+  sizeBytes: 128,
+  contentType: 'json',
+  content: '{\n  "status" : "ok"\n}',
+  truncated: false,
+  maxBytes: 200000,
+}
+
+void reportDetail
 
 const testState: CrawlerMonitorTestState = {
   generatedAt: '2026-04-28T00:00:00Z',
