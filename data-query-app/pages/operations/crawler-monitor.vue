@@ -140,7 +140,7 @@
                 @click="openReportPreview(path)"
               >
                 <Eye :size="14" />
-                <span>{{ isPreviewLoading(path) ? 'Loading' : 'View' }}</span>
+                <span>{{ isPreviewLoading(path) ? '加载中' : '预览' }}</span>
               </button>
             </span>
           </div>
@@ -228,7 +228,7 @@
                 @click="openReportPreview(run.summaryPath || run.path)"
               >
                 <Eye :size="14" />
-                <span>{{ isPreviewLoading(run.summaryPath || run.path) ? 'Loading' : 'View' }}</span>
+                <span>{{ isPreviewLoading(run.summaryPath || run.path) ? '加载中' : '预览' }}</span>
               </button>
             </article>
             <div v-if="!history.length" class="empty-block empty-block--compact">
@@ -322,7 +322,7 @@
                   @click="openReportPreview(file.previewPath)"
                 >
                   <Eye :size="14" />
-                  <span>{{ isPreviewLoading(file.previewPath) ? 'Loading' : 'View' }}</span>
+                  <span>{{ isPreviewLoading(file.previewPath) ? '加载中' : '预览' }}</span>
                 </button>
               </div>
             </article>
@@ -358,7 +358,7 @@
                 @click="openReportPreview(report.path)"
               >
                 <Eye :size="14" />
-                <span>{{ isPreviewLoading(report.path) ? 'Loading' : 'View' }}</span>
+                <span>{{ isPreviewLoading(report.path) ? '加载中' : '预览' }}</span>
               </button>
             </article>
             <div v-if="!recentReports.length" class="empty-block empty-block--compact">
@@ -367,36 +367,43 @@
             </div>
           </div>
 
-          <div v-if="selectedReportPath || reportPreview || reportPreviewError" class="report-preview">
-            <div class="report-preview__head">
-              <div>
-                <strong>{{ reportPreview?.name || selectedReportPath || 'Report preview' }}</strong>
-                <small>
-                  {{ reportPreview?.path || selectedReportPath }}
-                  <template v-if="reportPreview?.sizeBytes"> - {{ formatBytes(reportPreview.sizeBytes) }}</template>
-                </small>
-              </div>
-              <button type="button" class="icon-close-button" aria-label="Close report preview" @click="closeReportPreview">
-                <X :size="16" />
-              </button>
-            </div>
-
-            <div class="report-preview__meta">
-              <span class="status-pill" :class="reportTone(reportPreview?.category)">{{ reportPreview?.category || 'report' }}</span>
-              <span class="status-pill" :class="reportPreview?.readable ? 'success' : reportPreviewError ? 'danger' : 'muted'">
-                {{ reportPreviewLoading ? 'loading' : reportPreview?.readable ? 'readable' : reportPreviewError ? 'error' : 'pending' }}
-              </span>
-              <span v-if="reportPreview?.truncated" class="status-pill warning">truncated {{ formatBytes(reportPreview.maxBytes) }}</span>
-            </div>
-
-            <pre v-if="reportPreview?.readable" class="report-preview__content">{{ reportPreview.content || '' }}</pre>
-            <div v-else class="report-preview__empty">
-              {{ reportPreviewLoading ? 'Loading report preview...' : (reportPreview?.errorMessage || reportPreviewError || 'No report content loaded.') }}
-            </div>
-          </div>
         </section>
       </aside>
     </section>
+
+    <div
+      v-if="selectedReportPath || reportPreview || reportPreviewError"
+      class="report-preview-shell"
+      @click.self="closeReportPreview"
+    >
+      <aside class="report-preview report-preview-drawer" role="dialog" aria-modal="true" aria-label="报告预览">
+        <div class="report-preview__head">
+          <div>
+            <strong>{{ reportPreview?.name || selectedReportPath || '报告预览' }}</strong>
+            <small>
+              {{ reportPreview?.path || selectedReportPath }}
+              <template v-if="reportPreview?.sizeBytes"> - {{ formatBytes(reportPreview.sizeBytes) }}</template>
+            </small>
+          </div>
+          <button type="button" class="icon-close-button" aria-label="关闭报告预览" @click="closeReportPreview">
+            <X :size="16" />
+          </button>
+        </div>
+
+        <div class="report-preview__meta">
+          <span class="status-pill" :class="reportTone(reportPreview?.category)">{{ reportPreview?.category || 'report' }}</span>
+          <span class="status-pill" :class="reportPreview?.readable ? 'success' : reportPreviewError ? 'danger' : 'muted'">
+            {{ reportPreviewLoading ? 'loading' : reportPreview?.readable ? 'readable' : reportPreviewError ? 'error' : 'pending' }}
+          </span>
+          <span v-if="reportPreview?.truncated" class="status-pill warning">truncated {{ formatBytes(reportPreview.maxBytes) }}</span>
+        </div>
+
+        <pre v-if="reportPreview?.readable" class="report-preview__content">{{ reportPreview.content || '' }}</pre>
+        <div v-else class="report-preview__empty">
+          {{ reportPreviewLoading ? '正在加载报告预览...' : (reportPreview?.errorMessage || reportPreviewError || '未加载报告内容。') }}
+        </div>
+      </aside>
+    </div>
   </div>
 </template>
 
@@ -1530,18 +1537,35 @@ function shortArgs(args?: string[]) {
 }
 
 .icon-close-button {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
   padding: 0;
 }
 
+.report-preview-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  justify-content: flex-end;
+  background: rgb(15 23 42 / 42%);
+}
+
 .report-preview {
   display: grid;
-  gap: 10px;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
+  gap: 12px;
+  min-width: 0;
+}
+
+.report-preview-drawer {
+  width: min(760px, calc(100vw - 24px));
+  height: 100dvh;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  padding: 20px;
+  border-left: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
+  background: var(--color-bg);
+  box-shadow: -24px 0 48px rgb(15 23 42 / 22%);
 }
 
 .report-preview__head {
@@ -1580,7 +1604,7 @@ function shortArgs(args?: string[]) {
 
 .report-preview__content,
 .report-preview__empty {
-  max-height: 360px;
+  min-height: 0;
   overflow: auto;
   margin: 0;
   padding: 12px;
@@ -1669,6 +1693,11 @@ function shortArgs(args?: string[]) {
 
   .monitor-actions .btn {
     flex: 1 1 100%;
+  }
+
+  .report-preview-drawer {
+    width: 100vw;
+    padding: 16px;
   }
 }
 </style>
