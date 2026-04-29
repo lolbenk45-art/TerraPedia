@@ -84,7 +84,7 @@ test('runProjectionToLocalCoreSync dry-run writes a report without mutating loca
   assert.ok(mutations.every((sql) => !/DELETE FROM|INSERT INTO|CREATE TABLE/i.test(sql)));
 });
 
-test('runProjectionToLocalCoreSync apply backs up and replaces only the four core local tables', async () => {
+test('runProjectionToLocalCoreSync apply backs up core tables and only replaces unmanaged domains', async () => {
   const statements = [];
 
   await runProjectionToLocalCoreSync(
@@ -111,12 +111,19 @@ test('runProjectionToLocalCoreSync apply backs up and replaces only the four cor
   for (const table of ['items', 'npcs', 'projectiles', 'buffs']) {
     assert.ok(statements.some((sql) => sql.includes(`CREATE TABLE \`terria_v1_local\`.\`${table}_relation_backup_20260426120000\` LIKE \`terria_v1_local\`.\`${table}\``)));
     assert.ok(statements.some((sql) => sql.includes(`INSERT INTO \`terria_v1_local\`.\`${table}_relation_backup_20260426120000\` SELECT * FROM \`terria_v1_local\`.\`${table}\``)));
+  }
+  for (const table of ['projectiles', 'buffs']) {
     assert.ok(statements.some((sql) => sql.includes(`DELETE FROM \`terria_v1_local\`.\`${table}\``)));
+  }
+  for (const table of ['items', 'npcs']) {
+    assert.ok(statements.every((sql) => !sql.includes(`DELETE FROM \`terria_v1_local\`.\`${table}\``)));
   }
   assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_relation`.`projection_items`')));
   assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_relation`.`projection_npcs`')));
   assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_relation`.`projection_projectiles`')));
   assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_relation`.`projection_buffs`')));
+  assert.ok(statements.some((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`items`') && sql.includes('ON DUPLICATE KEY UPDATE')));
+  assert.ok(statements.some((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`npcs`') && sql.includes('ON DUPLICATE KEY UPDATE')));
   assert.ok(statements.every((sql) => !sql.includes('category')));
   assert.ok(statements.every((sql) => !sql.includes('recipes')));
 });
@@ -267,6 +274,110 @@ test('runProjectionToLocalCoreSync syncs item and npc relation json columns only
   assert.match(itemInsertSql, /`source_npcs_json`/);
   assert.match(npcInsertSql, /`loot_items_json`, `shop_items_json`/);
   assert.doesNotMatch(npcInsertSql, /`source_items_json`/);
+});
+
+test('runProjectionToLocalCoreSync preserves local-owned item and npc fields during apply', async () => {
+  const statements = [];
+
+  const result = await runProjectionToLocalCoreSync(
+    {
+      apply: true,
+      localDatabase: 'terria_v1_local',
+      relationDatabase: 'terria_v1_relation',
+      domains: ['items', 'npcs'],
+      dateTag: '2026-04-29',
+      backupSuffix: '20260429123000'
+    },
+    {
+      executeLocal: async (fn) => fn({
+        query: async (sql) => {
+          statements.push(sql);
+          return [{ affectedRows: 1 }];
+        }
+      }),
+      listColumns: async (_connection, _database, table) => {
+        if (table === 'items' || table === 'projection_items') {
+          return [
+            'id',
+            'internal_name',
+            'name',
+            'category_id',
+            'description',
+            'game_period_id',
+            'game_model_id',
+            'last_synced_at',
+            'source_npcs_json',
+            'tooltip',
+            'created_at',
+            'updated_at',
+            'status',
+            'deleted'
+          ];
+        }
+        if (table === 'npcs' || table === 'projection_npcs') {
+          return [
+            'id',
+            'internal_name',
+            'name',
+            'category_id',
+            'game_period_id',
+            'game_model_id',
+            'boss_group_id',
+            'boss_role',
+            'behavior_notes',
+            'banner_item_id',
+            'catch_item_id',
+            'loot_items_json',
+            'shop_items_json',
+            'source_items_json',
+            'created_at',
+            'updated_at',
+            'status',
+            'deleted'
+          ];
+        }
+        return [];
+      },
+      countRows: async () => 1,
+      writeReport: async () => 'reports/relation/projection-to-local-core-sync-2026-04-29.json'
+    }
+  );
+
+  const itemSql = statements.find((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`items`'));
+  const npcSql = statements.find((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`npcs`'));
+
+  assert.equal(result.report.domains.items.syncStrategy, 'upsert_preserve_local');
+  assert.equal(result.report.domains.npcs.syncStrategy, 'upsert_preserve_local');
+  assert.deepEqual(result.report.domains.items.skippedProtectedColumns, [
+    'category_id',
+    'created_at',
+    'description',
+    'game_model_id',
+    'game_period_id',
+    'last_synced_at',
+    'tooltip',
+    'updated_at'
+  ]);
+  assert.deepEqual(result.report.domains.npcs.skippedProtectedColumns, [
+    'banner_item_id',
+    'behavior_notes',
+    'boss_group_id',
+    'boss_role',
+    'catch_item_id',
+    'category_id',
+    'created_at',
+    'game_model_id',
+    'game_period_id',
+    'updated_at'
+  ]);
+  assert.ok(statements.every((sql) => !/DELETE FROM `terria_v1_local`\.`items`/i.test(sql)));
+  assert.ok(statements.every((sql) => !/DELETE FROM `terria_v1_local`\.`npcs`/i.test(sql)));
+  assert.match(itemSql, /ON DUPLICATE KEY UPDATE/);
+  assert.match(npcSql, /ON DUPLICATE KEY UPDATE/);
+  assert.match(itemSql, /`source_npcs_json`/);
+  assert.match(npcSql, /`loot_items_json`, `shop_items_json`, `source_items_json`/);
+  assert.doesNotMatch(itemSql, /`category_id`|`description`|`game_period_id`|`game_model_id`|`last_synced_at`|`tooltip`|`created_at`|`updated_at`/);
+  assert.doesNotMatch(npcSql, /`category_id`|`game_period_id`|`game_model_id`|`boss_group_id`|`boss_role`|`behavior_notes`|`banner_item_id`|`catch_item_id`|`created_at`|`updated_at`/);
 });
 
 test('runProjectionToLocalCoreSync apply refuses to replace populated local tables from empty projection tables', async () => {

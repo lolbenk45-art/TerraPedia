@@ -66,6 +66,42 @@ function intersectColumns(localColumns, projectionColumns) {
   return localColumns.filter((column) => projectionSet.has(column));
 }
 
+const LOCAL_PRESERVE_COLUMNS = {
+  items: new Set([
+    'category_id',
+    'description',
+    'game_period_id',
+    'game_model_id',
+    'last_synced_at',
+    'tooltip',
+    'created_at',
+    'updated_at'
+  ]),
+  npcs: new Set([
+    'category_id',
+    'game_period_id',
+    'game_model_id',
+    'boss_group_id',
+    'boss_role',
+    'behavior_notes',
+    'banner_item_id',
+    'catch_item_id',
+    'created_at',
+    'updated_at'
+  ])
+};
+
+function selectColumnsToSync(localTable, localColumns, projectionColumns) {
+  const sharedColumns = intersectColumns(localColumns, projectionColumns);
+  const protectedColumns = LOCAL_PRESERVE_COLUMNS[localTable] ?? new Set();
+  return {
+    columnsToSync: sharedColumns.filter((column) => !protectedColumns.has(column)),
+    skippedProtectedColumns: sharedColumns
+      .filter((column) => protectedColumns.has(column))
+      .sort()
+  };
+}
+
 function formatTableName(database, table) {
   return `${database}.${table}`;
 }
@@ -82,6 +118,24 @@ export function buildInsertProjectionSql({
   }
   const columnList = columns.map(quoteIdentifier).join(', ');
   return `INSERT INTO ${qualified(localDatabase, localTable)} (${columnList}) SELECT ${columnList} FROM ${qualified(relationDatabase, projectionTable)}`;
+}
+
+export function buildUpsertProjectionSql({
+  localDatabase,
+  relationDatabase,
+  localTable,
+  projectionTable,
+  columns
+}) {
+  if (!columns.length) {
+    throw new Error(`No shared columns available for ${localTable} <= ${projectionTable}`);
+  }
+  const columnList = columns.map(quoteIdentifier).join(', ');
+  const updateColumns = columns.filter((column) => column !== 'id');
+  const updateList = updateColumns.length > 0
+    ? updateColumns.map((column) => `${quoteIdentifier(column)} = VALUES(${quoteIdentifier(column)})`).join(', ')
+    : `${quoteIdentifier(columns[0])} = ${quoteIdentifier(columns[0])}`;
+  return `INSERT INTO ${qualified(localDatabase, localTable)} (${columnList}) SELECT ${columnList} FROM ${qualified(relationDatabase, projectionTable)} ON DUPLICATE KEY UPDATE ${updateList}`;
 }
 
 async function defaultListColumns(connection, database, table) {
@@ -128,7 +182,7 @@ async function defaultExecuteLocal(localDatabase, dependencies, fn) {
   }
 }
 
-async function backupAndReplaceDomain(connection, options, domain) {
+async function backupAndApplyDomain(connection, options, domain) {
   const localTableName = qualified(options.localDatabase, domain.localTable);
   const backupTable = `${domain.localTable}_relation_backup_${options.backupSuffix}`;
   const backupTableName = qualified(options.localDatabase, backupTable);
@@ -136,14 +190,24 @@ async function backupAndReplaceDomain(connection, options, domain) {
   await connection.query(`INSERT INTO ${backupTableName} SELECT * FROM ${localTableName}`);
   await connection.query('START TRANSACTION');
   try {
-    await connection.query(`DELETE FROM ${localTableName}`);
-    await connection.query(buildInsertProjectionSql({
-      localDatabase: options.localDatabase,
-      relationDatabase: options.relationDatabase,
-      localTable: domain.localTable,
-      projectionTable: domain.projectionTable,
-      columns: domain.columnsToSync
-    }));
+    if (domain.syncStrategy === 'upsert_preserve_local') {
+      await connection.query(buildUpsertProjectionSql({
+        localDatabase: options.localDatabase,
+        relationDatabase: options.relationDatabase,
+        localTable: domain.localTable,
+        projectionTable: domain.projectionTable,
+        columns: domain.columnsToSync
+      }));
+    } else {
+      await connection.query(`DELETE FROM ${localTableName}`);
+      await connection.query(buildInsertProjectionSql({
+        localDatabase: options.localDatabase,
+        relationDatabase: options.relationDatabase,
+        localTable: domain.localTable,
+        projectionTable: domain.projectionTable,
+        columns: domain.columnsToSync
+      }));
+    }
     await connection.query('COMMIT');
   } catch (error) {
     await connection.query('ROLLBACK');
@@ -177,6 +241,10 @@ export async function runProjectionToLocalCoreSync(options = {}, dependencies = 
         countRows(connection, normalized.localDatabase, config.localTable),
         countRows(connection, normalized.relationDatabase, config.projectionTable)
       ]);
+      const columnSelection = selectColumnsToSync(config.localTable, localColumns, projectionColumns);
+      const syncStrategy = LOCAL_PRESERVE_COLUMNS[config.localTable]
+        ? 'upsert_preserve_local'
+        : 'replace';
       domains[domainName] = {
         domain: domainName,
         localTable: config.localTable,
@@ -184,7 +252,9 @@ export async function runProjectionToLocalCoreSync(options = {}, dependencies = 
         backupTable: `${config.localTable}_relation_backup_${normalized.backupSuffix}`,
         localRowsBefore: localRows,
         projectionRows,
-        columnsToSync: intersectColumns(localColumns, projectionColumns)
+        syncStrategy,
+        columnsToSync: columnSelection.columnsToSync,
+        skippedProtectedColumns: columnSelection.skippedProtectedColumns
       };
     }
 
@@ -200,7 +270,7 @@ export async function runProjectionToLocalCoreSync(options = {}, dependencies = 
       await connection.query('SET FOREIGN_KEY_CHECKS = 0');
       try {
         for (const domain of Object.values(domains)) {
-          domain.backupTable = await backupAndReplaceDomain(connection, normalized, domain);
+          domain.backupTable = await backupAndApplyDomain(connection, normalized, domain);
         }
       } finally {
         await connection.query('SET FOREIGN_KEY_CHECKS = 1');
