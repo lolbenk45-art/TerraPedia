@@ -100,10 +100,17 @@ node scripts/data/fetch/fetch-wiki-armorsetbonuses.mjs
 node scripts/data/fetch/fetch-wiki-buffs.mjs --langs=en,zh
 node scripts/data/fetch/fetch-wiki-biomes.mjs
 node scripts/data/fetch/fetch-wiki-item-pages.mjs --page-limit=100 --with-recipes=false
+node scripts/data/fetch/start-detached-item-page-crawl.mjs --resume-from-progress=true
 python scripts/data/fetch/fetch-wiki-town-npc-maintenance.py
 node scripts/data/fetch/build-item-relations-bundle.mjs
 node scripts/data/fetch/build-item-relations-bundle.mjs --refresh-recipe-reference=true
 ```
+
+Long item page crawls should use `start-detached-item-page-crawl.mjs` instead of a conversation shell.
+It registers and starts a Windows Scheduled Task named `TerraPediaItemPageCrawl`, then the scheduled task
+runs `run-item-page-crawl-batches.mjs` in 100-page shards. Progress stays in
+`data/generated/wiki-sync-progress.latest.json`, so the admin crawler monitor keeps showing pages left,
+speed, and ETA after the launching terminal is closed.
 
 ## Normalize
 
