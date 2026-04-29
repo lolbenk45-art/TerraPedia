@@ -1,5 +1,7 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -42,7 +44,8 @@ export function createWikiRequestGate({
   requestProfiles = REQUEST_PROFILES,
   sleepFn = sleep,
   nowFn = Date.now,
-  fetchFn = globalThis.fetch
+  fetchFn = globalThis.fetch,
+  externalRequestFn = defaultExternalRequestFn()
 } = {}) {
   const gateStatePath = path.resolve(statePath);
   let state = loadGateState(gateStatePath, hostKey);
@@ -93,17 +96,37 @@ export function createWikiRequestGate({
       await waitForTurn(requestProfile);
 
       try {
-        const response = await fetchFn(normalizedUrl, {
+        const requestHeaders = {
+          'user-agent': userAgent,
+          ...headers
+        };
+        let response = await fetchFn(normalizedUrl, {
           method,
-          headers: {
-            'user-agent': userAgent,
-            ...headers
-          },
+          headers: requestHeaders,
           body,
           signal: AbortSignal.timeout(timeoutMs)
         });
 
-        const rawBody = await response.text();
+        let rawBody = await response.text();
+        if (shouldUseExternalFallback({
+          externalRequestFn,
+          normalizedUrl,
+          response,
+          rawBody
+        })) {
+          const fallbackResponse = await externalRequestFn({
+            url: normalizedUrl.toString(),
+            method,
+            headers: requestHeaders,
+            body: serializeRequestBody(body),
+            timeoutMs,
+            profile,
+            sourceKey
+          });
+          const normalizedFallback = await normalizeExternalResponse(fallbackResponse);
+          response = normalizedFallback.response;
+          rawBody = normalizedFallback.rawBody;
+        }
         const maybeJson = responseType === 'json' ? parseJsonSafely(rawBody) : null;
 
         if (!response.ok) {
@@ -216,6 +239,216 @@ export function createWikiRequestGate({
     userAgent
   };
 }
+
+function defaultExternalRequestFn() {
+  return process.platform === 'win32' ? runPowerShellWebRequest : null;
+}
+
+function shouldUseExternalFallback({
+  externalRequestFn,
+  normalizedUrl,
+  response,
+  rawBody
+}) {
+  if (typeof externalRequestFn !== 'function') {
+    return false;
+  }
+  if (!isWikiApiUrl(normalizedUrl) || Number(response?.status) !== 403) {
+    return false;
+  }
+  const text = compactText(rawBody).toLowerCase();
+  return (
+    (text.includes('just a second') && text.includes('wiki.gg')) ||
+    text.includes('cf-chl') ||
+    text.includes('cloudflare')
+  );
+}
+
+async function normalizeExternalResponse(result) {
+  if (!result || typeof result !== 'object') {
+    throw new Error('External wiki request fallback returned no response');
+  }
+  const status = Number(result.status ?? result.statusCode);
+  if (!Number.isFinite(status) || status <= 0) {
+    throw new Error('External wiki request fallback returned invalid status');
+  }
+  const rawBody = typeof result.text === 'function'
+    ? await result.text()
+    : String(result.body ?? result.text ?? '');
+  return {
+    response: {
+      ok: result.ok ?? (status >= 200 && status < 300),
+      status,
+      statusText: String(result.statusText ?? result.statusDescription ?? '')
+    },
+    rawBody
+  };
+}
+
+async function runPowerShellWebRequest({
+  url,
+  method = 'GET',
+  headers = {},
+  body = null,
+  timeoutMs = 20_000
+} = {}) {
+  const timeoutSec = Math.max(1, Math.ceil(Number(timeoutMs) / 1000));
+  const bodyText = body == null ? null : String(body);
+  const bodyFile = bodyText
+    ? path.join(os.tmpdir(), `terrapedia-wiki-request-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`)
+    : null;
+
+  if (bodyFile) {
+    await fs.promises.writeFile(bodyFile, bodyText, 'utf8');
+  }
+
+  try {
+    const output = await runPowerShellScript(POWER_SHELL_WEB_REQUEST_SCRIPT, {
+      TERRAPEDIA_WIKI_FALLBACK_URL: String(url),
+      TERRAPEDIA_WIKI_FALLBACK_METHOD: String(method || 'GET').toUpperCase(),
+      TERRAPEDIA_WIKI_FALLBACK_HEADERS: JSON.stringify(headers ?? {}),
+      TERRAPEDIA_WIKI_FALLBACK_BODY_FILE: bodyFile ?? '',
+      TERRAPEDIA_WIKI_FALLBACK_TIMEOUT_SEC: String(timeoutSec)
+    }, (timeoutSec + 5) * 1000);
+    return parsePowerShellWebResponse(output.stdout);
+  } finally {
+    if (bodyFile) {
+      await fs.promises.rm(bodyFile, { force: true });
+    }
+  }
+}
+
+function serializeRequestBody(body) {
+  if (body == null) {
+    return null;
+  }
+  if (typeof body === 'string') {
+    return body;
+  }
+  if (body instanceof URLSearchParams) {
+    return body.toString();
+  }
+  if (Buffer.isBuffer(body)) {
+    return body.toString('utf8');
+  }
+  return String(body);
+}
+
+function runPowerShellScript(script, extraEnv, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const child = spawn('powershell.exe', [
+      '-NoProfile',
+      '-NonInteractive',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-Command',
+      script
+    ], {
+      env: {
+        ...process.env,
+        ...extraEnv
+      },
+      windowsHide: true
+    });
+    let stdout = '';
+    let stderr = '';
+    let settled = false;
+    const timeout = setTimeout(() => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      child.kill();
+      reject(new Error(`PowerShell wiki request fallback timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk;
+    });
+    child.on('error', (error) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timeout);
+      reject(error);
+    });
+    child.on('close', (code) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timeout);
+      if (code !== 0) {
+        reject(new Error(`PowerShell wiki request fallback failed exit=${code}: ${compactText(stderr)}`));
+        return;
+      }
+      resolve({ stdout, stderr });
+    });
+  });
+}
+
+function parsePowerShellWebResponse(stdout) {
+  const match = String(stdout ?? '').match(/^STATUS:(\d+)\r?\nSTATUS_TEXT:(.*)\r?\n/s);
+  if (!match) {
+    throw new Error('PowerShell wiki request fallback returned malformed output');
+  }
+  return {
+    status: Number(match[1]),
+    statusText: match[2],
+    body: String(stdout).slice(match[0].length)
+  };
+}
+
+const POWER_SHELL_WEB_REQUEST_SCRIPT = `
+$ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$headers = @{}
+$contentType = ''
+$userAgent = ''
+$headersJson = [Environment]::GetEnvironmentVariable('TERRAPEDIA_WIKI_FALLBACK_HEADERS')
+if ($headersJson) {
+  $parsedHeaders = ConvertFrom-Json -InputObject $headersJson
+  foreach ($property in $parsedHeaders.PSObject.Properties) {
+    $name = [string]$property.Name
+    $value = [string]$property.Value
+    if ($name.ToLowerInvariant() -eq 'content-type') {
+      $contentType = $value
+    } elseif ($name.ToLowerInvariant() -eq 'user-agent') {
+      $userAgent = $value
+    } else {
+      $headers[$name] = $value
+    }
+  }
+}
+$timeoutSec = [int]([Environment]::GetEnvironmentVariable('TERRAPEDIA_WIKI_FALLBACK_TIMEOUT_SEC'))
+$params = @{
+  Uri = [Environment]::GetEnvironmentVariable('TERRAPEDIA_WIKI_FALLBACK_URL')
+  Method = [Environment]::GetEnvironmentVariable('TERRAPEDIA_WIKI_FALLBACK_METHOD')
+  UseBasicParsing = $true
+  TimeoutSec = $timeoutSec
+  Headers = $headers
+}
+if ($contentType) {
+  $params.ContentType = $contentType
+}
+if ($userAgent) {
+  $params.UserAgent = $userAgent
+}
+$bodyFile = [Environment]::GetEnvironmentVariable('TERRAPEDIA_WIKI_FALLBACK_BODY_FILE')
+if ($bodyFile) {
+  $params.Body = Get-Content -Raw -LiteralPath $bodyFile
+}
+$response = Invoke-WebRequest @params
+[Console]::WriteLine('STATUS:' + [int]$response.StatusCode)
+[Console]::WriteLine('STATUS_TEXT:' + [string]$response.StatusDescription)
+[Console]::Write([string]$response.Content)
+`;
 
 function normalizeRequestUrl(input) {
   const url = input instanceof URL ? new URL(input) : new URL(String(input));

@@ -92,6 +92,54 @@ test('runJsonRequest waits after throttle failures trigger cooldown, then retrie
   assert.equal(state.successCount, 1);
 });
 
+test('runJsonRequest uses external fallback for wiki.gg challenge responses', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-'));
+  const statePath = path.join(tempDir, 'gate.json');
+  let fetchCount = 0;
+  let fallbackCount = 0;
+  const gate = createWikiRequestGate({
+    statePath,
+    nowFn: () => Date.parse('2026-04-29T09:15:45.996Z'),
+    sleepFn: async () => {},
+    requestProfiles: {
+      parse: { baseDelayMs: 0, jitterMs: 0, maxAttempts: 1, cooldownMs: 10_000 }
+    },
+    fetchFn: async () => {
+      fetchCount += 1;
+      return textResponse({
+        ok: false,
+        status: 403,
+        statusText: 'Forbidden',
+        body: '<!doctype html><title data-i18n="pag-title">Just a second... - wiki.gg</title>'
+      });
+    },
+    externalRequestFn: async ({ url, method, headers }) => {
+      fallbackCount += 1;
+      assert.equal(String(url), 'https://terraria.wiki.gg/api.php?action=parse&maxlag=5&format=json');
+      assert.equal(method, 'GET');
+      assert.equal(headers['user-agent'], 'TerraPedia-data-sync/2.0 (+https://terraria.wiki.gg/api.php)');
+      return {
+        status: 200,
+        statusText: 'OK',
+        body: JSON.stringify({ ok: true, via: 'external' })
+      };
+    }
+  });
+
+  const payload = await gate.runJsonRequest('https://terraria.wiki.gg/api.php?action=parse', {
+    profile: 'parse',
+    sourceKey: 'Tin Shortsword'
+  });
+
+  assert.deepEqual(payload, { ok: true, via: 'external' });
+  assert.equal(fetchCount, 1);
+  assert.equal(fallbackCount, 1);
+
+  const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  assert.equal(state.failureCount, 0);
+  assert.equal(state.successCount, 1);
+});
+
 function okJsonResponse(body) {
   return textResponse({
     ok: true,
