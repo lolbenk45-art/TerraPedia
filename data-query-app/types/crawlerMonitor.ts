@@ -30,6 +30,9 @@ export interface CrawlerMonitorAction {
   percent?: number | null
   phase?: string | null
   message?: string | null
+  queue?: string | null
+  dataStage?: string | null
+  nextStep?: string | null
   lastHeartbeatAt?: string | null
   updatedAt?: string | null
 }
@@ -61,6 +64,29 @@ export interface CrawlerMonitorReport {
   sizeBytes?: number | null
 }
 
+export interface CrawlerMonitorRegisteredTask {
+  id?: string | null
+  label?: string | null
+  status?: string | null
+  priority?: string | null
+  lane?: string | null
+  queueState?: string | null
+  nextStep?: string | null
+  dataStage?: string | null
+  current?: number | null
+  total?: number | null
+  overallCurrent?: number | null
+  overallTotal?: number | null
+  pending?: number | null
+  failed?: number | null
+  percent?: number | null
+  inputPath?: string | null
+  outputPath?: string | null
+  reportPath?: string | null
+  progressPath?: string | null
+  updatedAt?: string | null
+}
+
 export interface CrawlerMonitorOverview {
   generatedAt?: string | null
   repoRoot?: string | null
@@ -74,6 +100,7 @@ export interface CrawlerMonitorOverview {
   refreshStaleReason?: string | null
   history?: CrawlerMonitorRun[]
   recentReports?: CrawlerMonitorReport[]
+  registeredTasks?: CrawlerMonitorRegisteredTask[]
 }
 
 export type CrawlerMonitorTestPayload = CrawlerMonitorOverview & Record<string, any>

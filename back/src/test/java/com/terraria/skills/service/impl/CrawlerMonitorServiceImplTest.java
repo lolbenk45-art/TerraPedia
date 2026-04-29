@@ -113,15 +113,18 @@ class CrawlerMonitorServiceImplTest {
             "timedOutActions", 0,
             "totalDurationMs", 3000
         ));
-        writeJson(childStatusPath, Map.of(
-            "actionId", "wiki-core-refresh",
-            "status", "running",
-            "phase", "apply",
-            "message", "running wiki action 2 of 5",
-            "current", 2,
-            "total", 5,
-            "percent", 40,
-            "generatedAt", "2026-04-27T00:00:30Z"
+        writeJson(childStatusPath, Map.ofEntries(
+            Map.entry("actionId", "wiki-core-refresh"),
+            Map.entry("status", "running"),
+            Map.entry("phase", "apply"),
+            Map.entry("message", "running wiki action 2 of 5"),
+            Map.entry("queue", "active shard"),
+            Map.entry("dataStage", "wiki API -> generated core JSON"),
+            Map.entry("nextStep", "keep backend-refresh heartbeat current"),
+            Map.entry("current", 2),
+            Map.entry("total", 5),
+            Map.entry("percent", 40),
+            Map.entry("generatedAt", "2026-04-27T00:00:30Z")
         ));
 
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
@@ -151,6 +154,9 @@ class CrawlerMonitorServiceImplTest {
         assertEquals(40.0, overview.getLatestRun().getActions().get(0).getPercent());
         assertEquals("apply", overview.getLatestRun().getActions().get(0).getPhase());
         assertEquals("running wiki action 2 of 5", overview.getLatestRun().getActions().get(0).getMessage());
+        assertEquals("active shard", overview.getLatestRun().getActions().get(0).getQueue());
+        assertEquals("wiki API -> generated core JSON", overview.getLatestRun().getActions().get(0).getDataStage());
+        assertEquals("keep backend-refresh heartbeat current", overview.getLatestRun().getActions().get(0).getNextStep());
         assertEquals("2026-04-27T00:00:30Z", overview.getLatestRun().getActions().get(0).getLastHeartbeatAt());
         assertEquals(1, overview.getHistory().size());
         assertEquals(3, overview.getHistory().get(0).getTotalActions());
@@ -207,6 +213,107 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("running standalone wiki sync action 3 of 8", action.getMessage());
         assertEquals("2026-04-29T00:00:30Z", action.getLastHeartbeatAt());
         assertFalse(overview.isRefreshStale());
+    }
+
+    @Test
+    void shouldRegisterCrawlerPipelineTasksFromStandaloneProgressAndReports() throws Exception {
+        Path progressPath = repoRoot.resolve("data/generated/wiki-sync-progress.latest.json");
+        Path coveragePath = repoRoot.resolve("data/wiki-crawler/report/npc/coverage-audit.latest.json");
+        Path maintPath = repoRoot.resolve("reports/maint-sync-2026-04-29.json");
+        Path npcBackfillPath = repoRoot.resolve("reports/normal-npc-loot-restore-apply-2026-04-29.json");
+        Path bossBackfillPath = repoRoot.resolve("reports/boss-loot-restore-apply-2026-04-29.json");
+        Path relationPath = repoRoot.resolve("reports/relation/relation-audit-2026-04-29.json");
+        Path projectionPath = repoRoot.resolve("reports/relation/projection-to-local-core-sync-2026-04-29.json");
+        Path localCompatPath = repoRoot.resolve("reports/relation/relation-to-local-compat-sync-2026-04-29.json");
+        Path relationHealthPath = repoRoot.resolve("reports/relation/relation-health-2026-04-29.json");
+
+        writeJson(progressPath, Map.ofEntries(
+            Map.entry("actionId", "item-pages-batch-1900"),
+            Map.entry("status", "running"),
+            Map.entry("phase", "fetch"),
+            Map.entry("message", "fetched 43/100 item page(s); ok=43; failed=0"),
+            Map.entry("current", 43),
+            Map.entry("total", 100),
+            Map.entry("batchOffset", 1900),
+            Map.entry("batchLimit", 100),
+            Map.entry("overallCurrent", 1943),
+            Map.entry("overallTotal", 6131),
+            Map.entry("percent", 43),
+            Map.entry("generatedAt", "2026-04-29T06:54:18Z")
+        ));
+        writeJson(coveragePath, Map.of(
+            "summary", Map.of(
+                "totalTargets", 516,
+                "alreadyCrawledTargets", 32,
+                "eligibleBatchTargets", 389
+            ),
+            "priorities", Map.of(
+                "p0_boss", 14,
+                "p1_friendly", 73,
+                "p1_enemy", 302
+            )
+        ));
+        writeJson(repoRoot.resolve("reports/source-dataset-landings-schema-2026-04-29.json"), Map.of("apply", false));
+        writeJson(npcBackfillPath, Map.of("apply", true, "status", "completed"));
+        writeJson(bossBackfillPath, Map.of("apply", true, "status", "completed"));
+        writeJson(maintPath, Map.of("apply", true, "status", "completed"));
+        writeJson(relationPath, Map.of("apply", true, "status", "completed"));
+        writeJson(projectionPath, Map.of("apply", true, "status", "completed"));
+        writeJson(localCompatPath, Map.of("apply", true, "status", "completed"));
+        writeJson(relationHealthPath, Map.of(
+            "summary", Map.of(
+                "status", "warning",
+                "blockingCount", 0,
+                "warningCount", 1
+            )
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-04-29T07:00:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+
+        List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> tasks = overview.getRegisteredTasks();
+        assertTrue(tasks.size() >= 10);
+
+        assertEquals("pending", taskById(tasks, "wiki-core-refresh").getStatus());
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO itemRefresh = taskById(tasks, "item-pages-refresh");
+        assertEquals("running", itemRefresh.getStatus());
+        assertEquals("fetch", itemRefresh.getLane());
+        assertEquals(43, itemRefresh.getCurrent());
+        assertEquals(100, itemRefresh.getTotal());
+        assertEquals(1943, itemRefresh.getOverallCurrent());
+        assertEquals(6131, itemRefresh.getOverallTotal());
+        assertEquals(4188, itemRefresh.getPending());
+        assertEquals("data/generated/wiki-sync-progress.latest.json", itemRefresh.getProgressPath());
+        assertEquals("fetched 43/100 item page(s); ok=43; failed=0", itemRefresh.getQueueState());
+        assertNotNull(itemRefresh.getNextStep());
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO bossCoverage = taskById(tasks, "npc-coverage-boss");
+        assertEquals("queued", bossCoverage.getStatus());
+        assertEquals("crawl", bossCoverage.getLane());
+        assertEquals(14, bossCoverage.getPending());
+        assertEquals("data/wiki-crawler/report/npc/coverage-audit.latest.json", bossCoverage.getReportPath());
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO maintSync = taskById(tasks, "maint-sync");
+        assertEquals("completed", maintSync.getStatus());
+        assertEquals("reports/maint-sync-2026-04-29.json", maintSync.getReportPath());
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO npcBackfill = taskById(tasks, "npc-loot-backfill");
+        assertEquals("backfill", npcBackfill.getLane());
+        assertEquals("completed", npcBackfill.getStatus());
+        assertEquals("reports/normal-npc-loot-restore-apply-2026-04-29.json", npcBackfill.getReportPath());
+        assertEquals("completed", taskById(tasks, "boss-loot-backfill").getStatus());
+        assertEquals("pending", taskById(tasks, "landing-import").getStatus());
+        assertEquals("completed", taskById(tasks, "relation-sync").getStatus());
+        assertEquals("completed", taskById(tasks, "projection-local-core").getStatus());
+        assertEquals("completed", taskById(tasks, "local-compat-sync").getStatus());
+        assertEquals("warning", taskById(tasks, "relation-health").getStatus());
+        assertEquals("pending", taskById(tasks, "transform-standardize").getStatus());
     }
 
     @Test
@@ -533,5 +640,15 @@ class CrawlerMonitorServiceImplTest {
     private void writeJson(Path path, Map<String, Object> payload) throws IOException {
         Files.createDirectories(path.getParent());
         new ObjectMapper().writeValue(path.toFile(), payload);
+    }
+
+    private CrawlerMonitorOverviewDTO.RegisteredTaskDTO taskById(
+        List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> tasks,
+        String id
+    ) {
+        return tasks.stream()
+            .filter(task -> id.equals(task.getId()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("Missing registered task " + id));
     }
 }

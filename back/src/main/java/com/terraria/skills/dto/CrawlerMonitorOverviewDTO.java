@@ -25,6 +25,7 @@ public class CrawlerMonitorOverviewDTO {
     private String refreshStaleReason;
     private List<MonitorRunDTO> history = new ArrayList<>();
     private List<MonitorReportDTO> recentReports = new ArrayList<>();
+    private List<RegisteredTaskDTO> registeredTasks = new ArrayList<>();
 
     @Data
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -81,6 +82,9 @@ public class CrawlerMonitorOverviewDTO {
         private Double percent;
         private String phase;
         private String message;
+        private String queue;
+        private String dataStage;
+        private String nextStep;
         private String lastHeartbeatAt;
         private String updatedAt;
     }
@@ -93,5 +97,30 @@ public class CrawlerMonitorOverviewDTO {
         private String category;
         private String updatedAt;
         private Long sizeBytes;
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class RegisteredTaskDTO {
+        private String id;
+        private String label;
+        private String status;
+        private String priority;
+        private String lane;
+        private String queueState;
+        private String nextStep;
+        private String dataStage;
+        private Long current;
+        private Long total;
+        private Long overallCurrent;
+        private Long overallTotal;
+        private Long pending;
+        private Long failed;
+        private Double percent;
+        private String inputPath;
+        private String outputPath;
+        private String reportPath;
+        private String progressPath;
+        private String updatedAt;
     }
 }

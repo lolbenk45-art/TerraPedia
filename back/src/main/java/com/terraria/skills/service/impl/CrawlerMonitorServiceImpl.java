@@ -35,6 +35,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path LOCK_FILE = REFRESH_DIR.resolve("backend-refresh.lock.json");
     private static final Path TEST_STATE_FILE = REFRESH_DIR.resolve("manual-monitor-test.json");
     private static final Path WIKI_SYNC_PROGRESS_FILE = Path.of("data", "generated", "wiki-sync-progress.latest.json");
+    private static final Path NPC_COVERAGE_REPORT = Path.of("data", "wiki-crawler", "report", "npc", "coverage-audit.latest.json");
+    private static final Path REPORTS_DIR = Path.of("reports");
+    private static final Path RELATION_REPORTS_DIR = Path.of("reports", "relation");
     private static final int HISTORY_LIMIT = 10;
     private static final int RECENT_REPORT_LIMIT = 20;
     private static final long REFRESH_STALE_THRESHOLD_MS = Duration.ofHours(24).toMillis();
@@ -70,6 +73,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         overview.setLatestRun(buildLatestRun(repoRoot, overview.getScheduler().getPayload()));
         overview.setHistory(loadHistory(repoRoot));
         overview.setRecentReports(loadRecentReports(repoRoot));
+        overview.setRegisteredTasks(buildRegisteredTasks(repoRoot, overview.getLatestRun()));
         applyRefreshStaleState(repoRoot, overview);
         return overview;
     }
@@ -260,6 +264,469 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             .limit(RECENT_REPORT_LIMIT)
             .map(path -> toReportDTO(repoRoot, path))
             .toList();
+    }
+
+    private List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> buildRegisteredTasks(
+        Path repoRoot,
+        CrawlerMonitorOverviewDTO.MonitorRunDTO latestRun
+    ) {
+        ReadResult itemProgress = readJsonMap(repoRoot.resolve(WIKI_SYNC_PROGRESS_FILE).normalize());
+        ReadResult npcCoverage = readJsonMap(repoRoot.resolve(NPC_COVERAGE_REPORT).normalize());
+
+        List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> tasks = new ArrayList<>();
+        tasks.add(buildWikiCoreRefreshTask(repoRoot, latestRun));
+        tasks.add(buildItemPagesRefreshTask(repoRoot, itemProgress));
+        tasks.add(buildStaticTask(
+            "item-pages-retry-failures",
+            "Item page retry queue",
+            "fetch",
+            "p0",
+            "pending",
+            "Retry failed item pages after the active shard finishes.",
+            "fetch retry",
+            WIKI_SYNC_PROGRESS_FILE.toString().replace('\\', '/'),
+            null,
+            "reports/crawler-monitor/*.err.log",
+            null
+        ));
+        tasks.add(buildNpcCoverageTask(repoRoot, npcCoverage, "npc-coverage-boss", "Boss NPC coverage", "p0_boss", "p0"));
+        tasks.add(buildNpcCoverageTask(repoRoot, npcCoverage, "npc-coverage-friendly", "Friendly NPC coverage", "p1_friendly", "p1"));
+        tasks.add(buildNpcCoverageTask(repoRoot, npcCoverage, "npc-coverage-enemy", "Enemy NPC coverage", "p1_enemy", "p1"));
+        tasks.add(buildReportBackedTask(
+            repoRoot,
+            "npc-loot-backfill",
+            "NPC loot backfill restore",
+            "backfill",
+            "p0",
+            findLatestReport(repoRoot, REPORTS_DIR, "normal-npc-loot-restore-apply-", ".json"),
+            "reports/normal-npc-loot-restore-apply-*.json",
+            "Validate restored normal NPC loot, then rerun relation health.",
+            "restored loot evidence -> maint item sources"
+        ));
+        tasks.add(buildReportBackedTask(
+            repoRoot,
+            "boss-loot-backfill",
+            "Boss loot backfill restore",
+            "backfill",
+            "p0",
+            findLatestReport(repoRoot, REPORTS_DIR, "boss-loot-restore-apply-", ".json"),
+            "reports/boss-loot-restore-apply-*.json",
+            "Validate restored boss loot and treasure bag drops before relation sync.",
+            "restored boss loot evidence -> maint item sources"
+        ));
+        tasks.add(buildStaticTask(
+            "transform-standardize",
+            "Crawler output standardize",
+            "transform",
+            "p1",
+            "pending",
+            "Convert crawler output into standardized JSON before maint sync.",
+            "crawler JSON -> standardized JSON",
+            "data/generated/wiki-sync-progress.latest.json",
+            "data/standardized/*.standardized.json",
+            "reports/source-dataset-landings-schema-*.json",
+            null
+        ));
+        tasks.add(buildReportBackedTask(
+            repoRoot,
+            "landing-import",
+            "Source dataset landing",
+            "transform",
+            "p1",
+            findLatestReport(repoRoot, REPORTS_DIR, "source-dataset-landings-schema-", ".json"),
+            "reports/source-dataset-landings-schema-*.json",
+            "Import standardized datasets into the landing layer.",
+            "standardized JSON -> landing tables"
+        ));
+        tasks.add(buildReportBackedTask(
+            repoRoot,
+            "maint-sync",
+            "Landing to maint sync",
+            "data",
+            "p1",
+            findLatestReport(repoRoot, REPORTS_DIR, "maint-sync-", ".json"),
+            "reports/maint-sync-*.json",
+            "Run maint sync after landing import is current.",
+            "landing tables -> maint DB"
+        ));
+        tasks.add(buildReportBackedTask(
+            repoRoot,
+            "relation-sync",
+            "Maint to relation sync",
+            "data",
+            "p1",
+            findLatestReport(repoRoot, RELATION_REPORTS_DIR, "relation-audit-", ".json"),
+            "reports/relation/relation-audit-*.json",
+            "Run relation sync after maint candidates are current.",
+            "maint DB -> relation DB"
+        ));
+        tasks.add(buildReportBackedTask(
+            repoRoot,
+            "projection-local-core",
+            "Projection to local core",
+            "data",
+            "p1",
+            findLatestReport(repoRoot, RELATION_REPORTS_DIR, "projection-to-local-core-sync-", ".json"),
+            "reports/relation/projection-to-local-core-sync-*.json",
+            "Refresh projection JSON after relation sync passes health checks.",
+            "relation DB -> projection tables"
+        ));
+        tasks.add(buildReportBackedTask(
+            repoRoot,
+            "local-compat-sync",
+            "Relation to local compat",
+            "data",
+            "p1",
+            findLatestReport(repoRoot, RELATION_REPORTS_DIR, "relation-to-local-compat-sync-", ".json"),
+            "reports/relation/relation-to-local-compat-sync-*.json",
+            "Refresh standalone local compatibility tables.",
+            "relation DB -> local compat tables"
+        ));
+        tasks.add(buildHealthTask(
+            repoRoot,
+            "relation-health",
+            "Relation health checks",
+            findLatestReport(repoRoot, RELATION_REPORTS_DIR, "relation-health", ".json"),
+            "reports/relation/relation-health*.json",
+            "Review blocking and warning checks before switching consumers."
+        ));
+        tasks.add(buildHealthTask(
+            repoRoot,
+            "replacement-readiness",
+            "Replacement readiness",
+            findLatestReport(repoRoot, RELATION_REPORTS_DIR, "replacement-readiness", ".json"),
+            "reports/relation/replacement-readiness*.json",
+            "Use readiness report before replacing local projections."
+        ));
+        return tasks;
+    }
+
+    private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildWikiCoreRefreshTask(
+        Path repoRoot,
+        CrawlerMonitorOverviewDTO.MonitorRunDTO latestRun
+    ) {
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask("wiki-core-refresh", "Wiki core refresh", "fetch", "p0");
+        CrawlerMonitorOverviewDTO.MonitorActionDTO action = findAction(latestRun, "wiki-core-refresh");
+        task.setStatus(action == null ? "pending" : firstNonBlank(action.getStatus(), "pending"));
+        task.setQueueState(action == null ? "backend refresh action" : firstNonBlank(action.getMessage(), action.getPhase()));
+        task.setNextStep("Keep backend-refresh heartbeat current before dependent item/NPC fetches.");
+        task.setDataStage("wiki API -> generated core JSON");
+        task.setReportPath(latestRun == null ? null : firstNonBlank(latestRun.getPath(), latestRun.getSummaryPath()));
+        task.setUpdatedAt(latestRun == null ? null : latestRun.getGeneratedAt());
+        if (action != null) {
+            copyTaskProgressFromAction(task, action);
+        }
+        return task;
+    }
+
+    private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildItemPagesRefreshTask(Path repoRoot, ReadResult progress) {
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask("item-pages-refresh", "Item page crawl shard", "fetch", "p0");
+        task.setProgressPath(toDisplayPath(repoRoot, repoRoot.resolve(WIKI_SYNC_PROGRESS_FILE).normalize()));
+        task.setInputPath("wiki item pages");
+        task.setOutputPath("data/generated/wiki-item-pages*.json");
+        task.setDataStage("wiki item pages -> crawler JSON");
+
+        if (!progress.found()) {
+            task.setStatus("missing");
+            task.setQueueState("progress file missing");
+            task.setNextStep("Start the item page crawler runner when the crawl slot is free.");
+            return task;
+        }
+        if (!progress.readable()) {
+            task.setStatus("blocked");
+            task.setQueueState(progress.errorMessage());
+            task.setNextStep("Repair or replace the unreadable progress JSON before trusting queue state.");
+            return task;
+        }
+
+        Map<String, Object> payload = progress.payload();
+        task.setStatus(firstNonBlank(asString(payload.get("status")), "pending"));
+        task.setQueueState(firstNonBlank(asString(payload.get("message")), task.getStatus()));
+        task.setNextStep("Monitor the active shard, then retry failures and run transform-standardize.");
+        task.setUpdatedAt(firstNonBlank(asString(payload.get("lastHeartbeatAt")), asString(payload.get("generatedAt"))));
+        copyTaskProgressFromPayload(task, payload);
+        return task;
+    }
+
+    private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildNpcCoverageTask(
+        Path repoRoot,
+        ReadResult coverage,
+        String id,
+        String label,
+        String priorityKey,
+        String priority
+    ) {
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask(id, label, "crawl", priority);
+        task.setReportPath(toDisplayPath(repoRoot, repoRoot.resolve(NPC_COVERAGE_REPORT).normalize()));
+        task.setInputPath("wiki NPC pages");
+        task.setOutputPath("data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json");
+        task.setDataStage("NPC page coverage -> standardized NPC source");
+        task.setNextStep("Queue the next NPC coverage shard from this priority bucket.");
+
+        if (!coverage.found()) {
+            task.setStatus("missing");
+            task.setQueueState("coverage report missing");
+            return task;
+        }
+        if (!coverage.readable()) {
+            task.setStatus("blocked");
+            task.setQueueState(coverage.errorMessage());
+            return task;
+        }
+
+        Map<String, Object> payload = coverage.payload();
+        Map<String, Object> summary = asMap(payload.get("summary"));
+        Long pending = firstLong(asMap(payload.get("priorities")), priorityKey);
+        if (pending == null) {
+            pending = firstLong(payload, priorityKey + "Targets", priorityKey + "Pending", "eligibleBatchTargets");
+        }
+        task.setCurrent(firstLong(summary, "alreadyCrawledTargets", "alreadyCrawled"));
+        task.setTotal(firstLong(summary, "totalTargets", "total"));
+        task.setPending(pending == null ? 0L : Math.max(0L, pending));
+        task.setStatus(task.getPending() > 0 ? "queued" : "completed");
+        task.setQueueState(formatNumberForTask(task.getPending()) + " target(s) queued");
+        task.setUpdatedAt(readLastModifiedIso(repoRoot.resolve(NPC_COVERAGE_REPORT).normalize()));
+        return task;
+    }
+
+    private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildReportBackedTask(
+        Path repoRoot,
+        String id,
+        String label,
+        String lane,
+        String priority,
+        Path reportPath,
+        String fallbackReportPath,
+        String nextStep,
+        String dataStage
+    ) {
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask(id, label, lane, priority);
+        task.setReportPath(reportPath == null ? fallbackReportPath : toDisplayPath(repoRoot, reportPath));
+        task.setNextStep(nextStep);
+        task.setDataStage(dataStage);
+        if (reportPath == null) {
+            task.setStatus("pending");
+            task.setQueueState("no report yet");
+            return task;
+        }
+
+        ReadResult report = readJsonMap(reportPath);
+        task.setUpdatedAt(readLastModifiedIso(reportPath));
+        if (!report.readable()) {
+            task.setStatus("blocked");
+            task.setQueueState(report.errorMessage());
+            return task;
+        }
+        task.setStatus(statusFromReportPayload(report.payload(), "completed"));
+        task.setQueueState(firstNonBlank(asString(report.payload().get("message")), task.getStatus()));
+        task.setFailed(firstLong(report.payload(), "failed", "failureCount", "failedCount"));
+        return task;
+    }
+
+    private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildHealthTask(
+        Path repoRoot,
+        String id,
+        String label,
+        Path reportPath,
+        String fallbackReportPath,
+        String nextStep
+    ) {
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = buildReportBackedTask(
+            repoRoot,
+            id,
+            label,
+            "validation",
+            "p1",
+            reportPath,
+            fallbackReportPath,
+            nextStep,
+            "reports -> acceptance validation"
+        );
+        if (reportPath != null && "completed".equals(task.getStatus())) {
+            ReadResult report = readJsonMap(reportPath);
+            Map<String, Object> summary = asMap(report.payload().get("summary"));
+            Long warningCount = firstLong(summary, "warningChecks", "warningCount", "warnings");
+            if (warningCount == null) {
+                warningCount = firstLong(report.payload(), "warningChecks", "warningCount", "warnings");
+            }
+            Long blockerCount = firstLong(summary, "blockingChecks", "blockingCount", "blockerCount", "blockedCount");
+            if (blockerCount == null) {
+                blockerCount = firstLong(report.payload(), "blockingChecks", "blockingCount", "blockerCount", "blockedCount");
+            }
+            Long blockedDomainCount = collectionSize(summary.get("blockedDomains"));
+            if (blockedDomainCount == null) {
+                blockedDomainCount = collectionSize(report.payload().get("blockedDomains"));
+            }
+            long warnings = warningCount == null ? 0L : warningCount;
+            long blockers = Math.max(blockerCount == null ? 0L : blockerCount, blockedDomainCount == null ? 0L : blockedDomainCount);
+            String summaryStatus = firstNonBlank(asString(summary.get("status")), asString(report.payload().get("status")));
+            if (blockers > 0) {
+                task.setStatus("blocked");
+            } else if (warnings > 0 || isWarningStatus(summaryStatus)) {
+                task.setStatus("warning");
+            }
+        }
+        return task;
+    }
+
+    private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildStaticTask(
+        String id,
+        String label,
+        String lane,
+        String priority,
+        String status,
+        String nextStep,
+        String dataStage,
+        String inputPath,
+        String outputPath,
+        String reportPath,
+        String progressPath
+    ) {
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask(id, label, lane, priority);
+        task.setStatus(status);
+        task.setNextStep(nextStep);
+        task.setDataStage(dataStage);
+        task.setInputPath(inputPath);
+        task.setOutputPath(outputPath);
+        task.setReportPath(reportPath);
+        task.setProgressPath(progressPath);
+        task.setQueueState(status);
+        return task;
+    }
+
+    private CrawlerMonitorOverviewDTO.RegisteredTaskDTO baseTask(String id, String label, String lane, String priority) {
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = new CrawlerMonitorOverviewDTO.RegisteredTaskDTO();
+        task.setId(id);
+        task.setLabel(label);
+        task.setLane(lane);
+        task.setPriority(priority);
+        task.setStatus("pending");
+        return task;
+    }
+
+    private CrawlerMonitorOverviewDTO.MonitorActionDTO findAction(CrawlerMonitorOverviewDTO.MonitorRunDTO latestRun, String id) {
+        if (latestRun == null || latestRun.getActions() == null) {
+            return null;
+        }
+        return latestRun.getActions().stream()
+            .filter(action -> id.equals(action.getId()))
+            .findFirst()
+            .orElse(null);
+    }
+
+    private void copyTaskProgressFromAction(
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task,
+        CrawlerMonitorOverviewDTO.MonitorActionDTO action
+    ) {
+        task.setCurrent(action.getCurrent());
+        task.setTotal(action.getTotal());
+        task.setOverallCurrent(action.getOverallCurrent());
+        task.setOverallTotal(action.getOverallTotal());
+        task.setPercent(action.getPercent());
+        task.setPending(computePending(action.getOverallCurrent(), action.getOverallTotal(), action.getCurrent(), action.getTotal()));
+    }
+
+    private void copyTaskProgressFromPayload(CrawlerMonitorOverviewDTO.RegisteredTaskDTO task, Map<String, Object> payload) {
+        Long current = asNullableLong(payload.get("current"));
+        Long total = asNullableLong(payload.get("total"));
+        Long overallCurrent = asNullableLong(payload.get("overallCurrent"));
+        Long overallTotal = asNullableLong(payload.get("overallTotal"));
+        task.setCurrent(current);
+        task.setTotal(total);
+        task.setOverallCurrent(overallCurrent);
+        task.setOverallTotal(overallTotal);
+        task.setPercent(clampPercent(asNullableDouble(payload.get("percent"))));
+        task.setPending(computePending(overallCurrent, overallTotal, current, total));
+        task.setFailed(firstLong(payload, "failed", "failedCount", "failureCount"));
+    }
+
+    private Long computePending(Long overallCurrent, Long overallTotal, Long current, Long total) {
+        if (overallCurrent != null && overallTotal != null) {
+            return Math.max(0L, overallTotal - overallCurrent);
+        }
+        if (current != null && total != null) {
+            return Math.max(0L, total - current);
+        }
+        return null;
+    }
+
+    private String latestRunStatus(CrawlerMonitorOverviewDTO.MonitorRunDTO run) {
+        if (run == null || !run.isFound()) {
+            return "missing";
+        }
+        if (run.getFailedActions() > 0) {
+            return "failed";
+        }
+        if (run.getRunningActions() > 0) {
+            return "running";
+        }
+        if (run.getPendingActions() > 0) {
+            return "pending";
+        }
+        return "completed";
+    }
+
+    private String statusFromReportPayload(Map<String, Object> payload, String fallback) {
+        String status = asString(payload.get("status"));
+        if (status != null && !status.isBlank()) {
+            return status.toLowerCase(Locale.ROOT);
+        }
+        Object apply = payload.get("apply");
+        if (Boolean.TRUE.equals(apply)) {
+            return "completed";
+        }
+        if (Boolean.FALSE.equals(apply)) {
+            return "pending";
+        }
+        return fallback;
+    }
+
+    private Path findLatestReport(Path repoRoot, Path relativeDir, String prefix, String suffix) {
+        Path dir = repoRoot.resolve(relativeDir).normalize();
+        if (!Files.isDirectory(dir)) {
+            return null;
+        }
+        try (Stream<Path> stream = Files.list(dir)) {
+            return stream
+                .filter(Files::isRegularFile)
+                .filter(path -> {
+                    String fileName = path.getFileName().toString();
+                    return fileName.startsWith(prefix) && fileName.endsWith(suffix);
+                })
+                .max(Comparator.comparingLong(this::safeLastModifiedMillis))
+                .orElse(null);
+        } catch (IOException ignored) {
+            return null;
+        }
+    }
+
+    private Long firstLong(Map<String, Object> payload, String... keys) {
+        for (String key : keys) {
+            Long value = asNullableLong(payload.get(key));
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private Long collectionSize(Object value) {
+        if (value instanceof List<?> list) {
+            return (long) list.size();
+        }
+        if (value instanceof Map<?, ?> map) {
+            return (long) map.size();
+        }
+        return null;
+    }
+
+    private boolean isWarningStatus(String status) {
+        String normalized = (status == null ? "" : status).toLowerCase(Locale.ROOT);
+        return "warning".equals(normalized) || "warn".equals(normalized);
+    }
+
+    private String formatNumberForTask(Long value) {
+        return value == null ? "0" : String.format(Locale.ROOT, "%d", value);
     }
 
     private void collectReportFiles(Path repoRoot, Path root, List<Path> candidates) {
@@ -515,6 +982,18 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         String message = asString(payload.get("message"));
         if (message != null && !message.isBlank()) {
             action.setMessage(message);
+        }
+        String queue = asString(payload.get("queue"));
+        if (queue != null && !queue.isBlank()) {
+            action.setQueue(queue);
+        }
+        String dataStage = asString(payload.get("dataStage"));
+        if (dataStage != null && !dataStage.isBlank()) {
+            action.setDataStage(dataStage);
+        }
+        String nextStep = asString(payload.get("nextStep"));
+        if (nextStep != null && !nextStep.isBlank()) {
+            action.setNextStep(nextStep);
         }
         String startedAt = asString(payload.get("startedAt"));
         if (startedAt != null && !startedAt.isBlank()) {

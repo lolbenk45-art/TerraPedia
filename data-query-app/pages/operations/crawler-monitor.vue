@@ -58,6 +58,85 @@
       </div>
     </section>
 
+    <section class="operations-grid" aria-label="Crawler operation snapshot">
+      <article class="ops-card ops-card--primary">
+        <div class="ops-card__head">
+          <span class="ops-card__label">Active task</span>
+          <span class="status-pill" :class="statusTone(activeRegisteredTask?.status)">
+            {{ activeRegisteredTask?.status || latestRunStatus }}
+          </span>
+        </div>
+        <strong class="ops-card__title">{{ activeRegisteredTask?.label || 'No registered task' }}</strong>
+        <p class="ops-card__text">{{ activeRegisteredTask?.queueState || primaryProgressAction?.message || 'No active queue state yet.' }}</p>
+        <div class="ops-metrics">
+          <span>
+            <small>Progress</small>
+            <strong>{{ activeRegisteredTask ? taskProgressLabel(activeRegisteredTask) : '--' }}</strong>
+          </span>
+          <span>
+            <small>Pending</small>
+            <strong>{{ activeRegisteredTask ? taskPendingLabel(activeRegisteredTask) : '--' }}</strong>
+          </span>
+          <span>
+            <small>ETA</small>
+            <strong>{{ primaryProgressAction ? actionEtaLabel(primaryProgressAction) : '--' }}</strong>
+          </span>
+        </div>
+        <div class="progress-track">
+          <span :style="{ width: activeRegisteredTask ? taskProgress(activeRegisteredTask) : '0%' }" :class="statusTone(activeRegisteredTask?.status)" />
+        </div>
+      </article>
+
+      <article class="ops-card">
+        <div class="ops-card__head">
+          <span class="ops-card__label">Queue</span>
+          <strong>{{ formatNumber(queuedTasks.length) }}</strong>
+        </div>
+        <div class="task-list">
+          <div v-for="task in queuedTasks" :key="task.id || task.label || 'queue-task'" class="task-row">
+            <span class="status-pill" :class="statusTone(task.status)">{{ task.priority || task.status || '--' }}</span>
+            <div>
+              <strong>{{ task.label || task.id || 'unknown task' }}</strong>
+              <small>{{ taskPendingLabel(task) }} pending / {{ task.status || 'pending' }}</small>
+            </div>
+          </div>
+          <div v-if="!queuedTasks.length" class="empty-line">No queued task.</div>
+        </div>
+      </article>
+
+      <article class="ops-card">
+        <div class="ops-card__head">
+          <span class="ops-card__label">Next step</span>
+          <strong>{{ formatNumber(nextStepTasks.length) }}</strong>
+        </div>
+        <div class="task-list task-list--steps">
+          <div v-for="task in nextStepTasks" :key="task.id || task.label || 'next-task'" class="task-row">
+            <span class="status-pill" :class="statusTone(task.status)">{{ task.lane || '--' }}</span>
+            <div>
+              <strong>{{ task.label || task.id || 'unknown task' }}</strong>
+              <small>{{ task.nextStep }}</small>
+            </div>
+          </div>
+          <div v-if="!nextStepTasks.length" class="empty-line">No pending next step.</div>
+        </div>
+      </article>
+
+      <article class="ops-card ops-card--paths">
+        <div class="ops-card__head">
+          <span class="ops-card__label">Data stages / paths</span>
+          <strong>{{ formatNumber(pathTasks.length) }}</strong>
+        </div>
+        <div class="path-list">
+          <div v-for="task in pathTasks" :key="task.id || task.label || 'path-task'" class="path-row">
+            <strong>{{ task.label || task.id || 'unknown task' }}</strong>
+            <small>{{ task.dataStage || task.status || '--' }}</small>
+            <code v-for="path in taskPaths(task)" :key="path">{{ path }}</code>
+          </div>
+          <div v-if="!pathTasks.length" class="empty-line">No registered path.</div>
+        </div>
+      </article>
+    </section>
+
     <section class="monitor-layout">
       <div class="monitor-main">
         <section class="section-card monitor-panel">
@@ -107,6 +186,33 @@
             <Activity :size="24" />
             <strong>暂无 action 明细</strong>
             <span>当前 summary 可能只有聚合数量，或尚未生成完整 run report。</span>
+          </div>
+        </section>
+
+        <section class="section-card monitor-panel">
+          <div class="section-head">
+            <div>
+              <h2 class="section-card__title">Recent runs</h2>
+              <p class="section-card__subtitle">Compact latest history, kept out of the narrow sidebar so paths and counters stay readable.</p>
+            </div>
+          </div>
+
+          <div class="recent-run-list">
+            <article v-for="run in history" :key="run.summaryPath || run.path || run.generatedAt || 'history'" class="recent-run-row">
+              <div>
+                <strong>{{ formatDate(run.generatedAt) }}</strong>
+                <small>{{ run.summaryPath || run.path || '--' }}</small>
+              </div>
+              <span>{{ formatNumber(run.completedActions) }}/{{ formatNumber(run.totalActions) }}</span>
+              <span>{{ formatDuration(run.totalDurationMs) }}</span>
+              <span class="status-pill" :class="run.failedActions ? 'danger' : 'success'">
+                {{ run.failedActions ? `${run.failedActions} failed` : 'ok' }}
+              </span>
+            </article>
+            <div v-if="!history.length" class="empty-block empty-block--compact">
+              <FileJson :size="20" />
+              <span>No history summary.</span>
+            </div>
           </div>
         </section>
 
@@ -194,32 +300,6 @@
         <section class="section-card monitor-panel">
           <div class="section-head">
             <div>
-              <h2 class="section-card__title">最近运行</h2>
-              <p class="section-card__subtitle">最多显示最近 10 条 summary。</p>
-            </div>
-          </div>
-
-          <div class="history-list">
-            <article v-for="run in history" :key="run.summaryPath || run.path || run.generatedAt || 'history'" class="history-row">
-              <div>
-                <strong>{{ formatDate(run.generatedAt) }}</strong>
-                <small>{{ run.summaryPath || run.path || '--' }}</small>
-              </div>
-              <span class="history-row__metric">{{ formatNumber(run.completedActions) }}/{{ formatNumber(run.totalActions) }}</span>
-              <span class="status-pill" :class="run.failedActions ? 'danger' : 'success'">
-                {{ run.failedActions ? `${run.failedActions} failed` : 'ok' }}
-              </span>
-            </article>
-            <div v-if="!history.length" class="empty-block empty-block--compact">
-              <FileJson :size="20" />
-              <span>暂无 history summary</span>
-            </div>
-          </div>
-        </section>
-
-        <section class="section-card monitor-panel">
-          <div class="section-head">
-            <div>
               <h2 class="section-card__title">近期外部报告</h2>
               <p class="section-card__subtitle">这些文件不属于 backend-refresh 队列，但能解释近期实际发生过的爬取、测试、审计或验证。</p>
             </div>
@@ -250,7 +330,6 @@ import type { Component } from 'vue'
 import {
   Activity,
   AlertTriangle,
-  CheckCircle2,
   Clock3,
   FileJson,
   LockKeyhole,
@@ -264,6 +343,7 @@ import type {
   CrawlerMonitorAction,
   CrawlerMonitorFile,
   CrawlerMonitorOverview,
+  CrawlerMonitorRegisteredTask,
   CrawlerMonitorReport,
   CrawlerMonitorRun,
 } from '~/types/crawlerMonitor'
@@ -290,6 +370,7 @@ const latestRun = computed<CrawlerMonitorRun>(() => overview.value?.latestRun ||
 const actions = computed<CrawlerMonitorAction[]>(() => Array.isArray(latestRun.value.actions) ? latestRun.value.actions : [])
 const history = computed<CrawlerMonitorRun[]>(() => Array.isArray(overview.value?.history) ? overview.value!.history! : [])
 const recentReports = computed<CrawlerMonitorReport[]>(() => Array.isArray(overview.value?.recentReports) ? overview.value!.recentReports! : [])
+const registeredTasks = computed<CrawlerMonitorRegisteredTask[]>(() => Array.isArray(overview.value?.registeredTasks) ? overview.value!.registeredTasks! : [])
 const refreshStale = computed(() => Boolean(overview.value?.refreshStale))
 const latestRunStatus = computed(() => {
   if (!latestRun.value.found) return 'missing'
@@ -304,15 +385,50 @@ const primaryProgressAction = computed<CrawlerMonitorAction | null>(() => {
     || actions.value[0]
     || null
 })
+const activeRegisteredTask = computed<CrawlerMonitorRegisteredTask | null>(() => {
+  return registeredTasks.value.find((task) => String(task.status || '').toLowerCase() === 'running')
+    || registeredTasks.value.find((task) => String(task.status || '').toLowerCase() === 'queued')
+    || registeredTasks.value[0]
+    || null
+})
+const queuedTasks = computed<CrawlerMonitorRegisteredTask[]>(() => {
+  return registeredTasks.value
+    .filter((task) => ['queued', 'pending', 'blocked', 'warning'].includes(String(task.status || '').toLowerCase()))
+    .slice(0, 6)
+})
+const nextStepTasks = computed<CrawlerMonitorRegisteredTask[]>(() => {
+  return registeredTasks.value
+    .filter((task) => task.nextStep)
+    .filter((task) => String(task.status || '').toLowerCase() !== 'completed')
+    .slice(0, 4)
+})
+const dataStageTasks = computed<CrawlerMonitorRegisteredTask[]>(() => {
+  return registeredTasks.value
+    .filter((task) => ['backfill', 'transform', 'data', 'validation'].includes(String(task.lane || '').toLowerCase()))
+    .slice(0, 8)
+})
+const pathTasks = computed<CrawlerMonitorRegisteredTask[]>(() => {
+  const selected = [
+    activeRegisteredTask.value,
+    ...dataStageTasks.value,
+    ...registeredTasks.value.filter((task) => task.progressPath || task.reportPath || task.outputPath),
+  ].filter(Boolean) as CrawlerMonitorRegisteredTask[]
+  const seen = new Set<string>()
+  return selected
+    .filter((task) => {
+      const key = task.id || task.label || ''
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .slice(0, 5)
+})
 
 const summaryCards = computed(() => [
-  { label: 'TOTAL', value: formatNumber(latestRun.value.totalActions) },
-  { label: 'DONE', value: formatNumber(latestRun.value.completedActions) },
+  { label: 'TASKS', value: formatNumber(registeredTasks.value.length || latestRun.value.totalActions) },
+  { label: 'RUNNING', value: formatNumber(registeredTasks.value.filter((task) => String(task.status || '').toLowerCase() === 'running').length || latestRun.value.runningActions) },
+  { label: 'QUEUED', value: formatNumber(queuedTasks.value.length || latestRun.value.pendingActions) },
   { label: 'FAILED', value: formatNumber(latestRun.value.failedActions) },
-  { label: 'RUNNING', value: formatNumber(latestRun.value.runningActions) },
-  { label: 'PENDING', value: formatNumber(latestRun.value.pendingActions) },
-  { label: 'TIMEOUT', value: formatNumber(latestRun.value.timedOutActions) },
-  { label: 'PAGES LEFT', value: primaryProgressAction.value ? actionPendingLabel(primaryProgressAction.value) : '--' },
   { label: 'SPEED', value: primaryProgressAction.value ? actionSpeedLabel(primaryProgressAction.value) : '--' },
   { label: 'ETA', value: primaryProgressAction.value ? actionEtaLabel(primaryProgressAction.value) : '--' },
 ])
@@ -449,6 +565,65 @@ function reportTone(category?: string | null) {
   if (normalized === 'crawler') return 'info'
   if (normalized === 'audit') return 'warning'
   return 'muted'
+}
+
+function taskProgress(task: CrawlerMonitorRegisteredTask) {
+  const percent = taskProgressPercent(task)
+  if (percent != null) return `${percent}%`
+  const status = String(task.status || '').toLowerCase()
+  if (status === 'completed') return '100%'
+  if (status === 'running') return '62%'
+  if (['blocked', 'failed', 'warning'].includes(status)) return '100%'
+  return '12%'
+}
+
+function taskProgressPercent(task: CrawlerMonitorRegisteredTask) {
+  const explicit = finiteNumber(task.percent)
+  if (explicit != null) return clampPercent(explicit)
+  const overallCurrent = finiteNumber(task.overallCurrent)
+  const overallTotal = finiteNumber(task.overallTotal)
+  if (overallCurrent != null && overallTotal != null && overallTotal > 0) {
+    return clampPercent((overallCurrent / overallTotal) * 100)
+  }
+  const current = finiteNumber(task.current)
+  const total = finiteNumber(task.total)
+  if (current != null && total != null && total > 0) {
+    return clampPercent((current / total) * 100)
+  }
+  return null
+}
+
+function taskProgressLabel(task: CrawlerMonitorRegisteredTask) {
+  const overallCurrent = finiteNumber(task.overallCurrent)
+  const overallTotal = finiteNumber(task.overallTotal)
+  if (overallCurrent != null && overallTotal != null && overallTotal > 0) {
+    return `${formatNumber(overallCurrent)}/${formatNumber(overallTotal)}`
+  }
+  const current = finiteNumber(task.current)
+  const total = finiteNumber(task.total)
+  if (current != null && total != null && total > 0) {
+    return `${formatNumber(current)}/${formatNumber(total)}`
+  }
+  const percent = taskProgressPercent(task)
+  return percent == null ? '--' : formatPercent(percent)
+}
+
+function taskPendingLabel(task: CrawlerMonitorRegisteredTask) {
+  const pending = finiteNumber(task.pending)
+  if (pending != null) return formatNumber(pending)
+  const overallCurrent = finiteNumber(task.overallCurrent)
+  const overallTotal = finiteNumber(task.overallTotal)
+  if (overallCurrent != null && overallTotal != null) return formatNumber(Math.max(0, overallTotal - overallCurrent))
+  const current = finiteNumber(task.current)
+  const total = finiteNumber(task.total)
+  if (current != null && total != null) return formatNumber(Math.max(0, total - current))
+  return '--'
+}
+
+function taskPaths(task: CrawlerMonitorRegisteredTask) {
+  const paths = [task.progressPath, task.reportPath, task.outputPath, task.inputPath]
+    .filter((path): path is string => Boolean(path))
+  return [...new Set(paths)].slice(0, 4)
 }
 
 function actionProgress(action: CrawlerMonitorAction) {
@@ -645,7 +820,7 @@ function shortArgs(args?: string[]) {
 
 .status-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -655,7 +830,7 @@ function shortArgs(args?: string[]) {
   min-height: 112px;
   padding: 16px;
   border: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
-  border-radius: 16px;
+  border-radius: 8px;
   background: color-mix(in srgb, var(--color-bg-secondary) 78%, var(--color-bg));
 }
 
@@ -731,6 +906,160 @@ function shortArgs(args?: string[]) {
   margin-top: 6px;
   color: #92400e;
   overflow-wrap: anywhere;
+}
+
+.operations-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.25fr) repeat(3, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.ops-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 86%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 70%, var(--color-bg));
+}
+
+.ops-card--primary {
+  background: color-mix(in srgb, var(--color-bg) 82%, var(--color-bg-secondary));
+}
+
+.ops-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ops-card__label {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.ops-card__title {
+  color: var(--color-text);
+  font-size: 18px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.ops-card__text {
+  min-height: 38px;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.ops-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ops-metrics span {
+  min-width: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg) 74%, transparent);
+}
+
+.ops-metrics small,
+.ops-metrics strong {
+  display: block;
+}
+
+.ops-metrics small {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.ops-metrics strong {
+  margin-top: 3px;
+  color: var(--color-text);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.task-list,
+.path-list,
+.recent-run-list {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.task-list,
+.path-list {
+  max-height: 220px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.recent-run-list {
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.task-row,
+.path-row {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 9px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg) 78%, transparent);
+}
+
+.task-row {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.task-row strong,
+.task-row small,
+.path-row strong,
+.path-row small,
+.path-row code {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.task-row strong,
+.path-row strong {
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.task-row small,
+.path-row small,
+.path-row code {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.empty-line {
+  padding: 12px;
+  border: 1px dashed color-mix(in srgb, var(--color-border) 88%, transparent);
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  text-align: center;
 }
 
 .monitor-layout {
@@ -929,11 +1258,52 @@ function shortArgs(args?: string[]) {
   text-align: center;
 }
 
+.recent-run-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg) 82%, var(--color-bg-secondary));
+}
+
+.recent-run-row > div {
+  min-width: 0;
+}
+
+.recent-run-row strong,
+.recent-run-row small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.recent-run-row strong,
+.recent-run-row > span {
+  color: var(--color-text);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.recent-run-row small {
+  margin-top: 3px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
 .file-list,
 .history-list,
 .report-list {
   display: grid;
   gap: 12px;
+}
+
+.report-list {
+  max-height: 460px;
+  overflow: auto;
+  padding-right: 2px;
 }
 
 .file-row,
@@ -1025,6 +1395,10 @@ function shortArgs(args?: string[]) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .operations-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .monitor-layout {
     grid-template-columns: 1fr;
   }
@@ -1033,6 +1407,15 @@ function shortArgs(args?: string[]) {
 @media (max-width: 720px) {
   .status-grid {
     grid-template-columns: 1fr;
+  }
+
+  .operations-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .recent-run-row {
+    grid-template-columns: 1fr;
+    align-items: start;
   }
 
   .monitor-actions {
