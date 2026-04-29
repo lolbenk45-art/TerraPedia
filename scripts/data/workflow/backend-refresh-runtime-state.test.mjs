@@ -1,12 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 import {
   buildActionHeartbeatPayload,
   buildActionProgressPayload,
   buildActionRuntimePaths,
   buildActionSnapshotPayload,
-  mergeActionProgressFields
+  mergeActionProgressFields,
+  writeJsonFile
 } from './backend-refresh-runtime-state.mjs';
 
 test('buildActionRuntimePaths creates deterministic per-action runtime paths', () => {
@@ -156,4 +160,30 @@ test('buildActionHeartbeatPayload includes process and report pointers', () => {
     snapshotPath: 'reports/backend-refresh/history/report.runtime/support-sync.snapshot.json',
     status: 'running'
   });
+});
+
+test('writeJsonFile retries transient Windows rename failures', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-runtime-state-'));
+  const filePath = path.join(tempDir, 'progress.json');
+  const originalRenameSync = fs.renameSync;
+  let attempts = 0;
+
+  try {
+    fs.renameSync = (source, destination) => {
+      attempts += 1;
+      if (attempts < 3) {
+        const error = new Error('operation not permitted');
+        error.code = 'EPERM';
+        throw error;
+      }
+      return originalRenameSync(source, destination);
+    };
+
+    writeJsonFile(filePath, { ok: true });
+  } finally {
+    fs.renameSync = originalRenameSync;
+  }
+
+  assert.equal(attempts, 3);
+  assert.deepEqual(JSON.parse(fs.readFileSync(filePath, 'utf8')), { ok: true });
 });

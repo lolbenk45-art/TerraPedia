@@ -38,7 +38,11 @@ const REQUEST_PROFILES = {
 export function createWikiRequestGate({
   hostKey = 'terraria.wiki.gg',
   statePath = defaultStatePath,
-  userAgent = defaultUserAgent
+  userAgent = defaultUserAgent,
+  requestProfiles = REQUEST_PROFILES,
+  sleepFn = sleep,
+  nowFn = Date.now,
+  fetchFn = globalThis.fetch
 } = {}) {
   const gateStatePath = path.resolve(statePath);
   let state = loadGateState(gateStatePath, hostKey);
@@ -81,7 +85,7 @@ export function createWikiRequestGate({
     timeoutMs = 20_000,
     sourceKey = null
   } = {}) {
-    const requestProfile = REQUEST_PROFILES[profile] ?? REQUEST_PROFILES.revision;
+    const requestProfile = requestProfiles[profile] ?? requestProfiles.revision ?? REQUEST_PROFILES.revision;
     const normalizedUrl = normalizeRequestUrl(input);
 
     for (let attempt = 1; attempt <= requestProfile.maxAttempts; attempt += 1) {
@@ -89,7 +93,7 @@ export function createWikiRequestGate({
       await waitForTurn(requestProfile);
 
       try {
-        const response = await fetch(normalizedUrl, {
+        const response = await fetchFn(normalizedUrl, {
           method,
           headers: {
             'user-agent': userAgent,
@@ -141,27 +145,35 @@ export function createWikiRequestGate({
   }
 
   async function enforceCooldown() {
-    const now = Date.now();
-    if (state.cooldownUntil && Date.parse(state.cooldownUntil) <= now) {
+    if (!state.cooldownUntil) {
+      return;
+    }
+    const cooldownAt = Date.parse(state.cooldownUntil);
+    if (!Number.isFinite(cooldownAt)) {
       clearCooldown();
       return;
     }
-    if (state.cooldownUntil && Date.parse(state.cooldownUntil) > now) {
-      throw new Error(`Wiki request gate is cooling down until ${state.cooldownUntil}`);
+    const now = Number(nowFn());
+    if (cooldownAt <= now) {
+      clearCooldown();
+      return;
     }
+    await sleepFn(cooldownAt - now);
+    clearCooldown();
   }
 
   async function waitForTurn(profile) {
     const jitter = profile.jitterMs > 0 ? Math.floor(Math.random() * profile.jitterMs) : 0;
     const targetDelayMs = profile.baseDelayMs + jitter;
     const lastRequestAt = Date.parse(state.lastRequestAt ?? 0);
-    const waitMs = Number.isFinite(lastRequestAt) ? Math.max(0, targetDelayMs - (Date.now() - lastRequestAt)) : 0;
+    const now = Number(nowFn());
+    const waitMs = Number.isFinite(lastRequestAt) ? Math.max(0, targetDelayMs - (now - lastRequestAt)) : 0;
     if (waitMs > 0) {
-      await sleep(waitMs);
+      await sleepFn(waitMs);
     }
     state = {
       ...state,
-      lastRequestAt: new Date().toISOString()
+      lastRequestAt: new Date(Number.isFinite(now) ? now : Date.now()).toISOString()
     };
     saveGateState(gateStatePath, state);
   }
@@ -186,9 +198,9 @@ export function createWikiRequestGate({
     state = {
       ...state,
       consecutiveThrottleFailures: nextFailureCount,
-      cooldownUntil: shouldCooldown ? new Date(Date.now() + profile.cooldownMs).toISOString() : state.cooldownUntil,
+      cooldownUntil: shouldCooldown ? new Date(Number(nowFn()) + profile.cooldownMs).toISOString() : state.cooldownUntil,
       lastError: compactError(error),
-      lastFailureAt: new Date().toISOString(),
+      lastFailureAt: new Date(Number(nowFn())).toISOString(),
       failureCount: Number(state.failureCount ?? 0) + 1,
       throttleFailureCount: retryable ? Number(state.throttleFailureCount ?? 0) + 1 : Number(state.throttleFailureCount ?? 0)
     };

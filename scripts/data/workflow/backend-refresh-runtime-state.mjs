@@ -115,7 +115,35 @@ export function writeJsonFile(filePath, payload) {
     `.${path.basename(filePath)}.${process.pid}.${Date.now()}.tmp`
   );
   fs.writeFileSync(temporaryPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
-  fs.renameSync(temporaryPath, filePath);
+  renameFileWithRetry(temporaryPath, filePath);
+}
+
+function renameFileWithRetry(sourcePath, destinationPath) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    try {
+      fs.renameSync(sourcePath, destinationPath);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableRenameError(error) || attempt === 5) {
+        throw error;
+      }
+      sleepSync(Math.min(250, 25 * attempt));
+    }
+  }
+  throw lastError;
+}
+
+function isRetryableRenameError(error) {
+  return ['EACCES', 'EBUSY', 'EPERM'].includes(String(error?.code ?? ''));
+}
+
+function sleepSync(ms) {
+  if (!Number.isFinite(Number(ms)) || Number(ms) <= 0) {
+    return;
+  }
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, Number(ms));
 }
 
 function sanitizeActionId(value) {
