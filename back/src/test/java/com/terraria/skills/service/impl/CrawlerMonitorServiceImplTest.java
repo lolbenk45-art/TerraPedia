@@ -160,15 +160,20 @@ class CrawlerMonitorServiceImplTest {
     @Test
     void shouldSurfaceStandaloneWikiSyncProgressWhenBackendRefreshRunIsMissing() throws Exception {
         Path progressPath = repoRoot.resolve("data/generated/wiki-sync-progress.latest.json");
-        writeJson(progressPath, Map.of(
-            "actionId", "wiki-sync",
-            "status", "running",
-            "phase", "apply",
-            "message", "running standalone wiki sync action 3 of 8",
-            "current", 3,
-            "total", 8,
-            "percent", 37.5,
-            "generatedAt", "2026-04-29T00:00:30Z"
+        writeJson(progressPath, Map.ofEntries(
+            Map.entry("actionId", "wiki-sync"),
+            Map.entry("status", "running"),
+            Map.entry("startedAt", "2026-04-29T00:00:00Z"),
+            Map.entry("phase", "apply"),
+            Map.entry("message", "running standalone wiki sync action 3 of 8"),
+            Map.entry("current", 3),
+            Map.entry("total", 8),
+            Map.entry("batchOffset", 100),
+            Map.entry("batchLimit", 100),
+            Map.entry("overallCurrent", 103),
+            Map.entry("overallTotal", 6131),
+            Map.entry("percent", 37.5),
+            Map.entry("generatedAt", "2026-04-29T00:00:30Z")
         ));
 
         CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
@@ -190,8 +195,13 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("external", action.getRunner());
         assertEquals("running", action.getStatus());
         assertEquals("data/generated/wiki-sync-progress.latest.json", action.getChildStatusPath());
+        assertEquals("2026-04-29T00:00:00Z", action.getStartedAt());
         assertEquals(3, action.getCurrent());
         assertEquals(8, action.getTotal());
+        assertEquals(100L, action.getBatchOffset());
+        assertEquals(100L, action.getBatchLimit());
+        assertEquals(103L, action.getOverallCurrent());
+        assertEquals(6131L, action.getOverallTotal());
         assertEquals(37.5, action.getPercent());
         assertEquals("apply", action.getPhase());
         assertEquals("running standalone wiki sync action 3 of 8", action.getMessage());

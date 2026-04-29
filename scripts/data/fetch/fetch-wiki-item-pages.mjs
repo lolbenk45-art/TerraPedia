@@ -39,6 +39,7 @@ const jitterMs = Math.max(0, numericOption(options['jitter-ms'] ?? options.jitte
 const maxAttempts = Math.max(1, numericOption(options['max-attempts'] ?? options.maxAttempts, 8));
 const progressPath = options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? null;
 const progressActionId = process.env.TERRAPEDIA_CRAWLER_ACTION_ID ?? 'fetch-item-pages';
+const progressStartedAt = new Date().toISOString();
 const requestedItems = new Set(
   String(options.items ?? '')
     .split(',')
@@ -63,7 +64,9 @@ if (requestedItems.size > 0) {
   });
 }
 
+const overallTotal = selectedItems.length;
 selectedItems = selectedItems.slice(offset, Number.isFinite(limit) && limit > 0 ? offset + limit : undefined);
+const batchCandidateCount = selectedItems.length;
 
 let skippedExisting = 0;
 let skippedUnchanged = 0;
@@ -266,6 +269,7 @@ function writeFetchProgress(progress) {
   const payload = buildActionProgressPayload({
     ...progress,
     actionId: progressActionId,
+    ...buildProgressQueueFields(progress.current),
     generatedAt,
     lastHeartbeatAt: generatedAt,
     childStatusPath: progressPath
@@ -277,6 +281,23 @@ function writeFetchProgress(progress) {
       childStatusPath: DEFAULT_WIKI_SYNC_PROGRESS_PATH
     });
   }
+}
+
+function buildProgressQueueFields(current) {
+  const normalizedCurrent = Number.isFinite(Number(current)) ? Math.max(0, Number(current)) : 0;
+  const processedInBatch = Math.min(
+    batchCandidateCount,
+    skippedExisting + skippedUnchanged + normalizedCurrent
+  );
+  const overallCurrent = Math.min(overallTotal, Math.max(0, offset + processedInBatch));
+  const batchLimit = Number.isFinite(limit) && limit > 0 ? limit : batchCandidateCount;
+  return {
+    batchLimit,
+    batchOffset: offset,
+    overallCurrent,
+    overallTotal,
+    startedAt: progressStartedAt
+  };
 }
 
 function sanitizeFileName(value) {

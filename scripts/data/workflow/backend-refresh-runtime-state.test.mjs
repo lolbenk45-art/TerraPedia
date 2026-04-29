@@ -40,19 +40,29 @@ test('buildActionProgressPayload normalizes live progress counters', () => {
     message: 'running action 2 of 5',
     current: 2,
     total: 5,
+    startedAt: '2026-04-29T00:00:00.000Z',
+    batchOffset: 100,
+    batchLimit: 100,
+    overallCurrent: 102,
+    overallTotal: 6131,
     generatedAt: '2026-04-29T00:00:10.000Z',
     childStatusPath: 'reports/backend-refresh/history/run.runtime/wiki-core-refresh.child-status.json'
   });
 
   assert.deepEqual(payload, {
     actionId: 'wiki-core-refresh',
+    batchLimit: 100,
+    batchOffset: 100,
     childStatusPath: 'reports/backend-refresh/history/run.runtime/wiki-core-refresh.child-status.json',
     current: 2,
     generatedAt: '2026-04-29T00:00:10.000Z',
     lastHeartbeatAt: '2026-04-29T00:00:10.000Z',
     message: 'running action 2 of 5',
+    overallCurrent: 102,
+    overallTotal: 6131,
     percent: 40,
     phase: 'apply',
+    startedAt: '2026-04-29T00:00:00.000Z',
     status: 'running',
     total: 5
   });
@@ -71,20 +81,30 @@ test('mergeActionProgressFields copies progress fields without dropping lifecycl
       percent: 70,
       phase: 'fetch',
       message: 'fetching item pages',
+      startedAt: '2026-04-29T00:00:00.000Z',
       lastHeartbeatAt: '2026-04-29T00:00:05.000Z',
-      childStatusPath: 'reports/backend-refresh/history/run.runtime/wiki-core-refresh.child-status.json'
+      childStatusPath: 'reports/backend-refresh/history/run.runtime/wiki-core-refresh.child-status.json',
+      batchOffset: 200,
+      batchLimit: 100,
+      overallCurrent: 207,
+      overallTotal: 6131
     }
   );
 
   assert.deepEqual(payload, {
     actionId: 'wiki-core-refresh',
+    batchLimit: 100,
+    batchOffset: 200,
     childStatusPath: 'reports/backend-refresh/history/run.runtime/wiki-core-refresh.child-status.json',
     current: 7,
     generatedAt: '2026-04-29T00:00:00.000Z',
     lastHeartbeatAt: '2026-04-29T00:00:05.000Z',
     message: 'fetching item pages',
+    overallCurrent: 207,
+    overallTotal: 6131,
     percent: 70,
     phase: 'fetch',
+    startedAt: '2026-04-29T00:00:00.000Z',
     status: 'running',
     total: 10
   });

@@ -83,6 +83,20 @@
                 <span v-if="action.phase">{{ action.phase }}</span>
                 {{ action.message || '' }}
               </p>
+              <div class="action-card__queue">
+                <span>
+                  <small>Pending</small>
+                  <strong>{{ actionPendingLabel(action) }}</strong>
+                </span>
+                <span>
+                  <small>Speed</small>
+                  <strong>{{ actionSpeedLabel(action) }}</strong>
+                </span>
+                <span>
+                  <small>ETA</small>
+                  <strong>{{ actionEtaLabel(action) }}</strong>
+                </span>
+              </div>
               <div class="progress-track">
                 <span :style="{ width: actionProgress(action) }" :class="statusTone(action.status)" />
               </div>
@@ -112,6 +126,9 @@
                   <th>Runner</th>
                   <th>Status</th>
                   <th>Progress</th>
+                  <th>Pending</th>
+                  <th>Speed</th>
+                  <th>ETA</th>
                   <th>Duration</th>
                   <th>Updated</th>
                   <th>Runtime Files</th>
@@ -129,6 +146,9 @@
                     <strong>{{ actionProgressLabel(action) }}</strong>
                     <small v-if="action.phase || action.message">{{ [action.phase, action.message].filter(Boolean).join(' · ') }}</small>
                   </td>
+                  <td>{{ actionPendingLabel(action) }}</td>
+                  <td>{{ actionSpeedLabel(action) }}</td>
+                  <td>{{ actionEtaLabel(action) }}</td>
                   <td>{{ formatDuration(action.durationMs) }}</td>
                   <td>{{ formatDate(action.lastHeartbeatAt || action.updatedAt) }}</td>
                   <td>
@@ -139,7 +159,7 @@
                   </td>
                 </tr>
                 <tr v-if="!actions.length">
-                  <td colspan="7" class="table-empty">暂无 action 明细</td>
+                  <td colspan="10" class="table-empty">暂无 action 明细</td>
                 </tr>
               </tbody>
             </table>
@@ -278,6 +298,12 @@ const latestRunStatus = computed(() => {
   if (Number(latestRun.value.pendingActions || 0) > 0) return 'pending'
   return 'completed'
 })
+const primaryProgressAction = computed<CrawlerMonitorAction | null>(() => {
+  return actions.value.find((action) => String(action.status || '').toLowerCase() === 'running')
+    || actions.value.find((action) => Number(action.total || action.overallTotal || 0) > 0)
+    || actions.value[0]
+    || null
+})
 
 const summaryCards = computed(() => [
   { label: 'TOTAL', value: formatNumber(latestRun.value.totalActions) },
@@ -286,6 +312,9 @@ const summaryCards = computed(() => [
   { label: 'RUNNING', value: formatNumber(latestRun.value.runningActions) },
   { label: 'PENDING', value: formatNumber(latestRun.value.pendingActions) },
   { label: 'TIMEOUT', value: formatNumber(latestRun.value.timedOutActions) },
+  { label: 'PAGES LEFT', value: primaryProgressAction.value ? actionPendingLabel(primaryProgressAction.value) : '--' },
+  { label: 'SPEED', value: primaryProgressAction.value ? actionSpeedLabel(primaryProgressAction.value) : '--' },
+  { label: 'ETA', value: primaryProgressAction.value ? actionEtaLabel(primaryProgressAction.value) : '--' },
 ])
 
 const statusCards = computed<StatusCard[]>(() => [
@@ -455,6 +484,84 @@ function actionProgressLabel(action: CrawlerMonitorAction) {
   return formatDuration(action.durationMs)
 }
 
+function actionPendingLabel(action: CrawlerMonitorAction) {
+  const remaining = actionRemaining(action)
+  return remaining == null ? '--' : formatNumber(remaining)
+}
+
+function actionSpeedLabel(action: CrawlerMonitorAction) {
+  const speed = actionSpeedPerMinute(action)
+  if (speed == null) return '--'
+  const rounded = speed >= 10 ? Math.round(speed) : Math.round(speed * 10) / 10
+  return `${rounded.toLocaleString('zh-CN')}/min`
+}
+
+function actionEtaLabel(action: CrawlerMonitorAction) {
+  const remaining = actionRemaining(action)
+  if (remaining == null) return '--'
+  if (remaining <= 0) return '0s'
+  const speed = actionSpeedPerMinute(action)
+  if (speed == null || speed <= 0) return '--'
+  return formatEtaDuration((remaining / speed) * 60_000)
+}
+
+function actionRemaining(action: CrawlerMonitorAction) {
+  const basis = actionProgressBasis(action)
+  if (!basis) return null
+  return Math.max(0, basis.total - basis.current)
+}
+
+function actionProgressBasis(action: CrawlerMonitorAction) {
+  const overallCurrent = finiteNumber(action.overallCurrent)
+  const overallTotal = finiteNumber(action.overallTotal)
+  if (overallCurrent != null && overallTotal != null && overallTotal >= 0) {
+    return {
+      current: Math.min(Math.max(0, overallCurrent), overallTotal),
+      total: overallTotal,
+    }
+  }
+
+  const current = finiteNumber(action.current)
+  const total = finiteNumber(action.total)
+  if (current != null && total != null && total >= 0) {
+    return {
+      current: Math.min(Math.max(0, current), total),
+      total,
+    }
+  }
+  return null
+}
+
+function actionSpeedPerMinute(action: CrawlerMonitorAction) {
+  const completedInCurrentBatch = finiteNumber(action.current)
+  if (completedInCurrentBatch == null || completedInCurrentBatch <= 0) return null
+  const elapsedMs = actionElapsedMs(action)
+  if (elapsedMs == null || elapsedMs <= 0) return null
+  return completedInCurrentBatch / (elapsedMs / 60_000)
+}
+
+function actionElapsedMs(action: CrawlerMonitorAction) {
+  const startedAt = timestampMs(action.startedAt)
+  const heartbeatAt = timestampMs(action.lastHeartbeatAt || action.updatedAt)
+  if (startedAt != null && heartbeatAt != null && heartbeatAt > startedAt) {
+    return heartbeatAt - startedAt
+  }
+  const durationMs = finiteNumber(action.durationMs)
+  return durationMs != null && durationMs > 0 ? durationMs : null
+}
+
+function finiteNumber(value: number | string | null | undefined) {
+  if (value == null || value === '') return null
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : null
+}
+
+function timestampMs(value: number | string | null | undefined) {
+  if (!value) return null
+  const ms = new Date(value).getTime()
+  return Number.isFinite(ms) ? ms : null
+}
+
 function clampPercent(value: number) {
   return Math.max(0, Math.min(100, value))
 }
@@ -485,6 +592,21 @@ function formatDuration(value: number | string | null | undefined) {
   const minutes = Math.floor(seconds / 60)
   const rest = seconds % 60
   return rest ? `${minutes}m ${rest}s` : `${minutes}m`
+}
+
+function formatEtaDuration(value: number) {
+  const ms = Number(value || 0)
+  if (!Number.isFinite(ms) || ms <= 0) return '--'
+  const seconds = Math.ceil(ms / 1000)
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.ceil(seconds / 60)
+  if (minutes < 60) return `${minutes}m`
+  const hours = Math.floor(minutes / 60)
+  const restMinutes = minutes % 60
+  if (hours < 24) return restMinutes ? `${hours}h ${restMinutes}m` : `${hours}h`
+  const days = Math.floor(hours / 24)
+  const restHours = hours % 24
+  return restHours ? `${days}d ${restHours}h` : `${days}d`
 }
 
 function formatBytes(value: number | string | null | undefined) {
@@ -661,6 +783,40 @@ function shortArgs(args?: string[]) {
   font-size: 13px;
 }
 
+.action-card__queue {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.action-card__queue span {
+  min-width: 0;
+  padding: 8px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 82%, transparent);
+}
+
+.action-card__queue small,
+.action-card__queue strong {
+  display: block;
+}
+
+.action-card__queue small {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.action-card__queue strong {
+  margin-top: 3px;
+  color: var(--color-text);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
 .action-card__message {
   min-height: 18px;
   margin: -4px 0 0;
@@ -733,7 +889,7 @@ function shortArgs(args?: string[]) {
 
 .monitor-table {
   width: 100%;
-  min-width: 820px;
+  min-width: 1040px;
   border-collapse: collapse;
 }
 

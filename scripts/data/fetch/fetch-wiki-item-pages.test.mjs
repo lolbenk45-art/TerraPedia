@@ -53,12 +53,20 @@ test('writes child progress and report to explicit paths when no item pages are 
     assert.equal(progress.status, 'completed');
     assert.equal(progress.current, 0);
     assert.equal(progress.total, 0);
+    assert.match(progress.startedAt, /^\d{4}-\d{2}-\d{2}T/);
+    assert.equal(progress.batchOffset, 0);
+    assert.equal(progress.batchLimit, 1);
+    assert.equal(progress.overallCurrent, 0);
+    assert.equal(progress.overallTotal, 0);
     assert.equal(path.resolve(progress.childStatusPath), progressPath);
     assert.match(progress.message, /finished item page fetch/);
 
     const defaultProgress = JSON.parse(fs.readFileSync(defaultProgressPath, 'utf8'));
     assert.equal(defaultProgress.actionId, 'test-item-pages');
     assert.equal(defaultProgress.status, 'completed');
+    assert.equal(defaultProgress.startedAt, progress.startedAt);
+    assert.equal(defaultProgress.overallCurrent, 0);
+    assert.equal(defaultProgress.overallTotal, 0);
     assert.equal(path.resolve(defaultProgress.childStatusPath), defaultProgressPath);
   });
 });

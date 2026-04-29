@@ -22,6 +22,11 @@ export interface CrawlerMonitorAction {
   childStatusPath?: string | null
   current?: number | null
   total?: number | null
+  startedAt?: string | null
+  batchOffset?: number | null
+  batchLimit?: number | null
+  overallCurrent?: number | null
+  overallTotal?: number | null
   percent?: number | null
   phase?: string | null
   message?: string | null

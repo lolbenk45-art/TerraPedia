@@ -486,6 +486,22 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (total != null) {
             action.setTotal(total);
         }
+        Long batchOffset = asNullableLong(payload.get("batchOffset"));
+        if (batchOffset != null) {
+            action.setBatchOffset(batchOffset);
+        }
+        Long batchLimit = asNullableLong(payload.get("batchLimit"));
+        if (batchLimit != null) {
+            action.setBatchLimit(batchLimit);
+        }
+        Long overallCurrent = asNullableLong(payload.get("overallCurrent"));
+        if (overallCurrent != null) {
+            action.setOverallCurrent(overallCurrent);
+        }
+        Long overallTotal = asNullableLong(payload.get("overallTotal"));
+        if (overallTotal != null) {
+            action.setOverallTotal(overallTotal);
+        }
         if (percent == null && current != null && total != null && total > 0) {
             percent = (current.doubleValue() / total.doubleValue()) * 100.0d;
         }
@@ -499,6 +515,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         String message = asString(payload.get("message"));
         if (message != null && !message.isBlank()) {
             action.setMessage(message);
+        }
+        String startedAt = asString(payload.get("startedAt"));
+        if (startedAt != null && !startedAt.isBlank()) {
+            action.setStartedAt(startedAt);
         }
         String lastHeartbeatAt = firstNonBlank(asString(payload.get("lastHeartbeatAt")), asString(payload.get("generatedAt")));
         if (lastHeartbeatAt != null && !lastHeartbeatAt.isBlank()) {

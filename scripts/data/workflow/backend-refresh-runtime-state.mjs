@@ -67,6 +67,11 @@ export function buildActionProgressPayload({
   message = null,
   current = null,
   total = null,
+  startedAt = null,
+  batchOffset = null,
+  batchLimit = null,
+  overallCurrent = null,
+  overallTotal = null,
   percent = null,
   generatedAt = new Date().toISOString(),
   lastHeartbeatAt = generatedAt,
@@ -79,10 +84,15 @@ export function buildActionProgressPayload({
   }, {
     childStatusPath,
     current,
+    batchLimit,
+    batchOffset,
     lastHeartbeatAt,
     message,
+    overallCurrent,
+    overallTotal,
     percent,
     phase,
+    startedAt,
     total
   });
 }
@@ -120,7 +130,17 @@ function normalizeProgressFields(progress) {
   const current = normalizeNullableNumber(progress.current);
   const total = normalizeNullableNumber(progress.total);
   const percent = normalizePercent(progress.percent, current, total);
+  const batchOffset = normalizeNullableNumber(progress.batchOffset);
+  const batchLimit = normalizeNullableNumber(progress.batchLimit);
+  const overallCurrent = normalizeNullableNumber(progress.overallCurrent);
+  const overallTotal = normalizeNullableNumber(progress.overallTotal);
   const result = {};
+  if (batchLimit != null) {
+    result.batchLimit = batchLimit;
+  }
+  if (batchOffset != null) {
+    result.batchOffset = batchOffset;
+  }
   if (progress.childStatusPath) {
     result.childStatusPath = String(progress.childStatusPath);
   }
@@ -133,11 +153,20 @@ function normalizeProgressFields(progress) {
   if (progress.message) {
     result.message = String(progress.message);
   }
+  if (overallCurrent != null) {
+    result.overallCurrent = overallCurrent;
+  }
+  if (overallTotal != null) {
+    result.overallTotal = overallTotal;
+  }
   if (percent != null) {
     result.percent = percent;
   }
   if (progress.phase) {
     result.phase = String(progress.phase);
+  }
+  if (progress.startedAt) {
+    result.startedAt = String(progress.startedAt);
   }
   if (total != null) {
     result.total = total;

@@ -73,6 +73,11 @@ public class CrawlerMonitorOverviewDTO {
         private String childStatusPath;
         private Long current;
         private Long total;
+        private String startedAt;
+        private Long batchOffset;
+        private Long batchLimit;
+        private Long overallCurrent;
+        private Long overallTotal;
         private Double percent;
         private String phase;
         private String message;
