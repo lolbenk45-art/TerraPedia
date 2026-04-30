@@ -414,7 +414,9 @@ async function handleWorkbenchSaved(npcId: number) {
 
 .chip-group {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
 }
 
 .npc-grid {
@@ -438,18 +440,24 @@ async function handleWorkbenchSaved(npcId: number) {
 .price-row,
 .npc-card__foot {
   display: flex;
-  gap: 8px;
+  gap: 8px 10px;
   flex-wrap: wrap;
 }
 
 .npc-card__head {
   justify-content: space-between;
   align-items: flex-start;
+  gap: 12px;
 }
 
 .npc-card__identity {
   min-width: 0;
   flex: 1;
+}
+
+.npc-card__actions {
+  justify-content: flex-end;
+  margin-left: auto;
 }
 
 .npc-card__portrait {
@@ -504,9 +512,9 @@ async function handleWorkbenchSaved(npcId: number) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
-  padding: 0 12px;
-  border-radius: 12px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 8px;
   border: 1px solid rgba(203, 213, 225, 0.86);
   background: rgba(255, 255, 255, 0.98);
   color: #334155;
@@ -525,7 +533,7 @@ async function handleWorkbenchSaved(npcId: number) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 28px;
+  min-height: 30px;
   padding: 0 10px;
   border-radius: 999px;
   border: 1px solid rgba(203, 213, 225, 0.86);
@@ -533,6 +541,7 @@ async function handleWorkbenchSaved(npcId: number) {
   color: #334155;
   font-size: 12px;
   font-weight: 700;
+  line-height: 1.2;
 }
 
 .info-chip--accent {

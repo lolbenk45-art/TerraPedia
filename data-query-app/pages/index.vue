@@ -272,7 +272,7 @@ onMounted(async () => {
   font-size: clamp(1.6rem, 1.4rem + 0.4vw, 2rem);
   font-weight: 700;
   line-height: 1.05;
-  letter-spacing: -0.04em;
+  letter-spacing: 0;
   color: var(--color-text);
 }
 

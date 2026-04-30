@@ -799,7 +799,7 @@ const statusText = computed(() => {
 .editor-card__head h2 {
   margin: 0;
   font-family: var(--font-display);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .editor-loading__card p,
@@ -1202,7 +1202,7 @@ const statusText = computed(() => {
 .toolbar-tool__label {
   font-size: 0.84rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .toolbar-tool--wide {

@@ -1051,7 +1051,7 @@ function shortArgs(args?: string[]) {
 <style scoped>
 .crawler-monitor {
   display: grid;
-  gap: 20px;
+  gap: 24px;
 }
 
 .monitor-hero {
@@ -1059,6 +1059,10 @@ function shortArgs(args?: string[]) {
 }
 
 .monitor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px 12px;
   align-items: center;
 }
 
@@ -1159,13 +1163,13 @@ function shortArgs(args?: string[]) {
 .operations-grid {
   display: grid;
   grid-template-columns: minmax(280px, 1.25fr) repeat(3, minmax(220px, 1fr));
-  gap: 14px;
+  gap: 16px;
 }
 
 .ops-card {
   display: grid;
   align-content: start;
-  gap: 12px;
+  gap: 14px;
   min-width: 0;
   padding: 14px;
   border: 1px solid color-mix(in srgb, var(--color-border) 86%, transparent);
@@ -1247,7 +1251,7 @@ function shortArgs(args?: string[]) {
 .path-list,
 .recent-run-list {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -1267,9 +1271,9 @@ function shortArgs(args?: string[]) {
 .task-row,
 .path-row {
   display: grid;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
-  padding: 9px;
+  padding: 10px;
   border-radius: 8px;
   background: color-mix(in srgb, var(--color-bg) 78%, transparent);
 }
@@ -1303,20 +1307,21 @@ function shortArgs(args?: string[]) {
 
 .path-token {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
   min-width: 0;
 }
 
 .path-token code {
   min-width: 0;
-  flex: 1;
+  flex: 1 1 180px;
 }
 
 .architecture-layers {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 16px;
 }
 
 .architecture-layer {
@@ -1402,7 +1407,7 @@ function shortArgs(args?: string[]) {
 
 .architecture-file-list {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   max-height: 300px;
   overflow: auto;
   padding-right: 2px;
@@ -1410,9 +1415,9 @@ function shortArgs(args?: string[]) {
 
 .architecture-file-row {
   display: grid;
-  gap: 5px;
+  gap: 7px;
   min-width: 0;
-  padding: 9px 10px;
+  padding: 10px 12px;
   border-left: 3px solid transparent;
   border-radius: 8px;
   background: color-mix(in srgb, var(--color-bg) 78%, transparent);
@@ -1433,10 +1438,14 @@ function shortArgs(args?: string[]) {
 .architecture-file-row__top,
 .architecture-file-row__meta {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 8px 10px;
   min-width: 0;
+}
+
+.architecture-file-row__top {
+  flex-wrap: wrap;
 }
 
 .architecture-file-row__top strong {
@@ -1592,12 +1601,13 @@ function shortArgs(args?: string[]) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 24px;
-  padding: 0 9px;
+  min-height: 28px;
+  padding: 3px 9px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 800;
-  white-space: nowrap;
+  line-height: 1.2;
+  white-space: normal;
 }
 
 .success {
@@ -1777,8 +1787,8 @@ function shortArgs(args?: string[]) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  min-height: 32px;
+  gap: 6px;
+  min-height: 34px;
   border: 1px solid color-mix(in srgb, var(--color-border) 86%, transparent);
   border-radius: 8px;
   background: color-mix(in srgb, var(--color-bg) 90%, transparent);
@@ -1790,11 +1800,12 @@ function shortArgs(args?: string[]) {
 
 .inline-report-button {
   flex-shrink: 0;
-  padding: 0 9px;
+  padding: 0 10px;
 }
 
 .inline-report-button--compact {
   margin-top: 8px;
+  min-height: 32px;
 }
 
 .inline-report-button:disabled {

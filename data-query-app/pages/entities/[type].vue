@@ -3220,7 +3220,7 @@ function formatArmorPartRole(value: unknown) {
 .boss-card__note { margin: 0; line-height: 1.6; font-size: 0.85rem; min-height: 4.8em; }
 .boss-card__meta { display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.8rem; }
 .boss-card__actions { display: flex; gap: 12px; flex-wrap: wrap; }
-.toolbar__actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.toolbar__actions { display: flex; justify-content: flex-end; gap: 10px 12px; flex-wrap: wrap; align-items: center; }
 .input--search { padding-left: 40px; }
 .textarea--code { font-family: Consolas, 'SFMono-Regular', 'Liberation Mono', monospace; line-height: 1.6; background: color-mix(in srgb, var(--color-bg-tertiary) 82%, transparent); }
 .table-wrap { overflow-x: auto; border-radius: calc(var(--radius-lg) - 2px); border: 1px solid var(--color-border); }
@@ -3234,14 +3234,14 @@ function formatArmorPartRole(value: unknown) {
 .cell-primary { display: grid; gap: 4px; }
 .cell-primary strong { color: var(--color-text); font-weight: 700; }
 .cell-primary span,.data-table td > span { color: var(--color-text-secondary); font-size: 0.86rem; }
-.cell-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
-.cell-badge { padding: 4px 8px; border-radius: var(--radius-full); border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-tertiary) 92%, transparent); color: var(--color-text-secondary); font-size: 0.74rem; font-weight: 700; line-height: 1; }
+.cell-badges { display: flex; gap: 6px 8px; flex-wrap: wrap; margin-top: 4px; }
+.cell-badge { display: inline-flex; align-items: center; min-height: 28px; padding: 4px 8px; border-radius: var(--radius-full); border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-tertiary) 92%, transparent); color: var(--color-text-secondary); font-size: 0.74rem; font-weight: 700; line-height: 1.2; }
 .cell-badge--accent { color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 12%, var(--color-bg-secondary)); }
 .cell-bilingual { display: grid; gap: 2px; margin-top: 4px; }
 .cell-bilingual span { color: var(--color-text-secondary); font-size: 0.8rem; }
 .cell-bilingual strong { color: var(--color-text); margin-right: 6px; }
 .cell-primary__atomic { color: var(--color-text-muted); font-size: 0.78rem; font-family: Consolas, 'SFMono-Regular', 'Liberation Mono', monospace; white-space: normal; word-break: break-all; }
-.row-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.row-actions { display: flex; gap: 8px 10px; flex-wrap: wrap; align-items: flex-start; }
 .btn-link--danger { color: var(--color-danger); }
 .pagination-wrap { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--color-border); }
 .editor-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.85fr); gap: 24px; }
@@ -3265,8 +3265,8 @@ function formatArmorPartRole(value: unknown) {
 .preview-card__body { display: grid; gap: 12px; }
 .preview-card__body h3 { margin: 0; color: var(--color-text); font-size: 1.25rem; }
 .preview-card__body p { margin: 0; color: var(--color-text-secondary); line-height: 1.6; }
-.preview-pills { display: flex; gap: 10px; flex-wrap: wrap; }
-.preview-pill { padding: 6px 10px; border-radius: var(--radius-full); border: 1px solid var(--color-border); background: var(--color-bg-tertiary); color: var(--color-text-secondary); font-size: 0.78rem; font-weight: 700; }
+.preview-pills { display: flex; gap: 8px 10px; flex-wrap: wrap; }
+.preview-pill { display: inline-flex; align-items: center; min-height: 30px; padding: 6px 10px; border-radius: var(--radius-full); border: 1px solid var(--color-border); background: var(--color-bg-tertiary); color: var(--color-text-secondary); font-size: 0.78rem; font-weight: 700; line-height: 1.2; }
 .preview-pill--accent { background: color-mix(in srgb, var(--color-primary) 14%, var(--color-bg-secondary)); color: var(--color-primary); }
 .preview-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .preview-stat { padding: 12px; border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-bg-secondary) 88%, transparent); border: 1px solid var(--color-border); display: grid; gap: 4px; }

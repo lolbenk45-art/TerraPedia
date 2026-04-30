@@ -15,7 +15,7 @@
           <option value="1">Enabled</option>
           <option value="0">Disabled</option>
         </select>
-        <button type="submit" class="btn btn-primary">Search</button>
+        <button type="submit" class="btn btn-secondary">Search</button>
         <button type="button" class="btn btn-secondary" @click="handleReset">Reset</button>
         <button type="button" class="btn btn-primary" @click="openCreateDialog">Add User</button>
       </form>
@@ -50,10 +50,12 @@
                 <td>{{ formatDateTime(row.lastLoginAt) }}</td>
                 <td>{{ formatDateTime(row.createdAt) }}</td>
                 <td>
-                  <button type="button" class="btn-link" @click="toggleStatus(row)">
-                    {{ row.status === 1 ? 'Disable' : 'Enable' }}
-                  </button>
-                  <button type="button" class="btn-link" @click="handleResetPassword(row)">Reset Password</button>
+                  <div class="row-actions">
+                    <button type="button" class="btn-link" @click="toggleStatus(row)">
+                      {{ row.status === 1 ? 'Disable' : 'Enable' }}
+                    </button>
+                    <button type="button" class="btn-link" @click="handleResetPassword(row)">Reset Password</button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -208,21 +210,33 @@ onMounted(async () => {
 <style scoped>
 .users-page { animation: pageReveal .35s ease backwards; }
 @keyframes pageReveal { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-.toolbar { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(180px, 240px) repeat(3, max-content);
+  gap: 14px 12px;
+  align-items: center;
+}
 .form-stack { display:flex; flex-direction:column; gap:12px; }
-.input { min-width:180px; padding:8px 12px; border:1px solid var(--color-border); border-radius:var(--radius-md); background:var(--color-bg); color:var(--color-text); }
-.btn { padding:8px 16px; border:none; border-radius:var(--radius-md); font-size:.875rem; font-weight:500; cursor:pointer; }
-.btn-primary { background:var(--color-primary); color:#fff; }
-.btn-secondary { background:var(--color-bg-tertiary); color:var(--color-text); border:1px solid var(--color-border); }
-.table-wrap { overflow-x:auto; }
-.data-table { width:100%; min-width:900px; border-collapse:collapse; font-size:.9375rem; }
-.data-table th,.data-table td { padding:12px 16px; border-bottom:1px solid var(--color-border); text-align:left; }
-.data-table th { background:var(--color-bg-tertiary); color:var(--color-text-secondary); font-weight:600; }
-.status { display:inline-block; padding:4px 10px; border-radius:999px; font-size:.75rem; font-weight:700; }
+.toolbar .input { min-width:0; }
+.toolbar .btn { min-width:96px; }
+.table-wrap { overflow-x:auto; border-radius:calc(var(--radius-lg) - 2px); border:1px solid var(--color-border); }
+.data-table { width:100%; min-width:900px; border-collapse:collapse; background:color-mix(in srgb, var(--color-bg-secondary) 94%, transparent); font-size:.9375rem; }
+.data-table th,.data-table td { padding:14px 16px; border-bottom:1px solid color-mix(in srgb, var(--color-border) 88%, transparent); text-align:left; vertical-align:top; }
+.data-table th { background:color-mix(in srgb, var(--color-bg-tertiary) 94%, transparent); color:var(--color-text-secondary); font-weight:700; white-space:nowrap; }
+.data-table tbody tr:hover { background:color-mix(in srgb, var(--color-primary) 6%, var(--color-bg-secondary)); }
+.data-table td:last-child { min-width:210px; }
+.status { display:inline-flex; align-items:center; justify-content:center; min-height:28px; padding:4px 10px; border-radius:999px; font-size:.75rem; font-weight:700; line-height:1.2; }
 .status--enabled { background:#d1fae5; color:#065f46; }
 .status--disabled { background:#fee2e2; color:#991b1b; }
-.btn-link { border:none; background:none; color:var(--color-primary); cursor:pointer; margin-right:10px; }
+.row-actions { display:flex; gap:8px 10px; flex-wrap:wrap; align-items:flex-start; }
 .empty-text { padding:40px; text-align:center; color:var(--color-text-secondary); }
 .pagination-wrap { margin-top:20px; padding-top:20px; border-top:1px solid var(--color-border); }
-@media (max-width:768px) { .toolbar { flex-direction:column; align-items:stretch; } .input { width:100%; } }
+@media (max-width:1120px) {
+  .toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .toolbar .btn { width:100%; }
+}
+@media (max-width:768px) {
+  .toolbar { grid-template-columns:1fr; align-items:stretch; }
+  .input { width:100%; }
+}
 </style>
