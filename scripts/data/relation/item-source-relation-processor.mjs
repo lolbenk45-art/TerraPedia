@@ -269,6 +269,96 @@ function candidateInternalName(candidate) {
   return normalizeText(candidate?.internal_name ?? candidate?.internalName);
 }
 
+function normalizeLookupKey(value) {
+  const text = normalizeText(value);
+  return text ? text.toLowerCase() : null;
+}
+
+function itemCandidateIdentity(candidate) {
+  return JSON.stringify([
+    toNullableNumber(candidate?.source_id ?? candidate?.sourceId),
+    normalizeText(candidate?.internal_name ?? candidate?.internalName)
+  ]);
+}
+
+function itemCandidateInternalName(candidate) {
+  return normalizeText(candidate?.internal_name ?? candidate?.internalName);
+}
+
+function dedupeItemCandidates(candidates) {
+  const seen = new Set();
+  const deduped = [];
+  for (const candidate of candidates) {
+    const key = itemCandidateIdentity(candidate);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(candidate);
+  }
+  return deduped;
+}
+
+function lookupItemCandidates(itemIndex, value) {
+  if (!(itemIndex instanceof Map)) return [];
+  const text = normalizeText(value);
+  if (!text) return [];
+
+  const candidates = [];
+  const exact = itemIndex.get(text);
+  candidates.push(...asCandidateList(exact));
+
+  const normalized = normalizeLookupKey(text);
+  if (normalized && normalized !== text) {
+    candidates.push(...asCandidateList(itemIndex.get(normalized)));
+  }
+
+  return dedupeItemCandidates(candidates);
+}
+
+function resolveItemRef(row = {}, raw = {}, itemIndex = new Map()) {
+  const directInternalName = normalizeText(row.item_internal_name ?? raw.itemInternalName ?? raw.item_internal_name);
+  if (directInternalName) {
+    return {
+      status: relationStatus.resolved,
+      itemInternalName: directInternalName,
+      confidence: confidence.high,
+      reason: 'item_source_captured'
+    };
+  }
+
+  const candidateNames = [
+    row.item_name,
+    raw.itemName,
+    raw.item_name,
+    raw.raw?.name
+  ];
+  const candidates = dedupeItemCandidates(candidateNames.flatMap((name) => lookupItemCandidates(itemIndex, name)));
+
+  if (candidates.length === 1) {
+    return {
+      status: relationStatus.resolved,
+      itemInternalName: itemCandidateInternalName(candidates[0]),
+      confidence: confidence.high,
+      reason: 'item_resolved_by_name'
+    };
+  }
+
+  if (candidates.length > 1) {
+    return {
+      status: 'ambiguous',
+      itemInternalName: null,
+      confidence: confidence.low,
+      reason: 'item_ambiguous'
+    };
+  }
+
+  return {
+    status: relationStatus.unresolved,
+    itemInternalName: null,
+    confidence: confidence.none,
+    reason: 'item_unresolved'
+  };
+}
+
 function isAuthoritativeNpcInternalNameResolution(value) {
   return value === 'resolved' || value === 'exact_internal_name';
 }
@@ -449,7 +539,7 @@ export function resolveNpcRef(row = {}, npcIndex = new Map()) {
   };
 }
 
-export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new Map() } = {}) {
+export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new Map(), itemIndex = new Map() } = {}) {
   const sourceFacts = [];
   const sourceDetails = [];
   const npcShopRelationRows = [];
@@ -463,7 +553,9 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
     const trace = normalizeTrace('maint_item_sources', row);
     const sourceType = normalizeText(row.source_type)?.toLowerCase() ?? null;
     const sourceRefType = normalizeText(row.source_ref_type)?.toLowerCase() ?? null;
-    const itemInternalName = normalizeText(row.item_internal_name);
+    const itemResolution = resolveItemRef(row, raw, itemIndex);
+    const itemInternalName = itemResolution.itemInternalName;
+    const effectiveRow = { ...row, item_internal_name: itemInternalName };
     const sourceRefName = pickText(row.source_ref_name, raw.sourceRefName);
     const sourceRefNormalized = normalizeSourceRefName(sourceRefName);
     const sourceFactKey = createRecordKey({
@@ -494,12 +586,12 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
           ? npcResolution?.status ?? relationStatus.unresolved
           : relationStatus.resolved,
       confidence: !itemInternalName
-        ? confidence.none
+        ? itemResolution.confidence
         : sourceRefType === 'npc'
           ? npcResolution?.confidence ?? confidence.none
           : confidence.high,
       reason: !itemInternalName
-        ? 'item_unresolved'
+        ? itemResolution.reason
         : sourceRefType === 'npc'
           ? npcResolution?.reason ?? 'npc_source_unresolved'
           : 'item_source_captured',
@@ -555,7 +647,7 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
         ...trace
       });
       itemNpcRelationAudits.push(buildItemNpcRelationAudit({
-        row,
+        row: effectiveRow,
         raw,
         sourceType,
         sourceRefType,
@@ -588,7 +680,7 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
         ...trace
       });
       itemNpcRelationAudits.push(buildItemNpcRelationAudit({
-        row,
+        row: effectiveRow,
         raw,
         sourceType,
         sourceRefType,
@@ -616,12 +708,12 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
         sourceRefName,
         sourceRefNormalized,
         reviewStatus: relationStatus.unresolved,
-        confidence: confidence.none,
-        reason: 'item_unresolved',
+        confidence: itemResolution.confidence,
+        reason: itemResolution.reason,
         ...trace
       });
       itemNpcRelationAudits.push(buildItemNpcRelationAudit({
-        row,
+        row: effectiveRow,
         raw,
         sourceType,
         sourceRefType,
@@ -630,7 +722,7 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
         sourceRefNormalized,
         npcResolution,
         auditStatus: 'unresolved',
-        reasonCode: 'item_unresolved',
+        reasonCode: itemResolution.reason,
         trace
       }));
     }

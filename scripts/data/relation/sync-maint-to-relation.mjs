@@ -166,6 +166,31 @@ function buildItemIndex(rows) {
   return index;
 }
 
+function addIndexEntry(index, key, row) {
+  if (!key) return;
+  const normalizedKey = String(key).trim().toLowerCase();
+  if (!normalizedKey) return;
+  const existing = index.get(normalizedKey);
+  if (!existing) {
+    index.set(normalizedKey, row);
+  } else if (Array.isArray(existing)) {
+    existing.push(row);
+  } else {
+    index.set(normalizedKey, [existing, row]);
+  }
+}
+
+function buildItemSourceLookupIndex(rows) {
+  const index = new Map();
+  for (const row of rows) {
+    addIndexEntry(index, row.internal_name, row);
+    addIndexEntry(index, row.english_name, row);
+    addIndexEntry(index, row.name, row);
+    addIndexEntry(index, row.name_zh, row);
+  }
+  return index;
+}
+
 async function upsertRows(connection, tableName, rows) {
   if (!rows || rows.length === 0) return 0;
   let total = 0;
@@ -552,6 +577,7 @@ export async function runSync(options, dependencies = {}) {
 
   const wikiArmorSets = readWikiArmorSets(options.wikiArmorSetsInput);
   const itemIndex = buildItemIndex(maintItems);
+  const itemSourceLookupIndex = buildItemSourceLookupIndex(maintItems);
   const npcIndex = buildNpcIndex(maintNpcs);
   const baseEntities = buildBaseEntityRelations({
     maintItems,
@@ -581,7 +607,7 @@ export async function runSync(options, dependencies = {}) {
     recipeIngredients: recipe.recipeIngredients,
     recipeReferencePayload
   });
-  const itemSource = buildItemSourceRelations({ itemSourceRows, npcIndex });
+  const itemSource = buildItemSourceRelations({ itemSourceRows, npcIndex, itemIndex: itemSourceLookupIndex });
   const secondary = buildSecondaryRelations({
     itemBiomeRows,
     maintBuffRows,

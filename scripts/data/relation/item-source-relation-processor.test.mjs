@@ -338,6 +338,74 @@ test('buildItemSourceRelations audits ambiguous npc refs instead of promoting fo
   );
 });
 
+test('buildItemSourceRelations resolves missing item internal names from unique item index matches', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 80,
+        record_key: '8'.repeat(64),
+        item_internal_name: null,
+        item_name: 'Healing Potion',
+        source_type: 'shop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Merchant',
+        raw_json: JSON.stringify({
+          sourceRefName: 'Merchant',
+          itemName: 'Healing Potion',
+          conditionText: 'In [[Hardmode]].'
+        }),
+        source_page: 'https://terraria.wiki.gg/wiki/Merchant'
+      }
+    ],
+    npcIndex: new Map([
+      ['Merchant', { source_id: 17, internal_name: 'Merchant', name: 'Merchant' }]
+    ]),
+    itemIndex: new Map([
+      ['healing potion', { source_id: 188, internal_name: 'HealingPotion', english_name: 'Healing Potion' }]
+    ])
+  });
+
+  assert.equal(actual.npcShopRelations.length, 1);
+  assert.equal(actual.npcShopRelations[0].itemInternalName, 'HealingPotion');
+  assert.equal(actual.npcShopRelations[0].itemName, 'Healing Potion');
+  assert.equal(actual.npcShopRelations[0].npcInternalName, 'Merchant');
+  assert.equal(actual.sourceFacts[0].itemInternalName, 'HealingPotion');
+  assert.equal(actual.sourceFacts[0].reviewStatus, 'resolved');
+  assert.equal(actual.itemNpcRelationAudits.length, 0);
+});
+
+test('buildItemSourceRelations keeps ambiguous item index matches unresolved', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 81,
+        record_key: '9'.repeat(64),
+        item_internal_name: null,
+        item_name: 'Shared Name',
+        source_type: 'shop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Merchant',
+        raw_json: JSON.stringify({ sourceRefName: 'Merchant', itemName: 'Shared Name' })
+      }
+    ],
+    npcIndex: new Map([
+      ['Merchant', { source_id: 17, internal_name: 'Merchant', name: 'Merchant' }]
+    ]),
+    itemIndex: new Map([
+      ['shared name', [
+        { source_id: 1, internal_name: 'SharedNameA', english_name: 'Shared Name' },
+        { source_id: 2, internal_name: 'SharedNameB', english_name: 'Shared Name' }
+      ]]
+    ])
+  });
+
+  assert.equal(actual.npcShopRelations.length, 0);
+  assert.equal(actual.itemNpcRelationAudits.length, 1);
+  assert.equal(actual.itemNpcRelationAudits[0].reasonCode, 'item_ambiguous');
+  assert.equal(actual.sourceFacts[0].reviewStatus, 'unresolved');
+  assert.equal(actual.sourceFacts[0].reason, 'item_ambiguous');
+});
+
 test('buildItemSourceRelations audits resolved npc refs with unresolved items instead of promoting formal relations', () => {
   const actual = buildItemSourceRelations({
     itemSourceRows: [
