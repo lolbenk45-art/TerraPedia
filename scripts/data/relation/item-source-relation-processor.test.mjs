@@ -406,6 +406,60 @@ test('buildItemSourceRelations keeps ambiguous item index matches unresolved', (
   assert.equal(actual.sourceFacts[0].reason, 'item_ambiguous');
 });
 
+test('buildItemSourceRelations prefers generated npc shop pages over item-page shop claims for the same npc', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 82,
+        record_key: 'npc-item:merchant:shop:nail',
+        item_internal_name: null,
+        item_name: 'Nail',
+        source_type: 'shop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Merchant',
+        raw_json: JSON.stringify({
+          relationType: 'shop',
+          sourceSection: 'shop',
+          sourceRefName: 'Merchant',
+          itemName: 'Nail'
+        }),
+        source_page: 'https://terraria.wiki.gg/wiki/Merchant'
+      },
+      {
+        id: 83,
+        record_key: 'a'.repeat(64),
+        item_internal_name: 'NailGun',
+        item_name: 'Nail Gun',
+        source_type: 'shop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Merchant',
+        raw_json: JSON.stringify({
+          itemInternalName: 'NailGun',
+          itemName: 'Nail Gun',
+          sourceRefName: 'Merchant'
+        }),
+        source_page: 'Nail Gun'
+      }
+    ],
+    npcIndex: new Map([
+      ['Merchant', { source_id: 17, internal_name: 'Merchant', name: 'Merchant' }]
+    ]),
+    itemIndex: new Map([
+      ['nail', { source_id: 3108, internal_name: 'Nail', english_name: 'Nail' }],
+      ['nail gun', { source_id: 3107, internal_name: 'NailGun', english_name: 'Nail Gun' }]
+    ])
+  });
+
+  assert.deepEqual(
+    actual.npcShopRelations.map((row) => row.itemInternalName),
+    ['Nail']
+  );
+  assert.equal(actual.itemNpcRelationAudits.length, 1);
+  assert.equal(actual.itemNpcRelationAudits[0].itemInternalName, 'NailGun');
+  assert.equal(actual.itemNpcRelationAudits[0].auditStatus, 'superseded');
+  assert.equal(actual.itemNpcRelationAudits[0].reasonCode, 'npc_shop_source_superseded_by_npc_page');
+});
+
 test('buildItemSourceRelations audits resolved npc refs with unresolved items instead of promoting formal relations', () => {
   const actual = buildItemSourceRelations({
     itemSourceRows: [

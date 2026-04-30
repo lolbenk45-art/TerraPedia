@@ -370,6 +370,31 @@ function relationKindForSourceType(sourceType) {
   return 'source_item';
 }
 
+function isGeneratedNpcShopSourceRow(row = {}, raw = {}, sourceType, sourceRefType) {
+  if (sourceType !== 'shop' || sourceRefType !== 'npc') return false;
+  const relationType = normalizeText(raw.relationType ?? raw.relation_type)?.toLowerCase();
+  const sourceSection = normalizeText(raw.sourceSection ?? raw.source_section)?.toLowerCase();
+  const recordKey = normalizeText(row.record_key ?? raw.recordKey ?? raw.record_key);
+  return (
+    (relationType === 'shop' && sourceSection === 'shop') ||
+    /^npc-item:/i.test(recordKey ?? '')
+  );
+}
+
+function buildAuthoritativeNpcShopRefKeys(itemSourceRows = []) {
+  const keys = new Set();
+  for (const row of itemSourceRows) {
+    const raw = parseRawJson(row);
+    const sourceType = normalizeText(row.source_type)?.toLowerCase() ?? null;
+    const sourceRefType = normalizeText(row.source_ref_type)?.toLowerCase() ?? null;
+    if (!isGeneratedNpcShopSourceRow(row, raw, sourceType, sourceRefType)) continue;
+    const sourceRefName = pickText(row.source_ref_name, raw.sourceRefName);
+    const normalized = normalizeLookupKey(normalizeSourceRefName(sourceRefName));
+    if (normalized) keys.add(normalized);
+  }
+  return keys;
+}
+
 function buildRelationEvidence({
   raw,
   row,
@@ -546,6 +571,7 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
   const npcLootRelationRows = [];
   const itemNpcRelationAudits = [];
   const issues = [];
+  const authoritativeNpcShopRefKeys = buildAuthoritativeNpcShopRefKeys(itemSourceRows);
 
   for (let index = 0; index < itemSourceRows.length; index += 1) {
     const row = itemSourceRows[index] ?? {};
@@ -558,6 +584,14 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
     const effectiveRow = { ...row, item_internal_name: itemInternalName };
     const sourceRefName = pickText(row.source_ref_name, raw.sourceRefName);
     const sourceRefNormalized = normalizeSourceRefName(sourceRefName);
+    const sourceRefKey = normalizeLookupKey(sourceRefNormalized);
+    const isGeneratedNpcShopSource = isGeneratedNpcShopSourceRow(row, raw, sourceType, sourceRefType);
+    const isSupersededNpcShopSource =
+      sourceType === 'shop'
+      && sourceRefType === 'npc'
+      && !isGeneratedNpcShopSource
+      && sourceRefKey != null
+      && authoritativeNpcShopRefKeys.has(sourceRefKey);
     const sourceFactKey = createRecordKey({
       type: 'item_source_fact',
       rowRecordKey: trace.sourceMaintRecordKey,
@@ -727,7 +761,34 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
       }));
     }
 
-    if (sourceRefType === 'npc' && npcResolution?.status === relationStatus.resolved && itemInternalName && sourceType === 'shop') {
+    if (
+      sourceRefType === 'npc'
+      && npcResolution?.status === relationStatus.resolved
+      && itemInternalName
+      && isSupersededNpcShopSource
+    ) {
+      itemNpcRelationAudits.push(buildItemNpcRelationAudit({
+        row: effectiveRow,
+        raw,
+        sourceType,
+        sourceRefType,
+        sourceFactKey,
+        sourceRefName,
+        sourceRefNormalized,
+        npcResolution,
+        auditStatus: 'superseded',
+        reasonCode: 'npc_shop_source_superseded_by_npc_page',
+        trace
+      }));
+    }
+
+    if (
+      sourceRefType === 'npc'
+      && npcResolution?.status === relationStatus.resolved
+      && itemInternalName
+      && sourceType === 'shop'
+      && !isSupersededNpcShopSource
+    ) {
       const normalizedConditions = normalizeSourceConditionFields({
         conditions: pickText(raw.conditions, row.conditions),
         notes: extractRelevantNotes(sourceType, pickText(raw.notes, row.notes)),
