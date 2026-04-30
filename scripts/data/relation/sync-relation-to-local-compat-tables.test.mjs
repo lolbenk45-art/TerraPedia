@@ -42,6 +42,69 @@ test('buildRelationCompatSyncSql rebuilds only owned local compatibility tables'
   assert.doesNotMatch(JSON.stringify(sql), /item_npc_shop_candidates|item_npc_loot_candidates/);
 });
 
+test('buildRelationCompatSyncSql only publishes source-backed reviewed active rows', () => {
+  const sql = buildRelationCompatSyncSql({
+    localDatabase: 'terria_v1_local',
+    relationDatabase: 'terria_v1_relation'
+  });
+
+  const acceptedReview = /review_status IN \('accepted', 'resolved', 'promoted'\)/;
+  for (const definition of [
+    sql.item_acquisition_sources.countSql,
+    sql.item_acquisition_sources.sampleSql,
+    sql.item_acquisition_sources.insertSql
+  ]) {
+    assert.match(definition, /f\.deleted = 0/);
+    assert.match(definition, /f\.status = 1/);
+    assert.match(definition, new RegExp(`f\\.${acceptedReview.source}`));
+  }
+
+  assert.match(sql.item_acquisition_sources.insertSql, /d\.deleted = 0/);
+  assert.match(sql.item_acquisition_sources.insertSql, /d\.status = 1/);
+  assert.match(sql.item_acquisition_sources.insertSql, new RegExp(`d\\.${acceptedReview.source}`));
+  assert.match(sql.item_acquisition_sources.insertSql, /d\.source_ref_resolution = 'resolved'/);
+  assert.match(sql.item_acquisition_sources.insertSql, /n\.deleted = 0/);
+  assert.match(sql.item_acquisition_sources.insertSql, /n\.status = 1/);
+  assert.match(
+    sql.item_acquisition_sources.insertSql,
+    /f\.source_ref_type <> 'npc' OR \(d\.source_ref_resolution = 'resolved' AND n\.id IS NOT NULL\)/
+  );
+
+  for (const [alias, definition] of [
+    ['r', sql.npc_loot_entries.countSql],
+    ['r', sql.npc_loot_entries.sampleSql],
+    ['r', sql.npc_loot_entries.insertSql],
+    ['r', sql.npc_shop_entries.countSql],
+    ['r', sql.npc_shop_entries.sampleSql],
+    ['r', sql.npc_shop_entries.insertSql],
+    ['r', sql.npc_shop_conditions.countSql],
+    ['r', sql.npc_shop_conditions.sampleSql],
+    ['r', sql.npc_shop_conditions.insertSql]
+  ]) {
+    assert.match(definition, new RegExp(`${alias}\\.deleted = 0`));
+    assert.match(definition, new RegExp(`${alias}\\.status = 1`));
+    assert.match(definition, new RegExp(`${alias}\\.${acceptedReview.source}`));
+  }
+
+  for (const definition of [
+    sql.npc_loot_entries.countSql,
+    sql.npc_loot_entries.insertSql,
+    sql.npc_shop_entries.countSql,
+    sql.npc_shop_entries.insertSql,
+    sql.npc_shop_conditions.insertSql
+  ]) {
+    assert.match(definition, /INNER JOIN `terria_v1_relation`\.`item_source_facts` f/);
+    assert.match(definition, /f\.record_key = r\.source_fact_key/);
+    assert.match(definition, /f\.deleted = 0/);
+    assert.match(definition, /f\.status = 1/);
+    assert.match(definition, new RegExp(`f\\.${acceptedReview.source}`));
+    assert.match(definition, /i\.deleted = 0/);
+    assert.match(definition, /i\.status = 1/);
+    assert.match(definition, /n\.deleted = 0/);
+    assert.match(definition, /n\.status = 1/);
+  }
+});
+
 test('runRelationToLocalCompatSync dry-run reports row counts and samples without mutating', async () => {
   const statements = [];
   let reportPayload = null;

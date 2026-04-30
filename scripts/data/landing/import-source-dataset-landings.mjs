@@ -299,19 +299,18 @@ function buildLandingRow(entry, payload) {
   };
 }
 
-async function loadCurrentLandingRow(connection, row) {
+async function loadCurrentLandingRows(connection, row) {
   const [rows] = await connection.execute(
-    `SELECT id, content_hash
+    `SELECT id, content_hash, source_page
      FROM source_dataset_landings
      WHERE dataset_type = ?
        AND provider = ?
        AND source_key = ?
-       AND source_page = ?
        AND is_current = 1
-     LIMIT 1`,
-    [row.datasetType, row.provider, row.sourceKey, row.sourcePage],
+     ORDER BY id`,
+    [row.datasetType, row.provider, row.sourceKey],
   );
-  return rows[0] ?? null;
+  return rows;
 }
 
 async function insertLandingRow(connection, row) {
@@ -393,20 +392,28 @@ async function retireLandingRow(connection, rowId) {
 async function upsertLandingEntry(connection, entry, summary) {
   const payload = await resolveEntryPayload(entry);
   const row = buildLandingRow(entry, payload);
-  const current = await loadCurrentLandingRow(connection, row);
-  if (!current) {
+  const currentRows = await loadCurrentLandingRows(connection, row);
+  if (!currentRows.length) {
     await insertLandingRow(connection, row);
     summary.rows.inserted += 1;
     return;
   }
 
-  if (normalizeText(current.content_hash) === row.contentHash) {
-    await updateLandingRow(connection, Number(current.id), row);
+  const exactCurrent = currentRows.find((current) => normalizeText(current.source_page, row.sourceKey) === row.sourcePage);
+  if (exactCurrent && normalizeText(exactCurrent.content_hash) === row.contentHash) {
+    for (const stale of currentRows) {
+      if (Number(stale.id) !== Number(exactCurrent.id)) {
+        await retireLandingRow(connection, Number(stale.id));
+      }
+    }
+    await updateLandingRow(connection, Number(exactCurrent.id), row);
     summary.rows.unchanged += 1;
     return;
   }
 
-  await retireLandingRow(connection, Number(current.id));
+  for (const current of currentRows) {
+    await retireLandingRow(connection, Number(current.id));
+  }
   await insertLandingRow(connection, row);
   summary.rows.replaced += 1;
 }

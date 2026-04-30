@@ -364,7 +364,7 @@ test('runMaintSync upserts NPC item bundle source and backfill rows on apply', a
             },
             async execute(sql, params) {
               executeCalls.push({ sql, params });
-              if (sql.startsWith('SELECT id FROM')) {
+              if (sql.startsWith('SELECT id FROM') || sql.startsWith('SELECT id, status, deleted, landing_source_id, landing_content_hash FROM')) {
                 return [[]];
               }
               return [{}];
@@ -1164,7 +1164,7 @@ test('runMaintSync updates existing maint rows on repeated apply', async () => {
             async query() {},
             async execute(sql, params) {
               executeCalls.push({ sql, params });
-              if (sql.startsWith('SELECT id FROM')) {
+              if (sql.startsWith('SELECT id FROM') || sql.startsWith('SELECT id, status, deleted, landing_source_id, landing_content_hash FROM')) {
                 return [[{ id: 1 }]];
               }
               return [{}];
@@ -1183,6 +1183,229 @@ test('runMaintSync updates existing maint rows on repeated apply', async () => {
   assert.ok(updateCall);
   assert.equal(updateCall.params.length, 24);
   assert.equal(summary.writes.updated, 1);
+});
+
+test('runMaintSync retires stale item page rows not produced by the current source set', async () => {
+  const executeCalls = [];
+  const summary = await runMaintSync(
+    { apply: true, scopes: ['item_pages'] },
+    {
+      loadLandingRows: async () => [
+        {
+          id: 31,
+          dataset_type: 'item_pages_raw',
+          provider: 'terraria.wiki.gg',
+          source_page: 'Zenith',
+          source_key: 'wiki.page.item_detail:Zenith',
+          source_revision_timestamp: '2026-03-16T22:11:59Z',
+          content_hash: 'c'.repeat(64),
+          fetched_at: '2026-03-28T04:15:57.931Z',
+          parsed_at: '2026-03-28T04:15:57.931Z',
+          payload_json: JSON.stringify({
+            requestedPageTitle: 'Zenith',
+            pageTitle: 'Zenith',
+            pageId: 4649,
+            revisionTimestamp: '2026-03-16T22:11:59Z',
+            fetchedAt: '2026-03-28T04:15:57.931Z',
+            wikitext: 'wiki text',
+            html: '<p>Zenith</p>',
+            recipesMarkup: '<table class="terraria cellborder recipes"><tr><th>Result</th><th>Ingredients</th><th>Station</th></tr><tr><td class="result">[[Zenith]]</td><td class="ingredients"><li>[[Copper Shortsword]]</li></td><td class="station">[[Mythril Anvil]]</td></tr></table>',
+            entityType: 'item',
+            itemName: 'Zenith',
+            itemInternalName: 'Zenith',
+          }),
+        },
+      ],
+      mysqlModule: {
+        async createConnection() {
+          return {
+            async beginTransaction() {},
+            async query() {},
+            async execute(sql, params) {
+              executeCalls.push({ sql, params });
+              if (sql.startsWith('SELECT id FROM') || sql.startsWith('SELECT id, status, deleted, landing_source_id, landing_content_hash FROM')) {
+                return [[]];
+              }
+              if (sql.startsWith('UPDATE `maint_item_pages` AS target')) {
+                return [{ affectedRows: 1 }];
+              }
+              if (sql.startsWith('UPDATE `maint_item_page_recipes` AS target')) {
+                return [{ affectedRows: 2 }];
+              }
+              return [{}];
+            },
+            async commit() {},
+            async rollback() {},
+            async end() {},
+          };
+        },
+      },
+      writeReport: async () => {},
+    },
+  );
+
+  const stalePageCleanup = executeCalls.find((call) => call.sql.startsWith('UPDATE `maint_item_pages` AS target'));
+  const staleRecipeCleanup = executeCalls.find((call) => call.sql.startsWith('UPDATE `maint_item_page_recipes` AS target'));
+  const createTempTable = executeCalls.find((call) => call.sql.startsWith('CREATE TEMPORARY TABLE IF NOT EXISTS `tmp_maint_active_record_keys`'));
+  const insertTempKeys = executeCalls.find((call) => call.sql.startsWith('INSERT IGNORE INTO `tmp_maint_active_record_keys`'));
+  assert.ok(createTempTable);
+  assert.match(createTempTable.sql, /ENGINE=MEMORY/);
+  assert.match(createTempTable.sql, /DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci/);
+  assert.ok(insertTempKeys);
+  assert.ok(stalePageCleanup);
+  assert.ok(staleRecipeCleanup);
+  assert.doesNotMatch(stalePageCleanup.sql, /NOT IN/);
+  assert.doesNotMatch(staleRecipeCleanup.sql, /NOT IN/);
+  assert.match(stalePageCleanup.sql, /LEFT JOIN `tmp_maint_active_record_keys`/);
+  assert.match(staleRecipeCleanup.sql, /LEFT JOIN `tmp_maint_active_record_keys`/);
+  assert.match(stalePageCleanup.sql, /BINARY active\.record_key = BINARY target\.record_key/);
+  assert.match(staleRecipeCleanup.sql, /BINARY active\.record_key = BINARY target\.record_key/);
+  assert.equal(stalePageCleanup.params.length, 1);
+  assert.equal(staleRecipeCleanup.params.length, 1);
+  assert.equal(summary.writes.inserted, 2);
+  assert.equal(summary.writes.retired, 3);
+});
+
+test('runMaintSync skips large item page rewrites when current record-key row is already active', async () => {
+  const executeCalls = [];
+  const summary = await runMaintSync(
+    { apply: true, scopes: ['item_pages'] },
+    {
+      loadLandingRows: async () => [
+        {
+          id: 31,
+          dataset_type: 'item_pages_raw',
+          provider: 'terraria.wiki.gg',
+          source_page: 'Zenith',
+          source_key: 'wiki.page.item_detail:Zenith',
+          source_revision_timestamp: '2026-03-16T22:11:59Z',
+          content_hash: 'c'.repeat(64),
+          fetched_at: '2026-03-28T04:15:57.931Z',
+          parsed_at: '2026-03-28T04:15:57.931Z',
+          payload_json: JSON.stringify({
+            requestedPageTitle: 'Zenith',
+            pageTitle: 'Zenith',
+            pageId: 4649,
+            revisionTimestamp: '2026-03-16T22:11:59Z',
+            fetchedAt: '2026-03-28T04:15:57.931Z',
+            wikitext: 'wiki text',
+            html: '<p>Zenith</p>',
+            recipesMarkup: '<table></table>',
+            entityType: 'item',
+            itemName: 'Zenith',
+            itemInternalName: 'Zenith',
+          }),
+        },
+      ],
+      mysqlModule: {
+        async createConnection() {
+          return {
+            async beginTransaction() {},
+            async query() {},
+            async execute(sql, params) {
+              executeCalls.push({ sql, params });
+              if (sql.startsWith('SELECT id, status, deleted, landing_source_id, landing_content_hash FROM `maint_item_pages`')) {
+                return [[{ id: 101, status: 1, deleted: 0, landing_source_id: 31, landing_content_hash: 'c'.repeat(64) }]];
+              }
+              if (sql.startsWith('UPDATE `maint_item_pages` AS target')) {
+                return [{ affectedRows: 0 }];
+              }
+              return [{}];
+            },
+            async commit() {},
+            async rollback() {},
+            async end() {},
+          };
+        },
+      },
+      writeReport: async () => {},
+    },
+  );
+
+  assert.equal(
+    executeCalls.some((call) => call.sql.startsWith('UPDATE `maint_item_pages`') && call.sql.includes('wikitext = ?')),
+    false,
+  );
+  assert.equal(summary.writes.unchanged, 1);
+  assert.equal(summary.writes.updated, 0);
+});
+
+test('runMaintSync refuses stale item page cleanup when no active item page keys are produced', async () => {
+  await assert.rejects(
+    () => runMaintSync(
+      { apply: true, scopes: ['item_pages'] },
+      {
+        loadLandingRows: async () => [],
+        mysqlModule: {
+          async createConnection() {
+            return {
+              async beginTransaction() {},
+              async query() {},
+              async execute() {
+                return [{ affectedRows: 0 }];
+              },
+              async commit() {},
+              async rollback() {},
+              async end() {},
+            };
+          },
+        },
+        writeReport: async () => {},
+      },
+    ),
+    /Refusing to retire stale item page rows without active maint_item_pages keys/,
+  );
+});
+
+test('runMaintSync can disable binary logging for a local apply session', async () => {
+  const queryCalls = [];
+  await runMaintSync(
+    { apply: true, scopes: ['items'], disableBinaryLog: true },
+    {
+      loadLandingRows: async () => [
+        {
+          id: 11,
+          dataset_type: 'items_raw',
+          provider: 'terraria.wiki.gg',
+          source_page: 'Module:Iteminfo/data',
+          source_key: 'wiki.module.iteminfo',
+          source_revision_timestamp: '2026-04-22T10:00:00Z',
+          content_hash: 'a'.repeat(64),
+          fetched_at: '2026-04-23T10:00:00Z',
+          parsed_at: '2026-04-23T10:00:00Z',
+          payload_json: JSON.stringify({
+            moduleContent: 'return { ["data"] = [=====[{"1":{"name":"Iron Pickaxe","internalName":"IronPickaxe"}}]=====] }',
+          }),
+        },
+      ],
+      mysqlModule: {
+        async createConnection() {
+          return {
+            async beginTransaction() {},
+            async query(sql) {
+              queryCalls.push(sql);
+              if (String(sql).includes('information_schema.columns')) {
+                return [[]];
+              }
+              return [{}];
+            },
+            async execute(sql) {
+              if (sql.startsWith('SELECT id FROM')) {
+                return [[]];
+              }
+              return [{}];
+            },
+            async commit() {},
+            async rollback() {},
+            async end() {},
+          };
+        },
+      },
+      writeReport: async () => {},
+    },
+  );
+
+  assert.equal(queryCalls[0], 'SET SESSION sql_log_bin = 0');
 });
 
 test('runMaintSync invalidates old category rule rows before applying current category results', async () => {
@@ -1233,7 +1456,7 @@ test('runMaintSync invalidates old category rule rows before applying current ca
             async query() {},
             async execute(sql, params) {
               executeCalls.push({ sql, params });
-              if (sql.startsWith('SELECT id FROM')) {
+              if (sql.startsWith('SELECT id FROM') || sql.startsWith('SELECT id, status, deleted, landing_source_id, landing_content_hash FROM')) {
                 return [[]];
               }
               return [{}];

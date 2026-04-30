@@ -62,6 +62,8 @@ const SCOPE_TO_TABLE = {
   categories: 'maint_categories',
   shimmer: 'maint_shimmer_pages',
 };
+const ACTIVE_RECORD_KEY_TEMP_TABLE = 'tmp_maint_active_record_keys';
+const ACTIVE_RECORD_KEY_INSERT_BATCH_SIZE = 500;
 
 export function parseArgs(argv) {
   const args = {};
@@ -81,6 +83,10 @@ function booleanOption(value, fallback = false) {
   if (['true', '1', 'yes', 'y', 'on'].includes(normalized)) return true;
   if (['false', '0', 'no', 'n', 'off'].includes(normalized)) return false;
   return fallback;
+}
+
+function shouldDisableBinaryLog(options = {}) {
+  return booleanOption(options['disable-binary-log'] ?? options.disableBinaryLog, false);
 }
 
 function toMysqlDateTime(value) {
@@ -1196,6 +1202,8 @@ export function buildMaintSyncSummary(options, entityRows) {
     writes: {
       inserted: 0,
       updated: 0,
+      unchanged: 0,
+      retired: 0,
     },
     categoryRules: null,
   };
@@ -1213,6 +1221,8 @@ function createEmptyStreamSummary(options) {
     writes: {
       inserted: 0,
       updated: 0,
+      unchanged: 0,
+      retired: 0,
     },
     categoryRules: null,
   };
@@ -1269,6 +1279,20 @@ function filterRowsByScopes(rows, scopes) {
   return rows.filter((row) => scopeSet.has(row.scope));
 }
 
+function collectRecordKeysByTable(rows) {
+  const byTable = new Map();
+  for (const row of rows) {
+    if (!row.tableName || !row.recordKey) {
+      continue;
+    }
+    if (!byTable.has(row.tableName)) {
+      byTable.set(row.tableName, new Set());
+    }
+    byTable.get(row.tableName).add(row.recordKey);
+  }
+  return byTable;
+}
+
 function shouldInvalidateCurrentCategoryRuleTables(scopes) {
   return Array.isArray(scopes) && scopes.includes('categories');
 }
@@ -1276,6 +1300,75 @@ function shouldInvalidateCurrentCategoryRuleTables(scopes) {
 async function invalidateCurrentCategoryRuleTables(connection) {
   await connection.execute('UPDATE `maint_category_nodes` SET status = 0, deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE deleted = 0');
   await connection.execute('UPDATE `maint_item_category_assignments` SET status = 0, deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE deleted = 0');
+}
+
+async function configureWriteSession(connection, options = {}) {
+  if (shouldDisableBinaryLog(options)) {
+    await connection.query('SET SESSION sql_log_bin = 0');
+  }
+}
+
+function shouldRetireStaleItemPageTables(scopes) {
+  return Array.isArray(scopes) && scopes.includes('item_pages');
+}
+
+async function retireStaleRecordKeyRows(connection, tableName) {
+  const [result] = await connection.execute(
+     `UPDATE \`${tableName}\` AS target
+      LEFT JOIN \`${ACTIVE_RECORD_KEY_TEMP_TABLE}\` AS active
+        ON active.table_name = ? AND BINARY active.record_key = BINARY target.record_key
+      SET target.status = 0,
+          target.deleted = 1,
+          target.updated_at = CURRENT_TIMESTAMP
+     WHERE target.deleted = 0
+       AND active.record_key IS NULL`,
+    [tableName],
+  );
+  return Number(result?.affectedRows ?? 0);
+}
+
+async function createActiveRecordKeyTempTable(connection) {
+  await connection.execute(
+    `CREATE TEMPORARY TABLE IF NOT EXISTS \`${ACTIVE_RECORD_KEY_TEMP_TABLE}\` (
+      \`table_name\` VARCHAR(64) NOT NULL,
+      \`record_key\` CHAR(64) NOT NULL,
+      PRIMARY KEY (\`table_name\`, \`record_key\`)
+    ) ENGINE=MEMORY DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  );
+  await connection.execute(`DELETE FROM \`${ACTIVE_RECORD_KEY_TEMP_TABLE}\``);
+}
+
+async function insertActiveRecordKeys(connection, recordKeysByTable) {
+  const pairs = [];
+  for (const tableName of ['maint_item_pages', 'maint_item_page_recipes']) {
+    for (const recordKey of recordKeysByTable.get(tableName) ?? []) {
+      pairs.push([tableName, recordKey]);
+    }
+  }
+
+  for (let index = 0; index < pairs.length; index += ACTIVE_RECORD_KEY_INSERT_BATCH_SIZE) {
+    const batch = pairs.slice(index, index + ACTIVE_RECORD_KEY_INSERT_BATCH_SIZE);
+    const placeholders = batch.map(() => '(?, ?)').join(', ');
+    const params = batch.flatMap(([tableName, recordKey]) => [tableName, recordKey]);
+    await connection.execute(
+      `INSERT IGNORE INTO \`${ACTIVE_RECORD_KEY_TEMP_TABLE}\` (\`table_name\`, \`record_key\`) VALUES ${placeholders}`,
+      params,
+    );
+  }
+}
+
+async function retireStaleItemPageRows(connection, recordKeysByTable) {
+  const activeItemPageKeys = recordKeysByTable.get('maint_item_pages') ?? new Set();
+  if (activeItemPageKeys.size === 0) {
+    throw new Error('Refusing to retire stale item page rows without active maint_item_pages keys.');
+  }
+  await createActiveRecordKeyTempTable(connection);
+  await insertActiveRecordKeys(connection, recordKeysByTable);
+  let retired = 0;
+  for (const tableName of ['maint_item_pages', 'maint_item_page_recipes']) {
+    retired += await retireStaleRecordKeyRows(connection, tableName);
+  }
+  return retired;
 }
 
 async function defaultLoadLandingRows(scopes, connection) {
@@ -1335,11 +1428,24 @@ async function defaultWriteReport(reportPath, summary) {
   await fs.writeFile(reportPath, JSON.stringify(summary, null, 2), 'utf8');
 }
 
+function isSameCurrentRecordKeyRow(existing, row) {
+  return Number(existing?.status ?? 0) === 1
+    && Number(existing?.deleted ?? 1) === 0
+    && Number(existing?.landing_source_id ?? 0) === Number(row.landingSourceId)
+    && normalizeText(existing?.landing_content_hash) === normalizeText(row.landingContentHash);
+}
+
 async function upsertRecordKeyRow(connection, row) {
   if (row.tableName === 'maint_item_pages') {
-    const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
+    const [existingRows] = await connection.execute(
+      `SELECT id, status, deleted, landing_source_id, landing_content_hash FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`,
+      [row.recordKey],
+    );
     const existing = existingRows[0] ?? null;
     if (existing) {
+      if (isSameCurrentRecordKeyRow(existing, row)) {
+        return 'unchanged';
+      }
       await connection.execute(
         `UPDATE \`${row.tableName}\`
          SET item_internal_name = ?, item_name = ?, entity_type = ?, requested_page_title = ?, page_title = ?, page_id = ?,
@@ -1372,9 +1478,15 @@ async function upsertRecordKeyRow(connection, row) {
   }
 
   if (row.tableName === 'maint_item_page_recipes') {
-    const [existingRows] = await connection.execute(`SELECT id FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`, [row.recordKey]);
+    const [existingRows] = await connection.execute(
+      `SELECT id, status, deleted, landing_source_id, landing_content_hash FROM \`${row.tableName}\` WHERE record_key = ? LIMIT 1`,
+      [row.recordKey],
+    );
     const existing = existingRows[0] ?? null;
     if (existing) {
+      if (isSameCurrentRecordKeyRow(existing, row)) {
+        return 'unchanged';
+      }
       await connection.execute(
         `UPDATE \`${row.tableName}\`
          SET page_title = ?, item_internal_name = ?, item_name = ?, result_internal_name = ?, result_name = ?, result_quantity = ?, version_scope = ?,
@@ -2356,6 +2468,7 @@ export async function runMaintSync(options, dependencies = {}) {
     if (options.apply) {
       const connection = await mysqlModule.createConnection(connectionConfig);
       try {
+        await configureWriteSession(connection, options);
         await connection.beginTransaction();
         await connection.query(buildMaintSchemaSql());
         await ensureMaintMigrations(connection);
@@ -2365,6 +2478,9 @@ export async function runMaintSync(options, dependencies = {}) {
         for (const row of extracted) {
           const action = await upsertMaintRow(connection, row);
           summary.writes[action] += 1;
+        }
+        if (shouldRetireStaleItemPageTables(scopes)) {
+          summary.writes.retired += await retireStaleItemPageRows(connection, collectRecordKeysByTable(extracted));
         }
         await connection.commit();
       } catch (error) {
@@ -2385,9 +2501,11 @@ export async function runMaintSync(options, dependencies = {}) {
   const summary = createEmptyStreamSummary({ apply: options.apply, scopes });
   const writeConnection = options.apply ? await mysqlModule.createConnection(connectionConfig) : null;
   const seenRecordKeys = new Set();
+  const recordKeysByTable = new Map();
   let readConnection = null;
   try {
     if (writeConnection) {
+      await configureWriteSession(writeConnection, options);
       await writeConnection.beginTransaction();
       await writeConnection.query(buildMaintSchemaSql());
       await ensureMaintMigrations(writeConnection);
@@ -2413,6 +2531,15 @@ export async function runMaintSync(options, dependencies = {}) {
       mergeCategoryRuleSummary(summary, result.categoryRules);
       const dedupedRows = filterRowsByScopes(dedupeEntityRows(result.rows, seenRecordKeys), scopes);
       addRowsToStreamSummary(summary, dedupedRows);
+      for (const [tableName, recordKeys] of collectRecordKeysByTable(dedupedRows)) {
+        if (!recordKeysByTable.has(tableName)) {
+          recordKeysByTable.set(tableName, new Set());
+        }
+        const target = recordKeysByTable.get(tableName);
+        for (const recordKey of recordKeys) {
+          target.add(recordKey);
+        }
+      }
       if (writeConnection) {
         for (const row of dedupedRows) {
           const action = await upsertMaintRow(writeConnection, row);
@@ -2422,6 +2549,9 @@ export async function runMaintSync(options, dependencies = {}) {
     }
 
     if (writeConnection) {
+      if (shouldRetireStaleItemPageTables(scopes)) {
+        summary.writes.retired += await retireStaleItemPageRows(writeConnection, recordKeysByTable);
+      }
       await writeConnection.commit();
     }
 
@@ -2461,6 +2591,7 @@ async function main() {
     user: rawArgs.user,
     password: rawArgs.password,
     database: rawArgs.database,
+    disableBinaryLog: rawArgs['disable-binary-log'] ?? rawArgs.disableBinaryLog,
   });
   console.log(JSON.stringify(summary, null, 2));
 }

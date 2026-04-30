@@ -264,3 +264,63 @@ test('runLandingImport executes schema sql and upserts landing rows in apply mod
   assert.equal(summary.datasets.located, 1);
   assert.equal(summary.rows.inserted, 1);
 });
+
+test('runLandingImport retires stale current rows when source page changes for the same source key', async () => {
+  const executeCalls = [];
+  const summary = await runLandingImport(
+    {
+      apply: true,
+      datasets: ['item_pages_raw'],
+      db: { database: 'terria_v1_local' },
+      reportPath: 'G:/ClaudeCode/TerraPedia-dev/reports/source-dataset-landing-schema-2026-04-30.json',
+    },
+    {
+      locateDatasetEntries: async () => [
+        {
+          datasetType: 'item_pages_raw',
+          provider: 'terraria.wiki.gg',
+          sourceKind: 'page',
+          sourceKey: 'Item_1',
+          sourcePage: 'Renamed Item',
+          sourceLocator: 'shared://raw/wiki/item-pages/item-1.latest.json',
+          sourceRevisionTimestamp: '2026-04-30T01:00:00Z',
+          contentHash: 'b'.repeat(64),
+          payload: { pageTitle: 'Renamed Item' },
+          fetchedAt: '2026-04-30T01:00:00.000Z',
+          parsedAt: '2026-04-30T01:00:01.000Z',
+          parseStatus: 'ok',
+        },
+      ],
+      mysqlModule: {
+        async createConnection() {
+          return {
+            async beginTransaction() {},
+            async commit() {},
+            async rollback() {},
+            async query() {},
+            async execute(sql, params) {
+              executeCalls.push({ sql, params });
+              if (sql.startsWith('SELECT id, content_hash') && sql.includes('source_page = ?')) {
+                return [[]];
+              }
+              if (sql.startsWith('SELECT id, content_hash')) {
+                return [[{ id: 42, content_hash: 'a'.repeat(64), source_page: 'Old Item' }]];
+              }
+              return [{}];
+            },
+            async end() {},
+          };
+        },
+      },
+      writeReport: async () => {},
+    },
+  );
+
+  const retireCalls = executeCalls.filter((call) => call.sql.includes('SET is_current = 0'));
+  const insertCalls = executeCalls.filter((call) => call.sql.startsWith('INSERT INTO source_dataset_landings'));
+  assert.equal(retireCalls.length, 1);
+  assert.deepEqual(retireCalls[0].params, [42]);
+  assert.equal(insertCalls.length, 1);
+  assert.equal(summary.rows.replaced, 1);
+  assert.equal(summary.rows.inserted, 0);
+});

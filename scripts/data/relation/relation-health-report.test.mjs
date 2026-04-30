@@ -58,6 +58,62 @@ test('buildRelationHealthQueries keeps local validation scoped to standalone com
   assert.match(allSql, /`terria_v1_local`\.`npc_shop_conditions`/);
 });
 
+test('buildRelationHealthQueries checks maint item source key parity in both directions', () => {
+  const queries = buildRelationHealthQueries({
+    maintDatabase: 'terria_v1_maint',
+    relationDatabase: 'terria_v1_relation'
+  });
+  const byId = new Map(queries.map((query) => [query.id, query]));
+
+  const maintMissing = byId.get('maint_item_sources_missing_in_relation');
+  const relationMissing = byId.get('item_source_facts_missing_in_maint');
+
+  assert.ok(maintMissing);
+  assert.ok(relationMissing);
+  assert.deepEqual(maintMissing.expectation, { type: 'zero', field: 'count' });
+  assert.deepEqual(relationMissing.expectation, { type: 'zero', field: 'count' });
+  assert.match(maintMissing.sql, /FROM `terria_v1_maint`\.`maint_item_sources` m/);
+  assert.match(maintMissing.sql, /LEFT JOIN `terria_v1_relation`\.`item_source_facts` f/);
+  assert.match(maintMissing.sql, /f\.source_maint_table = 'maint_item_sources'/);
+  assert.match(maintMissing.sql, /BINARY f\.source_maint_record_key = BINARY m\.record_key/);
+  assert.match(relationMissing.sql, /FROM `terria_v1_relation`\.`item_source_facts` f/);
+  assert.match(relationMissing.sql, /LEFT JOIN `terria_v1_maint`\.`maint_item_sources` m/);
+  assert.match(relationMissing.sql, /BINARY m\.record_key = BINARY f\.source_maint_record_key/);
+  assert.match(relationMissing.sql, /f\.source_maint_table <> 'maint_item_sources'/);
+});
+
+test('buildRelationHealthQueries requires projection JSON columns to be valid non-empty arrays', () => {
+  const queries = buildRelationHealthQueries();
+  const byId = new Map(queries.map((query) => [query.id, query.sql]));
+
+  for (const [id, columnName] of [
+    ['projection_items_source_npcs_nonempty', 'source_npcs_json'],
+    ['projection_npcs_loot_items_nonempty', 'loot_items_json'],
+    ['projection_npcs_shop_items_nonempty', 'shop_items_json'],
+    ['projection_npcs_source_items_nonempty', 'source_items_json']
+  ]) {
+    const sql = byId.get(id);
+    assert.ok(sql, id);
+    assert.match(sql, new RegExp('JSON_VALID\\(`' + columnName + '`\\) = 1'));
+    assert.match(sql, new RegExp('CASE WHEN JSON_VALID\\(`' + columnName + '`\\) = 1 THEN JSON_TYPE\\(`' + columnName + '`\\) ELSE NULL END = \'ARRAY\''));
+    assert.match(sql, new RegExp('CASE WHEN JSON_VALID\\(`' + columnName + '`\\) = 1 THEN JSON_LENGTH\\(`' + columnName + '`\\) ELSE 0 END > 0'));
+  }
+});
+
+test('buildRelationHealthQueries makes standalone local compatibility counts blocking', () => {
+  const queries = buildRelationHealthQueries();
+  const byId = new Map(queries.map((query) => [query.id, query]));
+
+  for (const id of [
+    'local_compat_item_acquisition_sources_count',
+    'local_compat_npc_loot_entries_count',
+    'local_compat_npc_shop_entries_count',
+    'local_compat_npc_shop_conditions_count'
+  ]) {
+    assert.deepEqual(byId.get(id)?.expectation, { type: 'nonzero', field: 'count' }, id);
+  }
+});
+
 test('buildRelationHealthReport classifies blocking, warning, passing, and info checks', () => {
   const queries = buildRelationHealthQueries({
     maintDatabase: 'terria_v1_maint',
@@ -98,12 +154,31 @@ test('buildRelationHealthReport classifies blocking, warning, passing, and info 
 
   assert.equal(report.summary.blockingCount, 2);
   assert.equal(report.summary.warningCount, 1);
-  assert.equal(report.summary.passCount, 2);
-  assert.equal(report.summary.infoCount, 1);
+  assert.equal(report.summary.passCount, 3);
+  assert.equal(report.summary.infoCount, 0);
   assert.equal(report.checks.find((check) => check.id === 'maint_item_sources_vs_item_source_facts').status, 'fail');
   assert.equal(report.checks.find((check) => check.id === 'shop_relation_orphans').status, 'pass');
   assert.equal(report.checks.find((check) => check.id === 'projection_npcs_shop_items_nonempty').status, 'fail');
   assert.equal(report.checks.find((check) => check.id === 'unresolved_item_npc_relation_audits').status, 'warn');
+  assert.equal(report.checks.find((check) => check.id === 'local_compat_item_acquisition_sources_count').status, 'pass');
+});
+
+test('buildRelationHealthReport blocks on empty standalone local compatibility outputs', () => {
+  const queries = buildRelationHealthQueries();
+  const queryMap = new Map(queries.map((query) => [query.id, query]));
+
+  const report = buildRelationHealthReport({
+    checks: [
+      {
+        definition: queryMap.get('local_compat_npc_shop_entries_count'),
+        rows: [{ count: 0 }]
+      }
+    ]
+  });
+
+  assert.equal(report.summary.status, 'blocked');
+  assert.equal(report.summary.blockingCount, 1);
+  assert.equal(report.checks[0].status, 'fail');
 });
 
 test('formatValidationChecklist gives the coordinator a serial dry-run/apply sequence', () => {

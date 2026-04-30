@@ -37,7 +37,9 @@ function table(database, tableName) {
 }
 
 function nonEmptyJson(columnName) {
-  return `\`${columnName}\` IS NOT NULL AND TRIM(\`${columnName}\`) <> '' AND TRIM(\`${columnName}\`) <> '[]'`;
+  return `JSON_VALID(\`${columnName}\`) = 1
+  AND CASE WHEN JSON_VALID(\`${columnName}\`) = 1 THEN JSON_TYPE(\`${columnName}\`) ELSE NULL END = 'ARRAY'
+  AND CASE WHEN JSON_VALID(\`${columnName}\`) = 1 THEN JSON_LENGTH(\`${columnName}\`) ELSE 0 END > 0`;
 }
 
 function countCheck({ id, title, sql, expectation, description }) {
@@ -75,6 +77,31 @@ export function buildRelationHealthQueries({
   (SELECT COUNT(*) FROM ${maintItemSources}) AS maintCount,
   (SELECT COUNT(*) FROM ${itemSourceFacts}) AS relationCount,
   ((SELECT COUNT(*) FROM ${maintItemSources}) - (SELECT COUNT(*) FROM ${itemSourceFacts})) AS delta`
+    }),
+    countCheck({
+      id: 'maint_item_sources_missing_in_relation',
+      title: 'maint_item_sources keys missing from item_source_facts',
+      expectation: { type: 'zero', field: 'count' },
+      description: 'Every maint item source record_key must be present in relation item source facts.',
+      sql: `SELECT COUNT(*) AS count
+FROM ${maintItemSources} m
+LEFT JOIN ${itemSourceFacts} f
+  ON f.source_maint_table = 'maint_item_sources'
+ AND BINARY f.source_maint_record_key = BINARY m.record_key
+WHERE f.record_key IS NULL`
+    }),
+    countCheck({
+      id: 'item_source_facts_missing_in_maint',
+      title: 'item_source_facts keys missing from maint_item_sources',
+      expectation: { type: 'zero', field: 'count' },
+      description: 'Relation item source facts must remain traceable to maint item sources.',
+      sql: `SELECT COUNT(*) AS count
+FROM ${itemSourceFacts} f
+LEFT JOIN ${maintItemSources} m
+  ON BINARY m.record_key = BINARY f.source_maint_record_key
+WHERE f.source_maint_table <> 'maint_item_sources'
+   OR f.source_maint_record_key IS NULL
+   OR m.record_key IS NULL`
     }),
     countCheck({
       id: 'maint_item_sources_by_type',
@@ -299,25 +326,25 @@ WHERE ${nonEmptyJson('source_npcs_json')}`
     countCheck({
       id: 'local_compat_item_acquisition_sources_count',
       title: 'local compatibility item_acquisition_sources rows',
-      expectation: { type: 'info' },
+      expectation: { type: 'nonzero', field: 'count' },
       sql: `SELECT COUNT(*) AS count FROM ${localCompatItemSources}`
     }),
     countCheck({
       id: 'local_compat_npc_loot_entries_count',
       title: 'local compatibility npc_loot_entries rows',
-      expectation: { type: 'info' },
+      expectation: { type: 'nonzero', field: 'count' },
       sql: `SELECT COUNT(*) AS count FROM ${localCompatNpcLoot}`
     }),
     countCheck({
       id: 'local_compat_npc_shop_entries_count',
       title: 'local compatibility npc_shop_entries rows',
-      expectation: { type: 'info' },
+      expectation: { type: 'nonzero', field: 'count' },
       sql: `SELECT COUNT(*) AS count FROM ${localCompatNpcShop}`
     }),
     countCheck({
       id: 'local_compat_npc_shop_conditions_count',
       title: 'local compatibility npc_shop_conditions rows',
-      expectation: { type: 'info' },
+      expectation: { type: 'nonzero', field: 'count' },
       sql: `SELECT COUNT(*) AS count FROM ${localCompatNpcShopConditions}`
     })
   ];

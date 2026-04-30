@@ -76,12 +76,50 @@ export function buildRelationCompatSyncSql({
   const sourceDetails = qualified(relationDatabase, 'item_source_details');
   const lootRelations = qualified(relationDatabase, 'item_npc_loot_relations');
   const shopRelations = qualified(relationDatabase, 'item_npc_shop_relations');
+  const acceptedReviewStatuses = "('accepted', 'resolved', 'promoted')";
+  const publishableFactWhere = `f.deleted = 0
+  AND f.status = 1
+  AND f.review_status IN ${acceptedReviewStatuses}`;
+  const publishableDetailJoin = `d.source_fact_key = f.record_key
+ AND d.deleted = 0
+ AND d.status = 1
+ AND d.review_status IN ${acceptedReviewStatuses}`;
+  const publishableRelationWhere = `r.deleted = 0
+  AND r.status = 1
+  AND r.review_status IN ${acceptedReviewStatuses}`;
 
   return {
     item_acquisition_sources: {
       deleteSql: `DELETE FROM ${localItemSources}`,
-      countSql: `SELECT COUNT(*) AS total FROM ${sourceFacts} f INNER JOIN ${localItems} i ON i.internal_name COLLATE utf8mb4_unicode_ci = f.item_internal_name COLLATE utf8mb4_unicode_ci WHERE f.deleted = 0 AND i.deleted = 0`,
-      sampleSql: `SELECT f.item_internal_name, f.source_type, f.source_ref_type, f.source_ref_name FROM ${sourceFacts} f WHERE f.deleted = 0 LIMIT 5`,
+      countSql: `SELECT COUNT(*) AS total
+FROM ${sourceFacts} f
+INNER JOIN ${localItems} i
+  ON i.internal_name COLLATE utf8mb4_unicode_ci = f.item_internal_name COLLATE utf8mb4_unicode_ci
+ AND i.deleted = 0
+ AND i.status = 1
+LEFT JOIN ${sourceDetails} d
+  ON ${publishableDetailJoin}
+LEFT JOIN ${localNpcs} n
+  ON n.internal_name COLLATE utf8mb4_unicode_ci = d.source_ref_internal_name COLLATE utf8mb4_unicode_ci
+ AND n.deleted = 0
+ AND n.status = 1
+WHERE ${publishableFactWhere}
+  AND (f.source_ref_type IS NULL OR f.source_ref_type <> 'npc' OR (d.source_ref_resolution = 'resolved' AND n.id IS NOT NULL))`,
+      sampleSql: `SELECT f.item_internal_name, f.source_type, f.source_ref_type, f.source_ref_name
+FROM ${sourceFacts} f
+INNER JOIN ${localItems} i
+  ON i.internal_name COLLATE utf8mb4_unicode_ci = f.item_internal_name COLLATE utf8mb4_unicode_ci
+ AND i.deleted = 0
+ AND i.status = 1
+LEFT JOIN ${sourceDetails} d
+  ON ${publishableDetailJoin}
+LEFT JOIN ${localNpcs} n
+  ON n.internal_name COLLATE utf8mb4_unicode_ci = d.source_ref_internal_name COLLATE utf8mb4_unicode_ci
+ AND n.deleted = 0
+ AND n.status = 1
+WHERE ${publishableFactWhere}
+  AND (f.source_ref_type IS NULL OR f.source_ref_type <> 'npc' OR (d.source_ref_resolution = 'resolved' AND n.id IS NOT NULL))
+LIMIT 5`,
       insertSql: `
 INSERT INTO ${localItemSources}
   (\`item_id\`, \`source_type\`, \`source_ref_type\`, \`source_ref_id\`, \`source_ref_name\`, \`biome_id\`, \`quantity_min\`, \`quantity_max\`, \`quantity_text\`, \`chance_value\`, \`chance_text\`, \`conditions\`, \`notes\`, \`source_provider\`, \`source_page\`, \`source_revision_timestamp\`, \`sort_order\`, \`status\`, \`deleted\`)
@@ -108,17 +146,48 @@ SELECT
 FROM ${sourceFacts} f
 INNER JOIN ${localItems} i
   ON i.internal_name COLLATE utf8mb4_unicode_ci = f.item_internal_name COLLATE utf8mb4_unicode_ci
+ AND i.deleted = 0
+ AND i.status = 1
 LEFT JOIN ${sourceDetails} d
-  ON d.source_fact_key = f.record_key
+  ON ${publishableDetailJoin}
 LEFT JOIN ${localNpcs} n
   ON n.internal_name COLLATE utf8mb4_unicode_ci = d.source_ref_internal_name COLLATE utf8mb4_unicode_ci
-WHERE f.deleted = 0
-  AND i.deleted = 0`.trim()
+ AND n.deleted = 0
+ AND n.status = 1
+WHERE ${publishableFactWhere}
+  AND (f.source_ref_type IS NULL OR f.source_ref_type <> 'npc' OR (d.source_ref_resolution = 'resolved' AND n.id IS NOT NULL))`.trim()
     },
     npc_loot_entries: {
       deleteSql: `DELETE FROM ${localLoot}`,
-      countSql: `SELECT COUNT(*) AS total FROM ${lootRelations} r INNER JOIN ${localNpcs} n ON n.internal_name COLLATE utf8mb4_unicode_ci = r.npc_internal_name COLLATE utf8mb4_unicode_ci WHERE r.deleted = 0 AND n.deleted = 0`,
-      sampleSql: `SELECT r.npc_internal_name, r.item_internal_name, r.chance_text FROM ${lootRelations} r WHERE r.deleted = 0 LIMIT 5`,
+      countSql: `SELECT COUNT(*) AS total
+FROM ${lootRelations} r
+INNER JOIN ${sourceFacts} f
+  ON f.record_key = r.source_fact_key
+INNER JOIN ${localNpcs} n
+  ON n.internal_name COLLATE utf8mb4_unicode_ci = r.npc_internal_name COLLATE utf8mb4_unicode_ci
+ AND n.deleted = 0
+ AND n.status = 1
+INNER JOIN ${localItems} i
+  ON i.internal_name COLLATE utf8mb4_unicode_ci = r.item_internal_name COLLATE utf8mb4_unicode_ci
+ AND i.deleted = 0
+ AND i.status = 1
+WHERE ${publishableRelationWhere}
+  AND ${publishableFactWhere}`,
+      sampleSql: `SELECT r.npc_internal_name, r.item_internal_name, r.chance_text
+FROM ${lootRelations} r
+INNER JOIN ${sourceFacts} f
+  ON f.record_key = r.source_fact_key
+INNER JOIN ${localNpcs} n
+  ON n.internal_name COLLATE utf8mb4_unicode_ci = r.npc_internal_name COLLATE utf8mb4_unicode_ci
+ AND n.deleted = 0
+ AND n.status = 1
+INNER JOIN ${localItems} i
+  ON i.internal_name COLLATE utf8mb4_unicode_ci = r.item_internal_name COLLATE utf8mb4_unicode_ci
+ AND i.deleted = 0
+ AND i.status = 1
+WHERE ${publishableRelationWhere}
+  AND ${publishableFactWhere}
+LIMIT 5`,
       insertSql: `
 INSERT INTO ${localLoot}
   (\`npc_id\`, \`item_id\`, \`source_item_id\`, \`quantity_min\`, \`quantity_max\`, \`quantity_text\`, \`chance_value\`, \`chance_text\`, \`conditions\`, \`notes\`, \`sort_order\`, \`status\`, \`deleted\`)
@@ -137,17 +206,50 @@ SELECT
   1,
   0
 FROM ${lootRelations} r
+INNER JOIN ${sourceFacts} f
+  ON f.record_key = r.source_fact_key
 INNER JOIN ${localNpcs} n
   ON n.internal_name COLLATE utf8mb4_unicode_ci = r.npc_internal_name COLLATE utf8mb4_unicode_ci
-LEFT JOIN ${localItems} i
+ AND n.deleted = 0
+ AND n.status = 1
+INNER JOIN ${localItems} i
   ON i.internal_name COLLATE utf8mb4_unicode_ci = r.item_internal_name COLLATE utf8mb4_unicode_ci
-WHERE r.deleted = 0
-  AND n.deleted = 0`.trim()
+ AND i.deleted = 0
+ AND i.status = 1
+WHERE ${publishableRelationWhere}
+  AND ${publishableFactWhere}`.trim()
     },
     npc_shop_entries: {
       deleteSql: `DELETE FROM ${localShop}`,
-      countSql: `SELECT COUNT(*) AS total FROM ${shopRelations} r INNER JOIN ${localNpcs} n ON n.internal_name COLLATE utf8mb4_unicode_ci = r.npc_internal_name COLLATE utf8mb4_unicode_ci WHERE r.deleted = 0 AND n.deleted = 0`,
-      sampleSql: `SELECT r.npc_internal_name, r.item_internal_name, r.price_text FROM ${shopRelations} r WHERE r.deleted = 0 LIMIT 5`,
+      countSql: `SELECT COUNT(*) AS total
+FROM ${shopRelations} r
+INNER JOIN ${sourceFacts} f
+  ON f.record_key = r.source_fact_key
+INNER JOIN ${localNpcs} n
+  ON n.internal_name COLLATE utf8mb4_unicode_ci = r.npc_internal_name COLLATE utf8mb4_unicode_ci
+ AND n.deleted = 0
+ AND n.status = 1
+INNER JOIN ${localItems} i
+  ON i.internal_name COLLATE utf8mb4_unicode_ci = r.item_internal_name COLLATE utf8mb4_unicode_ci
+ AND i.deleted = 0
+ AND i.status = 1
+WHERE ${publishableRelationWhere}
+  AND ${publishableFactWhere}`,
+      sampleSql: `SELECT r.npc_internal_name, r.item_internal_name, r.price_text
+FROM ${shopRelations} r
+INNER JOIN ${sourceFacts} f
+  ON f.record_key = r.source_fact_key
+INNER JOIN ${localNpcs} n
+  ON n.internal_name COLLATE utf8mb4_unicode_ci = r.npc_internal_name COLLATE utf8mb4_unicode_ci
+ AND n.deleted = 0
+ AND n.status = 1
+INNER JOIN ${localItems} i
+  ON i.internal_name COLLATE utf8mb4_unicode_ci = r.item_internal_name COLLATE utf8mb4_unicode_ci
+ AND i.deleted = 0
+ AND i.status = 1
+WHERE ${publishableRelationWhere}
+  AND ${publishableFactWhere}
+LIMIT 5`,
       insertSql: `
 INSERT INTO ${localShop}
   (\`npc_id\`, \`item_id\`, \`source_item_id\`, \`price_text\`, \`notes\`, \`sort_order\`, \`status\`, \`deleted\`)
@@ -161,17 +263,52 @@ SELECT
   1,
   0
 FROM ${shopRelations} r
+INNER JOIN ${sourceFacts} f
+  ON f.record_key = r.source_fact_key
 INNER JOIN ${localNpcs} n
   ON n.internal_name COLLATE utf8mb4_unicode_ci = r.npc_internal_name COLLATE utf8mb4_unicode_ci
-LEFT JOIN ${localItems} i
+ AND n.deleted = 0
+ AND n.status = 1
+INNER JOIN ${localItems} i
   ON i.internal_name COLLATE utf8mb4_unicode_ci = r.item_internal_name COLLATE utf8mb4_unicode_ci
-WHERE r.deleted = 0
-  AND n.deleted = 0`.trim()
+ AND i.deleted = 0
+ AND i.status = 1
+WHERE ${publishableRelationWhere}
+  AND ${publishableFactWhere}`.trim()
     },
     npc_shop_conditions: {
       deleteSql: `DELETE FROM ${localShopConditions}`,
-      countSql: `SELECT COUNT(*) AS total FROM ${shopRelations} r WHERE r.deleted = 0 AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL)`,
-      sampleSql: `SELECT r.npc_internal_name, r.item_internal_name, r.condition_source_text FROM ${shopRelations} r WHERE r.deleted = 0 AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL) LIMIT 5`,
+      countSql: `SELECT COUNT(*) AS total
+FROM ${shopRelations} r
+INNER JOIN ${sourceFacts} f
+  ON f.record_key = r.source_fact_key
+INNER JOIN ${localNpcs} n
+  ON n.internal_name COLLATE utf8mb4_unicode_ci = r.npc_internal_name COLLATE utf8mb4_unicode_ci
+ AND n.deleted = 0
+ AND n.status = 1
+INNER JOIN ${localItems} i
+  ON i.internal_name COLLATE utf8mb4_unicode_ci = r.item_internal_name COLLATE utf8mb4_unicode_ci
+ AND i.deleted = 0
+ AND i.status = 1
+WHERE ${publishableRelationWhere}
+  AND ${publishableFactWhere}
+  AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL)`,
+      sampleSql: `SELECT r.npc_internal_name, r.item_internal_name, r.condition_source_text
+FROM ${shopRelations} r
+INNER JOIN ${sourceFacts} f
+  ON f.record_key = r.source_fact_key
+INNER JOIN ${localNpcs} n
+  ON n.internal_name COLLATE utf8mb4_unicode_ci = r.npc_internal_name COLLATE utf8mb4_unicode_ci
+ AND n.deleted = 0
+ AND n.status = 1
+INNER JOIN ${localItems} i
+  ON i.internal_name COLLATE utf8mb4_unicode_ci = r.item_internal_name COLLATE utf8mb4_unicode_ci
+ AND i.deleted = 0
+ AND i.status = 1
+WHERE ${publishableRelationWhere}
+  AND ${publishableFactWhere}
+  AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL)
+LIMIT 5`,
       insertSql: `
 INSERT INTO ${localShopConditions}
   (\`shop_entry_id\`, \`ref_type\`, \`ref_id\`, \`condition_role\`, \`notes\`, \`sort_order\`)
@@ -183,15 +320,22 @@ SELECT
   COALESCE(r.condition_source_text, r.condition_events_json, r.special_flags_json),
   0
 FROM ${shopRelations} r
+INNER JOIN ${sourceFacts} f
+  ON f.record_key = r.source_fact_key
 INNER JOIN ${localNpcs} n
   ON n.internal_name COLLATE utf8mb4_unicode_ci = r.npc_internal_name COLLATE utf8mb4_unicode_ci
-LEFT JOIN ${localItems} i
+ AND n.deleted = 0
+ AND n.status = 1
+INNER JOIN ${localItems} i
   ON i.internal_name COLLATE utf8mb4_unicode_ci = r.item_internal_name COLLATE utf8mb4_unicode_ci
+ AND i.deleted = 0
+ AND i.status = 1
 INNER JOIN ${localShop} se
   ON se.npc_id = n.id
  AND (se.item_id <=> i.id)
  AND (se.price_text COLLATE utf8mb4_unicode_ci <=> r.price_text COLLATE utf8mb4_unicode_ci)
-WHERE r.deleted = 0
+WHERE ${publishableRelationWhere}
+  AND ${publishableFactWhere}
   AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL)`.trim()
     }
   };
