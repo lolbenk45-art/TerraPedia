@@ -29,10 +29,11 @@ test('runCli supports entity npc mode by page-id', async () => {
 test('runCli supports entity npc mode by page-title', async () => {
   const fixture = JSON.parse(await fs.readFile(fixturePath, 'utf8'));
   const payload = await runCli(
-    ['entity', '--domain=npc', '--page-title=Goblin Tinkerer'],
+    ['entity', '--domain=npc', '--page-title=Goblin Tinkerer', '--api-url=https://terraria.wiki.gg/zh/api.php'],
     {
-      resolveNpcLiveSourceImpl: async ({ pageTitle }) => {
+      resolveNpcLiveSourceImpl: async ({ pageTitle, apiUrl }) => {
         assert.equal(pageTitle, 'Goblin Tinkerer');
+        assert.equal(apiUrl, 'https://terraria.wiki.gg/zh/api.php');
         return fixture;
       }
     }

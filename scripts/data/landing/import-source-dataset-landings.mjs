@@ -379,7 +379,27 @@ async function updateLandingRow(connection, rowId, row) {
   );
 }
 
-async function retireLandingRow(connection, rowId) {
+async function clearArchivedLandingRowForKey(connection, row, sourcePage, keepRowId) {
+  await connection.execute(
+    `DELETE FROM source_dataset_landings
+     WHERE dataset_type = ?
+       AND provider = ?
+       AND source_key = ?
+       AND source_page <=> ?
+       AND is_current = 0
+       AND id <> ?`,
+    [
+      row.datasetType,
+      row.provider,
+      row.sourceKey,
+      normalizeText(sourcePage, row.sourcePage),
+      keepRowId,
+    ],
+  );
+}
+
+async function retireLandingRow(connection, rowId, row, sourcePage) {
+  await clearArchivedLandingRowForKey(connection, row, sourcePage, rowId);
   await connection.execute(
     `UPDATE source_dataset_landings
      SET is_current = 0,
@@ -403,7 +423,7 @@ async function upsertLandingEntry(connection, entry, summary) {
   if (exactCurrent && normalizeText(exactCurrent.content_hash) === row.contentHash) {
     for (const stale of currentRows) {
       if (Number(stale.id) !== Number(exactCurrent.id)) {
-        await retireLandingRow(connection, Number(stale.id));
+        await retireLandingRow(connection, Number(stale.id), row, stale.source_page);
       }
     }
     await updateLandingRow(connection, Number(exactCurrent.id), row);
@@ -412,7 +432,7 @@ async function upsertLandingEntry(connection, entry, summary) {
   }
 
   for (const current of currentRows) {
-    await retireLandingRow(connection, Number(current.id));
+    await retireLandingRow(connection, Number(current.id), row, current.source_page);
   }
   await insertLandingRow(connection, row);
   summary.rows.replaced += 1;

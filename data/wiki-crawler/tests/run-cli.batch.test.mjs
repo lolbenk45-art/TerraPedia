@@ -8,6 +8,7 @@ test('runCli supports batch npc mode and delegates to the batch runner', async (
     'batch',
     '--domain=npc',
     '--page-titles=Goblin Tinkerer|Medusa',
+    '--api-url=https://terraria.wiki.gg/zh/api.php',
     '--write-files'
   ], {
     runNpcBatchImpl: async (options) => ({
@@ -25,6 +26,7 @@ test('runCli supports batch npc mode and delegates to the batch runner', async (
 
   assert.deepEqual(payload.received, {
     domain: 'npc',
+    apiUrl: 'https://terraria.wiki.gg/zh/api.php',
     pageIds: [],
     pageTitles: ['Goblin Tinkerer', 'Medusa'],
     writeFiles: true

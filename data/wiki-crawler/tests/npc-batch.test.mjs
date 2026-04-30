@@ -12,6 +12,7 @@ test('runNpcBatch executes page titles and page ids sequentially through runCli'
   const result = await runNpcBatch({
     pageTitles: ['Goblin Tinkerer', 'Medusa'],
     pageIds: [13774],
+    apiUrl: 'https://terraria.wiki.gg/zh/api.php',
     writeFiles: true,
     outputRoot: tempRoot
   }, {
@@ -32,9 +33,9 @@ test('runNpcBatch executes page titles and page ids sequentially through runCli'
   });
 
   assert.deepEqual(calls, [
-    ['entity', '--domain=npc', '--page-title=Goblin Tinkerer', '--write-files', `--output-root=${tempRoot}`],
-    ['entity', '--domain=npc', '--page-title=Medusa', '--write-files', `--output-root=${tempRoot}`],
-    ['entity', '--domain=npc', '--page-id=13774', '--write-files', `--output-root=${tempRoot}`]
+    ['entity', '--domain=npc', '--page-title=Goblin Tinkerer', '--api-url=https://terraria.wiki.gg/zh/api.php', '--write-files', `--output-root=${tempRoot}`],
+    ['entity', '--domain=npc', '--page-title=Medusa', '--api-url=https://terraria.wiki.gg/zh/api.php', '--write-files', `--output-root=${tempRoot}`],
+    ['entity', '--domain=npc', '--page-id=13774', '--api-url=https://terraria.wiki.gg/zh/api.php', '--write-files', `--output-root=${tempRoot}`]
   ]);
   assert.equal(result.executions.length, 3);
   assert.equal(result.executions[1].audit.status, 'warn');

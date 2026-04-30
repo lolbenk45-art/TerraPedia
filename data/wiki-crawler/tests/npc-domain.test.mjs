@@ -28,6 +28,10 @@ test('buildNpcNormalizedLight preserves normalized shop, loot, projectile, and b
     entityId: 'zombie',
     pageTitle: 'Zombie',
     pageDescription: 'Zombie is a common enemy.',
+    sourceMetadata: {
+      apiUrl: 'https://terraria.wiki.gg/zh/api.php',
+      pageId: 123
+    },
     revisionText: [
       '{{npc infobox',
       '| type = Enemy',
@@ -47,6 +51,10 @@ test('buildNpcNormalizedLight preserves normalized shop, loot, projectile, and b
   });
 
   assert.equal(record.combat.projectileId, '24');
+  assert.deepEqual(record.sourceMetadata, {
+    apiUrl: 'https://terraria.wiki.gg/zh/api.php',
+    pageId: 123
+  });
   assert.deepEqual(record.shop.normalizedRows, [
     {
       relationType: 'shop',

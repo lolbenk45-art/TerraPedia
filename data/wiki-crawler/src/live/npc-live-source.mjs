@@ -25,7 +25,7 @@ export async function resolveNpcLiveSource(
   const finalTitle = String(payload?.pageTitle ?? resolvedTitle ?? '').trim();
 
   return {
-    entityId: toEntityId(finalTitle),
+    entityId: toEntityId(finalTitle) || toEntityId(pageTitle),
     pageTitle: finalTitle,
     pageDescription: metadata.pageDescription ?? '',
     revisionText: String(payload?.wikitext ?? ''),

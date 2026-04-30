@@ -5,7 +5,6 @@ const SHIMMER_PATTERN = /\{\{NPC shimmered form\|([\s\S]*?)\}\}/i;
 const LIVING_PREFERENCES_PATTERN = /\{\{living preferences\|([\s\S]*?)\}\}/i;
 const LIFEFORM_REMOVE_PATTERN = /\{\{Lifeform Analyzer note\|[\s\S]*?\}\}/gi;
 const SHIMMER_REMOVE_PATTERN = /\{\{NPC shimmered form\|[\s\S]*?\}\}/gi;
-const SHOP_ROW_PATTERN = /\{\{shop row\|([\s\S]*?)\}\}/gi;
 const SECTION_HEADING_REGEX = /^\s*={2,}\s*[^=]+?\s*={2,}/m;
 const FILE_BLOCK_PATTERN = /\[\[File:[\s\S]*?\]\]\s*/gi;
 const DABLINK_PATTERN = /\{\{dablink\|[\s\S]*?\}\}\s*/gi;
@@ -63,6 +62,93 @@ function splitList(value) {
     .split('/')
     .map((element) => element.trim())
     .filter(Boolean);
+}
+
+function findBalancedTemplateBlocks(text, templateName) {
+  const escapedName = templateName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const startPattern = new RegExp(`\\{\\{\\s*${escapedName}(?=\\s*(?:\\||\\}\\}))`, 'gi');
+  const blocks = [];
+  let match;
+
+  while ((match = startPattern.exec(text)) !== null) {
+    let depth = 0;
+    let end = -1;
+
+    for (let index = match.index; index < text.length - 1; index += 1) {
+      if (text[index] === '{' && text[index + 1] === '{') {
+        depth += 1;
+        index += 1;
+        continue;
+      }
+
+      if (text[index] === '}' && text[index + 1] === '}') {
+        depth -= 1;
+        index += 1;
+        if (depth === 0) {
+          end = index + 1;
+          break;
+        }
+      }
+    }
+
+    if (end < 0) {
+      break;
+    }
+
+    blocks.push(text.slice(match.index, end));
+    startPattern.lastIndex = end;
+  }
+
+  return blocks;
+}
+
+function getTemplateInner(block, templateName) {
+  const escapedName = templateName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const openPattern = new RegExp(`^\\{\\{\\s*${escapedName}\\s*(?:\\|)?`, 'i');
+  const openMatch = openPattern.exec(block);
+  if (!openMatch) {
+    return '';
+  }
+  return block.slice(openMatch[0].length, -2);
+}
+
+function splitTopLevelTemplateArgs(value) {
+  const text = String(value ?? '');
+  const parts = [];
+  let start = 0;
+  let templateDepth = 0;
+  let linkDepth = 0;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const pair = text.slice(index, index + 2);
+    if (pair === '{{') {
+      templateDepth += 1;
+      index += 1;
+      continue;
+    }
+    if (pair === '}}' && templateDepth > 0) {
+      templateDepth -= 1;
+      index += 1;
+      continue;
+    }
+    if (pair === '[[') {
+      linkDepth += 1;
+      index += 1;
+      continue;
+    }
+    if (pair === ']]' && linkDepth > 0) {
+      linkDepth -= 1;
+      index += 1;
+      continue;
+    }
+    if (text[index] === '|' && templateDepth === 0 && linkDepth === 0) {
+      parts.push(text.slice(start, index));
+      start = index + 1;
+    }
+  }
+
+  parts.push(text.slice(start));
+  return parts;
 }
 
 function parseInfoboxFields(revisionText) {
@@ -215,11 +301,9 @@ export function extractNpcSpecialForms(revisionText) {
 export function extractNpcShop(revisionText) {
   const text = String(revisionText ?? '');
   const items = [];
-  let match;
 
-  while ((match = SHOP_ROW_PATTERN.exec(text)) !== null) {
-    const parts = match[1]
-      .split('|')
+  for (const block of findBalancedTemplateBlocks(text, 'shop row')) {
+    const parts = splitTopLevelTemplateArgs(getTemplateInner(block, 'shop row'))
       .map((part) => part.trim())
       .filter(Boolean);
     if (!parts.length) {

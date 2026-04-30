@@ -223,6 +223,54 @@ test('extractNpcShop keeps item name, valueText, and availability note', () => {
   });
 });
 
+test('extractNpcShop keeps rows with nested value templates', () => {
+  const sample = [
+    '{{shop|',
+    '{{shop row|Mining Helmet|value={{gc|4}}|Always}}',
+    '{{shop row|Valentine Ring|value={{gc|1}}|During [[Valentine\'s Day]]}}',
+    '{{shop row|Wiesnbräu|value={{coin|9|95}}|During [[Oktoberfest]]}}',
+    '{{shop row|Turkey feather|value={{gc|10}}|During [[Thanksgiving]]}}',
+    '{{shop row|Heart Arrow|value={{cc|50}}|During [[Valentine\'s Day]]}}',
+    '{{shop row|Festive top hat|value={{gc|1}}|During [[Christmas]]}}',
+    '}}'
+  ].join('\n');
+
+  assert.deepEqual(extractNpcShop(sample), {
+    items: [
+      {
+        name: 'Mining Helmet',
+        valueText: '{{gc|4}}',
+        availabilityNote: 'Always'
+      },
+      {
+        name: 'Valentine Ring',
+        valueText: '{{gc|1}}',
+        availabilityNote: "During [[Valentine's Day]]"
+      },
+      {
+        name: 'Wiesnbräu',
+        valueText: '{{coin|9|95}}',
+        availabilityNote: 'During [[Oktoberfest]]'
+      },
+      {
+        name: 'Turkey feather',
+        valueText: '{{gc|10}}',
+        availabilityNote: 'During [[Thanksgiving]]'
+      },
+      {
+        name: 'Heart Arrow',
+        valueText: '{{cc|50}}',
+        availabilityNote: "During [[Valentine's Day]]"
+      },
+      {
+        name: 'Festive top hat',
+        valueText: '{{gc|1}}',
+        availabilityNote: 'During [[Christmas]]'
+      }
+    ]
+  });
+});
+
 test('normalizeNpcShopRows maps raw shop rows to NPC item relation evidence', () => {
   assert.deepEqual(
     normalizeNpcShopRows(

@@ -205,3 +205,71 @@ test('buildNpcItemRelationsBundle materializes standardized NPC shop, loot, and 
   );
   assert.equal(bundle.backfillCandidates[0].candidateKey, 'b'.repeat(64));
 });
+
+test('buildNpcItemRelationsBundle uses zh wiki source URLs when crawler source came from zh api', () => {
+  const bundle = buildNpcItemRelationsBundle({
+    generatedAt: '2026-04-29T00:00:00.000Z',
+    standardizedPayload: {
+      entity: 'npcs',
+      records: [
+        {
+          id: 17,
+          internalName: 'Merchant',
+          name: 'Merchant',
+          wikiCrawler: {
+            pageTitle: '商人',
+            sourceMetadata: {
+              apiUrl: 'https://terraria.wiki.gg/zh/api.php'
+            },
+            shop: [
+              {
+                relationType: 'shop',
+                itemName: 'Heart Arrow',
+                priceText: '{{cc|50}}',
+                conditionText: "During [[Valentine's Day]]",
+                sourceSection: 'shop',
+                sourceRowIndex: 0,
+                raw: { itemName: 'Heart Arrow' }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  });
+
+  assert.equal(bundle.records[0].sourceUrl, 'https://terraria.wiki.gg/zh/wiki/%E5%95%86%E4%BA%BA');
+});
+
+test('buildNpcItemRelationsBundle keeps standardized NPC internal name over crawler entity id', () => {
+  const bundle = buildNpcItemRelationsBundle({
+    generatedAt: '2026-04-29T00:00:00.000Z',
+    standardizedPayload: {
+      entity: 'npcs',
+      records: [
+        {
+          id: 17,
+          internalName: 'Merchant',
+          name: 'Merchant',
+          wikiCrawler: {
+            pageTitle: '商人',
+            shop: [
+              {
+                relationType: 'shop',
+                itemName: 'Heart Arrow',
+                npcInternalName: 'merchant',
+                npcName: '商人',
+                sourceSection: 'shop',
+                sourceRowIndex: 0,
+                raw: { itemName: 'Heart Arrow' }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  });
+
+  assert.equal(bundle.records[0].npcInternalName, 'Merchant');
+  assert.equal(bundle.records[0].npcName, 'Merchant');
+});

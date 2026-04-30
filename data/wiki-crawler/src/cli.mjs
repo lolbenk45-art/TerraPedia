@@ -28,6 +28,7 @@ export async function runCli(argv, {
       domain: readOption(argv, 'domain') ?? '',
       pageTitles: readListOption(argv, 'page-titles', '|'),
       pageIds: readListOption(argv, 'page-ids', ',').map((value) => Number(value)).filter((value) => Number.isInteger(value)),
+      apiUrl: readOption(argv, 'api-url'),
       targetsFile: readOption(argv, 'targets-file'),
       targetPriority: readOption(argv, 'target-priority'),
       limit: readNumberOption(argv, 'limit'),
@@ -125,7 +126,8 @@ async function loadRawInput(argv, {
 
     return resolveNpcLiveSourceImpl({
       pageId,
-      pageTitle
+      pageTitle,
+      apiUrl: readOption(args, 'api-url')
     });
   }
 
@@ -139,7 +141,8 @@ async function loadRawInput(argv, {
     '  node data/wiki-crawler/src/cli.mjs coverage-audit --domain=npc --source-standardized-dir=<dir> --crawler-output-root=<dir>',
     '  node data/wiki-crawler/src/cli.mjs coverage-shard --domain=npc --coverage-audit-path=<path> --priority=<priority> --limit=<n>',
     '  node data/wiki-crawler/src/cli.mjs entity --domain=npc --page-id=<id>',
-    '  node data/wiki-crawler/src/cli.mjs entity --domain=npc --page-title=<title>'
+    '  node data/wiki-crawler/src/cli.mjs entity --domain=npc --page-title=<title>',
+    '  node data/wiki-crawler/src/cli.mjs entity --domain=npc --page-title=<title> --api-url=<wiki-api-url>'
   ].join('\n'));
 }
 

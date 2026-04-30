@@ -17,10 +17,11 @@ function slug(value) {
     .replace(/^-+|-+$/g, '');
 }
 
-function wikiPageUrl(pageTitle) {
+function wikiPageUrl(pageTitle, apiUrl) {
   const title = String(pageTitle ?? '').trim();
   if (!title) return null;
-  return `https://terraria.wiki.gg/wiki/${encodeURIComponent(title).replaceAll('%20', '_')}`;
+  const wikiPath = String(apiUrl ?? '').includes('/zh/api.php') ? '/zh/wiki/' : '/wiki/';
+  return `https://terraria.wiki.gg${wikiPath}${encodeURIComponent(title).replaceAll('%20', '_')}`;
 }
 
 function normalizeRows(value) {
@@ -31,10 +32,11 @@ function normalizeRows(value) {
 }
 
 function buildRelationRecord({ npc, row, relationType, sortOrder }) {
-  const npcInternalName = row.npcInternalName ?? npc.internalName ?? null;
-  const npcName = row.npcName ?? npc.name ?? npcInternalName;
+  const npcInternalName = npc.internalName ?? row.npcInternalName ?? null;
+  const npcName = npc.name ?? row.npcName ?? npcInternalName;
   const itemName = row.itemName ?? row.item ?? row.name ?? null;
   const pageTitle = npc.wikiCrawler?.pageTitle ?? npcName;
+  const sourceMetadata = npc.wikiCrawler?.sourceMetadata ?? {};
   return {
     recordKey: `npc-item:${slug(npcInternalName ?? npcName)}:${relationType}:${slug(itemName)}`,
     relationType,
@@ -45,7 +47,7 @@ function buildRelationRecord({ npc, row, relationType, sortOrder }) {
     chanceText: row.chanceText ?? null,
     quantityText: row.quantityText ?? null,
     conditionText: row.conditionText ?? row.condition ?? row.availabilityNote ?? null,
-    sourceUrl: row.sourceUrl ?? wikiPageUrl(pageTitle),
+    sourceUrl: row.sourceUrl ?? wikiPageUrl(pageTitle, sourceMetadata.apiUrl),
     sourceSection: row.sourceSection ?? (relationType === 'shop' ? 'shop' : 'drops'),
     sourceRowIndex: row.sourceRowIndex ?? sortOrder,
     raw: row.raw ?? row

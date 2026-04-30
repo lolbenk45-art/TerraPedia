@@ -324,3 +324,68 @@ test('runLandingImport retires stale current rows when source page changes for t
   assert.equal(summary.rows.replaced, 1);
   assert.equal(summary.rows.inserted, 0);
 });
+
+test('runLandingImport clears prior archived row before retiring a replaced current row', async () => {
+  const executeCalls = [];
+  const summary = await runLandingImport(
+    {
+      apply: true,
+      datasets: ['npc_item_relations_bundle_raw'],
+      db: { database: 'terria_v1_local' },
+      reportPath: 'G:/ClaudeCode/TerraPedia-dev/reports/source-dataset-landing-schema-2026-05-01.json',
+    },
+    {
+      locateDatasetEntries: async () => [
+        {
+          datasetType: 'npc_item_relations_bundle_raw',
+          provider: 'terrapedia.generated',
+          sourceKind: 'generated_bundle',
+          sourceKey: 'generated.npc_item_relations_bundle',
+          sourcePage: 'npc-item-relations.bundle',
+          sourceLocator: 'repo://data/generated/npc-item-relations.bundle.json',
+          contentHash: 'c'.repeat(64),
+          payload: { records: [{ itemName: 'Heart Arrow' }] },
+          fetchedAt: '2026-05-01T01:00:00.000Z',
+          parsedAt: '2026-05-01T01:00:01.000Z',
+          parseStatus: 'ok',
+        },
+      ],
+      mysqlModule: {
+        async createConnection() {
+          return {
+            async beginTransaction() {},
+            async commit() {},
+            async rollback() {},
+            async query() {},
+            async execute(sql, params) {
+              executeCalls.push({ sql, params });
+              if (sql.startsWith('SELECT id, content_hash')) {
+                return [[{
+                  id: 6518,
+                  content_hash: 'a'.repeat(64),
+                  source_page: 'npc-item-relations.bundle'
+                }]];
+              }
+              return [{}];
+            },
+            async end() {},
+          };
+        },
+      },
+      writeReport: async () => {},
+    },
+  );
+
+  const deleteArchivedCall = executeCalls.find((call) => call.sql.startsWith('DELETE FROM source_dataset_landings'));
+  const retireCall = executeCalls.find((call) => call.sql.includes('SET is_current = 0'));
+  assert.ok(deleteArchivedCall);
+  assert.deepEqual(deleteArchivedCall.params, [
+    'npc_item_relations_bundle_raw',
+    'terrapedia.generated',
+    'generated.npc_item_relations_bundle',
+    'npc-item-relations.bundle',
+    6518
+  ]);
+  assert.ok(retireCall);
+  assert.equal(summary.rows.replaced, 1);
+});

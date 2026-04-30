@@ -68,6 +68,7 @@ export function buildNpcNormalizedLight(raw) {
       pageTitle: source.pageTitle ?? '',
       pageDescription: source.pageDescription ?? ''
     },
+    sourceMetadata: source.sourceMetadata ?? {},
     display: {
       name: npcContext.npcName
     },

@@ -28,7 +28,7 @@ export async function runNpcBatch(options = {}, { runCliImpl } = {}) {
 
   for (const pageTitle of pageTitles) {
     executions.push(await runSingleTarget({
-      argv: buildEntityArgv({ pageTitle, writeFiles, outputRoot }),
+      argv: buildEntityArgv({ pageTitle, apiUrl: options.apiUrl, writeFiles, outputRoot }),
       target: { pageTitle, pageId: null },
       runCliImpl
     }));
@@ -36,7 +36,7 @@ export async function runNpcBatch(options = {}, { runCliImpl } = {}) {
 
   for (const pageId of pageIds) {
     executions.push(await runSingleTarget({
-      argv: buildEntityArgv({ pageId, writeFiles, outputRoot }),
+      argv: buildEntityArgv({ pageId, apiUrl: options.apiUrl, writeFiles, outputRoot }),
       target: { pageTitle: '', pageId },
       runCliImpl
     }));
@@ -78,6 +78,7 @@ async function runSingleTarget({
 function buildEntityArgv({
   pageTitle,
   pageId,
+  apiUrl,
   writeFiles,
   outputRoot
 }) {
@@ -86,6 +87,9 @@ function buildEntityArgv({
     argv.push(`--page-title=${pageTitle}`);
   } else if (pageId != null) {
     argv.push(`--page-id=${pageId}`);
+  }
+  if (apiUrl) {
+    argv.push(`--api-url=${apiUrl}`);
   }
   if (writeFiles) {
     argv.push('--write-files');
