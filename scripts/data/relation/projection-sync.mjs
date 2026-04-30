@@ -90,6 +90,33 @@ function buildProjectionRowIndexes(rows = []) {
   return { bySourceId, byInternalName };
 }
 
+function coalesceTraceValue(row, fallback, camelKey, snakeKey) {
+  return row?.[camelKey] ?? row?.[snakeKey] ?? fallback?.[camelKey] ?? fallback?.[snakeKey] ?? null;
+}
+
+function buildTraceableRelationFields(row, fallback = null) {
+  const relationRecordKey = row?.recordKey ?? row?.record_key ?? null;
+  const sourceProvider = coalesceTraceValue(row, fallback, 'sourceProvider', 'source_provider');
+  const sourcePage = coalesceTraceValue(row, fallback, 'sourcePage', 'source_page');
+  const sourceRevisionTimestamp = coalesceTraceValue(
+    row,
+    fallback,
+    'sourceRevisionTimestamp',
+    'source_revision_timestamp'
+  );
+
+  if (relationRecordKey == null && sourceProvider == null && sourcePage == null && sourceRevisionTimestamp == null) {
+    return {};
+  }
+
+  return {
+    relationRecordKey,
+    ...(sourceProvider == null ? {} : { sourceProvider }),
+    ...(sourcePage == null ? {} : { sourcePage }),
+    ...(sourceRevisionTimestamp == null ? {} : { sourceRevisionTimestamp })
+  };
+}
+
 function appendMappedValue(map, key, value) {
   if (key == null || key === '') return;
   const normalizedKey = String(key);
@@ -204,7 +231,8 @@ function buildSourceNpcSummary(relation, projectionNpc, relationType) {
     quantityText: relation.quantityText ?? null,
     priceText: relation.priceText ?? null,
     conditionText: relation.conditionSourceText ?? relation.conditions ?? null,
-    sourceFactKey: relation.sourceFactKey ?? null
+    sourceFactKey: relation.sourceFactKey ?? null,
+    ...buildTraceableRelationFields(relation)
   };
 }
 
@@ -221,7 +249,8 @@ function buildNpcItemSummary(relation, projectionItem, relationType) {
     quantityText: relation.quantityText ?? null,
     priceText: relation.priceText ?? null,
     conditionText: relation.conditionSourceText ?? relation.conditions ?? null,
-    sourceFactKey: relation.sourceFactKey ?? null
+    sourceFactKey: relation.sourceFactKey ?? null,
+    ...buildTraceableRelationFields(relation)
   };
 }
 
@@ -266,7 +295,8 @@ function buildNpcSourceItems(raw, itemIndexes, npcRow) {
         itemNameZh: projectionItem?.nameZh ?? null,
         itemImageUrl: projectionItem?.image ?? null,
         conditionText: sourceItem.conditionText ?? sourceItem.conditions ?? null,
-        sourceFactKey: sourceItem.sourceFactKey ?? null
+        sourceFactKey: sourceItem.sourceFactKey ?? null,
+        ...buildTraceableRelationFields(sourceItem, npcRow)
       };
     }),
     (row) => JSON.stringify([row.relationType, row.itemInternalName, row.sourceFactKey])

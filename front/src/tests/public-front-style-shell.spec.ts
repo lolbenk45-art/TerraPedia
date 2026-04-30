@@ -120,6 +120,26 @@ describe('public front style shell', () => {
           nameZh: '铜短剑',
           rarity: 'Common',
           image: null,
+          sourceNpcsJson: JSON.stringify([
+            {
+              npcId: 17,
+              npcName: 'Guide',
+              npcNameZh: 'Guide CN',
+              sourceFactKey: 'npc:guide',
+              sourceProvider: 'terraria.wiki.gg',
+              sourcePage: 'Guide',
+            },
+          ]),
+          sourceNpcs: [
+            {
+              npcId: 17,
+              npcName: 'Guide',
+              npcNameZh: 'Guide CN',
+              sourceFactKey: 'npc:guide',
+              sourceProvider: 'terraria.wiki.gg',
+              sourcePage: 'Guide',
+            },
+          ],
         },
         images: [],
         sources: [],
@@ -212,6 +232,9 @@ describe('public front style shell', () => {
     expect(wrapper.find('.entity-detail-shell__sidebar').exists()).toBe(true)
     expect(wrapper.text()).toContain('Recipes')
     expect(wrapper.text()).toContain('Metadata')
+    expect(wrapper.text()).toContain('Source NPCs')
+    expect(wrapper.text()).toContain('Guide CN')
+    expect(wrapper.text()).toContain('npc:guide')
   })
 
   it('renders the article list inside the editorial shell', async () => {

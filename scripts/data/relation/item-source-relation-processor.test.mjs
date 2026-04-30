@@ -145,6 +145,92 @@ test('buildItemSourceRelations respects upstream resolved internal-name metadata
   assert.equal(detail.sourceRefResolution, 'resolved');
 });
 
+test('buildItemSourceRelations promotes exact internal-name npc metadata to formal loot relations', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 40,
+        record_key: '4'.repeat(64),
+        item_internal_name: 'Lens',
+        item_name: 'Lens',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Demon Eye',
+        sort_order: 0,
+        raw_json: JSON.stringify({
+          sourceRefName: 'Demon Eye',
+          sourceRefInternalName: 'DemonEye',
+          sourceRefResolution: 'exact_internal_name',
+          quantityText: '1',
+          chanceText: '33%'
+        }),
+        landing_source_id: 51,
+        landing_source_key: 'generated.item_relations_bundle:chunk:0001',
+        landing_content_hash: 'f'.repeat(64),
+        source_provider: 'wiki_gg',
+        source_page: 'Lens'
+      }
+    ],
+    npcIndex: new Map([
+      ['Demon Eye', [
+        { source_id: 2, internal_name: 'DemonEye', name: 'Demon Eye' },
+        { source_id: 190, internal_name: 'DemonEye2', name: 'Demon Eye' }
+      ]]
+    ])
+  });
+
+  assert.equal(actual.sourceFacts[0].reviewStatus, 'resolved');
+  assert.equal(actual.sourceDetails[0].sourceRefInternalName, 'DemonEye');
+  assert.equal(actual.sourceDetails[0].sourceRefResolution, 'exact_internal_name');
+  assert.equal(actual.npcLootRelations.length, 1);
+  assert.equal(actual.npcLootRelations[0].npcInternalName, 'DemonEye');
+  assert.equal(actual.npcLootRelations[0].itemInternalName, 'Lens');
+  assert.equal(actual.npcLootRelations[0].chanceText, '33%');
+  assert.equal(actual.itemNpcRelationAudits.length, 0);
+});
+
+test('buildItemSourceRelations ignores duplicate index entries for the same exact npc row', () => {
+  const zombie = { source_id: 3, internal_name: 'Zombie', name: 'Zombie' };
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 41,
+        record_key: '5'.repeat(64),
+        item_internal_name: 'Shackle',
+        item_name: 'Shackle',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Zombie',
+        sort_order: 0,
+        raw_json: JSON.stringify({
+          sourceRefName: 'Zombie',
+          sourceRefInternalName: 'Zombie',
+          sourceRefResolution: 'exact_internal_name',
+          quantityText: '1',
+          chanceText: '2%'
+        }),
+        landing_source_id: 51,
+        landing_source_key: 'generated.item_relations_bundle:chunk:0001',
+        landing_content_hash: 'f'.repeat(64),
+        source_provider: 'wiki_gg',
+        source_page: 'Shackle'
+      }
+    ],
+    npcIndex: new Map([
+      ['Zombie', [
+        zombie,
+        zombie,
+        { source_id: -26, internal_name: 'SmallZombie', name: 'Zombie' }
+      ]]
+    ])
+  });
+
+  assert.equal(actual.sourceFacts[0].reviewStatus, 'resolved');
+  assert.equal(actual.npcLootRelations.length, 1);
+  assert.equal(actual.npcLootRelations[0].npcInternalName, 'Zombie');
+  assert.equal(actual.itemNpcRelationAudits.length, 0);
+});
+
 test('buildItemSourceRelations resolves polluted shop source names by cleaned npc display name', () => {
   const actual = buildItemSourceRelations({
     itemSourceRows: [

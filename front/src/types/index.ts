@@ -5,7 +5,23 @@ import type {
   NpcPublicAggregateDomain,
   NpcShopConditionDomain,
   NpcShopEntryDomain,
+  NpcTraceableItemSummary,
 } from './npcDomain'
+
+export interface TraceableNpcRelationSummary {
+  npcId?: number | null
+  npcName?: string | null
+  npcNameZh?: string | null
+  npcInternalName?: string | null
+  relationType?: string | null
+  quantityText?: string | null
+  chanceText?: string | null
+  sourceFactKey?: string | null
+  sourceProvider?: string | null
+  sourcePage?: string | null
+  sourceRevisionTimestamp?: string | null
+  [key: string]: unknown
+}
 
 export interface Item {
   id: number
@@ -43,6 +59,8 @@ export interface Item {
   tooltip?: string
   tooltipZh?: string
   tooltipEn?: string
+  sourceNpcsJson?: string | null
+  sourceNpcs?: TraceableNpcRelationSummary[]
 }
 
 export interface Category {
@@ -299,6 +317,7 @@ export type NpcLootEntry = NpcLootEntryDomain
 export type NpcAggregateData = NpcPublicAggregateDomain
 export type NpcShopCondition = NpcShopConditionDomain
 export type NpcShopEntry = NpcShopEntryDomain
+export type { NpcTraceableItemSummary }
 
 export interface NpcAggregateResponse extends ApiResponse<NpcAggregateData | null> {}
 export interface NpcsResponse extends ApiResponse<NpcListItem[]> {}

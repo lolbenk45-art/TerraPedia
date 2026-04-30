@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -155,6 +156,31 @@ class PublicNpcAggregateControllerTest {
         assertEquals(0, publicNpcService.getNpcLootCalls);
         assertEquals(0, publicNpcService.getNpcShopEntriesCalls);
         assertEquals(0, publicNpcService.getNpcBuffRelationsCalls);
+    }
+
+    @Test
+    void shouldPreserveProjectionJsonStringsOnAggregateNpcBase() throws Exception {
+        String lootItemsJson = "[{\"itemId\":8,\"internalName\":\"Torch\"}]";
+        String shopItemsJson = "[{\"itemId\":9,\"internalName\":\"Rope\"}]";
+        String sourceItemsJson = "[{\"itemId\":930,\"internalName\":\"FlareGun\"}]";
+
+        NpcDetailDTO npc = new NpcDetailDTO();
+        npc.setId(7L);
+        npc.setGameId(22L);
+        npc.setInternalName("Guide");
+        npc.setName("Guide");
+        ReflectionTestUtils.setField(npc, "lootItemsJson", lootItemsJson);
+        ReflectionTestUtils.setField(npc, "shopItemsJson", shopItemsJson);
+        ReflectionTestUtils.setField(npc, "sourceItemsJson", sourceItemsJson);
+
+        publicNpcService.npcToReturn = npc;
+
+        mockMvc.perform(get("/public/npcs/7/aggregate")
+                .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.npc.lootItemsJson").value(lootItemsJson))
+            .andExpect(jsonPath("$.data.npc.shopItemsJson").value(shopItemsJson))
+            .andExpect(jsonPath("$.data.npc.sourceItemsJson").value(sourceItemsJson));
     }
 
     private static class FakePublicNpcService implements PublicNpcService {

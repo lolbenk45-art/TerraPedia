@@ -56,6 +56,12 @@ import java.util.stream.Collectors;
 public class AdminNpcController {
 
     private static final Duration NPC_SUPPLEMENT_CACHE_TTL = Duration.ofMinutes(10);
+    private static final String NPC_DROP_SOURCE_KIND = "npc_drop";
+    private static final String DELETE_MANAGED_NPC_LOOT_SQL = """
+        DELETE FROM npc_loot_entries
+        WHERE npc_id = ?
+          AND (drop_source_kind IS NULL OR drop_source_kind = 'npc_drop')
+        """;
 
     private final NpcMapper npcMapper;
     private final CategoryMapper categoryMapper;
@@ -217,6 +223,9 @@ public class AdminNpcController {
         if (request.containsKey("bannerItemId")) npc.setBannerItemId(toLong(request.get("bannerItemId")));
         if (request.containsKey("catchSourceItemId")) npc.setCatchSourceItemId(toInteger(request.get("catchSourceItemId")));
         if (request.containsKey("catchItemId")) npc.setCatchItemId(toLong(request.get("catchItemId")));
+        if (request.containsKey("lootItemsJson")) npc.setLootItemsJson(toJsonString(request.get("lootItemsJson")));
+        if (request.containsKey("shopItemsJson")) npc.setShopItemsJson(toJsonString(request.get("shopItemsJson")));
+        if (request.containsKey("sourceItemsJson")) npc.setSourceItemsJson(toJsonString(request.get("sourceItemsJson")));
         if (request.containsKey("status")) npc.setStatus(toInteger(request.get("status")));
 
         Map<String, Object> supplement = loadNpcSupplement(npc.getGameId());
@@ -244,6 +253,13 @@ public class AdminNpcController {
         Map<Long, Category> categoriesById = loadCategoriesById(npcs.stream().map(Npc::getCategoryId).filter(Objects::nonNull).toList());
         Map<Long, BossGroup> bossGroupsById = loadBossGroupsById(npcs.stream().map(Npc::getBossGroupId).filter(Objects::nonNull).toList());
         Map<Long, Integer> lootCountsByNpcId = countNpcRelationsByIds("npc_loot_entries", npcs.stream().map(Npc::getId).filter(Objects::nonNull).toList());
+        Map<Long, NpcLootInheritance> lootInheritanceBySourceId = loadNpcLootInheritanceBySourceIds(
+            npcs.stream()
+                .filter(npc -> lootCountsByNpcId.getOrDefault(npc.getId(), 0) <= 0)
+                .map(npc -> resolveLootInheritanceSourceId(npc, safeGetOrDefault(supplementsByGameId, npc.getGameId(), Map.of())))
+                .filter(Objects::nonNull)
+                .toList()
+        );
         Map<Long, Integer> buffCountsByNpcId = countNpcRelationsByIds("npc_buff_relations", npcs.stream().map(Npc::getId).filter(Objects::nonNull).toList());
         Map<Long, Integer> shopCountsByNpcId = countNpcRelationsByIds("npc_shop_entries", npcs.stream().map(Npc::getId).filter(Objects::nonNull).toList());
         Map<Long, Integer> derivedBySourceId = countNpcDerivedLootEntriesBySourceIds(npcs.stream().map(Npc::getGameId).filter(Objects::nonNull).toList());
@@ -262,6 +278,7 @@ public class AdminNpcController {
                 safeGet(categoriesById, npc.getCategoryId()),
                 safeGet(bossGroupsById, npc.getBossGroupId()),
                 lootCountsByNpcId.getOrDefault(npc.getId(), 0),
+                safeGet(lootInheritanceBySourceId, resolveLootInheritanceSourceId(npc, safeGetOrDefault(supplementsByGameId, npc.getGameId(), Map.of()))),
                 resolveDerivedLootCount(npc, derivedBySourceId, derivedByName),
                 buffCountsByNpcId.getOrDefault(npc.getId(), 0),
                 shopCountsByNpcId.getOrDefault(npc.getId(), 0)
@@ -301,7 +318,7 @@ public class AdminNpcController {
         payload.put("isFriendly", firstNonNullBoolean(npc.getIsFriendly(), toBoolean(supplement.get("isFriendly"))));
         payload.put("isTownNpc", firstNonNullBoolean(npc.getIsTownNpc(), toBoolean(supplement.get("isTownNpc"))));
         payload.put("behaviorNotes", npc.getBehaviorNotes());
-        payload.put("npcType", toInteger(supplement.get("npcType")));
+        payload.put("npcType", resolveNpcType(npc, supplement));
         payload.put("aiStyle", toInteger(supplement.get("aiStyle")));
         payload.put("damage", toInteger(supplement.get("damage")));
         payload.put("defense", toInteger(supplement.get("defense")));
@@ -318,12 +335,19 @@ public class AdminNpcController {
         payload.put("bannerItemId", npc.getBannerItemId());
         payload.put("catchSourceItemId", npc.getCatchSourceItemId());
         payload.put("catchItemId", npc.getCatchItemId());
-        payload.put("lootEntryCount", countNpcRelations("npc_loot_entries", npc.getId()));
+        payload.put("lootItemsJson", npc.getLootItemsJson());
+        payload.put("shopItemsJson", npc.getShopItemsJson());
+        payload.put("sourceItemsJson", npc.getSourceItemsJson());
+        int lootEntryCount = countNpcRelations("npc_loot_entries", npc.getId());
+        NpcLootInheritance lootInheritance = lootEntryCount > 0 ? null : loadNpcLootInheritance(resolveLootInheritanceSourceId(npc, supplement));
+        payload.put("lootEntryCount", lootEntryCount);
+        putLootInheritance(payload, lootInheritance);
         payload.put("derivedLootEntryCount", countNpcDerivedLootEntries(npc.getGameId(), npc.getName()));
         payload.put("buffRelationCount", countNpcRelations("npc_buff_relations", npc.getId()));
         payload.put("shopEntryCount", countNpcRelations("npc_shop_entries", npc.getId()));
         if (includeRelations) {
             payload.put("lootEntries", loadNpcLootEntries(npc.getId()));
+            payload.put("inheritedLootEntries", lootInheritance == null ? List.of() : loadNpcLootEntries(lootInheritance.sourceNpcId()));
             payload.put("derivedLootEntries", loadNpcDerivedLootEntries(npc.getGameId(), npc.getName()));
             payload.put("buffRelations", loadNpcBuffRelations(npc.getId()));
             payload.put("shopEntries", loadNpcShopEntries(npc.getId()));
@@ -340,6 +364,7 @@ public class AdminNpcController {
         Category category,
         BossGroup bossGroup,
         int lootEntryCount,
+        NpcLootInheritance lootInheritance,
         int derivedLootEntryCount,
         int buffRelationCount,
         int shopEntryCount
@@ -372,7 +397,7 @@ public class AdminNpcController {
         payload.put("isFriendly", firstNonNullBoolean(npc.getIsFriendly(), toBoolean(supplement.get("isFriendly"))));
         payload.put("isTownNpc", firstNonNullBoolean(npc.getIsTownNpc(), toBoolean(supplement.get("isTownNpc"))));
         payload.put("behaviorNotes", npc.getBehaviorNotes());
-        payload.put("npcType", toInteger(supplement.get("npcType")));
+        payload.put("npcType", resolveNpcType(npc, supplement));
         payload.put("aiStyle", toInteger(supplement.get("aiStyle")));
         payload.put("damage", toInteger(supplement.get("damage")));
         payload.put("defense", toInteger(supplement.get("defense")));
@@ -389,7 +414,11 @@ public class AdminNpcController {
         payload.put("bannerItemId", npc.getBannerItemId());
         payload.put("catchSourceItemId", npc.getCatchSourceItemId());
         payload.put("catchItemId", npc.getCatchItemId());
+        payload.put("lootItemsJson", npc.getLootItemsJson());
+        payload.put("shopItemsJson", npc.getShopItemsJson());
+        payload.put("sourceItemsJson", npc.getSourceItemsJson());
         payload.put("lootEntryCount", lootEntryCount);
+        putLootInheritance(payload, lootEntryCount > 0 ? null : lootInheritance);
         payload.put("derivedLootEntryCount", derivedLootEntryCount);
         payload.put("buffRelationCount", buffRelationCount);
         payload.put("shopEntryCount", shopEntryCount);
@@ -731,10 +760,12 @@ public class AdminNpcController {
     }
 
     private void syncNpcLootEntries(Long npcId, Object raw) {
-        jdbcTemplate.update("DELETE FROM npc_loot_entries WHERE npc_id = ?", npcId);
+        jdbcTemplate.update(DELETE_MANAGED_NPC_LOOT_SQL, npcId);
         List<Map<String, Object>> rows = normalizeObjectList(raw);
         for (int index = 0; index < rows.size(); index += 1) {
             Map<String, Object> row = rows.get(index);
+            String dropSourceKind = normalizeManagedNpcDropSourceKind(row.get("dropSourceKind"));
+            if (dropSourceKind == null) continue;
             Long itemId = toLong(row.get("itemId"));
             Integer sourceItemId = toInteger(row.get("sourceItemId"));
             if (itemId == null && sourceItemId == null) continue;
@@ -747,7 +778,7 @@ public class AdminNpcController {
                 npcId,
                 itemId,
                 sourceItemId,
-                trimToNull(row.get("dropSourceKind")),
+                dropSourceKind,
                 toInteger(row.get("quantityMin")),
                 toInteger(row.get("quantityMax")),
                 trimToNull(row.get("quantityText")),
@@ -758,6 +789,15 @@ public class AdminNpcController {
                 resolveSortOrder(row.get("sortOrder"), index)
             );
         }
+    }
+
+    private String normalizeManagedNpcDropSourceKind(Object rawDropSourceKind) {
+        String dropSourceKind = trimToNull(rawDropSourceKind);
+        if (dropSourceKind == null) return NPC_DROP_SOURCE_KIND;
+        return switch (dropSourceKind.trim().toLowerCase(Locale.ROOT)) {
+            case "npc_drop", "drop", "loot" -> NPC_DROP_SOURCE_KIND;
+            default -> null;
+        };
     }
 
     private void syncNpcBuffRelations(Long npcId, Object raw) {
@@ -1055,6 +1095,61 @@ public class AdminNpcController {
         return result;
     }
 
+    private Map<Long, NpcLootInheritance> loadNpcLootInheritanceBySourceIds(List<Long> sourceIds) {
+        if (jdbcTemplate == null || sourceIds == null || sourceIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> ids = sourceIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+
+        String placeholders = String.join(",", Collections.nCopies(ids.size(), "?"));
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            """
+            SELECT
+              n.game_id AS variantSourceId,
+              n.id AS sourceNpcId,
+              n.internal_name AS sourceInternalName,
+              n.name AS sourceName,
+              n.name_zh AS sourceNameZh,
+              COUNT(nle.id) AS total
+            FROM npcs n
+            JOIN npc_loot_entries nle ON nle.npc_id = n.id AND nle.deleted = 0
+            WHERE n.deleted = 0
+              AND n.game_id IN (%s)
+            GROUP BY n.game_id, n.id, n.internal_name, n.name, n.name_zh
+            """.formatted(placeholders),
+            ids.toArray()
+        );
+
+        Map<Long, NpcLootInheritance> result = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            Long variantSourceId = toLong(row.get("variantSourceId"));
+            Long sourceNpcId = toLong(row.get("sourceNpcId"));
+            Integer total = toInteger(row.get("total"));
+            if (variantSourceId != null && sourceNpcId != null && total != null && total > 0) {
+                result.put(variantSourceId, new NpcLootInheritance(
+                    variantSourceId,
+                    sourceNpcId,
+                    trimToNull(row.get("sourceInternalName")),
+                    trimToNull(row.get("sourceName")),
+                    trimToNull(row.get("sourceNameZh")),
+                    total
+                ));
+            }
+        }
+        return result;
+    }
+
+    private NpcLootInheritance loadNpcLootInheritance(Long sourceId) {
+        if (sourceId == null) {
+            return null;
+        }
+        return safeGet(loadNpcLootInheritanceBySourceIds(List.of(sourceId)), sourceId);
+    }
+
     private Map<Long, Integer> countNpcDerivedLootEntriesBySourceIds(List<Long> npcSourceIds) {
         if (jdbcTemplate == null || npcSourceIds == null || npcSourceIds.isEmpty()) {
             return Map.of();
@@ -1148,6 +1243,34 @@ public class AdminNpcController {
         return safeGetOrDefault(derivedByName, normalizedName.toLowerCase(Locale.ROOT), 0);
     }
 
+    private Long resolveLootInheritanceSourceId(Npc npc, Map<String, Object> supplement) {
+        if (npc == null) {
+            return null;
+        }
+        Integer npcType = npc.getNpcType();
+        if (npcType == null || npcType <= 0) {
+            return null;
+        }
+        Long gameId = npc.getGameId();
+        if (gameId != null && gameId.equals(npcType.longValue())) {
+            return null;
+        }
+        return npcType.longValue();
+    }
+
+    private Integer resolveNpcType(Npc npc, Map<String, Object> supplement) {
+        return firstNonNullInteger(npc == null ? null : npc.getNpcType(), toInteger(supplement == null ? null : supplement.get("npcType")));
+    }
+
+    private void putLootInheritance(Map<String, Object> payload, NpcLootInheritance inheritance) {
+        payload.put("inheritedLootEntryCount", inheritance == null ? 0 : inheritance.lootCount());
+        payload.put("lootInheritanceSourceId", inheritance == null ? null : inheritance.sourceId());
+        payload.put("lootInheritanceNpcId", inheritance == null ? null : inheritance.sourceNpcId());
+        payload.put("lootInheritanceInternalName", inheritance == null ? null : inheritance.sourceInternalName());
+        payload.put("lootInheritanceName", inheritance == null ? null : inheritance.sourceName());
+        payload.put("lootInheritanceNameZh", inheritance == null ? null : inheritance.sourceNameZh());
+    }
+
     private <K, V> V safeGet(Map<K, V> map, K key) {
         if (map == null || key == null) {
             return null;
@@ -1224,5 +1347,15 @@ public class AdminNpcController {
     }
 
     private record TimedValue<T>(T value, long expiresAtMillis) {
+    }
+
+    private record NpcLootInheritance(
+        Long sourceId,
+        Long sourceNpcId,
+        String sourceInternalName,
+        String sourceName,
+        String sourceNameZh,
+        int lootCount
+    ) {
     }
 }

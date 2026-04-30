@@ -66,6 +66,9 @@ public class Npc implements Serializable {
     @TableField("behavior_notes")
     private String behaviorNotes;
 
+    @TableField("npc_type")
+    private Integer npcType;
+
     @TableField("banner_source_item_id")
     private Integer bannerSourceItemId;
 
@@ -77,6 +80,15 @@ public class Npc implements Serializable {
 
     @TableField("catch_item_id")
     private Long catchItemId;
+
+    @TableField("loot_items_json")
+    private String lootItemsJson;
+
+    @TableField("shop_items_json")
+    private String shopItemsJson;
+
+    @TableField("source_items_json")
+    private String sourceItemsJson;
 
     @TableField("status")
     private Integer status;

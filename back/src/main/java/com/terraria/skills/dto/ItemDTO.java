@@ -28,6 +28,7 @@ public class ItemDTO implements Serializable {
     private Long gameModelId;
     private Boolean isStackable;
     private Integer stackSize;
+    private String sourceNpcsJson;
     private Integer status;
     private String categoryName;
     private List<String> categoryPaths;

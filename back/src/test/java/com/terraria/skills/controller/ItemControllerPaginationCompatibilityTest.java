@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -116,5 +117,34 @@ class ItemControllerPaginationCompatibilityTest {
         verify(itemService).getItems(pageQueryCaptor.capture());
         assertEquals(2L, pageQueryCaptor.getValue().getGamePeriodId());
         assertEquals("蓝色", pageQueryCaptor.getValue().getRarity());
+    }
+    @Test
+    void shouldPreserveSourceNpcsJsonInListAndDetailPayloads() throws Exception {
+        String sourceNpcsJson = "[{\"npcId\":22,\"internalName\":\"Guide\",\"note\":\"exact raw\"}]";
+
+        ItemDTO listItem = new ItemDTO();
+        listItem.setId(1L);
+        listItem.setName("Guide Voodoo Doll");
+        ReflectionTestUtils.setField(listItem, "sourceNpcsJson", sourceNpcsJson);
+
+        Page<ItemDTO> page = new Page<>(1, 20);
+        page.setTotal(1);
+        page.setRecords(List.of(listItem));
+
+        ItemDTO detailItem = new ItemDTO();
+        detailItem.setId(1L);
+        detailItem.setName("Guide Voodoo Doll");
+        ReflectionTestUtils.setField(detailItem, "sourceNpcsJson", sourceNpcsJson);
+
+        when(itemService.getItems(any(PageQuery.class))).thenReturn(page);
+        when(itemService.getItemById(1L)).thenReturn(detailItem);
+
+        mockMvc.perform(get("/items"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].sourceNpcsJson").value(sourceNpcsJson));
+
+        mockMvc.perform(get("/items/1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.sourceNpcsJson").value(sourceNpcsJson));
     }
 }

@@ -269,6 +269,10 @@ function candidateInternalName(candidate) {
   return normalizeText(candidate?.internal_name ?? candidate?.internalName);
 }
 
+function isAuthoritativeNpcInternalNameResolution(value) {
+  return value === 'resolved' || value === 'exact_internal_name';
+}
+
 function relationKindForSourceType(sourceType) {
   if (sourceType === 'shop') return 'shop';
   if (sourceType === 'drop' || sourceType === 'loot') return 'loot';
@@ -377,14 +381,14 @@ export function resolveNpcRef(row = {}, npcIndex = new Map()) {
     };
   }
 
-  let candidates = asCandidateList(npcIndex.get(normalizedRefName));
-  if (candidates.length && rawResolution === 'resolved' && rawInternalName) {
-    const exactCandidates = candidates.filter((candidate) => candidateInternalName(candidate) === rawInternalName);
+  let candidates = dedupeCandidates(asCandidateList(npcIndex.get(normalizedRefName)));
+  if (candidates.length && isAuthoritativeNpcInternalNameResolution(rawResolution) && rawInternalName) {
+    const exactCandidates = dedupeCandidates(candidates.filter((candidate) => candidateInternalName(candidate) === rawInternalName));
     if (exactCandidates.length === 1) {
       candidates = exactCandidates;
     }
   }
-  if (!candidates.length && rawResolution === 'resolved' && rawInternalName) {
+  if (!candidates.length && isAuthoritativeNpcInternalNameResolution(rawResolution) && rawInternalName) {
     for (const candidateValue of npcIndex.values()) {
       for (const candidate of asCandidateList(candidateValue)) {
         if (candidateInternalName(candidate) === rawInternalName) {
@@ -402,7 +406,6 @@ export function resolveNpcRef(row = {}, npcIndex = new Map()) {
     }
   }
 
-  candidates = dedupeCandidates(candidates);
   if (candidates.length > 1) {
     return {
       status: 'ambiguous',
@@ -440,7 +443,7 @@ export function resolveNpcRef(row = {}, npcIndex = new Map()) {
     npcName: normalizeText(match.name) ?? normalizeText(match.internal_name ?? match.internalName),
     sourceRefName,
     sourceRefNormalized: normalizedRefName,
-    sourceRefResolution: 'resolved',
+    sourceRefResolution: rawResolution === 'exact_internal_name' ? 'exact_internal_name' : 'resolved',
     confidence: confidence.high,
     reason: 'npc_source_resolved'
   };

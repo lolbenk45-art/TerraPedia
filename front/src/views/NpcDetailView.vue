@@ -149,6 +149,32 @@
 
           <p v-else class="npc-section__empty">No buff relationships yet</p>
         </article>
+
+        <article v-if="traceableRelationSections.length" class="public-section-frame npc-section">
+          <div class="npc-section__head">
+            <div>
+              <h2>Related Items</h2>
+            </div>
+            <span>{{ traceableRelationCount }}</span>
+          </div>
+
+          <div class="npc-trace-list">
+            <section v-for="section in traceableRelationSections" :key="section.title" class="npc-trace-group">
+              <h3>{{ section.title }}</h3>
+              <article v-for="entry in section.entries" :key="entry.key" class="surface-card npc-trace-entry">
+                <div>
+                  <strong>{{ entry.title }}</strong>
+                  <p v-if="entry.secondary">{{ entry.secondary }}</p>
+                </div>
+                <div class="npc-entry__chips">
+                  <span v-if="entry.trace">{{ entry.trace }}</span>
+                  <span v-if="entry.provider">{{ entry.provider }}</span>
+                </div>
+                <p v-if="entry.page" class="npc-entry__note">{{ entry.page }}</p>
+              </article>
+            </section>
+          </div>
+        </article>
         </div>
 
         <aside class="entity-detail-shell__sidebar npc-detail-view__sidebar">
@@ -206,7 +232,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { fetchNpcAggregateById } from '@/api'
-import type { NpcAggregateData, NpcBuffRelation, NpcLootEntry } from '@/types'
+import type { NpcAggregateData, NpcBuffRelation, NpcLootEntry, NpcTraceableItemSummary } from '@/types'
 import { entrySecondary, entryTitle, shopConditionsLabel, shopPriceLabel } from '@/views/npcDetailEntry'
 
 const route = useRoute()
@@ -219,6 +245,17 @@ const npc = computed(() => aggregate.value?.npc ?? null)
 const loot = computed(() => aggregate.value?.loot ?? [])
 const shopEntries = computed(() => aggregate.value?.shopEntries ?? [])
 const buffRelations = computed(() => aggregate.value?.buffRelations ?? [])
+const traceableRelationSections = computed(() => {
+  const sections = [
+    buildTraceableSection('Loot Items', npc.value?.lootItems ?? []),
+    buildTraceableSection('Shop Items', npc.value?.shopItems ?? []),
+    buildTraceableSection('Source Items', npc.value?.sourceItems ?? []),
+  ]
+  return sections.filter(section => section.entries.length > 0)
+})
+const traceableRelationCount = computed(() =>
+  traceableRelationSections.value.reduce((total, section) => total + section.entries.length, 0),
+)
 
 const displayName = computed(() => npc.value?.nameZh?.trim() || npc.value?.name || 'Unknown NPC')
 const secondaryName = computed(() => {
@@ -268,10 +305,40 @@ function buffDurationLabel(entry: NpcBuffRelation) {
   return ''
 }
 
+function buildTraceableSection(title: string, entries: NpcTraceableItemSummary[]) {
+  return {
+    title,
+    entries: entries.slice(0, 8).map((entry, index) => ({
+      key: String(entry.sourceFactKey ?? entry.itemId ?? entry.itemInternalName ?? `${title}-${index}`),
+      title: traceableItemTitle(entry),
+      secondary: [
+        entry.relationType?.trim() ?? '',
+        entry.itemInternalName?.trim() ?? '',
+        entry.quantityText?.trim() ?? '',
+        entry.chanceText?.trim() ?? '',
+        entry.priceText?.trim() ?? '',
+      ].filter(Boolean).join(' / '),
+      trace: entry.sourceFactKey?.trim() ?? '',
+      provider: entry.sourceProvider?.trim() ?? '',
+      page: [
+        entry.sourcePage?.trim() ?? '',
+        entry.sourceRevisionTimestamp ? formatDateTime(entry.sourceRevisionTimestamp) : '',
+      ].filter(Boolean).join(' / '),
+    })),
+  }
+}
+
+function traceableItemTitle(entry: NpcTraceableItemSummary) {
+  return entry.itemNameZh?.trim()
+    || entry.itemName?.trim()
+    || entry.itemInternalName?.trim()
+    || (typeof entry.itemId === 'number' ? `Item ${entry.itemId}` : 'Linked item')
+}
+
 async function loadNpc() {
   const npcId = Number(route.params.id)
 
-  if (!Number.isFinite(npcId) || npcId <= 0) {
+  if (!Number.isInteger(npcId) || npcId === 0) {
     aggregate.value = null
     error.value = 'Invalid NPC id'
     notFound.value = false
@@ -548,6 +615,33 @@ watch(
 .npc-section__list {
   display: grid;
   gap: 0.85rem;
+}
+
+.npc-trace-list,
+.npc-trace-group,
+.npc-trace-entry {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.npc-trace-group h3 {
+  color: var(--text-primary);
+  font-size: 0.98rem;
+}
+
+.npc-trace-entry {
+  padding: 0.85rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, white 52%, var(--surface-soft));
+}
+
+.npc-trace-entry strong {
+  color: var(--text-primary);
+}
+
+.npc-trace-entry p {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
 }
 
 .npc-section__empty {

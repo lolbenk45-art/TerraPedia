@@ -34,12 +34,24 @@ test('buildRelationCompatSyncSql rebuilds only owned local compatibility tables'
   assert.match(sql.npc_loot_entries.insertSql, /FROM `terria_v1_relation`\.`item_npc_loot_relations` r/);
   assert.match(sql.npc_shop_entries.insertSql, /FROM `terria_v1_relation`\.`item_npc_shop_relations` r/);
   assert.match(sql.npc_shop_conditions.insertSql, /FROM `terria_v1_relation`\.`item_npc_shop_relations` r/);
-  assert.match(sql.npc_loot_entries.insertSql, /SELECT\s+n\.id,\s+i\.id,\s+i\.id,/);
+  assert.match(sql.npc_loot_entries.insertSql, /SELECT\s+n\.id,\s+i\.id,\s+i\.id,\s+'npc_drop',/);
   assert.match(sql.npc_shop_entries.insertSql, /SELECT\s+n\.id,\s+i\.id,\s+i\.id,/);
   assert.doesNotMatch(sql.npc_loot_entries.insertSql, /\bi\.source_id\b/);
   assert.doesNotMatch(sql.npc_shop_entries.insertSql, /\bi\.source_id\b/);
   assert.match(sql.npc_shop_conditions.insertSql, /se\.price_text COLLATE utf8mb4_unicode_ci <=> r\.price_text COLLATE utf8mb4_unicode_ci/);
   assert.doesNotMatch(JSON.stringify(sql), /item_npc_shop_candidates|item_npc_loot_candidates/);
+});
+
+test('buildRelationCompatSyncSql preserves boss-owned loot rows while rebuilding npc drops', () => {
+  const sql = buildRelationCompatSyncSql({
+    localDatabase: 'terria_v1_local',
+    relationDatabase: 'terria_v1_relation'
+  });
+
+  assert.match(sql.npc_loot_entries.deleteSql, /WHERE\s+drop_source_kind IS NULL\s+OR drop_source_kind = 'npc_drop'/);
+  assert.doesNotMatch(sql.npc_loot_entries.deleteSql, /direct_boss|treasure_bag/);
+  assert.match(sql.npc_loot_entries.insertSql, /`drop_source_kind`/);
+  assert.match(sql.npc_loot_entries.insertSql, /'npc_drop'/);
 });
 
 test('buildRelationCompatSyncSql only publishes source-backed reviewed active rows', () => {
@@ -62,12 +74,12 @@ test('buildRelationCompatSyncSql only publishes source-backed reviewed active ro
   assert.match(sql.item_acquisition_sources.insertSql, /d\.deleted = 0/);
   assert.match(sql.item_acquisition_sources.insertSql, /d\.status = 1/);
   assert.match(sql.item_acquisition_sources.insertSql, new RegExp(`d\\.${acceptedReview.source}`));
-  assert.match(sql.item_acquisition_sources.insertSql, /d\.source_ref_resolution = 'resolved'/);
+  assert.match(sql.item_acquisition_sources.insertSql, /d\.source_ref_resolution IN \('resolved', 'exact_internal_name'\)/);
   assert.match(sql.item_acquisition_sources.insertSql, /n\.deleted = 0/);
   assert.match(sql.item_acquisition_sources.insertSql, /n\.status = 1/);
   assert.match(
     sql.item_acquisition_sources.insertSql,
-    /f\.source_ref_type <> 'npc' OR \(d\.source_ref_resolution = 'resolved' AND n\.id IS NOT NULL\)/
+    /f\.source_ref_type <> 'npc' OR \(d\.source_ref_resolution IN \('resolved', 'exact_internal_name'\) AND n\.id IS NOT NULL\)/
   );
 
   for (const [alias, definition] of [
@@ -102,6 +114,22 @@ test('buildRelationCompatSyncSql only publishes source-backed reviewed active ro
     assert.match(definition, /i\.status = 1/);
     assert.match(definition, /n\.deleted = 0/);
     assert.match(definition, /n\.status = 1/);
+  }
+});
+
+test('buildRelationCompatSyncSql publishes exact internal-name npc resolutions', () => {
+  const sql = buildRelationCompatSyncSql({
+    localDatabase: 'terria_v1_local',
+    relationDatabase: 'terria_v1_relation'
+  });
+
+  for (const definition of [
+    sql.item_acquisition_sources.countSql,
+    sql.item_acquisition_sources.sampleSql,
+    sql.item_acquisition_sources.insertSql
+  ]) {
+    assert.match(definition, /d\.source_ref_resolution IN \('resolved', 'exact_internal_name'\)/);
+    assert.doesNotMatch(definition, /d\.source_ref_resolution = 'resolved'/);
   }
 });
 

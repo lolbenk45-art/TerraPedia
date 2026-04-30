@@ -144,6 +144,31 @@
               </article>
             </div>
           </article>
+
+          <article v-if="sourceNpcCards.length" class="public-section-frame item-detail-view__panel">
+            <div class="item-detail-view__panel-head">
+              <div>
+                <h2>Source NPCs</h2>
+              </div>
+              <span class="item-detail-view__panel-chip">{{ sourceNpcCards.length }} entries</span>
+            </div>
+
+            <div class="item-detail-view__source-list">
+              <article v-for="card in sourceNpcCards" :key="card.key" class="item-detail-view__source-card">
+                <div class="item-detail-view__source-head">
+                  <div>
+                    <h3>{{ card.title }}</h3>
+                    <p v-if="card.secondary">{{ card.secondary }}</p>
+                  </div>
+                </div>
+                <div class="item-detail-view__source-meta">
+                  <span v-if="card.trace">{{ card.trace }}</span>
+                  <span v-if="card.provider">{{ card.provider }}</span>
+                </div>
+                <p v-if="card.page">{{ card.page }}</p>
+              </article>
+            </div>
+          </article>
  
           <article class="public-section-frame item-detail-view__panel">
             <div class="item-detail-view__panel-head">
@@ -329,6 +354,7 @@ import type {
   ItemRecipeTreeResponse,
   ItemRecipeTreeVariant,
   ItemSourceRelation,
+  TraceableNpcRelationSummary,
   RecipeIngredientRelation,
 } from '@/types'
 import { getItemFallbackMark } from '@/utils/itemFallbackMark'
@@ -377,6 +403,15 @@ type SourceCard = {
   quantity: string
   chance: string
   notes: string
+}
+
+type TraceableRelationCard = {
+  key: string
+  title: string
+  secondary: string
+  trace: string
+  provider: string
+  page: string
 }
 
 type ImageCard = {
@@ -729,6 +764,17 @@ const sourceCards = computed<SourceCard[]>(() =>
   })),
 )
 
+const sourceNpcCards = computed<TraceableRelationCard[]>(() =>
+  (item.value?.sourceNpcs ?? []).slice(0, 8).map((entry, index) => ({
+    key: String(entry.sourceFactKey ?? entry.npcId ?? entry.npcInternalName ?? index),
+    title: traceableNpcTitle(entry),
+    secondary: [oneLine(entry.relationType), oneLine(entry.npcInternalName)].filter(Boolean).join(' / '),
+    trace: oneLine(entry.sourceFactKey),
+    provider: oneLine(entry.sourceProvider),
+    page: [oneLine(entry.sourcePage), formatDateTime(entry.sourceRevisionTimestamp)].filter(Boolean).join(' / '),
+  })),
+)
+
 const imageCards = computed<ImageCard[]>(() =>
   relatedImages.value
     .map((image, index) => ({
@@ -906,6 +952,13 @@ function chanceLabel(source: ItemSourceRelation) {
   }
 
   return ''
+}
+
+function traceableNpcTitle(entry: TraceableNpcRelationSummary) {
+  return oneLine(entry.npcNameZh)
+    || oneLine(entry.npcName)
+    || oneLine(entry.npcInternalName)
+    || (typeof entry.npcId === 'number' ? `NPC ${entry.npcId}` : 'Linked NPC')
 }
 
 function ingredientLabel(recipeIngredient: RecipeIngredientRelation) {

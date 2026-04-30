@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -148,5 +149,26 @@ class PublicItemAggregateControllerTest {
             .andExpect(jsonPath("$.message").value("Item not found"));
 
         verify(publicItemAggregateService).getItemAggregate(99L, "images,sources,recipes");
+    }
+
+    @Test
+    void shouldPreserveSourceNpcsJsonOnAggregateItem() throws Exception {
+        String sourceNpcsJson = "[{\"npcId\":22,\"internalName\":\"Guide\",\"note\":\"exact raw\"}]";
+        ItemDTO item = new ItemDTO();
+        item.setId(1L);
+        item.setName("Guide Voodoo Doll");
+        ReflectionTestUtils.setField(item, "sourceNpcsJson", sourceNpcsJson);
+
+        ItemAggregateDTO aggregate = new ItemAggregateDTO();
+        aggregate.setItem(item);
+
+        when(publicItemAggregateService.getItemAggregate(1L, "images,sources,recipes")).thenReturn(aggregate);
+
+        mockMvc.perform(get("/public/items/1/aggregate")
+                .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.item.sourceNpcsJson").value(sourceNpcsJson));
+
+        verify(publicItemAggregateService).getItemAggregate(1L, "images,sources,recipes");
     }
 }

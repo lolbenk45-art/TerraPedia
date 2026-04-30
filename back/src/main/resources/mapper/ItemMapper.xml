@@ -113,6 +113,7 @@
         <result column="game_model_id" property="gameModelId"/>
         <result column="is_stackable" property="isStackable"/>
         <result column="stack_size" property="stackSize"/>
+        <result column="source_npcs_json" property="sourceNpcsJson"/>
         <result column="status" property="status"/>
         <result column="deleted" property="deleted"/>
         <result column="created_at" property="createdAt"/>
@@ -147,6 +148,7 @@
             i.game_model_id AS gameModelId,
             i.is_stackable AS isStackable,
             i.stack_size AS stackSize,
+            i.source_npcs_json AS sourceNpcsJson,
             i.status,
             i.created_at AS createdAt,
             i.updated_at AS updatedAt
@@ -271,6 +273,7 @@
             i.game_model_id AS gameModelId,
             i.is_stackable AS isStackable,
             i.stack_size AS stackSize,
+            i.source_npcs_json AS sourceNpcsJson,
             i.status,
             i.created_at AS createdAt,
             i.updated_at AS updatedAt

@@ -84,6 +84,7 @@ export function buildRelationCompatSyncSql({
  AND d.deleted = 0
  AND d.status = 1
  AND d.review_status IN ${acceptedReviewStatuses}`;
+  const resolvedNpcDetailWhere = "d.source_ref_resolution IN ('resolved', 'exact_internal_name')";
   const publishableRelationWhere = `r.deleted = 0
   AND r.status = 1
   AND r.review_status IN ${acceptedReviewStatuses}`;
@@ -104,7 +105,7 @@ LEFT JOIN ${localNpcs} n
  AND n.deleted = 0
  AND n.status = 1
 WHERE ${publishableFactWhere}
-  AND (f.source_ref_type IS NULL OR f.source_ref_type <> 'npc' OR (d.source_ref_resolution = 'resolved' AND n.id IS NOT NULL))`,
+  AND (f.source_ref_type IS NULL OR f.source_ref_type <> 'npc' OR (${resolvedNpcDetailWhere} AND n.id IS NOT NULL))`,
       sampleSql: `SELECT f.item_internal_name, f.source_type, f.source_ref_type, f.source_ref_name
 FROM ${sourceFacts} f
 INNER JOIN ${localItems} i
@@ -118,7 +119,7 @@ LEFT JOIN ${localNpcs} n
  AND n.deleted = 0
  AND n.status = 1
 WHERE ${publishableFactWhere}
-  AND (f.source_ref_type IS NULL OR f.source_ref_type <> 'npc' OR (d.source_ref_resolution = 'resolved' AND n.id IS NOT NULL))
+  AND (f.source_ref_type IS NULL OR f.source_ref_type <> 'npc' OR (${resolvedNpcDetailWhere} AND n.id IS NOT NULL))
 LIMIT 5`,
       insertSql: `
 INSERT INTO ${localItemSources}
@@ -155,10 +156,12 @@ LEFT JOIN ${localNpcs} n
  AND n.deleted = 0
  AND n.status = 1
 WHERE ${publishableFactWhere}
-  AND (f.source_ref_type IS NULL OR f.source_ref_type <> 'npc' OR (d.source_ref_resolution = 'resolved' AND n.id IS NOT NULL))`.trim()
+  AND (f.source_ref_type IS NULL OR f.source_ref_type <> 'npc' OR (${resolvedNpcDetailWhere} AND n.id IS NOT NULL))`.trim()
     },
     npc_loot_entries: {
-      deleteSql: `DELETE FROM ${localLoot}`,
+      deleteSql: `DELETE FROM ${localLoot}
+WHERE drop_source_kind IS NULL
+   OR drop_source_kind = 'npc_drop'`,
       countSql: `SELECT COUNT(*) AS total
 FROM ${lootRelations} r
 INNER JOIN ${sourceFacts} f
@@ -190,11 +193,12 @@ WHERE ${publishableRelationWhere}
 LIMIT 5`,
       insertSql: `
 INSERT INTO ${localLoot}
-  (\`npc_id\`, \`item_id\`, \`source_item_id\`, \`quantity_min\`, \`quantity_max\`, \`quantity_text\`, \`chance_value\`, \`chance_text\`, \`conditions\`, \`notes\`, \`sort_order\`, \`status\`, \`deleted\`)
+  (\`npc_id\`, \`item_id\`, \`source_item_id\`, \`drop_source_kind\`, \`quantity_min\`, \`quantity_max\`, \`quantity_text\`, \`chance_value\`, \`chance_text\`, \`conditions\`, \`notes\`, \`sort_order\`, \`status\`, \`deleted\`)
 SELECT
   n.id,
   i.id,
   i.id,
+  'npc_drop',
   r.quantity_min,
   r.quantity_max,
   r.quantity_text,

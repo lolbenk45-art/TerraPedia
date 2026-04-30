@@ -37,9 +37,54 @@ const api = createHttpClient({
 
 const ENABLE_P0_AGGREGATE = import.meta.env.VITE_ENABLE_P0_AGGREGATE !== 'false'
 
+const parseJsonArray = (value: unknown): Record<string, unknown>[] => {
+  if (Array.isArray(value)) {
+    return value.filter((entry): entry is Record<string, unknown> => Boolean(entry && typeof entry === 'object' && !Array.isArray(entry)))
+  }
+
+  if (typeof value !== 'string' || !value.trim()) {
+    return []
+  }
+
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed)
+      ? parsed.filter((entry): entry is Record<string, unknown> => Boolean(entry && typeof entry === 'object' && !Array.isArray(entry)))
+      : []
+  } catch {
+    return []
+  }
+}
+
+const nullableString = (value: unknown): string | null => typeof value === 'string' ? value : null
+
+const nullableNumber = (value: unknown): number | null =>
+  typeof value === 'number' && Number.isFinite(value) ? value : null
+
+const normalizeTraceableNpcSummary = (entry: Record<string, unknown>) => ({
+  ...entry,
+  npcId: nullableNumber(entry.npcId ?? entry.npc_id),
+  npcName: nullableString(entry.npcName ?? entry.npc_name),
+  npcNameZh: nullableString(entry.npcNameZh ?? entry.npc_name_zh),
+  npcInternalName: nullableString(entry.npcInternalName ?? entry.npc_internal_name),
+  relationType: nullableString(entry.relationType ?? entry.relation_type),
+  quantityText: nullableString(entry.quantityText ?? entry.quantity_text),
+  chanceText: nullableString(entry.chanceText ?? entry.chance_text),
+  sourceFactKey: nullableString(entry.sourceFactKey ?? entry.source_fact_key),
+  sourceProvider: nullableString(entry.sourceProvider ?? entry.source_provider),
+  sourcePage: nullableString(entry.sourcePage ?? entry.source_page),
+  sourceRevisionTimestamp: nullableString(entry.sourceRevisionTimestamp ?? entry.source_revision_timestamp),
+})
+
+const parseTraceableNpcSummaries = (directValue: unknown, jsonValue: unknown) => {
+  const directRows = parseJsonArray(directValue)
+  return (directRows.length ? directRows : parseJsonArray(jsonValue)).map(normalizeTraceableNpcSummary)
+}
+
 const normalizeItem = (item: Item): Item => {
   const categoryName = item.categoryName ?? item.category
   const rarity = item.rarity ?? item.rare
+  const sourceNpcsJson = item.sourceNpcsJson ?? (item as any).source_npcs_json ?? null
 
   return {
     ...item,
@@ -55,6 +100,8 @@ const normalizeItem = (item: Item): Item => {
     tooltipZh: item.tooltipZh ?? (item as any).tooltip_zh ?? null,
     tooltipEn: (item as any).tooltipEn ?? item.tooltip ?? null,
     stack: item.stack ?? item.stackSize,
+    sourceNpcsJson,
+    sourceNpcs: parseTraceableNpcSummaries(item.sourceNpcs, sourceNpcsJson),
   }
 }
 
@@ -121,7 +168,7 @@ const normalizeRecipeTreeVariant = (variant: ItemRecipeTreeVariant): ItemRecipeT
   roots: (variant.roots || []).map(normalizeRecipeTreeNode),
 })
 
-const normalizeAggregateData = (payload: ItemAggregateData): ItemAggregateData => ({
+export const normalizeItemAggregateData = (payload: ItemAggregateData): ItemAggregateData => ({
   item: normalizeItem(payload.item),
   images: (payload.images || []).map(normalizeImageRelation),
   sources: (payload.sources || []).map(normalizeSourceRelation),
@@ -440,7 +487,7 @@ const fetchItemAggregateLegacy = async (id: number): Promise<ItemAggregateRespon
 
   return {
     success: true,
-    data: normalizeAggregateData({
+    data: normalizeItemAggregateData({
       item: itemRes.data,
       images,
       sources,
@@ -464,7 +511,7 @@ const fetchP0ItemAggregate = async (id: number, include: string): Promise<ItemAg
 
   return {
     ...data,
-    data: data.data ? normalizeAggregateData(data.data) : (data.data as any),
+    data: data.data ? normalizeItemAggregateData(data.data) : (data.data as any),
   } as ItemAggregateResponse
 }
 

@@ -6,24 +6,81 @@ import type {
   NpcShopEntryDomain,
 } from '@/types/npcDomain'
 
-export const normalizeNpcBase = <T extends Partial<NpcBaseDomain>>(npc: T): T & NpcBaseDomain => ({
-  ...npc,
-  id: Number(npc.id),
-  gameId: npc.gameId ?? (npc as any).game_id ?? null,
-  internalName: npc.internalName ?? (npc as any).internal_name ?? null,
-  name: npc.name ?? (npc as any).displayName ?? (npc as any).internal_name ?? 'Unknown NPC',
-  nameZh: npc.nameZh ?? (npc as any).name_zh ?? null,
-  subName: npc.subName ?? (npc as any).sub_name ?? null,
-  subNameZh: npc.subNameZh ?? (npc as any).sub_name_zh ?? null,
-  categoryId: npc.categoryId ?? (npc as any).category_id ?? null,
-  categoryName: npc.categoryName ?? (npc as any).category_name ?? null,
-  isBoss: npc.isBoss ?? (npc as any).is_boss ?? false,
-  isFriendly: npc.isFriendly ?? (npc as any).is_friendly ?? false,
-  isTownNpc: npc.isTownNpc ?? (npc as any).is_town_npc ?? false,
-  imageUrl: npc.imageUrl ?? (npc as any).image_url ?? null,
-  behaviorNotes: (npc as any).behaviorNotes ?? (npc as any).behavior_notes ?? null,
-  status: (npc as any).status ?? null,
+const parseJsonArray = (value: unknown): Record<string, unknown>[] => {
+  if (Array.isArray(value)) {
+    return value.filter((entry): entry is Record<string, unknown> => Boolean(entry && typeof entry === 'object' && !Array.isArray(entry)))
+  }
+
+  if (typeof value !== 'string' || !value.trim()) {
+    return []
+  }
+
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed)
+      ? parsed.filter((entry): entry is Record<string, unknown> => Boolean(entry && typeof entry === 'object' && !Array.isArray(entry)))
+      : []
+  } catch {
+    return []
+  }
+}
+
+const nullableString = (value: unknown): string | null => typeof value === 'string' ? value : null
+
+const nullableNumber = (value: unknown): number | null =>
+  typeof value === 'number' && Number.isFinite(value) ? value : null
+
+const normalizeTraceableItemSummary = (entry: Record<string, unknown>) => ({
+  ...entry,
+  itemId: nullableNumber(entry.itemId ?? entry.item_id),
+  itemName: nullableString(entry.itemName ?? entry.item_name),
+  itemNameZh: nullableString(entry.itemNameZh ?? entry.item_name_zh),
+  itemInternalName: nullableString(entry.itemInternalName ?? entry.item_internal_name),
+  relationType: nullableString(entry.relationType ?? entry.relation_type),
+  quantityText: nullableString(entry.quantityText ?? entry.quantity_text),
+  chanceText: nullableString(entry.chanceText ?? entry.chance_text),
+  priceText: nullableString(entry.priceText ?? entry.price_text),
+  sourceFactKey: nullableString(entry.sourceFactKey ?? entry.source_fact_key),
+  sourceProvider: nullableString(entry.sourceProvider ?? entry.source_provider),
+  sourcePage: nullableString(entry.sourcePage ?? entry.source_page),
+  sourceRevisionTimestamp: nullableString(entry.sourceRevisionTimestamp ?? entry.source_revision_timestamp),
 })
+
+const parseTraceableItemSummaries = (directValue: unknown, jsonValue: unknown) => {
+  const directRows = parseJsonArray(directValue)
+  return (directRows.length ? directRows : parseJsonArray(jsonValue)).map(normalizeTraceableItemSummary)
+}
+
+export const normalizeNpcBase = <T extends Partial<NpcBaseDomain>>(npc: T): T & NpcBaseDomain => {
+  const lootItemsJson = npc.lootItemsJson ?? (npc as any).loot_items_json ?? null
+  const shopItemsJson = npc.shopItemsJson ?? (npc as any).shop_items_json ?? null
+  const sourceItemsJson = npc.sourceItemsJson ?? (npc as any).source_items_json ?? null
+
+  return {
+    ...npc,
+    id: Number(npc.id),
+    gameId: npc.gameId ?? (npc as any).game_id ?? null,
+    internalName: npc.internalName ?? (npc as any).internal_name ?? null,
+    name: npc.name ?? (npc as any).displayName ?? (npc as any).internal_name ?? 'Unknown NPC',
+    nameZh: npc.nameZh ?? (npc as any).name_zh ?? null,
+    subName: npc.subName ?? (npc as any).sub_name ?? null,
+    subNameZh: npc.subNameZh ?? (npc as any).sub_name_zh ?? null,
+    categoryId: npc.categoryId ?? (npc as any).category_id ?? null,
+    categoryName: npc.categoryName ?? (npc as any).category_name ?? null,
+    isBoss: npc.isBoss ?? (npc as any).is_boss ?? false,
+    isFriendly: npc.isFriendly ?? (npc as any).is_friendly ?? false,
+    isTownNpc: npc.isTownNpc ?? (npc as any).is_town_npc ?? false,
+    imageUrl: npc.imageUrl ?? (npc as any).image_url ?? null,
+    behaviorNotes: (npc as any).behaviorNotes ?? (npc as any).behavior_notes ?? null,
+    status: (npc as any).status ?? null,
+    lootItemsJson,
+    shopItemsJson,
+    sourceItemsJson,
+    lootItems: parseTraceableItemSummaries(npc.lootItems, lootItemsJson),
+    shopItems: parseTraceableItemSummaries(npc.shopItems, shopItemsJson),
+    sourceItems: parseTraceableItemSummaries(npc.sourceItems, sourceItemsJson),
+  }
+}
 
 export const normalizeNpcLootEntry = (loot: NpcLootEntryDomain): NpcLootEntryDomain => ({
   ...loot,

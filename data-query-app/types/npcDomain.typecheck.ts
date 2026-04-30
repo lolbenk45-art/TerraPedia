@@ -40,6 +40,16 @@ const editorDetail: TownNpcEditorDetail = {
   isTownNpc: true,
   gamePeriodId: 3,
   behaviorNotes: 'Offers advice to new players.',
+  lootItemsJson: '[]',
+  shopItemsJson: '[]',
+  sourceItemsJson: '[]',
+  sourceItems: [
+    {
+      itemId: 8,
+      itemName: 'Torch',
+      sourceFactKey: 'source-item:torch',
+    },
+  ],
   shopMutationSummary: {
     submittedCount: 3,
     persistedCount: 2,

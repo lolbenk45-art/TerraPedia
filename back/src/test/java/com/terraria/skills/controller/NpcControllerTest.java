@@ -8,6 +8,7 @@ import com.terraria.skills.service.PublicNpcService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -112,6 +113,33 @@ class NpcControllerTest {
 
         assertEquals(1, publicNpcService.lastQuery.getPage());
         assertEquals(20, publicNpcService.lastQuery.getLimit());
+    }
+
+    @Test
+    void shouldPreserveProjectionJsonStringsInPublicListPayload() throws Exception {
+        String lootItemsJson = "[{\"itemId\":8,\"internalName\":\"Torch\"}]";
+        String shopItemsJson = "[{\"itemId\":9,\"internalName\":\"Rope\"}]";
+        String sourceItemsJson = "[{\"itemId\":930,\"internalName\":\"FlareGun\"}]";
+
+        NpcListItemDTO npc = new NpcListItemDTO();
+        npc.setId(7L);
+        npc.setGameId(22L);
+        npc.setInternalName("Guide");
+        npc.setName("Guide");
+        ReflectionTestUtils.setField(npc, "lootItemsJson", lootItemsJson);
+        ReflectionTestUtils.setField(npc, "shopItemsJson", shopItemsJson);
+        ReflectionTestUtils.setField(npc, "sourceItemsJson", sourceItemsJson);
+
+        Page<NpcListItemDTO> page = new Page<>(1, 20);
+        page.setTotal(1);
+        page.setRecords(List.of(npc));
+        publicNpcService.pageToReturn = page;
+
+        mockMvc.perform(get("/npcs"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].lootItemsJson").value(lootItemsJson))
+            .andExpect(jsonPath("$.data[0].shopItemsJson").value(shopItemsJson))
+            .andExpect(jsonPath("$.data[0].sourceItemsJson").value(sourceItemsJson));
     }
 
     private static class FakePublicNpcService implements PublicNpcService {

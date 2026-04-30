@@ -35,6 +35,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -45,6 +46,13 @@ import java.util.stream.Collectors;
 @Tag(name = "AdminNpcRelations", description = "Admin NPC relation management")
 @SecurityRequirement(name = "bearerAuth")
 public class AdminNpcRelationController {
+
+    private static final String NPC_DROP_SOURCE_KIND = "npc_drop";
+    private static final String DELETE_MANAGED_NPC_LOOT_SQL = """
+        DELETE FROM npc_loot_entries
+        WHERE npc_id = ?
+          AND (drop_source_kind IS NULL OR drop_source_kind = 'npc_drop')
+        """;
 
     private final NpcMapper npcMapper;
     private final NpcLootEntryMapper npcLootEntryMapper;
@@ -83,10 +91,14 @@ public class AdminNpcRelationController {
         if (npcMapper.selectById(npcId) == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "Npc not found"));
         }
-        npcLootEntryMapper.delete(new LambdaQueryWrapper<NpcLootEntry>().eq(NpcLootEntry::getNpcId, npcId));
+        jdbcTemplate.update(DELETE_MANAGED_NPC_LOOT_SQL, npcId);
         List<Map<String, Object>> rows = normalizeObjectList(request);
         for (int index = 0; index < rows.size(); index += 1) {
             Map<String, Object> row = rows.get(index);
+            String dropSourceKind = normalizeManagedNpcDropSourceKind(row.get("dropSourceKind"));
+            if (dropSourceKind == null) {
+                continue;
+            }
             Long itemId = toLong(row.get("itemId"));
             Integer sourceItemId = toInteger(row.get("sourceItemId"));
             if (itemId == null && sourceItemId == null) {
@@ -96,7 +108,7 @@ public class AdminNpcRelationController {
             entry.setNpcId(npcId);
             entry.setItemId(itemId);
             entry.setSourceItemId(sourceItemId);
-            entry.setDropSourceKind(trimToNull(row.get("dropSourceKind")));
+            entry.setDropSourceKind(dropSourceKind);
             entry.setQuantityMin(toInteger(row.get("quantityMin")));
             entry.setQuantityMax(toInteger(row.get("quantityMax")));
             entry.setQuantityText(trimToNull(row.get("quantityText")));
@@ -110,6 +122,17 @@ public class AdminNpcRelationController {
             npcLootEntryMapper.insert(entry);
         }
         return ResponseEntity.ok(ApiResponse.success(loadLoot(npcId), "Npc loot updated"));
+    }
+
+    private String normalizeManagedNpcDropSourceKind(Object rawDropSourceKind) {
+        String dropSourceKind = trimToNull(rawDropSourceKind);
+        if (dropSourceKind == null) {
+            return NPC_DROP_SOURCE_KIND;
+        }
+        return switch (dropSourceKind.trim().toLowerCase(Locale.ROOT)) {
+            case "npc_drop", "drop", "loot" -> NPC_DROP_SOURCE_KIND;
+            default -> null;
+        };
     }
 
     @GetMapping("/{id}/buff-relations")

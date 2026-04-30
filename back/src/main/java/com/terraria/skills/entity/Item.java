@@ -85,6 +85,9 @@ public class Item implements Serializable {
     @TableField("stack_size")
     private Integer stackSize;
 
+    @TableField("source_npcs_json")
+    private String sourceNpcsJson;
+
     @TableField("status")
     private Integer status;
 

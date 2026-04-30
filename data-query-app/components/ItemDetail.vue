@@ -109,6 +109,17 @@
       <div class="section-head"><h3 class="section-title">群系摘要</h3><span class="section-meta">{{ biomeSummary.length }} 个</span></div>
       <div class="biome-tags"><span v-for="biome in biomeSummary" :key="biome.code" class="tag tag--emerald">{{ biome.label }}</span></div>
     </section>
+
+    <section v-if="sourceNpcSummary.length" class="panel-card">
+      <div class="section-head"><h3 class="section-title">来源 NPC 摘要</h3><span class="section-meta">{{ sourceNpcSummary.length }} 条</span></div>
+      <div class="source-list">
+        <article v-for="entry in sourceNpcSummary" :key="entry.key" class="source-card">
+          <div class="source-card__head"><span class="tag tag--sky">NPC</span><strong>{{ entry.title }}</strong></div>
+          <p v-if="entry.secondary" class="source-card__text">{{ entry.secondary }}</p>
+          <p v-if="entry.trace" class="source-card__text">追踪：{{ entry.trace }}</p>
+        </article>
+      </div>
+    </section>
   </div>
 </template>
 <script setup lang="ts">
@@ -153,6 +164,14 @@ const biomeSummary = computed(() => {
   }
   return [...map.values()]
 })
+const sourceNpcSummary = computed(() =>
+  (item.value.sourceNpcs ?? []).slice(0, 8).map((entry, index) => ({
+    key: String(entry.sourceFactKey ?? entry.npcId ?? entry.npcInternalName ?? index),
+    title: entry.npcNameZh?.trim() || entry.npcName?.trim() || entry.npcInternalName?.trim() || (typeof entry.npcId === 'number' ? `NPC ${entry.npcId}` : '未命名 NPC'),
+    secondary: [entry.relationType, entry.sourceProvider, entry.sourcePage].map(value => typeof value === 'string' ? value.trim() : '').filter(Boolean).join(' / '),
+    trace: entry.sourceFactKey?.trim() ?? '',
+  })),
+)
 const displaySources = computed(() => {
   const deduped = new Map<string, ItemSourceRelation>()
 

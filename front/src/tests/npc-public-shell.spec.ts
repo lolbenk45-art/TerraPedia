@@ -221,6 +221,28 @@ describe('NPC public shell', () => {
           isTownNpc: true,
           behaviorNotes: 'Offers advice to new players.',
           imageUrl: null,
+          sourceItemsJson: JSON.stringify([
+            {
+              itemId: 8,
+              itemName: 'Torch',
+              itemNameZh: 'Torch CN',
+              relationType: 'sold',
+              sourceFactKey: 'source-item:torch',
+              sourceProvider: 'terraria.wiki.gg',
+              sourcePage: 'Guide',
+            },
+          ]),
+          sourceItems: [
+            {
+              itemId: 8,
+              itemName: 'Torch',
+              itemNameZh: 'Torch CN',
+              relationType: 'sold',
+              sourceFactKey: 'source-item:torch',
+              sourceProvider: 'terraria.wiki.gg',
+              sourcePage: 'Guide',
+            },
+          ],
         },
         loot: [],
         shopEntries: [],
@@ -256,6 +278,74 @@ describe('NPC public shell', () => {
     expect(wrapper.text()).toContain('No loot data yet')
     expect(wrapper.text()).toContain('No shop inventory yet')
     expect(wrapper.text()).toContain('No buff relationships yet')
+    expect(wrapper.text()).toContain('Source Items')
+    expect(wrapper.text()).toContain('Torch CN')
+    expect(wrapper.text()).toContain('source-item:torch')
+  })
+
+  it('loads negative npc ids so variant records can consume projection relations', async () => {
+    applyRoute('/npcs/-65')
+    routeState.params = { id: '-65' }
+
+    mocks.fetchNpcAggregateById.mockResolvedValue({
+      success: true,
+      data: {
+        npc: {
+          id: -65,
+          gameId: -65,
+          internalName: 'BigHornetStingy',
+          name: 'Hornet',
+          nameZh: '黄蜂',
+          subName: null,
+          subNameZh: null,
+          categoryId: 2,
+          categoryName: 'Enemy',
+          isBoss: false,
+          isFriendly: false,
+          isTownNpc: false,
+          behaviorNotes: null,
+          imageUrl: null,
+          sourceItems: [
+            {
+              itemId: 1661,
+              itemName: 'Hornet Banner',
+              itemNameZh: '黄蜂旗',
+              relationType: 'banner',
+              sourceFactKey: 'npc-source-item:banner:BigHornetStingy:1661',
+              sourceProvider: 'terrapedia.generated',
+              sourcePage: 'npcs.standardized',
+            },
+          ],
+        },
+        loot: [],
+        shopEntries: [],
+        buffRelations: [],
+        moduleStatus: {
+          loot: 'empty',
+          shop: 'empty',
+          buffs: 'empty',
+        },
+        aggregatedAt: '2026-04-30T00:00:00Z',
+      },
+      message: 'ok',
+      statusCode: 200,
+    } satisfies ApiResponse<NpcAggregateData>)
+
+    const wrapper = mount(NpcDetailView, {
+      global: {
+        stubs: {
+          RouterLink: RouterLinkStub,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(mocks.fetchNpcAggregateById).toHaveBeenCalledWith(-65, 'loot,shop,buffs')
+    expect(wrapper.text()).toContain('黄蜂')
+    expect(wrapper.text()).toContain('黄蜂旗')
+    expect(wrapper.text()).toContain('npc-source-item:banner:BigHornetStingy:1661')
+    expect(wrapper.text()).not.toContain('Invalid NPC id')
   })
 
   it('shows the dedicated not-found state for 404 npc aggregates', async () => {

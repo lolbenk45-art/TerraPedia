@@ -82,4 +82,117 @@ describe('npc domain contracts', () => {
     expect(result.shopEntries[0].priceText).toBe('5 gold')
     expect(result.moduleStatus.shop).toBe('ok')
   })
+
+  it('parses traceable NPC projection JSON arrays without dropping raw fields', () => {
+    const lootItemsJson = JSON.stringify([
+      {
+        itemId: 8,
+        itemName: 'Torch',
+        itemNameZh: 'Torch CN',
+        quantityText: '3-6',
+        chanceText: '100%',
+        sourceFactKey: 'loot:guide:torch',
+        sourceProvider: 'terraria.wiki.gg',
+        sourcePage: 'Guide',
+        sourceRevisionTimestamp: '2026-04-12T00:00:00Z',
+      },
+    ])
+    const shopItemsJson = JSON.stringify([
+      {
+        itemId: 9,
+        itemName: 'Wooden Arrow',
+        priceText: '5 copper',
+        sourceFactKey: 'shop:guide:arrow',
+      },
+    ])
+    const sourceItemsJson = JSON.stringify([
+      {
+        itemId: 10,
+        itemName: 'Guide Voodoo Doll',
+        relationType: 'summons',
+        sourceFactKey: 'source-item:guide-voodoo-doll',
+      },
+    ])
+
+    const result = normalizeNpcPublicAggregate({
+      npc: {
+        id: 17,
+        name: 'Guide',
+        lootItemsJson,
+        shopItemsJson,
+        sourceItemsJson,
+      },
+      loot: [],
+      shopEntries: [],
+      buffRelations: [],
+      moduleStatus: {},
+    } as any)
+
+    expect(result.npc.lootItemsJson).toBe(lootItemsJson)
+    expect(result.npc.shopItemsJson).toBe(shopItemsJson)
+    expect(result.npc.sourceItemsJson).toBe(sourceItemsJson)
+    expect(result.npc.lootItems).toEqual([
+      expect.objectContaining({
+        itemId: 8,
+        itemNameZh: 'Torch CN',
+        quantityText: '3-6',
+        sourceFactKey: 'loot:guide:torch',
+        sourceProvider: 'terraria.wiki.gg',
+        sourcePage: 'Guide',
+        sourceRevisionTimestamp: '2026-04-12T00:00:00Z',
+      }),
+    ])
+    expect(result.npc.shopItems).toEqual([
+      expect.objectContaining({
+        itemId: 9,
+        itemName: 'Wooden Arrow',
+        priceText: '5 copper',
+        sourceFactKey: 'shop:guide:arrow',
+      }),
+    ])
+    expect(result.npc.sourceItems).toEqual([
+      expect.objectContaining({
+        itemId: 10,
+        itemName: 'Guide Voodoo Doll',
+        relationType: 'summons',
+        sourceFactKey: 'source-item:guide-voodoo-doll',
+      }),
+    ])
+  })
+
+  it('ignores invalid direct trace arrays and falls back to JSON fields', () => {
+    const lootItemsJson = JSON.stringify([
+      {
+        itemId: 8,
+        itemName: 'Torch',
+        sourceFactKey: 'loot:guide:torch',
+      },
+    ])
+
+    const result = normalizeNpcPublicAggregate({
+      npc: {
+        id: 17,
+        name: 'Guide',
+        lootItems: 'not-an-array',
+        shopItems: { invalid: true },
+        sourceItems: 42,
+        lootItemsJson,
+        shopItemsJson: '[]',
+        sourceItemsJson: '[]',
+      },
+      loot: [],
+      shopEntries: [],
+      buffRelations: [],
+      moduleStatus: {},
+    } as any)
+
+    expect(result.npc.lootItems).toEqual([
+      expect.objectContaining({
+        itemId: 8,
+        sourceFactKey: 'loot:guide:torch',
+      }),
+    ])
+    expect(result.npc.shopItems).toEqual([])
+    expect(result.npc.sourceItems).toEqual([])
+  })
 })

@@ -22,4 +22,7 @@ public class NpcListItemDTO implements Serializable {
     private Boolean isFriendly;
     private Boolean isTownNpc;
     private String imageUrl;
+    private String lootItemsJson;
+    private String shopItemsJson;
+    private String sourceItemsJson;
 }

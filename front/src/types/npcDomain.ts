@@ -14,6 +14,28 @@ export interface NpcBaseDomain {
   imageUrl?: string | null
   behaviorNotes?: string | null
   status?: number | null
+  lootItemsJson?: string | null
+  shopItemsJson?: string | null
+  sourceItemsJson?: string | null
+  lootItems?: NpcTraceableItemSummary[]
+  shopItems?: NpcTraceableItemSummary[]
+  sourceItems?: NpcTraceableItemSummary[]
+}
+
+export interface NpcTraceableItemSummary {
+  itemId?: number | null
+  itemName?: string | null
+  itemNameZh?: string | null
+  itemInternalName?: string | null
+  relationType?: string | null
+  quantityText?: string | null
+  chanceText?: string | null
+  priceText?: string | null
+  sourceFactKey?: string | null
+  sourceProvider?: string | null
+  sourcePage?: string | null
+  sourceRevisionTimestamp?: string | null
+  [key: string]: unknown
 }
 
 export interface NpcShopConditionDomain {

@@ -520,6 +520,9 @@ test('buildProjectionPayload builds bidirectional item and npc relation json wit
         rawJson: '{}',
       },
       {
+        sourceProvider: 'terraria.wiki.gg',
+        sourcePage: 'Demon Eye',
+        sourceRevisionTimestamp: '2026-04-27T00:00:00.000Z',
         recordKey: 'npc-demon-eye',
         sourceId: 4,
         internalName: 'DemonEye',
@@ -531,7 +534,10 @@ test('buildProjectionPayload builds bidirectional item and npc relation json wit
               itemId: 13,
               internalName: 'SuspiciousLookingEye',
               conditionText: 'Summons this boss',
-              sourceFactKey: 'npc-source-item:demon-eye'
+              sourceFactKey: 'npc-source-item:demon-eye',
+              sourceProvider: 'terraria.wiki.gg',
+              sourcePage: 'Demon Eye',
+              sourceRevisionTimestamp: '2026-04-27T00:00:00.000Z'
             }
           ]
         }),
@@ -551,6 +557,7 @@ test('buildProjectionPayload builds bidirectional item and npc relation json wit
     ],
     itemNpcLootRelations: [
       {
+        recordKey: 'relation-drop-zombie-shackle',
         sourceFactKey: 'item-source:drop:npc:zombie:shackle',
         itemInternalName: 'Shackle',
         itemName: 'Shackle',
@@ -559,9 +566,13 @@ test('buildProjectionPayload builds bidirectional item and npc relation json wit
         npcName: 'Zombie',
         chanceText: '2%',
         quantityText: '1',
-        conditionSourceText: 'Expert Mode'
+        conditionSourceText: 'Expert Mode',
+        sourceProvider: 'terraria.wiki.gg',
+        sourcePage: 'Shackle',
+        sourceRevisionTimestamp: '2026-04-28T01:02:03.000Z'
       },
       {
+        recordKey: 'relation-drop-demon-eye-shackle',
         sourceFactKey: 'item-source:drop:npc:demon-eye:shackle',
         itemInternalName: 'Shackle',
         itemName: 'Shackle',
@@ -570,11 +581,15 @@ test('buildProjectionPayload builds bidirectional item and npc relation json wit
         npcName: 'Demon Eye',
         chanceText: '1%',
         quantityText: '1',
-        conditionSourceText: null
+        conditionSourceText: null,
+        sourceProvider: 'terraria.wiki.gg',
+        sourcePage: 'Demon Eye',
+        sourceRevisionTimestamp: '2026-04-28T02:03:04.000Z'
       },
     ],
     itemNpcShopRelations: [
       {
+        recordKey: 'relation-shop-merchant-potion',
         sourceFactKey: 'item-source:shop:npc:merchant:potion',
         itemInternalName: 'LesserHealingPotion',
         itemName: 'Lesser Healing Potion',
@@ -582,9 +597,13 @@ test('buildProjectionPayload builds bidirectional item and npc relation json wit
         npcInternalName: 'Merchant',
         npcName: 'Merchant',
         priceText: '3 silver',
-        conditionSourceText: 'Always'
+        conditionSourceText: 'Always',
+        sourceProvider: 'terraria.wiki.gg',
+        sourcePage: 'Lesser Healing Potion',
+        sourceRevisionTimestamp: '2026-04-28T03:04:05.000Z'
       },
       {
+        recordKey: 'relation-shop-merchant-torch',
         sourceFactKey: 'item-source:shop:npc:merchant:torch',
         itemInternalName: 'Torch',
         itemName: 'Torch',
@@ -592,7 +611,10 @@ test('buildProjectionPayload builds bidirectional item and npc relation json wit
         npcInternalName: 'Merchant',
         npcName: 'Merchant',
         priceText: '50 copper',
-        conditionSourceText: 'Always'
+        conditionSourceText: 'Always',
+        sourceProvider: 'terraria.wiki.gg',
+        sourcePage: 'Torch',
+        sourceRevisionTimestamp: '2026-04-28T04:05:06.000Z'
       },
     ],
     relationProjectiles: [
@@ -619,10 +641,31 @@ test('buildProjectionPayload builds bidirectional item and npc relation json wit
   const shackle = actual.projectionItems.find((row) => row.internalName === 'Shackle');
   assert.deepEqual(JSON.parse(shackle.sourceNpcsJson).map((row) => row.npcInternalName), ['DemonEye', 'Zombie']);
   assert.deepEqual(JSON.parse(shackle.sourceNpcsJson).map((row) => row.relationType), ['drop', 'drop']);
+  assert.deepEqual(JSON.parse(shackle.sourceNpcsJson)[0], {
+    relationType: 'drop',
+    npcId: 4,
+    npcSourceId: 4,
+    npcInternalName: 'DemonEye',
+    npcName: 'Demon Eye',
+    npcNameZh: null,
+    npcImageUrl: '/assets/npcs/demon_eye.png',
+    chanceText: '1%',
+    quantityText: '1',
+    priceText: null,
+    conditionText: null,
+    sourceFactKey: 'item-source:drop:npc:demon-eye:shackle',
+    relationRecordKey: 'relation-drop-demon-eye-shackle',
+    sourceProvider: 'terraria.wiki.gg',
+    sourcePage: 'Demon Eye',
+    sourceRevisionTimestamp: '2026-04-28T02:03:04.000Z'
+  });
 
   const merchant = actual.projectionNpcs.find((row) => row.internalName === 'Merchant');
   assert.deepEqual(JSON.parse(merchant.shopItemsJson).map((row) => row.itemInternalName), ['LesserHealingPotion', 'Torch']);
   assert.deepEqual(JSON.parse(merchant.lootItemsJson), []);
+  assert.equal(JSON.parse(merchant.shopItemsJson)[0].sourceProvider, 'terraria.wiki.gg');
+  assert.equal(JSON.parse(merchant.shopItemsJson)[0].sourcePage, 'Lesser Healing Potion');
+  assert.equal(JSON.parse(merchant.shopItemsJson)[0].relationRecordKey, 'relation-shop-merchant-potion');
 
   const zombie = actual.projectionNpcs.find((row) => row.internalName === 'Zombie');
   assert.deepEqual(JSON.parse(zombie.lootItemsJson).map((row) => row.itemInternalName), ['Shackle']);
@@ -638,7 +681,11 @@ test('buildProjectionPayload builds bidirectional item and npc relation json wit
       itemNameZh: null,
       itemImageUrl: '/assets/items/suspicious_looking_eye.png',
       conditionText: 'Summons this boss',
-      sourceFactKey: 'npc-source-item:demon-eye'
+      sourceFactKey: 'npc-source-item:demon-eye',
+      relationRecordKey: null,
+      sourceProvider: 'terraria.wiki.gg',
+      sourcePage: 'Demon Eye',
+      sourceRevisionTimestamp: '2026-04-27T00:00:00.000Z'
     }
   ]);
 

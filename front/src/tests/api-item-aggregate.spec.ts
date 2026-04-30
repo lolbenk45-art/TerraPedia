@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ItemAggregateResponse } from '@/types'
 import { createItemAggregateFetcher } from '@/api/itemAggregate'
+import { normalizeItemAggregateData } from '@/api'
 
 const buildResponse = (overrides: Partial<ItemAggregateResponse> = {}): ItemAggregateResponse => ({
   success: true,
@@ -158,5 +159,76 @@ describe('createItemAggregateFetcher', () => {
       reason: 'bad payload',
       latencyMs: 15,
     })
+  })
+})
+
+describe('normalizeItemAggregateData', () => {
+  it('parses item source NPC JSON while preserving raw JSON and trace fields', () => {
+    const rawSourceNpcsJson = JSON.stringify([
+      {
+        npcId: 17,
+        npcName: 'Guide',
+        npcNameZh: 'Guide CN',
+        relationType: 'source',
+        sourceFactKey: 'npc:guide',
+        sourceProvider: 'terraria.wiki.gg',
+        sourcePage: 'Guide',
+        sourceRevisionTimestamp: '2026-04-12T00:00:00Z',
+      },
+    ])
+
+    const result = normalizeItemAggregateData({
+      item: {
+        id: 100,
+        name: 'Torch',
+        sourceNpcsJson: rawSourceNpcsJson,
+      },
+      images: [],
+      sources: [],
+      recipes: [],
+    } as any)
+
+    expect(result.item.sourceNpcsJson).toBe(rawSourceNpcsJson)
+    expect(result.item.sourceNpcs).toEqual([
+      expect.objectContaining({
+        npcId: 17,
+        npcName: 'Guide',
+        npcNameZh: 'Guide CN',
+        relationType: 'source',
+        sourceFactKey: 'npc:guide',
+        sourceProvider: 'terraria.wiki.gg',
+        sourcePage: 'Guide',
+        sourceRevisionTimestamp: '2026-04-12T00:00:00Z',
+      }),
+    ])
+  })
+
+  it('ignores invalid direct source NPC arrays and falls back to JSON payload', () => {
+    const rawSourceNpcsJson = JSON.stringify([
+      {
+        npcId: 17,
+        npcName: 'Guide',
+        sourceFactKey: 'npc:guide',
+      },
+    ])
+
+    const result = normalizeItemAggregateData({
+      item: {
+        id: 100,
+        name: 'Torch',
+        sourceNpcs: 'not-an-array',
+        sourceNpcsJson: rawSourceNpcsJson,
+      },
+      images: [],
+      sources: [],
+      recipes: [],
+    } as any)
+
+    expect(result.item.sourceNpcs).toEqual([
+      expect.objectContaining({
+        npcId: 17,
+        sourceFactKey: 'npc:guide',
+      }),
+    ])
   })
 })

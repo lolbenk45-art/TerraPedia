@@ -225,6 +225,7 @@
                         <div v-else-if="entityType === 'npcs'" class="cell-badges">
                           <span class="cell-badge cell-badge--accent">{{ row.categoryName || '未分类' }}</span>
                           <span class="cell-badge">掉落 {{ row.lootEntryCount ?? 0 }}</span>
+                          <span v-if="getNpcInheritedLootCount(row)" class="cell-badge cell-badge--accent">原型掉落 {{ getNpcInheritedLootCount(row) }}</span>
                           <span class="cell-badge">原始 {{ row.derivedLootEntryCount ?? 0 }}</span>
                           <span v-if="row.isTownNpc" class="cell-badge">城镇 NPC</span>
                           <span v-if="row.isBoss" class="cell-badge">Boss</span>
@@ -438,6 +439,7 @@
                 <p>{{ row.value }}</p>
               </article>
             </div>
+            <p v-if="!npcLootEntries.length" class="empty-text">当前 NPC 还没有导入结构化掉落数据，可通过编辑结构化掉落补录。</p>
           </section>
 
           <section v-if="armorSetVariantRows.length" class="armor-detail__section">
@@ -752,6 +754,7 @@
                 <span class="preview-pill preview-pill--accent">NPC DIRECTORY</span>
                 <span class="preview-pill">{{ detailRow.categoryName || '未分类' }}</span>
                 <span class="preview-pill">结构化掉落 {{ npcLootEntries.length }}</span>
+                <span v-if="npcInheritedLootCount" class="preview-pill">原型掉落 {{ npcInheritedLootCount }}</span>
                 <span class="preview-pill">原始来源 {{ npcDerivedLootEntries.length }}</span>
               </div>
               <h3>{{ detailTitle }}</h3>
@@ -813,13 +816,16 @@
             </div>
           </section>
 
-          <section v-if="npcLootEntries.length" class="projectile-detail__section">
+          <section class="projectile-detail__section">
             <div class="projectile-detail__section-head">
-              <h4>结构化掉落</h4>
-              <span>{{ npcLootEntries.length }} 条</span>
+              <div>
+                <h4>结构化掉落</h4>
+                <span>{{ npcLootEntries.length }} 条</span>
+              </div>
+              <button type="button" class="btn btn-secondary btn-compact" @click="openEditDialog(detailRow)">编辑结构化掉落</button>
             </div>
             <p class="boss-detail__helper">{{ npcLootSectionHelper }}</p>
-            <div class="boss-detail__loot-list">
+            <div v-if="npcLootEntries.length" class="boss-detail__loot-list">
               <article v-for="entry in npcLootEntries" :key="`npc-loot-${entry.id ?? entry.sortOrder}-${entry.itemId ?? entry.itemInternalName}`" class="boss-detail__loot-card">
                 <button type="button" class="boss-detail__loot-media boss-detail__loot-media--button" @click="openLinkedItemDetail(entry)">
                   <img v-if="normalizeImageUrl(entry.itemImage)" :src="normalizeImageUrl(entry.itemImage) || ''" class="boss-detail__loot-image" alt="" @error="handleImageError" />
@@ -834,6 +840,44 @@
                   <span>{{ entry.itemName && entry.itemNameZh ? entry.itemName : entry.itemInternalName || '--' }}</span>
                   <div v-if="getBossLootModeRows(entry).length" class="boss-detail__loot-mode-list">
                     <div v-for="mode in getBossLootModeRows(entry)" :key="`npc-struct-mode-${mode.key}`" class="boss-detail__loot-mode">
+                      <strong>{{ mode.label }}</strong>
+                      <span v-if="mode.chance">概率 {{ mode.chance }}</span>
+                      <span v-if="mode.quantity">数量 {{ mode.quantity }}</span>
+                    </div>
+                  </div>
+                  <template v-else>
+                    <span>概率 {{ formatBossLootChance(entry) }}</span>
+                    <span>数量 {{ formatBossLootQuantity(entry) }}</span>
+                  </template>
+                  <span v-if="entry.conditions">条件 {{ entry.conditions }}</span>
+                  <span v-if="formatBossLootNote(entry)">备注 {{ formatBossLootNote(entry) }}</span>
+                  <button type="button" class="btn-link" @click="openLinkedItemDetail(entry)">物品详情</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section v-if="npcInheritedLootEntries.length" class="projectile-detail__section">
+            <div class="projectile-detail__section-head">
+              <h4>原型掉落</h4>
+              <span>{{ npcInheritedLootEntries.length }} 条 / {{ npcLootInheritanceLabel }}</span>
+            </div>
+            <p class="boss-detail__helper">{{ npcInheritedLootSectionHelper }}</p>
+            <div class="boss-detail__loot-list">
+              <article v-for="entry in npcInheritedLootEntries" :key="`npc-inherited-loot-${entry.id ?? entry.sortOrder}-${entry.itemId ?? entry.itemInternalName}`" class="boss-detail__loot-card">
+                <button type="button" class="boss-detail__loot-media boss-detail__loot-media--button" @click="openLinkedItemDetail(entry)">
+                  <img v-if="normalizeImageUrl(entry.itemImage)" :src="normalizeImageUrl(entry.itemImage) || ''" class="boss-detail__loot-image" alt="" @error="handleImageError" />
+                  <div v-else class="boss-detail__loot-fallback">IT</div>
+                </button>
+                <div class="boss-detail__loot-body">
+                  <div class="boss-detail__member-pills">
+                    <span class="cell-badge cell-badge--accent">prototype</span>
+                    <span v-if="entry.itemInternalName" class="cell-badge">{{ entry.itemInternalName }}</span>
+                  </div>
+                  <strong>{{ entry.itemNameZh || entry.itemName || entry.itemInternalName || `Item ${entry.itemId ?? '--'}` }}</strong>
+                  <span>{{ entry.itemName && entry.itemNameZh ? entry.itemName : entry.itemInternalName || '--' }}</span>
+                  <div v-if="getBossLootModeRows(entry).length" class="boss-detail__loot-mode-list">
+                    <div v-for="mode in getBossLootModeRows(entry)" :key="`npc-inherited-mode-${mode.key}`" class="boss-detail__loot-mode">
                       <strong>{{ mode.label }}</strong>
                       <span v-if="mode.chance">概率 {{ mode.chance }}</span>
                       <span v-if="mode.quantity">数量 {{ mode.quantity }}</span>
@@ -885,6 +929,29 @@
                   <span v-if="formatBossLootNote(entry)">备注 {{ formatBossLootNote(entry) }}</span>
                   <span v-if="entry.sourcePage">来源页 {{ entry.sourcePage }}</span>
                   <button type="button" class="btn-link" @click="openLinkedItemDetail(entry)">物品详情</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section v-if="npcProjectionRelationGroups.length" class="projectile-detail__section">
+            <div class="projectile-detail__section-head">
+              <h4>投影关系</h4>
+              <span>{{ npcProjectionRelationCount }} 条</span>
+            </div>
+            <div class="npc-projection-groups">
+              <article v-for="group in npcProjectionRelationGroups" :key="group.key" class="preview-note npc-projection-group">
+                <div class="preview-json__head">
+                  <strong>{{ group.label }}</strong>
+                  <span>{{ group.rows.length }} 条</span>
+                </div>
+                <div class="npc-projection-list">
+                  <div v-for="entry in group.rows" :key="entry.key" class="npc-projection-entry">
+                    <strong>{{ entry.title }}</strong>
+                    <span v-if="entry.secondary">{{ entry.secondary }}</span>
+                    <span v-if="entry.trace">sourceFactKey {{ entry.trace }}</span>
+                    <span v-if="entry.source">来源 {{ entry.source }}</span>
+                  </div>
                 </div>
               </article>
             </div>
@@ -1381,8 +1448,11 @@ const configs: Record<string, EntityConfig> = {
       { key: 'catchSourceItemId', label: 'Catch Source Item ID', type: 'number' },
       { key: 'catchItemId', label: 'Catch Item DB ID', type: 'number' },
       { key: 'lootEntries', label: 'Loot Entries JSON', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: '结构化掉落数据。支持 itemId/sourceItemId、dropSourceKind、数量、概率、条件等。' },
+      { key: 'lootItemsJson', label: 'Projection Loot Items JSON', type: 'textarea', span: 'full', rows: 7, format: 'json', helper: '只读校对字段：来自关系投影的掉落物品摘要，保留 sourceFactKey 和来源页。' },
       { key: 'buffRelations', label: 'Buff Relations JSON', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: 'NPC 附加或关联 Buff 的结构化关系。' },
       { key: 'shopEntries', label: 'Shop Entries JSON', type: 'textarea', span: 'full', rows: 8, format: 'json', helper: 'NPC 售卖骨架，条件数组支持 BIOME / WORLD_CONTEXT / GAME_PERIOD / ITEM。' },
+      { key: 'shopItemsJson', label: 'Projection Shop Items JSON', type: 'textarea', span: 'full', rows: 7, format: 'json', helper: '只读校对字段：来自关系投影的售卖物品摘要，保留 sourceFactKey 和来源页。' },
+      { key: 'sourceItemsJson', label: 'Projection Source Items JSON', type: 'textarea', span: 'full', rows: 7, format: 'json', helper: '只读校对字段：来自 NPC 标准化来源的 banner/catch/summon 物品摘要。' },
       { key: 'rawJson', label: 'Raw JSON Payload', type: 'textarea', span: 'full', rows: 10, format: 'json', helper: '标准化补充数据预览字段，通常由同步脚本生成；手工编辑不会直接写回数据库结构化列。' },
     ],
   },
@@ -2348,6 +2418,7 @@ const detailStats = computed(() => {
     { label: '伤害', value: detailRow.value.damage != null ? String(detailRow.value.damage) : '--' },
     { label: '生命', value: detailRow.value.lifeMax != null ? String(detailRow.value.lifeMax) : '--' },
     { label: '结构化掉落', value: npcLootEntries.value.length ? String(npcLootEntries.value.length) : '--' },
+    { label: '原型掉落', value: npcInheritedLootCount.value ? String(npcInheritedLootCount.value) : '--' },
     { label: '原始来源', value: npcDerivedLootEntries.value.length ? String(npcDerivedLootEntries.value.length) : '--' },
     { label: '更新时间', value: formatDateTime(detailRow.value.updatedAt) },
   ]
@@ -2547,12 +2618,97 @@ const npcLootEntries = computed<Array<Record<string, any>>>(() => {
     .filter(item => item && typeof item === 'object')
     .map(item => normalizeRow(item as Record<string, any>))
 })
+const npcInheritedLootEntries = computed<Array<Record<string, any>>>(() => {
+  if (!detailRow.value || entityType.value !== 'npcs' || !Array.isArray(detailRow.value.inheritedLootEntries)) return []
+  return detailRow.value.inheritedLootEntries
+    .filter(item => item && typeof item === 'object')
+    .map(item => normalizeRow(item as Record<string, any>))
+})
+function getNpcInheritedLootCount(row: Record<string, any> | null | undefined) {
+  const value = Number(row?.inheritedLootEntryCount ?? 0)
+  return Number.isFinite(value) && value > 0 ? value : 0
+}
+const npcInheritedLootCount = computed(() => getNpcInheritedLootCount(detailRow.value))
+const npcLootInheritanceLabel = computed(() => {
+  if (!detailRow.value || entityType.value !== 'npcs') return '--'
+  return pickFirstString(
+    detailRow.value.lootInheritanceNameZh,
+    detailRow.value.lootInheritanceName,
+    detailRow.value.lootInheritanceInternalName,
+  ) || '--'
+})
 const npcDerivedLootEntries = computed<Array<Record<string, any>>>(() => {
   if (!detailRow.value || entityType.value !== 'npcs' || !Array.isArray(detailRow.value.derivedLootEntries)) return []
   return detailRow.value.derivedLootEntries
     .filter(item => item && typeof item === 'object')
     .map(item => normalizeRow(item as Record<string, any>))
 })
+function getNpcProjectionRows(arrayKey: string, jsonKey: string): Array<Record<string, any>> {
+  if (!detailRow.value || entityType.value !== 'npcs') return []
+  const directRows = normalizeSourceEntries(detailRow.value[arrayKey])
+  if (directRows.length) return directRows
+  const parsed = typeof detailRow.value[jsonKey] === 'string'
+    ? tryParseJson(detailRow.value[jsonKey])
+    : detailRow.value[jsonKey]
+  return normalizeSourceEntries(parsed)
+}
+function getNpcProjectionTitle(entry: Record<string, any>, index: number) {
+  return pickFirstString(
+    entry.itemNameZh,
+    entry.nameZh,
+    entry.itemName,
+    entry.name,
+    entry.itemInternalName,
+    entry.internalName,
+  ) || `Item ${entry.itemId ?? entry.sourceItemId ?? index + 1}`
+}
+function getNpcProjectionSecondary(entry: Record<string, any>) {
+  return [
+    entry.relationType,
+    entry.itemInternalName,
+    entry.quantityText,
+    entry.chanceText,
+    entry.priceText,
+    entry.conditionText,
+  ]
+    .map(value => (typeof value === 'string' ? value.trim() : value == null ? '' : String(value)))
+    .filter(Boolean)
+    .join(' / ')
+}
+function getNpcProjectionSource(entry: Record<string, any>) {
+  return [
+    entry.sourceProvider,
+    entry.sourcePage,
+    formatDateTime(entry.sourceRevisionTimestamp),
+  ]
+    .map(value => (typeof value === 'string' ? value.trim() : ''))
+    .filter(Boolean)
+    .join(' / ')
+}
+function buildNpcProjectionGroup(key: string, label: string, rows: Array<Record<string, any>>) {
+  return {
+    key,
+    label,
+    rows: rows.slice(0, 8).map((entry, index) => ({
+      key: String(entry.sourceFactKey ?? entry.relationRecordKey ?? entry.itemId ?? entry.itemInternalName ?? `${key}-${index}`),
+      title: getNpcProjectionTitle(entry, index),
+      secondary: getNpcProjectionSecondary(entry),
+      trace: typeof entry.sourceFactKey === 'string' ? entry.sourceFactKey.trim() : '',
+      source: getNpcProjectionSource(entry),
+    })),
+  }
+}
+const npcProjectionLootItems = computed<Array<Record<string, any>>>(() => getNpcProjectionRows('lootItems', 'lootItemsJson'))
+const npcProjectionShopItems = computed<Array<Record<string, any>>>(() => getNpcProjectionRows('shopItems', 'shopItemsJson'))
+const npcProjectionSourceItems = computed<Array<Record<string, any>>>(() => getNpcProjectionRows('sourceItems', 'sourceItemsJson'))
+const npcProjectionRelationGroups = computed(() => [
+  buildNpcProjectionGroup('loot', '投影掉落物品', npcProjectionLootItems.value),
+  buildNpcProjectionGroup('shop', '投影售卖物品', npcProjectionShopItems.value),
+  buildNpcProjectionGroup('source', '投影来源物品', npcProjectionSourceItems.value),
+].filter(group => group.rows.length > 0))
+const npcProjectionRelationCount = computed(() =>
+  npcProjectionRelationGroups.value.reduce((total, group) => total + group.rows.length, 0),
+)
 const npcAdvancedDetails = computed(() => {
   if (!detailRow.value || entityType.value !== 'npcs') {
     return buildNpcAdvancedDetails(null)
@@ -2567,7 +2723,9 @@ const npcDetailSummary = computed(() => {
   const category = detailRow.value.categoryName || '未分类 NPC'
   const structured = npcLootEntries.value.length
   const derived = npcDerivedLootEntries.value.length
-  return `${category}，当前结构化掉落 ${structured} 条，原始来源掉落 ${derived} 条，优先以结构化掉落作为后台维护结果。`
+  const inherited = npcInheritedLootCount.value
+  const inheritedText = inherited ? `，原型掉落 ${inherited} 条` : ''
+  return `${category}，当前结构化掉落 ${structured} 条${inheritedText}，原始来源掉落 ${derived} 条，优先以结构化掉落作为后台维护结果。`
 })
 const npcAdvancedSectionHelper = computed(() => {
   if (!detailRow.value || entityType.value !== 'npcs') return ''
@@ -2580,6 +2738,10 @@ const npcLootSectionHelper = computed(() => {
   if (!detailRow.value || entityType.value !== 'npcs') return ''
   if (!npcLootEntries.value.length) return '当前 NPC 还没有导入结构化掉落数据。'
   return '这里显示的是已导入并去重后的后台掉落结果，后续编辑默认以这组数据为准。'
+})
+const npcInheritedLootSectionHelper = computed(() => {
+  if (!detailRow.value || entityType.value !== 'npcs') return ''
+  return `来源 ${npcLootInheritanceLabel.value}，按 npc_type 原型关系只读展示。`
 })
 const npcDerivedLootSectionHelper = computed(() => {
   if (!detailRow.value || entityType.value !== 'npcs') return ''
@@ -3673,6 +3835,19 @@ function formatArmorPartRole(value: unknown) {
 .npc-detail__table tbody td { color: var(--color-text-secondary); white-space: nowrap; }
 .npc-detail__table tbody tr:last-child th,
 .npc-detail__table tbody tr:last-child td { border-bottom: none; }
+.npc-projection-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.npc-projection-group { align-content: start; }
+.npc-projection-list { display: grid; gap: 8px; }
+.npc-projection-entry {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
+  background: color-mix(in srgb, var(--color-bg) 82%, var(--color-bg-secondary));
+}
+.npc-projection-entry strong { color: var(--color-text); font-size: 0.88rem; line-height: 1.35; overflow-wrap: anywhere; }
+.npc-projection-entry span { color: var(--color-text-secondary); font-size: 0.78rem; line-height: 1.45; overflow-wrap: anywhere; }
 .related-items { display: grid; gap: 10px; }
 .related-item { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; align-items: center; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-secondary) 90%, transparent); }
 .related-item__image,.related-item__fallback { width: 64px; height: 64px; border-radius: 14px; object-fit: contain; border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-tertiary) 90%, transparent); display: grid; place-items: center; }

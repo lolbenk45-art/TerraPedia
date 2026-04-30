@@ -27,6 +27,7 @@ public class ItemVO implements Serializable {
     private Long gameModelId;
     private Boolean isStackable;
     private Integer stackSize;
+    private String sourceNpcsJson;
     private Integer status;
     private String category;
     private String rare;

@@ -76,7 +76,24 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             return List.of();
         }
 
-        List<NpcLootEntryDTO> directLoot = jdbcTemplate.queryForList(
+        List<NpcLootEntryDTO> directLoot = loadStructuredLootByNpcId(npcId);
+        if (!directLoot.isEmpty()) {
+            return directLoot;
+        }
+
+        List<NpcLootEntryDTO> prototypeLoot = loadPrototypeStructuredLoot(npcId);
+        if (!prototypeLoot.isEmpty()) {
+            return prototypeLoot;
+        }
+
+        return loadDerivedLoot(gameId, npcName);
+    }
+
+    private List<NpcLootEntryDTO> loadStructuredLootByNpcId(Long npcId) {
+        if (npcId == null) {
+            return List.of();
+        }
+        return jdbcTemplate.queryForList(
             """
             SELECT
               nle.id,
@@ -102,11 +119,45 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             """,
             npcId
         ).stream().map(this::toLootEntryDto).toList();
+    }
 
-        if (!directLoot.isEmpty()) {
-            return directLoot;
+    private List<NpcLootEntryDTO> loadPrototypeStructuredLoot(Long npcId) {
+        if (npcId == null) {
+            return List.of();
         }
-        return loadDerivedLoot(gameId, npcName);
+        return jdbcTemplate.queryForList(
+            """
+            SELECT
+              nle.id,
+              nle.item_id AS itemId,
+              nle.source_item_id AS sourceItemId,
+              nle.drop_source_kind AS dropSourceKind,
+              nle.quantity_min AS quantityMin,
+              nle.quantity_max AS quantityMax,
+              nle.quantity_text AS quantityText,
+              nle.chance_value AS chanceValue,
+              nle.chance_text AS chanceText,
+              nle.conditions,
+              nle.notes,
+              nle.sort_order AS sortOrder,
+              i.name AS itemName,
+              i.name_zh AS itemNameZh,
+              i.internal_name AS itemInternalName,
+              i.image AS itemImage
+            FROM npcs current_npc
+            JOIN npcs prototype_npc ON prototype_npc.game_id = current_npc.npc_type
+              AND prototype_npc.deleted = 0
+            JOIN npc_loot_entries nle ON nle.npc_id = prototype_npc.id AND nle.deleted = 0
+            LEFT JOIN items i ON i.id = nle.item_id AND i.deleted = 0
+            WHERE current_npc.id = ?
+              AND current_npc.deleted = 0
+              AND current_npc.npc_type IS NOT NULL
+              AND current_npc.npc_type > 0
+              AND (current_npc.game_id IS NULL OR current_npc.npc_type <> current_npc.game_id)
+            ORDER BY nle.sort_order ASC, nle.id ASC
+            """,
+            npcId
+        ).stream().map(this::toLootEntryDto).toList();
     }
 
     @Override
@@ -245,6 +296,9 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setIsFriendly(firstNonNullBoolean(npc.getIsFriendly(), supplement.isFriendly));
         dto.setIsTownNpc(firstNonNullBoolean(npc.getIsTownNpc(), supplement.isTownNpc));
         dto.setImageUrl(firstNonBlank(npc.getImageUrl(), supplement.imageUrl));
+        dto.setLootItemsJson(npc.getLootItemsJson());
+        dto.setShopItemsJson(npc.getShopItemsJson());
+        dto.setSourceItemsJson(npc.getSourceItemsJson());
         return dto;
     }
 
@@ -264,6 +318,9 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setIsFriendly(listItem.getIsFriendly());
         dto.setIsTownNpc(listItem.getIsTownNpc());
         dto.setImageUrl(listItem.getImageUrl());
+        dto.setLootItemsJson(listItem.getLootItemsJson());
+        dto.setShopItemsJson(listItem.getShopItemsJson());
+        dto.setSourceItemsJson(listItem.getSourceItemsJson());
         dto.setBehaviorNotes(trimToNull(npc.getBehaviorNotes()));
         dto.setStatus(npc.getStatus());
         return dto;

@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -28,6 +29,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -163,6 +167,113 @@ class AdminNpcControllerTest {
         mockMvc.perform(get("/admin/npcs/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.imageUrl").value("https://terraria.wiki.gg/images/Stingy%20Hornet.gif"));
+    }
+
+    @Test
+    void shouldPreserveProjectionJsonStringsInAdminListPayload() throws Exception {
+        String lootItemsJson = "[{\"itemId\":8,\"internalName\":\"Torch\"}]";
+        String shopItemsJson = "[{\"itemId\":9,\"internalName\":\"Rope\"}]";
+        String sourceItemsJson = "[{\"itemId\":930,\"internalName\":\"FlareGun\"}]";
+
+        Npc npc = new Npc();
+        npc.setId(7L);
+        npc.setGameId(22L);
+        npc.setInternalName("Guide");
+        npc.setName("Guide");
+        npc.setStatus(1);
+        ReflectionTestUtils.setField(npc, "lootItemsJson", lootItemsJson);
+        ReflectionTestUtils.setField(npc, "shopItemsJson", shopItemsJson);
+        ReflectionTestUtils.setField(npc, "sourceItemsJson", sourceItemsJson);
+
+        Page<Npc> page = new Page<>(1, 20);
+        page.setTotal(1);
+        page.setRecords(List.of(npc));
+
+        when(npcMapper.selectPage(any(Page.class), any())).thenReturn(page);
+        when(jdbcTemplate.queryForList(any(String.class), any(Object[].class))).thenReturn(List.of());
+
+        mockMvc.perform(get("/admin/npcs"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].lootItemsJson").value(lootItemsJson))
+            .andExpect(jsonPath("$.data[0].shopItemsJson").value(shopItemsJson))
+            .andExpect(jsonPath("$.data[0].sourceItemsJson").value(sourceItemsJson));
+    }
+
+    @Test
+    void shouldExposePrototypeLootCountsForNpcVariantRows() throws Exception {
+        Npc npc = new Npc();
+        npc.setId(-55L);
+        npc.setGameId(-55L);
+        npc.setInternalName("BigRainZombie");
+        npc.setName("Zombie");
+        npc.setNameZh("僵尸");
+        npc.setStatus(1);
+        ReflectionTestUtils.setField(npc, "npcType", 223);
+
+        Page<Npc> page = new Page<>(1, 20);
+        page.setTotal(1);
+        page.setRecords(List.of(npc));
+
+        when(npcMapper.selectPage(any(Page.class), any())).thenReturn(page);
+        when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries WHERE"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations WHERE"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries WHERE"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM item_acquisition_sources"), any(Object[].class))).thenReturn(List.of());
+        lenient().when(jdbcTemplate.queryForList(contains("variantSourceId"), any(Object[].class))).thenReturn(List.of(Map.of(
+            "variantSourceId", 223L,
+            "sourceNpcId", 223L,
+            "sourceInternalName", "ZombieRaincoat",
+            "sourceName", "Raincoat Zombie",
+            "sourceNameZh", "雨衣僵尸",
+            "total", 4
+        )));
+
+        mockMvc.perform(get("/admin/npcs"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data[0].lootEntryCount").value(0))
+            .andExpect(jsonPath("$.data[0].inheritedLootEntryCount").value(4))
+            .andExpect(jsonPath("$.data[0].lootInheritanceSourceId").value(223))
+            .andExpect(jsonPath("$.data[0].lootInheritanceInternalName").value("ZombieRaincoat"))
+            .andExpect(jsonPath("$.data[0].lootInheritanceName").value("Raincoat Zombie"));
+    }
+
+    @Test
+    void shouldPreserveProjectionJsonStringsInAdminDetailPayload() throws Exception {
+        String lootItemsJson = "[{\"itemId\":8,\"internalName\":\"Torch\"}]";
+        String shopItemsJson = "[{\"itemId\":9,\"internalName\":\"Rope\"}]";
+        String sourceItemsJson = "[{\"itemId\":930,\"internalName\":\"FlareGun\"}]";
+
+        Npc npc = new Npc();
+        npc.setId(7L);
+        npc.setGameId(22L);
+        npc.setInternalName("Guide");
+        npc.setName("Guide");
+        npc.setStatus(1);
+        ReflectionTestUtils.setField(npc, "lootItemsJson", lootItemsJson);
+        ReflectionTestUtils.setField(npc, "shopItemsJson", shopItemsJson);
+        ReflectionTestUtils.setField(npc, "sourceItemsJson", sourceItemsJson);
+
+        when(npcMapper.selectById(7L)).thenReturn(npc);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_loot_entries"), eq(Integer.class), eq(7L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_buff_relations"), eq(Integer.class), eq(7L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_shop_entries"), eq(Integer.class), eq(7L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("source_ref_id = ?"), eq(Integer.class), eq(22L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(
+            contains("LOWER(TRIM(source_ref_name)) = LOWER(TRIM(?))"),
+            eq(Integer.class),
+            eq("Guide")
+        )).thenReturn(0);
+        when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries nle"), eq(7L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("source_ref_id IS NULL"), eq("Guide"))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(7L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries nse"), eq(7L))).thenReturn(List.of());
+
+        mockMvc.perform(get("/admin/npcs/7"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.lootItemsJson").value(lootItemsJson))
+            .andExpect(jsonPath("$.data.shopItemsJson").value(shopItemsJson))
+            .andExpect(jsonPath("$.data.sourceItemsJson").value(sourceItemsJson));
     }
 
     @Test
@@ -470,5 +581,79 @@ class AdminNpcControllerTest {
             .andExpect(jsonPath("$.data.shopMutationSummary.insertedCount").value(1))
             .andExpect(jsonPath("$.data.shopMutationSummary.skippedCount").value(1))
             .andExpect(jsonPath("$.data.shopMutationSummary.removedCount").value(1));
+    }
+
+    @Test
+    void shouldReplaceOnlyNpcDropLootRowsWhenUpdatingNpcLootEntries() throws Exception {
+        Npc existing = new Npc();
+        existing.setId(7L);
+        existing.setGameId(22L);
+        existing.setInternalName("Guide");
+        existing.setName("Guide");
+        existing.setStatus(1);
+
+        Npc updated = new Npc();
+        updated.setId(7L);
+        updated.setGameId(22L);
+        updated.setInternalName("Guide");
+        updated.setName("Guide");
+        updated.setStatus(1);
+
+        when(npcMapper.selectById(7L)).thenReturn(existing, updated);
+        when(npcMapper.selectCount(any())).thenReturn(0L);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_loot_entries"), eq(Integer.class), eq(7L))).thenReturn(1);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_buff_relations"), eq(Integer.class), eq(7L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_shop_entries"), eq(Integer.class), eq(7L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("source_ref_id = ?"), eq(Integer.class), eq(22L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(
+            contains("LOWER(TRIM(source_ref_name)) = LOWER(TRIM(?))"),
+            eq(Integer.class),
+            eq("Guide")
+        )).thenReturn(0);
+        when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries nle"), eq(7L))).thenReturn(List.of(Map.of(
+            "itemId", 12L,
+            "dropSourceKind", "npc_drop",
+            "itemName", "Gel"
+        )));
+        when(jdbcTemplate.queryForList(contains("source_ref_id IS NULL"), eq("Guide"))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(7L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries nse"), eq(7L))).thenReturn(List.of());
+
+        mockMvc.perform(put("/admin/npcs/7")
+                .contentType(APPLICATION_JSON)
+                .content("""
+                    {
+                      "lootEntries": [
+                        {
+                          "itemId": 12
+                        }
+                      ]
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.lootEntries", hasSize(1)))
+            .andExpect(jsonPath("$.data.lootEntries[0].dropSourceKind").value("npc_drop"));
+
+        verify(jdbcTemplate).update(
+            contains("drop_source_kind IS NULL OR drop_source_kind = 'npc_drop'"),
+            eq(7L)
+        );
+        verify(jdbcTemplate, never()).update("DELETE FROM npc_loot_entries WHERE npc_id = ?", 7L);
+        verify(jdbcTemplate).update(
+            contains("INSERT INTO npc_loot_entries"),
+            eq(7L),
+            eq(12L),
+            isNull(),
+            eq("npc_drop"),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            eq(1)
+        );
     }
 }

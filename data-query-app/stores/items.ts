@@ -34,8 +34,23 @@ export interface Item {
   tooltip?: string
   tooltipZh?: string
   imageUrl?: string
+  sourceNpcsJson?: string | null
+  sourceNpcs?: TraceableNpcRelationSummary[]
   createdAt?: string
   updatedAt?: string
+}
+
+export interface TraceableNpcRelationSummary {
+  npcId?: number | null
+  npcName?: string | null
+  npcNameZh?: string | null
+  npcInternalName?: string | null
+  relationType?: string | null
+  sourceFactKey?: string | null
+  sourceProvider?: string | null
+  sourcePage?: string | null
+  sourceRevisionTimestamp?: string | null
+  [key: string]: unknown
 }
 
 export interface Pagination {
@@ -417,6 +432,51 @@ function normalizeNumberArray(raw: any) {
   return []
 }
 
+function normalizeJsonArray(raw: any): Record<string, unknown>[] {
+  if (Array.isArray(raw)) {
+    return raw.filter((entry): entry is Record<string, unknown> => Boolean(entry && typeof entry === 'object' && !Array.isArray(entry)))
+  }
+  if (typeof raw !== 'string' || !raw.trim()) {
+    return []
+  }
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed)
+      ? parsed.filter((entry): entry is Record<string, unknown> => Boolean(entry && typeof entry === 'object' && !Array.isArray(entry)))
+      : []
+  } catch {
+    return []
+  }
+}
+
+function nullableString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null
+}
+
+function nullableNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function normalizeTraceableNpcRelation(raw: Record<string, unknown>): TraceableNpcRelationSummary {
+  return {
+    ...raw,
+    npcId: nullableNumber(raw.npcId ?? raw.npc_id),
+    npcName: nullableString(raw.npcName ?? raw.npc_name),
+    npcNameZh: nullableString(raw.npcNameZh ?? raw.npc_name_zh),
+    npcInternalName: nullableString(raw.npcInternalName ?? raw.npc_internal_name),
+    relationType: nullableString(raw.relationType ?? raw.relation_type),
+    sourceFactKey: nullableString(raw.sourceFactKey ?? raw.source_fact_key),
+    sourceProvider: nullableString(raw.sourceProvider ?? raw.source_provider),
+    sourcePage: nullableString(raw.sourcePage ?? raw.source_page),
+    sourceRevisionTimestamp: nullableString(raw.sourceRevisionTimestamp ?? raw.source_revision_timestamp),
+  }
+}
+
+function normalizeTraceableNpcRelations(directValue: any, jsonValue: any): TraceableNpcRelationSummary[] {
+  const directRows = normalizeJsonArray(directValue)
+  return (directRows.length ? directRows : normalizeJsonArray(jsonValue)).map(normalizeTraceableNpcRelation)
+}
+
 function resolvePreferredRecipeIngredientNameRaw(ingredient: ItemRecipeIngredientPayload) {
   return ingredient.itemNameZh?.trim()
     || ingredient.itemName?.trim()
@@ -465,6 +525,8 @@ export const useItemsStore = defineStore('items', () => {
     tooltip: raw?.tooltip ?? '',
     tooltipZh: raw?.tooltipZh ?? raw?.tooltip_zh ?? '',
     imageUrl: normalizeImageUrl(raw),
+    sourceNpcsJson: raw?.sourceNpcsJson ?? raw?.source_npcs_json ?? null,
+    sourceNpcs: normalizeTraceableNpcRelations(raw?.sourceNpcs, raw?.sourceNpcsJson ?? raw?.source_npcs_json),
     createdAt: raw?.createdAt ?? raw?.created_at,
     updatedAt: raw?.updatedAt ?? raw?.updated_at,
   })
