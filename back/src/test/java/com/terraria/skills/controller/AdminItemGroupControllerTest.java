@@ -258,6 +258,70 @@ class AdminItemGroupControllerTest {
         assertTrue(Files.readString(output).contains("malformed json"));
     }
 
+    @Test
+    void updateItemGroupRejectsCentralRecipeOverrideForRecipeReferenceGroup() throws Exception {
+        Files.writeString(repoRoot.resolve("data/generated/recipe-material-reference.json"), """
+            {
+              "groups": [
+                {
+                  "canonicalName": "Any Wood",
+                  "displayNameEn": "Any Wood",
+                  "members": [
+                    { "internalName": "Wood", "name": "Wood" }
+                  ]
+                }
+              ]
+            }
+            """);
+
+        ItemGroupDTO request = new ItemGroupDTO();
+        request.setDisplayNameEn("Any Wood");
+        request.setDomains(List.of("recipe"));
+        request.setSourceProvider("wiki_gg");
+        request.setSourcePage("https://terraria.wiki.gg/wiki/Recipes");
+        request.setMembers(List.of(member("StoneBlock", "Stone Block", "Stone Block")));
+
+        ApiResponse<ItemGroupDTO> body = controller.updateItemGroup("Any Wood", request).getBody();
+
+        assertNotNull(body);
+        assertEquals(400, body.getStatusCode());
+        assertTrue(body.getMessage().contains("recipe group"));
+        assertFalse(Files.exists(repoRoot.resolve("data/generated/item-group-overrides.json")));
+    }
+
+    @Test
+    void createItemGroupRejectsRecipeDomainAliasCollisionWithRecipeReferenceGroup() throws Exception {
+        Files.writeString(repoRoot.resolve("data/generated/recipe-material-reference.json"), """
+            {
+              "groups": [
+                {
+                  "canonicalName": "Any Wood",
+                  "displayNameEn": "Any Wood",
+                  "members": [
+                    { "internalName": "Wood", "name": "Wood" }
+                  ]
+                }
+              ]
+            }
+            """);
+
+        ItemGroupDTO request = new ItemGroupDTO();
+        request.setCanonicalName("Any Timber");
+        request.setDisplayNameEn("Any Timber");
+        request.setAliases(List.of("Any Wood"));
+        request.setDomains(List.of("recipe"));
+        request.setSourceProvider("wiki_gg");
+        request.setSourcePage("https://terraria.wiki.gg/wiki/Recipes");
+        request.setMembers(List.of(member("StoneBlock", "Stone Block", "Stone Block")));
+
+        ApiResponse<ItemGroupDTO> body = controller.createItemGroup(request).getBody();
+
+        assertNotNull(body);
+        assertEquals(400, body.getStatusCode());
+        assertTrue(body.getMessage().contains("recipe group"));
+        assertFalse(Files.exists(repoRoot.resolve("data/generated/item-group-overrides.json")));
+    }
+
     private ItemGroupMemberDTO member(String internalName, String name, String nameZh) {
         ItemGroupMemberDTO member = new ItemGroupMemberDTO();
         member.setInternalName(internalName);

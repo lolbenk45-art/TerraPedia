@@ -103,6 +103,7 @@ public class AdminItemGroupController {
             if (findGroup(getCachedItemGroups(), normalized.getCanonicalName()) != null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "Item group already exists"));
             }
+            validateCentralRecipeGroupBoundary(normalized);
             List<ItemGroupDTO> overrides = new ArrayList<>(loadCentralOverrideGroups());
             overrides.add(normalized);
             writeCentralOverrideGroups(overrides);
@@ -127,6 +128,7 @@ public class AdminItemGroupController {
             }
             ItemGroupDTO normalized = normalizeGroup(request, false, true);
             normalized.setCanonicalName(existing.getCanonicalName());
+            validateCentralRecipeGroupBoundary(normalized);
 
             List<ItemGroupDTO> overrides = new ArrayList<>(loadCentralOverrideGroups());
             boolean replaced = false;
@@ -192,6 +194,59 @@ public class AdminItemGroupController {
             .map(this::enrichGroupMembers)
             .sorted(Comparator.comparing(group -> normalizeKey(group.getCanonicalName())))
             .toList();
+    }
+
+    private void validateCentralRecipeGroupBoundary(ItemGroupDTO group) {
+        if (!hasRecipeDomain(group)) {
+            return;
+        }
+        Set<String> recipeGroupKeys = collectRecipeGroupKeys();
+        for (String key : groupIdentityKeys(group)) {
+            if (recipeGroupKeys.contains(key)) {
+                throw new IllegalArgumentException("recipe group names and aliases must be maintained through recipe group overrides");
+            }
+        }
+    }
+
+    private Set<String> collectRecipeGroupKeys() {
+        Set<String> keys = new LinkedHashSet<>();
+        for (ItemGroupDTO group : loadRecipeReferenceGroups()) {
+            keys.addAll(groupIdentityKeys(group));
+        }
+        for (ItemGroupDTO group : loadRecipeOverrideGroups()) {
+            keys.addAll(groupIdentityKeys(group));
+        }
+        return keys;
+    }
+
+    private Set<String> groupIdentityKeys(ItemGroupDTO group) {
+        if (group == null) {
+            return Collections.emptySet();
+        }
+        Set<String> keys = new LinkedHashSet<>();
+        addGroupIdentityKey(keys, group.getCanonicalName());
+        addGroupIdentityKey(keys, group.getDisplayNameEn());
+        addGroupIdentityKey(keys, group.getDisplayNameZh());
+        for (String alias : group.getAliases() == null ? Collections.<String>emptyList() : group.getAliases()) {
+            addGroupIdentityKey(keys, alias);
+        }
+        return keys;
+    }
+
+    private void addGroupIdentityKey(Set<String> keys, String value) {
+        String key = normalizeKey(value);
+        if (!key.isEmpty()) {
+            keys.add(key);
+        }
+    }
+
+    private boolean hasRecipeDomain(ItemGroupDTO group) {
+        if (group == null || group.getDomains() == null || group.getDomains().isEmpty()) {
+            return true;
+        }
+        return group.getDomains().stream()
+            .map(this::normalizeDomain)
+            .anyMatch(value -> "recipe".equals(value) || "recipe_material".equals(value) || "crafting".equals(value));
     }
 
     private List<ItemGroupDTO> loadRecipeReferenceGroups() {

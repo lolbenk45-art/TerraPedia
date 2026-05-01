@@ -330,6 +330,78 @@ class RecipeTreeServiceImplTest {
     }
 
     @Test
+    void shouldNotLetCentralItemGroupAliasShadowRecipeReferenceGroup() throws IOException {
+        String originalUserDir = System.getProperty("user.dir");
+        Path repoRoot = tempDir.resolve("repo-shadow");
+        Files.createDirectories(repoRoot.resolve("back"));
+        Files.createDirectories(repoRoot.resolve("data/generated"));
+        Files.writeString(repoRoot.resolve("data/generated/recipe-material-reference.json"), """
+            {
+              "groups": [
+                {
+                  "canonicalName": "Any Wood",
+                  "displayNameEn": "Any Wood",
+                  "members": [
+                    { "internalName": "Wood", "name": "Wood" },
+                    { "internalName": "Ebonwood", "name": "Ebonwood" }
+                  ]
+                }
+              ]
+            }
+            """);
+        Files.writeString(repoRoot.resolve("data/generated/item-group-overrides.json"), """
+            {
+              "groups": [
+                {
+                  "canonicalName": "Any Timber",
+                  "displayNameEn": "Any Timber",
+                  "aliases": ["Any Wood"],
+                  "domains": ["recipe"],
+                  "members": [
+                    { "internalName": "StoneBlock", "name": "Stone Block" }
+                  ]
+                }
+              ]
+            }
+            """);
+        try {
+            System.setProperty("user.dir", repoRoot.resolve("back").toString());
+            RecipeTreeServiceImpl service = new RecipeTreeServiceImpl(
+                itemService,
+                recipeService,
+                new ObjectMapper(),
+                itemMapper
+            );
+
+            ItemDTO item = recipeTreeItem(4745L, "CoffinMinecart", "Coffin Minecart", "Coffin Minecart");
+            RecipeIngredientDTO groupIngredient = groupIngredient("Any Wood", "10");
+            RecipeDTO recipe = recipeWithIngredient(53669L, item, groupIngredient);
+
+            when(itemService.getItemById(4745L)).thenReturn(item);
+            when(recipeService.getRecipesByResultItemId(4745L)).thenReturn(List.of(recipe));
+            when(itemMapper.selectList(any())).thenReturn(List.of(
+                itemEntity(9L, "Wood", "Wood", "Wood", "https://terraria.wiki.gg/images/Wood.png"),
+                itemEntity(619L, "Ebonwood", "Ebonwood", "Ebonwood", "https://terraria.wiki.gg/images/Ebonwood.png"),
+                itemEntity(3L, "StoneBlock", "Stone Block", "Stone Block", "https://terraria.wiki.gg/images/Stone_Block.png")
+            ));
+
+            RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(4745L, 4);
+
+            RecipeTreeNodeDTO groupNode = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
+            assertEquals("Any Wood", groupNode.getGroupCanonicalName());
+            assertEquals(2, groupNode.getGroupMembers().size());
+            assertEquals("Wood", groupNode.getGroupMembers().get(0).getInternalName());
+            assertEquals("Ebonwood", groupNode.getGroupMembers().get(1).getInternalName());
+        } finally {
+            if (originalUserDir == null) {
+                System.clearProperty("user.dir");
+            } else {
+                System.setProperty("user.dir", originalUserDir);
+            }
+        }
+    }
+
+    @Test
     void shouldNotRejectDemonRecipeMemberImagesAsDemoImages() throws Exception {
         RecipeTreeServiceImpl service = new RecipeTreeServiceImpl(
             itemService,

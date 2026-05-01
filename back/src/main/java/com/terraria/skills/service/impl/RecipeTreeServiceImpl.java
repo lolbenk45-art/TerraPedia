@@ -515,6 +515,9 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
                 }
                 RecipeGroupReference reference = toRecipeGroupReference(group);
                 if (reference != null) {
+                    if (hasGroupReferenceAliasCollision(lookup, reference)) {
+                        continue;
+                    }
                     registerGroupReferenceAliases(lookup, reference);
                 }
             }
@@ -538,12 +541,36 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         if (lookup == null || reference == null) {
             return;
         }
-        registerGroupReferenceAlias(lookup, reference.canonicalName(), reference);
-        registerGroupReferenceAlias(lookup, reference.displayNameEn(), reference);
-        registerGroupReferenceAlias(lookup, reference.displayNameZh(), reference);
-        for (String alias : reference.aliases()) {
+        for (String alias : groupReferenceAliases(reference)) {
             registerGroupReferenceAlias(lookup, alias, reference);
         }
+    }
+
+    private boolean hasGroupReferenceAliasCollision(Map<String, RecipeGroupReference> lookup, RecipeGroupReference reference) {
+        if (lookup == null || reference == null) {
+            return false;
+        }
+        for (String alias : groupReferenceAliases(reference)) {
+            for (String aliasVariant : expandGroupAliasVariants(alias)) {
+                String normalizedAlias = normalizeKey(aliasVariant);
+                if (!normalizedAlias.isEmpty() && lookup.containsKey(normalizedAlias)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private List<String> groupReferenceAliases(RecipeGroupReference reference) {
+        if (reference == null) {
+            return List.of();
+        }
+        List<String> aliases = new ArrayList<>();
+        aliases.add(reference.canonicalName());
+        aliases.add(reference.displayNameEn());
+        aliases.add(reference.displayNameZh());
+        aliases.addAll(reference.aliases());
+        return aliases;
     }
 
     private void registerGroupReferenceAlias(Map<String, RecipeGroupReference> lookup, String alias, RecipeGroupReference reference) {
