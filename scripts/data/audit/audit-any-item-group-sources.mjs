@@ -39,6 +39,16 @@ const DEFAULT_CONSUMER_FILES = [
   },
 ];
 
+const STRUCTURED_GROUP_NAME_ALIASES = new Map([
+  ['任何水果', 'Any Fruit'],
+  ['任意水果', 'Any Fruit'],
+  ['任何火把', 'Any Torch'],
+  ['任意火把', 'Any Torch'],
+  ['任何晶塔', 'Any Pylon'],
+  ['任意晶塔', 'Any Pylon'],
+  ['录音后的八音盒', 'Recorded Music Boxes'],
+]);
+
 export function normalizeGroupKey(value) {
   return String(value ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
 }
@@ -74,16 +84,27 @@ export function buildAnyItemGroupSourceAudit({
   consumerReferences = [],
 } = {}) {
   const groups = [];
+  const blockedGroups = [];
   for (const source of groupSources) {
     groups.push(...extractGroupsFromSource(source));
+    blockedGroups.push(...extractBlockedGroupsFromSource(source));
   }
 
   const groupKeySet = new Set(groups.map((group) => group.key).filter(Boolean));
+  const blockedGroupsByKey = new Map(blockedGroups.map((group) => [group.key, group]));
   const consumersByKey = groupConsumerReferences(consumerReferences);
   const duplicates = findDuplicates(groups);
   const consumerOnlyReferences = [...consumersByKey.entries()]
-    .filter(([key]) => key && !groupKeySet.has(key))
+    .filter(([key]) => key && !groupKeySet.has(key) && !blockedGroupsByKey.has(key))
     .map(([, references]) => summarizeConsumerReferences(references))
+    .sort((left, right) => left.canonicalName.localeCompare(right.canonicalName));
+  const blockedGroupReferences = [...consumersByKey.entries()]
+    .filter(([key]) => key && !groupKeySet.has(key) && blockedGroupsByKey.has(key))
+    .map(([key, references]) => ({
+      ...summarizeConsumerReferences(references),
+      blockReason: blockedGroupsByKey.get(key).blockReason,
+      sourceFile: blockedGroupsByKey.get(key).sourceFile,
+    }))
     .sort((left, right) => left.canonicalName.localeCompare(right.canonicalName));
   const unresolvedMembers = groups.flatMap((group) =>
     group.unresolvedMembers.map((member) => ({
@@ -102,11 +123,14 @@ export function buildAnyItemGroupSourceAudit({
       bySourceFile: countBy(groups, (group) => group.sourceFile),
       duplicateGroupKeys: duplicates.length,
       unresolvedMemberReferences: unresolvedMembers.length,
+      blockedGroupReferences: blockedGroupReferences.length,
       consumerOnlyReferences: consumerOnlyReferences.length,
     },
     groups: groups.sort(compareGroupEntries),
+    blockedGroups: blockedGroups.sort(compareGroupEntries),
     duplicates,
     unresolvedMembers,
+    blockedGroupReferences,
     consumerOnlyReferences,
   };
 }
@@ -167,6 +191,35 @@ function extractGroupsFromSource(source) {
   return rawGroups
     .map((group) => summarizeGroup(source, root, group))
     .filter((group) => group.key);
+}
+
+function extractBlockedGroupsFromSource(source) {
+  const root = source.root ?? {};
+  const rawGroups = Array.isArray(root.blockedGroups) ? root.blockedGroups : [];
+  return rawGroups
+    .map((group) => summarizeBlockedGroup(source, group))
+    .filter((group) => group.key);
+}
+
+function summarizeBlockedGroup(source, group) {
+  const canonicalName = text(group?.canonicalName ?? group?.canonical_name);
+  const sourceFile = text(group?.sourceFile ?? group?.source_file) || source.sourceFile;
+  return {
+    key: normalizeGroupKey(canonicalName),
+    canonicalName,
+    displayNameEn: text(group?.displayNameEn ?? group?.display_name_en) || null,
+    displayNameZh: text(group?.displayNameZh ?? group?.display_name_zh) || null,
+    domains: array(group?.domains).length > 0 ? array(group.domains) : array(source.defaultDomains),
+    sourceKind: text(group?.sourceKind ?? group?.source_kind) || null,
+    sourceProvider: text(group?.sourceProvider ?? group?.source_provider) || null,
+    sourcePage: text(group?.sourcePage ?? group?.source_page) || null,
+    sourceFile,
+    sourceUrls: array(group?.sourceUrls ?? group?.source_urls),
+    classification: 'blocked',
+    memberCount: 0,
+    unresolvedMembers: [],
+    blockReason: text(group?.blockReason ?? group?.block_reason) || null,
+  };
 }
 
 function summarizeGroup(source, root, group) {
@@ -290,10 +343,19 @@ function extractStructuredAnyGroupNames(raw) {
       return;
     }
     if (!['canonicalName', 'nameEn', 'itemName', 'inputNameEn', 'ingredientName', 'ingredientNameRaw'].includes(key)) {
+      const canonical = STRUCTURED_GROUP_NAME_ALIASES.get(value.trim());
+      if (canonical) {
+        names.add(canonical);
+      }
       return;
     }
     if (/^(Any|Recorded)\s+/.test(value.trim())) {
       names.add(value.trim());
+      return;
+    }
+    const canonical = STRUCTURED_GROUP_NAME_ALIASES.get(value.trim());
+    if (canonical) {
+      names.add(canonical);
     }
   });
   return [...names].sort();
@@ -324,6 +386,7 @@ function formatAuditMarkdown(audit) {
     `- Unique group keys: ${audit.summary.uniqueGroupKeys}`,
     `- Duplicate group keys: ${audit.summary.duplicateGroupKeys}`,
     `- Unresolved member references: ${audit.summary.unresolvedMemberReferences}`,
+    `- Blocked group references: ${audit.summary.blockedGroupReferences}`,
     `- Consumer-only references: ${audit.summary.consumerOnlyReferences}`,
     '',
     '## Classification Counts',
@@ -334,6 +397,12 @@ function formatAuditMarkdown(audit) {
     '',
     ...(audit.consumerOnlyReferences.length
       ? audit.consumerOnlyReferences.map((entry) => `- ${entry.canonicalName}: ${entry.consumers.join(', ')} (${entry.sourceFiles.join(', ')})`)
+      : ['- None']),
+    '',
+    '## Blocked Group References',
+    '',
+    ...(audit.blockedGroupReferences.length
+      ? audit.blockedGroupReferences.map((entry) => `- ${entry.canonicalName}: ${entry.consumers.join(', ')} (${entry.blockReason || 'blocked'})`)
       : ['- None']),
     '',
     '## Duplicate Groups',

@@ -118,6 +118,55 @@ test('buildAnyItemGroupSourceAudit reports duplicate groups, unresolved members,
   );
 });
 
+test('buildAnyItemGroupSourceAudit separates blocked groups from consumer-only references', () => {
+  const audit = buildAnyItemGroupSourceAudit({
+    generatedAt: '2026-05-01T00:00:00.000Z',
+    groupSources: [
+      {
+        sourceFile: 'data/generated/item-group-overrides.json',
+        sourceKind: 'manual_wiki_source',
+        defaultDomains: ['shimmer'],
+        root: {
+          groups: [
+            {
+              canonicalName: 'Any Pylon',
+              sourceProvider: 'wiki_gg',
+              sourcePage: 'https://terraria.wiki.gg/wiki/Pylons',
+              members: [{ internalName: 'TeleportationPylonPurity' }],
+            },
+          ],
+          blockedGroups: [
+            {
+              canonicalName: 'Recorded Music Boxes',
+              displayNameEn: 'Recorded Music Boxes',
+              sourceKind: 'blocked_consumer_reference',
+              blockReason: 'No explicit source-backed member list.',
+            },
+          ],
+        },
+      },
+    ],
+    consumerReferences: [
+      { consumer: 'npc_shop', canonicalName: 'Any Pylon', sourceFile: 'data/generated/npc-item-relations.bundle.json' },
+      { consumer: 'shimmer', canonicalName: 'Recorded Music Boxes', sourceFile: 'data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json' },
+      { consumer: 'shimmer', canonicalName: 'Any Torch', sourceFile: 'data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json' },
+    ],
+  });
+
+  assert.equal(audit.summary.blockedGroupReferences, 1);
+  assert.equal(audit.summary.consumerOnlyReferences, 1);
+  assert.deepEqual(audit.blockedGroupReferences, [
+    {
+      canonicalName: 'Recorded Music Boxes',
+      consumers: ['shimmer'],
+      sourceFiles: ['data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json'],
+      blockReason: 'No explicit source-backed member list.',
+      sourceFile: 'data/generated/item-group-overrides.json',
+    },
+  ]);
+  assert.deepEqual(audit.consumerOnlyReferences.map((entry) => entry.canonicalName), ['Any Torch']);
+});
+
 test('extractAnyGroupNames prefers exact structured JSON names over broad wikitext matches', () => {
   assert.deepEqual(
     extractAnyGroupNames(JSON.stringify({
@@ -128,5 +177,19 @@ test('extractAnyGroupNames prefers exact structured JSON names over broad wikite
       ],
     })),
     ['Any Pylon', 'Recorded Music Boxes'],
+  );
+});
+
+test('extractAnyGroupNames maps structured zh item_group names to canonical groups', () => {
+  assert.deepEqual(
+    extractAnyGroupNames(JSON.stringify({
+      records: [
+        { inputKind: 'item_group', inputNameZh: '任何水果', inputNameEn: 'Alternative crafting ingredients' },
+        { inputKind: 'item_group', inputNameZh: '任何火把', inputNameEn: 'Torches' },
+        { inputKind: 'item_group', inputNameZh: '任何晶塔', inputNameEn: null },
+        { inputKind: 'item_group', inputNameZh: '录音后的八音盒', inputNameEn: 'Recorded Music Boxes' },
+      ],
+    })),
+    ['Any Fruit', 'Any Pylon', 'Any Torch', 'Recorded Music Boxes'],
   );
 });

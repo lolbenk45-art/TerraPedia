@@ -1,0 +1,117 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-05-01T02:14:57.643Z",
+  "sourceProvider": "wiki_gg",
+  "sourceFiles": [
+    "data/standardized/items.standardized.json",
+    "data/generated/item-zh-map.json",
+    "data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json",
+    "data/generated/wiki-shimmer.latest.json"
+  ],
+  "groups": [
+    {
+      "canonicalName": "Any Pylon",
+      "displayNameEn": "Any Pylon",
+      "displayNameZh": "任何晶塔",
+      "aliases": [
+        "任意晶塔",
+        "Any Teleportation Pylon"
+      ],
+      "domains": [
+        "shimmer"
+      ],
+      "sourceKind": "curated_wiki_item_group",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": "https://terraria.wiki.gg/wiki/Pylons",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourceFile": "data/generated/item-group-overrides.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Pylons",
+        "https://terraria.wiki.gg/wiki/Shimmer"
+      ],
+      "sourceLabel": "Any Pylon members are parsed from the Shimmer raw wikitext ID list and verified against standardized wiki item data.",
+      "members": [
+        {
+          "itemId": 4875,
+          "internalName": "TeleportationPylonJungle",
+          "name": "Jungle Pylon",
+          "nameZh": "丛林晶塔"
+        },
+        {
+          "itemId": 4876,
+          "internalName": "TeleportationPylonPurity",
+          "name": "Forest Pylon",
+          "nameZh": "森林晶塔"
+        },
+        {
+          "itemId": 4916,
+          "internalName": "TeleportationPylonHallow",
+          "name": "Hallow Pylon",
+          "nameZh": "神圣晶塔"
+        },
+        {
+          "itemId": 4917,
+          "internalName": "TeleportationPylonUnderground",
+          "name": "Cavern Pylon",
+          "nameZh": "洞穴晶塔"
+        },
+        {
+          "itemId": 4918,
+          "internalName": "TeleportationPylonOcean",
+          "name": "Ocean Pylon",
+          "nameZh": "海洋晶塔"
+        },
+        {
+          "itemId": 4919,
+          "internalName": "TeleportationPylonDesert",
+          "name": "Desert Pylon",
+          "nameZh": "沙漠晶塔"
+        },
+        {
+          "itemId": 4920,
+          "internalName": "TeleportationPylonSnow",
+          "name": "Snow Pylon",
+          "nameZh": "雪原晶塔"
+        },
+        {
+          "itemId": 4921,
+          "internalName": "TeleportationPylonMushroom",
+          "name": "Mushroom Pylon",
+          "nameZh": "蘑菇晶塔"
+        },
+        {
+          "itemId": 4951,
+          "internalName": "TeleportationPylonVictory",
+          "name": "Universal Pylon",
+          "nameZh": "万能晶塔",
+          "image": "http://localhost:9000/terrapedia-images/items/2026/04/08/208b06c8086a4e9ab6eb47a6f5100227.png"
+        },
+        {
+          "itemId": 5652,
+          "internalName": "TeleportationPylonUnderworld",
+          "name": "Underworld Pylon",
+          "nameZh": "地狱晶塔"
+        }
+      ]
+    }
+  ],
+  "blockedGroups": [
+    {
+      "canonicalName": "Recorded Music Boxes",
+      "displayNameEn": "Recorded Music Boxes",
+      "displayNameZh": "录音后的八音盒",
+      "domains": [
+        "shimmer"
+      ],
+      "sourceKind": "blocked_consumer_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": "https://terraria.wiki.gg/wiki/Shimmer",
+      "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+      "sourceFile": "data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Shimmer"
+      ],
+      "blockReason": "Local artifacts prove the shimmer item_group reference but do not provide an explicit source-backed member list."
+    }
+  ]
+}
