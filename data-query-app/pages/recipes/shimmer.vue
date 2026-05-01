@@ -29,7 +29,7 @@
           <NuxtLink to="/recipes" class="view-switch__link">Recipe Editor</NuxtLink>
           <NuxtLink to="/recipes/tree" class="view-switch__link">Recipe Tree</NuxtLink>
           <NuxtLink to="/recipes/stations" class="view-switch__link">Stations</NuxtLink>
-          <NuxtLink to="/recipes/groups" class="view-switch__link">Recipe Groups</NuxtLink>
+          <NuxtLink :to="{ path: '/item-groups', query: { domain: 'recipe' } }" class="view-switch__link">Recipe Groups</NuxtLink>
           <NuxtLink to="/recipes/wiki-zh-import" class="view-switch__link">Wiki Zh Import</NuxtLink>
           <NuxtLink to="/recipes/shimmer" class="view-switch__link view-switch__link--active">Shimmer Data</NuxtLink>
         </nav>

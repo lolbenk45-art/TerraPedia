@@ -26,7 +26,7 @@
           <NuxtLink to="/recipes" class="view-switch__link">配方编辑</NuxtLink>
           <NuxtLink to="/recipes/tree" class="view-switch__link">合成路径</NuxtLink>
           <NuxtLink to="/recipes/stations" class="view-switch__link">制作站管理</NuxtLink>
-          <NuxtLink to="/recipes/groups" class="view-switch__link">任意物品组</NuxtLink>
+          <NuxtLink :to="{ path: '/item-groups', query: { domain: 'recipe' } }" class="view-switch__link">任意物品组</NuxtLink>
           <NuxtLink to="/recipes/wiki-zh-import" class="view-switch__link view-switch__link--active">中文配方导入</NuxtLink>
         </nav>
       </div>

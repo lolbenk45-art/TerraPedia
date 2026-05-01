@@ -13,10 +13,14 @@ import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.service.ItemService;
 import com.terraria.skills.service.RecipeService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.List;
@@ -39,6 +43,9 @@ class RecipeTreeServiceImplTest {
 
     @Mock
     private ItemMapper itemMapper;
+
+    @TempDir
+    Path tempDir;
 
     @Test
     void shouldResolveRecipeGroupByChineseAliasAndExposeMembers() {
@@ -255,6 +262,71 @@ class RecipeTreeServiceImplTest {
         assertEquals(22L, groupNode.getGroupMembers().get(0).getItemId());
         assertEquals("https://terraria.wiki.gg/images/Iron_Bar.png", groupNode.getGroupMembers().get(0).getImage());
         assertEquals("https://terraria.wiki.gg/images/Lead_Bar.png", groupNode.getGroupMembers().get(1).getImage());
+    }
+
+    @Test
+    void shouldResolveRecipeGroupFromCentralItemGroupOverride() throws IOException {
+        String originalUserDir = System.getProperty("user.dir");
+        Path repoRoot = tempDir.resolve("repo");
+        Files.createDirectories(repoRoot.resolve("back"));
+        Files.createDirectories(repoRoot.resolve("data/generated"));
+        Files.writeString(repoRoot.resolve("data/generated/item-group-overrides.json"), """
+            {
+              "schemaVersion": "1.0.0",
+              "groups": [
+                {
+                  "canonicalName": "Any Pylon",
+                  "displayNameEn": "Any Pylon",
+                  "aliases": ["Any Teleportation Pylon"],
+                  "displayNameZh": "任意晶塔",
+                  "domains": ["recipe", "npc_shop"],
+                  "sourceProvider": "wiki_gg",
+                  "sourcePage": "https://terraria.wiki.gg/wiki/Pylons",
+                  "members": [
+                    {
+                      "internalName": "TeleportationPylonPurity",
+                      "name": "Forest Pylon",
+                      "nameZh": "森林晶塔"
+                    }
+                  ]
+                }
+              ]
+            }
+            """);
+        try {
+            System.setProperty("user.dir", repoRoot.resolve("back").toString());
+            RecipeTreeServiceImpl service = new RecipeTreeServiceImpl(
+                itemService,
+                recipeService,
+                new ObjectMapper(),
+                itemMapper
+            );
+
+            ItemDTO item = recipeTreeItem(9001L, "PylonTestItem", "Pylon Test Item", "晶塔测试物品");
+            RecipeIngredientDTO groupIngredient = groupIngredient("Any Teleportation Pylon", "1");
+            RecipeDTO recipe = recipeWithIngredient(9002L, item, groupIngredient);
+
+            when(itemService.getItemById(9001L)).thenReturn(item);
+            when(recipeService.getRecipesByResultItemId(9001L)).thenReturn(List.of(recipe));
+            when(itemMapper.selectList(any())).thenReturn(List.of(
+                itemEntity(4875L, "TeleportationPylonPurity", "Forest Pylon", "森林晶塔", "https://terraria.wiki.gg/images/Forest_Pylon.png")
+            ));
+
+            RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(9001L, 4);
+
+            RecipeTreeNodeDTO groupNode = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
+            assertEquals("任意晶塔", groupNode.getDisplayName());
+            assertEquals("Any Pylon", groupNode.getSecondaryName());
+            assertEquals("Any Pylon", groupNode.getGroupCanonicalName());
+            assertEquals(1, groupNode.getGroupMembers().size());
+            assertEquals("TeleportationPylonPurity", groupNode.getGroupMembers().get(0).getInternalName());
+        } finally {
+            if (originalUserDir == null) {
+                System.clearProperty("user.dir");
+            } else {
+                System.setProperty("user.dir", originalUserDir);
+            }
+        }
     }
 
     @Test

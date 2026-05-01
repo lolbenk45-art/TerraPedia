@@ -495,6 +495,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         try {
             List<Map<String, Object>> generatedGroups = loadGroupMaps(resolveDataFile(Path.of("generated", "recipe-material-reference.json")));
             List<Map<String, Object>> overrideGroups = loadGroupMaps(resolveDataFile(Path.of("generated", "recipe-group-overrides.json")));
+            List<Map<String, Object>> centralOverrideGroups = loadGroupMaps(resolveDataFile(Path.of("generated", "item-group-overrides.json")));
             Map<String, RecipeGroupReference> lookup = new LinkedHashMap<>();
             for (Map<String, Object> group : generatedGroups) {
                 RecipeGroupReference reference = toRecipeGroupReference(group);
@@ -508,10 +509,29 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
                     registerGroupReferenceAliases(lookup, reference);
                 }
             }
+            for (Map<String, Object> group : centralOverrideGroups) {
+                if (!isRecipeDomainGroup(group)) {
+                    continue;
+                }
+                RecipeGroupReference reference = toRecipeGroupReference(group);
+                if (reference != null) {
+                    registerGroupReferenceAliases(lookup, reference);
+                }
+            }
             return lookup;
         } catch (Exception exception) {
             return Map.of();
         }
+    }
+
+    private boolean isRecipeDomainGroup(Map<String, Object> group) {
+        Object domains = group.get("domains");
+        if (!(domains instanceof Collection<?> values) || values.isEmpty()) {
+            return true;
+        }
+        return values.stream()
+            .map(value -> value == null ? "" : String.valueOf(value).trim().toLowerCase().replace("-", "_"))
+            .anyMatch(value -> value.equals("recipe") || value.equals("recipe_material") || value.equals("crafting"));
     }
 
     private void registerGroupReferenceAliases(Map<String, RecipeGroupReference> lookup, RecipeGroupReference reference) {
@@ -521,6 +541,9 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         registerGroupReferenceAlias(lookup, reference.canonicalName(), reference);
         registerGroupReferenceAlias(lookup, reference.displayNameEn(), reference);
         registerGroupReferenceAlias(lookup, reference.displayNameZh(), reference);
+        for (String alias : reference.aliases()) {
+            registerGroupReferenceAlias(lookup, alias, reference);
+        }
     }
 
     private void registerGroupReferenceAlias(Map<String, RecipeGroupReference> lookup, String alias, RecipeGroupReference reference) {
@@ -580,9 +603,24 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
             canonicalName,
             displayNameZh,
             displayNameEn,
+            readStringList(group.get("aliases")),
             members.stream().map(this::resolveMemberLabel).filter(Objects::nonNull).toList(),
             members
         );
+    }
+
+    private List<String> readStringList(Object value) {
+        if (!(value instanceof Collection<?> values)) {
+            return List.of();
+        }
+        LinkedHashSet<String> result = new LinkedHashSet<>();
+        for (Object entry : values) {
+            String text = trimObjectToNull(entry);
+            if (text != null) {
+                result.add(text);
+            }
+        }
+        return new ArrayList<>(result);
     }
 
     private List<RecipeGroupMemberDTO> extractGroupMembers(Object rawMembers) {
@@ -738,6 +776,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         String canonicalName,
         String displayNameZh,
         String displayNameEn,
+        List<String> aliases,
         List<String> groupMemberNames,
         List<RecipeGroupMemberDTO> groupMembers
     ) {

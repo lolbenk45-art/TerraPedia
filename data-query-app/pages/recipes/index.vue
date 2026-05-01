@@ -36,7 +36,7 @@
           <NuxtLink to="/recipes" class="view-switch__link view-switch__link--active">配方编辑</NuxtLink>
           <NuxtLink :to="selectedItem ? { path: '/recipes/tree', query: buildTreeRouteQuery(selectedItem.id) } : { path: '/recipes/tree', query: buildTreeRouteQuery() }" class="view-switch__link">合成路径</NuxtLink>
           <NuxtLink :to="hasStationReturnContext ? { path: '/recipes/stations', query: buildStationWorkspaceQuery() } : '/recipes/stations'" class="view-switch__link">制作站管理</NuxtLink>
-          <NuxtLink to="/recipes/groups" class="view-switch__link">任意物品组</NuxtLink>
+          <NuxtLink :to="{ path: '/item-groups', query: { domain: 'recipe' } }" class="view-switch__link">任意物品组</NuxtLink>
         </nav>
       </div>
     </section>
