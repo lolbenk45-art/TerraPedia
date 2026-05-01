@@ -302,6 +302,9 @@ public class AdminItemGroupController {
             dto.setName(trimObjectToNull(memberMap.get("name")));
             dto.setNameZh(trimObjectToNull(memberMap.get("nameZh")));
             dto.setImage(trimObjectToNull(memberMap.get("image")));
+            dto.setResolved(readBoolean(memberMap.get("resolved")));
+            dto.setResolutionStatus(trimObjectToNull(memberMap.get("resolutionStatus")));
+            dto.setResolutionReason(trimObjectToNull(memberMap.get("resolutionReason")));
             result.add(dto);
         }
         return result;
@@ -368,11 +371,16 @@ public class AdminItemGroupController {
     private ItemGroupDTO enrichGroupMembers(ItemGroupDTO group) {
         ItemGroupDTO enriched = copyGroup(group);
         List<ItemGroupMemberDTO> members = new ArrayList<>(group.getMembers() == null ? Collections.emptyList() : group.getMembers());
+        Set<Long> itemIds = new LinkedHashSet<>();
         Set<String> internalNames = new LinkedHashSet<>();
         Set<String> names = new LinkedHashSet<>();
         for (ItemGroupMemberDTO member : members) {
+            Long itemId = member.getItemId();
             String internalName = trimToNull(member.getInternalName());
             String name = trimToNull(member.getName());
+            if (itemId != null) {
+                itemIds.add(itemId);
+            }
             if (internalName != null) {
                 internalNames.add(internalName);
             }
@@ -381,6 +389,13 @@ public class AdminItemGroupController {
             }
         }
 
+        Map<Long, Item> itemsById = new LinkedHashMap<>();
+        if (!itemIds.isEmpty()) {
+            itemMapper.selectList(new LambdaQueryWrapper<Item>()
+                    .in(Item::getId, itemIds)
+                    .eq(Item::getDeleted, 0))
+                .forEach(item -> itemsById.putIfAbsent(item.getId(), item));
+        }
         Map<String, Item> itemsByInternalName = new LinkedHashMap<>();
         if (!internalNames.isEmpty()) {
             itemMapper.selectList(new LambdaQueryWrapper<Item>()
@@ -399,9 +414,13 @@ public class AdminItemGroupController {
         List<ItemGroupMemberDTO> enrichedMembers = new ArrayList<>();
         for (ItemGroupMemberDTO member : members) {
             Item resolved = null;
+            Long itemId = member.getItemId();
             String internalName = trimToNull(member.getInternalName());
             String name = trimToNull(member.getName());
-            if (internalName != null) {
+            if (itemId != null) {
+                resolved = itemsById.get(itemId);
+            }
+            if (resolved == null && internalName != null) {
                 resolved = itemsByInternalName.get(normalizeKey(internalName));
             }
             if (resolved == null && name != null) {
@@ -413,10 +432,26 @@ public class AdminItemGroupController {
             next.setName(firstNonBlank(name, resolved == null ? null : resolved.getName()));
             next.setNameZh(firstNonBlank(trimToNull(member.getNameZh()), resolved == null ? null : resolved.getNameZh()));
             next.setImage(firstNonBlank(trimToNull(member.getImage()), resolved == null ? null : resolved.getImage()));
+            next.setResolved(resolved != null);
+            next.setResolutionStatus(resolved == null ? "unresolved" : "resolved");
+            next.setResolutionReason(resolveMemberReason(resolved, itemId, internalName, name));
             enrichedMembers.add(next);
         }
         enriched.setMembers(enrichedMembers);
         return enriched;
+    }
+
+    private String resolveMemberReason(Item resolved, Long itemId, String internalName, String name) {
+        if (resolved != null) {
+            return null;
+        }
+        if (itemId == null && internalName == null && name == null) {
+            return "No lookup key available";
+        }
+        if (itemId != null) {
+            return "No active item matched itemId, internalName, or name";
+        }
+        return "No active item matched internalName or name";
     }
 
     private ItemGroupDTO copyGroup(ItemGroupDTO group) {
@@ -575,6 +610,14 @@ public class AdminItemGroupController {
         } catch (NumberFormatException exception) {
             return null;
         }
+    }
+
+    private Boolean readBoolean(Object value) {
+        if (value instanceof Boolean booleanValue) {
+            return booleanValue;
+        }
+        String text = trimObjectToNull(value);
+        return text == null ? null : Boolean.valueOf(text);
     }
 
     private String firstNonBlank(String... values) {

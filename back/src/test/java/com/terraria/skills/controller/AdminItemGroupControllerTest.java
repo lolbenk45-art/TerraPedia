@@ -101,6 +101,74 @@ class AdminItemGroupControllerTest {
     }
 
     @Test
+    void getItemGroupsReportsUnresolvedMembersWithoutSynthesizingItems() throws Exception {
+        Files.writeString(repoRoot.resolve("data/generated/item-group-overrides.json"), """
+            {
+              "groups": [
+                {
+                  "canonicalName": "Any Pylon",
+                  "displayNameEn": "Any Pylon",
+                  "displayNameZh": "任意晶塔",
+                  "domains": [ "npc_shop" ],
+                  "sourceProvider": "wiki_gg",
+                  "sourcePage": "https://terraria.wiki.gg/wiki/Pylons",
+                  "members": [
+                    { "internalName": "MissingPylon", "name": "Missing Pylon", "nameZh": "缺失晶塔" }
+                  ]
+                }
+              ]
+            }
+            """);
+        when(itemMapper.selectList(any())).thenReturn(List.of());
+
+        ApiResponse<List<ItemGroupDTO>> body = controller.getItemGroups(null, null).getBody();
+
+        assertNotNull(body);
+        ItemGroupMemberDTO member = body.getData().get(0).getMembers().get(0);
+        assertEquals("MissingPylon", member.getInternalName());
+        assertEquals("Missing Pylon", member.getName());
+        assertEquals("缺失晶塔", member.getNameZh());
+        assertEquals(null, member.getItemId());
+        assertEquals(Boolean.FALSE, member.getResolved());
+        assertEquals("unresolved", member.getResolutionStatus());
+        assertEquals("No active item matched internalName or name", member.getResolutionReason());
+    }
+
+    @Test
+    void getItemGroupsResolvesMembersByItemIdWhenNamesAreMissing() throws Exception {
+        Files.writeString(repoRoot.resolve("data/generated/item-group-overrides.json"), """
+            {
+              "groups": [
+                {
+                  "canonicalName": "Any Pylon",
+                  "displayNameEn": "Any Pylon",
+                  "displayNameZh": "任意晶塔",
+                  "domains": [ "npc_shop" ],
+                  "sourceProvider": "wiki_gg",
+                  "sourcePage": "https://terraria.wiki.gg/wiki/Pylons",
+                  "members": [
+                    { "itemId": 4875, "nameZh": "森林晶塔" }
+                  ]
+                }
+              ]
+            }
+            """);
+        when(itemMapper.selectList(any())).thenReturn(List.of(item(4875L, "TeleportationPylonPurity", "Forest Pylon", "森林晶塔")));
+
+        ApiResponse<List<ItemGroupDTO>> body = controller.getItemGroups(null, null).getBody();
+
+        assertNotNull(body);
+        ItemGroupMemberDTO member = body.getData().get(0).getMembers().get(0);
+        assertEquals(4875L, member.getItemId());
+        assertEquals("TeleportationPylonPurity", member.getInternalName());
+        assertEquals("Forest Pylon", member.getName());
+        assertEquals("森林晶塔", member.getNameZh());
+        assertEquals(Boolean.TRUE, member.getResolved());
+        assertEquals("resolved", member.getResolutionStatus());
+        assertEquals(null, member.getResolutionReason());
+    }
+
+    @Test
     void createItemGroupWritesCentralOverrideWithTraceableSource() throws Exception {
         ItemGroupDTO request = new ItemGroupDTO();
         request.setCanonicalName("Any Pylon");
@@ -129,6 +197,9 @@ class AdminItemGroupControllerTest {
         assertTrue(json.contains("\"canonicalName\" : \"Any Pylon\""));
         assertTrue(json.contains("\"sourcePage\" : \"https://terraria.wiki.gg/wiki/Pylons\""));
         assertTrue(json.contains("\"domains\" : [ \"npc_shop\", \"shimmer\" ]"));
+        assertFalse(json.contains("resolutionStatus"));
+        assertFalse(json.contains("resolutionReason"));
+        assertFalse(json.contains("\"resolved\""));
         verify(recipeTreeService).invalidateCaches();
     }
 

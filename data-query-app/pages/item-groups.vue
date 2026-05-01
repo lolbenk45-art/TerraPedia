@@ -82,6 +82,7 @@
               <div class="group-row__meta">
                 <span v-for="domain in group.domains" :key="domain" class="pill">{{ domain }}</span>
                 <span class="pill" :class="{ 'pill--warn': !hasTraceableSource(group) }">{{ getSourceStatus(group) }}</span>
+                <span v-if="getUnresolvedMemberCount(group)" class="pill pill--warn">UNRESOLVED {{ getUnresolvedMemberCount(group) }}</span>
               </div>
             </article>
 
@@ -119,6 +120,10 @@
               <article class="summary-tile" :class="{ 'summary-tile--warn': !hasTraceableSource(draft) }">
                 <span>状态</span>
                 <strong>{{ hasTraceableSource(draft) ? '可追溯' : '缺来源' }}</strong>
+              </article>
+              <article class="summary-tile" :class="{ 'summary-tile--warn': getUnresolvedMemberCount(draft) > 0 }">
+                <span>UNRESOLVED</span>
+                <strong>{{ getUnresolvedMemberCount(draft) }}</strong>
               </article>
             </section>
 
@@ -204,13 +209,21 @@
               </div>
 
               <div v-if="draft.members.length" class="member-grid">
-                <article v-for="(member, index) in draft.members" :key="`${member.internalName || member.name || index}-${index}`" class="member-card">
+                <article
+                  v-for="(member, index) in draft.members"
+                  :key="`${member.internalName || member.name || index}-${index}`"
+                  class="member-card"
+                  :class="{ 'member-card--unresolved': isUnresolvedMember(member) }"
+                >
                   <img v-if="member.imageUrl || member.image" :src="member.imageUrl || member.image" alt="" class="member-card__image">
                   <div v-else class="member-card__fallback">{{ getMemberAvatar(member) }}</div>
                   <div class="member-card__copy">
                     <strong>{{ member.nameZh || member.name || member.internalName }}</strong>
                     <small v-if="member.name && member.name !== member.nameZh">{{ member.name }}</small>
                     <small v-if="member.internalName">{{ member.internalName }}</small>
+                    <small v-if="isUnresolvedMember(member)" class="member-card__warning">
+                      UNRESOLVED · {{ member.resolutionReason || member.resolutionStatus || 'item not resolved' }}
+                    </small>
                   </div>
                   <button type="button" class="member-card__remove" @click="removeMember(index)">移除</button>
                 </article>
@@ -279,6 +292,7 @@ const summaryCards = computed(() => [
   { label: 'GROUPS', value: String(groups.value.length) },
   { label: 'DOMAIN', value: activeDomainLabel.value },
   { label: 'SOURCE GAPS', value: String(groups.value.filter((group) => !hasTraceableSource(group)).length) },
+  { label: 'UNRESOLVED', value: String(groups.value.reduce((sum, group) => sum + getUnresolvedMemberCount(group), 0)) },
   { label: 'MEMBERS', value: String(groups.value.reduce((sum, group) => sum + group.members.length, 0)) },
 ])
 
@@ -497,6 +511,14 @@ function getMemberAvatar(member: ItemGroupMember) {
   return label ? label.slice(0, 2).toUpperCase() : 'IT'
 }
 
+function isUnresolvedMember(member: ItemGroupMember) {
+  return member.resolved === false || member.resolutionStatus === 'unresolved' || !member.itemId
+}
+
+function getUnresolvedMemberCount(group: ItemGroup | null) {
+  return (group?.members || []).filter(isUnresolvedMember).length
+}
+
 function hasTraceableSource(group: ItemGroup | null) {
   if (!group) return false
   return Boolean(
@@ -641,7 +663,7 @@ onMounted(async () => {
 
 .summary-strip {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 12px;
 }
 
@@ -657,6 +679,11 @@ onMounted(async () => {
 .summary-tile span {
   color: var(--color-text-secondary);
   font-size: 12px;
+}
+
+.summary-tile strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .summary-tile--warn {
@@ -712,6 +739,10 @@ onMounted(async () => {
   background: color-mix(in srgb, var(--color-bg) 88%, transparent);
 }
 
+.member-card--unresolved {
+  border-color: color-mix(in srgb, var(--color-warning, #f59e0b) 45%, var(--color-border));
+}
+
 .member-card__image,
 .member-card__fallback {
   width: 46px;
@@ -734,6 +765,11 @@ onMounted(async () => {
 
 .member-card__copy small {
   word-break: break-all;
+}
+
+.member-card__warning {
+  color: var(--color-warning, #b45309);
+  font-weight: 700;
 }
 
 .member-card__remove {

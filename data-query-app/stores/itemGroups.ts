@@ -9,6 +9,9 @@ export interface ItemGroupMember {
   nameZh?: string
   image?: string
   imageUrl?: string
+  resolved?: boolean
+  resolutionStatus?: string
+  resolutionReason?: string
 }
 
 export interface ItemGroup {
@@ -50,6 +53,9 @@ function normalizeItemGroupMember(raw: any): ItemGroupMember {
     nameZh: raw?.nameZh ?? raw?.name_zh ?? '',
     image: raw?.image ?? '',
     imageUrl: normalizeImageUrl(raw),
+    resolved: typeof raw?.resolved === 'boolean' ? raw.resolved : raw?.isResolved ?? raw?.is_resolved,
+    resolutionStatus: raw?.resolutionStatus ?? raw?.resolution_status ?? '',
+    resolutionReason: raw?.resolutionReason ?? raw?.resolution_reason ?? '',
   }
 }
 

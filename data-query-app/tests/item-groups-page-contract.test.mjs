@@ -28,6 +28,28 @@ test('item group store uses the unified admin item-groups API', () => {
   assert.match(store, /post\('\/admin\/item-groups'/)
   assert.match(store, /put\(`\/admin\/item-groups\/\$\{encodeURIComponent\(canonicalName\)\}`/)
   assert.match(store, /sourceUrls/)
+  assert.match(store, /resolved\?: boolean/)
+  assert.match(store, /resolutionStatus/)
+  assert.match(store, /resolutionReason/)
+})
+
+test('item group save payload treats resolution metadata as read-only', () => {
+  const store = read('data-query-app/stores/itemGroups.ts')
+  const normalizePayload = store.match(/function normalizePayload[\s\S]*?\n}\n\nexport const useItemGroupsStore/)?.[0] || ''
+
+  assert.match(normalizePayload, /members:\s*\(group\.members \|\| \[\]\)\.map/)
+  assert.doesNotMatch(normalizePayload, /resolutionStatus/)
+  assert.doesNotMatch(normalizePayload, /resolutionReason/)
+  assert.doesNotMatch(normalizePayload, /resolved:/)
+})
+
+test('item groups page exposes unresolved member status instead of hiding gaps', () => {
+  const page = read('data-query-app/pages/item-groups.vue')
+
+  assert.match(page, /getUnresolvedMemberCount/)
+  assert.match(page, /UNRESOLVED/)
+  assert.match(page, /member-card--unresolved/)
+  assert.match(page, /resolutionReason/)
 })
 
 test('recipe group navigation points at the unified item group page in recipe scope', () => {
