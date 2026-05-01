@@ -157,6 +157,16 @@ test('buildNpcNormalizedLight infers hostile npc quality fields for Medusa-style
   assert.equal(record.profile.kind, 'enemy');
   assert.equal(record.profile.boundVariantName, '');
   assert.equal(record.combat.baseDamageText, '20 / {{expert|40}} / {{master|60}}');
+  assert.deepEqual(record.buffInflictions, [
+    {
+      buffName: 'Stoned',
+      durationText: '{{duration|rawseconds=1–4}}',
+      rawBuffText: 'Stoned',
+      sourceField: 'debuff',
+      durationField: 'debuffduration',
+      sourceSection: 'infobox'
+    }
+  ]);
 });
 
 test('buildNpcNormalizedLight normalizes town pet alias pages to standardized display names', () => {

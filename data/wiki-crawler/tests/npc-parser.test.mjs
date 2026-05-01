@@ -141,6 +141,7 @@ test('extractNpcLeadSummary skips file and dablink noise blocks before the first
 test('extractNpcInfobox returns the first infobox fields as text', () => {
   assert.deepEqual(extractNpcInfobox(SAMPLE), {
     baseDamageText: '{{modes|15|22|26}}',
+    buffInflictions: [],
     environment: ['Cavern', 'Valid house'],
     extraDamageText: 'Spiky Ball',
     kind: 'NPC',
@@ -162,6 +163,7 @@ test('extractNpcSpecialForms returns shimmer and bound-state hints', () => {
 test('extractNpcInfobox tolerates inline closing braces and field-name whitespace', () => {
   assert.deepEqual(extractNpcInfobox(INFBOX_INLINE_CLOSING_SAMPLE), {
     baseDamageText: '{{modes|8|16|23}}',
+    buffInflictions: [],
     environment: ['Cavern'],
     extraDamageText: 'Spiky Ball',
     kind: 'NPC',
@@ -173,6 +175,7 @@ test('extractNpcInfobox tolerates inline closing braces and field-name whitespac
 test('extractNpcInfobox tolerates closing lines that contain only whitespace and braces', () => {
   assert.deepEqual(extractNpcInfobox(INFBOX_WHITESPACE_CLOSE_SAMPLE), {
     baseDamageText: '{{modes|5|10|15}}',
+    buffInflictions: [],
     environment: ['Cavern'],
     extraDamageText: 'Spiky Ball',
     kind: 'NPC',
@@ -184,6 +187,7 @@ test('extractNpcInfobox tolerates closing lines that contain only whitespace and
 test('extractNpcInfobox preserves multi-line values for a field', () => {
   assert.deepEqual(extractNpcInfobox(INFBOX_MULTILINE_SAMPLE), {
     baseDamageText: '{{modes|5|10|15}}',
+    buffInflictions: [],
     environment: ['Cavern'],
     extraDamageText: 'Spiky Ball',
     kind: 'NPC',
@@ -221,6 +225,46 @@ test('extractNpcShop keeps item name, valueText, and availability note', () => {
       }
     ]
   });
+});
+
+test('extractNpcInfobox captures infobox debuffs and durations', () => {
+  const sample = `{{npc infobox
+| type = Enemy
+| environment = Marble Cave
+| debuff = [[Stoned]]
+| debuffduration = {{duration|rawseconds=1-4}}
+| debuff2 = Poisoned
+| debuffduration2 = 5 seconds
+}}`;
+
+  assert.deepEqual(extractNpcInfobox(sample).buffInflictions, [
+    {
+      buffName: 'Stoned',
+      durationText: '{{duration|rawseconds=1-4}}',
+      rawBuffText: '[[Stoned]]',
+      sourceField: 'debuff',
+      durationField: 'debuffduration',
+      sourceSection: 'infobox'
+    },
+    {
+      buffName: 'Poisoned',
+      durationText: '5 seconds',
+      rawBuffText: 'Poisoned',
+      sourceField: 'debuff2',
+      durationField: 'debuffduration2',
+      sourceSection: 'infobox'
+    }
+  ]);
+});
+
+test('extractNpcInfobox ignores inline debuff metadata when naming the debuff', () => {
+  const sample = `{{npc infobox
+| type = Boss
+| debuff = Bleeding | debuffmode = expert
+| debuffduration = {{duration|rawseconds=6-10}}
+}}`;
+
+  assert.equal(extractNpcInfobox(sample).buffInflictions[0].buffName, 'Bleeding');
 });
 
 test('extractNpcShop keeps rows with nested value templates', () => {

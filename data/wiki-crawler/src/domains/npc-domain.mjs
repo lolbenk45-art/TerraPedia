@@ -88,6 +88,7 @@ export function buildNpcNormalizedLight(raw) {
       extraDamageText: inferredCombat.extraDamageText,
       projectileId: inferredCombat.projectileId
     },
+    buffInflictions: infobox.buffInflictions,
     shop: {
       ...shop,
       normalizedRows: normalizedShopRows

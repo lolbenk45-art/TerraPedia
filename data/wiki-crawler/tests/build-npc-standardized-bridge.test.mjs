@@ -24,6 +24,13 @@ test('buildNpcStandardizedBridge overlays wikiCrawler data without breaking the 
       display: { name: 'Medusa' },
       source: { pageTitle: 'Medusa' },
       combat: { projectileId: '24' },
+      buffInflictions: [
+        {
+          buffName: 'Stoned',
+          durationText: '{{duration|rawseconds=1-4}}',
+          sourceSection: 'infobox'
+        }
+      ],
       summary: { leadText: 'Medusa is a Hardmode enemy.' },
       profile: { kind: 'enemy' },
       shop: {
@@ -74,6 +81,7 @@ test('buildNpcStandardizedBridge overlays wikiCrawler data without breaking the 
   assert.equal(result.records[0].internalName, 'Medusa');
   assert.equal(result.records[0].combat.damage, 30);
   assert.equal(result.records[0].wikiCrawler.combat.projectileId, '24');
+  assert.equal(result.records[0].wikiCrawler.buffInflictions[0].buffName, 'Stoned');
   assert.equal(result.records[0].wikiCrawler.shop[0].itemName, 'Lesser Healing Potion');
   assert.equal(result.records[0].wikiCrawler.loot[0].itemName, 'Pocket Mirror');
   assert.equal(result.records[0].wikiCrawler.backfillCandidates[0].candidateKey, 'a'.repeat(64));

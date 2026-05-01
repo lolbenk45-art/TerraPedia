@@ -64,6 +64,66 @@ function splitList(value) {
     .filter(Boolean);
 }
 
+function normalizeInfoboxBuffName(value) {
+  let text = String(value ?? '').trim();
+  if (!text) {
+    return '';
+  }
+  text = text.replace(/\s+\|\s*debuff(?:mode|chance|duration)\d*\s*=\s*[\s\S]*$/i, '').trim();
+
+  const templateMatch = /^\{\{\s*[^|{}]+\|\s*([^|{}]+)(?:\|[^{}]*)?\}\}$/i.exec(text);
+  if (templateMatch?.[1]) {
+    text = templateMatch[1].trim();
+  }
+
+  return text
+    .replace(/\[\[[^\]|]+\|([^\]]+)\]\]/g, '$1')
+    .replace(/\[\[([^\]]+)\]\]/g, '$1')
+    .replace(/''+/g, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function collectInfoboxBuffInflictions(fields) {
+  const entries = Object.entries(fields ?? {})
+    .map(([field, value]) => {
+      const match = /^debuff(\d*)$/.exec(field);
+      if (!match) {
+        return null;
+      }
+      const suffix = match[1] ?? '';
+      return {
+        field,
+        suffix,
+        order: suffix ? Number(suffix) : 1,
+        value
+      };
+    })
+    .filter(Boolean)
+    .filter((entry) => Number.isFinite(entry.order))
+    .sort((left, right) => left.order - right.order);
+
+  const results = [];
+  for (const entry of entries) {
+    const rawBuffText = String(entry.value ?? '').trim();
+    const buffName = normalizeInfoboxBuffName(rawBuffText);
+    if (!buffName) {
+      continue;
+    }
+    const durationField = `debuffduration${entry.suffix}`;
+    results.push({
+      buffName,
+      durationText: fields[durationField] ?? '',
+      rawBuffText,
+      sourceField: entry.field,
+      durationField: fields[durationField] == null ? '' : durationField,
+      sourceSection: 'infobox'
+    });
+  }
+  return results;
+}
+
 function findBalancedTemplateBlocks(text, templateName) {
   const escapedName = templateName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const startPattern = new RegExp(`\\{\\{\\s*${escapedName}(?=\\s*(?:\\||\\}\\}))`, 'gi');
@@ -266,6 +326,7 @@ export function extractNpcInfobox(revisionText) {
   const fields = parseInfoboxFields(revisionText);
   return {
     baseDamageText: fields.damage ?? '',
+    buffInflictions: collectInfoboxBuffInflictions(fields),
     environment: splitList(fields.environment),
     extraDamageText: fields.damage2 ?? '',
     kind: fields.type ?? '',

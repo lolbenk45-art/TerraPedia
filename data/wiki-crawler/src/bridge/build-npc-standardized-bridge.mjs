@@ -45,6 +45,7 @@ export function buildNpcStandardizedBridge({
         groupMember: crawlerRecord?.groupMember ?? null,
         summary: crawlerRecord?.summary ?? {},
         combat: crawlerRecord?.combat ?? {},
+        buffInflictions: Array.isArray(crawlerRecord?.buffInflictions) ? crawlerRecord.buffInflictions : [],
         profile: crawlerRecord?.profile ?? {},
         shop: shopRows,
         loot: Array.isArray(crawlerRecord?.loot) ? crawlerRecord.loot : [],
