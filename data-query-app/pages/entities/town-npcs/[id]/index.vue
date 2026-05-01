@@ -148,7 +148,7 @@
             <div v-if="selectedRow.currentShopItems?.length" class="shop-grid">
               <article v-for="(item, index) in selectedRow.currentShopItems" :key="`${selectedRow.id}-shop-${index}`" class="shop-card">
                 <div class="shop-card__media">
-                  <img v-if="item.image" :src="item.image" :alt="item.nameZh || item.name || item.internalName || 'item'" class="shop-card__image" />
+                  <img v-if="resolveTownNpcShopItemImage(item)" :src="resolveTownNpcShopItemImage(item)" :alt="item.nameZh || item.name || item.internalName || 'item'" class="shop-card__image" />
                   <div v-else class="shop-card__fallback">{{ buildItemFallback(item) }}</div>
                 </div>
 
@@ -190,6 +190,7 @@ import {
   formatUnmatchedItems,
   resolveKnockBackResist,
   resolveNpcStat,
+  resolveTownNpcShopItemImage,
   rowsFromOverview,
   wikiAssetCards,
   type TownNpcOverview,

@@ -76,7 +76,7 @@
               <div v-if="selectedRow?.currentShopItems?.length" class="shop-preview-list">
                 <article v-for="(item, index) in selectedRow.currentShopItems" :key="`${selectedRow.id}-bound-${index}`" class="shop-preview-item">
                   <div class="shop-preview-item__media">
-                    <img v-if="item.image" :src="item.image" :alt="item.nameZh || item.name || item.internalName || 'item'" class="shop-preview-item__image" />
+                    <img v-if="resolveTownNpcShopItemImage(item)" :src="resolveTownNpcShopItemImage(item)" :alt="item.nameZh || item.name || item.internalName || 'item'" class="shop-preview-item__image" />
                     <div v-else class="shop-preview-item__fallback">{{ buildItemFallback(item) }}</div>
                   </div>
                   <div class="shop-preview-item__body">
@@ -136,6 +136,7 @@ import {
   formatNumber,
   formatShopMutationSummary,
   formatUnmatchedItems,
+  resolveTownNpcShopItemImage,
   rowsFromOverview,
   saveTownNpcMaintenance,
   type TownNpcEditorDetail,

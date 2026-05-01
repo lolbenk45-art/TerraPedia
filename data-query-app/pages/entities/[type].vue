@@ -946,12 +946,18 @@
                   <span>{{ group.rows.length }} 条</span>
                 </div>
                 <div class="npc-projection-list">
-                  <div v-for="entry in group.rows" :key="entry.key" class="npc-projection-entry">
-                    <strong>{{ entry.title }}</strong>
-                    <span v-if="entry.secondary">{{ entry.secondary }}</span>
-                    <span v-if="entry.trace">sourceFactKey {{ entry.trace }}</span>
-                    <span v-if="entry.source">来源 {{ entry.source }}</span>
-                  </div>
+                  <article v-for="entry in group.rows" :key="entry.key" class="npc-projection-entry">
+                    <button type="button" class="npc-projection-entry__media" @click="openLinkedItemDetail(entry)">
+                      <img v-if="entry.imageUrl" :src="entry.imageUrl" class="npc-projection-entry__image" alt="" loading="lazy" @error="handleImageError" />
+                      <span v-else class="npc-projection-entry__fallback">IT</span>
+                    </button>
+                    <div class="npc-projection-entry__body">
+                      <strong>{{ entry.title }}</strong>
+                      <span v-if="entry.secondary">{{ entry.secondary }}</span>
+                      <span v-if="entry.trace">sourceFactKey {{ entry.trace }}</span>
+                      <span v-if="entry.source">来源 {{ entry.source }}</span>
+                    </div>
+                  </article>
                 </div>
               </article>
             </div>
@@ -1635,6 +1641,17 @@ function normalizeImageUrl(value: unknown) {
   return ''
 }
 
+function isTrustedWikiImageUrl(value: unknown) {
+  const image = normalizeImageUrl(value)
+  if (!image) return ''
+  const normalized = image.toLowerCase()
+  if (!normalized.includes('terraria.wiki.gg')) return ''
+  if (normalized.includes('/terrapedia-images/')) return ''
+  if (normalized.includes('(demo)') || normalized.includes('%28demo%29') || /(^|[/_\s-])demo([._?&#/-]|$)/.test(normalized)) return ''
+  if (normalized.includes('(placed)') || normalized.includes('%28placed%29') || /(^|[/_\s-])placed([._?&#/-]|$)/.test(normalized)) return ''
+  return image
+}
+
 function splitImageCsv(value: unknown) {
   if (typeof value !== 'string' || !value.trim()) return []
   return value.split(',').map(entry => normalizeImageUrl(entry)).filter(Boolean)
@@ -2038,7 +2055,7 @@ async function openLinkedItemDetail(entry: Record<string, any>) {
     ? rawId
     : (typeof rawId === 'string' && rawId.trim() ? Number(rawId) : NaN)
   if (!Number.isFinite(itemId) || itemId <= 0) {
-    const imageUrl = normalizeImageUrl(entry?.itemImage)
+    const imageUrl = getNpcProjectionImage(entry) || normalizeImageUrl(entry?.itemImage)
     if (imageUrl) {
       openImageLightbox(imageUrl, entry?.itemNameZh || entry?.itemName || entry?.itemInternalName || '物品图片')
       return
@@ -2643,6 +2660,21 @@ const npcDerivedLootEntries = computed<Array<Record<string, any>>>(() => {
     .filter(item => item && typeof item === 'object')
     .map(item => normalizeRow(item as Record<string, any>))
 })
+const trustedNpcShopImageByItemKey = computed<Record<string, string>>(() => {
+  if (!detailRow.value || entityType.value !== 'npcs' || !Array.isArray(detailRow.value.shopEntries)) return {}
+  const lookup: Record<string, string> = {}
+  for (const rawEntry of detailRow.value.shopEntries) {
+    if (!rawEntry || typeof rawEntry !== 'object') continue
+    const entry = rawEntry as Record<string, any>
+    const image = normalizeImageUrl(entry.itemImage ?? entry.itemImageUrl ?? entry.imageUrl ?? entry.image)
+    if (!image) continue
+    for (const key of [entry.itemId, entry.sourceItemId, entry.itemInternalName, entry.internalName]) {
+      if (key == null || key === '') continue
+      lookup[String(key)] ||= image
+    }
+  }
+  return lookup
+})
 function getNpcProjectionRows(arrayKey: string, jsonKey: string): Array<Record<string, any>> {
   if (!detailRow.value || entityType.value !== 'npcs') return []
   const directRows = normalizeSourceEntries(detailRow.value[arrayKey])
@@ -2685,16 +2717,36 @@ function getNpcProjectionSource(entry: Record<string, any>) {
     .filter(Boolean)
     .join(' / ')
 }
+function getNpcProjectionImage(entry: Record<string, any>) {
+  for (const value of [entry.itemImageUrl, entry.itemImage, entry.imageUrl, entry.image, entry.__imageUrl]) {
+    const image = isTrustedWikiImageUrl(value)
+    if (image) return image
+  }
+  return ''
+}
+function getTrustedNpcShopImage(entry: Record<string, any>) {
+  for (const key of [entry.itemId, entry.itemSourceId, entry.sourceItemId, entry.itemInternalName, entry.internalName]) {
+    if (key == null || key === '') continue
+    const image = trustedNpcShopImageByItemKey.value[String(key)]
+    if (image) return image
+  }
+  return ''
+}
+function pickTrustedNpcProjectionImage(key: string, entry: Record<string, any>) {
+  return key === 'shop' ? getTrustedNpcShopImage(entry) || getNpcProjectionImage(entry) : getNpcProjectionImage(entry)
+}
 function buildNpcProjectionGroup(key: string, label: string, rows: Array<Record<string, any>>) {
   return {
     key,
     label,
-    rows: rows.slice(0, 8).map((entry, index) => ({
+    rows: rows.map((entry, index) => ({
+      ...entry,
       key: String(entry.sourceFactKey ?? entry.relationRecordKey ?? entry.itemId ?? entry.itemInternalName ?? `${key}-${index}`),
       title: getNpcProjectionTitle(entry, index),
       secondary: getNpcProjectionSecondary(entry),
       trace: typeof entry.sourceFactKey === 'string' ? entry.sourceFactKey.trim() : '',
       source: getNpcProjectionSource(entry),
+      imageUrl: pickTrustedNpcProjectionImage(key, entry),
     })),
   }
 }
@@ -3835,17 +3887,42 @@ function formatArmorPartRole(value: unknown) {
 .npc-detail__table tbody td { color: var(--color-text-secondary); white-space: nowrap; }
 .npc-detail__table tbody tr:last-child th,
 .npc-detail__table tbody tr:last-child td { border-bottom: none; }
-.npc-projection-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.npc-projection-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
 .npc-projection-group { align-content: start; }
 .npc-projection-list { display: grid; gap: 8px; }
 .npc-projection-entry {
   display: grid;
-  gap: 4px;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
   padding: 10px;
   border-radius: var(--radius-md);
   border: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
   background: color-mix(in srgb, var(--color-bg) 82%, var(--color-bg-secondary));
 }
+.npc-projection-entry__media {
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.npc-projection-entry__image,
+.npc-projection-entry__fallback {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-bg-tertiary) 92%, transparent);
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+.npc-projection-entry__body { display: grid; gap: 3px; min-width: 0; }
 .npc-projection-entry strong { color: var(--color-text); font-size: 0.88rem; line-height: 1.35; overflow-wrap: anywhere; }
 .npc-projection-entry span { color: var(--color-text-secondary); font-size: 0.78rem; line-height: 1.45; overflow-wrap: anywhere; }
 .related-items { display: grid; gap: 10px; }

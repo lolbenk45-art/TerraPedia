@@ -84,6 +84,11 @@ export const buildItemFallback = (item: RefItem) => {
   return String(text).slice(0, 2)
 }
 
+export const resolveTownNpcShopItemImage = (item: RefItem | null | undefined) => {
+  if (!item) return ''
+  return String(item.itemImageUrl || item.itemImage || item.imageUrl || item.image || '').trim()
+}
+
 export const isGapRow = (row: TownNpcRow) =>
   Number(row.gamePeriodId || 0) <= 0 || !row.hasBehaviorNotes || !row.hasShopEntries
 

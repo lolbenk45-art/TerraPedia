@@ -666,7 +666,7 @@ public class AdminNpcController {
     private List<Map<String, Object>> loadNpcShopEntries(Long npcId) {
         if (npcId == null || jdbcTemplate == null) return List.of();
         List<Map<String, Object>> entries = jdbcTemplate.queryForList(
-            """
+            ("""
             SELECT
               nse.id,
               nse.item_id AS itemId,
@@ -677,12 +677,12 @@ public class AdminNpcController {
               i.name AS itemName,
               i.name_zh AS itemNameZh,
               i.internal_name AS itemInternalName,
-              i.image AS itemImage
+              %s AS itemImage
             FROM npc_shop_entries nse
             LEFT JOIN items i ON i.id = nse.item_id AND i.deleted = 0
             WHERE nse.npc_id = ? AND nse.deleted = 0
             ORDER BY nse.sort_order ASC, nse.id ASC
-            """,
+            """).formatted(AdminItemImageSql.preferredItemImageExpression("i")),
             npcId
         );
         List<Long> entryIds = entries.stream().map(row -> toLong(row.get("id"))).filter(Objects::nonNull).toList();

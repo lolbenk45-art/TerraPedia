@@ -140,7 +140,7 @@
             <div class="shop-strip">
               <article v-for="(item, index) in row.currentShopItems?.slice(0, 3) || []" :key="`${row.id}-shop-${index}`" class="shop-pill">
                 <div class="shop-pill__media">
-                  <img v-if="item.image" :src="item.image" :alt="item.nameZh || item.name || item.internalName || 'item'" class="shop-pill__image">
+                  <img v-if="resolveTownNpcShopItemImage(item)" :src="resolveTownNpcShopItemImage(item)" :alt="item.nameZh || item.name || item.internalName || 'item'" class="shop-pill__image">
                   <div v-else class="shop-pill__fallback">{{ buildItemFallback(item) }}</div>
                 </div>
 
@@ -202,6 +202,7 @@ import {
   maintenanceSummaryFromOverview,
   resolveKnockBackResist,
   resolveNpcStat,
+  resolveTownNpcShopItemImage,
   rowsFromOverview,
   type TownNpcOverview,
   type TownNpcRow,

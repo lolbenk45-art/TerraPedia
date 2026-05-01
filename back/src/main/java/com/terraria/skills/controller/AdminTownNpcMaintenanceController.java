@@ -245,12 +245,12 @@ public class AdminTownNpcMaintenanceController {
     private Map<String, Map<String, Object>> loadItemLookup() {
         Map<String, Map<String, Object>> lookup = new LinkedHashMap<>();
         jdbcTemplate.query(
-            """
+            ("""
                 SELECT id, internal_name AS internalName, name, name_zh AS nameZh
-                     , image
+                     , %s AS image
                 FROM items
                 WHERE deleted = 0
-                """,
+                """).formatted(AdminItemImageSql.preferredItemImageExpression("items")),
             rs -> {
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("id", rs.getLong("id"));
@@ -332,7 +332,7 @@ public class AdminTownNpcMaintenanceController {
             return List.of();
         }
         return jdbcTemplate.query(
-            """
+            ("""
                 SELECT
                   nse.id,
                   nse.item_id AS itemId,
@@ -341,7 +341,7 @@ public class AdminTownNpcMaintenanceController {
                   i.name,
                   i.name_zh AS nameZh,
                   i.internal_name AS internalName,
-                  i.image AS image,
+                  %s AS image,
                   i.buy AS buyPrice,
                   i.sell AS sellPrice
                 FROM npc_shop_entries nse
@@ -349,7 +349,7 @@ public class AdminTownNpcMaintenanceController {
                 WHERE nse.npc_id = ?
                   AND nse.deleted = 0
                 ORDER BY nse.sort_order ASC, nse.id ASC
-                """,
+                """).formatted(AdminItemImageSql.preferredItemImageExpression("i")),
             (rs, rowNum) -> {
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("id", rs.getLong("id"));

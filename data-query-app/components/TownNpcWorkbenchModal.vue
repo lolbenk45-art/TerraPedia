@@ -151,7 +151,7 @@
             <div v-if="filteredDetailShopItems.length" class="detail-shop-grid">
               <article v-for="(item, index) in filteredDetailShopItems" :key="`${row.id}-detail-${index}`" class="detail-shop-card">
                 <div class="detail-shop-card__media">
-                  <img v-if="item.image" :src="item.image" :alt="item.nameZh || item.name || item.internalName || 'item'" class="detail-shop-card__image">
+                  <img v-if="resolveTownNpcShopItemImage(item)" :src="resolveTownNpcShopItemImage(item)" :alt="item.nameZh || item.name || item.internalName || 'item'" class="detail-shop-card__image">
                   <div v-else class="detail-shop-card__fallback">{{ buildItemFallback(item) }}</div>
                 </div>
 
@@ -225,7 +225,7 @@
                   <div class="entry-card__head">
                     <div class="entry-card__item">
                       <div class="entry-card__media">
-                        <img v-if="entry.itemImage" :src="entry.itemImage" :alt="entry.itemNameZh || entry.itemName || entry.itemInternalName || 'item'" class="entry-card__image">
+                        <img v-if="resolveTownNpcShopItemImage(entry)" :src="resolveTownNpcShopItemImage(entry)" :alt="entry.itemNameZh || entry.itemName || entry.itemInternalName || 'item'" class="entry-card__image">
                         <div v-else class="entry-card__fallback">{{ buildItemFallback(entry) }}</div>
                       </div>
 
@@ -301,7 +301,7 @@
               <div v-else class="suggestion-list">
                 <article v-for="item in itemSearchResults" :key="item.id" class="suggestion-card">
                   <div class="suggestion-card__media">
-                    <img v-if="item.imageUrl || item.image" :src="item.imageUrl || item.image" :alt="item.nameZh || item.name || item.internalName || 'item'" class="suggestion-card__image">
+                    <img v-if="resolveTownNpcShopItemImage(item)" :src="resolveTownNpcShopItemImage(item)" :alt="item.nameZh || item.name || item.internalName || 'item'" class="suggestion-card__image">
                     <div v-else class="suggestion-card__fallback">{{ buildItemFallback(item) }}</div>
                   </div>
                   <div class="suggestion-card__body">
@@ -332,7 +332,7 @@
               <div v-if="suggestedEntries.length" class="suggestion-list">
                 <article v-for="entry in suggestedEntries" :key="`suggested-${entry.itemId}-${entry.sortOrder}`" class="suggestion-card">
                   <div class="suggestion-card__media">
-                    <img v-if="entry.itemImage" :src="entry.itemImage" :alt="entry.itemNameZh || entry.itemName || entry.itemInternalName || 'item'" class="suggestion-card__image">
+                    <img v-if="resolveTownNpcShopItemImage(entry)" :src="resolveTownNpcShopItemImage(entry)" :alt="entry.itemNameZh || entry.itemName || entry.itemInternalName || 'item'" class="suggestion-card__image">
                     <div v-else class="suggestion-card__fallback">{{ buildItemFallback(entry) }}</div>
                   </div>
                   <div class="suggestion-card__body">
@@ -416,6 +416,7 @@ import {
   formatUnmatchedItems,
   resolveKnockBackResist,
   resolveNpcStat,
+  resolveTownNpcShopItemImage,
   saveTownNpcMaintenance,
   wikiAssetCards,
   type RefItem,
@@ -635,7 +636,7 @@ function normalizeShopEntries(entries: Array<Record<string, any>>): ShopEntryDra
       itemNameZh: String(entry.itemNameZh || current?.nameZh || suggested?.itemNameZh || ''),
       itemName: String(entry.itemName || current?.name || suggested?.itemName || ''),
       itemInternalName: String(entry.itemInternalName || current?.internalName || suggested?.itemInternalName || ''),
-      itemImage: String(entry.itemImage || current?.image || suggested?.itemImage || ''),
+      itemImage: resolveTownNpcShopItemImage(entry) || resolveTownNpcShopItemImage(current) || resolveTownNpcShopItemImage(suggested),
       buy: asNullableNumber(current?.buyPrice),
       sell: asNullableNumber(current?.sellPrice),
     }
@@ -657,7 +658,7 @@ function normalizeSuggestionEntry(entry: Record<string, any>, sortOrder = shopEn
     itemNameZh: String(entry.itemNameZh || current?.nameZh || ''),
     itemName: String(entry.itemName || current?.name || ''),
     itemInternalName: String(entry.itemInternalName || current?.internalName || ''),
-    itemImage: String(entry.itemImage || current?.image || ''),
+    itemImage: resolveTownNpcShopItemImage(entry) || resolveTownNpcShopItemImage(current),
     buy: asNullableNumber(current?.buyPrice),
     sell: asNullableNumber(current?.sellPrice),
   }
@@ -676,7 +677,7 @@ function normalizeManualItem(item: RefItem, sortOrder = shopEntryDrafts.value.le
     itemNameZh: String(item.nameZh || ''),
     itemName: String(item.name || item.nameEn || ''),
     itemInternalName: String(item.internalName || ''),
-    itemImage: String(item.imageUrl || item.image || ''),
+    itemImage: resolveTownNpcShopItemImage(item),
     buy: asNullableNumber(item.buy),
     sell: asNullableNumber(item.sell),
   }

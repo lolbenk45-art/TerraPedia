@@ -55,6 +55,9 @@ export interface TownNpcShopItem extends Record<string, any> {
   nameZh?: string | null
   internalName?: string | null
   image?: string | null
+  imageUrl?: string | null
+  itemImage?: string | null
+  itemImageUrl?: string | null
   priceText?: string | null
 }
 

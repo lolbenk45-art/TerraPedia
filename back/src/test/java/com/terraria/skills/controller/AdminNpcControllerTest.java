@@ -419,6 +419,44 @@ class AdminNpcControllerTest {
     }
 
     @Test
+    void shouldLoadShopEntryImagesFromTrustedItemImageFallback() throws Exception {
+        Npc npc = new Npc();
+        npc.setId(7L);
+        npc.setGameId(22L);
+        npc.setInternalName("Guide");
+        npc.setName("Guide");
+        npc.setNameZh("Guide Zh");
+        npc.setIsTownNpc(true);
+        npc.setStatus(1);
+
+        when(npcMapper.selectById(7L)).thenReturn(npc);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_loot_entries"), eq(Integer.class), eq(7L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_buff_relations"), eq(Integer.class), eq(7L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_shop_entries"), eq(Integer.class), eq(7L))).thenReturn(1);
+        when(jdbcTemplate.queryForObject(contains("source_ref_id = ?"), eq(Integer.class), eq(22L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(
+            contains("LOWER(TRIM(source_ref_name)) = LOWER(TRIM(?))"),
+            eq(Integer.class),
+            eq("Guide")
+        )).thenReturn(0);
+        when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries nle"), eq(7L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("source_ref_id IS NULL"), eq("Guide"))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(7L))).thenReturn(List.of());
+
+        Map<String, Object> shopEntry = new LinkedHashMap<>();
+        shopEntry.put("id", 21L);
+        shopEntry.put("itemId", 8L);
+        shopEntry.put("itemName", "Rope");
+        shopEntry.put("itemImage", "https://terraria.wiki.gg/images/Rope.png");
+        when(jdbcTemplate.queryForList(contains("item_images ii"), eq(7L))).thenReturn(List.of(shopEntry));
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_conditions"), eq(21L))).thenReturn(List.of());
+
+        mockMvc.perform(get("/admin/npcs/7").accept(APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.shopEntries[0].itemImage").value("https://terraria.wiki.gg/images/Rope.png"));
+    }
+
+    @Test
     void shouldRoundTripTownNpcMaintenanceFieldsOnUpdate() throws Exception {
         Npc existing = new Npc();
         existing.setId(7L);
