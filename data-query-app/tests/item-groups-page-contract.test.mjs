@@ -52,6 +52,18 @@ test('item groups page exposes unresolved member status instead of hiding gaps',
   assert.match(page, /resolutionReason/)
 })
 
+test('item groups page exposes API load failures instead of showing a false empty list', () => {
+  const page = read('data-query-app/pages/item-groups.vue')
+  const store = read('data-query-app/stores/itemGroups.ts')
+  const fetchItemGroups = store.match(/const fetchItemGroups[\s\S]*?\n  }\n\n  const fetchItemGroupDetail/)?.[0] || ''
+
+  assert.match(page, /loadError/)
+  assert.match(page, /group-list__error/)
+  assert.match(page, /加载失败/)
+  assert.doesNotMatch(fetchItemGroups, /catch[\s\S]*return \[\]/)
+  assert.match(fetchItemGroups, /throw error/)
+})
+
 test('recipe group navigation points at the unified item group page in recipe scope', () => {
   const layout = read('data-query-app/layouts/default.vue')
   const recipeIndex = read('data-query-app/pages/recipes/index.vue')

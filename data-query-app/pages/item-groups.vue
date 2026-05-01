@@ -86,7 +86,13 @@
               </div>
             </article>
 
-            <p v-if="!loading && !groups.length" class="empty-copy">当前没有匹配的任意物品组。</p>
+            <div v-if="!loading && loadError" class="group-list__error" role="alert">
+              <strong>加载失败</strong>
+              <span>{{ loadError }}</span>
+              <button type="button" class="btn btn-secondary btn-sm" @click="reloadGroups">重试</button>
+            </div>
+
+            <p v-if="!loading && !loadError && !groups.length" class="empty-copy">当前没有匹配的任意物品组。</p>
           </div>
         </section>
       </aside>
@@ -279,6 +285,7 @@ const memberLookup = ref('')
 const loading = ref(false)
 const saving = ref(false)
 const isCreating = ref(false)
+const loadError = ref('')
 const domainText = ref('')
 const aliasText = ref('')
 const sourceUrlsText = ref('')
@@ -360,6 +367,7 @@ async function setDomain(domain: string) {
 
 async function reloadGroups() {
   loading.value = true
+  loadError.value = ''
   try {
     const nextGroups = await itemGroupsStore.fetchItemGroups(keyword.value, activeDomain.value)
     groups.value = nextGroups
@@ -374,6 +382,8 @@ async function reloadGroups() {
     if (!draft.value && nextGroups[0]) {
       await selectGroup(nextGroups[0].canonicalName, true)
     }
+  } catch (error: any) {
+    loadError.value = error?.data?.message || error?.message || '加载失败'
   } finally {
     loading.value = false
   }
@@ -598,6 +608,26 @@ onMounted(async () => {
   max-height: calc(100vh - 260px);
   overflow: auto;
   padding-right: 4px;
+}
+
+.group-list__error {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-danger, #dc2626) 36%, var(--color-border));
+  background: color-mix(in srgb, var(--color-danger, #dc2626) 8%, var(--color-bg-secondary));
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.group-list__error strong {
+  color: var(--color-danger, #b91c1c);
+  font-size: 13px;
+}
+
+.group-list__error .btn {
+  justify-self: start;
 }
 
 .group-row {

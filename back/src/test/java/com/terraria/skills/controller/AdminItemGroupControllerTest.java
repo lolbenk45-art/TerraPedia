@@ -5,6 +5,8 @@ import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.dto.ItemGroupDTO;
 import com.terraria.skills.dto.ItemGroupMemberDTO;
 import com.terraria.skills.entity.Item;
+import com.terraria.skills.entity.ItemImage;
+import com.terraria.skills.mapper.ItemImageMapper;
 import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.service.RecipeTreeService;
 import org.junit.jupiter.api.AfterEach;
@@ -33,6 +35,7 @@ class AdminItemGroupControllerTest {
     private String originalUserDir;
     private Path repoRoot;
     private ItemMapper itemMapper;
+    private ItemImageMapper itemImageMapper;
     private RecipeTreeService recipeTreeService;
     private AdminItemGroupController controller;
 
@@ -45,8 +48,10 @@ class AdminItemGroupControllerTest {
         System.setProperty("user.dir", repoRoot.resolve("back").toString());
 
         itemMapper = mock(ItemMapper.class);
+        itemImageMapper = mock(ItemImageMapper.class);
         recipeTreeService = mock(RecipeTreeService.class);
-        controller = new AdminItemGroupController(new ObjectMapper(), itemMapper, recipeTreeService);
+        controller = new AdminItemGroupController(new ObjectMapper(), itemMapper, itemImageMapper, recipeTreeService);
+        when(itemImageMapper.selectList(any())).thenReturn(List.of());
     }
 
     @AfterEach
@@ -169,6 +174,36 @@ class AdminItemGroupControllerTest {
     }
 
     @Test
+    void getItemGroupsUsesItemImageTableWhenResolvedItemImageIsMissing() throws Exception {
+        Files.writeString(repoRoot.resolve("data/generated/item-group-overrides.json"), """
+            {
+              "groups": [
+                {
+                  "canonicalName": "Any Pylon",
+                  "displayNameEn": "Any Pylon",
+                  "displayNameZh": "任意晶塔",
+                  "domains": [ "shimmer" ],
+                  "sourceProvider": "wiki_gg",
+                  "sourcePage": "https://terraria.wiki.gg/wiki/Pylons",
+                  "members": [
+                    { "itemId": 4875, "internalName": "TeleportationPylonJungle", "name": "Jungle Pylon", "nameZh": "丛林晶塔" }
+                  ]
+                }
+              ]
+            }
+            """);
+        when(itemMapper.selectList(any())).thenReturn(List.of(item(4875L, "TeleportationPylonJungle", "Jungle Pylon", "丛林晶塔")));
+        when(itemImageMapper.selectList(any())).thenReturn(List.of(itemImage(4875L, "https://terraria.wiki.gg/images/Jungle_Pylon.png")));
+
+        ApiResponse<List<ItemGroupDTO>> body = controller.getItemGroups(null, null).getBody();
+
+        assertNotNull(body);
+        ItemGroupMemberDTO member = body.getData().get(0).getMembers().get(0);
+        assertEquals("https://terraria.wiki.gg/images/Jungle_Pylon.png", member.getImage());
+        assertEquals(Boolean.TRUE, member.getResolved());
+    }
+
+    @Test
     void createItemGroupWritesCentralOverrideWithTraceableSource() throws Exception {
         ItemGroupDTO request = new ItemGroupDTO();
         request.setCanonicalName("Any Pylon");
@@ -240,5 +275,21 @@ class AdminItemGroupControllerTest {
         item.setDeleted(0);
         item.setStatus(1);
         return item;
+    }
+
+    private ItemImage itemImage(Long itemId, String originalUrl) {
+        ItemImage image = new ItemImage();
+        image.setItemId(itemId);
+        image.setRole("icon");
+        image.setProvider("wiki_gg");
+        image.setSourceFileTitle("Jungle Pylon.png");
+        image.setSourcePage("Jungle Pylon");
+        image.setOriginalUrl(originalUrl);
+        image.setCachedUrl(originalUrl);
+        image.setIsPrimary(true);
+        image.setSortOrder(0);
+        image.setStatus(1);
+        image.setDeleted(0);
+        return image;
     }
 }

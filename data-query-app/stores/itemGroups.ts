@@ -118,7 +118,7 @@ export const useItemGroupsStore = defineStore('itemGroups', () => {
     } catch (error: any) {
       console.error('Failed to fetch item groups:', error)
       showToast(error?.data?.message || error?.message || '获取任意物品组失败', 'error')
-      return []
+      throw error
     }
   }
 

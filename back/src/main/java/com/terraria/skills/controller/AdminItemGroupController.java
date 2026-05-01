@@ -7,6 +7,8 @@ import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.dto.ItemGroupDTO;
 import com.terraria.skills.dto.ItemGroupMemberDTO;
 import com.terraria.skills.entity.Item;
+import com.terraria.skills.entity.ItemImage;
+import com.terraria.skills.mapper.ItemImageMapper;
 import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.service.RecipeTreeService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -53,6 +55,7 @@ public class AdminItemGroupController {
 
     private final ObjectMapper objectMapper;
     private final ItemMapper itemMapper;
+    private final ItemImageMapper itemImageMapper;
     private final RecipeTreeService recipeTreeService;
     private volatile TimedValue<List<ItemGroupDTO>> mergedItemGroupsCache;
 
@@ -411,6 +414,12 @@ public class AdminItemGroupController {
                 .forEach(item -> itemsByName.putIfAbsent(normalizeKey(item.getName()), item));
         }
 
+        Set<Long> resolvedItemIds = new LinkedHashSet<>();
+        itemsById.values().forEach(item -> resolvedItemIds.add(item.getId()));
+        itemsByInternalName.values().forEach(item -> resolvedItemIds.add(item.getId()));
+        itemsByName.values().forEach(item -> resolvedItemIds.add(item.getId()));
+        Map<Long, String> itemImagesByItemId = loadPreferredItemImages(resolvedItemIds);
+
         List<ItemGroupMemberDTO> enrichedMembers = new ArrayList<>();
         for (ItemGroupMemberDTO member : members) {
             Item resolved = null;
@@ -431,7 +440,11 @@ public class AdminItemGroupController {
             next.setInternalName(firstNonBlank(internalName, resolved == null ? null : resolved.getInternalName()));
             next.setName(firstNonBlank(name, resolved == null ? null : resolved.getName()));
             next.setNameZh(firstNonBlank(trimToNull(member.getNameZh()), resolved == null ? null : resolved.getNameZh()));
-            next.setImage(firstNonBlank(trimToNull(member.getImage()), resolved == null ? null : resolved.getImage()));
+            next.setImage(firstNonBlank(
+                trimToNull(member.getImage()),
+                resolved == null ? null : trimToNull(resolved.getImage()),
+                resolved == null ? null : itemImagesByItemId.get(resolved.getId())
+            ));
             next.setResolved(resolved != null);
             next.setResolutionStatus(resolved == null ? "unresolved" : "resolved");
             next.setResolutionReason(resolveMemberReason(resolved, itemId, internalName, name));
@@ -439,6 +452,62 @@ public class AdminItemGroupController {
         }
         enriched.setMembers(enrichedMembers);
         return enriched;
+    }
+
+    private Map<Long, String> loadPreferredItemImages(Collection<Long> itemIds) {
+        if (itemIds == null || itemIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<Long, String> imagesByItemId = new LinkedHashMap<>();
+        itemImageMapper.selectList(new LambdaQueryWrapper<ItemImage>()
+                .in(ItemImage::getItemId, itemIds)
+                .eq(ItemImage::getDeleted, 0)
+                .eq(ItemImage::getStatus, 1)
+                .orderByDesc(ItemImage::getIsPrimary)
+                .orderByAsc(ItemImage::getSortOrder)
+                .orderByAsc(ItemImage::getId))
+            .forEach(image -> {
+                Long itemId = image.getItemId();
+                if (itemId == null || imagesByItemId.containsKey(itemId) || !isWikiImageProvider(image.getProvider())) {
+                    return;
+                }
+                String sourcePage = trimToNull(image.getSourcePage());
+                String imageUrl = preferredImageUrl(image);
+                if (sourcePage != null && imageUrl != null) {
+                    imagesByItemId.put(itemId, imageUrl);
+                }
+            });
+        return imagesByItemId;
+    }
+
+    private String preferredImageUrl(ItemImage image) {
+        String originalUrl = usableImageUrl(image == null ? null : image.getOriginalUrl());
+        if (originalUrl != null) {
+            return originalUrl;
+        }
+        return usableImageUrl(image == null ? null : image.getCachedUrl());
+    }
+
+    private boolean isWikiImageProvider(String provider) {
+        String normalized = normalizeKey(provider);
+        return "wiki_gg".equals(normalized) || "terraria.wiki.gg".equals(normalized);
+    }
+
+    private String usableImageUrl(String value) {
+        String imageUrl = trimToNull(value);
+        if (imageUrl == null) {
+            return null;
+        }
+        String normalized = imageUrl.toLowerCase();
+        if (
+            normalized.contains("(demo)")
+            || normalized.contains("%28demo%29")
+            || normalized.contains("(placed)")
+            || normalized.contains("%28placed%29")
+        ) {
+            return null;
+        }
+        return imageUrl;
     }
 
     private String resolveMemberReason(Item resolved, Long itemId, String internalName, String name) {
