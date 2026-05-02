@@ -402,6 +402,15 @@ function evaluateCheck(definition, rows, error = null) {
   return { status: 'info', message: `${rows.length} row(s)` };
 }
 
+function deriveReportPath(rows) {
+  const preferredReportKinds = ['unresolved_json', 'conflicts_json', 'audit_json', 'audit_md'];
+  const preferredRow = preferredReportKinds
+    .map((reportKind) => rows.find((row) => row?.reportKind === reportKind && row.latestReportPath))
+    .find(Boolean);
+  const value = preferredRow?.latestReportPath ?? rows.find((row) => row?.latestReportPath)?.latestReportPath;
+  return value == null || value === '' ? null : String(value);
+}
+
 export function buildRelationHealthReport({
   dateTag = new Date().toISOString().slice(0, 10),
   generatedAt = new Date().toISOString(),
@@ -417,6 +426,7 @@ export function buildRelationHealthReport({
       message: evaluation.message,
       description: definition.description ?? null,
       expectation: definition.expectation,
+      reportPath: deriveReportPath(rows),
       sql: definition.sql,
       rows,
       error: error ? { message: error.message, code: error.code ?? null } : null
@@ -454,6 +464,8 @@ Guardrails:
 - Do not run two DB apply scripts in parallel.
 - Do not run crawler/maint apply while relation apply is running.
 - Review each dry-run output before the matching apply command.
+- Check active writers before any dry-run or apply.
+- Human approval is required before each apply command.
 - maint_backfill_candidates remains maint-owned; validate it from ${maintDatabase}, but do not have relation sync write it.
 - Relation validation covers item_npc_relation_audits and relation report exports for unresolved/exportable candidates.
 - Local compatibility validation targets sync-relation-to-local-compat-tables.mjs outputs only: item_acquisition_sources, npc_loot_entries, npc_shop_entries, npc_shop_conditions.
@@ -464,48 +476,46 @@ Guardrails:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\dev\\start-local-stack.ps1
 \`\`\`
 
-2. Generate or refresh the NPC item relation bundle.
+2. Check active writers.
+
+Confirm no DB apply, crawler apply, recipe apply, or image sync apply is running against the same target.
+
+3. Generate or refresh the NPC item relation bundle.
 
 \`\`\`powershell
 node scripts/data/fetch/build-npc-item-relations-bundle.mjs --output=data/generated/npc-item-relations.bundle.json
 \`\`\`
 
-3. Maint dry-run.
+4. Source landing read-only audit.
+
+\`\`\`powershell
+node scripts/data/landing/audit-source-dataset-landings.mjs --output=reports/source-dataset-landing-audit-YYYY-MM-DD.json
+\`\`\`
+
+5. Maint dry-run.
 
 \`\`\`powershell
 node scripts/data/maint/sync-landing-to-maint.mjs --apply=false --database=${maintDatabase} --scopes=npcs
 \`\`\`
 
-4. Maint apply after dry-run review.
-
-\`\`\`powershell
-node scripts/data/maint/sync-landing-to-maint.mjs --apply=true --database=${maintDatabase} --scopes=npcs
-\`\`\`
-
-5. Relation dry-run.
+6. Relation dry-run.
 
 \`\`\`powershell
 node scripts/data/relation/sync-maint-to-relation.mjs --apply=false --maint-database=${maintDatabase} --local-database=${localDatabase} --relation-database=${relationDatabase}
 \`\`\`
 
-6. Inspect item_npc_relation_audits and relation report exports under reports/relation for unresolved/exportable candidates.
+7. Inspect item_npc_relation_audits and relation report exports under reports/relation for unresolved/exportable candidates.
 
-7. Relation apply.
+8. Relation health report.
 
 \`\`\`powershell
-node scripts/data/relation/sync-maint-to-relation.mjs --apply=true --create-database=true --maint-database=${maintDatabase} --local-database=${localDatabase} --relation-database=${relationDatabase}
+node scripts/data/relation/relation-health-report.mjs --write-report=false --maint-database=${maintDatabase} --relation-database=${relationDatabase} --local-database=${localDatabase}
 \`\`\`
 
-8. Projection/local core dry-run.
+9. Projection/local core dry-run.
 
 \`\`\`powershell
 node scripts/data/relation/sync-projection-to-local-core-tables.mjs --apply=false --local-database=${localDatabase} --relation-database=${relationDatabase} --domains=items,npcs,projectiles
-\`\`\`
-
-9. Projection/local core apply.
-
-\`\`\`powershell
-node scripts/data/relation/sync-projection-to-local-core-tables.mjs --apply=true --local-database=${localDatabase} --relation-database=${relationDatabase} --domains=items,npcs,projectiles
 \`\`\`
 
 10. Local compatibility relation dry-run.
@@ -514,22 +524,44 @@ node scripts/data/relation/sync-projection-to-local-core-tables.mjs --apply=true
 node scripts/data/relation/sync-relation-to-local-compat-tables.mjs --apply=false --local-database=${localDatabase} --relation-database=${relationDatabase}
 \`\`\`
 
-11. Local compatibility relation apply.
-
-\`\`\`powershell
-node scripts/data/relation/sync-relation-to-local-compat-tables.mjs --apply=true --local-database=${localDatabase} --relation-database=${relationDatabase}
-\`\`\`
-
-12. Relation health report.
-
-\`\`\`powershell
-node scripts/data/relation/relation-health-report.mjs --maint-database=${maintDatabase} --relation-database=${relationDatabase} --local-database=${localDatabase}
-\`\`\`
-
-13. Replacement readiness audit.
+11. Replacement readiness audit.
 
 \`\`\`powershell
 node scripts/data/relation/replacement-readiness-audit.mjs --local-database=${localDatabase} --relation-database=${relationDatabase}
+\`\`\`
+
+12. Local compatibility smoke.
+
+\`\`\`powershell
+node scripts/data/relation/local-core-compat-smoke-check.mjs
+\`\`\`
+
+13. Apply window after every read-only preflight passes and human approval is recorded.
+
+Re-check active writers before each apply command.
+
+13.1 Maint apply.
+
+\`\`\`powershell
+node scripts/data/maint/sync-landing-to-maint.mjs --apply=true --database=${maintDatabase} --scopes=npcs
+\`\`\`
+
+13.2 Relation apply.
+
+\`\`\`powershell
+node scripts/data/relation/sync-maint-to-relation.mjs --apply=true --create-database=true --maint-database=${maintDatabase} --local-database=${localDatabase} --relation-database=${relationDatabase}
+\`\`\`
+
+13.3 Projection/local core apply.
+
+\`\`\`powershell
+node scripts/data/relation/sync-projection-to-local-core-tables.mjs --apply=true --local-database=${localDatabase} --relation-database=${relationDatabase} --domains=items,npcs,projectiles
+\`\`\`
+
+13.4 Local compatibility relation apply.
+
+\`\`\`powershell
+node scripts/data/relation/sync-relation-to-local-compat-tables.mjs --apply=true --local-database=${localDatabase} --relation-database=${relationDatabase}
 \`\`\`
 `;
 }

@@ -154,13 +154,66 @@ test('buildRelationHealthReport classifies blocking, warning, passing, and info 
 
   assert.equal(report.summary.blockingCount, 2);
   assert.equal(report.summary.warningCount, 1);
+  assert.equal(report.summary.status, 'blocked');
   assert.equal(report.summary.passCount, 3);
   assert.equal(report.summary.infoCount, 0);
+  assert.ok(report.checks.every((check) => Object.hasOwn(check, 'id')));
+  assert.ok(report.checks.every((check) => Object.hasOwn(check, 'status')));
+  assert.ok(report.checks.every((check) => Object.hasOwn(check, 'message')));
+  assert.ok(report.checks.every((check) => Object.hasOwn(check, 'reportPath')));
   assert.equal(report.checks.find((check) => check.id === 'maint_item_sources_vs_item_source_facts').status, 'fail');
   assert.equal(report.checks.find((check) => check.id === 'shop_relation_orphans').status, 'pass');
   assert.equal(report.checks.find((check) => check.id === 'projection_npcs_shop_items_nonempty').status, 'fail');
   assert.equal(report.checks.find((check) => check.id === 'unresolved_item_npc_relation_audits').status, 'warn');
   assert.equal(report.checks.find((check) => check.id === 'local_compat_item_acquisition_sources_count').status, 'pass');
+});
+
+test('buildRelationHealthReport keeps warning-only reports non-blocking', () => {
+  const queries = buildRelationHealthQueries();
+  const queryMap = new Map(queries.map((query) => [query.id, query]));
+
+  const report = buildRelationHealthReport({
+    checks: [
+      {
+        definition: queryMap.get('unresolved_item_npc_relation_audits'),
+        rows: [{ count: 2602 }]
+      },
+      {
+        definition: queryMap.get('shop_relation_orphans'),
+        rows: [{ count: 0 }]
+      }
+    ]
+  });
+
+  assert.equal(report.summary.status, 'warning');
+  assert.equal(report.summary.blockingCount, 0);
+  assert.equal(report.summary.warningCount, 1);
+});
+
+test('buildRelationHealthReport exposes reportPath contract for report-backed checks', () => {
+  const queries = buildRelationHealthQueries();
+  const queryMap = new Map(queries.map((query) => [query.id, query]));
+
+  const report = buildRelationHealthReport({
+    checks: [
+      {
+        definition: queryMap.get('relation_exportable_reports_latest'),
+        rows: [
+          { reportKind: 'audit_json', count: 1, latestReportPath: 'reports/relation/audit.json' },
+          { reportKind: 'audit_md', count: 1, latestReportPath: 'reports/relation/audit.md' },
+          { reportKind: 'conflicts_json', count: 1, latestReportPath: 'reports/relation/conflicts.json' },
+          { reportKind: 'unresolved_json', count: 1, latestReportPath: 'reports/relation/unresolved.json' }
+        ]
+      },
+      {
+        definition: queryMap.get('shop_relation_orphans'),
+        rows: [{ count: 0 }]
+      }
+    ]
+  });
+
+  assert.equal(report.checks.find((check) => check.id === 'relation_exportable_reports_latest').reportPath, 'reports/relation/unresolved.json');
+  assert.equal(report.checks.find((check) => check.id === 'shop_relation_orphans').reportPath, null);
 });
 
 test('buildRelationHealthReport blocks on empty standalone local compatibility outputs', () => {
@@ -189,14 +242,25 @@ test('formatValidationChecklist gives the coordinator a serial dry-run/apply seq
   });
 
   assert.match(checklist, /Do not run two DB apply scripts in parallel/);
+  assert.match(checklist, /Check active writers before any dry-run or apply/);
+  assert.match(checklist, /audit-source-dataset-landings\.mjs/);
+  assert.match(checklist, /source-dataset-landing-audit-YYYY-MM-DD\.json/);
   assert.match(checklist, /node scripts\/data\/fetch\/build-npc-item-relations-bundle\.mjs/);
   assert.match(checklist, /node scripts\/data\/maint\/sync-landing-to-maint\.mjs --apply=false/);
   assert.match(checklist, /node scripts\/data\/relation\/sync-maint-to-relation\.mjs --apply=true/);
   assert.match(checklist, /node scripts\/data\/relation\/sync-projection-to-local-core-tables\.mjs --apply=true/);
   assert.match(checklist, /node scripts\/data\/relation\/sync-relation-to-local-compat-tables\.mjs --apply=true/);
   assert.match(checklist, /node scripts\/data\/relation\/relation-health-report\.mjs/);
+  assert.match(checklist, /node scripts\/data\/relation\/replacement-readiness-audit\.mjs/);
+  assert.match(checklist, /node scripts\/data\/relation\/local-core-compat-smoke-check\.mjs/);
   assert.match(checklist, /maint_backfill_candidates remains maint-owned/);
   assert.match(checklist, /item_npc_relation_audits and relation report exports/);
+  assert.match(checklist, /Human approval is required before each apply command/);
+
+  assert.ok(checklist.indexOf('sync-maint-to-relation.mjs --apply=false') < checklist.indexOf('relation-health-report.mjs'));
+  assert.ok(checklist.indexOf('relation-health-report.mjs') < checklist.indexOf('replacement-readiness-audit.mjs'));
+  assert.ok(checklist.indexOf('replacement-readiness-audit.mjs') < checklist.indexOf('local-core-compat-smoke-check.mjs'));
+  assert.ok(checklist.indexOf('local-core-compat-smoke-check.mjs') < checklist.indexOf('sync-landing-to-maint.mjs --apply=true'));
 });
 
 test('resolveMysqlRequirePath anchors mysql2 resolution to data-query-app package.json', () => {

@@ -13,3 +13,8 @@
 - 一次性任务日志。
 - 未确认的草稿。
 - 大批量脚本输出。
+
+## 当前手册
+
+- `docs/runbooks/npc-item-source-maintenance-chain.md`：NPC / item source / shop / loot 主链串行维护手册。
+- `docs/runbooks/image-asset-cache.md`：图片 source/cache/fallback 缓存手册。

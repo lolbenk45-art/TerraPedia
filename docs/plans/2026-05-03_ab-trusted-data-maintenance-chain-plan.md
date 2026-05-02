@@ -174,9 +174,10 @@ node --check scripts/data/import/recipe-import-mode.mjs scripts/data/pipeline/ru
 
 **Rules:**
 
-- `blockingCount > 0` 阻断任何 apply 和新公开页。
-- `unresolved_item_npc_relation_audits > 0` 是 warning，不阻断已 resolved/promoted 数据消费。
-- 新功能必须在管理端展示 warning 数量和样本路径。
+- [x] `blockingCount > 0` 阻断任何 apply 和新公开页。
+- [x] `unresolved_item_npc_relation_audits > 0` 是 warning，不阻断已 resolved/promoted 数据消费。
+- [x] 新功能必须在管理端展示 warning 数量和样本路径。
+- [x] health JSON 输出稳定包含 `checks[].reportPath`，没有报告路径时为 `null`。
 
 **Validation:**
 
@@ -193,14 +194,14 @@ Select-String -Path .\docs\audits\relation-warning-policy.md -Pattern "unresolve
 
 **Required sequence:**
 
-1. active writer 检查。
-2. source/landing 只读审计。
-3. maint dry-run。
-4. relation dry-run。
-5. relation health。
-6. replacement readiness。
-7. local compat smoke。
-8. 人工确认后才进入 apply。
+1. [x] active writer 检查。
+2. [x] source/landing 只读审计。
+3. [x] maint dry-run。
+4. [x] relation dry-run。
+5. [x] relation health。
+6. [x] replacement readiness。
+7. [x] local compat smoke。
+8. [x] 人工确认后才进入 apply。
 
 **Validation:**
 
