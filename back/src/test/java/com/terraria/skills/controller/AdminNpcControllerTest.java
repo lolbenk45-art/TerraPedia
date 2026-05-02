@@ -215,6 +215,9 @@ class AdminNpcControllerTest {
         assertTrue(queryCaptor.getAllValues().stream()
             .filter(sql -> sql.contains("FROM npc_buff_relations"))
             .anyMatch(sql -> sql.contains("b.buff_type AS buffType")));
+        assertTrue(queryCaptor.getAllValues().stream()
+            .filter(sql -> sql.contains("FROM npc_buff_relations"))
+            .anyMatch(sql -> sql.contains("b.image_cached_url") && sql.contains("AS buffImage")));
     }
 
     @Test

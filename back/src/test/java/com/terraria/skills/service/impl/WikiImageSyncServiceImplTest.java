@@ -3,6 +3,7 @@ package com.terraria.skills.service.impl;
 import com.terraria.skills.config.MinioConnectionDetails;
 import com.terraria.skills.dto.AdminWikiImageSyncRequestDTO;
 import com.terraria.skills.dto.AdminWikiImageSyncResultDTO;
+import com.terraria.skills.entity.Buff;
 import com.terraria.skills.entity.Item;
 import com.terraria.skills.entity.ItemImage;
 import com.terraria.skills.mapper.BiomeMapper;
@@ -246,6 +247,37 @@ class WikiImageSyncServiceImplTest {
         verify(itemMapper, never()).updateById(any(Item.class));
     }
 
+    @Test
+    void shouldMirrorBuffWikiImageWithoutOverwritingWikiFallback() throws Exception {
+        String fetchUrl = startImageServer("/terraria.wiki.gg/images/Mana_Regeneration.png");
+        String sourceUrl = fetchUrl.replace("Mana_Regeneration.png", "Mana%20Regeneration.png");
+        Buff buff = new Buff();
+        buff.setId(6L);
+        buff.setInternalName("ManaRegeneration");
+        buff.setEnglishName("Mana Regeneration");
+        buff.setImage(sourceUrl);
+
+        when(buffMapper.selectList(any())).thenReturn(List.of(buff));
+        when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
+        when(minioClient.putObject(any(PutObjectArgs.class))).thenReturn(null);
+
+        AdminWikiImageSyncRequestDTO request = new AdminWikiImageSyncRequestDTO();
+        request.setIncludeItemImages(false);
+        request.setIncludeBuffs(true);
+        request.setIncludeBiomes(false);
+
+        AdminWikiImageSyncResultDTO result = service().syncWikiImages(request);
+
+        assertEquals(1, result.getBuffs().getSyncedCount());
+
+        ArgumentCaptor<Buff> buffCaptor = ArgumentCaptor.forClass(Buff.class);
+        verify(buffMapper).updateById(buffCaptor.capture());
+        Buff updated = buffCaptor.getValue();
+        assertEquals(fetchUrl, updated.getImage());
+        assertEquals(fetchUrl, readString(updated, "getImageOriginalUrl"));
+        assertTrue(readString(updated, "getImageCachedUrl").startsWith("http://localhost:9000/terrapedia-images/items/wiki/buffs/"));
+    }
+
     private WikiImageSyncServiceImpl service() {
         return new WikiImageSyncServiceImpl(
             itemImageMapper,
@@ -284,6 +316,15 @@ class WikiImageSyncServiceImplTest {
         item.setNameZh("锋利之刃");
         item.setImage(sourceUrl);
         return item;
+    }
+
+    private String readString(Object target, String getterName) {
+        try {
+            Object value = target.getClass().getMethod(getterName).invoke(target);
+            return value == null ? "" : String.valueOf(value);
+        } catch (ReflectiveOperationException exception) {
+            return "";
+        }
     }
 
     private String startImageServer(String path) throws IOException {

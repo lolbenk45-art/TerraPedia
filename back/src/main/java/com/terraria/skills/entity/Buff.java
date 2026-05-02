@@ -40,6 +40,18 @@ public class Buff implements Serializable {
     @TableField("image")
     private String image;
 
+    @TableField("image_original_url")
+    private String imageOriginalUrl;
+
+    @TableField("image_cached_url")
+    private String imageCachedUrl;
+
+    @TableField("image_content_type")
+    private String imageContentType;
+
+    @TableField("image_last_verified_at")
+    private LocalDateTime imageLastVerifiedAt;
+
     @TableField("buff_type")
     private String buffType;
 

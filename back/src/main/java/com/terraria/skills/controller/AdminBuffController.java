@@ -177,7 +177,23 @@ public class AdminBuffController {
         if (request.containsKey("tooltipEn")) buff.setTooltipEn(trimToNull(request.get("tooltipEn")));
         if (request.containsKey("tooltipZh")) buff.setTooltipZh(trimToNull(request.get("tooltipZh")));
         if (request.containsKey("image") || request.containsKey("imagePath")) {
-            buff.setImage(normalizeAssetUrl(firstNonBlank(trimToNull(request.get("image")), trimToNull(request.get("imagePath")))));
+            String image = normalizeAssetUrl(firstNonBlank(trimToNull(request.get("image")), trimToNull(request.get("imagePath"))));
+            buff.setImage(image);
+            if (isManagedUrl(image)) {
+                buff.setImageCachedUrl(image);
+            } else {
+                buff.setImageOriginalUrl(image);
+            }
+        }
+        if (request.containsKey("imageOriginalUrl")) {
+            String originalUrl = normalizeAssetUrl(trimToNull(request.get("imageOriginalUrl")));
+            buff.setImageOriginalUrl(originalUrl);
+            if (originalUrl != null) {
+                buff.setImage(originalUrl);
+            }
+        }
+        if (request.containsKey("imageUrl") || request.containsKey("imageCachedUrl")) {
+            buff.setImageCachedUrl(normalizeAssetUrl(firstNonBlank(trimToNull(request.get("imageCachedUrl")), trimToNull(request.get("imageUrl")))));
         }
         if (request.containsKey("buffType")) buff.setBuffType(trimToNull(request.get("buffType")));
         if (request.containsKey("sourceItemCount")) buff.setSourceItemCount(toInteger(request.get("sourceItemCount")));
@@ -203,8 +219,16 @@ public class AdminBuffController {
         payload.put("internalName", buff.getInternalName());
         payload.put("englishName", firstNonBlank(buff.getEnglishName(), trimToNull(supplement.get("englishName"))));
         payload.put("nameZh", firstNonBlank(buff.getNameZh(), trimToNull(supplement.get("nameZh"))));
-        payload.put("image", normalizeAssetUrl(buff.getImage()));
-        payload.put("imagePath", normalizeAssetUrl(buff.getImage()));
+        String fallbackImageUrl = resolveBuffFallbackImageUrl(buff);
+        String cachedImageUrl = resolveBuffCachedImageUrl(buff);
+        String primaryImageUrl = firstNonBlank(cachedImageUrl, fallbackImageUrl);
+        payload.put("image", fallbackImageUrl);
+        payload.put("imagePath", fallbackImageUrl);
+        payload.put("imageOriginalUrl", fallbackImageUrl);
+        payload.put("imageCachedUrl", cachedImageUrl);
+        payload.put("imageUrl", primaryImageUrl);
+        payload.put("imageContentType", buff.getImageContentType());
+        payload.put("imageLastVerifiedAt", buff.getImageLastVerifiedAt());
         payload.put("categoryId", null);
         payload.put("buffType", firstNonBlank(buff.getBuffType(), trimToNull(supplement.get("buffType"))));
         Integer storedSourceItemCount = buff.getSourceItemCount();
@@ -767,7 +791,13 @@ public class AdminBuffController {
     private Map<Long, String> loadItemImagesByIds(Set<Long> itemIds) {
         if (itemIds == null || itemIds.isEmpty()) return Map.of();
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-            "SELECT id, image FROM items WHERE deleted = 0 AND id IN (%s)".formatted(buildPlaceholders(itemIds.size())),
+            """
+            SELECT
+              i.id,
+              %s AS image
+            FROM items i
+            WHERE i.deleted = 0 AND i.id IN (%s)
+            """.formatted(AdminItemImageSql.preferredItemImageExpression("i"), buildPlaceholders(itemIds.size())),
             itemIds.toArray()
         );
         Map<Long, String> lookup = new LinkedHashMap<>();
@@ -811,21 +841,51 @@ public class AdminBuffController {
     private Map<String, Object> resolveItemReference(Long itemId, String internalName, Integer sourceItemId) {
         if (itemId != null) {
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT id, name, name_zh AS nameZh, internal_name AS internalName, image FROM items WHERE id = ? AND deleted = 0 LIMIT 1",
+                """
+                SELECT
+                  i.id,
+                  i.name,
+                  i.name_zh AS nameZh,
+                  i.internal_name AS internalName,
+                  %s AS image
+                FROM items i
+                WHERE i.id = ? AND i.deleted = 0
+                LIMIT 1
+                """.formatted(AdminItemImageSql.preferredItemImageExpression("i")),
                 itemId
             );
             if (!rows.isEmpty()) return rows.get(0);
         }
         if (internalName != null) {
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT id, name, name_zh AS nameZh, internal_name AS internalName, image FROM items WHERE internal_name = ? AND deleted = 0 LIMIT 1",
+                """
+                SELECT
+                  i.id,
+                  i.name,
+                  i.name_zh AS nameZh,
+                  i.internal_name AS internalName,
+                  %s AS image
+                FROM items i
+                WHERE i.internal_name = ? AND i.deleted = 0
+                LIMIT 1
+                """.formatted(AdminItemImageSql.preferredItemImageExpression("i")),
                 internalName
             );
             if (!rows.isEmpty()) return rows.get(0);
         }
         if (sourceItemId != null) {
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT id, name, name_zh AS nameZh, internal_name AS internalName, image FROM items WHERE id = ? AND deleted = 0 LIMIT 1",
+                """
+                SELECT
+                  i.id,
+                  i.name,
+                  i.name_zh AS nameZh,
+                  i.internal_name AS internalName,
+                  %s AS image
+                FROM items i
+                WHERE i.id = ? AND i.deleted = 0
+                LIMIT 1
+                """.formatted(AdminItemImageSql.preferredItemImageExpression("i")),
                 sourceItemId
             );
             if (!rows.isEmpty()) return rows.get(0);
@@ -852,14 +912,14 @@ public class AdminBuffController {
                   i.name AS nameEn,
                   i.name_zh AS nameZh,
                   COALESCE(i.internal_name, bsi.source_item_internal_name) AS internalName,
-                  i.image AS image,
+                  %s AS image,
                   bsi.buff_time AS buffTime,
                   bsi.sort_order AS sortOrder
                 FROM buff_source_items bsi
                 LEFT JOIN items i ON i.id = bsi.item_id
                 WHERE bsi.buff_id = ?
                 ORDER BY bsi.sort_order ASC, bsi.id ASC
-                """,
+                """.formatted(AdminItemImageSql.preferredItemImageExpression("i")),
                 buffId
             ).stream().map(row -> {
                 Map<String, Object> payload = new LinkedHashMap<>();
@@ -886,17 +946,17 @@ public class AdminBuffController {
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(
                 """
                 SELECT
-                  id,
-                  id AS sourceItemId,
-                  name,
-                  name_zh AS nameZh,
-                  internal_name AS internalName,
-                  image
-                FROM items
-                WHERE deleted = 0 AND name = ?
-                ORDER BY id ASC
+                  i.id,
+                  i.id AS sourceItemId,
+                  i.name,
+                  i.name_zh AS nameZh,
+                  i.internal_name AS internalName,
+                  %s AS image
+                FROM items i
+                WHERE i.deleted = 0 AND i.name = ?
+                ORDER BY i.id ASC
                 LIMIT 1
-                """,
+                """.formatted(AdminItemImageSql.preferredItemImageExpression("i")),
                 sourcePage
             );
             return rows.stream().map(row -> {
@@ -1006,6 +1066,27 @@ public class AdminBuffController {
         if (normalized.startsWith("http://") || normalized.startsWith("https://")) return normalizeWikiImagePath(normalized);
         if (normalized.startsWith("localhost:") || normalized.startsWith("127.0.0.1:")) return "http://" + normalized;
         return normalized;
+    }
+
+    private String resolveBuffFallbackImageUrl(Buff buff) {
+        if (buff == null) return null;
+        return firstNonBlank(
+            normalizeAssetUrl(buff.getImageOriginalUrl()),
+            isManagedUrl(buff.getImage()) ? null : normalizeAssetUrl(buff.getImage())
+        );
+    }
+
+    private String resolveBuffCachedImageUrl(Buff buff) {
+        if (buff == null) return null;
+        return firstNonBlank(
+            normalizeAssetUrl(buff.getImageCachedUrl()),
+            isManagedUrl(buff.getImage()) ? normalizeAssetUrl(buff.getImage()) : null
+        );
+    }
+
+    private boolean isManagedUrl(String value) {
+        String normalized = trimToNull(value);
+        return normalized != null && normalized.contains("/terrapedia-images/");
     }
 
     private String normalizeWikiImagePath(String value) {

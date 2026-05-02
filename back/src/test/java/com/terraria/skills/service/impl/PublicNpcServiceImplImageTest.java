@@ -2,6 +2,7 @@ package com.terraria.skills.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.dto.NpcBuffRelationDTO;
 import com.terraria.skills.dto.NpcListItemDTO;
 import com.terraria.skills.dto.NpcLootEntryDTO;
 import com.terraria.skills.dto.PublicNpcQuery;
@@ -10,6 +11,7 @@ import com.terraria.skills.mapper.CategoryMapper;
 import com.terraria.skills.mapper.NpcMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -19,10 +21,12 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -89,6 +93,28 @@ class PublicNpcServiceImplImageTest {
         assertEquals(lootItemsJson, ReflectionTestUtils.getField(result, "lootItemsJson"));
         assertEquals(shopItemsJson, ReflectionTestUtils.getField(result, "shopItemsJson"));
         assertEquals(sourceItemsJson, ReflectionTestUtils.getField(result, "sourceItemsJson"));
+    }
+
+    @Test
+    void shouldPreferCachedBuffImageForPublicNpcBuffRelations() {
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(7L))).thenReturn(List.of(Map.of(
+            "id", 31L,
+            "buffId", 401L,
+            "buffSourceId", 401,
+            "buffInternalName", "Sharpened",
+            "buffImage", "http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png"
+        )));
+
+        PublicNpcServiceImpl service = new PublicNpcServiceImpl(npcMapper, categoryMapper, jdbcTemplate, new ObjectMapper());
+        List<NpcBuffRelationDTO> result = service.getNpcBuffRelations(7L);
+
+        assertEquals(1, result.size());
+        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png", result.get(0).getImageUrl());
+
+        ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate).queryForList(queryCaptor.capture(), eq(7L));
+        assertTrue(queryCaptor.getValue().contains("b.image_cached_url"));
+        assertTrue(queryCaptor.getValue().contains("AS buffImage"));
     }
 
     @Test

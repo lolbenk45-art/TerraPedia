@@ -8,6 +8,7 @@ public class FileUploadResultDTO {
     private String bucket;
     private String objectKey;
     private String url;
+    private String sourceUrl;
     private String originalFilename;
     private String contentType;
     private long size;

@@ -24,6 +24,7 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
@@ -31,6 +32,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -72,6 +74,34 @@ class AdminNpcRelationControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
             .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
             .build();
+    }
+
+    @Test
+    void shouldPreferCachedBuffImageForNpcBuffRelations() throws Exception {
+        Npc npc = new Npc();
+        npc.setId(7L);
+        npc.setGameId(22L);
+        npc.setInternalName("Guide");
+        npc.setName("Guide");
+        npc.setStatus(1);
+
+        when(npcMapper.selectById(7L)).thenReturn(npc);
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(7L))).thenReturn(List.of(Map.of(
+            "id", 31L,
+            "buffId", 401L,
+            "buffSourceId", 401,
+            "buffInternalName", "Sharpened",
+            "buffImage", "http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png"
+        )));
+
+        mockMvc.perform(get("/admin/npcs/7/buff-relations"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].buffImage").value("http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png"));
+
+        ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate).queryForList(queryCaptor.capture(), eq(7L));
+        assertTrue(queryCaptor.getValue().contains("b.image_cached_url"));
+        assertTrue(queryCaptor.getValue().contains("AS buffImage"));
     }
 
     @Test

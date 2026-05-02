@@ -1,6 +1,8 @@
 package com.terraria.skills.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.config.MinioConnectionDetails;
 import com.terraria.skills.dto.AdminWikiImageSyncRequestDTO;
 import com.terraria.skills.dto.AdminWikiImageSyncResultDTO;
@@ -29,6 +31,8 @@ import org.springframework.util.StringUtils;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -43,6 +47,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
@@ -60,6 +65,8 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
     private final MinioClient minioClient;
     private final MinioConnectionDetails connectionDetails;
     private final AtomicBoolean bucketReady = new AtomicBoolean(false);
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final Map<String, String> wikiFileUrlCache = new ConcurrentHashMap<>();
     private final HttpClient httpClient = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(15))
         .followRedirects(HttpClient.Redirect.NORMAL)
@@ -86,7 +93,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
             result.accumulate(result.getItemImages());
         }
         if (includeBuffs) {
-            runScopeSafely(result.getBuffs(), () -> syncBuffImages(result.getBuffs(), limit, uploadCache));
+            runScopeSafely(result.getBuffs(), () -> syncBuffImages(result.getBuffs(), limit, force, uploadCache));
             result.accumulate(result.getBuffs());
         }
         if (includeBiomes) {
@@ -149,9 +156,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                     "wiki/item-images/" + hashPrefix(sourceUrl),
                     buildStableId(sourceUrl, firstNonBlank(image.getSourceFileTitle(), image.getSourcePage(), image.getRole(), "item-image"))
                 );
-                if (!isWikiUrl(image.getOriginalUrl())) {
-                    image.setOriginalUrl(sourceUrl);
-                }
+                image.setOriginalUrl(upload.getSourceUrl());
                 image.setCachedUrl(upload.getUrl());
                 image.setContentType(upload.getContentType());
                 image.setLastVerifiedAt(LocalDateTime.now());
@@ -216,9 +221,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                     itemImageMapper.insert(existingImage);
                     existingImages.add(existingImage);
                 } else {
-                    if (!isWikiUrl(existingImage.getOriginalUrl())) {
-                        existingImage.setOriginalUrl(sourceUrl);
-                    }
+                    existingImage.setOriginalUrl(upload.getSourceUrl());
                     existingImage.setCachedUrl(upload.getUrl());
                     existingImage.setContentType(upload.getContentType());
                     existingImage.setLastVerifiedAt(LocalDateTime.now());
@@ -290,15 +293,25 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
     private void syncBuffImages(
         AdminWikiImageSyncScopeResultDTO scope,
         Integer limit,
+        boolean force,
         Map<String, FileUploadResultDTO> uploadCache
     ) {
         List<Buff> buffs = buffMapper.selectList(new LambdaQueryWrapper<Buff>()
-            .isNotNull(Buff::getImage)
+            .and(wrapper -> wrapper
+                .isNotNull(Buff::getImage)
+                .or()
+                .isNotNull(Buff::getImageOriginalUrl)
+                .or()
+                .isNotNull(Buff::getImageCachedUrl))
             .orderByAsc(Buff::getId));
 
         for (Buff buff : buffs) {
-            String currentUrl = trimToNull(buff.getImage());
-            if (!shouldConsiderWikiSource(currentUrl, currentUrl)) {
+            String sourceUrl = resolveSourceUrl(buff.getImageOriginalUrl(), buff.getImage());
+            String cachedUrl = firstNonBlank(
+                trimToNull(buff.getImageCachedUrl()),
+                isManagedUrl(buff.getImage()) ? trimToNull(buff.getImage()) : null
+            );
+            if (!shouldConsiderWikiSource(sourceUrl, cachedUrl)) {
                 continue;
             }
             if (limitReached(scope, limit)) {
@@ -306,12 +319,18 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
             }
             scope.setCandidateCount(scope.getCandidateCount() + 1);
 
-            if (isManagedUrl(currentUrl)) {
+            if (!force && isManagedUrl(cachedUrl)) {
+                if (isWikiUrl(sourceUrl) && shouldBackfillBuffImageFallback(buff, sourceUrl)) {
+                    buff.setImage(sourceUrl);
+                    buff.setImageOriginalUrl(sourceUrl);
+                    buff.setImageLastVerifiedAt(LocalDateTime.now());
+                    buffMapper.updateById(buff);
+                }
                 scope.setSkippedCount(scope.getSkippedCount() + 1);
                 continue;
             }
 
-            if (!isWikiUrl(currentUrl)) {
+            if (!isWikiUrl(sourceUrl)) {
                 scope.setFailedCount(scope.getFailedCount() + 1);
                 scope.addSampleError("buffs#" + buff.getId() + " missing wiki source url");
                 continue;
@@ -320,20 +339,29 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
             try {
                 FileUploadResultDTO upload = uploadFromWikiSource(
                     uploadCache,
-                    currentUrl,
-                    "wiki/buffs/" + hashPrefix(currentUrl),
-                    buildStableId(currentUrl, firstNonBlank(buff.getInternalName(), buff.getEnglishName(), buff.getNameZh(), "buff"))
+                    sourceUrl,
+                    "wiki/buffs/" + hashPrefix(sourceUrl),
+                    buildStableId(sourceUrl, firstNonBlank(buff.getInternalName(), buff.getEnglishName(), buff.getNameZh(), "buff"))
                 );
-                buff.setImage(upload.getUrl());
+                buff.setImage(upload.getSourceUrl());
+                buff.setImageOriginalUrl(upload.getSourceUrl());
+                buff.setImageCachedUrl(upload.getUrl());
+                buff.setImageContentType(upload.getContentType());
+                buff.setImageLastVerifiedAt(LocalDateTime.now());
                 buffMapper.updateById(buff);
                 scope.setSyncedCount(scope.getSyncedCount() + 1);
                 scope.addSampleUrl(upload.getUrl());
             } catch (Exception exception) {
-                log.warn("Failed to sync buff image id={} url={}", buff.getId(), currentUrl, exception);
+                log.warn("Failed to sync buff image id={} url={}", buff.getId(), sourceUrl, exception);
                 scope.setFailedCount(scope.getFailedCount() + 1);
                 scope.addSampleError("buffs#" + buff.getId() + ": " + trimErrorMessage(exception));
             }
         }
+    }
+
+    private boolean shouldBackfillBuffImageFallback(Buff buff, String sourceUrl) {
+        return !Objects.equals(normalizeFetchUrl(buff.getImage()), sourceUrl)
+            || !Objects.equals(normalizeFetchUrl(buff.getImageOriginalUrl()), sourceUrl);
     }
 
     private void syncBiomeIcons(
@@ -396,12 +424,14 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
             return cached;
         }
 
-        HttpResponse<byte[]> response = fetchImage(sourceUrl);
+        FetchedWikiImage fetchedImage = fetchImageWithWikiFileFallback(sourceUrl);
+        HttpResponse<byte[]> response = fetchedImage.response();
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             throw new IllegalStateException("Unexpected HTTP status " + response.statusCode());
         }
 
-        String originalFilename = extractFilename(sourceUrl);
+        String effectiveSourceUrl = fetchedImage.sourceUrl();
+        String originalFilename = extractFilename(effectiveSourceUrl);
         byte[] body = response.body();
         String contentType = normalizeContentType(response.headers().firstValue("content-type").orElse(null));
         if (!StringUtils.hasText(contentType)) {
@@ -412,8 +442,95 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
 
         String objectKey = buildScopedObjectKey(pathPrefix, stableId, originalFilename, contentType);
         FileUploadResultDTO upload = uploadBytes(objectKey, originalFilename, contentType, body);
+        upload.setSourceUrl(effectiveSourceUrl);
         uploadCache.put(sourceUrl, upload);
+        uploadCache.put(effectiveSourceUrl, upload);
         return upload;
+    }
+
+    private FetchedWikiImage fetchImageWithWikiFileFallback(String sourceUrl) throws IOException, InterruptedException {
+        HttpResponse<byte[]> response = fetchImage(sourceUrl);
+        if (response.statusCode() >= 200 && response.statusCode() < 300) {
+            return new FetchedWikiImage(sourceUrl, response);
+        }
+
+        String resolvedUrl = resolveWikiFileImageUrl(sourceUrl);
+        if (!StringUtils.hasText(resolvedUrl) || Objects.equals(normalizeFetchUrl(resolvedUrl), normalizeFetchUrl(sourceUrl))) {
+            return new FetchedWikiImage(sourceUrl, response);
+        }
+
+        String normalizedResolvedUrl = normalizeFetchUrl(resolvedUrl);
+        HttpResponse<byte[]> resolvedResponse = fetchImage(normalizedResolvedUrl);
+        return new FetchedWikiImage(normalizedResolvedUrl, resolvedResponse);
+    }
+
+    private String resolveWikiFileImageUrl(String sourceUrl) {
+        String normalized = normalizeFetchUrl(sourceUrl);
+        if (!isWikiUrl(normalized)) {
+            return null;
+        }
+        return wikiFileUrlCache.computeIfAbsent(normalized, this::loadWikiFileImageUrl);
+    }
+
+    private String loadWikiFileImageUrl(String sourceUrl) {
+        String fileTitle = extractWikiFileTitle(sourceUrl);
+        if (!StringUtils.hasText(fileTitle)) {
+            return null;
+        }
+        try {
+            String encodedTitle = URLEncoder.encode("File:" + fileTitle, StandardCharsets.UTF_8).replace("+", "%20");
+            URI uri = URI.create("https://terraria.wiki.gg/api.php?action=query&redirects=1&prop=imageinfo&iiprop=url%7Cmime&format=json&titles=" + encodedTitle);
+            HttpRequest request = HttpRequest.newBuilder(uri)
+                .GET()
+                .timeout(Duration.ofSeconds(20))
+                .header("User-Agent", "TerraPediaBot/1.0 (+https://local.terrapedia)")
+                .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                return null;
+            }
+            JsonNode pages = objectMapper.readTree(response.body()).path("query").path("pages");
+            if (!pages.isObject()) {
+                return null;
+            }
+            for (JsonNode page : pages) {
+                JsonNode imageInfo = page.path("imageinfo");
+                if (imageInfo.isArray() && imageInfo.size() > 0) {
+                    String url = trimToNull(imageInfo.get(0).path("url").asText(null));
+                    if (isWikiUrl(url)) {
+                        return normalizeFetchUrl(url);
+                    }
+                }
+            }
+            return null;
+        } catch (Exception exception) {
+            log.debug("Failed to resolve wiki file image url for {}", sourceUrl, exception);
+            return null;
+        }
+    }
+
+    private String extractWikiFileTitle(String sourceUrl) {
+        String normalized = trimToNull(sourceUrl);
+        if (normalized == null) {
+            return null;
+        }
+        int markerIndex = normalized.toLowerCase(Locale.ROOT).indexOf("/images/");
+        if (markerIndex < 0) {
+            return null;
+        }
+        String pathPart = normalized.substring(markerIndex + "/images/".length());
+        int queryIndex = pathPart.indexOf('?');
+        if (queryIndex >= 0) {
+            pathPart = pathPart.substring(0, queryIndex);
+        }
+        int slashIndex = pathPart.lastIndexOf('/');
+        if (slashIndex >= 0) {
+            pathPart = pathPart.substring(slashIndex + 1);
+        }
+        if (!StringUtils.hasText(pathPart)) {
+            return null;
+        }
+        return URLDecoder.decode(pathPart, StandardCharsets.UTF_8).replace('_', ' ');
     }
 
     private HttpResponse<byte[]> fetchImage(String sourceUrl) throws IOException, InterruptedException {
@@ -423,6 +540,9 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
             .header("User-Agent", "TerraPediaBot/1.0 (+https://local.terrapedia)")
             .build();
         return httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+    }
+
+    private record FetchedWikiImage(String sourceUrl, HttpResponse<byte[]> response) {
     }
 
     private FileUploadResultDTO uploadBytes(String objectKey, String originalFilename, String contentType, byte[] body) {
@@ -499,7 +619,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
             return null;
         }
         if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
-            return normalized;
+            return normalizeWikiImagePath(normalized);
         }
         if (normalized.startsWith("//")) {
             return "http:" + normalized;
@@ -508,6 +628,17 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
             return "http://" + normalized;
         }
         return null;
+    }
+
+    private String normalizeWikiImagePath(String value) {
+        if (value == null) {
+            return null;
+        }
+        String lowerCase = value.toLowerCase(Locale.ROOT);
+        if (!lowerCase.contains("terraria.wiki.gg/images/")) {
+            return value;
+        }
+        return value.replaceAll("(?i)%20", "_").replace(" ", "_");
     }
 
     private Integer sanitizeLimit(Integer limit) {

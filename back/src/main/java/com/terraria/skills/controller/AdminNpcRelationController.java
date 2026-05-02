@@ -399,7 +399,7 @@ public class AdminNpcRelationController {
               b.internal_name AS buffInternalName,
               b.english_name AS buffNameEn,
               b.name_zh AS buffNameZh,
-              b.image AS buffImage
+              COALESCE(NULLIF(TRIM(b.image_cached_url), ''), b.image) AS buffImage
             FROM npc_buff_relations nbr
             LEFT JOIN buffs b ON b.id = nbr.buff_id AND b.deleted = 0
             WHERE nbr.npc_id = ? AND nbr.deleted = 0

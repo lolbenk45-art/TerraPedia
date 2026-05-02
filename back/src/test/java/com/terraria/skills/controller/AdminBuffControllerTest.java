@@ -52,6 +52,29 @@ class AdminBuffControllerTest {
     }
 
     @Test
+    void shouldReturnCachedBuffImageUrlWithWikiImageFallback() throws Exception {
+        Buff buff = new Buff();
+        buff.setId(159L);
+        buff.setSourceId(159);
+        buff.setInternalName("Sharpened");
+        buff.setEnglishName("Sharpened");
+        buff.setNameZh("锋利");
+        buff.setImage("https://terraria.wiki.gg/images/Sharpened.png");
+        invokeSetter(buff, "setImageOriginalUrl", "https://terraria.wiki.gg/images/Sharpened.png");
+        invokeSetter(buff, "setImageCachedUrl", "http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png");
+
+        when(buffMapper.selectById(159L)).thenReturn(buff);
+
+        mockMvc.perform(get("/admin/buffs/159"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.image").value("https://terraria.wiki.gg/images/Sharpened.png"))
+            .andExpect(jsonPath("$.data.imagePath").value("https://terraria.wiki.gg/images/Sharpened.png"))
+            .andExpect(jsonPath("$.data.imageOriginalUrl").value("https://terraria.wiki.gg/images/Sharpened.png"))
+            .andExpect(jsonPath("$.data.imageUrl").value("http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png"))
+            .andExpect(jsonPath("$.data.imageCachedUrl").value("http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png"));
+    }
+
+    @Test
     void shouldReturnImmuneNpcSamplesWithNpcSpriteImage() throws Exception {
         Buff buff = new Buff();
         buff.setId(30L);
@@ -382,5 +405,13 @@ class AdminBuffControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data[0].internalName").value("Sharpened"))
             .andExpect(jsonPath("$.data[0].sourceItemCount").value(1));
+    }
+
+    private void invokeSetter(Object target, String setterName, String value) {
+        try {
+            target.getClass().getMethod(setterName, String.class).invoke(target, value);
+        } catch (ReflectiveOperationException ignored) {
+            // The red phase intentionally runs before the production field exists.
+        }
     }
 }
