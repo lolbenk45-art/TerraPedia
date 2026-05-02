@@ -51,6 +51,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @ConditionalOnProperty(prefix = "terraria.storage.minio", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class WikiImageSyncServiceImpl implements WikiImageSyncService {
 
+    private static final List<String> WIKI_IMAGE_PROVIDERS = List.of("wiki_gg", "terraria.wiki.gg");
+
     private final ItemImageMapper itemImageMapper;
     private final ItemMapper itemMapper;
     private final BuffMapper buffMapper;
@@ -116,7 +118,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
     ) {
         List<ItemImage> images = itemImageMapper.selectList(new LambdaQueryWrapper<ItemImage>()
             .eq(ItemImage::getStatus, 1)
-            .eq(ItemImage::getProvider, "wiki_gg")
+            .in(ItemImage::getProvider, WIKI_IMAGE_PROVIDERS)
             .orderByAsc(ItemImage::getId));
 
         for (ItemImage image : images) {
@@ -278,7 +280,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
             return false;
         }
         String provider = trimToNull(image.getProvider());
-        if (provider != null && !"wiki_gg".equals(provider)) {
+        if (provider != null && !WIKI_IMAGE_PROVIDERS.contains(provider)) {
             return false;
         }
         String role = trimToNull(image.getRole());

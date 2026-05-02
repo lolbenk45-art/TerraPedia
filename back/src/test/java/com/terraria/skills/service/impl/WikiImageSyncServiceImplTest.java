@@ -147,6 +147,35 @@ class WikiImageSyncServiceImplTest {
     }
 
     @Test
+    void shouldSyncLegacyWikiProviderAliasRows() throws Exception {
+        String sourceUrl = startImageServer("/terraria.wiki.gg/images/Sharp_Blade.png");
+
+        ItemImage existing = new ItemImage();
+        existing.setId(11L);
+        existing.setItemId(7L);
+        existing.setOriginalUrl(sourceUrl);
+        existing.setCachedUrl(sourceUrl);
+        existing.setProvider("terraria.wiki.gg");
+        existing.setStatus(1);
+
+        when(itemImageMapper.selectList(any())).thenReturn(List.of(existing));
+        when(itemMapper.selectList(any())).thenReturn(List.of());
+        when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
+        when(minioClient.putObject(any(PutObjectArgs.class))).thenReturn(null);
+
+        AdminWikiImageSyncResultDTO result = service().syncWikiImages(itemImagesOnlyRequest());
+
+        assertEquals(1, result.getItemImages().getSyncedCount());
+
+        ArgumentCaptor<ItemImage> imageCaptor = ArgumentCaptor.forClass(ItemImage.class);
+        verify(itemImageMapper).updateById(imageCaptor.capture());
+        ItemImage updated = imageCaptor.getValue();
+        assertEquals(sourceUrl, updated.getOriginalUrl());
+        assertTrue(updated.getCachedUrl().startsWith("http://localhost:9000/terrapedia-images/items/wiki/item-images/"));
+        assertEquals("terraria.wiki.gg", updated.getProvider());
+    }
+
+    @Test
     void shouldBackfillWikiFallbackForManagedLegacyItemImageWithoutReuploading() throws Exception {
         String sourceUrl = startImageServer("/terraria.wiki.gg/images/Sharp_Blade.png");
         Item item = legacyItem(sourceUrl);
