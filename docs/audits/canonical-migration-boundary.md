@@ -39,7 +39,7 @@
 
 | 数据域 | 当前输入 | 风险 | 必须补的准入 |
 | --- | --- | --- | --- |
-| recipe item groups | `data/generated/recipe-material-reference.json`、`recipe-group-overrides.json` | duplicate group keys、blocked group | source group audit 必须无 blocked，duplicate 有解释 |
+| Any Item Group consumers | `data/generated/recipe-material-reference.json`、`recipe-group-overrides.json`、`item-group-overrides.json` | recipe/npc_shop/shimmer consumer 共用审计，存在 duplicate group keys、blocked group | source group audit 必须无 blocked；blocked 不按 consumer 类型降级 |
 | npc 图片 | `npcs.image`、relation payload source、raw JSON fallback | 缺统一 cache 字段和 sync scope | 先只读审计，不扩同步 |
 | projectile 图片 | `projectiles.image` | source/cache/fallback 未统一 | 管理端验收前不得公开扩张 |
 | biome 图片 | `biomes.image` 或 icon resource | 当前 image readiness 不足 | 先补图片准入审计 |
@@ -51,6 +51,7 @@
 - 禁止公开页面直接读取未登记的 `data/raw/`、`data/normalized/`、`data/generated/`。
 - 禁止把 managed/cache URL 写回后覆盖 source/original URL。
 - 禁止 blocked group 进入 recipe、shop、shimmer 或公开展示。
+- Any Item Group audit 同时覆盖 recipe、npc_shop、shimmer consumer；blocked consumer reference 必须保持 X 档，不能因只属于 shimmer 而降级为 warning。
 - 禁止 relation unresolved/ambiguous/polluted/rejected 数据绕过 warning policy 进入新公开功能。
 - 禁止同一 DB 表、同一图片同步 scope、同一 crawler shard 被多个 agent 并行 apply。
 

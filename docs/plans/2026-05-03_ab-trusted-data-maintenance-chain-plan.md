@@ -47,7 +47,7 @@ Wiki / crawler evidence
   -> 前台 NPC/item 消费
 ```
 
-不先选择 recipe，因为 Any Item Group 仍有 duplicate/blocked。
+不先选择 recipe / shimmer item group consumers，因为 Any Item Group audit 仍有 duplicate/blocked；blocked consumer reference 不按 consumer 类型降级。
 不先选择 Boss/Biome/Projectile 公开页，因为图片和 source/cache/fallback 准入不足。
 不先选择 NPC 图片同步，因为 NPC 目前只有 fallback 消费，缺统一 cache 契约。
 
@@ -124,7 +124,7 @@ Select-String -Path .\docs\audits\data-quality-index.md -Pattern "canonical-migr
 **Steps:**
 
 - [ ] 导出 `buildDataMaintenanceChainAudit` 纯函数。
-- [ ] 默认读取现有 relation health、Any Item Group、image readiness、entity completeness 报告。
+- [ ] 默认读取现有 relation health、Any Item Group consumer、image readiness、entity completeness 报告。
 - [ ] 输出 `status`、`chains`、`blockingReasons`、`warningReasons`、`recommendedCommands`。
 - [ ] 保证脚本不连接 DB、不调用子进程、不执行 apply。
 
@@ -339,7 +339,7 @@ mvn "-Dtest=DataSourceAcceptanceServiceImplTest,AdminDataSourceAcceptanceControl
 
 - Overall acceptance verdict。
 - Relation health summary。
-- Any Item Group duplicate/blocked。
+- Any Item Group consumer duplicate/blocked。
 - Image readiness item/buff/npc。
 - Canonical boundary status。
 - Report preview links, reused from crawler monitor patterns.

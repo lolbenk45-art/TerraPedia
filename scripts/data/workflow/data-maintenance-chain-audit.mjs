@@ -49,11 +49,11 @@ export function buildDataMaintenanceChainAudit({
     warningReasons.push(formatCountReason('relation health has', relationWarningCount, 'warning'));
   }
   if (blockedGroupReferences > 0) {
-    blockingReasons.push(`recipe item groups have ${blockedGroupReferences} blocked group references`);
+    blockingReasons.push(formatCountReason('Any Item Group audit has', blockedGroupReferences, 'blocked consumer reference'));
     recommendedCommands.add('node scripts/data/audit/audit-any-item-group-sources.mjs');
   }
   if (duplicateGroupKeys > 0) {
-    warningReasons.push(formatCountReason('item group audit has', duplicateGroupKeys, 'duplicate group key'));
+    warningReasons.push(formatCountReason('Any Item Group audit has', duplicateGroupKeys, 'duplicate group key'));
   }
   if (!itemImageReady) {
     blockingReasons.push('item image assets are not marked ready in image readiness text');
@@ -67,6 +67,14 @@ export function buildDataMaintenanceChainAudit({
     warningReasons.push('NPC/Biome/Projectile/Article image assets still need a unified source/cache/fallback contract');
   }
 
+  const anyItemGroupsChain = {
+    status: blockedGroupReferences > 0 ? 'blocked' : duplicateGroupKeys > 0 ? 'warning' : 'pass',
+    counts: {
+      blockedGroupReferences,
+      duplicateGroupKeys,
+    },
+    sourceGeneratedAt: itemGroupAudit?.generatedAt ?? null,
+  };
   const chains = {
     npc_item_source_relation: {
       status: relationBlockingCount > 0 ? 'blocked' : relationWarningCount > 0 ? 'warning' : 'pass',
@@ -97,14 +105,8 @@ export function buildDataMaintenanceChainAudit({
         ? 'image readiness text states NPC/Biome/Projectile/Article still need source/cache/fallback contract'
         : null,
     },
-    recipe_item_groups: {
-      status: blockedGroupReferences > 0 ? 'blocked' : duplicateGroupKeys > 0 ? 'warning' : 'pass',
-      counts: {
-        blockedGroupReferences,
-        duplicateGroupKeys,
-      },
-      sourceGeneratedAt: itemGroupAudit?.generatedAt ?? null,
-    },
+    any_item_groups: anyItemGroupsChain,
+    recipe_item_groups: anyItemGroupsChain,
   };
 
   return {

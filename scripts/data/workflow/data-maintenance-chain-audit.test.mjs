@@ -50,7 +50,8 @@ test('buildDataMaintenanceChainAudit returns passing gates when all chains are r
   assert.equal(audit.chains.buff_image_assets.status, 'pass');
   assert.equal(audit.chains.buff_image_assets.ready, true);
   assert.equal(audit.chains.npc_image_assets.status, 'pass');
-  assert.equal(audit.chains.recipe_item_groups.status, 'pass');
+  assert.equal(audit.chains.any_item_groups.status, 'pass');
+  assert.equal(audit.chains.recipe_item_groups, audit.chains.any_item_groups);
   assert.equal(audit.entityCompleteness.items.standardizedCount, 6131);
   assert.equal(audit.entityCompleteness.items.imageStats.minio_image, 6131);
 });
@@ -87,11 +88,12 @@ test('buildDataMaintenanceChainAudit reports warnings without blocking the overa
   assert.equal(audit.blockingReasons.length, 0);
   assert.deepEqual(audit.warningReasons, [
     'relation health has 1 warning',
-    'item group audit has 2 duplicate group keys',
+    'Any Item Group audit has 2 duplicate group keys',
     'NPC/Biome/Projectile/Article image assets still need a unified source/cache/fallback contract',
   ]);
   assert.equal(audit.chains.npc_item_source_relation.status, 'warning');
-  assert.equal(audit.chains.recipe_item_groups.status, 'warning');
+  assert.equal(audit.chains.any_item_groups.status, 'warning');
+  assert.equal(audit.chains.recipe_item_groups, audit.chains.any_item_groups);
   assert.equal(audit.chains.item_image_assets.status, 'pass');
   assert.equal(audit.chains.buff_image_assets.status, 'pass');
   assert.equal(audit.chains.npc_image_assets.status, 'warning');
@@ -99,7 +101,7 @@ test('buildDataMaintenanceChainAudit reports warnings without blocking the overa
   assert.equal(audit.entityCompleteness.projectiles.imageStats.minio_image, 1110);
 });
 
-test('buildDataMaintenanceChainAudit blocks on relation or recipe chain blockers', () => {
+test('buildDataMaintenanceChainAudit blocks on relation or any item group consumer blockers', () => {
   const audit = buildDataMaintenanceChainAudit({
     generatedAt: '2026-05-03T00:10:00.000Z',
     relationHealth: {
@@ -126,16 +128,17 @@ test('buildDataMaintenanceChainAudit blocks on relation or recipe chain blockers
   assert.equal(audit.status, 'blocked');
   assert.deepEqual(audit.blockingReasons, [
     'relation health has 3 blocking checks',
-    'recipe item groups have 1 blocked group references',
+    'Any Item Group audit has 1 blocked consumer reference',
     'item image assets are not marked ready in image readiness text',
     'buff image assets are not marked ready in image readiness text',
   ]);
   assert.deepEqual(audit.warningReasons, [
     'relation health has 1 warning',
-    'item group audit has 4 duplicate group keys',
+    'Any Item Group audit has 4 duplicate group keys',
   ]);
   assert.equal(audit.chains.npc_item_source_relation.status, 'blocked');
-  assert.equal(audit.chains.recipe_item_groups.status, 'blocked');
+  assert.equal(audit.chains.any_item_groups.status, 'blocked');
+  assert.equal(audit.chains.recipe_item_groups, audit.chains.any_item_groups);
   assert.equal(audit.chains.item_image_assets.status, 'blocked');
   assert.equal(audit.chains.buff_image_assets.status, 'blocked');
   assert.equal(audit.chains.npc_image_assets.status, 'pass');
