@@ -653,6 +653,7 @@ public class AdminNpcController {
               b.internal_name AS buffInternalName,
               b.english_name AS buffNameEn,
               b.name_zh AS buffNameZh,
+              b.buff_type AS buffType,
               b.image AS buffImage
             FROM npc_buff_relations nbr
             LEFT JOIN buffs b ON b.id = nbr.buff_id AND b.deleted = 0

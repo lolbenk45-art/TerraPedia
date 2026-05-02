@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -167,6 +168,53 @@ class AdminNpcControllerTest {
         mockMvc.perform(get("/admin/npcs/1"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.imageUrl").value("https://terraria.wiki.gg/images/Stingy%20Hornet.gif"));
+    }
+
+    @Test
+    void shouldReturnBuffTypeInNpcBuffRelations() throws Exception {
+        Npc npc = new Npc();
+        npc.setId(480L);
+        npc.setGameId(480L);
+        npc.setInternalName("Medusa");
+        npc.setName("Medusa");
+        npc.setStatus(1);
+
+        when(npcMapper.selectById(480L)).thenReturn(npc);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_loot_entries"), eq(Integer.class), eq(480L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_buff_relations"), eq(Integer.class), eq(480L))).thenReturn(1);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_shop_entries"), eq(Integer.class), eq(480L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("source_ref_id = ?"), eq(Integer.class), eq(480L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(
+            contains("LOWER(TRIM(source_ref_name)) = LOWER(TRIM(?))"),
+            eq(Integer.class),
+            eq("Medusa")
+        )).thenReturn(0);
+        when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries nle"), eq(480L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("source_ref_id IS NULL"), eq("Medusa"))).thenReturn(List.of());
+        Map<String, Object> buffRelation = new LinkedHashMap<>();
+        buffRelation.put("id", 201L);
+        buffRelation.put("buffId", 156L);
+        buffRelation.put("buffSourceId", 156);
+        buffRelation.put("relationType", "inflicts");
+        buffRelation.put("notes", "[auto:wiki-crawler-npc-infobox] page=Medusa; duration={{duration|rawseconds=1-4}}");
+        buffRelation.put("buffInternalName", "Stoned");
+        buffRelation.put("buffNameEn", "Stoned");
+        buffRelation.put("buffNameZh", "Stoned");
+        buffRelation.put("buffType", "debuff");
+        buffRelation.put("buffImage", "https://terraria.wiki.gg/images/Stoned.png");
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(480L))).thenReturn(List.of(buffRelation));
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries nse"), eq(480L))).thenReturn(List.of());
+
+        mockMvc.perform(get("/admin/npcs/480"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.buffRelations[0].buffType").value("debuff"))
+            .andExpect(jsonPath("$.data.buffRelations[0].buffNameEn").value("Stoned"));
+
+        ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate, atLeastOnce()).queryForList(queryCaptor.capture(), eq(480L));
+        assertTrue(queryCaptor.getAllValues().stream()
+            .filter(sql -> sql.contains("FROM npc_buff_relations"))
+            .anyMatch(sql -> sql.contains("b.buff_type AS buffType")));
     }
 
     @Test

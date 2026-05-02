@@ -138,4 +138,86 @@ class AdminBuffControllerTest {
             .andExpect(jsonPath("$.data.immuneNpcSamples[0].image").value(nullValue()))
             .andExpect(jsonPath("$.data.immuneNpcSamples[0].imageUrl").value(nullValue()));
     }
+
+    @Test
+    void shouldReturnNpcsThatInflictBuffFromNpcBuffRelations() throws Exception {
+        Buff buff = new Buff();
+        buff.setId(156L);
+        buff.setSourceId(156);
+        buff.setInternalName("Stoned");
+        buff.setEnglishName("Stoned");
+        buff.setBuffType("debuff");
+
+        when(buffMapper.selectById(156L)).thenReturn(buff);
+        when(jdbcTemplate.queryForObject(
+            contains("FROM npc_buff_relations"),
+            eq(Integer.class),
+            eq(156L)
+        )).thenReturn(1);
+        Map<String, Object> medusaRelation = new java.util.LinkedHashMap<>();
+        medusaRelation.put("relationId", 204L);
+        medusaRelation.put("npcDbId", 9001L);
+        medusaRelation.put("npcId", 480);
+        medusaRelation.put("internalName", "Medusa");
+        medusaRelation.put("name", "Medusa");
+        medusaRelation.put("nameZh", "美杜莎");
+        medusaRelation.put("subNameZh", "美杜莎");
+        medusaRelation.put("relationType", "inflicts");
+        medusaRelation.put("durationTicks", 240);
+        medusaRelation.put("durationText", "1-4 seconds");
+        medusaRelation.put("notes", "[auto:wiki-crawler-npc-infobox] page=Medusa");
+        medusaRelation.put("sortOrder", 0);
+        medusaRelation.put("bannerItemId", 164);
+        medusaRelation.put("rawJson", "{\"imageUrl\":\"https://cdn.example.com/npcs/Medusa.png\"}");
+        when(jdbcTemplate.queryForList(
+            contains("FROM npc_buff_relations nbr"),
+            eq(156L)
+        )).thenReturn(List.of(medusaRelation));
+
+        mockMvc.perform(get("/admin/buffs/156"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.inflictingNpcCount").value(1))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].npcId").value(480))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].internalName").value("Medusa"))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].nameZh").value("美杜莎"))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].relationType").value("inflicts"))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].durationText").value("1-4 seconds"))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].image").value("https://cdn.example.com/npcs/Medusa.png"));
+    }
+
+    @Test
+    void shouldFormatInflictingNpcWikiDurationTemplateFromNotes() throws Exception {
+        Buff buff = new Buff();
+        buff.setId(157L);
+        buff.setSourceId(157);
+        buff.setInternalName("Stoned");
+        buff.setEnglishName("Stoned");
+        buff.setBuffType("debuff");
+
+        when(buffMapper.selectById(157L)).thenReturn(buff);
+        when(jdbcTemplate.queryForObject(
+            contains("FROM npc_buff_relations"),
+            eq(Integer.class),
+            eq(157L)
+        )).thenReturn(1);
+        Map<String, Object> medusaRelation = new java.util.LinkedHashMap<>();
+        medusaRelation.put("relationId", 205L);
+        medusaRelation.put("npcDbId", 9001L);
+        medusaRelation.put("npcId", 480);
+        medusaRelation.put("internalName", "Medusa");
+        medusaRelation.put("name", "Medusa");
+        medusaRelation.put("relationType", "inflicts");
+        medusaRelation.put("notes", "[auto:wiki-crawler-npc-infobox] page=Medusa; duration={{duration|rawseconds=1–4}}");
+        medusaRelation.put("sortOrder", 0);
+        medusaRelation.put("rawJson", "{}");
+        when(jdbcTemplate.queryForList(
+            contains("FROM npc_buff_relations nbr"),
+            eq(157L)
+        )).thenReturn(List.of(medusaRelation));
+
+        mockMvc.perform(get("/admin/buffs/157"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].durationText").value("1-4 秒"))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].rawDurationText").value("{{duration|rawseconds=1–4}}"));
+    }
 }

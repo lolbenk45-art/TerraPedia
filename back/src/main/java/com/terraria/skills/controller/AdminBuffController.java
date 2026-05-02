@@ -36,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/admin/buffs")
@@ -43,6 +45,12 @@ import java.util.Set;
 @Tag(name = "AdminBuffs", description = "Admin buff management")
 @SecurityRequirement(name = "bearerAuth")
 public class AdminBuffController {
+
+    private static final Pattern DURATION_TEMPLATE_PATTERN = Pattern.compile(
+        "\\{\\{\\s*duration\\s*\\|\\s*(?:rawseconds\\s*=\\s*)?([^{}|]+?)\\s*\\}\\}",
+        Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern EMPTY_TEMPLATE_PATTERN = Pattern.compile("\\{\\{\\s*[^{}|]+\\s*\\|\\s*\\}\\}", Pattern.CASE_INSENSITIVE);
 
     private final BuffMapper buffMapper;
     private final ObjectMapper objectMapper;
@@ -201,8 +209,11 @@ public class AdminBuffController {
         payload.put("createdAt", buff.getCreatedAt());
         payload.put("updatedAt", buff.getUpdatedAt());
         if (includeLinkedItems) {
+            List<Map<String, Object>> inflictingNpcSamples = loadInflictingNpcSamples(buff.getId());
             payload.put("linkedSourceItems", loadLinkedSourceItems(buff.getId()));
             payload.put("immuneNpcSamples", loadImmuneNpcSamples(immuneNpcSampleJson));
+            payload.put("inflictingNpcCount", firstNonNullInteger(countInflictingNpcs(buff.getId()), inflictingNpcSamples.size()));
+            payload.put("inflictingNpcSamples", inflictingNpcSamples);
         }
         return payload;
     }
@@ -354,6 +365,167 @@ public class AdminBuffController {
         }
 
         return enriched;
+    }
+
+    private Integer countInflictingNpcs(Long buffId) {
+        if (buffId == null || jdbcTemplate == null) return 0;
+        try {
+            return jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM npc_buff_relations nbr
+                WHERE nbr.buff_id = ? AND nbr.deleted = 0 AND nbr.relation_type = 'inflicts'
+                """,
+                Integer.class,
+                buffId
+            );
+        } catch (Exception exception) {
+            return 0;
+        }
+    }
+
+    private List<Map<String, Object>> loadInflictingNpcSamples(Long buffId) {
+        if (buffId == null || jdbcTemplate == null) return List.of();
+        List<Map<String, Object>> rows;
+        try {
+            rows = jdbcTemplate.queryForList(
+                """
+                SELECT
+                  nbr.id AS relationId,
+                  nbr.npc_id AS npcDbId,
+                  COALESCE(n.game_id, n.source_id) AS npcId,
+                  n.internal_name AS internalName,
+                  n.name,
+                  n.name_zh AS nameZh,
+                  n.sub_name_zh AS subNameZh,
+                  n.image_url AS imageUrl,
+                  n.banner_item_id AS bannerItemId,
+                  n.catch_item_id AS catchItemId,
+                  n.raw_json AS rawJson,
+                  nbr.relation_type AS relationType,
+                  nbr.duration_ticks AS durationTicks,
+                  nbr.chance_value AS chanceValue,
+                  nbr.chance_text AS chanceText,
+                  nbr.conditions,
+                  nbr.notes,
+                  nbr.sort_order AS sortOrder
+                FROM npc_buff_relations nbr
+                JOIN npcs n ON n.id = nbr.npc_id AND n.deleted = 0
+                WHERE nbr.buff_id = ? AND nbr.deleted = 0 AND nbr.relation_type = 'inflicts'
+                ORDER BY nbr.sort_order ASC, nbr.id ASC
+                """,
+                buffId
+            );
+        } catch (Exception exception) {
+            return List.of();
+        }
+
+        Set<Long> fallbackItemIds = new LinkedHashSet<>();
+        for (Map<String, Object> row : rows) {
+            String directImage = firstNonBlank(
+                normalizeAssetUrl(trimToNull(row.get("imageUrl"))),
+                extractNpcImageUrl(row.get("rawJson"))
+            );
+            if (directImage != null) continue;
+            Long bannerItemId = toLong(row.get("bannerItemId"));
+            Long catchItemId = toLong(row.get("catchItemId"));
+            if (bannerItemId != null) fallbackItemIds.add(bannerItemId);
+            if (catchItemId != null) fallbackItemIds.add(catchItemId);
+        }
+        Map<Long, String> itemImagesById = loadItemImagesByIds(fallbackItemIds);
+
+        List<Map<String, Object>> samples = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            Long bannerItemId = toLong(row.get("bannerItemId"));
+            Long catchItemId = toLong(row.get("catchItemId"));
+            String itemFallbackImage = firstNonBlank(
+                bannerItemId == null ? null : itemImagesById.get(bannerItemId),
+                catchItemId == null ? null : itemImagesById.get(catchItemId)
+            );
+            String image = firstNonBlank(
+                normalizeAssetUrl(trimToNull(row.get("imageUrl"))),
+                extractNpcImageUrl(row.get("rawJson")),
+                itemFallbackImage
+            );
+            String notes = trimToNull(row.get("notes"));
+
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("relationId", row.get("relationId"));
+            payload.put("npcDbId", row.get("npcDbId"));
+            payload.put("npcId", row.get("npcId"));
+            payload.put("internalName", row.get("internalName"));
+            payload.put("name", row.get("name"));
+            payload.put("nameZh", row.get("nameZh"));
+            payload.put("subNameZh", row.get("subNameZh"));
+            payload.put("image", image);
+            payload.put("imageUrl", image);
+            payload.put("relationType", firstNonBlank(trimToNull(row.get("relationType")), "inflicts"));
+            payload.put("durationTicks", row.get("durationTicks"));
+            String rawDurationText = firstNonBlank(trimToNull(row.get("durationText")), extractNotesValue(notes, "duration"));
+            payload.put("durationText", formatWikiDurationText(rawDurationText));
+            payload.put("rawDurationText", rawDurationText);
+            payload.put("chanceValue", row.get("chanceValue"));
+            payload.put("chanceText", row.get("chanceText"));
+            payload.put("conditions", row.get("conditions"));
+            payload.put("notes", notes);
+            payload.put("sortOrder", row.get("sortOrder"));
+            samples.add(payload);
+        }
+        return samples;
+    }
+
+    private String extractNotesValue(String notes, String key) {
+        if (notes == null || key == null || key.isBlank()) return null;
+        String prefix = key + "=";
+        for (String part : notes.split(";")) {
+            String text = part.trim();
+            if (text.startsWith(prefix)) {
+                return trimToNull(text.substring(prefix.length()));
+            }
+        }
+        return null;
+    }
+
+    private String formatWikiDurationText(String value) {
+        String text = trimToNull(value);
+        if (text == null) return null;
+        String normalized = text.replace('–', '-').replace('—', '-');
+        Matcher durationMatcher = DURATION_TEMPLATE_PATTERN.matcher(normalized);
+        StringBuffer buffer = new StringBuffer();
+        boolean replaced = false;
+        while (durationMatcher.find()) {
+            String durationValue = trimToNull(durationMatcher.group(1));
+            durationMatcher.appendReplacement(buffer, Matcher.quoteReplacement(formatDurationValue(durationValue)));
+            replaced = true;
+        }
+        durationMatcher.appendTail(buffer);
+        if (!replaced) {
+            return normalized;
+        }
+
+        String formatted = buffer.toString();
+        formatted = EMPTY_TEMPLATE_PATTERN.matcher(formatted).replaceAll("");
+        formatted = formatted
+            .replaceAll("(?i)\\{\\{\\s*expert\\s*\\|\\s*([^{}]*?)\\s*\\}\\}", "专家: $1")
+            .replaceAll("(?i)\\{\\{\\s*master\\s*\\|\\s*([^{}]*?)\\s*\\}\\}", "大师: $1")
+            .replaceAll("(?i)\\{\\{\\s*modes\\s*\\|\\s*([^{}|]*)\\s*\\|\\s*([^{}|]*)\\s*\\|\\s*([^{}|]*)\\s*\\}\\}", "普通: $1 / 专家: $2 / 大师: $3")
+            .replaceAll("(?i)\\{\\{\\s*modes\\s*\\|\\s*([^{}|]*)\\s*\\|\\s*([^{}|]*)\\s*\\}\\}", "普通: $1 / 专家: $2")
+            .replace("{{", "")
+            .replace("}}", "")
+            .replaceAll("\\s*\\|\\s*", " / ")
+            .replaceAll("\\s+", " ")
+            .replaceAll("\\s*/\\s*/\\s*", " / ")
+            .replaceAll("(普通|专家|大师):\\s*(?=/|$)", "")
+            .replaceAll("^\\s*/\\s*", "")
+            .replaceAll("\\s*/\\s*$", "")
+            .trim();
+        return formatted.isEmpty() ? normalized : formatted;
+    }
+
+    private String formatDurationValue(String value) {
+        String text = trimToNull(value);
+        if (text == null) return "";
+        return text.replace('–', '-').replace('—', '-') + " 秒";
     }
 
     private List<Map<String, Object>> toObjectMapList(Object raw) {

@@ -756,6 +756,7 @@
                 <span class="preview-pill">结构化掉落 {{ npcLootEntries.length }}</span>
                 <span v-if="npcInheritedLootCount" class="preview-pill">原型掉落 {{ npcInheritedLootCount }}</span>
                 <span class="preview-pill">原始来源 {{ npcDerivedLootEntries.length }}</span>
+                <span class="preview-pill">可施加 Buff {{ npcBuffRelations.length }}</span>
               </div>
               <h3>{{ detailTitle }}</h3>
               <p>{{ detailSubtitle }}</p>
@@ -929,6 +930,33 @@
                   <span v-if="formatBossLootNote(entry)">备注 {{ formatBossLootNote(entry) }}</span>
                   <span v-if="entry.sourcePage">来源页 {{ entry.sourcePage }}</span>
                   <button type="button" class="btn-link" @click="openLinkedItemDetail(entry)">物品详情</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section v-if="npcBuffRelations.length" class="projectile-detail__section">
+            <div class="projectile-detail__section-head">
+              <h4>NPC 可施加的 Buff</h4>
+              <span>{{ npcBuffRelations.length }} 条</span>
+            </div>
+            <p class="boss-detail__helper">{{ npcBuffRelationSectionHelper }}</p>
+            <div class="boss-detail__loot-list npc-buff-relation-list">
+              <article v-for="entry in npcBuffRelations" :key="`npc-buff-${entry.id ?? entry.buffId ?? entry.buffSourceId ?? entry.buffInternalName}`" class="boss-detail__loot-card npc-buff-relation-card">
+                <div class="boss-detail__loot-media">
+                  <img v-if="normalizeImageUrl(entry.buffImage)" :src="normalizeImageUrl(entry.buffImage) || ''" class="boss-detail__loot-image" alt="" @error="handleImageError" />
+                  <div v-else class="boss-detail__loot-fallback">BF</div>
+                </div>
+                <div class="boss-detail__loot-body">
+                  <div class="boss-detail__member-pills">
+                    <span class="cell-badge cell-badge--accent">{{ formatNpcBuffRelationType(entry) }}</span>
+                    <span v-if="entry.buffType" class="cell-badge">{{ entry.buffType }}</span>
+                  </div>
+                  <strong>{{ formatNpcBuffRelationTitle(entry) }}</strong>
+                  <span>{{ entry.buffInternalName || entry.buffNameEn || `Buff ${entry.buffSourceId ?? entry.buffId ?? '--'}` }}</span>
+                  <span v-if="formatNpcBuffRelationDuration(entry)">{{ formatNpcBuffRelationDuration(entry) }}</span>
+                  <span v-if="entry.chanceText">概率 {{ entry.chanceText }}</span>
+                  <span v-if="entry.conditions">条件 {{ entry.conditions }}</span>
                 </div>
               </article>
             </div>
@@ -1138,6 +1166,7 @@
                 <span class="preview-pill preview-pill--accent">BUFF PROFILE</span>
                 <span class="preview-pill">{{ detailRow.buffType || 'unknown' }}</span>
                 <span class="preview-pill">来源 {{ detailSourceItems.length }}</span>
+                <span class="preview-pill">施加 NPC {{ detailInflictingNpcSamples.length }}</span>
                 <span class="preview-pill">免疫 NPC {{ detailImmuneNpcSamples.length }}</span>
               </div>
               <h3>{{ detailTitle }}</h3>
@@ -1218,25 +1247,38 @@
             </div>
           </section>
 
-          <section v-if="detailRow.sourceItemsJson || detailRow.immuneNpcSampleJson" class="projectile-detail__section">
+          <section v-if="detailInflictingNpcSamples.length" class="projectile-detail__section">
+            <div class="projectile-detail__section-head">
+              <h4>施加此 Buff 的 NPC</h4>
+              <span>{{ detailInflictingNpcSamples.length }} 条</span>
+            </div>
+            <div class="armor-detail__item-grid">
+              <article v-for="(npc, index) in detailInflictingNpcSamples" :key="`${npc.relationId ?? npc.npcDbId ?? npc.npcId ?? npc.internalName ?? index}`" class="armor-detail__item-card">
+                <button type="button" class="armor-detail__item-media" @click="npc.__imageUrl ? openImageLightbox(npc.__imageUrl, npc.nameZh || npc.name || npc.internalName || `NPC ${npc.npcId ?? index + 1}`) : null">
+                  <img v-if="npc.__imageUrl" :src="npc.__imageUrl" class="armor-detail__item-image" alt="" @error="handleImageError" />
+                  <div v-else class="armor-detail__item-fallback">NP</div>
+                </button>
+                <div class="armor-detail__item-body">
+                  <strong>{{ npc.nameZh || npc.name || npc.internalName || `NPC ${npc.npcId ?? index + 1}` }}</strong>
+                  <span>{{ npc.internalName || '--' }}</span>
+                  <span>{{ formatNpcBuffDurationText(npc.durationText) || `ID ${npc.npcId != null ? npc.npcId : '--'}` }}</span>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section v-if="detailBuffSourceJsonBlocks.length" class="projectile-detail__section">
             <div class="projectile-detail__section-head">
               <h4>参考源数据 JSON</h4>
               <span>JSON</span>
             </div>
             <div class="projectile-detail__note-grid">
-              <article v-if="detailRow.sourceItemsJson" class="preview-json">
+              <article v-for="block in detailBuffSourceJsonBlocks" :key="block.key" class="preview-json">
                 <div class="preview-json__head">
-                  <strong>Source Items JSON</strong>
-                  <span>{{ detailSourceItems.length }} items</span>
+                  <strong>{{ block.label }}</strong>
+                  <span>{{ block.summary }}</span>
                 </div>
-                <pre>{{ formatPrettyJson(detailRow.sourceItemsJson) }}</pre>
-              </article>
-              <article v-if="detailRow.immuneNpcSampleJson" class="preview-json">
-                <div class="preview-json__head">
-                  <strong>Immune NPC Sample JSON</strong>
-                  <span>{{ detailImmuneNpcSamples.length }} items</span>
-                </div>
-                <pre>{{ formatPrettyJson(detailRow.immuneNpcSampleJson) }}</pre>
+                <pre>{{ block.preview }}</pre>
               </article>
             </div>
           </section>
@@ -2423,7 +2465,7 @@ const detailTitle = computed(() => {
 const detailSubtitle = computed(() => {
   if (!detailRow.value) return ''
   if (entityType.value === 'projectiles') return projectileDetailSummary.value
-  if (entityType.value === 'buffs') return '查看关联物品、免疫 NPC 样例和结构化 JSON。'
+  if (entityType.value === 'buffs') return '查看关联物品、可施加 NPC、免疫 NPC 样例和结构化 JSON。'
   if (entityType.value === 'bosses') return bossDetailSummary.value
   if (entityType.value === 'npcs') return npcDetailSummary.value
   return getDisplayValue(detailRow.value, currentConfig.value?.displaySubtitleKeys) || '查看男女穿戴图与具体装配图片。'
@@ -2435,6 +2477,7 @@ const detailStats = computed(() => {
     { label: '伤害', value: detailRow.value.damage != null ? String(detailRow.value.damage) : '--' },
     { label: '生命', value: detailRow.value.lifeMax != null ? String(detailRow.value.lifeMax) : '--' },
     { label: '结构化掉落', value: npcLootEntries.value.length ? String(npcLootEntries.value.length) : '--' },
+    { label: '可施加 Buff', value: npcBuffRelations.value.length ? String(npcBuffRelations.value.length) : '--' },
     { label: '原型掉落', value: npcInheritedLootCount.value ? String(npcInheritedLootCount.value) : '--' },
     { label: '原始来源', value: npcDerivedLootEntries.value.length ? String(npcDerivedLootEntries.value.length) : '--' },
     { label: '更新时间', value: formatDateTime(detailRow.value.updatedAt) },
@@ -2451,6 +2494,7 @@ const detailStats = computed(() => {
     { label: '源 ID', value: detailRow.value.sourceId != null ? String(detailRow.value.sourceId) : '--' },
     { label: '类型', value: detailRow.value.buffType || '--' },
     { label: '来源物品数', value: detailRow.value.sourceItemCount != null ? String(detailRow.value.sourceItemCount) : '--' },
+    { label: '施加 NPC 数', value: detailRow.value.inflictingNpcCount != null ? String(detailRow.value.inflictingNpcCount) : String(detailInflictingNpcSamples.value.length) },
     { label: '免疫 NPC 数', value: detailRow.value.immuneNpcCount != null ? String(detailRow.value.immuneNpcCount) : '--' },
     { label: '更新时间', value: formatDateTime(detailRow.value.updatedAt) },
   ]
@@ -2497,9 +2541,22 @@ function getProjectileSourceArray(arrayKey: 'sourceItems' | 'sourceNpcs', jsonKe
 }
 
 function hasProjectileSourceJson(value: unknown) {
-  if (typeof value === 'string') return Boolean(value.trim())
+  if (typeof value === 'string') return hasNonEmptyJsonValue(value)
   if (Array.isArray(value)) return value.length > 0
   return Boolean(value && typeof value === 'object' && Object.keys(value as Record<string, any>).length > 0)
+}
+
+function hasNonEmptyJsonValue(value: unknown) {
+  if (typeof value !== 'string') {
+    if (Array.isArray(value)) return value.length > 0
+    return Boolean(value && typeof value === 'object' && Object.keys(value as Record<string, any>).length > 0)
+  }
+  const text = value.trim()
+  if (!text) return false
+  const parsed = tryParseJson(text)
+  if (Array.isArray(parsed)) return parsed.length > 0
+  if (parsed && typeof parsed === 'object') return Object.keys(parsed as Record<string, any>).length > 0
+  return true
 }
 
 function getProjectileSourceJsonFallback(jsonKey: 'sourceItemsJson' | 'sourceNpcsJson', rows: Array<Record<string, any>>) {
@@ -2581,6 +2638,62 @@ function formatSourceMeta(label: string, value: unknown) {
   return `${label} ${value}`
 }
 
+function formatNpcBuffDurationText(value: unknown) {
+  const raw = typeof value === 'string' ? value.trim() : ''
+  if (!raw) return ''
+  const normalized = raw.replace(/[–—]/g, '-')
+  if (!normalized.includes('{{')) return `持续 ${normalized}`
+  let formatted = normalized.replace(/\{\{\s*duration\s*\|\s*(?:rawseconds\s*=\s*)?([^{}|]+?)\s*\}\}/gi, (_, durationValue: string) => {
+    const cleaned = String(durationValue ?? '').trim()
+    return cleaned ? `${cleaned} 秒` : ''
+  })
+  formatted = formatted
+    .replace(/\{\{\s*[^{}|]+\s*\|\s*\}\}/gi, '')
+    .replace(/\{\{\s*expert\s*\|\s*([^{}]*?)\s*\}\}/gi, '专家: $1')
+    .replace(/\{\{\s*master\s*\|\s*([^{}]*?)\s*\}\}/gi, '大师: $1')
+    .replace(/\{\{\s*modes\s*\|\s*([^{}|]*)\s*\|\s*([^{}|]*)\s*\|\s*([^{}|]*)\s*\}\}/gi, '普通: $1 / 专家: $2 / 大师: $3')
+    .replace(/\{\{\s*modes\s*\|\s*([^{}|]*)\s*\|\s*([^{}|]*)\s*\}\}/gi, '普通: $1 / 专家: $2')
+    .replace(/\{\{|\}\}/g, '')
+    .replace(/\s*\|\s*/g, ' / ')
+    .replace(/\s+/g, ' ')
+    .replace(/\s*\/\s*\/\s*/g, ' / ')
+    .replace(/(普通|专家|大师):\s*(?=\/|$)/g, '')
+    .replace(/^\s*\/\s*|\s*\/\s*$/g, '')
+    .trim()
+  return formatted ? `持续 ${formatted}` : ''
+}
+
+function extractKeyValueFromNotes(notes: unknown, key: string) {
+  if (typeof notes !== 'string' || !notes.trim()) return ''
+  const prefix = `${key}=`
+  const part = notes.split(';').map(item => item.trim()).find(item => item.startsWith(prefix))
+  return part ? part.slice(prefix.length).trim() : ''
+}
+
+function formatNpcBuffRelationDuration(entry: Record<string, any>) {
+  const direct = formatNpcBuffDurationText(entry.durationText)
+  if (direct) return direct
+  const fromNotes = formatNpcBuffDurationText(extractKeyValueFromNotes(entry.notes, 'duration'))
+  if (fromNotes) return fromNotes
+  if (entry.durationTicks != null && entry.durationTicks !== '') return `持续 ${entry.durationTicks} ticks`
+  return ''
+}
+
+function formatNpcBuffRelationTitle(entry: Record<string, any>) {
+  return pickFirstString(
+    entry.buffNameZh,
+    entry.buffNameEn,
+    entry.buffInternalName,
+  ) || `Buff ${entry.buffSourceId ?? entry.buffId ?? '--'}`
+}
+
+function formatNpcBuffRelationType(entry: Record<string, any>) {
+  const relationType = typeof entry.relationType === 'string' && entry.relationType.trim()
+    ? entry.relationType.trim()
+    : 'inflicts'
+  return relationType === 'inflicts' ? '施加' : relationType
+}
+
 function getProjectileSourceItemMeta(item: Record<string, any>) {
   return [
     formatSourceMeta('Item ID', item.itemId ?? item.sourceItemId),
@@ -2622,6 +2735,37 @@ const detailImmuneNpcSamples = computed<Array<Record<string, any>>>(() => {
         .map(item => normalizeRow(item as Record<string, any>))
     : []
 })
+const detailInflictingNpcSamples = computed<Array<Record<string, any>>>(() => {
+  if (!detailRow.value || entityType.value !== 'buffs') return []
+  if (!Array.isArray(detailRow.value.inflictingNpcSamples)) return []
+  return detailRow.value.inflictingNpcSamples
+    .filter(item => item && typeof item === 'object')
+    .map(item => normalizeRow(item as Record<string, any>))
+})
+const detailBuffSourceJsonBlocks = computed(() => {
+  if (!detailRow.value || entityType.value !== 'buffs') return []
+  return [
+    {
+      key: 'sourceItemsJson',
+      label: 'Source Items JSON',
+      summary: `${detailSourceItems.value.length} items`,
+      raw: detailRow.value.sourceItemsJson,
+    },
+    {
+      key: 'immuneNpcSampleJson',
+      label: 'Immune NPC Sample JSON',
+      summary: `${detailImmuneNpcSamples.value.length} items`,
+      raw: detailRow.value.immuneNpcSampleJson,
+    },
+  ]
+    .filter(block => hasNonEmptyJsonValue(block.raw))
+    .map(block => ({
+      key: block.key,
+      label: block.label,
+      summary: block.summary,
+      preview: formatPrettyJson(block.raw),
+    }))
+})
 const detailBuffNotes = computed(() => {
   if (!detailRow.value || entityType.value !== 'buffs') return []
   return [
@@ -2657,6 +2801,12 @@ const npcLootInheritanceLabel = computed(() => {
 const npcDerivedLootEntries = computed<Array<Record<string, any>>>(() => {
   if (!detailRow.value || entityType.value !== 'npcs' || !Array.isArray(detailRow.value.derivedLootEntries)) return []
   return detailRow.value.derivedLootEntries
+    .filter(item => item && typeof item === 'object')
+    .map(item => normalizeRow(item as Record<string, any>))
+})
+const npcBuffRelations = computed<Array<Record<string, any>>>(() => {
+  if (!detailRow.value || entityType.value !== 'npcs' || !Array.isArray(detailRow.value.buffRelations)) return []
+  return detailRow.value.buffRelations
     .filter(item => item && typeof item === 'object')
     .map(item => normalizeRow(item as Record<string, any>))
 })
@@ -2774,10 +2924,11 @@ const npcDetailSummary = computed(() => {
   if (!detailRow.value || entityType.value !== 'npcs') return ''
   const category = detailRow.value.categoryName || '未分类 NPC'
   const structured = npcLootEntries.value.length
+  const buffCount = npcBuffRelations.value.length
   const derived = npcDerivedLootEntries.value.length
   const inherited = npcInheritedLootCount.value
   const inheritedText = inherited ? `，原型掉落 ${inherited} 条` : ''
-  return `${category}，当前结构化掉落 ${structured} 条${inheritedText}，原始来源掉落 ${derived} 条，优先以结构化掉落作为后台维护结果。`
+  return `${category}，当前结构化掉落 ${structured} 条，可施加 Buff ${buffCount} 条${inheritedText}，原始来源掉落 ${derived} 条。`
 })
 const npcAdvancedSectionHelper = computed(() => {
   if (!detailRow.value || entityType.value !== 'npcs') return ''
@@ -2790,6 +2941,11 @@ const npcLootSectionHelper = computed(() => {
   if (!detailRow.value || entityType.value !== 'npcs') return ''
   if (!npcLootEntries.value.length) return '当前 NPC 还没有导入结构化掉落数据。'
   return '这里显示的是已导入并去重后的后台掉落结果，后续编辑默认以这组数据为准。'
+})
+const npcBuffRelationSectionHelper = computed(() => {
+  if (!detailRow.value || entityType.value !== 'npcs') return ''
+  if (!npcBuffRelations.value.length) return '当前 NPC 还没有结构化 Buff 施加关系。'
+  return '这里显示 npc_buff_relations 的结构化关系，持续时间优先从详情字段读取，缺失时从导入备注中解析。'
 })
 const npcInheritedLootSectionHelper = computed(() => {
   if (!detailRow.value || entityType.value !== 'npcs') return ''
