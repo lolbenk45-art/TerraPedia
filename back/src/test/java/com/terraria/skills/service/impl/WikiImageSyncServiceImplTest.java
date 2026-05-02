@@ -210,6 +210,42 @@ class WikiImageSyncServiceImplTest {
         verify(itemMapper, never()).updateById(any(Item.class));
     }
 
+    @Test
+    void shouldBackfillWikiFallbackForManagedLegacyProviderAliasWithoutReuploading() throws Exception {
+        String sourceUrl = startImageServer("/terraria.wiki.gg/images/Sharp_Blade.png");
+        Item item = legacyItem(sourceUrl);
+
+        ItemImage existing = new ItemImage();
+        existing.setId(11L);
+        existing.setItemId(7L);
+        existing.setRole("icon");
+        existing.setCachedUrl("http://localhost:9000/terrapedia-images/items/legacy/items/existing.png");
+        existing.setProvider("terraria.wiki.gg");
+        existing.setIsPrimary(Boolean.TRUE);
+        existing.setSortOrder(0);
+        existing.setStatus(1);
+        existing.setDeleted(0);
+
+        when(itemImageMapper.selectList(any())).thenReturn(List.of(existing));
+        when(itemMapper.selectList(any())).thenReturn(List.of(item));
+
+        AdminWikiImageSyncResultDTO result = service().syncWikiImages(itemImagesOnlyRequest());
+
+        assertEquals(0, result.getItemImages().getSyncedCount());
+        assertTrue(result.getItemImages().getSkippedCount() >= 1);
+
+        ArgumentCaptor<ItemImage> imageCaptor = ArgumentCaptor.forClass(ItemImage.class);
+        verify(itemImageMapper).updateById(imageCaptor.capture());
+        ItemImage updated = imageCaptor.getValue();
+        assertEquals(sourceUrl, updated.getOriginalUrl());
+        assertEquals("http://localhost:9000/terrapedia-images/items/legacy/items/existing.png", updated.getCachedUrl());
+        assertEquals("terraria.wiki.gg", updated.getProvider());
+        assertNotNull(updated.getLastVerifiedAt());
+        verify(minioClient, never()).putObject(any(PutObjectArgs.class));
+        verify(itemImageMapper, never()).insert(any(ItemImage.class));
+        verify(itemMapper, never()).updateById(any(Item.class));
+    }
+
     private WikiImageSyncServiceImpl service() {
         return new WikiImageSyncServiceImpl(
             itemImageMapper,
