@@ -1,6 +1,7 @@
 package com.terraria.skills.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.terraria.skills.entity.Buff;
 import com.terraria.skills.mapper.BuffMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,8 +19,10 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -219,5 +222,165 @@ class AdminBuffControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.inflictingNpcSamples[0].durationText").value("1-4 秒"))
             .andExpect(jsonPath("$.data.inflictingNpcSamples[0].rawDurationText").value("{{duration|rawseconds=1–4}}"));
+    }
+    @Test
+    void shouldNormalizeWikiImageSpacesForInflictingBuffSamples() throws Exception {
+        Buff buff = new Buff();
+        buff.setId(158L);
+        buff.setSourceId(158);
+        buff.setInternalName("Poisoned");
+        buff.setEnglishName("Poisoned");
+        buff.setBuffType("debuff");
+
+        when(buffMapper.selectById(158L)).thenReturn(buff);
+        when(jdbcTemplate.queryForObject(
+            contains("FROM npc_buff_relations"),
+            eq(Integer.class),
+            eq(158L)
+        )).thenReturn(1);
+        Map<String, Object> queenBeeRelation = new java.util.LinkedHashMap<>();
+        queenBeeRelation.put("relationId", 206L);
+        queenBeeRelation.put("npcDbId", 9002L);
+        queenBeeRelation.put("npcId", 222);
+        queenBeeRelation.put("internalName", "QueenBee");
+        queenBeeRelation.put("name", "Queen Bee");
+        queenBeeRelation.put("relationType", "inflicts");
+        queenBeeRelation.put("imageUrl", "https://terraria.wiki.gg/images/Queen%20Bee.gif");
+        queenBeeRelation.put("notes", "[auto:wiki-crawler-npc-infobox] page=Queen Bee");
+        queenBeeRelation.put("sortOrder", 0);
+        queenBeeRelation.put("rawJson", "{}");
+        when(jdbcTemplate.queryForList(
+            contains("FROM npc_buff_relations nbr"),
+            eq(158L)
+        )).thenReturn(List.of(queenBeeRelation));
+
+        mockMvc.perform(get("/admin/buffs/158"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].image").value("https://terraria.wiki.gg/images/Queen_Bee.gif"))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].imageUrl").value("https://terraria.wiki.gg/images/Queen_Bee.gif"));
+    }
+
+    @Test
+    void shouldFormatComplexWikiDurationTemplateWithoutTemplateNoise() throws Exception {
+        Buff buff = new Buff();
+        buff.setId(159L);
+        buff.setSourceId(159);
+        buff.setInternalName("Poisoned");
+        buff.setEnglishName("Poisoned");
+        buff.setBuffType("debuff");
+
+        when(buffMapper.selectById(159L)).thenReturn(buff);
+        when(jdbcTemplate.queryForObject(
+            contains("FROM npc_buff_relations"),
+            eq(Integer.class),
+            eq(159L)
+        )).thenReturn(1);
+        Map<String, Object> queenBeeRelation = new java.util.LinkedHashMap<>();
+        queenBeeRelation.put("relationId", 207L);
+        queenBeeRelation.put("npcDbId", 9002L);
+        queenBeeRelation.put("npcId", 222);
+        queenBeeRelation.put("internalName", "QueenBee");
+        queenBeeRelation.put("name", "Queen Bee");
+        queenBeeRelation.put("relationType", "inflicts");
+        queenBeeRelation.put(
+            "notes",
+            "[auto:wiki-crawler-npc-infobox] page=Queen Bee; duration=<!-- -->{{modes|{{duration|10}}|{{duration|rawseconds=2-20}}|{{duration|rawseconds=2.5-25}}}} {{note|small=y|paren=y|{{gameText|ProjectileName.QueenBeeStinger}}}}<br/><!-- -->{{modes|wrap=no|expertonly=y<!-- -->|expert={{expert|{{duration|rawseconds=2-8}}}} {{note|small=y|paren=y|contact}}<!-- -->|master={{master|{{duration|rawseconds=2.5-10}}}} {{note|small=y|paren=y|contact}}<!-- -->}}"
+        );
+        queenBeeRelation.put("sortOrder", 0);
+        queenBeeRelation.put("rawJson", "{}");
+        when(jdbcTemplate.queryForList(
+            contains("FROM npc_buff_relations nbr"),
+            eq(159L)
+        )).thenReturn(List.of(queenBeeRelation));
+
+        mockMvc.perform(get("/admin/buffs/159"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].durationText").value(containsString("10")))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].durationText").value(containsString("2-20")))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].durationText").value(containsString("2.5-25")))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].durationText").value(containsString("2-8")))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].durationText").value(containsString("2.5-10")))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].durationText").value(not(containsString("{{"))))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].durationText").value(not(containsString("<!--"))))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].durationText").value(not(containsString("note"))))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].durationText").value(not(containsString("wrap=no"))))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].durationText").value(not(containsString("gameText"))))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].durationText").value(not(containsString("ProjectileName"))));
+    }
+
+    @Test
+    void shouldFallbackSourceItemsFromBuffSourcePageWhenDatabaseLinksAreEmpty() throws Exception {
+        Buff buff = new Buff();
+        buff.setId(160L);
+        buff.setSourceId(159);
+        buff.setInternalName("Sharpened");
+        buff.setEnglishName("Sharpened");
+        buff.setNameZh("锋利");
+        buff.setBuffType("buff");
+        buff.setSourceItemCount(0);
+        buff.setSourceItemsJson("[]");
+
+        when(buffMapper.selectById(160L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(
+            contains("FROM buff_source_items bsi"),
+            eq(160L)
+        )).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(
+            contains("FROM items"),
+            eq("Sharpening Station")
+        )).thenReturn(List.of(Map.of(
+            "id", 3198L,
+            "sourceItemId", 3198,
+            "name", "Sharpening Station",
+            "nameZh", "利器站",
+            "internalName", "SharpeningStation",
+            "image", "https://terraria.wiki.gg/images/Sharpening%20Station.png"
+        )));
+
+        mockMvc.perform(get("/admin/buffs/160"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.sourceItemCount").value(1))
+            .andExpect(jsonPath("$.data.linkedSourceItems[0].internalName").value("SharpeningStation"))
+            .andExpect(jsonPath("$.data.linkedSourceItems[0].nameZh").value("利器站"))
+            .andExpect(jsonPath("$.data.linkedSourceItems[0].sourcePage").value("Sharpening Station"))
+            .andExpect(jsonPath("$.data.linkedSourceItems[0].image").value("https://terraria.wiki.gg/images/Sharpening_Station.png"));
+    }
+
+    @Test
+    void shouldUseLinkedSourceItemCountForListSearchWhenStoredCountIsZero() throws Exception {
+        Buff buff = new Buff();
+        buff.setId(161L);
+        buff.setSourceId(159);
+        buff.setInternalName("Sharpened");
+        buff.setEnglishName("Sharpened");
+        buff.setNameZh("锋利");
+        buff.setBuffType("buff");
+        buff.setSourceItemCount(0);
+        buff.setSourceItemsJson("[]");
+
+        Page<Buff> page = new Page<>(1, 20);
+        page.setRecords(List.of(buff));
+        page.setTotal(1);
+        when(buffMapper.selectPage(any(Page.class), any())).thenReturn(page);
+        when(jdbcTemplate.queryForList(
+            contains("FROM buff_source_items bsi"),
+            eq(161L)
+        )).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(
+            contains("FROM items"),
+            eq("Sharpening Station")
+        )).thenReturn(List.of(Map.of(
+            "id", 3198L,
+            "sourceItemId", 3198,
+            "name", "Sharpening Station",
+            "nameZh", "利器站",
+            "internalName", "SharpeningStation",
+            "image", "https://terraria.wiki.gg/images/Sharpening%20Station.png"
+        )));
+
+        mockMvc.perform(get("/admin/buffs").param("search", "锋利"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].internalName").value("Sharpened"))
+            .andExpect(jsonPath("$.data[0].sourceItemCount").value(1));
     }
 }

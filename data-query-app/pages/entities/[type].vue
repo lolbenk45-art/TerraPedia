@@ -1209,19 +1209,21 @@
 
           <section v-if="detailSourceItems.length" class="projectile-detail__section">
             <div class="projectile-detail__section-head">
-              <h4>关联物品（数据库）</h4>
+              <h4>提供此 Buff 的物品</h4>
               <span>{{ detailSourceItems.length }} 条</span>
             </div>
             <div class="armor-detail__item-grid">
               <article v-for="(item, index) in detailSourceItems" :key="`${item.itemId ?? item.internalName ?? item.name ?? index}`" class="armor-detail__item-card">
-                <button type="button" class="armor-detail__item-media" @click="item.image ? openImageLightbox(item.image, item.nameZh || item.name || item.internalName || '物品图片') : null">
-                  <img v-if="item.image" :src="item.image" class="armor-detail__item-image" alt="" @error="handleImageError" />
+                <button type="button" class="armor-detail__item-media" @click="item.itemId ? openLinkedItemDetail(item) : (getProjectileSourceImage(item) ? openImageLightbox(getProjectileSourceImage(item), item.nameZh || item.name || item.internalName || '物品图片') : null)">
+                  <img v-if="getProjectileSourceImage(item)" :src="getProjectileSourceImage(item)" class="armor-detail__item-image" alt="" @error="handleImageError" />
                   <div v-else class="armor-detail__item-fallback">IT</div>
                 </button>
                 <div class="armor-detail__item-body">
                   <strong>{{ item.nameZh || item.name || item.nameEn || item.internalName || `Item ${item.itemId ?? index + 1}` }}</strong>
                   <span>{{ item.internalName || `Source ID ${item.itemId ?? '--'}` }}</span>
-                  <span>持续 {{ item.buffTime != null ? item.buffTime : '--' }}</span>
+                  <span v-if="item.buffTime != null">持续 {{ item.buffTime }}</span>
+                  <span v-if="item.sourcePage">来源页 {{ item.sourcePage }}</span>
+                  <button v-if="item.itemId" type="button" class="btn-link" @click="openLinkedItemDetail(item)">物品详情</button>
                 </div>
               </article>
             </div>
@@ -1677,10 +1679,15 @@ function normalizeImageUrl(value: unknown) {
   if (typeof value !== 'string') return ''
   const normalized = value.trim()
   if (!normalized) return ''
-  if (isHttpUrl(normalized)) return normalized
+  if (isHttpUrl(normalized)) return normalizeWikiImagePath(normalized)
   if (normalized.startsWith('localhost:') || normalized.startsWith('127.0.0.1:')) return `http://${normalized}`
   if (normalized.startsWith('/')) return normalized
   return ''
+}
+
+function normalizeWikiImagePath(value: string) {
+  if (!value.toLowerCase().includes('terraria.wiki.gg/images/')) return value
+  return value.replace(/%20/gi, '_').replace(/\s+/g, '_')
 }
 
 function isTrustedWikiImageUrl(value: unknown) {
@@ -2584,16 +2591,24 @@ const projectileSourceSummary = computed(() => {
 })
 
 function getProjectileSourceImage(entry: Record<string, any>) {
-  return normalizeImageUrl(
-    entry.__imageUrl
-    || entry.imageUrl
-    || entry.image
-    || entry.itemImage
-    || entry.npcImage
-    || entry.image_url
-    || entry.item_image
-    || entry.npc_image
-  )
+  for (const value of [
+    entry.__imageUrl,
+    entry.imageUrl,
+    entry.image,
+    entry.itemImageUrl,
+    entry.npcImageUrl,
+    entry.itemImage,
+    entry.npcImage,
+    entry.image_url,
+    entry.item_image_url,
+    entry.npc_image_url,
+    entry.item_image,
+    entry.npc_image,
+  ]) {
+    const image = normalizeImageUrl(value)
+    if (image) return image
+  }
+  return ''
 }
 
 function openProjectileSourceImage(entry: Record<string, any>, title: string) {
@@ -2712,12 +2727,12 @@ function getProjectileSourceNpcMeta(npc: Record<string, any>) {
 const detailSourceItems = computed(() => {
   if (!detailRow.value || entityType.value !== 'buffs') return []
   if (Array.isArray(detailRow.value.linkedSourceItems)) {
-    return detailRow.value.linkedSourceItems.filter(item => item && typeof item === 'object')
+    return normalizeSourceEntries(detailRow.value.linkedSourceItems)
   }
   const parsed = typeof detailRow.value.sourceItemsJson === 'string'
     ? tryParseJson(detailRow.value.sourceItemsJson)
     : detailRow.value.sourceItemsJson
-  return Array.isArray(parsed) ? parsed.filter(item => item && typeof item === 'object') : []
+  return normalizeSourceEntries(parsed)
 })
 const detailImmuneNpcSamples = computed<Array<Record<string, any>>>(() => {
   if (!detailRow.value || entityType.value !== 'buffs') return []
@@ -3704,12 +3719,14 @@ function formatArmorPartRole(value: unknown) {
 .armor-detail__item-body span { color: var(--color-text-secondary); font-size: 0.82rem; }
 .armor-detail__item-meta { display: flex; flex-wrap: wrap; gap: 6px; }
 .armor-detail__item-meta span { padding: 3px 7px; border-radius: var(--radius-full); border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-tertiary) 88%, transparent); color: var(--color-text-muted); font-size: 0.72rem; line-height: 1.2; }
-.projectile-detail--buff .armor-detail__item-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.projectile-detail--buff .armor-detail__item-grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
 .projectile-detail--buff .armor-detail__item-card { padding: 10px; gap: 8px; }
 .projectile-detail--buff .armor-detail__item-image,
 .projectile-detail--buff .armor-detail__item-fallback { min-height: 104px; max-height: 120px; }
 .projectile-detail--buff .armor-detail__item-body { gap: 3px; }
-.projectile-detail--buff .armor-detail__item-body span { font-size: 0.78rem; }
+.projectile-detail--buff .armor-detail__item-body strong,
+.projectile-detail--buff .armor-detail__item-body span { overflow-wrap: anywhere; min-width: 0; }
+.projectile-detail--buff .armor-detail__item-body span { font-size: 0.78rem; line-height: 1.45; }
 .armor-detail__zoomable { cursor: zoom-in; }
 .armor-lightbox { display: grid; place-items: center; min-height: 70dvh; background: color-mix(in srgb, var(--color-bg) 94%, var(--color-bg-secondary)); }
 .armor-lightbox__image { width: 100%; max-width: 920px; max-height: 82dvh; object-fit: contain; }

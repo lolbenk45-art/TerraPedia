@@ -51,6 +51,14 @@ public class AdminBuffController {
         Pattern.CASE_INSENSITIVE
     );
     private static final Pattern EMPTY_TEMPLATE_PATTERN = Pattern.compile("\\{\\{\\s*[^{}|]+\\s*\\|\\s*\\}\\}", Pattern.CASE_INSENSITIVE);
+    private static final Pattern HTML_COMMENT_PATTERN = Pattern.compile("<!--.*?-->", Pattern.DOTALL);
+    private static final Pattern HTML_BREAK_PATTERN = Pattern.compile("(?i)<br\\s*/?>");
+    private static final Pattern GAME_TEXT_TEMPLATE_PATTERN = Pattern.compile("\\{\\{\\s*gameText\\s*\\|\\s*[^{}]*?\\s*\\}\\}", Pattern.CASE_INSENSITIVE);
+    private static final Pattern NOTE_TEMPLATE_PATTERN = Pattern.compile("\\{\\{\\s*note\\s*\\|\\s*[^{}]*?\\s*\\}\\}", Pattern.CASE_INSENSITIVE);
+    private static final Pattern EXPERT_TEMPLATE_PATTERN = Pattern.compile("\\{\\{\\s*expert\\s*\\|\\s*([^{}]*?)\\s*\\}\\}", Pattern.CASE_INSENSITIVE);
+    private static final Pattern MASTER_TEMPLATE_PATTERN = Pattern.compile("\\{\\{\\s*master\\s*\\|\\s*([^{}]*?)\\s*\\}\\}", Pattern.CASE_INSENSITIVE);
+    private static final Pattern MODES_TEMPLATE_PATTERN = Pattern.compile("\\{\\{\\s*modes\\s*\\|\\s*([^{}]*?)\\s*\\}\\}", Pattern.CASE_INSENSITIVE);
+    private static final Pattern REMAINING_TEMPLATE_PATTERN = Pattern.compile("\\{\\{\\s*[^{}]*?\\s*\\}\\}", Pattern.CASE_INSENSITIVE);
 
     private final BuffMapper buffMapper;
     private final ObjectMapper objectMapper;
@@ -199,7 +207,15 @@ public class AdminBuffController {
         payload.put("imagePath", normalizeAssetUrl(buff.getImage()));
         payload.put("categoryId", null);
         payload.put("buffType", firstNonBlank(buff.getBuffType(), trimToNull(supplement.get("buffType"))));
-        payload.put("sourceItemCount", firstNonNullInteger(buff.getSourceItemCount(), toInteger(supplement.get("sourceItemCount")), 0));
+        Integer storedSourceItemCount = buff.getSourceItemCount();
+        boolean shouldResolveLinkedSourceItemCount = includeLinkedItems || storedSourceItemCount == null || storedSourceItemCount <= 0;
+        List<Map<String, Object>> linkedSourceItems = shouldResolveLinkedSourceItemCount ? loadLinkedSourceItems(buff, supplement) : List.of();
+        payload.put("sourceItemCount", firstNonNullInteger(
+            linkedSourceItems.isEmpty() ? null : linkedSourceItems.size(),
+            storedSourceItemCount,
+            toInteger(supplement.get("sourceItemCount")),
+            0
+        ));
         payload.put("immuneNpcCount", firstNonNullInteger(buff.getImmuneNpcCount(), toInteger(supplement.get("immuneNpcCount")), 0));
         payload.put("tooltipEn", firstNonBlank(buff.getTooltipEn(), trimToNull(supplement.get("tooltipEn"))));
         payload.put("tooltipZh", firstNonBlank(buff.getTooltipZh(), trimToNull(supplement.get("tooltipZh"))));
@@ -210,7 +226,7 @@ public class AdminBuffController {
         payload.put("updatedAt", buff.getUpdatedAt());
         if (includeLinkedItems) {
             List<Map<String, Object>> inflictingNpcSamples = loadInflictingNpcSamples(buff.getId());
-            payload.put("linkedSourceItems", loadLinkedSourceItems(buff.getId()));
+            payload.put("linkedSourceItems", linkedSourceItems);
             payload.put("immuneNpcSamples", loadImmuneNpcSamples(immuneNpcSampleJson));
             payload.put("inflictingNpcCount", firstNonNullInteger(countInflictingNpcs(buff.getId()), inflictingNpcSamples.size()));
             payload.put("inflictingNpcSamples", inflictingNpcSamples);
@@ -489,6 +505,8 @@ public class AdminBuffController {
     private String formatWikiDurationText(String value) {
         String text = trimToNull(value);
         if (text == null) return null;
+        String cleanedDurationText = formatWikiDurationTextClean(text);
+        if (cleanedDurationText != null) return cleanedDurationText;
         String normalized = text.replace('–', '-').replace('—', '-');
         Matcher durationMatcher = DURATION_TEMPLATE_PATTERN.matcher(normalized);
         StringBuffer buffer = new StringBuffer();
@@ -526,6 +544,142 @@ public class AdminBuffController {
         String text = trimToNull(value);
         if (text == null) return "";
         return text.replace('–', '-').replace('—', '-') + " 秒";
+    }
+
+    private String formatWikiDurationTextClean(String value) {
+        String normalized = normalizeWikiDurationInput(value);
+        String formatted = replaceDurationTemplates(normalized);
+        formatted = GAME_TEXT_TEMPLATE_PATTERN.matcher(formatted).replaceAll("");
+        formatted = NOTE_TEMPLATE_PATTERN.matcher(formatted).replaceAll("");
+        formatted = replaceLabeledTemplates(formatted, EXPERT_TEMPLATE_PATTERN, "\u4e13\u5bb6");
+        formatted = replaceLabeledTemplates(formatted, MASTER_TEMPLATE_PATTERN, "\u5927\u5e08");
+        formatted = replaceModesTemplates(formatted);
+        formatted = EMPTY_TEMPLATE_PATTERN.matcher(formatted).replaceAll("");
+        formatted = REMAINING_TEMPLATE_PATTERN.matcher(formatted).replaceAll("");
+        formatted = formatted
+            .replaceAll("(?i)\\b(?:wrap=no|expertonly=y|small=y|paren=y)\\b", "")
+            .replaceAll("(?i)\\bProjectileName\\.[A-Za-z0-9_.]+\\b", "")
+            .replaceAll("(?i)\\b(?:note|gameText)\\b", "")
+            .replaceAll("\\s*\\|\\s*", " / ")
+            .replaceAll("\\s+", " ")
+            .replaceAll("\\s*/\\s*/\\s*", " / ")
+            .replaceAll("(\u666e\u901a|\u4e13\u5bb6|\u5927\u5e08):\\s*(?=/|$)", "")
+            .replaceAll("^\\s*/\\s*", "")
+            .replaceAll("\\s*/\\s*$", "")
+            .trim();
+        return formatted.isEmpty() ? normalized.trim() : formatted;
+    }
+
+    private String normalizeWikiDurationInput(String value) {
+        String normalized = normalizeDurationDashes(value);
+        normalized = HTML_COMMENT_PATTERN.matcher(normalized).replaceAll("");
+        normalized = HTML_BREAK_PATTERN.matcher(normalized).replaceAll(" / ");
+        return normalized;
+    }
+
+    private String normalizeDurationDashes(String value) {
+        return value
+            .replace('\u2013', '-')
+            .replace('\u2014', '-')
+            .replace("\u00e2\u0080\u0093", "-")
+            .replace("\u00e2\u0080\u0094", "-");
+    }
+
+    private String replaceDurationTemplates(String value) {
+        Matcher matcher = DURATION_TEMPLATE_PATTERN.matcher(value);
+        StringBuffer buffer = new StringBuffer();
+        while (matcher.find()) {
+            String durationValue = trimToNull(matcher.group(1));
+            matcher.appendReplacement(buffer, Matcher.quoteReplacement(formatDurationValueClean(durationValue)));
+        }
+        matcher.appendTail(buffer);
+        return buffer.toString();
+    }
+
+    private String formatDurationValueClean(String value) {
+        String text = trimToNull(value);
+        if (text == null) return "";
+        return normalizeDurationDashes(text) + " \u79d2";
+    }
+
+    private String replaceLabeledTemplates(String value, Pattern pattern, String label) {
+        Matcher matcher = pattern.matcher(value);
+        StringBuffer buffer = new StringBuffer();
+        while (matcher.find()) {
+            String content = stripModeLabel(trimToNull(matcher.group(1)), label);
+            matcher.appendReplacement(buffer, Matcher.quoteReplacement(content == null ? "" : label + ": " + content));
+        }
+        matcher.appendTail(buffer);
+        return buffer.toString();
+    }
+
+    private String replaceModesTemplates(String value) {
+        String current = value;
+        for (int guard = 0; guard < 8; guard += 1) {
+            Matcher matcher = MODES_TEMPLATE_PATTERN.matcher(current);
+            if (!matcher.find()) return current;
+            matcher.reset();
+            StringBuffer buffer = new StringBuffer();
+            while (matcher.find()) {
+                matcher.appendReplacement(buffer, Matcher.quoteReplacement(formatModesTemplateContent(matcher.group(1))));
+            }
+            matcher.appendTail(buffer);
+            current = buffer.toString();
+        }
+        return current;
+    }
+
+    private String formatModesTemplateContent(String content) {
+        String[] parts = content.split("\\|", -1);
+        List<String> rows = new ArrayList<>();
+        boolean named = false;
+        for (String part : parts) {
+            if (part.contains("=")) {
+                named = true;
+                break;
+            }
+        }
+
+        if (!named) {
+            String[] labels = {"\u666e\u901a", "\u4e13\u5bb6", "\u5927\u5e08"};
+            for (int index = 0; index < parts.length && index < labels.length; index += 1) {
+                addModeRow(rows, labels[index], parts[index]);
+            }
+            return String.join(" / ", rows);
+        }
+
+        for (String part : parts) {
+            String segment = trimToNull(part);
+            if (segment == null) continue;
+            int delimiter = segment.indexOf('=');
+            if (delimiter < 0) continue;
+            String key = segment.substring(0, delimiter).trim().toLowerCase();
+            String segmentValue = segment.substring(delimiter + 1).trim();
+            switch (key) {
+                case "normal", "classic" -> addModeRow(rows, "\u666e\u901a", segmentValue);
+                case "expert" -> addModeRow(rows, "\u4e13\u5bb6", segmentValue);
+                case "master" -> addModeRow(rows, "\u5927\u5e08", segmentValue);
+                default -> {
+                }
+            }
+        }
+        return String.join(" / ", rows);
+    }
+
+    private void addModeRow(List<String> rows, String label, String value) {
+        String cleaned = stripModeLabel(trimToNull(value), label);
+        if (cleaned == null || cleaned.equalsIgnoreCase("y") || cleaned.equalsIgnoreCase("no")) return;
+        rows.add(label + ": " + cleaned);
+    }
+
+    private String stripModeLabel(String value, String label) {
+        String cleaned = trimToNull(value);
+        if (cleaned == null) return null;
+        String prefix = label + ":";
+        if (cleaned.startsWith(prefix)) {
+            cleaned = cleaned.substring(prefix.length()).trim();
+        }
+        return trimToNull(cleaned);
     }
 
     private List<Map<String, Object>> toObjectMapList(Object raw) {
@@ -679,7 +833,14 @@ public class AdminBuffController {
         return Map.of();
     }
 
-    private List<Map<String, Object>> loadLinkedSourceItems(Long buffId) {
+    private List<Map<String, Object>> loadLinkedSourceItems(Buff buff, Map<String, Object> supplement) {
+        if (buff == null || buff.getId() == null) return List.of();
+        List<Map<String, Object>> databaseItems = loadLinkedSourceItemsFromDatabase(buff.getId());
+        if (!databaseItems.isEmpty()) return databaseItems;
+        return loadLinkedSourceItemsFromSourcePage(buff.getInternalName(), supplement);
+    }
+
+    private List<Map<String, Object>> loadLinkedSourceItemsFromDatabase(Long buffId) {
         if (buffId == null) return List.of();
         try {
             return jdbcTemplate.queryForList(
@@ -716,6 +877,80 @@ public class AdminBuffController {
         } catch (Exception exception) {
             return List.of();
         }
+    }
+
+    private List<Map<String, Object>> loadLinkedSourceItemsFromSourcePage(String internalName, Map<String, Object> supplement) {
+        String sourcePage = firstNonBlank(extractBuffSourcePage(supplement), loadBuffSourcePageFromStandardized(internalName));
+        if (sourcePage == null) return List.of();
+        try {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                """
+                SELECT
+                  id,
+                  id AS sourceItemId,
+                  name,
+                  name_zh AS nameZh,
+                  internal_name AS internalName,
+                  image
+                FROM items
+                WHERE deleted = 0 AND name = ?
+                ORDER BY id ASC
+                LIMIT 1
+                """,
+                sourcePage
+            );
+            return rows.stream().map(row -> {
+                Map<String, Object> payload = new LinkedHashMap<>();
+                payload.put("sourceItemId", row.get("sourceItemId"));
+                payload.put("itemId", row.get("id"));
+                payload.put("name", firstNonBlank(trimToNull(row.get("nameZh")), trimToNull(row.get("name"))));
+                payload.put("nameEn", row.get("name"));
+                payload.put("nameZh", row.get("nameZh"));
+                payload.put("internalName", row.get("internalName"));
+                payload.put("image", normalizeAssetUrl(trimToNull(row.get("image"))));
+                payload.put("buffTime", null);
+                payload.put("sortOrder", 0);
+                payload.put("sourcePage", sourcePage);
+                payload.put("sourceKind", "buff_source_page");
+                return payload;
+            }).toList();
+        } catch (Exception exception) {
+            return List.of();
+        }
+    }
+
+    private String loadBuffSourcePageFromStandardized(String internalName) {
+        if (internalName == null) return null;
+        Path path = resolveDataFile(Path.of("standardized", "buffs.standardized.json"));
+        if (path == null) return null;
+        try {
+            Map<String, Object> root = objectMapper.readValue(path.toFile(), new TypeReference<>() {});
+            Object recordsRaw = root.get("records");
+            if (!(recordsRaw instanceof List<?> records)) return null;
+            for (Object recordRaw : records) {
+                if (!(recordRaw instanceof Map<?, ?> record)) continue;
+                if (!internalName.equals(trimToNull(record.get("internalName")))) continue;
+                return extractBuffSourcePage(new LinkedHashMap<>((Map<String, Object>) record));
+            }
+            return null;
+        } catch (Exception exception) {
+            return null;
+        }
+    }
+
+    private String extractBuffSourcePage(Map<String, Object> supplement) {
+        Object localizedRaw = supplement.get("localized");
+        if (!(localizedRaw instanceof Map<?, ?> localized)) return null;
+        Object englishRaw = localized.get("en");
+        if (englishRaw instanceof Map<?, ?> english) {
+            String page = trimToNull(english.get("page"));
+            if (page != null) return page;
+        }
+        Object chineseRaw = localized.get("zh");
+        if (chineseRaw instanceof Map<?, ?> chinese) {
+            return trimToNull(chinese.get("page"));
+        }
+        return null;
     }
 
     private Map<String, Object> loadBuffSupplement(String internalName) {
@@ -767,9 +1002,16 @@ public class AdminBuffController {
 
     private String normalizeAssetUrl(String value) {
         if (value == null) return null;
-        if (value.startsWith("http://") || value.startsWith("https://")) return value;
-        if (value.startsWith("localhost:") || value.startsWith("127.0.0.1:")) return "http://" + value;
-        return value;
+        String normalized = value.trim();
+        if (normalized.startsWith("http://") || normalized.startsWith("https://")) return normalizeWikiImagePath(normalized);
+        if (normalized.startsWith("localhost:") || normalized.startsWith("127.0.0.1:")) return "http://" + normalized;
+        return normalized;
+    }
+
+    private String normalizeWikiImagePath(String value) {
+        String lower = value.toLowerCase();
+        if (!lower.contains("terraria.wiki.gg/images/")) return value;
+        return value.replaceAll("(?i)%20", "_").replace(" ", "_");
     }
 
     private String trimToNull(Object value) {
