@@ -7,6 +7,8 @@
 | 类型 | 路径 | 用途 |
 | --- | --- | --- |
 | 项目稳固主计划 | `docs/plans/2026-05-02_project-stabilization-long-plan_项目稳固长期计划.md` | Phase B 到 Phase C 的执行入口 |
+| A/B 数据维护链计划 | `docs/plans/2026-05-03_ab-trusted-data-maintenance-chain-plan.md` | A/B 档可信数据源自动维护整链入口 |
+| Canonical 迁移边界 | `docs/audits/canonical-migration-boundary.md` | A/B/X 数据源准入、过渡豁免和禁止规则 |
 | 图片资产策略 | `docs/audits/image-asset-pipeline-policy.md` | source/cache/fallback 准入规则 |
 | 图片资产状态 | `docs/audits/image-asset-readiness.md` | 当前图片资产稳定性索引 |
 
