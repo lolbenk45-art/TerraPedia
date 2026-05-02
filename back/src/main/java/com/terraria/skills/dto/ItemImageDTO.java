@@ -17,6 +17,7 @@ public class ItemImageDTO {
     private LocalDateTime sourceRevisionTimestamp;
     private String originalUrl;
     private String cachedUrl;
+    private String imageUrl;
     private Integer width;
     private Integer height;
     private String contentType;

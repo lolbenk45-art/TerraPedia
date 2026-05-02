@@ -62,7 +62,7 @@ public class ItemImageServiceImpl implements ItemImageService {
     }
 
     private ItemImageDTO buildLegacyFallback(Long itemId, String imageUrl) {
-        String preferredUrl = preferredWikiItemIconUrl(imageUrl, imageUrl);
+        String preferredUrl = preferredDisplayImageUrl(imageUrl, imageUrl);
         if (preferredUrl == null) {
             return null;
         }
@@ -70,8 +70,12 @@ public class ItemImageServiceImpl implements ItemImageService {
         ItemImageDTO fallback = new ItemImageDTO();
         fallback.setItemId(itemId);
         fallback.setRole("icon");
-        fallback.setOriginalUrl(preferredUrl);
-        fallback.setCachedUrl(preferredUrl);
+        if (isManagedImageUrl(preferredUrl)) {
+            fallback.setCachedUrl(preferredUrl);
+        } else {
+            fallback.setOriginalUrl(preferredUrl);
+        }
+        fallback.setImageUrl(preferredUrl);
         fallback.setIsPrimary(Boolean.TRUE);
         fallback.setSortOrder(1);
         fallback.setSourcePage("items.image");
@@ -81,12 +85,13 @@ public class ItemImageServiceImpl implements ItemImageService {
     private ItemImageDTO toDto(ItemImage image) {
         ItemImageDTO dto = new ItemImageDTO();
         BeanUtils.copyProperties(image, dto);
-        String preferredUrl = preferredWikiItemIconUrl(dto.getOriginalUrl(), dto.getCachedUrl());
+        String preferredUrl = preferredDisplayImageUrl(dto.getOriginalUrl(), dto.getCachedUrl());
         if (preferredUrl == null) {
             return null;
         }
-        dto.setOriginalUrl(preferredUrl);
-        dto.setCachedUrl(preferredUrl);
+        dto.setOriginalUrl(trimToNull(dto.getOriginalUrl()));
+        dto.setCachedUrl(trimToNull(dto.getCachedUrl()));
+        dto.setImageUrl(preferredUrl);
         return dto;
     }
 
@@ -109,30 +114,60 @@ public class ItemImageServiceImpl implements ItemImageService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private static String preferredWikiItemIconUrl(String originalUrl, String cachedUrl) {
+    private static String preferredDisplayImageUrl(String originalUrl, String cachedUrl) {
+        String cached = trimToNull(cachedUrl);
         String original = trimToNull(originalUrl);
-        if (isAcceptableWikiItemIconUrl(original)) {
+        if (isNonItemIconVariant(original) || isNonItemIconVariant(cached)) {
+            return null;
+        }
+        if (isManagedImageUrl(cached)) {
+            return cached;
+        }
+        if (isManagedImageUrl(original)) {
             return original;
         }
-        String cached = trimToNull(cachedUrl);
-        if (isAcceptableWikiItemIconUrl(cached)) {
+        if (isWikiImageUrl(cached)) {
             return cached;
+        }
+        if (isWikiImageUrl(original)) {
+            return original;
         }
         return null;
     }
 
-    private static boolean isAcceptableWikiItemIconUrl(String value) {
+    private static boolean isManagedImageUrl(String value) {
         String text = trimToNull(value);
         if (text == null) {
             return false;
         }
         String normalized = safeDecode(text).toLowerCase(Locale.ROOT);
-        return (normalized.startsWith("https://") || normalized.startsWith("http://"))
-            && normalized.contains(WIKI_IMAGE_HOST)
-            && !normalized.contains(MANAGED_IMAGE_PATH_SEGMENT)
-            && !normalized.contains("(demo)")
-            && !normalized.contains("(placed)")
-            && !NON_ITEM_ICON_VARIANT_TOKEN.matcher(normalized).find();
+        return isHttpUrl(normalized) && normalized.contains(MANAGED_IMAGE_PATH_SEGMENT);
+    }
+
+    private static boolean isWikiImageUrl(String value) {
+        String text = trimToNull(value);
+        if (text == null) {
+            return false;
+        }
+        String normalized = safeDecode(text).toLowerCase(Locale.ROOT);
+        return isHttpUrl(normalized) && normalized.contains(WIKI_IMAGE_HOST);
+    }
+
+    private static boolean isHttpUrl(String normalized) {
+        return normalized.startsWith("https://") || normalized.startsWith("http://");
+    }
+
+    private static boolean isNonItemIconVariant(String value) {
+        String text = trimToNull(value);
+        if (text == null) {
+            return false;
+        }
+        String normalized = safeDecode(text).toLowerCase(Locale.ROOT);
+        return normalized.contains("(demo)")
+            || normalized.contains("(placed)")
+            || normalized.contains("%28demo%29")
+            || normalized.contains("%28placed%29")
+            || NON_ITEM_ICON_VARIANT_TOKEN.matcher(normalized).find();
     }
 
     private static String safeDecode(String value) {
