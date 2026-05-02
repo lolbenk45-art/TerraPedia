@@ -37,10 +37,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
@@ -145,6 +147,9 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                     "wiki/item-images/" + hashPrefix(sourceUrl),
                     buildStableId(sourceUrl, firstNonBlank(image.getSourceFileTitle(), image.getSourcePage(), image.getRole(), "item-image"))
                 );
+                if (!isWikiUrl(image.getOriginalUrl())) {
+                    image.setOriginalUrl(sourceUrl);
+                }
                 image.setCachedUrl(upload.getUrl());
                 image.setContentType(upload.getContentType());
                 image.setLastVerifiedAt(LocalDateTime.now());
@@ -158,14 +163,15 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
             }
         }
 
-        syncLegacyItemImages(scope, limit, force, uploadCache);
+        syncLegacyItemImages(scope, limit, force, uploadCache, new ArrayList<>(images));
     }
 
     private void syncLegacyItemImages(
         AdminWikiImageSyncScopeResultDTO scope,
         Integer limit,
         boolean force,
-        Map<String, FileUploadResultDTO> uploadCache
+        Map<String, FileUploadResultDTO> uploadCache,
+        List<ItemImage> existingImages
     ) {
         List<Item> items = itemMapper.selectList(new LambdaQueryWrapper<Item>()
             .isNotNull(Item::getImage)
@@ -182,7 +188,13 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
 
             scope.setCandidateCount(scope.getCandidateCount() + 1);
 
-            if (!force && isManagedUrl(item.getImage())) {
+            ItemImage existingImage = findMatchingLegacyItemImage(existingImages, item, sourceUrl);
+            if (!force && existingImage != null && isManagedUrl(existingImage.getCachedUrl())) {
+                if (!isWikiUrl(existingImage.getOriginalUrl())) {
+                    existingImage.setOriginalUrl(sourceUrl);
+                    existingImage.setLastVerifiedAt(LocalDateTime.now());
+                    itemImageMapper.updateById(existingImage);
+                }
                 scope.setSkippedCount(scope.getSkippedCount() + 1);
                 continue;
             }
@@ -194,8 +206,22 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                     "legacy/items/" + hashPrefix(sourceUrl),
                     buildStableId(sourceUrl, firstNonBlank(item.getInternalName(), item.getNameZh(), item.getName(), "item"))
                 );
-                item.setImage(upload.getUrl());
-                itemMapper.updateById(item);
+                if (existingImage == null) {
+                    existingImage = buildLegacyItemImage(item, sourceUrl);
+                    existingImage.setCachedUrl(upload.getUrl());
+                    existingImage.setContentType(upload.getContentType());
+                    existingImage.setLastVerifiedAt(LocalDateTime.now());
+                    itemImageMapper.insert(existingImage);
+                    existingImages.add(existingImage);
+                } else {
+                    if (!isWikiUrl(existingImage.getOriginalUrl())) {
+                        existingImage.setOriginalUrl(sourceUrl);
+                    }
+                    existingImage.setCachedUrl(upload.getUrl());
+                    existingImage.setContentType(upload.getContentType());
+                    existingImage.setLastVerifiedAt(LocalDateTime.now());
+                    itemImageMapper.updateById(existingImage);
+                }
                 scope.setSyncedCount(scope.getSyncedCount() + 1);
                 scope.addSampleUrl(upload.getUrl());
             } catch (Exception exception) {
@@ -204,6 +230,59 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                 scope.addSampleError("items#" + item.getId() + ": " + trimErrorMessage(exception));
             }
         }
+    }
+
+    private ItemImage buildLegacyItemImage(Item item, String sourceUrl) {
+        ItemImage image = new ItemImage();
+        image.setItemId(item.getId());
+        image.setRole("icon");
+        image.setProvider("wiki_gg");
+        image.setSourceFileTitle(firstNonBlank(item.getInternalName(), item.getName(), item.getNameZh(), "item"));
+        image.setSourcePage("items.image");
+        image.setOriginalUrl(sourceUrl);
+        image.setIsPrimary(Boolean.TRUE);
+        image.setSortOrder(0);
+        image.setStatus(1);
+        image.setDeleted(0);
+        return image;
+    }
+
+    private ItemImage findMatchingLegacyItemImage(List<ItemImage> images, Item item, String sourceUrl) {
+        if (item.getId() == null || !StringUtils.hasText(sourceUrl)) {
+            return null;
+        }
+        ItemImage primaryCandidate = null;
+        for (ItemImage image : images) {
+            if (!Objects.equals(image.getItemId(), item.getId())) {
+                continue;
+            }
+            if (Objects.equals(normalizeFetchUrl(image.getOriginalUrl()), sourceUrl)
+                || Objects.equals(normalizeFetchUrl(image.getCachedUrl()), sourceUrl)) {
+                return image;
+            }
+            if (primaryCandidate == null && isLegacyPrimaryImageCandidate(image)) {
+                primaryCandidate = image;
+            }
+        }
+        return primaryCandidate;
+    }
+
+    private boolean isLegacyPrimaryImageCandidate(ItemImage image) {
+        if (image == null) {
+            return false;
+        }
+        if (image.getStatus() != null && image.getStatus() != 1) {
+            return false;
+        }
+        if (image.getDeleted() != null && image.getDeleted() != 0) {
+            return false;
+        }
+        String provider = trimToNull(image.getProvider());
+        if (provider != null && !"wiki_gg".equals(provider)) {
+            return false;
+        }
+        String role = trimToNull(image.getRole());
+        return role == null || "icon".equals(role) || Boolean.TRUE.equals(image.getIsPrimary());
     }
 
     private void syncBuffImages(
