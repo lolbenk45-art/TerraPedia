@@ -90,6 +90,8 @@ describe('api/index lightweight query behavior', () => {
         tooltipEn: 'Works with bows',
         stackSize: 999,
         stack: 999,
+        sourceNpcsJson: null,
+        sourceNpcs: [],
       },
     ])
 

@@ -50,3 +50,25 @@ Stop:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\stop-local-stack.ps1
 ```
+
+## Quality Gate
+
+Run the full local gate before merging or handing off a stabilization task:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\quality-gate.ps1
+```
+
+Useful focused runs:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\quality-gate.ps1 -SkipFront -SkipAdmin
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\quality-gate.ps1 -SkipBack -SkipAdmin
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\quality-gate.ps1 -SkipBack -SkipFront
+```
+
+The quick startup preflight remains:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\verify-local-stack.ps1
+```

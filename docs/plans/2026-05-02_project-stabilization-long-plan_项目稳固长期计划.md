@@ -29,12 +29,14 @@
 - 后端管理域覆盖较宽：item、recipe、npc、boss、buff、projectile、biome、shimmer、item group、relation compatibility、crawler monitor、article、user。
 - 前台已有公开消费主线：物品、NPC、文章、用户。
 - 近期关系与来源补洞已有落地：Buff 来源物品显示、NPC-Buff 关系回填、Any Item Group 来源审计。
+- 图片资产已形成双轨治理雏形：item 侧优先 MinIO cache + wiki fallback，buff 侧已新增 `image_original_url`、`image_cached_url`、`image_content_type`、`image_last_verified_at`，wiki image 同步已具备外部来源解析与缓存物化能力。
 
 ### 1.3 尚不稳定的能力
 
 - `data/canonical/` 仍是目标结构，历史可信数据尚未完全迁入。
 - 关系报告仍有 warning，例如 `unresolved_item_npc_relation_audits = 2602`。
 - Any Item Group 仍有 duplicate group keys 和 blocked group。
+- 图片资产缺少跨实体统一契约：item、buff、npc、biome、article 的 source/cache/fallback 语义尚未标准化，图片健康度也还没有统一的只读审计入口。
 - 管理端验收面不足，很多质量信号停留在报告或接口层。
 - `front` 默认 `test` 不跑 Vitest；`data-query-app` 有 `tests/*.test.mjs` 但没有正式 test 脚本。
 - `verify-local-stack.ps1` 只做 compile/typecheck，没有跑后端测试、前台单测、管理端测试、前端 build。
@@ -50,6 +52,7 @@
 4. 快速门禁先于全量门禁：本地开发保留快速预检，但合并前必须有完整质量门禁。
 5. 小步功能允许并行：不依赖底座的体验类工作可以推进，但不能掩盖数据 warning。
 6. 同一写入目标串行：同一脚本、同一 DB 表、同一页面区块、同一配置入口不得多 agent 同时写。
+7. 图片资产必须双轨保存：`source/original` 用于追踪回源，`cached/managed` 用于展示优先级，公开页面不能只保留 managed URL 而丢失原始来源。
 
 ---
 
@@ -113,20 +116,40 @@
 - Create: `docs/audits/relation-warning-policy.md`
   - 定义哪些 warning 阻塞公开页面，哪些允许带解释上线。
 
-### 3.5 管理端验收入口
+### 3.5 图片资产管线
+
+- Create: `docs/audits/image-asset-pipeline-policy.md`
+  - 定义 item/buff/npc/biome/article 的 source/cache/fallback 契约。
+- Create: `docs/audits/image-asset-readiness.md`
+  - 只读审计图片缓存命中、wiki fallback、broken URL、content type、last verified。
+- Create: `docs/runbooks/image-asset-cache.md`
+  - 固化图片同步、回填、失败处理、并发限制和验收方式。
+- Modify: `back/src/main/java/com/terraria/skills/service/impl/WikiImageSyncServiceImpl.java`
+  - 作为图片同步与缓存物化的总入口，后续任务必须引用其契约。
+- Modify: `back/src/main/java/com/terraria/skills/service/impl/ItemImageServiceImpl.java`
+  - 作为 item 图片展示优先级参考实现。
+- Modify: `back/src/main/java/com/terraria/skills/controller/AdminBuffController.java`
+  - 作为 buff 图片双轨字段返回的参考实现。
+- Modify: `back/src/main/resources/db/migration/V40__add_buff_image_cache_columns.sql`
+  - 作为图片字段迁移与验收基线。
+
+### 3.6 管理端验收入口
 
 - Create: `data-query-app/pages/operations/data-quality.vue`
   - 汇总 relation health、source group audit、crawler monitor、recipe import、shimmer 状态。
 - Modify: `data-query-app/pages/entities/[type].vue`
   - 对 projectile、buff、npc 等详情加入来源、空来源、JSON 解析失败、warning 标记。
+  - 增加图片状态显示：source URL、cached URL、fallback、broken 标记。
 - Modify: `data-query-app/pages/entities/town-npcs/index.vue`
   - 增加批量校验摘要：缺图、缺入住条件、商店关系缺口、冲突样本。
 - Modify: `back/src/main/java/com/terraria/skills/controller/AdminRelationCompatibilityController.java`
   - 为管理端数据质量页提供稳定 JSON payload。
 - Modify: `back/src/test/java/com/terraria/skills/controller/AdminRelationCompatibilityControllerTest.java`
   - 覆盖 blocking/warning/count/sample 字段。
+- Modify: `back/src/test/java/com/terraria/skills/controller/AdminBuffControllerTest.java`
+  - 覆盖 buff 图片双轨字段、fallback 与展示字段契约。
 
-### 3.6 前台功能准入
+### 3.7 前台功能准入
 
 - Modify: `front/src/router/routes.ts`
   - 在新增公开实体页面前检查路由、404、详情 fallback。
@@ -463,6 +486,34 @@ Select-String -Path .\scripts\data\crawler\README.md -Pattern "data/wiki-crawler
 
 **Parallel:** 可与 canonical 文档并行。
 
+#### Task 3.4：Image asset source/cache/fallback policy
+
+**Files:**
+
+- Create: `docs/audits/image-asset-pipeline-policy.md`
+- Create: `docs/audits/image-asset-readiness.md`
+- Create: `docs/runbooks/image-asset-cache.md`
+- Modify: `docs/audits/data-quality-index.md`
+
+**Steps:**
+
+- [ ] 定义 item、buff、npc、biome、article 的图片字段语义。
+- [ ] 定义 MinIO cache 优先、wiki fallback 次之、原始来源保留可追踪的规则。
+- [ ] 定义同步失败、broken URL、content type 缺失、last verified 过期的审计口径。
+- [ ] 定义并发与重跑约束：同一实体图片写入必须串行，同一同步任务不得并发 apply。
+
+**Validation:**
+
+```powershell
+Test-Path .\docs\audits\image-asset-pipeline-policy.md
+Test-Path .\docs\runbooks\image-asset-cache.md
+Select-String -Path .\docs\audits\image-asset-pipeline-policy.md -Pattern "image_original_url","image_cached_url","MinIO","fallback"
+```
+
+**Expected:** 图片资产成为独立准入层，而不是散落在 controller/service 的实现细节。
+
+**Parallel:** 可与 canonical 文档并行，但不得与图片写入脚本或图片同步 apply 并发执行。
+
 ---
 
 ### Milestone 4：Relation 与 source group warning 收口
@@ -758,6 +809,7 @@ Select-String -Path .\docs\runbooks\public-page-readiness.md -Pattern "public ag
 | Backend Test Agent | 后端 test runner | `back/pom.xml` | controller/service 业务代码 | `cd back; mvn test` |
 | Docs Agent | 验收 runbook | `docs/runbooks/local-acceptance.md`, `README.md` | `scripts/dev/*` | `Test-Path docs/runbooks/local-acceptance.md` |
 | Data Docs Agent | canonical 边界 | `data/canonical/README.md`, `docs/audits/canonical-migration-boundary.md` | 数据写入脚本 | `Select-String` 文档核对 |
+| Image Asset Pipeline Agent | 图片缓存治理 | `docs/audits/image-asset-pipeline-policy.md`, `docs/runbooks/image-asset-cache.md`, `docs/audits/image-asset-readiness.md` | `scripts/data/*` 图片同步 apply、front styling | `Test-Path docs/audits/image-asset-pipeline-policy.md` |
 
 ### 5.2 第二批串行任务
 
@@ -807,6 +859,7 @@ Select-String -Path .\docs\runbooks\public-page-readiness.md -Pattern "public ag
 
 - [ ] Relation health 无 blocking。
 - [ ] 仍存在的 warning 已能在管理端展示，并有解释或功能隐藏策略。
+- [ ] 图片资产 source/cache/fallback 可追踪、可回填、可审计，至少覆盖 cached、wiki fallback、missing/broken 三类样本。
 - [ ] 新公开实体有 public aggregate 或稳定 DTO。
 - [ ] 对应管理端维护入口能展示来源和缺口。
 - [ ] 前台页面有样本验收：普通、边界、不存在 id。
@@ -892,6 +945,7 @@ git diff --cached --stat
 
 - Task 3.2
 - Task 3.3
+- Task 3.4
 - Task 4.1
 - Task 4.2
 - Task 4.3
