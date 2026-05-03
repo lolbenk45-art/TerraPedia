@@ -15,6 +15,8 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DomainAcceptanceServiceImplTest {
@@ -44,6 +46,8 @@ class DomainAcceptanceServiceImplTest {
         assertEquals("B", bosses.getTier());
         assertEquals("product-readiness", bosses.getChainStage());
         assertEquals("/entities/bosses", bosses.getManagementRoute());
+        assertEquals(List.of("wiki-core-refresh", "boss-sync"), bosses.getBackendRefreshStepIds());
+        assertEquals("node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=wiki-core-refresh,boss-sync", bosses.getBackendRefreshPlanCommand());
         assertEquals(false, bosses.getRequiresDatabase());
         assertEquals("pass", bosses.getStatus());
         assertEquals(4, bosses.getPanelCount());
@@ -62,6 +66,8 @@ class DomainAcceptanceServiceImplTest {
         assertEquals("source", source.getChainStage());
         assertEquals("domain-acceptance-evidence", source.getMaintenanceLane());
         assertEquals("domain-acceptance:bosses:sourceReadiness", source.getMaintenanceLaneId());
+        assertEquals(List.of("wiki-core-refresh", "boss-sync"), source.getBackendRefreshStepIds());
+        assertEquals("node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=wiki-core-refresh,boss-sync", source.getBackendRefreshPlanCommand());
         assertEquals(true, source.getAutoMaintenanceAllowed());
         assertEquals(false, source.getBlockingBeforePublic());
         assertEquals("Evidence sample", source.getChecks().get(0).getMessage());
@@ -116,6 +122,7 @@ class DomainAcceptanceServiceImplTest {
                   "tier": "B",
                   "chainStage": "support-readiness",
                   "panelSet": "single",
+                  "backendRefreshStepIds": ["support-sync"],
                   "managementRoute": "/synthetic",
                   "publicRoute": null
                 }
@@ -130,7 +137,111 @@ class DomainAcceptanceServiceImplTest {
         DomainAcceptanceOverviewDTO.DomainDTO synthetic = domain(overview, "synthetic.domain");
         assertEquals("/synthetic", synthetic.getManagementRoute());
         assertEquals("support-readiness", synthetic.getChainStage());
+        assertEquals(List.of("support-sync"), synthetic.getBackendRefreshStepIds());
+        assertEquals("node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=support-sync", synthetic.getBackendRefreshPlanCommand());
         assertEquals("domain-acceptance:synthetic.domain:sourceReadiness", synthetic.getPanels().get(0).getMaintenanceLaneId());
+        assertEquals(List.of("support-sync"), synthetic.getPanels().get(0).getBackendRefreshStepIds());
+    }
+
+    @Test
+    void shouldKeepBackendRefreshPlanEmptyWhenRegistryOmitsBackendSteps() throws Exception {
+        Path repoRoot = createRepoRoot();
+        writeRegistry(repoRoot, """
+            {
+              "version": 1,
+              "freshness": {
+                "freshnessSource": "report-generatedAt-or-mtime",
+                "staleAfterHours": 24,
+                "nextEvidenceWhen": ["missing", "stale", "unknown", "unreadable"],
+                "statusImpact": "stale-pass-to-warning"
+              },
+              "panelSets": {
+                "single": ["sourceReadiness"]
+              },
+              "panels": {
+                "sourceReadiness": {
+                  "panelId": "sourceReadiness",
+                  "fileKey": "source-readiness",
+                  "generatorPanel": "source",
+                  "chainStage": "source",
+                  "maintenanceLane": "domain-acceptance-evidence",
+                  "autoMaintenanceAllowed": true,
+                  "blockingBeforePublic": false,
+                  "requiresDatabase": false,
+                  "writesDatabase": false
+                }
+              },
+              "domains": [
+                {
+                  "domainId": "synthetic.domain",
+                  "domainType": "support",
+                  "tier": "B",
+                  "chainStage": "support-readiness",
+                  "panelSet": "single",
+                  "managementRoute": "/synthetic",
+                  "publicRoute": null
+                }
+              ]
+            }
+            """);
+        writeDomainReport(repoRoot, "synthetic.domain", "source-readiness", "pass", "2026-05-03T00:00:00Z", 0, 0);
+
+        DomainAcceptanceOverviewDTO.DomainDTO synthetic = domain(serviceWithRepo(repoRoot).getOverview(), "synthetic.domain");
+
+        assertEquals(List.of(), synthetic.getBackendRefreshStepIds());
+        assertNull(synthetic.getBackendRefreshPlanCommand());
+        assertEquals(List.of(), synthetic.getPanels().get(0).getBackendRefreshStepIds());
+        assertNull(synthetic.getPanels().get(0).getBackendRefreshPlanCommand());
+    }
+
+    @Test
+    void shouldFailClosedWhenRegistryDeclaresUnknownBackendStep() throws Exception {
+        Path repoRoot = createRepoRoot();
+        writeRegistry(repoRoot, """
+            {
+              "version": 1,
+              "freshness": {
+                "freshnessSource": "report-generatedAt-or-mtime",
+                "staleAfterHours": 24,
+                "nextEvidenceWhen": ["missing", "stale", "unknown", "unreadable"],
+                "statusImpact": "stale-pass-to-warning"
+              },
+              "panelSets": {
+                "single": ["sourceReadiness"]
+              },
+              "panels": {
+                "sourceReadiness": {
+                  "panelId": "sourceReadiness",
+                  "fileKey": "source-readiness",
+                  "generatorPanel": "source",
+                  "chainStage": "source",
+                  "maintenanceLane": "domain-acceptance-evidence",
+                  "autoMaintenanceAllowed": true,
+                  "blockingBeforePublic": false,
+                  "requiresDatabase": false,
+                  "writesDatabase": false
+                }
+              },
+              "domains": [
+                {
+                  "domainId": "synthetic.domain",
+                  "domainType": "support",
+                  "tier": "B",
+                  "chainStage": "support-readiness",
+                  "panelSet": "single",
+                  "backendRefreshStepIds": ["missing-sync"],
+                  "managementRoute": "/synthetic",
+                  "publicRoute": null
+                }
+              ]
+            }
+            """);
+
+        IllegalStateException exception = assertThrows(
+            IllegalStateException.class,
+            () -> serviceWithRepo(repoRoot).getOverview()
+        );
+        assertEquals("Unknown backend refresh step for synthetic.domain: missing-sync", exception.getMessage());
     }
 
     @Test

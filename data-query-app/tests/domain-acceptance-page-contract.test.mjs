@@ -39,12 +39,16 @@ test('domain acceptance page renders domains, panels, evidence status, and next 
     'domain.chainStage',
     'domain.managementRoute',
     'domain.publicRoute',
+    'domain.backendRefreshStepIds',
+    'domain.backendRefreshPlanCommand',
     'domain.requiresDatabase',
     'domain.panels',
     'panel.panelId',
     'panel.chainStage',
     'panel.maintenanceLane',
     'panel.maintenanceLaneId',
+    'panel.backendRefreshStepIds',
+    'panel.backendRefreshPlanCommand',
     'panel.autoMaintenanceAllowed',
     'panel.blockingBeforePublic',
     'panel.reportPath',
@@ -85,11 +89,15 @@ test('domain acceptance types preserve dynamic domains and panels', () => {
   assert.match(types, /chainStage\?: string \| null/)
   assert.match(types, /managementRoute\?: string \| null/)
   assert.match(types, /publicRoute\?: string \| null/)
+  assert.match(types, /backendRefreshStepIds\?: string\[\]/)
+  assert.match(types, /backendRefreshPlanCommand\?: string \| null/)
   assert.match(types, /requiresDatabase\?: boolean \| null/)
   assert.match(types, /panels\?: DomainAcceptancePanel\[\]/)
   assert.match(types, /export interface DomainAcceptancePanel/)
   assert.match(types, /maintenanceLane\?: string \| null/)
   assert.match(types, /maintenanceLaneId\?: string \| null/)
+  assert.match(types, /backendRefreshStepIds\?: string\[\]/)
+  assert.match(types, /backendRefreshPlanCommand\?: string \| null/)
   assert.match(types, /autoMaintenanceAllowed\?: boolean \| null/)
   assert.match(types, /blockingBeforePublic\?: boolean \| null/)
   assert.match(types, /nextEvidenceCommand\?: string \| null/)

@@ -14,6 +14,8 @@ export interface DomainAcceptancePanel {
   chainStage?: string | null
   maintenanceLane?: string | null
   maintenanceLaneId?: string | null
+  backendRefreshStepIds?: string[]
+  backendRefreshPlanCommand?: string | null
   autoMaintenanceAllowed?: boolean | null
   blockingBeforePublic?: boolean | null
   status?: DomainAcceptanceStatus
@@ -48,6 +50,8 @@ export interface DomainAcceptanceDomain {
   chainStage?: string | null
   managementRoute?: string | null
   publicRoute?: string | null
+  backendRefreshStepIds?: string[]
+  backendRefreshPlanCommand?: string | null
   requiresDatabase?: boolean | null
   status?: DomainAcceptanceStatus
   panelCount?: number | null

@@ -34,6 +34,8 @@ public class DomainAcceptanceOverviewDTO {
         private String chainStage;
         private String managementRoute;
         private String publicRoute;
+        private List<String> backendRefreshStepIds = new ArrayList<>();
+        private String backendRefreshPlanCommand;
         private Boolean requiresDatabase;
         private String status;
         private int panelCount;
@@ -52,6 +54,8 @@ public class DomainAcceptanceOverviewDTO {
         private String chainStage;
         private String maintenanceLane;
         private String maintenanceLaneId;
+        private List<String> backendRefreshStepIds = new ArrayList<>();
+        private String backendRefreshPlanCommand;
         private Boolean autoMaintenanceAllowed;
         private Boolean blockingBeforePublic;
         private String status;

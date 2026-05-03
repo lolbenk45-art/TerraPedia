@@ -21,12 +21,25 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 @Service
 public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
 
     private static final Path REGISTRY_PATH = Path.of("scripts", "data", "workflow", "domain-acceptance-registry.json");
+    private static final Set<String> KNOWN_BACKEND_REFRESH_STEP_IDS = Set.of(
+        "wiki-core-refresh",
+        "item-pages-refresh",
+        "recipe-reference-sync",
+        "item-detail-sync",
+        "boss-sync",
+        "biome-sync",
+        "town-npc-sync",
+        "independent-entity-sync",
+        "shimmer-sync",
+        "support-sync"
+    );
 
     private final ObjectMapper objectMapper;
     private final Path repoRootOverride;
@@ -70,12 +83,21 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         domain.setChainStage(definition.chainStage);
         domain.setManagementRoute(definition.managementRoute);
         domain.setPublicRoute(definition.publicRoute);
+        List<String> backendRefreshStepIds = backendRefreshStepIds(definition);
+        domain.setBackendRefreshStepIds(backendRefreshStepIds);
+        domain.setBackendRefreshPlanCommand(backendRefreshPlanCommand(backendRefreshStepIds));
         for (String panelId : resolvePanelSet(registry, definition)) {
             PanelDefinition panelDefinition = registry.panels.get(panelId);
             if (panelDefinition == null) {
                 throw new IllegalStateException("Missing domain acceptance panel definition: " + panelId);
             }
-            domain.getPanels().add(readPanel(repoRoot, definition.domainId, panelDefinition, registry.freshness));
+            domain.getPanels().add(readPanel(
+                repoRoot,
+                definition.domainId,
+                backendRefreshStepIds,
+                panelDefinition,
+                registry.freshness
+            ));
         }
         aggregateDomain(domain);
         return domain;
@@ -84,10 +106,11 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
     private DomainAcceptanceOverviewDTO.DomainPanelDTO readPanel(
         Path repoRoot,
         String domainId,
+        List<String> backendRefreshStepIds,
         PanelDefinition definition,
         FreshnessDefinition freshness
     ) {
-        DomainAcceptanceOverviewDTO.DomainPanelDTO panel = basePanel(domainId, definition, freshness);
+        DomainAcceptanceOverviewDTO.DomainPanelDTO panel = basePanel(domainId, backendRefreshStepIds, definition, freshness);
         Path reportsRoot = repoRoot.resolve("reports").resolve("domain").normalize();
         Path dir = reportsRoot.resolve(domainId).normalize();
         if (!dir.startsWith(reportsRoot)) {
@@ -250,7 +273,12 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         }
     }
 
-    private DomainAcceptanceOverviewDTO.DomainPanelDTO basePanel(String domainId, PanelDefinition definition, FreshnessDefinition freshness) {
+    private DomainAcceptanceOverviewDTO.DomainPanelDTO basePanel(
+        String domainId,
+        List<String> backendRefreshStepIds,
+        PanelDefinition definition,
+        FreshnessDefinition freshness
+    ) {
         DomainAcceptanceOverviewDTO.DomainPanelDTO panel = new DomainAcceptanceOverviewDTO.DomainPanelDTO();
         panel.setId(definition.panelId);
         panel.setDomainId(domainId);
@@ -258,6 +286,8 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         panel.setChainStage(definition.chainStage);
         panel.setMaintenanceLane(definition.maintenanceLane);
         panel.setMaintenanceLaneId("domain-acceptance:" + domainId + ":" + definition.panelId);
+        panel.setBackendRefreshStepIds(new ArrayList<>(backendRefreshStepIds));
+        panel.setBackendRefreshPlanCommand(backendRefreshPlanCommand(backendRefreshStepIds));
         panel.setAutoMaintenanceAllowed(Boolean.TRUE.equals(definition.autoMaintenanceAllowed));
         panel.setBlockingBeforePublic(Boolean.TRUE.equals(definition.blockingBeforePublic));
         panel.setReportPattern("reports/domain/" + domainId + "/" + definition.fileKey + "*.json");
@@ -269,6 +299,31 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         panel.setBlockingCount(0);
         panel.setWarningCount(0);
         return panel;
+    }
+
+    private List<String> backendRefreshStepIds(DomainDefinition definition) {
+        if (definition.backendRefreshStepIds == null || definition.backendRefreshStepIds.isEmpty()) {
+            return List.of();
+        }
+        List<String> stepIds = new ArrayList<>();
+        for (String stepId : definition.backendRefreshStepIds) {
+            if (stepId == null || stepId.isBlank()) {
+                throw new IllegalStateException("Blank backend refresh step for " + definition.domainId);
+            }
+            if (!KNOWN_BACKEND_REFRESH_STEP_IDS.contains(stepId)) {
+                throw new IllegalStateException("Unknown backend refresh step for " + definition.domainId + ": " + stepId);
+            }
+            stepIds.add(stepId);
+        }
+        return stepIds;
+    }
+
+    private String backendRefreshPlanCommand(List<String> backendRefreshStepIds) {
+        if (backendRefreshStepIds == null || backendRefreshStepIds.isEmpty()) {
+            return null;
+        }
+        return "node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps="
+            + String.join(",", backendRefreshStepIds);
     }
 
     private DomainAcceptanceOverviewDTO.DomainPanelDTO missingPanel(DomainAcceptanceOverviewDTO.DomainPanelDTO panel) {
@@ -568,6 +623,7 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         public String panelSet;
         public String managementRoute;
         public String publicRoute;
+        public List<String> backendRefreshStepIds;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

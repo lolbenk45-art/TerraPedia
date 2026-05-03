@@ -136,6 +136,15 @@
               <span>公共入口</span>
               <code>{{ domain.publicRoute || '未配置' }}</code>
             </div>
+            <div>
+              <span>后端刷新步骤</span>
+              <code>{{ formatStepIds(domain.backendRefreshStepIds) }}</code>
+            </div>
+          </div>
+
+          <div v-if="domain.backendRefreshPlanCommand" class="path-block">
+            <span>后端刷新计划命令</span>
+            <code>{{ domain.backendRefreshPlanCommand }}</code>
           </div>
 
           <div class="domain-panel-list">
@@ -184,6 +193,16 @@
               <div v-if="panel.maintenanceLaneId" class="path-block">
                 <span>维护任务</span>
                 <code>{{ panel.maintenanceLaneId }}</code>
+              </div>
+
+              <div class="path-block">
+                <span>后端刷新步骤</span>
+                <code>{{ formatStepIds(panel.backendRefreshStepIds) }}</code>
+              </div>
+
+              <div v-if="panel.backendRefreshPlanCommand" class="path-block">
+                <span>后端刷新计划命令</span>
+                <code>{{ panel.backendRefreshPlanCommand }}</code>
               </div>
 
               <dl v-if="panelMetricRows(panel).length" class="metric-list">
@@ -416,6 +435,10 @@ function renderValue(value: unknown) {
   if (Array.isArray(value)) return `${value.length}`
   if (typeof value === 'object' && value !== null) return JSON.stringify(value)
   return String(value)
+}
+
+function formatStepIds(stepIds?: string[] | null) {
+  return stepIds?.length ? stepIds.join(', ') : '--'
 }
 
 function formatNumber(value?: number | null) {

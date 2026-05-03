@@ -69,11 +69,15 @@ class AdminDomainAcceptanceControllerTest {
             .andExpect(jsonPath("$.data.domains[0].tier").value("B"))
             .andExpect(jsonPath("$.data.domains[0].chainStage").value("product-readiness"))
             .andExpect(jsonPath("$.data.domains[0].managementRoute").value("/entities/buffs"))
+            .andExpect(jsonPath("$.data.domains[0].backendRefreshStepIds[0]").value("independent-entity-sync"))
+            .andExpect(jsonPath("$.data.domains[0].backendRefreshPlanCommand").value("node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=independent-entity-sync"))
             .andExpect(jsonPath("$.data.domains[0].requiresDatabase").value(false))
             .andExpect(jsonPath("$.data.domains[0].panels[0].panelId").value("sourceReadiness"))
             .andExpect(jsonPath("$.data.domains[0].panels[0].chainStage").value("source"))
             .andExpect(jsonPath("$.data.domains[0].panels[0].maintenanceLane").value("domain-acceptance-evidence"))
             .andExpect(jsonPath("$.data.domains[0].panels[0].maintenanceLaneId").value("domain-acceptance:buffs:sourceReadiness"))
+            .andExpect(jsonPath("$.data.domains[0].panels[0].backendRefreshStepIds[0]").value("independent-entity-sync"))
+            .andExpect(jsonPath("$.data.domains[0].panels[0].backendRefreshPlanCommand").value("node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=independent-entity-sync"))
             .andExpect(jsonPath("$.data.domains[0].panels[0].autoMaintenanceAllowed").value(true))
             .andExpect(jsonPath("$.data.domains[0].panels[0].blockingBeforePublic").value(false))
             .andExpect(jsonPath("$.data.domains[0].panels[0].nextEvidenceCommand").value("node scripts/data/audit/domain-readiness-audit.mjs --domain=buffs --panel=source"))
@@ -90,6 +94,8 @@ class AdminDomainAcceptanceControllerTest {
         panel.setChainStage("source");
         panel.setMaintenanceLane("domain-acceptance-evidence");
         panel.setMaintenanceLaneId("domain-acceptance:buffs:sourceReadiness");
+        panel.setBackendRefreshStepIds(List.of("independent-entity-sync"));
+        panel.setBackendRefreshPlanCommand("node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=independent-entity-sync");
         panel.setAutoMaintenanceAllowed(true);
         panel.setBlockingBeforePublic(false);
         panel.setNextEvidenceCommand("node scripts/data/audit/domain-readiness-audit.mjs --domain=buffs --panel=source");
@@ -103,6 +109,8 @@ class AdminDomainAcceptanceControllerTest {
         domain.setChainStage("product-readiness");
         domain.setManagementRoute("/entities/buffs");
         domain.setPublicRoute(null);
+        domain.setBackendRefreshStepIds(List.of("independent-entity-sync"));
+        domain.setBackendRefreshPlanCommand("node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=independent-entity-sync");
         domain.setRequiresDatabase(false);
         domain.setStatus("warning");
         domain.setPanelCount(1);
