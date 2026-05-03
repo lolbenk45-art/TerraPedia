@@ -1,0 +1,60 @@
+package com.terraria.skills.dto;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Data;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+@Data
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class DataSourceAcceptanceOverviewDTO {
+
+    private Instant generatedAt;
+    private String overallStatus;
+    private int blockingCount;
+    private int warningCount;
+    private int missingCount;
+    private List<String> blockingReasons = new ArrayList<>();
+    private List<String> warningReasons = new ArrayList<>();
+
+    private AcceptancePanelDTO relationHealth;
+    private AcceptancePanelDTO replacementReadiness;
+    private AcceptancePanelDTO sourceDatasetLanding;
+    private AcceptancePanelDTO sourceGroupAudit;
+    private AcceptancePanelDTO imageReadiness;
+    private AcceptancePanelDTO crawlerMonitor;
+    private AcceptancePanelDTO entitySourceCoverage;
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class AcceptancePanelDTO {
+        private String id;
+        private String status;
+        private boolean found;
+        private boolean readable;
+        private String reportPath;
+        private String reportPattern;
+        private Instant generatedAt;
+        private String updatedAt;
+        private String errorMessage;
+        private Integer blockingCount;
+        private Integer warningCount;
+        private Map<String, Object> metrics = new LinkedHashMap<>();
+        private List<AcceptanceCheckDTO> checks = new ArrayList<>();
+        private List<String> sampleReportPaths = new ArrayList<>();
+        private Map<String, Object> rawSummary = new LinkedHashMap<>();
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class AcceptanceCheckDTO {
+        private String id;
+        private String status;
+        private String message;
+        private String reportPath;
+    }
+}
