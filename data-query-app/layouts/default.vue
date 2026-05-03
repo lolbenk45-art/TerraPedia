@@ -275,6 +275,7 @@ const menuSections: MenuSection[] = [
     items: [
       { name: '爬取监控', path: '/operations/crawler-monitor', hint: '查看刷新进度与运行日志', icon: Activity },
       { name: '数据源验收', path: '/operations/data-source-acceptance', hint: '查看数据源替换准入状态', icon: ShieldCheck },
+      { name: 'B 档域验收', path: '/operations/domain-acceptance', hint: '查看 B 档域自动维护证据', icon: ShieldCheck },
       { name: '监控测试页', path: '/operations/crawler-monitor-test', hint: '手动观察测试状态', icon: Beaker },
       { name: '用户管理', path: '/users', hint: '账号与权限', icon: UserRound },
       { name: '文章管理', path: '/articles', hint: '内容工作台', icon: Newspaper },

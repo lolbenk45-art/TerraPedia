@@ -1,0 +1,80 @@
+package com.terraria.skills.dto;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Data;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+@Data
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class DomainAcceptanceOverviewDTO {
+
+    private Instant generatedAt;
+    private String overallStatus;
+    private int domainCount;
+    private int panelCount;
+    private int blockingCount;
+    private int warningCount;
+    private int missingCount;
+    private List<String> blockingReasons = new ArrayList<>();
+    private List<String> warningReasons = new ArrayList<>();
+    private Map<String, Object> summary = new LinkedHashMap<>();
+    private List<DomainDTO> domains = new ArrayList<>();
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class DomainDTO {
+        private String domainId;
+        private String domainType;
+        private String status;
+        private int panelCount;
+        private int blockingCount;
+        private int warningCount;
+        private int missingCount;
+        private List<DomainPanelDTO> panels = new ArrayList<>();
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class DomainPanelDTO {
+        private String id;
+        private String domainId;
+        private String panelId;
+        private String status;
+        private boolean found;
+        private boolean readable;
+        private String reportPath;
+        private String reportPattern;
+        private String generatorCommand;
+        private Boolean writesDatabase;
+        private Boolean requiresDatabase;
+        private String notes;
+        private String freshnessStatus;
+        private String freshnessReason;
+        private Integer staleAfterHours;
+        private Long ageHours;
+        private String nextEvidenceCommand;
+        private Instant generatedAt;
+        private String updatedAt;
+        private String errorMessage;
+        private Integer blockingCount;
+        private Integer warningCount;
+        private Map<String, Object> metrics = new LinkedHashMap<>();
+        private List<DomainCheckDTO> checks = new ArrayList<>();
+        private List<String> sampleReportPaths = new ArrayList<>();
+        private Map<String, Object> rawSummary = new LinkedHashMap<>();
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class DomainCheckDTO {
+        private String id;
+        private String status;
+        private String message;
+        private String reportPath;
+    }
+}

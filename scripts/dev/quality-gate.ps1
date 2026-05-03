@@ -41,12 +41,27 @@ $pnpmCmd = Resolve-RequiredCommand -PreferredPath 'C:\nvm4w\nodejs\pnpm.cmd' -Co
 
 Invoke-Step -Label 'Data workflow acceptance tests' -WorkingDirectory $repoRoot -CommandPath $nodeCmd -Arguments @(
   '--test',
+  'scripts/dev/quality-gate.test.mjs',
+  'scripts/data/audit/domain-readiness-audit.test.mjs',
   'scripts/data/workflow/data-source-acceptance-report-manifest.test.mjs',
   'scripts/data/workflow/data-source-acceptance-freshness-audit.test.mjs',
-  'scripts/data/workflow/data-source-acceptance-refresh-plan.test.mjs'
+  'scripts/data/workflow/data-source-acceptance-refresh-plan.test.mjs',
+  'scripts/data/workflow/domain-acceptance-report-manifest.test.mjs',
+  'scripts/data/workflow/domain-acceptance-freshness-audit.test.mjs',
+  'scripts/data/workflow/domain-acceptance-refresh-plan.test.mjs',
+  'scripts/data/workflow/domain-acceptance-generate-reports.test.mjs'
+)
+
+Invoke-Step -Label 'Domain acceptance full dry-run' -WorkingDirectory $repoRoot -CommandPath $nodeCmd -Arguments @(
+  'scripts/data/workflow/domain-acceptance-generate-reports.mjs',
+  '--fail-on-blocked=true'
 )
 
 if (-not $SkipBack) {
+  Invoke-Step -Label 'Backend domain acceptance tests' -WorkingDirectory $backDir -CommandPath $mavenCmd -Arguments @(
+    '-Dtest=DomainAcceptanceServiceImplTest,AdminDomainAcceptanceControllerTest',
+    'test'
+  )
   Invoke-Step -Label 'Backend tests' -WorkingDirectory $backDir -CommandPath $mavenCmd -Arguments @('test')
 }
 
