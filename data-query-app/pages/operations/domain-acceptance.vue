@@ -58,6 +58,57 @@
         </div>
       </section>
 
+      <section v-if="overview?.refreshPlanSummary" class="refresh-plan-summary">
+        <article v-for="stat in refreshPlanSummaryCards" :key="stat.label" class="summary-mini">
+          <span class="summary-mini__label">{{ stat.label }}</span>
+          <strong class="summary-mini__value">{{ stat.value }}</strong>
+        </article>
+      </section>
+
+      <section v-if="overview?.actionQueue?.length" class="action-queue">
+        <div class="action-queue__head">
+          <strong>下一步手动动作</strong>
+          <small>{{ overview?.actionQueue?.length }} 项</small>
+        </div>
+        <article v-for="action in overview?.actionQueue || []" :key="`${action.domainId}-${action.panelId}`" class="action-card">
+          <div class="action-card__head">
+            <div>
+              <span>{{ action.domainId || '--' }} · {{ action.panelId || '--' }}</span>
+              <strong>{{ action.status || '--' }}</strong>
+            </div>
+            <span class="status-pill" :class="statusTone(action.status)">
+              {{ statusLabel(action.status) }}
+            </span>
+          </div>
+          <div class="action-card__metrics">
+            <span><small>阶段</small><strong>{{ action.freshnessStatus || '--' }}</strong></span>
+            <span><small>执行</small><strong>{{ action.executeMode || '--' }}</strong></span>
+            <span><small>策略</small><strong>{{ action.executionPolicy || '--' }}</strong></span>
+            <span><small>自动维护</small><strong>{{ action.autoMaintenanceEligible ? '是' : '否' }}</strong></span>
+          </div>
+          <div class="path-block">
+            <span>原因</span>
+            <code>{{ action.reason || '--' }}</code>
+          </div>
+          <div v-if="action.command" class="path-block">
+            <span>只读证据命令</span>
+            <code>{{ action.command }}</code>
+          </div>
+          <div v-if="action.backendRefreshPlanCommand" class="path-block">
+            <span>后端刷新计划命令</span>
+            <code>{{ action.backendRefreshPlanCommand }}</code>
+          </div>
+          <div class="action-card__meta">
+            <span>后端步骤：{{ formatStepIds(action.backendRefreshStepIds) }}</span>
+            <span v-if="action.blockingBeforePublicReason">公开阻断：{{ action.blockingBeforePublicReason }}</span>
+            <span v-else-if="action.blockingBeforePublic">公开阻断：是</span>
+            <span>人工确认：{{ action.manualConfirmation ? '是' : '否' }}</span>
+            <span v-if="action.confirmationReason">确认：{{ action.confirmationReason }}</span>
+            <span v-if="action.blockedReason">阻断：{{ action.blockedReason }}</span>
+          </div>
+        </article>
+      </section>
+
       <section v-if="loadError" class="acceptance-alert acceptance-alert--danger" role="alert">
         <AlertTriangle :size="18" />
         <span>{{ loadError }}</span>
@@ -306,6 +357,16 @@ const isInitialLoading = computed(() => loading.value && !hasLoaded.value)
 const blockingReasons = computed(() => overview.value?.blockingReasons || [])
 const warningReasons = computed(() => overview.value?.warningReasons || [])
 const hasReasons = computed(() => blockingReasons.value.length > 0 || warningReasons.value.length > 0)
+const refreshPlanSummaryCards = computed(() => {
+  const summary = overview.value?.refreshPlanSummary
+  if (!summary) return []
+  return [
+    { label: '动作', value: formatNumber(summary.actionCount) },
+    { label: '可执行', value: formatNumber(summary.readyCount) },
+    { label: '待确认', value: formatNumber(summary.confirmationCount) },
+    { label: '阻断', value: formatNumber(summary.blockedCount) },
+  ]
+})
 
 const summaryCards = computed(() => [
   { label: '域', value: formatNumber(overview.value?.domainCount) },
@@ -345,9 +406,9 @@ async function loadOverview() {
 
 function statusTone(status?: string | null) {
   const normalized = String(status || '').toLowerCase()
-  if (['pass', 'success', 'ok', 'readable'].includes(normalized)) return 'success'
+  if (['pass', 'success', 'ok', 'readable', 'ready'].includes(normalized)) return 'success'
   if (['blocked', 'error', 'fail', 'failed', 'read error'].includes(normalized)) return 'danger'
-  if (['warning', 'warn'].includes(normalized)) return 'warning'
+  if (['warning', 'warn', 'needs_confirmation'].includes(normalized)) return 'warning'
   return 'muted'
 }
 
@@ -361,6 +422,8 @@ function statusIcon(status?: string | null): Component {
 
 function statusLabel(status?: DomainAcceptanceStatus | string | null) {
   const normalized = String(status || 'missing').toLowerCase()
+  if (normalized === 'ready') return '可执行'
+  if (normalized === 'needs_confirmation') return '待确认'
   if (['pass', 'success', 'ok', 'readable'].includes(normalized)) return '通过'
   if (['blocked', 'error', 'fail', 'failed', 'read error'].includes(normalized)) return '阻断'
   if (['warning', 'warn'].includes(normalized)) return '警告'
@@ -582,6 +645,77 @@ function formatNumber(value?: number | null) {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 14px;
+}
+
+.refresh-plan-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.action-queue {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
+  background: color-mix(in srgb, var(--color-surface-1) 96%, transparent);
+}
+
+.action-queue__head,
+.action-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.action-queue__head strong,
+.action-card__head strong {
+  color: var(--color-text);
+}
+
+.action-queue__head small,
+.action-card__head span,
+.action-card__meta {
+  color: var(--color-text-secondary);
+}
+
+.action-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 48%, var(--color-surface-1));
+}
+
+.action-card__metrics,
+.action-card__meta {
+  display: grid;
+  gap: 8px;
+}
+
+.action-card__metrics {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+
+.action-card__metrics span {
+  min-width: 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 78%, transparent);
+}
+
+.action-card__metrics small {
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.action-card__metrics strong {
+  color: var(--color-text);
 }
 
 .reason-panel {

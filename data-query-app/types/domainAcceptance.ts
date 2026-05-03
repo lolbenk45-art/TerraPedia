@@ -7,6 +7,48 @@ export interface DomainAcceptanceCheck {
   reportPath?: string | null
 }
 
+export interface DomainAcceptanceRefreshPlanSummary {
+  overallStatus?: string | null
+  actionCount?: number | null
+  readyCount?: number | null
+  confirmationCount?: number | null
+  blockedCount?: number | null
+  safeReadOnlyCount?: number | null
+  unsafeActionCount?: number | null
+  databaseRequiredCount?: number | null
+  manualOnlyCount?: number | null
+  affectedDomainCount?: number | null
+  autoMaintenanceEligibleCount?: number | null
+  manualConfirmationCount?: number | null
+  blockingBeforePublicCount?: number | null
+  planOnlyCount?: number | null
+  maintenanceRoutedCount?: number | null
+}
+
+export interface DomainAcceptanceRefreshAction {
+  domainId?: string | null
+  panelId?: string | null
+  freshnessStatus?: string | null
+  reason?: string | null
+  command?: string | null
+  commandRisk?: string | null
+  requiresDatabase?: boolean | null
+  writesDatabase?: boolean | null
+  maintenanceLane?: string | null
+  maintenanceLaneId?: string | null
+  backendRefreshStepIds?: string[]
+  backendRefreshPlanCommand?: string | null
+  executionPolicy?: string | null
+  autoMaintenanceEligible?: boolean | null
+  manualConfirmation?: boolean | null
+  blockingBeforePublic?: boolean | null
+  blockingBeforePublicReason?: string | null
+  status?: string | null
+  confirmationReason?: string | null
+  blockedReason?: string | null
+  executeMode?: string | null
+}
+
 export interface DomainAcceptancePanel {
   id?: string | null
   domainId?: string | null
@@ -72,5 +114,7 @@ export interface DomainAcceptanceOverview {
   blockingReasons?: string[]
   warningReasons?: string[]
   summary?: Record<string, unknown>
+  refreshPlanSummary?: DomainAcceptanceRefreshPlanSummary | null
+  actionQueue?: DomainAcceptanceRefreshAction[]
   domains?: DomainAcceptanceDomain[]
 }

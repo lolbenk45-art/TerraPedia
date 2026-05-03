@@ -267,6 +267,112 @@ class DomainAcceptanceServiceImplTest {
     }
 
     @Test
+    void shouldTreatBlockedRefreshActionsAsPublicBlocking() throws Exception {
+        Path repoRoot = createRepoRoot();
+        writeRegistry(repoRoot, """
+            {
+              "version": 1,
+              "freshness": {
+                "freshnessSource": "report-generatedAt-or-mtime",
+                "staleAfterHours": 24,
+                "nextEvidenceWhen": ["missing", "stale", "unknown", "unreadable"],
+                "statusImpact": "stale-pass-to-warning"
+              },
+              "panelSets": {
+                "single": ["sourceReadiness"]
+              },
+              "panels": {
+                "sourceReadiness": {
+                  "panelId": "sourceReadiness",
+                  "fileKey": "source-readiness",
+                  "generatorPanel": "source --mode=apply",
+                  "chainStage": "source",
+                  "maintenanceLane": "domain-acceptance-evidence",
+                  "autoMaintenanceAllowed": true,
+                  "blockingBeforePublic": false,
+                  "requiresDatabase": false,
+                  "writesDatabase": false
+                }
+              },
+              "domains": [
+                {
+                  "domainId": "synthetic.domain",
+                  "domainType": "support",
+                  "tier": "B",
+                  "chainStage": "support-readiness",
+                  "panelSet": "single",
+                  "backendRefreshStepIds": ["support-sync"],
+                  "managementRoute": "/synthetic",
+                  "publicRoute": null
+                }
+              ]
+            }
+            """);
+
+        DomainAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot).getOverview();
+
+        assertEquals("blocked", overview.getRefreshPlanSummary().getOverallStatus());
+        assertEquals(1, overview.getRefreshPlanSummary().getBlockedCount());
+        assertEquals(1, overview.getRefreshPlanSummary().getBlockingBeforePublicCount());
+        DomainAcceptanceOverviewDTO.DomainRefreshActionDTO action = overview.getActionQueue().get(0);
+        assertEquals("blocked", action.getStatus());
+        assertEquals(true, action.getBlockingBeforePublic());
+        assertEquals("synthetic.domain/sourceReadiness generator command is unsafe", action.getBlockingBeforePublicReason());
+        assertEquals("synthetic.domain/sourceReadiness generator command is unsafe", action.getBlockedReason());
+        assertEquals(false, action.getAutoMaintenanceEligible());
+    }
+
+    @Test
+    void shouldFailClosedWhenRegistryPanelOmitsSafetyFlags() throws Exception {
+        Path repoRoot = createRepoRoot();
+        writeRegistry(repoRoot, """
+            {
+              "version": 1,
+              "freshness": {
+                "freshnessSource": "report-generatedAt-or-mtime",
+                "staleAfterHours": 24,
+                "nextEvidenceWhen": ["missing", "stale", "unknown", "unreadable"],
+                "statusImpact": "stale-pass-to-warning"
+              },
+              "panelSets": {
+                "single": ["sourceReadiness"]
+              },
+              "panels": {
+                "sourceReadiness": {
+                  "panelId": "sourceReadiness",
+                  "fileKey": "source-readiness",
+                  "generatorPanel": "source",
+                  "chainStage": "source",
+                  "maintenanceLane": "domain-acceptance-evidence",
+                  "autoMaintenanceAllowed": true,
+                  "blockingBeforePublic": false,
+                  "writesDatabase": false
+                }
+              },
+              "domains": [
+                {
+                  "domainId": "synthetic.domain",
+                  "domainType": "support",
+                  "tier": "B",
+                  "chainStage": "support-readiness",
+                  "panelSet": "single",
+                  "backendRefreshStepIds": ["support-sync"],
+                  "managementRoute": "/synthetic",
+                  "publicRoute": null
+                }
+              ]
+            }
+            """);
+
+        IllegalStateException exception = assertThrows(
+            IllegalStateException.class,
+            () -> serviceWithRepo(repoRoot).getOverview()
+        );
+
+        assertEquals("Missing requiresDatabase flag for synthetic.domain/sourceReadiness", exception.getMessage());
+    }
+
+    @Test
     void shouldWarnWhenFreshnessIsStaleAndExposeRefreshCommand() throws Exception {
         Path repoRoot = createRepoRoot();
         writeAllDomainReports(repoRoot, "pass", "2026-05-03T00:00:00Z", 0, 0);
@@ -295,6 +401,26 @@ class DomainAcceptanceServiceImplTest {
         assertEquals(60L, source.getAgeHours());
         assertEquals("Evidence is older than 24 hours.", source.getFreshnessReason());
         assertEquals("node scripts/data/audit/domain-readiness-audit.mjs --domain=buffs --panel=source", source.getNextEvidenceCommand());
+        assertEquals("ready", overview.getRefreshPlanSummary().getOverallStatus());
+        assertEquals(1, overview.getRefreshPlanSummary().getActionCount());
+        assertEquals(1, overview.getRefreshPlanSummary().getReadyCount());
+        assertEquals(0, overview.getRefreshPlanSummary().getBlockedCount());
+        assertEquals(1, overview.getRefreshPlanSummary().getAutoMaintenanceEligibleCount());
+        DomainAcceptanceOverviewDTO.DomainRefreshActionDTO action = overview.getActionQueue().get(0);
+        assertEquals("buffs", action.getDomainId());
+        assertEquals("sourceReadiness", action.getPanelId());
+        assertEquals("stale", action.getFreshnessStatus());
+        assertEquals("ready", action.getStatus());
+        assertEquals("manual", action.getExecuteMode());
+        assertEquals("plan-only", action.getExecutionPolicy());
+        assertEquals("safe-read-only", action.getCommandRisk());
+        assertEquals("node scripts/data/audit/domain-readiness-audit.mjs --domain=buffs --panel=source", action.getCommand());
+        assertEquals(List.of("independent-entity-sync"), action.getBackendRefreshStepIds());
+        assertEquals("node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=independent-entity-sync", action.getBackendRefreshPlanCommand());
+        assertEquals(true, action.getAutoMaintenanceEligible());
+        assertEquals(false, action.getManualConfirmation());
+        assertEquals(false, action.getBlockingBeforePublic());
+        assertEquals("Evidence is older than 24 hours.", action.getReason());
         assertTrue(overview.getWarningReasons().stream().anyMatch(reason -> reason.contains("buffs.sourceReadiness")));
     }
 

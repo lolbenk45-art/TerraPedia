@@ -23,6 +23,8 @@ public class DomainAcceptanceOverviewDTO {
     private List<String> blockingReasons = new ArrayList<>();
     private List<String> warningReasons = new ArrayList<>();
     private Map<String, Object> summary = new LinkedHashMap<>();
+    private RefreshPlanSummaryDTO refreshPlanSummary = new RefreshPlanSummaryDTO();
+    private List<DomainRefreshActionDTO> actionQueue = new ArrayList<>();
     private List<DomainDTO> domains = new ArrayList<>();
 
     @Data
@@ -81,6 +83,52 @@ public class DomainAcceptanceOverviewDTO {
         private List<DomainCheckDTO> checks = new ArrayList<>();
         private List<String> sampleReportPaths = new ArrayList<>();
         private Map<String, Object> rawSummary = new LinkedHashMap<>();
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class RefreshPlanSummaryDTO {
+        private String overallStatus;
+        private int actionCount;
+        private int readyCount;
+        private int confirmationCount;
+        private int blockedCount;
+        private int safeReadOnlyCount;
+        private int unsafeActionCount;
+        private int databaseRequiredCount;
+        private int manualOnlyCount;
+        private int affectedDomainCount;
+        private int autoMaintenanceEligibleCount;
+        private int manualConfirmationCount;
+        private int blockingBeforePublicCount;
+        private int planOnlyCount;
+        private int maintenanceRoutedCount;
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class DomainRefreshActionDTO {
+        private String domainId;
+        private String panelId;
+        private String freshnessStatus;
+        private String reason;
+        private String command;
+        private String commandRisk;
+        private Boolean requiresDatabase;
+        private Boolean writesDatabase;
+        private String maintenanceLane;
+        private String maintenanceLaneId;
+        private List<String> backendRefreshStepIds = new ArrayList<>();
+        private String backendRefreshPlanCommand;
+        private String executionPolicy;
+        private Boolean autoMaintenanceEligible;
+        private Boolean manualConfirmation;
+        private Boolean blockingBeforePublic;
+        private String blockingBeforePublicReason;
+        private String status;
+        private String confirmationReason;
+        private String blockedReason;
+        private String executeMode;
     }
 
     @Data

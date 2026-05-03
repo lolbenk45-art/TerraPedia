@@ -55,6 +55,8 @@ class AdminDomainAcceptanceControllerTest {
         overview.setPanelCount(1);
         overview.setWarningCount(1);
         overview.setDomains(List.of(domain()));
+        overview.setRefreshPlanSummary(refreshPlanSummary());
+        overview.setActionQueue(List.of(refreshAction()));
 
         when(domainAcceptanceService.getOverview()).thenReturn(overview);
 
@@ -82,7 +84,21 @@ class AdminDomainAcceptanceControllerTest {
             .andExpect(jsonPath("$.data.domains[0].panels[0].blockingBeforePublic").value(false))
             .andExpect(jsonPath("$.data.domains[0].panels[0].nextEvidenceCommand").value("node scripts/data/audit/domain-readiness-audit.mjs --domain=buffs --panel=source"))
             .andExpect(jsonPath("$.data.domains[0].panels[0].writesDatabase").value(false))
-            .andExpect(jsonPath("$.data.domains[0].panels[0].requiresDatabase").value(false));
+            .andExpect(jsonPath("$.data.domains[0].panels[0].requiresDatabase").value(false))
+            .andExpect(jsonPath("$.data.refreshPlanSummary.overallStatus").value("ready"))
+            .andExpect(jsonPath("$.data.refreshPlanSummary.actionCount").value(1))
+            .andExpect(jsonPath("$.data.refreshPlanSummary.readyCount").value(1))
+            .andExpect(jsonPath("$.data.refreshPlanSummary.manualOnlyCount").value(1))
+            .andExpect(jsonPath("$.data.refreshPlanSummary.planOnlyCount").value(1))
+            .andExpect(jsonPath("$.data.actionQueue[0].domainId").value("buffs"))
+            .andExpect(jsonPath("$.data.actionQueue[0].panelId").value("sourceReadiness"))
+            .andExpect(jsonPath("$.data.actionQueue[0].status").value("ready"))
+            .andExpect(jsonPath("$.data.actionQueue[0].executeMode").value("manual"))
+            .andExpect(jsonPath("$.data.actionQueue[0].executionPolicy").value("plan-only"))
+            .andExpect(jsonPath("$.data.actionQueue[0].autoMaintenanceEligible").value(true))
+            .andExpect(jsonPath("$.data.actionQueue[0].manualConfirmation").value(false))
+            .andExpect(jsonPath("$.data.actionQueue[0].backendRefreshStepIds[0]").value("independent-entity-sync"))
+            .andExpect(jsonPath("$.data.actionQueue[0].backendRefreshPlanCommand").value("node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=independent-entity-sync"));
 
         verify(domainAcceptanceService).getOverview();
     }
@@ -116,5 +132,40 @@ class AdminDomainAcceptanceControllerTest {
         domain.setPanelCount(1);
         domain.setPanels(List.of(panel));
         return domain;
+    }
+
+    private DomainAcceptanceOverviewDTO.RefreshPlanSummaryDTO refreshPlanSummary() {
+        DomainAcceptanceOverviewDTO.RefreshPlanSummaryDTO summary = new DomainAcceptanceOverviewDTO.RefreshPlanSummaryDTO();
+        summary.setOverallStatus("ready");
+        summary.setActionCount(1);
+        summary.setReadyCount(1);
+        summary.setManualOnlyCount(1);
+        summary.setPlanOnlyCount(1);
+        summary.setAutoMaintenanceEligibleCount(1);
+        summary.setMaintenanceRoutedCount(1);
+        return summary;
+    }
+
+    private DomainAcceptanceOverviewDTO.DomainRefreshActionDTO refreshAction() {
+        DomainAcceptanceOverviewDTO.DomainRefreshActionDTO action = new DomainAcceptanceOverviewDTO.DomainRefreshActionDTO();
+        action.setDomainId("buffs");
+        action.setPanelId("sourceReadiness");
+        action.setFreshnessStatus("stale");
+        action.setReason("Evidence is older than 24 hours.");
+        action.setCommand("node scripts/data/audit/domain-readiness-audit.mjs --domain=buffs --panel=source");
+        action.setCommandRisk("safe-read-only");
+        action.setRequiresDatabase(false);
+        action.setWritesDatabase(false);
+        action.setMaintenanceLane("domain-acceptance-evidence");
+        action.setMaintenanceLaneId("domain-acceptance:buffs:sourceReadiness");
+        action.setBackendRefreshStepIds(List.of("independent-entity-sync"));
+        action.setBackendRefreshPlanCommand("node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=independent-entity-sync");
+        action.setExecutionPolicy("plan-only");
+        action.setAutoMaintenanceEligible(true);
+        action.setManualConfirmation(false);
+        action.setBlockingBeforePublic(false);
+        action.setStatus("ready");
+        action.setExecuteMode("manual");
+        return action;
     }
 }

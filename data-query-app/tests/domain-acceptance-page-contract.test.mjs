@@ -16,6 +16,8 @@ test('domain acceptance page consumes the read-only domain overview API', () => 
   assert.match(page, /get<.*DomainAcceptanceOverview/)
   assert.match(page, /\/admin\/domain-acceptance\/overview/)
   assert.match(page, /overallStatus/)
+  assert.match(page, /refreshPlanSummary/)
+  assert.match(page, /actionQueue/)
   assert.match(page, /overview\?\.domains/)
 })
 
@@ -43,6 +45,20 @@ test('domain acceptance page renders domains, panels, evidence status, and next 
     'domain.backendRefreshPlanCommand',
     'domain.requiresDatabase',
     'domain.panels',
+    'overview?.refreshPlanSummary',
+    'overview?.actionQueue',
+    'action.domainId',
+    'action.panelId',
+    'action.status',
+    'action.executeMode',
+    'action.executionPolicy',
+    'action.autoMaintenanceEligible',
+    'action.manualConfirmation',
+    'action.blockingBeforePublic',
+    'action.command',
+    'action.reason',
+    'action.backendRefreshStepIds',
+    'action.backendRefreshPlanCommand',
     'panel.panelId',
     'panel.chainStage',
     'panel.maintenanceLane',
@@ -65,8 +81,19 @@ test('domain acceptance page renders domains, panels, evidence status, and next 
   assert.match(page, /domain-card/)
   assert.match(page, /domain-panel/)
   assert.match(page, /next-evidence-command/)
+  assert.match(page, /action-queue/)
+  assert.match(page, /refresh-plan-summary/)
   assert.doesNotMatch(page, /navigator\.clipboard/)
   assert.doesNotMatch(page, /document\.execCommand/)
+  assert.doesNotMatch(page, /@click=["'][^"']*action\.command/)
+  assert.doesNotMatch(page, /@click=["'][^"']*backendRefreshPlanCommand/)
+})
+
+test('domain acceptance page labels refresh action statuses explicitly', () => {
+  const page = read('data-query-app/pages/operations/domain-acceptance.vue')
+
+  assert.match(page, /ready/)
+  assert.match(page, /needs_confirmation/)
 })
 
 test('domain acceptance page separates API errors from missing evidence', () => {
@@ -83,6 +110,18 @@ test('domain acceptance types preserve dynamic domains and panels', () => {
   const types = read('data-query-app/types/domainAcceptance.ts')
 
   assert.match(types, /export interface DomainAcceptanceOverview/)
+  assert.match(types, /refreshPlanSummary\?: DomainAcceptanceRefreshPlanSummary \| null/)
+  assert.match(types, /actionQueue\?: DomainAcceptanceRefreshAction\[\]/)
+  assert.match(types, /export interface DomainAcceptanceRefreshPlanSummary/)
+  assert.match(types, /overallStatus\?: string \| null/)
+  assert.match(types, /manualOnlyCount\?: number \| null/)
+  assert.match(types, /export interface DomainAcceptanceRefreshAction/)
+  assert.match(types, /executeMode\?: string \| null/)
+  assert.match(types, /executionPolicy\?: string \| null/)
+  assert.match(types, /autoMaintenanceEligible\?: boolean \| null/)
+  assert.match(types, /manualConfirmation\?: boolean \| null/)
+  assert.match(types, /blockingBeforePublic\?: boolean \| null/)
+  assert.match(types, /backendRefreshPlanCommand\?: string \| null/)
   assert.match(types, /domains\?: DomainAcceptanceDomain\[\]/)
   assert.match(types, /export interface DomainAcceptanceDomain/)
   assert.match(types, /tier\?: string \| null/)

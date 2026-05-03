@@ -22,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 @Service
@@ -39,6 +40,18 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         "independent-entity-sync",
         "shimmer-sync",
         "support-sync"
+    );
+    private static final List<Pattern> UNSAFE_COMMAND_PATTERNS = List.of(
+        Pattern.compile("--apply=true", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("--mode=apply", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bimport\\b", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bbackfill\\b", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bapply\\b", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bdelete\\b", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bremove\\b", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\brm\\b", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bcrawl\\b", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bload\\b", Pattern.CASE_INSENSITIVE)
     );
 
     private final ObjectMapper objectMapper;
@@ -261,6 +274,7 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         overview.getSummary().put("missingCount", missingCount);
         overview.getSummary().put("unknownCount", unknownCount);
         overview.getSummary().put("unsafeCommandCount", 0);
+        buildRefreshPlanProjection(overview);
 
         if (blockingCount > 0) {
             overview.setOverallStatus("blocked");
@@ -273,12 +287,204 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         }
     }
 
+    private void buildRefreshPlanProjection(DomainAcceptanceOverviewDTO overview) {
+        List<DomainAcceptanceOverviewDTO.DomainRefreshActionDTO> actionQueue = new ArrayList<>();
+        for (DomainAcceptanceOverviewDTO.DomainDTO domain : overview.getDomains()) {
+            for (DomainAcceptanceOverviewDTO.DomainPanelDTO panel : domain.getPanels()) {
+                if (needsRefreshAction(panel)) {
+                    actionQueue.add(refreshAction(domain, panel));
+                }
+            }
+        }
+        overview.setActionQueue(actionQueue);
+        overview.setRefreshPlanSummary(refreshPlanSummary(actionQueue));
+    }
+
+    private boolean needsRefreshAction(DomainAcceptanceOverviewDTO.DomainPanelDTO panel) {
+        String freshnessStatus = panel == null ? null : panel.getFreshnessStatus();
+        return "missing".equals(freshnessStatus)
+            || "stale".equals(freshnessStatus)
+            || "unknown".equals(freshnessStatus);
+    }
+
+    private DomainAcceptanceOverviewDTO.DomainRefreshActionDTO refreshAction(
+        DomainAcceptanceOverviewDTO.DomainDTO domain,
+        DomainAcceptanceOverviewDTO.DomainPanelDTO panel
+    ) {
+        DomainAcceptanceOverviewDTO.DomainRefreshActionDTO action = new DomainAcceptanceOverviewDTO.DomainRefreshActionDTO();
+        action.setDomainId(domain.getDomainId());
+        action.setPanelId(panel.getPanelId());
+        action.setFreshnessStatus(panel.getFreshnessStatus());
+        action.setReason(firstNonBlank(
+            panel.getFreshnessReason(),
+            domain.getDomainId() + "/" + panel.getPanelId() + " evidence is " + panel.getFreshnessStatus()
+        ));
+        action.setCommand(panel.getNextEvidenceCommand());
+        action.setCommandRisk(commandRisk(panel));
+        action.setRequiresDatabase(Boolean.TRUE.equals(panel.getRequiresDatabase()));
+        action.setWritesDatabase(Boolean.TRUE.equals(panel.getWritesDatabase()));
+        action.setMaintenanceLane(firstNonBlank(panel.getMaintenanceLane(), "domain-acceptance-evidence"));
+        action.setMaintenanceLaneId(firstNonBlank(
+            panel.getMaintenanceLaneId(),
+            "domain-acceptance:" + domain.getDomainId() + ":" + panel.getPanelId()
+        ));
+        action.setBackendRefreshStepIds(new ArrayList<>(panel.getBackendRefreshStepIds()));
+        action.setBackendRefreshPlanCommand(panel.getBackendRefreshPlanCommand());
+        action.setExecutionPolicy("plan-only");
+        String blockedReason = blockedReason(domain, panel, action);
+        String confirmationReason = confirmationReason(domain, panel, action);
+        action.setBlockedReason(blockedReason);
+        action.setConfirmationReason(confirmationReason);
+        action.setStatus(actionStatus(blockedReason, confirmationReason));
+        action.setManualConfirmation("needs_confirmation".equals(action.getStatus()));
+        action.setBlockingBeforePublic(blockingBeforePublic(panel, action));
+        action.setBlockingBeforePublicReason(blockingBeforePublicReason(domain, panel, action));
+        action.setAutoMaintenanceEligible(autoMaintenanceEligible(panel, action));
+        action.setExecuteMode("manual");
+        return action;
+    }
+
+    private String commandRisk(DomainAcceptanceOverviewDTO.DomainPanelDTO panel) {
+        String command = panel.getNextEvidenceCommand();
+        if (command == null || command.isBlank()) {
+            return "unknown";
+        }
+        if (UNSAFE_COMMAND_PATTERNS.stream().anyMatch(pattern -> pattern.matcher(command).find())) {
+            return "unsafe";
+        }
+        return "safe-read-only";
+    }
+
+    private String actionStatus(String blockedReason, String confirmationReason) {
+        if (blockedReason != null) {
+            return "blocked";
+        }
+        if (confirmationReason != null) {
+            return "needs_confirmation";
+        }
+        return "ready";
+    }
+
+    private String blockedReason(
+        DomainAcceptanceOverviewDTO.DomainDTO domain,
+        DomainAcceptanceOverviewDTO.DomainPanelDTO panel,
+        DomainAcceptanceOverviewDTO.DomainRefreshActionDTO action
+    ) {
+        String key = panelKey(domain, panel);
+        if ("unsafe".equals(action.getCommandRisk())) {
+            return key + " generator command is unsafe";
+        }
+        if (Boolean.TRUE.equals(action.getWritesDatabase())) {
+            return key + " generator command writes database";
+        }
+        if (action.getCommand() == null || action.getCommand().isBlank()) {
+            return key + " evidence command is missing";
+        }
+        return null;
+    }
+
+    private String confirmationReason(
+        DomainAcceptanceOverviewDTO.DomainDTO domain,
+        DomainAcceptanceOverviewDTO.DomainPanelDTO panel,
+        DomainAcceptanceOverviewDTO.DomainRefreshActionDTO action
+    ) {
+        String key = panelKey(domain, panel);
+        if ("unknown".equals(action.getCommandRisk())) {
+            return key + " command risk is unknown";
+        }
+        if ("unknown".equals(panel.getFreshnessStatus())) {
+            return key + " evidence is unknown";
+        }
+        if (Boolean.TRUE.equals(action.getRequiresDatabase())) {
+            return key + " requires local database confirmation";
+        }
+        return null;
+    }
+
+    private boolean autoMaintenanceEligible(
+        DomainAcceptanceOverviewDTO.DomainPanelDTO panel,
+        DomainAcceptanceOverviewDTO.DomainRefreshActionDTO action
+    ) {
+        return Boolean.TRUE.equals(panel.getAutoMaintenanceAllowed())
+            && "ready".equals(action.getStatus())
+            && "safe-read-only".equals(action.getCommandRisk())
+            && !Boolean.TRUE.equals(action.getRequiresDatabase())
+            && !Boolean.TRUE.equals(action.getWritesDatabase())
+            && action.getBackendRefreshStepIds() != null
+            && !action.getBackendRefreshStepIds().isEmpty();
+    }
+
+    private boolean blockingBeforePublic(
+        DomainAcceptanceOverviewDTO.DomainPanelDTO panel,
+        DomainAcceptanceOverviewDTO.DomainRefreshActionDTO action
+    ) {
+        return action.getBlockedReason() != null
+            || "unknown".equals(panel.getFreshnessStatus())
+            || Boolean.TRUE.equals(panel.getBlockingBeforePublic());
+    }
+
+    private String blockingBeforePublicReason(
+        DomainAcceptanceOverviewDTO.DomainDTO domain,
+        DomainAcceptanceOverviewDTO.DomainPanelDTO panel,
+        DomainAcceptanceOverviewDTO.DomainRefreshActionDTO action
+    ) {
+        if (!Boolean.TRUE.equals(action.getBlockingBeforePublic())) {
+            return null;
+        }
+        if (action.getBlockedReason() != null) {
+            return action.getBlockedReason();
+        }
+        if ("unknown".equals(panel.getFreshnessStatus())) {
+            return panelKey(domain, panel) + " evidence freshness is unknown";
+        }
+        return panelKey(domain, panel) + " is marked as blocking before public consumption";
+    }
+
+    private String panelKey(DomainAcceptanceOverviewDTO.DomainDTO domain, DomainAcceptanceOverviewDTO.DomainPanelDTO panel) {
+        return (domain == null ? panel.getDomainId() : domain.getDomainId()) + "/" + panel.getPanelId();
+    }
+
+    private DomainAcceptanceOverviewDTO.RefreshPlanSummaryDTO refreshPlanSummary(
+        List<DomainAcceptanceOverviewDTO.DomainRefreshActionDTO> actions
+    ) {
+        DomainAcceptanceOverviewDTO.RefreshPlanSummaryDTO summary = new DomainAcceptanceOverviewDTO.RefreshPlanSummaryDTO();
+        summary.setActionCount(actions.size());
+        summary.setReadyCount(countActions(actions, "ready"));
+        summary.setConfirmationCount(countActions(actions, "needs_confirmation"));
+        summary.setBlockedCount(countActions(actions, "blocked"));
+        summary.setSafeReadOnlyCount((int) actions.stream().filter(action -> "safe-read-only".equals(action.getCommandRisk())).count());
+        summary.setUnsafeActionCount((int) actions.stream().filter(action -> "unsafe".equals(action.getCommandRisk())).count());
+        summary.setDatabaseRequiredCount((int) actions.stream().filter(action -> Boolean.TRUE.equals(action.getRequiresDatabase())).count());
+        summary.setManualOnlyCount((int) actions.stream().filter(action -> "manual".equals(action.getExecuteMode())).count());
+        summary.setAffectedDomainCount((int) actions.stream().map(DomainAcceptanceOverviewDTO.DomainRefreshActionDTO::getDomainId).distinct().count());
+        summary.setAutoMaintenanceEligibleCount((int) actions.stream().filter(action -> Boolean.TRUE.equals(action.getAutoMaintenanceEligible())).count());
+        summary.setManualConfirmationCount((int) actions.stream().filter(action -> Boolean.TRUE.equals(action.getManualConfirmation())).count());
+        summary.setBlockingBeforePublicCount((int) actions.stream().filter(action -> Boolean.TRUE.equals(action.getBlockingBeforePublic())).count());
+        summary.setPlanOnlyCount((int) actions.stream().filter(action -> "plan-only".equals(action.getExecutionPolicy())).count());
+        summary.setMaintenanceRoutedCount((int) actions.stream().filter(action -> action.getBackendRefreshStepIds() != null && !action.getBackendRefreshStepIds().isEmpty()).count());
+        if (summary.getBlockedCount() > 0) {
+            summary.setOverallStatus("blocked");
+        } else if (summary.getConfirmationCount() > 0) {
+            summary.setOverallStatus("needs_confirmation");
+        } else if (summary.getReadyCount() > 0) {
+            summary.setOverallStatus("ready");
+        } else {
+            summary.setOverallStatus("empty");
+        }
+        return summary;
+    }
+
+    private int countActions(List<DomainAcceptanceOverviewDTO.DomainRefreshActionDTO> actions, String status) {
+        return (int) actions.stream().filter(action -> status.equals(action.getStatus())).count();
+    }
+
     private DomainAcceptanceOverviewDTO.DomainPanelDTO basePanel(
         String domainId,
         List<String> backendRefreshStepIds,
         PanelDefinition definition,
         FreshnessDefinition freshness
     ) {
+        requireExplicitSafetyFlags(domainId, definition);
         DomainAcceptanceOverviewDTO.DomainPanelDTO panel = new DomainAcceptanceOverviewDTO.DomainPanelDTO();
         panel.setId(definition.panelId);
         panel.setDomainId(domainId);
@@ -299,6 +505,15 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         panel.setBlockingCount(0);
         panel.setWarningCount(0);
         return panel;
+    }
+
+    private void requireExplicitSafetyFlags(String domainId, PanelDefinition definition) {
+        if (definition.requiresDatabase == null) {
+            throw new IllegalStateException("Missing requiresDatabase flag for " + domainId + "/" + definition.panelId);
+        }
+        if (definition.writesDatabase == null) {
+            throw new IllegalStateException("Missing writesDatabase flag for " + domainId + "/" + definition.panelId);
+        }
     }
 
     private List<String> backendRefreshStepIds(DomainDefinition definition) {
