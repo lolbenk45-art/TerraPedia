@@ -54,7 +54,8 @@ Invoke-Step -Label 'Data workflow acceptance tests' -WorkingDirectory $repoRoot 
 
 Invoke-Step -Label 'Domain acceptance full dry-run' -WorkingDirectory $repoRoot -CommandPath $nodeCmd -Arguments @(
   'scripts/data/workflow/domain-acceptance-generate-reports.mjs',
-  '--fail-on-blocked=true'
+  '--fail-on-blocked=true',
+  '--fail-on-warning=true'
 )
 
 if (-not $SkipBack) {

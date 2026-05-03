@@ -115,6 +115,42 @@ test('CLI fail-on-blocked exits non-zero when any generated panel is blocked', a
   );
 });
 
+test('CLI fail-on-warning exits non-zero when generated panels still warn', async () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/generated/wiki-bosses.latest.json', {
+    overview: { bossCount: 1 },
+    records: [
+      {
+        status: 'ok',
+        titleEn: 'Unmapped Boss',
+        pageTitleEn: 'Unmapped Boss',
+        sourceUrl: 'https://example.test/Unmapped_Boss',
+        titleZh: null,
+        imageUrl: null,
+      },
+    ],
+  });
+
+  await assert.rejects(
+    execFileAsync(
+      process.execPath,
+      [
+        'scripts/data/workflow/domain-acceptance-generate-reports.mjs',
+        `--repo-root=${repoRoot}`,
+        '--domains=bosses',
+        '--generated-at=2026-05-03T12:00:00Z',
+        '--fail-on-warning=true',
+      ],
+      { cwd: process.cwd() },
+    ),
+    (error) => {
+      assert.equal(error.code, 1);
+      assert.equal(JSON.parse(error.stdout).summary.warningCount > 0, true);
+      return true;
+    },
+  );
+});
+
 test('source stays read-only except for explicit reports/domain writes', () => {
   const source = fs.readFileSync('scripts/data/workflow/domain-acceptance-generate-reports.mjs', 'utf8');
 

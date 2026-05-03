@@ -48,7 +48,7 @@ test('buildDomainReadinessReport returns pass when source evidence files are pre
   assert.equal(report.checks[0].recordCount, 1);
 });
 
-test('buildDomainReadinessReport warns instead of blocking current legacy buff name gaps', () => {
+test('buildDomainReadinessReport accepts scoped legacy buff name gaps', () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'data/standardized/buffs.standardized.json', {
     totalRecords: 2,
@@ -56,6 +56,42 @@ test('buildDomainReadinessReport warns instead of blocking current legacy buff n
       { id: 1, internalName: 'WellFed', englishName: 'Well Fed', type: 'buff' },
       { id: 138, internalName: 'MinecartLegacyUnused', englishName: null, type: 'buff' },
     ],
+  });
+  writeJson(repoRoot, 'data/generated/buff-standardized-map.json', {
+    count: 2,
+    records: {
+      WellFed: { id: 1 },
+      MinecartLegacyUnused: { id: 138 },
+    },
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'buffs',
+    panel: 'source',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'pass');
+  assert.equal(report.summary.blockedCount, 0);
+  assert.deepEqual(report.warningReasons, []);
+});
+
+test('buildDomainReadinessReport does not allow unlisted legacy buff required-field gaps', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/standardized/buffs.standardized.json', {
+    totalRecords: 2,
+    records: [
+      { id: 1, internalName: 'WellFed', englishName: 'Well Fed', type: 'buff' },
+      { id: 999, internalName: 'FutureLegacyUnused', englishName: null, type: 'buff' },
+    ],
+  });
+  writeJson(repoRoot, 'data/generated/buff-standardized-map.json', {
+    count: 2,
+    records: {
+      WellFed: { id: 1 },
+      FutureLegacyUnused: { id: 999 },
+    },
   });
 
   const report = buildDomainReadinessReport({
@@ -66,8 +102,30 @@ test('buildDomainReadinessReport warns instead of blocking current legacy buff n
   });
 
   assert.equal(report.status, 'warning');
-  assert.equal(report.summary.blockedCount, 0);
   assert.ok(report.warningReasons.some((reason) => reason.includes('1 buff records missing required fields')));
+});
+
+test('buildDomainReadinessReport blocks source evidence when totalRecords is missing', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/standardized/buffs.standardized.json', {
+    records: [
+      { id: 1, internalName: 'WellFed', englishName: 'Well Fed', type: 'buff' },
+    ],
+  });
+  writeJson(repoRoot, 'data/generated/buff-standardized-map.json', {
+    count: 1,
+    records: { WellFed: { id: 1 } },
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'buffs',
+    panel: 'source',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'blocked');
+  assert.ok(report.blockingReasons.some((reason) => /totalRecords is missing or zero/.test(reason)));
 });
 
 test('buildDomainReadinessReport blocks missing required source evidence but only warns for optional evidence', () => {
@@ -290,13 +348,24 @@ test('buildDomainReadinessReport blocks relation coverage totals and gaps', () =
 test('buildDomainReadinessReport applies projectile source and image semantic gates', () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'data/standardized/projectiles.standardized.json', {
-    totalRecords: 2,
+    totalRecords: 3,
     records: [
-      { id: 1, internalName: 'WoodenArrowFriendly', name: 'Wooden Arrow' },
-      { id: 2, internalName: 'FireArrow', name: 'Flaming Arrow' },
+      { id: 0, internalName: 'None', name: null },
+      { id: 1, internalName: 'WoodenArrowFriendly', name: 'Wooden Arrow', imageUrl: 'https://example.test/wooden-arrow.png' },
+      { id: 2, internalName: 'FireArrow', name: 'Flaming Arrow', extras: { image: 'Fire Arrow.png' } },
     ],
   });
-  writeJson(repoRoot, 'data/standardized-view/projectiles/_meta.json', { totalRecords: 2 });
+  writeJson(repoRoot, 'data/standardized-view/projectiles/_meta.json', { totalRecords: 3 });
+  writeJson(repoRoot, 'reports/relation/entity-coverage-baseline-2026-04-28.json', {
+    domains: {
+      projectiles: { localTotal: 3, maintTotal: 3, relationTotal: 3 },
+    },
+    fieldAudit: {
+      domains: {
+        projectiles: { fields: { nameZh: { gap: 0 }, image: { gap: 0 } } },
+      },
+    },
+  });
   writeJson(repoRoot, 'reports/projectile-zh-image-backfill-2026-04-22.json', {
     total: 2,
     totalAvailable: 2,
@@ -323,8 +392,45 @@ test('buildDomainReadinessReport applies projectile source and image semantic ga
   });
 
   assert.equal(source.status, 'pass');
-  assert.equal(relation.status, 'warning');
-  assert.ok(relation.warningReasons.some((reason) => /unresolvedZh=1/.test(reason)));
+  assert.equal(relation.status, 'pass');
+  assert.ok(relation.checks.some((check) => /unresolvedZh=1/.test(check.message)));
+});
+
+test('buildDomainReadinessReport warns when projectile unresolved zh exceeds baseline', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/standardized/projectiles.standardized.json', {
+    totalRecords: 1,
+    records: [
+      { id: 1, internalName: 'WoodenArrowFriendly', name: 'Wooden Arrow', imageUrl: 'https://example.test/wooden-arrow.png' },
+    ],
+  });
+  writeJson(repoRoot, 'reports/relation/entity-coverage-baseline-2026-04-28.json', {
+    domains: {
+      projectiles: { localTotal: 1, maintTotal: 1, relationTotal: 1 },
+    },
+    fieldAudit: {
+      domains: {
+        projectiles: { fields: { nameZh: { gap: 0 }, image: { gap: 0 } } },
+      },
+    },
+  });
+  writeJson(repoRoot, 'reports/projectile-zh-image-backfill-2026-04-22.json', {
+    total: 1,
+    totalAvailable: 1,
+    imageResolved: 1,
+    unresolvedImage: 0,
+    unresolvedZh: 106,
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'projectiles',
+    panel: 'relation',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'warning');
+  assert.ok(report.warningReasons.some((reason) => /unresolvedZh=106 exceeds baseline 105/.test(reason)));
 });
 
 test('buildDomainReadinessReport applies armor set source and image semantic gates', () => {
@@ -346,12 +452,38 @@ test('buildDomainReadinessReport applies armor set source and image semantic gat
     total: 2,
     mapped: 1,
     placeholder: 1,
-    records: {},
+    records: {
+      1: {
+        armorSetId: 1,
+        name: 'Copper armor',
+        status: 'mapped',
+        definition: { textKey: 'ArmorSetBonus.Copper', uniqueItemIds: [1, 2, 3] },
+      },
+      999: {
+        armorSetId: 999,
+        name: 'Unknown armor',
+        internalCode: 'Unknown armor',
+        itemIds: [999],
+        status: 'placeholder',
+        definition: {
+          textKey: null,
+          textZh: 'Unknown armor',
+          uniqueItemIds: [999],
+        },
+      },
+    },
   });
   writeJson(repoRoot, 'reports/fetch/fetch-armor-set-images-2026-04-27T19-29-52.416Z.json', {
     totalArmorSets: 1,
     totalArmorSetImages: 3,
     warningCount: 1,
+    samples: [
+      {
+        originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png',
+        cachedUrl: null,
+        contentType: 'image/png',
+      },
+    ],
   });
   writeJson(repoRoot, 'data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json', { records: [{ image: 'a.png' }] });
 
@@ -370,9 +502,312 @@ test('buildDomainReadinessReport applies armor set source and image semantic gat
 
   assert.equal(source.status, 'warning');
   assert.match(source.warningReasons.find((reason) => reason.includes('definition map')), /mapped=1\/2/);
-  assert.match(source.warningReasons.find((reason) => reason.includes('definition map')), /placeholder=1/);
-  assert.equal(image.status, 'warning');
-  assert.ok(image.warningReasons.some((reason) => /warningCount=1/.test(reason)));
+  assert.match(source.warningReasons.find((reason) => reason.includes('definition map')), /unaccepted placeholders=1/);
+  assert.equal(image.status, 'pass');
+  assert.ok(image.checks.some((check) => /wiki original fallback/.test(check.message)));
+});
+
+test('buildDomainReadinessReport accepts audited armor definition placeholder exceptions', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/generated/wiki-armor-sets.latest.json', {
+    total: 1,
+    records: [
+      { entityType: 'armor_set', compositionKind: 'nonstandard_piece_set', nameEn: 'Empty Bucket', nameZh: '空桶', images: ['a.png'] },
+    ],
+  });
+  writeJson(repoRoot, 'data/standardized/armor_sets.standardized.json', {
+    totalRecords: 1,
+    records: [
+      { textKey: 'ArmorSetBonus.Wood', benefitExpression: 'Wood bonus', uniqueItemIds: [1, 2, 3], sets: [[1, 2, 3]], setCount: 1 },
+    ],
+  });
+  writeJson(repoRoot, 'data/generated/armor-set-definition-map.json', {
+    total: 2,
+    mapped: 1,
+    placeholder: 1,
+    records: {
+      1: {
+        armorSetId: 1,
+        name: 'Mapped armor',
+        status: 'mapped',
+        definition: { textKey: 'ArmorSetBonus.Wood', uniqueItemIds: [1, 2, 3] },
+      },
+      313: {
+        armorSetId: 313,
+        name: '空桶',
+        internalCode: '空桶',
+        itemIds: [205],
+        status: 'placeholder',
+        definition: {
+          textKey: null,
+          textZh: '空桶',
+          uniqueItemIds: [205],
+        },
+      },
+    },
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'armor_sets',
+    panel: 'source',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'pass');
+  assert.ok(report.checks.some((check) => /accepted placeholder exceptions=1/.test(check.message)));
+});
+
+test('buildDomainReadinessReport warns when armor definition map totals drift', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/generated/wiki-armor-sets.latest.json', {
+    total: 1,
+    records: [
+      { entityType: 'armor_set', compositionKind: 'nonstandard_piece_set', nameEn: 'Empty Bucket', nameZh: '空桶', images: ['a.png'] },
+    ],
+  });
+  writeJson(repoRoot, 'data/generated/armor-set-definition-map.json', {
+    total: 3,
+    mapped: 1,
+    placeholder: 1,
+    records: {
+      1: {
+        armorSetId: 1,
+        name: 'Mapped armor',
+        status: 'mapped',
+        definition: { textKey: 'ArmorSetBonus.Wood', uniqueItemIds: [1, 2, 3] },
+      },
+      313: {
+        armorSetId: 313,
+        name: '空桶',
+        itemIds: [205],
+        status: 'placeholder',
+        definition: { textKey: null, uniqueItemIds: [205] },
+      },
+    },
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'armor_sets',
+    panel: 'source',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'warning');
+  assert.ok(report.warningReasons.some((reason) => /mapped \+ placeholder=2 does not match total=3/.test(reason)));
+  assert.ok(report.warningReasons.some((reason) => /records=2 does not match total=3/.test(reason)));
+});
+
+test('buildDomainReadinessReport rejects audited armor placeholder exception with mismatched item ids', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/generated/wiki-armor-sets.latest.json', {
+    total: 1,
+    records: [
+      { entityType: 'armor_set', compositionKind: 'nonstandard_piece_set', nameEn: 'Empty Bucket', nameZh: '空桶', images: ['a.png'] },
+    ],
+  });
+  writeJson(repoRoot, 'data/standardized/armor_sets.standardized.json', {
+    totalRecords: 1,
+    records: [
+      { textKey: 'ArmorSetBonus.Wood', benefitExpression: 'Wood bonus', uniqueItemIds: [1, 2, 3], sets: [[1, 2, 3]], setCount: 1 },
+    ],
+  });
+  writeJson(repoRoot, 'data/generated/armor-set-definition-map.json', {
+    total: 2,
+    mapped: 1,
+    placeholder: 1,
+    records: {
+      1: {
+        armorSetId: 1,
+        name: 'Mapped armor',
+        status: 'mapped',
+        definition: { textKey: 'ArmorSetBonus.Wood', uniqueItemIds: [1, 2, 3] },
+      },
+      313: {
+        armorSetId: 313,
+        name: '空桶',
+        internalCode: '空桶',
+        itemIds: [999],
+        status: 'placeholder',
+        definition: {
+          textKey: null,
+          textZh: '空桶',
+          uniqueItemIds: [999],
+        },
+      },
+    },
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'armor_sets',
+    panel: 'source',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'warning');
+  assert.ok(report.warningReasons.some((reason) => /unaccepted placeholders: 313:空桶/.test(reason)));
+});
+
+test('buildDomainReadinessReport warns armor image fetch when warning count exceeds sampled fallback count', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'reports/fetch/fetch-armor-set-images-2026-04-27T19-29-52.416Z.json', {
+    totalArmorSets: 1,
+    totalArmorSetImages: 3,
+    warningCount: 2,
+    samples: [
+      {
+        originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png',
+        cachedUrl: null,
+        contentType: 'image/png',
+      },
+    ],
+  });
+  writeJson(repoRoot, 'data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json', { records: [{ image: 'a.png' }] });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'armor_sets',
+    panel: 'image',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'warning');
+  assert.ok(report.warningReasons.some((reason) => /warningCount=2 has only 1 sampled fallback records/.test(reason)));
+});
+
+test('buildDomainReadinessReport accepts armor image fetch warnings when parsed snapshot has complete fallback evidence', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json', {
+    totalArmorSets: 2,
+    totalArmorSetImages: 2,
+    armorSetImages: [
+      { textKey: 'ArmorSetBonus.Wood', originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png', contentType: 'image/png' },
+      { textKey: 'ArmorSetBonus.AshWood', originalUrl: 'https://terraria.wiki.gg/images/Ash_Wood_armor.png', contentType: 'image/png' },
+    ],
+    warnings: [
+      { pageTitle: 'Missing Variant armor', message: 'missingtitle' },
+      { pageTitle: 'Missing Other armor', message: 'missingtitle' },
+    ],
+  });
+  writeJson(repoRoot, 'reports/fetch/fetch-armor-set-images-2026-04-27T19-29-52.416Z.json', {
+    latestParsedPath: path.join(repoRoot, 'data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json'),
+    totalArmorSets: 2,
+    totalArmorSetImages: 2,
+    warningCount: 2,
+    samples: [
+      { textKey: 'ArmorSetBonus.Wood', originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png', contentType: 'image/png' },
+    ],
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'armor_sets',
+    panel: 'image',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'pass');
+  assert.ok(report.checks.some((check) => /parsed snapshot fallback evidence/.test(check.message)));
+});
+
+test('buildDomainReadinessReport rejects armor image parsed snapshot outside repo', () => {
+  const repoRoot = createTempRepo();
+  const outsidePath = path.join(os.tmpdir(), `terrapedia-outside-armor-snapshot-${Date.now()}.json`);
+  fs.writeFileSync(outsidePath, JSON.stringify({
+    totalArmorSets: 2,
+    totalArmorSetImages: 2,
+    armorSetImages: [
+      { originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png', contentType: 'image/png' },
+      { originalUrl: 'https://terraria.wiki.gg/images/Ash_Wood_armor.png', contentType: 'image/png' },
+    ],
+    warnings: [
+      { pageTitle: 'Missing Variant armor', message: 'missingtitle' },
+      { pageTitle: 'Missing Other armor', message: 'missingtitle' },
+    ],
+  }), 'utf8');
+  writeJson(repoRoot, 'data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json', { armorSetImages: [], warnings: [] });
+  writeJson(repoRoot, 'reports/fetch/fetch-armor-set-images-2026-04-27T19-29-52.416Z.json', {
+    latestParsedPath: outsidePath,
+    totalArmorSets: 2,
+    totalArmorSetImages: 2,
+    warningCount: 2,
+    samples: [
+      { originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png', contentType: 'image/png' },
+    ],
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'armor_sets',
+    panel: 'image',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'warning');
+  assert.ok(report.warningReasons.some((reason) => /has only 1 sampled fallback records/.test(reason)));
+});
+
+test('buildDomainReadinessReport warns when armor image parsed snapshot totals drift', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json', {
+    totalArmorSets: 2,
+    totalArmorSetImages: 3,
+    armorSetImages: [
+      { originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png', contentType: 'image/png' },
+      { originalUrl: 'https://terraria.wiki.gg/images/Ash_Wood_armor.png', contentType: 'image/png' },
+    ],
+    warnings: [
+      { pageTitle: 'Missing Variant armor', message: 'missingtitle' },
+      { pageTitle: 'Missing Other armor', message: 'missingtitle' },
+    ],
+  });
+  writeJson(repoRoot, 'reports/fetch/fetch-armor-set-images-2026-04-27T19-29-52.416Z.json', {
+    latestParsedPath: 'data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json',
+    totalArmorSets: 2,
+    totalArmorSetImages: 2,
+    warningCount: 2,
+    samples: [
+      { originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png', contentType: 'image/png' },
+    ],
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'armor_sets',
+    panel: 'image',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'warning');
+  assert.ok(report.warningReasons.some((reason) => /parsed snapshot totalArmorSetImages=3 does not match report totalArmorSetImages=2/.test(reason)));
+  assert.ok(report.warningReasons.some((reason) => /parsed snapshot image rows=2 does not match totalArmorSetImages=3/.test(reason)));
+});
+
+test('buildDomainReadinessReport accepts latest markdown category recipe cutover verification', () => {
+  const repoRoot = createTempRepo();
+  writeText(repoRoot, 'front/src/services/categoryManagement.ts', 'export {};');
+  writeText(repoRoot, 'data-query-app/pages/categories.vue', '<template />');
+  writeText(repoRoot, 'reports/relation/category-recipe-cutover-verification-2026-04-26.md', [
+    '# Category / Recipe Cutover Verification',
+    '',
+    '- `GET http://127.0.0.1:18088/api/categories/items` -> `200`',
+    '- `GET http://127.0.0.1:18088/api/items/1/recipes` -> `200`',
+  ].join('\n'));
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'support.category',
+    panel: 'blocking',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'pass');
+  assert.equal(
+    report.checks.find((check) => check.id === 'reports_relation_category_recipe_cutover_verificationlatest_md')?.latestReportPath,
+    'reports/relation/category-recipe-cutover-verification-2026-04-26.md',
+  );
 });
 
 test('buildDomainReadinessReport supports support-domain blocking gates from existing reports', () => {
@@ -466,11 +901,41 @@ test('buildDomainReadinessReport applies recipe support gate semantics', () => {
     generatedAt: '2026-05-03T12:00:00Z',
   });
 
-  assert.equal(report.status, 'warning');
+  assert.equal(report.status, 'pass');
   assert.equal(report.summary.blockedCount, 0);
-  assert.ok(report.warningReasons.some((reason) => /suppressedOverlapRecipeRows=1/.test(reason)));
-  assert.ok(report.warningReasons.some((reason) => /candidateCount=2/.test(reason)));
-  assert.ok(report.warningReasons.some((reason) => /suppressedButPresentCount=5/.test(reason)));
+  assert.deepEqual(report.warningReasons, []);
+  assert.ok(report.checks.some((check) => /non-blocking metrics/.test(check.message)));
+});
+
+test('buildDomainReadinessReport warns when recipe non-blocking metrics exceed baseline', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'reports/recipe-provider-consolidation-2026-04-19.json', {
+    after: { activeResultItems: 2, resultItems: 2 },
+    changes: { suppressedOverlapRecipeRows: 135, gapOnlyResultItems: 3059, gapOnlyRecipeRows: 6751 },
+  });
+  writeJson(repoRoot, 'reports/recipe-provider-suppression-2026-04-09.json', {
+    summary: { candidateCount: 245 },
+  });
+  writeJson(repoRoot, 'reports/wiki-zh-recipe-source-coverage-2026-04-09.json', {
+    sourceRecipes: 10,
+    wikiZhDbRecipes: 10,
+    comparison: {
+      missingFromWikiZhDbCount: 0,
+      extraInWikiZhDbCount: 0,
+      trulyMissingEverywhereCount: 0,
+      suppressedButPresentCount: 2557,
+    },
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'support.recipe',
+    panel: 'blocking',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'warning');
+  assert.ok(report.warningReasons.some((reason) => /suppressedOverlapRecipeRows=135 exceeds baseline 134/.test(reason)));
 });
 
 test('buildDomainReadinessReport blocks recipe support gate when source coverage is missing', () => {
@@ -565,10 +1030,33 @@ test('buildDomainReadinessReport applies item group support gate semantics', () 
     generatedAt: '2026-05-03T12:00:00Z',
   });
 
-  assert.equal(report.status, 'warning');
+  assert.equal(report.status, 'pass');
   assert.equal(report.summary.blockedCount, 0);
-  assert.ok(report.warningReasons.some((reason) => /duplicateGroupKeys=29/.test(reason)));
-  assert.ok(report.warningReasons.some((reason) => /blockedGroupReferences=1/.test(reason)));
+  assert.deepEqual(report.warningReasons, []);
+  assert.ok(report.checks.some((check) => /scoped non-blocking metrics/.test(check.message)));
+});
+
+test('buildDomainReadinessReport warns when item group scoped metrics exceed baseline', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'reports/item-groups/any-item-group-source-audit-2026-05-01.json', {
+    summary: {
+      totalGroups: 63,
+      duplicateGroupKeys: 29,
+      unresolvedMemberReferences: 0,
+      blockedGroupReferences: 2,
+      consumerOnlyReferences: 0,
+    },
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'support.item_group',
+    panel: 'blocking',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'warning');
+  assert.ok(report.warningReasons.some((reason) => /blockedGroupReferences=2 exceeds baseline 1/.test(reason)));
 });
 
 test('buildDomainReadinessReport blocks item group support gate unresolved members', () => {

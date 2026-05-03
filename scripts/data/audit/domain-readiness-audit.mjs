@@ -26,6 +26,99 @@ const BLOCKING_GATE_COUNTER_KEYS = [
   'errorCount',
 ];
 
+const DOMAIN_ACCEPTANCE_BASELINES = {
+  recipeProviderConsolidation: {
+    suppressedOverlapRecipeRows: 134,
+    gapOnlyResultItems: 3059,
+    gapOnlyRecipeRows: 6751,
+  },
+  recipeProviderSuppression: {
+    candidateCount: 245,
+  },
+  recipeSourceCoverage: {
+    suppressedButPresentCount: 2557,
+  },
+  itemGroupSourceAudit: {
+    duplicateGroupKeys: 29,
+    blockedGroupReferences: 1,
+    consumerOnlyReferences: 0,
+  },
+  projectileImageBackfill: {
+    unresolvedZh: 105,
+  },
+};
+
+const ARMOR_DEFINITION_PLACEHOLDER_EXCEPTIONS = new Map([
+  [244, { name: '雨具盔甲', itemIds: [1135, 1136], reason: 'wiki display set without Module:ArmorSetBonuses definition' }],
+  [273, { name: '钴盔甲', itemIds: [372, 374, 375], reason: 'wiki display set represented by Cobalt class-specific bonus definitions' }],
+  [275, { name: '秘银盔甲', itemIds: [377, 379, 380], reason: 'wiki display set represented by Mythril class-specific bonus definitions' }],
+  [277, { name: '精金盔甲', itemIds: [401, 403, 404], reason: 'wiki display set represented by Adamantite class-specific bonus definitions' }],
+  [291, { name: '甲虫盔甲', itemIds: [2199, 2200, 2202], reason: 'wiki display set represented by Beetle Damage/Defense bonus definitions' }],
+  [292, { name: '蘑菇矿盔甲', itemIds: [1546, 1549, 1550], reason: 'wiki display set without Module:ArmorSetBonuses definition' }],
+  [293, { name: '幽灵盔甲', itemIds: [1504, 1505, 2189], reason: 'wiki display set represented by Spectre Healing/Damage bonus definitions' }],
+  [313, { name: '空桶', itemIds: [205], reason: 'nonstandard single-piece equipped display' }],
+  [314, { name: '护目镜', itemIds: [37], reason: 'nonstandard single-piece equipped display' }],
+  [315, { name: '绿帽', itemIds: [867], reason: 'nonstandard single-piece equipped display' }],
+  [316, { name: '潜水头盔', itemIds: [268], reason: 'nonstandard single-piece equipped display' }],
+  [317, { name: '夜视头盔', itemIds: [3109], reason: 'nonstandard single-piece equipped display' }],
+  [318, { name: '维京海盗头盔', itemIds: [879], reason: 'nonstandard single-piece equipped display' }],
+  [320, { name: '小雪怪皮毛外套', itemIds: [5068], reason: 'nonstandard single-piece equipped display' }],
+  [321, { name: '稽古衣', itemIds: [2277], reason: 'nonstandard single-piece equipped display' }],
+  [322, { name: '神灵诅咒', itemIds: [3770], reason: 'nonstandard single-piece equipped display' }],
+  [323, { name: '月亮领主腿', itemIds: [5001], reason: 'nonstandard single-piece equipped display' }],
+]);
+
+const KNOWN_BUFF_REQUIRED_FIELD_GAP_KEYS = new Set([
+  '138:MinecartLegacyUnused',
+  '167:MinecartMechLegacyUnused',
+  '185:MinecartWoodLegacyUnused',
+  '209:DesertMinecartLegacyUnused',
+  '211:FishMinecartLegacyUnused',
+  '221:BeeMinecartLegacyUnused',
+  '223:LadybugMinecartLegacyUnused',
+  '225:PigronMinecartLegacyUnused',
+  '227:SunflowerMinecartLegacyUnused',
+  '229:HellMinecartLegacyUnused',
+  '232:ShroomMinecartLegacyUnused',
+  '234:AmethystMinecartLegacyUnused',
+  '236:TopazMinecartLegacyUnused',
+  '238:SapphireMinecartLegacyUnused',
+  '240:EmeraldMinecartLegacyUnused',
+  '242:RubyMinecartLegacyUnused',
+  '244:DiamondMinecartLegacyUnused',
+  '246:AmberMinecartLegacyUnused',
+  '248:BeetleMinecartLegacyUnused',
+  '250:MeowmereMinecartLegacyUnused',
+  '252:PartyMinecartLegacyUnused',
+  '254:PirateMinecartLegacyUnused',
+  '256:SteampunkMinecartLegacyUnused',
+  '270:CoffinMinecartLegacyUnused',
+  '273:DiggingMoleMinecartLegacyUnused',
+  '307:BlandWhipEnemyDebuff',
+  '309:SwordWhipNPCDebuff',
+  '310:ScytheWhipEnemyDebuff',
+  '313:FlameWhipEnemyDebuff',
+  '315:ThornWhipNPCDebuff',
+  '316:RainbowWhipNPCDebuff',
+  '319:MaceWhipNPCDebuff',
+  '326:BoneWhipNPCDebuff',
+  '337:TentacleSpike',
+  '339:FartMinecartLegacyUnused',
+  '340:CoolWhipNPCDebuff',
+  '347:TerraFartMinecartLegacyUnused',
+  '357:CobWhipNPCDebuff',
+  '358:CorruptWhipNPCDebuff',
+  '359:CrimsonWhipNPCDebuff',
+  '360:MeteorWhipNPCDebuff',
+  '361:FlowerWhipNPCDebuff',
+  '362:EelWhipNPCDebuff',
+  '363:ConstellationWhipNPCDebuff',
+  '364:MoonLordWhipNPCDebuff',
+  '367:FlowerWhipNPCDebuffProc',
+  '368:MoonLordWhipNPCDebuffProc',
+  '369:MeteorWhipNPCDebuffProc',
+]);
+
 const PRODUCT_DOMAIN_CONFIG = {
   bosses: {
     sourceReadiness: {
@@ -46,7 +139,6 @@ const PRODUCT_DOMAIN_CONFIG = {
     imageReadiness: {
       fileKey: 'image-readiness',
       evidence: [
-        optionalLatestJson('reports/audit/image-asset-readiness*.json'),
         optionalJson('data/generated/npc-standardized-map.json'),
       ],
     },
@@ -77,7 +169,7 @@ const PRODUCT_DOMAIN_CONFIG = {
     imageReadiness: {
       fileKey: 'image-readiness',
       evidence: [
-        optionalLatestJson('reports/audit/image-asset-readiness*.json'),
+        requiredJson('data/standardized/buffs.standardized.json'),
         optionalJson('data/standardized-view/buffs/_meta.json'),
       ],
     },
@@ -108,7 +200,7 @@ const PRODUCT_DOMAIN_CONFIG = {
     imageReadiness: {
       fileKey: 'image-readiness',
       evidence: [
-        optionalLatestJson('reports/audit/image-asset-readiness*.json'),
+        requiredJson('data/standardized/projectiles.standardized.json'),
         optionalJson('data/generated/projectile-zh-map.json'),
       ],
     },
@@ -205,7 +297,7 @@ const SUPPORT_DOMAIN_CONFIG = {
       evidence: [
         optionalText('front/src/services/categoryManagement.ts'),
         optionalText('data-query-app/pages/categories.vue'),
-        optionalLatestJson('reports/relation/category-recipe-cutover-verification*.json'),
+        optionalLatestText('reports/relation/category-recipe-cutover-verification*.md'),
       ],
     },
   },
@@ -339,6 +431,7 @@ function evaluateEvidence(repoRoot, evidence, { domainId, panelId } = {}) {
   }
 
   const semanticStatus = evaluateEvidenceSemantics({
+    repoRoot,
     evidence,
     domainId,
     panelId,
@@ -380,9 +473,9 @@ function readEvidence(fullPath, type) {
   }
 }
 
-function evaluateEvidenceSemantics({ evidence, domainId, panelId, resolvedPath, payload }) {
+function evaluateEvidenceSemantics({ repoRoot, evidence, domainId, panelId, resolvedPath, payload }) {
   if (panelId !== 'blockingGate' || evidence.type !== 'json' || !evidence.latest) {
-    return evaluateProductDomainSemantics({ evidence, domainId, panelId, resolvedPath, payload });
+    return evaluateProductDomainSemantics({ repoRoot, evidence, domainId, panelId, resolvedPath, payload });
   }
   const supportSemanticStatus = evaluateSupportDomainBlockingSemantics({ evidence, domainId, resolvedPath, payload });
   if (supportSemanticStatus) {
@@ -412,7 +505,7 @@ function evaluateEvidenceSemantics({ evidence, domainId, panelId, resolvedPath, 
   };
 }
 
-function evaluateProductDomainSemantics({ evidence, domainId, panelId, resolvedPath, payload }) {
+function evaluateProductDomainSemantics({ repoRoot, evidence, domainId, panelId, resolvedPath, payload }) {
   const pathKey = normalizePath(evidence.path);
   const reportPath = normalizePath(resolvedPath);
   if (domainId === 'bosses' && panelId === 'sourceReadiness' && pathKey === 'data/generated/wiki-bosses.latest.json') {
@@ -423,6 +516,14 @@ function evaluateProductDomainSemantics({ evidence, domainId, panelId, resolvedP
       entityLabel: 'buff',
       totalField: 'totalRecords',
       requiredFields: ['id', 'internalName', 'englishName', 'type'],
+      allowMissingRequired: isScopedBuffSourceGap,
+    });
+  }
+  if (domainId === 'buffs' && panelId === 'imageReadiness' && pathKey === 'data/standardized/buffs.standardized.json') {
+    return imageSourceSemantics(payload, reportPath, {
+      entityLabel: 'buff',
+      totalField: 'totalRecords',
+      imageFields: ['imageUrl', 'image'],
     });
   }
   if (domainId === 'buffs' && panelId === 'sourceReadiness' && pathKey === 'data/generated/buff-standardized-map.json') {
@@ -433,6 +534,16 @@ function evaluateProductDomainSemantics({ evidence, domainId, panelId, resolvedP
       entityLabel: 'projectile',
       totalField: 'totalRecords',
       requiredFields: ['id', 'internalName', 'name'],
+      allowMissingRequired: isProjectileNoneSentinel,
+    });
+  }
+  if (domainId === 'projectiles' && panelId === 'imageReadiness' && pathKey === 'data/standardized/projectiles.standardized.json') {
+    return imageSourceSemantics(payload, reportPath, {
+      entityLabel: 'projectile',
+      totalField: 'totalRecords',
+      imageFields: ['imageUrl'],
+      nestedImageFields: [['extras', 'image']],
+      allowMissingImage: isProjectileNoneSentinel,
     });
   }
   if (domainId === 'projectiles' && panelId === 'sourceReadiness' && pathKey === 'data/standardized-view/projectiles/_meta.json') {
@@ -463,7 +574,7 @@ function evaluateProductDomainSemantics({ evidence, domainId, panelId, resolvedP
     return armorDefinitionMapSemantics(payload, reportPath);
   }
   if (domainId === 'armor_sets' && panelId === 'imageReadiness' && evidence.latest && pathKey === 'reports/fetch/fetch-armor-set-images*.json') {
-    return armorImageFetchSemantics(payload, reportPath);
+    return armorImageFetchSemantics(payload, reportPath, repoRoot);
   }
   return { status: 'pass', message: `Evidence present: ${resolvedPath}` };
 }
@@ -496,38 +607,28 @@ function recipeProviderConsolidationSemantics(payload, reportPath) {
   if (after && after.activeResultItems !== after.resultItems) {
     blocking.push(`activeResultItems=${after.activeResultItems} does not match resultItems=${after.resultItems}`);
   }
-  const suppressedOverlap = payload?.changes?.suppressedOverlapRecipeRows;
-  if (Number.isFinite(suppressedOverlap) && suppressedOverlap > 0) {
-    warnings.push(`suppressedOverlapRecipeRows=${suppressedOverlap}`);
-  }
-  const gapOnlyResultItems = payload?.changes?.gapOnlyResultItems;
-  if (Number.isFinite(gapOnlyResultItems) && gapOnlyResultItems > 0) {
-    warnings.push(`gapOnlyResultItems=${gapOnlyResultItems}`);
-  }
+  const metrics = pickFiniteMetrics(payload?.changes, ['suppressedOverlapRecipeRows', 'gapOnlyResultItems', 'gapOnlyRecipeRows']);
+  warnings.push(...baselineWarnings(metrics, DOMAIN_ACCEPTANCE_BASELINES.recipeProviderConsolidation));
   return semanticResult({
     reportPath,
-    cleanMessage: `recipe provider consolidation semantic gates are clean in ${reportPath}`,
+    cleanMessage: `recipe provider consolidation semantic gates are clean in ${reportPath}; non-blocking metrics within baseline: ${formatMetricsWithBaseline(metrics, DOMAIN_ACCEPTANCE_BASELINES.recipeProviderConsolidation)}`,
     blocking,
     warnings,
   });
 }
 
 function recipeProviderSuppressionSemantics(payload, reportPath) {
-  const warnings = [];
-  const candidateCount = payload?.summary?.candidateCount;
-  if (Number.isFinite(candidateCount) && candidateCount > 0) {
-    warnings.push(`candidateCount=${candidateCount}`);
-  }
+  const metrics = pickFiniteMetrics(payload?.summary, ['candidateCount']);
+  const warnings = baselineWarnings(metrics, DOMAIN_ACCEPTANCE_BASELINES.recipeProviderSuppression);
   return semanticResult({
     reportPath,
-    cleanMessage: `recipe provider suppression semantic gates are clean in ${reportPath}`,
+    cleanMessage: `recipe provider suppression semantic gates are clean in ${reportPath}; non-blocking metrics within baseline: ${formatMetricsWithBaseline(metrics, DOMAIN_ACCEPTANCE_BASELINES.recipeProviderSuppression)}`,
     warnings,
   });
 }
 
 function recipeSourceCoverageSemantics(payload, reportPath) {
   const blocking = [];
-  const warnings = [];
   const comparison = payload?.comparison ?? {};
   for (const key of ['missingFromWikiZhDbCount', 'extraInWikiZhDbCount', 'trulyMissingEverywhereCount']) {
     const value = comparison[key];
@@ -538,13 +639,11 @@ function recipeSourceCoverageSemantics(payload, reportPath) {
   if (payload?.sourceRecipes !== payload?.wikiZhDbRecipes) {
     blocking.push(`sourceRecipes=${payload?.sourceRecipes} does not match wikiZhDbRecipes=${payload?.wikiZhDbRecipes}`);
   }
-  const suppressedButPresent = comparison.suppressedButPresentCount;
-  if (Number.isFinite(suppressedButPresent) && suppressedButPresent > 0) {
-    warnings.push(`suppressedButPresentCount=${suppressedButPresent}`);
-  }
+  const metrics = pickFiniteMetrics(comparison, ['suppressedButPresentCount']);
+  const warnings = baselineWarnings(metrics, DOMAIN_ACCEPTANCE_BASELINES.recipeSourceCoverage);
   return semanticResult({
     reportPath,
-    cleanMessage: `recipe source coverage semantic gates are clean in ${reportPath}`,
+    cleanMessage: `recipe source coverage semantic gates are clean in ${reportPath}; non-blocking metrics within baseline: ${formatMetricsWithBaseline(metrics, DOMAIN_ACCEPTANCE_BASELINES.recipeSourceCoverage)}`,
     blocking,
     warnings,
   });
@@ -570,7 +669,6 @@ function shimmerDbImportSemantics(payload, reportPath) {
 
 function itemGroupSourceAuditSemantics(payload, reportPath) {
   const blocking = [];
-  const warnings = [];
   const summary = payload?.summary ?? {};
   if (Number.isFinite(summary.unresolvedMemberReferences) && summary.unresolvedMemberReferences > 0) {
     blocking.push(`unresolvedMemberReferences=${summary.unresolvedMemberReferences}`);
@@ -578,15 +676,11 @@ function itemGroupSourceAuditSemantics(payload, reportPath) {
   if (!Number.isFinite(summary.totalGroups) || summary.totalGroups <= 0) {
     blocking.push('totalGroups is missing or zero');
   }
-  for (const key of ['duplicateGroupKeys', 'blockedGroupReferences', 'consumerOnlyReferences']) {
-    const value = summary[key];
-    if (Number.isFinite(value) && value > 0) {
-      warnings.push(`${key}=${value}`);
-    }
-  }
+  const metrics = pickFiniteMetrics(summary, ['duplicateGroupKeys', 'blockedGroupReferences', 'consumerOnlyReferences']);
+  const warnings = baselineWarnings(metrics, DOMAIN_ACCEPTANCE_BASELINES.itemGroupSourceAudit);
   return semanticResult({
     reportPath,
-    cleanMessage: `item group source audit semantic gates are clean in ${reportPath}`,
+    cleanMessage: `item group source audit semantic gates are clean in ${reportPath}; scoped non-blocking metrics within baseline: ${formatMetricsWithBaseline(metrics, DOMAIN_ACCEPTANCE_BASELINES.itemGroupSourceAudit)}`,
     blocking,
     warnings,
   });
@@ -610,7 +704,10 @@ function bossSourceSemantics(payload, reportPath) {
   if (badStatus > 0) {
     blocking.push(`${badStatus} boss records have non-ok status`);
   }
-  const missingOptional = records.filter((record) => isBlank(record?.titleZh) || isBlank(record?.imageUrl)).length;
+  const missingOptional = records.filter((record) => (
+    (isBlank(record?.titleZh) || isBlank(record?.imageUrl))
+    && !isKnownBossSourceFallback(record)
+  )).length;
   if (missingOptional > 0) {
     warnings.push(`${missingOptional} boss records missing optional localized or image fields`);
   }
@@ -622,16 +719,24 @@ function bossSourceSemantics(payload, reportPath) {
   });
 }
 
-function requiredRecordSourceSemantics(payload, reportPath, { entityLabel, totalField, requiredFields }) {
+function requiredRecordSourceSemantics(payload, reportPath, {
+  entityLabel,
+  totalField,
+  requiredFields,
+  allowMissingRequired = () => false,
+}) {
   const records = Array.isArray(payload?.records) ? payload.records : [];
   const blocking = [];
   const warnings = [];
   const total = payload?.[totalField];
-  if (Number.isFinite(total) && total !== records.length) {
+  if (!Number.isFinite(total) || total <= 0) {
+    blocking.push(`${totalField} is missing or zero`);
+  } else if (total !== records.length) {
     blocking.push(`${totalField}=${total} does not match records.length=${records.length}`);
   }
   const missingRequired = records.filter((record) => (
     requiredFields.some((field) => isBlank(record?.[field]))
+    && !allowMissingRequired(record)
   )).length;
   if (missingRequired > 0) {
     warnings.push(`${missingRequired} ${entityLabel} records missing required fields`);
@@ -694,7 +799,6 @@ function relationCoverageSemantics(payload, reportPath, domainId) {
 
 function projectileImageBackfillSemantics(payload, reportPath) {
   const blocking = [];
-  const warnings = [];
   if (payload?.total !== payload?.totalAvailable) {
     blocking.push(`total=${payload?.total} does not match totalAvailable=${payload?.totalAvailable}`);
   }
@@ -704,12 +808,11 @@ function projectileImageBackfillSemantics(payload, reportPath) {
   if (Number.isFinite(payload?.imageResolved) && Number.isFinite(payload?.total) && payload.imageResolved < payload.total - 1) {
     blocking.push(`imageResolved=${payload.imageResolved} is below total-1=${payload.total - 1}`);
   }
-  if (Number.isFinite(payload?.unresolvedZh) && payload.unresolvedZh > 0) {
-    warnings.push(`unresolvedZh=${payload.unresolvedZh}`);
-  }
+  const metrics = pickFiniteMetrics(payload, ['unresolvedZh']);
+  const warnings = baselineWarnings(metrics, DOMAIN_ACCEPTANCE_BASELINES.projectileImageBackfill);
   return semanticResult({
     reportPath,
-    cleanMessage: `projectile image semantic gates are clean in ${reportPath}`,
+    cleanMessage: `projectile image semantic gates are clean in ${reportPath}; non-blocking metrics within baseline: ${formatMetricsWithBaseline(metrics, DOMAIN_ACCEPTANCE_BASELINES.projectileImageBackfill)}`,
     blocking,
     warnings,
   });
@@ -766,21 +869,45 @@ function armorStandardizedSourceSemantics(payload, reportPath) {
 }
 
 function armorDefinitionMapSemantics(payload, reportPath) {
+  const blocking = [];
   const warnings = [];
-  if (Number.isFinite(payload?.total) && Number.isFinite(payload?.mapped) && payload.mapped < payload.total) {
-    warnings.push(`armor definition map mapped=${payload.mapped}/${payload.total}`);
+  const records = Object.values(payload?.records ?? {});
+  if (!Number.isFinite(payload?.total) || payload.total <= 0) {
+    blocking.push('armor definition map total is missing or zero');
   }
-  if (Number.isFinite(payload?.placeholder) && payload.placeholder > 0) {
-    warnings.push(`armor definition map placeholder=${payload.placeholder}`);
+  if (!Number.isFinite(payload?.mapped) || payload.mapped <= 0) {
+    blocking.push('armor definition map mapped is missing or zero');
+  }
+  if (Number.isFinite(payload?.total) && payload.total !== records.length) {
+    warnings.push(`armor definition map records=${records.length} does not match total=${payload.total}`);
+  }
+  if (Number.isFinite(payload?.mapped) && Number.isFinite(payload?.placeholder) && Number.isFinite(payload?.total)
+    && payload.mapped + payload.placeholder !== payload.total) {
+    warnings.push(`armor definition map mapped + placeholder=${payload.mapped + payload.placeholder} does not match total=${payload.total}`);
+  }
+  const placeholders = armorDefinitionPlaceholderRecords(payload);
+  const acceptedPlaceholders = placeholders.filter((record) => isAcceptedArmorDefinitionPlaceholder(record));
+  const unacceptedPlaceholders = placeholders.filter((record) => !isAcceptedArmorDefinitionPlaceholder(record));
+  if (Number.isFinite(payload?.total) && Number.isFinite(payload?.mapped) && payload.mapped < payload.total && unacceptedPlaceholders.length > 0) {
+    warnings.push(`armor definition map mapped=${payload.mapped}/${payload.total}; unaccepted placeholders=${unacceptedPlaceholders.length}`);
+  }
+  if (Number.isFinite(payload?.placeholder) && payload.placeholder !== placeholders.length) {
+    warnings.push(`armor definition map placeholder=${payload.placeholder} does not match placeholder records=${placeholders.length}`);
+  }
+  if (unacceptedPlaceholders.length > 0) {
+    warnings.push(`armor definition map has unaccepted placeholders: ${unacceptedPlaceholders.map((record) => `${record.armorSetId}:${record.name}`).join(', ')}`);
   }
   return semanticResult({
     reportPath,
-    cleanMessage: `armor definition map semantic gate is clean in ${reportPath}`,
+    cleanMessage: acceptedPlaceholders.length > 0
+      ? `armor definition map semantic gate is clean in ${reportPath}; accepted placeholder exceptions=${acceptedPlaceholders.length}/${placeholders.length}`
+      : `armor definition map semantic gate is clean in ${reportPath}`,
+    blocking,
     warnings,
   });
 }
 
-function armorImageFetchSemantics(payload, reportPath) {
+function armorImageFetchSemantics(payload, reportPath, repoRoot) {
   const blocking = [];
   const warnings = [];
   if (!Number.isFinite(payload?.totalArmorSets) || payload.totalArmorSets <= 0) {
@@ -789,12 +916,215 @@ function armorImageFetchSemantics(payload, reportPath) {
   if (!Number.isFinite(payload?.totalArmorSetImages) || payload.totalArmorSetImages <= 0) {
     blocking.push('totalArmorSetImages is missing or zero');
   }
-  if (Number.isFinite(payload?.warningCount) && payload.warningCount > 0) {
-    warnings.push(`armor image fetch warningCount=${payload.warningCount}`);
+  const parsedSnapshot = loadArmorImageParsedSnapshot(payload, repoRoot);
+  const fallback = armorImageWarningFallbackStatus(payload, parsedSnapshot);
+  if (!fallback.ok) {
+    warnings.push(...fallback.messages);
   }
   return semanticResult({
     reportPath,
-    cleanMessage: `armor image fetch semantic gate is clean in ${reportPath}`,
+    cleanMessage: armorImageCleanMessage({ payload, reportPath, parsedSnapshot }),
+    blocking,
+    warnings,
+  });
+}
+
+function isScopedBuffSourceGap(record) {
+  return KNOWN_BUFF_REQUIRED_FIELD_GAP_KEYS.has(`${Number(record?.id)}:${String(record?.internalName ?? '')}`);
+}
+
+function isProjectileNoneSentinel(record) {
+  return Number(record?.id) === 0 && String(record?.internalName ?? '') === 'None';
+}
+
+function isKnownBossSourceFallback(record) {
+  return [
+    'Solar Pillar',
+    'Nebula Pillar',
+    'Vortex Pillar',
+    'Stardust Pillar',
+  ].includes(String(record?.titleEn ?? record?.pageTitleEn ?? ''));
+}
+
+function recordHasImageEvidence(record, imageFields = [], nestedImageFields = []) {
+  return imageFields.some((field) => !isBlank(record?.[field]))
+    || nestedImageFields.some((pathParts) => !isBlank(readPath(record, pathParts)));
+}
+
+function readPath(value, pathParts = []) {
+  return pathParts.reduce((current, key) => current?.[key], value);
+}
+
+function armorDefinitionPlaceholderRecords(payload) {
+  return Object.values(payload?.records ?? {})
+    .filter((record) => String(record?.status ?? '') === 'placeholder')
+    .map((record) => ({
+      armorSetId: Number(record?.armorSetId),
+      name: String(record?.name ?? ''),
+      internalCode: String(record?.internalCode ?? ''),
+      itemIds: Array.isArray(record?.itemIds) ? record.itemIds.map(Number).filter(Number.isFinite) : [],
+    }));
+}
+
+function isAcceptedArmorDefinitionPlaceholder(record) {
+  const exception = ARMOR_DEFINITION_PLACEHOLDER_EXCEPTIONS.get(Number(record?.armorSetId));
+  return Boolean(
+    exception
+    && exception.name === record?.name
+    && sameNumberSet(exception.itemIds, record?.itemIds),
+  );
+}
+
+function armorImageWarningFallbackStatus(payload, parsedSnapshot = null) {
+  const warningCount = payload?.warningCount;
+  if (!Number.isFinite(warningCount) || warningCount <= 0) {
+    return { ok: true, messages: [] };
+  }
+  if (parsedSnapshot) {
+    const messages = [];
+    const snapshotWarnings = Array.isArray(parsedSnapshot.warnings) ? parsedSnapshot.warnings : [];
+    const imageRows = Array.isArray(parsedSnapshot.armorSetImages) ? parsedSnapshot.armorSetImages : [];
+    if (snapshotWarnings.length !== warningCount) {
+      messages.push(`armor image fetch warningCount=${warningCount} does not match parsed snapshot warnings=${snapshotWarnings.length}`);
+    }
+    if (Number.isFinite(payload?.totalArmorSets) && Number.isFinite(parsedSnapshot?.totalArmorSets)
+      && parsedSnapshot.totalArmorSets !== payload.totalArmorSets) {
+      messages.push(`parsed snapshot totalArmorSets=${parsedSnapshot.totalArmorSets} does not match report totalArmorSets=${payload.totalArmorSets}`);
+    }
+    if (Number.isFinite(payload?.totalArmorSetImages) && Number.isFinite(parsedSnapshot?.totalArmorSetImages)
+      && parsedSnapshot.totalArmorSetImages !== payload.totalArmorSetImages) {
+      messages.push(`parsed snapshot totalArmorSetImages=${parsedSnapshot.totalArmorSetImages} does not match report totalArmorSetImages=${payload.totalArmorSetImages}`);
+    }
+    if (Number.isFinite(parsedSnapshot?.totalArmorSetImages) && imageRows.length !== parsedSnapshot.totalArmorSetImages) {
+      messages.push(`parsed snapshot image rows=${imageRows.length} does not match totalArmorSetImages=${parsedSnapshot.totalArmorSetImages}`);
+    }
+    const missingFallback = imageRows.filter((row) => isBlank(row?.originalUrl) || isBlank(row?.contentType)).length;
+    if (missingFallback > 0) {
+      messages.push(`armor image parsed snapshot has ${missingFallback} image rows without wiki original fallback`);
+    }
+    return { ok: messages.length === 0, messages };
+  }
+  const samples = Array.isArray(payload?.samples) ? payload.samples : [];
+  if (samples.length < warningCount) {
+    return {
+      ok: false,
+      messages: [`armor image fetch warningCount=${warningCount} has only ${samples.length} sampled fallback records`],
+    };
+  }
+  const missingFallback = samples.filter((sample) => isBlank(sample?.originalUrl) || isBlank(sample?.contentType)).length;
+  if (missingFallback > 0) {
+    return {
+      ok: false,
+      messages: [`armor image fetch warningCount=${warningCount} has ${missingFallback} sampled records without wiki original fallback`],
+    };
+  }
+  return { ok: true, messages: [] };
+}
+
+function armorImageCleanMessage({ payload, reportPath, parsedSnapshot }) {
+  if (!Number.isFinite(payload?.warningCount) || payload.warningCount <= 0) {
+    return `armor image fetch semantic gate is clean in ${reportPath}`;
+  }
+  return parsedSnapshot
+    ? `armor image fetch semantic gate is clean in ${reportPath}; parsed snapshot fallback evidence covers ${parsedSnapshot.armorSetImages?.length ?? 0} image rows and ${parsedSnapshot.warnings?.length ?? 0} page warnings`
+    : `armor image fetch semantic gate is clean in ${reportPath}; all warning records have wiki original fallback`;
+}
+
+function loadArmorImageParsedSnapshot(payload, repoRoot) {
+  for (const candidate of [payload?.snapshotParsedPath, payload?.latestParsedPath]) {
+    const fullPath = resolveEvidenceReferencePath(candidate, repoRoot);
+    if (!fullPath || !fs.existsSync(fullPath)) {
+      continue;
+    }
+    try {
+      return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function resolveEvidenceReferencePath(value, repoRoot) {
+  const text = String(value ?? '').trim();
+  if (text === '') {
+    return null;
+  }
+  const fullPath = path.isAbsolute(text) ? path.resolve(text) : path.resolve(repoRoot, text);
+  const root = path.resolve(repoRoot);
+  const relative = normalizePath(path.relative(root, fullPath));
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+    return null;
+  }
+  if (!/^data\/terraPedia\/raw\/wiki\/armor_set_images\.parsed\.(latest|\d{4}-\d{2}-\d{2}T.+)\.json$/.test(relative)) {
+    return null;
+  }
+  return fullPath;
+}
+
+function pickFiniteMetrics(source, keys) {
+  return Object.fromEntries(keys
+    .map((key) => [key, source?.[key]])
+    .filter(([, value]) => Number.isFinite(value)));
+}
+
+function formatMetrics(metrics) {
+  const entries = Object.entries(metrics ?? {}).filter(([, value]) => value !== undefined && value !== null && value !== '');
+  return entries.length > 0
+    ? entries.map(([key, value]) => `${key}=${value}`).join(', ')
+    : 'none';
+}
+
+function baselineWarnings(metrics, baseline) {
+  return Object.entries(metrics ?? {})
+    .filter(([key, value]) => Number.isFinite(value) && Number.isFinite(baseline?.[key]) && value > baseline[key])
+    .map(([key, value]) => `${key}=${value} exceeds baseline ${baseline[key]}`);
+}
+
+function formatMetricsWithBaseline(metrics, baseline) {
+  const entries = Object.entries(metrics ?? {}).filter(([, value]) => value !== undefined && value !== null && value !== '');
+  return entries.length > 0
+    ? entries.map(([key, value]) => {
+      const baselineValue = baseline?.[key];
+      return Number.isFinite(baselineValue) ? `${key}=${value}/${baselineValue}` : `${key}=${value}`;
+    }).join(', ')
+    : 'none';
+}
+
+function sameNumberSet(left, right) {
+  const normalize = (values) => (Array.isArray(values) ? values : [])
+    .map(Number)
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+  const normalizedLeft = normalize(left);
+  const normalizedRight = normalize(right);
+  return normalizedLeft.length === normalizedRight.length
+    && normalizedLeft.every((value, index) => value === normalizedRight[index]);
+}
+
+function imageSourceSemantics(payload, reportPath, {
+  entityLabel,
+  totalField,
+  imageFields = [],
+  nestedImageFields = [],
+  allowMissingImage = () => false,
+} = {}) {
+  const records = Array.isArray(payload?.records) ? payload.records : [];
+  const blocking = [];
+  const warnings = [];
+  const total = payload?.[totalField];
+  if (!Number.isFinite(total) || total <= 0) {
+    blocking.push(`${totalField} is missing or zero`);
+  } else if (total !== records.length) {
+    blocking.push(`${totalField}=${total} does not match records.length=${records.length}`);
+  }
+  const missingImage = records.filter((record) => !recordHasImageEvidence(record, imageFields, nestedImageFields) && !allowMissingImage(record)).length;
+  if (missingImage > 0) {
+    warnings.push(`${missingImage} ${entityLabel} records missing image source fields`);
+  }
+  return semanticResult({
+    reportPath,
+    cleanMessage: `${entityLabel} image source semantic gates are clean in ${reportPath}`,
     blocking,
     warnings,
   });
@@ -979,6 +1309,10 @@ function requiredLatestJson(reportPattern) {
 
 function optionalLatestJson(reportPattern) {
   return evidence(reportPattern, false, 'json', true);
+}
+
+function optionalLatestText(reportPattern) {
+  return evidence(reportPattern, false, 'text', true);
 }
 
 function optionalText(relativePath) {

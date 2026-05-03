@@ -147,6 +147,9 @@ function main(argv = process.argv.slice(2)) {
   if (args['fail-on-blocked'] === 'true' && result.summary.blockedCount > 0) {
     process.exitCode = 1;
   }
+  if (args['fail-on-warning'] === 'true' && result.summary.warningCount > 0) {
+    process.exitCode = 1;
+  }
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {

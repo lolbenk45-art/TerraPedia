@@ -22,6 +22,7 @@ test('quality gate runs full domain acceptance dry-run without writing reports',
   assert.match(source, /Domain acceptance full dry-run/);
   assert.match(source, /scripts\/data\/workflow\/domain-acceptance-generate-reports\.mjs/);
   assert.match(source, /--fail-on-blocked=true/);
+  assert.match(source, /--fail-on-warning=true/);
   assert.doesNotMatch(source, /domain-acceptance-generate-reports\.mjs[\s\S]*--write=true/);
 });
 
