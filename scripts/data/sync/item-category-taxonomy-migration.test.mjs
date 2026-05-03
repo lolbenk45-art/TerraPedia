@@ -104,3 +104,20 @@ test('tool taxonomy migration keeps SQL taxonomy aligned with script definitions
     assert.match(statement, /`deleted`\s*=\s*0/i);
   }
 });
+
+test('tool taxonomy migration is safe for existing leaf-shaped legacy tool categories', () => {
+  const statements = readMigrationStatements();
+
+  assert.doesNotMatch(
+    fs.readFileSync(migrationPath, 'utf8'),
+    /LAST_INSERT_ID\s*\(\s*`?id`?\s*\)/i
+  );
+
+  for (const code of ['TOOL_PICKAXE_DRILL', 'TOOL_AXE_CHAINSAW']) {
+    const containerStatement = statements.find((candidate) =>
+      /INSERT\s+INTO\s+`category`/i.test(candidate) && candidate.includes(`'${code}'`)
+    );
+    assert.ok(containerStatement, `missing container upsert for ${code}`);
+    assert.match(containerStatement, /`parent_id`\s*=\s*VALUES\(`parent_id`\)/i);
+  }
+});

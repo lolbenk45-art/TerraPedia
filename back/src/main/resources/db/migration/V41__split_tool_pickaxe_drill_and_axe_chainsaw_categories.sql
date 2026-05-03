@@ -4,7 +4,7 @@ FROM `category` parent_ref
 WHERE parent_ref.`code` = 'TOOL'
   AND parent_ref.`deleted` = 0
 ON DUPLICATE KEY UPDATE
-  `id` = LAST_INSERT_ID(`id`),
+  `parent_id` = VALUES(`parent_id`),
   `name` = VALUES(`name`),
   `top_type` = VALUES(`top_type`),
   `sort` = VALUES(`sort`),
@@ -18,7 +18,6 @@ FROM `category` parent_ref
 WHERE parent_ref.`code` = 'TOOL_PICKAXE_DRILL'
   AND parent_ref.`deleted` = 0
 ON DUPLICATE KEY UPDATE
-  `id` = LAST_INSERT_ID(`id`),
   `parent_id` = VALUES(`parent_id`),
   `name` = VALUES(`name`),
   `top_type` = VALUES(`top_type`),
@@ -33,7 +32,6 @@ FROM `category` parent_ref
 WHERE parent_ref.`code` = 'TOOL_PICKAXE_DRILL'
   AND parent_ref.`deleted` = 0
 ON DUPLICATE KEY UPDATE
-  `id` = LAST_INSERT_ID(`id`),
   `parent_id` = VALUES(`parent_id`),
   `name` = VALUES(`name`),
   `top_type` = VALUES(`top_type`),
@@ -48,7 +46,7 @@ FROM `category` parent_ref
 WHERE parent_ref.`code` = 'TOOL'
   AND parent_ref.`deleted` = 0
 ON DUPLICATE KEY UPDATE
-  `id` = LAST_INSERT_ID(`id`),
+  `parent_id` = VALUES(`parent_id`),
   `name` = VALUES(`name`),
   `top_type` = VALUES(`top_type`),
   `sort` = VALUES(`sort`),
@@ -62,7 +60,6 @@ FROM `category` parent_ref
 WHERE parent_ref.`code` = 'TOOL_AXE_CHAINSAW'
   AND parent_ref.`deleted` = 0
 ON DUPLICATE KEY UPDATE
-  `id` = LAST_INSERT_ID(`id`),
   `parent_id` = VALUES(`parent_id`),
   `name` = VALUES(`name`),
   `top_type` = VALUES(`top_type`),
@@ -77,7 +74,6 @@ FROM `category` parent_ref
 WHERE parent_ref.`code` = 'TOOL_AXE_CHAINSAW'
   AND parent_ref.`deleted` = 0
 ON DUPLICATE KEY UPDATE
-  `id` = LAST_INSERT_ID(`id`),
   `parent_id` = VALUES(`parent_id`),
   `name` = VALUES(`name`),
   `top_type` = VALUES(`top_type`),
