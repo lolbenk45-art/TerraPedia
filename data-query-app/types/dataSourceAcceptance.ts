@@ -14,6 +14,10 @@ export interface DataSourceAcceptancePanel {
   readable?: boolean
   reportPath?: string | null
   reportPattern?: string | null
+  generatorCommand?: string | null
+  writesDatabase?: boolean | null
+  requiresDatabase?: boolean | null
+  notes?: string | null
   generatedAt?: string | null
   updatedAt?: string | null
   errorMessage?: string | null

@@ -38,6 +38,10 @@ public class DataSourceAcceptanceOverviewDTO {
         private boolean readable;
         private String reportPath;
         private String reportPattern;
+        private String generatorCommand;
+        private Boolean writesDatabase;
+        private Boolean requiresDatabase;
+        private String notes;
         private Instant generatedAt;
         private String updatedAt;
         private String errorMessage;

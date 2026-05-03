@@ -46,6 +46,10 @@ class DataSourceAcceptanceServiceImplTest {
         assertEquals("pass", overview.getCrawlerMonitor().getStatus());
         assertEquals("reports/relation/relation-health-2026-05-03.json", overview.getRelationHealth().getReportPath());
         assertFalse(overview.getRelationHealth().getReportPath().contains(repoRoot.toString()));
+        assertEquals("node scripts/data/relation/replacement-readiness-audit.mjs", overview.getReplacementReadiness().getGeneratorCommand());
+        assertEquals(false, overview.getReplacementReadiness().getWritesDatabase());
+        assertEquals("node scripts/data/audit/audit-any-item-group-sources.mjs", overview.getSourceGroupAudit().getGeneratorCommand());
+        assertEquals(false, overview.getSourceGroupAudit().getRequiresDatabase());
     }
 
     @Test
@@ -118,6 +122,10 @@ class DataSourceAcceptanceServiceImplTest {
         assertEquals("missing", overview.getImageReadiness().getStatus());
         assertEquals("missing", overview.getEntitySourceCoverage().getStatus());
         assertEquals("pass", overview.getCrawlerMonitor().getStatus());
+        assertEquals("node scripts/data/audit/image-asset-readiness-audit.mjs", overview.getImageReadiness().getGeneratorCommand());
+        assertEquals(false, overview.getImageReadiness().getWritesDatabase());
+        assertEquals(true, overview.getImageReadiness().getRequiresDatabase());
+        assertNotNull(overview.getImageReadiness().getNotes());
     }
 
     @Test

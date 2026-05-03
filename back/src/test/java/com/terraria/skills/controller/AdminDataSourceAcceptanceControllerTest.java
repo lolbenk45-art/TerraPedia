@@ -69,6 +69,10 @@ class AdminDataSourceAcceptanceControllerTest {
             .andExpect(jsonPath("$.data.sourceDatasetLanding.status").value("pass"))
             .andExpect(jsonPath("$.data.sourceGroupAudit.status").value("pass"))
             .andExpect(jsonPath("$.data.imageReadiness.status").value("missing"))
+            .andExpect(jsonPath("$.data.imageReadiness.generatorCommand").value("node scripts/data/audit/image-asset-readiness-audit.mjs"))
+            .andExpect(jsonPath("$.data.imageReadiness.writesDatabase").value(false))
+            .andExpect(jsonPath("$.data.imageReadiness.requiresDatabase").value(true))
+            .andExpect(jsonPath("$.data.imageReadiness.notes").value("Feeds imageReadiness from the latest image asset readiness audit report."))
             .andExpect(jsonPath("$.data.crawlerMonitor.status").value("warning"))
             .andExpect(jsonPath("$.data.entitySourceCoverage.status").value("pass"));
 
@@ -81,6 +85,12 @@ class AdminDataSourceAcceptanceControllerTest {
         panel.setStatus(status);
         panel.setFound(!"missing".equals(status));
         panel.setReadable(!"missing".equals(status));
+        if ("imageReadiness".equals(id)) {
+            panel.setGeneratorCommand("node scripts/data/audit/image-asset-readiness-audit.mjs");
+            panel.setWritesDatabase(false);
+            panel.setRequiresDatabase(true);
+            panel.setNotes("Feeds imageReadiness from the latest image asset readiness audit report.");
+        }
         return panel;
     }
 }

@@ -127,6 +127,15 @@
             <code>{{ item.panel?.reportPath || item.panel?.reportPattern || '--' }}</code>
           </div>
 
+          <div v-if="item.panel?.generatorCommand" class="generator-command">
+            <span>只读生成命令</span>
+            <code>{{ item.panel.generatorCommand }}</code>
+            <small>
+              {{ generatorMeta(item.panel) }}
+              <template v-if="item.panel.notes"> · {{ item.panel.notes }}</template>
+            </small>
+          </div>
+
           <div v-if="item.panel?.sampleReportPaths?.length" class="sample-report-list">
             <span>样本报告</span>
             <code v-for="path in item.panel.sampleReportPaths" :key="path">{{ path }}</code>
@@ -146,7 +155,9 @@
               <span class="status-pill" :class="statusTone(check.status)">{{ statusLabel(check.status) }}</span>
               <div>
                 <strong>{{ check.id || 'check' }}</strong>
-                <small>{{ check.message || check.reportPath || '--' }}</small>
+                <small v-if="check.message">{{ check.message }}</small>
+                <small v-if="check.reportPath">{{ check.reportPath }}</small>
+                <small v-if="!check.message && !check.reportPath">--</small>
               </div>
             </div>
           </div>
@@ -278,6 +289,13 @@ function readableLabel(panel?: DataSourceAcceptancePanel | null) {
   if (panel?.readable) return '是'
   if (panel?.found) return '否'
   return '缺失'
+}
+
+function generatorMeta(panel?: DataSourceAcceptancePanel | null) {
+  if (!panel?.generatorCommand) return ''
+  const databaseText = panel.requiresDatabase ? '需要本地数据库' : '不需要数据库'
+  const writeText = panel.writesDatabase ? '可能写入数据库' : '不写数据库'
+  return `${databaseText} · ${writeText}`
 }
 
 function panelMetricRows(panel?: DataSourceAcceptancePanel | null) {

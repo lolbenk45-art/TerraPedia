@@ -31,42 +31,66 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
         Path.of("reports", "relation"),
         "relation-health",
         ".json",
-        "reports/relation/relation-health*.json"
+        "reports/relation/relation-health*.json",
+        "node scripts/data/relation/relation-health-report.mjs --write-report=true",
+        false,
+        true,
+        "Feeds relationHealth from the latest relation health report."
     );
     private static final ReportDefinition REPLACEMENT_READINESS = new ReportDefinition(
         "replacementReadiness",
         Path.of("reports", "relation"),
         "replacement-readiness",
         ".json",
-        "reports/relation/replacement-readiness*.json"
+        "reports/relation/replacement-readiness*.json",
+        "node scripts/data/relation/replacement-readiness-audit.mjs",
+        false,
+        true,
+        "Feeds replacementReadiness from the latest read-only replacement readiness audit report."
     );
     private static final ReportDefinition SOURCE_DATASET_LANDING = new ReportDefinition(
         "sourceDatasetLanding",
         Path.of("reports"),
         "source-dataset-landing-audit",
         ".json",
-        "reports/source-dataset-landing-audit*.json"
+        "reports/source-dataset-landing-audit*.json",
+        "node scripts/data/landing/audit-source-dataset-landings.mjs",
+        false,
+        true,
+        "Feeds sourceDatasetLanding from the latest landing dataset audit report."
     );
     private static final ReportDefinition SOURCE_GROUP_AUDIT = new ReportDefinition(
         "sourceGroupAudit",
         Path.of("reports", "item-groups"),
         "any-item-group-source-audit",
         ".json",
-        "reports/item-groups/any-item-group-source-audit*.json"
+        "reports/item-groups/any-item-group-source-audit*.json",
+        "node scripts/data/audit/audit-any-item-group-sources.mjs",
+        false,
+        false,
+        "Feeds sourceGroupAudit from the latest source-backed item group audit report."
     );
     private static final ReportDefinition IMAGE_READINESS = new ReportDefinition(
         "imageReadiness",
         Path.of("reports", "audit"),
         "image-asset-readiness",
         ".json",
-        "reports/audit/image-asset-readiness*.json"
+        "reports/audit/image-asset-readiness*.json",
+        "node scripts/data/audit/image-asset-readiness-audit.mjs",
+        false,
+        true,
+        "Feeds imageReadiness from the latest image asset readiness audit report."
     );
     private static final ReportDefinition ENTITY_SOURCE_COVERAGE = new ReportDefinition(
         "entitySourceCoverage",
         Path.of("reports", "relation"),
         "entity-coverage-baseline",
         ".json",
-        "reports/relation/entity-coverage-baseline*.json"
+        "reports/relation/entity-coverage-baseline*.json",
+        "node scripts/data/relation/entity-coverage-baseline.mjs",
+        false,
+        true,
+        "Feeds entitySourceCoverage from the latest entity source coverage baseline report."
     );
 
     private final ObjectMapper objectMapper;
@@ -166,6 +190,11 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
         panel.setStatus("pass");
         panel.setFound(true);
         panel.setReadable(true);
+        panel.setReportPattern("GET /admin/crawler-monitor/overview");
+        panel.setGeneratorCommand("read-only monitor overview: GET /admin/crawler-monitor/overview");
+        panel.setWritesDatabase(false);
+        panel.setRequiresDatabase(false);
+        panel.setNotes("Feeds crawlerMonitor through the existing read-only crawler monitor overview, without running crawler, data load, or mutation flows.");
         panel.setBlockingCount(0);
         panel.setWarningCount(0);
         try {
@@ -356,6 +385,10 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
         DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel = new DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO();
         panel.setId(definition.id());
         panel.setReportPattern(definition.reportPattern());
+        panel.setGeneratorCommand(definition.generatorCommand());
+        panel.setWritesDatabase(definition.writesDatabase());
+        panel.setRequiresDatabase(definition.requiresDatabase());
+        panel.setNotes(definition.notes());
         panel.setBlockingCount(0);
         panel.setWarningCount(0);
         return panel;
@@ -624,7 +657,11 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
         Path relativeDir,
         String prefix,
         String suffix,
-        String reportPattern
+        String reportPattern,
+        String generatorCommand,
+        boolean writesDatabase,
+        boolean requiresDatabase,
+        String notes
     ) {
     }
 }

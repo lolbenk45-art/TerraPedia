@@ -85,12 +85,35 @@ test('data source acceptance page renders raw summary and sample report evidence
   assert.match(page, /raw-summary-list/)
 })
 
+test('data source acceptance page renders generator command guidance without writes', () => {
+  const page = read('data-query-app/pages/operations/data-source-acceptance.vue')
+
+  assert.match(page, /generatorCommand/)
+  assert.match(page, /requiresDatabase/)
+  assert.match(page, /writesDatabase/)
+  assert.match(page, /notes/)
+  assert.match(page, /generator-command/)
+  assert.doesNotMatch(page, /navigator\.clipboard/)
+})
+
+test('data source acceptance page keeps check messages and report paths visible together', () => {
+  const page = read('data-query-app/pages/operations/data-source-acceptance.vue')
+
+  assert.match(page, /check\.message/)
+  assert.match(page, /check\.reportPath/)
+  assert.doesNotMatch(page, /check\.message\s*\|\|\s*check\.reportPath/)
+})
+
 test('data source acceptance types preserve panel checks and metrics', () => {
   const types = read('data-query-app/types/dataSourceAcceptance.ts')
 
   assert.match(types, /export interface DataSourceAcceptanceOverview/)
   assert.match(types, /overallStatus\?: AcceptanceStatus/)
   assert.match(types, /export interface DataSourceAcceptancePanel/)
+  assert.match(types, /generatorCommand\?: string \| null/)
+  assert.match(types, /requiresDatabase\?: boolean \| null/)
+  assert.match(types, /writesDatabase\?: boolean \| null/)
+  assert.match(types, /notes\?: string \| null/)
   assert.match(types, /checks\?: DataSourceAcceptanceCheck\[\]/)
   assert.match(types, /metrics\?: Record<string, unknown>/)
 })
