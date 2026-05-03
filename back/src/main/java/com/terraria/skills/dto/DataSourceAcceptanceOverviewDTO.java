@@ -42,6 +42,11 @@ public class DataSourceAcceptanceOverviewDTO {
         private Boolean writesDatabase;
         private Boolean requiresDatabase;
         private String notes;
+        private String freshnessStatus;
+        private String freshnessReason;
+        private Integer staleAfterHours;
+        private Long ageHours;
+        private String nextEvidenceCommand;
         private Instant generatedAt;
         private String updatedAt;
         private String errorMessage;

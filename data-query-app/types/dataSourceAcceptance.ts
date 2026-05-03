@@ -18,6 +18,11 @@ export interface DataSourceAcceptancePanel {
   writesDatabase?: boolean | null
   requiresDatabase?: boolean | null
   notes?: string | null
+  freshnessStatus?: string | null
+  freshnessReason?: string | null
+  staleAfterHours?: number | null
+  ageHours?: number | null
+  nextEvidenceCommand?: string | null
   generatedAt?: string | null
   updatedAt?: string | null
   errorMessage?: string | null

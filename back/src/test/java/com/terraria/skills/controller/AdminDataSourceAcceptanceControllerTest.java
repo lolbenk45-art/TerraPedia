@@ -65,11 +65,18 @@ class AdminDataSourceAcceptanceControllerTest {
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.overallStatus").value("warning"))
             .andExpect(jsonPath("$.data.relationHealth.status").value("pass"))
+            .andExpect(jsonPath("$.data.relationHealth.freshnessStatus").value("fresh"))
+            .andExpect(jsonPath("$.data.relationHealth.staleAfterHours").value(24))
+            .andExpect(jsonPath("$.data.relationHealth.ageHours").value(12))
+            .andExpect(jsonPath("$.data.relationHealth.nextEvidenceCommand").doesNotExist())
             .andExpect(jsonPath("$.data.replacementReadiness.status").value("pass"))
             .andExpect(jsonPath("$.data.sourceDatasetLanding.status").value("pass"))
             .andExpect(jsonPath("$.data.sourceGroupAudit.status").value("pass"))
             .andExpect(jsonPath("$.data.imageReadiness.status").value("missing"))
+            .andExpect(jsonPath("$.data.imageReadiness.freshnessStatus").value("missing"))
+            .andExpect(jsonPath("$.data.imageReadiness.staleAfterHours").value(24))
             .andExpect(jsonPath("$.data.imageReadiness.generatorCommand").value("node scripts/data/audit/image-asset-readiness-audit.mjs --source=db"))
+            .andExpect(jsonPath("$.data.imageReadiness.nextEvidenceCommand").value("node scripts/data/audit/image-asset-readiness-audit.mjs --source=db"))
             .andExpect(jsonPath("$.data.imageReadiness.writesDatabase").value(false))
             .andExpect(jsonPath("$.data.imageReadiness.requiresDatabase").value(true))
             .andExpect(jsonPath("$.data.imageReadiness.notes").value("Feeds imageReadiness from the latest image asset readiness audit report."))
@@ -85,11 +92,18 @@ class AdminDataSourceAcceptanceControllerTest {
         panel.setStatus(status);
         panel.setFound(!"missing".equals(status));
         panel.setReadable(!"missing".equals(status));
+        panel.setStaleAfterHours(24);
+        if ("relationHealth".equals(id)) {
+            panel.setFreshnessStatus("fresh");
+            panel.setAgeHours(12L);
+        }
         if ("imageReadiness".equals(id)) {
             panel.setGeneratorCommand("node scripts/data/audit/image-asset-readiness-audit.mjs --source=db");
+            panel.setNextEvidenceCommand("node scripts/data/audit/image-asset-readiness-audit.mjs --source=db");
             panel.setWritesDatabase(false);
             panel.setRequiresDatabase(true);
             panel.setNotes("Feeds imageReadiness from the latest image asset readiness audit report.");
+            panel.setFreshnessStatus("missing");
         }
         return panel;
     }

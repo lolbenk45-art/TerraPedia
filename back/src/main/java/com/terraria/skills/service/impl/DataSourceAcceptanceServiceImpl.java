@@ -14,6 +14,8 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -25,6 +27,8 @@ import java.util.stream.Stream;
 
 @Service
 public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceService {
+
+    private static final int DEFAULT_STALE_AFTER_HOURS = 24;
 
     private static final ReportDefinition RELATION_HEALTH = new ReportDefinition(
         "relationHealth",
@@ -96,10 +100,11 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
     private final ObjectMapper objectMapper;
     private final CrawlerMonitorService crawlerMonitorService;
     private final Path repoRootOverride;
+    private final Clock clock;
 
     @Autowired
     public DataSourceAcceptanceServiceImpl(ObjectMapper objectMapper, CrawlerMonitorService crawlerMonitorService) {
-        this(objectMapper, crawlerMonitorService, null);
+        this(objectMapper, crawlerMonitorService, null, Clock.systemUTC());
     }
 
     DataSourceAcceptanceServiceImpl(
@@ -107,16 +112,26 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
         CrawlerMonitorService crawlerMonitorService,
         Path repoRootOverride
     ) {
+        this(objectMapper, crawlerMonitorService, repoRootOverride, Clock.systemUTC());
+    }
+
+    DataSourceAcceptanceServiceImpl(
+        ObjectMapper objectMapper,
+        CrawlerMonitorService crawlerMonitorService,
+        Path repoRootOverride,
+        Clock clock
+    ) {
         this.objectMapper = objectMapper;
         this.crawlerMonitorService = crawlerMonitorService;
         this.repoRootOverride = repoRootOverride == null ? null : repoRootOverride.toAbsolutePath().normalize();
+        this.clock = clock == null ? Clock.systemUTC() : clock;
     }
 
     @Override
     public DataSourceAcceptanceOverviewDTO getOverview() {
         Path repoRoot = resolveRepoRoot();
         DataSourceAcceptanceOverviewDTO overview = new DataSourceAcceptanceOverviewDTO();
-        overview.setGeneratedAt(Instant.now());
+        overview.setGeneratedAt(Instant.now(clock));
         overview.setRelationHealth(readReportPanel(repoRoot, RELATION_HEALTH, this::fillRelationHealth));
         overview.setReplacementReadiness(readReportPanel(repoRoot, REPLACEMENT_READINESS, this::fillReplacementReadiness));
         overview.setSourceDatasetLanding(readReportPanel(repoRoot, SOURCE_DATASET_LANDING, this::fillSourceDatasetLanding));
@@ -167,11 +182,13 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
             try {
                 parser.accept(root, panel);
                 ensureStatus(panel);
+                applyReportFreshness(panel, definition);
             } catch (RuntimeException exception) {
                 panel.setStatus("blocked");
                 panel.setBlockingCount(1);
                 panel.setWarningCount(0);
                 panel.setErrorMessage(exception.getMessage());
+                applyBlockedFreshness(panel, definition);
             }
             return panel;
         } catch (IOException exception) {
@@ -180,6 +197,7 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
             panel.setBlockingCount(1);
             panel.setWarningCount(0);
             panel.setErrorMessage(exception.getMessage());
+            applyBlockedFreshness(panel, definition);
             return panel;
         }
     }
@@ -197,6 +215,7 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
         panel.setNotes("Feeds crawlerMonitor through the existing read-only crawler monitor overview, without running crawler, data load, or mutation flows.");
         panel.setBlockingCount(0);
         panel.setWarningCount(0);
+        panel.setStaleAfterHours(DEFAULT_STALE_AFTER_HOURS);
         try {
             CrawlerMonitorOverviewDTO overview = crawlerMonitorService.getOverview();
             if (overview == null) {
@@ -205,9 +224,11 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
                 panel.setReadable(false);
                 panel.setBlockingCount(1);
                 panel.setErrorMessage("Crawler monitor overview is unavailable.");
+                applyBlockedFreshness(panel, panel.getGeneratorCommand());
                 return panel;
             }
             panel.setGeneratedAt(overview.getGeneratedAt());
+            applyCrawlerFreshness(panel, overview);
             panel.getMetrics().put("refreshStale", overview.isRefreshStale());
             panel.getMetrics().put("refreshLastActivityAt", overview.getRefreshLastActivityAt());
             panel.getMetrics().put("refreshStaleReason", overview.getRefreshStaleReason());
@@ -226,14 +247,17 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
                     panel.setStatus("blocked");
                     panel.setBlockingCount(1);
                     panel.setErrorMessage(firstNonBlank(latestRun.getErrorMessage(), "Latest crawler monitor run is missing or unreadable."));
+                    applyBlockedFreshness(panel, panel.getGeneratorCommand());
                 } else if (latestRun.getFailedActions() > 0 || latestRun.getTimedOutActions() > 0) {
                     panel.setStatus("blocked");
                     panel.setBlockingCount((int) (latestRun.getFailedActions() + latestRun.getTimedOutActions()));
+                    applyBlockedFreshness(panel, panel.getGeneratorCommand());
                 }
             }
             if (!"blocked".equals(panel.getStatus()) && overview.isRefreshStale()) {
                 panel.setStatus("warning");
                 panel.setWarningCount(1);
+                panel.setNextEvidenceCommand(panel.getGeneratorCommand());
             }
             return panel;
         } catch (Exception exception) {
@@ -241,6 +265,7 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
             panel.setReadable(false);
             panel.setBlockingCount(1);
             panel.setErrorMessage(exception.getMessage());
+            applyBlockedFreshness(panel, panel.getGeneratorCommand());
             return panel;
         }
     }
@@ -389,6 +414,7 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
         panel.setWritesDatabase(definition.writesDatabase());
         panel.setRequiresDatabase(definition.requiresDatabase());
         panel.setNotes(definition.notes());
+        panel.setStaleAfterHours(DEFAULT_STALE_AFTER_HOURS);
         panel.setBlockingCount(0);
         panel.setWarningCount(0);
         return panel;
@@ -399,6 +425,9 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
         panel.setStatus("missing");
         panel.setFound(false);
         panel.setReadable(false);
+        panel.setFreshnessStatus("missing");
+        panel.setFreshnessReason("Missing acceptance report evidence.");
+        panel.setNextEvidenceCommand(definition.generatorCommand());
         return panel;
     }
 
@@ -409,7 +438,67 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
         panel.setReadable(false);
         panel.setBlockingCount(1);
         panel.setErrorMessage(message);
+        applyBlockedFreshness(panel, definition);
         return panel;
+    }
+
+    private void applyReportFreshness(DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel, ReportDefinition definition) {
+        if (panel.getGeneratedAt() == null) {
+            panel.setFreshnessStatus("unknown");
+            panel.setFreshnessReason("Acceptance report generatedAt is unavailable.");
+            panel.setNextEvidenceCommand(definition.generatorCommand());
+            if ("pass".equals(panel.getStatus())) {
+                panel.setStatus("warning");
+                panel.setWarningCount(positiveOrOne(panel.getWarningCount()));
+            }
+            return;
+        }
+        long ageHours = Math.max(0, Duration.between(panel.getGeneratedAt(), Instant.now(clock)).toHours());
+        panel.setAgeHours(ageHours);
+        panel.setFreshnessStatus(ageHours > DEFAULT_STALE_AFTER_HOURS ? "stale" : "fresh");
+        if ("stale".equals(panel.getFreshnessStatus())) {
+            panel.setFreshnessReason("Evidence is older than " + DEFAULT_STALE_AFTER_HOURS + " hours.");
+            panel.setNextEvidenceCommand(definition.generatorCommand());
+            if ("pass".equals(panel.getStatus())) {
+                panel.setStatus("warning");
+                panel.setWarningCount(positiveOrOne(panel.getWarningCount()));
+            }
+        }
+    }
+
+    private void applyCrawlerFreshness(DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel, CrawlerMonitorOverviewDTO overview) {
+        panel.setStaleAfterHours(staleAfterHours(overview.getRefreshStaleThresholdMs()));
+        if (overview.isRefreshStale()) {
+            panel.setFreshnessStatus("stale");
+            panel.setFreshnessReason(firstNonBlank(overview.getRefreshStaleReason(), "Crawler monitor refresh evidence is stale."));
+            panel.setNextEvidenceCommand(panel.getGeneratorCommand());
+        } else {
+            panel.setFreshnessStatus("fresh");
+        }
+        if (panel.getGeneratedAt() != null) {
+            panel.setAgeHours(Math.max(0, Duration.between(panel.getGeneratedAt(), Instant.now(clock)).toHours()));
+        }
+    }
+
+    private void applyBlockedFreshness(DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel, ReportDefinition definition) {
+        applyBlockedFreshness(panel, definition.generatorCommand());
+    }
+
+    private void applyBlockedFreshness(DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel, String nextEvidenceCommand) {
+        if (panel.getFreshnessStatus() == null) {
+            panel.setFreshnessStatus(panel.isFound() ? "unknown" : "missing");
+        }
+        if (panel.getFreshnessReason() == null || panel.getFreshnessReason().isBlank()) {
+            panel.setFreshnessReason(firstNonBlank(panel.getErrorMessage(), "Acceptance evidence is blocked or unreadable."));
+        }
+        panel.setNextEvidenceCommand(nextEvidenceCommand);
+    }
+
+    private int staleAfterHours(Long staleThresholdMs) {
+        if (staleThresholdMs == null || staleThresholdMs <= 0) {
+            return DEFAULT_STALE_AFTER_HOURS;
+        }
+        return (int) Math.max(1, Math.ceil(staleThresholdMs / 3_600_000.0));
     }
 
     private void ensureStatus(DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel) {

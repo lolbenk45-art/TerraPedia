@@ -127,6 +127,15 @@
             <code>{{ item.panel?.reportPath || item.panel?.reportPattern || '--' }}</code>
           </div>
 
+          <div v-if="item.panel?.freshnessStatus" class="freshness-block">
+            <span>证据新鲜度</span>
+            <strong>{{ freshnessLabel(item.panel.freshnessStatus) }}</strong>
+            <small>
+              {{ freshnessMeta(item.panel) }}
+              <template v-if="item.panel.freshnessReason"> · {{ item.panel.freshnessReason }}</template>
+            </small>
+          </div>
+
           <div v-if="item.panel?.generatorCommand" class="generator-command">
             <span>只读生成命令</span>
             <code>{{ item.panel.generatorCommand }}</code>
@@ -134,6 +143,11 @@
               {{ generatorMeta(item.panel) }}
               <template v-if="item.panel.notes"> · {{ item.panel.notes }}</template>
             </small>
+          </div>
+
+          <div v-if="item.panel?.nextEvidenceCommand" class="next-evidence-command">
+            <span>下一步只读证据</span>
+            <code>{{ item.panel.nextEvidenceCommand }}</code>
           </div>
 
           <div v-if="item.panel?.sampleReportPaths?.length" class="sample-report-list">
@@ -296,6 +310,25 @@ function generatorMeta(panel?: DataSourceAcceptancePanel | null) {
   const databaseText = panel.requiresDatabase ? '需要本地数据库' : '不需要数据库'
   const writeText = panel.writesDatabase ? '可能写入数据库' : '不写数据库'
   return `${databaseText} · ${writeText}`
+}
+
+function freshnessLabel(status?: string | null) {
+  const normalized = String(status || '').toLowerCase()
+  if (normalized === 'fresh') return '新鲜'
+  if (normalized === 'stale') return '过期'
+  if (normalized === 'missing') return '缺失'
+  return '未知'
+}
+
+function freshnessMeta(panel?: DataSourceAcceptancePanel | null) {
+  const parts: string[] = []
+  if (typeof panel?.ageHours === 'number') {
+    parts.push(`年龄 ${formatNumber(panel.ageHours)} 小时`)
+  }
+  if (typeof panel?.staleAfterHours === 'number') {
+    parts.push(`阈值 ${formatNumber(panel.staleAfterHours)} 小时`)
+  }
+  return parts.length ? parts.join(' · ') : '--'
 }
 
 function panelMetricRows(panel?: DataSourceAcceptancePanel | null) {
@@ -614,24 +647,47 @@ function formatDate(value?: string | null) {
 }
 
 .path-block,
-.sample-report-list {
+.sample-report-list,
+.freshness-block,
+.generator-command,
+.next-evidence-command {
   display: grid;
   gap: 6px;
 }
 
 .path-block code,
 .sample-report-list code,
+.generator-command code,
+.next-evidence-command code,
 .check-row small {
   overflow-wrap: anywhere;
 }
 
 .path-block code,
-.sample-report-list code {
+.sample-report-list code,
+.generator-command code,
+.next-evidence-command code {
   display: block;
   padding: 10px;
   border-radius: 12px;
   background: color-mix(in srgb, var(--color-bg-tertiary) 82%, transparent);
   color: var(--color-text-secondary);
+}
+
+.freshness-block {
+  padding: 10px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 78%, transparent);
+}
+
+.freshness-block strong {
+  color: var(--color-text);
+}
+
+.freshness-block small,
+.generator-command small {
+  color: var(--color-text-secondary);
+  line-height: 1.45;
 }
 
 .panel-error {

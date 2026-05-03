@@ -94,6 +94,24 @@ test('data source acceptance page renders generator command guidance without wri
   assert.match(page, /notes/)
   assert.match(page, /generator-command/)
   assert.doesNotMatch(page, /navigator\.clipboard/)
+  assert.doesNotMatch(page, /document\.execCommand/)
+})
+
+test('data source acceptance page renders backend freshness and next evidence guidance', () => {
+  const page = read('data-query-app/pages/operations/data-source-acceptance.vue')
+
+  assert.match(page, /freshnessStatus/)
+  assert.match(page, /freshnessReason/)
+  assert.match(page, /staleAfterHours/)
+  assert.match(page, /ageHours/)
+  assert.match(page, /nextEvidenceCommand/)
+  assert.match(page, /freshness-block/)
+  assert.match(page, /next-evidence-command/)
+  assert.match(page, /item\.panel\.nextEvidenceCommand/)
+  assert.doesNotMatch(page, /Date\.now\(/)
+  assert.doesNotMatch(page, /ageHours\s*[<>]=?\s*.*staleAfterHours/)
+  assert.doesNotMatch(page, /staleAfterHours\s*[<>]=?\s*.*ageHours/)
+  assert.doesNotMatch(page, /@click=["'][^"']*nextEvidenceCommand/)
 })
 
 test('data source acceptance page keeps check messages and report paths visible together', () => {
@@ -114,6 +132,11 @@ test('data source acceptance types preserve panel checks and metrics', () => {
   assert.match(types, /requiresDatabase\?: boolean \| null/)
   assert.match(types, /writesDatabase\?: boolean \| null/)
   assert.match(types, /notes\?: string \| null/)
+  assert.match(types, /freshnessStatus\?: string \| null/)
+  assert.match(types, /freshnessReason\?: string \| null/)
+  assert.match(types, /staleAfterHours\?: number \| null/)
+  assert.match(types, /ageHours\?: number \| null/)
+  assert.match(types, /nextEvidenceCommand\?: string \| null/)
   assert.match(types, /checks\?: DataSourceAcceptanceCheck\[\]/)
   assert.match(types, /metrics\?: Record<string, unknown>/)
 })

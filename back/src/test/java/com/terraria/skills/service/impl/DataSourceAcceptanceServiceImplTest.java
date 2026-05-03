@@ -11,7 +11,9 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -23,6 +25,8 @@ import static org.mockito.Mockito.when;
 
 class DataSourceAcceptanceServiceImplTest {
 
+    private static final Clock FIXED_CLOCK = Clock.fixed(Instant.parse("2026-05-03T12:00:00Z"), ZoneOffset.UTC);
+
     @TempDir
     Path tempDir;
 
@@ -33,6 +37,7 @@ class DataSourceAcceptanceServiceImplTest {
 
         DataSourceAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot, crawlerOverview(false)).getOverview();
 
+        assertEquals(Instant.parse("2026-05-03T12:00:00Z"), overview.getGeneratedAt());
         assertEquals("pass", overview.getOverallStatus());
         assertEquals(0, overview.getBlockingCount());
         assertEquals(0, overview.getWarningCount());
@@ -50,6 +55,36 @@ class DataSourceAcceptanceServiceImplTest {
         assertEquals(false, overview.getReplacementReadiness().getWritesDatabase());
         assertEquals("node scripts/data/audit/audit-any-item-group-sources.mjs", overview.getSourceGroupAudit().getGeneratorCommand());
         assertEquals(false, overview.getSourceGroupAudit().getRequiresDatabase());
+        assertEquals("fresh", overview.getRelationHealth().getFreshnessStatus());
+        assertEquals(12L, overview.getRelationHealth().getAgeHours());
+        assertEquals(24, overview.getRelationHealth().getStaleAfterHours());
+        assertEquals(null, overview.getRelationHealth().getNextEvidenceCommand());
+    }
+
+    @Test
+    void shouldWarnWhenAcceptanceEvidenceIsStaleAndExposeNextEvidenceCommand() throws Exception {
+        Path repoRoot = createRepoRoot();
+        writePassReports(repoRoot);
+        Files.writeString(repoRoot.resolve("reports/relation/relation-health-2026-05-01.json"), """
+            {
+              "generatedAt": "2026-05-01T00:00:00Z",
+              "summary": {"status":"pass","blockingCount":0,"warningCount":0},
+              "checks": []
+            }
+            """);
+
+        DataSourceAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot, crawlerOverview(false)).getOverview();
+
+        assertEquals("warning", overview.getOverallStatus());
+        assertEquals("warning", overview.getRelationHealth().getStatus());
+        assertEquals("stale", overview.getRelationHealth().getFreshnessStatus());
+        assertEquals(60L, overview.getRelationHealth().getAgeHours());
+        assertEquals("Evidence is older than 24 hours.", overview.getRelationHealth().getFreshnessReason());
+        assertEquals(
+            "node scripts/data/relation/relation-health-report.mjs --write-report=true",
+            overview.getRelationHealth().getNextEvidenceCommand()
+        );
+        assertTrue(overview.getWarningReasons().stream().anyMatch(reason -> reason.contains("relationHealth")));
     }
 
     @Test
@@ -126,6 +161,9 @@ class DataSourceAcceptanceServiceImplTest {
         assertEquals(false, overview.getImageReadiness().getWritesDatabase());
         assertEquals(true, overview.getImageReadiness().getRequiresDatabase());
         assertNotNull(overview.getImageReadiness().getNotes());
+        assertEquals("missing", overview.getImageReadiness().getFreshnessStatus());
+        assertEquals("Missing acceptance report evidence.", overview.getImageReadiness().getFreshnessReason());
+        assertEquals("node scripts/data/audit/image-asset-readiness-audit.mjs --source=db", overview.getImageReadiness().getNextEvidenceCommand());
     }
 
     @Test
@@ -180,8 +218,23 @@ class DataSourceAcceptanceServiceImplTest {
 
         assertEquals("warning", overview.getOverallStatus());
         assertEquals("warning", overview.getCrawlerMonitor().getStatus());
+        assertEquals("stale", overview.getCrawlerMonitor().getFreshnessStatus());
+        assertEquals("backend-refresh monitor has no activity for more than 24 hours", overview.getCrawlerMonitor().getFreshnessReason());
+        assertEquals("read-only monitor overview: GET /admin/crawler-monitor/overview", overview.getCrawlerMonitor().getNextEvidenceCommand());
         assertEquals(true, overview.getCrawlerMonitor().getMetrics().get("refreshStale"));
         assertTrue(overview.getWarningReasons().stream().anyMatch(reason -> reason.contains("crawlerMonitor")));
+    }
+
+    @Test
+    void shouldMapCrawlerRefreshStaleThresholdToAcceptanceFreshnessThreshold() throws Exception {
+        Path repoRoot = createRepoRoot();
+        writePassReports(repoRoot);
+        CrawlerMonitorOverviewDTO crawlerOverview = crawlerOverview(false);
+        crawlerOverview.setRefreshStaleThresholdMs(7_200_000L);
+
+        DataSourceAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot, crawlerOverview).getOverview();
+
+        assertEquals(2, overview.getCrawlerMonitor().getStaleAfterHours());
     }
 
     @Test
@@ -276,7 +329,7 @@ class DataSourceAcceptanceServiceImplTest {
     private DataSourceAcceptanceServiceImpl serviceWithRepo(Path repoRoot, CrawlerMonitorOverviewDTO crawlerOverview) {
         CrawlerMonitorService crawlerMonitorService = mock(CrawlerMonitorService.class);
         when(crawlerMonitorService.getOverview()).thenReturn(crawlerOverview);
-        return new DataSourceAcceptanceServiceImpl(new ObjectMapper(), crawlerMonitorService, repoRoot);
+        return new DataSourceAcceptanceServiceImpl(new ObjectMapper(), crawlerMonitorService, repoRoot, FIXED_CLOCK);
     }
 
     private CrawlerMonitorOverviewDTO crawlerOverview(boolean stale) {
