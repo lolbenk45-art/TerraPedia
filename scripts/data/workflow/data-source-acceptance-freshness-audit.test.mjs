@@ -150,6 +150,17 @@ test('CLI prints legal JSON without executing evidence commands', async () => {
   assert.equal(panelById(parsed, 'relationHealth').freshnessStatus, 'fresh');
 });
 
+test('refresh plan consumes the freshness audit instead of duplicating report scanning', () => {
+  const refreshPlanSource = fs.readFileSync(
+    'scripts/data/workflow/data-source-acceptance-refresh-plan.mjs',
+    'utf8',
+  );
+
+  assert.match(refreshPlanSource, /buildDataSourceAcceptanceFreshnessAudit/);
+  assert.doesNotMatch(refreshPlanSource, /readdirSync/);
+  assert.doesNotMatch(refreshPlanSource, /\bspawn\b|\bexec\b|execFile|spawnSync/);
+});
+
 function createTempRepo() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-acceptance-audit-'));
 }

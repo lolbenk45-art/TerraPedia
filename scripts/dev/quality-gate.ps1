@@ -35,8 +35,16 @@ function Invoke-Step([string]$Label, [string]$WorkingDirectory, [string]$Command
   }
 }
 
+$nodeCmd = Resolve-RequiredCommand -PreferredPath $null -CommandName 'node.exe'
 $mavenCmd = Resolve-RequiredCommand -PreferredPath $null -CommandName 'mvn.cmd'
 $pnpmCmd = Resolve-RequiredCommand -PreferredPath 'C:\nvm4w\nodejs\pnpm.cmd' -CommandName 'pnpm.cmd'
+
+Invoke-Step -Label 'Data workflow acceptance tests' -WorkingDirectory $repoRoot -CommandPath $nodeCmd -Arguments @(
+  '--test',
+  'scripts/data/workflow/data-source-acceptance-report-manifest.test.mjs',
+  'scripts/data/workflow/data-source-acceptance-freshness-audit.test.mjs',
+  'scripts/data/workflow/data-source-acceptance-refresh-plan.test.mjs'
+)
 
 if (-not $SkipBack) {
   Invoke-Step -Label 'Backend tests' -WorkingDirectory $backDir -CommandPath $mavenCmd -Arguments @('test')
