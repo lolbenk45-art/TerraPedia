@@ -1,0 +1,4 @@
+interface:
+  display_name: "TerraPedia Task Commit"
+  short_description: "Checkpoint finished TerraPedia work in git."
+  default_prompt: "Use $terrapedia-task-commit to turn finished TerraPedia work into one focused git commit before handoff."

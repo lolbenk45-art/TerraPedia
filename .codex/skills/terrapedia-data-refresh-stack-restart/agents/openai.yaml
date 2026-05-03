@@ -1,0 +1,4 @@
+interface:
+  display_name: "TerraPedia Data Refresh + Restart"
+  short_description: "Refresh data, restart the stack, and verify it."
+  default_prompt: "Use $terrapedia-data-refresh-stack-restart to refresh TerraPedia data, restart the local stack, and verify the services are healthy."
