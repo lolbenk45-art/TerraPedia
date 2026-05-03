@@ -40,7 +40,10 @@ test('domain acceptance page renders domains, panels, evidence status, and next 
     'domain.tier',
     'domain.chainStage',
     'domain.managementRoute',
+    'domain.publicExposure',
     'domain.publicRoute',
+    'domain.publicGateStatus',
+    'domain.publicGateReason',
     'domain.backendRefreshStepIds',
     'domain.backendRefreshPlanCommand',
     'domain.requiresDatabase',
@@ -74,6 +77,8 @@ test('domain acceptance page renders domains, panels, evidence status, and next 
     'panel.generatorCommand',
     'panel.checks',
     'rawSummaryRows(panel)',
+    'publicExposureLabel(domain.publicExposure)',
+    'publicGateLabel(domain.publicGateStatus)',
   ]) {
     assert.match(page, new RegExp(escapeRegExp(token)))
   }
@@ -87,6 +92,7 @@ test('domain acceptance page renders domains, panels, evidence status, and next 
   assert.doesNotMatch(page, /document\.execCommand/)
   assert.doesNotMatch(page, /@click=["'][^"']*action\.command/)
   assert.doesNotMatch(page, /@click=["'][^"']*backendRefreshPlanCommand/)
+  assert.doesNotMatch(page, /@click=["'][^"']*publicGate/)
 })
 
 test('domain acceptance page labels refresh action statuses explicitly', () => {
@@ -127,7 +133,11 @@ test('domain acceptance types preserve dynamic domains and panels', () => {
   assert.match(types, /tier\?: string \| null/)
   assert.match(types, /chainStage\?: string \| null/)
   assert.match(types, /managementRoute\?: string \| null/)
+  assert.match(types, /publicExposure\?: .*string.*\| null/)
   assert.match(types, /publicRoute\?: string \| null/)
+  assert.match(types, /export type DomainAcceptancePublicGateStatus/)
+  assert.match(types, /publicGateStatus\?: DomainAcceptancePublicGateStatus \| null/)
+  assert.match(types, /publicGateReason\?: string \| null/)
   assert.match(types, /backendRefreshStepIds\?: string\[\]/)
   assert.match(types, /backendRefreshPlanCommand\?: string \| null/)
   assert.match(types, /requiresDatabase\?: boolean \| null/)

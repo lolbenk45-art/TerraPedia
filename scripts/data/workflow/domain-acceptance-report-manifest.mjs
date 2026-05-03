@@ -9,6 +9,7 @@ import { buildBackendDataRefreshPlan } from './backend-data-refresh-plan.mjs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DEFAULT_REGISTRY_PATH = path.resolve(__dirname, 'domain-acceptance-registry.json');
+const PUBLIC_EXPOSURE_VALUES = new Set(['public', 'planned-public', 'admin-only']);
 
 export function loadDomainAcceptanceRegistry(registryPath = DEFAULT_REGISTRY_PATH) {
   return JSON.parse(fs.readFileSync(registryPath, 'utf8'));
@@ -58,9 +59,11 @@ export function validateDomainAcceptanceRegistry(registry) {
     assertRequiredString(domain.chainStage, `${domain.domainId}.chainStage`);
     assertRequiredString(domain.panelSet, `${domain.domainId}.panelSet`);
     assertRequiredString(domain.managementRoute, `${domain.domainId}.managementRoute`);
+    assertRequiredString(domain.publicExposure, `${domain.domainId}.publicExposure`);
     if (!Object.hasOwn(domain, 'publicRoute')) {
       throw new Error(`Domain acceptance domain must explicitly declare publicRoute: ${domain.domainId}`);
     }
+    validatePublicExposure(domain);
     const panelSet = registry.panelSets[domain.panelSet];
     if (!Array.isArray(panelSet) || panelSet.length === 0) {
       throw new Error(`Unknown domain acceptance panel set: ${domain.panelSet}`);
@@ -85,6 +88,28 @@ export function validateDomainAcceptanceRegistry(registry) {
   return registry;
 }
 
+function validatePublicExposure(domain) {
+  if (!PUBLIC_EXPOSURE_VALUES.has(domain.publicExposure)) {
+    throw new Error(`Unknown publicExposure for ${domain.domainId}: ${domain.publicExposure}`);
+  }
+  const hasPublicRoute = typeof domain.publicRoute === 'string' && domain.publicRoute.trim() !== '';
+  if (domain.domainType === 'support' && domain.publicExposure !== 'admin-only') {
+    throw new Error(`Support domain must be admin-only: ${domain.domainId}`);
+  }
+  if (domain.publicExposure === 'public' && !hasPublicRoute) {
+    throw new Error(`Public domain must declare publicRoute: ${domain.domainId}`);
+  }
+  if (domain.publicExposure === 'planned-public' && hasPublicRoute) {
+    throw new Error(`Planned-public domain must not declare publicRoute before promotion: ${domain.domainId}`);
+  }
+  if (domain.publicExposure === 'admin-only' && hasPublicRoute) {
+    throw new Error(`Admin-only domain must not declare publicRoute: ${domain.domainId}`);
+  }
+  if (domain.domainType === 'product' && domain.publicExposure === 'admin-only') {
+    throw new Error(`Product domain must be public or planned-public: ${domain.domainId}`);
+  }
+}
+
 function validatePanelDefinition(definition) {
   assertRequiredString(definition?.panelId, 'panel.panelId');
   assertRequiredString(definition.fileKey, `${definition.panelId}.fileKey`);
@@ -107,6 +132,7 @@ function buildManifestEntry(domain, definition, freshness) {
     tier: domain.tier,
     domainChainStage: domain.chainStage,
     managementRoute: domain.managementRoute ?? null,
+    publicExposure: domain.publicExposure,
     publicRoute: domain.publicRoute ?? null,
     panelId: definition.panelId,
     chainStage: definition.chainStage,

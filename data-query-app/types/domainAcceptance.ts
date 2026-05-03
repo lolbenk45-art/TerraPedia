@@ -1,4 +1,11 @@
 export type DomainAcceptanceStatus = 'pass' | 'warning' | 'blocked' | 'missing'
+export type DomainAcceptancePublicExposure = 'public' | 'planned-public' | 'admin-only'
+export type DomainAcceptancePublicGateStatus =
+  | 'public_route_configured'
+  | 'public_route_missing'
+  | 'planned_public_no_route'
+  | 'admin_only'
+  | string
 
 export interface DomainAcceptanceCheck {
   id?: string | null
@@ -91,7 +98,10 @@ export interface DomainAcceptanceDomain {
   tier?: string | null
   chainStage?: string | null
   managementRoute?: string | null
+  publicExposure?: DomainAcceptancePublicExposure | string | null
   publicRoute?: string | null
+  publicGateStatus?: DomainAcceptancePublicGateStatus | null
+  publicGateReason?: string | null
   backendRefreshStepIds?: string[]
   backendRefreshPlanCommand?: string | null
   requiresDatabase?: boolean | null

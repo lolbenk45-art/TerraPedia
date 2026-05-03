@@ -80,6 +80,7 @@ test('domain manifest entries declare safe freshness and evidence metadata', () 
       entry.publicRoute === null || typeof entry.publicRoute === 'string',
       `${entry.domainId}/${entry.panelId} publicRoute should be explicit`,
     );
+    assert.match(entry.publicExposure, /^(public|planned-public|admin-only)$/);
     assert.equal(typeof entry.notes, 'string');
     assert.equal(typeof entry.freshnessSource, 'string');
     assert.equal(entry.freshnessSource, 'report-generatedAt-or-mtime');
@@ -115,6 +116,7 @@ test('domain registry fails closed for malformed maintenance definitions', () =>
         panelSet: 'missing-set',
         backendRefreshStepIds: ['support-sync'],
         managementRoute: '/synthetic',
+        publicExposure: 'admin-only',
         publicRoute: null,
       },
     ],
@@ -157,6 +159,61 @@ test('domain registry fails closed for malformed maintenance definitions', () =>
   );
 });
 
+test('domain registry fails closed for malformed public exposure definitions', () => {
+  const registry = minimalRegistry({
+    domains: [
+      {
+        domainId: 'synthetic',
+        domainType: 'support',
+        tier: 'B',
+        chainStage: 'support-readiness',
+        panelSet: 'support',
+        backendRefreshStepIds: ['support-sync'],
+        managementRoute: '/synthetic',
+        publicRoute: null,
+      },
+    ],
+  });
+
+  assert.throws(
+    () => buildDomainAcceptanceReportManifest({ registry }),
+    /Domain acceptance registry missing required string: synthetic\.publicExposure/,
+  );
+
+  registry.domains[0].publicExposure = 'future-public';
+  assert.throws(
+    () => buildDomainAcceptanceReportManifest({ registry }),
+    /Unknown publicExposure for synthetic: future-public/,
+  );
+
+  registry.domains[0].publicExposure = 'planned-public';
+  assert.throws(
+    () => buildDomainAcceptanceReportManifest({ registry }),
+    /Support domain must be admin-only: synthetic/,
+  );
+
+  registry.domains[0].domainType = 'product';
+  registry.domains[0].publicExposure = 'public';
+  assert.throws(
+    () => buildDomainAcceptanceReportManifest({ registry }),
+    /Public domain must declare publicRoute: synthetic/,
+  );
+
+  registry.domains[0].publicExposure = 'planned-public';
+  registry.domains[0].publicRoute = '/synthetic';
+  assert.throws(
+    () => buildDomainAcceptanceReportManifest({ registry }),
+    /Planned-public domain must not declare publicRoute before promotion: synthetic/,
+  );
+
+  registry.domains[0].domainType = 'support';
+  registry.domains[0].publicExposure = 'admin-only';
+  assert.throws(
+    () => buildDomainAcceptanceReportManifest({ registry }),
+    /Admin-only domain must not declare publicRoute: synthetic/,
+  );
+});
+
 test('domain manifest is expanded from the registry single source of truth', () => {
   const registryPath = path.resolve('scripts/data/workflow/domain-acceptance-registry.json');
   assert.equal(fs.existsSync(registryPath), true, 'domain acceptance registry should exist');
@@ -177,6 +234,7 @@ test('domain manifest is expanded from the registry single source of truth', () 
     assert.ok(entries.every((entry) => entry.domainType === domain.domainType));
     assert.ok(entries.every((entry) => entry.domainChainStage === domain.chainStage));
     assert.ok(entries.every((entry) => entry.managementRoute === domain.managementRoute));
+    assert.ok(entries.every((entry) => entry.publicExposure === domain.publicExposure));
   }
 });
 

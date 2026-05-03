@@ -11,6 +11,10 @@ const execFileAsync = promisify(execFile);
 test('A-grade gate passes when acceptance evidence is fresh and maintenance routes exist', () => {
   const gate = buildDomainAcceptanceAGradeGate({
     generatedAt: '2026-05-03T12:00:00Z',
+    manifest: [
+      manifestEntry('bosses', 'sourceReadiness', { publicRoute: '/bosses' }),
+      manifestEntry('bosses', 'publicReadiness', { publicRoute: '/bosses' }),
+    ],
     freshnessAudit: {
       overallStatus: 'pass',
       summary: {
@@ -68,11 +72,18 @@ test('A-grade gate passes when acceptance evidence is fresh and maintenance rout
     refreshConfirmationCount: 0,
     refreshBlockedCount: 0,
   });
+  assert.equal(gate.domains[0].publicGateStatus, 'public_route_configured');
+  assert.equal(gate.domains[0].publicExposure, 'public');
 });
 
 test('A-grade gate warns for public panels without public route and blocks unsafe maintenance state', () => {
   const gate = buildDomainAcceptanceAGradeGate({
     generatedAt: '2026-05-03T12:00:00Z',
+    manifest: [
+      manifestEntry('bosses', 'sourceReadiness'),
+      manifestEntry('bosses', 'publicReadiness'),
+      manifestEntry('buffs', 'imageReadiness'),
+    ],
     freshnessAudit: {
       overallStatus: 'warning',
       blockingReasons: [],
@@ -128,6 +139,61 @@ test('A-grade gate warns for public panels without public route and blocks unsaf
     'bosses/publicReadiness is blocking before public consumption but has no public route',
   ].sort());
   assert.equal(gate.summary.publicRouteMissingCount, 1);
+  const bosses = gate.domains.find((domain) => domain.domainId === 'bosses');
+  assert.equal(bosses.publicGateStatus, 'public_route_missing');
+  assert.equal(bosses.publicGateReason, 'bosses/publicReadiness is blocking before public consumption but has no public route');
+});
+
+test('A-grade gate treats planned-public and admin-only exposure as explicit non-routed states', () => {
+  const gate = buildDomainAcceptanceAGradeGate({
+    generatedAt: '2026-05-03T12:00:00Z',
+    manifest: [
+      manifestEntry('bosses', 'publicReadiness', { publicExposure: 'planned-public' }),
+      manifestEntry('support.recipe', 'blockingGate', {
+        domainType: 'support',
+        publicExposure: 'admin-only',
+      }),
+    ],
+    freshnessAudit: {
+      overallStatus: 'pass',
+      blockingReasons: [],
+      warningReasons: [],
+      panels: [
+        routedPanel('bosses', 'publicReadiness', {
+          chainStage: 'public',
+          blockingBeforePublic: true,
+          publicExposure: 'planned-public',
+          publicRoute: null,
+        }),
+        routedPanel('support.recipe', 'blockingGate', {
+          domainType: 'support',
+          chainStage: 'blocking',
+          blockingBeforePublic: true,
+          publicExposure: 'admin-only',
+          publicRoute: null,
+        }),
+      ],
+    },
+    refreshPlan: {
+      overallStatus: 'empty',
+      actions: [],
+    },
+    generation: {
+      summary: {
+        panelCount: 2,
+        passCount: 2,
+        warningCount: 0,
+        blockedCount: 0,
+        missingCount: 0,
+      },
+    },
+  });
+
+  assert.equal(gate.overallStatus, 'pass');
+  assert.equal(gate.summary.publicRouteMissingCount, 0);
+  assert.deepEqual(gate.warningReasons, []);
+  assert.equal(gate.domains.find((domain) => domain.domainId === 'bosses').publicGateStatus, 'planned_public_no_route');
+  assert.equal(gate.domains.find((domain) => domain.domainId === 'support.recipe').publicGateStatus, 'admin_only');
 });
 
 test('CLI prints A-grade gate JSON without executing commands', async () => {
@@ -168,9 +234,28 @@ function routedPanel(domainId, panelId, overrides = {}) {
     autoMaintenanceAllowed: true,
     blockingBeforePublic: false,
     managementRoute: `/entities/${domainId}`,
+    publicExposure: 'public',
     publicRoute: null,
     backendRefreshStepIds: ['boss-sync'],
     backendRefreshPlanCommand: 'node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=boss-sync',
+    ...overrides,
+  };
+}
+
+function manifestEntry(domainId, panelId, overrides = {}) {
+  const backendRefreshStepIds = overrides.backendRefreshStepIds ?? ['boss-sync'];
+  return {
+    domainId,
+    panelId,
+    domainType: 'product',
+    tier: 'B',
+    domainChainStage: 'product-readiness',
+    managementRoute: `/entities/${domainId}`,
+    publicExposure: 'public',
+    publicRoute: null,
+    backendRefreshStepIds,
+    backendRefreshPlanCommand: `node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=${backendRefreshStepIds.join(',')}`,
+    writesDatabase: false,
     ...overrides,
   };
 }

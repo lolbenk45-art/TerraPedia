@@ -81,6 +81,7 @@
       "panelSet": "product",
       "backendRefreshStepIds": ["wiki-core-refresh", "boss-sync"],
       "managementRoute": "/entities/bosses",
+      "publicExposure": "planned-public",
       "publicRoute": null
     },
     {
@@ -91,6 +92,7 @@
       "panelSet": "product",
       "backendRefreshStepIds": ["independent-entity-sync"],
       "managementRoute": "/entities/buffs",
+      "publicExposure": "planned-public",
       "publicRoute": null
     },
     {
@@ -101,6 +103,7 @@
       "panelSet": "product",
       "backendRefreshStepIds": ["independent-entity-sync"],
       "managementRoute": "/entities/projectiles",
+      "publicExposure": "planned-public",
       "publicRoute": null
     },
     {
@@ -111,6 +114,7 @@
       "panelSet": "product",
       "backendRefreshStepIds": ["independent-entity-sync"],
       "managementRoute": "/entities/armor-sets",
+      "publicExposure": "planned-public",
       "publicRoute": null
     },
     {
@@ -121,6 +125,7 @@
       "panelSet": "support",
       "backendRefreshStepIds": ["recipe-reference-sync"],
       "managementRoute": "/recipes",
+      "publicExposure": "admin-only",
       "publicRoute": null
     },
     {
@@ -131,6 +136,7 @@
       "panelSet": "support",
       "backendRefreshStepIds": ["shimmer-sync"],
       "managementRoute": "/recipes/shimmer",
+      "publicExposure": "admin-only",
       "publicRoute": null
     },
     {
@@ -141,6 +147,7 @@
       "panelSet": "support",
       "backendRefreshStepIds": ["support-sync"],
       "managementRoute": "/categories",
+      "publicExposure": "admin-only",
       "publicRoute": null
     },
     {
@@ -151,6 +158,7 @@
       "panelSet": "support",
       "backendRefreshStepIds": ["support-sync"],
       "managementRoute": "/item-groups",
+      "publicExposure": "admin-only",
       "publicRoute": null
     },
     {
@@ -161,6 +169,7 @@
       "panelSet": "support",
       "backendRefreshStepIds": ["town-npc-sync"],
       "managementRoute": "/entities/town-npcs",
+      "publicExposure": "admin-only",
       "publicRoute": null
     }
   ]

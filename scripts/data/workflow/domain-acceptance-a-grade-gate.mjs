@@ -112,7 +112,7 @@ function freshnessChecks(freshnessAudit, panels) {
     } else if (['stale', 'missing', 'unknown'].includes(panel.freshnessStatus)) {
       checks.push(warningCheck('freshness.state', `${key} evidence is ${panel.freshnessStatus}`, context));
     }
-    if (panel.blockingBeforePublic === true && panel.chainStage === 'public' && !panel.publicRoute) {
+    if (requiresPublicRoute(panel) && !hasPublicRoute(panel.publicRoute)) {
       checks.push(warningCheck(
         'public.routeMissing',
         `${key} is blocking before public consumption but has no public route`,
@@ -184,7 +184,7 @@ function summarize({ freshnessAudit, panels, refreshActions, generation }) {
     maintenanceRoutedCount: panels.filter((panel) => Array.isArray(panel.backendRefreshStepIds) && panel.backendRefreshStepIds.length > 0).length,
     autoMaintenanceAllowedCount: panels.filter((panel) => panel.autoMaintenanceAllowed === true).length,
     blockingBeforePublicCount: panels.filter((panel) => panel.blockingBeforePublic === true).length,
-    publicRouteMissingCount: panels.filter((panel) => panel.blockingBeforePublic === true && panel.chainStage === 'public' && !panel.publicRoute).length,
+    publicRouteMissingCount: panels.filter((panel) => requiresPublicRoute(panel) && !hasPublicRoute(panel.publicRoute)).length,
     refreshActionCount: refreshActions.length,
     refreshReadyCount: refreshActions.filter((action) => action.status === 'ready').length,
     refreshConfirmationCount: refreshActions.filter((action) => action.status === 'needs_confirmation').length,
@@ -202,6 +202,7 @@ function buildDomainStatuses({ manifest, panels, checks }) {
         domainId: entry.domainId,
         tier: entry.tier,
         managementRoute: entry.managementRoute ?? null,
+        publicExposure: entry.publicExposure ?? null,
         publicRoute: entry.publicRoute ?? null,
         requiredPanels: [],
       });
@@ -220,15 +221,60 @@ function buildDomainStatuses({ manifest, panels, checks }) {
     const domainChecks = checks.filter((check) => check.domainId === domain.domainId);
     const blockingReasons = domainChecks.filter((check) => check.status === 'blocked').map((check) => check.message);
     const warningReasons = domainChecks.filter((check) => check.status === 'warning').map((check) => check.message);
+    const publicGate = buildPublicGate(domain, domainChecks);
     domains.push({
       ...domain,
       aGradeStatus: blockingReasons.length > 0 ? 'blocked' : warningReasons.length > 0 ? 'warning' : 'pass',
+      publicGateStatus: publicGate.status,
+      publicGateReason: publicGate.reason,
       panelStatuses,
       blockingReasons,
       warningReasons,
     });
   }
   return domains;
+}
+
+function buildPublicGate(domain, domainChecks) {
+  if (domain.publicExposure === 'admin-only') {
+    return {
+      status: 'admin_only',
+      reason: null,
+    };
+  }
+  if (domain.publicExposure === 'planned-public') {
+    return {
+      status: 'planned_public_no_route',
+      reason: 'public route is planned but not yet configured',
+    };
+  }
+  const routeMissing = domainChecks.find((check) => check.id === 'public.routeMissing');
+  if (routeMissing) {
+    return {
+      status: 'public_route_missing',
+      reason: routeMissing.message,
+    };
+  }
+  if (domain.publicExposure === 'public' && hasPublicRoute(domain.publicRoute)) {
+    return {
+      status: 'public_route_configured',
+      reason: null,
+    };
+  }
+  return {
+    status: 'public_route_missing',
+    reason: `${domain.domainId} has public exposure but no public route`,
+  };
+}
+
+function requiresPublicRoute(panel) {
+  return panel?.publicExposure === 'public'
+    && panel.blockingBeforePublic === true
+    && panel.chainStage === 'public';
+}
+
+function hasPublicRoute(publicRoute) {
+  return typeof publicRoute === 'string' && publicRoute.trim() !== '';
 }
 
 function blockedCheck(id, message, context = {}) {

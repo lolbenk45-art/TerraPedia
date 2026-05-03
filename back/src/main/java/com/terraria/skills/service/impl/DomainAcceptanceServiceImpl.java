@@ -41,6 +41,7 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         "shimmer-sync",
         "support-sync"
     );
+    private static final Set<String> PUBLIC_EXPOSURE_VALUES = Set.of("public", "planned-public", "admin-only");
     private static final List<Pattern> UNSAFE_COMMAND_PATTERNS = List.of(
         Pattern.compile("--apply=true", Pattern.CASE_INSENSITIVE),
         Pattern.compile("--mode=apply", Pattern.CASE_INSENSITIVE),
@@ -90,11 +91,13 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         DomainDefinition definition
     ) {
         DomainAcceptanceOverviewDTO.DomainDTO domain = new DomainAcceptanceOverviewDTO.DomainDTO();
+        validatePublicExposure(definition);
         domain.setDomainId(definition.domainId);
         domain.setDomainType(definition.domainType);
         domain.setTier(definition.tier);
         domain.setChainStage(definition.chainStage);
         domain.setManagementRoute(definition.managementRoute);
+        domain.setPublicExposure(definition.publicExposure);
         domain.setPublicRoute(definition.publicRoute);
         List<String> backendRefreshStepIds = backendRefreshStepIds(definition);
         domain.setBackendRefreshStepIds(backendRefreshStepIds);
@@ -114,6 +117,31 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         }
         aggregateDomain(domain);
         return domain;
+    }
+
+    private void validatePublicExposure(DomainDefinition definition) {
+        if (definition.publicExposure == null || definition.publicExposure.isBlank()) {
+            throw new IllegalStateException("Missing publicExposure for " + definition.domainId);
+        }
+        if (!PUBLIC_EXPOSURE_VALUES.contains(definition.publicExposure)) {
+            throw new IllegalStateException("Unknown publicExposure for " + definition.domainId + ": " + definition.publicExposure);
+        }
+        boolean hasPublicRoute = hasPublicRoute(definition.publicRoute);
+        if ("support".equals(definition.domainType) && !"admin-only".equals(definition.publicExposure)) {
+            throw new IllegalStateException("Support domain must be admin-only: " + definition.domainId);
+        }
+        if ("public".equals(definition.publicExposure) && !hasPublicRoute) {
+            throw new IllegalStateException("Public domain must declare publicRoute: " + definition.domainId);
+        }
+        if ("planned-public".equals(definition.publicExposure) && hasPublicRoute) {
+            throw new IllegalStateException("Planned-public domain must not declare publicRoute before promotion: " + definition.domainId);
+        }
+        if ("admin-only".equals(definition.publicExposure) && hasPublicRoute) {
+            throw new IllegalStateException("Admin-only domain must not declare publicRoute: " + definition.domainId);
+        }
+        if ("product".equals(definition.domainType) && "admin-only".equals(definition.publicExposure)) {
+            throw new IllegalStateException("Product domain must be public or planned-public: " + definition.domainId);
+        }
     }
 
     private DomainAcceptanceOverviewDTO.DomainPanelDTO readPanel(
@@ -230,6 +258,43 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         } else {
             domain.setStatus("pass");
         }
+        applyPublicGate(domain);
+    }
+
+    private void applyPublicGate(DomainAcceptanceOverviewDTO.DomainDTO domain) {
+        String exposure = firstNonBlank(domain.getPublicExposure(), "admin-only");
+        if ("admin-only".equals(exposure)) {
+            domain.setPublicGateStatus("admin_only");
+            domain.setPublicGateReason(null);
+            return;
+        }
+        if ("planned-public".equals(exposure)) {
+            domain.setPublicGateStatus("planned_public_no_route");
+            domain.setPublicGateReason("public route is planned but not yet configured");
+            return;
+        }
+        DomainAcceptanceOverviewDTO.DomainPanelDTO missingPublicRoutePanel = domain.getPanels().stream()
+            .filter(panel -> Boolean.TRUE.equals(panel.getBlockingBeforePublic()))
+            .filter(panel -> "public".equals(panel.getChainStage()))
+            .findFirst()
+            .orElse(null);
+        if (!hasPublicRoute(domain.getPublicRoute()) && missingPublicRoutePanel != null) {
+            domain.setPublicGateStatus("public_route_missing");
+            domain.setPublicGateReason(panelKey(domain, missingPublicRoutePanel)
+                + " is blocking before public consumption but has no public route");
+            return;
+        }
+        if ("public".equals(exposure) && hasPublicRoute(domain.getPublicRoute())) {
+            domain.setPublicGateStatus("public_route_configured");
+            domain.setPublicGateReason(null);
+            return;
+        }
+        domain.setPublicGateStatus("public_route_missing");
+        domain.setPublicGateReason(domain.getDomainId() + " has public exposure but no public route");
+    }
+
+    private boolean hasPublicRoute(String publicRoute) {
+        return publicRoute != null && !publicRoute.isBlank();
     }
 
     private void aggregateOverview(DomainAcceptanceOverviewDTO overview) {
@@ -837,6 +902,7 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         public String chainStage;
         public String panelSet;
         public String managementRoute;
+        public String publicExposure;
         public String publicRoute;
         public List<String> backendRefreshStepIds;
     }

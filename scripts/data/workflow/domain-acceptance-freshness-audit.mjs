@@ -78,6 +78,7 @@ function buildPanelFreshness({ entry, repoRoot, now }) {
     autoMaintenanceAllowed: entry.autoMaintenanceAllowed === true,
     blockingBeforePublic: entry.blockingBeforePublic === true,
     managementRoute: entry.managementRoute ?? null,
+    publicExposure: entry.publicExposure ?? null,
     publicRoute: entry.publicRoute ?? null,
   };
 

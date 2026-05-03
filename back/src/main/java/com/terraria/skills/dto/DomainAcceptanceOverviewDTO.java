@@ -35,7 +35,10 @@ public class DomainAcceptanceOverviewDTO {
         private String tier;
         private String chainStage;
         private String managementRoute;
+        private String publicExposure;
         private String publicRoute;
+        private String publicGateStatus;
+        private String publicGateReason;
         private List<String> backendRefreshStepIds = new ArrayList<>();
         private String backendRefreshPlanCommand;
         private Boolean requiresDatabase;

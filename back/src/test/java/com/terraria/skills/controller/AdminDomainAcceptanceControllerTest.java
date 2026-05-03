@@ -71,6 +71,9 @@ class AdminDomainAcceptanceControllerTest {
             .andExpect(jsonPath("$.data.domains[0].tier").value("B"))
             .andExpect(jsonPath("$.data.domains[0].chainStage").value("product-readiness"))
             .andExpect(jsonPath("$.data.domains[0].managementRoute").value("/entities/buffs"))
+            .andExpect(jsonPath("$.data.domains[0].publicExposure").value("planned-public"))
+            .andExpect(jsonPath("$.data.domains[0].publicGateStatus").value("planned_public_no_route"))
+            .andExpect(jsonPath("$.data.domains[0].publicGateReason").value("public route is planned but not yet configured"))
             .andExpect(jsonPath("$.data.domains[0].backendRefreshStepIds[0]").value("independent-entity-sync"))
             .andExpect(jsonPath("$.data.domains[0].backendRefreshPlanCommand").value("node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=independent-entity-sync"))
             .andExpect(jsonPath("$.data.domains[0].requiresDatabase").value(false))
@@ -124,7 +127,10 @@ class AdminDomainAcceptanceControllerTest {
         domain.setTier("B");
         domain.setChainStage("product-readiness");
         domain.setManagementRoute("/entities/buffs");
+        domain.setPublicExposure("planned-public");
         domain.setPublicRoute(null);
+        domain.setPublicGateStatus("planned_public_no_route");
+        domain.setPublicGateReason("public route is planned but not yet configured");
         domain.setBackendRefreshStepIds(List.of("independent-entity-sync"));
         domain.setBackendRefreshPlanCommand("node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=independent-entity-sync");
         domain.setRequiresDatabase(false);

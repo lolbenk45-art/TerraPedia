@@ -46,6 +46,10 @@ class DomainAcceptanceServiceImplTest {
         assertEquals("B", bosses.getTier());
         assertEquals("product-readiness", bosses.getChainStage());
         assertEquals("/entities/bosses", bosses.getManagementRoute());
+        assertEquals("planned-public", bosses.getPublicExposure());
+        assertNull(bosses.getPublicRoute());
+        assertEquals("planned_public_no_route", bosses.getPublicGateStatus());
+        assertEquals("public route is planned but not yet configured", bosses.getPublicGateReason());
         assertEquals(List.of("wiki-core-refresh", "boss-sync"), bosses.getBackendRefreshStepIds());
         assertEquals("node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=wiki-core-refresh,boss-sync", bosses.getBackendRefreshPlanCommand());
         assertEquals(false, bosses.getRequiresDatabase());
@@ -81,6 +85,9 @@ class DomainAcceptanceServiceImplTest {
         assertEquals("support", itemGroup.getDomainType());
         assertEquals("support-readiness", itemGroup.getChainStage());
         assertEquals("/item-groups", itemGroup.getManagementRoute());
+        assertEquals("admin-only", itemGroup.getPublicExposure());
+        assertEquals("admin_only", itemGroup.getPublicGateStatus());
+        assertNull(itemGroup.getPublicGateReason());
         assertEquals("pass", itemGroup.getStatus());
         assertEquals(2, itemGroup.getPanelCount());
         assertEquals("blockingGate", itemGroup.getPanels().get(1).getPanelId());
@@ -124,6 +131,7 @@ class DomainAcceptanceServiceImplTest {
                   "panelSet": "single",
                   "backendRefreshStepIds": ["support-sync"],
                   "managementRoute": "/synthetic",
+                  "publicExposure": "admin-only",
                   "publicRoute": null
                 }
               ]
@@ -141,6 +149,60 @@ class DomainAcceptanceServiceImplTest {
         assertEquals("node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=support-sync", synthetic.getBackendRefreshPlanCommand());
         assertEquals("domain-acceptance:synthetic.domain:sourceReadiness", synthetic.getPanels().get(0).getMaintenanceLaneId());
         assertEquals(List.of("support-sync"), synthetic.getPanels().get(0).getBackendRefreshStepIds());
+    }
+
+    @Test
+    void shouldExposeConfiguredPublicRouteGateForPublicDomains() throws Exception {
+        Path repoRoot = createRepoRoot();
+        writeRegistry(repoRoot, """
+            {
+              "version": 1,
+              "freshness": {
+                "freshnessSource": "report-generatedAt-or-mtime",
+                "staleAfterHours": 24,
+                "nextEvidenceWhen": ["missing", "stale", "unknown", "unreadable"],
+                "statusImpact": "stale-pass-to-warning"
+              },
+              "panelSets": {
+                "publicProduct": ["publicReadiness"]
+              },
+              "panels": {
+                "publicReadiness": {
+                  "panelId": "publicReadiness",
+                  "fileKey": "public-readiness",
+                  "generatorPanel": "public",
+                  "chainStage": "public",
+                  "maintenanceLane": "domain-acceptance-evidence",
+                  "autoMaintenanceAllowed": true,
+                  "blockingBeforePublic": true,
+                  "requiresDatabase": false,
+                  "writesDatabase": false,
+                  "notes": "Synthetic public panel."
+                }
+              },
+              "domains": [
+                {
+                  "domainId": "synthetic.public",
+                  "domainType": "product",
+                  "tier": "B",
+                  "chainStage": "product-readiness",
+                  "panelSet": "publicProduct",
+                  "backendRefreshStepIds": ["support-sync"],
+                  "managementRoute": "/synthetic",
+                  "publicExposure": "public",
+                  "publicRoute": "/synthetic-public"
+                }
+              ]
+            }
+            """);
+        writeDomainReport(repoRoot, "synthetic.public", "public-readiness", "pass", "2026-05-03T00:00:00Z", 0, 0);
+
+        DomainAcceptanceOverviewDTO.DomainDTO synthetic = domain(serviceWithRepo(repoRoot).getOverview(), "synthetic.public");
+
+        assertEquals("public", synthetic.getPublicExposure());
+        assertEquals("/synthetic-public", synthetic.getPublicRoute());
+        assertEquals("public_route_configured", synthetic.getPublicGateStatus());
+        assertNull(synthetic.getPublicGateReason());
     }
 
     @Test
@@ -179,6 +241,7 @@ class DomainAcceptanceServiceImplTest {
                   "chainStage": "support-readiness",
                   "panelSet": "single",
                   "managementRoute": "/synthetic",
+                  "publicExposure": "admin-only",
                   "publicRoute": null
                 }
               ]
@@ -231,6 +294,7 @@ class DomainAcceptanceServiceImplTest {
                   "panelSet": "single",
                   "backendRefreshStepIds": ["missing-sync"],
                   "managementRoute": "/synthetic",
+                  "publicExposure": "admin-only",
                   "publicRoute": null
                 }
               ]
@@ -242,6 +306,57 @@ class DomainAcceptanceServiceImplTest {
             () -> serviceWithRepo(repoRoot).getOverview()
         );
         assertEquals("Unknown backend refresh step for synthetic.domain: missing-sync", exception.getMessage());
+    }
+
+    @Test
+    void shouldFailClosedWhenRegistryDomainOmitsPublicExposure() throws Exception {
+        Path repoRoot = createRepoRoot();
+        writeRegistry(repoRoot, """
+            {
+              "version": 1,
+              "freshness": {
+                "freshnessSource": "report-generatedAt-or-mtime",
+                "staleAfterHours": 24,
+                "nextEvidenceWhen": ["missing", "stale", "unknown", "unreadable"],
+                "statusImpact": "stale-pass-to-warning"
+              },
+              "panelSets": {
+                "single": ["sourceReadiness"]
+              },
+              "panels": {
+                "sourceReadiness": {
+                  "panelId": "sourceReadiness",
+                  "fileKey": "source-readiness",
+                  "generatorPanel": "source",
+                  "chainStage": "source",
+                  "maintenanceLane": "domain-acceptance-evidence",
+                  "autoMaintenanceAllowed": true,
+                  "blockingBeforePublic": false,
+                  "requiresDatabase": false,
+                  "writesDatabase": false
+                }
+              },
+              "domains": [
+                {
+                  "domainId": "synthetic.domain",
+                  "domainType": "support",
+                  "tier": "B",
+                  "chainStage": "support-readiness",
+                  "panelSet": "single",
+                  "backendRefreshStepIds": ["support-sync"],
+                  "managementRoute": "/synthetic",
+                  "publicRoute": null
+                }
+              ]
+            }
+            """);
+
+        IllegalStateException exception = assertThrows(
+            IllegalStateException.class,
+            () -> serviceWithRepo(repoRoot).getOverview()
+        );
+
+        assertEquals("Missing publicExposure for synthetic.domain", exception.getMessage());
     }
 
     @Test
@@ -303,6 +418,7 @@ class DomainAcceptanceServiceImplTest {
                   "panelSet": "single",
                   "backendRefreshStepIds": ["support-sync"],
                   "managementRoute": "/synthetic",
+                  "publicExposure": "admin-only",
                   "publicRoute": null
                 }
               ]
@@ -358,6 +474,7 @@ class DomainAcceptanceServiceImplTest {
                   "panelSet": "single",
                   "backendRefreshStepIds": ["support-sync"],
                   "managementRoute": "/synthetic",
+                  "publicExposure": "admin-only",
                   "publicRoute": null
                 }
               ]

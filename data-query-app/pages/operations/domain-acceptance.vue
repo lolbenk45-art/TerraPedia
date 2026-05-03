@@ -176,6 +176,14 @@
               <small>数据库</small>
               <strong>{{ domain.requiresDatabase ? '需要' : '不需要' }}</strong>
             </span>
+            <span>
+              <small>公开暴露</small>
+              <strong>{{ publicExposureLabel(domain.publicExposure) }}</strong>
+            </span>
+            <span>
+              <small>公开门禁</small>
+              <strong>{{ publicGateLabel(domain.publicGateStatus) }}</strong>
+            </span>
           </div>
 
           <div class="entry-grid">
@@ -191,6 +199,11 @@
               <span>后端刷新步骤</span>
               <code>{{ formatStepIds(domain.backendRefreshStepIds) }}</code>
             </div>
+          </div>
+
+          <div v-if="domain.publicGateReason" class="path-block">
+            <span>公开门禁原因</span>
+            <code>{{ domain.publicGateReason }}</code>
           </div>
 
           <div v-if="domain.backendRefreshPlanCommand" class="path-block">
@@ -428,6 +441,23 @@ function statusLabel(status?: DomainAcceptanceStatus | string | null) {
   if (['blocked', 'error', 'fail', 'failed', 'read error'].includes(normalized)) return '阻断'
   if (['warning', 'warn'].includes(normalized)) return '警告'
   return '缺失'
+}
+
+function publicExposureLabel(value?: string | null) {
+  const normalized = String(value || '').toLowerCase()
+  if (normalized === 'public') return '公开'
+  if (normalized === 'planned-public') return '计划公开'
+  if (normalized === 'admin-only') return '仅管理端'
+  return '未声明'
+}
+
+function publicGateLabel(value?: string | null) {
+  const normalized = String(value || '').toLowerCase()
+  if (normalized === 'public_route_configured') return '公开路由已配置'
+  if (normalized === 'public_route_missing') return '公开路由缺失'
+  if (normalized === 'planned_public_no_route') return '计划公开'
+  if (normalized === 'admin_only') return '仅管理端'
+  return '未声明'
 }
 
 function unwrapOverviewResponse(response: DomainAcceptanceOverviewResponse | null | undefined) {
@@ -795,7 +825,7 @@ function formatNumber(value?: number | null) {
 }
 
 .domain-card__metrics {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
 }
 
 .domain-panel__metrics {
