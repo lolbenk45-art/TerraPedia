@@ -117,6 +117,18 @@ test('CLI prints legal JSON and does not execute subcommands', async () => {
   assert.deepEqual(parsed, buildDataSourceAcceptanceReportManifest());
 });
 
+test('freshness audit CLI consumes the manifest builder instead of duplicating panel metadata', () => {
+  const auditSource = readFileSync(
+    'scripts/data/workflow/data-source-acceptance-freshness-audit.mjs',
+    'utf8',
+  );
+
+  assert.match(auditSource, /buildDataSourceAcceptanceReportManifest/);
+  for (const panelId of EXPECTED_PANEL_IDS) {
+    assert.doesNotMatch(auditSource, new RegExp(`panelId:\\s*['"]${panelId}['"]`));
+  }
+});
+
 function toComparableManifest(manifest) {
   return Object.fromEntries(
     manifest
