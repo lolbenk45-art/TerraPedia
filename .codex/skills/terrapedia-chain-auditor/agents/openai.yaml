@@ -1,0 +1,4 @@
+interface:
+  display_name: "TerraPedia Chain Auditor"
+  short_description: "Audit TerraPedia data and workflow chains before extending them."
+  default_prompt: "Use this skill to inspect a TerraPedia chain, verify evidence freshness, safety boundaries, refresh plans, and quality-gate coverage before adding or changing features."
