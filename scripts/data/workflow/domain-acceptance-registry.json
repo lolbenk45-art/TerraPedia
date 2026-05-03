@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "freshness": {
+    "freshnessSource": "report-generatedAt-or-mtime",
+    "staleAfterHours": 24,
+    "nextEvidenceWhen": ["missing", "stale", "unknown", "unreadable"],
+    "statusImpact": "stale-pass-to-warning"
+  },
+  "panelSets": {
+    "product": ["sourceReadiness", "relationReadiness", "imageReadiness", "publicReadiness"],
+    "support": ["sourceReadiness", "blockingGate"]
+  },
+  "panels": {
+    "sourceReadiness": {
+      "panelId": "sourceReadiness",
+      "fileKey": "source-readiness",
+      "generatorPanel": "source",
+      "chainStage": "source",
+      "maintenanceLane": "domain-acceptance-evidence",
+      "autoMaintenanceAllowed": true,
+      "blockingBeforePublic": false,
+      "requiresDatabase": false,
+      "writesDatabase": false,
+      "notes": "Checks source evidence coverage for the domain without refreshing upstream data."
+    },
+    "relationReadiness": {
+      "panelId": "relationReadiness",
+      "fileKey": "relation-readiness",
+      "generatorPanel": "relation",
+      "chainStage": "relation",
+      "maintenanceLane": "domain-acceptance-evidence",
+      "autoMaintenanceAllowed": true,
+      "blockingBeforePublic": false,
+      "requiresDatabase": false,
+      "writesDatabase": false,
+      "notes": "Checks relation and projection evidence for the domain without writing database records."
+    },
+    "imageReadiness": {
+      "panelId": "imageReadiness",
+      "fileKey": "image-readiness",
+      "generatorPanel": "image",
+      "chainStage": "image",
+      "maintenanceLane": "domain-acceptance-evidence",
+      "autoMaintenanceAllowed": true,
+      "blockingBeforePublic": false,
+      "requiresDatabase": false,
+      "writesDatabase": false,
+      "notes": "Checks image source, cache, and fallback evidence for the domain."
+    },
+    "publicReadiness": {
+      "panelId": "publicReadiness",
+      "fileKey": "public-readiness",
+      "generatorPanel": "public",
+      "chainStage": "public",
+      "maintenanceLane": "domain-acceptance-evidence",
+      "autoMaintenanceAllowed": true,
+      "blockingBeforePublic": true,
+      "requiresDatabase": false,
+      "writesDatabase": false,
+      "notes": "Checks whether the domain is ready for public API or public UI consumption."
+    },
+    "blockingGate": {
+      "panelId": "blockingGate",
+      "fileKey": "blocking-gate",
+      "generatorPanel": "blocking",
+      "chainStage": "blocking",
+      "maintenanceLane": "domain-acceptance-evidence",
+      "autoMaintenanceAllowed": true,
+      "blockingBeforePublic": true,
+      "requiresDatabase": false,
+      "writesDatabase": false,
+      "notes": "Checks duplicate, blocked, drift, or unresolved support-domain conditions."
+    }
+  },
+  "domains": [
+    {
+      "domainId": "bosses",
+      "domainType": "product",
+      "tier": "B",
+      "chainStage": "product-readiness",
+      "panelSet": "product",
+      "managementRoute": "/entities/bosses",
+      "publicRoute": null
+    },
+    {
+      "domainId": "buffs",
+      "domainType": "product",
+      "tier": "B",
+      "chainStage": "product-readiness",
+      "panelSet": "product",
+      "managementRoute": "/entities/buffs",
+      "publicRoute": null
+    },
+    {
+      "domainId": "projectiles",
+      "domainType": "product",
+      "tier": "B",
+      "chainStage": "product-readiness",
+      "panelSet": "product",
+      "managementRoute": "/entities/projectiles",
+      "publicRoute": null
+    },
+    {
+      "domainId": "armor_sets",
+      "domainType": "product",
+      "tier": "B",
+      "chainStage": "product-readiness",
+      "panelSet": "product",
+      "managementRoute": "/entities/armor-sets",
+      "publicRoute": null
+    },
+    {
+      "domainId": "support.recipe",
+      "domainType": "support",
+      "tier": "B",
+      "chainStage": "support-readiness",
+      "panelSet": "support",
+      "managementRoute": "/recipes",
+      "publicRoute": null
+    },
+    {
+      "domainId": "support.shimmer",
+      "domainType": "support",
+      "tier": "B",
+      "chainStage": "support-readiness",
+      "panelSet": "support",
+      "managementRoute": "/recipes/shimmer",
+      "publicRoute": null
+    },
+    {
+      "domainId": "support.category",
+      "domainType": "support",
+      "tier": "B",
+      "chainStage": "support-readiness",
+      "panelSet": "support",
+      "managementRoute": "/categories",
+      "publicRoute": null
+    },
+    {
+      "domainId": "support.item_group",
+      "domainType": "support",
+      "tier": "B",
+      "chainStage": "support-readiness",
+      "panelSet": "support",
+      "managementRoute": "/item-groups",
+      "publicRoute": null
+    },
+    {
+      "domainId": "support.town_npc_maintenance",
+      "domainType": "support",
+      "tier": "B",
+      "chainStage": "support-readiness",
+      "panelSet": "support",
+      "managementRoute": "/entities/town-npcs",
+      "publicRoute": null
+    }
+  ]
+}

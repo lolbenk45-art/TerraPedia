@@ -67,6 +67,16 @@ function buildPanelFreshness({ entry, repoRoot, now }) {
     requiresDatabase: entry.requiresDatabase,
     writesDatabase: entry.writesDatabase,
     commandRisk,
+    domainType: entry.domainType,
+    tier: entry.tier,
+    domainChainStage: entry.domainChainStage,
+    chainStage: entry.chainStage,
+    maintenanceLane: entry.maintenanceLane,
+    maintenanceLaneId: entry.maintenanceLaneId ?? `domain-acceptance:${entry.domainId}:${entry.panelId}`,
+    autoMaintenanceAllowed: entry.autoMaintenanceAllowed === true,
+    blockingBeforePublic: entry.blockingBeforePublic === true,
+    managementRoute: entry.managementRoute ?? null,
+    publicRoute: entry.publicRoute ?? null,
   };
 
   const latestReport = findLatestReport(repoRoot, entry.reportPattern);
@@ -123,6 +133,8 @@ function summarizePanels(panels) {
     unknownCount: panels.filter((panel) => panel.freshnessStatus === 'unknown').length,
     databaseRequiredCount: panels.filter((panel) => panel.requiresDatabase === true).length,
     unsafeCommandCount: panels.filter((panel) => panel.commandRisk === 'unsafe').length,
+    autoMaintenanceAllowedCount: panels.filter((panel) => panel.autoMaintenanceAllowed === true).length,
+    blockingBeforePublicCount: panels.filter((panel) => panel.blockingBeforePublic === true).length,
   };
 }
 
@@ -273,4 +285,3 @@ function main(argv = process.argv.slice(2)) {
 if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
   main();
 }
-

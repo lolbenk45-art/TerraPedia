@@ -49,6 +49,8 @@ test('domain freshness audit reports fresh stale missing and unknown evidence', 
     unknownCount: 1,
     databaseRequiredCount: 0,
     unsafeCommandCount: 0,
+    autoMaintenanceAllowedCount: 4,
+    blockingBeforePublicCount: 1,
   });
   assert.deepEqual(audit.warningReasons, [
     'bosses/relationReadiness evidence is stale',
@@ -57,6 +59,10 @@ test('domain freshness audit reports fresh stale missing and unknown evidence', 
   ]);
 
   assert.equal(panelById(audit, 'bosses', 'sourceReadiness').freshnessStatus, 'fresh');
+  assert.equal(panelById(audit, 'bosses', 'sourceReadiness').maintenanceLane, 'domain-acceptance-evidence');
+  assert.equal(panelById(audit, 'bosses', 'sourceReadiness').maintenanceLaneId, 'domain-acceptance:bosses:sourceReadiness');
+  assert.equal(panelById(audit, 'bosses', 'sourceReadiness').autoMaintenanceAllowed, true);
+  assert.equal(panelById(audit, 'bosses', 'publicReadiness').blockingBeforePublic, true);
   assert.equal(panelById(audit, 'bosses', 'relationReadiness').freshnessStatus, 'stale');
   assert.equal(panelById(audit, 'bosses', 'imageReadiness').freshnessReason, 'Domain acceptance report JSON is unreadable or invalid.');
   assert.equal(panelById(audit, 'bosses', 'publicReadiness').latestReportPath, null);
@@ -149,4 +155,3 @@ function panelById(audit, domainId, panelId) {
   assert.ok(panel, `${domainId}/${panelId} panel should be present`);
   return panel;
 }
-

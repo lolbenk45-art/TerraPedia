@@ -25,6 +25,10 @@ test('domain refresh plan converts stale missing and unknown evidence into manua
           commandRisk: 'safe-read-only',
           requiresDatabase: false,
           writesDatabase: false,
+          maintenanceLane: 'domain-acceptance-evidence',
+          maintenanceLaneId: 'domain-acceptance:bosses:sourceReadiness',
+          autoMaintenanceAllowed: true,
+          blockingBeforePublic: false,
         },
         {
           domainId: 'bosses',
@@ -35,6 +39,10 @@ test('domain refresh plan converts stale missing and unknown evidence into manua
           commandRisk: 'safe-read-only',
           requiresDatabase: true,
           writesDatabase: false,
+          maintenanceLane: 'domain-acceptance-evidence',
+          maintenanceLaneId: 'domain-acceptance:bosses:relationReadiness',
+          autoMaintenanceAllowed: true,
+          blockingBeforePublic: false,
         },
         {
           domainId: 'bosses',
@@ -45,6 +53,10 @@ test('domain refresh plan converts stale missing and unknown evidence into manua
           commandRisk: 'safe-read-only',
           requiresDatabase: false,
           writesDatabase: false,
+          maintenanceLane: 'domain-acceptance-evidence',
+          maintenanceLaneId: 'domain-acceptance:bosses:publicReadiness',
+          autoMaintenanceAllowed: true,
+          blockingBeforePublic: true,
         },
         {
           domainId: 'buffs',
@@ -55,6 +67,10 @@ test('domain refresh plan converts stale missing and unknown evidence into manua
           commandRisk: 'safe-read-only',
           requiresDatabase: true,
           writesDatabase: false,
+          maintenanceLane: 'domain-acceptance-evidence',
+          maintenanceLaneId: 'domain-acceptance:buffs:imageReadiness',
+          autoMaintenanceAllowed: true,
+          blockingBeforePublic: true,
         },
       ],
     },
@@ -73,6 +89,10 @@ test('domain refresh plan converts stale missing and unknown evidence into manua
     databaseRequiredCount: 2,
     manualOnlyCount: 3,
     affectedDomainCount: 2,
+    autoMaintenanceEligibleCount: 1,
+    manualConfirmationCount: 2,
+    blockingBeforePublicCount: 2,
+    planOnlyCount: 3,
   });
   assert.deepEqual(plan.actions.map((action) => `${action.domainId}/${action.panelId}`), [
     'bosses/relationReadiness',
@@ -85,6 +105,14 @@ test('domain refresh plan converts stale missing and unknown evidence into manua
     'ready',
     'needs_confirmation',
   ]);
+  assert.deepEqual(plan.actions.map((action) => action.maintenanceLaneId), [
+    'domain-acceptance:bosses:relationReadiness',
+    'domain-acceptance:bosses:publicReadiness',
+    'domain-acceptance:buffs:imageReadiness',
+  ]);
+  assert.deepEqual(plan.actions.map((action) => action.autoMaintenanceEligible), [false, true, false]);
+  assert.deepEqual(plan.actions.map((action) => action.manualConfirmation), [true, false, true]);
+  assert.deepEqual(plan.actions.map((action) => action.blockingBeforePublic), [false, true, true]);
 });
 
 test('domain refresh plan blocks unsafe commands and database writers', () => {
@@ -172,4 +200,3 @@ test('CLI reads an audit file and prints manual-only domain actions', async () =
     await fsPromises.rm(tempDir, { recursive: true, force: true });
   }
 });
-

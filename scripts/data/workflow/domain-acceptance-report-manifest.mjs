@@ -1,95 +1,50 @@
 #!/usr/bin/env node
 
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DEFAULT_REGISTRY_PATH = path.resolve(__dirname, 'domain-acceptance-registry.json');
 
-const REPORT_FRESHNESS_POLICY = {
-  freshnessSource: 'report-generatedAt-or-mtime',
-  staleAfterHours: 24,
-  nextEvidenceWhen: ['missing', 'stale', 'unknown', 'unreadable'],
-  statusImpact: 'stale-pass-to-warning',
-};
-
-const PRODUCT_DOMAIN_IDS = [
-  'bosses',
-  'buffs',
-  'projectiles',
-  'armor_sets',
-];
-
-const SUPPORT_DOMAIN_IDS = [
-  'support.recipe',
-  'support.shimmer',
-  'support.category',
-  'support.item_group',
-  'support.town_npc_maintenance',
-];
-
-const PRODUCT_PANEL_DEFINITIONS = [
-  {
-    panelId: 'sourceReadiness',
-    fileKey: 'source-readiness',
-    generatorPanel: 'source',
-    notes: 'Checks source evidence coverage for the domain without refreshing upstream data.',
-  },
-  {
-    panelId: 'relationReadiness',
-    fileKey: 'relation-readiness',
-    generatorPanel: 'relation',
-    notes: 'Checks relation and projection evidence for the domain without writing database records.',
-  },
-  {
-    panelId: 'imageReadiness',
-    fileKey: 'image-readiness',
-    generatorPanel: 'image',
-    notes: 'Checks image source, cache, and fallback evidence for the domain.',
-  },
-  {
-    panelId: 'publicReadiness',
-    fileKey: 'public-readiness',
-    generatorPanel: 'public',
-    notes: 'Checks whether the domain is ready for public API or public UI consumption.',
-  },
-];
-
-const SUPPORT_PANEL_DEFINITIONS = [
-  {
-    panelId: 'sourceReadiness',
-    fileKey: 'source-readiness',
-    generatorPanel: 'source',
-    notes: 'Checks source evidence coverage for the support domain.',
-  },
-  {
-    panelId: 'blockingGate',
-    fileKey: 'blocking-gate',
-    generatorPanel: 'blocking',
-    notes: 'Checks duplicate, blocked, drift, or unresolved support-domain conditions.',
-  },
-];
-
-export function buildDomainAcceptanceReportManifest() {
-  return [
-    ...PRODUCT_DOMAIN_IDS.flatMap((domainId) => (
-      PRODUCT_PANEL_DEFINITIONS.map((definition) => buildManifestEntry(domainId, definition))
-    )),
-    ...SUPPORT_DOMAIN_IDS.flatMap((domainId) => (
-      SUPPORT_PANEL_DEFINITIONS.map((definition) => buildManifestEntry(domainId, definition))
-    )),
-  ];
+export function loadDomainAcceptanceRegistry(registryPath = DEFAULT_REGISTRY_PATH) {
+  return JSON.parse(fs.readFileSync(registryPath, 'utf8'));
 }
 
-function buildManifestEntry(domainId, definition) {
+export function buildDomainAcceptanceReportManifest({ registry = loadDomainAcceptanceRegistry() } = {}) {
+  return registry.domains.flatMap((domain) => {
+    const panelSet = registry.panelSets?.[domain.panelSet] ?? [];
+    return panelSet.map((panelId) => {
+      const definition = registry.panels?.[panelId];
+      if (!definition) {
+        throw new Error(`Missing domain acceptance panel definition: ${panelId}`);
+      }
+      return buildManifestEntry(domain, definition, registry.freshness);
+    });
+  });
+}
+
+function buildManifestEntry(domain, definition, freshness) {
   return {
-    domainId,
+    domainId: domain.domainId,
+    domainType: domain.domainType,
+    tier: domain.tier,
+    domainChainStage: domain.chainStage,
+    managementRoute: domain.managementRoute ?? null,
+    publicRoute: domain.publicRoute ?? null,
     panelId: definition.panelId,
-    reportPattern: `reports/domain/${domainId}/${definition.fileKey}*.json`,
-    generatorCommand: `node scripts/data/audit/domain-readiness-audit.mjs --domain=${domainId} --panel=${definition.generatorPanel}`,
-    writesDatabase: false,
-    requiresDatabase: false,
+    chainStage: definition.chainStage,
+    maintenanceLane: definition.maintenanceLane,
+    maintenanceLaneId: `domain-acceptance:${domain.domainId}:${definition.panelId}`,
+    autoMaintenanceAllowed: definition.autoMaintenanceAllowed === true,
+    blockingBeforePublic: definition.blockingBeforePublic === true,
+    reportPattern: `reports/domain/${domain.domainId}/${definition.fileKey}*.json`,
+    generatorCommand: `node scripts/data/audit/domain-readiness-audit.mjs --domain=${domain.domainId} --panel=${definition.generatorPanel}`,
+    writesDatabase: definition.writesDatabase === true,
+    requiresDatabase: definition.requiresDatabase === true,
     notes: definition.notes,
-    ...REPORT_FRESHNESS_POLICY,
+    ...freshness,
   };
 }
 
@@ -100,4 +55,3 @@ function main() {
 if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
   main();
 }
-

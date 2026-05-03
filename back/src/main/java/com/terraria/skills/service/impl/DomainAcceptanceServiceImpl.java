@@ -2,6 +2,7 @@ package com.terraria.skills.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.terraria.skills.dto.DomainAcceptanceOverviewDTO;
 import com.terraria.skills.service.DomainAcceptanceService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,64 +26,7 @@ import java.util.stream.Stream;
 @Service
 public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
 
-    private static final int DEFAULT_STALE_AFTER_HOURS = 24;
-
-    private static final List<String> PRODUCT_DOMAIN_IDS = List.of(
-        "bosses",
-        "buffs",
-        "projectiles",
-        "armor_sets"
-    );
-
-    private static final List<String> SUPPORT_DOMAIN_IDS = List.of(
-        "support.recipe",
-        "support.shimmer",
-        "support.category",
-        "support.item_group",
-        "support.town_npc_maintenance"
-    );
-
-    private static final List<PanelDefinition> PRODUCT_PANEL_DEFINITIONS = List.of(
-        new PanelDefinition(
-            "sourceReadiness",
-            "source-readiness",
-            "source",
-            "Checks source evidence coverage for the domain without refreshing upstream data."
-        ),
-        new PanelDefinition(
-            "relationReadiness",
-            "relation-readiness",
-            "relation",
-            "Checks relation and projection evidence for the domain without writing database records."
-        ),
-        new PanelDefinition(
-            "imageReadiness",
-            "image-readiness",
-            "image",
-            "Checks image source, cache, and fallback evidence for the domain."
-        ),
-        new PanelDefinition(
-            "publicReadiness",
-            "public-readiness",
-            "public",
-            "Checks whether the domain is ready for public API or public UI consumption."
-        )
-    );
-
-    private static final List<PanelDefinition> SUPPORT_PANEL_DEFINITIONS = List.of(
-        new PanelDefinition(
-            "sourceReadiness",
-            "source-readiness",
-            "source",
-            "Checks source evidence coverage for the support domain."
-        ),
-        new PanelDefinition(
-            "blockingGate",
-            "blocking-gate",
-            "blocking",
-            "Checks duplicate, blocked, drift, or unresolved support-domain conditions."
-        )
-    );
+    private static final Path REGISTRY_PATH = Path.of("scripts", "data", "workflow", "domain-acceptance-registry.json");
 
     private final ObjectMapper objectMapper;
     private final Path repoRootOverride;
@@ -102,14 +46,12 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
     @Override
     public DomainAcceptanceOverviewDTO getOverview() {
         Path repoRoot = resolveRepoRoot();
+        RegistryDefinition registry = loadRegistry(repoRoot);
         DomainAcceptanceOverviewDTO overview = new DomainAcceptanceOverviewDTO();
         overview.setGeneratedAt(Instant.now(clock));
 
-        for (String domainId : PRODUCT_DOMAIN_IDS) {
-            overview.getDomains().add(buildDomain(repoRoot, domainId, "product", PRODUCT_PANEL_DEFINITIONS));
-        }
-        for (String domainId : SUPPORT_DOMAIN_IDS) {
-            overview.getDomains().add(buildDomain(repoRoot, domainId, "support", SUPPORT_PANEL_DEFINITIONS));
+        for (DomainDefinition domain : registry.domains) {
+            overview.getDomains().add(buildDomain(repoRoot, registry, domain));
         }
 
         aggregateOverview(overview);
@@ -118,15 +60,22 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
 
     private DomainAcceptanceOverviewDTO.DomainDTO buildDomain(
         Path repoRoot,
-        String domainId,
-        String domainType,
-        List<PanelDefinition> panelDefinitions
+        RegistryDefinition registry,
+        DomainDefinition definition
     ) {
         DomainAcceptanceOverviewDTO.DomainDTO domain = new DomainAcceptanceOverviewDTO.DomainDTO();
-        domain.setDomainId(domainId);
-        domain.setDomainType(domainType);
-        for (PanelDefinition panelDefinition : panelDefinitions) {
-            domain.getPanels().add(readPanel(repoRoot, domainId, panelDefinition));
+        domain.setDomainId(definition.domainId);
+        domain.setDomainType(definition.domainType);
+        domain.setTier(definition.tier);
+        domain.setChainStage(definition.chainStage);
+        domain.setManagementRoute(definition.managementRoute);
+        domain.setPublicRoute(definition.publicRoute);
+        for (String panelId : resolvePanelSet(registry, definition)) {
+            PanelDefinition panelDefinition = registry.panels.get(panelId);
+            if (panelDefinition == null) {
+                throw new IllegalStateException("Missing domain acceptance panel definition: " + panelId);
+            }
+            domain.getPanels().add(readPanel(repoRoot, definition.domainId, panelDefinition, registry.freshness));
         }
         aggregateDomain(domain);
         return domain;
@@ -135,9 +84,10 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
     private DomainAcceptanceOverviewDTO.DomainPanelDTO readPanel(
         Path repoRoot,
         String domainId,
-        PanelDefinition definition
+        PanelDefinition definition,
+        FreshnessDefinition freshness
     ) {
-        DomainAcceptanceOverviewDTO.DomainPanelDTO panel = basePanel(domainId, definition);
+        DomainAcceptanceOverviewDTO.DomainPanelDTO panel = basePanel(domainId, definition, freshness);
         Path reportsRoot = repoRoot.resolve("reports").resolve("domain").normalize();
         Path dir = reportsRoot.resolve(domainId).normalize();
         if (!dir.startsWith(reportsRoot)) {
@@ -149,7 +99,7 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
 
         Path reportPath;
         try {
-            reportPath = findLatestReport(dir, definition.fileKey(), ".json");
+            reportPath = findLatestReport(dir, definition.fileKey, ".json");
             if (reportPath == null) {
                 return missingPanel(panel);
             }
@@ -217,6 +167,9 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         int warningCount = 0;
         int missingCount = 0;
         for (DomainAcceptanceOverviewDTO.DomainPanelDTO panel : domain.getPanels()) {
+            if (Boolean.TRUE.equals(panel.getRequiresDatabase())) {
+                domain.setRequiresDatabase(true);
+            }
             if ("blocked".equals(panel.getStatus())) {
                 blockingCount += positiveOrOne(panel.getBlockingCount());
             } else if ("warning".equals(panel.getStatus())) {
@@ -229,6 +182,9 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         domain.setBlockingCount(blockingCount);
         domain.setWarningCount(warningCount);
         domain.setMissingCount(missingCount);
+        if (domain.getRequiresDatabase() == null) {
+            domain.setRequiresDatabase(false);
+        }
         if (blockingCount > 0) {
             domain.setStatus("blocked");
         } else if (warningCount > 0) {
@@ -294,17 +250,22 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         }
     }
 
-    private DomainAcceptanceOverviewDTO.DomainPanelDTO basePanel(String domainId, PanelDefinition definition) {
+    private DomainAcceptanceOverviewDTO.DomainPanelDTO basePanel(String domainId, PanelDefinition definition, FreshnessDefinition freshness) {
         DomainAcceptanceOverviewDTO.DomainPanelDTO panel = new DomainAcceptanceOverviewDTO.DomainPanelDTO();
-        panel.setId(definition.panelId());
+        panel.setId(definition.panelId);
         panel.setDomainId(domainId);
-        panel.setPanelId(definition.panelId());
-        panel.setReportPattern("reports/domain/" + domainId + "/" + definition.fileKey() + "*.json");
-        panel.setGeneratorCommand("node scripts/data/audit/domain-readiness-audit.mjs --domain=" + domainId + " --panel=" + definition.generatorPanel());
-        panel.setWritesDatabase(false);
-        panel.setRequiresDatabase(false);
-        panel.setNotes(definition.notes());
-        panel.setStaleAfterHours(DEFAULT_STALE_AFTER_HOURS);
+        panel.setPanelId(definition.panelId);
+        panel.setChainStage(definition.chainStage);
+        panel.setMaintenanceLane(definition.maintenanceLane);
+        panel.setMaintenanceLaneId("domain-acceptance:" + domainId + ":" + definition.panelId);
+        panel.setAutoMaintenanceAllowed(Boolean.TRUE.equals(definition.autoMaintenanceAllowed));
+        panel.setBlockingBeforePublic(Boolean.TRUE.equals(definition.blockingBeforePublic));
+        panel.setReportPattern("reports/domain/" + domainId + "/" + definition.fileKey + "*.json");
+        panel.setGeneratorCommand("node scripts/data/audit/domain-readiness-audit.mjs --domain=" + domainId + " --panel=" + definition.generatorPanel);
+        panel.setWritesDatabase(Boolean.TRUE.equals(definition.writesDatabase));
+        panel.setRequiresDatabase(Boolean.TRUE.equals(definition.requiresDatabase));
+        panel.setNotes(definition.notes);
+        panel.setStaleAfterHours(freshness == null || freshness.staleAfterHours == null ? 24 : freshness.staleAfterHours);
         panel.setBlockingCount(0);
         panel.setWarningCount(0);
         return panel;
@@ -344,11 +305,12 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
             }
             return;
         }
+        int staleAfterHours = panel.getStaleAfterHours() == null ? 24 : panel.getStaleAfterHours();
         long ageHours = Math.max(0, Duration.between(panel.getGeneratedAt(), Instant.now(clock)).toHours());
         panel.setAgeHours(ageHours);
-        panel.setFreshnessStatus(ageHours > DEFAULT_STALE_AFTER_HOURS ? "stale" : "fresh");
+        panel.setFreshnessStatus(ageHours > staleAfterHours ? "stale" : "fresh");
         if ("stale".equals(panel.getFreshnessStatus())) {
-            panel.setFreshnessReason("Evidence is older than " + DEFAULT_STALE_AFTER_HOURS + " hours.");
+            panel.setFreshnessReason("Evidence is older than " + staleAfterHours + " hours.");
             panel.setNextEvidenceCommand(panel.getGeneratorCommand());
             if ("pass".equals(panel.getStatus())) {
                 panel.setStatus("warning");
@@ -410,6 +372,30 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
             && Files.exists(path.resolve("back"))
             && Files.exists(path.resolve("data-query-app"))
             && Files.exists(path.resolve("scripts"));
+    }
+
+    private RegistryDefinition loadRegistry(Path repoRoot) {
+        Path registryPath = repoRoot.resolve(REGISTRY_PATH).normalize();
+        try {
+            RegistryDefinition registry = objectMapper.readValue(registryPath.toFile(), RegistryDefinition.class);
+            if (registry.domains == null || registry.domains.isEmpty()) {
+                throw new IllegalStateException("Domain acceptance registry has no domains.");
+            }
+            if (registry.panelSets == null || registry.panels == null) {
+                throw new IllegalStateException("Domain acceptance registry is missing panel definitions.");
+            }
+            return registry;
+        } catch (IOException exception) {
+            throw new IllegalStateException("Failed to read domain acceptance registry: " + registryPath, exception);
+        }
+    }
+
+    private List<String> resolvePanelSet(RegistryDefinition registry, DomainDefinition domain) {
+        List<String> panelSet = registry.panelSets.get(domain.panelSet);
+        if (panelSet == null || panelSet.isEmpty()) {
+            throw new IllegalStateException("Missing domain acceptance panel set: " + domain.panelSet);
+        }
+        return panelSet;
     }
 
     private String toDisplayPath(Path repoRoot, Path path) {
@@ -560,11 +546,41 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         return first == null || first.isBlank() ? second : first;
     }
 
-    private record PanelDefinition(
-        String panelId,
-        String fileKey,
-        String generatorPanel,
-        String notes
-    ) {
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private static class RegistryDefinition {
+        public FreshnessDefinition freshness;
+        public Map<String, List<String>> panelSets = new LinkedHashMap<>();
+        public Map<String, PanelDefinition> panels = new LinkedHashMap<>();
+        public List<DomainDefinition> domains = new ArrayList<>();
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private static class FreshnessDefinition {
+        public Integer staleAfterHours;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private static class DomainDefinition {
+        public String domainId;
+        public String domainType;
+        public String tier;
+        public String chainStage;
+        public String panelSet;
+        public String managementRoute;
+        public String publicRoute;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private static class PanelDefinition {
+        public String panelId;
+        public String fileKey;
+        public String generatorPanel;
+        public String chainStage;
+        public String maintenanceLane;
+        public Boolean autoMaintenanceAllowed;
+        public Boolean blockingBeforePublic;
+        public Boolean requiresDatabase;
+        public Boolean writesDatabase;
+        public String notes;
     }
 }

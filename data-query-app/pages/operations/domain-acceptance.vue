@@ -92,7 +92,7 @@
               <component :is="statusIcon(domain.status)" :size="18" />
             </span>
             <div>
-              <span>{{ domain.domainType || 'domain' }}</span>
+              <span>{{ domain.domainType || 'domain' }} · {{ domain.tier || '--' }}</span>
               <strong>{{ domain.domainId || '--' }}</strong>
             </div>
             <span class="status-pill" :class="statusTone(domain.status)">
@@ -101,6 +101,10 @@
           </div>
 
           <div class="domain-card__metrics">
+            <span>
+              <small>阶段</small>
+              <strong>{{ domain.chainStage || '--' }}</strong>
+            </span>
             <span>
               <small>面板</small>
               <strong>{{ formatNumber(domain.panelCount) }}</strong>
@@ -117,6 +121,21 @@
               <small>缺失</small>
               <strong>{{ formatNumber(domain.missingCount) }}</strong>
             </span>
+            <span>
+              <small>数据库</small>
+              <strong>{{ domain.requiresDatabase ? '需要' : '不需要' }}</strong>
+            </span>
+          </div>
+
+          <div class="entry-grid">
+            <div>
+              <span>管理入口</span>
+              <code>{{ domain.managementRoute || '未配置' }}</code>
+            </div>
+            <div>
+              <span>公共入口</span>
+              <code>{{ domain.publicRoute || '未配置' }}</code>
+            </div>
           </div>
 
           <div class="domain-panel-list">
@@ -133,6 +152,14 @@
 
               <div class="domain-panel__metrics">
                 <span>
+                  <small>阶段</small>
+                  <strong>{{ panel.chainStage || '--' }}</strong>
+                </span>
+                <span>
+                  <small>维护 lane</small>
+                  <strong>{{ panel.maintenanceLane || '未配置' }}</strong>
+                </span>
+                <span>
                   <small>阻断</small>
                   <strong>{{ formatNumber(panel.blockingCount) }}</strong>
                 </span>
@@ -144,6 +171,19 @@
                   <small>可读</small>
                   <strong>{{ readableLabel(panel) }}</strong>
                 </span>
+                <span>
+                  <small>自动维护</small>
+                  <strong>{{ panel.autoMaintenanceAllowed ? '允许' : '人工' }}</strong>
+                </span>
+                <span>
+                  <small>公开阻断</small>
+                  <strong>{{ panel.blockingBeforePublic ? '是' : '否' }}</strong>
+                </span>
+              </div>
+
+              <div v-if="panel.maintenanceLaneId" class="path-block">
+                <span>维护任务</span>
+                <code>{{ panel.maintenanceLaneId }}</code>
               </div>
 
               <dl v-if="panelMetricRows(panel).length" class="metric-list">
@@ -598,15 +638,16 @@ function formatNumber(value?: number | null) {
 }
 
 .domain-card__metrics {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .domain-panel__metrics {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .domain-card__metrics span,
 .domain-panel__metrics span,
+.entry-grid div,
 .metric-list div,
 .raw-summary-list div {
   min-width: 0;
@@ -617,6 +658,7 @@ function formatNumber(value?: number | null) {
 
 .domain-card__metrics small,
 .domain-panel__metrics small,
+.entry-grid span,
 .metric-list dt,
 .raw-summary-list dt,
 .path-block span,
@@ -630,11 +672,24 @@ function formatNumber(value?: number | null) {
 
 .domain-card__metrics strong,
 .domain-panel__metrics strong,
+.entry-grid code,
 .metric-list dd,
 .raw-summary-list dd {
   margin: 0;
   color: var(--color-text);
   font-weight: 800;
+}
+
+.entry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.entry-grid code {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 0.86rem;
 }
 
 .domain-panel-list {

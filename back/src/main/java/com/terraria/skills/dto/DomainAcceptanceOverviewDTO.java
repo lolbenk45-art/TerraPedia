@@ -30,6 +30,11 @@ public class DomainAcceptanceOverviewDTO {
     public static class DomainDTO {
         private String domainId;
         private String domainType;
+        private String tier;
+        private String chainStage;
+        private String managementRoute;
+        private String publicRoute;
+        private Boolean requiresDatabase;
         private String status;
         private int panelCount;
         private int blockingCount;
@@ -44,6 +49,11 @@ public class DomainAcceptanceOverviewDTO {
         private String id;
         private String domainId;
         private String panelId;
+        private String chainStage;
+        private String maintenanceLane;
+        private String maintenanceLaneId;
+        private Boolean autoMaintenanceAllowed;
+        private Boolean blockingBeforePublic;
         private String status;
         private boolean found;
         private boolean readable;

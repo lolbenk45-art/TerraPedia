@@ -41,6 +41,10 @@ class DomainAcceptanceServiceImplTest {
 
         DomainAcceptanceOverviewDTO.DomainDTO bosses = domain(overview, "bosses");
         assertEquals("product", bosses.getDomainType());
+        assertEquals("B", bosses.getTier());
+        assertEquals("product-readiness", bosses.getChainStage());
+        assertEquals("/entities/bosses", bosses.getManagementRoute());
+        assertEquals(false, bosses.getRequiresDatabase());
         assertEquals("pass", bosses.getStatus());
         assertEquals(4, bosses.getPanelCount());
         DomainAcceptanceOverviewDTO.DomainPanelDTO source = panel(bosses, "sourceReadiness");
@@ -55,14 +59,78 @@ class DomainAcceptanceServiceImplTest {
         assertEquals("node scripts/data/audit/domain-readiness-audit.mjs --domain=bosses --panel=source", source.getGeneratorCommand());
         assertEquals(false, source.getWritesDatabase());
         assertEquals(false, source.getRequiresDatabase());
+        assertEquals("source", source.getChainStage());
+        assertEquals("domain-acceptance-evidence", source.getMaintenanceLane());
+        assertEquals("domain-acceptance:bosses:sourceReadiness", source.getMaintenanceLaneId());
+        assertEquals(true, source.getAutoMaintenanceAllowed());
+        assertEquals(false, source.getBlockingBeforePublic());
         assertEquals("Evidence sample", source.getChecks().get(0).getMessage());
         assertEquals("data/generated/wiki-bosses.latest.json", source.getChecks().get(0).getReportPath());
 
+        DomainAcceptanceOverviewDTO.DomainPanelDTO publicPanel = panel(bosses, "publicReadiness");
+        assertEquals("public", publicPanel.getChainStage());
+        assertEquals(true, publicPanel.getBlockingBeforePublic());
+
         DomainAcceptanceOverviewDTO.DomainDTO itemGroup = domain(overview, "support.item_group");
         assertEquals("support", itemGroup.getDomainType());
+        assertEquals("support-readiness", itemGroup.getChainStage());
+        assertEquals("/item-groups", itemGroup.getManagementRoute());
         assertEquals("pass", itemGroup.getStatus());
         assertEquals(2, itemGroup.getPanelCount());
         assertEquals("blockingGate", itemGroup.getPanels().get(1).getPanelId());
+    }
+
+    @Test
+    void shouldLoadAdditionalDomainsFromRegistryWithoutJavaConstants() throws Exception {
+        Path repoRoot = createRepoRoot();
+        writeRegistry(repoRoot, """
+            {
+              "version": 1,
+              "freshness": {
+                "freshnessSource": "report-generatedAt-or-mtime",
+                "staleAfterHours": 24,
+                "nextEvidenceWhen": ["missing", "stale", "unknown", "unreadable"],
+                "statusImpact": "stale-pass-to-warning"
+              },
+              "panelSets": {
+                "single": ["sourceReadiness"]
+              },
+              "panels": {
+                "sourceReadiness": {
+                  "panelId": "sourceReadiness",
+                  "fileKey": "source-readiness",
+                  "generatorPanel": "source",
+                  "chainStage": "source",
+                  "maintenanceLane": "domain-acceptance-evidence",
+                  "autoMaintenanceAllowed": true,
+                  "blockingBeforePublic": false,
+                  "requiresDatabase": false,
+                  "writesDatabase": false,
+                  "notes": "Synthetic registry domain."
+                }
+              },
+              "domains": [
+                {
+                  "domainId": "synthetic.domain",
+                  "domainType": "support",
+                  "tier": "B",
+                  "chainStage": "support-readiness",
+                  "panelSet": "single",
+                  "managementRoute": "/synthetic",
+                  "publicRoute": null
+                }
+              ]
+            }
+            """);
+        writeDomainReport(repoRoot, "synthetic.domain", "source-readiness", "pass", "2026-05-03T00:00:00Z", 0, 0);
+
+        DomainAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot).getOverview();
+
+        assertEquals(1, overview.getDomainCount());
+        DomainAcceptanceOverviewDTO.DomainDTO synthetic = domain(overview, "synthetic.domain");
+        assertEquals("/synthetic", synthetic.getManagementRoute());
+        assertEquals("support-readiness", synthetic.getChainStage());
+        assertEquals("domain-acceptance:synthetic.domain:sourceReadiness", synthetic.getPanels().get(0).getMaintenanceLaneId());
     }
 
     @Test
@@ -249,7 +317,20 @@ class DomainAcceptanceServiceImplTest {
         Files.createDirectories(repoRoot.resolve("back"));
         Files.createDirectories(repoRoot.resolve("data-query-app"));
         Files.createDirectories(repoRoot.resolve("scripts"));
+        copyDefaultRegistry(repoRoot);
         return repoRoot;
+    }
+
+    private void copyDefaultRegistry(Path repoRoot) throws Exception {
+        Path registryPath = repoRoot.resolve("scripts/data/workflow/domain-acceptance-registry.json");
+        Files.createDirectories(registryPath.getParent());
+        Files.copy(Path.of("..").resolve("scripts/data/workflow/domain-acceptance-registry.json").normalize(), registryPath);
+    }
+
+    private void writeRegistry(Path repoRoot, String payload) throws Exception {
+        Path registryPath = repoRoot.resolve("scripts/data/workflow/domain-acceptance-registry.json");
+        Files.createDirectories(registryPath.getParent());
+        Files.writeString(registryPath, payload);
     }
 
     private void writeAllDomainReports(Path repoRoot, String status, String generatedAt, int blockingCount, int warningCount) throws Exception {

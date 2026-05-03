@@ -11,6 +11,11 @@ export interface DomainAcceptancePanel {
   id?: string | null
   domainId?: string | null
   panelId?: string | null
+  chainStage?: string | null
+  maintenanceLane?: string | null
+  maintenanceLaneId?: string | null
+  autoMaintenanceAllowed?: boolean | null
+  blockingBeforePublic?: boolean | null
   status?: DomainAcceptanceStatus
   found?: boolean
   readable?: boolean
@@ -39,6 +44,11 @@ export interface DomainAcceptancePanel {
 export interface DomainAcceptanceDomain {
   domainId?: string | null
   domainType?: string | null
+  tier?: string | null
+  chainStage?: string | null
+  managementRoute?: string | null
+  publicRoute?: string | null
+  requiresDatabase?: boolean | null
   status?: DomainAcceptanceStatus
   panelCount?: number | null
   blockingCount?: number | null

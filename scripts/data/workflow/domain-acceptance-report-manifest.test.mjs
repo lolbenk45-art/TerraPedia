@@ -54,12 +54,48 @@ test('domain manifest entries declare safe freshness and evidence metadata', () 
     assert.equal(typeof entry.generatorCommand, 'string');
     assert.equal(typeof entry.writesDatabase, 'boolean');
     assert.equal(typeof entry.requiresDatabase, 'boolean');
+    assert.equal(entry.tier, 'B');
+    assert.match(entry.domainType, /^(product|support)$/);
+    assert.equal(typeof entry.domainChainStage, 'string');
+    assert.equal(typeof entry.chainStage, 'string');
+    assert.equal(typeof entry.maintenanceLane, 'string');
+    assert.ok(
+      entry.managementRoute === null || typeof entry.managementRoute === 'string',
+      `${entry.domainId}/${entry.panelId} managementRoute should be explicit`,
+    );
+    assert.ok(
+      entry.publicRoute === null || typeof entry.publicRoute === 'string',
+      `${entry.domainId}/${entry.panelId} publicRoute should be explicit`,
+    );
     assert.equal(typeof entry.notes, 'string');
     assert.equal(typeof entry.freshnessSource, 'string');
     assert.equal(entry.freshnessSource, 'report-generatedAt-or-mtime');
     assert.equal(entry.staleAfterHours, 24);
     assert.deepEqual(entry.nextEvidenceWhen, ['missing', 'stale', 'unknown', 'unreadable']);
     assert.equal(entry.statusImpact, 'stale-pass-to-warning');
+  }
+});
+
+test('domain manifest is expanded from the registry single source of truth', () => {
+  const registryPath = path.resolve('scripts/data/workflow/domain-acceptance-registry.json');
+  assert.equal(fs.existsSync(registryPath), true, 'domain acceptance registry should exist');
+
+  const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
+  assert.equal(registry.version, 1);
+  assert.deepEqual(
+    [...new Set(registry.domains.map((domain) => domain.domainId))].sort(),
+    [...EXPECTED_DOMAIN_IDS].sort(),
+  );
+
+  const manifest = buildDomainAcceptanceReportManifest();
+  for (const domain of registry.domains) {
+    const entries = manifest.filter((entry) => entry.domainId === domain.domainId);
+    const panelSet = registry.panelSets[domain.panelSet];
+    assert.ok(panelSet, `${domain.domainId} should reference a registered panelSet`);
+    assert.equal(entries.length, panelSet.length);
+    assert.ok(entries.every((entry) => entry.domainType === domain.domainType));
+    assert.ok(entries.every((entry) => entry.domainChainStage === domain.chainStage));
+    assert.ok(entries.every((entry) => entry.managementRoute === domain.managementRoute));
   }
 });
 
@@ -140,65 +176,14 @@ test('backend domain acceptance service mirrors manifest contract exactly', () =
     'back/src/main/java/com/terraria/skills/service/impl/DomainAcceptanceServiceImpl.java',
     'utf8',
   );
-  const manifest = buildDomainAcceptanceReportManifest();
-  const backendEntries = parseBackendManifestEntries(source);
-
-  assert.deepEqual(backendEntries, manifest.map((entry) => ({
-    domainId: entry.domainId,
-    panelId: entry.panelId,
-    reportPattern: entry.reportPattern,
-    generatorCommand: entry.generatorCommand,
-    writesDatabase: entry.writesDatabase,
-    requiresDatabase: entry.requiresDatabase,
-    notes: entry.notes,
-    staleAfterHours: entry.staleAfterHours,
-  })));
+  assert.match(source, /domain-acceptance-registry\.json/);
+  assert.doesNotMatch(source, /PRODUCT_DOMAIN_IDS/);
+  assert.doesNotMatch(source, /SUPPORT_DOMAIN_IDS/);
+  assert.doesNotMatch(source, /PRODUCT_PANEL_DEFINITIONS/);
+  assert.doesNotMatch(source, /SUPPORT_PANEL_DEFINITIONS/);
 });
 
 function extractNodeScriptPath(command) {
   const match = String(command).match(/^node\s+([^\s]+\.mjs)\b/);
   return match?.[1] ?? null;
-}
-
-function parseBackendManifestEntries(source) {
-  const staleAfterHours = Number(source.match(/DEFAULT_STALE_AFTER_HOURS\s*=\s*(\d+)/)?.[1]);
-  const productDomains = parseJavaStringList(source, 'PRODUCT_DOMAIN_IDS');
-  const supportDomains = parseJavaStringList(source, 'SUPPORT_DOMAIN_IDS');
-  const productPanels = parsePanelDefinitions(source, 'PRODUCT_PANEL_DEFINITIONS');
-  const supportPanels = parsePanelDefinitions(source, 'SUPPORT_PANEL_DEFINITIONS');
-  return [
-    ...productDomains.flatMap((domainId) => productPanels.map((panel) => backendEntry(domainId, panel, staleAfterHours))),
-    ...supportDomains.flatMap((domainId) => supportPanels.map((panel) => backendEntry(domainId, panel, staleAfterHours))),
-  ];
-}
-
-function parseJavaStringList(source, constantName) {
-  const match = source.match(new RegExp(`${constantName}\\s*=\\s*List\\.of\\(([\\s\\S]*?)\\);`));
-  assert.ok(match, `${constantName} should be declared as List.of(...)`);
-  return [...match[1].matchAll(/"([^"]+)"/g)].map((entry) => entry[1]);
-}
-
-function parsePanelDefinitions(source, constantName) {
-  const match = source.match(new RegExp(`${constantName}\\s*=\\s*List\\.of\\(([\\s\\S]*?)\\n\\s*\\);`));
-  assert.ok(match, `${constantName} should be declared as List.of(...)`);
-  return [...match[1].matchAll(/new PanelDefinition\(\s*"([^"]+)",\s*"([^"]+)",\s*"([^"]+)",\s*"([^"]+)"/g)]
-    .map((entry) => ({
-      panelId: entry[1],
-      fileKey: entry[2],
-      generatorPanel: entry[3],
-      notes: entry[4],
-    }));
-}
-
-function backendEntry(domainId, panel, staleAfterHours) {
-  return {
-    domainId,
-    panelId: panel.panelId,
-    reportPattern: `reports/domain/${domainId}/${panel.fileKey}*.json`,
-    generatorCommand: `node scripts/data/audit/domain-readiness-audit.mjs --domain=${domainId} --panel=${panel.generatorPanel}`,
-    writesDatabase: false,
-    requiresDatabase: false,
-    notes: panel.notes,
-    staleAfterHours,
-  };
 }

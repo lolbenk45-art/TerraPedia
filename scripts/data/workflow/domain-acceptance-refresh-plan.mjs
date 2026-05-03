@@ -24,6 +24,13 @@ export function buildDomainAcceptanceRefreshPlan({
       commandRisk: panel.commandRisk ?? 'unknown',
       requiresDatabase: panel.requiresDatabase === true,
       writesDatabase: panel.writesDatabase === true,
+      maintenanceLane: panel.maintenanceLane ?? 'domain-acceptance-evidence',
+      maintenanceLaneId: panel.maintenanceLaneId ?? `domain-acceptance:${panel.domainId}:${panel.panelId}`,
+      executionPolicy: 'plan-only',
+      autoMaintenanceEligible: autoMaintenanceEligible(panel),
+      manualConfirmation: actionStatus(panel) === 'needs_confirmation',
+      blockingBeforePublic: blockingBeforePublic(panel),
+      blockingBeforePublicReason: blockingBeforePublicReason(panel),
       status: actionStatus(panel),
       confirmationReason: confirmationReason(panel),
       blockedReason: blockedReason(panel),
@@ -58,6 +65,10 @@ function summarizeActions(actions) {
     databaseRequiredCount: actions.filter((action) => action.requiresDatabase === true).length,
     manualOnlyCount: actions.filter((action) => action.executeMode === 'manual').length,
     affectedDomainCount: new Set(actions.map((action) => action.domainId)).size,
+    autoMaintenanceEligibleCount: actions.filter((action) => action.autoMaintenanceEligible === true).length,
+    manualConfirmationCount: actions.filter((action) => action.manualConfirmation === true).length,
+    blockingBeforePublicCount: actions.filter((action) => action.blockingBeforePublic === true).length,
+    planOnlyCount: actions.filter((action) => action.executionPolicy === 'plan-only').length,
   };
 }
 
@@ -110,6 +121,33 @@ function overallStatus(actions) {
   return 'empty';
 }
 
+function autoMaintenanceEligible(panel) {
+  return panel?.autoMaintenanceAllowed === true
+    && actionStatus(panel) === 'ready'
+    && panel?.commandRisk === 'safe-read-only'
+    && panel?.requiresDatabase !== true
+    && panel?.writesDatabase !== true;
+}
+
+function blockingBeforePublic(panel) {
+  return blockedReason(panel) !== null
+    || panel?.freshnessStatus === 'unknown'
+    || panel?.blockingBeforePublic === true;
+}
+
+function blockingBeforePublicReason(panel) {
+  if (!blockingBeforePublic(panel)) {
+    return null;
+  }
+  if (blockedReason(panel)) {
+    return blockedReason(panel);
+  }
+  if (panel?.freshnessStatus === 'unknown') {
+    return `${panel.domainId}/${panel.panelId} evidence freshness is unknown`;
+  }
+  return `${panel.domainId}/${panel.panelId} is marked as blocking before public consumption`;
+}
+
 function parseArgs(argv = process.argv.slice(2)) {
   const args = {};
   for (const arg of argv) {
@@ -138,4 +176,3 @@ function main(argv = process.argv.slice(2)) {
 if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
   main();
 }
-

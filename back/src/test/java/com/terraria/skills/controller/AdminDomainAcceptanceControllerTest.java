@@ -66,7 +66,16 @@ class AdminDomainAcceptanceControllerTest {
             .andExpect(jsonPath("$.data.panelCount").value(1))
             .andExpect(jsonPath("$.data.domains[0].domainId").value("buffs"))
             .andExpect(jsonPath("$.data.domains[0].domainType").value("product"))
+            .andExpect(jsonPath("$.data.domains[0].tier").value("B"))
+            .andExpect(jsonPath("$.data.domains[0].chainStage").value("product-readiness"))
+            .andExpect(jsonPath("$.data.domains[0].managementRoute").value("/entities/buffs"))
+            .andExpect(jsonPath("$.data.domains[0].requiresDatabase").value(false))
             .andExpect(jsonPath("$.data.domains[0].panels[0].panelId").value("sourceReadiness"))
+            .andExpect(jsonPath("$.data.domains[0].panels[0].chainStage").value("source"))
+            .andExpect(jsonPath("$.data.domains[0].panels[0].maintenanceLane").value("domain-acceptance-evidence"))
+            .andExpect(jsonPath("$.data.domains[0].panels[0].maintenanceLaneId").value("domain-acceptance:buffs:sourceReadiness"))
+            .andExpect(jsonPath("$.data.domains[0].panels[0].autoMaintenanceAllowed").value(true))
+            .andExpect(jsonPath("$.data.domains[0].panels[0].blockingBeforePublic").value(false))
             .andExpect(jsonPath("$.data.domains[0].panels[0].nextEvidenceCommand").value("node scripts/data/audit/domain-readiness-audit.mjs --domain=buffs --panel=source"))
             .andExpect(jsonPath("$.data.domains[0].panels[0].writesDatabase").value(false))
             .andExpect(jsonPath("$.data.domains[0].panels[0].requiresDatabase").value(false));
@@ -78,6 +87,11 @@ class AdminDomainAcceptanceControllerTest {
         DomainAcceptanceOverviewDTO.DomainPanelDTO panel = new DomainAcceptanceOverviewDTO.DomainPanelDTO();
         panel.setPanelId("sourceReadiness");
         panel.setStatus("warning");
+        panel.setChainStage("source");
+        panel.setMaintenanceLane("domain-acceptance-evidence");
+        panel.setMaintenanceLaneId("domain-acceptance:buffs:sourceReadiness");
+        panel.setAutoMaintenanceAllowed(true);
+        panel.setBlockingBeforePublic(false);
         panel.setNextEvidenceCommand("node scripts/data/audit/domain-readiness-audit.mjs --domain=buffs --panel=source");
         panel.setWritesDatabase(false);
         panel.setRequiresDatabase(false);
@@ -85,6 +99,11 @@ class AdminDomainAcceptanceControllerTest {
         DomainAcceptanceOverviewDTO.DomainDTO domain = new DomainAcceptanceOverviewDTO.DomainDTO();
         domain.setDomainId("buffs");
         domain.setDomainType("product");
+        domain.setTier("B");
+        domain.setChainStage("product-readiness");
+        domain.setManagementRoute("/entities/buffs");
+        domain.setPublicRoute(null);
+        domain.setRequiresDatabase(false);
         domain.setStatus("warning");
         domain.setPanelCount(1);
         domain.setPanels(List.of(panel));
