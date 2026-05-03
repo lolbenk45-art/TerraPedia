@@ -8,7 +8,7 @@ import { loadStandardizedDataset } from '../lib/load-standardized-dataset.mjs';
 import {
   CATEGORY_DEFINITIONS,
   getCategoryDisplayName,
-  normalizeCategoryCode,
+  resolveItemCategoryCode,
 } from '../lib/item-category-normalization.mjs';
 
 const require = createRequire(import.meta.url);
@@ -133,7 +133,7 @@ async function loadCategoryCodeMap(conn) {
 async function ensureItemCategories(conn, itemRecords, categoryByCode) {
   const codes = new Set();
   for (const raw of Array.isArray(itemRecords) ? itemRecords : []) {
-    const code = normalizeCategoryCode(raw?.categoryCode);
+    const code = resolveItemCategoryCode(raw?.categoryCode, raw);
     if (code) codes.add(code);
   }
 
@@ -181,7 +181,7 @@ async function loadItemLookup(conn) {
 function buildItemPayload(raw, categoryByCode) {
   const name = toNullableString(raw?.name);
   const internalName = normalizeInternalName(raw?.internalName, name ?? '');
-  const categoryCode = normalizeCategoryCode(raw?.categoryCode);
+  const categoryCode = resolveItemCategoryCode(raw?.categoryCode, raw);
   const categoryId = categoryCode ? categoryByCode.get(categoryCode) : null;
   if (!name || !internalName || !categoryId) {
     return null;

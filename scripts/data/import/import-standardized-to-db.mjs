@@ -9,6 +9,7 @@ import {
   CATEGORY_DEFINITIONS,
   getCategoryDisplayName,
   normalizeCategoryCode,
+  resolveItemCategoryCode,
 } from '../lib/item-category-normalization.mjs';
 
 const require = createRequire(import.meta.url);
@@ -278,7 +279,7 @@ async function ensureItemCategories(conn, itemRecords, categoryByCode, stats) {
   const codes = new Set();
   const records = Array.isArray(itemRecords) ? itemRecords : [];
   for (const raw of records) {
-    const code = normalizeCategoryCode(raw?.categoryCode);
+    const code = resolveItemCategoryCode(raw?.categoryCode, raw);
     if (code) codes.add(code);
   }
 
@@ -355,7 +356,7 @@ async function importItems(conn, records, categoryByCode, stats) {
     const raw = records[i];
     const name = toNullableString(raw?.name);
     const internalName = normalizeInternalName(raw?.internalName, name ?? '');
-    const categoryCode = normalizeCategoryCode(raw?.categoryCode);
+    const categoryCode = resolveItemCategoryCode(raw?.categoryCode, raw);
     const categoryId = categoryCode ? categoryByCode.get(categoryCode) : null;
 
     if (!name || !internalName || !categoryId) {

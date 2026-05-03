@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { normalizeCategoryCode } from '../lib/item-category-normalization.mjs';
+import { resolveItemCategoryCode } from '../lib/item-category-normalization.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -31,7 +31,7 @@ const records = Array.isArray(standardized.records) ? standardized.records : [];
 const categoryCodeByInternal = new Map();
 for (const record of records) {
   const internalName = toText(record?.internalName);
-  const categoryCode = normalizeCategoryCode(record?.categoryCode);
+  const categoryCode = resolveItemCategoryCode(record?.categoryCode, record);
   if (internalName && categoryCode && !categoryCodeByInternal.has(internalName)) {
     categoryCodeByInternal.set(internalName, categoryCode);
   }

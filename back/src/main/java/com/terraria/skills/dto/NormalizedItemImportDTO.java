@@ -13,6 +13,9 @@ public class NormalizedItemImportDTO implements Serializable {
     private String name;
     private String internalName;
 
+    @JsonAlias({"nameZh", "name_zh"})
+    private String nameZh;
+
     @JsonAlias({"imageUrl", "image_url"})
     private String image;
 

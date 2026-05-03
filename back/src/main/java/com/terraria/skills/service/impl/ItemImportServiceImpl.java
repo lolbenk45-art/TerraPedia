@@ -27,8 +27,8 @@ import java.util.Objects;
 public class ItemImportServiceImpl implements ItemImportService {
 
     private static final Map<String, String> CATEGORY_CODE_ALIASES = Map.of(
-        "PICKAXE", "TOOL_PICKAXE_DRILL",
-        "AXE", "TOOL_AXE_CHAINSAW",
+        "DRILL", "TOOL_DRILL",
+        "CHAINSAW", "TOOL_CHAINSAW",
         "HELMET", "ARMOR_PART_HEAD",
         "CHESTPLATE", "ARMOR_PART_BODY",
         "LEGGINGS", "ARMOR_PART_LEGS"
@@ -41,6 +41,11 @@ public class ItemImportServiceImpl implements ItemImportService {
     @Transactional
     public ItemImportResultDTO importItems(ItemImportRequestDTO request) {
         ItemImportResultDTO result = new ItemImportResultDTO();
+        if (request == null) {
+            result.getErrors().add("No request provided");
+            return result;
+        }
+
         result.setSource(request.getSource());
 
         List<NormalizedItemImportDTO> items = request.getItems();
@@ -117,7 +122,7 @@ public class ItemImportServiceImpl implements ItemImportService {
     }
 
     private Category resolveCategory(NormalizedItemImportDTO payload, Map<String, Category> categoriesByCode) {
-        String code = normalizeCategoryCode(payload.getCategoryCode());
+        String code = resolveCategoryCode(payload);
         Category category = categoriesByCode.get(code);
         if (category == null) {
             throw new IllegalArgumentException("categoryCode not found: " + payload.getCategoryCode());
@@ -179,6 +184,38 @@ public class ItemImportServiceImpl implements ItemImportService {
             }
         }
         return map;
+    }
+
+    private String resolveCategoryCode(NormalizedItemImportDTO payload) {
+        String code = normalizeCategoryCode(payload.getCategoryCode());
+        String identity = ((payload.getName() == null ? "" : payload.getName()) + " "
+            + (payload.getInternalName() == null ? "" : payload.getInternalName()) + " "
+            + (payload.getNameZh() == null ? "" : payload.getNameZh())).toLowerCase(Locale.ROOT);
+        if ("PICKAXE".equals(code) || "TOOL_PICKAXE_DRILL".equals(code)) {
+            if (isBlank(identity)) {
+                return code;
+            }
+            return containsAny(identity, "drill", "钻头", "电钻") ? "TOOL_DRILL" : "TOOL_PICKAXE";
+        }
+        if ("AXE".equals(code) || "TOOL_AXE_CHAINSAW".equals(code)) {
+            if (isBlank(identity)) {
+                return code;
+            }
+            return containsAny(identity, "chainsaw", "链锯") ? "TOOL_CHAINSAW" : "TOOL_AXE";
+        }
+        return code;
+    }
+
+    private boolean containsAny(String value, String... keywords) {
+        if (value == null) {
+            return false;
+        }
+        for (String keyword : keywords) {
+            if (value.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String normalizeCategoryCode(String rawCode) {

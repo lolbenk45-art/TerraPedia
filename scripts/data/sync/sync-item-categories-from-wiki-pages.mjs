@@ -39,7 +39,17 @@ const CATEGORY_DEFINITIONS = [
   { code: 'MATERIAL_MISC', name: '其他材料', parentCode: 'MATERIAL', topType: 'MATERIAL', sort: 7 },
   { code: 'MATERIAL_CURRENCY', name: '货币', parentCode: 'MATERIAL', topType: 'MATERIAL', sort: 6 },
   { code: 'MATERIAL_KEY', name: '钥匙', parentCode: 'MATERIAL', topType: 'MATERIAL', sort: 5 },
+  { code: 'TOOL_PICKAXE_DRILL', name: '采掘工具', parentCode: 'TOOL', topType: 'TOOL', sort: 29 },
+  { code: 'TOOL_PICKAXE', name: '镐类', parentCode: 'TOOL_PICKAXE_DRILL', topType: 'TOOL', sort: 28 },
+  { code: 'TOOL_DRILL', name: '钻头', parentCode: 'TOOL_PICKAXE_DRILL', topType: 'TOOL', sort: 27 },
+  { code: 'TOOL_AXE_CHAINSAW', name: '砍伐工具', parentCode: 'TOOL', topType: 'TOOL', sort: 26 },
+  { code: 'TOOL_AXE', name: '斧类', parentCode: 'TOOL_AXE_CHAINSAW', topType: 'TOOL', sort: 25 },
+  { code: 'TOOL_CHAINSAW', name: '链锯', parentCode: 'TOOL_AXE_CHAINSAW', topType: 'TOOL', sort: 24 },
 ];
+
+const PICKAXE_IDENTITY_KEYWORDS = ['pickaxe', 'drax', 'digging claw'];
+const DRILL_IDENTITY_KEYWORDS = ['drill', '钻头', '电钻'];
+const CHAINSAW_IDENTITY_KEYWORDS = ['chainsaw', '链锯'];
 
 export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice(2)), dependencies = {}) {
   const repoRoot = path.resolve(dependencies.repoRoot || process.cwd());
@@ -266,7 +276,13 @@ export async function ensureCategories(connection, applyChanges) {
     while (inserted) {
       inserted = false;
       for (const definition of CATEGORY_DEFINITIONS) {
-        if (virtualByCode.has(definition.code)) continue;
+        const existing = virtualByCode.get(definition.code);
+        if (existing) {
+          const parentId = definition.parentCode ? Number(virtualByCode.get(definition.parentCode)?.id || 0) : 0;
+          existing.name = definition.name;
+          existing.parent_id = parentId;
+          continue;
+        }
         if (definition.parentCode && !virtualByCode.has(definition.parentCode)) continue;
         const parentId = definition.parentCode ? Number(virtualByCode.get(definition.parentCode)?.id || 0) : 0;
         const row = {
@@ -284,12 +300,35 @@ export async function ensureCategories(connection, applyChanges) {
   }
 
   for (const definition of CATEGORY_DEFINITIONS) {
-    if (byCode.has(definition.code)) continue;
     const parentId = definition.parentCode ? Number(byCode.get(definition.parentCode)?.id || 0) : 0;
     if (definition.parentCode && !parentId) continue;
+    const existing = byCode.get(definition.code);
+    if (existing) {
+      await connection.execute(
+        `UPDATE category
+         SET parent_id = ?, name = ?, top_type = ?, sort = ?, status = 1, deleted = 0, updated_at = NOW()
+         WHERE code = ?`,
+        [parentId, definition.name, definition.topType, definition.sort, definition.code]
+      );
+      byCode.set(definition.code, {
+        ...existing,
+        parent_id: parentId,
+        name: definition.name,
+      });
+      continue;
+    }
     const [result] = await connection.execute(
       `INSERT INTO category (parent_id, name, code, top_type, sort, status, creator_id, deleted)
-       VALUES (?, ?, ?, ?, ?, 1, 1, 0)`,
+       VALUES (?, ?, ?, ?, ?, 1, 1, 0)
+       ON DUPLICATE KEY UPDATE
+         id = LAST_INSERT_ID(id),
+         parent_id = VALUES(parent_id),
+         name = VALUES(name),
+         top_type = VALUES(top_type),
+         sort = VALUES(sort),
+         status = 1,
+         deleted = 0,
+         updated_at = NOW()`,
       [parentId, definition.name, definition.code, definition.topType, definition.sort]
     );
     byCode.set(definition.code, {
@@ -340,8 +379,22 @@ export function classifyItem({ item, wiki, standardizedRecord }) {
   const wikiCategories = extractWikiCategories(text);
   const standardizedCategory = normalizeCode(standardizedRecord?.categoryCode);
 
-  if (standardizedCategory === 'PICKAXE') return { categoryCode: 'TOOL_PICKAXE_DRILL', reason: 'standardized_pickaxe' };
-  if (standardizedCategory === 'AXE') return { categoryCode: 'TOOL_AXE_CHAINSAW', reason: 'standardized_axe' };
+  if (standardizedCategory === 'PICKAXE') return classifyStandardizedToolFamily({
+    item,
+    alternateCode: 'TOOL_DRILL',
+    primaryCode: 'TOOL_PICKAXE',
+    primaryReason: 'standardized_pickaxe',
+    alternateReason: 'standardized_drill',
+    alternateKeywords: DRILL_IDENTITY_KEYWORDS,
+  });
+  if (standardizedCategory === 'AXE') return classifyStandardizedToolFamily({
+    item,
+    alternateCode: 'TOOL_CHAINSAW',
+    primaryCode: 'TOOL_AXE',
+    primaryReason: 'standardized_axe',
+    alternateReason: 'standardized_chainsaw',
+    alternateKeywords: CHAINSAW_IDENTITY_KEYWORDS,
+  });
   if (standardizedCategory === 'HELMET') return { categoryCode: 'ARMOR_PART_HEAD', reason: 'standardized_helmet' };
   if (standardizedCategory === 'CHESTPLATE') return { categoryCode: 'ARMOR_PART_BODY', reason: 'standardized_chestplate' };
   if (standardizedCategory === 'LEGGINGS') return { categoryCode: 'ARMOR_PART_LEGS', reason: 'standardized_leggings' };
@@ -367,6 +420,37 @@ export function classifyItem({ item, wiki, standardizedRecord }) {
   }
 
   return { categoryCode: null, reason: 'no_rule_matched' };
+}
+
+function classifyStandardizedToolFamily({
+  item,
+  alternateCode,
+  primaryCode,
+  primaryReason,
+  alternateReason,
+  alternateKeywords,
+}) {
+  const identity = buildItemIdentityText(item);
+  if (containsAny(identity, alternateKeywords)) {
+    return { categoryCode: alternateCode, reason: alternateReason };
+  }
+  return { categoryCode: primaryCode, reason: primaryReason };
+}
+
+function buildItemIdentityText(item) {
+  if (!item || typeof item !== 'object') return '';
+  return [
+    item.name,
+    item.internal_name,
+    item.internalName,
+    item.name_zh,
+    item.nameZh,
+  ]
+    .filter((value) => value != null)
+    .map((value) => String(value).trim())
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
 }
 
 function classifyByListcat(listcat) {
@@ -454,6 +538,10 @@ function classifyByTypeTokens({ typeTokens, tagTokens, normalizedText, showFlags
   if (tokenSet.has('miscellaneous')) return 'MISC';
 
   if (tokenSet.has('tool')) {
+    if (containsAny(normalizedName, DRILL_IDENTITY_KEYWORDS)) return 'TOOL_DRILL';
+    if (containsAny(normalizedName, PICKAXE_IDENTITY_KEYWORDS)) return 'TOOL_PICKAXE';
+    if (containsAny(normalizedName, CHAINSAW_IDENTITY_KEYWORDS)) return 'TOOL_CHAINSAW';
+    if (containsAny(normalizedName, [' axe', 'axe '])) return 'TOOL_AXE';
     if (showFlags.has('hook') || containsAny(`${normalizedName} ${normalizedText}`, ['hook', 'grappling'])) return 'TOOL_GRAPPLE';
     if (containsAny(`${normalizedName} ${normalizedText}`, ['fishing pole', 'fishing rod'])) return 'TOOL_FISHING_ROD';
     if (containsAny(`${normalizedName} ${normalizedText}`, ['hammer', 'hamaxe'])) return 'TOOL_HAMMER';
@@ -519,6 +607,10 @@ function classifyByTemplates({ showFlags, tagTokens, normalizedText, itemName })
   if (showFlags.has('craft')) return 'FURNITURE_CRAFTING_STATION';
   if (showFlags.has('light')) return 'FURNITURE_LIGHT';
   if (showFlags.has('tool')) {
+    if (containsAny(normalizedName, DRILL_IDENTITY_KEYWORDS)) return 'TOOL_DRILL';
+    if (containsAny(normalizedName, PICKAXE_IDENTITY_KEYWORDS)) return 'TOOL_PICKAXE';
+    if (containsAny(normalizedName, CHAINSAW_IDENTITY_KEYWORDS)) return 'TOOL_CHAINSAW';
+    if (containsAny(normalizedName, [' axe', 'axe '])) return 'TOOL_AXE';
     if (containsAny(`${normalizedName} ${normalizedText}`, ['hook', 'grappling'])) return 'TOOL_GRAPPLE';
     if (containsAny(`${normalizedName} ${normalizedText}`, ['fishing pole', 'fishing rod'])) return 'TOOL_FISHING_ROD';
     if (containsAny(`${normalizedName} ${normalizedText}`, ['hammer', 'hamaxe'])) return 'TOOL_HAMMER';
@@ -590,6 +682,7 @@ function classifyByNameHeuristics({ normalizedText, itemName, standardizedCatego
   if (containsAny(nameOnly, ['hook'])) return 'TOOL_GRAPPLE';
   if (containsAny(nameOnly, ['chest'])) return 'FURNITURE_STORAGE';
   if (containsAny(nameOnly, ['pressure plate', 'actuator', 'music box', 'chest lock'])) return 'TOOL_CIRCUIT';
+  if (containsAny(nameOnly, ['drax', 'digging claw', 'pickaxe'])) return 'TOOL_PICKAXE';
   if (containsAny(nameOnly, ['bucket', 'sponge', 'dropper'])) return 'TOOL_OTHER_OTHER';
   if (containsAny(nameOnly, ['torch', 'candle'])) return 'FURNITURE_LIGHT';
   if (containsAny(nameOnly, ['wall'])) return 'MATERIAL_WALL';
@@ -721,7 +814,13 @@ export function shouldApplyCategoryChange({ currentCode, nextCode, categoryLooku
   if (currentDepth === 0) return true;
   if (nextDepth > currentDepth) return true;
 
-   const explicitRulePrefixes = ['listcat:', 'type:', 'template:', 'wiki_categories:'];
+  const legacyToolSplitPairs = new Map([
+    ['TOOL_PICKAXE_DRILL', new Set(['TOOL_PICKAXE', 'TOOL_DRILL'])],
+    ['TOOL_AXE_CHAINSAW', new Set(['TOOL_AXE', 'TOOL_CHAINSAW'])],
+  ]);
+  if (legacyToolSplitPairs.get(currentCode)?.has(nextCode)) return true;
+
+   const explicitRulePrefixes = ['listcat:', 'type:', 'template:', 'wiki_categories:', 'standardized_'];
    if (explicitRulePrefixes.some((prefix) => String(reason || '').startsWith(prefix))) {
     return true;
    }

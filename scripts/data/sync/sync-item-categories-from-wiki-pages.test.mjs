@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   buildRelatedCategoryCodes,
   classifyItem,
+  ensureCategories,
   parseArgs,
   shouldApplyCategoryChange
 } from './sync-item-categories-from-wiki-pages.mjs';
@@ -53,6 +54,39 @@ test('shouldApplyCategoryChange upgrades to deeper or explicit mapped categories
   );
 });
 
+test('shouldApplyCategoryChange migrates legacy combined tool categories to split leaves', () => {
+  const categoryLookup = {
+    depthByCode: new Map([
+      ['TOOL_PICKAXE_DRILL', 2],
+      ['TOOL_PICKAXE', 3],
+      ['TOOL_DRILL', 3],
+      ['TOOL_AXE_CHAINSAW', 2],
+      ['TOOL_AXE', 3],
+      ['TOOL_CHAINSAW', 3],
+    ])
+  };
+
+  assert.equal(
+    shouldApplyCategoryChange({
+      currentCode: 'TOOL_PICKAXE_DRILL',
+      nextCode: 'TOOL_PICKAXE',
+      categoryLookup,
+      reason: 'standardized_pickaxe'
+    }),
+    true
+  );
+
+  assert.equal(
+    shouldApplyCategoryChange({
+      currentCode: 'TOOL_AXE_CHAINSAW',
+      nextCode: 'TOOL_CHAINSAW',
+      categoryLookup,
+      reason: 'standardized_chainsaw'
+    }),
+    true
+  );
+});
+
 test('buildRelatedCategoryCodes includes ancestors and type-derived roots', () => {
   const categoryLookup = {
     byCode: new Map([
@@ -80,7 +114,51 @@ test('buildRelatedCategoryCodes includes ancestors and type-derived roots', () =
   assert.deepEqual(actual, ['MATERIAL_GEM', 'MATERIAL', 'CONSUMABLE']);
 });
 
-test('classifyItem prefers standardized pickaxe mapping', () => {
+test('ensureCategories dry-run updates legacy combined tool container names and parents', async () => {
+  const connection = {
+    query: async () => [[
+      { id: 1, parent_id: 0, code: 'TOOL', name: '工具' },
+      { id: 2, parent_id: 1, code: 'TOOL_PICKAXE_DRILL', name: '镐和钻头' },
+      { id: 3, parent_id: 1, code: 'TOOL_AXE_CHAINSAW', name: '斧头和链锯' },
+    ]],
+  };
+
+  const lookup = await ensureCategories(connection, false);
+
+  assert.equal(lookup.byCode.get('TOOL_PICKAXE_DRILL')?.name, '采掘工具');
+  assert.equal(lookup.byCode.get('TOOL_AXE_CHAINSAW')?.name, '砍伐工具');
+  assert.equal(lookup.parentCodeByCode.get('TOOL_PICKAXE'), 'TOOL_PICKAXE_DRILL');
+  assert.equal(lookup.parentCodeByCode.get('TOOL_DRILL'), 'TOOL_PICKAXE_DRILL');
+  assert.equal(lookup.parentCodeByCode.get('TOOL_AXE'), 'TOOL_AXE_CHAINSAW');
+  assert.equal(lookup.parentCodeByCode.get('TOOL_CHAINSAW'), 'TOOL_AXE_CHAINSAW');
+});
+
+test('ensureCategories apply mode upserts missing categories so soft-deleted codes are revived', async () => {
+  const executed = [];
+  const connection = {
+    query: async () => [[
+      { id: 1, parent_id: 0, code: 'TOOL', name: '工具' },
+      { id: 2, parent_id: 1, code: 'TOOL_PICKAXE_DRILL', name: '镐和钻头' },
+      { id: 3, parent_id: 1, code: 'TOOL_AXE_CHAINSAW', name: '斧头和链锯' },
+    ]],
+    execute: async (sql, params) => {
+      executed.push({ sql, params });
+      return [{ insertId: executed.length + 10 }];
+    },
+  };
+
+  await ensureCategories(connection, true);
+
+  const insert = executed.find(({ sql, params }) =>
+    /INSERT\s+INTO\s+category/i.test(sql)
+    && params.includes('TOOL_PICKAXE')
+  );
+  assert.ok(insert);
+  assert.match(insert.sql, /ON\s+DUPLICATE\s+KEY\s+UPDATE/i);
+  assert.match(insert.sql, /deleted\s*=\s*0/i);
+});
+
+test('classifyItem maps standardized pickaxe records to pickaxe-only category', () => {
   const result = classifyItem({
     item: { name: 'Iron Pickaxe', internal_name: 'IronPickaxe' },
     wiki: {
@@ -97,11 +175,221 @@ test('classifyItem prefers standardized pickaxe mapping', () => {
     },
     categoryLookup: {
       byCode: new Map([
-        ['TOOL_PICKAXE_DRILL', { id: 1 }]
+        ['TOOL_PICKAXE', { id: 1 }]
       ])
     }
   });
 
-  assert.equal(result.categoryCode, 'TOOL_PICKAXE_DRILL');
+  assert.equal(result.categoryCode, 'TOOL_PICKAXE');
   assert.equal(result.reason, 'standardized_pickaxe');
+});
+
+test('classifyItem maps drill records to drill-only category', () => {
+  const result = classifyItem({
+    item: { name: 'Cobalt Drill', internal_name: 'CobaltDrill' },
+    wiki: {
+      wikitext: `
+{{item infobox
+| type = tool
+| pick = 110
+}}
+[[Category:Drills]]
+      `
+    },
+    standardizedRecord: {
+      categoryCode: 'PICKAXE'
+    },
+    categoryLookup: {
+      byCode: new Map([
+        ['TOOL_DRILL', { id: 2 }]
+      ])
+    }
+  });
+
+  assert.equal(result.categoryCode, 'TOOL_DRILL');
+  assert.equal(result.reason, 'standardized_drill');
+});
+
+test('classifyItem keeps Drax in the pickaxe family', () => {
+  const result = classifyItem({
+    item: { name: 'Drax', internal_name: 'Drax', nameZh: '斧钻' },
+    wiki: {
+      wikitext: `
+{{item infobox
+| type = tool
+| pick = 110
+}}
+[[Category:Pickaxes]]
+      `
+    },
+    standardizedRecord: {
+      categoryCode: 'PICKAXE'
+    },
+    categoryLookup: {
+      byCode: new Map([
+        ['TOOL_PICKAXE', { id: 1 }],
+        ['TOOL_DRILL', { id: 2 }]
+      ])
+    }
+  });
+
+  assert.equal(result.categoryCode, 'TOOL_PICKAXE');
+  assert.equal(result.reason, 'standardized_pickaxe');
+});
+
+test('classifyItem keeps standardized pickaxe when drill only appears in page noise', () => {
+  const result = classifyItem({
+    item: { name: 'Iron Pickaxe', internal_name: 'IronPickaxe' },
+    wiki: {
+      wikitext: `
+{{item infobox
+| type = tool
+| pick = 35
+}}
+This page belongs to an overview about pickaxes and drills.
+[[Category:Drills]]
+      `
+    },
+    standardizedRecord: {
+      categoryCode: 'PICKAXE'
+    },
+    categoryLookup: {
+      byCode: new Map([
+        ['TOOL_PICKAXE', { id: 1 }],
+        ['TOOL_DRILL', { id: 2 }]
+      ])
+    }
+  });
+
+  assert.equal(result.categoryCode, 'TOOL_PICKAXE');
+  assert.equal(result.reason, 'standardized_pickaxe');
+});
+
+test('classifyItem keeps wiki-only pickaxe when drill only appears in page noise', () => {
+  const result = classifyItem({
+    item: { name: 'Iron Pickaxe', internal_name: 'IronPickaxe' },
+    wiki: {
+      wikitext: `
+{{item infobox
+| type = tool
+| pick = 35
+}}
+The navigation mentions drills.
+      `
+    },
+    standardizedRecord: null,
+    categoryLookup: {
+      byCode: new Map([
+        ['TOOL_PICKAXE', { id: 1 }],
+        ['TOOL_DRILL', { id: 2 }]
+      ])
+    }
+  });
+
+  assert.equal(result.categoryCode, 'TOOL_PICKAXE');
+  assert.equal(result.reason, 'type:tool');
+});
+
+test('classifyItem separates standardized axe and chainsaw records', () => {
+  const axe = classifyItem({
+    item: { name: 'Iron Axe', internal_name: 'IronAxe' },
+    wiki: {
+      wikitext: `
+{{item infobox
+| type = tool
+| axe = 9
+}}
+[[Category:Axes]]
+      `
+    },
+    standardizedRecord: {
+      categoryCode: 'AXE'
+    },
+    categoryLookup: {
+      byCode: new Map([
+        ['TOOL_AXE', { id: 3 }],
+        ['TOOL_CHAINSAW', { id: 4 }]
+      ])
+    }
+  });
+
+  const chainsaw = classifyItem({
+    item: { name: 'Cobalt Chainsaw', internal_name: 'CobaltChainsaw' },
+    wiki: {
+      wikitext: `
+{{item infobox
+| type = tool
+| axe = 18
+}}
+[[Category:Chainsaws]]
+      `
+    },
+    standardizedRecord: {
+      categoryCode: 'AXE'
+    },
+    categoryLookup: {
+      byCode: new Map([
+        ['TOOL_AXE', { id: 3 }],
+        ['TOOL_CHAINSAW', { id: 4 }]
+      ])
+    }
+  });
+
+  assert.equal(axe.categoryCode, 'TOOL_AXE');
+  assert.equal(axe.reason, 'standardized_axe');
+  assert.equal(chainsaw.categoryCode, 'TOOL_CHAINSAW');
+  assert.equal(chainsaw.reason, 'standardized_chainsaw');
+});
+
+test('classifyItem keeps standardized axe when chainsaw only appears in page noise', () => {
+  const result = classifyItem({
+    item: { name: 'Iron Axe', internal_name: 'IronAxe' },
+    wiki: {
+      wikitext: `
+{{item infobox
+| type = tool
+| axe = 9
+}}
+The category navigation also links to chainsaws.
+[[Category:Chainsaws]]
+      `
+    },
+    standardizedRecord: {
+      categoryCode: 'AXE'
+    },
+    categoryLookup: {
+      byCode: new Map([
+        ['TOOL_AXE', { id: 3 }],
+        ['TOOL_CHAINSAW', { id: 4 }]
+      ])
+    }
+  });
+
+  assert.equal(result.categoryCode, 'TOOL_AXE');
+  assert.equal(result.reason, 'standardized_axe');
+});
+
+test('classifyItem keeps wiki-only axe when chainsaw only appears in page noise', () => {
+  const result = classifyItem({
+    item: { name: 'Iron Axe', internal_name: 'IronAxe' },
+    wiki: {
+      wikitext: `
+{{item infobox
+| type = tool
+| axe = 9
+}}
+The navigation mentions chainsaws.
+      `
+    },
+    standardizedRecord: null,
+    categoryLookup: {
+      byCode: new Map([
+        ['TOOL_AXE', { id: 3 }],
+        ['TOOL_CHAINSAW', { id: 4 }]
+      ])
+    }
+  });
+
+  assert.equal(result.categoryCode, 'TOOL_AXE');
+  assert.equal(result.reason, 'type:tool');
 });
