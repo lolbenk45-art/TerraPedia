@@ -122,7 +122,7 @@ class DataSourceAcceptanceServiceImplTest {
         assertEquals("missing", overview.getImageReadiness().getStatus());
         assertEquals("missing", overview.getEntitySourceCoverage().getStatus());
         assertEquals("pass", overview.getCrawlerMonitor().getStatus());
-        assertEquals("node scripts/data/audit/image-asset-readiness-audit.mjs", overview.getImageReadiness().getGeneratorCommand());
+        assertEquals("node scripts/data/audit/image-asset-readiness-audit.mjs --source=db", overview.getImageReadiness().getGeneratorCommand());
         assertEquals(false, overview.getImageReadiness().getWritesDatabase());
         assertEquals(true, overview.getImageReadiness().getRequiresDatabase());
         assertNotNull(overview.getImageReadiness().getNotes());

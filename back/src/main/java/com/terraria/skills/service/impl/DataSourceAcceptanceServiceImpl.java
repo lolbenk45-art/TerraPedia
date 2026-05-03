@@ -76,7 +76,7 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
         "image-asset-readiness",
         ".json",
         "reports/audit/image-asset-readiness*.json",
-        "node scripts/data/audit/image-asset-readiness-audit.mjs",
+        "node scripts/data/audit/image-asset-readiness-audit.mjs --source=db",
         false,
         true,
         "Feeds imageReadiness from the latest image asset readiness audit report."
