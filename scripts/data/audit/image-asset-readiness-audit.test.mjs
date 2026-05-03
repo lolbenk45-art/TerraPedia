@@ -1,13 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import os from 'node:os';
+import { promisify } from 'node:util';
+import path from 'node:path';
 
 import {
   buildImageAssetReadinessAudit,
   buildImageAssetReadinessQueries,
   parseArgs,
+  resolveImageAssetReadinessReportPath,
 } from './image-asset-readiness-audit.mjs';
 
 const GENERATED_AT = '2026-05-03T00:00:00.000Z';
+const execFileAsync = promisify(execFile);
 
 test('buildImageAssetReadinessAudit summarizes item, buff, and npc image readiness', () => {
   const audit = buildImageAssetReadinessAudit({
@@ -312,6 +319,7 @@ test('parseArgs keeps DB reads and report writes explicit', () => {
       staleAfterDays: 45,
       source: 'db',
       output: 'reports/image-readiness.json',
+      repoRoot: null,
       localDatabase: 'terria_v1_local',
       generatedAt: null,
     },
@@ -327,9 +335,68 @@ test('parseArgs keeps DB reads and report writes explicit', () => {
     staleAfterDays: 90,
     source: 'files',
     output: null,
+    repoRoot: null,
     localDatabase: 'terria_v1_local',
     generatedAt: null,
   });
+});
+
+test('resolveImageAssetReadinessReportPath defaults to the data-source acceptance allowlist path', () => {
+  const reportPath = resolveImageAssetReadinessReportPath({
+    generatedAt: GENERATED_AT,
+  });
+  const explicitPath = resolveImageAssetReadinessReportPath({
+    generatedAt: GENERATED_AT,
+    output: 'reports/custom-image-readiness.json',
+  });
+
+  assert.equal(
+    path.relative(process.cwd(), reportPath).replaceAll('\\', '/'),
+    'reports/audit/image-asset-readiness-2026-05-03.json',
+  );
+  assert.equal(
+    path.relative(process.cwd(), explicitPath).replaceAll('\\', '/'),
+    'reports/custom-image-readiness.json',
+  );
+});
+
+test('resolveImageAssetReadinessReportPath uses the configured local reporting date', () => {
+  const reportPath = resolveImageAssetReadinessReportPath({
+    generatedAt: '2026-05-03T00:30:00+08:00',
+  });
+
+  assert.equal(
+    path.relative(process.cwd(), reportPath).replaceAll('\\', '/'),
+    'reports/audit/image-asset-readiness-2026-05-03.json',
+  );
+});
+
+test('CLI writes the default acceptance report while preserving JSON stdout', async () => {
+  const generatedAt = '2026-05-03T00:00:00.000Z';
+  const tempRepoRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-image-readiness-'));
+  const reportPath = path.join(tempRepoRoot, 'reports', 'audit', 'image-asset-readiness-2026-05-03.json');
+
+  try {
+    const { stdout, stderr } = await execFileAsync(
+      process.execPath,
+      [
+        'scripts/data/audit/image-asset-readiness-audit.mjs',
+        `--generated-at=${generatedAt}`,
+        `--repo-root=${tempRepoRoot}`,
+      ],
+      { cwd: process.cwd() },
+    );
+
+    assert.equal(stderr, '');
+    const fromStdout = JSON.parse(stdout);
+    const fromFile = JSON.parse(await fs.readFile(reportPath, 'utf8'));
+    assert.deepEqual(fromFile, fromStdout);
+    assert.equal(fromStdout.reportPath, reportPath);
+    assert.equal(fromStdout.generatedAt, generatedAt);
+    assert.ok(fromStdout.entities);
+  } finally {
+    await fs.rm(tempRepoRoot, { recursive: true, force: true });
+  }
 });
 
 function pickCoreCounts(stats) {

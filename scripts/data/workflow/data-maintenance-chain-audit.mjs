@@ -21,6 +21,7 @@ export function buildDataMaintenanceChainAudit({
   generatedAt = new Date().toISOString(),
   relationHealth = {},
   itemGroupAudit = {},
+  imageReadinessReport = null,
   imageReadinessText = '',
   entityCompleteness = {},
 } = {}) {
@@ -28,15 +29,7 @@ export function buildDataMaintenanceChainAudit({
   const relationWarningCount = numeric(relationHealth?.summary?.warningCount);
   const blockedGroupReferences = numeric(itemGroupAudit?.summary?.blockedGroupReferences);
   const duplicateGroupKeys = numeric(itemGroupAudit?.summary?.duplicateGroupKeys);
-  const imageReadiness = String(imageReadinessText ?? '');
-  const itemImageReady = imageReadiness.includes('item_images.cached_url')
-    && imageReadiness.includes('original_url')
-    && imageReadiness.includes('legacy wiki fallback');
-  const buffImageReady = imageReadiness.includes('V40__add_buff_image_cache_columns.sql')
-    && imageReadiness.includes('image_original_url')
-    && imageReadiness.includes('image_cached_url');
-  const npcImageNeedsUnifiedContract = imageReadiness.includes('NPC/Biome/Projectile/Article')
-    && imageReadiness.includes('source/cache/fallback');
+  const imageReadiness = summarizeImageReadiness({ imageReadinessReport, imageReadinessText });
   const blockingReasons = [];
   const warningReasons = [];
   const recommendedCommands = new Set();
@@ -55,16 +48,16 @@ export function buildDataMaintenanceChainAudit({
   if (duplicateGroupKeys > 0) {
     warningReasons.push(formatCountReason('Any Item Group audit has', duplicateGroupKeys, 'duplicate group key'));
   }
-  if (!itemImageReady) {
-    blockingReasons.push('item image assets are not marked ready in image readiness text');
+  if (!imageReadiness.items.ready) {
+    blockingReasons.push(imageReadiness.items.blockingReason);
     recommendedCommands.add('node scripts/data/workflow/run-image-sync.mjs --apply=false --scopes=items,buffs');
   }
-  if (!buffImageReady) {
-    blockingReasons.push('buff image assets are not marked ready in image readiness text');
+  if (!imageReadiness.buffs.ready) {
+    blockingReasons.push(imageReadiness.buffs.blockingReason);
     recommendedCommands.add('node scripts/data/workflow/run-image-sync.mjs --apply=false --scopes=items,buffs');
   }
-  if (npcImageNeedsUnifiedContract) {
-    warningReasons.push('NPC/Biome/Projectile/Article image assets still need a unified source/cache/fallback contract');
+  if (!imageReadiness.npcs.ready) {
+    warningReasons.push(imageReadiness.npcs.warningReason);
   }
 
   const anyItemGroupsChain = {
@@ -85,25 +78,22 @@ export function buildDataMaintenanceChainAudit({
       sourceGeneratedAt: relationHealth?.generatedAt ?? null,
     },
     item_image_assets: {
-      status: itemImageReady ? 'pass' : 'blocked',
-      ready: itemImageReady,
-      evidence: itemImageReady
-        ? 'image readiness text references item_images.cached_url, original_url, and legacy wiki fallback'
-        : null,
+      status: imageReadiness.items.ready ? 'pass' : 'blocked',
+      ready: imageReadiness.items.ready,
+      sourceGeneratedAt: imageReadiness.generatedAt,
+      evidence: imageReadiness.items.evidence,
     },
     buff_image_assets: {
-      status: buffImageReady ? 'pass' : 'blocked',
-      ready: buffImageReady,
-      evidence: buffImageReady
-        ? 'image readiness text references V40 buff cache columns and source/cache fields'
-        : null,
+      status: imageReadiness.buffs.ready ? 'pass' : 'blocked',
+      ready: imageReadiness.buffs.ready,
+      sourceGeneratedAt: imageReadiness.generatedAt,
+      evidence: imageReadiness.buffs.evidence,
     },
     npc_image_assets: {
-      status: npcImageNeedsUnifiedContract ? 'warning' : 'pass',
-      ready: !npcImageNeedsUnifiedContract,
-      evidence: npcImageNeedsUnifiedContract
-        ? 'image readiness text states NPC/Biome/Projectile/Article still need source/cache/fallback contract'
-        : null,
+      status: imageReadiness.npcs.ready ? 'pass' : 'warning',
+      ready: imageReadiness.npcs.ready,
+      sourceGeneratedAt: imageReadiness.generatedAt,
+      evidence: imageReadiness.npcs.evidence,
     },
     any_item_groups: anyItemGroupsChain,
     recipe_item_groups: anyItemGroupsChain,
@@ -118,6 +108,97 @@ export function buildDataMaintenanceChainAudit({
     recommendedCommands: [...recommendedCommands],
     entityCompleteness: summarizeEntityCompleteness(entityCompleteness),
   };
+}
+
+function summarizeImageReadiness({ imageReadinessReport = null, imageReadinessText = '' } = {}) {
+  if (imageReadinessReport && typeof imageReadinessReport === 'object') {
+    return summarizeStructuredImageReadiness(imageReadinessReport);
+  }
+  return summarizeTextImageReadiness(imageReadinessText);
+}
+
+function summarizeStructuredImageReadiness(report) {
+  const entities = report?.entities ?? {};
+  const blockingReasons = strings(report?.blockingReasons);
+  const warningReasons = strings(report?.warningReasons);
+  return {
+    generatedAt: report?.generatedAt ?? null,
+    items: summarizeStructuredImageEntity('items', entities.items, { blockingReasons, warningReasons }),
+    buffs: summarizeStructuredImageEntity('buffs', entities.buffs, { blockingReasons, warningReasons }),
+    npcs: summarizeStructuredImageEntity('npcs', entities.npcs, { blockingReasons, warningReasons }),
+  };
+}
+
+function summarizeStructuredImageEntity(entityType, entity, { blockingReasons = [], warningReasons = [] } = {}) {
+  if (!entity || typeof entity !== 'object') {
+    return {
+      ready: false,
+      blockingReason: `${entityType} image assets are missing from structured image readiness report`,
+      warningReason: `${entityType} image assets are missing from structured image readiness report`,
+      evidence: null,
+    };
+  }
+  const status = String(entity?.status ?? '').toLowerCase();
+  const reportBlockingReason = findEntityReason(blockingReasons, entityType);
+  const reportWarningReason = findEntityReason(warningReasons, entityType);
+  const ready = entityType === 'npcs'
+    ? status !== 'blocked' && entity?.unifiedContractReady !== false
+    : status === 'pass';
+  return {
+    ready,
+    blockingReason: reportBlockingReason ?? `${entityType} image assets are not marked ready in structured image readiness report`,
+    warningReason: reportWarningReason ?? `${entityType} image assets still need a unified source/cache/fallback contract`,
+    evidence: ready
+      ? `${entityType} image readiness report marks the entity chain as pass`
+      : null,
+  };
+}
+
+function summarizeTextImageReadiness(imageReadinessText = '') {
+  const imageReadiness = String(imageReadinessText ?? '');
+  const itemImageReady = imageReadiness.includes('item_images.cached_url')
+    && imageReadiness.includes('original_url')
+    && imageReadiness.includes('legacy wiki fallback');
+  const buffImageReady = imageReadiness.includes('V40__add_buff_image_cache_columns.sql')
+    && imageReadiness.includes('image_original_url')
+    && imageReadiness.includes('image_cached_url');
+  const npcImageNeedsUnifiedContract = imageReadiness.includes('NPC/Biome/Projectile/Article')
+    && imageReadiness.includes('source/cache/fallback');
+  return {
+    generatedAt: null,
+    items: {
+      ready: itemImageReady,
+      blockingReason: 'item image assets are not marked ready in image readiness text',
+      evidence: itemImageReady
+        ? 'image readiness text references item_images.cached_url, original_url, and legacy wiki fallback'
+        : null,
+    },
+    buffs: {
+      ready: buffImageReady,
+      blockingReason: 'buff image assets are not marked ready in image readiness text',
+      evidence: buffImageReady
+        ? 'image readiness text references V40 buff cache columns and source/cache fields'
+        : null,
+    },
+    npcs: {
+      ready: !npcImageNeedsUnifiedContract,
+      blockingReason: 'NPC/Biome/Projectile/Article image assets still need a unified source/cache/fallback contract',
+      warningReason: 'NPC/Biome/Projectile/Article image assets still need a unified source/cache/fallback contract',
+      evidence: npcImageNeedsUnifiedContract
+        ? 'image readiness text states NPC/Biome/Projectile/Article still need source/cache/fallback contract'
+        : null,
+    },
+  };
+}
+
+function strings(value) {
+  return Array.isArray(value)
+    ? value.map((entry) => String(entry ?? '').trim()).filter(Boolean)
+    : [];
+}
+
+function findEntityReason(reasons, entityType) {
+  return reasons.find((reason) => reason.toLowerCase().includes(`${entityType.toLowerCase()} `)) ?? null;
 }
 
 function summarizeEntityCompleteness(entityCompleteness) {
@@ -166,17 +247,20 @@ function formatCountReason(prefix, count, singular) {
 
 async function main(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
+  const imageReadinessInput = resolveImageReadinessInput(args, await findLatestImageReadinessReport());
   const inputs = {
     relationHealth: args.relationHealth ?? DEFAULT_INPUTS.relationHealth,
     itemGroupAudit: args.itemGroupAudit ?? DEFAULT_INPUTS.itemGroupAudit,
-    imageReadinessText: args.imageReadinessText ?? DEFAULT_INPUTS.imageReadinessText,
+    imageReadinessReport: imageReadinessInput.imageReadinessReport,
+    imageReadinessText: imageReadinessInput.imageReadinessText,
     entityCompleteness: args.entityCompleteness ?? DEFAULT_INPUTS.entityCompleteness,
   };
   const audit = buildDataMaintenanceChainAudit({
     generatedAt: args.generatedAt ?? new Date().toISOString(),
     relationHealth: await readJson(inputs.relationHealth),
     itemGroupAudit: await readJson(inputs.itemGroupAudit),
-    imageReadinessText: await readText(inputs.imageReadinessText),
+    imageReadinessReport: await readJsonIfExists(inputs.imageReadinessReport),
+    imageReadinessText: await readTextIfExists(inputs.imageReadinessText),
     entityCompleteness: await readJson(inputs.entityCompleteness),
   });
   const output = `${JSON.stringify(audit, null, 2)}\n`;
@@ -211,9 +295,98 @@ function toCamelCase(value) {
   return String(value).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
 }
 
+export function resolveImageReadinessInput(args = {}, latestImageReadinessReport = null) {
+  if (args.imageReadinessReport) {
+    return {
+      imageReadinessReport: args.imageReadinessReport,
+      imageReadinessText: args.imageReadinessText ?? DEFAULT_INPUTS.imageReadinessText,
+    };
+  }
+  if (args.imageReadinessText) {
+    return {
+      imageReadinessReport: null,
+      imageReadinessText: args.imageReadinessText,
+    };
+  }
+  return {
+    imageReadinessReport: latestImageReadinessReport,
+    imageReadinessText: DEFAULT_INPUTS.imageReadinessText,
+  };
+}
+
 async function readJson(filePath) {
   const raw = await readText(filePath);
   return JSON.parse(raw);
+}
+
+async function readJsonIfExists(filePath) {
+  if (!filePath) {
+    return null;
+  }
+  try {
+    return await readJson(filePath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return null;
+    }
+    throw error;
+  }
+}
+
+async function readTextIfExists(filePath) {
+  if (!filePath) {
+    return '';
+  }
+  try {
+    return await readText(filePath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return '';
+    }
+    throw error;
+  }
+}
+
+async function findLatestImageReadinessReport() {
+  const dir = path.resolve(repoRoot, 'reports', 'audit');
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    const candidates = [];
+    for (const entry of entries) {
+      if (
+        entry.isFile()
+        && entry.name.startsWith('image-asset-readiness')
+        && entry.name.endsWith('.json')
+      ) {
+        const fullPath = path.join(dir, entry.name);
+        candidates.push({
+          fullPath,
+          fileName: entry.name,
+          mtimeMs: (await fs.stat(fullPath)).mtimeMs,
+        });
+      }
+    }
+    candidates.sort(compareImageReadinessReportCandidates);
+    return candidates[0]?.fullPath ?? null;
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export function compareImageReadinessReportCandidates(left, right) {
+  const leftDate = imageReadinessReportDate(left.fileName);
+  const rightDate = imageReadinessReportDate(right.fileName);
+  if (leftDate !== rightDate) {
+    return rightDate.localeCompare(leftDate);
+  }
+  return right.fileName.localeCompare(left.fileName);
+}
+
+function imageReadinessReportDate(fileName) {
+  return String(fileName ?? '').match(/image-asset-readiness-(\d{4}-\d{2}-\d{2})\.json$/)?.[1] ?? '';
 }
 
 async function readText(filePath) {

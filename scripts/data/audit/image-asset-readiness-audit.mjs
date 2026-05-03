@@ -13,6 +13,7 @@ const DEFAULT_MANAGED_URL_PREFIXES = ['http://localhost:9000/terrapedia-images']
 const DEFAULT_SAMPLE_LIMIT = 20;
 const DEFAULT_STALE_AFTER_DAYS = 90;
 const DEFAULT_LOCAL_DATABASE = 'terria_v1_local';
+const DEFAULT_REPORT_TIME_ZONE = process.env.TERRAPEDIA_REPORT_TIME_ZONE ?? 'Asia/Shanghai';
 
 export function parseArgs(argv = []) {
   const raw = {};
@@ -34,6 +35,7 @@ export function parseArgs(argv = []) {
     staleAfterDays: positiveInteger(raw.staleAfterDays ?? raw.staleDays, DEFAULT_STALE_AFTER_DAYS),
     source: raw.source ?? 'files',
     output: raw.output ?? null,
+    repoRoot: raw.repoRoot ?? null,
     localDatabase: raw.localDatabase ?? DEFAULT_LOCAL_DATABASE,
     generatedAt: raw.generatedAt ?? null,
   };
@@ -110,6 +112,22 @@ WHERE n.\`deleted\` = 0
 ORDER BY n.\`id\` ASC
 `.trim(),
   };
+}
+
+export function resolveImageAssetReadinessReportPath({
+  generatedAt = new Date().toISOString(),
+  output = null,
+  root = repoRoot,
+} = {}) {
+  if (output) {
+    return path.resolve(root, output);
+  }
+  return path.resolve(
+    root,
+    'reports',
+    'audit',
+    `image-asset-readiness-${toDateTag(generatedAt)}.json`,
+  );
 }
 
 export function buildImageAssetReadinessAudit({
@@ -405,13 +423,18 @@ function toStaleThreshold(generatedAt, staleAfterDays) {
 
 async function main(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
-  const reportPath = args.output ? path.resolve(repoRoot, args.output) : null;
+  const generatedAt = args.generatedAt ?? new Date().toISOString();
+  const reportPath = resolveImageAssetReadinessReportPath({
+    generatedAt,
+    output: args.output,
+    root: args.repoRoot ? path.resolve(repoRoot, args.repoRoot) : repoRoot,
+  });
   const rows = args.source === 'db'
     ? await loadRowsFromDatabase(args)
     : await loadRowsFromFiles(args);
   const audit = buildImageAssetReadinessAudit({
     ...rows,
-    generatedAt: args.generatedAt ?? new Date().toISOString(),
+    generatedAt,
     reportPath,
     managedUrlPrefixes: args.managedUrlPrefixes,
     staleAfterDays: args.staleAfterDays,
@@ -419,10 +442,8 @@ async function main(argv = process.argv.slice(2)) {
   });
   const output = `${JSON.stringify(audit, null, 2)}\n`;
 
-  if (reportPath) {
-    await fs.mkdir(path.dirname(reportPath), { recursive: true });
-    await fs.writeFile(reportPath, output, 'utf8');
-  }
+  await fs.mkdir(path.dirname(reportPath), { recursive: true });
+  await fs.writeFile(reportPath, output, 'utf8');
   process.stdout.write(output);
 }
 
@@ -510,6 +531,25 @@ function positiveInteger(value, fallback) {
   }
   const numeric = Number(value);
   return Number.isFinite(numeric) && numeric >= 0 ? Math.trunc(numeric) : fallback;
+}
+
+function toDateTag(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return formatDateTag(new Date());
+  }
+  return formatDateTag(date);
+}
+
+function formatDateTag(date) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: DEFAULT_REPORT_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 function parseList(value, fallback) {

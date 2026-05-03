@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildDataMaintenanceChainAudit } from './data-maintenance-chain-audit.mjs';
+import {
+  buildDataMaintenanceChainAudit,
+  compareImageReadinessReportCandidates,
+  resolveImageReadinessInput,
+} from './data-maintenance-chain-audit.mjs';
 
 const READY_IMAGE_TEXT = [
   '- item image readiness references item_images.cached_url, original_url, and legacy wiki fallback.',
@@ -54,6 +58,152 @@ test('buildDataMaintenanceChainAudit returns passing gates when all chains are r
   assert.equal(audit.chains.recipe_item_groups, audit.chains.any_item_groups);
   assert.equal(audit.entityCompleteness.items.standardizedCount, 6131);
   assert.equal(audit.entityCompleteness.items.imageStats.minio_image, 6131);
+});
+
+test('buildDataMaintenanceChainAudit accepts structured image readiness reports', () => {
+  const audit = buildDataMaintenanceChainAudit({
+    generatedAt: '2026-05-03T00:02:00.000Z',
+    relationHealth: {
+      summary: {
+        blockingCount: 0,
+        warningCount: 0,
+      },
+    },
+    itemGroupAudit: {
+      summary: {
+        blockedGroupReferences: 0,
+        duplicateGroupKeys: 0,
+      },
+    },
+    imageReadinessReport: {
+      generatedAt: '2026-05-03T00:01:00.000Z',
+      status: 'warning',
+      blockingReasons: [],
+      warningReasons: [
+        'npcs image assets still need a unified source/cache/fallback contract',
+      ],
+      entities: {
+        items: {
+          status: 'pass',
+          unifiedContractReady: true,
+        },
+        buffs: {
+          status: 'pass',
+          unifiedContractReady: true,
+        },
+        npcs: {
+          status: 'warning',
+          unifiedContractReady: false,
+        },
+      },
+    },
+  });
+
+  assert.equal(audit.status, 'warning');
+  assert.deepEqual(audit.blockingReasons, []);
+  assert.deepEqual(audit.warningReasons, [
+    'npcs image assets still need a unified source/cache/fallback contract',
+  ]);
+  assert.equal(audit.chains.item_image_assets.status, 'pass');
+  assert.equal(audit.chains.item_image_assets.ready, true);
+  assert.equal(audit.chains.buff_image_assets.status, 'pass');
+  assert.equal(audit.chains.buff_image_assets.ready, true);
+  assert.equal(audit.chains.npc_image_assets.status, 'warning');
+  assert.equal(audit.chains.npc_image_assets.ready, false);
+  assert.equal(audit.chains.item_image_assets.sourceGeneratedAt, '2026-05-03T00:01:00.000Z');
+});
+
+test('resolveImageReadinessInput preserves explicit legacy text input priority', () => {
+  assert.deepEqual(
+    resolveImageReadinessInput(
+      {
+        imageReadinessText: 'docs/audits/custom-image-readiness.md',
+      },
+      'reports/audit/image-asset-readiness-2026-05-03.json',
+    ),
+    {
+      imageReadinessReport: null,
+      imageReadinessText: 'docs/audits/custom-image-readiness.md',
+    },
+  );
+
+  assert.deepEqual(
+    resolveImageReadinessInput(
+      {
+        imageReadinessReport: 'reports/audit/manual-image-readiness.json',
+      },
+      'reports/audit/image-asset-readiness-2026-05-03.json',
+    ),
+    {
+      imageReadinessReport: 'reports/audit/manual-image-readiness.json',
+      imageReadinessText: 'docs/audits/image-asset-readiness.md',
+    },
+  );
+});
+
+test('compareImageReadinessReportCandidates selects the newest filename date before mtime', () => {
+  const candidates = [
+    {
+      fullPath: 'reports/audit/image-asset-readiness-2026-05-02.json',
+      fileName: 'image-asset-readiness-2026-05-02.json',
+      mtimeMs: 300,
+    },
+    {
+      fullPath: 'reports/audit/image-asset-readiness-2026-05-03.json',
+      fileName: 'image-asset-readiness-2026-05-03.json',
+      mtimeMs: 100,
+    },
+    {
+      fullPath: 'reports/audit/image-asset-readiness-smoke.json',
+      fileName: 'image-asset-readiness-smoke.json',
+      mtimeMs: 999,
+    },
+  ];
+
+  candidates.sort(compareImageReadinessReportCandidates);
+
+  assert.equal(candidates[0].fileName, 'image-asset-readiness-2026-05-03.json');
+});
+
+test('buildDataMaintenanceChainAudit treats missing structured image entities conservatively', () => {
+  const audit = buildDataMaintenanceChainAudit({
+    generatedAt: '2026-05-03T00:03:00.000Z',
+    relationHealth: {
+      summary: {
+        blockingCount: 0,
+        warningCount: 0,
+      },
+    },
+    itemGroupAudit: {
+      summary: {
+        blockedGroupReferences: 0,
+        duplicateGroupKeys: 0,
+      },
+    },
+    imageReadinessReport: {
+      generatedAt: '2026-05-03T00:01:00.000Z',
+      status: 'pass',
+      blockingReasons: [],
+      warningReasons: [],
+      entities: {
+        items: {
+          status: 'pass',
+          unifiedContractReady: true,
+        },
+      },
+    },
+  });
+
+  assert.equal(audit.status, 'blocked');
+  assert.equal(audit.chains.item_image_assets.status, 'pass');
+  assert.equal(audit.chains.buff_image_assets.status, 'blocked');
+  assert.equal(audit.chains.npc_image_assets.status, 'warning');
+  assert.deepEqual(audit.blockingReasons, [
+    'buffs image assets are missing from structured image readiness report',
+  ]);
+  assert.deepEqual(audit.warningReasons, [
+    'npcs image assets are missing from structured image readiness report',
+  ]);
 });
 
 test('buildDataMaintenanceChainAudit reports warnings without blocking the overall gate', () => {
