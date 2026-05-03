@@ -179,6 +179,11 @@ class DataSourceAcceptanceServiceImplTest {
         assertFalse(overview.getRelationHealth().isReadable());
         assertEquals("blocked", overview.getRelationHealth().getStatus());
         assertNotNull(overview.getRelationHealth().getErrorMessage());
+        assertEquals("unknown", overview.getRelationHealth().getFreshnessStatus());
+        assertEquals(
+            "node scripts/data/relation/relation-health-report.mjs --write-report=true",
+            overview.getRelationHealth().getNextEvidenceCommand()
+        );
         assertEquals("pass", overview.getReplacementReadiness().getStatus());
     }
 

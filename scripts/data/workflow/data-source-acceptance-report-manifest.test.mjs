@@ -45,6 +45,10 @@ test('buildDataSourceAcceptanceReportManifest covers all acceptance overview pan
     assert.equal(typeof entry.writesDatabase, 'boolean');
     assert.equal(typeof entry.requiresDatabase, 'boolean');
     assert.equal(typeof entry.notes, 'string');
+    assert.equal(typeof entry.freshnessSource, 'string');
+    assert.ok('staleAfterHours' in entry, `${entry.panelId} should declare staleAfterHours`);
+    assert.ok(Array.isArray(entry.nextEvidenceWhen), `${entry.panelId} should declare nextEvidenceWhen`);
+    assert.equal(typeof entry.statusImpact, 'string');
   }
 });
 
@@ -79,6 +83,28 @@ test('manifest metadata stays aligned with the backend acceptance overview contr
   assert.deepEqual(toComparableManifest(manifest), extractBackendPanelMetadata(backendSource));
 });
 
+test('manifest declares backend freshness policy for acceptance evidence', () => {
+  const manifest = buildDataSourceAcceptanceReportManifest();
+
+  for (const entry of manifest.filter((item) => item.panelId !== 'crawlerMonitor')) {
+    assert.equal(entry.freshnessSource, 'report-generatedAt-or-mtime', `${entry.panelId} freshness source`);
+    assert.equal(entry.staleAfterHours, 24, `${entry.panelId} stale threshold`);
+    assert.deepEqual(
+      entry.nextEvidenceWhen,
+      ['missing', 'stale', 'unknown', 'unreadable'],
+      `${entry.panelId} next evidence triggers`,
+    );
+    assert.equal(entry.statusImpact, 'stale-pass-to-warning', `${entry.panelId} status impact`);
+  }
+
+  const crawlerMonitor = manifest.find((entry) => entry.panelId === 'crawlerMonitor');
+  assert.ok(crawlerMonitor, 'crawlerMonitor manifest entry should be present');
+  assert.equal(crawlerMonitor.freshnessSource, 'crawler-monitor');
+  assert.equal(crawlerMonitor.staleAfterHours, 'crawler-refresh-threshold');
+  assert.deepEqual(crawlerMonitor.nextEvidenceWhen, ['missing', 'stale', 'unknown', 'unreadable']);
+  assert.equal(crawlerMonitor.statusImpact, 'stale-pass-to-warning');
+});
+
 test('CLI prints legal JSON and does not execute subcommands', async () => {
   const { stdout, stderr } = await execFileAsync(
     process.execPath,
@@ -102,6 +128,10 @@ function toComparableManifest(manifest) {
           writesDatabase: entry.writesDatabase,
           requiresDatabase: entry.requiresDatabase,
           notes: entry.notes,
+          freshnessSource: entry.freshnessSource,
+          staleAfterHours: entry.staleAfterHours,
+          nextEvidenceWhen: entry.nextEvidenceWhen,
+          statusImpact: entry.statusImpact,
         },
       ])
       .sort(([left], [right]) => left.localeCompare(right)),
@@ -119,6 +149,10 @@ function extractBackendPanelMetadata(source) {
       writesDatabase: match[4] === 'true',
       requiresDatabase: match[5] === 'true',
       notes: match[6],
+      freshnessSource: 'report-generatedAt-or-mtime',
+      staleAfterHours: extractDefaultStaleAfterHours(source),
+      nextEvidenceWhen: ['missing', 'stale', 'unknown', 'unreadable'],
+      statusImpact: 'stale-pass-to-warning',
     };
   }
 
@@ -130,6 +164,10 @@ function extractBackendPanelMetadata(source) {
     writesDatabase: extractSetterBoolean(crawlerBlock[1], 'setWritesDatabase'),
     requiresDatabase: extractSetterBoolean(crawlerBlock[1], 'setRequiresDatabase'),
     notes: extractSetterString(crawlerBlock[1], 'setNotes'),
+    freshnessSource: 'crawler-monitor',
+    staleAfterHours: 'crawler-refresh-threshold',
+    nextEvidenceWhen: ['missing', 'stale', 'unknown', 'unreadable'],
+    statusImpact: 'stale-pass-to-warning',
   };
 
   return Object.fromEntries(Object.entries(metadata).sort(([left], [right]) => left.localeCompare(right)));
@@ -145,4 +183,10 @@ function extractSetterBoolean(source, setterName) {
   const match = source.match(new RegExp(`${setterName}\\((true|false)\\)`));
   assert.ok(match, `${setterName} boolean value should be present`);
   return match[1] === 'true';
+}
+
+function extractDefaultStaleAfterHours(source) {
+  const match = source.match(/DEFAULT_STALE_AFTER_HOURS\s*=\s*(\d+)/);
+  assert.ok(match, 'DEFAULT_STALE_AFTER_HOURS should be present');
+  return Number(match[1]);
 }
