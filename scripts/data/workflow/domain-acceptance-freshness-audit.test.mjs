@@ -51,6 +51,7 @@ test('domain freshness audit reports fresh stale missing and unknown evidence', 
     unsafeCommandCount: 0,
     autoMaintenanceAllowedCount: 4,
     blockingBeforePublicCount: 1,
+    maintenanceRoutedCount: 4,
   });
   assert.deepEqual(audit.warningReasons, [
     'bosses/relationReadiness evidence is stale',

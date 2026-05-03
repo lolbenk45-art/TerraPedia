@@ -6,6 +6,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 
 import { buildDomainAcceptanceReportManifest } from './domain-acceptance-report-manifest.mjs';
+import { buildBackendDataRefreshPlan } from './backend-data-refresh-plan.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -46,6 +47,7 @@ test('domain manifest registers every B-tier upgrade target', () => {
 
 test('domain manifest entries declare safe freshness and evidence metadata', () => {
   const manifest = buildDomainAcceptanceReportManifest();
+  const backendStepIds = new Set(buildBackendDataRefreshPlan().actions.map((action) => action.id));
 
   for (const entry of manifest) {
     assert.equal(typeof entry.domainId, 'string');
@@ -59,6 +61,17 @@ test('domain manifest entries declare safe freshness and evidence metadata', () 
     assert.equal(typeof entry.domainChainStage, 'string');
     assert.equal(typeof entry.chainStage, 'string');
     assert.equal(typeof entry.maintenanceLane, 'string');
+    assert.equal(entry.maintenanceLane, 'domain-acceptance-evidence');
+    assert.ok(Array.isArray(entry.backendRefreshStepIds), `${entry.domainId}/${entry.panelId} should declare backend refresh steps`);
+    assert.ok(entry.backendRefreshStepIds.length > 0, `${entry.domainId}/${entry.panelId} should route to at least one backend refresh step`);
+    assert.ok(
+      entry.backendRefreshStepIds.every((stepId) => backendStepIds.has(stepId)),
+      `${entry.domainId}/${entry.panelId} should only route to known backend refresh steps`,
+    );
+    assert.equal(
+      entry.backendRefreshPlanCommand,
+      `node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=${entry.backendRefreshStepIds.join(',')}`,
+    );
     assert.ok(
       entry.managementRoute === null || typeof entry.managementRoute === 'string',
       `${entry.domainId}/${entry.panelId} managementRoute should be explicit`,
@@ -74,6 +87,74 @@ test('domain manifest entries declare safe freshness and evidence metadata', () 
     assert.deepEqual(entry.nextEvidenceWhen, ['missing', 'stale', 'unknown', 'unreadable']);
     assert.equal(entry.statusImpact, 'stale-pass-to-warning');
   }
+});
+
+test('domain manifest routes B-tier domains to backend refresh steps', () => {
+  const manifest = buildDomainAcceptanceReportManifest();
+  const stepsByDomain = new Map(manifest.map((entry) => [entry.domainId, entry.backendRefreshStepIds]));
+
+  assert.deepEqual(stepsByDomain.get('bosses'), ['wiki-core-refresh', 'boss-sync']);
+  assert.deepEqual(stepsByDomain.get('buffs'), ['independent-entity-sync']);
+  assert.deepEqual(stepsByDomain.get('projectiles'), ['independent-entity-sync']);
+  assert.deepEqual(stepsByDomain.get('armor_sets'), ['independent-entity-sync']);
+  assert.deepEqual(stepsByDomain.get('support.recipe'), ['recipe-reference-sync']);
+  assert.deepEqual(stepsByDomain.get('support.shimmer'), ['shimmer-sync']);
+  assert.deepEqual(stepsByDomain.get('support.category'), ['support-sync']);
+  assert.deepEqual(stepsByDomain.get('support.item_group'), ['support-sync']);
+  assert.deepEqual(stepsByDomain.get('support.town_npc_maintenance'), ['town-npc-sync']);
+});
+
+test('domain registry fails closed for malformed maintenance definitions', () => {
+  const registry = minimalRegistry({
+    domains: [
+      {
+        domainId: 'synthetic',
+        domainType: 'support',
+        tier: 'B',
+        chainStage: 'support-readiness',
+        panelSet: 'missing-set',
+        backendRefreshStepIds: ['support-sync'],
+        managementRoute: '/synthetic',
+        publicRoute: null,
+      },
+    ],
+  });
+
+  assert.throws(
+    () => buildDomainAcceptanceReportManifest({ registry }),
+    /Unknown domain acceptance panel set: missing-set/,
+  );
+
+  registry.domains[0].panelSet = 'support';
+  registry.domains.push({ ...registry.domains[0] });
+  assert.throws(
+    () => buildDomainAcceptanceReportManifest({ registry }),
+    /Duplicate domain acceptance domainId: synthetic/,
+  );
+
+  registry.domains.pop();
+  registry.domains[0].backendRefreshStepIds = ['missing-sync'];
+  assert.throws(
+    () => buildDomainAcceptanceReportManifest({ registry }),
+    /Unknown backend refresh step for synthetic: missing-sync/,
+  );
+
+  registry.domains[0].backendRefreshStepIds = ['support-sync'];
+  registry.panels.unusedBrokenPanel = {
+    panelId: 'unusedBrokenPanel',
+    generatorPanel: 'source',
+    chainStage: 'source',
+    maintenanceLane: 'domain-acceptance-evidence',
+    autoMaintenanceAllowed: true,
+    blockingBeforePublic: false,
+    requiresDatabase: false,
+    writesDatabase: false,
+    notes: 'Broken unused panel.',
+  };
+  assert.throws(
+    () => buildDomainAcceptanceReportManifest({ registry }),
+    /Domain acceptance registry missing required string: unusedBrokenPanel\.fileKey/,
+  );
 });
 
 test('domain manifest is expanded from the registry single source of truth', () => {
@@ -186,4 +267,35 @@ test('backend domain acceptance service mirrors manifest contract exactly', () =
 function extractNodeScriptPath(command) {
   const match = String(command).match(/^node\s+([^\s]+\.mjs)\b/);
   return match?.[1] ?? null;
+}
+
+function minimalRegistry(overrides = {}) {
+  return {
+    version: 1,
+    freshness: {
+      freshnessSource: 'report-generatedAt-or-mtime',
+      staleAfterHours: 24,
+      nextEvidenceWhen: ['missing', 'stale', 'unknown', 'unreadable'],
+      statusImpact: 'stale-pass-to-warning',
+    },
+    panelSets: {
+      support: ['sourceReadiness'],
+    },
+    panels: {
+      sourceReadiness: {
+        panelId: 'sourceReadiness',
+        fileKey: 'source-readiness',
+        generatorPanel: 'source',
+        chainStage: 'source',
+        maintenanceLane: 'domain-acceptance-evidence',
+        autoMaintenanceAllowed: true,
+        blockingBeforePublic: false,
+        requiresDatabase: false,
+        writesDatabase: false,
+        notes: 'Synthetic source panel.',
+      },
+    },
+    domains: [],
+    ...overrides,
+  };
 }

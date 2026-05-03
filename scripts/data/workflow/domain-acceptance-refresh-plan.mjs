@@ -26,6 +26,8 @@ export function buildDomainAcceptanceRefreshPlan({
       writesDatabase: panel.writesDatabase === true,
       maintenanceLane: panel.maintenanceLane ?? 'domain-acceptance-evidence',
       maintenanceLaneId: panel.maintenanceLaneId ?? `domain-acceptance:${panel.domainId}:${panel.panelId}`,
+      backendRefreshStepIds: Array.isArray(panel.backendRefreshStepIds) ? [...panel.backendRefreshStepIds] : [],
+      backendRefreshPlanCommand: panel.backendRefreshPlanCommand ?? null,
       executionPolicy: 'plan-only',
       autoMaintenanceEligible: autoMaintenanceEligible(panel),
       manualConfirmation: actionStatus(panel) === 'needs_confirmation',
@@ -69,6 +71,7 @@ function summarizeActions(actions) {
     manualConfirmationCount: actions.filter((action) => action.manualConfirmation === true).length,
     blockingBeforePublicCount: actions.filter((action) => action.blockingBeforePublic === true).length,
     planOnlyCount: actions.filter((action) => action.executionPolicy === 'plan-only').length,
+    maintenanceRoutedCount: actions.filter((action) => action.backendRefreshStepIds.length > 0).length,
   };
 }
 
@@ -126,7 +129,9 @@ function autoMaintenanceEligible(panel) {
     && actionStatus(panel) === 'ready'
     && panel?.commandRisk === 'safe-read-only'
     && panel?.requiresDatabase !== true
-    && panel?.writesDatabase !== true;
+    && panel?.writesDatabase !== true
+    && Array.isArray(panel?.backendRefreshStepIds)
+    && panel.backendRefreshStepIds.length > 0;
 }
 
 function blockingBeforePublic(panel) {

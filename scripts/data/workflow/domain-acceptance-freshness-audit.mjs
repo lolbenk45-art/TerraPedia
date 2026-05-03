@@ -73,6 +73,8 @@ function buildPanelFreshness({ entry, repoRoot, now }) {
     chainStage: entry.chainStage,
     maintenanceLane: entry.maintenanceLane,
     maintenanceLaneId: entry.maintenanceLaneId ?? `domain-acceptance:${entry.domainId}:${entry.panelId}`,
+    backendRefreshStepIds: Array.isArray(entry.backendRefreshStepIds) ? [...entry.backendRefreshStepIds] : [],
+    backendRefreshPlanCommand: entry.backendRefreshPlanCommand ?? null,
     autoMaintenanceAllowed: entry.autoMaintenanceAllowed === true,
     blockingBeforePublic: entry.blockingBeforePublic === true,
     managementRoute: entry.managementRoute ?? null,
@@ -135,6 +137,7 @@ function summarizePanels(panels) {
     unsafeCommandCount: panels.filter((panel) => panel.commandRisk === 'unsafe').length,
     autoMaintenanceAllowedCount: panels.filter((panel) => panel.autoMaintenanceAllowed === true).length,
     blockingBeforePublicCount: panels.filter((panel) => panel.blockingBeforePublic === true).length,
+    maintenanceRoutedCount: panels.filter((panel) => Array.isArray(panel.backendRefreshStepIds) && panel.backendRefreshStepIds.length > 0).length,
   };
 }
 

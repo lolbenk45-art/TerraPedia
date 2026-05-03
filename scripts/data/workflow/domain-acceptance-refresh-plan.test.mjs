@@ -27,6 +27,8 @@ test('domain refresh plan converts stale missing and unknown evidence into manua
           writesDatabase: false,
           maintenanceLane: 'domain-acceptance-evidence',
           maintenanceLaneId: 'domain-acceptance:bosses:sourceReadiness',
+          backendRefreshStepIds: ['wiki-core-refresh', 'boss-sync'],
+          backendRefreshPlanCommand: 'node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=wiki-core-refresh,boss-sync',
           autoMaintenanceAllowed: true,
           blockingBeforePublic: false,
         },
@@ -41,6 +43,8 @@ test('domain refresh plan converts stale missing and unknown evidence into manua
           writesDatabase: false,
           maintenanceLane: 'domain-acceptance-evidence',
           maintenanceLaneId: 'domain-acceptance:bosses:relationReadiness',
+          backendRefreshStepIds: ['wiki-core-refresh', 'boss-sync'],
+          backendRefreshPlanCommand: 'node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=wiki-core-refresh,boss-sync',
           autoMaintenanceAllowed: true,
           blockingBeforePublic: false,
         },
@@ -55,6 +59,8 @@ test('domain refresh plan converts stale missing and unknown evidence into manua
           writesDatabase: false,
           maintenanceLane: 'domain-acceptance-evidence',
           maintenanceLaneId: 'domain-acceptance:bosses:publicReadiness',
+          backendRefreshStepIds: ['wiki-core-refresh', 'boss-sync'],
+          backendRefreshPlanCommand: 'node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=wiki-core-refresh,boss-sync',
           autoMaintenanceAllowed: true,
           blockingBeforePublic: true,
         },
@@ -69,6 +75,8 @@ test('domain refresh plan converts stale missing and unknown evidence into manua
           writesDatabase: false,
           maintenanceLane: 'domain-acceptance-evidence',
           maintenanceLaneId: 'domain-acceptance:buffs:imageReadiness',
+          backendRefreshStepIds: ['independent-entity-sync'],
+          backendRefreshPlanCommand: 'node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=independent-entity-sync',
           autoMaintenanceAllowed: true,
           blockingBeforePublic: true,
         },
@@ -93,6 +101,7 @@ test('domain refresh plan converts stale missing and unknown evidence into manua
     manualConfirmationCount: 2,
     blockingBeforePublicCount: 2,
     planOnlyCount: 3,
+    maintenanceRoutedCount: 3,
   });
   assert.deepEqual(plan.actions.map((action) => `${action.domainId}/${action.panelId}`), [
     'bosses/relationReadiness',
@@ -113,6 +122,16 @@ test('domain refresh plan converts stale missing and unknown evidence into manua
   assert.deepEqual(plan.actions.map((action) => action.autoMaintenanceEligible), [false, true, false]);
   assert.deepEqual(plan.actions.map((action) => action.manualConfirmation), [true, false, true]);
   assert.deepEqual(plan.actions.map((action) => action.blockingBeforePublic), [false, true, true]);
+  assert.deepEqual(plan.actions.map((action) => action.backendRefreshStepIds), [
+    ['wiki-core-refresh', 'boss-sync'],
+    ['wiki-core-refresh', 'boss-sync'],
+    ['independent-entity-sync'],
+  ]);
+  assert.deepEqual(plan.actions.map((action) => action.backendRefreshPlanCommand), [
+    'node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=wiki-core-refresh,boss-sync',
+    'node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=wiki-core-refresh,boss-sync',
+    'node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=independent-entity-sync',
+  ]);
 });
 
 test('domain refresh plan blocks unsafe commands and database writers', () => {

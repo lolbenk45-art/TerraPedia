@@ -49,6 +49,7 @@ Invoke-Step -Label 'Data workflow acceptance tests' -WorkingDirectory $repoRoot 
   'scripts/data/workflow/domain-acceptance-report-manifest.test.mjs',
   'scripts/data/workflow/domain-acceptance-freshness-audit.test.mjs',
   'scripts/data/workflow/domain-acceptance-refresh-plan.test.mjs',
+  'scripts/data/workflow/domain-acceptance-a-grade-gate.test.mjs',
   'scripts/data/workflow/domain-acceptance-generate-reports.test.mjs'
 )
 
@@ -56,6 +57,11 @@ Invoke-Step -Label 'Domain acceptance full dry-run' -WorkingDirectory $repoRoot 
   'scripts/data/workflow/domain-acceptance-generate-reports.mjs',
   '--fail-on-blocked=true',
   '--fail-on-warning=true'
+)
+
+Invoke-Step -Label 'Domain acceptance A-grade gate' -WorkingDirectory $repoRoot -CommandPath $nodeCmd -Arguments @(
+  'scripts/data/workflow/domain-acceptance-a-grade-gate.mjs',
+  '--fail-on-blocked=true'
 )
 
 if (-not $SkipBack) {

@@ -10,6 +10,7 @@ test('quality gate includes domain acceptance workflow tests', () => {
     'scripts/data/workflow/domain-acceptance-report-manifest.test.mjs',
     'scripts/data/workflow/domain-acceptance-freshness-audit.test.mjs',
     'scripts/data/workflow/domain-acceptance-refresh-plan.test.mjs',
+    'scripts/data/workflow/domain-acceptance-a-grade-gate.test.mjs',
     'scripts/data/workflow/domain-acceptance-generate-reports.test.mjs',
   ]) {
     assert.match(source, new RegExp(escapeRegExp(testPath)), `${testPath} should be included in quality gate`);
@@ -24,6 +25,16 @@ test('quality gate runs full domain acceptance dry-run without writing reports',
   assert.match(source, /--fail-on-blocked=true/);
   assert.match(source, /--fail-on-warning=true/);
   assert.doesNotMatch(source, /domain-acceptance-generate-reports\.mjs[\s\S]*--write=true/);
+});
+
+test('quality gate runs A-grade gate without writing reports', () => {
+  const source = fs.readFileSync('scripts/dev/quality-gate.ps1', 'utf8');
+
+  assert.match(source, /Domain acceptance A-grade gate/);
+  assert.match(source, /scripts\/data\/workflow\/domain-acceptance-a-grade-gate\.mjs/);
+  assert.match(source, /--fail-on-blocked=true/);
+  assert.doesNotMatch(source, /domain-acceptance-a-grade-gate\.mjs[\s\S]*--fail-on-warning=true/);
+  assert.doesNotMatch(source, /domain-acceptance-a-grade-gate\.mjs[\s\S]*--write=true/);
 });
 
 test('quality gate includes backend domain acceptance contract tests', () => {

@@ -79,6 +79,7 @@
       "tier": "B",
       "chainStage": "product-readiness",
       "panelSet": "product",
+      "backendRefreshStepIds": ["wiki-core-refresh", "boss-sync"],
       "managementRoute": "/entities/bosses",
       "publicRoute": null
     },
@@ -88,6 +89,7 @@
       "tier": "B",
       "chainStage": "product-readiness",
       "panelSet": "product",
+      "backendRefreshStepIds": ["independent-entity-sync"],
       "managementRoute": "/entities/buffs",
       "publicRoute": null
     },
@@ -97,6 +99,7 @@
       "tier": "B",
       "chainStage": "product-readiness",
       "panelSet": "product",
+      "backendRefreshStepIds": ["independent-entity-sync"],
       "managementRoute": "/entities/projectiles",
       "publicRoute": null
     },
@@ -106,6 +109,7 @@
       "tier": "B",
       "chainStage": "product-readiness",
       "panelSet": "product",
+      "backendRefreshStepIds": ["independent-entity-sync"],
       "managementRoute": "/entities/armor-sets",
       "publicRoute": null
     },
@@ -115,6 +119,7 @@
       "tier": "B",
       "chainStage": "support-readiness",
       "panelSet": "support",
+      "backendRefreshStepIds": ["recipe-reference-sync"],
       "managementRoute": "/recipes",
       "publicRoute": null
     },
@@ -124,6 +129,7 @@
       "tier": "B",
       "chainStage": "support-readiness",
       "panelSet": "support",
+      "backendRefreshStepIds": ["shimmer-sync"],
       "managementRoute": "/recipes/shimmer",
       "publicRoute": null
     },
@@ -133,6 +139,7 @@
       "tier": "B",
       "chainStage": "support-readiness",
       "panelSet": "support",
+      "backendRefreshStepIds": ["support-sync"],
       "managementRoute": "/categories",
       "publicRoute": null
     },
@@ -142,6 +149,7 @@
       "tier": "B",
       "chainStage": "support-readiness",
       "panelSet": "support",
+      "backendRefreshStepIds": ["support-sync"],
       "managementRoute": "/item-groups",
       "publicRoute": null
     },
@@ -151,6 +159,7 @@
       "tier": "B",
       "chainStage": "support-readiness",
       "panelSet": "support",
+      "backendRefreshStepIds": ["town-npc-sync"],
       "managementRoute": "/entities/town-npcs",
       "publicRoute": null
     }
