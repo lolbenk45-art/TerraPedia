@@ -97,6 +97,29 @@ test('buildDataSourceAcceptanceFreshnessAudit uses file mtime when report genera
   assert.equal(relationHealth.ageHours, 6);
 });
 
+test('buildDataSourceAcceptanceFreshnessAudit does not mark malformed report JSON fresh by mtime', () => {
+  const repoRoot = createTempRepo();
+  const reportPath = path.join(repoRoot, 'reports/relation/relation-health-2026-05-03.json');
+  writeText(repoRoot, 'reports/relation/relation-health-2026-05-03.json', '{ "generatedAt": ');
+  fs.utimesSync(reportPath, new Date('2026-05-03T06:00:00Z'), new Date('2026-05-03T06:00:00Z'));
+
+  const manifest = buildDataSourceAcceptanceReportManifest().filter((entry) => entry.panelId === 'relationHealth');
+  const audit = buildDataSourceAcceptanceFreshnessAudit({
+    repoRoot,
+    manifest,
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+  const relationHealth = panelById(audit, 'relationHealth');
+
+  assert.equal(audit.overallStatus, 'warning');
+  assert.deepEqual(audit.warningReasons, ['relationHealth evidence is unknown']);
+  assert.equal(relationHealth.latestReportPath, 'reports/relation/relation-health-2026-05-03.json');
+  assert.equal(relationHealth.freshnessStatus, 'unknown');
+  assert.equal(relationHealth.freshnessReason, 'Acceptance report JSON is unreadable or invalid.');
+  assert.equal(relationHealth.ageHours, null);
+  assert.equal(relationHealth.nextEvidenceCommand, 'node scripts/data/relation/relation-health-report.mjs --write-report=true');
+});
+
 test('classifyCommandRisk is conservative about mutation commands', () => {
   assert.equal(classifyCommandRisk('node scripts/data/audit/read-report.mjs'), 'safe-read-only');
   assert.equal(classifyCommandRisk('read-only monitor overview: GET /admin/crawler-monitor/overview'), 'external-read-only');
@@ -169,6 +192,12 @@ function writeJson(repoRoot, relativePath, payload) {
   const fullPath = path.join(repoRoot, relativePath);
   fs.mkdirSync(path.dirname(fullPath), { recursive: true });
   fs.writeFileSync(fullPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+}
+
+function writeText(repoRoot, relativePath, text) {
+  const fullPath = path.join(repoRoot, relativePath);
+  fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+  fs.writeFileSync(fullPath, text, 'utf8');
 }
 
 function panelById(audit, panelId) {

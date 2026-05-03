@@ -84,6 +84,14 @@ function buildPanelFreshness({ entry, repoRoot, now }) {
   }
 
   const reportTime = readReportTime(latestReport.fullPath);
+  if (reportTime.unreadable) {
+    return {
+      ...base,
+      latestReportPath: latestReport.relativePath,
+      freshnessStatus: 'unknown',
+      freshnessReason: 'Acceptance report JSON is unreadable or invalid.',
+    };
+  }
   if (!reportTime.generatedAt) {
     return {
       ...base,
@@ -191,8 +199,11 @@ function compareReportCandidates(left, right) {
 }
 
 function readReportTime(fullPath) {
-  const payload = readJsonIfPossible(fullPath);
-  const generatedAt = parseDate(payload?.generatedAt);
+  const report = readJsonReport(fullPath);
+  if (!report.readable) {
+    return { generatedAt: null, source: null, unreadable: true };
+  }
+  const generatedAt = parseDate(report.payload?.generatedAt);
   if (generatedAt) {
     return { generatedAt, source: 'generatedAt' };
   }
@@ -200,11 +211,14 @@ function readReportTime(fullPath) {
   return { generatedAt: new Date(stat.mtimeMs), source: 'mtime' };
 }
 
-function readJsonIfPossible(fullPath) {
+function readJsonReport(fullPath) {
   try {
-    return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+    return {
+      readable: true,
+      payload: JSON.parse(fs.readFileSync(fullPath, 'utf8')),
+    };
   } catch {
-    return null;
+    return { readable: false, payload: null };
   }
 }
 
