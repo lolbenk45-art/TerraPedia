@@ -2,6 +2,7 @@ package com.terraria.skills.controller;
 
 import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.dto.RelationCompatibilityStatusDTO;
+import com.terraria.skills.dto.RelationHealthStatusDTO;
 import com.terraria.skills.service.RelationCompatibilityService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -24,5 +25,11 @@ public class AdminRelationCompatibilityController {
     @Operation(summary = "Get relation compatibility readiness")
     public ApiResponse<RelationCompatibilityStatusDTO> getCompatibility() {
         return ApiResponse.success(relationCompatibilityService.getStatus());
+    }
+
+    @GetMapping("/health")
+    @Operation(summary = "Get latest relation health report status")
+    public ApiResponse<RelationHealthStatusDTO> getHealth() {
+        return ApiResponse.success(relationCompatibilityService.getHealth());
     }
 }

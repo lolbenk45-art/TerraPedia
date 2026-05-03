@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.terraria.skills.dto.RelationCompatibilityDomainStatusDTO;
 import com.terraria.skills.dto.RelationCompatibilityStatusDTO;
+import com.terraria.skills.dto.RelationHealthStatusDTO;
 import com.terraria.skills.service.RelationCompatibilityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -78,5 +79,42 @@ class AdminRelationCompatibilityControllerTest {
             .andExpect(jsonPath("$.data.domains.items.localRows").value(6146));
 
         verify(relationCompatibilityService).getStatus();
+    }
+
+    @Test
+    void shouldReturnRelationHealthStatus() throws Exception {
+        RelationHealthStatusDTO.SummaryDTO summary = new RelationHealthStatusDTO.SummaryDTO();
+        summary.setStatus("warning");
+        summary.setBlockingCount(0);
+        summary.setWarningCount(1);
+
+        RelationHealthStatusDTO.CheckDTO check = new RelationHealthStatusDTO.CheckDTO();
+        check.setId("unresolved_item_npc_relation_audits");
+        check.setStatus("warn");
+        check.setMessage("count is 2602");
+        check.setReportPath("reports/relation/relation-unresolved-2026-04-30.json");
+
+        RelationHealthStatusDTO health = new RelationHealthStatusDTO();
+        health.setGeneratedAt(Instant.parse("2026-04-30T11:52:13.904Z"));
+        health.setFound(true);
+        health.setReadable(true);
+        health.setReportPath("reports/relation/relation-health-2026-04-30.json");
+        health.setSummary(summary);
+        health.setChecks(List.of(check));
+
+        when(relationCompatibilityService.getHealth()).thenReturn(health);
+
+        mockMvc.perform(get("/admin/relation/health"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.summary.status").value("warning"))
+            .andExpect(jsonPath("$.data.summary.blockingCount").value(0))
+            .andExpect(jsonPath("$.data.summary.warningCount").value(1))
+            .andExpect(jsonPath("$.data.checks[0].id").value("unresolved_item_npc_relation_audits"))
+            .andExpect(jsonPath("$.data.checks[0].status").value("warn"))
+            .andExpect(jsonPath("$.data.checks[0].message").value("count is 2602"))
+            .andExpect(jsonPath("$.data.checks[0].reportPath").value("reports/relation/relation-unresolved-2026-04-30.json"));
+
+        verify(relationCompatibilityService).getHealth();
     }
 }
