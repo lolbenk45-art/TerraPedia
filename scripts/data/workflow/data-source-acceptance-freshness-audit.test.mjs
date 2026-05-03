@@ -35,6 +35,13 @@ test('buildDataSourceAcceptanceFreshnessAudit reports fresh stale missing and ex
   });
 
   assert.equal(audit.generatedAt, '2026-05-03T12:00:00Z');
+  assert.equal(audit.overallStatus, 'warning');
+  assert.deepEqual(audit.blockingReasons, []);
+  assert.deepEqual(audit.warningReasons, [
+    'replacementReadiness evidence is stale',
+    'imageReadiness evidence is missing',
+    'crawlerMonitor evidence is unknown',
+  ]);
   assert.deepEqual(audit.summary, {
     panelCount: 4,
     freshCount: 1,
@@ -96,6 +103,28 @@ test('classifyCommandRisk is conservative about mutation commands', () => {
   assert.equal(classifyCommandRisk('node scripts/data/import/import-standardized-to-db.mjs'), 'unsafe');
   assert.equal(classifyCommandRisk('node scripts/data/workflow/run-wiki-sync.mjs --mode=apply'), 'unsafe');
   assert.equal(classifyCommandRisk('rm -rf reports'), 'unsafe');
+});
+
+test('buildDataSourceAcceptanceFreshnessAudit blocks when a manifest command is unsafe', () => {
+  const audit = buildDataSourceAcceptanceFreshnessAudit({
+    repoRoot: createTempRepo(),
+    generatedAt: '2026-05-03T12:00:00Z',
+    manifest: [
+      {
+        panelId: 'unsafePanel',
+        reportPattern: 'reports/unsafe*.json',
+        generatorCommand: 'node scripts/data/import/import-standardized-to-db.mjs',
+        writesDatabase: false,
+        requiresDatabase: true,
+        freshnessSource: 'report-generatedAt-or-mtime',
+        staleAfterHours: 24,
+      },
+    ],
+  });
+
+  assert.equal(audit.overallStatus, 'blocked');
+  assert.deepEqual(audit.blockingReasons, ['unsafePanel generator command is unsafe']);
+  assert.deepEqual(audit.warningReasons, ['unsafePanel evidence is missing']);
 });
 
 test('CLI prints legal JSON without executing evidence commands', async () => {

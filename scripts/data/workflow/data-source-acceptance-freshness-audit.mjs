@@ -29,9 +29,13 @@ export function buildDataSourceAcceptanceFreshnessAudit({
   const root = path.resolve(repoRoot);
   const now = parseDate(generatedAt) ?? new Date();
   const panels = manifest.map((entry) => buildPanelFreshness({ entry, repoRoot: root, now }));
+  const gate = summarizeGate(panels);
   return {
     generatedAt,
+    overallStatus: gate.overallStatus,
     summary: summarizePanels(panels),
+    blockingReasons: gate.blockingReasons,
+    warningReasons: gate.warningReasons,
     panels,
   };
 }
@@ -115,6 +119,20 @@ function summarizePanels(panels) {
     unknownCount: panels.filter((panel) => panel.freshnessStatus === 'unknown').length,
     databaseRequiredCount: panels.filter((panel) => panel.requiresDatabase === true).length,
     unsafeCommandCount: panels.filter((panel) => panel.commandRisk === 'unsafe').length,
+  };
+}
+
+function summarizeGate(panels) {
+  const blockingReasons = panels
+    .filter((panel) => panel.commandRisk === 'unsafe')
+    .map((panel) => `${panel.panelId} generator command is unsafe`);
+  const warningReasons = panels
+    .filter((panel) => ['missing', 'stale', 'unknown'].includes(panel.freshnessStatus))
+    .map((panel) => `${panel.panelId} evidence is ${panel.freshnessStatus}`);
+  return {
+    overallStatus: blockingReasons.length > 0 ? 'blocked' : warningReasons.length > 0 ? 'warning' : 'pass',
+    blockingReasons,
+    warningReasons,
   };
 }
 
