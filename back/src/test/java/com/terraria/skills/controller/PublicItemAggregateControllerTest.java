@@ -16,11 +16,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -152,12 +152,17 @@ class PublicItemAggregateControllerTest {
     }
 
     @Test
-    void shouldPreserveSourceNpcsJsonOnAggregateItem() throws Exception {
-        String sourceNpcsJson = "[{\"npcId\":22,\"internalName\":\"Guide\",\"note\":\"exact raw\"}]";
+    void shouldHideRawSourceNpcsJsonOnAggregateItem() throws Exception {
+        String sourceNpcsJson = "[{\"npcId\":22,\"internalName\":\"Guide\",\"npcImageUrl\":\"https://terraria.wiki.gg/images/Guide.png\"}]";
         ItemDTO item = new ItemDTO();
         item.setId(1L);
         item.setName("Guide Voodoo Doll");
-        ReflectionTestUtils.setField(item, "sourceNpcsJson", sourceNpcsJson);
+        item.setSourceNpcsJson(sourceNpcsJson);
+        item.setSourceNpcs(List.of(Map.of(
+            "npcId", 22,
+            "internalName", "Guide",
+            "sourcePage", "https://terraria.wiki.gg/wiki/Guide"
+        )));
 
         ItemAggregateDTO aggregate = new ItemAggregateDTO();
         aggregate.setItem(item);
@@ -167,7 +172,10 @@ class PublicItemAggregateControllerTest {
         mockMvc.perform(get("/public/items/1/aggregate")
                 .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.item.sourceNpcsJson").value(sourceNpcsJson));
+            .andExpect(jsonPath("$.data.item.sourceNpcsJson").doesNotExist())
+            .andExpect(jsonPath("$.data.item.sourceNpcs[0].npcId").value(22))
+            .andExpect(jsonPath("$.data.item.sourceNpcs[0].internalName").value("Guide"))
+            .andExpect(jsonPath("$.data.item.sourceNpcs[0].npcImageUrl").doesNotExist());
 
         verify(publicItemAggregateService).getItemAggregate(1L, "images,sources,recipes");
     }

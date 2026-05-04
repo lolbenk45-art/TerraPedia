@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -64,7 +65,7 @@ class WikiImageSyncServiceImplTest {
 
     @Test
     void shouldMirrorLegacyWikiItemImageIntoItemImagesWithoutOverwritingItemsImage() throws Exception {
-        String sourceUrl = startImageServer("/terraria.wiki.gg/images/Sharp_Blade.png");
+        String sourceUrl = startImageServer("/images/Sharp_Blade.png");
         Item item = legacyItem(sourceUrl);
         when(itemImageMapper.selectList(any())).thenReturn(List.of());
         when(itemMapper.selectList(any())).thenReturn(List.of(item));
@@ -94,7 +95,7 @@ class WikiImageSyncServiceImplTest {
 
     @Test
     void shouldSkipLegacyItemImageWhenMatchingItemImageAlreadyHasManagedCache() throws Exception {
-        String sourceUrl = startImageServer("/terraria.wiki.gg/images/Sharp_Blade.png");
+        String sourceUrl = startImageServer("/images/Sharp_Blade.png");
         Item item = legacyItem(sourceUrl);
 
         ItemImage existing = new ItemImage();
@@ -120,7 +121,7 @@ class WikiImageSyncServiceImplTest {
 
     @Test
     void shouldPreserveWikiFallbackWhenExistingItemImageUsesWikiCachedUrl() throws Exception {
-        String sourceUrl = startImageServer("/terraria.wiki.gg/images/Sharp_Blade.png");
+        String sourceUrl = startImageServer("/images/Sharp_Blade.png");
 
         ItemImage existing = new ItemImage();
         existing.setId(11L);
@@ -149,7 +150,7 @@ class WikiImageSyncServiceImplTest {
 
     @Test
     void shouldSyncLegacyWikiProviderAliasRows() throws Exception {
-        String sourceUrl = startImageServer("/terraria.wiki.gg/images/Sharp_Blade.png");
+        String sourceUrl = startImageServer("/images/Sharp_Blade.png");
 
         ItemImage existing = new ItemImage();
         existing.setId(11L);
@@ -178,7 +179,7 @@ class WikiImageSyncServiceImplTest {
 
     @Test
     void shouldBackfillWikiFallbackForManagedLegacyItemImageWithoutReuploading() throws Exception {
-        String sourceUrl = startImageServer("/terraria.wiki.gg/images/Sharp_Blade.png");
+        String sourceUrl = startImageServer("/images/Sharp_Blade.png");
         Item item = legacyItem(sourceUrl);
 
         ItemImage existing = new ItemImage();
@@ -213,7 +214,7 @@ class WikiImageSyncServiceImplTest {
 
     @Test
     void shouldBackfillWikiFallbackForManagedLegacyProviderAliasWithoutReuploading() throws Exception {
-        String sourceUrl = startImageServer("/terraria.wiki.gg/images/Sharp_Blade.png");
+        String sourceUrl = startImageServer("/images/Sharp_Blade.png");
         Item item = legacyItem(sourceUrl);
 
         ItemImage existing = new ItemImage();
@@ -249,8 +250,8 @@ class WikiImageSyncServiceImplTest {
 
     @Test
     void shouldMirrorBuffWikiImageWithoutOverwritingWikiFallback() throws Exception {
-        String fetchUrl = startImageServer("/terraria.wiki.gg/images/Mana_Regeneration.png");
-        String sourceUrl = fetchUrl.replace("Mana_Regeneration.png", "Mana%20Regeneration.png");
+        String sourceUrl = startImageServer("/images/Mana_Regeneration.png");
+        String fetchUrl = sourceUrl;
         Buff buff = new Buff();
         buff.setId(6L);
         buff.setInternalName("ManaRegeneration");
@@ -278,25 +279,108 @@ class WikiImageSyncServiceImplTest {
         assertTrue(readString(updated, "getImageCachedUrl").startsWith("http://localhost:9000/terrapedia-images/items/wiki/buffs/"));
     }
 
+    @Test
+    void shouldMirrorStaticWikiaItemImageThroughSharedLocalizationService() throws Exception {
+        String sourceUrl = "https://static.wikia.nocookie.net/terraria_gamepedia/images/2/20/Sharp_Blade.png";
+
+        ItemImage existing = new ItemImage();
+        existing.setId(11L);
+        existing.setItemId(7L);
+        existing.setOriginalUrl(sourceUrl);
+        existing.setCachedUrl(sourceUrl);
+        existing.setProvider("wiki_gg");
+        existing.setStatus(1);
+
+        when(itemImageMapper.selectList(any())).thenReturn(List.of(existing));
+        when(itemMapper.selectList(any())).thenReturn(List.of());
+
+        AdminWikiImageSyncResultDTO result = service(new RecordingWikiImageLocalizationService(sourceUrl))
+            .syncWikiImages(itemImagesOnlyRequest());
+
+        assertEquals(1, result.getItemImages().getSyncedCount());
+
+        ArgumentCaptor<ItemImage> imageCaptor = ArgumentCaptor.forClass(ItemImage.class);
+        verify(itemImageMapper).updateById(imageCaptor.capture());
+        ItemImage updated = imageCaptor.getValue();
+        assertEquals(sourceUrl, updated.getOriginalUrl());
+        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/item-images/shared.png", updated.getCachedUrl());
+        assertEquals("image/png", updated.getContentType());
+    }
+
+    @Test
+    void shouldMirrorWikiFilePageUrlThroughSharedLocalizationService() throws Exception {
+        String sourceUrl = "https://terraria.wiki.gg/wiki/File:Sharp_Blade.png";
+
+        ItemImage existing = new ItemImage();
+        existing.setId(11L);
+        existing.setItemId(7L);
+        existing.setOriginalUrl(sourceUrl);
+        existing.setCachedUrl(sourceUrl);
+        existing.setProvider("wiki_gg");
+        existing.setStatus(1);
+
+        when(itemImageMapper.selectList(any())).thenReturn(List.of(existing));
+        when(itemMapper.selectList(any())).thenReturn(List.of());
+
+        AdminWikiImageSyncResultDTO result = service(new RecordingWikiImageLocalizationService(sourceUrl))
+            .syncWikiImages(itemImagesOnlyRequest());
+
+        assertEquals(1, result.getItemImages().getSyncedCount());
+
+        ArgumentCaptor<ItemImage> imageCaptor = ArgumentCaptor.forClass(ItemImage.class);
+        verify(itemImageMapper).updateById(imageCaptor.capture());
+        ItemImage updated = imageCaptor.getValue();
+        assertEquals(sourceUrl, updated.getOriginalUrl());
+        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/item-images/shared.png", updated.getCachedUrl());
+        assertEquals("image/png", updated.getContentType());
+    }
+
+    @Test
+    void shouldRejectHostileWikiGgLookalikeUrlsThroughSharedLocalizationService() throws Exception {
+        String sourceUrl = "https://terraria.wiki.gg/wiki/Sharp_Blade";
+        Item item = legacyItem(sourceUrl);
+        when(itemImageMapper.selectList(any())).thenReturn(List.of());
+        when(itemMapper.selectList(any())).thenReturn(List.of(item));
+
+        AdminWikiImageSyncResultDTO result = service().syncWikiImages(itemImagesOnlyRequest());
+
+        assertEquals(0, result.getItemImages().getCandidateCount());
+        assertEquals(0, result.getItemImages().getSyncedCount());
+        verify(minioClient, never()).putObject(any(PutObjectArgs.class));
+        verify(itemImageMapper, never()).insert(any(ItemImage.class));
+    }
+
     private WikiImageSyncServiceImpl service() {
+        return service(new MinioWikiImageLocalizationServiceImpl(
+            minioClient,
+            minioConnectionDetails(),
+            Set.of("127.0.0.1")
+        ));
+    }
+
+    private WikiImageSyncServiceImpl service(com.terraria.skills.service.WikiImageLocalizationService localizationService) {
         return new WikiImageSyncServiceImpl(
             itemImageMapper,
             itemMapper,
             buffMapper,
             biomeMapper,
-            minioClient,
-            new MinioConnectionDetails(
-                "http://localhost:9000",
-                "http://localhost:9000",
-                "minio",
-                "minio123",
-                "terrapedia-images",
-                "items",
-                true,
-                true,
-                true,
-                1024 * 1024
-            )
+            minioConnectionDetails(),
+            localizationService
+        );
+    }
+
+    private MinioConnectionDetails minioConnectionDetails() {
+        return new MinioConnectionDetails(
+            "http://localhost:9000",
+            "http://localhost:9000",
+            "minio",
+            "minio123",
+            "terrapedia-images",
+            "items",
+            true,
+            true,
+            true,
+            1024 * 1024
         );
     }
 
@@ -343,6 +427,39 @@ class WikiImageSyncServiceImplTest {
         exchange.sendResponseHeaders(200, imageBytes.length);
         try (OutputStream outputStream = exchange.getResponseBody()) {
             outputStream.write(imageBytes);
+        }
+    }
+
+    private static class RecordingWikiImageLocalizationService implements com.terraria.skills.service.WikiImageLocalizationService {
+
+        private final String acceptedUrl;
+
+        RecordingWikiImageLocalizationService(String acceptedUrl) {
+            this.acceptedUrl = acceptedUrl;
+        }
+
+        @Override
+        public boolean isWikiImageUrl(String value) {
+            return acceptedUrl.equals(value);
+        }
+
+        @Override
+        public boolean isManagedImageUrl(String value) {
+            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/");
+        }
+
+        @Override
+        public String localizeImageUrlOrFallback(String sourceUrl, String context) {
+            return sourceUrl;
+        }
+
+        @Override
+        public com.terraria.skills.dto.FileUploadResultDTO mirrorWikiImage(String sourceUrl, String pathPrefix, String stableId) {
+            com.terraria.skills.dto.FileUploadResultDTO result = new com.terraria.skills.dto.FileUploadResultDTO();
+            result.setSourceUrl(sourceUrl);
+            result.setUrl("http://localhost:9000/terrapedia-images/items/wiki/item-images/shared.png");
+            result.setContentType("image/png");
+            return result;
         }
     }
 }

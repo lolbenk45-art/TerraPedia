@@ -2,6 +2,8 @@ package com.terraria.skills.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.common.PageQuery;
 import com.terraria.skills.dto.CategoryDTO;
 import com.terraria.skills.dto.ItemDTO;
@@ -43,23 +45,36 @@ public class ItemServiceImpl implements ItemService {
     private final ItemMapper itemMapper;
     private final ItemCategoryRelMapper itemCategoryRelMapper;
     private final CategoryManagementService categoryManagementService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     @Cacheable(cacheNames = "item:list", key = "#root.target.buildListCacheKey(#pageQuery)", unless = "#result == null")
     public Page<ItemDTO> getItems(PageQuery pageQuery) {
-        Page<ItemDTO> mpPage = new Page<>(pageQuery.getPage(), pageQuery.getLimit());
+        String normalizedSearch = trimToEmpty(pageQuery.getSearch());
         Long rarityId = mapRarityToId(pageQuery.getRarity());
         List<Long> categoryIds = resolveCategoryIds(pageQuery.getCategoryId());
-        Page<ItemDTO> itemPage = itemMapper.selectItemsWithSearch(
-            mpPage,
-            pageQuery.getSearch(),
+        long total = itemMapper.countItemsWithSearch(
+            normalizedSearch,
+            pageQuery.getCategoryId(),
+            categoryIds,
+            rarityId,
+            pageQuery.getGamePeriodId()
+        );
+        long offset = Math.max(pageQuery.getPage() - 1L, 0L) * Math.max(pageQuery.getLimit(), 1);
+        List<ItemDTO> records = itemMapper.selectItemsWithSearch(
+            normalizedSearch,
             pageQuery.getCategoryId(),
             categoryIds,
             rarityId,
             pageQuery.getGamePeriodId(),
             normalizeSortBy(pageQuery.getSortBy()),
-            normalizeSortDirection(pageQuery.getSortDirection())
+            normalizeSortDirection(pageQuery.getSortDirection()),
+            Math.max(pageQuery.getLimit(), 1),
+            offset
         );
+        Page<ItemDTO> itemPage = new Page<>(pageQuery.getPage(), pageQuery.getLimit(), total);
+        itemPage.setRecords(records);
+        itemPage.setTotal(total);
         itemPage.getRecords().forEach(this::normalizeItemDTO);
         applyCategoryPaths(itemPage.getRecords());
         return itemPage;
@@ -199,6 +214,41 @@ public class ItemServiceImpl implements ItemService {
             dto.setRarity(mapRarityFromId(dto.getRarityId()));
         }
         dto.setRelatedCategoryIds(parseCategoryIds(dto.getCategoryId(), dto.getRelatedCategoryIdsRaw()));
+        dto.setSourceNpcs(sanitizeSourceNpcSummaries(dto.getSourceNpcsJson()));
+    }
+
+    private List<Map<String, Object>> sanitizeSourceNpcSummaries(String sourceNpcsJson) {
+        if (sourceNpcsJson == null || sourceNpcsJson.isBlank()) {
+            return null;
+        }
+        try {
+            List<Map<String, Object>> rows = objectMapper.readValue(sourceNpcsJson, new TypeReference<>() {});
+            List<Map<String, Object>> sanitizedRows = new ArrayList<>();
+            for (Map<String, Object> row : rows) {
+                Map<String, Object> sanitized = new HashMap<>();
+                for (Map.Entry<String, Object> entry : row.entrySet()) {
+                    if (isImageUrlField(entry.getKey())) {
+                        continue;
+                    }
+                    sanitized.put(entry.getKey(), entry.getValue());
+                }
+                sanitizedRows.add(sanitized);
+            }
+            return sanitizedRows;
+        } catch (Exception exception) {
+            log.warn("Failed to parse item sourceNpcsJson for response sourceNpcs", exception);
+            return Collections.emptyList();
+        }
+    }
+
+    private boolean isImageUrlField(String fieldName) {
+        if (fieldName == null) {
+            return false;
+        }
+        String normalized = fieldName.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
+        return normalized.contains("image")
+            || normalized.endsWith("iconurl")
+            || normalized.endsWith("thumbnailurl");
     }
 
     private void applyCategoryPaths(List<ItemDTO> items) {

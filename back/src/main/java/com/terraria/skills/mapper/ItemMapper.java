@@ -13,15 +13,24 @@ import java.util.List;
 @Mapper
 public interface ItemMapper extends BaseMapper<Item> {
 
-    Page<ItemDTO> selectItemsWithSearch(
-        Page<ItemDTO> page,
+    List<ItemDTO> selectItemsWithSearch(
         @Param("search") String search,
         @Param("categoryId") Long categoryId,
         @Param("categoryIds") List<Long> categoryIds,
         @Param("rarityId") Long rarityId,
         @Param("gamePeriodId") Long gamePeriodId,
         @Param("sortBy") String sortBy,
-        @Param("sortDirection") String sortDirection
+        @Param("sortDirection") String sortDirection,
+        @Param("limit") long limit,
+        @Param("offset") long offset
+    );
+
+    long countItemsWithSearch(
+        @Param("search") String search,
+        @Param("categoryId") Long categoryId,
+        @Param("categoryIds") List<Long> categoryIds,
+        @Param("rarityId") Long rarityId,
+        @Param("gamePeriodId") Long gamePeriodId
     );
 
     List<CategoryItemCountDTO> countItemsByCategoryIds(@Param("categoryIds") List<Long> categoryIds);

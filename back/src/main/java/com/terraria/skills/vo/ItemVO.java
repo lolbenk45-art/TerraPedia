@@ -1,11 +1,13 @@
 package com.terraria.skills.vo;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -27,7 +29,10 @@ public class ItemVO implements Serializable {
     private Long gameModelId;
     private Boolean isStackable;
     private Integer stackSize;
+
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String sourceNpcsJson;
+    private List<Map<String, Object>> sourceNpcs;
     private Integer status;
     private String category;
     private String rare;

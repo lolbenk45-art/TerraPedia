@@ -15,6 +15,9 @@ public class Pagination implements Serializable {
     private int size;
     private int totalPages;
 
+    public Pagination() {
+    }
+
     public Pagination(long total, int page, int limit) {
         this.total = total;
         this.page = page;

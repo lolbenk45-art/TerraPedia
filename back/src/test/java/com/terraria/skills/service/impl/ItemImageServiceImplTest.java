@@ -191,6 +191,7 @@ class ItemImageServiceImplTest {
 
         assertEquals(1, images.size());
         assertEquals("https://terraria.wiki.gg/images/Work_Bench.png", images.get(0).getImageUrl());
+        assertEquals("https://terraria.wiki.gg/images/Work_Bench.png", images.get(0).getOriginalUrl());
     }
 
     @Test
@@ -209,5 +210,6 @@ class ItemImageServiceImplTest {
 
         assertEquals(1, images.size());
         assertEquals("https://terraria.wiki.gg/images/Living_Demon_Fire_Block.png", images.get(0).getImageUrl());
+        assertEquals("https://terraria.wiki.gg/images/Living_Demon_Fire_Block.png", images.get(0).getOriginalUrl());
     }
 }

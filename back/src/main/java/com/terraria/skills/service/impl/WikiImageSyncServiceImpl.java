@@ -1,8 +1,6 @@
 package com.terraria.skills.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.config.MinioConnectionDetails;
 import com.terraria.skills.dto.AdminWikiImageSyncRequestDTO;
 import com.terraria.skills.dto.AdminWikiImageSyncResultDTO;
@@ -16,26 +14,15 @@ import com.terraria.skills.mapper.BiomeMapper;
 import com.terraria.skills.mapper.BuffMapper;
 import com.terraria.skills.mapper.ItemImageMapper;
 import com.terraria.skills.mapper.ItemMapper;
+import com.terraria.skills.service.WikiImageLocalizationService;
 import com.terraria.skills.service.WikiImageSyncService;
-import io.minio.BucketExistsArgs;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
-import io.minio.SetBucketPolicyArgs;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -47,8 +34,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Service
@@ -62,15 +47,8 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
     private final ItemMapper itemMapper;
     private final BuffMapper buffMapper;
     private final BiomeMapper biomeMapper;
-    private final MinioClient minioClient;
     private final MinioConnectionDetails connectionDetails;
-    private final AtomicBoolean bucketReady = new AtomicBoolean(false);
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    private final Map<String, String> wikiFileUrlCache = new ConcurrentHashMap<>();
-    private final HttpClient httpClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(15))
-        .followRedirects(HttpClient.Redirect.NORMAL)
-        .build();
+    private final WikiImageLocalizationService wikiImageLocalizationService;
 
     @Override
     public AdminWikiImageSyncResultDTO syncWikiImages(AdminWikiImageSyncRequestDTO request) {
@@ -186,7 +164,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
 
         for (Item item : items) {
             String sourceUrl = normalizeFetchUrl(item.getImage());
-            if (!StringUtils.hasText(sourceUrl) || isManagedUrl(item.getImage())) {
+            if (!shouldConsiderWikiSource(sourceUrl, item.getImage()) || isManagedUrl(item.getImage())) {
                 continue;
             }
             if (limitReached(scope, limit)) {
@@ -424,163 +402,12 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
             return cached;
         }
 
-        FetchedWikiImage fetchedImage = fetchImageWithWikiFileFallback(sourceUrl);
-        HttpResponse<byte[]> response = fetchedImage.response();
-        if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IllegalStateException("Unexpected HTTP status " + response.statusCode());
-        }
-
-        String effectiveSourceUrl = fetchedImage.sourceUrl();
-        String originalFilename = extractFilename(effectiveSourceUrl);
-        byte[] body = response.body();
-        String contentType = normalizeContentType(response.headers().firstValue("content-type").orElse(null));
-        if (!StringUtils.hasText(contentType)) {
-            contentType = inferContentType(originalFilename);
-        }
-        validateImageContentType(contentType);
-        validateImageSize(body.length);
-
-        String objectKey = buildScopedObjectKey(pathPrefix, stableId, originalFilename, contentType);
-        FileUploadResultDTO upload = uploadBytes(objectKey, originalFilename, contentType, body);
-        upload.setSourceUrl(effectiveSourceUrl);
+        FileUploadResultDTO upload = wikiImageLocalizationService.mirrorWikiImage(sourceUrl, pathPrefix, stableId);
         uploadCache.put(sourceUrl, upload);
-        uploadCache.put(effectiveSourceUrl, upload);
+        if (StringUtils.hasText(upload.getSourceUrl())) {
+            uploadCache.put(upload.getSourceUrl(), upload);
+        }
         return upload;
-    }
-
-    private FetchedWikiImage fetchImageWithWikiFileFallback(String sourceUrl) throws IOException, InterruptedException {
-        HttpResponse<byte[]> response = fetchImage(sourceUrl);
-        if (response.statusCode() >= 200 && response.statusCode() < 300) {
-            return new FetchedWikiImage(sourceUrl, response);
-        }
-
-        String resolvedUrl = resolveWikiFileImageUrl(sourceUrl);
-        if (!StringUtils.hasText(resolvedUrl) || Objects.equals(normalizeFetchUrl(resolvedUrl), normalizeFetchUrl(sourceUrl))) {
-            return new FetchedWikiImage(sourceUrl, response);
-        }
-
-        String normalizedResolvedUrl = normalizeFetchUrl(resolvedUrl);
-        HttpResponse<byte[]> resolvedResponse = fetchImage(normalizedResolvedUrl);
-        return new FetchedWikiImage(normalizedResolvedUrl, resolvedResponse);
-    }
-
-    private String resolveWikiFileImageUrl(String sourceUrl) {
-        String normalized = normalizeFetchUrl(sourceUrl);
-        if (!isWikiUrl(normalized)) {
-            return null;
-        }
-        return wikiFileUrlCache.computeIfAbsent(normalized, this::loadWikiFileImageUrl);
-    }
-
-    private String loadWikiFileImageUrl(String sourceUrl) {
-        String fileTitle = extractWikiFileTitle(sourceUrl);
-        if (!StringUtils.hasText(fileTitle)) {
-            return null;
-        }
-        try {
-            String encodedTitle = URLEncoder.encode("File:" + fileTitle, StandardCharsets.UTF_8).replace("+", "%20");
-            URI uri = URI.create("https://terraria.wiki.gg/api.php?action=query&redirects=1&prop=imageinfo&iiprop=url%7Cmime&format=json&titles=" + encodedTitle);
-            HttpRequest request = HttpRequest.newBuilder(uri)
-                .GET()
-                .timeout(Duration.ofSeconds(20))
-                .header("User-Agent", "TerraPediaBot/1.0 (+https://local.terrapedia)")
-                .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                return null;
-            }
-            JsonNode pages = objectMapper.readTree(response.body()).path("query").path("pages");
-            if (!pages.isObject()) {
-                return null;
-            }
-            for (JsonNode page : pages) {
-                JsonNode imageInfo = page.path("imageinfo");
-                if (imageInfo.isArray() && imageInfo.size() > 0) {
-                    String url = trimToNull(imageInfo.get(0).path("url").asText(null));
-                    if (isWikiUrl(url)) {
-                        return normalizeFetchUrl(url);
-                    }
-                }
-            }
-            return null;
-        } catch (Exception exception) {
-            log.debug("Failed to resolve wiki file image url for {}", sourceUrl, exception);
-            return null;
-        }
-    }
-
-    private String extractWikiFileTitle(String sourceUrl) {
-        String normalized = trimToNull(sourceUrl);
-        if (normalized == null) {
-            return null;
-        }
-        int markerIndex = normalized.toLowerCase(Locale.ROOT).indexOf("/images/");
-        if (markerIndex < 0) {
-            return null;
-        }
-        String pathPart = normalized.substring(markerIndex + "/images/".length());
-        int queryIndex = pathPart.indexOf('?');
-        if (queryIndex >= 0) {
-            pathPart = pathPart.substring(0, queryIndex);
-        }
-        int slashIndex = pathPart.lastIndexOf('/');
-        if (slashIndex >= 0) {
-            pathPart = pathPart.substring(slashIndex + 1);
-        }
-        if (!StringUtils.hasText(pathPart)) {
-            return null;
-        }
-        return URLDecoder.decode(pathPart, StandardCharsets.UTF_8).replace('_', ' ');
-    }
-
-    private HttpResponse<byte[]> fetchImage(String sourceUrl) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder(URI.create(sourceUrl))
-            .GET()
-            .timeout(Duration.ofSeconds(30))
-            .header("User-Agent", "TerraPediaBot/1.0 (+https://local.terrapedia)")
-            .build();
-        return httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
-    }
-
-    private record FetchedWikiImage(String sourceUrl, HttpResponse<byte[]> response) {
-    }
-
-    private FileUploadResultDTO uploadBytes(String objectKey, String originalFilename, String contentType, byte[] body) {
-        ensureBucketReady();
-
-        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(body)) {
-            minioClient.putObject(
-                PutObjectArgs.builder()
-                    .bucket(connectionDetails.bucket())
-                    .object(objectKey)
-                    .stream(inputStream, body.length, -1)
-                    .contentType(contentType)
-                    .build()
-            );
-        } catch (Exception exception) {
-            throw new IllegalStateException("Failed to upload image to MinIO: " + exception.getMessage(), exception);
-        }
-
-        FileUploadResultDTO result = new FileUploadResultDTO();
-        result.setBucket(connectionDetails.bucket());
-        result.setObjectKey(objectKey);
-        result.setUrl(buildPublicObjectUrl(objectKey));
-        result.setOriginalFilename(originalFilename);
-        result.setContentType(contentType);
-        result.setSize(body.length);
-        return result;
-    }
-
-    private void validateImageContentType(String contentType) {
-        if (!StringUtils.hasText(contentType) || !contentType.toLowerCase(Locale.ROOT).startsWith("image/")) {
-            throw new IllegalArgumentException("Only image files are supported");
-        }
-    }
-
-    private void validateImageSize(long size) {
-        if (size > connectionDetails.maxFileSize()) {
-            throw new IllegalArgumentException("Image file is too large. Current limit: " + (connectionDetails.maxFileSize() / 1024 / 1024) + " MB");
-        }
     }
 
     private boolean shouldConsiderWikiSource(String sourceUrl, String currentValue) {
@@ -588,17 +415,11 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
     }
 
     private boolean isWikiUrl(String value) {
-        String normalized = trimToNull(value);
-        if (normalized == null) {
-            return false;
-        }
-        String lowerCase = normalized.toLowerCase(Locale.ROOT);
-        return (lowerCase.startsWith("http://") || lowerCase.startsWith("https://")) && lowerCase.contains("wiki.gg");
+        return wikiImageLocalizationService.isWikiImageUrl(value);
     }
 
     private boolean isManagedUrl(String value) {
-        String normalized = trimToNull(value);
-        return normalized != null && normalized.startsWith(getManagedUrlPrefix());
+        return wikiImageLocalizationService.isManagedImageUrl(value);
     }
 
     private String resolveSourceUrl(String originalUrl, String cachedUrl) {
@@ -681,134 +502,9 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
         return "image";
     }
 
-    private String extractFilename(String sourceUrl) {
-        String path = URI.create(sourceUrl).getPath();
-        if (!StringUtils.hasText(path)) {
-            return "image";
-        }
-        int index = path.lastIndexOf('/');
-        if (index < 0 || index == path.length() - 1) {
-            return "image";
-        }
-        return path.substring(index + 1);
-    }
-
     private String trimErrorMessage(Exception exception) {
         String message = exception.getMessage();
         return message == null || message.isBlank() ? exception.getClass().getSimpleName() : message;
-    }
-
-    private String normalizeContentType(String contentType) {
-        String value = trimToNull(contentType);
-        if (value == null) {
-            return null;
-        }
-        int separatorIndex = value.indexOf(';');
-        String normalized = separatorIndex >= 0 ? value.substring(0, separatorIndex) : value;
-        return normalized.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private String inferContentType(String originalFilename) {
-        if (!StringUtils.hasText(originalFilename) || !originalFilename.contains(".")) {
-            return null;
-        }
-        String extension = originalFilename.substring(originalFilename.lastIndexOf('.')).toLowerCase(Locale.ROOT);
-        return switch (extension) {
-            case ".jpg", ".jpeg" -> "image/jpeg";
-            case ".png" -> "image/png";
-            case ".webp" -> "image/webp";
-            case ".gif" -> "image/gif";
-            case ".svg" -> "image/svg+xml";
-            case ".ico" -> "image/x-icon";
-            case ".bmp" -> "image/bmp";
-            case ".avif" -> "image/avif";
-            default -> null;
-        };
-    }
-
-    private void ensureBucketReady() {
-        if (bucketReady.get()) {
-            return;
-        }
-
-        synchronized (bucketReady) {
-            if (bucketReady.get()) {
-                return;
-            }
-
-            try {
-                boolean exists = minioClient.bucketExists(
-                    BucketExistsArgs.builder().bucket(connectionDetails.bucket()).build()
-                );
-                if (!exists) {
-                    minioClient.makeBucket(
-                        MakeBucketArgs.builder().bucket(connectionDetails.bucket()).build()
-                    );
-                }
-
-                if (connectionDetails.publicRead()) {
-                    minioClient.setBucketPolicy(
-                        SetBucketPolicyArgs.builder()
-                            .bucket(connectionDetails.bucket())
-                            .config(buildPublicReadPolicy(connectionDetails.bucket()))
-                            .build()
-                    );
-                }
-
-                bucketReady.set(true);
-            } catch (Exception exception) {
-                throw new IllegalStateException("Failed to initialize MinIO bucket: " + exception.getMessage(), exception);
-            }
-        }
-    }
-
-    private String buildScopedObjectKey(String pathPrefix, String stableId, String originalFilename, String contentType) {
-        String prefix = StringUtils.hasText(connectionDetails.objectPrefix())
-            ? connectionDetails.objectPrefix().replaceAll("^/+|/+$", "")
-            : "items";
-        String safePathPrefix = trimObjectPath(pathPrefix);
-        String safeStableId = trimObjectPath(stableId);
-        String extension = resolveExtension(originalFilename, contentType);
-        return prefix + "/" + safePathPrefix + "/" + safeStableId + extension;
-    }
-
-    private String resolveExtension(String originalFilename, String contentType) {
-        if (StringUtils.hasText(originalFilename) && originalFilename.contains(".")) {
-            return originalFilename.substring(originalFilename.lastIndexOf('.')).toLowerCase(Locale.ROOT);
-        }
-
-        String normalizedContentType = normalizeContentType(contentType);
-        if (normalizedContentType == null) {
-            return ".bin";
-        }
-
-        return switch (normalizedContentType) {
-            case "image/jpeg" -> ".jpg";
-            case "image/png" -> ".png";
-            case "image/webp" -> ".webp";
-            case "image/gif" -> ".gif";
-            case "image/svg+xml" -> ".svg";
-            case "image/x-icon", "image/vnd.microsoft.icon" -> ".ico";
-            case "image/bmp" -> ".bmp";
-            case "image/avif" -> ".avif";
-            default -> ".bin";
-        };
-    }
-
-    private String buildPublicReadPolicy(String bucket) {
-        return """
-            {
-              "Version":"2012-10-17",
-              "Statement":[
-                {
-                  "Effect":"Allow",
-                  "Principal":{"AWS":["*"]},
-                  "Action":["s3:GetObject"],
-                  "Resource":["arn:aws:s3:::%s/*"]
-                }
-              ]
-            }
-            """.formatted(bucket);
     }
 
     private String buildPublicObjectUrl(String objectKey) {
@@ -834,14 +530,6 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
         }
 
         return "http://" + trimTrailingSlash(value);
-    }
-
-    private String trimObjectPath(String value) {
-        String normalized = trimToNull(value);
-        if (normalized == null) {
-            return "image";
-        }
-        return normalized.replace('\\', '/').replaceAll("^/+", "").replaceAll("/+$", "");
     }
 
     private String trimTrailingSlash(String value) {

@@ -13,11 +13,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -119,13 +119,13 @@ class ItemControllerPaginationCompatibilityTest {
         assertEquals("蓝色", pageQueryCaptor.getValue().getRarity());
     }
     @Test
-    void shouldPreserveSourceNpcsJsonInListAndDetailPayloads() throws Exception {
-        String sourceNpcsJson = "[{\"npcId\":22,\"internalName\":\"Guide\",\"note\":\"exact raw\"}]";
+    void shouldHideRawSourceNpcsJsonAndExposeSanitizedDetailSourceNpcs() throws Exception {
+        String sourceNpcsJson = "[{\"npcId\":22,\"npcName\":\"Guide\",\"npcImageUrl\":\"https://terraria.wiki.gg/images/Guide.png\"}]";
 
         ItemDTO listItem = new ItemDTO();
         listItem.setId(1L);
         listItem.setName("Guide Voodoo Doll");
-        ReflectionTestUtils.setField(listItem, "sourceNpcsJson", sourceNpcsJson);
+        listItem.setSourceNpcsJson(sourceNpcsJson);
 
         Page<ItemDTO> page = new Page<>(1, 20);
         page.setTotal(1);
@@ -134,17 +134,26 @@ class ItemControllerPaginationCompatibilityTest {
         ItemDTO detailItem = new ItemDTO();
         detailItem.setId(1L);
         detailItem.setName("Guide Voodoo Doll");
-        ReflectionTestUtils.setField(detailItem, "sourceNpcsJson", sourceNpcsJson);
+        detailItem.setSourceNpcsJson(sourceNpcsJson);
+        detailItem.setSourceNpcs(List.of(Map.of(
+            "npcId", 22,
+            "npcName", "Guide",
+            "sourcePage", "https://terraria.wiki.gg/wiki/Guide"
+        )));
 
         when(itemService.getItems(any(PageQuery.class))).thenReturn(page);
         when(itemService.getItemById(1L)).thenReturn(detailItem);
 
         mockMvc.perform(get("/items"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data[0].sourceNpcsJson").value(sourceNpcsJson));
+            .andExpect(jsonPath("$.data[0].sourceNpcsJson").doesNotExist())
+            .andExpect(jsonPath("$.data[0].sourceNpcs").doesNotExist());
 
         mockMvc.perform(get("/items/1"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.sourceNpcsJson").value(sourceNpcsJson));
+            .andExpect(jsonPath("$.data.sourceNpcsJson").doesNotExist())
+            .andExpect(jsonPath("$.data.sourceNpcs[0].npcId").value(22))
+            .andExpect(jsonPath("$.data.sourceNpcs[0].npcName").value("Guide"))
+            .andExpect(jsonPath("$.data.sourceNpcs[0].npcImageUrl").doesNotExist());
     }
 }

@@ -77,7 +77,6 @@ mybatis-plus:
     cache-enabled: true
     lazy-loading-enabled: true
     aggressive-lazy-loading: false
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
       id-type: auto
@@ -88,8 +87,8 @@ mybatis-plus:
 logging:
   level:
     root: INFO
-    com.terraria.skills: DEBUG
-    com.terraria.skills.mapper: DEBUG
+    com.terraria.skills: INFO
+    com.terraria.skills.mapper: INFO
   pattern:
     console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n'
 

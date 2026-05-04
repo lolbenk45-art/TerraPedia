@@ -5,76 +5,29 @@
     <sql id="PreferredItemImageExpr">
         COALESCE(
             (
-                SELECT COALESCE(
-                    CASE
-                        WHEN NULLIF(TRIM(ii.cached_url), '') IS NOT NULL
-                          AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%(demo)%'
-                          AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%28demo%29%'
-                          AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'
-                          AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%(placed)%'
-                          AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%28placed%29%'
-                          AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&amp;#/-]|$)'
-                          AND (
-                              NULLIF(TRIM(ii.original_url), '') IS NULL
-                              OR (
-                                  LOWER(TRIM(ii.original_url)) NOT LIKE '%(demo)%'
-                                  AND LOWER(TRIM(ii.original_url)) NOT LIKE '%28demo%29%'
-                                  AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'
-                                  AND LOWER(TRIM(ii.original_url)) NOT LIKE '%(placed)%'
-                                  AND LOWER(TRIM(ii.original_url)) NOT LIKE '%28placed%29%'
-                                  AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&amp;#/-]|$)'
-                              )
-                          )
-                          THEN TRIM(ii.cached_url)
-                    END,
-                    CASE
-                        WHEN NULLIF(TRIM(ii.original_url), '') IS NOT NULL
-                          AND LOWER(TRIM(ii.original_url)) NOT LIKE '%(demo)%'
-                          AND LOWER(TRIM(ii.original_url)) NOT LIKE '%28demo%29%'
-                          AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'
-                          AND LOWER(TRIM(ii.original_url)) NOT LIKE '%(placed)%'
-                          AND LOWER(TRIM(ii.original_url)) NOT LIKE '%28placed%29%'
-                          AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&amp;#/-]|$)'
-                          THEN TRIM(ii.original_url)
-                    END
-                )
+                SELECT CASE
+                    WHEN NULLIF(TRIM(ii.cached_url), '') IS NOT NULL
+                      AND LOWER(TRIM(ii.cached_url)) LIKE '%/terrapedia-images/%'
+                      AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%(demo)%'
+                      AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%28demo%29%'
+                      AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'
+                      AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%(placed)%'
+                      AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%28placed%29%'
+                      AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&amp;#/-]|$)'
+                      THEN TRIM(ii.cached_url)
+                END
                 FROM item_images ii
                 WHERE ii.item_id = i.id
                   AND ii.deleted = 0
                   AND ii.status = 1
-                  AND (
-                      (
-                          ii.cached_url IS NOT NULL
-                          AND TRIM(ii.cached_url) != ''
-                          AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%(demo)%'
-                          AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%28demo%29%'
-                          AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'
-                          AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%(placed)%'
-                          AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%28placed%29%'
-                          AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&amp;#/-]|$)'
-                          AND (
-                              NULLIF(TRIM(ii.original_url), '') IS NULL
-                              OR (
-                                  LOWER(TRIM(ii.original_url)) NOT LIKE '%(demo)%'
-                                  AND LOWER(TRIM(ii.original_url)) NOT LIKE '%28demo%29%'
-                                  AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'
-                                  AND LOWER(TRIM(ii.original_url)) NOT LIKE '%(placed)%'
-                                  AND LOWER(TRIM(ii.original_url)) NOT LIKE '%28placed%29%'
-                                  AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&amp;#/-]|$)'
-                              )
-                          )
-                      )
-                      OR (
-                          ii.original_url IS NOT NULL
-                          AND TRIM(ii.original_url) != ''
-                          AND LOWER(TRIM(ii.original_url)) NOT LIKE '%(demo)%'
-                          AND LOWER(TRIM(ii.original_url)) NOT LIKE '%28demo%29%'
-                          AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'
-                          AND LOWER(TRIM(ii.original_url)) NOT LIKE '%(placed)%'
-                          AND LOWER(TRIM(ii.original_url)) NOT LIKE '%28placed%29%'
-                          AND LOWER(TRIM(ii.original_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&amp;#/-]|$)'
-                      )
-                  )
+                  AND NULLIF(TRIM(ii.cached_url), '') IS NOT NULL
+                  AND LOWER(TRIM(ii.cached_url)) LIKE '%/terrapedia-images/%'
+                  AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%(demo)%'
+                  AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%28demo%29%'
+                  AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'
+                  AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%(placed)%'
+                  AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%28placed%29%'
+                  AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&amp;#/-]|$)'
                 ORDER BY
                     CASE WHEN LOCATE('/terrapedia-images/', ii.cached_url) > 0 THEN 0 ELSE 1 END,
                     CASE WHEN ii.is_primary = 1 THEN 0 ELSE 1 END,
@@ -84,6 +37,7 @@
             ),
             CASE
                 WHEN NULLIF(TRIM(i.image), '') IS NOT NULL
+                  AND LOWER(TRIM(i.image)) LIKE '%/terrapedia-images/%'
                   AND LOWER(TRIM(i.image)) NOT LIKE '%(demo)%'
                   AND LOWER(TRIM(i.image)) NOT LIKE '%28demo%29%'
                   AND LOWER(TRIM(i.image)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'
@@ -92,7 +46,7 @@
                   AND LOWER(TRIM(i.image)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&amp;#/-]|$)'
                   THEN TRIM(i.image)
             END
-            )
+        )
     </sql>
 
     <resultMap id="BaseResultMap" type="com.terraria.skills.entity.Item">
@@ -132,21 +86,11 @@
             i.name,
             i.name_zh AS nameZh,
             i.internal_name AS internalName,
-            <include refid="PreferredItemImageExpr"/> AS image,
+            ii_primary.cached_url AS image,
             i.category_id AS categoryId,
             c.name AS categoryName,
-            i.description,
-            i.description_zh AS descriptionZh,
             i.damage,
             i.defense,
-            i.knockback AS knockback,
-            i.use_time AS useTime,
-            i.width AS width,
-            i.height AS height,
-            i.buy AS buy,
-            i.sell AS sell,
-            i.tooltip AS tooltip,
-            i.tooltip_zh AS tooltipZh,
             i.rarity_id AS rarityId,
             COALESCE(ir.display_name_zh, ir.display_name_en) AS rarity,
             i.game_period_id AS gamePeriodId,
@@ -154,14 +98,154 @@
             i.game_model_id AS gameModelId,
             i.is_stackable AS isStackable,
             i.stack_size AS stackSize,
-            i.source_npcs_json AS sourceNpcsJson,
             i.status,
             i.created_at AS createdAt,
             i.updated_at AS updatedAt
-        FROM items i
+        FROM (
+            SELECT
+                i.id,
+                i.name,
+                i.name_zh,
+                i.internal_name,
+                i.image,
+                i.category_id,
+                i.damage,
+                i.defense,
+                i.rarity_id,
+                i.game_period_id,
+                i.game_model_id,
+                i.is_stackable,
+                i.stack_size,
+                i.status,
+                i.created_at,
+                i.updated_at
+            FROM items i FORCE INDEX (idx_items_deleted)
+            <where>
+                i.deleted = 0
+                <if test="search != null and search != ''">
+                    AND (
+                        i.name LIKE CONCAT('%', #{search}, '%')
+                        OR i.name_zh LIKE CONCAT('%', #{search}, '%')
+                        OR i.internal_name LIKE CONCAT('%', #{search}, '%')
+                    )
+                </if>
+                <if test="categoryIds != null and categoryIds.size() > 0">
+                    AND (
+                        i.category_id IN
+                        <foreach collection="categoryIds" item="categoryIdItem" open="(" separator="," close=")">
+                            #{categoryIdItem}
+                        </foreach>
+                        OR EXISTS (
+                            SELECT 1
+                            FROM item_category_rel icr_filter
+                            WHERE icr_filter.item_id = i.id
+                              AND icr_filter.deleted = 0
+                              AND icr_filter.status = 1
+                              AND icr_filter.category_id IN
+                              <foreach collection="categoryIds" item="categoryIdItem" open="(" separator="," close=")">
+                                  #{categoryIdItem}
+                              </foreach>
+                        )
+                    )
+                </if>
+                <if test="(categoryIds == null or categoryIds.size() == 0) and categoryId != null">
+                    AND (
+                        i.category_id = #{categoryId}
+                        OR EXISTS (
+                            SELECT 1
+                            FROM item_category_rel icr_filter
+                            WHERE icr_filter.item_id = i.id
+                              AND icr_filter.deleted = 0
+                              AND icr_filter.status = 1
+                              AND icr_filter.category_id = #{categoryId}
+                        )
+                    )
+                </if>
+                <if test="rarityId != null">
+                    AND i.rarity_id = #{rarityId}
+                </if>
+                <if test="gamePeriodId != null">
+                    AND i.game_period_id = #{gamePeriodId}
+                </if>
+            </where>
+            <choose>
+                <when test="sortBy == 'name' and sortDirection == 'asc'">
+                    ORDER BY i.name ASC, i.id ASC
+                </when>
+                <when test="sortBy == 'name' and sortDirection == 'desc'">
+                    ORDER BY i.name DESC, i.id ASC
+                </when>
+                <when test="sortBy == 'rarityId' and sortDirection == 'asc'">
+                    ORDER BY i.rarity_id ASC, i.id ASC
+                </when>
+                <when test="sortBy == 'rarityId' and sortDirection == 'desc'">
+                    ORDER BY i.rarity_id DESC, i.id ASC
+                </when>
+                <otherwise>
+                    ORDER BY i.id ASC
+                </otherwise>
+            </choose>
+            LIMIT #{limit}
+            OFFSET #{offset}
+        ) i
+        LEFT JOIN item_images ii_primary
+               ON ii_primary.id = (
+                   SELECT ii.id
+                   FROM item_images ii
+                   WHERE ii.item_id = i.id
+                     AND ii.deleted = 0
+                     AND ii.status = 1
+                     AND NULLIF(TRIM(ii.cached_url), '') IS NOT NULL
+                     AND LOWER(TRIM(ii.cached_url)) LIKE '%/terrapedia-images/%'
+                     AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%(demo)%'
+                     AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%28demo%29%'
+                     AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'
+                     AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%(placed)%'
+                     AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%28placed%29%'
+                     AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&amp;#/-]|$)'
+                   ORDER BY
+                       CASE WHEN LOCATE('/terrapedia-images/', ii.cached_url) > 0 THEN 0 ELSE 1 END,
+                       CASE WHEN ii.is_primary = 1 THEN 0 ELSE 1 END,
+                       ii.sort_order ASC,
+                       ii.id ASC
+                   LIMIT 1
+               )
         LEFT JOIN category c ON c.id = i.category_id AND c.deleted = 0
         LEFT JOIN item_rarity ir ON ir.id = i.rarity_id AND ir.deleted = 0 AND ir.status = 1
         LEFT JOIN game_period gp ON gp.id = i.game_period_id AND gp.deleted = 0 AND gp.status = 1
+        <choose>
+            <when test="sortBy == 'name' and sortDirection == 'asc'">
+                ORDER BY i.name ASC, i.id ASC
+            </when>
+            <when test="sortBy == 'name' and sortDirection == 'desc'">
+                ORDER BY i.name DESC, i.id ASC
+            </when>
+            <when test="sortBy == 'rarityId' and sortDirection == 'asc'">
+                ORDER BY i.rarity_id ASC, i.id ASC
+            </when>
+            <when test="sortBy == 'rarityId' and sortDirection == 'desc'">
+                ORDER BY i.rarity_id DESC, i.id ASC
+            </when>
+            <otherwise>
+                ORDER BY i.id ASC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="countItemsByCategoryIds" resultType="com.terraria.skills.dto.CategoryItemCountDTO">
+        SELECT i.category_id AS categoryId, COUNT(*) AS count
+        FROM items i
+        WHERE i.deleted = 0
+          AND i.category_id IN
+          <foreach collection="categoryIds" item="categoryIdItem" open="(" separator="," close=")">
+            #{categoryIdItem}
+          </foreach>
+        GROUP BY i.category_id
+    </select>
+
+    <select id="countItemsWithSearch" resultType="long">
+        SELECT COUNT(*)
+        FROM items i
         <where>
             i.deleted = 0
             <if test="search != null and search != ''">
@@ -210,34 +294,6 @@
                 AND i.game_period_id = #{gamePeriodId}
             </if>
         </where>
-        <choose>
-            <when test="sortBy == 'name' and sortDirection == 'asc'">
-                ORDER BY i.name ASC, i.id ASC
-            </when>
-            <when test="sortBy == 'name' and sortDirection == 'desc'">
-                ORDER BY i.name DESC, i.id ASC
-            </when>
-            <when test="sortBy == 'rarityId' and sortDirection == 'asc'">
-                ORDER BY i.rarity_id ASC, i.id ASC
-            </when>
-            <when test="sortBy == 'rarityId' and sortDirection == 'desc'">
-                ORDER BY i.rarity_id DESC, i.id ASC
-            </when>
-            <otherwise>
-                ORDER BY i.id ASC
-            </otherwise>
-        </choose>
-    </select>
-
-    <select id="countItemsByCategoryIds" resultType="com.terraria.skills.dto.CategoryItemCountDTO">
-        SELECT i.category_id AS categoryId, COUNT(*) AS count
-        FROM items i
-        WHERE i.deleted = 0
-          AND i.category_id IN
-          <foreach collection="categoryIds" item="categoryIdItem" open="(" separator="," close=")">
-            #{categoryIdItem}
-          </foreach>
-        GROUP BY i.category_id
     </select>
 
     <select id="countActiveItems" resultType="java.lang.Long">

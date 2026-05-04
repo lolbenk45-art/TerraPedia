@@ -90,8 +90,9 @@ class ItemServiceCachingTest {
             (proxy, method, args) -> switch (method.getName()) {
                 case "selectItemsWithSearch" -> {
                     state.selectItemsWithSearchCount.incrementAndGet();
-                    yield state.pageResult();
+                    yield state.pageResult().getRecords();
                 }
+                case "countItemsWithSearch" -> 1L;
                 case "deleteById" -> 1;
                 default -> defaultValue(method.getReturnType());
             }
