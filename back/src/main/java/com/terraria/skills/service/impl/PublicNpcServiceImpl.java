@@ -15,6 +15,7 @@ import com.terraria.skills.entity.Category;
 import com.terraria.skills.entity.Npc;
 import com.terraria.skills.mapper.CategoryMapper;
 import com.terraria.skills.mapper.NpcMapper;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import com.terraria.skills.service.PublicNpcService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +43,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
     private final CategoryMapper categoryMapper;
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
+    private final ManagedImageUrlPolicy managedImageUrlPolicy;
 
     private volatile Map<Long, NpcSupplement> supplementByGameId;
 
@@ -295,7 +297,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setIsBoss(firstNonNullBoolean(npc.getIsBoss(), supplement.isBoss));
         dto.setIsFriendly(firstNonNullBoolean(npc.getIsFriendly(), supplement.isFriendly));
         dto.setIsTownNpc(firstNonNullBoolean(npc.getIsTownNpc(), supplement.isTownNpc));
-        dto.setImageUrl(firstNonBlank(npc.getImageUrl(), supplement.imageUrl));
+        dto.setImageUrl(managedDisplayImageUrl(firstNonBlank(npc.getImageUrl(), supplement.imageUrl)));
         dto.setLootItemsJson(npc.getLootItemsJson());
         dto.setShopItemsJson(npc.getShopItemsJson());
         dto.setSourceItemsJson(npc.getSourceItemsJson());
@@ -510,7 +512,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setItemName(toStringValue(row.get("itemName")));
         dto.setItemNameZh(toStringValue(row.get("itemNameZh")));
         dto.setItemInternalName(toStringValue(row.get("itemInternalName")));
-        dto.setImageUrl(toStringValue(row.get("itemImage")));
+        dto.setImageUrl(managedDisplayImageUrl(toStringValue(row.get("itemImage"))));
         return dto;
     }
 
@@ -525,7 +527,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setItemName(toStringValue(row.get("itemName")));
         dto.setItemNameZh(toStringValue(row.get("itemNameZh")));
         dto.setItemInternalName(toStringValue(row.get("itemInternalName")));
-        dto.setImageUrl(toStringValue(row.get("itemImage")));
+        dto.setImageUrl(managedDisplayImageUrl(toStringValue(row.get("itemImage"))));
         return dto;
     }
 
@@ -572,8 +574,16 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setBuffInternalName(toStringValue(row.get("buffInternalName")));
         dto.setBuffNameEn(toStringValue(row.get("buffNameEn")));
         dto.setBuffNameZh(toStringValue(row.get("buffNameZh")));
-        dto.setImageUrl(toStringValue(row.get("buffImage")));
+        dto.setImageUrl(managedDisplayImageUrl(toStringValue(row.get("buffImage"))));
         return dto;
+    }
+
+    private String managedDisplayImageUrl(String value) {
+        String text = trimToNull(value);
+        if (text == null || !managedImageUrlPolicy.isManagedImageUrl(text)) {
+            return null;
+        }
+        return text;
     }
 
     private NpcSupplement getSupplement(Long gameId) {

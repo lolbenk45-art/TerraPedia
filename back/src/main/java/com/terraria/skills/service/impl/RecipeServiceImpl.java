@@ -25,6 +25,8 @@ import com.terraria.skills.mapper.RecipeIngredientMapper;
 import com.terraria.skills.mapper.RecipeMapper;
 import com.terraria.skills.mapper.RecipeStationMapper;
 import com.terraria.skills.mapper.WorldContextMapper;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
+import com.terraria.skills.service.ManagedItemImageResolver;
 import com.terraria.skills.service.RecipeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -62,6 +64,8 @@ public class RecipeServiceImpl implements RecipeService {
     private final RecipeContextRequirementMapper recipeContextRequirementMapper;
     private final CraftingStationMapper craftingStationMapper;
     private final ItemMapper itemMapper;
+    private final ManagedItemImageResolver managedItemImageResolver;
+    private final ManagedImageUrlPolicy managedImageUrlPolicy;
     private final BiomeMapper biomeMapper;
     private final WorldContextMapper worldContextMapper;
 
@@ -117,9 +121,10 @@ public class RecipeServiceImpl implements RecipeService {
             stations.stream().map(RecipeStation::getStationItemId),
             craftingStationById.values().stream().map(CraftingStation::getItemId)
         );
+        Map<Long, String> managedImagesByItemId = managedItemImageResolver.resolveManagedImages(itemById.values());
 
         Map<Long, List<RecipeIngredientDTO>> ingredientDtosByRecipeId = ingredients.stream()
-            .map(ingredient -> toIngredientDto(ingredient, itemById.get(ingredient.getIngredientItemId())))
+            .map(ingredient -> toIngredientDto(ingredient, itemById.get(ingredient.getIngredientItemId()), managedImagesByItemId))
             .collect(Collectors.groupingBy(RecipeIngredientDTO::getRecipeId));
 
         Map<Long, List<RecipeStationDTO>> stationDtosByRecipeId = stations.stream()
@@ -130,7 +135,8 @@ public class RecipeServiceImpl implements RecipeService {
                     station,
                     itemById.get(station.getStationItemId()),
                     craftingStation,
-                    canonicalStationItem
+                    canonicalStationItem,
+                    managedImagesByItemId
                 );
             })
             .collect(Collectors.groupingBy(RecipeStationDTO::getRecipeId));
@@ -144,7 +150,7 @@ public class RecipeServiceImpl implements RecipeService {
                 dto.setResultItemName(resultItem.getName());
                 dto.setResultItemNameZh(resultItem.getNameZh());
                 dto.setResultItemInternalName(resultItem.getInternalName());
-                dto.setResultItemImage(resultItem.getImage());
+                dto.setResultItemImage(managedItemImageResolver.resolveManagedImage(resultItem, managedImagesByItemId));
             } else {
                 dto.setResultItemInternalName(recipe.getResultInternalName());
             }
@@ -435,34 +441,48 @@ public class RecipeServiceImpl implements RecipeService {
             .collect(Collectors.toMap(Item::getId, Function.identity()));
     }
 
-    private RecipeIngredientDTO toIngredientDto(RecipeIngredient ingredient, Item item) {
+    private RecipeIngredientDTO toIngredientDto(
+        RecipeIngredient ingredient,
+        Item item,
+        Map<Long, String> managedImagesByItemId
+    ) {
         RecipeIngredientDTO dto = new RecipeIngredientDTO();
         BeanUtils.copyProperties(ingredient, dto);
         if (item != null) {
             dto.setItemName(item.getName());
             dto.setItemNameZh(item.getNameZh());
             dto.setItemInternalName(item.getInternalName());
-            dto.setItemImage(item.getImage());
+            dto.setItemImage(managedItemImageResolver.resolveManagedImage(item, managedImagesByItemId));
         } else {
             dto.setItemInternalName(ingredient.getIngredientInternalName());
         }
         return dto;
     }
 
-    private RecipeStationDTO toStationDto(RecipeStation station, Item item, CraftingStation craftingStation, Item craftingStationItem) {
+    private RecipeStationDTO toStationDto(
+        RecipeStation station,
+        Item item,
+        CraftingStation craftingStation,
+        Item craftingStationItem,
+        Map<Long, String> managedImagesByItemId
+    ) {
         RecipeStationDTO dto = new RecipeStationDTO();
         BeanUtils.copyProperties(station, dto);
         if (craftingStation != null) {
             dto.setItemName(firstNonBlank(craftingStation.getNameEn(), craftingStationItem == null ? null : craftingStationItem.getName(), station.getStationNameRaw()));
             dto.setItemNameZh(firstNonBlank(craftingStation.getNameZh(), craftingStationItem == null ? null : craftingStationItem.getNameZh()));
             dto.setItemInternalName(firstNonBlank(craftingStation.getInternalName(), craftingStationItem == null ? null : craftingStationItem.getInternalName(), station.getStationInternalName()));
-            dto.setItemImage(firstNonBlank(craftingStation.getImageUrl(), craftingStationItem == null ? null : craftingStationItem.getImage(), item == null ? null : item.getImage()));
+            dto.setItemImage(firstNonBlank(
+                managedImageOrNull(craftingStation.getImageUrl()),
+                managedItemImageResolver.resolveManagedImage(craftingStationItem, managedImagesByItemId),
+                managedItemImageResolver.resolveManagedImage(item, managedImagesByItemId)
+            ));
             dto.setStationType(firstNonBlank(craftingStation.getStationType(), "station"));
         } else if (item != null) {
             dto.setItemName(item.getName());
             dto.setItemNameZh(item.getNameZh());
             dto.setItemInternalName(item.getInternalName());
-            dto.setItemImage(item.getImage());
+            dto.setItemImage(managedItemImageResolver.resolveManagedImage(item, managedImagesByItemId));
             dto.setStationType("station");
         } else {
             dto.setItemInternalName(station.getStationInternalName());
@@ -603,6 +623,11 @@ public class RecipeServiceImpl implements RecipeService {
             }
         }
         return null;
+    }
+
+    private String managedImageOrNull(String value) {
+        String trimmed = trimToNull(value);
+        return trimmed != null && managedImageUrlPolicy.isManagedImageUrl(trimmed) ? trimmed : null;
     }
 
     private String defaultIfBlank(String value, String fallback) {

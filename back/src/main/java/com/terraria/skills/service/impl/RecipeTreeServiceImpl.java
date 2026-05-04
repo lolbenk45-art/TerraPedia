@@ -17,6 +17,8 @@ import com.terraria.skills.dto.RecipeTreeVariantDTO;
 import com.terraria.skills.entity.Item;
 import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.service.ItemService;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
+import com.terraria.skills.service.ManagedItemImageResolver;
 import com.terraria.skills.service.RecipeService;
 import com.terraria.skills.service.RecipeTreeService;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +39,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,13 +50,12 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     private static final int GROUP_MEMBER_PREVIEW_LIMIT = 2;
     private static final Duration TREE_CACHE_TTL = Duration.ofMinutes(5);
     private static final Duration GROUP_REFERENCE_CACHE_TTL = Duration.ofMinutes(10);
-    private static final Pattern NON_ITEM_ICON_VARIANT_TOKEN =
-        Pattern.compile("(^|[/_\\s-])(demo|placed)([._?&#/-]|$)");
-
     private final ItemService itemService;
     private final RecipeService recipeService;
     private final ObjectMapper objectMapper;
     private final ItemMapper itemMapper;
+    private final ManagedItemImageResolver managedItemImageResolver;
+    private final ManagedImageUrlPolicy managedImageUrlPolicy;
     private final ConcurrentHashMap<String, TimedValue<RecipeTreeResponseDTO>> recipeTreeCache = new ConcurrentHashMap<>();
     private volatile TimedValue<Map<String, RecipeGroupReference>> recipeGroupReferenceCache;
 
@@ -152,7 +152,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         root.setItemInternalName(firstNonBlank(recipe.getResultItemInternalName(), recipe.getResultInternalName()));
         root.setItemName(recipe.getResultItemName());
         root.setItemNameZh(recipe.getResultItemNameZh());
-        root.setItemImage(recipe.getResultItemImage());
+        root.setItemImage(managedImageOrNull(recipe.getResultItemImage()));
         root.setResultQuantity(recipe.getResultQuantity());
         root.setDepth(depth);
         List<RecipeTreeStationDTO> relationEntries = new ArrayList<>();
@@ -198,7 +198,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         node.setItemInternalName(firstNonBlank(ingredient.getItemInternalName(), ingredient.getIngredientInternalName()));
         node.setItemName(firstNonBlank(ingredient.getItemName(), rawIngredientName));
         node.setItemNameZh(firstNonBlank(ingredient.getItemNameZh()));
-        node.setItemImage(ingredient.getItemImage());
+        node.setItemImage(managedImageOrNull(ingredient.getItemImage()));
         node.setQuantityText(trimToNull(ingredient.getQuantityText()));
         node.setQuantityMin(ingredient.getQuantityMin());
         node.setQuantityMax(ingredient.getQuantityMax());
@@ -335,7 +335,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         dto.setName(item.getName());
         dto.setNameZh(item.getNameZh());
         dto.setInternalName(item.getInternalName());
-        dto.setImage(item.getImage());
+        dto.setImage(managedImageOrNull(item.getImage()));
         return dto;
     }
 
@@ -346,7 +346,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         dto.setStationName(station.getItemName());
         dto.setStationNameZh(station.getItemNameZh());
         dto.setStationNameRaw(station.getStationNameRaw());
-        dto.setStationImage(station.getItemImage());
+        dto.setStationImage(managedImageOrNull(station.getItemImage()));
         dto.setIsAlternative(Boolean.TRUE.equals(station.getIsAlternative()));
         dto.setStationType(defaultIfBlank(
             station.getStationType(),
@@ -689,6 +689,12 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
                     .eq(Item::getDeleted, 0))
                 .forEach(item -> itemsByName.putIfAbsent(normalizeKey(item.getName()), item));
         }
+        Map<Long, String> managedImagesByItemId = managedItemImageResolver.resolveManagedImages(
+            java.util.stream.Stream.concat(itemsByInternalName.values().stream(), itemsByName.values().stream())
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(Item::getId, item -> item, (left, ignored) -> left, LinkedHashMap::new))
+                .values()
+        );
 
         Map<String, RecipeGroupMemberDTO> deduped = new LinkedHashMap<>();
         for (RecipeGroupMemberDTO member : rawDtos) {
@@ -704,7 +710,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
             dto.setInternalName(firstNonBlank(member.getInternalName(), resolved == null ? null : resolved.getInternalName()));
             dto.setName(firstNonBlank(member.getName(), resolved == null ? null : resolved.getName()));
             dto.setNameZh(firstNonBlank(member.getNameZh(), resolved == null ? null : resolved.getNameZh()));
-            dto.setImage(resolveGroupMemberImage(member, resolved));
+            dto.setImage(resolveGroupMemberImage(member, resolved, managedImagesByItemId));
             String key = normalizeKey(firstNonBlank(dto.getInternalName(), dto.getName(), dto.getNameZh()));
             if (!key.isEmpty() && !deduped.containsKey(key)) {
                 deduped.put(key, dto);
@@ -726,28 +732,21 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
             .toList();
     }
 
-    private String resolveGroupMemberImage(RecipeGroupMemberDTO member, Item resolved) {
-        String resolvedImage = resolved == null ? null : resolved.getImage();
-        String memberImage = member == null ? null : member.getImage();
-        return firstNonBlank(
-            acceptableWikiItemIconUrl(resolvedImage) ? resolvedImage : null,
-            acceptableWikiItemIconUrl(memberImage) ? memberImage : null
-        );
+    private String resolveGroupMemberImage(
+        RecipeGroupMemberDTO member,
+        Item resolved,
+        Map<Long, String> managedImagesByItemId
+    ) {
+        String managedImage = managedItemImageResolver.resolveManagedImage(resolved, managedImagesByItemId);
+        if (managedImage != null) {
+            return managedImage;
+        }
+        return null;
     }
 
-    private boolean acceptableWikiItemIconUrl(String value) {
-        String text = trimToNull(value);
-        if (text == null) {
-            return false;
-        }
-        String lower = text.toLowerCase();
-        return lower.startsWith("https://terraria.wiki.gg/")
-            && !lower.contains("/terrapedia-images/")
-            && !lower.contains("(demo)")
-            && !lower.contains("%28demo%29")
-            && !lower.contains("(placed)")
-            && !lower.contains("%28placed%29")
-            && !NON_ITEM_ICON_VARIANT_TOKEN.matcher(lower).find();
+    private String managedImageOrNull(String value) {
+        String image = trimToNull(value);
+        return image != null && managedImageUrlPolicy.isManagedImageUrl(image) ? image : null;
     }
 
     private Path resolveDataFile(Path relativePath) {

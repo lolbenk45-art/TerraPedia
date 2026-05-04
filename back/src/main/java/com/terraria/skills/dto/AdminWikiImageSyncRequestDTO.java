@@ -7,6 +7,7 @@ public class AdminWikiImageSyncRequestDTO {
     private Boolean includeItemImages;
     private Boolean includeBuffs;
     private Boolean includeBiomes;
+    private Boolean includeArmorSets;
 
     public Integer getLimit() {
         return limit;
@@ -46,5 +47,13 @@ public class AdminWikiImageSyncRequestDTO {
 
     public void setIncludeBiomes(Boolean includeBiomes) {
         this.includeBiomes = includeBiomes;
+    }
+
+    public Boolean getIncludeArmorSets() {
+        return includeArmorSets;
+    }
+
+    public void setIncludeArmorSets(Boolean includeArmorSets) {
+        this.includeArmorSets = includeArmorSets;
     }
 }

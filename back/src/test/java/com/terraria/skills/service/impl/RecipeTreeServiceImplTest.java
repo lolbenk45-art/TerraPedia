@@ -11,25 +11,29 @@ import com.terraria.skills.dto.RecipeTreeResponseDTO;
 import com.terraria.skills.entity.Item;
 import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.service.ItemService;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
+import com.terraria.skills.service.ManagedItemImageResolver;
 import com.terraria.skills.service.RecipeService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,47 +48,45 @@ class RecipeTreeServiceImplTest {
     @Mock
     private ItemMapper itemMapper;
 
+    @Mock
+    private ManagedItemImageResolver managedItemImageResolver;
+
+    @Mock
+    private ManagedImageUrlPolicy managedImageUrlPolicy;
+
     @TempDir
     Path tempDir;
 
+    @BeforeEach
+    void setUp() {
+        lenient().when(managedItemImageResolver.resolveManagedImages(any())).thenReturn(Map.of());
+        lenient().when(managedItemImageResolver.resolveManagedImage(any(), anyMap())).thenAnswer(invocation -> {
+            Item item = invocation.getArgument(0);
+            return item == null || item.getImage() == null || item.getImage().contains("terraria.wiki.gg")
+                ? null
+                : item.getImage();
+        });
+        lenient().when(managedImageUrlPolicy.isManagedImageUrl(any())).thenAnswer(invocation -> {
+            String value = invocation.getArgument(0);
+            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/items/");
+        });
+    }
+
     @Test
     void shouldResolveRecipeGroupByChineseAliasAndExposeMembers() {
-        RecipeTreeServiceImpl service = new RecipeTreeServiceImpl(
-            itemService,
-            recipeService,
-            new ObjectMapper(),
-            itemMapper
-        );
+        RecipeTreeServiceImpl service = newService();
 
-        ItemDTO item = new ItemDTO();
-        item.setId(5153L);
-        item.setName("Balloon Candelabra");
-        item.setNameZh("气球烛台");
-        item.setInternalName("BalloonCandelabra");
+        ItemDTO item = recipeTreeItem(5153L, "BalloonCandelabra", "Balloon Candelabra", "Any Balloon Candelabra");
         item.setImage("http://localhost:9000/terrapedia-images/items/example.png");
 
-        RecipeIngredientDTO groupIngredient = new RecipeIngredientDTO();
-        groupIngredient.setIngredientGroupType("group");
-        groupIngredient.setIngredientNameRaw("任何气球");
-        groupIngredient.setQuantityText("5");
-        groupIngredient.setQuantityMin(5);
-        groupIngredient.setQuantityMax(5);
-
-        RecipeDTO recipe = new RecipeDTO();
-        recipe.setId(1274L);
-        recipe.setResultItemId(5153L);
-        recipe.setResultItemName("Balloon Candelabra");
-        recipe.setResultItemNameZh("气球烛台");
-        recipe.setResultItemInternalName("BalloonCandelabra");
-        recipe.setResultItemImage("http://localhost:9000/terrapedia-images/items/example.png");
-        recipe.setResultQuantity(1);
-        recipe.setIngredients(List.of(groupIngredient));
+        RecipeIngredientDTO groupIngredient = groupIngredient("Any Balloon", "5");
+        RecipeDTO recipe = recipeWithIngredient(1274L, item, groupIngredient);
 
         when(itemService.getItemById(5153L)).thenReturn(item);
         when(recipeService.getRecipesByResultItemId(5153L)).thenReturn(List.of(recipe));
         when(itemMapper.selectList(any())).thenReturn(List.of(
-            itemEntity(3735L, "SillyBalloonGreen", "Silly Green Balloon", "呆萌绿气球", "https://terraria.wiki.gg/images/Silly_Green_Balloon.png"),
-            itemEntity(3736L, "SillyBalloonPink", "Silly Pink Balloon", "呆萌粉气球", "https://terraria.wiki.gg/images/Silly_Pink_Balloon.png")
+            itemEntity(3735L, "SillyBalloonGreen", "Silly Green Balloon", "Silly Green Balloon", "https://terraria.wiki.gg/images/Silly_Green_Balloon.png"),
+            itemEntity(3736L, "SillyBalloonPink", "Silly Pink Balloon", "Silly Pink Balloon", "https://terraria.wiki.gg/images/Silly_Pink_Balloon.png")
         ));
 
         RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(5153L, 4);
@@ -94,23 +96,141 @@ class RecipeTreeServiceImplTest {
         assertEquals("Any Balloon", groupNode.getSecondaryName());
         assertEquals("Any Balloon", groupNode.getGroupCanonicalName());
         assertFalse(groupNode.getGroupMembers().isEmpty());
-        assertEquals("https://terraria.wiki.gg/images/Silly_Green_Balloon.png", groupNode.getGroupMembers().get(0).getImage());
+        assertNull(groupNode.getGroupMembers().get(0).getImage());
+    }
+
+    @Test
+    void shouldNotExposeWikiImagesForRecipeGroupMembersWithoutManagedImage() {
+        RecipeTreeServiceImpl service = newService();
+
+        ItemDTO item = recipeTreeItem(4745L, "CoffinMinecart", "Coffin Minecart", "Coffin Minecart");
+        RecipeIngredientDTO groupIngredient = groupIngredient("Any Wood", "10");
+        RecipeDTO recipe = recipeWithIngredient(53667L, item, groupIngredient);
+
+        when(itemService.getItemById(4745L)).thenReturn(item);
+        when(recipeService.getRecipesByResultItemId(4745L)).thenReturn(List.of(recipe));
+        when(itemMapper.selectList(any())).thenReturn(List.of(
+            itemEntity(9L, "Wood", "Wood", "Wood", "https://terraria.wiki.gg/images/Wood.png"),
+            itemEntity(619L, "Ebonwood", "Ebonwood", "Ebonwood", "https://terraria.wiki.gg/images/Ebonwood.png")
+        ));
+
+        RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(4745L, 4);
+
+        RecipeTreeNodeDTO groupNode = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
+        assertEquals(2, groupNode.getGroupMembers().size());
+        assertNull(groupNode.getGroupMembers().get(0).getImage());
+        assertNull(groupNode.getGroupMembers().get(1).getImage());
+    }
+
+    @Test
+    void shouldPreferManagedImageForRecipeGroupMembers() {
+        RecipeTreeServiceImpl service = newService();
+
+        ItemDTO item = recipeTreeItem(4745L, "CoffinMinecart", "Coffin Minecart", "Coffin Minecart");
+        RecipeIngredientDTO groupIngredient = groupIngredient("Any Iron Bar", "5");
+        RecipeDTO recipe = recipeWithIngredient(53668L, item, groupIngredient);
+
+        when(itemService.getItemById(4745L)).thenReturn(item);
+        when(recipeService.getRecipesByResultItemId(4745L)).thenReturn(List.of(recipe));
+        Item ironBar = itemEntity(22L, "IronBar", "Iron Bar", "Iron Bar", "https://terraria.wiki.gg/images/Iron_Bar.png");
+        Item leadBar = itemEntity(704L, "LeadBar", "Lead Bar", "Lead Bar", "https://terraria.wiki.gg/images/Lead_Bar.png");
+        when(itemMapper.selectList(any())).thenReturn(List.of(ironBar, leadBar));
+
+        Map<Long, String> managedImages = Map.of(
+            22L, "http://localhost:9000/terrapedia-images/items/iron-bar.png",
+            704L, "http://localhost:9000/terrapedia-images/items/lead-bar.png"
+        );
+        when(managedItemImageResolver.resolveManagedImages(any())).thenReturn(managedImages);
+        when(managedItemImageResolver.resolveManagedImage(any(), anyMap())).thenAnswer(invocation -> {
+            Item resolved = invocation.getArgument(0);
+            return resolved == null ? null : managedImages.get(resolved.getId());
+        });
+
+        RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(4745L, 4);
+
+        RecipeTreeNodeDTO groupNode = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
+        assertEquals(2, groupNode.getGroupMembers().size());
+        assertEquals(22L, groupNode.getGroupMembers().get(0).getItemId());
+        assertEquals("http://localhost:9000/terrapedia-images/items/iron-bar.png", groupNode.getGroupMembers().get(0).getImage());
+        assertEquals("http://localhost:9000/terrapedia-images/items/lead-bar.png", groupNode.getGroupMembers().get(1).getImage());
+    }
+
+    @Test
+    void shouldNotExposeWikiImageForRecipeTreeRootItem() {
+        RecipeTreeServiceImpl service = newService();
+
+        ItemDTO item = recipeTreeItem(22L, "IronBar", "Iron Bar", "Iron Bar");
+        item.setImage("https://terraria.wiki.gg/images/Iron_Bar.png");
+
+        when(itemService.getItemById(22L)).thenReturn(item);
+        when(recipeService.getRecipesByResultItemId(22L)).thenReturn(List.of());
+        when(itemMapper.selectList(any())).thenReturn(List.of());
+
+        RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(22L, 3);
+
+        assertNull(response.getItem().getImage());
+    }
+
+    @Test
+    void shouldNotExposeUntrustedManagedLikeImageForRecipeTreeRootItem() {
+        RecipeTreeServiceImpl service = newService();
+
+        ItemDTO item = recipeTreeItem(22L, "IronBar", "Iron Bar", "Iron Bar");
+        item.setImage("https://evil.example.com/terrapedia-images/items/iron-bar.png");
+
+        when(itemService.getItemById(22L)).thenReturn(item);
+        when(recipeService.getRecipesByResultItemId(22L)).thenReturn(List.of());
+        when(itemMapper.selectList(any())).thenReturn(List.of());
+
+        RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(22L, 3);
+
+        assertNull(response.getItem().getImage());
+    }
+
+    @Test
+    void shouldNotExposeWikiImagesFromRecipeDtoFields() {
+        RecipeTreeServiceImpl service = newService();
+
+        ItemDTO item = recipeTreeItem(1L, "Abeemination", "Abeemination", "Abeemination");
+        RecipeIngredientDTO ingredient = new RecipeIngredientDTO();
+        ingredient.setIngredientItemId(2L);
+        ingredient.setIngredientNameRaw("Honey Block");
+        ingredient.setItemName("Honey Block");
+        ingredient.setItemImage("https://terraria.wiki.gg/images/Honey_Block.png");
+        ingredient.setQuantityText("5");
+
+        RecipeStationDTO station = new RecipeStationDTO();
+        station.setItemName("Water");
+        station.setItemImage("https://terraria.wiki.gg/images/Water.png");
+
+        RecipeDTO recipe = new RecipeDTO();
+        recipe.setId(7001L);
+        recipe.setResultItemId(1L);
+        recipe.setResultItemName("Abeemination");
+        recipe.setResultItemInternalName("Abeemination");
+        recipe.setResultItemImage("https://terraria.wiki.gg/images/Abeemination.png");
+        recipe.setResultQuantity(1);
+        recipe.setIngredients(List.of(ingredient));
+        recipe.setStations(List.of(station));
+
+        when(itemService.getItemById(1L)).thenReturn(item);
+        when(recipeService.getRecipesByResultItemId(1L)).thenReturn(List.of(recipe));
+        when(recipeService.getRecipesByResultItemId(2L)).thenReturn(List.of());
+        when(itemMapper.selectList(any())).thenReturn(List.of());
+
+        RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(1L, 3);
+
+        RecipeTreeNodeDTO root = response.getVariants().get(0).getRoots().get(0);
+        assertNull(root.getItemImage());
+        assertNull(root.getChildren().get(0).getItemImage());
+        assertNull(root.getStations().get(0).getStationImage());
     }
 
     @Test
     void shouldExposeRecipeConditionsAsIndependentTreeEntries() {
-        RecipeTreeServiceImpl service = new RecipeTreeServiceImpl(
-            itemService,
-            recipeService,
-            new ObjectMapper(),
-            itemMapper
-        );
+        RecipeTreeServiceImpl service = newService();
 
-        ItemDTO item = new ItemDTO();
-        item.setId(100L);
-        item.setName("Pumpkin Pie");
-        item.setNameZh("南瓜派");
-        item.setInternalName("PumpkinPie");
+        ItemDTO item = recipeTreeItem(100L, "PumpkinPie", "Pumpkin Pie", "Pumpkin Pie");
 
         RecipeIngredientDTO ingredient = new RecipeIngredientDTO();
         ingredient.setIngredientItemId(200L);
@@ -122,15 +242,15 @@ class RecipeTreeServiceImplTest {
         condition.setRefId(11L);
         condition.setRefCode("FULL_MOON");
         condition.setRefNameEn("Full Moon");
-        condition.setRefNameZh("满月");
+        condition.setRefNameZh("Full Moon");
         condition.setRequirementRole("required");
-        condition.setNotes("夜间可制作");
+        condition.setNotes("Night only");
 
         RecipeDTO recipe = new RecipeDTO();
         recipe.setId(901L);
         recipe.setResultItemId(100L);
         recipe.setResultItemName("Pumpkin Pie");
-        recipe.setResultItemNameZh("南瓜派");
+        recipe.setResultItemNameZh("Pumpkin Pie");
         recipe.setResultItemInternalName("PumpkinPie");
         recipe.setResultQuantity(1);
         recipe.setIngredients(List.of(ingredient));
@@ -146,10 +266,10 @@ class RecipeTreeServiceImplTest {
         RecipeTreeNodeDTO root = response.getVariants().get(0).getRoots().get(0);
         assertEquals(1, root.getStations().size());
         assertEquals("condition", root.getStations().get(0).getStationType());
-        assertEquals("满月", root.getStations().get(0).getStationNameZh());
         assertEquals("Full Moon", root.getStations().get(0).getStationName());
+        assertEquals("Full Moon", root.getStations().get(0).getStationNameZh());
         assertEquals("required", root.getStations().get(0).getRequirementRole());
-        assertEquals("夜间可制作", root.getStations().get(0).getNotes());
+        assertEquals("Night only", root.getStations().get(0).getNotes());
         assertTrue(root.getChildren().isEmpty() || root.getChildren().size() == 1);
     }
 
@@ -160,14 +280,12 @@ class RecipeTreeServiceImplTest {
             itemService,
             recipeService,
             objectMapper,
-            itemMapper
+            itemMapper,
+            managedItemImageResolver,
+            managedImageUrlPolicy
         );
 
-        ItemDTO item = new ItemDTO();
-        item.setId(250L);
-        item.setName("Honey Dispenser");
-        item.setNameZh("蜂蜜分配机");
-        item.setInternalName("HoneyDispenser");
+        ItemDTO item = recipeTreeItem(250L, "HoneyDispenser", "Honey Dispenser", "Honey Dispenser");
 
         RecipeIngredientDTO ingredient = new RecipeIngredientDTO();
         ingredient.setIngredientItemId(251L);
@@ -176,9 +294,9 @@ class RecipeTreeServiceImplTest {
 
         RecipeStationDTO environmentStation = objectMapper.convertValue(Map.of(
             "stationId", 29L,
-            "stationNameRaw", "蜂蜜",
+            "stationNameRaw", "Honey",
             "itemName", "Honey",
-            "itemNameZh", "蜂蜜",
+            "itemNameZh", "Honey",
             "stationType", "environment"
         ), RecipeStationDTO.class);
 
@@ -186,7 +304,7 @@ class RecipeTreeServiceImplTest {
         recipe.setId(902L);
         recipe.setResultItemId(250L);
         recipe.setResultItemName("Honey Dispenser");
-        recipe.setResultItemNameZh("蜂蜜分配机");
+        recipe.setResultItemNameZh("Honey Dispenser");
         recipe.setResultItemInternalName("HoneyDispenser");
         recipe.setResultQuantity(1);
         recipe.setIngredients(List.of(ingredient));
@@ -202,66 +320,7 @@ class RecipeTreeServiceImplTest {
         RecipeTreeNodeDTO root = response.getVariants().get(0).getRoots().get(0);
         assertEquals(1, root.getStations().size());
         assertEquals("environment", root.getStations().get(0).getStationType());
-        assertEquals("蜂蜜", root.getStations().get(0).getStationNameZh());
-    }
-
-    @Test
-    void shouldExposeOnlyTwoRecipeGroupPreviewMembers() {
-        RecipeTreeServiceImpl service = new RecipeTreeServiceImpl(
-            itemService,
-            recipeService,
-            new ObjectMapper(),
-            itemMapper
-        );
-
-        ItemDTO item = recipeTreeItem(4745L, "CoffinMinecart", "Coffin Minecart", "棺材矿车");
-        RecipeIngredientDTO groupIngredient = groupIngredient("Any Wood", "10");
-        RecipeDTO recipe = recipeWithIngredient(53667L, item, groupIngredient);
-
-        when(itemService.getItemById(4745L)).thenReturn(item);
-        when(recipeService.getRecipesByResultItemId(4745L)).thenReturn(List.of(recipe));
-        when(itemMapper.selectList(any())).thenReturn(List.of(
-            itemEntity(9L, "Wood", "Wood", "木材", "https://terraria.wiki.gg/images/Wood.png"),
-            itemEntity(619L, "Ebonwood", "Ebonwood", "乌木", "https://terraria.wiki.gg/images/Ebonwood.png")
-        ));
-
-        RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(4745L, 4);
-
-        RecipeTreeNodeDTO groupNode = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
-        assertEquals("Any Wood", groupNode.getGroupCanonicalName());
-        assertEquals(2, groupNode.getGroupMembers().size());
-        assertEquals("Wood", groupNode.getGroupMembers().get(0).getInternalName());
-        assertEquals("Ebonwood", groupNode.getGroupMembers().get(1).getInternalName());
-        assertTrue(groupNode.getGroupMemberNames().size() > groupNode.getGroupMembers().size());
-    }
-
-    @Test
-    void shouldPreferResolvedWikiImageForRecipeGroupMembers() {
-        RecipeTreeServiceImpl service = new RecipeTreeServiceImpl(
-            itemService,
-            recipeService,
-            new ObjectMapper(),
-            itemMapper
-        );
-
-        ItemDTO item = recipeTreeItem(4745L, "CoffinMinecart", "Coffin Minecart", "棺材矿车");
-        RecipeIngredientDTO groupIngredient = groupIngredient("Any Iron Bar", "5");
-        RecipeDTO recipe = recipeWithIngredient(53668L, item, groupIngredient);
-
-        when(itemService.getItemById(4745L)).thenReturn(item);
-        when(recipeService.getRecipesByResultItemId(4745L)).thenReturn(List.of(recipe));
-        when(itemMapper.selectList(any())).thenReturn(List.of(
-            itemEntity(22L, "IronBar", "Iron Bar", "铁锭", "https://terraria.wiki.gg/images/Iron_Bar.png"),
-            itemEntity(704L, "LeadBar", "Lead Bar", "铅锭", "https://terraria.wiki.gg/images/Lead_Bar.png")
-        ));
-
-        RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(4745L, 4);
-
-        RecipeTreeNodeDTO groupNode = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
-        assertEquals(2, groupNode.getGroupMembers().size());
-        assertEquals(22L, groupNode.getGroupMembers().get(0).getItemId());
-        assertEquals("https://terraria.wiki.gg/images/Iron_Bar.png", groupNode.getGroupMembers().get(0).getImage());
-        assertEquals("https://terraria.wiki.gg/images/Lead_Bar.png", groupNode.getGroupMembers().get(1).getImage());
+        assertEquals("Honey", root.getStations().get(0).getStationNameRaw());
     }
 
     @Test
@@ -278,7 +337,7 @@ class RecipeTreeServiceImplTest {
                   "canonicalName": "Any Pylon",
                   "displayNameEn": "Any Pylon",
                   "aliases": ["Any Teleportation Pylon"],
-                  "displayNameZh": "任意晶塔",
+                  "displayNameZh": "Any Pylon",
                   "domains": ["recipe", "npc_shop"],
                   "sourceProvider": "wiki_gg",
                   "sourcePage": "https://terraria.wiki.gg/wiki/Pylons",
@@ -286,7 +345,7 @@ class RecipeTreeServiceImplTest {
                     {
                       "internalName": "TeleportationPylonPurity",
                       "name": "Forest Pylon",
-                      "nameZh": "森林晶塔"
+                      "nameZh": "Forest Pylon"
                     }
                   ]
                 }
@@ -295,27 +354,22 @@ class RecipeTreeServiceImplTest {
             """);
         try {
             System.setProperty("user.dir", repoRoot.resolve("back").toString());
-            RecipeTreeServiceImpl service = new RecipeTreeServiceImpl(
-                itemService,
-                recipeService,
-                new ObjectMapper(),
-                itemMapper
-            );
+            RecipeTreeServiceImpl service = newService();
 
-            ItemDTO item = recipeTreeItem(9001L, "PylonTestItem", "Pylon Test Item", "晶塔测试物品");
+            ItemDTO item = recipeTreeItem(9001L, "PylonTestItem", "Pylon Test Item", "Pylon Test Item");
             RecipeIngredientDTO groupIngredient = groupIngredient("Any Teleportation Pylon", "1");
             RecipeDTO recipe = recipeWithIngredient(9002L, item, groupIngredient);
 
             when(itemService.getItemById(9001L)).thenReturn(item);
             when(recipeService.getRecipesByResultItemId(9001L)).thenReturn(List.of(recipe));
             when(itemMapper.selectList(any())).thenReturn(List.of(
-                itemEntity(4875L, "TeleportationPylonPurity", "Forest Pylon", "森林晶塔", "https://terraria.wiki.gg/images/Forest_Pylon.png")
+                itemEntity(4875L, "TeleportationPylonPurity", "Forest Pylon", "Forest Pylon", "https://terraria.wiki.gg/images/Forest_Pylon.png")
             ));
 
             RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(9001L, 4);
 
             RecipeTreeNodeDTO groupNode = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
-            assertEquals("任意晶塔", groupNode.getDisplayName());
+            assertEquals("Any Pylon", groupNode.getDisplayName());
             assertEquals("Any Pylon", groupNode.getSecondaryName());
             assertEquals("Any Pylon", groupNode.getGroupCanonicalName());
             assertEquals(1, groupNode.getGroupMembers().size());
@@ -366,12 +420,7 @@ class RecipeTreeServiceImplTest {
             """);
         try {
             System.setProperty("user.dir", repoRoot.resolve("back").toString());
-            RecipeTreeServiceImpl service = new RecipeTreeServiceImpl(
-                itemService,
-                recipeService,
-                new ObjectMapper(),
-                itemMapper
-            );
+            RecipeTreeServiceImpl service = newService();
 
             ItemDTO item = recipeTreeItem(4745L, "CoffinMinecart", "Coffin Minecart", "Coffin Minecart");
             RecipeIngredientDTO groupIngredient = groupIngredient("Any Wood", "10");
@@ -401,19 +450,15 @@ class RecipeTreeServiceImplTest {
         }
     }
 
-    @Test
-    void shouldNotRejectDemonRecipeMemberImagesAsDemoImages() throws Exception {
-        RecipeTreeServiceImpl service = new RecipeTreeServiceImpl(
+    private RecipeTreeServiceImpl newService() {
+        return new RecipeTreeServiceImpl(
             itemService,
             recipeService,
             new ObjectMapper(),
-            itemMapper
+            itemMapper,
+            managedItemImageResolver,
+            managedImageUrlPolicy
         );
-        Method method = RecipeTreeServiceImpl.class.getDeclaredMethod("acceptableWikiItemIconUrl", String.class);
-        method.setAccessible(true);
-
-        assertEquals(Boolean.TRUE, method.invoke(service, "https://terraria.wiki.gg/images/Living_Demon_Fire_Block.png"));
-        assertEquals(Boolean.FALSE, method.invoke(service, "https://terraria.wiki.gg/images/Work_Bench_demo.png"));
     }
 
     private ItemDTO recipeTreeItem(Long id, String internalName, String name, String nameZh) {

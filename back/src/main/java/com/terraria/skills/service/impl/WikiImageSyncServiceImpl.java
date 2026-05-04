@@ -19,6 +19,7 @@ import com.terraria.skills.service.WikiImageSyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -42,11 +43,17 @@ import java.util.Objects;
 public class WikiImageSyncServiceImpl implements WikiImageSyncService {
 
     private static final List<String> WIKI_IMAGE_PROVIDERS = List.of("wiki_gg", "terraria.wiki.gg");
+    private static final String MAINT_DATABASE_NAME = "terria_v1_maint";
+    private static final String RELATION_DATABASE_NAME = "terria_v1_relation";
+    private static final String PROJECTION_ARMOR_SETS_TABLE = "projection_armor_sets";
+    private static final String MAINT_ARMOR_SET_IMAGES_TABLE = "maint_armor_set_images";
+    private static final String RELATION_ARMOR_SET_IMAGES_TABLE = "relation_armor_set_images";
 
     private final ItemImageMapper itemImageMapper;
     private final ItemMapper itemMapper;
     private final BuffMapper buffMapper;
     private final BiomeMapper biomeMapper;
+    private final JdbcTemplate jdbcTemplate;
     private final MinioConnectionDetails connectionDetails;
     private final WikiImageLocalizationService wikiImageLocalizationService;
 
@@ -58,6 +65,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
         boolean includeItemImages = safeRequest.getIncludeItemImages() == null || safeRequest.getIncludeItemImages();
         boolean includeBuffs = safeRequest.getIncludeBuffs() == null || safeRequest.getIncludeBuffs();
         boolean includeBiomes = safeRequest.getIncludeBiomes() == null || safeRequest.getIncludeBiomes();
+        boolean includeArmorSets = safeRequest.getIncludeArmorSets() == null || safeRequest.getIncludeArmorSets();
 
         AdminWikiImageSyncResultDTO result = new AdminWikiImageSyncResultDTO();
         result.setBucket(connectionDetails.bucket());
@@ -77,6 +85,10 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
         if (includeBiomes) {
             runScopeSafely(result.getBiomes(), () -> syncBiomeIcons(result.getBiomes(), limit, uploadCache));
             result.accumulate(result.getBiomes());
+        }
+        if (includeArmorSets) {
+            runScopeSafely(result.getArmorSets(), () -> syncArmorSetImages(result.getArmorSets(), limit, force, uploadCache));
+            result.accumulate(result.getArmorSets());
         }
 
         LocalDateTime finishedAt = LocalDateTime.now();
@@ -180,6 +192,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                     existingImage.setLastVerifiedAt(LocalDateTime.now());
                     itemImageMapper.updateById(existingImage);
                 }
+                backfillItemDisplayImage(item, existingImage.getCachedUrl());
                 scope.setSkippedCount(scope.getSkippedCount() + 1);
                 continue;
             }
@@ -205,6 +218,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                     existingImage.setLastVerifiedAt(LocalDateTime.now());
                     itemImageMapper.updateById(existingImage);
                 }
+                backfillItemDisplayImage(item, existingImage.getCachedUrl());
                 scope.setSyncedCount(scope.getSyncedCount() + 1);
                 scope.addSampleUrl(upload.getUrl());
             } catch (Exception exception) {
@@ -228,6 +242,17 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
         image.setStatus(1);
         image.setDeleted(0);
         return image;
+    }
+
+    private void backfillItemDisplayImage(Item item, String managedUrl) {
+        if (item == null || item.getId() == null || !isManagedUrl(managedUrl) || isManagedUrl(item.getImage())) {
+            return;
+        }
+        Item update = new Item();
+        update.setId(item.getId());
+        update.setImage(managedUrl.trim());
+        itemMapper.updateById(update);
+        item.setImage(managedUrl.trim());
     }
 
     private ItemImage findMatchingLegacyItemImage(List<ItemImage> images, Item item, String sourceUrl) {
@@ -299,8 +324,8 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
 
             if (!force && isManagedUrl(cachedUrl)) {
                 if (isWikiUrl(sourceUrl) && shouldBackfillBuffImageFallback(buff, sourceUrl)) {
-                    buff.setImage(sourceUrl);
                     buff.setImageOriginalUrl(sourceUrl);
+                    buff.setImage(cachedUrl);
                     buff.setImageLastVerifiedAt(LocalDateTime.now());
                     buffMapper.updateById(buff);
                 }
@@ -321,7 +346,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                     "wiki/buffs/" + hashPrefix(sourceUrl),
                     buildStableId(sourceUrl, firstNonBlank(buff.getInternalName(), buff.getEnglishName(), buff.getNameZh(), "buff"))
                 );
-                buff.setImage(upload.getSourceUrl());
+                buff.setImage(upload.getUrl());
                 buff.setImageOriginalUrl(upload.getSourceUrl());
                 buff.setImageCachedUrl(upload.getUrl());
                 buff.setImageContentType(upload.getContentType());
@@ -387,6 +412,304 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                 log.warn("Failed to sync biome icon id={} url={}", biome.getId(), currentUrl, exception);
                 scope.setFailedCount(scope.getFailedCount() + 1);
                 scope.addSampleError("biomes#" + biome.getId() + ": " + trimErrorMessage(exception));
+            }
+        }
+    }
+
+    private void syncArmorSetImages(
+        AdminWikiImageSyncScopeResultDTO scope,
+        Integer limit,
+        boolean force,
+        Map<String, FileUploadResultDTO> uploadCache
+    ) {
+        for (ArmorSetImageTable table : armorSetImageTables()) {
+            syncArmorSetImageTable(scope, table, limit, force, uploadCache);
+            if (limitReached(scope, limit)) {
+                break;
+            }
+        }
+        if (!limitReached(scope, limit)) {
+            for (ArmorSetImageRowTable table : armorSetImageRowTables()) {
+                syncArmorSetImageRowTable(scope, table, limit, force, uploadCache);
+                if (limitReached(scope, limit)) {
+                    break;
+                }
+            }
+        }
+    }
+
+    private List<ArmorSetImageTable> armorSetImageTables() {
+        List<ArmorSetImageTable> tables = new ArrayList<>();
+        tables.add(new ArmorSetImageTable("armor_sets", "armor_sets", false));
+        if (tableExistsInCurrentDatabase(PROJECTION_ARMOR_SETS_TABLE)) {
+            tables.add(new ArmorSetImageTable(PROJECTION_ARMOR_SETS_TABLE, PROJECTION_ARMOR_SETS_TABLE, true));
+        }
+        if (tableExists(RELATION_DATABASE_NAME, PROJECTION_ARMOR_SETS_TABLE)) {
+            tables.add(new ArmorSetImageTable(
+                RELATION_DATABASE_NAME + "." + PROJECTION_ARMOR_SETS_TABLE,
+                "`" + RELATION_DATABASE_NAME + "`.`" + PROJECTION_ARMOR_SETS_TABLE + "`",
+                true
+            ));
+        }
+        return tables;
+    }
+
+    private List<ArmorSetImageRowTable> armorSetImageRowTables() {
+        List<ArmorSetImageRowTable> tables = new ArrayList<>();
+        if (tableExists(MAINT_DATABASE_NAME, MAINT_ARMOR_SET_IMAGES_TABLE)) {
+            tables.add(new ArmorSetImageRowTable(
+                MAINT_DATABASE_NAME + "." + MAINT_ARMOR_SET_IMAGES_TABLE,
+                "`" + MAINT_DATABASE_NAME + "`.`" + MAINT_ARMOR_SET_IMAGES_TABLE + "`"
+            ));
+        }
+        if (tableExists(RELATION_DATABASE_NAME, RELATION_ARMOR_SET_IMAGES_TABLE)) {
+            tables.add(new ArmorSetImageRowTable(
+                RELATION_DATABASE_NAME + "." + RELATION_ARMOR_SET_IMAGES_TABLE,
+                "`" + RELATION_DATABASE_NAME + "`.`" + RELATION_ARMOR_SET_IMAGES_TABLE + "`"
+            ));
+        }
+        return tables;
+    }
+
+    private boolean tableExistsInCurrentDatabase(String tableName) {
+        try {
+            Long count = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM information_schema.tables
+                WHERE table_schema = DATABASE() AND table_name = ?
+                """,
+                Long.class,
+                tableName
+            );
+            return count != null && count > 0;
+        } catch (Exception exception) {
+            log.debug("{} is not available in current database", tableName, exception);
+            return false;
+        }
+    }
+
+    private boolean tableExists(String schemaName, String tableName) {
+        try {
+            Long count = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM information_schema.tables
+                WHERE table_schema = ? AND table_name = ?
+                """,
+                Long.class,
+                schemaName,
+                tableName
+            );
+            return count != null && count > 0;
+        } catch (Exception exception) {
+            log.debug("{}.{} is not available", schemaName, tableName, exception);
+            return false;
+        }
+    }
+
+    private void syncArmorSetImageTable(
+        AdminWikiImageSyncScopeResultDTO scope,
+        ArmorSetImageTable table,
+        Integer limit,
+        boolean force,
+        Map<String, FileUploadResultDTO> uploadCache
+    ) {
+        List<Map<String, Object>> rows;
+        try {
+            rows = jdbcTemplate.queryForList("""
+                SELECT id, source_key, text_key, %s, male_images, female_images, special_images
+                FROM %s
+                ORDER BY id
+                """.formatted(table.projection() ? "name" : "NULL AS name", table.tableExpression()));
+        } catch (Exception exception) {
+            log.warn("Failed to sync armor set image table {}", table.label(), exception);
+            scope.setFailedCount(scope.getFailedCount() + 1);
+            scope.addSampleError(table.label() + ": " + trimErrorMessage(exception));
+            return;
+        }
+
+        for (Map<String, Object> row : rows) {
+            Long id = asLong(row.get("id"));
+            String stableHint = firstNonBlank(
+                asString(row.get("source_key")),
+                asString(row.get("text_key")),
+                asString(row.get("name")),
+                table.label()
+            );
+            ArmorSetCsvSync maleImages = syncArmorSetImageCsv(
+                scope,
+                table.label(),
+                id,
+                stableHint,
+                "male_images",
+                asString(row.get("male_images")),
+                limit,
+                force,
+                uploadCache
+            );
+            ArmorSetCsvSync femaleImages = syncArmorSetImageCsv(
+                scope,
+                table.label(),
+                id,
+                stableHint,
+                "female_images",
+                asString(row.get("female_images")),
+                limit,
+                force,
+                uploadCache
+            );
+            ArmorSetCsvSync specialImages = syncArmorSetImageCsv(
+                scope,
+                table.label(),
+                id,
+                stableHint,
+                "special_images",
+                asString(row.get("special_images")),
+                limit,
+                force,
+                uploadCache
+            );
+
+            if (maleImages.changed() || femaleImages.changed() || specialImages.changed()) {
+                jdbcTemplate.update(
+                    "UPDATE " + table.tableExpression() + " SET male_images = ?, female_images = ?, special_images = ? WHERE id = ?",
+                    maleImages.csv(),
+                    femaleImages.csv(),
+                    specialImages.csv(),
+                    id
+                );
+            }
+            if (limitReached(scope, limit)) {
+                break;
+            }
+        }
+    }
+
+    private ArmorSetCsvSync syncArmorSetImageCsv(
+        AdminWikiImageSyncScopeResultDTO scope,
+        String tableLabel,
+        Long armorSetId,
+        String stableHint,
+        String column,
+        String csv,
+        Integer limit,
+        boolean force,
+        Map<String, FileUploadResultDTO> uploadCache
+    ) {
+        String[] urls = splitCsv(csv);
+        boolean changed = false;
+        for (int index = 0; index < urls.length; index++) {
+            String currentUrl = normalizeFetchUrl(urls[index]);
+            if (!shouldConsiderWikiSource(currentUrl, urls[index])) {
+                continue;
+            }
+            if (limitReached(scope, limit)) {
+                break;
+            }
+            scope.setCandidateCount(scope.getCandidateCount() + 1);
+
+            if (!force && isManagedUrl(urls[index])) {
+                scope.setSkippedCount(scope.getSkippedCount() + 1);
+                continue;
+            }
+            if (!isWikiUrl(currentUrl)) {
+                scope.setFailedCount(scope.getFailedCount() + 1);
+                scope.addSampleError(tableLabel + "#" + armorSetId + "." + column + " missing wiki source url");
+                continue;
+            }
+
+            try {
+                FileUploadResultDTO upload = uploadFromWikiSource(
+                    uploadCache,
+                    currentUrl,
+                    "wiki/armor-sets/" + hashPrefix(currentUrl),
+                    buildStableId(currentUrl, firstNonBlank(stableHint, column, "armor-set"))
+                );
+                urls[index] = upload.getUrl();
+                changed = true;
+                scope.setSyncedCount(scope.getSyncedCount() + 1);
+                scope.addSampleUrl(upload.getUrl());
+            } catch (Exception exception) {
+                log.warn("Failed to sync armor set image table={} id={} column={} url={}", tableLabel, armorSetId, column, currentUrl, exception);
+                scope.setFailedCount(scope.getFailedCount() + 1);
+                scope.addSampleError(tableLabel + "#" + armorSetId + "." + column + ": " + trimErrorMessage(exception));
+            }
+        }
+        return new ArmorSetCsvSync(joinCsv(urls), changed);
+    }
+
+    private void syncArmorSetImageRowTable(
+        AdminWikiImageSyncScopeResultDTO scope,
+        ArmorSetImageRowTable table,
+        Integer limit,
+        boolean force,
+        Map<String, FileUploadResultDTO> uploadCache
+    ) {
+        List<Map<String, Object>> rows;
+        try {
+            rows = jdbcTemplate.queryForList("""
+                SELECT id, record_key, text_key, image_role, source_file_title, original_url, cached_url
+                FROM %s
+                WHERE deleted = 0
+                ORDER BY id
+                """.formatted(table.tableExpression()));
+        } catch (Exception exception) {
+            log.warn("Failed to sync armor set image row table {}", table.label(), exception);
+            scope.setFailedCount(scope.getFailedCount() + 1);
+            scope.addSampleError(table.label() + ": " + trimErrorMessage(exception));
+            return;
+        }
+
+        for (Map<String, Object> row : rows) {
+            if (limitReached(scope, limit)) {
+                break;
+            }
+            Long id = asLong(row.get("id"));
+            String cachedUrl = asString(row.get("cached_url"));
+            String sourceUrl = resolveSourceUrl(asString(row.get("original_url")), cachedUrl);
+            if (!shouldConsiderWikiSource(sourceUrl, cachedUrl)) {
+                continue;
+            }
+            scope.setCandidateCount(scope.getCandidateCount() + 1);
+
+            if (!force && isManagedUrl(cachedUrl)) {
+                scope.setSkippedCount(scope.getSkippedCount() + 1);
+                continue;
+            }
+            if (!isWikiUrl(sourceUrl)) {
+                scope.setFailedCount(scope.getFailedCount() + 1);
+                scope.addSampleError(table.label() + "#" + id + " missing wiki source url");
+                continue;
+            }
+
+            try {
+                FileUploadResultDTO upload = uploadFromWikiSource(
+                    uploadCache,
+                    sourceUrl,
+                    "wiki/armor-sets/" + hashPrefix(sourceUrl),
+                    buildStableId(
+                        sourceUrl,
+                        firstNonBlank(
+                            asString(row.get("source_file_title")),
+                            asString(row.get("text_key")),
+                            asString(row.get("image_role")),
+                            "armor-set"
+                        )
+                    )
+                );
+                jdbcTemplate.update(
+                    "UPDATE " + table.tableExpression() + " SET original_url = ?, cached_url = ? WHERE id = ?",
+                    sourceUrl,
+                    upload.getUrl(),
+                    id
+                );
+                scope.setSyncedCount(scope.getSyncedCount() + 1);
+                scope.addSampleUrl(upload.getUrl());
+            } catch (Exception exception) {
+                log.warn("Failed to sync armor set image row table={} id={} url={}", table.label(), id, sourceUrl, exception);
+                scope.setFailedCount(scope.getFailedCount() + 1);
+                scope.addSampleError(table.label() + "#" + id + ": " + trimErrorMessage(exception));
             }
         }
     }
@@ -548,6 +871,32 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    private String[] splitCsv(String value) {
+        String normalized = value == null ? "" : value;
+        if (normalized.isBlank()) {
+            return new String[0];
+        }
+        return normalized.split("\\s*,\\s*");
+    }
+
+    private String joinCsv(String[] values) {
+        return String.join(", ", values);
+    }
+
+    private String asString(Object value) {
+        return value == null ? null : String.valueOf(value);
+    }
+
+    private Long asLong(Object value) {
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        if (value == null) {
+            return null;
+        }
+        return Long.valueOf(String.valueOf(value));
+    }
+
     private String sha1Hex(String value) {
         try {
             MessageDigest messageDigest = MessageDigest.getInstance("SHA-1");
@@ -560,6 +909,15 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("SHA-1 algorithm is not available", exception);
         }
+    }
+
+    private record ArmorSetCsvSync(String csv, boolean changed) {
+    }
+
+    private record ArmorSetImageTable(String label, String tableExpression, boolean projection) {
+    }
+
+    private record ArmorSetImageRowTable(String label, String tableExpression) {
     }
 
     @FunctionalInterface

@@ -11,6 +11,7 @@ import com.terraria.skills.entity.BossGroup;
 import com.terraria.skills.entity.Npc;
 import com.terraria.skills.mapper.BossGroupMapper;
 import com.terraria.skills.mapper.NpcMapper;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -90,6 +91,7 @@ public class AdminBossController {
     private final NpcMapper npcMapper;
     private final ObjectMapper objectMapper;
     private final JdbcTemplate jdbcTemplate;
+    private final ManagedImageUrlPolicy managedImageUrlPolicy;
 
     @GetMapping
     @Operation(summary = "Get boss groups")
@@ -257,7 +259,7 @@ public class AdminBossController {
         payload.put("nameZh", bossGroup.getNameZh());
         payload.put("name", firstNonBlank(bossGroup.getNameZh(), bossGroup.getNameEn(), bossGroup.getCode()));
         payload.put("bossType", bossGroup.getBossType());
-        payload.put("imageUrl", bossGroup.getImageUrl());
+        payload.put("imageUrl", managedImageOrNull(bossGroup.getImageUrl()));
         payload.put("progressionOrder", bossGroup.getProgressionOrder());
         payload.put("notes", bossGroup.getNotes());
         payload.put("summonMethod", resolveSummonMethod(bossGroup));
@@ -320,7 +322,7 @@ public class AdminBossController {
         if (npcId == null || jdbcTemplate == null) {
             return List.of();
         }
-        return jdbcTemplate.queryForList(
+        return sanitizeDisplayImageFields(jdbcTemplate.queryForList(
             """
             SELECT
               nle.id,
@@ -353,7 +355,7 @@ public class AdminBossController {
               nle.id ASC
             """,
             npcId
-        );
+        ), "itemImage");
     }
 
     private int countLootEntriesByKind(List<Map<String, Object>> lootEntries, String kind) {
@@ -493,8 +495,8 @@ public class AdminBossController {
             return null;
         }
         return firstNonBlank(
-            trimToNull(supplement.get("imageUrl")),
-            extractImageUrlFromRawJson(supplement.get("rawJson"))
+            managedImageOrNull(trimToNull(supplement.get("imageUrl"))),
+            managedImageOrNull(extractImageUrlFromRawJson(supplement.get("rawJson")))
         );
     }
 
@@ -558,6 +560,32 @@ public class AdminBossController {
             }
         }
         return null;
+    }
+
+    private List<Map<String, Object>> sanitizeDisplayImageFields(List<Map<String, Object>> rows, String... fieldNames) {
+        if (rows == null || rows.isEmpty() || fieldNames == null || fieldNames.length == 0) {
+            return rows == null ? List.of() : rows;
+        }
+        List<Map<String, Object>> sanitizedRows = new ArrayList<>(rows.size());
+        for (Map<String, Object> row : rows) {
+            if (row == null) {
+                continue;
+            }
+            Map<String, Object> sanitizedRow = new LinkedHashMap<>(row);
+            for (String fieldName : fieldNames) {
+                sanitizedRow.put(fieldName, managedImageOrNull(trimToNull(row.get(fieldName))));
+            }
+            sanitizedRows.add(sanitizedRow);
+        }
+        return sanitizedRows;
+    }
+
+    private String managedImageOrNull(String value) {
+        String text = trimToNull(value);
+        if (text == null) {
+            return null;
+        }
+        return managedImageUrlPolicy.isManagedImageUrl(text) ? text : null;
     }
 
     private void syncMembers(Long bossGroupId, List<Long> memberNpcIds) {

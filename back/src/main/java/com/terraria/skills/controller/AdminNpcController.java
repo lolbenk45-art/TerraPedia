@@ -13,6 +13,7 @@ import com.terraria.skills.entity.Npc;
 import com.terraria.skills.mapper.BossGroupMapper;
 import com.terraria.skills.mapper.CategoryMapper;
 import com.terraria.skills.mapper.NpcMapper;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -68,6 +69,7 @@ public class AdminNpcController {
     private final BossGroupMapper bossGroupMapper;
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
+    private final ManagedImageUrlPolicy managedImageUrlPolicy;
     private volatile TimedValue<Map<Long, Map<String, Object>>> npcSupplementCache;
 
     @GetMapping
@@ -330,7 +332,7 @@ public class AdminNpcController {
         payload.put("value", toInteger(supplement.get("value")));
         payload.put("buffImmune", trimToNull(supplement.get("buffImmune")));
         payload.put("rawJson", trimToNull(supplement.get("rawJson")));
-        payload.put("imageUrl", firstNonBlank(npc.getImageUrl(), trimToNull(supplement.get("imageUrl"))));
+        payload.put("imageUrl", resolveNpcManagedImageUrl(npc, supplement));
         payload.put("bannerSourceItemId", npc.getBannerSourceItemId());
         payload.put("bannerItemId", npc.getBannerItemId());
         payload.put("catchSourceItemId", npc.getCatchSourceItemId());
@@ -409,7 +411,7 @@ public class AdminNpcController {
         payload.put("value", toInteger(supplement.get("value")));
         payload.put("buffImmune", trimToNull(supplement.get("buffImmune")));
         payload.put("rawJson", trimToNull(supplement.get("rawJson")));
-        payload.put("imageUrl", firstNonBlank(npc.getImageUrl(), trimToNull(supplement.get("imageUrl"))));
+        payload.put("imageUrl", resolveNpcManagedImageUrl(npc, supplement));
         payload.put("bannerSourceItemId", npc.getBannerSourceItemId());
         payload.put("bannerItemId", npc.getBannerItemId());
         payload.put("catchSourceItemId", npc.getCatchSourceItemId());
@@ -477,11 +479,11 @@ public class AdminNpcController {
     private Map<String, Object> toNpcSupplement(Map<?, ?> map) {
         Map<String, Object> payload = new LinkedHashMap<>();
         Map<?, ?> rawJson = parseMap(map.get("rawJson"));
-        payload.put("imageUrl", firstNonBlank(
+        payload.put("imageUrl", managedImageOrNull(firstNonBlank(
             trimToNull(map.get("imageUrl")),
             trimToNull(rawJson.get("imageUrl")),
             trimToNull(rawJson.get("image_url"))
-        ));
+        ), "admin npc supplement image"));
         payload.put("rawJson", map.get("rawJson"));
         payload.put("buffImmune", toJsonString(map.get("buffImmune")));
         Map<?, ?> combat = map.get("combat") instanceof Map<?, ?> combatMap ? combatMap : Map.of();
@@ -524,7 +526,7 @@ public class AdminNpcController {
 
     private List<Map<String, Object>> loadNpcLootEntries(Long npcId) {
         if (npcId == null || jdbcTemplate == null) return List.of();
-        return jdbcTemplate.queryForList(
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
             """
             SELECT
               nle.id,
@@ -550,6 +552,7 @@ public class AdminNpcController {
             """,
             npcId
         );
+        return sanitizeDisplayImageFields(rows, "admin npc loot", "itemImage");
     }
 
     private List<Map<String, Object>> loadNpcDerivedLootEntries(Long npcSourceId, String npcName) {
@@ -565,7 +568,7 @@ public class AdminNpcController {
     }
 
     private List<Map<String, Object>> loadNpcDerivedLootEntriesBySourceId(Long npcSourceId) {
-        return jdbcTemplate.queryForList(
+        return sanitizeDisplayImageFields(jdbcTemplate.queryForList(
             """
             SELECT
               ias.id,
@@ -596,11 +599,11 @@ public class AdminNpcController {
             ORDER BY ias.sort_order ASC, ias.id ASC
             """,
             npcSourceId
-        );
+        ), "admin npc derived loot by source", "itemImage");
     }
 
     private List<Map<String, Object>> loadNpcDerivedLootEntriesByName(String npcName) {
-        return jdbcTemplate.queryForList(
+        return sanitizeDisplayImageFields(jdbcTemplate.queryForList(
             """
             SELECT
               ias.id,
@@ -632,12 +635,12 @@ public class AdminNpcController {
             ORDER BY ias.sort_order ASC, ias.id ASC
             """,
             npcName
-        );
+        ), "admin npc derived loot by name", "itemImage");
     }
 
     private List<Map<String, Object>> loadNpcBuffRelations(Long npcId) {
         if (npcId == null || jdbcTemplate == null) return List.of();
-        return jdbcTemplate.queryForList(
+        return sanitizeDisplayImageFields(jdbcTemplate.queryForList(
             """
             SELECT
               nbr.id,
@@ -661,7 +664,7 @@ public class AdminNpcController {
             ORDER BY nbr.sort_order ASC, nbr.id ASC
             """,
             npcId
-        );
+        ), "admin npc buff relations", "buffImage");
     }
 
     private List<Map<String, Object>> loadNpcShopEntries(Long npcId) {
@@ -688,11 +691,47 @@ public class AdminNpcController {
         );
         List<Long> entryIds = entries.stream().map(row -> toLong(row.get("id"))).filter(Objects::nonNull).toList();
         Map<Long, List<Map<String, Object>>> conditionMap = loadNpcShopConditionMap(entryIds);
-        for (Map<String, Object> entry : entries) {
+        List<Map<String, Object>> sanitizedEntries = sanitizeDisplayImageFields(entries, "admin npc shop item image", "itemImage");
+        for (Map<String, Object> entry : sanitizedEntries) {
             Long entryId = toLong(entry.get("id"));
             entry.put("conditions", conditionMap.getOrDefault(entryId, List.of()));
         }
-        return entries;
+        return sanitizedEntries;
+    }
+
+    private String resolveNpcManagedImageUrl(Npc npc, Map<String, Object> supplement) {
+        return firstNonBlank(
+            managedImageOrNull(npc == null ? null : npc.getImageUrl(), "admin npc image_url"),
+            managedImageOrNull(trimToNull(supplement == null ? null : supplement.get("imageUrl")), "admin npc supplement image")
+        );
+    }
+
+    private List<Map<String, Object>> sanitizeDisplayImageFields(List<Map<String, Object>> rows, String context, String... fieldNames) {
+        if (rows == null || rows.isEmpty() || fieldNames == null || fieldNames.length == 0) {
+            return rows == null ? List.of() : rows;
+        }
+        List<Map<String, Object>> sanitizedRows = new ArrayList<>(rows.size());
+        for (Map<String, Object> row : rows) {
+            if (row == null) continue;
+            Map<String, Object> sanitizedRow = new LinkedHashMap<>(row);
+            for (String fieldName : fieldNames) {
+                sanitizedRow.put(fieldName, managedImageOrNull(trimToNull(row.get(fieldName)), context + "." + fieldName));
+            }
+            sanitizedRows.add(sanitizedRow);
+        }
+        return sanitizedRows;
+    }
+
+    private String managedImageOrNull(String value, String context) {
+        String text = trimToNull(value);
+        if (text == null) {
+            return null;
+        }
+        if (managedImageUrlPolicy.isManagedImageUrl(text)) {
+            return text;
+        }
+        log.warn("admin npc display image suppressed non-managed url context={}", context);
+        return null;
     }
 
     private Map<Long, List<Map<String, Object>>> loadNpcShopConditionMap(List<Long> entryIds) {

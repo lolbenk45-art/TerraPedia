@@ -2,6 +2,7 @@ package com.terraria.skills.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import com.terraria.skills.service.SupportDomainService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class AdminTownNpcMaintenanceControllerTest {
 
+    private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
+        @Override
+        public boolean isManagedImageUrl(String value) {
+            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/");
+        }
+
+        @Override
+        public List<String> trustedManagedImageUrlPrefixes() {
+            return List.of("http://localhost:9000/terrapedia-images/");
+        }
+    };
+
     @Mock
     private JdbcTemplate jdbcTemplate;
 
@@ -50,7 +63,8 @@ class AdminTownNpcMaintenanceControllerTest {
         AdminTownNpcMaintenanceController controller = new AdminTownNpcMaintenanceController(
             jdbcTemplate,
             objectMapper,
-            supportDomainService
+            supportDomainService,
+            MANAGED_IMAGE_URL_POLICY
         );
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
             .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
@@ -122,5 +136,23 @@ class AdminTownNpcMaintenanceControllerTest {
             .andExpect(jsonPath("$.data.summary.unmatchedShopNpcCount").value(1))
             .andExpect(jsonPath("$.data.summary.unmatchedShopItemCount").value(2))
             .andExpect(jsonPath("$.data.summary.rowsNeedingAttentionCount").value(1));
+    }
+
+    @Test
+    void shouldSuppressWikiNpcImageUrlInMaintenanceOverview() throws Exception {
+        Map<String, Object> generatedRecord = new LinkedHashMap<>();
+        generatedRecord.put("gameId", 1007001L);
+        generatedRecord.put("imageUrl", "https://terraria.wiki.gg/images/Guide.png");
+
+        when(objectMapper.readValue(any(File.class), any(TypeReference.class))).thenReturn(
+            Map.of(),
+            Map.of(),
+            Map.of("records", Map.of("1007001", generatedRecord)),
+            Map.of("records", Map.of("1007001", generatedRecord))
+        );
+
+        mockMvc.perform(get("/admin/town-npcs/maintenance"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.records[0].imageUrl").value(org.hamcrest.Matchers.nullValue()));
     }
 }

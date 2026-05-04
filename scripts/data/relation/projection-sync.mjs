@@ -1,3 +1,5 @@
+import { isManagedImageUrl } from './managed-image-url-policy.mjs';
+
 function parseJsonObject(value) {
   if (value == null) return {};
   if (typeof value === 'object' && !Array.isArray(value)) return value;
@@ -46,21 +48,38 @@ function stablePositiveBigIntId(value) {
   return hash === 0 ? 1 : hash;
 }
 
-function buildImageIndex(rows = [], entityKey) {
+function buildImageIndex(rows = [], entityKey, managedImageUrlPrefixes = []) {
   const index = new Map();
   for (const row of rows) {
     const key = row[entityKey];
     if (!key) continue;
     const current = index.get(key);
-    if (!current || Number(row.isPrimary ?? 0) > Number(current.isPrimary ?? 0)) {
+    if (!current || comparePreferredImageRows(row, current, managedImageUrlPrefixes) < 0) {
       index.set(key, row);
     }
   }
   return index;
 }
 
-function resolveWikiImageUrl(imageRow) {
-  return imageRow?.originalUrl ?? imageRow?.cachedUrl ?? null;
+function resolveProjectedImageUrl(imageRow, managedImageUrlPrefixes = []) {
+  return hasProjectedImageUrl(imageRow, managedImageUrlPrefixes) ? imageRow.cachedUrl.trim() : null;
+}
+
+function resolveManagedProjectionImageValue(value, managedImageUrlPrefixes = []) {
+  return isManagedImageUrl(value, managedImageUrlPrefixes) ? value.trim() : null;
+}
+
+function hasProjectedImageUrl(imageRow, managedImageUrlPrefixes = []) {
+  return isManagedImageUrl(imageRow?.cachedUrl, managedImageUrlPrefixes);
+}
+
+function comparePreferredImageRows(left, right, managedImageUrlPrefixes = []) {
+  const managedDelta = Number(hasProjectedImageUrl(right, managedImageUrlPrefixes))
+    - Number(hasProjectedImageUrl(left, managedImageUrlPrefixes));
+  if (managedDelta !== 0) return managedDelta;
+  const primaryDelta = Number(right?.isPrimary ?? 0) - Number(left?.isPrimary ?? 0);
+  if (primaryDelta !== 0) return primaryDelta;
+  return Number(left?.sortOrder ?? 0) - Number(right?.sortOrder ?? 0);
 }
 
 function buildRowsByKey(rows, keyName) {
@@ -307,15 +326,11 @@ const ARMOR_SET_IMAGE_ALIASES = new Map([
   ['ArmorSetBonus.HallowedSummoner', 'ArmorSetBonus.Hallowed']
 ]);
 
-function pickArmorSetImageUrl(rows, role) {
+function pickArmorSetImageUrl(rows, role, managedImageUrlPrefixes = []) {
   const candidates = rows
     .filter((row) => row?.imageRole === role)
-    .sort((left, right) => {
-      const primaryDelta = Number(right.isPrimary ?? 0) - Number(left.isPrimary ?? 0);
-      if (primaryDelta !== 0) return primaryDelta;
-      return Number(left.sortOrder ?? 0) - Number(right.sortOrder ?? 0);
-    });
-  return resolveWikiImageUrl(candidates[0]);
+    .sort((left, right) => comparePreferredImageRows(left, right, managedImageUrlPrefixes));
+  return resolveProjectedImageUrl(candidates[0], managedImageUrlPrefixes);
 }
 
 function findArmorSetImageRows(row, imagesByRecordKey, imagesByTextKey) {
@@ -334,7 +349,7 @@ function normalizeImageComparable(value) {
     .toLowerCase();
 }
 
-function findArmorSetPartImageUrl(item, images) {
+function findArmorSetPartImageUrl(item, images, managedImageUrlPrefixes = []) {
   const keys = [
     normalizeImageComparable(item?.itemInternalName),
     normalizeImageComparable(item?.itemName)
@@ -342,23 +357,14 @@ function findArmorSetPartImageUrl(item, images) {
   if (!keys.length) return null;
   const candidates = images
     .filter((row) => row?.imageRole === 'part')
-    .sort((left, right) => Number(left.sortOrder ?? 0) - Number(right.sortOrder ?? 0));
+    .sort((left, right) => comparePreferredImageRows(left, right, managedImageUrlPrefixes));
   for (const image of candidates) {
     const imageKey = normalizeImageComparable(image.sourceFileTitle);
     if (keys.some((key) => imageKey === key || imageKey.includes(key))) {
-      return resolveWikiImageUrl(image);
+      return resolveProjectedImageUrl(image, managedImageUrlPrefixes);
     }
   }
   return null;
-}
-
-function wikiItemFileUrl(item) {
-  const itemName = item?.itemName ?? item?.name;
-  if (typeof itemName !== 'string' || itemName.trim() === '') {
-    return null;
-  }
-  const fileName = `${itemName.trim().replace(/\s+/g, '_')}.png`;
-  return `https://terraria.wiki.gg/images/${encodeURIComponent(fileName).replace(/%2F/gi, '/')}`;
 }
 
 function displayArmorSetSourceKey(row, raw) {
@@ -389,9 +395,10 @@ export function buildProjectionPayload({
   relationBuffImages = [],
   relationArmorSets = [],
   relationArmorSetItems = [],
-  relationArmorSetImages = []
+  relationArmorSetImages = [],
+  managedImageUrlPrefixes = []
 } = {}) {
-  const itemImages = buildImageIndex(relationItemImages, 'itemInternalName');
+  const itemImages = buildImageIndex(relationItemImages, 'itemInternalName', managedImageUrlPrefixes);
   const itemRarities = new Map(
     relationItemRarities
       .filter((row) => row?.id != null)
@@ -412,16 +419,16 @@ export function buildProjectionPayload({
       .filter((row) => row?.itemInternalName)
       .map((row) => [row.itemInternalName, row])
   );
-  const npcImages = buildImageIndex(relationNpcImages, 'npcInternalName');
-  const projectileImages = buildImageIndex(relationProjectileImages, 'projectileInternalName');
-  const buffImages = buildImageIndex(relationBuffImages, 'buffInternalName');
+  const npcImages = buildImageIndex(relationNpcImages, 'npcInternalName', managedImageUrlPrefixes);
+  const projectileImages = buildImageIndex(relationProjectileImages, 'projectileInternalName', managedImageUrlPrefixes);
+  const buffImages = buildImageIndex(relationBuffImages, 'buffInternalName', managedImageUrlPrefixes);
   const armorSetItemsByRecordKey = buildRowsByKey(relationArmorSetItems, 'armorSetRecordKey');
   const armorSetImagesByRecordKey = buildRowsByKey(relationArmorSetImages, 'armorSetRecordKey');
   const armorSetImagesByTextKey = buildRowsByKey(relationArmorSetImages, 'textKey');
 
   const projectionItems = relationItems.map((row) => {
     const raw = parseJsonObject(row.rawJson);
-    const image = resolveWikiImageUrl(itemImages.get(row.internalName));
+    const image = resolveProjectedImageUrl(itemImages.get(row.internalName), managedImageUrlPrefixes);
     const numericOverride = numericOverrides.get(row.internalName) ?? null;
     const textOverride = textOverrides.get(row.internalName) ?? null;
     const rareRaw = toNullableNumber(row.rareRaw ?? raw.rare);
@@ -486,7 +493,7 @@ export function buildProjectionPayload({
       nameZh: row.nameZh ?? null,
       subName: null,
       subNameZh: row.subNameZh ?? null,
-      imageUrl: resolveWikiImageUrl(image),
+      imageUrl: resolveProjectedImageUrl(image, managedImageUrlPrefixes),
       categoryId: null,
       gamePeriodId: null,
       gameModelId: null,
@@ -656,7 +663,7 @@ export function buildProjectionPayload({
       internalName: row.internalName ?? null,
       name: row.englishName ?? row.internalName ?? null,
       nameZh: row.nameZh ?? null,
-      imageUrl: resolveWikiImageUrl(image),
+      imageUrl: resolveProjectedImageUrl(image, managedImageUrlPrefixes),
       aiStyle: toNullableNumber(raw.aiStyle),
       damage: toNullableNumber(raw.damage ?? row.combatValue),
       knockBack: toNullableNumber(raw.knockBack),
@@ -687,7 +694,7 @@ export function buildProjectionPayload({
     nameZh: row.nameZh ?? null,
     tooltipEn: row.tooltipEn ?? null,
     tooltipZh: row.tooltipZh ?? null,
-    image: buffImages.get(row.internalName)?.cachedUrl ?? null,
+    image: resolveProjectedImageUrl(buffImages.get(row.internalName), managedImageUrlPrefixes),
     buffType: row.buffType ?? null,
     sourceItemCount: toNullableNumber(row.sourceItemCount),
     immuneNpcCount: toNullableNumber(row.immuneNpcCount),
@@ -724,7 +731,8 @@ export function buildProjectionPayload({
         internalName: item.itemInternalName ?? null,
         name: item.itemName ?? null,
         nameZh: projectionItem?.nameZh ?? null,
-        image: projectionItem?.image ?? findArmorSetPartImageUrl(item, images) ?? wikiItemFileUrl(item),
+        image: resolveManagedProjectionImageValue(projectionItem?.image, managedImageUrlPrefixes)
+          ?? findArmorSetPartImageUrl(item, images, managedImageUrlPrefixes),
         partRole: item.partRole ?? null,
         slotType: item.slotType ?? null,
         equipmentSlotId: toNullableNumber(item.equipmentSlotId),
@@ -754,9 +762,11 @@ export function buildProjectionPayload({
       uniqueItemIdsJson: row.uniqueItemIdsJson ?? null,
       currentItemIdsJson: JSON.stringify(currentItemIds),
       relatedItemsJson: JSON.stringify(relatedItems),
-      maleImages: pickArmorSetImageUrl(images, 'male') ?? null,
-      femaleImages: pickArmorSetImageUrl(images, 'female') ?? null,
-      specialImages: pickArmorSetImageUrl(images, 'demo') ?? pickArmorSetImageUrl(images, 'other') ?? null,
+      maleImages: pickArmorSetImageUrl(images, 'male', managedImageUrlPrefixes) ?? null,
+      femaleImages: pickArmorSetImageUrl(images, 'female', managedImageUrlPrefixes) ?? null,
+      specialImages: pickArmorSetImageUrl(images, 'demo', managedImageUrlPrefixes)
+        ?? pickArmorSetImageUrl(images, 'other', managedImageUrlPrefixes)
+        ?? null,
       mappingStatus: hasUnresolved ? 'partial' : 'mapped',
       sourceProvider: row.sourceProvider ?? null,
       sourcePage: row.sourcePage ?? null,

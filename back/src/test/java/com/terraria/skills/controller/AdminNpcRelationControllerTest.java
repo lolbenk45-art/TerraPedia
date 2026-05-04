@@ -8,6 +8,7 @@ import com.terraria.skills.mapper.NpcLootEntryMapper;
 import com.terraria.skills.mapper.NpcMapper;
 import com.terraria.skills.mapper.NpcShopConditionMapper;
 import com.terraria.skills.mapper.NpcShopEntryMapper;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +41,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class AdminNpcRelationControllerTest {
 
+    private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
+        @Override
+        public boolean isManagedImageUrl(String value) {
+            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/");
+        }
+
+        @Override
+        public List<String> trustedManagedImageUrlPrefixes() {
+            return List.of("http://localhost:9000/terrapedia-images/");
+        }
+    };
+
     @Mock
     private NpcMapper npcMapper;
 
@@ -69,7 +82,8 @@ class AdminNpcRelationControllerTest {
             npcShopEntryMapper,
             npcShopConditionMapper,
             jdbcTemplate,
-            new ObjectMapper()
+            new ObjectMapper(),
+            MANAGED_IMAGE_URL_POLICY
         );
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
             .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
@@ -102,6 +116,49 @@ class AdminNpcRelationControllerTest {
         verify(jdbcTemplate).queryForList(queryCaptor.capture(), eq(7L));
         assertTrue(queryCaptor.getValue().contains("b.image_cached_url"));
         assertTrue(queryCaptor.getValue().contains("AS buffImage"));
+    }
+
+    @Test
+    void shouldSuppressWikiDisplayImagesForNpcRelationResponses() throws Exception {
+        Npc npc = new Npc();
+        npc.setId(7L);
+        npc.setGameId(22L);
+        npc.setInternalName("Guide");
+        npc.setName("Guide");
+        npc.setStatus(1);
+
+        when(npcMapper.selectById(7L)).thenReturn(npc);
+        when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries"), eq(7L))).thenReturn(List.of(Map.of(
+            "id", 11L,
+            "itemId", 12L,
+            "itemName", "Gel",
+            "itemImage", "https://terraria.wiki.gg/images/Gel.png"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(7L))).thenReturn(List.of(Map.of(
+            "id", 31L,
+            "buffId", 401L,
+            "buffInternalName", "Sharpened",
+            "buffImage", "https://terraria.wiki.gg/images/Sharpened.png"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries"), eq(7L))).thenReturn(List.of(Map.of(
+            "id", 41L,
+            "itemId", 12L,
+            "itemName", "Torch",
+            "itemImage", "https://static.wikia.nocookie.net/terraria_gamepedia/images/Torch.png"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_conditions"), any(Object[].class))).thenReturn(List.of());
+
+        mockMvc.perform(get("/admin/npcs/7/loot"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].itemImage").doesNotExist());
+
+        mockMvc.perform(get("/admin/npcs/7/buff-relations"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].buffImage").doesNotExist());
+
+        mockMvc.perform(get("/admin/npcs/7/shop-entries"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].itemImage").doesNotExist());
     }
 
     @Test

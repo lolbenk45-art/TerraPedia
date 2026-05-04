@@ -9,6 +9,7 @@ import com.terraria.skills.common.Pagination;
 import com.terraria.skills.common.PaginationParams;
 import com.terraria.skills.entity.Buff;
 import com.terraria.skills.mapper.BuffMapper;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -63,6 +64,7 @@ public class AdminBuffController {
     private final BuffMapper buffMapper;
     private final ObjectMapper objectMapper;
     private final JdbcTemplate jdbcTemplate;
+    private final ManagedImageUrlPolicy managedImageUrlPolicy;
 
     @GetMapping
     @Operation(summary = "Get buffs")
@@ -314,7 +316,10 @@ public class AdminBuffController {
             payload.put("name", firstNonBlank(trimToNull(firstNonNull(entry, "nameZh", "name")), trimToNull(resolvedItem.get("nameZh")), trimToNull(resolvedItem.get("name"))));
             payload.put("nameEn", firstNonBlank(trimToNull(firstNonNull(entry, "nameEn")), trimToNull(resolvedItem.get("name"))));
             payload.put("nameZh", firstNonBlank(trimToNull(firstNonNull(entry, "nameZh")), trimToNull(resolvedItem.get("nameZh"))));
-            payload.put("image", firstNonBlank(trimToNull(firstNonNull(entry, "image")), normalizeAssetUrl(trimToNull(resolvedItem.get("image")))));
+            payload.put("image", firstNonBlank(
+                managedImageOrNull(trimToNull(firstNonNull(entry, "image"))),
+                managedImageOrNull(trimToNull(resolvedItem.get("image")))
+            ));
             payload.put("buffTime", toInteger(firstNonNull(entry, "buffTime")));
             payload.put("sortOrder", toInteger(firstNonNull(entry, "sortOrder")) != null ? toInteger(firstNonNull(entry, "sortOrder")) : index);
             if (payload.get("sourceItemId") == null && payload.get("itemId") == null && payload.get("internalName") == null) {
@@ -377,10 +382,10 @@ public class AdminBuffController {
                 ? Map.of()
                 : npcSupplementMap.getOrDefault(String.valueOf(resolvedNpcId), Map.of());
 
-            String npcImage = normalizeAssetUrl(firstNonBlank(
-                trimToNull(supplement.get("imageUrl")),
-                extractNpcImageUrl(npcRow.get("rawJson"))
-            ));
+            String npcImage = firstNonBlank(
+                managedImageOrNull(trimToNull(supplement.get("imageUrl"))),
+                managedImageOrNull(extractNpcImageUrl(npcRow.get("rawJson")))
+            );
             Long bannerItemId = toLong(npcRow.get("bannerItemId"));
             Long catchItemId = toLong(npcRow.get("catchItemId"));
             String itemFallbackImage = firstNonBlank(
@@ -390,7 +395,7 @@ public class AdminBuffController {
             String image = firstNonBlank(
                 npcImage,
                 itemFallbackImage,
-                normalizeAssetUrl(trimToNull(firstNonNull(entry, "image", "imageUrl")))
+                managedImageOrNull(trimToNull(firstNonNull(entry, "image", "imageUrl")))
             );
 
             Map<String, Object> payload = new LinkedHashMap<>();
@@ -463,8 +468,8 @@ public class AdminBuffController {
         Set<Long> fallbackItemIds = new LinkedHashSet<>();
         for (Map<String, Object> row : rows) {
             String directImage = firstNonBlank(
-                normalizeAssetUrl(trimToNull(row.get("imageUrl"))),
-                extractNpcImageUrl(row.get("rawJson"))
+                managedImageOrNull(trimToNull(row.get("imageUrl"))),
+                managedImageOrNull(extractNpcImageUrl(row.get("rawJson")))
             );
             if (directImage != null) continue;
             Long bannerItemId = toLong(row.get("bannerItemId"));
@@ -483,8 +488,8 @@ public class AdminBuffController {
                 catchItemId == null ? null : itemImagesById.get(catchItemId)
             );
             String image = firstNonBlank(
-                normalizeAssetUrl(trimToNull(row.get("imageUrl"))),
-                extractNpcImageUrl(row.get("rawJson")),
+                managedImageOrNull(trimToNull(row.get("imageUrl"))),
+                managedImageOrNull(extractNpcImageUrl(row.get("rawJson"))),
                 itemFallbackImage
             );
             String notes = trimToNull(row.get("notes"));
@@ -804,7 +809,7 @@ public class AdminBuffController {
         for (Map<String, Object> row : rows) {
             Long itemId = toLong(row.get("id"));
             if (itemId != null) {
-                lookup.put(itemId, normalizeAssetUrl(trimToNull(row.get("image"))));
+                lookup.put(itemId, managedImageOrNull(trimToNull(row.get("image"))));
             }
         }
         return lookup;
@@ -929,7 +934,7 @@ public class AdminBuffController {
                 payload.put("nameEn", row.get("nameEn"));
                 payload.put("nameZh", row.get("nameZh"));
                 payload.put("internalName", row.get("internalName"));
-                payload.put("image", normalizeAssetUrl(trimToNull(row.get("image"))));
+                payload.put("image", managedImageOrNull(trimToNull(row.get("image"))));
                 payload.put("buffTime", row.get("buffTime"));
                 payload.put("sortOrder", row.get("sortOrder"));
                 return payload;
@@ -967,7 +972,7 @@ public class AdminBuffController {
                 payload.put("nameEn", row.get("name"));
                 payload.put("nameZh", row.get("nameZh"));
                 payload.put("internalName", row.get("internalName"));
-                payload.put("image", normalizeAssetUrl(trimToNull(row.get("image"))));
+                payload.put("image", managedImageOrNull(trimToNull(row.get("image"))));
                 payload.put("buffTime", null);
                 payload.put("sortOrder", 0);
                 payload.put("sourcePage", sourcePage);
@@ -1069,24 +1074,30 @@ public class AdminBuffController {
     }
 
     private String resolveBuffFallbackImageUrl(Buff buff) {
-        if (buff == null) return null;
-        return firstNonBlank(
-            normalizeAssetUrl(buff.getImageOriginalUrl()),
-            isManagedUrl(buff.getImage()) ? null : normalizeAssetUrl(buff.getImage())
-        );
+        return resolveBuffManagedImageUrl(buff);
     }
 
     private String resolveBuffCachedImageUrl(Buff buff) {
+        return resolveBuffManagedImageUrl(buff);
+    }
+
+    private String resolveBuffManagedImageUrl(Buff buff) {
         if (buff == null) return null;
         return firstNonBlank(
-            normalizeAssetUrl(buff.getImageCachedUrl()),
-            isManagedUrl(buff.getImage()) ? normalizeAssetUrl(buff.getImage()) : null
+            managedImageOrNull(buff.getImageCachedUrl()),
+            managedImageOrNull(buff.getImage()),
+            managedImageOrNull(buff.getImageOriginalUrl())
         );
+    }
+
+    private String managedImageOrNull(String value) {
+        String normalized = normalizeAssetUrl(value);
+        return isManagedUrl(normalized) ? normalized : null;
     }
 
     private boolean isManagedUrl(String value) {
         String normalized = trimToNull(value);
-        return normalized != null && normalized.contains("/terrapedia-images/");
+        return normalized != null && managedImageUrlPolicy.isManagedImageUrl(normalized);
     }
 
     private String normalizeWikiImagePath(String value) {

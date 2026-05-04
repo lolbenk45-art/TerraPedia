@@ -1,7 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { parseArgs, runSync } from './sync-maint-to-relation.mjs';
+import {
+  parseArgs,
+  rewriteArmorSetRelatedItemImages,
+  runSync as runSyncBase
+} from './sync-maint-to-relation.mjs';
+
+const MANAGED_IMAGE_URL_PREFIXES = [
+  'http://localhost:9000/terrapedia-images/items/',
+  'http://127.0.0.1:9000/terrapedia-images/items/'
+];
+
+function runSync(options, dependencies = {}) {
+  return runSyncBase(options, {
+    managedImageUrlPrefixes: MANAGED_IMAGE_URL_PREFIXES,
+    ...dependencies
+  });
+}
 
 test('parseArgs parses relation sync defaults and scopes', () => {
   const actual = parseArgs([
@@ -15,7 +31,7 @@ test('parseArgs parses relation sync defaults and scopes', () => {
     apply: true,
     createDatabase: false,
     maintDatabase: 'terria_v1_maint',
-    localDatabase: null,
+    localDatabase: 'terria_v1_local',
     allowLocalItemImageFallback: true,
     relationDatabase: 'terria_v1_relation',
     wikiArmorSetsInput: actual.wikiArmorSetsInput,
@@ -24,8 +40,64 @@ test('parseArgs parses relation sync defaults and scopes', () => {
   assert.match(actual.wikiArmorSetsInput, /data[\\/]+generated[\\/]+wiki-armor-sets\.latest\.json$/);
 });
 
+test('rewriteArmorSetRelatedItemImages keeps armor set related item images managed-only', () => {
+  const relatedItems = [
+    {
+      internalName: 'WoodHelmet',
+      image: 'https://terraria.wiki.gg/images/Wood_Helmet.png'
+    },
+    {
+      internalName: 'WoodBreastplate',
+      image: null
+    },
+    {
+      internalName: 'UnknownHat',
+      image: 'https://terraria.wiki.gg/images/Unknown_Hat.png'
+    },
+    {
+      internalName: 'FakeManagedHat',
+      image: 'https://evil.example.com/terrapedia-images/items/fake-managed-hat.png'
+    }
+  ];
+  const imageByInternalName = new Map([
+    ['woodhelmet', 'http://localhost:9000/terrapedia-images/items/wood-helmet.png'],
+    ['woodbreastplate', 'http://localhost:9000/terrapedia-images/items/wood-breastplate.png']
+  ]);
+
+  const actual = rewriteArmorSetRelatedItemImages(
+    relatedItems,
+    imageByInternalName,
+    MANAGED_IMAGE_URL_PREFIXES
+  );
+
+  assert.equal(actual.changed, true);
+  assert.equal(actual.items[0].image, 'http://localhost:9000/terrapedia-images/items/wood-helmet.png');
+  assert.equal(actual.items[1].image, 'http://localhost:9000/terrapedia-images/items/wood-breastplate.png');
+  assert.equal(actual.items[2].image, null);
+  assert.equal(actual.items[3].image, null);
+  assert.doesNotMatch(JSON.stringify(actual.items), /terraria\.wiki\.gg|static\.wikia/i);
+  assert.doesNotMatch(JSON.stringify(actual.items), /evil\.example\.com/i);
+});
+
+test('rewriteArmorSetRelatedItemImages rejects managed-like existing images when prefixes are empty', () => {
+  const actual = rewriteArmorSetRelatedItemImages(
+    [
+      {
+        internalName: 'UnknownHat',
+        image: 'http://localhost:9000/terrapedia-images/items/unknown-hat.png'
+      }
+    ],
+    new Map(),
+    []
+  );
+
+  assert.equal(actual.changed, true);
+  assert.equal(actual.items[0].image, null);
+});
+
 test('runSync dry-run reads maint only and does not write relation rows', async () => {
   const reads = [];
+  const relationReads = [];
   let writeCalled = false;
 
   const result = await runSync(
@@ -127,6 +199,10 @@ test('runSync dry-run reads maint only and does not write relation rows', async 
         if (sql.includes('maint_item_images')) return [];
         return [];
       },
+      queryRelation: async (sql) => {
+        relationReads.push(['relation', sql]);
+        return [];
+      },
       writeReports: async () => ({
         auditJsonPath: 'reports/relation/relation-audit-2026-04-24.json',
         auditMdPath: 'reports/relation/relation-audit-2026-04-24.md',
@@ -142,6 +218,7 @@ test('runSync dry-run reads maint only and does not write relation rows', async 
   assert.equal(result.apply, false);
   assert.ok(reads.some(([kind]) => kind === 'maint'));
   assert.ok(reads.every(([kind]) => kind === 'maint'));
+  assert.ok(relationReads.some(([, sql]) => sql.includes('relation_armor_set_images')));
   assert.equal(writeCalled, false);
   assert.equal(result.summary.domainSummary.base, 4);
   assert.equal(result.summary.domainSummary.image, 3);
@@ -469,8 +546,25 @@ test('runSync apply mode clears stale relation tables before writing current sna
         unresolvedPath: 'reports/relation/relation-unresolved-2026-04-25.json'
       }),
       executeRelation: async (fn) => fn({
-        query: async (sql) => {
+        query: async (sql, params = []) => {
           statements.push(sql);
+          if (sql.includes('SELECT id, related_items_json')) {
+            return [[{
+              id: 88,
+              related_items_json: JSON.stringify([
+                {
+                  internalName: 'AmmoBox',
+                  image: 'https://terraria.wiki.gg/images/Ammo_Box.png'
+                }
+              ])
+            }], []];
+          }
+          if (sql.includes('FROM `terria_v1_local`.`items`')) {
+            return [[{
+              internal_name: 'AmmoBox',
+              image: 'http://localhost:9000/terrapedia-images/items/ammo-box.png'
+            }], []];
+          }
           return [[], []];
         },
         execute: async (sql) => {
@@ -496,10 +590,23 @@ test('runSync apply mode clears stale relation tables before writing current sna
   assert.ok(statements.some((sql) => sql.includes('SET ri.stack_size = mi.stack_size')));
   assert.ok(statements.some((sql) => sql.includes('UPDATE `projection_items` pi')));
   assert.ok(statements.some((sql) => sql.includes('pi.stack_size = ri.stack_size')));
-  assert.ok(statements.some((sql) => sql.includes('SET pi.image = COALESCE(mi.cached_url, mi.original_url)')));
+  assert.ok(statements.some((sql) => sql.includes('SET pi.image = picked.cached_url')));
+  assert.ok(statements.some((sql) => sql.includes('ROW_NUMBER() OVER')));
+  assert.ok(statements.some((sql) => sql.includes('ORDER BY COALESCE(mi.is_primary, 0) DESC, COALESCE(mi.sort_order, 2147483647) ASC, mi.id ASC')));
+  assert.ok(statements.some((sql) => sql.includes('AND mi.cached_url IS NOT NULL')));
+  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(mi.cached_url) LIKE BINARY 'http://localhost:9000/terrapedia-images/items/%'")));
+  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(mi.cached_url) LIKE BINARY 'http://127.0.0.1:9000/terrapedia-images/items/%'")));
+  assert.ok(statements.every((sql) => !sql.includes('SET pi.image = COALESCE(mi.cached_url, mi.original_url)')));
   assert.ok(statements.some((sql) => sql.includes('INNER JOIN `terria_v1_local`.`items` li')));
   assert.ok(statements.some((sql) => sql.includes('SET pi.image = li.image')));
-  assert.ok(statements.some((sql) => sql.includes('(pi.image IS NULL OR TRIM(pi.image) = \'\')')));
+  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(pi.image) NOT LIKE BINARY 'http://localhost:9000/terrapedia-images/items/%'")));
+  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(pi.image) NOT LIKE BINARY 'http://127.0.0.1:9000/terrapedia-images/items/%'")));
+  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(li.image) LIKE BINARY 'http://localhost:9000/terrapedia-images/items/%'")));
+  assert.ok(statements.some((sql) => sql.includes("BINARY TRIM(li.image) LIKE BINARY 'http://127.0.0.1:9000/terrapedia-images/items/%'")));
+  assert.ok(statements.every((sql) => !sql.includes("LIKE '%/terrapedia-images/%'")));
+  assert.ok(statements.some((sql) => sql.includes('SELECT id, related_items_json')));
+  assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_local`.`items`')));
+  assert.ok(statements.some((sql) => sql.includes('UPDATE `projection_armor_sets` SET related_items_json = ?')));
   assert.ok(statements.some((sql) => sql.includes('DROP TABLE IF EXISTS `terria_v1_relation`.`item_npc_shop_candidates`')));
   assert.ok(statements.some((sql) => sql.includes('DROP TABLE IF EXISTS `terria_v1_relation`.`item_npc_loot_candidates`')));
   assert.ok(statements.every((sql) => !sql.includes('item_npc_shop_candidates` (`record_key`')));
@@ -686,6 +793,69 @@ test('runSync apply mode can disable local item image fallback explicitly', asyn
     }
   );
 
-  assert.ok(statements.some((sql) => sql.includes('SET pi.image = COALESCE(mi.cached_url, mi.original_url)')));
+  assert.ok(statements.some((sql) => sql.includes('SET pi.image = picked.cached_url')));
+  assert.ok(statements.some((sql) => sql.includes('ROW_NUMBER() OVER')));
+  assert.ok(statements.every((sql) => !sql.includes('SET pi.image = COALESCE(mi.cached_url, mi.original_url)')));
   assert.ok(statements.every((sql) => !sql.includes('INNER JOIN `terria_v1_local`.`items` li')));
+});
+
+test('runSync emits no managed image SQL predicates when managed prefixes are empty', async () => {
+  const statements = [];
+
+  await runSync(
+    {
+      apply: true,
+      createDatabase: false,
+      maintDatabase: 'terria_v1_maint',
+      localDatabase: 'terria_v1_local',
+      relationDatabase: 'terria_v1_relation',
+      scopes: ['category', 'recipe', 'npc', 'buff', 'biome', 'projectile']
+    },
+    {
+      managedImageUrlPrefixes: [],
+      config: {
+        database: {
+          host: '127.0.0.1',
+          port: 3306,
+          username: 'root',
+          password: 'root'
+        }
+      },
+      queryMaint: async (sql) => {
+        if (sql.includes('maint_items')) {
+          return [{ id: 1, source_id: 1, internal_name: 'AmmoBox', english_name: 'Ammo Box', raw_json: '{}' }];
+        }
+        if (sql.includes('maint_item_images')) {
+          return [{
+            item_internal_name: 'AmmoBox',
+            cached_url: 'http://localhost:9000/terrapedia-images/items/ammo-box.png'
+          }];
+        }
+        if (sql.includes('maint_npcs')) {
+          return [{ id: 2, source_id: 17, internal_name: 'ArmsDealer', english_name: 'Arms Dealer', raw_json: '{}' }];
+        }
+        return [];
+      },
+      writeReports: async () => ({
+        auditJsonPath: 'reports/relation/relation-audit-2026-04-30.json',
+        auditMdPath: 'reports/relation/relation-audit-2026-04-30.md',
+        conflictsPath: 'reports/relation/relation-conflicts-2026-04-30.json',
+        unresolvedPath: 'reports/relation/relation-unresolved-2026-04-30.json'
+      }),
+      executeRelation: async (fn) => fn({
+        query: async (sql) => {
+          statements.push(sql);
+          return [[], []];
+        },
+        execute: async (sql) => {
+          statements.push(sql);
+          return [[], []];
+        }
+      })
+    }
+  );
+
+  assert.ok(statements.some((sql) => sql.includes('AND FALSE')));
+  assert.ok(statements.every((sql) => !sql.includes('localhost:9000/terrapedia-images/items/%')));
+  assert.ok(statements.every((sql) => !sql.includes('127.0.0.1:9000/terrapedia-images/items/%')));
 });

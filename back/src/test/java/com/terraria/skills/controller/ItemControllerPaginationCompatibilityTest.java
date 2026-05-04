@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.common.PageQuery;
 import com.terraria.skills.dto.ItemDTO;
 import com.terraria.skills.service.ItemService;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,16 +31,26 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class ItemControllerPaginationCompatibilityTest {
 
+    private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
+        @Override
+        public boolean isManagedImageUrl(String value) {
+            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/");
+        }
+
+        @Override
+        public List<String> trustedManagedImageUrlPrefixes() {
+            return List.of("http://localhost:9000/terrapedia-images/");
+        }
+    };
+
     @Mock
     private ItemService itemService;
-
-    @InjectMocks
-    private ItemController itemController;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
+        ItemController itemController = new ItemController(itemService, MANAGED_IMAGE_URL_POLICY);
         mockMvc = MockMvcBuilders.standaloneSetup(itemController)
             .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
             .build();
@@ -155,5 +166,23 @@ class ItemControllerPaginationCompatibilityTest {
             .andExpect(jsonPath("$.data.sourceNpcs[0].npcId").value(22))
             .andExpect(jsonPath("$.data.sourceNpcs[0].npcName").value("Guide"))
             .andExpect(jsonPath("$.data.sourceNpcs[0].npcImageUrl").doesNotExist());
+    }
+
+    @Test
+    void shouldSuppressWikiItemImagesInLegacyItemsResponse() throws Exception {
+        ItemDTO item = new ItemDTO();
+        item.setId(99L);
+        item.setName("Wiki Image Item");
+        item.setImage("https://terraria.wiki.gg/images/Wiki_Item.png");
+
+        Page<ItemDTO> page = new Page<>(1, 20);
+        page.setTotal(1);
+        page.setRecords(List.of(item));
+        when(itemService.getItems(any(PageQuery.class))).thenReturn(page);
+
+        mockMvc.perform(get("/items"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].image").doesNotExist())
+            .andExpect(jsonPath("$.data[0].imageUrl").doesNotExist());
     }
 }

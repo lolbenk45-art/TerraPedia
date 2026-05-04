@@ -1,7 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildProjectionPayload } from './projection-sync.mjs';
+import { buildProjectionPayload as buildProjectionPayloadBase } from './projection-sync.mjs';
+
+const MANAGED_IMAGE_URL_PREFIXES = [
+  'http://localhost:9000/terrapedia-images/items/',
+  'http://127.0.0.1:9000/terrapedia-images/items/'
+];
+
+function buildProjectionPayload(options = {}) {
+  return buildProjectionPayloadBase({
+    ...options,
+    managedImageUrlPrefixes: options.managedImageUrlPrefixes ?? MANAGED_IMAGE_URL_PREFIXES
+  });
+}
 
 test('buildProjectionPayload maps relation entities into local-compatible projection rows', () => {
   const actual = buildProjectionPayload({
@@ -30,7 +42,7 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
       {
         itemInternalName: 'IronPickaxe',
         originalUrl: 'https://terraria.wiki.gg/images/Iron_Pickaxe.png',
-        cachedUrl: 'http://localhost/iron.png',
+        cachedUrl: 'http://localhost:9000/terrapedia-images/items/iron.png',
         isPrimary: 1,
       },
     ],
@@ -129,14 +141,14 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
       },
     ],
     relationBuffImages: [
-      { buffInternalName: 'ObsidianSkin', cachedUrl: 'http://localhost/buff.png', isPrimary: 1 },
+      { buffInternalName: 'ObsidianSkin', cachedUrl: 'http://localhost:9000/terrapedia-images/items/buff.png', isPrimary: 1 },
     ],
   });
 
   assert.equal(actual.projectionItems.length, 1);
   assert.equal(actual.projectionItems[0].name, 'Iron Pickaxe');
   assert.equal(actual.projectionItems[0].slug, 'ironpickaxe');
-  assert.equal(actual.projectionItems[0].image, 'https://terraria.wiki.gg/images/Iron_Pickaxe.png');
+  assert.equal(actual.projectionItems[0].image, 'http://localhost:9000/terrapedia-images/items/iron.png');
   assert.equal(actual.projectionItems[0].damage, 5);
   assert.equal(actual.projectionItems[0].buy, 2000);
   assert.equal(actual.projectionItems[0].sell, 1000);
@@ -147,7 +159,7 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
   assert.equal(actual.projectionNpcs[0].gameId, -65);
   assert.equal(actual.projectionNpcs[0].npcType, 235);
   assert.equal(actual.projectionNpcs[0].subNameZh, 'big stingy hornet zh');
-  assert.equal(actual.projectionNpcs[0].imageUrl, 'https://terraria.wiki.gg/images/Stingy%20Hornet.gif');
+  assert.equal(actual.projectionNpcs[0].imageUrl, 'http://localhost:9000/terrapedia-images/items/stingy-hornet.gif');
   assert.equal(actual.projectionNpcs[0].isBoss, 0);
   assert.equal(actual.projectionNpcs[0].lifeMax, 45);
 
@@ -161,7 +173,7 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
       internalName: 'IronPickaxe',
       name: 'Iron Pickaxe',
       nameZh: 'iron pickaxe zh',
-      image: 'https://terraria.wiki.gg/images/Iron_Pickaxe.png',
+      image: 'http://localhost:9000/terrapedia-images/items/iron.png',
       relationType: 'item_direct_shoot'
     }
   ]);
@@ -172,17 +184,17 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
       internalName: 'BigHornetStingy',
       name: 'Hornet',
       nameZh: 'hornet zh',
-      image: 'https://terraria.wiki.gg/images/Stingy%20Hornet.gif',
+      image: 'http://localhost:9000/terrapedia-images/items/stingy-hornet.gif',
       relationType: 'npc_infobox_projectile'
     }
   ]);
 
   assert.equal(actual.projectionBuffs.length, 1);
-  assert.equal(actual.projectionBuffs[0].image, 'http://localhost/buff.png');
+  assert.equal(actual.projectionBuffs[0].image, 'http://localhost:9000/terrapedia-images/items/buff.png');
   assert.equal(actual.projectionBuffs[0].buffType, 'buff');
 });
 
-test('buildProjectionPayload uses wiki original URLs for npc and projectile images instead of MinIO cache URLs', () => {
+test('buildProjectionPayload projects cached npc and projectile images instead of wiki originals', () => {
   const actual = buildProjectionPayload({
     relationNpcs: [
       {
@@ -220,11 +232,35 @@ test('buildProjectionPayload uses wiki original URLs for npc and projectile imag
     ],
   });
 
-  assert.equal(actual.projectionNpcs[0].imageUrl, 'https://terraria.wiki.gg/images/Stingy%20Hornet.gif');
-  assert.equal(actual.projectionProjectiles[0].imageUrl, 'https://terraria.wiki.gg/images/Wooden%20Arrow.png');
+  assert.equal(actual.projectionNpcs[0].imageUrl, 'http://localhost:9000/terrapedia-images/items/stingy-hornet.gif');
+  assert.equal(actual.projectionProjectiles[0].imageUrl, 'http://localhost:9000/terrapedia-images/items/wooden-arrow.png');
 });
 
-test('buildProjectionPayload uses wiki original URLs for item images instead of MinIO cache URLs', () => {
+test('buildProjectionPayload does not project wiki buff images', () => {
+  const actual = buildProjectionPayload({
+    relationBuffs: [
+      {
+        recordKey: 'buff-rk',
+        sourceId: 1,
+        internalName: 'ObsidianSkin',
+        englishName: 'Obsidian Skin',
+        rawJson: '{}',
+      },
+    ],
+    relationBuffImages: [
+      {
+        buffInternalName: 'ObsidianSkin',
+        originalUrl: 'https://terraria.wiki.gg/images/Obsidian%20Skin.png',
+        cachedUrl: 'https://terraria.wiki.gg/images/Obsidian%20Skin.png',
+        isPrimary: 1,
+      },
+    ],
+  });
+
+  assert.equal(actual.projectionBuffs[0].image, null);
+});
+
+test('buildProjectionPayload projects cached item images instead of wiki originals', () => {
   const actual = buildProjectionPayload({
     relationItems: [
       {
@@ -245,7 +281,31 @@ test('buildProjectionPayload uses wiki original URLs for item images instead of 
     ],
   });
 
-  assert.equal(actual.projectionItems[0].image, 'https://terraria.wiki.gg/images/Enchanted_Boomerang.png?56c041');
+  assert.equal(actual.projectionItems[0].image, 'http://localhost:9000/terrapedia-images/items/wiki/item-images/61/enchanted-boomerang.png');
+});
+
+test('buildProjectionPayload rejects cached item images when managed prefixes are empty', () => {
+  const actual = buildProjectionPayloadBase({
+    relationItems: [
+      {
+        recordKey: 'item-rk',
+        sourceId: 1,
+        internalName: 'EnchantedBoomerang',
+        englishName: 'Enchanted Boomerang',
+      },
+    ],
+    relationItemImages: [
+      {
+        itemInternalName: 'EnchantedBoomerang',
+        originalUrl: 'https://terraria.wiki.gg/images/Enchanted_Boomerang.png?56c041',
+        cachedUrl: 'http://localhost:9000/terrapedia-images/items/wiki/item-images/61/enchanted-boomerang.png',
+        isPrimary: 1,
+      },
+    ],
+    managedImageUrlPrefixes: []
+  });
+
+  assert.equal(actual.projectionItems[0].image, null);
 });
 
 test('buildProjectionPayload falls back to maint rarity overrides when relation rareRaw is missing', () => {
@@ -488,13 +548,204 @@ test('buildProjectionPayload maps armor set relations into projection armor sets
   assert.ok(Number.isInteger(actual.projectionArmorSets[0].id));
   assert.ok(actual.projectionArmorSets[0].id > 0);
   assert.equal(actual.projectionArmorSets[0].textKey, 'ArmorSetBonus.Wood');
-  assert.equal(actual.projectionArmorSets[0].maleImages, 'https://terraria.wiki.gg/images/Wood_armor.png');
-  assert.equal(actual.projectionArmorSets[0].femaleImages, 'https://terraria.wiki.gg/images/Wood_armor_female.png');
-  assert.equal(actual.projectionArmorSets[0].specialImages, 'https://terraria.wiki.gg/images/Wood_armor_demo.gif');
+  assert.equal(actual.projectionArmorSets[0].maleImages, null);
+  assert.equal(actual.projectionArmorSets[0].femaleImages, null);
+  assert.equal(actual.projectionArmorSets[0].specialImages, null);
   assert.deepEqual(JSON.parse(actual.projectionArmorSets[0].currentItemIdsJson), [727, 728, 729]);
   assert.deepEqual(JSON.parse(actual.projectionArmorSets[0].relatedItemsJson).map((item) => item.partRole), ['head', 'body', 'legs']);
   assert.equal(JSON.parse(actual.projectionArmorSets[0].relatedItemsJson)[0].nameZh, '木头盔');
-  assert.equal(JSON.parse(actual.projectionArmorSets[0].relatedItemsJson)[0].image, 'https://terraria.wiki.gg/images/Wood_Helmet.png');
+  assert.equal(JSON.parse(actual.projectionArmorSets[0].relatedItemsJson)[0].image, null);
+});
+
+test('buildProjectionPayload ignores untrusted managed-like armor images', () => {
+  const actual = buildProjectionPayload({
+    relationItems: [
+      {
+        sourceId: 727,
+        recordKey: 'item-wood-helmet',
+        internalName: 'WoodHelmet',
+        englishName: 'Wood Helmet',
+        nameZh: 'Wood Helmet'
+      }
+    ],
+    relationArmorSets: [
+      {
+        recordKey: 'armor-rk',
+        textKey: 'ArmorSetBonus.Wood',
+        benefitExpression: 'ArmorSetBonuses.Benefits.Wood',
+        primaryPart: null,
+        setCount: 1,
+        uniqueItemCount: 1,
+        setsJson: JSON.stringify([[727]]),
+        uniqueItemIdsJson: JSON.stringify([727]),
+        sourceProvider: 'terraria.wiki.gg',
+        sourcePage: 'Module:ArmorSetBonuses',
+        sourceRevisionTimestamp: '2026-04-26T00:00:00.000Z'
+      }
+    ],
+    relationArmorSetItems: [
+      {
+        armorSetRecordKey: 'armor-rk',
+        itemSourceId: 727,
+        itemInternalName: 'WoodHelmet',
+        itemName: 'Wood Helmet',
+        partRole: 'head',
+        slotType: 'headSlot',
+        equipmentSlotId: 52
+      }
+    ],
+    relationArmorSetImages: [
+      {
+        armorSetRecordKey: 'armor-rk',
+        imageRole: 'male',
+        originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png',
+        cachedUrl: 'https://evil.example.com/terrapedia-images/items/wiki/armor-sets/wood-armor.png',
+        isPrimary: 1,
+        sortOrder: 0
+      }
+    ]
+  });
+
+  assert.equal(actual.projectionArmorSets[0].maleImages, null);
+});
+
+test('buildProjectionPayload uses cached armor set images without projecting wiki originals', () => {
+  const actual = buildProjectionPayload({
+    relationItems: [
+      {
+        sourceId: 727,
+        recordKey: 'item-wood-helmet',
+        internalName: 'WoodHelmet',
+        englishName: 'Wood Helmet',
+        nameZh: '木头盔'
+      }
+    ],
+    relationItemImages: [
+      {
+        itemInternalName: 'WoodHelmet',
+        originalUrl: 'https://terraria.wiki.gg/images/Wood_Helmet.png',
+        cachedUrl: 'http://localhost:9000/terrapedia-images/items/wood-helmet.png',
+        isPrimary: 1
+      }
+    ],
+    relationArmorSets: [
+      {
+        recordKey: 'armor-rk',
+        textKey: 'ArmorSetBonus.Wood',
+        benefitExpression: 'ArmorSetBonuses.Benefits.Wood',
+        setCount: 1,
+        uniqueItemCount: 1,
+        setsJson: JSON.stringify([[727]]),
+        uniqueItemIdsJson: JSON.stringify([727])
+      }
+    ],
+    relationArmorSetItems: [
+      {
+        armorSetRecordKey: 'armor-rk',
+        itemSourceId: 727,
+        itemInternalName: 'WoodHelmet',
+        itemName: 'Wood Helmet',
+        partRole: 'head'
+      }
+    ],
+    relationArmorSetImages: [
+      {
+        armorSetRecordKey: 'armor-rk',
+        imageRole: 'male',
+        originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png',
+        cachedUrl: 'http://localhost:9000/terrapedia-images/items/wood-armor.png',
+        isPrimary: 1,
+        sortOrder: 0
+      }
+    ]
+  });
+
+  const row = actual.projectionArmorSets[0];
+  assert.equal(row.maleImages, 'http://localhost:9000/terrapedia-images/items/wood-armor.png');
+  assert.equal(JSON.parse(row.relatedItemsJson)[0].image, 'http://localhost:9000/terrapedia-images/items/wood-helmet.png');
+});
+
+test('buildProjectionPayload prefers managed cached images over primary wiki-only image rows', () => {
+  const actual = buildProjectionPayload({
+    relationItems: [
+      {
+        sourceId: 727,
+        recordKey: 'item-wood-helmet',
+        internalName: 'WoodHelmet',
+        englishName: 'Wood Helmet'
+      }
+    ],
+    relationItemImages: [
+      {
+        itemInternalName: 'WoodHelmet',
+        originalUrl: 'https://terraria.wiki.gg/images/Wood_Helmet_Primary.png',
+        isPrimary: 1,
+        sortOrder: 0
+      },
+      {
+        itemInternalName: 'WoodHelmet',
+        cachedUrl: 'http://localhost:9000/terrapedia-images/items/wood-helmet.png',
+        isPrimary: 0,
+        sortOrder: 1
+      }
+    ],
+    relationArmorSets: [
+      {
+        recordKey: 'armor-rk',
+        textKey: 'ArmorSetBonus.Wood',
+        setCount: 1,
+        uniqueItemCount: 1,
+        setsJson: JSON.stringify([[727]]),
+        uniqueItemIdsJson: JSON.stringify([727])
+      }
+    ],
+    relationArmorSetItems: [
+      {
+        armorSetRecordKey: 'armor-rk',
+        itemSourceId: 727,
+        itemInternalName: 'WoodHelmet',
+        itemName: 'Wood Helmet',
+        partRole: 'head'
+      }
+    ],
+    relationArmorSetImages: [
+      {
+        armorSetRecordKey: 'armor-rk',
+        imageRole: 'male',
+        originalUrl: 'https://terraria.wiki.gg/images/Wood_armor_primary.png',
+        isPrimary: 1,
+        sortOrder: 0
+      },
+      {
+        armorSetRecordKey: 'armor-rk',
+        imageRole: 'male',
+        cachedUrl: 'http://localhost:9000/terrapedia-images/items/wood-armor.png',
+        isPrimary: 0,
+        sortOrder: 1
+      },
+      {
+        armorSetRecordKey: 'armor-rk',
+        imageRole: 'part',
+        sourceFileTitle: 'Wood Helmet.png',
+        originalUrl: 'https://terraria.wiki.gg/images/Wood_Helmet_Primary.png',
+        isPrimary: 1,
+        sortOrder: 2
+      },
+      {
+        armorSetRecordKey: 'armor-rk',
+        imageRole: 'part',
+        sourceFileTitle: 'Wood Helmet.png',
+        cachedUrl: 'http://localhost:9000/terrapedia-images/items/wood-helmet-equipped.png',
+        isPrimary: 0,
+        sortOrder: 3
+      }
+    ]
+  });
+
+  const row = actual.projectionArmorSets[0];
+  assert.equal(actual.projectionItems[0].image, 'http://localhost:9000/terrapedia-images/items/wood-helmet.png');
+  assert.equal(row.maleImages, 'http://localhost:9000/terrapedia-images/items/wood-armor.png');
+  assert.equal(JSON.parse(row.relatedItemsJson)[0].image, 'http://localhost:9000/terrapedia-images/items/wood-helmet.png');
 });
 
 test('buildProjectionPayload builds bidirectional item and npc relation json without changing projectile source json', () => {
@@ -506,10 +757,10 @@ test('buildProjectionPayload builds bidirectional item and npc relation json wit
       { recordKey: 'item-eye', sourceId: 13, internalName: 'SuspiciousLookingEye', englishName: 'Suspicious Looking Eye', rawJson: '{}' },
     ],
     relationItemImages: [
-      { itemInternalName: 'Shackle', originalUrl: '/assets/items/shackle.png', isPrimary: 1 },
-      { itemInternalName: 'LesserHealingPotion', originalUrl: '/assets/items/lesser_healing_potion.png', isPrimary: 1 },
-      { itemInternalName: 'Torch', originalUrl: '/assets/items/torch.png', isPrimary: 1 },
-      { itemInternalName: 'SuspiciousLookingEye', originalUrl: '/assets/items/suspicious_looking_eye.png', isPrimary: 1 },
+      { itemInternalName: 'Shackle', cachedUrl: 'http://localhost:9000/terrapedia-images/items/shackle.png', isPrimary: 1 },
+      { itemInternalName: 'LesserHealingPotion', cachedUrl: 'http://localhost:9000/terrapedia-images/items/lesser_healing_potion.png', isPrimary: 1 },
+      { itemInternalName: 'Torch', cachedUrl: 'http://localhost:9000/terrapedia-images/items/torch.png', isPrimary: 1 },
+      { itemInternalName: 'SuspiciousLookingEye', cachedUrl: 'http://localhost:9000/terrapedia-images/items/suspicious_looking_eye.png', isPrimary: 1 },
     ],
     relationNpcs: [
       {
@@ -551,9 +802,9 @@ test('buildProjectionPayload builds bidirectional item and npc relation json wit
       },
     ],
     relationNpcImages: [
-      { npcInternalName: 'Zombie', originalUrl: '/assets/npcs/zombie.png', isPrimary: 1 },
-      { npcInternalName: 'DemonEye', originalUrl: '/assets/npcs/demon_eye.png', isPrimary: 1 },
-      { npcInternalName: 'Merchant', originalUrl: '/assets/npcs/merchant.png', isPrimary: 1 },
+      { npcInternalName: 'Zombie', cachedUrl: 'http://localhost:9000/terrapedia-images/items/zombie.png', isPrimary: 1 },
+      { npcInternalName: 'DemonEye', cachedUrl: 'http://localhost:9000/terrapedia-images/items/demon_eye.png', isPrimary: 1 },
+      { npcInternalName: 'Merchant', cachedUrl: 'http://localhost:9000/terrapedia-images/items/merchant.png', isPrimary: 1 },
     ],
     itemNpcLootRelations: [
       {
@@ -648,7 +899,7 @@ test('buildProjectionPayload builds bidirectional item and npc relation json wit
     npcInternalName: 'DemonEye',
     npcName: 'Demon Eye',
     npcNameZh: null,
-    npcImageUrl: '/assets/npcs/demon_eye.png',
+    npcImageUrl: 'http://localhost:9000/terrapedia-images/items/demon_eye.png',
     chanceText: '1%',
     quantityText: '1',
     priceText: null,
@@ -679,7 +930,7 @@ test('buildProjectionPayload builds bidirectional item and npc relation json wit
       itemInternalName: 'SuspiciousLookingEye',
       itemName: 'Suspicious Looking Eye',
       itemNameZh: null,
-      itemImageUrl: '/assets/items/suspicious_looking_eye.png',
+      itemImageUrl: 'http://localhost:9000/terrapedia-images/items/suspicious_looking_eye.png',
       conditionText: 'Summons this boss',
       sourceFactKey: 'npc-source-item:demon-eye',
       relationRecordKey: null,
@@ -798,9 +1049,9 @@ test('buildProjectionPayload uses wiki armor row metadata for display names and 
   assert.equal(row.nameEn, 'Cobalt armor');
   assert.equal(row.sourceKey, 'Cobalt armor');
   assert.equal(row.benefitZh, '套装奖励：按头盔提供魔法、远程或近战效果。');
-  assert.equal(row.maleImages, 'https://terraria.wiki.gg/images/Cobalt_armor.png');
+  assert.equal(row.maleImages, null);
   assert.equal(JSON.parse(row.relatedItemsJson)[0].nameZh, '钴帽');
-  assert.equal(JSON.parse(row.relatedItemsJson)[0].image, 'https://terraria.wiki.gg/images/Cobalt_Hat.png');
+  assert.equal(JSON.parse(row.relatedItemsJson)[0].image, null);
 });
 
 test('buildProjectionPayload maps single-piece armor set relations', () => {
@@ -861,11 +1112,11 @@ test('buildProjectionPayload maps single-piece armor set relations', () => {
   const related = JSON.parse(row.relatedItemsJson);
   assert.equal(related.length, 1);
   assert.equal(related[0].partRole, 'head');
-  assert.equal(related[0].image, 'https://terraria.wiki.gg/images/Magic_Hat.png');
+  assert.equal(related[0].image, null);
   assert.equal(row.mappingStatus, 'mapped');
 });
 
-test('buildProjectionPayload falls back to wiki item file URLs for armor equipment images only', () => {
+test('buildProjectionPayload leaves armor equipment images empty when no cached image exists', () => {
   const actual = buildProjectionPayload({
     relationArmorSets: [
       {
@@ -904,8 +1155,8 @@ test('buildProjectionPayload falls back to wiki item file URLs for armor equipme
   });
 
   const related = JSON.parse(actual.projectionArmorSets[0].relatedItemsJson);
-  assert.equal(related[0].image, 'https://terraria.wiki.gg/images/Hallowed_Plate_Mail.png');
-  assert.equal(actual.projectionArmorSets[0].maleImages, 'https://terraria.wiki.gg/images/Hallowed_armor.png');
+  assert.equal(related[0].image, null);
+  assert.equal(actual.projectionArmorSets[0].maleImages, null);
 });
 
 test('buildProjectionPayload reuses Hallowed armor images for Hallowed Summoner variants', () => {
@@ -962,7 +1213,7 @@ test('buildProjectionPayload reuses Hallowed armor images for Hallowed Summoner 
     ]
   });
 
-  assert.equal(actual.projectionArmorSets[0].maleImages, 'https://terraria.wiki.gg/images/Hallowed_armor.png?8ccbab');
-  assert.equal(actual.projectionArmorSets[0].femaleImages, 'https://terraria.wiki.gg/images/Hallowed_armor_female.png?d683aa');
-  assert.equal(JSON.parse(actual.projectionArmorSets[0].relatedItemsJson)[0].image, 'https://terraria.wiki.gg/images/Hallowed_Hood.png?82498e');
+  assert.equal(actual.projectionArmorSets[0].maleImages, null);
+  assert.equal(actual.projectionArmorSets[0].femaleImages, null);
+  assert.equal(JSON.parse(actual.projectionArmorSets[0].relatedItemsJson)[0].image, null);
 });

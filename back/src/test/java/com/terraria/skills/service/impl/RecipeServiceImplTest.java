@@ -18,6 +18,8 @@ import com.terraria.skills.mapper.RecipeIngredientMapper;
 import com.terraria.skills.mapper.RecipeMapper;
 import com.terraria.skills.mapper.RecipeStationMapper;
 import com.terraria.skills.mapper.WorldContextMapper;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
+import com.terraria.skills.service.ManagedItemImageResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,10 +29,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
@@ -61,6 +65,12 @@ class RecipeServiceImplTest {
     @Mock
     private WorldContextMapper worldContextMapper;
 
+    @Mock
+    private ManagedItemImageResolver managedItemImageResolver;
+
+    @Mock
+    private ManagedImageUrlPolicy managedImageUrlPolicy;
+
     @InjectMocks
     private RecipeServiceImpl service;
 
@@ -70,6 +80,12 @@ class RecipeServiceImplTest {
         lenient().when(recipeStationMapper.selectList(any())).thenReturn(Collections.emptyList());
         lenient().when(recipeContextRequirementMapper.selectList(any())).thenReturn(Collections.emptyList());
         lenient().when(itemMapper.selectBatchIds(any())).thenReturn(List.of(resultItem()));
+        lenient().when(managedItemImageResolver.resolveManagedImages(any())).thenReturn(Map.of());
+        lenient().when(managedItemImageResolver.resolveManagedImage(any(), anyMap())).thenReturn(null);
+        lenient().when(managedImageUrlPolicy.isManagedImageUrl(any())).thenAnswer(invocation -> {
+            String value = invocation.getArgument(0);
+            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/");
+        });
     }
 
     @Test
@@ -176,6 +192,82 @@ class RecipeServiceImplTest {
         assertEquals("恶魔祭坛", recipes.get(0).getStations().get(0).getItemNameZh());
         assertEquals("Demon Altar", recipes.get(0).getStations().get(0).getItemName());
         assertEquals("DemonAltarIcon", recipes.get(0).getStations().get(0).getItemInternalName());
+    }
+
+    @Test
+    void shouldUseManagedItemImagesForRecipeResultIngredientsAndStations() {
+        Recipe recipe = recipe(55L, "wiki_zh");
+        when(recipeMapper.selectList(any())).thenReturn(List.of(recipe));
+
+        RecipeIngredient ingredient = new RecipeIngredient();
+        ingredient.setRecipeId(55L);
+        ingredient.setIngredientItemId(22L);
+        ingredient.setIngredientInternalName("IronBar");
+        ingredient.setIngredientNameRaw("Iron Bar");
+        ingredient.setIngredientGroupType("item");
+        ingredient.setSortOrder(1);
+        when(recipeIngredientMapper.selectList(any())).thenReturn(List.of(ingredient));
+
+        RecipeStation station = new RecipeStation();
+        station.setRecipeId(55L);
+        station.setStationItemId(75L);
+        station.setStationInternalName("WorkBench");
+        station.setStationNameRaw("Work Bench");
+        station.setSortOrder(1);
+        when(recipeStationMapper.selectList(any())).thenReturn(List.of(station));
+
+        when(itemMapper.selectBatchIds(any())).thenReturn(List.of(
+            item(1L, "SeafoodDinner", "Seafood Dinner", null, "https://terraria.wiki.gg/images/Seafood_Dinner.png"),
+            item(22L, "IronBar", "Iron Bar", null, "https://terraria.wiki.gg/images/Iron_Bar.png"),
+            item(75L, "WorkBench", "Work Bench", null, "https://terraria.wiki.gg/images/Work_Bench.png")
+        ));
+        Map<Long, String> managedImages = Map.of(
+            1L, "http://localhost:9000/terrapedia-images/items/seafood-dinner.png",
+            22L, "http://localhost:9000/terrapedia-images/items/iron-bar.png",
+            75L, "http://localhost:9000/terrapedia-images/items/work-bench.png"
+        );
+        when(managedItemImageResolver.resolveManagedImages(any())).thenReturn(managedImages);
+        when(managedItemImageResolver.resolveManagedImage(any(), anyMap())).thenAnswer(invocation -> {
+            Item item = invocation.getArgument(0);
+            return item == null ? null : managedImages.get(item.getId());
+        });
+
+        List<RecipeDTO> recipes = service.getRecipesByResultItemId(1L);
+
+        assertEquals("http://localhost:9000/terrapedia-images/items/seafood-dinner.png", recipes.get(0).getResultItemImage());
+        assertEquals("http://localhost:9000/terrapedia-images/items/iron-bar.png", recipes.get(0).getIngredients().get(0).getItemImage());
+        assertEquals("http://localhost:9000/terrapedia-images/items/work-bench.png", recipes.get(0).getStations().get(0).getItemImage());
+    }
+
+    @Test
+    void shouldUseManagedCraftingStationImageUrlWhenItemImageIsMissing() {
+        Recipe recipe = recipe(57L, "manual_admin");
+        when(recipeMapper.selectList(any())).thenReturn(List.of(recipe));
+
+        RecipeStation recipeStation = new RecipeStation();
+        recipeStation.setRecipeId(57L);
+        recipeStation.setStationId(10L);
+        recipeStation.setStationItemId(75L);
+        recipeStation.setStationInternalName("WorkBench");
+        recipeStation.setStationNameRaw("Work Bench");
+        recipeStation.setSortOrder(1);
+        when(recipeStationMapper.selectList(any())).thenReturn(List.of(recipeStation));
+
+        CraftingStation craftingStation = new CraftingStation();
+        craftingStation.setId(10L);
+        craftingStation.setItemId(75L);
+        craftingStation.setInternalName("WorkBench");
+        craftingStation.setNameEn("Work Bench");
+        craftingStation.setImageUrl("http://localhost:9000/terrapedia-images/items/stations/work-bench.png");
+        when(craftingStationMapper.selectBatchIds(any())).thenReturn(List.of(craftingStation));
+
+        Item result = item(1L, "SeafoodDinner", "Seafood Dinner", null, "https://terraria.wiki.gg/images/Seafood_Dinner.png");
+        Item stationItem = item(75L, "WorkBench", "Work Bench", null, "https://terraria.wiki.gg/images/Work_Bench.png");
+        when(itemMapper.selectBatchIds(any())).thenReturn(List.of(result, stationItem));
+
+        List<RecipeDTO> recipes = service.getRecipesByResultItemId(1L);
+
+        assertEquals("http://localhost:9000/terrapedia-images/items/stations/work-bench.png", recipes.get(0).getStations().get(0).getItemImage());
     }
 
     @Test

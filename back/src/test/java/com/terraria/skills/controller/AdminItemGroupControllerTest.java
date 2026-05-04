@@ -8,6 +8,7 @@ import com.terraria.skills.entity.Item;
 import com.terraria.skills.entity.ItemImage;
 import com.terraria.skills.mapper.ItemImageMapper;
 import com.terraria.skills.mapper.ItemMapper;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import com.terraria.skills.service.RecipeTreeService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +39,7 @@ class AdminItemGroupControllerTest {
     private ItemImageMapper itemImageMapper;
     private RecipeTreeService recipeTreeService;
     private AdminItemGroupController controller;
+    private ManagedImageUrlPolicy managedImageUrlPolicy;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -50,7 +52,18 @@ class AdminItemGroupControllerTest {
         itemMapper = mock(ItemMapper.class);
         itemImageMapper = mock(ItemImageMapper.class);
         recipeTreeService = mock(RecipeTreeService.class);
-        controller = new AdminItemGroupController(new ObjectMapper(), itemMapper, itemImageMapper, recipeTreeService);
+        managedImageUrlPolicy = new ManagedImageUrlPolicy() {
+            @Override
+            public boolean isManagedImageUrl(String value) {
+                return value != null && value.startsWith("http://localhost:9000/terrapedia-images/");
+            }
+
+            @Override
+            public List<String> trustedManagedImageUrlPrefixes() {
+                return List.of("http://localhost:9000/terrapedia-images/");
+            }
+        };
+        controller = new AdminItemGroupController(new ObjectMapper(), itemMapper, itemImageMapper, recipeTreeService, managedImageUrlPolicy);
         when(itemImageMapper.selectList(any())).thenReturn(List.of());
     }
 
@@ -174,7 +187,7 @@ class AdminItemGroupControllerTest {
     }
 
     @Test
-    void getItemGroupsUsesItemImageTableWhenResolvedItemImageIsMissing() throws Exception {
+    void getItemGroupsSuppressesWikiOnlyItemImageFallbackWhenResolvedItemImageIsMissing() throws Exception {
         Files.writeString(repoRoot.resolve("data/generated/item-group-overrides.json"), """
             {
               "groups": [
@@ -199,7 +212,39 @@ class AdminItemGroupControllerTest {
 
         assertNotNull(body);
         ItemGroupMemberDTO member = body.getData().get(0).getMembers().get(0);
-        assertEquals("https://terraria.wiki.gg/images/Jungle_Pylon.png", member.getImage());
+        assertEquals(null, member.getImage());
+        assertEquals(Boolean.TRUE, member.getResolved());
+    }
+
+    @Test
+    void getItemGroupsUsesManagedCachedItemImageWhenOriginalUrlIsWikiOnly() throws Exception {
+        Files.writeString(repoRoot.resolve("data/generated/item-group-overrides.json"), """
+            {
+              "groups": [
+                {
+                  "canonicalName": "Any Pylon",
+                  "displayNameEn": "Any Pylon",
+                  "displayNameZh": "浠绘剰鏅跺",
+                  "domains": [ "shimmer" ],
+                  "sourceProvider": "wiki_gg",
+                  "sourcePage": "https://terraria.wiki.gg/wiki/Pylons",
+                  "members": [
+                    { "itemId": 4875, "internalName": "TeleportationPylonJungle", "name": "Jungle Pylon", "nameZh": "涓涙灄鏅跺" }
+                  ]
+                }
+              ]
+            }
+            """);
+        when(itemMapper.selectList(any())).thenReturn(List.of(item(4875L, "TeleportationPylonJungle", "Jungle Pylon", "涓涙灄鏅跺")));
+        ItemImage image = itemImage(4875L, "https://terraria.wiki.gg/images/Jungle_Pylon.png");
+        image.setCachedUrl("http://localhost:9000/terrapedia-images/items/jungle-pylon.png");
+        when(itemImageMapper.selectList(any())).thenReturn(List.of(image));
+
+        ApiResponse<List<ItemGroupDTO>> body = controller.getItemGroups(null, null).getBody();
+
+        assertNotNull(body);
+        ItemGroupMemberDTO member = body.getData().get(0).getMembers().get(0);
+        assertEquals("http://localhost:9000/terrapedia-images/items/jungle-pylon.png", member.getImage());
         assertEquals(Boolean.TRUE, member.getResolved());
     }
 

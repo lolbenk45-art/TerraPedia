@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.terraria.skills.entity.Buff;
 import com.terraria.skills.mapper.BuffMapper;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +33,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class AdminBuffControllerTest {
 
+    private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
+        @Override
+        public boolean isManagedImageUrl(String value) {
+            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/");
+        }
+
+        @Override
+        public List<String> trustedManagedImageUrlPrefixes() {
+            return List.of("http://localhost:9000/terrapedia-images/");
+        }
+    };
+
     @Mock
     private BuffMapper buffMapper;
 
@@ -45,14 +58,15 @@ class AdminBuffControllerTest {
 
     @BeforeEach
     void setUp() {
-        adminBuffController = new AdminBuffController(buffMapper, new ObjectMapper(), jdbcTemplate);
+        adminBuffController = new AdminBuffController(buffMapper, new ObjectMapper(), jdbcTemplate, MANAGED_IMAGE_URL_POLICY);
         mockMvc = MockMvcBuilders.standaloneSetup(adminBuffController)
             .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
             .build();
     }
 
     @Test
-    void shouldReturnCachedBuffImageUrlWithWikiImageFallback() throws Exception {
+    void shouldReturnManagedBuffImageUrlWhenCachedImageExists() throws Exception {
+        String managedImageUrl = "http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png";
         Buff buff = new Buff();
         buff.setId(159L);
         buff.setSourceId(159);
@@ -61,17 +75,17 @@ class AdminBuffControllerTest {
         buff.setNameZh("锋利");
         buff.setImage("https://terraria.wiki.gg/images/Sharpened.png");
         invokeSetter(buff, "setImageOriginalUrl", "https://terraria.wiki.gg/images/Sharpened.png");
-        invokeSetter(buff, "setImageCachedUrl", "http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png");
+        invokeSetter(buff, "setImageCachedUrl", managedImageUrl);
 
         when(buffMapper.selectById(159L)).thenReturn(buff);
 
         mockMvc.perform(get("/admin/buffs/159"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.image").value("https://terraria.wiki.gg/images/Sharpened.png"))
-            .andExpect(jsonPath("$.data.imagePath").value("https://terraria.wiki.gg/images/Sharpened.png"))
-            .andExpect(jsonPath("$.data.imageOriginalUrl").value("https://terraria.wiki.gg/images/Sharpened.png"))
-            .andExpect(jsonPath("$.data.imageUrl").value("http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png"))
-            .andExpect(jsonPath("$.data.imageCachedUrl").value("http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png"));
+            .andExpect(jsonPath("$.data.image").value(managedImageUrl))
+            .andExpect(jsonPath("$.data.imagePath").value(managedImageUrl))
+            .andExpect(jsonPath("$.data.imageOriginalUrl").value(managedImageUrl))
+            .andExpect(jsonPath("$.data.imageUrl").value(managedImageUrl))
+            .andExpect(jsonPath("$.data.imageCachedUrl").value(managedImageUrl));
     }
 
     @Test
@@ -102,7 +116,8 @@ class AdminBuffControllerTest {
             .andExpect(jsonPath("$.data.immuneNpcSamples[0].npcId").value(-650001))
             .andExpect(jsonPath("$.data.immuneNpcSamples[0].nameZh").value("Hornet ZH"))
             .andExpect(jsonPath("$.data.immuneNpcSamples[0].subNameZh").value("Large Stingy Hornet"))
-            .andExpect(jsonPath("$.data.immuneNpcSamples[0].image").value(containsString("Stingy_Hornet")));
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].image").value(nullValue()))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].imageUrl").value(nullValue()));
     }
 
     @Test
@@ -208,7 +223,8 @@ class AdminBuffControllerTest {
             .andExpect(jsonPath("$.data.inflictingNpcSamples[0].nameZh").value("美杜莎"))
             .andExpect(jsonPath("$.data.inflictingNpcSamples[0].relationType").value("inflicts"))
             .andExpect(jsonPath("$.data.inflictingNpcSamples[0].durationText").value("1-4 seconds"))
-            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].image").value("https://cdn.example.com/npcs/Medusa.png"));
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].image").value(nullValue()))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].imageUrl").value(nullValue()));
     }
 
     @Test
@@ -247,7 +263,7 @@ class AdminBuffControllerTest {
             .andExpect(jsonPath("$.data.inflictingNpcSamples[0].rawDurationText").value("{{duration|rawseconds=1–4}}"));
     }
     @Test
-    void shouldNormalizeWikiImageSpacesForInflictingBuffSamples() throws Exception {
+    void shouldSuppressWikiImageForInflictingBuffSamples() throws Exception {
         Buff buff = new Buff();
         buff.setId(158L);
         buff.setSourceId(158);
@@ -279,8 +295,8 @@ class AdminBuffControllerTest {
 
         mockMvc.perform(get("/admin/buffs/158"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].image").value("https://terraria.wiki.gg/images/Queen_Bee.gif"))
-            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].imageUrl").value("https://terraria.wiki.gg/images/Queen_Bee.gif"));
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].image").value(nullValue()))
+            .andExpect(jsonPath("$.data.inflictingNpcSamples[0].imageUrl").value(nullValue()));
     }
 
     @Test
@@ -366,7 +382,7 @@ class AdminBuffControllerTest {
             .andExpect(jsonPath("$.data.linkedSourceItems[0].internalName").value("SharpeningStation"))
             .andExpect(jsonPath("$.data.linkedSourceItems[0].nameZh").value("利器站"))
             .andExpect(jsonPath("$.data.linkedSourceItems[0].sourcePage").value("Sharpening Station"))
-            .andExpect(jsonPath("$.data.linkedSourceItems[0].image").value("https://terraria.wiki.gg/images/Sharpening_Station.png"));
+            .andExpect(jsonPath("$.data.linkedSourceItems[0].image").value(nullValue()));
     }
 
     @Test

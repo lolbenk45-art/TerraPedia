@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.common.Pagination;
 import com.terraria.skills.common.PaginationParams;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -59,6 +60,7 @@ public class AdminArmorSetController {
 
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
+    private final ManagedImageUrlPolicy managedImageUrlPolicy;
     private Map<String, List<String>> armorBenefitStatementCache;
 
     @GetMapping
@@ -397,12 +399,13 @@ public class AdminArmorSetController {
         String snapshotMaleImages = snapshotImageGroup == null ? null : snapshotImageGroup.maleCsv();
         String snapshotFemaleImages = snapshotImageGroup == null ? null : snapshotImageGroup.femaleCsv();
         String snapshotSpecialImages = snapshotImageGroup == null ? null : snapshotImageGroup.specialCsv();
-        String maleImages = firstNonBlank(trimToNull(row.get("male_images")), snapshotMaleImages);
-        String femaleImages = firstNonBlank(trimToNull(row.get("female_images")), snapshotFemaleImages);
-        String specialImages = firstNonBlank(trimToNull(row.get("special_images")), snapshotSpecialImages);
+        String maleImages = firstManagedImageCsv(trimToNull(row.get("male_images")), snapshotMaleImages);
+        String femaleImages = firstManagedImageCsv(trimToNull(row.get("female_images")), snapshotFemaleImages);
+        String specialImages = firstManagedImageCsv(trimToNull(row.get("special_images")), snapshotSpecialImages);
         List<Map<String, Object>> equipmentItems = enrichProjectionEquipmentItems(normalizeArmorEquipmentItems(parseJson(row.get("related_items_json"))));
         String relatedPreviewImage = equipmentItems.stream()
             .map(item -> trimToNull(item.get("image")))
+            .filter(this::isManagedImageUrl)
             .filter(value -> value != null && !value.isBlank())
             .findFirst()
             .orElse(null);
@@ -509,11 +512,12 @@ public class AdminArmorSetController {
         String snapshotMaleImages = snapshotImageGroup == null ? null : snapshotImageGroup.maleCsv();
         String snapshotFemaleImages = snapshotImageGroup == null ? null : snapshotImageGroup.femaleCsv();
         String snapshotSpecialImages = snapshotImageGroup == null ? null : snapshotImageGroup.specialCsv();
-        String snapshotPreviewImage = firstNonBlank(snapshotMaleImages, snapshotFemaleImages, snapshotSpecialImages);
+        String snapshotPreviewImage = firstManagedImageCsv(snapshotMaleImages, snapshotFemaleImages, snapshotSpecialImages);
         List<Map<String, Object>> relatedItems = loadRelatedItems(definition, currentItemIds);
         List<Map<String, Object>> equipmentItems = normalizeArmorEquipmentItems(relatedItems);
         String relatedPreviewImage = relatedItems.stream()
             .map(item -> trimToNull(item.get("image")))
+            .filter(this::isManagedImageUrl)
             .filter(value -> value != null && !value.isBlank())
             .findFirst()
             .orElse(null);
@@ -551,9 +555,9 @@ public class AdminArmorSetController {
         payload.put("armorLegsId", null);
         payload.put("image", previewImage);
         payload.put("imageUrl", previewImage);
-        payload.put("maleImages", firstNonBlank(trimToNull(row.get("male_images")), trimToNull(definition.get("maleImages")), snapshotMaleImages, previewImage));
-        payload.put("femaleImages", firstNonBlank(trimToNull(row.get("female_images")), trimToNull(definition.get("femaleImages")), snapshotFemaleImages));
-        payload.put("specialImages", firstNonBlank(trimToNull(row.get("special_images")), trimToNull(definition.get("specialImages")), snapshotSpecialImages));
+        payload.put("maleImages", firstManagedImageCsv(trimToNull(row.get("male_images")), trimToNull(definition.get("maleImages")), snapshotMaleImages, previewImage));
+        payload.put("femaleImages", firstManagedImageCsv(trimToNull(row.get("female_images")), trimToNull(definition.get("femaleImages")), snapshotFemaleImages));
+        payload.put("specialImages", firstManagedImageCsv(trimToNull(row.get("special_images")), trimToNull(definition.get("specialImages")), snapshotSpecialImages));
         payload.put("relatedItems", equipmentItems);
         payload.put("equipmentItems", equipmentItems);
         payload.put("setVariants", buildArmorSetVariants(String.valueOf(payload.getOrDefault("textKey", textKey)), parseJson(payload.get("setsJson")), equipmentItems));
@@ -599,7 +603,7 @@ public class AdminArmorSetController {
             payload.put("internalName", firstNonBlank(trimToNull(firstMapValue(item, "internalName", "internal_name", "itemInternalName", "item_internal_name"))));
             payload.put("name", firstNonBlank(trimToNull(firstMapValue(item, "name", "itemName", "item_name"))));
             payload.put("nameZh", firstNonBlank(trimToNull(firstMapValue(item, "nameZh", "name_zh", "itemNameZh", "item_name_zh"))));
-            payload.put("image", firstNonBlank(trimToNull(firstMapValue(item, "image", "imageUrl", "image_url", "itemImage", "item_image"))));
+            payload.put("image", firstManagedImage(trimToNull(firstMapValue(item, "image", "imageUrl", "image_url", "itemImage", "item_image"))));
             payload.put("partRole", firstNonBlank(trimToNull(firstMapValue(item, "partRole", "part_role"))));
             payload.put("slotType", firstNonBlank(trimToNull(firstMapValue(item, "slotType", "slot_type"))));
             payload.put("equipmentSlotId", toNullableInt(firstMapValue(item, "equipmentSlotId", "equipment_slot_id")));
@@ -663,7 +667,7 @@ public class AdminArmorSetController {
                 copy.put("name", firstNonBlank(trimToNull(copy.get("name")), trimToNull(projectionItem.get("name"))));
                 copy.put("nameZh", firstNonBlank(trimToNull(copy.get("nameZh")), trimToNull(projectionItem.get("name_zh"))));
                 copy.put("internalName", firstNonBlank(trimToNull(copy.get("internalName")), trimToNull(projectionItem.get("internal_name"))));
-                copy.put("image", firstNonBlank(trimToNull(copy.get("image")), trimToNull(projectionItem.get("image"))));
+                copy.put("image", firstManagedImage(trimToNull(projectionItem.get("image")), trimToNull(copy.get("image"))));
             }
             enriched.add(copy);
         }
@@ -1064,7 +1068,7 @@ public class AdminArmorSetController {
                 }
                 String textKey = trimToNull(image.get("textKey"));
                 String role = trimToNull(image.get("imageRole"));
-                String url = firstNonBlank(trimToNull(image.get("cachedUrl")), trimToNull(image.get("originalUrl")));
+                String url = firstManagedImage(trimToNull(image.get("cachedUrl")));
                 if (textKey == null || role == null || url == null) {
                     continue;
                 }
@@ -1318,7 +1322,7 @@ public class AdminArmorSetController {
             payload.put("name", row.get("name"));
             payload.put("nameZh", row.get("name_zh"));
             payload.put("internalName", row.get("internal_name"));
-            payload.put("image", row.get("image"));
+            payload.put("image", firstManagedImage(trimToNull(row.get("image"))));
             return payload;
         }).toList();
     }
@@ -1383,6 +1387,55 @@ public class AdminArmorSetController {
             if (value != null && !value.isBlank()) return value;
         }
         return null;
+    }
+
+    private String firstManagedImage(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            String normalized = trimToNull(value);
+            if (isManagedImageUrl(normalized)) {
+                return normalized;
+            }
+        }
+        return null;
+    }
+
+    private String firstManagedImageCsv(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            String normalized = managedImageCsv(value);
+            if (normalized != null) {
+                return normalized;
+            }
+        }
+        return null;
+    }
+
+    private String managedImageCsv(String value) {
+        String normalized = trimToNull(value);
+        if (normalized == null) {
+            return null;
+        }
+        List<String> managedUrls = new ArrayList<>();
+        for (String entry : normalized.split("\\s*,\\s*")) {
+            String imageUrl = trimToNull(entry);
+            if (isManagedImageUrl(imageUrl)) {
+                managedUrls.add(imageUrl);
+            }
+        }
+        return managedUrls.isEmpty() ? null : String.join(",", managedUrls);
+    }
+
+    private boolean isManagedImageUrl(String value) {
+        String normalized = trimToNull(value);
+        if (normalized == null) {
+            return false;
+        }
+        return managedImageUrlPolicy.isManagedImageUrl(normalized);
     }
 
     private String toJson(Object value) {

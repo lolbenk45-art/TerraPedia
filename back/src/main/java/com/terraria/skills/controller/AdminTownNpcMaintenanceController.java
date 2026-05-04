@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.dto.TownNpcOverviewDTO;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import com.terraria.skills.service.SupportDomainService;
 import com.terraria.skills.service.TownNpcMaintenanceDomainMapper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -50,6 +51,7 @@ public class AdminTownNpcMaintenanceController {
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
     private final SupportDomainService supportDomainService;
+    private final ManagedImageUrlPolicy managedImageUrlPolicy;
 
     @GetMapping("/maintenance")
     @Operation(summary = "Get town NPC maintenance overview")
@@ -270,14 +272,14 @@ public class AdminTownNpcMaintenanceController {
         Map<String, String> icons = new LinkedHashMap<>();
         jdbcTemplate.query(
             """
-                SELECT name, image
+                SELECT name, %s AS image
                 FROM items
                 WHERE deleted = 0
                   AND name IN ('Copper Coin', 'Silver Coin', 'Gold Coin', 'Platinum Coin')
-                """,
+                """.formatted(AdminItemImageSql.preferredItemImageExpression("items")),
             rs -> {
                 String name = trimToNull(rs.getString("name"));
-                String image = trimToNull(rs.getString("image"));
+                String image = managedImageOrNull(rs.getString("image"), "admin town npc coin icon");
                 if (name == null || image == null) {
                     return;
                 }
@@ -314,14 +316,14 @@ public class AdminTownNpcMaintenanceController {
             }
             Object imageUrl = map.get("imageUrl");
             if (imageUrl instanceof String text && !text.isBlank()) {
-                return text.trim();
+                return managedImageOrNull(text, "admin town npc generated image");
             }
             Object rawJson = map.get("rawJson");
             if (!(rawJson instanceof String rawJsonText) || rawJsonText.isBlank()) {
                 return null;
             }
             Map<String, Object> parsed = objectMapper.readValue(rawJsonText, new TypeReference<>() {});
-            return trimToNull(parsed.get("imageUrl"));
+            return managedImageOrNull(trimToNull(parsed.get("imageUrl")), "admin town npc raw json image");
         } catch (Exception ignored) {
             return null;
         }
@@ -359,7 +361,7 @@ public class AdminTownNpcMaintenanceController {
                 row.put("name", trimToNull(rs.getString("name")));
                 row.put("nameZh", trimToNull(rs.getString("nameZh")));
                 row.put("internalName", trimToNull(rs.getString("internalName")));
-                row.put("image", trimToNull(rs.getString("image")));
+                row.put("image", managedImageOrNull(rs.getString("image"), "admin town npc current shop item image"));
                 row.put("buyPrice", rs.getObject("buyPrice"));
                 row.put("sellPrice", rs.getObject("sellPrice"));
                 return row;
@@ -428,7 +430,7 @@ public class AdminTownNpcMaintenanceController {
             row.put("itemName", trimToNull(matchedItem.get("name")));
             row.put("itemNameZh", trimToNull(matchedItem.get("nameZh")));
             row.put("itemInternalName", trimToNull(matchedItem.get("internalName")));
-            row.put("itemImage", trimToNull(matchedItem.get("image")));
+            row.put("itemImage", managedImageOrNull(trimToNull(matchedItem.get("image")), "admin town npc suggested shop item image"));
             row.put("sourceNameZh", trimToNull(scrapedItem.get("nameZh")));
             row.put("sourceNameEn", trimToNull(scrapedItem.get("nameEn")));
             suggestions.add(row);
@@ -680,6 +682,17 @@ public class AdminTownNpcMaintenanceController {
         }
         String text = String.valueOf(value).trim();
         return text.isEmpty() ? null : text;
+    }
+
+    private String managedImageOrNull(Object value, String context) {
+        String text = trimToNull(value);
+        if (text == null) {
+            return null;
+        }
+        if (managedImageUrlPolicy.isManagedImageUrl(text)) {
+            return text;
+        }
+        return null;
     }
 
     private Long toLong(Object value) {

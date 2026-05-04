@@ -6,6 +6,7 @@ import com.terraria.skills.entity.BossGroup;
 import com.terraria.skills.entity.Npc;
 import com.terraria.skills.mapper.BossGroupMapper;
 import com.terraria.skills.mapper.NpcMapper;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,12 +17,17 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -32,6 +38,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ExtendWith(MockitoExtension.class)
 class AdminBossControllerTest {
+
+    private static final String MANAGED_IMAGE_URL = "http://localhost:9000/terrapedia-images/bosses/king-slime.png";
+    private static final String MANAGED_MEMBER_IMAGE_URL = "http://localhost:9000/terrapedia-images/npcs/retinazer.png";
+    private static final String WIKI_IMAGE_URL = "https://terraria.wiki.gg/images/King_Slime.png";
+    private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
+        @Override
+        public boolean isManagedImageUrl(String value) {
+            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/");
+        }
+
+        @Override
+        public List<String> trustedManagedImageUrlPrefixes() {
+            return List.of("http://localhost:9000/terrapedia-images/");
+        }
+    };
 
     @Mock
     private BossGroupMapper bossGroupMapper;
@@ -46,7 +67,13 @@ class AdminBossControllerTest {
 
     @BeforeEach
     void setUp() {
-        AdminBossController controller = new AdminBossController(bossGroupMapper, npcMapper, new ObjectMapper(), jdbcTemplate);
+        AdminBossController controller = new AdminBossController(
+            bossGroupMapper,
+            npcMapper,
+            new ObjectMapper(),
+            jdbcTemplate,
+            MANAGED_IMAGE_URL_POLICY
+        );
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
             .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
             .build();
@@ -202,6 +229,75 @@ class AdminBossControllerTest {
             .andExpect(jsonPath("$.data.uniqueLootItemCount").value(2));
     }
 
+    @Test
+    void shouldSuppressWikiBossAndLootDisplayImagesButPreserveManagedImages() throws Exception {
+        BossGroup kingSlime = bossGroup(34L, "KING_SLIME", "King Slime", "鍙茶幈濮嗙帇", "PRE_HARDMODE", 1);
+        kingSlime.setImageUrl(WIKI_IMAGE_URL);
+
+        when(bossGroupMapper.selectById(eq(34L))).thenReturn(kingSlime);
+        when(npcMapper.selectList(any())).thenReturn(List.of(
+            npc(201L, 50L, "KingSlime", "King Slime", "鍙茶幈濮嗙帇", "primary")
+        ));
+        when(jdbcTemplate.queryForList(
+            contains("FROM npc_loot_entries"),
+            eq(201L)
+        )).thenReturn(List.of(
+            lootEntry(2608L, "SlimeGun", "Slime Gun", "鍙茶幈濮嗘灙", "direct_boss", WIKI_IMAGE_URL),
+            lootEntry(3088L, "RoyalGel", "Royal Gel", "鐨囧鍑濊兌", "treasure_bag", MANAGED_IMAGE_URL)
+        ));
+
+        mockMvc.perform(get("/admin/bosses/34"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.imageUrl", nullValue()))
+            .andExpect(jsonPath("$.data.lootEntries[0].itemImage", nullValue()))
+            .andExpect(jsonPath("$.data.lootEntries[1].itemImage").value(MANAGED_IMAGE_URL));
+    }
+
+    @Test
+    void shouldFilterMemberImagesResolvedFromNpcSupplementMap() throws Exception {
+        String originalUserDir = System.getProperty("user.dir");
+        Path tempRoot = Files.createTempDirectory("admin-boss-controller-test");
+        try {
+            Path generatedDir = tempRoot.resolve("data").resolve("generated");
+            Files.createDirectories(generatedDir);
+            Files.writeString(
+                generatedDir.resolve("npc-standardized-map.json"),
+                """
+                {
+                  "records": {
+                    "50": {"imageUrl": "https://terraria.wiki.gg/images/King_Slime.png"},
+                    "51": {"imageUrl": "http://localhost:9000/terrapedia-images/npcs/retinazer.png"},
+                    "52": {"rawJson": "{\\"imageUrl\\":\\"https://terraria.wiki.gg/images/Spazmatism.png\\"}"},
+                    "53": {"rawJson": "{\\"image_url\\":\\"http://localhost:9000/terrapedia-images/npcs/destroyer.png\\"}"}
+                  }
+                }
+                """,
+                StandardCharsets.UTF_8
+            );
+            System.setProperty("user.dir", tempRoot.toString());
+
+            BossGroup testBoss = bossGroup(99L, "TEST_BOSS", "Test Boss", "Test Boss", "HARDMODE", 99);
+            when(bossGroupMapper.selectById(eq(99L))).thenReturn(testBoss);
+            when(npcMapper.selectList(any())).thenReturn(List.of(
+                npc(201L, 50L, "WikiImageNpc", "Wiki Image NPC", "Wiki Image NPC", "part"),
+                npc(202L, 51L, "ManagedImageNpc", "Managed Image NPC", "Managed Image NPC", "part"),
+                npc(203L, 52L, "RawWikiImageNpc", "Raw Wiki Image NPC", "Raw Wiki Image NPC", "part"),
+                npc(204L, 53L, "RawManagedImageNpc", "Raw Managed Image NPC", "Raw Managed Image NPC", "part")
+            ));
+
+            mockMvc.perform(get("/admin/bosses/99"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.members[0].imageUrl", nullValue()))
+                .andExpect(jsonPath("$.data.members[1].imageUrl").value(MANAGED_MEMBER_IMAGE_URL))
+                .andExpect(jsonPath("$.data.members[2].imageUrl", nullValue()))
+                .andExpect(jsonPath("$.data.members[3].imageUrl").value("http://localhost:9000/terrapedia-images/npcs/destroyer.png"));
+        } finally {
+            System.setProperty("user.dir", originalUserDir);
+        }
+    }
+
     private BossGroup bossGroup(Long id, String code, String nameEn, String nameZh, String bossType, int progressionOrder) {
         BossGroup bossGroup = new BossGroup();
         bossGroup.setId(id);
@@ -228,12 +324,17 @@ class AdminBossControllerTest {
     }
 
     private Map<String, Object> lootEntry(Long itemId, String itemInternalName, String itemName, String itemNameZh, String dropSourceKind) {
-        return Map.of(
-            "itemId", itemId,
-            "itemInternalName", itemInternalName,
-            "itemName", itemName,
-            "itemNameZh", itemNameZh,
-            "dropSourceKind", dropSourceKind
-        );
+        return lootEntry(itemId, itemInternalName, itemName, itemNameZh, dropSourceKind, null);
+    }
+
+    private Map<String, Object> lootEntry(Long itemId, String itemInternalName, String itemName, String itemNameZh, String dropSourceKind, String itemImage) {
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("itemId", itemId);
+        entry.put("itemInternalName", itemInternalName);
+        entry.put("itemName", itemName);
+        entry.put("itemNameZh", itemNameZh);
+        entry.put("dropSourceKind", dropSourceKind);
+        entry.put("itemImage", itemImage);
+        return entry;
     }
 }

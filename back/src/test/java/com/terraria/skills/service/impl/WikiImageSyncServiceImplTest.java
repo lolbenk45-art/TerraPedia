@@ -21,17 +21,23 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -52,6 +58,9 @@ class WikiImageSyncServiceImplTest {
     private BiomeMapper biomeMapper;
 
     @Mock
+    private JdbcTemplate jdbcTemplate;
+
+    @Mock
     private MinioClient minioClient;
 
     private HttpServer imageServer;
@@ -64,7 +73,7 @@ class WikiImageSyncServiceImplTest {
     }
 
     @Test
-    void shouldMirrorLegacyWikiItemImageIntoItemImagesWithoutOverwritingItemsImage() throws Exception {
+    void shouldMirrorLegacyWikiItemImageIntoItemImagesAndBackfillItemsImage() throws Exception {
         String sourceUrl = startImageServer("/images/Sharp_Blade.png");
         Item item = legacyItem(sourceUrl);
         when(itemImageMapper.selectList(any())).thenReturn(List.of());
@@ -75,7 +84,6 @@ class WikiImageSyncServiceImplTest {
         AdminWikiImageSyncResultDTO result = service().syncWikiImages(itemImagesOnlyRequest());
 
         assertEquals(1, result.getItemImages().getSyncedCount());
-        verify(itemMapper, never()).updateById(any(Item.class));
 
         ArgumentCaptor<ItemImage> imageCaptor = ArgumentCaptor.forClass(ItemImage.class);
         verify(itemImageMapper).insert(imageCaptor.capture());
@@ -91,6 +99,11 @@ class WikiImageSyncServiceImplTest {
         assertEquals(1, inserted.getStatus());
         assertEquals(0, inserted.getDeleted());
         assertNotNull(inserted.getLastVerifiedAt());
+
+        ArgumentCaptor<Item> itemCaptor = ArgumentCaptor.forClass(Item.class);
+        verify(itemMapper).updateById(itemCaptor.capture());
+        assertEquals(7L, itemCaptor.getValue().getId());
+        assertEquals(inserted.getCachedUrl(), itemCaptor.getValue().getImage());
     }
 
     @Test
@@ -116,7 +129,10 @@ class WikiImageSyncServiceImplTest {
         verify(minioClient, never()).putObject(any(PutObjectArgs.class));
         verify(itemImageMapper, never()).insert(any(ItemImage.class));
         verify(itemImageMapper, never()).updateById(any(ItemImage.class));
-        verify(itemMapper, never()).updateById(any(Item.class));
+        ArgumentCaptor<Item> itemCaptor = ArgumentCaptor.forClass(Item.class);
+        verify(itemMapper).updateById(itemCaptor.capture());
+        assertEquals(7L, itemCaptor.getValue().getId());
+        assertEquals("http://localhost:9000/terrapedia-images/items/legacy/items/existing.png", itemCaptor.getValue().getImage());
     }
 
     @Test
@@ -209,7 +225,10 @@ class WikiImageSyncServiceImplTest {
         assertNotNull(updated.getLastVerifiedAt());
         verify(minioClient, never()).putObject(any(PutObjectArgs.class));
         verify(itemImageMapper, never()).insert(any(ItemImage.class));
-        verify(itemMapper, never()).updateById(any(Item.class));
+        ArgumentCaptor<Item> itemCaptor = ArgumentCaptor.forClass(Item.class);
+        verify(itemMapper).updateById(itemCaptor.capture());
+        assertEquals(7L, itemCaptor.getValue().getId());
+        assertEquals("http://localhost:9000/terrapedia-images/items/legacy/items/existing.png", itemCaptor.getValue().getImage());
     }
 
     @Test
@@ -245,11 +264,14 @@ class WikiImageSyncServiceImplTest {
         assertNotNull(updated.getLastVerifiedAt());
         verify(minioClient, never()).putObject(any(PutObjectArgs.class));
         verify(itemImageMapper, never()).insert(any(ItemImage.class));
-        verify(itemMapper, never()).updateById(any(Item.class));
+        ArgumentCaptor<Item> itemCaptor = ArgumentCaptor.forClass(Item.class);
+        verify(itemMapper).updateById(itemCaptor.capture());
+        assertEquals(7L, itemCaptor.getValue().getId());
+        assertEquals("http://localhost:9000/terrapedia-images/items/legacy/items/existing.png", itemCaptor.getValue().getImage());
     }
 
     @Test
-    void shouldMirrorBuffWikiImageWithoutOverwritingWikiFallback() throws Exception {
+    void shouldMirrorBuffWikiImageIntoManagedDisplayImage() throws Exception {
         String sourceUrl = startImageServer("/images/Mana_Regeneration.png");
         String fetchUrl = sourceUrl;
         Buff buff = new Buff();
@@ -274,9 +296,10 @@ class WikiImageSyncServiceImplTest {
         ArgumentCaptor<Buff> buffCaptor = ArgumentCaptor.forClass(Buff.class);
         verify(buffMapper).updateById(buffCaptor.capture());
         Buff updated = buffCaptor.getValue();
-        assertEquals(fetchUrl, updated.getImage());
         assertEquals(fetchUrl, readString(updated, "getImageOriginalUrl"));
-        assertTrue(readString(updated, "getImageCachedUrl").startsWith("http://localhost:9000/terrapedia-images/items/wiki/buffs/"));
+        String managedImageUrl = readString(updated, "getImageCachedUrl");
+        assertTrue(managedImageUrl.startsWith("http://localhost:9000/terrapedia-images/items/wiki/buffs/"));
+        assertEquals(managedImageUrl, updated.getImage());
     }
 
     @Test
@@ -350,6 +373,214 @@ class WikiImageSyncServiceImplTest {
         verify(itemImageMapper, never()).insert(any(ItemImage.class));
     }
 
+    @Test
+    void shouldMirrorArmorSetWikiCsvUrlIntoManagedUrl() {
+        String sourceUrl = "https://terraria.wiki.gg/images/Armor_Male.png";
+        RecordingWikiImageLocalizationService localizationService = new RecordingWikiImageLocalizationService(sourceUrl);
+        when(jdbcTemplate.queryForList(any(String.class))).thenReturn(List.of(Map.of(
+            "id", 23L,
+            "source_key", "ArmorSetBonus.Iron",
+            "text_key", "Iron Armor",
+            "male_images", sourceUrl + ", http://localhost:9000/terrapedia-images/items/existing.png",
+            "female_images", "",
+            "special_images", ""
+        )));
+
+        AdminWikiImageSyncResultDTO result = service(localizationService).syncWikiImages(armorSetsOnlyRequest(false));
+
+        assertEquals(2, result.getArmorSets().getCandidateCount());
+        assertEquals(1, result.getArmorSets().getSyncedCount());
+        assertEquals(1, result.getArmorSets().getSkippedCount());
+        assertEquals(1, result.getTotalSyncedCount());
+
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Object> firstArgCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(jdbcTemplate).update(sqlCaptor.capture(), firstArgCaptor.capture(), any(), any(), any());
+        assertTrue(sqlCaptor.getValue().contains("UPDATE armor_sets"));
+        ArgumentCaptor<String> querySqlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate).queryForList(querySqlCaptor.capture());
+        assertFalse(querySqlCaptor.getValue().contains("internal_name"));
+        assertEquals(
+            "http://localhost:9000/terrapedia-images/items/wiki/item-images/shared.png, http://localhost:9000/terrapedia-images/items/existing.png",
+            firstArgCaptor.getValue()
+        );
+    }
+
+    @Test
+    void shouldMirrorRelationProjectionArmorSetWikiCsvUrlIntoManagedUrl() {
+        String sourceUrl = "https://terraria.wiki.gg/images/Projection_Armor_Male.png";
+        RecordingWikiImageLocalizationService localizationService = new RecordingWikiImageLocalizationService(sourceUrl);
+        when(jdbcTemplate.queryForObject(
+            argThat(sql -> sql != null && sql.contains("table_schema = DATABASE()") && sql.contains("table_name = ?")),
+            eq(Long.class),
+            eq("projection_armor_sets")
+        )).thenReturn(0L);
+        when(jdbcTemplate.queryForObject(
+            argThat(sql -> sql != null && sql.contains("table_schema = ?") && sql.contains("table_name = ?")),
+            eq(Long.class),
+            eq("terria_v1_relation"),
+            eq("projection_armor_sets")
+        )).thenReturn(1L);
+        when(jdbcTemplate.queryForList(argThat(sql -> sql != null && sql.contains("FROM armor_sets")))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(argThat(sql -> sql != null && sql.contains("FROM `terria_v1_relation`.`projection_armor_sets`"))))
+            .thenReturn(List.of(Map.of(
+                "id", 31L,
+                "source_key", "ArmorSetBonus.Projection",
+                "text_key", "Projection Armor",
+                "name", "Projection Armor",
+                "male_images", sourceUrl,
+                "female_images", "",
+                "special_images", ""
+            )));
+
+        AdminWikiImageSyncResultDTO result = service(localizationService).syncWikiImages(armorSetsOnlyRequest(false));
+
+        assertEquals(1, result.getArmorSets().getCandidateCount());
+        assertEquals(1, result.getArmorSets().getSyncedCount());
+        assertEquals(1, result.getTotalSyncedCount());
+        verify(jdbcTemplate).update(
+            contains("UPDATE `terria_v1_relation`.`projection_armor_sets`"),
+            eq("http://localhost:9000/terrapedia-images/items/wiki/item-images/shared.png"),
+            eq(""),
+            eq(""),
+            eq(31L)
+        );
+    }
+
+    @Test
+    void shouldMirrorArmorSetImageRowsIntoMaintAndRelationCachedUrl() {
+        String sourceUrl = "https://terraria.wiki.gg/images/Hallowed_armor.png";
+        RecordingWikiImageLocalizationService localizationService = new RecordingWikiImageLocalizationService(sourceUrl);
+        when(jdbcTemplate.queryForObject(
+            argThat(sql -> sql != null && sql.contains("table_schema = DATABASE()") && sql.contains("table_name = ?")),
+            eq(Long.class),
+            eq("projection_armor_sets")
+        )).thenReturn(0L);
+        when(jdbcTemplate.queryForObject(
+            argThat(sql -> sql != null && sql.contains("table_schema = ?") && sql.contains("table_name = ?")),
+            eq(Long.class),
+            eq("terria_v1_relation"),
+            eq("projection_armor_sets")
+        )).thenReturn(0L);
+        when(jdbcTemplate.queryForObject(
+            argThat(sql -> sql != null && sql.contains("table_schema = ?") && sql.contains("table_name = ?")),
+            eq(Long.class),
+            eq("terria_v1_maint"),
+            eq("maint_armor_set_images")
+        )).thenReturn(1L);
+        when(jdbcTemplate.queryForObject(
+            argThat(sql -> sql != null && sql.contains("table_schema = ?") && sql.contains("table_name = ?")),
+            eq(Long.class),
+            eq("terria_v1_relation"),
+            eq("relation_armor_set_images")
+        )).thenReturn(1L);
+        when(jdbcTemplate.queryForList(argThat(sql -> sql != null && sql.contains("FROM armor_sets")))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(argThat(sql -> sql != null && sql.contains("FROM `terria_v1_maint`.`maint_armor_set_images`"))))
+            .thenReturn(List.of(Map.of(
+                "id", 101L,
+                "record_key", "maint-row",
+                "text_key", "ArmorSetBonus.Hallowed",
+                "image_role", "male",
+                "source_file_title", "Hallowed armor",
+                "original_url", sourceUrl,
+                "cached_url", ""
+            )));
+        when(jdbcTemplate.queryForList(argThat(sql -> sql != null && sql.contains("FROM `terria_v1_relation`.`relation_armor_set_images`"))))
+            .thenReturn(List.of(Map.of(
+                "id", 102L,
+                "record_key", "relation-row",
+                "text_key", "ArmorSetBonus.Hallowed",
+                "image_role", "male",
+                "source_file_title", "Hallowed armor",
+                "original_url", sourceUrl,
+                "cached_url", ""
+            )));
+
+        AdminWikiImageSyncResultDTO result = service(localizationService).syncWikiImages(armorSetsOnlyRequest(false));
+
+        assertEquals(2, result.getArmorSets().getCandidateCount());
+        assertEquals(2, result.getArmorSets().getSyncedCount());
+        assertEquals(2, result.getTotalSyncedCount());
+        verify(jdbcTemplate).update(
+            contains("UPDATE `terria_v1_maint`.`maint_armor_set_images`"),
+            eq(sourceUrl),
+            eq("http://localhost:9000/terrapedia-images/items/wiki/item-images/shared.png"),
+            eq(101L)
+        );
+        verify(jdbcTemplate).update(
+            contains("UPDATE `terria_v1_relation`.`relation_armor_set_images`"),
+            eq(sourceUrl),
+            eq("http://localhost:9000/terrapedia-images/items/wiki/item-images/shared.png"),
+            eq(102L)
+        );
+    }
+
+    @Test
+    void shouldSyncArmorSetsByDefaultWhenRequestDoesNotSpecifyFlag() {
+        RecordingWikiImageLocalizationService localizationService = new RecordingWikiImageLocalizationService("https://terraria.wiki.gg/images/Hallowed_armor.png");
+        when(jdbcTemplate.queryForObject(
+            argThat(sql -> sql != null && sql.contains("table_schema = DATABASE()") && sql.contains("table_name = ?")),
+            eq(Long.class),
+            eq("projection_armor_sets")
+        )).thenReturn(0L);
+        when(jdbcTemplate.queryForObject(
+            argThat(sql -> sql != null && sql.contains("table_schema = ?") && sql.contains("table_name = ?")),
+            eq(Long.class),
+            eq("terria_v1_relation"),
+            eq("projection_armor_sets")
+        )).thenReturn(0L);
+        when(jdbcTemplate.queryForObject(
+            argThat(sql -> sql != null && sql.contains("table_schema = ?") && sql.contains("table_name = ?")),
+            eq(Long.class),
+            eq("terria_v1_maint"),
+            eq("maint_armor_set_images")
+        )).thenReturn(0L);
+        when(jdbcTemplate.queryForObject(
+            argThat(sql -> sql != null && sql.contains("table_schema = ?") && sql.contains("table_name = ?")),
+            eq(Long.class),
+            eq("terria_v1_relation"),
+            eq("relation_armor_set_images")
+        )).thenReturn(0L);
+        when(jdbcTemplate.queryForList(any(String.class))).thenReturn(List.of());
+
+        AdminWikiImageSyncResultDTO result = service(localizationService).syncWikiImages(new AdminWikiImageSyncRequestDTO());
+
+        assertEquals(0, result.getArmorSets().getCandidateCount());
+        assertEquals(0, result.getArmorSets().getFailedCount());
+    }
+
+    @Test
+    void shouldSkipArmorSetManagedCsvUrlWithoutUploading() {
+        String managedUrl = "http://localhost:9000/terrapedia-images/items/armor/iron.png";
+        when(jdbcTemplate.queryForList(any(String.class))).thenReturn(List.of(Map.of(
+            "id", 23L,
+            "source_key", "ArmorSetBonus.Iron",
+            "text_key", "Iron Armor",
+            "male_images", managedUrl,
+            "female_images", "",
+            "special_images", ""
+        )));
+
+        AdminWikiImageSyncResultDTO result = service(new RecordingWikiImageLocalizationService("unused"))
+            .syncWikiImages(armorSetsOnlyRequest(false));
+
+        assertEquals(1, result.getArmorSets().getCandidateCount());
+        assertEquals(1, result.getArmorSets().getSkippedCount());
+        assertEquals(0, result.getArmorSets().getSyncedCount());
+        verify(jdbcTemplate, never()).update(any(String.class), any(), any(), any(), any());
+    }
+
+    @Test
+    void shouldRecordArmorSetSqlErrorWithoutThrowing() {
+        when(jdbcTemplate.queryForList(any(String.class))).thenThrow(new RuntimeException("armor_sets missing"));
+
+        AdminWikiImageSyncResultDTO result = service(new RecordingWikiImageLocalizationService("unused"))
+            .syncWikiImages(armorSetsOnlyRequest(false));
+
+        assertEquals(1, result.getArmorSets().getFailedCount());
+        assertTrue(result.getArmorSets().getSampleErrors().get(0).contains("armor_sets missing"));
+    }
+
     private WikiImageSyncServiceImpl service() {
         return service(new MinioWikiImageLocalizationServiceImpl(
             minioClient,
@@ -364,6 +595,7 @@ class WikiImageSyncServiceImplTest {
             itemMapper,
             buffMapper,
             biomeMapper,
+            jdbcTemplate,
             minioConnectionDetails(),
             localizationService
         );
@@ -389,6 +621,16 @@ class WikiImageSyncServiceImplTest {
         request.setIncludeItemImages(true);
         request.setIncludeBuffs(false);
         request.setIncludeBiomes(false);
+        return request;
+    }
+
+    private AdminWikiImageSyncRequestDTO armorSetsOnlyRequest(boolean force) {
+        AdminWikiImageSyncRequestDTO request = new AdminWikiImageSyncRequestDTO();
+        request.setForce(force);
+        request.setIncludeItemImages(false);
+        request.setIncludeBuffs(false);
+        request.setIncludeBiomes(false);
+        request.setIncludeArmorSets(true);
         return request;
     }
 

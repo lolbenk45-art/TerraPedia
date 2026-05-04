@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.entity.Projectile;
 import com.terraria.skills.mapper.ProjectileMapper;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +25,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class AdminProjectileControllerTest {
 
+    private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
+        @Override
+        public boolean isManagedImageUrl(String value) {
+            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/");
+        }
+
+        @Override
+        public List<String> trustedManagedImageUrlPrefixes() {
+            return List.of("http://localhost:9000/terrapedia-images/");
+        }
+    };
+
     @Mock
     private ProjectileMapper projectileMapper;
 
@@ -32,7 +45,7 @@ class AdminProjectileControllerTest {
     @BeforeEach
     void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
-        AdminProjectileController controller = new AdminProjectileController(projectileMapper, objectMapper);
+        AdminProjectileController controller = new AdminProjectileController(projectileMapper, objectMapper, MANAGED_IMAGE_URL_POLICY);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
             .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
             .build();
@@ -67,7 +80,7 @@ class AdminProjectileControllerTest {
     }
 
     @Test
-    void shouldPreferWikiImageUrlColumnOverRawJsonImageName() throws Exception {
+    void shouldSuppressWikiImageUrlColumnInDisplayPayload() throws Exception {
         Projectile projectile = new Projectile();
         projectile.setId(1L);
         projectile.setSourceId(1);
@@ -81,7 +94,44 @@ class AdminProjectileControllerTest {
 
         mockMvc.perform(get("/admin/projectiles/1"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.imageUrl").value("https://terraria.wiki.gg/images/Wooden%20Arrow.png"));
+            .andExpect(jsonPath("$.data.imageUrl").doesNotExist());
+    }
+
+    @Test
+    void shouldPreserveManagedProjectileImageUrlInDisplayPayload() throws Exception {
+        String managedImageUrl = "http://localhost:9000/terrapedia-images/items/wiki/projectiles/wooden-arrow.png";
+        Projectile projectile = new Projectile();
+        projectile.setId(1L);
+        projectile.setSourceId(1);
+        projectile.setInternalName("WoodenArrowFriendly");
+        projectile.setName("Wooden Arrow (friendly)");
+        projectile.setImageUrl(managedImageUrl);
+        projectile.setRawJson("{\"imageUrl\":\"https://terraria.wiki.gg/images/Wooden%20Arrow.png\"}");
+        projectile.setStatus(1);
+
+        when(projectileMapper.selectById(1L)).thenReturn(projectile);
+
+        mockMvc.perform(get("/admin/projectiles/1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.imageUrl").value(managedImageUrl));
+    }
+
+    @Test
+    void shouldFilterRawJsonProjectileImageUrlInDisplayPayload() throws Exception {
+        String managedImageUrl = "http://localhost:9000/terrapedia-images/items/wiki/projectiles/wooden-arrow.png";
+        Projectile projectile = new Projectile();
+        projectile.setId(1L);
+        projectile.setSourceId(1);
+        projectile.setInternalName("WoodenArrowFriendly");
+        projectile.setName("Wooden Arrow (friendly)");
+        projectile.setRawJson("{\"imageUrl\":\"" + managedImageUrl + "\"}");
+        projectile.setStatus(1);
+
+        when(projectileMapper.selectById(1L)).thenReturn(projectile);
+
+        mockMvc.perform(get("/admin/projectiles/1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.imageUrl").value(managedImageUrl));
     }
 
     @Test

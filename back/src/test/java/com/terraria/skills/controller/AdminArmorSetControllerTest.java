@@ -2,6 +2,7 @@ package com.terraria.skills.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.common.ApiResponse;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,18 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AdminArmorSetControllerTest {
+
+    private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
+        @Override
+        public boolean isManagedImageUrl(String value) {
+            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/items/");
+        }
+
+        @Override
+        public List<String> trustedManagedImageUrlPrefixes() {
+            return List.of("http://localhost:9000/terrapedia-images/items/");
+        }
+    };
 
     @TempDir
     Path tempDir;
@@ -53,7 +66,7 @@ class AdminArmorSetControllerTest {
     @Test
     void getArmorSetsReadsProjectionTableWhenAvailable() {
         FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(true);
-        AdminArmorSetController controller = new AdminArmorSetController(jdbcTemplate, new ObjectMapper());
+        AdminArmorSetController controller = controller(jdbcTemplate);
 
         ResponseEntity<ApiResponse<List<Map<String, Object>>>> response =
             controller.getArmorSets(1, 20, null, null);
@@ -65,7 +78,7 @@ class AdminArmorSetControllerTest {
         assertEquals("ArmorSetBonus.Wood", armorSet.get("textKey"));
         assertEquals("armor_set", armorSet.get("entityType"));
         assertEquals("traditional_set", armorSet.get("compositionKind"));
-        assertEquals("https://terraria.wiki.gg/images/Wood_armor.png", armorSet.get("maleImages"));
+        assertEquals(null, armorSet.get("maleImages"));
         assertTrue(jdbcTemplate.sqlLog.stream().anyMatch(sql -> sql.contains("FROM projection_armor_sets")));
         assertFalse(jdbcTemplate.sqlLog.stream().anyMatch(sql -> sql.contains("FROM armor_sets")));
     }
@@ -73,7 +86,7 @@ class AdminArmorSetControllerTest {
     @Test
     void projectionSearchIncludesDisplayNameColumns() {
         FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(true);
-        AdminArmorSetController controller = new AdminArmorSetController(jdbcTemplate, new ObjectMapper());
+        AdminArmorSetController controller = controller(jdbcTemplate);
 
         controller.getArmorSets(1, 20, null, "神圣");
 
@@ -88,7 +101,7 @@ class AdminArmorSetControllerTest {
     @Test
     void getArmorSetByIdReadsProjectionTableWhenAvailable() {
         FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(true);
-        AdminArmorSetController controller = new AdminArmorSetController(jdbcTemplate, new ObjectMapper());
+        AdminArmorSetController controller = controller(jdbcTemplate);
 
         ResponseEntity<ApiResponse<Map<String, Object>>> response = controller.getArmorSetById(101L);
 
@@ -112,20 +125,35 @@ class AdminArmorSetControllerTest {
     }
 
     @Test
+    void projectionEquipmentItemsSuppressWikiImagesWhenProjectionItemImageIsMissing() {
+        FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(true, "woodWikiRelatedImage");
+        AdminArmorSetController controller = controller(jdbcTemplate);
+
+        ResponseEntity<ApiResponse<Map<String, Object>>> response = controller.getArmorSetById(101L);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        List<Map<String, Object>> equipmentItems = asMapList(response.getBody().getData().get("equipmentItems"));
+        assertEquals(1, equipmentItems.size());
+        assertEquals(null, equipmentItems.get(0).get("image"));
+        assertFalse(String.valueOf(response.getBody().getData()).contains("terraria.wiki.gg/images"));
+    }
+
+    @Test
     void projectionDetailEnrichesEquipmentImagesReplacementGroupsAndEffectRows() {
         FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(true, "hallowedSummoner");
-        AdminArmorSetController controller = new AdminArmorSetController(jdbcTemplate, new ObjectMapper());
+        AdminArmorSetController controller = controller(jdbcTemplate);
 
         ResponseEntity<ApiResponse<Map<String, Object>>> response = controller.getArmorSetById(303L);
 
         assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
         Map<String, Object> data = response.getBody().getData();
-        assertEquals("https://terraria.wiki.gg/images/Hallowed_armor.png?8ccbab", data.get("maleImages"));
+        assertEquals(null, data.get("maleImages"));
 
         List<Map<String, Object>> equipmentItems = asMapList(data.get("equipmentItems"));
         assertEquals("神圣兜帽", equipmentItems.get(0).get("nameZh"));
-        assertEquals("https://terraria.wiki.gg/images/Hallowed_Hood.png", equipmentItems.get(0).get("image"));
+        assertEquals("http://localhost:9000/terrapedia-images/items/hallowed-hood.png", equipmentItems.get(0).get("image"));
 
         List<Map<String, Object>> replacementGroups = asMapList(data.get("replacementGroups"));
         assertTrue(replacementGroups.stream().anyMatch(group -> "body".equals(group.get("partRole")) && asMapList(group.get("items")).size() == 2));
@@ -139,7 +167,7 @@ class AdminArmorSetControllerTest {
     @Test
     void getArmorSetsReadsRelationProjectionWhenCurrentDatabaseProjectionIsMissing() {
         FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(false, true);
-        AdminArmorSetController controller = new AdminArmorSetController(jdbcTemplate, new ObjectMapper());
+        AdminArmorSetController controller = controller(jdbcTemplate);
 
         ResponseEntity<ApiResponse<List<Map<String, Object>>>> response =
             controller.getArmorSets(1, 20, null, null);
@@ -155,7 +183,7 @@ class AdminArmorSetControllerTest {
     @Test
     void getArmorSetsFallsBackToLegacyArmorSetsWhenProjectionTableIsMissing() {
         FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(false);
-        AdminArmorSetController controller = new AdminArmorSetController(jdbcTemplate, new ObjectMapper());
+        AdminArmorSetController controller = controller(jdbcTemplate);
 
         ResponseEntity<ApiResponse<List<Map<String, Object>>>> response =
             controller.getArmorSets(1, 20, null, null);
@@ -170,21 +198,21 @@ class AdminArmorSetControllerTest {
     @Test
     void legacyFallbackUsesLatestArmorSetImageSnapshotWhenDbImageFieldsAreEmpty() {
         FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(false);
-        AdminArmorSetController controller = new AdminArmorSetController(jdbcTemplate, new ObjectMapper());
+        AdminArmorSetController controller = controller(jdbcTemplate);
 
         ResponseEntity<ApiResponse<Map<String, Object>>> response = controller.getArmorSetById(202L);
         Map<String, Object> data = response.getBody().getData();
 
-        assertEquals("https://terraria.wiki.gg/images/Wood_armor.png?ef83ed", data.get("maleImages"));
-        assertEquals("https://terraria.wiki.gg/images/Wood_armor_female.png?d68c10", data.get("femaleImages"));
-        assertEquals("https://terraria.wiki.gg/images/Wood_armor.png?ef83ed", data.get("image"));
-        assertEquals("https://terraria.wiki.gg/images/Wood_armor.png?ef83ed", data.get("imageUrl"));
+        assertEquals(null, data.get("maleImages"));
+        assertEquals(null, data.get("femaleImages"));
+        assertEquals(null, data.get("image"));
+        assertEquals(null, data.get("imageUrl"));
     }
 
     @Test
     void updateArmorSetReturnsLegacyRowEvenWhenProjectionTableExists() {
         FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(true);
-        AdminArmorSetController controller = new AdminArmorSetController(jdbcTemplate, new ObjectMapper());
+        AdminArmorSetController controller = controller(jdbcTemplate);
 
         ResponseEntity<ApiResponse<Map<String, Object>>> response =
             controller.updateArmorSet(202L, new LinkedHashMap<>());
@@ -236,6 +264,10 @@ class AdminArmorSetControllerTest {
             }
             """
         );
+    }
+
+    private AdminArmorSetController controller(FakeJdbcTemplate jdbcTemplate) {
+        return new AdminArmorSetController(jdbcTemplate, new ObjectMapper(), MANAGED_IMAGE_URL_POLICY);
     }
 
     private void writeArmorSetBonusSource(Path repoRoot) throws IOException {
@@ -358,13 +390,19 @@ class AdminArmorSetControllerTest {
             row.put("current_item_ids_json", "[727,728,729]");
             row.put(
                 "related_items_json",
-                """
-                [
-                  {"sourceId":727,"internalName":"WoodHelmet","name":"Wood Helmet","partRole":"head","slotType":"headSlot","equipmentSlotId":52,"setVariantIndex":0,"partIndex":0},
-                  {"sourceId":728,"internalName":"WoodBreastplate","name":"Wood Breastplate","partRole":"body","slotType":"bodySlot","equipmentSlotId":32,"setVariantIndex":0,"partIndex":1},
-                  {"sourceId":729,"internalName":"WoodGreaves","name":"Wood Greaves","partRole":"legs","slotType":"legSlot","equipmentSlotId":31,"setVariantIndex":0,"partIndex":2}
-                ]
-                """
+                "woodWikiRelatedImage".equals(projectionScenario)
+                    ? """
+                    [
+                      {"sourceId":727,"internalName":"WoodHelmet","name":"Wood Helmet","image":"https://terraria.wiki.gg/images/Wood_Helmet.png","partRole":"head","slotType":"headSlot","equipmentSlotId":52,"setVariantIndex":0,"partIndex":0}
+                    ]
+                    """
+                    : """
+                    [
+                      {"sourceId":727,"internalName":"WoodHelmet","name":"Wood Helmet","partRole":"head","slotType":"headSlot","equipmentSlotId":52,"setVariantIndex":0,"partIndex":0},
+                      {"sourceId":728,"internalName":"WoodBreastplate","name":"Wood Breastplate","partRole":"body","slotType":"bodySlot","equipmentSlotId":32,"setVariantIndex":0,"partIndex":1},
+                      {"sourceId":729,"internalName":"WoodGreaves","name":"Wood Greaves","partRole":"legs","slotType":"legSlot","equipmentSlotId":31,"setVariantIndex":0,"partIndex":2}
+                    ]
+                    """
             );
             row.put("male_images", "https://terraria.wiki.gg/images/Wood_armor.png");
             row.put("female_images", "https://terraria.wiki.gg/images/Wood_armor_female.png");
@@ -429,12 +467,15 @@ class AdminArmorSetControllerTest {
             List<Map<String, Object>> rows = new ArrayList<>();
             for (Object arg : args) {
                 Long id = arg instanceof Number number ? number.longValue() : null;
-                if (id == null) {
-                    continue;
-                }
-                rows.add(projectionItemRow(id));
+            if (id == null) {
+                continue;
             }
-            return rows;
+            if ("woodWikiRelatedImage".equals(projectionScenario)) {
+                continue;
+            }
+            rows.add(projectionItemRow(id));
+        }
+        return rows;
         }
 
         private Map<String, Object> projectionItemRow(Long id) {
@@ -444,32 +485,32 @@ class AdminArmorSetControllerTest {
                 row.put("name", "Hallowed Hood");
                 row.put("name_zh", "神圣兜帽");
                 row.put("internal_name", "HallowedHood");
-                row.put("image", "https://terraria.wiki.gg/images/Hallowed_Hood.png");
+                row.put("image", "http://localhost:9000/terrapedia-images/items/hallowed-hood.png");
             } else if (id == 551L) {
                 row.put("name", "Hallowed Plate Mail");
                 row.put("name_zh", "神圣板甲");
                 row.put("internal_name", "HallowedPlateMail");
-                row.put("image", "https://terraria.wiki.gg/images/Hallowed_Plate_Mail.png");
+                row.put("image", "http://localhost:9000/terrapedia-images/items/hallowed-plate-mail.png");
             } else if (id == 552L) {
                 row.put("name", "Hallowed Greaves");
                 row.put("name_zh", "神圣护胫");
                 row.put("internal_name", "HallowedGreaves");
-                row.put("image", "https://terraria.wiki.gg/images/Hallowed_Greaves.png");
+                row.put("image", "http://localhost:9000/terrapedia-images/items/hallowed-greaves.png");
             } else if (id == 4900L) {
                 row.put("name", "Ancient Hallowed Plate Mail");
                 row.put("name_zh", "远古神圣板甲");
                 row.put("internal_name", "AncientHallowedPlateMail");
-                row.put("image", "https://terraria.wiki.gg/images/Ancient_Hallowed_Plate_Mail.png");
+                row.put("image", "http://localhost:9000/terrapedia-images/items/ancient-hallowed-plate-mail.png");
             } else if (id == 4901L) {
                 row.put("name", "Ancient Hallowed Greaves");
                 row.put("name_zh", "远古神圣护胫");
                 row.put("internal_name", "AncientHallowedGreaves");
-                row.put("image", "https://terraria.wiki.gg/images/Ancient_Hallowed_Greaves.png");
+                row.put("image", "http://localhost:9000/terrapedia-images/items/ancient-hallowed-greaves.png");
             } else {
                 row.put("name", "Wood Helmet");
                 row.put("name_zh", "木头盔");
                 row.put("internal_name", "WoodHelmet");
-                row.put("image", "https://terraria.wiki.gg/images/Wood_Helmet.png");
+                row.put("image", "http://localhost:9000/terrapedia-images/items/wood-helmet.png");
             }
             return row;
         }

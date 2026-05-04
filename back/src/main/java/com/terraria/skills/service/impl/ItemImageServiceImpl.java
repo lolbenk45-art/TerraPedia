@@ -7,6 +7,7 @@ import com.terraria.skills.entity.ItemImage;
 import com.terraria.skills.mapper.ItemImageMapper;
 import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.service.ItemImageService;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -26,13 +27,12 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class ItemImageServiceImpl implements ItemImageService {
 
-    private static final String MANAGED_IMAGE_PATH_SEGMENT = "/terrapedia-images/";
-    private static final String WIKI_IMAGE_HOST = "terraria.wiki.gg";
     private static final Pattern NON_ITEM_ICON_VARIANT_TOKEN =
         Pattern.compile("(^|[/_\\s-])(demo|placed)([._?&#/-]|$)");
 
     private final ItemImageMapper itemImageMapper;
     private final ItemMapper itemMapper;
+    private final ManagedImageUrlPolicy managedImageUrlPolicy;
 
     @Override
     public List<ItemImageDTO> getImagesByItemId(Long itemId) {
@@ -114,7 +114,7 @@ public class ItemImageServiceImpl implements ItemImageService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private static String preferredDisplayImageUrl(String originalUrl, String cachedUrl) {
+    private String preferredDisplayImageUrl(String originalUrl, String cachedUrl) {
         String cached = trimToNull(cachedUrl);
         String original = trimToNull(originalUrl);
         if (isNonItemIconVariant(original) || isNonItemIconVariant(cached)) {
@@ -126,35 +126,12 @@ public class ItemImageServiceImpl implements ItemImageService {
         if (isManagedImageUrl(original)) {
             return original;
         }
-        if (isWikiImageUrl(cached)) {
-            return cached;
-        }
-        if (isWikiImageUrl(original)) {
-            return original;
-        }
         return null;
     }
 
-    private static boolean isManagedImageUrl(String value) {
+    private boolean isManagedImageUrl(String value) {
         String text = trimToNull(value);
-        if (text == null) {
-            return false;
-        }
-        String normalized = safeDecode(text).toLowerCase(Locale.ROOT);
-        return isHttpUrl(normalized) && normalized.contains(MANAGED_IMAGE_PATH_SEGMENT);
-    }
-
-    private static boolean isWikiImageUrl(String value) {
-        String text = trimToNull(value);
-        if (text == null) {
-            return false;
-        }
-        String normalized = safeDecode(text).toLowerCase(Locale.ROOT);
-        return isHttpUrl(normalized) && normalized.contains(WIKI_IMAGE_HOST);
-    }
-
-    private static boolean isHttpUrl(String normalized) {
-        return normalized.startsWith("https://") || normalized.startsWith("http://");
+        return text != null && managedImageUrlPolicy.isManagedImageUrl(text);
     }
 
     private static boolean isNonItemIconVariant(String value) {

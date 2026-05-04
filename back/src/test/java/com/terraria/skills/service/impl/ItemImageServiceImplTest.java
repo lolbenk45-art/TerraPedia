@@ -5,6 +5,7 @@ import com.terraria.skills.entity.Item;
 import com.terraria.skills.entity.ItemImage;
 import com.terraria.skills.mapper.ItemImageMapper;
 import com.terraria.skills.mapper.ItemMapper;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -19,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class ItemImageServiceImplTest {
@@ -29,11 +31,15 @@ class ItemImageServiceImplTest {
     @Mock
     private ItemMapper itemMapper;
 
+    @Mock
+    private ManagedImageUrlPolicy managedImageUrlPolicy;
+
     @InjectMocks
     private ItemImageServiceImpl itemImageService;
 
     @Test
     void shouldPreferMinioCachedImagesFromNewTableAndKeepWikiAsFallbackMetadata() {
+        trustLocalMinioOnly();
         ItemImage wikiPrimary = new ItemImage();
         wikiPrimary.setId(11L);
         wikiPrimary.setItemId(7L);
@@ -64,7 +70,8 @@ class ItemImageServiceImplTest {
     }
 
     @Test
-    void shouldFallbackToWikiImageWhenTableRowHasNoMinioCache() {
+    void shouldDropWikiOnlyTableRowFromDisplayList() {
+        trustLocalMinioOnly();
         ItemImage wikiPrimary = new ItemImage();
         wikiPrimary.setId(11L);
         wikiPrimary.setItemId(7L);
@@ -77,15 +84,13 @@ class ItemImageServiceImplTest {
 
         List<ItemImageDTO> images = itemImageService.getImagesByItemId(7L);
 
-        assertEquals(1, images.size());
-        assertEquals("https://terraria.wiki.gg/images/primary.png", images.get(0).getImageUrl());
-        assertEquals("https://terraria.wiki.gg/images/primary.png", images.get(0).getOriginalUrl());
-        assertTrue(images.get(0).getIsPrimary());
-        verify(itemMapper, never()).selectById(any());
+        assertTrue(images.isEmpty());
+        verify(itemMapper).selectById(7L);
     }
 
     @Test
     void shouldReturnEmptyListWhenNeitherNewNorLegacyImageExists() {
+        trustLocalMinioOnly();
         Item item = new Item();
         item.setId(7L);
         item.setImage("   ");
@@ -100,7 +105,8 @@ class ItemImageServiceImplTest {
     }
 
     @Test
-    void shouldFallbackToWikiLegacyItemImageWhenNewTableIsEmpty() {
+    void shouldReturnEmptyListForWikiLegacyItemImageWhenNewTableIsEmpty() {
+        trustLocalMinioOnly();
         Item item = new Item();
         item.setId(7L);
         item.setImage("https://terraria.wiki.gg/images/Legacy.png");
@@ -110,16 +116,13 @@ class ItemImageServiceImplTest {
 
         List<ItemImageDTO> images = itemImageService.getImagesByItemId(7L);
 
-        assertEquals(1, images.size());
-        assertEquals("https://terraria.wiki.gg/images/Legacy.png", images.get(0).getImageUrl());
-        assertEquals("https://terraria.wiki.gg/images/Legacy.png", images.get(0).getOriginalUrl());
-        assertTrue(images.get(0).getIsPrimary());
-        assertEquals("icon", images.get(0).getRole());
+        assertTrue(images.isEmpty());
         verify(itemMapper).selectById(7L);
     }
 
     @Test
     void shouldUseManagedLegacyItemImageWhenTableIsEmpty() {
+        trustLocalMinioOnly();
         Item item = new Item();
         item.setId(7L);
         item.setImage("http://localhost:9000/terrapedia-images/items/legacy.png");
@@ -136,7 +139,8 @@ class ItemImageServiceImplTest {
     }
 
     @Test
-    void shouldFallbackToWikiLegacyItemImageWhenTableRowsAreRejected() {
+    void shouldReturnEmptyListForWikiLegacyItemImageWhenTableRowsAreRejected() {
+        trustLocalMinioOnly();
         ItemImage demo = new ItemImage();
         demo.setId(11L);
         demo.setItemId(7L);
@@ -154,13 +158,12 @@ class ItemImageServiceImplTest {
 
         List<ItemImageDTO> images = itemImageService.getImagesByItemId(7L);
 
-        assertEquals(1, images.size());
-        assertEquals("https://terraria.wiki.gg/images/Work_Bench.png", images.get(0).getImageUrl());
-        assertEquals("items.image", images.get(0).getSourcePage());
+        assertTrue(images.isEmpty());
     }
 
     @Test
     void shouldExcludeDemoAndPlacedWikiRowsFromDisplayList() {
+        trustLocalMinioOnly();
         ItemImage demo = new ItemImage();
         demo.setId(11L);
         demo.setItemId(7L);
@@ -177,25 +180,16 @@ class ItemImageServiceImplTest {
         placed.setIsPrimary(Boolean.TRUE);
         placed.setSortOrder(0);
 
-        ItemImage icon = new ItemImage();
-        icon.setId(13L);
-        icon.setItemId(7L);
-        icon.setRole("icon");
-        icon.setOriginalUrl("https://terraria.wiki.gg/images/Work_Bench.png");
-        icon.setIsPrimary(Boolean.FALSE);
-        icon.setSortOrder(1);
-
-        when(itemImageMapper.selectList(any())).thenReturn(List.of(demo, placed, icon));
+        when(itemImageMapper.selectList(any())).thenReturn(List.of(demo, placed));
 
         List<ItemImageDTO> images = itemImageService.getImagesByItemId(7L);
 
-        assertEquals(1, images.size());
-        assertEquals("https://terraria.wiki.gg/images/Work_Bench.png", images.get(0).getImageUrl());
-        assertEquals("https://terraria.wiki.gg/images/Work_Bench.png", images.get(0).getOriginalUrl());
+        assertTrue(images.isEmpty());
     }
 
     @Test
-    void shouldNotRejectDemonItemImagesAsDemoRows() {
+    void shouldDropDemonWikiOnlyItemImagesFromDisplayList() {
+        trustLocalMinioOnly();
         ItemImage demon = new ItemImage();
         demon.setId(11L);
         demon.setItemId(7L);
@@ -208,8 +202,36 @@ class ItemImageServiceImplTest {
 
         List<ItemImageDTO> images = itemImageService.getImagesByItemId(7L);
 
-        assertEquals(1, images.size());
-        assertEquals("https://terraria.wiki.gg/images/Living_Demon_Fire_Block.png", images.get(0).getImageUrl());
-        assertEquals("https://terraria.wiki.gg/images/Living_Demon_Fire_Block.png", images.get(0).getOriginalUrl());
+        assertTrue(images.isEmpty());
+    }
+
+    @Test
+    void shouldRejectUntrustedManagedLikeImageUrls() {
+        trustLocalMinioOnly();
+        ItemImage fakeManaged = new ItemImage();
+        fakeManaged.setId(11L);
+        fakeManaged.setItemId(7L);
+        fakeManaged.setRole("icon");
+        fakeManaged.setCachedUrl("https://evil.example.com/terrapedia-images/items/fake.png");
+        fakeManaged.setIsPrimary(Boolean.TRUE);
+        fakeManaged.setSortOrder(0);
+
+        Item item = new Item();
+        item.setId(7L);
+        item.setImage("https://evil.example.com/terrapedia-images/items/legacy-fake.png");
+
+        when(itemImageMapper.selectList(any())).thenReturn(List.of(fakeManaged));
+        when(itemMapper.selectById(7L)).thenReturn(item);
+
+        List<ItemImageDTO> images = itemImageService.getImagesByItemId(7L);
+
+        assertTrue(images.isEmpty());
+    }
+
+    private void trustLocalMinioOnly() {
+        lenient().when(managedImageUrlPolicy.isManagedImageUrl(any())).thenAnswer(invocation -> {
+            String value = invocation.getArgument(0);
+            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/");
+        });
     }
 }

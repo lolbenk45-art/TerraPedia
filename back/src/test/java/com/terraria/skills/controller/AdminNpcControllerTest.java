@@ -7,6 +7,7 @@ import com.terraria.skills.entity.Npc;
 import com.terraria.skills.mapper.BossGroupMapper;
 import com.terraria.skills.mapper.CategoryMapper;
 import com.terraria.skills.mapper.NpcMapper;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,6 +45,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class AdminNpcControllerTest {
 
+    private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
+        @Override
+        public boolean isManagedImageUrl(String value) {
+            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/");
+        }
+
+        @Override
+        public List<String> trustedManagedImageUrlPrefixes() {
+            return List.of("http://localhost:9000/terrapedia-images/");
+        }
+    };
+
     @Mock
     private NpcMapper npcMapper;
 
@@ -65,7 +78,8 @@ class AdminNpcControllerTest {
             categoryMapper,
             bossGroupMapper,
             jdbcTemplate,
-            new ObjectMapper()
+            new ObjectMapper(),
+            MANAGED_IMAGE_URL_POLICY
         );
         mockMvc = MockMvcBuilders.standaloneSetup(adminNpcController)
             .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
@@ -125,10 +139,10 @@ class AdminNpcControllerTest {
     }
 
     @Test
-    void shouldPreferNpcWikiImageUrlColumnOverSupplementImage() throws Exception {
+    void shouldSuppressNpcWikiImageUrlColumnInDisplayPayload() throws Exception {
         Npc npc = new Npc();
         npc.setId(1L);
-        npc.setGameId(-65L);
+        npc.setGameId(-650999L);
         npc.setInternalName("BigHornetStingy");
         npc.setName("Hornet");
         npc.setImageUrl("https://terraria.wiki.gg/images/Stingy%20Hornet.gif");
@@ -153,7 +167,7 @@ class AdminNpcControllerTest {
         when(jdbcTemplate.queryForObject(
             contains("source_ref_id = ?"),
             eq(Integer.class),
-            eq(-65L)
+            eq(-650999L)
         )).thenReturn(0);
         when(jdbcTemplate.queryForObject(
             contains("LOWER(TRIM(source_ref_name)) = LOWER(TRIM(?))"),
@@ -167,7 +181,37 @@ class AdminNpcControllerTest {
 
         mockMvc.perform(get("/admin/npcs/1"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.imageUrl").value("https://terraria.wiki.gg/images/Stingy%20Hornet.gif"));
+            .andExpect(jsonPath("$.data.imageUrl").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void shouldReturnManagedNpcImageUrlInDisplayPayload() throws Exception {
+        Npc npc = new Npc();
+        npc.setId(2L);
+        npc.setGameId(-66L);
+        npc.setInternalName("ManagedHornet");
+        npc.setName("Managed Hornet");
+        npc.setImageUrl("http://localhost:9000/terrapedia-images/npcs/managed-hornet.gif");
+        npc.setStatus(1);
+
+        when(npcMapper.selectById(2L)).thenReturn(npc);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_loot_entries"), eq(Integer.class), eq(2L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_buff_relations"), eq(Integer.class), eq(2L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_shop_entries"), eq(Integer.class), eq(2L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("source_ref_id = ?"), eq(Integer.class), eq(-66L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(
+            contains("LOWER(TRIM(source_ref_name)) = LOWER(TRIM(?))"),
+            eq(Integer.class),
+            eq("Managed Hornet")
+        )).thenReturn(0);
+        when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries nle"), eq(2L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("source_ref_id IS NULL"), eq("Managed Hornet"))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(2L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries nse"), eq(2L))).thenReturn(List.of());
+
+        mockMvc.perform(get("/admin/npcs/2"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.imageUrl").value("http://localhost:9000/terrapedia-images/npcs/managed-hornet.gif"));
     }
 
     @Test
@@ -504,7 +548,7 @@ class AdminNpcControllerTest {
 
         mockMvc.perform(get("/admin/npcs/7").accept(APPLICATION_JSON))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.shopEntries[0].itemImage").value("https://terraria.wiki.gg/images/Rope.png"));
+            .andExpect(jsonPath("$.data.shopEntries[0].itemImage").value(org.hamcrest.Matchers.nullValue()));
     }
 
     @Test

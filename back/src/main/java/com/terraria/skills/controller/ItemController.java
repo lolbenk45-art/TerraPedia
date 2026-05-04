@@ -6,6 +6,7 @@ import com.terraria.skills.common.PageQuery;
 import com.terraria.skills.common.Pagination;
 import com.terraria.skills.common.PaginationParams;
 import com.terraria.skills.dto.ItemDTO;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import com.terraria.skills.service.ItemService;
 import com.terraria.skills.vo.ItemVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,6 +38,7 @@ import java.util.stream.Collectors;
 public class ItemController {
 
     private final ItemService itemService;
+    private final ManagedImageUrlPolicy managedImageUrlPolicy;
 
     @GetMapping
     @Operation(summary = "分页查询物品", description = "支持关键词、分类、稀有度和排序参数")
@@ -164,10 +166,10 @@ public class ItemController {
         ItemVO vo = new ItemVO();
         BeanUtils.copyProperties(dto, vo);
 
-        // Keep compatibility for existing front-end fields.
-        if (vo.getImageUrl() == null) {
-            vo.setImageUrl(vo.getImage());
-        }
+        String managedImage = managedImageOrNull(vo.getImage(), "items.image");
+        String managedImageUrl = managedImageOrNull(vo.getImageUrl(), "items.imageUrl");
+        vo.setImage(managedImage);
+        vo.setImageUrl(managedImageUrl == null ? managedImage : managedImageUrl);
         if (vo.getCategory() == null) {
             vo.setCategory(vo.getCategoryName());
         }
@@ -175,5 +177,17 @@ public class ItemController {
             vo.setRare(vo.getRarity());
         }
         return vo;
+    }
+
+    private String managedImageOrNull(String value, String context) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (managedImageUrlPolicy.isManagedImageUrl(trimmed)) {
+            return trimmed;
+        }
+        log.warn("item display image suppressed non-managed url context={}", context);
+        return null;
     }
 }

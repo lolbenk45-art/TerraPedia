@@ -8,10 +8,12 @@ import com.terraria.skills.common.Pagination;
 import com.terraria.skills.common.PaginationParams;
 import com.terraria.skills.entity.Projectile;
 import com.terraria.skills.mapper.ProjectileMapper;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -28,6 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/admin/projectiles")
 @RequiredArgsConstructor
@@ -37,6 +40,7 @@ public class AdminProjectileController {
 
     private final ProjectileMapper projectileMapper;
     private final ObjectMapper objectMapper;
+    private final ManagedImageUrlPolicy managedImageUrlPolicy;
 
     @GetMapping
     @Operation(summary = "Get projectiles")
@@ -75,7 +79,7 @@ public class AdminProjectileController {
 
     @PostMapping
     @Operation(summary = "Create projectile")
-    public ResponseEntity<ApiResponse<Projectile>> createProjectile(@RequestBody Projectile request) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createProjectile(@RequestBody Projectile request) {
         if (request == null || request.getSourceId() == null || request.getInternalName() == null || request.getInternalName().isBlank()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "sourceId and internalName are required"));
         }
@@ -88,7 +92,7 @@ public class AdminProjectileController {
         if (request.getStatus() == null) request.setStatus(1);
         projectileMapper.insert(request);
         Projectile created = projectileMapper.selectById(request.getId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created, "Projectile created"));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created == null ? null : toPayload(created), "Projectile created"));
     }
 
     @PutMapping("/{id}")
@@ -172,8 +176,29 @@ public class AdminProjectileController {
         payload.put("deleted", projectile.getDeleted());
         payload.put("createdAt", projectile.getCreatedAt());
         payload.put("updatedAt", projectile.getUpdatedAt());
-        payload.put("imageUrl", firstNonBlank(projectile.getImageUrl(), extractImageUrl(projectile.getRawJson())));
+        payload.put("imageUrl", firstNonBlank(
+            managedImageOrNull(projectile.getImageUrl(), "admin projectile image_url"),
+            managedImageOrNull(extractImageUrl(projectile.getRawJson()), "admin projectile rawJson imageUrl")
+        ));
         return payload;
+    }
+
+    private String managedImageOrNull(String value, String context) {
+        String text = trimToNull(value);
+        if (text == null) {
+            return null;
+        }
+        if (managedImageUrlPolicy.isManagedImageUrl(text)) {
+            return text;
+        }
+        log.warn("admin projectile display image suppressed non-managed url context={}", context);
+        return null;
+    }
+
+    private String trimToNull(Object value) {
+        if (value == null) return null;
+        String text = String.valueOf(value).trim();
+        return text.isEmpty() ? null : text;
     }
 
     private String firstNonBlank(String... values) {

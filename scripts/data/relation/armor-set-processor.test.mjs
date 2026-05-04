@@ -1,7 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildArmorSetRelations } from './armor-set-processor.mjs';
+import { buildArmorSetRelations as buildArmorSetRelationsBase } from './armor-set-processor.mjs';
+
+const MANAGED_IMAGE_URL_PREFIXES = [
+  'http://localhost:9000/terrapedia-images/items/',
+  'http://127.0.0.1:9000/terrapedia-images/items/'
+];
+
+function buildArmorSetRelations(options = {}) {
+  return buildArmorSetRelationsBase({
+    ...options,
+    managedImageUrlPrefixes: options.managedImageUrlPrefixes ?? MANAGED_IMAGE_URL_PREFIXES
+  });
+}
 
 const baseTrace = {
   source_provider: 'terraria.wiki.gg',
@@ -227,6 +239,183 @@ test('buildArmorSetRelations prefers wiki armor page sets over effect-key pseudo
   assert.equal(actual.relationArmorSetItems.length, 9);
   assert.equal(actual.relationArmorSetImages.length, 2);
   assert.deepEqual(actual.issues, []);
+});
+
+test('buildArmorSetRelations reuses managed maint armor image cache for wiki armor page rows', () => {
+  const actual = buildArmorSetRelations({
+    wikiArmorSets: [
+      {
+        pageTitle: 'Wood armor',
+        nameEn: 'Wood armor',
+        images: [
+          {
+            role: 'male',
+            fileTitle: 'Wood armor.png',
+            url: 'https://terraria.wiki.gg/images/Wood_armor.png?ef83ed',
+            contentType: 'image/png'
+          },
+          {
+            role: 'female',
+            fileTitle: 'Wood armor female.png',
+            url: 'https://terraria.wiki.gg/images/Wood_armor_female.png?d68c10',
+            contentType: 'image/png'
+          }
+        ],
+        sourceRevisionTimestamp: '2026-04-28T00:00:00Z'
+      }
+    ],
+    maintItems: [
+      item(727, 'WoodHelmet', 'Wood Helmet', { headSlot: 52 }),
+      item(728, 'WoodBreastplate', 'Wood Breastplate', { bodySlot: 32 }),
+      item(729, 'WoodGreaves', 'Wood Greaves', { legSlot: 31 })
+    ],
+    maintArmorSetImages: [
+      {
+        text_key: 'ArmorSetBonus.Wood',
+        page_title: 'Wood armor',
+        image_role: 'male',
+        source_file_title: 'Wood_armor.png',
+        original_url: 'https://terraria.wiki.gg/images/Wood_armor.png?ef83ed',
+        cached_url: 'http://localhost:9000/terrapedia-images/items/wiki/armor-sets/wood-armor.png',
+        ...baseTrace
+      },
+      {
+        text_key: 'ArmorSetBonus.Wood',
+        page_title: 'Wood armor',
+        image_role: 'female',
+        source_file_title: 'Wood_armor_female.png',
+        original_url: 'https://terraria.wiki.gg/images/Wood_armor_female.png?d68c10',
+        cached_url: 'http://localhost:9000/terrapedia-images/items/wiki/armor-sets/wood-armor-female.png',
+        ...baseTrace
+      }
+    ]
+  });
+
+  assert.equal(actual.relationArmorSetImages.length, 2);
+  assert.deepEqual(
+    actual.relationArmorSetImages.map((row) => row.cachedUrl),
+    [
+      'http://localhost:9000/terrapedia-images/items/wiki/armor-sets/wood-armor.png',
+      'http://localhost:9000/terrapedia-images/items/wiki/armor-sets/wood-armor-female.png'
+    ]
+  );
+});
+
+test('buildArmorSetRelations rejects cached armor image rows when managed prefixes are empty', () => {
+  const actual = buildArmorSetRelationsBase({
+    wikiArmorSets: [
+      {
+        pageTitle: 'Wood armor',
+        nameEn: 'Wood armor',
+        images: [
+          {
+            role: 'male',
+            fileTitle: 'Wood armor.png',
+            url: 'https://terraria.wiki.gg/images/Wood_armor.png?ef83ed',
+            contentType: 'image/png'
+          }
+        ]
+      }
+    ],
+    maintItems: [
+      item(727, 'WoodHelmet', 'Wood Helmet', { headSlot: 52 }),
+      item(728, 'WoodBreastplate', 'Wood Breastplate', { bodySlot: 32 }),
+      item(729, 'WoodGreaves', 'Wood Greaves', { legSlot: 31 })
+    ],
+    maintArmorSetImages: [
+      {
+        text_key: 'ArmorSetBonus.Wood',
+        page_title: 'Wood armor',
+        image_role: 'male',
+        source_file_title: 'Wood_armor.png',
+        original_url: 'https://terraria.wiki.gg/images/Wood_armor.png?ef83ed',
+        cached_url: 'http://localhost:9000/terrapedia-images/items/wiki/armor-sets/wood-armor.png',
+        ...baseTrace
+      }
+    ],
+    managedImageUrlPrefixes: []
+  });
+
+  assert.equal(actual.relationArmorSetImages.length, 1);
+  assert.equal(actual.relationArmorSetImages[0].cachedUrl, null);
+});
+
+test('buildArmorSetRelations reuses existing relation armor image cache for wiki armor page rows', () => {
+  const actual = buildArmorSetRelations({
+    wikiArmorSets: [
+      {
+        pageTitle: 'Rich Mahogany armor',
+        nameEn: 'Rich Mahogany armor',
+        images: [
+          {
+            role: 'male',
+            fileTitle: 'Rich Mahogany armor.png',
+            url: 'https://terraria.wiki.gg/images/Rich_Mahogany_armor.png?c357dd',
+            contentType: 'image/png'
+          }
+        ],
+        sourceRevisionTimestamp: '2026-04-28T00:00:00Z'
+      }
+    ],
+    maintItems: [
+      item(733, 'RichMahoganyHelmet', 'Rich Mahogany Helmet', { headSlot: 52 }),
+      item(734, 'RichMahoganyBreastplate', 'Rich Mahogany Breastplate', { bodySlot: 32 }),
+      item(735, 'RichMahoganyGreaves', 'Rich Mahogany Greaves', { legSlot: 31 })
+    ],
+    existingRelationArmorSetImages: [
+      {
+        text_key: 'WikiArmorSet.Rich Mahogany armor',
+        image_role: 'male',
+        source_file_title: 'Rich Mahogany armor.png',
+        original_url: 'https://terraria.wiki.gg/images/Rich_Mahogany_armor.png?c357dd',
+        cached_url: 'http://localhost:9000/terrapedia-images/items/wiki/armor-sets/rich-mahogany-armor.png',
+        ...baseTrace
+      }
+    ]
+  });
+
+  assert.equal(actual.relationArmorSetImages.length, 1);
+  assert.equal(
+    actual.relationArmorSetImages[0].cachedUrl,
+    'http://localhost:9000/terrapedia-images/items/wiki/armor-sets/rich-mahogany-armor.png'
+  );
+});
+
+test('buildArmorSetRelations does not mirror untrusted managed-like armor cached urls from maint rows', () => {
+  const actual = buildArmorSetRelations({
+    maintArmorSets: [
+      {
+        id: 1,
+        record_key: 'wood-maint-key',
+        text_key: 'ArmorSetBonus.Wood',
+        benefit_expression: 'ArmorSetBonuses.Benefits.Wood',
+        set_count: 1,
+        unique_item_count: 3,
+        sets_json: JSON.stringify([[727, 728, 729]]),
+        unique_item_ids_json: JSON.stringify([727, 728, 729]),
+        raw_json: '{}',
+        ...baseTrace
+      }
+    ],
+    maintItems: [
+      item(727, 'WoodHelmet', 'Wood Helmet', { headSlot: 52 }),
+      item(728, 'WoodBreastplate', 'Wood Breastplate', { bodySlot: 32 }),
+      item(729, 'WoodGreaves', 'Wood Greaves', { legSlot: 31 })
+    ],
+    maintArmorSetImages: [
+      {
+        text_key: 'ArmorSetBonus.Wood',
+        image_role: 'male',
+        source_file_title: 'Wood armor.png',
+        original_url: 'https://terraria.wiki.gg/images/Wood_armor.png',
+        cached_url: 'https://evil.example.com/terrapedia-images/items/wiki/armor-sets/wood-armor.png',
+        ...baseTrace
+      }
+    ]
+  });
+
+  assert.equal(actual.relationArmorSetImages.length, 1);
+  assert.equal(actual.relationArmorSetImages[0].cachedUrl, null);
 });
 
 test('buildArmorSetRelations preserves single-piece composition metadata', () => {

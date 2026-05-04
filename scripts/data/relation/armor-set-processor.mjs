@@ -5,6 +5,7 @@ import {
   normalizeTrace,
   relationStatus
 } from './relation-trace.mjs';
+import { isManagedImageUrl } from './managed-image-url-policy.mjs';
 
 function toNullableNumber(value) {
   if (value == null || value === '') {
@@ -135,6 +136,50 @@ function toMysqlDateTime(value) {
   return date.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
 }
 
+function normalizeUrlKey(value) {
+  return normalizeText(value)
+    ?.replace(/^https?:\/\//i, '')
+    .replace(/^\/\//, '')
+    .replace(/%20/gi, '_')
+    .replace(/\s+/g, '_')
+    .toLowerCase() ?? null;
+}
+
+function normalizeFileTitleKey(value) {
+  return normalizeText(value)
+    ?.replace(/^file:/i, '')
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase() ?? null;
+}
+
+function buildManagedArmorImageLookup(
+  maintArmorSetImages = [],
+  existingRelationArmorSetImages = [],
+  managedImageUrlPrefixes = []
+) {
+  const byOriginalUrl = new Map();
+  const byPageRoleFile = new Map();
+  for (const row of [...existingRelationArmorSetImages, ...maintArmorSetImages]) {
+    const cachedUrl = normalizeText(row.cached_url ?? row.cachedUrl);
+    if (!isManagedImageUrl(cachedUrl, managedImageUrlPrefixes)) {
+      continue;
+    }
+    const originalUrl = normalizeUrlKey(row.original_url ?? row.originalUrl);
+    if (originalUrl) {
+      byOriginalUrl.set(originalUrl, cachedUrl);
+    }
+    const pageTitle = normalizeFileTitleKey(row.page_title ?? row.pageTitle);
+    const role = normalizeImageRole(row.image_role ?? row.imageRole ?? row.role);
+    const sourceFileTitle = normalizeFileTitleKey(row.source_file_title ?? row.sourceFileTitle);
+    if (pageTitle && role && sourceFileTitle) {
+      byPageRoleFile.set(`${pageTitle}|${role}|${sourceFileTitle}`, cachedUrl);
+    }
+  }
+  return { byOriginalUrl, byPageRoleFile };
+}
+
 function armorSetBaseTitle(pageTitle) {
   return normalizeText(pageTitle)?.replace(/\s+armor$/i, '').trim() ?? null;
 }
@@ -254,8 +299,14 @@ function buildWikiArmorSetRecord(record, setItems, variants, uniqueItemIds) {
   };
 }
 
-function buildWikiArmorSetImageRecord({ armorSet, image, index }) {
+function buildWikiArmorSetImageRecord({ armorSet, image, index, managedImageLookup }) {
   const role = normalizeImageRole(image.role) ?? 'other';
+  const originalUrl = normalizeText(image.url);
+  const cachedUrl = managedImageLookup?.byOriginalUrl.get(normalizeUrlKey(originalUrl))
+    ?? managedImageLookup?.byPageRoleFile.get(
+      `${normalizeFileTitleKey(armorSet.rawPageTitle)}|${role}|${normalizeFileTitleKey(image.fileTitle)}`
+    )
+    ?? null;
   return {
     recordKey: createRecordKey({
       type: 'relation_armor_set_images',
@@ -268,8 +319,8 @@ function buildWikiArmorSetImageRecord({ armorSet, image, index }) {
     textKey: armorSet.textKey,
     imageRole: role,
     sourceFileTitle: normalizeText(image.fileTitle),
-    originalUrl: normalizeText(image.url),
-    cachedUrl: null,
+    originalUrl,
+    cachedUrl,
     width: toNullableNumber(image.width),
     height: toNullableNumber(image.height),
     contentType: normalizeText(image.contentType),
@@ -291,8 +342,19 @@ function buildWikiArmorSetImageRecord({ armorSet, image, index }) {
   };
 }
 
-function buildWikiArmorSetRelations({ wikiArmorSets = [], maintItems = [] } = {}) {
+function buildWikiArmorSetRelations({
+  wikiArmorSets = [],
+  maintItems = [],
+  maintArmorSetImages = [],
+  existingRelationArmorSetImages = [],
+  managedImageUrlPrefixes = []
+} = {}) {
   const slotItems = buildArmorSlotItems(maintItems);
+  const managedImageLookup = buildManagedArmorImageLookup(
+    maintArmorSetImages,
+    existingRelationArmorSetImages,
+    managedImageUrlPrefixes
+  );
   const relationArmorSets = [];
   const relationArmorSetItems = [];
   const relationArmorSetImages = [];
@@ -323,6 +385,7 @@ function buildWikiArmorSetRelations({ wikiArmorSets = [], maintItems = [] } = {}
       : setItems.map((entry) => [entry.sourceId]);
     const uniqueItemIds = stableUnique(setItems.map((entry) => entry.sourceId));
     const armorSet = buildWikiArmorSetRecord(record, setItems, variants, uniqueItemIds);
+    armorSet.rawPageTitle = pageTitle;
     relationArmorSets.push(armorSet);
 
     if (setItems.length === 0) {
@@ -356,9 +419,11 @@ function buildWikiArmorSetRelations({ wikiArmorSets = [], maintItems = [] } = {}
       relationArmorSetImages.push(buildWikiArmorSetImageRecord({
         armorSet,
         image: images[index],
-        index
+        index,
+        managedImageLookup
       }));
     }
+    delete armorSet.rawPageTitle;
   }
 
   return {
@@ -432,7 +497,7 @@ function buildArmorSetItemRecord({
   };
 }
 
-function buildArmorSetImageRecord(row, armorSetByTextKey) {
+function buildArmorSetImageRecord(row, armorSetByTextKey, managedImageUrlPrefixes = []) {
   const textKey = normalizeText(row.text_key ?? row.textKey);
   const armorSet = textKey ? armorSetByTextKey.get(textKey) : null;
   if (!armorSet) {
@@ -453,7 +518,9 @@ function buildArmorSetImageRecord(row, armorSetByTextKey) {
     imageRole,
     sourceFileTitle: normalizeText(row.source_file_title ?? row.sourceFileTitle),
     originalUrl: normalizeText(row.original_url ?? row.originalUrl),
-    cachedUrl: normalizeText(row.cached_url ?? row.cachedUrl),
+    cachedUrl: isManagedImageUrl(row.cached_url ?? row.cachedUrl, managedImageUrlPrefixes)
+      ? normalizeText(row.cached_url ?? row.cachedUrl)
+      : null,
     width: toNullableNumber(row.width),
     height: toNullableNumber(row.height),
     contentType: normalizeText(row.content_type ?? row.contentType),
@@ -471,10 +538,18 @@ export function buildArmorSetRelations({
   wikiArmorSets = [],
   maintArmorSets = [],
   maintItems = [],
-  maintArmorSetImages = []
+  maintArmorSetImages = [],
+  existingRelationArmorSetImages = [],
+  managedImageUrlPrefixes = []
 } = {}) {
   if (Array.isArray(wikiArmorSets) && wikiArmorSets.length > 0) {
-    return buildWikiArmorSetRelations({ wikiArmorSets, maintItems });
+    return buildWikiArmorSetRelations({
+      wikiArmorSets,
+      maintItems,
+      maintArmorSetImages,
+      existingRelationArmorSetImages,
+      managedImageUrlPrefixes
+    });
   }
 
   const itemBySourceId = buildItemIndex(maintItems);
@@ -523,7 +598,7 @@ export function buildArmorSetRelations({
       .map((row) => [row.textKey, row])
   );
   const relationArmorSetImages = maintArmorSetImages
-    .map((row) => buildArmorSetImageRecord(row, armorSetByTextKey))
+    .map((row) => buildArmorSetImageRecord(row, armorSetByTextKey, managedImageUrlPrefixes))
     .filter(Boolean);
 
   return {

@@ -27,6 +27,11 @@ import { buildArmorSetRelations } from './armor-set-processor.mjs';
 import { buildProjectionSchemaStatements } from './projection-schema.mjs';
 import { buildProjectionPayload } from './projection-sync.mjs';
 import { writeRelationReports } from './relation-report.mjs';
+import {
+  isManagedImageUrl,
+  normalizeManagedImageUrlPrefixes,
+  resolveManagedImageUrlPrefixes
+} from './managed-image-url-policy.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -57,7 +62,7 @@ export function parseArgs(argv) {
     apply: booleanOption(raw.apply, false),
     createDatabase: booleanOption(raw['create-database'] ?? raw.createDatabase, false),
     maintDatabase: raw['maint-database'] ?? raw.maintDatabase ?? 'terria_v1_maint',
-    localDatabase: raw['local-database'] ?? raw.localDatabase ?? null,
+    localDatabase: raw['local-database'] ?? raw.localDatabase ?? 'terria_v1_local',
     allowLocalItemImageFallback: booleanOption(raw['allow-local-item-image-fallback'] ?? raw.allowLocalItemImageFallback, true),
     relationDatabase: raw['relation-database'] ?? raw.relationDatabase ?? 'terria_v1_relation',
     wikiArmorSetsInput: raw['wiki-armor-sets-input'] ?? raw.wikiArmorSetsInput ?? path.join(repoRoot, 'data', 'generated', 'wiki-armor-sets.latest.json'),
@@ -166,6 +171,55 @@ function buildItemIndex(rows) {
   return index;
 }
 
+function isManagedProjectionImageUrl(value, prefixes) {
+  return isManagedImageUrl(value, prefixes);
+}
+
+function escapeSqlString(value) {
+  return String(value).replace(/\\/g, '\\\\').replace(/'/g, "''");
+}
+
+function escapeSqlLikeLiteral(value) {
+  return escapeSqlString(String(value).replace(/[\\%_]/g, (match) => `\\${match}`));
+}
+
+function buildManagedImageSqlLikeAny(column, prefixes) {
+  const clauses = normalizeManagedImageUrlPrefixes(prefixes)
+    .map((prefix) => `BINARY TRIM(${column}) LIKE BINARY '${escapeSqlLikeLiteral(prefix)}%' ESCAPE '\\\\'`);
+  return clauses.length ? `(${clauses.join(' OR ')})` : 'FALSE';
+}
+
+function buildManagedImageSqlNotLikeAll(column, prefixes) {
+  const clauses = normalizeManagedImageUrlPrefixes(prefixes)
+    .map((prefix) => `BINARY TRIM(${column}) NOT LIKE BINARY '${escapeSqlLikeLiteral(prefix)}%' ESCAPE '\\\\'`);
+  return clauses.length ? `(${clauses.join(' AND ')})` : 'TRUE';
+}
+
+export function rewriteArmorSetRelatedItemImages(relatedItems, imageByInternalName, prefixes) {
+  if (!Array.isArray(relatedItems)) {
+    return { changed: false, items: relatedItems };
+  }
+  let changed = false;
+  const items = relatedItems.map((item) => {
+    if (!item || typeof item !== 'object') {
+      return item;
+    }
+    const copy = { ...item };
+    const internalName = copy.internalName ?? copy.internal_name ?? copy.itemInternalName ?? copy.item_internal_name;
+    const key = typeof internalName === 'string' ? internalName.trim().toLowerCase() : '';
+    const managedImage = key ? imageByInternalName.get(key) : null;
+    if (managedImage && copy.image !== managedImage) {
+      copy.image = managedImage;
+      changed = true;
+    } else if (!managedImage && copy.image && !isManagedProjectionImageUrl(copy.image, prefixes)) {
+      copy.image = null;
+      changed = true;
+    }
+    return copy;
+  });
+  return { changed, items };
+}
+
 function addIndexEntry(index, key, row) {
   if (!key) return;
   const normalizedKey = String(key).trim().toLowerCase();
@@ -177,6 +231,19 @@ function addIndexEntry(index, key, row) {
     existing.push(row);
   } else {
     index.set(normalizedKey, [existing, row]);
+  }
+}
+
+async function queryRelationOptional(queryRelation, sql, fallback = []) {
+  try {
+    return await queryRelation(sql);
+  } catch (error) {
+    const code = error?.code ?? '';
+    const message = error instanceof Error ? error.message : String(error);
+    if (code === 'ER_NO_SUCH_TABLE' || /doesn't exist|does not exist|unknown table/i.test(message)) {
+      return fallback;
+    }
+    throw error;
   }
 }
 
@@ -245,35 +312,43 @@ async function reconcileItemStackSizeFromMaint(connection, maintDatabase) {
   );
 }
 
-async function reconcileProjectionItemImageFromMaint(connection, maintDatabase) {
+async function reconcileProjectionItemImageFromMaint(connection, maintDatabase, prefixes) {
+  const managedCachedUrlPredicate = buildManagedImageSqlLikeAny('mi.cached_url', prefixes);
   const [result] = await connection.query(
     `
     UPDATE \`projection_items\` pi
-    INNER JOIN \`${maintDatabase}\`.\`maint_item_images\` mi
-      ON mi.item_internal_name COLLATE utf8mb4_unicode_ci = pi.internal_name COLLATE utf8mb4_unicode_ci
     INNER JOIN (
-      SELECT item_internal_name, MAX(is_primary) AS max_primary, MIN(COALESCE(sort_order, 0)) AS min_sort_order
-      FROM \`${maintDatabase}\`.\`maint_item_images\`
-      WHERE deleted = 0
-      GROUP BY item_internal_name
+      SELECT ranked.*
+      FROM (
+        SELECT
+          mi.*,
+          ROW_NUMBER() OVER (
+            PARTITION BY mi.item_internal_name
+            ORDER BY COALESCE(mi.is_primary, 0) DESC, COALESCE(mi.sort_order, 2147483647) ASC, mi.id ASC
+          ) AS image_rank
+        FROM \`${maintDatabase}\`.\`maint_item_images\` mi
+        WHERE mi.deleted = 0
+          AND mi.cached_url IS NOT NULL
+          AND TRIM(mi.cached_url) <> ''
+          AND ${managedCachedUrlPredicate}
+      ) ranked
+      WHERE ranked.image_rank = 1
     ) picked
-      ON picked.item_internal_name COLLATE utf8mb4_unicode_ci = mi.item_internal_name COLLATE utf8mb4_unicode_ci
-     AND picked.max_primary = mi.is_primary
-     AND picked.min_sort_order = COALESCE(mi.sort_order, 0)
-    SET pi.image = COALESCE(mi.cached_url, mi.original_url)
+      ON picked.item_internal_name COLLATE utf8mb4_unicode_ci = pi.internal_name COLLATE utf8mb4_unicode_ci
+    SET pi.image = picked.cached_url
     WHERE pi.deleted = 0
-      AND mi.deleted = 0
-      AND COALESCE(mi.cached_url, mi.original_url) IS NOT NULL
     `.trim()
   );
   return Number(result?.affectedRows ?? 0);
 }
 
-async function reconcileProjectionItemImageFromLocal(connection, localDatabase, enabled = true) {
+async function reconcileProjectionItemImageFromLocal(connection, localDatabase, enabled = true, prefixes) {
   if (!localDatabase || !enabled) {
     return 0;
   }
 
+  const localImageManagedPredicate = buildManagedImageSqlLikeAny('li.image', prefixes);
+  const projectionImageUnmanagedPredicate = buildManagedImageSqlNotLikeAll('pi.image', prefixes);
   const [result] = await connection.query(
     `
     UPDATE \`projection_items\` pi
@@ -282,12 +357,75 @@ async function reconcileProjectionItemImageFromLocal(connection, localDatabase, 
     SET pi.image = li.image
     WHERE pi.deleted = 0
       AND li.deleted = 0
-      AND (pi.image IS NULL OR TRIM(pi.image) = '')
+      AND (pi.image IS NULL OR TRIM(pi.image) = '' OR ${projectionImageUnmanagedPredicate})
       AND li.image IS NOT NULL
       AND TRIM(li.image) <> ''
+      AND ${localImageManagedPredicate}
     `.trim()
   );
   return Number(result?.affectedRows ?? 0);
+}
+
+async function reconcileProjectionArmorSetRelatedItemImagesFromLocal(connection, localDatabase, enabled = true, prefixes) {
+  if (!localDatabase || !enabled) {
+    return 0;
+  }
+
+  const [armorRows] = await connection.query(
+    `
+    SELECT id, related_items_json
+    FROM \`projection_armor_sets\`
+    WHERE deleted = 0
+      AND related_items_json IS NOT NULL
+      AND TRIM(related_items_json) <> ''
+    `.trim()
+  );
+  if (!armorRows.length) {
+    return 0;
+  }
+
+  const localImageManagedPredicate = buildManagedImageSqlLikeAny('image', prefixes);
+  const [itemRows] = await connection.query(
+    `
+    SELECT internal_name, image
+    FROM \`${localDatabase}\`.\`items\`
+    WHERE deleted = 0
+      AND internal_name IS NOT NULL
+      AND image IS NOT NULL
+      AND TRIM(image) <> ''
+      AND ${localImageManagedPredicate}
+    `.trim()
+  );
+  const imageByInternalName = new Map(
+    itemRows
+      .filter((row) => row.internal_name && isManagedProjectionImageUrl(row.image, prefixes))
+      .map((row) => [String(row.internal_name).trim().toLowerCase(), row.image.trim()])
+  );
+  if (!imageByInternalName.size) {
+    return 0;
+  }
+
+  let changedRows = 0;
+  for (const row of armorRows) {
+    let relatedItems;
+    try {
+      relatedItems = JSON.parse(row.related_items_json);
+    } catch {
+      continue;
+    }
+    if (!Array.isArray(relatedItems)) {
+      continue;
+    }
+    const rewrite = rewriteArmorSetRelatedItemImages(relatedItems, imageByInternalName, prefixes);
+    if (rewrite.changed) {
+      await connection.query(
+        'UPDATE `projection_armor_sets` SET related_items_json = ? WHERE id = ?',
+        [JSON.stringify(rewrite.items), row.id]
+      );
+      changedRows += 1;
+    }
+  }
+  return changedRows;
 }
 
 async function clearRelationSnapshotTables(connection, tableNames) {
@@ -512,6 +650,9 @@ function flattenResults(category, recipe, itemSource, secondary, bossSeries, npc
 
 export async function runSync(options, dependencies = {}) {
   const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
+  const managedImageUrlPrefixes = normalizeManagedImageUrlPrefixes(
+    dependencies.managedImageUrlPrefixes ?? resolveManagedImageUrlPrefixes()
+  );
   const mysqlOptions = {
     host: config.database?.host ?? '127.0.0.1',
     port: Number(config.database?.port ?? 3306),
@@ -520,6 +661,7 @@ export async function runSync(options, dependencies = {}) {
   };
 
   const queryMaint = dependencies.queryMaint ?? ((sql) => loadDataset(mysqlOptions, options.maintDatabase, sql));
+  const queryRelation = dependencies.queryRelation ?? ((sql) => loadDataset(mysqlOptions, options.relationDatabase, sql));
   const writeReports = dependencies.writeReports ?? ((payload) => writeRelationReports(payload));
   const executeRelation = dependencies.executeRelation ?? (async (fn) => {
     const connection = await mysql.createConnection({ ...mysqlOptions, database: options.relationDatabase });
@@ -551,7 +693,8 @@ export async function runSync(options, dependencies = {}) {
     ,
     maintItemTextOverrides,
     maintArmorSets,
-    maintArmorSetImages
+    maintArmorSetImages,
+    existingRelationArmorSetImages
   ] = await Promise.all([
     queryMaint('SELECT * FROM maint_categories'),
     queryMaint('SELECT * FROM maint_item_categories'),
@@ -572,7 +715,8 @@ export async function runSync(options, dependencies = {}) {
     queryMaint('SELECT item_internal_name, rarity_id FROM maint_item_rarity_overrides WHERE deleted = 0'),
     queryMaint('SELECT item_internal_name, tooltip_zh, description_zh FROM maint_item_text_overrides WHERE deleted = 0'),
     queryMaint('SELECT * FROM maint_armor_sets WHERE deleted = 0'),
-    queryMaintOptional(queryMaint, 'SELECT * FROM maint_armor_set_images WHERE deleted = 0', [])
+    queryMaintOptional(queryMaint, 'SELECT * FROM maint_armor_set_images WHERE deleted = 0', []),
+    queryRelationOptional(queryRelation, 'SELECT * FROM relation_armor_set_images WHERE deleted = 0', [])
   ]);
 
   const wikiArmorSets = readWikiArmorSets(options.wikiArmorSetsInput);
@@ -630,7 +774,9 @@ export async function runSync(options, dependencies = {}) {
     wikiArmorSets,
     maintArmorSets,
     maintItems,
-    maintArmorSetImages
+    maintArmorSetImages,
+    existingRelationArmorSetImages,
+    managedImageUrlPrefixes
   });
 
   const results = flattenResults(category, recipe, itemSource, secondary, bossSeries, npcSeries, armorSet);
@@ -679,7 +825,8 @@ export async function runSync(options, dependencies = {}) {
     relationBuffImages: results.relationBuffImages,
     relationArmorSets: results.relationArmorSets,
     relationArmorSetItems: results.relationArmorSetItems,
-    relationArmorSetImages: results.relationArmorSetImages
+    relationArmorSetImages: results.relationArmorSetImages,
+    managedImageUrlPrefixes
   });
   results.projectionItems = projection.projectionItems;
   results.projectionNpcs = projection.projectionNpcs;
@@ -740,6 +887,7 @@ export async function runSync(options, dependencies = {}) {
       localItemImageFallbackEnabled: Boolean(options.allowLocalItemImageFallback && options.localDatabase),
       maintItemImageFillRows: 0,
       localItemImageFallbackRows: 0,
+      localArmorSetRelatedItemImageFallbackRows: 0,
     },
     unresolvedSamples: results.issues.slice(0, 20)
   };
@@ -779,7 +927,7 @@ export async function runSync(options, dependencies = {}) {
         runKey,
         applyMode: 1,
         maintDatabase: options.maintDatabase,
-        localDatabase: null,
+        localDatabase: options.localDatabase,
         relationDatabase: options.relationDatabase,
         scopes: options.scopes,
         summaryJson: summary,
@@ -872,12 +1020,24 @@ export async function runSync(options, dependencies = {}) {
       await upsertRows(connection, 'projection_buffs', results.projectionBuffs);
       await upsertRows(connection, 'projection_armor_sets', results.projectionArmorSets);
       await reconcileItemStackSizeFromMaint(connection, options.maintDatabase);
-      summary.bridgeBreakdown.maintItemImageFillRows = await reconcileProjectionItemImageFromMaint(connection, options.maintDatabase);
+      summary.bridgeBreakdown.maintItemImageFillRows = await reconcileProjectionItemImageFromMaint(
+        connection,
+        options.maintDatabase,
+        managedImageUrlPrefixes
+      );
       summary.bridgeBreakdown.localItemImageFallbackRows = await reconcileProjectionItemImageFromLocal(
         connection,
         options.localDatabase,
-        options.allowLocalItemImageFallback
+        options.allowLocalItemImageFallback,
+        managedImageUrlPrefixes
       );
+      summary.bridgeBreakdown.localArmorSetRelatedItemImageFallbackRows =
+        await reconcileProjectionArmorSetRelatedItemImagesFromLocal(
+          connection,
+          options.localDatabase,
+          options.allowLocalItemImageFallback,
+          managedImageUrlPrefixes
+        );
     });
   }
 
@@ -896,7 +1056,7 @@ export async function runSync(options, dependencies = {}) {
         runKey,
         applyMode: 1,
         maintDatabase: options.maintDatabase,
-        localDatabase: null,
+        localDatabase: options.localDatabase,
         relationDatabase: options.relationDatabase,
         scopes: options.scopes,
         summaryJson: summary,
@@ -911,7 +1071,7 @@ export async function runSync(options, dependencies = {}) {
     runKey,
     apply: options.apply,
     maintDatabase: options.maintDatabase,
-    localDatabase: null,
+    localDatabase: options.localDatabase,
     relationDatabase: options.relationDatabase,
     results,
     summary,

@@ -10,6 +10,7 @@ import com.terraria.skills.entity.Item;
 import com.terraria.skills.entity.ItemImage;
 import com.terraria.skills.mapper.ItemImageMapper;
 import com.terraria.skills.mapper.ItemMapper;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import com.terraria.skills.service.RecipeTreeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -57,6 +58,7 @@ public class AdminItemGroupController {
     private final ItemMapper itemMapper;
     private final ItemImageMapper itemImageMapper;
     private final RecipeTreeService recipeTreeService;
+    private final ManagedImageUrlPolicy managedImageUrlPolicy;
     private volatile TimedValue<List<ItemGroupDTO>> mergedItemGroupsCache;
 
     @GetMapping
@@ -496,8 +498,8 @@ public class AdminItemGroupController {
             next.setName(firstNonBlank(name, resolved == null ? null : resolved.getName()));
             next.setNameZh(firstNonBlank(trimToNull(member.getNameZh()), resolved == null ? null : resolved.getNameZh()));
             next.setImage(firstNonBlank(
-                trimToNull(member.getImage()),
-                resolved == null ? null : trimToNull(resolved.getImage()),
+                usableImageUrl(member.getImage()),
+                resolved == null ? null : usableImageUrl(resolved.getImage()),
                 resolved == null ? null : itemImagesByItemId.get(resolved.getId())
             ));
             next.setResolved(resolved != null);
@@ -551,6 +553,9 @@ public class AdminItemGroupController {
     private String usableImageUrl(String value) {
         String imageUrl = trimToNull(value);
         if (imageUrl == null) {
+            return null;
+        }
+        if (!managedImageUrlPolicy.isManagedImageUrl(imageUrl)) {
             return null;
         }
         String normalized = imageUrl.toLowerCase();
