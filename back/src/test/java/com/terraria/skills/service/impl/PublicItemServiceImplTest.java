@@ -8,6 +8,7 @@ import com.terraria.skills.dto.PublicItemListDTO;
 import com.terraria.skills.dto.PublicItemSuggestionDTO;
 import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.service.CategoryManagementService;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -26,11 +27,19 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class PublicItemServiceImplTest {
 
+    private static final List<String> TRUSTED_IMAGE_PREFIXES = List.of(
+        "http://localhost:9000/terrapedia-images/items/",
+        "http://minio:9000/terrapedia-images/items/"
+    );
+
     @Mock
     private ItemMapper itemMapper;
 
     @Mock
     private CategoryManagementService categoryManagementService;
+
+    @Mock
+    private ManagedImageUrlPolicy managedImageUrlPolicy;
 
     @InjectMocks
     private PublicItemServiceImpl publicItemService;
@@ -49,8 +58,9 @@ class PublicItemServiceImplTest {
         item.setId(42L);
         item.setName("Copper Shortsword");
 
+        when(managedImageUrlPolicy.trustedManagedImageUrlPrefixes()).thenReturn(TRUSTED_IMAGE_PREFIXES);
         when(itemMapper.countItemsWithSearch(eq("copper"), isNull(), isNull(), eq(0L), isNull())).thenReturn(1L);
-        when(itemMapper.selectPublicItemsWithSearch(eq("copper"), isNull(), isNull(), eq(0L), isNull(), eq("name"), eq("desc"), eq(15L), eq(15L)))
+        when(itemMapper.selectPublicItemsWithSearch(eq("copper"), isNull(), isNull(), eq(0L), isNull(), eq("name"), eq("desc"), eq(15L), eq(15L), eq(TRUSTED_IMAGE_PREFIXES)))
             .thenReturn(List.of(item));
 
         Page<PublicItemListDTO> result = publicItemService.getPublicItems(query);
@@ -59,7 +69,7 @@ class PublicItemServiceImplTest {
         assertEquals(2L, result.getCurrent());
         assertEquals(15L, result.getSize());
         assertEquals(List.of(item), result.getRecords());
-        verify(itemMapper).selectPublicItemsWithSearch(eq("copper"), isNull(), isNull(), eq(0L), isNull(), eq("name"), eq("desc"), eq(15L), eq(15L));
+        verify(itemMapper).selectPublicItemsWithSearch(eq("copper"), isNull(), isNull(), eq(0L), isNull(), eq("name"), eq("desc"), eq(15L), eq(15L), eq(TRUSTED_IMAGE_PREFIXES));
         verify(itemMapper, never()).selectItemsWithSearch(
             eq("copper"), isNull(), isNull(), eq(0L), isNull(), eq("name"), eq("desc"), eq(15L), eq(15L)
         );
@@ -75,15 +85,16 @@ class PublicItemServiceImplTest {
         CategoryDTO child = new CategoryDTO();
         child.setId(11L);
 
+        when(managedImageUrlPolicy.trustedManagedImageUrlPrefixes()).thenReturn(TRUSTED_IMAGE_PREFIXES);
         when(categoryManagementService.getAllDescendants(10L)).thenReturn(List.of(child));
         when(itemMapper.countItemsWithSearch(eq(""), eq(10L), eq(List.of(10L, 11L)), isNull(), isNull())).thenReturn(0L);
-        when(itemMapper.selectPublicItemsWithSearch(eq(""), eq(10L), eq(List.of(10L, 11L)), isNull(), isNull(), eq("id"), eq("asc"), eq(20L), eq(0L)))
+        when(itemMapper.selectPublicItemsWithSearch(eq(""), eq(10L), eq(List.of(10L, 11L)), isNull(), isNull(), eq("id"), eq("asc"), eq(20L), eq(0L), eq(TRUSTED_IMAGE_PREFIXES)))
             .thenReturn(List.of());
 
         publicItemService.getPublicItems(query);
 
         verify(categoryManagementService).getAllDescendants(10L);
-        verify(itemMapper).selectPublicItemsWithSearch(eq(""), eq(10L), eq(List.of(10L, 11L)), isNull(), isNull(), eq("id"), eq("asc"), eq(20L), eq(0L));
+        verify(itemMapper).selectPublicItemsWithSearch(eq(""), eq(10L), eq(List.of(10L, 11L)), isNull(), isNull(), eq("id"), eq("asc"), eq(20L), eq(0L), eq(TRUSTED_IMAGE_PREFIXES));
         verify(itemMapper, never()).selectItemsWithSearch(
             eq(""), eq(10L), eq(List.of(10L, 11L)), isNull(), isNull(), eq("id"), eq("asc"), eq(20L), eq(0L)
         );
@@ -95,12 +106,13 @@ class PublicItemServiceImplTest {
         item.setId(12L);
         item.setName("Wooden Arrow");
 
-        when(itemMapper.selectPublicItemSuggestions(eq("wood"), eq(5))).thenReturn(List.of(item));
+        when(managedImageUrlPolicy.trustedManagedImageUrlPrefixes()).thenReturn(TRUSTED_IMAGE_PREFIXES);
+        when(itemMapper.selectPublicItemSuggestions(eq("wood"), eq(5), eq(TRUSTED_IMAGE_PREFIXES))).thenReturn(List.of(item));
 
         List<PublicItemSuggestionDTO> result = publicItemService.searchSuggestions("  wood  ", 5);
 
         assertEquals(List.of(item), result);
-        verify(itemMapper).selectPublicItemSuggestions(eq("wood"), eq(5));
+        verify(itemMapper).selectPublicItemSuggestions(eq("wood"), eq(5), eq(TRUSTED_IMAGE_PREFIXES));
         verify(itemMapper, never()).selectItemSuggestions(eq("wood"), eq(5));
     }
 
@@ -110,12 +122,13 @@ class PublicItemServiceImplTest {
         item.setId(77L);
         item.setName("Night Edge");
 
-        when(itemMapper.selectPublicItemDetailById(eq(77L))).thenReturn(item);
+        when(managedImageUrlPolicy.trustedManagedImageUrlPrefixes()).thenReturn(TRUSTED_IMAGE_PREFIXES);
+        when(itemMapper.selectPublicItemDetailById(eq(77L), eq(TRUSTED_IMAGE_PREFIXES))).thenReturn(item);
 
         PublicItemDetailDTO result = publicItemService.getPublicItemById(77L);
 
         assertEquals(item, result);
-        verify(itemMapper).selectPublicItemDetailById(eq(77L));
+        verify(itemMapper).selectPublicItemDetailById(eq(77L), eq(TRUSTED_IMAGE_PREFIXES));
         verify(itemMapper, never()).selectItemDetailById(eq(77L));
     }
 }

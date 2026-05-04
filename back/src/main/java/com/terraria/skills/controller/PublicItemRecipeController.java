@@ -6,6 +6,7 @@ import com.terraria.skills.dto.RecipeTreeNodeDTO;
 import com.terraria.skills.dto.RecipeTreeResponseDTO;
 import com.terraria.skills.dto.RecipeTreeStationDTO;
 import com.terraria.skills.dto.RecipeTreeVariantDTO;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import com.terraria.skills.service.RecipeTreeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,7 +31,7 @@ import java.util.List;
 public class PublicItemRecipeController {
 
     private final RecipeTreeService recipeTreeService;
-    private static final String MANAGED_IMAGE_SEGMENT = "/terrapedia-images/";
+    private final ManagedImageUrlPolicy managedImageUrlPolicy;
 
     @GetMapping("/{id}/recipe-tree")
     @Operation(summary = "Get public grouped recipe tree for item detail")
@@ -163,9 +164,6 @@ public class PublicItemRecipeController {
             return null;
         }
         String trimmed = value.trim();
-        String lower = trimmed.toLowerCase();
-        return (lower.startsWith("http://") || lower.startsWith("https://")) && lower.contains(MANAGED_IMAGE_SEGMENT)
-            ? trimmed
-            : null;
+        return managedImageUrlPolicy.isManagedImageUrl(trimmed) ? trimmed : null;
     }
 }

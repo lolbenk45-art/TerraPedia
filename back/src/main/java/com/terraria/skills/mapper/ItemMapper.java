@@ -37,7 +37,8 @@ public interface ItemMapper extends BaseMapper<Item> {
         @Param("sortBy") String sortBy,
         @Param("sortDirection") String sortDirection,
         @Param("limit") long limit,
-        @Param("offset") long offset
+        @Param("offset") long offset,
+        @Param("managedImagePrefixes") List<String> managedImagePrefixes
     );
 
     long countItemsWithSearch(
@@ -54,9 +55,16 @@ public interface ItemMapper extends BaseMapper<Item> {
 
     ItemDTO selectItemDetailById(@Param("id") Long id);
 
-    PublicItemDetailDTO selectPublicItemDetailById(@Param("id") Long id);
+    PublicItemDetailDTO selectPublicItemDetailById(
+        @Param("id") Long id,
+        @Param("managedImagePrefixes") List<String> managedImagePrefixes
+    );
 
     List<ItemDTO> selectItemSuggestions(@Param("keyword") String keyword, @Param("limit") int limit);
 
-    List<PublicItemSuggestionDTO> selectPublicItemSuggestions(@Param("keyword") String keyword, @Param("limit") int limit);
+    List<PublicItemSuggestionDTO> selectPublicItemSuggestions(
+        @Param("keyword") String keyword,
+        @Param("limit") int limit,
+        @Param("managedImagePrefixes") List<String> managedImagePrefixes
+    );
 }

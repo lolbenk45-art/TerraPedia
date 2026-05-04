@@ -7,6 +7,7 @@ import com.terraria.skills.dto.PublicItemImageDTO;
 import com.terraria.skills.dto.PublicItemSourceDTO;
 import com.terraria.skills.service.ItemImageService;
 import com.terraria.skills.service.ItemSourceService;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -30,10 +31,9 @@ import java.util.Objects;
 @Tag(name = "Public Item Relations", description = "Public lightweight item relation APIs")
 public class PublicItemRelationController {
 
-    private static final String MANAGED_IMAGE_SEGMENT = "/terrapedia-images/";
-
     private final ItemImageService itemImageService;
     private final ItemSourceService itemSourceService;
+    private final ManagedImageUrlPolicy managedImageUrlPolicy;
 
     @GetMapping("/{id}/images")
     @Operation(summary = "Get public managed images for the item")
@@ -104,10 +104,7 @@ public class PublicItemRelationController {
             return null;
         }
         String trimmed = value.trim();
-        String lower = trimmed.toLowerCase(Locale.ROOT);
-        return (lower.startsWith("http://") || lower.startsWith("https://")) && lower.contains(MANAGED_IMAGE_SEGMENT)
-            ? trimmed
-            : null;
+        return managedImageUrlPolicy.isManagedImageUrl(trimmed) ? trimmed : null;
     }
 
     private String publicText(Long itemId, ItemSourceDTO source, String fieldName, String value) {

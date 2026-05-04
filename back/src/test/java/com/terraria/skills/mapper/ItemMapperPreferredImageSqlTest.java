@@ -1,9 +1,16 @@
 package com.terraria.skills.mapper;
 
+import org.apache.ibatis.builder.xml.XMLMapperBuilder;
+import org.apache.ibatis.mapping.BoundSql;
+import org.apache.ibatis.session.Configuration;
 import org.junit.jupiter.api.Test;
 
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -159,7 +166,8 @@ class ItemMapperPreferredImageSqlTest {
         assertFalse(publicListSql.contains(" i.updated_at"), "public item list must not read updated_at");
         assertTrue(publicListSql.contains("<include refid=\"ManagedItemImageExpr\"/>"), "public item list must reuse the managed-image projection fragment");
         assertTrue(managedImageExpr.contains("NULLIF(TRIM(i.image), '') IS NOT NULL"), "public item list must guard empty image values");
-        assertTrue(managedImageExpr.contains("LOWER(TRIM(i.image)) LIKE '%/terrapedia-images/%'"), "public item list must only expose managed MinIO images");
+        assertTrue(managedImageExpr.contains("managedImagePrefixes"), "public item list must only expose configured managed MinIO image prefixes");
+        assertFalse(managedImageExpr.contains("LIKE '%/terrapedia-images/%'"), "public item list must not trust broad bucket path substring matches");
         assertFalse(managedImageExpr.contains("item_images"), "public managed-image projection must not evaluate item_images");
         assertFalse(managedImageExpr.contains("original_url"), "public managed-image projection must not expose wiki original_url");
         assertFalse(publicListSql.contains("i.image AS image"), "public item list must not expose raw image without a managed-image guard");
@@ -190,7 +198,8 @@ class ItemMapperPreferredImageSqlTest {
         assertFalse(publicSuggestionsSql.contains(" i.created_at"), "public item suggestions must not read created_at");
         assertFalse(publicSuggestionsSql.contains(" i.updated_at"), "public item suggestions must not read updated_at");
         assertTrue(publicSuggestionsSql.contains("<include refid=\"ManagedItemImageExpr\"/>"), "public item suggestions must reuse the managed-image projection fragment");
-        assertTrue(managedImageExpr.contains("LOWER(TRIM(i.image)) LIKE '%/terrapedia-images/%'"), "public item suggestions must only expose managed MinIO images");
+        assertTrue(managedImageExpr.contains("managedImagePrefixes"), "public item suggestions must only expose configured managed MinIO image prefixes");
+        assertFalse(managedImageExpr.contains("LIKE '%/terrapedia-images/%'"), "public item suggestions must not trust broad bucket path substring matches");
         assertFalse(publicSuggestionsSql.contains("PreferredItemImageExpr"), "public item suggestions must not run preferred image fallback");
         assertFalse(publicSuggestionsSql.contains("item_images"), "public item suggestions must not join or scan item_images");
         assertFalse(publicSuggestionsSql.contains("original_url"), "public item suggestions must not expose wiki original_url");
@@ -207,10 +216,79 @@ class ItemMapperPreferredImageSqlTest {
         assertFalse(publicDetailSql.contains(" i.created_at"), "public item detail shell must not read created_at");
         assertFalse(publicDetailSql.contains(" i.updated_at"), "public item detail shell must not read updated_at");
         assertTrue(publicDetailSql.contains("<include refid=\"ManagedItemImageExpr\"/>"), "public item detail shell must reuse the managed-image projection fragment");
-        assertTrue(managedImageExpr.contains("LOWER(TRIM(i.image)) LIKE '%/terrapedia-images/%'"), "public item detail shell must only expose managed MinIO images");
+        assertTrue(managedImageExpr.contains("managedImagePrefixes"), "public item detail shell must only expose configured managed MinIO image prefixes");
+        assertFalse(managedImageExpr.contains("LIKE '%/terrapedia-images/%'"), "public item detail shell must not trust broad bucket path substring matches");
         assertFalse(publicDetailSql.contains("PreferredItemImageExpr"), "public item detail shell must not run preferred image fallback");
         assertFalse(publicDetailSql.contains("item_images"), "public item detail shell must not join or scan item_images");
         assertFalse(publicDetailSql.contains("original_url"), "public item detail shell must not expose wiki original_url");
+    }
+
+    @Test
+    void publicManagedImageProjectionShouldUseTrustedEndpointPrefixesNotBucketSubstring() throws Exception {
+        String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ItemMapper.xml"));
+        String managedImageExpr = sqlFragment(mapperXml, "ManagedItemImageExpr");
+
+        assertFalse(managedImageExpr.contains("LIKE '%/terrapedia-images/%'"), "public SQL must reject fake external URLs that only contain the MinIO bucket path");
+        assertTrue(managedImageExpr.contains("<foreach collection=\"managedImagePrefixes\""), "public SQL must iterate configured trusted MinIO prefixes");
+        assertTrue(managedImageExpr.contains("LEFT(LOWER(TRIM(i.image)), CHAR_LENGTH(#{managedImagePrefix})) = LOWER(#{managedImagePrefix})"), "public SQL must exact-prefix-match against trusted endpoint plus bucket/object prefix");
+    }
+
+    @Test
+    void publicManagedImageProjectionShouldRenderWithConfiguredPrefixes() throws Exception {
+        BoundSql boundSql = mappedStatement("selectPublicItemsWithSearch").getBoundSql(publicListParams(
+            List.of(
+                "http://localhost:9000/terrapedia-images/items/",
+                "http://minio:9000/terrapedia-images/items/"
+            )
+        ));
+
+        String sql = boundSql.getSql();
+
+        assertTrue(sql.contains("LEFT(LOWER(TRIM(i.image)), CHAR_LENGTH(?)) = LOWER(?)"), "public SQL must render exact trusted-prefix checks");
+        assertFalse(sql.contains("<foreach"), "public SQL must be rendered by MyBatis, not left as XML tags");
+        assertFalse(sql.contains("LIKE '%/terrapedia-images/%'"), "rendered public SQL must not trust broad bucket path substring matches");
+    }
+
+    @Test
+    void publicManagedImageProjectionShouldFailClosedWhenNoPrefixesRender() throws Exception {
+        BoundSql boundSql = mappedStatement("selectPublicItemDetailById").getBoundSql(Map.of(
+            "id", 1L,
+            "managedImagePrefixes", List.of()
+        ));
+
+        String sql = boundSql.getSql();
+
+        assertTrue(sql.contains("AND 1 = 0"), "public SQL must fail closed when trusted managed-image prefixes are missing");
+        assertFalse(sql.contains("<choose"), "public SQL must be rendered by MyBatis, not left as XML tags");
+    }
+
+    private org.apache.ibatis.mapping.MappedStatement mappedStatement(String selectId) throws Exception {
+        Configuration configuration = new Configuration();
+        try (InputStream inputStream = Files.newInputStream(Path.of("src/main/resources/mapper/ItemMapper.xml"))) {
+            XMLMapperBuilder mapperBuilder = new XMLMapperBuilder(
+                inputStream,
+                configuration,
+                "mapper/ItemMapper.xml",
+                configuration.getSqlFragments()
+            );
+            mapperBuilder.parse();
+        }
+        return configuration.getMappedStatement("com.terraria.skills.mapper.ItemMapper." + selectId);
+    }
+
+    private Map<String, Object> publicListParams(List<String> managedImagePrefixes) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("search", "");
+        params.put("categoryId", null);
+        params.put("categoryIds", null);
+        params.put("rarityId", null);
+        params.put("gamePeriodId", null);
+        params.put("sortBy", "id");
+        params.put("sortDirection", "asc");
+        params.put("limit", 5L);
+        params.put("offset", 0L);
+        params.put("managedImagePrefixes", managedImagePrefixes);
+        return params;
     }
 
     @Test

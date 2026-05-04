@@ -8,11 +8,15 @@ import com.terraria.skills.dto.PublicItemListDTO;
 import com.terraria.skills.dto.PublicItemSuggestionDTO;
 import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.service.CategoryManagementService;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import com.terraria.skills.service.PublicItemService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -24,6 +28,7 @@ public class PublicItemServiceImpl implements PublicItemService {
 
     private final ItemMapper itemMapper;
     private final CategoryManagementService categoryManagementService;
+    private final ManagedImageUrlPolicy managedImageUrlPolicy;
 
     @Override
     @Cacheable(cacheNames = "item:public:list", key = "#root.target.buildPublicListCacheKey(#pageQuery)", unless = "#result == null")
@@ -50,7 +55,8 @@ public class PublicItemServiceImpl implements PublicItemService {
             normalizeSortBy(safeQuery.getSortBy()),
             normalizeSortDirection(safeQuery.getSortDirection()),
             limit,
-            offset
+            offset,
+            managedImagePrefixes()
         );
 
         Page<PublicItemListDTO> itemPage = new Page<>(safeQuery.getPage(), safeQuery.getLimit(), total);
@@ -60,9 +66,9 @@ public class PublicItemServiceImpl implements PublicItemService {
     }
 
     @Override
-    @Cacheable(cacheNames = "item:public:detail", key = "#id", unless = "#result == null")
+    @Cacheable(cacheNames = "item:public:detail", key = "#root.target.buildPublicDetailCacheKey(#id)", unless = "#result == null")
     public PublicItemDetailDTO getPublicItemById(Long id) {
-        return itemMapper.selectPublicItemDetailById(id);
+        return itemMapper.selectPublicItemDetailById(id, managedImagePrefixes());
     }
 
     @Override
@@ -78,7 +84,11 @@ public class PublicItemServiceImpl implements PublicItemService {
             return List.of();
         }
 
-        return itemMapper.selectPublicItemSuggestions(normalizedKeyword, normalizeSuggestionLimit(limit));
+        return itemMapper.selectPublicItemSuggestions(
+            normalizedKeyword,
+            normalizeSuggestionLimit(limit),
+            managedImagePrefixes()
+        );
     }
 
     public String buildPublicListCacheKey(PageQuery pageQuery) {
@@ -92,7 +102,8 @@ public class PublicItemServiceImpl implements PublicItemService {
         String sortDirection = normalizeSortDirection(pageQuery == null ? null : pageQuery.getSortDirection());
 
         return String.join("|",
-            "v2",
+            "v4",
+            managedImagePrefixFingerprint(),
             String.valueOf(page),
             String.valueOf(limit),
             search,
@@ -104,9 +115,14 @@ public class PublicItemServiceImpl implements PublicItemService {
         );
     }
 
+    public String buildPublicDetailCacheKey(Long id) {
+        return String.join("|", "v3", managedImagePrefixFingerprint(), id == null ? "" : String.valueOf(id));
+    }
+
     public String buildPublicSuggestionsCacheKey(String keyword, int limit) {
         return String.join("|",
-            "v1",
+            "v3",
+            managedImagePrefixFingerprint(),
             trimToEmpty(keyword),
             String.valueOf(normalizeSuggestionLimit(limit))
         );
@@ -188,5 +204,32 @@ public class PublicItemServiceImpl implements PublicItemService {
 
     private String trimToEmpty(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private List<String> managedImagePrefixes() {
+        List<String> prefixes = managedImageUrlPolicy.trustedManagedImageUrlPrefixes();
+        return prefixes == null ? List.of() : prefixes;
+    }
+
+    private String managedImagePrefixFingerprint() {
+        List<String> prefixes = managedImagePrefixes();
+        if (prefixes.isEmpty()) {
+            return "none";
+        }
+        return sha256Hex(String.join("\n", prefixes));
+    }
+
+    private String sha256Hex(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
+            StringBuilder builder = new StringBuilder(hash.length * 2);
+            for (byte item : hash) {
+                builder.append(String.format("%02x", item));
+            }
+            return builder.toString();
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 algorithm is not available", exception);
+        }
     }
 }

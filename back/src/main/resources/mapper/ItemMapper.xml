@@ -52,7 +52,18 @@
     <sql id="ManagedItemImageExpr">
         CASE
             WHEN NULLIF(TRIM(i.image), '') IS NOT NULL
-              AND LOWER(TRIM(i.image)) LIKE '%/terrapedia-images/%'
+              <choose>
+                  <when test="managedImagePrefixes != null and managedImagePrefixes.size() > 0">
+                      AND (
+                          <foreach collection="managedImagePrefixes" item="managedImagePrefix" separator=" OR ">
+                              LEFT(LOWER(TRIM(i.image)), CHAR_LENGTH(#{managedImagePrefix})) = LOWER(#{managedImagePrefix})
+                          </foreach>
+                      )
+                  </when>
+                  <otherwise>
+                      AND 1 = 0
+                  </otherwise>
+              </choose>
               AND LOWER(TRIM(i.image)) NOT LIKE '%(demo)%'
               AND LOWER(TRIM(i.image)) NOT LIKE '%28demo%29%'
               AND LOWER(TRIM(i.image)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'

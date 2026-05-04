@@ -5,6 +5,7 @@ import com.terraria.skills.dto.ItemImageDTO;
 import com.terraria.skills.dto.ItemSourceDTO;
 import com.terraria.skills.service.ItemImageService;
 import com.terraria.skills.service.ItemSourceService;
+import com.terraria.skills.service.ManagedImageUrlPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +26,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class PublicItemRelationControllerTest {
 
+    private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
+        @Override
+        public boolean isManagedImageUrl(String value) {
+            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/items/");
+        }
+
+        @Override
+        public List<String> trustedManagedImageUrlPrefixes() {
+            return List.of("http://localhost:9000/terrapedia-images/items/");
+        }
+    };
+
     @Mock
     private ItemImageService itemImageService;
 
@@ -36,7 +49,7 @@ class PublicItemRelationControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders
-            .standaloneSetup(new PublicItemRelationController(itemImageService, itemSourceService))
+            .standaloneSetup(new PublicItemRelationController(itemImageService, itemSourceService, MANAGED_IMAGE_URL_POLICY))
             .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
             .build();
     }
@@ -60,7 +73,13 @@ class PublicItemRelationControllerTest {
         wikiOnly.setItemId(77L);
         wikiOnly.setImageUrl("https://terraria.wiki.gg/images/Leak.png");
 
-        when(itemImageService.getImagesByItemId(77L)).thenReturn(List.of(managed, wikiOnly));
+        ItemImageDTO fakeManagedPath = new ItemImageDTO();
+        fakeManagedPath.setId(3L);
+        fakeManagedPath.setItemId(77L);
+        fakeManagedPath.setImageUrl("https://example.com/terrapedia-images/items/fake.png");
+        fakeManagedPath.setCachedUrl("https://example.com/terrapedia-images/items/fake.png");
+
+        when(itemImageService.getImagesByItemId(77L)).thenReturn(List.of(managed, wikiOnly, fakeManagedPath));
 
         mockMvc.perform(get("/public/items/77/images"))
             .andExpect(status().isOk())
