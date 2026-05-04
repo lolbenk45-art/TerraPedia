@@ -412,7 +412,7 @@ const selectedCategory = ref<number | null>(null)
 const searchQuery = ref('')
 const sortMode = ref<'default' | 'name-asc' | 'name-desc' | 'rarity-desc' | 'rarity-asc'>('default')
 const currentPage = ref(1)
-const itemsPerPage = 200
+const itemsPerPage = 36
 const pagination = ref<Pagination>({
   total: 0,
   page: 1,
@@ -582,23 +582,6 @@ const loadCategories = async () => {
     categories.value = []
   }
 }
-
-const loadAllItemsTotal = async () => {
-  try {
-    const itemsRes = await fetchItems(1, 1)
-    if (!itemsRes.success) {
-      throw new Error(itemsRes.message || '获取物品总数失败')
-    }
-
-    allItemsTotal.value = itemsRes.pagination?.total ?? itemsRes.data.length
-  } catch (err) {
-    console.error('获取物品总数失败:', err)
-    allItemsTotal.value = 0
-  }
-}
-
-void loadAllItemsTotal()
-
 
 const loadStatistics = async () => {
   try {

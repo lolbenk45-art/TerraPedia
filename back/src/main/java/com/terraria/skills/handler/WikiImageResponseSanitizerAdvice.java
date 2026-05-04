@@ -122,13 +122,19 @@ public class WikiImageResponseSanitizerAdvice implements ResponseBodyAdvice<Obje
     }
 
     Object sanitizeResponseBody(Object body) {
-        return sanitizeValue(body, "body", false, new IdentityHashMap<>());
+        return sanitizeValue(body, "body", false, new IdentityHashMap<>(), new LinkedHashMap<>());
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private Object sanitizeValue(Object value, String context, boolean inspectStringValues, IdentityHashMap<Object, Object> visited) {
+    private Object sanitizeValue(
+        Object value,
+        String context,
+        boolean inspectStringValues,
+        IdentityHashMap<Object, Object> visited,
+        Map<String, String> localizedUrlCache
+    ) {
         if (value instanceof String text && inspectStringValues) {
-            return localizeStringValue(text, context, true);
+            return localizeStringValue(text, context, true, localizedUrlCache);
         }
         if (value == null || isSimpleValue(value)) {
             return value;
@@ -138,13 +144,13 @@ public class WikiImageResponseSanitizerAdvice implements ResponseBodyAdvice<Obje
         }
 
         if (value instanceof Map map) {
-            return sanitizeMap(map, context, inspectStringValues, visited);
+            return sanitizeMap(map, context, inspectStringValues, visited, localizedUrlCache);
         }
         if (value instanceof java.util.List list) {
-            return sanitizeList(list, context, inspectStringValues, visited);
+            return sanitizeList(list, context, inspectStringValues, visited, localizedUrlCache);
         }
         if (value instanceof Collection<?> collection) {
-            return sanitizeCollection(collection, context, inspectStringValues, visited);
+            return sanitizeCollection(collection, context, inspectStringValues, visited, localizedUrlCache);
         }
         if (value.getClass().isArray()) {
             int length = Array.getLength(value);
@@ -154,21 +160,27 @@ public class WikiImageResponseSanitizerAdvice implements ResponseBodyAdvice<Obje
                 Object item = Array.get(value, index);
                 String itemContext = context + "[" + index + "]";
                 if (item instanceof String text && inspectStringValues) {
-                    String localized = localizeStringValue(text, itemContext, true);
+                    String localized = localizeStringValue(text, itemContext, true, localizedUrlCache);
                     Array.set(replacement, index, localized);
                     continue;
                 }
-                Object sanitized = sanitizeValue(item, itemContext, inspectStringValues, visited);
+                Object sanitized = sanitizeValue(item, itemContext, inspectStringValues, visited, localizedUrlCache);
                 Array.set(replacement, index, sanitized);
             }
             return replacement;
         }
 
-        return sanitizeBean(value, context, inspectStringValues, visited);
+        return sanitizeBean(value, context, inspectStringValues, visited, localizedUrlCache);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private Object sanitizeMap(Map map, String context, boolean inspectStringValues, IdentityHashMap<Object, Object> visited) {
+    private Object sanitizeMap(
+        Map map,
+        String context,
+        boolean inspectStringValues,
+        IdentityHashMap<Object, Object> visited,
+        Map<String, String> localizedUrlCache
+    ) {
         Map replacement = new LinkedHashMap();
         visited.put(map, replacement);
         for (Object entryObject : map.entrySet()) {
@@ -179,47 +191,65 @@ public class WikiImageResponseSanitizerAdvice implements ResponseBodyAdvice<Obje
             String fieldContext = context + "." + fieldName;
 
             if (value instanceof String text && shouldInspectStringValue(fieldName, inspectStringValues)) {
-                String localized = localizeStringValue(text, fieldContext, true);
+                String localized = localizeStringValue(text, fieldContext, true, localizedUrlCache);
                 replacement.put(key, localized);
                 continue;
             }
 
-            Object sanitized = sanitizeValue(value, fieldContext, shouldInspectNestedField(fieldName, inspectStringValues), visited);
+            Object sanitized = sanitizeValue(
+                value,
+                fieldContext,
+                shouldInspectNestedField(fieldName, inspectStringValues),
+                visited,
+                localizedUrlCache
+            );
             replacement.put(key, sanitized);
         }
         return replacement;
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private Object sanitizeList(java.util.List list, String context, boolean inspectStringValues, IdentityHashMap<Object, Object> visited) {
+    private Object sanitizeList(
+        java.util.List list,
+        String context,
+        boolean inspectStringValues,
+        IdentityHashMap<Object, Object> visited,
+        Map<String, String> localizedUrlCache
+    ) {
         java.util.List replacement = new java.util.ArrayList<>(list.size());
         visited.put(list, replacement);
         for (int index = 0; index < list.size(); index++) {
             Object item = list.get(index);
             String itemContext = context + "[" + index + "]";
             if (item instanceof String text && inspectStringValues) {
-                String localized = localizeStringValue(text, itemContext, true);
+                String localized = localizeStringValue(text, itemContext, true, localizedUrlCache);
                 replacement.add(localized);
                 continue;
             }
-            Object sanitized = sanitizeValue(item, itemContext, inspectStringValues, visited);
+            Object sanitized = sanitizeValue(item, itemContext, inspectStringValues, visited, localizedUrlCache);
             replacement.add(sanitized);
         }
         return replacement;
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private Object sanitizeCollection(Collection collection, String context, boolean inspectStringValues, IdentityHashMap<Object, Object> visited) {
+    private Object sanitizeCollection(
+        Collection collection,
+        String context,
+        boolean inspectStringValues,
+        IdentityHashMap<Object, Object> visited,
+        Map<String, String> localizedUrlCache
+    ) {
         Collection replacement = collection instanceof Set<?> ? new LinkedHashSet<>() : new java.util.ArrayList<>();
         visited.put(collection, replacement);
         int index = 0;
         for (Object item : collection) {
             String itemContext = context + "[" + index + "]";
             if (item instanceof String text && inspectStringValues) {
-                String localized = localizeStringValue(text, itemContext, true);
+                String localized = localizeStringValue(text, itemContext, true, localizedUrlCache);
                 replacement.add(localized);
             } else {
-                Object sanitized = sanitizeValue(item, itemContext, inspectStringValues, visited);
+                Object sanitized = sanitizeValue(item, itemContext, inspectStringValues, visited, localizedUrlCache);
                 replacement.add(sanitized);
             }
             index++;
@@ -228,7 +258,13 @@ public class WikiImageResponseSanitizerAdvice implements ResponseBodyAdvice<Obje
         return replacement;
     }
 
-    private Object sanitizeBean(Object value, String context, boolean inspectStringValues, IdentityHashMap<Object, Object> visited) {
+    private Object sanitizeBean(
+        Object value,
+        String context,
+        boolean inspectStringValues,
+        IdentityHashMap<Object, Object> visited,
+        Map<String, String> localizedUrlCache
+    ) {
         Class<?> type = value.getClass();
         if (shouldSkipBeanType(type)) {
             return value;
@@ -250,7 +286,7 @@ public class WikiImageResponseSanitizerAdvice implements ResponseBodyAdvice<Obje
                 String fieldContext = context + "." + descriptor.getName();
 
                 if (propertyValue instanceof String text && shouldInspectStringValue(descriptor.getName(), inspectStringValues)) {
-                    String localized = localizeStringValue(text, fieldContext, true);
+                    String localized = localizeStringValue(text, fieldContext, true, localizedUrlCache);
                     if (descriptor.getWriteMethod() != null) {
                         descriptor.getWriteMethod().invoke(replacement, localized);
                     } else if (!Objects.equals(localized, text)) {
@@ -259,7 +295,13 @@ public class WikiImageResponseSanitizerAdvice implements ResponseBodyAdvice<Obje
                     continue;
                 }
 
-                Object sanitized = sanitizeValue(propertyValue, fieldContext, shouldInspectNestedField(descriptor.getName(), inspectStringValues), visited);
+                Object sanitized = sanitizeValue(
+                    propertyValue,
+                    fieldContext,
+                    shouldInspectNestedField(descriptor.getName(), inspectStringValues),
+                    visited,
+                    localizedUrlCache
+                );
                 if (descriptor.getWriteMethod() != null) {
                     descriptor.getWriteMethod().invoke(replacement, sanitized);
                 } else if (sanitized != propertyValue) {
@@ -286,19 +328,25 @@ public class WikiImageResponseSanitizerAdvice implements ResponseBodyAdvice<Obje
         }
     }
 
-    private String localizeIfNeeded(String value, String context) {
+    private String localizeIfNeeded(String value, String context, Map<String, String> localizedUrlCache) {
+        if (localizedUrlCache.containsKey(value)) {
+            return localizedUrlCache.get(value);
+        }
         if (!wikiImageLocalizationService.isWikiImageUrl(value) || wikiImageLocalizationService.isManagedImageUrl(value)) {
+            localizedUrlCache.put(value, value);
             return value;
         }
-        return wikiImageLocalizationService.localizeCachedImageUrlOrFallback(value, context);
+        String localized = wikiImageLocalizationService.localizeCachedImageUrlOrFallback(value, context);
+        localizedUrlCache.put(value, localized);
+        return localized;
     }
 
-    private String localizeStringValue(String value, String context, boolean allowDelimitedUrls) {
+    private String localizeStringValue(String value, String context, boolean allowDelimitedUrls, Map<String, String> localizedUrlCache) {
         boolean wholeValueIsWikiImage = WHOLE_URL_PATTERN.matcher(value).matches()
             && wikiImageLocalizationService.isWikiImageUrl(value)
             && !wikiImageLocalizationService.isManagedImageUrl(value);
         if (wholeValueIsWikiImage) {
-            return localizeIfNeeded(value, context);
+            return localizeIfNeeded(value, context, localizedUrlCache);
         }
         if (!allowDelimitedUrls) {
             return value;
@@ -310,7 +358,7 @@ public class WikiImageResponseSanitizerAdvice implements ResponseBodyAdvice<Obje
         while (matcher.find()) {
             String url = trimTrailingUrlPunctuation(matcher.group());
             String suffix = matcher.group().substring(url.length());
-            String localizedUrl = localizeIfNeeded(url, context);
+            String localizedUrl = localizeIfNeeded(url, context, localizedUrlCache);
             if (!Objects.equals(localizedUrl, url)) {
                 changed = true;
             }

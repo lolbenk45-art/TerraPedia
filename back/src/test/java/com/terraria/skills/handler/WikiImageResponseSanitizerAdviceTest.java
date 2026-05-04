@@ -237,6 +237,31 @@ class WikiImageResponseSanitizerAdviceTest {
     }
 
     @Test
+    void shouldMemoizeRepeatedWikiImageUrlLookupsWithinOneResponse() {
+        StubWikiImageLocalizationService localizationService = new StubWikiImageLocalizationService(Map.of());
+        WikiImageResponseSanitizerAdvice advice = new WikiImageResponseSanitizerAdvice(localizationService);
+
+        String repeatedUrl = "https://terraria.wiki.gg/images/Repeated.png";
+        Map<String, Object> nestedImage = new LinkedHashMap<>();
+        nestedImage.put("originalUrl", repeatedUrl);
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("imageUrl", repeatedUrl);
+        payload.put("sourceItemsJson", "{\"sourceItems\":[{\"imageUrl\":\"" + repeatedUrl + "\"},{\"imageUrl\":\"" + repeatedUrl + "\"}]}");
+        payload.put("images", new ArrayList<>(List.of(nestedImage)));
+
+        payload = sanitizedData(advice, payload);
+
+        assertNull(payload.get("imageUrl"));
+        assertEquals("{\"sourceItems\":[{\"imageUrl\":\"\"},{\"imageUrl\":\"\"}]}", payload.get("sourceItemsJson"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> sanitizedNestedImage = (Map<String, Object>) ((List<?>) payload.get("images")).get(0);
+        assertNull(sanitizedNestedImage.get("originalUrl"));
+        assertEquals(1, localizationService.getCachedLocalizationCalls());
+        assertEquals(0, localizationService.getBlockingLocalizationCalls());
+    }
+
+    @Test
     void shouldSkipStringValuesInOrdinaryCollectionsAndArrays() {
         StubWikiImageLocalizationService localizationService = new StubWikiImageLocalizationService(Map.of(
             "https://terraria.wiki.gg/images/CollectionLeak.png",
