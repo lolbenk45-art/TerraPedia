@@ -267,6 +267,7 @@ function resolveRedisConfig(localConfig, rawArgs) {
 }
 
 async function clearItemDetailCache(redisConfig) {
+  const keyPatterns = ['item:detail::*', 'item:public:detail::*'];
   const client = createClient({
     socket: {
       host: redisConfig.host,
@@ -280,8 +281,10 @@ async function clearItemDetailCache(redisConfig) {
   try {
     await client.connect();
     const keys = [];
-    for await (const key of client.scanIterator({ MATCH: 'item:detail::*', COUNT: 100 })) {
-      keys.push(key);
+    for (const pattern of keyPatterns) {
+      for await (const key of client.scanIterator({ MATCH: pattern, COUNT: 100 })) {
+        keys.push(key);
+      }
     }
 
     if (keys.length === 0) {
@@ -289,7 +292,8 @@ async function clearItemDetailCache(redisConfig) {
         attempted: true,
         status: 'ok',
         deletedKeys: 0,
-        message: 'No item:detail cache keys were present.',
+        message: 'No item detail cache keys were present.',
+        keyPatterns,
       };
     }
 
@@ -298,7 +302,7 @@ async function clearItemDetailCache(redisConfig) {
       attempted: true,
       status: 'ok',
       deletedKeys,
-      keyPattern: 'item:detail::*',
+      keyPatterns,
     };
   } catch (error) {
     return {
@@ -306,7 +310,7 @@ async function clearItemDetailCache(redisConfig) {
       status: 'failed',
       deletedKeys: 0,
       error: error instanceof Error ? error.message : String(error),
-      keyPattern: 'item:detail::*',
+      keyPatterns,
     };
   } finally {
     try {
@@ -354,7 +358,7 @@ function buildGuidance(applyMode, updatedCount, cache) {
   if (!applyMode) {
     return [
       'This was a dry run. Re-run with --apply=true after reviewing the report.',
-      'If you apply updates later, item detail cache should be cleared or the backend restarted.',
+      'If you apply updates later, item detail and public item detail caches should be cleared or the backend restarted.',
     ];
   }
 
@@ -372,7 +376,7 @@ function buildGuidance(applyMode, updatedCount, cache) {
 
   return [
     'Description rows were updated, but cache eviction did not complete.',
-    'Restart the backend or wait for the item:detail cache TTL to expire before validating the page.',
+    'Restart the backend or wait for the item detail cache TTLs to expire before validating the page.',
   ];
 }
 

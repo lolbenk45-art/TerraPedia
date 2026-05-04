@@ -145,31 +145,6 @@
             </div>
           </article>
 
-          <article v-if="sourceNpcCards.length" class="public-section-frame item-detail-view__panel">
-            <div class="item-detail-view__panel-head">
-              <div>
-                <h2>Source NPCs</h2>
-              </div>
-              <span class="item-detail-view__panel-chip">{{ sourceNpcCards.length }} entries</span>
-            </div>
-
-            <div class="item-detail-view__source-list">
-              <article v-for="card in sourceNpcCards" :key="card.key" class="item-detail-view__source-card">
-                <div class="item-detail-view__source-head">
-                  <div>
-                    <h3>{{ card.title }}</h3>
-                    <p v-if="card.secondary">{{ card.secondary }}</p>
-                  </div>
-                </div>
-                <div class="item-detail-view__source-meta">
-                  <span v-if="card.trace">{{ card.trace }}</span>
-                  <span v-if="card.provider">{{ card.provider }}</span>
-                </div>
-                <p v-if="card.page">{{ card.page }}</p>
-              </article>
-            </div>
-          </article>
- 
           <article class="public-section-frame item-detail-view__panel">
             <div class="item-detail-view__panel-head">
               <div>
@@ -230,10 +205,6 @@
                 <p v-if="card.stations.length">
                   <strong>Stations:</strong>
                   {{ card.stations.join(' / ') }}
-                </p>
-                <p v-if="card.source">
-                  <strong>Scope:</strong>
-                  {{ card.source }}
                 </p>
                 <p v-if="card.notes">
                   <strong>Notes:</strong>
@@ -346,7 +317,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { fetchCategories, fetchItemAggregateById, fetchItemRecipeTree } from '@/api'
+import { fetchCategories, fetchItemImages, fetchItemRecipeTree, fetchItemSources, fetchPublicItemDetailShell } from '@/api'
 import type {
   Category,
   ItemAggregateData,
@@ -354,7 +325,6 @@ import type {
   ItemRecipeTreeResponse,
   ItemRecipeTreeVariant,
   ItemSourceRelation,
-  TraceableNpcRelationSummary,
   RecipeIngredientRelation,
 } from '@/types'
 import { getItemFallbackMark } from '@/utils/itemFallbackMark'
@@ -392,7 +362,6 @@ type RecipeCard = {
   quantity: string
   ingredients: string[]
   stations: string[]
-  source: string
   notes: string
 }
 
@@ -403,15 +372,6 @@ type SourceCard = {
   quantity: string
   chance: string
   notes: string
-}
-
-type TraceableRelationCard = {
-  key: string
-  title: string
-  secondary: string
-  trace: string
-  provider: string
-  page: string
 }
 
 type ImageCard = {
@@ -566,15 +526,11 @@ const stackLabel = computed(() => {
 })
 
 const heroImageUrl = computed(() => {
-  const primaryImage = relatedImages.value.find(image => image.isPrimary && resolveImage(image.imageUrl || image.cachedUrl || image.originalUrl))
+  const primaryImage = relatedImages.value.find(image => image.isPrimary && resolveImage(image.imageUrl))
   return resolveImage(
     item.value?.image
       || primaryImage?.imageUrl
-      || primaryImage?.cachedUrl
-      || primaryImage?.originalUrl
       || relatedImages.value[0]?.imageUrl
-      || relatedImages.value[0]?.cachedUrl
-      || relatedImages.value[0]?.originalUrl
       || null,
   )
 })
@@ -743,7 +699,6 @@ const recipeCards = computed<RecipeCard[]>(() =>
       .slice(0, 4)
       .map(station => oneLine(station.itemNameZh) || oneLine(station.itemName) || oneLine(station.stationNameRaw))
       .filter(Boolean),
-    source: [oneLine(recipe.versionScope), oneLine(recipe.sourcePage)].filter(Boolean).join(' / '),
     notes: oneLine(recipe.notes),
   })),
 )
@@ -764,24 +719,13 @@ const sourceCards = computed<SourceCard[]>(() =>
   })),
 )
 
-const sourceNpcCards = computed<TraceableRelationCard[]>(() =>
-  (item.value?.sourceNpcs ?? []).slice(0, 8).map((entry, index) => ({
-    key: String(entry.sourceFactKey ?? entry.npcId ?? entry.npcInternalName ?? index),
-    title: traceableNpcTitle(entry),
-    secondary: [oneLine(entry.relationType), oneLine(entry.npcInternalName)].filter(Boolean).join(' / '),
-    trace: oneLine(entry.sourceFactKey),
-    provider: oneLine(entry.sourceProvider),
-    page: [oneLine(entry.sourcePage), formatDateTime(entry.sourceRevisionTimestamp)].filter(Boolean).join(' / '),
-  })),
-)
-
 const imageCards = computed<ImageCard[]>(() =>
   relatedImages.value
     .map((image, index) => ({
       key: String(image.id ?? index),
-      url: resolveImage(image.imageUrl || image.cachedUrl || image.originalUrl || null),
-      alt: image.sourceFileTitle || displayName.value,
-      meta: [image.role || (image.isPrimary ? 'primary' : ''), image.provider || 'public'].filter(Boolean).join(' / '),
+      url: resolveImage(image.imageUrl || null),
+      alt: displayName.value,
+      meta: [image.role || (image.isPrimary ? 'primary' : ''), 'public'].filter(Boolean).join(' / '),
     }))
     .filter(card => Boolean(card.url))
     .slice(0, 8),
@@ -954,13 +898,6 @@ function chanceLabel(source: ItemSourceRelation) {
   return ''
 }
 
-function traceableNpcTitle(entry: TraceableNpcRelationSummary) {
-  return oneLine(entry.npcNameZh)
-    || oneLine(entry.npcName)
-    || oneLine(entry.npcInternalName)
-    || (typeof entry.npcId === 'number' ? `NPC ${entry.npcId}` : 'Linked NPC')
-}
-
 function ingredientLabel(recipeIngredient: RecipeIngredientRelation) {
   return oneLine(recipeIngredient?.itemNameZh)
     || oneLine(recipeIngredient?.itemName)
@@ -1085,16 +1022,12 @@ async function loadItem() {
   activeVariantKey.value = ''
 
   try {
-    const [aggregateRes, categoriesRes, recipeTreeRes] = await Promise.all([
-      fetchItemAggregateById(itemId, 'images,sources,recipes'),
-      fetchCategories(),
-      fetchItemRecipeTree(itemId, 3),
-    ])
+    const itemRes = await fetchPublicItemDetailShell(itemId)
 
-    if (!aggregateRes.success || !aggregateRes.data?.item?.id) {
-      const message = aggregateRes.message || 'Failed to fetch item detail'
+    if (!itemRes.success || !itemRes.data?.id) {
+      const message = itemRes.message || 'Failed to fetch item detail'
 
-      if (aggregateRes.statusCode === 404 || /not found/i.test(message)) {
+      if (itemRes.statusCode === 404 || /not found/i.test(message)) {
         aggregate.value = null
         categories.value = []
         recipeTree.value = null
@@ -1105,9 +1038,21 @@ async function loadItem() {
       throw new Error(message)
     }
 
-    aggregate.value = aggregateRes.data
-    categories.value = categoriesRes.success ? flattenCategories(categoriesRes.data || []) : []
-    recipeTree.value = recipeTreeRes
+    aggregate.value = {
+      item: itemRes.data,
+      images: [],
+      sources: [],
+      recipes: [],
+      moduleStatus: {
+        images: 'loading',
+        sources: 'loading',
+        recipes: 'loading',
+      },
+    }
+    categories.value = []
+    isLoading.value = false
+    void loadCategoriesForItem(itemId)
+    void loadDetailModules(itemId)
   } catch (cause) {
     console.error('Failed to load item detail:', cause)
     aggregate.value = null
@@ -1117,6 +1062,92 @@ async function loadItem() {
     error.value = cause instanceof Error ? cause.message : 'Failed to load item detail'
   } finally {
     isLoading.value = false
+  }
+}
+
+function loadDetailModules(itemId: number) {
+  void loadImageAndSourceModules(itemId)
+  void loadRecipeTreeModule(itemId)
+}
+
+async function loadCategoriesForItem(itemId: number) {
+  try {
+    const categoriesRes = await fetchCategories()
+    if (Number(route.params.id) === itemId) {
+      categories.value = categoriesRes.success ? flattenCategories(categoriesRes.data || []) : []
+    }
+  } catch (cause) {
+    console.error('Failed to load item categories:', cause)
+    if (Number(route.params.id) === itemId) {
+      categories.value = []
+    }
+  }
+}
+
+async function loadImageAndSourceModules(itemId: number) {
+  try {
+    const [images, sources] = await Promise.all([
+      fetchItemImages(itemId),
+      fetchItemSources(itemId),
+    ])
+    if (Number(route.params.id) === itemId) {
+      if (aggregate.value?.item?.id === itemId) {
+        aggregate.value = {
+          ...aggregate.value,
+          images,
+          sources,
+          moduleStatus: {
+            ...aggregate.value.moduleStatus,
+            images: images.length ? 'ok' : 'empty',
+            sources: sources.length ? 'ok' : 'empty',
+          },
+        }
+      }
+    }
+  } catch (cause) {
+    console.error('Failed to load item image/source modules:', cause)
+    if (Number(route.params.id) === itemId && aggregate.value?.item?.id === itemId) {
+      aggregate.value = {
+        ...aggregate.value,
+        moduleStatus: {
+          ...aggregate.value.moduleStatus,
+          images: 'error',
+          sources: 'error',
+        },
+      }
+    }
+  }
+}
+
+async function loadRecipeTreeModule(itemId: number) {
+  try {
+    const nextRecipeTree = await fetchItemRecipeTree(itemId, 3)
+    if (Number(route.params.id) === itemId) {
+      recipeTree.value = nextRecipeTree
+      if (aggregate.value?.item?.id === itemId) {
+        aggregate.value = {
+          ...aggregate.value,
+          moduleStatus: {
+            ...aggregate.value.moduleStatus,
+            recipes: nextRecipeTree?.variants?.length ? 'ok' : 'empty',
+          },
+        }
+      }
+    }
+  } catch (cause) {
+    console.error('Failed to load item recipe tree:', cause)
+    if (Number(route.params.id) === itemId) {
+      recipeTree.value = null
+      if (aggregate.value?.item?.id === itemId) {
+        aggregate.value = {
+          ...aggregate.value,
+          moduleStatus: {
+            ...aggregate.value.moduleStatus,
+            recipes: 'error',
+          },
+        }
+      }
+    }
   }
 }
 

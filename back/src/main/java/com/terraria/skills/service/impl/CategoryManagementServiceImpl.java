@@ -7,6 +7,8 @@ import com.terraria.skills.mapper.CategoryMapper;
 import com.terraria.skills.service.CategoryManagementService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -108,6 +110,14 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "item:public:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:detail", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:suggestions", allEntries = true),
+        @CacheEvict(cacheNames = "item:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:aggregate", allEntries = true),
+        @CacheEvict(cacheNames = "stats:overview", allEntries = true)
+    })
     public CategoryDTO createCategory(CategoryDTO categoryDTO) {
         if (categoryDTO.getParentId() != null && categoryDTO.getParentId() > 0) {
             Category parent = categoryMapper.selectById(categoryDTO.getParentId());
@@ -144,6 +154,14 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "item:public:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:detail", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:suggestions", allEntries = true),
+        @CacheEvict(cacheNames = "item:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:aggregate", allEntries = true),
+        @CacheEvict(cacheNames = "stats:overview", allEntries = true)
+    })
     public CategoryDTO updateCategory(Long id, CategoryDTO categoryDTO) {
         Category existing = categoryMapper.selectById(id);
         if (existing == null) {
@@ -187,6 +205,14 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "item:public:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:detail", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:suggestions", allEntries = true),
+        @CacheEvict(cacheNames = "item:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:aggregate", allEntries = true),
+        @CacheEvict(cacheNames = "stats:overview", allEntries = true)
+    })
     public CategoryDTO updateCategoryParent(Long id, Long newParentId) {
         Category existing = categoryMapper.selectById(id);
         if (existing == null) {
@@ -215,6 +241,14 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "item:public:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:detail", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:suggestions", allEntries = true),
+        @CacheEvict(cacheNames = "item:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:aggregate", allEntries = true),
+        @CacheEvict(cacheNames = "stats:overview", allEntries = true)
+    })
     public CategoryDTO updateCategorySort(Long id, Integer newSort) {
         Category existing = categoryMapper.selectById(id);
         if (existing == null) {
@@ -230,6 +264,14 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "item:public:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:detail", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:suggestions", allEntries = true),
+        @CacheEvict(cacheNames = "item:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:aggregate", allEntries = true),
+        @CacheEvict(cacheNames = "stats:overview", allEntries = true)
+    })
     public void deleteCategory(Long id) {
         Category category = categoryMapper.selectById(id);
         if (category == null) {
@@ -251,6 +293,14 @@ public class CategoryManagementServiceImpl implements CategoryManagementService 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "item:public:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:detail", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:suggestions", allEntries = true),
+        @CacheEvict(cacheNames = "item:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:aggregate", allEntries = true),
+        @CacheEvict(cacheNames = "stats:overview", allEntries = true)
+    })
     public void deleteCategoryWithChildren(Long id) {
         Category category = categoryMapper.selectById(id);
         if (category == null) {

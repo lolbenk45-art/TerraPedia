@@ -6,6 +6,11 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { isStandardizedViewDir, loadStandardizedDataset } from '../lib/load-standardized-dataset.mjs';
 import {
+  clearPublicItemCaches,
+  resolveRedisConfigFromEnv,
+  skippedPublicItemCacheResult,
+} from '../lib/public-item-cache.mjs';
+import {
   CATEGORY_DEFINITIONS,
   getCategoryDisplayName,
   normalizeCategoryCode,
@@ -1575,6 +1580,7 @@ async function main() {
     database,
     multipleStatements: false,
   };
+  const redisConfig = resolveRedisConfigFromEnv(args);
 
   assertPrimaryDb(connectionConfig.database, args['allow-non-primary-db'] === 'true' || process.env.TERRAPEDIA_ALLOW_NON_PRIMARY_DB === 'true');
 
@@ -1636,6 +1642,10 @@ async function main() {
     await conn.end();
   }
 
+  const publicItemCache = publicItemRowsChanged(summary)
+    ? await clearPublicItemCaches(redisConfig)
+    : skippedPublicItemCacheResult('no_public_item_rows_changed');
+
   const report = {
     generatedAt: new Date().toISOString(),
     database: connectionConfig.database,
@@ -1643,9 +1653,18 @@ async function main() {
     wikiBiomesFile: wikiBiomesDataset ? wikiBiomesFile : null,
     manifestGeneratedAt: manifest?.generatedAt ?? null,
     summary,
+    publicItemCache,
   };
 
   console.log(JSON.stringify(report, null, 2));
+}
+
+function publicItemRowsChanged(summary) {
+  return Number(summary?.items?.created ?? 0) > 0
+    || Number(summary?.items?.updated ?? 0) > 0
+    || Number(summary?.categorySync?.created ?? 0) > 0
+    || Number(summary?.categorySync?.updated ?? 0) > 0
+    || Number(summary?.itemImageBackfill?.updated ?? 0) > 0;
 }
 
 function mergeBiomeRecords(baseRecords, overrideRecords) {

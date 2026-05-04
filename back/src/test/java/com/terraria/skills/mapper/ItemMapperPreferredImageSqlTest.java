@@ -10,6 +10,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ItemMapperPreferredImageSqlTest {
 
+    private String selectSql(String mapperXml, String selectId) {
+        String startTag = "<select id=\"" + selectId + "\"";
+        int startIndex = mapperXml.indexOf(startTag);
+        return mapperXml.substring(startIndex, mapperXml.indexOf("</select>", startIndex));
+    }
+
+    private String sqlFragment(String mapperXml, String sqlId) {
+        String startTag = "<sql id=\"" + sqlId + "\">";
+        int startIndex = mapperXml.indexOf(startTag);
+        return mapperXml.substring(startIndex, mapperXml.indexOf("</sql>", startIndex));
+    }
+
     @Test
     void preferredItemImageSqlShouldUseOnlyManagedCachedUrlsForDisplayImages() throws Exception {
         String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ItemMapper.xml"));
@@ -82,14 +94,8 @@ class ItemMapperPreferredImageSqlTest {
     void pagedItemListShouldNotSelectRawSourceNpcsJsonLongText() throws Exception {
         String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ItemMapper.xml"));
 
-        String listSql = mapperXml.substring(
-            mapperXml.indexOf("<select id=\"selectItemsWithSearch\""),
-            mapperXml.indexOf("</select>", mapperXml.indexOf("<select id=\"selectItemsWithSearch\""))
-        );
-        String detailSql = mapperXml.substring(
-            mapperXml.indexOf("<select id=\"selectItemDetailById\""),
-            mapperXml.indexOf("</select>", mapperXml.indexOf("<select id=\"selectItemDetailById\""))
-        );
+        String listSql = selectSql(mapperXml, "selectItemsWithSearch");
+        String detailSql = selectSql(mapperXml, "selectItemDetailById");
 
         assertFalse(listSql.contains("source_npcs_json"), "paged item list must not read raw source_npcs_json LONGTEXT");
         assertTrue(detailSql.contains("source_npcs_json"), "item detail may read raw source_npcs_json for sanitized sourceNpcs");
@@ -98,10 +104,7 @@ class ItemMapperPreferredImageSqlTest {
     @Test
     void pagedItemListShouldUseLightweightProjection() throws Exception {
         String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ItemMapper.xml"));
-        String listSql = mapperXml.substring(
-            mapperXml.indexOf("<select id=\"selectItemsWithSearch\""),
-            mapperXml.indexOf("</select>", mapperXml.indexOf("<select id=\"selectItemsWithSearch\""))
-        );
+        String listSql = selectSql(mapperXml, "selectItemsWithSearch");
 
         assertFalse(listSql.contains("PreferredItemImageExpr"), "paged item list must not run per-row preferred image subquery");
         assertFalse(listSql.contains(" i.description"), "paged item list must not read description");
@@ -120,10 +123,7 @@ class ItemMapperPreferredImageSqlTest {
     @Test
     void pagedItemListShouldRejectDemoAndPlacedManagedImages() throws Exception {
         String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ItemMapper.xml"));
-        String listSql = mapperXml.substring(
-            mapperXml.indexOf("<select id=\"selectItemsWithSearch\""),
-            mapperXml.indexOf("</select>", mapperXml.indexOf("<select id=\"selectItemsWithSearch\""))
-        );
+        String listSql = selectSql(mapperXml, "selectItemsWithSearch");
 
         assertTrue(listSql.contains("LOWER(TRIM(ii.cached_url)) NOT LIKE '%28demo%29%'"), "paged list item_images.cached_url demo URLs must be ignored");
         assertTrue(listSql.contains("LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'"), "paged list item_images.cached_url demo filter must be token-aware");
@@ -134,15 +134,83 @@ class ItemMapperPreferredImageSqlTest {
     @Test
     void pagedItemListShouldPageItemsBeforeJoiningImages() throws Exception {
         String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ItemMapper.xml"));
-        String listSql = mapperXml.substring(
-            mapperXml.indexOf("<select id=\"selectItemsWithSearch\""),
-            mapperXml.indexOf("</select>", mapperXml.indexOf("<select id=\"selectItemsWithSearch\""))
-        );
+        String listSql = selectSql(mapperXml, "selectItemsWithSearch");
 
         assertTrue(listSql.contains("FROM (\n            SELECT"), "paged item list must page items in a derived table before joins");
         assertTrue(listSql.contains("LIMIT #{limit}"), "inner item page must apply the requested limit");
         assertTrue(listSql.contains("OFFSET #{offset}"), "inner item page must apply the requested offset");
         assertTrue(listSql.indexOf("LIMIT #{limit}") < listSql.indexOf("LEFT JOIN item_images"), "item_images must be joined after item paging");
+    }
+
+    @Test
+    void publicItemListShouldUseStrictDisplayProjection() throws Exception {
+        String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ItemMapper.xml"));
+        String publicListSql = selectSql(mapperXml, "selectPublicItemsWithSearch");
+        String managedImageExpr = sqlFragment(mapperXml, "ManagedItemImageExpr");
+
+        assertFalse(publicListSql.contains("source_npcs_json"), "public item list must not read source_npcs_json");
+        assertFalse(publicListSql.contains(" i.description"), "public item list must not read description");
+        assertFalse(publicListSql.contains(" i.description_zh"), "public item list must not read description_zh");
+        assertFalse(publicListSql.contains(" i.tooltip"), "public item list must not read tooltip");
+        assertFalse(publicListSql.contains(" i.tooltip_zh"), "public item list must not read tooltip_zh");
+        assertFalse(publicListSql.contains(" i.damage"), "public item list must not read damage");
+        assertFalse(publicListSql.contains(" i.defense"), "public item list must not read defense");
+        assertFalse(publicListSql.contains(" i.created_at"), "public item list must not read created_at");
+        assertFalse(publicListSql.contains(" i.updated_at"), "public item list must not read updated_at");
+        assertTrue(publicListSql.contains("<include refid=\"ManagedItemImageExpr\"/>"), "public item list must reuse the managed-image projection fragment");
+        assertTrue(managedImageExpr.contains("NULLIF(TRIM(i.image), '') IS NOT NULL"), "public item list must guard empty image values");
+        assertTrue(managedImageExpr.contains("LOWER(TRIM(i.image)) LIKE '%/terrapedia-images/%'"), "public item list must only expose managed MinIO images");
+        assertFalse(managedImageExpr.contains("item_images"), "public managed-image projection must not evaluate item_images");
+        assertFalse(managedImageExpr.contains("original_url"), "public managed-image projection must not expose wiki original_url");
+        assertFalse(publicListSql.contains("i.image AS image"), "public item list must not expose raw image without a managed-image guard");
+        assertFalse(publicListSql.contains("ii_primary.cached_url AS image"), "public item list must not evaluate item_images for display image");
+        assertFalse(publicListSql.contains("ii_primary.original_url"), "public item list must not expose wiki original_url");
+    }
+
+    @Test
+    void publicItemListShouldPageItemsBeforeJoiningImages() throws Exception {
+        String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ItemMapper.xml"));
+        String publicListSql = selectSql(mapperXml, "selectPublicItemsWithSearch");
+
+        assertTrue(publicListSql.contains("FROM (\n            SELECT"), "public item list must page items in a derived table before joins");
+        assertTrue(publicListSql.contains("LIMIT #{limit}"), "inner public item page must apply the requested limit");
+        assertTrue(publicListSql.contains("OFFSET #{offset}"), "inner public item page must apply the requested offset");
+        assertFalse(publicListSql.contains("LEFT JOIN item_images"), "public item list must not join item_images at all");
+    }
+
+    @Test
+    void publicItemSuggestionsShouldUseStrictDisplayProjection() throws Exception {
+        String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ItemMapper.xml"));
+        String publicSuggestionsSql = selectSql(mapperXml, "selectPublicItemSuggestions");
+        String managedImageExpr = sqlFragment(mapperXml, "ManagedItemImageExpr");
+
+        assertFalse(publicSuggestionsSql.contains("source_npcs_json"), "public item suggestions must not read source_npcs_json");
+        assertFalse(publicSuggestionsSql.contains(" i.description"), "public item suggestions must not read description");
+        assertFalse(publicSuggestionsSql.contains(" i.tooltip"), "public item suggestions must not read tooltip");
+        assertFalse(publicSuggestionsSql.contains(" i.created_at"), "public item suggestions must not read created_at");
+        assertFalse(publicSuggestionsSql.contains(" i.updated_at"), "public item suggestions must not read updated_at");
+        assertTrue(publicSuggestionsSql.contains("<include refid=\"ManagedItemImageExpr\"/>"), "public item suggestions must reuse the managed-image projection fragment");
+        assertTrue(managedImageExpr.contains("LOWER(TRIM(i.image)) LIKE '%/terrapedia-images/%'"), "public item suggestions must only expose managed MinIO images");
+        assertFalse(publicSuggestionsSql.contains("PreferredItemImageExpr"), "public item suggestions must not run preferred image fallback");
+        assertFalse(publicSuggestionsSql.contains("item_images"), "public item suggestions must not join or scan item_images");
+        assertFalse(publicSuggestionsSql.contains("original_url"), "public item suggestions must not expose wiki original_url");
+    }
+
+    @Test
+    void publicItemDetailShouldUseStrictShellProjection() throws Exception {
+        String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ItemMapper.xml"));
+        String publicDetailSql = selectSql(mapperXml, "selectPublicItemDetailById");
+        String managedImageExpr = sqlFragment(mapperXml, "ManagedItemImageExpr");
+
+        assertFalse(publicDetailSql.contains("source_npcs_json"), "public item detail shell must not read source_npcs_json");
+        assertFalse(publicDetailSql.contains("relatedCategoryIdsRaw"), "public item detail shell must not read category relation aggregate strings");
+        assertFalse(publicDetailSql.contains(" i.created_at"), "public item detail shell must not read created_at");
+        assertFalse(publicDetailSql.contains(" i.updated_at"), "public item detail shell must not read updated_at");
+        assertTrue(publicDetailSql.contains("<include refid=\"ManagedItemImageExpr\"/>"), "public item detail shell must reuse the managed-image projection fragment");
+        assertTrue(managedImageExpr.contains("LOWER(TRIM(i.image)) LIKE '%/terrapedia-images/%'"), "public item detail shell must only expose managed MinIO images");
+        assertFalse(publicDetailSql.contains("PreferredItemImageExpr"), "public item detail shell must not run preferred image fallback");
+        assertFalse(publicDetailSql.contains("item_images"), "public item detail shell must not join or scan item_images");
+        assertFalse(publicDetailSql.contains("original_url"), "public item detail shell must not expose wiki original_url");
     }
 
     @Test

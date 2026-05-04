@@ -126,11 +126,6 @@ export interface ItemImageRelation {
   id?: number
   itemId?: number
   role?: string
-  provider?: string
-  sourceFileTitle?: string | null
-  sourcePage?: string | null
-  originalUrl?: string | null
-  cachedUrl?: string | null
   imageUrl?: string | null
   width?: number
   height?: number

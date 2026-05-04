@@ -4,6 +4,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
+import {
+  clearPublicItemCaches,
+  resolveRedisConfigFromEnv,
+  skippedPublicItemCacheResult,
+} from '../lib/public-item-cache.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -20,6 +25,7 @@ const db = {
   password: process.env.TERRAPEDIA_DB_PASSWORD || 'root',
   database: args.database || process.env.TERRAPEDIA_DB_NAME || 'terria_v1_local',
 };
+const redis = resolveRedisConfigFromEnv(args);
 
 assertPrimaryDb(db.database, apply, allowNonPrimaryDb);
 
@@ -158,11 +164,16 @@ try {
     await conn.commit();
   }
 
+  const publicItemCache = apply && summary.appliedUpdated > 0
+    ? await clearPublicItemCaches(redis)
+    : skippedPublicItemCacheResult(apply ? 'no_public_item_rows_changed' : 'dry_run');
+
   writeJson(output, {
     summary,
+    publicItemCache,
     recordsPreview: normalizedRecords.slice(0, 50),
   });
-  console.log(JSON.stringify(summary, null, 2));
+  console.log(JSON.stringify({ ...summary, publicItemCache }, null, 2));
 } catch (error) {
   if (apply) {
     await conn.rollback();

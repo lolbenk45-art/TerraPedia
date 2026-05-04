@@ -43,6 +43,9 @@ class PublicItemAggregateServiceCachingTest {
         context.register(CachingConfig.class);
         context.registerBean(CacheManager.class, () -> new ConcurrentMapCacheManager(
             "item:list",
+            "item:public:list",
+            "item:public:detail",
+            "item:public:suggestions",
             "item:detail",
             "item:suggestions",
             "item:aggregate",

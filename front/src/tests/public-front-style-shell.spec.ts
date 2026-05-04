@@ -10,7 +10,10 @@ const mocks = vi.hoisted(() => ({
   fetchItems: vi.fn(),
   fetchCategories: vi.fn(),
   fetchStatsOverview: vi.fn(),
+  fetchPublicItemDetailShell: vi.fn(),
   fetchItemAggregateById: vi.fn(),
+  fetchItemImages: vi.fn(),
+  fetchItemSources: vi.fn(),
   fetchItemRecipeTree: vi.fn(),
   fetchArticles: vi.fn(),
   fetchArticleById: vi.fn(),
@@ -42,7 +45,10 @@ vi.mock('@/api', async () => {
     fetchItems: mocks.fetchItems,
     fetchCategories: mocks.fetchCategories,
     fetchStatsOverview: mocks.fetchStatsOverview,
+    fetchPublicItemDetailShell: mocks.fetchPublicItemDetailShell,
     fetchItemAggregateById: mocks.fetchItemAggregateById,
+    fetchItemImages: mocks.fetchItemImages,
+    fetchItemSources: mocks.fetchItemSources,
     fetchItemRecipeTree: mocks.fetchItemRecipeTree,
   }
 })
@@ -70,7 +76,10 @@ describe('public front style shell', () => {
     mocks.fetchItems.mockReset()
     mocks.fetchCategories.mockReset()
     mocks.fetchStatsOverview.mockReset()
+    mocks.fetchPublicItemDetailShell.mockReset()
     mocks.fetchItemAggregateById.mockReset()
+    mocks.fetchItemImages.mockReset()
+    mocks.fetchItemSources.mockReset()
     mocks.fetchItemRecipeTree.mockReset()
     mocks.fetchArticles.mockReset()
     mocks.fetchArticleById.mockReset()
@@ -147,6 +156,22 @@ describe('public front style shell', () => {
       },
     })
 
+    mocks.fetchPublicItemDetailShell.mockResolvedValue({
+      success: true,
+      data: {
+        id: 1,
+        categoryId: 10,
+        categoryName: 'Weapons',
+        category: 'Weapons',
+        internalName: 'CopperShortsword',
+        name: 'Copper Shortsword',
+        rarity: 'Common',
+        image: null,
+      },
+    })
+
+    mocks.fetchItemImages.mockResolvedValue([])
+    mocks.fetchItemSources.mockResolvedValue([])
     mocks.fetchItemRecipeTree.mockResolvedValue({ variants: [] })
 
     mocks.fetchArticles.mockResolvedValue({
@@ -232,9 +257,12 @@ describe('public front style shell', () => {
     expect(wrapper.find('.entity-detail-shell__sidebar').exists()).toBe(true)
     expect(wrapper.text()).toContain('Recipes')
     expect(wrapper.text()).toContain('Metadata')
-    expect(wrapper.text()).toContain('Source NPCs')
-    expect(wrapper.text()).toContain('Guide CN')
-    expect(wrapper.text()).toContain('npc:guide')
+    expect(wrapper.text()).toContain('Source registry')
+    expect(mocks.fetchPublicItemDetailShell).toHaveBeenCalledWith(1)
+    expect(mocks.fetchItemImages).toHaveBeenCalledWith(1)
+    expect(mocks.fetchItemSources).toHaveBeenCalledWith(1)
+    expect(mocks.fetchItemRecipeTree).toHaveBeenCalledTimes(1)
+    expect(mocks.fetchItemAggregateById).not.toHaveBeenCalled()
   })
 
   it('renders the article list inside the editorial shell', async () => {

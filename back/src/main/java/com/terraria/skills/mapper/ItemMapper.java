@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.terraria.skills.dto.CategoryItemCountDTO;
 import com.terraria.skills.dto.ItemDTO;
+import com.terraria.skills.dto.PublicItemDetailDTO;
+import com.terraria.skills.dto.PublicItemListDTO;
+import com.terraria.skills.dto.PublicItemSuggestionDTO;
 import com.terraria.skills.entity.Item;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -14,6 +17,18 @@ import java.util.List;
 public interface ItemMapper extends BaseMapper<Item> {
 
     List<ItemDTO> selectItemsWithSearch(
+        @Param("search") String search,
+        @Param("categoryId") Long categoryId,
+        @Param("categoryIds") List<Long> categoryIds,
+        @Param("rarityId") Long rarityId,
+        @Param("gamePeriodId") Long gamePeriodId,
+        @Param("sortBy") String sortBy,
+        @Param("sortDirection") String sortDirection,
+        @Param("limit") long limit,
+        @Param("offset") long offset
+    );
+
+    List<PublicItemListDTO> selectPublicItemsWithSearch(
         @Param("search") String search,
         @Param("categoryId") Long categoryId,
         @Param("categoryIds") List<Long> categoryIds,
@@ -39,5 +54,9 @@ public interface ItemMapper extends BaseMapper<Item> {
 
     ItemDTO selectItemDetailById(@Param("id") Long id);
 
+    PublicItemDetailDTO selectPublicItemDetailById(@Param("id") Long id);
+
     List<ItemDTO> selectItemSuggestions(@Param("keyword") String keyword, @Param("limit") int limit);
+
+    List<PublicItemSuggestionDTO> selectPublicItemSuggestions(@Param("keyword") String keyword, @Param("limit") int limit);
 }

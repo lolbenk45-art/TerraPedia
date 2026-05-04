@@ -51,7 +51,7 @@ describe('api/index lightweight query behavior', () => {
     expect(mockGet).not.toHaveBeenCalled()
   })
 
-  it('fetchItemSuggestions preserves the current normalized return shape on success', async () => {
+  it('fetchItemSuggestions returns only lightweight display fields on success', async () => {
     mockGet.mockResolvedValue({
       data: {
         success: true,
@@ -63,39 +63,45 @@ describe('api/index lightweight query behavior', () => {
             category: 'Ammo',
             rare: 'white',
             description: 'Basic ranged ammo',
+            descriptionEn: 'Basic ranged ammo',
             tooltip: 'Works with bows',
+            tooltipEn: 'Works with bows',
+            sourceNpcsJson: '[{"npcId":2}]',
+            sourceNpcs: [{ npcId: 2 }],
+            originalUrl: 'https://terraria.wiki.gg/images/wooden-arrow.png',
             stackSize: 999,
           },
         ],
       },
     })
 
-    await expect(fetchItemSuggestions('  wood  ', 5)).resolves.toEqual([
+    const result = await fetchItemSuggestions('  wood  ', 5)
+
+    expect(result).toEqual([
       {
         id: 12,
         name: 'Wooden Arrow',
-        name_zh: '木箭',
         nameZh: '木箭',
         nameEn: 'Wooden Arrow',
         image: null,
+        imageUrl: null,
         category: 'Ammo',
         categoryName: 'Ammo',
         rare: 'white',
         rarity: 'white',
-        description: 'Basic ranged ammo',
-        descriptionZh: null,
-        descriptionEn: 'Basic ranged ammo',
-        tooltip: 'Works with bows',
-        tooltipZh: null,
-        tooltipEn: 'Works with bows',
         stackSize: 999,
         stack: 999,
-        sourceNpcsJson: null,
-        sourceNpcs: [],
       },
     ])
+    expect(result[0]).not.toHaveProperty('sourceNpcs')
+    expect(result[0]).not.toHaveProperty('sourceNpcsJson')
+    expect(result[0]).not.toHaveProperty('originalUrl')
+    expect(result[0]).not.toHaveProperty('description')
+    expect(result[0]).not.toHaveProperty('descriptionEn')
+    expect(result[0]).not.toHaveProperty('tooltip')
+    expect(result[0]).not.toHaveProperty('tooltipEn')
 
-    expect(mockGet).toHaveBeenCalledWith('/items/suggestions', {
+    expect(mockGet).toHaveBeenCalledWith('/public/items/suggestions', {
       params: {
         keyword: 'wood',
         limit: 5,
@@ -109,13 +115,16 @@ describe('api/index lightweight query behavior', () => {
     await expect(fetchItemSuggestions('wood')).resolves.toEqual([])
   })
 
-  it('fetchItemImages preserves the current normalized return shape on success', async () => {
+  it('fetchItemImages returns only the public image URL shape on success', async () => {
     mockGet.mockResolvedValue({
       data: {
         success: true,
         data: [
           {
-            originalUrl: 'https://cdn.example.com/items/12.png',
+            imageUrl: 'https://cdn.example.com/items/12.png',
+            cachedUrl: 'https://cdn.example.com/internal/items/12.png',
+            originalUrl: 'https://terraria.wiki.gg/images/items/12.png',
+            sourceFileTitle: 'Item 12.png',
           },
         ],
       },
@@ -123,16 +132,14 @@ describe('api/index lightweight query behavior', () => {
 
     await expect(fetchItemImages(12)).resolves.toEqual([
       {
-        originalUrl: 'https://cdn.example.com/items/12.png',
         itemId: undefined,
         imageUrl: 'https://cdn.example.com/items/12.png',
-        cachedUrl: 'https://cdn.example.com/items/12.png',
         isPrimary: false,
         sortOrder: 0,
       },
     ])
 
-    expect(mockGet).toHaveBeenCalledWith('/items/12/images')
+    expect(mockGet).toHaveBeenCalledWith('/public/items/12/images')
   })
 
   it('fetchItemImages falls back to an empty array when the request fails', async () => {
@@ -166,7 +173,7 @@ describe('api/index lightweight query behavior', () => {
       },
     ])
 
-    expect(mockGet).toHaveBeenCalledWith('/items/88/sources')
+    expect(mockGet).toHaveBeenCalledWith('/public/items/88/sources')
   })
 
   it('fetchItemSources falls back to an empty array when the request fails', async () => {
@@ -312,7 +319,7 @@ describe('api/index lightweight query behavior', () => {
       ],
     })
 
-    expect(mockGet).toHaveBeenCalledWith('/items/44/recipe-tree', {
+    expect(mockGet).toHaveBeenCalledWith('/public/items/44/recipe-tree', {
       params: {
         maxDepth: 4,
       },

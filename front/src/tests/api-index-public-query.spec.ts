@@ -32,6 +32,7 @@ vi.mock('axios', () => ({
 import {
   fetchCategories,
   fetchItemById,
+  fetchPublicItemDetailShell,
   fetchItems,
   fetchNpcs,
   fetchStatsOverview,
@@ -46,7 +47,7 @@ describe('api/index public query behavior', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
-  it('fetchItems preserves the current success response shape and query parameters', async () => {
+  it('fetchItems preserves the lightweight public list shape and query parameters', async () => {
     mockGet.mockResolvedValue({
       data: {
         success: true,
@@ -58,7 +59,12 @@ describe('api/index public query behavior', () => {
             category: 'Weapons',
             rare: 'white',
             description: 'basic starter weapon',
+            descriptionEn: 'basic starter weapon',
             tooltip: 'Quick swing',
+            tooltipEn: 'Quick swing',
+            sourceNpcsJson: '[{"npcId":1}]',
+            sourceNpcs: [{ npcId: 1 }],
+            originalUrl: 'https://terraria.wiki.gg/images/copper-shortsword.png',
             stackSize: 1,
           },
         ],
@@ -76,7 +82,7 @@ describe('api/index public query behavior', () => {
     const result = await fetchItems(2, 15, 'copper', 9, 'white', 'name', 'asc')
 
     expect(mockGet).toHaveBeenCalledWith(
-      '/items?page=2&limit=15&search=copper&categoryId=9&rarity=white&sortBy=name&sortDirection=asc'
+      '/public/items?page=2&limit=15&search=copper&categoryId=9&rarity=white&sortBy=name&sortDirection=asc'
     )
     expect(result).toMatchObject({
       success: true,
@@ -99,14 +105,17 @@ describe('api/index public query behavior', () => {
           categoryName: 'Weapons',
           rare: 'white',
           rarity: 'white',
-          descriptionZh: null,
-          descriptionEn: 'basic starter weapon',
-          tooltipZh: null,
-          tooltipEn: 'Quick swing',
           stack: 1,
         },
       ],
     })
+    expect(result.data[0]).not.toHaveProperty('sourceNpcs')
+    expect(result.data[0]).not.toHaveProperty('sourceNpcsJson')
+    expect(result.data[0]).not.toHaveProperty('originalUrl')
+    expect(result.data[0]).not.toHaveProperty('description')
+    expect(result.data[0]).not.toHaveProperty('descriptionEn')
+    expect(result.data[0]).not.toHaveProperty('tooltip')
+    expect(result.data[0]).not.toHaveProperty('tooltipEn')
   })
 
   it('fetchItems returns the current fallback shape when the request fails', async () => {
@@ -225,6 +234,52 @@ describe('api/index public query behavior', () => {
         stack: 1,
       },
     })
+  })
+
+  it('fetchPublicItemDetailShell uses the lightweight public detail endpoint', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          id: 77,
+          name: 'Night Edge',
+          name_zh: '姘稿涔嬪垉',
+          categoryName: 'Weapons',
+          rarity: 'orange',
+          description: 'A strong pre-hardmode sword',
+          tooltip: 'Forged from darkness',
+          stackSize: 1,
+          sourceNpcsJson: '[{"npcId":22}]',
+          originalUrl: 'https://terraria.wiki.gg/images/Night_Edge.png',
+        },
+        message: 'ok',
+        statusCode: 200,
+      },
+    })
+
+    const result = await fetchPublicItemDetailShell(77)
+
+    expect(mockGet).toHaveBeenCalledWith('/public/items/77')
+    expect(result).toMatchObject({
+      success: true,
+      message: 'ok',
+      statusCode: 200,
+      data: {
+        id: 77,
+        name: 'Night Edge',
+        nameZh: '姘稿涔嬪垉',
+        category: 'Weapons',
+        categoryName: 'Weapons',
+        rarity: 'orange',
+        rare: 'orange',
+        descriptionEn: 'A strong pre-hardmode sword',
+        tooltipEn: 'Forged from darkness',
+        stack: 1,
+      },
+    })
+    expect(result.data).not.toHaveProperty('sourceNpcsJson')
+    expect(result.data).not.toHaveProperty('sourceNpcs')
+    expect(result.data).not.toHaveProperty('originalUrl')
   })
 
   it('fetchItemById returns the current fallback shape when the request fails', async () => {

@@ -49,6 +49,20 @@
         )
     </sql>
 
+    <sql id="ManagedItemImageExpr">
+        CASE
+            WHEN NULLIF(TRIM(i.image), '') IS NOT NULL
+              AND LOWER(TRIM(i.image)) LIKE '%/terrapedia-images/%'
+              AND LOWER(TRIM(i.image)) NOT LIKE '%(demo)%'
+              AND LOWER(TRIM(i.image)) NOT LIKE '%28demo%29%'
+              AND LOWER(TRIM(i.image)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'
+              AND LOWER(TRIM(i.image)) NOT LIKE '%(placed)%'
+              AND LOWER(TRIM(i.image)) NOT LIKE '%28placed%29%'
+              AND LOWER(TRIM(i.image)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&amp;#/-]|$)'
+              THEN TRIM(i.image)
+        END
+    </sql>
+
     <resultMap id="BaseResultMap" type="com.terraria.skills.entity.Item">
         <id column="id" property="id"/>
         <result column="name" property="name"/>
@@ -232,6 +246,124 @@
         </choose>
     </select>
 
+    <select id="selectPublicItemsWithSearch" resultType="com.terraria.skills.dto.PublicItemListDTO">
+        SELECT
+            i.id,
+            i.name,
+            i.name_zh AS nameZh,
+            i.internal_name AS internalName,
+            <include refid="ManagedItemImageExpr"/> AS image,
+            i.category_id AS categoryId,
+            c.name AS categoryName,
+            i.rarity_id AS rarityId,
+            COALESCE(ir.display_name_zh, ir.display_name_en) AS rarity,
+            i.game_period_id AS gamePeriodId,
+            COALESCE(gp.display_name_zh, gp.display_name_en) AS gamePeriod,
+            i.is_stackable AS isStackable,
+            i.stack_size AS stackSize
+        FROM (
+            SELECT
+                i.id,
+                i.name,
+                i.name_zh,
+                i.internal_name,
+                i.image,
+                i.category_id,
+                i.rarity_id,
+                i.game_period_id,
+                i.is_stackable,
+                i.stack_size
+            FROM items i FORCE INDEX (idx_items_deleted)
+            <where>
+                i.deleted = 0
+                <if test="search != null and search != ''">
+                    AND (
+                        i.name LIKE CONCAT('%', #{search}, '%')
+                        OR i.name_zh LIKE CONCAT('%', #{search}, '%')
+                        OR i.internal_name LIKE CONCAT('%', #{search}, '%')
+                    )
+                </if>
+                <if test="categoryIds != null and categoryIds.size() > 0">
+                    AND (
+                        i.category_id IN
+                        <foreach collection="categoryIds" item="categoryIdItem" open="(" separator="," close=")">
+                            #{categoryIdItem}
+                        </foreach>
+                        OR EXISTS (
+                            SELECT 1
+                            FROM item_category_rel icr_filter
+                            WHERE icr_filter.item_id = i.id
+                              AND icr_filter.deleted = 0
+                              AND icr_filter.status = 1
+                              AND icr_filter.category_id IN
+                              <foreach collection="categoryIds" item="categoryIdItem" open="(" separator="," close=")">
+                                  #{categoryIdItem}
+                              </foreach>
+                        )
+                    )
+                </if>
+                <if test="(categoryIds == null or categoryIds.size() == 0) and categoryId != null">
+                    AND (
+                        i.category_id = #{categoryId}
+                        OR EXISTS (
+                            SELECT 1
+                            FROM item_category_rel icr_filter
+                            WHERE icr_filter.item_id = i.id
+                              AND icr_filter.deleted = 0
+                              AND icr_filter.status = 1
+                              AND icr_filter.category_id = #{categoryId}
+                        )
+                    )
+                </if>
+                <if test="rarityId != null">
+                    AND i.rarity_id = #{rarityId}
+                </if>
+                <if test="gamePeriodId != null">
+                    AND i.game_period_id = #{gamePeriodId}
+                </if>
+            </where>
+            <choose>
+                <when test="sortBy == 'name' and sortDirection == 'asc'">
+                    ORDER BY i.name ASC, i.id ASC
+                </when>
+                <when test="sortBy == 'name' and sortDirection == 'desc'">
+                    ORDER BY i.name DESC, i.id ASC
+                </when>
+                <when test="sortBy == 'rarityId' and sortDirection == 'asc'">
+                    ORDER BY i.rarity_id ASC, i.id ASC
+                </when>
+                <when test="sortBy == 'rarityId' and sortDirection == 'desc'">
+                    ORDER BY i.rarity_id DESC, i.id ASC
+                </when>
+                <otherwise>
+                    ORDER BY i.id ASC
+                </otherwise>
+            </choose>
+            LIMIT #{limit}
+            OFFSET #{offset}
+        ) i
+        LEFT JOIN category c ON c.id = i.category_id AND c.deleted = 0
+        LEFT JOIN item_rarity ir ON ir.id = i.rarity_id AND ir.deleted = 0 AND ir.status = 1
+        LEFT JOIN game_period gp ON gp.id = i.game_period_id AND gp.deleted = 0 AND gp.status = 1
+        <choose>
+            <when test="sortBy == 'name' and sortDirection == 'asc'">
+                ORDER BY i.name ASC, i.id ASC
+            </when>
+            <when test="sortBy == 'name' and sortDirection == 'desc'">
+                ORDER BY i.name DESC, i.id ASC
+            </when>
+            <when test="sortBy == 'rarityId' and sortDirection == 'asc'">
+                ORDER BY i.rarity_id ASC, i.id ASC
+            </when>
+            <when test="sortBy == 'rarityId' and sortDirection == 'desc'">
+                ORDER BY i.rarity_id DESC, i.id ASC
+            </when>
+            <otherwise>
+                ORDER BY i.id ASC
+            </otherwise>
+        </choose>
+    </select>
+
     <select id="countItemsByCategoryIds" resultType="com.terraria.skills.dto.CategoryItemCountDTO">
         SELECT i.category_id AS categoryId, COUNT(*) AS count
         FROM items i
@@ -347,6 +479,42 @@
           AND i.deleted = 0
     </select>
 
+    <select id="selectPublicItemDetailById" resultType="com.terraria.skills.dto.PublicItemDetailDTO">
+        SELECT
+            i.id,
+            i.name,
+            i.name_zh AS nameZh,
+            i.internal_name AS internalName,
+            <include refid="ManagedItemImageExpr"/> AS image,
+            i.category_id AS categoryId,
+            c.name AS categoryName,
+            i.description,
+            i.description_zh AS descriptionZh,
+            i.damage,
+            i.defense,
+            i.knockback AS knockback,
+            i.use_time AS useTime,
+            i.width AS width,
+            i.height AS height,
+            i.buy,
+            i.sell,
+            i.tooltip,
+            i.tooltip_zh AS tooltipZh,
+            i.rarity_id AS rarityId,
+            COALESCE(ir.display_name_zh, ir.display_name_en) AS rarity,
+            i.game_period_id AS gamePeriodId,
+            COALESCE(gp.display_name_zh, gp.display_name_en) AS gamePeriod,
+            i.game_model_id AS gameModelId,
+            i.is_stackable AS isStackable,
+            i.stack_size AS stackSize
+        FROM items i
+        LEFT JOIN category c ON c.id = i.category_id AND c.deleted = 0
+        LEFT JOIN item_rarity ir ON ir.id = i.rarity_id AND ir.deleted = 0 AND ir.status = 1
+        LEFT JOIN game_period gp ON gp.id = i.game_period_id AND gp.deleted = 0 AND gp.status = 1
+        WHERE i.id = #{id}
+          AND i.deleted = 0
+    </select>
+
     <select id="selectItemSuggestions" resultType="com.terraria.skills.dto.ItemDTO">
         SELECT
             i.id,
@@ -354,6 +522,44 @@
             i.name_zh AS nameZh,
             i.internal_name AS internalName,
             <include refid="PreferredItemImageExpr"/> AS image,
+            i.category_id AS categoryId,
+            c.name AS categoryName,
+            i.rarity_id AS rarityId,
+            COALESCE(ir.display_name_zh, ir.display_name_en) AS rarity
+        FROM items i
+        LEFT JOIN category c ON c.id = i.category_id AND c.deleted = 0
+        LEFT JOIN item_rarity ir ON ir.id = i.rarity_id AND ir.deleted = 0 AND ir.status = 1
+        WHERE i.deleted = 0
+          AND (
+            i.name LIKE CONCAT('%', #{keyword}, '%')
+            OR i.name_zh LIKE CONCAT('%', #{keyword}, '%')
+            OR REPLACE(REPLACE(COALESCE(i.name_zh, ''), ' ', ''), '　', '') LIKE CONCAT('%', REPLACE(REPLACE(#{keyword}, ' ', ''), '　', ''), '%')
+            OR i.internal_name LIKE CONCAT('%', #{keyword}, '%')
+          )
+        ORDER BY
+            CASE
+                WHEN i.name_zh = #{keyword} THEN 0
+                WHEN i.name = #{keyword} THEN 0
+                WHEN i.internal_name = #{keyword} THEN 1
+                WHEN REPLACE(REPLACE(COALESCE(i.name_zh, ''), ' ', ''), '　', '') = REPLACE(REPLACE(#{keyword}, ' ', ''), '　', '') THEN 1
+                WHEN i.name_zh LIKE CONCAT(#{keyword}, '%') THEN 2
+                WHEN REPLACE(REPLACE(COALESCE(i.name_zh, ''), ' ', ''), '　', '') LIKE CONCAT(REPLACE(REPLACE(#{keyword}, ' ', ''), '　', ''), '%') THEN 3
+                WHEN i.name LIKE CONCAT(#{keyword}, '%') THEN 4
+                WHEN i.internal_name LIKE CONCAT(#{keyword}, '%') THEN 5
+                ELSE 6
+            END ASC,
+            CHAR_LENGTH(COALESCE(i.name_zh, i.name)) ASC,
+            i.id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectPublicItemSuggestions" resultType="com.terraria.skills.dto.PublicItemSuggestionDTO">
+        SELECT
+            i.id,
+            i.name,
+            i.name_zh AS nameZh,
+            i.internal_name AS internalName,
+            <include refid="ManagedItemImageExpr"/> AS image,
             i.category_id AS categoryId,
             c.name AS categoryName,
             i.rarity_id AS rarityId,

@@ -11,6 +11,8 @@ import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.service.ItemImportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +41,16 @@ public class ItemImportServiceImpl implements ItemImportService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "item:public:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:detail", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:suggestions", allEntries = true),
+        @CacheEvict(cacheNames = "item:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:detail", allEntries = true),
+        @CacheEvict(cacheNames = "item:suggestions", allEntries = true),
+        @CacheEvict(cacheNames = "item:aggregate", allEntries = true),
+        @CacheEvict(cacheNames = "stats:overview", allEntries = true)
+    })
     public ItemImportResultDTO importItems(ItemImportRequestDTO request) {
         ItemImportResultDTO result = new ItemImportResultDTO();
         if (request == null) {

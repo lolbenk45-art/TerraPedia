@@ -35,7 +35,7 @@ const api = createHttpClient({
   baseURL: '/api',
 })
 
-const ENABLE_P0_AGGREGATE = import.meta.env.VITE_ENABLE_P0_AGGREGATE !== 'false'
+const ENABLE_P0_AGGREGATE = import.meta.env.VITE_ENABLE_P0_AGGREGATE === 'true'
 
 const parseJsonArray = (value: unknown): Record<string, unknown>[] => {
   if (Array.isArray(value)) {
@@ -81,6 +81,42 @@ const parseTraceableNpcSummaries = (directValue: unknown, jsonValue: unknown) =>
   return (directRows.length ? directRows : parseJsonArray(jsonValue)).map(normalizeTraceableNpcSummary)
 }
 
+const normalizeItemListItem = (item: Item): Item => {
+  const categoryName = item.categoryName ?? item.category
+  const rarity = item.rarity ?? item.rare
+  const image = item.image ?? (item as any).imageUrl ?? (item as any).image_url ?? null
+  const internalName = item.internalName ?? (item as any).internal_name
+  const categoryId = item.categoryId ?? (item as any).category_id
+  const rarityId = item.rarityId ?? (item as any).rarity_id
+  const gamePeriodId = item.gamePeriodId ?? (item as any).game_period_id
+  const isStackable = item.isStackable ?? (item as any).is_stackable
+  const stackSize = item.stackSize ?? (item as any).stack_size
+  const stack = item.stack ?? stackSize
+
+  const normalized = {
+    id: item.id,
+    name: item.name,
+    nameZh: item.nameZh ?? (item as any).name_zh ?? null,
+    nameEn: (item as any).nameEn ?? item.name ?? null,
+    image,
+    imageUrl: image,
+    categoryName,
+    category: categoryName,
+    rarity,
+    rare: rarity,
+  } as Item & { imageUrl: string | null }
+
+  if (internalName != null) normalized.internalName = internalName
+  if (categoryId != null) normalized.categoryId = categoryId
+  if (rarityId != null) normalized.rarityId = rarityId
+  if (gamePeriodId != null) normalized.gamePeriodId = gamePeriodId
+  if (isStackable != null) normalized.isStackable = isStackable
+  if (stackSize != null) normalized.stackSize = stackSize
+  if (stack != null) normalized.stack = stack
+
+  return normalized
+}
+
 const normalizeItem = (item: Item): Item => {
   const categoryName = item.categoryName ?? item.category
   const rarity = item.rarity ?? item.rare
@@ -111,15 +147,26 @@ const normalizeCategory = (category: Category): Category => ({
   children: category.children?.map(normalizeCategory),
 })
 
-const normalizeImageRelation = (image: ItemImageRelation): ItemImageRelation => ({
-  ...image,
-  itemId: image.itemId ?? undefined,
-  imageUrl: image.imageUrl ?? image.cachedUrl ?? image.originalUrl ?? null,
-  cachedUrl: image.cachedUrl ?? image.imageUrl ?? image.originalUrl ?? null,
-  originalUrl: image.originalUrl ?? image.cachedUrl ?? image.imageUrl ?? null,
-  isPrimary: image.isPrimary ?? false,
-  sortOrder: image.sortOrder ?? 0,
-})
+const normalizeImageRelation = (image: ItemImageRelation): ItemImageRelation => {
+  const publicImage = { ...(image as ItemImageRelation & Record<string, unknown>) }
+  delete publicImage.cachedUrl
+  delete publicImage.cached_url
+  delete publicImage.originalUrl
+  delete publicImage.original_url
+  delete publicImage.provider
+  delete publicImage.sourceFileTitle
+  delete publicImage.source_file_title
+  delete publicImage.sourcePage
+  delete publicImage.source_page
+
+  return {
+    ...publicImage,
+    itemId: image.itemId ?? undefined,
+    imageUrl: image.imageUrl ?? null,
+    isPrimary: image.isPrimary ?? false,
+    sortOrder: image.sortOrder ?? 0,
+  }
+}
 
 const normalizeSourceRelation = (source: ItemSourceRelation): ItemSourceRelation => ({
   ...source,
@@ -168,14 +215,22 @@ const normalizeRecipeTreeVariant = (variant: ItemRecipeTreeVariant): ItemRecipeT
   roots: (variant.roots || []).map(normalizeRecipeTreeNode),
 })
 
-export const normalizeItemAggregateData = (payload: ItemAggregateData): ItemAggregateData => ({
-  item: normalizeItem(payload.item),
-  images: (payload.images || []).map(normalizeImageRelation),
-  sources: (payload.sources || []).map(normalizeSourceRelation),
-  recipes: (payload.recipes || []).map(normalizeRecipeRelation),
-  moduleStatus: payload.moduleStatus || {},
-  aggregatedAt: payload.aggregatedAt,
-})
+export const normalizeItemAggregateData = (payload: ItemAggregateData): ItemAggregateData => {
+  const {
+    sourceNpcsJson: _sourceNpcsJson,
+    sourceNpcs: _sourceNpcs,
+    ...publicItem
+  } = normalizeItem(payload.item)
+
+  return {
+    item: publicItem,
+    images: (payload.images || []).map(normalizeImageRelation),
+    sources: (payload.sources || []).map(normalizeSourceRelation),
+    recipes: (payload.recipes || []).map(normalizeRecipeRelation),
+    moduleStatus: payload.moduleStatus || {},
+    aggregatedAt: payload.aggregatedAt,
+  }
+}
 
 export const fetchItems = async (
   page = 1,
@@ -213,10 +268,10 @@ export const fetchItems = async (
 
   return requestApiResponseWithFallback<Item[]>({
     request: async () => {
-      const { data } = await api.get<ApiResponse<Item[]>>(`/items?${params}`)
+      const { data } = await api.get<ApiResponse<Item[]>>(`/public/items?${params}`)
       return {
         success: data.success,
-        data: (data.data || []).map(normalizeItem),
+        data: (data.data || []).map(normalizeItemListItem),
         message: data.message,
         statusCode: data.statusCode,
         pagination: data.pagination,
@@ -275,14 +330,14 @@ export const fetchItemSuggestions = async (keyword: string, limit = 8): Promise<
 
   return requestWithFallback<ItemSuggestion[]>({
     request: async () => {
-      const { data } = await api.get<ApiResponse<ItemSuggestion[]>>('/items/suggestions', {
+      const { data } = await api.get<ApiResponse<ItemSuggestion[]>>('/public/items/suggestions', {
         params: {
           keyword: normalizedKeyword,
           limit,
         },
       })
 
-      return (data.data || []).map(item => normalizeItem(item as Item))
+      return (data.data || []).map(item => normalizeItemListItem(item as Item) as ItemSuggestion)
     },
     fallbackValue: [],
     errorMessage: 'Error fetching item suggestions:',
@@ -313,6 +368,28 @@ export const fetchItemById = async (id: number): Promise<ApiResponse<Item>> => {
       return {
         ...data,
         data: normalizeItem(data.data),
+      }
+    },
+    fallbackData: {} as Item,
+    fallbackMessage: 'Failed to fetch item detail',
+    statusCode: 500,
+  })
+}
+
+export const fetchPublicItemDetailShell = async (id: number): Promise<ApiResponse<Item>> => {
+  return requestApiResponseWithFallback<Item>({
+    request: async () => {
+      const { data } = await api.get<ApiResponse<Item>>(`/public/items/${id}`)
+      const normalized = normalizeItem(data.data)
+      const {
+        sourceNpcsJson: _sourceNpcsJson,
+        sourceNpcs: _sourceNpcs,
+        ...publicItem
+      } = normalized as Item & { originalUrl?: unknown }
+      delete (publicItem as any).originalUrl
+      return {
+        ...data,
+        data: publicItem,
       }
     },
     fallbackData: {} as Item,
@@ -406,7 +483,7 @@ export const fetchNpcAggregateById = async (
 export const fetchItemImages = async (id: number): Promise<ItemImageRelation[]> => {
   return requestWithFallback<ItemImageRelation[]>({
     request: async () => {
-      const { data } = await api.get<ApiResponse<ItemImageRelation[]>>(`/items/${id}/images`)
+      const { data } = await api.get<ApiResponse<ItemImageRelation[]>>(`/public/items/${id}/images`)
       return (data.data || []).map(normalizeImageRelation)
     },
     fallbackValue: [],
@@ -417,7 +494,7 @@ export const fetchItemImages = async (id: number): Promise<ItemImageRelation[]> 
 export const fetchItemSources = async (id: number): Promise<ItemSourceRelation[]> => {
   return requestWithFallback<ItemSourceRelation[]>({
     request: async () => {
-      const { data } = await api.get<ApiResponse<ItemSourceRelation[]>>(`/items/${id}/sources`)
+      const { data } = await api.get<ApiResponse<ItemSourceRelation[]>>(`/public/items/${id}/sources`)
       return (data.data || []).map(normalizeSourceRelation)
     },
     fallbackValue: [],
@@ -439,7 +516,7 @@ export const fetchItemRecipes = async (id: number): Promise<ItemRecipeRelation[]
 export const fetchItemRecipeTree = async (id: number, maxDepth = 3): Promise<ItemRecipeTreeResponse | null> => {
   return requestWithFallback<ItemRecipeTreeResponse | null>({
     request: async () => {
-      const { data } = await api.get<ApiResponse<ItemRecipeTreeResponse>>(`/items/${id}/recipe-tree`, {
+      const { data } = await api.get<ApiResponse<ItemRecipeTreeResponse>>(`/public/items/${id}/recipe-tree`, {
         params: { maxDepth },
       })
 
@@ -460,10 +537,10 @@ export const fetchItemRecipeTree = async (id: number, maxDepth = 3): Promise<Ite
 
 const fetchItemAggregateLegacy = async (id: number): Promise<ItemAggregateResponse> => {
   const [itemRes, images, sources, recipes] = await Promise.all([
-    fetchItemById(id),
+    fetchPublicItemDetailShell(id),
     fetchItemImages(id),
     fetchItemSources(id),
-    fetchItemRecipes(id),
+    fetchItemRecipeTree(id, 3),
   ])
 
   if (!itemRes.success || !itemRes.data?.id) {
@@ -488,14 +565,14 @@ const fetchItemAggregateLegacy = async (id: number): Promise<ItemAggregateRespon
   return {
     success: true,
     data: normalizeItemAggregateData({
-      item: itemRes.data,
+      item: itemRes.data as Item,
       images,
       sources,
-      recipes,
+      recipes: [],
       moduleStatus: {
         images: images.length > 0 ? 'ok' : 'empty',
         sources: sources.length > 0 ? 'ok' : 'empty',
-        recipes: recipes.length > 0 ? 'ok' : 'empty',
+        recipes: recipes?.variants?.length ? 'ok' : 'empty',
       },
     }),
     message: 'ok',

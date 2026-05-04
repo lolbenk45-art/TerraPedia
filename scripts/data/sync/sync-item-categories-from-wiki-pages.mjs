@@ -4,6 +4,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import {
+  clearPublicItemCaches,
+  resolveRedisConfigFromEnv,
+  skippedPublicItemCacheResult,
+} from '../lib/public-item-cache.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -67,6 +72,7 @@ export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice
     password: process.env.TERRAPEDIA_DB_PASSWORD || 'root',
     database: process.env.TERRAPEDIA_DB_NAME || 'terria_v1_local',
   };
+  const redis = dependencies.redis || resolveRedisConfigFromEnv(rawArgs);
 
   if (!dependencies.wikiPagesByInternal && !fs.existsSync(itemPagesDir)) {
     throw new Error(`Item pages directory not found: ${itemPagesDir}`);
@@ -210,6 +216,10 @@ export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice
       await connection.commit();
     }
 
+    const publicItemCache = apply && updated > 0
+      ? await clearPublicItemCaches(redis)
+      : skippedPublicItemCacheResult(apply ? 'no_public_item_rows_changed' : 'dry_run');
+
     const report = {
       apply,
       db,
@@ -221,6 +231,7 @@ export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice
       skippedInactive,
       skippedNoWiki,
       skippedNoCategory,
+      publicItemCache,
       samples,
     };
 

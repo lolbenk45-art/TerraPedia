@@ -36,7 +36,16 @@ class ItemServiceCachingTest {
         itemMapperState.reset();
         context = new AnnotationConfigApplicationContext();
         context.register(CachingConfig.class);
-        context.registerBean(CacheManager.class, () -> new ConcurrentMapCacheManager("item:list", "item:detail", "item:suggestions", "item:aggregate", "stats:overview"));
+        context.registerBean(CacheManager.class, () -> new ConcurrentMapCacheManager(
+            "item:list",
+            "item:public:list",
+            "item:public:detail",
+            "item:public:suggestions",
+            "item:detail",
+            "item:suggestions",
+            "item:aggregate",
+            "stats:overview"
+        ));
         context.registerBean(ItemMapper.class, () -> itemMapperProxy(itemMapperState));
         context.registerBean(ItemCategoryRelMapper.class, this::itemCategoryRelMapperProxy);
         context.registerBean(CategoryManagementService.class, () -> categoryManagementServiceProxy(categoryState));

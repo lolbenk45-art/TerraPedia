@@ -125,6 +125,9 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Caching(evict = {
         @CacheEvict(cacheNames = "item:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:detail", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:suggestions", allEntries = true),
         @CacheEvict(cacheNames = "item:suggestions", allEntries = true),
         @CacheEvict(cacheNames = "item:aggregate", allEntries = true),
         @CacheEvict(cacheNames = "stats:overview", allEntries = true)
@@ -151,6 +154,9 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Caching(evict = {
         @CacheEvict(cacheNames = "item:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:detail", key = "#id"),
+        @CacheEvict(cacheNames = "item:public:suggestions", allEntries = true),
         @CacheEvict(cacheNames = "item:suggestions", allEntries = true),
         @CacheEvict(cacheNames = "item:aggregate", allEntries = true),
         @CacheEvict(cacheNames = "item:detail", key = "#id"),
@@ -179,6 +185,9 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Caching(evict = {
         @CacheEvict(cacheNames = "item:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:detail", key = "#id"),
+        @CacheEvict(cacheNames = "item:public:suggestions", allEntries = true),
         @CacheEvict(cacheNames = "item:suggestions", allEntries = true),
         @CacheEvict(cacheNames = "item:aggregate", allEntries = true),
         @CacheEvict(cacheNames = "item:detail", key = "#id"),

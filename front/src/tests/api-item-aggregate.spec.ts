@@ -163,7 +163,7 @@ describe('createItemAggregateFetcher', () => {
 })
 
 describe('normalizeItemAggregateData', () => {
-  it('parses item source NPC JSON while preserving raw JSON and trace fields', () => {
+  it('drops item source NPC provenance from normalized public aggregate data', () => {
     const rawSourceNpcsJson = JSON.stringify([
       {
         npcId: 17,
@@ -188,22 +188,11 @@ describe('normalizeItemAggregateData', () => {
       recipes: [],
     } as any)
 
-    expect(result.item.sourceNpcsJson).toBe(rawSourceNpcsJson)
-    expect(result.item.sourceNpcs).toEqual([
-      expect.objectContaining({
-        npcId: 17,
-        npcName: 'Guide',
-        npcNameZh: 'Guide CN',
-        relationType: 'source',
-        sourceFactKey: 'npc:guide',
-        sourceProvider: 'terraria.wiki.gg',
-        sourcePage: 'Guide',
-        sourceRevisionTimestamp: '2026-04-12T00:00:00Z',
-      }),
-    ])
+    expect(result.item).not.toHaveProperty('sourceNpcsJson')
+    expect(result.item).not.toHaveProperty('sourceNpcs')
   })
 
-  it('ignores invalid direct source NPC arrays and falls back to JSON payload', () => {
+  it('drops direct source NPC arrays from normalized public aggregate data', () => {
     const rawSourceNpcsJson = JSON.stringify([
       {
         npcId: 17,
@@ -224,11 +213,7 @@ describe('normalizeItemAggregateData', () => {
       recipes: [],
     } as any)
 
-    expect(result.item.sourceNpcs).toEqual([
-      expect.objectContaining({
-        npcId: 17,
-        sourceFactKey: 'npc:guide',
-      }),
-    ])
+    expect(result.item).not.toHaveProperty('sourceNpcs')
+    expect(result.item).not.toHaveProperty('sourceNpcsJson')
   })
 })

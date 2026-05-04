@@ -9,6 +9,8 @@ import com.terraria.skills.mapper.ItemRarityMapper;
 import com.terraria.skills.service.ItemRarityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +48,13 @@ public class ItemRarityServiceImpl implements ItemRarityService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "item:public:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:detail", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:suggestions", allEntries = true),
+        @CacheEvict(cacheNames = "item:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:aggregate", allEntries = true)
+    })
     public ItemRarityDTO create(ItemRarityDTO dto) {
         validate(dto, true);
         if (itemRarityMapper.selectById(dto.getId()) != null) {
@@ -66,6 +75,13 @@ public class ItemRarityServiceImpl implements ItemRarityService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "item:public:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:detail", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:suggestions", allEntries = true),
+        @CacheEvict(cacheNames = "item:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:aggregate", allEntries = true)
+    })
     public ItemRarityDTO update(Long id, ItemRarityDTO dto) {
         validate(dto, false);
         ItemRarity entity = itemRarityMapper.selectById(id);
@@ -87,6 +103,13 @@ public class ItemRarityServiceImpl implements ItemRarityService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "item:public:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:detail", allEntries = true),
+        @CacheEvict(cacheNames = "item:public:suggestions", allEntries = true),
+        @CacheEvict(cacheNames = "item:list", allEntries = true),
+        @CacheEvict(cacheNames = "item:aggregate", allEntries = true)
+    })
     public void delete(Long id) {
         ItemRarity entity = itemRarityMapper.selectById(id);
         if (entity == null || Integer.valueOf(1).equals(entity.getDeleted())) {
