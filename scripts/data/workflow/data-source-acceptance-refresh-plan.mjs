@@ -29,6 +29,7 @@ export function buildDataSourceAcceptanceRefreshPlan({
       confirmationReason: confirmationReason(panel),
       blockedReason: blockedReason(panel),
       executeMode: 'manual',
+      executionPolicy: 'plan-only',
     }));
   const blockingReasons = actions
     .filter((action) => action.status === 'blocked')
@@ -59,6 +60,7 @@ function summarizeActions(actions) {
     unsafeActionCount: actions.filter((action) => action.commandRisk === 'unsafe').length,
     databaseRequiredCount: actions.filter((action) => action.requiresDatabase === true).length,
     manualOnlyCount: actions.filter((action) => action.executeMode === 'manual').length,
+    planOnlyCount: actions.filter((action) => action.executionPolicy === 'plan-only').length,
   };
 }
 

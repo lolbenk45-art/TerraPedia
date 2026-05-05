@@ -82,6 +82,7 @@ test('buildDataSourceAcceptanceRefreshPlan converts stale missing and unknown ev
     unsafeActionCount: 0,
     databaseRequiredCount: 2,
     manualOnlyCount: 4,
+    planOnlyCount: 4,
   });
   assert.deepEqual(plan.blockingReasons, []);
   assert.deepEqual(plan.confirmationReasons, [
@@ -96,6 +97,7 @@ test('buildDataSourceAcceptanceRefreshPlan converts stale missing and unknown ev
     'crawlerMonitor',
   ]);
   assert.ok(plan.actions.every((action) => action.executeMode === 'manual'));
+  assert.ok(plan.actions.every((action) => action.executionPolicy === 'plan-only'));
   assert.ok(plan.actions.every((action) => action.writesDatabase === false));
   assert.deepEqual(plan.actions.map((action) => action.status), [
     'needs_confirmation',
@@ -148,6 +150,7 @@ test('buildDataSourceAcceptanceRefreshPlan blocks unsafe commands and never mark
   assert.equal(plan.overallStatus, 'blocked');
   assert.deepEqual(plan.blockingReasons, ['unsafePanel generator command is unsafe']);
   assert.equal(plan.actions[0].executeMode, 'manual');
+  assert.equal(plan.actions[0].executionPolicy, 'plan-only');
   assert.equal(plan.actions[0].commandRisk, 'unsafe');
   assert.equal(plan.actions[0].status, 'blocked');
 });
@@ -218,6 +221,7 @@ test('buildDataSourceAcceptanceRefreshPlan blocks stale evidence without a refre
   assert.deepEqual(plan.blockingReasons, ['missingCommandPanel evidence command is missing']);
   assert.equal(plan.summary.blockedCount, 1);
   assert.equal(plan.actions[0].executeMode, 'manual');
+  assert.equal(plan.actions[0].executionPolicy, 'plan-only');
   assert.equal(plan.actions[0].status, 'blocked');
 });
 
@@ -267,6 +271,7 @@ test('CLI reads an audit JSON file and prints a refresh plan without executing a
     assert.equal(parsed.auditGeneratedAt, '2026-05-03T11:59:00Z');
     assert.ok(Array.isArray(parsed.actions));
     assert.ok(parsed.actions.every((action) => action.executeMode === 'manual'));
+    assert.ok(parsed.actions.every((action) => action.executionPolicy === 'plan-only'));
     assert.deepEqual(parsed.actions.map((action) => action.panelId), ['sourceGroupAudit']);
   } finally {
     await fsPromises.rm(tempDir, { recursive: true, force: true });
