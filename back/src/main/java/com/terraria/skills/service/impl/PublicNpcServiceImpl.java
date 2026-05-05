@@ -88,6 +88,11 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             return prototypeLoot;
         }
 
+        List<NpcLootEntryDTO> sameNameLoot = loadSameNameStructuredLoot(npcId);
+        if (!sameNameLoot.isEmpty()) {
+            return sameNameLoot;
+        }
+
         return loadDerivedLoot(gameId, npcName);
     }
 
@@ -160,6 +165,42 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             """,
             npcId
         ).stream().map(this::toLootEntryDto).toList();
+    }
+
+    private List<NpcLootEntryDTO> loadSameNameStructuredLoot(Long npcId) {
+        Long sourceNpcId = resolveSameNameStructuredLootSourceNpcId(npcId);
+        if (sourceNpcId == null) {
+            return List.of();
+        }
+        return loadStructuredLootByNpcId(sourceNpcId);
+    }
+
+    private Long resolveSameNameStructuredLootSourceNpcId(Long npcId) {
+        if (npcId == null) {
+            return null;
+        }
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            """
+            SELECT canonical_npc.id AS sourceNpcId
+            FROM npcs current_npc
+            JOIN npcs canonical_npc ON canonical_npc.deleted = 0
+              AND LOWER(TRIM(canonical_npc.name)) = LOWER(TRIM(current_npc.name))
+              AND canonical_npc.id <> current_npc.id
+            JOIN npc_loot_entries nle ON nle.npc_id = canonical_npc.id AND nle.deleted = 0
+            WHERE current_npc.id = ?
+              AND current_npc.deleted = 0
+            GROUP BY canonical_npc.id, canonical_npc.game_id, canonical_npc.internal_name, canonical_npc.name
+            ORDER BY CASE WHEN canonical_npc.game_id IS NULL OR canonical_npc.game_id <= 0 THEN 1 ELSE 0 END,
+              canonical_npc.game_id ASC,
+              canonical_npc.id ASC
+            LIMIT 1
+            """,
+            npcId
+        );
+        if (rows.isEmpty()) {
+            return null;
+        }
+        return toLong(rows.get(0).get("sourceNpcId"));
     }
 
     @Override

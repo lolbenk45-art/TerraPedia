@@ -255,13 +255,9 @@ public class AdminNpcController {
         Map<Long, Category> categoriesById = loadCategoriesById(npcs.stream().map(Npc::getCategoryId).filter(Objects::nonNull).toList());
         Map<Long, BossGroup> bossGroupsById = loadBossGroupsById(npcs.stream().map(Npc::getBossGroupId).filter(Objects::nonNull).toList());
         Map<Long, Integer> lootCountsByNpcId = countNpcRelationsByIds("npc_loot_entries", npcs.stream().map(Npc::getId).filter(Objects::nonNull).toList());
-        Map<Long, NpcLootInheritance> lootInheritanceBySourceId = loadNpcLootInheritanceBySourceIds(
-            npcs.stream()
-                .filter(npc -> lootCountsByNpcId.getOrDefault(npc.getId(), 0) <= 0)
-                .map(npc -> resolveLootInheritanceSourceId(npc, safeGetOrDefault(supplementsByGameId, npc.getGameId(), Map.of())))
-                .filter(Objects::nonNull)
-                .toList()
-        );
+        Map<Long, NpcLootInheritance> lootInheritanceByNpcId = loadNpcLootInheritanceByNpcIds(npcs.stream()
+            .filter(npc -> lootCountsByNpcId.getOrDefault(npc.getId(), 0) <= 0)
+            .toList(), supplementsByGameId);
         Map<Long, Integer> buffCountsByNpcId = countNpcRelationsByIds("npc_buff_relations", npcs.stream().map(Npc::getId).filter(Objects::nonNull).toList());
         Map<Long, Integer> shopCountsByNpcId = countNpcRelationsByIds("npc_shop_entries", npcs.stream().map(Npc::getId).filter(Objects::nonNull).toList());
         Map<Long, Integer> derivedBySourceId = countNpcDerivedLootEntriesBySourceIds(npcs.stream().map(Npc::getGameId).filter(Objects::nonNull).toList());
@@ -280,7 +276,7 @@ public class AdminNpcController {
                 safeGet(categoriesById, npc.getCategoryId()),
                 safeGet(bossGroupsById, npc.getBossGroupId()),
                 lootCountsByNpcId.getOrDefault(npc.getId(), 0),
-                safeGet(lootInheritanceBySourceId, resolveLootInheritanceSourceId(npc, safeGetOrDefault(supplementsByGameId, npc.getGameId(), Map.of()))),
+                safeGet(lootInheritanceByNpcId, npc.getId()),
                 resolveDerivedLootCount(npc, derivedBySourceId, derivedByName),
                 buffCountsByNpcId.getOrDefault(npc.getId(), 0),
                 shopCountsByNpcId.getOrDefault(npc.getId(), 0)
@@ -341,7 +337,7 @@ public class AdminNpcController {
         payload.put("shopItemsJson", npc.getShopItemsJson());
         payload.put("sourceItemsJson", npc.getSourceItemsJson());
         int lootEntryCount = countNpcRelations("npc_loot_entries", npc.getId());
-        NpcLootInheritance lootInheritance = lootEntryCount > 0 ? null : loadNpcLootInheritance(resolveLootInheritanceSourceId(npc, supplement));
+        NpcLootInheritance lootInheritance = lootEntryCount > 0 ? null : loadNpcLootInheritance(npc, supplement);
         payload.put("lootEntryCount", lootEntryCount);
         putLootInheritance(payload, lootInheritance);
         payload.put("derivedLootEntryCount", countNpcDerivedLootEntries(npc.getGameId(), npc.getName()));
@@ -1135,6 +1131,43 @@ public class AdminNpcController {
         return result;
     }
 
+    private Map<Long, NpcLootInheritance> loadNpcLootInheritanceByNpcIds(List<Npc> npcs, Map<Long, Map<String, Object>> supplementsByGameId) {
+        if (npcs == null || npcs.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<Long, NpcLootInheritance> result = new LinkedHashMap<>();
+        Map<Long, Npc> npcById = npcs.stream()
+            .filter(npc -> npc.getId() != null)
+            .collect(Collectors.toMap(Npc::getId, Function.identity(), (left, right) -> left, LinkedHashMap::new));
+        Map<Long, Long> sourceIdByNpcId = new LinkedHashMap<>();
+        for (Npc npc : npcs) {
+            Long npcId = npc.getId();
+            if (npcId == null) {
+                continue;
+            }
+            Long sourceId = resolveLootInheritanceSourceId(npc, safeGetOrDefault(supplementsByGameId, npc.getGameId(), Map.of()));
+            if (sourceId != null) {
+                sourceIdByNpcId.put(npcId, sourceId);
+            }
+        }
+
+        Map<Long, NpcLootInheritance> prototypeBySourceId = loadNpcLootInheritanceBySourceIds(new ArrayList<>(sourceIdByNpcId.values()));
+        for (Map.Entry<Long, Long> entry : sourceIdByNpcId.entrySet()) {
+            NpcLootInheritance inheritance = safeGet(prototypeBySourceId, entry.getValue());
+            if (inheritance != null) {
+                result.put(entry.getKey(), inheritance);
+            }
+        }
+
+        List<Npc> withoutPrototypeLoot = npcById.entrySet().stream()
+            .filter(entry -> !result.containsKey(entry.getKey()))
+            .map(Map.Entry::getValue)
+            .toList();
+        result.putAll(loadSameNameLootInheritanceByNpcs(withoutPrototypeLoot));
+        return result;
+    }
+
     private Map<Long, NpcLootInheritance> loadNpcLootInheritanceBySourceIds(List<Long> sourceIds) {
         if (jdbcTemplate == null || sourceIds == null || sourceIds.isEmpty()) {
             return Map.of();
@@ -1183,11 +1216,73 @@ public class AdminNpcController {
         return result;
     }
 
-    private NpcLootInheritance loadNpcLootInheritance(Long sourceId) {
-        if (sourceId == null) {
+    private NpcLootInheritance loadNpcLootInheritance(Npc npc, Map<String, Object> supplement) {
+        if (npc == null) {
             return null;
         }
-        return safeGet(loadNpcLootInheritanceBySourceIds(List.of(sourceId)), sourceId);
+        Long sourceId = resolveLootInheritanceSourceId(npc, supplement);
+        if (sourceId != null) {
+            NpcLootInheritance prototypeInheritance = safeGet(loadNpcLootInheritanceBySourceIds(List.of(sourceId)), sourceId);
+            if (prototypeInheritance != null) {
+                return prototypeInheritance;
+            }
+        }
+        return safeGet(loadSameNameLootInheritanceByNpcs(List.of(npc)), npc.getId());
+    }
+
+    private Map<Long, NpcLootInheritance> loadSameNameLootInheritanceByNpcs(List<Npc> npcs) {
+        if (jdbcTemplate == null || npcs == null || npcs.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> npcIds = npcs.stream().map(Npc::getId).filter(Objects::nonNull).distinct().toList();
+        if (npcIds.isEmpty()) {
+            return Map.of();
+        }
+
+        String placeholders = String.join(",", Collections.nCopies(npcIds.size(), "?"));
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            """
+            SELECT
+              current_npc.id AS variantNpcId,
+              canonical_npc.game_id AS sourceId,
+              canonical_npc.id AS sourceNpcId,
+              canonical_npc.internal_name AS sourceInternalName,
+              canonical_npc.name AS sourceName,
+              canonical_npc.name_zh AS sourceNameZh,
+              COUNT(nle.id) AS total
+            FROM npcs current_npc
+            JOIN npcs canonical_npc ON canonical_npc.deleted = 0
+              AND LOWER(TRIM(canonical_npc.name)) = LOWER(TRIM(current_npc.name))
+              AND canonical_npc.id <> current_npc.id
+            JOIN npc_loot_entries nle ON nle.npc_id = canonical_npc.id AND nle.deleted = 0
+            WHERE current_npc.deleted = 0
+              AND current_npc.id IN (%s)
+            GROUP BY current_npc.id, canonical_npc.game_id, canonical_npc.id, canonical_npc.internal_name, canonical_npc.name, canonical_npc.name_zh
+            ORDER BY CASE WHEN canonical_npc.game_id IS NULL OR canonical_npc.game_id <= 0 THEN 1 ELSE 0 END,
+              canonical_npc.game_id ASC,
+              canonical_npc.id ASC
+            """.formatted(placeholders),
+            npcIds.toArray()
+        );
+
+        Map<Long, NpcLootInheritance> result = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            Long variantNpcId = toLong(row.get("variantNpcId"));
+            Long sourceNpcId = toLong(row.get("sourceNpcId"));
+            Integer total = toInteger(row.get("total"));
+            if (variantNpcId != null && sourceNpcId != null && total != null && total > 0 && !result.containsKey(variantNpcId)) {
+                result.put(variantNpcId, new NpcLootInheritance(
+                    toLong(row.get("sourceId")),
+                    sourceNpcId,
+                    trimToNull(row.get("sourceInternalName")),
+                    trimToNull(row.get("sourceName")),
+                    trimToNull(row.get("sourceNameZh")),
+                    total
+                ));
+            }
+        }
+        return result;
     }
 
     private Map<Long, Integer> countNpcDerivedLootEntriesBySourceIds(List<Long> npcSourceIds) {

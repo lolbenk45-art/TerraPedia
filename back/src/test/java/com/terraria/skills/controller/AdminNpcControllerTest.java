@@ -84,6 +84,7 @@ class AdminNpcControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(adminNpcController)
             .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
             .build();
+        lenient().when(jdbcTemplate.queryForList(contains("canonical_npc.name"), any(Object[].class))).thenReturn(List.of());
     }
 
     @Test
@@ -331,6 +332,64 @@ class AdminNpcControllerTest {
             .andExpect(jsonPath("$.data[0].lootInheritanceSourceId").value(223))
             .andExpect(jsonPath("$.data[0].lootInheritanceInternalName").value("ZombieRaincoat"))
             .andExpect(jsonPath("$.data[0].lootInheritanceName").value("Raincoat Zombie"));
+    }
+
+    @Test
+    void shouldExposeSameNameCanonicalLootForNpcSubtypeRows() throws Exception {
+        Npc npc = new Npc();
+        npc.setId(-65L);
+        npc.setGameId(-65L);
+        npc.setInternalName("BigHornetStingy");
+        npc.setName("Hornet");
+        npc.setNameZh("黄蜂");
+        npc.setStatus(1);
+        ReflectionTestUtils.setField(npc, "npcType", 235);
+
+        when(npcMapper.selectById(-65L)).thenReturn(npc);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_loot_entries"), eq(Integer.class), eq(-65L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_buff_relations"), eq(Integer.class), eq(-65L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_shop_entries"), eq(Integer.class), eq(-65L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("source_ref_id = ?"), eq(Integer.class), eq(-65L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(
+            contains("LOWER(TRIM(source_ref_name)) = LOWER(TRIM(?))"),
+            eq(Integer.class),
+            eq("Hornet")
+        )).thenReturn(0);
+        when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries nle"), eq(-65L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("source_ref_id IS NULL"), eq("Hornet"))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(-65L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries nse"), eq(-65L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("n.game_id IN"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("canonical_npc.name"), any(Object[].class))).thenReturn(List.of(Map.of(
+            "variantNpcId", -65L,
+            "sourceNpcId", 42L,
+            "sourceId", 42L,
+            "sourceInternalName", "Hornet",
+            "sourceName", "Hornet",
+            "sourceNameZh", "黄蜂",
+            "total", 2
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries nle"), eq(42L))).thenReturn(List.of(
+            Map.of(
+                "itemId", 887L,
+                "itemName", "Bezoar",
+                "itemInternalName", "Bezoar"
+            ),
+            Map.of(
+                "itemId", 100L,
+                "itemName", "Stinger",
+                "itemInternalName", "Stinger"
+            )
+        ));
+
+        mockMvc.perform(get("/admin/npcs/-65"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.lootEntryCount").value(0))
+            .andExpect(jsonPath("$.data.inheritedLootEntryCount").value(2))
+            .andExpect(jsonPath("$.data.lootInheritanceInternalName").value("Hornet"))
+            .andExpect(jsonPath("$.data.inheritedLootEntries", hasSize(2)))
+            .andExpect(jsonPath("$.data.inheritedLootEntries[0].itemInternalName").value("Bezoar"));
     }
 
     @Test

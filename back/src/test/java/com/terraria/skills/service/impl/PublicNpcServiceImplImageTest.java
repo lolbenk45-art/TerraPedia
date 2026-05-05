@@ -254,6 +254,36 @@ class PublicNpcServiceImplImageTest {
         assertEquals("100%", result.get(0).getChanceText());
     }
 
+    @Test
+    void shouldFallbackPublicLootToSameNameCanonicalNpcWhenSubtypePrototypeHasNoDrops() {
+        lenient().when(jdbcTemplate.queryForList(contains("WHERE nle.npc_id = ?"), eq(-65L))).thenReturn(List.of());
+        lenient().when(jdbcTemplate.queryForList(contains("WHERE nle.npc_id = ?"), eq(42L))).thenReturn(List.of(Map.ofEntries(
+            Map.entry("id", 41L),
+            Map.entry("itemId", 887L),
+            Map.entry("dropSourceKind", "npc_drop"),
+            Map.entry("chanceText", "1% 1.99%"),
+            Map.entry("itemName", "Bezoar"),
+            Map.entry("itemNameZh", "Bezoar ZH"),
+            Map.entry("itemInternalName", "Bezoar")
+        )));
+        lenient().when(jdbcTemplate.queryForObject(
+            contains("FROM item_acquisition_sources"),
+            eq(Integer.class),
+            eq(-65L)
+        )).thenReturn(0);
+        lenient().when(jdbcTemplate.queryForList(contains("source_ref_id IS NULL"), eq("Hornet"))).thenReturn(List.of());
+        lenient().when(jdbcTemplate.queryForList(contains("LOWER(TRIM(canonical_npc.name))"), eq(-65L))).thenReturn(List.of(Map.ofEntries(
+            Map.entry("sourceNpcId", 42L)
+        )));
+
+        PublicNpcServiceImpl service = newService();
+        List<NpcLootEntryDTO> result = service.getNpcLoot(-65L, -65L, "Hornet");
+
+        assertEquals(1, result.size());
+        assertEquals("Bezoar", result.get(0).getItemInternalName());
+        assertEquals("1% 1.99%", result.get(0).getChanceText());
+    }
+
     private PublicNpcServiceImpl newService() {
         return new PublicNpcServiceImpl(npcMapper, categoryMapper, jdbcTemplate, new ObjectMapper(), managedImageUrlPolicy());
     }
