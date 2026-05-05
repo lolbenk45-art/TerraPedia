@@ -24,3 +24,8 @@ Reason: New public surfaces must not define their own readiness rules.
 
 Decision: Boss, Buff, Projectile, and ArmorSet keep `publicExposure=planned-public` and `publicRoute=null`.
 Reason: Phase B is readiness and admin visibility, not new public page implementation.
+
+## D-2026-05-05-06: CI v1 warning policy
+
+Decision: CI v1 fails on blocking, unsafe generator command, DB-writing generator command, and public-blocking missing/unknown evidence. CI v1 does not fail on ordinary warning.
+Reason: Existing stale reports and relation warnings should remain visible without making initial CI permanently red.
