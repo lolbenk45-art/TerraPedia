@@ -59,6 +59,24 @@ test('ci quality gate script stays CI safe', () => {
   assert.doesNotMatch(source, /domain-acceptance-generate-reports\.mjs[\s\S]*--write=true/);
 });
 
+test('ci gate is intentionally narrower than the local full gate', () => {
+  const localSource = fs.readFileSync('scripts/dev/quality-gate.ps1', 'utf8');
+  const ciSource = fs.readFileSync('scripts/dev/quality-gate-ci.ps1', 'utf8');
+
+  assert.match(localSource, /scripts\/data\/audit\/domain-readiness-audit\.test\.mjs/);
+  assert.match(localSource, /scripts\/data\/workflow\/domain-acceptance-generate-reports\.test\.mjs/);
+  assert.match(localSource, /Domain acceptance full dry-run/);
+  assert.match(localSource, /domain-acceptance-generate-reports\.mjs/);
+  assert.match(localSource, /--fail-on-warning=true/);
+  assert.match(localSource, /Invoke-Step -Label 'Backend tests'[\s\S]*@\('test'\)/);
+
+  assert.doesNotMatch(ciSource, /scripts\/data\/audit\/domain-readiness-audit\.test\.mjs/);
+  assert.doesNotMatch(ciSource, /scripts\/data\/workflow\/domain-acceptance-generate-reports\.test\.mjs/);
+  assert.doesNotMatch(ciSource, /Domain acceptance full dry-run/);
+  assert.doesNotMatch(ciSource, /domain-acceptance-generate-reports\.mjs/);
+  assert.doesNotMatch(ciSource, /Invoke-Step -Label 'Backend tests'[\s\S]*@\('test'\)/);
+});
+
 test('github quality gate calls ci script on windows runner', () => {
   const source = fs.readFileSync('.github/workflows/quality-gate.yml', 'utf8');
 
