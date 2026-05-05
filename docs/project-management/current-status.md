@@ -25,3 +25,7 @@ UI/API must not generate evidence, refresh data, or query DB as gate evidence.
 ## Public Domain Boundary
 
 Boss, Buff, Projectile, and ArmorSet remain planned-public until Domain Acceptance permits public exposure.
+
+## P2 Status
+
+P2 is readiness-only after P1. No new public Boss, Buff, Projectile, or ArmorSet code is scheduled in Phase B.
