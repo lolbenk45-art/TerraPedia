@@ -9,3 +9,5 @@
 | R-2026-05-05-05 | Medium | Images | Public fallback hides image readiness failure | Fallback is tested as UI behavior only and never changes readiness status | Open |
 | R-2026-05-05-06 | Medium | CI | CI-safe gate diverges from local full gate | `quality-gate-ci.ps1` is tested and documented; local full gate remains required before release checkpoints | Open |
 | R-2026-05-05-07 | High | Public domains | Planned-public domain is treated as route-ready | P2 document requires Domain Acceptance evidence before implementation | Open |
+| R-2026-05-06-01 | High | Domain Acceptance | `public-blocking stale` evidence is treated as route-ready or silently accepted | Stale defaults to warning only; continuation requires explicit `accepted-warning` and remains readiness-only | Open |
+| R-2026-05-06-02 | High | Data Source Acceptance | `crawlerMonitor` is treated as crawler execution or an evidence generator | `crawlerMonitor` is external monitor evidence only; DB or real-time diagnostics must be `notGateEvidence=true` and never affect gate status | Open |

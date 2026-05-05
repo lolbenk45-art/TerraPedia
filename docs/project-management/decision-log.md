@@ -34,3 +34,13 @@ Reason: Existing stale reports and relation warnings should remain visible witho
 
 Decision: Domain Acceptance is P0.5 and must close before Item/NPC public acceptance and before new public Boss/Buff/Projectile/ArmorSet work.
 Reason: Public consumers must not define readiness independently of registry, reports, freshness, refresh plan, and gate.
+
+## D-2026-05-06-01: public-blocking stale requires accepted-warning
+
+Decision: `public-blocking stale` evidence defaults to warning. `public-blocking missing/unknown` evidence remains blocking. A stale public-blocking panel may continue to readiness-only evaluation only when it is explicitly recorded as `accepted-warning`; it must not become route-ready directly from stale evidence.
+Reason: Stale public evidence should stay visible and bounded without silently opening public routes or making every stale report a hard block.
+
+## D-2026-05-06-02: crawlerMonitor is external monitor evidence only
+
+Decision: Data Source Acceptance `crawlerMonitor` is a read-only monitor projection and external monitor evidence. It is not crawler execution and is not an evidence generator. If future DB-backed or real-time diagnostics are added, every such sample must carry `notGateEvidence=true` and must not affect gate status.
+Reason: Monitor visibility must not bypass the manifest -> report evidence -> freshness audit -> manual refresh plan -> quality gate chain.
