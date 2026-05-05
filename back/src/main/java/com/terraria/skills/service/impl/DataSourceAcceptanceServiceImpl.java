@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceService {
 
     private static final int DEFAULT_STALE_AFTER_HOURS = 24;
+    private static final int FAILURE_SAMPLE_LIMIT = 50;
 
     private static final ReportDefinition RELATION_HEALTH = new ReportDefinition(
         "relationHealth",
@@ -183,6 +184,7 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
                 parser.accept(root, panel);
                 ensureStatus(panel);
                 applyReportFreshness(panel, definition);
+                fillFailureSamples(root, panel);
             } catch (RuntimeException exception) {
                 panel.setStatus("blocked");
                 panel.setBlockingCount(1);
@@ -200,6 +202,100 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
             applyBlockedFreshness(panel, definition);
             return panel;
         }
+    }
+
+    private void fillFailureSamples(JsonNode root, DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel) {
+        for (DataSourceAcceptanceOverviewDTO.AcceptanceCheckDTO check : panel.getChecks()) {
+            if (panel.getFailureSamples().size() >= FAILURE_SAMPLE_LIMIT) {
+                return;
+            }
+            if (!isFailureStatus(check.getStatus())) {
+                continue;
+            }
+            panel.getFailureSamples().add(sampleFromCheck(panel, check));
+        }
+
+        if (panel.getChecks().isEmpty() && root.path("checks").isArray()) {
+            for (DataSourceAcceptanceOverviewDTO.AcceptanceCheckDTO check : toChecks(root.path("checks"))) {
+                if (panel.getFailureSamples().size() >= FAILURE_SAMPLE_LIMIT) {
+                    return;
+                }
+                if (!isFailureStatus(check.getStatus())) {
+                    continue;
+                }
+                panel.getFailureSamples().add(sampleFromCheck(panel, check));
+            }
+        }
+
+        addReasonSamples(panel, strings(root.path("blockingReasons")), "blocked");
+        addReasonSamples(panel, strings(root.path("warningReasons")), "warning");
+    }
+
+    private DataSourceAcceptanceOverviewDTO.AcceptanceFailureSampleDTO sampleFromCheck(
+        DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel,
+        DataSourceAcceptanceOverviewDTO.AcceptanceCheckDTO check
+    ) {
+        DataSourceAcceptanceOverviewDTO.AcceptanceFailureSampleDTO sample = baseFailureSample(panel);
+        sample.setEntityId(check.getId());
+        sample.setStatus(firstNonBlank(normalizeSampleStatus(check.getStatus()), panel.getStatus()));
+        sample.setReason(check.getMessage());
+        sample.setEvidencePath(check.getReportPath());
+        sample.setSampleSource("report-check");
+        return sample;
+    }
+
+    private void addReasonSamples(
+        DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel,
+        List<String> reasons,
+        String status
+    ) {
+        for (String reason : reasons) {
+            if (panel.getFailureSamples().size() >= FAILURE_SAMPLE_LIMIT) {
+                return;
+            }
+            if (reason == null || reason.isBlank()) {
+                continue;
+            }
+            DataSourceAcceptanceOverviewDTO.AcceptanceFailureSampleDTO sample = baseFailureSample(panel);
+            sample.setStatus(status);
+            sample.setReason(reason);
+            sample.setSampleSource("report-reason");
+            panel.getFailureSamples().add(sample);
+        }
+    }
+
+    private DataSourceAcceptanceOverviewDTO.AcceptanceFailureSampleDTO baseFailureSample(
+        DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO panel
+    ) {
+        DataSourceAcceptanceOverviewDTO.AcceptanceFailureSampleDTO sample = new DataSourceAcceptanceOverviewDTO.AcceptanceFailureSampleDTO();
+        sample.setEntityType(panel.getId());
+        sample.setRecommendedAction(firstNonBlank(panel.getNextEvidenceCommand(), panel.getGeneratorCommand()));
+        sample.setFreshnessStatus(panel.getFreshnessStatus());
+        sample.setReportPath(panel.getReportPath());
+        sample.setNotGateEvidence(false);
+        return sample;
+    }
+
+    private boolean isFailureStatus(String status) {
+        String normalized = normalizeSampleStatus(status);
+        return "blocked".equals(normalized) || "warning".equals(normalized);
+    }
+
+    private String normalizeSampleStatus(String status) {
+        String normalized = status == null ? "" : status.trim().toLowerCase();
+        if ("blocked".equals(normalized) || "error".equals(normalized) || "fail".equals(normalized)) {
+            return "blocked";
+        }
+        if ("warning".equals(normalized) || "warn".equals(normalized)) {
+            return "warning";
+        }
+        if ("missing".equals(normalized)) {
+            return "missing";
+        }
+        if ("pass".equals(normalized) || "success".equals(normalized) || "ok".equals(normalized)) {
+            return "pass";
+        }
+        return normalized.isBlank() ? null : normalized;
     }
 
     private DataSourceAcceptanceOverviewDTO.AcceptancePanelDTO buildCrawlerMonitorPanel() {

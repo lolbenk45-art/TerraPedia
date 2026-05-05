@@ -54,6 +54,7 @@ public class DataSourceAcceptanceOverviewDTO {
         private Integer warningCount;
         private Map<String, Object> metrics = new LinkedHashMap<>();
         private List<AcceptanceCheckDTO> checks = new ArrayList<>();
+        private List<AcceptanceFailureSampleDTO> failureSamples = new ArrayList<>();
         private List<String> sampleReportPaths = new ArrayList<>();
         private Map<String, Object> rawSummary = new LinkedHashMap<>();
     }
@@ -65,5 +66,21 @@ public class DataSourceAcceptanceOverviewDTO {
         private String status;
         private String message;
         private String reportPath;
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class AcceptanceFailureSampleDTO {
+        private String entityType;
+        private String entityId;
+        private String sourceId;
+        private String status;
+        private String reason;
+        private String evidencePath;
+        private String recommendedAction;
+        private String freshnessStatus;
+        private String reportPath;
+        private String sampleSource;
+        private Boolean notGateEvidence;
     }
 }

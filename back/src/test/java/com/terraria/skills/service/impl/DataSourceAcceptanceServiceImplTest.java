@@ -143,6 +143,49 @@ class DataSourceAcceptanceServiceImplTest {
     }
 
     @Test
+    void shouldExposeReportDerivedFailureSamplesWithoutDatabaseEvidence() throws Exception {
+        Path repoRoot = createRepoRoot();
+        writePassReports(repoRoot);
+        Files.writeString(repoRoot.resolve("reports/relation/relation-health-2026-05-04.json"), """
+            {
+              "generatedAt": "2026-05-03T00:00:00Z",
+              "summary": {"status":"blocked","blockingCount":1,"warningCount":1},
+              "checks": [
+                {
+                  "id": "orphan-source",
+                  "status": "blocked",
+                  "message": "source row has no entity",
+                  "reportPath": "reports/relation/source-orphans.json"
+                },
+                {
+                  "id": "stale-warning",
+                  "status": "warning",
+                  "message": "sample stale relation",
+                  "reportPath": "reports/relation/stale-warning.json"
+                }
+              ],
+              "blockingReasons": ["source row has no entity"],
+              "warningReasons": ["sample stale relation"]
+            }
+            """);
+
+        DataSourceAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot, crawlerOverview(false)).getOverview();
+        DataSourceAcceptanceOverviewDTO.AcceptanceFailureSampleDTO sample = overview.getRelationHealth().getFailureSamples().get(0);
+
+        assertFalse(overview.getRelationHealth().getFailureSamples().isEmpty());
+        assertEquals("report-check", sample.getSampleSource());
+        assertEquals(Boolean.FALSE, sample.getNotGateEvidence());
+        assertNotNull(sample.getFreshnessStatus());
+        assertEquals("relationHealth", sample.getEntityType());
+        assertEquals("orphan-source", sample.getEntityId());
+        assertEquals("blocked", sample.getStatus());
+        assertEquals("source row has no entity", sample.getReason());
+        assertEquals("reports/relation/source-orphans.json", sample.getEvidencePath());
+        assertEquals("reports/relation/relation-health-2026-05-04.json", sample.getReportPath());
+        assertEquals("node scripts/data/relation/relation-health-report.mjs --write-report=true", sample.getRecommendedAction());
+    }
+
+    @Test
     void shouldExposeMissingReportsWithoutThrowing() throws Exception {
         Path repoRoot = createRepoRoot();
 

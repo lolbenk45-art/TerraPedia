@@ -68,6 +68,9 @@ class AdminDataSourceAcceptanceControllerTest {
             .andExpect(jsonPath("$.data.relationHealth.freshnessStatus").value("fresh"))
             .andExpect(jsonPath("$.data.relationHealth.staleAfterHours").value(24))
             .andExpect(jsonPath("$.data.relationHealth.ageHours").value(12))
+            .andExpect(jsonPath("$.data.relationHealth.failureSamples[0].status").value("blocked"))
+            .andExpect(jsonPath("$.data.relationHealth.failureSamples[0].sampleSource").value("report-check"))
+            .andExpect(jsonPath("$.data.relationHealth.failureSamples[0].notGateEvidence").value(false))
             .andExpect(jsonPath("$.data.relationHealth.nextEvidenceCommand").doesNotExist())
             .andExpect(jsonPath("$.data.replacementReadiness.status").value("pass"))
             .andExpect(jsonPath("$.data.sourceDatasetLanding.status").value("pass"))
@@ -96,6 +99,11 @@ class AdminDataSourceAcceptanceControllerTest {
         if ("relationHealth".equals(id)) {
             panel.setFreshnessStatus("fresh");
             panel.setAgeHours(12L);
+            DataSourceAcceptanceOverviewDTO.AcceptanceFailureSampleDTO sample = new DataSourceAcceptanceOverviewDTO.AcceptanceFailureSampleDTO();
+            sample.setStatus("blocked");
+            sample.setSampleSource("report-check");
+            sample.setNotGateEvidence(false);
+            panel.getFailureSamples().add(sample);
         }
         if ("imageReadiness".equals(id)) {
             panel.setGeneratorCommand("node scripts/data/audit/image-asset-readiness-audit.mjs --source=db");
