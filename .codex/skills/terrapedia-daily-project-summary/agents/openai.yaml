@@ -1,0 +1,4 @@
+interface:
+  display_name: "TerraPedia Daily Project Manager"
+  short_description: "Manage TerraPedia daily progress, risks, and priorities."
+  default_prompt: "Use $terrapedia-daily-project-summary to create a project-manager style TerraPedia daily record with plan alignment, progress drift, risks, gaps, and next priorities."

@@ -466,14 +466,16 @@ async function importProjectiles(conn, records, stats) {
     const r = records[i];
     try {
       const [[existing]] = await conn.execute('SELECT id FROM projectiles WHERE source_id = ? LIMIT 1', [toNullableInteger(r.id)]);
+      const imageUrl = toNullableString(r.imageUrl ?? r.image_url ?? r.image);
       await conn.execute(
         `INSERT INTO projectiles
-          (source_id, internal_name, name, name_zh, ai_style, damage, knock_back, penetrate, time_left, width, height, scale, friendly, hostile, tile_collide, raw_json, status, deleted)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
+          (source_id, internal_name, name, name_zh, image_url, ai_style, damage, knock_back, penetrate, time_left, width, height, scale, friendly, hostile, tile_collide, raw_json, status, deleted)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
          ON DUPLICATE KEY UPDATE
            internal_name = VALUES(internal_name),
            name = VALUES(name),
            name_zh = VALUES(name_zh),
+           image_url = VALUES(image_url),
            ai_style = VALUES(ai_style),
            damage = VALUES(damage),
            knock_back = VALUES(knock_back),
@@ -494,6 +496,7 @@ async function importProjectiles(conn, records, stats) {
           normalizeInternalName(r.internalName, r.name || r.id || i),
           toNullableString(r.name),
           toNullableString(r.localized?.zh?.name ?? r.nameZh),
+          imageUrl,
           toNullableInteger(r.aiStyle),
           toNullableInteger(r.combat?.damage),
           toNullableDecimal(r.combat?.knockBack),

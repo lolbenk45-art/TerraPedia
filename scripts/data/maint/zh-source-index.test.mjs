@@ -33,6 +33,25 @@ test('buildZhSourceIndexes prefers generated item and projectile maps over stand
   assert.equal(actual.projectilesByInternalName.get('woodenarrowfriendly')?.nameZh, '木箭');
 });
 
+test('buildZhSourceIndexes keeps standardized projectile imageUrl metadata', () => {
+  const actual = buildZhSourceIndexes({
+    standardizedProjectiles: {
+      records: [
+        {
+          internalName: 'WoodenArrowFriendly',
+          localized: { zh: { name: 'Wooden Arrow zh' } },
+          imageUrl: 'http://localhost:9000/terrapedia-images/items/wiki/projectiles/wooden-arrow.png',
+        },
+      ],
+    },
+  });
+
+  assert.equal(
+    actual.projectilesByInternalName.get('woodenarrowfriendly')?.imageUrl,
+    'http://localhost:9000/terrapedia-images/items/wiki/projectiles/wooden-arrow.png',
+  );
+});
+
 test('buildZhSourceIndexes merges town npc maintenance and generated npc maps', () => {
   const actual = buildZhSourceIndexes({
     townNpcMaintenance: {

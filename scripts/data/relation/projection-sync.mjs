@@ -69,6 +69,12 @@ function resolveManagedProjectionImageValue(value, managedImageUrlPrefixes = [])
   return isManagedImageUrl(value, managedImageUrlPrefixes) ? value.trim() : null;
 }
 
+function resolveManagedRawImageUrl(raw, managedImageUrlPrefixes = []) {
+  return resolveManagedProjectionImageValue(raw?.imageUrl, managedImageUrlPrefixes)
+    ?? resolveManagedProjectionImageValue(raw?.image_url, managedImageUrlPrefixes)
+    ?? resolveManagedProjectionImageValue(raw?.image, managedImageUrlPrefixes);
+}
+
 function hasProjectedImageUrl(imageRow, managedImageUrlPrefixes = []) {
   return isManagedImageUrl(imageRow?.cachedUrl, managedImageUrlPrefixes);
 }
@@ -663,7 +669,8 @@ export function buildProjectionPayload({
       internalName: row.internalName ?? null,
       name: row.englishName ?? row.internalName ?? null,
       nameZh: row.nameZh ?? null,
-      imageUrl: resolveProjectedImageUrl(image, managedImageUrlPrefixes),
+      imageUrl: resolveProjectedImageUrl(image, managedImageUrlPrefixes)
+        ?? resolveManagedRawImageUrl(raw, managedImageUrlPrefixes),
       aiStyle: toNullableNumber(raw.aiStyle),
       damage: toNullableNumber(raw.damage ?? row.combatValue),
       knockBack: toNullableNumber(raw.knockBack),

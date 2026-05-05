@@ -236,6 +236,28 @@ test('buildProjectionPayload projects cached npc and projectile images instead o
   assert.equal(actual.projectionProjectiles[0].imageUrl, 'http://localhost:9000/terrapedia-images/items/wooden-arrow.png');
 });
 
+test('buildProjectionPayload falls back to managed projectile rawJson imageUrl', () => {
+  const actual = buildProjectionPayload({
+    relationProjectiles: [
+      {
+        recordKey: 'projectile-rk',
+        sourceId: 1,
+        internalName: 'WoodenArrowFriendly',
+        englishName: 'Wooden Arrow (friendly)',
+        rawJson: JSON.stringify({
+          imageUrl: 'http://localhost:9000/terrapedia-images/items/wiki/projectiles/wooden-arrow.png',
+        }),
+      },
+    ],
+    relationProjectileImages: [],
+  });
+
+  assert.equal(
+    actual.projectionProjectiles[0].imageUrl,
+    'http://localhost:9000/terrapedia-images/items/wiki/projectiles/wooden-arrow.png'
+  );
+});
+
 test('buildProjectionPayload does not project wiki buff images', () => {
   const actual = buildProjectionPayload({
     relationBuffs: [

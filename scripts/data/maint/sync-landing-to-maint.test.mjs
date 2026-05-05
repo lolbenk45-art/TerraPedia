@@ -460,6 +460,42 @@ test('extractMaintEntitiesFromLandingRow overlays npc and projectile zh names fr
   assert.equal(projectileActual.rows[0].nameZh, '木箭');
 });
 
+test('extractMaintEntitiesFromLandingRow overlays projectile imageUrl from provided source indexes', async () => {
+  const projectileLandingRow = {
+    id: 24,
+    dataset_type: 'projectiles_raw',
+    provider: 'terraria.wiki.gg',
+    source_page: 'Module:Projectiles/data',
+    source_key: 'wiki.module.projectileinfo',
+    source_revision_timestamp: '2026-04-22T11:00:00Z',
+    content_hash: 'k'.repeat(64),
+    fetched_at: '2026-04-23T11:00:00Z',
+    parsed_at: '2026-04-23T11:00:00Z',
+    payload_json: JSON.stringify({
+      moduleGeneratedAt: '2026-04-22 11:00:00 (+00:00)',
+      moduleGeneratedFrom: '1.4.5.1',
+      projectiles: [{ id: 1, internalName: 'WoodenArrowFriendly', name: 'Wooden Arrow (friendly)' }],
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(projectileLandingRow, {
+    zhSourceIndexes: {
+      projectilesByInternalName: new Map([[
+        'woodenarrowfriendly',
+        {
+          nameZh: 'Wooden Arrow zh',
+          imageUrl: 'http://localhost:9000/terrapedia-images/items/wiki/projectiles/wooden-arrow.png',
+        },
+      ]]),
+    },
+  });
+
+  assert.equal(
+    JSON.parse(actual.rows[0].rawJson).imageUrl,
+    'http://localhost:9000/terrapedia-images/items/wiki/projectiles/wooden-arrow.png',
+  );
+});
+
 test('extractMaintEntitiesFromLandingRow expands item page payload into maint item page rows', async () => {
   const landingRow = {
     id: 31,

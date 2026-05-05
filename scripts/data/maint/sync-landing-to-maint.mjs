@@ -146,6 +146,9 @@ function createRecordKey(value) {
 }
 
 function buildBaseMaintRow(scope, landingRow, rawRecord, extra = {}) {
+  const rawJson = extra.imageUrl === undefined
+    ? rawRecord
+    : { ...rawRecord, imageUrl: extra.imageUrl };
   return {
     scope,
     tableName: SCOPE_TO_TABLE[scope],
@@ -173,7 +176,7 @@ function buildBaseMaintRow(scope, landingRow, rawRecord, extra = {}) {
     width: extra.width ?? null,
     height: extra.height ?? null,
     flagsJson: extra.flagsJson ?? null,
-    rawJson: JSON.stringify(rawRecord),
+    rawJson: JSON.stringify(rawJson),
   };
 }
 
@@ -220,8 +223,10 @@ function extractNpcsMaintRows(landingRow, payload, zhSourceIndexes = null) {
 }
 
 function extractProjectilesMaintRows(landingRow, payload, zhSourceIndexes = null) {
+  const projectileIndex = zhSourceIndexes?.projectilesByInternalName;
   return (Array.isArray(payload.projectiles) ? payload.projectiles : []).map((record) => buildBaseMaintRow('projectiles', landingRow, record, {
-    nameZh: zhSourceIndexes?.projectilesByInternalName?.get(normalizeKey(record.internalName))?.nameZh,
+    nameZh: projectileIndex?.get(normalizeKey(record.internalName))?.nameZh,
+    imageUrl: projectileIndex?.get(normalizeKey(record.internalName))?.imageUrl,
     moduleGeneratedAt: normalizeText(payload.moduleGeneratedAt),
     terrariaVersion: normalizeText(payload.moduleGeneratedFrom),
     combatValue: Number(record.damage ?? 0) || null,

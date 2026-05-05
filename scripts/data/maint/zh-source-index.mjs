@@ -23,13 +23,15 @@ function upsertZhEntry(map, key, value) {
   const normalizedKey = normalizeKey(key);
   const nameZh = toText(value?.nameZh);
   const subNameZh = toText(value?.subNameZh);
-  if (!normalizedKey || (!nameZh && !subNameZh)) {
+  const imageUrl = toText(value?.imageUrl ?? value?.image_url ?? value?.image);
+  if (!normalizedKey || (!nameZh && !subNameZh && !imageUrl)) {
     return;
   }
   const previous = map.get(normalizedKey) ?? {};
   map.set(normalizedKey, {
     nameZh: nameZh ?? previous.nameZh ?? null,
     subNameZh: subNameZh ?? previous.subNameZh ?? null,
+    imageUrl: imageUrl ?? previous.imageUrl ?? null,
   });
 }
 
@@ -49,6 +51,7 @@ function seedFromStandardizedRecords(map, payload) {
     upsertZhEntry(map, record?.internalName, {
       nameZh: record?.nameZh ?? record?.localized?.zh?.name,
       subNameZh: record?.subNameZh ?? record?.localized?.zh?.namesub,
+      imageUrl: record?.imageUrl ?? record?.image_url ?? record?.image,
     });
   }
 }

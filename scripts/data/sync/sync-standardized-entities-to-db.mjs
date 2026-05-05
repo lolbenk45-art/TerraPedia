@@ -214,6 +214,7 @@ async function syncProjectiles(stats) {
         });
         if (minioImageUrl) projectilePayload.imageUrl = minioImageUrl;
       }
+      const effectiveImageUrl = toText(projectilePayload?.imageUrl ?? projectilePayload?.image_url ?? projectilePayload?.image);
 
       const [rows] = await connection.query('SELECT id FROM projectiles WHERE source_id = ? LIMIT 1', [sourceId]);
       const existing = rows[0];
@@ -223,6 +224,7 @@ async function syncProjectiles(stats) {
         internalName,
         toText(projectilePayload?.name),
         toText(projectilePayload?.localized?.zh?.name ?? projectilePayload?.nameZh),
+        effectiveImageUrl,
         toInt(projectilePayload?.aiStyle),
         toInt(projectilePayload?.combat?.damage),
         toDecimal(projectilePayload?.combat?.knockBack),
@@ -242,13 +244,13 @@ async function syncProjectiles(stats) {
           const [result] = await connection.execute(
             `
             UPDATE projectiles
-            SET internal_name = ?, name = ?, name_zh = ?, ai_style = ?, damage = ?, knock_back = ?, penetrate = ?, time_left = ?,
+            SET internal_name = ?, name = ?, name_zh = ?, image_url = ?, ai_style = ?, damage = ?, knock_back = ?, penetrate = ?, time_left = ?,
                 width = ?, height = ?, scale = ?, friendly = ?, hostile = ?, tile_collide = ?, raw_json = ?, status = 1, deleted = 0, updated_at = NOW()
             WHERE source_id = ?
             `,
             [
               values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8],
-              values[9], values[10], values[11], values[12], values[13], values[14], values[15], sourceId,
+              values[9], values[10], values[11], values[12], values[13], values[14], values[15], values[16], sourceId,
             ]
           );
           stats.updated += Number(result.affectedRows || 0);
@@ -257,10 +259,13 @@ async function syncProjectiles(stats) {
             `
             INSERT INTO projectiles (
               source_id, internal_name, name, name_zh, ai_style, damage, knock_back, penetrate, time_left, width, height, scale,
-              friendly, hostile, tile_collide, raw_json, status, deleted, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, NOW(), NOW())
+              friendly, hostile, tile_collide, image_url, raw_json, status, deleted, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, NOW(), NOW())
             `,
-            values
+            [
+              values[0], values[1], values[2], values[3], values[5], values[6], values[7], values[8],
+              values[9], values[10], values[11], values[12], values[13], values[14], values[15], values[4], values[16],
+            ]
           );
           stats.inserted += Number(result.affectedRows || 0);
         }
