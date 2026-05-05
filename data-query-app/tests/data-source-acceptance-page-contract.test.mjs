@@ -73,7 +73,8 @@ test('data source acceptance page does not truncate evidence rows', () => {
   assert.match(page, /v-for="check in item\.panel\.checks"/)
   assert.match(page, /v-for="path in item\.panel\.sampleReportPaths"/)
   assert.match(page, /rawSummaryRows\(item\.panel\)/)
-  assert.doesNotMatch(page, /\.slice\s*\(/)
+  assert.doesNotMatch(page, /item\.panel\.checks\.slice\s*\(/)
+  assert.doesNotMatch(page, /item\.panel\.sampleReportPaths\.slice\s*\(/)
 })
 
 test('data source acceptance page renders raw summary and sample report evidence', () => {
@@ -114,6 +115,17 @@ test('data source acceptance page renders backend freshness and next evidence gu
   assert.doesNotMatch(page, /@click=["'][^"']*nextEvidenceCommand/)
 })
 
+test('data source acceptance page renders failure samples from overview only', () => {
+  const page = read('data-query-app/pages/operations/data-source-acceptance.vue')
+
+  assert.match(page, /failureSamples/)
+  assert.match(page, /sampleSource/)
+  assert.match(page, /notGateEvidence/)
+  assert.match(page, /panelSamples/)
+  assert.doesNotMatch(page, /\/admin\/data-source-acceptance\/panels\/\$\{.*\}\/samples/)
+  assert.doesNotMatch(page, /executeMode|runCommand|applyCommand|crawlerCommand/i)
+})
+
 test('data source acceptance page keeps check messages and report paths visible together', () => {
   const page = read('data-query-app/pages/operations/data-source-acceptance.vue')
 
@@ -139,6 +151,8 @@ test('data source acceptance types preserve panel checks and metrics', () => {
   assert.match(types, /nextEvidenceCommand\?: string \| null/)
   assert.match(types, /checks\?: DataSourceAcceptanceCheck\[\]/)
   assert.match(types, /metrics\?: Record<string, unknown>/)
+  assert.match(types, /export interface DataSourceAcceptanceFailureSample/)
+  assert.match(types, /failureSamples\?: DataSourceAcceptanceFailureSample\[\]/)
 })
 
 test('operations navigation includes the data source acceptance route', () => {

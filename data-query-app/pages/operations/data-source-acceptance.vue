@@ -150,6 +150,29 @@
             <code>{{ item.panel.nextEvidenceCommand }}</code>
           </div>
 
+          <div v-if="panelSamples(item.panel).length" class="failure-sample-list">
+            <span>失败样本</span>
+            <div
+              v-for="sample in panelSamples(item.panel)"
+              :key="`${item.key}-${sampleKey(sample)}`"
+              class="failure-sample-row"
+            >
+              <div class="failure-sample-row__head">
+                <span class="status-pill" :class="statusTone(sample.status)">{{ statusLabel(sample.status) }}</span>
+                <strong>{{ sample.entityType || 'entity' }} / {{ sample.entityId || sample.sourceId || '--' }}</strong>
+              </div>
+              <small v-if="sample.reason">{{ sample.reason }}</small>
+              <small v-if="sample.evidencePath">证据：{{ sample.evidencePath }}</small>
+              <small v-if="sample.reportPath">报告：{{ sample.reportPath }}</small>
+              <small v-if="sample.recommendedAction">建议：{{ sample.recommendedAction }}</small>
+              <small>
+                来源：{{ sample.sampleSource || '--' }}
+                <template v-if="sample.freshnessStatus"> · 新鲜度：{{ freshnessLabel(sample.freshnessStatus) }}</template>
+                <template v-if="sample.notGateEvidence"> · 非门禁证据</template>
+              </small>
+            </div>
+          </div>
+
           <div v-if="item.panel?.sampleReportPaths?.length" class="sample-report-list">
             <span>样本报告</span>
             <code v-for="path in item.panel.sampleReportPaths" :key="path">{{ path }}</code>
@@ -183,7 +206,12 @@
 
 <script setup lang="ts">
 import type { Component } from 'vue'
-import type { AcceptanceStatus, DataSourceAcceptanceOverview, DataSourceAcceptancePanel } from '~/types/dataSourceAcceptance'
+import type {
+  AcceptanceStatus,
+  DataSourceAcceptanceFailureSample,
+  DataSourceAcceptanceOverview,
+  DataSourceAcceptancePanel,
+} from '~/types/dataSourceAcceptance'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -329,6 +357,21 @@ function freshnessMeta(panel?: DataSourceAcceptancePanel | null) {
     parts.push(`阈值 ${formatNumber(panel.staleAfterHours)} 小时`)
   }
   return parts.length ? parts.join(' · ') : '--'
+}
+
+function panelSamples(panel?: DataSourceAcceptancePanel | null) {
+  return Array.isArray(panel?.failureSamples) ? panel.failureSamples.slice(0, 50) : []
+}
+
+function sampleKey(sample: DataSourceAcceptanceFailureSample) {
+  return [
+    sample.entityType,
+    sample.entityId,
+    sample.sourceId,
+    sample.sampleSource,
+    sample.status,
+    sample.evidencePath,
+  ].filter(Boolean).join('-') || 'sample'
 }
 
 function panelMetricRows(panel?: DataSourceAcceptancePanel | null) {
@@ -621,7 +664,8 @@ function formatDate(value?: string | null) {
 .metric-list dt,
 .raw-summary-list dt,
 .path-block span,
-.sample-report-list span {
+.sample-report-list span,
+.failure-sample-list > span {
   color: var(--color-text-secondary);
   font-size: 0.74rem;
   font-weight: 700;
@@ -648,6 +692,7 @@ function formatDate(value?: string | null) {
 
 .path-block,
 .sample-report-list,
+.failure-sample-list,
 .freshness-block,
 .generator-command,
 .next-evidence-command {
@@ -694,6 +739,36 @@ function formatDate(value?: string | null) {
   margin: 0;
   color: var(--color-danger);
   line-height: 1.45;
+}
+
+.failure-sample-row {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 78%, transparent);
+}
+
+.failure-sample-row__head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.failure-sample-row__head strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+  font-size: 0.88rem;
+}
+
+.failure-sample-row small {
+  overflow-wrap: anywhere;
+  color: var(--color-text-secondary);
+  line-height: 1.35;
 }
 
 .check-list {

@@ -7,6 +7,20 @@ export interface DataSourceAcceptanceCheck {
   reportPath?: string | null
 }
 
+export interface DataSourceAcceptanceFailureSample {
+  entityType?: string | null
+  entityId?: string | null
+  sourceId?: string | null
+  status?: string | null
+  reason?: string | null
+  evidencePath?: string | null
+  recommendedAction?: string | null
+  freshnessStatus?: string | null
+  reportPath?: string | null
+  sampleSource?: string | null
+  notGateEvidence?: boolean | null
+}
+
 export interface DataSourceAcceptancePanel {
   id?: string | null
   status?: AcceptanceStatus
@@ -30,6 +44,7 @@ export interface DataSourceAcceptancePanel {
   warningCount?: number | null
   metrics?: Record<string, unknown>
   checks?: DataSourceAcceptanceCheck[]
+  failureSamples?: DataSourceAcceptanceFailureSample[]
   sampleReportPaths?: string[]
   rawSummary?: Record<string, unknown>
 }
