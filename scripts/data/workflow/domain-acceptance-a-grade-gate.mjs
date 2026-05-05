@@ -107,10 +107,13 @@ function freshnessChecks(freshnessAudit, panels) {
     if (panel.commandRisk === 'unsafe') {
       checks.push(blockedCheck('freshness.commandSafety', `${key} generator command is unsafe`, context));
     }
-    if (panel.freshnessStatus === 'unknown' && panel.blockingBeforePublic === true) {
-      checks.push(blockedCheck('freshness.publicUnknown', `${key} public-blocking evidence freshness is unknown`, context));
+    if (['missing', 'unknown'].includes(panel.freshnessStatus) && panel.blockingBeforePublic === true) {
+      checks.push(blockedCheck('freshness.publicEvidenceUnavailable', `${key} public-blocking evidence freshness is ${panel.freshnessStatus}`, context));
     } else if (['stale', 'missing', 'unknown'].includes(panel.freshnessStatus)) {
       checks.push(warningCheck('freshness.state', `${key} evidence is ${panel.freshnessStatus}`, context));
+    }
+    if (panel.publicExposure === 'planned-public' && !hasPublicRoute(panel.publicRoute)) {
+      checks.push(warningCheck('public.plannedRouteMissing', `${key} is planned-public but has no public route`, context));
     }
     if (requiresPublicRoute(panel) && !hasPublicRoute(panel.publicRoute)) {
       checks.push(warningCheck(

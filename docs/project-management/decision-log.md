@@ -29,3 +29,8 @@ Reason: Phase B is readiness and admin visibility, not new public page implement
 
 Decision: CI v1 fails on blocking, unsafe generator command, DB-writing generator command, and public-blocking missing/unknown evidence. CI v1 does not fail on ordinary warning.
 Reason: Existing stale reports and relation warnings should remain visible without making initial CI permanently red.
+
+## D-2026-05-05-07: Domain Acceptance blocks P2 public domains
+
+Decision: Domain Acceptance is P0.5 and must close before Item/NPC public acceptance and before new public Boss/Buff/Projectile/ArmorSet work.
+Reason: Public consumers must not define readiness independently of registry, reports, freshness, refresh plan, and gate.

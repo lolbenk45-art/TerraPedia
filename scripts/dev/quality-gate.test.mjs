@@ -53,6 +53,10 @@ test('ci quality gate script stays CI safe', () => {
   assert.doesNotMatch(source, /--fail-on-warning=true/i);
   assert.match(source, /Data workflow acceptance tests/);
   assert.match(source, /Backend acceptance contract tests/);
+  assert.match(source, /domain-acceptance-a-grade-gate\.mjs/);
+  assert.match(source, /--fail-on-blocked=true/);
+  assert.doesNotMatch(source, /domain-acceptance-a-grade-gate\.mjs[\s\S]*--fail-on-warning=true/);
+  assert.doesNotMatch(source, /domain-acceptance-generate-reports\.mjs[\s\S]*--write=true/);
 });
 
 test('github quality gate calls ci script on windows runner', () => {

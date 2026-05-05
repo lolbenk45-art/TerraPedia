@@ -144,6 +144,147 @@ test('A-grade gate warns for public panels without public route and blocks unsaf
   assert.equal(bosses.publicGateReason, 'bosses/publicReadiness is blocking before public consumption but has no public route');
 });
 
+test('A-grade gate blocks unsafe command and database-writing panels', () => {
+  const gate = buildDomainAcceptanceAGradeGate({
+    generatedAt: '2026-05-03T12:00:00Z',
+    manifest: [
+      manifestEntry('bosses', 'sourceReadiness', {
+        writesDatabase: true,
+        commandRisk: 'unsafe',
+      }),
+    ],
+    freshnessAudit: {
+      overallStatus: 'pass',
+      blockingReasons: [],
+      warningReasons: [],
+      panels: [
+        routedPanel('bosses', 'sourceReadiness', {
+          writesDatabase: true,
+          commandRisk: 'unsafe',
+        }),
+      ],
+    },
+    refreshPlan: {
+      overallStatus: 'empty',
+      actions: [],
+    },
+    generation: {
+      summary: {
+        panelCount: 1,
+        passCount: 1,
+        warningCount: 0,
+        blockedCount: 0,
+        missingCount: 0,
+      },
+    },
+  });
+
+  assert.equal(gate.overallStatus, 'blocked');
+  assert.ok(gate.blockingReasons.includes('bosses/sourceReadiness generator command writes database'));
+  assert.ok(gate.blockingReasons.includes('bosses/sourceReadiness generator command is unsafe'));
+});
+
+test('A-grade gate blocks missing or unknown public-blocking evidence', () => {
+  const baseInput = {
+    generatedAt: '2026-05-03T12:00:00Z',
+    manifest: [
+      manifestEntry('bosses', 'publicReadiness', { publicRoute: '/bosses' }),
+      manifestEntry('items', 'publicReadiness', { publicRoute: '/items' }),
+    ],
+    freshnessAudit: {
+      overallStatus: 'warning',
+      blockingReasons: [],
+      warningReasons: [],
+      panels: [
+        routedPanel('bosses', 'publicReadiness', {
+          chainStage: 'public',
+          blockingBeforePublic: true,
+          publicRoute: '/bosses',
+          freshnessStatus: 'missing',
+        }),
+        routedPanel('items', 'publicReadiness', {
+          chainStage: 'public',
+          blockingBeforePublic: true,
+          publicRoute: '/items',
+          freshnessStatus: 'unknown',
+        }),
+      ],
+    },
+    refreshPlan: {
+      overallStatus: 'empty',
+      actions: [],
+    },
+    generation: {
+      summary: {
+        panelCount: 2,
+        passCount: 2,
+        warningCount: 0,
+        blockedCount: 0,
+        missingCount: 0,
+      },
+    },
+  };
+  const gate = buildDomainAcceptanceAGradeGate(baseInput);
+
+  assert.equal(gate.overallStatus, 'blocked');
+  assert.ok(gate.blockingReasons.includes('bosses/publicReadiness public-blocking evidence freshness is missing'));
+  assert.ok(gate.blockingReasons.includes('items/publicReadiness public-blocking evidence freshness is unknown'));
+});
+
+test('A-grade gate warns for stale non-public evidence and planned-public route gaps', () => {
+  const gate = buildDomainAcceptanceAGradeGate({
+    generatedAt: '2026-05-03T12:00:00Z',
+    manifest: [
+      manifestEntry('items', 'sourceReadiness', {
+        publicExposure: 'admin-only',
+        publicRoute: null,
+      }),
+      manifestEntry('bosses', 'publicReadiness', {
+        publicExposure: 'planned-public',
+        publicRoute: null,
+      }),
+    ],
+    freshnessAudit: {
+      overallStatus: 'warning',
+      blockingReasons: [],
+      warningReasons: [],
+      panels: [
+        routedPanel('items', 'sourceReadiness', {
+          publicExposure: 'admin-only',
+          publicRoute: null,
+          blockingBeforePublic: false,
+          freshnessStatus: 'stale',
+        }),
+        routedPanel('bosses', 'publicReadiness', {
+          chainStage: 'public',
+          blockingBeforePublic: true,
+          publicExposure: 'planned-public',
+          publicRoute: null,
+        }),
+      ],
+    },
+    refreshPlan: {
+      overallStatus: 'empty',
+      actions: [],
+    },
+    generation: {
+      summary: {
+        panelCount: 2,
+        passCount: 2,
+        warningCount: 0,
+        blockedCount: 0,
+        missingCount: 0,
+      },
+    },
+  });
+
+  assert.equal(gate.overallStatus, 'warning');
+  assert.deepEqual(gate.blockingReasons, []);
+  assert.ok(gate.warningReasons.includes('items/sourceReadiness evidence is stale'));
+  assert.ok(gate.warningReasons.includes('bosses/publicReadiness is planned-public but has no public route'));
+  assert.equal(gate.domains.find((domain) => domain.domainId === 'bosses').publicGateStatus, 'planned_public_no_route');
+});
+
 test('A-grade gate treats planned-public and admin-only exposure as explicit non-routed states', () => {
   const gate = buildDomainAcceptanceAGradeGate({
     generatedAt: '2026-05-03T12:00:00Z',
@@ -189,9 +330,9 @@ test('A-grade gate treats planned-public and admin-only exposure as explicit non
     },
   });
 
-  assert.equal(gate.overallStatus, 'pass');
+  assert.equal(gate.overallStatus, 'warning');
   assert.equal(gate.summary.publicRouteMissingCount, 0);
-  assert.deepEqual(gate.warningReasons, []);
+  assert.deepEqual(gate.warningReasons, ['bosses/publicReadiness is planned-public but has no public route']);
   assert.equal(gate.domains.find((domain) => domain.domainId === 'bosses').publicGateStatus, 'planned_public_no_route');
   assert.equal(gate.domains.find((domain) => domain.domainId === 'support.recipe').publicGateStatus, 'admin_only');
 });
