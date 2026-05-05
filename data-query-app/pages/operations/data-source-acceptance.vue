@@ -150,6 +150,11 @@
             <code>{{ item.panel.nextEvidenceCommand }}</code>
           </div>
 
+          <div v-if="item.panel?.executeMode || item.panel?.executionPolicy" class="execution-policy">
+            <span>Execution policy</span>
+            <strong>{{ executionMeta(item.panel) }}</strong>
+          </div>
+
           <div v-if="panelSamples(item.panel).length" class="failure-sample-list">
             <span>失败样本</span>
             <div
@@ -357,6 +362,10 @@ function freshnessMeta(panel?: DataSourceAcceptancePanel | null) {
     parts.push(`阈值 ${formatNumber(panel.staleAfterHours)} 小时`)
   }
   return parts.length ? parts.join(' · ') : '--'
+}
+
+function executionMeta(panel?: DataSourceAcceptancePanel | null) {
+  return [panel?.executeMode, panel?.executionPolicy].filter(Boolean).join(' · ') || '--'
 }
 
 function panelSamples(panel?: DataSourceAcceptancePanel | null) {
@@ -695,7 +704,8 @@ function formatDate(value?: string | null) {
 .failure-sample-list,
 .freshness-block,
 .generator-command,
-.next-evidence-command {
+.next-evidence-command,
+.execution-policy {
   display: grid;
   gap: 6px;
 }
@@ -704,6 +714,7 @@ function formatDate(value?: string | null) {
 .sample-report-list code,
 .generator-command code,
 .next-evidence-command code,
+.execution-policy,
 .check-row small {
   overflow-wrap: anywhere;
 }
@@ -719,13 +730,15 @@ function formatDate(value?: string | null) {
   color: var(--color-text-secondary);
 }
 
-.freshness-block {
+.freshness-block,
+.execution-policy {
   padding: 10px;
   border-radius: 12px;
   background: color-mix(in srgb, var(--color-bg-secondary) 78%, transparent);
 }
 
-.freshness-block strong {
+.freshness-block strong,
+.execution-policy strong {
   color: var(--color-text);
 }
 

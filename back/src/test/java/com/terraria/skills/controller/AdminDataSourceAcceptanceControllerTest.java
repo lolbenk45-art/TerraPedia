@@ -80,6 +80,8 @@ class AdminDataSourceAcceptanceControllerTest {
             .andExpect(jsonPath("$.data.imageReadiness.staleAfterHours").value(24))
             .andExpect(jsonPath("$.data.imageReadiness.generatorCommand").value("node scripts/data/audit/image-asset-readiness-audit.mjs --source=db"))
             .andExpect(jsonPath("$.data.imageReadiness.nextEvidenceCommand").value("node scripts/data/audit/image-asset-readiness-audit.mjs --source=db"))
+            .andExpect(jsonPath("$.data.imageReadiness.executeMode").value("manual"))
+            .andExpect(jsonPath("$.data.imageReadiness.executionPolicy").value("plan-only"))
             .andExpect(jsonPath("$.data.imageReadiness.writesDatabase").value(false))
             .andExpect(jsonPath("$.data.imageReadiness.requiresDatabase").value(true))
             .andExpect(jsonPath("$.data.imageReadiness.notes").value("Feeds imageReadiness from the latest image asset readiness audit report."))
@@ -108,6 +110,8 @@ class AdminDataSourceAcceptanceControllerTest {
         if ("imageReadiness".equals(id)) {
             panel.setGeneratorCommand("node scripts/data/audit/image-asset-readiness-audit.mjs --source=db");
             panel.setNextEvidenceCommand("node scripts/data/audit/image-asset-readiness-audit.mjs --source=db");
+            panel.setExecuteMode("manual");
+            panel.setExecutionPolicy("plan-only");
             panel.setWritesDatabase(false);
             panel.setRequiresDatabase(true);
             panel.setNotes("Feeds imageReadiness from the latest image asset readiness audit report.");

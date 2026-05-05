@@ -47,6 +47,8 @@ public class DataSourceAcceptanceOverviewDTO {
         private Integer staleAfterHours;
         private Long ageHours;
         private String nextEvidenceCommand;
+        private String executeMode;
+        private String executionPolicy;
         private Instant generatedAt;
         private String updatedAt;
         private String errorMessage;

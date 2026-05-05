@@ -123,7 +123,16 @@ test('data source acceptance page renders failure samples from overview only', (
   assert.match(page, /notGateEvidence/)
   assert.match(page, /panelSamples/)
   assert.doesNotMatch(page, /\/admin\/data-source-acceptance\/panels\/\$\{.*\}\/samples/)
-  assert.doesNotMatch(page, /executeMode|runCommand|applyCommand|crawlerCommand/i)
+  assert.doesNotMatch(page, /runCommand|applyCommand|crawlerCommand/i)
+})
+
+test('data source acceptance page displays manual plan-only execution policy fields', () => {
+  const page = read('data-query-app/pages/operations/data-source-acceptance.vue')
+
+  assert.match(page, /executeMode/)
+  assert.match(page, /executionPolicy/)
+  assert.match(page, /executionMeta\(item\.panel\)/)
+  assert.match(page, /execution-policy/)
 })
 
 test('data source acceptance page keeps check messages and report paths visible together', () => {
@@ -149,6 +158,8 @@ test('data source acceptance types preserve panel checks and metrics', () => {
   assert.match(types, /staleAfterHours\?: number \| null/)
   assert.match(types, /ageHours\?: number \| null/)
   assert.match(types, /nextEvidenceCommand\?: string \| null/)
+  assert.match(types, /executeMode\?: string \| null/)
+  assert.match(types, /executionPolicy\?: string \| null/)
   assert.match(types, /checks\?: DataSourceAcceptanceCheck\[\]/)
   assert.match(types, /metrics\?: Record<string, unknown>/)
   assert.match(types, /export interface DataSourceAcceptanceFailureSample/)

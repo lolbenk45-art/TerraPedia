@@ -37,6 +37,8 @@ export interface DataSourceAcceptancePanel {
   staleAfterHours?: number | null
   ageHours?: number | null
   nextEvidenceCommand?: string | null
+  executeMode?: string | null
+  executionPolicy?: string | null
   generatedAt?: string | null
   updatedAt?: string | null
   errorMessage?: string | null

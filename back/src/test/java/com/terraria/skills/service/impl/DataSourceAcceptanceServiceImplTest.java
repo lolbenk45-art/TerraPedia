@@ -374,6 +374,18 @@ class DataSourceAcceptanceServiceImplTest {
         assertEquals("warning", overview.getImageReadiness().getStatus());
     }
 
+    @Test
+    void shouldExposeManualPlanOnlyExecutionPolicyForRefreshablePanels() throws Exception {
+        Path repoRoot = createRepoRoot();
+        writePassReports(repoRoot);
+        Files.delete(repoRoot.resolve("reports/audit/image-asset-readiness-2026-05-03.json"));
+
+        DataSourceAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot, crawlerOverview(false)).getOverview();
+
+        assertEquals("manual", overview.getImageReadiness().getExecuteMode());
+        assertEquals("plan-only", overview.getImageReadiness().getExecutionPolicy());
+    }
+
     private DataSourceAcceptanceServiceImpl serviceWithRepo(Path repoRoot, CrawlerMonitorOverviewDTO crawlerOverview) {
         CrawlerMonitorService crawlerMonitorService = mock(CrawlerMonitorService.class);
         when(crawlerMonitorService.getOverview()).thenReturn(crawlerOverview);

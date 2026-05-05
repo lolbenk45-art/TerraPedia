@@ -510,6 +510,8 @@ public class DataSourceAcceptanceServiceImpl implements DataSourceAcceptanceServ
         panel.setWritesDatabase(definition.writesDatabase());
         panel.setRequiresDatabase(definition.requiresDatabase());
         panel.setNotes(definition.notes());
+        panel.setExecuteMode("manual");
+        panel.setExecutionPolicy("plan-only");
         panel.setStaleAfterHours(DEFAULT_STALE_AFTER_HOURS);
         panel.setBlockingCount(0);
         panel.setWarningCount(0);
