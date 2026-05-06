@@ -9,11 +9,10 @@
       chained audit-to-plan-to-alert pipeline (13 steps max).
     Phase 2 (DB required): lineage trace (item + npc), image lineage,
       cross-db integrity, reresolve candidates, reresolve dry-run (6 steps).
-  Each step validates JSON structure (top-level keys) AND rejects a top-level
-  status/overallStatus value of "blocked". Deeper content assertions depend on
-  live data and are out of scope.
+  Each step validates JSON structure (top-level keys), rejects blocked status
+  at common top-level/summary paths, and enforces canonical consistency metrics.
   Exit code 0 = all run steps passed. Exit code 1 = at least one failure
-    (including DB unavailable without -AllowDbSkip, or any blocked status).
+  (including DB unavailable without -AllowDbSkip, or any blocked status).
 .PARAMETER SkipDb
   Skip Phase 2 (all DB-required tests). Exits 0 even if DB is down.
 .PARAMETER SkipNoDb
@@ -21,6 +20,9 @@
 .PARAMETER AllowDbSkip
   When DB is unreachable, skip DB steps instead of failing. Without this flag,
   an unreachable DB causes Phase 2 steps to FAIL (exit 1).
+.PARAMETER FailOnWarning
+  Treat top-level status/overallStatus or summary.status="warning" as failure.
+  Default false to match smoke-structure mode; use for stricter pre-public checks.
 .PARAMETER DbHost
   Database host for TCP preflight and env override (default 127.0.0.1).
 .PARAMETER DbPort
@@ -33,6 +35,7 @@ param(
   [switch]$SkipDb,
   [switch]$SkipNoDb,
   [switch]$AllowDbSkip,
+  [switch]$FailOnWarning,
   [string]$DbHost = '127.0.0.1',
   [int]$DbPort = 3306,
   [string]$SharedDataRoot
@@ -128,11 +131,11 @@ function Test-LocalTcpPort([string]$HostName, [int]$Port, [int]$TimeoutMs = 2000
 }
 
 function Get-DbEnvVars {
-  $host = [string](Resolve-Setting 'TERRAPEDIA_DB_HOST' (Get-ConfigValue $stackConfig @('database', 'host')) $DbHost)
-  $port = [int](Resolve-Setting 'TERRAPEDIA_DB_PORT' (Get-ConfigValue $stackConfig @('database', 'port')) $DbPort)
-  $user = [string](Resolve-Setting 'TERRAPEDIA_DB_USERNAME' (Get-ConfigValue $stackConfig @('database', 'username')) 'root')
-  $pass = [string](Resolve-Setting 'TERRAPEDIA_DB_PASSWORD' (Get-ConfigValue $stackConfig @('database', 'password')) 'root')
-  return @{ Host = $host; Port = $port; Username = $user; Password = $pass }
+  $dbHostValue = [string](Resolve-Setting 'TERRAPEDIA_DB_HOST' (Get-ConfigValue $stackConfig @('database', 'host')) $DbHost)
+  $dbPortValue = [int](Resolve-Setting 'TERRAPEDIA_DB_PORT' (Get-ConfigValue $stackConfig @('database', 'port')) $DbPort)
+  $dbUserValue = [string](Resolve-Setting 'TERRAPEDIA_DB_USERNAME' (Get-ConfigValue $stackConfig @('database', 'username')) 'root')
+  $dbPassValue = [string](Resolve-Setting 'TERRAPEDIA_DB_PASSWORD' (Get-ConfigValue $stackConfig @('database', 'password')) 'root')
+  return @{ Host = $dbHostValue; Port = $dbPortValue; Username = $dbUserValue; Password = $dbPassValue }
 }
 
 function Assert-JsonKeys([string]$Json, [string[]]$Keys, [string]$StepId) {
@@ -177,6 +180,7 @@ $script:results = [System.Collections.ArrayList]::new()
 function Add-Result {
   param([string]$StepId, [string]$Phase, [string]$ScriptPath, [string]$Status,
         [double]$Duration, [int]$ExitCode, [string]$Message, [string[]]$KeyAssertions)
+  $assertions = if ($null -ne $KeyAssertions) { $KeyAssertions } else { @() }
   [void]$script:results.Add([PSCustomObject]@{
     id = $StepId
     phase = $Phase
@@ -185,7 +189,7 @@ function Add-Result {
     durationSeconds = [math]::Round($Duration, 2)
     exitCode = $ExitCode
     message = $Message
-    keyAssertions = $KeyAssertions ?? @()
+    keyAssertions = $assertions
   })
 }
 
@@ -195,16 +199,36 @@ function Write-StepLine([string]$Status, [string]$StepId, [string]$Message, [dou
   Write-Host "[$tag] $StepId — $Message ($([math]::Round($Duration, 1))s)" -ForegroundColor $color
 }
 
-function Test-AcceptanceBlocked([object]$Parsed) {
-  $statusPaths = @(
-    if ($Parsed.status) { [string]$Parsed.status },
-    if ($Parsed.overallStatus) { [string]$Parsed.overallStatus },
-    if ($Parsed.summary.status) { [string]$Parsed.summary.status }
-  ) | Where-Object { $_ -ne '' -and $_ -ne $null }
+function Get-OptionalArrayCount([object]$Root, [string]$PropertyName) {
+  if ($null -eq $Root) { return 0 }
+  $property = $Root.PSObject.Properties[$PropertyName]
+  if ($null -eq $property -or $null -eq $property.Value) { return 0 }
+  return @($property.Value).Count
+}
+
+function Set-Utf8NoBomContent([string]$Path, [string]$Value) {
+  $encoding = [System.Text.UTF8Encoding]::new($false)
+  [System.IO.File]::WriteAllText($Path, $Value, $encoding)
+}
+
+function Count-ResultsByStatus([string]$Status) {
+  return @($script:results | Where-Object { $_.status -eq $Status }).Count
+}
+
+function Test-AcceptanceBlocked([object]$Parsed, [bool]$FailOnWarningMode = $false) {
+  $statusPaths = @()
+  if ($Parsed.status) { $statusPaths += [string]$Parsed.status }
+  if ($Parsed.overallStatus) { $statusPaths += [string]$Parsed.overallStatus }
+  if ($Parsed.summary.status) { $statusPaths += [string]$Parsed.summary.status }
+  $statusPaths = $statusPaths | Where-Object { $_ -ne '' -and $_ -ne $null }
 
   if ($statusPaths -contains 'blocked') { return $true }
+  if ($FailOnWarningMode -and $statusPaths -contains 'warning') { return $true }
   if ($Parsed.summary.blockingCount -gt 0) { return $true }
-  if ($Parsed.summary.schemaViolations -gt 0) { return $true }
+  if ((Get-OptionalArrayCount $Parsed.summary 'schemaViolations') -gt 0) { return $true }
+  if ((Get-OptionalArrayCount $Parsed.summary 'missingLandingInputs') -gt 0) { return $true }
+  if ($null -ne $Parsed.summary.coverageRate -and $Parsed.summary.coverageRate -lt 1) { return $true }
+  if ($null -ne $Parsed.summary.hashMatchRate -and $Parsed.summary.hashMatchRate -lt 1) { return $true }
   return $false
 }
 
@@ -246,9 +270,15 @@ function Invoke-AcceptanceStep {
     }
 
     # Reject blocked/failing status across all common paths
-    if (Test-AcceptanceBlocked $parsed) {
-      $reason = if ($parsed.summary.schemaViolations -gt 0) { "schemaViolations=$($parsed.summary.schemaViolations)" }
+    if (Test-AcceptanceBlocked $parsed -FailOnWarningMode:$FailOnWarning) {
+      $schemaViolationCount = Get-OptionalArrayCount $parsed.summary 'schemaViolations'
+      $missingLandingInputCount = Get-OptionalArrayCount $parsed.summary 'missingLandingInputs'
+      $reason = if ($schemaViolationCount -gt 0) { "schemaViolations=$schemaViolationCount" }
+                elseif ($missingLandingInputCount -gt 0) { "missingLandingInputs=$missingLandingInputCount" }
                 elseif ($parsed.summary.blockingCount -gt 0) { "blockingCount=$($parsed.summary.blockingCount)" }
+                elseif ($null -ne $parsed.summary.coverageRate -and $parsed.summary.coverageRate -lt 1) { "coverageRate=$($parsed.summary.coverageRate)" }
+                elseif ($null -ne $parsed.summary.hashMatchRate -and $parsed.summary.hashMatchRate -lt 1) { "hashMatchRate=$($parsed.summary.hashMatchRate)" }
+                elseif ($FailOnWarning) { 'top-level or summary.status=warning' }
                 else { 'top-level or summary.status=blocked' }
       Add-Result -StepId $StepId -Phase $Phase -ScriptPath $ScriptPath -Status 'fail' -Duration $duration -ExitCode 0 -Message "blocked — $reason" -KeyAssertions $KeyAssertions
       Write-StepLine 'fail' $StepId "blocked — $reason" $duration
@@ -262,7 +292,7 @@ function Invoke-AcceptanceStep {
         if (-not (Test-Path $parentDir)) {
           New-Item -ItemType Directory -Force -Path $parentDir | Out-Null
         }
-        $stdout | Set-Content -Path $OutputPath -Encoding utf8
+        Set-Utf8NoBomContent -Path $OutputPath -Value $stdout
       } catch {
         Write-Host "  WARNING: failed to write output to $OutputPath : $_" -ForegroundColor Yellow
       }
@@ -506,9 +536,9 @@ if (-not $SkipDb) {
 # SUMMARY
 # ===========================================================================
 $totalSteps = $script:results.Count
-$passedCount = ($script:results | Where-Object { $_.status -eq 'pass' }).Count
-$failedCount = ($script:results | Where-Object { $_.status -eq 'fail' }).Count
-$skippedCount = ($script:results | Where-Object { $_.status -eq 'skip' }).Count
+$passedCount = Count-ResultsByStatus 'pass'
+$failedCount = Count-ResultsByStatus 'fail'
+$skippedCount = Count-ResultsByStatus 'skip'
 $totalDuration = [math]::Round(($script:results | Measure-Object -Property durationSeconds -Sum).Sum, 1)
 
 Write-Host ''
