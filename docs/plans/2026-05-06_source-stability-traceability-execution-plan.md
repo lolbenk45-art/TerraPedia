@@ -93,7 +93,7 @@
 
 **产出**:
 - [ ] `docs/audits/generated-data-consumer-map.md` — 生成数据的消费关系图
-- [ ] 清理 `.gitignore` 中生成数据的忽略规则
+- [ ] 提出 `.gitignore` 规则修正清单（审计结论）；实际修改单独提交，不纳入 P0 执行范围
 - [ ] 废弃文件归档或标注迁移路径
 
 **验收标准**: 每个 `data/generated/` 文件都有明确的消费方和生命周期标注。
@@ -129,7 +129,7 @@
 
 **产出**:
 - [ ] `docs/contracts/image-source-contract.md` — 图片溯源统一契约
-- [ ] Flyway V41: 补齐 Buff 表缺失的 source 字段
+- [ ] Flyway 下一个可用版本: 补齐 Buff 表缺失的 source 字段
 - [ ] NPC 图片回填脚本
 - [ ] `scripts/data/audit/image-source-lineage-report.mjs`
 
