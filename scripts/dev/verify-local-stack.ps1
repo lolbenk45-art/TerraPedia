@@ -20,6 +20,18 @@ if ($configPath -and (Test-Path $configPath)) {
   $stackConfig = Get-Content -Path $configPath -Raw | ConvertFrom-Json
 }
 
+function Assert-WorktreeRootMatchesRepoRoot {
+  $worktreeRoot = [Environment]::GetEnvironmentVariable('WORKTREE_ROOT')
+  if ([string]::IsNullOrWhiteSpace($worktreeRoot)) {
+    return
+  }
+
+  $resolvedWorktreeRoot = (Resolve-Path $worktreeRoot -ErrorAction Stop).Path
+  if ($resolvedWorktreeRoot -ne $repoRoot) {
+    throw ("WORKTREE_ROOT mismatch: worktree root {0} does not match repo root {1}. Update WORKTREE_ROOT or run verify-local-stack from the intended worktree." -f $resolvedWorktreeRoot, $repoRoot)
+  }
+}
+
 function Get-ConfigValue([object]$Root, [string[]]$PathSegments) {
   $current = $Root
   foreach ($segment in $PathSegments) {
@@ -143,6 +155,8 @@ function Invoke-Step([string]$Label, [string]$WorkingDirectory, [string]$Command
 
 $mavenCmd = Resolve-RequiredCommand -PreferredPath $null -CommandName 'mvn.cmd'
 $pnpmCmd = Resolve-RequiredCommand -PreferredPath 'C:\nvm4w\nodejs\pnpm.cmd' -CommandName 'pnpm.cmd'
+
+Assert-WorktreeRootMatchesRepoRoot
 
 if (-not $SkipBack) {
   Invoke-DatabasePortCheck

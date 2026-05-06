@@ -1,17 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
-import { fileURLToPath } from 'node:url';
 
 import { createWikiRequestGate } from './wiki-request-gate.mjs';
+import { getProjectRoot, resolveSharedDataRoot } from './project-root.mjs';
 
 export const DEFAULT_WIKI_API_URL = 'https://terraria.wiki.gg/api.php';
 export const DEFAULT_MODULE_TITLE = 'Module:Iteminfo/data';
 export const DEFAULT_WIKI_USER_AGENT = 'TerraPedia-data-sync/2.0';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-export const WORKSPACE_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-export const DEFAULT_SHARED_DATA_ROOT = path.join(WORKSPACE_ROOT, 'data', 'terraPedia');
+export const WORKSPACE_ROOT = getProjectRoot();
+export const DEFAULT_SHARED_DATA_ROOT = resolveSharedDataRoot();
 const wikiRequestGate = createWikiRequestGate({
   userAgent: DEFAULT_WIKI_USER_AGENT
 });

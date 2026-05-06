@@ -3,16 +3,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 
 import { parseCliArgs, writeJson } from '../lib/wiki-item-utils.mjs';
+import { resolveProjectPath } from '../lib/project-root.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = resolveProjectPath();
 
 export const AUTO_NOTE_PREFIX = '[auto:wiki-crawler-npc-infobox]';
 

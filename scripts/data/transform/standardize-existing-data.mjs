@@ -1,20 +1,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
+import { getProjectRoot, resolveSharedDataRoot } from '../lib/project-root.mjs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const redesignRoot = path.resolve(__dirname, '..', '..', '..');
-const workspaceRoot = path.resolve(redesignRoot, '..');
-const sharedDataRoot = path.join(workspaceRoot, 'data', 'terraPedia');
+const projectRoot = getProjectRoot();
 
 const sourceDataDir = path.resolve(
   process.cwd(),
-  process.env.TERRAPEDIA_SOURCE_DATA_DIR ?? sharedDataRoot
+  process.env.TERRAPEDIA_SOURCE_DATA_DIR ?? resolveSharedDataRoot()
 );
 const outputDir = path.resolve(
   process.cwd(),
-  process.env.TERRAPEDIA_STANDARDIZED_OUTPUT_DIR ?? path.join(sharedDataRoot, 'standardized')
+  process.env.TERRAPEDIA_STANDARDIZED_OUTPUT_DIR ?? resolveSharedDataRoot('standardized')
 );
 
 const generatedAt = new Date().toISOString();
@@ -583,7 +580,7 @@ async function loadItemIdMaps() {
   const duplicateName = new Set();
 
   const rawPath = path.join(sourceDataDir, 'raw', 'wiki', 'module__iteminfo__data.latest.json');
-  const utilPath = path.join(redesignRoot, 'scripts', 'data', 'lib', 'wiki-item-utils.mjs');
+  const utilPath = path.join(projectRoot, 'scripts', 'data', 'lib', 'wiki-item-utils.mjs');
   if (!fs.existsSync(rawPath) || !fs.existsSync(utilPath)) {
     warnings.push('Item id mapping fallback: raw iteminfo or parser utility is missing; item ids may be null.');
     return { byInternalName, byName };
@@ -760,7 +757,7 @@ function deepSortObject(value) {
 }
 
 function relativeFromWorkspace(targetPath) {
-  return path.relative(workspaceRoot, targetPath).replaceAll('\\', '/');
+  return path.relative(path.dirname(projectRoot), targetPath).replaceAll('\\', '/');
 }
 
 function ensureDir(dirPath) {

@@ -2,9 +2,9 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import { sharedDataPath } from '../lib/wiki-item-utils.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   createContentHash,
   DEFAULT_WIKI_SOURCE_MANIFEST_PATH,
@@ -13,9 +13,7 @@ import {
   upsertManifestRecord
 } from '../lib/wiki-sync-manifest.mjs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = getProjectRoot();
 const sharedRawWikiRoot = sharedDataPath('raw', 'wiki');
 const manifestPath = path.resolve(process.cwd(), process.argv[2] ?? DEFAULT_WIKI_SOURCE_MANIFEST_PATH);
 

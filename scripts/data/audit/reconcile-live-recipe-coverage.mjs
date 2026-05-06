@@ -3,8 +3,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
 
+import { getProjectRoot } from '../lib/project-root.mjs';
 import { parseCliArgs, sharedDataPath, writeJson } from '../lib/wiki-item-utils.mjs';
 import { buildAuditRecipeKey } from '../generate/generate-recipe-material-reference.mjs';
 
@@ -12,9 +12,7 @@ const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
 
 const options = parseCliArgs(process.argv.slice(2));
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = getProjectRoot();
 const generatedDir = path.join(repoRoot, 'data', 'generated');
 
 const recipeReferencePath = path.resolve(options['recipe-reference'] ?? path.join(generatedDir, 'recipe-material-reference.json'));

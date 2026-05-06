@@ -17,10 +17,9 @@ import {
   extractIntroParagraphs,
   stripHtml
 } from '../lib/wiki-page-utils.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = getProjectRoot();
 
 const ZH_WIKI_API_URL = 'https://terraria.wiki.gg/zh/api.php';
 const DEFAULT_PAGE_TITLES = ['\u914d\u65b9', '\u914d\u65b9/\u5de5\u4f5c\u53f0'];

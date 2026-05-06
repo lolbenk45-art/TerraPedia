@@ -1,11 +1,11 @@
 {
   "entity": "wiki_shimmer_context_importable",
-  "generatedAt": "2026-04-09T01:52:13.267Z",
+  "generatedAt": "2026-05-06T04:59:43.756Z",
   "sourceProvider": "wiki_zh",
   "sourceFile": "data/generated/wiki-shimmer.latest.json",
   "page": {
     "sourcePage": "微光",
-    "sourceRevisionTimestamp": "2026-03-09T05:12:48Z",
+    "sourceRevisionTimestamp": "2026-05-04T13:58:46Z",
     "sourcePageId": 26209
   },
   "worldContext": {

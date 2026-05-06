@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { resolveProjectPath } from '../lib/project-root.mjs';
 import {
   ensureDir,
   expandWikiText,
@@ -19,7 +20,7 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = resolveProjectPath();
 const DEFAULT_WIKI_SYNC_PROGRESS_PATH = path.join(repoRoot, 'data', 'generated', 'wiki-sync-progress.latest.json');
 
 const options = parseCliArgs(process.argv.slice(2));
@@ -37,7 +38,7 @@ const withRecipes = booleanOption(options['with-recipes'] ?? options.withRecipes
 const delayMs = Math.max(0, numericOption(options['delay-ms'] ?? options.delayMs, 5_000));
 const jitterMs = Math.max(0, numericOption(options['jitter-ms'] ?? options.jitterMs, 2_000));
 const maxAttempts = Math.max(1, numericOption(options['max-attempts'] ?? options.maxAttempts, 8));
-const progressPath = options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? null;
+const progressPath = options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_WIKI_SYNC_PROGRESS_PATH;
 const progressActionId = process.env.TERRAPEDIA_CRAWLER_ACTION_ID ?? 'fetch-item-pages';
 const progressStartedAt = new Date().toISOString();
 const requestedItems = new Set(

@@ -3,17 +3,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
 import { parseCliArgs } from '../lib/wiki-item-utils.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = getProjectRoot();
 const PROVIDER_PRIORITY = ['manual_admin', 'wiki_gg', 'wiki_gg_zh_reference', 'wiki_zh'];
 
 const args = parseCliArgs(process.argv.slice(2));

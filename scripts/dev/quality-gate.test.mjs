@@ -37,6 +37,15 @@ test('quality gate runs A-grade gate without writing reports', () => {
   assert.doesNotMatch(source, /domain-acceptance-a-grade-gate\.mjs[\s\S]*--write=true/);
 });
 
+test('quality gate includes cross-db referential integrity audit with FullDataAudit mode switch', () => {
+  const source = fs.readFileSync('scripts/dev/quality-gate.ps1', 'utf8');
+
+  assert.match(source, /\[switch\]\$FullDataAudit/);
+  assert.match(source, /Cross-db referential integrity audit/);
+  assert.match(source, /scripts\/data\/audit\/cross-db-referential-integrity\.mjs/);
+  assert.match(source, /\$crossDbMode = if \(\$FullDataAudit\) \{ 'full' \} else \{ 'quick' \}/);
+});
+
 test('quality gate includes backend domain acceptance contract tests', () => {
   const source = fs.readFileSync('scripts/dev/quality-gate.ps1', 'utf8');
 

@@ -102,3 +102,12 @@ test('local stack boundary tests are included in local and ci gates', () => {
   assert.match(localGate, /scripts\/dev\/local-stack\.test\.mjs/);
   assert.match(ciGate, /scripts\/dev\/local-stack\.test\.mjs/);
 });
+
+test('verify-local-stack checks optional WORKTREE_ROOT against resolved repo root', () => {
+  const source = fs.readFileSync('scripts/dev/verify-local-stack.ps1', 'utf8');
+
+  assert.match(source, /WORKTREE_ROOT/i);
+  assert.match(source, /GetEnvironmentVariable\('WORKTREE_ROOT'\)/i);
+  assert.match(source, /worktree root/i);
+  assert.match(source, /repo root/i);
+});

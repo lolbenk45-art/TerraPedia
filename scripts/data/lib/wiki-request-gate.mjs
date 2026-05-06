@@ -2,12 +2,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { resolveSharedDataRoot } from './project-root.mjs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const workspaceRoot = path.resolve(__dirname, '..', '..', '..', '..');
-const defaultStatePath = path.join(workspaceRoot, 'data', 'terraPedia', 'generated', 'wiki-request-gate.latest.json');
+const defaultStatePath = resolveSharedDataRoot('generated', 'wiki-request-gate.latest.json');
 const defaultUserAgent = 'TerraPedia-data-sync/2.0 (+https://terraria.wiki.gg/api.php)';
 
 const REQUEST_PROFILES = {

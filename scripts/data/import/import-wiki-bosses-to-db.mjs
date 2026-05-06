@@ -2,11 +2,11 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
 import { shouldFailBossImportStrictMode } from './boss-import-strict-mode.mjs';
 import { resolveReferenceOnlyBossSource } from './boss-reference-source.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   createMinioImageUploader,
   DEFAULT_MANAGED_URL_PREFIX,
@@ -16,9 +16,7 @@ import {
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = getProjectRoot();
 
 const args = parseArgs(process.argv.slice(2));
 const inputPath = path.resolve(args.input ?? path.join(repoRoot, 'data', 'generated', 'wiki-bosses.latest.json'));

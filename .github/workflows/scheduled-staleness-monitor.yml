@@ -1,0 +1,81 @@
+name: Scheduled Staleness Monitor
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  staleness-monitor:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Prepare artifact paths
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path reports/domain | Out-Null
+          New-Item -ItemType Directory -Force -Path reports/workflow | Out-Null
+
+      - name: Domain acceptance freshness audit
+        shell: pwsh
+        run: |
+          node ./scripts/data/workflow/domain-acceptance-freshness-audit.mjs --generated-at="${{ github.run_started_at }}" > reports/workflow/domain-acceptance-freshness-audit.json
+
+      - name: Domain acceptance refresh plan
+        shell: pwsh
+        run: |
+          node ./scripts/data/workflow/domain-acceptance-refresh-plan.mjs --generated-at="${{ github.run_started_at }}" --audit=reports/workflow/domain-acceptance-freshness-audit.json > reports/workflow/domain-acceptance-refresh-plan.json
+
+      - name: B1 exemption compliance reports
+        shell: pwsh
+        run: |
+          node ./scripts/data/audit/b1-exemption-compliance.mjs --generated-at="${{ github.run_started_at }}" --domain=support.recipe > reports/workflow/b1-support.recipe.json
+          node ./scripts/data/audit/b1-exemption-compliance.mjs --generated-at="${{ github.run_started_at }}" --domain=support.shimmer > reports/workflow/b1-support.shimmer.json
+          node ./scripts/data/audit/b1-exemption-compliance.mjs --generated-at="${{ github.run_started_at }}" --domain=support.item_group > reports/workflow/b1-support.item_group.json
+          node ./scripts/data/audit/b1-exemption-compliance.mjs --generated-at="${{ github.run_started_at }}" --domain=support.town_npc_maintenance > reports/workflow/b1-support.town_npc_maintenance.json
+
+      - name: Build issue body and staleness history
+        id: issue_payload
+        shell: pwsh
+        run: |
+          node ./scripts/data/workflow/create-staleness-alert-issue.mjs `
+            --generated-at="${{ github.run_started_at }}" `
+            --audit=reports/workflow/domain-acceptance-freshness-audit.json `
+            --plan=reports/workflow/domain-acceptance-refresh-plan.json `
+            --compliance-report=reports/workflow/b1-support.recipe.json,reports/workflow/b1-support.shimmer.json,reports/workflow/b1-support.item_group.json,reports/workflow/b1-support.town_npc_maintenance.json `
+            --body-path=reports/domain/staleness-alert-issue.md `
+            --history-path=reports/domain/staleness-history.jsonl > reports/workflow/staleness-alert-summary.json
+          $summary = Get-Content reports/workflow/staleness-alert-summary.json -Raw | ConvertFrom-Json
+          "should_create_issue=$($summary.shouldCreateIssue)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "issue_title=$($summary.title)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Create blocking staleness alert issue
+        if: steps.issue_payload.outputs.should_create_issue == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          gh issue create --title "${{ steps.issue_payload.outputs.issue_title }}" --body-file reports/domain/staleness-alert-issue.md --label monitoring --label stale-evidence
+
+      - name: Upload staleness monitor artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: scheduled-staleness-monitor
+          path: |
+            reports/workflow/domain-acceptance-freshness-audit.json
+            reports/workflow/domain-acceptance-refresh-plan.json
+            reports/workflow/b1-support.recipe.json
+            reports/workflow/b1-support.shimmer.json
+            reports/workflow/b1-support.item_group.json
+            reports/workflow/b1-support.town_npc_maintenance.json
+            reports/workflow/staleness-alert-summary.json
+            reports/domain/staleness-alert-issue.md
+            reports/domain/staleness-history.jsonl

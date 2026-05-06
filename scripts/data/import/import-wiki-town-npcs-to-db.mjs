@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
 import { parseCliArgs } from '../lib/wiki-item-utils.mjs';
 import {
   buildTownNpcShopConditionLookup,
@@ -16,9 +17,7 @@ import {
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = getProjectRoot();
 
 const TOWN_NPC_SHOP_ITEM_ALIASES = new Map([
   ['闪耀翅膀', ["Cenx's Wings", 'Cenx的翅膀']],

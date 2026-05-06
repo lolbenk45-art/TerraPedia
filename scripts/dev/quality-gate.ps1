@@ -1,7 +1,8 @@
 param(
   [switch]$SkipBack,
   [switch]$SkipFront,
-  [switch]$SkipAdmin
+  [switch]$SkipAdmin,
+  [switch]$FullDataAudit
 )
 
 $ErrorActionPreference = 'Stop'
@@ -63,6 +64,12 @@ Invoke-Step -Label 'Domain acceptance full dry-run' -WorkingDirectory $repoRoot 
 Invoke-Step -Label 'Domain acceptance A-grade gate' -WorkingDirectory $repoRoot -CommandPath $nodeCmd -Arguments @(
   'scripts/data/workflow/domain-acceptance-a-grade-gate.mjs',
   '--fail-on-blocked=true'
+)
+
+$crossDbMode = if ($FullDataAudit) { 'full' } else { 'quick' }
+Invoke-Step -Label "Cross-db referential integrity audit ($crossDbMode)" -WorkingDirectory $repoRoot -CommandPath $nodeCmd -Arguments @(
+  'scripts/data/audit/cross-db-referential-integrity.mjs',
+  "--mode=$crossDbMode"
 )
 
 if (-not $SkipBack) {

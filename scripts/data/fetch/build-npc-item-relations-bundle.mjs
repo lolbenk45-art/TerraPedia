@@ -2,11 +2,9 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolveProjectPath } from '../lib/project-root.mjs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = resolveProjectPath();
 
 function slug(value) {
   return String(value ?? '')
@@ -138,7 +136,7 @@ async function main() {
   console.log(`records=${bundle.records.length} backfillCandidates=${bundle.backfillCandidates.length}`);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(import.meta.filename)) {
   main().catch((error) => {
     console.error(error.stack || error.message);
     process.exitCode = 1;

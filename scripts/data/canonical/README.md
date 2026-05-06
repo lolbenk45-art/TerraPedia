@@ -1,9 +1,12 @@
 # Canonicalization Scripts
 
-本目录保存把 normalized 数据转换为 canonical 可信数据的脚本。
+This directory contains the minimal P0.2 canonical candidate skeleton.
 
-## 规则
+## Boundaries
 
-- 输入应来自 `data/normalized/` 或明确的共享数据根。
-- 输出应进入 `data/canonical/`。
-- 脚本必须打印输入路径、输出路径和生成摘要。
+- Read-only inputs come from landing-compatible business data sources.
+- Candidate artifacts must write to `reports/canonical/candidates/{domain}/`.
+- Large candidate payloads are stored under `payloads/`; `canonical-candidates.json` is an index artifact.
+- Do not write DB state.
+- Do not add any apply behavior here.
+- Candidate artifacts are not a source of truth and must not be consumed by maint, import, or domain acceptance flows.

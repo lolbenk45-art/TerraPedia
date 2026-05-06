@@ -4,10 +4,10 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { getProjectRoot } from '../lib/project-root.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = getProjectRoot();
 
 const DEFAULT_MANAGED_URL_PREFIXES = ['http://localhost:9000/terrapedia-images'];
 const DEFAULT_SAMPLE_LIMIT = 20;

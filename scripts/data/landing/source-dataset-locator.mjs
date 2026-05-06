@@ -1,13 +1,11 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
+import { resolveProjectPath, resolveSharedDataRoot } from '../lib/project-root.mjs';
 import { sharedDataPath } from '../lib/wiki-item-utils.mjs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const defaultRepoRoot = path.resolve(__dirname, '..', '..', '..');
+const defaultRepoRoot = resolveProjectPath();
 const defaultSharedDataRoot = sharedDataPath();
 
 function normalizePortablePath(value) {

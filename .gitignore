@@ -26,6 +26,8 @@ data-query-app/--host/
 
 # Keep markdown/json reports, but ignore generated runtime folders
 reports/
+!reports/domain/
+reports/domain/staleness-history.jsonl
 reports/local-start/
 reports/runtime/
 reports/db-backup/

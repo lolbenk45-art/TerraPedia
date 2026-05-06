@@ -2,9 +2,9 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { isStandardizedViewDir, loadStandardizedDataset } from '../lib/load-standardized-dataset.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   clearPublicItemCaches,
   resolveRedisConfigFromEnv,
@@ -20,9 +20,7 @@ import {
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = getProjectRoot();
 
 function parseArgs(argv) {
   const args = {};

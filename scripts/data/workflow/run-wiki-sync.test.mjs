@@ -47,6 +47,47 @@ test('item page plan passes explicit only-changed=false to fetch action', () => 
   });
 });
 
+test('default wiki sync progress path follows WORKTREE_ROOT when progress path is omitted', () => {
+  withPreservedFile(defaultProgressPath, () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-sync-worktree-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const manifestPath = path.join(tempDir, 'manifest.json');
+    const monitorStatePath = path.join(tempDir, 'monitor-state.json');
+    const planPath = path.join(tempDir, 'plan.json');
+    const worktreeProgressPath = path.join(worktreeRoot, 'data', 'generated', 'wiki-sync-progress.latest.json');
+
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    fs.writeFileSync(manifestPath, JSON.stringify({ records: [] }), 'utf8');
+    fs.writeFileSync(monitorStatePath, JSON.stringify({ sources: [{ key: 'seed' }] }), 'utf8');
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      '--mode=plan',
+      '--entity=item_pages',
+      '--items=MiningPotion',
+      '--only-changed=false',
+      '--with-recipes=true',
+      `--manifest-path=${manifestPath}`,
+      `--monitor-state=${monitorStatePath}`,
+      `--plan-path=${planPath}`
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.equal(fs.existsSync(worktreeProgressPath), true);
+
+    const progress = JSON.parse(fs.readFileSync(worktreeProgressPath, 'utf8'));
+    assert.equal(progress.status, 'completed');
+    assert.equal(path.resolve(progress.childStatusPath), worktreeProgressPath);
+  });
+});
+
 function withPreservedFile(filePath, task) {
   const existed = fs.existsSync(filePath);
   const previous = existed ? fs.readFileSync(filePath) : null;

@@ -3,9 +3,9 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
+import { resolveProjectPath } from '../lib/project-root.mjs';
 import {
   listSourceDatasetLandingInputs,
   resolveDatasetFilter,
@@ -20,9 +20,7 @@ import {
 const require = createRequire(import.meta.url);
 const defaultMysqlModule = require('mysql2/promise');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const defaultRepoRoot = path.resolve(__dirname, '..', '..', '..');
+const defaultRepoRoot = resolveProjectPath();
 
 export function parseArgs(argv) {
   const args = {};
@@ -495,7 +493,7 @@ async function main() {
   console.log(JSON.stringify(summary, null, 2));
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(import.meta.filename)) {
   main().catch((error) => {
     console.error(error.stack || error.message);
     process.exitCode = 1;

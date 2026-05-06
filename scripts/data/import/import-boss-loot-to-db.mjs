@@ -2,13 +2,13 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { resolveBossLootSchemaSqlPath } from './boss-loot-schema-path.mjs';
 import { resolveBossLootOwnerContext } from './boss-loot-owner.mjs';
 import { buildBossLootBundle } from '../generate/generate-boss-loot-bundle.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   parseCliArgs,
   sharedDataPath,
@@ -18,9 +18,7 @@ import {
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = getProjectRoot();
 
 const args = parseCliArgs(process.argv.slice(2));
 const dryRun = booleanOption(args['dry-run'], false);

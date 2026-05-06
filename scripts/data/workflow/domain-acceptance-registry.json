@@ -7,8 +7,8 @@
     "statusImpact": "stale-pass-to-warning"
   },
   "panelSets": {
-    "product": ["sourceReadiness", "relationReadiness", "imageReadiness", "publicReadiness"],
-    "support": ["sourceReadiness", "blockingGate"]
+    "product": ["sourceReadiness", "relationReadiness", "imageReadiness", "publicReadiness", "unresolvedAuditTrend"],
+    "support": ["sourceReadiness", "blockingGate", "b1ExemptionCompliance"]
   },
   "panels": {
     "sourceReadiness": {
@@ -59,6 +59,19 @@
       "writesDatabase": false,
       "notes": "Checks whether the domain is ready for public API or public UI consumption."
     },
+    "unresolvedAuditTrend": {
+      "panelId": "unresolvedAuditTrend",
+      "fileKey": "unresolved-audit-trend",
+      "generatorPanel": "unresolved-audit-trend",
+      "chainStage": "relation",
+      "maintenanceLane": "domain-acceptance-evidence",
+      "generatorCommand": "node scripts/data/relation/generate-reresolve-candidates.mjs",
+      "autoMaintenanceAllowed": true,
+      "blockingBeforePublic": false,
+      "requiresDatabase": false,
+      "writesDatabase": false,
+      "notes": "Checks whether unresolved item/NPC relation audits are trending upward from read-only candidate evidence."
+    },
     "blockingGate": {
       "panelId": "blockingGate",
       "fileKey": "blocking-gate",
@@ -70,6 +83,19 @@
       "requiresDatabase": false,
       "writesDatabase": false,
       "notes": "Checks duplicate, blocked, drift, or unresolved support-domain conditions."
+    },
+    "b1ExemptionCompliance": {
+      "panelId": "b1ExemptionCompliance",
+      "fileKey": "b1-exemption-compliance",
+      "generatorPanel": "b1-exemption-compliance",
+      "chainStage": "source",
+      "maintenanceLane": "domain-acceptance-evidence",
+      "generatorCommand": "node scripts/data/audit/b1-exemption-compliance.mjs --domain={domainId}",
+      "autoMaintenanceAllowed": true,
+      "blockingBeforePublic": true,
+      "requiresDatabase": false,
+      "writesDatabase": false,
+      "notes": "Checks B1 transitional exemption registrations and deadlines from the canonical migration boundary document."
     }
   },
   "domains": [

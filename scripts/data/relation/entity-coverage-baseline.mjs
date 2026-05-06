@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
+import { getProjectRoot } from '../lib/project-root.mjs';
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { buildEntityFieldAudit } from './entity-field-audit.mjs';
 
@@ -13,7 +14,7 @@ const mysql = require('mysql2/promise');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = getProjectRoot();
 
 function parseArgs(argv) {
   const raw = {};

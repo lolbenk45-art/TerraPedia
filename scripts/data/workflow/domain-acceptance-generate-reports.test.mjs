@@ -16,6 +16,7 @@ const execFileAsync = promisify(execFile);
 test('buildDomainAcceptanceReportGeneration creates reports for every manifest panel without executing commands', () => {
   const repoRoot = createTempRepo();
   writeBuffSourceEvidence(repoRoot);
+  writeBoundaryDoc(repoRoot);
 
   const result = buildDomainAcceptanceReportGeneration({
     repoRoot,
@@ -24,10 +25,10 @@ test('buildDomainAcceptanceReportGeneration creates reports for every manifest p
 
   assert.equal(result.generatedAt, '2026-05-03T12:00:00Z');
   assert.equal(result.summary.domainCount, 9);
-  assert.equal(result.summary.panelCount, 26);
+  assert.equal(result.summary.panelCount, 35);
   assert.equal(result.summary.writtenCount, 0);
-  assert.equal(result.summary.plannedCount, 26);
-  assert.equal(result.reports.length, 26);
+  assert.equal(result.summary.plannedCount, 35);
+  assert.equal(result.reports.length, 35);
   assert.ok(result.reports.every((report) => report.writePlanned === false));
   assert.equal(
     result.reports.find((report) => report.domainId === 'buffs' && report.panelId === 'sourceReadiness')?.outputPath,
@@ -47,8 +48,8 @@ test('generateDomainAcceptanceReports writes only reports/domain outputs when wr
   });
 
   assert.equal(result.summary.domainCount, 1);
-  assert.equal(result.summary.panelCount, 4);
-  assert.equal(result.summary.writtenCount, 4);
+  assert.equal(result.summary.panelCount, 5);
+  assert.equal(result.summary.writtenCount, 5);
   for (const report of result.reports) {
     assert.match(report.outputPath, /^reports\/domain\/buffs\//);
     assert.equal(fs.existsSync(path.join(repoRoot, report.outputPath)), true);
@@ -117,7 +118,7 @@ test('CLI defaults to dry-run JSON and only writes reports with --write=true', a
   );
 
   assert.equal(writeRun.stderr, '');
-  assert.equal(JSON.parse(writeRun.stdout).summary.writtenCount, 4);
+  assert.equal(JSON.parse(writeRun.stdout).summary.writtenCount, 5);
   assert.equal(fs.existsSync(path.join(repoRoot, 'reports/domain/buffs/source-readiness-2026-05-03.json')), true);
 });
 
@@ -207,4 +208,26 @@ function writeBuffSourceEvidence(repoRoot) {
     count: 1,
     records: { WellFed: { id: 1 } },
   });
+}
+
+function writeText(repoRoot, relativePath, text) {
+  const fullPath = path.join(repoRoot, relativePath);
+  fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+  fs.writeFileSync(fullPath, text, 'utf8');
+}
+
+function writeBoundaryDoc(repoRoot) {
+  writeText(repoRoot, 'docs/audits/canonical-migration-boundary.md', [
+    '# Canonical Boundary',
+    '',
+    '## 杩囨浮璞佸厤鐧昏',
+    '| input | consumer | target | acceptance |',
+    '| --- | --- | --- | --- |',
+    '| `data/generated/recipe-material-reference.json` | support.recipe deadline: 2026-06-01 | canonical | `node scripts/data/audit/check.mjs` |',
+    '| `data/generated/item-group-overrides.json` | support.shimmer deadline: 2026-06-01 | canonical | `node scripts/data/audit/check.mjs` |',
+    '| `data/generated/recipe-group-overrides.json` | support.item_group deadline: 2026-06-01 | canonical | `node scripts/data/audit/check.mjs` |',
+    '| `data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json` | support.town_npc_maintenance deadline: 2026-06-01 | canonical | `node scripts/data/audit/check.mjs` |',
+    '',
+    '## Apply 鍓嶅噯鍏?',
+  ].join('\n'));
 }

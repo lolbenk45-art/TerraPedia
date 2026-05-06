@@ -576,7 +576,7 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         panel.setAutoMaintenanceAllowed(Boolean.TRUE.equals(definition.autoMaintenanceAllowed));
         panel.setBlockingBeforePublic(Boolean.TRUE.equals(definition.blockingBeforePublic));
         panel.setReportPattern("reports/domain/" + domainId + "/" + definition.fileKey + "*.json");
-        panel.setGeneratorCommand("node scripts/data/audit/domain-readiness-audit.mjs --domain=" + domainId + " --panel=" + definition.generatorPanel);
+        panel.setGeneratorCommand(generatorCommand(domainId, definition));
         panel.setWritesDatabase(Boolean.TRUE.equals(definition.writesDatabase));
         panel.setRequiresDatabase(Boolean.TRUE.equals(definition.requiresDatabase));
         panel.setNotes(definition.notes);
@@ -586,6 +586,13 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         panel.setAcceptedWarningActive(false);
         panel.setAcceptedWarningApplies(false);
         return panel;
+    }
+
+    private String generatorCommand(String domainId, PanelDefinition definition) {
+        if (definition.generatorCommand != null && !definition.generatorCommand.isBlank()) {
+            return definition.generatorCommand.replace("{domainId}", domainId);
+        }
+        return "node scripts/data/audit/domain-readiness-audit.mjs --domain=" + domainId + " --panel=" + definition.generatorPanel;
     }
 
     private void requireExplicitSafetyFlags(String domainId, PanelDefinition definition) {
@@ -1032,6 +1039,7 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         public String panelId;
         public String fileKey;
         public String generatorPanel;
+        public String generatorCommand;
         public String chainStage;
         public String maintenanceLane;
         public Boolean autoMaintenanceAllowed;

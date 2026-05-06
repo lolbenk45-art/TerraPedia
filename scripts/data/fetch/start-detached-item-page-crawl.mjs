@@ -5,6 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { resolveProjectPath } from '../lib/project-root.mjs';
 import {
   numericOption,
   parseCliArgs
@@ -12,7 +13,7 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = resolveProjectPath();
 const runnerPath = path.join(repoRoot, 'scripts', 'data', 'fetch', 'run-item-page-crawl-batches.mjs');
 const defaultProgressPath = 'data/generated/wiki-sync-progress.latest.json';
 const defaultTaskName = 'TerraPediaItemPageCrawl';

@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { buildB1ExemptionComplianceReport } from './b1-exemption-compliance.mjs';
+
 const __filename = fileURLToPath(import.meta.url);
 
 const PANEL_ALIASES = {
@@ -11,6 +13,7 @@ const PANEL_ALIASES = {
   relation: 'relationReadiness',
   image: 'imageReadiness',
   public: 'publicReadiness',
+  'unresolved-audit-trend': 'unresolvedAuditTrend',
   blocking: 'blockingGate',
 };
 
@@ -150,6 +153,12 @@ const PRODUCT_DOMAIN_CONFIG = {
         optionalDirectory('front/src/views'),
       ],
     },
+    unresolvedAuditTrend: {
+      fileKey: 'unresolved-audit-trend',
+      evidence: [
+        requiredLatestJson('reports/relation/reresolve-candidates*.json'),
+      ],
+    },
   },
   buffs: {
     sourceReadiness: {
@@ -179,6 +188,12 @@ const PRODUCT_DOMAIN_CONFIG = {
         optionalText('front/src/router/routes.ts'),
         optionalDirectory('front/src/views'),
         optionalText('back/src/main/java/com/terraria/skills/controller/AdminBuffController.java'),
+      ],
+    },
+    unresolvedAuditTrend: {
+      fileKey: 'unresolved-audit-trend',
+      evidence: [
+        requiredLatestJson('reports/relation/reresolve-candidates*.json'),
       ],
     },
   },
@@ -212,6 +227,12 @@ const PRODUCT_DOMAIN_CONFIG = {
         optionalDirectory('front/src/views'),
       ],
     },
+    unresolvedAuditTrend: {
+      fileKey: 'unresolved-audit-trend',
+      evidence: [
+        requiredLatestJson('reports/relation/reresolve-candidates*.json'),
+      ],
+    },
   },
   armor_sets: {
     sourceReadiness: {
@@ -242,6 +263,12 @@ const PRODUCT_DOMAIN_CONFIG = {
         optionalText('back/src/main/java/com/terraria/skills/controller/AdminArmorSetController.java'),
         optionalText('front/src/router/routes.ts'),
         optionalDirectory('front/src/views'),
+      ],
+    },
+    unresolvedAuditTrend: {
+      fileKey: 'unresolved-audit-trend',
+      evidence: [
+        requiredLatestJson('reports/relation/reresolve-candidates*.json'),
       ],
     },
   },
@@ -348,6 +375,16 @@ export function buildDomainReadinessReport({
   reportPath = null,
 } = {}) {
   const normalizedPanel = normalizePanel(panel);
+  if (normalizedPanel === 'b1ExemptionCompliance') {
+    return {
+      ...buildB1ExemptionComplianceReport({
+        repoRoot,
+        domainId,
+        generatedAt,
+      }),
+      reportPath: reportPath ?? null,
+    };
+  }
   const panelConfig = resolvePanelConfig(domainId, normalizedPanel);
   const root = path.resolve(repoRoot);
   const checks = panelConfig.evidence.map((entry) => evaluateEvidence(root, entry, {
@@ -378,6 +415,10 @@ export function buildDomainReadinessReport({
 
 export function resolveDomainReportPath({ domainId, panel, generatedAt = new Date().toISOString() } = {}) {
   const normalizedPanel = normalizePanel(panel);
+  if (normalizedPanel === 'b1ExemptionCompliance') {
+    const dateKey = isoDateKey(generatedAt);
+    return normalizePath(path.posix.join('reports/domain', domainId, `b1-exemption-compliance-${dateKey}.json`));
+  }
   const panelConfig = resolvePanelConfig(domainId, normalizedPanel);
   const dateKey = isoDateKey(generatedAt);
   return normalizePath(path.posix.join('reports/domain', domainId, `${panelConfig.fileKey}-${dateKey}.json`));
@@ -508,6 +549,9 @@ function evaluateEvidenceSemantics({ repoRoot, evidence, domainId, panelId, reso
 function evaluateProductDomainSemantics({ repoRoot, evidence, domainId, panelId, resolvedPath, payload }) {
   const pathKey = normalizePath(evidence.path);
   const reportPath = normalizePath(resolvedPath);
+  if (panelId === 'unresolvedAuditTrend' && pathKey === 'reports/relation/reresolve-candidates*.json') {
+    return unresolvedAuditTrendSemantics(payload, reportPath);
+  }
   if (domainId === 'bosses' && panelId === 'sourceReadiness' && pathKey === 'data/generated/wiki-bosses.latest.json') {
     return bossSourceSemantics(payload, reportPath);
   }
@@ -577,6 +621,34 @@ function evaluateProductDomainSemantics({ repoRoot, evidence, domainId, panelId,
     return armorImageFetchSemantics(payload, reportPath, repoRoot);
   }
   return { status: 'pass', message: `Evidence present: ${resolvedPath}` };
+}
+
+function unresolvedAuditTrendSemantics(payload, reportPath) {
+  const unresolvedAuditCount = Number(payload?.summary?.unresolvedAuditCount);
+  const candidateCount = Number(payload?.summary?.candidateCount);
+  const delta = Number.isFinite(payload?.trend?.delta) ? payload.trend.delta : null;
+  const direction = String(payload?.trend?.direction ?? 'unknown');
+  const blocking = [];
+  const warnings = [];
+
+  if (!Number.isFinite(unresolvedAuditCount) || unresolvedAuditCount < 0) {
+    blocking.push('summary.unresolvedAuditCount is missing or invalid');
+  }
+  if (!Number.isFinite(candidateCount) || candidateCount < 0) {
+    blocking.push('summary.candidateCount is missing or invalid');
+  }
+  if (direction === 'up' && delta != null && delta > 0) {
+    blocking.push(`unresolved audit trend is rising (delta=${delta})`);
+  } else if (delta == null || direction === 'unknown') {
+    warnings.push('historical baseline is unavailable for unresolved audit trend');
+  }
+
+  return semanticResult({
+    reportPath,
+    cleanMessage: `unresolved audit trend is stable in ${reportPath}`,
+    blocking,
+    warnings,
+  });
 }
 
 function evaluateSupportDomainBlockingSemantics({ evidence, domainId, resolvedPath, payload }) {

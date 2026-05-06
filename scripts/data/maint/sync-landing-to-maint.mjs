@@ -7,6 +7,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
 import { parseIteminfoModulePayload } from '../lib/wiki-item-utils.mjs';
 import { buildMaintSchemaSql } from './maint-schema.mjs';
 import { extractCategoryItemRecords } from './category-item-structured-parser.mjs';
@@ -19,8 +20,7 @@ const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = getProjectRoot();
 
 const SCOPE_TO_DATASETS = {
   items: ['items_raw'],

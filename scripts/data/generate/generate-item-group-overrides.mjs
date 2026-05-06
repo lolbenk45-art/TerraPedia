@@ -4,11 +4,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { getProjectRoot } from '../lib/project-root.mjs';
 import { parseCliArgs, writeJson } from '../lib/wiki-item-utils.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = getProjectRoot();
 
 const DEFAULT_ITEMS_PATH = 'data/standardized/items.standardized.json';
 const DEFAULT_ZH_MAP_PATH = 'data/generated/item-zh-map.json';

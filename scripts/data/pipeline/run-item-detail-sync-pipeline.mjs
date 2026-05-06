@@ -2,20 +2,18 @@ import { importNormalizedItems } from '../import/import-items.mjs';
 import { importItemRelations } from '../import/import-item-relations.mjs';
 import { resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
 import { resolveItemDetailSyncMode } from './item-detail-sync-mode.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
 import { parseCliArgs, sharedDataPath } from '../lib/wiki-item-utils.mjs';
 import { validateNormalizedItems } from '../normalize/validate-normalized-items.mjs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 const args = process.argv.slice(2);
 const options = parseCliArgs(args);
 const itemInputPath = options.items ?? sharedDataPath('normalized', 'items.wiki.json');
 const relationInputPath = options.relations ?? sharedDataPath('normalized', 'item-relations.bundle.json');
 const mode = resolveItemDetailSyncMode(options);
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = getProjectRoot();
 
 const validation = validateNormalizedItems(itemInputPath);
 console.log(`Validated file: ${validation.resolvedInput}`);

@@ -1,19 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { getProjectRoot, resolveSharedDataRoot } from '../lib/project-root.mjs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const redesignRoot = path.resolve(__dirname, '..', '..', '..');
-const workspaceRoot = path.resolve(redesignRoot, '..');
-const sharedDataRoot = path.join(workspaceRoot, 'data', 'terraPedia');
+const projectRoot = getProjectRoot();
 const inputDir = path.resolve(
   process.cwd(),
-  process.env.TERRAPEDIA_STANDARDIZED_INPUT_DIR ?? path.join(sharedDataRoot, 'standardized')
+  process.env.TERRAPEDIA_STANDARDIZED_INPUT_DIR ?? resolveSharedDataRoot('standardized')
 );
 const outputDir = path.resolve(
   process.cwd(),
-  process.env.TERRAPEDIA_STANDARDIZED_VIEW_DIR ?? path.join(sharedDataRoot, 'standardized-view')
+  process.env.TERRAPEDIA_STANDARDIZED_VIEW_DIR ?? resolveSharedDataRoot('standardized-view')
 );
 const chunkSize = Math.max(
   50,
@@ -162,7 +158,7 @@ function isObject(value) {
 }
 
 function relativePath(absPath) {
-  return path.relative(redesignRoot, absPath).replaceAll('\\', '/');
+  return path.relative(projectRoot, absPath).replaceAll('\\', '/');
 }
 
 function resolveTotalRecords(payload) {

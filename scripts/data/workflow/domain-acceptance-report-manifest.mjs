@@ -118,6 +118,9 @@ function validatePanelDefinition(definition) {
   assertRequiredString(definition.chainStage, `${definition.panelId}.chainStage`);
   assertRequiredString(definition.maintenanceLane, `${definition.panelId}.maintenanceLane`);
   assertRequiredString(definition.notes, `${definition.panelId}.notes`);
+  if (Object.hasOwn(definition, 'generatorCommand')) {
+    assertRequiredString(definition.generatorCommand, `${definition.panelId}.generatorCommand`);
+  }
   for (const field of ['autoMaintenanceAllowed', 'blockingBeforePublic', 'requiresDatabase', 'writesDatabase']) {
     if (typeof definition[field] !== 'boolean') {
       throw new Error(`Domain acceptance panel ${definition.panelId} must declare boolean ${field}.`);
@@ -128,6 +131,9 @@ function validatePanelDefinition(definition) {
 function buildManifestEntry(domain, definition, freshness) {
   const backendRefreshStepIds = [...domain.backendRefreshStepIds];
   const acceptedWarning = findAcceptedWarning(domain, definition.panelId);
+  const generatorCommand = definition.generatorCommand
+    ? definition.generatorCommand.replaceAll('{domainId}', domain.domainId)
+    : `node scripts/data/audit/domain-readiness-audit.mjs --domain=${domain.domainId} --panel=${definition.generatorPanel}`;
   return {
     domainId: domain.domainId,
     domainType: domain.domainType,
@@ -146,7 +152,7 @@ function buildManifestEntry(domain, definition, freshness) {
     blockingBeforePublic: definition.blockingBeforePublic === true,
     acceptedWarning,
     reportPattern: `reports/domain/${domain.domainId}/${definition.fileKey}*.json`,
-    generatorCommand: `node scripts/data/audit/domain-readiness-audit.mjs --domain=${domain.domainId} --panel=${definition.generatorPanel}`,
+    generatorCommand,
     writesDatabase: definition.writesDatabase === true,
     requiresDatabase: definition.requiresDatabase === true,
     notes: definition.notes,

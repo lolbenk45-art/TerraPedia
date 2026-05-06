@@ -5,6 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+import { resolveProjectPath } from '../lib/project-root.mjs';
 import {
   clearWikiRequestGateCooldown,
   fetchWikiPageMetadataBatch,
@@ -34,7 +35,7 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = resolveProjectPath();
 const generatedRoot = path.resolve(repoRoot, 'data', 'generated');
 const DEFAULT_WIKI_SYNC_PROGRESS_PATH = path.join(generatedRoot, 'wiki-sync-progress.latest.json');
 const sharedRawWikiRoot = sharedDataPath('raw', 'wiki');

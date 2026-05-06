@@ -1,15 +1,12 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
+import { getProjectRoot } from '../lib/project-root.mjs';
 import { parseCliArgs } from '../lib/wiki-item-utils.mjs';
 import { buildBiomeImportArgs, shouldRunBiomeImport } from './biome-sync-args.mjs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = getProjectRoot();
 
 const options = parseCliArgs(process.argv.slice(2));
 const wikiBiomesFile = options.wikiBiomesFile ?? options['wiki-biomes-file'] ?? 'data/generated/wiki-biomes.importable.latest.json';

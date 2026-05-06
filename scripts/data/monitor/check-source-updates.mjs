@@ -1,8 +1,8 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
+import { resolveProjectPath } from '../lib/project-root.mjs';
 import {
   DEFAULT_WIKI_API_URL,
   ensureDir,
@@ -12,10 +12,7 @@ import {
   writeJson
 } from '../lib/wiki-item-utils.mjs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const terraPediaRoot = path.resolve(__dirname, '..', '..', '..');
-const workspaceRoot = path.resolve(terraPediaRoot, '..');
+const terraPediaRoot = resolveProjectPath();
 
 const options = parseCliArgs(process.argv.slice(2));
 const checkedAt = new Date().toISOString();
@@ -358,5 +355,5 @@ function buildOfficialStableSignature(preview) {
 }
 
 function toWorkspaceRelative(targetPath) {
-  return path.relative(workspaceRoot, targetPath).replaceAll('\\', '/');
+  return path.relative(terraPediaRoot, targetPath).replaceAll('\\', '/');
 }

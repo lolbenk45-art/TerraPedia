@@ -71,6 +71,50 @@ test('writes child progress and report to explicit paths when no item pages are 
   });
 });
 
+test('default fetch progress path follows WORKTREE_ROOT when progress path is omitted', () => {
+  withPreservedFile(defaultProgressPath, () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-worktree-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const inputPath = path.join(tempDir, 'items.json');
+    const rawDir = path.join(tempDir, 'raw');
+    const reportDir = path.join(tempDir, 'reports');
+    const worktreeProgressPath = path.join(worktreeRoot, 'data', 'generated', 'wiki-sync-progress.latest.json');
+
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    fs.writeFileSync(inputPath, JSON.stringify({
+      items: [{ internalName: 'MiningPotion', name: 'Mining Potion' }]
+    }), 'utf8');
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      `--input=${inputPath}`,
+      `--raw-dir=${rawDir}`,
+      `--report-dir=${reportDir}`,
+      '--items=DefinitelyMissingItem',
+      '--limit=1',
+      '--only-changed=false',
+      '--delay-ms=0',
+      '--jitter-ms=0'
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+        TERRAPEDIA_CRAWLER_ACTION_ID: 'test-item-pages-worktree'
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.equal(fs.existsSync(worktreeProgressPath), true);
+
+    const progress = JSON.parse(fs.readFileSync(worktreeProgressPath, 'utf8'));
+    assert.equal(progress.actionId, 'test-item-pages-worktree');
+    assert.equal(progress.status, 'completed');
+    assert.equal(path.resolve(progress.childStatusPath), worktreeProgressPath);
+  });
+});
+
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

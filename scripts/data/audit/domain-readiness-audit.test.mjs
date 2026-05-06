@@ -319,6 +319,68 @@ test('buildDomainReadinessReport applies relation coverage semantic gates for bu
   assert.equal(projectiles.summary.blockedCount, 0);
 });
 
+test('buildDomainReadinessReport blocks unresolved audit trend when unresolved count is rising', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'reports/relation/reresolve-candidates-2026-05-06.json', {
+    generatedAt: '2026-05-06T12:00:00Z',
+    summary: {
+      unresolvedAuditCount: 2602,
+      candidateCount: 1401,
+      autoMatchedCount: 1200,
+      manualReviewCount: 1201,
+      lowConfidenceCount: 201,
+    },
+    trend: {
+      previousUnresolvedAuditCount: 2500,
+      currentUnresolvedAuditCount: 2602,
+      delta: 102,
+      direction: 'up',
+    },
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'buffs',
+    panel: 'unresolved-audit-trend',
+    generatedAt: '2026-05-06T12:30:00Z',
+  });
+
+  assert.equal(report.panelId, 'unresolvedAuditTrend');
+  assert.equal(report.status, 'blocked');
+  assert.ok(report.blockingReasons.some((reason) => /unresolved audit trend is rising/i.test(reason)));
+  assert.ok(report.blockingReasons.some((reason) => /delta=102/i.test(reason)));
+});
+
+test('buildDomainReadinessReport warns unresolved audit trend when no historical baseline is available', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'reports/relation/reresolve-candidates-2026-05-06.json', {
+    generatedAt: '2026-05-06T12:00:00Z',
+    summary: {
+      unresolvedAuditCount: 2602,
+      candidateCount: 1401,
+      autoMatchedCount: 1200,
+      manualReviewCount: 1201,
+      lowConfidenceCount: 201,
+    },
+    trend: {
+      previousUnresolvedAuditCount: null,
+      currentUnresolvedAuditCount: 2602,
+      delta: null,
+      direction: 'unknown',
+    },
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'buffs',
+    panel: 'unresolved-audit-trend',
+    generatedAt: '2026-05-06T12:30:00Z',
+  });
+
+  assert.equal(report.status, 'warning');
+  assert.ok(report.warningReasons.some((reason) => /historical baseline is unavailable/i.test(reason)));
+});
+
 test('buildDomainReadinessReport blocks relation coverage totals and gaps', () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'reports/relation/entity-coverage-baseline-2026-04-28.json', {
@@ -1098,6 +1160,14 @@ test('resolveDomainReportPath matches domain acceptance report patterns', () => 
       generatedAt: '2026-05-03T12:00:00Z',
     }),
     'reports/domain/support.recipe/blocking-gate-2026-05-03.json',
+  );
+  assert.equal(
+    resolveDomainReportPath({
+      domainId: 'buffs',
+      panel: 'unresolved-audit-trend',
+      generatedAt: '2026-05-06T12:00:00Z',
+    }),
+    'reports/domain/buffs/unresolved-audit-trend-2026-05-06.json',
   );
 });
 

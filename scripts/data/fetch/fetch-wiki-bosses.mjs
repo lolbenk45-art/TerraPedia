@@ -2,13 +2,11 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import { fetchWikiApiJson } from '../lib/wiki-item-utils.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = getProjectRoot();
 
 const API_URL = 'https://terraria.wiki.gg/api.php';
 const USER_AGENT = 'TerraPedia-bosses/1.0';

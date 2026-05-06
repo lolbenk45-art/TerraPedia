@@ -22,6 +22,9 @@ test('domain freshness audit reports fresh stale missing and unknown evidence', 
   writeJson(repoRoot, 'reports/domain/bosses/relation-readiness-2026-05-01.json', {
     generatedAt: '2026-05-01T00:00:00Z',
   });
+  writeJson(repoRoot, 'reports/domain/bosses/unresolved-audit-trend-2026-05-03.json', {
+    generatedAt: '2026-05-03T00:00:00Z',
+  });
   writeText(repoRoot, 'reports/domain/bosses/image-readiness-2026-05-03.json', '{ "generatedAt": ');
 
   const manifest = buildDomainAcceptanceReportManifest().filter((entry) => (
@@ -30,6 +33,7 @@ test('domain freshness audit reports fresh stale missing and unknown evidence', 
       'relationReadiness',
       'imageReadiness',
       'publicReadiness',
+      'unresolvedAuditTrend',
     ].includes(entry.panelId)
   ));
   const audit = buildDomainAcceptanceFreshnessAudit({
@@ -41,17 +45,17 @@ test('domain freshness audit reports fresh stale missing and unknown evidence', 
   assert.equal(audit.generatedAt, '2026-05-03T12:00:00Z');
   assert.equal(audit.overallStatus, 'warning');
   assert.deepEqual(audit.summary, {
-    panelCount: 4,
+    panelCount: 5,
     domainCount: 1,
-    freshCount: 1,
+    freshCount: 2,
     staleCount: 1,
     missingCount: 1,
     unknownCount: 1,
     databaseRequiredCount: 0,
     unsafeCommandCount: 0,
-    autoMaintenanceAllowedCount: 4,
+    autoMaintenanceAllowedCount: 5,
     blockingBeforePublicCount: 1,
-    maintenanceRoutedCount: 4,
+    maintenanceRoutedCount: 5,
   });
   assert.deepEqual(audit.warningReasons, [
     'bosses/relationReadiness evidence is stale',
@@ -77,7 +81,7 @@ test('domain freshness audit filters by domain id', () => {
   });
 
   assert.deepEqual([...new Set(audit.panels.map((entry) => entry.domainId))].sort(), ['buffs', 'projectiles']);
-  assert.equal(audit.summary.panelCount, 8);
+  assert.equal(audit.summary.panelCount, 10);
   assert.equal(audit.summary.domainCount, 2);
 });
 
@@ -213,9 +217,10 @@ test('CLI prints filtered domain freshness JSON without executing evidence comma
 
   assert.equal(stderr, '');
   const parsed = JSON.parse(stdout);
-  assert.equal(parsed.summary.panelCount, 4);
+  assert.equal(parsed.summary.panelCount, 5);
   assert.deepEqual([...new Set(parsed.panels.map((entry) => entry.domainId))], ['buffs']);
   assert.equal(panelById(parsed, 'buffs', 'sourceReadiness').freshnessStatus, 'fresh');
+  assert.ok(parsed.panels.some((entry) => entry.panelId === 'unresolvedAuditTrend'));
 });
 
 function createTempRepo() {

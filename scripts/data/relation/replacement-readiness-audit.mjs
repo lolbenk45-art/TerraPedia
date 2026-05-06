@@ -5,11 +5,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
+import { getProjectRoot } from '../lib/project-root.mjs';
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = getProjectRoot();
 
 export function resolveMysqlRequirePath(root = repoRoot) {
   return path.join(root, 'data-query-app', 'package.json');

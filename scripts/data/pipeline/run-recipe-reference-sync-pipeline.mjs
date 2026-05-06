@@ -4,12 +4,12 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { getProjectRoot } from '../lib/project-root.mjs';
 import { parseCliArgs, sharedDataPath } from '../lib/wiki-item-utils.mjs';
 import { buildRecipeReferenceImportArgs } from './recipe-reference-import-args.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const repoRoot = getProjectRoot();
 
 const buildScriptPath = path.join(repoRoot, 'scripts', 'data', 'fetch', 'build-item-relations-bundle.mjs');
 const importRecipesScriptPath = path.join(repoRoot, 'scripts', 'data', 'import', 'import-recipes-from-external-data.mjs');

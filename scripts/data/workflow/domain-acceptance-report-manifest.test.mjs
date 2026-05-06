@@ -397,12 +397,11 @@ test('product domains get source relation image and public readiness panels', ()
       .map((entry) => entry.panelId)
       .sort();
 
-    assert.deepEqual(panelIds, [
-      'imageReadiness',
-      'publicReadiness',
-      'relationReadiness',
-      'sourceReadiness',
-    ]);
+    assert.ok(panelIds.includes('imageReadiness'));
+    assert.ok(panelIds.includes('publicReadiness'));
+    assert.ok(panelIds.includes('relationReadiness'));
+    assert.ok(panelIds.includes('sourceReadiness'));
+    assert.ok(panelIds.includes('unresolvedAuditTrend'));
   }
 });
 
@@ -416,8 +415,39 @@ test('support domains start with source readiness and blocking-gate panels', () 
       .map((entry) => entry.panelId)
       .sort();
 
-    assert.deepEqual(panelIds, ['blockingGate', 'sourceReadiness']);
+    assert.deepEqual(panelIds, ['b1ExemptionCompliance', 'blockingGate', 'sourceReadiness']);
   }
+});
+
+test('b1 exemption compliance panel uses its dedicated read-only audit command', () => {
+  const manifest = buildDomainAcceptanceReportManifest();
+  const shimmerPanel = manifest.find((entry) => (
+    entry.domainId === 'support.shimmer' && entry.panelId === 'b1ExemptionCompliance'
+  ));
+
+  assert.ok(shimmerPanel);
+  assert.equal(
+    shimmerPanel.generatorCommand,
+    'node scripts/data/audit/b1-exemption-compliance.mjs --domain=support.shimmer',
+  );
+  assert.equal(shimmerPanel.blockingBeforePublic, true);
+  assert.equal(shimmerPanel.writesDatabase, false);
+});
+
+test('unresolved audit trend panel uses dedicated read-only candidate generation command', () => {
+  const manifest = buildDomainAcceptanceReportManifest();
+  const bossesPanel = manifest.find((entry) => (
+    entry.domainId === 'bosses' && entry.panelId === 'unresolvedAuditTrend'
+  ));
+
+  assert.ok(bossesPanel);
+  assert.equal(
+    bossesPanel.generatorCommand,
+    'node scripts/data/relation/generate-reresolve-candidates.mjs',
+  );
+  assert.equal(bossesPanel.chainStage, 'relation');
+  assert.equal(bossesPanel.writesDatabase, false);
+  assert.equal(bossesPanel.requiresDatabase, false);
 });
 
 test('CLI prints legal JSON and does not execute evidence commands', async () => {

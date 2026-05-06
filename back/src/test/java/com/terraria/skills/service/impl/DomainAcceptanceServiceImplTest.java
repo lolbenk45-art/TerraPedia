@@ -36,7 +36,7 @@ class DomainAcceptanceServiceImplTest {
         assertEquals(Instant.parse("2026-05-03T12:00:00Z"), overview.getGeneratedAt());
         assertEquals("pass", overview.getOverallStatus());
         assertEquals(9, overview.getDomainCount());
-        assertEquals(26, overview.getPanelCount());
+        assertEquals(35, overview.getPanelCount());
         assertEquals(0, overview.getBlockingCount());
         assertEquals(0, overview.getWarningCount());
         assertEquals(0, overview.getMissingCount());
@@ -54,7 +54,7 @@ class DomainAcceptanceServiceImplTest {
         assertEquals("node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=wiki-core-refresh,boss-sync", bosses.getBackendRefreshPlanCommand());
         assertEquals(false, bosses.getRequiresDatabase());
         assertEquals("pass", bosses.getStatus());
-        assertEquals(4, bosses.getPanelCount());
+        assertEquals(5, bosses.getPanelCount());
         DomainAcceptanceOverviewDTO.DomainPanelDTO source = panel(bosses, "sourceReadiness");
         assertEquals("pass", source.getStatus());
         assertTrue(source.isFound());
@@ -77,6 +77,12 @@ class DomainAcceptanceServiceImplTest {
         assertEquals("Evidence sample", source.getChecks().get(0).getMessage());
         assertEquals("data/generated/wiki-bosses.latest.json", source.getChecks().get(0).getReportPath());
 
+        DomainAcceptanceOverviewDTO.DomainPanelDTO unresolvedAuditTrend = panel(bosses, "unresolvedAuditTrend");
+        assertEquals("relation", unresolvedAuditTrend.getChainStage());
+        assertEquals("node scripts/data/relation/generate-reresolve-candidates.mjs", unresolvedAuditTrend.getGeneratorCommand());
+        assertEquals(false, unresolvedAuditTrend.getWritesDatabase());
+        assertEquals(false, unresolvedAuditTrend.getRequiresDatabase());
+
         DomainAcceptanceOverviewDTO.DomainPanelDTO publicPanel = panel(bosses, "publicReadiness");
         assertEquals("public", publicPanel.getChainStage());
         assertEquals(true, publicPanel.getBlockingBeforePublic());
@@ -89,7 +95,7 @@ class DomainAcceptanceServiceImplTest {
         assertEquals("admin_only", itemGroup.getPublicGateStatus());
         assertNull(itemGroup.getPublicGateReason());
         assertEquals("pass", itemGroup.getStatus());
-        assertEquals(2, itemGroup.getPanelCount());
+        assertEquals(3, itemGroup.getPanelCount());
         assertEquals("blockingGate", itemGroup.getPanels().get(1).getPanelId());
     }
 
@@ -581,7 +587,7 @@ class DomainAcceptanceServiceImplTest {
         DomainAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot).getOverview();
 
         assertEquals("missing", overview.getOverallStatus());
-        assertEquals(26, overview.getMissingCount());
+        assertEquals(35, overview.getMissingCount());
         assertEquals(0, overview.getBlockingCount());
         assertEquals(0, overview.getWarningCount());
         DomainAcceptanceOverviewDTO.DomainPanelDTO panel = panel(domain(overview, "support.item_group"), "blockingGate");
@@ -969,11 +975,13 @@ class DomainAcceptanceServiceImplTest {
             new PanelSpec("source-readiness"),
             new PanelSpec("relation-readiness"),
             new PanelSpec("image-readiness"),
-            new PanelSpec("public-readiness")
+            new PanelSpec("public-readiness"),
+            new PanelSpec("unresolved-audit-trend")
         );
         List<PanelSpec> supportPanels = List.of(
             new PanelSpec("source-readiness"),
-            new PanelSpec("blocking-gate")
+            new PanelSpec("blocking-gate"),
+            new PanelSpec("b1-exemption-compliance")
         );
         return List.of(
             new DomainSpec("bosses", productPanels),

@@ -5,6 +5,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
+import { getProjectRoot, resolveSharedDataRoot } from '../lib/project-root.mjs';
 import {
   buildWikiPageUrl,
   fetchWikiPageHtmlSnapshot,
@@ -27,9 +28,8 @@ const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
-const sharedDataRoot = path.resolve(repoRoot, '..', 'data', 'terraPedia');
+const repoRoot = getProjectRoot();
+const sharedDataRoot = resolveSharedDataRoot();
 
 const LIVE_RECIPE_PROVIDER = 'wiki_gg';
 const RECIPE_SOURCE_TYPE = 'wiki_gg_live_english_recipes';
