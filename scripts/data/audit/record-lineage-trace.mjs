@@ -62,10 +62,10 @@ export async function runRecordLineageTrace(options = {}, dependencies = {}) {
   };
   const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
   const mysqlOptions = {
-    host: config.database?.host ?? '127.0.0.1',
-    port: Number(config.database?.port ?? 3306),
-    user: config.database?.username ?? 'root',
-    password: config.database?.password ?? 'root',
+    host: process.env.TERRAPEDIA_DB_HOST ?? config.database?.host ?? '127.0.0.1',
+    port: Number(process.env.TERRAPEDIA_DB_PORT ?? config.database?.port ?? 3306),
+    user: process.env.TERRAPEDIA_DB_USERNAME ?? config.database?.username ?? 'root',
+    password: process.env.TERRAPEDIA_DB_PASSWORD ?? config.database?.password ?? 'root',
   };
   const createConnection = dependencies.createConnection ?? mysql.createConnection;
   const connection = await createConnection(mysqlOptions);
@@ -118,10 +118,10 @@ function buildItemPlan(options) {
       {
         stageId: 'local.item',
         title: 'Local item record',
-        sql: `SELECT id, source_id AS sourceId, internal_name AS internalName, name, name_zh AS nameZh, image
+        sql: `SELECT id, NULL AS sourceId, internal_name AS internalName, name, name_zh AS nameZh, image
 FROM ${localItems}
 WHERE deleted = 0 AND ${entityWhereClause('items', options)}`,
-        params: entityParams(options),
+        params: entityParams(options, 'items'),
       },
       {
         stageId: 'relation.projection_item',
@@ -170,8 +170,7 @@ WHERE deleted = 0
         title: 'Landing source rows',
         sql: `SELECT *
 FROM ${landing}
-WHERE deleted = 0
-  AND is_current = 1
+WHERE is_current = 1
   AND (${itemLandingWhereClause(options)})`,
         params: itemLandingParams(options),
       },
@@ -197,7 +196,7 @@ function buildNpcPlan(options) {
         sql: `SELECT id, source_id AS sourceId, internal_name AS internalName, name, name_zh AS nameZh, image_url AS imageUrl
 FROM ${localNpcs}
 WHERE deleted = 0 AND ${entityWhereClause('npcs', options)}`,
-        params: entityParams(options),
+        params: entityParams(options, 'npcs'),
       },
       {
         stageId: 'relation.projection_npc',
@@ -252,8 +251,7 @@ WHERE deleted = 0 AND npc_id = ?`,
         title: 'Landing source rows',
         sql: `SELECT *
 FROM ${landing}
-WHERE deleted = 0
-  AND is_current = 1
+WHERE is_current = 1
   AND (${npcLandingWhereClause(options)})`,
         params: npcLandingParams(options),
       },
@@ -266,15 +264,15 @@ function entityWhereClause(tableName, options) {
   if (options.id != null && ['items', 'npcs'].includes(tableName)) {
     clauses.push('id = ?');
   }
-  if (options.sourceId != null) clauses.push('source_id = ?');
+  if (options.sourceId != null && tableName !== 'items') clauses.push('source_id = ?');
   if (options.internalName) clauses.push('internal_name = ?');
   return clauses.length > 0 ? clauses.join(' OR ') : '1 = 0';
 }
 
-function entityParams(options) {
+function entityParams(options, tableName = null) {
   const params = [];
   if (options.id != null) params.push(options.id);
-  if (options.sourceId != null) params.push(options.sourceId);
+  if (options.sourceId != null && tableName !== 'items') params.push(options.sourceId);
   if (options.internalName) params.push(options.internalName);
   return params;
 }

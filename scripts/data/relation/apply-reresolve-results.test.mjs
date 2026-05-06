@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   buildApplyPlan,
+  buildMysqlConnectionOptions,
   loadConfirmedCandidatesPayload,
   parseArgs,
 } from './apply-reresolve-results.mjs';
@@ -14,6 +15,35 @@ test('parseArgs defaults apply-reresolve-results to dry-run with no candidate fi
     generatedAt: null,
     confirmedCandidatesPath: null,
   });
+});
+
+test('buildMysqlConnectionOptions uses acceptance DB env before local config defaults', () => {
+  assert.deepEqual(
+    buildMysqlConnectionOptions({
+      relationDatabase: 'terria_v1_relation',
+      config: {
+        database: {
+          host: 'config-host',
+          port: 13306,
+          username: 'config-user',
+          password: 'config-pass',
+        },
+      },
+      env: {
+        TERRAPEDIA_DB_HOST: '127.0.0.1',
+        TERRAPEDIA_DB_PORT: '3307',
+        TERRAPEDIA_DB_USERNAME: 'env-user',
+        TERRAPEDIA_DB_PASSWORD: 'env-pass',
+      },
+    }),
+    {
+      host: '127.0.0.1',
+      port: 3307,
+      user: 'env-user',
+      password: 'env-pass',
+      database: 'terria_v1_relation',
+    },
+  );
 });
 
 test('loadConfirmedCandidatesPayload fails closed without explicit manual confirmation and writer clearance', () => {

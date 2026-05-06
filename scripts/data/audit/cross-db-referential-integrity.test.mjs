@@ -1,11 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 
 import {
   buildCrossDbReferentialIntegrityQueries,
   buildCrossDbReferentialIntegrityReport,
   parseArgs,
 } from './cross-db-referential-integrity.mjs';
+
+const execFileAsync = promisify(execFile);
 
 test('parseArgs defaults cross-db referential integrity audit to quick mode', () => {
   assert.deepEqual(parseArgs([]), {
@@ -18,8 +22,31 @@ test('parseArgs defaults cross-db referential integrity audit to quick mode', ()
     recentDays: 7,
     writeReport: true,
     output: null,
+    generatedAt: null,
     dateTag: new Date().toISOString().slice(0, 10),
   });
+});
+
+test('parseArgs preserves generatedAt for acceptance report timestamps', () => {
+  assert.deepEqual(
+    parseArgs([
+      '--generated-at=2026-05-07T05:11:02.000Z',
+      '--date-tag=2026-05-07',
+    ]),
+    {
+      landingDatabase: 'terria_v1_maint',
+      maintDatabase: 'terria_v1_maint',
+      relationDatabase: 'terria_v1_relation',
+      localDatabase: 'terria_v1_local',
+      mode: 'quick',
+      sampleLimit: 20,
+      recentDays: 7,
+      writeReport: true,
+      output: null,
+      generatedAt: '2026-05-07T05:11:02.000Z',
+      dateTag: '2026-05-07',
+    },
+  );
 });
 
 test('buildCrossDbReferentialIntegrityQueries emits SELECT-only checks across landing maint relation local', () => {
@@ -65,4 +92,24 @@ test('buildCrossDbReferentialIntegrityReport classifies fail warn and pass check
   assert.equal(report.checks.find((check) => check.id === 'maint_items_missing_current_landing').status, 'fail');
   assert.equal(report.checks.find((check) => check.id === 'relation_shop_missing_local_entries').status, 'warn');
   assert.equal(report.checks.find((check) => check.id === 'local_npc_loot_orphans').status, 'pass');
+});
+
+test('CLI prints JSON report to stdout instead of human text', async () => {
+  const { stdout, stderr } = await execFileAsync(
+    process.execPath,
+    [
+      'scripts/data/audit/cross-db-referential-integrity.mjs',
+      '--mode=quick',
+      '--write-report=false',
+      '--generated-at=2026-05-07T00:00:00.000Z',
+    ],
+    { cwd: process.cwd() },
+  );
+
+  assert.equal(stderr, '');
+  const parsed = JSON.parse(stdout);
+  assert.equal(parsed.mode, 'quick');
+  assert.equal(parsed.generatedAt, '2026-05-07T00:00:00.000Z');
+  assert.ok(parsed.summary);
+  assert.ok(Array.isArray(parsed.checks));
 });

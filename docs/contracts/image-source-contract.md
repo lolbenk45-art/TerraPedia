@@ -30,10 +30,10 @@ An entity type is `contractReady=true` only when all of the following are true:
 | Entity | Core field | Maint lineage table | Relation lineage table | Projection field |
 | --- | --- | --- | --- | --- |
 | Item | `items.image` | `maint_item_images` | `relation_item_images` | `projection_items.image` |
-| Buff | `buffs.image` / `buffs.image_path` | none today | none today | `projection_buffs.image` |
+| Buff | `buffs.image` | none today | none today | `projection_buffs.image` |
 | NPC | `npcs.image_url` | `maint_npc_images` | `relation_npc_images` | `projection_npcs.image_url` |
 | Projectile | `projectiles.image_url` / `projectiles.raw_json.imageUrl` | none today | none today | `projection_projectiles.image_url` |
-| Biome | `biomes.icon_url` / `biomes.raw_json.iconUrl` | none today | none today | none today |
+| Biome | `biomes.icon_url` | none today | none today | none today |
 
 ## Gap Semantics
 

@@ -95,10 +95,13 @@ test('buildImageSourceLineageQueries stay read-only and cover the expected linea
 
   assert.match(queries.items.core, /^\s*SELECT/i);
   assert.match(queries.items.maintImages, /maint_item_images/i);
+  assert.match(queries.items.projection, /FROM `terria_v1_relation`\.`projection_items`/);
+  assert.doesNotMatch(queries.buffs.core, /image_path/i);
   assert.match(queries.npcs.maintImages, /maint_npc_images/i);
-  assert.match(queries.projectiles.projection, /projection_projectiles/i);
-  assert.match(queries.buffs.projection, /projection_buffs/i);
+  assert.match(queries.projectiles.projection, /FROM `terria_v1_relation`\.`projection_projectiles`/i);
+  assert.match(queries.buffs.projection, /FROM `terria_v1_relation`\.`projection_buffs`/i);
   assert.match(queries.biomes.core, /FROM `terria_v1_local`\.`biomes`/);
+  assert.doesNotMatch(queries.biomes.core, /raw_json/i);
 
   for (const entityQueries of Object.values(queries)) {
     for (const sql of Object.values(entityQueries)) {

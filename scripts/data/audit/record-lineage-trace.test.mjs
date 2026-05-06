@@ -30,8 +30,9 @@ test('buildRecordLineageTracePlan builds item stages across local relation maint
   assert.match(plan.steps[2].sql, /item_source_facts/);
   assert.match(plan.steps[4].sql, /maint_item_sources/);
   assert.match(plan.steps[5].sql, /item_acquisition_sources/);
-  assert.match(plan.steps[0].sql, /WHERE deleted = 0 AND id = \? OR source_id = \? OR internal_name = \?/);
-  assert.deepEqual(plan.steps[0].params, [42, 6131, 'Wood']);
+  assert.match(plan.steps[0].sql, /NULL AS sourceId/);
+  assert.match(plan.steps[0].sql, /WHERE deleted = 0 AND id = \? OR internal_name = \?/);
+  assert.deepEqual(plan.steps[0].params, [42, 'Wood']);
   assert.match(plan.steps[1].sql, /WHERE source_id = \? OR internal_name = \?/);
   assert.deepEqual(plan.steps[1].params, [6131, 'Wood']);
   assert.match(plan.steps[5].sql, /item_id = \? OR source_ref_name = \?/);
@@ -47,6 +48,7 @@ test('buildRecordLineageTracePlan builds npc stages across local relation maint 
   assert.match(plan.steps[2].sql, /item_npc_shop_relations/);
   assert.match(plan.steps[3].sql, /item_npc_loot_relations/);
   assert.match(plan.steps.at(-1).sql, /source_dataset_landings/);
+  assert.doesNotMatch(plan.steps.at(-1).sql, /deleted = 0/);
   assert.match(plan.steps[1].sql, /WHERE source_id = \? OR internal_name = \?/);
   assert.deepEqual(plan.steps[1].params, [22, 'Guide']);
   assert.deepEqual(plan.steps[5].params, [17]);

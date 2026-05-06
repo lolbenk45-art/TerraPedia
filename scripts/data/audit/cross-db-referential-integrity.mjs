@@ -34,6 +34,8 @@ export function parseArgs(argv = process.argv.slice(2)) {
     else raw[body] = 'true';
   }
 
+  const generatedAt = raw['generated-at'] ?? raw.generatedAt ?? null;
+
   return {
     landingDatabase: raw['landing-database'] ?? raw.landingDatabase ?? DEFAULTS.landingDatabase,
     maintDatabase: raw['maint-database'] ?? raw.maintDatabase ?? DEFAULTS.maintDatabase,
@@ -44,7 +46,8 @@ export function parseArgs(argv = process.argv.slice(2)) {
     recentDays: positiveInteger(raw['recent-days'] ?? raw.recentDays, DEFAULTS.recentDays),
     writeReport: booleanOption(raw['write-report'] ?? raw.writeReport, true),
     output: raw.output ?? null,
-    dateTag: raw['date-tag'] ?? raw.dateTag ?? new Date().toISOString().slice(0, 10),
+    generatedAt,
+    dateTag: raw['date-tag'] ?? raw.dateTag ?? generatedAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
   };
 }
 
@@ -293,6 +296,7 @@ export async function runCrossDbReferentialIntegrityAudit(options = {}, dependen
     sampleLimit: positiveInteger(options.sampleLimit, DEFAULTS.sampleLimit),
     recentDays: positiveInteger(options.recentDays, DEFAULTS.recentDays),
     writeReport: options.writeReport ?? true,
+    generatedAt: options.generatedAt ?? null,
     dateTag: options.dateTag ?? new Date().toISOString().slice(0, 10),
   };
 
@@ -320,7 +324,7 @@ export async function runCrossDbReferentialIntegrityAudit(options = {}, dependen
     }
 
     const report = buildCrossDbReferentialIntegrityReport({
-      generatedAt: `${normalized.dateTag}T00:00:00.000Z`,
+      generatedAt: normalized.generatedAt ?? `${normalized.dateTag}T00:00:00.000Z`,
       mode: normalized.mode,
       databases: normalized,
       checks,
@@ -449,8 +453,5 @@ function booleanOption(value, fallback = false) {
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const options = parseArgs(process.argv.slice(2));
   const result = await runCrossDbReferentialIntegrityAudit(options);
-  console.log(`Cross-db referential integrity status: ${result.report.summary.status}`);
-  if (result.reportPaths?.jsonPath) {
-    console.log(`Cross-db referential integrity report: ${result.reportPaths.jsonPath}`);
-  }
+  process.stdout.write(`${JSON.stringify(result.report, null, 2)}\n`);
 }

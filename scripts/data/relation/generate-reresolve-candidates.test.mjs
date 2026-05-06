@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  buildMysqlConnectionOptions,
   buildReresolveCandidateReport,
   parseArgs,
 } from './generate-reresolve-candidates.mjs';
@@ -13,6 +14,35 @@ test('parseArgs defaults reresolve candidate generation to read-only report outp
     writeReport: true,
     reportPath: null,
   });
+});
+
+test('buildMysqlConnectionOptions uses acceptance DB env before local config defaults', () => {
+  assert.deepEqual(
+    buildMysqlConnectionOptions({
+      relationDatabase: 'terria_v1_relation',
+      config: {
+        database: {
+          host: 'config-host',
+          port: 13306,
+          username: 'config-user',
+          password: 'config-pass',
+        },
+      },
+      env: {
+        TERRAPEDIA_DB_HOST: '127.0.0.1',
+        TERRAPEDIA_DB_PORT: '3307',
+        TERRAPEDIA_DB_USERNAME: 'env-user',
+        TERRAPEDIA_DB_PASSWORD: 'env-pass',
+      },
+    }),
+    {
+      host: '127.0.0.1',
+      port: 3307,
+      user: 'env-user',
+      password: 'env-pass',
+      database: 'terria_v1_relation',
+    },
+  );
 });
 
 test('buildReresolveCandidateReport proposes exact npc matches and tracks unresolved trend', () => {

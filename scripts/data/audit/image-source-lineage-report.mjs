@@ -61,9 +61,9 @@ FROM ${qualified(relationDatabase, 'relation_item_images')}
 WHERE \`deleted\` = 0
 ORDER BY \`id\` ASC
 `.trim(),
-    projectionQuery: () => `
+    projectionQuery: (relationDatabase) => `
 SELECT \`id\`, \`internal_name\` AS internalName, \`image\`
-FROM \`projection_items\`
+FROM ${qualified(relationDatabase, 'projection_items')}
 WHERE \`deleted\` = 0
 ORDER BY \`id\` ASC
 `.trim(),
@@ -80,14 +80,14 @@ ORDER BY \`id\` ASC
   buffs: {
     contractKey: 'buff.image',
     coreQuery: (localDatabase) => `
-SELECT \`id\`, \`internal_name\` AS internalName, \`english_name\` AS englishName, \`name_zh\` AS nameZh, \`image\`, \`image_path\` AS imagePath
+SELECT \`id\`, \`internal_name\` AS internalName, \`english_name\` AS englishName, \`name_zh\` AS nameZh, \`image\`
 FROM ${qualified(localDatabase, 'buffs')}
 WHERE \`deleted\` = 0
 ORDER BY \`id\` ASC
 `.trim(),
-    projectionQuery: () => `
+    projectionQuery: (relationDatabase) => `
 SELECT \`id\`, \`internal_name\` AS internalName, \`image\`
-FROM \`projection_buffs\`
+FROM ${qualified(relationDatabase, 'projection_buffs')}
 WHERE \`deleted\` = 0
 ORDER BY \`id\` ASC
 `.trim(),
@@ -144,9 +144,9 @@ FROM ${qualified(relationDatabase, 'relation_npc_images')}
 WHERE \`deleted\` = 0
 ORDER BY \`id\` ASC
 `.trim(),
-    projectionQuery: () => `
+    projectionQuery: (relationDatabase) => `
 SELECT \`id\`, \`internal_name\` AS internalName, \`image_url\` AS imageUrl
-FROM \`projection_npcs\`
+FROM ${qualified(relationDatabase, 'projection_npcs')}
 WHERE \`deleted\` = 0
 ORDER BY \`id\` ASC
 `.trim(),
@@ -168,9 +168,9 @@ FROM ${qualified(localDatabase, 'projectiles')}
 WHERE \`deleted\` = 0
 ORDER BY \`id\` ASC
 `.trim(),
-    projectionQuery: () => `
+    projectionQuery: (relationDatabase) => `
 SELECT \`id\`, \`internal_name\` AS internalName, \`image_url\` AS imageUrl
-FROM \`projection_projectiles\`
+FROM ${qualified(relationDatabase, 'projection_projectiles')}
 WHERE \`deleted\` = 0
 ORDER BY \`id\` ASC
 `.trim(),
@@ -185,7 +185,7 @@ ORDER BY \`id\` ASC
   biomes: {
     contractKey: 'biome.iconUrl',
     coreQuery: (localDatabase) => `
-SELECT \`id\`, \`code\`, \`name_en\` AS nameEn, \`name_zh\` AS nameZh, \`icon_url\` AS iconUrl, \`raw_json\` AS rawJson
+SELECT \`id\`, \`code\`, \`name_en\` AS nameEn, \`name_zh\` AS nameZh, \`icon_url\` AS iconUrl
 FROM ${qualified(localDatabase, 'biomes')}
 WHERE \`deleted\` = 0
 ORDER BY \`id\` ASC

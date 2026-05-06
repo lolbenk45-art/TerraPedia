@@ -59,10 +59,10 @@
 
 | 输入 | 当前消费者 | 迁移目标 | 验收命令 |
 | --- | --- | --- | --- |
-| `data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json` | NPC 基础数据、NPC-Buff 回填 | `source_dataset_landings` -> canonical npc | `node scripts/data/crawler/src/cli.mjs coverage-audit --domain=npc` |
-| `data/generated/recipe-material-reference.json` | recipe material group | canonical recipe group | `node scripts/data/audit/audit-any-item-group-sources.mjs` |
-| `data/generated/recipe-group-overrides.json` | recipe group 补洞 | canonical recipe group override | `node scripts/data/audit/audit-any-item-group-sources.mjs` |
-| `data/generated/item-group-overrides.json` | npc_shop/shimmer group 解释 | canonical item group override | `node scripts/data/audit/audit-any-item-group-sources.mjs` |
+| `data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json` | NPC 基础数据、NPC-Buff 回填；deadline: 2026-06-30 | `source_dataset_landings` -> canonical npc | `node scripts/data/crawler/src/cli.mjs coverage-audit --domain=npc` |
+| `data/generated/recipe-material-reference.json` | recipe material group；deadline: 2026-06-30 | canonical recipe group | `node scripts/data/audit/audit-any-item-group-sources.mjs` |
+| `data/generated/recipe-group-overrides.json` | recipe group 补洞；deadline: 2026-06-30 | canonical recipe group override | `node scripts/data/audit/audit-any-item-group-sources.mjs` |
+| `data/generated/item-group-overrides.json` | npc_shop/shimmer group 解释；deadline: 2026-06-30 | canonical item group override | `node scripts/data/audit/audit-any-item-group-sources.mjs` |
 | legacy `items.image` | item image fallback | `item_images.original_url` / `cached_url` | `cd back; mvn "-Dtest=WikiImageSyncServiceImplTest,ItemImageServiceImplTest,ItemMapperPreferredImageSqlTest" test` |
 
 ## Apply 前准入

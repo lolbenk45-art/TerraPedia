@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = getProjectRoot();
@@ -34,6 +35,20 @@ export function parseArgs(argv = process.argv.slice(2)) {
     generatedAt: nonEmptyText(raw['generated-at']) ?? null,
     writeReport: raw['write-report'] !== 'false',
     reportPath: nonEmptyText(raw.output) ?? null,
+  };
+}
+
+export function buildMysqlConnectionOptions({
+  relationDatabase = DEFAULTS.relationDatabase,
+  config = {},
+  env = process.env,
+} = {}) {
+  return {
+    host: env.TERRAPEDIA_DB_HOST ?? config.database?.host ?? '127.0.0.1',
+    port: Number(env.TERRAPEDIA_DB_PORT ?? config.database?.port ?? 3306),
+    user: env.TERRAPEDIA_DB_USERNAME ?? config.database?.username ?? 'root',
+    password: env.TERRAPEDIA_DB_PASSWORD ?? config.database?.password ?? 'root',
+    database: relationDatabase,
   };
 }
 
@@ -94,8 +109,14 @@ export async function runGenerateReresolveCandidates({
   reportPath = null,
   connection = null,
   projectRoot = repoRoot,
+  config = loadLocalStackConfig(projectRoot),
+  env = process.env,
 } = {}) {
-  const ownedConnection = connection ?? await mysql.createConnection({ database: relationDatabase });
+  const ownedConnection = connection ?? await mysql.createConnection(buildMysqlConnectionOptions({
+    relationDatabase,
+    config,
+    env,
+  }));
   try {
     const auditRows = await loadAuditRows(ownedConnection, relationDatabase);
     const npcRows = await loadNpcRows(ownedConnection, relationDatabase);

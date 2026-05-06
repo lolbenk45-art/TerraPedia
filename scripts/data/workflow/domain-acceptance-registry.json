@@ -107,8 +107,8 @@
       "panelSet": "product",
       "backendRefreshStepIds": ["wiki-core-refresh", "item-pages-refresh", "recipe-reference-sync", "item-detail-sync"],
       "managementRoute": "/items",
-      "publicExposure": "public",
-      "publicRoute": "/items"
+      "publicExposure": "planned-public",
+      "publicRoute": null
     },
     {
       "domainId": "npcs",
@@ -118,8 +118,8 @@
       "panelSet": "product",
       "backendRefreshStepIds": ["wiki-core-refresh", "town-npc-sync"],
       "managementRoute": "/npcs",
-      "publicExposure": "public",
-      "publicRoute": "/npcs"
+      "publicExposure": "planned-public",
+      "publicRoute": null
     },
     {
       "domainId": "bosses",
