@@ -1,21 +1,26 @@
 <#
 .SYNOPSIS
-  Real-environment acceptance test for TerraPedia P0-P2 deliverable scripts.
-  All tests are read-only — no DB writes, no --apply, no --write=true.
+  Real-environment smoke-structure test for TerraPedia P0-P2 deliverable scripts.
+  No DB writes, no --apply. Writes local report artifacts (JSON, markdown, JSONL).
 .DESCRIPTION
-  Runs up to 18 integration tests across two phases:
+  Runs up to 19 smoke-structure steps across two phases:
     Phase 1 (no DB): B1 compliance (4 domains), freshness audit, refresh plan,
       staleness alert, crawler layout, canonical candidates & consistency,
-      chained audit-to-plan-to-alert pipeline.
+      chained audit-to-plan-to-alert pipeline (13 steps max).
     Phase 2 (DB required): lineage trace (item + npc), image lineage,
-      cross-db integrity, reresolve candidates, reresolve dry-run.
-  Each step validates JSON structure (top-level keys) only — not specific data
-  values — since results depend on live DB state.
-  Exit code 0 = all run steps passed. Exit code 1 = at least one failure.
+      cross-db integrity, reresolve candidates, reresolve dry-run (6 steps).
+  Each step validates JSON structure (top-level keys) AND rejects a top-level
+  status/overallStatus value of "blocked". Deeper content assertions depend on
+  live data and are out of scope.
+  Exit code 0 = all run steps passed. Exit code 1 = at least one failure
+    (including DB unavailable without -AllowDbSkip, or any blocked status).
 .PARAMETER SkipDb
-  Skip Phase 2 (all DB-required tests).
+  Skip Phase 2 (all DB-required tests). Exits 0 even if DB is down.
 .PARAMETER SkipNoDb
   Skip Phase 1 (all non-DB tests).
+.PARAMETER AllowDbSkip
+  When DB is unreachable, skip DB steps instead of failing. Without this flag,
+  an unreachable DB causes Phase 2 steps to FAIL (exit 1).
 .PARAMETER DbHost
   Database host for TCP preflight and env override (default 127.0.0.1).
 .PARAMETER DbPort
@@ -27,6 +32,7 @@
 param(
   [switch]$SkipDb,
   [switch]$SkipNoDb,
+  [switch]$AllowDbSkip,
   [string]$DbHost = '127.0.0.1',
   [int]$DbPort = 3306,
   [string]$SharedDataRoot
@@ -225,6 +231,14 @@ function Invoke-AcceptanceStep {
       return
     }
 
+    # Reject blocked status: an acceptance step must not report blocked
+    $topStatus = if ($parsed.status) { [string]$parsed.status } elseif ($parsed.overallStatus) { [string]$parsed.overallStatus } else { '' }
+    if ($topStatus -eq 'blocked') {
+      Add-Result -StepId $StepId -Phase $Phase -ScriptPath $ScriptPath -Status 'fail' -Duration $duration -ExitCode 0 -Message "status=blocked — acceptance gate is not passing" -KeyAssertions $KeyAssertions
+      Write-StepLine 'fail' $StepId 'status=blocked — acceptance gate is not passing' $duration
+      return
+    }
+
     Add-Result -StepId $StepId -Phase $Phase -ScriptPath $ScriptPath -Status 'pass' -Duration $duration -ExitCode 0 -Message $summary -KeyAssertions $KeyAssertions
     Write-StepLine 'pass' $StepId $summary $duration
   } catch {
@@ -341,12 +355,13 @@ console.log(JSON.stringify(checkCrawlerSourceLayout(), null, 2));
   $chainAuditFile = Join-Path $acceptanceDir "freshness-audit-$timestamp.json"
   $chainPlanFile = Join-Path $acceptanceDir "refresh-plan-$timestamp.json"
 
+  # 11: Chain — freshness audit (write output to temp file for downstream steps)
   Invoke-AcceptanceStep -StepId 'chain-freshness-audit' -Phase 'no-db' `
     -ScriptPath 'scripts/data/workflow/domain-acceptance-freshness-audit.mjs' `
     -Arguments @("--repo-root=$repoRoot", "--generated-at=$nowIso") `
     -KeyAssertions @('generatedAt', 'overallStatus', 'summary', 'panels')
 
-  # Write the audit output to temp file manually after capturing
+  # Capture audit output to temp file for downstream chain steps
   $auditSw = [System.Diagnostics.Stopwatch]::StartNew()
   try {
     $auditRaw = & $nodeCmd (Join-Path $repoRoot 'scripts/data/workflow/domain-acceptance-freshness-audit.mjs') @("--repo-root=$repoRoot", "--generated-at=$nowIso") 2>&1
@@ -409,16 +424,31 @@ if (-not $SkipDb) {
   Write-Host '===================================================================' -ForegroundColor Cyan
 
   if (-not $dbAvailable) {
-    $dbSkipScripts = @(
-      @{Id='lineage-trace-item'; Script='scripts/data/audit/record-lineage-trace.mjs'},
-      @{Id='lineage-trace-npc'; Script='scripts/data/audit/record-lineage-trace.mjs'},
-      @{Id='image-source-lineage'; Script='scripts/data/audit/image-source-lineage-report.mjs'},
-      @{Id='cross-db-integrity'; Script='scripts/data/audit/cross-db-referential-integrity.mjs'},
-      @{Id='reresolve-candidates'; Script='scripts/data/relation/generate-reresolve-candidates.mjs'},
-      @{Id='reresolve-dry-run'; Script='scripts/data/relation/apply-reresolve-results.mjs'}
-    )
-    foreach ($entry in $dbSkipScripts) {
-      Skip-Step -StepId $entry.Id -Phase 'db' -ScriptPath $entry.Script -Reason 'DB not available'
+    if ($AllowDbSkip) {
+      $dbSkipScripts = @(
+        @{Id='lineage-trace-item'; Script='scripts/data/audit/record-lineage-trace.mjs'},
+        @{Id='lineage-trace-npc'; Script='scripts/data/audit/record-lineage-trace.mjs'},
+        @{Id='image-source-lineage'; Script='scripts/data/audit/image-source-lineage-report.mjs'},
+        @{Id='cross-db-integrity'; Script='scripts/data/audit/cross-db-referential-integrity.mjs'},
+        @{Id='reresolve-candidates'; Script='scripts/data/relation/generate-reresolve-candidates.mjs'},
+        @{Id='reresolve-dry-run'; Script='scripts/data/relation/apply-reresolve-results.mjs'}
+      )
+      foreach ($entry in $dbSkipScripts) {
+        Skip-Step -StepId $entry.Id -Phase 'db' -ScriptPath $entry.Script -Reason 'DB not available (-AllowDbSkip set)'
+      }
+    } else {
+      $dbFailScripts = @(
+        @{Id='lineage-trace-item'; Script='scripts/data/audit/record-lineage-trace.mjs'},
+        @{Id='lineage-trace-npc'; Script='scripts/data/audit/record-lineage-trace.mjs'},
+        @{Id='image-source-lineage'; Script='scripts/data/audit/image-source-lineage-report.mjs'},
+        @{Id='cross-db-integrity'; Script='scripts/data/audit/cross-db-referential-integrity.mjs'},
+        @{Id='reresolve-candidates'; Script='scripts/data/relation/generate-reresolve-candidates.mjs'},
+        @{Id='reresolve-dry-run'; Script='scripts/data/relation/apply-reresolve-results.mjs'}
+      )
+      foreach ($entry in $dbFailScripts) {
+        Add-Result -StepId $entry.Id -Phase 'db' -ScriptPath $entry.Script -Status 'fail' -Duration 0 -ExitCode -1 -Message 'DB not available (use -AllowDbSkip to permit skipping)'
+        Write-StepLine 'fail' $entry.Id 'DB not available (use -AllowDbSkip to permit skipping)' 0
+      }
     }
   } else {
     # Set env vars for scripts that read them directly

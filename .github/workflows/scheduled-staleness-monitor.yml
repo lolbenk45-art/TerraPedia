@@ -63,7 +63,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          gh issue create --title "${{ steps.issue_payload.outputs.issue_title }}" --body-file reports/domain/staleness-alert-issue.md --label monitoring --label stale-evidence
+          $existing = gh issue list --label stale-evidence --state open --limit 5 --json number,title | ConvertFrom-Json
+          $title = "${{ steps.issue_payload.outputs.issue_title }}"
+          $duplicate = $existing | Where-Object { $_.title -eq $title } | Select-Object -First 1
+          if ($duplicate) {
+            Write-Host "Open stale-evidence issue already exists: #$($duplicate.number). Appending comment."
+            gh issue comment $duplicate.number --body-file reports/domain/staleness-alert-issue.md
+          } else {
+            gh issue create --title "$title" --body-file reports/domain/staleness-alert-issue.md --label monitoring --label stale-evidence
+          }
 
       - name: Upload staleness monitor artifacts
         uses: actions/upload-artifact@v4
