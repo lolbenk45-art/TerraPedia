@@ -77,6 +77,9 @@ function buildPanelFreshness({ entry, repoRoot, now }) {
     backendRefreshPlanCommand: entry.backendRefreshPlanCommand ?? null,
     autoMaintenanceAllowed: entry.autoMaintenanceAllowed === true,
     blockingBeforePublic: entry.blockingBeforePublic === true,
+    acceptedWarning: entry.acceptedWarning ?? null,
+    acceptedWarningActive: false,
+    acceptedWarningStatus: entry.acceptedWarning ? 'inactive' : 'none',
     managementRoute: entry.managementRoute ?? null,
     publicExposure: entry.publicExposure ?? null,
     publicRoute: entry.publicRoute ?? null,
@@ -112,6 +115,7 @@ function buildPanelFreshness({ entry, repoRoot, now }) {
   const ageHours = Math.max(0, Math.floor((now.getTime() - reportTime.generatedAt.getTime()) / 3_600_000));
   const staleAfterHours = Number(entry.staleAfterHours);
   const isStale = Number.isFinite(staleAfterHours) && ageHours > staleAfterHours;
+  const acceptedWarningActive = isStale && hasActiveAcceptedWarning(entry.acceptedWarning, now);
   return {
     ...base,
     latestReportPath: latestReport.relativePath,
@@ -120,9 +124,13 @@ function buildPanelFreshness({ entry, repoRoot, now }) {
       ? `Evidence is older than ${staleAfterHours} hours.`
       : reportTime.source === 'mtime'
         ? 'Using file modified time because generatedAt is unavailable.'
-        : null,
+      : null,
     ageHours,
     nextEvidenceCommand: isStale ? entry.generatorCommand : null,
+    acceptedWarningActive,
+    acceptedWarningStatus: entry.acceptedWarning
+      ? acceptedWarningActive ? 'active' : 'inactive'
+      : 'none',
   };
 }
 
@@ -248,6 +256,18 @@ function parseDate(value) {
   }
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function hasActiveAcceptedWarning(acceptedWarning, now) {
+  if (!acceptedWarning || acceptedWarning.readinessOnly !== true) {
+    return false;
+  }
+  const approvedAt = parseDate(acceptedWarning.approvedAt);
+  const expiresAt = parseDate(acceptedWarning.expiresAt);
+  if (!approvedAt || !expiresAt) {
+    return false;
+  }
+  return approvedAt.getTime() <= now.getTime() && now.getTime() <= expiresAt.getTime();
 }
 
 function normalizePath(value) {

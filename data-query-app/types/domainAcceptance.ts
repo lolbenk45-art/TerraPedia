@@ -14,6 +14,17 @@ export interface DomainAcceptanceCheck {
   reportPath?: string | null
 }
 
+export interface DomainAcceptanceAcceptedWarning {
+  panelId?: string | null
+  reason?: string | null
+  approvedBy?: string | null
+  approvedAt?: string | null
+  expiresAt?: string | null
+  readinessOnly?: boolean | null
+  active?: boolean | null
+  applies?: boolean | null
+}
+
 export interface DomainAcceptanceRefreshPlanSummary {
   overallStatus?: string | null
   actionCount?: number | null
@@ -87,6 +98,7 @@ export interface DomainAcceptancePanel {
   blockingCount?: number | null
   warningCount?: number | null
   metrics?: Record<string, unknown>
+  acceptedWarning?: DomainAcceptanceAcceptedWarning | null
   checks?: DomainAcceptanceCheck[]
   sampleReportPaths?: string[]
   rawSummary?: Record<string, unknown>
@@ -102,6 +114,7 @@ export interface DomainAcceptanceDomain {
   publicRoute?: string | null
   publicGateStatus?: DomainAcceptancePublicGateStatus | null
   publicGateReason?: string | null
+  acceptedWarnings?: DomainAcceptanceAcceptedWarning[]
   backendRefreshStepIds?: string[]
   backendRefreshPlanCommand?: string | null
   requiresDatabase?: boolean | null

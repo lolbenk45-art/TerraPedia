@@ -290,6 +290,22 @@
                 </small>
               </div>
 
+              <div v-if="acceptedWarningForPanel(panel, domain)" class="accepted-warning-block">
+                <div class="accepted-warning-block__head">
+                  <span>accepted-warning</span>
+                  <strong>readiness-only</strong>
+                </div>
+                <small>
+                  Stale public-blocking evidence is accepted for readiness-only review only; it is not route-ready evidence.
+                </small>
+                <dl v-if="acceptedWarningRows(acceptedWarningForPanel(panel, domain)).length" class="accepted-warning-list">
+                  <div v-for="row in acceptedWarningRows(acceptedWarningForPanel(panel, domain))" :key="`${domain.domainId}-${panel.panelId}-accepted-warning-${row.key}`">
+                    <dt>{{ row.key }}</dt>
+                    <dd>{{ row.value }}</dd>
+                  </div>
+                </dl>
+              </div>
+
               <div v-if="panel.generatorCommand" class="generator-command">
                 <span>只读生成命令</span>
                 <code>{{ panel.generatorCommand }}</code>
@@ -334,7 +350,13 @@
 
 <script setup lang="ts">
 import type { Component } from 'vue'
-import type { DomainAcceptanceOverview, DomainAcceptancePanel, DomainAcceptanceStatus } from '~/types/domainAcceptance'
+import type {
+  DomainAcceptanceAcceptedWarning,
+  DomainAcceptanceDomain,
+  DomainAcceptanceOverview,
+  DomainAcceptancePanel,
+  DomainAcceptanceStatus,
+} from '~/types/domainAcceptance'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -521,6 +543,27 @@ function rawSummaryRows(panel?: DomainAcceptancePanel | null) {
     }))
 }
 
+function acceptedWarningForPanel(panel?: DomainAcceptancePanel | null, domain?: DomainAcceptanceDomain | null) {
+  if (panel?.acceptedWarning) return panel.acceptedWarning
+  const panelId = panel?.panelId || panel?.id
+  if (!panelId) return null
+  return (domain?.acceptedWarnings || []).find((warning) => warning.panelId === panelId) || null
+}
+
+function acceptedWarningRows(warning?: DomainAcceptanceAcceptedWarning | null) {
+  if (!warning) return []
+  return [
+    { key: 'panelId', value: warning.panelId || '--' },
+    { key: 'reason', value: warning.reason || '--' },
+    { key: 'approvedBy', value: warning.approvedBy || '--' },
+    { key: 'approvedAt', value: warning.approvedAt || '--' },
+    { key: 'expiresAt', value: warning.expiresAt || '--' },
+    { key: 'readinessOnly', value: warning.readinessOnly === true ? 'true' : 'false' },
+    { key: 'active', value: flagLabel(warning.active) },
+    { key: 'applies', value: flagLabel(warning.applies) },
+  ].filter((row) => row.value !== '--')
+}
+
 function renderValue(value: unknown) {
   if (typeof value === 'boolean') return value ? '是' : '否'
   if (typeof value === 'number') return formatNumber(value)
@@ -528,6 +571,12 @@ function renderValue(value: unknown) {
   if (Array.isArray(value)) return `${value.length}`
   if (typeof value === 'object' && value !== null) return JSON.stringify(value)
   return String(value)
+}
+
+function flagLabel(value?: boolean | null) {
+  if (value === true) return 'true'
+  if (value === false) return 'false'
+  return '--'
 }
 
 function formatStepIds(stepIds?: string[] | null) {
@@ -848,8 +897,10 @@ function formatNumber(value?: number | null) {
 .entry-grid span,
 .metric-list dt,
 .raw-summary-list dt,
+.accepted-warning-list dt,
 .path-block span,
 .freshness-block span,
+.accepted-warning-block span,
 .generator-command span,
 .next-evidence-command span {
   color: var(--color-text-secondary);
@@ -861,7 +912,8 @@ function formatNumber(value?: number | null) {
 .domain-panel__metrics strong,
 .entry-grid code,
 .metric-list dd,
-.raw-summary-list dd {
+.raw-summary-list dd,
+.accepted-warning-list dd {
   margin: 0;
   color: var(--color-text);
   font-weight: 800;
@@ -904,6 +956,7 @@ function formatNumber(value?: number | null) {
 
 .path-block,
 .freshness-block,
+.accepted-warning-block,
 .generator-command,
 .next-evidence-command {
   display: grid;
@@ -933,7 +986,46 @@ function formatNumber(value?: number | null) {
   background: color-mix(in srgb, var(--color-bg-secondary) 78%, transparent);
 }
 
+.accepted-warning-block {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-warning) 30%, var(--color-border));
+  background: color-mix(in srgb, var(--color-warning) 8%, var(--color-surface-1));
+}
+
+.accepted-warning-block__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.accepted-warning-block__head strong {
+  color: var(--color-warning);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.accepted-warning-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin: 4px 0 0;
+}
+
+.accepted-warning-list div {
+  min-width: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 70%, transparent);
+}
+
+.accepted-warning-list dd {
+  overflow-wrap: anywhere;
+}
+
 .freshness-block small,
+.accepted-warning-block small,
 .generator-command small {
   color: var(--color-text-secondary);
   line-height: 1.45;

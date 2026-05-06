@@ -206,6 +206,156 @@ class DomainAcceptanceServiceImplTest {
     }
 
     @Test
+    void shouldExposeAcceptedWarningMetadataForStalePublicBlockingPanelWithoutPromotingRouteReady() throws Exception {
+        Path repoRoot = createRepoRoot();
+        writeRegistry(repoRoot, """
+            {
+              "version": 1,
+              "freshness": {
+                "freshnessSource": "report-generatedAt-or-mtime",
+                "staleAfterHours": 24,
+                "nextEvidenceWhen": ["missing", "stale", "unknown", "unreadable"],
+                "statusImpact": "stale-pass-to-warning"
+              },
+              "panelSets": {
+                "publicProduct": ["publicReadiness"]
+              },
+              "panels": {
+                "publicReadiness": {
+                  "panelId": "publicReadiness",
+                  "fileKey": "public-readiness",
+                  "generatorPanel": "public",
+                  "chainStage": "public",
+                  "maintenanceLane": "domain-acceptance-evidence",
+                  "autoMaintenanceAllowed": true,
+                  "blockingBeforePublic": true,
+                  "requiresDatabase": false,
+                  "writesDatabase": false,
+                  "notes": "Synthetic public panel."
+                }
+              },
+              "domains": [
+                {
+                  "domainId": "synthetic.public",
+                  "domainType": "product",
+                  "tier": "B",
+                  "chainStage": "product-readiness",
+                  "panelSet": "publicProduct",
+                  "backendRefreshStepIds": ["support-sync"],
+                  "managementRoute": "/synthetic",
+                  "publicExposure": "public",
+                  "publicRoute": "/synthetic-public",
+                  "acceptedWarnings": [
+                    {
+                      "panelId": "publicReadiness",
+                      "reason": "public panel report is stale during manual review",
+                      "approvedBy": "ops-admin",
+                      "approvedAt": "2026-05-03T08:00:00Z",
+                      "expiresAt": "2026-05-05T00:00:00Z",
+                      "readinessOnly": true
+                    }
+                  ]
+                }
+              ]
+            }
+            """);
+        writeDomainReport(repoRoot, "synthetic.public", "public-readiness", "pass", "2026-05-01T00:00:00Z", 0, 0);
+
+        DomainAcceptanceOverviewDTO.DomainDTO synthetic = domain(serviceWithRepo(repoRoot).getOverview(), "synthetic.public");
+        DomainAcceptanceOverviewDTO.DomainPanelDTO publicPanel = panel(synthetic, "publicReadiness");
+
+        assertEquals("warning", synthetic.getStatus());
+        assertEquals("public_route_configured", synthetic.getPublicGateStatus());
+        assertNull(synthetic.getPublicGateReason());
+        assertEquals(1, synthetic.getAcceptedWarnings().size());
+        assertEquals(1, synthetic.getActiveAcceptedWarningCount());
+        assertEquals(true, synthetic.getHasActiveAcceptedWarnings());
+        assertEquals("stale", publicPanel.getFreshnessStatus());
+        assertEquals("warning", publicPanel.getStatus());
+        assertNotNull(publicPanel.getAcceptedWarning());
+        assertEquals("public panel report is stale during manual review", publicPanel.getAcceptedWarning().getReason());
+        assertEquals("ops-admin", publicPanel.getAcceptedWarning().getApprovedBy());
+        assertEquals(Instant.parse("2026-05-03T08:00:00Z"), publicPanel.getAcceptedWarning().getApprovedAt());
+        assertEquals(Instant.parse("2026-05-05T00:00:00Z"), publicPanel.getAcceptedWarning().getExpiresAt());
+        assertEquals(true, publicPanel.getAcceptedWarning().getReadinessOnly());
+        assertEquals(true, publicPanel.getAcceptedWarning().getActive());
+        assertEquals(true, publicPanel.getAcceptedWarning().getApplies());
+        assertEquals(true, publicPanel.getAcceptedWarningActive());
+        assertEquals(true, publicPanel.getAcceptedWarningApplies());
+    }
+
+    @Test
+    void shouldKeepMissingPublicBlockingPanelBlockedEvenWhenAcceptedWarningExists() throws Exception {
+        Path repoRoot = createRepoRoot();
+        writeRegistry(repoRoot, """
+            {
+              "version": 1,
+              "freshness": {
+                "freshnessSource": "report-generatedAt-or-mtime",
+                "staleAfterHours": 24,
+                "nextEvidenceWhen": ["missing", "stale", "unknown", "unreadable"],
+                "statusImpact": "stale-pass-to-warning"
+              },
+              "panelSets": {
+                "publicProduct": ["publicReadiness"]
+              },
+              "panels": {
+                "publicReadiness": {
+                  "panelId": "publicReadiness",
+                  "fileKey": "public-readiness",
+                  "generatorPanel": "public",
+                  "chainStage": "public",
+                  "maintenanceLane": "domain-acceptance-evidence",
+                  "autoMaintenanceAllowed": true,
+                  "blockingBeforePublic": true,
+                  "requiresDatabase": false,
+                  "writesDatabase": false
+                }
+              },
+              "domains": [
+                {
+                  "domainId": "synthetic.public",
+                  "domainType": "product",
+                  "tier": "B",
+                  "chainStage": "product-readiness",
+                  "panelSet": "publicProduct",
+                  "backendRefreshStepIds": ["support-sync"],
+                  "managementRoute": "/synthetic",
+                  "publicExposure": "public",
+                  "publicRoute": "/synthetic-public",
+                  "acceptedWarnings": [
+                    {
+                      "panelId": "publicReadiness",
+                      "reason": "manual review acknowledged stale risk",
+                      "approvedBy": "ops-admin",
+                      "approvedAt": "2026-05-03T08:00:00Z",
+                      "expiresAt": "2026-05-05T00:00:00Z",
+                      "readinessOnly": true
+                    }
+                  ]
+                }
+              ]
+            }
+            """);
+
+        DomainAcceptanceOverviewDTO.DomainDTO synthetic = domain(serviceWithRepo(repoRoot).getOverview(), "synthetic.public");
+        DomainAcceptanceOverviewDTO.DomainPanelDTO publicPanel = panel(synthetic, "publicReadiness");
+
+        assertEquals("missing", synthetic.getStatus());
+        assertEquals("public_route_configured", synthetic.getPublicGateStatus());
+        assertNull(synthetic.getPublicGateReason());
+        assertEquals(1, synthetic.getAcceptedWarnings().size());
+        assertEquals(1, synthetic.getActiveAcceptedWarningCount());
+        assertEquals(true, synthetic.getHasActiveAcceptedWarnings());
+        assertEquals("missing", publicPanel.getFreshnessStatus());
+        assertEquals("missing", publicPanel.getStatus());
+        assertEquals(true, publicPanel.getAcceptedWarningActive());
+        assertEquals(false, publicPanel.getAcceptedWarningApplies());
+        assertEquals(true, publicPanel.getAcceptedWarning().getActive());
+        assertEquals(false, publicPanel.getAcceptedWarning().getApplies());
+    }
+
+    @Test
     void shouldKeepBackendRefreshPlanEmptyWhenRegistryOmitsBackendSteps() throws Exception {
         Path repoRoot = createRepoRoot();
         writeRegistry(repoRoot, """
@@ -357,6 +507,71 @@ class DomainAcceptanceServiceImplTest {
         );
 
         assertEquals("Missing publicExposure for synthetic.domain", exception.getMessage());
+    }
+
+    @Test
+    void shouldFailClosedWhenAcceptedWarningReadinessOnlyIsNotLiteralTrue() throws Exception {
+        Path repoRoot = createRepoRoot();
+        writeRegistry(repoRoot, """
+            {
+              "version": 1,
+              "freshness": {
+                "freshnessSource": "report-generatedAt-or-mtime",
+                "staleAfterHours": 24,
+                "nextEvidenceWhen": ["missing", "stale", "unknown", "unreadable"],
+                "statusImpact": "stale-pass-to-warning"
+              },
+              "panelSets": {
+                "publicProduct": ["publicReadiness"]
+              },
+              "panels": {
+                "publicReadiness": {
+                  "panelId": "publicReadiness",
+                  "fileKey": "public-readiness",
+                  "generatorPanel": "public",
+                  "chainStage": "public",
+                  "maintenanceLane": "domain-acceptance-evidence",
+                  "autoMaintenanceAllowed": true,
+                  "blockingBeforePublic": true,
+                  "requiresDatabase": false,
+                  "writesDatabase": false
+                }
+              },
+              "domains": [
+                {
+                  "domainId": "synthetic.public",
+                  "domainType": "product",
+                  "tier": "B",
+                  "chainStage": "product-readiness",
+                  "panelSet": "publicProduct",
+                  "backendRefreshStepIds": ["support-sync"],
+                  "managementRoute": "/synthetic",
+                  "publicExposure": "public",
+                  "publicRoute": "/synthetic-public",
+                  "acceptedWarnings": [
+                    {
+                      "panelId": "publicReadiness",
+                      "reason": "manual review acknowledged stale risk",
+                      "approvedBy": "ops-admin",
+                      "approvedAt": "2026-05-03T08:00:00Z",
+                      "expiresAt": "2026-05-05T00:00:00Z",
+                      "readinessOnly": false
+                    }
+                  ]
+                }
+              ]
+            }
+            """);
+
+        IllegalStateException exception = assertThrows(
+            IllegalStateException.class,
+            () -> serviceWithRepo(repoRoot).getOverview()
+        );
+
+        assertEquals(
+            "Accepted warning readinessOnly must be literal true for synthetic.public/publicReadiness",
+            exception.getMessage()
+        );
     }
 
     @Test

@@ -66,6 +66,7 @@ test('A-grade gate passes when acceptance evidence is fresh and maintenance rout
     maintenanceRoutedCount: 2,
     autoMaintenanceAllowedCount: 2,
     blockingBeforePublicCount: 1,
+    acceptedWarningActiveCount: 0,
     publicRouteMissingCount: 0,
     refreshActionCount: 0,
     refreshReadyCount: 0,
@@ -231,6 +232,224 @@ test('A-grade gate blocks missing or unknown public-blocking evidence', () => {
   assert.ok(gate.blockingReasons.includes('items/publicReadiness public-blocking evidence freshness is unknown'));
 });
 
+test('A-grade gate annotates stale public-blocking panels with accepted-warning readiness-only metadata', () => {
+  const gate = buildDomainAcceptanceAGradeGate({
+    generatedAt: '2026-05-03T12:00:00Z',
+    manifest: [
+      manifestEntry('bosses', 'publicReadiness', {
+        publicExposure: 'planned-public',
+        publicRoute: null,
+        acceptedWarning: {
+          panelId: 'publicReadiness',
+          reason: 'Accepted for readiness-only review while stale.',
+          approvedBy: 'controller',
+          approvedAt: '2026-05-03T00:00:00Z',
+          expiresAt: '2026-05-10T00:00:00Z',
+          readinessOnly: true,
+        },
+      }),
+    ],
+    freshnessAudit: {
+      overallStatus: 'warning',
+      blockingReasons: [],
+      warningReasons: ['bosses/publicReadiness evidence is stale'],
+      panels: [
+        routedPanel('bosses', 'publicReadiness', {
+          chainStage: 'public',
+          blockingBeforePublic: true,
+          publicExposure: 'planned-public',
+          publicRoute: null,
+          freshnessStatus: 'stale',
+          acceptedWarning: {
+            panelId: 'publicReadiness',
+            reason: 'Accepted for readiness-only review while stale.',
+            approvedBy: 'controller',
+            approvedAt: '2026-05-03T00:00:00Z',
+            expiresAt: '2026-05-10T00:00:00Z',
+            readinessOnly: true,
+          },
+          acceptedWarningActive: true,
+          acceptedWarningStatus: 'active',
+        }),
+      ],
+    },
+    refreshPlan: {
+      overallStatus: 'ready',
+      actions: [
+        {
+          domainId: 'bosses',
+          panelId: 'publicReadiness',
+          status: 'ready',
+          executeMode: 'manual',
+          executionPolicy: 'plan-only',
+          backendRefreshStepIds: ['boss-sync'],
+        },
+      ],
+    },
+    generation: {
+      summary: {
+        panelCount: 1,
+        passCount: 0,
+        warningCount: 1,
+        blockedCount: 0,
+        missingCount: 0,
+      },
+    },
+  });
+
+  assert.equal(gate.overallStatus, 'warning');
+  assert.deepEqual(gate.blockingReasons, []);
+  assert.ok(gate.warningReasons.includes('bosses/publicReadiness evidence is stale'));
+  const domain = gate.domains.find((entry) => entry.domainId === 'bosses');
+  assert.equal(domain.publicGateStatus, 'planned_public_no_route');
+  assert.equal(domain.readinessOnlyAcceptedWarningActive, true);
+  assert.equal(domain.routeReady, false);
+  assert.deepEqual(domain.acceptedWarningPanels, ['publicReadiness']);
+  assert.equal(domain.panelStatuses[0].acceptedWarningActive, true);
+  assert.equal(domain.panelStatuses[0].acceptedWarningStatus, 'active');
+});
+
+test('A-grade gate keeps missing and unknown public-blocking evidence blocked even with accepted-warning present', () => {
+  const gate = buildDomainAcceptanceAGradeGate({
+    generatedAt: '2026-05-03T12:00:00Z',
+    manifest: [
+      manifestEntry('bosses', 'publicReadiness', {
+        acceptedWarning: {
+          panelId: 'publicReadiness',
+          reason: 'Accepted for readiness-only review while stale.',
+          approvedBy: 'controller',
+          approvedAt: '2026-05-03T00:00:00Z',
+          expiresAt: '2026-05-10T00:00:00Z',
+          readinessOnly: true,
+        },
+      }),
+      manifestEntry('items', 'publicReadiness', {
+        acceptedWarning: {
+          panelId: 'publicReadiness',
+          reason: 'Accepted for readiness-only review while stale.',
+          approvedBy: 'controller',
+          approvedAt: '2026-05-03T00:00:00Z',
+          expiresAt: '2026-05-10T00:00:00Z',
+          readinessOnly: true,
+        },
+      }),
+    ],
+    freshnessAudit: {
+      overallStatus: 'warning',
+      blockingReasons: [],
+      warningReasons: [],
+      panels: [
+        routedPanel('bosses', 'publicReadiness', {
+          chainStage: 'public',
+          blockingBeforePublic: true,
+          freshnessStatus: 'missing',
+          acceptedWarning: {
+            panelId: 'publicReadiness',
+            reason: 'Accepted for readiness-only review while stale.',
+            approvedBy: 'controller',
+            approvedAt: '2026-05-03T00:00:00Z',
+            expiresAt: '2026-05-10T00:00:00Z',
+            readinessOnly: true,
+          },
+          acceptedWarningActive: false,
+          acceptedWarningStatus: 'inactive',
+        }),
+        routedPanel('items', 'publicReadiness', {
+          chainStage: 'public',
+          blockingBeforePublic: true,
+          freshnessStatus: 'unknown',
+          acceptedWarning: {
+            panelId: 'publicReadiness',
+            reason: 'Accepted for readiness-only review while stale.',
+            approvedBy: 'controller',
+            approvedAt: '2026-05-03T00:00:00Z',
+            expiresAt: '2026-05-10T00:00:00Z',
+            readinessOnly: true,
+          },
+          acceptedWarningActive: false,
+          acceptedWarningStatus: 'inactive',
+        }),
+      ],
+    },
+    refreshPlan: {
+      overallStatus: 'empty',
+      actions: [],
+    },
+    generation: {
+      summary: {
+        panelCount: 2,
+        passCount: 0,
+        warningCount: 0,
+        blockedCount: 0,
+        missingCount: 0,
+      },
+    },
+  });
+
+  assert.equal(gate.overallStatus, 'blocked');
+  assert.ok(gate.blockingReasons.includes('bosses/publicReadiness public-blocking evidence freshness is missing'));
+  assert.ok(gate.blockingReasons.includes('items/publicReadiness public-blocking evidence freshness is unknown'));
+  assert.equal(gate.domains.find((domain) => domain.domainId === 'bosses').readinessOnlyAcceptedWarningActive, false);
+  assert.equal(gate.domains.find((domain) => domain.domainId === 'items').readinessOnlyAcceptedWarningActive, false);
+});
+
+test('A-grade gate leaves stale public-blocking panels as warning without accepted-warning', () => {
+  const gate = buildDomainAcceptanceAGradeGate({
+    generatedAt: '2026-05-03T12:00:00Z',
+    manifest: [
+      manifestEntry('bosses', 'publicReadiness', {
+        publicExposure: 'planned-public',
+        publicRoute: null,
+      }),
+    ],
+    freshnessAudit: {
+      overallStatus: 'warning',
+      blockingReasons: [],
+      warningReasons: ['bosses/publicReadiness evidence is stale'],
+      panels: [
+        routedPanel('bosses', 'publicReadiness', {
+          chainStage: 'public',
+          blockingBeforePublic: true,
+          publicExposure: 'planned-public',
+          publicRoute: null,
+          freshnessStatus: 'stale',
+          acceptedWarning: null,
+          acceptedWarningActive: false,
+          acceptedWarningStatus: 'none',
+        }),
+      ],
+    },
+    refreshPlan: {
+      overallStatus: 'ready',
+      actions: [
+        {
+          domainId: 'bosses',
+          panelId: 'publicReadiness',
+          status: 'ready',
+          executeMode: 'manual',
+          executionPolicy: 'plan-only',
+          backendRefreshStepIds: ['boss-sync'],
+        },
+      ],
+    },
+    generation: {
+      summary: {
+        panelCount: 1,
+        passCount: 0,
+        warningCount: 1,
+        blockedCount: 0,
+        missingCount: 0,
+      },
+    },
+  });
+
+  assert.equal(gate.overallStatus, 'warning');
+  const domain = gate.domains.find((entry) => entry.domainId === 'bosses');
+  assert.equal(domain.readinessOnlyAcceptedWarningActive, false);
+  assert.equal(domain.publicGateStatus, 'planned_public_no_route');
+  assert.equal(domain.routeReady, false);
+});
+
 test('A-grade gate warns for stale non-public evidence and planned-public route gaps', () => {
   const gate = buildDomainAcceptanceAGradeGate({
     generatedAt: '2026-05-03T12:00:00Z',
@@ -377,6 +596,9 @@ function routedPanel(domainId, panelId, overrides = {}) {
     managementRoute: `/entities/${domainId}`,
     publicExposure: 'public',
     publicRoute: null,
+    acceptedWarning: null,
+    acceptedWarningActive: false,
+    acceptedWarningStatus: 'none',
     backendRefreshStepIds: ['boss-sync'],
     backendRefreshPlanCommand: 'node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=boss-sync',
     ...overrides,
@@ -394,6 +616,7 @@ function manifestEntry(domainId, panelId, overrides = {}) {
     managementRoute: `/entities/${domainId}`,
     publicExposure: 'public',
     publicRoute: null,
+    acceptedWarning: null,
     backendRefreshStepIds,
     backendRefreshPlanCommand: `node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=${backendRefreshStepIds.join(',')}`,
     writesDatabase: false,

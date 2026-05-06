@@ -68,6 +68,7 @@ export function validateDomainAcceptanceRegistry(registry) {
     if (!Array.isArray(panelSet) || panelSet.length === 0) {
       throw new Error(`Unknown domain acceptance panel set: ${domain.panelSet}`);
     }
+    validateAcceptedWarnings(domain, panelSet);
     if (!Array.isArray(domain.backendRefreshStepIds) || domain.backendRefreshStepIds.length === 0) {
       throw new Error(`Domain acceptance domain must declare backendRefreshStepIds: ${domain.domainId}`);
     }
@@ -126,6 +127,7 @@ function validatePanelDefinition(definition) {
 
 function buildManifestEntry(domain, definition, freshness) {
   const backendRefreshStepIds = [...domain.backendRefreshStepIds];
+  const acceptedWarning = findAcceptedWarning(domain, definition.panelId);
   return {
     domainId: domain.domainId,
     domainType: domain.domainType,
@@ -142,6 +144,7 @@ function buildManifestEntry(domain, definition, freshness) {
     backendRefreshPlanCommand: `node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=${backendRefreshStepIds.join(',')}`,
     autoMaintenanceAllowed: definition.autoMaintenanceAllowed === true,
     blockingBeforePublic: definition.blockingBeforePublic === true,
+    acceptedWarning,
     reportPattern: `reports/domain/${domain.domainId}/${definition.fileKey}*.json`,
     generatorCommand: `node scripts/data/audit/domain-readiness-audit.mjs --domain=${domain.domainId} --panel=${definition.generatorPanel}`,
     writesDatabase: definition.writesDatabase === true,
@@ -151,9 +154,65 @@ function buildManifestEntry(domain, definition, freshness) {
   };
 }
 
-function assertRequiredString(value, fieldName) {
+function validateAcceptedWarnings(domain, panelSet) {
+  if (!Object.hasOwn(domain, 'acceptedWarnings') || domain.acceptedWarnings == null) {
+    return;
+  }
+  if (!Array.isArray(domain.acceptedWarnings)) {
+    throw new Error(`Domain acceptance acceptedWarnings must be an array: ${domain.domainId}`);
+  }
+  const seenPanelIds = new Set();
+  domain.acceptedWarnings.forEach((record, index) => {
+    const prefix = `${domain.domainId}.acceptedWarnings[${index}]`;
+    if (!record || typeof record !== 'object') {
+      throw new Error(`Domain acceptance acceptedWarning must be an object: ${prefix}`);
+    }
+    assertRequiredString(record.panelId, `${prefix}.panelId`, 'Domain acceptance acceptedWarning missing required string');
+    if (!panelSet.includes(record.panelId)) {
+      throw new Error(`Unknown domain acceptance acceptedWarning panelId for ${domain.domainId}: ${record.panelId}`);
+    }
+    if (seenPanelIds.has(record.panelId)) {
+      throw new Error(`Duplicate domain acceptance acceptedWarning panelId for ${domain.domainId}: ${record.panelId}`);
+    }
+    seenPanelIds.add(record.panelId);
+    assertRequiredString(record.reason, `${prefix}.reason`, 'Domain acceptance acceptedWarning missing required string');
+    assertRequiredString(record.approvedBy, `${prefix}.approvedBy`, 'Domain acceptance acceptedWarning missing required string');
+    assertRequiredString(record.approvedAt, `${prefix}.approvedAt`, 'Domain acceptance acceptedWarning missing required string');
+    assertRequiredString(record.expiresAt, `${prefix}.expiresAt`, 'Domain acceptance acceptedWarning missing required string');
+    assertValidDate(record.approvedAt, `${prefix}.approvedAt`);
+    assertValidDate(record.expiresAt, `${prefix}.expiresAt`);
+    if (record.readinessOnly !== true) {
+      throw new Error(`Domain acceptance acceptedWarning must declare readinessOnly=true: ${prefix}.readinessOnly`);
+    }
+  });
+}
+
+function findAcceptedWarning(domain, panelId) {
+  const record = Array.isArray(domain.acceptedWarnings)
+    ? domain.acceptedWarnings.find((item) => item?.panelId === panelId)
+    : null;
+  return record
+    ? {
+        panelId: record.panelId,
+        reason: record.reason,
+        approvedBy: record.approvedBy,
+        approvedAt: record.approvedAt,
+        expiresAt: record.expiresAt,
+        readinessOnly: true,
+      }
+    : null;
+}
+
+function assertValidDate(value, fieldName) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`Domain acceptance acceptedWarning must declare ISO date: ${fieldName}`);
+  }
+}
+
+function assertRequiredString(value, fieldName, prefix = 'Domain acceptance registry missing required string') {
   if (typeof value !== 'string' || value.trim() === '') {
-    throw new Error(`Domain acceptance registry missing required string: ${fieldName}`);
+    throw new Error(`${prefix}: ${fieldName}`);
   }
 }
 

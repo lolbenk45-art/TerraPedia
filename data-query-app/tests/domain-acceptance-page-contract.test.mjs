@@ -44,6 +44,7 @@ test('domain acceptance page renders domains, panels, evidence status, and next 
     'domain.publicRoute',
     'domain.publicGateStatus',
     'domain.publicGateReason',
+    'domain?.acceptedWarnings',
     'domain.backendRefreshStepIds',
     'domain.backendRefreshPlanCommand',
     'domain.requiresDatabase',
@@ -75,6 +76,9 @@ test('domain acceptance page renders domains, panels, evidence status, and next 
     'panel.freshnessStatus',
     'panel.nextEvidenceCommand',
     'panel.generatorCommand',
+    'panel.acceptedWarning',
+    'acceptedWarningForPanel(panel, domain)',
+    'acceptedWarningRows(acceptedWarningForPanel(panel, domain))',
     'panel.checks',
     'rawSummaryRows(panel)',
     'publicExposureLabel(domain.publicExposure)',
@@ -85,6 +89,9 @@ test('domain acceptance page renders domains, panels, evidence status, and next 
 
   assert.match(page, /domain-card/)
   assert.match(page, /domain-panel/)
+  assert.match(page, /accepted-warning-block/)
+  assert.match(page, /readinessOnly/)
+  assert.match(page, /route-ready/)
   assert.match(page, /next-evidence-command/)
   assert.match(page, /action-queue/)
   assert.match(page, /refresh-plan-summary/)
@@ -93,6 +100,7 @@ test('domain acceptance page renders domains, panels, evidence status, and next 
   assert.doesNotMatch(page, /@click=["'][^"']*action\.command/)
   assert.doesNotMatch(page, /@click=["'][^"']*backendRefreshPlanCommand/)
   assert.doesNotMatch(page, /@click=["'][^"']*publicGate/)
+  assert.doesNotMatch(page, /publicGateStatus\s*=\s*['"]public_route_configured['"]/)
 })
 
 test('domain acceptance page labels refresh action statuses explicitly', () => {
@@ -130,6 +138,7 @@ test('domain acceptance types preserve dynamic domains and panels', () => {
   assert.match(types, /backendRefreshPlanCommand\?: string \| null/)
   assert.match(types, /domains\?: DomainAcceptanceDomain\[\]/)
   assert.match(types, /export interface DomainAcceptanceDomain/)
+  assert.match(types, /acceptedWarnings\?: DomainAcceptanceAcceptedWarning\[\]/)
   assert.match(types, /tier\?: string \| null/)
   assert.match(types, /chainStage\?: string \| null/)
   assert.match(types, /managementRoute\?: string \| null/)
@@ -150,8 +159,14 @@ test('domain acceptance types preserve dynamic domains and panels', () => {
   assert.match(types, /autoMaintenanceAllowed\?: boolean \| null/)
   assert.match(types, /blockingBeforePublic\?: boolean \| null/)
   assert.match(types, /nextEvidenceCommand\?: string \| null/)
+  assert.match(types, /acceptedWarning\?: DomainAcceptanceAcceptedWarning \| null/)
   assert.match(types, /checks\?: DomainAcceptanceCheck\[\]/)
   assert.match(types, /rawSummary\?: Record<string, unknown>/)
+  assert.match(types, /export interface DomainAcceptanceAcceptedWarning/)
+  assert.match(types, /export interface DomainAcceptanceAcceptedWarning \{[\s\S]*panelId\?: string \| null[\s\S]*reason\?: string \| null[\s\S]*approvedBy\?: string \| null[\s\S]*approvedAt\?: string \| null[\s\S]*expiresAt\?: string \| null[\s\S]*readinessOnly\?: boolean \| null/)
+  assert.match(types, /readinessOnly\?: boolean \| null/)
+  assert.match(types, /active\?: boolean \| null/)
+  assert.match(types, /applies\?: boolean \| null/)
 })
 
 test('operations navigation includes the domain acceptance route', () => {

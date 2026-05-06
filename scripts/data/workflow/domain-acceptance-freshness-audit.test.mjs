@@ -81,6 +81,89 @@ test('domain freshness audit filters by domain id', () => {
   assert.equal(audit.summary.domainCount, 2);
 });
 
+test('domain freshness audit exposes active accepted-warning metadata only for stale panels', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'reports/domain/bosses/public-readiness-2026-05-01.json', {
+    generatedAt: '2026-05-01T00:00:00Z',
+  });
+
+  const audit = buildDomainAcceptanceFreshnessAudit({
+    repoRoot,
+    generatedAt: '2026-05-03T12:00:00Z',
+    manifest: [
+      {
+        domainId: 'bosses',
+        panelId: 'publicReadiness',
+        reportPattern: 'reports/domain/bosses/public-readiness*.json',
+        generatorCommand: 'node scripts/data/audit/domain-readiness-audit.mjs --domain=bosses --panel=public',
+        writesDatabase: false,
+        requiresDatabase: false,
+        staleAfterHours: 24,
+        domainType: 'product',
+        tier: 'B',
+        domainChainStage: 'product-readiness',
+        chainStage: 'public',
+        maintenanceLane: 'domain-acceptance-evidence',
+        backendRefreshStepIds: ['boss-sync'],
+        backendRefreshPlanCommand: 'node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=boss-sync',
+        autoMaintenanceAllowed: true,
+        blockingBeforePublic: true,
+        managementRoute: '/entities/bosses',
+        publicExposure: 'planned-public',
+        publicRoute: null,
+        acceptedWarning: {
+          panelId: 'publicReadiness',
+          reason: 'Accepted for readiness-only review while stale.',
+          approvedBy: 'controller',
+          approvedAt: '2026-05-03T00:00:00Z',
+          expiresAt: '2026-05-10T00:00:00Z',
+          readinessOnly: true,
+        },
+      },
+      {
+        domainId: 'buffs',
+        panelId: 'publicReadiness',
+        reportPattern: 'reports/domain/buffs/public-readiness*.json',
+        generatorCommand: 'node scripts/data/audit/domain-readiness-audit.mjs --domain=buffs --panel=public',
+        writesDatabase: false,
+        requiresDatabase: false,
+        staleAfterHours: 24,
+        domainType: 'product',
+        tier: 'B',
+        domainChainStage: 'product-readiness',
+        chainStage: 'public',
+        maintenanceLane: 'domain-acceptance-evidence',
+        backendRefreshStepIds: ['independent-entity-sync'],
+        backendRefreshPlanCommand: 'node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=independent-entity-sync',
+        autoMaintenanceAllowed: true,
+        blockingBeforePublic: true,
+        managementRoute: '/entities/buffs',
+        publicExposure: 'planned-public',
+        publicRoute: null,
+        acceptedWarning: {
+          panelId: 'publicReadiness',
+          reason: 'Accepted for readiness-only review while stale.',
+          approvedBy: 'controller',
+          approvedAt: '2026-05-03T00:00:00Z',
+          expiresAt: '2026-05-10T00:00:00Z',
+          readinessOnly: true,
+        },
+      },
+    ],
+  });
+
+  const stalePanel = panelById(audit, 'bosses', 'publicReadiness');
+  assert.equal(stalePanel.freshnessStatus, 'stale');
+  assert.equal(stalePanel.acceptedWarningActive, true);
+  assert.equal(stalePanel.acceptedWarningStatus, 'active');
+  assert.equal(stalePanel.acceptedWarning.readinessOnly, true);
+
+  const missingPanel = panelById(audit, 'buffs', 'publicReadiness');
+  assert.equal(missingPanel.freshnessStatus, 'missing');
+  assert.equal(missingPanel.acceptedWarningActive, false);
+  assert.equal(missingPanel.acceptedWarningStatus, 'inactive');
+});
+
 test('domain command risk classification blocks mutation commands', () => {
   assert.equal(classifyDomainAcceptanceCommandRisk('node scripts/data/audit/domain-readiness-audit.mjs'), 'safe-read-only');
   assert.equal(classifyDomainAcceptanceCommandRisk('node scripts/data/import/import-buffs-to-db.mjs'), 'unsafe');

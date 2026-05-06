@@ -187,6 +187,7 @@ function summarize({ freshnessAudit, panels, refreshActions, generation }) {
     maintenanceRoutedCount: panels.filter((panel) => Array.isArray(panel.backendRefreshStepIds) && panel.backendRefreshStepIds.length > 0).length,
     autoMaintenanceAllowedCount: panels.filter((panel) => panel.autoMaintenanceAllowed === true).length,
     blockingBeforePublicCount: panels.filter((panel) => panel.blockingBeforePublic === true).length,
+    acceptedWarningActiveCount: panels.filter((panel) => panel.acceptedWarningActive === true).length,
     publicRouteMissingCount: panels.filter((panel) => requiresPublicRoute(panel) && !hasPublicRoute(panel.publicRoute)).length,
     refreshActionCount: refreshActions.length,
     refreshReadyCount: refreshActions.filter((action) => action.status === 'ready').length,
@@ -218,6 +219,9 @@ function buildDomainStatuses({ manifest, panels, checks }) {
       return {
         panelId,
         freshnessStatus: panel?.freshnessStatus ?? 'unknown',
+        acceptedWarningActive: panel?.acceptedWarningActive === true,
+        acceptedWarningStatus: panel?.acceptedWarningStatus ?? 'none',
+        acceptedWarning: panel?.acceptedWarning ?? null,
         backendRefreshStepIds: panel?.backendRefreshStepIds ?? [],
       };
     });
@@ -225,11 +229,17 @@ function buildDomainStatuses({ manifest, panels, checks }) {
     const blockingReasons = domainChecks.filter((check) => check.status === 'blocked').map((check) => check.message);
     const warningReasons = domainChecks.filter((check) => check.status === 'warning').map((check) => check.message);
     const publicGate = buildPublicGate(domain, domainChecks);
+    const acceptedWarningPanels = panelStatuses
+      .filter((panel) => panel.acceptedWarningActive === true)
+      .map((panel) => panel.panelId);
     domains.push({
       ...domain,
       aGradeStatus: blockingReasons.length > 0 ? 'blocked' : warningReasons.length > 0 ? 'warning' : 'pass',
       publicGateStatus: publicGate.status,
       publicGateReason: publicGate.reason,
+      routeReady: publicGate.status === 'public_route_configured',
+      acceptedWarningPanels,
+      readinessOnlyAcceptedWarningActive: acceptedWarningPanels.length > 0,
       panelStatuses,
       blockingReasons,
       warningReasons,

@@ -87,7 +87,64 @@ test('domain manifest entries declare safe freshness and evidence metadata', () 
     assert.equal(entry.staleAfterHours, 24);
     assert.deepEqual(entry.nextEvidenceWhen, ['missing', 'stale', 'unknown', 'unreadable']);
     assert.equal(entry.statusImpact, 'stale-pass-to-warning');
+    assert.ok(entry.acceptedWarning === null || typeof entry.acceptedWarning === 'object');
   }
+});
+
+test('domain manifest carries valid accepted-warning metadata per panel from registry only', () => {
+  const registry = minimalRegistry({
+    panelSets: {
+      product: ['publicReadiness'],
+    },
+    panels: {
+      publicReadiness: {
+        panelId: 'publicReadiness',
+        fileKey: 'public-readiness',
+        generatorPanel: 'public',
+        chainStage: 'public',
+        maintenanceLane: 'domain-acceptance-evidence',
+        autoMaintenanceAllowed: true,
+        blockingBeforePublic: true,
+        requiresDatabase: false,
+        writesDatabase: false,
+        notes: 'Synthetic public panel.',
+      },
+    },
+    domains: [
+      {
+        domainId: 'synthetic',
+        domainType: 'product',
+        tier: 'B',
+        chainStage: 'product-readiness',
+        panelSet: 'product',
+        backendRefreshStepIds: ['boss-sync'],
+        managementRoute: '/synthetic',
+        publicExposure: 'planned-public',
+        publicRoute: null,
+        acceptedWarnings: [
+          {
+            panelId: 'publicReadiness',
+            reason: 'Stale public evidence accepted for readiness review only.',
+            approvedBy: 'controller',
+            approvedAt: '2026-05-03T00:00:00Z',
+            expiresAt: '2026-05-10T00:00:00Z',
+            readinessOnly: true,
+          },
+        ],
+      },
+    ],
+  });
+
+  const [entry] = buildDomainAcceptanceReportManifest({ registry });
+
+  assert.deepEqual(entry.acceptedWarning, {
+    panelId: 'publicReadiness',
+    reason: 'Stale public evidence accepted for readiness review only.',
+    approvedBy: 'controller',
+    approvedAt: '2026-05-03T00:00:00Z',
+    expiresAt: '2026-05-10T00:00:00Z',
+    readinessOnly: true,
+  });
 });
 
 test('domain manifest routes B-tier domains to backend refresh steps', () => {
@@ -211,6 +268,70 @@ test('domain registry fails closed for malformed public exposure definitions', (
   assert.throws(
     () => buildDomainAcceptanceReportManifest({ registry }),
     /Admin-only domain must not declare publicRoute: synthetic/,
+  );
+});
+
+test('domain registry fails closed for malformed accepted-warning definitions', () => {
+  const domain = {
+    domainId: 'synthetic',
+    domainType: 'product',
+    tier: 'B',
+    chainStage: 'product-readiness',
+    panelSet: 'product',
+    backendRefreshStepIds: ['boss-sync'],
+    managementRoute: '/synthetic',
+    publicExposure: 'planned-public',
+    publicRoute: null,
+    acceptedWarnings: [
+      {
+        panelId: 'publicReadiness',
+        reason: 'Accepted for readiness review only.',
+        approvedBy: 'controller',
+        approvedAt: '2026-05-03T00:00:00Z',
+        expiresAt: '2026-05-10T00:00:00Z',
+        readinessOnly: true,
+      },
+    ],
+  };
+  const registry = minimalRegistry({
+    panelSets: {
+      product: ['publicReadiness'],
+    },
+    panels: {
+      publicReadiness: {
+        panelId: 'publicReadiness',
+        fileKey: 'public-readiness',
+        generatorPanel: 'public',
+        chainStage: 'public',
+        maintenanceLane: 'domain-acceptance-evidence',
+        autoMaintenanceAllowed: true,
+        blockingBeforePublic: true,
+        requiresDatabase: false,
+        writesDatabase: false,
+        notes: 'Synthetic public panel.',
+      },
+    },
+    domains: [domain],
+  });
+
+  delete domain.acceptedWarnings[0].approvedBy;
+  assert.throws(
+    () => buildDomainAcceptanceReportManifest({ registry }),
+    /Domain acceptance acceptedWarning missing required string: synthetic\.acceptedWarnings\[0\]\.approvedBy/,
+  );
+
+  domain.acceptedWarnings[0].approvedBy = 'controller';
+  domain.acceptedWarnings[0].readinessOnly = false;
+  assert.throws(
+    () => buildDomainAcceptanceReportManifest({ registry }),
+    /Domain acceptance acceptedWarning must declare readinessOnly=true: synthetic\.acceptedWarnings\[0\]\.readinessOnly/,
+  );
+
+  domain.acceptedWarnings[0].readinessOnly = true;
+  domain.acceptedWarnings[0].panelId = 'missingPanel';
+  assert.throws(
+    () => buildDomainAcceptanceReportManifest({ registry }),
+    /Unknown domain acceptance acceptedWarning panelId for synthetic: missingPanel/,
   );
 });
 
@@ -338,6 +459,7 @@ function minimalRegistry(overrides = {}) {
     },
     panelSets: {
       support: ['sourceReadiness'],
+      product: ['publicReadiness'],
     },
     panels: {
       sourceReadiness: {
@@ -351,6 +473,18 @@ function minimalRegistry(overrides = {}) {
         requiresDatabase: false,
         writesDatabase: false,
         notes: 'Synthetic source panel.',
+      },
+      publicReadiness: {
+        panelId: 'publicReadiness',
+        fileKey: 'public-readiness',
+        generatorPanel: 'public',
+        chainStage: 'public',
+        maintenanceLane: 'domain-acceptance-evidence',
+        autoMaintenanceAllowed: true,
+        blockingBeforePublic: true,
+        requiresDatabase: false,
+        writesDatabase: false,
+        notes: 'Synthetic public panel.',
       },
     },
     domains: [],

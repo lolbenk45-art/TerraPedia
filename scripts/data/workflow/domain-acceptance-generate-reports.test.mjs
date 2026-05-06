@@ -56,6 +56,35 @@ test('generateDomainAcceptanceReports writes only reports/domain outputs when wr
   assert.equal(JSON.parse(fs.readFileSync(path.join(repoRoot, 'reports/domain/buffs/source-readiness-2026-05-03.json'), 'utf8')).status, 'pass');
 });
 
+test('generated report evidence does not persist accepted-warning registry metadata', () => {
+  const repoRoot = createTempRepo();
+  writeBuffSourceEvidence(repoRoot);
+
+  generateDomainAcceptanceReports({
+    repoRoot,
+    generatedAt: '2026-05-03T12:00:00Z',
+    write: true,
+    manifest: [
+      {
+        domainId: 'buffs',
+        panelId: 'sourceReadiness',
+        acceptedWarning: {
+          panelId: 'sourceReadiness',
+          reason: 'Should remain registry-only metadata.',
+          approvedBy: 'controller',
+          approvedAt: '2026-05-03T00:00:00Z',
+          expiresAt: '2026-05-10T00:00:00Z',
+          readinessOnly: true,
+        },
+      },
+    ],
+  });
+
+  const report = JSON.parse(fs.readFileSync(path.join(repoRoot, 'reports/domain/buffs/source-readiness-2026-05-03.json'), 'utf8'));
+  assert.equal(Object.hasOwn(report, 'acceptedWarning'), false);
+  assert.equal(Object.hasOwn(report, 'acceptedWarnings'), false);
+});
+
 test('CLI defaults to dry-run JSON and only writes reports with --write=true', async () => {
   const repoRoot = createTempRepo();
   writeBuffSourceEvidence(repoRoot);

@@ -47,6 +47,9 @@ public class DomainAcceptanceOverviewDTO {
         private int blockingCount;
         private int warningCount;
         private int missingCount;
+        private List<AcceptedWarningDTO> acceptedWarnings = new ArrayList<>();
+        private Boolean hasActiveAcceptedWarnings;
+        private int activeAcceptedWarningCount;
         private List<DomainPanelDTO> panels = new ArrayList<>();
     }
 
@@ -82,10 +85,26 @@ public class DomainAcceptanceOverviewDTO {
         private String errorMessage;
         private Integer blockingCount;
         private Integer warningCount;
+        private AcceptedWarningDTO acceptedWarning;
+        private Boolean acceptedWarningActive;
+        private Boolean acceptedWarningApplies;
         private Map<String, Object> metrics = new LinkedHashMap<>();
         private List<DomainCheckDTO> checks = new ArrayList<>();
         private List<String> sampleReportPaths = new ArrayList<>();
         private Map<String, Object> rawSummary = new LinkedHashMap<>();
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class AcceptedWarningDTO {
+        private String panelId;
+        private String reason;
+        private String approvedBy;
+        private Instant approvedAt;
+        private Instant expiresAt;
+        private Boolean readinessOnly;
+        private Boolean active;
+        private Boolean applies;
     }
 
     @Data

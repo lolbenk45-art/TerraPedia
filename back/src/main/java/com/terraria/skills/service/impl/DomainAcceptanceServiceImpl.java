@@ -92,6 +92,8 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
     ) {
         DomainAcceptanceOverviewDTO.DomainDTO domain = new DomainAcceptanceOverviewDTO.DomainDTO();
         validatePublicExposure(definition);
+        List<String> panelSet = resolvePanelSet(registry, definition);
+        Map<String, DomainAcceptanceOverviewDTO.AcceptedWarningDTO> acceptedWarnings = acceptedWarningsByPanel(definition, panelSet);
         domain.setDomainId(definition.domainId);
         domain.setDomainType(definition.domainType);
         domain.setTier(definition.tier);
@@ -102,18 +104,21 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         List<String> backendRefreshStepIds = backendRefreshStepIds(definition);
         domain.setBackendRefreshStepIds(backendRefreshStepIds);
         domain.setBackendRefreshPlanCommand(backendRefreshPlanCommand(backendRefreshStepIds));
-        for (String panelId : resolvePanelSet(registry, definition)) {
+        domain.setAcceptedWarnings(new ArrayList<>(acceptedWarnings.values()));
+        for (String panelId : panelSet) {
             PanelDefinition panelDefinition = registry.panels.get(panelId);
             if (panelDefinition == null) {
                 throw new IllegalStateException("Missing domain acceptance panel definition: " + panelId);
             }
-            domain.getPanels().add(readPanel(
+            DomainAcceptanceOverviewDTO.DomainPanelDTO panel = readPanel(
                 repoRoot,
                 definition.domainId,
                 backendRefreshStepIds,
                 panelDefinition,
                 registry.freshness
-            ));
+            );
+            applyAcceptedWarning(panel, acceptedWarnings.get(panelId));
+            domain.getPanels().add(panel);
         }
         aggregateDomain(domain);
         return domain;
@@ -230,9 +235,13 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         int blockingCount = 0;
         int warningCount = 0;
         int missingCount = 0;
+        int activeAcceptedWarningCount = 0;
         for (DomainAcceptanceOverviewDTO.DomainPanelDTO panel : domain.getPanels()) {
             if (Boolean.TRUE.equals(panel.getRequiresDatabase())) {
                 domain.setRequiresDatabase(true);
+            }
+            if (Boolean.TRUE.equals(panel.getAcceptedWarningActive())) {
+                activeAcceptedWarningCount++;
             }
             if ("blocked".equals(panel.getStatus())) {
                 blockingCount += positiveOrOne(panel.getBlockingCount());
@@ -246,6 +255,8 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         domain.setBlockingCount(blockingCount);
         domain.setWarningCount(warningCount);
         domain.setMissingCount(missingCount);
+        domain.setActiveAcceptedWarningCount(activeAcceptedWarningCount);
+        domain.setHasActiveAcceptedWarnings(activeAcceptedWarningCount > 0);
         if (domain.getRequiresDatabase() == null) {
             domain.setRequiresDatabase(false);
         }
@@ -273,14 +284,14 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
             domain.setPublicGateReason("public route is planned but not yet configured");
             return;
         }
-        DomainAcceptanceOverviewDTO.DomainPanelDTO missingPublicRoutePanel = domain.getPanels().stream()
+        DomainAcceptanceOverviewDTO.DomainPanelDTO publicBlockingPanel = domain.getPanels().stream()
             .filter(panel -> Boolean.TRUE.equals(panel.getBlockingBeforePublic()))
             .filter(panel -> "public".equals(panel.getChainStage()))
             .findFirst()
             .orElse(null);
-        if (!hasPublicRoute(domain.getPublicRoute()) && missingPublicRoutePanel != null) {
+        if (!hasPublicRoute(domain.getPublicRoute()) && publicBlockingPanel != null) {
             domain.setPublicGateStatus("public_route_missing");
-            domain.setPublicGateReason(panelKey(domain, missingPublicRoutePanel)
+            domain.setPublicGateReason(panelKey(domain, publicBlockingPanel)
                 + " is blocking before public consumption but has no public route");
             return;
         }
@@ -338,6 +349,9 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         overview.getSummary().put("staleCount", staleCount);
         overview.getSummary().put("missingCount", missingCount);
         overview.getSummary().put("unknownCount", unknownCount);
+        overview.getSummary().put("activeAcceptedWarningCount", overview.getDomains().stream()
+            .mapToInt(DomainAcceptanceOverviewDTO.DomainDTO::getActiveAcceptedWarningCount)
+            .sum());
         overview.getSummary().put("unsafeCommandCount", 0);
         buildRefreshPlanProjection(overview);
 
@@ -569,6 +583,8 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         panel.setStaleAfterHours(freshness == null || freshness.staleAfterHours == null ? 24 : freshness.staleAfterHours);
         panel.setBlockingCount(0);
         panel.setWarningCount(0);
+        panel.setAcceptedWarningActive(false);
+        panel.setAcceptedWarningApplies(false);
         return panel;
     }
 
@@ -881,6 +897,99 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         return first == null || first.isBlank() ? second : first;
     }
 
+    private Map<String, DomainAcceptanceOverviewDTO.AcceptedWarningDTO> acceptedWarningsByPanel(
+        DomainDefinition definition,
+        List<String> panelSet
+    ) {
+        if (definition.acceptedWarnings == null || definition.acceptedWarnings.isEmpty()) {
+            return Map.of();
+        }
+        Set<String> allowedPanelIds = Set.copyOf(panelSet);
+        Map<String, DomainAcceptanceOverviewDTO.AcceptedWarningDTO> acceptedWarnings = new LinkedHashMap<>();
+        for (AcceptedWarningDefinition warning : definition.acceptedWarnings) {
+            DomainAcceptanceOverviewDTO.AcceptedWarningDTO dto = validateAcceptedWarning(definition.domainId, warning, allowedPanelIds);
+            if (acceptedWarnings.put(dto.getPanelId(), dto) != null) {
+                throw new IllegalStateException("Duplicate accepted warning for " + definition.domainId + "/" + dto.getPanelId());
+            }
+        }
+        return acceptedWarnings;
+    }
+
+    private DomainAcceptanceOverviewDTO.AcceptedWarningDTO validateAcceptedWarning(
+        String domainId,
+        AcceptedWarningDefinition warning,
+        Set<String> allowedPanelIds
+    ) {
+        if (warning == null) {
+            throw new IllegalStateException("Accepted warning entry is missing for " + domainId);
+        }
+        String panelId = requireNonBlank(warning.panelId, "Accepted warning panelId is required for " + domainId);
+        String panelKey = domainId + "/" + panelId;
+        if (!allowedPanelIds.contains(panelId)) {
+            throw new IllegalStateException("Accepted warning references unknown panel for " + panelKey);
+        }
+        if (!Boolean.TRUE.equals(warning.readinessOnly)) {
+            throw new IllegalStateException("Accepted warning readinessOnly must be literal true for " + panelKey);
+        }
+        DomainAcceptanceOverviewDTO.AcceptedWarningDTO dto = new DomainAcceptanceOverviewDTO.AcceptedWarningDTO();
+        dto.setPanelId(panelId);
+        dto.setReason(requireNonBlank(warning.reason, "Accepted warning reason is required for " + panelKey));
+        dto.setApprovedBy(requireNonBlank(warning.approvedBy, "Accepted warning approvedBy is required for " + panelKey));
+        dto.setApprovedAt(requireRegistryInstant(warning.approvedAt, "Accepted warning approvedAt is invalid for " + panelKey));
+        dto.setExpiresAt(requireRegistryInstant(warning.expiresAt, "Accepted warning expiresAt is invalid for " + panelKey));
+        if (dto.getExpiresAt().isBefore(dto.getApprovedAt())) {
+            throw new IllegalStateException("Accepted warning expiresAt must be after approvedAt for " + panelKey);
+        }
+        dto.setReadinessOnly(true);
+        return dto;
+    }
+
+    private void applyAcceptedWarning(
+        DomainAcceptanceOverviewDTO.DomainPanelDTO panel,
+        DomainAcceptanceOverviewDTO.AcceptedWarningDTO acceptedWarning
+    ) {
+        if (panel == null || acceptedWarning == null) {
+            return;
+        }
+        boolean active = isActiveAcceptedWarning(acceptedWarning);
+        boolean applies = active && "stale".equals(panel.getFreshnessStatus());
+        DomainAcceptanceOverviewDTO.AcceptedWarningDTO projected = new DomainAcceptanceOverviewDTO.AcceptedWarningDTO();
+        projected.setPanelId(acceptedWarning.getPanelId());
+        projected.setReason(acceptedWarning.getReason());
+        projected.setApprovedBy(acceptedWarning.getApprovedBy());
+        projected.setApprovedAt(acceptedWarning.getApprovedAt());
+        projected.setExpiresAt(acceptedWarning.getExpiresAt());
+        projected.setReadinessOnly(true);
+        projected.setActive(active);
+        projected.setApplies(applies);
+        panel.setAcceptedWarning(projected);
+        panel.setAcceptedWarningActive(active);
+        panel.setAcceptedWarningApplies(applies);
+    }
+
+    private boolean isActiveAcceptedWarning(DomainAcceptanceOverviewDTO.AcceptedWarningDTO acceptedWarning) {
+        if (acceptedWarning == null || acceptedWarning.getApprovedAt() == null || acceptedWarning.getExpiresAt() == null) {
+            return false;
+        }
+        Instant now = Instant.now(clock);
+        return !acceptedWarning.getApprovedAt().isAfter(now) && acceptedWarning.getExpiresAt().isAfter(now);
+    }
+
+    private String requireNonBlank(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException(message);
+        }
+        return value;
+    }
+
+    private Instant requireRegistryInstant(String value, String message) {
+        Instant instant = parseInstant(value);
+        if (instant == null) {
+            throw new IllegalStateException(message);
+        }
+        return instant;
+    }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     private static class RegistryDefinition {
         public FreshnessDefinition freshness;
@@ -905,6 +1014,17 @@ public class DomainAcceptanceServiceImpl implements DomainAcceptanceService {
         public String publicExposure;
         public String publicRoute;
         public List<String> backendRefreshStepIds;
+        public List<AcceptedWarningDefinition> acceptedWarnings;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private static class AcceptedWarningDefinition {
+        public String panelId;
+        public String reason;
+        public String approvedBy;
+        public String approvedAt;
+        public String expiresAt;
+        public Boolean readinessOnly;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

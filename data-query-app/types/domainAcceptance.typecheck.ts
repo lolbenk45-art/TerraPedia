@@ -52,6 +52,18 @@ const overview: DomainAcceptanceOverview = {
       publicRoute: null,
       publicGateStatus: 'planned_public_no_route',
       publicGateReason: 'public route is planned but not yet configured',
+      acceptedWarnings: [
+        {
+          panelId: 'sourceReadiness',
+          reason: 'Stale source evidence accepted for readiness-only review.',
+          approvedBy: 'data-governance',
+          approvedAt: '2026-05-06T08:00:00Z',
+          expiresAt: '2026-05-07T08:00:00Z',
+          readinessOnly: true,
+          active: true,
+          applies: true,
+        },
+      ],
       backendRefreshStepIds: ['independent-entity-sync'],
       backendRefreshPlanCommand: 'node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=independent-entity-sync',
       requiresDatabase: false,
@@ -72,7 +84,18 @@ const overview: DomainAcceptanceOverview = {
           blockingBeforePublic: false,
           status: 'warning',
           reportPath: 'reports/domain/buffs/source-readiness-2026-05-03.json',
+          freshnessStatus: 'stale',
           nextEvidenceCommand: 'node scripts/data/audit/domain-readiness-audit.mjs --domain=buffs --panel=source',
+          acceptedWarning: {
+            panelId: 'sourceReadiness',
+            reason: 'Stale source evidence accepted for readiness-only review.',
+            approvedBy: 'data-governance',
+            approvedAt: '2026-05-06T08:00:00Z',
+            expiresAt: '2026-05-07T08:00:00Z',
+            readinessOnly: true,
+            active: true,
+            applies: true,
+          },
           checks: [
             {
               id: 'standardized_buffs_readable',

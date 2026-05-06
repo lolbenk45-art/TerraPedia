@@ -74,6 +74,14 @@ class AdminDomainAcceptanceControllerTest {
             .andExpect(jsonPath("$.data.domains[0].publicExposure").value("planned-public"))
             .andExpect(jsonPath("$.data.domains[0].publicGateStatus").value("planned_public_no_route"))
             .andExpect(jsonPath("$.data.domains[0].publicGateReason").value("public route is planned but not yet configured"))
+            .andExpect(jsonPath("$.data.domains[0].acceptedWarnings[0].panelId").value("sourceReadiness"))
+            .andExpect(jsonPath("$.data.domains[0].acceptedWarnings[0].reason").value("manual stale review"))
+            .andExpect(jsonPath("$.data.domains[0].acceptedWarnings[0].approvedBy").value("ops-admin"))
+            .andExpect(jsonPath("$.data.domains[0].acceptedWarnings[0].approvedAt").value("2026-05-03T08:00:00Z"))
+            .andExpect(jsonPath("$.data.domains[0].acceptedWarnings[0].expiresAt").value("2026-05-05T00:00:00Z"))
+            .andExpect(jsonPath("$.data.domains[0].acceptedWarnings[0].readinessOnly").value(true))
+            .andExpect(jsonPath("$.data.domains[0].hasActiveAcceptedWarnings").value(true))
+            .andExpect(jsonPath("$.data.domains[0].activeAcceptedWarningCount").value(1))
             .andExpect(jsonPath("$.data.domains[0].backendRefreshStepIds[0]").value("independent-entity-sync"))
             .andExpect(jsonPath("$.data.domains[0].backendRefreshPlanCommand").value("node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=independent-entity-sync"))
             .andExpect(jsonPath("$.data.domains[0].requiresDatabase").value(false))
@@ -88,6 +96,15 @@ class AdminDomainAcceptanceControllerTest {
             .andExpect(jsonPath("$.data.domains[0].panels[0].nextEvidenceCommand").value("node scripts/data/audit/domain-readiness-audit.mjs --domain=buffs --panel=source"))
             .andExpect(jsonPath("$.data.domains[0].panels[0].writesDatabase").value(false))
             .andExpect(jsonPath("$.data.domains[0].panels[0].requiresDatabase").value(false))
+            .andExpect(jsonPath("$.data.domains[0].panels[0].acceptedWarningActive").value(true))
+            .andExpect(jsonPath("$.data.domains[0].panels[0].acceptedWarningApplies").value(true))
+            .andExpect(jsonPath("$.data.domains[0].panels[0].acceptedWarning.reason").value("manual stale review"))
+            .andExpect(jsonPath("$.data.domains[0].panels[0].acceptedWarning.approvedBy").value("ops-admin"))
+            .andExpect(jsonPath("$.data.domains[0].panels[0].acceptedWarning.approvedAt").value("2026-05-03T08:00:00Z"))
+            .andExpect(jsonPath("$.data.domains[0].panels[0].acceptedWarning.expiresAt").value("2026-05-05T00:00:00Z"))
+            .andExpect(jsonPath("$.data.domains[0].panels[0].acceptedWarning.readinessOnly").value(true))
+            .andExpect(jsonPath("$.data.domains[0].panels[0].acceptedWarning.active").value(true))
+            .andExpect(jsonPath("$.data.domains[0].panels[0].acceptedWarning.applies").value(true))
             .andExpect(jsonPath("$.data.refreshPlanSummary.overallStatus").value("ready"))
             .andExpect(jsonPath("$.data.refreshPlanSummary.actionCount").value(1))
             .andExpect(jsonPath("$.data.refreshPlanSummary.readyCount").value(1))
@@ -120,6 +137,18 @@ class AdminDomainAcceptanceControllerTest {
         panel.setNextEvidenceCommand("node scripts/data/audit/domain-readiness-audit.mjs --domain=buffs --panel=source");
         panel.setWritesDatabase(false);
         panel.setRequiresDatabase(false);
+        panel.setAcceptedWarningActive(true);
+        panel.setAcceptedWarningApplies(true);
+        DomainAcceptanceOverviewDTO.AcceptedWarningDTO acceptedWarning = new DomainAcceptanceOverviewDTO.AcceptedWarningDTO();
+        acceptedWarning.setPanelId("sourceReadiness");
+        acceptedWarning.setReason("manual stale review");
+        acceptedWarning.setApprovedBy("ops-admin");
+        acceptedWarning.setApprovedAt(Instant.parse("2026-05-03T08:00:00Z"));
+        acceptedWarning.setExpiresAt(Instant.parse("2026-05-05T00:00:00Z"));
+        acceptedWarning.setReadinessOnly(true);
+        acceptedWarning.setActive(true);
+        acceptedWarning.setApplies(true);
+        panel.setAcceptedWarning(acceptedWarning);
 
         DomainAcceptanceOverviewDTO.DomainDTO domain = new DomainAcceptanceOverviewDTO.DomainDTO();
         domain.setDomainId("buffs");
@@ -131,6 +160,9 @@ class AdminDomainAcceptanceControllerTest {
         domain.setPublicRoute(null);
         domain.setPublicGateStatus("planned_public_no_route");
         domain.setPublicGateReason("public route is planned but not yet configured");
+        domain.setAcceptedWarnings(List.of(acceptedWarning));
+        domain.setHasActiveAcceptedWarnings(true);
+        domain.setActiveAcceptedWarningCount(1);
         domain.setBackendRefreshStepIds(List.of("independent-entity-sync"));
         domain.setBackendRefreshPlanCommand("node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=independent-entity-sync");
         domain.setRequiresDatabase(false);
