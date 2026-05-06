@@ -6,6 +6,7 @@ test('quality gate includes domain acceptance workflow tests', () => {
   const source = fs.readFileSync('scripts/dev/quality-gate.ps1', 'utf8');
 
   for (const testPath of [
+    'scripts/data/crawler/tests/source-layout-warning.test.mjs',
     'scripts/data/audit/domain-readiness-audit.test.mjs',
     'scripts/data/workflow/domain-acceptance-report-manifest.test.mjs',
     'scripts/data/workflow/domain-acceptance-freshness-audit.test.mjs',
@@ -14,6 +15,16 @@ test('quality gate includes domain acceptance workflow tests', () => {
     'scripts/data/workflow/domain-acceptance-generate-reports.test.mjs',
   ]) {
     assert.match(source, new RegExp(escapeRegExp(testPath)), `${testPath} should be included in quality gate`);
+  }
+});
+
+test('quality gate runs crawler source layout drift check as warning-only', () => {
+  const localSource = fs.readFileSync('scripts/dev/quality-gate.ps1', 'utf8');
+  const ciSource = fs.readFileSync('scripts/dev/quality-gate-ci.ps1', 'utf8');
+
+  for (const source of [localSource, ciSource]) {
+    assert.match(source, /Crawler source layout check \(warning-only\)/);
+    assert.match(source, /scripts\/data\/crawler\/source-layout-check\.mjs/);
   }
 });
 

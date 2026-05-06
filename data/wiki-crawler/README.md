@@ -1,6 +1,7 @@
 # Wiki Crawler
 
-`data/wiki-crawler/src` and `data/wiki-crawler/tests` are the NPC wiki crawler tooling kept on the main application branch.
+Crawler source and crawler tests now live under `scripts/data/crawler/src` and `scripts/data/crawler/tests`.
+`data/wiki-crawler/` is reserved for crawler data, reports, normalized outputs, and other rerunnable artifacts.
 
 The following directories are treated as rerunnable outputs by default and should not be promoted into long-term mainline facts without milestone validation:
 

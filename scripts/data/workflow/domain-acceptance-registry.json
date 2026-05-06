@@ -100,6 +100,28 @@
   },
   "domains": [
     {
+      "domainId": "items",
+      "domainType": "product",
+      "tier": "B",
+      "chainStage": "product-readiness",
+      "panelSet": "product",
+      "backendRefreshStepIds": ["wiki-core-refresh", "item-pages-refresh", "recipe-reference-sync", "item-detail-sync"],
+      "managementRoute": "/items",
+      "publicExposure": "public",
+      "publicRoute": "/items"
+    },
+    {
+      "domainId": "npcs",
+      "domainType": "product",
+      "tier": "B",
+      "chainStage": "product-readiness",
+      "panelSet": "product",
+      "backendRefreshStepIds": ["wiki-core-refresh", "town-npc-sync"],
+      "managementRoute": "/npcs",
+      "publicExposure": "public",
+      "publicRoute": "/npcs"
+    },
+    {
       "domainId": "bosses",
       "domainType": "product",
       "tier": "B",

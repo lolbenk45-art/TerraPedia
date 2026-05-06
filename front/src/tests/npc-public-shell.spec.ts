@@ -107,6 +107,16 @@ describe('NPC public shell', () => {
     expect(routes.some(route => route.path === '/npcs/:id')).toBe(true)
   })
 
+  it('keeps public route registration scoped to item and npc surfaces only', () => {
+    expect(routes.some(route => route.path === '/items')).toBe(true)
+    expect(routes.some(route => route.path === '/items/:id')).toBe(true)
+    expect(routes.some(route => route.path === '/bosses')).toBe(false)
+    expect(routes.some(route => route.path === '/bosses/:id')).toBe(false)
+    expect(routes.some(route => route.path === '/buffs')).toBe(false)
+    expect(routes.some(route => route.path === '/projectiles')).toBe(false)
+    expect(routes.some(route => route.path === '/armor-sets')).toBe(false)
+  })
+
   it('renders public npc cards with search, town filter, and fallback portraits', async () => {
     applyRoute('/npcs')
 

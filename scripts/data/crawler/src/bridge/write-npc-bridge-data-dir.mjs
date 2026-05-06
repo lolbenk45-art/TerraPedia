@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { ensureDir, writeJson } from '../../../../scripts/data/lib/wiki-item-utils.mjs';
+import { ensureDir, writeJson } from '../../../lib/wiki-item-utils.mjs';
 
 const PASSTHROUGH_DATASETS = ['items', 'buffs', 'projectiles', 'armor_sets'];
 

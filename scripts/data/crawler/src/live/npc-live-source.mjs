@@ -2,7 +2,7 @@ import {
   DEFAULT_WIKI_API_URL,
   fetchWikiApiJson,
   fetchWikiPagePayload
-} from '../../../../scripts/data/lib/wiki-item-utils.mjs';
+} from '../../../lib/wiki-item-utils.mjs';
 
 export async function resolveNpcLiveSource(
   { pageId, pageTitle, apiUrl = DEFAULT_WIKI_API_URL } = {},

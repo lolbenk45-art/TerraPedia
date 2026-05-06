@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { ensureDir, writeJson } from '../../../../scripts/data/lib/wiki-item-utils.mjs';
+import { ensureDir, writeJson } from '../../../lib/wiki-item-utils.mjs';
 import { buildNpcCoverageShard } from './build-npc-coverage-shard.mjs';
 
 export async function runNpcCoverageShard({

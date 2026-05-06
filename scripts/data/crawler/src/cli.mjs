@@ -133,16 +133,16 @@ async function loadRawInput(argv, {
 
   throw new Error([
     'Usage:',
-    '  node data/wiki-crawler/src/cli.mjs --fixture <path>',
-    '  node data/wiki-crawler/src/cli.mjs batch --domain=npc --page-titles=<title1|title2>',
-    '  node data/wiki-crawler/src/cli.mjs batch --domain=npc --targets-file=<path> --target-priority=<priority> --limit=<n>',
-    '  node data/wiki-crawler/src/cli.mjs batch --domain=npc --page-ids=<id1,id2>',
-    '  node data/wiki-crawler/src/cli.mjs bridge --domain=npc --source-standardized-dir=<dir> --crawler-output-root=<dir>',
-    '  node data/wiki-crawler/src/cli.mjs coverage-audit --domain=npc --source-standardized-dir=<dir> --crawler-output-root=<dir>',
-    '  node data/wiki-crawler/src/cli.mjs coverage-shard --domain=npc --coverage-audit-path=<path> --priority=<priority> --limit=<n>',
-    '  node data/wiki-crawler/src/cli.mjs entity --domain=npc --page-id=<id>',
-    '  node data/wiki-crawler/src/cli.mjs entity --domain=npc --page-title=<title>',
-    '  node data/wiki-crawler/src/cli.mjs entity --domain=npc --page-title=<title> --api-url=<wiki-api-url>'
+    '  node scripts/data/crawler/src/cli.mjs --fixture <path>',
+    '  node scripts/data/crawler/src/cli.mjs batch --domain=npc --page-titles=<title1|title2>',
+    '  node scripts/data/crawler/src/cli.mjs batch --domain=npc --targets-file=<path> --target-priority=<priority> --limit=<n>',
+    '  node scripts/data/crawler/src/cli.mjs batch --domain=npc --page-ids=<id1,id2>',
+    '  node scripts/data/crawler/src/cli.mjs bridge --domain=npc --source-standardized-dir=<dir> --crawler-output-root=<dir>',
+    '  node scripts/data/crawler/src/cli.mjs coverage-audit --domain=npc --source-standardized-dir=<dir> --crawler-output-root=<dir>',
+    '  node scripts/data/crawler/src/cli.mjs coverage-shard --domain=npc --coverage-audit-path=<path> --priority=<priority> --limit=<n>',
+    '  node scripts/data/crawler/src/cli.mjs entity --domain=npc --page-id=<id>',
+    '  node scripts/data/crawler/src/cli.mjs entity --domain=npc --page-title=<title>',
+    '  node scripts/data/crawler/src/cli.mjs entity --domain=npc --page-title=<title> --api-url=<wiki-api-url>'
   ].join('\n'));
 }
 

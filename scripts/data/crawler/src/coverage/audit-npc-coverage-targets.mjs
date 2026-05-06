@@ -1,4 +1,4 @@
-import { fetchWikiPageMetadataBatch } from '../../../../scripts/data/lib/wiki-item-utils.mjs';
+import { fetchWikiPageMetadataBatch } from '../../../lib/wiki-item-utils.mjs';
 
 export async function auditNpcCoverageTargets({
   targets,

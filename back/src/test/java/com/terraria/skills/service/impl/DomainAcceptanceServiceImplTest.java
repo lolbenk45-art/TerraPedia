@@ -35,11 +35,25 @@ class DomainAcceptanceServiceImplTest {
 
         assertEquals(Instant.parse("2026-05-03T12:00:00Z"), overview.getGeneratedAt());
         assertEquals("pass", overview.getOverallStatus());
-        assertEquals(9, overview.getDomainCount());
-        assertEquals(35, overview.getPanelCount());
+        assertEquals(11, overview.getDomainCount());
+        assertEquals(45, overview.getPanelCount());
         assertEquals(0, overview.getBlockingCount());
         assertEquals(0, overview.getWarningCount());
         assertEquals(0, overview.getMissingCount());
+
+        DomainAcceptanceOverviewDTO.DomainDTO items = domain(overview, "items");
+        assertEquals("public", items.getPublicExposure());
+        assertEquals("/items", items.getPublicRoute());
+        assertEquals("public_route_configured", items.getPublicGateStatus());
+        assertNull(items.getPublicGateReason());
+        assertEquals(List.of("wiki-core-refresh", "item-pages-refresh", "recipe-reference-sync", "item-detail-sync"), items.getBackendRefreshStepIds());
+
+        DomainAcceptanceOverviewDTO.DomainDTO npcs = domain(overview, "npcs");
+        assertEquals("public", npcs.getPublicExposure());
+        assertEquals("/npcs", npcs.getPublicRoute());
+        assertEquals("public_route_configured", npcs.getPublicGateStatus());
+        assertNull(npcs.getPublicGateReason());
+        assertEquals(List.of("wiki-core-refresh", "town-npc-sync"), npcs.getBackendRefreshStepIds());
 
         DomainAcceptanceOverviewDTO.DomainDTO bosses = domain(overview, "bosses");
         assertEquals("product", bosses.getDomainType());
@@ -587,7 +601,7 @@ class DomainAcceptanceServiceImplTest {
         DomainAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot).getOverview();
 
         assertEquals("missing", overview.getOverallStatus());
-        assertEquals(35, overview.getMissingCount());
+        assertEquals(45, overview.getMissingCount());
         assertEquals(0, overview.getBlockingCount());
         assertEquals(0, overview.getWarningCount());
         DomainAcceptanceOverviewDTO.DomainPanelDTO panel = panel(domain(overview, "support.item_group"), "blockingGate");
@@ -984,6 +998,8 @@ class DomainAcceptanceServiceImplTest {
             new PanelSpec("b1-exemption-compliance")
         );
         return List.of(
+            new DomainSpec("items", productPanels),
+            new DomainSpec("npcs", productPanels),
             new DomainSpec("bosses", productPanels),
             new DomainSpec("buffs", productPanels),
             new DomainSpec("projectiles", productPanels),

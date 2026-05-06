@@ -42,6 +42,7 @@ Invoke-Step -Label 'Data workflow acceptance tests' -WorkingDirectory $repoRoot 
   '--test',
   'scripts/dev/quality-gate.test.mjs',
   'scripts/dev/local-stack.test.mjs',
+  'scripts/data/crawler/tests/source-layout-warning.test.mjs',
   'scripts/data/workflow/data-source-acceptance-report-manifest.test.mjs',
   'scripts/data/workflow/data-source-acceptance-freshness-audit.test.mjs',
   'scripts/data/workflow/data-source-acceptance-refresh-plan.test.mjs',
@@ -49,6 +50,10 @@ Invoke-Step -Label 'Data workflow acceptance tests' -WorkingDirectory $repoRoot 
   'scripts/data/workflow/domain-acceptance-freshness-audit.test.mjs',
   'scripts/data/workflow/domain-acceptance-refresh-plan.test.mjs',
   'scripts/data/workflow/domain-acceptance-a-grade-gate.test.mjs'
+)
+
+Invoke-Step -Label 'Crawler source layout check (warning-only)' -WorkingDirectory $repoRoot -CommandPath $nodeCmd -Arguments @(
+  'scripts/data/crawler/source-layout-check.mjs'
 )
 
 Invoke-Step -Label 'Domain acceptance A-grade gate' -WorkingDirectory $repoRoot -CommandPath $nodeCmd -Arguments @(

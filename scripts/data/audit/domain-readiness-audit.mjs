@@ -123,6 +123,87 @@ const KNOWN_BUFF_REQUIRED_FIELD_GAP_KEYS = new Set([
 ]);
 
 const PRODUCT_DOMAIN_CONFIG = {
+  items: {
+    sourceReadiness: {
+      fileKey: 'source-readiness',
+      evidence: [
+        requiredJson('data/standardized/items.standardized.json'),
+        optionalLatestJson('reports/wiki-items-fetch*.json'),
+        optionalLatestJson('reports/wiki-item-pages-fetch*.json'),
+      ],
+    },
+    relationReadiness: {
+      fileKey: 'relation-readiness',
+      evidence: [
+        optionalLatestJson('reports/relation/entity-coverage-baseline*.json'),
+        optionalLatestJson('reports/relation/item-relations-bundle*.json'),
+      ],
+    },
+    imageReadiness: {
+      fileKey: 'image-readiness',
+      evidence: [
+        requiredJson('data/standardized/items.standardized.json'),
+        optionalLatestJson('reports/image-sync*.json'),
+        optionalText('back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java'),
+      ],
+    },
+    publicReadiness: {
+      fileKey: 'public-readiness',
+      evidence: [
+        optionalText('back/src/main/java/com/terraria/skills/controller/PublicItemController.java'),
+        optionalText('back/src/main/java/com/terraria/skills/controller/PublicItemAggregateController.java'),
+        optionalText('back/src/main/java/com/terraria/skills/controller/PublicItemRecipeController.java'),
+        optionalText('front/src/router/routes.ts'),
+        optionalText('front/src/views/HomeView.vue'),
+        optionalText('front/src/views/ItemDetailView.vue'),
+      ],
+    },
+    unresolvedAuditTrend: {
+      fileKey: 'unresolved-audit-trend',
+      evidence: [
+        requiredLatestJson('reports/relation/reresolve-candidates*.json'),
+      ],
+    },
+  },
+  npcs: {
+    sourceReadiness: {
+      fileKey: 'source-readiness',
+      evidence: [
+        requiredJson('data/standardized/npcs.standardized.json'),
+        optionalLatestJson('reports/wiki-town-npc-import*.json'),
+        optionalLatestJson('reports/wiki-town-npc-maintenance*.json'),
+      ],
+    },
+    relationReadiness: {
+      fileKey: 'relation-readiness',
+      evidence: [
+        optionalLatestJson('reports/relation/entity-coverage-baseline*.json'),
+        optionalLatestJson('reports/data/npc-buff-relations-backfill*.json'),
+      ],
+    },
+    imageReadiness: {
+      fileKey: 'image-readiness',
+      evidence: [
+        requiredJson('data/standardized/npcs.standardized.json'),
+        optionalText('back/src/main/java/com/terraria/skills/controller/PublicNpcAggregateController.java'),
+      ],
+    },
+    publicReadiness: {
+      fileKey: 'public-readiness',
+      evidence: [
+        optionalText('back/src/main/java/com/terraria/skills/controller/PublicNpcAggregateController.java'),
+        optionalText('front/src/router/routes.ts'),
+        optionalText('front/src/views/NpcListView.vue'),
+        optionalText('front/src/views/NpcDetailView.vue'),
+      ],
+    },
+    unresolvedAuditTrend: {
+      fileKey: 'unresolved-audit-trend',
+      evidence: [
+        requiredLatestJson('reports/relation/reresolve-candidates*.json'),
+      ],
+    },
+  },
   bosses: {
     sourceReadiness: {
       fileKey: 'source-readiness',

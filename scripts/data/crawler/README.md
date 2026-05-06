@@ -1,13 +1,23 @@
 # Data Crawler Scripts
 
-本目录是爬虫源码的目标位置。
+This directory owns crawler source code and crawler tests.
 
-## 当前状态
+## Layout
 
-历史爬虫源码仍位于 `data/wiki-crawler/src/` 和 `data/wiki-crawler/tests/`。为了避免破坏现有引用，本次只建立目标目录，不直接迁移源码。
+- `scripts/data/crawler/src/`
+  - crawler implementation
+- `scripts/data/crawler/tests/`
+  - crawler-focused tests and fixtures
+- `scripts/data/crawler/source-layout-check.mjs`
+  - warning-only structure check for legacy source paths
 
-## 后续迁移规则
+## Data Boundary
 
-- 先补路径兼容。
-- 再迁移源码和测试。
-- 最后让 `data/wiki-crawler/` 只保留数据产物。
+`data/wiki-crawler/` remains the crawler data and output root.
+It should keep rerunnable outputs, fixtures, and README-level documentation, but not long-term source code.
+
+## Migration Notes
+
+- CLI entrypoint moved from `data/wiki-crawler/src/cli.mjs` to `scripts/data/crawler/src/cli.mjs`
+- test entrypoint moved from `data/wiki-crawler/tests/*.test.mjs` to `scripts/data/crawler/tests/*.test.mjs`
+- legacy `data/wiki-crawler/src` and `data/wiki-crawler/tests` should be treated as warning-only structure drift if they reappear

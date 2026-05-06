@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { ensureDir, writeJson } from '../../../../scripts/data/lib/wiki-item-utils.mjs';
+import { ensureDir, writeJson } from '../../../lib/wiki-item-utils.mjs';
 
 export function buildNpcBatchSummary({ executions } = {}) {
   const rows = Array.isArray(executions) ? executions : [];

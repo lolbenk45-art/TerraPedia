@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { buildNpcStandardizedBridge } from '../src/bridge/build-npc-standardized-bridge.mjs';
-import { buildNpcItemRelationsBundle } from '../../../scripts/data/fetch/build-npc-item-relations-bundle.mjs';
+import { buildNpcItemRelationsBundle } from '../../fetch/build-npc-item-relations-bundle.mjs';
 
 test('buildNpcStandardizedBridge overlays wikiCrawler data without breaking the standardized npc shape', () => {
   const standardizedPayload = {

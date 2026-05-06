@@ -566,7 +566,7 @@ test('CLI prints A-grade gate JSON without executing commands', async () => {
   assert.equal(stderr, '');
   const gate = JSON.parse(stdout);
   assert.equal(gate.generatedAt, '2026-05-03T12:00:00Z');
-  assert.equal(gate.summary.panelCount, 26);
+  assert.equal(gate.summary.panelCount, 45);
   assert.equal(typeof gate.overallStatus, 'string');
 });
 

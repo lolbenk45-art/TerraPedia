@@ -7,7 +7,7 @@ Default shared data root:
 ## Directory Layout
 
 - `scripts/data/crawler`
-  - Target home for crawler source code. Existing `data/wiki-crawler/src` is not migrated yet.
+  - Home for crawler source code and crawler-local tests.
 - `scripts/data/monitor`
   - Upstream source change detection
 - `scripts/data/fetch`

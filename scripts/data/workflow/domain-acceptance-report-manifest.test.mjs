@@ -14,6 +14,8 @@ const EXPECTED_DOMAIN_IDS = [
   'armor_sets',
   'bosses',
   'buffs',
+  'items',
+  'npcs',
   'projectiles',
   'support.category',
   'support.item_group',
@@ -151,6 +153,8 @@ test('domain manifest routes B-tier domains to backend refresh steps', () => {
   const manifest = buildDomainAcceptanceReportManifest();
   const stepsByDomain = new Map(manifest.map((entry) => [entry.domainId, entry.backendRefreshStepIds]));
 
+  assert.deepEqual(stepsByDomain.get('items'), ['wiki-core-refresh', 'item-pages-refresh', 'recipe-reference-sync', 'item-detail-sync']);
+  assert.deepEqual(stepsByDomain.get('npcs'), ['wiki-core-refresh', 'town-npc-sync']);
   assert.deepEqual(stepsByDomain.get('bosses'), ['wiki-core-refresh', 'boss-sync']);
   assert.deepEqual(stepsByDomain.get('buffs'), ['independent-entity-sync']);
   assert.deepEqual(stepsByDomain.get('projectiles'), ['independent-entity-sync']);
@@ -389,7 +393,7 @@ test('domain manifest generator command targets exist in the repository', () => 
 
 test('product domains get source relation image and public readiness panels', () => {
   const manifest = buildDomainAcceptanceReportManifest();
-  const productDomains = ['bosses', 'buffs', 'projectiles', 'armor_sets'];
+  const productDomains = ['items', 'npcs', 'bosses', 'buffs', 'projectiles', 'armor_sets'];
 
   for (const domainId of productDomains) {
     const panelIds = manifest
@@ -402,6 +406,27 @@ test('product domains get source relation image and public readiness panels', ()
     assert.ok(panelIds.includes('relationReadiness'));
     assert.ok(panelIds.includes('sourceReadiness'));
     assert.ok(panelIds.includes('unresolvedAuditTrend'));
+  }
+});
+
+test('existing public item and npc domains carry configured public routes while planned-public domains stay route-less', () => {
+  const manifest = buildDomainAcceptanceReportManifest();
+  const firstEntryByDomain = new Map();
+
+  for (const entry of manifest) {
+    if (!firstEntryByDomain.has(entry.domainId)) {
+      firstEntryByDomain.set(entry.domainId, entry);
+    }
+  }
+
+  assert.equal(firstEntryByDomain.get('items').publicExposure, 'public');
+  assert.equal(firstEntryByDomain.get('items').publicRoute, '/items');
+  assert.equal(firstEntryByDomain.get('npcs').publicExposure, 'public');
+  assert.equal(firstEntryByDomain.get('npcs').publicRoute, '/npcs');
+
+  for (const domainId of ['bosses', 'buffs', 'projectiles', 'armor_sets']) {
+    assert.equal(firstEntryByDomain.get(domainId).publicExposure, 'planned-public');
+    assert.equal(firstEntryByDomain.get(domainId).publicRoute, null);
   }
 });
 

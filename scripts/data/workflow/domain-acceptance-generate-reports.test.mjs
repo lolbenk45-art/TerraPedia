@@ -24,11 +24,11 @@ test('buildDomainAcceptanceReportGeneration creates reports for every manifest p
   });
 
   assert.equal(result.generatedAt, '2026-05-03T12:00:00Z');
-  assert.equal(result.summary.domainCount, 9);
-  assert.equal(result.summary.panelCount, 35);
+  assert.equal(result.summary.domainCount, 11);
+  assert.equal(result.summary.panelCount, 45);
   assert.equal(result.summary.writtenCount, 0);
-  assert.equal(result.summary.plannedCount, 35);
-  assert.equal(result.reports.length, 35);
+  assert.equal(result.summary.plannedCount, 45);
+  assert.equal(result.reports.length, 45);
   assert.ok(result.reports.every((report) => report.writePlanned === false));
   assert.equal(
     result.reports.find((report) => report.domainId === 'buffs' && report.panelId === 'sourceReadiness')?.outputPath,
@@ -220,7 +220,7 @@ function writeBoundaryDoc(repoRoot) {
   writeText(repoRoot, 'docs/audits/canonical-migration-boundary.md', [
     '# Canonical Boundary',
     '',
-    '## 杩囨浮璞佸厤鐧昏',
+    '## 过渡豁免登记',
     '| input | consumer | target | acceptance |',
     '| --- | --- | --- | --- |',
     '| `data/generated/recipe-material-reference.json` | support.recipe deadline: 2026-06-01 | canonical | `node scripts/data/audit/check.mjs` |',
@@ -228,6 +228,6 @@ function writeBoundaryDoc(repoRoot) {
     '| `data/generated/recipe-group-overrides.json` | support.item_group deadline: 2026-06-01 | canonical | `node scripts/data/audit/check.mjs` |',
     '| `data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json` | support.town_npc_maintenance deadline: 2026-06-01 | canonical | `node scripts/data/audit/check.mjs` |',
     '',
-    '## Apply 鍓嶅噯鍏?',
+    '## Apply 前准入',
   ].join('\n'));
 }

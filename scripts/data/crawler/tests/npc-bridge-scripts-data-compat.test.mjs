@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { writeNpcBridgeDataDir } from '../src/bridge/write-npc-bridge-data-dir.mjs';
-import { loadStandardizedDataset } from '../../../scripts/data/lib/load-standardized-dataset.mjs';
+import { loadStandardizedDataset } from '../../lib/load-standardized-dataset.mjs';
 
 test('the generated bridge dir is consumable by loadStandardizedDataset for npcs', async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'npc-bridge-compat-'));
