@@ -63,12 +63,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          $existing = gh issue list --label stale-evidence --state open --limit 5 --json number,title | ConvertFrom-Json
+          $existing = gh issue list --label stale-evidence --state open --limit 1 --json number | ConvertFrom-Json
           $title = "${{ steps.issue_payload.outputs.issue_title }}"
-          $duplicate = $existing | Where-Object { $_.title -eq $title } | Select-Object -First 1
-          if ($duplicate) {
-            Write-Host "Open stale-evidence issue already exists: #$($duplicate.number). Appending comment."
-            gh issue comment $duplicate.number --body-file reports/domain/staleness-alert-issue.md
+          if ($existing -and $existing[0]) {
+            $number = $existing[0].number
+            Write-Host "Open stale-evidence issue exists: #$number. Appending comment (title: $title)."
+            gh issue comment $number --body-file reports/domain/staleness-alert-issue.md
           } else {
             gh issue create --title "$title" --body-file reports/domain/staleness-alert-issue.md --label monitoring --label stale-evidence
           }

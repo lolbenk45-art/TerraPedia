@@ -1,14 +1,14 @@
 # P0-P2 交付物汇总 — 真实环境测试就绪
 
 **日期**: 2026-05-07  
-**分支**: `main` (bc5444a)  
-**状态**: 33 项交付物已合并到 main / 本文档 + acceptance-test.ps1 已提交（f78d686）；待真实环境验证
+**分支**: `main`（截至 latest main）  
+**状态**: 33 项交付物已合并到 main / 本文档 + acceptance-test.ps1 已提交；待真实环境验证
 
 ---
 
 ## 背景
 
-4 月 06 日制定 P0-P3 执行计划，在 Phase B 稳定化框架下补齐 10 项数据来源稳定性与溯源的结构性缺口。33 项代码交付物已合并到 main；本文档和 acceptance-test.ps1 已提交（f78d686）。
+4 月 06 日制定 P0-P3 执行计划，在 Phase B 稳定化框架下补齐 10 项数据来源稳定性与溯源的结构性缺口。33 项代码交付物已合并到 main；本文档和 acceptance-test.ps1 已提交。
 
 ---
 
@@ -107,7 +107,7 @@
 - **Phase 1 (13 步，无需 DB)**：B1 合规 (4域) → 新鲜度审计 → 刷新计划 → 过期告警 → Crawler 布局 → Canonical 候选 → Canonical 一致性 → 审计→计划→告警链路 (3 步)
 - **Phase 2 (6 步，需 DB)**：世系追踪 (item+npc) → 图片溯源 → 跨库完整性 → 重解析候选 → 重解析 dry-run
 
-无 DB 写入、无 --apply（DB 阶段传入 --write-report=true 为只读查询报告；链路文件为本地 artifact）。DB 不可用时 Phase 2 自动 SKIP。
+无 DB 写入、无 --apply（DB 阶段传入 --write-report=true 为只读查询报告；链路文件为本地 artifact）。DB 不可用且未传 -AllowDbSkip 时 Phase 2 步骤 FAIL（exit 1）；传 -AllowDbSkip 则 SKIP。
 
 ---
 

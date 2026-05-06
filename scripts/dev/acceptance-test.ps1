@@ -201,7 +201,8 @@ function Invoke-AcceptanceStep {
     [string]$Phase,
     [string]$ScriptPath,
     [string[]]$Arguments,
-    [string[]]$KeyAssertions
+    [string[]]$KeyAssertions,
+    [string]$OutputPath
   )
 
   $fullScriptPath = Join-Path $repoRoot $ScriptPath
@@ -237,6 +238,19 @@ function Invoke-AcceptanceStep {
       Add-Result -StepId $StepId -Phase $Phase -ScriptPath $ScriptPath -Status 'fail' -Duration $duration -ExitCode 0 -Message "status=blocked — acceptance gate is not passing" -KeyAssertions $KeyAssertions
       Write-StepLine 'fail' $StepId 'status=blocked — acceptance gate is not passing' $duration
       return
+    }
+
+    # Write output to file if requested (for chain steps)
+    if ($OutputPath) {
+      try {
+        $parentDir = Split-Path $OutputPath -Parent
+        if (-not (Test-Path $parentDir)) {
+          New-Item -ItemType Directory -Force -Path $parentDir | Out-Null
+        }
+        $stdout | Set-Content -Path $OutputPath -Encoding utf8
+      } catch {
+        Write-Host "  WARNING: failed to write output to $OutputPath : $_" -ForegroundColor Yellow
+      }
     }
 
     Add-Result -StepId $StepId -Phase $Phase -ScriptPath $ScriptPath -Status 'pass' -Duration $duration -ExitCode 0 -Message $summary -KeyAssertions $KeyAssertions
@@ -283,7 +297,7 @@ if (-not $SkipDb) {
 if (-not $SkipNoDb) {
   Write-Host ''
   Write-Host '===================================================================' -ForegroundColor Cyan
-  Write-Host '  PHASE 1: No-DB Tests (12 steps)' -ForegroundColor Cyan
+  Write-Host '  PHASE 1: No-DB Tests (13 steps)' -ForegroundColor Cyan
   Write-Host '===================================================================' -ForegroundColor Cyan
 
   # 1-4: B1 Exemption Compliance (4 support domains)
@@ -351,56 +365,26 @@ console.log(JSON.stringify(checkCrawlerSourceLayout(), null, 2));
       -Reason "candidates file not found (step 9 may have failed): $candidatesFile"
   }
 
-  # 11-12: Chained audit-to-plan-to-alert pipeline
+  # 11-13: Chained audit-to-plan-to-alert pipeline (all use Invoke-AcceptanceStep)
   $chainAuditFile = Join-Path $acceptanceDir "freshness-audit-$timestamp.json"
   $chainPlanFile = Join-Path $acceptanceDir "refresh-plan-$timestamp.json"
 
-  # 11: Chain — freshness audit (write output to temp file for downstream steps)
+  # 11: Chain — freshness audit (writes stdout to temp file for downstream steps)
   Invoke-AcceptanceStep -StepId 'chain-freshness-audit' -Phase 'no-db' `
     -ScriptPath 'scripts/data/workflow/domain-acceptance-freshness-audit.mjs' `
     -Arguments @("--repo-root=$repoRoot", "--generated-at=$nowIso") `
-    -KeyAssertions @('generatedAt', 'overallStatus', 'summary', 'panels')
-
-  # Capture audit output to temp file for downstream chain steps
-  $auditSw = [System.Diagnostics.Stopwatch]::StartNew()
-  try {
-    $auditRaw = & $nodeCmd (Join-Path $repoRoot 'scripts/data/workflow/domain-acceptance-freshness-audit.mjs') @("--repo-root=$repoRoot", "--generated-at=$nowIso") 2>&1
-    $auditExit = $LASTEXITCODE
-    $auditSw.Stop()
-    $auditDuration = $auditSw.Elapsed.TotalSeconds
-    $auditStdout = ($auditRaw | Where-Object { $_ -is [string] } | Out-String).Trim()
-
-    if ($auditExit -eq 0 -and $auditStdout) {
-      $auditStdout | Set-Content -Path $chainAuditFile -Encoding utf8
-    }
-  } catch { }
+    -KeyAssertions @('generatedAt', 'overallStatus', 'summary', 'panels') `
+    -OutputPath $chainAuditFile
 
   if (Test-Path $chainAuditFile) {
-    # 12: Refresh plan from file
-    $planSw = [System.Diagnostics.Stopwatch]::StartNew()
-    try {
-      $planRaw = & $nodeCmd (Join-Path $repoRoot 'scripts/data/workflow/domain-acceptance-refresh-plan.mjs') @("--repo-root=$repoRoot", "--generated-at=$nowIso", "--audit=$chainAuditFile") 2>&1
-      $planExit = $LASTEXITCODE
-      $planSw.Stop()
-      $planDuration = $planSw.Elapsed.TotalSeconds
-      $planStdout = ($planRaw | Where-Object { $_ -is [string] } | Out-String).Trim()
+    # 12: Chain — refresh plan from file (writes stdout to temp file for downstream steps)
+    Invoke-AcceptanceStep -StepId 'chain-refresh-plan' -Phase 'no-db' `
+      -ScriptPath 'scripts/data/workflow/domain-acceptance-refresh-plan.mjs' `
+      -Arguments @("--repo-root=$repoRoot", "--generated-at=$nowIso", "--audit=$chainAuditFile") `
+      -KeyAssertions @('generatedAt', 'overallStatus', 'summary', 'actions') `
+      -OutputPath $chainPlanFile
 
-      if ($planExit -eq 0 -and $planStdout) {
-        $planStdout | Set-Content -Path $chainPlanFile -Encoding utf8
-        $planParsed = Assert-JsonKeys -Json $planStdout -Keys @('generatedAt', 'overallStatus', 'summary', 'actions') -StepId 'chain-refresh-plan'
-        Add-Result -StepId 'chain-refresh-plan' -Phase 'no-db' -ScriptPath 'scripts/data/workflow/domain-acceptance-refresh-plan.mjs' -Status 'pass' -Duration $planDuration -ExitCode 0 -Message (Get-StatusSummary $planParsed) -KeyAssertions @('generatedAt', 'overallStatus', 'summary', 'actions')
-        Write-StepLine 'pass' 'chain-refresh-plan' (Get-StatusSummary $planParsed) $planDuration
-      } else {
-        Add-Result -StepId 'chain-refresh-plan' -Phase 'no-db' -ScriptPath 'scripts/data/workflow/domain-acceptance-refresh-plan.mjs' -Status 'fail' -Duration $planDuration -ExitCode $planExit -Message "exit code $planExit" -KeyAssertions @('generatedAt', 'overallStatus', 'summary', 'actions')
-        Write-StepLine 'fail' 'chain-refresh-plan' "exit code $planExit" $planDuration
-      }
-    } catch {
-      $planSw.Stop()
-      Add-Result -StepId 'chain-refresh-plan' -Phase 'no-db' -ScriptPath 'scripts/data/workflow/domain-acceptance-refresh-plan.mjs' -Status 'fail' -Duration $planSw.Elapsed.TotalSeconds -ExitCode -1 -Message $_.Exception.Message -KeyAssertions @('generatedAt', 'overallStatus', 'summary', 'actions')
-      Write-StepLine 'fail' 'chain-refresh-plan' $_.Exception.Message $planSw.Elapsed.TotalSeconds
-    }
-
-    # 13: Staleness alert from chained files
+    # 13: Chain — staleness alert from chained files
     if (Test-Path $chainPlanFile) {
       Invoke-AcceptanceStep -StepId 'chain-staleness-alert' -Phase 'no-db' `
         -ScriptPath 'scripts/data/workflow/create-staleness-alert-issue.mjs' `
@@ -409,8 +393,16 @@ console.log(JSON.stringify(checkCrawlerSourceLayout(), null, 2));
     } else {
       Skip-Step -StepId 'chain-staleness-alert' -Phase 'no-db' `
         -ScriptPath 'scripts/data/workflow/create-staleness-alert-issue.mjs' `
-        -Reason 'refresh plan temp file not found'
+        -Reason 'refresh plan temp file not found (chain-refresh-plan may have failed)'
     }
+  } else {
+    Skip-Step -StepId 'chain-refresh-plan' -Phase 'no-db' `
+      -ScriptPath 'scripts/data/workflow/domain-acceptance-refresh-plan.mjs' `
+      -Reason 'audit temp file not found (chain-freshness-audit may have failed)'
+
+    Skip-Step -StepId 'chain-staleness-alert' -Phase 'no-db' `
+      -ScriptPath 'scripts/data/workflow/create-staleness-alert-issue.mjs' `
+      -Reason 'audit temp file not found (chain-freshness-audit may have failed)'
   }
 }
 
