@@ -195,6 +195,19 @@ function Write-StepLine([string]$Status, [string]$StepId, [string]$Message, [dou
   Write-Host "[$tag] $StepId — $Message ($([math]::Round($Duration, 1))s)" -ForegroundColor $color
 }
 
+function Test-AcceptanceBlocked([object]$Parsed) {
+  $statusPaths = @(
+    if ($Parsed.status) { [string]$Parsed.status },
+    if ($Parsed.overallStatus) { [string]$Parsed.overallStatus },
+    if ($Parsed.summary.status) { [string]$Parsed.summary.status }
+  ) | Where-Object { $_ -ne '' -and $_ -ne $null }
+
+  if ($statusPaths -contains 'blocked') { return $true }
+  if ($Parsed.summary.blockingCount -gt 0) { return $true }
+  if ($Parsed.summary.schemaViolations -gt 0) { return $true }
+  return $false
+}
+
 function Invoke-AcceptanceStep {
   param(
     [string]$StepId,
@@ -232,11 +245,13 @@ function Invoke-AcceptanceStep {
       return
     }
 
-    # Reject blocked status: an acceptance step must not report blocked
-    $topStatus = if ($parsed.status) { [string]$parsed.status } elseif ($parsed.overallStatus) { [string]$parsed.overallStatus } else { '' }
-    if ($topStatus -eq 'blocked') {
-      Add-Result -StepId $StepId -Phase $Phase -ScriptPath $ScriptPath -Status 'fail' -Duration $duration -ExitCode 0 -Message "status=blocked — acceptance gate is not passing" -KeyAssertions $KeyAssertions
-      Write-StepLine 'fail' $StepId 'status=blocked — acceptance gate is not passing' $duration
+    # Reject blocked/failing status across all common paths
+    if (Test-AcceptanceBlocked $parsed) {
+      $reason = if ($parsed.summary.schemaViolations -gt 0) { "schemaViolations=$($parsed.summary.schemaViolations)" }
+                elseif ($parsed.summary.blockingCount -gt 0) { "blockingCount=$($parsed.summary.blockingCount)" }
+                else { 'top-level or summary.status=blocked' }
+      Add-Result -StepId $StepId -Phase $Phase -ScriptPath $ScriptPath -Status 'fail' -Duration $duration -ExitCode 0 -Message "blocked — $reason" -KeyAssertions $KeyAssertions
+      Write-StepLine 'fail' $StepId "blocked — $reason" $duration
       return
     }
 
@@ -393,16 +408,16 @@ console.log(JSON.stringify(checkCrawlerSourceLayout(), null, 2));
     } else {
       Skip-Step -StepId 'chain-staleness-alert' -Phase 'no-db' `
         -ScriptPath 'scripts/data/workflow/create-staleness-alert-issue.mjs' `
-        -Reason 'refresh plan temp file not found (chain-refresh-plan may have failed)'
+        -Reason 'upstream failed: refresh plan temp file not found (chain-refresh-plan did not produce output)'
     }
   } else {
     Skip-Step -StepId 'chain-refresh-plan' -Phase 'no-db' `
       -ScriptPath 'scripts/data/workflow/domain-acceptance-refresh-plan.mjs' `
-      -Reason 'audit temp file not found (chain-freshness-audit may have failed)'
+      -Reason 'upstream failed: audit temp file not found (chain-freshness-audit did not produce output)'
 
     Skip-Step -StepId 'chain-staleness-alert' -Phase 'no-db' `
       -ScriptPath 'scripts/data/workflow/create-staleness-alert-issue.mjs' `
-      -Reason 'audit temp file not found (chain-freshness-audit may have failed)'
+      -Reason 'upstream failed: audit temp file not found (chain-freshness-audit did not produce output)'
   }
 }
 
