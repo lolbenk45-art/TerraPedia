@@ -38,7 +38,7 @@
 
 ### P0 — 来源稳定性基础（本周，阻塞后续溯源与公开领域）
 
-必须完成的只读审计和基础设施修复，不涉及任何数据写入或源码迁移。
+不写 DB、不执行刷新、不迁移源码。允许生成报告 artifact；正式 canonical 晋级需人工签收，不属于 P0 自动执行范围。
 
 #### P0.1: 修复脚本根路径解析
 
@@ -62,16 +62,16 @@
 
 **方案**（两阶段，先建立候选层再人工晋级）:
 
-**阶段 A — 只读候选生成**:
+**阶段 A — 只读候选生成**（只读业务数据，写报告 artifact）:
 - 定义 `canonical-schema.mjs`，比 landing 更严格：必须包含 `canonical_version`、`candidate_generated_at`、`source_landing_id`、`content_hash`
 - 实现 `scripts/data/canonical/generate-canonical-candidates.mjs`：对 landing 当前记录做 hash 验证、schema 校验、一致性检查后输出候选集到 `reports/canonical/candidates/{domain}/`（不在 `data/` 下，避免被误读为正式数据层）
 - 候选集同时生成一致性报告：覆盖率、hash 匹配率、schema 违规清单
 - **硬边界**: `reports/canonical/candidates/` 目录不得被 maint/import/domain acceptance 消费；签收前不是 A0 source of truth
 
-**阶段 B — 人工签收晋级**:
+**阶段 B — 人工签收晋级**（不属于 P0 自动执行范围，P0 只产出候选集和报告）:
 - 人工审核候选集报告，逐领域签收
 - 签收后才将候选移动到 `data/canonical/{domain}/`，写入 `audited_by`、`audited_at`
-- 此阶段不自动化——每个领域都需要人工确认
+- 此阶段不自动化，属于 P0 之后的人工签收动作
 
 **产出**:
 - [ ] `scripts/data/canonical/canonical-schema.mjs` — canonical 数据格式定义
@@ -104,6 +104,13 @@
 
 在来源稳定的基础上，建立完整的端到端溯源能力。
 
+**统一 DB 写入硬边界**: P1 中涉及 Flyway 迁移、数据回填、apply 写入的任务必须遵守：
+- 明确目标数据库（`terria_v1_maint` / `terria_v1_relation` / `terria_v1_local`）
+- 调用前检查 active-writer 互斥（禁止与其他 DB apply 并行）
+- 默认 dry-run，显式 `--apply` 才写入；提供 `--dry-run` 预览差异
+- 涉及数据修改的必须有备份/回滚方案
+- 不得作为 Domain Acceptance 证据生成命令，不进入 CI-safe gate / GitHub Actions schedule
+
 #### P1.1: 统一图片源追踪契约
 
 **现状**: 图片溯源因实体而异：
@@ -116,7 +123,7 @@
 
 **方案**:
 - 定义 `ImageSourceContract` 统一契约（provider + source_file_title + source_page + source_revision_timestamp + original_url + cached_url + last_verified_at）
-- 迁移 Buff 表补齐缺失字段（Flyway V41）
+- 迁移 Buff 表补齐缺失字段（下一个可用 Flyway 版本号）
 - NPC 图片统一走契约，从 relation raw_json 回填
 - 实现 `image-source-lineage-report.mjs` 生成图片溯源报告
 
@@ -151,7 +158,7 @@
 
 **方案**（两阶段，先生成候选报告，人工确认后再单独 apply）:
 
-**阶段 A — 只读候选生成**:
+**阶段 A — 只读候选生成**（只读业务数据，写报告 artifact）:
 - 实现 `scripts/data/relation/generate-reresolve-candidates.mjs`（只读）：
   - 对 `audit_status='unresolved'` 的审计行，用最新的 maint 数据重新匹配
   - 输出候选集 JSON：`{audit_id, proposed_match, confidence, evidence}`
@@ -190,14 +197,14 @@
   - 反向检查：Local 中的记录是否能回溯到有效的 Landing
 - 输出孤儿记录清单，包含置信度和修复建议
 - 不进入 CI-safe gate（跨库检查需要 DB 连接，违反 CI-safe 边界）
-- 进入 `scripts/dev/quality-gate.ps1` 本地完整门禁
+- 进入 `scripts/dev/quality-gate.ps1`，通过 `-FullDataAudit` 开关控制：默认本地门禁跑快速/抽样检查；完整全域扫描仅作为 release checkpoint 或手动命令执行
 
 **产出**:
-- [ ] `scripts/data/audit/cross-db-referential-integrity.mjs`
-- [ ] `scripts/dev/quality-gate.ps1` 增加引用完整性检查步骤（本地完整门禁专属，不在 CI 执行）
-- [ ] 首次全域扫描报告
+- [ ] `scripts/data/audit/cross-db-referential-integrity.mjs` — 支持 `--mode=quick`（默认，最近 7 天抽样）和 `--mode=full`（全域扫描）
+- [ ] `scripts/dev/quality-gate.ps1` 增加 `-FullDataAudit` 参数，传入时执行 `--mode=full`，否则执行 `--mode=quick`（本地完整门禁专属，不在 CI 执行）
+- [ ] 首次全域扫描报告（release checkpoint 前执行）
 
-**验收标准**: 全域扫描无阻断级孤儿记录；本地门禁中完成一次完整扫描。
+**验收标准**: quick 模式 3 分钟内完成，无阻断级孤儿记录；full 模式作为 release checkpoint，全域无阻断级孤儿记录。
 
 #### P1.5: Crawler 源码迁移计划（独立迁移任务）
 
@@ -240,7 +247,7 @@
 **产出**:
 - [ ] `.github/workflows/scheduled-staleness-monitor.yml` — 唯一定时监控 workflow（新鲜度审计 + 刷新计划 + Issue 告警）
 - [ ] `scripts/data/workflow/create-staleness-alert-issue.mjs` — 生成 GitHub Issue 告警
-- [ ] `reports/domain/staleness-history.jsonl` — 过期趋势记录（唯一日志文件）
+- [ ] `reports/domain/staleness-history.jsonl` — 过期趋势记录（workflow workspace 临时生成，上传 artifact；**不作为 git tracked 文件**，避免误将运行产物加入版本控制）
 
 **验收标准**: 阻断级过期数据发生后 6 小时内收到 GitHub Issue 告警；无任何自动 apply 逻辑；workflow 和报告文件均唯一、不重复。
 
