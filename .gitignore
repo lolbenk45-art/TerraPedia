@@ -50,6 +50,7 @@ project-plan/plan-/Microsoft/Windows/PowerShell/ModuleAnalysisCache
 .DS_Store
 Thumbs.db
 .worktrees/
+.claude/
 
 # Local run artifacts
 reports/run-logs/
