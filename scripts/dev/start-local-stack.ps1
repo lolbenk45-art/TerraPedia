@@ -7,6 +7,9 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $reportDir = Join-Path $repoRoot 'reports\local-start'
 New-Item -ItemType Directory -Force -Path $reportDir | Out-Null
+$runId = Get-Date -Format 'yyyyMMdd-HHmmss'
+$startedAt = (Get-Date).ToString('o')
+$processes = @()
 $backDir = Join-Path $repoRoot 'back'
 $frontDir = Join-Path $repoRoot 'front'
 $adminDir = Join-Path $repoRoot 'data-query-app'
@@ -110,19 +113,15 @@ function Write-PidFile([string]$Name, [int]$ProcessId) {
 }
 
 function Resolve-LogPath([string]$BaseLogPath) {
-  $errPath = "$BaseLogPath.err"
-  try {
-    if (Test-Path $BaseLogPath) { Remove-Item $BaseLogPath -Force }
-    if (Test-Path $errPath) { Remove-Item $errPath -Force }
-    return @{ Out = $BaseLogPath; Err = $errPath }
-  } catch {
-    $dir = Split-Path $BaseLogPath -Parent
-    $name = [System.IO.Path]::GetFileNameWithoutExtension($BaseLogPath)
-    $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-    $fallbackOut = Join-Path $dir "$name-$stamp.log"
-    $fallbackErr = "$fallbackOut.err"
-    return @{ Out = $fallbackOut; Err = $fallbackErr }
+  $dir = Split-Path $BaseLogPath -Parent
+  $name = [System.IO.Path]::GetFileNameWithoutExtension($BaseLogPath)
+  $extension = [System.IO.Path]::GetExtension($BaseLogPath)
+  if ([string]::IsNullOrWhiteSpace($extension)) {
+    $extension = '.log'
   }
+  $outPath = Join-Path $dir "$name-$runId$extension"
+  $errPath = "$outPath.err"
+  return @{ Out = $outPath; Err = $errPath }
 }
 
 function Test-LocalPort([int]$Port) {
@@ -165,6 +164,13 @@ function Start-BackgroundPwsh([string]$Name, [string]$Command, [string]$LogPath)
     -WindowStyle Hidden `
     -PassThru
   Write-PidFile -Name $Name -ProcessId $p.Id
+  $script:processes += [ordered]@{
+    name = $Name
+    pid = $p.Id
+    log = $outPath
+    errorLog = $errPath
+    command = $Command
+  }
   Write-Host "$Name PID=$($p.Id) log=$outPath"
 }
 
@@ -193,6 +199,10 @@ Write-Host "Running preflight checks before local stack startup..."
 if ($LASTEXITCODE -ne 0) {
   throw "Preflight checks failed. Fix compile/type errors before starting the local stack."
 }
+$preflight = [ordered]@{
+  script = $verifyScript
+  status = 'passed'
+}
 
 if (-not (Test-LocalPort $redisPort)) {
   $redisExe = $env:TERRAPEDIA_REDIS_SERVER_EXE
@@ -213,6 +223,13 @@ if ((Test-Path $redisExe)) {
       -WindowStyle Hidden `
       -PassThru
     Write-PidFile -Name "redis-$redisPort" -ProcessId $redis.Id
+    $processes += [ordered]@{
+      name = "redis-$redisPort"
+      pid = $redis.Id
+      log = $redisOut
+      errorLog = $redisErr
+      command = "$redisExe --port $redisPort --bind $redisHost --protected-mode yes --requirepass <redacted>"
+    }
     Write-Host "redis PID=$($redis.Id)"
     if (-not (Wait-LocalPort -Port $redisPort -TimeoutSeconds 15)) {
       throw "Redis $redisPort failed to start. Check $redisOut and $redisErr"
@@ -224,6 +241,13 @@ if ((Test-Path $redisExe)) {
 
 if (-not (Test-LocalPort $redisPort)) {
   throw "Redis $redisPort is not reachable."
+}
+
+$portState = [ordered]@{
+  redis = @{ port = $redisPort; status = 'occupied' }
+  backend = @{ port = $backPort; status = if (Test-LocalPort $backPort) { 'occupied' } else { 'free' } }
+  front = @{ port = $frontPort; status = if (Test-LocalPort $frontPort) { 'occupied' } else { 'free' } }
+  admin = @{ port = $adminPort; status = if (Test-LocalPort $adminPort) { 'occupied' } else { 'free' } }
 }
 
 $env:APP_PORT = "$backPort"
@@ -264,7 +288,7 @@ if (-not (Test-LocalPort $backPort)) {
 $backLog = Join-Path $reportDir 'back-dev.log'
   $backCmd = @"
 Set-Location '$backDir'
-& '$mavenCmd' '-DskipTests' '-Dspring-boot.run.profiles=legacy' '-Dspring-boot.run.jvmArguments=-DAPP_PORT=$backPort -DTERRAPEDIA_MAIL_ENABLED=false -Dmanagement.health.mail.enabled=false' 'spring-boot:run'
+& '$mavenCmd' '-DskipTests' '-Dspring-boot.run.profiles=$springProfile' '-Dspring-boot.run.jvmArguments=-DAPP_PORT=$backPort -DTERRAPEDIA_MAIL_ENABLED=false -Dmanagement.health.mail.enabled=false' 'spring-boot:run'
 "@
   Write-Host "backend db: $dbName"
   Start-BackgroundPwsh -Name 'back' -Command $backCmd -LogPath $backLog
@@ -272,7 +296,7 @@ Set-Location '$backDir'
     throw "Backend failed to start on $backPort. Check $backLog"
   }
 } else {
-  Write-Host "back already running on $backPort"
+  Write-Host "back already running on $backPort; status=occupied"
 }
 
 if (-not (Test-LocalPort $frontPort)) {
@@ -286,7 +310,7 @@ if (-not (Test-LocalPort $frontPort)) {
     throw "Front failed to start on $frontPort. Check $frontLog"
   }
 } else {
-  Write-Host "front already running on $frontPort"
+  Write-Host "front already running on $frontPort; status=occupied"
 }
 
 if (-not (Test-LocalPort $adminPort)) {
@@ -300,10 +324,34 @@ if (-not (Test-LocalPort $adminPort)) {
     throw "Admin app failed to start on $adminPort. Check $adminLog"
   }
 } else {
-  Write-Host "data-query-app already running on $adminPort"
+  Write-Host "data-query-app already running on $adminPort; status=occupied"
 }
 
 Start-Sleep -Seconds 2
+$health = [ordered]@{
+  redis = @{ port = $redisPort; tcp = Test-LocalPort $redisPort; status = if (Test-LocalPort $redisPort) { 'occupied' } else { 'unreachable' } }
+  back = @{ port = $backPort; tcp = Test-LocalPort $backPort; status = if (Test-LocalPort $backPort) { 'occupied' } else { 'unreachable' } }
+  front = @{ port = $frontPort; tcp = Test-LocalPort $frontPort; status = if (Test-LocalPort $frontPort) { 'occupied' } else { 'unreachable' } }
+  dataQueryApp = @{ port = $adminPort; tcp = Test-LocalPort $adminPort; status = if (Test-LocalPort $adminPort) { 'occupied' } else { 'unreachable' } }
+}
+$branch = (& git -C $repoRoot branch --show-current 2>$null)
+$commit = (& git -C $repoRoot rev-parse --short HEAD 2>$null)
+$manifestPath = Join-Path $reportDir 'run-manifest.json'
+$manifest = [ordered]@{
+  runId = $runId
+  startedAt = $startedAt
+  repoRoot = $repoRoot
+  branch = [string]$branch
+  commit = [string]$commit
+  configPath = if ($configPath) { [string]$configPath } else { $null }
+  ports = $portState
+  springProfile = $springProfile
+  processes = $processes
+  preflight = $preflight
+  health = $health
+}
+$manifest | ConvertTo-Json -Depth 8 | Set-Content -Path $manifestPath -Encoding utf8
+
 Write-Host ''
 Write-Host "redis($redisPort): $(Test-LocalPort $redisPort)"
 Write-Host "back($backPort): $(Test-LocalPort $backPort)"
@@ -313,4 +361,5 @@ Write-Host ''
 Write-Host "database: $dbName"
 Write-Host "config: $configPath"
 Write-Host "flyway.outOfOrder: $springFlywayOutOfOrder"
+Write-Host "manifest: $manifestPath"
 Write-Host "Logs: $reportDir"

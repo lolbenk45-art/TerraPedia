@@ -9,6 +9,8 @@
 - `credentials.json`
   - Ignored local MinIO credential file referenced from `local-stack.config.json`
 
+Do not copy real local secrets into committed docs or reports. This includes DB passwords, Redis passwords, admin passwords, token secrets, bearer tokens, and MinIO keys.
+
 Recommended setup:
 
 ```powershell
@@ -17,6 +19,11 @@ Copy-Item .\scripts\dev\config\credentials.example.json .\scripts\dev\config\cre
 ```
 
 Scheduler notes:
+
+- Local self-start acceptance assumes `dataRefresh.enabled=false`.
+- `dataRefresh.mode=apply` is a write-capable scheduler setting. It must not be enabled as part of `verify-local-stack.ps1`, `start-local-stack.ps1`, or `smoke-local-stack.ps1`.
+- Configured ports are expected bind targets. An open port is only a TCP fact and does not prove business health.
+- MinIO and storage sync are outside the default read-only smoke boundary.
 
 - `dataRefresh.enabled`
   - Whether `run-backend-data-refresh-daemon.mjs` should run continuously

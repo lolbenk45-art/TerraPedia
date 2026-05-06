@@ -41,6 +41,7 @@ $pnpmCmd = Resolve-RequiredCommand -PreferredPath 'C:\nvm4w\nodejs\pnpm.cmd' -Co
 Invoke-Step -Label 'Data workflow acceptance tests' -WorkingDirectory $repoRoot -CommandPath $nodeCmd -Arguments @(
   '--test',
   'scripts/dev/quality-gate.test.mjs',
+  'scripts/dev/local-stack.test.mjs',
   'scripts/data/workflow/data-source-acceptance-report-manifest.test.mjs',
   'scripts/data/workflow/data-source-acceptance-freshness-audit.test.mjs',
   'scripts/data/workflow/data-source-acceptance-refresh-plan.test.mjs',

@@ -39,6 +39,8 @@ This repository does not store live credentials.
 
 ## Local Start
 
+Detailed local acceptance boundaries live in `docs/runbooks/local-acceptance.md`.
+
 From the repo root:
 
 ```powershell
@@ -50,6 +52,14 @@ Stop:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\stop-local-stack.ps1
 ```
+
+Post-start smoke:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\smoke-local-stack.ps1
+```
+
+`verify-local-stack.ps1`, `start-local-stack.ps1`, `smoke-local-stack.ps1`, and `quality-gate.ps1` are separate gates. Startup port checks do not prove business health, and smoke does not replace freshness audits, acceptance evidence, or the local full quality gate.
 
 ## Quality Gate
 

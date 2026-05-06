@@ -44,3 +44,18 @@ Reason: Stale public evidence should stay visible and bounded without silently o
 
 Decision: Data Source Acceptance `crawlerMonitor` is a read-only monitor projection and external monitor evidence. It is not crawler execution and is not an evidence generator. If future DB-backed or real-time diagnostics are added, every such sample must carry `notGateEvidence=true` and must not affect gate status.
 Reason: Monitor visibility must not bypass the manifest -> report evidence -> freshness audit -> manual refresh plan -> quality gate chain.
+
+## D-2026-05-06-03: Local acceptance uses separate verify, start, smoke, and stop steps
+
+Decision: Local acceptance separates preflight verification, service startup, post-start smoke, and shutdown. Startup port checks are not business health, and smoke is not the local full quality gate.
+Reason: A single startup script cannot safely represent compile/type health, runtime health, data freshness, and acceptance gate status.
+
+## D-2026-05-06-04: Local stop defaults to recorded pid-only cleanup
+
+Decision: `stop-local-stack.ps1` stops recorded pid files by default. Port cleanup is available only through explicit `-ForcePorts` and still requires local stack ownership checks.
+Reason: Port-based cleanup can terminate unrelated developer services when ports overlap or stale report files exist.
+
+## D-2026-05-06-05: Local smoke is read-only and cannot replace acceptance evidence
+
+Decision: `smoke-local-stack.ps1` may issue read-oriented HTTP probes and optional auth login only for authenticated reads. It must not run crawler, import, backfill, load, apply, write, refresh, storage sync, or evidence generation.
+Reason: Local runtime probing must not bypass the manifest -> report evidence -> freshness audit -> manual refresh plan -> quality gate chain.

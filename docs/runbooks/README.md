@@ -16,5 +16,6 @@
 
 ## 当前手册
 
+- `docs/runbooks/local-acceptance.md`：本地 verify/start/smoke/stop 验收边界手册。
 - `docs/runbooks/npc-item-source-maintenance-chain.md`：NPC / item source / shop / loot 主链串行维护手册。
 - `docs/runbooks/image-asset-cache.md`：图片 source/cache/fallback 缓存手册。

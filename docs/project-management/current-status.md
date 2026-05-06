@@ -32,6 +32,11 @@ Current public-blocking policy: missing or unknown evidence blocks. `public-bloc
 Data Source Acceptance `crawlerMonitor` is read-only monitor projection and external monitor evidence. It is not crawler execution, not a refresh-plan/evidence command, and not an evidence generator.
 Future DB-backed or real-time crawler diagnostics must be marked `notGateEvidence=true` and must not affect gate status.
 
+## Local Self-start Boundary
+
+Local self-start acceptance is runtime-only. `verify-local-stack.ps1`, `start-local-stack.ps1`, `smoke-local-stack.ps1`, and `stop-local-stack.ps1` do not change acceptance readiness.
+Smoke is read-only business probing and report writing under `reports/local-start`; it must not generate evidence, refresh data, run storage sync, or bypass manifest -> report evidence -> freshness audit -> manual refresh plan -> quality gate.
+
 ## P2 Status
 
 P2 is readiness-only after P1. No new public Boss, Buff, Projectile, or ArmorSet code is scheduled in Phase B.

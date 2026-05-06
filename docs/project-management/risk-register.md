@@ -11,3 +11,7 @@
 | R-2026-05-05-07 | High | Public domains | Planned-public domain is treated as route-ready | P2 document requires Domain Acceptance evidence before implementation | Open |
 | R-2026-05-06-01 | High | Domain Acceptance | `public-blocking stale` evidence is treated as route-ready or silently accepted | Stale defaults to warning only; continuation requires explicit `accepted-warning` and remains readiness-only | Open |
 | R-2026-05-06-02 | High | Data Source Acceptance | `crawlerMonitor` is treated as crawler execution or an evidence generator | `crawlerMonitor` is external monitor evidence only; DB or real-time diagnostics must be `notGateEvidence=true` and never affect gate status | Open |
+| R-2026-05-06-03 | Medium | Local self-start | Open TCP ports are mistaken for business health | `smoke-local-stack.ps1` is separate from start and `local-acceptance.md` states port true is not business healthy | Open |
+| R-2026-05-06-04 | High | Local stop | Local stop kills unrelated user services by port | Default stop is recorded pid-only; `-ForcePorts` is explicit and ownership-checked | Open |
+| R-2026-05-06-05 | High | Local smoke | Smoke introduces storage sync, refresh, or data writes | Smoke is source-tested as read-only and cannot run crawler/import/backfill/load/apply/write/storage sync | Open |
+| R-2026-05-06-06 | Medium | Local reports | `run-manifest.json` leaks local credentials | Manifest records ports/processes/health only and must not include passwords, token secrets, bearer tokens, or MinIO secrets | Open |
