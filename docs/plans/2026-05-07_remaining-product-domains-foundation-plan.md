@@ -72,7 +72,19 @@ Shared files that must not be edited by multiple agents in parallel:
 - `scripts/data/workflow/domain-acceptance-registry.json`
 - `docs/contracts/image-source-contract.md`
 - `front/src/router/routes.ts`
+- `back/src/main/resources/db/migration/` (Flyway migrations — see version allocation rule below)
 - shared tests for the files above
+
+**Flyway migration version allocation (serial only, one owner per version):**
+
+| Phase | Owner | Version | Rule |
+| --- | --- | --- | --- |
+| Phase 1 (Bosses) | Agent A | V43 | Bosses owns the first post-V42 migration slot. If a new table or schema change is needed for `projection_bosses`, use V43. If no schema change is needed, record the skip in the closeout audit and keep later phase versions unchanged. |
+| Phase 2 (Buffs) | Agent B | V44 | Buffs image lineage parity. Skip if no schema change is needed; record skip in closeout. |
+| Phase 3 (Projectiles) | Agent C | V45 | Projectiles image lineage parity. Skip if no schema change is needed; record skip in closeout. |
+| Phase 4 (ArmorSets) | Agent D | V46 | ArmorSets audit coverage. Skip if no schema change is needed; record skip in closeout. |
+
+No two phases share the same version. Each phase owns exactly one migration version in this plan. If a phase needs more than one migration file, stop and revise the plan before editing `back/src/main/resources/db/migration/`. If a phase skips its migration, the next phase still uses its assigned version (do not renumber). Agents must not create migration files outside their assigned version.
 
 ## Phase 0: Baseline And Gate Hygiene
 
@@ -167,6 +179,7 @@ The audit must state which warnings are target-domain blockers, which are planne
 - Create or modify: `back/src/main/java/com/terraria/skills/service/PublicBossService.java`
 - Create or modify: `back/src/main/java/com/terraria/skills/service/impl/PublicBossServiceImpl.java`
 - Create: `back/src/test/java/com/terraria/skills/controller/PublicBossControllerTest.java`
+- Create: `scripts/data/relation/sync-boss-projection.mjs` and `scripts/data/relation/sync-boss-projection.test.mjs`
 - Inspect: `data-query-app/pages/entities/[type].vue`
 - Inspect: `front/src/tests/npc-public-shell.spec.ts`
 
@@ -214,6 +227,27 @@ Alternative: if using boss_groups as read model, document why projection_bosses 
 
 Expected: public Boss API does not read from admin-only controller behavior and does not rely on undocumented legacy fallback.
 
+- [ ] Apply the Phase 1 Flyway migration and populate `projection_bosses` only after the table exists:
+
+```powershell
+# Verify the migration created projection_bosses
+node -e "const {createConnection}=require('mysql2/promise');(async()=>{const c=await createConnection({host:process.env.TERRAPEDIA_DB_HOST||'127.0.0.1',port:Number(process.env.TERRAPEDIA_DB_PORT||3306),user:process.env.TERRAPEDIA_DB_USERNAME||'root',password:process.env.TERRAPEDIA_DB_PASSWORD||'root',database:'terria_v1_relation'});const[r]=await c.query(\"SELECT COUNT(*) AS cnt FROM information_schema.tables WHERE table_schema='terria_v1_relation' AND table_name='projection_bosses'\");console.log(JSON.stringify({tableCount:r[0].cnt}));await c.end()})()
+# Pre-count: record current boss row count from local.bosses
+node -e "const {createConnection}=require('mysql2/promise');(async()=>{const c=await createConnection({host:process.env.TERRAPEDIA_DB_HOST||'127.0.0.1',port:Number(process.env.TERRAPEDIA_DB_PORT||3306),user:process.env.TERRAPEDIA_DB_USERNAME||'root',password:process.env.TERRAPEDIA_DB_PASSWORD||'root',database:'terria_v1_local'});const[r]=await c.query('SELECT COUNT(*) AS cnt FROM bosses');console.log(JSON.stringify({preCount:r[0].cnt}));await c.end()})()
+# Populate projection_bosses through the boss-only DML runner; do not use any command that performs schema DDL here.
+node scripts/data/relation/sync-boss-projection.mjs --apply=true
+# Post-count: verify projection_bosses row count
+node -e "const {createConnection}=require('mysql2/promise');(async()=>{const c=await createConnection({host:process.env.TERRAPEDIA_DB_HOST||'127.0.0.1',port:Number(process.env.TERRAPEDIA_DB_PORT||3306),user:process.env.TERRAPEDIA_DB_USERNAME||'root',password:process.env.TERRAPEDIA_DB_PASSWORD||'root',database:'terria_v1_relation'});const[r]=await c.query('SELECT COUNT(*) AS cnt FROM projection_bosses');console.log(JSON.stringify({postCount:r[0].cnt}));await c.end()})()
+```
+
+Expected: `postCount >= preCount`, `projection_bosses` rows are populated with `id`, `code`, `display_name`, `image_url`, member/loot summary fields, and `deleted` flag.
+
+**Forbidden shortcut:** Do not use `node scripts/data/relation/sync-maint-to-relation.mjs --apply=true` for this step unless that script is first changed to a DML-only Boss path with no schema DDL. In its current form, the safe assumption is that schema creation belongs to Flyway and row population belongs to a separate DML-only runner.
+
+**Rollback:** If post-count is zero or `projection_bosses` is missing required columns, revert the schema through Flyway rollback or a forward corrective Flyway migration, clear any partially written `projection_bosses` rows through the same DML-only boss projection path, fix the schema, and re-run. Do not proceed to public API wiring until `projection_bosses` is populated and verified. Do not use ad-hoc `DROP TABLE` outside Flyway.
+
+**Closeout:** Record pre-count, post-count, sync command, and verification result in `docs/audits/2026-05-07_remaining-product-domains-baseline.md`.
+
 - [ ] Add Boss image lineage coverage:
 
 ```text
@@ -238,7 +272,7 @@ Expected: public API tests cover list payload shape and do not require admin aut
 - [ ] Run backend controller test:
 
 ```powershell
-node --test scripts/data/audit/domain-readiness-audit.test.mjs scripts/data/audit/image-source-lineage-report.test.mjs scripts/data/relation/projection-schema.test.mjs scripts/data/relation/projection-sync.test.mjs
+node --test scripts/data/audit/domain-readiness-audit.test.mjs scripts/data/audit/image-source-lineage-report.test.mjs scripts/data/relation/projection-schema.test.mjs scripts/data/relation/projection-sync.test.mjs scripts/data/relation/sync-boss-projection.test.mjs
 Push-Location back
 mvn "-Dtest=AdminBossControllerTest,PublicBossControllerTest" test
 Pop-Location
@@ -275,7 +309,7 @@ Expected: both pass after the public readiness evidence is strengthened and the 
 - Modify: `docs/contracts/image-source-contract.md`
 - Modify: `scripts/data/audit/image-source-lineage-report.mjs`
 - Modify: `scripts/data/audit/image-source-lineage-report.test.mjs`
-- Modify only if schema audit proves a missing DB object: `back/src/main/resources/db/migration/V*_*.sql`
+- Modify only if schema audit proves a missing DB object: `back/src/main/resources/db/migration/V44__buffs_image_lineage_parity.sql` (Phase 2 owns V44; if no schema change is needed, skip migration and record that decision in the closeout audit)
 - Inspect: `scripts/data/relation/image-processor.mjs`
 - Inspect: `scripts/data/relation/projection-sync.mjs`
 - Inspect: `back/src/main/java/com/terraria/skills/service/impl/WikiImageSyncServiceImpl.java`
@@ -344,7 +378,7 @@ Expected: pass.
 - Modify: `docs/contracts/image-source-contract.md`
 - Modify: `scripts/data/audit/image-source-lineage-report.mjs`
 - Modify: `scripts/data/audit/image-source-lineage-report.test.mjs`
-- Modify only if schema audit proves a missing DB object: `back/src/main/resources/db/migration/V*_*.sql`
+- Modify only if schema audit proves a missing DB object: `back/src/main/resources/db/migration/V45__projectiles_image_lineage_parity.sql` (Phase 3 owns V45; if no schema change is needed, skip migration and record that decision in the closeout audit)
 - Inspect: `scripts/data/relation/image-processor.mjs`
 - Inspect: `scripts/data/relation/projection-sync.mjs`
 - Inspect: `back/src/main/java/com/terraria/skills/service/impl/WikiImageSyncServiceImpl.java`
@@ -404,6 +438,7 @@ Expected: pass.
 - Modify: `docs/contracts/image-source-contract.md`
 - Modify: `scripts/data/audit/image-source-lineage-report.mjs`
 - Modify: `scripts/data/audit/image-source-lineage-report.test.mjs`
+- Modify only if schema audit proves a missing DB object: `back/src/main/resources/db/migration/V46__armorsets_audit_coverage.sql` (Phase 4 owns V46; if no schema change is needed, skip migration and record that decision in the closeout audit)
 - Inspect: `back/src/main/java/com/terraria/skills/controller/AdminArmorSetController.java`
 - Inspect: `back/src/test/java/com/terraria/skills/controller/AdminArmorSetControllerTest.java`
 - Inspect: `back/src/main/java/com/terraria/skills/service/impl/WikiImageSyncServiceImpl.java`
@@ -484,6 +519,27 @@ Each domain uses the same route rollout sequence.
 - Modify: `front/src/tests/npc-public-shell.spec.ts` or create a domain-specific public shell test
 - Create: `front/src/views/<Domain>PublicView.vue`
 - Create: `docs/audits/2026-05-07_<domain>-public-route-closeout.md`
+
+- [ ] Verify public read model or API exists for the target domain:
+
+```text
+Every domain promoted to public route must have a verifiable public read model BEFORE touching front/src/router/routes.ts or registry.json.
+
+Per-domain requirements:
+
+Bosses: PublicBossController.java exists, GET /public/bosses returns list payload, projection_bosses is populated (Phase 1 exit gate).
+
+Buffs: projection_buffs is populated with managed image URLs, and either a PublicBuffController exists OR the projection table is explicitly declared as the public read model with fields sufficient for list/detail views. Minimum: id, code, display_name, image (managed URL), description, and deleted flag.
+
+Projectiles: projection_projectiles is populated with managed image URLs, and either a PublicProjectileController exists OR the projection table is explicitly declared as the public read model. Minimum: id, code, display_name, image_url (managed URL), description, and deleted flag.
+
+ArmorSets: projection_armor_sets is populated with managed image URLs for male/female/special roles, and either a PublicArmorSetController exists OR the projection table is explicitly declared as the public read model. Minimum: id, code, display_name, male_images, female_images, special_images (all managed URLs or null), and deleted flag.
+
+Verification command for projection-as-read-model:
+  node -e "const {createConnection}=require('mysql2/promise');(async()=>{const c=await createConnection({host:process.env.TERRAPEDIA_DB_HOST||'127.0.0.1',port:Number(process.env.TERRAPEDIA_DB_PORT||3306),user:process.env.TERRAPEDIA_DB_USERNAME||'root',password:process.env.TERRAPEDIA_DB_PASSWORD||'root',database:'terria_v1_relation'});const[r]=await c.query('SELECT COUNT(*) AS cnt FROM projection_<target> WHERE deleted=0 OR deleted IS NULL');console.log(JSON.stringify({readModelRowCount:r[0].cnt}));await c.end()})()"
+
+If the target domain has no populated projection table and no public API controller, the domain is NOT eligible for route promotion — stop and complete the missing foundation work first.
+```
 
 - [ ] Write public route test before registry promotion:
 
