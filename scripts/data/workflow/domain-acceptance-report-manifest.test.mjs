@@ -409,7 +409,7 @@ test('product domains get source relation image and public readiness panels', ()
   }
 });
 
-test('product domains remain planned-public while P3 public route rollout is closed', () => {
+test('product domains reflect the current P3 public route rollout state', () => {
   const manifest = buildDomainAcceptanceReportManifest();
   const firstEntryByDomain = new Map();
 
@@ -419,7 +419,12 @@ test('product domains remain planned-public while P3 public route rollout is clo
     }
   }
 
-  for (const domainId of ['items', 'npcs', 'bosses', 'buffs', 'projectiles', 'armor_sets']) {
+  assert.equal(firstEntryByDomain.get('items').publicExposure, 'public');
+  assert.equal(firstEntryByDomain.get('items').publicRoute, '/items');
+  assert.equal(firstEntryByDomain.get('npcs').publicExposure, 'public');
+  assert.equal(firstEntryByDomain.get('npcs').publicRoute, '/npcs');
+
+  for (const domainId of ['bosses', 'buffs', 'projectiles', 'armor_sets']) {
     assert.equal(firstEntryByDomain.get(domainId).publicExposure, 'planned-public');
     assert.equal(firstEntryByDomain.get(domainId).publicRoute, null);
   }
