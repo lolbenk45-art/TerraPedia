@@ -67,6 +67,27 @@ function inferContentType(fileTitle) {
   return null;
 }
 
+function isUrl(value) {
+  return typeof value === 'string' && /^https?:\/\//i.test(value.trim());
+}
+
+function firstManagedUrl(...values) {
+  for (const value of values) {
+    if (isUrl(value)) {
+      return value.trim();
+    }
+  }
+  return null;
+}
+
+function buildRowIndexByInternalName(rows = []) {
+  return new Map(
+    rows
+      .filter((row) => row?.internal_name)
+      .map((row) => [String(row.internal_name).trim(), row])
+  );
+}
+
 function buildDerivedImageRecord({
   sourceMaintTable,
   row,
@@ -116,12 +137,83 @@ function buildRawJsonImageRows(rows, config) {
     .filter(Boolean);
 }
 
+function buildBuffImageRows(rows, localBuffIndex = new Map()) {
+  return rows
+    .map((row) => {
+      const parsedRawJson = parseRawJson(row.raw_json);
+      const sourceFileTitle = parsedRawJson.image;
+      const derived = buildDerivedImageRecord({
+        sourceMaintTable: 'maint_buffs',
+        row,
+        sourceFileTitle,
+        internalNameKey: 'buffInternalName',
+        nameKey: 'buffName'
+      });
+      if (!derived) {
+        return null;
+      }
+
+      const localRow = localBuffIndex.get(String(row.internal_name ?? '').trim()) ?? null;
+      const managedCachedUrl = firstManagedUrl(
+        localRow?.image_cached_url,
+        localRow?.image,
+        row.image_cached_url,
+        row.image,
+        parsedRawJson.image
+      );
+      if (!managedCachedUrl) {
+        return derived;
+      }
+
+      return {
+        ...derived,
+        cachedUrl: managedCachedUrl,
+        contentType: inferContentType(managedCachedUrl) ?? derived.contentType
+      };
+    })
+    .filter(Boolean);
+}
+
+function buildProjectileImageRows(rows, localProjectileIndex = new Map()) {
+  return rows
+    .map((row) => {
+      const parsedRawJson = parseRawJson(row.raw_json);
+      const derived = buildDerivedImageRecord({
+        sourceMaintTable: 'maint_projectiles',
+        row,
+        sourceFileTitle: parsedRawJson.image,
+        internalNameKey: 'projectileInternalName',
+        nameKey: 'projectileName'
+      });
+      if (!derived) {
+        return null;
+      }
+
+      const localRow = localProjectileIndex.get(String(row.internal_name ?? '').trim()) ?? null;
+      const managedCachedUrl = firstManagedUrl(localRow?.image_url, row.image_url);
+      if (!managedCachedUrl) {
+        return derived;
+      }
+
+      return {
+        ...derived,
+        cachedUrl: managedCachedUrl,
+        contentType: inferContentType(managedCachedUrl) ?? derived.contentType
+      };
+    })
+    .filter(Boolean);
+}
+
 export function buildImageRelations({
   maintItemImages = [],
   maintNpcImages = [],
   maintProjectiles = [],
-  maintBuffs = []
+  maintBuffs = [],
+  localProjectiles = [],
+  localBuffs = []
 } = {}) {
+  const localProjectileIndex = buildRowIndexByInternalName(localProjectiles);
+  const localBuffIndex = buildRowIndexByInternalName(localBuffs);
   const mirrorNpcImages = maintNpcImages.map((row) => {
     const trace = normalizeTrace('maint_npc_images', row);
     return {
@@ -181,15 +273,7 @@ export function buildImageRelations({
       };
     }),
     relationNpcImages: mirrorNpcImages,
-    relationProjectileImages: buildRawJsonImageRows(maintProjectiles, {
-      sourceMaintTable: 'maint_projectiles',
-      internalNameKey: 'projectileInternalName',
-      nameKey: 'projectileName'
-    }),
-    relationBuffImages: buildRawJsonImageRows(maintBuffs, {
-      sourceMaintTable: 'maint_buffs',
-      internalNameKey: 'buffInternalName',
-      nameKey: 'buffName'
-    })
+    relationProjectileImages: buildProjectileImageRows(maintProjectiles, localProjectileIndex),
+    relationBuffImages: buildBuffImageRows(maintBuffs, localBuffIndex)
   };
 }

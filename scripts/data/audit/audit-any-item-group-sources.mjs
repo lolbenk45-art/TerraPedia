@@ -2,11 +2,13 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { getProjectRoot } from '../lib/project-root.mjs';
 import { parseCliArgs, writeJson } from '../lib/wiki-item-utils.mjs';
 
 const repoRoot = getProjectRoot();
+const __filename = fileURLToPath(import.meta.url);
 
 const DEFAULT_GROUP_SOURCES = [
   {

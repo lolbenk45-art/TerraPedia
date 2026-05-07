@@ -1,6 +1,8 @@
 import axios from 'axios'
 import type {
   ApiResponse,
+  BossListItem,
+  BossesResponse,
   CategoriesResponse,
   Category,
   ItemAggregateData,
@@ -435,6 +437,61 @@ export const fetchNpcs = async (
     },
     fallbackData: [],
     fallbackMessage: 'Failed to fetch npcs',
+    statusCode: 500,
+    pagination: {
+      total: 0,
+      page,
+      limit,
+      totalPages: 0,
+    },
+  })
+}
+
+const normalizeBossListItem = (boss: BossListItem): BossListItem => ({
+  ...boss,
+  code: boss.code ?? null,
+  name: boss.name ?? boss.nameZh ?? boss.nameEn ?? null,
+  nameZh: boss.nameZh ?? boss.name ?? null,
+  nameEn: boss.nameEn ?? boss.name ?? null,
+  bossType: boss.bossType ?? null,
+  imageUrl: boss.imageUrl ?? null,
+  progressionOrder: boss.progressionOrder ?? null,
+  summonMethod: boss.summonMethod ?? null,
+  notes: boss.notes ?? null,
+  memberCount: boss.memberCount ?? 0,
+  memberNames: Array.isArray(boss.memberNames) ? boss.memberNames.filter((name): name is string => typeof name === 'string' && name.trim().length > 0) : [],
+  memberSourceMode: boss.memberSourceMode ?? null,
+  lootEntryCount: boss.lootEntryCount ?? 0,
+  uniqueLootItemCount: boss.uniqueLootItemCount ?? 0,
+})
+
+export const fetchBosses = async (
+  page = 1,
+  limit = 12,
+  search?: string,
+): Promise<BossesResponse> => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  })
+
+  if (search) {
+    params.append('search', search)
+  }
+
+  return requestApiResponseWithFallback<BossListItem[]>({
+    request: async () => {
+      const { data } = await api.get<ApiResponse<BossListItem[]>>(`/public/bosses?${params.toString()}`)
+      return {
+        success: data.success,
+        data: (data.data || []).map(normalizeBossListItem),
+        message: data.message,
+        statusCode: data.statusCode,
+        pagination: data.pagination,
+      }
+    },
+    fallbackData: [],
+    fallbackMessage: 'Failed to fetch bosses',
     statusCode: 500,
     pagination: {
       total: 0,

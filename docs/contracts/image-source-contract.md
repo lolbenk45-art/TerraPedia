@@ -9,6 +9,7 @@ This contract defines the expected lineage shape for TerraPedia image-bearing en
 - `npcs`
 - `bosses`
 - `projectiles`
+- `armor_sets`
 - `biomes`
 
 The contract is read-only and audit-oriented. It does not authorize DB writes, backfills, or migration behavior.
@@ -31,10 +32,11 @@ An entity type is `contractReady=true` only when all of the following are true:
 | Entity | Core field | Maint lineage table | Relation lineage table | Projection field |
 | --- | --- | --- | --- | --- |
 | Item | `items.image` | `maint_item_images` | `relation_item_images` | `projection_items.image` |
-| Buff | `buffs.image` | none today | none today | `projection_buffs.image` |
+| Buff | `buffs.image` | `maint_buffs.raw_json.image` derived lineage | `relation_buff_images` | `projection_buffs.image` |
 | NPC | `npcs.image_url` | `maint_npc_images` | `relation_npc_images` | `projection_npcs.image_url` |
 | Boss | `boss_groups.image_url` | `maint_bosses.image_url` | `relation_bosses.image_url` | `projection_bosses.image_url` |
-| Projectile | `projectiles.image_url` / `projectiles.raw_json.imageUrl` | none today | none today | `projection_projectiles.image_url` |
+| Projectile | `projectiles.image_url` / `projectiles.raw_json.imageUrl` | `maint_projectiles.raw_json.image` derived lineage | `relation_projectile_images` | `projection_projectiles.image_url` |
+| ArmorSet | `projection_armor_sets.{male_images,female_images,special_images}` | none today | none today | `projection_armor_sets.{male_images,female_images,special_images}` |
 | Biome | `biomes.icon_url` | none today | none today | none today |
 
 ## Gap Semantics
@@ -59,8 +61,12 @@ Based on the current schema and sync topology:
 
 - `items` are the reference shape for the unified contract.
 - `npcs` have maint and relation lineage tables, but readiness still depends on projection using managed image URLs and relation rows being present.
-- `bosses` use entity-stage lineage rather than a dedicated image asset table: boss-group rows, maint boss rows, relation boss rows, and the boss projection must all agree on a managed public image policy.
-- `buffs`, `projectiles`, and `biomes` are expected to report `contractReady=false` today because they do not yet have full maint/relation lineage parity with items.
+- `bosses` use entity-stage lineage rather than a dedicated image asset table: boss-group rows, maint boss rows, relation boss rows, and the boss public surface may fall back to `null` when no managed boss portrait is available.
+- The current public Boss route reads `boss_groups` directly. `projection_bosses.image_url` is audit-only support today and is not required to carry a managed image for the Boss domain to remain public-safe.
+- `buffs` already have maint and relation lineage carriers, but readiness still depends on managed URLs propagating into `projection_buffs.image`.
+- `projectiles` already have maint-derived and relation-stage image lineage, and readiness depends on the audit reading those carriers plus projection using managed image URLs.
+- `armor_sets` currently use projection-level managed image fields and remain a documented exception until a dedicated maint/relation lineage contract is added.
+- `biomes` are expected to report `contractReady=false` today because they do not yet have full maint/relation/projection image lineage parity.
 
 ## Audit Output
 

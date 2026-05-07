@@ -10,7 +10,7 @@ import {
 
 const GENERATED_AT = '2026-05-06T08:00:00.000Z';
 
-test('buildImageSourceLineageReport classifies contract readiness and gaps across six entity types', () => {
+test('buildImageSourceLineageReport classifies contract readiness and gaps across seven entity types', () => {
   const report = buildImageSourceLineageReport({
     generatedAt: GENERATED_AT,
     entities: {
@@ -69,9 +69,33 @@ test('buildImageSourceLineageReport classifies contract readiness and gaps acros
       },
       projectiles: {
         coreRows: [{ internalName: 'WoodenArrowFriendly', rawJson: JSON.stringify({ imageUrl: 'http://localhost:9000/terrapedia-images/items/wiki/projectiles/wooden-arrow.png' }) }],
+        maintImageRows: [{
+          projectileInternalName: 'WoodenArrowFriendly',
+          rawJson: JSON.stringify({ image: 'Wooden Arrow.png' }),
+          sourceProvider: 'terraria.wiki.gg',
+          sourcePage: 'Module:Projectileinfo/data',
+        }],
+        relationImageRows: [{
+          projectileInternalName: 'WoodenArrowFriendly',
+          originalUrl: 'https://terraria.wiki.gg/images/Wooden%20Arrow.png',
+          cachedUrl: 'http://localhost:9000/terrapedia-images/items/wiki/projectiles/wooden-arrow.png',
+        }],
+        projectionRows: [{ internalName: 'WoodenArrowFriendly', imageUrl: 'http://localhost:9000/terrapedia-images/items/wiki/projectiles/wooden-arrow.png' }],
+      },
+      armor_sets: {
+        coreRows: [{
+          sourceKey: 'Mythril Armor',
+          maleImages: 'http://localhost:9000/terrapedia-images/items/wiki/armor-sets/8d/8d7e688c8af125976c3feb2cb4562f3df80fdc89-mythril-armor-png.png',
+          femaleImages: 'http://localhost:9000/terrapedia-images/items/wiki/armor-sets/d4/d40782141fa2042ffeb3611ab428743655522e71-mythril-armor-female-png.png',
+        }],
         maintImageRows: [],
         relationImageRows: [],
-        projectionRows: [{ internalName: 'WoodenArrowFriendly', imageUrl: 'http://localhost:9000/terrapedia-images/items/wiki/projectiles/wooden-arrow.png' }],
+        projectionRows: [{
+          sourceKey: 'Mythril Armor',
+          maleImages: 'http://localhost:9000/terrapedia-images/items/wiki/armor-sets/8d/8d7e688c8af125976c3feb2cb4562f3df80fdc89-mythril-armor-png.png',
+          femaleImages: 'http://localhost:9000/terrapedia-images/items/wiki/armor-sets/d4/d40782141fa2042ffeb3611ab428743655522e71-mythril-armor-female-png.png',
+          specialImages: null,
+        }],
       },
       biomes: {
         coreRows: [{ biomeCode: 'forest', rawJson: JSON.stringify({ iconUrl: 'https://terraria.wiki.gg/images/Forest.png' }) }],
@@ -83,9 +107,9 @@ test('buildImageSourceLineageReport classifies contract readiness and gaps acros
   });
 
   assert.equal(report.generatedAt, GENERATED_AT);
-  assert.equal(report.summary.totalEntityTypes, 6);
-  assert.equal(report.summary.readyEntityTypes, 2);
-  assert.equal(report.summary.notReadyEntityTypes, 4);
+  assert.equal(report.summary.totalEntityTypes, 7);
+  assert.equal(report.summary.readyEntityTypes, 4);
+  assert.equal(report.summary.notReadyEntityTypes, 3);
 
   assert.equal(report.entities.items.contractReady, true);
   assert.deepEqual(report.entities.items.gapReasons, []);
@@ -94,16 +118,19 @@ test('buildImageSourceLineageReport classifies contract readiness and gaps acros
   assert.deepEqual(report.entities.bosses.gapReasons, []);
 
   assert.equal(report.entities.buffs.contractReady, false);
-  assert.ok(report.entities.buffs.gapReasons.includes('missing_maint_image_table'));
-  assert.ok(report.entities.buffs.gapReasons.includes('missing_relation_image_table'));
+  assert.ok(report.entities.buffs.gapReasons.includes('missing_maint_image_rows'));
+  assert.ok(report.entities.buffs.gapReasons.includes('missing_relation_image_rows'));
+  assert.ok(report.entities.buffs.gapReasons.includes('projection_image_not_managed'));
 
   assert.equal(report.entities.npcs.contractReady, false);
   assert.ok(report.entities.npcs.gapReasons.includes('projection_image_not_managed'));
   assert.ok(report.entities.npcs.gapReasons.includes('missing_relation_image_rows'));
 
-  assert.equal(report.entities.projectiles.contractReady, false);
-  assert.ok(report.entities.projectiles.gapReasons.includes('missing_maint_image_table'));
-  assert.ok(report.entities.projectiles.gapReasons.includes('missing_relation_image_table'));
+  assert.equal(report.entities.projectiles.contractReady, true);
+  assert.deepEqual(report.entities.projectiles.gapReasons, []);
+
+  assert.equal(report.entities.armor_sets.contractReady, true);
+  assert.deepEqual(report.entities.armor_sets.gapReasons, []);
 
   assert.equal(report.entities.biomes.contractReady, false);
   assert.ok(report.entities.biomes.gapReasons.includes('missing_projection_image_field'));
@@ -125,9 +152,14 @@ test('buildImageSourceLineageQueries stay read-only and cover the expected linea
   assert.match(queries.bosses.relationImages, /relation_bosses/i);
   assert.match(queries.bosses.projection, /FROM `terria_v1_relation`\.`projection_bosses`/i);
   assert.doesNotMatch(queries.buffs.core, /image_path/i);
+  assert.match(queries.buffs.relationImages, /relation_buff_images/i);
   assert.match(queries.npcs.maintImages, /maint_npc_images/i);
+  assert.match(queries.projectiles.maintImages, /FROM `terria_v1_maint`\.`maint_projectiles`/i);
+  assert.match(queries.projectiles.relationImages, /relation_projectile_images/i);
   assert.match(queries.projectiles.projection, /FROM `terria_v1_relation`\.`projection_projectiles`/i);
   assert.match(queries.buffs.projection, /FROM `terria_v1_relation`\.`projection_buffs`/i);
+  assert.match(queries.armor_sets.core, /FROM `terria_v1_relation`\.`projection_armor_sets`/i);
+  assert.match(queries.armor_sets.projection, /FROM `terria_v1_relation`\.`projection_armor_sets`/i);
   assert.match(queries.biomes.core, /FROM `terria_v1_local`\.`biomes`/);
   assert.doesNotMatch(queries.biomes.core, /raw_json/i);
 

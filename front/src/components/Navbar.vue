@@ -16,6 +16,7 @@
           <router-link to="/" :class="linkClass('/')">Home</router-link>
           <router-link to="/items" :class="linkClass('/items')">Items</router-link>
           <router-link to="/npcs" :class="linkClass('/npcs')">NPCs</router-link>
+          <router-link to="/bosses" :class="linkClass('/bosses')">Bosses</router-link>
           <router-link to="/articles" :class="linkClass('/articles')">Articles</router-link>
           <router-link to="/about" :class="linkClass('/about')">About</router-link>
         </nav>
@@ -67,6 +68,7 @@
         <router-link to="/" @click="closeMobile">Home</router-link>
         <router-link to="/items" @click="closeMobile">Items</router-link>
         <router-link to="/npcs" @click="closeMobile">NPCs</router-link>
+        <router-link to="/bosses" @click="closeMobile">Bosses</router-link>
         <router-link to="/articles" @click="closeMobile">Articles</router-link>
         <router-link to="/about" @click="closeMobile">About</router-link>
 

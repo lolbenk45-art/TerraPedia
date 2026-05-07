@@ -38,7 +38,7 @@ test('buildImageRelations mirrors maint item image rows into relation item image
   assert.equal(actual.relationItemImages[0].sourceMaintTable, 'maint_item_images');
 });
 
-test('buildImageRelations derives projectile and buff image rows from maint raw_json image titles', () => {
+test('buildImageRelations derives projectile image rows from maint raw_json image titles and keeps source urls', () => {
   const actual = buildImageRelations({
     maintProjectiles: [
       {
@@ -53,17 +53,10 @@ test('buildImageRelations derives projectile and buff image rows from maint raw_
         source_page: 'Module:Projectileinfo/data'
       }
     ],
-    maintBuffs: [
+    localProjectiles: [
       {
-        id: 1,
-        source_id: 1,
-        internal_name: 'ObsidianSkin',
-        english_name: 'Obsidian Skin',
-        raw_json: JSON.stringify({
-          image: 'Obsidian Skin.png'
-        }),
-        source_provider: 'terraria.wiki.gg',
-        source_page: 'Template:GetBuffInfo'
+        internal_name: 'WoodenArrowFriendly',
+        image_url: 'http://localhost:9000/terrapedia-images/projectiles/2026/05/07/wooden-arrow.png'
       }
     ]
   });
@@ -72,18 +65,51 @@ test('buildImageRelations derives projectile and buff image rows from maint raw_
   assert.equal(actual.relationProjectileImages[0].projectileInternalName, 'WoodenArrowFriendly');
   assert.equal(actual.relationProjectileImages[0].sourceFileTitle, 'Wooden Arrow.png');
   assert.equal(
+    actual.relationProjectileImages[0].cachedUrl,
+    'http://localhost:9000/terrapedia-images/projectiles/2026/05/07/wooden-arrow.png'
+  );
+  assert.equal(
     actual.relationProjectileImages[0].originalUrl,
     'https://terraria.wiki.gg/images/Wooden%20Arrow.png'
   );
   assert.equal(actual.relationProjectileImages[0].contentType, 'image/png');
   assert.equal(actual.relationProjectileImages[0].sourceMaintTable, 'maint_projectiles');
+});
+
+test('buildImageRelations derives buff image rows and prefers managed cached urls', () => {
+  const actual = buildImageRelations({
+    maintBuffs: [
+      {
+        id: 1,
+        source_id: 1,
+        internal_name: 'ObsidianSkin',
+        english_name: 'Obsidian Skin',
+        image_cached_url: 'http://localhost:9000/terrapedia-images/buffs/2026/05/07/obsidian-skin.png',
+        raw_json: JSON.stringify({
+          image: 'http://localhost:9000/terrapedia-images/buffs/2026/05/07/obsidian-skin.png'
+        }),
+        source_provider: 'terraria.wiki.gg',
+        source_page: 'Template:GetBuffInfo'
+      }
+    ],
+    localBuffs: [
+      {
+        internal_name: 'ObsidianSkin',
+        image: 'http://localhost:9000/terrapedia-images/items/2026/04/08/9c526fabad7e4f8994a6340f15a86936.png',
+        image_cached_url: 'http://localhost:9000/terrapedia-images/items/wiki/buffs/e8/e81a74cb058d02494e2da8dd8a833c4b0b57c5dc-obsidianskin.png'
+      }
+    ]
+  });
 
   assert.equal(actual.relationBuffImages.length, 1);
   assert.equal(actual.relationBuffImages[0].buffInternalName, 'ObsidianSkin');
-  assert.equal(actual.relationBuffImages[0].sourceFileTitle, 'Obsidian Skin.png');
+  assert.equal(
+    actual.relationBuffImages[0].sourceFileTitle,
+    'http://localhost:9000/terrapedia-images/buffs/2026/05/07/obsidian-skin.png'
+  );
   assert.equal(
     actual.relationBuffImages[0].cachedUrl,
-    'https://terraria.wiki.gg/images/Obsidian%20Skin.png'
+    'http://localhost:9000/terrapedia-images/items/wiki/buffs/e8/e81a74cb058d02494e2da8dd8a833c4b0b57c5dc-obsidianskin.png'
   );
   assert.equal(actual.relationBuffImages[0].contentType, 'image/png');
   assert.equal(actual.relationBuffImages[0].sourceMaintTable, 'maint_buffs');
