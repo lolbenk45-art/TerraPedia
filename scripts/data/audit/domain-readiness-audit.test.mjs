@@ -226,6 +226,162 @@ test('buildDomainReadinessReport blocks boss source count and required field dri
   assert.match(report.blockingReasons[0], /1 boss records have non-ok status/);
 });
 
+test('buildDomainReadinessReport uses boss image lineage coverage instead of npc map fallback', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'reports/audit/image-source-lineage-2026-05-07.json', {
+    summary: {
+      totalEntityTypes: 6,
+      readyEntityTypes: 2,
+      notReadyEntityTypes: 4,
+    },
+    entities: {
+      bosses: {
+        contractReady: true,
+        gapReasons: [],
+        lineage: {
+          core: { rowCount: 1, rowsWithImage: 1 },
+          maint: { rowCount: 1, rowsWithStructuredImage: 1 },
+          relation: { rowCount: 1, rowsWithStructuredImage: 1 },
+          projection: { rowCount: 1, rowsWithImage: 1, rowsWithManagedImage: 1 },
+        },
+      },
+    },
+  });
+  writeText(repoRoot, 'docs/contracts/image-source-contract.md', [
+    '# Image Source Contract',
+    '',
+    '| Entity | Core field | Maint lineage table | Relation lineage table | Projection field |',
+    '| --- | --- | --- | --- | --- |',
+    '| Boss | `boss_groups.image_url` | `maint_bosses.image_url` | `relation_bosses.image_url` | `projection_bosses.image_url` |',
+  ].join('\n'));
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'bosses',
+    panel: 'image',
+    generatedAt: '2026-05-07T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'pass');
+  assert.deepEqual(report.blockingReasons, []);
+  assert.deepEqual(report.warningReasons, []);
+  assert.equal(
+    report.checks.find((check) => check.id === 'reports_audit_image_source_lineagelatest_json')?.latestReportPath,
+    'reports/audit/image-source-lineage-2026-05-07.json',
+  );
+});
+
+test('buildDomainReadinessReport warns when boss image lineage report is present but not contract ready', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'reports/audit/image-source-lineage-2026-05-07.json', {
+    summary: {
+      totalEntityTypes: 6,
+      readyEntityTypes: 1,
+      notReadyEntityTypes: 5,
+    },
+    entities: {
+      bosses: {
+        contractReady: false,
+        gapReasons: ['projection_image_not_managed', 'missing_projection_rows'],
+        lineage: {
+          core: { rowCount: 1, rowsWithImage: 1 },
+          maint: { rowCount: 1, rowsWithStructuredImage: 1 },
+          relation: { rowCount: 1, rowsWithStructuredImage: 1 },
+          projection: { rowCount: 0, rowsWithImage: 0, rowsWithManagedImage: 0 },
+        },
+      },
+    },
+  });
+  writeText(repoRoot, 'docs/contracts/image-source-contract.md', [
+    '# Image Source Contract',
+    '',
+    '| Entity | Core field | Maint lineage table | Relation lineage table | Projection field |',
+    '| --- | --- | --- | --- | --- |',
+    '| Boss | `boss_groups.image_url` | `maint_bosses.image_url` | `relation_bosses.image_url` | `projection_bosses.image_url` |',
+  ].join('\n'));
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'bosses',
+    panel: 'image',
+    generatedAt: '2026-05-07T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'warning');
+  assert.ok(report.warningReasons.some((reason) => /projection_image_not_managed/.test(reason)));
+  assert.ok(report.warningReasons.some((reason) => /missing_projection_rows/.test(reason)));
+});
+
+test('buildDomainReadinessReport does not treat admin boss files as sufficient public readiness evidence', () => {
+  const repoRoot = createTempRepo();
+  writeText(repoRoot, 'back/src/main/java/com/terraria/skills/controller/AdminBossController.java', 'class AdminBossController {}');
+  writeText(repoRoot, 'scripts/data/relation/projection-schema.mjs', [
+    'export const PROJECTION_TABLE_NAMES = ["projection_items"];',
+    'export function buildProjectionSchemaStatements() {',
+    '  return ["CREATE TABLE projection_items (id BIGINT)"];',
+    '}',
+  ].join('\n'));
+  writeText(repoRoot, 'scripts/data/relation/projection-sync.mjs', [
+    'export function buildProjectionPayload() {',
+    '  return { projectionItems: [] };',
+    '}',
+  ].join('\n'));
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'bosses',
+    panel: 'public',
+    generatedAt: '2026-05-07T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'blocked');
+  assert.ok(report.blockingReasons.some((reason) => /projection_bosses/.test(reason)));
+  assert.ok(report.blockingReasons.some((reason) => /PublicBossController/.test(reason)));
+});
+
+test('buildDomainReadinessReport passes boss public readiness when the public controller and projection evidence are explicit', () => {
+  const repoRoot = createTempRepo();
+  writeText(repoRoot, 'back/src/main/java/com/terraria/skills/controller/PublicBossController.java', [
+    '@RequestMapping("/public/bosses")',
+    'class PublicBossController {}',
+  ].join('\n'));
+  writeText(repoRoot, 'back/src/test/java/com/terraria/skills/controller/PublicBossControllerTest.java', [
+    'class PublicBossControllerTest {',
+    '  // route contract: /public/bosses',
+    '}',
+  ].join('\n'));
+  writeText(repoRoot, 'scripts/data/relation/projection-schema.mjs', [
+    'export const PROJECTION_TABLE_NAMES = ["projection_bosses"];',
+    'export function buildProjectionSchemaStatements() {',
+    '  return [',
+    '    "CREATE TABLE projection_bosses (code VARCHAR(255), image_url VARCHAR(500), member_npcs_json LONGTEXT, loot_items_json LONGTEXT, effects_json LONGTEXT)"',
+    '  ];',
+    '}',
+  ].join('\n'));
+  writeText(repoRoot, 'scripts/data/relation/projection-sync.mjs', [
+    'export function buildProjectionPayload({ relationBosses = [], bossItemRewardRelations = [], bossEffectRelations = [] } = {}) {',
+    '  return {',
+    '    projectionBosses: relationBosses.map((row) => ({',
+    '      code: row.code ?? null,',
+    '      lootItemsJson: JSON.stringify(bossItemRewardRelations),',
+    '      effectsJson: JSON.stringify(bossEffectRelations),',
+    '    })),',
+    '  };',
+    '}',
+  ].join('\n'));
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'bosses',
+    panel: 'public',
+    generatedAt: '2026-05-07T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'pass');
+  assert.deepEqual(report.blockingReasons, []);
+  assert.deepEqual(report.warningReasons, []);
+});
+
 test('buildDomainReadinessReport applies buff source semantic gates', () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'data/standardized/buffs.standardized.json', {

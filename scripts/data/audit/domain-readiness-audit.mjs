@@ -223,15 +223,17 @@ const PRODUCT_DOMAIN_CONFIG = {
     imageReadiness: {
       fileKey: 'image-readiness',
       evidence: [
-        optionalJson('data/generated/npc-standardized-map.json'),
+        requiredLatestJson('reports/audit/image-source-lineage*.json'),
+        requiredText('docs/contracts/image-source-contract.md'),
       ],
     },
     publicReadiness: {
       fileKey: 'public-readiness',
       evidence: [
-        optionalText('back/src/main/java/com/terraria/skills/controller/AdminBossController.java'),
-        optionalText('front/src/router/routes.ts'),
-        optionalDirectory('front/src/views'),
+        requiredText('scripts/data/relation/projection-schema.mjs'),
+        requiredText('scripts/data/relation/projection-sync.mjs'),
+        requiredText('back/src/main/java/com/terraria/skills/controller/PublicBossController.java'),
+        requiredText('back/src/test/java/com/terraria/skills/controller/PublicBossControllerTest.java'),
       ],
     },
     unresolvedAuditTrend: {
@@ -581,8 +583,7 @@ function readEvidence(fullPath, type) {
   }
   if (type === 'text') {
     try {
-      fs.readFileSync(fullPath, 'utf8');
-      return { readable: true, recordCount: null, payload: null };
+      return { readable: true, recordCount: null, payload: fs.readFileSync(fullPath, 'utf8') };
     } catch {
       return { readable: false, recordCount: null, payload: null };
     }
@@ -635,6 +636,24 @@ function evaluateProductDomainSemantics({ repoRoot, evidence, domainId, panelId,
   }
   if (domainId === 'bosses' && panelId === 'sourceReadiness' && pathKey === 'data/generated/wiki-bosses.latest.json') {
     return bossSourceSemantics(payload, reportPath);
+  }
+  if (domainId === 'bosses' && panelId === 'imageReadiness' && pathKey === 'reports/audit/image-source-lineage*.json') {
+    return bossImageLineageSemantics(payload, reportPath);
+  }
+  if (domainId === 'bosses' && panelId === 'imageReadiness' && pathKey === 'docs/contracts/image-source-contract.md') {
+    return bossImageContractSemantics(payload, reportPath);
+  }
+  if (domainId === 'bosses' && panelId === 'publicReadiness' && pathKey === 'scripts/data/relation/projection-schema.mjs') {
+    return bossProjectionSchemaSemantics(payload, reportPath);
+  }
+  if (domainId === 'bosses' && panelId === 'publicReadiness' && pathKey === 'scripts/data/relation/projection-sync.mjs') {
+    return bossProjectionSyncSemantics(payload, reportPath);
+  }
+  if (domainId === 'bosses' && panelId === 'publicReadiness' && pathKey === 'back/src/main/java/com/terraria/skills/controller/PublicBossController.java') {
+    return bossPublicControllerSemantics(payload, reportPath);
+  }
+  if (domainId === 'bosses' && panelId === 'publicReadiness' && pathKey === 'back/src/test/java/com/terraria/skills/controller/PublicBossControllerTest.java') {
+    return bossPublicControllerTestSemantics(payload, reportPath);
   }
   if (domainId === 'buffs' && panelId === 'sourceReadiness' && pathKey === 'data/standardized/buffs.standardized.json') {
     return requiredRecordSourceSemantics(payload, reportPath, {
@@ -868,6 +887,105 @@ function bossSourceSemantics(payload, reportPath) {
     reportPath,
     cleanMessage: `Boss source semantic gates are clean in ${reportPath}`,
     blocking,
+    warnings,
+  });
+}
+
+function bossImageLineageSemantics(payload, reportPath) {
+  const bossEntry = payload?.entities?.bosses;
+  const blocking = [];
+  const warnings = [];
+  if (!bossEntry || typeof bossEntry !== 'object') {
+    blocking.push('bosses lineage entry is missing');
+  } else if (bossEntry.contractReady !== true) {
+    const gaps = Array.isArray(bossEntry.gapReasons) ? bossEntry.gapReasons.filter(Boolean) : [];
+    warnings.push(`boss image lineage is not contract-ready: ${gaps.length > 0 ? gaps.join(', ') : 'unknown gaps'}`);
+  }
+  return semanticResult({
+    reportPath,
+    cleanMessage: `boss image lineage contract is ready in ${reportPath}`,
+    blocking,
+    warnings,
+  });
+}
+
+function bossImageContractSemantics(payload, reportPath) {
+  const text = String(payload ?? '');
+  const blocking = [];
+  if (!text.includes('boss_groups.image_url')) {
+    blocking.push('boss image contract is missing boss_groups.image_url');
+  }
+  if (!text.includes('maint_bosses.image_url')) {
+    blocking.push('boss image contract is missing maint_bosses.image_url');
+  }
+  if (!text.includes('relation_bosses.image_url')) {
+    blocking.push('boss image contract is missing relation_bosses.image_url');
+  }
+  if (!text.includes('projection_bosses.image_url')) {
+    blocking.push('boss image contract is missing projection_bosses.image_url');
+  }
+  return semanticResult({
+    reportPath,
+    cleanMessage: `boss image contract is documented in ${reportPath}`,
+    blocking,
+  });
+}
+
+function bossProjectionSchemaSemantics(payload, reportPath) {
+  const text = String(payload ?? '');
+  const blocking = [];
+  for (const token of ['projection_bosses', 'code', 'image_url', 'member_npcs_json', 'loot_items_json', 'effects_json']) {
+    if (!text.includes(token)) {
+      blocking.push(`boss projection schema is missing ${token}`);
+    }
+  }
+  return semanticResult({
+    reportPath,
+    cleanMessage: `boss projection schema evidence is ready in ${reportPath}`,
+    blocking,
+  });
+}
+
+function bossProjectionSyncSemantics(payload, reportPath) {
+  const text = String(payload ?? '');
+  const blocking = [];
+  for (const token of ['projectionBosses', 'relationBosses', 'bossItemRewardRelations', 'bossEffectRelations']) {
+    if (!text.includes(token)) {
+      blocking.push(`boss projection sync is missing ${token}`);
+    }
+  }
+  return semanticResult({
+    reportPath,
+    cleanMessage: `boss projection sync evidence is ready in ${reportPath}`,
+    blocking,
+  });
+}
+
+function bossPublicControllerSemantics(payload, reportPath) {
+  const text = String(payload ?? '');
+  const warnings = [];
+  if (!text.includes('/public/bosses')) {
+    warnings.push('public boss controller does not expose /public/bosses');
+  }
+  return semanticResult({
+    reportPath,
+    cleanMessage: `boss public controller evidence is ready in ${reportPath}`,
+    warnings,
+  });
+}
+
+function bossPublicControllerTestSemantics(payload, reportPath) {
+  const text = String(payload ?? '');
+  const warnings = [];
+  if (!/class\s+PublicBossControllerTest/.test(text)) {
+    warnings.push('public boss controller test class is missing');
+  }
+  if (!text.includes('publicReadiness') && !text.includes('/public/bosses')) {
+    warnings.push('public boss controller test does not reference the public boss route contract');
+  }
+  return semanticResult({
+    reportPath,
+    cleanMessage: `boss public controller test evidence is ready in ${reportPath}`,
     warnings,
   });
 }
@@ -1470,6 +1588,10 @@ function optionalLatestText(reportPattern) {
 
 function optionalText(relativePath) {
   return evidence(relativePath, false, 'text');
+}
+
+function requiredText(relativePath) {
+  return evidence(relativePath, true, 'text');
 }
 
 function optionalDirectory(relativePath) {

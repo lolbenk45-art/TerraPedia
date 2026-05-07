@@ -238,21 +238,13 @@ Expected: public API tests cover list payload shape and do not require admin aut
 - [ ] Run backend controller test:
 
 ```powershell
+node --test scripts/data/audit/domain-readiness-audit.test.mjs scripts/data/audit/image-source-lineage-report.test.mjs scripts/data/relation/projection-schema.test.mjs scripts/data/relation/projection-sync.test.mjs
 Push-Location back
 mvn "-Dtest=AdminBossControllerTest,PublicBossControllerTest" test
 Pop-Location
 ```
 
-Expected: pass.
-
-- [ ] Re-run strengthened Boss readiness panels:
-
-```powershell
-node scripts/data/audit/domain-readiness-audit.mjs --domain=bosses --panel=image
-node scripts/data/audit/domain-readiness-audit.mjs --domain=bosses --panel=public
-```
-
-Expected: both pass after the public readiness evidence is strengthened. `publicReadiness` must pass from PublicBoss API, public route scope/spec evidence, and projection or documented read-model evidence; `AdminBossController` alone is not sufficient.
+Expected: Node script tests and backend controller tests pass.
 
 - [ ] Decide Bosses route scope:
 
@@ -261,7 +253,16 @@ Allowed route scope: /bosses list first.
 Detail route /bosses/:id is allowed only if backend public detail payload and tests exist in the same execution slice.
 ```
 
-Expected: choose one route scope before touching `front/src/router/routes.ts`. `/bosses` list first is preferred; `/bosses/:id` requires public detail API and tests in the same slice.
+Expected: choose one route scope before re-running Boss `publicReadiness` and before touching `front/src/router/routes.ts`. `/bosses` list first is preferred; `/bosses/:id` requires public detail API and tests in the same slice.
+
+- [ ] Re-run strengthened Boss readiness panels:
+
+```powershell
+node scripts/data/audit/domain-readiness-audit.mjs --domain=bosses --panel=image
+node scripts/data/audit/domain-readiness-audit.mjs --domain=bosses --panel=public
+```
+
+Expected: both pass after the public readiness evidence is strengthened and the Boss route scope/spec is fixed. `publicReadiness` must pass from PublicBoss API, public route scope/spec evidence, and projection or documented read-model evidence; `AdminBossController` alone is not sufficient.
 
 **Exit gate:** Bosses can enter public-route implementation only if the five domain panels pass with strengthened public evidence, public Boss API tests pass, Boss projection/read model is explicit, and Boss image semantics are auditable. If any of these are missing, registry promotion to `public` is blocked.
 

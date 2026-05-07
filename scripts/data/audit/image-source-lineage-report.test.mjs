@@ -10,7 +10,7 @@ import {
 
 const GENERATED_AT = '2026-05-06T08:00:00.000Z';
 
-test('buildImageSourceLineageReport classifies contract readiness and gaps across five entity types', () => {
+test('buildImageSourceLineageReport classifies contract readiness and gaps across six entity types', () => {
   const report = buildImageSourceLineageReport({
     generatedAt: GENERATED_AT,
     entities: {
@@ -47,6 +47,26 @@ test('buildImageSourceLineageReport classifies contract readiness and gaps acros
         relationImageRows: [],
         projectionRows: [{ internalName: 'Guide', imageUrl: 'https://terraria.wiki.gg/images/Guide.png' }],
       },
+      bosses: {
+        coreRows: [{ code: 'KING_SLIME', nameEn: 'King Slime', imageUrl: 'http://localhost:9000/terrapedia-images/bosses/king-slime.png' }],
+        maintImageRows: [{
+          bossTitleEn: 'King Slime',
+          imageUrl: 'https://terraria.wiki.gg/images/King_Slime.png',
+          sourcePage: 'Bosses',
+          sourceRevisionTimestamp: '2026-05-06T00:00:00Z',
+        }],
+        relationImageRows: [{
+          bossTitleEn: 'King Slime',
+          imageUrl: 'http://localhost:9000/terrapedia-images/bosses/king-slime.png',
+          sourcePage: 'Bosses',
+          sourceMaintTable: 'maint_bosses',
+          sourceMaintId: 1,
+        }],
+        projectionRows: [{
+          code: 'KING_SLIME',
+          imageUrl: 'http://localhost:9000/terrapedia-images/bosses/king-slime.png',
+        }],
+      },
       projectiles: {
         coreRows: [{ internalName: 'WoodenArrowFriendly', rawJson: JSON.stringify({ imageUrl: 'http://localhost:9000/terrapedia-images/items/wiki/projectiles/wooden-arrow.png' }) }],
         maintImageRows: [],
@@ -63,11 +83,15 @@ test('buildImageSourceLineageReport classifies contract readiness and gaps acros
   });
 
   assert.equal(report.generatedAt, GENERATED_AT);
-  assert.equal(report.summary.readyEntityTypes, 1);
+  assert.equal(report.summary.totalEntityTypes, 6);
+  assert.equal(report.summary.readyEntityTypes, 2);
   assert.equal(report.summary.notReadyEntityTypes, 4);
 
   assert.equal(report.entities.items.contractReady, true);
   assert.deepEqual(report.entities.items.gapReasons, []);
+
+  assert.equal(report.entities.bosses.contractReady, true);
+  assert.deepEqual(report.entities.bosses.gapReasons, []);
 
   assert.equal(report.entities.buffs.contractReady, false);
   assert.ok(report.entities.buffs.gapReasons.includes('missing_maint_image_table'));
@@ -96,6 +120,10 @@ test('buildImageSourceLineageQueries stay read-only and cover the expected linea
   assert.match(queries.items.core, /^\s*SELECT/i);
   assert.match(queries.items.maintImages, /maint_item_images/i);
   assert.match(queries.items.projection, /FROM `terria_v1_relation`\.`projection_items`/);
+  assert.match(queries.bosses.core, /FROM `terria_v1_local`\.`boss_groups`/i);
+  assert.match(queries.bosses.maintImages, /maint_bosses/i);
+  assert.match(queries.bosses.relationImages, /relation_bosses/i);
+  assert.match(queries.bosses.projection, /FROM `terria_v1_relation`\.`projection_bosses`/i);
   assert.doesNotMatch(queries.buffs.core, /image_path/i);
   assert.match(queries.npcs.maintImages, /maint_npc_images/i);
   assert.match(queries.projectiles.projection, /FROM `terria_v1_relation`\.`projection_projectiles`/i);

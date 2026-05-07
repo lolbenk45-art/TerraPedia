@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
-import { getProjectRoot } from '../../lib/project-root.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   DEPRECATED_RELATION_TABLE_NAMES,
   RELATION_DATABASE_NAME,
@@ -633,6 +633,7 @@ function flattenResults(category, recipe, itemSource, secondary, bossSeries, npc
     npcSeriesItemRelations: npcSeries.npcSeriesItemRelations,
     projectionItems: [],
     projectionNpcs: [],
+    projectionBosses: [],
     projectionProjectiles: [],
     projectionBuffs: [],
     projectionArmorSets: [],
@@ -820,6 +821,9 @@ export async function runSync(options, dependencies = {}) {
     itemNpcLootRelations: results.itemNpcLootRelations,
     itemProjectileRelations: results.itemProjectileRelations,
     npcProjectileRelations: results.npcProjectileRelations,
+    relationBosses: results.relationBosses,
+    bossItemRewardRelations: results.bossItemRewardRelations,
+    bossEffectRelations: results.bossEffectRelations,
     relationBuffs: results.relationBuffs,
     relationBuffImages: results.relationBuffImages,
     relationArmorSets: results.relationArmorSets,
@@ -829,6 +833,7 @@ export async function runSync(options, dependencies = {}) {
   });
   results.projectionItems = projection.projectionItems;
   results.projectionNpcs = projection.projectionNpcs;
+  results.projectionBosses = projection.projectionBosses;
   results.projectionProjectiles = projection.projectionProjectiles;
   results.projectionBuffs = projection.projectionBuffs;
   results.projectionArmorSets = projection.projectionArmorSets;
@@ -969,6 +974,7 @@ export async function runSync(options, dependencies = {}) {
         'relation_bosses',
         'projection_items',
         'projection_npcs',
+        'projection_bosses',
         'projection_projectiles',
         'projection_buffs',
         'projection_armor_sets',
@@ -1015,6 +1021,7 @@ export async function runSync(options, dependencies = {}) {
       await upsertRows(connection, 'npc_series_item_relations', results.npcSeriesItemRelations);
       await upsertRows(connection, 'projection_items', results.projectionItems);
       await upsertRows(connection, 'projection_npcs', results.projectionNpcs);
+      await upsertRows(connection, 'projection_bosses', results.projectionBosses);
       await upsertRows(connection, 'projection_projectiles', results.projectionProjectiles);
       await upsertRows(connection, 'projection_buffs', results.projectionBuffs);
       await upsertRows(connection, 'projection_armor_sets', results.projectionArmorSets);

@@ -5,7 +5,9 @@ import { buildProjectionPayload as buildProjectionPayloadBase } from './projecti
 
 const MANAGED_IMAGE_URL_PREFIXES = [
   'http://localhost:9000/terrapedia-images/items/',
-  'http://127.0.0.1:9000/terrapedia-images/items/'
+  'http://127.0.0.1:9000/terrapedia-images/items/',
+  'http://localhost:9000/terrapedia-images/bosses/',
+  'http://127.0.0.1:9000/terrapedia-images/bosses/'
 ];
 
 function buildProjectionPayload(options = {}) {
@@ -192,6 +194,129 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
   assert.equal(actual.projectionBuffs.length, 1);
   assert.equal(actual.projectionBuffs[0].image, 'http://localhost:9000/terrapedia-images/items/buff.png');
   assert.equal(actual.projectionBuffs[0].buffType, 'buff');
+});
+
+test('buildProjectionPayload maps boss relations into a public-ready boss projection', () => {
+  const actual = buildProjectionPayload({
+    relationItems: [
+      {
+        recordKey: 'item-slime-gun',
+        sourceId: 2608,
+        internalName: 'SlimeGun',
+        englishName: 'Slime Gun',
+        nameZh: 'slime gun zh',
+        rawJson: '{}',
+      },
+      {
+        recordKey: 'item-royal-gel',
+        sourceId: 3090,
+        internalName: 'RoyalGel',
+        englishName: 'Royal Gel',
+        nameZh: 'royal gel zh',
+        rawJson: '{}',
+      },
+    ],
+    relationItemImages: [
+      {
+        itemInternalName: 'SlimeGun',
+        cachedUrl: 'http://localhost:9000/terrapedia-images/items/slime-gun.png',
+        isPrimary: 1,
+      },
+      {
+        itemInternalName: 'RoyalGel',
+        cachedUrl: 'http://localhost:9000/terrapedia-images/items/royal-gel.png',
+        isPrimary: 1,
+      },
+    ],
+    relationNpcs: [
+      {
+        recordKey: 'npc-king-slime',
+        sourceId: 50,
+        internalName: 'KingSlime',
+        englishName: 'King Slime',
+        nameZh: 'king slime zh',
+        flagsJson: JSON.stringify({ boss: true, friendly: false, townNpc: false }),
+        rawJson: '{}',
+      },
+    ],
+    relationNpcImages: [
+      {
+        npcInternalName: 'KingSlime',
+        cachedUrl: 'http://localhost:9000/terrapedia-images/items/king-slime-member.png',
+        isPrimary: 1,
+      },
+    ],
+    relationBosses: [
+      {
+        recordKey: 'boss-rk',
+        progressionOrder: 1,
+        orderWithinGroup: 1,
+        groupType: 'PRE_HARDMODE',
+        bossTitleEn: 'King Slime',
+        bossTitleZh: 'king slime zh',
+        pageTitleEn: 'King Slime',
+        pageTitleZh: 'king slime zh',
+        imageUrl: 'http://localhost:9000/terrapedia-images/bosses/king-slime.png',
+        notes: 'Drops slime loot.',
+        npcSourceId: 50,
+        npcInternalName: 'KingSlime',
+        npcEnglishName: 'King Slime',
+        npcMatchStatus: 'resolved',
+        npcMatchCount: 1,
+        npcMemberInternalNamesJson: JSON.stringify(['KingSlime']),
+        sourceProvider: 'terraria.wiki.gg',
+        sourcePage: 'Bosses',
+        sourceRevisionTimestamp: '2026-05-07T00:00:00.000Z',
+      },
+    ],
+    bossItemRewardRelations: [
+      {
+        bossRecordKey: 'boss-rk',
+        itemInternalName: 'SlimeGun',
+        rewardSourceType: 'loot',
+        npcMemberCount: 1,
+        npcMemberInternalNamesJson: JSON.stringify(['KingSlime']),
+        chanceTextsJson: JSON.stringify(['100%']),
+        quantityTextsJson: JSON.stringify(['1']),
+      },
+      {
+        bossRecordKey: 'boss-rk',
+        itemInternalName: 'RoyalGel',
+        rewardSourceType: 'treasure_bag',
+        npcMemberCount: 1,
+        npcMemberInternalNamesJson: JSON.stringify(['KingSlime']),
+        chanceTextsJson: JSON.stringify(['100%']),
+        quantityTextsJson: JSON.stringify(['1']),
+      },
+    ],
+    bossEffectRelations: [
+      {
+        bossRecordKey: 'boss-rk',
+        effectType: 'unlock_npc_spawn',
+        targetType: 'npc',
+        targetKey: 'tavernkeep',
+        targetName: 'Tavernkeep',
+        evidenceText: 'allows the Tavernkeep NPC to spawn',
+      },
+    ],
+  });
+
+  assert.equal(actual.projectionBosses.length, 1);
+  const row = actual.projectionBosses[0];
+  assert.equal(row.code, 'KING_SLIME');
+  assert.equal(row.nameEn, 'King Slime');
+  assert.equal(row.nameZh, 'king slime zh');
+  assert.equal(row.bossType, 'PRE_HARDMODE');
+  assert.equal(row.imageUrl, 'http://localhost:9000/terrapedia-images/bosses/king-slime.png');
+  assert.equal(row.memberCount, 1);
+  assert.equal(row.lootItemCount, 2);
+  assert.equal(row.effectCount, 1);
+  assert.deepEqual(JSON.parse(row.memberNpcsJson).map((entry) => entry.internalName), ['KingSlime']);
+  assert.deepEqual(
+    JSON.parse(row.lootItemsJson).map((entry) => entry.itemInternalName).sort(),
+    ['RoyalGel', 'SlimeGun'],
+  );
+  assert.equal(JSON.parse(row.effectsJson)[0].targetKey, 'tavernkeep');
 });
 
 test('buildProjectionPayload projects cached npc and projectile images instead of wiki originals', () => {

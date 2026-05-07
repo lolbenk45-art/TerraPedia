@@ -7,6 +7,7 @@ This contract defines the expected lineage shape for TerraPedia image-bearing en
 - `items`
 - `buffs`
 - `npcs`
+- `bosses`
 - `projectiles`
 - `biomes`
 
@@ -32,6 +33,7 @@ An entity type is `contractReady=true` only when all of the following are true:
 | Item | `items.image` | `maint_item_images` | `relation_item_images` | `projection_items.image` |
 | Buff | `buffs.image` | none today | none today | `projection_buffs.image` |
 | NPC | `npcs.image_url` | `maint_npc_images` | `relation_npc_images` | `projection_npcs.image_url` |
+| Boss | `boss_groups.image_url` | `maint_bosses.image_url` | `relation_bosses.image_url` | `projection_bosses.image_url` |
 | Projectile | `projectiles.image_url` / `projectiles.raw_json.imageUrl` | none today | none today | `projection_projectiles.image_url` |
 | Biome | `biomes.icon_url` | none today | none today | none today |
 
@@ -57,6 +59,7 @@ Based on the current schema and sync topology:
 
 - `items` are the reference shape for the unified contract.
 - `npcs` have maint and relation lineage tables, but readiness still depends on projection using managed image URLs and relation rows being present.
+- `bosses` use entity-stage lineage rather than a dedicated image asset table: boss-group rows, maint boss rows, relation boss rows, and the boss projection must all agree on a managed public image policy.
 - `buffs`, `projectiles`, and `biomes` are expected to report `contractReady=false` today because they do not yet have full maint/relation lineage parity with items.
 
 ## Audit Output

@@ -13,7 +13,11 @@ const repoRoot = getProjectRoot();
 const DEFAULT_MAINT_DATABASE = 'terria_v1_maint';
 const DEFAULT_RELATION_DATABASE = 'terria_v1_relation';
 const DEFAULT_LOCAL_DATABASE = 'terria_v1_local';
-const ENTITY_ORDER = ['items', 'buffs', 'npcs', 'projectiles', 'biomes'];
+const ENTITY_ORDER = ['items', 'buffs', 'npcs', 'bosses', 'projectiles', 'biomes'];
+const BOSS_MANAGED_IMAGE_URL_PREFIXES = [
+  'http://localhost:9000/terrapedia-images/bosses/',
+  'http://127.0.0.1:9000/terrapedia-images/bosses/',
+];
 
 const ENTITY_CONFIG = {
   items: {
@@ -160,6 +164,63 @@ ORDER BY \`id\` ASC
     requiresRelationTable: true,
     requiresRelationRowsForReady: true,
   },
+  bosses: {
+    contractKey: 'boss.imageUrl',
+    coreQuery: (localDatabase) => `
+SELECT \`id\`, \`code\`, \`name_en\` AS nameEn, \`name_zh\` AS nameZh, \`image_url\` AS imageUrl
+FROM ${qualified(localDatabase, 'boss_groups')}
+WHERE \`deleted\` = 0
+ORDER BY \`progression_order\` ASC, \`id\` ASC
+`.trim(),
+    maintImagesQuery: (maintDatabase) => `
+SELECT
+  \`id\`,
+  \`record_key\` AS recordKey,
+  \`title_en\` AS bossTitleEn,
+  \`title_zh\` AS bossTitleZh,
+  \`page_title_en\` AS pageTitleEn,
+  \`page_title_zh\` AS pageTitleZh,
+  \`image_url\` AS imageUrl,
+  \`source_provider\` AS sourceProvider,
+  \`source_page\` AS sourcePage,
+  \`source_revision_timestamp\` AS sourceRevisionTimestamp
+FROM ${qualified(maintDatabase, 'maint_bosses')}
+WHERE \`deleted\` = 0
+ORDER BY \`id\` ASC
+`.trim(),
+    relationImagesQuery: (relationDatabase) => `
+SELECT
+  \`id\`,
+  \`record_key\` AS recordKey,
+  \`boss_title_en\` AS bossTitleEn,
+  \`boss_title_zh\` AS bossTitleZh,
+  \`page_title_en\` AS pageTitleEn,
+  \`page_title_zh\` AS pageTitleZh,
+  \`image_url\` AS imageUrl,
+  \`source_provider\` AS sourceProvider,
+  \`source_page\` AS sourcePage,
+  \`source_revision_timestamp\` AS sourceRevisionTimestamp,
+  \`source_maint_table\` AS sourceMaintTable,
+  \`source_maint_id\` AS sourceMaintId
+FROM ${qualified(relationDatabase, 'relation_bosses')}
+WHERE \`deleted\` = 0
+ORDER BY \`id\` ASC
+`.trim(),
+    projectionQuery: (relationDatabase) => `
+SELECT \`id\`, \`code\`, \`name_en\` AS nameEn, \`name_zh\` AS nameZh, \`image_url\` AS imageUrl
+FROM ${qualified(relationDatabase, 'projection_bosses')}
+WHERE \`deleted\` = 0
+ORDER BY \`progression_order\` ASC, \`id\` ASC
+`.trim(),
+    projectionImageField: 'imageUrl',
+    coreImageAccessor: (row) => firstText(row?.imageUrl, row?.image_url),
+    projectionImageAccessor: (row) => firstText(row?.imageUrl, row?.image_url),
+    maintRowReady: (row) => hasBossLineageEvidence(row),
+    relationRowReady: (row) => hasBossLineageEvidence(row),
+    requiresMaintTable: true,
+    requiresRelationTable: true,
+    requiresRelationRowsForReady: true,
+  },
   projectiles: {
     contractKey: 'projectile.imageUrl',
     coreQuery: (localDatabase) => `
@@ -288,12 +349,13 @@ function summarizeEntityLineage(entityType, entityData, managedUrlPrefixes) {
   const relationImageRows = Array.isArray(entityData.relationImageRows) ? entityData.relationImageRows : [];
   const projectionRows = Array.isArray(entityData.projectionRows) ? entityData.projectionRows : [];
   const gapReasons = [];
+  const entityManagedUrlPrefixes = resolveEntityManagedUrlPrefixes(entityType, managedUrlPrefixes);
 
   const coreImageCount = countRowsWithImage(coreRows, config.coreImageAccessor);
-  const maintStructuredCount = countStructuredImageRows(maintImageRows);
-  const relationStructuredCount = countStructuredImageRows(relationImageRows);
+  const maintStructuredCount = countRowsMatching(maintImageRows, config.maintRowReady ?? defaultStructuredImageRowReady);
+  const relationStructuredCount = countRowsMatching(relationImageRows, config.relationRowReady ?? defaultStructuredImageRowReady);
   const projectionImageCount = countRowsWithImage(projectionRows, config.projectionImageAccessor);
-  const projectionManagedCount = countRowsWithManagedProjectionImage(projectionRows, config.projectionImageAccessor, managedUrlPrefixes);
+  const projectionManagedCount = countRowsWithManagedProjectionImage(projectionRows, config.projectionImageAccessor, entityManagedUrlPrefixes);
   const hasProjectionField = Boolean(config.projectionImageField);
 
   if (coreImageCount === 0) {
@@ -423,8 +485,15 @@ function countRowsWithImage(rows, accessor) {
   return rows.filter((row) => Boolean(accessor(row))).length;
 }
 
-function countStructuredImageRows(rows) {
-  return rows.filter((row) => firstText(row?.originalUrl, row?.original_url, row?.cachedUrl, row?.cached_url)).length;
+function countRowsMatching(rows, predicate) {
+  if (typeof predicate !== 'function') {
+    return 0;
+  }
+  return rows.filter((row) => predicate(row)).length;
+}
+
+function defaultStructuredImageRowReady(row) {
+  return Boolean(firstText(row?.originalUrl, row?.original_url, row?.cachedUrl, row?.cached_url));
 }
 
 function countRowsWithManagedProjectionImage(rows, accessor, managedUrlPrefixes) {
@@ -440,12 +509,14 @@ function countRowsWithManagedProjectionImage(rows, accessor, managedUrlPrefixes)
 function deriveMaintTableName(entityType) {
   if (entityType === 'items') return 'maint_item_images';
   if (entityType === 'npcs') return 'maint_npc_images';
+  if (entityType === 'bosses') return 'maint_bosses';
   return null;
 }
 
 function deriveRelationTableName(entityType) {
   if (entityType === 'items') return 'relation_item_images';
   if (entityType === 'npcs') return 'relation_npc_images';
+  if (entityType === 'bosses') return 'relation_bosses';
   return null;
 }
 
@@ -453,8 +524,32 @@ function deriveProjectionTableName(entityType) {
   if (entityType === 'items') return 'projection_items';
   if (entityType === 'buffs') return 'projection_buffs';
   if (entityType === 'npcs') return 'projection_npcs';
+  if (entityType === 'bosses') return 'projection_bosses';
   if (entityType === 'projectiles') return 'projection_projectiles';
   return null;
+}
+
+function resolveEntityManagedUrlPrefixes(entityType, managedUrlPrefixes = []) {
+  if (entityType !== 'bosses') {
+    return managedUrlPrefixes;
+  }
+  return [...new Set([...(Array.isArray(managedUrlPrefixes) ? managedUrlPrefixes : []), ...BOSS_MANAGED_IMAGE_URL_PREFIXES])];
+}
+
+function hasBossLineageEvidence(row) {
+  return Boolean(
+    firstText(row?.imageUrl, row?.image_url)
+    && firstText(
+      row?.sourcePage,
+      row?.source_page,
+      row?.sourceProvider,
+      row?.source_provider,
+      row?.sourceRevisionTimestamp,
+      row?.source_revision_timestamp,
+      row?.sourceMaintTable,
+      row?.source_maint_table,
+    )
+  );
 }
 
 function parseJsonField(rawJson, field) {

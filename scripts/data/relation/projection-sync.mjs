@@ -1,5 +1,10 @@
 import { isManagedImageUrl } from './managed-image-url-policy.mjs';
 
+const BOSS_MANAGED_IMAGE_URL_PREFIXES = [
+  'http://localhost:9000/terrapedia-images/bosses/',
+  'http://127.0.0.1:9000/terrapedia-images/bosses/',
+];
+
 function parseJsonObject(value) {
   if (value == null) return {};
   if (typeof value === 'object' && !Array.isArray(value)) return value;
@@ -9,6 +14,17 @@ function parseJsonObject(value) {
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
   } catch {
     return {};
+  }
+}
+
+function parseJsonArray(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== 'string') return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
   }
 }
 
@@ -35,6 +51,16 @@ function coalesceDefined(...values) {
 function toSlug(value) {
   const text = String(value ?? '').trim();
   return text ? text.toLowerCase() : null;
+}
+
+function toBossCode(value) {
+  const text = String(value ?? '').trim();
+  return text
+    ? text
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+    : null;
 }
 
 function stablePositiveBigIntId(value) {
@@ -382,6 +408,35 @@ function displayArmorSetSourceKey(row, raw) {
   return textKey;
 }
 
+function compareBossProjectionEntries(left, right) {
+  const leftName = displaySortValue(left.name ?? left.itemName ?? left.targetName);
+  const rightName = displaySortValue(right.name ?? right.itemName ?? right.targetName);
+  if (leftName !== rightName) return leftName.localeCompare(rightName);
+  return displaySortValue(left.internalName ?? left.itemInternalName ?? left.targetKey)
+    .localeCompare(displaySortValue(right.internalName ?? right.itemInternalName ?? right.targetKey));
+}
+
+function dedupeBossProjectionEntries(rows, keyBuilder) {
+  const seen = new Set();
+  return rows
+    .filter(Boolean)
+    .filter((row) => {
+      const key = keyBuilder(row);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort(compareBossProjectionEntries);
+}
+
+function firstManagedBossImage(...values) {
+  return values.find((value) => value != null) ?? null;
+}
+
+function bossManagedImageUrlPrefixes(managedImageUrlPrefixes = []) {
+  return [...new Set([...(Array.isArray(managedImageUrlPrefixes) ? managedImageUrlPrefixes : []), ...BOSS_MANAGED_IMAGE_URL_PREFIXES])];
+}
+
 export function buildProjectionPayload({
   relationItems = [],
   relationItemImages = [],
@@ -397,6 +452,9 @@ export function buildProjectionPayload({
   itemNpcLootRelations = [],
   itemProjectileRelations = [],
   npcProjectileRelations = [],
+  relationBosses = [],
+  bossItemRewardRelations = [],
+  bossEffectRelations = [],
   relationBuffs = [],
   relationBuffImages = [],
   relationArmorSets = [],
@@ -713,6 +771,107 @@ export function buildProjectionPayload({
     updatedAt: null
   }));
 
+  const bossRewardsByRecordKey = buildRowsByKey(bossItemRewardRelations, 'bossRecordKey');
+  const bossEffectsByRecordKey = buildRowsByKey(bossEffectRelations, 'bossRecordKey');
+
+  const projectionBosses = relationBosses.map((row) => {
+    const memberInternalNames = [...new Set(
+      parseJsonArray(coalesceDefined(row.npcMemberInternalNamesJson, row.npc_member_internal_names_json))
+        .map((value) => String(value ?? '').trim())
+        .filter(Boolean)
+    )];
+    const matchedNpcInternalName = coalesceDefined(row.npcInternalName, row.npc_internal_name);
+    if (memberInternalNames.length === 0 && matchedNpcInternalName) {
+      memberInternalNames.push(String(matchedNpcInternalName));
+    }
+
+    const memberNpcs = dedupeBossProjectionEntries(
+      memberInternalNames.map((internalName) => {
+        const projectionNpc = projectionNpcIndexes.byInternalName.get(internalName) ?? null;
+        return {
+          id: projectionNpc?.id ?? null,
+          sourceId: projectionNpc?.sourceId ?? null,
+          internalName,
+          name: projectionNpc?.name ?? null,
+          nameZh: projectionNpc?.nameZh ?? null,
+          imageUrl: projectionNpc?.imageUrl ?? null,
+        };
+      }),
+      (entry) => entry.internalName,
+    );
+
+    const lootItems = dedupeBossProjectionEntries(
+      (bossRewardsByRecordKey.get(coalesceDefined(row.recordKey, row.record_key)) ?? []).map((rewardRow) => {
+        const rewardItemInternalName = coalesceDefined(rewardRow.itemInternalName, rewardRow.item_internal_name);
+        const projectionItem = projectionItemIndexes.byInternalName.get(rewardItemInternalName) ?? null;
+        return {
+          itemId: projectionItem?.id ?? null,
+          itemInternalName: rewardItemInternalName ?? null,
+          itemName: projectionItem?.name ?? null,
+          itemNameZh: projectionItem?.nameZh ?? null,
+          itemImageUrl: projectionItem?.image ?? null,
+          rewardSourceType: coalesceDefined(rewardRow.rewardSourceType, rewardRow.reward_source_type) ?? null,
+          npcMemberCount: toNullableNumber(coalesceDefined(rewardRow.npcMemberCount, rewardRow.npc_member_count)),
+          chanceTexts: parseJsonArray(coalesceDefined(rewardRow.chanceTextsJson, rewardRow.chance_texts_json)),
+          quantityTexts: parseJsonArray(coalesceDefined(rewardRow.quantityTextsJson, rewardRow.quantity_texts_json)),
+        };
+      }),
+      (entry) => JSON.stringify([entry.itemInternalName, entry.rewardSourceType]),
+    );
+
+    const effects = dedupeBossProjectionEntries(
+      (bossEffectsByRecordKey.get(coalesceDefined(row.recordKey, row.record_key)) ?? []).map((effectRow) => ({
+        effectType: coalesceDefined(effectRow.effectType, effectRow.effect_type) ?? null,
+        targetType: coalesceDefined(effectRow.targetType, effectRow.target_type) ?? null,
+        targetKey: coalesceDefined(effectRow.targetKey, effectRow.target_key) ?? null,
+        targetName: coalesceDefined(effectRow.targetName, effectRow.target_name) ?? null,
+        evidenceText: coalesceDefined(effectRow.evidenceText, effectRow.evidence_text) ?? null,
+      })),
+      (entry) => JSON.stringify([entry.effectType, entry.targetType, entry.targetKey]),
+    );
+
+    const matchedNpc = matchedNpcInternalName ? projectionNpcIndexes.byInternalName.get(matchedNpcInternalName) ?? null : null;
+    const bossManagedPrefixes = bossManagedImageUrlPrefixes(managedImageUrlPrefixes);
+    const bossTitleEn = coalesceDefined(row.bossTitleEn, row.boss_title_en, row.pageTitleEn, row.page_title_en);
+    const bossTitleZh = coalesceDefined(row.bossTitleZh, row.boss_title_zh, row.pageTitleZh, row.page_title_zh);
+
+    return {
+      id: stablePositiveBigIntId(coalesceDefined(row.recordKey, row.record_key, bossTitleEn)),
+      relationRecordKey: coalesceDefined(row.recordKey, row.record_key) ?? null,
+      code: toBossCode(bossTitleEn),
+      nameEn: bossTitleEn ?? coalesceDefined(row.npcEnglishName, row.npc_english_name) ?? null,
+      nameZh: bossTitleZh ?? null,
+      pageTitleEn: coalesceDefined(row.pageTitleEn, row.page_title_en) ?? null,
+      pageTitleZh: coalesceDefined(row.pageTitleZh, row.page_title_zh) ?? null,
+      bossType: coalesceDefined(row.groupType, row.group_type) ?? null,
+      progressionOrder: toNullableNumber(coalesceDefined(row.progressionOrder, row.progression_order)),
+      orderWithinGroup: toNullableNumber(coalesceDefined(row.orderWithinGroup, row.order_within_group)),
+      imageUrl: firstManagedBossImage(
+        resolveManagedProjectionImageValue(coalesceDefined(row.imageUrl, row.image_url), bossManagedPrefixes),
+        matchedNpc?.imageUrl ?? null,
+        memberNpcs.find((entry) => entry.imageUrl)?.imageUrl ?? null,
+      ),
+      npcSourceId: toNullableNumber(coalesceDefined(row.npcSourceId, row.npc_source_id)),
+      npcInternalName: matchedNpcInternalName ?? null,
+      npcMatchStatus: coalesceDefined(row.npcMatchStatus, row.npc_match_status) ?? null,
+      npcMatchCount: toNullableNumber(coalesceDefined(row.npcMatchCount, row.npc_match_count)),
+      memberCount: memberNpcs.length,
+      memberNpcsJson: JSON.stringify(memberNpcs),
+      lootItemCount: lootItems.length,
+      lootItemsJson: JSON.stringify(lootItems),
+      effectCount: effects.length,
+      effectsJson: JSON.stringify(effects),
+      notes: row.notes ?? null,
+      sourceProvider: coalesceDefined(row.sourceProvider, row.source_provider) ?? null,
+      sourcePage: coalesceDefined(row.sourcePage, row.source_page) ?? null,
+      sourceRevisionTimestamp: coalesceDefined(row.sourceRevisionTimestamp, row.source_revision_timestamp) ?? null,
+      status: 1,
+      deleted: 0,
+      createdAt: null,
+      updatedAt: null,
+    };
+  });
+
   const projectionArmorSets = relationArmorSets.map((row) => {
     const raw = parseJsonObject(row.rawJson);
     const setItems = (armorSetItemsByRecordKey.get(row.recordKey) ?? [])
@@ -788,6 +947,7 @@ export function buildProjectionPayload({
   return {
     projectionItems,
     projectionNpcs,
+    projectionBosses,
     projectionProjectiles,
     projectionBuffs,
     projectionArmorSets
