@@ -148,9 +148,8 @@ test('buildDomainReadinessReport blocks missing required source evidence but onl
   ]);
 });
 
-test('buildDomainReadinessReport warns for product public readiness when public route is absent', () => {
+test('buildDomainReadinessReport blocks product public readiness when public controller evidence is absent', () => {
   const repoRoot = createTempRepo();
-  writeText(repoRoot, 'back/src/main/java/com/terraria/skills/controller/AdminArmorSetController.java', 'class AdminArmorSetController {}');
 
   const report = buildDomainReadinessReport({
     repoRoot,
@@ -159,10 +158,62 @@ test('buildDomainReadinessReport warns for product public readiness when public 
     generatedAt: '2026-05-03T12:00:00Z',
   });
 
-  assert.equal(report.status, 'warning');
-  assert.deepEqual(report.blockingReasons, []);
+  assert.equal(report.status, 'blocked');
+  assert.ok(report.blockingReasons.includes('Missing required evidence: back/src/main/java/com/terraria/skills/controller/PublicArmorSetController.java'));
+  assert.ok(report.blockingReasons.includes('Missing required evidence: back/src/test/java/com/terraria/skills/controller/PublicArmorSetControllerTest.java'));
   assert.ok(report.warningReasons.includes('Missing optional evidence: front/src/router/routes.ts'));
   assert.ok(report.warningReasons.includes('Missing optional evidence: front/src/views'));
+});
+
+test('buildDomainReadinessReport passes public readiness for buffs with public controller evidence', () => {
+  const repoRoot = createTempRepo();
+  writeText(repoRoot, 'back/src/main/java/com/terraria/skills/controller/PublicBuffController.java', '@RequestMapping("/public/buffs")\nclass PublicBuffController {}');
+  writeText(repoRoot, 'back/src/test/java/com/terraria/skills/controller/PublicBuffControllerTest.java', 'class PublicBuffControllerTest {}');
+  writeText(repoRoot, 'front/src/router/routes.ts', 'path: "/buffs"');
+  fs.mkdirSync(path.join(repoRoot, 'front/src/views'), { recursive: true });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'buffs',
+    panel: 'public',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'pass');
+});
+
+test('buildDomainReadinessReport passes public readiness for projectiles with public controller evidence', () => {
+  const repoRoot = createTempRepo();
+  writeText(repoRoot, 'back/src/main/java/com/terraria/skills/controller/PublicProjectileController.java', '@RequestMapping("/public/projectiles")\nclass PublicProjectileController {}');
+  writeText(repoRoot, 'back/src/test/java/com/terraria/skills/controller/PublicProjectileControllerTest.java', 'class PublicProjectileControllerTest {}');
+  writeText(repoRoot, 'front/src/router/routes.ts', 'path: "/projectiles"');
+  fs.mkdirSync(path.join(repoRoot, 'front/src/views'), { recursive: true });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'projectiles',
+    panel: 'public',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'pass');
+});
+
+test('buildDomainReadinessReport passes public readiness for armor sets with public controller evidence', () => {
+  const repoRoot = createTempRepo();
+  writeText(repoRoot, 'back/src/main/java/com/terraria/skills/controller/PublicArmorSetController.java', '@RequestMapping("/public/armor-sets")\nclass PublicArmorSetController {}');
+  writeText(repoRoot, 'back/src/test/java/com/terraria/skills/controller/PublicArmorSetControllerTest.java', 'class PublicArmorSetControllerTest {}');
+  writeText(repoRoot, 'front/src/router/routes.ts', 'path: "/armor-sets"');
+  fs.mkdirSync(path.join(repoRoot, 'front/src/views'), { recursive: true });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'armor_sets',
+    panel: 'public',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'pass');
 });
 
 test('buildDomainReadinessReport applies boss source semantic gates', () => {
@@ -469,10 +520,11 @@ test('buildDomainReadinessReport applies relation coverage semantic gates for bu
     generatedAt: '2026-05-03T12:00:00Z',
   });
 
-  assert.equal(buffs.status, 'warning');
+  assert.equal(buffs.status, 'pass');
   assert.equal(buffs.summary.blockedCount, 0);
   assert.equal(projectiles.status, 'warning');
   assert.equal(projectiles.summary.blockedCount, 0);
+  assert.ok(projectiles.warningReasons.includes('Missing optional evidence: reports/projectile-zh-image-backfill*.json'));
 });
 
 test('buildDomainReadinessReport blocks unresolved audit trend when unresolved count is rising', () => {
@@ -967,6 +1019,53 @@ test('buildDomainReadinessReport rejects armor image parsed snapshot outside rep
   assert.ok(report.warningReasons.some((reason) => /has only 1 sampled fallback records/.test(reason)));
 });
 
+test('buildDomainReadinessReport accepts armor image parsed snapshot when outside-worktree path maps to repo canonical basename', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json', {
+    totalArmorSets: 2,
+    totalArmorSetImages: 2,
+    armorSetImages: [
+      { originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png', contentType: 'image/png' },
+      { originalUrl: 'https://terraria.wiki.gg/images/Ash_Wood_armor.png', contentType: 'image/png' },
+    ],
+    warnings: [
+      { pageTitle: 'Missing Variant armor', message: 'missingtitle' },
+      { pageTitle: 'Missing Other armor', message: 'missingtitle' },
+    ],
+  });
+  writeJson(repoRoot, 'data/terraPedia/raw/wiki/armor_set_images.parsed.2026-04-27T19-29-52.416Z.json', {
+    totalArmorSets: 2,
+    totalArmorSetImages: 2,
+    armorSetImages: [
+      { originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png', contentType: 'image/png' },
+      { originalUrl: 'https://terraria.wiki.gg/images/Ash_Wood_armor.png', contentType: 'image/png' },
+    ],
+    warnings: [
+      { pageTitle: 'Missing Variant armor', message: 'missingtitle' },
+      { pageTitle: 'Missing Other armor', message: 'missingtitle' },
+    ],
+  });
+  writeJson(repoRoot, 'reports/fetch/fetch-armor-set-images-2026-04-27T19-29-52.416Z.json', {
+    snapshotParsedPath: 'G:\\ClaudeCode\\TerraPedia-dev\\data\\terraPedia\\raw\\wiki\\armor_set_images.parsed.2026-04-27T19-29-52.416Z.json',
+    totalArmorSets: 2,
+    totalArmorSetImages: 2,
+    warningCount: 2,
+    samples: [
+      { originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png', contentType: 'image/png' },
+    ],
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'armor_sets',
+    panel: 'image',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'pass');
+  assert.ok(report.checks.some((check) => /parsed snapshot fallback evidence/.test(check.message)));
+});
+
 test('buildDomainReadinessReport warns when armor image parsed snapshot totals drift', () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json', {
@@ -1129,7 +1228,7 @@ test('buildDomainReadinessReport warns when recipe non-blocking metrics exceed b
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'reports/recipe-provider-consolidation-2026-04-19.json', {
     after: { activeResultItems: 2, resultItems: 2 },
-    changes: { suppressedOverlapRecipeRows: 135, gapOnlyResultItems: 3059, gapOnlyRecipeRows: 6751 },
+    changes: { suppressedOverlapRecipeRows: 9999, gapOnlyResultItems: 3060, gapOnlyRecipeRows: 6751 },
   });
   writeJson(repoRoot, 'reports/recipe-provider-suppression-2026-04-09.json', {
     summary: { candidateCount: 245 },
@@ -1153,7 +1252,7 @@ test('buildDomainReadinessReport warns when recipe non-blocking metrics exceed b
   });
 
   assert.equal(report.status, 'warning');
-  assert.ok(report.warningReasons.some((reason) => /suppressedOverlapRecipeRows=135 exceeds baseline 134/.test(reason)));
+  assert.ok(report.warningReasons.some((reason) => /gapOnlyResultItems=3060 exceeds baseline 3059/.test(reason)));
 });
 
 test('buildDomainReadinessReport blocks recipe support gate when source coverage is missing', () => {

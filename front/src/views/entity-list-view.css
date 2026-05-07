@@ -1,0 +1,303 @@
+.entity-list-view {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.entity-list-view__hero-meta {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.entity-list-view__toolbar {
+  display: grid;
+  gap: 0.85rem;
+  padding: 0.95rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.entity-list-view__field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.entity-list-view__field span {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.entity-list-view__input {
+  min-height: 3rem;
+  border: 1px solid color-mix(in srgb, var(--border-color) 86%, transparent);
+  border-radius: 0.95rem;
+  background: color-mix(in srgb, white 70%, var(--bg-primary));
+  color: var(--text-primary);
+  padding: 0.8rem 0.95rem;
+}
+
+.entity-list-view__action {
+  min-height: 3rem;
+}
+
+.entity-list-view__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.entity-list-view__caption {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.entity-list-view__summary h2 {
+  color: var(--text-primary);
+  font-size: 1.25rem;
+}
+
+.entity-list-view__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.entity-list-view__state {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: center;
+  text-align: center;
+  padding: 2rem 1.25rem;
+}
+
+.entity-list-view__state strong {
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.entity-list-view__state p {
+  color: var(--text-secondary);
+}
+
+.entity-list-view__state--error {
+  border-color: color-mix(in srgb, var(--accent-error) 24%, var(--border-color));
+}
+
+.entity-list-view__spinner {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--border-color) 86%, transparent);
+  border-top-color: var(--accent-primary);
+  animation: entity-spin 900ms linear infinite;
+}
+
+.entity-list-view__grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.entity-card {
+  display: grid;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.entity-card__portrait {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at top, color-mix(in srgb, var(--accent-primary) 14%, transparent), transparent 58%),
+    color-mix(in srgb, white 62%, var(--bg-secondary));
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color) 86%, transparent);
+}
+
+.entity-card__portrait--stack {
+  padding: 1rem;
+}
+
+.entity-card__portrait img {
+  width: 100%;
+  max-height: 190px;
+  object-fit: contain;
+}
+
+.entity-card__image-stack {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.entity-card__image-stack img {
+  max-height: 160px;
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, white 70%, var(--bg-primary));
+}
+
+.entity-card__fallback {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: center;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.entity-card__fallback-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4rem;
+  min-height: 4rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-primary) 82%, white 18%);
+  color: var(--accent-primary);
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.entity-card__body {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+}
+
+.entity-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.entity-card__badge {
+  padding: 0.32rem 0.62rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-secondary) 88%, white 12%);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.entity-card__badge--accent {
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+  color: var(--accent-primary);
+}
+
+.entity-card__heading {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.entity-card h3 {
+  color: var(--text-primary);
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.entity-card__secondary,
+.entity-card__summary {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.entity-card__summary {
+  line-height: 1.45;
+}
+
+.entity-card__summary--muted {
+  color: var(--text-muted);
+}
+
+.entity-card__facts {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.entity-card__facts dt {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.entity-card__facts dd {
+  margin-top: 0.22rem;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.entity-list-view__pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.entity-list-view__page-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.entity-list-view__page-chip {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  border: 1px solid color-mix(in srgb, var(--border-color) 86%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-secondary) 86%, white 14%);
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.entity-list-view__page-chip--active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+}
+
+@keyframes entity-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 840px) {
+  .entity-list-view__toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .entity-list-view__hero-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .entity-list-view__action {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .entity-list-view {
+    padding-top: 1.4rem;
+  }
+
+  .entity-card__portrait {
+    min-height: 180px;
+  }
+
+  .entity-card__image-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

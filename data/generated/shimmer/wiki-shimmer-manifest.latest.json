@@ -1,6 +1,6 @@
 {
   "entity": "wiki_shimmer_manifest",
-  "generatedAt": "2026-05-06T04:59:43.756Z",
+  "generatedAt": "2026-05-07T12:41:57.541Z",
   "sourceFile": "data/generated/wiki-shimmer.latest.json",
   "page": {
     "sourcePage": "微光",
@@ -15,19 +15,8 @@
     "npcTransforms": 29
   },
   "resolution": {
-    "totalResolvedTitles": 815,
-    "unresolvedCount": 2,
-    "unresolvedEntries": [
-      {
-        "titleZh": "永恒旅人兜帽",
-        "titleEn": "Timeless Traveler's set",
-        "hint": "unresolved"
-      },
-      {
-        "titleZh": "史莱姆僵尸",
-        "titleEn": null,
-        "hint": "unresolved"
-      }
-    ]
+    "totalResolvedTitles": 817,
+    "unresolvedCount": 0,
+    "unresolvedEntries": []
   }
 }

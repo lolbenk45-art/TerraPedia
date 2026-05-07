@@ -1,8 +1,12 @@
 import axios from 'axios'
 import type {
+  ArmorSetListItem,
+  ArmorSetsResponse,
   ApiResponse,
   BossListItem,
   BossesResponse,
+  BuffListItem,
+  BuffsResponse,
   CategoriesResponse,
   Category,
   ItemAggregateData,
@@ -21,6 +25,8 @@ import type {
   NpcAggregateResponse,
   NpcListItem,
   NpcsResponse,
+  ProjectileListItem,
+  ProjectilesResponse,
   StatsOverview,
   StatsOverviewResponse,
 } from '@/types'
@@ -465,6 +471,65 @@ const normalizeBossListItem = (boss: BossListItem): BossListItem => ({
   uniqueLootItemCount: boss.uniqueLootItemCount ?? 0,
 })
 
+const normalizeBuffListItem = (buff: BuffListItem): BuffListItem => ({
+  ...buff,
+  sourceId: buff.sourceId ?? null,
+  internalName: buff.internalName ?? null,
+  name: buff.name ?? buff.nameZh ?? buff.internalName ?? null,
+  nameZh: buff.nameZh ?? buff.name ?? null,
+  imageUrl: buff.imageUrl ?? null,
+  buffType: buff.buffType ?? null,
+  tooltipZh: buff.tooltipZh ?? null,
+  sourceItemCount: buff.sourceItemCount ?? 0,
+  immuneNpcCount: buff.immuneNpcCount ?? 0,
+})
+
+const normalizeProjectileListItem = (projectile: ProjectileListItem): ProjectileListItem => ({
+  ...projectile,
+  sourceId: projectile.sourceId ?? null,
+  internalName: projectile.internalName ?? null,
+  name: projectile.name ?? projectile.nameZh ?? projectile.internalName ?? null,
+  nameZh: projectile.nameZh ?? projectile.name ?? null,
+  imageUrl: projectile.imageUrl ?? null,
+  aiStyle: projectile.aiStyle ?? null,
+  damage: projectile.damage ?? null,
+  knockBack: projectile.knockBack ?? null,
+  hostile: typeof projectile.hostile === 'boolean' ? projectile.hostile : null,
+  friendly: typeof projectile.friendly === 'boolean' ? projectile.friendly : null,
+})
+
+const parseManagedImageList = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+  }
+  if (typeof value !== 'string' || !value.trim()) {
+    return []
+  }
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed)
+      ? parsed.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+      : []
+  } catch {
+    return []
+  }
+}
+
+const normalizeArmorSetListItem = (armorSet: ArmorSetListItem & Record<string, unknown>): ArmorSetListItem => ({
+  ...armorSet,
+  textKey: (armorSet.textKey as string | null | undefined) ?? ((armorSet.text_key as string | null | undefined) ?? null),
+  sourceKey: (armorSet.sourceKey as string | null | undefined) ?? ((armorSet.source_key as string | null | undefined) ?? null),
+  name: (armorSet.name as string | null | undefined) ?? ((armorSet.nameZh as string | null | undefined) ?? null),
+  nameZh: (armorSet.nameZh as string | null | undefined) ?? ((armorSet.name as string | null | undefined) ?? null),
+  nameEn: (armorSet.nameEn as string | null | undefined) ?? ((armorSet.name_en as string | null | undefined) ?? null),
+  primaryPart: (armorSet.primaryPart as string | null | undefined) ?? ((armorSet.primary_part as string | null | undefined) ?? null),
+  setCount: (armorSet.setCount as number | null | undefined) ?? ((armorSet.set_count as number | null | undefined) ?? 0),
+  uniqueItemCount: (armorSet.uniqueItemCount as number | null | undefined) ?? ((armorSet.unique_item_count as number | null | undefined) ?? 0),
+  maleImages: parseManagedImageList(armorSet.maleImages ?? armorSet.male_images),
+  femaleImages: parseManagedImageList(armorSet.femaleImages ?? armorSet.female_images),
+  specialImages: parseManagedImageList(armorSet.specialImages ?? armorSet.special_images),
+})
+
 export const fetchBosses = async (
   page = 1,
   limit = 12,
@@ -492,6 +557,117 @@ export const fetchBosses = async (
     },
     fallbackData: [],
     fallbackMessage: 'Failed to fetch bosses',
+    statusCode: 500,
+    pagination: {
+      total: 0,
+      page,
+      limit,
+      totalPages: 0,
+    },
+  })
+}
+
+export const fetchBuffs = async (
+  page = 1,
+  limit = 12,
+  search?: string,
+): Promise<BuffsResponse> => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  })
+
+  if (search) {
+    params.append('search', search)
+  }
+
+  return requestApiResponseWithFallback<BuffListItem[]>({
+    request: async () => {
+      const { data } = await api.get<ApiResponse<BuffListItem[]>>(`/public/buffs?${params.toString()}`)
+      return {
+        success: data.success,
+        data: (data.data || []).map(normalizeBuffListItem),
+        message: data.message,
+        statusCode: data.statusCode,
+        pagination: data.pagination,
+      }
+    },
+    fallbackData: [],
+    fallbackMessage: 'Failed to fetch buffs',
+    statusCode: 500,
+    pagination: {
+      total: 0,
+      page,
+      limit,
+      totalPages: 0,
+    },
+  })
+}
+
+export const fetchProjectiles = async (
+  page = 1,
+  limit = 12,
+  search?: string,
+): Promise<ProjectilesResponse> => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  })
+
+  if (search) {
+    params.append('search', search)
+  }
+
+  return requestApiResponseWithFallback<ProjectileListItem[]>({
+    request: async () => {
+      const { data } = await api.get<ApiResponse<ProjectileListItem[]>>(`/public/projectiles?${params.toString()}`)
+      return {
+        success: data.success,
+        data: (data.data || []).map(normalizeProjectileListItem),
+        message: data.message,
+        statusCode: data.statusCode,
+        pagination: data.pagination,
+      }
+    },
+    fallbackData: [],
+    fallbackMessage: 'Failed to fetch projectiles',
+    statusCode: 500,
+    pagination: {
+      total: 0,
+      page,
+      limit,
+      totalPages: 0,
+    },
+  })
+}
+
+export const fetchArmorSets = async (
+  page = 1,
+  limit = 12,
+  search?: string,
+): Promise<ArmorSetsResponse> => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  })
+
+  if (search) {
+    params.append('search', search)
+  }
+
+  return requestApiResponseWithFallback<ArmorSetListItem[]>({
+    request: async () => {
+      const { data } = await api.get<ApiResponse<ArmorSetListItem[]>>(`/public/armor-sets?${params.toString()}`)
+      return {
+        success: data.success,
+        data: (data.data || []).map(item => normalizeArmorSetListItem(item as ArmorSetListItem & Record<string, unknown>)),
+        message: data.message,
+        statusCode: data.statusCode,
+        pagination: data.pagination,
+      }
+    },
+    fallbackData: [],
+    fallbackMessage: 'Failed to fetch armor sets',
     statusCode: 500,
     pagination: {
       total: 0,

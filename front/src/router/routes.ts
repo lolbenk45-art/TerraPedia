@@ -33,6 +33,21 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/BossPublicView.vue'),
   },
   {
+    path: '/buffs',
+    name: 'buffs',
+    component: () => import('@/views/BuffPublicView.vue'),
+  },
+  {
+    path: '/projectiles',
+    name: 'projectiles',
+    component: () => import('@/views/ProjectilePublicView.vue'),
+  },
+  {
+    path: '/armor-sets',
+    name: 'armor-sets',
+    component: () => import('@/views/ArmorSetPublicView.vue'),
+  },
+  {
     path: '/about',
     name: 'about',
     component: () => import('@/views/AboutView.vue'),

@@ -1,6 +1,6 @@
 {
   "entity": "wiki_shimmer_entity_transforms_importable",
-  "generatedAt": "2026-05-06T04:59:43.756Z",
+  "generatedAt": "2026-05-07T12:41:57.541Z",
   "sourceProvider": "wiki_zh",
   "sourceFile": "data/generated/wiki-shimmer.latest.json",
   "records": [
@@ -30,10 +30,10 @@
       "code": "shimmer_entity_transform_0002",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "紫晶松鼠",
-        "nameEn": "Gem Squirrels",
-        "internalName": null,
+        "nameEn": "Amethyst Squirrel",
+        "internalName": "GemSquirrelAmethyst",
         "quantityText": null
       },
       "output": {
@@ -52,10 +52,10 @@
       "code": "shimmer_entity_transform_0003",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "黄玉松鼠",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Topaz Squirrel",
+        "internalName": "GemSquirrelTopaz",
         "quantityText": null
       },
       "output": {
@@ -74,10 +74,10 @@
       "code": "shimmer_entity_transform_0004",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "蓝玉松鼠",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Sapphire Squirrel",
+        "internalName": "GemSquirrelSapphire",
         "quantityText": null
       },
       "output": {
@@ -96,10 +96,10 @@
       "code": "shimmer_entity_transform_0005",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "翡翠松鼠",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Emerald Squirrel",
+        "internalName": "GemSquirrelEmerald",
         "quantityText": null
       },
       "output": {
@@ -118,10 +118,10 @@
       "code": "shimmer_entity_transform_0006",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "红玉松鼠",
-        "nameEn": "Gem Squirrels",
-        "internalName": null,
+        "nameEn": "Ruby Squirrel",
+        "internalName": "GemSquirrelRuby",
         "quantityText": null
       },
       "output": {
@@ -140,10 +140,10 @@
       "code": "shimmer_entity_transform_0007",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "钻石松鼠",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Diamond Squirrel",
+        "internalName": "GemSquirrelDiamond",
         "quantityText": null
       },
       "output": {
@@ -162,10 +162,10 @@
       "code": "shimmer_entity_transform_0008",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "琥珀松鼠",
-        "nameEn": "Gem Squirrels",
-        "internalName": null,
+        "nameEn": "Amber Squirrel",
+        "internalName": "GemSquirrelAmber",
         "quantityText": null
       },
       "output": {
@@ -184,10 +184,10 @@
       "code": "shimmer_entity_transform_0009",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "紫晶兔兔",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Amethyst Bunny",
+        "internalName": "GemBunnyAmethyst",
         "quantityText": null
       },
       "output": {
@@ -206,10 +206,10 @@
       "code": "shimmer_entity_transform_0010",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "黄玉兔兔",
-        "nameEn": "Gem Bunnies",
-        "internalName": null,
+        "nameEn": "Topaz Bunny",
+        "internalName": "GemBunnyTopaz",
         "quantityText": null
       },
       "output": {
@@ -228,10 +228,10 @@
       "code": "shimmer_entity_transform_0011",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "蓝玉兔兔",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Sapphire Bunny",
+        "internalName": "GemBunnySapphire",
         "quantityText": null
       },
       "output": {
@@ -250,10 +250,10 @@
       "code": "shimmer_entity_transform_0012",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "翡翠兔兔",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Emerald Bunny",
+        "internalName": "GemBunnyEmerald",
         "quantityText": null
       },
       "output": {
@@ -272,10 +272,10 @@
       "code": "shimmer_entity_transform_0013",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "红玉兔兔",
-        "nameEn": "Gem Bunnies",
-        "internalName": null,
+        "nameEn": "Ruby Bunny",
+        "internalName": "GemBunnyRuby",
         "quantityText": null
       },
       "output": {
@@ -294,10 +294,10 @@
       "code": "shimmer_entity_transform_0014",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "钻石兔兔",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Diamond Bunny",
+        "internalName": "GemBunnyDiamond",
         "quantityText": null
       },
       "output": {
@@ -316,10 +316,10 @@
       "code": "shimmer_entity_transform_0015",
       "transformGroup": "critter_to_item",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "琥珀兔兔",
-        "nameEn": "Gem Bunnies",
-        "internalName": null,
+        "nameEn": "Amber Bunny",
+        "internalName": "GemBunnyAmber",
         "quantityText": null
       },
       "output": {
@@ -360,10 +360,10 @@
       "code": "shimmer_entity_transform_0017",
       "transformGroup": "enemy_transforms",
       "input": {
-        "kind": "unresolved",
+        "kind": "npc",
         "nameZh": "史莱姆僵尸",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Slimed Zombie",
+        "internalName": "SlimedZombie",
         "quantityText": null
       },
       "output": {
@@ -712,10 +712,10 @@
       "code": "shimmer_entity_transform_0033",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "冠蓝鸦",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Blue Jay",
+        "internalName": "BlueJay",
         "quantityText": null
       },
       "output": {
@@ -778,10 +778,10 @@
       "code": "shimmer_entity_transform_0036",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "蓝金刚鹦鹉",
-        "nameEn": "Macaws",
-        "internalName": null,
+        "nameEn": "Blue Macaw",
+        "internalName": "BlueMacaw",
         "quantityText": null
       },
       "output": {
@@ -800,10 +800,10 @@
       "code": "shimmer_entity_transform_0037",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "绯红金刚鹦鹉",
-        "nameEn": "Macaws",
-        "internalName": null,
+        "nameEn": "Scarlet Macaw",
+        "internalName": "ScarletMacaw",
         "quantityText": null
       },
       "output": {
@@ -822,10 +822,10 @@
       "code": "shimmer_entity_transform_0038",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "灰玄凤鹦鹉",
-        "nameEn": "Cockatiels",
-        "internalName": null,
+        "nameEn": "Gray Cockatiel",
+        "internalName": "GrayCockatiel",
         "quantityText": null
       },
       "output": {
@@ -844,10 +844,10 @@
       "code": "shimmer_entity_transform_0039",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "黄玄凤鹦鹉",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Yellow Cockatiel",
+        "internalName": "YellowCockatiel",
         "quantityText": null
       },
       "output": {
@@ -1460,10 +1460,10 @@
       "code": "shimmer_entity_transform_0067",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "蓝仙灵",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Blue Fairy",
+        "internalName": "FairyCritterBlue",
         "quantityText": null
       },
       "output": {
@@ -1482,10 +1482,10 @@
       "code": "shimmer_entity_transform_0068",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "绿仙灵",
-        "nameEn": "Fairies",
-        "internalName": null,
+        "nameEn": "Green Fairy",
+        "internalName": "FairyCritterGreen",
         "quantityText": null
       },
       "output": {
@@ -1504,10 +1504,10 @@
       "code": "shimmer_entity_transform_0069",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "粉仙灵",
-        "nameEn": "Fairies",
-        "internalName": null,
+        "nameEn": "Pink Fairy",
+        "internalName": "FairyCritterPink",
         "quantityText": null
       },
       "output": {
@@ -1526,10 +1526,10 @@
       "code": "shimmer_entity_transform_0070",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "黑蜻蜓",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Black Dragonfly",
+        "internalName": "BlackDragonfly",
         "quantityText": null
       },
       "output": {
@@ -1570,10 +1570,10 @@
       "code": "shimmer_entity_transform_0072",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "黄蜻蜓",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Yellow Dragonfly",
+        "internalName": "YellowDragonfly",
         "quantityText": null
       },
       "output": {
@@ -1592,10 +1592,10 @@
       "code": "shimmer_entity_transform_0073",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "绿蜻蜓",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Green Dragonfly",
+        "internalName": "GreenDragonfly",
         "quantityText": null
       },
       "output": {
@@ -1614,10 +1614,10 @@
       "code": "shimmer_entity_transform_0074",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "橙蜻蜓",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Orange Dragonfly",
+        "internalName": "OrangeDragonfly",
         "quantityText": null
       },
       "output": {
@@ -1636,10 +1636,10 @@
       "code": "shimmer_entity_transform_0075",
       "transformGroup": "critter_to_faeling",
       "input": {
-        "kind": "npc",
+        "kind": "item",
         "nameZh": "红蜻蜓",
-        "nameEn": null,
-        "internalName": null,
+        "nameEn": "Red Dragonfly",
+        "internalName": "RedDragonfly",
         "quantityText": null
       },
       "output": {

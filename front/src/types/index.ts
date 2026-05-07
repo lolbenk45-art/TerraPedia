@@ -129,6 +129,60 @@ export interface BossesResponse extends ApiResponse<BossListItem[]> {
   pagination?: Pagination
 }
 
+export interface BuffListItem {
+  id: number
+  sourceId?: number | null
+  internalName?: string | null
+  name?: string | null
+  nameZh?: string | null
+  imageUrl?: string | null
+  buffType?: string | null
+  tooltipZh?: string | null
+  sourceItemCount?: number | null
+  immuneNpcCount?: number | null
+}
+
+export interface BuffsResponse extends ApiResponse<BuffListItem[]> {
+  pagination?: Pagination
+}
+
+export interface ProjectileListItem {
+  id: number
+  sourceId?: number | null
+  internalName?: string | null
+  name?: string | null
+  nameZh?: string | null
+  imageUrl?: string | null
+  aiStyle?: number | null
+  damage?: number | null
+  knockBack?: number | null
+  hostile?: boolean | null
+  friendly?: boolean | null
+}
+
+export interface ProjectilesResponse extends ApiResponse<ProjectileListItem[]> {
+  pagination?: Pagination
+}
+
+export interface ArmorSetListItem {
+  id: number
+  textKey?: string | null
+  sourceKey?: string | null
+  name?: string | null
+  nameZh?: string | null
+  nameEn?: string | null
+  primaryPart?: string | null
+  setCount?: number | null
+  uniqueItemCount?: number | null
+  maleImages?: string[]
+  femaleImages?: string[]
+  specialImages?: string[]
+}
+
+export interface ArmorSetsResponse extends ApiResponse<ArmorSetListItem[]> {
+  pagination?: Pagination
+}
+
 export interface ItemSuggestion {
   id: number
   name: string

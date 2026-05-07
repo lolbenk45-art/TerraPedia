@@ -68,7 +68,7 @@
       "generatorCommand": "node scripts/data/relation/generate-reresolve-candidates.mjs",
       "autoMaintenanceAllowed": true,
       "blockingBeforePublic": false,
-      "requiresDatabase": false,
+      "requiresDatabase": true,
       "writesDatabase": false,
       "notes": "Checks whether unresolved item/NPC relation audits are trending upward from read-only candidate evidence."
     },
@@ -140,8 +140,8 @@
       "panelSet": "product",
       "backendRefreshStepIds": ["independent-entity-sync"],
       "managementRoute": "/entities/buffs",
-      "publicExposure": "planned-public",
-      "publicRoute": null
+      "publicExposure": "public",
+      "publicRoute": "/buffs"
     },
     {
       "domainId": "projectiles",
@@ -151,8 +151,8 @@
       "panelSet": "product",
       "backendRefreshStepIds": ["independent-entity-sync"],
       "managementRoute": "/entities/projectiles",
-      "publicExposure": "planned-public",
-      "publicRoute": null
+      "publicExposure": "public",
+      "publicRoute": "/projectiles"
     },
     {
       "domainId": "armor_sets",
@@ -162,8 +162,8 @@
       "panelSet": "product",
       "backendRefreshStepIds": ["independent-entity-sync"],
       "managementRoute": "/entities/armor-sets",
-      "publicExposure": "planned-public",
-      "publicRoute": null
+      "publicExposure": "public",
+      "publicRoute": "/armor-sets"
     },
     {
       "domainId": "support.recipe",

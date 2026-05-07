@@ -31,7 +31,6 @@ const BLOCKING_GATE_COUNTER_KEYS = [
 
 const DOMAIN_ACCEPTANCE_BASELINES = {
   recipeProviderConsolidation: {
-    suppressedOverlapRecipeRows: 134,
     gapOnlyResultItems: 3059,
     gapOnlyRecipeRows: 6751,
   },
@@ -128,22 +127,19 @@ const PRODUCT_DOMAIN_CONFIG = {
       fileKey: 'source-readiness',
       evidence: [
         requiredJson('data/standardized/items.standardized.json'),
-        optionalLatestJson('reports/wiki-items-fetch*.json'),
-        optionalLatestJson('reports/wiki-item-pages-fetch*.json'),
       ],
     },
     relationReadiness: {
       fileKey: 'relation-readiness',
       evidence: [
         optionalLatestJson('reports/relation/entity-coverage-baseline*.json'),
-        optionalLatestJson('reports/relation/item-relations-bundle*.json'),
       ],
     },
     imageReadiness: {
       fileKey: 'image-readiness',
       evidence: [
         requiredJson('data/standardized/items.standardized.json'),
-        optionalLatestJson('reports/image-sync*.json'),
+        optionalLatestJson('reports/workflow-image-sync*.json'),
         optionalText('back/src/main/java/com/terraria/skills/controller/PublicItemRelationController.java'),
       ],
     },
@@ -178,7 +174,6 @@ const PRODUCT_DOMAIN_CONFIG = {
       fileKey: 'relation-readiness',
       evidence: [
         optionalLatestJson('reports/relation/entity-coverage-baseline*.json'),
-        optionalLatestJson('reports/data/npc-buff-relations-backfill*.json'),
       ],
     },
     imageReadiness: {
@@ -254,7 +249,6 @@ const PRODUCT_DOMAIN_CONFIG = {
     relationReadiness: {
       fileKey: 'relation-readiness',
       evidence: [
-        optionalLatestJson('reports/data/npc-buff-relations-backfill*.json'),
         optionalLatestJson('reports/relation/entity-coverage-baseline*.json'),
       ],
     },
@@ -268,9 +262,10 @@ const PRODUCT_DOMAIN_CONFIG = {
     publicReadiness: {
       fileKey: 'public-readiness',
       evidence: [
+        requiredText('back/src/main/java/com/terraria/skills/controller/PublicBuffController.java'),
+        requiredText('back/src/test/java/com/terraria/skills/controller/PublicBuffControllerTest.java'),
         optionalText('front/src/router/routes.ts'),
         optionalDirectory('front/src/views'),
-        optionalText('back/src/main/java/com/terraria/skills/controller/AdminBuffController.java'),
       ],
     },
     unresolvedAuditTrend: {
@@ -299,13 +294,14 @@ const PRODUCT_DOMAIN_CONFIG = {
       fileKey: 'image-readiness',
       evidence: [
         requiredJson('data/standardized/projectiles.standardized.json'),
-        optionalJson('data/generated/projectile-zh-map.json'),
+        optionalLatestJson('reports/projectile-zh-image-backfill*.json'),
       ],
     },
     publicReadiness: {
       fileKey: 'public-readiness',
       evidence: [
-        optionalText('back/src/main/java/com/terraria/skills/controller/AdminProjectileController.java'),
+        requiredText('back/src/main/java/com/terraria/skills/controller/PublicProjectileController.java'),
+        requiredText('back/src/test/java/com/terraria/skills/controller/PublicProjectileControllerTest.java'),
         optionalText('front/src/router/routes.ts'),
         optionalDirectory('front/src/views'),
       ],
@@ -343,7 +339,8 @@ const PRODUCT_DOMAIN_CONFIG = {
     publicReadiness: {
       fileKey: 'public-readiness',
       evidence: [
-        optionalText('back/src/main/java/com/terraria/skills/controller/AdminArmorSetController.java'),
+        requiredText('back/src/main/java/com/terraria/skills/controller/PublicArmorSetController.java'),
+        requiredText('back/src/test/java/com/terraria/skills/controller/PublicArmorSetControllerTest.java'),
         optionalText('front/src/router/routes.ts'),
         optionalDirectory('front/src/views'),
       ],
@@ -398,7 +395,6 @@ const SUPPORT_DOMAIN_CONFIG = {
       fileKey: 'source-readiness',
       evidence: [
         requiredJson('data/canonical/category/README.md', { type: 'text' }),
-        optionalLatestJson('reports/relation/category-local-sync*.json'),
         optionalLatestJson('reports/relation/category-recipe-cutover-baseline*.json'),
       ],
     },
@@ -779,7 +775,7 @@ function recipeProviderConsolidationSemantics(payload, reportPath) {
   if (after && after.activeResultItems !== after.resultItems) {
     blocking.push(`activeResultItems=${after.activeResultItems} does not match resultItems=${after.resultItems}`);
   }
-  const metrics = pickFiniteMetrics(payload?.changes, ['suppressedOverlapRecipeRows', 'gapOnlyResultItems', 'gapOnlyRecipeRows']);
+  const metrics = pickFiniteMetrics(payload?.changes, ['gapOnlyResultItems', 'gapOnlyRecipeRows']);
   warnings.push(...baselineWarnings(metrics, DOMAIN_ACCEPTANCE_BASELINES.recipeProviderConsolidation));
   return semanticResult({
     reportPath,
@@ -1321,16 +1317,25 @@ function resolveEvidenceReferencePath(value, repoRoot) {
   if (text === '') {
     return null;
   }
+  const allowedBasename = /^armor_set_images\.parsed\.(latest|\d{4}-\d{2}-\d{2}T.+)\.json$/;
+  const candidatePaths = [];
   const fullPath = path.isAbsolute(text) ? path.resolve(text) : path.resolve(repoRoot, text);
+  candidatePaths.push(fullPath);
+  const basename = path.basename(text);
+  if (allowedBasename.test(basename)) {
+    candidatePaths.push(path.resolve(repoRoot, 'data', 'terraPedia', 'raw', 'wiki', basename));
+  }
   const root = path.resolve(repoRoot);
-  const relative = normalizePath(path.relative(root, fullPath));
-  if (relative.startsWith('..') || path.isAbsolute(relative)) {
-    return null;
+  for (const candidatePath of candidatePaths) {
+    const relative = normalizePath(path.relative(root, candidatePath));
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
+      continue;
+    }
+    if (/^data\/terraPedia\/raw\/wiki\/armor_set_images\.parsed\.(latest|\d{4}-\d{2}-\d{2}T.+)\.json$/.test(relative)) {
+      return candidatePath;
+    }
   }
-  if (!/^data\/terraPedia\/raw\/wiki\/armor_set_images\.parsed\.(latest|\d{4}-\d{2}-\d{2}T.+)\.json$/.test(relative)) {
-    return null;
-  }
-  return fullPath;
+  return null;
 }
 
 function pickFiniteMetrics(source, keys) {

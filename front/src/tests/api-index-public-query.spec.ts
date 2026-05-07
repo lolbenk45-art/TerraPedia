@@ -30,11 +30,15 @@ vi.mock('axios', () => ({
 }))
 
 import {
+  fetchArmorSets,
+  fetchBuffs,
   fetchCategories,
+  fetchBosses,
   fetchItemById,
   fetchPublicItemDetailShell,
   fetchItems,
   fetchNpcs,
+  fetchProjectiles,
   fetchStatsOverview,
 } from '@/api/index'
 
@@ -368,6 +372,172 @@ describe('api/index public query behavior', () => {
         limit: 30,
         totalPages: 0,
       },
+    })
+  })
+
+  it('fetchBosses preserves the public list shape and query parameters', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: [
+          {
+            id: 34,
+            code: 'KING_SLIME',
+            name: 'King Slime',
+            nameZh: 'King Slime CN',
+            nameEn: 'King Slime',
+            bossType: 'PRE_HARDMODE',
+            imageUrl: 'http://localhost:9000/terrapedia-images/bosses/king-slime.png',
+            progressionOrder: 1,
+            summonMethod: 'Use Slime Crown',
+            memberCount: 1,
+            memberNames: ['King Slime CN'],
+            lootEntryCount: 2,
+            uniqueLootItemCount: 2,
+          },
+        ],
+        message: 'ok',
+        statusCode: 200,
+        pagination: {
+          total: 1,
+          page: 2,
+          limit: 12,
+          totalPages: 1,
+        },
+      },
+    })
+
+    const result = await fetchBosses(2, 12, 'slime')
+
+    expect(mockGet).toHaveBeenCalledWith('/public/bosses?page=2&limit=12&search=slime')
+    expect(result.data[0]).toMatchObject({
+      id: 34,
+      code: 'KING_SLIME',
+      nameZh: 'King Slime CN',
+      lootEntryCount: 2,
+    })
+  })
+
+  it('fetchBuffs preserves the public list shape and query parameters', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: [
+          {
+            id: 159,
+            sourceId: 159,
+            internalName: 'Sharpened',
+            name: 'Sharpened',
+            nameZh: 'Sharpened CN',
+            imageUrl: 'http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png',
+            buffType: 'station',
+            tooltipZh: 'Buff tooltip',
+            sourceItemCount: 1,
+            immuneNpcCount: 0,
+          },
+        ],
+        message: 'ok',
+        statusCode: 200,
+        pagination: {
+          total: 1,
+          page: 1,
+          limit: 12,
+          totalPages: 1,
+        },
+      },
+    })
+
+    const result = await fetchBuffs(1, 12, 'sharp')
+
+    expect(mockGet).toHaveBeenCalledWith('/public/buffs?page=1&limit=12&search=sharp')
+    expect(result.data[0]).toMatchObject({
+      id: 159,
+      internalName: 'Sharpened',
+      imageUrl: 'http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png',
+      buffType: 'station',
+    })
+  })
+
+  it('fetchProjectiles preserves the public list shape and query parameters', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: [
+          {
+            id: 1,
+            sourceId: 1,
+            internalName: 'WoodenArrowFriendly',
+            name: 'Wooden Arrow',
+            nameZh: 'Wooden Arrow CN',
+            imageUrl: 'http://localhost:9000/terrapedia-images/items/wiki/projectiles/wooden-arrow.png',
+            aiStyle: 1,
+            damage: 5,
+            knockBack: 1.5,
+            hostile: false,
+            friendly: true,
+          },
+        ],
+        message: 'ok',
+        statusCode: 200,
+        pagination: {
+          total: 1,
+          page: 3,
+          limit: 12,
+          totalPages: 1,
+        },
+      },
+    })
+
+    const result = await fetchProjectiles(3, 12, 'arrow')
+
+    expect(mockGet).toHaveBeenCalledWith('/public/projectiles?page=3&limit=12&search=arrow')
+    expect(result.data[0]).toMatchObject({
+      id: 1,
+      internalName: 'WoodenArrowFriendly',
+      damage: 5,
+      friendly: true,
+    })
+  })
+
+  it('fetchArmorSets preserves the public list shape and query parameters', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: [
+          {
+            id: 10,
+            textKey: 'ArmorSet.Hallowed',
+            sourceKey: 'ArmorSet.Hallowed',
+            name: 'Hallowed armor',
+            nameZh: 'Hallowed armor CN',
+            nameEn: 'Hallowed armor',
+            primaryPart: 'head',
+            setCount: 3,
+            uniqueItemCount: 3,
+            maleImages: ['http://localhost:9000/terrapedia-images/wiki/armor-sets/hallowed-male.png'],
+            femaleImages: ['http://localhost:9000/terrapedia-images/wiki/armor-sets/hallowed-female.png'],
+            specialImages: [],
+          },
+        ],
+        message: 'ok',
+        statusCode: 200,
+        pagination: {
+          total: 1,
+          page: 1,
+          limit: 12,
+          totalPages: 1,
+        },
+      },
+    })
+
+    const result = await fetchArmorSets(1, 12, 'hallowed')
+
+    expect(mockGet).toHaveBeenCalledWith('/public/armor-sets?page=1&limit=12&search=hallowed')
+    expect(result.data[0]).toMatchObject({
+      id: 10,
+      textKey: 'ArmorSet.Hallowed',
+      primaryPart: 'head',
+      setCount: 3,
     })
   })
 

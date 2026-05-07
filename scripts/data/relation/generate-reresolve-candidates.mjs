@@ -120,7 +120,7 @@ export async function runGenerateReresolveCandidates({
   try {
     const auditRows = await loadAuditRows(ownedConnection, relationDatabase);
     const npcRows = await loadNpcRows(ownedConnection, relationDatabase);
-    const previousReport = readPreviousReport(projectRoot);
+    const previousReport = readPreviousReport(projectRoot, generatedAt);
     const report = buildReresolveCandidateReport({
       generatedAt,
       auditRows,
@@ -268,16 +268,21 @@ ORDER BY source_id, internal_name
   return rows;
 }
 
-function readPreviousReport(projectRoot) {
+export function readPreviousReport(projectRoot, generatedAt = new Date().toISOString()) {
   const reportsDir = path.resolve(projectRoot, 'reports', 'relation');
   if (!fs.existsSync(reportsDir)) {
     return null;
   }
+  const targetDate = isoDate(generatedAt);
   const latest = fs.readdirSync(reportsDir, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && /^reresolve-candidates-\d{4}-\d{2}-\d{2}\.json$/.test(entry.name))
-    .map((entry) => entry.name)
-    .sort()
-    .at(-1);
+    .filter((entry) => entry.isFile())
+    .map((entry) => ({
+      date: extractReportDate(entry.name),
+      name: entry.name,
+    }))
+    .filter((entry) => entry.date != null && entry.date < targetDate)
+    .sort((left, right) => left.date.localeCompare(right.date))
+    .at(-1)?.name;
   if (!latest) {
     return null;
   }
@@ -342,6 +347,11 @@ function toNullableNumber(value) {
 function isoDate(value) {
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? new Date().toISOString().slice(0, 10) : parsed.toISOString().slice(0, 10);
+}
+
+function extractReportDate(fileName) {
+  const match = String(fileName).match(/^reresolve-candidates-(\d{4}-\d{2}-\d{2})\.json$/);
+  return match ? match[1] : null;
 }
 
 async function main(argv = process.argv.slice(2)) {

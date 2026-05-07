@@ -1,10 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 import {
   buildMysqlConnectionOptions,
   buildReresolveCandidateReport,
   parseArgs,
+  readPreviousReport,
 } from './generate-reresolve-candidates.mjs';
 
 test('parseArgs defaults reresolve candidate generation to read-only report output', () => {
@@ -185,4 +189,43 @@ test('buildReresolveCandidateReport keeps low-confidence fuzzy matches separate 
   assert.equal(report.candidates[0].auditId, 'audit-low');
   assert.equal(report.candidates[0].confidence, 'low');
   assert.equal(report.candidates[0].evidence.matchBasis, 'source_ref_fuzzy');
+});
+
+test('readPreviousReport ignores same-date output and uses the most recent earlier report', () => {
+  const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-reresolve-'));
+  const reportsDir = path.join(projectRoot, 'reports', 'relation');
+  fs.mkdirSync(reportsDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(reportsDir, 'reresolve-candidates-2026-05-05.json'),
+    JSON.stringify({ summary: { unresolvedAuditCount: 9 } }),
+    'utf8',
+  );
+  fs.writeFileSync(
+    path.join(reportsDir, 'reresolve-candidates-2026-05-06.json'),
+    JSON.stringify({ summary: { unresolvedAuditCount: 12 } }),
+    'utf8',
+  );
+
+  const previousReport = readPreviousReport(projectRoot, '2026-05-06T12:00:00Z');
+
+  assert.deepEqual(previousReport, {
+    summary: {
+      unresolvedAuditCount: 9,
+    },
+  });
+});
+
+test('readPreviousReport returns null when no earlier dated report exists', () => {
+  const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-reresolve-'));
+  const reportsDir = path.join(projectRoot, 'reports', 'relation');
+  fs.mkdirSync(reportsDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(reportsDir, 'reresolve-candidates-2026-05-06.json'),
+    JSON.stringify({ summary: { unresolvedAuditCount: 12 } }),
+    'utf8',
+  );
+
+  const previousReport = readPreviousReport(projectRoot, '2026-05-06T12:00:00Z');
+
+  assert.equal(previousReport, null);
 });

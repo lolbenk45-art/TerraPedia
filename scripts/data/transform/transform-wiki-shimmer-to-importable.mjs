@@ -70,6 +70,8 @@ const BOSS_REQUIREMENTS = [
 ];
 const TITLE_META_OVERRIDES = new Map([
   ['\u5f55\u97f3\u540e\u7684\u516b\u97f3\u76d2', { kind: 'item_group', nameEn: 'Recorded Music Boxes', internalName: null }],
+  ['\u5929\u540e\u53f2\u83b1\u59c6', { kind: 'npc', nameEn: 'Diva Slime', internalName: 'TownSlimeRainbow' }],
+  ['\u53f2\u83b1\u59c6\u50f5\u5c38', { kind: 'npc', nameEn: 'Slimed Zombie', internalName: 'SlimedZombie' }],
   ['\u6cbc\u6cfd\u50f5\u5c38', { kind: 'npc', nameEn: 'Swamp Zombie', internalName: 'SwampZombie' }],
   ['\u4e2d\u7bad\u50f5\u5c38', { kind: 'npc', nameEn: 'Pincushion Zombie', internalName: 'PincushionZombie' }],
   ['\u79c3\u5934\u50f5\u5c38', { kind: 'npc', nameEn: 'Bald Zombie', internalName: 'BaldZombie' }],
