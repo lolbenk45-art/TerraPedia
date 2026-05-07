@@ -56,12 +56,23 @@ Use four lanes, but keep shared files serial:
 
 | Lane | Owner scope | Can run in parallel | Must be serial |
 | --- | --- | --- | --- |
-| Agent A | Bosses readiness proof and public-route candidate design | Read-only audits, backend/admin tests | `front/src/router/routes.ts`, `scripts/data/workflow/domain-acceptance-registry.json` |
-| Agent B | Buffs image lineage parity | Tests and schema design for buff image lineage | Flyway migration number, lineage script shared sections |
-| Agent C | Projectiles image lineage parity | Tests and schema design for projectile image lineage | Flyway migration number, lineage script shared sections |
-| Agent D | ArmorSets audit coverage and final route readiness | Read-only audit design, controller tests | Image lineage `ENTITY_ORDER`, public routes, registry |
+| Agent A | Bosses readiness proof and public-route candidate design | Read-only audits, backend/admin tests, Boss-only backend files | Shared projection/audit/contract files, public routes, registry |
+| Agent B | Buffs image lineage parity | Buff-specific tests and schema design | Flyway migration number, shared projection/audit/contract files |
+| Agent C | Projectiles image lineage parity | Projectile-specific tests and schema design | Flyway migration number, shared projection/audit/contract files |
+| Agent D | ArmorSets audit coverage and final route readiness | ArmorSet-specific tests and read-only audit design | Shared projection/audit/contract files, public routes, registry |
 
 Parallel work is allowed only while each lane is read-only or owns disjoint files. Public route promotion is always one domain at a time.
+
+Shared files that must not be edited by multiple agents in parallel:
+
+- `scripts/data/relation/projection-schema.mjs`
+- `scripts/data/relation/projection-sync.mjs`
+- `scripts/data/audit/domain-readiness-audit.mjs`
+- `scripts/data/audit/image-source-lineage-report.mjs`
+- `scripts/data/workflow/domain-acceptance-registry.json`
+- `docs/contracts/image-source-contract.md`
+- `front/src/router/routes.ts`
+- shared tests for the files above
 
 ## Phase 0: Baseline And Gate Hygiene
 
@@ -188,7 +199,7 @@ Expected: both pass. If Boss image evidence is only inherited from NPC-standardi
 
 ```text
 Current weak evidence: publicReadiness checks AdminBossController.java, front/src/router/routes.ts, and front/src/views existence.
-Required evidence before route promotion: PublicBossController or equivalent public API, public front route/view tests, and DB projection or documented read model.
+Required evidence before route promotion: PublicBossController or equivalent public API, route scope/spec evidence, and DB projection or documented read model.
 ```
 
 Expected: `domain-readiness-audit.mjs --domain=bosses --panel=public` cannot pass merely because admin controller and generic front files exist.
@@ -227,11 +238,21 @@ Expected: public API tests cover list payload shape and do not require admin aut
 - [ ] Run backend controller test:
 
 ```powershell
-cd back
+Push-Location back
 mvn "-Dtest=AdminBossControllerTest,PublicBossControllerTest" test
+Pop-Location
 ```
 
 Expected: pass.
+
+- [ ] Re-run strengthened Boss readiness panels:
+
+```powershell
+node scripts/data/audit/domain-readiness-audit.mjs --domain=bosses --panel=image
+node scripts/data/audit/domain-readiness-audit.mjs --domain=bosses --panel=public
+```
+
+Expected: both pass after the public readiness evidence is strengthened. `publicReadiness` must pass from PublicBoss API, public route scope/spec evidence, and projection or documented read-model evidence; `AdminBossController` alone is not sufficient.
 
 - [ ] Decide Bosses route scope:
 
@@ -267,7 +288,7 @@ Expected: choose one route scope before touching `front/src/router/routes.ts`. `
 node --test scripts/data/audit/image-source-lineage-report.test.mjs
 ```
 
-Expected before implementation: a new Buff fixture fails because `maint_buff_images` and `relation_buff_images` are absent or not read.
+Expected before implementation: a new Buff fixture fails because the audit contract is not wired to the existing Buff maint/relation image chain, and `projection_buffs.image` remains empty or unmanaged.
 
 - [ ] Verify existing Buff lineage objects before migration:
 
@@ -304,8 +325,9 @@ Expected: managed cached URLs flow into `projection_buffs.image`; raw wiki URLs 
 ```powershell
 node --test scripts/data/audit/image-source-lineage-report.test.mjs
 node --test scripts/data/relation/image-processor.test.mjs scripts/data/relation/projection-sync.test.mjs
-cd back
+Push-Location back
 mvn "-Dtest=WikiImageSyncServiceImplTest,AdminBuffControllerTest" test
+Pop-Location
 ```
 
 Expected: pass.
@@ -363,8 +385,9 @@ Expected: `entities.projectiles.contractReady === true`, `entities.projectiles.g
 ```powershell
 node --test scripts/data/audit/image-source-lineage-report.test.mjs
 node --test scripts/data/relation/image-processor.test.mjs scripts/data/relation/projection-sync.test.mjs
-cd back
+Push-Location back
 mvn "-Dtest=WikiImageSyncServiceImplTest,AdminProjectileControllerTest" test
+Pop-Location
 ```
 
 Expected: pass.
@@ -431,8 +454,9 @@ Expected: source wiki URLs remain provenance only; public-consumed `maleImages`,
 
 ```powershell
 node --test scripts/data/audit/image-source-lineage-report.test.mjs
-cd back
+Push-Location back
 mvn "-Dtest=WikiImageSyncServiceImplTest,AdminArmorSetControllerTest" test
+Pop-Location
 ```
 
 Expected: pass.
@@ -462,9 +486,17 @@ Each domain uses the same route rollout sequence.
 
 - [ ] Write public route test before registry promotion:
 
+```text
+Update or create the target domain public route spec first.
+For the target domain only, change the route expectation from absent to present.
+Example for Bosses list route: expect(routes.some(route => route.path === '/bosses')).toBe(true)
+Keep non-target remaining domains absent.
+```
+
 ```powershell
-cd front
+Push-Location front
 pnpm run test -- --run
+Pop-Location
 ```
 
 Expected before implementation: target domain route expectations fail because the route does not exist yet.
@@ -503,8 +535,9 @@ Expected: target domain `publicGateStatus=public_route_configured`, `routeReady=
 
 ```powershell
 node --test scripts/data/workflow/domain-acceptance-report-manifest.test.mjs scripts/data/workflow/domain-acceptance-a-grade-gate.test.mjs scripts/data/workflow/domain-acceptance-freshness-audit.test.mjs scripts/data/workflow/domain-acceptance-generate-reports.test.mjs
-cd front
+Push-Location front
 pnpm run test -- --run
+Pop-Location
 ```
 
 Expected: pass.
