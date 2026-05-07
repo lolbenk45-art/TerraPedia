@@ -1,18 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils'
-import type { ApiResponse, BossListItem, NpcAggregateData, NpcListItem } from '@/types'
+import type { ApiResponse, ArmorSetListItem, BossListItem, BuffListItem, NpcAggregateData, NpcListItem, ProjectileListItem } from '@/types'
+import ArmorSetPublicView from '@/views/ArmorSetPublicView.vue'
 import BossPublicView from '@/views/BossPublicView.vue'
+import BuffPublicView from '@/views/BuffPublicView.vue'
 import Navbar from '@/components/Navbar.vue'
 import NpcDetailView from '@/views/NpcDetailView.vue'
 import NpcListView from '@/views/NpcListView.vue'
+import ProjectilePublicView from '@/views/ProjectilePublicView.vue'
 import { routes } from '@/router/routes'
 
 const mocks = vi.hoisted(() => ({
+  fetchArmorSets: vi.fn(),
   routerPush: vi.fn(),
   routerReplace: vi.fn(),
   fetchBosses: vi.fn(),
+  fetchBuffs: vi.fn(),
   fetchNpcs: vi.fn(),
   fetchNpcAggregateById: vi.fn(),
+  fetchProjectiles: vi.fn(),
 }))
 
 const routeState = {
@@ -35,9 +41,12 @@ vi.mock('@/api', async () => {
 
   return {
     ...actual,
+    fetchArmorSets: mocks.fetchArmorSets,
     fetchBosses: mocks.fetchBosses,
+    fetchBuffs: mocks.fetchBuffs,
     fetchNpcs: mocks.fetchNpcs,
     fetchNpcAggregateById: mocks.fetchNpcAggregateById,
+    fetchProjectiles: mocks.fetchProjectiles,
   }
 })
 
@@ -73,9 +82,12 @@ vi.mock('@/components/ThemeSwitcher.vue', () => ({
 
 describe('NPC public shell', () => {
   beforeEach(() => {
+    mocks.fetchArmorSets.mockReset()
     mocks.fetchBosses.mockReset()
+    mocks.fetchBuffs.mockReset()
     mocks.fetchNpcs.mockReset()
     mocks.fetchNpcAggregateById.mockReset()
+    mocks.fetchProjectiles.mockReset()
     mocks.routerPush.mockReset()
     mocks.routerReplace.mockReset()
 
@@ -100,11 +112,20 @@ describe('NPC public shell', () => {
 
     const npcLinks = wrapper.findAllComponents(RouterLinkStub).filter(link => link.props('to') === '/npcs')
     const bossLinks = wrapper.findAllComponents(RouterLinkStub).filter(link => link.props('to') === '/bosses')
+    const buffLinks = wrapper.findAllComponents(RouterLinkStub).filter(link => link.props('to') === '/buffs')
+    const projectileLinks = wrapper.findAllComponents(RouterLinkStub).filter(link => link.props('to') === '/projectiles')
+    const armorSetLinks = wrapper.findAllComponents(RouterLinkStub).filter(link => link.props('to') === '/armor-sets')
 
     expect(npcLinks).toHaveLength(2)
     expect(bossLinks).toHaveLength(2)
+    expect(buffLinks).toHaveLength(2)
+    expect(projectileLinks).toHaveLength(2)
+    expect(armorSetLinks).toHaveLength(2)
     expect(wrapper.text()).toContain('NPCs')
     expect(wrapper.text()).toContain('Bosses')
+    expect(wrapper.text()).toContain('Buffs')
+    expect(wrapper.text()).toContain('Projectiles')
+    expect(wrapper.text()).toContain('Armor Sets')
     expect(wrapper.text()).toContain('冒险图鉴')
     expect(wrapper.text()).not.toContain('Terraria Field Guide')
   })
@@ -119,9 +140,12 @@ describe('NPC public shell', () => {
     expect(routes.some(route => route.path === '/items/:id')).toBe(true)
     expect(routes.some(route => route.path === '/bosses')).toBe(true)
     expect(routes.some(route => route.path === '/bosses/:id')).toBe(false)
-    expect(routes.some(route => route.path === '/buffs')).toBe(false)
-    expect(routes.some(route => route.path === '/projectiles')).toBe(false)
-    expect(routes.some(route => route.path === '/armor-sets')).toBe(false)
+    expect(routes.some(route => route.path === '/buffs')).toBe(true)
+    expect(routes.some(route => route.path === '/buffs/:id')).toBe(false)
+    expect(routes.some(route => route.path === '/projectiles')).toBe(true)
+    expect(routes.some(route => route.path === '/projectiles/:id')).toBe(false)
+    expect(routes.some(route => route.path === '/armor-sets')).toBe(true)
+    expect(routes.some(route => route.path === '/armor-sets/:id')).toBe(false)
   })
 
   it('renders public npc cards with search, town filter, and fallback portraits', async () => {
@@ -291,6 +315,129 @@ describe('NPC public shell', () => {
         search: 'slime',
       },
     })
+  })
+
+  it('renders public buff cards with managed-image fallback state', async () => {
+    applyRoute('/buffs')
+
+    const buffRows: BuffListItem[] = [
+      {
+        id: 159,
+        sourceId: 159,
+        internalName: 'Sharpened',
+        name: 'Sharpened',
+        nameZh: 'Sharpened CN',
+        imageUrl: null,
+        buffType: 'station',
+        tooltipZh: 'Buff tooltip',
+        sourceItemCount: 1,
+        immuneNpcCount: 0,
+      },
+    ]
+
+    mocks.fetchBuffs.mockResolvedValue({
+      success: true,
+      data: buffRows,
+      message: 'ok',
+      statusCode: 200,
+      pagination: {
+        total: 1,
+        page: 1,
+        limit: 12,
+        totalPages: 1,
+      },
+    } satisfies ApiResponse<BuffListItem[]>)
+
+    const wrapper = mount(BuffPublicView)
+    await flushPromises()
+
+    expect(mocks.fetchBuffs).toHaveBeenCalledWith(1, 12, undefined)
+    expect(wrapper.text()).toContain('Buff Archive')
+    expect(wrapper.text()).toContain('Sharpened CN')
+    expect(wrapper.text()).toContain('No managed icon')
+  })
+
+  it('renders public projectile cards with managed-image fallback state', async () => {
+    applyRoute('/projectiles')
+
+    const projectileRows: ProjectileListItem[] = [
+      {
+        id: 1,
+        sourceId: 1,
+        internalName: 'WoodenArrowFriendly',
+        name: 'Wooden Arrow',
+        nameZh: 'Wooden Arrow CN',
+        imageUrl: null,
+        aiStyle: 1,
+        damage: 5,
+        knockBack: 1,
+        friendly: true,
+        hostile: false,
+      },
+    ]
+
+    mocks.fetchProjectiles.mockResolvedValue({
+      success: true,
+      data: projectileRows,
+      message: 'ok',
+      statusCode: 200,
+      pagination: {
+        total: 1,
+        page: 1,
+        limit: 12,
+        totalPages: 1,
+      },
+    } satisfies ApiResponse<ProjectileListItem[]>)
+
+    const wrapper = mount(ProjectilePublicView)
+    await flushPromises()
+
+    expect(mocks.fetchProjectiles).toHaveBeenCalledWith(1, 12, undefined)
+    expect(wrapper.text()).toContain('Projectile Archive')
+    expect(wrapper.text()).toContain('Wooden Arrow CN')
+    expect(wrapper.text()).toContain('No managed sprite')
+  })
+
+  it('renders public armor set cards with managed-image fallback state', async () => {
+    applyRoute('/armor-sets')
+
+    const armorSetRows: ArmorSetListItem[] = [
+      {
+        id: 10,
+        textKey: 'ArmorSet.Hallowed',
+        sourceKey: 'ArmorSet.Hallowed',
+        name: 'Hallowed armor',
+        nameZh: 'Hallowed armor CN',
+        nameEn: 'Hallowed armor',
+        primaryPart: 'head',
+        setCount: 3,
+        uniqueItemCount: 3,
+        maleImages: [],
+        femaleImages: [],
+        specialImages: [],
+      },
+    ]
+
+    mocks.fetchArmorSets.mockResolvedValue({
+      success: true,
+      data: armorSetRows,
+      message: 'ok',
+      statusCode: 200,
+      pagination: {
+        total: 1,
+        page: 1,
+        limit: 12,
+        totalPages: 1,
+      },
+    } satisfies ApiResponse<ArmorSetListItem[]>)
+
+    const wrapper = mount(ArmorSetPublicView)
+    await flushPromises()
+
+    expect(mocks.fetchArmorSets).toHaveBeenCalledWith(1, 12, undefined)
+    expect(wrapper.text()).toContain('Armor Set Archive')
+    expect(wrapper.text()).toContain('Hallowed armor CN')
+    expect(wrapper.text()).toContain('No managed set art')
   })
 
   it('renders npc aggregate sections independently and keeps empty sections safe', async () => {

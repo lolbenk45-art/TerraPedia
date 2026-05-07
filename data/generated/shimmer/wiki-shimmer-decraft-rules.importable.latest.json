@@ -1,6 +1,6 @@
 {
   "entity": "wiki_shimmer_decraft_rules_importable",
-  "generatedAt": "2026-05-06T04:59:43.756Z",
+  "generatedAt": "2026-05-07T12:41:57.541Z",
   "sourceProvider": "wiki_zh",
   "sourceFile": "data/generated/wiki-shimmer.latest.json",
   "records": [
@@ -3843,10 +3843,10 @@
       "ruleType": "decraft_locked_skeletron",
       "groupLabel": "直到 骷髅王 被击败才可拆解的物品",
       "input": {
-        "kind": "unresolved",
+        "kind": "item",
         "nameZh": "永恒旅人兜帽",
         "nameEn": "Timeless Traveler's set",
-        "internalName": null,
+        "internalName": "ZH_RECIPE_TIMELESS_TRAVELER_S_SET",
         "quantityText": null
       },
       "outputs": [],
@@ -4340,7 +4340,7 @@
         "kind": "item",
         "nameZh": "脊柱骨鞭",
         "nameEn": "Spinal Tap",
-        "internalName": "BoneWhip",
+        "internalName": "ZH_RECIPE_SPINAL_TAP",
         "quantityText": null
       },
       "outputs": [],

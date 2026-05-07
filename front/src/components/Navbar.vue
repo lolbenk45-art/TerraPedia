@@ -17,6 +17,9 @@
           <router-link to="/items" :class="linkClass('/items')">Items</router-link>
           <router-link to="/npcs" :class="linkClass('/npcs')">NPCs</router-link>
           <router-link to="/bosses" :class="linkClass('/bosses')">Bosses</router-link>
+          <router-link to="/buffs" :class="linkClass('/buffs')">Buffs</router-link>
+          <router-link to="/projectiles" :class="linkClass('/projectiles')">Projectiles</router-link>
+          <router-link to="/armor-sets" :class="linkClass('/armor-sets')">Armor Sets</router-link>
           <router-link to="/articles" :class="linkClass('/articles')">Articles</router-link>
           <router-link to="/about" :class="linkClass('/about')">About</router-link>
         </nav>
@@ -69,6 +72,9 @@
         <router-link to="/items" @click="closeMobile">Items</router-link>
         <router-link to="/npcs" @click="closeMobile">NPCs</router-link>
         <router-link to="/bosses" @click="closeMobile">Bosses</router-link>
+        <router-link to="/buffs" @click="closeMobile">Buffs</router-link>
+        <router-link to="/projectiles" @click="closeMobile">Projectiles</router-link>
+        <router-link to="/armor-sets" @click="closeMobile">Armor Sets</router-link>
         <router-link to="/articles" @click="closeMobile">Articles</router-link>
         <router-link to="/about" @click="closeMobile">About</router-link>
 

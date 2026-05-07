@@ -378,6 +378,21 @@ test('domain manifest generator commands are read-only and mutation-free', () =>
   }
 });
 
+test('unresolved audit trend manifest metadata is honest about database dependency', () => {
+  const manifest = buildDomainAcceptanceReportManifest();
+  const unresolvedEntries = manifest.filter((entry) => entry.panelId === 'unresolvedAuditTrend');
+
+  assert.ok(unresolvedEntries.length > 0);
+  assert.ok(
+    unresolvedEntries.every((entry) => entry.requiresDatabase === true),
+    'unresolved audit trend should declare requiresDatabase=true',
+  );
+  assert.ok(
+    unresolvedEntries.every((entry) => entry.writesDatabase === false),
+    'unresolved audit trend should remain read-only',
+  );
+});
+
 test('domain manifest generator command targets exist in the repository', () => {
   const manifest = buildDomainAcceptanceReportManifest();
 
@@ -425,8 +440,8 @@ test('product domains reflect the current P3 public route rollout state', () => 
   assert.equal(firstEntryByDomain.get('npcs').publicRoute, '/npcs');
 
   for (const domainId of ['bosses', 'buffs', 'projectiles', 'armor_sets']) {
-    assert.equal(firstEntryByDomain.get(domainId).publicExposure, 'planned-public');
-    assert.equal(firstEntryByDomain.get(domainId).publicRoute, null);
+    assert.equal(firstEntryByDomain.get(domainId).publicExposure, 'public');
+    assert.ok(typeof firstEntryByDomain.get(domainId).publicRoute === 'string');
   }
 });
 
@@ -472,7 +487,7 @@ test('unresolved audit trend panel uses dedicated read-only candidate generation
   );
   assert.equal(bossesPanel.chainStage, 'relation');
   assert.equal(bossesPanel.writesDatabase, false);
-  assert.equal(bossesPanel.requiresDatabase, false);
+  assert.equal(bossesPanel.requiresDatabase, true);
 });
 
 test('CLI prints legal JSON and does not execute evidence commands', async () => {
