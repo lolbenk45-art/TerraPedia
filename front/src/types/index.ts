@@ -107,6 +107,28 @@ export interface ItemsResponse extends ApiResponse<Item[]> {
   pagination?: Pagination
 }
 
+export interface BossListItem {
+  id: number
+  code?: string | null
+  name?: string | null
+  nameZh?: string | null
+  nameEn?: string | null
+  bossType?: string | null
+  imageUrl?: string | null
+  progressionOrder?: number | null
+  summonMethod?: string | null
+  notes?: string | null
+  memberCount?: number | null
+  memberNames?: string[]
+  memberSourceMode?: string | null
+  lootEntryCount?: number | null
+  uniqueLootItemCount?: number | null
+}
+
+export interface BossesResponse extends ApiResponse<BossListItem[]> {
+  pagination?: Pagination
+}
+
 export interface ItemSuggestion {
   id: number
   name: string

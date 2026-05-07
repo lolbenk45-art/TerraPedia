@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils'
-import type { ApiResponse, NpcAggregateData, NpcListItem } from '@/types'
+import type { ApiResponse, BossListItem, NpcAggregateData, NpcListItem } from '@/types'
+import BossPublicView from '@/views/BossPublicView.vue'
 import Navbar from '@/components/Navbar.vue'
 import NpcDetailView from '@/views/NpcDetailView.vue'
 import NpcListView from '@/views/NpcListView.vue'
@@ -9,6 +10,7 @@ import { routes } from '@/router/routes'
 const mocks = vi.hoisted(() => ({
   routerPush: vi.fn(),
   routerReplace: vi.fn(),
+  fetchBosses: vi.fn(),
   fetchNpcs: vi.fn(),
   fetchNpcAggregateById: vi.fn(),
 }))
@@ -33,6 +35,7 @@ vi.mock('@/api', async () => {
 
   return {
     ...actual,
+    fetchBosses: mocks.fetchBosses,
     fetchNpcs: mocks.fetchNpcs,
     fetchNpcAggregateById: mocks.fetchNpcAggregateById,
   }
@@ -70,6 +73,7 @@ vi.mock('@/components/ThemeSwitcher.vue', () => ({
 
 describe('NPC public shell', () => {
   beforeEach(() => {
+    mocks.fetchBosses.mockReset()
     mocks.fetchNpcs.mockReset()
     mocks.fetchNpcAggregateById.mockReset()
     mocks.routerPush.mockReset()
@@ -95,9 +99,12 @@ describe('NPC public shell', () => {
     await wrapper.get('button[aria-label="Toggle menu"]').trigger('click')
 
     const npcLinks = wrapper.findAllComponents(RouterLinkStub).filter(link => link.props('to') === '/npcs')
+    const bossLinks = wrapper.findAllComponents(RouterLinkStub).filter(link => link.props('to') === '/bosses')
 
     expect(npcLinks).toHaveLength(2)
+    expect(bossLinks).toHaveLength(2)
     expect(wrapper.text()).toContain('NPCs')
+    expect(wrapper.text()).toContain('Bosses')
     expect(wrapper.text()).toContain('冒险图鉴')
     expect(wrapper.text()).not.toContain('Terraria Field Guide')
   })
@@ -107,10 +114,10 @@ describe('NPC public shell', () => {
     expect(routes.some(route => route.path === '/npcs/:id')).toBe(true)
   })
 
-  it('keeps public route registration scoped to item and npc surfaces only', () => {
+  it('keeps public route registration scoped to current public list surfaces', () => {
     expect(routes.some(route => route.path === '/items')).toBe(true)
     expect(routes.some(route => route.path === '/items/:id')).toBe(true)
-    expect(routes.some(route => route.path === '/bosses')).toBe(false)
+    expect(routes.some(route => route.path === '/bosses')).toBe(true)
     expect(routes.some(route => route.path === '/bosses/:id')).toBe(false)
     expect(routes.some(route => route.path === '/buffs')).toBe(false)
     expect(routes.some(route => route.path === '/projectiles')).toBe(false)
@@ -205,6 +212,83 @@ describe('NPC public shell', () => {
       path: '/npcs',
       query: {
         isTownNpc: 'true',
+      },
+    })
+  })
+
+  it('renders public boss cards with search and managed-image fallback state', async () => {
+    applyRoute('/bosses')
+
+    const bossRows: BossListItem[] = [
+      {
+        id: 34,
+        code: 'KING_SLIME',
+        name: 'King Slime',
+        nameZh: 'King Slime CN',
+        nameEn: 'King Slime',
+        bossType: 'PRE_HARDMODE',
+        imageUrl: null,
+        progressionOrder: 1,
+        summonMethod: 'Use Slime Crown',
+        memberCount: 1,
+        memberNames: ['King Slime CN'],
+        lootEntryCount: 2,
+        uniqueLootItemCount: 2,
+      },
+    ]
+
+    mocks.fetchBosses.mockResolvedValue({
+      success: true,
+      data: bossRows,
+      message: 'ok',
+      statusCode: 200,
+      pagination: {
+        total: 1,
+        page: 1,
+        limit: 12,
+        totalPages: 1,
+      },
+    } satisfies ApiResponse<BossListItem[]>)
+
+    const wrapper = mount(BossPublicView)
+
+    await flushPromises()
+
+    expect(mocks.fetchBosses).toHaveBeenCalledWith(1, 12, undefined)
+    expect(wrapper.find('.public-workbench').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Boss Archive')
+    expect(wrapper.text()).toContain('King Slime CN')
+    expect(wrapper.text()).toContain('Use Slime Crown')
+    expect(wrapper.text()).toContain('No managed portrait')
+  })
+
+  it('pushes boss search state into the URL', async () => {
+    applyRoute('/bosses')
+
+    mocks.fetchBosses.mockResolvedValue({
+      success: true,
+      data: [],
+      message: 'ok',
+      statusCode: 200,
+      pagination: {
+        total: 0,
+        page: 1,
+        limit: 12,
+        totalPages: 1,
+      },
+    } satisfies ApiResponse<BossListItem[]>)
+
+    const wrapper = mount(BossPublicView)
+
+    await flushPromises()
+    await wrapper.get('input[type="search"]').setValue('slime')
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(mocks.routerPush).toHaveBeenCalledWith({
+      path: '/bosses',
+      query: {
+        search: 'slime',
       },
     })
   })

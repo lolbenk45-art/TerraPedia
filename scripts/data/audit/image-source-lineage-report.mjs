@@ -13,7 +13,7 @@ const repoRoot = getProjectRoot();
 const DEFAULT_MAINT_DATABASE = 'terria_v1_maint';
 const DEFAULT_RELATION_DATABASE = 'terria_v1_relation';
 const DEFAULT_LOCAL_DATABASE = 'terria_v1_local';
-const ENTITY_ORDER = ['items', 'buffs', 'npcs', 'bosses', 'projectiles', 'biomes'];
+const ENTITY_ORDER = ['items', 'buffs', 'npcs', 'bosses', 'projectiles', 'armor_sets', 'biomes'];
 const BOSS_MANAGED_IMAGE_URL_PREFIXES = [
   'http://localhost:9000/terrapedia-images/bosses/',
   'http://127.0.0.1:9000/terrapedia-images/bosses/',
@@ -22,6 +22,7 @@ const BOSS_MANAGED_IMAGE_URL_PREFIXES = [
 const ENTITY_CONFIG = {
   items: {
     contractKey: 'item.image',
+    coreDatabase: 'local',
     coreQuery: (localDatabase) => `
 SELECT \`id\`, \`internal_name\` AS internalName, \`name\`, \`name_zh\` AS nameZh, \`image\`
 FROM ${qualified(localDatabase, 'items')}
@@ -83,9 +84,40 @@ ORDER BY \`id\` ASC
   },
   buffs: {
     contractKey: 'buff.image',
+    coreDatabase: 'local',
     coreQuery: (localDatabase) => `
 SELECT \`id\`, \`internal_name\` AS internalName, \`english_name\` AS englishName, \`name_zh\` AS nameZh, \`image\`
 FROM ${qualified(localDatabase, 'buffs')}
+WHERE \`deleted\` = 0
+ORDER BY \`id\` ASC
+`.trim(),
+    maintImagesQuery: (maintDatabase) => `
+SELECT
+  \`id\`,
+  \`internal_name\` AS buffInternalName,
+  \`english_name\` AS buffName,
+  \`raw_json\` AS rawJson,
+  \`source_provider\` AS sourceProvider,
+  \`source_page\` AS sourcePage,
+  \`source_revision_timestamp\` AS sourceRevisionTimestamp
+FROM ${qualified(maintDatabase, 'maint_buffs')}
+WHERE \`deleted\` = 0
+ORDER BY \`id\` ASC
+`.trim(),
+    relationImagesQuery: (relationDatabase) => `
+SELECT
+  \`id\`,
+  \`buff_internal_name\` AS buffInternalName,
+  \`buff_name\` AS buffName,
+  \`source_file_title\` AS sourceFileTitle,
+  \`original_url\` AS originalUrl,
+  \`cached_url\` AS cachedUrl,
+  \`content_type\` AS contentType,
+  \`is_primary\` AS isPrimary,
+  \`sort_order\` AS sortOrder,
+  \`source_maint_table\` AS sourceMaintTable,
+  \`source_maint_id\` AS sourceMaintId
+FROM ${qualified(relationDatabase, 'relation_buff_images')}
 WHERE \`deleted\` = 0
 ORDER BY \`id\` ASC
 `.trim(),
@@ -97,14 +129,28 @@ ORDER BY \`id\` ASC
 `.trim(),
     projectionImageField: 'image',
     coreImageAccessor: (row) => firstText(row?.image, row?.imagePath, row?.image_path),
+    maintKeyAccessor: (row) => firstText(row?.buffInternalName, row?.buff_internal_name),
+    relationKeyAccessor: (row) => firstText(row?.buffInternalName, row?.buff_internal_name),
     projectionKeyAccessor: (row) => firstText(row?.internalName, row?.internal_name),
     projectionImageAccessor: (row) => firstText(row?.image),
-    requiresMaintTable: false,
-    requiresRelationTable: false,
+    maintRowReady: (row) => Boolean(
+      firstText(parseJsonField(row?.rawJson, 'image'))
+      && firstText(
+        row?.sourceProvider,
+        row?.source_provider,
+        row?.sourcePage,
+        row?.source_page,
+        row?.sourceRevisionTimestamp,
+        row?.source_revision_timestamp,
+      )
+    ),
+    requiresMaintTable: true,
+    requiresRelationTable: true,
     requiresRelationRowsForReady: false,
   },
   npcs: {
     contractKey: 'npc.imageUrl',
+    coreDatabase: 'local',
     coreQuery: (localDatabase) => `
 SELECT \`id\`, \`internal_name\` AS internalName, \`name\`, \`name_zh\` AS nameZh, \`image_url\` AS imageUrl
 FROM ${qualified(localDatabase, 'npcs')}
@@ -166,6 +212,7 @@ ORDER BY \`id\` ASC
   },
   bosses: {
     contractKey: 'boss.imageUrl',
+    coreDatabase: 'local',
     coreQuery: (localDatabase) => `
 SELECT \`id\`, \`code\`, \`name_en\` AS nameEn, \`name_zh\` AS nameZh, \`image_url\` AS imageUrl
 FROM ${qualified(localDatabase, 'boss_groups')}
@@ -223,9 +270,37 @@ ORDER BY \`progression_order\` ASC, \`id\` ASC
   },
   projectiles: {
     contractKey: 'projectile.imageUrl',
+    coreDatabase: 'local',
     coreQuery: (localDatabase) => `
 SELECT \`id\`, \`internal_name\` AS internalName, \`name\`, \`name_zh\` AS nameZh, \`image_url\` AS imageUrl, \`raw_json\` AS rawJson
 FROM ${qualified(localDatabase, 'projectiles')}
+WHERE \`deleted\` = 0
+ORDER BY \`id\` ASC
+`.trim(),
+    maintImagesQuery: (maintDatabase) => `
+SELECT
+  \`id\`,
+  \`internal_name\` AS projectileInternalName,
+  \`english_name\` AS projectileName,
+  \`raw_json\` AS rawJson
+FROM ${qualified(maintDatabase, 'maint_projectiles')}
+WHERE \`deleted\` = 0
+ORDER BY \`id\` ASC
+`.trim(),
+    relationImagesQuery: (relationDatabase) => `
+SELECT
+  \`id\`,
+  \`projectile_internal_name\` AS projectileInternalName,
+  \`projectile_name\` AS projectileName,
+  \`source_file_title\` AS sourceFileTitle,
+  \`original_url\` AS originalUrl,
+  \`cached_url\` AS cachedUrl,
+  \`content_type\` AS contentType,
+  \`is_primary\` AS isPrimary,
+  \`sort_order\` AS sortOrder,
+  \`source_maint_table\` AS sourceMaintTable,
+  \`source_maint_id\` AS sourceMaintId
+FROM ${qualified(relationDatabase, 'relation_projectile_images')}
 WHERE \`deleted\` = 0
 ORDER BY \`id\` ASC
 `.trim(),
@@ -237,14 +312,67 @@ ORDER BY \`id\` ASC
 `.trim(),
     projectionImageField: 'imageUrl',
     coreImageAccessor: (row) => firstText(row?.imageUrl, row?.image_url, parseJsonField(row?.rawJson, 'imageUrl')),
+    maintKeyAccessor: (row) => firstText(row?.projectileInternalName, row?.projectile_internal_name),
+    relationKeyAccessor: (row) => firstText(row?.projectileInternalName, row?.projectile_internal_name),
     projectionKeyAccessor: (row) => firstText(row?.internalName, row?.internal_name),
     projectionImageAccessor: (row) => firstText(row?.imageUrl, row?.image_url),
+    maintRowReady: (row) => Boolean(
+      firstText(parseJsonField(row?.rawJson, 'image'))
+      && firstText(
+        row?.projectileName,
+        row?.projectile_name,
+        row?.sourceProvider,
+        row?.source_provider,
+        row?.sourcePage,
+        row?.source_page,
+        row?.sourceRevisionTimestamp,
+        row?.source_revision_timestamp,
+      )
+    ),
+    requiresMaintTable: true,
+    requiresRelationTable: true,
+    requiresRelationRowsForReady: false,
+  },
+  armor_sets: {
+    contractKey: 'armor_set.images',
+    coreDatabase: 'relation',
+    coreQuery: (relationDatabase) => `
+SELECT
+  \`id\`,
+  \`source_key\` AS sourceKey,
+  \`text_key\` AS textKey,
+  \`male_images\` AS maleImages,
+  \`female_images\` AS femaleImages,
+  \`special_images\` AS specialImages
+FROM ${qualified(relationDatabase, 'projection_armor_sets')}
+WHERE \`deleted\` = 0
+ORDER BY \`id\` ASC
+`.trim(),
+    projectionQuery: (relationDatabase) => `
+SELECT
+  \`id\`,
+  \`source_key\` AS sourceKey,
+  \`text_key\` AS textKey,
+  \`male_images\` AS maleImages,
+  \`female_images\` AS femaleImages,
+  \`special_images\` AS specialImages
+FROM ${qualified(relationDatabase, 'projection_armor_sets')}
+WHERE \`deleted\` = 0
+ORDER BY \`id\` ASC
+`.trim(),
+    projectionImageField: 'maleImages|femaleImages|specialImages',
+    coreImageAccessor: (row) => firstText(row?.maleImages, row?.male_images, row?.femaleImages, row?.female_images, row?.specialImages, row?.special_images),
+    projectionKeyAccessor: (row) => firstText(row?.sourceKey, row?.source_key, row?.textKey, row?.text_key),
+    projectionImageAccessor: (row) => firstText(row?.maleImages, row?.male_images, row?.femaleImages, row?.female_images, row?.specialImages, row?.special_images),
     requiresMaintTable: false,
     requiresRelationTable: false,
     requiresRelationRowsForReady: false,
+    emitMissingMaintTableGap: false,
+    emitMissingRelationTableGap: false,
   },
   biomes: {
     contractKey: 'biome.iconUrl',
+    coreDatabase: 'local',
     coreQuery: (localDatabase) => `
 SELECT \`id\`, \`code\`, \`name_en\` AS nameEn, \`name_zh\` AS nameZh, \`icon_url\` AS iconUrl
 FROM ${qualified(localDatabase, 'biomes')}
@@ -286,8 +414,13 @@ export function buildImageSourceLineageQueries({
   return Object.fromEntries(
     ENTITY_ORDER.map((entityType) => {
       const config = ENTITY_CONFIG[entityType];
+      const coreDatabaseName = config.coreDatabase === 'relation'
+        ? relationDatabase
+        : config.coreDatabase === 'maint'
+          ? maintDatabase
+          : localDatabase;
       const entry = {
-        core: config.coreQuery(localDatabase),
+        core: config.coreQuery(coreDatabaseName),
       };
       if (config.maintImagesQuery) {
         entry.maintImages = config.maintImagesQuery(maintDatabase);
@@ -350,6 +483,7 @@ function summarizeEntityLineage(entityType, entityData, managedUrlPrefixes) {
   const projectionRows = Array.isArray(entityData.projectionRows) ? entityData.projectionRows : [];
   const gapReasons = [];
   const entityManagedUrlPrefixes = resolveEntityManagedUrlPrefixes(entityType, managedUrlPrefixes);
+  const allowsPublicImageFallback = entityType === 'bosses';
 
   const coreImageCount = countRowsWithImage(coreRows, config.coreImageAccessor);
   const maintStructuredCount = countRowsMatching(maintImageRows, config.maintRowReady ?? defaultStructuredImageRowReady);
@@ -362,12 +496,16 @@ function summarizeEntityLineage(entityType, entityData, managedUrlPrefixes) {
     gapReasons.push('missing_core_image_evidence');
   }
   if (config.requiresMaintTable === false) {
-    gapReasons.push('missing_maint_image_table');
+    if (config.emitMissingMaintTableGap !== false) {
+      gapReasons.push('missing_maint_image_table');
+    }
   } else if (maintImageRows.length === 0) {
     gapReasons.push('missing_maint_image_rows');
   }
   if (config.requiresRelationTable === false) {
-    gapReasons.push('missing_relation_image_table');
+    if (config.emitMissingRelationTableGap !== false) {
+      gapReasons.push('missing_relation_image_table');
+    }
   } else if (relationImageRows.length === 0) {
     gapReasons.push('missing_relation_image_rows');
   }
@@ -375,9 +513,9 @@ function summarizeEntityLineage(entityType, entityData, managedUrlPrefixes) {
     gapReasons.push('missing_projection_image_field');
   } else if (projectionRows.length === 0) {
     gapReasons.push('missing_projection_rows');
-  } else if (projectionImageCount === 0) {
+  } else if (projectionImageCount === 0 && !allowsPublicImageFallback) {
     gapReasons.push('missing_projection_image_values');
-  } else if (projectionManagedCount < projectionImageCount) {
+  } else if (projectionManagedCount < projectionImageCount && !allowsPublicImageFallback) {
     gapReasons.push('projection_image_not_managed');
   }
   if (config.requiresMaintTable && maintImageRows.length > 0 && maintStructuredCount === 0) {
@@ -510,6 +648,8 @@ function deriveMaintTableName(entityType) {
   if (entityType === 'items') return 'maint_item_images';
   if (entityType === 'npcs') return 'maint_npc_images';
   if (entityType === 'bosses') return 'maint_bosses';
+  if (entityType === 'buffs') return 'maint_buffs';
+  if (entityType === 'projectiles') return 'maint_projectiles';
   return null;
 }
 
@@ -517,6 +657,8 @@ function deriveRelationTableName(entityType) {
   if (entityType === 'items') return 'relation_item_images';
   if (entityType === 'npcs') return 'relation_npc_images';
   if (entityType === 'bosses') return 'relation_bosses';
+  if (entityType === 'buffs') return 'relation_buff_images';
+  if (entityType === 'projectiles') return 'relation_projectile_images';
   return null;
 }
 
@@ -526,6 +668,7 @@ function deriveProjectionTableName(entityType) {
   if (entityType === 'npcs') return 'projection_npcs';
   if (entityType === 'bosses') return 'projection_bosses';
   if (entityType === 'projectiles') return 'projection_projectiles';
+  if (entityType === 'armor_sets') return 'projection_armor_sets';
   return null;
 }
 

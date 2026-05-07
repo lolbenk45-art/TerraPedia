@@ -685,7 +685,9 @@ export async function runSync(options, dependencies = {}) {
     maintNpcImageRows,
     maintItems,
     maintProjectiles,
+    localProjectiles,
     maintNpcs,
+    localBuffRows,
     itemImageRows,
     maintItemPages,
     maintItemNumericOverrides,
@@ -708,7 +710,9 @@ export async function runSync(options, dependencies = {}) {
     queryMaint('SELECT * FROM maint_npc_images'),
     queryMaint('SELECT * FROM maint_items'),
     queryMaint('SELECT * FROM maint_projectiles'),
+    options.localDatabase ? loadDataset(mysqlOptions, options.localDatabase, 'SELECT internal_name, image_url FROM projectiles WHERE deleted = 0') : [],
     queryMaint('SELECT * FROM maint_npcs'),
+    options.localDatabase ? loadDataset(mysqlOptions, options.localDatabase, 'SELECT internal_name, image, image_cached_url FROM buffs WHERE deleted = 0') : [],
     queryMaint('SELECT * FROM maint_item_images'),
     queryMaint('SELECT item_internal_name, sell_text, sell_value, source_revision_timestamp, updated_at FROM maint_item_pages'),
     queryMaint('SELECT item_internal_name, damage_value, defense_value, knockback_value, use_time, buy_value, sell_value FROM maint_item_numeric_overrides WHERE deleted = 0'),
@@ -737,7 +741,9 @@ export async function runSync(options, dependencies = {}) {
     maintItemImages: itemImageRows,
     maintNpcImages: maintNpcImageRows,
     maintProjectiles,
-    maintBuffs: maintBuffRows
+    maintBuffs: maintBuffRows,
+    localProjectiles,
+    localBuffs: localBuffRows
   });
   const relationItemRarities = buildRelationItemRarities();
 

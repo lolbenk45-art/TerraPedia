@@ -129,8 +129,8 @@
       "panelSet": "product",
       "backendRefreshStepIds": ["wiki-core-refresh", "boss-sync"],
       "managementRoute": "/entities/bosses",
-      "publicExposure": "planned-public",
-      "publicRoute": null
+      "publicExposure": "public",
+      "publicRoute": "/bosses"
     },
     {
       "domainId": "buffs",
