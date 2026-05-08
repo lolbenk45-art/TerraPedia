@@ -6,7 +6,11 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 import { getProjectRoot } from '../lib/project-root.mjs';
-import { DEFAULT_MANAGED_IMAGE_URL_PREFIXES, isManagedImageUrl } from '../relation/managed-image-url-policy.mjs';
+import {
+  DEFAULT_MANAGED_IMAGE_URL_PREFIXES,
+  isManagedImageUrl,
+  resolveManagedImageUrlPrefixes,
+} from '../relation/managed-image-url-policy.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = getProjectRoot();
@@ -488,8 +492,20 @@ function summarizeEntityLineage(entityType, entityData, managedUrlPrefixes) {
   const coreImageCount = countRowsWithImage(coreRows, config.coreImageAccessor);
   const maintStructuredCount = countRowsMatching(maintImageRows, config.maintRowReady ?? defaultStructuredImageRowReady);
   const relationStructuredCount = countRowsMatching(relationImageRows, config.relationRowReady ?? defaultStructuredImageRowReady);
+  const relationWrongManagedPrefixCount = countRowsWithWrongManagedImagePrefix(
+    relationImageRows,
+    relationImageAccessor(entityType),
+    entityType,
+    managedUrlPrefixes
+  );
   const projectionImageCount = countRowsWithImage(projectionRows, config.projectionImageAccessor);
   const projectionManagedCount = countRowsWithManagedProjectionImage(projectionRows, config.projectionImageAccessor, entityManagedUrlPrefixes);
+  const projectionWrongManagedPrefixCount = countRowsWithWrongManagedImagePrefix(
+    projectionRows,
+    config.projectionImageAccessor,
+    entityType,
+    managedUrlPrefixes
+  );
   const hasProjectionField = Boolean(config.projectionImageField);
 
   if (coreImageCount === 0) {
@@ -524,6 +540,12 @@ function summarizeEntityLineage(entityType, entityData, managedUrlPrefixes) {
   if (config.requiresRelationTable && relationImageRows.length > 0 && relationStructuredCount === 0) {
     gapReasons.push('relation_rows_missing_original_or_cached_url');
   }
+  if (relationWrongManagedPrefixCount > 0) {
+    gapReasons.push('relation_image_wrong_managed_prefix');
+  }
+  if (projectionWrongManagedPrefixCount > 0) {
+    gapReasons.push('projection_image_wrong_managed_prefix');
+  }
 
   const contractReady = gapReasons.length === 0;
   return {
@@ -545,6 +567,7 @@ function summarizeEntityLineage(entityType, entityData, managedUrlPrefixes) {
         table: config.relationImagesQuery ? deriveRelationTableName(entityType) : null,
         rowCount: relationImageRows.length,
         rowsWithStructuredImage: relationStructuredCount,
+        rowsWithWrongManagedPrefix: relationWrongManagedPrefixCount,
       },
       projection: {
         table: config.projectionQuery ? deriveProjectionTableName(entityType) : null,
@@ -552,6 +575,7 @@ function summarizeEntityLineage(entityType, entityData, managedUrlPrefixes) {
         rowCount: projectionRows.length,
         rowsWithImage: projectionImageCount,
         rowsWithManagedImage: projectionManagedCount,
+        rowsWithWrongManagedPrefix: projectionWrongManagedPrefixCount,
       },
     },
   };
@@ -575,6 +599,7 @@ async function main(argv = process.argv.slice(2)) {
     generatedAt,
     reportPath,
     entities,
+    managedUrlPrefixes: resolveManagedImageUrlPrefixes({ repoRoot: root }),
   });
   const output = `${JSON.stringify(report, null, 2)}\n`;
 
@@ -644,6 +669,27 @@ function countRowsWithManagedProjectionImage(rows, accessor, managedUrlPrefixes)
   }).length;
 }
 
+function countRowsWithWrongManagedImagePrefix(rows, accessor, entityType, managedUrlPrefixes) {
+  if (typeof accessor !== 'function') {
+    return 0;
+  }
+  const expectedPrefixes = resolveEntityManagedUrlPrefixes(entityType, managedUrlPrefixes);
+  return rows.filter((row) => {
+    const imageUrl = accessor(row);
+    if (!imageUrl) {
+      return false;
+    }
+    return isManagedImageUrl(imageUrl, managedUrlPrefixes) && !isManagedImageUrl(imageUrl, expectedPrefixes);
+  }).length;
+}
+
+function relationImageAccessor(entityType) {
+  if (entityType === 'bosses') {
+    return (row) => firstText(row?.imageUrl, row?.image_url);
+  }
+  return (row) => firstText(row?.cachedUrl, row?.cached_url, row?.imageUrl, row?.image_url);
+}
+
 function deriveMaintTableName(entityType) {
   if (entityType === 'items') return 'maint_item_images';
   if (entityType === 'npcs') return 'maint_npc_images';
@@ -673,6 +719,15 @@ function deriveProjectionTableName(entityType) {
 }
 
 function resolveEntityManagedUrlPrefixes(entityType, managedUrlPrefixes = []) {
+  if (entityType === 'npcs') {
+    return (Array.isArray(managedUrlPrefixes) ? managedUrlPrefixes : []).filter((prefix) => /\/npcs\/$/i.test(prefix));
+  }
+  if (entityType === 'projectiles') {
+    return (Array.isArray(managedUrlPrefixes) ? managedUrlPrefixes : []).filter((prefix) => /\/projectiles\/$/i.test(prefix));
+  }
+  if (entityType === 'items') {
+    return (Array.isArray(managedUrlPrefixes) ? managedUrlPrefixes : []).filter((prefix) => /\/items\/$/i.test(prefix));
+  }
   if (entityType !== 'bosses') {
     return managedUrlPrefixes;
   }

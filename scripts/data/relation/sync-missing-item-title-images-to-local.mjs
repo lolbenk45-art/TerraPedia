@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
-import { getProjectRoot } from '../../lib/project-root.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
 
 const repoRoot = getProjectRoot();
 const require = createRequire(import.meta.url);

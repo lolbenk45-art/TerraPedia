@@ -22,7 +22,7 @@
 - `data/standardized/npcs.standardized.json`、`data/generated/npc-standardized-map.json`、`data/standardized/projectiles.standardized.json` 中，已经存在大量 `http://localhost:9000/terrapedia-images/items/...` 的非 `item` 图片 URL。
 - `npcs.image_url` 当前主要仍是 wiki URL，不是本地托管 URL。
 - `projectiles.image_url` 当前基本为空。
-- `maint_npc_images` 当前为空。
+- `maint_npc_images` 当前已有 758 行；当前问题不是 maint 为空，而是 maint / relation / projection 中的历史图片引用仍指向错误的 `items/...` managed prefix。
 - 这轮只读核查已经证明“路径不规范”是真问题。
 - 这轮只读核查还没有证明“MinIO 对象内容本身就是旧图或错图”。
 
@@ -548,3 +548,395 @@ Phase 5 验收：
 7. Phase 5 接入门禁与监控
 
 先关住“继续写错”，再处理“历史为什么错”，最后才处理“哪些旧对象该清”。这是本计划最重要的边界。
+
+---
+
+## 当前执行状态快照（2026-05-08）
+
+本节记录当前分支已经完成与尚未完成的真实状态，作为后续执行入口，避免重新从零判断。
+
+执行分支：
+
+- 工作树：`G:\ClaudeCode\TerraPedia-dev\.worktrees\fix-npc-projectile-minio-image-normalization`
+- 分支：`fix/npc-projectile-minio-image-normalization`
+
+已完成：
+
+- 后端上传接口已经支持 `entityDomain`，NPC / Projectile 新上传可以写入 `npcs/...` / `projectiles/...`。
+- 后端 managed image URL policy 已支持 `items,npcs,projectiles` 多前缀。
+- Node 脚本侧 `minio-image-upload`、`run-image-sync`、`sync-standardized-entities-to-db` 已接入实体域上下文。
+- `image-source-lineage-report` 已能统计 relation/projection 层的 `rowsWithWrongManagedPrefix`。
+- 已新增或更新对应 Java / Node 测试。
+
+已验证：
+
+- `mvn "-Dtest=MinioManagedImageUrlPolicyTest,FileStorageControllerTest,MinioObjectStorageServiceImplTest" test`
+- `node --test scripts/data/relation/managed-image-url-policy.test.mjs`
+- `node --test scripts/data/audit/image-source-lineage-report.test.mjs`
+- `node --test scripts/data/lib/minio-image-upload.test.mjs scripts/data/workflow/run-image-sync.test.mjs`
+
+当前真实基线：
+
+- `reports/audit/image-source-lineage-2026-05-08-minio-phase0.json`
+- NPC：
+  - `relation_npc_images.rowCount = 758`
+  - `relation_npc_images.rowsWithWrongManagedPrefix = 758`
+  - `projection_npcs.rowsWithImage = 758`
+  - `projection_npcs.rowsWithManagedImage = 0`
+  - `projection_npcs.rowsWithWrongManagedPrefix = 758`
+- Projectile：
+  - `relation_projectile_images.rowCount = 1110`
+  - `relation_projectile_images.rowsWithWrongManagedPrefix = 1110`
+  - `projection_projectiles.rowsWithImage = 1110`
+  - `projection_projectiles.rowsWithManagedImage = 0`
+  - `projection_projectiles.rowsWithWrongManagedPrefix = 1110`
+  - 当前仍有 `missing_core_image_evidence`
+- 标准化文件：
+  - `data/standardized/npcs.standardized.json` 仍有 758 条 `items/...`，4 条缺图。
+  - `data/standardized/projectiles.standardized.json` 仍有 1110 条 `items/...`，1 条缺图。
+  - `data/generated/npc-standardized-map.json` 仍有 758 条 `items/...`，4 条缺图。
+- `reports/workflow-image-sync-2026-05-08.json` dry-run 显示：
+  - NPC：`candidates=758`，`alreadyManaged=0`，`changed=758`，`missingSource=4`
+  - Projectile：`candidates=1110`，`alreadyManaged=0`，`changed=1110`，`missingSource=1`
+
+结论：
+
+- 代码层已经进入“可防止新增错误前缀”的状态。
+- 历史数据尚未完成回写，不能宣称图片链路闭环。
+
+---
+
+## 继续执行计划：从代码修复到真实数据闭环
+
+### 执行目标
+
+把 NPC / Projectile 历史图片引用从错误的 `items/...` 前缀推进到规范前缀，并让 standardized、generated、maint、relation、projection、business table 的审计结果一致。
+
+本阶段不做：
+
+- 不删除 MinIO legacy `items/...` 对象。
+- 不把 wiki 直链作为最终修复结果。
+- 不扩大到 Items、Buffs、Bosses、ArmorSets 等非目标域。
+
+受控允许：
+
+- 当 dry-run 与对象样本审计已经证明 source URL 可追溯时，允许通过上传接口为 NPC / Projectile 生成 canonical `npcs/...` / `projectiles/...` 新对象。
+- 该动作只允许新增 canonical 对象，不允许删除、覆盖、移动 legacy `items/...` 对象。
+
+### 串行写入边界
+
+以下步骤必须串行执行，不允许多个 Agent 同时写同一目标：
+
+- `data/standardized/npcs.standardized.json`
+- `data/standardized/projectiles.standardized.json`
+- `data/generated/npc-standardized-map.json`
+- `terria_v1_local.npcs`
+- `terria_v1_local.projectiles`
+- `terria_v1_relation.relation_npc_images`
+- `terria_v1_relation.relation_projectile_images`
+- `terria_v1_relation.projection_npcs`
+- `terria_v1_relation.projection_projectiles`
+
+允许并行：
+
+- 只读审查报告。
+- 监控字段设计。
+- 测试入口盘点。
+- 审计结果复核。
+
+### Step 1：重新确认标准化图片 URL 回写候选
+
+进入条件：
+
+- 后端、MinIO、DB 均可访问。
+- `reports/workflow-image-sync-2026-05-08.json` dry-run 仍显示 NPC `changed=758`、Projectile `changed=1110`，或重新 dry-run 后解释差异。
+
+命令：
+
+```powershell
+node scripts/data/workflow/run-image-sync.mjs --apply=false --scopes=npcs,projectiles --output=reports/workflow-image-sync-2026-05-08-pre-apply-dry-run.json
+```
+
+预期：
+
+- `apply=false`
+- NPC `changed=758`。
+- Projectile `changed=1110`。
+- `missingSource` 保持 NPC `4`、Projectile `1`，除非 dry-run 基线变化并有报告解释。
+
+失败停止条件：
+
+- `changed` 与当前基线大幅不一致且无法解释。
+- dry-run 输出包含目标域以外的写入范围。
+- `managedUrlPrefixes` 缺少 `npcs/...` 或 `projectiles/...`。
+
+### Step 2：对象样本与 source-gap 审计放行
+
+目的：
+
+- 证明即将上传的 source URL 对应真实 NPC / Projectile 图片，而不是继续把错误对象搬到 canonical 前缀。
+- 证明不能上传的 source-gap 记录有明确 gap reason，不会在 apply 后被误认为已修复。
+- 这一步只抽样验证，不写数据库，不删除对象。
+
+抽样规则：
+
+- NPC 从 Step 1 `changed` 候选中抽 20 条 object-backed 样本。
+- Projectile 从 Step 1 `changed` 候选中抽 20 条 object-backed 样本。
+- NPC 从 Step 1 `missingSource` / `wiki_only` / `empty` 候选中抽 4 条 source-gap 样本；当前基线只有 4 条时必须全量审计。
+- Projectile 从 Step 1 `missingSource` / `wiki_only` / `empty` 候选中抽 1 条 source-gap 样本；当前基线只有 1 条时必须全量审计。
+- 如果候选不足 20 条，则审计全部候选并记录不足原因。
+
+object-backed 样本必须记录：
+
+- entity type
+- id / internalName
+- current source URL
+- expected canonical prefix
+- source URL 来源字段
+- 审计结论：`source-provable` / `source-not-provable` / `wrong-source`
+
+source-gap 样本必须记录：
+
+- entity type
+- id / internalName
+- 当前图片字段状态：`wiki_only` / `empty` / `missingSource`
+- 尝试解析过的 source 字段
+- gap reason：`missing_source_url` / `source_not_provable` / `image_missing_expected`
+- 是否允许保持缺图
+
+放行条件：
+
+- 两个目标域 object-backed 样本中没有 `wrong-source`。
+- `source-not-provable` 样本必须登记 gap reason，且不得进入自动上传。
+- source-gap 样本必须全部有 gap reason；没有 gap reason 时不得进入 Step 3。
+- 样本报告保存到 `reports/audit/`。
+
+### Step 3：执行标准化图片 URL 回写
+
+进入条件：
+
+- Step 2 样本审计通过。
+- 允许通过上传接口新增 canonical 对象。
+
+命令：
+
+```powershell
+node scripts/data/workflow/run-image-sync.mjs --apply=true --scopes=npcs,projectiles --output=reports/workflow-image-sync-2026-05-08-apply.json
+```
+
+预期：
+
+- `apply=true`
+- NPC `changed=758` 或与 pre-apply dry-run 差异可解释。
+- Projectile `changed=1110` 或与 pre-apply dry-run 差异可解释。
+- `uploaded` 等于实际新增 canonical 对象数。
+- 不删除、不覆盖 legacy `items/...` 对象。
+
+失败停止条件：
+
+- 任一 NPC / Projectile 新 URL 仍写入 `terrapedia-images/items/...`。
+- 脚本尝试写入非目标域。
+- 上传或鉴权失败导致部分记录状态不明。
+
+### Step 4：验证标准化文件与生成物
+
+命令：
+
+```powershell
+node scripts/data/workflow/run-image-sync.mjs --apply=false --scopes=npcs,projectiles --output=reports/workflow-image-sync-2026-05-08-post-apply-dry-run.json
+```
+
+验收：
+
+- NPC `changed=0` 或仅剩有明确 gap reason 的记录。
+- Projectile `changed=0` 或仅剩有明确 gap reason 的记录。
+- `alreadyManaged` 应从 `0` 上升到对应可生成候选数。
+- `data/standardized/npcs.standardized.json` 不再包含 NPC 图片的 `terrapedia-images/items/...`。
+- `data/standardized/projectiles.standardized.json` 不再包含 Projectile 图片的 `terrapedia-images/items/...`。
+
+如果 `alreadyManaged` 仍为 `0`，停止执行，回查 managed prefix 判定，不进入 DB 回写。
+
+### Step 5：同步标准化数据到本地业务库
+
+进入条件：
+
+- Step 4 已确认标准化文件前缀正确。
+- DB 目标为 `terria_v1_local`。
+
+先 dry-run：
+
+```powershell
+node scripts/data/sync/sync-standardized-entities-to-db.mjs --apply=false --scopes=npcs,projectiles
+```
+
+再 apply：
+
+```powershell
+node scripts/data/sync/sync-standardized-entities-to-db.mjs --apply=true --scopes=npcs,projectiles
+```
+
+验收：
+
+- `npcs.image_url` 对 image-bearing rows 指向 `terrapedia-images/npcs/...` 或有明确缺图原因。
+- `projectiles.image_url` 对 image-bearing rows 指向 `terrapedia-images/projectiles/...` 或有明确缺图原因。
+- `data/generated/npc-standardized-map.json` 与 `npcs.standardized.json` 的 NPC 图片前缀一致。
+
+失败停止条件：
+
+- 出现 `npcs.image_url` 或 `projectiles.image_url` 批量回退到 wiki URL。
+- 出现新的 `terrapedia-images/items/...` 非 item 图片引用。
+
+### Step 6：同步 maint 图片来源层
+
+进入条件：
+
+- Step 5 已完成 local DB 同步。
+- 目标 maint DB 为 `terria_v1_maint`。
+- 必须先确认 `run-image-sync --apply=true` 与 `sync-standardized-entities-to-db --apply=true` 均不写 `terria_v1_maint`；当前代码核实结果是二者不写 maint。
+
+NPC maint 同步：
+
+```powershell
+node scripts/data/maint/sync-standardized-npc-images-to-maint.mjs --apply=false --maint-database=terria_v1_maint --standardized-path=data/standardized/npcs.standardized.json
+node scripts/data/maint/sync-standardized-npc-images-to-maint.mjs --apply=true --maint-database=terria_v1_maint --standardized-path=data/standardized/npcs.standardized.json
+```
+
+NPC 验收：
+
+- `maint_npc_images.rowCount` 等于 Step 1 的 NPC `candidates`，或每个短缺项都有 gap reason。
+- `maint_npc_images.cached_url` 不再包含 NPC 图片的 `terrapedia-images/items/...`。
+
+Projectile maint 阻断检查：
+
+当前仓库没有专用的 `sync-standardized-projectile-images-to-maint.mjs`。Projectile maint 图片来源经 `maint_projectiles.raw_json.image` / `raw_json.imageUrl` 被 relation 层消费，因此 Step 6 必须先用只读检查确认 `maint_projectiles.raw_json` 已包含 canonical `projectiles/...` 或可追溯 source 字段。
+
+只读检查命令：
+
+```powershell
+node scripts/data/audit/image-source-lineage-report.mjs --source=db --local-database=terria_v1_local --maint-database=terria_v1_maint --relation-database=terria_v1_relation --output=reports/audit/image-source-lineage-2026-05-08-minio-maint-pre-relation.json
+```
+
+Projectile 放行条件：
+
+- 如果 `maint_projectiles` 仍引用 `terrapedia-images/items/...` 或缺少可让 relation 生成 canonical cached URL 的字段，则停止执行，不进入 Step 7。
+- 停止后必须新增或扩展 maint 同步脚本，让 `maint_projectiles.raw_json.imageUrl` 与标准化 projectile canonical URL 对齐，再重新运行 Step 6。
+- 不允许用 Step 7 的 relation 同步去掩盖 maint 层过时。
+
+### Step 7：重建 relation 与 projection 链路
+
+先 dry-run relation：
+
+```powershell
+node scripts/data/relation/sync-maint-to-relation.mjs --apply=false --maint-database=terria_v1_maint --local-database=terria_v1_local --relation-database=terria_v1_relation --scopes=npc,projectile
+```
+
+再 apply relation：
+
+```powershell
+node scripts/data/relation/sync-maint-to-relation.mjs --apply=true --maint-database=terria_v1_maint --local-database=terria_v1_local --relation-database=terria_v1_relation --scopes=npc,projectile
+```
+
+先 dry-run projection-to-local：
+
+```powershell
+node scripts/data/relation/sync-projection-to-local-core-tables.mjs --apply=false --local-database=terria_v1_local --relation-database=terria_v1_relation --domains=npcs,projectiles
+```
+
+再 apply projection-to-local：
+
+```powershell
+node scripts/data/relation/sync-projection-to-local-core-tables.mjs --apply=true --local-database=terria_v1_local --relation-database=terria_v1_relation --domains=npcs,projectiles
+```
+
+验收：
+
+- `relation_npc_images.rowsWithWrongManagedPrefix = 0`
+- `relation_projectile_images.rowsWithWrongManagedPrefix = 0`
+- `projection_npcs.rowsWithWrongManagedPrefix = 0`
+- `projection_projectiles.rowsWithWrongManagedPrefix = 0`
+- Projectile 的 `missing_core_image_evidence` 消失，或只剩明确 gap reason。
+
+失败停止条件：
+
+- relation dry-run 显示 projection 将被清空或目标 row count 异常下降。
+- projection-to-local apply 前发现 projection 表为空。
+- 任一目标域出现大规模 `image_url = null` 且没有 gap reason。
+
+### Step 8：重跑 lineage 审计并形成证据
+
+命令：
+
+```powershell
+node scripts/data/audit/image-source-lineage-report.mjs --source=db --local-database=terria_v1_local --maint-database=terria_v1_maint --relation-database=terria_v1_relation --output=reports/audit/image-source-lineage-2026-05-08-minio-post-normalization.json
+```
+
+验收：
+
+- NPC `contractReady = true`，或只剩明确非本阶段阻塞的 gap reason。
+- Projectile `contractReady = true`，或只剩明确非本阶段阻塞的 gap reason。
+- NPC / Projectile 的 relation 与 projection wrong-prefix 均为 `0`。
+- Items、Buffs、Bosses、ArmorSets 不因本次修复退化。
+
+### Step 9：接入 crawler-monitor 只读监控
+
+目标入口：
+
+- `back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java`
+- `back/src/main/java/com/terraria/skills/controller/AdminCrawlerMonitorController.java`
+- `data-query-app/pages/operations/crawler-monitor.vue`
+- `data-query-app/types/crawlerMonitor.ts`
+
+最小实现：
+
+- 复用最新 `reports/audit/image-source-lineage-*.json`。
+- 在 `/admin/crawler-monitor/overview` 返回 NPC / Projectile 图片规范化指标。
+- 页面展示：
+  - `npcWrongPrefixCount`
+  - `projectileWrongPrefixCount`
+  - `npcWikiOnlyCount`
+  - `projectileWikiOnlyCount`
+  - `latestImageLineageReport`
+  - `lastCanonicalSyncAt`
+  - `legacyExemptionCount`
+
+验收：
+
+- 管理端页面能看到上述指标。
+- 指标来自审计报告或同一套后端统计口径。
+- 不新增写 DB 的监控接口。
+
+### Step 10：最终验证与提交前检查
+
+必跑：
+
+```powershell
+mvn "-Dtest=MinioManagedImageUrlPolicyTest,FileStorageControllerTest,MinioObjectStorageServiceImplTest" test
+node --test scripts/data/relation/managed-image-url-policy.test.mjs
+node --test scripts/data/audit/image-source-lineage-report.test.mjs
+node --test scripts/data/lib/minio-image-upload.test.mjs scripts/data/workflow/run-image-sync.test.mjs
+git status --short
+```
+
+如修改 crawler-monitor，再补跑：
+
+```powershell
+mvn "-Dtest=CrawlerMonitorServiceImplTest,AdminCrawlerMonitorControllerTest" test
+cd data-query-app
+pnpm run check
+```
+
+提交范围必须排除：
+
+- `scripts/dev/config/local-stack.config.json`
+- `scripts/dev/config/credentials.json`
+- 任何本地密钥、密码、token。
+
+### 最终完成定义
+
+本分支可以进入提交/合并前，必须同时满足：
+
+- 新写入契约已由测试证明不会继续产出 NPC / Projectile `items/...`。
+- 标准化文件、generated map、本地业务表、relation、projection 的 NPC / Projectile wrong-prefix 为 `0`。
+- 审计报告保留在 `reports/audit/`，能解释剩余缺图项。
+- crawler-monitor 能看到同一套指标。
+- legacy MinIO 对象未被删除或覆盖；如仍存在，只作为 Phase 4C 后续对象审计任务处理。

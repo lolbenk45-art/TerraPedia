@@ -23,10 +23,23 @@ public class CrawlerMonitorOverviewDTO {
     private String refreshLastActivityAt;
     private Long refreshStaleThresholdMs;
     private String refreshStaleReason;
+    private ImageNormalizationSummaryDTO imageNormalization;
     private List<MonitorRunDTO> history = new ArrayList<>();
     private List<MonitorReportDTO> recentReports = new ArrayList<>();
     private List<ArchitectureLayerDTO> architectureLayers = new ArrayList<>();
     private List<RegisteredTaskDTO> registeredTasks = new ArrayList<>();
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class ImageNormalizationSummaryDTO {
+        private String latestImageLineageReport;
+        private String lastCanonicalSyncAt;
+        private Long npcWrongPrefixCount;
+        private Long projectileWrongPrefixCount;
+        private Long npcWikiOnlyCount;
+        private Long projectileWikiOnlyCount;
+        private Long legacyExemptionCount;
+    }
 
     @Data
     @JsonInclude(JsonInclude.Include.NON_NULL)

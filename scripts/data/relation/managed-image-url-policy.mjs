@@ -6,10 +6,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const DEFAULT_MINIO_BUCKET = 'terrapedia-images';
 const DEFAULT_MINIO_OBJECT_PREFIX = 'items';
+const DEFAULT_MANAGED_IMAGE_OBJECT_PREFIXES = ['items', 'npcs', 'projectiles'];
 
 export const DEFAULT_MANAGED_IMAGE_URL_PREFIXES = [
   'http://localhost:9000/terrapedia-images/items/',
-  'http://127.0.0.1:9000/terrapedia-images/items/'
+  'http://127.0.0.1:9000/terrapedia-images/items/',
+  'http://localhost:9000/terrapedia-images/npcs/',
+  'http://127.0.0.1:9000/terrapedia-images/npcs/',
+  'http://localhost:9000/terrapedia-images/projectiles/',
+  'http://127.0.0.1:9000/terrapedia-images/projectiles/'
 ];
 
 export function resolveManagedImageUrlPrefixes(options = {}) {
@@ -22,12 +27,7 @@ export function resolveManagedImageUrlPrefixes(options = {}) {
     config.bucket,
     DEFAULT_MINIO_BUCKET
   ));
-  const objectPrefix = trimObjectPath(firstText(
-    options.objectPrefix,
-    env.TERRAPEDIA_MINIO_OBJECT_PREFIX,
-    config.objectPrefix,
-    DEFAULT_MINIO_OBJECT_PREFIX
-  ));
+  const objectPrefixes = resolveObjectPrefixes(options, env, config);
   const prefixes = new Set();
 
   for (const prefix of splitPrefixList(firstText(options.prefixes, env.TERRAPEDIA_MANAGED_IMAGE_URL_PREFIXES))) {
@@ -37,25 +37,50 @@ export function resolveManagedImageUrlPrefixes(options = {}) {
     }
   }
 
-  addManagedMinioPrefix(prefixes, firstText(
-    options.publicEndpoint,
-    env.TERRAPEDIA_MINIO_PUBLIC_ENDPOINT,
-    config.publicEndpoint
-  ), bucket, objectPrefix);
-  addManagedMinioPrefix(prefixes, firstText(
-    options.endpoint,
-    env.TERRAPEDIA_MINIO_ENDPOINT,
-    config.endpoint
-  ), bucket, objectPrefix);
+  for (const objectPrefix of objectPrefixes) {
+    addManagedMinioPrefix(prefixes, firstText(
+      options.publicEndpoint,
+      env.TERRAPEDIA_MINIO_PUBLIC_ENDPOINT,
+      config.publicEndpoint
+    ), bucket, objectPrefix);
+    addManagedMinioPrefix(prefixes, firstText(
+      options.endpoint,
+      env.TERRAPEDIA_MINIO_ENDPOINT,
+      config.endpoint
+    ), bucket, objectPrefix);
+  }
 
   const credentialsEndpoint = deriveEndpointFromCredentialsFile(firstText(
     options.credentialsFile,
     env.TERRAPEDIA_MINIO_CREDENTIALS_FILE,
     config.credentialsFile
   ), repoRoot);
-  addManagedMinioPrefix(prefixes, credentialsEndpoint, bucket, objectPrefix);
+  for (const objectPrefix of objectPrefixes) {
+    addManagedMinioPrefix(prefixes, credentialsEndpoint, bucket, objectPrefix);
+  }
 
   return [...prefixes];
+}
+
+function resolveObjectPrefixes(options, env, config) {
+  const explicit = splitPrefixList(firstText(
+    options.objectPrefixes,
+    options.managedImageObjectPrefixes,
+    env.TERRAPEDIA_MANAGED_IMAGE_OBJECT_PREFIXES,
+    config.managedImageObjectPrefixes
+  ))
+    .map(trimObjectPath)
+    .filter(Boolean);
+  if (explicit.length > 0) {
+    return [...new Set(explicit)];
+  }
+  const single = trimObjectPath(firstText(
+    options.objectPrefix,
+    env.TERRAPEDIA_MINIO_OBJECT_PREFIX,
+    config.objectPrefix,
+    DEFAULT_MINIO_OBJECT_PREFIX
+  ));
+  return [...new Set([...DEFAULT_MANAGED_IMAGE_OBJECT_PREFIXES, ...(single ? [single] : [])])];
 }
 
 export function normalizeManagedImageUrlPrefixes(prefixes) {

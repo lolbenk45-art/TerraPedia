@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
-import { getProjectRoot } from '../../lib/project-root.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
 
 const repoRoot = getProjectRoot();
 const require = createRequire(path.join(repoRoot, 'data-query-app', 'package.json'));

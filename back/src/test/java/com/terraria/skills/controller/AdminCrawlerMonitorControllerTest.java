@@ -93,6 +93,15 @@ class AdminCrawlerMonitorControllerTest {
         architectureLayer.setSummary("1/1 readable");
         architectureLayer.setFiles(List.of(architectureFile));
 
+        CrawlerMonitorOverviewDTO.ImageNormalizationSummaryDTO imageNormalization = new CrawlerMonitorOverviewDTO.ImageNormalizationSummaryDTO();
+        imageNormalization.setLatestImageLineageReport("reports/audit/image-source-lineage-2026-05-08-minio-post-normalization-v4.json");
+        imageNormalization.setLastCanonicalSyncAt("2026-05-08T09:11:38.895Z");
+        imageNormalization.setNpcWrongPrefixCount(0L);
+        imageNormalization.setProjectileWrongPrefixCount(0L);
+        imageNormalization.setNpcWikiOnlyCount(0L);
+        imageNormalization.setProjectileWikiOnlyCount(1L);
+        imageNormalization.setLegacyExemptionCount(0L);
+
         CrawlerMonitorOverviewDTO overview = new CrawlerMonitorOverviewDTO();
         overview.setGeneratedAt(Instant.parse("2026-04-27T00:00:00Z"));
         overview.setRepoRoot("G:/ClaudeCode/TerraPedia-dev");
@@ -105,6 +114,7 @@ class AdminCrawlerMonitorControllerTest {
         overview.setRefreshStaleReason("backend-refresh monitor has no activity for more than 24 hours");
         overview.setRecentReports(List.of(recentReport));
         overview.setArchitectureLayers(List.of(architectureLayer));
+        overview.setImageNormalization(imageNormalization);
 
         when(crawlerMonitorService.getOverview()).thenReturn(overview);
 
@@ -118,7 +128,11 @@ class AdminCrawlerMonitorControllerTest {
             .andExpect(jsonPath("$.data.recentReports[0].category").value("test"))
             .andExpect(jsonPath("$.data.architectureLayers[0].id").value("sync-report"))
             .andExpect(jsonPath("$.data.architectureLayers[0].files[0].latestPath").value("reports/relation/relation-health-2026-04-29.json"))
-            .andExpect(jsonPath("$.data.architectureLayers[0].files[0].count").value(4));
+            .andExpect(jsonPath("$.data.architectureLayers[0].files[0].count").value(4))
+            .andExpect(jsonPath("$.data.imageNormalization.latestImageLineageReport").value("reports/audit/image-source-lineage-2026-05-08-minio-post-normalization-v4.json"))
+            .andExpect(jsonPath("$.data.imageNormalization.lastCanonicalSyncAt").value("2026-05-08T09:11:38.895Z"))
+            .andExpect(jsonPath("$.data.imageNormalization.projectileWikiOnlyCount").value(1))
+            .andExpect(jsonPath("$.data.imageNormalization.legacyExemptionCount").value(0));
 
         verify(crawlerMonitorService).getOverview();
     }

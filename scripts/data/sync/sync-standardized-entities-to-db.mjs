@@ -109,7 +109,11 @@ async function syncNpcs(stats, { apply, connection, uploadImageUrl }) {
       }
 
       const imageUrl = toText(record?.imageUrl);
-      const minioImageUrl = imageUrl ? await uploadImageUrl(imageUrl, `${slugify(internalName)}.png`) : null;
+      const minioImageUrl = imageUrl ? await uploadImageUrl(imageUrl, {
+        entityDomain: 'npcs',
+        fileName: `${slugify(internalName)}.png`,
+        nameHint: internalName,
+      }) : null;
       const effectiveImageUrl = minioImageUrl ?? imageUrl ?? null;
 
       const npcPayload = structuredClone(record);
@@ -217,6 +221,7 @@ async function syncProjectiles(stats, { apply, connection, uploadImageUrl }) {
       const imageUrl = toText(projectilePayload?.imageUrl);
       if (imageUrl) {
         const minioImageUrl = await uploadImageUrl(imageUrl, {
+          entityDomain: 'projectiles',
           nameHint: internalName,
           fileName: `${slugify(internalName)}${guessExtensionFromUrl(imageUrl)}`,
         });

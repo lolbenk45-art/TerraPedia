@@ -13,6 +13,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Arrays;
 
 @Service
 @RequiredArgsConstructor
@@ -45,13 +46,43 @@ public class MinioManagedImageUrlPolicy implements ManagedImageUrlPolicy {
         LinkedHashSet<String> prefixes = new LinkedHashSet<>();
         MinioConnectionDetails connectionDetails = connectionDetailsProvider.getIfAvailable();
         if (connectionDetails != null) {
-            addPrefix(prefixes, connectionDetails.publicEndpoint(), connectionDetails.bucket(), connectionDetails.objectPrefix());
-            addPrefix(prefixes, connectionDetails.endpoint(), connectionDetails.bucket(), connectionDetails.objectPrefix());
+            for (String objectPrefix : resolveTrustedObjectPrefixes(connectionDetails.objectPrefix(), properties.getManagedImageObjectPrefixes())) {
+                addPrefix(prefixes, connectionDetails.publicEndpoint(), connectionDetails.bucket(), objectPrefix);
+                addPrefix(prefixes, connectionDetails.endpoint(), connectionDetails.bucket(), objectPrefix);
+            }
         } else {
-            addPrefix(prefixes, properties.getPublicEndpoint(), properties.getBucket(), properties.getObjectPrefix());
-            addPrefix(prefixes, properties.getEndpoint(), properties.getBucket(), properties.getObjectPrefix());
+            for (String objectPrefix : resolveTrustedObjectPrefixes(properties.getObjectPrefix(), properties.getManagedImageObjectPrefixes())) {
+                addPrefix(prefixes, properties.getPublicEndpoint(), properties.getBucket(), objectPrefix);
+                addPrefix(prefixes, properties.getEndpoint(), properties.getBucket(), objectPrefix);
+            }
         }
         return List.copyOf(prefixes);
+    }
+
+    private List<String> resolveTrustedObjectPrefixes(String defaultObjectPrefix, String configuredPrefixes) {
+        LinkedHashSet<String> prefixes = new LinkedHashSet<>();
+        for (String value : splitObjectPrefixes(configuredPrefixes)) {
+            String normalized = trimObjectPath(value);
+            if (normalized != null) {
+                prefixes.add(normalized);
+            }
+        }
+        String fallback = trimObjectPath(defaultObjectPrefix);
+        if (fallback != null) {
+            prefixes.add(fallback);
+        }
+        return List.copyOf(prefixes);
+    }
+
+    private List<String> splitObjectPrefixes(String configuredPrefixes) {
+        String normalized = trimToNull(configuredPrefixes);
+        if (normalized == null) {
+            return List.of();
+        }
+        return Arrays.stream(normalized.split(","))
+            .map(this::trimObjectPath)
+            .filter(Objects::nonNull)
+            .toList();
     }
 
     private void addPrefix(LinkedHashSet<String> prefixes, String endpoint, String bucket, String objectPrefix) {

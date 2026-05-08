@@ -1,4 +1,5 @@
 import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
+import { resolveManagedImageUrlPrefixes } from '../relation/managed-image-url-policy.mjs';
 
 export const DEFAULT_MANAGED_URL_PREFIX = 'http://localhost:9000/terrapedia-images';
 
@@ -15,7 +16,10 @@ export async function createMinioImageUploader(options = {}) {
       repoRoot: options.repoRoot,
     }
   );
-  const managedUrlPrefixes = normalizeManagedUrlPrefixes(options.managedUrlPrefixes);
+  const managedUrlPrefixes = normalizeManagedUrlPrefixes(
+    options.managedUrlPrefixes,
+    options.repoRoot
+  );
   const uploadCache = options.uploadCache instanceof Map ? options.uploadCache : new Map();
   const userAgent = toText(options.userAgent) || 'TerraPedia-sync/1.0';
   const authHeader = options.authHeader ?? await loginAndBuildAuthHeader(apiBase, adminUsername, adminPassword);
@@ -30,7 +34,12 @@ export async function createMinioImageUploader(options = {}) {
       return uploadCache.get(normalizedSourceUrl);
     }
 
-    if (isManagedUrl(normalizedSourceUrl, managedUrlPrefixes)) {
+    const normalizedUploadOptions = normalizeUploadOptions(uploadOptions);
+    const entityManagedUrlPrefixes = resolveEntityManagedUrlPrefixes(
+      normalizedUploadOptions.entityDomain,
+      managedUrlPrefixes
+    );
+    if (isManagedUrl(normalizedSourceUrl, entityManagedUrlPrefixes)) {
       uploadCache.set(normalizedSourceUrl, normalizedSourceUrl);
       return normalizedSourceUrl;
     }
@@ -52,9 +61,13 @@ export async function createMinioImageUploader(options = {}) {
 
     const contentType = upstream.headers.get('content-type') || 'application/octet-stream';
     const arrayBuffer = await upstream.arrayBuffer();
-    const fileName = buildFileName(normalizedSourceUrl, normalizeUploadOptions(uploadOptions), contentType);
+    const fileName = buildFileName(normalizedSourceUrl, normalizedUploadOptions, contentType);
     const formData = new FormData();
     formData.append('file', new File([arrayBuffer], fileName, { type: contentType }));
+    const entityDomain = toText(normalizedUploadOptions.entityDomain);
+    if (entityDomain) {
+      formData.append('entityDomain', entityDomain);
+    }
 
     let response;
     try {
@@ -135,11 +148,21 @@ export function trimTrailingSlash(value) {
   return text;
 }
 
-function normalizeManagedUrlPrefixes(managedUrlPrefixes) {
+function normalizeManagedUrlPrefixes(managedUrlPrefixes, repoRoot = process.cwd()) {
   const raw = Array.isArray(managedUrlPrefixes) && managedUrlPrefixes.length
     ? managedUrlPrefixes
-    : [DEFAULT_MANAGED_URL_PREFIX];
+    : resolveManagedImageUrlPrefixes({ repoRoot });
   return [...new Set(raw.map((value) => trimTrailingSlash(toText(value))).filter(Boolean))];
+}
+
+function resolveEntityManagedUrlPrefixes(entityDomain, managedUrlPrefixes) {
+  const normalizedDomain = toText(entityDomain)?.toLowerCase();
+  if (!normalizedDomain) {
+    return normalizeManagedUrlPrefixes(managedUrlPrefixes);
+  }
+  const filtered = normalizeManagedUrlPrefixes(managedUrlPrefixes)
+    .filter((prefix) => prefix.toLowerCase().endsWith(`/${normalizedDomain}`));
+  return filtered.length > 0 ? filtered : normalizeManagedUrlPrefixes(managedUrlPrefixes);
 }
 
 function normalizeUploadOptions(uploadOptions) {

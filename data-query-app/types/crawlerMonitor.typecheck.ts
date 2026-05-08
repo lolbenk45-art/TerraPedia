@@ -46,6 +46,15 @@ const overview: CrawlerMonitorOverview = {
   refreshLastActivityAt: '2026-04-26T00:00:00Z',
   refreshStaleThresholdMs: 86400000,
   refreshStaleReason: 'backend-refresh monitor has no activity for more than 24 hours',
+  imageNormalization: {
+    latestImageLineageReport: 'reports/audit/image-source-lineage-2026-05-08-minio-post-normalization-v4.json',
+    lastCanonicalSyncAt: '2026-05-08T09:11:38.895Z',
+    npcWrongPrefixCount: 0,
+    projectileWrongPrefixCount: 0,
+    npcWikiOnlyCount: 0,
+    projectileWikiOnlyCount: 1,
+    legacyExemptionCount: 0,
+  },
   history: [],
   recentReports: [
     {

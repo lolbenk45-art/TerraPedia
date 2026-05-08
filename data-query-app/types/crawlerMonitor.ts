@@ -122,6 +122,16 @@ export interface CrawlerMonitorRegisteredTask {
   updatedAt?: string | null
 }
 
+export interface CrawlerMonitorImageNormalizationSummary {
+  latestImageLineageReport?: string | null
+  lastCanonicalSyncAt?: string | null
+  npcWrongPrefixCount?: number | null
+  projectileWrongPrefixCount?: number | null
+  npcWikiOnlyCount?: number | null
+  projectileWikiOnlyCount?: number | null
+  legacyExemptionCount?: number | null
+}
+
 export interface CrawlerMonitorOverview {
   generatedAt?: string | null
   repoRoot?: string | null
@@ -133,6 +143,7 @@ export interface CrawlerMonitorOverview {
   refreshLastActivityAt?: string | null
   refreshStaleThresholdMs?: number | null
   refreshStaleReason?: string | null
+  imageNormalization?: CrawlerMonitorImageNormalizationSummary | null
   history?: CrawlerMonitorRun[]
   recentReports?: CrawlerMonitorReport[]
   architectureLayers?: CrawlerMonitorArchitectureLayer[]

@@ -415,6 +415,72 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldExposeImageNormalizationSummaryFromLatestLineageReport() throws Exception {
+        Path lineageReport = repoRoot.resolve("reports/audit/image-source-lineage-2026-05-08-minio-post-normalization-v4.json");
+        Path canonicalApply = repoRoot.resolve("reports/workflow-image-sync-2026-05-08-apply-canonical.json");
+        Path laterDryRun = repoRoot.resolve("reports/workflow-image-sync-2026-05-08-post-apply-canonical-dry-run.json");
+
+        writeJson(lineageReport, Map.of(
+            "generatedAt", "2026-05-08T10:04:32.742Z",
+            "entities", Map.of(
+                "npcs", Map.of(
+                    "lineage", Map.of(
+                        "projection", Map.of(
+                            "rowsWithImage", 758,
+                            "rowsWithManagedImage", 758,
+                            "rowsWithWrongManagedPrefix", 0
+                        ),
+                        "relation", Map.of(
+                            "rowsWithWrongManagedPrefix", 0
+                        )
+                    )
+                ),
+                "projectiles", Map.of(
+                    "lineage", Map.of(
+                        "projection", Map.of(
+                            "rowsWithImage", 1111,
+                            "rowsWithManagedImage", 1110,
+                            "rowsWithWrongManagedPrefix", 0
+                        ),
+                        "relation", Map.of(
+                            "rowsWithWrongManagedPrefix", 0
+                        )
+                    )
+                )
+            )
+        ));
+        writeJson(canonicalApply, Map.of(
+            "apply", true,
+            "generatedAt", "2026-05-08T09:11:38.895Z",
+            "scopes", List.of("npcs", "projectiles")
+        ));
+        writeJson(laterDryRun, Map.of(
+            "apply", false,
+            "generatedAt", "2026-05-08T10:11:38.895Z",
+            "scopes", List.of("npcs", "projectiles")
+        ));
+        Files.setLastModifiedTime(lineageReport, FileTime.from(Instant.parse("2026-05-08T10:04:32.742Z")));
+        Files.setLastModifiedTime(canonicalApply, FileTime.from(Instant.parse("2026-05-08T09:11:38.895Z")));
+        Files.setLastModifiedTime(laterDryRun, FileTime.from(Instant.parse("2026-05-08T10:11:38.895Z")));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), repoRoot);
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+
+        assertNotNull(overview.getImageNormalization());
+        assertEquals(
+            "reports/audit/image-source-lineage-2026-05-08-minio-post-normalization-v4.json",
+            overview.getImageNormalization().getLatestImageLineageReport()
+        );
+        assertEquals("2026-05-08T09:11:38.895Z", overview.getImageNormalization().getLastCanonicalSyncAt());
+        assertEquals(0L, overview.getImageNormalization().getNpcWrongPrefixCount());
+        assertEquals(0L, overview.getImageNormalization().getProjectileWrongPrefixCount());
+        assertEquals(0L, overview.getImageNormalization().getNpcWikiOnlyCount());
+        assertEquals(1L, overview.getImageNormalization().getProjectileWikiOnlyCount());
+        assertEquals(0L, overview.getImageNormalization().getLegacyExemptionCount());
+    }
+
+    @Test
     void shouldPreferRunningStandaloneWikiSyncProgressOverStaleBackendRefreshRun() throws Exception {
         Path outputPath = historyDir.resolve("backend-data-refresh-2026-04-26T00-00-00-000Z.json");
         Path summaryPath = historyDir.resolve("backend-data-refresh-2026-04-26T00-00-00-000Z.summary.json");

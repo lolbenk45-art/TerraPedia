@@ -46,6 +46,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path STANDARDIZED_VIEW_ITEM_PAGES_DIR = Path.of("standardized-view", "item_pages");
     private static final Path REPORTS_DIR = Path.of("reports");
     private static final Path RELATION_REPORTS_DIR = Path.of("reports", "relation");
+    private static final Path AUDIT_REPORTS_DIR = Path.of("reports", "audit");
     private static final int HISTORY_LIMIT = 10;
     private static final int RECENT_REPORT_LIMIT = 20;
     private static final int REPORT_PREVIEW_MAX_BYTES = 200_000;
@@ -84,6 +85,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         overview.setRecentReports(loadRecentReports(repoRoot));
         overview.setArchitectureLayers(buildArchitectureLayers(repoRoot));
         overview.setRegisteredTasks(buildRegisteredTasks(repoRoot, overview.getLatestRun()));
+        overview.setImageNormalization(buildImageNormalizationSummary(repoRoot));
         applyRefreshStaleState(repoRoot, overview);
         return overview;
     }
@@ -493,6 +495,96 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         } catch (IOException ignored) {
             return List.of();
         }
+    }
+
+    private CrawlerMonitorOverviewDTO.ImageNormalizationSummaryDTO buildImageNormalizationSummary(Path repoRoot) {
+        CrawlerMonitorOverviewDTO.ImageNormalizationSummaryDTO summary = new CrawlerMonitorOverviewDTO.ImageNormalizationSummaryDTO();
+        summary.setLegacyExemptionCount(0L);
+
+        Path latestLineageReport = findLatestReport(repoRoot, AUDIT_REPORTS_DIR, "image-source-lineage-", ".json");
+        if (latestLineageReport == null) {
+            return summary;
+        }
+
+        summary.setLatestImageLineageReport(toDisplayPath(repoRoot, latestLineageReport));
+        ReadResult result = readJsonMap(latestLineageReport);
+        if (!result.readable()) {
+            return summary;
+        }
+
+        Map<String, Object> payload = result.payload();
+        summary.setNpcWrongPrefixCount(wrongPrefixCount(payload, "npcs"));
+        summary.setProjectileWrongPrefixCount(wrongPrefixCount(payload, "projectiles"));
+        summary.setNpcWikiOnlyCount(wikiOnlyCount(payload, "npcs"));
+        summary.setProjectileWikiOnlyCount(wikiOnlyCount(payload, "projectiles"));
+        summary.setLastCanonicalSyncAt(findLastCanonicalSyncAt(repoRoot));
+        return summary;
+    }
+
+    private Long wrongPrefixCount(Map<String, Object> payload, String entityType) {
+        Map<String, Object> entity = nestedMap(payload, "entities", entityType);
+        Map<String, Object> relation = nestedMap(entity, "lineage", "relation");
+        Long relationCount = asNullableLong(relation.get("rowsWithWrongManagedPrefix"));
+        if (relationCount != null) {
+            return relationCount;
+        }
+        Map<String, Object> projection = nestedMap(entity, "lineage", "projection");
+        Long projectionCount = asNullableLong(projection.get("rowsWithWrongManagedPrefix"));
+        return projectionCount == null ? 0L : projectionCount;
+    }
+
+    private Long wikiOnlyCount(Map<String, Object> payload, String entityType) {
+        Map<String, Object> entity = nestedMap(payload, "entities", entityType);
+        Map<String, Object> projection = nestedMap(entity, "lineage", "projection");
+        Long rowsWithImage = asNullableLong(projection.get("rowsWithImage"));
+        Long rowsWithManagedImage = asNullableLong(projection.get("rowsWithManagedImage"));
+        Long wrongPrefix = asNullableLong(projection.get("rowsWithWrongManagedPrefix"));
+        if (rowsWithImage == null || rowsWithManagedImage == null) {
+            return 0L;
+        }
+        long delta = rowsWithImage - rowsWithManagedImage - (wrongPrefix == null ? 0L : wrongPrefix);
+        return Math.max(0L, delta);
+    }
+
+    private String findLastCanonicalSyncAt(Path repoRoot) {
+        Path reportsDir = repoRoot.resolve(REPORTS_DIR).normalize();
+        if (!Files.isDirectory(reportsDir)) {
+            return null;
+        }
+        try (Stream<Path> stream = Files.list(reportsDir)) {
+            return stream
+                .filter(Files::isRegularFile)
+                .filter(path -> {
+                    String fileName = path.getFileName().toString();
+                    return fileName.startsWith("workflow-image-sync-") && fileName.endsWith(".json");
+                })
+                .sorted(Comparator.comparingLong(this::safeLastModifiedMillis).reversed())
+                .map(this::readJsonMap)
+                .filter(ReadResult::readable)
+                .map(ReadResult::payload)
+                .filter(payload -> Boolean.TRUE.equals(payload.get("apply")))
+                .filter(payload -> {
+                    List<String> scopes = toStringList(payload.get("scopes"));
+                    return scopes.contains("npcs") && scopes.contains("projectiles");
+                })
+                .map(payload -> asString(payload.get("generatedAt")))
+                .filter(value -> value != null && !value.isBlank())
+                .findFirst()
+                .orElse(null);
+        } catch (IOException ignored) {
+            return null;
+        }
+    }
+
+    private Map<String, Object> nestedMap(Map<String, Object> payload, String... keys) {
+        Map<String, Object> current = payload == null ? Map.of() : payload;
+        for (String key : keys) {
+            current = asMap(current.get(key));
+            if (current.isEmpty()) {
+                return Map.of();
+            }
+        }
+        return current;
     }
 
     private Long manifestDatasetCount(Map<String, Object> payload, String entity) {
