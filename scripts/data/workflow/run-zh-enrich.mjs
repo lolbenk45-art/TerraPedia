@@ -9,6 +9,10 @@ import {
   parseCliArgs,
   sharedDataPath
 } from '../lib/wiki-item-utils.mjs';
+import {
+  buildResolvedProjectileZhEntries,
+  isProjectileNamePlaceholder,
+} from '../lib/projectile-name-resolver.mjs';
 
 const options = parseCliArgs(process.argv.slice(2));
 const apply = booleanOption(options.apply, false);
@@ -93,7 +97,7 @@ async function enrichProjectiles() {
   for (const record of records) {
     const internalName = toText(record?.internalName);
     const currentZh = toText(record?.nameZh);
-    if (currentZh) {
+    if (currentZh && !isProjectileNamePlaceholder(currentZh)) {
       alreadyLocalized += 1;
       continue;
     }
@@ -261,7 +265,7 @@ async function fetchProjectileZhMap() {
     throw new Error('Projectile zh language page did not return content');
   }
 
-  const map = new Map();
+  const rawEntries = new Map();
   const rows = String(content).match(/<tr[\s\S]*?<\/tr>/gi) ?? [];
   for (const row of rows) {
     const headerMatch = row.match(/<th[^>]*>([\s\S]*?)<\/th>/i);
@@ -272,9 +276,9 @@ async function fetchProjectileZhMap() {
     const builtInZh = toText(cells[1]);
     const langPackZh = toText(cells[2]);
     const nameZh = langPackZh || builtInZh;
-    map.set(internalName, { nameZh });
+    rawEntries.set(internalName, { internalName, nameZh });
   }
-  return map;
+  return buildResolvedProjectileZhEntries(rawEntries);
 }
 
 function cleanCellText(value) {

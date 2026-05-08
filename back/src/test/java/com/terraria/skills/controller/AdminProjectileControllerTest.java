@@ -174,4 +174,31 @@ class AdminProjectileControllerTest {
             .andExpect(jsonPath("$.data.sourceNpcs").isArray())
             .andExpect(jsonPath("$.data.sourceNpcs").isEmpty());
     }
+
+    @Test
+    void shouldResolveProjectileNamePlaceholderFromReferencedProjectile() throws Exception {
+        Projectile projectile = new Projectile();
+        projectile.setId(1108L);
+        projectile.setSourceId(1108);
+        projectile.setInternalName("ObsidianFire2");
+        projectile.setName("Obsidian Fire");
+        projectile.setNameZh("{$ProjectileName.ObsidianFire}");
+        projectile.setRawJson("{\"localized\":{\"zh\":{\"name\":\"{$ProjectileName.ObsidianFire}\"}}}");
+        projectile.setStatus(1);
+
+        Projectile baseProjectile = new Projectile();
+        baseProjectile.setId(1107L);
+        baseProjectile.setSourceId(1107);
+        baseProjectile.setInternalName("ObsidianFire");
+        baseProjectile.setName("Obsidian Fire");
+        baseProjectile.setNameZh("黑曜石之火");
+        baseProjectile.setStatus(1);
+
+        when(projectileMapper.selectById(1108L)).thenReturn(projectile);
+        when(projectileMapper.selectOne(any())).thenReturn(baseProjectile);
+
+        mockMvc.perform(get("/admin/projectiles/1108"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.nameZh").value("黑曜石之火"));
+    }
 }

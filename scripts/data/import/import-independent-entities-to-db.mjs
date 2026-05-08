@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import { resolveIndependentEntityImportApply } from './independent-entity-import-mode.mjs';
 import { loadStandardizedDataset } from '../lib/load-standardized-dataset.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { resolveProjectileZhFromRecord } from '../lib/projectile-name-resolver.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -458,7 +459,21 @@ function resolveNpcZhName(record, npcZhMap) {
   return toNullableString(record.localized?.zh?.name);
 }
 
+function buildProjectileZhLookup(records) {
+  const byInternalName = new Map();
+  for (const record of Array.isArray(records) ? records : []) {
+    const internalName = toNullableString(record?.internalName);
+    if (!internalName) continue;
+    byInternalName.set(internalName, record);
+  }
+  return (internalName) => {
+    const target = byInternalName.get(internalName);
+    return target ? (target?.localized?.zh?.name ?? target?.nameZh) : null;
+  };
+}
+
 async function importProjectiles(conn, records, stats) {
+  const projectileZhLookup = buildProjectileZhLookup(records);
   stats.input = Array.isArray(records) ? records.length : 0;
   for (let i = 0; i < stats.input; i += 1) {
     const r = records[i];
@@ -493,7 +508,7 @@ async function importProjectiles(conn, records, stats) {
           toNullableInteger(r.id),
           normalizeInternalName(r.internalName, r.name || r.id || i),
           toNullableString(r.name),
-          toNullableString(r.localized?.zh?.name ?? r.nameZh),
+          toNullableString(resolveProjectileZhFromRecord(r, projectileZhLookup)),
           imageUrl,
           toNullableInteger(r.aiStyle),
           toNullableInteger(r.combat?.damage),

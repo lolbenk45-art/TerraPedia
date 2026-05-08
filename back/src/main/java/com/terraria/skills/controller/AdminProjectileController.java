@@ -27,8 +27,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @RestController
@@ -37,6 +41,7 @@ import java.util.Map;
 @Tag(name = "AdminProjectiles", description = "Admin projectile management")
 @SecurityRequirement(name = "bearerAuth")
 public class AdminProjectileController {
+    private static final Pattern PROJECTILE_NAME_REFERENCE_PATTERN = Pattern.compile("^\\{\\$ProjectileName\\.([A-Za-z0-9_]+)\\}$");
 
     private final ProjectileMapper projectileMapper;
     private final ObjectMapper objectMapper;
@@ -150,11 +155,12 @@ public class AdminProjectileController {
 
     private Map<String, Object> toPayload(Projectile projectile) {
         Map<String, Object> payload = new LinkedHashMap<>();
+        String resolvedNameZh = resolveProjectileDisplayNameZh(projectile);
         payload.put("id", projectile.getId());
         payload.put("sourceId", projectile.getSourceId());
         payload.put("internalName", projectile.getInternalName());
         payload.put("name", projectile.getName());
-        payload.put("nameZh", projectile.getNameZh());
+        payload.put("nameZh", resolvedNameZh);
         payload.put("nameEn", projectile.getName());
         payload.put("aiStyle", projectile.getAiStyle());
         payload.put("damage", projectile.getDamage());
@@ -181,6 +187,38 @@ public class AdminProjectileController {
             managedImageOrNull(extractImageUrl(projectile.getRawJson()), "admin projectile rawJson imageUrl")
         ));
         return payload;
+    }
+
+    private String resolveProjectileDisplayNameZh(Projectile projectile) {
+        String resolved = resolveProjectileNameZh(projectile == null ? null : projectile.getNameZh(), new HashSet<>());
+        if (resolved != null) {
+            return resolved;
+        }
+        return resolveProjectileNameZh(extractLocalizedZhName(projectile == null ? null : projectile.getRawJson()), new HashSet<>());
+    }
+
+    private String resolveProjectileNameZh(String value, Set<String> seenInternalNames) {
+        String text = trimToNull(value);
+        if (text == null) {
+            return null;
+        }
+        Matcher matcher = PROJECTILE_NAME_REFERENCE_PATTERN.matcher(text);
+        if (!matcher.matches()) {
+            return text;
+        }
+        String referencedInternalName = matcher.group(1);
+        if (!seenInternalNames.add(referencedInternalName)) {
+            return null;
+        }
+        Projectile referenced = projectileMapper.selectOne(
+            new LambdaQueryWrapper<Projectile>()
+                .eq(Projectile::getInternalName, referencedInternalName)
+                .last("LIMIT 1")
+        );
+        if (referenced == null) {
+            return null;
+        }
+        return resolveProjectileNameZh(referenced.getNameZh(), seenInternalNames);
     }
 
     private String managedImageOrNull(String value, String context) {
@@ -226,6 +264,27 @@ public class AdminProjectileController {
             if (parsed instanceof Map<?, ?> map) {
                 Object imageUrl = map.get("imageUrl");
                 return imageUrl == null ? null : String.valueOf(imageUrl);
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private String extractLocalizedZhName(String rawJson) {
+        if (rawJson == null || rawJson.isBlank()) return null;
+        try {
+            Object parsed = objectMapper.readValue(rawJson, Object.class);
+            if (parsed instanceof Map<?, ?> map) {
+                Object localized = map.get("localized");
+                if (localized instanceof Map<?, ?> localizedMap) {
+                    Object zh = localizedMap.get("zh");
+                    if (zh instanceof Map<?, ?> zhMap) {
+                        Object name = zhMap.get("name");
+                        return name == null ? null : String.valueOf(name);
+                    }
+                }
+                Object nameZh = map.get("nameZh");
+                return nameZh == null ? null : String.valueOf(nameZh);
             }
         } catch (Exception ignored) {
         }

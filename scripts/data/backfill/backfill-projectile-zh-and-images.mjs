@@ -3,6 +3,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
+import {
+  buildResolvedProjectileZhEntries,
+  isProjectileNamePlaceholder,
+  resolveProjectileZhName,
+} from '../lib/projectile-name-resolver.mjs';
 
 const args = parseArgs(process.argv.slice(2));
 const apply = args.apply === 'true';
@@ -59,10 +64,14 @@ for (const record of records) {
   let changed = false;
   const zhEntry = zhMap.get(internalName) ?? null;
   const existingZh = toText(record?.localized?.zh?.name ?? record?.nameZh);
-  const nextZh = toText(zhEntry?.nameZh) ?? existingZh;
+  const normalizedExistingZh = isProjectileNamePlaceholder(existingZh) ? null : existingZh;
+  const nextZh = resolveProjectileZhName(
+    zhEntry?.nameZh,
+    (key) => zhMap.get(key)?.nameZh ?? null
+  ) ?? normalizedExistingZh;
   if (zhEntry?.nameZh) {
     summary.zhMatched += 1;
-  } else if (!existingZh) {
+  } else if (!normalizedExistingZh) {
     summary.unresolvedZh += 1;
   }
   if (nextZh && nextZh !== existingZh) {
@@ -165,7 +174,7 @@ async function fetchProjectileZhMap() {
 }
 
 function parseProjectileZhTable(content) {
-  const map = new Map();
+  const rawEntries = new Map();
   const rows = String(content).match(/<tr[\s\S]*?<\/tr>/gi) ?? [];
   for (const row of rows) {
     const headerMatch = row.match(/<th[^>]*>([\s\S]*?)<\/th>/i);
@@ -177,9 +186,9 @@ function parseProjectileZhTable(content) {
     const builtInZh = toText(cells[1]);
     const langPackZh = toText(cells[2]);
     const nameZh = langPackZh || builtInZh;
-    map.set(internalName, { internalName, nameEn, nameZh, builtInZh, langPackZh });
+    rawEntries.set(internalName, { internalName, nameEn, nameZh, builtInZh, langPackZh });
   }
-  return map;
+  return buildResolvedProjectileZhEntries(rawEntries);
 }
 
 function cleanCellText(value) {

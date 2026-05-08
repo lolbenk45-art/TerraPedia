@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
 import { createMinioImageUploader, guessExtensionFromUrl } from '../lib/minio-image-upload.mjs';
+import { resolveProjectileZhFromRecord } from '../lib/projectile-name-resolver.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -199,6 +200,7 @@ async function syncProjectiles(stats, { apply, connection, uploadImageUrl }) {
 
   const raw = JSON.parse(fs.readFileSync(standardizedProjectilePath, 'utf8'));
   const records = Array.isArray(raw.records) ? raw.records : [];
+  const projectileZhLookup = buildProjectileZhLookup(records);
 
   for (const record of records) {
     stats.checked += 1;
@@ -229,7 +231,7 @@ async function syncProjectiles(stats, { apply, connection, uploadImageUrl }) {
         sourceId,
         internalName,
         toText(projectilePayload?.name),
-        toText(projectilePayload?.localized?.zh?.name ?? projectilePayload?.nameZh),
+        toText(resolveProjectileZhFromRecord(projectilePayload, projectileZhLookup)),
         effectiveImageUrl,
         toInt(projectilePayload?.aiStyle),
         toInt(projectilePayload?.combat?.damage),
@@ -283,6 +285,19 @@ async function syncProjectiles(stats, { apply, connection, uploadImageUrl }) {
       pushSample(stats, { id: record?.id ?? null, internalName: record?.internalName ?? null, reason: String(error.message || error) });
     }
   }
+}
+
+function buildProjectileZhLookup(records) {
+  const byInternalName = new Map();
+  for (const record of Array.isArray(records) ? records : []) {
+    const internalName = toText(record?.internalName);
+    if (!internalName) continue;
+    byInternalName.set(internalName, record);
+  }
+  return (internalName) => {
+    const record = byInternalName.get(internalName);
+    return record ? (record?.localized?.zh?.name ?? record?.nameZh) : null;
+  };
 }
 
 function inferNpcCategoryId(record) {
