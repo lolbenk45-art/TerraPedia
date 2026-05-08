@@ -297,7 +297,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
     }
 
     private List<RecipeDTO> resolveChildRecipes(Long itemId, String variantScope, Map<String, List<RecipeDTO>> recipeCache) {
-        String cacheKey = itemId + "::" + defaultIfBlank(variantScope, "__base__");
+        String cacheKey = itemId + "::" + defaultIfBlank(normalizeVersionScope(variantScope), "__base__");
         if (recipeCache.containsKey(cacheKey)) {
             return recipeCache.get(cacheKey);
         }
@@ -309,7 +309,7 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         }
 
         List<RecipeDTO> exactMatches = allRecipes.stream()
-            .filter(recipe -> Objects.equals(trimToNull(recipe.getVersionScope()), trimToNull(variantScope)))
+            .filter(recipe -> Objects.equals(normalizeVersionScope(recipe.getVersionScope()), normalizeVersionScope(variantScope)))
             .sorted(Comparator
                 .comparing(RecipeDTO::getSortOrder, Comparator.nullsLast(Integer::compareTo))
                 .thenComparing(RecipeDTO::getId, Comparator.nullsLast(Long::compareTo)))
@@ -317,6 +317,17 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         if (!exactMatches.isEmpty()) {
             recipeCache.put(cacheKey, exactMatches);
             return exactMatches;
+        }
+
+        List<RecipeDTO> primaryModernMatches = allRecipes.stream()
+            .filter(recipe -> isPrimaryModernScope(normalizeVersionScope(recipe.getVersionScope())))
+            .sorted(Comparator
+                .comparing(RecipeDTO::getSortOrder, Comparator.nullsLast(Integer::compareTo))
+                .thenComparing(RecipeDTO::getId, Comparator.nullsLast(Long::compareTo)))
+            .toList();
+        if (trimToNull(variantScope) == null && !primaryModernMatches.isEmpty()) {
+            recipeCache.put(cacheKey, primaryModernMatches);
+            return primaryModernMatches;
         }
 
         List<RecipeDTO> baseMatches = allRecipes.stream()
@@ -447,6 +458,11 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         }
 
         return raw;
+    }
+
+    private boolean isPrimaryModernScope(String normalizedScope) {
+        return Objects.equals(normalizedScope, "Desktop version Console version Mobile version only")
+            || Objects.equals(normalizedScope, "Desktop version Console version Mobile version");
     }
 
     private void appendIfContains(List<String> labels, String raw, String pattern, String label) {

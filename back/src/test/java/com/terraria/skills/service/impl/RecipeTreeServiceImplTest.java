@@ -324,6 +324,106 @@ class RecipeTreeServiceImplTest {
     }
 
     @Test
+    void shouldExpandDesktopScopedChildRecipesWhenParentVariantIsBase() {
+        RecipeTreeServiceImpl service = newService();
+
+        ItemDTO parentItem = recipeTreeItem(1613L, "AnkhShield", "Ankh Shield", "Ankh Shield");
+        ItemDTO childItem = recipeTreeItem(1612L, "AnkhCharm", "Ankh Charm", "Ankh Charm");
+        ItemDTO armorBracingItem = recipeTreeItem(901L, "ArmorBracing", "Armor Bracing", "Armor Bracing");
+        ItemDTO medicatedBandageItem = recipeTreeItem(902L, "MedicatedBandage", "Medicated Bandage", "Medicated Bandage");
+        ItemDTO thePlanItem = recipeTreeItem(903L, "ThePlan", "The Plan", "The Plan");
+
+        RecipeIngredientDTO parentIngredient = new RecipeIngredientDTO();
+        parentIngredient.setIngredientItemId(1612L);
+        parentIngredient.setIngredientInternalName("AnkhCharm");
+        parentIngredient.setIngredientNameRaw("Ankh Charm");
+        parentIngredient.setItemName("Ankh Charm");
+        parentIngredient.setItemNameZh("Ankh Charm");
+        parentIngredient.setIngredientGroupType("item");
+
+        RecipeDTO parentRecipe = recipeWithIngredient(61417L, parentItem, parentIngredient);
+
+        RecipeDTO ankhCharmRecipe = new RecipeDTO();
+        ankhCharmRecipe.setId(52240L);
+        ankhCharmRecipe.setResultItemId(1612L);
+        ankhCharmRecipe.setResultItemName("Ankh Charm");
+        ankhCharmRecipe.setResultItemNameZh("Ankh Charm");
+        ankhCharmRecipe.setResultItemInternalName("AnkhCharm");
+        ankhCharmRecipe.setResultQuantity(1);
+
+        RecipeIngredientDTO armorBracingIngredient = new RecipeIngredientDTO();
+        armorBracingIngredient.setIngredientItemId(901L);
+        armorBracingIngredient.setIngredientInternalName("ArmorBracing");
+        armorBracingIngredient.setIngredientNameRaw("Armor Bracing");
+        armorBracingIngredient.setItemName("Armor Bracing");
+        armorBracingIngredient.setItemNameZh("Armor Bracing");
+        armorBracingIngredient.setIngredientGroupType("item");
+
+        RecipeIngredientDTO medicatedBandageIngredient = new RecipeIngredientDTO();
+        medicatedBandageIngredient.setIngredientItemId(902L);
+        medicatedBandageIngredient.setIngredientInternalName("MedicatedBandage");
+        medicatedBandageIngredient.setIngredientNameRaw("Medicated Bandage");
+        medicatedBandageIngredient.setItemName("Medicated Bandage");
+        medicatedBandageIngredient.setItemNameZh("Medicated Bandage");
+        medicatedBandageIngredient.setIngredientGroupType("item");
+
+        RecipeIngredientDTO thePlanIngredient = new RecipeIngredientDTO();
+        thePlanIngredient.setIngredientItemId(903L);
+        thePlanIngredient.setIngredientInternalName("ThePlan");
+        thePlanIngredient.setIngredientNameRaw("The Plan");
+        thePlanIngredient.setItemName("The Plan");
+        thePlanIngredient.setItemNameZh("The Plan");
+        thePlanIngredient.setIngredientGroupType("item");
+
+        ankhCharmRecipe.setIngredients(List.of(
+            armorBracingIngredient,
+            medicatedBandageIngredient,
+            thePlanIngredient
+        ));
+
+        RecipeDTO armorBracingRecipe = recipeWithIngredient(
+            61485L,
+            armorBracingItem,
+            simpleIngredient(888L, "Blindfold", "Blindfold")
+        );
+        armorBracingRecipe.setVersionScope("电脑版 主机版 移动版 only");
+
+        RecipeDTO medicatedBandageRecipe = recipeWithIngredient(
+            61501L,
+            medicatedBandageItem,
+            simpleIngredient(889L, "Bezoar", "Bezoar")
+        );
+        medicatedBandageRecipe.setVersionScope("电脑版 主机版 移动版 only");
+
+        RecipeDTO thePlanRecipe = recipeWithIngredient(
+            61505L,
+            thePlanItem,
+            simpleIngredient(890L, "FastClock", "Fast Clock")
+        );
+        thePlanRecipe.setVersionScope("电脑版 主机版 移动版 only");
+
+        when(itemService.getItemById(1613L)).thenReturn(parentItem);
+        when(recipeService.getRecipesByResultItemId(1613L)).thenReturn(List.of(parentRecipe));
+        when(recipeService.getRecipesByResultItemId(1612L)).thenReturn(List.of(ankhCharmRecipe));
+        when(recipeService.getRecipesByResultItemId(901L)).thenReturn(List.of(armorBracingRecipe));
+        when(recipeService.getRecipesByResultItemId(902L)).thenReturn(List.of(medicatedBandageRecipe));
+        when(recipeService.getRecipesByResultItemId(903L)).thenReturn(List.of(thePlanRecipe));
+        when(recipeService.getRecipesByResultItemId(888L)).thenReturn(List.of());
+        when(recipeService.getRecipesByResultItemId(889L)).thenReturn(List.of());
+        when(recipeService.getRecipesByResultItemId(890L)).thenReturn(List.of());
+        when(itemMapper.selectList(any())).thenReturn(List.of());
+
+        RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(1613L, 4);
+
+        RecipeTreeNodeDTO ankhCharmNode = response.getVariants().get(0).getRoots().get(0).getChildren().get(0);
+        RecipeTreeNodeDTO ankhCharmRecipeNode = ankhCharmNode.getChildren().get(0);
+
+        assertEquals(3, ankhCharmRecipeNode.getChildren().size());
+        assertTrue(ankhCharmRecipeNode.getChildren().stream().allMatch(ingredient -> Boolean.TRUE.equals(ingredient.getExpandable())));
+        assertEquals(List.of(1, 1, 1), ankhCharmRecipeNode.getChildren().stream().map(ingredient -> ingredient.getChildren().size()).toList());
+    }
+
+    @Test
     void shouldResolveRecipeGroupFromCentralItemGroupOverride() throws IOException {
         String originalUserDir = System.getProperty("user.dir");
         Path repoRoot = tempDir.resolve("repo");
@@ -488,6 +588,17 @@ class RecipeTreeServiceImplTest {
         recipe.setResultQuantity(1);
         recipe.setIngredients(List.of(ingredient));
         return recipe;
+    }
+
+    private RecipeIngredientDTO simpleIngredient(Long itemId, String internalName, String rawName) {
+        RecipeIngredientDTO ingredient = new RecipeIngredientDTO();
+        ingredient.setIngredientItemId(itemId);
+        ingredient.setIngredientInternalName(internalName);
+        ingredient.setIngredientNameRaw(rawName);
+        ingredient.setItemName(rawName);
+        ingredient.setItemNameZh(rawName);
+        ingredient.setIngredientGroupType("item");
+        return ingredient;
     }
 
     private Item itemEntity(Long id, String internalName, String name, String nameZh, String image) {
