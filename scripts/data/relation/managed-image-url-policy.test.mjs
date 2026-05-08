@@ -143,12 +143,22 @@ test('default managed prefix allowlist covers canonical npc and projectile prefi
   assert.ok(DEFAULT_MANAGED_IMAGE_URL_PREFIXES.includes('http://localhost:9000/terrapedia-images/items/'));
   assert.ok(DEFAULT_MANAGED_IMAGE_URL_PREFIXES.includes('http://localhost:9000/terrapedia-images/npcs/'));
   assert.ok(DEFAULT_MANAGED_IMAGE_URL_PREFIXES.includes('http://localhost:9000/terrapedia-images/projectiles/'));
+  assert.ok(DEFAULT_MANAGED_IMAGE_URL_PREFIXES.includes('http://localhost:9000/terrapedia-images/buffs/'));
+  assert.ok(DEFAULT_MANAGED_IMAGE_URL_PREFIXES.includes('http://localhost:9000/terrapedia-images/bosses/'));
   assert.equal(
     isManagedImageUrl('http://localhost:9000/terrapedia-images/npcs/guide.png', DEFAULT_MANAGED_IMAGE_URL_PREFIXES),
     true
   );
   assert.equal(
     isManagedImageUrl('http://localhost:9000/terrapedia-images/projectiles/wooden-arrow.png', DEFAULT_MANAGED_IMAGE_URL_PREFIXES),
+    true
+  );
+  assert.equal(
+    isManagedImageUrl('http://localhost:9000/terrapedia-images/buffs/ironskin.png', DEFAULT_MANAGED_IMAGE_URL_PREFIXES),
+    true
+  );
+  assert.equal(
+    isManagedImageUrl('http://localhost:9000/terrapedia-images/bosses/king-slime.png', DEFAULT_MANAGED_IMAGE_URL_PREFIXES),
     true
   );
 });

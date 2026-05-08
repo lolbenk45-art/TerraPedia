@@ -660,7 +660,7 @@ public class AdminNpcController {
             ORDER BY nbr.sort_order ASC, nbr.id ASC
             """,
             npcId
-        ), "admin npc buff relations", "buffImage");
+        ), "admin npc buff relations", true, "buffImage");
     }
 
     private List<Map<String, Object>> loadNpcShopEntries(Long npcId) {
@@ -703,6 +703,10 @@ public class AdminNpcController {
     }
 
     private List<Map<String, Object>> sanitizeDisplayImageFields(List<Map<String, Object>> rows, String context, String... fieldNames) {
+        return sanitizeDisplayImageFields(rows, context, false, fieldNames);
+    }
+
+    private List<Map<String, Object>> sanitizeDisplayImageFields(List<Map<String, Object>> rows, String context, boolean requireBuffPrefix, String... fieldNames) {
         if (rows == null || rows.isEmpty() || fieldNames == null || fieldNames.length == 0) {
             return rows == null ? List.of() : rows;
         }
@@ -711,7 +715,9 @@ public class AdminNpcController {
             if (row == null) continue;
             Map<String, Object> sanitizedRow = new LinkedHashMap<>(row);
             for (String fieldName : fieldNames) {
-                sanitizedRow.put(fieldName, managedImageOrNull(trimToNull(row.get(fieldName)), context + "." + fieldName));
+                sanitizedRow.put(fieldName, requireBuffPrefix
+                    ? managedBuffImageOrNull(trimToNull(row.get(fieldName)), context + "." + fieldName)
+                    : managedImageOrNull(trimToNull(row.get(fieldName)), context + "." + fieldName));
             }
             sanitizedRows.add(sanitizedRow);
         }
@@ -727,6 +733,18 @@ public class AdminNpcController {
             return text;
         }
         log.warn("admin npc display image suppressed non-managed url context={}", context);
+        return null;
+    }
+
+    private String managedBuffImageOrNull(String value, String context) {
+        String text = trimToNull(value);
+        if (text == null) {
+            return null;
+        }
+        if (managedImageUrlPolicy.isManagedImageUrlForDomain(text, "buffs")) {
+            return text;
+        }
+        log.warn("admin npc display image suppressed non-canonical buff url context={}", context);
         return null;
     }
 

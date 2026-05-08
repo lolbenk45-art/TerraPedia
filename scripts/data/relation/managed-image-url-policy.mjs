@@ -6,7 +6,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const DEFAULT_MINIO_BUCKET = 'terrapedia-images';
 const DEFAULT_MINIO_OBJECT_PREFIX = 'items';
-const DEFAULT_MANAGED_IMAGE_OBJECT_PREFIXES = ['items', 'npcs', 'projectiles'];
+const DEFAULT_MANAGED_IMAGE_OBJECT_PREFIXES = ['items', 'npcs', 'projectiles', 'buffs', 'bosses'];
 
 export const DEFAULT_MANAGED_IMAGE_URL_PREFIXES = [
   'http://localhost:9000/terrapedia-images/items/',
@@ -14,7 +14,11 @@ export const DEFAULT_MANAGED_IMAGE_URL_PREFIXES = [
   'http://localhost:9000/terrapedia-images/npcs/',
   'http://127.0.0.1:9000/terrapedia-images/npcs/',
   'http://localhost:9000/terrapedia-images/projectiles/',
-  'http://127.0.0.1:9000/terrapedia-images/projectiles/'
+  'http://127.0.0.1:9000/terrapedia-images/projectiles/',
+  'http://localhost:9000/terrapedia-images/buffs/',
+  'http://127.0.0.1:9000/terrapedia-images/buffs/',
+  'http://localhost:9000/terrapedia-images/bosses/',
+  'http://127.0.0.1:9000/terrapedia-images/bosses/'
 ];
 
 export function resolveManagedImageUrlPrefixes(options = {}) {
@@ -127,16 +131,19 @@ function addManagedMinioPrefix(prefixes, endpoint, bucket, objectPrefix) {
 }
 
 function deriveEndpointFromCredentialsFile(credentialsFile, repoRoot) {
-  const filePath = resolvePath(credentialsFile, repoRoot);
-  if (!filePath || !fs.existsSync(filePath)) {
-    return null;
+  for (const root of candidateRepoRoots(repoRoot)) {
+    const filePath = resolvePath(credentialsFile, root);
+    if (!filePath || !fs.existsSync(filePath)) {
+      continue;
+    }
+    try {
+      const payload = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      return deriveS3Endpoint(payload.url);
+    } catch {
+      return null;
+    }
   }
-  try {
-    const payload = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    return deriveS3Endpoint(payload.url);
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 function deriveS3Endpoint(consoleUrl) {
@@ -150,21 +157,41 @@ function deriveS3Endpoint(consoleUrl) {
 }
 
 function readLocalStackMinioConfig(repoRoot) {
-  for (const candidate of [
-    path.join(repoRoot, 'scripts', 'dev', 'config', 'local-stack.config.json'),
-    path.join(repoRoot, 'scripts', 'dev', 'local-stack.config.json')
-  ]) {
-    if (!fs.existsSync(candidate)) {
-      continue;
-    }
-    try {
-      const config = JSON.parse(fs.readFileSync(candidate, 'utf8'));
-      return config?.minio && typeof config.minio === 'object' ? config.minio : {};
-    } catch {
-      return {};
+  for (const root of candidateRepoRoots(repoRoot)) {
+    for (const candidate of [
+      path.join(root, 'scripts', 'dev', 'config', 'local-stack.config.json'),
+      path.join(root, 'scripts', 'dev', 'local-stack.config.json')
+    ]) {
+      if (!fs.existsSync(candidate)) {
+        continue;
+      }
+      try {
+        const config = JSON.parse(fs.readFileSync(candidate, 'utf8'));
+        return config?.minio && typeof config.minio === 'object' ? config.minio : {};
+      } catch {
+        return {};
+      }
     }
   }
   return {};
+}
+
+function candidateRepoRoots(repoRoot) {
+  const roots = [];
+  let current = path.resolve(repoRoot);
+  while (true) {
+    roots.push(current);
+    const worktreeMarker = path.join(current, '.worktrees');
+    if (fs.existsSync(worktreeMarker) && fs.statSync(worktreeMarker).isDirectory()) {
+      break;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      break;
+    }
+    current = parent;
+  }
+  return [...new Set(roots)];
 }
 
 function resolvePath(value, repoRoot) {

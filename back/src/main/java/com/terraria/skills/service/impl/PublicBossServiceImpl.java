@@ -35,11 +35,6 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class PublicBossServiceImpl implements PublicBossService {
 
-    private static final List<String> BOSS_MANAGED_IMAGE_URL_PREFIXES = List.of(
-        "http://localhost:9000/terrapedia-images/bosses/",
-        "http://127.0.0.1:9000/terrapedia-images/bosses/"
-    );
-
     private static final Map<String, List<String>> REFERENCE_BOSS_GROUP_CODES = Map.of(
         "MECHDUSA", List.of("THE_TWINS", "THE_DESTROYER", "SKELETRON_PRIME")
     );
@@ -172,7 +167,7 @@ public class PublicBossServiceImpl implements PublicBossService {
         dto.setNameZh(bossGroup.getNameZh());
         dto.setNameEn(bossGroup.getNameEn());
         dto.setBossType(bossGroup.getBossType());
-        dto.setImageUrl(managedImageOrNull(bossGroup.getImageUrl()));
+        dto.setImageUrl(managedBossImageOrNull(bossGroup.getImageUrl()));
         dto.setProgressionOrder(bossGroup.getProgressionOrder());
         dto.setSummonMethod(resolveSummonMethod(bossGroup));
         dto.setNotes(trimToNull(bossGroup.getNotes()));
@@ -531,24 +526,20 @@ public class PublicBossServiceImpl implements PublicBossService {
         return "desc".equalsIgnoreCase(sortDirection.trim()) ? "desc" : "asc";
     }
 
+    private String managedBossImageOrNull(String value) {
+        String text = trimToNull(value);
+        if (text == null) {
+            return null;
+        }
+        return managedImageUrlPolicy.isManagedImageUrlForDomain(text, "bosses") ? text : null;
+    }
+
     private String managedImageOrNull(String value) {
         String text = trimToNull(value);
         if (text == null) {
             return null;
         }
-        return isManagedBossImageUrl(text) ? text : null;
-    }
-
-    private boolean isManagedBossImageUrl(String value) {
-        if (managedImageUrlPolicy.isManagedImageUrl(value)) {
-            return true;
-        }
-        for (String prefix : BOSS_MANAGED_IMAGE_URL_PREFIXES) {
-            if (value != null && value.startsWith(prefix)) {
-                return true;
-            }
-        }
-        return false;
+        return managedImageUrlPolicy.isManagedImageUrl(text) ? text : null;
     }
 
     private String trimToNull(Object value) {

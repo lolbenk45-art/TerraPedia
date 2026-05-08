@@ -33,17 +33,21 @@ test('parseArgs accepts a domain filter for partial local core sync', () => {
   });
 });
 
-test('buildInsertProjectionSql only copies columns shared by local and projection tables', () => {
+test('buildInsertProjectionSql supports explicit local to projection column mappings', () => {
   const sql = buildInsertProjectionSql({
     localDatabase: 'terria_v1_local',
     relationDatabase: 'terria_v1_relation',
-    localTable: 'items',
-    projectionTable: 'projection_items',
-    columns: ['id', 'name', 'internal_name', 'created_at']
+    localTable: 'buffs',
+    projectionTable: 'projection_buffs',
+    columnMappings: [
+      ['id', 'id'],
+      ['internal_name', 'internal_name'],
+      ['image_cached_url', 'image']
+    ]
   });
 
-  assert.match(sql, /INSERT INTO `terria_v1_local`\.`items` \(`id`, `name`, `internal_name`, `created_at`\)/);
-  assert.match(sql, /SELECT `id`, `name`, `internal_name`, `created_at` FROM `terria_v1_relation`\.`projection_items`/);
+  assert.match(sql, /INSERT INTO `terria_v1_local`\.`buffs` \(`id`, `internal_name`, `image_cached_url`\)/);
+  assert.match(sql, /SELECT `id`, `internal_name`, `image` FROM `terria_v1_relation`\.`projection_buffs`/);
 });
 
 test('runProjectionToLocalCoreSync dry-run writes a report without mutating local tables', async () => {
@@ -108,22 +112,24 @@ test('runProjectionToLocalCoreSync apply backs up core tables and only replaces 
     }
   );
 
-  for (const table of ['items', 'npcs', 'projectiles', 'buffs']) {
+  for (const table of ['items', 'npcs', 'boss_groups', 'projectiles', 'buffs']) {
     assert.ok(statements.some((sql) => sql.includes(`CREATE TABLE \`terria_v1_local\`.\`${table}_relation_backup_20260426120000\` LIKE \`terria_v1_local\`.\`${table}\``)));
     assert.ok(statements.some((sql) => sql.includes(`INSERT INTO \`terria_v1_local\`.\`${table}_relation_backup_20260426120000\` SELECT * FROM \`terria_v1_local\`.\`${table}\``)));
   }
-  for (const table of ['projectiles', 'buffs']) {
+  for (const table of ['projectiles']) {
     assert.ok(statements.some((sql) => sql.includes(`DELETE FROM \`terria_v1_local\`.\`${table}\``)));
   }
-  for (const table of ['items', 'npcs']) {
+  for (const table of ['items', 'npcs', 'boss_groups', 'buffs']) {
     assert.ok(statements.every((sql) => !sql.includes(`DELETE FROM \`terria_v1_local\`.\`${table}\``)));
   }
   assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_relation`.`projection_items`')));
   assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_relation`.`projection_npcs`')));
+  assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_relation`.`projection_bosses`')));
   assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_relation`.`projection_projectiles`')));
   assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_relation`.`projection_buffs`')));
   assert.ok(statements.some((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`items`') && sql.includes('ON DUPLICATE KEY UPDATE')));
   assert.ok(statements.some((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`npcs`') && sql.includes('ON DUPLICATE KEY UPDATE')));
+  assert.ok(statements.some((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`boss_groups`') && sql.includes('ON DUPLICATE KEY UPDATE')));
   assert.ok(statements.every((sql) => !sql.includes('category')));
   assert.ok(statements.every((sql) => !sql.includes('recipes')));
 });
@@ -156,10 +162,12 @@ test('runProjectionToLocalCoreSync apply can target only selected domains', asyn
   assert.ok(statements.some((sql) => sql.includes('`npcs_relation_backup_20260426120000`')));
   assert.ok(statements.some((sql) => sql.includes('`projectiles_relation_backup_20260426120000`')));
   assert.ok(statements.every((sql) => !sql.includes('`items_relation_backup_20260426120000`')));
+  assert.ok(statements.every((sql) => !sql.includes('`boss_groups_relation_backup_20260426120000`')));
   assert.ok(statements.every((sql) => !sql.includes('`buffs_relation_backup_20260426120000`')));
   assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_relation`.`projection_npcs`')));
   assert.ok(statements.some((sql) => sql.includes('FROM `terria_v1_relation`.`projection_projectiles`')));
   assert.ok(statements.every((sql) => !sql.includes('FROM `terria_v1_relation`.`projection_items`')));
+  assert.ok(statements.every((sql) => !sql.includes('FROM `terria_v1_relation`.`projection_bosses`')));
   assert.ok(statements.every((sql) => !sql.includes('FROM `terria_v1_relation`.`projection_buffs`')));
 });
 
@@ -409,4 +417,82 @@ test('runProjectionToLocalCoreSync apply refuses to replace populated local tabl
   );
 
   assert.ok(statements.every((sql) => !/DELETE FROM|INSERT INTO `terria_v1_local`\.`items`/i.test(sql)));
+});
+
+test('runProjectionToLocalCoreSync apply preserves local-owned boss fields and maps buff image to image_cached_url', async () => {
+  const statements = [];
+
+  const result = await runProjectionToLocalCoreSync(
+    {
+      apply: true,
+      localDatabase: 'terria_v1_local',
+      relationDatabase: 'terria_v1_relation',
+      domains: ['bosses', 'buffs'],
+      dateTag: '2026-05-08',
+      backupSuffix: '20260508120000'
+    },
+    {
+      executeLocal: async (fn) => fn({
+        query: async (sql) => {
+          statements.push(sql);
+          return [{ affectedRows: 1 }];
+        }
+      }),
+      listColumns: async (_connection, _database, table) => {
+        if (table === 'boss_groups' || table === 'projection_bosses') {
+          return [
+            'id',
+            'code',
+            'name_en',
+            'name_zh',
+            'image_url',
+            'progression_order',
+            'summon_method',
+            'created_at',
+            'updated_at',
+            'status',
+            'deleted'
+          ];
+        }
+        if (table === 'buffs') {
+          return [
+            'id',
+            'internal_name',
+            'english_name',
+            'name_zh',
+            'image_cached_url',
+            'image_original_url',
+            'image_content_type',
+            'image_last_verified_at',
+            'source_items_json',
+            'immune_npc_sample_json',
+            'buff_type'
+          ];
+        }
+        if (table === 'projection_buffs') {
+          return [
+            'id',
+            'internal_name',
+            'english_name',
+            'name_zh',
+            'image',
+            'buff_type'
+          ];
+        }
+        return [];
+      },
+      countRows: async () => 1,
+      writeReport: async () => 'reports/relation/projection-to-local-core-sync-2026-05-08.json'
+    }
+  );
+
+  assert.equal(result.report.domains.bosses.syncStrategy, 'upsert_preserve_local');
+  assert.deepEqual(result.report.domains.bosses.skippedProtectedColumns, ['created_at', 'summon_method', 'updated_at']);
+  assert.equal(result.report.domains.buffs.syncStrategy, 'upsert_preserve_local');
+  assert.ok(result.report.domains.buffs.columnMappings.some(([localColumn, projectionColumn]) => localColumn === 'image_cached_url' && projectionColumn === 'image'));
+  const bossSql = statements.find((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`boss_groups`'));
+  const buffSql = statements.find((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`buffs`'));
+  assert.match(bossSql, /ON DUPLICATE KEY UPDATE/);
+  assert.match(buffSql, /`image_cached_url`/);
+  assert.match(buffSql, /SELECT `id`, `internal_name`, `english_name`, `name_zh`, `buff_type`, `image` FROM `terria_v1_relation`\.`projection_buffs`/);
 });

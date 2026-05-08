@@ -10,6 +10,7 @@ import { getProjectRoot } from '../lib/project-root.mjs';
 import {
   createMinioImageUploader,
   DEFAULT_MANAGED_URL_PREFIX,
+  isManagedUrlForEntity,
   isManagedUrl,
 } from '../lib/minio-image-upload.mjs';
 
@@ -127,6 +128,9 @@ const NEGATIVE_FALLBACK_INTERNAL_PATTERNS = [
   /tablet/i,
   /spit/i,
 ];
+
+const BOSS_IMAGE_DOMAIN = 'bosses';
+const BOSS_MEMBER_IMAGE_DOMAIN = 'npcs';
 
 main().catch((error) => {
   console.error('[import-wiki-bosses-to-db] failed');
@@ -448,7 +452,7 @@ async function localizeBossImage(record, uploader, summary) {
   }
 
   summary.bossImageCandidates += 1;
-  if (isManagedUrl(sourceUrl, managedUrlPrefixes)) {
+  if (isManagedUrlForEntity(sourceUrl, BOSS_IMAGE_DOMAIN, managedUrlPrefixes)) {
     summary.bossImagesAlreadyManaged += 1;
     return sourceUrl;
   }
@@ -461,6 +465,7 @@ async function localizeBossImage(record, uploader, summary) {
 
   const managedUrl = await uploader.uploadImageUrl(sourceUrl, {
     nameHint: buildBossCode(record?.titleEn),
+    entityDomain: 'bosses',
   });
   if (!managedUrl) {
     summary.failedBossImages += 1;
@@ -510,6 +515,7 @@ async function reconcileBossMemberImages(members, generatedNpcMap, uploader, sum
     } else {
       const uploadedUrl = await uploader.uploadImageUrl(sourceUrl, {
         nameHint: member.internalName || member.name || `boss-member-${member.id}`,
+        entityDomain: BOSS_MEMBER_IMAGE_DOMAIN,
       });
       if (!uploadedUrl) {
         summary.failedBossMemberImages += 1;
@@ -564,12 +570,12 @@ function applyManagedUrlToGeneratedNpcMapRecord(record, managedUrl) {
 
 function resolveBossImageUrl(record, members) {
   const directImageUrl = toText(record?.imageUrl);
-  if (directImageUrl) {
+  if (isManagedUrlForEntity(directImageUrl, BOSS_IMAGE_DOMAIN, managedUrlPrefixes)) {
     return directImageUrl;
   }
   return members
     .map((member) => member.imageUrl)
-    .find((value) => typeof value === 'string' && value.trim()) ?? null;
+    .find((value) => isManagedUrlForEntity(value, BOSS_IMAGE_DOMAIN, managedUrlPrefixes)) ?? null;
 }
 
 async function upsertBossGroup(conn, record, imageUrl) {

@@ -22,6 +22,10 @@ const BOSS_MANAGED_IMAGE_URL_PREFIXES = [
   'http://localhost:9000/terrapedia-images/bosses/',
   'http://127.0.0.1:9000/terrapedia-images/bosses/',
 ];
+const BUFF_MANAGED_IMAGE_URL_PREFIXES = [
+  'http://localhost:9000/terrapedia-images/buffs/',
+  'http://127.0.0.1:9000/terrapedia-images/buffs/',
+];
 
 const ENTITY_CONFIG = {
   items: {
@@ -90,7 +94,7 @@ ORDER BY \`id\` ASC
     contractKey: 'buff.image',
     coreDatabase: 'local',
     coreQuery: (localDatabase) => `
-SELECT \`id\`, \`internal_name\` AS internalName, \`english_name\` AS englishName, \`name_zh\` AS nameZh, \`image\`
+SELECT \`id\`, \`internal_name\` AS internalName, \`english_name\` AS englishName, \`name_zh\` AS nameZh, \`image\`, \`image_cached_url\` AS imageCachedUrl
 FROM ${qualified(localDatabase, 'buffs')}
 WHERE \`deleted\` = 0
 ORDER BY \`id\` ASC
@@ -132,7 +136,7 @@ WHERE \`deleted\` = 0
 ORDER BY \`id\` ASC
 `.trim(),
     projectionImageField: 'image',
-    coreImageAccessor: (row) => firstText(row?.image, row?.imagePath, row?.image_path),
+    coreImageAccessor: (row) => firstText(row?.imageCachedUrl, row?.image_cached_url, row?.image, row?.imagePath, row?.image_path),
     maintKeyAccessor: (row) => firstText(row?.buffInternalName, row?.buff_internal_name),
     relationKeyAccessor: (row) => firstText(row?.buffInternalName, row?.buff_internal_name),
     projectionKeyAccessor: (row) => firstText(row?.internalName, row?.internal_name),
@@ -727,6 +731,10 @@ function resolveEntityManagedUrlPrefixes(entityType, managedUrlPrefixes = []) {
   }
   if (entityType === 'items') {
     return (Array.isArray(managedUrlPrefixes) ? managedUrlPrefixes : []).filter((prefix) => /\/items\/$/i.test(prefix));
+  }
+  if (entityType === 'buffs') {
+    const configured = (Array.isArray(managedUrlPrefixes) ? managedUrlPrefixes : []).filter((prefix) => /\/buffs\/$/i.test(prefix));
+    return [...new Set([...configured, ...BUFF_MANAGED_IMAGE_URL_PREFIXES])];
   }
   if (entityType !== 'bosses') {
     return managedUrlPrefixes;

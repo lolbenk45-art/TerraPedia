@@ -36,7 +36,7 @@ test('buildImageSourceLineageReport classifies contract readiness and gaps acros
         projectionRows: [{ internalName: 'Torch', image: 'http://localhost:9000/terrapedia-images/items/torch.png' }],
       },
       buffs: {
-        coreRows: [{ internalName: 'WellFed', image: 'https://terraria.wiki.gg/images/Well_Fed.png' }],
+        coreRows: [{ internalName: 'WellFed', imageCachedUrl: 'http://localhost:9000/terrapedia-images/items/wiki/buffs/well-fed.png' }],
         maintImageRows: [],
         relationImageRows: [],
         projectionRows: [{ internalName: 'WellFed', image: 'https://terraria.wiki.gg/images/Well_Fed.png' }],
@@ -144,6 +144,48 @@ test('buildImageSourceLineageReport classifies contract readiness and gaps acros
   assert.equal(report.entities.biomes.contractReady, false);
   assert.ok(report.entities.biomes.gapReasons.includes('missing_projection_image_field'));
   assert.ok(report.entities.biomes.gapReasons.includes('missing_relation_image_table'));
+});
+
+test('buildImageSourceLineageReport flags buff wrong-prefix managed rows', () => {
+  const report = buildImageSourceLineageReport({
+    generatedAt: GENERATED_AT,
+    managedUrlPrefixes: [
+      'http://localhost:9000/terrapedia-images/items/',
+      'http://localhost:9000/terrapedia-images/buffs/',
+    ],
+    entities: {
+      items: {},
+      buffs: {
+        coreRows: [{ internalName: 'ObsidianSkin', imageCachedUrl: 'http://localhost:9000/terrapedia-images/items/wiki/buffs/obsidian.png' }],
+        maintImageRows: [{
+          buffInternalName: 'ObsidianSkin',
+          rawJson: JSON.stringify({ image: 'Obsidian Skin.png' }),
+          sourceProvider: 'terraria.wiki.gg',
+          sourcePage: 'Template:GetBuffInfo',
+        }],
+        relationImageRows: [{
+          buffInternalName: 'ObsidianSkin',
+          cachedUrl: 'http://localhost:9000/terrapedia-images/items/wiki/buffs/obsidian.png',
+          originalUrl: 'https://terraria.wiki.gg/images/Obsidian_Skin.png',
+        }],
+        projectionRows: [{
+          internalName: 'ObsidianSkin',
+          image: 'http://localhost:9000/terrapedia-images/items/wiki/buffs/obsidian.png',
+        }],
+      },
+      npcs: {},
+      bosses: {},
+      projectiles: {},
+      armor_sets: {},
+      biomes: {},
+    },
+  });
+
+  assert.equal(report.entities.buffs.contractReady, false);
+  assert.ok(report.entities.buffs.gapReasons.includes('relation_image_wrong_managed_prefix'));
+  assert.ok(report.entities.buffs.gapReasons.includes('projection_image_wrong_managed_prefix'));
+  assert.equal(report.entities.buffs.lineage.relation.rowsWithWrongManagedPrefix, 1);
+  assert.equal(report.entities.buffs.lineage.projection.rowsWithWrongManagedPrefix, 1);
 });
 
 test('buildImageSourceLineageQueries stay read-only and cover the expected lineage tables', () => {

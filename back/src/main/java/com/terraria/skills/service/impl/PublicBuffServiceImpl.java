@@ -74,7 +74,8 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         if (value == null || value.isBlank()) {
             return null;
         }
-        return managedImageUrlPolicy.isManagedImageUrl(value) ? value.trim() : null;
+        String normalized = value.trim();
+        return managedImageUrlPolicy.isManagedImageUrlForDomain(normalized, "buffs") ? normalized : null;
     }
 
     private String firstNonBlank(String... values) {

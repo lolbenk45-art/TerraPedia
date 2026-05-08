@@ -100,11 +100,35 @@ function getConfigValue(root, segments) {
 }
 
 function resolveLocalStackConfigPath(repoRoot) {
-  const candidates = [
-    path.join(repoRoot, 'scripts', 'dev', 'config', 'local-stack.config.json'),
-    path.join(repoRoot, 'scripts', 'dev', 'local-stack.config.json'),
-  ];
-  return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
+  for (const root of candidateRepoRoots(repoRoot)) {
+    const candidates = [
+      path.join(root, 'scripts', 'dev', 'config', 'local-stack.config.json'),
+      path.join(root, 'scripts', 'dev', 'local-stack.config.json'),
+    ];
+    const resolved = candidates.find((candidate) => fs.existsSync(candidate));
+    if (resolved) {
+      return resolved;
+    }
+  }
+  return null;
+}
+
+function candidateRepoRoots(repoRoot) {
+  const roots = [];
+  let current = path.resolve(repoRoot);
+  while (true) {
+    roots.push(current);
+    const worktreeMarker = path.join(current, '.worktrees');
+    if (fs.existsSync(worktreeMarker) && fs.statSync(worktreeMarker).isDirectory()) {
+      break;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      break;
+    }
+    current = parent;
+  }
+  return [...new Set(roots)];
 }
 
 function firstText(...values) {

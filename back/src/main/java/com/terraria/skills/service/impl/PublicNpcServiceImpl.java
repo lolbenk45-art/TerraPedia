@@ -615,7 +615,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setBuffInternalName(toStringValue(row.get("buffInternalName")));
         dto.setBuffNameEn(toStringValue(row.get("buffNameEn")));
         dto.setBuffNameZh(toStringValue(row.get("buffNameZh")));
-        dto.setImageUrl(managedDisplayImageUrl(toStringValue(row.get("buffImage"))));
+        dto.setImageUrl(managedBuffImageUrl(toStringValue(row.get("buffImage"))));
         return dto;
     }
 
@@ -625,6 +625,11 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             return null;
         }
         return text;
+    }
+
+    private String managedBuffImageUrl(String value) {
+        String text = trimToNull(value);
+        return managedImageUrlPolicy.isManagedImageUrlForDomain(text, "buffs") ? text : null;
     }
 
     private NpcSupplement getSupplement(Long gameId) {

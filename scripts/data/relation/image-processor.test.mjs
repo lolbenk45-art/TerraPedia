@@ -98,7 +98,8 @@ test('buildImageRelations derives buff image rows and prefers managed cached url
         image: 'http://localhost:9000/terrapedia-images/items/2026/04/08/9c526fabad7e4f8994a6340f15a86936.png',
         image_cached_url: 'http://localhost:9000/terrapedia-images/items/wiki/buffs/e8/e81a74cb058d02494e2da8dd8a833c4b0b57c5dc-obsidianskin.png'
       }
-    ]
+    ],
+    canonicalBuffUrlMatcher: (value) => value.startsWith('http://localhost:9000/terrapedia-images/buffs/')
   });
 
   assert.equal(actual.relationBuffImages.length, 1);
@@ -109,7 +110,7 @@ test('buildImageRelations derives buff image rows and prefers managed cached url
   );
   assert.equal(
     actual.relationBuffImages[0].cachedUrl,
-    'http://localhost:9000/terrapedia-images/items/wiki/buffs/e8/e81a74cb058d02494e2da8dd8a833c4b0b57c5dc-obsidianskin.png'
+    'http://localhost:9000/terrapedia-images/buffs/2026/05/07/obsidian-skin.png'
   );
   assert.equal(actual.relationBuffImages[0].contentType, 'image/png');
   assert.equal(actual.relationBuffImages[0].sourceMaintTable, 'maint_buffs');

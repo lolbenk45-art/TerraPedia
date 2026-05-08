@@ -87,15 +87,55 @@ const LOCAL_PRESERVE_COLUMNS = {
     'catch_item_id',
     'created_at',
     'updated_at'
+  ]),
+  boss_groups: new Set([
+    'summon_method',
+    'created_at',
+    'updated_at'
+  ]),
+  buffs: new Set([
+    'image_original_url',
+    'image_content_type',
+    'image_last_verified_at',
+    'image_provider',
+    'image_source_page',
+    'image_source_file_title',
+    'image_source_revision_timestamp',
+    'source_items_json',
+    'immune_npc_sample_json',
+    'created_at',
+    'updated_at'
   ])
 };
 
-function selectColumnsToSync(localTable, localColumns, projectionColumns) {
-  const sharedColumns = intersectColumns(localColumns, projectionColumns);
+const DOMAIN_COLUMN_MAPPINGS = {
+  buffs: [
+    ['image_cached_url', 'image']
+  ]
+};
+
+function selectColumnsToSync(domainName, localTable, localColumns, projectionColumns) {
+  const sharedColumns = intersectColumns(localColumns, projectionColumns)
+    .map((column) => [column, column]);
+  const localColumnSet = new Set(localColumns);
+  const projectionColumnSet = new Set(projectionColumns);
+  const mappedColumns = [...sharedColumns];
+  for (const [localColumn, projectionColumn] of DOMAIN_COLUMN_MAPPINGS[domainName] ?? []) {
+    if (!localColumnSet.has(localColumn) || !projectionColumnSet.has(projectionColumn)) {
+      continue;
+    }
+    if (mappedColumns.some(([existingLocal]) => existingLocal === localColumn)) {
+      continue;
+    }
+    mappedColumns.push([localColumn, projectionColumn]);
+  }
   const protectedColumns = LOCAL_PRESERVE_COLUMNS[localTable] ?? new Set();
+  const selectedMappings = mappedColumns.filter(([localColumn]) => !protectedColumns.has(localColumn));
   return {
-    columnsToSync: sharedColumns.filter((column) => !protectedColumns.has(column)),
-    skippedProtectedColumns: sharedColumns
+    columnMappings: selectedMappings,
+    columnsToSync: selectedMappings.map(([localColumn]) => localColumn),
+    skippedProtectedColumns: mappedColumns
+      .map(([localColumn]) => localColumn)
       .filter((column) => protectedColumns.has(column))
       .sort()
   };
@@ -110,13 +150,14 @@ export function buildInsertProjectionSql({
   relationDatabase,
   localTable,
   projectionTable,
-  columns
+  columnMappings
 }) {
-  if (!columns.length) {
+  if (!columnMappings.length) {
     throw new Error(`No shared columns available for ${localTable} <= ${projectionTable}`);
   }
-  const columnList = columns.map(quoteIdentifier).join(', ');
-  return `INSERT INTO ${qualified(localDatabase, localTable)} (${columnList}) SELECT ${columnList} FROM ${qualified(relationDatabase, projectionTable)}`;
+  const localColumnList = columnMappings.map(([localColumn]) => quoteIdentifier(localColumn)).join(', ');
+  const projectionColumnList = columnMappings.map(([, projectionColumn]) => quoteIdentifier(projectionColumn)).join(', ');
+  return `INSERT INTO ${qualified(localDatabase, localTable)} (${localColumnList}) SELECT ${projectionColumnList} FROM ${qualified(relationDatabase, projectionTable)}`;
 }
 
 export function buildUpsertProjectionSql({
@@ -124,17 +165,20 @@ export function buildUpsertProjectionSql({
   relationDatabase,
   localTable,
   projectionTable,
-  columns
+  columnMappings
 }) {
-  if (!columns.length) {
+  if (!columnMappings.length) {
     throw new Error(`No shared columns available for ${localTable} <= ${projectionTable}`);
   }
-  const columnList = columns.map(quoteIdentifier).join(', ');
-  const updateColumns = columns.filter((column) => column !== 'id');
+  const localColumns = columnMappings.map(([localColumn]) => localColumn);
+  const projectionColumns = columnMappings.map(([, projectionColumn]) => projectionColumn);
+  const columnList = localColumns.map(quoteIdentifier).join(', ');
+  const projectionSelectList = projectionColumns.map(quoteIdentifier).join(', ');
+  const updateColumns = localColumns.filter((column) => column !== 'id');
   const updateList = updateColumns.length > 0
     ? updateColumns.map((column) => `${quoteIdentifier(column)} = VALUES(${quoteIdentifier(column)})`).join(', ')
-    : `${quoteIdentifier(columns[0])} = ${quoteIdentifier(columns[0])}`;
-  return `INSERT INTO ${qualified(localDatabase, localTable)} (${columnList}) SELECT ${columnList} FROM ${qualified(relationDatabase, projectionTable)} ON DUPLICATE KEY UPDATE ${updateList}`;
+    : `${quoteIdentifier(localColumns[0])} = ${quoteIdentifier(localColumns[0])}`;
+  return `INSERT INTO ${qualified(localDatabase, localTable)} (${columnList}) SELECT ${projectionSelectList} FROM ${qualified(relationDatabase, projectionTable)} ON DUPLICATE KEY UPDATE ${updateList}`;
 }
 
 async function defaultListColumns(connection, database, table) {
@@ -195,7 +239,7 @@ async function backupAndApplyDomain(connection, options, domain) {
         relationDatabase: options.relationDatabase,
         localTable: domain.localTable,
         projectionTable: domain.projectionTable,
-        columns: domain.columnsToSync
+        columnMappings: domain.columnMappings
       }));
     } else {
       await connection.query(`DELETE FROM ${localTableName}`);
@@ -204,7 +248,7 @@ async function backupAndApplyDomain(connection, options, domain) {
         relationDatabase: options.relationDatabase,
         localTable: domain.localTable,
         projectionTable: domain.projectionTable,
-        columns: domain.columnsToSync
+        columnMappings: domain.columnMappings
       }));
     }
     await connection.query('COMMIT');
@@ -240,7 +284,7 @@ export async function runProjectionToLocalCoreSync(options = {}, dependencies = 
         countRows(connection, normalized.localDatabase, config.localTable),
         countRows(connection, normalized.relationDatabase, config.projectionTable)
       ]);
-      const columnSelection = selectColumnsToSync(config.localTable, localColumns, projectionColumns);
+      const columnSelection = selectColumnsToSync(domainName, config.localTable, localColumns, projectionColumns);
       const syncStrategy = LOCAL_PRESERVE_COLUMNS[config.localTable]
         ? 'upsert_preserve_local'
         : 'replace';
@@ -252,6 +296,7 @@ export async function runProjectionToLocalCoreSync(options = {}, dependencies = 
         localRowsBefore: localRows,
         projectionRows,
         syncStrategy,
+        columnMappings: columnSelection.columnMappings,
         columnsToSync: columnSelection.columnsToSync,
         skippedProtectedColumns: columnSelection.skippedProtectedColumns
       };

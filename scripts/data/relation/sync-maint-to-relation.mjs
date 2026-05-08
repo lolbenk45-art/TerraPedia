@@ -194,6 +194,10 @@ function buildManagedImageSqlNotLikeAll(column, prefixes) {
   return clauses.length ? `(${clauses.join(' AND ')})` : 'TRUE';
 }
 
+function resolveBuffManagedUrlPrefixes(prefixes = []) {
+  return normalizeManagedImageUrlPrefixes(prefixes).filter((prefix) => /\/buffs\/$/i.test(prefix));
+}
+
 export function rewriteArmorSetRelatedItemImages(relatedItems, imageByInternalName, prefixes) {
   if (!Array.isArray(relatedItems)) {
     return { changed: false, items: relatedItems };
@@ -657,6 +661,7 @@ export async function runSync(options, dependencies = {}) {
   const managedImageUrlPrefixes = normalizeManagedImageUrlPrefixes(
     dependencies.managedImageUrlPrefixes ?? resolveManagedImageUrlPrefixes()
   );
+  const canonicalBuffManagedUrlPrefixes = resolveBuffManagedUrlPrefixes(managedImageUrlPrefixes);
   const mysqlOptions = {
     host: config.database?.host ?? '127.0.0.1',
     port: Number(config.database?.port ?? 3306),
@@ -691,6 +696,7 @@ export async function runSync(options, dependencies = {}) {
     maintProjectiles,
     localProjectiles,
     maintNpcs,
+    localBossGroupRows,
     localBuffRows,
     itemImageRows,
     maintItemPages,
@@ -716,6 +722,7 @@ export async function runSync(options, dependencies = {}) {
     queryMaint('SELECT * FROM maint_projectiles'),
     options.localDatabase ? loadDataset(mysqlOptions, options.localDatabase, 'SELECT internal_name, image_url FROM projectiles WHERE deleted = 0') : [],
     queryMaint('SELECT * FROM maint_npcs'),
+    options.localDatabase ? loadDataset(mysqlOptions, options.localDatabase, 'SELECT code, image_url FROM boss_groups WHERE deleted = 0') : [],
     options.localDatabase ? loadDataset(mysqlOptions, options.localDatabase, 'SELECT internal_name, image, image_cached_url FROM buffs WHERE deleted = 0') : [],
     queryMaint('SELECT * FROM maint_item_images'),
     queryMaint('SELECT item_internal_name, sell_text, sell_value, source_revision_timestamp, updated_at FROM maint_item_pages'),
@@ -747,7 +754,8 @@ export async function runSync(options, dependencies = {}) {
     maintProjectiles,
     maintBuffs: maintBuffRows,
     localProjectiles,
-    localBuffs: localBuffRows
+    localBuffs: localBuffRows,
+    canonicalBuffUrlMatcher: (value) => isManagedImageUrl(value, canonicalBuffManagedUrlPrefixes)
   });
   const relationItemRarities = buildRelationItemRarities();
 
@@ -772,6 +780,7 @@ export async function runSync(options, dependencies = {}) {
   });
   const bossSeries = buildBossSeriesRelations({
     maintBossRows,
+    localBossGroupRows,
     relationNpcRows: baseEntities.relationNpcs,
     itemNpcLootRelations: itemSource.npcLootRelations
   });

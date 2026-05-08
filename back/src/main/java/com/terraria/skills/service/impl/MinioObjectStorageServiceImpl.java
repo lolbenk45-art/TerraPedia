@@ -150,7 +150,7 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
         String normalizedDomain = trimToNull(entityDomain);
         if (normalizedDomain != null) {
             String lowered = normalizedDomain.toLowerCase(Locale.ROOT);
-            if ("items".equals(lowered) || "npcs".equals(lowered) || "projectiles".equals(lowered)) {
+            if ("items".equals(lowered) || "npcs".equals(lowered) || "projectiles".equals(lowered) || "buffs".equals(lowered) || "bosses".equals(lowered)) {
                 return lowered;
             }
         }

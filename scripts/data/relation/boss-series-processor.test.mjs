@@ -52,6 +52,12 @@ test('buildBossSeriesRelations maps bosses to npc identities, rewards, and expli
         source_page: 'The Twins'
       }
     ],
+    localBossGroupRows: [
+      {
+        code: 'BRAIN_OF_CTHULHU',
+        image_url: 'http://localhost:9000/terrapedia-images/bosses/brain-of-cthulhu.png'
+      }
+    ],
     relationNpcRows: [
       {
         recordKey: 'npc-1',
@@ -96,6 +102,7 @@ test('buildBossSeriesRelations maps bosses to npc identities, rewards, and expli
   assert.ok(brain);
   assert.equal(brain.npcMatchStatus, 'resolved');
   assert.equal(brain.npcMatchCount, 1);
+  assert.equal(brain.imageUrl, 'http://localhost:9000/terrapedia-images/bosses/brain-of-cthulhu.png');
 
   const twins = actual.relationBosses.find((row) => row.bossTitleEn === 'The Twins');
   assert.ok(twins);

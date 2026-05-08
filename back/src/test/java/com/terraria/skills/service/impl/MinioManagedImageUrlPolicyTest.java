@@ -44,7 +44,11 @@ class MinioManagedImageUrlPolicyTest {
                 "https://cdn.example.com/terrapedia-images/npcs/",
                 "http://minio:9000/terrapedia-images/npcs/",
                 "https://cdn.example.com/terrapedia-images/projectiles/",
-                "http://minio:9000/terrapedia-images/projectiles/"
+                "http://minio:9000/terrapedia-images/projectiles/",
+                "https://cdn.example.com/terrapedia-images/buffs/",
+                "http://minio:9000/terrapedia-images/buffs/",
+                "https://cdn.example.com/terrapedia-images/bosses/",
+                "http://minio:9000/terrapedia-images/bosses/"
             ),
             policy.trustedManagedImageUrlPrefixes()
         );
@@ -60,6 +64,26 @@ class MinioManagedImageUrlPolicyTest {
         assertTrue(policy.isManagedImageUrl("https://cdn.example.com/terrapedia-images/npcs/eye-of-cthulhu.png"));
         assertTrue(policy.isManagedImageUrl("https://cdn.example.com/terrapedia-images/projectiles/death-laser.png"));
         assertFalse(policy.isManagedImageUrl("https://cdn.example.com/terrapedia-images/buffs/ironskin.png"));
+    }
+
+    @Test
+    void shouldTreatBuffPrefixesAsManagedWhenConfigured() {
+        MinioManagedImageUrlPolicy policy = new MinioManagedImageUrlPolicy(
+            configuredProperties("buffs"),
+            connectionDetailsProvider(connectionDetails("http://minio:9000/", "https://cdn.example.com/"))
+        );
+
+        assertTrue(policy.isManagedImageUrl("https://cdn.example.com/terrapedia-images/buffs/ironskin.png"));
+    }
+
+    @Test
+    void shouldTreatBossPrefixesAsManagedWhenConfigured() {
+        MinioManagedImageUrlPolicy policy = new MinioManagedImageUrlPolicy(
+            configuredProperties("bosses"),
+            connectionDetailsProvider(connectionDetails("http://minio:9000/", "https://cdn.example.com/"))
+        );
+
+        assertTrue(policy.isManagedImageUrl("https://cdn.example.com/terrapedia-images/bosses/king-slime.png"));
     }
 
     @Test

@@ -45,15 +45,25 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class AdminNpcControllerTest {
 
+    private static final String CDN_BUFF_IMAGE_URL = "https://cdn.example.com/terrapedia-images/buffs/wiki/ab/sharpened.png";
+
     private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
         @Override
         public boolean isManagedImageUrl(String value) {
-            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/");
+            return value != null && (
+                value.startsWith("http://localhost:9000/terrapedia-images/")
+                    || value.startsWith("https://cdn.example.com/terrapedia-images/")
+            );
         }
 
         @Override
         public List<String> trustedManagedImageUrlPrefixes() {
-            return List.of("http://localhost:9000/terrapedia-images/");
+            return List.of(
+                "http://localhost:9000/terrapedia-images/items/",
+                "http://localhost:9000/terrapedia-images/npcs/",
+                "http://localhost:9000/terrapedia-images/buffs/",
+                "https://cdn.example.com/terrapedia-images/buffs/"
+            );
         }
     };
 
@@ -263,6 +273,44 @@ class AdminNpcControllerTest {
         assertTrue(queryCaptor.getAllValues().stream()
             .filter(sql -> sql.contains("FROM npc_buff_relations"))
             .anyMatch(sql -> sql.contains("b.image_cached_url") && sql.contains("AS buffImage")));
+    }
+
+    @Test
+    void shouldAllowConfiguredCdnBuffImagesInNpcDetailPayload() throws Exception {
+        Npc npc = new Npc();
+        npc.setId(481L);
+        npc.setGameId(481L);
+        npc.setInternalName("Merchant");
+        npc.setName("Merchant");
+        npc.setStatus(1);
+
+        when(npcMapper.selectById(481L)).thenReturn(npc);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_loot_entries"), eq(Integer.class), eq(481L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_buff_relations"), eq(Integer.class), eq(481L))).thenReturn(1);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_shop_entries"), eq(Integer.class), eq(481L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("source_ref_id = ?"), eq(Integer.class), eq(481L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(
+            contains("LOWER(TRIM(source_ref_name)) = LOWER(TRIM(?))"),
+            eq(Integer.class),
+            eq("Merchant")
+        )).thenReturn(0);
+        when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries nle"), eq(481L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("source_ref_id IS NULL"), eq("Merchant"))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(481L))).thenReturn(List.of(Map.of(
+            "id", 202L,
+            "buffId", 156L,
+            "buffSourceId", 156,
+            "buffInternalName", "Sharpened",
+            "buffNameEn", "Sharpened",
+            "buffNameZh", "Sharpened",
+            "buffType", "buff",
+            "buffImage", CDN_BUFF_IMAGE_URL
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries nse"), eq(481L))).thenReturn(List.of());
+
+        mockMvc.perform(get("/admin/npcs/481"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.buffRelations[0].buffImage").value(CDN_BUFF_IMAGE_URL));
     }
 
     @Test

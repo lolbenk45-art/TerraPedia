@@ -7,6 +7,7 @@ import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime
 import {
   createMinioImageUploader,
   DEFAULT_MANAGED_URL_PREFIX,
+  isManagedUrlForEntity,
   isManagedUrl,
 } from '../lib/minio-image-upload.mjs';
 
@@ -33,6 +34,9 @@ const db = {
   password: process.env.TERRAPEDIA_DB_PASSWORD || 'root',
   database: process.env.TERRAPEDIA_DB_NAME || 'terria_v1_local',
 };
+
+const BOSS_IMAGE_DOMAIN = 'bosses';
+const BOSS_MEMBER_IMAGE_DOMAIN = 'npcs';
 
 const generatedNpcMap = loadGeneratedNpcMap(generatedNpcMapPath);
 const uploader = apply
@@ -112,7 +116,7 @@ try {
 
       summary.bossGroups.candidates += 1;
       let nextUrl = currentUrl;
-      if (isManagedUrl(currentUrl, managedUrlPrefixes)) {
+      if (isManagedUrlForEntity(currentUrl, BOSS_IMAGE_DOMAIN, managedUrlPrefixes)) {
         summary.bossGroups.alreadyManaged += 1;
       } else if (!uploader) {
         summary.bossGroups.pending += 1;
@@ -120,6 +124,7 @@ try {
       } else {
         const uploadedUrl = await uploader.uploadImageUrl(currentUrl, {
           nameHint: bossGroup.code || bossGroup.name_en || `boss-${bossGroup.id}`,
+          entityDomain: 'bosses',
         });
         if (!uploadedUrl) {
           summary.bossGroups.failed += 1;
@@ -170,6 +175,7 @@ try {
       } else {
         const uploadedUrl = await uploader.uploadImageUrl(sourceUrl, {
           nameHint: member.internal_name || `boss-member-${member.id}`,
+          entityDomain: BOSS_MEMBER_IMAGE_DOMAIN,
         });
         if (!uploadedUrl) {
           summary.bossMembers.failed += 1;
