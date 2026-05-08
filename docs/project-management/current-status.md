@@ -40,3 +40,7 @@ Smoke is read-only business probing and report writing under `reports/local-star
 ## P2 Status
 
 P2 is readiness-only after P1. No new public Boss, Buff, Projectile, or ArmorSet code is scheduled in Phase B.
+
+## Next TODO
+
+- Add an automatic NPC zh-name gate for the next iteration. Current evidence shows `npc-id-row-images.json` can contain Chinese names while `npcs.name_zh` may still regress to empty if a write path skips zh persistence. Add a DB/API coverage check so this fails before UI review.

@@ -15,3 +15,4 @@
 | R-2026-05-06-04 | High | Local stop | Local stop kills unrelated user services by port | Default stop is recorded pid-only; `-ForcePorts` is explicit and ownership-checked | Open |
 | R-2026-05-06-05 | High | Local smoke | Smoke introduces storage sync, refresh, or data writes | Smoke is source-tested as read-only and cannot run crawler/import/backfill/load/apply/write/storage sync | Open |
 | R-2026-05-06-06 | Medium | Local reports | `run-manifest.json` leaks local credentials | Manifest records ports/processes/health only and must not include passwords, token secrets, bearer tokens, or MinIO secrets | Open |
+| R-2026-05-08-01 | Medium | NPC bilingual chain | `npc-id-row-images.json` or zh enrich can contain Chinese NPC names while `npcs.name_zh` silently regresses to empty because a sync/write path skips zh persistence | Next iteration: add an automatic DB/API zh-name coverage gate for NPCs and route it into pre-release verification | Open |
