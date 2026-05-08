@@ -48,11 +48,6 @@ import java.util.Set;
 @SecurityRequirement(name = "bearerAuth")
 public class AdminBossController {
 
-    private static final List<String> BOSS_MANAGED_IMAGE_URL_PREFIXES = List.of(
-        "http://localhost:9000/terrapedia-images/bosses/",
-        "http://127.0.0.1:9000/terrapedia-images/bosses/"
-    );
-
     private static final Map<String, List<String>> REFERENCE_BOSS_GROUP_CODES = Map.of(
         "MECHDUSA", List.of("THE_TWINS", "THE_DESTROYER", "SKELETRON_PRIME")
     );
@@ -264,7 +259,7 @@ public class AdminBossController {
         payload.put("nameZh", bossGroup.getNameZh());
         payload.put("name", firstNonBlank(bossGroup.getNameZh(), bossGroup.getNameEn(), bossGroup.getCode()));
         payload.put("bossType", bossGroup.getBossType());
-        payload.put("imageUrl", managedImageOrNull(bossGroup.getImageUrl()));
+        payload.put("imageUrl", managedBossImageOrNull(bossGroup.getImageUrl()));
         payload.put("progressionOrder", bossGroup.getProgressionOrder());
         payload.put("notes", bossGroup.getNotes());
         payload.put("summonMethod", resolveSummonMethod(bossGroup));
@@ -585,20 +580,20 @@ public class AdminBossController {
         return sanitizedRows;
     }
 
+    private String managedBossImageOrNull(String value) {
+        String text = trimToNull(value);
+        if (text == null) {
+            return null;
+        }
+        return managedImageUrlPolicy.isManagedImageUrlForDomain(text, "bosses") ? text : null;
+    }
+
     private String managedImageOrNull(String value) {
         String text = trimToNull(value);
         if (text == null) {
             return null;
         }
-        if (managedImageUrlPolicy.isManagedImageUrl(text)) {
-            return text;
-        }
-        for (String prefix : BOSS_MANAGED_IMAGE_URL_PREFIXES) {
-            if (text.startsWith(prefix)) {
-                return text;
-            }
-        }
-        return null;
+        return managedImageUrlPolicy.isManagedImageUrl(text) ? text : null;
     }
 
     private void syncMembers(Long bossGroupId, List<Long> memberNpcIds) {
@@ -640,7 +635,7 @@ public class AdminBossController {
             target.setBossType(trimToNull(firstValue(request, "bossType")));
         }
         if (creating || request.containsKey("imageUrl")) {
-            target.setImageUrl(trimToNull(firstValue(request, "imageUrl")));
+            target.setImageUrl(managedBossImageOrNull(trimToNull(firstValue(request, "imageUrl"))));
         }
         if (creating || request.containsKey("progressionOrder")) {
             Integer progressionOrder = toInteger(firstValue(request, "progressionOrder"));

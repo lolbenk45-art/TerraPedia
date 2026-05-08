@@ -49,7 +49,7 @@ class PublicBuffControllerTest {
         buff.setInternalName("Sharpened");
         buff.setName("Sharpened CN");
         buff.setNameZh("Sharpened CN");
-        buff.setImageUrl("http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png");
+        buff.setImageUrl("http://localhost:9000/terrapedia-images/buffs/wiki/ab/sharpened.png");
         buff.setBuffType("station");
         buff.setTooltipZh("Buff tooltip");
         buff.setSourceItemCount(1);
@@ -76,7 +76,7 @@ class PublicBuffControllerTest {
             .andExpect(jsonPath("$.data[0].sourceId").value(159))
             .andExpect(jsonPath("$.data[0].internalName").value("Sharpened"))
             .andExpect(jsonPath("$.data[0].nameZh").value("Sharpened CN"))
-            .andExpect(jsonPath("$.data[0].imageUrl").value("http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png"))
+            .andExpect(jsonPath("$.data[0].imageUrl").value("http://localhost:9000/terrapedia-images/buffs/wiki/ab/sharpened.png"))
             .andExpect(jsonPath("$.data[0].buffType").value("station"))
             .andExpect(jsonPath("$.data[0].tooltipZh").value("Buff tooltip"))
             .andExpect(jsonPath("$.data[0].sourceItemCount").value(1))

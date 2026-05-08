@@ -43,6 +43,7 @@ import java.util.Objects;
 public class WikiImageSyncServiceImpl implements WikiImageSyncService {
 
     private static final List<String> WIKI_IMAGE_PROVIDERS = List.of("wiki_gg", "terraria.wiki.gg");
+    private static final String BUFF_OBJECT_PREFIX = "buffs";
     private static final String MAINT_DATABASE_NAME = "terria_v1_maint";
     private static final String RELATION_DATABASE_NAME = "terria_v1_relation";
     private static final String PROJECTION_ARMOR_SETS_TABLE = "projection_armor_sets";
@@ -343,7 +344,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                 FileUploadResultDTO upload = uploadFromWikiSource(
                     uploadCache,
                     sourceUrl,
-                    "wiki/buffs/" + hashPrefix(sourceUrl),
+                    BUFF_OBJECT_PREFIX + "/wiki/" + hashPrefix(sourceUrl),
                     buildStableId(sourceUrl, firstNonBlank(buff.getInternalName(), buff.getEnglishName(), buff.getNameZh(), "buff"))
                 );
                 buff.setImage(upload.getUrl());

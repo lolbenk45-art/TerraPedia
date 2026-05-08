@@ -30,6 +30,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -42,6 +43,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @ConditionalOnBean(MinioClient.class)
 @ConditionalOnProperty(prefix = "terraria.storage.minio", name = "enabled", havingValue = "true")
 public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizationService {
+
+    private static final List<String> DOMAIN_OBJECT_PREFIXES = List.of("items", "npcs", "projectiles", "buffs");
 
     private static final Duration FAILURE_CACHE_TTL = Duration.ofMinutes(10);
     private static final int FAILURE_CACHE_MAX_ENTRIES = 2048;
@@ -485,13 +488,47 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
     }
 
     private String buildScopedObjectKey(String pathPrefix, String stableId, String originalFilename, String contentType) {
-        String prefix = StringUtils.hasText(connectionDetails.objectPrefix())
-            ? connectionDetails.objectPrefix().replaceAll("^/+|/+$", "")
-            : "items";
         String safePathPrefix = trimObjectPath(pathPrefix);
+        String prefix = resolveObjectPrefix(safePathPrefix);
+        String scopedPath = stripLeadingObjectPrefix(safePathPrefix, prefix);
         String safeStableId = trimObjectPath(stableId);
         String extension = resolveExtension(originalFilename, contentType);
-        return prefix + "/" + safePathPrefix + "/" + safeStableId + extension;
+        if (!StringUtils.hasText(scopedPath)) {
+            return prefix + "/" + safeStableId + extension;
+        }
+        return prefix + "/" + scopedPath + "/" + safeStableId + extension;
+    }
+
+    private String resolveObjectPrefix(String safePathPrefix) {
+        String explicitPrefix = firstPathSegment(safePathPrefix);
+        if (explicitPrefix != null && DOMAIN_OBJECT_PREFIXES.contains(explicitPrefix)) {
+            return explicitPrefix;
+        }
+        return StringUtils.hasText(connectionDetails.objectPrefix())
+            ? connectionDetails.objectPrefix().replaceAll("^/+|/+$", "")
+            : "items";
+    }
+
+    private String stripLeadingObjectPrefix(String safePathPrefix, String prefix) {
+        if (!StringUtils.hasText(safePathPrefix) || !StringUtils.hasText(prefix)) {
+            return safePathPrefix;
+        }
+        if (safePathPrefix.equals(prefix)) {
+            return null;
+        }
+        String expectedPrefix = prefix + "/";
+        return safePathPrefix.startsWith(expectedPrefix)
+            ? safePathPrefix.substring(expectedPrefix.length())
+            : safePathPrefix;
+    }
+
+    private String firstPathSegment(String value) {
+        String normalized = trimObjectPath(value);
+        if (!StringUtils.hasText(normalized)) {
+            return null;
+        }
+        int slashIndex = normalized.indexOf('/');
+        return slashIndex >= 0 ? normalized.substring(0, slashIndex) : normalized;
     }
 
     private String resolveExtension(String originalFilename, String contentType) {

@@ -80,6 +80,15 @@ function firstManagedUrl(...values) {
   return null;
 }
 
+function firstMatchingUrl(values = [], matcher = () => false) {
+  for (const value of values) {
+    if (isUrl(value) && matcher(value.trim())) {
+      return value.trim();
+    }
+  }
+  return null;
+}
+
 function buildRowIndexByInternalName(rows = []) {
   return new Map(
     rows
@@ -137,7 +146,7 @@ function buildRawJsonImageRows(rows, config) {
     .filter(Boolean);
 }
 
-function buildBuffImageRows(rows, localBuffIndex = new Map()) {
+function buildBuffImageRows(rows, localBuffIndex = new Map(), canonicalBuffUrlMatcher = () => false) {
   return rows
     .map((row) => {
       const parsedRawJson = parseRawJson(row.raw_json);
@@ -154,13 +163,15 @@ function buildBuffImageRows(rows, localBuffIndex = new Map()) {
       }
 
       const localRow = localBuffIndex.get(String(row.internal_name ?? '').trim()) ?? null;
-      const managedCachedUrl = firstManagedUrl(
-        localRow?.image_cached_url,
-        localRow?.image,
+      const managedCandidates = [
         row.image_cached_url,
         row.image,
-        parsedRawJson.image
-      );
+        parsedRawJson.image,
+        localRow?.image_cached_url,
+        localRow?.image
+      ];
+      const managedCachedUrl = firstMatchingUrl(managedCandidates, canonicalBuffUrlMatcher)
+        ?? firstManagedUrl(...managedCandidates);
       if (!managedCachedUrl) {
         return derived;
       }
@@ -210,7 +221,8 @@ export function buildImageRelations({
   maintProjectiles = [],
   maintBuffs = [],
   localProjectiles = [],
-  localBuffs = []
+  localBuffs = [],
+  canonicalBuffUrlMatcher = () => false
 } = {}) {
   const localProjectileIndex = buildRowIndexByInternalName(localProjectiles);
   const localBuffIndex = buildRowIndexByInternalName(localBuffs);
@@ -274,6 +286,6 @@ export function buildImageRelations({
     }),
     relationNpcImages: mirrorNpcImages,
     relationProjectileImages: buildProjectileImageRows(maintProjectiles, localProjectileIndex),
-    relationBuffImages: buildBuffImageRows(maintBuffs, localBuffIndex)
+    relationBuffImages: buildBuffImageRows(maintBuffs, localBuffIndex, canonicalBuffUrlMatcher)
   };
 }

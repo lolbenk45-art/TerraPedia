@@ -298,7 +298,7 @@ class WikiImageSyncServiceImplTest {
         Buff updated = buffCaptor.getValue();
         assertEquals(fetchUrl, readString(updated, "getImageOriginalUrl"));
         String managedImageUrl = readString(updated, "getImageCachedUrl");
-        assertTrue(managedImageUrl.startsWith("http://localhost:9000/terrapedia-images/items/wiki/buffs/"));
+        assertTrue(managedImageUrl.startsWith("http://localhost:9000/terrapedia-images/buffs/wiki/"));
         assertEquals(managedImageUrl, updated.getImage());
     }
 

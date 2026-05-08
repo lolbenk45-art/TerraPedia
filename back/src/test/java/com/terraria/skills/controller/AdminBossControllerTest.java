@@ -40,17 +40,27 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AdminBossControllerTest {
 
     private static final String MANAGED_IMAGE_URL = "http://localhost:9000/terrapedia-images/bosses/king-slime.png";
+    private static final String CDN_MANAGED_IMAGE_URL = "https://cdn.example.com/terrapedia-images/bosses/king-slime.png";
     private static final String MANAGED_MEMBER_IMAGE_URL = "http://localhost:9000/terrapedia-images/npcs/retinazer.png";
     private static final String WIKI_IMAGE_URL = "https://terraria.wiki.gg/images/King_Slime.png";
     private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
         @Override
         public boolean isManagedImageUrl(String value) {
-            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/");
+            return value != null && (
+                value.startsWith("http://localhost:9000/terrapedia-images/")
+                    || value.startsWith("https://cdn.example.com/terrapedia-images/")
+            );
         }
 
         @Override
         public List<String> trustedManagedImageUrlPrefixes() {
-            return List.of("http://localhost:9000/terrapedia-images/");
+            return List.of(
+                "http://localhost:9000/terrapedia-images/items/",
+                "http://localhost:9000/terrapedia-images/npcs/",
+                "http://localhost:9000/terrapedia-images/bosses/",
+                "https://cdn.example.com/terrapedia-images/bosses/",
+                "https://cdn.example.com/terrapedia-images/npcs/"
+            );
         }
     };
 
@@ -296,6 +306,18 @@ class AdminBossControllerTest {
         } finally {
             System.setProperty("user.dir", originalUserDir);
         }
+    }
+
+    @Test
+    void shouldAllowConfiguredCdnBossImagesInAdminPayload() throws Exception {
+        BossGroup boss = bossGroup(77L, "KING_SLIME", "King Slime", "鍙茶幈濮嗙帇", "PRE_HARDMODE", 1);
+        boss.setImageUrl(CDN_MANAGED_IMAGE_URL);
+        when(bossGroupMapper.selectById(eq(77L))).thenReturn(boss);
+        when(npcMapper.selectList(any())).thenReturn(List.of());
+
+        mockMvc.perform(get("/admin/bosses/77"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.imageUrl").value(CDN_MANAGED_IMAGE_URL));
     }
 
     private BossGroup bossGroup(Long id, String code, String nameEn, String nameZh, String bossType, int progressionOrder) {

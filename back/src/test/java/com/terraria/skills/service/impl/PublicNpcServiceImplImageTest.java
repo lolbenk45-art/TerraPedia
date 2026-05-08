@@ -35,6 +35,7 @@ import static org.mockito.Mockito.when;
 class PublicNpcServiceImplImageTest {
 
     private static final String MANAGED_IMAGE = "http://localhost:9000/terrapedia-images/items/wiki/npcs/ab/guide.png";
+    private static final String CDN_BUFF_IMAGE = "https://cdn.example.com/terrapedia-images/buffs/wiki/ab/sharpened.png";
     private static final String WIKI_IMAGE = "https://terraria.wiki.gg/images/Stingy%20Hornet.gif";
     private static final String STATIC_IMAGE = "/static/images/npcs/guide.png";
 
@@ -131,19 +132,36 @@ class PublicNpcServiceImplImageTest {
             "buffId", 401L,
             "buffSourceId", 401,
             "buffInternalName", "Sharpened",
-            "buffImage", "http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png"
+            "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/ab/sharpened.png"
         )));
 
         PublicNpcServiceImpl service = newService();
         List<NpcBuffRelationDTO> result = service.getNpcBuffRelations(7L);
 
         assertEquals(1, result.size());
-        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png", result.get(0).getImageUrl());
+        assertEquals("http://localhost:9000/terrapedia-images/buffs/wiki/ab/sharpened.png", result.get(0).getImageUrl());
 
         ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
         verify(jdbcTemplate).queryForList(queryCaptor.capture(), eq(7L));
         assertTrue(queryCaptor.getValue().contains("b.image_cached_url"));
         assertTrue(queryCaptor.getValue().contains("AS buffImage"));
+    }
+
+    @Test
+    void shouldAllowConfiguredCdnBuffImageForPublicNpcBuffRelations() {
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(8L))).thenReturn(List.of(Map.of(
+            "id", 32L,
+            "buffId", 402L,
+            "buffSourceId", 402,
+            "buffInternalName", "Sharpened",
+            "buffImage", CDN_BUFF_IMAGE
+        )));
+
+        PublicNpcServiceImpl service = newService();
+        List<NpcBuffRelationDTO> result = service.getNpcBuffRelations(8L);
+
+        assertEquals(1, result.size());
+        assertEquals(CDN_BUFF_IMAGE, result.get(0).getImageUrl());
     }
 
     @Test
@@ -209,7 +227,7 @@ class PublicNpcServiceImplImageTest {
             "id", 61L,
             "buffId", 401L,
             "buffInternalName", "Sharpened",
-            "buffImage", "http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png"
+            "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/ab/sharpened.png"
         );
         when(jdbcTemplate.queryForList(contains("WHERE nle.npc_id = ?"), eq(7L))).thenReturn(List.of(lootRow));
         when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries"), eq(7L))).thenReturn(List.of(shopRow));
@@ -220,7 +238,7 @@ class PublicNpcServiceImplImageTest {
 
         assertEquals("http://localhost:9000/terrapedia-images/items/wiki/items/ab/glowstick.png", service.getNpcLoot(7L, null, "Zombie").get(0).getImageUrl());
         assertEquals("http://localhost:9000/terrapedia-images/items/wiki/items/cd/torch.png", service.getNpcShopEntries(7L).get(0).getImageUrl());
-        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png", service.getNpcBuffRelations(7L).get(0).getImageUrl());
+        assertEquals("http://localhost:9000/terrapedia-images/buffs/wiki/ab/sharpened.png", service.getNpcBuffRelations(7L).get(0).getImageUrl());
     }
 
     @Test
@@ -292,12 +310,19 @@ class PublicNpcServiceImplImageTest {
         return new ManagedImageUrlPolicy() {
             @Override
             public boolean isManagedImageUrl(String value) {
-                return value != null && value.startsWith("http://localhost:9000/terrapedia-images/items/");
+                return value != null
+                    && (value.startsWith("http://localhost:9000/terrapedia-images/items/")
+                    || value.startsWith("http://localhost:9000/terrapedia-images/buffs/")
+                    || value.startsWith("https://cdn.example.com/terrapedia-images/buffs/"));
             }
 
             @Override
             public List<String> trustedManagedImageUrlPrefixes() {
-                return List.of("http://localhost:9000/terrapedia-images/items/");
+                return List.of(
+                    "http://localhost:9000/terrapedia-images/items/",
+                    "http://localhost:9000/terrapedia-images/buffs/",
+                    "https://cdn.example.com/terrapedia-images/buffs/"
+                );
             }
         };
     }

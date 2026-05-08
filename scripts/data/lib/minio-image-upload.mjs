@@ -127,6 +127,10 @@ export function isManagedUrl(value, managedUrlPrefixes = [DEFAULT_MANAGED_URL_PR
   return normalizeManagedUrlPrefixes(managedUrlPrefixes).some((prefix) => text.startsWith(prefix));
 }
 
+export function isManagedUrlForEntity(value, entityDomain, managedUrlPrefixes = [DEFAULT_MANAGED_URL_PREFIX]) {
+  return isManagedUrl(value, resolveEntityManagedUrlPrefixes(entityDomain, managedUrlPrefixes));
+}
+
 export function slugify(value) {
   const text = toText(value) || 'asset';
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'asset';
@@ -155,14 +159,23 @@ function normalizeManagedUrlPrefixes(managedUrlPrefixes, repoRoot = process.cwd(
   return [...new Set(raw.map((value) => trimTrailingSlash(toText(value))).filter(Boolean))];
 }
 
-function resolveEntityManagedUrlPrefixes(entityDomain, managedUrlPrefixes) {
+export function resolveEntityManagedUrlPrefixes(entityDomain, managedUrlPrefixes) {
   const normalizedDomain = toText(entityDomain)?.toLowerCase();
   if (!normalizedDomain) {
     return normalizeManagedUrlPrefixes(managedUrlPrefixes);
   }
-  const filtered = normalizeManagedUrlPrefixes(managedUrlPrefixes)
+  const normalizedPrefixes = normalizeManagedUrlPrefixes(managedUrlPrefixes);
+  const filtered = normalizedPrefixes
     .filter((prefix) => prefix.toLowerCase().endsWith(`/${normalizedDomain}`));
-  return filtered.length > 0 ? filtered : normalizeManagedUrlPrefixes(managedUrlPrefixes);
+  if (filtered.length > 0) {
+    return filtered;
+  }
+  return normalizedPrefixes.map((prefix) => {
+    const lower = prefix.toLowerCase();
+    return lower.endsWith(`/${normalizedDomain}`)
+      ? prefix
+      : `${prefix}/${normalizedDomain}`;
+  });
 }
 
 function normalizeUploadOptions(uploadOptions) {

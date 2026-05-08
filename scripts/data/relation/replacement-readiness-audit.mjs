@@ -24,25 +24,97 @@ export const DOMAIN_CONFIG = {
     localTable: 'items',
     projectionTable: 'projection_items',
     key: 'internal_name',
-    fields: ['name', 'name_zh', 'image', 'damage', 'defense', 'knockback', 'use_time', 'buy', 'sell', 'tooltip', 'tooltip_zh', 'rarity_id', 'is_stackable', 'stack_size']
+    fieldPairs: [
+      ['name', 'name'],
+      ['name_zh', 'name_zh'],
+      ['image', 'image'],
+      ['damage', 'damage'],
+      ['defense', 'defense'],
+      ['knockback', 'knockback'],
+      ['use_time', 'use_time'],
+      ['buy', 'buy'],
+      ['sell', 'sell'],
+      ['tooltip', 'tooltip'],
+      ['tooltip_zh', 'tooltip_zh'],
+      ['rarity_id', 'rarity_id'],
+      ['is_stackable', 'is_stackable'],
+      ['stack_size', 'stack_size']
+    ]
   },
   npcs: {
     localTable: 'npcs',
     projectionTable: 'projection_npcs',
     key: 'internal_name',
-    fields: ['name', 'name_zh', 'sub_name', 'sub_name_zh', 'image_url', 'is_boss', 'is_friendly', 'is_town_npc', 'damage', 'defense', 'life_max', 'knock_back_resist', 'scale', 'value', 'buff_immune']
+    fieldPairs: [
+      ['name', 'name'],
+      ['name_zh', 'name_zh'],
+      ['sub_name', 'sub_name'],
+      ['sub_name_zh', 'sub_name_zh'],
+      ['image_url', 'image_url'],
+      ['is_boss', 'is_boss'],
+      ['is_friendly', 'is_friendly'],
+      ['is_town_npc', 'is_town_npc'],
+      ['damage', 'damage'],
+      ['defense', 'defense'],
+      ['life_max', 'life_max'],
+      ['knock_back_resist', 'knock_back_resist'],
+      ['scale', 'scale'],
+      ['value', 'value'],
+      ['buff_immune', 'buff_immune']
+    ]
+  },
+  bosses: {
+    localTable: 'boss_groups',
+    projectionTable: 'projection_bosses',
+    key: 'code',
+    fieldPairs: [
+      ['name_en', 'name_en'],
+      ['name_zh', 'name_zh'],
+      ['boss_type', 'boss_type'],
+      ['image_url', 'image_url'],
+      ['progression_order', 'progression_order'],
+      ['notes', 'notes'],
+      ['source_page', 'source_page'],
+      ['source_revision_timestamp', 'source_revision_timestamp'],
+      ['status', 'status'],
+      ['deleted', 'deleted']
+    ]
   },
   projectiles: {
     localTable: 'projectiles',
     projectionTable: 'projection_projectiles',
     key: 'internal_name',
-    fields: ['name', 'name_zh', 'image_url', 'ai_style', 'damage', 'knock_back', 'penetrate', 'time_left', 'scale', 'friendly', 'hostile', 'tile_collide', 'source_items_json', 'source_npcs_json']
+    fieldPairs: [
+      ['name', 'name'],
+      ['name_zh', 'name_zh'],
+      ['image_url', 'image_url'],
+      ['ai_style', 'ai_style'],
+      ['damage', 'damage'],
+      ['knock_back', 'knock_back'],
+      ['penetrate', 'penetrate'],
+      ['time_left', 'time_left'],
+      ['scale', 'scale'],
+      ['friendly', 'friendly'],
+      ['hostile', 'hostile'],
+      ['tile_collide', 'tile_collide'],
+      ['source_items_json', 'source_items_json'],
+      ['source_npcs_json', 'source_npcs_json']
+    ]
   },
   buffs: {
     localTable: 'buffs',
     projectionTable: 'projection_buffs',
     key: 'internal_name',
-    fields: ['english_name', 'name_zh', 'tooltip_en', 'tooltip_zh', 'image', 'buff_type', 'source_item_count', 'immune_npc_count']
+    fieldPairs: [
+      ['english_name', 'english_name'],
+      ['name_zh', 'name_zh'],
+      ['tooltip_en', 'tooltip_en'],
+      ['tooltip_zh', 'tooltip_zh'],
+      ['image_cached_url', 'image'],
+      ['buff_type', 'buff_type'],
+      ['source_item_count', 'source_item_count'],
+      ['immune_npc_count', 'immune_npc_count']
+    ]
   }
 };
 
@@ -64,28 +136,32 @@ function buildDomainAudit(name, config, localRows = [], projectionRows = []) {
   const extraInProjection = projectionKeys.filter((key) => !localMap.has(key));
 
   const blockingFields = [];
-  for (const field of config.fields) {
+  for (const [localField, projectionField] of config.fieldPairs) {
     let localNonNull = 0;
     let projectionNonNull = 0;
     const missingExamples = [];
     for (const key of sharedKeys) {
       const localRow = localMap.get(key) ?? {};
       const projectionRow = projectionMap.get(key) ?? {};
-      const localPresent = isPresent(localRow[field]);
-      const projectionPresent = isPresent(projectionRow[field]);
+      const localPresent = isPresent(localRow[localField]);
+      const projectionPresent = isPresent(projectionRow[projectionField]);
       if (localPresent) localNonNull += 1;
       if (projectionPresent) projectionNonNull += 1;
       if (localPresent && !projectionPresent && missingExamples.length < 5) {
         missingExamples.push({
           key,
-          localValue: localRow[field],
-          projectionValue: projectionRow[field] ?? null
+          localField,
+          projectionField,
+          localValue: localRow[localField],
+          projectionValue: projectionRow[projectionField] ?? null
         });
       }
     }
     if (projectionNonNull < localNonNull) {
       blockingFields.push({
-        field,
+        field: localField === projectionField ? localField : `${localField}<=${projectionField}`,
+        localField,
+        projectionField,
         localNonNull,
         projectionNonNull,
         gap: localNonNull - projectionNonNull,

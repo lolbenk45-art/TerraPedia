@@ -142,6 +142,7 @@ function parseBossEffects(notes) {
 
 export function buildBossSeriesRelations({
   maintBossRows = [],
+  localBossGroupRows = [],
   relationNpcRows = [],
   itemNpcLootRelations = []
 } = {}) {
@@ -151,6 +152,11 @@ export function buildBossSeriesRelations({
   const issues = [];
 
   const npcIndex = buildNpcIndex(relationNpcRows);
+  const localBossImageIndex = new Map(
+    localBossGroupRows
+      .map((row) => [normalizeText(row.code), normalizeText(row.image_url)])
+      .filter(([code, imageUrl]) => code && imageUrl)
+  );
 
   for (const row of maintBossRows) {
     const trace = normalizeTrace('maint_bosses', row);
@@ -161,6 +167,12 @@ export function buildBossSeriesRelations({
       progressionOrder: row.progression_order ?? null,
       groupType: row.group_type ?? null
     });
+    const bossCode = titleEn
+      ? titleEn
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+      : null;
     const matchedNpcs = npcIndex.get(titleEn?.toLowerCase() ?? '') ?? [];
     const npcInternalNames = matchedNpcs.map((npc) => normalizeText(npc.internalName)).filter(Boolean);
     const matchStatus = matchedNpcs.length > 0 ? relationStatus.resolved : relationStatus.unresolved;
@@ -176,7 +188,7 @@ export function buildBossSeriesRelations({
       bossTitleZh: normalizeText(row.title_zh),
       pageTitleEn: normalizeText(row.page_title_en),
       pageTitleZh: normalizeText(row.page_title_zh),
-      imageUrl: normalizeText(row.image_url),
+      imageUrl: (bossCode ? localBossImageIndex.get(bossCode) : null) ?? normalizeText(row.image_url),
       notes: normalizeText(row.notes),
       npcSourceId: matchedNpcs.length === 1 ? toNullableNumber(matchedNpcs[0].sourceId) : null,
       npcInternalName: matchedNpcs.length === 1 ? normalizeText(matchedNpcs[0].internalName) : null,

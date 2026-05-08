@@ -42,6 +42,33 @@ class MinioObjectStorageServiceImplTest {
         verify(minioClient).putObject(argThat(args -> args.object().startsWith("npcs/")));
     }
 
+    @Test
+    void shouldWriteBossUploadsUnderBossPrefix() throws Exception {
+        MinioClient minioClient = mock(MinioClient.class);
+        when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
+        MinioObjectStorageServiceImpl service = new MinioObjectStorageServiceImpl(
+            minioClient,
+            new MinioConnectionDetails(
+                "http://localhost:9000",
+                "http://localhost:9000",
+                "minio",
+                "minio123",
+                "terrapedia-images",
+                "items",
+                true,
+                false,
+                true,
+                1024 * 1024
+            )
+        );
+
+        MockMultipartFile file = new MockMultipartFile("file", "king-slime.png", "image/png", new byte[] {1, 2, 3});
+        service.uploadItemImage(file, "bosses");
+
+        verify(minioClient).putObject(any(PutObjectArgs.class));
+        verify(minioClient).putObject(argThat(args -> args.object().startsWith("bosses/")));
+    }
+
     private static PutObjectArgs argThat(org.mockito.ArgumentMatcher<PutObjectArgs> matcher) {
         return org.mockito.ArgumentMatchers.argThat(matcher);
     }

@@ -41,15 +41,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class AdminNpcRelationControllerTest {
 
+    private static final String CDN_BUFF_IMAGE_URL = "https://cdn.example.com/terrapedia-images/buffs/wiki/ab/sharpened.png";
+
     private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
         @Override
         public boolean isManagedImageUrl(String value) {
-            return value != null && value.startsWith("http://localhost:9000/terrapedia-images/");
+            return value != null && (
+                value.startsWith("http://localhost:9000/terrapedia-images/")
+                    || value.startsWith("https://cdn.example.com/terrapedia-images/")
+            );
         }
 
         @Override
         public List<String> trustedManagedImageUrlPrefixes() {
-            return List.of("http://localhost:9000/terrapedia-images/");
+            return List.of(
+                "http://localhost:9000/terrapedia-images/items/",
+                "http://localhost:9000/terrapedia-images/buffs/",
+                "https://cdn.example.com/terrapedia-images/buffs/"
+            );
         }
     };
 
@@ -105,17 +114,40 @@ class AdminNpcRelationControllerTest {
             "buffId", 401L,
             "buffSourceId", 401,
             "buffInternalName", "Sharpened",
-            "buffImage", "http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png"
+            "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/ab/sharpened.png"
         )));
 
         mockMvc.perform(get("/admin/npcs/7/buff-relations"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data[0].buffImage").value("http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png"));
+            .andExpect(jsonPath("$.data[0].buffImage").value("http://localhost:9000/terrapedia-images/buffs/wiki/ab/sharpened.png"));
 
         ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
         verify(jdbcTemplate).queryForList(queryCaptor.capture(), eq(7L));
         assertTrue(queryCaptor.getValue().contains("b.image_cached_url"));
         assertTrue(queryCaptor.getValue().contains("AS buffImage"));
+    }
+
+    @Test
+    void shouldAllowConfiguredCdnBuffImagesForNpcBuffRelations() throws Exception {
+        Npc npc = new Npc();
+        npc.setId(8L);
+        npc.setGameId(23L);
+        npc.setInternalName("Merchant");
+        npc.setName("Merchant");
+        npc.setStatus(1);
+
+        when(npcMapper.selectById(8L)).thenReturn(npc);
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(8L))).thenReturn(List.of(Map.of(
+            "id", 32L,
+            "buffId", 402L,
+            "buffSourceId", 402,
+            "buffInternalName", "Sharpened",
+            "buffImage", CDN_BUFF_IMAGE_URL
+        )));
+
+        mockMvc.perform(get("/admin/npcs/8/buff-relations"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].buffImage").value(CDN_BUFF_IMAGE_URL));
     }
 
     @Test

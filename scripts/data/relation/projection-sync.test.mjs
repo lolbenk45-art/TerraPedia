@@ -6,6 +6,8 @@ import { buildProjectionPayload as buildProjectionPayloadBase } from './projecti
 const MANAGED_IMAGE_URL_PREFIXES = [
   'http://localhost:9000/terrapedia-images/items/',
   'http://127.0.0.1:9000/terrapedia-images/items/',
+  'http://localhost:9000/terrapedia-images/buffs/',
+  'http://127.0.0.1:9000/terrapedia-images/buffs/',
   'http://localhost:9000/terrapedia-images/bosses/',
   'http://127.0.0.1:9000/terrapedia-images/bosses/'
 ];
@@ -143,7 +145,7 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
       },
     ],
     relationBuffImages: [
-      { buffInternalName: 'ObsidianSkin', cachedUrl: 'http://localhost:9000/terrapedia-images/items/buff.png', isPrimary: 1 },
+      { buffInternalName: 'ObsidianSkin', cachedUrl: 'http://localhost:9000/terrapedia-images/buffs/buff.png', isPrimary: 1 },
     ],
   });
 
@@ -192,7 +194,7 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
   ]);
 
   assert.equal(actual.projectionBuffs.length, 1);
-  assert.equal(actual.projectionBuffs[0].image, 'http://localhost:9000/terrapedia-images/items/buff.png');
+  assert.equal(actual.projectionBuffs[0].image, 'http://localhost:9000/terrapedia-images/buffs/buff.png');
   assert.equal(actual.projectionBuffs[0].buffType, 'buff');
 });
 

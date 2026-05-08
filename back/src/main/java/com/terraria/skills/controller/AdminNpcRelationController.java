@@ -410,7 +410,7 @@ public class AdminNpcRelationController {
             ORDER BY nbr.sort_order ASC, nbr.id ASC
             """,
             npcId
-        ), "admin npc relation buff relations", "buffImage");
+        ), "admin npc relation buff relations", true, "buffImage");
     }
 
     private List<Map<String, Object>> loadShopEntries(Long npcId) {
@@ -451,6 +451,15 @@ public class AdminNpcRelationController {
         String context,
         String... fieldNames
     ) {
+        return sanitizeDisplayImageFields(rows, context, false, fieldNames);
+    }
+
+    private List<Map<String, Object>> sanitizeDisplayImageFields(
+        List<Map<String, Object>> rows,
+        String context,
+        boolean requireBuffPrefix,
+        String... fieldNames
+    ) {
         if (rows == null || rows.isEmpty()) {
             return List.of();
         }
@@ -458,7 +467,9 @@ public class AdminNpcRelationController {
         for (Map<String, Object> row : rows) {
             Map<String, Object> sanitized = new LinkedHashMap<>(row);
             for (String fieldName : fieldNames) {
-                sanitized.put(fieldName, managedImageOrNull(trimToNull(sanitized.get(fieldName)), context + "." + fieldName));
+                sanitized.put(fieldName, requireBuffPrefix
+                    ? managedBuffImageOrNull(trimToNull(sanitized.get(fieldName)), context + "." + fieldName)
+                    : managedImageOrNull(trimToNull(sanitized.get(fieldName)), context + "." + fieldName));
             }
             sanitizedRows.add(sanitized);
         }
@@ -474,6 +485,18 @@ public class AdminNpcRelationController {
             return text;
         }
         log.warn("admin npc relation display image suppressed non-managed url context={}", context);
+        return null;
+    }
+
+    private String managedBuffImageOrNull(String value, String context) {
+        String text = trimToNull(value);
+        if (text == null) {
+            return null;
+        }
+        if (managedImageUrlPolicy.isManagedImageUrlForDomain(text, "buffs")) {
+            return text;
+        }
+        log.warn("admin npc relation display image suppressed non-canonical buff url context={}", context);
         return null;
     }
 
