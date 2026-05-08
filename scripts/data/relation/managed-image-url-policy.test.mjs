@@ -17,7 +17,8 @@ test('resolveManagedImageUrlPrefixes is fail-closed without config', () => {
 
   assert.deepEqual(prefixes, []);
   assert.equal(isManagedImageUrl('http://localhost:9000/terrapedia-images/items/wood.png', prefixes), false);
-  assert.equal(isManagedImageUrl('http://127.0.0.1:9000/terrapedia-images/items/wood.png', prefixes), false);
+  assert.equal(isManagedImageUrl('http://localhost:9000/terrapedia-images/npcs/guide.png', prefixes), false);
+  assert.equal(isManagedImageUrl('http://localhost:9000/terrapedia-images/projectiles/wooden-arrow.png', prefixes), false);
 });
 
 test('resolveManagedImageUrlPrefixes keeps explicit prefixes and adds configured MinIO endpoints', () => {
@@ -134,6 +135,20 @@ test('resolveManagedImageUrlPrefixes reads MinIO public endpoint from local stac
   assert.ok(prefixes.includes('http://minio.internal:9000/configured-bucket/configured/items/'));
   assert.equal(
     isManagedImageUrl('https://assets.example.test/configured-bucket/configured/items/item.png', prefixes),
+    true
+  );
+});
+
+test('default managed prefix allowlist covers canonical npc and projectile prefixes', () => {
+  assert.ok(DEFAULT_MANAGED_IMAGE_URL_PREFIXES.includes('http://localhost:9000/terrapedia-images/items/'));
+  assert.ok(DEFAULT_MANAGED_IMAGE_URL_PREFIXES.includes('http://localhost:9000/terrapedia-images/npcs/'));
+  assert.ok(DEFAULT_MANAGED_IMAGE_URL_PREFIXES.includes('http://localhost:9000/terrapedia-images/projectiles/'));
+  assert.equal(
+    isManagedImageUrl('http://localhost:9000/terrapedia-images/npcs/guide.png', DEFAULT_MANAGED_IMAGE_URL_PREFIXES),
+    true
+  );
+  assert.equal(
+    isManagedImageUrl('http://localhost:9000/terrapedia-images/projectiles/wooden-arrow.png', DEFAULT_MANAGED_IMAGE_URL_PREFIXES),
     true
   );
 });

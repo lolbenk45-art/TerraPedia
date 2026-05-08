@@ -149,6 +149,41 @@
       </article>
     </section>
 
+    <section v-if="imageNormalizationVisible" class="section-card monitor-panel image-normalization-panel">
+      <div class="section-head">
+        <div>
+          <h2 class="section-card__title">图片规范化监控</h2>
+          <p class="section-card__subtitle">复用最新 image-source-lineage 报告，只读显示 NPC / Projectile 的错误前缀与非托管图片缺口。</p>
+        </div>
+        <span class="status-pill" :class="imageNormalizationTone">{{ imageNormalizationHeadline }}</span>
+      </div>
+
+      <div class="image-normalization-grid">
+        <article v-for="card in imageNormalizationCards" :key="card.label" class="image-normalization-card">
+          <span class="image-normalization-card__label">{{ card.label }}</span>
+          <strong class="image-normalization-card__value">{{ card.value }}</strong>
+          <small>{{ card.detail }}</small>
+        </article>
+      </div>
+
+      <div class="image-normalization-meta">
+        <div>
+          <span class="ops-card__label">Latest lineage</span>
+          <code>{{ imageNormalizationReportPath || '--' }}</code>
+        </div>
+        <button
+          v-if="isPreviewableReportPath(imageNormalizationReportPath)"
+          type="button"
+          class="inline-report-button inline-report-button--compact"
+          :disabled="isPreviewLoading(imageNormalizationReportPath)"
+          @click="openReportPreview(imageNormalizationReportPath)"
+        >
+          <Eye :size="14" />
+          <span>{{ isPreviewLoading(imageNormalizationReportPath) ? '加载中' : '预览报告' }}</span>
+        </button>
+      </div>
+    </section>
+
     <section v-if="architectureLayers.length" class="architecture-layers" aria-label="Three layer file status">
       <article v-for="layer in architectureLayers" :key="layer.id || layer.label || 'architecture-layer'" class="architecture-layer">
         <div class="architecture-layer__head">
@@ -525,6 +560,7 @@ let refreshTimer: ReturnType<typeof setInterval> | null = null
 const daemon = computed(() => overview.value?.daemon || null)
 const scheduler = computed(() => overview.value?.scheduler || null)
 const lockFile = computed(() => overview.value?.lock || null)
+const imageNormalization = computed(() => overview.value?.imageNormalization || null)
 const latestRun = computed<CrawlerMonitorRun>(() => overview.value?.latestRun || {})
 const actions = computed<CrawlerMonitorAction[]>(() => Array.isArray(latestRun.value.actions) ? latestRun.value.actions : [])
 const history = computed<CrawlerMonitorRun[]>(() => Array.isArray(overview.value?.history) ? overview.value!.history! : [])
@@ -591,6 +627,77 @@ const summaryCards = computed(() => [
   { label: 'FAILED', value: formatNumber(latestRun.value.failedActions) },
   { label: 'SPEED', value: primaryProgressAction.value ? actionSpeedLabel(primaryProgressAction.value) : '--' },
   { label: 'ETA', value: primaryProgressAction.value ? actionEtaLabel(primaryProgressAction.value) : '--' },
+])
+
+const imageNormalizationVisible = computed(() => {
+  const summary = imageNormalization.value
+  if (!summary) return false
+  return [
+    summary.latestImageLineageReport,
+    summary.lastCanonicalSyncAt,
+    summary.npcWrongPrefixCount,
+    summary.projectileWrongPrefixCount,
+    summary.npcWikiOnlyCount,
+    summary.projectileWikiOnlyCount,
+    summary.legacyExemptionCount,
+  ].some((value) => value != null && value !== '')
+})
+
+const imageNormalizationReportPath = computed(() => imageNormalization.value?.latestImageLineageReport || null)
+
+const imageNormalizationTone = computed(() => {
+  const wrongPrefixTotal = finiteNumber(imageNormalization.value?.npcWrongPrefixCount) ?? 0
+  const projectileWrongPrefixTotal = finiteNumber(imageNormalization.value?.projectileWrongPrefixCount) ?? 0
+  const wikiOnlyTotal = finiteNumber(imageNormalization.value?.npcWikiOnlyCount) ?? 0
+  const projectileWikiOnlyTotal = finiteNumber(imageNormalization.value?.projectileWikiOnlyCount) ?? 0
+  const totalWrongPrefix = wrongPrefixTotal + projectileWrongPrefixTotal
+  const totalWikiOnly = wikiOnlyTotal + projectileWikiOnlyTotal
+  if (totalWrongPrefix > 0) return 'danger'
+  if (totalWikiOnly > 0) return 'warning'
+  return 'success'
+})
+
+const imageNormalizationHeadline = computed(() => {
+  const wrongPrefixTotal = (finiteNumber(imageNormalization.value?.npcWrongPrefixCount) ?? 0)
+    + (finiteNumber(imageNormalization.value?.projectileWrongPrefixCount) ?? 0)
+  const wikiOnlyTotal = (finiteNumber(imageNormalization.value?.npcWikiOnlyCount) ?? 0)
+    + (finiteNumber(imageNormalization.value?.projectileWikiOnlyCount) ?? 0)
+  if (wrongPrefixTotal > 0) return 'wrong-prefix detected'
+  if (wikiOnlyTotal > 0) return 'source gap remains'
+  return 'contract aligned'
+})
+
+const imageNormalizationCards = computed(() => [
+  {
+    label: 'NPC Wrong Prefix',
+    value: formatNumber(imageNormalization.value?.npcWrongPrefixCount),
+    detail: 'relation/projection 仍指向错误 managed 前缀的 NPC 图片数',
+  },
+  {
+    label: 'Projectile Wrong Prefix',
+    value: formatNumber(imageNormalization.value?.projectileWrongPrefixCount),
+    detail: 'relation/projection 仍指向错误 managed 前缀的 Projectile 图片数',
+  },
+  {
+    label: 'NPC Non-Managed',
+    value: formatNumber(imageNormalization.value?.npcWikiOnlyCount),
+    detail: '投影层仍有图但未进入 managed 链路的 NPC 数',
+  },
+  {
+    label: 'Projectile Non-Managed',
+    value: formatNumber(imageNormalization.value?.projectileWikiOnlyCount),
+    detail: '投影层仍有图但未进入 managed 链路的 Projectile 数',
+  },
+  {
+    label: 'Canonical Sync',
+    value: formatDate(imageNormalization.value?.lastCanonicalSyncAt),
+    detail: '最近一次覆盖 NPC / Projectile 的 apply 时间',
+  },
+  {
+    label: 'Legacy Exemptions',
+    value: formatNumber(imageNormalization.value?.legacyExemptionCount),
+    detail: '当前显式保留的 legacy 豁免数量',
+  },
 ])
 
 const statusCards = computed<StatusCard[]>(() => [
@@ -1179,6 +1286,70 @@ function shortArgs(args?: string[]) {
 
 .ops-card--primary {
   background: color-mix(in srgb, var(--color-bg) 82%, var(--color-bg-secondary));
+}
+
+.image-normalization-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.image-normalization-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.image-normalization-card {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-bg) 80%, var(--color-bg-secondary));
+}
+
+.image-normalization-card__label {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.image-normalization-card__value {
+  color: var(--color-text);
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.image-normalization-card small {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.image-normalization-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.image-normalization-meta > div {
+  min-width: 0;
+  flex: 1 1 260px;
+}
+
+.image-normalization-meta code {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .ops-card__head {
@@ -1949,6 +2120,10 @@ function shortArgs(args?: string[]) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .image-normalization-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .monitor-layout {
     grid-template-columns: 1fr;
   }
@@ -1963,6 +2138,7 @@ function shortArgs(args?: string[]) {
     grid-template-columns: 1fr;
   }
 
+  .image-normalization-grid,
   .architecture-layers,
   .architecture-layer__head {
     grid-template-columns: 1fr;

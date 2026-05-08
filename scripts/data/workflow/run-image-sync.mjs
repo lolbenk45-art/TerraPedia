@@ -6,18 +6,21 @@ import path from 'node:path';
 import { fetchWikiImageInfo, parseCliArgs } from '../lib/wiki-item-utils.mjs';
 import {
   createMinioImageUploader,
-  DEFAULT_MANAGED_URL_PREFIX,
   isManagedUrl,
   slugify,
-  toText,
-  trimTrailingSlash
+  toText
 } from '../lib/minio-image-upload.mjs';
+import { resolveManagedImageUrlPrefixes } from '../relation/managed-image-url-policy.mjs';
 
 const options = parseCliArgs(process.argv.slice(2));
 const apply = booleanOption(options.apply, false);
 const scopes = resolveScopes(options.scopes ?? options.scope ?? 'projectiles,buffs');
 const standardizedRoot = path.resolve(process.cwd(), 'data', 'standardized');
-const managedUrlPrefixes = [trimTrailingSlash(toText(options.managedUrlPrefix) || DEFAULT_MANAGED_URL_PREFIX)];
+const managedUrlPrefixes = Array.isArray(options.managedUrlPrefix)
+  ? options.managedUrlPrefix
+  : (toText(options.managedUrlPrefix)
+      ? [toText(options.managedUrlPrefix)]
+      : resolveManagedImageUrlPrefixes({ repoRoot: process.cwd() }));
 const reportPath = path.resolve(
   process.cwd(),
   options.output ?? path.join(process.cwd(), 'reports', `workflow-image-sync-${new Date().toISOString().slice(0, 10)}.json`)
@@ -82,6 +85,7 @@ async function syncNpcs() {
   const payload = readJson(filePath);
   const records = Array.isArray(payload?.records) ? payload.records : [];
   return syncRecordImages({
+    entityDomain: 'npcs',
     filePath,
     payload,
     records,
@@ -100,6 +104,7 @@ async function syncProjectiles() {
   const payload = readJson(filePath);
   const records = Array.isArray(payload?.records) ? payload.records : [];
   return syncRecordImages({
+    entityDomain: 'projectiles',
     filePath,
     payload,
     records,
@@ -120,6 +125,7 @@ async function syncBuffs() {
   const payload = readJson(filePath);
   const records = Array.isArray(payload?.records) ? payload.records : [];
   return syncRecordImages({
+    entityDomain: 'items',
     filePath,
     payload,
     records,
@@ -143,13 +149,15 @@ async function syncRecordImages({
   fallbackSourceUrlResolver,
   targetUrlWriter,
   fileNameHint,
-  nameHint
+  nameHint,
+  entityDomain
 } = {}) {
   let changed = 0;
   let alreadyManaged = 0;
   let candidates = 0;
   let missingSource = 0;
   let uploaded = 0;
+  const entityManagedUrlPrefixes = resolveEntityManagedUrlPrefixes(entityDomain, managedUrlPrefixes);
 
   for (const record of records) {
     const directSourceUrl = sourceUrlAccessor(record);
@@ -162,7 +170,7 @@ async function syncRecordImages({
       continue;
     }
     candidates += 1;
-    if (isManagedUrl(sourceUrl, managedUrlPrefixes)) {
+    if (isManagedUrl(sourceUrl, entityManagedUrlPrefixes)) {
       alreadyManaged += 1;
       continue;
     }
@@ -172,6 +180,7 @@ async function syncRecordImages({
     }
 
     let managedUrl = await uploader.uploadImageUrl(sourceUrl, {
+      entityDomain,
       fileName: fileNameHint(record, sourceUrl),
       nameHint: nameHint(record)
     });
@@ -179,6 +188,7 @@ async function syncRecordImages({
       const fallbackSourceUrl = await fallbackSourceUrlResolver(record);
       if (fallbackSourceUrl && fallbackSourceUrl !== sourceUrl) {
         managedUrl = await uploader.uploadImageUrl(fallbackSourceUrl, {
+          entityDomain,
           fileName: fileNameHint(record, fallbackSourceUrl),
           nameHint: nameHint(record)
         });
@@ -257,6 +267,16 @@ function guessExtension(sourceUrl) {
   } catch {
     return '.png';
   }
+}
+
+function resolveEntityManagedUrlPrefixes(entityDomain, prefixes) {
+  const normalizedDomain = toText(entityDomain)?.toLowerCase();
+  if (!normalizedDomain) {
+    return Array.isArray(prefixes) ? prefixes : [];
+  }
+  const filtered = (Array.isArray(prefixes) ? prefixes : [])
+    .filter((prefix) => String(prefix).toLowerCase().endsWith(`/${normalizedDomain}/`));
+  return filtered.length > 0 ? filtered : (Array.isArray(prefixes) ? prefixes : []);
 }
 
 function readJson(filePath) {

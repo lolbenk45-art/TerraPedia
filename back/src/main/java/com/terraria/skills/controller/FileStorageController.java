@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,8 +23,11 @@ public class FileStorageController {
     private final ObjectStorageService objectStorageService;
 
     @PostMapping(value = "/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<FileUploadResultDTO>> uploadImage(@RequestPart("file") MultipartFile file) {
-        FileUploadResultDTO result = objectStorageService.uploadItemImage(file);
+    public ResponseEntity<ApiResponse<FileUploadResultDTO>> uploadImage(
+        @RequestPart("file") MultipartFile file,
+        @RequestParam(value = "entityDomain", required = false) String entityDomain
+    ) {
+        FileUploadResultDTO result = objectStorageService.uploadItemImage(file, entityDomain);
         return ResponseEntity.ok(ApiResponse.success(result, "Image uploaded"));
     }
 }

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import path from 'node:path';
 
 import { buildMaintNpcImageRows, parseArgs } from './sync-standardized-npc-images-to-maint.mjs';
 
@@ -43,4 +44,12 @@ test('buildMaintNpcImageRows converts standardized npc image fields into maint n
   assert.equal(rows[0].isPrimary, true);
   assert.equal(rows[0].sortOrder, 0);
   assert.equal(rows[0].recordKey.length, 64);
+});
+
+test('parseArgs keeps apply false by default for standardized npc image sync', () => {
+  assert.deepEqual(parseArgs([]), {
+    apply: false,
+    maintDatabase: 'terria_v1_maint',
+    standardizedPath: path.join('data', 'standardized', 'npcs.standardized.json')
+  });
 });

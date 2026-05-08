@@ -431,7 +431,11 @@ async function clearRelationSnapshotTables(connection, tableNames) {
   await connection.query('SET FOREIGN_KEY_CHECKS = 0');
   try {
     for (const tableName of tableNames) {
-      await connection.query(`DELETE FROM \`${tableName}\``);
+      try {
+        await connection.query(`TRUNCATE TABLE \`${tableName}\``);
+      } catch {
+        await connection.query(`DELETE FROM \`${tableName}\``);
+      }
     }
   } finally {
     await connection.query('SET FOREIGN_KEY_CHECKS = 1');
@@ -707,7 +711,7 @@ export async function runSync(options, dependencies = {}) {
     queryMaint('SELECT * FROM maint_item_biomes'),
     queryMaint('SELECT * FROM maint_buffs'),
     queryMaint('SELECT * FROM maint_bosses'),
-    queryMaint('SELECT * FROM maint_npc_images'),
+    queryMaint('SELECT * FROM maint_npc_images WHERE deleted = 0'),
     queryMaint('SELECT * FROM maint_items'),
     queryMaint('SELECT * FROM maint_projectiles'),
     options.localDatabase ? loadDataset(mysqlOptions, options.localDatabase, 'SELECT internal_name, image_url FROM projectiles WHERE deleted = 0') : [],

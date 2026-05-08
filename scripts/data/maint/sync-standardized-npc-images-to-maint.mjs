@@ -155,6 +155,43 @@ ON DUPLICATE KEY UPDATE ${updates}, \`status\` = 1, \`deleted\` = 0
   return affected;
 }
 
+async function retireStaleNpcImageRows(connection, rows) {
+  const activeInternalNames = [...new Set(
+    rows
+      .map((row) => normalizeText(row.npcInternalName))
+      .filter(Boolean)
+  )];
+  if (activeInternalNames.length === 0) {
+    return 0;
+  }
+
+  let retired = 0;
+  for (const internalName of activeInternalNames) {
+    const [result] = await connection.execute(
+      `
+UPDATE \`maint_npc_images\`
+SET \`deleted\` = 1,
+    \`status\` = 0,
+    \`updated_at\` = CURRENT_TIMESTAMP
+WHERE \`npc_internal_name\` = ?
+  AND \`record_key\` NOT IN (${rows
+    .filter((row) => normalizeText(row.npcInternalName) === internalName)
+    .map(() => '?')
+    .join(', ')})
+  AND \`deleted\` = 0
+      `.trim(),
+      [
+        internalName,
+        ...rows
+          .filter((row) => normalizeText(row.npcInternalName) === internalName)
+          .map((row) => row.recordKey)
+      ]
+    );
+    retired += Number(result?.affectedRows ?? 0);
+  }
+  return retired;
+}
+
 export async function runSync(options, dependencies = {}) {
   const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
   const mysqlOptions = {
@@ -180,8 +217,10 @@ export async function runSync(options, dependencies = {}) {
     const [maintNpcRows] = await connection.query('SELECT internal_name, english_name FROM `maint_npcs`');
     const rows = buildMaintNpcImageRows({ standardizedRecords, maintNpcRows });
     let written = 0;
+    let retired = 0;
     if (options.apply) {
       written = await upsertNpcImageRows(connection, rows);
+      retired = await retireStaleNpcImageRows(connection, rows);
     }
     return {
       apply: options.apply,
@@ -189,7 +228,8 @@ export async function runSync(options, dependencies = {}) {
       standardizedPath,
       totalStandardizedRecords: standardizedRecords.length,
       relationCandidateRows: rows.length,
-      writtenRows: written
+      writtenRows: written,
+      retiredRows: retired
     };
   } finally {
     if (ownsConnection) {

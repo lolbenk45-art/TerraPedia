@@ -13,6 +13,11 @@ const GENERATED_AT = '2026-05-06T08:00:00.000Z';
 test('buildImageSourceLineageReport classifies contract readiness and gaps across seven entity types', () => {
   const report = buildImageSourceLineageReport({
     generatedAt: GENERATED_AT,
+    managedUrlPrefixes: [
+      'http://localhost:9000/terrapedia-images/items/',
+      'http://localhost:9000/terrapedia-images/npcs/',
+      'http://localhost:9000/terrapedia-images/projectiles/',
+    ],
     entities: {
       items: {
         coreRows: [{ internalName: 'Torch', image: 'https://terraria.wiki.gg/images/Torch.png' }],
@@ -108,8 +113,8 @@ test('buildImageSourceLineageReport classifies contract readiness and gaps acros
 
   assert.equal(report.generatedAt, GENERATED_AT);
   assert.equal(report.summary.totalEntityTypes, 7);
-  assert.equal(report.summary.readyEntityTypes, 4);
-  assert.equal(report.summary.notReadyEntityTypes, 3);
+  assert.equal(report.summary.readyEntityTypes, 3);
+  assert.equal(report.summary.notReadyEntityTypes, 4);
 
   assert.equal(report.entities.items.contractReady, true);
   assert.deepEqual(report.entities.items.gapReasons, []);
@@ -125,9 +130,13 @@ test('buildImageSourceLineageReport classifies contract readiness and gaps acros
   assert.equal(report.entities.npcs.contractReady, false);
   assert.ok(report.entities.npcs.gapReasons.includes('projection_image_not_managed'));
   assert.ok(report.entities.npcs.gapReasons.includes('missing_relation_image_rows'));
+  assert.equal(report.entities.npcs.lineage.relation.rowsWithWrongManagedPrefix, 0);
+  assert.equal(report.entities.npcs.lineage.projection.rowsWithWrongManagedPrefix, 0);
 
-  assert.equal(report.entities.projectiles.contractReady, true);
-  assert.deepEqual(report.entities.projectiles.gapReasons, []);
+  assert.equal(report.entities.projectiles.contractReady, false);
+  assert.ok(report.entities.projectiles.gapReasons.includes('relation_image_wrong_managed_prefix'));
+  assert.ok(report.entities.projectiles.gapReasons.includes('projection_image_wrong_managed_prefix'));
+  assert.equal(report.entities.projectiles.lineage.relation.rowsWithWrongManagedPrefix, 1);
 
   assert.equal(report.entities.armor_sets.contractReady, true);
   assert.deepEqual(report.entities.armor_sets.gapReasons, []);

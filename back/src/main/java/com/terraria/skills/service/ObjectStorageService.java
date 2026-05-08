@@ -6,4 +6,6 @@ import org.springframework.web.multipart.MultipartFile;
 public interface ObjectStorageService {
 
     FileUploadResultDTO uploadItemImage(MultipartFile file);
+
+    FileUploadResultDTO uploadItemImage(MultipartFile file, String entityDomain);
 }

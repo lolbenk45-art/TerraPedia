@@ -46,6 +46,11 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
 
     @Override
     public FileUploadResultDTO uploadItemImage(MultipartFile file) {
+        return uploadItemImage(file, null);
+    }
+
+    @Override
+    public FileUploadResultDTO uploadItemImage(MultipartFile file, String entityDomain) {
         if (!connectionDetails.enabled()) {
             throw new IllegalStateException("MinIO storage is disabled");
         }
@@ -63,7 +68,7 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
 
         ensureBucketReady();
 
-        String objectKey = buildObjectKey(file.getOriginalFilename(), contentType);
+        String objectKey = buildObjectKey(file.getOriginalFilename(), contentType, entityDomain);
 
         try (InputStream inputStream = file.getInputStream()) {
             minioClient.putObject(
@@ -124,12 +129,10 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
         }
     }
 
-    private String buildObjectKey(String originalFilename, String contentType) {
+    private String buildObjectKey(String originalFilename, String contentType, String entityDomain) {
         LocalDate today = LocalDate.now();
         String extension = resolveExtension(originalFilename, contentType);
-        String prefix = StringUtils.hasText(connectionDetails.objectPrefix())
-            ? connectionDetails.objectPrefix().replaceAll("^/+|/+$", "")
-            : "items";
+        String prefix = resolveObjectPrefix(entityDomain);
 
         return prefix
             + "/"
@@ -141,6 +144,19 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
             + "/"
             + UUID.randomUUID().toString().replace("-", "")
             + extension;
+    }
+
+    private String resolveObjectPrefix(String entityDomain) {
+        String normalizedDomain = trimToNull(entityDomain);
+        if (normalizedDomain != null) {
+            String lowered = normalizedDomain.toLowerCase(Locale.ROOT);
+            if ("items".equals(lowered) || "npcs".equals(lowered) || "projectiles".equals(lowered)) {
+                return lowered;
+            }
+        }
+        return StringUtils.hasText(connectionDetails.objectPrefix())
+            ? connectionDetails.objectPrefix().replaceAll("^/+|/+$", "")
+            : "items";
     }
 
     private String resolveExtension(String originalFilename, String contentType) {

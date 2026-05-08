@@ -40,10 +40,26 @@ class MinioManagedImageUrlPolicyTest {
         assertEquals(
             List.of(
                 "https://cdn.example.com/terrapedia-images/items/",
-                "http://minio:9000/terrapedia-images/items/"
+                "http://minio:9000/terrapedia-images/items/",
+                "https://cdn.example.com/terrapedia-images/npcs/",
+                "http://minio:9000/terrapedia-images/npcs/",
+                "https://cdn.example.com/terrapedia-images/projectiles/",
+                "http://minio:9000/terrapedia-images/projectiles/"
             ),
             policy.trustedManagedImageUrlPrefixes()
         );
+    }
+
+    @Test
+    void shouldTreatNpcAndProjectilePrefixesAsManagedWhenConfigured() {
+        MinioManagedImageUrlPolicy policy = new MinioManagedImageUrlPolicy(
+            configuredProperties("npcs,projectiles"),
+            connectionDetailsProvider(connectionDetails("http://minio:9000/", "https://cdn.example.com/"))
+        );
+
+        assertTrue(policy.isManagedImageUrl("https://cdn.example.com/terrapedia-images/npcs/eye-of-cthulhu.png"));
+        assertTrue(policy.isManagedImageUrl("https://cdn.example.com/terrapedia-images/projectiles/death-laser.png"));
+        assertFalse(policy.isManagedImageUrl("https://cdn.example.com/terrapedia-images/buffs/ironskin.png"));
     }
 
     @Test
@@ -79,5 +95,11 @@ class MinioManagedImageUrlPolicyTest {
             true,
             1024 * 1024
         );
+    }
+
+    private MinioStorageProperties configuredProperties(String managedPrefixes) {
+        MinioStorageProperties properties = new MinioStorageProperties();
+        properties.setManagedImageObjectPrefixes(managedPrefixes);
+        return properties;
     }
 }

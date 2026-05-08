@@ -32,6 +32,12 @@ public class MinioStorageProperties {
 
     private String objectPrefix = "items";
 
+    /**
+     * Comma-separated object prefixes that should be treated as trusted managed URLs.
+     * Example: items,npcs,projectiles
+     */
+    private String managedImageObjectPrefixes = "items,npcs,projectiles";
+
     private boolean autoCreateBucket = true;
 
     private boolean publicRead = true;
