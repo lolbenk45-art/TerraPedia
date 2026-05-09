@@ -189,6 +189,95 @@ test('buildItemSourceRelations promotes exact internal-name npc metadata to form
   assert.equal(actual.itemNpcRelationAudits.length, 0);
 });
 
+test('buildItemSourceRelations promotes representative-safe positive ID fallback npc metadata to formal loot relations', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 42,
+        record_key: '6'.repeat(64),
+        item_internal_name: 'BloodHamaxe',
+        item_name: 'Blood Hamaxe',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Blood Eel',
+        sort_order: 0,
+        raw_json: JSON.stringify({
+          sourceRefName: 'Blood Eel',
+          sourceRefInternalName: 'BloodEelHead',
+          sourceRefResolution: 'positive_id_fallback',
+          quantityText: '1',
+          chanceText: '12.5%'
+        }),
+        landing_source_id: 51,
+        landing_source_key: 'generated.item_relations_bundle:chunk:0001',
+        landing_content_hash: 'f'.repeat(64),
+        source_provider: 'wiki_gg',
+        source_page: 'Blood Hamaxe'
+      }
+    ],
+    npcIndex: new Map([
+      ['Blood Eel', [
+        { source_id: 618, internal_name: 'BloodEelHead', name: 'Blood Eel' },
+        { source_id: 619, internal_name: 'BloodEelBody', name: 'Blood Eel' },
+        { source_id: 620, internal_name: 'BloodEelTail', name: 'Blood Eel' }
+      ]]
+    ])
+  });
+
+  assert.equal(actual.sourceFacts[0].reviewStatus, 'resolved');
+  assert.equal(actual.sourceDetails[0].sourceRefInternalName, 'BloodEelHead');
+  assert.equal(actual.sourceDetails[0].sourceRefResolution, 'positive_id_fallback');
+  assert.equal(actual.npcLootRelations.length, 1);
+  assert.equal(actual.npcLootRelations[0].npcInternalName, 'BloodEelHead');
+  assert.equal(actual.npcLootRelations[0].itemInternalName, 'BloodHamaxe');
+  assert.equal(actual.itemNpcRelationAudits.length, 0);
+});
+
+test('buildItemSourceRelations keeps unsafe positive ID fallback variants ambiguous', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 43,
+        record_key: '7'.repeat(64),
+        item_internal_name: 'Bacon',
+        item_name: 'Bacon',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Pigron',
+        sort_order: 0,
+        raw_json: JSON.stringify({
+          sourceRefName: 'Pigron',
+          sourceRefInternalName: 'PigronCorruption',
+          sourceRefResolution: 'positive_id_fallback',
+          quantityText: '1',
+          chanceText: '33%'
+        }),
+        landing_source_id: 51,
+        landing_source_key: 'generated.item_relations_bundle:chunk:0001',
+        landing_content_hash: 'f'.repeat(64),
+        source_provider: 'wiki_gg',
+        source_page: 'Bacon'
+      }
+    ],
+    npcIndex: new Map([
+      ['Pigron', [
+        { source_id: 500, internal_name: 'PigronCorruption', name: 'Pigron' },
+        { source_id: 501, internal_name: 'PigronCrimson', name: 'Pigron' },
+        { source_id: 502, internal_name: 'PigronHallow', name: 'Pigron' }
+      ]]
+    ])
+  });
+
+  assert.equal(actual.npcLootRelations.length, 0);
+  assert.equal(actual.itemNpcRelationAudits.length, 1);
+  assert.equal(actual.itemNpcRelationAudits[0].auditStatus, 'ambiguous');
+  assert.equal(actual.itemNpcRelationAudits[0].reasonCode, 'npc_source_ambiguous');
+  const evidence = JSON.parse(actual.itemNpcRelationAudits[0].evidenceJson);
+  assert.equal(evidence.raw.sourceRefInternalName, 'PigronCorruption');
+  assert.equal(evidence.raw.sourceRefResolution, 'positive_id_fallback');
+  assert.deepEqual(evidence.candidateNpcInternalNames, ['PigronCorruption', 'PigronCrimson', 'PigronHallow']);
+});
+
 test('buildItemSourceRelations ignores duplicate index entries for the same exact npc row', () => {
   const zombie = { source_id: 3, internal_name: 'Zombie', name: 'Zombie' };
   const actual = buildItemSourceRelations({

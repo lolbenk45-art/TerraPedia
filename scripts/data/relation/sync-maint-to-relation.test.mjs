@@ -19,6 +19,13 @@ function runSync(options, dependencies = {}) {
   });
 }
 
+function clearsTable(sql, tableName) {
+  return (
+    sql.includes(`TRUNCATE TABLE \`${tableName}\``) ||
+    sql.includes(`DELETE FROM \`${tableName}\``)
+  );
+}
+
 test('parseArgs parses relation sync defaults and scopes', () => {
   const actual = parseArgs([
     '--apply=true',
@@ -575,15 +582,15 @@ test('runSync apply mode clears stale relation tables before writing current sna
     }
   );
 
-  assert.ok(statements.some((sql) => sql.includes('DELETE FROM `relation_items`')));
-  assert.ok(statements.some((sql) => sql.includes('DELETE FROM `relation_item_rarities`')));
-  assert.ok(statements.some((sql) => sql.includes('DELETE FROM `item_npc_shop_relations`')));
-  assert.ok(statements.some((sql) => sql.includes('DELETE FROM `item_npc_relation_audits`')));
-  assert.ok(statements.some((sql) => sql.includes('DELETE FROM `item_projectile_relations`')));
-  assert.ok(statements.some((sql) => sql.includes('DELETE FROM `npc_projectile_relations`')));
+  assert.ok(statements.some((sql) => clearsTable(sql, 'relation_items')));
+  assert.ok(statements.some((sql) => clearsTable(sql, 'relation_item_rarities')));
+  assert.ok(statements.some((sql) => clearsTable(sql, 'item_npc_shop_relations')));
+  assert.ok(statements.some((sql) => clearsTable(sql, 'item_npc_relation_audits')));
+  assert.ok(statements.some((sql) => clearsTable(sql, 'item_projectile_relations')));
+  assert.ok(statements.some((sql) => clearsTable(sql, 'npc_projectile_relations')));
   assert.ok(statements.some((sql) => sql.includes('INSERT INTO `item_projectile_relations`')));
   assert.ok(statements.some((sql) => sql.includes('INSERT INTO `npc_projectile_relations`')));
-  assert.ok(statements.some((sql) => sql.includes('DELETE FROM `npc_projectile_audits`')));
+  assert.ok(statements.some((sql) => clearsTable(sql, 'npc_projectile_audits')));
   assert.ok(statements.some((sql) => sql.includes('INSERT INTO `npc_projectile_audits`')));
   assert.ok(statements.some((sql) => sql.includes('INSERT INTO `item_npc_relation_audits`')));
   assert.ok(statements.some((sql) => sql.includes('UPDATE `relation_items` ri')));
@@ -720,7 +727,7 @@ test('runSync marks apply runs succeeded only after snapshot rows and report row
       }),
       executeRelation: async (fn) => fn({
         query: async (sql) => {
-          if (sql.includes('DELETE FROM `relation_items`')) events.push('clear-relation-items');
+          if (clearsTable(sql, 'relation_items')) events.push('clear-relation-items');
           if (sql.includes('UPDATE `projection_items` pi')) events.push('reconcile-projection-items');
           return [[], []];
         },

@@ -41,6 +41,8 @@ function buildRelationRecord({ npc, row, relationType, sortOrder }) {
     npcInternalName,
     npcName,
     itemName,
+    sourceRefInternalName: row.sourceRefInternalName ?? npcInternalName,
+    sourceRefResolution: row.sourceRefResolution ?? (npcInternalName ? 'exact_internal_name' : null),
     priceText: row.priceText ?? row.price ?? row.valueText ?? null,
     chanceText: row.chanceText ?? null,
     quantityText: row.quantityText ?? null,
@@ -48,7 +50,11 @@ function buildRelationRecord({ npc, row, relationType, sortOrder }) {
     sourceUrl: row.sourceUrl ?? wikiPageUrl(pageTitle, sourceMetadata.apiUrl),
     sourceSection: row.sourceSection ?? (relationType === 'shop' ? 'shop' : 'drops'),
     sourceRowIndex: row.sourceRowIndex ?? sortOrder,
-    raw: row.raw ?? row
+    raw: {
+      ...(row.raw ?? row),
+      sourceRefInternalName: row.sourceRefInternalName ?? npcInternalName,
+      sourceRefResolution: row.sourceRefResolution ?? (npcInternalName ? 'exact_internal_name' : null)
+    }
   };
 }
 
