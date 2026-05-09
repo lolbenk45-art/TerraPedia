@@ -123,4 +123,27 @@ Date: 2026-05-09
 ### Current Scope Note
 
 - The current cycle closed the Buff immune NPC placeholder regression.
-- The current cycle did not materialize Mimic variant loot because the audit reports `generic_bucket_only` for all five targets, so DB writes would be fabricated rather than traceable.
+- The 2026-05-09 NPC loot gap closure materialized 23 representative-safe segmented NPC drops from `positive_id_fallback` evidence, but still did not materialize Mimic variant loot.
+- Mimic variant loot remains blocked because the audit still reports generic `Mimics` buckets for all five targets, so DB writes would be fabricated rather than traceable.
+
+## NPC Loot Source Typing And Non-NPC Bucket Cleanup
+
+Date: 2026-05-09
+
+### Why This Can Recur
+
+- The item source relation lane currently records many non-NPC acquisition sources under `source_ref_type='npc'`, including chests, crates, trees, lock boxes, event rewards, and bags.
+- The new `npc-loot-gap-closure-audit` can classify these rows as `non_npc_source_misclassified`, but the source typing model still needs a dedicated cleanup so future NPC loot reports are not dominated by non-NPC sources.
+- Some unresolved rows are generic buckets or grouped sources such as `Mummies`, `Ghouls`, `Jellyfish`, `Sand Sharks`, `Slimes`, `The Twins`, and `Celestial Pillars`; these need explicit source semantics before they can safely materialize relation rows.
+
+### Next Iteration TODO
+
+- [ ] Add source-type normalization before relation sync so non-NPC acquisition sources land in a non-NPC relation family instead of `item_npc_relation_audits`.
+- [ ] Add an audit gate that fails if new chest/crate/tree/bag/lock-box rows enter `source_ref_type='npc'`.
+- [ ] Decide a reviewed mapping contract for generic group buckets, or keep them blocked with explicit `generic_bucket` evidence.
+- [ ] Extend public/admin relation views to expose remaining blocked source categories separately from true NPC loot defects.
+
+### Current Scope Note
+
+- The current cycle reduced safe ambiguous NPC loot rows from `70` to `47` and kept unsafe rows blocked.
+- It did not retype the 1400+ non-NPC source rows; that is a separate source-model cleanup.

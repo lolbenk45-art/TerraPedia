@@ -256,6 +256,8 @@ test('extractMaintEntitiesFromLandingRow expands NPC item relation bundles into 
           chanceText: '2%',
           quantityText: '1',
           conditionText: 'Expert Mode',
+          sourceRefInternalName: 'Zombie',
+          sourceRefResolution: 'exact_internal_name',
           sourceUrl: 'https://terraria.wiki.gg/wiki/Zombie',
           raw: { itemName: 'Shackle' }
         }
@@ -300,6 +302,8 @@ test('extractMaintEntitiesFromLandingRow expands NPC item relation bundles into 
   assert.equal(lootRow.sourceRefType, 'npc');
   assert.equal(lootRow.sourceRefName, 'Zombie');
   assert.equal(JSON.parse(lootRow.rawJson).chanceText, '2%');
+  assert.equal(JSON.parse(lootRow.rawJson).sourceRefInternalName, 'Zombie');
+  assert.equal(JSON.parse(lootRow.rawJson).sourceRefResolution, 'exact_internal_name');
 
   assert.ok(candidateRow);
   assert.equal(candidateRow.candidateKey, 'd'.repeat(64));

@@ -363,6 +363,61 @@ function isAuthoritativeNpcInternalNameResolution(value) {
   return value === 'resolved' || value === 'exact_internal_name';
 }
 
+function isPositiveIdFallbackResolution(value) {
+  return value === 'positive_id_fallback';
+}
+
+const REPRESENTATIVE_SAFE_NPC_SUFFIXES = Object.freeze(['Head', 'Body', 'Tail', 'Legs']);
+const REPRESENTATIVE_UNSAFE_NPC_SUFFIX_TOKENS = Object.freeze([
+  'Corruption',
+  'Crimson',
+  'Hallow',
+  'Hallowed',
+  'Jungle',
+  'Desert',
+  'Light',
+  'Dark',
+  'T1',
+  'T2',
+  'T3',
+  'Axe',
+  'Flail',
+  'Sword',
+  'Spear',
+  'Gun',
+  'Snow',
+  'Frozen'
+]);
+
+function commonPrefix(values) {
+  if (!values.length) return '';
+  let prefix = values[0] ?? '';
+  for (const value of values.slice(1)) {
+    while (prefix && !String(value ?? '').startsWith(prefix)) {
+      prefix = prefix.slice(0, -1);
+    }
+  }
+  return prefix;
+}
+
+function isRepresentativeSafeNpcFamily(candidates, rawInternalName) {
+  const internalNames = dedupeCandidates(candidates).map(candidateInternalName).filter(Boolean);
+  if (!rawInternalName || !internalNames.includes(rawInternalName)) return false;
+  if (internalNames.filter((name) => name === rawInternalName).length !== 1) return false;
+  if (internalNames.length < 2) return false;
+
+  const prefix = commonPrefix(internalNames);
+  if (!prefix) return false;
+  const suffixes = internalNames.map((name) => name.slice(prefix.length));
+  if (suffixes.some((suffix) => !suffix)) return false;
+  if (suffixes.some((suffix) => REPRESENTATIVE_UNSAFE_NPC_SUFFIX_TOKENS.some((token) => suffix.includes(token)))) {
+    return false;
+  }
+  return suffixes.every((suffix) =>
+    REPRESENTATIVE_SAFE_NPC_SUFFIXES.some((token) => suffix === token || new RegExp(`^${token}\\d+$`).test(suffix))
+  );
+}
+
 function relationKindForSourceType(sourceType) {
   if (sourceType === 'shop') return 'shop';
   if (sourceType === 'drop' || sourceType === 'loot') return 'loot';
@@ -503,6 +558,12 @@ export function resolveNpcRef(row = {}, npcIndex = new Map()) {
       candidates = exactCandidates;
     }
   }
+  if (candidates.length && isPositiveIdFallbackResolution(rawResolution) && rawInternalName) {
+    const exactCandidates = dedupeCandidates(candidates.filter((candidate) => candidateInternalName(candidate) === rawInternalName));
+    if (exactCandidates.length === 1 && isRepresentativeSafeNpcFamily(candidates, rawInternalName)) {
+      candidates = exactCandidates;
+    }
+  }
   if (!candidates.length && isAuthoritativeNpcInternalNameResolution(rawResolution) && rawInternalName) {
     for (const candidateValue of npcIndex.values()) {
       for (const candidate of asCandidateList(candidateValue)) {
@@ -558,7 +619,12 @@ export function resolveNpcRef(row = {}, npcIndex = new Map()) {
     npcName: normalizeText(match.name) ?? normalizeText(match.internal_name ?? match.internalName),
     sourceRefName,
     sourceRefNormalized: normalizedRefName,
-    sourceRefResolution: rawResolution === 'exact_internal_name' ? 'exact_internal_name' : 'resolved',
+    sourceRefResolution:
+      rawResolution === 'exact_internal_name'
+        ? 'exact_internal_name'
+        : isPositiveIdFallbackResolution(rawResolution)
+          ? 'positive_id_fallback'
+          : 'resolved',
     confidence: confidence.high,
     reason: 'npc_source_resolved'
   };
