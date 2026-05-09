@@ -6,6 +6,7 @@ import {
   relationStatus
 } from './relation-trace.mjs';
 import { normalizeSourceConditionFields } from './source-condition-normalizer.mjs';
+import { classifyNpcLootSource } from '../lib/npc-loot-source-taxonomy.mjs';
 
 const CONDITION_SIGNAL_PATTERN = /\b(pre-hardmode|hardmode|night|day|daytime|blood moon|solar eclipse|new moon|waning crescent|waxing crescent|full moon|snow biome|ice biome|jungle|corruption|crimson|hallow|desert|ocean|forest|rain|windy day|after plantera has been defeated|post-\s*plantera|mechanical bosses? has been defeated|one of the mechanical bosses has been defeated|any mechanical boss|martian madness event has been defeated|bestiary)\b/i;
 const CONDITION_STATUS_RANK = Object.freeze({
@@ -530,6 +531,82 @@ function buildRelationRawJson(raw, sourceRefName, npcResolution) {
   });
 }
 
+function findNpcCandidateByInternalName(npcIndex, internalName) {
+  if (!(npcIndex instanceof Map) || !internalName) return null;
+  for (const candidateValue of npcIndex.values()) {
+    for (const candidate of asCandidateList(candidateValue)) {
+      if (candidateInternalName(candidate) === internalName) {
+        return candidate;
+      }
+    }
+  }
+  return null;
+}
+
+function applyNpcLootTaxonomy({ row = {}, raw = {}, sourceType, sourceRefType, npcResolution, npcIndex = new Map() }) {
+  if (sourceType !== 'drop' || sourceRefType !== 'npc') return npcResolution;
+
+  const classification = classifyNpcLootSource({
+    itemInternalName: row.item_internal_name,
+    itemName: row.item_name,
+    sourceRefName: row.source_ref_name ?? raw.sourceRefName,
+    sourceRefInternalName: npcResolution?.npcInternalName ?? raw.sourceRefInternalName ?? raw.source_ref_internal_name,
+    sourceRefResolution: npcResolution?.sourceRefResolution ?? raw.sourceRefResolution ?? raw.source_ref_resolution,
+  });
+
+  if (classification.status === 'accepted' && classification.targetNpcInternalName === 'Mimic') {
+    const mimicCandidate = findNpcCandidateByInternalName(npcIndex, 'Mimic');
+    if (!mimicCandidate) {
+      return {
+        ...(npcResolution ?? {}),
+        status: 'blocked',
+        npcSourceId: null,
+        npcInternalName: null,
+        npcName: null,
+        sourceRefResolution: 'reviewed_mimic_contract_target_missing',
+        confidence: confidence.none,
+        reason: 'reviewed_mimic_target_missing',
+        taxonomyStatus: 'blocked',
+        taxonomyReason: 'reviewed_mimic_target_missing',
+      };
+    }
+    return {
+      status: relationStatus.resolved,
+      npcSourceId: toNullableNumber(mimicCandidate?.source_id ?? mimicCandidate?.sourceId),
+      npcInternalName: 'Mimic',
+      npcName: normalizeText(mimicCandidate?.name) ?? 'Mimic',
+      sourceRefName: row.source_ref_name ?? raw.sourceRefName,
+      sourceRefNormalized: 'Mimic',
+      sourceRefResolution: classification.sourceRefResolution ?? 'reviewed_mimic_contract',
+      confidence: confidence.high,
+      reason: 'npc_source_resolved',
+      taxonomyStatus: classification.status,
+      taxonomyReason: classification.reason,
+    };
+  }
+
+  if (!classification.materializable) {
+    return {
+      ...(npcResolution ?? {}),
+      status: 'blocked',
+      npcSourceId: null,
+      npcInternalName: null,
+      npcName: null,
+      sourceRefResolution: classification.status,
+      confidence: confidence.none,
+      reason: classification.reason,
+      taxonomyStatus: classification.status,
+      taxonomyReason: classification.reason,
+    };
+  }
+
+  return {
+    ...(npcResolution ?? {}),
+    taxonomyStatus: classification.status,
+    taxonomyReason: classification.reason,
+  };
+}
+
 export function resolveNpcRef(row = {}, npcIndex = new Map()) {
   const raw = parseRawJson(row);
   const sourceRefName = pickText(row.source_ref_name, raw.sourceRefName);
@@ -666,7 +743,14 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
 
     const npcResolution =
       sourceRefType === 'npc'
-        ? resolveNpcRef({ ...row, raw_json: raw }, npcIndex)
+        ? applyNpcLootTaxonomy({
+            row: effectiveRow,
+            raw,
+            sourceType,
+            sourceRefType,
+            npcResolution: resolveNpcRef({ ...row, raw_json: raw }, npcIndex),
+            npcIndex
+          })
         : null;
 
     sourceFacts.push({
@@ -788,7 +872,7 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
         sourceRefName,
         sourceRefNormalized,
         npcResolution,
-        auditStatus: npcResolution?.status === 'ambiguous' ? 'ambiguous' : 'unresolved',
+        auditStatus: npcResolution?.status === 'ambiguous' ? 'ambiguous' : npcResolution?.status === 'blocked' ? 'blocked' : 'unresolved',
         reasonCode: npcResolution?.reason ?? 'npc_source_unresolved',
         trace
       }));

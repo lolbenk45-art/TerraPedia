@@ -75,7 +75,7 @@ test('buildItemSourceRelations splits resolved shop and unresolved drops', () =>
   assert.equal(actual.npcShopRelations.length, 1);
   assert.equal(actual.npcLootRelations.length, 0);
   assert.ok(actual.issues.some((issue) => issue.reason === 'npc_source_unresolved'));
-  assert.ok(actual.itemNpcRelationAudits.some((audit) => audit.auditStatus === 'unresolved'));
+  assert.ok(actual.itemNpcRelationAudits.some((audit) => audit.auditStatus === 'blocked' && audit.reasonCode === 'source_ref_is_not_npc'));
   assert.ok(actual.itemNpcRelationAudits.some((audit) => audit.auditStatus === 'polluted'));
   assert.equal(actual.npcShopCandidates, undefined);
   assert.equal(actual.npcLootCandidates, undefined);
@@ -276,6 +276,129 @@ test('buildItemSourceRelations keeps unsafe positive ID fallback variants ambigu
   assert.equal(evidence.raw.sourceRefInternalName, 'PigronCorruption');
   assert.equal(evidence.raw.sourceRefResolution, 'positive_id_fallback');
   assert.deepEqual(evidence.candidateNpcInternalNames, ['PigronCorruption', 'PigronCrimson', 'PigronHallow']);
+});
+
+test('buildItemSourceRelations materializes only reviewed ordinary Mimic contract rows from Mimics bucket', () => {
+  const baseRow = {
+    record_key: 'm'.repeat(64),
+    item_name: 'Dual Hook',
+    source_type: 'drop',
+    source_ref_type: 'npc',
+    source_ref_name: 'Mimics',
+    sort_order: 0,
+    landing_source_id: 51,
+    landing_source_key: 'generated.item_relations_bundle:chunk:0001',
+    landing_content_hash: 'f'.repeat(64),
+    source_provider: 'wiki_gg',
+    source_page: 'Dual Hook'
+  };
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        ...baseRow,
+        id: 44,
+        item_internal_name: 'DualHook',
+        raw_json: JSON.stringify({
+          itemInternalName: 'DualHook',
+          sourceRefName: 'Mimics',
+          quantityText: '1',
+          chanceText: '16.67%'
+        })
+      },
+      {
+        ...baseRow,
+        id: 45,
+        record_key: 'n'.repeat(64),
+        item_internal_name: 'DaedalusStormbow',
+        item_name: 'Daedalus Stormbow',
+        source_page: 'Daedalus Stormbow',
+        raw_json: JSON.stringify({
+          itemInternalName: 'DaedalusStormbow',
+          sourceRefName: 'Mimics',
+          quantityText: '1',
+          chanceText: '25%'
+        })
+      }
+    ],
+    npcIndex: new Map([['Mimic', { source_id: 85, internal_name: 'Mimic', name: 'Mimic' }]])
+  });
+
+  assert.equal(actual.npcLootRelations.length, 1);
+  assert.equal(actual.npcLootRelations[0].npcInternalName, 'Mimic');
+  assert.equal(actual.npcLootRelations[0].itemInternalName, 'DualHook');
+  assert.equal(JSON.parse(actual.npcLootRelations[0].rawJson).sourceRefResolution, 'reviewed_mimic_contract');
+  assert.ok(actual.itemNpcRelationAudits.some((audit) => audit.itemInternalName === 'DaedalusStormbow' && audit.auditStatus === 'blocked'));
+  assert.equal(actual.sourceFacts.find((fact) => fact.itemInternalName === 'DaedalusStormbow').reason, 'collective_bucket_requires_reviewed_mapping');
+});
+
+test('buildItemSourceRelations does not materialize reviewed Mimics row when Mimic target is absent', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 47,
+        record_key: 'p'.repeat(64),
+        item_internal_name: 'DualHook',
+        item_name: 'Dual Hook',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Mimics',
+        sort_order: 0,
+        raw_json: JSON.stringify({
+          itemInternalName: 'DualHook',
+          sourceRefName: 'Mimics',
+          quantityText: '1',
+          chanceText: '16.67%'
+        }),
+        landing_source_id: 51,
+        landing_source_key: 'generated.item_relations_bundle:chunk:0001',
+        landing_content_hash: 'f'.repeat(64),
+        source_provider: 'wiki_gg',
+        source_page: 'Dual Hook'
+      }
+    ],
+    npcIndex: new Map()
+  });
+
+  assert.equal(actual.npcLootRelations.length, 0);
+  assert.equal(actual.sourceFacts[0].reviewStatus, 'blocked');
+  assert.equal(actual.itemNpcRelationAudits[0].auditStatus, 'blocked');
+  assert.equal(actual.itemNpcRelationAudits[0].reasonCode, 'reviewed_mimic_target_missing');
+});
+
+test('buildItemSourceRelations blocks wrong exact ordinary Mimic rows', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 46,
+        record_key: 'o'.repeat(64),
+        item_internal_name: 'Mace',
+        item_name: 'Mace',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Mimic',
+        sort_order: 0,
+        raw_json: JSON.stringify({
+          itemInternalName: 'Mace',
+          sourceRefName: 'Mimic',
+          sourceRefInternalName: 'Mimic',
+          sourceRefResolution: 'exact_internal_name',
+          quantityText: '1',
+          chanceText: '16.67%'
+        }),
+        landing_source_id: 51,
+        landing_source_key: 'generated.item_relations_bundle:chunk:0001',
+        landing_content_hash: 'f'.repeat(64),
+        source_provider: 'wiki_gg',
+        source_page: 'Mace'
+      }
+    ],
+    npcIndex: new Map([['Mimic', { source_id: 85, internal_name: 'Mimic', name: 'Mimic' }]])
+  });
+
+  assert.equal(actual.npcLootRelations.length, 0);
+  assert.equal(actual.itemNpcRelationAudits.length, 1);
+  assert.equal(actual.itemNpcRelationAudits[0].auditStatus, 'blocked');
+  assert.equal(actual.itemNpcRelationAudits[0].reasonCode, 'ordinary_mimic_contract_mismatch');
 });
 
 test('buildItemSourceRelations ignores duplicate index entries for the same exact npc row', () => {
