@@ -18,6 +18,14 @@ export function matchNpcBridgeRecords({
 } = {}) {
   const records = Array.isArray(standardizedRecords) ? standardizedRecords : [];
   const crawler = crawlerRecord ?? {};
+  const scopedAutoIds = collectScopedAutoIds(crawler.buffInflictions);
+
+  if (scopedAutoIds.length) {
+    const scopedMatches = records.filter((record) => scopedAutoIds.includes(toText(record?.id)));
+    if (scopedMatches.length) {
+      return { records: scopedMatches, reason: 'sourceInfoboxAutoId' };
+    }
+  }
 
   const pageTitle = toText(crawler.source?.pageTitle);
   const displayName = toText(crawler.display?.name);
@@ -48,6 +56,13 @@ function normalizeInternalNameCandidate(value) {
   const text = toText(value);
   if (!text) return null;
   return text.replace(/[^A-Za-z0-9]+/g, '');
+}
+
+function collectScopedAutoIds(buffInflictions) {
+  const rows = Array.isArray(buffInflictions) ? buffInflictions : [];
+  return [...new Set(rows
+    .map((row) => toText(row?.sourceInfobox?.autoId))
+    .filter(Boolean))];
 }
 
 function denormalizeEntityId(value) {

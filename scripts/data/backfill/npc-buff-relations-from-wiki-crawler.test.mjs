@@ -45,6 +45,43 @@ test('extractNpcBuffRelationCandidates reads wikiCrawler buff inflictions from s
   ]);
 });
 
+test('extractNpcBuffRelationCandidates keeps inflictions from an incomplete first infobox when a later balanced infobox exists', () => {
+  const candidates = extractNpcBuffRelationCandidates({
+    records: [
+      {
+        id: 525,
+        internalName: 'DesertGhoulCorruption',
+        name: 'Vile Ghoul',
+        wikiCrawler: {
+          pageTitle: 'Ghouls',
+          buffInflictions: [
+            {
+              buffName: 'Cursed Inferno',
+              durationText: '',
+              sourceField: 'debuff',
+              sourceSection: 'infobox'
+            }
+          ]
+        }
+      }
+    ]
+  });
+
+  assert.deepEqual(candidates, [
+    {
+      npcSourceId: 525,
+      npcInternalName: 'DesertGhoulCorruption',
+      npcName: 'Vile Ghoul',
+      pageTitle: 'Ghouls',
+      sourceRevisionTimestamp: null,
+      buffName: 'Cursed Inferno',
+      durationText: '',
+      sourceField: 'debuff',
+      sourceSection: 'infobox'
+    }
+  ]);
+});
+
 test('buildNpcBuffRelationPlan resolves NPC and debuff rows for local projection', () => {
   const plan = buildNpcBuffRelationPlan({
     standardizedPayload: {
@@ -120,6 +157,49 @@ test('buildNpcBuffRelationPlan marks crawled NPCs as affected even when they no 
   assert.equal(plan.candidates, 0);
   assert.deepEqual(plan.affectedNpcIds, [9001]);
   assert.deepEqual(plan.resolvedRows, []);
+});
+
+test('buildNpcBuffRelationPlan resolves Cursed Inferno inflicts for Clinger Spazmatism and Vile Ghoul', () => {
+  const plan = buildNpcBuffRelationPlan({
+    standardizedPayload: {
+      records: [
+        {
+          id: 101,
+          internalName: 'Clinger',
+          name: 'Clinger',
+          wikiCrawler: { pageTitle: 'Clinger', buffInflictions: [{ buffName: 'Cursed Inferno' }] }
+        },
+        {
+          id: 126,
+          internalName: 'Spazmatism',
+          name: 'Spazmatism',
+          wikiCrawler: { pageTitle: 'The Twins', buffInflictions: [{ buffName: 'Cursed Inferno' }] }
+        },
+        {
+          id: 525,
+          internalName: 'DesertGhoulCorruption',
+          name: 'Vile Ghoul',
+          wikiCrawler: { pageTitle: 'Ghouls', buffInflictions: [{ buffName: 'Cursed Inferno' }] }
+        }
+      ]
+    },
+    npcRows: [
+      { id: 1010, source_id: 101, internal_name: 'Clinger', name: 'Clinger' },
+      { id: 1260, source_id: 126, internal_name: 'Spazmatism', name: 'Spazmatism' },
+      { id: 5250, source_id: 525, internal_name: 'DesertGhoulCorruption', name: 'Vile Ghoul' }
+    ],
+    buffRows: [
+      { id: 390, source_id: 39, internal_name: 'CursedInferno', english_name: 'Cursed Inferno', buff_type: 'debuff' }
+    ]
+  });
+
+  assert.equal(plan.candidates, 3);
+  assert.deepEqual(
+    plan.resolvedRows.map((row) => row.npcInternalName),
+    ['Clinger', 'Spazmatism', 'DesertGhoulCorruption']
+  );
+  assert.ok(plan.resolvedRows.every((row) => row.buffInternalName === 'CursedInferno'));
+  assert.deepEqual(plan.unmatchedRows, []);
 });
 
 test('normalizeLookupKey strips common wiki markup around buff names', () => {

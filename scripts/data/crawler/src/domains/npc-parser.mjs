@@ -85,7 +85,7 @@ function normalizeInfoboxBuffName(value) {
     .trim();
 }
 
-function collectInfoboxBuffInflictions(fields) {
+function collectInfoboxBuffInflictions(fields, { sourceInfobox } = {}) {
   const entries = Object.entries(fields ?? {})
     .map(([field, value]) => {
       const match = /^debuff(\d*)$/.exec(field);
@@ -112,14 +112,18 @@ function collectInfoboxBuffInflictions(fields) {
       continue;
     }
     const durationField = `debuffduration${entry.suffix}`;
-    results.push({
+    const result = {
       buffName,
       durationText: fields[durationField] ?? '',
       rawBuffText,
       sourceField: entry.field,
       durationField: fields[durationField] == null ? '' : durationField,
       sourceSection: 'infobox'
-    });
+    };
+    if (sourceInfobox) {
+      result.sourceInfobox = sourceInfobox;
+    }
+    results.push(result);
   }
   return results;
 }
@@ -217,10 +221,14 @@ function parseInfoboxFields(revisionText) {
     return {};
   }
 
-  const openingMatch = /^\{\{npc infobox\b/i.exec(block.text);
+  return parseInfoboxBlockFields(block.text, { closed: block.closed });
+}
+
+function parseInfoboxBlockFields(blockText, { closed = true } = {}) {
+  const openingMatch = /^\{\{npc infobox\b/i.exec(blockText);
   const prefixLength = openingMatch ? openingMatch[0].length : 0;
-  const suffixLength = block.closed ? 2 : 0;
-  const inner = block.text.slice(prefixLength, block.text.length - suffixLength).trim();
+  const suffixLength = closed ? 2 : 0;
+  const inner = blockText.slice(prefixLength, blockText.length - suffixLength).trim();
   const lines = inner.split(/\r?\n/);
   const fields = {};
   let currentKey;
@@ -249,6 +257,62 @@ function parseInfoboxFields(revisionText) {
   }
 
   return fields;
+}
+
+function parseAllInfoboxFields(revisionText) {
+  const text = String(revisionText ?? '');
+  const firstBlock = findInfoboxBlock(text);
+  const balancedBlocks = findBalancedTemplateBlocks(text, 'npc infobox')
+    .map((blockText) => ({
+      closed: true,
+      fields: parseInfoboxBlockFields(blockText, { closed: true })
+    }));
+
+  if (firstBlock && !firstBlock.closed) {
+    const remainder = text.slice(firstBlock.start + firstBlock.text.length).trimStart();
+    const trailingBalancedBlocks = findBalancedTemplateBlocks(remainder, 'npc infobox')
+      .map((blockText) => ({
+        closed: true,
+        fields: parseInfoboxBlockFields(blockText, { closed: true })
+      }));
+
+    const trailingFallbackBlock = trailingBalancedBlocks.length === 0
+      ? findInfoboxBlock(remainder)
+      : null;
+    return [
+      {
+        closed: false,
+        fields: parseInfoboxBlockFields(firstBlock.text, { closed: false })
+      },
+      ...trailingBalancedBlocks,
+      ...(trailingFallbackBlock && trailingFallbackBlock.closed
+        ? [{
+          closed: true,
+          fields: parseInfoboxBlockFields(trailingFallbackBlock.text, { closed: true })
+        }]
+        : [])
+    ];
+  }
+
+  if (balancedBlocks.length) {
+    return balancedBlocks;
+  }
+
+  if (!firstBlock) {
+    return [];
+  }
+  return [{
+    closed: firstBlock.closed,
+    fields: parseInfoboxBlockFields(firstBlock.text, { closed: firstBlock.closed })
+  }];
+}
+
+function buildInfoboxSource(fields) {
+  return {
+    autoId: fields.auto ?? '',
+    image: fields.image ?? '',
+    name: fields.name ?? ''
+  };
 }
 
 function stripSpecialForms(text) {
@@ -324,9 +388,16 @@ export function extractNpcLeadSummary({ pageDescription = '', revisionText = '' 
 
 export function extractNpcInfobox(revisionText) {
   const fields = parseInfoboxFields(revisionText);
+  const infoboxes = parseAllInfoboxFields(revisionText);
+  const includeSourceInfobox = infoboxes.length > 1;
+  const buffInflictions = infoboxes.flatMap((infobox) => collectInfoboxBuffInflictions(
+    infobox.fields,
+    includeSourceInfobox ? { sourceInfobox: buildInfoboxSource(infobox.fields) } : {}
+  ));
+
   return {
     baseDamageText: fields.damage ?? '',
-    buffInflictions: collectInfoboxBuffInflictions(fields),
+    buffInflictions,
     environment: splitList(fields.environment),
     extraDamageText: fields.damage2 ?? '',
     kind: fields.type ?? '',

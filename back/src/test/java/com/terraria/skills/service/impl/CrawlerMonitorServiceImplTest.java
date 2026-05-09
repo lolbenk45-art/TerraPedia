@@ -219,6 +219,7 @@ class CrawlerMonitorServiceImplTest {
     @Test
     void shouldRegisterCrawlerPipelineTasksFromStandaloneProgressAndReports() throws Exception {
         Path progressPath = repoRoot.resolve("data/generated/wiki-sync-progress.latest.json");
+        Path buffProgressPath = repoRoot.getParent().resolve("data/terraPedia/generated/fetch-wiki-buffs-progress.latest.json");
         Path coveragePath = repoRoot.resolve("data/wiki-crawler/report/npc/coverage-audit.latest.json");
         Path maintPath = repoRoot.resolve("reports/maint-sync-2026-04-29.json");
         Path npcBackfillPath = repoRoot.resolve("reports/normal-npc-loot-restore-apply-2026-04-29.json");
@@ -241,6 +242,21 @@ class CrawlerMonitorServiceImplTest {
             Map.entry("overallTotal", 6131),
             Map.entry("percent", 43),
             Map.entry("generatedAt", "2026-04-29T06:54:18Z")
+        ));
+        writeJson(buffProgressPath, Map.ofEntries(
+            Map.entry("actionId", "buff-page-immunity-refresh"),
+            Map.entry("status", "running"),
+            Map.entry("phase", "buff-page-immunities"),
+            Map.entry("message", "scraping rendered immunity pages 39/388: Cursed Inferno"),
+            Map.entry("current", 39),
+            Map.entry("total", 388),
+            Map.entry("overallCurrent", 39),
+            Map.entry("overallTotal", 388),
+            Map.entry("percent", 10.05),
+            Map.entry("reportPath", "reports/fetch/fetch-template__getbuffinfo-2026-05-08T03-00-00.000Z.json"),
+            Map.entry("outputPath", "data/terraPedia/raw/wiki/template__getbuffinfo.parsed.latest.json"),
+            Map.entry("lastHeartbeatAt", "2026-04-29T06:55:00Z"),
+            Map.entry("generatedAt", "2026-04-29T06:55:00Z")
         ));
         writeJson(coveragePath, Map.of(
             "summary", Map.of(
@@ -293,6 +309,19 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("data/generated/wiki-sync-progress.latest.json", itemRefresh.getProgressPath());
         assertEquals("fetched 43/100 item page(s); ok=43; failed=0", itemRefresh.getQueueState());
         assertNotNull(itemRefresh.getNextStep());
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO buffRefresh = taskById(tasks, "buff-page-immunity-refresh");
+        assertEquals("running", buffRefresh.getStatus());
+        assertEquals("fetch", buffRefresh.getLane());
+        assertEquals(39, buffRefresh.getCurrent());
+        assertEquals(388, buffRefresh.getTotal());
+        assertEquals(39, buffRefresh.getOverallCurrent());
+        assertEquals(388, buffRefresh.getOverallTotal());
+        assertEquals(349, buffRefresh.getPending());
+        assertEquals("scraping rendered immunity pages 39/388: Cursed Inferno", buffRefresh.getQueueState());
+        assertTrue(buffRefresh.getProgressPath().replace('\\', '/').endsWith("data/terraPedia/generated/fetch-wiki-buffs-progress.latest.json"));
+        assertEquals("reports/fetch/fetch-template__getbuffinfo-2026-05-08T03-00-00.000Z.json", buffRefresh.getReportPath());
+        assertEquals("data/terraPedia/raw/wiki/template__getbuffinfo.parsed.latest.json", buffRefresh.getOutputPath());
 
         CrawlerMonitorOverviewDTO.RegisteredTaskDTO bossCoverage = taskById(tasks, "npc-coverage-boss");
         assertEquals("queued", bossCoverage.getStatus());
@@ -855,6 +884,41 @@ class CrawlerMonitorServiceImplTest {
         assertEquals(Map.of("status", "real-scheduler"), new ObjectMapper().readValue(schedulerPath.toFile(), Map.class));
         assertEquals(daemonModifiedAt, Files.getLastModifiedTime(daemonPath));
         assertEquals(schedulerModifiedAt, Files.getLastModifiedTime(schedulerPath));
+    }
+
+    @Test
+    void shouldResolveBuffProgressFromWorkspaceSharedDataWhenRepoRootIsWorktree() throws Exception {
+        Path workspaceRoot = Files.createDirectories(tempDir.resolve("workspace"));
+        Path worktreeRepoRoot = Files.createDirectories(workspaceRoot.resolve(".worktrees/fix-buff-domain-chain-closeout"));
+        Files.createDirectories(worktreeRepoRoot.resolve("back"));
+        Files.createDirectories(worktreeRepoRoot.resolve("data-query-app"));
+        Files.createDirectories(worktreeRepoRoot.resolve("scripts"));
+        Files.createDirectories(worktreeRepoRoot.resolve("reports/backend-refresh/history"));
+        Path buffProgressPath = workspaceRoot.resolve("data/terraPedia/generated/fetch-wiki-buffs-progress.latest.json");
+
+        writeJson(buffProgressPath, Map.ofEntries(
+            Map.entry("actionId", "buff-page-immunity-refresh"),
+            Map.entry("status", "completed"),
+            Map.entry("phase", "write"),
+            Map.entry("message", "finished buff fetch; buffs=388; page immunity facts=24"),
+            Map.entry("current", 388),
+            Map.entry("total", 388),
+            Map.entry("overallCurrent", 388),
+            Map.entry("overallTotal", 388),
+            Map.entry("percent", 100),
+            Map.entry("lastHeartbeatAt", "2026-05-08T03:55:43Z"),
+            Map.entry("generatedAt", "2026-05-08T03:55:43Z")
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), worktreeRepoRoot);
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO buffRefresh = taskById(overview.getRegisteredTasks(), "buff-page-immunity-refresh");
+
+        assertEquals("completed", buffRefresh.getStatus());
+        assertEquals(388, buffRefresh.getCurrent());
+        assertEquals(388, buffRefresh.getTotal());
+        assertTrue(buffRefresh.getProgressPath().replace('\\', '/').endsWith("data/terraPedia/generated/fetch-wiki-buffs-progress.latest.json"));
     }
 
     private void writeJson(Path path, Map<String, Object> payload) throws IOException {

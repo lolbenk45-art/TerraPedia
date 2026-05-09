@@ -267,6 +267,83 @@ test('extractNpcInfobox ignores inline debuff metadata when naming the debuff', 
   assert.equal(extractNpcInfobox(sample).buffInflictions[0].buffName, 'Bleeding');
 });
 
+test('extractNpcInfobox captures debuffs from secondary NPC infoboxes on group pages', () => {
+  const sample = [
+    '{{npc infobox',
+    '| auto = 125',
+    '| name = The Twins',
+    '}}',
+    '|{{npc infobox',
+    '| auto = 126',
+    '| image = Spazmatism (first form).gif',
+    '| debuff = Cursed Inferno',
+    '| debuffchance = 68.75%',
+    '| debuffduration = {{duration|rawseconds=2-3}}',
+    '}}'
+  ].join('\n');
+
+  assert.deepEqual(extractNpcInfobox(sample).buffInflictions, [
+    {
+      buffName: 'Cursed Inferno',
+      durationText: '{{duration|rawseconds=2-3}}',
+      rawBuffText: 'Cursed Inferno',
+      sourceField: 'debuff',
+      durationField: 'debuffduration',
+      sourceSection: 'infobox',
+      sourceInfobox: {
+        autoId: '126',
+        image: 'Spazmatism (first form).gif',
+        name: ''
+      }
+    }
+  ]);
+});
+
+test('extractNpcInfobox preserves an incomplete first infobox when a later balanced infobox exists', () => {
+  const sample = [
+    '{{npc infobox',
+    '| auto = 525',
+    '| name = Vile Ghoul',
+    '| debuff = Cursed Inferno',
+    '',
+    '{{npc infobox',
+    '| auto = 526',
+    '| name = Tainted Ghoul',
+    '| debuff = Ichor',
+    '| debuffduration = 5 seconds',
+    '}}'
+  ].join('\n');
+
+  assert.deepEqual(extractNpcInfobox(sample).buffInflictions, [
+    {
+      buffName: 'Cursed Inferno',
+      durationText: '',
+      rawBuffText: 'Cursed Inferno',
+      sourceField: 'debuff',
+      durationField: '',
+      sourceSection: 'infobox',
+      sourceInfobox: {
+        autoId: '525',
+        image: '',
+        name: 'Vile Ghoul'
+      }
+    },
+    {
+      buffName: 'Ichor',
+      durationText: '5 seconds',
+      rawBuffText: 'Ichor',
+      sourceField: 'debuff',
+      durationField: 'debuffduration',
+      sourceSection: 'infobox',
+      sourceInfobox: {
+        autoId: '526',
+        image: '',
+        name: 'Tainted Ghoul'
+      }
+    }
+  ]);
+});
+
 test('extractNpcShop keeps rows with nested value templates', () => {
   const sample = [
     '{{shop|',
