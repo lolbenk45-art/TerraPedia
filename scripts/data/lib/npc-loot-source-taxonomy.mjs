@@ -66,12 +66,19 @@ export function classifyNpcLootSource(input = {}) {
   const sourceRefResolution = normalizeText(input.sourceRefResolution ?? input.source_ref_resolution);
   const sourceKey = sourceRefName?.toLowerCase() ?? '';
 
-  if (UNREVIEWED_MIMIC_VARIANT_INTERNAL_NAMES.has(sourceRefInternalName) || UNREVIEWED_MIMIC_VARIANT_SOURCE_NAMES.has(sourceKey)) {
-    return buildResult('contract_mismatch', false, null, 'mimic_variant_requires_reviewed_mapping');
-  }
-
   if (isNonNpcSource(sourceRefName)) {
     return buildResult('non_npc_source_misclassified', false, null, 'source_ref_is_not_npc');
+  }
+
+  if (UNREVIEWED_MIMIC_VARIANT_INTERNAL_NAMES.has(sourceRefInternalName)) {
+    if (sourceRefResolution === 'exact_internal_name') {
+      return buildResult('accepted', true, sourceRefInternalName, 'variant_exact_npc_source', 'exact_internal_name');
+    }
+    return buildResult('contract_mismatch', false, null, 'mimic_variant_requires_exact_npc_source');
+  }
+
+  if (UNREVIEWED_MIMIC_VARIANT_SOURCE_NAMES.has(sourceKey)) {
+    return buildResult('contract_mismatch', false, null, 'mimic_variant_requires_exact_npc_source');
   }
 
   if (sourceKey === 'mimics') {

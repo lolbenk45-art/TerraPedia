@@ -461,6 +461,101 @@ test('extractNpcLoot parses drop table evidence from NPC page wikitext', () => {
   });
 });
 
+test('extractNpcLoot preserves source infobox scope for Mimics group-page variant drops', () => {
+  const sample = [
+    '== Types ==',
+    '{{npc infobox',
+    '| auto = 473',
+    '| name = Crimson Mimic',
+    '| image = Crimson Mimic.gif',
+    '}}',
+    '',
+    '=== Drops ===',
+    '{| class="terraria drop"',
+    '! Item !! Quantity !! Chance',
+    '|-',
+    '| [[Life Drain]] || 1 || 20%',
+    '|-',
+    '| [[Dart Pistol]] || 1 || 20%',
+    '|-',
+    '| [[Fetid Baghnakhs]] || 1 || 20%',
+    '|-',
+    '| [[Flesh Knuckles]] || 1 || 20%',
+    '|-',
+    '| [[Tendon Hook]] || 1 || 20%',
+    '|-',
+    '| [[Eater Of Life]] || 1 || 100%',
+    '|-',
+    '| [[Greater Healing Potion]] || 5-15 || 100%',
+    '|-',
+    '| [[Greater Mana Potion]] || 5-15 || 100%',
+    '|}',
+    '',
+    '{{npc infobox',
+    '| auto = 474',
+    '| name = Hallowed Mimic',
+    '| image = Hallowed Mimic.gif',
+    '}}',
+    '',
+    '=== Drops ===',
+    '{| class="terraria drop"',
+    '! Item !! Quantity !! Chance',
+    '|-',
+    '| [[Flying Knife]] || 1 || 25%',
+    '|}'
+  ].join('\n');
+
+  const result = extractNpcLoot(sample);
+
+  const crimsonRows = result.items.filter((row) => row.sourceInfobox?.name === 'Crimson Mimic');
+  assert.deepEqual(
+    crimsonRows.map((row) => row.itemName),
+    [
+      'Life Drain',
+      'Dart Pistol',
+      'Fetid Baghnakhs',
+      'Flesh Knuckles',
+      'Tendon Hook',
+      'Eater Of Life',
+      'Greater Healing Potion',
+      'Greater Mana Potion'
+    ]
+  );
+  assert.ok(crimsonRows.every((row) => row.sourceInfobox.autoId === '473'));
+  assert.ok(crimsonRows.every((row) => row.sourceSection === 'drops'));
+  assert.equal(
+    result.items.filter((row) => row.sourceInfobox?.name === 'Hallowed Mimic').map((row) => row.itemName)[0],
+    'Flying Knife'
+  );
+});
+
+test('extractNpcLoot leaves shared multi-infobox Drops sections unscoped', () => {
+  const sample = [
+    '== Variants ==',
+    '{{npc infobox',
+    '| auto = 473',
+    '| name = Crimson Mimic',
+    '| image = Crimson Mimic.gif',
+    '}}',
+    '{{npc infobox',
+    '| auto = 474',
+    '| name = Hallowed Mimic',
+    '| image = Hallowed Mimic.gif',
+    '}}',
+    '== Drops ==',
+    '{|',
+    '|-',
+    '| Shared Hook || 1 || 20%',
+    '|}',
+  ].join('\n');
+
+  const result = extractNpcLoot(sample);
+
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].itemName, 'Shared Hook');
+  assert.equal(result.items[0].sourceInfobox, undefined);
+});
+
 test('normalizeNpcLootRows maps raw loot rows to NPC item relation evidence', () => {
   assert.deepEqual(
     normalizeNpcLootRows(

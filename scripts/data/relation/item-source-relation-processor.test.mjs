@@ -331,6 +331,73 @@ test('buildItemSourceRelations materializes only reviewed ordinary Mimic contrac
   assert.equal(actual.sourceFacts.find((fact) => fact.itemInternalName === 'DaedalusStormbow').reason, 'collective_bucket_requires_reviewed_mapping');
 });
 
+test('buildItemSourceRelations materializes exact NPC-scoped Mimic variant rows without generic fan-out', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 144,
+        record_key: 'c'.repeat(64),
+        item_internal_name: 'LifeDrain',
+        item_name: 'Life Drain',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Crimson Mimic',
+        sort_order: 0,
+        raw_json: JSON.stringify({
+          itemInternalName: 'LifeDrain',
+          sourceRefName: 'Crimson Mimic',
+          sourceRefInternalName: 'BigMimicCrimson',
+          sourceRefResolution: 'exact_internal_name',
+          sourceInfobox: { autoId: '473', image: 'Crimson Mimic.gif', name: 'Crimson Mimic' },
+          quantityText: '1',
+          chanceText: '20%'
+        }),
+        landing_source_id: 51,
+        landing_source_key: 'generated.npc_item_relations_bundle:chunk:0001',
+        landing_content_hash: 'f'.repeat(64),
+        source_provider: 'wiki_gg',
+        source_page: 'Mimics'
+      },
+      {
+        id: 145,
+        record_key: 'd'.repeat(64),
+        item_internal_name: 'DaedalusStormbow',
+        item_name: 'Daedalus Stormbow',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Mimics',
+        sort_order: 1,
+        raw_json: JSON.stringify({
+          itemInternalName: 'DaedalusStormbow',
+          sourceRefName: 'Mimics',
+          quantityText: '1',
+          chanceText: '25%'
+        }),
+        landing_source_id: 51,
+        landing_source_key: 'generated.item_relations_bundle:chunk:0001',
+        landing_content_hash: 'f'.repeat(64),
+        source_provider: 'wiki_gg',
+        source_page: 'Daedalus Stormbow'
+      }
+    ],
+    npcIndex: new Map([
+      ['Crimson Mimic', [
+        { source_id: 473, internal_name: 'BigMimicCrimson', name: 'Crimson Mimic' }
+      ]],
+      ['Mimic', { source_id: 85, internal_name: 'Mimic', name: 'Mimic' }]
+    ])
+  });
+
+  assert.equal(actual.npcLootRelations.length, 1);
+  assert.equal(actual.npcLootRelations[0].npcInternalName, 'BigMimicCrimson');
+  assert.equal(actual.npcLootRelations[0].itemInternalName, 'LifeDrain');
+  assert.equal(actual.npcLootRelations[0].chanceText, '20%');
+  const detail = actual.sourceDetails.find((row) => row.sourceRefName === 'Crimson Mimic');
+  assert.equal(detail.sourceRefInternalName, 'BigMimicCrimson');
+  assert.equal(detail.sourceRefResolution, 'exact_internal_name');
+  assert.ok(actual.itemNpcRelationAudits.some((audit) => audit.itemInternalName === 'DaedalusStormbow' && audit.auditStatus === 'blocked'));
+});
+
 test('buildItemSourceRelations does not materialize reviewed Mimics row when Mimic target is absent', () => {
   const actual = buildItemSourceRelations({
     itemSourceRows: [

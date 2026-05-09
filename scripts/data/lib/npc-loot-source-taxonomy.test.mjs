@@ -45,7 +45,7 @@ test('classifyNpcLootSource forbids exact ordinary Mimic promotion even for cont
   assert.equal(actual.reason, 'ordinary_mimic_exact_promotion_forbidden');
 });
 
-test('classifyNpcLootSource blocks unreviewed Mimic variant exact rows', () => {
+test('classifyNpcLootSource accepts Mimic variant exact NPC-scoped rows', () => {
   for (const [sourceRefName, sourceRefInternalName] of [
     ['Present Mimic', 'PresentMimic'],
     ['Corrupt Mimic', 'BigMimicCorruption'],
@@ -60,10 +60,37 @@ test('classifyNpcLootSource blocks unreviewed Mimic variant exact rows', () => {
       sourceRefResolution: 'exact_internal_name',
     });
 
-    assert.equal(actual.status, 'contract_mismatch', sourceRefInternalName);
-    assert.equal(actual.materializable, false, sourceRefInternalName);
-    assert.equal(actual.reason, 'mimic_variant_requires_reviewed_mapping', sourceRefInternalName);
+    assert.equal(actual.status, 'accepted', sourceRefInternalName);
+    assert.equal(actual.materializable, true, sourceRefInternalName);
+    assert.equal(actual.targetNpcInternalName, sourceRefInternalName, sourceRefInternalName);
+    assert.equal(actual.reason, 'variant_exact_npc_source', sourceRefInternalName);
   }
+});
+
+test('classifyNpcLootSource blocks Mimic variant names without exact NPC-scoped evidence', () => {
+  const actual = classifyNpcLootSource({
+    itemInternalName: 'DaedalusStormbow',
+    sourceRefName: 'Crimson Mimic',
+    sourceRefInternalName: null,
+    sourceRefResolution: null,
+  });
+
+  assert.equal(actual.status, 'contract_mismatch');
+  assert.equal(actual.materializable, false);
+  assert.equal(actual.reason, 'mimic_variant_requires_exact_npc_source');
+});
+
+test('classifyNpcLootSource blocks non-NPC sources even with exact Mimic variant metadata', () => {
+  const actual = classifyNpcLootSource({
+    itemInternalName: 'LifeDrain',
+    sourceRefName: 'Gold Chest',
+    sourceRefInternalName: 'BigMimicCrimson',
+    sourceRefResolution: 'exact_internal_name',
+  });
+
+  assert.equal(actual.status, 'non_npc_source_misclassified');
+  assert.equal(actual.materializable, false);
+  assert.equal(actual.reason, 'source_ref_is_not_npc');
 });
 
 test('classifyNpcLootSource keeps non-contract Mimics rows as generic buckets', () => {

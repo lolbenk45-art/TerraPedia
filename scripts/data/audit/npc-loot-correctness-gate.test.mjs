@@ -32,7 +32,7 @@ test('buildNpcLootCorrectnessReport blocks wrong Mimic rows and collective bucke
   assert.equal(report.mimicCorrectness.blockedVariants[0].internalName, 'BigMimicCorruption');
 });
 
-test('buildNpcLootCorrectnessReport fails when blocked Mimic variants have loot', () => {
+test('buildNpcLootCorrectnessReport accepts Mimic variants with exact NPC-scoped source rows', () => {
   const report = buildNpcLootCorrectnessReport({
     sourceRows: [
       { itemInternalName: 'DualHook', itemName: 'Dual Hook', sourceRefName: 'Mimics' },
@@ -41,25 +41,77 @@ test('buildNpcLootCorrectnessReport fails when blocked Mimic variants have loot'
       { itemInternalName: 'TitanGlove', itemName: 'Titan Glove', sourceRefName: 'Mimics' },
       { itemInternalName: 'StarCloak', itemName: 'Star Cloak', sourceRefName: 'Mimics' },
       { itemInternalName: 'CrossNecklace', itemName: 'Cross Necklace', sourceRefName: 'Mimics' },
+      { itemInternalName: 'LifeDrain', itemName: 'Life Drain', sourceRefName: 'Crimson Mimic', sourceRefInternalName: 'BigMimicCrimson', sourceRefResolution: 'exact_internal_name' },
+      { itemInternalName: 'DartPistol', itemName: 'Dart Pistol', sourceRefName: 'Crimson Mimic', sourceRefInternalName: 'BigMimicCrimson', sourceRefResolution: 'exact_internal_name' },
     ],
     mimicVariantStates: [
-      { internalName: 'BigMimicCorruption', localLootCount: 1, relationLootCount: 0, projectionLootCount: 0 },
       { internalName: 'BigMimicCrimson', localLootCount: 0, relationLootCount: 2, projectionLootCount: 0 },
-      { internalName: 'BigMimicHallow', localLootCount: 0, relationLootCount: 0, projectionLootCount: 3 },
       { internalName: 'IceMimic', localLootCount: 9, relationLootCount: 9, projectionLootCount: 9 },
     ],
   });
 
-  assert.equal(report.auditStatus, 'blocked');
-  assert.equal(report.summary.pollutedVariants, 3);
-  assert.equal(report.summary.blockingCount, 3);
-  assert.deepEqual(
-    report.mimicCorrectness.pollutedVariants.map((row) => row.internalName).sort(),
-    ['BigMimicCorruption', 'BigMimicCrimson', 'BigMimicHallow']
-  );
+  assert.equal(report.auditStatus, 'pass');
+  assert.equal(report.summary.pollutedVariants, 0);
+  assert.equal(report.summary.acceptedVariantRows, 2);
   assert.equal(
-    report.checks.find((check) => check.id === 'mimic_variants_explicitly_blocked').status,
-    'fail'
+    report.checks.find((check) => check.id === 'mimic_variants_have_exact_source').status,
+    'pass'
+  );
+});
+
+test('buildNpcLootCorrectnessReport blocks Mimic variant loot counts not backed by exact source rows', () => {
+  const report = buildNpcLootCorrectnessReport({
+    sourceRows: [
+      { itemInternalName: 'DualHook', itemName: 'Dual Hook', sourceRefName: 'Mimics' },
+      { itemInternalName: 'MagicDagger', itemName: 'Magic Dagger', sourceRefName: 'Mimics' },
+      { itemInternalName: 'PhilosophersStone', itemName: "Philosopher's Stone", sourceRefName: 'Mimics' },
+      { itemInternalName: 'TitanGlove', itemName: 'Titan Glove', sourceRefName: 'Mimics' },
+      { itemInternalName: 'StarCloak', itemName: 'Star Cloak', sourceRefName: 'Mimics' },
+      { itemInternalName: 'CrossNecklace', itemName: 'Cross Necklace', sourceRefName: 'Mimics' },
+      { itemInternalName: 'LifeDrain', itemName: 'Life Drain', sourceRefName: 'Crimson Mimic', sourceRefInternalName: 'BigMimicCrimson', sourceRefResolution: 'exact_internal_name' },
+    ],
+    mimicVariantStates: [
+      { internalName: 'BigMimicCrimson', localLootCount: 2, relationLootCount: 1, projectionLootCount: 1 },
+    ],
+  });
+
+  assert.equal(report.auditStatus, 'blocked');
+  assert.equal(report.summary.pollutedVariants, 1);
+  assert.equal(report.summary.blockingCount, 1);
+  assert.equal(report.mimicCorrectness.pollutedVariants[0].internalName, 'BigMimicCrimson');
+  assert.equal(report.mimicCorrectness.pollutedVariants[0].acceptedVariantRows, 1);
+  assert.equal(report.mimicCorrectness.pollutedVariants[0].reason, 'variant_loot_count_not_backed_by_exact_source_rows');
+});
+
+test('buildNpcLootCorrectnessReport blocks Mimic variant item identity drift even when counts match', () => {
+  const report = buildNpcLootCorrectnessReport({
+    sourceRows: [
+      { itemInternalName: 'DualHook', itemName: 'Dual Hook', sourceRefName: 'Mimics' },
+      { itemInternalName: 'MagicDagger', itemName: 'Magic Dagger', sourceRefName: 'Mimics' },
+      { itemInternalName: 'PhilosophersStone', itemName: "Philosopher's Stone", sourceRefName: 'Mimics' },
+      { itemInternalName: 'TitanGlove', itemName: 'Titan Glove', sourceRefName: 'Mimics' },
+      { itemInternalName: 'StarCloak', itemName: 'Star Cloak', sourceRefName: 'Mimics' },
+      { itemInternalName: 'CrossNecklace', itemName: 'Cross Necklace', sourceRefName: 'Mimics' },
+      { itemInternalName: 'LifeDrain', itemName: 'Life Drain', sourceRefName: 'Crimson Mimic', sourceRefInternalName: 'BigMimicCrimson', sourceRefResolution: 'exact_internal_name' },
+      { itemInternalName: 'DartPistol', itemName: 'Dart Pistol', sourceRefName: 'Crimson Mimic', sourceRefInternalName: 'BigMimicCrimson', sourceRefResolution: 'exact_internal_name' },
+    ],
+    mimicVariantStates: [
+      {
+        internalName: 'BigMimicCrimson',
+        localLootCount: 2,
+        relationLootCount: 2,
+        projectionLootCount: 0,
+        localItemInternalNames: ['LifeDrain', 'WrongItem'],
+        relationItemInternalNames: ['LifeDrain', 'DartPistol'],
+      },
+    ],
+  });
+
+  assert.equal(report.auditStatus, 'blocked');
+  assert.equal(report.summary.pollutedVariants, 1);
+  assert.deepEqual(
+    report.mimicCorrectness.pollutedVariants[0].acceptedVariantItemInternalNames.sort(),
+    ['DartPistol', 'LifeDrain']
   );
 });
 
@@ -96,12 +148,12 @@ test('runNpcLootCorrectnessGate queries DB with SELECT statements only', async (
       }
       if (sql.includes('FROM `terria_v1_relation`.`item_npc_loot_relations`')) {
         return [[
-          { itemInternalName: 'DualHook', itemName: 'Dual Hook', sourceRefName: 'Mimics', sourceRefInternalName: 'Mimic' },
-          { itemInternalName: 'MagicDagger', itemName: 'Magic Dagger', sourceRefName: 'Mimics', sourceRefInternalName: 'Mimic' },
-          { itemInternalName: 'PhilosophersStone', itemName: "Philosopher's Stone", sourceRefName: 'Mimics', sourceRefInternalName: 'Mimic' },
-          { itemInternalName: 'TitanGlove', itemName: 'Titan Glove', sourceRefName: 'Mimics', sourceRefInternalName: 'Mimic' },
-          { itemInternalName: 'StarCloak', itemName: 'Star Cloak', sourceRefName: 'Mimics', sourceRefInternalName: 'Mimic' },
-          { itemInternalName: 'CrossNecklace', itemName: 'Cross Necklace', sourceRefName: 'Mimics', sourceRefInternalName: 'Mimic' },
+          { itemInternalName: 'DualHook', itemName: 'Dual Hook', sourceRefName: 'Mimics' },
+          { itemInternalName: 'MagicDagger', itemName: 'Magic Dagger', sourceRefName: 'Mimics' },
+          { itemInternalName: 'PhilosophersStone', itemName: "Philosopher's Stone", sourceRefName: 'Mimics' },
+          { itemInternalName: 'TitanGlove', itemName: 'Titan Glove', sourceRefName: 'Mimics' },
+          { itemInternalName: 'StarCloak', itemName: 'Star Cloak', sourceRefName: 'Mimics' },
+          { itemInternalName: 'CrossNecklace', itemName: 'Cross Necklace', sourceRefName: 'Mimics' },
         ]];
       }
       return [[]];

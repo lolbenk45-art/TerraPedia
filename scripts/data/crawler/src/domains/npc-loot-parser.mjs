@@ -12,6 +12,7 @@ export function normalizeNpcLootRows(rows, context = {}) {
         npcName: context.npcName ?? null,
         sourceSection: row.sourceSection ?? 'drops',
         sourceRowIndex: index,
+        ...(row.sourceInfobox ? { sourceInfobox: row.sourceInfobox } : {}),
         raw: row
       };
     })

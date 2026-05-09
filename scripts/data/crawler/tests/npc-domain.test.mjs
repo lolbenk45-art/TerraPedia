@@ -95,6 +95,55 @@ test('buildNpcNormalizedLight preserves normalized shop, loot, projectile, and b
   assert.deepEqual(record.backfillCandidates, []);
 });
 
+test('buildNpcNormalizedLight preserves source-infobox scoped loot from group pages', () => {
+  const record = buildNpcNormalizedLight({
+    entityId: 'mimics',
+    pageTitle: 'Mimics',
+    pageDescription: 'Mimics are enemies.',
+    revisionText: [
+      '{{npc infobox',
+      '| auto = 473',
+      '| name = Crimson Mimic',
+      '| image = Crimson Mimic.gif',
+      '| type = Enemy',
+      '}}',
+      '',
+      '=== Drops ===',
+      '{| class="terraria drop"',
+      '! Item !! Quantity !! Chance',
+      '|-',
+      '| [[Life Drain]] || 1 || 20%',
+      '|}',
+      '',
+      '{{npc infobox',
+      '| auto = 474',
+      '| name = Hallowed Mimic',
+      '| image = Hallowed Mimic.gif',
+      '| type = Enemy',
+      '}}',
+      '',
+      '=== Drops ===',
+      '{| class="terraria drop"',
+      '! Item !! Quantity !! Chance',
+      '|-',
+      '| [[Flying Knife]] || 1 || 25%',
+      '|}'
+    ].join('\n')
+  });
+
+  assert.deepEqual(
+    record.loot.map((row) => ({
+      itemName: row.itemName,
+      autoId: row.sourceInfobox?.autoId,
+      name: row.sourceInfobox?.name
+    })),
+    [
+      { itemName: 'Life Drain', autoId: '473', name: 'Crimson Mimic' },
+      { itemName: 'Flying Knife', autoId: '474', name: 'Hallowed Mimic' }
+    ]
+  );
+});
+
 test('buildNpcNormalizedLight creates open backfill candidates when NPC item and projectile evidence is missing', () => {
   const record = buildNpcNormalizedLight({
     entityId: 'mystery-caster',

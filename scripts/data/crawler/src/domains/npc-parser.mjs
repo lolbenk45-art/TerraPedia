@@ -315,6 +315,21 @@ function buildInfoboxSource(fields) {
   };
 }
 
+function getInfoboxBlockSources(revisionText) {
+  const text = String(revisionText ?? '');
+  let searchStart = 0;
+  return findBalancedTemplateBlocks(text, 'npc infobox')
+    .map((blockText) => {
+      const index = text.indexOf(blockText, searchStart);
+      searchStart = index >= 0 ? index + blockText.length : searchStart;
+      return {
+        index,
+        sourceInfobox: buildInfoboxSource(parseInfoboxBlockFields(blockText, { closed: true }))
+      };
+    })
+    .filter((entry) => entry.index >= 0);
+}
+
 function stripSpecialForms(text) {
   return text.replace(LIFEFORM_REMOVE_PATTERN, '').replace(SHIMMER_REMOVE_PATTERN, '');
 }
@@ -489,14 +504,60 @@ function extractDropsSection(revisionText) {
   return text.slice(sectionStart, nextHeading?.index ?? text.length);
 }
 
-export function extractNpcLoot(revisionText, context = {}) {
-  const section = extractDropsSection(revisionText);
-  if (!section) {
-    return { items: [] };
+function extractDropsSections(revisionText) {
+  const text = String(revisionText ?? '');
+  const headingPattern = /^(={2,})\s*(?:Drops?|Loot)\s*\1\s*$/gim;
+  const sections = [];
+  let heading;
+  let previousDropsHeadingStart = 0;
+
+  while ((heading = headingPattern.exec(text)) !== null) {
+    const marker = heading[1];
+    const level = marker.length;
+    const sectionStart = heading.index + heading[0].length;
+    const nextHeadingPattern = /^(={2,})\s*[^=]+?\s*\1\s*$/gim;
+    nextHeadingPattern.lastIndex = sectionStart;
+    let nextHeading;
+    let sectionEnd = text.length;
+    while ((nextHeading = nextHeadingPattern.exec(text)) !== null) {
+      if (nextHeading[1].length <= level) {
+        sectionEnd = nextHeading.index;
+        break;
+      }
+    }
+    sections.push({
+      start: heading.index,
+      scopeStart: Math.max(findNearestNonLootHeadingStart(text, heading.index), previousDropsHeadingStart),
+      body: text.slice(sectionStart, sectionEnd)
+    });
+    previousDropsHeadingStart = heading.index;
   }
 
+  return sections;
+}
+
+function findNearestNonLootHeadingStart(text, beforeIndex) {
+  const headingPattern = /^(={2,})\s*([^=\n]+?)\s*\1\s*$/gim;
+  let heading;
+  let selected = 0;
+  while ((heading = headingPattern.exec(text)) !== null && heading.index < beforeIndex) {
+    if (!/^(?:Drops?|Loot)$/i.test(heading[2].trim())) {
+      selected = heading.index + heading[0].length;
+    }
+  }
+  return selected;
+}
+
+function findSectionSourceInfobox(infoboxSources, section) {
+  const scopedCandidates = infoboxSources.filter((source) =>
+    source.index >= section.scopeStart && source.index < section.start
+  );
+  return scopedCandidates.length === 1 ? scopedCandidates[0].sourceInfobox : null;
+}
+
+function extractLootRowsFromSection(section, { sourceInfobox } = {}) {
   const rows = [];
-  const lines = section.split(/\r?\n/);
+  const lines = String(section ?? '').split(/\r?\n/);
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed.startsWith('|') || trimmed.startsWith('|-') || trimmed.startsWith('|}')) {
@@ -516,9 +577,26 @@ export function extractNpcLoot(revisionText, context = {}) {
       quantityText,
       chanceText,
       conditionText,
-      sourceSection: 'drops'
+      sourceSection: 'drops',
+      ...(sourceInfobox ? { sourceInfobox } : {})
     });
   }
+  return rows;
+}
+
+export function extractNpcLoot(revisionText, context = {}) {
+  const sections = extractDropsSections(revisionText);
+  if (!sections.length) {
+    return { items: [] };
+  }
+
+  const infoboxSources = getInfoboxBlockSources(revisionText);
+  const includeSourceInfobox = infoboxSources.length > 1;
+  const rows = sections.flatMap((section) => extractLootRowsFromSection(section.body, {
+    sourceInfobox: includeSourceInfobox
+      ? findSectionSourceInfobox(infoboxSources, section)
+      : null
+  }));
 
   return {
     items: normalizeNpcLootRows(rows, context)

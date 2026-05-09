@@ -49,7 +49,7 @@ export function buildNpcStandardizedBridge({
         buffInflictions: filterBuffInflictionsForRecord(crawlerRecord?.buffInflictions, record, crawlerRecord),
         profile: crawlerRecord?.profile ?? {},
         shop: shopRows,
-        loot: Array.isArray(crawlerRecord?.loot) ? crawlerRecord.loot : [],
+        loot: filterLootRowsForRecord(crawlerRecord?.loot, record, crawlerRecord),
         backfillCandidates: Array.isArray(crawlerRecord?.backfillCandidates) ? crawlerRecord.backfillCandidates : [],
         happiness: crawlerRecord?.happiness ?? { sourceTemplatePresent: false, notes: [] },
         relationships: crawlerRecord?.relationships ?? { relatedNpcs: [], relatedItems: [], relatedBiomes: [] },
@@ -83,7 +83,7 @@ function filterBuffInflictionsForRecord(buffInflictions, record, crawlerRecord) 
   const matchedScopedRows = scopedRows.filter((row) => sourceInfoboxMatchesRecord(row?.sourceInfobox, record));
   const unscopedRows = rows.filter((row) => !hasSourceInfoboxScope(row));
   if (matchedScopedRows.length) {
-    return canAssignUnscopedRows(record, crawlerRecord)
+    return canAssignUnscopedBuffRows(record, crawlerRecord)
       ? [...matchedScopedRows, ...unscopedRows]
       : matchedScopedRows;
   }
@@ -91,7 +91,34 @@ function filterBuffInflictionsForRecord(buffInflictions, record, crawlerRecord) 
   return [];
 }
 
-function canAssignUnscopedRows(record, crawlerRecord) {
+function filterLootRowsForRecord(lootRows, record, crawlerRecord) {
+  const rows = Array.isArray(lootRows) ? lootRows : [];
+  const scopedRows = rows.filter((row) => hasSourceInfoboxScope(row));
+  if (!scopedRows.length) {
+    return canAssignUnscopedLootRows(record) ? rows : [];
+  }
+
+  const matchedScopedRows = scopedRows.filter((row) => sourceInfoboxMatchesRecord(row?.sourceInfobox, record))
+    .map((row) => ({
+      ...row,
+      sourceRefInternalName: row.sourceRefInternalName ?? record?.internalName ?? null,
+      sourceRefResolution: row.sourceRefResolution ?? (record?.internalName ? 'exact_internal_name' : null)
+    }));
+  const unscopedRows = rows.filter((row) => !hasSourceInfoboxScope(row));
+  if (matchedScopedRows.length) {
+    return canAssignUnscopedLootRows(record)
+      ? [...matchedScopedRows, ...unscopedRows]
+      : matchedScopedRows;
+  }
+
+  return [];
+}
+
+function canAssignUnscopedLootRows(record) {
+  return record?.__bridgeMatchCount === 1;
+}
+
+function canAssignUnscopedBuffRows(record, crawlerRecord) {
   if (record?.__bridgeMatchCount !== 1) {
     return false;
   }

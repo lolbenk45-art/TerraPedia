@@ -166,6 +166,104 @@ test('buildNpcStandardizedBridge keeps only matching group-page infobox debuffs 
   assert.deepEqual(spazmatism.wikiCrawler.buffInflictions.map((row) => row.buffName), ['Cursed Inferno']);
 });
 
+test('buildNpcStandardizedBridge keeps only matching group-page infobox loot for Mimic variants', () => {
+  const standardizedPayload = {
+    entity: 'npcs',
+    records: [
+      { id: 473, internalName: 'BigMimicCrimson', name: 'Crimson Mimic' },
+      { id: 474, internalName: 'BigMimicHallow', name: 'Hallowed Mimic' }
+    ]
+  };
+  const crawlerRecords = [
+    {
+      entityId: 'mimics',
+      display: { name: 'Mimics' },
+      source: { pageTitle: 'Mimics' },
+      loot: [
+        {
+          relationType: 'loot',
+          itemName: 'Life Drain',
+          chanceText: '20%',
+          quantityText: '1',
+          sourceSection: 'drops',
+          sourceInfobox: { autoId: '473', image: 'Crimson Mimic.gif', name: 'Crimson Mimic' }
+        },
+        {
+          relationType: 'loot',
+          itemName: 'Dart Pistol',
+          chanceText: '20%',
+          quantityText: '1',
+          sourceSection: 'drops',
+          sourceInfobox: { autoId: '473', image: 'Crimson Mimic.gif', name: 'Crimson Mimic' }
+        },
+        {
+          relationType: 'loot',
+          itemName: 'Flying Knife',
+          chanceText: '25%',
+          quantityText: '1',
+          sourceSection: 'drops',
+          sourceInfobox: { autoId: '474', image: 'Hallowed Mimic.gif', name: 'Hallowed Mimic' }
+        }
+      ]
+    }
+  ];
+
+  const result = buildNpcStandardizedBridge({
+    standardizedPayload,
+    crawlerNormalizedRecords: crawlerRecords
+  });
+
+  const crimson = result.records.find((record) => record.internalName === 'BigMimicCrimson');
+  const hallowed = result.records.find((record) => record.internalName === 'BigMimicHallow');
+  assert.deepEqual(crimson.wikiCrawler.loot.map((row) => row.itemName), ['Life Drain', 'Dart Pistol']);
+  assert.deepEqual(hallowed.wikiCrawler.loot.map((row) => row.itemName), ['Flying Knife']);
+
+  const bundle = buildNpcItemRelationsBundle({
+    generatedAt: '2026-05-09T00:00:00.000Z',
+    standardizedPayload: result
+  });
+  const crimsonRecords = bundle.records.filter((record) => record.npcInternalName === 'BigMimicCrimson');
+  assert.deepEqual(crimsonRecords.map((record) => record.itemName), ['Life Drain', 'Dart Pistol']);
+  assert.ok(crimsonRecords.every((record) => record.sourceRefInternalName === 'BigMimicCrimson'));
+  assert.ok(crimsonRecords.every((record) => record.sourceRefResolution === 'exact_internal_name'));
+});
+
+test('buildNpcStandardizedBridge does not assign unscoped group-page loot to multiple NPC records', () => {
+  const standardizedPayload = {
+    entity: 'npcs',
+    records: [
+      { id: -55, internalName: 'BigRainZombie', name: 'Zombie' },
+      { id: -54, internalName: 'SmallRainZombie', name: 'Zombie' }
+    ]
+  };
+  const crawlerRecords = [
+    {
+      entityId: 'zombie',
+      display: { name: 'Zombie' },
+      source: { pageTitle: 'Zombie' },
+      loot: [
+        {
+          relationType: 'loot',
+          itemName: 'Shared Hook',
+          chanceText: '20%',
+          quantityText: '1',
+          sourceSection: 'drops'
+        }
+      ]
+    }
+  ];
+
+  const result = buildNpcStandardizedBridge({
+    standardizedPayload,
+    crawlerNormalizedRecords: crawlerRecords
+  });
+
+  const bigRainZombie = result.records.find((record) => record.internalName === 'BigRainZombie');
+  const smallRainZombie = result.records.find((record) => record.internalName === 'SmallRainZombie');
+  assert.deepEqual(bigRainZombie.wikiCrawler.loot, []);
+  assert.deepEqual(smallRainZombie.wikiCrawler.loot, []);
+});
+
 test('buildNpcStandardizedBridge keeps unscoped inflictions when a scoped row matches the same NPC record', () => {
   const standardizedPayload = {
     entity: 'npcs',

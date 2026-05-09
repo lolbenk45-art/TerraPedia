@@ -37,6 +37,51 @@ test('buildNpcItemRelationsBundle emits variant-specific loot rows with exact so
   assert.equal(bundle.records[0].raw.sourceRefResolution, 'exact_internal_name');
 });
 
+test('buildNpcItemRelationsBundle preserves bridge-provided exact Mimic variant metadata', () => {
+  const bundle = buildNpcItemRelationsBundle({
+    generatedAt: '2026-05-09T00:00:00.000Z',
+    standardizedPayload: {
+      records: [
+        {
+          id: 473,
+          internalName: 'BigMimicCrimson',
+          name: 'Crimson Mimic',
+          wikiCrawler: {
+            pageTitle: 'Mimics',
+            sourceMetadata: {
+              apiUrl: 'https://terraria.wiki.gg/api.php'
+            },
+            loot: [
+              {
+                itemName: 'Life Drain',
+                chanceText: '20%',
+                quantityText: '1',
+                sourceRefInternalName: 'BigMimicCrimson',
+                sourceRefResolution: 'exact_internal_name',
+                sourceSection: 'drops',
+                sourceInfobox: { autoId: '473', image: 'Crimson Mimic.gif', name: 'Crimson Mimic' },
+                raw: {
+                  itemName: 'Life Drain',
+                  sourceInfobox: { autoId: '473', image: 'Crimson Mimic.gif', name: 'Crimson Mimic' }
+                }
+              }
+            ],
+          },
+        },
+      ],
+    },
+  });
+
+  assert.equal(bundle.records.length, 1);
+  assert.equal(bundle.records[0].npcInternalName, 'BigMimicCrimson');
+  assert.equal(bundle.records[0].sourceRefInternalName, 'BigMimicCrimson');
+  assert.equal(bundle.records[0].sourceRefResolution, 'exact_internal_name');
+  assert.equal(bundle.records[0].sourceUrl, 'https://terraria.wiki.gg/wiki/Mimics');
+  assert.equal(bundle.records[0].raw.sourceRefInternalName, 'BigMimicCrimson');
+  assert.equal(bundle.records[0].raw.sourceRefResolution, 'exact_internal_name');
+  assert.deepEqual(bundle.records[0].raw.sourceInfobox, { autoId: '473', image: 'Crimson Mimic.gif', name: 'Crimson Mimic' });
+});
+
 test('buildNpcItemRelationsBundle does not fan out generic Mimics loot to variants', () => {
   const bundle = buildNpcItemRelationsBundle({
     generatedAt: '2026-05-09T00:00:00.000Z',

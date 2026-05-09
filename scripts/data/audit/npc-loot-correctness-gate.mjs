@@ -66,8 +66,15 @@ export function buildNpcLootCorrectnessReport({ sourceRows = [], mimicVariantSta
     ...row,
     classification: classifyNpcLootSource(row),
   }));
+  const acceptedVariantRows = classifiedRows.filter((row) =>
+    MIMIC_VARIANTS.includes(row.sourceRefInternalName)
+    && row.classification.status === 'accepted'
+    && row.classification.reason === 'variant_exact_npc_source'
+  );
+  const acceptedVariantCountByName = countAcceptedVariantRowsByName(acceptedVariantRows);
   const blockedVariants = mimicVariantStates
     .filter((state) => MIMIC_VARIANTS.includes(state.internalName))
+    .filter((state) => (acceptedVariantCountByName.get(state.internalName) ?? 0) === 0)
     .filter((state) =>
       Number(state.localLootCount ?? 0) === 0
       && Number(state.relationLootCount ?? 0) === 0
@@ -80,15 +87,19 @@ export function buildNpcLootCorrectnessReport({ sourceRows = [], mimicVariantSta
     }));
   const pollutedVariants = mimicVariantStates
     .filter((state) => MIMIC_VARIANTS.includes(state.internalName))
-    .filter((state) =>
-      Number(state.localLootCount ?? 0) > 0
-      || Number(state.relationLootCount ?? 0) > 0
-      || Number(state.projectionLootCount ?? 0) > 0
-    )
+    .map((state) => ({
+      ...state,
+      acceptedVariantItemInternalNames: acceptedVariantRows
+        .filter((row) => row.sourceRefInternalName === state.internalName)
+        .map((row) => row.itemInternalName)
+        .filter(Boolean),
+    }))
+    .filter((state) => variantHasUnbackedLoot(state, acceptedVariantCountByName.get(state.internalName) ?? 0))
     .map((state) => ({
       ...state,
       status: 'fail',
-      reason: 'variant_specific_source_missing_but_loot_present',
+      reason: 'variant_loot_count_not_backed_by_exact_source_rows',
+      acceptedVariantRows: acceptedVariantCountByName.get(state.internalName) ?? 0,
     }));
 
   const contractMismatch = classifiedRows.filter((row) => row.classification.status === 'contract_mismatch');
@@ -119,11 +130,17 @@ export function buildNpcLootCorrectnessReport({ sourceRows = [], mimicVariantSta
         rows: blockedVariants,
         pollutedRows: pollutedVariants,
       },
+      {
+        id: 'mimic_variants_have_exact_source',
+        status: acceptedVariantRows.length > 0 || blockedVariants.length > 0 ? 'pass' : 'warning',
+        rows: acceptedVariantRows,
+      },
     ],
     mimicCorrectness: {
       ordinaryMimic: mimicContract.ordinaryMimic,
       blockedVariants,
       pollutedVariants,
+      acceptedVariantRows,
       mismatchRows: mimicContract.mismatchRows,
     },
     sourceRefPollution: {
@@ -138,6 +155,7 @@ export function buildNpcLootCorrectnessReport({ sourceRows = [], mimicVariantSta
       nonNpcSourceMisclassified: nonNpcSourceMisclassified.length,
       blockedVariants: blockedVariants.length,
       pollutedVariants: pollutedVariants.length,
+      acceptedVariantRows: acceptedVariantRows.length,
       blockingCount,
     },
   };
@@ -205,8 +223,8 @@ export async function loadPromotedNpcLootRows(connection, options = {}) {
       r.item_internal_name AS itemInternalName,
       r.item_name AS itemName,
       COALESCE(d.source_ref_name, r.npc_name, r.npc_internal_name) AS sourceRefName,
-      COALESCE(d.source_ref_internal_name, r.npc_internal_name) AS sourceRefInternalName,
-      COALESCE(d.source_ref_resolution, 'exact_internal_name') AS sourceRefResolution,
+      d.source_ref_internal_name AS sourceRefInternalName,
+      d.source_ref_resolution AS sourceRefResolution,
       r.npc_internal_name AS npcInternalName,
       r.record_key AS relationRecordKey,
       r.source_fact_key AS sourceFactKey
@@ -218,6 +236,60 @@ export async function loadPromotedNpcLootRows(connection, options = {}) {
     ORDER BY r.npc_internal_name, r.item_internal_name, r.record_key
   `);
   return rows;
+}
+
+function countAcceptedVariantRowsByName(rows = []) {
+  const counts = new Map();
+  for (const row of rows) {
+    const internalName = row?.sourceRefInternalName;
+    if (!internalName) continue;
+    counts.set(internalName, (counts.get(internalName) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function variantHasUnbackedLoot(state = {}, acceptedVariantRows = 0) {
+  const acceptedItems = normalizeItemSet(state.acceptedVariantItemInternalNames);
+  const materializedItemSets = [
+    normalizeItemSet(state.localItemInternalNames),
+    normalizeItemSet(state.relationItemInternalNames),
+    normalizeItemSet(state.projectionItemInternalNames),
+  ];
+  if (acceptedItems.size > 0 && materializedItemSets.some((items) => items.size > 0)) {
+    return materializedItemSets
+      .filter((items) => items.size > 0)
+      .some((items) => !sameSet(items, acceptedItems));
+  }
+
+  const counts = [
+    Number(state.localLootCount ?? 0),
+    Number(state.relationLootCount ?? 0),
+    Number(state.projectionLootCount ?? 0),
+  ];
+  const maxCount = Math.max(...counts);
+  if (acceptedVariantRows <= 0) {
+    return maxCount > 0;
+  }
+  return counts.some((count) => count > 0 && count !== acceptedVariantRows);
+}
+
+function normalizeItemSet(values) {
+  const list = Array.isArray(values)
+    ? values
+    : typeof values === 'string'
+      ? values.split(',')
+      : [];
+  return new Set(list
+    .map((value) => String(value ?? '').trim())
+    .filter(Boolean));
+}
+
+function sameSet(left, right) {
+  if (left.size !== right.size) return false;
+  for (const value of left) {
+    if (!right.has(value)) return false;
+  }
+  return true;
 }
 
 export async function loadMimicVariantStates(connection, options = {}) {
@@ -235,6 +307,7 @@ export async function loadMimicVariantStates(connection, options = {}) {
       n.game_id AS gameId,
       n.name AS name,
       COUNT(DISTINCT l.id) AS localLootCount,
+      GROUP_CONCAT(DISTINCT li.internal_name ORDER BY li.internal_name SEPARATOR ',') AS localItemInternalNames,
       (
         SELECT COUNT(*)
         FROM ${relationLoot} r
@@ -242,10 +315,20 @@ export async function loadMimicVariantStates(connection, options = {}) {
           AND r.status = 1
           AND r.npc_internal_name COLLATE utf8mb4_unicode_ci = n.internal_name COLLATE utf8mb4_unicode_ci
       ) AS relationLootCount,
-      COALESCE(JSON_LENGTH(p.loot_items_json), 0) AS projectionLootCount
+      (
+        SELECT GROUP_CONCAT(DISTINCT r.item_internal_name ORDER BY r.item_internal_name SEPARATOR ',')
+        FROM ${relationLoot} r
+        WHERE r.deleted = 0
+          AND r.status = 1
+          AND r.npc_internal_name COLLATE utf8mb4_unicode_ci = n.internal_name COLLATE utf8mb4_unicode_ci
+      ) AS relationItemInternalNames,
+      COALESCE(JSON_LENGTH(p.loot_items_json), 0) AS projectionLootCount,
+      p.loot_items_json AS projectionLootItemsJson
     FROM ${localNpcs} n
     LEFT JOIN ${localLoot} l
       ON l.npc_id = n.id AND l.deleted = 0
+    LEFT JOIN ${table(normalized.localDatabase, 'items')} li
+      ON li.id = l.item_id AND li.deleted = 0
     LEFT JOIN ${projectionNpcs} p
       ON p.internal_name COLLATE utf8mb4_unicode_ci = n.internal_name COLLATE utf8mb4_unicode_ci
      AND p.deleted = 0
@@ -256,7 +339,24 @@ export async function loadMimicVariantStates(connection, options = {}) {
     `,
     targets
   );
-  return rows;
+  return rows.map((row) => ({
+    ...row,
+    projectionItemInternalNames: extractProjectionItemInternalNames(row.projectionLootItemsJson),
+  }));
+}
+
+function extractProjectionItemInternalNames(value) {
+  if (!value) return [];
+  try {
+    const rows = JSON.parse(String(value));
+    if (!Array.isArray(rows)) return [];
+    return rows
+      .map((row) => row?.itemInternalName ?? row?.internalName ?? row?.item_internal_name)
+      .map((itemInternalName) => String(itemInternalName ?? '').trim())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
 }
 
 export async function writeReport(report, options = {}) {
@@ -291,6 +391,7 @@ function buildBlockedReport(options, error) {
       },
       blockedVariants: [],
       pollutedVariants: [],
+      acceptedVariantRows: [],
       mismatchRows: [],
     },
     sourceRefPollution: {
@@ -305,6 +406,7 @@ function buildBlockedReport(options, error) {
       nonNpcSourceMisclassified: 0,
       blockedVariants: 0,
       pollutedVariants: 0,
+      acceptedVariantRows: 0,
       blockingCount: 1,
     },
     error: {

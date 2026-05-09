@@ -18,7 +18,10 @@ export function matchNpcBridgeRecords({
 } = {}) {
   const records = Array.isArray(standardizedRecords) ? standardizedRecords : [];
   const crawler = crawlerRecord ?? {};
-  const scopedAutoIds = collectScopedAutoIds(crawler.buffInflictions);
+  const scopedAutoIds = collectScopedAutoIds([
+    ...(Array.isArray(crawler.buffInflictions) ? crawler.buffInflictions : []),
+    ...(Array.isArray(crawler.loot) ? crawler.loot : [])
+  ]);
 
   if (scopedAutoIds.length) {
     const scopedMatches = records.filter((record) => scopedAutoIds.includes(toText(record?.id)));
