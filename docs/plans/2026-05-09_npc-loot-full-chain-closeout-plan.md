@@ -92,9 +92,11 @@ Problem:
 Canonical source chain:
 
 ```text
-wiki item page HTML/wikitext
-  -> extractDropSourcesFromHtml / narrative extraction
-  -> item-relations bundle itemSources
+source artifact
+  -> wiki item page HTML/wikitext for item-sourced drop evidence
+  -> wiki NPC page / group page HTML/wikitext for NPC-scoped drop evidence
+  -> NPC multi-infobox + section-scoped drops parser
+  -> item-relations bundle itemSources and npc-item-relations bundle records
   -> sync-landing-to-maint
   -> maint_item_sources
   -> sync-maint-to-relation / buildItemSourceRelations
@@ -119,7 +121,16 @@ Known source-chain gaps:
 - Historical reports show large blocked classes: non-NPC sources, generic buckets, true ambiguous rows, and missing sources.
 - Generic buckets such as `Mimics`, `Mummies`, `Ghouls`, `Sand Sharks`, `Slimes`, `The Twins`, `Jellyfish`, and `Celestial Pillars` do not have safe automatic fan-out semantics.
 - Mimic variants have crawler coverage evidence, but the materializable source rows are still not variant-specific.
+- BigMimicCrimson is the representative known-bad case: local structured loot, projection loot JSON, relation loot rows, and derived fallback are all zero because current item-page source facts only expose generic `source_ref_name='Mimics'` rows and the NPC/page-scoped parser has not produced `sourceRefInternalName='BigMimicCrimson'` rows.
+- The existing `build-npc-item-relations-bundle.mjs` can emit variant-specific rows when `wikiCrawler.loot` already exists on a standardized NPC record; the missing upstream step is extracting the correct `wikiCrawler.loot` rows from NPC group pages / multi-infobox pages such as `Mimics`.
 - Old direct import scripts that write `npc_loot_entries` are not canonical and must not be used to close this plan.
+
+Primary source strategy:
+
+- Prefer NPC page or group-page section-scoped drop extraction for variant NPCs.
+- Use item-page reverse source rows only when they already resolve to an exact NPC identity or when a reviewed mapping is required to explain a generic bucket.
+- Reviewed mapping is a fallback or supplement, not the primary fix for Mimic variants when the NPC page contains variant-specific drop tables.
+- If crawler coverage exists for a variant NPC but the chain still only exposes generic `Mimics` rows, the gate must block with `variant_npc_page_source_missing` or `npc_group_page_loot_not_extracted`.
 
 ---
 
@@ -140,7 +151,7 @@ Known source-chain gaps:
 | --- | --- | --- | --- |
 | Agent A | Runtime fallback audit and backend API contract | Read-only API/DB checks, backend tests | Shared `AdminNpcController` / `PublicNpcServiceImpl` edits are serial |
 | Agent B | Source classification and generic bucket taxonomy | Read-only report review, extractor tests | Shared `wiki-page-utils.mjs` / taxonomy edits are serial |
-| Agent C | Mimic family contract rebuild | Wiki/source review, contract manifest tests | No DB writes; mapping approval before materialization |
+| Agent C | Mimic family NPC-page source extraction and contract rebuild | Wiki/source review, NPC crawler/fetch tests, contract manifest tests | No DB writes; NPC crawler/fetch edits are serial |
 | Agent D | Full-chain audit/gate implementation | New audit tests, dry-run report shape | Quality gate changes are serial |
 | Agent E | Admin/public UI provenance display | UI tests and labels | Must wait for backend provenance contract |
 | Agent F | Data sync dry-run and closeout | Dry-run only until gates pass | `sync-maint-to-relation`, projection sync, local compat apply are serial |
@@ -396,17 +407,43 @@ The extractor improvement is not allowed to remove downstream protection. Relati
 
 ## Phase 3: Rebuild Mimic Family Contract With Branch Awareness
 
-**Owner lane:** Agent C owns the Mimic family contract, mapping manifest, and Mimic correctness gates listed below.
+**Owner lane:** Agent C owns Mimic family NPC-page source extraction, the Mimic family contract, mapping manifest, and Mimic correctness gates listed below.
 
 **Purpose:** Replace the old over-narrow Mimic contract with a version/branch-aware contract that distinguishes ordinary Mimic, special seed branches, Ice/WaterBolt Mimic, Present Mimic, and biome Mimics.
 
 **Files:**
+- Modify: `scripts/data/crawler/src/domains/npc-parser.mjs`
+- Modify: `scripts/data/crawler/src/domains/npc-loot-parser.mjs`
+- Modify: `scripts/data/crawler/src/domains/npc-domain.mjs`
+- Modify: `scripts/data/crawler/tests/npc-parser.test.mjs`
+- Modify: `scripts/data/crawler/tests/npc-domain.test.mjs`
+- Modify: `scripts/data/fetch/build-npc-item-relations-bundle.mjs`
+- Modify: `scripts/data/fetch/build-npc-item-relations-bundle.test.mjs`
 - Modify: `docs/contracts/mimic-family-loot-contract.md`
 - Modify: `scripts/data/audit/audit-mimic-family-loot-contract.mjs`
 - Modify: `scripts/data/audit/audit-mimic-family-loot-contract.test.mjs`
 - Modify: `scripts/data/audit/npc-loot-correctness-gate.mjs`
 - Modify: `scripts/data/audit/npc-loot-correctness-gate.test.mjs`
 - Create: `data/reviewed/npc-loot-mapping/mimic-family.mapping.json`
+
+- [ ] Add failing NPC group-page parser tests for Mimics page.
+
+The tests must use a fixture that represents `https://terraria.wiki.gg/wiki/Mimics` with multiple NPC sections or infobox scopes.
+
+Required assertions:
+- `Crimson Mimic` section emits loot rows scoped to `sourceRefInternalName='BigMimicCrimson'`.
+- Required Crimson Mimic item rows include `Life Drain`, `Dart Pistol`, `Fetid Baghnakhs`, `Flesh Knuckles`, `Tendon Hook`, `Eater Of Life`, `Greater Healing Potion`, and `Greater Mana Potion` unless source review records a version-specific exclusion.
+- `Corrupt Mimic`, `Hallowed Mimic`, `Jungle Mimic`, `Ice Mimic`, `Present Mimic`, and ordinary `Mimic` sections do not share each other's rows.
+- Each emitted row preserves `sourceUrl`, page title, source section or infobox key, `sourceRowIndex`, `chanceText`, `quantityText`, and raw source evidence.
+
+- [ ] Ensure standardized NPC bridge preserves NPC-scoped loot rows.
+
+The standardized NPC payload must place section-scoped drop rows under each target NPC's `wikiCrawler.loot`, not only under the group page parent record.
+
+Required assertions:
+- `BigMimicCrimson.wikiCrawler.loot` is non-empty when the Mimics page fixture contains a Crimson Mimic drop section.
+- `build-npc-item-relations-bundle.mjs` emits records with `npcInternalName='BigMimicCrimson'`, `relationType='loot'`, `sourceRefInternalName='BigMimicCrimson'`, and `sourceRefResolution='exact_internal_name'`.
+- Generic `Mimics` rows are still not fanned out to variants.
 
 - [ ] Mark old six-item `Mimic` contract as provisional until re-reviewed.
 
@@ -453,9 +490,16 @@ Minimum JSON shape:
 
 - [ ] Decide materialization source.
 
+Priority order:
+
+1. Variant-specific NPC page or group-page parser rows with exact `sourceRefInternalName`.
+2. Variant-specific crawler/source rows from another traceable NPC-scoped source.
+3. Reviewed mapping manifest with item-scoped rows and source URLs, only when NPC-scoped source extraction cannot produce the row and the reason is recorded.
+
 Allowed:
-- variant-specific crawler/source rows
-- reviewed mapping manifest with item-scoped rows and source URLs
+- variant-specific NPC page / group-page crawler rows
+- variant-specific crawler/source rows from another traceable source
+- reviewed mapping manifest with item-scoped rows and source URLs as a documented fallback
 
 Conflict rule:
 
@@ -464,13 +508,16 @@ Conflict rule:
 
 Forbidden:
 - blanket `Mimics -> every Mimic variant`
+- claiming a Mimic variant is fixed only from generic item-page `source_ref_name='Mimics'` rows
+- bypassing the NPC page / group-page extraction path when source pages contain variant-specific drop tables
 - local DB hand edits
 - projection JSON hand edits
 
 **Exit gate:**
 - Old contract is no longer presented as complete.
-- Mimic variants are either materializable from reviewed branch rows or explicitly blocked with `variant_source_missing`.
+- Mimic variants are either materializable from NPC-scoped variant source rows, materializable from a reviewed fallback mapping with a recorded source-extraction reason, or explicitly blocked with `variant_npc_page_source_missing` / `npc_group_page_loot_not_extracted`.
 - Correctness gate covers both missing and polluted variants.
+- BigMimicCrimson cannot remain zero if the Mimics page fixture proves Crimson Mimic drops are parsable and item names resolve to local items.
 
 ---
 
@@ -741,11 +788,11 @@ At minimum, verify these targets after implementation. These samples are mandato
 | `Mimic` | contract-reviewed direct rows, no stale chest rows unless branch contract approves them |
 | `IceMimic` | direct trusted rows remain present |
 | `WaterBoltMimic` | direct trusted row remains present |
-| `PresentMimic` | either trusted branch rows or explicit missing-source status |
-| `BigMimicCorruption` | trusted branch rows matching reviewed source, or explicit missing-source status |
-| `BigMimicCrimson` | trusted branch rows matching reviewed source, or explicit missing-source status |
-| `BigMimicHallow` | trusted branch rows matching reviewed source, or explicit missing-source status |
-| `BigMimicJungle` | trusted branch rows matching reviewed source, or explicit missing-source status |
+| `PresentMimic` | trusted rows from NPC-scoped source evidence, documented reviewed fallback mapping, or explicit `npc_group_page_loot_not_extracted` / `variant_npc_page_source_missing` status |
+| `BigMimicCorruption` | trusted rows from NPC-scoped source evidence, documented reviewed fallback mapping, or explicit `npc_group_page_loot_not_extracted` / `variant_npc_page_source_missing` status |
+| `BigMimicCrimson` | trusted Crimson Mimic rows from NPC-scoped source evidence; cannot pass as zero when Mimics page fixture proves parsable drops |
+| `BigMimicHallow` | trusted rows from NPC-scoped source evidence, documented reviewed fallback mapping, or explicit `npc_group_page_loot_not_extracted` / `variant_npc_page_source_missing` status |
+| `BigMimicJungle` | trusted rows from NPC-scoped source evidence, documented reviewed fallback mapping, or explicit `npc_group_page_loot_not_extracted` / `variant_npc_page_source_missing` status |
 | `Blue Slime` | representative normal NPC with direct/derived parity |
 | normal NPC with no direct rows but derived rows available | derived rows stay audit-only and outside trusted primary loot |
 | same-name fallback representative | same-name fallback is labelled and outside trusted primary loot |
