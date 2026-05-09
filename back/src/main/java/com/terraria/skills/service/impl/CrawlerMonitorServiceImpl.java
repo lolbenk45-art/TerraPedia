@@ -40,6 +40,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path LOCK_FILE = REFRESH_DIR.resolve("backend-refresh.lock.json");
     private static final Path TEST_STATE_FILE = REFRESH_DIR.resolve("manual-monitor-test.json");
     private static final Path WIKI_SYNC_PROGRESS_FILE = Path.of("data", "generated", "wiki-sync-progress.latest.json");
+    private static final Path BUFF_FETCH_PROGRESS_FILE = Path.of("data", "generated", "fetch-wiki-buffs-progress.latest.json");
     private static final Path NPC_COVERAGE_REPORT = Path.of("data", "wiki-crawler", "report", "npc", "coverage-audit.latest.json");
     private static final Path RAW_ITEM_PAGES_DIR = Path.of("raw", "wiki", "item-pages");
     private static final Path STANDARDIZED_DIR = Path.of("standardized");
@@ -544,10 +545,24 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (configured != null && !configured.isBlank()) {
             return resolveConfiguredPath(repoRoot, configured);
         }
-        Path workspaceRoot = repoRoot.getParent();
+        Path workspaceRoot = deriveWorkspaceRoot(repoRoot);
         return (workspaceRoot == null ? repoRoot.resolve("data").resolve("terraPedia") : workspaceRoot.resolve("data").resolve("terraPedia"))
             .toAbsolutePath()
             .normalize();
+    }
+
+    private Path deriveWorkspaceRoot(Path repoRoot) {
+        Path normalizedRoot = repoRoot == null ? null : repoRoot.toAbsolutePath().normalize();
+        if (normalizedRoot == null) {
+            return null;
+        }
+
+        Path parent = normalizedRoot.getParent();
+        if (parent != null && ".worktrees".equals(parent.getFileName() == null ? null : parent.getFileName().toString())) {
+            Path workspaceRoot = parent.getParent();
+            return workspaceRoot == null ? normalizedRoot : workspaceRoot;
+        }
+        return parent;
     }
 
     private Path resolveStandardizedRoot(Path repoRoot, Path sharedDataRoot) {
@@ -571,15 +586,41 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return displayDir.replace('\\', '/') + "/" + glob;
     }
 
+    private ReadResult readProgressWithSharedFallback(Path repoRoot, Path relativePath) {
+        Path primary = repoRoot.resolve(relativePath).normalize();
+        ReadResult primaryResult = readJsonMap(primary);
+        if (primaryResult.found() || primaryResult.readable()) {
+            return primaryResult;
+        }
+
+        Path sharedFallback = resolveSharedDataRoot(repoRoot).resolve("generated").resolve(relativePath.getFileName()).normalize();
+        if (primary.equals(sharedFallback)) {
+            return primaryResult;
+        }
+        return readJsonMap(sharedFallback);
+    }
+
+    private Path resolveProgressPathWithSharedFallback(Path repoRoot, Path relativePath) {
+        Path primary = repoRoot.resolve(relativePath).normalize();
+        if (Files.exists(primary)) {
+            return primary;
+        }
+
+        Path sharedFallback = resolveSharedDataRoot(repoRoot).resolve("generated").resolve(relativePath.getFileName()).normalize();
+        return Files.exists(sharedFallback) ? sharedFallback : primary;
+    }
+
     private List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> buildRegisteredTasks(
         Path repoRoot,
         CrawlerMonitorOverviewDTO.MonitorRunDTO latestRun
     ) {
         ReadResult itemProgress = readJsonMap(repoRoot.resolve(WIKI_SYNC_PROGRESS_FILE).normalize());
+        ReadResult buffFetchProgress = readProgressWithSharedFallback(repoRoot, BUFF_FETCH_PROGRESS_FILE);
         ReadResult npcCoverage = readJsonMap(repoRoot.resolve(NPC_COVERAGE_REPORT).normalize());
 
         List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> tasks = new ArrayList<>();
         tasks.add(buildWikiCoreRefreshTask(repoRoot, latestRun));
+        tasks.add(buildBuffFetchRefreshTask(repoRoot, buffFetchProgress));
         tasks.add(buildItemPagesRefreshTask(repoRoot, itemProgress));
         tasks.add(buildStaticTask(
             "item-pages-retry-failures",
@@ -750,6 +791,44 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         task.setNextStep("Monitor the active shard, then retry failures and run transform-standardize.");
         task.setUpdatedAt(firstNonBlank(asString(payload.get("lastHeartbeatAt")), asString(payload.get("generatedAt"))));
         copyTaskProgressFromPayload(task, payload);
+        return task;
+    }
+
+    private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildBuffFetchRefreshTask(Path repoRoot, ReadResult progress) {
+        Path progressPath = resolveProgressPathWithSharedFallback(repoRoot, BUFF_FETCH_PROGRESS_FILE);
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask("buff-page-immunity-refresh", "Buff immunity page refresh", "fetch", "p0");
+        task.setProgressPath(progressPath == null ? BUFF_FETCH_PROGRESS_FILE.toString().replace('\\', '/') : toDisplayPath(repoRoot, progressPath));
+        task.setInputPath("wiki buff pages");
+        task.setOutputPath("data/terraPedia/raw/wiki/template__getbuffinfo.parsed.latest.json");
+        task.setDataStage("wiki buff pages -> immunity evidence");
+
+        if (!progress.found()) {
+            task.setStatus("missing");
+            task.setQueueState("progress file missing");
+            task.setNextStep("Start or resume the buff page refresh before standardize-existing-data.");
+            return task;
+        }
+        if (!progress.readable()) {
+            task.setStatus("blocked");
+            task.setQueueState(progress.errorMessage());
+            task.setNextStep("Repair the unreadable buff progress JSON before trusting completion state.");
+            return task;
+        }
+
+        Map<String, Object> payload = progress.payload();
+        task.setStatus(firstNonBlank(asString(payload.get("status")), "pending"));
+        task.setQueueState(firstNonBlank(asString(payload.get("message")), task.getStatus()));
+        task.setNextStep("Wait for buff page refresh to complete, then run standardize-existing-data and downstream relation sync.");
+        task.setUpdatedAt(firstNonBlank(asString(payload.get("lastHeartbeatAt")), asString(payload.get("generatedAt"))));
+        copyTaskProgressFromPayload(task, payload);
+        String reportPath = normalizePayloadPath(repoRoot, payload.get("reportPath"));
+        if (reportPath != null && !reportPath.isBlank()) {
+            task.setReportPath(reportPath);
+        }
+        String outputPath = normalizePayloadPath(repoRoot, payload.get("outputPath"));
+        if (outputPath != null && !outputPath.isBlank()) {
+            task.setOutputPath(outputPath);
+        }
         return task;
     }
 

@@ -124,6 +124,110 @@ test('buildNpcStandardizedBridge enriches every standardized npc record that sha
   assert.equal(result.summary.matched, 2);
 });
 
+test('buildNpcStandardizedBridge keeps only matching group-page infobox debuffs for each NPC', () => {
+  const standardizedPayload = {
+    entity: 'npcs',
+    records: [
+      { id: 525, internalName: 'DesertGhoulCorruption', name: 'Vile Ghoul' },
+      { id: 526, internalName: 'DesertGhoulCrimson', name: 'Tainted Ghoul' },
+      { id: 527, internalName: 'DesertGhoulHallow', name: 'Dreamer Ghoul' },
+      { id: 126, internalName: 'Spazmatism', name: 'Spazmatism' }
+    ]
+  };
+  const crawlerRecords = [
+    {
+      entityId: 'vile-ghoul',
+      display: { name: 'Ghouls' },
+      source: { pageTitle: 'Ghouls' },
+      buffInflictions: [
+        { buffName: 'Cursed Inferno', sourceInfobox: { autoId: '525', image: 'Vile Ghoul.gif', name: '' } },
+        { buffName: 'Ichor', sourceInfobox: { autoId: '526', image: 'Tainted Ghoul.gif', name: '' } },
+        { buffName: 'Confused', sourceInfobox: { autoId: '527', image: 'Dreamer Ghoul.gif', name: '' } }
+      ]
+    },
+    {
+      entityId: 'spazmatism',
+      display: { name: 'The Twins' },
+      source: { pageTitle: 'The Twins' },
+      buffInflictions: [
+        { buffName: 'Cursed Inferno', sourceInfobox: { autoId: '126', image: 'Spazmatism (first form).gif', name: '' } }
+      ]
+    }
+  ];
+
+  const result = buildNpcStandardizedBridge({
+    standardizedPayload,
+    crawlerNormalizedRecords: crawlerRecords
+  });
+
+  const vileGhoul = result.records.find((record) => record.internalName === 'DesertGhoulCorruption');
+  const spazmatism = result.records.find((record) => record.internalName === 'Spazmatism');
+  assert.deepEqual(vileGhoul.wikiCrawler.buffInflictions.map((row) => row.buffName), ['Cursed Inferno']);
+  assert.deepEqual(spazmatism.wikiCrawler.buffInflictions.map((row) => row.buffName), ['Cursed Inferno']);
+});
+
+test('buildNpcStandardizedBridge keeps unscoped inflictions when a scoped row matches the same NPC record', () => {
+  const standardizedPayload = {
+    entity: 'npcs',
+    records: [
+      { id: 525, internalName: 'DesertGhoulCorruption', name: 'Vile Ghoul' },
+      { id: 526, internalName: 'DesertGhoulCrimson', name: 'Tainted Ghoul' }
+    ]
+  };
+  const crawlerRecords = [
+    {
+      entityId: 'vile-ghoul',
+      display: { name: 'Ghouls' },
+      source: { pageTitle: 'Ghouls' },
+      buffInflictions: [
+        { buffName: 'Cursed Inferno', sourceInfobox: { autoId: '525', image: 'Vile Ghoul.gif', name: '' } },
+        { buffName: 'Shimmer', durationText: '5 seconds' }
+      ]
+    }
+  ];
+
+  const result = buildNpcStandardizedBridge({
+    standardizedPayload,
+    crawlerNormalizedRecords: crawlerRecords
+  });
+
+  const vileGhoul = result.records.find((record) => record.internalName === 'DesertGhoulCorruption');
+
+  assert.deepEqual(vileGhoul.wikiCrawler.buffInflictions.map((row) => row.buffName), ['Cursed Inferno', 'Shimmer']);
+});
+
+test('buildNpcStandardizedBridge does not assign unscoped inflictions to unrelated group-page NPC records', () => {
+  const standardizedPayload = {
+    entity: 'npcs',
+    records: [
+      { id: 101, internalName: 'ZombieA', name: 'Zombie' },
+      { id: 102, internalName: 'ZombieB', name: 'Zombie' }
+    ]
+  };
+  const crawlerRecords = [
+    {
+      entityId: 'zombie',
+      display: { name: 'Zombie' },
+      source: { pageTitle: 'Zombie' },
+      buffInflictions: [
+        { buffName: 'Cursed Inferno', sourceInfobox: { autoId: '101', image: 'ZombieA.gif', name: '' } },
+        { buffName: 'Shimmer' }
+      ]
+    }
+  ];
+
+  const result = buildNpcStandardizedBridge({
+    standardizedPayload,
+    crawlerNormalizedRecords: crawlerRecords
+  });
+
+  const zombieA = result.records.find((record) => record.internalName === 'ZombieA');
+  const zombieB = result.records.find((record) => record.internalName === 'ZombieB');
+
+  assert.deepEqual(zombieA.wikiCrawler.buffInflictions.map((row) => row.buffName), ['Cursed Inferno']);
+  assert.equal(zombieB.wikiCrawler, undefined);
+});
+
 test('buildNpcItemRelationsBundle materializes standardized NPC shop, loot, and backfill candidates', () => {
   const bundle = buildNpcItemRelationsBundle({
     generatedAt: '2026-04-29T00:00:00.000Z',

@@ -33,6 +33,7 @@ export function buildNpcStandardizedBridge({
 
     matched += match.records.length;
     for (const record of match.records) {
+      record.__bridgeMatchCount = match.records.length;
       const shopRows = Array.isArray(crawlerRecord?.shop)
         ? crawlerRecord.shop
         : Array.isArray(crawlerRecord?.shop?.normalizedRows)
@@ -45,7 +46,7 @@ export function buildNpcStandardizedBridge({
         groupMember: crawlerRecord?.groupMember ?? null,
         summary: crawlerRecord?.summary ?? {},
         combat: crawlerRecord?.combat ?? {},
-        buffInflictions: Array.isArray(crawlerRecord?.buffInflictions) ? crawlerRecord.buffInflictions : [],
+        buffInflictions: filterBuffInflictionsForRecord(crawlerRecord?.buffInflictions, record, crawlerRecord),
         profile: crawlerRecord?.profile ?? {},
         shop: shopRows,
         loot: Array.isArray(crawlerRecord?.loot) ? crawlerRecord.loot : [],
@@ -56,6 +57,7 @@ export function buildNpcStandardizedBridge({
         audit: crawlerRecord?.audit ?? { status: 'fail', reasons: ['missing audit payload'] },
         sourceMetadata: crawlerRecord?.sourceMetadata ?? {}
       };
+      delete record.__bridgeMatchCount;
     }
   }
 
@@ -69,4 +71,120 @@ export function buildNpcStandardizedBridge({
       unmatchedSamples
     }
   };
+}
+
+function filterBuffInflictionsForRecord(buffInflictions, record, crawlerRecord) {
+  const rows = Array.isArray(buffInflictions) ? buffInflictions : [];
+  const scopedRows = rows.filter((row) => hasSourceInfoboxScope(row));
+  if (!scopedRows.length) {
+    return rows;
+  }
+
+  const matchedScopedRows = scopedRows.filter((row) => sourceInfoboxMatchesRecord(row?.sourceInfobox, record));
+  const unscopedRows = rows.filter((row) => !hasSourceInfoboxScope(row));
+  if (matchedScopedRows.length) {
+    return canAssignUnscopedRows(record, crawlerRecord)
+      ? [...matchedScopedRows, ...unscopedRows]
+      : matchedScopedRows;
+  }
+
+  return [];
+}
+
+function canAssignUnscopedRows(record, crawlerRecord) {
+  if (record?.__bridgeMatchCount !== 1) {
+    return false;
+  }
+
+  const entityLabel = normalizeKey(denormalizeEntityId(crawlerRecord?.entityId));
+  if (!entityLabel) {
+    return false;
+  }
+
+  const pageLabel = normalizeKey(crawlerRecord?.source?.pageTitle);
+  const displayLabel = normalizeKey(crawlerRecord?.display?.name);
+  const recordLabels = [
+    record?.name,
+    record?.internalName
+  ].map((value) => normalizeKey(value)).filter(Boolean);
+  if (!recordLabels.includes(entityLabel)) {
+    return false;
+  }
+
+  return entityLabel !== pageLabel && entityLabel !== displayLabel;
+}
+
+function hasSourceInfoboxScope(row) {
+  const sourceInfobox = row?.sourceInfobox;
+  return Boolean(
+    toText(sourceInfobox?.autoId)
+      || toText(sourceInfobox?.name)
+      || toText(sourceInfobox?.image)
+  );
+}
+
+function sourceInfoboxMatchesRecord(sourceInfobox, record) {
+  const autoId = toText(sourceInfobox?.autoId);
+  if (autoId) {
+    const recordIds = [
+      record?.id,
+      record?.type,
+      record?.netID,
+      record?.gameId
+    ].map((value) => toText(value)).filter(Boolean);
+    if (recordIds.includes(autoId)) {
+      return true;
+    }
+  }
+
+  const sourceNames = [
+    sourceInfobox?.name,
+    stripImageVariant(sourceInfobox?.image)
+  ].map((value) => normalizeKey(value)).filter(Boolean);
+  if (!sourceNames.length) {
+    return false;
+  }
+  const recordNames = [
+    record?.name,
+    record?.internalName
+  ].map((value) => normalizeKey(value)).filter(Boolean);
+  return sourceNames.some((sourceName) => recordNames.includes(sourceName));
+}
+
+function stripImageVariant(value) {
+  let text = toText(value);
+  if (!text) {
+    return '';
+  }
+  text = text.replace(/\.[a-z0-9]+$/i, '');
+  text = text.replace(/\s*\([^)]*\)\s*$/g, '');
+  return text.trim();
+}
+
+function normalizeKey(value) {
+  const text = toText(value);
+  if (!text) {
+    return '';
+  }
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+function denormalizeEntityId(value) {
+  const text = toText(value);
+  if (!text) {
+    return '';
+  }
+  return text
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function toText(value) {
+  if (value == null) {
+    return '';
+  }
+  const text = String(value).trim();
+  return text.length ? text : '';
 }
