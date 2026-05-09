@@ -480,32 +480,42 @@ function extractItemSourceMaintRows(landingRow, payload) {
 }
 
 function extractNpcItemSourceMaintRows(landingRow, payload) {
-  return (Array.isArray(payload.records) ? payload.records : []).map((record, index) => ({
-    scope: 'item_sources',
-    tableName: 'maint_item_sources',
-    recordKey: normalizeText(record.recordKey) ?? createRecordKey({
-      datasetType: landingRow.dataset_type,
-      index,
-      record
-    }),
-    itemInternalName: normalizeText(record.itemInternalName),
-    itemName: normalizeText(record.itemName),
-    sourceType: record.relationType === 'loot' ? 'drop' : normalizeText(record.relationType),
-    sourceRefType: 'npc',
-    sourceRefName: normalizeText(record.npcName ?? record.npcInternalName),
-    sortOrder: Number(record.sourceRowIndex ?? index) || 0,
-    biomeCode: null,
-    sourceProvider: landingRow.provider,
-    sourcePage: normalizeText(record.sourceUrl ?? record.sourcePage) ?? landingRow.source_page,
-    sourceRevisionTimestamp: record.sourceRevisionTimestamp ?? landingRow.source_revision_timestamp,
-    landingSourceId: Number(landingRow.id),
-    landingSourceKey: landingRow.source_key,
-    landingSourcePage: landingRow.source_page,
-    landingContentHash: landingRow.content_hash,
-    landingFetchedAt: landingRow.fetched_at,
-    landingParsedAt: landingRow.parsed_at,
-    rawJson: JSON.stringify(record),
-  }));
+  return (Array.isArray(payload.records) ? payload.records : []).map((record, index) => {
+    const sourceRefName = normalizeText(record.sourceRefName ?? record.npcName ?? record.npcInternalName);
+    const sourceRefInternalName = normalizeText(record.sourceRefInternalName ?? record.npcInternalName);
+    const sourceRefResolution = normalizeText(record.sourceRefResolution ?? (sourceRefInternalName ? 'exact_internal_name' : null));
+    return {
+      scope: 'item_sources',
+      tableName: 'maint_item_sources',
+      recordKey: normalizeText(record.recordKey) ?? createRecordKey({
+        datasetType: landingRow.dataset_type,
+        index,
+        record
+      }),
+      itemInternalName: normalizeText(record.itemInternalName),
+      itemName: normalizeText(record.itemName),
+      sourceType: record.relationType === 'loot' ? 'drop' : normalizeText(record.relationType),
+      sourceRefType: 'npc',
+      sourceRefName,
+      sortOrder: Number(record.sourceRowIndex ?? index) || 0,
+      biomeCode: null,
+      sourceProvider: landingRow.provider,
+      sourcePage: normalizeText(record.sourceUrl ?? record.sourcePage) ?? landingRow.source_page,
+      sourceRevisionTimestamp: record.sourceRevisionTimestamp ?? landingRow.source_revision_timestamp,
+      landingSourceId: Number(landingRow.id),
+      landingSourceKey: landingRow.source_key,
+      landingSourcePage: landingRow.source_page,
+      landingContentHash: landingRow.content_hash,
+      landingFetchedAt: landingRow.fetched_at,
+      landingParsedAt: landingRow.parsed_at,
+      rawJson: JSON.stringify({
+        ...record,
+        sourceRefName,
+        sourceRefInternalName,
+        sourceRefResolution
+      }),
+    };
+  });
 }
 
 function extractNpcBackfillCandidateMaintRows(landingRow, payload) {

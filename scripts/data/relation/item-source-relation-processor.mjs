@@ -972,6 +972,7 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
       const normalizedConditions = normalizeSourceConditionFields({
         conditions:
           pickText(raw.conditions, row.conditions)
+          ?? pickText(raw.conditionText ?? raw.condition_text, row.condition_text)
           ?? extractConditionTextFromChanceText(pickText(raw.chanceText ?? raw.chance_text, row.chance_text)),
         notes: extractRelevantNotes(sourceType, pickText(raw.notes, row.notes)),
         biomeCode: row.biome_code
@@ -992,7 +993,7 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
         quantityText: pickText(raw.quantityText ?? raw.quantity_text, row.quantity_text),
         chanceValue: toNullableNumber(raw.chanceValue ?? raw.chance_value),
         chanceText: pickText(raw.chanceText ?? raw.chance_text, row.chance_text),
-        conditions: pickText(raw.conditions, row.conditions),
+        conditions: pickText(raw.conditions, row.conditions) ?? pickText(raw.conditionText ?? raw.condition_text, row.condition_text),
         ...normalizedConditions,
         reviewStatus: relationStatus.resolved,
         confidence: confidence.high,

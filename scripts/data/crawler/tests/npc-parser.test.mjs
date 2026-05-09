@@ -529,6 +529,76 @@ test('extractNpcLoot preserves source infobox scope for Mimics group-page varian
   );
 });
 
+test('extractNpcLoot reads real Mimics-style infobox drop rows', () => {
+  const sample = [
+    '== Special variants ==',
+    '{{infobox wrapper|direction=row|float=none',
+    '|{{npc infobox',
+    '| auto = 474',
+    '| imagealt = [[File:Crimson Mimic.png|link=]] [[File:Crimson Mimic2.png|link=]]',
+    '| imagecargo = [[File:Crimson Mimic2.png|link=]]',
+    '| environment = Underground Crimson',
+    '|:group:start|One of the following 5 items will always be dropped<ref name="registerMiscDrops"/>|',
+    '\t| Life Drain|1|20%',
+    '\t| Dart Pistol|1|20%',
+    '\t| Fetid Baghnakhs|1|20%',
+    '\t| Flesh Knuckles|1|20%',
+    '\t| Tendon Hook|1|20%',
+    '|:group:end|---------|---------',
+    '| Eater Of Life|1|{{modes|0.5%|0.67%}}',
+    '| Greater Healing Potion|5-10|100%',
+    '| Greater Mana Potion|5-15|100%',
+    '}}',
+    '}}'
+  ].join('\n');
+
+  const result = extractNpcLoot(sample);
+
+  assert.deepEqual(
+    result.items.map((row) => row.itemName),
+    [
+      'Life Drain',
+      'Dart Pistol',
+      'Fetid Baghnakhs',
+      'Flesh Knuckles',
+      'Tendon Hook',
+      'Eater Of Life',
+      'Greater Healing Potion',
+      'Greater Mana Potion'
+    ]
+  );
+  assert.ok(result.items.every((row) => row.sourceInfobox?.autoId === '474'));
+  assert.equal(result.items[0].sourceInfobox.name, 'Crimson Mimic');
+});
+
+test('extractNpcLoot reads Present Mimic infobox template item rows', () => {
+  const sample = [
+    '{{npc infobox',
+    '| auto = 341',
+    '| type = Enemy',
+    '| environment = Frost Moon',
+    '| Heart|5-10|100%',
+    '| {{item|Present}}{{note|small=y|block=y|paren=y|During Christmas only{{source code ref|v=1.4.0.5|name=fmdrops}}}}|1|100%',
+    '}}'
+  ].join('\n');
+
+  const result = extractNpcLoot(sample);
+
+  assert.deepEqual(
+    result.items.map((row) => ({
+      itemName: row.itemName,
+      quantityText: row.quantityText,
+      chanceText: row.chanceText,
+      conditionText: row.conditionText
+    })),
+    [
+      { itemName: 'Heart', quantityText: '5-10', chanceText: '100%', conditionText: null },
+      { itemName: 'Present', quantityText: '1', chanceText: '100%', conditionText: 'During Christmas only' }
+    ]
+  );
+  assert.ok(result.items.every((row) => row.sourceInfobox?.autoId === '341'));
+});
+
 test('extractNpcLoot leaves shared multi-infobox Drops sections unscoped', () => {
   const sample = [
     '== Variants ==',

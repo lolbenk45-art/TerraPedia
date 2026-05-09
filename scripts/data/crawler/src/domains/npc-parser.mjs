@@ -308,11 +308,24 @@ function parseAllInfoboxFields(revisionText) {
 }
 
 function buildInfoboxSource(fields) {
+  const name = fields.name || inferInfoboxNameFromImage(fields.imagecargo || fields.image || fields.imagealt);
   return {
     autoId: fields.auto ?? '',
     image: fields.image ?? '',
-    name: fields.name ?? ''
+    name
   };
+}
+
+function inferInfoboxNameFromImage(value) {
+  const text = String(value ?? '');
+  const match = /\[\[File:([^|\]]+?)(?:\.\w+)?(?:\|[^\]]*)?\]\]/i.exec(text);
+  if (!match?.[1]) {
+    return '';
+  }
+  return match[1]
+    .replace(/\s*\d+$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function getInfoboxBlockSources(revisionText) {
@@ -480,7 +493,7 @@ export function extractNpcShop(revisionText) {
 }
 
 function cleanWikiCell(value) {
-  return String(value ?? '')
+  return normalizeInlineWikiTemplates(String(value ?? ''))
     .replace(/\[\[[^|\]]+\|([^\]]+)\]\]/g, '$1')
     .replace(/\[\[([^\]]+)\]\]/g, '$1')
     .replace(/'''+/g, '')
@@ -488,6 +501,23 @@ function cleanWikiCell(value) {
     .replace(/<[^>]+>/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function normalizeInlineWikiTemplates(value) {
+  return String(value ?? '')
+    .replace(/\{\{\s*item\s*\|\s*([^|}]+)(?:\|[^{}]*)?\}\}/gi, '$1')
+    .replace(/\{\{\s*source code ref\b[^{}]*\}\}/gi, '')
+    .replace(/\{\{\s*note\b[^{}]*\}\}/gi, '');
+}
+
+function extractWikiNoteCondition(value) {
+  const withoutSourceRefs = String(value ?? '').replace(/\{\{\s*source code ref\b[^{}]*\}\}/gi, '');
+  const noteMatch = /\{\{\s*note\b[^{}]*\}\}/i.exec(withoutSourceRefs);
+  if (!noteMatch) {
+    return null;
+  }
+  const conditionMatch = /During\s+([^{}|]+?)\s+only/i.exec(noteMatch[0]);
+  return conditionMatch ? `During ${conditionMatch[1].trim()} only` : null;
 }
 
 function extractDropsSection(revisionText) {
@@ -584,9 +614,35 @@ function extractLootRowsFromSection(section, { sourceInfobox } = {}) {
   return rows;
 }
 
+function normalizeLootRowShape(row) {
+  const itemName = cleanWikiCell(row?.itemName);
+  const quantityText = cleanWikiCell(row?.quantityText);
+  const chanceText = cleanWikiCell(row?.chanceText);
+  const conditionText = cleanWikiCell(row?.conditionText) || extractWikiNoteCondition(row?.quantityText);
+
+  if (String(itemName ?? '').startsWith('custom:') && quantityText) {
+    return {
+      ...row,
+      itemName: quantityText,
+      quantityText: null,
+      chanceText,
+      conditionText
+    };
+  }
+
+  return {
+    ...row,
+    itemName,
+    quantityText,
+    chanceText,
+    conditionText
+  };
+}
+
 export function extractNpcLoot(revisionText, context = {}) {
   const sections = extractDropsSections(revisionText);
-  if (!sections.length) {
+  const infoboxRows = extractInfoboxLootRows(revisionText);
+  if (!sections.length && !infoboxRows.length) {
     return { items: [] };
   }
 
@@ -596,11 +652,68 @@ export function extractNpcLoot(revisionText, context = {}) {
     sourceInfobox: includeSourceInfobox
       ? findSectionSourceInfobox(infoboxSources, section)
       : null
-  }));
+  })).concat(infoboxRows);
 
   return {
-    items: normalizeNpcLootRows(rows, context)
+    items: normalizeNpcLootRows(rows.map((row) => normalizeLootRowShape(row)), context)
   };
+}
+
+function extractInfoboxLootRows(revisionText) {
+  const rows = [];
+  for (const blockText of findBalancedTemplateBlocks(String(revisionText ?? ''), 'npc infobox')) {
+    const fields = parseInfoboxBlockFields(blockText, { closed: true });
+    const sourceInfobox = buildInfoboxSource(fields);
+    const inner = getTemplateInner(blockText, 'npc infobox');
+    const lines = inner.split(/\r?\n/);
+
+    for (const line of lines) {
+      const row = parseInfoboxLootLine(line, { sourceInfobox });
+      if (row) {
+        rows.push(row);
+      }
+    }
+  }
+  return rows;
+}
+
+function parseInfoboxLootLine(line, { sourceInfobox } = {}) {
+  const text = String(line ?? '').trim();
+  if (!text.startsWith('|') || text.startsWith('|:') || /^\|\s*[a-z0-9_]+\s*=/i.test(text)) {
+    return null;
+  }
+
+  const rawParts = splitTopLevelTemplateArgs(text.slice(1));
+  const parts = rawParts
+    .map((part) => cleanWikiCell(part))
+    .filter(Boolean);
+  if (parts.length < 3) {
+    return null;
+  }
+
+  const noteConditionText = rawParts.map((part) => extractWikiNoteCondition(part)).find(Boolean) ?? null;
+  const [itemName, quantityText, chanceText, explicitConditionText = null] = parts;
+  const conditionText = explicitConditionText || noteConditionText;
+  if (looksLikeTableSeparator(itemName) || looksLikeInfoboxNonLootRow(itemName)) {
+    return null;
+  }
+
+  return {
+    itemName,
+    quantityText,
+    chanceText,
+    conditionText,
+    sourceSection: 'drops',
+    ...(sourceInfobox ? { sourceInfobox } : {})
+  };
+}
+
+function looksLikeTableSeparator(value) {
+  return /^-+$/.test(String(value ?? '').trim());
+}
+
+function looksLikeInfoboxNonLootRow(value) {
+  return /^[a-z][a-z0-9_]*\s*=/i.test(String(value ?? '').trim());
 }
 
 export function extractNpcHappiness(revisionText) {

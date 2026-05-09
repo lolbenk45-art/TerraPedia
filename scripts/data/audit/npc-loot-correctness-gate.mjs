@@ -105,7 +105,7 @@ export function buildNpcLootCorrectnessReport({ sourceRows = [], mimicVariantSta
   const contractMismatch = classifiedRows.filter((row) => row.classification.status === 'contract_mismatch');
   const genericBucket = classifiedRows.filter((row) => row.classification.status === 'generic_bucket');
   const nonNpcSourceMisclassified = classifiedRows.filter((row) => row.classification.status === 'non_npc_source_misclassified');
-  const blockingCount = contractMismatch.length + genericBucket.length + nonNpcSourceMisclassified.length + pollutedVariants.length;
+  const blockingCount = contractMismatch.length + genericBucket.length + nonNpcSourceMisclassified.length + blockedVariants.length + pollutedVariants.length;
 
   return {
     auditName: 'npc-loot-correctness-gate',
@@ -126,13 +126,13 @@ export function buildNpcLootCorrectnessReport({ sourceRows = [], mimicVariantSta
       },
       {
         id: 'mimic_variants_explicitly_blocked',
-        status: pollutedVariants.length === 0 ? 'pass' : 'fail',
+        status: blockedVariants.length === 0 && pollutedVariants.length === 0 ? 'pass' : 'fail',
         rows: blockedVariants,
         pollutedRows: pollutedVariants,
       },
       {
         id: 'mimic_variants_have_exact_source',
-        status: acceptedVariantRows.length > 0 || blockedVariants.length > 0 ? 'pass' : 'warning',
+        status: blockedVariants.length === 0 && acceptedVariantRows.length > 0 ? 'pass' : 'fail',
         rows: acceptedVariantRows,
       },
     ],

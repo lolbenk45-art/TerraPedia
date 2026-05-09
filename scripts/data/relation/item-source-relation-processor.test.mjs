@@ -398,6 +398,42 @@ test('buildItemSourceRelations materializes exact NPC-scoped Mimic variant rows 
   assert.ok(actual.itemNpcRelationAudits.some((audit) => audit.itemInternalName === 'DaedalusStormbow' && audit.auditStatus === 'blocked'));
 });
 
+test('buildItemSourceRelations preserves generated npc loot conditionText', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 1,
+        record_key: 'npc-item:present-mimic:loot:present',
+        item_name: 'Present',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Present Mimic',
+        raw_json: JSON.stringify({
+          itemName: 'Present',
+          conditionText: 'During Christmas only',
+          sourceRefName: 'Present Mimic',
+          sourceRefInternalName: 'PresentMimic',
+          sourceRefResolution: 'exact_internal_name'
+        })
+      }
+    ],
+    itemIndex: new Map([
+      ['Present', { source_id: 1869, internal_name: 'Present', name: 'Present' }],
+      ['present', { source_id: 1869, internal_name: 'Present', name: 'Present' }]
+    ]),
+    npcIndex: new Map([
+      ['Present Mimic', { source_id: 341, internal_name: 'PresentMimic', name: 'Present Mimic' }],
+      ['present mimic', { source_id: 341, internal_name: 'PresentMimic', name: 'Present Mimic' }]
+    ])
+  });
+
+  assert.equal(actual.npcLootRelations.length, 1);
+  assert.equal(actual.npcLootRelations[0].npcInternalName, 'PresentMimic');
+  assert.equal(actual.npcLootRelations[0].itemInternalName, 'Present');
+  assert.equal(actual.npcLootRelations[0].conditions, 'During Christmas only');
+  assert.equal(actual.npcLootRelations[0].conditionSourceText, 'During Christmas only');
+});
+
 test('buildItemSourceRelations does not materialize reviewed Mimics row when Mimic target is absent', () => {
   const actual = buildItemSourceRelations({
     itemSourceRows: [

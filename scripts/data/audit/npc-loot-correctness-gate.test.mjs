@@ -28,6 +28,7 @@ test('buildNpcLootCorrectnessReport blocks wrong Mimic rows and collective bucke
   assert.equal(report.summary.contractMismatch, 1);
   assert.equal(report.summary.genericBucket, 1);
   assert.equal(report.summary.nonNpcSourceMisclassified, 1);
+  assert.equal(report.summary.blockingCount, 4);
   assert.equal(report.mimicCorrectness.ordinaryMimic.acceptedItems.length, 6);
   assert.equal(report.mimicCorrectness.blockedVariants[0].internalName, 'BigMimicCorruption');
 });
@@ -81,6 +82,33 @@ test('buildNpcLootCorrectnessReport blocks Mimic variant loot counts not backed 
   assert.equal(report.mimicCorrectness.pollutedVariants[0].internalName, 'BigMimicCrimson');
   assert.equal(report.mimicCorrectness.pollutedVariants[0].acceptedVariantRows, 1);
   assert.equal(report.mimicCorrectness.pollutedVariants[0].reason, 'variant_loot_count_not_backed_by_exact_source_rows');
+});
+
+test('buildNpcLootCorrectnessReport blocks missing Mimic variant exact-source coverage', () => {
+  const report = buildNpcLootCorrectnessReport({
+    sourceRows: [
+      { itemInternalName: 'DualHook', itemName: 'Dual Hook', sourceRefName: 'Mimics' },
+      { itemInternalName: 'MagicDagger', itemName: 'Magic Dagger', sourceRefName: 'Mimics' },
+      { itemInternalName: 'PhilosophersStone', itemName: "Philosopher's Stone", sourceRefName: 'Mimics' },
+      { itemInternalName: 'TitanGlove', itemName: 'Titan Glove', sourceRefName: 'Mimics' },
+      { itemInternalName: 'StarCloak', itemName: 'Star Cloak', sourceRefName: 'Mimics' },
+      { itemInternalName: 'CrossNecklace', itemName: 'Cross Necklace', sourceRefName: 'Mimics' },
+      { itemInternalName: 'LifeDrain', itemName: 'Life Drain', sourceRefName: 'Crimson Mimic', sourceRefInternalName: 'BigMimicCrimson', sourceRefResolution: 'exact_internal_name' },
+    ],
+    mimicVariantStates: [
+      { internalName: 'BigMimicCrimson', localLootCount: 1, relationLootCount: 1, projectionLootCount: 1, localItemInternalNames: ['LifeDrain'], relationItemInternalNames: ['LifeDrain'], projectionItemInternalNames: ['LifeDrain'] },
+      { internalName: 'PresentMimic', localLootCount: 0, relationLootCount: 0, projectionLootCount: 0 },
+    ],
+  });
+
+  assert.equal(report.auditStatus, 'blocked');
+  assert.equal(report.summary.blockedVariants, 1);
+  assert.equal(report.summary.blockingCount, 1);
+  assert.equal(report.mimicCorrectness.blockedVariants[0].internalName, 'PresentMimic');
+  assert.equal(
+    report.checks.find((check) => check.id === 'mimic_variants_explicitly_blocked').status,
+    'fail'
+  );
 });
 
 test('buildNpcLootCorrectnessReport blocks Mimic variant item identity drift even when counts match', () => {
@@ -165,9 +193,10 @@ test('runNpcLootCorrectnessGate queries DB with SELECT statements only', async (
     { connection }
   );
 
-  assert.equal(result.report.auditStatus, 'pass');
+  assert.equal(result.report.auditStatus, 'blocked');
   assert.equal(result.report.evidenceHealth, 'sufficient');
   assert.equal(result.report.summary.blockedVariants, 1);
+  assert.equal(result.report.summary.blockingCount, 1);
   assert.ok(statements.length >= 2);
   assert.ok(statements.every((sql) => /^\s*SELECT\b/i.test(sql)));
 });
