@@ -115,7 +115,7 @@ Date: 2026-05-09
 ### Next Iteration TODO
 
 - [ ] Add a variant-aware upstream source step that can emit `maint_item_sources` rows for `PresentMimic`, `BigMimicCorruption`, `BigMimicCrimson`, `BigMimicHallow`, and `BigMimicJungle` with traceable `landing_*` metadata and raw JSON carrying `sourceRefInternalName` / `sourceRefResolution`.
-- [ ] Add a blocking audit that fails when crawler coverage exists for Mimic variants but the NPC loot source chain still only exposes the generic `Mimics` bucket.
+- [ ] Add a blocking audit that fails when crawler coverage exists for Mimic variants but the NPC loot source chain still only exposes the generic `Mimics` bucket, and keep the audit report schema aligned with `auditStatus`, `evidenceHealth`, `artifactStatuses`, and `scanSummary`.
 - [ ] Decide whether the generic `Mimics` evidence should fan out to per-variant rows through a reviewed mapping rule or whether the crawler/import layer must produce variant-specific loot rows directly.
 - [ ] Add a derived-loot contract check proving `item_acquisition_sources.source_ref_id` uses the same identity (`npcs.id` or `game_id`) that admin/public runtime queries expect, instead of relying on equality by coincidence.
 - [ ] Re-run the Mimic variant closeout only after source evidence is upgraded from generic bucket to variant-specific rows; do not hand-edit relation/projection/local tables as a substitute.
@@ -123,4 +123,4 @@ Date: 2026-05-09
 ### Current Scope Note
 
 - The current cycle closed the Buff immune NPC placeholder regression.
-- The current cycle did not materialize Mimic variant loot because the new audit reports `generic_mimics_bucket_not_variant_materializable` for all five targets, so DB writes would be fabricated rather than traceable.
+- The current cycle did not materialize Mimic variant loot because the audit reports `generic_bucket_only` for all five targets, so DB writes would be fabricated rather than traceable.

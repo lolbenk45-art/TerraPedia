@@ -1,96 +1,69 @@
-# Buff / NPC Detail Data Closeout Plan
+# Buff / NPC Detail Data Closeout Replan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` for execution. Read-only discovery can run in parallel, but DB writes and shared backend controller edits must be serialized.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` for implementation. Parallel work is allowed only for read-only discovery or disjoint test/script files. Shared controller edits and DB writes are serial.
 
-**Goal:** Fix the admin detail regressions where Buff immune NPC cards render unresolved placeholders and Mimic variant NPCs show missing loot, while keeping local DB and relation/projection data as the source of truth.
+**Goal:** Bring the Buff immune NPC detail and Mimic variant loot detail work to merge quality without fabricating runtime data or hiding local data gaps.
 
-**Architecture:** Treat this as two chains. Buff detail is an API enrichment problem: `immune_npc_sample_json` contains alias names that can be resolved from local `npcs`, but `AdminBuffController` only resolves exact `internalName/game_id`. Mimic variant loot is a data-chain gap: local, relation, and projection tables have no drop rows for Present/Corrupt/Crimson/Hallowed/Jungle Mimic, so UI must not fabricate rows from wiki or crawler output.
+**Pre-replan merge decision:** Do not merge `plan/buff-npc-loot-detail-closeout` yet. The branch has useful work, but two merge blockers remain before this replan is executed:
 
-**Tech Stack:** Java Spring Boot admin APIs, MySQL local/relation schemas, Node.js data audit/backfill scripts, Nuxt admin UI, existing TerraPedia reports under `reports/` and `data/wiki-crawler/report/`.
+- Buff alias multi-match rows are currently moved to `unresolvedImmuneNpcSamples` instead of selecting a deterministic local NPC representative.
+- The Mimic variant audit script reports the current missing-source conclusion, but it does not yet scan all planned local candidate sources and still hardcodes `hasDirectLocalSourceArtifact = false`.
+
+**Architecture:** Buff detail is a backend contract fix over local `npcs`. Mimic loot is a data-chain audit/materialization decision over local artifacts, maint/relation/projection/local DB, and reports. Runtime APIs must read local DB/relation/projection state only; crawler output and wiki pages are evidence inputs, not runtime payload sources.
+
+**Tech Stack:** Java Spring Boot admin APIs, MySQL `terria_v1_local` and `terria_v1_relation`, Node.js audit scripts, Nuxt admin UI, TerraPedia generated reports.
 
 ---
 
-## Confirmed Facts
+## Confirmed Current State
 
-Current branch baseline was checked from `main` at `c3b947d`.
+- Branch: `plan/buff-npc-loot-detail-closeout`
+- Branch HEAD: `83e17ab feat: add Buff immune NPC alias resolution and Mimic variant loot audit`
+- Local `main`: `c3b947d`
+- Working tree before this replan edit: clean relative to branch HEAD
+- Branch status before executing this replan: not merge-ready
 
-Local runtime:
+Implemented on the branch:
 
-- Admin: `http://localhost:3001`
-- Front: `http://localhost:5174`
-- Back: `http://localhost:18088`
-- DB: `terria_v1_local`
+- `AdminBuffController` now separates `immuneNpcSamples` and `unresolvedImmuneNpcSamples`.
+- Buff tests cover alias resolution and unresolved isolation, but not the intended deterministic multi-match representative behavior.
+- `audit-missing-mimic-variant-loot.mjs` exists and can generate a report.
+- The real audit run found 5 Mimic variants as `missing_source`, with known-good controls already materialized.
 
-### Buff Detail Facts
+Verified concern:
 
-- `buffs.immune_npc_sample_json` has `240` effective sample entries across affected Buffs.
-- `131` entries resolve by current exact `internalName/game_id` rules.
-- `109` entries resolve by local NPC display-name alias but not by exact `internalName/game_id`.
-- The `109` alias-resolvable entries affect `24` Buffs.
-- `0` sampled unresolved entries matched only Item or Projectile tables in the latest broad check.
-- `npc_buff_relations` `inflicts` rows have `112` rows and no broad image fallback gap.
-
-Representative aliases:
-
-- `AncientVision` -> local NPC `AncientCultistSquidhead`, display name `Ancient Vision`
-- `PirateSCurse` -> local NPC `PirateGhost`, display name `Pirate's Curse`
-- `PhantasmDragon` -> multiple local NPC segments with display name `Phantasm Dragon`
-- `CorruptMimic` -> local NPC `BigMimicCorruption`, display name `Corrupt Mimic`
-
-### NPC Loot Facts
-
-Mimic variants in local DB:
-
-| NPC | Local row | Relation/projection state |
-| --- | --- | --- |
-| `Mimic` | `lootCount=7`, `derived=7`, `lootItemsJsonCount=7` | present |
-| `IceMimic` | `lootCount=9`, `derived=9`, `lootItemsJsonCount=9` | present |
-| `WaterBoltMimic` | `lootCount=1`, `derived=1`, `lootItemsJsonCount=1` | present |
-| `PresentMimic` | `lootCount=0`, `derived=0`, `lootItemsJsonCount=0` | missing |
-| `BigMimicCorruption` | `lootCount=0`, `derived=0`, `lootItemsJsonCount=0` | missing |
-| `BigMimicCrimson` | `lootCount=0`, `derived=0`, `lootItemsJsonCount=0` | missing |
-| `BigMimicHallow` | `lootCount=0`, `derived=0`, `lootItemsJsonCount=0` | missing |
-| `BigMimicJungle` | `lootCount=0`, `derived=0`, `lootItemsJsonCount=0` | missing |
-
-Relation DB evidence:
-
-- `item_source_facts`, `item_source_details`, `item_npc_loot_relations`, and `projection_npcs` only contain Mimic loot for `Mimic`, `Ice Mimic`, and `Water Bolt Mimic`.
-- `Present/Corrupt/Crimson/Hallowed/Jungle Mimic` have no relation/projection loot rows.
-- Broad relation check found `674` NPC drop fact rows with `674` relation fact keys; no general source-fact-to-relation drift was found.
-
-### Image Coverage Facts
-
-- `npc_loot_entries` item image gap: `0`
-- `item_acquisition_sources` NPC drop item image gap: `0`
-- `npc_buff_relations` Buff image gap: `0`
-- `buff_source_items` item image gap: `0`
-- Base entity image edge gaps remain: `npcs=4`, `items=23`, `projectiles=1` (`None`)
-
-These image edge gaps are real, but they are not the primary cause of the two reported screenshots.
+- Buff sample DB-side check found `242` samples:
+  - `133` exact resolved
+  - `81` single alias resolved
+  - `28` ambiguous alias matches
+  - `0` fully unresolved
+- Ambiguous examples include `PhantasmDragon` and `LunaticCultist`.
+- Current implementation downshifts those 28 ambiguous local matches to unresolved; that is stricter than the intended display behavior and loses usable local NPC data.
 
 ---
 
 ## Non-Goals
 
-- Do not use live wiki pages or crawler output directly in runtime API payloads.
-- Do not fabricate Mimic drop rows in frontend code.
-- Do not treat `immune_npc_sample_json` raw entries as resolved NPC cards unless they resolve to a local NPC row.
-- Do not mass-write unrelated NPC or Item image fields in this pass.
-- Do not broaden this plan into a full crawler rewrite.
-- Do not run DB apply/backfill commands before dry-run evidence and pre-counts are recorded.
+- Do not use live wiki data in runtime APIs.
+- Do not fabricate Mimic variant loot rows from screenshots, wiki pages, or raw crawler output.
+- Do not broaden into a full crawler rewrite.
+- Do not merge a branch whose plan acceptance and implementation behavior disagree.
+- Do not apply DB writes from this replan. If source evidence becomes materializable, create and review a separate backfill execution plan before any DB mutation.
 
 ---
 
 ## Hard Boundaries
 
-- Local DB, relation DB, and projection tables are the data source of truth for runtime APIs.
-- Buff alias resolution must enrich from local `npcs`; if a sample cannot resolve, it must be classified instead of rendered as a fake NPC card.
-- Multi-match alias rows must use deterministic selection rules and expose ambiguity metadata when needed.
-- Mimic variant loot requires upstream data materialization into relation/projection/local tables. The admin UI must not pretend the rows exist before the data chain is populated.
-- `sync-maint-to-relation.mjs` remains the single writer for relation/projection snapshots. A focused Mimic script may prepare upstream inputs, but it must not compete with the snapshot writer for the same tables.
-- `npcs.loot_items_json` is refreshed by `sync-projection-to-local-core-tables.mjs --domains=npcs`, not by relation-to-local compatibility sync.
-- DB writes touching `item_source_facts`, `item_source_details`, `item_npc_loot_relations`, `projection_npcs`, `item_acquisition_sources`, `npc_loot_entries`, or `npcs.loot_items_json` must run serially.
-- Shared backend files must be edited serially:
+- Runtime source of truth is local DB plus relation/projection snapshots.
+- Crawler output may be scanned as evidence, but it is not directly returned by admin/public APIs.
+- Buff normal card payloads must not contain fake NPC rows with `npcId=null`.
+- Buff ambiguous alias rows must not be discarded when a deterministic local representative can be selected.
+- Mimic variant loot can be materialized only if traceable local source evidence exists.
+- `sync-maint-to-relation.mjs` remains the snapshot writer for relation/projection. A focused script may prepare upstream inputs, but it must not compete with snapshot tables.
+- `npcs.loot_items_json` is refreshed through `sync-projection-to-local-core-tables.mjs --domains=npcs`.
+- DB writes touching item source facts, details, NPC loot relations, projections, compatibility tables, or `npcs.loot_items_json` must run serially.
+- DB reads for audit are allowed only through a read-only code path; any script that accepts `--apply`, `--write-db`, `--backfill`, `--load`, or equivalent mutation flags must be treated as a DB-writing command.
+- Shared backend controller edits are serial:
   - `back/src/main/java/com/terraria/skills/controller/AdminBuffController.java`
   - `back/src/main/java/com/terraria/skills/controller/AdminNpcController.java`
   - `back/src/main/java/com/terraria/skills/controller/AdminNpcRelationController.java`
@@ -98,498 +71,374 @@ These image edge gaps are real, but they are not the primary cause of the two re
 
 ---
 
-## Parallelism Model
+## Phase 0: Re-Baseline Before Further Changes
 
-Allowed parallel lanes:
+**Purpose:** Prevent fixing against stale assumptions.
 
-| Lane | Scope | Write targets |
-| --- | --- | --- |
-| Lane A | Buff alias inventory and backend test design | read-only first; later `AdminBuffControllerTest` |
-| Lane B | Mimic loot source inventory and import/backfill design | read-only first; later new script/tests |
-| Lane C | Runtime/API/UI verification inventory | read-only first; later focused UI copy/state only if needed |
-| Lane D | Edge image gap TODO/monitor follow-up | docs/monitor only, no shared DB writes |
+**Files:**
 
-Serial-only steps:
-
-- Any edit to `AdminBuffController.java`
-- Any edit to shared NPC loot lookup code
-- Any DB apply/backfill
-- Any relation/projection sync apply
-- Final audit and commit
-
----
-
-## Phase 0: Freeze Baseline
-
-Purpose:
-
-- preserve current facts before repair
-- prove whether the defect is API enrichment, missing data, or image resolution
-
-Files:
-
-- Create: `docs/audits/2026-05-09_buff-npc-loot-detail-baseline.md`
+- Read: `docs/audits/2026-05-09_buff-npc-loot-detail-baseline.md`
+- Read: `docs/audits/2026-05-09_buff-npc-loot-detail-closeout.md`
 - Read: `back/src/main/java/com/terraria/skills/controller/AdminBuffController.java`
-- Read: `back/src/main/java/com/terraria/skills/controller/AdminNpcController.java`
-- Read: `scripts/dev/config/local-stack.config.json` without printing secrets
+- Read: `scripts/data/audit/audit-missing-mimic-variant-loot.mjs`
+- Modify if facts changed: `docs/audits/2026-05-09_buff-npc-loot-detail-closeout.md`
 
-Steps:
+**Prerequisites:**
 
-- [ ] Record the current branch, commit, and clean/dirty state.
-- [ ] Record current counts for Buff immune samples:
-  - total raw entries
-  - exact-resolved entries
-  - alias-resolved entries
-  - unknown/non-local entries
-  - affected Buff count
-- [ ] Record current counts for Mimic variants:
-  - local `id`
-  - `game_id`
-  - `npcs.loot_items_json`
-  - `npc_loot_entries`
-  - `item_acquisition_sources`
-  - `terria_v1_relation.item_source_facts`
-  - `terria_v1_relation.item_npc_loot_relations`
-  - `terria_v1_relation.projection_npcs`
-  - if `id !== game_id`, record which identifier each runtime-derived loot endpoint uses
-- [ ] Record current image gaps for the affected card types.
-- [ ] Capture API payloads through authenticated admin context if available; otherwise record DB-level evidence and mark API smoke blocked by auth.
+- Local DB `terria_v1_local` and relation DB `terria_v1_relation` must be reachable for the read-only baseline. If either DB is unavailable, stop and record the baseline as blocked; do not substitute stale reports for current DB counts.
 
-Exit gate:
+**Steps:**
 
-- Baseline document exists.
-- It distinguishes Buff alias-resolution defects from Mimic data-chain defects.
-- It records that Mimic variant loot is absent from relation/projection/local, not merely hidden by the UI.
+- [ ] Record current branch, commit, and `git status --short`.
+- [ ] Re-run or reproduce Buff immune sample classification:
+  - exact resolved
+  - single alias resolved
+  - ambiguous alias local matches
+  - fully unresolved
+- [ ] Re-run the Mimic audit script without changing DB state or overwriting the checked-in report:
 
-Stop condition:
+```powershell
+node scripts/data/audit/audit-missing-mimic-variant-loot.mjs --write-report=false --date-tag=2026-05-09
+```
 
-- If baseline shows live DB facts changed materially from the counts above, stop and update the plan before implementation.
+- [ ] Record whether the previous audit report remains representative.
+
+**Exit gate:**
+
+- The closeout audit states that the current branch is not merge-ready and lists the two blockers above.
+- No DB writes have occurred.
+
+**Stop condition:**
+
+- If Buff ambiguous count is no longer non-zero, still keep deterministic representative tests to prevent recurrence.
 
 ---
 
-## Phase 1: Fix Buff Immune NPC Resolution
+## Phase 1: Fix Buff Ambiguous Alias Resolution
 
-Purpose:
+**Purpose:** Keep `immuneNpcSamples` displayable while still exposing ambiguity metadata for audit.
 
-- make `immuneNpcSamples` contain resolved local NPC cards when local data exists
-- prevent unresolved raw samples from rendering as fake cards with `npcId=null`
-
-Files:
+**Files:**
 
 - Modify: `back/src/main/java/com/terraria/skills/controller/AdminBuffController.java`
 - Modify: `back/src/test/java/com/terraria/skills/controller/AdminBuffControllerTest.java`
-- Optional frontend-only if backend contract keeps unresolved rows: `data-query-app/pages/entities/[type].vue`
 
-Implementation requirements:
+**Required behavior:**
 
-- [ ] Add backend tests for alias resolution:
-  - raw sample `{"internalName":"PirateSCurse","name":"Pirate's Curse"}` resolves to local NPC `PirateGhost`
-  - raw sample `{"internalName":"CorruptMimic","name":"Corrupt Mimic"}` resolves to local NPC `BigMimicCorruption`
-  - alias-resolved samples include `npcDbId`, `npcId`, `internalName`, `name`, `nameZh`, `image`, and `imageUrl`
-- [ ] Add backend tests for multi-match aliases:
-  - `Phantasm Dragon` may match multiple local rows
-  - exact `internalName/game_id` resolution still wins first
-  - otherwise resolve by exact normalized display name first, then lowest positive `game_id`, then lowest DB `id`
-  - expose an ambiguity marker such as `matchCount`, `matchedNpcIds`, or `resolutionStatus` when more than one local row matches
-  - do not duplicate the same NPC row twice because both English and Chinese name keys matched
-- [ ] Add backend tests for truly unresolved entries:
-  - they are not returned in `immuneNpcSamples`
-  - if surfaced for audit, they belong in a separate `unresolvedImmuneNpcSamples` array with raw metadata and `resolutionStatus`
-  - they must not appear as normal card rows with `npcId=null`
-- [ ] Update or replace any existing tests that still expect unresolved raw samples to remain inside `immuneNpcSamples`.
-- [ ] Implement alias lookup from local `npcs` using normalized display names:
+- Exact `internalName` match wins first.
+- Exact `game_id` match wins second.
+- If exact `internalName` or exact `game_id` returns more than one active local row, stop and document a data-integrity blocker instead of selecting one silently.
+- Raw sample fields `npcId`, `sourceId`, and `source_id` are treated as NPC game/source IDs, not local `npcs.id` values. Do not resolve these fields against local DB primary keys.
+- Alias match by normalized display name is used only after exact matching fails.
+- Alias candidate rows must be deduped by `npcDbId` before scoring.
+- Alias lookup must preserve candidate `matchSources` for every row before scoring:
   - `name`
   - `name_zh`
-  - optional `raw_json.localized.en.name`
-  - optional `raw_json.localized.zh.name`
-- [ ] Keep exact `internalName/game_id` resolution as the first priority.
-- [ ] For alias multi-match, use this deterministic order:
-  - prefer exact normalized English name over loose normalized name
+  - `raw.localized.en.name`
+  - `raw.localized.zh.name`
+- Representative selection must not depend on SQL row order or `Map` insertion order except for the final explicit sort keys below.
+- If alias match returns multiple local NPC rows, choose one deterministic representative:
+  - prefer exact normalized English display-name equality
+  - then prefer exact normalized Chinese display-name equality
   - prefer lowest positive `game_id`
   - then lowest DB `id`
-- [ ] Expose unresolved raw samples only for audit/debug, not for normal NPC card rendering.
+- Preserve ambiguity metadata on the resolved card:
+  - `resolutionStatus = "alias_ambiguous_representative"` exactly for multi-match alias representatives
+  - `matchCount`
+  - `matchedNpcIds`
+  - `matchedNpcDbIds`
+  - `matchedInternalNames`
+- Truly unresolved rows stay outside normal cards in `unresolvedImmuneNpcSamples`.
 
-Expected state:
+**Tests to add or update:**
 
-- Buff `39 CursedInferno` no longer shows `npcId=null` sample cards.
-- Buff `20 Poisoned`, `24 OnFire`, `31 Confused`, and the other affected Buffs resolve alias samples from local NPC rows when available.
-- `immuneNpcCount` remains the source count, while `immuneNpcSamples.length` reflects displayable resolved samples unless an explicit unresolved list is added.
+- [ ] `PhantasmDragon` resolves to a deterministic local representative and includes ambiguity metadata.
+- [ ] `LunaticCultist` resolves to a deterministic local representative and includes ambiguity metadata.
+- [ ] Exact `internalName` still wins when an alias would match a different row.
+- [ ] Duplicate exact `game_id` or `internalName` rows are treated as data-integrity blockers, not as ambiguous alias cases.
+- [ ] Raw sample `sourceId` resolves through `npcs.game_id`, not through local `npcs.id`.
+- [ ] Duplicate candidate keys for the same NPC row do not inflate `matchCount`.
+- [ ] `immuneNpcSamples[*].npcId` is never `null`.
+- [ ] `unresolvedImmuneNpcSamples` is reserved for rows with no local NPC candidate.
 
-Validation:
+**Validation:**
 
 ```powershell
 cd back
 mvn "-Dtest=AdminBuffControllerTest" test
 ```
 
-API spot checks after restart or hot reload:
+**Exit gate:**
 
-- `GET /admin/buffs/39`
-- `GET /admin/buffs/20`
-- `GET /admin/buffs/31`
-
-Acceptance:
-
-- `immuneNpcSamples[*].npcId` is never `null`.
-- `immuneNpcSamples[*].imageUrl` is managed when the local NPC has a managed image.
-- raw unresolved entries, if any remain, are only visible in `unresolvedImmuneNpcSamples` or raw JSON sections.
+- The Phase 0 ambiguous alias rows are represented as resolved local cards, not unresolved placeholders.
+- The API still lets operators see that the row was ambiguous.
 
 ---
 
-## Phase 2: Build Mimic Variant Loot Source Audit
+## Phase 2: Upgrade Mimic Variant Loot Audit To Full Local Source Scan
 
-Purpose:
+**Purpose:** Make the audit an actual materializability check, not only a blocker reporter.
 
-- determine whether missing Mimic variant loot can be imported from existing local artifacts without hitting wiki at runtime
-- produce an auditable candidate set before any DB write
+**Files:**
 
-Files:
+- Modify: `scripts/data/audit/audit-missing-mimic-variant-loot.mjs`
+- Modify: `scripts/data/audit/audit-missing-mimic-variant-loot.test.mjs`
+- Generate when run: `reports/audit/missing-mimic-variant-loot-2026-05-09.json`
 
-- Create: `scripts/data/audit/audit-missing-mimic-variant-loot.mjs`
-- Create: `scripts/data/audit/audit-missing-mimic-variant-loot.test.mjs`
-- Create: `reports/audit/missing-mimic-variant-loot-YYYY-MM-DD.json`
+**Prerequisites:**
 
-Candidate sources to inspect, read-only:
+- The audit may write a report file, but it must not write DB rows.
+- `terria_v1_local` and `terria_v1_relation` must be reachable for relation/local materialization counts. If DB is unavailable, the audit result must set top-level `auditStatus = "blocked"` and `evidenceHealth = "db_unavailable"`; it cannot be used for a merge decision.
+
+**Candidate sources to scan:**
 
 - `data/wiki-crawler/report/npc/coverage-audit.latest.json`
-- `data/wiki-crawler/output/**` or equivalent crawler output directories if present
+- `data/wiki-crawler/report/npc/coverage-targets.latest.json`
+- `data/wiki-crawler/output/**`
+- `data/wiki-crawler/audit/npc/*.latest.json`
 - `data/standardized/npcs.standardized.json`
 - `data/generated/npc-standardized-map.json`
-- existing `reports/normal-npc-loot-*.json`
-- `terria_v1_relation.item_source_facts`
-- `terria_v1_relation.item_source_details`
-- `terria_v1_relation.item_npc_loot_relations`
-- `terria_v1_relation.projection_npcs`
-- Missing candidate directories must be recorded as `artifact_not_found` or equivalent evidence, not treated as proof that the source never existed.
+- `reports/normal-npc-loot-*.json`
+- relation DB controls:
+  - `terria_v1_relation.item_source_facts`
+  - `terria_v1_relation.item_source_details`
+  - `terria_v1_relation.item_npc_loot_relations`
+  - `terria_v1_relation.projection_npcs`
 
-Audit output schema:
+**Scan bounds:**
 
-```json
-{
-  "generatedAt": "ISO timestamp",
-  "database": {
-    "local": "terria_v1_local",
-    "relation": "terria_v1_relation"
-  },
-  "targets": [
-    {
-      "internalName": "BigMimicCorruption",
-      "gameId": 473,
-      "name": "Corrupt Mimic",
-      "candidateStatus": "missing_source|source_found|already_materialized|not_expected",
-      "artifactStatus": "present|missing|not_applicable",
-      "sourceArtifacts": [],
-      "candidateDropCount": 0,
-      "resolvedItemCount": 0,
-      "unresolvedItemCount": 0,
-      "gapReason": "no_existing_local_artifact"
-    }
-  ],
-  "summary": {
-    "targets": 5,
-    "sourceFound": 0,
-    "materializable": 0,
-    "blocked": 5
-  }
-}
-```
+- Only parse `.json`, `.jsonl`, and `.ndjson` files unless the test fixture explicitly covers another format.
+- Skip files larger than `25 MB` and record them as `artifact_skipped_too_large`.
+- Do not scan `node_modules`, `.git`, build output, cache directories, or MinIO object stores.
+- For globbed sources such as `data/wiki-crawler/output/**` and `reports/normal-npc-loot-*.json`, record scanned file count, skipped file count, unreadable file count, and matched evidence file count.
+- JSON parse failures must produce `artifact_unreadable`; they must not be interpreted as missing source.
 
-Steps:
+**Required audit semantics:**
 
-- [ ] Audit all Mimic variants, not only screenshot rows:
-  - `PresentMimic`
-  - `BigMimicCorruption`
-  - `BigMimicCrimson`
-  - `BigMimicHallow`
-  - `BigMimicJungle`
-- [ ] Also include known-good controls:
+- Missing directories/files are recorded as `artifact_not_found`, not silently ignored.
+- `hasDirectLocalSourceArtifact` must be computed from scanned artifacts, not hardcoded.
+- Top-level artifact health must be recorded separately from target source status. A parse failure in one artifact must not make every target `artifact_unreadable` if other valid evidence was scanned.
+- Each target `candidateStatus` must be classified as one of:
+  - `already_materialized`
+  - `source_found`
+  - `generic_bucket_only`
+  - `missing_source`
+- `source_found` requires variant-specific source evidence for that Mimic, not generic `Mimics` bucket evidence.
+- If every relevant artifact for a target is missing or unreadable, the target remains `missing_source` and carries `evidenceHealth = "insufficient_artifacts"`.
+- If at least one relevant artifact is unreadable, include the unreadable path and error category in `artifactStatuses`; do not silently downgrade it to missing source.
+- Existing good controls must remain `already_materialized`:
   - `Mimic`
   - `IceMimic`
   - `WaterBoltMimic`
-- [ ] For each target, check local/relation/projection materialization counts.
-- [ ] Search existing local artifacts for source rows.
-- [ ] Resolve candidate item names/internal names against local `items`.
-- [ ] Mark targets without local source artifacts as blocked instead of generating rows.
 
-Exit gate:
+**Minimum report schema additions:**
 
-- Audit report proves whether the missing variants are materializable from existing local data.
-- No DB write has occurred.
+- top-level `auditStatus` with `pass`, `warning`, or `blocked`
+- `artifactStatuses[]` with `path`, `status`, `fileSizeBytes`, `reason`, and optional `errorCode`
+- `scanSummary` with `scannedFileCount`, `skippedFileCount`, `unreadableFileCount`, and `matchedEvidenceFileCount`
+- per-target `candidateStatus`, `evidenceHealth`, `sourceArtifacts[]`, `candidateDropCount`, `resolvedItemCount`, and `unresolvedItemCount`
 
-Stop condition:
+**Targets:**
 
-- If the only source is a live wiki page, stop and write a crawler/import plan. Do not runtime-fetch wiki in the admin API.
+- `PresentMimic`
+- `BigMimicCorruption`
+- `BigMimicCrimson`
+- `BigMimicHallow`
+- `BigMimicJungle`
+
+**Tests to add or update:**
+
+- [ ] CLI parse tests use names that match behavior: default `writeReport=true` is acceptable for report-generation mode, while Phase 0 explicitly uses `--write-report=false` for no-overwrite baseline checks.
+- [ ] A fixture with variant-specific local evidence yields `source_found`.
+- [ ] A fixture with only generic `Mimics` bucket yields `generic_bucket_only`.
+- [ ] Missing source directories are reported in `artifactStatuses`.
+- [ ] One unreadable artifact does not force a target to `missing_source` when another readable artifact has variant-specific evidence.
+- [ ] The audit no longer contains a hardcoded false source decision.
+- [ ] Controls with existing relation/projection/local rows remain `already_materialized`.
+
+**Validation:**
+
+```powershell
+node --test scripts/data/audit/audit-missing-mimic-variant-loot.test.mjs
+node scripts/data/audit/audit-missing-mimic-variant-loot.mjs --write-report=true --date-tag=2026-05-09
+```
+
+**Exit gate:**
+
+- The report can prove either that local source evidence exists or that the current repo only has generic/absent evidence.
+- Merge decision can rely on the audit without caveat that source scanning was incomplete.
 
 ---
 
-## Phase 3: Materialize Mimic Variant Loot If Source Exists
+## Phase 3: Decide Materialization Path From Audit Result
 
-Purpose:
+**Purpose:** Avoid writing data before proving local source materializability.
 
-- when Phase 2 finds local source evidence, write missing Mimic variant loot through the same source-fact/relation/projection/local chain used by other NPC drops
+### Case A: Audit Finds Variant-Specific Local Source
 
-Files:
+Do not apply DB writes directly from this plan. If Phase 2 proves variant-specific local source evidence exists, stop and create a separate backfill execution plan with exact script files, dry-run commands, rollback procedure, and table-level pre/post-count SQL. Do not improvise apply steps inside this plan.
 
-- Create or modify a focused data script under `scripts/data/relation/` or `scripts/data/import/`
-- Create or modify corresponding Node tests
-- Create: `reports/mimic-variant-loot-backfill-dry-run-YYYY-MM-DD.json`
-- Create: `reports/mimic-variant-loot-backfill-apply-YYYY-MM-DD.json`
-- Modify only if needed: `scripts/data/relation/sync-relation-to-local-compat-tables.mjs`
+**Required write path for the separate backfill plan:**
 
-Upstream input contract:
+1. Prepare upstream maint/source input rows with traceable source metadata.
+2. Run relation/projection rebuild through the established snapshot writer.
+3. Sync projection to local `npcs.loot_items_json`.
+4. Sync relation compatibility rows for admin/public detail endpoints.
 
-- Preferred durable input is `terria_v1_maint.maint_item_sources`, sourced from an existing local artifact or a traceable maint import.
-- Each Mimic drop row must have a deterministic `record_key`, `item_internal_name`, `item_name`, `source_type='drop'`, `source_ref_type='npc'`, `source_ref_name`, `source_provider`, `source_page`, and complete `landing_*` trace fields.
-- `raw_json` must preserve the original candidate evidence and include `sourceRefName`, `sourceRefInternalName`, `sourceRefResolution`, `quantityMin/quantityMax/quantityText`, `chanceValue/chanceText`, and optional `conditions/notes` when available.
-- `sourceRefInternalName` must match the target local/maint NPC internal name (`PresentMimic`, `BigMimicCorruption`, `BigMimicCrimson`, `BigMimicHallow`, or `BigMimicJungle`) whenever display-name resolution is ambiguous.
-- If the local artifact cannot provide traceable source fields, create a blocked audit/TODO entry instead of inventing `landing_*` metadata.
+**Required before any apply command:**
 
-Required write path:
+- A dry-run report exists for the exact variant set.
+- Target DB name is recorded.
+- Pre-count SQL is recorded for every table that will change.
+- Rollback or backup table/report names are recorded.
+- No other task is writing the same DB tables.
+- The new backfill plan is reviewed before any apply command is executed. A runnable script may contain an apply mode only if it is guarded behind an explicit `--apply=true` flag and has a dry-run default.
 
-1. Update or generate the upstream maint/source inputs for the missing Mimic variants. Do not direct-write relation snapshots in the same script if `sync-maint-to-relation.mjs` will also run.
-2. Rebuild `item_source_facts`, `item_source_details`, `item_npc_loot_relations`, and `projection_npcs` with `sync-maint-to-relation.mjs`.
-3. Run `sync-projection-to-local-core-tables.mjs --apply=true --domains=npcs` to refresh `npcs.loot_items_json`.
-4. Run `sync-relation-to-local-compat-tables.mjs --apply=true` to refresh `item_acquisition_sources` and `npc_loot_entries`.
+**Required dry-run fields:**
 
-Command boundary:
+- target Mimic
+- source artifact path
+- source evidence key or hash
+- item resolution result
+- rows planned per table
+- backup/report names
+- unresolved item count
 
-- Current code treats `sync-maint-to-relation.mjs --scopes=npc` as run metadata, not a proven write filter. Do not rely on it for NPC-only writes unless scope filtering is implemented and covered by tests first.
-- If scope filtering is not implemented, run the full dry-run/apply path and record the wider snapshot impact instead of claiming NPC-only writes.
-- Never apply a focused direct relation-row patch and then run `sync-maint-to-relation.mjs` unless the focused patch has first been converted into upstream inputs; the snapshot rebuild can overwrite direct relation rows.
+**Stop conditions:**
 
-Steps:
+- Any item cannot resolve to local `items`.
+- Evidence lacks source page/provider/landing metadata.
+- The proposed write path direct-writes relation snapshots that would be overwritten by `sync-maint-to-relation.mjs`.
 
-- [ ] Write failing tests for the chosen source-to-relation materializer.
-- [ ] Dry-run backfill for all materializable missing Mimic variants.
-- [ ] Dry-run must report:
-  - rows to insert/update per target
-  - resolved item count
-  - unresolved item count
-  - exact target DB tables
-  - backup table/report names
-  - maint `record_key` values for every planned source row
-  - source artifact path and hash or content-derived evidence key for every planned row
-- [ ] Apply only if dry-run has `unresolvedItemCount=0` or explicitly accepted unresolved rows are excluded.
-- [ ] Rebuild relation/projection first, then run the local syncs in this order:
-  - `sync-projection-to-local-core-tables.mjs --apply=true --domains=npcs`
-  - `sync-relation-to-local-compat-tables.mjs --apply=true`
-- [ ] Re-run NPC detail counts.
+### Case B: Audit Finds Only Generic Bucket Or Missing Source
 
-Expected state if source exists:
+Do not backfill rows.
 
-- `PresentMimic`, `BigMimicCorruption`, `BigMimicCrimson`, `BigMimicHallow`, and `BigMimicJungle` have non-zero relation/projection/local loot counts matching source evidence.
-- `AdminNpcController` detail payloads show actual local DB rows, not UI-generated rows.
-- `AdminNpcRelationController` and `PublicNpcAggregateController` read the same materialized loot truth.
+**Required closeout:**
 
-Expected state if source does not exist:
+- Keep runtime detail truthful: structured loot remains empty for those Mimic variants.
+- Record a blocker/TODO for crawler or source import to obtain variant-specific loot evidence.
+- Do not merge any code that claims Mimic loot is fixed through data materialization.
+- It is acceptable to merge the Buff API fix plus honest Mimic audit only if docs clearly state Mimic variant loot remains blocked by source evidence.
 
-- No DB rows are fabricated.
-- A blocker is documented in the audit:
-  - missing local crawler artifact
-  - missing item resolution
-  - unsupported source structure
-- Admin UI may show a truthful empty state such as `No structured local loot data`, but not invented drops.
+**Exit gate:**
 
-Validation SQL after apply:
-
-```sql
-SELECT n.internal_name, n.id AS local_id, n.game_id,
-       JSON_LENGTH(n.loot_items_json) AS loot_json_count,
-       (SELECT COUNT(*) FROM npc_loot_entries x WHERE x.npc_id = n.id AND x.deleted = 0) AS loot_rows,
-       (SELECT COUNT(*) FROM item_acquisition_sources s
-        WHERE s.deleted = 0 AND s.status = 1
-          AND s.source_type = 'drop'
-          AND s.source_ref_type = 'npc'
-          AND s.source_ref_id = n.id) AS acquisition_rows_by_local_id,
-       (SELECT COUNT(*) FROM item_acquisition_sources s
-        WHERE s.deleted = 0 AND s.status = 1
-          AND s.source_type = 'drop'
-          AND s.source_ref_type = 'npc'
-          AND s.source_ref_id = n.game_id) AS acquisition_rows_by_game_id
-FROM npcs n
-WHERE n.internal_name IN (
-  'PresentMimic',
-  'BigMimicCorruption',
-  'BigMimicCrimson',
-  'BigMimicHallow',
-  'BigMimicJungle',
-  'Mimic',
-  'IceMimic',
-  'WaterBoltMimic'
-)
-ORDER BY n.game_id;
-```
-
-```sql
-SELECT r.npc_internal_name, COUNT(*) AS relation_loot_rows
-FROM terria_v1_relation.item_npc_loot_relations r
-WHERE r.deleted = 0
-  AND r.status = 1
-  AND r.npc_internal_name IN (
-    'PresentMimic',
-    'BigMimicCorruption',
-    'BigMimicCrimson',
-    'BigMimicHallow',
-    'BigMimicJungle',
-    'Mimic',
-    'IceMimic',
-    'WaterBoltMimic'
-  )
-GROUP BY r.npc_internal_name
-ORDER BY r.npc_internal_name;
-
-SELECT p.internal_name,
-       JSON_LENGTH(p.loot_items_json) AS projection_loot_json_count
-FROM terria_v1_relation.projection_npcs p
-WHERE p.internal_name IN (
-  'PresentMimic',
-  'BigMimicCorruption',
-  'BigMimicCrimson',
-  'BigMimicHallow',
-  'BigMimicJungle',
-  'Mimic',
-  'IceMimic',
-  'WaterBoltMimic'
-)
-ORDER BY p.internal_name;
-```
-
-Stop condition:
-
-- If source artifacts are incomplete for some variants, apply only complete variants if the report clearly lists the skipped variants and no shared table gets partial ambiguous rows.
-- If item resolution is ambiguous, stop before apply and add item resolution review.
-- If the only available candidate is an ad-hoc relation row that would be overwritten by `sync-maint-to-relation.mjs`, stop and convert that evidence into upstream maint/source inputs first.
+- The branch has a clear merge shape:
+  - mergeable as Buff fix + source-gap audit, or
+  - blocked until a real source import/backfill exists.
 
 ---
 
-## Phase 4: Runtime/API/UI Closeout
+## Phase 4: Runtime Contract Review
 
-Purpose:
+**Purpose:** Ensure admin UI and APIs present local truth, not stale raw JSON or UI fabrication.
 
-- ensure backend payloads and admin UI display truthful data states
+**Files:**
 
-Files:
+- Read first: `data-query-app/pages/entities/[type].vue`
+- Read first: `back/src/main/java/com/terraria/skills/controller/AdminNpcController.java`
+- Read first: `back/src/main/java/com/terraria/skills/controller/AdminNpcRelationController.java`
+- Read first: `back/src/main/java/com/terraria/skills/service/impl/PublicNpcServiceImpl.java`
 
-- Modify only if needed: `back/src/main/java/com/terraria/skills/controller/AdminNpcController.java`
-- Modify only if needed: `back/src/main/java/com/terraria/skills/controller/AdminNpcRelationController.java`
-- Modify only if needed: `back/src/main/java/com/terraria/skills/service/impl/PublicNpcServiceImpl.java`
-- Modify only if needed: `data-query-app/pages/entities/[type].vue`
-- Modify tests accordingly, including `AdminNpcRelationControllerTest` if the derived-loot endpoint contract changes
+Only modify these files if the read-only contract review proves an existing consumer violates the checks below.
 
-Requirements:
+**Checks:**
 
-- [ ] NPC detail must prefer structured local rows.
-- [ ] If structured rows are empty but `inheritedLootEntries` exists, show inherited/prototype source clearly.
-- [ ] If all loot sources are empty, show a clear empty state and do not show stale raw JSON as if it were structured loot.
-- [ ] Buff detail must show resolved immune NPC cards only.
-- [ ] If unresolved Buff samples are exposed, they must render as an audit/debug list, not as normal NPC cards.
-- [ ] `/admin/npcs/{id}/loot`, `/admin/npcs/{id}/derived-loot`, and `/public/npcs/{id}/aggregate?include=loot` must all agree with the same local DB truth source.
-- [ ] If local compatibility rows store `item_acquisition_sources.source_ref_id = npcs.id` but a runtime endpoint queries by `game_id`, either align the endpoint/query or record a blocking contract fix before claiming derived loot works.
+- [ ] Buff detail renders `immuneNpcSamples` as normal cards only when rows are resolved local NPCs.
+- [ ] `unresolvedImmuneNpcSamples` is not rendered as normal NPC cards.
+- [ ] NPC detail uses structured local/relation payloads for loot.
+- [ ] Missing Mimic variant loot shows a truthful empty/local-data-missing state.
+- [ ] No UI path pulls crawler output or wiki data directly to fill runtime detail rows.
+- [ ] `/admin/npcs/{id}/loot`, `/admin/npcs/{id}/derived-loot`, and `/public/npcs/{id}/aggregate?include=loot` agree with local DB truth.
 
-Validation:
+**Validation if files change:**
 
 ```powershell
 cd back
-mvn "-Dtest=AdminBuffControllerTest,AdminNpcControllerTest,AdminNpcRelationControllerTest,PublicNpcServiceImplImageTest,PublicNpcAggregateControllerTest" test
+mvn "-Dtest=AdminBuffControllerTest,AdminNpcControllerTest,AdminNpcRelationControllerTest,PublicNpcAggregateControllerTest" test
 cd ..\data-query-app
 pnpm run check
 ```
 
-Manual acceptance pages:
+**Exit gate:**
 
-- `http://localhost:3001/entities/buffs`
-- `http://localhost:3001/entities/npcs`
-- Buff detail examples:
-  - `CursedInferno`
-  - `Poisoned`
-  - `Confused`
-- Admin NPC relation APIs:
-  - `GET /admin/npcs/85/loot`
-  - `GET /admin/npcs/85/derived-loot`
-- Public aggregate example:
-  - `GET /public/npcs/85/aggregate?include=loot`
-- NPC detail examples:
-  - `Mimic`
-  - `IceMimic`
-  - `PresentMimic`
-  - `BigMimicCorruption`
-  - `BigMimicCrimson`
-
-Acceptance:
-
-- No Buff immune NPC card renders `ID --` or `NP` because of unresolved backend rows.
-- Mimic variants with real local data show real local rows.
-- Mimic variants without source data show a truthful local-data-empty state.
+- Screenshots that triggered this work map to either fixed resolved data or a documented source gap.
 
 ---
 
-## Phase 5: Monitoring And TODO Closeout
+## Phase 5: Closeout Audit, TODO, And Merge Review
 
-Purpose:
+**Purpose:** Make final merge decision evidence-based.
 
-- make these classes of defects visible before the user finds them by screenshot
+**Files:**
 
-Files:
-
+- Modify: `docs/audits/2026-05-09_buff-npc-loot-detail-closeout.md`
 - Modify: `docs/todo/backlog.md`
-- Modify only if already supported by current monitor model: crawler monitor service/page files
-- Create: `docs/audits/2026-05-09_buff-npc-loot-detail-closeout.md`
+- Read: `git status --short`
+- Read: `git diff main...HEAD --stat`
 
-Tasks:
+**Required closeout contents:**
 
-- [ ] Add a TODO for general NPC drop coverage gaps beyond Mimics:
-  - audit all local NPCs where relation/projection has zero loot but wiki crawler coverage says the page is resolved
-  - classify as expected-empty vs missing-source vs missing-materialization
-- [ ] Add a TODO for Buff immune sample alias coverage:
-  - track exact-resolved, alias-resolved, unresolved counts
-  - fail future checks if normal card payload returns `npcId=null`
-- [ ] Add edge image gap TODO if not already tracked:
-  - NPC base images missing: `4`
-  - Item base images missing: `23`
-  - Projectile base image missing: `1`
-- [ ] If monitor already has suitable surface, add read-only metrics:
-  - `buffImmuneSampleAliasResolvedCount`
-  - `buffImmuneSampleUnresolvedCount`
-  - `npcLootMissingMaterializationCount`
-  - `mimicVariantLootMissingCount`
+- Buff exact/single-alias/ambiguous/unresolved counts after fix.
+- API contract summary for `immuneNpcSamples` and `unresolvedImmuneNpcSamples`.
+- Mimic audit summary by target.
+- Mimic report artifact handling:
+  - report path
+  - whether the report file is git-tracked, untracked, or ignored
+  - report hash or stable summary if the file is not committed
+- Whether Mimic variant loot is materialized or blocked by missing local source evidence.
+- Test commands and results.
+- Manual pages or API endpoints checked.
+- Remaining TODO entries with explicit owner category:
+  - source import gap
+  - crawler coverage gap
+  - runtime contract gap
 
-Completion evidence:
+**Merge gate:**
 
-- Closeout audit lists:
-  - files changed
-  - tests run
-  - DB reports generated
-  - remaining blocked items
-  - exact manual pages for user acceptance
+- `git status --short` is clean.
+- Backend targeted tests pass.
+- Node audit tests pass.
+- Mimic audit report was regenerated after script changes.
+- If the regenerated audit report is not committed, the closeout audit records its path, status, and hash or stable summary.
+- The closeout audit does not claim fixed data where only a source gap was proven.
+- If Mimic remains blocked, the commit message and docs must describe the branch as Buff fix plus Mimic source-gap audit, not a complete Mimic loot repair.
 
 ---
 
-## Multi-Agent Execution Recommendation
+## Multi-Agent Execution Model
 
-Recommended first dispatch:
+Recommended dispatch:
 
-- Agent A: read-only Buff alias contract and tests. Output exact expected backend payload shape and test names. No DB writes.
-- Agent B: read-only Mimic loot source audit. Output source artifact candidates and whether materialization is possible. No DB writes.
-- Agent C: read-only UI/API display audit. Output which sections need frontend changes after backend contract settles. No code writes unless assigned later.
+- Agent A: Buff resolver tests and contract review. Read `AdminBuffController` and test file only. Output exact failing tests and expected payload fields.
+- Agent B: Mimic audit source scanner design. Read audit script, existing reports, and local artifact structure. Output scan coverage and fixture requirements.
+- Agent C: Runtime display review. Read admin page and NPC/Buff controller payloads. Output whether UI changes are required after backend contract settles.
 
-Serial integration after dispatch:
+Serial integration:
 
-1. Main agent implements `AdminBuffController` and tests.
-2. Main agent reviews Agent B's report and decides whether Phase 3 has enough local evidence to write a backfill.
-3. DB-writing backfill runs only after dry-run report is reviewed.
-4. UI edits happen last and only if API contract changes require them.
+1. Main agent edits `AdminBuffController` and `AdminBuffControllerTest`.
+2. Main agent edits Mimic audit script/tests.
+3. Main agent runs tests and regenerates the audit report.
+4. Main agent reviews whether Phase 3 is Case A or Case B.
+5. Main agent updates closeout audit and TODO.
+6. Main agent performs final merge review.
 
-Do not let multiple agents edit `AdminBuffController.java`, `AdminNpcController.java`, or the same DB write script concurrently.
+Parallelism limits:
+
+- No two agents edit the same file.
+- No DB apply/backfill runs in parallel.
+- No agent direct-writes relation/projection/local tables during source scanning.
 
 ---
 
 ## Final Completion Criteria
 
-This work is complete only when all are true:
+This branch can be merged only when all are true:
 
-- Buff detail payloads no longer return normal `immuneNpcSamples` rows with `npcId=null`; unresolved rows, if any, are isolated in an audit/debug field.
-- Alias-resolvable Buff samples resolve from local `npcs` and display managed local images when available.
-- Mimic variant loot is either materialized through maint/relation/projection/local DB with evidence, or explicitly documented as blocked by missing local source artifacts.
-- Admin UI and admin/public NPC detail APIs no longer present missing local Mimic loot as if it were a display bug.
-- Tests cover Buff alias resolution, unresolved sample handling, and NPC loot truthfulness.
-- A closeout audit records the exact DB counts before and after.
+- `immuneNpcSamples` has no normal card rows with `npcId=null`.
+- Alias-resolvable and ambiguous local Buff samples resolve to local NPC representatives with clear metadata.
+- `unresolvedImmuneNpcSamples` contains only rows with no local NPC candidate.
+- Mimic audit scans all declared local candidate sources and no longer relies on hardcoded missing-source logic.
+- Mimic variant loot is either materialized through a separately reviewed backfill execution plan, or documented as blocked by missing variant-specific local source evidence.
+- Tests and reports listed in this plan have been rerun after the final code change.
+- Closeout docs and TODOs match the actual branch behavior.

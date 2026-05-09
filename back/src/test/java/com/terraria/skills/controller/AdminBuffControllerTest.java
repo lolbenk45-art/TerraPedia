@@ -280,7 +280,7 @@ class AdminBuffControllerTest {
     }
 
     @Test
-    void shouldExposeAmbiguousImmuneNpcAliasAsUnresolvedAuditEntry() throws Exception {
+    void shouldResolveAmbiguousImmuneNpcAliasToDeterministicRepresentative() throws Exception {
         Buff buff = new Buff();
         buff.setId(41L);
         buff.setInternalName("Poisoned");
@@ -308,10 +308,20 @@ class AdminBuffControllerTest {
 
         mockMvc.perform(get("/admin/buffs/41"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.immuneNpcSamples", hasSize(0)))
-            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples", hasSize(1)))
-            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples[0].resolutionStatus").value("alias_ambiguous"))
-            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples[0].matchCount").value(3));
+            .andExpect(jsonPath("$.data.immuneNpcSamples", hasSize(1)))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples", hasSize(0)))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].internalName").value("CultistDragonHead"))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].npcDbId").value(454))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].npcId").value(454))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].resolutionStatus").value("alias_ambiguous_representative"))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].matchCount").value(3))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].matchedNpcIds", hasSize(3)))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].matchedNpcDbIds", hasSize(3)))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].matchedInternalNames", hasSize(3)))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].matchedNpcIds[0]").value(454))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].matchedNpcIds[1]").value(455))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].matchedNpcIds[2]").value(459))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].matchedInternalNames[0]").value("CultistDragonHead"));
     }
 
     @Test
@@ -374,6 +384,96 @@ class AdminBuffControllerTest {
             .andExpect(jsonPath("$.data.immuneNpcSamples[1].internalName").value("FallbackNpc"))
             .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples", hasSize(1)))
             .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples[0].internalName").value("UnknownAlias"));
+    }
+
+    @Test
+    void shouldResolveImmuneNpcSourceIdThroughGameId() throws Exception {
+        Buff buff = new Buff();
+        buff.setId(43L);
+        buff.setInternalName("SourceIdDebuff");
+        buff.setEnglishName("SourceId Debuff");
+        buff.setImmuneNpcCount(1);
+        buff.setImmuneNpcSampleJson("[{\"sourceId\":480,\"name\":\"Medusa\"}]");
+
+        when(buffMapper.selectById(43L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(
+            contains("WHERE deleted = 0 AND game_id IN"),
+            eq(480)
+        )).thenReturn(List.of(Map.of(
+            "npcDbId", 9001L,
+            "npcId", 480,
+            "internalName", "Medusa",
+            "name", "Medusa",
+            "nameZh", "Medusa ZH",
+            "subNameZh", "Medusa Variant",
+            "rawJson", "{}"
+        )));
+
+        mockMvc.perform(get("/admin/buffs/43"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.immuneNpcSamples", hasSize(1)))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].internalName").value("Medusa"))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].npcDbId").value(9001))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].npcId").value(480))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples", hasSize(0)));
+    }
+
+    @Test
+    void shouldTreatDuplicateExactGameIdMatchesAsDataIntegrityBlocker() throws Exception {
+        Buff buff = new Buff();
+        buff.setId(44L);
+        buff.setInternalName("DuplicateGameIdDebuff");
+        buff.setEnglishName("Duplicate GameId Debuff");
+        buff.setImmuneNpcCount(1);
+        buff.setImmuneNpcSampleJson("[{\"sourceId\":480,\"name\":\"Medusa\"}]");
+
+        when(buffMapper.selectById(44L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(
+            contains("WHERE deleted = 0 AND game_id IN"),
+            eq(480)
+        )).thenReturn(List.of(
+            npcAliasRow(9001L, 480, "Medusa", "Medusa"),
+            npcAliasRow(9002L, 480, "MedusaClone", "Medusa")
+        ));
+
+        mockMvc.perform(get("/admin/buffs/44"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.immuneNpcSamples", hasSize(0)))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples", hasSize(1)))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples[0].resolutionStatus").value("duplicate_exact_game_id"))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples[0].matchCount").value(2))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples[0].matchedNpcIds[0]").value(480))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples[0].matchedNpcIds[1]").value(480))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples[0].matchedInternalNames[0]").value("Medusa"))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples[0].matchedInternalNames[1]").value("MedusaClone"));
+    }
+
+    @Test
+    void shouldTreatDuplicateExactInternalNameMatchesAsDataIntegrityBlocker() throws Exception {
+        Buff buff = new Buff();
+        buff.setId(45L);
+        buff.setInternalName("DuplicateInternalNameDebuff");
+        buff.setEnglishName("Duplicate InternalName Debuff");
+        buff.setImmuneNpcCount(1);
+        buff.setImmuneNpcSampleJson("[{\"internalName\":\"Medusa\",\"name\":\"Medusa\"}]");
+
+        when(buffMapper.selectById(45L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(
+            contains("WHERE deleted = 0 AND internal_name IN"),
+            eq("Medusa")
+        )).thenReturn(List.of(
+            npcAliasRow(9001L, 480, "Medusa", "Medusa"),
+            npcAliasRow(9002L, 481, "Medusa", "Medusa")
+        ));
+
+        mockMvc.perform(get("/admin/buffs/45"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.immuneNpcSamples", hasSize(0)))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples", hasSize(1)))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples[0].resolutionStatus").value("duplicate_exact_internal_name"))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples[0].matchCount").value(2))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples[0].matchedNpcDbIds[0]").value(9001))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples[0].matchedNpcDbIds[1]").value(9002));
     }
 
     @Test

@@ -35,6 +35,17 @@ const CONTROLS = Object.freeze([
   { internalName: 'WaterBoltMimic', gameId: 694, name: 'Water Bolt Mimic' },
 ]);
 
+const ALLOWED_SCAN_EXTENSIONS = new Set(['.json', '.jsonl', '.ndjson']);
+const MAX_SCAN_FILE_SIZE_BYTES = 25 * 1024 * 1024;
+const VARIANT_NAME_ALIASES = Object.freeze(new Map([
+  ['PresentMimic', ['present mimic']],
+  ['BigMimicCorruption', ['corrupt mimic']],
+  ['BigMimicCrimson', ['crimson mimic']],
+  ['BigMimicHallow', ['hallowed mimic']],
+  ['BigMimicJungle', ['jungle mimic']],
+]));
+const VARIANT_PAGE_TITLES = new Set(['present mimic', 'corrupt mimic', 'crimson mimic', 'hallowed mimic', 'jungle mimic']);
+
 export function parseArgs(argv = process.argv.slice(2)) {
   const raw = {};
   for (const token of argv) {
@@ -63,44 +74,42 @@ export async function runMissingMimicVariantLootAudit(options = {}, dependencies
     dateTag: options.dateTag ?? DEFAULTS.dateTag,
   };
 
-  const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
-  const mysqlOptions = {
-    host: config.database?.host ?? '127.0.0.1',
-    port: Number(config.database?.port ?? 3306),
-    user: config.database?.username ?? 'root',
-    password: config.database?.password ?? 'root',
-  };
-  const connection = dependencies.connection ?? await mysql.createConnection(mysqlOptions);
-  const shouldClose = !dependencies.connection;
-
+  let connection = dependencies.connection ?? null;
+  let shouldClose = false;
   try {
+    if (!connection) {
+      const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
+      const mysqlFactory = dependencies.mysqlFactory ?? mysql;
+      const mysqlOptions = {
+        host: config.database?.host ?? '127.0.0.1',
+        port: Number(config.database?.port ?? 3306),
+        user: config.database?.username ?? 'root',
+        password: config.database?.password ?? 'root',
+      };
+      connection = await mysqlFactory.createConnection(mysqlOptions);
+      shouldClose = true;
+    }
+
     const targetStates = await loadNpcState(connection, normalized, [...TARGETS, ...CONTROLS]);
-    const artifacts = await scanArtifacts();
+    const artifacts = await (dependencies.scanArtifacts ?? scanArtifacts)();
     const targets = TARGETS.map((target) => buildTargetReport(target, targetStates.get(target.internalName), artifacts));
     const controls = CONTROLS.map((target) => buildTargetReport(target, targetStates.get(target.internalName), artifacts));
-
-    const report = {
-      generatedAt: new Date().toISOString(),
-      localDatabase: normalized.localDatabase,
-      relationDatabase: normalized.relationDatabase,
-      targets,
-      controls,
-      artifactSummary: {
-        coverageAuditPages: artifacts.coverageAuditPages,
-        sourceRefNameMimicsRows: artifacts.sourceRefNameMimicsRows,
-        npcAuditFilesFound: artifacts.npcAuditFilesFound,
-        evidencePaths: artifacts.evidencePaths,
-      },
-      summary: summarizeTargets(targets),
-    };
+    const report = buildReport(normalized, artifacts, targets, controls);
 
     let reportPath = null;
     if (normalized.writeReport) {
       reportPath = await writeReport(report, normalized);
     }
     return { report, reportPath };
+  } catch (error) {
+    const blockedReport = buildBlockedReport(normalized, error);
+    let reportPath = null;
+    if (normalized.writeReport) {
+      reportPath = await writeReport(blockedReport, normalized);
+    }
+    return { report: blockedReport, reportPath };
   } finally {
-    if (shouldClose) {
+    if (shouldClose && connection) {
       await connection.end();
     }
   }
@@ -177,53 +186,85 @@ async function loadNpcState(connection, options, npcs) {
 }
 
 async function scanArtifacts() {
-  const evidencePaths = [];
+  const artifactStatuses = [];
+  const scanSummary = {
+    scannedFileCount: 0,
+    skippedFileCount: 0,
+    unreadableFileCount: 0,
+    matchedEvidenceFileCount: 0,
+  };
+  const targetEvidence = new Map(TARGETS.map((target) => [target.internalName, createEmptyTargetEvidence()]));
+  const evidencePathSet = new Set();
+
   const coverageAuditPath = path.join(repoRoot, 'data', 'wiki-crawler', 'report', 'npc', 'coverage-audit.latest.json');
   const coverageTargetsPath = path.join(repoRoot, 'data', 'wiki-crawler', 'report', 'npc', 'coverage-targets.latest.json');
-  const normalLootDryRunPath = path.join(repoRoot, 'reports', 'normal-npc-loot-restore-dry-run-2026-04-29.json');
-  const normalLootApplyPath = path.join(repoRoot, 'reports', 'normal-npc-loot-restore-apply-2026-04-29.json');
-  const npcAuditDir = path.join(repoRoot, 'data', 'wiki-crawler', 'audit', 'npc');
+  const standardizedPath = path.join(repoRoot, 'data', 'standardized', 'npcs.standardized.json');
+  const generatedMapPath = path.join(repoRoot, 'data', 'generated', 'npc-standardized-map.json');
 
   let coverageAuditPages = 0;
-  if (await exists(coverageAuditPath)) {
-    evidencePaths.push(relativeRepoPath(coverageAuditPath));
-    const payload = JSON.parse(await fs.readFile(coverageAuditPath, 'utf8'));
-    const targets = Array.isArray(payload?.targets) ? payload.targets : Array.isArray(payload) ? payload : [];
-    coverageAuditPages = targets.filter((target) =>
-      ['Present Mimic', 'Corrupt Mimic', 'Crimson Mimic', 'Hallowed Mimic', 'Jungle Mimic'].includes(target.pageTitle)
-    ).length;
-  }
-
-  if (await exists(coverageTargetsPath)) {
-    evidencePaths.push(relativeRepoPath(coverageTargetsPath));
-  }
-
   let sourceRefNameMimicsRows = 0;
-  for (const reportPath of [normalLootDryRunPath, normalLootApplyPath]) {
-    if (!(await exists(reportPath))) continue;
-    evidencePaths.push(relativeRepoPath(reportPath));
-    const payload = JSON.parse(await fs.readFile(reportPath, 'utf8'));
-    const unmatched = Array.isArray(payload?.unmatchedSourceNames) ? payload.unmatchedSourceNames : [];
-    const mimicEntry = unmatched.find((entry) => entry?.sourceRefName === 'Mimics');
-    if (mimicEntry) {
-      sourceRefNameMimicsRows = Math.max(sourceRefNameMimicsRows, Number(mimicEntry.sourceRows ?? 0));
+  let npcAuditFilesFound = 0;
+
+  const coverageAuditPayload = await scanExactArtifact(coverageAuditPath, artifactStatuses, scanSummary, evidencePathSet);
+  if (coverageAuditPayload?.payload) {
+    const targets = Array.isArray(coverageAuditPayload.payload?.targets)
+      ? coverageAuditPayload.payload.targets
+      : Array.isArray(coverageAuditPayload.payload)
+        ? coverageAuditPayload.payload
+        : [];
+    coverageAuditPages = targets.filter((target) => VARIANT_PAGE_TITLES.has(normalizeText(target.pageTitle))).length;
+  }
+
+  await scanExactArtifact(coverageTargetsPath, artifactStatuses, scanSummary, evidencePathSet);
+  await scanExactArtifact(standardizedPath, artifactStatuses, scanSummary, evidencePathSet);
+  await scanExactArtifact(generatedMapPath, artifactStatuses, scanSummary, evidencePathSet);
+
+  const normalLootReports = await collectFiles(path.join(repoRoot, 'reports'), (entry) =>
+    entry.name.startsWith('normal-npc-loot-') && ALLOWED_SCAN_EXTENSIONS.has(path.extname(entry.name).toLowerCase())
+  );
+  for (const reportPath of normalLootReports) {
+    const artifact = await scanExactArtifact(reportPath, artifactStatuses, scanSummary, evidencePathSet, targetEvidence);
+    if (artifact?.payload) {
+      const unmatched = Array.isArray(artifact.payload?.unmatchedSourceNames) ? artifact.payload.unmatchedSourceNames : [];
+      const mimicEntry = unmatched.find((entry) => normalizeText(entry?.sourceRefName) === 'mimics');
+      if (mimicEntry) {
+        sourceRefNameMimicsRows = Math.max(sourceRefNameMimicsRows, Number(mimicEntry.sourceRows ?? 0));
+        for (const target of TARGETS) {
+          const targetState = targetEvidence.get(target.internalName);
+          targetState.hasGenericMimicsEvidence = true;
+        }
+      }
     }
   }
 
-  let npcAuditFilesFound = 0;
-  for (const slug of ['present-mimic', 'corrupt-mimic', 'crimson-mimic', 'hallowed-mimic', 'jungle-mimic']) {
-    const filePath = path.join(npcAuditDir, `${slug}.latest.json`);
-    if (await exists(filePath)) {
+  const npcAuditFiles = await collectFiles(path.join(repoRoot, 'data', 'wiki-crawler', 'audit', 'npc'), (entry) =>
+    entry.name.endsWith('.latest.json')
+  );
+  for (const filePath of npcAuditFiles) {
+    const artifact = await scanExactArtifact(filePath, artifactStatuses, scanSummary, evidencePathSet, targetEvidence);
+    if (artifact?.payload) {
       npcAuditFilesFound += 1;
-      evidencePaths.push(relativeRepoPath(filePath));
     }
   }
+
+  const crawlerOutputFiles = await collectFiles(path.join(repoRoot, 'data', 'wiki-crawler', 'output'));
+  for (const filePath of crawlerOutputFiles) {
+    await scanExactArtifact(filePath, artifactStatuses, scanSummary, evidencePathSet, targetEvidence);
+  }
+
+  const auditStatus = scanSummary.unreadableFileCount > 0 ? 'warning' : 'pass';
+  const evidenceHealth = scanSummary.unreadableFileCount > 0 ? 'partial' : 'sufficient';
 
   return {
+    auditStatus,
+    evidenceHealth,
+    artifactStatuses,
+    scanSummary,
+    targetEvidence,
     coverageAuditPages,
     sourceRefNameMimicsRows,
     npcAuditFilesFound,
-    evidencePaths: [...new Set(evidencePaths)],
+    evidencePaths: [...evidencePathSet],
   };
 }
 
@@ -235,18 +276,28 @@ function buildTargetReport(target, state = {}, artifacts = {}) {
   const relationLootCount = Number(state.relationLootCount ?? 0);
   const projectionLootJsonCount = Number(state.projectionLootJsonCount ?? 0);
   const relationFactCandidateCount = Number(state.relationFactCandidateCount ?? 0);
+  const targetEvidence = artifacts.targetEvidence?.get(target.internalName) ?? createEmptyTargetEvidence();
   const alreadyMaterialized = localLootJsonCount > 0 || localLootEntryCount > 0 || relationLootCount > 0 || projectionLootJsonCount > 0;
-  const hasDirectLocalSourceArtifact = false;
-  const onlyGenericMimicsEvidence = relationFactCandidateCount > 0 || artifacts.sourceRefNameMimicsRows > 0;
+  const hasDirectLocalSourceArtifact = Boolean(targetEvidence.hasVariantSpecificEvidence);
+  const onlyGenericMimicsEvidence = !hasDirectLocalSourceArtifact && (
+    relationFactCandidateCount > 0 ||
+    artifacts.sourceRefNameMimicsRows > 0 ||
+    targetEvidence.hasGenericMimicsEvidence
+  );
+  const artifactStatus = alreadyMaterialized || hasDirectLocalSourceArtifact || onlyGenericMimicsEvidence
+    ? 'present'
+    : 'missing';
   const candidateStatus = alreadyMaterialized
     ? 'already_materialized'
     : hasDirectLocalSourceArtifact
       ? 'source_found'
       : onlyGenericMimicsEvidence
-        ? 'missing_source'
+        ? 'generic_bucket_only'
         : 'missing_source';
   const gapReason = alreadyMaterialized
     ? null
+    : hasDirectLocalSourceArtifact
+      ? null
     : onlyGenericMimicsEvidence
       ? 'generic_mimics_bucket_not_variant_materializable'
       : 'no_existing_variant_specific_local_artifact';
@@ -257,7 +308,7 @@ function buildTargetReport(target, state = {}, artifacts = {}) {
     name: target.name,
     localId: Number(state.localId ?? 0),
     candidateStatus,
-    artifactStatus: artifacts.coverageAuditPages > 0 ? 'present' : 'missing',
+    artifactStatus,
     localState: {
       localLootJsonCount,
       localLootEntryCount,
@@ -269,10 +320,11 @@ function buildTargetReport(target, state = {}, artifacts = {}) {
       relationFactCandidateCount,
       projectionLootJsonCount,
     },
-    sourceArtifacts: artifacts.evidencePaths,
-    candidateDropCount: 0,
-    resolvedItemCount: 0,
-    unresolvedItemCount: 0,
+    evidenceHealth: targetEvidence.evidenceHealth,
+    sourceArtifacts: targetEvidence.sourceArtifacts,
+    candidateDropCount: targetEvidence.candidateDropCount,
+    resolvedItemCount: targetEvidence.resolvedItemCount,
+    unresolvedItemCount: targetEvidence.unresolvedItemCount,
     gapReason,
   };
 }
@@ -284,6 +336,69 @@ function summarizeTargets(targets) {
     materializable: targets.filter((target) => target.candidateStatus === 'source_found').length,
     alreadyMaterialized: targets.filter((target) => target.candidateStatus === 'already_materialized').length,
     blocked: targets.filter((target) => target.candidateStatus !== 'already_materialized' && target.candidateStatus !== 'source_found').length,
+  };
+}
+
+function buildReport(options, artifacts, targets, controls) {
+  const summary = summarizeTargets(targets);
+  return {
+    generatedAt: new Date().toISOString(),
+    auditStatus: artifacts.auditStatus ?? 'pass',
+    evidenceHealth: artifacts.evidenceHealth ?? 'sufficient',
+    localDatabase: options.localDatabase,
+    relationDatabase: options.relationDatabase,
+    artifactStatuses: artifacts.artifactStatuses ?? [],
+    scanSummary: artifacts.scanSummary ?? {
+      scannedFileCount: 0,
+      skippedFileCount: 0,
+      unreadableFileCount: 0,
+      matchedEvidenceFileCount: 0,
+    },
+    targets,
+    controls,
+    artifactSummary: {
+      coverageAuditPages: artifacts.coverageAuditPages ?? 0,
+      sourceRefNameMimicsRows: artifacts.sourceRefNameMimicsRows ?? 0,
+      npcAuditFilesFound: artifacts.npcAuditFilesFound ?? 0,
+      evidencePaths: artifacts.evidencePaths ?? [],
+    },
+    summary,
+  };
+}
+
+function buildBlockedReport(options, error) {
+  return {
+    generatedAt: new Date().toISOString(),
+    auditStatus: 'blocked',
+    evidenceHealth: 'db_unavailable',
+    localDatabase: options.localDatabase,
+    relationDatabase: options.relationDatabase,
+    artifactStatuses: [],
+    scanSummary: {
+      scannedFileCount: 0,
+      skippedFileCount: 0,
+      unreadableFileCount: 0,
+      matchedEvidenceFileCount: 0,
+    },
+    targets: [],
+    controls: [],
+    artifactSummary: {
+      coverageAuditPages: 0,
+      sourceRefNameMimicsRows: 0,
+      npcAuditFilesFound: 0,
+      evidencePaths: [],
+    },
+    summary: {
+      targets: 0,
+      sourceFound: 0,
+      materializable: 0,
+      alreadyMaterialized: 0,
+      blocked: 0,
+    },
+    error: {
+      code: error?.code ?? null,
+      message: error?.message ?? 'database_unavailable',
+    },
   };
 }
 
@@ -315,6 +430,134 @@ async function exists(filePath) {
 
 function relativeRepoPath(filePath) {
   return path.relative(repoRoot, filePath).replaceAll('\\', '/');
+}
+
+function createEmptyTargetEvidence() {
+  return {
+    evidenceHealth: 'insufficient_artifacts',
+    sourceArtifacts: [],
+    candidateDropCount: 0,
+    resolvedItemCount: 0,
+    unresolvedItemCount: 0,
+    hasVariantSpecificEvidence: false,
+    hasGenericMimicsEvidence: false,
+  };
+}
+
+async function scanExactArtifact(filePath, artifactStatuses, scanSummary, evidencePathSet, targetEvidence = new Map()) {
+  const relativePath = relativeRepoPath(filePath);
+  if (!(await exists(filePath))) {
+    artifactStatuses.push({ path: relativePath, status: 'artifact_not_found', fileSizeBytes: 0, reason: 'missing' });
+    return null;
+  }
+
+  const stat = await fs.stat(filePath);
+  if (!stat.isFile()) {
+    artifactStatuses.push({ path: relativePath, status: 'artifact_not_found', fileSizeBytes: 0, reason: 'not_a_file' });
+    return null;
+  }
+
+  const extension = path.extname(filePath).toLowerCase();
+  if (!ALLOWED_SCAN_EXTENSIONS.has(extension)) {
+    return null;
+  }
+  if (stat.size > MAX_SCAN_FILE_SIZE_BYTES) {
+    artifactStatuses.push({ path: relativePath, status: 'artifact_skipped_too_large', fileSizeBytes: stat.size, reason: 'over_scan_limit' });
+    scanSummary.skippedFileCount += 1;
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(await fs.readFile(filePath, 'utf8'));
+    artifactStatuses.push({ path: relativePath, status: 'present', fileSizeBytes: stat.size, reason: 'scanned' });
+    evidencePathSet.add(relativePath);
+    scanSummary.scannedFileCount += 1;
+    if (applyTargetEvidenceFromPayload(relativePath, payload, targetEvidence)) {
+      scanSummary.matchedEvidenceFileCount += 1;
+    }
+    return { payload, relativePath };
+  } catch (error) {
+    artifactStatuses.push({
+      path: relativePath,
+      status: 'artifact_unreadable',
+      fileSizeBytes: stat.size,
+      reason: 'json_parse_error',
+      errorCode: error?.name ?? 'Error',
+    });
+    scanSummary.unreadableFileCount += 1;
+    return null;
+  }
+}
+
+function applyTargetEvidenceFromPayload(relativePath, payload, targetEvidence) {
+  const payloadText = JSON.stringify(payload).toLowerCase();
+  let matched = false;
+  const isVariantSpecificLootArtifact = isVariantSpecificLootEvidencePath(relativePath);
+  for (const [internalName, aliases] of VARIANT_NAME_ALIASES.entries()) {
+    if (!aliases.some((alias) => payloadText.includes(alias))) continue;
+    if (isVariantSpecificLootArtifact) {
+      const targetState = targetEvidence.get(internalName) ?? createEmptyTargetEvidence();
+      targetState.hasVariantSpecificEvidence = true;
+      targetState.evidenceHealth = 'sufficient';
+      if (!targetState.sourceArtifacts.includes(relativePath)) {
+        targetState.sourceArtifacts.push(relativePath);
+      }
+      targetState.candidateDropCount = Math.max(targetState.candidateDropCount, countPotentialDrops(payload));
+      targetState.resolvedItemCount = Math.max(targetState.resolvedItemCount, targetState.candidateDropCount);
+      targetEvidence.set(internalName, targetState);
+      matched = true;
+    }
+  }
+  if (payloadText.includes('"mimics"') || payloadText.includes('mimics')) {
+    for (const internalName of VARIANT_NAME_ALIASES.keys()) {
+      const targetState = targetEvidence.get(internalName) ?? createEmptyTargetEvidence();
+      targetState.hasGenericMimicsEvidence = true;
+      targetEvidence.set(internalName, targetState);
+    }
+  }
+  return matched;
+}
+
+function countPotentialDrops(payload) {
+  if (Array.isArray(payload?.drops)) return payload.drops.length;
+  if (Array.isArray(payload?.loot)) return payload.loot.length;
+  if (Array.isArray(payload?.items)) return payload.items.length;
+  if (Array.isArray(payload?.records)) return payload.records.length;
+  return 1;
+}
+
+function isVariantSpecificLootEvidencePath(relativePath) {
+  return relativePath.startsWith('data/wiki-crawler/output/')
+    || relativePath.startsWith('data/wiki-crawler/audit/npc/')
+    || relativePath.startsWith('reports/normal-npc-loot-');
+}
+
+async function collectFiles(directoryPath, predicate = null) {
+  if (!(await exists(directoryPath))) {
+    return [];
+  }
+  const entries = await fs.readdir(directoryPath, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    if (['.git', 'node_modules', 'dist', 'build', '.cache', 'cache', 'minio'].includes(entry.name)) {
+      continue;
+    }
+    const fullPath = path.join(directoryPath, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...await collectFiles(fullPath, predicate));
+      continue;
+    }
+    if (!entry.isFile()) continue;
+    if (predicate && !predicate(entry)) continue;
+    const extension = path.extname(entry.name).toLowerCase();
+    if (!ALLOWED_SCAN_EXTENSIONS.has(extension)) continue;
+    files.push(fullPath);
+  }
+  return files;
+}
+
+function normalizeText(value) {
+  return String(value ?? '').trim().toLowerCase();
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
