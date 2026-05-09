@@ -100,3 +100,27 @@ Date: 2026-05-08
 
 - This review confirms the path-normalization problem is real: non-item NPC / projectile managed URLs already exist in local artifacts under the item MinIO prefix.
 - This review does not yet prove that MinIO object content is old or semantically wrong; that requires a follow-up object-level audit against source URL and rendered content.
+
+## Mimic Variant Loot Source Gap
+
+Date: 2026-05-09
+
+### Why This Can Recur
+
+- Current local/relation/projection data has structured loot for `Mimic`, `IceMimic`, and `WaterBoltMimic`, but not for `PresentMimic`, `BigMimicCorruption`, `BigMimicCrimson`, `BigMimicHallow`, or `BigMimicJungle`.
+- Fresh audit evidence now shows the repo does have crawler coverage pages for those five variant NPCs, but the historical NPC loot import/restore lane still collapses them into a generic `Mimics` source bucket.
+- The existing `maint_item_sources -> item_source_facts -> item_npc_loot_relations -> projection_npcs -> local compatibility` chain can only materialize variant loot when upstream rows already name the canonical variant NPC or carry resolved `sourceRefInternalName/sourceRefResolution`.
+- If this gap is not closed upstream, future “fixes” can again misdiagnose the issue as a rendering bug and attempt ad hoc relation/local writes that are not traceable and will be overwritten by the normal snapshot rebuild.
+
+### Next Iteration TODO
+
+- [ ] Add a variant-aware upstream source step that can emit `maint_item_sources` rows for `PresentMimic`, `BigMimicCorruption`, `BigMimicCrimson`, `BigMimicHallow`, and `BigMimicJungle` with traceable `landing_*` metadata and raw JSON carrying `sourceRefInternalName` / `sourceRefResolution`.
+- [ ] Add a blocking audit that fails when crawler coverage exists for Mimic variants but the NPC loot source chain still only exposes the generic `Mimics` bucket, and keep the audit report schema aligned with `auditStatus`, `evidenceHealth`, `artifactStatuses`, and `scanSummary`.
+- [ ] Decide whether the generic `Mimics` evidence should fan out to per-variant rows through a reviewed mapping rule or whether the crawler/import layer must produce variant-specific loot rows directly.
+- [ ] Add a derived-loot contract check proving `item_acquisition_sources.source_ref_id` uses the same identity (`npcs.id` or `game_id`) that admin/public runtime queries expect, instead of relying on equality by coincidence.
+- [ ] Re-run the Mimic variant closeout only after source evidence is upgraded from generic bucket to variant-specific rows; do not hand-edit relation/projection/local tables as a substitute.
+
+### Current Scope Note
+
+- The current cycle closed the Buff immune NPC placeholder regression.
+- The current cycle did not materialize Mimic variant loot because the audit reports `generic_bucket_only` for all five targets, so DB writes would be fabricated rather than traceable.
