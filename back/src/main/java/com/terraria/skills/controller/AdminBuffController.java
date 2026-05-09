@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -252,8 +253,10 @@ public class AdminBuffController {
         payload.put("updatedAt", buff.getUpdatedAt());
         if (includeLinkedItems) {
             List<Map<String, Object>> inflictingNpcSamples = loadInflictingNpcSamples(buff.getId());
+            ImmuneNpcSampleResolution immuneNpcSampleResolution = loadImmuneNpcSamples(immuneNpcSampleJson);
             payload.put("linkedSourceItems", linkedSourceItems);
-            payload.put("immuneNpcSamples", loadImmuneNpcSamples(immuneNpcSampleJson));
+            payload.put("immuneNpcSamples", immuneNpcSampleResolution.resolvedSamples());
+            payload.put("unresolvedImmuneNpcSamples", immuneNpcSampleResolution.unresolvedSamples());
             payload.put("inflictingNpcCount", firstNonNullInteger(countInflictingNpcs(buff.getId()), inflictingNpcSamples.size()));
             payload.put("inflictingNpcSamples", inflictingNpcSamples);
         }
@@ -331,56 +334,86 @@ public class AdminBuffController {
         return normalized;
     }
 
-    private List<Map<String, Object>> loadImmuneNpcSamples(String immuneNpcSampleJson) {
+    private ImmuneNpcSampleResolution loadImmuneNpcSamples(String immuneNpcSampleJson) {
         List<Map<String, Object>> rawEntries = toObjectMapList(immuneNpcSampleJson);
         if (rawEntries.isEmpty()) {
-            return List.of();
+            return new ImmuneNpcSampleResolution(List.of(), List.of());
         }
 
         Set<String> internalNames = new LinkedHashSet<>();
         Set<Integer> npcIds = new LinkedHashSet<>();
+        Set<String> displayNames = new LinkedHashSet<>();
         for (Map<String, Object> entry : rawEntries) {
             String internalName = trimToNull(firstNonNull(entry, "internalName", "internal_name"));
             Integer npcId = toInteger(firstNonNull(entry, "npcId", "sourceId", "source_id"));
+            String displayName = firstNonBlank(
+                trimToNull(firstNonNull(entry, "name")),
+                trimToNull(firstNonNull(entry, "nameZh"))
+            );
             if (internalName != null) internalNames.add(internalName);
             if (npcId != null) npcIds.add(npcId);
+            if (displayName != null) displayNames.add(displayName);
         }
 
         Map<String, Map<String, Object>> npcRowsByInternalName = loadNpcRowsByInternalNames(internalNames);
         Map<Integer, Map<String, Object>> npcRowsByNpcId = loadNpcRowsByNpcIds(npcIds);
+        Map<String, List<Map<String, Object>>> npcRowsByDisplayName = loadNpcRowsByDisplayNames(displayNames);
 
         Set<Long> itemIds = new LinkedHashSet<>();
         for (Map<String, Object> npcRow : npcRowsByInternalName.values()) {
-            Long bannerItemId = toLong(npcRow.get("bannerItemId"));
-            Long catchItemId = toLong(npcRow.get("catchItemId"));
-            if (bannerItemId != null) itemIds.add(bannerItemId);
-            if (catchItemId != null) itemIds.add(catchItemId);
+            collectNpcFallbackItemIds(npcRow, itemIds);
         }
         for (Map<String, Object> npcRow : npcRowsByNpcId.values()) {
-            Long bannerItemId = toLong(npcRow.get("bannerItemId"));
-            Long catchItemId = toLong(npcRow.get("catchItemId"));
-            if (bannerItemId != null) itemIds.add(bannerItemId);
-            if (catchItemId != null) itemIds.add(catchItemId);
+            collectNpcFallbackItemIds(npcRow, itemIds);
+        }
+        for (List<Map<String, Object>> npcRows : npcRowsByDisplayName.values()) {
+            for (Map<String, Object> npcRow : npcRows) {
+                collectNpcFallbackItemIds(npcRow, itemIds);
+            }
         }
 
         Map<Long, String> itemImagesById = loadItemImagesByIds(itemIds);
         Map<String, Map<String, Object>> npcSupplementMap = loadNpcSupplementMap();
 
-        List<Map<String, Object>> enriched = new ArrayList<>();
+        List<Map<String, Object>> resolved = new ArrayList<>();
+        List<Map<String, Object>> unresolved = new ArrayList<>();
         for (Map<String, Object> entry : rawEntries) {
             Integer requestedNpcId = toInteger(firstNonNull(entry, "npcId", "sourceId", "source_id"));
             String requestedInternalName = trimToNull(firstNonNull(entry, "internalName", "internal_name"));
+            String requestedName = trimToNull(firstNonNull(entry, "name"));
+            String requestedNameZh = trimToNull(firstNonNull(entry, "nameZh"));
+            String displayName = firstNonBlank(requestedName, requestedNameZh);
+
             Map<String, Object> npcRow = requestedInternalName != null
                 ? npcRowsByInternalName.getOrDefault(requestedInternalName, Map.of())
                 : Map.of();
+            String resolutionStatus = npcRow.isEmpty() ? null : "exact_internal_name";
             if (npcRow.isEmpty() && requestedNpcId != null) {
                 npcRow = npcRowsByNpcId.getOrDefault(requestedNpcId, Map.of());
+                if (!npcRow.isEmpty()) {
+                    resolutionStatus = "exact_game_id";
+                }
             }
 
-            Integer resolvedNpcId = firstNonNullInteger(requestedNpcId, toInteger(npcRow.get("npcId")));
-            Map<String, Object> supplement = resolvedNpcId == null
-                ? Map.of()
-                : npcSupplementMap.getOrDefault(String.valueOf(resolvedNpcId), Map.of());
+            if (npcRow.isEmpty() && displayName != null) {
+                List<Map<String, Object>> aliasMatches = dedupeNpcRows(npcRowsByDisplayName.getOrDefault(normalizeLookupKey(displayName), List.of()));
+                if (aliasMatches.size() == 1) {
+                    npcRow = aliasMatches.get(0);
+                    resolutionStatus = "alias_resolved";
+                } else if (aliasMatches.size() > 1) {
+                    unresolved.add(buildUnresolvedImmuneNpcSample(entry, "alias_ambiguous", aliasMatches));
+                    continue;
+                }
+            }
+
+            Integer resolvedNpcId = toInteger(npcRow.get("npcId"));
+            Long resolvedNpcDbId = toLong(npcRow.get("npcDbId"));
+            if (resolvedNpcId == null || resolvedNpcDbId == null) {
+                unresolved.add(buildUnresolvedImmuneNpcSample(entry, "unresolved", List.of()));
+                continue;
+            }
+
+            Map<String, Object> supplement = npcSupplementMap.getOrDefault(String.valueOf(resolvedNpcId), Map.of());
 
             String npcImage = firstNonBlank(
                 managedImageOrNull(trimToNull(supplement.get("imageUrl"))),
@@ -399,17 +432,19 @@ public class AdminBuffController {
             );
 
             Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("npcDbId", resolvedNpcDbId);
             payload.put("npcId", resolvedNpcId);
-            payload.put("internalName", firstNonBlank(requestedInternalName, trimToNull(npcRow.get("internalName"))));
-            payload.put("name", firstNonBlank(trimToNull(firstNonNull(entry, "name")), trimToNull(npcRow.get("name"))));
-            payload.put("nameZh", firstNonBlank(trimToNull(firstNonNull(entry, "nameZh")), trimToNull(npcRow.get("nameZh"))));
+            payload.put("internalName", firstNonBlank(trimToNull(npcRow.get("internalName")), requestedInternalName));
+            payload.put("name", firstNonBlank(trimToNull(npcRow.get("name")), requestedName));
+            payload.put("nameZh", firstNonBlank(trimToNull(npcRow.get("nameZh")), requestedNameZh));
             payload.put("subNameZh", firstNonBlank(trimToNull(firstNonNull(entry, "subNameZh")), trimToNull(npcRow.get("subNameZh"))));
             payload.put("image", image);
             payload.put("imageUrl", image);
-            enriched.add(payload);
+            payload.put("resolutionStatus", resolutionStatus);
+            resolved.add(payload);
         }
 
-        return enriched;
+        return new ImmuneNpcSampleResolution(resolved, unresolved);
     }
 
     private Integer countInflictingNpcs(Long buffId) {
@@ -742,6 +777,7 @@ public class AdminBuffController {
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
             """
             SELECT
+              id AS npcDbId,
               game_id AS npcId,
               internal_name AS internalName,
               name,
@@ -770,6 +806,7 @@ public class AdminBuffController {
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
             """
             SELECT
+              id AS npcDbId,
               game_id AS npcId,
               internal_name AS internalName,
               name,
@@ -788,6 +825,46 @@ public class AdminBuffController {
             Integer npcId = toInteger(row.get("npcId"));
             if (npcId != null) {
                 lookup.put(npcId, new LinkedHashMap<>(row));
+            }
+        }
+        return lookup;
+    }
+
+    private Map<String, List<Map<String, Object>>> loadNpcRowsByDisplayNames(Set<String> displayNames) {
+        if (displayNames == null || displayNames.isEmpty()) return Map.of();
+        List<String> normalizedNames = displayNames.stream()
+            .map(this::normalizeLookupKey)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+        if (normalizedNames.isEmpty()) return Map.of();
+
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            """
+            SELECT
+              id AS npcDbId,
+              game_id AS npcId,
+              internal_name AS internalName,
+              name,
+              name_zh AS nameZh,
+              sub_name_zh AS subNameZh,
+              banner_item_id AS bannerItemId,
+              catch_item_id AS catchItemId,
+              raw_json AS rawJson
+            FROM npcs
+            WHERE deleted = 0
+              AND (
+                LOWER(TRIM(name)) IN (%s)
+                OR LOWER(TRIM(name_zh)) IN (%s)
+              )
+            """.formatted(buildPlaceholders(normalizedNames.size()), buildPlaceholders(normalizedNames.size())),
+            concatArgs(normalizedNames, normalizedNames)
+        );
+
+        Map<String, List<Map<String, Object>>> lookup = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            for (String key : extractNpcLookupKeys(row)) {
+                lookup.computeIfAbsent(key, ignored -> new ArrayList<>()).add(new LinkedHashMap<>(row));
             }
         }
         return lookup;
@@ -837,6 +914,100 @@ public class AdminBuffController {
     private String extractNpcImageUrl(Object rawJson) {
         Map<?, ?> raw = parseMap(rawJson);
         return normalizeAssetUrl(trimToNull(firstNonNull(raw, "imageUrl", "image_url")));
+    }
+
+    private void collectNpcFallbackItemIds(Map<String, Object> npcRow, Set<Long> itemIds) {
+        if (npcRow == null || itemIds == null) return;
+        Long bannerItemId = toLong(npcRow.get("bannerItemId"));
+        Long catchItemId = toLong(npcRow.get("catchItemId"));
+        if (bannerItemId != null) itemIds.add(bannerItemId);
+        if (catchItemId != null) itemIds.add(catchItemId);
+    }
+
+    private List<Map<String, Object>> dedupeNpcRows(List<Map<String, Object>> rows) {
+        if (rows == null || rows.isEmpty()) return List.of();
+        Map<Long, Map<String, Object>> deduped = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            Long npcDbId = toLong(row.get("npcDbId"));
+            if (npcDbId != null) {
+                deduped.putIfAbsent(npcDbId, row);
+            }
+        }
+        List<Map<String, Object>> ordered = new ArrayList<>(deduped.values());
+        ordered.sort(Comparator
+            .comparing((Map<String, Object> row) -> {
+                Integer npcId = toInteger(row.get("npcId"));
+                return npcId == null || npcId <= 0 ? 1 : 0;
+            })
+            .thenComparing(row -> Objects.requireNonNullElse(toInteger(row.get("npcId")), Integer.MAX_VALUE))
+            .thenComparing(row -> Objects.requireNonNullElse(toLong(row.get("npcDbId")), Long.MAX_VALUE))
+        );
+        return ordered;
+    }
+
+    private Map<String, Object> buildUnresolvedImmuneNpcSample(
+        Map<String, Object> entry,
+        String resolutionStatus,
+        List<Map<String, Object>> matches
+    ) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("npcId", toInteger(firstNonNull(entry, "npcId", "sourceId", "source_id")));
+        payload.put("internalName", trimToNull(firstNonNull(entry, "internalName", "internal_name")));
+        payload.put("name", trimToNull(firstNonNull(entry, "name")));
+        payload.put("nameZh", trimToNull(firstNonNull(entry, "nameZh")));
+        payload.put("subNameZh", trimToNull(firstNonNull(entry, "subNameZh")));
+        payload.put("image", managedImageOrNull(trimToNull(firstNonNull(entry, "image", "imageUrl"))));
+        payload.put("imageUrl", managedImageOrNull(trimToNull(firstNonNull(entry, "image", "imageUrl"))));
+        payload.put("resolutionStatus", resolutionStatus);
+        payload.put("matchCount", matches == null ? 0 : matches.size());
+        if (matches != null && !matches.isEmpty()) {
+            payload.put("matchedNpcIds", matches.stream().map(row -> toInteger(row.get("npcId"))).filter(Objects::nonNull).toList());
+            payload.put("matchedNpcDbIds", matches.stream().map(row -> toLong(row.get("npcDbId"))).filter(Objects::nonNull).toList());
+            payload.put("matchedInternalNames", matches.stream().map(row -> trimToNull(row.get("internalName"))).filter(Objects::nonNull).toList());
+        }
+        return payload;
+    }
+
+    private List<String> extractNpcLookupKeys(Map<String, Object> npcRow) {
+        if (npcRow == null || npcRow.isEmpty()) return List.of();
+        Set<String> keys = new LinkedHashSet<>();
+        addNpcLookupKey(keys, trimToNull(npcRow.get("name")));
+        addNpcLookupKey(keys, trimToNull(npcRow.get("nameZh")));
+        Map<?, ?> rawJson = parseMap(npcRow.get("rawJson"));
+        addNpcLookupKey(keys, extractNestedText(rawJson, "localized", "en", "name"));
+        addNpcLookupKey(keys, extractNestedText(rawJson, "localized", "zh", "name"));
+        return new ArrayList<>(keys);
+    }
+
+    private void addNpcLookupKey(Set<String> keys, String value) {
+        String normalized = normalizeLookupKey(value);
+        if (normalized != null) {
+            keys.add(normalized);
+        }
+    }
+
+    private String normalizeLookupKey(String value) {
+        String text = trimToNull(value);
+        if (text == null) return null;
+        return text.toLowerCase(Locale.ROOT);
+    }
+
+    private String extractNestedText(Map<?, ?> source, String... path) {
+        Object current = source;
+        for (String segment : path) {
+            if (!(current instanceof Map<?, ?> currentMap) || !currentMap.containsKey(segment)) {
+                return null;
+            }
+            current = currentMap.get(segment);
+        }
+        return trimToNull(current);
+    }
+
+    private Object[] concatArgs(List<String> left, List<String> right) {
+        List<Object> args = new ArrayList<>(left.size() + right.size());
+        args.addAll(left);
+        args.addAll(right);
+        return args.toArray();
     }
 
     private String buildPlaceholders(int size) {
@@ -1154,5 +1325,11 @@ public class AdminBuffController {
             if (value != null && !value.isBlank()) return value;
         }
         return null;
+    }
+
+    private record ImmuneNpcSampleResolution(
+        List<Map<String, Object>> resolvedSamples,
+        List<Map<String, Object>> unresolvedSamples
+    ) {
     }
 }

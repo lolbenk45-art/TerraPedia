@@ -18,13 +18,16 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -89,7 +92,7 @@ class AdminBuffControllerTest {
     }
 
     @Test
-    void shouldReturnImmuneNpcSamplesWithNpcSpriteImage() throws Exception {
+    void shouldSuppressNonManagedNpcSpriteImagesInImmuneNpcSamples() throws Exception {
         Buff buff = new Buff();
         buff.setId(30L);
         buff.setInternalName("Poisoned");
@@ -102,6 +105,7 @@ class AdminBuffControllerTest {
             contains("FROM npcs"),
             eq("TestHornetStingy")
         )).thenReturn(List.of(Map.of(
+            "npcDbId", 9001L,
             "npcId", -650001,
             "internalName", "TestHornetStingy",
             "name", "Hornet",
@@ -114,6 +118,7 @@ class AdminBuffControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.immuneNpcSampleJson").value("[{\"internalName\":\"TestHornetStingy\",\"name\":\"Hornet\",\"npcId\":-650001}]"))
             .andExpect(jsonPath("$.data.immuneNpcSamples[0].npcId").value(-650001))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].npcDbId").value(9001))
             .andExpect(jsonPath("$.data.immuneNpcSamples[0].nameZh").value("Hornet ZH"))
             .andExpect(jsonPath("$.data.immuneNpcSamples[0].subNameZh").value("Large Stingy Hornet"))
             .andExpect(jsonPath("$.data.immuneNpcSamples[0].image").value(nullValue()))
@@ -134,6 +139,7 @@ class AdminBuffControllerTest {
             contains("FROM npcs"),
             eq(1001)
         )).thenReturn(List.of(Map.of(
+            "npcDbId", 1001L,
             "npcId", 1001,
             "internalName", "FallbackNpc",
             "name", "Fallback NPC",
@@ -142,6 +148,10 @@ class AdminBuffControllerTest {
             "bannerItemId", 88L,
             "rawJson", "{}"
         )));
+        lenient().when(jdbcTemplate.queryForList(
+            contains("LOWER(TRIM(name)) IN"),
+            any(Object[].class)
+        )).thenReturn(List.of());
         when(jdbcTemplate.queryForList(
             contains("FROM items"),
             eq(88L)
@@ -158,7 +168,7 @@ class AdminBuffControllerTest {
     }
 
     @Test
-    void shouldKeepRawJsonUntouchedAndAllowMissingNpcImage() throws Exception {
+    void shouldMoveUnresolvedImmuneNpcSamplesOutOfResolvedCards() throws Exception {
         Buff buff = new Buff();
         buff.setId(32L);
         buff.setInternalName("NoImageDebuff");
@@ -168,6 +178,10 @@ class AdminBuffControllerTest {
 
         when(buffMapper.selectById(32L)).thenReturn(buff);
         when(jdbcTemplate.queryForList(
+            contains("LOWER(TRIM(name)) IN"),
+            any(Object[].class)
+        )).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(
             contains("FROM npcs"),
             eq(1002)
         )).thenReturn(List.of());
@@ -175,9 +189,191 @@ class AdminBuffControllerTest {
         mockMvc.perform(get("/admin/buffs/32"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.immuneNpcSampleJson").value("[{\"npcId\":1002,\"name\":\"Unknown NPC\"}]"))
-            .andExpect(jsonPath("$.data.immuneNpcSamples[0].name").value("Unknown NPC"))
-            .andExpect(jsonPath("$.data.immuneNpcSamples[0].image").value(nullValue()))
-            .andExpect(jsonPath("$.data.immuneNpcSamples[0].imageUrl").value(nullValue()));
+            .andExpect(jsonPath("$.data.immuneNpcSamples", hasSize(0)))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples", hasSize(1)))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples[0].name").value("Unknown NPC"))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples[0].resolutionStatus").value("unresolved"));
+    }
+
+    @Test
+    void shouldResolveImmuneNpcAliasByDisplayName() throws Exception {
+        Buff buff = new Buff();
+        buff.setId(39L);
+        buff.setInternalName("CursedInferno");
+        buff.setEnglishName("Cursed Inferno");
+        buff.setImmuneNpcCount(1);
+        buff.setImmuneNpcSampleJson("[{\"internalName\":\"PirateSCurse\",\"name\":\"Pirate's Curse\"}]");
+
+        when(buffMapper.selectById(39L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(
+            contains("WHERE deleted = 0 AND internal_name IN"),
+            eq("PirateSCurse")
+        )).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(
+            contains("WHERE deleted = 0 AND game_id IN"),
+            eq(-1)
+        )).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(
+            contains("LOWER(TRIM(name)) IN"),
+            any(Object[].class)
+        )).thenReturn(List.of(Map.of(
+            "npcDbId", 662L,
+            "npcId", 662,
+            "internalName", "PirateGhost",
+            "name", "Pirate's Curse",
+            "nameZh", "Pirate Curse ZH",
+            "subNameZh", "Pirate Curse Variant",
+            "rawJson", "{}"
+        )));
+
+        mockMvc.perform(get("/admin/buffs/39"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.immuneNpcSampleJson").value("[{\"internalName\":\"PirateSCurse\",\"name\":\"Pirate's Curse\"}]"))
+            .andExpect(jsonPath("$.data.immuneNpcSamples", hasSize(1)))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].npcDbId").value(662))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].npcId").value(662))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].internalName").value("PirateGhost"))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].name").value("Pirate's Curse"))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].nameZh").value("Pirate Curse ZH"))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].resolutionStatus").value("alias_resolved"));
+    }
+
+    @Test
+    void shouldResolveCorruptMimicAliasToCanonicalNpc() throws Exception {
+        Buff buff = new Buff();
+        buff.setId(40L);
+        buff.setInternalName("OnFire");
+        buff.setEnglishName("On Fire!");
+        buff.setImmuneNpcCount(1);
+        buff.setImmuneNpcSampleJson("[{\"internalName\":\"CorruptMimic\",\"name\":\"Corrupt Mimic\"}]");
+
+        when(buffMapper.selectById(40L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(
+            contains("WHERE deleted = 0 AND internal_name IN"),
+            eq("CorruptMimic")
+        )).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(
+            contains("WHERE deleted = 0 AND game_id IN"),
+            eq(-1)
+        )).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(
+            contains("LOWER(TRIM(name)) IN"),
+            any(Object[].class)
+        )).thenReturn(List.of(Map.of(
+            "npcDbId", 473L,
+            "npcId", 473,
+            "internalName", "BigMimicCorruption",
+            "name", "Corrupt Mimic",
+            "nameZh", "Corrupt Mimic ZH",
+            "subNameZh", "Corrupt Mimic Variant",
+            "rawJson", "{}"
+        )));
+
+        mockMvc.perform(get("/admin/buffs/40"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.immuneNpcSamples", hasSize(1)))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].npcDbId").value(473))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].npcId").value(473))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].internalName").value("BigMimicCorruption"))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].resolutionStatus").value("alias_resolved"))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].nameZh").value("Corrupt Mimic ZH"));
+    }
+
+    @Test
+    void shouldExposeAmbiguousImmuneNpcAliasAsUnresolvedAuditEntry() throws Exception {
+        Buff buff = new Buff();
+        buff.setId(41L);
+        buff.setInternalName("Poisoned");
+        buff.setEnglishName("Poisoned");
+        buff.setImmuneNpcCount(1);
+        buff.setImmuneNpcSampleJson("[{\"internalName\":\"PhantasmDragon\",\"name\":\"Phantasm Dragon\"}]");
+
+        when(buffMapper.selectById(41L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(
+            contains("WHERE deleted = 0 AND internal_name IN"),
+            eq("PhantasmDragon")
+        )).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(
+            contains("WHERE deleted = 0 AND game_id IN"),
+            eq(-1)
+        )).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(
+            contains("LOWER(TRIM(name)) IN"),
+            any(Object[].class)
+        )).thenReturn(List.of(
+            npcAliasRow(454L, 454, "CultistDragonHead", "Phantasm Dragon"),
+            npcAliasRow(455L, 455, "CultistDragonBody1", "Phantasm Dragon"),
+            npcAliasRow(459L, 459, "CultistDragonTail", "Phantasm Dragon")
+        ));
+
+        mockMvc.perform(get("/admin/buffs/41"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.immuneNpcSamples", hasSize(0)))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples", hasSize(1)))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples[0].resolutionStatus").value("alias_ambiguous"))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples[0].matchCount").value(3));
+    }
+
+    @Test
+    void shouldKeepResolvedOrderAndSeparateUnresolvedImmuneNpcSamples() throws Exception {
+        Buff buff = new Buff();
+        buff.setId(42L);
+        buff.setInternalName("Poisoned");
+        buff.setEnglishName("Poisoned");
+        buff.setImmuneNpcCount(3);
+        buff.setImmuneNpcSampleJson("""
+            [
+              {"internalName":"PirateSCurse","name":"Pirate's Curse"},
+              {"internalName":"UnknownAlias","name":"Unknown NPC"},
+              {"npcId":1001,"name":"Fallback NPC"}
+            ]
+            """);
+
+        when(buffMapper.selectById(42L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(
+            contains("WHERE deleted = 0 AND internal_name IN"),
+            any(Object[].class)
+        )).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(
+            contains("WHERE deleted = 0 AND game_id IN"),
+            any(Object[].class)
+        )).thenReturn(List.of(Map.of(
+            "npcDbId", 1001L,
+            "npcId", 1001,
+            "internalName", "FallbackNpc",
+            "name", "Fallback NPC",
+            "nameZh", "Fallback NPC ZH",
+            "subNameZh", "Fallback Variant",
+            "bannerItemId", 88L,
+            "rawJson", "{}"
+        )));
+        when(jdbcTemplate.queryForList(
+            contains("LOWER(TRIM(name)) IN"),
+            any(Object[].class)
+        )).thenReturn(List.of(Map.of(
+            "npcDbId", 662L,
+            "npcId", 662,
+            "internalName", "PirateGhost",
+            "name", "Pirate's Curse",
+            "nameZh", "Pirate Curse ZH",
+            "subNameZh", "Pirate Curse Variant",
+            "rawJson", "{}"
+        )));
+        when(jdbcTemplate.queryForList(
+            contains("FROM items"),
+            eq(88L)
+        )).thenReturn(List.of(Map.of(
+            "id", 88L,
+            "image", "http://localhost:9000/terrapedia-images/items/fallback-banner.png"
+        )));
+
+        mockMvc.perform(get("/admin/buffs/42"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.immuneNpcSamples", hasSize(2)))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[0].internalName").value("PirateGhost"))
+            .andExpect(jsonPath("$.data.immuneNpcSamples[1].internalName").value("FallbackNpc"))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples", hasSize(1)))
+            .andExpect(jsonPath("$.data.unresolvedImmuneNpcSamples[0].internalName").value("UnknownAlias"));
     }
 
     @Test
@@ -429,5 +625,17 @@ class AdminBuffControllerTest {
         } catch (ReflectiveOperationException ignored) {
             // The red phase intentionally runs before the production field exists.
         }
+    }
+
+    private Map<String, Object> npcAliasRow(Long npcDbId, int npcId, String internalName, String name) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("npcDbId", npcDbId);
+        row.put("npcId", npcId);
+        row.put("internalName", internalName);
+        row.put("name", name);
+        row.put("nameZh", name + " ZH");
+        row.put("subNameZh", name + " Variant");
+        row.put("rawJson", "{}");
+        return row;
     }
 }
