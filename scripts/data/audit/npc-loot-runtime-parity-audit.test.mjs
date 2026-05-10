@@ -119,6 +119,20 @@ test('row identity parity does not require sourceFactKey in local or API rows', 
   assert.equal(status.status, 'trusted_direct_loot');
 });
 
+test('row identity parity treats Normal mode row as an implicit default condition', () => {
+  const relationRow = row({ npcInternalName: 'DefaultConditionNpc', itemInternalName: 'Gel', conditionText: '' });
+  const projectionRow = { ...relationRow, conditionText: 'Normal mode row' };
+  const report = buildNpcLootRuntimeParityReport({
+    relationRows: [relationRow],
+    projectionRows: [projectionRow],
+    localRows: [relationRow],
+    apiRows: [{ ...relationRow, runtimeMode: 'direct' }],
+  });
+
+  const status = report.rows.find((entry) => entry.npcInternalName === 'DefaultConditionNpc');
+  assert.equal(status.status, 'trusted_direct_loot');
+});
+
 test('buildNpcLootRuntimeParityReport blocks API rows with missing or unknown runtime provenance', () => {
   const missingModeRow = row({ npcInternalName: 'MissingModeNpc', itemInternalName: 'Gel', sourceFactKey: 'fact:missing-mode' });
   const unknownModeRow = row({ npcInternalName: 'UnknownModeNpc', itemInternalName: 'Hook', sourceFactKey: 'fact:unknown-mode' });

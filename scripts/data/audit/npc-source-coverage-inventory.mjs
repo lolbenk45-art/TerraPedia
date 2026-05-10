@@ -295,14 +295,14 @@ function classifySourceCoverage({
   if (isCoverageParseFailed(coverage)) {
     return 'source_page_present_parse_failed';
   }
+  if (hasExactNpcLootEvidence(npcInternalName, counts, standardizedLootCount)) {
+    return 'source_page_present_with_loot';
+  }
   if (isCoverageMissing(coverage)) {
     return 'source_page_missing';
   }
   if (!coverage && !groupCoverage) {
     return 'source_page_missing';
-  }
-  if (coverage && standardizedLootCount > 0) {
-    return 'source_page_present_with_loot';
   }
   if (coverage && counts.maintSourceCount > 0) {
     return 'source_page_present_with_loot';
@@ -320,6 +320,13 @@ function classifySourceCoverage({
     return 'source_page_present_no_loot';
   }
   return 'source_page_missing';
+}
+
+function hasExactNpcLootEvidence(npcInternalName, counts, standardizedLootCount) {
+  if (standardizedLootCount > 0) return true;
+  if (counts.relationLootCount > 0 || counts.projectionLootCount > 0 || counts.localLootCount > 0) return true;
+  const normalizedNpcInternalName = normalizeKey(npcInternalName);
+  return counts.maintSourceRows.some((row) => normalizeKey(row.sourceRefInternalName) === normalizedNpcInternalName);
 }
 
 function buildCoverageIndex(payload) {

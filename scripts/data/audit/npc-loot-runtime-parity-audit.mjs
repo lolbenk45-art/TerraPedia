@@ -440,7 +440,7 @@ function normalizeRow(row, stage) {
     itemInternalName: normalizeText(row.itemInternalName ?? row.item_internal_name ?? row.internalName ?? row.internal_name),
     quantityText: normalizeText(row.quantityText ?? row.quantity_text),
     chanceText: normalizeText(row.chanceText ?? row.chance_text),
-    conditionText: normalizeText(row.conditionText ?? row.condition_text ?? row.conditions),
+    conditionText: normalizeConditionText(row.conditionText ?? row.condition_text ?? row.conditions),
     sourceFactKey: normalizeText(row.sourceFactKey ?? row.source_fact_key),
     relationRecordKey: normalizeText(row.relationRecordKey ?? row.recordKey ?? row.record_key),
     localEntryId: row.localEntryId ?? row.local_entry_id ?? row.id ?? null,
@@ -476,6 +476,11 @@ function identityKey(row) {
     row.chanceText || '',
     row.conditionText || '',
   ]);
+}
+
+function normalizeConditionText(value) {
+  const normalized = normalizeText(value);
+  return normalized === 'Normal mode row' ? '' : normalized;
 }
 
 function keysForRows(rows) {

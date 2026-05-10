@@ -293,3 +293,100 @@ test('runNpcSourceCoverageInventory attaches maint source rows by raw canonical 
   assert.equal(result.report.npcs[0].maintSourceRows[0].sourceRefName, 'Mimics');
   assert.equal(result.report.npcs[0].maintSourceRows[0].sourceRefInternalName, 'BigMimicCrimson');
 });
+
+test('buildNpcSourceCoverageInventoryReport trusts exact stage loot evidence over stale missing coverage', () => {
+  const report = buildNpcSourceCoverageInventoryReport({
+    standardizedPayload: {
+      records: [{ id: 473, internalName: 'BigMimicCrimson', name: 'Crimson Mimic', flags: {} }]
+    },
+    coverageAudit: {
+      targets: [{
+        pageTitle: 'Crimson Mimic',
+        resolvedPageTitle: null,
+        missing: true,
+        resolutionStatus: 'missing',
+        alreadyCrawled: false,
+        standardizedRecords: [{ internalName: 'BigMimicCrimson' }]
+      }]
+    },
+    coverageTargets: {
+      targets: [{
+        pageTitle: 'Mimics',
+        resolvedPageTitle: 'Mimics',
+        missing: false,
+        alreadyCrawled: true,
+        standardizedRecords: [{ internalName: 'Mimic' }, { internalName: 'BigMimicCrimson' }]
+      }]
+    },
+    standardizedMap: { records: [{ internalName: 'BigMimicCrimson', gameId: 473 }] },
+    stageCounts: new Map([[
+      'BigMimicCrimson',
+      {
+        maintSourceCount: 8,
+        relationLootCount: 8,
+        projectionLootCount: 8,
+        localLootCount: 8,
+        maintSourceRows: [{
+          recordKey: 'maint-crimson-mimic-life-drain',
+          itemInternalName: 'LifeDrain',
+          itemName: 'Life Drain',
+          sourceType: 'drop',
+          sourceRefType: 'npc',
+          sourceRefName: 'Mimics',
+          sourceRefInternalName: 'BigMimicCrimson',
+          sourceRefResolution: 'section_internal_name',
+          chanceText: '20%',
+          quantityText: '1',
+          conditions: null
+        }]
+      }
+    ]])
+  });
+
+  assert.equal(report.npcs[0].sourceCoverageStatus, 'source_page_present_with_loot');
+  assert.equal(report.npcs[0].nextAction, 'verify_relation_projection_local_counts');
+});
+
+test('buildNpcSourceCoverageInventoryReport does not trust maint rows for another NPC as exact coverage evidence', () => {
+  const report = buildNpcSourceCoverageInventoryReport({
+    standardizedPayload: {
+      records: [{ id: 473, internalName: 'BigMimicCrimson', name: 'Crimson Mimic', flags: {} }]
+    },
+    coverageAudit: {
+      targets: [{
+        pageTitle: 'Crimson Mimic',
+        resolvedPageTitle: null,
+        missing: true,
+        resolutionStatus: 'missing',
+        alreadyCrawled: false,
+        standardizedRecords: [{ internalName: 'BigMimicCrimson' }]
+      }]
+    },
+    coverageTargets: {},
+    standardizedMap: { records: [{ internalName: 'BigMimicCrimson', gameId: 473 }] },
+    stageCounts: new Map([[
+      'BigMimicCrimson',
+      {
+        maintSourceCount: 1,
+        relationLootCount: 0,
+        projectionLootCount: 0,
+        localLootCount: 0,
+        maintSourceRows: [{
+          recordKey: 'wrong-npc-row',
+          itemInternalName: 'LifeDrain',
+          itemName: 'Life Drain',
+          sourceType: 'drop',
+          sourceRefType: 'npc',
+          sourceRefName: 'Corrupt Mimic',
+          sourceRefInternalName: 'BigMimicCorruption',
+          sourceRefResolution: 'section_internal_name',
+          chanceText: '20%',
+          quantityText: '1',
+          conditions: null
+        }]
+      }
+    ]])
+  });
+
+  assert.equal(report.npcs[0].sourceCoverageStatus, 'source_page_missing');
+});
