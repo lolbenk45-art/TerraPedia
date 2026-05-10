@@ -78,6 +78,19 @@ const BLOCKING_SOURCE_STATUSES = new Set([
   'duplicate_source_identity',
 ]);
 
+const ALLOWED_NON_NPC_EXCLUSION_REASONS = new Set([
+  'chest_container',
+  'crate_container',
+  'treasure_bag_container',
+  'present_container',
+  'tree_source',
+  'bag_container',
+  'lock_box_container',
+  'heart_or_orb_source',
+  'mode_or_bonus_bucket',
+  'non_npc_item_source_entity',
+]);
+
 export function parseArgs(argv = process.argv.slice(2)) {
   const raw = {};
   for (const token of argv) {
@@ -112,7 +125,7 @@ export function computeRowIdentityHash(row = {}) {
     .digest('hex');
 }
 
-export function classifySourceRows(sourceRows = []) {
+export function classifySourceRows(sourceRows = [], options = {}) {
   const preparedRows = sourceRows.map((row, index) => {
     const sourceRefInternalName = normalizeText(row.sourceRefInternalName ?? row.source_ref_internal_name);
     const itemInternalName = normalizeText(row.itemInternalName ?? row.item_internal_name);
@@ -137,7 +150,7 @@ export function classifySourceRows(sourceRows = []) {
   }
 
   return preparedRows.map((row) => {
-    const status = classifySourceRow(row, identityCounts.get(row.rowIdentityHash) ?? 0);
+    const status = classifySourceRow(row, identityCounts.get(row.rowIdentityHash) ?? 0, options);
     return {
       ...row,
       sourceRowStatus: status.sourceRowStatus,
@@ -151,9 +164,12 @@ export function classifySourceRows(sourceRows = []) {
 export function buildNpcDomainLootChainReport(input = {}) {
   const options = sanitizeOptions(input.options ?? {});
   const activeNpcs = (Array.isArray(input.npcs) ? input.npcs : []).filter(isActiveNpc);
-  const sourceRows = classifySourceRows(input.sourceRows ?? []);
   const expectedZeroValidation = validateExpectedZeroRules(input.expectedZeroRules);
   const inheritanceValidation = validateInheritanceRules(input.inheritanceRules);
+  const reviewedNonNpcExclusionValidation = validateReviewedNonNpcSourceExclusions(input.reviewedNonNpcSourceExclusions);
+  const sourceRows = classifySourceRows(input.sourceRows ?? [], {
+    reviewedNonNpcSourceExclusions: reviewedNonNpcExclusionValidation.validRows,
+  });
   const sourceCoverage = normalizeSourceCoverage(input.sourceGaps, input.sourceCoverageRows);
   const expectedZeroByNpc = keyBy(expectedZeroValidation.validRows, (row) => row.npcInternalName ?? row.npc_internal_name);
   const inheritanceByNpc = keyBy(inheritanceValidation.validRows, (row) => row.targetNpcInternalName ?? row.target_npc_internal_name);
@@ -215,6 +231,13 @@ export function buildNpcDomainLootChainReport(input = {}) {
       status: 'invalid_contract_row',
       reason: row.invalidReason,
     })),
+    ...reviewedNonNpcExclusionValidation.invalidRows.map((row) => ({
+      type: 'contract_row',
+      contract: 'reviewed_non_npc_source_exclusion',
+      sourceRefName: row.sourceRefName ?? row.source_ref_name ?? null,
+      status: 'invalid_contract_row',
+      reason: row.invalidReason,
+    })),
     ...chainGaps.map((row) => ({
       type: 'npc_status',
       npcInternalName: row.npcInternalName,
@@ -248,8 +271,10 @@ export function buildNpcDomainLootChainReport(input = {}) {
       ...input,
       expectedZeroRules: expectedZeroValidation.validRows,
       inheritanceRules: inheritanceValidation.validRows,
+      reviewedNonNpcSourceExclusions: reviewedNonNpcExclusionValidation.validRows,
       invalidExpectedZeroRules: expectedZeroValidation.invalidRows,
       invalidInheritanceRules: inheritanceValidation.invalidRows,
+      invalidReviewedNonNpcSourceExclusions: reviewedNonNpcExclusionValidation.invalidRows,
     }),
     options,
   };
@@ -320,6 +345,7 @@ export async function runNpcDomainLootChainAudit(options = {}, dependencies = {}
       pollutionRows,
       expectedZeroRules: contracts.expectedZeroRules,
       inheritanceRules: contracts.inheritanceRules,
+      reviewedNonNpcSourceExclusions: contracts.reviewedNonNpcSourceExclusions,
       contractFiles: contracts.contractFiles,
       options: normalized,
     });
@@ -336,7 +362,7 @@ export async function runNpcDomainLootChainAudit(options = {}, dependencies = {}
   }
 }
 
-function classifySourceRow(row, identityCount) {
+function classifySourceRow(row, identityCount, options = {}) {
   if (identityCount > 1) {
     return {
       sourceRowStatus: 'duplicate_source_identity',
@@ -350,7 +376,17 @@ function classifySourceRow(row, identityCount) {
       statusReason: 'positive_id_fallback_has_multiple_variant_candidates',
     };
   }
-  const taxonomy = classifyNpcLootSource(row);
+  const taxonomy = classifyNpcLootSource(row, {
+    sourceType: row.sourceType,
+    sourceRefType: row.sourceRefType,
+    reviewedNonNpcSourceExclusions: options.reviewedNonNpcSourceExclusions,
+  });
+  if (taxonomy.status === 'reviewed_non_npc_source_exclusion') {
+    return {
+      sourceRowStatus: 'reviewed_non_npc_source_exclusion',
+      statusReason: taxonomy.reason,
+    };
+  }
   if (taxonomy.status === 'generic_bucket') {
     return {
       sourceRowStatus: 'blocked_generic_bucket',
@@ -487,6 +523,7 @@ function buildSummary({ npcStatuses, sourceRows, releaseBlockers }) {
     blockedGenericBucket: sourceStatusCounts.blocked_generic_bucket ?? 0,
     blockedAmbiguousVariant: sourceStatusCounts.blocked_ambiguous_variant ?? 0,
     blockedNonNpcSource: sourceStatusCounts.blocked_non_npc_source ?? 0,
+    reviewedNonNpcExclusion: sourceStatusCounts.reviewed_non_npc_source_exclusion ?? 0,
     blockedNonNpcSourcePromoted: 0,
     blockedMissingItemOrNpcIdentity: sourceStatusCounts.blocked_missing_item_or_npc_identity ?? 0,
     relationGap: statusCounts.relation_gap,
@@ -540,6 +577,7 @@ function emptySummary() {
     blockedGenericBucket: 0,
     blockedAmbiguousVariant: 0,
     blockedNonNpcSource: 0,
+    reviewedNonNpcExclusion: 0,
     blockedNonNpcSourcePromoted: 0,
     blockedMissingItemOrNpcIdentity: 0,
     relationGap: 0,
@@ -676,16 +714,20 @@ async function loadPollutionRows(connection, options) {
 async function loadContracts(options) {
   const expectedZeroPath = path.join(repoRoot, 'docs', 'contracts', 'npc-domain-expected-zero-contract.md');
   const inheritancePath = path.join(repoRoot, 'docs', 'contracts', 'npc-domain-loot-inheritance-contract.md');
-  const [expectedZero, inheritance] = await Promise.all([
+  const reviewedNonNpcPath = path.join(repoRoot, 'docs', 'contracts', 'npc-domain-non-npc-source-exclusion-contract.md');
+  const [expectedZero, inheritance, reviewedNonNpc] = await Promise.all([
     readContractRows(expectedZeroPath, 'expected_zero'),
     readContractRows(inheritancePath, 'inheritance'),
+    readContractRows(reviewedNonNpcPath, 'reviewed_non_npc_source_exclusion'),
   ]);
   return {
     expectedZeroRules: expectedZero.rows,
     inheritanceRules: inheritance.rows,
+    reviewedNonNpcSourceExclusions: reviewedNonNpc.rows,
     contractFiles: [
       { path: expectedZeroPath, status: expectedZero.status },
       { path: inheritancePath, status: inheritance.status },
+      { path: reviewedNonNpcPath, status: reviewedNonNpc.status },
     ],
     options,
   };
@@ -705,7 +747,11 @@ function parseMarkdownTableRows(text, kind) {
   const rows = [];
   const lines = String(text ?? '').split(/\r?\n/).filter((line) => line.trim().startsWith('|'));
   let headers = null;
-  const requiredHeader = kind === 'inheritance' ? 'targetNpcInternalName' : 'npcInternalName';
+  const requiredHeader = kind === 'inheritance'
+    ? 'targetNpcInternalName'
+    : kind === 'reviewed_non_npc_source_exclusion'
+      ? 'sourceRefName'
+      : 'npcInternalName';
   for (const line of lines) {
     const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
     if (cells.length === 0 || cells.every((cell) => /^:?-{3,}:?$/.test(cell))) continue;
@@ -724,7 +770,19 @@ function parseMarkdownTableRows(text, kind) {
           reviewedBy: row.reviewedBy,
           reviewedAt: row.reviewedAt,
         }
-      : {
+      : kind === 'reviewed_non_npc_source_exclusion'
+        ? {
+            sourceType: row.sourceType,
+            sourceRefType: row.sourceRefType,
+            matchType: row.matchType,
+            sourceRefName: row.sourceRefName,
+            reason: row.reason,
+            evidenceSource: row.evidenceSource,
+            reviewedBy: row.reviewedBy,
+            reviewedAt: row.reviewedAt,
+            notes: row.notes,
+          }
+        : {
           npcInternalName: row.npcInternalName,
           reason: row.reason,
           evidenceSource: row.evidenceSource,
@@ -733,7 +791,7 @@ function parseMarkdownTableRows(text, kind) {
         });
   }
   return rows.filter((row) => {
-    const key = normalizeText(row.npcInternalName ?? row.targetNpcInternalName);
+    const key = normalizeText(row.npcInternalName ?? row.targetNpcInternalName ?? row.sourceRefName);
     return key && key !== '_none yet_';
   });
 }
@@ -799,6 +857,29 @@ function validateInheritanceRules(rows = []) {
     if (!targetNpcInternalName) return 'missing_target_npc_internal_name';
     if (!sourceNpcInternalName) return 'missing_source_npc_internal_name';
     if (!inheritanceKind || !ALLOWED_INHERITANCE_KINDS.has(inheritanceKind)) return 'invalid_inheritance_kind';
+    if (!evidenceSource) return 'missing_evidence_source';
+    if (!reviewedBy) return 'missing_reviewed_by';
+    if (!isIsoDate(reviewedAt)) return 'invalid_reviewed_at';
+    return null;
+  });
+}
+
+function validateReviewedNonNpcSourceExclusions(rows = []) {
+  return validateContractRows(rows, (row) => {
+    const sourceType = normalizeText(row.sourceType ?? row.source_type);
+    const sourceRefType = normalizeText(row.sourceRefType ?? row.source_ref_type);
+    const matchType = normalizeText(row.matchType ?? row.match_type);
+    const sourceRefName = normalizeText(row.sourceRefName ?? row.source_ref_name);
+    const reason = normalizeText(row.reason);
+    const evidenceSource = normalizeText(row.evidenceSource ?? row.evidence_source);
+    const reviewedBy = normalizeText(row.reviewedBy ?? row.reviewed_by);
+    const reviewedAt = normalizeText(row.reviewedAt ?? row.reviewed_at);
+    if (sourceType !== 'drop') return 'invalid_source_type';
+    if (sourceRefType !== 'npc') return 'invalid_source_ref_type';
+    if (!['exact', 'regex'].includes(matchType)) return 'invalid_match_type';
+    if (!sourceRefName) return 'missing_source_ref_name';
+    if (matchType === 'regex' && (!sourceRefName.startsWith('^') || !sourceRefName.endsWith('$'))) return 'unanchored_regex';
+    if (!reason || !ALLOWED_NON_NPC_EXCLUSION_REASONS.has(reason)) return 'invalid_non_npc_exclusion_reason';
     if (!evidenceSource) return 'missing_evidence_source';
     if (!reviewedBy) return 'missing_reviewed_by';
     if (!isIsoDate(reviewedAt)) return 'invalid_reviewed_at';
@@ -972,6 +1053,8 @@ function buildContractHealth(input) {
     missing: files.filter((file) => file.status === 'missing').map((file) => file.path),
     expectedZeroRules: Array.isArray(input.expectedZeroRules) ? input.expectedZeroRules.length : 0,
     inheritanceRules: Array.isArray(input.inheritanceRules) ? input.inheritanceRules.length : 0,
+    reviewedNonNpcSourceExclusions: Array.isArray(input.reviewedNonNpcSourceExclusions) ? input.reviewedNonNpcSourceExclusions.length : 0,
+    invalidReviewedNonNpcSourceExclusions: input.invalidReviewedNonNpcSourceExclusions ?? [],
   };
 }
 

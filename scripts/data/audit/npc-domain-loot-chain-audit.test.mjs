@@ -341,6 +341,59 @@ test('classifies source rows and stable duplicate identities', () => {
   );
 });
 
+test('reviewed non-NPC source exclusions are reported separately and never materialized', () => {
+  const report = buildNpcDomainLootChainReport({
+    npcs: [{ internalName: 'ChestLikeNpc', npcType: 'enemy' }],
+    sourceRows: [{
+      itemInternalName: 'GoldCoin',
+      sourceRefName: 'Gold Chest',
+      sourceRefType: 'npc',
+      sourceType: 'drop',
+      sourceRefInternalName: 'ChestLikeNpc',
+      sourceRefResolution: 'exact_internal_name',
+    }],
+    reviewedNonNpcSourceExclusions: [{
+      sourceType: 'drop',
+      sourceRefType: 'npc',
+      matchType: 'exact',
+      sourceRefName: 'Gold Chest',
+      reason: 'chest_container',
+      evidenceSource: 'wiki:Gold Chest',
+      reviewedBy: 'codex',
+      reviewedAt: '2026-05-10',
+    }],
+    options: { requireApiEvidence: false },
+  });
+
+  assert.equal(report.summary.reviewedNonNpcExclusion, 1);
+  assert.equal(report.summary.blockedNonNpcSource, 0);
+  assert.equal(report.summary.blockedNonNpcSourcePromoted, 0);
+  assert.equal(report.blockedRows.length, 0);
+  assert.equal(report.sourceRows[0].sourceRowStatus, 'reviewed_non_npc_source_exclusion');
+  assert.equal(report.sourceRows[0].materializable, false);
+  assert.equal(report.releaseBlockers.some((row) => row.type === 'source_row' && row.sourceRefName === 'Gold Chest'), false);
+});
+
+test('invalid reviewed non-NPC source exclusion rows block contract health', () => {
+  const report = buildNpcDomainLootChainReport({
+    npcs: [{ internalName: 'ZeroNpc', npcType: 'enemy' }],
+    reviewedNonNpcSourceExclusions: [{
+      sourceType: 'drop',
+      sourceRefType: 'npc',
+      matchType: 'regex',
+      sourceRefName: 'Crate',
+      reason: 'crate_container',
+      evidenceSource: 'wiki:Crates',
+      reviewedBy: 'codex',
+      reviewedAt: '2026-05-10',
+    }],
+    options: { requireApiEvidence: false },
+  });
+
+  assert.equal(report.contractHealth.invalidReviewedNonNpcSourceExclusions.length, 1);
+  assert.equal(report.releaseBlockers.some((row) => row.type === 'contract_row' && row.contract === 'reviewed_non_npc_source_exclusion'), true);
+});
+
 test('report exposes required output shape and release blockers', () => {
   const report = buildNpcDomainLootChainReport({
     npcs: [{ internalName: 'UnknownNpc' }],

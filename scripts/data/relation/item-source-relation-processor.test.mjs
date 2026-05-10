@@ -145,6 +145,50 @@ test('buildItemSourceRelations respects upstream resolved internal-name metadata
   assert.equal(detail.sourceRefResolution, 'resolved');
 });
 
+test('buildItemSourceRelations keeps reviewed non-NPC exclusions out of loot relations', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 14,
+        record_key: 'e'.repeat(64),
+        item_internal_name: 'GoldCoin',
+        item_name: 'Gold Coin',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Gold Chest',
+        sort_order: 0,
+        raw_json: JSON.stringify({
+          sourceRefName: 'Gold Chest',
+          sourceRefInternalName: 'GoldChestNpcLikeName',
+          sourceRefResolution: 'exact_internal_name',
+          quantityText: '1',
+          chanceText: '100%'
+        }),
+        landing_source_id: 51,
+        landing_source_key: 'generated.item_relations_bundle:chunk:0001',
+        landing_content_hash: 'f'.repeat(64),
+        source_provider: 'wiki_gg',
+        source_page: 'Gold Coin'
+      }
+    ],
+    npcIndex: new Map([['Gold Chest', { source_id: 999, internal_name: 'GoldChestNpcLikeName', name: 'Gold Chest' }]]),
+    reviewedNonNpcSourceExclusions: [{
+      sourceType: 'drop',
+      sourceRefType: 'npc',
+      matchType: 'exact',
+      sourceRefName: 'Gold Chest',
+      reason: 'chest_container'
+    }]
+  });
+
+  assert.equal(actual.npcLootRelations.length, 0);
+  assert.equal(actual.sourceDetails[0].sourceRefInternalName, 'GoldChestNpcLikeName');
+  assert.equal(actual.sourceDetails[0].sourceRefResolution, 'exact_internal_name');
+  assert.equal(actual.itemNpcRelationAudits.length, 1);
+  assert.equal(actual.itemNpcRelationAudits[0].auditStatus, 'blocked');
+  assert.equal(actual.itemNpcRelationAudits[0].reasonCode, 'chest_container');
+});
+
 test('buildItemSourceRelations promotes exact internal-name npc metadata to formal loot relations', () => {
   const actual = buildItemSourceRelations({
     itemSourceRows: [

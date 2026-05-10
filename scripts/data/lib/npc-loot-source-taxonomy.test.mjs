@@ -145,6 +145,68 @@ test('classifyNpcLootSource reclassifies pseudo-source rows as non-NPC before mi
   }
 });
 
+test('classifyNpcLootSource applies reviewed non-NPC source exclusions without materializing rows', () => {
+  const actual = classifyNpcLootSource(
+    {
+      itemInternalName: 'GoldCoin',
+      sourceRefName: 'Gold Chest',
+      sourceRefInternalName: 'GoldChestNpcLikeName',
+      sourceRefResolution: 'exact_internal_name',
+    },
+    {
+      reviewedNonNpcSourceExclusions: [{
+        sourceType: 'drop',
+        sourceRefType: 'npc',
+        matchType: 'exact',
+        sourceRefName: 'Gold Chest',
+        reason: 'chest_container',
+      }],
+      sourceType: 'drop',
+      sourceRefType: 'npc',
+    }
+  );
+
+  assert.equal(actual.status, 'reviewed_non_npc_source_exclusion');
+  assert.equal(actual.materializable, false);
+  assert.equal(actual.targetNpcInternalName, null);
+  assert.equal(actual.reason, 'chest_container');
+  assert.equal(actual.sourceRefResolution, 'reviewed_non_npc_source_exclusion');
+});
+
+test('classifyNpcLootSource requires anchored reviewed regex exclusions', () => {
+  const matched = classifyNpcLootSource(
+    { itemInternalName: 'AnyItem', sourceRefName: 'Treasure Bag (Moon Lord)' },
+    {
+      reviewedNonNpcSourceExclusions: [{
+        sourceType: 'drop',
+        sourceRefType: 'npc',
+        matchType: 'regex',
+        sourceRefName: '^Treasure Bag \\(.+\\)$',
+        reason: 'treasure_bag_container',
+      }],
+      sourceType: 'drop',
+      sourceRefType: 'npc',
+    }
+  );
+  const ignored = classifyNpcLootSource(
+    { itemInternalName: 'AnyItem', sourceRefName: 'Treasure Bag (Moon Lord)' },
+    {
+      reviewedNonNpcSourceExclusions: [{
+        sourceType: 'drop',
+        sourceRefType: 'npc',
+        matchType: 'regex',
+        sourceRefName: 'Treasure Bag',
+        reason: 'treasure_bag_container',
+      }],
+      sourceType: 'drop',
+      sourceRefType: 'npc',
+    }
+  );
+
+  assert.equal(matched.status, 'reviewed_non_npc_source_exclusion');
+  assert.equal(ignored.status, 'non_npc_source_misclassified');
+});
+
 test('classifyNpcLootSource preserves explicit controls', () => {
   assert.equal(classifyNpcLootSource({
     itemInternalName: 'IceBlade',

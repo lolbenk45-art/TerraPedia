@@ -552,16 +552,33 @@ function findNpcCandidateByInternalName(npcIndex, internalName) {
   return null;
 }
 
-function applyNpcLootTaxonomy({ row = {}, raw = {}, sourceType, sourceRefType, npcResolution, npcIndex = new Map() }) {
+function applyNpcLootTaxonomy({
+  row = {},
+  raw = {},
+  sourceType,
+  sourceRefType,
+  npcResolution,
+  npcIndex = new Map(),
+  reviewedNonNpcSourceExclusions = [],
+}) {
   if (sourceType !== 'drop' || sourceRefType !== 'npc') return npcResolution;
 
-  const classification = classifyNpcLootSource({
-    itemInternalName: row.item_internal_name,
-    itemName: row.item_name,
-    sourceRefName: row.source_ref_name ?? raw.sourceRefName,
-    sourceRefInternalName: npcResolution?.npcInternalName ?? raw.sourceRefInternalName ?? raw.source_ref_internal_name,
-    sourceRefResolution: npcResolution?.sourceRefResolution ?? raw.sourceRefResolution ?? raw.source_ref_resolution,
-  });
+  const classification = classifyNpcLootSource(
+    {
+      itemInternalName: row.item_internal_name,
+      itemName: row.item_name,
+      sourceType,
+      sourceRefType,
+      sourceRefName: row.source_ref_name ?? raw.sourceRefName,
+      sourceRefInternalName: npcResolution?.npcInternalName ?? raw.sourceRefInternalName ?? raw.source_ref_internal_name,
+      sourceRefResolution: npcResolution?.sourceRefResolution ?? raw.sourceRefResolution ?? raw.source_ref_resolution,
+    },
+    {
+      sourceType,
+      sourceRefType,
+      reviewedNonNpcSourceExclusions,
+    }
+  );
 
   if (classification.status === 'accepted' && classification.targetNpcInternalName === 'Mimic') {
     const mimicCandidate = findNpcCandidateByInternalName(npcIndex, 'Mimic');
@@ -719,7 +736,12 @@ export function resolveNpcRef(row = {}, npcIndex = new Map()) {
   };
 }
 
-export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new Map(), itemIndex = new Map() } = {}) {
+export function buildItemSourceRelations({
+  itemSourceRows = [],
+  npcIndex = new Map(),
+  itemIndex = new Map(),
+  reviewedNonNpcSourceExclusions = [],
+} = {}) {
   const sourceFacts = [];
   const sourceDetails = [];
   const npcShopRelationRows = [];
@@ -761,7 +783,8 @@ export function buildItemSourceRelations({ itemSourceRows = [], npcIndex = new M
             sourceType,
             sourceRefType,
             npcResolution: resolveNpcRef({ ...row, raw_json: raw }, npcIndex),
-            npcIndex
+            npcIndex,
+            reviewedNonNpcSourceExclusions,
           })
         : null;
 

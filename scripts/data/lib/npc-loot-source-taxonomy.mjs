@@ -64,12 +64,29 @@ const NON_NPC_PATTERNS = Object.freeze([
   /\bbag\b/i,
 ]);
 
-export function classifyNpcLootSource(input = {}) {
+export function classifyNpcLootSource(input = {}, options = {}) {
   const itemInternalName = normalizeText(input.itemInternalName ?? input.item_internal_name);
   const sourceRefName = normalizeText(input.sourceRefName ?? input.source_ref_name);
   const sourceRefInternalName = normalizeText(input.sourceRefInternalName ?? input.source_ref_internal_name);
   const sourceRefResolution = normalizeText(input.sourceRefResolution ?? input.source_ref_resolution);
+  const sourceType = normalizeText(options.sourceType ?? input.sourceType ?? input.source_type)?.toLowerCase();
+  const sourceRefType = normalizeText(options.sourceRefType ?? input.sourceRefType ?? input.source_ref_type)?.toLowerCase();
   const sourceKey = sourceRefName?.toLowerCase() ?? '';
+  const reviewedExclusion = findReviewedNonNpcSourceExclusion({
+    sourceType,
+    sourceRefType,
+    sourceRefName,
+  }, options.reviewedNonNpcSourceExclusions);
+
+  if (reviewedExclusion) {
+    return buildResult(
+      'reviewed_non_npc_source_exclusion',
+      false,
+      null,
+      reviewedExclusion.reason,
+      'reviewed_non_npc_source_exclusion'
+    );
+  }
 
   if (isNonNpcSource(sourceRefName)) {
     return buildResult('non_npc_source_misclassified', false, null, 'source_ref_is_not_npc');
@@ -146,6 +163,35 @@ function buildResult(status, materializable, targetNpcInternalName, reason, sour
     reason,
     sourceRefResolution,
   };
+}
+
+function findReviewedNonNpcSourceExclusion(row, exclusions = []) {
+  if (!Array.isArray(exclusions)) return null;
+  const sourceRefName = normalizeText(row.sourceRefName);
+  if (!sourceRefName) return null;
+  const sourceType = normalizeText(row.sourceType)?.toLowerCase();
+  const sourceRefType = normalizeText(row.sourceRefType)?.toLowerCase();
+  for (const exclusion of exclusions) {
+    if (normalizeText(exclusion.sourceType)?.toLowerCase() !== sourceType) continue;
+    if (normalizeText(exclusion.sourceRefType)?.toLowerCase() !== sourceRefType) continue;
+    if (!reviewedExclusionMatches(sourceRefName, exclusion)) continue;
+    return exclusion;
+  }
+  return null;
+}
+
+function reviewedExclusionMatches(sourceRefName, exclusion) {
+  const matchType = normalizeText(exclusion.matchType ?? exclusion.match_type);
+  const pattern = normalizeText(exclusion.sourceRefName ?? exclusion.source_ref_name);
+  if (!matchType || !pattern) return false;
+  if (matchType === 'exact') return sourceRefName.toLowerCase() === pattern.toLowerCase();
+  if (matchType !== 'regex') return false;
+  if (!pattern.startsWith('^') || !pattern.endsWith('$')) return false;
+  try {
+    return new RegExp(pattern, 'i').test(sourceRefName);
+  } catch {
+    return false;
+  }
 }
 
 function normalizeText(value) {
