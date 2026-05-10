@@ -345,6 +345,17 @@ test('report exposes required output shape and release blockers', () => {
   const report = buildNpcDomainLootChainReport({
     npcs: [{ internalName: 'UnknownNpc' }],
     sourceRows: [{ itemInternalName: 'Coin', sourceRefName: 'Gold Chest' }],
+    sourceCoverageRows: [{
+      npcInternalName: 'UnknownNpc',
+      sourceCoverageStatus: 'source_page_present_with_loot',
+      maintSourceCount: 1,
+      maintSourceRows: [{
+        recordKey: 'maint-unknown-coin',
+        itemInternalName: 'Coin',
+        sourceRefName: 'UnknownNpc',
+        sourceRefInternalName: 'UnknownNpc'
+      }]
+    }],
     options: { dateTag: '2026-05-10-test' },
   });
 
@@ -368,6 +379,13 @@ test('report exposes required output shape and release blockers', () => {
   assert.equal(report.summary.blockedNonNpcSource, 1);
   assert.equal(report.releaseBlockers.length > 0, true);
   assert.equal(Object.hasOwn(report.npcStatuses[0], 'rowIdentityHash'), true);
+  assert.equal(report.npcStatuses[0].maintSourceCount, 1);
+  assert.deepEqual(report.npcStatuses[0].maintSourceRows, [{
+    recordKey: 'maint-unknown-coin',
+    itemInternalName: 'Coin',
+    sourceRefName: 'UnknownNpc',
+    sourceRefInternalName: 'UnknownNpc'
+  }]);
 });
 
 test('runNpcDomainLootChainAudit returns blocked report when DB is unavailable and does not write by default', async () => {

@@ -64,8 +64,8 @@ Interpretation:
 Run all final gates after apply and stack restart:
 
 ```powershell
-node scripts/data/audit/npc-domain-loot-chain-audit.mjs --write-report=true --date-tag=2026-05-10-final; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 node scripts/data/audit/npc-source-coverage-inventory.mjs --write-report=true --date-tag=2026-05-10-final; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+node scripts/data/audit/npc-domain-loot-chain-audit.mjs --write-report=true --date-tag=2026-05-10-final; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 node scripts/data/audit/npc-loot-runtime-parity-audit.mjs --write-report=true --date-tag=2026-05-10-final; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 node --test scripts/data/audit/npc-domain-loot-chain-audit.test.mjs scripts/data/audit/npc-source-coverage-inventory.test.mjs scripts/data/audit/npc-loot-runtime-parity-audit.test.mjs; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 node --test scripts/data/crawler/tests/npc-parser.test.mjs scripts/data/crawler/tests/build-npc-standardized-bridge.test.mjs scripts/data/fetch/build-npc-item-relations-bundle.test.mjs; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -161,12 +161,12 @@ Expected:
 - [ ] Regenerate the read-only baseline reports:
 
 ```powershell
-node scripts/data/audit/npc-domain-loot-chain-audit.mjs --write-report=true --date-tag=2026-05-10-closure-baseline; $domainCode=$LASTEXITCODE
 node scripts/data/audit/npc-source-coverage-inventory.mjs --write-report=true --date-tag=2026-05-10-closure-baseline; $coverageCode=$LASTEXITCODE
+node scripts/data/audit/npc-domain-loot-chain-audit.mjs --write-report=true --date-tag=2026-05-10-closure-baseline; $domainCode=$LASTEXITCODE
 node scripts/data/audit/npc-loot-runtime-parity-audit.mjs --write-report=true --date-tag=2026-05-10-closure-baseline; $runtimeCode=$LASTEXITCODE
 ```
 
-Current baseline audits are expected to return blocked exit codes (`npc-domain-loot-chain-audit` exits `2`; `npc-loot-runtime-parity-audit` exits non-zero when blocked). Phase 0 must treat those non-zero exits as expected only if the report file is written and readable. A missing report, unreadable JSON, DB connection error, or `evidenceHealth` other than `sufficient` is a Phase 0 blocker.
+`npc-domain-loot-chain-audit` depends on the same-tag `npc-source-coverage-inventory` report. Always generate source coverage first; running domain audit before coverage is a Phase 0 ordering bug, not valid evidence. Current baseline audits are expected to return blocked exit codes (`npc-domain-loot-chain-audit` exits `2`; `npc-loot-runtime-parity-audit` exits non-zero when blocked). Phase 0 must treat those non-zero exits as expected only if the report file is written and readable. A missing report, unreadable JSON, DB connection error, or `evidenceHealth` other than `sufficient` is a Phase 0 blocker.
 
 Allowed Phase 0 baseline exit codes:
 

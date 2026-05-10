@@ -148,6 +148,7 @@ export function buildNpcSourceCoverageInventoryReport({
       crawlerCoverageStatus: resolveCrawlerCoverageStatus(coverage),
       standardizedLootCount,
       maintSourceCount: counts.maintSourceCount,
+      maintSourceRows: counts.maintSourceRows,
       relationLootCount: counts.relationLootCount,
       projectionLootCount: counts.projectionLootCount,
       localLootCount: counts.localLootCount,
@@ -210,7 +211,70 @@ export async function loadStageCounts(connection, options) {
       AND n.status = 1
   `);
 
-  return new Map(rows.map((row) => [row.npcInternalName, normalizeCounts(row)]));
+  const countsByNpc = new Map(rows.map((row) => [row.npcInternalName, normalizeCounts(row)]));
+  const maintRowsByNpc = await loadMaintSourceRowsByNpc(connection, options);
+  for (const [npcInternalName, maintSourceRows] of maintRowsByNpc.entries()) {
+    const counts = countsByNpc.get(npcInternalName);
+    if (!counts) continue;
+    counts.maintSourceRows = maintSourceRows;
+  }
+  return countsByNpc;
+}
+
+async function loadMaintSourceRowsByNpc(connection, options) {
+  const [npcRows] = await connection.query(`
+    SELECT internal_name AS npcInternalName, name AS npcName
+    FROM \`${options.localDatabase}\`.\`npcs\`
+    WHERE deleted = 0
+      AND status = 1
+  `);
+  const npcInternalNamesByKey = new Map();
+  for (const row of npcRows) {
+    const npcInternalName = normalizeText(row.npcInternalName);
+    if (!npcInternalName) continue;
+    npcInternalNamesByKey.set(normalizeKey(npcInternalName), npcInternalName);
+    const npcName = normalizeText(row.npcName);
+    if (npcName && !npcInternalNamesByKey.has(normalizeKey(npcName))) {
+      npcInternalNamesByKey.set(normalizeKey(npcName), npcInternalName);
+    }
+  }
+
+  const [rows] = await connection.query(`
+    SELECT
+      m.record_key AS recordKey,
+      m.item_internal_name AS itemInternalName,
+      m.item_name AS itemName,
+      m.source_type AS sourceType,
+      m.source_ref_type AS sourceRefType,
+      m.source_ref_name AS sourceRefName,
+      m.raw_json AS rawJson
+    FROM \`${options.maintDatabase}\`.\`maint_item_sources\` m
+    WHERE m.source_ref_type = 'npc'
+      AND m.deleted = 0
+    ORDER BY m.source_ref_name, m.item_internal_name, m.record_key
+  `);
+
+  const grouped = new Map();
+  for (const row of rows) {
+    const normalizedRow = normalizeMaintSourceRow(row);
+    const npcInternalName = resolveMaintSourceNpcInternalName(normalizedRow, npcInternalNamesByKey);
+    if (!npcInternalName) continue;
+    if (!grouped.has(npcInternalName)) grouped.set(npcInternalName, []);
+    grouped.get(npcInternalName).push(normalizedRow);
+  }
+  return grouped;
+}
+
+function resolveMaintSourceNpcInternalName(row, npcInternalNamesByKey) {
+  const candidates = [
+    row?.sourceRefInternalName,
+    row?.sourceRefName,
+  ];
+  for (const candidate of candidates) {
+    const key = normalizeKey(candidate);
+    if (key && npcInternalNamesByKey.has(key)) return npcInternalNamesByKey.get(key);
+  }
+  return null;
 }
 
 function classifySourceCoverage({
@@ -317,10 +381,34 @@ function normalizeStandardizedRecords(payload) {
 function normalizeCounts(value = {}) {
   return {
     maintSourceCount: toNumber(value.maintSourceCount ?? value.maint_source_count),
+    maintSourceRows: normalizeMaintSourceRows(value.maintSourceRows ?? value.maint_source_rows),
     relationLootCount: toNumber(value.relationLootCount ?? value.relation_loot_count),
     projectionLootCount: toNumber(value.projectionLootCount ?? value.projection_loot_count),
     localLootCount: toNumber(value.localLootCount ?? value.local_loot_count),
     itemPageReverseSourceCount: toNumber(value.itemPageReverseSourceCount ?? value.item_page_reverse_source_count)
+  };
+}
+
+function normalizeMaintSourceRows(rows) {
+  return Array.isArray(rows) ? rows.map(normalizeMaintSourceRow).filter(Boolean) : [];
+}
+
+function normalizeMaintSourceRow(row = {}) {
+  const raw = parseJsonObject(row.rawJson ?? row.raw_json);
+  const recordKey = normalizeText(row.recordKey ?? row.record_key);
+  if (!recordKey && !normalizeText(row.itemInternalName ?? row.item_internal_name)) return null;
+  return {
+    recordKey,
+    itemInternalName: normalizeText(row.itemInternalName ?? row.item_internal_name),
+    itemName: normalizeText(row.itemName ?? row.item_name),
+    sourceType: normalizeText(row.sourceType ?? row.source_type),
+    sourceRefType: normalizeText(row.sourceRefType ?? row.source_ref_type),
+    sourceRefName: normalizeText(row.sourceRefName ?? row.source_ref_name),
+    sourceRefInternalName: normalizeText(row.sourceRefInternalName ?? row.source_ref_internal_name ?? raw.sourceRefInternalName ?? raw.source_ref_internal_name),
+    sourceRefResolution: normalizeText(row.sourceRefResolution ?? row.source_ref_resolution ?? raw.sourceRefResolution ?? raw.source_ref_resolution),
+    chanceText: normalizeText(row.chanceText ?? row.chance_text ?? raw.chanceText ?? raw.chance_text),
+    quantityText: normalizeText(row.quantityText ?? row.quantity_text ?? raw.quantityText ?? raw.quantity_text),
+    conditions: normalizeText(row.conditions ?? row.conditionText ?? row.condition_text ?? raw.conditions ?? raw.conditionText ?? raw.condition_text ?? raw.notes),
   };
 }
 
@@ -494,12 +582,23 @@ function normalizeSet(value) {
 }
 
 function normalizeKey(value) {
-  return normalizeText(value).toLowerCase();
+  return normalizeText(value)?.toLowerCase() ?? null;
 }
 
 function normalizeText(value) {
   const text = String(value ?? '').trim();
   return text.length ? text : null;
+}
+
+function parseJsonObject(value) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+  if (typeof value !== 'string' || value.trim().length === 0) return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
 }
 
 function toNumber(value) {

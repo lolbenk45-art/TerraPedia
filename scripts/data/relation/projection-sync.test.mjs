@@ -1092,6 +1092,70 @@ test('buildProjectionPayload builds bidirectional item and npc relation json wit
   assert.deepEqual(JSON.parse(actual.projectionProjectiles[0].sourceItemsJson).map((row) => row.internalName), ['Torch']);
 });
 
+test('buildProjectionPayload does not promote npc loot display conditions into relation condition identity', () => {
+  const actual = buildProjectionPayload({
+    relationItems: [
+      { recordKey: 'item-gel', sourceId: 23, internalName: 'Gel', englishName: 'Gel', rawJson: '{}' },
+    ],
+    relationNpcs: [
+      { recordKey: 'npc-blue-slime', sourceId: 1, internalName: 'BlueSlime', englishName: 'Blue Slime', rawJson: '{}' },
+    ],
+    itemNpcLootRelations: [
+      {
+        recordKey: 'relation-drop-blue-slime-gel',
+        sourceFactKey: 'item-source:drop:npc:blue-slime:gel',
+        itemInternalName: 'Gel',
+        itemName: 'Gel',
+        npcSourceId: 1,
+        npcInternalName: 'BlueSlime',
+        npcName: 'Blue Slime',
+        chanceText: '100%',
+        quantityText: '1-2',
+        conditionSourceText: null,
+        conditions: 'Normal mode row',
+      },
+    ],
+  });
+
+  const gel = actual.projectionItems.find((row) => row.internalName === 'Gel');
+  const blueSlime = actual.projectionNpcs.find((row) => row.internalName === 'BlueSlime');
+
+  assert.equal(JSON.parse(gel.sourceNpcsJson)[0].conditionText, null);
+  assert.equal(JSON.parse(blueSlime.lootItemsJson)[0].conditionText, null);
+});
+
+test('buildProjectionPayload preserves real npc loot condition text when canonical source text is absent', () => {
+  const actual = buildProjectionPayload({
+    relationItems: [
+      { recordKey: 'item-present', sourceId: 24, internalName: 'Present', englishName: 'Present', rawJson: '{}' },
+    ],
+    relationNpcs: [
+      { recordKey: 'npc-zombie', sourceId: 2, internalName: 'Zombie', englishName: 'Zombie', rawJson: '{}' },
+    ],
+    itemNpcLootRelations: [
+      {
+        recordKey: 'relation-drop-zombie-present',
+        sourceFactKey: 'item-source:drop:npc:zombie:present',
+        itemInternalName: 'Present',
+        itemName: 'Present',
+        npcSourceId: 2,
+        npcInternalName: 'Zombie',
+        npcName: 'Zombie',
+        chanceText: '1%',
+        quantityText: '1',
+        conditionSourceText: null,
+        conditions: 'During Christmas only',
+      },
+    ],
+  });
+
+  const present = actual.projectionItems.find((row) => row.internalName === 'Present');
+  const zombie = actual.projectionNpcs.find((row) => row.internalName === 'Zombie');
+
+  assert.equal(JSON.parse(present.sourceNpcsJson)[0].conditionText, 'During Christmas only');
+  assert.equal(JSON.parse(zombie.lootItemsJson)[0].conditionText, 'During Christmas only');
+});
+
 test('buildProjectionPayload projects NPC banner and catch items as source item JSON', () => {
   const actual = buildProjectionPayload({
     relationItems: [

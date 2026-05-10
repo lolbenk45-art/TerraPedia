@@ -46,7 +46,25 @@ test('buildNpcSourceCoverageInventoryReport classifies source coverage categorie
     ]
   };
   const stageCounts = new Map([
-    ['BlueSlime', { maintSourceCount: 1, relationLootCount: 1, projectionLootCount: 1, localLootCount: 1 }],
+    ['BlueSlime', {
+      maintSourceCount: 1,
+      relationLootCount: 1,
+      projectionLootCount: 1,
+      localLootCount: 1,
+      maintSourceRows: [{
+        recordKey: 'maint-blue-slime-gel',
+        itemInternalName: 'Gel',
+        itemName: 'Gel',
+        sourceType: 'drop',
+        sourceRefType: 'npc',
+        sourceRefName: 'Blue Slime',
+        sourceRefInternalName: 'BlueSlime',
+        sourceRefResolution: 'exact_internal_name',
+        chanceText: '100%',
+        quantityText: '1-2',
+        conditions: null
+      }]
+    }],
     ['PresentMimic', { maintSourceCount: 0, relationLootCount: 0, projectionLootCount: 0, localLootCount: 0 }],
     ['ReverseOnlyNpc', { maintSourceCount: 1, relationLootCount: 0, projectionLootCount: 0, localLootCount: 0, itemPageReverseSourceCount: 1 }]
   ]);
@@ -74,6 +92,19 @@ test('buildNpcSourceCoverageInventoryReport classifies source coverage categorie
 
   const byName = new Map(report.npcs.map((row) => [row.npcInternalName, row]));
   assert.equal(byName.get('BlueSlime').sourceCoverageStatus, 'source_page_present_with_loot');
+  assert.deepEqual(byName.get('BlueSlime').maintSourceRows, [{
+    recordKey: 'maint-blue-slime-gel',
+    itemInternalName: 'Gel',
+    itemName: 'Gel',
+    sourceType: 'drop',
+    sourceRefType: 'npc',
+    sourceRefName: 'Blue Slime',
+    sourceRefInternalName: 'BlueSlime',
+    sourceRefResolution: 'exact_internal_name',
+    chanceText: '100%',
+    quantityText: '1-2',
+    conditions: null
+  }]);
   assert.equal(byName.get('Guide').sourceCoverageStatus, 'source_page_present_no_loot');
   assert.equal(byName.get('BrokenNpc').sourceCoverageStatus, 'source_page_present_parse_failed');
   assert.equal(byName.get('MissingNpc').sourceCoverageStatus, 'source_page_missing');
@@ -196,4 +227,69 @@ test('runNpcSourceCoverageInventory parses row table after explanatory contract 
   );
 
   assert.equal(result.report.npcs[0].sourceCoverageStatus, 'no_source_required_expected_zero');
+});
+
+test('runNpcSourceCoverageInventory attaches maint source rows by raw canonical npc identity', async () => {
+  const queries = [];
+  const result = await runNpcSourceCoverageInventory(
+    { writeReport: false, dateTag: '2026-05-10-raw-canonical-test' },
+    {
+      readJson: async (filePath) => {
+        if (filePath.endsWith('npcs.standardized.json')) {
+          return { records: [{ id: 1, internalName: 'BigMimicCrimson', name: 'Crimson Mimic', flags: {} }] };
+        }
+        if (filePath.endsWith('coverage-audit.latest.json')) {
+          return { targets: [{ pageTitle: 'Mimics', resolvedPageTitle: 'Mimics', missing: false, alreadyCrawled: true, standardizedRecords: [{ internalName: 'BigMimicCrimson' }] }] };
+        }
+        if (filePath.endsWith('coverage-targets.latest.json')) {
+          return { targets: [] };
+        }
+        if (filePath.endsWith('npc-standardized-map.json')) {
+          return { records: [{ internalName: 'BigMimicCrimson', gameId: 473 }] };
+        }
+        return {};
+      },
+      connection: {
+        query: async (sql) => {
+          queries.push(sql);
+          if (sql.includes('SELECT internal_name AS npcInternalName')) {
+            return [[{
+              npcInternalName: 'BigMimicCrimson',
+              npcName: 'Crimson Mimic'
+            }]];
+          }
+          if (sql.includes('COUNT(*)')) {
+            return [[{
+              npcInternalName: 'BigMimicCrimson',
+              maintSourceCount: 1,
+              relationLootCount: 0,
+              projectionLootCount: 0,
+              localLootCount: 0,
+              itemPageReverseSourceCount: 0
+            }]];
+          }
+          return [[{
+            npcInternalName: 'BigMimicCrimson',
+            recordKey: 'maint-crimson-mimic-life-drain',
+            itemInternalName: 'LifeDrain',
+            itemName: 'Life Drain',
+            sourceType: 'drop',
+            sourceRefType: 'npc',
+            sourceRefName: 'Mimics',
+            rawJson: JSON.stringify({
+              sourceRefInternalName: 'BigMimicCrimson',
+              sourceRefResolution: 'section_internal_name',
+              chanceText: '20%',
+              quantityText: '1'
+            })
+          }]];
+        }
+      },
+      readText: async () => ''
+    }
+  );
+
+  assert.equal(queries.length, 3);
+  assert.equal(result.report.npcs[0].maintSourceRows[0].sourceRefName, 'Mimics');
+  assert.equal(result.report.npcs[0].maintSourceRows[0].sourceRefInternalName, 'BigMimicCrimson');
 });

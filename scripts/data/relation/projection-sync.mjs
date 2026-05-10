@@ -281,7 +281,7 @@ function buildSourceNpcSummary(relation, projectionNpc, relationType) {
     chanceText: relation.chanceText ?? null,
     quantityText: relation.quantityText ?? null,
     priceText: relation.priceText ?? null,
-    conditionText: relation.conditionSourceText ?? relation.conditions ?? null,
+    conditionText: resolveProjectionConditionText(relation),
     sourceFactKey: relation.sourceFactKey ?? null,
     ...buildTraceableRelationFields(relation)
   };
@@ -299,7 +299,7 @@ function buildNpcItemSummary(relation, projectionItem, relationType) {
     chanceText: relation.chanceText ?? null,
     quantityText: relation.quantityText ?? null,
     priceText: relation.priceText ?? null,
-    conditionText: relation.conditionSourceText ?? relation.conditions ?? null,
+    conditionText: resolveProjectionConditionText(relation),
     sourceFactKey: relation.sourceFactKey ?? null,
     ...buildTraceableRelationFields(relation)
   };
@@ -406,6 +406,17 @@ function displayArmorSetSourceKey(row, raw) {
     return textKey.slice('WikiArmorSet.'.length);
   }
   return textKey;
+}
+
+function resolveProjectionConditionText(relation = {}) {
+  return relation.conditionSourceText ?? normalizeProjectionConditionFallback(relation.conditions);
+}
+
+function normalizeProjectionConditionFallback(value) {
+  const text = typeof value === 'string' ? value.trim() : null;
+  if (!text) return null;
+  if (/^normal mode row$/i.test(text)) return null;
+  return text;
 }
 
 function compareBossProjectionEntries(left, right) {

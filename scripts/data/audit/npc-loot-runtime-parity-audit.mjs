@@ -42,6 +42,16 @@ const FALLBACK_RUNTIME_MODES = new Set([
   'inherited',
 ]);
 
+const TRUSTED_RUNTIME_MODES = new Set([
+  'direct',
+]);
+
+const KNOWN_RUNTIME_MODES = new Set([
+  ...TRUSTED_RUNTIME_MODES,
+  ...FALLBACK_RUNTIME_MODES,
+  'projection_only',
+]);
+
 export function parseArgs(argv = process.argv.slice(2)) {
   const raw = {};
   for (const token of argv) {
@@ -174,16 +184,20 @@ export function classifyNpcRuntimeParity({ npcInternalName, relation, projection
   ];
   const hasApiFallback = apiRows.some((row) => FALLBACK_RUNTIME_MODES.has(row.runtimeMode));
   const hasApiProjectionOnly = apiRows.some((row) => row.runtimeMode === 'projection_only');
+  const hasUnknownApiRuntimeMode = apiRows.some((row) => !KNOWN_RUNTIME_MODES.has(row.runtimeMode));
   let status = 'trusted_direct_loot';
   let reason = 'relation_projection_local_api_identity_match';
 
   if (duplicateKeys.length > 0) {
     status = 'duplicate_or_polluted';
     reason = 'duplicate_stable_identity';
+  } else if (hasUnknownApiRuntimeMode && relationKeys.size > 0) {
+    status = 'duplicate_or_polluted';
+    reason = 'api_runtime_mode_missing_or_unknown';
   } else if (hasApiProjectionOnly || (projectionKeys.size > 0 && localKeys.size === 0 && relationKeys.size === 0)) {
     status = 'projection_only';
     reason = 'projection_json_visible_without_trusted_local_rows';
-  } else if (hasApiFallback && relationKeys.size === 0 && localKeys.size === 0) {
+  } else if (hasApiFallback) {
     status = 'runtime_fallback_only';
     reason = 'api_visible_only_through_runtime_fallback';
   } else if (relationKeys.size === 0 && localKeys.size > 0) {
@@ -353,7 +367,7 @@ function extractApiLootRows(npc) {
   const directRows = normalizeArray(npc?.lootEntries).map((row) => ({
     ...row,
     npcInternalName,
-    runtimeMode: normalizeRuntimeMode(row?.runtimeMode ?? row?.lootSourceMode ?? row?.sourceMode ?? 'direct'),
+    runtimeMode: normalizeRuntimeMode(row?.runtimeMode ?? row?.lootSourceMode ?? row?.sourceMode),
   }));
   const inheritedRows = [
     ...normalizeArray(npc?.inheritedLootEntries).map((row) => ({ ...row, runtimeMode: 'prototype' })),
@@ -387,7 +401,7 @@ function extractPublicAggregateLootRows(aggregate, fallbackNpc = {}) {
   return normalizeArray(aggregate?.loot).map((row) => ({
     ...row,
     npcInternalName,
-    runtimeMode: normalizeRuntimeMode(row?.runtimeMode ?? row?.lootSourceMode ?? row?.sourceMode ?? 'direct'),
+    runtimeMode: normalizeRuntimeMode(row?.runtimeMode ?? row?.lootSourceMode ?? row?.sourceMode),
   }));
 }
 

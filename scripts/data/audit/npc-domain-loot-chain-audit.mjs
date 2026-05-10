@@ -457,6 +457,12 @@ function buildNpcStatusRow(context, classification) {
     projectionLootCount: counts.projection,
     localLootCount: counts.local,
     apiLootCount: counts.api,
+    maintSourceCount: Number(context.sourceCoverage?.maintSourceCount ?? context.sourceCoverage?.maint_source_count ?? 0),
+    maintSourceRows: Array.isArray(context.sourceCoverage?.maintSourceRows)
+      ? context.sourceCoverage.maintSourceRows
+      : Array.isArray(context.sourceCoverage?.maint_source_rows)
+        ? context.sourceCoverage.maint_source_rows
+        : [],
     rowIdentityHash: computeNpcIdentityHash(context),
   };
 }
@@ -636,6 +642,12 @@ async function loadSourceGaps(connection, options) {
       sourcePage: row.sourcePage,
       sourceUrl: row.sourceUrl,
       nextAction: row.nextAction,
+      maintSourceCount: row.maintSourceCount ?? row.maint_source_count ?? null,
+      maintSourceRows: Array.isArray(row.maintSourceRows)
+        ? row.maintSourceRows
+        : Array.isArray(row.maint_source_rows)
+          ? row.maint_source_rows
+          : [],
     }));
   } catch (error) {
     if (error?.code !== 'ENOENT') throw error;

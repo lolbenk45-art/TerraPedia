@@ -62,9 +62,9 @@ test('buildNpcLootRuntimeParityReport classifies required runtime parity statuse
       row({ npcInternalName: 'FallbackNpc', itemInternalName: 'FallbackDrop', runtimeMode: 'prototype' }),
       row({ npcInternalName: 'ApiPollutedNpc', itemInternalName: 'UntrustedDrop', runtimeMode: 'direct' }),
       row({ npcInternalName: 'ProjectionOnlyNpc', itemInternalName: 'ProjectionBlade', runtimeMode: 'projection_only' }),
-      row({ npcInternalName: 'DuplicateNpc', itemInternalName: 'Hook', sourceFactKey: 'fact:duplicate' }),
-      row({ npcInternalName: 'CountParityNpc', itemInternalName: 'WrongItem', sourceFactKey: 'fact:count-parity' }),
-      row({ npcInternalName: 'HealthyNpc', itemInternalName: 'Shackle', sourceFactKey: 'fact:healthy' }),
+      row({ npcInternalName: 'DuplicateNpc', itemInternalName: 'Hook', sourceFactKey: 'fact:duplicate', runtimeMode: 'direct' }),
+      row({ npcInternalName: 'CountParityNpc', itemInternalName: 'WrongItem', sourceFactKey: 'fact:count-parity', runtimeMode: 'direct' }),
+      row({ npcInternalName: 'HealthyNpc', itemInternalName: 'Shackle', sourceFactKey: 'fact:healthy', runtimeMode: 'direct' }),
     ],
   });
 
@@ -117,6 +117,48 @@ test('row identity parity does not require sourceFactKey in local or API rows', 
 
   const status = report.rows.find((entry) => entry.npcInternalName === 'LineageNpc');
   assert.equal(status.status, 'trusted_direct_loot');
+});
+
+test('buildNpcLootRuntimeParityReport blocks API rows with missing or unknown runtime provenance', () => {
+  const missingModeRow = row({ npcInternalName: 'MissingModeNpc', itemInternalName: 'Gel', sourceFactKey: 'fact:missing-mode' });
+  const unknownModeRow = row({ npcInternalName: 'UnknownModeNpc', itemInternalName: 'Hook', sourceFactKey: 'fact:unknown-mode' });
+  const report = buildNpcLootRuntimeParityReport({
+    relationRows: [missingModeRow, unknownModeRow],
+    projectionRows: [missingModeRow, unknownModeRow],
+    localRows: [missingModeRow, unknownModeRow],
+    apiRows: [
+      { ...missingModeRow, runtimeMode: null },
+      { ...unknownModeRow, runtimeMode: 'runtime_projection_cache' },
+    ],
+  });
+
+  const byNpc = new Map(report.rows.map((entry) => [entry.npcInternalName, entry]));
+  assert.equal(report.auditStatus, 'blocked');
+  assert.equal(byNpc.get('MissingModeNpc').status, 'duplicate_or_polluted');
+  assert.equal(byNpc.get('MissingModeNpc').reason, 'api_runtime_mode_missing_or_unknown');
+  assert.equal(byNpc.get('UnknownModeNpc').status, 'duplicate_or_polluted');
+  assert.equal(byNpc.get('UnknownModeNpc').reason, 'api_runtime_mode_missing_or_unknown');
+});
+
+test('buildNpcLootRuntimeParityReport keeps known fallback and projection-only provenance classified by type', () => {
+  const fallbackRow = row({ npcInternalName: 'KnownFallbackNpc', itemInternalName: 'Gel', sourceFactKey: 'fact:fallback-known' });
+  const projectionOnlyRow = row({ npcInternalName: 'KnownProjectionOnlyNpc', itemInternalName: 'Hook', sourceFactKey: 'fact:projection-known' });
+  const fallbackWithRelationRow = row({ npcInternalName: 'FallbackWithRelationNpc', itemInternalName: 'Vitamins', sourceFactKey: 'fact:fallback-with-relation' });
+  const report = buildNpcLootRuntimeParityReport({
+    relationRows: [fallbackWithRelationRow],
+    projectionRows: [projectionOnlyRow, fallbackWithRelationRow],
+    localRows: [fallbackWithRelationRow],
+    apiRows: [
+      { ...fallbackRow, runtimeMode: 'prototype' },
+      { ...projectionOnlyRow, runtimeMode: 'projection_only' },
+      { ...fallbackWithRelationRow, runtimeMode: 'same_name' },
+    ],
+  });
+
+  const byNpc = new Map(report.rows.map((entry) => [entry.npcInternalName, entry]));
+  assert.equal(byNpc.get('KnownFallbackNpc').status, 'runtime_fallback_only');
+  assert.equal(byNpc.get('KnownProjectionOnlyNpc').status, 'projection_only');
+  assert.equal(byNpc.get('FallbackWithRelationNpc').status, 'runtime_fallback_only');
 });
 
 test('runNpcLootRuntimeParityAudit blocks if admin list API mode is requested for structured API evidence', async () => {
@@ -219,7 +261,7 @@ test('runNpcLootRuntimeParityAudit supports dependency injection without DB or A
       },
       loadApiRows: async () => {
         calls.push('api');
-        return [row({ npcInternalName: 'Zombie', itemInternalName: 'Shackle' })];
+        return [row({ npcInternalName: 'Zombie', itemInternalName: 'Shackle', runtimeMode: 'direct' })];
       },
     }
   );
