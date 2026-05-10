@@ -242,7 +242,7 @@ class PublicNpcServiceImplImageTest {
     }
 
     @Test
-    void shouldFallbackPublicLootToPrototypeNpcWhenVariantHasNoDirectDrops() {
+    void shouldNotExposePrototypeFallbackAsPublicLootWhenVariantHasNoDirectDrops() {
         when(jdbcTemplate.queryForList(contains("WHERE nle.npc_id = ?"), eq(-55L))).thenReturn(List.of());
         lenient().when(jdbcTemplate.queryForObject(
             contains("FROM item_acquisition_sources"),
@@ -269,17 +269,11 @@ class PublicNpcServiceImplImageTest {
         PublicNpcServiceImpl service = newService();
         List<NpcLootEntryDTO> result = service.getNpcLoot(-55L, -55L, "Zombie");
 
-        assertEquals(1, result.size());
-        assertEquals("Glowstick", result.get(0).getItemInternalName());
-        assertEquals("100%", result.get(0).getChanceText());
-        assertEquals("prototype", result.get(0).getLootSourceMode());
-        assertEquals(false, result.get(0).getTrustedStructured());
-        assertEquals(55L, result.get(0).getSourceNpcId());
-        assertEquals("Zombie", result.get(0).getSourceNpcInternalName());
+        assertTrue(result.isEmpty());
     }
 
     @Test
-    void shouldFallbackPublicLootToSameNameCanonicalNpcWhenSubtypePrototypeHasNoDrops() {
+    void shouldNotExposeSameNameFallbackAsPublicLootWhenVariantHasNoDirectDrops() {
         lenient().when(jdbcTemplate.queryForList(contains("WHERE nle.npc_id = ?"), eq(-65L))).thenReturn(List.of());
         lenient().when(jdbcTemplate.queryForList(contains("WHERE nle.npc_id = ?"), eq(42L))).thenReturn(List.of(Map.ofEntries(
             Map.entry("id", 41L),
@@ -303,16 +297,11 @@ class PublicNpcServiceImplImageTest {
         PublicNpcServiceImpl service = newService();
         List<NpcLootEntryDTO> result = service.getNpcLoot(-65L, -65L, "Hornet");
 
-        assertEquals(1, result.size());
-        assertEquals("Bezoar", result.get(0).getItemInternalName());
-        assertEquals("1% 1.99%", result.get(0).getChanceText());
-        assertEquals("same_name", result.get(0).getLootSourceMode());
-        assertEquals(false, result.get(0).getTrustedStructured());
-        assertEquals(42L, result.get(0).getSourceNpcId());
+        assertTrue(result.isEmpty());
     }
 
     @Test
-    void shouldExposeDirectAndDerivedLootProvenanceForPublicNpcLoot() {
+    void shouldExposeDirectLootProvenanceAndKeepDerivedFallbackOutOfPublicNpcLoot() {
         when(jdbcTemplate.queryForList(contains("WHERE nle.npc_id = ?"), eq(7L))).thenReturn(List.of(Map.ofEntries(
             Map.entry("id", 41L),
             Map.entry("itemId", 282L),
@@ -330,28 +319,7 @@ class PublicNpcServiceImplImageTest {
         assertEquals(7L, direct.getSourceNpcId());
 
         when(jdbcTemplate.queryForList(contains("WHERE nle.npc_id = ?"), eq(8L))).thenReturn(List.of());
-        when(jdbcTemplate.queryForList(contains("current_npc.npc_type"), eq(8L))).thenReturn(List.of());
-        when(jdbcTemplate.queryForList(contains("LOWER(TRIM(canonical_npc.name))"), eq(8L))).thenReturn(List.of());
-        when(jdbcTemplate.queryForObject(
-            contains("FROM item_acquisition_sources"),
-            eq(Integer.class),
-            eq(8L)
-        )).thenReturn(1);
-        when(jdbcTemplate.queryForList(contains("source_ref_id = ?"), eq(8L))).thenReturn(List.of(Map.ofEntries(
-            Map.entry("id", 51L),
-            Map.entry("itemId", 12L),
-            Map.entry("sourceRefId", 8L),
-            Map.entry("sourceRefName", "Blue Slime"),
-            Map.entry("itemName", "Gel"),
-            Map.entry("itemInternalName", "Gel")
-        )));
-
-        NpcLootEntryDTO derived = service.getNpcLoot(8L, 8L, "Blue Slime").get(0);
-
-        assertEquals("derived", derived.getLootSourceMode());
-        assertEquals(false, derived.getTrustedStructured());
-        assertNull(derived.getSourceNpcId());
-        assertNull(derived.getSourceNpcInternalName());
+        assertTrue(service.getNpcLoot(8L, 8L, "Blue Slime").isEmpty());
     }
 
     private PublicNpcServiceImpl newService() {

@@ -77,23 +77,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         if (npcId == null) {
             return List.of();
         }
-
-        List<NpcLootEntryDTO> directLoot = loadStructuredLootByNpcId(npcId);
-        if (!directLoot.isEmpty()) {
-            return directLoot;
-        }
-
-        List<NpcLootEntryDTO> prototypeLoot = loadPrototypeStructuredLoot(npcId);
-        if (!prototypeLoot.isEmpty()) {
-            return prototypeLoot;
-        }
-
-        List<NpcLootEntryDTO> sameNameLoot = loadSameNameStructuredLoot(npcId);
-        if (!sameNameLoot.isEmpty()) {
-            return sameNameLoot;
-        }
-
-        return loadDerivedLoot(gameId, npcName);
+        return loadStructuredLootByNpcId(npcId);
     }
 
     private List<NpcLootEntryDTO> loadStructuredLootByNpcId(Long npcId) {
@@ -126,85 +110,6 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             """,
             npcId
         ).stream().map(this::toLootEntryDto).map(dto -> stampLootProvenance(dto, "direct", true, npcId, null)).toList();
-    }
-
-    private List<NpcLootEntryDTO> loadPrototypeStructuredLoot(Long npcId) {
-        if (npcId == null) {
-            return List.of();
-        }
-        return jdbcTemplate.queryForList(
-            """
-            SELECT
-              nle.id,
-              nle.item_id AS itemId,
-              nle.source_item_id AS sourceItemId,
-              nle.drop_source_kind AS dropSourceKind,
-              nle.quantity_min AS quantityMin,
-              nle.quantity_max AS quantityMax,
-              nle.quantity_text AS quantityText,
-              nle.chance_value AS chanceValue,
-              nle.chance_text AS chanceText,
-              nle.conditions,
-              nle.notes,
-              nle.sort_order AS sortOrder,
-              i.name AS itemName,
-              i.name_zh AS itemNameZh,
-              i.internal_name AS itemInternalName,
-              i.image AS itemImage,
-              prototype_npc.id AS sourceNpcId,
-              prototype_npc.internal_name AS sourceNpcInternalName
-            FROM npcs current_npc
-            JOIN npcs prototype_npc ON prototype_npc.game_id = current_npc.npc_type
-              AND prototype_npc.deleted = 0
-            JOIN npc_loot_entries nle ON nle.npc_id = prototype_npc.id AND nle.deleted = 0
-            LEFT JOIN items i ON i.id = nle.item_id AND i.deleted = 0
-            WHERE current_npc.id = ?
-              AND current_npc.deleted = 0
-              AND current_npc.npc_type IS NOT NULL
-              AND current_npc.npc_type > 0
-              AND (current_npc.game_id IS NULL OR current_npc.npc_type <> current_npc.game_id)
-            ORDER BY nle.sort_order ASC, nle.id ASC
-            """,
-            npcId
-        ).stream().map(this::toLootEntryDto).map(dto -> stampLootProvenance(dto, "prototype", false, npcId, null)).toList();
-    }
-
-    private List<NpcLootEntryDTO> loadSameNameStructuredLoot(Long npcId) {
-        Long sourceNpcId = resolveSameNameStructuredLootSourceNpcId(npcId);
-        if (sourceNpcId == null) {
-            return List.of();
-        }
-        return loadStructuredLootByNpcId(sourceNpcId).stream()
-            .map(dto -> stampLootProvenance(dto, "same_name", false, sourceNpcId, null))
-            .toList();
-    }
-
-    private Long resolveSameNameStructuredLootSourceNpcId(Long npcId) {
-        if (npcId == null) {
-            return null;
-        }
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-            """
-            SELECT canonical_npc.id AS sourceNpcId
-            FROM npcs current_npc
-            JOIN npcs canonical_npc ON canonical_npc.deleted = 0
-              AND LOWER(TRIM(canonical_npc.name)) = LOWER(TRIM(current_npc.name))
-              AND canonical_npc.id <> current_npc.id
-            JOIN npc_loot_entries nle ON nle.npc_id = canonical_npc.id AND nle.deleted = 0
-            WHERE current_npc.id = ?
-              AND current_npc.deleted = 0
-            GROUP BY canonical_npc.id, canonical_npc.game_id, canonical_npc.internal_name, canonical_npc.name
-            ORDER BY CASE WHEN canonical_npc.game_id IS NULL OR canonical_npc.game_id <= 0 THEN 1 ELSE 0 END,
-              canonical_npc.game_id ASC,
-              canonical_npc.id ASC
-            LIMIT 1
-            """,
-            npcId
-        );
-        if (rows.isEmpty()) {
-            return null;
-        }
-        return toLong(rows.get(0).get("sourceNpcId"));
     }
 
     @Override
@@ -371,99 +276,6 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setBehaviorNotes(trimToNull(npc.getBehaviorNotes()));
         dto.setStatus(npc.getStatus());
         return dto;
-    }
-
-    private List<NpcLootEntryDTO> loadDerivedLoot(Long gameId, String npcName) {
-        if (gameId != null && countDerivedLootBySourceId(gameId) > 0) {
-            return jdbcTemplate.queryForList(
-                """
-                SELECT
-                  ias.id,
-                  ias.item_id AS itemId,
-                  ias.source_ref_id AS sourceRefId,
-                  ias.source_ref_name AS sourceRefName,
-                  ias.quantity_min AS quantityMin,
-                  ias.quantity_max AS quantityMax,
-                  ias.quantity_text AS quantityText,
-                  ias.chance_value AS chanceValue,
-                  ias.chance_text AS chanceText,
-                  ias.conditions,
-                  ias.notes,
-                  ias.source_page AS sourcePage,
-                  ias.source_revision_timestamp AS sourceRevisionTimestamp,
-                  ias.sort_order AS sortOrder,
-                  i.name AS itemName,
-                  i.name_zh AS itemNameZh,
-                  i.internal_name AS itemInternalName,
-                  i.image AS itemImage
-                FROM item_acquisition_sources ias
-                LEFT JOIN items i ON i.id = ias.item_id AND i.deleted = 0
-                WHERE ias.source_type = 'drop'
-                  AND ias.source_ref_type = 'npc'
-                  AND ias.source_ref_id = ?
-                  AND ias.status = 1
-                  AND ias.deleted = 0
-                ORDER BY ias.sort_order ASC, ias.id ASC
-                """,
-                gameId
-            ).stream().map(this::toLootEntryDto).map(dto -> stampLootProvenance(dto, "derived", false, null, null)).toList();
-        }
-
-        String normalizedName = trimToNull(npcName);
-        if (normalizedName == null) {
-            return List.of();
-        }
-
-        return jdbcTemplate.queryForList(
-            """
-            SELECT
-              ias.id,
-              ias.item_id AS itemId,
-              ias.source_ref_id AS sourceRefId,
-              ias.source_ref_name AS sourceRefName,
-              ias.quantity_min AS quantityMin,
-              ias.quantity_max AS quantityMax,
-              ias.quantity_text AS quantityText,
-              ias.chance_value AS chanceValue,
-              ias.chance_text AS chanceText,
-              ias.conditions,
-              ias.notes,
-              ias.source_page AS sourcePage,
-              ias.source_revision_timestamp AS sourceRevisionTimestamp,
-              ias.sort_order AS sortOrder,
-              i.name AS itemName,
-              i.name_zh AS itemNameZh,
-              i.internal_name AS itemInternalName,
-              i.image AS itemImage
-            FROM item_acquisition_sources ias
-            LEFT JOIN items i ON i.id = ias.item_id AND i.deleted = 0
-            WHERE ias.source_type = 'drop'
-              AND ias.source_ref_type = 'npc'
-              AND ias.source_ref_id IS NULL
-              AND LOWER(TRIM(ias.source_ref_name)) = LOWER(TRIM(?))
-              AND ias.status = 1
-              AND ias.deleted = 0
-            ORDER BY ias.sort_order ASC, ias.id ASC
-            """,
-            normalizedName
-        ).stream().map(this::toLootEntryDto).map(dto -> stampLootProvenance(dto, "derived", false, null, null)).toList();
-    }
-
-    private int countDerivedLootBySourceId(Long gameId) {
-        Integer total = jdbcTemplate.queryForObject(
-            """
-            SELECT COUNT(*)
-            FROM item_acquisition_sources
-            WHERE source_type = 'drop'
-              AND source_ref_type = 'npc'
-              AND source_ref_id = ?
-              AND status = 1
-              AND deleted = 0
-            """,
-            Integer.class,
-            gameId
-        );
-        return total == null ? 0 : total;
     }
 
     private Map<Long, List<NpcShopConditionDTO>> loadShopConditions(List<Long> entryIds) {

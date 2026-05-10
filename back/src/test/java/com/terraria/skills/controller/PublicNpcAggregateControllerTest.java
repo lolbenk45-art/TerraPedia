@@ -60,6 +60,8 @@ class PublicNpcAggregateControllerTest {
         lootEntry.setId(11L);
         lootEntry.setItemId(101L);
         lootEntry.setItemName("Fallen Star");
+        lootEntry.setLootSourceMode("direct");
+        lootEntry.setTrustedStructured(true);
 
         NpcBuffRelationDTO buffRelation = new NpcBuffRelationDTO();
         buffRelation.setId(31L);
@@ -79,6 +81,8 @@ class PublicNpcAggregateControllerTest {
             .andExpect(jsonPath("$.data.npc.id").value(1))
             .andExpect(jsonPath("$.data.npc.imageUrl").value("https://cdn.example.com/npcs/guide.png"))
             .andExpect(jsonPath("$.data.loot.length()").value(1))
+            .andExpect(jsonPath("$.data.loot[0].lootSourceMode").value("direct"))
+            .andExpect(jsonPath("$.data.loot[0].trustedStructured").value(true))
             .andExpect(jsonPath("$.data.shopEntries.length()").value(0))
             .andExpect(jsonPath("$.data.buffRelations.length()").value(1))
             .andExpect(jsonPath("$.data.moduleStatus.loot").value("ok"))
