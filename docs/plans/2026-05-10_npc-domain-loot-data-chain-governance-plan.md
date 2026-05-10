@@ -614,6 +614,8 @@ Expected:
 - Test: `back/src/test/java/com/terraria/skills/service/impl/PublicNpcServiceImplImageTest.java`
 - Test: `back/src/test/java/com/terraria/skills/controller/AdminNpcControllerTest.java`
 - Modify: `front/src/types/npcDomain.ts`
+- Modify: `front/src/api/npcDomain.ts`
+- Modify: `front/src/views/npcDetailEntry.ts`
 - Modify: `front/src/views/NpcDetailView.vue`
 - Modify: `front/src/tests/npc-detail-entry.spec.ts`
 - Modify: `data-query-app/pages/entities/[type].vue`
@@ -740,13 +742,15 @@ Expected:
 Use these candidate commands from repo root. They must be verified in the dry-run doc before any apply:
 
 ```powershell
-node scripts/data/maint/sync-landing-to-maint.mjs --apply=false --scopes=item_sources --output=reports/maint-sync-npc-domain-loot-2026-05-10-dry-run.json
+node scripts/data/maint/sync-landing-to-maint.mjs --apply=false --scopes=npcs,item_sources --output=reports/maint-sync-npc-domain-loot-2026-05-10-dry-run.json
 node scripts/data/relation/sync-maint-to-relation.mjs --apply=false --scopes=npc --relation-database=terria_v1_relation --maint-database=terria_v1_maint --local-database=terria_v1_local
 node scripts/data/relation/sync-relation-to-local-compat-tables.mjs --apply=false --date-tag=2026-05-10-dry-run
 node scripts/data/relation/sync-projection-to-local-core-tables.mjs --apply=false --domains=npcs --date-tag=2026-05-10-dry-run
 ```
 
 If any command does not actually support dry-run or writes despite `--apply=false`, stop and add a failing unit test for that script before proceeding.
+
+`sync-landing-to-maint` must include both `npcs` and `item_sources`. The `npcs` scope reads `npc_item_relations_bundle_raw`, which carries NPC page / group-page forward loot evidence. Running only `item_sources` repeats the reverse-source-only bug and can leave variant NPC drops out of maint.
 
 - [ ] Record pre-write checkpoints.
 
@@ -941,6 +945,8 @@ git add back/src/main/java/com/terraria/skills/controller/AdminNpcController.jav
 git add back/src/test/java/com/terraria/skills/service/impl/PublicNpcServiceImplImageTest.java
 git add back/src/test/java/com/terraria/skills/controller/AdminNpcControllerTest.java
 git add front/src/types/npcDomain.ts
+git add front/src/api/npcDomain.ts
+git add front/src/views/npcDetailEntry.ts
 git add front/src/views/NpcDetailView.vue
 git add front/src/tests/npc-detail-entry.spec.ts
 git add "data-query-app/pages/entities/[type].vue"
