@@ -80,7 +80,9 @@ function filterBuffInflictionsForRecord(buffInflictions, record, crawlerRecord) 
     return rows;
   }
 
-  const matchedScopedRows = scopedRows.filter((row) => sourceInfoboxMatchesRecord(row?.sourceInfobox, record));
+  const matchedScopedRows = scopedRows.filter((row) =>
+    sourceInfoboxMatchesRecord(row?.sourceInfobox, record, { allowNameMatch: record?.__bridgeMatchCount === 1 })
+  );
   const unscopedRows = rows.filter((row) => !hasSourceInfoboxScope(row));
   if (matchedScopedRows.length) {
     return canAssignUnscopedBuffRows(record, crawlerRecord)
@@ -98,7 +100,9 @@ function filterLootRowsForRecord(lootRows, record, crawlerRecord) {
     return canAssignUnscopedLootRows(record) ? rows : [];
   }
 
-  const matchedScopedRows = scopedRows.filter((row) => sourceInfoboxMatchesRecord(row?.sourceInfobox, record))
+  const matchedScopedRows = scopedRows.filter((row) =>
+    sourceInfoboxMatchesRecord(row?.sourceInfobox, record, { allowNameMatch: record?.__bridgeMatchCount === 1 })
+  )
     .map((row) => ({
       ...row,
       sourceRefInternalName: row.sourceRefInternalName ?? record?.internalName ?? null,
@@ -150,7 +154,7 @@ function hasSourceInfoboxScope(row) {
   );
 }
 
-function sourceInfoboxMatchesRecord(sourceInfobox, record) {
+function sourceInfoboxMatchesRecord(sourceInfobox, record, { allowNameMatch = true } = {}) {
   const autoId = toText(sourceInfobox?.autoId);
   if (autoId) {
     const recordIds = [
@@ -165,14 +169,19 @@ function sourceInfoboxMatchesRecord(sourceInfobox, record) {
   }
 
   const sourceNames = [
-    sourceInfobox?.name,
     stripImageVariant(sourceInfobox?.image)
   ].map((value) => normalizeKey(value)).filter(Boolean);
+  if (allowNameMatch) {
+    const name = normalizeKey(sourceInfobox?.name);
+    if (name) {
+      sourceNames.push(name);
+    }
+  }
   if (!sourceNames.length) {
     return false;
   }
   const recordNames = [
-    record?.name,
+    ...(allowNameMatch ? [record?.name] : []),
     record?.internalName
   ].map((value) => normalizeKey(value)).filter(Boolean);
   return sourceNames.some((sourceName) => recordNames.includes(sourceName));

@@ -228,6 +228,79 @@ test('buildNpcStandardizedBridge keeps only matching group-page infobox loot for
   assert.ok(crimsonRecords.every((record) => record.sourceRefResolution === 'exact_internal_name'));
 });
 
+test('buildNpcStandardizedBridge does not fan out same-name scoped loot without exact variant evidence', () => {
+  const standardizedPayload = {
+    entity: 'npcs',
+    records: [
+      { id: 801, internalName: 'Scarecrow1', name: 'Scarecrow' },
+      { id: 802, internalName: 'Scarecrow2', name: 'Scarecrow' }
+    ]
+  };
+  const crawlerRecords = [
+    {
+      entityId: 'scarecrow',
+      display: { name: 'Scarecrow' },
+      source: { pageTitle: 'Scarecrow' },
+      loot: [
+        {
+          relationType: 'loot',
+          itemName: 'Pumpkin Pie',
+          chanceText: '1.79%',
+          quantityText: '1',
+          sourceSection: 'drops',
+          sourceInfobox: { autoId: '', image: 'Scarecrow.png', name: 'Scarecrow' }
+        }
+      ]
+    }
+  ];
+
+  const result = buildNpcStandardizedBridge({
+    standardizedPayload,
+    crawlerNormalizedRecords: crawlerRecords
+  });
+
+  assert.deepEqual(result.records.find((record) => record.internalName === 'Scarecrow1').wikiCrawler.loot, []);
+  assert.deepEqual(result.records.find((record) => record.internalName === 'Scarecrow2').wikiCrawler.loot, []);
+});
+
+test('buildNpcStandardizedBridge matches same-name variant loot by image-derived identity only', () => {
+  const standardizedPayload = {
+    entity: 'npcs',
+    records: [
+      { id: 801, internalName: 'Scarecrow1', name: 'Scarecrow' },
+      { id: 802, internalName: 'Scarecrow2', name: 'Scarecrow' }
+    ]
+  };
+  const crawlerRecords = [
+    {
+      entityId: 'scarecrow',
+      display: { name: 'Scarecrow' },
+      source: { pageTitle: 'Scarecrow' },
+      loot: [
+        {
+          relationType: 'loot',
+          itemName: 'Pumpkin Pie',
+          chanceText: '1.79%',
+          quantityText: '1',
+          sourceSection: 'drops',
+          sourceInfobox: { autoId: '', image: 'Scarecrow 1.png', name: 'Scarecrow' }
+        }
+      ]
+    }
+  ];
+
+  const result = buildNpcStandardizedBridge({
+    standardizedPayload,
+    crawlerNormalizedRecords: crawlerRecords
+  });
+
+  assert.deepEqual(
+    result.records.find((record) => record.internalName === 'Scarecrow1').wikiCrawler.loot.map((row) => row.itemName),
+    ['Pumpkin Pie']
+  );
+  assert.deepEqual(result.records.find((record) => record.internalName === 'Scarecrow2').wikiCrawler.loot, []);
+});
+
 test('buildNpcStandardizedBridge does not assign unscoped group-page loot to multiple NPC records', () => {
   const standardizedPayload = {
     entity: 'npcs',

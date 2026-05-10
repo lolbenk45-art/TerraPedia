@@ -308,10 +308,11 @@ function parseAllInfoboxFields(revisionText) {
 }
 
 function buildInfoboxSource(fields) {
+  const image = fields.image || fields.imagecargo || fields.imagealt || '';
   const name = fields.name || inferInfoboxNameFromImage(fields.imagecargo || fields.image || fields.imagealt);
   return {
     autoId: fields.auto ?? '',
-    image: fields.image ?? '',
+    image,
     name
   };
 }

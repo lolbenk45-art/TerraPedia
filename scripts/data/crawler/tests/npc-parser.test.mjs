@@ -571,6 +571,38 @@ test('extractNpcLoot reads real Mimics-style infobox drop rows', () => {
   assert.equal(result.items[0].sourceInfobox.name, 'Crimson Mimic');
 });
 
+test('extractNpcLoot keeps image-derived infobox scope for same-name variant drops', () => {
+  const sample = [
+    '{{npc infobox',
+    '| auto = 801',
+    '| name = Scarecrow',
+    '| imagealt = [[File:Scarecrow 1.png|link=]]',
+    '| Pumpkin Pie|1|1.79%',
+    '}}',
+    '',
+    '{{npc infobox',
+    '| auto = 802',
+    '| name = Scarecrow',
+    '| imagecargo = [[File:Scarecrow 2.png|link=]]',
+    '| Rotten Egg|1|1.79%',
+    '}}'
+  ].join('\n');
+
+  const result = extractNpcLoot(sample);
+
+  assert.deepEqual(
+    result.items.map((row) => ({
+      itemName: row.itemName,
+      autoId: row.sourceInfobox?.autoId,
+      image: row.sourceInfobox?.image
+    })),
+    [
+      { itemName: 'Pumpkin Pie', autoId: '801', image: '[[File:Scarecrow 1.png|link=]]' },
+      { itemName: 'Rotten Egg', autoId: '802', image: '[[File:Scarecrow 2.png|link=]]' }
+    ]
+  );
+});
+
 test('extractNpcLoot reads Present Mimic infobox template item rows', () => {
   const sample = [
     '{{npc infobox',
