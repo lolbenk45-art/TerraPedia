@@ -261,7 +261,9 @@ class PublicNpcServiceImplImageTest {
             Map.entry("chanceText", "100%"),
             Map.entry("itemName", "Glowstick"),
             Map.entry("itemNameZh", "荧光棒"),
-            Map.entry("itemInternalName", "Glowstick")
+            Map.entry("itemInternalName", "Glowstick"),
+            Map.entry("sourceNpcId", 55L),
+            Map.entry("sourceNpcInternalName", "Zombie")
         )));
 
         PublicNpcServiceImpl service = newService();
@@ -270,6 +272,10 @@ class PublicNpcServiceImplImageTest {
         assertEquals(1, result.size());
         assertEquals("Glowstick", result.get(0).getItemInternalName());
         assertEquals("100%", result.get(0).getChanceText());
+        assertEquals("prototype", result.get(0).getLootSourceMode());
+        assertEquals(false, result.get(0).getTrustedStructured());
+        assertEquals(55L, result.get(0).getSourceNpcId());
+        assertEquals("Zombie", result.get(0).getSourceNpcInternalName());
     }
 
     @Test
@@ -300,6 +306,52 @@ class PublicNpcServiceImplImageTest {
         assertEquals(1, result.size());
         assertEquals("Bezoar", result.get(0).getItemInternalName());
         assertEquals("1% 1.99%", result.get(0).getChanceText());
+        assertEquals("same_name", result.get(0).getLootSourceMode());
+        assertEquals(false, result.get(0).getTrustedStructured());
+        assertEquals(42L, result.get(0).getSourceNpcId());
+    }
+
+    @Test
+    void shouldExposeDirectAndDerivedLootProvenanceForPublicNpcLoot() {
+        when(jdbcTemplate.queryForList(contains("WHERE nle.npc_id = ?"), eq(7L))).thenReturn(List.of(Map.ofEntries(
+            Map.entry("id", 41L),
+            Map.entry("itemId", 282L),
+            Map.entry("dropSourceKind", "npc_drop"),
+            Map.entry("chanceText", "100%"),
+            Map.entry("itemName", "Glowstick"),
+            Map.entry("itemInternalName", "Glowstick")
+        )));
+
+        PublicNpcServiceImpl service = newService();
+        NpcLootEntryDTO direct = service.getNpcLoot(7L, 7L, "Zombie").get(0);
+
+        assertEquals("direct", direct.getLootSourceMode());
+        assertEquals(true, direct.getTrustedStructured());
+        assertEquals(7L, direct.getSourceNpcId());
+
+        when(jdbcTemplate.queryForList(contains("WHERE nle.npc_id = ?"), eq(8L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("current_npc.npc_type"), eq(8L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("LOWER(TRIM(canonical_npc.name))"), eq(8L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForObject(
+            contains("FROM item_acquisition_sources"),
+            eq(Integer.class),
+            eq(8L)
+        )).thenReturn(1);
+        when(jdbcTemplate.queryForList(contains("source_ref_id = ?"), eq(8L))).thenReturn(List.of(Map.ofEntries(
+            Map.entry("id", 51L),
+            Map.entry("itemId", 12L),
+            Map.entry("sourceRefId", 8L),
+            Map.entry("sourceRefName", "Blue Slime"),
+            Map.entry("itemName", "Gel"),
+            Map.entry("itemInternalName", "Gel")
+        )));
+
+        NpcLootEntryDTO derived = service.getNpcLoot(8L, 8L, "Blue Slime").get(0);
+
+        assertEquals("derived", derived.getLootSourceMode());
+        assertEquals(false, derived.getTrustedStructured());
+        assertNull(derived.getSourceNpcId());
+        assertNull(derived.getSourceNpcInternalName());
     }
 
     private PublicNpcServiceImpl newService() {

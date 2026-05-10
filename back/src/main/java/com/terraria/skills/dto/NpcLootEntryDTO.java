@@ -26,6 +26,11 @@ public class NpcLootEntryDTO implements Serializable {
     private String sourceRefName;
     private String sourcePage;
     private String sourceRevisionTimestamp;
+    private String lootSourceMode;
+    private Boolean trustedStructured;
+    private Long sourceNpcId;
+    private String sourceNpcInternalName;
+    private String sourceRowKey;
     private String itemName;
     private String itemNameZh;
     private String itemInternalName;

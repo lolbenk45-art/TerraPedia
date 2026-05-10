@@ -820,7 +820,7 @@
           <section class="projectile-detail__section">
             <div class="projectile-detail__section-head">
               <div>
-                <h4>结构化掉落</h4>
+                <h4>可信结构化掉落</h4>
                 <span>{{ npcLootEntries.length }} 条</span>
               </div>
               <button type="button" class="btn btn-secondary btn-compact" @click="openEditDialog(detailRow)">编辑结构化掉落</button>
@@ -835,6 +835,7 @@
                 <div class="boss-detail__loot-body">
                   <div class="boss-detail__member-pills">
                     <span class="cell-badge cell-badge--accent">{{ entry.dropSourceKind || 'loot' }}</span>
+                    <span v-if="getNpcLootProvenanceLabel(entry)" class="cell-badge">{{ getNpcLootProvenanceLabel(entry) }}</span>
                     <span v-if="entry.itemInternalName" class="cell-badge">{{ entry.itemInternalName }}</span>
                   </div>
                   <strong>{{ entry.itemNameZh || entry.itemName || entry.itemInternalName || `Item ${entry.itemId ?? '--'}` }}</strong>
@@ -872,7 +873,7 @@
                 </button>
                 <div class="boss-detail__loot-body">
                   <div class="boss-detail__member-pills">
-                    <span class="cell-badge cell-badge--accent">prototype</span>
+                    <span class="cell-badge cell-badge--accent">{{ getNpcLootProvenanceLabel(entry) || 'prototype' }}</span>
                     <span v-if="entry.itemInternalName" class="cell-badge">{{ entry.itemInternalName }}</span>
                   </div>
                   <strong>{{ entry.itemNameZh || entry.itemName || entry.itemInternalName || `Item ${entry.itemId ?? '--'}` }}</strong>
@@ -910,7 +911,7 @@
                 </button>
                 <div class="boss-detail__loot-body">
                   <div class="boss-detail__member-pills">
-                    <span class="cell-badge cell-badge--accent">raw</span>
+                    <span class="cell-badge cell-badge--accent">{{ getNpcLootProvenanceLabel(entry) || 'raw' }}</span>
                     <span v-if="entry.sourceRefName" class="cell-badge">{{ entry.sourceRefName }}</span>
                   </div>
                   <strong>{{ entry.itemNameZh || entry.itemName || entry.itemInternalName || `Item ${entry.itemId ?? '--'}` }}</strong>
@@ -2793,6 +2794,7 @@ const npcLootEntries = computed<Array<Record<string, any>>>(() => {
   return detailRow.value.lootEntries
     .filter(item => item && typeof item === 'object')
     .map(item => normalizeRow(item as Record<string, any>))
+    .filter(isTrustedDirectNpcLoot)
 })
 const npcInheritedLootEntries = computed<Array<Record<string, any>>>(() => {
   if (!detailRow.value || entityType.value !== 'npcs' || !Array.isArray(detailRow.value.inheritedLootEntries)) return []
@@ -2819,6 +2821,23 @@ const npcDerivedLootEntries = computed<Array<Record<string, any>>>(() => {
     .filter(item => item && typeof item === 'object')
     .map(item => normalizeRow(item as Record<string, any>))
 })
+function getNpcLootProvenanceLabel(entry: Record<string, any>) {
+  if (!entry) return ''
+  const mode = entry.lootSourceMode ?? entry.loot_source_mode
+  const trustedStructured = entry.trustedStructured ?? entry.trusted_structured
+  if (mode === 'direct' && trustedStructured === true) return ''
+  if (mode === 'prototype') return 'prototype fallback'
+  if (mode === 'same_name') return 'same-name fallback'
+  if (mode === 'derived') return 'raw source fallback'
+  if (mode === 'projection_only') return 'projection only'
+  return trustedStructured === false ? 'untrusted fallback' : ''
+}
+function isTrustedDirectNpcLoot(entry: Record<string, any>) {
+  if (!entry) return false
+  const mode = entry.lootSourceMode ?? entry.loot_source_mode
+  const trustedStructured = entry.trustedStructured ?? entry.trusted_structured
+  return mode === 'direct' && trustedStructured === true
+}
 const npcBuffRelations = computed<Array<Record<string, any>>>(() => {
   if (!detailRow.value || entityType.value !== 'npcs' || !Array.isArray(detailRow.value.buffRelations)) return []
   return detailRow.value.buffRelations
@@ -2954,8 +2973,8 @@ const npcAdvancedSectionHelper = computed(() => {
 })
 const npcLootSectionHelper = computed(() => {
   if (!detailRow.value || entityType.value !== 'npcs') return ''
-  if (!npcLootEntries.value.length) return '当前 NPC 还没有导入结构化掉落数据。'
-  return '这里显示的是已导入并去重后的后台掉落结果，后续编辑默认以这组数据为准。'
+  if (!npcLootEntries.value.length) return '当前 NPC 还没有可信结构化掉落数据。'
+  return '这里仅显示 trustedStructured=true 且 lootSourceMode=direct 的后台掉落结果，后续编辑默认以这组数据为准。'
 })
 const npcBuffRelationSectionHelper = computed(() => {
   if (!detailRow.value || entityType.value !== 'npcs') return ''

@@ -344,9 +344,17 @@ public class AdminNpcController {
         payload.put("buffRelationCount", countNpcRelations("npc_buff_relations", npc.getId()));
         payload.put("shopEntryCount", countNpcRelations("npc_shop_entries", npc.getId()));
         if (includeRelations) {
-            payload.put("lootEntries", loadNpcLootEntries(npc.getId()));
-            payload.put("inheritedLootEntries", lootInheritance == null ? List.of() : loadNpcLootEntries(lootInheritance.sourceNpcId()));
-            payload.put("derivedLootEntries", loadNpcDerivedLootEntries(npc.getGameId(), npc.getName()));
+            payload.put("lootEntries", stampLootProvenance(loadNpcLootEntries(npc.getId()), "direct", true, npc.getId(), npc.getInternalName()));
+            payload.put("inheritedLootEntries", lootInheritance == null
+                ? List.of()
+                : stampLootProvenance(
+                    loadNpcLootEntries(lootInheritance.sourceNpcId()),
+                    lootInheritance.mode(),
+                    false,
+                    lootInheritance.sourceNpcId(),
+                    lootInheritance.sourceInternalName()
+                ));
+            payload.put("derivedLootEntries", stampLootProvenance(loadNpcDerivedLootEntries(npc.getGameId(), npc.getName()), "derived", false, null, null));
             payload.put("buffRelations", loadNpcBuffRelations(npc.getId()));
             payload.put("shopEntries", loadNpcShopEntries(npc.getId()));
         }
@@ -549,6 +557,29 @@ public class AdminNpcController {
             npcId
         );
         return sanitizeDisplayImageFields(rows, "admin npc loot", "itemImage");
+    }
+
+    private List<Map<String, Object>> stampLootProvenance(
+        List<Map<String, Object>> rows,
+        String mode,
+        boolean trustedStructured,
+        Long fallbackSourceNpcId,
+        String fallbackSourceNpcInternalName
+    ) {
+        if (rows == null || rows.isEmpty()) {
+            return List.of();
+        }
+        return rows.stream()
+            .map(row -> {
+                Map<String, Object> stamped = new LinkedHashMap<>(row);
+                stamped.putIfAbsent("lootSourceMode", mode);
+                stamped.putIfAbsent("trustedStructured", trustedStructured);
+                stamped.putIfAbsent("sourceNpcId", fallbackSourceNpcId);
+                stamped.putIfAbsent("sourceNpcInternalName", fallbackSourceNpcInternalName);
+                stamped.putIfAbsent("sourceRowKey", row.get("sourceRowKey"));
+                return stamped;
+            })
+            .toList();
     }
 
     private List<Map<String, Object>> loadNpcDerivedLootEntries(Long npcSourceId, String npcName) {
@@ -1227,7 +1258,8 @@ public class AdminNpcController {
                     trimToNull(row.get("sourceInternalName")),
                     trimToNull(row.get("sourceName")),
                     trimToNull(row.get("sourceNameZh")),
-                    total
+                    total,
+                    "prototype"
                 ));
             }
         }
@@ -1296,7 +1328,8 @@ public class AdminNpcController {
                     trimToNull(row.get("sourceInternalName")),
                     trimToNull(row.get("sourceName")),
                     trimToNull(row.get("sourceNameZh")),
-                    total
+                    total,
+                    "same_name"
                 ));
             }
         }
@@ -1508,7 +1541,8 @@ public class AdminNpcController {
         String sourceInternalName,
         String sourceName,
         String sourceNameZh,
-        int lootCount
+        int lootCount,
+        String mode
     ) {
     }
 }

@@ -97,6 +97,11 @@ export const normalizeNpcLootEntry = (loot: NpcLootEntryDomain): NpcLootEntryDom
   chanceValue: loot.chanceValue ?? (loot as any).chance_value ?? null,
   conditions: loot.conditions ?? null,
   notes: loot.notes ?? null,
+  lootSourceMode: loot.lootSourceMode ?? (loot as any).loot_source_mode ?? null,
+  trustedStructured: loot.trustedStructured ?? (loot as any).trusted_structured ?? null,
+  sourceNpcId: loot.sourceNpcId ?? (loot as any).source_npc_id ?? null,
+  sourceNpcInternalName: loot.sourceNpcInternalName ?? (loot as any).source_npc_internal_name ?? null,
+  sourceRowKey: loot.sourceRowKey ?? (loot as any).source_row_key ?? null,
 })
 
 export const normalizeNpcShopEntry = (entry: NpcShopEntryDomain): NpcShopEntryDomain => ({

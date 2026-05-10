@@ -79,6 +79,11 @@ export interface NpcLootEntryDomain {
   chanceValue?: number | null
   conditions?: string | null
   notes?: string | null
+  lootSourceMode?: 'direct' | 'prototype' | 'same_name' | 'derived' | 'projection_only' | string | null
+  trustedStructured?: boolean | null
+  sourceNpcId?: number | null
+  sourceNpcInternalName?: string | null
+  sourceRowKey?: string | null
 }
 
 export interface NpcShopEntryDomain {

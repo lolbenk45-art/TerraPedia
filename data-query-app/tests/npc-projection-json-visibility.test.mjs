@@ -55,6 +55,16 @@ test('generic NPC shop projection cards prefer trusted backend images over proje
 test('generic NPC admin marks inherited prototype loot separately', () => {
   assert.match(entitiesPage, /inheritedLootEntryCount/)
   assert.match(entitiesPage, /原型掉落/)
+  assert.match(entitiesPage, /getNpcLootProvenanceLabel/)
+  assert.match(entitiesPage, /trustedStructured/)
+  assert.match(entitiesPage, /lootSourceMode/)
+})
+
+test('generic NPC admin keeps untrusted fallback loot out of trusted structured section', () => {
+  assert.match(entitiesPage, /可信结构化掉落/)
+  assert.match(entitiesPage, /filter\(isTrustedDirectNpcLoot\)/)
+  assert.match(entitiesPage, /mode === 'direct' && trustedStructured === true/)
+  assert.match(entitiesPage, /trustedStructured=true 且 lootSourceMode=direct/)
 })
 
 test('generic NPC admin exposes a structured loot edit action from detail view', () => {

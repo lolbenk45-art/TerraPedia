@@ -9,6 +9,15 @@ type NpcDisplayEntry = {
   buffInternalName?: string | null
 }
 
+type NpcLootProvenanceEntry = {
+  lootSourceMode?: string | null
+  trustedStructured?: boolean | null
+}
+
+export function isTrustedDirectLoot(entry: NpcLootProvenanceEntry) {
+  return entry.trustedStructured === true && entry.lootSourceMode === 'direct'
+}
+
 export function entryTitle(entry: NpcDisplayEntry) {
   return entry.itemNameZh?.trim()
     || entry.itemName?.trim()
@@ -31,6 +40,24 @@ export function entrySecondary(entry: NpcDisplayEntry) {
 
 export function shopPriceLabel(entry: NpcShopEntry) {
   return entry.priceText?.trim() || entry.buyPriceText?.trim() || 'Price unavailable'
+}
+
+export function lootProvenanceLabel(entry: NpcLootProvenanceEntry) {
+  if (isTrustedDirectLoot(entry)) {
+    return ''
+  }
+  switch (entry.lootSourceMode) {
+    case 'prototype':
+      return 'Prototype fallback'
+    case 'same_name':
+      return 'Same-name fallback'
+    case 'derived':
+      return 'Raw source fallback'
+    case 'projection_only':
+      return 'Projection only'
+    default:
+      return entry.trustedStructured === false ? 'Untrusted fallback' : ''
+  }
 }
 
 export function shopConditionsLabel(entry: NpcShopEntry) {

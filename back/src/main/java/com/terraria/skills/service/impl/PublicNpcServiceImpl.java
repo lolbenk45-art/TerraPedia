@@ -125,7 +125,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             ORDER BY nle.sort_order ASC, nle.id ASC
             """,
             npcId
-        ).stream().map(this::toLootEntryDto).toList();
+        ).stream().map(this::toLootEntryDto).map(dto -> stampLootProvenance(dto, "direct", true, npcId, null)).toList();
     }
 
     private List<NpcLootEntryDTO> loadPrototypeStructuredLoot(Long npcId) {
@@ -150,7 +150,9 @@ public class PublicNpcServiceImpl implements PublicNpcService {
               i.name AS itemName,
               i.name_zh AS itemNameZh,
               i.internal_name AS itemInternalName,
-              i.image AS itemImage
+              i.image AS itemImage,
+              prototype_npc.id AS sourceNpcId,
+              prototype_npc.internal_name AS sourceNpcInternalName
             FROM npcs current_npc
             JOIN npcs prototype_npc ON prototype_npc.game_id = current_npc.npc_type
               AND prototype_npc.deleted = 0
@@ -164,7 +166,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             ORDER BY nle.sort_order ASC, nle.id ASC
             """,
             npcId
-        ).stream().map(this::toLootEntryDto).toList();
+        ).stream().map(this::toLootEntryDto).map(dto -> stampLootProvenance(dto, "prototype", false, npcId, null)).toList();
     }
 
     private List<NpcLootEntryDTO> loadSameNameStructuredLoot(Long npcId) {
@@ -172,7 +174,9 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         if (sourceNpcId == null) {
             return List.of();
         }
-        return loadStructuredLootByNpcId(sourceNpcId);
+        return loadStructuredLootByNpcId(sourceNpcId).stream()
+            .map(dto -> stampLootProvenance(dto, "same_name", false, sourceNpcId, null))
+            .toList();
     }
 
     private Long resolveSameNameStructuredLootSourceNpcId(Long npcId) {
@@ -402,7 +406,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
                 ORDER BY ias.sort_order ASC, ias.id ASC
                 """,
                 gameId
-            ).stream().map(this::toLootEntryDto).toList();
+            ).stream().map(this::toLootEntryDto).map(dto -> stampLootProvenance(dto, "derived", false, null, null)).toList();
         }
 
         String normalizedName = trimToNull(npcName);
@@ -442,7 +446,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             ORDER BY ias.sort_order ASC, ias.id ASC
             """,
             normalizedName
-        ).stream().map(this::toLootEntryDto).toList();
+        ).stream().map(this::toLootEntryDto).map(dto -> stampLootProvenance(dto, "derived", false, null, null)).toList();
     }
 
     private int countDerivedLootBySourceId(Long gameId) {
@@ -550,10 +554,32 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setSourceRefName(toStringValue(row.get("sourceRefName")));
         dto.setSourcePage(toStringValue(row.get("sourcePage")));
         dto.setSourceRevisionTimestamp(toStringValue(row.get("sourceRevisionTimestamp")));
+        dto.setLootSourceMode(toStringValue(row.get("lootSourceMode")));
+        dto.setTrustedStructured(toBoolean(row.get("trustedStructured")));
+        dto.setSourceNpcId(toLong(row.get("sourceNpcId")));
+        dto.setSourceNpcInternalName(toStringValue(row.get("sourceNpcInternalName")));
+        dto.setSourceRowKey(toStringValue(row.get("sourceRowKey")));
         dto.setItemName(toStringValue(row.get("itemName")));
         dto.setItemNameZh(toStringValue(row.get("itemNameZh")));
         dto.setItemInternalName(toStringValue(row.get("itemInternalName")));
         dto.setImageUrl(managedDisplayImageUrl(toStringValue(row.get("itemImage"))));
+        return dto;
+    }
+
+    private NpcLootEntryDTO stampLootProvenance(
+        NpcLootEntryDTO dto,
+        String mode,
+        boolean trustedStructured,
+        Long fallbackSourceNpcId,
+        String fallbackSourceNpcInternalName
+    ) {
+        if (dto == null) {
+            return null;
+        }
+        dto.setLootSourceMode(mode);
+        dto.setTrustedStructured(trustedStructured);
+        dto.setSourceNpcId(dto.getSourceNpcId() == null ? fallbackSourceNpcId : dto.getSourceNpcId());
+        dto.setSourceNpcInternalName(firstNonBlank(dto.getSourceNpcInternalName(), fallbackSourceNpcInternalName));
         return dto;
     }
 
@@ -749,6 +775,20 @@ public class PublicNpcServiceImpl implements PublicNpcService {
 
     private static String toStringValue(Object value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    private static Boolean toBoolean(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value instanceof Number number) {
+            return number.intValue() != 0;
+        }
+        String text = String.valueOf(value).trim();
+        return text.isEmpty() ? null : Boolean.parseBoolean(text.toLowerCase(Locale.ROOT));
     }
 
     private static String trimToNull(String value) {

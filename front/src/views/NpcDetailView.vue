@@ -59,13 +59,13 @@
           <div class="npc-section__head">
             <div>
               <h2>Loot</h2>
-              <p>Drops and notable rewards tied to this public NPC aggregate.</p>
+              <p>Trusted structured drops tied to this public NPC aggregate.</p>
             </div>
-            <span>{{ loot.length }}</span>
+            <span>{{ trustedLoot.length }}</span>
           </div>
 
-          <div v-if="loot.length" class="npc-section__list">
-            <article v-for="entry in loot" :key="`loot-${entry.id ?? entry.itemId ?? entry.itemInternalName}`" class="surface-card npc-entry">
+          <div v-if="trustedLoot.length" class="npc-section__list">
+            <article v-for="entry in trustedLoot" :key="`loot-${entry.id ?? entry.itemId ?? entry.itemInternalName}`" class="surface-card npc-entry">
               <div class="npc-entry__media">
                 <img v-if="resolveImage(entry.imageUrl || entry.itemImage)" :src="resolveImage(entry.imageUrl || entry.itemImage)" :alt="entryTitle(entry)" />
                 <div v-else class="npc-entry__fallback">ITEM</div>
@@ -77,6 +77,7 @@
                 <div class="npc-entry__chips">
                   <span v-if="lootQuantityLabel(entry)">Qty {{ lootQuantityLabel(entry) }}</span>
                   <span v-if="lootChanceLabel(entry)">Chance {{ lootChanceLabel(entry) }}</span>
+                  <span v-if="lootProvenanceLabel(entry)" class="npc-entry__chip--warning">{{ lootProvenanceLabel(entry) }}</span>
                 </div>
                 <p v-if="entry.conditions" class="npc-entry__note">{{ entry.conditions }}</p>
                 <p v-else-if="entry.notes" class="npc-entry__note">{{ entry.notes }}</p>
@@ -84,7 +85,38 @@
             </article>
           </div>
 
-          <p v-else class="npc-section__empty">No loot data yet</p>
+          <p v-else class="npc-section__empty">No trusted structured loot data yet</p>
+        </article>
+
+        <article v-if="fallbackLoot.length" class="public-section-frame npc-section">
+          <div class="npc-section__head">
+            <div>
+              <h2>Fallback Loot</h2>
+              <p>Visible fallback rows for review only; these are not counted as trusted structured drops.</p>
+            </div>
+            <span>{{ fallbackLoot.length }}</span>
+          </div>
+
+          <div class="npc-section__list">
+            <article v-for="entry in fallbackLoot" :key="`fallback-loot-${entry.id ?? entry.itemId ?? entry.itemInternalName}`" class="surface-card npc-entry npc-entry--warning">
+              <div class="npc-entry__media">
+                <img v-if="resolveImage(entry.imageUrl || entry.itemImage)" :src="resolveImage(entry.imageUrl || entry.itemImage)" :alt="entryTitle(entry)" />
+                <div v-else class="npc-entry__fallback">ITEM</div>
+              </div>
+
+              <div class="npc-entry__body">
+                <h3>{{ entryTitle(entry) }}</h3>
+                <p v-if="entrySecondary(entry)" class="npc-entry__secondary">{{ entrySecondary(entry) }}</p>
+                <div class="npc-entry__chips">
+                  <span v-if="lootQuantityLabel(entry)">Qty {{ lootQuantityLabel(entry) }}</span>
+                  <span v-if="lootChanceLabel(entry)">Chance {{ lootChanceLabel(entry) }}</span>
+                  <span class="npc-entry__chip--warning">{{ lootProvenanceLabel(entry) || 'Untrusted fallback' }}</span>
+                </div>
+                <p v-if="entry.conditions" class="npc-entry__note">{{ entry.conditions }}</p>
+                <p v-else-if="entry.notes" class="npc-entry__note">{{ entry.notes }}</p>
+              </div>
+            </article>
+          </div>
         </article>
 
         <article class="public-section-frame npc-section">
@@ -233,7 +265,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { fetchNpcAggregateById } from '@/api'
 import type { NpcAggregateData, NpcBuffRelation, NpcLootEntry, NpcTraceableItemSummary } from '@/types'
-import { entrySecondary, entryTitle, shopConditionsLabel, shopPriceLabel } from '@/views/npcDetailEntry'
+import { entrySecondary, entryTitle, isTrustedDirectLoot, lootProvenanceLabel, shopConditionsLabel, shopPriceLabel } from '@/views/npcDetailEntry'
 
 const route = useRoute()
 const aggregate = ref<NpcAggregateData | null>(null)
@@ -243,6 +275,8 @@ const notFound = ref(false)
 
 const npc = computed(() => aggregate.value?.npc ?? null)
 const loot = computed(() => aggregate.value?.loot ?? [])
+const trustedLoot = computed(() => loot.value.filter(isTrustedDirectLoot))
+const fallbackLoot = computed(() => loot.value.filter(entry => !isTrustedDirectLoot(entry)))
 const shopEntries = computed(() => aggregate.value?.shopEntries ?? [])
 const buffRelations = computed(() => aggregate.value?.buffRelations ?? [])
 const traceableRelationSections = computed(() => {
@@ -711,6 +745,15 @@ watch(
   color: var(--text-secondary);
   font-size: 0.74rem;
   font-weight: 700;
+}
+
+.npc-entry__chips .npc-entry__chip--warning {
+  background: color-mix(in srgb, #f59e0b 18%, var(--bg-secondary) 82%);
+  color: #92400e;
+}
+
+.npc-entry--warning {
+  border-color: color-mix(in srgb, #f59e0b 28%, transparent);
 }
 
 @keyframes npc-spin {
