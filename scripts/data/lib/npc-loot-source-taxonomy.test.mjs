@@ -137,6 +137,14 @@ test('classifyNpcLootSource blocks other collective buckets and non-NPC sources'
   }
 });
 
+test('classifyNpcLootSource reclassifies pseudo-source rows as non-NPC before missing identity handling', () => {
+  for (const sourceRefName of ['Bonus drop', 'Geode', 'Expert Mode', 'Pigronata', 'Shadow Hammer']) {
+    const actual = classifyNpcLootSource({ itemInternalName: null, sourceRefName });
+    assert.equal(actual.status, 'non_npc_source_misclassified', sourceRefName);
+    assert.equal(actual.materializable, false, sourceRefName);
+  }
+});
+
 test('classifyNpcLootSource preserves explicit controls', () => {
   assert.equal(classifyNpcLootSource({
     itemInternalName: 'IceBlade',

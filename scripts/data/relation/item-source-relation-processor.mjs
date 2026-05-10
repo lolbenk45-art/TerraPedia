@@ -390,6 +390,15 @@ const REPRESENTATIVE_UNSAFE_NPC_SUFFIX_TOKENS = Object.freeze([
   'Frozen'
 ]);
 
+const REVIEWED_POSITIVE_ID_FALLBACK_NPC_INTERNAL_NAMES = new Set([
+  'DesertLamiaLight',
+  'DesertScorpionWalk',
+  'DiabolistRed',
+  'PigronCorruption',
+  'RustyArmoredBonesAxe',
+  'ZombieEskimo',
+]);
+
 function commonPrefix(values) {
   if (!values.length) return '';
   let prefix = values[0] ?? '';
@@ -637,7 +646,10 @@ export function resolveNpcRef(row = {}, npcIndex = new Map()) {
   }
   if (candidates.length && isPositiveIdFallbackResolution(rawResolution) && rawInternalName) {
     const exactCandidates = dedupeCandidates(candidates.filter((candidate) => candidateInternalName(candidate) === rawInternalName));
-    if (exactCandidates.length === 1 && isRepresentativeSafeNpcFamily(candidates, rawInternalName)) {
+    if (
+      exactCandidates.length === 1 &&
+      (isRepresentativeSafeNpcFamily(candidates, rawInternalName) || REVIEWED_POSITIVE_ID_FALLBACK_NPC_INTERNAL_NAMES.has(rawInternalName))
+    ) {
       candidates = exactCandidates;
     }
   }

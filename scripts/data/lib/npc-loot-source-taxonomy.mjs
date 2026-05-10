@@ -48,6 +48,11 @@ const COLLECTIVE_BUCKET_NAMES = new Set([
 ]);
 
 const NON_NPC_PATTERNS = Object.freeze([
+  /^bonus\s+drop$/i,
+  /^expert\s+mode$/i,
+  /^geode$/i,
+  /^pigronata$/i,
+  /^shadow\s+hammer$/i,
   /\bchest\b/i,
   /\bcrate\b/i,
   /\btreasure\s+bag\b/i,
