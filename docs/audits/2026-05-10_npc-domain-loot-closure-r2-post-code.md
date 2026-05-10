@@ -141,3 +141,60 @@ Remaining blockers are still real:
 - Runtime parity has `duplicate_or_polluted=33`, mostly duplicate local rows or local-visible rows without relation provenance.
 - Source coverage still has `source_page_missing=102` and `group_page_present_variant_not_extracted=91`.
 - Domain chain still requires zero-loot contract/materialization triage, non-NPC source exclusions, and dry-run evidence before any apply.
+
+## Traceable Maint Source Count Fix
+
+The `r2-coverage-exact-evidence` report still used `maintSourceCount` values that could be produced by display-name matching. That hid variant source gaps for shared-name families such as Hornet, Zombie, Skeleton, and Demon Eye. The report now exposes `maintSourceCount` from traceable current-NPC maint rows only.
+
+Report: `reports/audit/npc-source-coverage-inventory-2026-05-10-r2-traceable-maint.json`
+
+| Source coverage status | Exact evidence | Traceable maint |
+| --- | ---: | ---: |
+| `source_page_present_with_loot` | 422 | 264 |
+| `source_page_present_no_loot` | 147 | 149 |
+| `source_page_missing` | 102 | 102 |
+| `group_page_present_variant_not_extracted` | 91 | 247 |
+
+Domain report after the same source coverage tag:
+
+Report: `reports/audit/npc-domain-loot-chain-2026-05-10-r2-traceable-maint.json`
+
+| Domain field | Previous post-code | Traceable maint |
+| --- | ---: | ---: |
+| `unclassifiedZero` | 319 | 163 |
+| `blockedSourceGap` | 193 | 349 |
+| `releaseBlockingCount` | 2323 | 2323 |
+
+Interpretation:
+
+- The release is still blocked by the same total number of issues.
+- `156` rows moved from ambiguous zero-loot classification into source-gap classification.
+- This is the correct safer boundary: a display-name maint count is not variant-specific source evidence.
+- It confirms the remaining task is whole-domain variant/source extraction and reviewed contracts, not a Mimic-only patch.
+
+Validation:
+
+```powershell
+node --test scripts/data/audit/npc-loot-runtime-parity-audit.test.mjs scripts/data/audit/npc-source-coverage-inventory.test.mjs scripts/data/audit/npc-domain-loot-chain-audit.test.mjs
+git diff --check
+```
+
+Result: `34/34` Node tests passed; `git diff --check` returned no errors.
+
+## Non-NPC Source Exclusion Boundary
+
+Read-only review concluded that non-NPC source rows must use a separate reviewed exclusion contract. They must remain non-materializable and must never become `item_npc_loot_relations`.
+
+Recommended contract file:
+
+- `docs/contracts/npc-domain-non-npc-source-exclusion-contract.md`
+
+Required behavior:
+
+- Match only reviewed exact or anchored regex source names.
+- Allowed reasons should be narrow, such as chest/container, crate/container, treasure bag, present, tree/environment, bag/container, lock box, heart/orb, mode/bonus bucket, or non-NPC item source entity.
+- Classification must return non-materializable blocked/excluded state before any NPC identity fallback can promote the row.
+- Relation processor must keep `npcSourceId`, `npcInternalName`, and `npcName` empty for excluded rows.
+- Domain audit may report reviewed exclusions separately, but `blockedNonNpcSourcePromoted` must remain `0`.
+
+This contract was not implemented in this checkpoint. It is the next safe Phase 3 task.

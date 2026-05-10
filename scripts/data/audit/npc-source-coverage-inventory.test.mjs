@@ -390,3 +390,44 @@ test('buildNpcSourceCoverageInventoryReport does not trust maint rows for anothe
 
   assert.equal(report.npcs[0].sourceCoverageStatus, 'source_page_missing');
 });
+
+test('buildNpcSourceCoverageInventoryReport reports maintSourceCount from traceable current-NPC rows', () => {
+  const report = buildNpcSourceCoverageInventoryReport({
+    standardizedPayload: {
+      records: [{ id: 1, internalName: 'BigHornetStingy', name: 'Hornet', flags: {} }]
+    },
+    coverageAudit: {
+      targets: [{
+        pageTitle: 'Hornet',
+        resolvedPageTitle: 'Hornet',
+        missing: false,
+        resolutionStatus: 'resolved',
+        alreadyCrawled: false,
+        standardizedRecords: [{ internalName: 'BigHornetStingy' }]
+      }]
+    },
+    coverageTargets: {
+      targets: [{
+        pageTitle: 'Hornet',
+        resolvedPageTitle: 'Hornet',
+        missing: false,
+        alreadyCrawled: true,
+        standardizedRecords: [{ internalName: 'Hornet' }, { internalName: 'BigHornetStingy' }]
+      }]
+    },
+    standardizedMap: { records: [{ internalName: 'BigHornetStingy', gameId: 1 }] },
+    stageCounts: new Map([[
+      'BigHornetStingy',
+      {
+        maintSourceCount: 2,
+        relationLootCount: 0,
+        projectionLootCount: 0,
+        localLootCount: 0,
+        maintSourceRows: []
+      }
+    ]])
+  });
+
+  assert.equal(report.npcs[0].maintSourceCount, 0);
+  assert.equal(report.npcs[0].sourceCoverageStatus, 'group_page_present_variant_not_extracted');
+});

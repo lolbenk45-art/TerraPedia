@@ -147,7 +147,7 @@ export function buildNpcSourceCoverageInventoryReport({
       sourceUrl: buildSourceUrl(coverage),
       crawlerCoverageStatus: resolveCrawlerCoverageStatus(coverage),
       standardizedLootCount,
-      maintSourceCount: counts.maintSourceCount,
+      maintSourceCount: traceableMaintSourceCount(npcInternalName, counts),
       maintSourceRows: counts.maintSourceRows,
       relationLootCount: counts.relationLootCount,
       projectionLootCount: counts.projectionLootCount,
@@ -304,13 +304,13 @@ function classifySourceCoverage({
   if (!coverage && !groupCoverage) {
     return 'source_page_missing';
   }
-  if (coverage && counts.maintSourceCount > 0) {
+  if (coverage && traceableMaintSourceCount(npcInternalName, counts) > 0) {
     return 'source_page_present_with_loot';
   }
   if (groupCoverage && !coverage && standardizedLootCount === 0) {
     return 'group_page_present_variant_not_extracted';
   }
-  if (groupCoverage && coverage && !coverage.alreadyCrawled && standardizedLootCount === 0 && counts.maintSourceCount === 0) {
+  if (groupCoverage && coverage && !coverage.alreadyCrawled && standardizedLootCount === 0 && traceableMaintSourceCount(npcInternalName, counts) === 0) {
     return 'group_page_present_variant_not_extracted';
   }
   if (coverage && !isHostileNpc(record)) {
@@ -325,8 +325,14 @@ function classifySourceCoverage({
 function hasExactNpcLootEvidence(npcInternalName, counts, standardizedLootCount) {
   if (standardizedLootCount > 0) return true;
   if (counts.relationLootCount > 0 || counts.projectionLootCount > 0 || counts.localLootCount > 0) return true;
+  return traceableMaintSourceCount(npcInternalName, counts) > 0;
+}
+
+function traceableMaintSourceCount(npcInternalName, counts) {
   const normalizedNpcInternalName = normalizeKey(npcInternalName);
-  return counts.maintSourceRows.some((row) => normalizeKey(row.sourceRefInternalName) === normalizedNpcInternalName);
+  return counts.maintSourceRows
+    .filter((row) => normalizeKey(row.sourceRefInternalName) === normalizedNpcInternalName)
+    .length;
 }
 
 function buildCoverageIndex(payload) {
