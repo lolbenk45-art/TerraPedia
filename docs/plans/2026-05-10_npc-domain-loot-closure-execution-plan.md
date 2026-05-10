@@ -4,7 +4,7 @@
 
 **Goal:** Close NPC loot as a full domain so every active NPC has either trusted direct loot, reviewed inherited loot, reviewed expected-zero status, or a release-blocking defect with no hidden runtime fallback pollution.
 
-**Architecture:** Use the existing governance/audit layer as the gate and fix the canonical chain upstream: `wiki/crawler source -> standardized NPC loot -> landing/maint source rows -> item_source_facts/source_details -> item_npc_loot_relations -> projection_npcs -> npc_loot_entries -> API/UI`. Runtime fallback may remain visible for diagnostics, but final trusted loot must be backed by relation/projection/local/API row identity.
+**Architecture:** Use the existing governance/audit layer as the gate and fix the canonical chain upstream: `wiki/crawler source -> standardized NPC loot -> landing/maint source rows -> item_source_facts/source_details -> item_npc_loot_relations -> projection_npcs -> npc_loot_entries -> API/UI`. Runtime fallback may remain visible for diagnostics, but final trusted loot must be backed by relation/projection/local/API row identity. Forward NPC loot row multiplicity is authoritative; reverse `item_sources` evidence may confirm provenance, but it must not collapse, overwrite, or dedupe distinct forward NPC drop rows.
 
 **Tech Stack:** Node.js crawler/audit/relation scripts, MySQL `terria_v1_maint` / `terria_v1_relation` / `terria_v1_local`, Spring Boot admin/public NPC APIs, Nuxt admin UI, public frontend.
 
@@ -50,6 +50,7 @@ Interpretation:
 
 - Do not hand-edit `npc_loot_entries`, `item_npc_loot_relations`, `projection_npcs`, or `npcs.loot_items_json`.
 - Do not use direct wiki/crawler output as runtime truth in API/UI.
+- Do not let item-side reverse evidence replace or merge distinct NPC forward loot rows.
 - Do not auto-fan-out generic buckets such as `Mimics`, `Hornets`, `Slimes`, `Mummies`, `Ghouls`, `Jellyfish`, `Pigrons`, `Sand Sharks`, `The Twins`, or `Celestial Pillars`.
 - Do not turn runtime fallback rows into `trustedStructured=true` unless a checked-in inheritance contract and relation/projection/local/API parity support it.
 - Do not claim closure while any final gate has `unclassifiedZero`, `blockedSourceGap`, `relationGap`, `projectionGap`, `localGap`, `apiGap`, `duplicateOrPolluted`, `runtimeFallbackOnly`, `projectionOnly`, `countParityOnly`, `unknown`, or blocked materializable source rows.
@@ -451,6 +452,7 @@ node scripts/data/relation/sync-relation-to-local-compat-tables.mjs --apply=fals
 - `npcs` reads `npc_item_relations_bundle_raw`, which is the NPC page / group-page forward loot path.
 - `item_sources` reads `item_relations_bundle_raw`, which is the item-page reverse source path.
 - In current `sync-landing-to-maint` behavior, requesting `npcs` also allows extracted `item_sources` and `backfill_candidates` rows from `npc_item_relations_bundle_raw`; dry-run review must inspect `summary.rows.byScope` and reject unexpected scopes or row deltas unrelated to NPC loot closure.
+- `item_sources` is validation input, not a license to compress forward NPC drop cardinality. If reverse evidence and forward evidence disagree on count or row identity, the forward NPC loot rows win and the discrepancy must remain a blocker until explained.
 
 Running only `--scopes=item_sources` is not valid for this plan because it would repeat the previous source-strategy bug: item-page reverse evidence could be processed while variant-specific NPC page drops stay out of maint.
 
@@ -543,6 +545,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-st
 - [ ] Validate regression samples as examples:
 
 ```text
+Death
+DeathSickle
 BigMimicCrimson
 PresentMimic
 BigHornetStingy
@@ -559,6 +563,8 @@ Hornet entries above are concrete NPC internal names from the current source cov
 - [ ] For each sample, record:
 
 ```text
+source row count
+source drop row identity count
 relation row count
 projection row count
 local row count
@@ -567,6 +573,8 @@ runtime lootSourceMode values
 trustedStructured values
 UI visible direct/fallback separation
 ```
+
+For each sample, verify that the source row count and distinct source-row identity count survive the full chain without being reduced by reverse item-source evidence.
 
 **Exit gate:**
 
@@ -640,6 +648,7 @@ Checklist result:
 - The plan does not accept named-family samples as completion.
 - Expected-zero and inheritance are contract-backed, not inferred from zero rows or display names.
 - Generic bucket fan-out is forbidden unless exact section evidence or reviewed item-scoped mapping exists.
+- Reverse item-side evidence is auxiliary and never authoritative over forward NPC drop multiplicity.
 - DB writes are delayed until read-only classification, dry-run review, and rollback counts exist.
 - Runtime fallback remains diagnostic and untrusted unless promoted by contract plus parity.
 - Final gates require both domain audit and runtime parity to pass with zero blockers.
