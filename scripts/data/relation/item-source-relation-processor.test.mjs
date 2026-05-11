@@ -559,6 +559,73 @@ test('buildItemSourceRelations preserves generated npc loot conditionText', () =
   assert.equal(actual.npcLootRelations[0].conditionSourceText, 'During Christmas only');
 });
 
+test('buildItemSourceRelations preserves duplicate forward NPC loot evidence rows', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 2531,
+        record_key: 'npc-item:reaper:loot:death-sickle:0',
+        item_internal_name: 'DeathSickle',
+        item_name: 'Death Sickle',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Reaper',
+        sort_order: 0,
+        raw_json: JSON.stringify({
+          itemInternalName: 'DeathSickle',
+          sourceRefName: 'Reaper',
+          sourceRefInternalName: 'Reaper',
+          sourceRefResolution: 'exact_internal_name',
+          quantityText: '1',
+          chanceText: '2.5%',
+          sourceRowIndex: 0
+        }),
+        landing_source_id: 51,
+        landing_source_key: 'generated.npc_item_relations_bundle:chunk:0001',
+        landing_content_hash: 'f'.repeat(64),
+        source_provider: 'wiki_gg',
+        source_page: 'Reaper'
+      },
+      {
+        id: 2532,
+        record_key: 'npc-item:reaper:loot:death-sickle:1',
+        item_internal_name: 'DeathSickle',
+        item_name: 'Death Sickle',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Reaper',
+        sort_order: 1,
+        raw_json: JSON.stringify({
+          itemInternalName: 'DeathSickle',
+          sourceRefName: 'Reaper',
+          sourceRefInternalName: 'Reaper',
+          sourceRefResolution: 'exact_internal_name',
+          quantityText: '1',
+          chanceText: '2.5%',
+          sourceRowIndex: 1
+        }),
+        landing_source_id: 51,
+        landing_source_key: 'generated.npc_item_relations_bundle:chunk:0001',
+        landing_content_hash: 'f'.repeat(64),
+        source_provider: 'wiki_gg',
+        source_page: 'Reaper'
+      }
+    ],
+    npcIndex: new Map([
+      ['Reaper', { source_id: 253, internal_name: 'Reaper', name: 'Reaper' }],
+      ['reaper', { source_id: 253, internal_name: 'Reaper', name: 'Reaper' }]
+    ])
+  });
+
+  assert.equal(actual.sourceFacts.length, 2);
+  assert.equal(actual.sourceDetails.length, 2);
+  assert.equal(actual.npcLootRelations.length, 2);
+  assert.deepEqual(actual.npcLootRelations.map((row) => row.sourceMaintRecordKey), [
+    'npc-item:reaper:loot:death-sickle:0',
+    'npc-item:reaper:loot:death-sickle:1'
+  ]);
+});
+
 test('buildItemSourceRelations does not materialize reviewed Mimics row when Mimic target is absent', () => {
   const actual = buildItemSourceRelations({
     itemSourceRows: [

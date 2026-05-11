@@ -82,6 +82,42 @@ test('buildNpcItemRelationsBundle preserves bridge-provided exact Mimic variant 
   assert.deepEqual(bundle.records[0].raw.sourceInfobox, { autoId: '473', image: 'Crimson Mimic.gif', name: 'Crimson Mimic' });
 });
 
+test('buildNpcItemRelationsBundle gives duplicate forward loot rows distinct record keys', () => {
+  const bundle = buildNpcItemRelationsBundle({
+    generatedAt: '2026-05-11T00:00:00.000Z',
+    standardizedPayload: {
+      records: [
+        {
+          id: 253,
+          internalName: 'Reaper',
+          name: 'Reaper',
+          wikiCrawler: {
+            pageTitle: 'Reaper',
+            loot: [
+              {
+                itemName: 'Death Sickle',
+                chanceText: '2.5%',
+                quantityText: '1',
+                sourceRowIndex: 0
+              },
+              {
+                itemName: 'Death Sickle',
+                chanceText: '2.5%',
+                quantityText: '1',
+                sourceRowIndex: 1
+              }
+            ]
+          }
+        }
+      ]
+    }
+  });
+
+  assert.equal(bundle.records.length, 2);
+  assert.deepEqual(bundle.records.map((record) => record.sourceRowIndex), [0, 1]);
+  assert.notEqual(bundle.records[0].recordKey, bundle.records[1].recordKey);
+});
+
 test('buildNpcItemRelationsBundle does not fan out generic Mimics loot to variants', () => {
   const bundle = buildNpcItemRelationsBundle({
     generatedAt: '2026-05-09T00:00:00.000Z',

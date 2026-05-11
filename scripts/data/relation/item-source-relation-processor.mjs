@@ -174,6 +174,7 @@ function dedupeLootRelations(rows = []) {
   const bestByKey = new Map();
   for (const row of rows) {
     const key = JSON.stringify([
+      row.sourceFactKey ?? null,
       row.itemInternalName ?? null,
       row.npcInternalName ?? null,
       row.quantityText ?? null,

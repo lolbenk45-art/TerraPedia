@@ -184,7 +184,7 @@ export function buildNpcDomainLootChainReport(input = {}) {
   const acceptedSourceRowsByNpc = groupRowsBySourceNpc(sourceRows.filter((row) => row.sourceRowStatus === 'accepted_materializable'));
   const duplicateSourceRows = sourceRows.filter((row) => row.sourceRowStatus === 'duplicate_source_identity');
   const duplicateByNpc = groupRowsBySourceNpc(duplicateSourceRows);
-  const apiRowsProvided = options.requireApiEvidence !== false || (Array.isArray(input.apiLootRows) && input.apiLootRows.length > 0);
+  const apiRowsProvided = Array.isArray(input.apiLootRows) && input.apiLootRows.length > 0;
 
   const npcStatuses = activeNpcs.map((npc) => {
     const npcInternalName = normalizeText(npc.internalName ?? npc.internal_name);

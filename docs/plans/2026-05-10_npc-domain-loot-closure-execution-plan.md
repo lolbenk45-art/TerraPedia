@@ -1,6 +1,8 @@
 # NPC Domain Loot Closure Execution Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` for implementation. This is a whole NPC-domain closure plan, not a Mimic, Present Mimic, Hornet, Zombie, or any other family patch. Read-only discovery may run in parallel; crawler/parser edits, relation materialization edits, projection/local sync writes, API fallback edits, DB apply commands, and stack restarts are serial. Steps use checkbox (`- [ ]`) syntax for tracking.
+>
+> **Execution contract:** Before each phase, self-audit the plan text, current reports, and current code path for contradictions that would cause avoidable interruption. If execution discovers a code defect, missing regression test, stale report assumption, or incomplete audit classification, fix that upstream issue, update this plan or the phase audit doc if the execution path changed, rerun the affected gate, and continue the same closure task. Do not downgrade the task into a one-off family or item fix. Stop only for DB writes without completed dry-run/rollback evidence, destructive operations, missing credentials/services that cannot be inferred, or a blocker whose valid closure action cannot be determined from checked-in evidence.
 
 **Goal:** Close NPC loot as a full domain so every active NPC has either trusted direct loot, reviewed inherited loot, reviewed expected-zero status, or a release-blocking defect with no hidden runtime fallback pollution.
 
@@ -18,9 +20,11 @@ Baseline reports from 2026-05-10:
 - `reports/audit/npc-source-coverage-inventory-2026-05-10-execution-final.json`
 - `reports/audit/npc-loot-runtime-parity-2026-05-10-execution-final.json`
 
-Current blockers:
+These reports are historical context, not the execution source of truth. Phase 0 must generate a fresh, uniquely named 2026-05-11 execution baseline and every later phase must cite that exact report path. If multiple same-date reports exist, the plan owner must name the authoritative path explicitly; choosing "latest by date" is not valid evidence. Every hardcoded blocker count below is a historical example only; workers must take executable row lists and counts from the authoritative Phase 0 2026-05-11 baseline reports.
 
-| Gate | Current value | Meaning |
+Historical blocker snapshot:
+
+| Gate | Historical value | Meaning |
 | --- | ---: | --- |
 | `activeNpcs` | `762` | Full closure scope. |
 | `unknown` | `0` | Audit can classify every active NPC. |
@@ -65,9 +69,9 @@ Interpretation:
 Run all final gates after apply and stack restart:
 
 ```powershell
-node scripts/data/audit/npc-source-coverage-inventory.mjs --write-report=true --date-tag=2026-05-10-final; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-node scripts/data/audit/npc-domain-loot-chain-audit.mjs --write-report=true --date-tag=2026-05-10-final; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-node scripts/data/audit/npc-loot-runtime-parity-audit.mjs --write-report=true --date-tag=2026-05-10-final; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+node scripts/data/audit/npc-source-coverage-inventory.mjs --write-report=true --date-tag=2026-05-11-closure-final; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+node scripts/data/audit/npc-domain-loot-chain-audit.mjs --write-report=true --date-tag=2026-05-11-closure-final; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+node scripts/data/audit/npc-loot-runtime-parity-audit.mjs --write-report=true --date-tag=2026-05-11-closure-final; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 node --test scripts/data/audit/npc-domain-loot-chain-audit.test.mjs scripts/data/audit/npc-source-coverage-inventory.test.mjs scripts/data/audit/npc-loot-runtime-parity-audit.test.mjs; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 node --test scripts/data/crawler/tests/npc-parser.test.mjs scripts/data/crawler/tests/build-npc-standardized-bridge.test.mjs scripts/data/fetch/build-npc-item-relations-bundle.test.mjs; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 node --test scripts/data/lib/npc-loot-source-taxonomy.test.mjs scripts/data/relation/item-source-relation-processor.test.mjs scripts/data/relation/sync-maint-to-relation.test.mjs scripts/data/relation/sync-relation-to-local-compat-tables.test.mjs; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -92,10 +96,10 @@ Required final values:
 - `projectionOnly = 0`
 - `countParityOnly = 0`
 - `unknown = 0`
-- `blockedGenericBucket = 0`, unless the audit is first changed to report reviewed non-materializable generic buckets as a separate non-blocking status
-- `blockedAmbiguousVariant = 0`, unless the audit is first changed to report reviewed non-materializable ambiguous variants as a separate non-blocking status
-- `blockedMissingItemOrNpcIdentity = 0`, unless the audit is first changed to report reviewed non-materializable identity gaps as a separate non-blocking status
-- `blockedNonNpcSource = 0`, unless the audit is first changed to report reviewed non-NPC exclusions as a separate non-blocking status
+- `blockedGenericBucket = 0`; reviewed non-materializable generic buckets must be reported only in a separate non-blocking field and excluded from `releaseBlockingCount`
+- `blockedAmbiguousVariant = 0`; reviewed non-materializable ambiguous variants must be reported only in a separate non-blocking field and excluded from `releaseBlockingCount`
+- `blockedMissingItemOrNpcIdentity = 0`; reviewed non-materializable identity gaps must be reported only in a separate non-blocking field and excluded from `releaseBlockingCount`
+- `blockedNonNpcSource = 0`; reviewed non-NPC exclusions must be reported only in a separate non-blocking field and excluded from `releaseBlockingCount`
 - `blockedNonNpcSourcePromoted = 0`
 - `npc-loot-runtime-parity`: `auditStatus = pass`, `blockingCount = 0`
 - No API-visible loot row may have `trustedStructured=true` without relation-backed stable identity.
@@ -133,7 +137,7 @@ Coordination rules:
 
 **Files:**
 
-- Create: `docs/audits/2026-05-10_npc-domain-loot-closure-baseline.md`
+- Create: `docs/audits/2026-05-11_npc-domain-loot-closure-baseline.md`
 - Read: `docs/plans/2026-05-10_npc-domain-loot-data-chain-governance-plan.md`
 - Read: `docs/contracts/npc-domain-expected-zero-contract.md`
 - Read: `docs/contracts/npc-domain-loot-inheritance-contract.md`
@@ -162,12 +166,14 @@ Expected:
 - [ ] Regenerate the read-only baseline reports:
 
 ```powershell
-node scripts/data/audit/npc-source-coverage-inventory.mjs --write-report=true --date-tag=2026-05-10-closure-baseline; $coverageCode=$LASTEXITCODE
-node scripts/data/audit/npc-domain-loot-chain-audit.mjs --write-report=true --date-tag=2026-05-10-closure-baseline; $domainCode=$LASTEXITCODE
-node scripts/data/audit/npc-loot-runtime-parity-audit.mjs --write-report=true --date-tag=2026-05-10-closure-baseline; $runtimeCode=$LASTEXITCODE
+node scripts/data/audit/npc-source-coverage-inventory.mjs --write-report=true --date-tag=2026-05-11-closure-baseline; $coverageCode=$LASTEXITCODE
+node scripts/data/audit/npc-domain-loot-chain-audit.mjs --write-report=true --date-tag=2026-05-11-closure-baseline; $domainCode=$LASTEXITCODE
+node scripts/data/audit/npc-loot-runtime-parity-audit.mjs --write-report=true --date-tag=2026-05-11-closure-baseline; $runtimeCode=$LASTEXITCODE
 ```
 
 `npc-domain-loot-chain-audit` depends on the same-tag `npc-source-coverage-inventory` report. Always generate source coverage first; running domain audit before coverage is a Phase 0 ordering bug, not valid evidence. Current baseline audits are expected to return blocked exit codes (`npc-domain-loot-chain-audit` exits `2`; `npc-loot-runtime-parity-audit` exits non-zero when blocked). Phase 0 must treat those non-zero exits as expected only if the report file is written and readable. A missing report, unreadable JSON, DB connection error, or `evidenceHealth` other than `sufficient` is a Phase 0 blocker.
+
+The same `date-tag` must not be reused for another run in the same execution branch. If a rerun is needed, use a new tag such as `2026-05-11-closure-baseline-r2` or pass an explicit `--output` path and record the authoritative path in the baseline audit doc.
 
 Allowed Phase 0 baseline exit codes:
 
@@ -175,7 +181,7 @@ Allowed Phase 0 baseline exit codes:
 - `$coverageCode` must be `0`; any non-zero value blocks the plan.
 - `$runtimeCode` may be `0` or `1`; any other value blocks the plan.
 
-- [ ] Write `docs/audits/2026-05-10_npc-domain-loot-closure-baseline.md` with:
+- [ ] Write `docs/audits/2026-05-11_npc-domain-loot-closure-baseline.md` with:
 
 - Baseline report paths.
 - All summary counts listed in "Current Baseline".
@@ -191,7 +197,7 @@ Allowed Phase 0 baseline exit codes:
 
 ---
 
-## Phase 1: Classify `unclassifiedZero = 319`
+## Phase 1: Classify Phase 0 `unclassifiedZero`
 
 **Purpose:** Convert every zero-loot NPC into an explicit reviewed state before fixing parser/materialization. This avoids treating "current DB has zero rows" as proof.
 
@@ -201,9 +207,9 @@ Allowed Phase 0 baseline exit codes:
 - Modify if needed: `scripts/data/audit/npc-domain-loot-chain-audit.test.mjs`
 - Modify: `docs/contracts/npc-domain-expected-zero-contract.md`
 - Modify: `docs/contracts/npc-domain-loot-inheritance-contract.md`
-- Create: `docs/audits/2026-05-10_npc-unclassified-zero-triage.md`
+- Create: `docs/audits/2026-05-11_npc-unclassified-zero-triage.md`
 
-- [ ] Export the 319 NPC list from the baseline report into triage groups:
+- [ ] Export the `unclassifiedZero` NPC list from the authoritative Phase 0 baseline report into triage groups. The historical 2026-05-10 count was 319; do not use it as an execution target if the Phase 0 report differs.
 
 ```text
 expected_zero_candidate
@@ -267,7 +273,7 @@ Contract-backed statuses short-circuit only source-gap and fallback-only checks.
 - Modify if needed: `scripts/data/fetch/build-npc-item-relations-bundle.mjs`
 - Modify tests: `scripts/data/fetch/build-npc-item-relations-bundle.test.mjs`
 
-- [ ] Split `blockedSourceGap = 193` into:
+- [ ] Split `blockedSourceGap` rows from the authoritative Phase 0 baseline report into:
 
 ```text
 source_page_missing
@@ -277,7 +283,7 @@ source_page_present_no_loot_but_hostile
 coverage_alias_or_internal_name_mismatch
 ```
 
-- [ ] For `group_page_present_variant_not_extracted = 96`, fix parser/bridge behavior by layout pattern:
+- [ ] For `group_page_present_variant_not_extracted` rows from the authoritative Phase 0 baseline report, fix parser/bridge behavior by layout pattern:
 
 | Pattern | Required behavior |
 | --- | --- |
@@ -299,7 +305,7 @@ segment_or_body_expected_inheritance
 - [ ] Regenerate read-only source coverage inventory after parser/bridge changes:
 
 ```powershell
-node scripts/data/audit/npc-source-coverage-inventory.mjs --write-report=true --date-tag=2026-05-10-source-coverage-r1
+node scripts/data/audit/npc-source-coverage-inventory.mjs --write-report=true --date-tag=2026-05-11-source-coverage-r1
 ```
 
 **Exit gate:**
@@ -326,7 +332,7 @@ node scripts/data/audit/npc-source-coverage-inventory.mjs --write-report=true --
 - Modify if needed: `scripts/data/relation/sync-maint-to-relation.mjs`
 - Modify tests: `scripts/data/relation/sync-maint-to-relation.test.mjs`
 
-- [ ] Group source-row blockers from `npc-domain-loot-chain`:
+- [ ] Group source-row blockers from the authoritative Phase 0 `npc-domain-loot-chain` report. The values below are historical examples only; replace them with the Phase 0 report values in the phase audit doc before implementation:
 
 ```text
 blocked_generic_bucket = 68
@@ -358,7 +364,9 @@ relationGap = 6
 
 Do not simply delete blocker accounting. If non-NPC rows are legitimate source records for other domains, the audit must stop counting them as NPC loot release blockers by giving them a checked, non-blocking status such as `reviewed_non_npc_exclusion`. If the audit cannot express that distinction, fix the audit first; otherwise final `auditStatus=pass` is impossible.
 
-- [ ] For the six `relationGap` rows, identify the class first. If they are representatives of a broader class, add tests for the class before implementation.
+- [ ] For all `relationGap` rows from the authoritative Phase 0 baseline report, identify the class first. If they are representatives of a broader class, add tests for the class before implementation.
+
+- [ ] Add a regression test proving forward NPC loot row identity survives materialization. At minimum, use a Reaper-style fixture where two NPC-page forward loot rows have the same NPC and item but different forward row provenance, and assert they do not collapse into one relation row. Reverse item-page evidence may not override this test.
 
 **Exit gate:**
 
@@ -393,7 +401,7 @@ Do not simply delete blocker accounting. If non-NPC rows are legitimate source r
 - Modify if needed: `front/src/views/NpcDetailView.vue`
 - Modify tests: `front/src/tests/npc-detail-entry.spec.ts`
 
-- [ ] Resolve `count_parity_only = 79` by canonical row identity normalization:
+- [ ] Resolve `count_parity_only` rows from the authoritative Phase 0 runtime parity report by canonical row identity normalization:
 
 | Drift class | Required fix |
 | --- | --- |
@@ -401,7 +409,7 @@ Do not simply delete blocker accounting. If non-NPC rows are legitimate source r
 | Quantity/chance formatting drift | Normalize before stable key generation and projection/local sync. |
 | Local/API missing relation keys | Carry relation/source provenance into DTO where available; do not invent keys. |
 
-- [ ] Resolve `apiGap = 214` by making API output match trusted local/relation identities.
+- [ ] Resolve `apiGap` rows from the authoritative Phase 0 domain report by making API output match trusted local/relation identities. If `apiGap` exists only because the domain audit did not load API evidence, fix the audit or run the runtime parity audit rather than treating it as a product-data blocker.
 
 - [ ] Keep fallback rows visible only as untrusted diagnostics:
 
@@ -434,18 +442,18 @@ Final zero counts for runtime `count_parity_only`, runtime `duplicate_or_pollute
 - Read: `scripts/data/relation/sync-maint-to-relation.mjs`
 - Read: `scripts/data/relation/sync-projection-to-local-core-tables.mjs`
 - Read: `scripts/data/relation/sync-relation-to-local-compat-tables.mjs`
-- Create: `docs/audits/2026-05-10_npc-domain-loot-closure-dry-run.md`
+- Create: `docs/audits/2026-05-11_npc-domain-loot-closure-dry-run.md`
 
 - [ ] Run dry-run commands only:
 
 ```powershell
-node scripts/data/maint/sync-landing-to-maint.mjs --apply=false --scopes=npcs,item_sources --output=reports/maint-sync-npc-domain-loot-2026-05-10-dry-run.json
+node scripts/data/maint/sync-landing-to-maint.mjs --apply=false --scopes=npcs,item_sources --output=reports/maint-sync-npc-domain-loot-2026-05-11-dry-run.json
 node scripts/data/relation/sync-maint-to-relation.mjs --apply=false --scopes=npc --relation-database=terria_v1_relation --maint-database=terria_v1_maint --local-database=terria_v1_local
 node scripts/data/relation/sync-projection-to-local-core-tables.mjs --apply=false --domains=npcs --relation-database=terria_v1_relation --local-database=terria_v1_local
 node scripts/data/relation/sync-relation-to-local-compat-tables.mjs --apply=false --relation-database=terria_v1_relation --local-database=terria_v1_local
 ```
 
-- [ ] If any command writes despite `--apply=false`, stop and fix that script/test before continuing.
+- [ ] If any command writes despite `--apply=false`, treat it as an execution-blocking script defect: add or update the failing test, fix the script, rerun the affected dry-run command, update the phase audit doc, and continue from Phase 5.
 
 `sync-landing-to-maint` must include both scopes:
 
@@ -474,6 +482,7 @@ expected blocker count
 **Exit gate:**
 
 - Dry-run deltas match Phase 1 to Phase 4 classification.
+- If code repairs change row identity, filtering, or classification behavior, rerun the dry-run and update this document before apply; the prior dry-run is no longer valid evidence.
 - `npc-domain-loot-chain-audit` has no unresolved Phase 1, Phase 2, or Phase 3 blockers except rows classified as `requires_data_apply` by the dry-run delta or reviewed non-blocking fields explicitly excluded from `releaseBlockingCount`.
 - Any blocker classified as `requires_data_apply` must name the exact writer command and expected table delta that will clear it.
 - `maint-sync` dry-run `summary.rows.byScope` contains only expected NPC loot closure scopes and no unrelated product-domain updates.
@@ -489,7 +498,7 @@ expected blocker count
 
 **Files:**
 
-- Create: `docs/audits/2026-05-10_npc-domain-loot-closure-apply.md`
+- Create: `docs/audits/2026-05-11_npc-domain-loot-closure-apply.md`
 
 - [ ] Record rollback checkpoint before apply:
 
@@ -507,7 +516,7 @@ SELECT COUNT(*) FROM terria_v1_local.npc_shop_conditions WHERE deleted = 0;
 - [ ] Run apply commands serially:
 
 ```powershell
-node scripts/data/maint/sync-landing-to-maint.mjs --apply=true --scopes=npcs,item_sources --output=reports/maint-sync-npc-domain-loot-2026-05-10-apply.json
+node scripts/data/maint/sync-landing-to-maint.mjs --apply=true --scopes=npcs,item_sources --output=reports/maint-sync-npc-domain-loot-2026-05-11-apply.json
 node scripts/data/relation/sync-maint-to-relation.mjs --apply=true --scopes=npc --relation-database=terria_v1_relation --maint-database=terria_v1_maint --local-database=terria_v1_local
 node scripts/data/relation/sync-projection-to-local-core-tables.mjs --apply=true --domains=npcs --relation-database=terria_v1_relation --local-database=terria_v1_local
 node scripts/data/relation/sync-relation-to-local-compat-tables.mjs --apply=true --relation-database=terria_v1_relation --local-database=terria_v1_local
@@ -520,7 +529,7 @@ node scripts/data/relation/sync-relation-to-local-compat-tables.mjs --apply=true
 - Apply commands ran serially.
 - Post-apply counts match dry-run expectations.
 - Post-apply `item_acquisition_sources`, `npc_shop_entries`, and `npc_shop_conditions` counts match dry-run expectations.
-- Any mismatch stops execution and triggers rollback/diagnosis before continuing.
+- Any mismatch triggers rollback/diagnosis before continuing. After the non-destructive repair or rollback verification is complete, rerun the affected apply/dry-run evidence, update the apply audit doc, and continue from the same phase unless the rollback itself fails.
 
 ---
 
@@ -533,7 +542,7 @@ node scripts/data/relation/sync-relation-to-local-compat-tables.mjs --apply=true
 - Modify tests if needed: `data-query-app/tests/npc-projection-json-visibility.test.mjs`
 - Modify tests if needed: `front/src/tests/npc-detail-entry.spec.ts`
 - Modify tests if needed: backend NPC tests listed above
-- Create: `docs/audits/2026-05-10_npc-domain-loot-closure-runtime.md`
+- Create: `docs/audits/2026-05-11_npc-domain-loot-closure-runtime.md`
 
 - [ ] Restart local stack only after data apply:
 
@@ -545,8 +554,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-st
 - [ ] Validate regression samples as examples:
 
 ```text
-Death
-DeathSickle
+Reaper
+Reaper -> DeathSickle
 BigMimicCrimson
 PresentMimic
 BigHornetStingy
@@ -558,7 +567,7 @@ Any NPC from the current duplicate_or_polluted sample set
 Any NPC from the current count_parity_only sample set
 ```
 
-Hornet entries above are concrete NPC internal names from the current source coverage inventory. They are regression samples for same-display-name handling, not authorization to expand a generic `Hornets` bucket.
+`Reaper -> DeathSickle` is the user-reported Death/DeathSickle sample: `Reaper` is the NPC identity and `DeathSickle` is an item drop to validate, not a separate NPC. Hornet entries above are concrete NPC internal names from the current source coverage inventory. They are regression samples for same-display-name handling, not authorization to expand a generic `Hornets` bucket.
 
 - [ ] For each sample, record:
 
@@ -590,7 +599,7 @@ For each sample, verify that the source row count and distinct source-row identi
 
 **Files:**
 
-- Create: `docs/audits/2026-05-10_npc-domain-loot-closure-closeout.md`
+- Create: `docs/audits/2026-05-11_npc-domain-loot-closure-closeout.md`
 - Modify if needed: `docs/todo/backlog.md`
 
 - [ ] Run final gates from "Final Acceptance Gates".
@@ -613,12 +622,12 @@ rollback note
 ```powershell
 git status --short
 git add docs/plans/2026-05-10_npc-domain-loot-closure-execution-plan.md
-git add docs/audits/2026-05-10_npc-domain-loot-closure-baseline.md
-git add docs/audits/2026-05-10_npc-unclassified-zero-triage.md
-git add docs/audits/2026-05-10_npc-domain-loot-closure-dry-run.md
-git add docs/audits/2026-05-10_npc-domain-loot-closure-apply.md
-git add docs/audits/2026-05-10_npc-domain-loot-closure-runtime.md
-git add docs/audits/2026-05-10_npc-domain-loot-closure-closeout.md
+git add docs/audits/2026-05-11_npc-domain-loot-closure-baseline.md
+git add docs/audits/2026-05-11_npc-unclassified-zero-triage.md
+git add docs/audits/2026-05-11_npc-domain-loot-closure-dry-run.md
+git add docs/audits/2026-05-11_npc-domain-loot-closure-apply.md
+git add docs/audits/2026-05-11_npc-domain-loot-closure-runtime.md
+git add docs/audits/2026-05-11_npc-domain-loot-closure-closeout.md
 git add docs/contracts/npc-domain-expected-zero-contract.md
 git add docs/contracts/npc-domain-loot-inheritance-contract.md
 ```

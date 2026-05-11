@@ -317,6 +317,65 @@ test('extractMaintEntitiesFromLandingRow expands NPC item relation bundles into 
   assert.deepEqual(JSON.parse(candidateRow.evidenceJson), [{ sourcePage: 'Unknown NPC', parserSection: 'drops' }]);
 });
 
+test('extractMaintEntitiesFromLandingRow preserves duplicate forward NPC loot row keys', async () => {
+  const landingRow = {
+    id: 92,
+    dataset_type: 'npc_item_relations_bundle_raw',
+    provider: 'terrapedia.generated',
+    source_page: 'npc-item-relations.bundle',
+    source_key: 'generated.npc_item_relations_bundle',
+    source_revision_timestamp: null,
+    content_hash: 'r'.repeat(64),
+    fetched_at: '2026-05-11T00:00:00Z',
+    parsed_at: '2026-05-11T00:00:00Z',
+    payload_json: JSON.stringify({
+      schemaVersion: 1,
+      source: 'wiki-crawler:npc',
+      records: [
+        {
+          recordKey: 'npc-item:reaper:loot:death-sickle:0',
+          relationType: 'loot',
+          npcInternalName: 'Reaper',
+          npcName: 'Reaper',
+          itemName: 'Death Sickle',
+          chanceText: '2.5%',
+          quantityText: '1',
+          sourceRowIndex: 0,
+          sourceRefInternalName: 'Reaper',
+          sourceRefResolution: 'exact_internal_name',
+          sourceUrl: 'https://terraria.wiki.gg/wiki/Reaper',
+          raw: { itemName: 'Death Sickle', sourceRowIndex: 0 }
+        },
+        {
+          recordKey: 'npc-item:reaper:loot:death-sickle:1',
+          relationType: 'loot',
+          npcInternalName: 'Reaper',
+          npcName: 'Reaper',
+          itemName: 'Death Sickle',
+          chanceText: '2.5%',
+          quantityText: '1',
+          sourceRowIndex: 1,
+          sourceRefInternalName: 'Reaper',
+          sourceRefResolution: 'exact_internal_name',
+          sourceUrl: 'https://terraria.wiki.gg/wiki/Reaper',
+          raw: { itemName: 'Death Sickle', sourceRowIndex: 1 }
+        }
+      ],
+      backfillCandidates: []
+    })
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+  const sourceRows = actual.rows.filter((row) => row.tableName === 'maint_item_sources');
+
+  assert.equal(sourceRows.length, 2);
+  assert.deepEqual(sourceRows.map((row) => row.recordKey), [
+    'npc-item:reaper:loot:death-sickle:0',
+    'npc-item:reaper:loot:death-sickle:1'
+  ]);
+  assert.deepEqual(sourceRows.map((row) => row.sortOrder), [0, 1]);
+});
+
 test('runMaintSync includes NPC item bundle item source and candidate rows for npc scope dry runs', async () => {
   const summary = await runMaintSync(
     { apply: false, scopes: ['npcs'] },

@@ -35,8 +35,9 @@ function buildRelationRecord({ npc, row, relationType, sortOrder }) {
   const itemName = row.itemName ?? row.item ?? row.name ?? null;
   const pageTitle = npc.wikiCrawler?.pageTitle ?? npcName;
   const sourceMetadata = npc.wikiCrawler?.sourceMetadata ?? {};
+  const sourceRowIdentity = row.sourceRowKey ?? row.sourceRowIndex ?? sortOrder;
   return {
-    recordKey: `npc-item:${slug(npcInternalName ?? npcName)}:${relationType}:${slug(itemName)}`,
+    recordKey: `npc-item:${slug(npcInternalName ?? npcName)}:${relationType}:${slug(itemName)}:${slug(sourceRowIdentity)}`,
     relationType,
     npcInternalName,
     npcName,

@@ -186,6 +186,28 @@ test('runNpcDomainLootChainAudit default path includes source gaps, runtime fall
   assert.equal(result.report.npcStatuses[0].npcStatus, 'runtime_fallback_only');
 });
 
+test('runNpcDomainLootChainAudit default empty API loader does not fabricate api gaps', async () => {
+  const result = await runNpcDomainLootChainAudit(
+    { writeReport: false, dateTag: '2026-05-11-empty-api-loader-test' },
+    {
+      connection: {},
+      loadActiveNpcs: async () => [{ internalName: 'DirectNpc', name: 'Direct NPC', isTownNpc: false }],
+      loadSourceRows: async () => [],
+      loadRelationLootRows: async () => [{ npcInternalName: 'DirectNpc', itemInternalName: 'ItemA' }],
+      loadProjectionLootRows: async () => [{ npcInternalName: 'DirectNpc', itemInternalName: 'ItemA' }],
+      loadLocalLootRows: async () => [{ npcInternalName: 'DirectNpc', itemInternalName: 'ItemA' }],
+      loadContracts: async () => ({ expectedZeroRules: [], inheritanceRules: [], contractFiles: [] }),
+      loadSourceGaps: async () => [],
+      loadRuntimeFallbackRows: async () => [],
+      loadApiLootRows: async () => [],
+      loadPollutionRows: async () => [],
+    }
+  );
+
+  assert.equal(result.report.npcStatuses[0].npcStatus, 'trusted_direct_loot');
+  assert.equal(result.report.summary.apiGap, 0);
+});
+
 test('runNpcDomainLootChainAudit default source-gap loader consumes source coverage report', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'npc-domain-audit-'));
   const reportPath = path.join(tempDir, 'source-coverage.json');
