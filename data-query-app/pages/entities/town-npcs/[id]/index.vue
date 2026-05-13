@@ -40,7 +40,7 @@
             <div class="overview-shell">
               <article class="identity-panel">
                 <div class="identity-panel__portrait">
-                  <img v-if="selectedRow.imageUrl" :src="selectedRow.imageUrl" :alt="selectedRow.nameZh || selectedRow.name || selectedRow.internalName || 'NPC'" class="identity-panel__portrait-image" />
+                  <img v-if="mainImageUrl" :src="mainImageUrl" :alt="selectedRow.nameZh || selectedRow.name || selectedRow.internalName || 'NPC'" class="identity-panel__portrait-image" />
                   <div v-else class="identity-panel__portrait-fallback">{{ buildFallback(selectedRow) }}</div>
                 </div>
 
@@ -190,6 +190,7 @@ import {
   formatUnmatchedItems,
   resolveKnockBackResist,
   resolveNpcStat,
+  resolveTownNpcMainImage,
   resolveTownNpcShopItemImage,
   rowsFromOverview,
   wikiAssetCards,
@@ -208,6 +209,7 @@ const npcId = computed(() => Number(route.params.id || 0))
 const selectedRow = computed<TownNpcRow | null>(() => rowsFromOverview(overview.value).find(row => Number(row.id) === npcId.value) || null)
 const coinIcons = computed(() => coinIconsFromOverview(overview.value))
 const wikiAssets = computed(() => wikiAssetCards(selectedRow.value))
+const mainImageUrl = computed(() => resolveTownNpcMainImage(selectedRow.value))
 
 watch(npcId, () => {
   loadPage()

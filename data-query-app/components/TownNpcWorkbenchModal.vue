@@ -11,8 +11,8 @@
         <div class="npc-badge">
           <div class="npc-badge__portrait">
             <img
-              v-if="row.imageUrl"
-              :src="row.imageUrl"
+              v-if="resolveTownNpcMainImage(row)"
+              :src="resolveTownNpcMainImage(row)"
               :alt="row.nameZh || row.name || row.internalName || 'Town NPC'"
               class="npc-badge__portrait-image"
             >
@@ -416,6 +416,7 @@ import {
   formatUnmatchedItems,
   resolveKnockBackResist,
   resolveNpcStat,
+  resolveTownNpcMainImage,
   resolveTownNpcShopItemImage,
   saveTownNpcMaintenance,
   wikiAssetCards,

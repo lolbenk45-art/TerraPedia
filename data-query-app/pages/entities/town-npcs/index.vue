@@ -88,8 +88,8 @@
               <div class="npc-card__identity">
                 <div class="npc-card__portrait">
                   <img
-                    v-if="row.imageUrl"
-                    :src="row.imageUrl"
+                    v-if="resolveTownNpcMainImage(row)"
+                    :src="resolveTownNpcMainImage(row)"
                     :alt="row.nameZh || row.name || row.internalName || 'NPC'"
                     class="npc-card__portrait-image"
                   >
@@ -202,6 +202,7 @@ import {
   maintenanceSummaryFromOverview,
   resolveKnockBackResist,
   resolveNpcStat,
+  resolveTownNpcMainImage,
   resolveTownNpcShopItemImage,
   rowsFromOverview,
   type TownNpcOverview,

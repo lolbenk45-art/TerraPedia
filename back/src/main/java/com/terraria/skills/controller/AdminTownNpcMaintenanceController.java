@@ -314,16 +314,24 @@ public class AdminTownNpcMaintenanceController {
             if (!(raw instanceof Map<?, ?> map)) {
                 return null;
             }
-            Object imageUrl = map.get("imageUrl");
-            if (imageUrl instanceof String text && !text.isBlank()) {
-                return managedImageOrNull(text, "admin town npc generated image");
+            String imageUrl = managedImageOrNull(map.get("imageUrl"), "admin town npc generated image");
+            if (imageUrl != null) {
+                return imageUrl;
+            }
+            String snakeCaseImageUrl = managedImageOrNull(map.get("image_url"), "admin town npc generated image");
+            if (snakeCaseImageUrl != null) {
+                return snakeCaseImageUrl;
             }
             Object rawJson = map.get("rawJson");
             if (!(rawJson instanceof String rawJsonText) || rawJsonText.isBlank()) {
                 return null;
             }
             Map<String, Object> parsed = objectMapper.readValue(rawJsonText, new TypeReference<>() {});
-            return managedImageOrNull(trimToNull(parsed.get("imageUrl")), "admin town npc raw json image");
+            String rawJsonImageUrl = managedImageOrNull(parsed.get("imageUrl"), "admin town npc raw json image");
+            if (rawJsonImageUrl != null) {
+                return rawJsonImageUrl;
+            }
+            return managedImageOrNull(parsed.get("image_url"), "admin town npc raw json image");
         } catch (Exception ignored) {
             return null;
         }

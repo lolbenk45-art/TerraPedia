@@ -483,11 +483,12 @@ public class AdminNpcController {
     private Map<String, Object> toNpcSupplement(Map<?, ?> map) {
         Map<String, Object> payload = new LinkedHashMap<>();
         Map<?, ?> rawJson = parseMap(map.get("rawJson"));
-        payload.put("imageUrl", managedImageOrNull(firstNonBlank(
-            trimToNull(map.get("imageUrl")),
-            trimToNull(rawJson.get("imageUrl")),
-            trimToNull(rawJson.get("image_url"))
-        ), "admin npc supplement image"));
+        payload.put("imageUrl", firstNonBlank(
+            managedImageOrNull(trimToNull(map.get("imageUrl")), "admin npc supplement image.imageUrl"),
+            managedImageOrNull(trimToNull(map.get("image_url")), "admin npc supplement image.image_url"),
+            managedImageOrNull(trimToNull(rawJson.get("imageUrl")), "admin npc supplement rawJson.imageUrl"),
+            managedImageOrNull(trimToNull(rawJson.get("image_url")), "admin npc supplement rawJson.image_url")
+        ));
         payload.put("rawJson", map.get("rawJson"));
         payload.put("buffImmune", toJsonString(map.get("buffImmune")));
         Map<?, ?> combat = map.get("combat") instanceof Map<?, ?> combatMap ? combatMap : Map.of();

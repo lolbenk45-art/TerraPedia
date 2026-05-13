@@ -89,6 +89,19 @@ export const resolveTownNpcShopItemImage = (item: RefItem | null | undefined) =>
   return String(item.itemImageUrl || item.itemImage || item.imageUrl || item.image || '').trim()
 }
 
+export const resolveTownNpcMainImage = (row: TownNpcRow | null | undefined) => {
+  if (!row) return ''
+  return [
+    row.imageUrl,
+    row.wikiAssets?.spriteImage,
+    row.wikiDetails?.spriteImage,
+    row.wikiAssets?.dialogPortraitImage,
+    row.wikiDetails?.dialogPortraitImage,
+    row.wikiAssets?.mapIconImage,
+    row.wikiDetails?.mapIconImage,
+  ].map(value => String(value || '').trim()).find(Boolean) || ''
+}
+
 export const isGapRow = (row: TownNpcRow) =>
   Number(row.gamePeriodId || 0) <= 0 || !row.hasBehaviorNotes || !row.hasShopEntries
 

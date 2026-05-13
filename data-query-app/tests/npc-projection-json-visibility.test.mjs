@@ -28,6 +28,33 @@ test('town NPC shop cards use shared image resolver for itemImageUrl fallbacks',
   }
 })
 
+test('town NPC main image resolver falls back through managed wiki assets', () => {
+  assert.match(townNpcComposable, /export const resolveTownNpcMainImage/)
+  assert.match(
+    townNpcComposable,
+    /imageUrl[\s\S]*?wikiAssets\?\.spriteImage[\s\S]*?wikiDetails\?\.spriteImage[\s\S]*?wikiAssets\?\.dialogPortraitImage[\s\S]*?wikiDetails\?\.dialogPortraitImage[\s\S]*?wikiAssets\?\.mapIconImage[\s\S]*?wikiDetails\?\.mapIconImage/
+  )
+  assert.match(townNpcComposable, /\.trim\(\)/)
+})
+
+test('town NPC detail portrait uses shared main image resolver', () => {
+  assert.match(townNpcDetail, /resolveTownNpcMainImage/)
+  assert.match(townNpcDetail, /const mainImageUrl = computed\(\(\) => resolveTownNpcMainImage\(selectedRow\.value\)\)/)
+  assert.match(townNpcDetail, /v-if="mainImageUrl"/)
+  assert.match(townNpcDetail, /:src="mainImageUrl"/)
+  assert.doesNotMatch(townNpcDetail, /v-if="selectedRow\.imageUrl"/)
+  assert.doesNotMatch(townNpcDetail, /:src="selectedRow\.imageUrl"/)
+})
+
+test('town NPC overview and workbench portraits use shared main image resolver', () => {
+  for (const source of [townNpcIndex, townNpcWorkbench]) {
+    assert.match(source, /resolveTownNpcMainImage/)
+    assert.match(source, /v-if="resolveTownNpcMainImage\(row\)"/)
+    assert.match(source, /:src="resolveTownNpcMainImage\(row\)"/)
+    assert.doesNotMatch(source, /v-if="row\.imageUrl"\s*:src="row\.imageUrl"/)
+  }
+})
+
 test('generic NPC admin detail displays parsed projection relation summaries', () => {
   assert.match(entitiesPage, /npcProjectionRelationGroups/)
   assert.match(entitiesPage, /投影关系/)

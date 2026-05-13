@@ -4,9 +4,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
 import com.terraria.skills.service.SupportDomainService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -17,6 +19,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,10 +61,29 @@ class AdminTownNpcMaintenanceControllerTest {
     @Mock
     private SupportDomainService supportDomainService;
 
+    @TempDir
+    Path tempDir;
+
+    private String originalUserDir;
+    private Path repoRoot;
+    private Map<String, Object> maintenanceReport = Map.of();
+    private Map<String, Object> importReport = Map.of();
+    private Map<String, Object> npcStandardizedMap = Map.of("records", Map.of());
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() throws Exception {
+        originalUserDir = System.getProperty("user.dir");
+        repoRoot = tempDir.resolve("repo");
+        Files.createDirectories(repoRoot.resolve("back"));
+        Files.createDirectories(repoRoot.resolve("data-query-app"));
+        Files.createDirectories(repoRoot.resolve("scripts"));
+        Files.createDirectories(repoRoot.resolve("data/generated"));
+        System.setProperty("user.dir", repoRoot.resolve("back").toString());
+        writeGeneratedFile("wiki-town-npc-maintenance.latest.json");
+        writeGeneratedFile("wiki-town-npc-import.latest.json");
+        writeGeneratedFile("npc-standardized-map.json");
+
         AdminTownNpcMaintenanceController controller = new AdminTownNpcMaintenanceController(
             jdbcTemplate,
             objectMapper,
@@ -86,6 +110,16 @@ class AdminTownNpcMaintenanceControllerTest {
         when(jdbcTemplate.query(contains("FROM npc_shop_entries nse"), any(RowMapper.class), anyLong())).thenReturn(List.of());
         doNothing().when(jdbcTemplate).query(contains("FROM items"), any(RowCallbackHandler.class));
 
+        when(objectMapper.readValue(any(File.class), any(TypeReference.class))).thenAnswer(invocation -> {
+            File file = invocation.getArgument(0);
+            return switch (file.getName()) {
+                case "wiki-town-npc-maintenance.latest.json" -> maintenanceReport;
+                case "wiki-town-npc-import.latest.json" -> importReport;
+                case "npc-standardized-map.json" -> npcStandardizedMap;
+                default -> Map.of();
+            };
+        });
+
         when(supportDomainService.getGamePeriodLabel(any())).thenAnswer(invocation -> {
             Long gamePeriodId = invocation.getArgument(0);
             if (gamePeriodId == null || gamePeriodId == 0) {
@@ -98,10 +132,17 @@ class AdminTownNpcMaintenanceControllerTest {
         });
     }
 
+    @AfterEach
+    void restoreUserDir() {
+        if (originalUserDir == null) {
+            System.clearProperty("user.dir");
+        } else {
+            System.setProperty("user.dir", originalUserDir);
+        }
+    }
+
     @Test
     void shouldProjectGamePeriodLabelsFromSupportDomainService() throws Exception {
-        when(objectMapper.readValue(any(File.class), any(TypeReference.class))).thenReturn(Map.of());
-
         mockMvc.perform(get("/admin/town-npcs/maintenance"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
@@ -122,9 +163,7 @@ class AdminTownNpcMaintenanceControllerTest {
             Map.of("nameZh", "绳", "nameEn", "Rope", "priceText", "10 CC")
         ));
 
-        when(objectMapper.readValue(any(File.class), any(TypeReference.class))).thenReturn(Map.of(
-            "records", List.of(scrapedRecord)
-        ));
+        maintenanceReport = Map.of("records", List.of(scrapedRecord));
 
         mockMvc.perform(get("/admin/town-npcs/maintenance"))
             .andExpect(status().isOk())
@@ -139,20 +178,101 @@ class AdminTownNpcMaintenanceControllerTest {
     }
 
     @Test
-    void shouldSuppressWikiNpcImageUrlInMaintenanceOverview() throws Exception {
+    void shouldUseManagedRawJsonSnakeCaseNpcImageUrlInMaintenanceOverview() throws Exception {
+        String managedUrl = "http://localhost:9000/terrapedia-images/npcs/guide.png";
+        String rawJson = "{\"image_url\":\"" + managedUrl + "\"}";
+        Map<String, Object> generatedRecord = new LinkedHashMap<>();
+        generatedRecord.put("gameId", 1007001L);
+        generatedRecord.put("rawJson", rawJson);
+
+        npcStandardizedMap = Map.of("records", Map.of("1007001", generatedRecord));
+        when(objectMapper.readValue(eq(rawJson), any(TypeReference.class))).thenReturn(
+            Map.of("image_url", managedUrl)
+        );
+
+        mockMvc.perform(get("/admin/town-npcs/maintenance"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.records[0].imageUrl").value(managedUrl));
+    }
+
+    @Test
+    void shouldUseManagedGeneratedSnakeCaseNpcImageUrlInMaintenanceOverview() throws Exception {
+        String managedUrl = "http://localhost:9000/terrapedia-images/npcs/guide-snake.png";
+        Map<String, Object> generatedRecord = new LinkedHashMap<>();
+        generatedRecord.put("gameId", 1007001L);
+        generatedRecord.put("image_url", managedUrl);
+
+        npcStandardizedMap = Map.of("records", Map.of("1007001", generatedRecord));
+
+        mockMvc.perform(get("/admin/town-npcs/maintenance"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.records[0].imageUrl").value(managedUrl));
+    }
+
+    @Test
+    void shouldFallbackToManagedRawJsonImageWhenGeneratedImagesAreWikiUrlsInMaintenanceOverview() throws Exception {
+        String managedUrl = "http://localhost:9000/terrapedia-images/npcs/guide-raw.png";
+        String rawJson = "{\"image_url\":\"" + managedUrl + "\"}";
         Map<String, Object> generatedRecord = new LinkedHashMap<>();
         generatedRecord.put("gameId", 1007001L);
         generatedRecord.put("imageUrl", "https://terraria.wiki.gg/images/Guide.png");
+        generatedRecord.put("image_url", "https://terraria.wiki.gg/images/Guide_alt.png");
+        generatedRecord.put("rawJson", rawJson);
 
-        when(objectMapper.readValue(any(File.class), any(TypeReference.class))).thenReturn(
-            Map.of(),
-            Map.of(),
-            Map.of("records", Map.of("1007001", generatedRecord)),
-            Map.of("records", Map.of("1007001", generatedRecord))
+        npcStandardizedMap = Map.of("records", Map.of("1007001", generatedRecord));
+        when(objectMapper.readValue(eq(rawJson), any(TypeReference.class))).thenReturn(
+            Map.of("image_url", managedUrl)
+        );
+
+        mockMvc.perform(get("/admin/town-npcs/maintenance"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.records[0].imageUrl").value(managedUrl));
+    }
+
+    @Test
+    void shouldSuppressWikiSnakeCaseNpcImageUrlInMaintenanceOverview() throws Exception {
+        Map<String, Object> generatedRecord = new LinkedHashMap<>();
+        generatedRecord.put("gameId", 1007001L);
+        generatedRecord.put("image_url", "https://terraria.wiki.gg/images/Guide.png");
+
+        npcStandardizedMap = Map.of("records", Map.of("1007001", generatedRecord));
+
+        mockMvc.perform(get("/admin/town-npcs/maintenance"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.records[0].imageUrl").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void shouldSuppressWikiRawJsonSnakeCaseNpcImageUrlInMaintenanceOverview() throws Exception {
+        String rawJson = "{\"image_url\":\"https://terraria.wiki.gg/images/Guide.png\"}";
+        Map<String, Object> generatedRecord = new LinkedHashMap<>();
+        generatedRecord.put("gameId", 1007001L);
+        generatedRecord.put("rawJson", rawJson);
+
+        npcStandardizedMap = Map.of("records", Map.of("1007001", generatedRecord));
+        when(objectMapper.readValue(eq(rawJson), any(TypeReference.class))).thenReturn(
+            Map.of("image_url", "https://terraria.wiki.gg/images/Guide.png")
         );
 
         mockMvc.perform(get("/admin/town-npcs/maintenance"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.records[0].imageUrl").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void shouldSuppressWikiNpcImageUrlInMaintenanceOverview() throws Exception {
+        Map<String, Object> generatedRecord = new LinkedHashMap<>();
+        generatedRecord.put("gameId", 1007001L);
+        generatedRecord.put("imageUrl", "https://terraria.wiki.gg/images/Guide.png");
+
+        npcStandardizedMap = Map.of("records", Map.of("1007001", generatedRecord));
+
+        mockMvc.perform(get("/admin/town-npcs/maintenance"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.records[0].imageUrl").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    private void writeGeneratedFile(String fileName) throws IOException {
+        Files.writeString(repoRoot.resolve("data/generated").resolve(fileName), "{}");
     }
 }

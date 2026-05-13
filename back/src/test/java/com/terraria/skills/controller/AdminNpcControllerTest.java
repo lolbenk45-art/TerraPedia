@@ -20,6 +20,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -79,11 +81,12 @@ class AdminNpcControllerTest {
     @Mock
     private JdbcTemplate jdbcTemplate;
 
+    private AdminNpcController adminNpcController;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        AdminNpcController adminNpcController = new AdminNpcController(
+        adminNpcController = new AdminNpcController(
             npcMapper,
             categoryMapper,
             bossGroupMapper,
@@ -223,6 +226,124 @@ class AdminNpcControllerTest {
         mockMvc.perform(get("/admin/npcs/2"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.imageUrl").value("http://localhost:9000/terrapedia-images/npcs/managed-hornet.gif"));
+    }
+
+    @Test
+    void shouldReturnManagedNpcImageUrlFromSupplementTopLevelSnakeCaseInDetailPayload() throws Exception {
+        Npc npc = new Npc();
+        npc.setId(3L);
+        npc.setGameId(-67L);
+        npc.setInternalName("SnakeCaseHornet");
+        npc.setName("Snake Case Hornet");
+        npc.setImageUrl("https://terraria.wiki.gg/images/Snake%20Case%20Hornet.gif");
+        npc.setStatus(1);
+
+        Map<String, Object> supplement = new LinkedHashMap<>();
+        supplement.put("image_url", "http://localhost:9000/terrapedia-images/npcs/snake-case-hornet.gif");
+        ReflectionTestUtils.setField(
+            adminNpcController,
+            "npcSupplementCache",
+            timedNpcSupplementCache(Map.of(-67L, npcSupplementFromGeneratedRecord(supplement)))
+        );
+
+        when(npcMapper.selectById(3L)).thenReturn(npc);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_loot_entries"), eq(Integer.class), eq(3L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_buff_relations"), eq(Integer.class), eq(3L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_shop_entries"), eq(Integer.class), eq(3L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("source_ref_id = ?"), eq(Integer.class), eq(-67L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(
+            contains("LOWER(TRIM(source_ref_name)) = LOWER(TRIM(?))"),
+            eq(Integer.class),
+            eq("Snake Case Hornet")
+        )).thenReturn(0);
+        when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries nle"), eq(3L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("source_ref_id IS NULL"), eq("Snake Case Hornet"))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(3L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries nse"), eq(3L))).thenReturn(List.of());
+
+        mockMvc.perform(get("/admin/npcs/3"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.imageUrl").value("http://localhost:9000/terrapedia-images/npcs/snake-case-hornet.gif"));
+    }
+
+    @Test
+    void shouldFallbackToManagedRawJsonImageWhenEarlierSupplementImagesAreWikiUrls() throws Exception {
+        Npc npc = new Npc();
+        npc.setId(4L);
+        npc.setGameId(-68L);
+        npc.setInternalName("MixedHornet");
+        npc.setName("Mixed Hornet");
+        npc.setImageUrl("https://terraria.wiki.gg/images/Mixed%20Hornet.gif");
+        npc.setStatus(1);
+
+        Map<String, Object> supplement = new LinkedHashMap<>();
+        supplement.put("imageUrl", "https://terraria.wiki.gg/images/Mixed%20Hornet%20Supplement.gif");
+        supplement.put("rawJson", """
+            {
+              "image_url": "http://localhost:9000/terrapedia-images/npcs/mixed-hornet.gif"
+            }
+            """);
+        ReflectionTestUtils.setField(
+            adminNpcController,
+            "npcSupplementCache",
+            timedNpcSupplementCache(Map.of(-68L, npcSupplementFromGeneratedRecord(supplement)))
+        );
+
+        when(npcMapper.selectById(4L)).thenReturn(npc);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_loot_entries"), eq(Integer.class), eq(4L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_buff_relations"), eq(Integer.class), eq(4L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_shop_entries"), eq(Integer.class), eq(4L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("source_ref_id = ?"), eq(Integer.class), eq(-68L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(
+            contains("LOWER(TRIM(source_ref_name)) = LOWER(TRIM(?))"),
+            eq(Integer.class),
+            eq("Mixed Hornet")
+        )).thenReturn(0);
+        when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries nle"), eq(4L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("source_ref_id IS NULL"), eq("Mixed Hornet"))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(4L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries nse"), eq(4L))).thenReturn(List.of());
+
+        mockMvc.perform(get("/admin/npcs/4"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.imageUrl").value("http://localhost:9000/terrapedia-images/npcs/mixed-hornet.gif"));
+    }
+
+    @Test
+    void shouldSuppressWikiRawJsonImageUrlFromSupplementInDetailPayload() throws Exception {
+        Npc npc = new Npc();
+        npc.setId(5L);
+        npc.setGameId(-69L);
+        npc.setInternalName("WikiOnlyHornet");
+        npc.setName("Wiki Only Hornet");
+        npc.setStatus(1);
+
+        Map<String, Object> supplement = new LinkedHashMap<>();
+        supplement.put("rawJson", "{\"image_url\":\"https://terraria.wiki.gg/images/Wiki%20Only%20Hornet.gif\"}");
+        ReflectionTestUtils.setField(
+            adminNpcController,
+            "npcSupplementCache",
+            timedNpcSupplementCache(Map.of(-69L, npcSupplementFromGeneratedRecord(supplement)))
+        );
+
+        when(npcMapper.selectById(5L)).thenReturn(npc);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_loot_entries"), eq(Integer.class), eq(5L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_buff_relations"), eq(Integer.class), eq(5L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_shop_entries"), eq(Integer.class), eq(5L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("source_ref_id = ?"), eq(Integer.class), eq(-69L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(
+            contains("LOWER(TRIM(source_ref_name)) = LOWER(TRIM(?))"),
+            eq(Integer.class),
+            eq("Wiki Only Hornet")
+        )).thenReturn(0);
+        when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries nle"), eq(5L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("source_ref_id IS NULL"), eq("Wiki Only Hornet"))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(5L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries nse"), eq(5L))).thenReturn(List.of());
+
+        mockMvc.perform(get("/admin/npcs/5"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.imageUrl").value(org.hamcrest.Matchers.nullValue()));
     }
 
     @Test
@@ -947,5 +1068,19 @@ class AdminNpcControllerTest {
             isNull(),
             eq(1)
         );
+    }
+
+    private Object timedNpcSupplementCache(Map<Long, Map<String, Object>> value) throws Exception {
+        Class<?> timedValueClass = Class.forName("com.terraria.skills.controller.AdminNpcController$TimedValue");
+        Constructor<?> constructor = timedValueClass.getDeclaredConstructor(Object.class, long.class);
+        constructor.setAccessible(true);
+        return constructor.newInstance(value, System.currentTimeMillis() + 60_000L);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> npcSupplementFromGeneratedRecord(Map<String, Object> record) throws Exception {
+        Method method = AdminNpcController.class.getDeclaredMethod("toNpcSupplement", Map.class);
+        method.setAccessible(true);
+        return (Map<String, Object>) method.invoke(adminNpcController, record);
     }
 }
