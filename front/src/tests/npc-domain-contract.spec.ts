@@ -83,6 +83,54 @@ describe('npc domain contracts', () => {
     expect(result.moduleStatus.shop).toBe('ok')
   })
 
+  it('normalizes NPC loot item image aliases into imageUrl', () => {
+    const deathSickleImage = 'http://localhost:9000/terrapedia-images/items/wiki/items/de/death-sickle.png'
+    const requiemImage = 'http://localhost:9000/terrapedia-images/items/wiki/items/re/requiem.png'
+
+    const result = normalizeNpcPublicAggregate({
+      npc: { id: 253, name: 'Reaper' },
+      loot: [
+        {
+          item_id: 1327,
+          item_name: 'Death Sickle',
+          item_internal_name: 'DeathSickle',
+          item_image: deathSickleImage,
+          loot_source_mode: 'direct',
+          trusted_structured: true,
+        },
+        {
+          item_id: 5001,
+          item_name: 'Requiem',
+          item_internal_name: 'Requiem',
+          image_url: requiemImage,
+          loot_source_mode: 'direct',
+          trusted_structured: true,
+        },
+      ],
+      shopEntries: [],
+      buffRelations: [],
+      moduleStatus: {},
+    } as any)
+
+    expect(result.loot[0]).toMatchObject({
+      itemId: 1327,
+      itemName: 'Death Sickle',
+      itemInternalName: 'DeathSickle',
+      itemImage: deathSickleImage,
+      imageUrl: deathSickleImage,
+      lootSourceMode: 'direct',
+      trustedStructured: true,
+    })
+    expect(result.loot[1]).toMatchObject({
+      itemId: 5001,
+      itemName: 'Requiem',
+      itemInternalName: 'Requiem',
+      imageUrl: requiemImage,
+      lootSourceMode: 'direct',
+      trustedStructured: true,
+    })
+  })
+
   it('parses traceable NPC projection JSON arrays without dropping raw fields', () => {
     const lootItemsJson = JSON.stringify([
       {

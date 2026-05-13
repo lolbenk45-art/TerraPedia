@@ -516,12 +516,75 @@ describe('NPC public shell', () => {
     expect(wrapper.text()).toContain('Loot')
     expect(wrapper.text()).toContain('Shop')
     expect(wrapper.text()).toContain('Buffs')
-    expect(wrapper.text()).toContain('No loot data yet')
+    expect(wrapper.text()).toContain('No trusted structured loot data yet')
     expect(wrapper.text()).toContain('No shop inventory yet')
     expect(wrapper.text()).toContain('No buff relationships yet')
     expect(wrapper.text()).toContain('Source Items')
     expect(wrapper.text()).toContain('Torch CN')
     expect(wrapper.text()).toContain('source-item:torch')
+  })
+
+  it('renders trusted loot item images from the NPC aggregate payload', async () => {
+    applyRoute('/npcs/253')
+    routeState.params = { id: '253' }
+    const deathSickleImage = 'http://localhost:9000/terrapedia-images/items/wiki/items/de/death-sickle.png'
+
+    mocks.fetchNpcAggregateById.mockResolvedValue({
+      success: true,
+      data: {
+        npc: {
+          id: 253,
+          gameId: 253,
+          internalName: 'Reaper',
+          name: 'Reaper',
+          nameZh: 'Reaper',
+          categoryId: 2,
+          categoryName: 'Enemy',
+          isBoss: false,
+          isFriendly: false,
+          isTownNpc: false,
+          imageUrl: 'http://localhost:9000/terrapedia-images/npcs/2026/05/08/reaper.gif',
+        },
+        loot: [
+          {
+            id: 401,
+            itemId: 1327,
+            itemName: 'Death Sickle',
+            itemInternalName: 'DeathSickle',
+            imageUrl: deathSickleImage,
+            chanceText: '2.5%',
+            lootSourceMode: 'direct',
+            trustedStructured: true,
+            sourceNpcId: 253,
+          },
+        ],
+        shopEntries: [],
+        buffRelations: [],
+        moduleStatus: {
+          loot: 'ok',
+          shop: 'empty',
+          buffs: 'empty',
+        },
+        aggregatedAt: '2026-05-13T00:00:00Z',
+      },
+      message: 'ok',
+      statusCode: 200,
+    } satisfies ApiResponse<NpcAggregateData>)
+
+    const wrapper = mount(NpcDetailView, {
+      global: {
+        stubs: {
+          RouterLink: RouterLinkStub,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    const image = wrapper.find(`img[src="${deathSickleImage}"]`)
+    expect(image.exists()).toBe(true)
+    expect(image.attributes('alt')).toBe('Death Sickle')
+    expect(wrapper.find('.npc-entry__fallback').exists()).toBe(false)
   })
 
   it('loads negative npc ids so variant records can consume projection relations', async () => {

@@ -12,10 +12,12 @@ import com.terraria.skills.dto.NpcShopConditionDTO;
 import com.terraria.skills.dto.NpcShopEntryDTO;
 import com.terraria.skills.dto.PublicNpcQuery;
 import com.terraria.skills.entity.Category;
+import com.terraria.skills.entity.Item;
 import com.terraria.skills.entity.Npc;
 import com.terraria.skills.mapper.CategoryMapper;
 import com.terraria.skills.mapper.NpcMapper;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
+import com.terraria.skills.service.ManagedItemImageResolver;
 import com.terraria.skills.service.PublicNpcService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +46,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
     private final ManagedImageUrlPolicy managedImageUrlPolicy;
+    private final ManagedItemImageResolver managedItemImageResolver;
 
     private volatile Map<Long, NpcSupplement> supplementByGameId;
 
@@ -84,7 +87,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         if (npcId == null) {
             return List.of();
         }
-        return jdbcTemplate.queryForList(
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
             """
             SELECT
               nle.id,
@@ -110,7 +113,12 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             ORDER BY nle.sort_order ASC, nle.id ASC
             """,
             npcId
-        ).stream().map(this::toLootEntryDto).map(dto -> stampLootProvenance(dto, "direct", true, npcId, null)).toList();
+        );
+        Map<Long, String> managedImagesByItemId = resolveManagedItemImages(rows);
+        return rows.stream()
+            .map(row -> toLootEntryDto(row, managedImagesByItemId))
+            .map(dto -> stampLootProvenance(dto, "direct", true, npcId, null))
+            .toList();
     }
 
     @Override
@@ -119,7 +127,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             return List.of();
         }
 
-        List<NpcShopEntryDTO> entries = jdbcTemplate.queryForList(
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
             """
             SELECT
               nse.id,
@@ -138,7 +146,11 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             ORDER BY nse.sort_order ASC, nse.id ASC
             """,
             npcId
-        ).stream().map(this::toShopEntryDto).collect(Collectors.toCollection(ArrayList::new));
+        );
+        Map<Long, String> managedImagesByItemId = resolveManagedItemImages(rows);
+        List<NpcShopEntryDTO> entries = rows.stream()
+            .map(row -> toShopEntryDto(row, managedImagesByItemId))
+            .collect(Collectors.toCollection(ArrayList::new));
 
         if (entries.isEmpty()) {
             return entries;
@@ -349,7 +361,40 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         return category == null ? null : category.getName();
     }
 
-    private NpcLootEntryDTO toLootEntryDto(Map<String, Object> row) {
+    private Map<Long, String> resolveManagedItemImages(List<Map<String, Object>> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, Item> itemsById = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            Long itemId = toLong(row.get("itemId"));
+            if (itemId == null) {
+                continue;
+            }
+            Item item = new Item();
+            item.setId(itemId);
+            item.setImage(toStringValue(row.get("itemImage")));
+            itemsById.putIfAbsent(itemId, item);
+        }
+        if (itemsById.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, String> resolved = managedItemImageResolver.resolveManagedImages(itemsById.values());
+        return resolved == null ? Map.of() : resolved;
+    }
+
+    private String resolveManagedItemImage(Map<String, Object> row, Map<Long, String> managedImagesByItemId) {
+        Long itemId = toLong(row.get("itemId"));
+        if (itemId == null) {
+            return null;
+        }
+        Item item = new Item();
+        item.setId(itemId);
+        item.setImage(toStringValue(row.get("itemImage")));
+        return managedItemImageResolver.resolveManagedImage(item, managedImagesByItemId);
+    }
+
+    private NpcLootEntryDTO toLootEntryDto(Map<String, Object> row, Map<Long, String> managedImagesByItemId) {
         NpcLootEntryDTO dto = new NpcLootEntryDTO();
         dto.setId(toLong(row.get("id")));
         dto.setItemId(toLong(row.get("itemId")));
@@ -375,7 +420,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setItemName(toStringValue(row.get("itemName")));
         dto.setItemNameZh(toStringValue(row.get("itemNameZh")));
         dto.setItemInternalName(toStringValue(row.get("itemInternalName")));
-        dto.setImageUrl(managedDisplayImageUrl(toStringValue(row.get("itemImage"))));
+        dto.setImageUrl(resolveManagedItemImage(row, managedImagesByItemId));
         return dto;
     }
 
@@ -396,7 +441,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         return dto;
     }
 
-    private NpcShopEntryDTO toShopEntryDto(Map<String, Object> row) {
+    private NpcShopEntryDTO toShopEntryDto(Map<String, Object> row, Map<Long, String> managedImagesByItemId) {
         NpcShopEntryDTO dto = new NpcShopEntryDTO();
         dto.setId(toLong(row.get("id")));
         dto.setItemId(toLong(row.get("itemId")));
@@ -407,7 +452,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setItemName(toStringValue(row.get("itemName")));
         dto.setItemNameZh(toStringValue(row.get("itemNameZh")));
         dto.setItemInternalName(toStringValue(row.get("itemInternalName")));
-        dto.setImageUrl(managedDisplayImageUrl(toStringValue(row.get("itemImage"))));
+        dto.setImageUrl(resolveManagedItemImage(row, managedImagesByItemId));
         return dto;
     }
 

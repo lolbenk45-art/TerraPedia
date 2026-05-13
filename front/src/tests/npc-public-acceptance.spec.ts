@@ -87,7 +87,7 @@ describe('npc public acceptance', () => {
     expect(mocks.fetchNpcAggregateById).toHaveBeenCalledWith(17, 'loot,shop,buffs')
     expect(wrapper.text()).toContain('Guide CN')
     expect(wrapper.text()).toContain('No portrait')
-    expect(wrapper.text()).toContain('No loot data yet')
+    expect(wrapper.text()).toContain('No trusted structured loot data yet')
     expect(wrapper.text()).toContain('No shop inventory yet')
     expect(wrapper.text()).toContain('No buff relationships yet')
     expect(wrapper.text()).toContain('Aggregate Modules')
