@@ -67,39 +67,43 @@ export function buildRelationHealthQueries({
   const localCompatNpcLoot = table(localDatabase, 'npc_loot_entries');
   const localCompatNpcShop = table(localDatabase, 'npc_shop_entries');
   const localCompatNpcShopConditions = table(localDatabase, 'npc_shop_conditions');
+  const activeMaintItemSourceWhere = 'status = 1 AND deleted = 0';
+  const activeMaintItemSourceAliasWhere = 'm.status = 1 AND m.deleted = 0';
 
   return [
     countCheck({
       id: 'maint_item_sources_vs_item_source_facts',
       title: 'maint_item_sources matches item_source_facts',
       expectation: { type: 'delta_zero', field: 'delta' },
-      description: 'Canonical relation facts must stay row-for-row with maint item sources.',
+      description: 'Canonical relation facts must stay row-for-row with active maint item sources.',
       sql: `SELECT
-  (SELECT COUNT(*) FROM ${maintItemSources}) AS maintCount,
+  (SELECT COUNT(*) FROM ${maintItemSources} WHERE ${activeMaintItemSourceWhere}) AS maintCount,
   (SELECT COUNT(*) FROM ${itemSourceFacts}) AS relationCount,
-  ((SELECT COUNT(*) FROM ${maintItemSources}) - (SELECT COUNT(*) FROM ${itemSourceFacts})) AS delta`
+  ((SELECT COUNT(*) FROM ${maintItemSources} WHERE ${activeMaintItemSourceWhere}) - (SELECT COUNT(*) FROM ${itemSourceFacts})) AS delta`
     }),
     countCheck({
       id: 'maint_item_sources_missing_in_relation',
       title: 'maint_item_sources keys missing from item_source_facts',
       expectation: { type: 'zero', field: 'count' },
-      description: 'Every maint item source record_key must be present in relation item source facts.',
+      description: 'Every active maint item source record_key must be present in relation item source facts.',
       sql: `SELECT COUNT(*) AS count
 FROM ${maintItemSources} m
 LEFT JOIN ${itemSourceFacts} f
   ON f.source_maint_table = 'maint_item_sources'
  AND BINARY f.source_maint_record_key = BINARY m.record_key
-WHERE f.record_key IS NULL`
+WHERE ${activeMaintItemSourceAliasWhere}
+  AND f.record_key IS NULL`
     }),
     countCheck({
       id: 'item_source_facts_missing_in_maint',
       title: 'item_source_facts keys missing from maint_item_sources',
       expectation: { type: 'zero', field: 'count' },
-      description: 'Relation item source facts must remain traceable to maint item sources.',
+      description: 'Relation item source facts must remain traceable to active maint item sources.',
       sql: `SELECT COUNT(*) AS count
 FROM ${itemSourceFacts} f
 LEFT JOIN ${maintItemSources} m
   ON BINARY m.record_key = BINARY f.source_maint_record_key
+ AND ${activeMaintItemSourceAliasWhere}
 WHERE f.source_maint_table <> 'maint_item_sources'
    OR f.source_maint_record_key IS NULL
    OR m.record_key IS NULL`
@@ -113,6 +117,7 @@ WHERE f.source_maint_table <> 'maint_item_sources'
   source_ref_type AS sourceRefType,
   COUNT(*) AS count
 FROM ${maintItemSources}
+WHERE ${activeMaintItemSourceWhere}
 GROUP BY source_type, source_ref_type
 ORDER BY source_type, source_ref_type`
     }),
@@ -224,8 +229,17 @@ WHERE r.item_internal_name IS NULL
       expectation: { type: 'warn_if_nonzero', field: 'count' },
       sql: `SELECT COUNT(*) AS count
 FROM ${relationAudits}
-WHERE audit_status IN ('unresolved', 'ambiguous', 'polluted', 'rejected')
-   OR (reason_code IS NOT NULL AND audit_status <> 'resolved')`
+WHERE audit_status IN ('unresolved', 'ambiguous', 'polluted', 'rejected')`
+    }),
+    countCheck({
+      id: 'open_item_npc_loot_relation_audits',
+      title: 'open NPC loot relation audit blocker count',
+      expectation: { type: 'zero', field: 'count' },
+      description: 'NPC loot closure must not pass while unresolved, ambiguous, polluted, or rejected loot audit rows remain open.',
+      sql: `SELECT COUNT(*) AS count
+FROM ${relationAudits}
+WHERE relation_kind = 'loot'
+  AND audit_status IN ('unresolved', 'ambiguous', 'polluted', 'rejected')`
     }),
     countCheck({
       id: 'item_npc_relation_audit_breakdown',
@@ -345,8 +359,38 @@ WHERE ${nonEmptyJson('source_npcs_json')}`
     countCheck({
       id: 'local_compat_npc_shop_conditions_count',
       title: 'local compatibility npc_shop_conditions rows',
-      expectation: { type: 'nonzero', field: 'count' },
-      sql: `SELECT COUNT(*) AS count FROM ${localCompatNpcShopConditions}`
+      expectation: { type: 'delta_zero', field: 'delta' },
+      description: 'Local shop condition rows should match relation-publishable shop relations that actually carry condition fields.',
+      sql: `SELECT
+  (
+    SELECT COUNT(*)
+    FROM ${shopRelations} r
+    INNER JOIN ${itemSourceFacts} f
+      ON f.record_key = r.source_fact_key
+    WHERE r.deleted = 0
+      AND r.status = 1
+      AND r.review_status IN ('accepted', 'resolved', 'promoted')
+      AND f.deleted = 0
+      AND f.status = 1
+      AND f.review_status IN ('accepted', 'resolved', 'promoted')
+      AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL)
+  ) AS expectedCount,
+  (SELECT COUNT(*) FROM ${localCompatNpcShopConditions}) AS localCount,
+  (
+    (
+      SELECT COUNT(*)
+      FROM ${shopRelations} r
+      INNER JOIN ${itemSourceFacts} f
+        ON f.record_key = r.source_fact_key
+      WHERE r.deleted = 0
+        AND r.status = 1
+        AND r.review_status IN ('accepted', 'resolved', 'promoted')
+        AND f.deleted = 0
+        AND f.status = 1
+        AND f.review_status IN ('accepted', 'resolved', 'promoted')
+        AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL)
+    ) - (SELECT COUNT(*) FROM ${localCompatNpcShopConditions})
+  ) AS delta`
     })
   ];
 }

@@ -19,15 +19,37 @@ export function matchNpcBridgeRecords({
   const records = Array.isArray(standardizedRecords) ? standardizedRecords : [];
   const crawler = crawlerRecord ?? {};
   const scopedAutoIds = collectScopedAutoIds([
+    ...(Array.isArray(crawler.sourceInfoboxes) ? crawler.sourceInfoboxes.map((sourceInfobox) => ({ sourceInfobox })) : []),
     ...(Array.isArray(crawler.buffInflictions) ? crawler.buffInflictions : []),
     ...(Array.isArray(crawler.loot) ? crawler.loot : [])
   ]);
 
-  if (scopedAutoIds.length) {
-    const scopedMatches = records.filter((record) => scopedAutoIds.includes(toText(record?.id)));
+  const scopedImageTitles = collectScopedImageTitles([
+    ...(Array.isArray(crawler.sourceInfoboxes) ? crawler.sourceInfoboxes.map((sourceInfobox) => ({ sourceInfobox })) : []),
+    ...(Array.isArray(crawler.buffInflictions) ? crawler.buffInflictions : []),
+    ...(Array.isArray(crawler.loot) ? crawler.loot : [])
+  ]);
+
+  const scopedAutoIdMatches = scopedAutoIds.length
+    ? records.filter((record) => scopedAutoIds.includes(toText(record?.id)))
+    : [];
+
+  if (scopedImageTitles.length) {
+    const matchesByImageTitle = buildUniqueImageTitleMatches(records);
+    const scopedMatches = scopedImageTitles
+      .flatMap((imageTitle) => matchesByImageTitle.get(imageTitle) ?? []);
     if (scopedMatches.length) {
-      return { records: scopedMatches, reason: 'sourceInfoboxAutoId' };
+      return {
+        records: uniqueRecords([...scopedAutoIdMatches, ...scopedMatches]),
+        reason: hasAdditionalRecord(scopedAutoIdMatches, scopedMatches)
+          ? 'sourceInfoboxImageTitle'
+          : 'sourceInfoboxAutoId'
+      };
     }
+  }
+
+  if (scopedAutoIdMatches.length) {
+    return { records: scopedAutoIdMatches, reason: 'sourceInfoboxAutoId' };
   }
 
   const pageTitle = toText(crawler.source?.pageTitle);
@@ -66,6 +88,69 @@ function collectScopedAutoIds(buffInflictions) {
   return [...new Set(rows
     .map((row) => toText(row?.sourceInfobox?.autoId))
     .filter(Boolean))];
+}
+
+function collectScopedImageTitles(rows) {
+  return [...new Set((Array.isArray(rows) ? rows : [])
+    .flatMap((row) => {
+      const imageTitles = collectFileTitles(row?.sourceInfobox?.image);
+      if (!toText(row?.sourceInfobox?.autoId)) return imageTitles;
+      return imageTitles.length > 1 ? imageTitles : [];
+    })
+    .filter(Boolean))];
+}
+
+function buildUniqueImageTitleMatches(records) {
+  const byImageTitle = new Map();
+  for (const record of records) {
+    const imageTitle = normalizeFileTitle(record?.imageFileTitle);
+    if (!imageTitle) continue;
+    if (!byImageTitle.has(imageTitle)) {
+      byImageTitle.set(imageTitle, []);
+    }
+    byImageTitle.get(imageTitle).push(record);
+  }
+
+  return new Map([...byImageTitle].filter(([, matches]) => matches.length === 1));
+}
+
+function normalizeFileTitle(value) {
+  let text = toText(value);
+  if (!text) return '';
+  const fileMatch = /\[\[\s*File:([^|\]]+)/i.exec(text);
+  if (fileMatch?.[1]) {
+    text = fileMatch[1];
+  }
+  return text.replace(/^File:/i, '').trim().toLowerCase();
+}
+
+function collectFileTitles(value) {
+  const text = toText(value);
+  if (!text) return [];
+  const matches = [...text.matchAll(/\[\[\s*File:([^|\]]+)/gi)]
+    .map((match) => normalizeFileTitle(match[1]))
+    .filter(Boolean);
+  return matches.length ? matches : [normalizeFileTitle(text)].filter(Boolean);
+}
+
+function uniqueRecords(records) {
+  const seen = new Set();
+  const unique = [];
+  for (const record of records) {
+    const key = toText(record?.internalName) || toText(record?.id);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    unique.push(record);
+  }
+  return unique;
+}
+
+function hasAdditionalRecord(baseRecords, candidateRecords) {
+  const baseKeys = new Set(baseRecords.map((record) => toText(record?.internalName) || toText(record?.id)).filter(Boolean));
+  return candidateRecords.some((record) => {
+    const key = toText(record?.internalName) || toText(record?.id);
+    return key && !baseKeys.has(key);
+  });
 }
 
 function denormalizeEntityId(value) {

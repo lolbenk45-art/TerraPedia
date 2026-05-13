@@ -17,6 +17,7 @@ const DEFAULTS = Object.freeze({
   maintDatabase: 'terria_v1_maint',
   relationDatabase: 'terria_v1_relation',
   localDatabase: 'terria_v1_local',
+  crawlerOutputRoot: path.join('data', 'wiki-crawler'),
   writeReport: true,
   dateTag: new Date().toISOString().slice(0, 10)
 });
@@ -24,11 +25,56 @@ const DEFAULTS = Object.freeze({
 const SOURCE_COVERAGE_STATUSES = Object.freeze([
   'source_page_present_with_loot',
   'source_page_present_no_loot',
+  'source_page_present_no_direct_item_loot',
+  'source_page_present_unextracted',
   'source_page_present_parse_failed',
   'source_page_missing',
   'group_page_present_variant_not_extracted',
   'item_page_reverse_source_only',
-  'no_source_required_expected_zero'
+  'no_source_required_expected_zero',
+  'no_source_required_domain_separated'
+]);
+
+const ALLOWED_DOMAIN_SEPARATED_REASONS = new Set([
+  'boss_reward_domain_separated',
+  'boss_segment_reward_domain_separated',
+  'boss_component_health_pickup_domain_separated',
+  'boss_clone_or_helper_domain_separated',
+  'item_projectile_entity_domain_separated',
+]);
+
+const REPRESENTATIVE_SAFE_NPC_SUFFIXES = Object.freeze(['Head', 'Body', 'Tail', 'Legs']);
+
+const REPRESENTATIVE_UNSAFE_NPC_SUFFIX_TOKENS = Object.freeze([
+  'Corruption',
+  'Crimson',
+  'Hallow',
+  'Hallowed',
+  'Jungle',
+  'Desert',
+  'Light',
+  'Dark',
+  'T1',
+  'T2',
+  'T3',
+  'Axe',
+  'Flail',
+  'Sword',
+  'Spear',
+  'Gun',
+  'Snow',
+  'Frozen'
+]);
+
+const REVIEWED_POSITIVE_ID_FALLBACK_NPC_INTERNAL_NAMES = new Set([
+  'DesertLamiaLight',
+  'DesertScorpionWalk',
+  'DiabolistRed',
+  'DD2DarkMageT1',
+  'DD2OgreT2',
+  'PigronCorruption',
+  'RustyArmoredBonesAxe',
+  'ZombieEskimo',
 ]);
 
 export function parseArgs(argv = process.argv.slice(2)) {
@@ -45,6 +91,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
     maintDatabase: raw['maint-database'] ?? raw.maintDatabase ?? DEFAULTS.maintDatabase,
     relationDatabase: raw['relation-database'] ?? raw.relationDatabase ?? DEFAULTS.relationDatabase,
     localDatabase: raw['local-database'] ?? raw.localDatabase ?? DEFAULTS.localDatabase,
+    crawlerOutputRoot: raw['crawler-output-root'] ?? raw.crawlerOutputRoot ?? DEFAULTS.crawlerOutputRoot,
     writeReport: booleanOption(raw['write-report'] ?? raw.writeReport, DEFAULTS.writeReport),
     output: raw.output ?? null,
     dateTag: raw['date-tag'] ?? raw.dateTag ?? DEFAULTS.dateTag
@@ -56,6 +103,7 @@ export async function runNpcSourceCoverageInventory(options = {}, dependencies =
     maintDatabase: options.maintDatabase ?? DEFAULTS.maintDatabase,
     relationDatabase: options.relationDatabase ?? DEFAULTS.relationDatabase,
     localDatabase: options.localDatabase ?? DEFAULTS.localDatabase,
+    crawlerOutputRoot: options.crawlerOutputRoot ?? DEFAULTS.crawlerOutputRoot,
     writeReport: options.writeReport ?? DEFAULTS.writeReport,
     output: options.output ?? null,
     dateTag: options.dateTag ?? DEFAULTS.dateTag
@@ -65,10 +113,13 @@ export async function runNpcSourceCoverageInventory(options = {}, dependencies =
   let shouldClose = false;
   try {
     const readJson = dependencies.readJson ?? readJsonFile;
-    const [coverageAudit, coverageTargets, standardizedPayload, standardizedMap] = await Promise.all([
-      readJson(path.join(repoRoot, 'data', 'wiki-crawler', 'report', 'npc', 'coverage-audit.latest.json')),
-      readJson(path.join(repoRoot, 'data', 'wiki-crawler', 'report', 'npc', 'coverage-targets.latest.json')),
+    const readOptionalJson = dependencies.readOptionalJson ?? ((filePath) => readOptionalJsonFile(filePath, readJson));
+    const crawlerOutputRoot = path.resolve(repoRoot, normalized.crawlerOutputRoot);
+    const [coverageAudit, coverageTargets, standardizedPayload, bridgeStandardizedPayload, standardizedMap] = await Promise.all([
+      readJson(path.join(crawlerOutputRoot, 'report', 'npc', 'coverage-audit.latest.json')),
+      readJson(path.join(crawlerOutputRoot, 'report', 'npc', 'coverage-targets.latest.json')),
       readJson(path.join(repoRoot, 'data', 'standardized', 'npcs.standardized.json')),
+      readOptionalJson(path.join(repoRoot, 'data', 'generated', 'wiki-crawler-npc-bridge', 'standardized', 'npcs.standardized.json')),
       readJson(path.join(repoRoot, 'data', 'generated', 'npc-standardized-map.json'))
     ]);
 
@@ -85,15 +136,22 @@ export async function runNpcSourceCoverageInventory(options = {}, dependencies =
     }
 
     const stageCounts = await (dependencies.loadStageCounts ?? loadStageCounts)(connection, normalized);
+    const readText = dependencies.readText ?? readTextFile;
     const expectedZeroInternalNames = dependencies.expectedZeroInternalNames
-      ?? await loadExpectedZeroInternalNames(dependencies.readText ?? readTextFile);
+      ?? await loadExpectedZeroInternalNames(readText);
+    const domainSeparatedInternalNames = dependencies.domainSeparatedInternalNames
+      ?? await loadDomainSeparatedInternalNames(readText);
+    const noDirectItemLootInternalNames = dependencies.noDirectItemLootInternalNames
+      ?? await loadNoDirectItemLootInternalNames(readText);
     const report = buildNpcSourceCoverageInventoryReport({
       coverageAudit,
       coverageTargets,
-      standardizedPayload,
+      standardizedPayload: mergeBridgeStandardizedPayload(standardizedPayload, bridgeStandardizedPayload),
       standardizedMap,
       stageCounts,
-      expectedZeroInternalNames
+      expectedZeroInternalNames,
+      domainSeparatedInternalNames,
+      noDirectItemLootInternalNames
     });
     const reportPath = normalized.writeReport ? await writeReport(report, normalized) : null;
     return { report, reportPath };
@@ -114,7 +172,9 @@ export function buildNpcSourceCoverageInventoryReport({
   coverageTargets = {},
   standardizedMap = {},
   stageCounts = new Map(),
-  expectedZeroInternalNames = new Set()
+  expectedZeroInternalNames = new Set(),
+  domainSeparatedInternalNames = new Set(),
+  noDirectItemLootInternalNames = new Set()
 } = {}) {
   const records = normalizeStandardizedRecords(standardizedPayload);
   const coverageByInternalName = buildCoverageIndex(coverageAudit);
@@ -122,6 +182,8 @@ export function buildNpcSourceCoverageInventoryReport({
   const groupCoverageByInternalName = buildGroupCoverageIndex([coverageAudit, coverageTargets]);
   const mapByInternalName = buildStandardizedMapIndex(standardizedMap);
   const expectedZeroSet = normalizeSet(expectedZeroInternalNames);
+  const domainSeparatedSet = normalizeSet(domainSeparatedInternalNames);
+  const noDirectItemLootSet = normalizeSet(noDirectItemLootInternalNames);
 
   const npcs = records.map((record) => {
     const npcInternalName = normalizeText(record.internalName ?? record.internal_name);
@@ -136,7 +198,9 @@ export function buildNpcSourceCoverageInventoryReport({
       groupCoverage: groupCoverageByInternalName.get(npcInternalName),
       counts,
       standardizedLootCount,
-      expectedZeroSet
+      expectedZeroSet,
+      domainSeparatedSet,
+      noDirectItemLootSet
     });
 
     return {
@@ -147,7 +211,7 @@ export function buildNpcSourceCoverageInventoryReport({
       sourceUrl: buildSourceUrl(coverage),
       crawlerCoverageStatus: resolveCrawlerCoverageStatus(coverage),
       standardizedLootCount,
-      maintSourceCount: traceableMaintSourceCount(npcInternalName, counts),
+      maintSourceCount: traceableLootMaintSourceCount(npcInternalName, counts, groupCoverageByInternalName.get(npcInternalName)),
       maintSourceRows: counts.maintSourceRows,
       relationLootCount: counts.relationLootCount,
       projectionLootCount: counts.projectionLootCount,
@@ -167,6 +231,34 @@ export function buildNpcSourceCoverageInventoryReport({
       bySourceCoverageStatus: summarizeByStatus(npcs)
     },
     npcs
+  };
+}
+
+export function mergeBridgeStandardizedPayload(standardizedPayload = {}, bridgeStandardizedPayload = {}) {
+  const baseRecords = normalizeStandardizedRecords(standardizedPayload);
+  const bridgeByInternalName = new Map(
+    normalizeStandardizedRecords(bridgeStandardizedPayload)
+      .map((record) => [normalizeText(record.internalName ?? record.internal_name), record])
+      .filter(([internalName]) => internalName)
+  );
+
+  if (!baseRecords.length || bridgeByInternalName.size === 0) {
+    return standardizedPayload;
+  }
+
+  return {
+    ...standardizedPayload,
+    records: baseRecords.map((record) => {
+      const internalName = normalizeText(record.internalName ?? record.internal_name);
+      const bridgeRecord = bridgeByInternalName.get(internalName);
+      if (!bridgeRecord?.wikiCrawler) {
+        return record;
+      }
+      return {
+        ...record,
+        wikiCrawler: bridgeRecord.wikiCrawler
+      };
+    })
   };
 }
 
@@ -204,6 +296,7 @@ export async function loadStageCounts(connection, options) {
         FROM \`${options.localDatabase}\`.\`npc_loot_entries\` l
         WHERE l.npc_id = n.id
           AND l.deleted = 0
+          AND (l.drop_source_kind IS NULL OR l.drop_source_kind = 'npc_drop')
       ) AS localLootCount,
       0 AS itemPageReverseSourceCount
     FROM \`${options.localDatabase}\`.\`npcs\` n
@@ -284,33 +377,76 @@ function classifySourceCoverage({
   groupCoverage,
   counts,
   standardizedLootCount,
-  expectedZeroSet
+  expectedZeroSet,
+  domainSeparatedSet,
+  noDirectItemLootSet
 }) {
-  if (expectedZeroSet.has(normalizeKey(npcInternalName))) {
-    return 'no_source_required_expected_zero';
-  }
   if (counts.itemPageReverseSourceCount > 0 && counts.relationLootCount === 0 && counts.localLootCount === 0) {
     return 'item_page_reverse_source_only';
   }
   if (isCoverageParseFailed(coverage)) {
     return 'source_page_present_parse_failed';
   }
-  if (hasExactNpcLootEvidence(npcInternalName, counts, standardizedLootCount)) {
+  if (
+    coverage
+    && !isCoverageMissing(coverage)
+    && !coverage.alreadyCrawled
+    && !hasCurrentWikiCrawlerExtractionEvidence(record, standardizedLootCount)
+  ) {
+    if (groupCoverage && standardizedLootCount === 0 && !hasDownstreamNpcLootEvidence(npcInternalName, counts, groupCoverage)) {
+      return 'group_page_present_variant_not_extracted';
+    }
+    if (groupCoverage && standardizedLootCount === 0 && hasDownstreamNpcLootEvidence(npcInternalName, counts, groupCoverage)) {
+      return 'source_page_present_with_loot';
+    }
+    return 'source_page_present_unextracted';
+  }
+  if (domainSeparatedSet.has(normalizeKey(npcInternalName))) {
+    return 'no_source_required_domain_separated';
+  }
+  if (expectedZeroSet.has(normalizeKey(npcInternalName))) {
+    return 'no_source_required_expected_zero';
+  }
+  if (noDirectItemLootSet.has(normalizeKey(npcInternalName)) && hasExactNoDirectItemLootWikiCrawlerEvidence(record)) {
+    return 'source_page_present_no_direct_item_loot';
+  }
+  if (hasCurrentCrawlerLootEvidence(standardizedLootCount)) {
     return 'source_page_present_with_loot';
   }
+  if (hasExactNoLootWikiCrawlerEvidence(record)) {
+    return 'source_page_present_no_loot';
+  }
+  if (hasUnmatchedNoLootWikiCrawlerInfoboxEvidence(record) && groupCoverage) {
+    if (hasDownstreamNpcLootEvidence(npcInternalName, counts, groupCoverage)) {
+      return 'source_page_present_with_loot';
+    }
+    return 'group_page_present_variant_not_extracted';
+  }
   if (isCoverageMissing(coverage)) {
+    if (groupCoverage && hasDownstreamNpcLootEvidence(npcInternalName, counts, groupCoverage)) {
+      return 'source_page_present_with_loot';
+    }
+    if (groupCoverage) {
+      return 'group_page_present_variant_not_extracted';
+    }
     return 'source_page_missing';
   }
   if (!coverage && !groupCoverage) {
     return 'source_page_missing';
   }
-  if (coverage && traceableMaintSourceCount(npcInternalName, counts) > 0) {
+  if (!coverage && groupCoverage && hasDownstreamNpcLootEvidence(npcInternalName, counts, groupCoverage)) {
     return 'source_page_present_with_loot';
   }
   if (groupCoverage && !coverage && standardizedLootCount === 0) {
     return 'group_page_present_variant_not_extracted';
   }
-  if (groupCoverage && coverage && !coverage.alreadyCrawled && standardizedLootCount === 0 && traceableMaintSourceCount(npcInternalName, counts) === 0) {
+  if (groupCoverage && coverage && !coverage.alreadyCrawled && standardizedLootCount === 0 && !hasDownstreamNpcLootEvidence(npcInternalName, counts, groupCoverage)) {
+    return 'group_page_present_variant_not_extracted';
+  }
+  if (hasDownstreamNpcLootEvidence(npcInternalName, counts, groupCoverage)) {
+    return 'source_page_present_with_loot';
+  }
+  if (groupCoverage && standardizedLootCount === 0 && traceableLootMaintSourceCount(npcInternalName, counts, groupCoverage) === 0) {
     return 'group_page_present_variant_not_extracted';
   }
   if (coverage && !isHostileNpc(record)) {
@@ -322,10 +458,76 @@ function classifySourceCoverage({
   return 'source_page_missing';
 }
 
-function hasExactNpcLootEvidence(npcInternalName, counts, standardizedLootCount) {
+function hasExactNoLootWikiCrawlerEvidence(record) {
+  const wikiCrawler = record?.wikiCrawler;
+  if (!wikiCrawler) return false;
+  if (!Array.isArray(wikiCrawler.loot) || wikiCrawler.loot.length > 0) return false;
+  if (!hasKnownSourceLootRowsTotal(wikiCrawler)) return false;
+  if (toNumber(wikiCrawler.sourceLootRowsTotal) > 0) return false;
+  return hasMatchingSourceInfobox(record, wikiCrawler.sourceInfoboxes);
+}
+
+function hasExactNoDirectItemLootWikiCrawlerEvidence(record) {
+  const wikiCrawler = record?.wikiCrawler;
+  if (!wikiCrawler) return false;
+  if (!Array.isArray(wikiCrawler.loot) || wikiCrawler.loot.length > 0) return false;
+  if (!hasKnownSourceLootRowsTotal(wikiCrawler)) return false;
+  if (toNumber(wikiCrawler.sourceLootRowsTotal) <= 0) return false;
+  return hasMatchingSourceInfobox(record, wikiCrawler.sourceInfoboxes);
+}
+
+function hasUnmatchedNoLootWikiCrawlerInfoboxEvidence(record) {
+  const wikiCrawler = record?.wikiCrawler;
+  if (!wikiCrawler) return false;
+  if (!Array.isArray(wikiCrawler.loot) || wikiCrawler.loot.length > 0) return false;
+  if (!hasKnownSourceLootRowsTotal(wikiCrawler)) {
+    return Array.isArray(wikiCrawler.sourceInfoboxes) && wikiCrawler.sourceInfoboxes.length > 0;
+  }
+  if (toNumber(wikiCrawler.sourceLootRowsTotal) > 0) return true;
+  return Array.isArray(wikiCrawler.sourceInfoboxes) && wikiCrawler.sourceInfoboxes.length > 0;
+}
+
+function hasKnownSourceLootRowsTotal(wikiCrawler) {
+  return Object.hasOwn(wikiCrawler, 'sourceLootRowsTotal') && Number.isFinite(Number(wikiCrawler.sourceLootRowsTotal));
+}
+
+function hasMatchingSourceInfobox(record, sourceInfoboxes) {
+  const rows = Array.isArray(sourceInfoboxes) ? sourceInfoboxes : [];
+  const recordId = normalizeText(record?.id ?? record?.gameId);
+  const recordImageTitle = normalizeFileTitle(record?.imageFileTitle);
+  return rows.some((sourceInfobox) => {
+    const autoId = normalizeText(sourceInfobox?.autoId);
+    if (recordId && autoId && recordId === autoId) return true;
+    if (autoId) return false;
+    const sourceImageTitle = normalizeFileTitle(sourceInfobox?.image);
+    return Boolean(recordImageTitle && sourceImageTitle && recordImageTitle === sourceImageTitle);
+  });
+}
+
+function hasCurrentCrawlerLootEvidence(standardizedLootCount) {
   if (standardizedLootCount > 0) return true;
-  if (counts.relationLootCount > 0 || counts.projectionLootCount > 0 || counts.localLootCount > 0) return true;
-  return traceableMaintSourceCount(npcInternalName, counts) > 0;
+  return false;
+}
+
+function hasCurrentWikiCrawlerExtractionEvidence(record, standardizedLootCount) {
+  return hasCurrentCrawlerLootEvidence(standardizedLootCount)
+    || hasExactNoLootWikiCrawlerEvidence(record)
+    || hasExactNoDirectItemLootWikiCrawlerEvidence(record)
+    || hasUnmatchedNoLootWikiCrawlerInfoboxEvidence(record);
+}
+
+function hasDownstreamNpcLootEvidence(npcInternalName, counts, groupCoverage = null) {
+  return traceableLootMaintSourceCount(npcInternalName, counts, groupCoverage) > 0;
+}
+
+function normalizeFileTitle(value) {
+  const text = normalizeText(value);
+  if (!text) return null;
+  const fileMatch = /\[\[\s*File:([^|\]]+)/i.exec(text);
+  return (fileMatch?.[1] ?? text)
+    .replace(/^File:/i, '')
+    .trim()
+    .toLowerCase();
 }
 
 function traceableMaintSourceCount(npcInternalName, counts) {
@@ -333,6 +535,85 @@ function traceableMaintSourceCount(npcInternalName, counts) {
   return counts.maintSourceRows
     .filter((row) => normalizeKey(row.sourceRefInternalName) === normalizedNpcInternalName)
     .length;
+}
+
+function traceableLootMaintSourceCount(npcInternalName, counts, groupCoverage = null) {
+  const normalizedNpcInternalName = normalizeKey(npcInternalName);
+  return counts.maintSourceRows
+    .filter((row) => normalizeKey(row.sourceRefInternalName) === normalizedNpcInternalName)
+    .filter((row) => normalizeKey(row.sourceRefType) === 'npc')
+    .filter((row) => ['drop', 'loot'].includes(normalizeKey(row.sourceType)))
+    .filter((row) => isReviewedNpcSourceResolution(row, npcInternalName, groupCoverage))
+    .length;
+}
+
+function isReviewedNpcSourceResolution(row, npcInternalName, groupCoverage = null) {
+  const resolution = normalizeText(row?.sourceRefResolution);
+  if ([
+    'exact_internal_name',
+    'reviewed_page_level_shared_loot',
+  ].includes(resolution)) {
+    return true;
+  }
+  if (resolution !== 'positive_id_fallback') {
+    return false;
+  }
+  const candidateNpcInternalNames = normalizeList(row?.candidateNpcInternalNames).length > 0
+    ? row.candidateNpcInternalNames
+    : groupCoverageCandidateInternalNames(groupCoverage);
+  return isRepresentativeSafeNpcFamily(candidateNpcInternalNames, npcInternalName)
+    || REVIEWED_POSITIVE_ID_FALLBACK_NPC_INTERNAL_NAMES.has(normalizeText(npcInternalName));
+}
+
+function groupCoverageCandidateInternalNames(groupCoverage) {
+  return Array.isArray(groupCoverage?.standardizedRecords)
+    ? groupCoverage.standardizedRecords
+    : [];
+}
+
+function isRepresentativeSafeNpcFamily(candidates, rawInternalName) {
+  const internalNames = dedupeCandidateInternalNames(candidates);
+  if (!rawInternalName || !internalNames.includes(rawInternalName)) return false;
+  if (internalNames.filter((name) => name === rawInternalName).length !== 1) return false;
+  if (internalNames.length < 2) return false;
+
+  const prefix = commonPrefix(internalNames);
+  if (!prefix) return false;
+  const suffixes = internalNames.map((name) => name.slice(prefix.length));
+  if (suffixes.some((suffix) => !suffix)) return false;
+  if (suffixes.some((suffix) => REPRESENTATIVE_UNSAFE_NPC_SUFFIX_TOKENS.some((token) => suffix.includes(token)))) {
+    return false;
+  }
+  return suffixes.every((suffix) =>
+    REPRESENTATIVE_SAFE_NPC_SUFFIXES.some((token) => suffix === token || new RegExp(`^${token}\\d+$`).test(suffix))
+  );
+}
+
+function dedupeCandidateInternalNames(candidates) {
+  const seen = new Set();
+  const names = [];
+  for (const candidate of normalizeList(candidates)) {
+    const name = normalizeText(
+      typeof candidate === 'object' && candidate
+        ? candidate.internalName ?? candidate.internal_name
+        : candidate
+    );
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    names.push(name);
+  }
+  return names;
+}
+
+function commonPrefix(values) {
+  if (!values.length) return '';
+  let prefix = values[0] ?? '';
+  for (const value of values.slice(1)) {
+    while (prefix && !String(value ?? '').startsWith(prefix)) {
+      prefix = prefix.slice(0, -1);
+    }
+  }
+  return prefix;
 }
 
 function buildCoverageIndex(payload) {
@@ -391,6 +672,25 @@ function normalizeStandardizedRecords(payload) {
   return [];
 }
 
+function normalizeList(value) {
+  if (Array.isArray(value)) return value;
+  if (value == null) return [];
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!text) return [];
+  try {
+    const parsed = JSON.parse(text);
+    return Array.isArray(parsed) ? parsed : [value];
+  } catch {
+    return [value];
+  }
+}
+
+function omitEmptyArrays(row) {
+  return Object.fromEntries(
+    Object.entries(row).filter(([, value]) => !(Array.isArray(value) && value.length === 0))
+  );
+}
+
 function normalizeCounts(value = {}) {
   return {
     maintSourceCount: toNumber(value.maintSourceCount ?? value.maint_source_count),
@@ -410,7 +710,8 @@ function normalizeMaintSourceRow(row = {}) {
   const raw = parseJsonObject(row.rawJson ?? row.raw_json);
   const recordKey = normalizeText(row.recordKey ?? row.record_key);
   if (!recordKey && !normalizeText(row.itemInternalName ?? row.item_internal_name)) return null;
-  return {
+  const candidateNpcInternalNames = normalizeList(row.candidateNpcInternalNames ?? row.candidate_npc_internal_names ?? raw.candidateNpcInternalNames ?? raw.candidate_npc_internal_names);
+  return omitEmptyArrays({
     recordKey,
     itemInternalName: normalizeText(row.itemInternalName ?? row.item_internal_name),
     itemName: normalizeText(row.itemName ?? row.item_name),
@@ -419,10 +720,11 @@ function normalizeMaintSourceRow(row = {}) {
     sourceRefName: normalizeText(row.sourceRefName ?? row.source_ref_name),
     sourceRefInternalName: normalizeText(row.sourceRefInternalName ?? row.source_ref_internal_name ?? raw.sourceRefInternalName ?? raw.source_ref_internal_name),
     sourceRefResolution: normalizeText(row.sourceRefResolution ?? row.source_ref_resolution ?? raw.sourceRefResolution ?? raw.source_ref_resolution),
+    candidateNpcInternalNames,
     chanceText: normalizeText(row.chanceText ?? row.chance_text ?? raw.chanceText ?? raw.chance_text),
     quantityText: normalizeText(row.quantityText ?? row.quantity_text ?? raw.quantityText ?? raw.quantity_text),
     conditions: normalizeText(row.conditions ?? row.conditionText ?? row.condition_text ?? raw.conditions ?? raw.conditionText ?? raw.condition_text ?? raw.notes),
-  };
+  });
 }
 
 function countStandardizedLoot(record) {
@@ -462,6 +764,10 @@ function resolveNextAction(status) {
       return 'verify_relation_projection_local_counts';
     case 'source_page_present_no_loot':
       return 'review_expected_zero_contract';
+    case 'source_page_present_no_direct_item_loot':
+      return 'verify_no_direct_item_loot_contract';
+    case 'source_page_present_unextracted':
+      return 'crawl_or_extract_source_page';
     case 'source_page_present_parse_failed':
       return 'fix_parser_for_source_page';
     case 'source_page_missing':
@@ -472,6 +778,8 @@ function resolveNextAction(status) {
       return 'promote_or_block_reverse_source_mapping';
     case 'no_source_required_expected_zero':
       return 'verify_expected_zero_contract';
+    case 'no_source_required_domain_separated':
+      return 'verify_domain_separation_contract';
     default:
       return 'review_unknown_source_coverage';
   }
@@ -544,12 +852,50 @@ async function readJsonFile(filePath) {
   return JSON.parse(await fs.readFile(filePath, 'utf8'));
 }
 
+async function readOptionalJsonFile(filePath, readJson) {
+  try {
+    return await readJson(filePath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return null;
+    }
+    throw error;
+  }
+}
+
 async function readTextFile(filePath) {
   return fs.readFile(filePath, 'utf8');
 }
 
 async function loadExpectedZeroInternalNames(readText) {
   const contractPath = path.join(repoRoot, 'docs', 'contracts', 'npc-domain-expected-zero-contract.md');
+  try {
+    const text = await readText(contractPath);
+    return new Set(parseMarkdownTableRows(text)
+      .map((row) => row.npcInternalName)
+      .filter(Boolean));
+  } catch (error) {
+    if (error?.code === 'ENOENT') return new Set();
+    throw error;
+  }
+}
+
+async function loadDomainSeparatedInternalNames(readText) {
+  const contractPath = path.join(repoRoot, 'docs', 'contracts', 'npc-domain-separated-not-npc-drop-contract.md');
+  try {
+    const text = await readText(contractPath);
+    return new Set(parseMarkdownTableRows(text)
+      .filter((row) => ALLOWED_DOMAIN_SEPARATED_REASONS.has(normalizeText(row.reason)))
+      .map((row) => row.npcInternalName)
+      .filter(Boolean));
+  } catch (error) {
+    if (error?.code === 'ENOENT') return new Set();
+    throw error;
+  }
+}
+
+async function loadNoDirectItemLootInternalNames(readText) {
+  const contractPath = path.join(repoRoot, 'docs', 'contracts', 'npc-domain-no-direct-item-loot-contract.md');
   try {
     const text = await readText(contractPath);
     return new Set(parseMarkdownTableRows(text)
@@ -583,6 +929,7 @@ function sanitizeOptions(options) {
     maintDatabase: options.maintDatabase,
     relationDatabase: options.relationDatabase,
     localDatabase: options.localDatabase,
+    crawlerOutputRoot: options.crawlerOutputRoot,
     writeReport: Boolean(options.writeReport),
     output: options.output,
     dateTag: options.dateTag

@@ -76,3 +76,80 @@ test('matchNpcBridgeRecords maps group-page scoped infobox ids to standardized N
     ['DesertGhoulCorruption', 'DesertGhoulCrimson', 'DesertGhoulHallow']
   );
 });
+
+test('matchNpcBridgeRecords keeps secondary exact image matches from multi-image infobox scope', () => {
+  const match = matchNpcBridgeRecords({
+    crawlerRecord: {
+      entityId: 'antlion-charger',
+      display: { name: 'Antlion Charger' },
+      source: { pageTitle: 'Antlion Charger' },
+      loot: [
+        {
+          itemName: 'Antlion Mandible',
+          sourceInfobox: {
+            autoId: '580',
+            image: '[[File:Antlion Charger.gif|link=]] [[File:Giant Antlion Charger.gif|link=]]',
+            name: 'Antlion Charger'
+          }
+        }
+      ]
+    },
+    standardizedRecords: [
+      { id: 580, internalName: 'WalkingAntlion', name: 'Antlion Charger', imageFileTitle: 'Antlion Charger.gif' },
+      { id: 508, internalName: 'GiantWalkingAntlion', name: 'Giant Antlion Charger', imageFileTitle: 'Giant Antlion Charger.gif' }
+    ]
+  });
+
+  assert.equal(match.reason, 'sourceInfoboxImageTitle');
+  assert.deepEqual(
+    match.records.map((record) => record.internalName),
+    ['WalkingAntlion', 'GiantWalkingAntlion']
+  );
+});
+
+test('matchNpcBridgeRecords maps no-loot source infobox ids to exact standardized NPC ids', () => {
+  const match = matchNpcBridgeRecords({
+    crawlerRecord: {
+      entityId: 'owl',
+      display: { name: 'Owl' },
+      source: { pageTitle: 'Owl' },
+      sourceInfoboxes: [
+        { autoId: '689', image: 'Owl.png', name: '' }
+      ],
+      loot: []
+    },
+    standardizedRecords: [
+      { id: 611, internalName: 'Owl', name: 'Owl', imageFileTitle: 'Owl.gif' },
+      { id: 689, internalName: 'OwlMimic', name: 'Owl', imageFileTitle: 'Owl.png' }
+    ]
+  });
+
+  assert.equal(match.reason, 'sourceInfoboxAutoId');
+  assert.deepEqual(
+    match.records.map((record) => record.internalName),
+    ['OwlMimic']
+  );
+});
+
+test('matchNpcBridgeRecords does not treat single-image source infobox auto-id conflicts as scoped image matches', () => {
+  const match = matchNpcBridgeRecords({
+    crawlerRecord: {
+      entityId: 'wither-beast',
+      display: { name: 'Wither Beast' },
+      source: { pageTitle: 'Wither Beast' },
+      sourceInfoboxes: [
+        { autoId: '568', image: 'Wither Beast.gif', name: '' }
+      ],
+      loot: []
+    },
+    standardizedRecords: [
+      { id: 569, internalName: 'DD2WitherBeastT3', name: 'Wither Beast', imageFileTitle: 'Wither Beast.gif' }
+    ]
+  });
+
+  assert.equal(match.reason, 'name');
+  assert.deepEqual(
+    match.records.map((record) => record.internalName),
+    ['DD2WitherBeastT3']
+  );
+});

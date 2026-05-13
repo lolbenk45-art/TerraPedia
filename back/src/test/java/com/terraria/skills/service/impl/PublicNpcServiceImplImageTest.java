@@ -322,6 +322,18 @@ class PublicNpcServiceImplImageTest {
         assertTrue(service.getNpcLoot(8L, 8L, "Blue Slime").isEmpty());
     }
 
+    @Test
+    void shouldQueryOnlyNpcDropRowsForPublicNpcLoot() {
+        when(jdbcTemplate.queryForList(contains("WHERE nle.npc_id = ?"), eq(7L))).thenReturn(List.of());
+
+        PublicNpcServiceImpl service = newService();
+        service.getNpcLoot(7L, 7L, "Zombie");
+
+        ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate).queryForList(queryCaptor.capture(), eq(7L));
+        assertTrue(queryCaptor.getValue().contains("nle.drop_source_kind IS NULL OR nle.drop_source_kind = 'npc_drop'"));
+    }
+
     private PublicNpcServiceImpl newService() {
         return new PublicNpcServiceImpl(npcMapper, categoryMapper, jdbcTemplate, new ObjectMapper(), managedImageUrlPolicy());
     }

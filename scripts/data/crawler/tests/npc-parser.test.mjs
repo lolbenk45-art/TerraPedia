@@ -5,6 +5,7 @@ import {
   extractNpcHappiness,
   extractNpcLeadSummary,
   extractNpcInfobox,
+  extractNpcSourceInfoboxes,
   extractNpcLoot,
   extractNpcSectionBlocks,
   extractNpcShop,
@@ -194,6 +195,37 @@ test('extractNpcInfobox preserves multi-line values for a field', () => {
     projectileId: '77',
     subtypes: ['Goblin']
   });
+});
+
+test('extractNpcSourceInfoboxes captures inline hidden infobox auto ids', () => {
+  const sample = [
+    'Cargo storage of the Owl mimic:',
+    '{{npc infobox | view=void | auto = 689 | image = Owl.png | type = Critter | environment = Forest+Night | cate = force }}'
+  ].join('\n');
+
+  assert.equal(extractNpcInfobox(sample).kind, 'Critter');
+  assert.deepEqual(extractNpcSourceInfoboxes(sample), [
+    {
+      autoId: '689',
+      image: 'Owl.png',
+      name: ''
+    }
+  ]);
+});
+
+test('extractNpcSourceInfoboxes normalizes auto ids with inline comments', () => {
+  const sample = [
+    'Cargo storage of the Bone Throwing Skeleton:',
+    '{{npc infobox | auto = 449 <!--| expertonly = no --> | image = Skeleton.gif | type = Enemy }}'
+  ].join('\n');
+
+  assert.deepEqual(extractNpcSourceInfoboxes(sample), [
+    {
+      autoId: '449',
+      image: 'Skeleton.gif',
+      name: ''
+    }
+  ]);
 });
 
 test('extractNpcSectionBlocks captures stable named sections', () => {
@@ -629,6 +661,32 @@ test('extractNpcLoot reads Present Mimic infobox template item rows', () => {
     ]
   );
   assert.ok(result.items.every((row) => row.sourceInfobox?.autoId === '341'));
+});
+
+test('extractNpcLoot reads custom item templates as the named item', () => {
+  const sample = [
+    '== Drops ==',
+    '{| class="terraria drop"',
+    '|-',
+    '| {{item|custom|Blue Jellyfish Kite}} || 1 || 2%',
+    '|-',
+    '| {{item|custom}} || Pink Jellyfish Kite || 2%',
+    '|}',
+  ].join('\n');
+
+  const result = extractNpcLoot(sample);
+
+  assert.deepEqual(
+    result.items.map((row) => ({
+      itemName: row.itemName,
+      quantityText: row.quantityText,
+      chanceText: row.chanceText,
+    })),
+    [
+      { itemName: 'Blue Jellyfish Kite', quantityText: '1', chanceText: '2%' },
+      { itemName: 'Pink Jellyfish Kite', quantityText: null, chanceText: '2%' }
+    ]
+  );
 });
 
 test('extractNpcLoot leaves shared multi-infobox Drops sections unscoped', () => {

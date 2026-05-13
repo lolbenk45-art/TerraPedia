@@ -317,6 +317,65 @@ test('extractMaintEntitiesFromLandingRow expands NPC item relation bundles into 
   assert.deepEqual(JSON.parse(candidateRow.evidenceJson), [{ sourcePage: 'Unknown NPC', parserSection: 'drops' }]);
 });
 
+test('extractMaintEntitiesFromLandingRow preserves duplicate forward NPC loot row keys', async () => {
+  const landingRow = {
+    id: 92,
+    dataset_type: 'npc_item_relations_bundle_raw',
+    provider: 'terrapedia.generated',
+    source_page: 'npc-item-relations.bundle',
+    source_key: 'generated.npc_item_relations_bundle',
+    source_revision_timestamp: null,
+    content_hash: 'r'.repeat(64),
+    fetched_at: '2026-05-11T00:00:00Z',
+    parsed_at: '2026-05-11T00:00:00Z',
+    payload_json: JSON.stringify({
+      schemaVersion: 1,
+      source: 'wiki-crawler:npc',
+      records: [
+        {
+          recordKey: 'npc-item:reaper:loot:death-sickle:0',
+          relationType: 'loot',
+          npcInternalName: 'Reaper',
+          npcName: 'Reaper',
+          itemName: 'Death Sickle',
+          chanceText: '2.5%',
+          quantityText: '1',
+          sourceRowIndex: 0,
+          sourceRefInternalName: 'Reaper',
+          sourceRefResolution: 'exact_internal_name',
+          sourceUrl: 'https://terraria.wiki.gg/wiki/Reaper',
+          raw: { itemName: 'Death Sickle', sourceRowIndex: 0 }
+        },
+        {
+          recordKey: 'npc-item:reaper:loot:death-sickle:1',
+          relationType: 'loot',
+          npcInternalName: 'Reaper',
+          npcName: 'Reaper',
+          itemName: 'Death Sickle',
+          chanceText: '2.5%',
+          quantityText: '1',
+          sourceRowIndex: 1,
+          sourceRefInternalName: 'Reaper',
+          sourceRefResolution: 'exact_internal_name',
+          sourceUrl: 'https://terraria.wiki.gg/wiki/Reaper',
+          raw: { itemName: 'Death Sickle', sourceRowIndex: 1 }
+        }
+      ],
+      backfillCandidates: []
+    })
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(landingRow);
+  const sourceRows = actual.rows.filter((row) => row.tableName === 'maint_item_sources');
+
+  assert.equal(sourceRows.length, 2);
+  assert.deepEqual(sourceRows.map((row) => row.recordKey), [
+    'npc-item:reaper:loot:death-sickle:0',
+    'npc-item:reaper:loot:death-sickle:1'
+  ]);
+  assert.deepEqual(sourceRows.map((row) => row.sortOrder), [0, 1]);
+});
+
 test('runMaintSync includes NPC item bundle item source and candidate rows for npc scope dry runs', async () => {
   const summary = await runMaintSync(
     { apply: false, scopes: ['npcs'] },
@@ -387,6 +446,62 @@ test('runMaintSync upserts NPC item bundle source and backfill rows on apply', a
   assert.ok(executeCalls.some((call) => call.sql.startsWith('INSERT INTO `maint_item_sources`')));
   assert.ok(executeCalls.some((call) => call.sql.startsWith('INSERT INTO `maint_backfill_candidates`')));
   assert.equal(summary.writes.inserted, 2);
+});
+
+test('runMaintSync retires stale NPC item bundle source rows when bundle record keys change', async () => {
+  const executeCalls = [];
+  const summary = await runMaintSync(
+    { apply: true, scopes: ['npcs'] },
+    {
+      loadLandingRows: async () => [createNpcItemBundleLandingRow({
+        records: [
+          {
+            recordKey: 'npc-item:sand-shark:loot:shark-fin:1',
+            relationType: 'loot',
+            npcInternalName: 'SandShark',
+            npcName: 'Sand Shark',
+            itemName: 'Shark Fin',
+            chanceText: '12.5%',
+            sourceRowIndex: 1,
+            sourceUrl: 'https://terraria.wiki.gg/wiki/Sand_Sharks',
+            raw: { itemName: 'Shark Fin (Sand Shark)' }
+          }
+        ],
+        backfillCandidates: []
+      })],
+      mysqlModule: {
+        async createConnection() {
+          return {
+            async beginTransaction() {},
+            async query() {},
+            async execute(sql, params) {
+              executeCalls.push({ sql, params });
+              if (sql.startsWith('SELECT id FROM') || sql.startsWith('SELECT id, status, deleted, landing_source_id, landing_content_hash FROM')) {
+                return [[]];
+              }
+              if (sql.startsWith('UPDATE `maint_item_sources` AS target')) {
+                return [{ affectedRows: 1 }];
+              }
+              return [{}];
+            },
+            async commit() {},
+            async rollback() {},
+            async end() {},
+          };
+        },
+      },
+      writeReport: async () => {},
+    },
+  );
+
+  const staleSourceCleanup = executeCalls.find((call) => call.sql.startsWith('UPDATE `maint_item_sources` AS target'));
+  assert.ok(staleSourceCleanup);
+  assert.match(staleSourceCleanup.sql, /LEFT JOIN `tmp_maint_active_record_keys`/);
+  assert.match(staleSourceCleanup.sql, /target\.landing_source_key = \?/);
+  assert.match(staleSourceCleanup.sql, /BINARY active\.record_key = BINARY target\.record_key/);
+  assert.deepEqual(staleSourceCleanup.params, ['maint_item_sources', 'generated.npc_item_relations_bundle']);
+  assert.equal(summary.writes.inserted, 1);
+  assert.equal(summary.writes.retired, 1);
 });
 
 test('extractMaintEntitiesFromLandingRow overlays item zh names from provided source indexes', async () => {
@@ -1662,7 +1777,33 @@ async function writeJson(filePath, value) {
   await fs.writeFile(filePath, JSON.stringify(value, null, 2), 'utf8');
 }
 
-function createNpcItemBundleLandingRow() {
+function createNpcItemBundleLandingRow(overrides = {}) {
+  const records = overrides.records ?? [
+    {
+      recordKey: 'npc-item:merchant:shop:lesser-healing-potion',
+      relationType: 'shop',
+      npcInternalName: 'Merchant',
+      npcName: 'Merchant',
+      itemName: 'Lesser Healing Potion',
+      priceText: '3 silver',
+      conditionText: 'Always',
+      sourceUrl: 'https://terraria.wiki.gg/wiki/Merchant',
+      raw: { itemName: 'Lesser Healing Potion' }
+    }
+  ];
+  const backfillCandidates = overrides.backfillCandidates ?? [
+    {
+      candidateKey: 'd'.repeat(64),
+      domain: 'npc_item_relation',
+      entityType: 'npc',
+      entityInternalName: 'Merchant',
+      entitySourceId: 17,
+      missingField: 'loot',
+      recommendedAction: 'crawl_npc_page',
+      evidenceJson: [{ sourcePage: 'Merchant', parserSection: 'drops' }],
+      status: 'open'
+    }
+  ];
   return {
     id: 91,
     dataset_type: 'npc_item_relations_bundle_raw',
@@ -1676,32 +1817,8 @@ function createNpcItemBundleLandingRow() {
     payload_json: JSON.stringify({
       schemaVersion: 1,
       source: 'wiki-crawler:npc',
-      records: [
-        {
-          recordKey: 'npc-item:merchant:shop:lesser-healing-potion',
-          relationType: 'shop',
-          npcInternalName: 'Merchant',
-          npcName: 'Merchant',
-          itemName: 'Lesser Healing Potion',
-          priceText: '3 silver',
-          conditionText: 'Always',
-          sourceUrl: 'https://terraria.wiki.gg/wiki/Merchant',
-          raw: { itemName: 'Lesser Healing Potion' }
-        }
-      ],
-      backfillCandidates: [
-        {
-          candidateKey: 'd'.repeat(64),
-          domain: 'npc_item_relation',
-          entityType: 'npc',
-          entityInternalName: 'Merchant',
-          entitySourceId: 17,
-          missingField: 'loot',
-          recommendedAction: 'crawl_npc_page',
-          evidenceJson: [{ sourcePage: 'Merchant', parserSection: 'drops' }],
-          status: 'open'
-        }
-      ]
+      records,
+      backfillCandidates
     }),
   };
 }

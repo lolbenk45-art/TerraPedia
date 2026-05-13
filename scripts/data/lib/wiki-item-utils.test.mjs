@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildWikiPageParseUrl } from './wiki-item-utils.mjs';
+import {
+  buildWikiPageParseUrl,
+  fetchWikiPageMetadataBatch,
+} from './wiki-item-utils.mjs';
 
 test('buildWikiPageParseUrl enables redirect following for parse requests', () => {
   const url = buildWikiPageParseUrl({
@@ -15,4 +18,56 @@ test('buildWikiPageParseUrl enables redirect following for parse requests', () =
   assert.equal(url.searchParams.get('format'), 'json');
   assert.equal(url.searchParams.get('formatversion'), '2');
   assert.equal(url.searchParams.get('redirects'), '1');
+});
+
+test('fetchWikiPageMetadataBatch maps requested redirect aliases to returned canonical pages', async () => {
+  const calls = [];
+  const pages = await fetchWikiPageMetadataBatch({
+    titles: ['Fungo Fish', 'Giant Antlion Charger', 'Missing Alias'],
+    apiUrl: 'https://terraria.wiki.gg/api.php',
+    fetchWikiApiJsonImpl: async ({ url }) => {
+      calls.push(url);
+      return {
+        query: {
+          redirects: [
+            { from: 'Fungo Fish', to: 'Jellyfish' },
+            { from: 'Giant Antlion Charger', to: 'Antlion Charger' },
+          ],
+          pages: [
+            {
+              pageid: 123,
+              title: 'Jellyfish',
+              revisions: [{ revid: 1001, timestamp: '2026-05-12T00:00:00Z' }],
+            },
+            {
+              pageid: 456,
+              title: 'Antlion Charger',
+              revisions: [{ revid: 1002, timestamp: '2026-05-12T00:00:01Z' }],
+            },
+            {
+              ns: 0,
+              title: 'Missing Alias',
+              missing: true,
+            },
+          ],
+        },
+      };
+    },
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].searchParams.get('redirects'), '1');
+  assert.deepEqual(
+    pages.map((page) => ({
+      requestedTitle: page.requestedTitle,
+      pageTitle: page.pageTitle,
+      pageId: page.pageId,
+      missing: page.missing,
+    })),
+    [
+      { requestedTitle: 'Fungo Fish', pageTitle: 'Jellyfish', pageId: 123, missing: false },
+      { requestedTitle: 'Giant Antlion Charger', pageTitle: 'Antlion Charger', pageId: 456, missing: false },
+      { requestedTitle: 'Missing Alias', pageTitle: 'Missing Alias', pageId: null, missing: true },
+    ]
+  );
 });

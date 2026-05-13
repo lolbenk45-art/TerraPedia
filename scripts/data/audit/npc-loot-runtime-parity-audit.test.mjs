@@ -133,6 +133,22 @@ test('row identity parity treats Normal mode row as an implicit default conditio
   assert.equal(status.status, 'trusted_direct_loot');
 });
 
+test('local compatibility boss loot rows do not pollute NPC drop runtime parity', () => {
+  const npcDrop = row({ npcInternalName: 'BossNpc', itemInternalName: 'NpcDrop', dropSourceKind: 'npc_drop' });
+  const directBossLoot = row({ npcInternalName: 'BossNpc', itemInternalName: 'BossTrophy', dropSourceKind: 'direct_boss' });
+  const treasureBagLoot = row({ npcInternalName: 'BossNpc', itemInternalName: 'ExpertBagItem', dropSourceKind: 'treasure_bag' });
+  const report = buildNpcLootRuntimeParityReport({
+    relationRows: [npcDrop],
+    projectionRows: [npcDrop],
+    localRows: [npcDrop, directBossLoot, treasureBagLoot],
+    apiRows: [{ ...npcDrop, lootSourceMode: 'direct' }],
+  });
+
+  const status = report.rows.find((entry) => entry.npcInternalName === 'BossNpc');
+  assert.equal(status.status, 'trusted_direct_loot');
+  assert.equal(report.summary.stageRows.local, 1);
+});
+
 test('buildNpcLootRuntimeParityReport blocks API rows with missing or unknown runtime provenance', () => {
   const missingModeRow = row({ npcInternalName: 'MissingModeNpc', itemInternalName: 'Gel', sourceFactKey: 'fact:missing-mode' });
   const unknownModeRow = row({ npcInternalName: 'UnknownModeNpc', itemInternalName: 'Hook', sourceFactKey: 'fact:unknown-mode' });

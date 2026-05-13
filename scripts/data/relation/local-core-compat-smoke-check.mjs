@@ -55,7 +55,10 @@ export function buildLocalCoreCompatSmokeCheck({ localData = {}, projectionData 
   const failedDomains = [];
 
   for (const [domain, entry] of Object.entries(audit.domainResults)) {
-    const rowCountMismatch = entry.localRowCount !== entry.projectionRowCount;
+    const acceptedLocalOnlyCount = Array.isArray(entry.acceptedLocalOnlyExceptions)
+      ? entry.acceptedLocalOnlyExceptions.length
+      : 0;
+    const rowCountMismatch = (entry.localRowCount - acceptedLocalOnlyCount) !== entry.projectionRowCount;
     const keyMismatch = entry.missingInProjectionCount > 0 || entry.extraInProjectionCount > 0;
     const fieldMismatch = entry.blockingFields.length > 0;
     const ok = !rowCountMismatch && !keyMismatch && !fieldMismatch;

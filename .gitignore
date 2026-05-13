@@ -73,6 +73,10 @@ data/generated/*.latest.json
 data/generated/upstream-update*.json
 data/generated/npc-id-row-images*.json
 data/generated/projectile-zh-map.json
+data/generated/_tmp-*
+data/generated/tmp-npc-*
+data/generated/npc-item-relations.bundle.json
+data/generated/npc-item-relations.bundle.*.json
 data/generated/wiki-crawler-npc-bridge/
 data/wiki-crawler/audit/
 data/wiki-crawler/canonical/

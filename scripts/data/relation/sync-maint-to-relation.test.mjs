@@ -225,6 +225,11 @@ test('runSync dry-run reads maint only and does not write relation rows', async 
   assert.equal(result.apply, false);
   assert.ok(reads.some(([kind]) => kind === 'maint'));
   assert.ok(reads.every(([kind]) => kind === 'maint'));
+  const itemSourceRead = reads.find(([, sql]) => /\bFROM\s+maint_item_sources\b/i.test(sql));
+  assert.ok(itemSourceRead, 'expected maint_item_sources to be read from maint');
+  assert.match(itemSourceRead[1], /\bWHERE\b/i);
+  assert.match(itemSourceRead[1], /\bstatus\s*=\s*1\b/i);
+  assert.match(itemSourceRead[1], /\bdeleted\s*=\s*0\b/i);
   assert.ok(relationReads.some(([, sql]) => sql.includes('relation_armor_set_images')));
   assert.equal(writeCalled, false);
   assert.equal(result.summary.domainSummary.base, 4);
@@ -317,6 +322,386 @@ test('runSync dry-run carries item npc relation audits into results and summary'
   assert.equal(result.results.itemNpcRelationAudits.length, 1);
   assert.equal(result.results.itemNpcRelationAudits[0].auditStatus, 'unresolved');
   assert.equal(result.summary.domainSummary.npc, 3);
+});
+
+test('runSync dry-run applies reviewed non-NPC source exclusions to item npc audits', async () => {
+  const result = await runSync(
+    {
+      apply: false,
+      createDatabase: false,
+      maintDatabase: 'terria_v1_maint',
+      localDatabase: null,
+      relationDatabase: 'terria_v1_relation',
+      scopes: ['npc']
+    },
+    {
+      config: {
+        database: {
+          host: '127.0.0.1',
+          port: 3306,
+          username: 'root',
+          password: 'root'
+        }
+      },
+      queryMaint: async (sql) => {
+        if (sql.includes('maint_item_sources')) {
+          return [
+            {
+              id: 22,
+              record_key: 'c'.repeat(64),
+              item_internal_name: 'WaffleIron',
+              item_name: "Waffle's Iron",
+              source_type: 'drop',
+              source_ref_type: 'npc',
+              source_ref_name: 'Mechdusa',
+              raw_json: JSON.stringify({
+                sourceRefName: 'Mechdusa',
+                chanceText: '100%',
+                quantityText: '1'
+              }),
+              landing_source_id: 51,
+              landing_source_key: 'generated.item_relations_bundle:chunk:0001',
+              landing_content_hash: 'f'.repeat(64),
+              source_provider: 'wiki_gg',
+              source_page: "Waffle's Iron"
+            }
+          ];
+        }
+        if (sql.includes('maint_items')) {
+          return [{
+            source_id: 5298,
+            internal_name: 'WaffleIron',
+            english_name: "Waffle's Iron",
+            raw_json: '{}'
+          }];
+        }
+        if (sql.includes('maint_npcs')) return [];
+        return [];
+      },
+      loadReviewedNonNpcSourceExclusions: async () => [{
+        sourceType: 'drop',
+        sourceRefType: 'npc',
+        matchType: 'exact',
+        sourceRefName: 'Mechdusa',
+        reason: 'boss_lane_reference_source',
+        evidenceSource: 'docs/audits/2026-05-11_npc-mechdusa-non-npc-source-review.md',
+        reviewedBy: 'codex',
+        reviewedAt: '2026-05-11',
+      }],
+      writeReports: async () => ({
+        auditJsonPath: 'reports/relation/relation-audit-2026-05-11.json',
+        auditMdPath: 'reports/relation/relation-audit-2026-05-11.md',
+        conflictsPath: 'reports/relation/relation-conflicts-2026-05-11.json',
+        unresolvedPath: 'reports/relation/relation-unresolved-2026-05-11.json'
+      }),
+      executeRelation: async () => {
+        throw new Error('should not write in dry-run');
+      }
+    }
+  );
+
+  assert.equal(result.results.itemNpcLootRelations.length, 0);
+  assert.equal(result.results.itemNpcRelationAudits.length, 1);
+  assert.equal(result.results.itemNpcRelationAudits[0].auditStatus, 'blocked');
+  assert.equal(result.results.itemNpcRelationAudits[0].reasonCode, 'boss_lane_reference_source');
+});
+
+test('runSync dry-run applies reviewed source-only item exclusions to item npc audits', async () => {
+  const result = await runSync(
+    {
+      apply: false,
+      createDatabase: false,
+      maintDatabase: 'terria_v1_maint',
+      localDatabase: null,
+      relationDatabase: 'terria_v1_relation',
+      scopes: ['npc']
+    },
+    {
+      config: {
+        database: {
+          host: '127.0.0.1',
+          port: 3306,
+          username: 'root',
+          password: 'root'
+        }
+      },
+      queryMaint: async (sql) => {
+        if (sql.includes('maint_item_sources')) {
+          return [
+            {
+              id: 24,
+              record_key: 'npc-item:corrupt-bunny:loot:suspicious-looking-egg:2',
+              item_internal_name: null,
+              item_name: 'Suspicious Looking Egg',
+              source_type: 'drop',
+              source_ref_type: 'npc',
+              source_ref_name: 'Corrupt Bunny',
+              raw_json: JSON.stringify({
+                itemName: 'Suspicious Looking Egg',
+                sourceRefName: 'Corrupt Bunny',
+                sourceRefInternalName: 'CorruptBunny',
+                sourceRefResolution: 'exact_internal_name',
+                chanceText: '100% @normal',
+                quantityText: '',
+                sourceUrl: 'https://terraria.wiki.gg/wiki/Corrupt_Bunny'
+              }),
+              landing_source_id: 51,
+              landing_source_key: 'generated.npc_item_relations_bundle:chunk:0001',
+              landing_content_hash: 'f'.repeat(64),
+              source_provider: 'wiki_gg',
+              source_page: 'Corrupt Bunny'
+            }
+          ];
+        }
+        if (sql.includes('maint_items')) return [];
+        if (sql.includes('maint_npcs')) {
+          return [{
+            source_id: 48,
+            internal_name: 'CorruptBunny',
+            name: 'Corrupt Bunny',
+            flags_json: '{}'
+          }];
+        }
+        return [];
+      },
+      loadReviewedSourceOnlyItemExclusions: async () => [{
+        sourceType: 'drop',
+        sourceRefType: 'npc',
+        sourceRefInternalName: 'CorruptBunny',
+        itemName: 'Suspicious Looking Egg',
+        recordKey: 'npc-item:corrupt-bunny:loot:suspicious-looking-egg:2',
+        chanceText: '100% @normal',
+        quantityText: '',
+        sourceUrl: 'https://terraria.wiki.gg/wiki/Corrupt_Bunny',
+        reason: 'legacy_only_item_not_in_current_corpus',
+        evidenceSource: 'docs/audits/2026-05-13_npc-source-only-item-review.md',
+        reviewedBy: 'codex',
+        reviewedAt: '2026-05-13',
+      }],
+      writeReports: async () => ({
+        auditJsonPath: 'reports/relation/relation-audit-2026-05-13.json',
+        auditMdPath: 'reports/relation/relation-audit-2026-05-13.md',
+        conflictsPath: 'reports/relation/relation-conflicts-2026-05-13.json',
+        unresolvedPath: 'reports/relation/relation-unresolved-2026-05-13.json'
+      }),
+      executeRelation: async () => {
+        throw new Error('should not write in dry-run');
+      }
+    }
+  );
+
+  assert.equal(result.results.itemNpcLootRelations.length, 0);
+  assert.equal(result.results.itemNpcRelationAudits.length, 1);
+  assert.equal(result.results.itemNpcRelationAudits[0].auditStatus, 'excluded');
+  assert.equal(result.results.itemNpcRelationAudits[0].reasonCode, 'legacy_only_item_not_in_current_corpus');
+  assert.equal(result.results.itemSourceFacts[0].reviewStatus, 'excluded');
+});
+
+test('runSync dry-run materializes contract-backed inherited npc loot relations', async () => {
+  const result = await runSync(
+    {
+      apply: false,
+      createDatabase: false,
+      maintDatabase: 'terria_v1_maint',
+      localDatabase: null,
+      relationDatabase: 'terria_v1_relation',
+      scopes: ['npc']
+    },
+    {
+      config: {
+        database: {
+          host: '127.0.0.1',
+          port: 3306,
+          username: 'root',
+          password: 'root'
+        }
+      },
+      queryMaint: async (sql) => {
+        if (sql.includes('maint_item_sources')) {
+          return [{
+            id: 401,
+            record_key: 'h'.repeat(64),
+            item_internal_name: 'AncientCobaltHelmet',
+            item_name: 'Ancient Cobalt Helmet',
+            source_type: 'drop',
+            source_ref_type: 'npc',
+            source_ref_name: 'Hornet',
+            raw_json: JSON.stringify({
+              sourceRefName: 'Hornet',
+              sourceRefInternalName: 'Hornet',
+              sourceRefResolution: 'exact_internal_name',
+              quantityText: '1',
+              chanceText: '0.33%'
+            }),
+            landing_source_id: 51,
+            landing_source_key: 'generated.npc_item_relations_bundle:chunk:0001',
+            landing_content_hash: 'f'.repeat(64),
+            source_provider: 'wiki_gg',
+            source_page: 'Hornet'
+          }];
+        }
+        if (sql.includes('maint_items')) {
+          return [{
+            source_id: 379,
+            internal_name: 'AncientCobaltHelmet',
+            english_name: 'Ancient Cobalt Helmet',
+            raw_json: '{}'
+          }];
+        }
+        if (sql.includes('maint_npcs')) {
+          return [
+            { source_id: 42, internal_name: 'Hornet', english_name: 'Hornet', name: 'Hornet', raw_json: '{}' },
+            { source_id: -15, internal_name: 'BigHornetStingy', english_name: 'Hornet', name: 'Hornet', raw_json: '{}' }
+          ];
+        }
+        return [];
+      },
+      loadInheritanceRules: async () => [{
+        targetNpcInternalName: 'BigHornetStingy',
+        sourceNpcInternalName: 'Hornet',
+        inheritanceKind: 'same_name_variant',
+        evidenceSource: 'https://terraria.wiki.gg/wiki/Hornet',
+        reviewedBy: 'test',
+        reviewedAt: '2026-05-11'
+      }],
+      writeReports: async () => ({
+        auditJsonPath: 'reports/relation/relation-audit-2026-05-11.json',
+        auditMdPath: 'reports/relation/relation-audit-2026-05-11.md',
+        conflictsPath: 'reports/relation/relation-conflicts-2026-05-11.json',
+        unresolvedPath: 'reports/relation/relation-unresolved-2026-05-11.json'
+      }),
+      executeRelation: async () => {
+        throw new Error('should not write in dry-run');
+      }
+    }
+  );
+
+  assert.deepEqual(
+    result.results.itemNpcLootRelations.map((row) => row.npcInternalName).sort(),
+    ['BigHornetStingy', 'Hornet']
+  );
+  const inherited = result.results.itemNpcLootRelations.find((row) => row.npcInternalName === 'BigHornetStingy');
+  assert.equal(inherited.reason, 'contract_backed_inherited_loot');
+  assert.equal(JSON.parse(inherited.rawJson).inheritanceEvidenceSource, 'https://terraria.wiki.gg/wiki/Hornet');
+});
+
+test('runSync rejects malformed inheritance contract rows before relation execution', async () => {
+  let executeRelationCalled = false;
+  let writeReportsCalled = false;
+
+  await assert.rejects(
+    runSync(
+      {
+        apply: true,
+        createDatabase: false,
+        maintDatabase: 'terria_v1_maint',
+        localDatabase: null,
+        relationDatabase: 'terria_v1_relation',
+        scopes: ['npc']
+      },
+      {
+        config: {
+          database: {
+            host: '127.0.0.1',
+            port: 3306,
+            username: 'root',
+            password: 'root'
+          }
+        },
+        queryMaint: async (sql) => {
+          if (sql.includes('maint_item_sources')) {
+            return [{
+              id: 401,
+              record_key: 'h'.repeat(64),
+              item_internal_name: 'AncientCobaltHelmet',
+              item_name: 'Ancient Cobalt Helmet',
+              source_type: 'drop',
+              source_ref_type: 'npc',
+              source_ref_name: 'Hornet',
+              raw_json: JSON.stringify({
+                sourceRefName: 'Hornet',
+                sourceRefInternalName: 'Hornet',
+                sourceRefResolution: 'exact_internal_name',
+                quantityText: '1',
+                chanceText: '0.33%'
+              }),
+              landing_source_id: 51,
+              landing_source_key: 'generated.npc_item_relations_bundle:chunk:0001',
+              landing_content_hash: 'f'.repeat(64),
+              source_provider: 'wiki_gg',
+              source_page: 'Hornet'
+            }];
+          }
+          if (sql.includes('maint_items')) {
+            return [{
+              source_id: 379,
+              internal_name: 'AncientCobaltHelmet',
+              english_name: 'Ancient Cobalt Helmet',
+              raw_json: '{}'
+            }];
+          }
+          if (sql.includes('maint_npcs')) {
+            return [
+              { source_id: 42, internal_name: 'Hornet', english_name: 'Hornet', name: 'Hornet', raw_json: '{}' },
+              { source_id: -15, internal_name: 'BigHornetStingy', english_name: 'Hornet', name: 'Hornet', raw_json: '{}' }
+            ];
+          }
+          return [];
+        },
+        loadInheritanceRules: async () => ([
+          {
+            targetNpcInternalName: 'BigHornetStingy',
+            sourceNpcInternalName: 'Hornet',
+            inheritanceKind: 'same_name_variant',
+            evidenceSource: 'https://terraria.wiki.gg/wiki/Hornet',
+            reviewedBy: 'test',
+            reviewedAt: '2026-05-11'
+          },
+          {
+            targetNpcInternalName: 'Hornet',
+            sourceNpcInternalName: 'Hornet',
+            inheritanceKind: 'same_name_variant',
+            evidenceSource: 'https://terraria.wiki.gg/wiki/Hornet',
+            reviewedBy: 'test',
+            reviewedAt: '2026-05-11'
+          },
+          {
+            targetNpcInternalName: 'BigHornetStingy',
+            sourceNpcInternalName: 'Hornet',
+            inheritanceKind: 'same_display_name',
+            evidenceSource: '',
+            reviewedBy: 'test',
+            reviewedAt: 'not-an-iso-date'
+          },
+          {
+            targetNpcInternalName: 'MissingSource',
+            sourceNpcInternalName: '',
+            inheritanceKind: '',
+            evidenceSource: 'https://terraria.wiki.gg/wiki/Hornet',
+            reviewedBy: '',
+            reviewedAt: ''
+          }
+        ]),
+        writeReports: async () => {
+          writeReportsCalled = true;
+          return {
+            auditJsonPath: 'reports/relation/relation-audit-2026-05-11.json',
+            auditMdPath: 'reports/relation/relation-audit-2026-05-11.md',
+            conflictsPath: 'reports/relation/relation-conflicts-2026-05-11.json',
+            unresolvedPath: 'reports/relation/relation-unresolved-2026-05-11.json'
+          };
+        },
+        executeRelation: async () => {
+          executeRelationCalled = true;
+          throw new Error('should not write relations when inheritance validation fails');
+        }
+      }
+    ),
+    /inheritance/i
+  );
+
+  assert.equal(executeRelationCalled, false);
+  assert.equal(writeReportsCalled, false);
 });
 
 test('runSync dry-run surfaces projectile crawl candidates for maint items and npcs without projectile fields', async () => {

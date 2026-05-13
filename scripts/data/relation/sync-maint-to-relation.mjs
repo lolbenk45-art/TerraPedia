@@ -38,6 +38,30 @@ const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
 
 const repoRoot = getProjectRoot();
+const ALLOWED_INHERITANCE_KINDS = new Set([
+  'segment_family',
+  'prototype_variant',
+  'same_name_variant',
+]);
+
+const ALLOWED_NON_NPC_EXCLUSION_REASONS = new Set([
+  'chest_container',
+  'crate_container',
+  'treasure_bag_container',
+  'present_container',
+  'tree_source',
+  'bag_container',
+  'lock_box_container',
+  'heart_or_orb_source',
+  'mode_or_bonus_bucket',
+  'non_npc_item_source_entity',
+  'boss_lane_reference_source',
+]);
+
+const ALLOWED_SOURCE_ONLY_ITEM_EXCLUSION_REASONS = new Set([
+  'item_group_requires_expansion',
+  'legacy_only_item_not_in_current_corpus',
+]);
 
 function booleanOption(value, fallback = false) {
   if (value == null || value === '') return fallback;
@@ -91,6 +115,283 @@ function readWikiArmorSets(inputPath) {
     return payload;
   }
   return [];
+}
+
+function readInheritanceRules(inputPath = path.join(repoRoot, 'docs', 'contracts', 'npc-domain-loot-inheritance-contract.md')) {
+  if (!inputPath || !fs.existsSync(inputPath)) {
+    return [];
+  }
+  return parseInheritanceContractRows(fs.readFileSync(inputPath, 'utf8'));
+}
+
+function readReviewedNonNpcSourceExclusions(inputPath = path.join(repoRoot, 'docs', 'contracts', 'npc-domain-non-npc-source-exclusion-contract.md')) {
+  if (!inputPath || !fs.existsSync(inputPath)) {
+    return [];
+  }
+  return parseReviewedNonNpcSourceExclusionRows(fs.readFileSync(inputPath, 'utf8'));
+}
+
+function readReviewedSourceOnlyItemExclusions(inputPath = path.join(repoRoot, 'docs', 'contracts', 'npc-domain-source-only-item-exclusion-contract.md')) {
+  if (!inputPath || !fs.existsSync(inputPath)) {
+    return [];
+  }
+  return parseReviewedSourceOnlyItemExclusionRows(fs.readFileSync(inputPath, 'utf8'));
+}
+
+function parseInheritanceContractRows(text) {
+  const rows = [];
+  const lines = String(text ?? '').split(/\r?\n/).filter((line) => line.trim().startsWith('|'));
+  let headers = null;
+  for (const line of lines) {
+    const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+    if (cells.length === 0 || cells.every((cell) => /^:?-{3,}:?$/.test(cell))) continue;
+    if (cells.includes('targetNpcInternalName')) {
+      headers = cells;
+      continue;
+    }
+    if (!headers || !headers.includes('targetNpcInternalName')) continue;
+    const row = Object.fromEntries(headers.map((header, index) => [header, cells[index] ?? null]));
+    if (!normalizeTableText(row.targetNpcInternalName) || row.targetNpcInternalName === '_none yet_') continue;
+    rows.push({
+      targetNpcInternalName: row.targetNpcInternalName,
+      sourceNpcInternalName: row.sourceNpcInternalName,
+      inheritanceKind: row.inheritanceKind,
+      evidenceSource: row.evidenceSource,
+      reviewedBy: row.reviewedBy,
+      reviewedAt: row.reviewedAt,
+    });
+  }
+  return rows;
+}
+
+function parseReviewedNonNpcSourceExclusionRows(text) {
+  const rows = [];
+  const lines = String(text ?? '').split(/\r?\n/).filter((line) => line.trim().startsWith('|'));
+  let headers = null;
+  for (const line of lines) {
+    const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+    if (cells.length === 0 || cells.every((cell) => /^:?-{3,}:?$/.test(cell))) continue;
+    if (cells.includes('sourceRefName')) {
+      headers = cells;
+      continue;
+    }
+    if (!headers || !headers.includes('sourceRefName')) continue;
+    const row = Object.fromEntries(headers.map((header, index) => [header, cells[index] ?? null]));
+    if (!normalizeTableText(row.sourceRefName) || row.sourceRefName === '_none yet_') continue;
+    rows.push({
+      sourceType: row.sourceType,
+      sourceRefType: row.sourceRefType,
+      matchType: row.matchType,
+      sourceRefName: row.sourceRefName,
+      reason: row.reason,
+      evidenceSource: row.evidenceSource,
+      reviewedBy: row.reviewedBy,
+      reviewedAt: row.reviewedAt,
+      notes: row.notes,
+    });
+  }
+  return rows;
+}
+
+function parseReviewedSourceOnlyItemExclusionRows(text) {
+  const rows = [];
+  const lines = String(text ?? '').split(/\r?\n/).filter((line) => line.trim().startsWith('|'));
+  let headers = null;
+  for (const line of lines) {
+    const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+    if (cells.length === 0 || cells.every((cell) => /^:?-{3,}:?$/.test(cell))) continue;
+    if (cells.includes('recordKey') && cells.includes('itemName')) {
+      headers = cells;
+      continue;
+    }
+    if (!headers || !headers.includes('recordKey') || !headers.includes('itemName')) continue;
+    const row = Object.fromEntries(headers.map((header, index) => [header, cells[index] ?? null]));
+    if (!normalizeTableText(row.recordKey) || row.recordKey === '_none yet_') continue;
+    rows.push({
+      sourceType: row.sourceType,
+      sourceRefType: row.sourceRefType,
+      sourceRefInternalName: row.sourceRefInternalName,
+      itemName: row.itemName,
+      recordKey: row.recordKey,
+      chanceText: row.chanceText,
+      quantityText: row.quantityText,
+      sourceUrl: row.sourceUrl,
+      reason: row.reason,
+      evidenceSource: row.evidenceSource,
+      reviewedBy: row.reviewedBy,
+      reviewedAt: row.reviewedAt,
+      notes: row.notes,
+    });
+  }
+  return rows;
+}
+
+function normalizeTableText(value) {
+  const text = String(value ?? '').trim();
+  return text.length ? text : null;
+}
+
+function isIsoDateOnly(value) {
+  const text = normalizeTableText(value);
+  if (!text || !/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    return false;
+  }
+  const date = new Date(`${text}T00:00:00.000Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === text;
+}
+
+function describeInheritanceRule(row = {}) {
+  return `${normalizeTableText(row.targetNpcInternalName) ?? '<missing target>'} <= ${normalizeTableText(row.sourceNpcInternalName) ?? '<missing source>'}`;
+}
+
+function validateInheritanceRules(inheritanceRules = []) {
+  if (!Array.isArray(inheritanceRules)) {
+    const error = new Error('NPC loot inheritance contract validation failed: expected inheritance rules to be an array.');
+    error.validationIssues = ['expected inheritance rules to be an array'];
+    throw error;
+  }
+
+  const issues = [];
+  const seenTargets = new Set();
+  for (const [index, row] of inheritanceRules.entries()) {
+    const targetNpcInternalName = normalizeTableText(row?.targetNpcInternalName);
+    const sourceNpcInternalName = normalizeTableText(row?.sourceNpcInternalName);
+    const inheritanceKind = normalizeTableText(row?.inheritanceKind);
+    const evidenceSource = normalizeTableText(row?.evidenceSource);
+    const reviewedBy = normalizeTableText(row?.reviewedBy);
+    const reviewedAt = normalizeTableText(row?.reviewedAt);
+    const rowLabel = `row ${index + 1} (${describeInheritanceRule(row)})`;
+
+    if (!targetNpcInternalName) {
+      issues.push(`${rowLabel}: missing targetNpcInternalName`);
+    } else if (seenTargets.has(targetNpcInternalName)) {
+      issues.push(`${rowLabel}: duplicate targetNpcInternalName "${targetNpcInternalName}"`);
+    } else {
+      seenTargets.add(targetNpcInternalName);
+    }
+
+    if (!sourceNpcInternalName) {
+      issues.push(`${rowLabel}: missing sourceNpcInternalName`);
+    }
+
+    if (targetNpcInternalName && sourceNpcInternalName && targetNpcInternalName === sourceNpcInternalName) {
+      issues.push(`${rowLabel}: self-inheritance is not allowed`);
+    }
+
+    if (!inheritanceKind) {
+      issues.push(`${rowLabel}: missing inheritanceKind`);
+    } else if (!ALLOWED_INHERITANCE_KINDS.has(inheritanceKind)) {
+      issues.push(`${rowLabel}: invalid inheritanceKind "${inheritanceKind}"`);
+    }
+
+    if (!evidenceSource) {
+      issues.push(`${rowLabel}: missing evidenceSource`);
+    }
+    if (!reviewedBy) {
+      issues.push(`${rowLabel}: missing reviewedBy`);
+    }
+    if (!isIsoDateOnly(reviewedAt)) {
+      issues.push(`${rowLabel}: missing or invalid ISO reviewedAt`);
+    }
+  }
+
+  if (issues.length) {
+    const error = new Error([
+      `NPC loot inheritance contract validation failed with ${issues.length} issue(s):`,
+      ...issues.map((issue) => `- ${issue}`)
+    ].join('\n'));
+    error.validationIssues = issues;
+    throw error;
+  }
+}
+
+function validateReviewedNonNpcSourceExclusions(rows = []) {
+  if (!Array.isArray(rows)) {
+    const error = new Error('NPC reviewed non-NPC source exclusion contract validation failed: expected rows to be an array.');
+    error.validationIssues = ['expected reviewed non-NPC source exclusion rows to be an array'];
+    throw error;
+  }
+
+  const issues = [];
+  for (const [index, row] of rows.entries()) {
+    const sourceType = normalizeTableText(row?.sourceType);
+    const sourceRefType = normalizeTableText(row?.sourceRefType);
+    const matchType = normalizeTableText(row?.matchType);
+    const sourceRefName = normalizeTableText(row?.sourceRefName);
+    const reason = normalizeTableText(row?.reason);
+    const evidenceSource = normalizeTableText(row?.evidenceSource);
+    const reviewedBy = normalizeTableText(row?.reviewedBy);
+    const reviewedAt = normalizeTableText(row?.reviewedAt);
+    const rowLabel = `row ${index + 1} (${sourceRefName ?? '<missing sourceRefName>'})`;
+
+    if (sourceType !== 'drop') issues.push(`${rowLabel}: invalid sourceType "${sourceType ?? ''}"`);
+    if (sourceRefType !== 'npc') issues.push(`${rowLabel}: invalid sourceRefType "${sourceRefType ?? ''}"`);
+    if (!['exact', 'regex'].includes(matchType)) issues.push(`${rowLabel}: invalid matchType "${matchType ?? ''}"`);
+    if (!sourceRefName) issues.push(`${rowLabel}: missing sourceRefName`);
+    if (matchType === 'regex' && sourceRefName && (!sourceRefName.startsWith('^') || !sourceRefName.endsWith('$'))) {
+      issues.push(`${rowLabel}: regex sourceRefName must be anchored`);
+    }
+    if (!reason || !ALLOWED_NON_NPC_EXCLUSION_REASONS.has(reason)) issues.push(`${rowLabel}: invalid reason "${reason ?? ''}"`);
+    if (!evidenceSource) issues.push(`${rowLabel}: missing evidenceSource`);
+    if (!reviewedBy) issues.push(`${rowLabel}: missing reviewedBy`);
+    if (!isIsoDateOnly(reviewedAt)) issues.push(`${rowLabel}: missing or invalid ISO reviewedAt`);
+  }
+
+  if (issues.length) {
+    const error = new Error([
+      `NPC reviewed non-NPC source exclusion contract validation failed with ${issues.length} issue(s):`,
+      ...issues.map((issue) => `- ${issue}`)
+    ].join('\n'));
+    error.validationIssues = issues;
+    throw error;
+  }
+}
+
+function validateReviewedSourceOnlyItemExclusions(rows = []) {
+  if (!Array.isArray(rows)) {
+    const error = new Error('NPC reviewed source-only item exclusion contract validation failed: expected rows to be an array.');
+    error.validationIssues = ['expected reviewed source-only item exclusion rows to be an array'];
+    throw error;
+  }
+
+  const issues = [];
+  for (const [index, row] of rows.entries()) {
+    const sourceType = normalizeTableText(row?.sourceType);
+    const sourceRefType = normalizeTableText(row?.sourceRefType);
+    const sourceRefInternalName = normalizeTableText(row?.sourceRefInternalName);
+    const itemName = normalizeTableText(row?.itemName);
+    const recordKey = normalizeTableText(row?.recordKey);
+    const chanceText = normalizeTableText(row?.chanceText);
+    const hasQuantityText = Object.hasOwn(row ?? {}, 'quantityText');
+    const sourceUrl = normalizeTableText(row?.sourceUrl);
+    const reason = normalizeTableText(row?.reason);
+    const evidenceSource = normalizeTableText(row?.evidenceSource);
+    const reviewedBy = normalizeTableText(row?.reviewedBy);
+    const reviewedAt = normalizeTableText(row?.reviewedAt);
+    const rowLabel = `row ${index + 1} (${recordKey ?? '<missing recordKey>'})`;
+
+    if (sourceType !== 'drop') issues.push(`${rowLabel}: invalid sourceType "${sourceType ?? ''}"`);
+    if (sourceRefType !== 'npc') issues.push(`${rowLabel}: invalid sourceRefType "${sourceRefType ?? ''}"`);
+    if (!sourceRefInternalName) issues.push(`${rowLabel}: missing sourceRefInternalName`);
+    if (!itemName) issues.push(`${rowLabel}: missing itemName`);
+    if (!recordKey) issues.push(`${rowLabel}: missing recordKey`);
+    if (!chanceText) issues.push(`${rowLabel}: missing chanceText`);
+    if (!hasQuantityText) issues.push(`${rowLabel}: missing quantityText`);
+    if (!sourceUrl) issues.push(`${rowLabel}: missing sourceUrl`);
+    if (!reason || !ALLOWED_SOURCE_ONLY_ITEM_EXCLUSION_REASONS.has(reason)) issues.push(`${rowLabel}: invalid reason "${reason ?? ''}"`);
+    if (!evidenceSource) issues.push(`${rowLabel}: missing evidenceSource`);
+    if (!reviewedBy) issues.push(`${rowLabel}: missing reviewedBy`);
+    if (!isIsoDateOnly(reviewedAt)) issues.push(`${rowLabel}: missing or invalid ISO reviewedAt`);
+  }
+
+  if (issues.length) {
+    const error = new Error([
+      `NPC reviewed source-only item exclusion contract validation failed with ${issues.length} issue(s):`,
+      ...issues.map((issue) => `- ${issue}`)
+    ].join('\n'));
+    error.validationIssues = issues;
+    throw error;
+  }
 }
 
 function toDateTag(value = new Date()) {
@@ -672,6 +973,9 @@ export async function runSync(options, dependencies = {}) {
   const queryMaint = dependencies.queryMaint ?? ((sql) => loadDataset(mysqlOptions, options.maintDatabase, sql));
   const queryRelation = dependencies.queryRelation ?? ((sql) => loadDataset(mysqlOptions, options.relationDatabase, sql));
   const writeReports = dependencies.writeReports ?? ((payload) => writeRelationReports(payload));
+  const loadInheritanceRules = dependencies.loadInheritanceRules ?? (() => readInheritanceRules());
+  const loadReviewedNonNpcSourceExclusions = dependencies.loadReviewedNonNpcSourceExclusions ?? (() => readReviewedNonNpcSourceExclusions());
+  const loadReviewedSourceOnlyItemExclusions = dependencies.loadReviewedSourceOnlyItemExclusions ?? (() => readReviewedSourceOnlyItemExclusions());
   const executeRelation = dependencies.executeRelation ?? (async (fn) => {
     const connection = await mysql.createConnection({ ...mysqlOptions, database: options.relationDatabase });
     try {
@@ -706,14 +1010,17 @@ export async function runSync(options, dependencies = {}) {
     maintItemTextOverrides,
     maintArmorSets,
     maintArmorSetImages,
-    existingRelationArmorSetImages
+    existingRelationArmorSetImages,
+    inheritanceRules,
+    reviewedNonNpcSourceExclusions,
+    reviewedSourceOnlyItemExclusions
   ] = await Promise.all([
     queryMaint('SELECT * FROM maint_categories'),
     queryMaint('SELECT * FROM maint_item_categories'),
     queryMaint('SELECT * FROM maint_item_recipes'),
     queryMaint('SELECT * FROM maint_item_page_recipes'),
     queryMaint('SELECT * FROM maint_recipe_page_recipes'),
-    queryMaint('SELECT * FROM maint_item_sources'),
+    queryMaint('SELECT * FROM maint_item_sources WHERE status = 1 AND deleted = 0'),
     queryMaint('SELECT * FROM maint_item_biomes'),
     queryMaint('SELECT * FROM maint_buffs'),
     queryMaint('SELECT * FROM maint_bosses'),
@@ -731,8 +1038,14 @@ export async function runSync(options, dependencies = {}) {
     queryMaint('SELECT item_internal_name, tooltip_zh, description_zh FROM maint_item_text_overrides WHERE deleted = 0'),
     queryMaint('SELECT * FROM maint_armor_sets WHERE deleted = 0'),
     queryMaintOptional(queryMaint, 'SELECT * FROM maint_armor_set_images WHERE deleted = 0', []),
-    queryRelationOptional(queryRelation, 'SELECT * FROM relation_armor_set_images WHERE deleted = 0', [])
+    queryRelationOptional(queryRelation, 'SELECT * FROM relation_armor_set_images WHERE deleted = 0', []),
+    loadInheritanceRules(),
+    loadReviewedNonNpcSourceExclusions(),
+    loadReviewedSourceOnlyItemExclusions()
   ]);
+  validateInheritanceRules(inheritanceRules);
+  validateReviewedNonNpcSourceExclusions(reviewedNonNpcSourceExclusions);
+  validateReviewedSourceOnlyItemExclusions(reviewedSourceOnlyItemExclusions);
 
   const wikiArmorSets = readWikiArmorSets(options.wikiArmorSetsInput);
   const itemIndex = buildItemIndex(maintItems);
@@ -769,7 +1082,14 @@ export async function runSync(options, dependencies = {}) {
     recipeIngredients: recipe.recipeIngredients,
     recipeReferencePayload
   });
-  const itemSource = buildItemSourceRelations({ itemSourceRows, npcIndex, itemIndex: itemSourceLookupIndex });
+  const itemSource = buildItemSourceRelations({
+    itemSourceRows,
+    npcIndex,
+    itemIndex: itemSourceLookupIndex,
+    inheritanceRules,
+    reviewedNonNpcSourceExclusions,
+    reviewedSourceOnlyItemExclusions,
+  });
   const secondary = buildSecondaryRelations({
     itemBiomeRows,
     maintBuffRows,

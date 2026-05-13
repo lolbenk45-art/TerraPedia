@@ -31,6 +31,7 @@ export async function runNpcCoverageAudit({
   });
   const audit = await auditNpcCoverageTargets({
     targets: targets.targets,
+    crawledEntityIds,
     fetchWikiPageMetadataBatchImpl
   });
 

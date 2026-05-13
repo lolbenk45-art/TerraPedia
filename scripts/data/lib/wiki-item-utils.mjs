@@ -398,7 +398,8 @@ export async function fetchWikiPageMetadataBatch({
   apiUrl = DEFAULT_WIKI_API_URL,
   includeLanglinks = false,
   langlinksLanguage = 'zh',
-  batchSize = 50
+  batchSize = 50,
+  fetchWikiApiJsonImpl = fetchWikiApiJson
 } = {}) {
   const requestedTitles = [...new Set((Array.isArray(titles) ? titles : []).map((title) => String(title ?? '').trim()).filter(Boolean))];
   if (requestedTitles.length === 0) {
@@ -419,16 +420,28 @@ export async function fetchWikiPageMetadataBatch({
     url.searchParams.set('formatversion', '2');
     url.searchParams.set('format', 'json');
 
-    const body = await fetchWikiApiJson({
+    const body = await fetchWikiApiJsonImpl({
       url,
       profile: 'revision',
       sourceKey: batch[0]
     });
     const rawPages = Array.isArray(body?.query?.pages) ? body.query.pages : [];
+    const redirectTargetBySource = new Map(
+      (Array.isArray(body?.query?.redirects) ? body.query.redirects : [])
+        .map((redirect) => [
+          String(redirect?.from ?? '').trim().toLowerCase(),
+          String(redirect?.to ?? '').trim().toLowerCase()
+        ])
+        .filter(([from, to]) => from && to)
+    );
     const pageByTitle = new Map(rawPages.map((page) => [String(page?.title ?? '').trim().toLowerCase(), page]));
     for (const requestedTitle of batch) {
       const requestedKey = String(requestedTitle).trim().toLowerCase();
-      const matchedPage = pageByTitle.get(requestedKey) ?? rawPages.find((page) => page?.missing && String(page?.title ?? '').trim().toLowerCase() === requestedKey) ?? null;
+      const redirectedKey = redirectTargetBySource.get(requestedKey);
+      const matchedPage = pageByTitle.get(redirectedKey)
+        ?? pageByTitle.get(requestedKey)
+        ?? rawPages.find((page) => page?.missing && String(page?.title ?? '').trim().toLowerCase() === requestedKey)
+        ?? null;
       pages.push({
         ...matchedPage,
         requestedTitle
