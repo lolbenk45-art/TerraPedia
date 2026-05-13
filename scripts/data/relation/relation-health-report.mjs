@@ -229,8 +229,7 @@ WHERE r.item_internal_name IS NULL
       expectation: { type: 'warn_if_nonzero', field: 'count' },
       sql: `SELECT COUNT(*) AS count
 FROM ${relationAudits}
-WHERE audit_status IN ('unresolved', 'ambiguous', 'polluted', 'rejected')
-   OR (reason_code IS NOT NULL AND audit_status <> 'resolved')`
+WHERE audit_status IN ('unresolved', 'ambiguous', 'polluted', 'rejected')`
     }),
     countCheck({
       id: 'item_npc_relation_audit_breakdown',

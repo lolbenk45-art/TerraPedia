@@ -47,6 +47,16 @@ test('buildRelationHealthQueries emits only SELECT checks for NPC item relation 
   assert.match(byId.get('local_compat_npc_shop_conditions_count'), /`terria_v1_relation`\.`item_npc_shop_relations`/);
 });
 
+test('buildRelationHealthQueries counts only open item/NPC audit statuses as unresolved warnings', () => {
+  const queries = buildRelationHealthQueries();
+  const byId = new Map(queries.map((query) => [query.id, query.sql]));
+  const sql = byId.get('unresolved_item_npc_relation_audits');
+
+  assert.match(sql, /audit_status IN \('unresolved', 'ambiguous', 'polluted', 'rejected'\)/);
+  assert.doesNotMatch(sql, /reason_code IS NOT NULL/i);
+  assert.doesNotMatch(sql, /audit_status\s*<>\s*'resolved'/i);
+});
+
 test('buildRelationHealthQueries keeps local validation scoped to standalone compatibility outputs', () => {
   const queries = buildRelationHealthQueries();
   const allSql = queries.map((query) => query.sql).join('\n\n');
