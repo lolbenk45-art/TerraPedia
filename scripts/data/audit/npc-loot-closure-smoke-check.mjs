@@ -34,6 +34,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
     domainReportPath: raw['domain-report'] ?? raw.domainReport ?? null,
     coverageReportPath: raw['coverage-report'] ?? raw.coverageReport ?? null,
     runtimeReportPath: raw['runtime-report'] ?? raw.runtimeReport ?? null,
+    relationHealthReportPath: raw['relation-health-report'] ?? raw.relationHealthReport ?? null,
     writeReport: booleanOption(raw['write-report'] ?? raw.writeReport, DEFAULTS.writeReport),
     output: raw.output ?? null,
   };
@@ -45,6 +46,7 @@ export async function runNpcLootClosureSmokeCheck(options = {}, dependencies = {
     domainReportPath: options.domainReportPath ?? null,
     coverageReportPath: options.coverageReportPath ?? null,
     runtimeReportPath: options.runtimeReportPath ?? null,
+    relationHealthReportPath: options.relationHealthReportPath ?? null,
     writeReport: options.writeReport ?? DEFAULTS.writeReport,
     output: options.output ?? null,
   };
@@ -56,6 +58,8 @@ export async function runNpcLootClosureSmokeCheck(options = {}, dependencies = {
     ?? path.join(repoRoot, 'reports', 'audit', `npc-source-coverage-inventory-${normalized.dateTag}.json`);
   const runtimeReportPath = normalized.runtimeReportPath
     ?? path.join(repoRoot, 'reports', 'audit', `npc-loot-runtime-parity-${normalized.dateTag}.json`);
+  const relationHealthReportPath = normalized.relationHealthReportPath
+    ?? path.join(repoRoot, 'reports', 'relation', `relation-health-${normalized.dateTag}.json`);
 
   const report = await buildNpcLootClosureSmokeReport({
     domainReport: await readJson(domainReportPath),
@@ -64,10 +68,15 @@ export async function runNpcLootClosureSmokeCheck(options = {}, dependencies = {
       if (error?.code === 'ENOENT') return null;
       throw error;
     }),
+    relationHealthReport: await readJson(relationHealthReportPath).catch((error) => {
+      if (error?.code === 'ENOENT') return null;
+      throw error;
+    }),
     reportPaths: {
       domainReportPath,
       coverageReportPath,
       runtimeReportPath,
+      relationHealthReportPath,
     },
     options: normalized,
   });
@@ -80,12 +89,17 @@ export function buildNpcLootClosureSmokeReport({
   domainReport = null,
   coverageReport = null,
   runtimeReport = null,
+  relationHealthReport = null,
   reportPaths = {},
   options = {},
 } = {}) {
   const domainSummary = domainReport?.summary ?? {};
   const coverageSummary = coverageReport?.summary?.bySourceCoverageStatus ?? {};
   const runtimeSummary = runtimeReport?.summary ?? null;
+  const relationHealthSummary = relationHealthReport?.summary ?? null;
+  const relationHealthChecks = Array.isArray(relationHealthReport?.checks) ? relationHealthReport.checks : [];
+  const openLootAuditCheck = relationHealthChecks.find((check) => check?.id === 'open_item_npc_loot_relation_audits') ?? null;
+  const openLootAuditCount = openLootAuditCheck ? Number(openLootAuditCheck.rows?.[0]?.count ?? 0) : null;
   const remainingDomainBlockers = [
     ['unclassifiedZero', domainSummary.unclassifiedZero ?? 0],
     ['blockedSourceGap', domainSummary.blockedSourceGap ?? 0],
@@ -142,6 +156,26 @@ export function buildNpcLootClosureSmokeReport({
       countsByStatus: runtimeSummary.byStatus ?? {},
     });
   }
+  if (!relationHealthReport) {
+    blockers.push({ code: 'relation_health_report_missing', reportPath: reportPaths.relationHealthReportPath ?? null });
+  } else if (!openLootAuditCheck) {
+    blockers.push({ code: 'relation_health_open_loot_check_missing', reportPath: reportPaths.relationHealthReportPath ?? null });
+  } else if (openLootAuditCount > 0) {
+    blockers.push({
+      code: 'open_loot_relation_audits',
+      count: openLootAuditCount,
+      checkId: openLootAuditCheck.id,
+    });
+  }
+  if (relationHealthSummary && Number(relationHealthSummary.blockingCount ?? 0) > 0) {
+    const hasOpenLootBlocker = blockers.some((entry) => entry.code === 'open_loot_relation_audits');
+    blockers.push({
+      code: 'relation_health_blockers_present',
+      blockingCount: Number(relationHealthSummary.blockingCount ?? 0),
+      status: relationHealthSummary.status ?? null,
+      includesOpenLootAuditBlocker: hasOpenLootBlocker,
+    });
+  }
 
   return {
     auditName: 'npc-loot-closure-smoke-check',
@@ -160,6 +194,9 @@ export function buildNpcLootClosureSmokeReport({
       coverageCounts: coverageSummary,
       runtimeBlockingCount: runtimeSummary ? Number(runtimeSummary.blockingCount ?? 0) : null,
       runtimeByStatus: runtimeSummary?.byStatus ?? null,
+      relationHealthStatus: relationHealthSummary?.status ?? null,
+      relationHealthBlockingCount: relationHealthSummary ? Number(relationHealthSummary.blockingCount ?? 0) : null,
+      openLootAuditCount,
     },
     blockers,
     reportPaths,

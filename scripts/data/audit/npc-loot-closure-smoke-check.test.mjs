@@ -2,9 +2,32 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  runNpcLootClosureSmokeCheck,
   buildNpcLootClosureSmokeReport,
   parseArgs,
 } from './npc-loot-closure-smoke-check.mjs';
+
+function cleanRelationHealthReport() {
+  return {
+    summary: {
+      status: 'warning',
+      blockingCount: 0,
+      warningCount: 1,
+    },
+    checks: [
+      {
+        id: 'open_item_npc_loot_relation_audits',
+        status: 'pass',
+        rows: [{ count: 0 }],
+      },
+      {
+        id: 'unresolved_item_npc_relation_audits',
+        status: 'warn',
+        rows: [{ count: 302 }],
+      },
+    ],
+  };
+}
 
 test('parseArgs defaults smoke check to read-only report mode', () => {
   assert.deepEqual(parseArgs([]), {
@@ -12,6 +35,7 @@ test('parseArgs defaults smoke check to read-only report mode', () => {
     domainReportPath: null,
     coverageReportPath: null,
     runtimeReportPath: null,
+    relationHealthReportPath: null,
     writeReport: true,
     output: null,
   });
@@ -49,6 +73,7 @@ test('buildNpcLootClosureSmokeReport blocks when domain report still has remaini
         },
       },
     },
+    relationHealthReport: cleanRelationHealthReport(),
     reportPaths: {
       domainReportPath: 'reports/audit/npc-domain-loot-chain-2026-05-11-closure-baseline-r5.json',
       coverageReportPath: 'reports/audit/npc-source-coverage-inventory-2026-05-11-closure-baseline-r5.json',
@@ -96,6 +121,7 @@ test('buildNpcLootClosureSmokeReport treats reviewed no-direct item loot as clos
         },
       },
     },
+    relationHealthReport: cleanRelationHealthReport(),
   });
 
   assert.equal(report.auditStatus, 'pass');
@@ -134,6 +160,7 @@ test('buildNpcLootClosureSmokeReport treats domain-closed group variants as non-
         },
       },
     },
+    relationHealthReport: cleanRelationHealthReport(),
   });
 
   assert.equal(report.auditStatus, 'pass');
@@ -169,6 +196,7 @@ test('buildNpcLootClosureSmokeReport blocks when coverage report still has unext
         },
       },
     },
+    relationHealthReport: cleanRelationHealthReport(),
   });
 
   assert.equal(report.auditStatus, 'blocked');
@@ -178,4 +206,137 @@ test('buildNpcLootClosureSmokeReport blocks when coverage report still has unext
     count: 1,
   });
   assert.equal(report.blockers.some((entry) => entry.code === 'remaining_coverage_blockers'), true);
+});
+
+test('buildNpcLootClosureSmokeReport blocks when relation health report is missing', () => {
+  const report = buildNpcLootClosureSmokeReport({
+    domainReport: {
+      evidenceHealth: 'sufficient',
+      summary: {
+        releaseBlockingCount: 0,
+      },
+    },
+    coverageReport: {
+      summary: {
+        bySourceCoverageStatus: {},
+      },
+    },
+    runtimeReport: {
+      summary: {
+        blockingCount: 0,
+      },
+    },
+  });
+
+  assert.equal(report.auditStatus, 'blocked');
+  assert.equal(report.blockers.some((entry) => entry.code === 'relation_health_report_missing'), true);
+});
+
+test('buildNpcLootClosureSmokeReport blocks when relation health lacks open loot check', () => {
+  const report = buildNpcLootClosureSmokeReport({
+    domainReport: {
+      evidenceHealth: 'sufficient',
+      summary: {
+        releaseBlockingCount: 0,
+      },
+    },
+    coverageReport: {
+      summary: {
+        bySourceCoverageStatus: {},
+      },
+    },
+    runtimeReport: {
+      summary: {
+        blockingCount: 0,
+      },
+    },
+    relationHealthReport: {
+      summary: {
+        status: 'pass',
+        blockingCount: 0,
+      },
+      checks: [],
+    },
+  });
+
+  assert.equal(report.auditStatus, 'blocked');
+  assert.equal(report.blockers.some((entry) => entry.code === 'relation_health_open_loot_check_missing'), true);
+});
+
+test('buildNpcLootClosureSmokeReport blocks when relation health has open loot audits', () => {
+  const report = buildNpcLootClosureSmokeReport({
+    domainReport: {
+      evidenceHealth: 'sufficient',
+      summary: {
+        releaseBlockingCount: 0,
+        trustedDirectLoot: 1540,
+      },
+    },
+    coverageReport: {
+      summary: {
+        bySourceCoverageStatus: {
+          source_page_present_with_loot: 417,
+        },
+      },
+    },
+    runtimeReport: {
+      summary: {
+        blockingCount: 0,
+        byStatus: {
+          trusted_direct_loot: 1540,
+        },
+      },
+    },
+    relationHealthReport: {
+      summary: {
+        status: 'blocked',
+        blockingCount: 1,
+        warningCount: 1,
+      },
+      checks: [
+        {
+          id: 'open_item_npc_loot_relation_audits',
+          status: 'fail',
+          rows: [{ count: 1 }],
+        },
+        {
+          id: 'unresolved_item_npc_relation_audits',
+          status: 'warn',
+          rows: [{ count: 302 }],
+        },
+      ],
+    },
+  });
+
+  assert.equal(report.auditStatus, 'blocked');
+  assert.equal(report.summary.openLootAuditCount, 1);
+  assert.equal(report.summary.relationHealthStatus, 'blocked');
+  assert.equal(report.blockers.some((entry) => entry.code === 'open_loot_relation_audits'), true);
+});
+
+test('runNpcLootClosureSmokeCheck reads relation health evidence', async () => {
+  const readPaths = [];
+  const payloadByPath = new Map([
+    ['domain.json', { evidenceHealth: 'sufficient', summary: { releaseBlockingCount: 0 } }],
+    ['coverage.json', { summary: { bySourceCoverageStatus: {} } }],
+    ['runtime.json', { summary: { blockingCount: 0, byStatus: {} } }],
+    ['relation-health.json', cleanRelationHealthReport()],
+  ]);
+
+  const { report } = await runNpcLootClosureSmokeCheck({
+    domainReportPath: 'domain.json',
+    coverageReportPath: 'coverage.json',
+    runtimeReportPath: 'runtime.json',
+    relationHealthReportPath: 'relation-health.json',
+    writeReport: false,
+  }, {
+    readJson: async (filePath) => {
+      readPaths.push(filePath);
+      return payloadByPath.get(filePath);
+    },
+  });
+
+  assert.deepEqual(readPaths, ['domain.json', 'coverage.json', 'runtime.json', 'relation-health.json']);
+  assert.equal(report.auditStatus, 'pass');
+  assert.equal(report.summary.openLootAuditCount, 0);
 });

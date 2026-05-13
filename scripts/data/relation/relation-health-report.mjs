@@ -232,6 +232,16 @@ FROM ${relationAudits}
 WHERE audit_status IN ('unresolved', 'ambiguous', 'polluted', 'rejected')`
     }),
     countCheck({
+      id: 'open_item_npc_loot_relation_audits',
+      title: 'open NPC loot relation audit blocker count',
+      expectation: { type: 'zero', field: 'count' },
+      description: 'NPC loot closure must not pass while unresolved, ambiguous, polluted, or rejected loot audit rows remain open.',
+      sql: `SELECT COUNT(*) AS count
+FROM ${relationAudits}
+WHERE relation_kind = 'loot'
+  AND audit_status IN ('unresolved', 'ambiguous', 'polluted', 'rejected')`
+    }),
+    countCheck({
       id: 'item_npc_relation_audit_breakdown',
       title: 'item/NPC relation audit breakdown',
       expectation: { type: 'info' },

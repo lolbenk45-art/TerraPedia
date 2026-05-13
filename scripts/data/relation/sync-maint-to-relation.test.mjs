@@ -406,6 +406,97 @@ test('runSync dry-run applies reviewed non-NPC source exclusions to item npc aud
   assert.equal(result.results.itemNpcRelationAudits[0].reasonCode, 'boss_lane_reference_source');
 });
 
+test('runSync dry-run applies reviewed source-only item exclusions to item npc audits', async () => {
+  const result = await runSync(
+    {
+      apply: false,
+      createDatabase: false,
+      maintDatabase: 'terria_v1_maint',
+      localDatabase: null,
+      relationDatabase: 'terria_v1_relation',
+      scopes: ['npc']
+    },
+    {
+      config: {
+        database: {
+          host: '127.0.0.1',
+          port: 3306,
+          username: 'root',
+          password: 'root'
+        }
+      },
+      queryMaint: async (sql) => {
+        if (sql.includes('maint_item_sources')) {
+          return [
+            {
+              id: 24,
+              record_key: 'npc-item:corrupt-bunny:loot:suspicious-looking-egg:2',
+              item_internal_name: null,
+              item_name: 'Suspicious Looking Egg',
+              source_type: 'drop',
+              source_ref_type: 'npc',
+              source_ref_name: 'Corrupt Bunny',
+              raw_json: JSON.stringify({
+                itemName: 'Suspicious Looking Egg',
+                sourceRefName: 'Corrupt Bunny',
+                sourceRefInternalName: 'CorruptBunny',
+                sourceRefResolution: 'exact_internal_name',
+                chanceText: '100% @normal',
+                quantityText: '',
+                sourceUrl: 'https://terraria.wiki.gg/wiki/Corrupt_Bunny'
+              }),
+              landing_source_id: 51,
+              landing_source_key: 'generated.npc_item_relations_bundle:chunk:0001',
+              landing_content_hash: 'f'.repeat(64),
+              source_provider: 'wiki_gg',
+              source_page: 'Corrupt Bunny'
+            }
+          ];
+        }
+        if (sql.includes('maint_items')) return [];
+        if (sql.includes('maint_npcs')) {
+          return [{
+            source_id: 48,
+            internal_name: 'CorruptBunny',
+            name: 'Corrupt Bunny',
+            flags_json: '{}'
+          }];
+        }
+        return [];
+      },
+      loadReviewedSourceOnlyItemExclusions: async () => [{
+        sourceType: 'drop',
+        sourceRefType: 'npc',
+        sourceRefInternalName: 'CorruptBunny',
+        itemName: 'Suspicious Looking Egg',
+        recordKey: 'npc-item:corrupt-bunny:loot:suspicious-looking-egg:2',
+        chanceText: '100% @normal',
+        quantityText: '',
+        sourceUrl: 'https://terraria.wiki.gg/wiki/Corrupt_Bunny',
+        reason: 'legacy_only_item_not_in_current_corpus',
+        evidenceSource: 'docs/audits/2026-05-13_npc-source-only-item-review.md',
+        reviewedBy: 'codex',
+        reviewedAt: '2026-05-13',
+      }],
+      writeReports: async () => ({
+        auditJsonPath: 'reports/relation/relation-audit-2026-05-13.json',
+        auditMdPath: 'reports/relation/relation-audit-2026-05-13.md',
+        conflictsPath: 'reports/relation/relation-conflicts-2026-05-13.json',
+        unresolvedPath: 'reports/relation/relation-unresolved-2026-05-13.json'
+      }),
+      executeRelation: async () => {
+        throw new Error('should not write in dry-run');
+      }
+    }
+  );
+
+  assert.equal(result.results.itemNpcLootRelations.length, 0);
+  assert.equal(result.results.itemNpcRelationAudits.length, 1);
+  assert.equal(result.results.itemNpcRelationAudits[0].auditStatus, 'excluded');
+  assert.equal(result.results.itemNpcRelationAudits[0].reasonCode, 'legacy_only_item_not_in_current_corpus');
+  assert.equal(result.results.itemSourceFacts[0].reviewStatus, 'excluded');
+});
+
 test('runSync dry-run materializes contract-backed inherited npc loot relations', async () => {
   const result = await runSync(
     {

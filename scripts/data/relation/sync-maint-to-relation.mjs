@@ -58,6 +58,11 @@ const ALLOWED_NON_NPC_EXCLUSION_REASONS = new Set([
   'boss_lane_reference_source',
 ]);
 
+const ALLOWED_SOURCE_ONLY_ITEM_EXCLUSION_REASONS = new Set([
+  'item_group_requires_expansion',
+  'legacy_only_item_not_in_current_corpus',
+]);
+
 function booleanOption(value, fallback = false) {
   if (value == null || value === '') return fallback;
   const normalized = String(value).trim().toLowerCase();
@@ -126,6 +131,13 @@ function readReviewedNonNpcSourceExclusions(inputPath = path.join(repoRoot, 'doc
   return parseReviewedNonNpcSourceExclusionRows(fs.readFileSync(inputPath, 'utf8'));
 }
 
+function readReviewedSourceOnlyItemExclusions(inputPath = path.join(repoRoot, 'docs', 'contracts', 'npc-domain-source-only-item-exclusion-contract.md')) {
+  if (!inputPath || !fs.existsSync(inputPath)) {
+    return [];
+  }
+  return parseReviewedSourceOnlyItemExclusionRows(fs.readFileSync(inputPath, 'utf8'));
+}
+
 function parseInheritanceContractRows(text) {
   const rows = [];
   const lines = String(text ?? '').split(/\r?\n/).filter((line) => line.trim().startsWith('|'));
@@ -171,6 +183,39 @@ function parseReviewedNonNpcSourceExclusionRows(text) {
       sourceRefType: row.sourceRefType,
       matchType: row.matchType,
       sourceRefName: row.sourceRefName,
+      reason: row.reason,
+      evidenceSource: row.evidenceSource,
+      reviewedBy: row.reviewedBy,
+      reviewedAt: row.reviewedAt,
+      notes: row.notes,
+    });
+  }
+  return rows;
+}
+
+function parseReviewedSourceOnlyItemExclusionRows(text) {
+  const rows = [];
+  const lines = String(text ?? '').split(/\r?\n/).filter((line) => line.trim().startsWith('|'));
+  let headers = null;
+  for (const line of lines) {
+    const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+    if (cells.length === 0 || cells.every((cell) => /^:?-{3,}:?$/.test(cell))) continue;
+    if (cells.includes('recordKey') && cells.includes('itemName')) {
+      headers = cells;
+      continue;
+    }
+    if (!headers || !headers.includes('recordKey') || !headers.includes('itemName')) continue;
+    const row = Object.fromEntries(headers.map((header, index) => [header, cells[index] ?? null]));
+    if (!normalizeTableText(row.recordKey) || row.recordKey === '_none yet_') continue;
+    rows.push({
+      sourceType: row.sourceType,
+      sourceRefType: row.sourceRefType,
+      sourceRefInternalName: row.sourceRefInternalName,
+      itemName: row.itemName,
+      recordKey: row.recordKey,
+      chanceText: row.chanceText,
+      quantityText: row.quantityText,
+      sourceUrl: row.sourceUrl,
       reason: row.reason,
       evidenceSource: row.evidenceSource,
       reviewedBy: row.reviewedBy,
@@ -295,6 +340,53 @@ function validateReviewedNonNpcSourceExclusions(rows = []) {
   if (issues.length) {
     const error = new Error([
       `NPC reviewed non-NPC source exclusion contract validation failed with ${issues.length} issue(s):`,
+      ...issues.map((issue) => `- ${issue}`)
+    ].join('\n'));
+    error.validationIssues = issues;
+    throw error;
+  }
+}
+
+function validateReviewedSourceOnlyItemExclusions(rows = []) {
+  if (!Array.isArray(rows)) {
+    const error = new Error('NPC reviewed source-only item exclusion contract validation failed: expected rows to be an array.');
+    error.validationIssues = ['expected reviewed source-only item exclusion rows to be an array'];
+    throw error;
+  }
+
+  const issues = [];
+  for (const [index, row] of rows.entries()) {
+    const sourceType = normalizeTableText(row?.sourceType);
+    const sourceRefType = normalizeTableText(row?.sourceRefType);
+    const sourceRefInternalName = normalizeTableText(row?.sourceRefInternalName);
+    const itemName = normalizeTableText(row?.itemName);
+    const recordKey = normalizeTableText(row?.recordKey);
+    const chanceText = normalizeTableText(row?.chanceText);
+    const hasQuantityText = Object.hasOwn(row ?? {}, 'quantityText');
+    const sourceUrl = normalizeTableText(row?.sourceUrl);
+    const reason = normalizeTableText(row?.reason);
+    const evidenceSource = normalizeTableText(row?.evidenceSource);
+    const reviewedBy = normalizeTableText(row?.reviewedBy);
+    const reviewedAt = normalizeTableText(row?.reviewedAt);
+    const rowLabel = `row ${index + 1} (${recordKey ?? '<missing recordKey>'})`;
+
+    if (sourceType !== 'drop') issues.push(`${rowLabel}: invalid sourceType "${sourceType ?? ''}"`);
+    if (sourceRefType !== 'npc') issues.push(`${rowLabel}: invalid sourceRefType "${sourceRefType ?? ''}"`);
+    if (!sourceRefInternalName) issues.push(`${rowLabel}: missing sourceRefInternalName`);
+    if (!itemName) issues.push(`${rowLabel}: missing itemName`);
+    if (!recordKey) issues.push(`${rowLabel}: missing recordKey`);
+    if (!chanceText) issues.push(`${rowLabel}: missing chanceText`);
+    if (!hasQuantityText) issues.push(`${rowLabel}: missing quantityText`);
+    if (!sourceUrl) issues.push(`${rowLabel}: missing sourceUrl`);
+    if (!reason || !ALLOWED_SOURCE_ONLY_ITEM_EXCLUSION_REASONS.has(reason)) issues.push(`${rowLabel}: invalid reason "${reason ?? ''}"`);
+    if (!evidenceSource) issues.push(`${rowLabel}: missing evidenceSource`);
+    if (!reviewedBy) issues.push(`${rowLabel}: missing reviewedBy`);
+    if (!isIsoDateOnly(reviewedAt)) issues.push(`${rowLabel}: missing or invalid ISO reviewedAt`);
+  }
+
+  if (issues.length) {
+    const error = new Error([
+      `NPC reviewed source-only item exclusion contract validation failed with ${issues.length} issue(s):`,
       ...issues.map((issue) => `- ${issue}`)
     ].join('\n'));
     error.validationIssues = issues;
@@ -883,6 +975,7 @@ export async function runSync(options, dependencies = {}) {
   const writeReports = dependencies.writeReports ?? ((payload) => writeRelationReports(payload));
   const loadInheritanceRules = dependencies.loadInheritanceRules ?? (() => readInheritanceRules());
   const loadReviewedNonNpcSourceExclusions = dependencies.loadReviewedNonNpcSourceExclusions ?? (() => readReviewedNonNpcSourceExclusions());
+  const loadReviewedSourceOnlyItemExclusions = dependencies.loadReviewedSourceOnlyItemExclusions ?? (() => readReviewedSourceOnlyItemExclusions());
   const executeRelation = dependencies.executeRelation ?? (async (fn) => {
     const connection = await mysql.createConnection({ ...mysqlOptions, database: options.relationDatabase });
     try {
@@ -919,7 +1012,8 @@ export async function runSync(options, dependencies = {}) {
     maintArmorSetImages,
     existingRelationArmorSetImages,
     inheritanceRules,
-    reviewedNonNpcSourceExclusions
+    reviewedNonNpcSourceExclusions,
+    reviewedSourceOnlyItemExclusions
   ] = await Promise.all([
     queryMaint('SELECT * FROM maint_categories'),
     queryMaint('SELECT * FROM maint_item_categories'),
@@ -946,10 +1040,12 @@ export async function runSync(options, dependencies = {}) {
     queryMaintOptional(queryMaint, 'SELECT * FROM maint_armor_set_images WHERE deleted = 0', []),
     queryRelationOptional(queryRelation, 'SELECT * FROM relation_armor_set_images WHERE deleted = 0', []),
     loadInheritanceRules(),
-    loadReviewedNonNpcSourceExclusions()
+    loadReviewedNonNpcSourceExclusions(),
+    loadReviewedSourceOnlyItemExclusions()
   ]);
   validateInheritanceRules(inheritanceRules);
   validateReviewedNonNpcSourceExclusions(reviewedNonNpcSourceExclusions);
+  validateReviewedSourceOnlyItemExclusions(reviewedSourceOnlyItemExclusions);
 
   const wikiArmorSets = readWikiArmorSets(options.wikiArmorSetsInput);
   const itemIndex = buildItemIndex(maintItems);
@@ -992,6 +1088,7 @@ export async function runSync(options, dependencies = {}) {
     itemIndex: itemSourceLookupIndex,
     inheritanceRules,
     reviewedNonNpcSourceExclusions,
+    reviewedSourceOnlyItemExclusions,
   });
   const secondary = buildSecondaryRelations({
     itemBiomeRows,

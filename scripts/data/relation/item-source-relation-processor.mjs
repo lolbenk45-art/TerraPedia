@@ -439,6 +439,56 @@ function lookupItemCandidates(itemIndex, value) {
   return dedupeItemCandidates(candidates);
 }
 
+function stripWikiTemplates(value) {
+  let text = normalizeText(value);
+  if (!text) return null;
+
+  for (let index = 0; index < 5; index += 1) {
+    const next = text.replace(/\{\{[^{}]*\}\}/g, ' ');
+    if (next === text) break;
+    text = next;
+  }
+
+  return normalizeText(text.replace(/\s+/g, ' '));
+}
+
+function stripTrailingParentheticalGroups(value) {
+  let text = normalizeText(value);
+  if (!text) return null;
+
+  for (let index = 0; index < 4; index += 1) {
+    const next = text.replace(/\s+\([^()]+\)\s*$/u, '').trim();
+    if (next === text) break;
+    text = next;
+  }
+
+  return normalizeText(text);
+}
+
+function buildItemLookupNames(values = [], { allowNpcDropCleanup = false } = {}) {
+  const names = [];
+  const seen = new Set();
+  const add = (value) => {
+    const text = normalizeText(value);
+    if (!text) return;
+    const key = text.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    names.push(text);
+  };
+
+  for (const value of values) {
+    const text = normalizeText(value);
+    add(text);
+    if (!allowNpcDropCleanup) continue;
+    const withoutTemplates = stripWikiTemplates(text);
+    add(withoutTemplates);
+    add(stripTrailingParentheticalGroups(withoutTemplates));
+  }
+
+  return names;
+}
+
 function resolveItemRef(row = {}, raw = {}, itemIndex = new Map()) {
   const directInternalName = normalizeText(row.item_internal_name ?? raw.itemInternalName ?? raw.item_internal_name);
   if (directInternalName) {
@@ -450,12 +500,14 @@ function resolveItemRef(row = {}, raw = {}, itemIndex = new Map()) {
     };
   }
 
-  const candidateNames = [
+  const sourceType = normalizeText(row.source_type ?? row.sourceType ?? raw.sourceType ?? raw.source_type)?.toLowerCase();
+  const sourceRefType = normalizeText(row.source_ref_type ?? row.sourceRefType ?? raw.sourceRefType ?? raw.source_ref_type)?.toLowerCase();
+  const candidateNames = buildItemLookupNames([
     row.item_name,
     raw.itemName,
     raw.item_name,
     raw.raw?.name
-  ];
+  ], { allowNpcDropCleanup: sourceType === 'drop' && sourceRefType === 'npc' });
   const candidates = dedupeItemCandidates(candidateNames.flatMap((name) => lookupItemCandidates(itemIndex, name)));
 
   if (candidates.length === 1) {
@@ -902,6 +954,37 @@ function applyNpcLootTaxonomy({
   };
 }
 
+function normalizeContractText(value) {
+  return normalizeText(value) ?? '';
+}
+
+function sourceOnlyItemExclusionMatches(row = {}, raw = {}, npcResolution = {}, exclusion = {}) {
+  const sourceType = normalizeText(row.source_type ?? row.sourceType)?.toLowerCase();
+  const sourceRefType = normalizeText(row.source_ref_type ?? row.sourceRefType)?.toLowerCase();
+  const sourceRefInternalName = normalizeText(npcResolution.npcInternalName);
+  const itemName = normalizeText(row.item_name ?? row.itemName ?? raw.itemName ?? raw.item_name);
+  const recordKey = normalizeText(row.record_key ?? row.recordKey ?? raw.recordKey ?? raw.record_key);
+  const chanceText = normalizeText(raw.chanceText ?? raw.chance_text ?? row.chance_text ?? row.chanceText);
+  const quantityText = normalizeContractText(raw.quantityText ?? raw.quantity_text ?? row.quantity_text ?? row.quantityText);
+  const sourceUrl = normalizeText(raw.sourceUrl ?? raw.source_url ?? row.source_url ?? row.sourceUrl);
+
+  return (
+    sourceType === normalizeText(exclusion.sourceType ?? exclusion.source_type)?.toLowerCase()
+    && sourceRefType === normalizeText(exclusion.sourceRefType ?? exclusion.source_ref_type)?.toLowerCase()
+    && sourceRefInternalName === normalizeText(exclusion.sourceRefInternalName ?? exclusion.source_ref_internal_name)
+    && itemName === normalizeText(exclusion.itemName ?? exclusion.item_name)
+    && recordKey === normalizeText(exclusion.recordKey ?? exclusion.record_key)
+    && chanceText === normalizeText(exclusion.chanceText ?? exclusion.chance_text)
+    && quantityText === normalizeContractText(exclusion.quantityText ?? exclusion.quantity_text)
+    && sourceUrl === normalizeText(exclusion.sourceUrl ?? exclusion.source_url)
+  );
+}
+
+function findReviewedSourceOnlyItemExclusion(row = {}, raw = {}, npcResolution = {}, exclusions = []) {
+  return (Array.isArray(exclusions) ? exclusions : [])
+    .find((exclusion) => sourceOnlyItemExclusionMatches(row, raw, npcResolution, exclusion)) ?? null;
+}
+
 function isReviewedBossKindNpcLootException(npcResolution = {}) {
   return REVIEWED_BOSS_KIND_NPC_LOOT_EXCEPTION_INTERNAL_NAMES.has(npcResolution.npcInternalName)
     && (
@@ -1024,6 +1107,7 @@ export function buildItemSourceRelations({
   npcIndex = new Map(),
   itemIndex = new Map(),
   reviewedNonNpcSourceExclusions = [],
+  reviewedSourceOnlyItemExclusions = [],
   inheritanceRules = [],
 } = {}) {
   const sourceFacts = [];
@@ -1074,6 +1158,10 @@ export function buildItemSourceRelations({
             reviewedNonNpcSourceExclusions,
           })
         : null;
+    const reviewedSourceOnlyItemExclusion =
+      sourceType === 'drop' && sourceRefType === 'npc' && npcResolution?.status === relationStatus.resolved && !itemInternalName
+        ? findReviewedSourceOnlyItemExclusion(row, raw, npcResolution, reviewedSourceOnlyItemExclusions)
+        : null;
     const npcLootSupersedeSourceKey = normalizeLookupKey(npcResolution?.npcInternalName)
       ?? sourceRefKey;
     const isSupersededNpcLootSource =
@@ -1096,7 +1184,9 @@ export function buildItemSourceRelations({
       sourceRefNormalized,
       biomeCode: normalizeText(row.biome_code),
       sortOrder: toSortOrder(row.sort_order, index),
-      reviewStatus: !itemInternalName
+      reviewStatus: reviewedSourceOnlyItemExclusion
+        ? 'excluded'
+        : !itemInternalName
         ? relationStatus.unresolved
         : sourceRefType === 'npc'
           ? npcResolution?.status ?? relationStatus.unresolved
@@ -1106,7 +1196,9 @@ export function buildItemSourceRelations({
         : sourceRefType === 'npc'
           ? npcResolution?.confidence ?? confidence.none
           : confidence.high,
-      reason: !itemInternalName
+      reason: reviewedSourceOnlyItemExclusion
+        ? normalizeText(reviewedSourceOnlyItemExclusion.reason) ?? 'reviewed_source_only_item_exclusion'
+        : !itemInternalName
         ? itemResolution.reason
         : sourceRefType === 'npc'
           ? npcResolution?.reason ?? 'npc_source_unresolved'
@@ -1175,6 +1267,23 @@ export function buildItemSourceRelations({
         reasonCode: 'source_text_polluted',
         trace
       }));
+    }
+
+    if (reviewedSourceOnlyItemExclusion) {
+      itemNpcRelationAudits.push(buildItemNpcRelationAudit({
+        row: effectiveRow,
+        raw,
+        sourceType,
+        sourceRefType,
+        sourceFactKey,
+        sourceRefName,
+        sourceRefNormalized,
+        npcResolution,
+        auditStatus: 'excluded',
+        reasonCode: normalizeText(reviewedSourceOnlyItemExclusion.reason) ?? 'reviewed_source_only_item_exclusion',
+        trace
+      }));
+      continue;
     }
 
     if (sourceRefType === 'npc' && npcResolution?.status !== relationStatus.resolved) {

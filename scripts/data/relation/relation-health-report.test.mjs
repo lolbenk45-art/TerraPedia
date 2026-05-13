@@ -57,6 +57,20 @@ test('buildRelationHealthQueries counts only open item/NPC audit statuses as unr
   assert.doesNotMatch(sql, /audit_status\s*<>\s*'resolved'/i);
 });
 
+test('buildRelationHealthQueries blocks on open loot relation audits', () => {
+  const queries = buildRelationHealthQueries();
+  const byId = new Map(queries.map((query) => [query.id, query]));
+  const query = byId.get('open_item_npc_loot_relation_audits');
+
+  assert.ok(query);
+  assert.deepEqual(query.expectation, { type: 'zero', field: 'count' });
+  assert.match(query.sql, /relation_kind = 'loot'/);
+  assert.match(query.sql, /audit_status IN \('unresolved', 'ambiguous', 'polluted', 'rejected'\)/);
+  assert.doesNotMatch(query.sql, /audit_status IN \([^)]*'blocked'/i);
+  assert.doesNotMatch(query.sql, /audit_status IN \([^)]*'excluded'/i);
+  assert.doesNotMatch(query.sql, /audit_status IN \([^)]*'superseded'/i);
+});
+
 test('buildRelationHealthQueries keeps local validation scoped to standalone compatibility outputs', () => {
   const queries = buildRelationHealthQueries();
   const allSql = queries.map((query) => query.sql).join('\n\n');
@@ -164,13 +178,17 @@ test('buildRelationHealthReport classifies blocking, warning, passing, and info 
         rows: [{ count: 4 }]
       },
       {
+        definition: queryMap.get('open_item_npc_loot_relation_audits'),
+        rows: [{ count: 1 }]
+      },
+      {
         definition: queryMap.get('local_compat_item_acquisition_sources_count'),
         rows: [{ count: 3187 }]
       }
     ]
   });
 
-  assert.equal(report.summary.blockingCount, 2);
+  assert.equal(report.summary.blockingCount, 3);
   assert.equal(report.summary.warningCount, 1);
   assert.equal(report.summary.status, 'blocked');
   assert.equal(report.summary.passCount, 3);
@@ -183,6 +201,7 @@ test('buildRelationHealthReport classifies blocking, warning, passing, and info 
   assert.equal(report.checks.find((check) => check.id === 'shop_relation_orphans').status, 'pass');
   assert.equal(report.checks.find((check) => check.id === 'projection_npcs_shop_items_nonempty').status, 'fail');
   assert.equal(report.checks.find((check) => check.id === 'unresolved_item_npc_relation_audits').status, 'warn');
+  assert.equal(report.checks.find((check) => check.id === 'open_item_npc_loot_relation_audits').status, 'fail');
   assert.equal(report.checks.find((check) => check.id === 'local_compat_item_acquisition_sources_count').status, 'pass');
 });
 

@@ -189,6 +189,153 @@ test('buildItemSourceRelations keeps reviewed non-NPC exclusions out of loot rel
   assert.equal(actual.itemNpcRelationAudits[0].reasonCode, 'chest_container');
 });
 
+test('buildItemSourceRelations keeps reviewed source-only item exclusions terminal', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 24,
+        record_key: 'npc-item:corrupt-bunny:loot:suspicious-looking-egg:2',
+        item_internal_name: null,
+        item_name: 'Suspicious Looking Egg',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Corrupt Bunny',
+        sort_order: 0,
+        raw_json: JSON.stringify({
+          itemName: 'Suspicious Looking Egg',
+          sourceRefName: 'Corrupt Bunny',
+          sourceRefInternalName: 'CorruptBunny',
+          sourceRefResolution: 'exact_internal_name',
+          quantityText: '',
+          chanceText: '100% @normal',
+          sourceUrl: 'https://terraria.wiki.gg/wiki/Corrupt_Bunny'
+        }),
+        landing_source_id: 51,
+        landing_source_key: 'generated.npc_item_relations_bundle:chunk:0001',
+        landing_content_hash: 'f'.repeat(64),
+        source_provider: 'wiki_gg',
+        source_page: 'Corrupt Bunny'
+      }
+    ],
+    npcIndex: new Map([
+      ['Corrupt Bunny', { source_id: 48, internal_name: 'CorruptBunny', name: 'Corrupt Bunny' }]
+    ]),
+    reviewedSourceOnlyItemExclusions: [{
+      sourceType: 'drop',
+      sourceRefType: 'npc',
+      sourceRefInternalName: 'CorruptBunny',
+      itemName: 'Suspicious Looking Egg',
+      recordKey: 'npc-item:corrupt-bunny:loot:suspicious-looking-egg:2',
+      chanceText: '100% @normal',
+      quantityText: '',
+      sourceUrl: 'https://terraria.wiki.gg/wiki/Corrupt_Bunny',
+      reason: 'legacy_only_item_not_in_current_corpus',
+      evidenceSource: 'docs/audits/2026-05-13_npc-source-only-item-review.md'
+    }]
+  });
+
+  assert.equal(actual.npcLootRelations.length, 0);
+  assert.equal(actual.itemNpcRelationAudits.length, 1);
+  assert.equal(actual.itemNpcRelationAudits[0].auditStatus, 'excluded');
+  assert.equal(actual.itemNpcRelationAudits[0].reasonCode, 'legacy_only_item_not_in_current_corpus');
+  assert.equal(actual.sourceFacts[0].reviewStatus, 'excluded');
+  assert.equal(actual.sourceFacts[0].reason, 'legacy_only_item_not_in_current_corpus');
+});
+
+test('buildItemSourceRelations requires exact source URL for source-only item exclusions', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 26,
+        record_key: 'npc-item:corrupt-bunny:loot:suspicious-looking-egg:2',
+        item_internal_name: null,
+        item_name: 'Suspicious Looking Egg',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Corrupt Bunny',
+        sort_order: 0,
+        raw_json: JSON.stringify({
+          itemName: 'Suspicious Looking Egg',
+          sourceRefName: 'Corrupt Bunny',
+          sourceRefInternalName: 'CorruptBunny',
+          sourceRefResolution: 'exact_internal_name',
+          quantityText: '',
+          chanceText: '100% @normal',
+          sourceUrl: 'https://terraria.wiki.gg/wiki/Corrupt_Bunny'
+        })
+      }
+    ],
+    npcIndex: new Map([
+      ['Corrupt Bunny', { source_id: 48, internal_name: 'CorruptBunny', name: 'Corrupt Bunny' }]
+    ]),
+    reviewedSourceOnlyItemExclusions: [{
+      sourceType: 'drop',
+      sourceRefType: 'npc',
+      sourceRefInternalName: 'CorruptBunny',
+      itemName: 'Suspicious Looking Egg',
+      recordKey: 'npc-item:corrupt-bunny:loot:suspicious-looking-egg:2',
+      chanceText: '100% @normal',
+      quantityText: '',
+      sourceUrl: 'https://terraria.wiki.gg/wiki/Corrupt_Bunny#History',
+      reason: 'legacy_only_item_not_in_current_corpus'
+    }]
+  });
+
+  assert.equal(actual.itemNpcRelationAudits.length, 1);
+  assert.equal(actual.itemNpcRelationAudits[0].auditStatus, 'unresolved');
+  assert.equal(actual.itemNpcRelationAudits[0].reasonCode, 'item_unresolved');
+  assert.equal(actual.sourceFacts[0].reviewStatus, 'unresolved');
+});
+
+test('buildItemSourceRelations does not apply source-only exclusions after item identity resolves', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 25,
+        record_key: 'npc-item:corrupt-bunny:loot:suspicious-looking-egg:2',
+        item_internal_name: null,
+        item_name: 'Suspicious Looking Egg',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Corrupt Bunny',
+        sort_order: 0,
+        raw_json: JSON.stringify({
+          itemName: 'Suspicious Looking Egg',
+          sourceRefName: 'Corrupt Bunny',
+          sourceRefInternalName: 'CorruptBunny',
+          sourceRefResolution: 'exact_internal_name',
+          quantityText: '',
+          chanceText: '100% @normal',
+          sourceUrl: 'https://terraria.wiki.gg/wiki/Corrupt_Bunny'
+        })
+      }
+    ],
+    npcIndex: new Map([
+      ['Corrupt Bunny', { source_id: 48, internal_name: 'CorruptBunny', name: 'Corrupt Bunny' }]
+    ]),
+    itemIndex: new Map([
+      ['Suspicious Looking Egg', { source_id: 9001, internal_name: 'SuspiciousLookingEgg', english_name: 'Suspicious Looking Egg' }],
+      ['suspicious looking egg', { source_id: 9001, internal_name: 'SuspiciousLookingEgg', english_name: 'Suspicious Looking Egg' }]
+    ]),
+    reviewedSourceOnlyItemExclusions: [{
+      sourceType: 'drop',
+      sourceRefType: 'npc',
+      sourceRefInternalName: 'CorruptBunny',
+      itemName: 'Suspicious Looking Egg',
+      recordKey: 'npc-item:corrupt-bunny:loot:suspicious-looking-egg:2',
+      chanceText: '100% @normal',
+      quantityText: '',
+      sourceUrl: 'https://terraria.wiki.gg/wiki/Corrupt_Bunny',
+      reason: 'legacy_only_item_not_in_current_corpus'
+    }]
+  });
+
+  assert.equal(actual.itemNpcRelationAudits.some((audit) => audit.auditStatus === 'excluded'), false);
+  assert.equal(actual.npcLootRelations.length, 1);
+  assert.equal(actual.npcLootRelations[0].itemInternalName, 'SuspiciousLookingEgg');
+  assert.equal(actual.sourceFacts[0].reviewStatus, 'resolved');
+});
+
 test('buildItemSourceRelations materializes reviewed page-level shared loot to explicit NPC target', () => {
   const actual = buildItemSourceRelations({
     itemSourceRows: [
@@ -1701,6 +1848,114 @@ test('buildItemSourceRelations keeps ambiguous item index matches unresolved', (
   assert.equal(actual.itemNpcRelationAudits[0].reasonCode, 'item_ambiguous');
   assert.equal(actual.sourceFacts[0].reviewStatus, 'unresolved');
   assert.equal(actual.sourceFacts[0].reason, 'item_ambiguous');
+});
+
+test('buildItemSourceRelations does not strip item qualifier parentheticals for shop item lookup', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 84,
+        record_key: 'npc-item:painter:shop:graveyard-item:43',
+        item_internal_name: null,
+        item_name: 'Graveyard (item)',
+        source_type: 'shop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Painter',
+        raw_json: JSON.stringify({
+          itemName: 'Graveyard (item)',
+          sourceRefName: 'Painter',
+          sourceRefInternalName: 'Painter',
+          sourceRefResolution: 'exact_internal_name'
+        })
+      }
+    ],
+    npcIndex: new Map([
+      ['Painter', { source_id: 227, internal_name: 'Painter', name: 'Painter' }]
+    ]),
+    itemIndex: new Map([
+      ['Graveyard', { source_id: 9002, internal_name: 'Graveyard', english_name: 'Graveyard' }],
+      ['graveyard', { source_id: 9002, internal_name: 'Graveyard', english_name: 'Graveyard' }]
+    ])
+  });
+
+  assert.equal(actual.npcShopRelations.length, 0);
+  assert.equal(actual.itemNpcRelationAudits.length, 1);
+  assert.equal(actual.itemNpcRelationAudits[0].reasonCode, 'item_unresolved');
+  assert.equal(actual.sourceFacts[0].itemInternalName, null);
+});
+
+test('buildItemSourceRelations resolves loot item names after stripping trailing NPC and quantity parentheticals', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 82,
+        record_key: 'npc-item:jungle-slime:loot:gel-jungle-slime-1-2:0',
+        item_internal_name: null,
+        item_name: 'Gel (Jungle Slime) (1-2)',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Jungle Slime',
+        raw_json: JSON.stringify({
+          relationType: 'loot',
+          sourceSection: 'drops',
+          itemName: 'Gel (Jungle Slime) (1-2)',
+          chanceText: '100%',
+          sourceRefName: 'Jungle Slime',
+          sourceRefInternalName: 'JungleSlime',
+          sourceRefResolution: 'exact_internal_name'
+        })
+      }
+    ],
+    npcIndex: new Map([
+      ['Jungle Slime', { source_id: -10, internal_name: 'JungleSlime', name: 'Jungle Slime' }]
+    ]),
+    itemIndex: new Map([
+      ['Gel', { source_id: 23, internal_name: 'Gel', english_name: 'Gel' }],
+      ['gel', { source_id: 23, internal_name: 'Gel', english_name: 'Gel' }]
+    ])
+  });
+
+  assert.equal(actual.npcLootRelations.length, 1);
+  assert.equal(actual.npcLootRelations[0].itemInternalName, 'Gel');
+  assert.equal(actual.npcLootRelations[0].npcInternalName, 'JungleSlime');
+  assert.equal(actual.itemNpcRelationAudits.some((audit) => audit.reasonCode === 'item_unresolved'), false);
+});
+
+test('buildItemSourceRelations resolves loot item names after stripping wiki note templates', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 83,
+        record_key: 'npc-item:moth:loot:butterfly-dust-note:0',
+        item_internal_name: null,
+        item_name: 'Butterfly Dust{{note|block=y|paren=y|{{eicons|1.4.0.1|small=y}} Only after one mechanical boss has been defeated}}',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Moth',
+        raw_json: JSON.stringify({
+          relationType: 'loot',
+          sourceSection: 'drops',
+          itemName: 'Butterfly Dust{{note|block=y|paren=y|{{eicons|1.4.0.1|small=y}} Only after one mechanical boss has been defeated}}',
+          chanceText: '50%',
+          sourceRefName: 'Moth',
+          sourceRefInternalName: 'Moth',
+          sourceRefResolution: 'exact_internal_name'
+        })
+      }
+    ],
+    npcIndex: new Map([
+      ['Moth', { source_id: 205, internal_name: 'Moth', name: 'Moth' }]
+    ]),
+    itemIndex: new Map([
+      ['Butterfly Dust', { source_id: 1611, internal_name: 'ButterflyDust', english_name: 'Butterfly Dust' }],
+      ['butterfly dust', { source_id: 1611, internal_name: 'ButterflyDust', english_name: 'Butterfly Dust' }]
+    ])
+  });
+
+  assert.equal(actual.npcLootRelations.length, 1);
+  assert.equal(actual.npcLootRelations[0].itemInternalName, 'ButterflyDust');
+  assert.equal(actual.npcLootRelations[0].npcInternalName, 'Moth');
+  assert.equal(actual.itemNpcRelationAudits.some((audit) => audit.reasonCode === 'item_unresolved'), false);
 });
 
 test('buildItemSourceRelations prefers generated npc shop pages over item-page shop claims for the same npc', () => {
