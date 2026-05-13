@@ -1327,7 +1327,18 @@ function shouldRetireStaleItemPageTables(scopes) {
   return Array.isArray(scopes) && scopes.includes('item_pages');
 }
 
-async function retireStaleRecordKeyRows(connection, tableName) {
+function shouldRetireStaleNpcItemSourceRows(scopes) {
+  return Array.isArray(scopes) && scopes.includes('npcs');
+}
+
+async function retireStaleRecordKeyRows(connection, tableName, options = {}) {
+  const filters = [];
+  const params = [tableName];
+  if (options.landingSourceKey) {
+    filters.push('target.landing_source_key = ?');
+    params.push(options.landingSourceKey);
+  }
+  const filterSql = filters.length ? `\n       AND ${filters.join('\n       AND ')}` : '';
   const [result] = await connection.execute(
      `UPDATE \`${tableName}\` AS target
       LEFT JOIN \`${ACTIVE_RECORD_KEY_TEMP_TABLE}\` AS active
@@ -1336,8 +1347,8 @@ async function retireStaleRecordKeyRows(connection, tableName) {
           target.deleted = 1,
           target.updated_at = CURRENT_TIMESTAMP
      WHERE target.deleted = 0
-       AND active.record_key IS NULL`,
-    [tableName],
+       AND active.record_key IS NULL${filterSql}`,
+    params,
   );
   return Number(result?.affectedRows ?? 0);
 }
@@ -1353,9 +1364,9 @@ async function createActiveRecordKeyTempTable(connection) {
   await connection.execute(`DELETE FROM \`${ACTIVE_RECORD_KEY_TEMP_TABLE}\``);
 }
 
-async function insertActiveRecordKeys(connection, recordKeysByTable) {
+async function insertActiveRecordKeys(connection, recordKeysByTable, tableNames) {
   const pairs = [];
-  for (const tableName of ['maint_item_pages', 'maint_item_page_recipes']) {
+  for (const tableName of tableNames) {
     for (const recordKey of recordKeysByTable.get(tableName) ?? []) {
       pairs.push([tableName, recordKey]);
     }
@@ -1378,12 +1389,24 @@ async function retireStaleItemPageRows(connection, recordKeysByTable) {
     throw new Error('Refusing to retire stale item page rows without active maint_item_pages keys.');
   }
   await createActiveRecordKeyTempTable(connection);
-  await insertActiveRecordKeys(connection, recordKeysByTable);
+  await insertActiveRecordKeys(connection, recordKeysByTable, ['maint_item_pages', 'maint_item_page_recipes']);
   let retired = 0;
   for (const tableName of ['maint_item_pages', 'maint_item_page_recipes']) {
     retired += await retireStaleRecordKeyRows(connection, tableName);
   }
   return retired;
+}
+
+async function retireStaleNpcItemSourceRows(connection, recordKeysByTable) {
+  const activeItemSourceKeys = recordKeysByTable.get('maint_item_sources') ?? new Set();
+  if (activeItemSourceKeys.size === 0) {
+    return 0;
+  }
+  await createActiveRecordKeyTempTable(connection);
+  await insertActiveRecordKeys(connection, recordKeysByTable, ['maint_item_sources']);
+  return retireStaleRecordKeyRows(connection, 'maint_item_sources', {
+    landingSourceKey: 'generated.npc_item_relations_bundle'
+  });
 }
 
 async function defaultLoadLandingRows(scopes, connection) {
@@ -2474,7 +2497,6 @@ export async function runMaintSync(options, dependencies = {}) {
       }
       extracted.push(...filterRowsByScopes(dedupeEntityRows(result.rows, seenRecordKeys), scopes));
     }
-
     const summary = buildMaintSyncSummary({ apply: options.apply, scopes }, extracted);
     if (hasCategoryRuleSummary) {
       summary.categoryRules = categoryRuleSummary;
@@ -2496,6 +2518,9 @@ export async function runMaintSync(options, dependencies = {}) {
         }
         if (shouldRetireStaleItemPageTables(scopes)) {
           summary.writes.retired += await retireStaleItemPageRows(connection, collectRecordKeysByTable(extracted));
+        }
+        if (shouldRetireStaleNpcItemSourceRows(scopes)) {
+          summary.writes.retired += await retireStaleNpcItemSourceRows(connection, collectRecordKeysByTable(extracted));
         }
         await connection.commit();
       } catch (error) {
@@ -2566,6 +2591,9 @@ export async function runMaintSync(options, dependencies = {}) {
     if (writeConnection) {
       if (shouldRetireStaleItemPageTables(scopes)) {
         summary.writes.retired += await retireStaleItemPageRows(writeConnection, recordKeysByTable);
+      }
+      if (shouldRetireStaleNpcItemSourceRows(scopes)) {
+        summary.writes.retired += await retireStaleNpcItemSourceRows(writeConnection, recordKeysByTable);
       }
       await writeConnection.commit();
     }

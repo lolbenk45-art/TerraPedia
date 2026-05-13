@@ -33,6 +33,21 @@ test('classifyNpcLootSource blocks wrong exact ordinary Mimic rows', () => {
   }
 });
 
+test('classifyNpcLootSource excludes reviewed rejected item-page ordinary Mimic rows', () => {
+  const actual = classifyNpcLootSource({
+    itemInternalName: 'Mace',
+    sourceRefName: 'Mimic',
+    sourceRefInternalName: 'Mimic',
+    sourceRefResolution: 'exact_internal_name',
+    landingSourceKey: 'generated.item_relations_bundle:chunk:0001',
+  });
+
+  assert.equal(actual.status, 'reviewed_mimic_contract_rejected');
+  assert.equal(actual.materializable, false);
+  assert.equal(actual.reason, 'ordinary_mimic_contract_mismatch');
+  assert.equal(actual.sourceRefResolution, 'reviewed_mimic_contract_rejected');
+});
+
 test('classifyNpcLootSource forbids exact ordinary Mimic promotion even for contract items', () => {
   const actual = classifyNpcLootSource({
     itemInternalName: 'DualHook',
@@ -127,6 +142,33 @@ test('classifyNpcLootSource allows authoritative exact plural npc names', () => 
   assert.equal(actual.materializable, true);
 });
 
+test('classifyNpcLootSource accepts reviewed page-level shared loot with explicit target identity', () => {
+  const actual = classifyNpcLootSource({
+    itemInternalName: 'ScarecrowHat',
+    sourceRefName: 'Scarecrow',
+    sourceRefInternalName: 'Scarecrow7',
+    sourceRefResolution: 'reviewed_page_level_shared_loot',
+  });
+
+  assert.equal(actual.status, 'accepted');
+  assert.equal(actual.materializable, true);
+  assert.equal(actual.targetNpcInternalName, 'Scarecrow7');
+  assert.equal(actual.sourceRefResolution, 'reviewed_page_level_shared_loot');
+});
+
+test('classifyNpcLootSource rejects reviewed page-level shared loot outside pinned targets', () => {
+  const actual = classifyNpcLootSource({
+    itemInternalName: 'Shackle',
+    sourceRefName: 'Zombie',
+    sourceRefInternalName: 'ArmedZombie',
+    sourceRefResolution: 'reviewed_page_level_shared_loot',
+  });
+
+  assert.equal(actual.status, 'contract_mismatch');
+  assert.equal(actual.materializable, false);
+  assert.equal(actual.reason, 'reviewed_page_level_shared_loot_requires_pinned_target');
+});
+
 test('classifyNpcLootSource blocks other collective buckets and non-NPC sources', () => {
   for (const sourceRefName of ['Pigrons', 'Mummies', 'Ghouls', 'Jellyfish', 'Sand Sharks', 'Slimes', 'The Twins']) {
     assert.equal(classifyNpcLootSource({ itemInternalName: 'AnyItem', sourceRefName }).status, 'generic_bucket', sourceRefName);
@@ -143,6 +185,50 @@ test('classifyNpcLootSource reclassifies pseudo-source rows as non-NPC before mi
     assert.equal(actual.status, 'non_npc_source_misclassified', sourceRefName);
     assert.equal(actual.materializable, false, sourceRefName);
   }
+});
+
+test('classifyNpcLootSource keeps bonusdrop item labels source-only even with exact NPC metadata', () => {
+  const actual = classifyNpcLootSource({
+    itemInternalName: 'Bomb',
+    itemName: 'bonusdrop:Bomb',
+    sourceRefName: 'Baby Slime',
+    sourceRefInternalName: 'BabySlime',
+    sourceRefResolution: 'exact_internal_name',
+  });
+
+  assert.equal(actual.status, 'reviewed_non_npc_source_exclusion');
+  assert.equal(actual.materializable, false);
+  assert.equal(actual.reason, 'mode_or_bonus_bucket');
+});
+
+test('classifyNpcLootSource keeps reviewed ordinary slime item-page bonus mirrors source-only', () => {
+  const actual = classifyNpcLootSource({
+    itemInternalName: 'Bomb',
+    itemName: 'Bomb',
+    sourceRefName: 'Baby Slime',
+    sourceRefInternalName: 'BabySlime',
+    sourceRefResolution: 'exact_internal_name',
+    landingSourceKey: 'generated.item_relations_bundle:chunk:0001',
+  });
+
+  assert.equal(actual.status, 'reviewed_non_npc_source_exclusion');
+  assert.equal(actual.materializable, false);
+  assert.equal(actual.reason, 'reviewed_slime_bonus_drop_source_only');
+});
+
+test('classifyNpcLootSource keeps Slimer item-page drops materializable', () => {
+  const actual = classifyNpcLootSource({
+    itemInternalName: 'Blindfold',
+    itemName: 'Blindfold',
+    sourceRefName: 'Slimer',
+    sourceRefInternalName: 'Slimer',
+    sourceRefResolution: 'exact_internal_name',
+    landingSourceKey: 'generated.item_relations_bundle:chunk:0001',
+  });
+
+  assert.equal(actual.status, 'accepted');
+  assert.equal(actual.materializable, true);
+  assert.equal(actual.targetNpcInternalName, 'Slimer');
 });
 
 test('classifyNpcLootSource applies reviewed non-NPC source exclusions without materializing rows', () => {
@@ -171,6 +257,31 @@ test('classifyNpcLootSource applies reviewed non-NPC source exclusions without m
   assert.equal(actual.targetNpcInternalName, null);
   assert.equal(actual.reason, 'chest_container');
   assert.equal(actual.sourceRefResolution, 'reviewed_non_npc_source_exclusion');
+});
+
+test('classifyNpcLootSource applies reviewed boss-lane source exclusions', () => {
+  const actual = classifyNpcLootSource(
+    {
+      itemInternalName: 'WaffleIron',
+      sourceRefName: 'Mechdusa',
+      sourceRefResolution: 'no_match',
+    },
+    {
+      reviewedNonNpcSourceExclusions: [{
+        sourceType: 'drop',
+        sourceRefType: 'npc',
+        matchType: 'exact',
+        sourceRefName: 'Mechdusa',
+        reason: 'boss_lane_reference_source',
+      }],
+      sourceType: 'drop',
+      sourceRefType: 'npc',
+    }
+  );
+
+  assert.equal(actual.status, 'reviewed_non_npc_source_exclusion');
+  assert.equal(actual.materializable, false);
+  assert.equal(actual.reason, 'boss_lane_reference_source');
 });
 
 test('classifyNpcLootSource requires anchored reviewed regex exclusions', () => {

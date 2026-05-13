@@ -92,6 +92,42 @@ test('buildReplacementReadinessAudit blocks domains with projection-only keys', 
   assert.ok(actual.summary.blockedDomains.includes('items'));
 });
 
+test('buildReplacementReadinessAudit treats documented zh recipe local-only rows as accepted item exceptions', () => {
+  const actual = buildReplacementReadinessAudit({
+    localData: {
+      items: [
+        {
+          internal_name: 'IronPickaxe',
+          name: 'Iron Pickaxe'
+        },
+        {
+          internal_name: 'ZH_RECIPE_BLUE_JELLYFISH_BAIT',
+          name: 'Blue Jellyfish (bait)',
+          source_provider: 'wiki_zh_recipe_import'
+        }
+      ],
+      npcs: [],
+      boss_groups: [],
+      projectiles: [],
+      buffs: []
+    },
+    projectionData: {
+      projection_items: [
+        { internal_name: 'IronPickaxe', name: 'Iron Pickaxe' }
+      ],
+      projection_npcs: [],
+      projection_bosses: [],
+      projection_projectiles: [],
+      projection_buffs: []
+    }
+  });
+
+  assert.equal(actual.domainResults.items.status, 'switchable');
+  assert.equal(actual.domainResults.items.missingInProjectionCount, 0);
+  assert.deepEqual(actual.domainResults.items.acceptedLocalOnlyExceptions, ['ZH_RECIPE_BLUE_JELLYFISH_BAIT']);
+  assert.ok(actual.summary.switchableDomains.includes('items'));
+});
+
 test('buildReplacementReadinessAudit includes projectile source relation json fields', () => {
   const actual = buildReplacementReadinessAudit({
     localData: {

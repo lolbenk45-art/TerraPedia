@@ -126,13 +126,25 @@ function sampleList(values = [], limit = 10) {
   return values.slice(0, limit);
 }
 
+function isAcceptedLocalOnlyRow(domain, row = {}, key) {
+  if (domain !== 'items') {
+    return false;
+  }
+  return String(key ?? row.internal_name ?? '').startsWith('ZH_RECIPE_')
+    && String(row.source_provider ?? '').trim() === 'wiki_zh_recipe_import';
+}
+
 function buildDomainAudit(name, config, localRows = [], projectionRows = []) {
   const localMap = new Map(localRows.map((row) => [row[config.key], row]));
   const projectionMap = new Map(projectionRows.map((row) => [row[config.key], row]));
   const localKeys = [...localMap.keys()].filter(Boolean);
   const projectionKeys = [...projectionMap.keys()].filter(Boolean);
   const sharedKeys = localKeys.filter((key) => projectionMap.has(key));
-  const missingInProjection = localKeys.filter((key) => !projectionMap.has(key));
+  const rawMissingInProjection = localKeys.filter((key) => !projectionMap.has(key));
+  const acceptedLocalOnlyExceptions = rawMissingInProjection.filter((key) => (
+    isAcceptedLocalOnlyRow(name, localMap.get(key), key)
+  ));
+  const missingInProjection = rawMissingInProjection.filter((key) => !acceptedLocalOnlyExceptions.includes(key));
   const extraInProjection = projectionKeys.filter((key) => !localMap.has(key));
 
   const blockingFields = [];
@@ -180,6 +192,7 @@ function buildDomainAudit(name, config, localRows = [], projectionRows = []) {
     extraInProjectionCount: extraInProjection.length,
     missingInProjection: sampleList(missingInProjection),
     extraInProjection: sampleList(extraInProjection),
+    acceptedLocalOnlyExceptions: sampleList(acceptedLocalOnlyExceptions),
     blockingFields
   };
 }
@@ -232,6 +245,7 @@ function buildMarkdown(audit) {
     lines.push(`- shared rows: ${entry.sharedRowCount}`);
     lines.push(`- missing in projection: ${entry.missingInProjection.join(', ') || 'none'}`);
     lines.push(`- extra in projection: ${entry.extraInProjection.join(', ') || 'none'}`);
+    lines.push(`- accepted local-only exceptions: ${(entry.acceptedLocalOnlyExceptions ?? []).join(', ') || 'none'}`);
     if (entry.blockingFields.length === 0) {
       lines.push('- blocking fields: none');
     } else {

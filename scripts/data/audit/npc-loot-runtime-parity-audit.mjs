@@ -312,6 +312,7 @@ async function defaultLoadLocalRows(connection, options) {
     JOIN ${table(options.localDatabase, 'npcs')} n ON n.id = l.npc_id AND n.deleted = 0
     LEFT JOIN ${table(options.localDatabase, 'items')} i ON i.id = l.item_id AND i.deleted = 0
     WHERE l.deleted = 0
+      AND (l.drop_source_kind IS NULL OR l.drop_source_kind = 'npc_drop')
     ORDER BY n.internal_name, i.internal_name, l.id
   `);
   return rows;
@@ -420,8 +421,15 @@ function normalizeRows(rows, stage) {
       }
       return [row];
     })
+    .filter((row) => isNpcDropParityRow(row, stage))
     .map((row) => normalizeRow(row, stage))
     .filter((row) => row.npcInternalName && row.itemInternalName);
+}
+
+function isNpcDropParityRow(row, stage) {
+  if (stage !== 'local' && stage !== 'api') return true;
+  const kind = normalizeRuntimeMode(row?.dropSourceKind ?? row?.drop_source_kind);
+  return !kind || kind === 'npc_drop';
 }
 
 function filterProjectionOnlyApiDuplicates(rows) {

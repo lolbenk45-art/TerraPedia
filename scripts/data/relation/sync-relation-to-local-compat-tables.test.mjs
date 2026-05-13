@@ -74,12 +74,12 @@ test('buildRelationCompatSyncSql only publishes source-backed reviewed active ro
   assert.match(sql.item_acquisition_sources.insertSql, /d\.deleted = 0/);
   assert.match(sql.item_acquisition_sources.insertSql, /d\.status = 1/);
   assert.match(sql.item_acquisition_sources.insertSql, new RegExp(`d\\.${acceptedReview.source}`));
-  assert.match(sql.item_acquisition_sources.insertSql, /d\.source_ref_resolution IN \('resolved', 'exact_internal_name'\)/);
+  assert.match(sql.item_acquisition_sources.insertSql, /d\.source_ref_resolution IN \('resolved', 'exact_internal_name', 'reviewed_page_level_shared_loot'\)/);
   assert.match(sql.item_acquisition_sources.insertSql, /n\.deleted = 0/);
   assert.match(sql.item_acquisition_sources.insertSql, /n\.status = 1/);
   assert.match(
     sql.item_acquisition_sources.insertSql,
-    /f\.source_ref_type <> 'npc' OR \(d\.source_ref_resolution IN \('resolved', 'exact_internal_name'\) AND n\.id IS NOT NULL\)/
+    /f\.source_ref_type <> 'npc' OR \(d\.source_ref_resolution IN \('resolved', 'exact_internal_name', 'reviewed_page_level_shared_loot'\) AND n\.id IS NOT NULL\)/
   );
 
   for (const [alias, definition] of [
@@ -128,8 +128,27 @@ test('buildRelationCompatSyncSql publishes exact internal-name npc resolutions',
     sql.item_acquisition_sources.sampleSql,
     sql.item_acquisition_sources.insertSql
   ]) {
-    assert.match(definition, /d\.source_ref_resolution IN \('resolved', 'exact_internal_name'\)/);
+    assert.match(definition, /d\.source_ref_resolution IN \('resolved', 'exact_internal_name', 'reviewed_page_level_shared_loot'\)/);
     assert.doesNotMatch(definition, /d\.source_ref_resolution = 'resolved'/);
+  }
+});
+
+test('buildRelationCompatSyncSql publishes reviewed page-level shared loot npc resolutions', () => {
+  const sql = buildRelationCompatSyncSql({
+    localDatabase: 'terria_v1_local',
+    relationDatabase: 'terria_v1_relation'
+  });
+
+  for (const definition of [
+    sql.item_acquisition_sources.countSql,
+    sql.item_acquisition_sources.sampleSql,
+    sql.item_acquisition_sources.insertSql
+  ]) {
+    assert.match(definition, /reviewed_page_level_shared_loot/);
+    assert.match(
+      definition,
+      /f\.source_ref_type <> 'npc' OR \(d\.source_ref_resolution IN \('resolved', 'exact_internal_name', 'reviewed_page_level_shared_loot'\) AND n\.id IS NOT NULL\)/
+    );
   }
 });
 

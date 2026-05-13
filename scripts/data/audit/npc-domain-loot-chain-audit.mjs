@@ -28,9 +28,19 @@ const ALLOWED_EXPECTED_ZERO_REASONS = new Set([
   'town_npc_no_loot',
   'bound_or_rescue_state',
   'critter_no_loot',
+  'enemy_no_direct_item_loot',
   'body_or_segment_inherits',
   'event_helper_no_loot',
   'projectile_or_effect_not_killable',
+  'placeholder_or_internal_test_helper_no_loot',
+]);
+
+const ALLOWED_DOMAIN_SEPARATED_REASONS = new Set([
+  'boss_reward_domain_separated',
+  'boss_segment_reward_domain_separated',
+  'boss_component_health_pickup_domain_separated',
+  'boss_clone_or_helper_domain_separated',
+  'item_projectile_entity_domain_separated',
 ]);
 
 const ALLOWED_INHERITANCE_KINDS = new Set([
@@ -39,10 +49,16 @@ const ALLOWED_INHERITANCE_KINDS = new Set([
   'same_name_variant',
 ]);
 
+const ALLOWED_NO_DIRECT_ITEM_LOOT_REASONS = new Set([
+  'positive_source_page_exact_infobox_no_direct_item_loot',
+]);
+
 const NPC_STATUSES = Object.freeze([
   'trusted_direct_loot',
   'trusted_inherited_loot',
   'expected_zero_loot',
+  'reviewed_no_direct_item_loot',
+  'domain_separated_not_npc_drop',
   'unclassified_zero',
   'blocked_source_gap',
   'relation_gap',
@@ -89,6 +105,12 @@ const ALLOWED_NON_NPC_EXCLUSION_REASONS = new Set([
   'heart_or_orb_source',
   'mode_or_bonus_bucket',
   'non_npc_item_source_entity',
+  'boss_lane_reference_source',
+]);
+
+const ALLOWED_SOURCE_ONLY_ITEM_EXCLUSION_REASONS = new Set([
+  'item_group_requires_expansion',
+  'legacy_only_item_not_in_current_corpus',
 ]);
 
 export function parseArgs(argv = process.argv.slice(2)) {
@@ -113,11 +135,11 @@ export function parseArgs(argv = process.argv.slice(2)) {
 
 export function computeRowIdentityHash(row = {}) {
   const normalized = {
-    npcInternalName: normalizeText(row.npcInternalName ?? row.npc_internal_name ?? row.sourceRefInternalName ?? row.source_ref_internal_name),
-    itemInternalName: normalizeText(row.itemInternalName ?? row.item_internal_name),
+    npcInternalName: normalizeText(row.npcInternalName ?? row.npc_internal_name ?? row.sourceRefInternalName ?? row.source_ref_internal_name ?? row.sourceRefName ?? row.source_ref_name),
+    itemInternalName: normalizeText(row.itemInternalName ?? row.item_internal_name ?? row.itemName ?? row.item_name),
     chanceText: normalizeText(row.chanceText ?? row.chance_text),
     quantityText: normalizeText(row.quantityText ?? row.quantity_text),
-    conditions: normalizeText(row.conditions),
+    conditions: normalizeConditionText(row.conditions ?? row.conditionText ?? row.condition_text),
   };
   return crypto
     .createHash('sha256')
@@ -126,9 +148,14 @@ export function computeRowIdentityHash(row = {}) {
 }
 
 export function classifySourceRows(sourceRows = [], options = {}) {
-  const preparedRows = sourceRows.map((row, index) => {
+  const expectedZeroByNpc = buildExpectedZeroRuleIndex(options.expectedZeroRules);
+  const domainSeparatedByNpc = buildDomainSeparatedRuleIndex(options.domainSeparatedRules);
+  const sourceOnlyItemExclusions = Array.isArray(options.reviewedSourceOnlyItemExclusions)
+    ? options.reviewedSourceOnlyItemExclusions
+    : [];
+  const preparedRows = collapseDuplicateProvenanceSourceRows(sourceRows.map((row, index) => {
     const sourceRefInternalName = normalizeText(row.sourceRefInternalName ?? row.source_ref_internal_name);
-    const itemInternalName = normalizeText(row.itemInternalName ?? row.item_internal_name);
+    const itemInternalName = resolveSourceRowItemInternalName(row, options.itemIndex);
     const rowIdentityHash = computeRowIdentityHash({
       ...row,
       npcInternalName: sourceRefInternalName,
@@ -143,14 +170,19 @@ export function classifySourceRows(sourceRows = [], options = {}) {
       sourceRefResolution: normalizeText(row.sourceRefResolution ?? row.source_ref_resolution),
       rowIdentityHash,
     };
-  });
+  }));
   const identityCounts = new Map();
   for (const row of preparedRows) {
     identityCounts.set(row.rowIdentityHash, (identityCounts.get(row.rowIdentityHash) ?? 0) + 1);
   }
 
   return preparedRows.map((row) => {
-    const status = classifySourceRow(row, identityCounts.get(row.rowIdentityHash) ?? 0, options);
+    const status = classifySourceRow(row, identityCounts.get(row.rowIdentityHash) ?? 0, {
+      ...options,
+      expectedZeroByNpc,
+      domainSeparatedByNpc,
+      sourceOnlyItemExclusions,
+    });
     return {
       ...row,
       sourceRowStatus: status.sourceRowStatus,
@@ -161,17 +193,165 @@ export function classifySourceRows(sourceRows = [], options = {}) {
   });
 }
 
+function collapseDuplicateProvenanceSourceRows(rows = []) {
+  const byIdentity = new Map();
+  for (const row of rows) {
+    if (!byIdentity.has(row.rowIdentityHash)) {
+      byIdentity.set(row.rowIdentityHash, []);
+    }
+    byIdentity.get(row.rowIdentityHash).push(row);
+  }
+
+  const collapsed = [];
+  for (const group of byIdentity.values()) {
+    if (isCollapsibleGeneratedDuplicateGroup(group)) {
+      collapsed.push(group.find(isNpcItemBundleRow) ?? group.find(isGeneratedNpcItemBundleRow) ?? group[0]);
+      continue;
+    }
+    collapsed.push(...group);
+  }
+  return collapsed;
+}
+
+function isCollapsibleGeneratedDuplicateGroup(group = []) {
+  return group.length > 1
+    && group.every(isGeneratedBundleSourceRow)
+    && group.some(isGeneratedNpcItemBundleRow);
+}
+
+function isGeneratedBundleSourceRow(row = {}) {
+  const landingSourceKey = normalizeText(row.landingSourceKey ?? row.landing_source_key);
+  return landingSourceKey?.startsWith('generated.npc_item_relations_bundle')
+    || landingSourceKey?.startsWith('generated.item_relations_bundle')
+    || isNpcItemBundleRow(row)
+    || isGeneratedItemPageRow(row);
+}
+
+function isGeneratedNpcItemBundleRow(row = {}) {
+  const landingSourceKey = normalizeText(row.landingSourceKey ?? row.landing_source_key);
+  return landingSourceKey?.startsWith('generated.npc_item_relations_bundle')
+    || isNpcItemBundleRow(row);
+}
+
+function isGeneratedItemPageRow(row = {}) {
+  const recordKey = normalizeText(row.recordKey ?? row.record_key);
+  return recordKey?.startsWith('item-page:');
+}
+
+function isNpcItemBundleRow(row = {}) {
+  const recordKey = normalizeText(row.recordKey ?? row.record_key);
+  if (recordKey?.startsWith('npc-item:')) return true;
+  const raw = parseJsonObject(row.rawJson ?? row.raw_json);
+  const rawRecordKey = normalizeText(raw.recordKey ?? raw.record_key);
+  return Boolean(rawRecordKey?.startsWith('npc-item:'));
+}
+
+function buildExpectedZeroRuleIndex(rules) {
+  if (rules instanceof Map) return rules;
+  const index = new Map();
+  for (const row of Array.isArray(rules) ? rules : []) {
+    const npcInternalName = normalizeText(row.npcInternalName ?? row.npc_internal_name);
+    if (npcInternalName) index.set(npcInternalName, row);
+  }
+  return index;
+}
+
+function buildDomainSeparatedRuleIndex(rules) {
+  if (rules instanceof Map) return rules;
+  const index = new Map();
+  for (const row of Array.isArray(rules) ? rules : []) {
+    const npcInternalName = normalizeText(row.npcInternalName ?? row.npc_internal_name);
+    if (npcInternalName) index.set(npcInternalName, row);
+  }
+  return index;
+}
+
+export function buildItemLookupIndex(rows = []) {
+  const index = new Map();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const internalName = normalizeText(row.internal_name ?? row.internalName);
+    const itemName = normalizeText(row.item_name ?? row.itemName ?? row.name ?? row.english_name ?? row.englishName);
+    const itemNameZh = normalizeText(row.name_zh ?? row.nameZh);
+    if (!internalName) continue;
+    if (itemName) {
+      addLookupIndexEntry(index, itemName, internalName);
+    }
+    if (itemNameZh) {
+      addLookupIndexEntry(index, itemNameZh, internalName);
+    }
+    addLookupIndexEntry(index, internalName, internalName);
+  }
+  return index;
+}
+
+export function resolveSourceRowItemInternalName(row = {}, itemIndex = new Map()) {
+  const direct = normalizeText(row.itemInternalName ?? row.item_internal_name);
+  if (direct) return direct;
+  const candidates = [
+    row.itemName,
+    row.item_name,
+  ].flatMap(buildItemLookupCandidates).filter(Boolean);
+  for (const candidate of candidates) {
+    const resolved = lookupUniqueIndexValue(itemIndex, candidate);
+    if (resolved) return resolved;
+  }
+  return null;
+}
+
+export function buildNpcLookupIndex(rows = []) {
+  const index = new Map();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const internalName = normalizeText(row.internalName ?? row.internal_name);
+    const npcName = normalizeText(row.name ?? row.npcName ?? row.npc_name ?? row.english_name ?? row.englishName);
+    if (!internalName) continue;
+    addLookupIndexEntry(index, internalName, internalName);
+    if (npcName) addLookupIndexEntry(index, npcName, internalName);
+  }
+  return index;
+}
+
+export function resolveSourceRowNpcInternalName(row = {}, npcIndex = new Map()) {
+  const direct = normalizeText(row.sourceRefInternalName ?? row.source_ref_internal_name);
+  if (direct) return direct;
+  const sourceRefName = normalizeText(row.sourceRefName ?? row.source_ref_name);
+  const candidates = [
+    sourceRefName,
+    stripNpcDisambiguationSuffix(sourceRefName),
+  ].filter(Boolean);
+  for (const candidate of candidates) {
+    const resolved = lookupUniqueIndexValue(npcIndex, candidate);
+    if (resolved) return resolved;
+  }
+  return null;
+}
+
 export function buildNpcDomainLootChainReport(input = {}) {
   const options = sanitizeOptions(input.options ?? {});
   const activeNpcs = (Array.isArray(input.npcs) ? input.npcs : []).filter(isActiveNpc);
   const expectedZeroValidation = validateExpectedZeroRules(input.expectedZeroRules);
+  const domainSeparatedValidation = validateDomainSeparatedRules(input.domainSeparatedRules);
   const inheritanceValidation = validateInheritanceRules(input.inheritanceRules);
+  const noDirectItemLootValidation = validateNoDirectItemLootRules(input.noDirectItemLootRules);
   const reviewedNonNpcExclusionValidation = validateReviewedNonNpcSourceExclusions(input.reviewedNonNpcSourceExclusions);
-  const sourceRows = classifySourceRows(input.sourceRows ?? [], {
+  const reviewedSourceOnlyItemExclusionValidation = validateReviewedSourceOnlyItemExclusions(input.reviewedSourceOnlyItemExclusions);
+  const itemIndex = buildItemLookupIndex(input.itemRows ?? []);
+  const npcIndex = buildNpcLookupIndex(activeNpcs);
+  const resolvedSourceRows = (Array.isArray(input.sourceRows) ? input.sourceRows : []).map((row) => ({
+    ...row,
+    itemInternalName: resolveSourceRowItemInternalName(row, itemIndex),
+    sourceRefInternalName: resolveSourceRowNpcInternalName(row, npcIndex),
+  }));
+  const expectedZeroByNpc = keyBy(expectedZeroValidation.validRows, (row) => row.npcInternalName ?? row.npc_internal_name);
+  const domainSeparatedByNpc = keyBy(domainSeparatedValidation.validRows, (row) => row.npcInternalName ?? row.npc_internal_name);
+  const noDirectItemLootByNpc = keyBy(noDirectItemLootValidation.validRows, (row) => row.npcInternalName ?? row.npc_internal_name);
+  const sourceRows = classifySourceRows(resolvedSourceRows, {
+    expectedZeroRules: expectedZeroValidation.validRows,
+    domainSeparatedRules: domainSeparatedValidation.validRows,
     reviewedNonNpcSourceExclusions: reviewedNonNpcExclusionValidation.validRows,
+    reviewedSourceOnlyItemExclusions: reviewedSourceOnlyItemExclusionValidation.validRows,
+    itemIndex,
   });
   const sourceCoverage = normalizeSourceCoverage(input.sourceGaps, input.sourceCoverageRows);
-  const expectedZeroByNpc = keyBy(expectedZeroValidation.validRows, (row) => row.npcInternalName ?? row.npc_internal_name);
   const inheritanceByNpc = keyBy(inheritanceValidation.validRows, (row) => row.targetNpcInternalName ?? row.target_npc_internal_name);
   const sourceGapByNpc = keyBy(sourceCoverage.gapRows, (row) => row.npcInternalName ?? row.npc_internal_name);
   const sourceCoverageByNpc = keyBy(sourceCoverage.coverageRows, (row) => row.npcInternalName ?? row.npc_internal_name);
@@ -192,6 +372,8 @@ export function buildNpcDomainLootChainReport(input = {}) {
       npc,
       npcInternalName,
       expectedZeroRule: expectedZeroByNpc.get(npcInternalName),
+      domainSeparatedRule: domainSeparatedByNpc.get(npcInternalName),
+      noDirectItemLootRule: noDirectItemLootByNpc.get(npcInternalName),
       inheritanceRule: inheritanceByNpc.get(npcInternalName),
       sourceGap: sourceGapByNpc.get(npcInternalName),
       sourceCoverage: sourceCoverageByNpc.get(npcInternalName),
@@ -224,6 +406,13 @@ export function buildNpcDomainLootChainReport(input = {}) {
       status: 'invalid_contract_row',
       reason: row.invalidReason,
     })),
+    ...domainSeparatedValidation.invalidRows.map((row) => ({
+      type: 'contract_row',
+      contract: 'domain_separated_not_npc_drop',
+      npcInternalName: row.npcInternalName ?? row.npc_internal_name ?? null,
+      status: 'invalid_contract_row',
+      reason: row.invalidReason,
+    })),
     ...inheritanceValidation.invalidRows.map((row) => ({
       type: 'contract_row',
       contract: 'inheritance',
@@ -231,10 +420,24 @@ export function buildNpcDomainLootChainReport(input = {}) {
       status: 'invalid_contract_row',
       reason: row.invalidReason,
     })),
+    ...noDirectItemLootValidation.invalidRows.map((row) => ({
+      type: 'contract_row',
+      contract: 'no_direct_item_loot',
+      npcInternalName: row.npcInternalName ?? row.npc_internal_name ?? null,
+      status: 'invalid_contract_row',
+      reason: row.invalidReason,
+    })),
     ...reviewedNonNpcExclusionValidation.invalidRows.map((row) => ({
       type: 'contract_row',
       contract: 'reviewed_non_npc_source_exclusion',
       sourceRefName: row.sourceRefName ?? row.source_ref_name ?? null,
+      status: 'invalid_contract_row',
+      reason: row.invalidReason,
+    })),
+    ...reviewedSourceOnlyItemExclusionValidation.invalidRows.map((row) => ({
+      type: 'contract_row',
+      contract: 'reviewed_source_only_item_exclusion',
+      itemName: row.itemName ?? row.item_name ?? null,
       status: 'invalid_contract_row',
       reason: row.invalidReason,
     })),
@@ -270,11 +473,17 @@ export function buildNpcDomainLootChainReport(input = {}) {
     contractHealth: buildContractHealth({
       ...input,
       expectedZeroRules: expectedZeroValidation.validRows,
+      domainSeparatedRules: domainSeparatedValidation.validRows,
       inheritanceRules: inheritanceValidation.validRows,
+      noDirectItemLootRules: noDirectItemLootValidation.validRows,
       reviewedNonNpcSourceExclusions: reviewedNonNpcExclusionValidation.validRows,
+      reviewedSourceOnlyItemExclusions: reviewedSourceOnlyItemExclusionValidation.validRows,
       invalidExpectedZeroRules: expectedZeroValidation.invalidRows,
+      invalidDomainSeparatedRules: domainSeparatedValidation.invalidRows,
       invalidInheritanceRules: inheritanceValidation.invalidRows,
+      invalidNoDirectItemLootRules: noDirectItemLootValidation.invalidRows,
       invalidReviewedNonNpcSourceExclusions: reviewedNonNpcExclusionValidation.invalidRows,
+      invalidReviewedSourceOnlyItemExclusions: reviewedSourceOnlyItemExclusionValidation.invalidRows,
     }),
     options,
   };
@@ -299,6 +508,7 @@ export async function runNpcDomainLootChainAudit(options = {}, dependencies = {}
 
     const loaders = {
       loadActiveNpcs: dependencies.loadActiveNpcs ?? loadActiveNpcs,
+      loadItemRows: dependencies.loadItemRows ?? loadItemRows,
       loadSourceRows: dependencies.loadSourceRows ?? loadSourceRows,
       loadRelationLootRows: dependencies.loadRelationLootRows ?? loadRelationLootRows,
       loadProjectionLootRows: dependencies.loadProjectionLootRows ?? loadProjectionLootRows,
@@ -311,6 +521,7 @@ export async function runNpcDomainLootChainAudit(options = {}, dependencies = {}
     };
     const [
       npcs,
+      itemRows,
       sourceRows,
       relationLootRows,
       projectionLootRows,
@@ -322,6 +533,7 @@ export async function runNpcDomainLootChainAudit(options = {}, dependencies = {}
       pollutionRows,
     ] = await Promise.all([
       loaders.loadActiveNpcs(connection, normalized),
+      loaders.loadItemRows(connection, normalized),
       loaders.loadSourceRows(connection, normalized),
       loaders.loadRelationLootRows(connection, normalized),
       loaders.loadProjectionLootRows(connection, normalized),
@@ -334,6 +546,7 @@ export async function runNpcDomainLootChainAudit(options = {}, dependencies = {}
     ]);
     const report = buildNpcDomainLootChainReport({
       npcs,
+      itemRows,
       sourceRows,
       relationLootRows,
       projectionLootRows,
@@ -344,8 +557,11 @@ export async function runNpcDomainLootChainAudit(options = {}, dependencies = {}
       runtimeFallbackRows,
       pollutionRows,
       expectedZeroRules: contracts.expectedZeroRules,
+      domainSeparatedRules: contracts.domainSeparatedRules,
       inheritanceRules: contracts.inheritanceRules,
+      noDirectItemLootRules: contracts.noDirectItemLootRules,
       reviewedNonNpcSourceExclusions: contracts.reviewedNonNpcSourceExclusions,
+      reviewedSourceOnlyItemExclusions: contracts.reviewedSourceOnlyItemExclusions,
       contractFiles: contracts.contractFiles,
       options: normalized,
     });
@@ -363,19 +579,14 @@ export async function runNpcDomainLootChainAudit(options = {}, dependencies = {}
 }
 
 function classifySourceRow(row, identityCount, options = {}) {
-  if (identityCount > 1) {
+  const reviewedSourceOnlyItemExclusion = findReviewedSourceOnlyItemExclusion(row, options.sourceOnlyItemExclusions);
+  if (reviewedSourceOnlyItemExclusion) {
     return {
-      sourceRowStatus: 'duplicate_source_identity',
-      statusReason: 'duplicate_stable_source_identity',
+      sourceRowStatus: 'reviewed_source_only_item_exclusion',
+      statusReason: reviewedSourceOnlyItemExclusion.reason,
     };
   }
   const candidateNames = normalizeList(row.candidateNpcInternalNames ?? row.candidate_npc_internal_names);
-  if (candidateNames.length > 1 && row.sourceRefResolution === 'positive_id_fallback') {
-    return {
-      sourceRowStatus: 'blocked_ambiguous_variant',
-      statusReason: 'positive_id_fallback_has_multiple_variant_candidates',
-    };
-  }
   const taxonomy = classifyNpcLootSource(row, {
     sourceType: row.sourceType,
     sourceRefType: row.sourceRefType,
@@ -387,7 +598,40 @@ function classifySourceRow(row, identityCount, options = {}) {
       statusReason: taxonomy.reason,
     };
   }
+  if (taxonomy.status === 'reviewed_mimic_contract_rejected') {
+    return {
+      sourceRowStatus: 'reviewed_mimic_contract_rejected',
+      statusReason: taxonomy.reason,
+    };
+  }
+  const targetNpcInternalName = normalizeText(taxonomy.targetNpcInternalName ?? row.sourceRefInternalName);
+  const domainSeparatedRule = options.domainSeparatedByNpc?.get(targetNpcInternalName);
+  if (domainSeparatedRule) {
+    return {
+      sourceRowStatus: 'domain_separated_not_npc_drop',
+      statusReason: normalizeText(domainSeparatedRule.reason) ?? 'domain_separated_not_npc_drop',
+      targetNpcInternalName,
+    };
+  }
+  if (identityCount > 1) {
+    return {
+      sourceRowStatus: 'duplicate_source_identity',
+      statusReason: 'duplicate_stable_source_identity',
+    };
+  }
+  if (candidateNames.length > 1 && row.sourceRefResolution === 'positive_id_fallback') {
+    return {
+      sourceRowStatus: 'blocked_ambiguous_variant',
+      statusReason: 'positive_id_fallback_has_multiple_variant_candidates',
+    };
+  }
   if (taxonomy.status === 'generic_bucket') {
+    if (isItemBundleCollectiveBucketSourceRow(row)) {
+      return {
+        sourceRowStatus: 'item_bundle_collective_bucket_excluded',
+        statusReason: 'item_bundle_collective_bucket_not_npc_domain_source',
+      };
+    }
     return {
       sourceRowStatus: 'blocked_generic_bucket',
       statusReason: taxonomy.reason,
@@ -399,7 +643,7 @@ function classifySourceRow(row, identityCount, options = {}) {
       statusReason: taxonomy.reason,
     };
   }
-  if (!row.itemInternalName || !row.sourceRefInternalName) {
+  if (!row.itemInternalName || !targetNpcInternalName) {
     return {
       sourceRowStatus: 'blocked_missing_item_or_npc_identity',
       statusReason: 'missing_item_or_npc_identity',
@@ -414,15 +658,24 @@ function classifySourceRow(row, identityCount, options = {}) {
   return {
     sourceRowStatus: 'accepted_materializable',
     statusReason: taxonomy.reason,
-    targetNpcInternalName: taxonomy.targetNpcInternalName,
+    targetNpcInternalName,
   };
 }
 
 function classifyNpcStatus(context) {
   const counts = getCounts(context);
   const inheritanceSourceCounts = getInheritanceSourceCounts(context);
+  if (isExtractionBlockingSourceGap(context)) {
+    return { npcStatus: 'blocked_source_gap', statusReason: context.sourceGap.reason ?? 'source_gap_without_contract' };
+  }
   if (context.pollution || context.duplicateRows.length > 0) {
     return { npcStatus: 'duplicate_or_polluted', statusReason: context.pollution?.reason ?? 'duplicate_or_polluted_rows' };
+  }
+  if (context.domainSeparatedRule && hasOrdinaryNpcDropRows(counts, context)) {
+    return { npcStatus: 'duplicate_or_polluted', statusReason: 'domain_separated_has_ordinary_npc_drop_rows' };
+  }
+  if (context.noDirectItemLootRule && hasOrdinaryNpcDropRows(counts, context)) {
+    return { npcStatus: 'duplicate_or_polluted', statusReason: 'no_direct_item_loot_has_ordinary_npc_drop_rows' };
   }
   if (counts.local > 0 && counts.relation === 0 && counts.projection === 0) {
     return { npcStatus: 'duplicate_or_polluted', statusReason: 'local_rows_without_relation_or_projection_provenance' };
@@ -439,6 +692,27 @@ function classifyNpcStatus(context) {
   if (context.sourceRows.length > 0 && counts.relation === 0) {
     return { npcStatus: 'relation_gap', statusReason: 'materializable_source_missing_relation_rows' };
   }
+  if (hasMaterializableSourceIdentityMissingRelation(context)) {
+    return { npcStatus: 'relation_gap', statusReason: 'materializable_source_identity_missing_relation_row' };
+  }
+  if (hasMaterializableSourceRowMultiplicityMissingRelation(context)) {
+    return { npcStatus: 'relation_gap', statusReason: 'materializable_source_row_multiplicity_missing_relation_row' };
+  }
+  if (hasMaterializedRelationIdentityWithoutSource(context)) {
+    return { npcStatus: 'duplicate_or_polluted', statusReason: 'materialized_relation_identity_without_source_row' };
+  }
+  if (context.domainSeparatedRule) {
+    return {
+      npcStatus: 'domain_separated_not_npc_drop',
+      statusReason: normalizeText(context.domainSeparatedRule.reason) ?? 'domain_separated_not_npc_drop',
+    };
+  }
+  if (context.noDirectItemLootRule && hasNoDirectItemLootSourceCoverage(context)) {
+    return {
+      npcStatus: 'reviewed_no_direct_item_loot',
+      statusReason: normalizeText(context.noDirectItemLootRule.reason) ?? 'positive_source_page_exact_infobox_no_direct_item_loot',
+    };
+  }
   if (context.inheritanceRule && !hasTrustedInheritanceSource(inheritanceSourceCounts)) {
     return { npcStatus: 'relation_gap', statusReason: 'inheritance_source_lacks_trusted_structured_rows' };
   }
@@ -451,17 +725,22 @@ function classifyNpcStatus(context) {
   if (hasCountParityButIdentityMismatch(context)) {
     return { npcStatus: 'count_parity_only', statusReason: 'counts_match_but_row_identity_differs' };
   }
-  if (context.sourceGap && !context.expectedZeroRule) {
-    return { npcStatus: 'blocked_source_gap', statusReason: context.sourceGap.reason ?? 'source_gap_without_contract' };
-  }
   if (isTrustedDirect(counts, context)) {
     if (context.inheritanceRule) {
       return { npcStatus: 'trusted_inherited_loot', statusReason: 'contract_backed_inherited_loot' };
     }
-    return { npcStatus: 'trusted_direct_loot', statusReason: 'relation_projection_local_api_rows_match' };
+    return {
+      npcStatus: 'trusted_direct_loot',
+      statusReason: context.apiRowsProvided
+        ? 'relation_projection_local_api_rows_match'
+        : 'relation_projection_local_rows_match',
+    };
   }
   if (context.inheritanceRule) {
     return { npcStatus: 'trusted_inherited_loot', statusReason: 'contract_backed_inherited_loot' };
+  }
+  if (context.sourceGap && !context.expectedZeroRule) {
+    return { npcStatus: 'blocked_source_gap', statusReason: context.sourceGap.reason ?? 'source_gap_without_contract' };
   }
   if (context.expectedZeroRule) {
     return { npcStatus: 'expected_zero_loot', statusReason: context.expectedZeroRule.reason ?? 'contract_backed_expected_zero' };
@@ -472,10 +751,37 @@ function classifyNpcStatus(context) {
   return { npcStatus: 'unknown', statusReason: 'no_deterministic_classification' };
 }
 
+function isBlockingSourceGap(context) {
+  return Boolean(context.sourceGap)
+    && !context.expectedZeroRule
+    && !context.domainSeparatedRule
+    && !(context.noDirectItemLootRule && hasNoDirectItemLootSourceCoverage(context))
+    && !context.inheritanceRule;
+}
+
+function isExtractionBlockingSourceGap(context) {
+  const sourceCoverageStatus = normalizeText(
+    context.sourceGap?.sourceCoverageStatus
+      ?? context.sourceGap?.source_coverage_status
+      ?? context.sourceGap?.reason
+  );
+  return [
+    'source_page_present_unextracted',
+    'source_page_present_parse_failed',
+    'group_page_present_variant_not_extracted'
+  ].includes(sourceCoverageStatus)
+    && !(context.noDirectItemLootRule && hasNoDirectItemLootSourceCoverage(context))
+    && !context.inheritanceRule;
+}
+
 function buildNpcStatusRow(context, classification) {
   const counts = getCounts(context);
   const contractRef = context.expectedZeroRule
     ? `expected_zero:${context.npcInternalName}`
+    : context.domainSeparatedRule
+      ? `domain_separated:${context.npcInternalName}`
+    : context.noDirectItemLootRule
+      ? `no_direct_item_loot:${context.npcInternalName}`
     : context.inheritanceRule
       ? `inheritance:${context.npcInternalName}->${normalizeText(context.inheritanceRule.sourceNpcInternalName ?? context.inheritanceRule.source_npc_internal_name)}`
       : null;
@@ -518,14 +824,19 @@ function buildSummary({ npcStatuses, sourceRows, releaseBlockers }) {
     trustedDirectLoot: statusCounts.trusted_direct_loot,
     trustedInheritedLoot: statusCounts.trusted_inherited_loot,
     expectedZeroLoot: statusCounts.expected_zero_loot,
+    reviewedNoDirectItemLoot: statusCounts.reviewed_no_direct_item_loot,
+    domainSeparatedNotNpcDrop: statusCounts.domain_separated_not_npc_drop,
     unclassifiedZero: statusCounts.unclassified_zero,
     blockedSourceGap: statusCounts.blocked_source_gap,
     blockedGenericBucket: sourceStatusCounts.blocked_generic_bucket ?? 0,
     blockedAmbiguousVariant: sourceStatusCounts.blocked_ambiguous_variant ?? 0,
     blockedNonNpcSource: sourceStatusCounts.blocked_non_npc_source ?? 0,
     reviewedNonNpcExclusion: sourceStatusCounts.reviewed_non_npc_source_exclusion ?? 0,
+    reviewedSourceOnlyItemExclusion: sourceStatusCounts.reviewed_source_only_item_exclusion ?? 0,
+    domainSeparatedSourceRows: sourceStatusCounts.domain_separated_not_npc_drop ?? 0,
     blockedNonNpcSourcePromoted: 0,
     blockedMissingItemOrNpcIdentity: sourceStatusCounts.blocked_missing_item_or_npc_identity ?? 0,
+    duplicateSourceIdentity: sourceStatusCounts.duplicate_source_identity ?? 0,
     relationGap: statusCounts.relation_gap,
     projectionGap: statusCounts.projection_gap,
     localGap: statusCounts.local_gap,
@@ -572,14 +883,18 @@ function emptySummary() {
     trustedDirectLoot: 0,
     trustedInheritedLoot: 0,
     expectedZeroLoot: 0,
+    reviewedNoDirectItemLoot: 0,
+    domainSeparatedNotNpcDrop: 0,
     unclassifiedZero: 0,
     blockedSourceGap: 0,
     blockedGenericBucket: 0,
     blockedAmbiguousVariant: 0,
     blockedNonNpcSource: 0,
     reviewedNonNpcExclusion: 0,
+    reviewedSourceOnlyItemExclusion: 0,
     blockedNonNpcSourcePromoted: 0,
     blockedMissingItemOrNpcIdentity: 0,
+    duplicateSourceIdentity: 0,
     relationGap: 0,
     projectionGap: 0,
     localGap: 0,
@@ -616,9 +931,13 @@ async function loadSourceRows(connection, options) {
       source_ref_type AS sourceRefType,
       source_type AS sourceType,
       raw_json AS rawJson,
-      record_key AS recordKey
+      record_key AS recordKey,
+      landing_source_key AS landingSourceKey
     FROM \`${options.maintDatabase}\`.\`maint_item_sources\`
-    WHERE source_ref_type = 'npc' AND source_type IN ('drop', 'loot')
+    WHERE status = 1
+      AND deleted = 0
+      AND source_ref_type = 'npc'
+      AND source_type IN ('drop', 'loot')
     ORDER BY source_ref_name, item_internal_name
   `);
   return rows.map((row) => {
@@ -631,8 +950,18 @@ async function loadSourceRows(connection, options) {
       sourceRefInternalName: raw.sourceRefInternalName ?? raw.source_ref_internal_name ?? null,
       sourceRefResolution: raw.sourceRefResolution ?? raw.source_ref_resolution ?? null,
       candidateNpcInternalNames: raw.candidateNpcInternalNames ?? raw.candidate_npc_internal_names ?? [],
+      sourceUrl: raw.sourceUrl ?? raw.source_url ?? null,
     };
   });
+}
+
+async function loadItemRows(connection, options) {
+  const [rows] = await connection.query(`
+    SELECT internal_name, english_name, name_zh
+    FROM \`${options.maintDatabase}\`.\`maint_items\`
+    WHERE deleted = 0
+  `);
+  return rows;
 }
 
 async function loadRelationLootRows(connection, options) {
@@ -658,6 +987,7 @@ async function loadLocalLootRows(connection, options) {
     SELECT
       n.internal_name AS npcInternalName,
       i.internal_name AS itemInternalName,
+      l.drop_source_kind AS dropSourceKind,
       l.quantity_text AS quantityText,
       l.chance_text AS chanceText,
       l.conditions
@@ -665,6 +995,7 @@ async function loadLocalLootRows(connection, options) {
     JOIN \`${options.localDatabase}\`.\`npcs\` n ON n.id = l.npc_id
     JOIN \`${options.localDatabase}\`.\`items\` i ON i.id = l.item_id
     WHERE l.deleted = 0 AND n.deleted = 0 AND i.deleted = 0
+      AND (l.drop_source_kind IS NULL OR l.drop_source_kind = 'npc_drop')
   `);
   return rows;
 }
@@ -713,21 +1044,33 @@ async function loadPollutionRows(connection, options) {
 
 async function loadContracts(options) {
   const expectedZeroPath = path.join(repoRoot, 'docs', 'contracts', 'npc-domain-expected-zero-contract.md');
+  const domainSeparatedPath = path.join(repoRoot, 'docs', 'contracts', 'npc-domain-separated-not-npc-drop-contract.md');
   const inheritancePath = path.join(repoRoot, 'docs', 'contracts', 'npc-domain-loot-inheritance-contract.md');
+  const noDirectItemLootPath = path.join(repoRoot, 'docs', 'contracts', 'npc-domain-no-direct-item-loot-contract.md');
   const reviewedNonNpcPath = path.join(repoRoot, 'docs', 'contracts', 'npc-domain-non-npc-source-exclusion-contract.md');
-  const [expectedZero, inheritance, reviewedNonNpc] = await Promise.all([
+  const reviewedSourceOnlyItemPath = path.join(repoRoot, 'docs', 'contracts', 'npc-domain-source-only-item-exclusion-contract.md');
+  const [expectedZero, domainSeparated, inheritance, noDirectItemLoot, reviewedNonNpc, reviewedSourceOnlyItem] = await Promise.all([
     readContractRows(expectedZeroPath, 'expected_zero'),
+    readContractRows(domainSeparatedPath, 'domain_separated'),
     readContractRows(inheritancePath, 'inheritance'),
+    readContractRows(noDirectItemLootPath, 'no_direct_item_loot'),
     readContractRows(reviewedNonNpcPath, 'reviewed_non_npc_source_exclusion'),
+    readContractRows(reviewedSourceOnlyItemPath, 'reviewed_source_only_item_exclusion'),
   ]);
   return {
     expectedZeroRules: expectedZero.rows,
+    domainSeparatedRules: domainSeparated.rows,
     inheritanceRules: inheritance.rows,
+    noDirectItemLootRules: noDirectItemLoot.rows,
     reviewedNonNpcSourceExclusions: reviewedNonNpc.rows,
+    reviewedSourceOnlyItemExclusions: reviewedSourceOnlyItem.rows,
     contractFiles: [
       { path: expectedZeroPath, status: expectedZero.status },
+      { path: domainSeparatedPath, status: domainSeparated.status },
       { path: inheritancePath, status: inheritance.status },
+      { path: noDirectItemLootPath, status: noDirectItemLoot.status },
       { path: reviewedNonNpcPath, status: reviewedNonNpc.status },
+      { path: reviewedSourceOnlyItemPath, status: reviewedSourceOnlyItem.status },
     ],
     options,
   };
@@ -743,7 +1086,7 @@ async function readContractRows(contractPath, kind) {
   }
 }
 
-function parseMarkdownTableRows(text, kind) {
+export function parseMarkdownTableRows(text, kind) {
   const rows = [];
   const lines = String(text ?? '').split(/\r?\n/).filter((line) => line.trim().startsWith('|'));
   let headers = null;
@@ -751,6 +1094,8 @@ function parseMarkdownTableRows(text, kind) {
     ? 'targetNpcInternalName'
     : kind === 'reviewed_non_npc_source_exclusion'
       ? 'sourceRefName'
+      : kind === 'reviewed_source_only_item_exclusion'
+        ? 'itemName'
       : 'npcInternalName';
   for (const line of lines) {
     const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
@@ -781,9 +1126,26 @@ function parseMarkdownTableRows(text, kind) {
             reviewedBy: row.reviewedBy,
             reviewedAt: row.reviewedAt,
             notes: row.notes,
-          }
+        }
+      : kind === 'reviewed_source_only_item_exclusion'
+        ? {
+            sourceType: row.sourceType,
+            sourceRefType: row.sourceRefType,
+            sourceRefInternalName: row.sourceRefInternalName,
+            itemName: row.itemName,
+            recordKey: row.recordKey,
+            chanceText: row.chanceText,
+            quantityText: row.quantityText,
+            sourceUrl: row.sourceUrl,
+            reason: row.reason,
+            evidenceSource: row.evidenceSource,
+            reviewedBy: row.reviewedBy,
+            reviewedAt: row.reviewedAt,
+            notes: row.notes,
+        }
         : {
           npcInternalName: row.npcInternalName,
+          npcType: row.npcType,
           reason: row.reason,
           evidenceSource: row.evidenceSource,
           reviewedBy: row.reviewedBy,
@@ -791,7 +1153,7 @@ function parseMarkdownTableRows(text, kind) {
         });
   }
   return rows.filter((row) => {
-    const key = normalizeText(row.npcInternalName ?? row.targetNpcInternalName ?? row.sourceRefName);
+    const key = normalizeText(row.npcInternalName ?? row.targetNpcInternalName ?? row.sourceRefName ?? row.itemName);
     return key && key !== '_none yet_';
   });
 }
@@ -822,7 +1184,12 @@ function normalizeSourceCoverage(sourceGaps = [], sourceCoverageRows = null) {
   }
   return {
     coverageRows,
-    gapRows: coverageRows.filter((row) => ['source_page_missing', 'source_page_present_parse_failed', 'group_page_present_variant_not_extracted'].includes(row.sourceCoverageStatus)),
+    gapRows: coverageRows.filter((row) => [
+      'source_page_missing',
+      'source_page_present_unextracted',
+      'source_page_present_parse_failed',
+      'group_page_present_variant_not_extracted'
+    ].includes(row.sourceCoverageStatus)),
     blockers,
     evidenceHealth: blockers.length > 0 ? 'source_coverage_unavailable' : 'sufficient',
   };
@@ -846,6 +1213,24 @@ function validateExpectedZeroRules(rows = []) {
   });
 }
 
+function validateDomainSeparatedRules(rows = []) {
+  return validateContractRows(rows, (row) => {
+    const npcInternalName = normalizeText(row.npcInternalName ?? row.npc_internal_name);
+    const npcType = normalizeText(row.npcType ?? row.npc_type);
+    const reason = normalizeText(row.reason);
+    const evidenceSource = normalizeText(row.evidenceSource ?? row.evidence_source);
+    const reviewedBy = normalizeText(row.reviewedBy ?? row.reviewed_by);
+    const reviewedAt = normalizeText(row.reviewedAt ?? row.reviewed_at);
+    if (!npcInternalName) return 'missing_npc_internal_name';
+    if (!npcType) return 'missing_npc_type';
+    if (!reason || !ALLOWED_DOMAIN_SEPARATED_REASONS.has(reason)) return 'invalid_domain_separated_reason';
+    if (!evidenceSource) return 'missing_evidence_source';
+    if (!reviewedBy) return 'missing_reviewed_by';
+    if (!isIsoDate(reviewedAt)) return 'invalid_reviewed_at';
+    return null;
+  });
+}
+
 function validateInheritanceRules(rows = []) {
   return validateContractRows(rows, (row) => {
     const targetNpcInternalName = normalizeText(row.targetNpcInternalName ?? row.target_npc_internal_name);
@@ -857,6 +1242,24 @@ function validateInheritanceRules(rows = []) {
     if (!targetNpcInternalName) return 'missing_target_npc_internal_name';
     if (!sourceNpcInternalName) return 'missing_source_npc_internal_name';
     if (!inheritanceKind || !ALLOWED_INHERITANCE_KINDS.has(inheritanceKind)) return 'invalid_inheritance_kind';
+    if (!evidenceSource) return 'missing_evidence_source';
+    if (!reviewedBy) return 'missing_reviewed_by';
+    if (!isIsoDate(reviewedAt)) return 'invalid_reviewed_at';
+    return null;
+  });
+}
+
+function validateNoDirectItemLootRules(rows = []) {
+  return validateContractRows(rows, (row) => {
+    const npcInternalName = normalizeText(row.npcInternalName ?? row.npc_internal_name);
+    const npcType = normalizeText(row.npcType ?? row.npc_type);
+    const reason = normalizeText(row.reason);
+    const evidenceSource = normalizeText(row.evidenceSource ?? row.evidence_source);
+    const reviewedBy = normalizeText(row.reviewedBy ?? row.reviewed_by);
+    const reviewedAt = normalizeText(row.reviewedAt ?? row.reviewed_at);
+    if (!npcInternalName) return 'missing_npc_internal_name';
+    if (!npcType) return 'missing_npc_type';
+    if (!reason || !ALLOWED_NO_DIRECT_ITEM_LOOT_REASONS.has(reason)) return 'invalid_no_direct_item_loot_reason';
     if (!evidenceSource) return 'missing_evidence_source';
     if (!reviewedBy) return 'missing_reviewed_by';
     if (!isIsoDate(reviewedAt)) return 'invalid_reviewed_at';
@@ -919,8 +1322,38 @@ function parseProjectionLootRows(row) {
     itemInternalName: lootRow.itemInternalName ?? lootRow.internalName ?? lootRow.item_internal_name,
     chanceText: lootRow.chanceText ?? lootRow.chance_text,
     quantityText: lootRow.quantityText ?? lootRow.quantity_text,
-    conditions: lootRow.conditions,
+    conditions: lootRow.conditions ?? lootRow.conditionText ?? lootRow.condition_text,
   })).filter((lootRow) => normalizeText(lootRow.itemInternalName));
+}
+
+function validateReviewedSourceOnlyItemExclusions(rows = []) {
+  return validateContractRows(rows, (row) => {
+    const sourceType = normalizeText(row.sourceType ?? row.source_type);
+    const sourceRefType = normalizeText(row.sourceRefType ?? row.source_ref_type);
+    const sourceRefInternalName = normalizeText(row.sourceRefInternalName ?? row.source_ref_internal_name);
+    const itemName = normalizeText(row.itemName ?? row.item_name);
+    const recordKey = normalizeText(row.recordKey ?? row.record_key);
+    const chanceText = normalizeText(row.chanceText ?? row.chance_text);
+    const hasQuantityText = Object.hasOwn(row, 'quantityText') || Object.hasOwn(row, 'quantity_text');
+    const sourceUrl = normalizeText(row.sourceUrl ?? row.source_url);
+    const reason = normalizeText(row.reason);
+    const evidenceSource = normalizeText(row.evidenceSource ?? row.evidence_source);
+    const reviewedBy = normalizeText(row.reviewedBy ?? row.reviewed_by);
+    const reviewedAt = normalizeText(row.reviewedAt ?? row.reviewed_at);
+    if (sourceType !== 'drop') return 'invalid_source_type';
+    if (sourceRefType !== 'npc') return 'invalid_source_ref_type';
+    if (!sourceRefInternalName) return 'missing_source_ref_internal_name';
+    if (!itemName) return 'missing_item_name';
+    if (!recordKey) return 'missing_record_key';
+    if (!chanceText) return 'missing_chance_text';
+    if (!hasQuantityText) return 'missing_quantity_text';
+    if (!sourceUrl) return 'missing_source_url';
+    if (!reason || !ALLOWED_SOURCE_ONLY_ITEM_EXCLUSION_REASONS.has(reason)) return 'invalid_source_only_item_exclusion_reason';
+    if (!evidenceSource) return 'missing_evidence_source';
+    if (!reviewedBy) return 'missing_reviewed_by';
+    if (!isIsoDate(reviewedAt)) return 'invalid_reviewed_at';
+    return null;
+  });
 }
 
 function parseJsonObject(value) {
@@ -943,6 +1376,12 @@ function parseJsonArray(value) {
   } catch {
     return [];
   }
+}
+
+function isItemBundleCollectiveBucketSourceRow(row = {}) {
+  const landingSourceKey = normalizeText(row.landingSourceKey ?? row.landing_source_key);
+  if (!landingSourceKey?.startsWith('generated.item_relations_bundle')) return false;
+  return !isNpcItemBundleRow(row);
 }
 
 function getCounts(context) {
@@ -977,6 +1416,22 @@ function isTrustedDirect(counts, context) {
   return !hasCountParityButIdentityMismatch(context);
 }
 
+function hasOrdinaryNpcDropRows(counts, context) {
+  if (counts.relation > 0 || counts.projection > 0 || counts.local > 0) return true;
+  return Boolean(context.apiRowsProvided && counts.api > 0);
+}
+
+function hasNoDirectItemLootSourceCoverage(context) {
+  const sourceCoverageStatus = normalizeText(
+    context.sourceCoverage?.sourceCoverageStatus
+      ?? context.sourceCoverage?.source_coverage_status
+      ?? context.sourceGap?.sourceCoverageStatus
+      ?? context.sourceGap?.source_coverage_status
+      ?? context.sourceGap?.reason
+  );
+  return sourceCoverageStatus === 'source_page_present_no_direct_item_loot';
+}
+
 function hasCountParityButIdentityMismatch(context) {
   const sets = [
     identitySet(context.relationRows),
@@ -987,10 +1442,41 @@ function hasCountParityButIdentityMismatch(context) {
     sets.push(identitySet(context.apiRows));
   }
   if (sets.length < 2) return false;
-  const sizes = new Set(sets.map((set) => set.size));
-  if (sizes.size !== 1) return false;
   const [first, ...rest] = sets;
   return rest.some((set) => !sameSet(first, set));
+}
+
+function hasMaterializableSourceIdentityMissingRelation(context) {
+  if (context.sourceRows.length === 0) return false;
+  const sourceIdentities = sourceMaterializationSet(context.sourceRows, context.npcInternalName);
+  if (sourceIdentities.size === 0) return false;
+  const relationIdentities = materializationSet(context.relationRows, context.npcInternalName);
+  for (const identity of sourceIdentities) {
+    if (!relationIdentities.has(identity)) return true;
+  }
+  return false;
+}
+
+function hasMaterializableSourceRowMultiplicityMissingRelation(context) {
+  if (context.sourceRows.length === 0 || context.relationRows.length === 0) return false;
+  const expectedCounts = sourceMaterializationMultiplicityMap(context.sourceRows, context.npcInternalName);
+  if (expectedCounts.size === 0) return false;
+  const relationCounts = materializationMultiplicityMap(context.relationRows, context.npcInternalName);
+  for (const [identity, expectedCount] of expectedCounts.entries()) {
+    if ((relationCounts.get(identity) ?? 0) < expectedCount) return true;
+  }
+  return false;
+}
+
+function hasMaterializedRelationIdentityWithoutSource(context) {
+  if (context.sourceRows.length === 0 || context.relationRows.length === 0) return false;
+  const sourceIdentities = sourceMaterializationSet(context.sourceRows, context.npcInternalName);
+  if (sourceIdentities.size === 0) return false;
+  const relationIdentities = materializationSet(context.relationRows, context.npcInternalName);
+  for (const identity of relationIdentities) {
+    if (!sourceIdentities.has(identity)) return true;
+  }
+  return false;
 }
 
 function computeNpcIdentityHash(context) {
@@ -1007,6 +1493,90 @@ function identitySet(rows) {
   return new Set(rows.map(computeRowIdentityHash));
 }
 
+function materializationSet(rows, npcInternalName = null) {
+  const targetNpcInternalName = normalizeText(npcInternalName);
+  return new Set(rows.map((row) => computeRowIdentityHash({
+    ...row,
+    npcInternalName: normalizeText(row.npcInternalName ?? row.npc_internal_name) ?? targetNpcInternalName,
+    chanceText: null,
+    quantityText: null,
+    conditions: null,
+  })));
+}
+
+function materializationMultiplicityMap(rows, npcInternalName = null) {
+  const counts = new Map();
+  for (const row of rows) {
+    const identity = materializationIdentity(row, npcInternalName);
+    counts.set(identity, (counts.get(identity) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function sourceMaterializationSet(rows, npcInternalName) {
+  return new Set(rows.map((row) => sourceMaterializationIdentity(row, npcInternalName)));
+}
+
+function sourceMaterializationMultiplicityMap(rows, npcInternalName) {
+  const groups = new Map();
+  for (const row of rows) {
+    const identity = sourceMaterializationIdentity(row, npcInternalName);
+    if (!groups.has(identity)) groups.set(identity, []);
+    groups.get(identity).push(row);
+  }
+
+  const counts = new Map();
+  for (const [identity, group] of groups.entries()) {
+    counts.set(identity, expectedSourceMaterializationMultiplicity(group));
+  }
+  return counts;
+}
+
+function expectedSourceMaterializationMultiplicity(rows = []) {
+  if (rows.length > 1 && rows.every(isGeneratedBundleSourceRow)) {
+    return 1;
+  }
+  if (isCollapsibleGeneratedMaterializationGroup(rows)) {
+    return new Set(rows.map(sourceMaterializationVariantKey)).size;
+  }
+  return new Set(rows.map((row) => row.rowIdentityHash ?? computeRowIdentityHash(row))).size;
+}
+
+function isCollapsibleGeneratedMaterializationGroup(rows = []) {
+  return rows.length > 1
+    && rows.every(isGeneratedBundleSourceRow)
+    && rows.some(isGeneratedNpcItemBundleRow);
+}
+
+function sourceMaterializationVariantKey(row = {}) {
+  return JSON.stringify([
+    normalizeText(row.quantityText ?? row.quantity_text),
+    normalizeConditionText(row.conditions ?? row.conditionText ?? row.condition_text),
+  ]);
+}
+
+function materializationIdentity(row, npcInternalName = null) {
+  const targetNpcInternalName = normalizeText(npcInternalName);
+  return computeRowIdentityHash({
+    ...row,
+    npcInternalName: normalizeText(row.npcInternalName ?? row.npc_internal_name) ?? targetNpcInternalName,
+    chanceText: null,
+    quantityText: null,
+    conditions: null,
+  });
+}
+
+function sourceMaterializationIdentity(row, npcInternalName) {
+  const targetNpcInternalName = normalizeText(npcInternalName);
+  return computeRowIdentityHash({
+    ...row,
+    npcInternalName: normalizeText(row.targetNpcInternalName ?? row.target_npc_internal_name) ?? targetNpcInternalName,
+    chanceText: null,
+    quantityText: null,
+    conditions: null,
+  });
+}
+
 function sameSet(left, right) {
   if (left.size !== right.size) return false;
   for (const value of left) {
@@ -1015,15 +1585,28 @@ function sameSet(left, right) {
   return true;
 }
 
+function normalizeConditionText(value) {
+  const normalized = normalizeText(value);
+  if (!normalized) return '';
+  return normalized === 'Normal mode row' ? '' : normalized;
+}
+
 function groupRowsByNpc(rows = []) {
   const grouped = new Map();
   for (const row of Array.isArray(rows) ? rows : []) {
+    if (!isNpcDropRow(row)) continue;
     const npcInternalName = normalizeText(row.npcInternalName ?? row.npc_internal_name);
     if (!npcInternalName) continue;
     if (!grouped.has(npcInternalName)) grouped.set(npcInternalName, []);
     grouped.get(npcInternalName).push(row);
   }
   return grouped;
+}
+
+function isNpcDropRow(row = {}) {
+  const kind = normalizeText(row.dropSourceKind ?? row.drop_source_kind);
+  if (!kind) return true;
+  return kind === 'npc_drop';
 }
 
 function groupRowsBySourceNpc(rows = []) {
@@ -1035,6 +1618,115 @@ function groupRowsBySourceNpc(rows = []) {
     grouped.get(npcInternalName).push(row);
   }
   return grouped;
+}
+
+function addLookupIndexEntry(index, key, value) {
+  if (!(index instanceof Map)) return;
+  const normalizedKey = normalizeLookupKey(key);
+  if (!normalizedKey) return;
+  const existing = index.get(normalizedKey);
+  if (!existing) {
+    index.set(normalizedKey, value);
+    return;
+  }
+  if (existing === value) return;
+  if (Array.isArray(existing)) {
+    if (!existing.includes(value)) existing.push(value);
+    return;
+  }
+  if (existing !== value) index.set(normalizedKey, [existing, value]);
+}
+
+function lookupUniqueIndexValue(index, key) {
+  if (!(index instanceof Map)) return null;
+  const value = index.get(normalizeLookupKey(key));
+  if (!value) return null;
+  if (Array.isArray(value)) return value.length === 1 ? value[0] : null;
+  return value;
+}
+
+function normalizeLookupKey(value) {
+  return normalizeItemLookupText(value)?.toLowerCase() ?? null;
+}
+
+function normalizeItemLookupText(value) {
+  const text = normalizeText(value);
+  if (!text) return null;
+  let normalized = text;
+  for (const prefix of ['custom:', 'bonusdrop:']) {
+    if (normalized.toLowerCase().startsWith(prefix)) {
+      normalized = normalized.slice(prefix.length).trim();
+    }
+  }
+  normalized = stripWikiTemplatesByName(normalized, new Set(['note'])).trim();
+  return normalized || null;
+}
+
+function buildItemLookupCandidates(value) {
+  const base = normalizeItemLookupText(value);
+  if (!base) return [];
+  const candidates = [base];
+  let trimmed = base;
+  while (/\s+\([^()]*\)\s*$/.test(trimmed)) {
+    trimmed = trimmed.replace(/\s+\([^()]*\)\s*$/, '').trim();
+    if (trimmed && !candidates.includes(trimmed)) candidates.push(trimmed);
+  }
+  return candidates;
+}
+
+function stripWikiTemplatesByName(value, names) {
+  let text = String(value ?? '');
+  let changed = true;
+  while (changed) {
+    changed = false;
+    text = text.replace(/\{\{([a-z0-9 _-]+)\|[^{}]*\}\}/gi, (match, name) => {
+      if (!names.has(String(name).trim().toLowerCase())) return match;
+      changed = true;
+      return '';
+    });
+    text = text.replace(/\{\{([a-z0-9 _-]+)\|[^{}]*\}\}/gi, (match, name) => {
+      if (String(name).trim().toLowerCase() !== 'eicons') return match;
+      changed = true;
+      return '';
+    });
+  }
+  return text;
+}
+
+function findReviewedSourceOnlyItemExclusion(row = {}, exclusions = []) {
+  if (!Array.isArray(exclusions)) return null;
+  if (normalizeText(row.itemInternalName ?? row.item_internal_name)) return null;
+  const sourceType = normalizeText(row.sourceType ?? row.source_type)?.toLowerCase();
+  const sourceRefType = normalizeText(row.sourceRefType ?? row.source_ref_type)?.toLowerCase();
+  const sourceRefInternalName = normalizeText(row.sourceRefInternalName ?? row.source_ref_internal_name);
+  const itemName = normalizeItemLookupText(row.itemName ?? row.item_name);
+  const recordKey = normalizeText(row.recordKey ?? row.record_key);
+  const chanceText = normalizeExactEvidenceText(row.chanceText ?? row.chance_text);
+  const quantityText = normalizeExactEvidenceText(row.quantityText ?? row.quantity_text);
+  const sourceUrl = normalizeText(row.sourceUrl ?? row.source_url);
+  if (!sourceType || !sourceRefType || !sourceRefInternalName || !itemName || !recordKey || !chanceText || !sourceUrl) return null;
+  for (const exclusion of exclusions) {
+    if (normalizeText(exclusion.sourceType ?? exclusion.source_type)?.toLowerCase() !== sourceType) continue;
+    if (normalizeText(exclusion.sourceRefType ?? exclusion.source_ref_type)?.toLowerCase() !== sourceRefType) continue;
+    if (normalizeText(exclusion.sourceRefInternalName ?? exclusion.source_ref_internal_name) !== sourceRefInternalName) continue;
+    if (normalizeItemLookupText(exclusion.itemName ?? exclusion.item_name)?.toLowerCase() !== itemName.toLowerCase()) continue;
+    if (normalizeText(exclusion.recordKey ?? exclusion.record_key) !== recordKey) continue;
+    if (normalizeExactEvidenceText(exclusion.chanceText ?? exclusion.chance_text) !== chanceText) continue;
+    if (normalizeExactEvidenceText(exclusion.quantityText ?? exclusion.quantity_text) !== quantityText) continue;
+    if (normalizeText(exclusion.sourceUrl ?? exclusion.source_url) !== sourceUrl) continue;
+    return exclusion;
+  }
+  return null;
+}
+
+function normalizeExactEvidenceText(value) {
+  return normalizeText(value) ?? '';
+}
+
+function stripNpcDisambiguationSuffix(value) {
+  const text = normalizeText(value);
+  if (!text) return null;
+  return text.replace(/\s+\((?:npc|enemy|boss)\)$/i, '').trim() || text;
 }
 
 function keyBy(rows = [], keyFn) {
@@ -1052,9 +1744,15 @@ function buildContractHealth(input) {
     loaded: files.filter((file) => file.status === 'loaded').map((file) => file.path),
     missing: files.filter((file) => file.status === 'missing').map((file) => file.path),
     expectedZeroRules: Array.isArray(input.expectedZeroRules) ? input.expectedZeroRules.length : 0,
+    domainSeparatedRules: Array.isArray(input.domainSeparatedRules) ? input.domainSeparatedRules.length : 0,
     inheritanceRules: Array.isArray(input.inheritanceRules) ? input.inheritanceRules.length : 0,
+    noDirectItemLootRules: Array.isArray(input.noDirectItemLootRules) ? input.noDirectItemLootRules.length : 0,
     reviewedNonNpcSourceExclusions: Array.isArray(input.reviewedNonNpcSourceExclusions) ? input.reviewedNonNpcSourceExclusions.length : 0,
+    reviewedSourceOnlyItemExclusions: Array.isArray(input.reviewedSourceOnlyItemExclusions) ? input.reviewedSourceOnlyItemExclusions.length : 0,
+    invalidDomainSeparatedRules: input.invalidDomainSeparatedRules ?? [],
+    invalidNoDirectItemLootRules: input.invalidNoDirectItemLootRules ?? [],
     invalidReviewedNonNpcSourceExclusions: input.invalidReviewedNonNpcSourceExclusions ?? [],
+    invalidReviewedSourceOnlyItemExclusions: input.invalidReviewedSourceOnlyItemExclusions ?? [],
   };
 }
 

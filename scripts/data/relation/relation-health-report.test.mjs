@@ -44,6 +44,7 @@ test('buildRelationHealthQueries emits only SELECT checks for NPC item relation 
   assert.match(byId.get('projection_npcs_shop_items_nonempty'), /`shop_items_json`/);
   assert.match(byId.get('projection_projectiles_source_npcs_nonempty'), /`projection_projectiles`/);
   assert.match(byId.get('local_compat_npc_shop_conditions_count'), /`terria_v1_local`\.`npc_shop_conditions`/);
+  assert.match(byId.get('local_compat_npc_shop_conditions_count'), /`terria_v1_relation`\.`item_npc_shop_relations`/);
 });
 
 test('buildRelationHealthQueries keeps local validation scoped to standalone compatibility outputs', () => {
@@ -76,10 +77,14 @@ test('buildRelationHealthQueries checks maint item source key parity in both dir
   assert.match(maintMissing.sql, /LEFT JOIN `terria_v1_relation`\.`item_source_facts` f/);
   assert.match(maintMissing.sql, /f\.source_maint_table = 'maint_item_sources'/);
   assert.match(maintMissing.sql, /BINARY f\.source_maint_record_key = BINARY m\.record_key/);
+  assert.match(maintMissing.sql, /m\.status\s*=\s*1/);
+  assert.match(maintMissing.sql, /m\.deleted\s*=\s*0/);
   assert.match(relationMissing.sql, /FROM `terria_v1_relation`\.`item_source_facts` f/);
   assert.match(relationMissing.sql, /LEFT JOIN `terria_v1_maint`\.`maint_item_sources` m/);
   assert.match(relationMissing.sql, /BINARY m\.record_key = BINARY f\.source_maint_record_key/);
   assert.match(relationMissing.sql, /f\.source_maint_table <> 'maint_item_sources'/);
+  assert.match(relationMissing.sql, /m\.status\s*=\s*1/);
+  assert.match(relationMissing.sql, /m\.deleted\s*=\s*0/);
 });
 
 test('buildRelationHealthQueries requires projection JSON columns to be valid non-empty arrays', () => {
@@ -107,11 +112,14 @@ test('buildRelationHealthQueries makes standalone local compatibility counts blo
   for (const id of [
     'local_compat_item_acquisition_sources_count',
     'local_compat_npc_loot_entries_count',
-    'local_compat_npc_shop_entries_count',
-    'local_compat_npc_shop_conditions_count'
+    'local_compat_npc_shop_entries_count'
   ]) {
     assert.deepEqual(byId.get(id)?.expectation, { type: 'nonzero', field: 'count' }, id);
   }
+  assert.deepEqual(byId.get('local_compat_npc_shop_conditions_count')?.expectation, {
+    type: 'delta_zero',
+    field: 'delta'
+  });
 });
 
 test('buildRelationHealthReport classifies blocking, warning, passing, and info checks', () => {
@@ -232,6 +240,44 @@ test('buildRelationHealthReport blocks on empty standalone local compatibility o
   assert.equal(report.summary.status, 'blocked');
   assert.equal(report.summary.blockingCount, 1);
   assert.equal(report.checks[0].status, 'fail');
+});
+
+test('buildRelationHealthReport accepts zero local shop conditions when relation expects none', () => {
+  const queries = buildRelationHealthQueries();
+  const queryMap = new Map(queries.map((query) => [query.id, query]));
+
+  const report = buildRelationHealthReport({
+    checks: [
+      {
+        definition: queryMap.get('local_compat_npc_shop_conditions_count'),
+        rows: [{ expectedCount: 0, localCount: 0, delta: 0 }]
+      }
+    ]
+  });
+
+  assert.equal(report.summary.status, 'pass');
+  assert.equal(report.summary.blockingCount, 0);
+  assert.equal(report.checks[0].status, 'pass');
+  assert.equal(report.checks[0].message, 'delta is 0');
+});
+
+test('buildRelationHealthReport blocks when local shop condition count diverges from relation expected count', () => {
+  const queries = buildRelationHealthQueries();
+  const queryMap = new Map(queries.map((query) => [query.id, query]));
+
+  const report = buildRelationHealthReport({
+    checks: [
+      {
+        definition: queryMap.get('local_compat_npc_shop_conditions_count'),
+        rows: [{ expectedCount: 13, localCount: 0, delta: 13 }]
+      }
+    ]
+  });
+
+  assert.equal(report.summary.status, 'blocked');
+  assert.equal(report.summary.blockingCount, 1);
+  assert.equal(report.checks[0].status, 'fail');
+  assert.equal(report.checks[0].message, 'expected delta 0, got 13');
 });
 
 test('formatValidationChecklist gives the coordinator a serial dry-run/apply sequence', () => {

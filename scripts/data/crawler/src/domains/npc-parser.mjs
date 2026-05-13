@@ -215,6 +215,19 @@ function splitTopLevelTemplateArgs(value) {
   return parts;
 }
 
+function parseTemplateArgsToFields(value) {
+  const fields = {};
+  for (const part of splitTopLevelTemplateArgs(value)) {
+    const match = /^\s*([^=]+?)\s*=\s*([\s\S]*)$/.exec(part);
+    if (!match) {
+      continue;
+    }
+    const key = match[1].toLowerCase().replace(/[\s_]+/g, '');
+    fields[key] = match[2].trim();
+  }
+  return fields;
+}
+
 function parseInfoboxFields(revisionText) {
   const block = findInfoboxBlock(revisionText);
   if (!block) {
@@ -229,6 +242,10 @@ function parseInfoboxBlockFields(blockText, { closed = true } = {}) {
   const prefixLength = openingMatch ? openingMatch[0].length : 0;
   const suffixLength = closed ? 2 : 0;
   const inner = blockText.slice(prefixLength, blockText.length - suffixLength).trim();
+  if (!inner.includes('\n')) {
+    return parseTemplateArgsToFields(inner.replace(/^\|/, ''));
+  }
+
   const lines = inner.split(/\r?\n/);
   const fields = {};
   let currentKey;
@@ -311,10 +328,20 @@ function buildInfoboxSource(fields) {
   const image = fields.image || fields.imagecargo || fields.imagealt || '';
   const name = fields.name || inferInfoboxNameFromImage(fields.imagecargo || fields.image || fields.imagealt);
   return {
-    autoId: fields.auto ?? '',
+    autoId: normalizeInfoboxAutoId(fields.auto),
     image,
     name
   };
+}
+
+function normalizeInfoboxAutoId(value) {
+  return String(value ?? '').replace(/<!--[\s\S]*?-->/g, '').split('<!--')[0].trim();
+}
+
+export function extractNpcSourceInfoboxes(revisionText) {
+  return parseAllInfoboxFields(revisionText)
+    .map((infobox) => buildInfoboxSource(infobox.fields))
+    .filter((source) => source.autoId || source.image || source.name);
 }
 
 function inferInfoboxNameFromImage(value) {
@@ -506,6 +533,7 @@ function cleanWikiCell(value) {
 
 function normalizeInlineWikiTemplates(value) {
   return String(value ?? '')
+    .replace(/\{\{\s*item\s*\|\s*custom\s*\|\s*([^|{}]+)(?:\|[^{}]*)?\}\}/gi, '$1')
     .replace(/\{\{\s*item\s*\|\s*([^|}]+)(?:\|[^{}]*)?\}\}/gi, '$1')
     .replace(/\{\{\s*source code ref\b[^{}]*\}\}/gi, '')
     .replace(/\{\{\s*note\b[^{}]*\}\}/gi, '');
@@ -631,6 +659,16 @@ function normalizeLootRowShape(row) {
     };
   }
 
+  if (String(itemName ?? '').trim().toLowerCase() === 'custom' && quantityText && !looksLikeQuantityText(quantityText)) {
+    return {
+      ...row,
+      itemName: quantityText,
+      quantityText: null,
+      chanceText,
+      conditionText
+    };
+  }
+
   return {
     ...row,
     itemName,
@@ -638,6 +676,11 @@ function normalizeLootRowShape(row) {
     chanceText,
     conditionText
   };
+}
+
+function looksLikeQuantityText(value) {
+  const text = String(value ?? '').trim();
+  return Boolean(text && /^(?:\d+(?:\.\d+)?(?:\s*[–-]\s*\d+(?:\.\d+)?)?|\{\{[^{}]*\}\})(?:\s*[x×])?$/i.test(text));
 }
 
 export function extractNpcLoot(revisionText, context = {}) {

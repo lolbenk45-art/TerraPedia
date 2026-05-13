@@ -106,6 +106,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             FROM npc_loot_entries nle
             LEFT JOIN items i ON i.id = nle.item_id AND i.deleted = 0
             WHERE nle.npc_id = ? AND nle.deleted = 0
+              AND (nle.drop_source_kind IS NULL OR nle.drop_source_kind = 'npc_drop')
             ORDER BY nle.sort_order ASC, nle.id ASC
             """,
             npcId

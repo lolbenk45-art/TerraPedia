@@ -2,6 +2,7 @@ import {
   extractNpcHappiness,
   extractNpcInfobox,
   extractNpcLeadSummary,
+  extractNpcSourceInfoboxes,
   extractNpcLoot,
   extractNpcSectionBlocks,
   extractNpcShop,
@@ -22,6 +23,7 @@ export function buildNpcNormalizedLight(raw) {
     revisionText
   });
   const infobox = extractNpcInfobox(revisionText);
+  const sourceInfoboxes = extractNpcSourceInfoboxes(revisionText);
   const specialForms = extractNpcSpecialForms(revisionText);
   const sections = extractNpcSectionBlocks(revisionText);
   const shop = extractNpcShop(revisionText);
@@ -69,6 +71,7 @@ export function buildNpcNormalizedLight(raw) {
       pageDescription: source.pageDescription ?? ''
     },
     sourceMetadata: source.sourceMetadata ?? {},
+    sourceInfoboxes,
     display: {
       name: npcContext.npcName
     },

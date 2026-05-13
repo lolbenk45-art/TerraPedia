@@ -3,6 +3,10 @@ import {
   getNpcCoveragePageTitle
 } from '../domains/npc-source-mapping.mjs';
 
+const RESOLVED_ENTITY_IDS_BY_TARGET_ENTITY_ID = new Map([
+  ['statue', ['statues']]
+]);
+
 export function buildNpcCoverageTargets({
   standardizedPayload,
   crawledEntityIds
@@ -48,7 +52,7 @@ export function buildNpcCoverageTargets({
         targetEntityIds,
         standardizedRecords: [...target.standardizedRecords].sort(compareStandardizedRecord),
         variantCount: target.standardizedRecords.length,
-        alreadyCrawled: targetEntityIds.length > 0 && targetEntityIds.every((entityId) => crawledIds.has(entityId)),
+        alreadyCrawled: targetEntityIds.length > 0 && targetEntityIds.every((entityId) => isTargetEntityIdCrawled(entityId, crawledIds)),
         priority
       };
     })
@@ -103,6 +107,15 @@ function compareTarget(left, right) {
 
 function compareStandardizedRecord(left, right) {
   return Number(left?.id ?? 0) - Number(right?.id ?? 0);
+}
+
+function isTargetEntityIdCrawled(entityId, crawledIds) {
+  if (crawledIds.has(entityId)) {
+    return true;
+  }
+
+  const resolvedEntityIds = RESOLVED_ENTITY_IDS_BY_TARGET_ENTITY_ID.get(entityId) ?? [];
+  return resolvedEntityIds.some((resolvedEntityId) => crawledIds.has(resolvedEntityId));
 }
 
 function priorityRank(priority) {

@@ -2,15 +2,31 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { buildNpcStandardizedBridge } from './build-npc-standardized-bridge.mjs';
+import {
+  buildNpcStandardizedBridge,
+  resolveReviewedPageLevelSharedLoot
+} from './build-npc-standardized-bridge.mjs';
 import { matchNpcBridgeRecords } from './npc-bridge-match.mjs';
 import { writeNpcBridgeDataDir } from './write-npc-bridge-data-dir.mjs';
 import { buildNpcBridgeSummary, writeNpcBridgeSummaryReport } from '../report/npc-bridge-summary.mjs';
+
+export function parseRunNpcStandardizedBridgeArgs(argv = process.argv.slice(2)) {
+  return {
+    domain: readOption(argv, 'domain') ?? undefined,
+    sourceStandardizedDir: readOption(argv, 'source-standardized-dir'),
+    crawlerOutputRoot: readOption(argv, 'crawler-output-root'),
+    crawlerOverlayRoots: readOptions(argv, 'crawler-overlay-root'),
+    crawlerOverlayEntityIds: splitCsvOptions(readOptions(argv, 'crawler-overlay-entity-id')),
+    outputRoot: readOption(argv, 'output-root')
+  };
+}
 
 export async function runNpcStandardizedBridge({
   domain,
   sourceStandardizedDir,
   crawlerOutputRoot,
+  crawlerOverlayRoots,
+  crawlerOverlayEntityIds,
   outputRoot
 } = {}) {
   const resolvedDomain = String(domain ?? 'npc').trim();
@@ -20,10 +36,16 @@ export async function runNpcStandardizedBridge({
 
   const resolvedSourceStandardizedDir = path.resolve(sourceStandardizedDir ?? path.join(process.cwd(), 'data', 'standardized'));
   const resolvedCrawlerOutputRoot = path.resolve(crawlerOutputRoot ?? path.join(process.cwd(), 'data', 'wiki-crawler'));
+  const resolvedCrawlerOverlayRoots = normalizeOverlayRoots(crawlerOverlayRoots);
+  const normalizedOverlayEntityIds = normalizeOverlayEntityIds(crawlerOverlayEntityIds);
   const resolvedOutputRoot = path.resolve(outputRoot ?? path.join(process.cwd(), 'data', 'generated', 'wiki-crawler-npc-bridge'));
 
   const standardizedPayload = await readJson(path.join(resolvedSourceStandardizedDir, 'npcs.standardized.json'));
-  const crawlerRecords = await loadCrawlerNpcRecords({ crawlerOutputRoot: resolvedCrawlerOutputRoot });
+  const crawlerRecords = await loadCrawlerNpcRecords({
+    crawlerOutputRoot: resolvedCrawlerOutputRoot,
+    crawlerOverlayRoots: resolvedCrawlerOverlayRoots,
+    crawlerOverlayEntityIds: normalizedOverlayEntityIds
+  });
   const bridgePayload = buildNpcStandardizedBridge({
     standardizedPayload,
     crawlerNormalizedRecords: crawlerRecords
@@ -59,19 +81,21 @@ export async function runNpcStandardizedBridge({
   };
 }
 
-async function loadCrawlerNpcRecords({ crawlerOutputRoot }) {
-  const normalizedDir = path.join(crawlerOutputRoot, 'normalized-light', 'npc');
-  const auditDir = path.join(crawlerOutputRoot, 'audit', 'npc');
-  const normalizedFiles = (await fs.readdir(normalizedDir))
-    .filter((name) => name.endsWith('.json'))
-    .sort();
+async function loadCrawlerNpcRecords({
+  crawlerOutputRoot,
+  crawlerOverlayRoots = [],
+  crawlerOverlayEntityIds = []
+}) {
+  const crawlerFiles = await collectCrawlerNpcFiles({
+    crawlerOutputRoot,
+    crawlerOverlayRoots,
+    crawlerOverlayEntityIds
+  });
 
   const records = [];
-  for (const fileName of normalizedFiles) {
-    const normalizedPath = path.join(normalizedDir, fileName);
-    const auditPath = path.join(auditDir, fileName);
-    const normalized = await readJson(normalizedPath);
-    const audit = await readOptionalJson(auditPath) ?? {
+  for (const file of crawlerFiles) {
+    const normalized = await readJson(file.normalizedPath);
+    const audit = await readOptionalJson(file.auditPath) ?? {
       status: 'fail',
       reasons: ['missing audit payload']
     };
@@ -79,11 +103,51 @@ async function loadCrawlerNpcRecords({ crawlerOutputRoot }) {
     records.push(...expandCrawlerRecords({
       normalized,
       audit,
-      normalizedPath,
-      auditPath
+      normalizedPath: file.normalizedPath,
+      auditPath: file.auditPath
     }));
   }
   return records;
+}
+
+async function collectCrawlerNpcFiles({
+  crawlerOutputRoot,
+  crawlerOverlayRoots = [],
+  crawlerOverlayEntityIds = []
+}) {
+  const filesByName = new Map();
+  await addCrawlerNpcFiles(filesByName, crawlerOutputRoot);
+
+  const allowedEntityIds = new Set(crawlerOverlayEntityIds.map(normalizeEntityId).filter(Boolean));
+  for (const overlayRoot of crawlerOverlayRoots) {
+    const overlayFiles = await listCrawlerNpcFiles(overlayRoot);
+    for (const file of overlayFiles) {
+      const entityId = normalizeEntityId(file.fileName.replace(/\.latest\.json$/i, '').replace(/\.json$/i, ''));
+      if (!allowedEntityIds.has(entityId)) continue;
+      filesByName.set(file.fileName, file);
+    }
+  }
+
+  return [...filesByName.values()].sort((left, right) => left.fileName.localeCompare(right.fileName));
+}
+
+async function addCrawlerNpcFiles(filesByName, root) {
+  for (const file of await listCrawlerNpcFiles(root)) {
+    filesByName.set(file.fileName, file);
+  }
+}
+
+async function listCrawlerNpcFiles(root) {
+  const normalizedDir = path.join(root, 'normalized-light', 'npc');
+  const auditDir = path.join(root, 'audit', 'npc');
+  const normalizedFiles = (await fs.readdir(normalizedDir))
+    .filter((name) => name.endsWith('.json'))
+    .sort();
+  return normalizedFiles.map((fileName) => ({
+    fileName,
+    normalizedPath: path.join(normalizedDir, fileName),
+    auditPath: path.join(auditDir, fileName)
+  }));
 }
 
 function expandCrawlerRecords({
@@ -147,24 +211,27 @@ function collectBridgeDiagnostics({
       crawlerRecord,
       standardizedRecords: standardizedRows
     });
+    const reviewedSharedTargets = findReviewedSharedLootTargets(crawlerRecord, standardizedRows);
 
     if (match.records.length === 0) {
-      unmatchedCrawler.push({
-        entityId: crawlerRecord?.entityId ?? '',
-        pageTitle: crawlerRecord?.source?.pageTitle ?? crawlerRecord?.display?.name ?? '',
-        reason: match.reason
-      });
-      continue;
+      if (!reviewedSharedTargets.length) {
+        unmatchedCrawler.push({
+          entityId: crawlerRecord?.entityId ?? '',
+          pageTitle: crawlerRecord?.source?.pageTitle ?? crawlerRecord?.display?.name ?? '',
+          reason: match.reason
+        });
+        continue;
+      }
     }
 
-    for (const record of match.records) {
+    for (const record of uniqueRecords([...match.records, ...reviewedSharedTargets])) {
       const standardizedKey = buildStandardizedKey(record);
       matchedKeys.add(standardizedKey);
       matches.push({
         entityId: crawlerRecord?.entityId ?? '',
         pageTitle: crawlerRecord?.source?.pageTitle ?? crawlerRecord?.display?.name ?? '',
         internalName: record?.internalName ?? '',
-        reason: match.reason
+        reason: match.records.includes(record) ? match.reason : 'reviewed_page_level_shared_loot'
       });
 
       const existingEntityId = crawlerByStandardizedKey.get(standardizedKey);
@@ -194,6 +261,25 @@ function collectBridgeDiagnostics({
   };
 }
 
+function findReviewedSharedLootTargets(crawlerRecord, standardizedRows) {
+  const reviewedSharedLoot = resolveReviewedPageLevelSharedLoot(crawlerRecord);
+  if (!reviewedSharedLoot) return [];
+  const targetInternalNames = new Set(reviewedSharedLoot.targetInternalNames);
+  return standardizedRows.filter((record) => targetInternalNames.has(String(record?.internalName ?? '').trim()));
+}
+
+function uniqueRecords(records) {
+  const seen = new Set();
+  const unique = [];
+  for (const record of records) {
+    const key = buildStandardizedKey(record);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(record);
+  }
+  return unique;
+}
+
 function buildStandardizedKey(record) {
   const internalName = String(record?.internalName ?? '').trim();
   if (internalName) {
@@ -204,6 +290,31 @@ function buildStandardizedKey(record) {
     return `name:${name.toLowerCase()}`;
   }
   return `id:${String(record?.id ?? '')}`;
+}
+
+function normalizeOverlayRoots(value) {
+  const rows = Array.isArray(value) ? value : value ? [value] : [];
+  return rows
+    .flatMap((entry) => String(entry ?? '').split(','))
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => path.resolve(entry));
+}
+
+function normalizeOverlayEntityIds(value) {
+  const rows = Array.isArray(value) ? value : value ? [value] : [];
+  return rows.map(normalizeEntityId).filter(Boolean);
+}
+
+function normalizeEntityId(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\\/g, '/')
+    .split('/')
+    .pop()
+    .replace(/\.latest\.json$/i, '')
+    .replace(/\.json$/i, '');
 }
 
 async function readJson(filePath) {
@@ -222,13 +333,51 @@ async function readOptionalJson(filePath) {
   }
 }
 
+function readOption(argv, name) {
+  const inlinePrefix = `--${name}=`;
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === `--${name}`) {
+      return argv[index + 1];
+    }
+    if (typeof arg === 'string' && arg.startsWith(inlinePrefix)) {
+      return arg.slice(inlinePrefix.length);
+    }
+  }
+  return undefined;
+}
+
+function readOptions(argv, name) {
+  const inlinePrefix = `--${name}=`;
+  const values = [];
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === `--${name}` && argv[index + 1] && !argv[index + 1].startsWith('--')) {
+      values.push(argv[index + 1]);
+      index += 1;
+      continue;
+    }
+    if (typeof arg === 'string' && arg.startsWith(inlinePrefix)) {
+      values.push(arg.slice(inlinePrefix.length));
+    }
+  }
+  return values;
+}
+
+function splitCsvOptions(values) {
+  return values
+    .flatMap((value) => String(value ?? '').split(','))
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
 const isMain = process.argv[1]
   ? pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url
   : false;
 
 if (isMain) {
   try {
-    const result = await runNpcStandardizedBridge();
+    const result = await runNpcStandardizedBridge(parseRunNpcStandardizedBridgeArgs());
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
     console.error(error?.stack || error?.message || String(error));

@@ -83,7 +83,7 @@ export function buildRelationCompatSyncSql({
  AND d.deleted = 0
  AND d.status = 1
  AND d.review_status IN ${acceptedReviewStatuses}`;
-  const resolvedNpcDetailWhere = "d.source_ref_resolution IN ('resolved', 'exact_internal_name')";
+  const resolvedNpcDetailWhere = "d.source_ref_resolution IN ('resolved', 'exact_internal_name', 'reviewed_page_level_shared_loot')";
   const publishableRelationWhere = `r.deleted = 0
   AND r.status = 1
   AND r.review_status IN ${acceptedReviewStatuses}`;

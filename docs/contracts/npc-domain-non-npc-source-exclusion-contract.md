@@ -26,6 +26,7 @@ These rows must remain non-materializable. A reviewed exclusion must never creat
 | `heart_or_orb_source` | Heart, orb, or world-object source, not an NPC. |
 | `mode_or_bonus_bucket` | Mode, bonus, or pseudo-source label, not an NPC. |
 | `non_npc_item_source_entity` | Other reviewed non-NPC item source entity. |
+| `boss_lane_reference_source` | Boss-lane or composite boss reference source that is not an ordinary NPC-domain loot row. |
 
 ## Required Fields
 
@@ -47,7 +48,25 @@ Use this table format when adding reviewed rows:
 
 | sourceType | sourceRefType | matchType | sourceRefName | reason | evidenceSource | reviewedBy | reviewedAt | notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| _none yet_ |  |  |  |  |  |  |  |  |
+| drop | npc | regex | ^.*\b[Cc]rate$ | crate_container | reports/audit/npc-domain-loot-chain-2026-05-11-closure-baseline-r3.json | codex | 2026-05-11 | Crate item-source rows are container rewards, not NPC drops. |
+| drop | npc | regex | ^.*\b[Cc]hest(?: \(.*\))?(?: \(page does not exist\))?$ | chest_container | reports/audit/npc-domain-loot-chain-2026-05-11-closure-baseline-r3.json | codex | 2026-05-11 | Chest item-source rows are container rewards, not NPC drops. |
+| drop | npc | regex | ^Treasure Bag \(.+\)$ | treasure_bag_container | reports/audit/npc-domain-loot-chain-2026-05-11-closure-baseline-r3.json | codex | 2026-05-11 | Treasure Bag rows are bag/container rewards, not direct NPC loot rows. |
+| drop | npc | regex | ^.*\b[Tt]ree$ | tree_source | reports/audit/npc-domain-loot-chain-2026-05-11-closure-baseline-r3.json | codex | 2026-05-11 | Tree and shaking-tree rows are environment sources, not NPC drops. |
+| drop | npc | exact | Shaking | tree_source | reports/audit/npc-domain-loot-chain-2026-05-11-closure-baseline-r4.json | codex | 2026-05-11 | Shaking rows are environment/tree-shake item sources, not NPC drops. |
+| drop | npc | exact | Giant Glowing Mushroom | non_npc_item_source_entity | reports/audit/npc-domain-loot-chain-2026-05-11-closure-baseline-r4.json | codex | 2026-05-11 | Giant Glowing Mushroom rows are environment item sources, not NPC drops. |
+| drop | npc | regex | ^.*\b[Ll]ock Box$ | lock_box_container | reports/audit/npc-domain-loot-chain-2026-05-11-closure-baseline-r3.json | codex | 2026-05-11 | Lock Box rows are container rewards, not NPC drops. |
+| drop | npc | regex | ^.*\b[Hh]eart$ | heart_or_orb_source | reports/audit/npc-domain-loot-chain-2026-05-11-closure-baseline-r4.json | codex | 2026-05-11 | Heart/world-object rows are not NPC drops. |
+| drop | npc | regex | ^.*\b[Oo]rb$ | heart_or_orb_source | reports/audit/npc-domain-loot-chain-2026-05-11-closure-baseline-r4.json | codex | 2026-05-11 | Orb/world-object rows are not NPC drops. |
+| drop | npc | exact | Present | present_container | reports/audit/npc-domain-loot-chain-2026-05-11-closure-baseline-r3.json | codex | 2026-05-11 | Present item-source rows are seasonal container rewards. |
+| drop | npc | exact | Bonus drop | mode_or_bonus_bucket | reports/audit/npc-domain-loot-chain-2026-05-11-closure-baseline-r3.json | codex | 2026-05-11 | Bonus drop rows are pseudo-source buckets, not NPC identities. |
+| drop | npc | exact | Expert Mode | mode_or_bonus_bucket | reports/audit/npc-domain-loot-chain-2026-05-11-closure-baseline-r3.json | codex | 2026-05-11 | Expert Mode rows are mode buckets, not NPC identities. |
+| drop | npc | exact | Geode | non_npc_item_source_entity | reports/audit/npc-domain-loot-chain-2026-05-11-closure-baseline-r3.json | codex | 2026-05-11 | Geode rows are item/container sources, not NPC drops. |
+| drop | npc | exact | Herb Bag | bag_container | reports/audit/npc-domain-loot-chain-2026-05-11-closure-baseline-r3.json | codex | 2026-05-11 | Herb Bag rows are bag/container rewards, not NPC drops. |
+| drop | npc | exact | Goodie Bag | bag_container | reports/audit/npc-domain-loot-chain-2026-05-11-closure-baseline-r3.json | codex | 2026-05-11 | Goodie Bag rows are bag/container rewards, not NPC drops. |
+| drop | npc | exact | Pigronata | non_npc_item_source_entity | reports/audit/npc-domain-loot-chain-2026-05-11-closure-baseline-r3.json | codex | 2026-05-11 | Pigronata rows are item/container sources, not NPC drops. |
+| drop | npc | exact | Shadow Hammer | non_npc_item_source_entity | reports/audit/npc-domain-loot-chain-2026-05-11-closure-baseline-r3.json | codex | 2026-05-11 | Shadow Hammer rows are item/container sources, not NPC drops. |
+| drop | npc | exact | Can Of Worms | non_npc_item_source_entity | docs/audits/2026-05-11_npc-can-of-worms-non-npc-source-review.md | codex | 2026-05-11 | Can Of Worms rows are item/container sources, not NPC drops. |
+| drop | npc | exact | Mechdusa | boss_lane_reference_source | docs/audits/2026-05-11_npc-mechdusa-non-npc-source-review.md | codex | 2026-05-11 | Mechdusa item-page rows belong to the boss/reference lane and must not materialize as ordinary NPC loot. |
 
 ## Audit Rules
 

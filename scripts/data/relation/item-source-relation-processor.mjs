@@ -100,6 +100,7 @@ function findPhraseIndex(text, phrases) {
 function extractRelevantNotes(sourceType, notes) {
   const text = normalizeText(notes);
   if (!text) return null;
+  if (normalizeLootConditionKey(text) == null) return null;
 
   const phraseIndex =
     sourceType === 'shop'
@@ -173,26 +174,142 @@ function dedupeShopRelations(rows = []) {
 function dedupeLootRelations(rows = []) {
   const bestByKey = new Map();
   for (const row of rows) {
-    const key = JSON.stringify([
-      row.sourceFactKey ?? null,
-      row.itemInternalName ?? null,
-      row.npcInternalName ?? null,
-      row.quantityText ?? null,
-      row.chanceText ?? null,
-      row.conditions ?? null,
-      row.conditionBiomeCode ?? null,
-      row.conditionGamePeriodCode ?? null,
-      row.conditionTimeCode ?? null,
-      row.conditionWeatherCode ?? null,
-      row.conditionEventsJson ?? null,
-      row.specialFlagsJson ?? null
-    ]);
+    const key = lootRelationStableKey(row, { includeInheritedProvenance: true, includeChance: true });
     const current = bestByKey.get(key);
     if (!current || compareRelationRowQuality(row, current) > 0) {
       bestByKey.set(key, row);
     }
   }
-  return [...bestByKey.values()];
+  return dedupeLootRelationsByChanceContainment([...bestByKey.values()]);
+}
+
+function lootRelationStableKey(row = {}, { includeInheritedProvenance = false, includeChance = true } = {}) {
+  const sourceOnlyBiomeCode = hasSourceOnlyBiomeCondition(row);
+  return JSON.stringify([
+    row.itemInternalName ?? null,
+    row.npcInternalName ?? null,
+    row.quantityText ?? null,
+    includeChance ? normalizeLootChanceKey(row.chanceText) : null,
+    normalizeLootConditionKey(row.conditions),
+    sourceOnlyBiomeCode ? null : row.conditionBiomeCode ?? null,
+    row.conditionGamePeriodCode ?? null,
+    row.conditionTimeCode ?? null,
+    row.conditionWeatherCode ?? null,
+    row.conditionEventsJson ?? null,
+    row.specialFlagsJson ?? null,
+    includeInheritedProvenance ? lootProvenanceDedupeKey(row) : null
+  ]);
+}
+
+function dedupeLootRelationsByChanceContainment(rows = []) {
+  const groups = new Map();
+  for (const row of rows) {
+    const key = lootRelationStableKey(row, { includeInheritedProvenance: true, includeChance: false });
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(row);
+  }
+
+  const deduped = [];
+  for (const groupRows of groups.values()) {
+    for (const row of groupRows) {
+      const rowChances = parseLootChanceTokens(row.chanceText);
+      const isCovered = rowChances.length > 0 && groupRows.some((candidate) => {
+        if (candidate === row) return false;
+        if (!canDedupeLootChanceSubset(row, candidate)) return false;
+        const candidateChances = parseLootChanceTokens(candidate.chanceText);
+        return isStrictChanceSuperset(candidateChances, rowChances);
+      });
+      if (!isCovered) {
+        deduped.push(row);
+      }
+    }
+  }
+  return deduped;
+}
+
+function canDedupeLootChanceSubset(row = {}, candidate = {}) {
+  return (
+    hasNoSemanticLootConditions(row)
+    && hasNoSemanticLootConditions(candidate)
+    && hasDefaultModeRowEvidence(candidate)
+  );
+}
+
+function hasNoSemanticLootConditions(row = {}) {
+  const hasOnlySourceFieldBiome = hasSourceOnlyBiomeCondition(row);
+  return (
+    normalizeLootConditionKey(row.conditions) == null
+    && row.conditionSourceText == null
+    && (row.conditionBiomeCode == null || hasOnlySourceFieldBiome)
+    && row.conditionGamePeriodCode == null
+    && row.conditionTimeCode == null
+    && row.conditionWeatherCode == null
+    && row.conditionEventsJson == null
+    && row.specialFlagsJson == null
+  );
+}
+
+function hasSourceOnlyBiomeCondition(row = {}) {
+  return (
+    row.conditionParseStatus === 'source_fields_only'
+    && row.conditionSourceText == null
+    && normalizeLootConditionKey(row.conditions) == null
+  );
+}
+
+function hasDefaultModeRowEvidence(row = {}) {
+  const raw = parseRelationRawJson(row.rawJson);
+  return [
+    row.conditions,
+    row.conditionSourceText,
+    raw.conditions,
+    raw.conditionText,
+    raw.condition_text,
+    raw.notes
+  ].some((value) => /^normal mode row$/i.test(normalizeText(value) ?? ''));
+}
+
+function normalizeLootChanceKey(value) {
+  const text = normalizeText(value);
+  if (!text) return null;
+  const withoutTemplates = text
+    .replace(/\{\{\s*modes\s*\|([^{}]+)\}\}/gi, (_match, body) => (
+      String(body)
+        .split('|')
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .join(' ')
+    ));
+  return withoutTemplates.replace(/\s+/g, ' ').trim().toLowerCase() || null;
+}
+
+function parseLootChanceTokens(value) {
+  const normalized = normalizeLootChanceKey(value);
+  if (!normalized) return [];
+  return normalized.match(/\d+(?:\.\d+)?%/g) ?? [];
+}
+
+function isStrictChanceSuperset(candidateChances = [], rowChances = []) {
+  if (candidateChances.length <= rowChances.length) return false;
+  const candidateSet = new Set(candidateChances);
+  return rowChances.every((chance) => candidateSet.has(chance));
+}
+
+function normalizeLootConditionKey(value) {
+  const text = normalizeText(value);
+  if (!text) return null;
+  return /^normal mode row$/i.test(text) ? null : text;
+}
+
+function lootProvenanceDedupeKey(row = {}) {
+  if (row.reason !== 'contract_backed_inherited_loot') return null;
+  const raw = parseRelationRawJson(row.rawJson);
+  return JSON.stringify([
+    row.reason,
+    raw.inheritedFromNpcInternalName ?? null,
+    raw.inheritanceKind ?? null,
+    raw.inheritedSourceFactKey ?? null,
+  ]);
 }
 
 function buildShopCandidateFromRelation(row) {
@@ -274,6 +391,12 @@ function candidateInternalName(candidate) {
 function normalizeLookupKey(value) {
   const text = normalizeText(value);
   return text ? text.toLowerCase() : null;
+}
+
+function stripNpcDisambiguationSuffix(value) {
+  const text = normalizeText(value);
+  if (!text) return null;
+  return text.replace(/\s+\((?:npc|enemy|boss)\)$/i, '').trim() || text;
 }
 
 function itemCandidateIdentity(candidate) {
@@ -362,7 +485,7 @@ function resolveItemRef(row = {}, raw = {}, itemIndex = new Map()) {
 }
 
 function isAuthoritativeNpcInternalNameResolution(value) {
-  return value === 'resolved' || value === 'exact_internal_name';
+  return value === 'resolved' || value === 'exact_internal_name' || value === 'reviewed_page_level_shared_loot';
 }
 
 function isPositiveIdFallbackResolution(value) {
@@ -395,9 +518,24 @@ const REVIEWED_POSITIVE_ID_FALLBACK_NPC_INTERNAL_NAMES = new Set([
   'DesertLamiaLight',
   'DesertScorpionWalk',
   'DiabolistRed',
+  'DD2DarkMageT1',
+  'DD2OgreT2',
   'PigronCorruption',
   'RustyArmoredBonesAxe',
   'ZombieEskimo',
+]);
+
+const REVIEWED_BOSS_KIND_NPC_LOOT_EXCEPTION_INTERNAL_NAMES = new Set([
+  'DD2DarkMageT1',
+  'DD2DarkMageT3',
+  'DD2OgreT2',
+  'DD2OgreT3',
+]);
+
+const ALLOWED_INHERITANCE_KINDS = new Set([
+  'segment_family',
+  'prototype_variant',
+  'same_name_variant',
 ]);
 
 function commonPrefix(values) {
@@ -447,6 +585,17 @@ function isGeneratedNpcShopSourceRow(row = {}, raw = {}, sourceType, sourceRefTy
   );
 }
 
+function isGeneratedNpcLootSourceRow(row = {}, raw = {}, sourceType, sourceRefType) {
+  if (sourceType !== 'drop' || sourceRefType !== 'npc') return false;
+  const relationType = normalizeText(raw.relationType ?? raw.relation_type)?.toLowerCase();
+  const sourceSection = normalizeText(raw.sourceSection ?? raw.source_section)?.toLowerCase();
+  const recordKey = normalizeText(row.record_key ?? raw.recordKey ?? raw.record_key);
+  return (
+    (relationType === 'loot' && sourceSection === 'drops') ||
+    /^npc-item:/i.test(recordKey ?? '')
+  );
+}
+
 function buildAuthoritativeNpcShopRefKeys(itemSourceRows = []) {
   const keys = new Set();
   for (const row of itemSourceRows) {
@@ -459,6 +608,34 @@ function buildAuthoritativeNpcShopRefKeys(itemSourceRows = []) {
     if (normalized) keys.add(normalized);
   }
   return keys;
+}
+
+function buildAuthoritativeNpcLootRefItemKeys(itemSourceRows = [], itemIndex = new Map()) {
+  const keys = new Set();
+  for (const row of itemSourceRows) {
+    const raw = parseRawJson(row);
+    const sourceType = normalizeText(row.source_type)?.toLowerCase() ?? null;
+    const sourceRefType = normalizeText(row.source_ref_type)?.toLowerCase() ?? null;
+    if (!isGeneratedNpcLootSourceRow(row, raw, sourceType, sourceRefType)) continue;
+    const sourceRefKey = normalizeLookupKey(raw.sourceRefInternalName ?? raw.source_ref_internal_name)
+      ?? normalizeLookupKey(normalizeSourceRefName(pickText(row.source_ref_name, raw.sourceRefName)));
+    const itemInternalName = resolveItemRef(row, raw, itemIndex).itemInternalName;
+    const itemKey = normalizeLookupKey(itemInternalName);
+    if (sourceRefKey && itemKey) {
+      keys.add(JSON.stringify([sourceRefKey, itemKey]));
+    }
+  }
+  return keys;
+}
+
+function hasUpstreamLootConditionContribution(row = {}, raw = {}) {
+  const notes = normalizeText(row.notes ?? raw.notes);
+  return (
+    normalizeText(row.biome_code ?? raw.biomeCode ?? raw.biome_code) != null ||
+    normalizeText(row.conditions ?? raw.conditions) != null ||
+    normalizeText(row.condition_text ?? raw.conditionText ?? raw.condition_text) != null ||
+    (notes != null && CONDITION_SIGNAL_PATTERN.test(notes))
+  );
 }
 
 function buildRelationEvidence({
@@ -553,6 +730,48 @@ function findNpcCandidateByInternalName(npcIndex, internalName) {
   return null;
 }
 
+function findNpcCandidatesByInternalName(npcIndex, internalName) {
+  if (!(npcIndex instanceof Map) || !internalName) return [];
+  const candidates = [];
+  for (const candidateValue of npcIndex.values()) {
+    for (const candidate of asCandidateList(candidateValue)) {
+      if (candidateInternalName(candidate) === internalName) {
+        candidates.push(candidate);
+      }
+    }
+  }
+  return dedupeCandidates(candidates);
+}
+
+function parseJsonObject(value) {
+  if (value == null || value === '') return {};
+  if (typeof value === 'object' && !Array.isArray(value)) return value;
+  if (typeof value !== 'string') return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function isTruthyFlag(value) {
+  if (value === true || value === 1) return true;
+  return ['true', '1', 'yes'].includes(String(value ?? '').trim().toLowerCase());
+}
+
+function isBossNpcCandidate(candidate = {}) {
+  const flags = parseJsonObject(candidate.flags_json ?? candidate.flagsJson ?? candidate.flags);
+  return isTruthyFlag(flags.boss ?? candidate.is_boss ?? candidate.isBoss ?? candidate.boss);
+}
+
+function isItemBundleCollectiveBucketSourceRow(row = {}, raw = {}, classification = {}) {
+  const landingSourceKey = normalizeText(row.landing_source_key ?? row.landingSourceKey);
+  if (!landingSourceKey?.startsWith('generated.item_relations_bundle')) return false;
+  if (normalizeText(row.record_key ?? raw.recordKey)?.startsWith('npc-item:')) return false;
+  return classification.status === 'generic_bucket';
+}
+
 function applyNpcLootTaxonomy({
   row = {},
   raw = {},
@@ -573,6 +792,7 @@ function applyNpcLootTaxonomy({
       sourceRefName: row.source_ref_name ?? raw.sourceRefName,
       sourceRefInternalName: npcResolution?.npcInternalName ?? raw.sourceRefInternalName ?? raw.source_ref_internal_name,
       sourceRefResolution: npcResolution?.sourceRefResolution ?? raw.sourceRefResolution ?? raw.source_ref_resolution,
+      landingSourceKey: row.landing_source_key,
     },
     {
       sourceType,
@@ -612,6 +832,54 @@ function applyNpcLootTaxonomy({
     };
   }
 
+  if (npcResolution?.status === relationStatus.resolved) {
+    const resolvedCandidate = findNpcCandidateByInternalName(npcIndex, npcResolution.npcInternalName);
+    if (isBossNpcCandidate(resolvedCandidate) && !isReviewedBossKindNpcLootException(npcResolution)) {
+      return {
+        ...(npcResolution ?? {}),
+        status: 'blocked',
+        npcSourceId: null,
+        npcInternalName: null,
+        npcName: null,
+        sourceRefResolution: 'reviewed_non_npc_source_exclusion',
+        confidence: confidence.none,
+        reason: 'boss_reward_domain_separated',
+        taxonomyStatus: 'reviewed_non_npc_source_exclusion',
+        taxonomyReason: 'boss_reward_domain_separated',
+      };
+    }
+  }
+
+  if (isItemBundleCollectiveBucketSourceRow(row, raw, classification)) {
+    return {
+      ...(npcResolution ?? {}),
+      status: 'excluded',
+      npcSourceId: null,
+      npcInternalName: null,
+      npcName: null,
+      sourceRefResolution: 'item_bundle_collective_bucket_excluded',
+      confidence: confidence.none,
+      reason: 'item_bundle_collective_bucket_not_npc_domain_source',
+      taxonomyStatus: 'item_bundle_collective_bucket_excluded',
+      taxonomyReason: 'item_bundle_collective_bucket_not_npc_domain_source',
+    };
+  }
+
+  if (classification.status === 'reviewed_mimic_contract_rejected') {
+    return {
+      ...(npcResolution ?? {}),
+      status: 'excluded',
+      npcSourceId: null,
+      npcInternalName: null,
+      npcName: null,
+      sourceRefResolution: classification.sourceRefResolution,
+      confidence: confidence.none,
+      reason: classification.reason,
+      taxonomyStatus: classification.status,
+      taxonomyReason: classification.reason,
+    };
+  }
+
   if (!classification.materializable) {
     return {
       ...(npcResolution ?? {}),
@@ -634,10 +902,19 @@ function applyNpcLootTaxonomy({
   };
 }
 
+function isReviewedBossKindNpcLootException(npcResolution = {}) {
+  return REVIEWED_BOSS_KIND_NPC_LOOT_EXCEPTION_INTERNAL_NAMES.has(npcResolution.npcInternalName)
+    && (
+      npcResolution.sourceRefResolution === 'exact_internal_name'
+      || npcResolution.sourceRefResolution === 'positive_id_fallback'
+    );
+}
+
 export function resolveNpcRef(row = {}, npcIndex = new Map()) {
   const raw = parseRawJson(row);
   const sourceRefName = pickText(row.source_ref_name, raw.sourceRefName);
   const normalizedRefName = normalizeSourceRefName(sourceRefName);
+  const disambiguatedRefName = stripNpcDisambiguationSuffix(normalizedRefName);
   const rawResolution = normalizeText(raw.sourceRefResolution ?? raw.source_ref_resolution);
   const rawInternalName = normalizeText(raw.sourceRefInternalName ?? raw.source_ref_internal_name);
 
@@ -655,7 +932,17 @@ export function resolveNpcRef(row = {}, npcIndex = new Map()) {
     };
   }
 
-  let candidates = dedupeCandidates(asCandidateList(npcIndex.get(normalizedRefName)));
+  const authoritativeInternalNameCandidates =
+    isAuthoritativeNpcInternalNameResolution(rawResolution) && rawInternalName
+      ? findNpcCandidatesByInternalName(npcIndex, rawInternalName)
+      : [];
+
+  let candidates = authoritativeInternalNameCandidates.length === 1
+    ? authoritativeInternalNameCandidates
+    : dedupeCandidates(asCandidateList(npcIndex.get(normalizedRefName)));
+  if (!candidates.length && disambiguatedRefName && disambiguatedRefName !== normalizedRefName) {
+    candidates = dedupeCandidates(asCandidateList(npcIndex.get(disambiguatedRefName)));
+  }
   if (candidates.length && isAuthoritativeNpcInternalNameResolution(rawResolution) && rawInternalName) {
     const exactCandidates = dedupeCandidates(candidates.filter((candidate) => candidateInternalName(candidate) === rawInternalName));
     if (exactCandidates.length === 1) {
@@ -671,19 +958,14 @@ export function resolveNpcRef(row = {}, npcIndex = new Map()) {
       candidates = exactCandidates;
     }
   }
-  if (!candidates.length && isAuthoritativeNpcInternalNameResolution(rawResolution) && rawInternalName) {
-    for (const candidateValue of npcIndex.values()) {
-      for (const candidate of asCandidateList(candidateValue)) {
-        if (candidateInternalName(candidate) === rawInternalName) {
-          candidates.push(candidate);
-        }
-      }
-    }
+  if (!candidates.length && authoritativeInternalNameCandidates.length) {
+    candidates = authoritativeInternalNameCandidates;
   }
   if (!candidates.length) {
-    const lowered = normalizedRefName.toLowerCase();
+    const lookupNames = [normalizedRefName, disambiguatedRefName].filter(Boolean);
+    const lowered = new Set(lookupNames.map((name) => name.toLowerCase()));
     for (const [name, candidate] of npcIndex.entries()) {
-      if (normalizeText(name)?.toLowerCase() === lowered) {
+      if (lowered.has(normalizeText(name)?.toLowerCase())) {
         candidates.push(...asCandidateList(candidate));
       }
     }
@@ -727,8 +1009,8 @@ export function resolveNpcRef(row = {}, npcIndex = new Map()) {
     sourceRefName,
     sourceRefNormalized: normalizedRefName,
     sourceRefResolution:
-      rawResolution === 'exact_internal_name'
-        ? 'exact_internal_name'
+      isAuthoritativeNpcInternalNameResolution(rawResolution)
+        ? rawResolution
         : isPositiveIdFallbackResolution(rawResolution)
           ? 'positive_id_fallback'
           : 'resolved',
@@ -742,6 +1024,7 @@ export function buildItemSourceRelations({
   npcIndex = new Map(),
   itemIndex = new Map(),
   reviewedNonNpcSourceExclusions = [],
+  inheritanceRules = [],
 } = {}) {
   const sourceFacts = [];
   const sourceDetails = [];
@@ -750,6 +1033,7 @@ export function buildItemSourceRelations({
   const itemNpcRelationAudits = [];
   const issues = [];
   const authoritativeNpcShopRefKeys = buildAuthoritativeNpcShopRefKeys(itemSourceRows);
+  const authoritativeNpcLootRefItemKeys = buildAuthoritativeNpcLootRefItemKeys(itemSourceRows, itemIndex);
 
   for (let index = 0; index < itemSourceRows.length; index += 1) {
     const row = itemSourceRows[index] ?? {};
@@ -770,6 +1054,8 @@ export function buildItemSourceRelations({
       && !isGeneratedNpcShopSource
       && sourceRefKey != null
       && authoritativeNpcShopRefKeys.has(sourceRefKey);
+    const isGeneratedNpcLootSource = isGeneratedNpcLootSourceRow(row, raw, sourceType, sourceRefType);
+    const itemKey = normalizeLookupKey(itemInternalName);
     const sourceFactKey = createRecordKey({
       type: 'item_source_fact',
       rowRecordKey: trace.sourceMaintRecordKey,
@@ -788,6 +1074,16 @@ export function buildItemSourceRelations({
             reviewedNonNpcSourceExclusions,
           })
         : null;
+    const npcLootSupersedeSourceKey = normalizeLookupKey(npcResolution?.npcInternalName)
+      ?? sourceRefKey;
+    const isSupersededNpcLootSource =
+      sourceType === 'drop'
+      && sourceRefType === 'npc'
+      && !isGeneratedNpcLootSource
+      && npcLootSupersedeSourceKey != null
+      && itemKey != null
+      && !hasUpstreamLootConditionContribution(row, raw)
+      && authoritativeNpcLootRefItemKeys.has(JSON.stringify([npcLootSupersedeSourceKey, itemKey]));
 
     sourceFacts.push({
       recordKey: sourceFactKey,
@@ -908,7 +1204,7 @@ export function buildItemSourceRelations({
         sourceRefName,
         sourceRefNormalized,
         npcResolution,
-        auditStatus: npcResolution?.status === 'ambiguous' ? 'ambiguous' : npcResolution?.status === 'blocked' ? 'blocked' : 'unresolved',
+        auditStatus: npcResolution?.status === 'excluded' ? 'excluded' : npcResolution?.status === 'ambiguous' ? 'ambiguous' : npcResolution?.status === 'blocked' ? 'blocked' : 'unresolved',
         reasonCode: npcResolution?.reason ?? 'npc_source_unresolved',
         trace
       }));
@@ -943,6 +1239,27 @@ export function buildItemSourceRelations({
         npcResolution,
         auditStatus: 'unresolved',
         reasonCode: itemResolution.reason,
+        trace
+      }));
+    }
+
+    if (
+      sourceRefType === 'npc'
+      && npcResolution?.status === relationStatus.resolved
+      && itemInternalName
+      && isSupersededNpcLootSource
+    ) {
+      itemNpcRelationAudits.push(buildItemNpcRelationAudit({
+        row: effectiveRow,
+        raw,
+        sourceType,
+        sourceRefType,
+        sourceFactKey,
+        sourceRefName,
+        sourceRefNormalized,
+        npcResolution,
+        auditStatus: 'superseded',
+        reasonCode: 'npc_loot_source_superseded_by_npc_page',
         trace
       }));
     }
@@ -1004,11 +1321,14 @@ export function buildItemSourceRelations({
       npcShopRelationRows.push(relationRow);
     }
 
-    if (sourceRefType === 'npc' && npcResolution?.status === relationStatus.resolved && itemInternalName && sourceType === 'drop') {
+    if (sourceRefType === 'npc' && npcResolution?.status === relationStatus.resolved && itemInternalName && sourceType === 'drop' && !isSupersededNpcLootSource) {
+      const explicitLootConditions = normalizeLootConditionKey(
+        pickText(raw.conditions, row.conditions)
+        ?? pickText(raw.conditionText ?? raw.condition_text, row.condition_text)
+      );
       const normalizedConditions = normalizeSourceConditionFields({
         conditions:
-          pickText(raw.conditions, row.conditions)
-          ?? pickText(raw.conditionText ?? raw.condition_text, row.condition_text)
+          explicitLootConditions
           ?? extractConditionTextFromChanceText(pickText(raw.chanceText ?? raw.chance_text, row.chance_text)),
         notes: extractRelevantNotes(sourceType, pickText(raw.notes, row.notes)),
         biomeCode: row.biome_code
@@ -1029,7 +1349,7 @@ export function buildItemSourceRelations({
         quantityText: pickText(raw.quantityText ?? raw.quantity_text, row.quantity_text),
         chanceValue: toNullableNumber(raw.chanceValue ?? raw.chance_value),
         chanceText: pickText(raw.chanceText ?? raw.chance_text, row.chance_text),
-        conditions: pickText(raw.conditions, row.conditions) ?? pickText(raw.conditionText ?? raw.condition_text, row.condition_text),
+        conditions: explicitLootConditions,
         ...normalizedConditions,
         reviewStatus: relationStatus.resolved,
         confidence: confidence.high,
@@ -1042,7 +1362,15 @@ export function buildItemSourceRelations({
   }
 
   const npcShopRelations = dedupeShopRelations(npcShopRelationRows);
-  const npcLootRelations = dedupeLootRelations(npcLootRelationRows);
+  const directNpcLootRelations = dedupeLootRelations(npcLootRelationRows);
+  const npcLootRelations = dedupeLootRelations([
+    ...directNpcLootRelations,
+    ...buildInheritedLootRelations({
+      npcLootRelationRows: directNpcLootRelations,
+      inheritanceRules,
+      npcIndex,
+    }),
+  ]);
 
   return {
     sourceFacts,
@@ -1062,4 +1390,93 @@ export function buildItemSourceRelations({
       pollutedSourceRefs: issues.filter((issue) => issue.reason === 'source_ref_text_polluted').length
     }
   };
+}
+
+function buildInheritedLootRelations({
+  npcLootRelationRows = [],
+  inheritanceRules = [],
+  npcIndex = new Map(),
+} = {}) {
+  const bySourceNpc = new Map();
+  for (const row of npcLootRelationRows) {
+    const sourceNpcInternalName = normalizeText(row.npcInternalName);
+    if (!sourceNpcInternalName) continue;
+    if (!bySourceNpc.has(sourceNpcInternalName)) bySourceNpc.set(sourceNpcInternalName, []);
+    bySourceNpc.get(sourceNpcInternalName).push(row);
+  }
+  const directStableKeys = new Set(
+    npcLootRelationRows.map((row) => lootRelationStableKey(row))
+  );
+
+  const inheritedRows = [];
+  for (const rule of Array.isArray(inheritanceRules) ? inheritanceRules : []) {
+    const targetNpcInternalName = normalizeText(rule.targetNpcInternalName ?? rule.target_npc_internal_name);
+    const sourceNpcInternalName = normalizeText(rule.sourceNpcInternalName ?? rule.source_npc_internal_name);
+    const inheritanceKind = normalizeText(rule.inheritanceKind ?? rule.inheritance_kind);
+    const evidenceSource = normalizeText(rule.evidenceSource ?? rule.evidence_source);
+    if (
+      !targetNpcInternalName
+      || !sourceNpcInternalName
+      || targetNpcInternalName === sourceNpcInternalName
+      || !ALLOWED_INHERITANCE_KINDS.has(inheritanceKind)
+      || !evidenceSource
+    ) {
+      continue;
+    }
+    const targetCandidate = findNpcCandidateByInternalName(npcIndex, targetNpcInternalName);
+    if (!targetCandidate) continue;
+    const sourceRows = bySourceNpc.get(sourceNpcInternalName) ?? [];
+    for (const sourceRow of sourceRows) {
+      const inheritedRow = buildInheritedLootRelation({
+        sourceRow,
+        rule,
+        targetNpcInternalName,
+        targetCandidate,
+        sourceNpcInternalName,
+      });
+      if (directStableKeys.has(lootRelationStableKey(inheritedRow))) continue;
+      inheritedRows.push(inheritedRow);
+    }
+  }
+  return inheritedRows;
+}
+
+function buildInheritedLootRelation({
+  sourceRow,
+  rule,
+  targetNpcInternalName,
+  targetCandidate,
+  sourceNpcInternalName,
+}) {
+  const raw = {
+    ...parseRelationRawJson(sourceRow.rawJson),
+    inheritanceKind: normalizeText(rule.inheritanceKind ?? rule.inheritance_kind),
+    inheritedFromNpcInternalName: sourceNpcInternalName,
+    inheritanceEvidenceSource: normalizeText(rule.evidenceSource ?? rule.evidence_source),
+    inheritedSourceFactKey: sourceRow.sourceFactKey,
+  };
+  return {
+    ...sourceRow,
+    recordKey: createRecordKey({
+      type: 'npc_loot_relation_inherited',
+      sourceRecordKey: sourceRow.recordKey,
+      targetNpcInternalName,
+    }),
+    npcSourceId: toNullableNumber(targetCandidate?.source_id ?? targetCandidate?.sourceId),
+    npcInternalName: targetNpcInternalName,
+    npcName: normalizeText(targetCandidate?.name) ?? normalizeText(targetCandidate?.english_name) ?? targetNpcInternalName,
+    reason: 'contract_backed_inherited_loot',
+    rawJson: JSON.stringify(raw),
+  };
+}
+
+function parseRelationRawJson(value) {
+  if (!value) return {};
+  if (typeof value === 'object' && !Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(String(value));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
 }

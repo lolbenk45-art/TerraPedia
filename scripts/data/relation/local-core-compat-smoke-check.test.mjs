@@ -39,6 +39,35 @@ test('buildLocalCoreCompatSmokeCheck passes when row counts keys and blocking fi
   assert.equal(actual.domainResults.items.rowCountMismatch, false);
 });
 
+test('buildLocalCoreCompatSmokeCheck allows documented zh recipe local-only item rows', () => {
+  const actual = buildLocalCoreCompatSmokeCheck({
+    localData: {
+      items: [
+        { internal_name: 'IronPickaxe', name: 'Iron Pickaxe', image: 'item.png' },
+        {
+          internal_name: 'ZH_RECIPE_BLUE_JELLYFISH_BAIT',
+          name: 'Blue Jellyfish (bait)',
+          source_provider: 'wiki_zh_recipe_import'
+        }
+      ],
+      npcs: [],
+      projectiles: [],
+      buffs: []
+    },
+    projectionData: {
+      projection_items: [{ internal_name: 'IronPickaxe', name: 'Iron Pickaxe', image: 'item.png' }],
+      projection_npcs: [],
+      projection_projectiles: [],
+      projection_buffs: []
+    }
+  });
+
+  assert.equal(actual.ok, true);
+  assert.deepEqual(actual.failedDomains, []);
+  assert.equal(actual.domainResults.items.rowCountMismatch, false);
+  assert.deepEqual(actual.domainResults.items.acceptedLocalOnlyExceptions, ['ZH_RECIPE_BLUE_JELLYFISH_BAIT']);
+});
+
 test('buildLocalCoreCompatSmokeCheck fails on projection-only key and field gaps', () => {
   const actual = buildLocalCoreCompatSmokeCheck({
     localData: {

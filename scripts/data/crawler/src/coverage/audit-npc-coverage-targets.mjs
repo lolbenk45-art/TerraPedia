@@ -2,9 +2,11 @@ import { fetchWikiPageMetadataBatch } from '../../../lib/wiki-item-utils.mjs';
 
 export async function auditNpcCoverageTargets({
   targets,
+  crawledEntityIds,
   fetchWikiPageMetadataBatchImpl = fetchWikiPageMetadataBatch
 } = {}) {
   const targetRows = Array.isArray(targets) ? targets : [];
+  const crawledIds = new Set((Array.isArray(crawledEntityIds) ? crawledEntityIds : []).map((value) => toEntityId(value)).filter(Boolean));
   const requestedTitles = targetRows.map((target) => String(target?.pageTitle ?? '').trim()).filter(Boolean);
   const pages = requestedTitles.length
     ? await fetchWikiPageMetadataBatchImpl({ titles: requestedTitles })
@@ -24,6 +26,9 @@ export async function auditNpcCoverageTargets({
         ? 'resolved'
         : 'redirect';
 
+    const alreadyCrawled = Boolean(target?.alreadyCrawled)
+      || (resolvedTitle && crawledIds.has(toEntityId(resolvedTitle)));
+
     return {
       ...target,
       requestedTitle,
@@ -32,7 +37,8 @@ export async function auditNpcCoverageTargets({
       pageId: page?.pageId ?? null,
       missing,
       resolutionStatus,
-      eligibleBatch: !target?.alreadyCrawled && !missing
+      alreadyCrawled,
+      eligibleBatch: !alreadyCrawled && !missing
     };
   });
 
@@ -132,4 +138,12 @@ function toText(value) {
   }
   const text = String(value).trim();
   return text.length ? text : null;
+}
+
+function toEntityId(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
