@@ -452,20 +452,38 @@ function stripWikiTemplates(value) {
   return normalizeText(text.replace(/\s+/g, ' '));
 }
 
-function stripTrailingParentheticalGroups(value) {
+function isQuantityParentheticalText(value) {
+  const text = normalizeText(value);
+  if (!text) return false;
+  return /^\d+(?:\s*[–-]\s*\d+)?(?:\s*(?:pieces?|items?))?$/iu.test(text);
+}
+
+function isNpcNameParentheticalText(value, sourceRefNames = []) {
+  const text = normalizeSourceRefName(value);
+  if (!text) return false;
+  const textKey = normalizeLookupKey(text);
+  if (!textKey) return false;
+  return sourceRefNames.some((name) => normalizeLookupKey(normalizeSourceRefName(name)) === textKey);
+}
+
+function stripSafeNpcDropParentheticalGroups(value, { sourceRefNames = [] } = {}) {
   let text = normalizeText(value);
   if (!text) return null;
 
   for (let index = 0; index < 4; index += 1) {
-    const next = text.replace(/\s+\([^()]+\)\s*$/u, '').trim();
-    if (next === text) break;
-    text = next;
+    const match = text.match(/\s+\(([^()]+)\)\s*$/u);
+    if (!match) break;
+    const groupText = match[1];
+    if (!isQuantityParentheticalText(groupText) && !isNpcNameParentheticalText(groupText, sourceRefNames)) {
+      break;
+    }
+    text = text.slice(0, match.index).trim();
   }
 
   return normalizeText(text);
 }
 
-function buildItemLookupNames(values = [], { allowNpcDropCleanup = false } = {}) {
+function buildItemLookupNames(values = [], { allowNpcDropCleanup = false, sourceRefNames = [] } = {}) {
   const names = [];
   const seen = new Set();
   const add = (value) => {
@@ -483,7 +501,7 @@ function buildItemLookupNames(values = [], { allowNpcDropCleanup = false } = {})
     if (!allowNpcDropCleanup) continue;
     const withoutTemplates = stripWikiTemplates(text);
     add(withoutTemplates);
-    add(stripTrailingParentheticalGroups(withoutTemplates));
+    add(stripSafeNpcDropParentheticalGroups(withoutTemplates, { sourceRefNames }));
   }
 
   return names;
@@ -507,7 +525,15 @@ function resolveItemRef(row = {}, raw = {}, itemIndex = new Map()) {
     raw.itemName,
     raw.item_name,
     raw.raw?.name
-  ], { allowNpcDropCleanup: sourceType === 'drop' && sourceRefType === 'npc' });
+  ], {
+    allowNpcDropCleanup: sourceType === 'drop' && sourceRefType === 'npc',
+    sourceRefNames: [
+      row.source_ref_name,
+      row.sourceRefName,
+      raw.sourceRefName,
+      raw.source_ref_name,
+    ],
+  });
   const candidates = dedupeItemCandidates(candidateNames.flatMap((name) => lookupItemCandidates(itemIndex, name)));
 
   if (candidates.length === 1) {

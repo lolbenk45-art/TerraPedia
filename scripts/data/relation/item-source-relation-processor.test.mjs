@@ -1921,6 +1921,43 @@ test('buildItemSourceRelations resolves loot item names after stripping trailing
   assert.equal(actual.itemNpcRelationAudits.some((audit) => audit.reasonCode === 'item_unresolved'), false);
 });
 
+test('buildItemSourceRelations does not strip semantic parentheticals for NPC drop item lookup', () => {
+  const actual = buildItemSourceRelations({
+    itemSourceRows: [
+      {
+        id: 85,
+        record_key: 'npc-item:test-npc:loot:ancient-relic-event:0',
+        item_internal_name: null,
+        item_name: 'Ancient Relic (event)',
+        source_type: 'drop',
+        source_ref_type: 'npc',
+        source_ref_name: 'Test NPC',
+        raw_json: JSON.stringify({
+          relationType: 'loot',
+          sourceSection: 'drops',
+          itemName: 'Ancient Relic (event)',
+          chanceText: '1%',
+          sourceRefName: 'Test NPC',
+          sourceRefInternalName: 'TestNpc',
+          sourceRefResolution: 'exact_internal_name'
+        })
+      }
+    ],
+    npcIndex: new Map([
+      ['Test NPC', { source_id: -11, internal_name: 'TestNpc', name: 'Test NPC' }]
+    ]),
+    itemIndex: new Map([
+      ['Ancient Relic', { source_id: 9003, internal_name: 'AncientRelic', english_name: 'Ancient Relic' }],
+      ['ancient relic', { source_id: 9003, internal_name: 'AncientRelic', english_name: 'Ancient Relic' }]
+    ])
+  });
+
+  assert.equal(actual.npcLootRelations.length, 0);
+  assert.equal(actual.itemNpcRelationAudits.length, 1);
+  assert.equal(actual.itemNpcRelationAudits[0].reasonCode, 'item_unresolved');
+  assert.equal(actual.sourceFacts[0].itemInternalName, null);
+});
+
 test('buildItemSourceRelations resolves loot item names after stripping wiki note templates', () => {
   const actual = buildItemSourceRelations({
     itemSourceRows: [
