@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const startSource = () => fs.readFileSync('scripts/dev/start-local-stack.sh', 'utf8');
 const stopSource = () => fs.readFileSync('scripts/dev/stop-local-stack.sh', 'utf8');
 const smokeSource = () => fs.readFileSync('scripts/dev/smoke-local-stack.sh', 'utf8');
+const legacyApplicationSource = () => fs.readFileSync('back/src/main/resources/application-legacy.yml', 'utf8');
 
 test('stop defaults to recorded pid files and gates port cleanup behind ForcePorts', () => {
   const source = stopSource();
@@ -36,9 +37,18 @@ test('start uses configured spring profile and run-scoped logs instead of deleti
   assert.match(source, /run_id=/i);
   assert.match(source, /log_path\(\)[\s\S]*\$run_id/i);
   assert.match(source, /spring-boot\.run\.profiles="\$spring_profile"/i);
+  assert.match(source, /require_command setsid/i);
+  assert.match(source, /nohup setsid "\$@"/i);
   assert.doesNotMatch(source, /spring-boot\.run\.profiles=legacy/i);
   assert.doesNotMatch(source, /Remove-Item\s+\$BaseLogPath/i);
   assert.doesNotMatch(source, /Remove-Item\s+\$errPath/i);
+});
+
+test('legacy backend profile keeps local stack database url overrideable', () => {
+  const source = legacyApplicationSource();
+
+  assert.match(source, /url:\s*\$\{TERRAPEDIA_DB_URL:/);
+  assert.doesNotMatch(source, /url:\s*jdbc:mysql:\/\/localhost:3306\/terria_v1_local/);
 });
 
 test('start writes a sanitized run manifest with preflight and health details', () => {
@@ -95,6 +105,17 @@ test('smoke script does not persist login tokens in reports', () => {
   assert.match(source, /redacted/i);
   assert.doesNotMatch(source, /preview\s*=\s*\(\[string\]\$response\.Content\)/i);
   assert.doesNotMatch(source, /preview\s*=\s*\$login/i);
+});
+
+test('smoke script builds auth headers from an environment token only', () => {
+  const source = smokeSource();
+
+  assert.match(source, /SMOKE_AUTH_BEARER_TOKEN=/);
+  assert.match(source, /process\.env\.SMOKE_AUTH_BEARER_TOKEN/);
+  assert.match(source, /headers_json='\{\}'/);
+  assert.doesNotMatch(source, /\$\{4:-\{\}\}/);
+  assert.doesNotMatch(source, /AUTH_VALUE="Bearer \$bearer_token"/);
+  assert.doesNotMatch(source, /AUTH_BEARER_TOKEN="\$bearer_token" node/);
 });
 
 test('local stack boundary tests are included in local and ci gates', () => {

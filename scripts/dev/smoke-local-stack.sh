@@ -72,13 +72,21 @@ smoke_request() {
   local name="$1"
   local method="$2"
   local url="$3"
-  local headers_json="${4:-{}}"
+  local headers_json="${4:-}"
+  local auth_bearer="${5:-}"
 
-  SMOKE_NAME="$name" SMOKE_METHOD="$method" SMOKE_URL="$url" SMOKE_HEADERS_JSON="$headers_json" SMOKE_RESULTS_PATH="$results_path" node <<'NODE'
+  if [[ -z "$headers_json" ]]; then
+    headers_json='{}'
+  fi
+
+  SMOKE_NAME="$name" SMOKE_METHOD="$method" SMOKE_URL="$url" SMOKE_HEADERS_JSON="$headers_json" SMOKE_AUTH_BEARER_TOKEN="$auth_bearer" SMOKE_RESULTS_PATH="$results_path" node <<'NODE'
 const fs = require('node:fs');
 
 (async () => {
   const headers = JSON.parse(process.env.SMOKE_HEADERS_JSON || '{}');
+  if (process.env.SMOKE_AUTH_BEARER_TOKEN) {
+    headers.authorization = `Bearer ${process.env.SMOKE_AUTH_BEARER_TOKEN}`;
+  }
   const entry = {
     name: process.env.SMOKE_NAME,
     method: process.env.SMOKE_METHOD,
@@ -154,13 +162,9 @@ smoke_request admin.proxy.items GET "$(join_url "$admin_base_url" '/api/items?pa
 if ! $skip_auth && [[ -n "$TP_ADMIN_USERNAME" && -n "$TP_ADMIN_PASSWORD" ]]; then
   bearer_token="$(SMOKE_AUTH_LOGIN=1 smoke_login "$(join_url "$backend_base_url" '/api/auth/login')")"
   if [[ -n "$bearer_token" ]]; then
-    auth_headers="$(AUTH_VALUE="Bearer $bearer_token" node <<'NODE'
-console.log(JSON.stringify({ authorization: process.env.AUTH_VALUE }));
-NODE
-)"
-    smoke_request auth.me GET "$(join_url "$backend_base_url" '/api/auth/me')" "$auth_headers"
-    smoke_request admin.acceptance.dataSource GET "$(join_url "$backend_base_url" '/api/admin/data-source-acceptance/overview')" "$auth_headers"
-    smoke_request admin.acceptance.domain GET "$(join_url "$backend_base_url" '/api/admin/domain-acceptance/overview')" "$auth_headers"
+    smoke_request auth.me GET "$(join_url "$backend_base_url" '/api/auth/me')" '{}' "$bearer_token"
+    smoke_request admin.acceptance.dataSource GET "$(join_url "$backend_base_url" '/api/admin/data-source-acceptance/overview')" '{}' "$bearer_token"
+    smoke_request admin.acceptance.domain GET "$(join_url "$backend_base_url" '/api/admin/domain-acceptance/overview')" '{}' "$bearer_token"
   fi
 fi
 

@@ -83,7 +83,7 @@ start_background() {
 
   (
     cd "$cwd"
-    nohup "$@" >"$out_path" 2>"$err_path" &
+    nohup setsid "$@" >"$out_path" 2>"$err_path" &
     pid=$!
     printf '%s\n' "$pid" >"$report_dir/$name.pid"
     append_process "$name" "$pid" "$out_path" "$err_path" "$command_text" running
@@ -112,6 +112,7 @@ load_runtime_config
 require_command node
 require_command mvn
 require_command pnpm
+require_command setsid
 require_runtime_secret_before_manifest TP_ADMIN_PASSWORD
 require_runtime_secret_before_manifest TP_ADMIN_TOKEN_SECRET
 require_runtime_secret_before_manifest TP_USER_TOKEN_SECRET
