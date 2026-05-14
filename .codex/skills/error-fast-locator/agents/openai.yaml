@@ -1,0 +1,4 @@
+interface:
+  display_name: "Error Fast Locator"
+  short_description: "Summarize failures into compact diagnostics."
+  default_prompt: "Use this skill when command output contains network errors, wrong paths, missing files, permission failures, DNS issues, or similar noisy errors and you need a concise root-cause summary with minimal token cost."

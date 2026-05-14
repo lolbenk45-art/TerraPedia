@@ -1,0 +1,7 @@
+interface:
+  display_name: "Git Task Archiver"
+  short_description: "Route task context to git or task/ with minimal token overhead."
+  default_prompt: "Use $git-task-archiver to decide whether this task should stay in git or create a compact task archive under task/."
+
+policy:
+  allow_implicit_invocation: true

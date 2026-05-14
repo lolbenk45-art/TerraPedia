@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web Access"
+  short_description: "联网检索、页面读取与浏览器操作路由层"
+  default_prompt: "Use $web-access to handle web research, dynamic-page browsing, or login-dependent browser workflows with the right Codex tool path."

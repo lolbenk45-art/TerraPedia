@@ -1,0 +1,4 @@
+interface:
+  display_name: "Token Context Optimizer"
+  short_description: "Reduce token waste with scoped context and reusable summaries."
+  default_prompt: "Use $token-context-optimizer to minimize context, reuse summaries, and keep the task efficient."

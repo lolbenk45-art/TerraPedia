@@ -1,0 +1,7 @@
+interface:
+  display_name: "TerraPedia Workflow Guard"
+  short_description: "Guard TerraPedia repo tasks with workflow checks"
+  default_prompt: "Use $terrapedia-workflow-guard to enforce the TerraPedia repo workflow before implementation."
+
+policy:
+  allow_implicit_invocation: true

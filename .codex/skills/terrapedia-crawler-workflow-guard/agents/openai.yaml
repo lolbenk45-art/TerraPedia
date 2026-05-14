@@ -1,0 +1,7 @@
+interface:
+  display_name: "TerraPedia Crawler Guard"
+  short_description: "Guard crawler-only TerraPedia edits and runs"
+  default_prompt: "Use $terrapedia-crawler-workflow-guard before editing or running TerraPedia crawler files."
+
+policy:
+  allow_implicit_invocation: true
