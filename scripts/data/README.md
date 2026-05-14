@@ -4,6 +4,10 @@ Default shared data root:
 
 - `G:\ClaudeCode\data\terraPedia`
 
+`scripts/data` owns data lifecycle automation. It is responsible for collecting source material, normalizing or transforming it, producing canonical datasets, auditing quality, importing or backfilling the active system, synchronizing standardized data, composing workflows, and exporting consumer-ready data.
+
+It does not own local stack lifecycle, Windows Scheduled Task wrappers, repository maintenance tooling, shared cross-script runtime helpers, app runtime code, or CI workflow business logic.
+
 ## Directory Layout
 
 - `scripts/data/crawler`
@@ -34,6 +38,27 @@ Default shared data root:
   - Convert raw/shared datasets into local standardized outputs
 - `scripts/data/lib`
   - Shared MediaWiki, parsing, and upload utilities
+
+## Stable Entrypoints And Move Boundaries
+
+Stable path-sensitive entrypoints:
+
+- `scripts/data/workflow/run-wiki-sync.mjs`
+- `scripts/data/workflow/run-backend-data-refresh.mjs`
+- `scripts/data/workflow/run-backend-data-refresh-daemon.mjs`
+- `scripts/data/crawler/source-layout-check.mjs`
+
+Current non-move candidates:
+
+- `scripts/data/workflow/**`
+- `scripts/data/audit/**`
+- `scripts/data/crawler/src/**`
+- `scripts/data/crawler/tests/**`
+- `scripts/data/crawler/source-layout-check.mjs`
+
+Workflow and audit paths are active automation contracts. Crawler source and tests are coupled to source layout checks. Do not move these paths in the current responsibility-structure pass.
+
+`.github/workflows/**` should call stable scripts instead of embedding data pipeline logic directly in workflow YAML. CI may select modes, pass flags, or collect reports, but business sequencing belongs in scripts under the owning data directory.
 
 ## Target Lifecycle
 

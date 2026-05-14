@@ -5,8 +5,14 @@ back/.m2/
 
 # Frontend build outputs
 front/dist/
+front/coverage/
+front/.vite/
+front/.turbo/
 data-query-app/.nuxt/
 data-query-app/.output/
+data-query-app/coverage/
+data-query-app/.vite/
+data-query-app/.turbo/
 
 # Nuxt local runtime/cache folders
 data-query-app/.appdata/
@@ -24,8 +30,13 @@ data-query-app/--host/
 *.err
 *.out
 
-# Keep markdown/json reports, but ignore generated runtime folders
-reports/
+# Keep report policy and relation evidence, but ignore generated runtime folders
+reports/*
+!reports/README.md
+!reports/relation/
+reports/relation/*
+!reports/relation/*.md
+!reports/relation/*.json
 !reports/domain/
 reports/domain/staleness-history.jsonl
 reports/local-start/
@@ -51,6 +62,7 @@ project-plan/plan-/Microsoft/Windows/PowerShell/ModuleAnalysisCache
 # OS/editor files
 .DS_Store
 Thumbs.db
+*:Zone.Identifier
 .worktrees/
 .claude/
 

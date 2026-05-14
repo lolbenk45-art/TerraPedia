@@ -4,10 +4,10 @@
   [switch]$KeepLogs
 )
 
-$projectRoot = Split-Path -Parent $PSScriptRoot
-$batchesDir = Join-Path $projectRoot "migration/process-logs/batches"
-$summariesDir = Join-Path $projectRoot "migration/process-logs/summaries"
-$cleanupDir = Join-Path $projectRoot "migration/process-logs/cleanup"
+$migrationRoot = Split-Path -Parent $PSScriptRoot
+$batchesDir = Join-Path $migrationRoot "process-logs/batches"
+$summariesDir = Join-Path $migrationRoot "process-logs/summaries"
+$cleanupDir = Join-Path $migrationRoot "process-logs/cleanup"
 
 if (!(Test-Path $batchesDir)) {
   throw "Batch log directory not found: $batchesDir"

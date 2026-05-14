@@ -1,5 +1,7 @@
 # Local Dev Config
 
+`scripts/dev/config` owns local developer configuration templates used by local stack and validation scripts. It does not own data refresh pipeline logic, ops scheduled-task wrappers, shared script libraries, or CI workflow business logic.
+
 - `local-stack.config.example.json`
   - Committed template for local ports, DB, Redis, auth, MinIO, and backend refresh scheduler options
 - `local-stack.config.json`
@@ -10,6 +12,25 @@
   - Ignored local MinIO credential file referenced from `local-stack.config.json`
 
 Do not copy real local secrets into committed docs or reports. This includes DB passwords, Redis passwords, admin passwords, token secrets, bearer tokens, and MinIO keys.
+
+Stable consumers:
+
+- `scripts/dev/start-local-stack.ps1`
+- `scripts/dev/stop-local-stack.ps1`
+- `scripts/dev/verify-local-stack.ps1`
+- `scripts/dev/smoke-local-stack.ps1`
+- `scripts/dev/quality-gate.ps1`
+- `scripts/dev/quality-gate-ci.ps1`
+- `scripts/lib/local-runtime-config.mjs`
+- `scripts/data/workflow/run-backend-data-refresh.mjs`
+- `scripts/data/workflow/run-backend-data-refresh-daemon.mjs`
+- `scripts/ops/*.ps1`
+
+Boundary rules:
+
+- Keep template keys stable for local stack, data refresh, and ops callers unless a separate implementation plan owns the compatibility update.
+- `.github/workflows/**` should invoke stable scripts and must not duplicate local config parsing or data refresh pipeline logic.
+- This README documents configuration ownership only and must not change command behavior or scheduler defaults.
 
 Recommended setup:
 

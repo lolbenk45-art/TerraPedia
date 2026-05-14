@@ -1,7 +1,7 @@
 ﻿# Frontend Migration Plan (User-Facing App)
 
 Last Updated: 2026-03-28
-Scope: `G:\ClaudeCode\terraPedia\front`
+Scope: user-facing frontend migration records, originally executed under `front/`
 Mode: docs-first, batch execution, strict context control
 
 ## 1. Hard Constraints
@@ -23,17 +23,17 @@ Mode: docs-first, batch execution, strict context control
 ## 3.1 Progress Snapshot
 
 - B1 (Entry and Router Split): completed on 2026-03-28
-- B1 summary: `migration/process-logs/summaries/summary-20260328-B1.md`
-- B1 cleanup record: `migration/process-logs/cleanup/cleanup-20260328-132133.log`
+- B1 summary: `process-logs/summaries/summary-20260328-B1.md`
+- B1 cleanup record: `process-logs/cleanup/cleanup-20260328-132133.log`
 - B2 (List/Home Pages): completed on 2026-03-28
-- B2 summary: `migration/process-logs/summaries/summary-20260328-B2.md`
-- B2 cleanup record: `migration/process-logs/cleanup/cleanup-20260328-144800.log`
+- B2 summary: `process-logs/summaries/summary-20260328-B2.md`
+- B2 cleanup record: `process-logs/cleanup/cleanup-20260328-144800.log`
 - B3 (Detail + Editor pages, safe subset): completed on 2026-03-28
-- B3 summary: `migration/process-logs/summaries/summary-20260328-B3.md`
-- B3 cleanup record: `migration/process-logs/cleanup/cleanup-20260328-145242.log`
+- B3 summary: `process-logs/summaries/summary-20260328-B3.md`
+- B3 cleanup record: `process-logs/cleanup/cleanup-20260328-145242.log`
 - B4 (Auth/API contracts): completed on 2026-03-28
-- B4 summary: `migration/process-logs/summaries/summary-20260328-B4.md`
-- B4 cleanup record: `migration/process-logs/cleanup/cleanup-20260328-145511.log`
+- B4 summary: `process-logs/summaries/summary-20260328-B4.md`
+- B4 cleanup record: `process-logs/cleanup/cleanup-20260328-145511.log`
 
 ## 3.2 Batch 1: Entry and Router Split (completed)
 
@@ -117,9 +117,9 @@ For each integration endpoint touching relational data:
 
 ## 5. Logging Workflow
 
-- Working logs: `migration/process-logs/batches/*.md`
-- Period summary: `migration/process-logs/summaries/*.md`
-- Cleanup record: `migration/process-logs/cleanup/*.log`
+- Working logs: `process-logs/batches/*.md`
+- Period summary: `process-logs/summaries/*.md`
+- Cleanup record: `process-logs/cleanup/*.log`
 
 Process:
 1. Write batch progress to a batch log.
