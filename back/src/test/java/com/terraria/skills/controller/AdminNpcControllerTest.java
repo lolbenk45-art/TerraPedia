@@ -29,7 +29,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -226,6 +226,54 @@ class AdminNpcControllerTest {
         mockMvc.perform(get("/admin/npcs/2"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.imageUrl").value("http://localhost:9000/terrapedia-images/npcs/managed-hornet.gif"));
+    }
+
+    @Test
+    void shouldReturnManagedLootItemImagesFromItemImageCacheInDetailPayload() throws Exception {
+        Npc npc = new Npc();
+        npc.setId(253L);
+        npc.setGameId(253L);
+        npc.setInternalName("Reaper");
+        npc.setName("Reaper");
+        npc.setStatus(1);
+
+        String managedImage = "http://localhost:9000/terrapedia-images/items/wiki/items/de/death-sickle.png";
+        Map<String, Object> lootEntry = new LinkedHashMap<>();
+        lootEntry.put("id", 91L);
+        lootEntry.put("itemId", 1327L);
+        lootEntry.put("dropSourceKind", "npc_drop");
+        lootEntry.put("itemName", "Death Sickle");
+        lootEntry.put("itemInternalName", "DeathSickle");
+        lootEntry.put("itemImage", managedImage);
+
+        when(npcMapper.selectById(253L)).thenReturn(npc);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_loot_entries"), eq(Integer.class), eq(253L))).thenReturn(1);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_buff_relations"), eq(Integer.class), eq(253L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("FROM npc_shop_entries"), eq(Integer.class), eq(253L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(contains("source_ref_id = ?"), eq(Integer.class), eq(253L))).thenReturn(0);
+        when(jdbcTemplate.queryForObject(
+            contains("LOWER(TRIM(source_ref_name)) = LOWER(TRIM(?))"),
+            eq(Integer.class),
+            eq("Reaper")
+        )).thenReturn(0);
+        when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries nle"), eq(253L))).thenReturn(List.of(lootEntry));
+        when(jdbcTemplate.queryForList(contains("source_ref_id IS NULL"), eq("Reaper"))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(253L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries nse"), eq(253L))).thenReturn(List.of());
+
+        mockMvc.perform(get("/admin/npcs/253"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.lootEntries[0].itemName").value("Death Sickle"))
+            .andExpect(jsonPath("$.data.lootEntries[0].itemImage").value(managedImage));
+
+        ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate, atLeastOnce()).queryForList(queryCaptor.capture(), eq(253L));
+        assertTrue(queryCaptor.getAllValues().stream().anyMatch(sql ->
+            sql.contains("FROM npc_loot_entries nle")
+                && sql.contains("item_images ii")
+                && sql.contains("ii.cached_url")
+                && sql.contains("AS itemImage")
+        ));
     }
 
     @Test
@@ -823,8 +871,13 @@ class AdminNpcControllerTest {
         shopEntry.put("itemId", 8L);
         shopEntry.put("itemName", "Rope");
         shopEntry.put("itemImage", "https://terraria.wiki.gg/images/Rope.png");
-        when(jdbcTemplate.queryForList(contains("item_images ii"), eq(7L))).thenReturn(List.of(shopEntry));
-        when(jdbcTemplate.queryForList(contains("FROM npc_shop_conditions"), eq(21L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(
+            argThat(sql -> sql != null
+                && sql.contains("FROM npc_shop_entries nse")
+                && sql.contains("item_images ii")),
+            eq(7L)
+        )).thenReturn(List.of(shopEntry));
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_conditions nsc"), eq(21L))).thenReturn(List.of());
 
         mockMvc.perform(get("/admin/npcs/7").accept(APPLICATION_JSON))
             .andExpect(status().isOk())

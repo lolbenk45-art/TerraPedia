@@ -76,7 +76,21 @@ test('generic NPC shop projection cards prefer trusted backend images over proje
   assert.match(entitiesPage, /demo/)
   assert.match(entitiesPage, /placed/)
   assert.match(entitiesPage, /function pickTrustedNpcProjectionImage/)
-  assert.match(entitiesPage, /key === 'shop'\s*\?\s*getTrustedNpcShopImage\(entry\) \|\| getNpcProjectionImage\(entry\)/)
+  assert.match(entitiesPage, /if \(key === 'shop'\) return getTrustedNpcShopImage\(entry\) \|\| getNpcProjectionImage\(entry\)/)
+})
+
+test('generic NPC loot projection cards prefer trusted structured loot images', () => {
+  const lootLookupBlock = entitiesPage.match(/const trustedNpcLootImageByItemKey = computed[\s\S]*?\n\}\)/)?.[0] ?? ''
+  const lootResolverBlock = entitiesPage.match(/function getTrustedNpcLootImage[\s\S]*?\n\}/)?.[0] ?? ''
+
+  assert.match(entitiesPage, /trustedNpcLootImageByItemKey/)
+  assert.match(entitiesPage, /function getTrustedNpcLootImage/)
+  assert.match(entitiesPage, /isManagedTerrapediaImageUrl/)
+  assert.match(lootLookupBlock, /for \(const key of \[entry\.itemId, entry\.itemInternalName, entry\.internalName\]\)/)
+  assert.match(lootResolverBlock, /for \(const key of \[entry\.itemId, entry\.itemInternalName, entry\.internalName\]\)/)
+  assert.doesNotMatch(lootLookupBlock, /sourceItemId|itemSourceId/)
+  assert.doesNotMatch(lootResolverBlock, /sourceItemId|itemSourceId/)
+  assert.match(entitiesPage, /if \(key === 'loot'\) return getTrustedNpcLootImage\(entry\) \|\| getNpcProjectionImage\(entry\)/)
 })
 
 test('generic NPC admin marks inherited prototype loot separately', () => {

@@ -194,6 +194,39 @@ class AdminNpcRelationControllerTest {
     }
 
     @Test
+    void shouldReturnManagedLootItemImagesFromItemImageCacheForRelationEndpoint() throws Exception {
+        Npc npc = new Npc();
+        npc.setId(253L);
+        npc.setGameId(253L);
+        npc.setInternalName("Reaper");
+        npc.setName("Reaper");
+        npc.setStatus(1);
+
+        String managedImage = "http://localhost:9000/terrapedia-images/items/wiki/items/de/death-sickle.png";
+
+        when(npcMapper.selectById(253L)).thenReturn(npc);
+        when(jdbcTemplate.queryForList(contains("FROM npc_loot_entries nle"), eq(253L))).thenReturn(List.of(Map.of(
+            "id", 91L,
+            "itemId", 1327L,
+            "itemName", "Death Sickle",
+            "itemInternalName", "DeathSickle",
+            "itemImage", managedImage
+        )));
+
+        mockMvc.perform(get("/admin/npcs/253/loot"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].itemName").value("Death Sickle"))
+            .andExpect(jsonPath("$.data[0].itemImage").value(managedImage));
+
+        ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate).queryForList(queryCaptor.capture(), eq(253L));
+        assertTrue(queryCaptor.getValue().contains("FROM npc_loot_entries nle"));
+        assertTrue(queryCaptor.getValue().contains("item_images ii"));
+        assertTrue(queryCaptor.getValue().contains("ii.cached_url"));
+        assertTrue(queryCaptor.getValue().contains("AS itemImage"));
+    }
+
+    @Test
     void shouldReplaceOnlyNpcDropRowsWhenReplacingLootEntries() throws Exception {
         Npc npc = new Npc();
         npc.setId(7L);

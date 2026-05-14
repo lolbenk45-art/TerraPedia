@@ -1702,6 +1702,11 @@ function isTrustedWikiImageUrl(value: unknown) {
   return image
 }
 
+function isManagedTerrapediaImageUrl(value: unknown) {
+  const image = normalizeImageUrl(value)
+  return image.toLowerCase().includes('/terrapedia-images/') ? image : ''
+}
+
 function splitImageCsv(value: unknown) {
   if (typeof value !== 'string' || !value.trim()) return []
   return value.split(',').map(entry => normalizeImageUrl(entry)).filter(Boolean)
@@ -2844,13 +2849,25 @@ const npcBuffRelations = computed<Array<Record<string, any>>>(() => {
     .filter(item => item && typeof item === 'object')
     .map(item => normalizeRow(item as Record<string, any>))
 })
+const trustedNpcLootImageByItemKey = computed<Record<string, string>>(() => {
+  const lookup: Record<string, string> = {}
+  for (const entry of npcLootEntries.value) {
+    const image = isManagedTerrapediaImageUrl(entry.itemImage ?? entry.itemImageUrl ?? entry.imageUrl ?? entry.image)
+    if (!image) continue
+    for (const key of [entry.itemId, entry.itemInternalName, entry.internalName]) {
+      if (key == null || key === '') continue
+      lookup[String(key)] ||= image
+    }
+  }
+  return lookup
+})
 const trustedNpcShopImageByItemKey = computed<Record<string, string>>(() => {
   if (!detailRow.value || entityType.value !== 'npcs' || !Array.isArray(detailRow.value.shopEntries)) return {}
   const lookup: Record<string, string> = {}
   for (const rawEntry of detailRow.value.shopEntries) {
     if (!rawEntry || typeof rawEntry !== 'object') continue
     const entry = rawEntry as Record<string, any>
-    const image = normalizeImageUrl(entry.itemImage ?? entry.itemImageUrl ?? entry.imageUrl ?? entry.image)
+    const image = isManagedTerrapediaImageUrl(entry.itemImage ?? entry.itemImageUrl ?? entry.imageUrl ?? entry.image)
     if (!image) continue
     for (const key of [entry.itemId, entry.sourceItemId, entry.itemInternalName, entry.internalName]) {
       if (key == null || key === '') continue
@@ -2908,6 +2925,14 @@ function getNpcProjectionImage(entry: Record<string, any>) {
   }
   return ''
 }
+function getTrustedNpcLootImage(entry: Record<string, any>) {
+  for (const key of [entry.itemId, entry.itemInternalName, entry.internalName]) {
+    if (key == null || key === '') continue
+    const image = trustedNpcLootImageByItemKey.value[String(key)]
+    if (image) return image
+  }
+  return ''
+}
 function getTrustedNpcShopImage(entry: Record<string, any>) {
   for (const key of [entry.itemId, entry.itemSourceId, entry.sourceItemId, entry.itemInternalName, entry.internalName]) {
     if (key == null || key === '') continue
@@ -2917,7 +2942,9 @@ function getTrustedNpcShopImage(entry: Record<string, any>) {
   return ''
 }
 function pickTrustedNpcProjectionImage(key: string, entry: Record<string, any>) {
-  return key === 'shop' ? getTrustedNpcShopImage(entry) || getNpcProjectionImage(entry) : getNpcProjectionImage(entry)
+  if (key === 'loot') return getTrustedNpcLootImage(entry) || getNpcProjectionImage(entry)
+  if (key === 'shop') return getTrustedNpcShopImage(entry) || getNpcProjectionImage(entry)
+  return getNpcProjectionImage(entry)
 }
 function buildNpcProjectionGroup(key: string, label: string, rows: Array<Record<string, any>>) {
   return {

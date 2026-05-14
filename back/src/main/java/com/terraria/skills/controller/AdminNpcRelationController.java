@@ -271,12 +271,12 @@ public class AdminNpcRelationController {
               i.name AS itemName,
               i.name_zh AS itemNameZh,
               i.internal_name AS itemInternalName,
-              i.image AS itemImage
+              %s AS itemImage
             FROM npc_loot_entries nle
             LEFT JOIN items i ON i.id = nle.item_id AND i.deleted = 0
             WHERE nle.npc_id = ? AND nle.deleted = 0
             ORDER BY nle.sort_order ASC, nle.id ASC
-            """,
+            """.formatted(AdminItemImageSql.preferredItemImageExpression("i")),
             npcId
         ), "admin npc relation loot", "itemImage");
     }
@@ -316,7 +316,7 @@ public class AdminNpcRelationController {
               i.name AS itemName,
               i.name_zh AS itemNameZh,
               i.internal_name AS itemInternalName,
-              i.image AS itemImage
+              %s AS itemImage
             FROM item_acquisition_sources ias
             LEFT JOIN items i ON i.id = ias.item_id AND i.deleted = 0
             WHERE ias.source_type = 'drop'
@@ -325,7 +325,7 @@ public class AdminNpcRelationController {
               AND ias.status = 1
               AND ias.deleted = 0
             ORDER BY ias.sort_order ASC, ias.id ASC
-            """,
+            """.formatted(AdminItemImageSql.preferredItemImageExpression("i")),
             npcSourceId
         ), "admin npc relation derived loot by source", "itemImage");
     }
@@ -351,7 +351,7 @@ public class AdminNpcRelationController {
               i.name AS itemName,
               i.name_zh AS itemNameZh,
               i.internal_name AS itemInternalName,
-              i.image AS itemImage
+              %s AS itemImage
             FROM item_acquisition_sources ias
             LEFT JOIN items i ON i.id = ias.item_id AND i.deleted = 0
             WHERE ias.source_type = 'drop'
@@ -361,7 +361,7 @@ public class AdminNpcRelationController {
               AND ias.status = 1
               AND ias.deleted = 0
             ORDER BY ias.sort_order ASC, ias.id ASC
-            """,
+            """.formatted(AdminItemImageSql.preferredItemImageExpression("i")),
             npcName
         ), "admin npc relation derived loot by name", "itemImage");
     }
