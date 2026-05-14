@@ -97,22 +97,40 @@ test('generic NPC loot projection cards prefer trusted structured loot images', 
 test('generic NPC structured loot cards use fallback-capable item image resolver', () => {
   const npcDetailSection = entitiesPage.match(/<div v-else-if="detailRow && entityType === 'npcs'"[\s\S]*?<div v-else-if="detailRow && entityType === 'projectiles'"/)?.[0] ?? ''
   const resolverBlock = entitiesPage.match(/function resolveNpcItemImage[\s\S]*?\n\}/)?.[0] ?? ''
+  const candidateBlock = entitiesPage.match(/function getNpcItemImageCandidates[\s\S]*?\n\}/)?.[0] ?? ''
 
   assert.match(npcDetailSection, /resolveNpcItemImage\(entry\)/)
   assert.doesNotMatch(npcDetailSection, /normalizeImageUrl\(entry\.itemImage\)/)
-  assert.match(resolverBlock, /entry\.itemImage/)
-  assert.match(resolverBlock, /entry\.itemImageUrl/)
-  assert.match(resolverBlock, /entry\.imageUrl/)
-  assert.match(resolverBlock, /entry\.image/)
+  assert.match(resolverBlock, /getNpcItemImageCandidates\(entry\)/)
+  assert.match(candidateBlock, /entry\.itemImage/)
+  assert.match(candidateBlock, /entry\.itemImageUrl/)
+  assert.match(candidateBlock, /entry\.item_image/)
+  assert.match(candidateBlock, /entry\.item_image_url/)
+  assert.match(candidateBlock, /entry\.imageUrl/)
+  assert.match(candidateBlock, /entry\.image_url/)
+  assert.match(candidateBlock, /entry\.image/)
   assert.doesNotMatch(resolverBlock, /\?\?/)
 })
 
 test('generic NPC projection image resolver accepts managed fallback urls', () => {
   const projectionResolverBlock = entitiesPage.match(/function getNpcProjectionImage[\s\S]*?\n\}/)?.[0] ?? ''
 
+  assert.match(entitiesPage, /function getNpcItemImageCandidates/)
   assert.match(projectionResolverBlock, /isManagedTerrapediaImageUrl/)
   assert.match(projectionResolverBlock, /isTrustedWikiImageUrl/)
-  assert.match(projectionResolverBlock, /resolveNpcItemImage\(entry\)/)
+  assert.match(projectionResolverBlock, /getNpcItemImageCandidates\(entry\)/)
+})
+
+test('generic NPC item image resolver prefers managed candidates over earlier wiki urls', () => {
+  const resolverBlock = entitiesPage.match(/function resolveNpcItemImage[\s\S]*?\n\}/)?.[0] ?? ''
+
+  assert.match(resolverBlock, /getNpcItemImageCandidates\(entry\)/)
+  assert.match(resolverBlock, /isManagedTerrapediaImageUrl/)
+  assert.match(resolverBlock, /normalizeImageUrl/)
+  assert.ok(
+    resolverBlock.indexOf('isManagedTerrapediaImageUrl') < resolverBlock.indexOf('normalizeImageUrl'),
+    'managed image candidates must be checked before generic normalized image fallback'
+  )
 })
 
 test('generic NPC admin marks inherited prototype loot separately', () => {

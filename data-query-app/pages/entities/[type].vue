@@ -2919,21 +2919,41 @@ function getNpcProjectionSource(entry: Record<string, any>) {
     .join(' / ')
 }
 function getNpcProjectionImage(entry: Record<string, any>) {
-  const managedImage = isManagedTerrapediaImageUrl(resolveNpcItemImage(entry))
-  if (managedImage) return managedImage
-  for (const value of [entry.itemImageUrl, entry.itemImage, entry.imageUrl, entry.image, entry.__imageUrl]) {
+  const candidates = getNpcItemImageCandidates(entry)
+  for (const value of candidates) {
+    const image = isManagedTerrapediaImageUrl(value)
+    if (image) return image
+  }
+  for (const value of candidates) {
     const image = isTrustedWikiImageUrl(value)
     if (image) return image
   }
   return ''
 }
+function getNpcItemImageCandidates(entry: Record<string, any> | null | undefined) {
+  if (!entry) return []
+  return [
+    entry.itemImage,
+    entry.itemImageUrl,
+    entry.item_image,
+    entry.item_image_url,
+    entry.imageUrl,
+    entry.image_url,
+    entry.image,
+    entry.__imageUrl,
+  ]
+}
 function resolveNpcItemImage(entry: Record<string, any> | null | undefined) {
-  if (!entry) return ''
-  return normalizeImageUrl(entry.itemImage)
-    || normalizeImageUrl(entry.itemImageUrl)
-    || normalizeImageUrl(entry.imageUrl)
-    || normalizeImageUrl(entry.image)
-    || normalizeImageUrl(entry.__imageUrl)
+  const candidates = getNpcItemImageCandidates(entry)
+  for (const value of candidates) {
+    const image = isManagedTerrapediaImageUrl(value)
+    if (image) return image
+  }
+  for (const value of candidates) {
+    const image = normalizeImageUrl(value)
+    if (image) return image
+  }
+  return ''
 }
 function getTrustedNpcLootImage(entry: Record<string, any>) {
   for (const key of [entry.itemId, entry.itemInternalName, entry.internalName]) {
