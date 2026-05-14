@@ -25,6 +25,7 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
@@ -224,6 +225,42 @@ class AdminNpcRelationControllerTest {
         assertTrue(queryCaptor.getValue().contains("item_images ii"));
         assertTrue(queryCaptor.getValue().contains("ii.cached_url"));
         assertTrue(queryCaptor.getValue().contains("AS itemImage"));
+        assertFalse(queryCaptor.getValue().contains("i.image AS itemImage"));
+    }
+
+    @Test
+    void shouldReturnManagedShopItemImagesFromItemImageCacheForRelationEndpoint() throws Exception {
+        Npc npc = new Npc();
+        npc.setId(7L);
+        npc.setGameId(22L);
+        npc.setInternalName("Guide");
+        npc.setName("Guide");
+        npc.setStatus(1);
+
+        String managedImage = "http://localhost:9000/terrapedia-images/items/wiki/to/torch.png";
+
+        when(npcMapper.selectById(7L)).thenReturn(npc);
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries"), eq(7L))).thenReturn(List.of(Map.of(
+            "id", 41L,
+            "itemId", 8L,
+            "itemName", "Torch",
+            "itemInternalName", "Torch",
+            "itemImage", managedImage
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_conditions"), any(Object[].class))).thenReturn(List.of());
+
+        mockMvc.perform(get("/admin/npcs/7/shop-entries"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].itemName").value("Torch"))
+            .andExpect(jsonPath("$.data[0].itemImage").value(managedImage));
+
+        ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate).queryForList(queryCaptor.capture(), eq(7L));
+        assertTrue(queryCaptor.getValue().contains("FROM npc_shop_entries nse"));
+        assertTrue(queryCaptor.getValue().contains("item_images ii"));
+        assertTrue(queryCaptor.getValue().contains("ii.cached_url"));
+        assertTrue(queryCaptor.getValue().contains("AS itemImage"));
+        assertFalse(queryCaptor.getValue().contains("i.image AS itemImage"));
     }
 
     @Test

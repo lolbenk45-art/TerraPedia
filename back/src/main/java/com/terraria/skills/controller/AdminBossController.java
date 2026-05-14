@@ -341,7 +341,7 @@ public class AdminBossController {
               i.name AS itemName,
               i.name_zh AS itemNameZh,
               i.internal_name AS itemInternalName,
-              i.image AS itemImage
+              %s AS itemImage
             FROM npc_loot_entries nle
             LEFT JOIN items i ON i.id = nle.item_id AND i.deleted = 0
             WHERE nle.npc_id = ? AND nle.deleted = 0
@@ -353,7 +353,7 @@ public class AdminBossController {
               END ASC,
               nle.sort_order ASC,
               nle.id ASC
-            """,
+            """.formatted(AdminItemImageSql.preferredItemImageExpression("i")),
             npcId
         ), "itemImage");
     }

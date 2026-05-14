@@ -10,6 +10,7 @@ import com.terraria.skills.service.ManagedImageUrlPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -28,9 +29,13 @@ import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.ArgumentMatchers.contains;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -262,6 +267,17 @@ class AdminBossControllerTest {
             .andExpect(jsonPath("$.data.imageUrl", nullValue()))
             .andExpect(jsonPath("$.data.lootEntries[0].itemImage", nullValue()))
             .andExpect(jsonPath("$.data.lootEntries[1].itemImage").value(MANAGED_IMAGE_URL));
+
+        ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate, atLeastOnce()).queryForList(queryCaptor.capture(), eq(201L));
+        String lootSql = queryCaptor.getAllValues().stream()
+            .filter(sql -> sql.contains("FROM npc_loot_entries nle"))
+            .findFirst()
+            .orElseThrow();
+        assertTrue(lootSql.contains("item_images ii"));
+        assertTrue(lootSql.contains("ii.cached_url"));
+        assertTrue(lootSql.contains("AS itemImage"));
+        assertFalse(lootSql.contains("i.image AS itemImage"));
     }
 
     @Test

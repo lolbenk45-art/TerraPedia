@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.common.ItemImageSql;
 import com.terraria.skills.dto.NpcBuffRelationDTO;
 import com.terraria.skills.dto.NpcDetailDTO;
 import com.terraria.skills.dto.NpcListItemDTO;
@@ -105,13 +106,13 @@ public class PublicNpcServiceImpl implements PublicNpcService {
               i.name AS itemName,
               i.name_zh AS itemNameZh,
               i.internal_name AS itemInternalName,
-              i.image AS itemImage
+              %s AS itemImage
             FROM npc_loot_entries nle
             LEFT JOIN items i ON i.id = nle.item_id AND i.deleted = 0
             WHERE nle.npc_id = ? AND nle.deleted = 0
               AND (nle.drop_source_kind IS NULL OR nle.drop_source_kind = 'npc_drop')
             ORDER BY nle.sort_order ASC, nle.id ASC
-            """,
+            """.formatted(ItemImageSql.preferredItemImageExpression("i")),
             npcId
         );
         Map<Long, String> managedImagesByItemId = resolveManagedItemImages(rows);
@@ -139,12 +140,12 @@ public class PublicNpcServiceImpl implements PublicNpcService {
               i.name AS itemName,
               i.name_zh AS itemNameZh,
               i.internal_name AS itemInternalName,
-              i.image AS itemImage
+              %s AS itemImage
             FROM npc_shop_entries nse
             LEFT JOIN items i ON i.id = nse.item_id AND i.deleted = 0
             WHERE nse.npc_id = ? AND nse.deleted = 0
             ORDER BY nse.sort_order ASC, nse.id ASC
-            """,
+            """.formatted(ItemImageSql.preferredItemImageExpression("i")),
             npcId
         );
         Map<Long, String> managedImagesByItemId = resolveManagedItemImages(rows);

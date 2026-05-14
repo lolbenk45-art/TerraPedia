@@ -11,6 +11,7 @@ import com.terraria.skills.service.impl.PublicBossServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -29,9 +30,12 @@ import java.util.Map;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -142,6 +146,14 @@ class PublicBossControllerTest {
             .andExpect(jsonPath("$.data[0].sourceRevisionTimestamp").doesNotExist())
             .andExpect(jsonPath("$.data[0].createdAt").doesNotExist())
             .andExpect(jsonPath("$.data[0].updatedAt").doesNotExist());
+
+        ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate).queryForList(queryCaptor.capture(), eq(201L));
+        assertTrue(queryCaptor.getValue().contains("FROM npc_loot_entries nle"));
+        assertTrue(queryCaptor.getValue().contains("item_images ii"));
+        assertTrue(queryCaptor.getValue().contains("ii.cached_url"));
+        assertTrue(queryCaptor.getValue().contains("AS itemImage"));
+        assertFalse(queryCaptor.getValue().contains("i.image AS itemImage"));
     }
 
     @Test

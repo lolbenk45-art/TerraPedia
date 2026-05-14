@@ -64,6 +64,7 @@ test('generic NPC admin detail displays parsed projection relation summaries', (
 test('generic NPC admin projection cards render every relation row with item thumbnails', () => {
   assert.doesNotMatch(entitiesPage, /rows\.slice\(0,\s*8\)/)
   assert.match(entitiesPage, /getNpcProjectionImage/)
+  assert.match(entitiesPage, /resolveNpcItemImage/)
   assert.match(entitiesPage, /trustedNpcShopImageByItemKey/)
   assert.match(entitiesPage, /itemImageUrl/)
   assert.match(entitiesPage, /npc-projection-entry__image/)
@@ -91,6 +92,27 @@ test('generic NPC loot projection cards prefer trusted structured loot images', 
   assert.doesNotMatch(lootLookupBlock, /sourceItemId|itemSourceId/)
   assert.doesNotMatch(lootResolverBlock, /sourceItemId|itemSourceId/)
   assert.match(entitiesPage, /if \(key === 'loot'\) return getTrustedNpcLootImage\(entry\) \|\| getNpcProjectionImage\(entry\)/)
+})
+
+test('generic NPC structured loot cards use fallback-capable item image resolver', () => {
+  const npcDetailSection = entitiesPage.match(/<div v-else-if="detailRow && entityType === 'npcs'"[\s\S]*?<div v-else-if="detailRow && entityType === 'projectiles'"/)?.[0] ?? ''
+  const resolverBlock = entitiesPage.match(/function resolveNpcItemImage[\s\S]*?\n\}/)?.[0] ?? ''
+
+  assert.match(npcDetailSection, /resolveNpcItemImage\(entry\)/)
+  assert.doesNotMatch(npcDetailSection, /normalizeImageUrl\(entry\.itemImage\)/)
+  assert.match(resolverBlock, /entry\.itemImage/)
+  assert.match(resolverBlock, /entry\.itemImageUrl/)
+  assert.match(resolverBlock, /entry\.imageUrl/)
+  assert.match(resolverBlock, /entry\.image/)
+  assert.doesNotMatch(resolverBlock, /\?\?/)
+})
+
+test('generic NPC projection image resolver accepts managed fallback urls', () => {
+  const projectionResolverBlock = entitiesPage.match(/function getNpcProjectionImage[\s\S]*?\n\}/)?.[0] ?? ''
+
+  assert.match(projectionResolverBlock, /isManagedTerrapediaImageUrl/)
+  assert.match(projectionResolverBlock, /isTrustedWikiImageUrl/)
+  assert.match(projectionResolverBlock, /resolveNpcItemImage\(entry\)/)
 })
 
 test('generic NPC admin marks inherited prototype loot separately', () => {

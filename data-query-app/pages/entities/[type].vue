@@ -711,7 +711,7 @@
                 <div class="boss-detail__loot-list">
                   <article v-for="entry in group.entries" :key="`${group.key}-${entry.id ?? entry.sortOrder}-${entry.itemId ?? entry.itemInternalName}`" class="boss-detail__loot-card">
                     <button type="button" class="boss-detail__loot-media boss-detail__loot-media--button" @click="openLinkedItemDetail(entry)">
-                      <img v-if="normalizeImageUrl(entry.itemImage)" :src="normalizeImageUrl(entry.itemImage) || ''" class="boss-detail__loot-image" alt="" @error="handleImageError" />
+                      <img v-if="resolveNpcItemImage(entry)" :src="resolveNpcItemImage(entry)" class="boss-detail__loot-image" alt="" @error="handleImageError" />
                       <div v-else class="boss-detail__loot-fallback">{{ group.short }}</div>
                     </button>
                     <div class="boss-detail__loot-body">
@@ -829,7 +829,7 @@
             <div v-if="npcLootEntries.length" class="boss-detail__loot-list">
               <article v-for="entry in npcLootEntries" :key="`npc-loot-${entry.id ?? entry.sortOrder}-${entry.itemId ?? entry.itemInternalName}`" class="boss-detail__loot-card">
                 <button type="button" class="boss-detail__loot-media boss-detail__loot-media--button" @click="openLinkedItemDetail(entry)">
-                  <img v-if="normalizeImageUrl(entry.itemImage)" :src="normalizeImageUrl(entry.itemImage) || ''" class="boss-detail__loot-image" alt="" @error="handleImageError" />
+                  <img v-if="resolveNpcItemImage(entry)" :src="resolveNpcItemImage(entry)" class="boss-detail__loot-image" alt="" @error="handleImageError" />
                   <div v-else class="boss-detail__loot-fallback">IT</div>
                 </button>
                 <div class="boss-detail__loot-body">
@@ -868,7 +868,7 @@
             <div class="boss-detail__loot-list">
               <article v-for="entry in npcInheritedLootEntries" :key="`npc-inherited-loot-${entry.id ?? entry.sortOrder}-${entry.itemId ?? entry.itemInternalName}`" class="boss-detail__loot-card">
                 <button type="button" class="boss-detail__loot-media boss-detail__loot-media--button" @click="openLinkedItemDetail(entry)">
-                  <img v-if="normalizeImageUrl(entry.itemImage)" :src="normalizeImageUrl(entry.itemImage) || ''" class="boss-detail__loot-image" alt="" @error="handleImageError" />
+                  <img v-if="resolveNpcItemImage(entry)" :src="resolveNpcItemImage(entry)" class="boss-detail__loot-image" alt="" @error="handleImageError" />
                   <div v-else class="boss-detail__loot-fallback">IT</div>
                 </button>
                 <div class="boss-detail__loot-body">
@@ -906,7 +906,7 @@
             <div class="boss-detail__loot-list">
               <article v-for="entry in npcDerivedLootEntries" :key="`npc-derived-${entry.id ?? entry.sortOrder}-${entry.itemId ?? entry.itemInternalName}`" class="boss-detail__loot-card">
                 <button type="button" class="boss-detail__loot-media boss-detail__loot-media--button" @click="openLinkedItemDetail(entry)">
-                  <img v-if="normalizeImageUrl(entry.itemImage)" :src="normalizeImageUrl(entry.itemImage) || ''" class="boss-detail__loot-image" alt="" @error="handleImageError" />
+                  <img v-if="resolveNpcItemImage(entry)" :src="resolveNpcItemImage(entry)" class="boss-detail__loot-image" alt="" @error="handleImageError" />
                   <div v-else class="boss-detail__loot-fallback">RW</div>
                 </button>
                 <div class="boss-detail__loot-body">
@@ -2110,7 +2110,7 @@ async function openLinkedItemDetail(entry: Record<string, any>) {
     ? rawId
     : (typeof rawId === 'string' && rawId.trim() ? Number(rawId) : NaN)
   if (!Number.isFinite(itemId) || itemId <= 0) {
-    const imageUrl = getNpcProjectionImage(entry) || normalizeImageUrl(entry?.itemImage)
+    const imageUrl = getNpcProjectionImage(entry) || resolveNpcItemImage(entry)
     if (imageUrl) {
       openImageLightbox(imageUrl, entry?.itemNameZh || entry?.itemName || entry?.itemInternalName || '物品图片')
       return
@@ -2852,7 +2852,7 @@ const npcBuffRelations = computed<Array<Record<string, any>>>(() => {
 const trustedNpcLootImageByItemKey = computed<Record<string, string>>(() => {
   const lookup: Record<string, string> = {}
   for (const entry of npcLootEntries.value) {
-    const image = isManagedTerrapediaImageUrl(entry.itemImage ?? entry.itemImageUrl ?? entry.imageUrl ?? entry.image)
+    const image = isManagedTerrapediaImageUrl(resolveNpcItemImage(entry))
     if (!image) continue
     for (const key of [entry.itemId, entry.itemInternalName, entry.internalName]) {
       if (key == null || key === '') continue
@@ -2867,7 +2867,7 @@ const trustedNpcShopImageByItemKey = computed<Record<string, string>>(() => {
   for (const rawEntry of detailRow.value.shopEntries) {
     if (!rawEntry || typeof rawEntry !== 'object') continue
     const entry = rawEntry as Record<string, any>
-    const image = isManagedTerrapediaImageUrl(entry.itemImage ?? entry.itemImageUrl ?? entry.imageUrl ?? entry.image)
+    const image = isManagedTerrapediaImageUrl(resolveNpcItemImage(entry))
     if (!image) continue
     for (const key of [entry.itemId, entry.sourceItemId, entry.itemInternalName, entry.internalName]) {
       if (key == null || key === '') continue
@@ -2919,11 +2919,21 @@ function getNpcProjectionSource(entry: Record<string, any>) {
     .join(' / ')
 }
 function getNpcProjectionImage(entry: Record<string, any>) {
+  const managedImage = isManagedTerrapediaImageUrl(resolveNpcItemImage(entry))
+  if (managedImage) return managedImage
   for (const value of [entry.itemImageUrl, entry.itemImage, entry.imageUrl, entry.image, entry.__imageUrl]) {
     const image = isTrustedWikiImageUrl(value)
     if (image) return image
   }
   return ''
+}
+function resolveNpcItemImage(entry: Record<string, any> | null | undefined) {
+  if (!entry) return ''
+  return normalizeImageUrl(entry.itemImage)
+    || normalizeImageUrl(entry.itemImageUrl)
+    || normalizeImageUrl(entry.imageUrl)
+    || normalizeImageUrl(entry.image)
+    || normalizeImageUrl(entry.__imageUrl)
 }
 function getTrustedNpcLootImage(entry: Record<string, any>) {
   for (const key of [entry.itemId, entry.itemInternalName, entry.internalName]) {

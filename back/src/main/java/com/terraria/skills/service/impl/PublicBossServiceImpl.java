@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.common.ItemImageSql;
 import com.terraria.skills.dto.PublicBossDetailDTO;
 import com.terraria.skills.dto.PublicBossListDTO;
 import com.terraria.skills.dto.PublicBossLootEntryDTO;
@@ -295,7 +296,7 @@ public class PublicBossServiceImpl implements PublicBossService {
               i.name AS itemName,
               i.name_zh AS itemNameZh,
               i.internal_name AS itemInternalName,
-              i.image AS itemImage
+              %s AS itemImage
             FROM npc_loot_entries nle
             LEFT JOIN items i ON i.id = nle.item_id AND i.deleted = 0
             WHERE nle.npc_id = ? AND nle.deleted = 0
@@ -307,7 +308,7 @@ public class PublicBossServiceImpl implements PublicBossService {
               END ASC,
               nle.sort_order ASC,
               nle.id ASC
-            """,
+            """.formatted(ItemImageSql.preferredItemImageExpression("i")),
             npcId
         ).stream().map(this::toLootEntryDto).toList();
     }

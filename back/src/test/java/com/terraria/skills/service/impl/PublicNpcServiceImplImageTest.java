@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -282,6 +283,12 @@ class PublicNpcServiceImplImageTest {
         NpcLootEntryDTO loot = service.getNpcLoot(253L, 253L, "Reaper").get(0);
 
         assertEquals(managedLootImage, loot.getImageUrl());
+
+        ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate).queryForList(queryCaptor.capture(), eq(253L));
+        assertTrue(queryCaptor.getValue().contains("item_images ii"));
+        assertTrue(queryCaptor.getValue().contains("AS itemImage"));
+        assertFalse(queryCaptor.getValue().contains("i.image AS itemImage"));
     }
 
     @Test
@@ -318,6 +325,12 @@ class PublicNpcServiceImplImageTest {
         PublicNpcServiceImpl service = newService();
 
         assertEquals(managedShopImage, service.getNpcShopEntries(22L).get(0).getImageUrl());
+
+        ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
+        verify(jdbcTemplate).queryForList(queryCaptor.capture(), eq(22L));
+        assertTrue(queryCaptor.getValue().contains("item_images ii"));
+        assertTrue(queryCaptor.getValue().contains("AS itemImage"));
+        assertFalse(queryCaptor.getValue().contains("i.image AS itemImage"));
     }
 
     @Test
