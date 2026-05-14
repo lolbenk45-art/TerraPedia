@@ -69,6 +69,10 @@ const values = {
   TP_USER_TOKEN_SECRET: env('TERRAPEDIA_USER_TOKEN_SECRET', get(['auth', 'user', 'tokenSecret'], '')),
   TP_MINIO_ENABLED: env('TERRAPEDIA_MINIO_ENABLED', get(['minio', 'enabled'], false)),
   TP_MINIO_CREDENTIALS_FILE: env('TERRAPEDIA_MINIO_CREDENTIALS_FILE', get(['minio', 'credentialsFile'], '')),
+  TP_MINIO_ENDPOINT: env('TERRAPEDIA_MINIO_ENDPOINT', get(['minio', 'endpoint'], '')),
+  TP_MINIO_PUBLIC_ENDPOINT: env('TERRAPEDIA_MINIO_PUBLIC_ENDPOINT', get(['minio', 'publicEndpoint'], '')),
+  TP_MINIO_BUCKET: env('TERRAPEDIA_MINIO_BUCKET', get(['minio', 'bucket'], 'terrapedia-images')),
+  TP_MINIO_OBJECT_PREFIX: env('TERRAPEDIA_MINIO_OBJECT_PREFIX', get(['minio', 'objectPrefix'], 'items')),
   TP_SPRING_PROFILE: env('SPRING_PROFILES_ACTIVE', get(['backend', 'springProfile'], 'legacy')),
   TP_SPRING_FLYWAY_OUT_OF_ORDER: env('SPRING_FLYWAY_OUT_OF_ORDER', get(['backend', 'flywayOutOfOrder'], true)),
 };

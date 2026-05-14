@@ -35,7 +35,11 @@
   },
   "minio": {
     "enabled": false,
-    "credentialsFile": "scripts/dev/config/credentials.json"
+    "credentialsFile": "scripts/dev/config/credentials.json",
+    "endpoint": "http://127.0.0.1:9000",
+    "publicEndpoint": "http://localhost:9000",
+    "bucket": "terrapedia-images",
+    "objectPrefix": "items"
   },
   "dataRefresh": {
     "enabled": false,

@@ -126,6 +126,10 @@ public class LegacyLocalStackConfigEnvironmentPostProcessor implements Environme
             putNodeValueIfPresent(properties, "TERRAPEDIA_AUTH_TOKEN_SECRET", root.path("auth").path("admin").path("tokenSecret"));
             putNodeValueIfPresent(properties, "TERRAPEDIA_USER_TOKEN_SECRET", root.path("auth").path("user").path("tokenSecret"));
             putNodeValueIfPresent(properties, "TERRAPEDIA_MINIO_ENABLED", root.path("minio").path("enabled"));
+            putNodeValueIfPresent(properties, "TERRAPEDIA_MINIO_ENDPOINT", root.path("minio").path("endpoint"));
+            putNodeValueIfPresent(properties, "TERRAPEDIA_MINIO_PUBLIC_ENDPOINT", root.path("minio").path("publicEndpoint"));
+            putNodeValueIfPresent(properties, "TERRAPEDIA_MINIO_BUCKET", root.path("minio").path("bucket"));
+            putNodeValueIfPresent(properties, "TERRAPEDIA_MINIO_OBJECT_PREFIX", root.path("minio").path("objectPrefix"));
             putResolvedPathIfPresent(
                 properties,
                 "TERRAPEDIA_MINIO_CREDENTIALS_FILE",

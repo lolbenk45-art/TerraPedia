@@ -77,6 +77,23 @@ test('start writes a sanitized run manifest with preflight and health details', 
   assert.match(source, /running/i);
 });
 
+test('start exports MinIO endpoint settings from local stack config', () => {
+  const runtimeConfig = fs.readFileSync('scripts/dev/lib/runtime-config.sh', 'utf8');
+  const source = startSource();
+  const exampleConfig = fs.readFileSync('scripts/dev/config/local-stack.config.example.json', 'utf8');
+
+  assert.match(runtimeConfig, /TP_MINIO_ENDPOINT/);
+  assert.match(runtimeConfig, /TP_MINIO_PUBLIC_ENDPOINT/);
+  assert.match(runtimeConfig, /TP_MINIO_BUCKET/);
+  assert.match(runtimeConfig, /TP_MINIO_OBJECT_PREFIX/);
+  assert.match(source, /export TERRAPEDIA_MINIO_ENDPOINT="\$TP_MINIO_ENDPOINT"/);
+  assert.match(source, /export TERRAPEDIA_MINIO_PUBLIC_ENDPOINT="\$TP_MINIO_PUBLIC_ENDPOINT"/);
+  assert.match(source, /export TERRAPEDIA_MINIO_BUCKET="\$TP_MINIO_BUCKET"/);
+  assert.match(source, /export TERRAPEDIA_MINIO_OBJECT_PREFIX="\$TP_MINIO_OBJECT_PREFIX"/);
+  assert.match(exampleConfig, /"endpoint"/);
+  assert.match(exampleConfig, /"publicEndpoint"/);
+});
+
 test('smoke script is read-only and writes timestamped smoke report', () => {
   const source = smokeSource();
 

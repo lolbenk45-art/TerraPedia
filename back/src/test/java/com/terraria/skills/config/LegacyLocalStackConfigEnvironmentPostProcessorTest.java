@@ -79,7 +79,11 @@ class LegacyLocalStackConfigEnvironmentPostProcessorTest {
               },
               "minio": {
                 "enabled": true,
-                "credentialsFile": "scripts/dev/config/credentials.json"
+                "credentialsFile": "scripts/dev/config/credentials.json",
+                "endpoint": "http://172.21.96.1:9000",
+                "publicEndpoint": "http://localhost:9000",
+                "bucket": "terrapedia-images",
+                "objectPrefix": "items"
               }
             }
             """);
@@ -102,6 +106,10 @@ class LegacyLocalStackConfigEnvironmentPostProcessorTest {
             repoRoot.resolve("scripts/dev/config/credentials.json").normalize().toString(),
             environment.getProperty("TERRAPEDIA_MINIO_CREDENTIALS_FILE")
         );
+        assertEquals("http://172.21.96.1:9000", environment.getProperty("TERRAPEDIA_MINIO_ENDPOINT"));
+        assertEquals("http://localhost:9000", environment.getProperty("TERRAPEDIA_MINIO_PUBLIC_ENDPOINT"));
+        assertEquals("terrapedia-images", environment.getProperty("TERRAPEDIA_MINIO_BUCKET"));
+        assertEquals("items", environment.getProperty("TERRAPEDIA_MINIO_OBJECT_PREFIX"));
         assertTrue(environment.getPropertySources().contains(
             LegacyLocalStackConfigEnvironmentPostProcessor.PROPERTY_SOURCE_NAME
         ));
