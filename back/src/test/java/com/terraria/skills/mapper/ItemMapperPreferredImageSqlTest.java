@@ -29,6 +29,14 @@ class ItemMapperPreferredImageSqlTest {
         return mapperXml.substring(startIndex, mapperXml.indexOf("</sql>", startIndex));
     }
 
+    private String normalizeLineEndings(String sql) {
+        return sql.replace("\r\n", "\n").replace('\r', '\n');
+    }
+
+    private boolean startsWithDerivedItemPage(String sql) {
+        return normalizeLineEndings(sql).matches("(?s).*\\bFROM\\s*\\(\\s*SELECT\\b.*");
+    }
+
     @Test
     void preferredItemImageSqlShouldUseOnlyManagedCachedUrlsForDisplayImages() throws Exception {
         String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ItemMapper.xml"));
@@ -111,7 +119,7 @@ class ItemMapperPreferredImageSqlTest {
     @Test
     void pagedItemListShouldUseLightweightProjection() throws Exception {
         String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ItemMapper.xml"));
-        String listSql = selectSql(mapperXml, "selectItemsWithSearch");
+        String listSql = normalizeLineEndings(selectSql(mapperXml, "selectItemsWithSearch"));
 
         assertFalse(listSql.contains("PreferredItemImageExpr"), "paged item list must not run per-row preferred image subquery");
         assertFalse(listSql.contains(" i.description"), "paged item list must not read description");
@@ -143,7 +151,7 @@ class ItemMapperPreferredImageSqlTest {
         String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ItemMapper.xml"));
         String listSql = selectSql(mapperXml, "selectItemsWithSearch");
 
-        assertTrue(listSql.contains("FROM (\n            SELECT"), "paged item list must page items in a derived table before joins");
+        assertTrue(startsWithDerivedItemPage(listSql), "paged item list must page items in a derived table before joins");
         assertTrue(listSql.contains("LIMIT #{limit}"), "inner item page must apply the requested limit");
         assertTrue(listSql.contains("OFFSET #{offset}"), "inner item page must apply the requested offset");
         assertTrue(listSql.indexOf("LIMIT #{limit}") < listSql.indexOf("LEFT JOIN item_images"), "item_images must be joined after item paging");
@@ -152,7 +160,7 @@ class ItemMapperPreferredImageSqlTest {
     @Test
     void publicItemListShouldUseStrictDisplayProjection() throws Exception {
         String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ItemMapper.xml"));
-        String publicListSql = selectSql(mapperXml, "selectPublicItemsWithSearch");
+        String publicListSql = normalizeLineEndings(selectSql(mapperXml, "selectPublicItemsWithSearch"));
         String managedImageExpr = sqlFragment(mapperXml, "ManagedItemImageExpr");
 
         assertFalse(publicListSql.contains("source_npcs_json"), "public item list must not read source_npcs_json");
@@ -180,7 +188,7 @@ class ItemMapperPreferredImageSqlTest {
         String mapperXml = Files.readString(Path.of("src/main/resources/mapper/ItemMapper.xml"));
         String publicListSql = selectSql(mapperXml, "selectPublicItemsWithSearch");
 
-        assertTrue(publicListSql.contains("FROM (\n            SELECT"), "public item list must page items in a derived table before joins");
+        assertTrue(startsWithDerivedItemPage(publicListSql), "public item list must page items in a derived table before joins");
         assertTrue(publicListSql.contains("LIMIT #{limit}"), "inner public item page must apply the requested limit");
         assertTrue(publicListSql.contains("OFFSET #{offset}"), "inner public item page must apply the requested offset");
         assertFalse(publicListSql.contains("LEFT JOIN item_images"), "public item list must not join item_images at all");

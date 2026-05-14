@@ -60,13 +60,13 @@ class DomainAcceptanceServiceImplTest {
         assertEquals("B", bosses.getTier());
         assertEquals("product-readiness", bosses.getChainStage());
         assertEquals("/entities/bosses", bosses.getManagementRoute());
-        assertEquals("planned-public", bosses.getPublicExposure());
-        assertNull(bosses.getPublicRoute());
-        assertEquals("planned_public_no_route", bosses.getPublicGateStatus());
-        assertEquals("public route is planned but not yet configured", bosses.getPublicGateReason());
+        assertEquals("public", bosses.getPublicExposure());
+        assertEquals("/bosses", bosses.getPublicRoute());
+        assertEquals("public_route_configured", bosses.getPublicGateStatus());
+        assertNull(bosses.getPublicGateReason());
         assertEquals(List.of("wiki-core-refresh", "boss-sync"), bosses.getBackendRefreshStepIds());
         assertEquals("node scripts/data/workflow/run-backend-data-refresh.mjs --mode=plan --steps=wiki-core-refresh,boss-sync", bosses.getBackendRefreshPlanCommand());
-        assertEquals(false, bosses.getRequiresDatabase());
+        assertEquals(true, bosses.getRequiresDatabase());
         assertEquals("pass", bosses.getStatus());
         assertEquals(5, bosses.getPanelCount());
         DomainAcceptanceOverviewDTO.DomainPanelDTO source = panel(bosses, "sourceReadiness");
@@ -95,7 +95,7 @@ class DomainAcceptanceServiceImplTest {
         assertEquals("relation", unresolvedAuditTrend.getChainStage());
         assertEquals("node scripts/data/relation/generate-reresolve-candidates.mjs", unresolvedAuditTrend.getGeneratorCommand());
         assertEquals(false, unresolvedAuditTrend.getWritesDatabase());
-        assertEquals(false, unresolvedAuditTrend.getRequiresDatabase());
+        assertEquals(true, unresolvedAuditTrend.getRequiresDatabase());
 
         DomainAcceptanceOverviewDTO.DomainPanelDTO publicPanel = panel(bosses, "publicReadiness");
         assertEquals("public", publicPanel.getChainStage());

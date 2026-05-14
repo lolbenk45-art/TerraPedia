@@ -6,7 +6,7 @@ import path from 'node:path'
 const repoRoot = path.resolve(import.meta.dirname, '..', '..')
 
 function read(relativePath) {
-  return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8')
+  return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n')
 }
 
 test('item groups page exists as an independent source-backed management route', () => {
