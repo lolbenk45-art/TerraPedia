@@ -4,7 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const cmd = 'mvn.cmd';
+const cmd = process.env.MAVEN_COMMAND || 'mvn';
 const timeoutMs = 120000;
 async function main() {
   const { getProjectRoot } = await import('../../data/lib/project-root.mjs');
@@ -56,7 +56,7 @@ async function main() {
     : '';
   const env = { ...process.env };
 
-  const child = spawn(cmd, args, { cwd, shell: true, env });
+  const child = spawn(cmd, args, { cwd, shell: false, env });
   let logs = '';
   let done = false;
 

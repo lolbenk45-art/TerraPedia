@@ -6,10 +6,12 @@ Use the repo root as the working directory unless a script says otherwise.
 
 - `scripts/dev`
   - Local developer stack lifecycle, local validation gates, smoke checks, and config templates.
-  - Stable entrypoints: `scripts/dev/start-local-stack.ps1`, `scripts/dev/stop-local-stack.ps1`, `scripts/dev/verify-local-stack.ps1`, `scripts/dev/smoke-local-stack.ps1`, `scripts/dev/quality-gate.ps1`, and `scripts/dev/quality-gate-ci.ps1`.
+  - Bash/WSL primary entrypoints: `scripts/dev/start-local-stack.sh`, `scripts/dev/stop-local-stack.sh`, `scripts/dev/verify-local-stack.sh`, `scripts/dev/smoke-local-stack.sh`, `scripts/dev/quality-gate.sh`, and `scripts/dev/quality-gate-ci.sh`.
+  - Matching `.ps1` files are temporary compatibility wrappers during the migration window.
 - `scripts/ops`
-  - Windows Scheduled Task wrappers, daemon host wrappers, heartbeat checks, recovery wrappers, and machine lifecycle glue.
-  - Stable entrypoints: `scripts/ops/*.ps1`.
+  - WSL/Linux daemon host wrappers, heartbeat checks, recovery wrappers, systemd examples, and machine lifecycle glue.
+  - Bash-first target entrypoints: `scripts/ops/*.sh`.
+  - Windows Scheduled Task `.ps1` files remain Windows-only compatibility wrappers until the later cleanup phase.
 - `scripts/tooling`
   - Repository maintenance tooling that is not app runtime, not data lifecycle automation, and not CI workflow logic.
 - `scripts/lib`
@@ -23,5 +25,5 @@ Use the repo root as the working directory unless a script says otherwise.
 
 - `.github/workflows/**` should call stable scripts such as the quality gates and data checks instead of embedding business pipeline logic directly in workflow YAML.
 - Keep script behavior, defaults, argument contracts, and test lists stable unless a separate implementation plan explicitly owns those changes.
-- In this structure pass, do not move `scripts/data/workflow/**`, `scripts/data/audit/**`, crawler source or crawler tests, or `scripts/ops/*.ps1` wrappers.
+- In this structure pass, do not move `scripts/data/workflow/**`, `scripts/data/audit/**`, crawler source or crawler tests, Bash migration wrappers, or Windows compatibility wrappers.
 - README files document ownership only. They must not redefine command behavior.

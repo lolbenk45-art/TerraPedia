@@ -4,7 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const cmd = 'pnpm.cmd';
+const cmd = process.env.PNPM_COMMAND || 'pnpm';
 const args = ['run', 'dev'];
 const port = 5174;
 const timeoutMs = 60000;
@@ -15,7 +15,7 @@ async function main() {
   const resultPath = path.join(repoRoot, 'reports', 'front-probe-result.json');
   const cwd = path.join(repoRoot, 'front');
 
-  const child = spawn(cmd, args, { cwd, shell: true });
+  const child = spawn(cmd, args, { cwd, shell: false });
   let logs = '';
   let done = false;
   const append = (d) => {

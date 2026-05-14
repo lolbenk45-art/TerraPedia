@@ -4,21 +4,23 @@
 
 This runbook verifies a local TerraPedia runtime without changing crawler, import, backfill, refresh, evidence, or application data.
 
-Use the sequence:
+Bash/WSL is the primary acceptance path. During the migration window, matching `.ps1` files are temporary compatibility wrappers only.
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\verify-local-stack.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-stack.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\smoke-local-stack.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\stop-local-stack.ps1
+Use the Bash-first sequence:
+
+```bash
+bash ./scripts/dev/verify-local-stack.sh
+bash ./scripts/dev/start-local-stack.sh
+bash ./scripts/dev/smoke-local-stack.sh
+bash ./scripts/dev/stop-local-stack.sh
 ```
 
 ## Boundaries
 
-- `verify-local-stack.ps1` is preflight only. It checks DB TCP reachability, MyBatis XML shape, backend compile, and front/admin typecheck. It does not start or stop services and does not prove business health.
-- `start-local-stack.ps1` starts or reuses Redis, backend, front, and admin app after preflight. A true TCP port check means the port is open, not that the business API is healthy.
-- `smoke-local-stack.ps1` is post-start smoke only. It performs read-oriented HTTP probes and may use auth login only to read authenticated acceptance overview endpoints. It writes `reports/local-start/smoke-<timestamp>.json`.
-- `stop-local-stack.ps1` defaults to recorded pid files under `reports/local-start/*.pid`. Port cleanup requires explicit `-ForcePorts` and still applies ownership checks.
+- `verify-local-stack.sh` is preflight only. It checks DB TCP reachability, MyBatis XML shape, backend compile, and front/admin typecheck. It does not start or stop services and does not prove business health.
+- `start-local-stack.sh` starts or reuses Redis, backend, front, and admin app after preflight. A true TCP port check means the port is open, not that the business API is healthy.
+- `smoke-local-stack.sh` is post-start smoke only. It performs read-oriented HTTP probes and may use auth login only to read authenticated acceptance overview endpoints. It writes `reports/local-start/smoke-<timestamp>.json`.
+- `stop-local-stack.sh` defaults to recorded pid files under `reports/local-start/*.pid`. Port cleanup requires explicit `--force-ports` and still applies ownership checks.
 - `run-manifest.json` is written to `reports/local-start/run-manifest.json`. It must stay sanitized and must not include passwords, token secrets, bearer tokens, or MinIO secrets.
 
 ## Negative Rules
@@ -35,7 +37,7 @@ Successful local smoke cannot make stale evidence fresh, cannot make planned-pub
 
 ## ForcePorts
 
-Use `stop-local-stack.ps1 -ForcePorts` only when pid files are missing or stale and the configured TerraPedia ports are known to belong to the current repo run.
+Use `bash ./scripts/dev/stop-local-stack.sh --force-ports` only when pid files are missing or stale and the configured TerraPedia ports are known to belong to the current repo run.
 
 Before using it:
 

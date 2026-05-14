@@ -5,7 +5,7 @@
 - `local-stack.config.example.json`
   - Committed template for local ports, DB, Redis, auth, MinIO, and backend refresh scheduler options
 - `local-stack.config.json`
-  - Ignored local copy used by `scripts/dev/start-local-stack.ps1` and verification scripts
+  - Ignored local copy used by `scripts/dev/start-local-stack.sh` and verification scripts
 - `credentials.example.json`
   - Committed MinIO credentials template
 - `credentials.json`
@@ -15,16 +15,17 @@ Do not copy real local secrets into committed docs or reports. This includes DB 
 
 Stable consumers:
 
-- `scripts/dev/start-local-stack.ps1`
-- `scripts/dev/stop-local-stack.ps1`
-- `scripts/dev/verify-local-stack.ps1`
-- `scripts/dev/smoke-local-stack.ps1`
-- `scripts/dev/quality-gate.ps1`
-- `scripts/dev/quality-gate-ci.ps1`
+- `scripts/dev/start-local-stack.sh`
+- `scripts/dev/stop-local-stack.sh`
+- `scripts/dev/verify-local-stack.sh`
+- `scripts/dev/smoke-local-stack.sh`
+- `scripts/dev/quality-gate.sh`
+- `scripts/dev/quality-gate-ci.sh`
 - `scripts/lib/local-runtime-config.mjs`
 - `scripts/data/workflow/run-backend-data-refresh.mjs`
 - `scripts/data/workflow/run-backend-data-refresh-daemon.mjs`
-- `scripts/ops/*.ps1`
+- `scripts/ops/*.sh` target wrappers for WSL/Linux ops
+- `scripts/ops/*.ps1` temporary Windows compatibility wrappers during migration
 
 Boundary rules:
 
@@ -34,15 +35,15 @@ Boundary rules:
 
 Recommended setup:
 
-```powershell
-Copy-Item .\scripts\dev\config\local-stack.config.example.json .\scripts\dev\config\local-stack.config.json
-Copy-Item .\scripts\dev\config\credentials.example.json .\scripts\dev\config\credentials.json
+```bash
+cp ./scripts/dev/config/local-stack.config.example.json ./scripts/dev/config/local-stack.config.json
+cp ./scripts/dev/config/credentials.example.json ./scripts/dev/config/credentials.json
 ```
 
 Scheduler notes:
 
 - Local self-start acceptance assumes `dataRefresh.enabled=false`.
-- `dataRefresh.mode=apply` is a write-capable scheduler setting. It must not be enabled as part of `verify-local-stack.ps1`, `start-local-stack.ps1`, or `smoke-local-stack.ps1`.
+- `dataRefresh.mode=apply` is a write-capable scheduler setting. It must not be enabled as part of `verify-local-stack.sh`, `start-local-stack.sh`, or `smoke-local-stack.sh`.
 - Configured ports are expected bind targets. An open port is only a TCP fact and does not prove business health.
 - MinIO and storage sync are outside the default read-only smoke boundary.
 

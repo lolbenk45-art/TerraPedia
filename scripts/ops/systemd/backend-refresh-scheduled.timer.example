@@ -1,0 +1,11 @@
+[Unit]
+Description=Run TerraPedia backend refresh on a schedule
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=3h
+Persistent=true
+Unit=backend-refresh-scheduled.service
+
+[Install]
+WantedBy=timers.target

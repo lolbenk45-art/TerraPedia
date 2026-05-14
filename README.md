@@ -41,44 +41,46 @@ This repository does not store live credentials.
 
 Detailed local acceptance boundaries live in `docs/runbooks/local-acceptance.md`.
 
-From the repo root:
+Bash/WSL is the primary local automation path. During the migration window, matching `.ps1` files are temporary compatibility wrappers only and must not be treated as the source of truth.
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-stack.ps1
+Bash-first target commands from the repo root:
+
+```bash
+bash ./scripts/dev/start-local-stack.sh
 ```
 
 Stop:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\stop-local-stack.ps1
+```bash
+bash ./scripts/dev/stop-local-stack.sh
 ```
 
 Post-start smoke:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\smoke-local-stack.ps1
+```bash
+bash ./scripts/dev/smoke-local-stack.sh
 ```
 
-`verify-local-stack.ps1`, `start-local-stack.ps1`, `smoke-local-stack.ps1`, and `quality-gate.ps1` are separate gates. Startup port checks do not prove business health, and smoke does not replace freshness audits, acceptance evidence, or the local full quality gate.
+`verify-local-stack.sh`, `start-local-stack.sh`, `smoke-local-stack.sh`, and `quality-gate.sh` are separate gates. Startup port checks do not prove business health, and smoke does not replace freshness audits, acceptance evidence, or the local full quality gate. The `.ps1` counterparts are compatibility wrappers while the Bash migration is being completed.
 
 ## Quality Gate
 
 Run the full local gate before merging or handing off a stabilization task:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\quality-gate.ps1
+```bash
+bash ./scripts/dev/quality-gate.sh
 ```
 
 Useful focused runs:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\quality-gate.ps1 -SkipFront -SkipAdmin
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\quality-gate.ps1 -SkipBack -SkipAdmin
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\quality-gate.ps1 -SkipBack -SkipFront
+```bash
+bash ./scripts/dev/quality-gate.sh --skip-front --skip-admin
+bash ./scripts/dev/quality-gate.sh --skip-back --skip-admin
+bash ./scripts/dev/quality-gate.sh --skip-back --skip-front
 ```
 
 The quick startup preflight remains:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\verify-local-stack.ps1
+```bash
+bash ./scripts/dev/verify-local-stack.sh
 ```

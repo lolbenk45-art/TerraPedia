@@ -65,6 +65,10 @@ class DataSourceAcceptanceServiceImplTest {
     void shouldWarnWhenAcceptanceEvidenceIsStaleAndExposeNextEvidenceCommand() throws Exception {
         Path repoRoot = createRepoRoot();
         writePassReports(repoRoot);
+        Files.setLastModifiedTime(
+            repoRoot.resolve("reports/relation/relation-health-2026-05-03.json"),
+            FileTime.from(Instant.parse("2026-05-03T00:00:00Z"))
+        );
         Files.writeString(repoRoot.resolve("reports/relation/relation-health-2026-05-01.json"), """
             {
               "generatedAt": "2026-05-01T00:00:00Z",
@@ -72,6 +76,10 @@ class DataSourceAcceptanceServiceImplTest {
               "checks": []
             }
             """);
+        Files.setLastModifiedTime(
+            repoRoot.resolve("reports/relation/relation-health-2026-05-01.json"),
+            FileTime.from(Instant.parse("2026-05-04T00:00:00Z"))
+        );
 
         DataSourceAcceptanceOverviewDTO overview = serviceWithRepo(repoRoot, crawlerOverview(false)).getOverview();
 

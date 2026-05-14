@@ -1,0 +1,9 @@
+[Unit]
+Description=TerraPedia backend refresh scheduled run
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/TerraPedia
+ExecStart=%h/TerraPedia/scripts/ops/run-backend-refresh-scheduled.sh

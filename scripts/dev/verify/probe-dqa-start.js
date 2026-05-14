@@ -3,7 +3,7 @@ const net = require('net');
 const fs = require('fs');
 const path = require('path');
 
-const cmd = 'pnpm.cmd';
+const cmd = process.env.PNPM_COMMAND || 'pnpm';
 const args = ['run', 'dev', '--', '--port', '3001', '--host', '127.0.0.1'];
 const port = 3001;
 const timeoutMs = 60000;
@@ -14,7 +14,7 @@ async function main() {
   const resultPath = path.join(repoRoot, 'reports', 'dqa-probe-result.json');
   const cwd = path.join(repoRoot, 'data-query-app');
 
-  const child = spawn(cmd, args, { cwd, shell: true });
+  const child = spawn(cmd, args, { cwd, shell: false });
   let logs = '';
   let done = false;
 

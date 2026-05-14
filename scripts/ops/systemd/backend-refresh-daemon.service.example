@@ -1,0 +1,14 @@
+[Unit]
+Description=TerraPedia backend refresh daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/TerraPedia
+ExecStart=%h/TerraPedia/scripts/ops/run-backend-refresh-daemon-host.sh
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=default.target

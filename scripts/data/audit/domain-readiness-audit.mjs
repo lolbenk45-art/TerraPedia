@@ -1321,7 +1321,7 @@ function resolveEvidenceReferencePath(value, repoRoot) {
   const candidatePaths = [];
   const fullPath = path.isAbsolute(text) ? path.resolve(text) : path.resolve(repoRoot, text);
   candidatePaths.push(fullPath);
-  const basename = path.basename(text);
+  const basename = path.posix.basename(normalizePath(text));
   if (allowedBasename.test(basename)) {
     candidatePaths.push(path.resolve(repoRoot, 'data', 'terraPedia', 'raw', 'wiki', basename));
   }

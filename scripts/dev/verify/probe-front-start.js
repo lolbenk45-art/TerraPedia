@@ -2,7 +2,7 @@ const { spawn } = require('child_process');
 const net = require('net');
 const path = require('path');
 
-const cmd = 'pnpm.cmd';
+const cmd = process.env.PNPM_COMMAND || 'pnpm';
 const args = ['run', 'dev', '--', '--host', '127.0.0.1', '--port', '5173'];
 const port = 5173;
 const timeoutMs = 45000;
@@ -12,7 +12,7 @@ async function main() {
   const repoRoot = getProjectRoot();
   const cwd = path.join(repoRoot, 'front');
 
-  const child = spawn(cmd, args, { cwd, shell: true });
+  const child = spawn(cmd, args, { cwd, shell: false });
   let logs = '';
   let done = false;
 

@@ -16,7 +16,7 @@ Move source evidence from landing and maint into relation, projection, and local
 
 ## Entrypoints
 
-```powershell
+```bash
 node scripts/data/relation/relation-health-report.mjs --print-checklist=true
 node scripts/data/relation/relation-health-report.mjs --print-sql=true
 node scripts/data/relation/relation-health-report.mjs --write-report=false
@@ -30,13 +30,13 @@ Confirm no DB apply, crawler apply, recipe apply, relation apply, projection app
 
 2. Source / landing read-only audit
 
-```powershell
+```bash
 node scripts/data/landing/audit-source-dataset-landings.mjs --output=reports/source-dataset-landing-audit-YYYY-MM-DD.json
 ```
 
 3. Generate or refresh the NPC item relation bundle
 
-```powershell
+```bash
 node scripts/data/fetch/build-npc-item-relations-bundle.mjs --output=data/generated/npc-item-relations.bundle.json
 ```
 
@@ -44,13 +44,13 @@ This prepares an input artifact only. It does not authorize any apply.
 
 4. Maint dry-run
 
-```powershell
+```bash
 node scripts/data/maint/sync-landing-to-maint.mjs --apply=false --database=terria_v1_maint --scopes=npcs
 ```
 
 5. Relation dry-run
 
-```powershell
+```bash
 node scripts/data/relation/sync-maint-to-relation.mjs --apply=false --maint-database=terria_v1_maint --local-database=terria_v1_local --relation-database=terria_v1_relation
 ```
 
@@ -58,7 +58,7 @@ Review relation facts, shop and loot relations, audit rows, and unresolved/expor
 
 6. Relation health
 
-```powershell
+```bash
 node scripts/data/relation/relation-health-report.mjs --write-report=false --maint-database=terria_v1_maint --relation-database=terria_v1_relation --local-database=terria_v1_local
 ```
 
@@ -70,25 +70,25 @@ Gate policy:
 
 7. Projection / local core dry-run
 
-```powershell
+```bash
 node scripts/data/relation/sync-projection-to-local-core-tables.mjs --apply=false --local-database=terria_v1_local --relation-database=terria_v1_relation --domains=items,npcs,projectiles
 ```
 
 8. Local compatibility dry-run
 
-```powershell
+```bash
 node scripts/data/relation/sync-relation-to-local-compat-tables.mjs --apply=false --local-database=terria_v1_local --relation-database=terria_v1_relation
 ```
 
 9. Replacement readiness audit
 
-```powershell
+```bash
 node scripts/data/relation/replacement-readiness-audit.mjs --local-database=terria_v1_local --relation-database=terria_v1_relation
 ```
 
 10. Local compatibility smoke
 
-```powershell
+```bash
 node scripts/data/relation/local-core-compat-smoke-check.mjs
 ```
 
@@ -100,25 +100,25 @@ Before every command below, repeat the active-writer check, confirm the matching
 
 1. Maint apply
 
-```powershell
+```bash
 node scripts/data/maint/sync-landing-to-maint.mjs --apply=true --database=terria_v1_maint --scopes=npcs
 ```
 
 2. Relation apply
 
-```powershell
+```bash
 node scripts/data/relation/sync-maint-to-relation.mjs --apply=true --create-database=true --maint-database=terria_v1_maint --local-database=terria_v1_local --relation-database=terria_v1_relation
 ```
 
 3. Projection / local core apply
 
-```powershell
+```bash
 node scripts/data/relation/sync-projection-to-local-core-tables.mjs --apply=true --local-database=terria_v1_local --relation-database=terria_v1_relation --domains=items,npcs,projectiles
 ```
 
 4. Local compatibility apply
 
-```powershell
+```bash
 node scripts/data/relation/sync-relation-to-local-compat-tables.mjs --apply=true --local-database=terria_v1_local --relation-database=terria_v1_relation
 ```
 
@@ -134,10 +134,10 @@ Treat the chain as A2 publishable input only when relation health has no blockin
 
 ## Validation
 
-```powershell
+```bash
 node --test scripts/data/relation/relation-health-report.test.mjs
 node --check scripts/data/relation/relation-health-report.mjs
 node scripts/data/relation/relation-health-report.mjs --print-checklist=true
-Select-String -Path .\docs\audits\relation-warning-policy.md -Pattern "unresolved_item_npc_relation_audits"
-Select-String -Path .\docs\runbooks\npc-item-source-maintenance-chain.md -Pattern "Do not run two DB apply scripts in parallel"
+rg -n "unresolved_item_npc_relation_audits" docs/audits/relation-warning-policy.md
+rg -n "Do not run two DB apply scripts in parallel" docs/runbooks/npc-item-source-maintenance-chain.md
 ```

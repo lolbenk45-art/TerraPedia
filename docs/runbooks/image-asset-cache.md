@@ -24,7 +24,7 @@
 
 ## 同步前检查
 
-```powershell
+```bash
 git status --short
 cd back
 mvn "-Dtest=WikiImageSyncServiceImplTest,ItemImageServiceImplTest,AdminBuffControllerTest" test
