@@ -1,0 +1,7 @@
+interface:
+  display_name: "TerraPedia Crawler Progress Contract"
+  short_description: "Require monitor-visible progress before crawler tasks run."
+  default_prompt: "Use $terrapedia-crawler-progress-contract before creating, scheduling, or running a TerraPedia crawler task."
+
+policy:
+  allow_implicit_invocation: true

@@ -26,9 +26,10 @@ Before editing or running crawler code:
 1. State the crawler goal, entry command, output family, and whether the operation is a short local run or a long detached run.
 2. Check current git state and active crawler writers.
 3. Identify the exact progress path, raw output path, report path, and shard boundaries.
-4. Confirm the task does not write `terria_v1_local`, `terria_v1_maint`, or `terria_v1_relation`. If it needs DB writes, stop using this skill and route the DB work through the TerraPedia data workflow.
-5. For code changes, add or update the narrow crawler test first, run it once to see the expected failure when practical, implement, then rerun.
-6. For long runs, use the detached/scheduled-task entrypoint, not a conversation-bound shell.
+4. REQUIRED: use `terrapedia-crawler-progress-contract` and block creation or execution until the crawler task has monitor-visible progress.
+5. Confirm the task does not write `terria_v1_local`, `terria_v1_maint`, or `terria_v1_relation`. If it needs DB writes, stop using this skill and route the DB work through the TerraPedia data workflow.
+6. For code changes, add or update the narrow crawler test first, run it once to see the expected failure when practical, implement, then rerun.
+7. For long runs, use the detached/scheduled-task entrypoint, not a conversation-bound shell.
 
 Active writer checks:
 
@@ -49,6 +50,7 @@ Get-Content -LiteralPath data/generated/wiki-sync-progress.latest.json | Convert
 Every crawler change must preserve these invariants:
 
 - Crawler scripts write raw wiki data, generated bridge files, progress, and reports only. They do not write DB tables.
+- New crawler tasks must satisfy `terrapedia-crawler-progress-contract` before they are created, scheduled, or run.
 - `data/generated/wiki-sync-progress.latest.json` is the monitor-visible canonical progress file. Do not rename it without updating monitor backend tests and frontend types.
 - When a custom `--progress-path` or `TERRAPEDIA_CRAWLER_PROGRESS_PATH` is used, mirror progress to `data/generated/wiki-sync-progress.latest.json`.
 - Progress JSON remains object-shaped and keeps stable fields when available: `actionId`, `status`, `generatedAt`, `lastHeartbeatAt`, `childStatusPath`, `phase`, `message`, `current`, `total`, `percent`, `batchOffset`, `batchLimit`, `overallCurrent`, `overallTotal`, `startedAt`.
