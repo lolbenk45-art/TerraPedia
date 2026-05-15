@@ -2,10 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  buildBuffColumnValueMap,
+  buildBuffSourceItemUnmatchedSample as buildBuffUnmatchedSample,
   resolveMappedItem as resolveBuffMappedItem,
   resolveSourceItemCount as resolveBuffSourceItemCount
 } from './import-buffs-to-db.mjs';
 import {
+  buildIndependentBuffColumnValueMap,
+  buildBuffSourceItemUnmatchedSample as buildIndependentEntityBuffUnmatchedSample,
   resolveMappedItem as resolveIndependentEntityMappedItem,
   resolveSourceItemCount as resolveIndependentEntitySourceItemCount
 } from './import-independent-entities-to-db.mjs';
@@ -101,4 +105,107 @@ test('source item count falls back to sourceItems length when explicit count is 
 
   assert.equal(resolveBuffSourceItemCount(record), 2);
   assert.equal(resolveIndependentEntitySourceItemCount(record), 2);
+});
+
+test('source item mapping does not guess from pageTitle or localized names', () => {
+  const sourceItemLookup = { bySourceId: new Map() };
+  const itemLookup = {
+    byInternal: new Map([
+      ['CursedArrow', { id: 47, internalName: 'CursedArrow', name: 'Cursed Arrow' }]
+    ])
+  };
+  const sourceItem = {
+    pageTitle: 'Cursed Arrow',
+    name: 'Cursed Arrow',
+    nameZh: '诅咒箭',
+    resolveStatus: 'unresolved'
+  };
+
+  assert.deepEqual(resolveBuffMappedItem(null, sourceItemLookup, itemLookup, sourceItem), {
+    sourceItemId: null,
+    internalName: null,
+    dbItem: null,
+    reason: 'missing_source_item_id'
+  });
+  assert.deepEqual(resolveIndependentEntityMappedItem(null, sourceItemLookup, itemLookup, sourceItem), {
+    sourceItemId: null,
+    internalName: null,
+    dbItem: null,
+    reason: 'missing_source_item_id'
+  });
+});
+
+test('unmatched source item report keeps resolver and evidence context', () => {
+  const record = {
+    id: 39,
+    internalName: 'CursedInferno',
+    sourceEvidence: {
+      provider: 'terraria.wiki.gg',
+      pageTitle: 'Cursed Inferno',
+      sourceSection: '原因'
+    }
+  };
+  const sourceItem = {
+    pageTitle: 'Unknown Wand',
+    name: 'Unknown Wand',
+    nameZh: '未知法杖',
+    sourceSection: '来自玩家',
+    sourceProvider: 'terraria.wiki.gg',
+    resolveStatus: 'unresolved'
+  };
+  const mapped = {
+    sourceItemId: null,
+    internalName: null,
+    dbItem: null,
+    reason: 'missing_source_item_id'
+  };
+  const expected = {
+    reason: 'missing_source_item_id',
+    buffSourceId: 39,
+    buffInternalName: 'CursedInferno',
+    sourceItemId: null,
+    standardizedItemInternalName: null,
+    rawSourceItemInternalName: null,
+    rawSourceItemName: 'Unknown Wand',
+    rawSourceItemNameZh: '未知法杖',
+    pageTitle: 'Unknown Wand',
+    resolveStatus: 'unresolved',
+    sourceSection: '来自玩家',
+    sourceProvider: 'terraria.wiki.gg',
+    evidencePageTitle: 'Cursed Inferno',
+    evidenceSourceSection: '原因',
+    evidenceSourceProvider: 'terraria.wiki.gg',
+    sortOrder: 0
+  };
+
+  assert.deepEqual(buildBuffUnmatchedSample(record, 'CursedInferno', sourceItem, mapped, 0), expected);
+  assert.deepEqual(
+    buildIndependentEntityBuffUnmatchedSample(record, 'CursedInferno', sourceItem, mapped, 0),
+    expected
+  );
+});
+
+test('buff import column maps preserve full immune NPCs and source evidence JSON', () => {
+  const record = {
+    id: 323,
+    internalName: 'OnFire3',
+    englishName: 'Hellfire',
+    sourceItems: [{ internalName: 'Flamethrower' }],
+    immuneNpcs: [{ internalName: 'MeteorHead' }, { internalName: 'Demon' }],
+    immuneNpcSample: [{ internalName: 'MeteorHead' }],
+    sourceEvidence: {
+      provider: 'terraria.wiki.gg',
+      pageTitle: 'Hellfire',
+      parseStatus: 'parsed',
+      unresolvedFacts: []
+    }
+  };
+
+  for (const values of [
+    buildBuffColumnValueMap(record, 0, 12),
+    buildIndependentBuffColumnValueMap(record, 0, 12)
+  ]) {
+    assert.deepEqual(JSON.parse(values.immune_npcs_json), record.immuneNpcs);
+    assert.deepEqual(JSON.parse(values.source_evidence_json), record.sourceEvidence);
+  }
 });

@@ -4,6 +4,7 @@ data-query-app/node_modules/
 back/.m2/
 
 # Frontend build outputs
+.vite/
 front/dist/
 front/coverage/
 front/.vite/
@@ -89,6 +90,7 @@ data/generated/_tmp-*
 data/generated/tmp-npc-*
 data/generated/npc-item-relations.bundle.json
 data/generated/npc-item-relations.bundle.*.json
+data/generated/buff-page-evidence-cache/
 data/generated/wiki-crawler-npc-bridge/
 data/wiki-crawler/audit/
 data/wiki-crawler/canonical/

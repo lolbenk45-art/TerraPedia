@@ -227,6 +227,7 @@ test('table-scoped domain columns and lookup indexes are present', () => {
   const shopRelations = extractTableDdl(sql, 'item_npc_shop_relations');
   const lootRelations = extractTableDdl(sql, 'item_npc_loot_relations');
   const relationAudits = extractTableDdl(sql, 'item_npc_relation_audits');
+  const relationBuffs = extractTableDdl(sql, 'relation_buffs');
   const npcBuffRelations = extractTableDdl(sql, 'npc_buff_relations');
   const itemProjectileRelations = extractTableDdl(sql, 'item_projectile_relations');
   const npcProjectileRelations = extractTableDdl(sql, 'npc_projectile_relations');
@@ -261,6 +262,7 @@ test('table-scoped domain columns and lookup indexes are present', () => {
   );
 
   assert.match(sourceDetails, /`source_fact_key` CHAR\(64\) COLLATE utf8mb4_bin NOT NULL/);
+  assert.match(relationBuffs, /`inflicting_npcs_json` LONGTEXT/);
   assert.match(npcBuffRelations, /`relation_type` VARCHAR\(32\) NOT NULL DEFAULT 'inflicts'/);
   assert.match(npcBuffRelations, /UNIQUE KEY `uk_npc_buff_relations_record_key` \(`record_key`\)/);
   assert.match(

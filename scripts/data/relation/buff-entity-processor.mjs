@@ -48,6 +48,10 @@ function jsonArrayOrNull(value) {
   return Array.isArray(value) ? JSON.stringify(value) : null;
 }
 
+function jsonObjectOrNull(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? JSON.stringify(value) : null;
+}
+
 export function buildBuffEntityRelations({ maintBuffs = [] } = {}) {
   return {
     relationBuffs: maintBuffs.map((row) => {
@@ -59,6 +63,11 @@ export function buildBuffEntityRelations({ maintBuffs = [] } = {}) {
         : Array.isArray(raw.source_items_json)
           ? raw.source_items_json
           : null;
+      const inflictingNpcs = Array.isArray(raw.inflictingNpcs)
+        ? raw.inflictingNpcs
+        : Array.isArray(raw.inflicting_npcs_json)
+          ? raw.inflicting_npcs_json
+          : null;
       const immuneNpcs = Array.isArray(raw.immuneNpcs)
         ? raw.immuneNpcs
         : Array.isArray(raw.immune_npcs_json)
@@ -69,6 +78,7 @@ export function buildBuffEntityRelations({ maintBuffs = [] } = {}) {
         : Array.isArray(raw.immune_npc_sample_json)
           ? raw.immune_npc_sample_json
           : null;
+      const sourceEvidence = parseJsonObject(raw.sourceEvidence ?? raw.source_evidence_json);
       return {
         recordKey: createRecordKey({
           type: 'maint_buffs',
@@ -86,8 +96,10 @@ export function buildBuffEntityRelations({ maintBuffs = [] } = {}) {
         sourceItemCount: toNullableNumber(row.major_value ?? raw.sourceItemCount ?? sourceItems?.length),
         immuneNpcCount: toNullableNumber(raw.immuneNpcCount ?? immuneNpcs?.length ?? row.combat_value),
         sourceItemsJson: jsonArrayOrNull(sourceItems),
+        inflictingNpcsJson: jsonArrayOrNull(inflictingNpcs),
         immuneNpcsJson: jsonArrayOrNull(immuneNpcs),
         immuneNpcSampleJson: jsonArrayOrNull(immuneNpcSample),
+        sourceEvidenceJson: jsonObjectOrNull(sourceEvidence),
         reviewStatus: relationStatus.resolved,
         confidence: confidence.high,
         reason: 'maint_buffs_mirrored',

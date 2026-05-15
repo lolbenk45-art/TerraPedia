@@ -44,7 +44,8 @@ test('buildSecondaryRelations promotes matched item and npc projectile facts', (
       { source_id: 24, internal_name: 'SpikyBall', english_name: 'Spiky Ball', raw_json: '{}' }
     ],
     maintItemRows: [
-      { source_id: 10, internal_name: 'ItemA', raw_json: JSON.stringify({ shoot: 1 }) }
+      { source_id: 10, internal_name: 'ItemA', raw_json: JSON.stringify({ shoot: 1 }) },
+      { source_id: 200, internal_name: 'BottledHoney', english_name: 'Bottled Honey', raw_json: '{}' }
     ],
     maintNpcRows: [
       {
@@ -86,9 +87,164 @@ test('buildSecondaryRelations promotes matched item and npc projectile facts', (
   assert.equal(actual.npcProjectileRelations[0].projectileInternalName, 'SpikyBall');
   assert.equal(actual.npcProjectileRelations[0].relationType, 'npc_infobox_projectile');
   assert.equal(actual.npcProjectileRelations[0].sourceField, 'raw_json.wikiCrawler.combat.projectileId');
-  assert.equal(actual.itemProjectileAudits.length, 1);
-  assert.equal(actual.itemProjectileAudits[0].auditStatus, 'promoted_to_relation');
+  assert.equal(actual.itemProjectileAudits.filter((row) => row.auditStatus === 'promoted_to_relation').length, 1);
+  assert.equal(actual.itemProjectileAudits.filter((row) => row.auditStatus === 'crawl_candidate').length, 1);
   assert.equal(actual.summary.imageCoverageRows, 1);
+});
+
+test('buildSecondaryRelations only promotes resolved buff source item and inflicting npc identities', () => {
+  const actual = buildSecondaryRelations({
+    maintBuffRows: [
+      {
+        source_id: 39,
+        internal_name: 'CursedInferno',
+        raw_json: JSON.stringify({
+          sourceItems: [
+            { itemId: 47, internalName: 'CursedArrow', resolveStatus: 'resolved' },
+            { name: 'Unknown item', resolveStatus: 'unresolved' },
+            { itemId: 48, internalName: 'AmbiguousItem', resolveStatus: 'ambiguous' },
+            { resolveStatus: 'resolved' }
+          ],
+          inflictingNpcs: [
+            { npcId: 214, internalName: 'Clinger', name: 'Clinger', resolveStatus: 'resolved' },
+            { name: 'Unknown NPC', resolveStatus: 'unresolved' },
+            { npcId: 215, internalName: 'AmbiguousNpc', resolveStatus: 'ambiguous' },
+            { resolveStatus: 'alias_resolved', name: 'No identity NPC' }
+          ],
+          sourceEvidence: {
+            parseStatus: 'parsed',
+            unresolvedFacts: [
+              { group: 'inflictingNpcs', name: 'Unknown NPC', resolveStatus: 'unresolved' }
+            ]
+          }
+        })
+      }
+    ],
+    maintItemRows: [
+      { source_id: 47, internal_name: 'CursedArrow', english_name: 'Cursed Arrow', raw_json: '{}' }
+    ],
+    maintNpcRows: [
+      { source_id: 214, internal_name: 'Clinger', english_name: 'Clinger', raw_json: '{}' }
+    ]
+  });
+
+  assert.deepEqual(
+    actual.itemBuffRelations.map((relation) => relation.itemInternalName),
+    ['CursedArrow']
+  );
+  assert.deepEqual(
+    actual.npcBuffRelations.map((relation) => relation.npcInternalName),
+    ['Clinger']
+  );
+});
+
+test('buildSecondaryRelations requires buff facts to resolve against maint item and npc identities', () => {
+  const actual = buildSecondaryRelations({
+    maintBuffRows: [
+      {
+        source_id: 39,
+        internal_name: 'CursedInferno',
+        raw_json: JSON.stringify({
+          sourceItems: [
+            { internalName: 'CursedArrow', name: 'Cursed Arrow' },
+            { internalName: 'ParserOnlyItemName', name: 'Parser Only Item' }
+          ],
+          inflictingNpcs: [
+            { internalName: 'Clinger', name: 'Clinger' },
+            { internalName: 'ParserOnlyNpcName', name: 'Parser Only NPC' }
+          ]
+        })
+      }
+    ],
+    maintItemRows: [
+      { source_id: 545, internal_name: 'CursedArrow', english_name: 'Cursed Arrow', raw_json: '{}' }
+    ],
+    maintNpcRows: [
+      { source_id: 214, internal_name: 'Clinger', english_name: 'Clinger', raw_json: '{}' }
+    ]
+  });
+
+  assert.deepEqual(
+    actual.itemBuffRelations.map((relation) => [relation.itemInternalName, relation.itemSourceId]),
+    [['CursedArrow', 545]]
+  );
+  assert.deepEqual(
+    actual.npcBuffRelations.map((relation) => [relation.npcInternalName, relation.npcSourceId]),
+    [['Clinger', 214]]
+  );
+});
+
+test('buildSecondaryRelations resolves buff facts with safe maint identity fallbacks only', () => {
+  const actual = buildSecondaryRelations({
+    maintBuffRows: [
+      {
+        source_id: 38,
+        internal_name: 'TheTongue',
+        raw_json: JSON.stringify({
+          inflictingNpcs: [
+            { internalName: 'WallOfFlesh', name: 'Wall of Flesh', pageTitle: 'Wall of Flesh' },
+            { name: 'Tesla Turret', pageTitle: 'Tesla Turret' },
+            { internalName: 'Gigazapper', name: 'Gigazapper', pageTitle: 'Gigazapper' },
+            { internalName: 'HoneySlime', name: 'Honey Slime', pageTitle: 'Honey Slime' }
+          ]
+        })
+      },
+      {
+        source_id: 999,
+        internal_name: 'DisplayOnlyAmbiguousBuff',
+        raw_json: JSON.stringify({
+          inflictingNpcs: [
+            { name: 'Wall of Flesh', pageTitle: 'Wall of Flesh' }
+          ]
+        })
+      }
+    ],
+    maintNpcRows: [
+      { source_id: 113, internal_name: 'WallofFlesh', english_name: 'Wall of Flesh', raw_json: '{}' },
+      { source_id: 114, internal_name: 'WallofFleshEye', english_name: 'Wall of Flesh', raw_json: '{}' },
+      { source_id: 381, internal_name: 'MartianTurret', english_name: 'Tesla Turret', raw_json: '{}' },
+      { source_id: 382, internal_name: 'GigaZapper', english_name: 'Gigazapper', raw_json: '{}' }
+    ]
+  });
+
+  assert.deepEqual(
+    actual.npcBuffRelations.map((relation) => [relation.buffInternalName, relation.npcInternalName, relation.npcSourceId]),
+    [
+      ['TheTongue', 'WallofFlesh', 113],
+      ['TheTongue', 'MartianTurret', 381],
+      ['TheTongue', 'GigaZapper', 382]
+    ]
+  );
+  assert.deepEqual(
+    actual.issues.map((issue) => [issue.buffInternalName, issue.sourceInternalName, issue.sourceName, issue.reason]),
+    [
+      ['TheTongue', 'HoneySlime', 'Honey Slime', 'buff_inflicting_npc_unresolved'],
+      ['DisplayOnlyAmbiguousBuff', null, 'Wall of Flesh', 'buff_inflicting_npc_unresolved']
+    ]
+  );
+});
+
+test('buildSecondaryRelations exports unresolved buff source item facts for relation reports', () => {
+  const actual = buildSecondaryRelations({
+    maintBuffRows: [
+      {
+        source_id: 39,
+        internal_name: 'CursedInferno',
+        raw_json: JSON.stringify({
+          sourceItems: [
+            { internalName: 'ParserOnlyItem', name: 'Parser Only Item', pageTitle: 'Parser Only Item' }
+          ]
+        })
+      }
+    ],
+    maintItemRows: []
+  });
+
+  assert.equal(actual.itemBuffRelations.length, 0);
+  assert.equal(actual.issues.length, 1);
+  assert.equal(actual.issues[0].factGroup, 'sourceItems');
+  assert.equal(actual.issues[0].reviewStatus, 'unresolved');
+  assert.equal(actual.issues[0].reason, 'buff_source_item_unresolved');
 });
 
 test('buildSecondaryRelations does not infer npc projectile facts from aiStyle', () => {

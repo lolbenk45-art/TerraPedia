@@ -489,11 +489,11 @@ const normalizeBuffListItem = (buff: BuffListItem): BuffListItem => ({
 const normalizeBuffFactSummary = (fact: Record<string, unknown>) => ({
   ...fact,
   id: nullableNumber(fact.id ?? fact.relationId),
-  sourceId: nullableNumber(fact.sourceId ?? fact.source_id ?? fact.npcId),
+  sourceId: nullableNumber(fact.sourceId ?? fact.source_id ?? fact.npcId ?? fact.itemId),
   internalName: nullableString(fact.internalName ?? fact.internal_name),
   name: nullableString(fact.name),
   nameZh: nullableString(fact.nameZh ?? fact.name_zh),
-  imageUrl: nullableString(fact.imageUrl ?? fact.image_url),
+  imageUrl: normalizeManagedPublicImageUrl(fact.imageUrl ?? fact.image ?? fact.npcImageUrl ?? fact.itemImageUrl ?? fact.image_url ?? fact.npc_image_url ?? fact.item_image_url),
   relationType: nullableString(fact.relationType ?? fact.relation_type),
   durationTicks: nullableNumber(fact.durationTicks ?? fact.duration_ticks),
   chanceText: nullableString(fact.chanceText ?? fact.chance_text),
@@ -503,6 +503,16 @@ const normalizeBuffFactSummary = (fact: Record<string, unknown>) => ({
   sourceSection: nullableString(fact.sourceSection ?? fact.source_section),
   sourceRevisionTimestamp: nullableString(fact.sourceRevisionTimestamp ?? fact.source_revision_timestamp),
 })
+
+const isRawWikiImageUrl = (value: unknown) => {
+  const text = nullableString(value)
+  return Boolean(text && text.toLowerCase().includes('terraria.wiki.gg/images/'))
+}
+
+const normalizeManagedPublicImageUrl = (value: unknown) => {
+  const image = nullableString(value)
+  return image && !isRawWikiImageUrl(image) ? image : null
+}
 
 const normalizeBuffDetailItem = (buff: BuffDetailItem): BuffDetailItem => ({
   ...normalizeBuffListItem(buff),
@@ -516,6 +526,13 @@ const normalizeBuffDetailItem = (buff: BuffDetailItem): BuffDetailItem => ({
     ? {
         ...buff.provenance,
         sectionAnchors: buff.provenance.sectionAnchors || [],
+      }
+    : null,
+  sourceEvidence: buff.sourceEvidence
+    ? {
+        ...buff.sourceEvidence,
+        sectionAnchors: buff.sourceEvidence.sectionAnchors || [],
+        unresolvedFacts: buff.sourceEvidence.unresolvedFacts || [],
       }
     : null,
 })

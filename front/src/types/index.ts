@@ -172,6 +172,16 @@ export interface BuffDetailItem extends BuffListItem {
     revisionTimestamp?: string | null
     sectionAnchors?: string[]
   } | null
+  sourceEvidence?: {
+    provider?: string | null
+    pageTitle?: string | null
+    canonicalPageTitle?: string | null
+    revisionId?: number | null
+    revisionTimestamp?: string | null
+    parseStatus?: string | null
+    sectionAnchors?: string[]
+    unresolvedFacts?: Record<string, unknown>[]
+  } | null
 }
 
 export interface BuffsResponse extends ApiResponse<BuffListItem[]> {

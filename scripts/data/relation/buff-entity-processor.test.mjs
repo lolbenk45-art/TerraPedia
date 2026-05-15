@@ -23,12 +23,20 @@ test('buildBuffEntityRelations mirrors maint buff rows into relation buffs', () 
             zh: { tooltip: '对熔岩免疫' }
           },
           sourceItems: [{ itemId: 288, internalName: 'ObsidianSkinPotion' }],
+          inflictingNpcs: [{ npcId: 59, internalName: 'LavaSlime', name: 'Lava Slime' }],
           immuneNpcs: [
             { npcId: 68, internalName: 'DungeonGuardian', name: 'Dungeon Guardian' },
             { npcId: 69, internalName: 'Clinger', name: 'Clinger' }
           ],
           immuneNpcCount: 2,
-          immuneNpcSample: [{ npcId: 68, internalName: 'DungeonGuardian', name: 'Dungeon Guardian' }]
+          immuneNpcSample: [{ npcId: 68, internalName: 'DungeonGuardian', name: 'Dungeon Guardian' }],
+          sourceEvidence: {
+            provider: 'terraria.wiki.gg',
+            pageTitle: 'Obsidian Skin',
+            revisionId: 123,
+            parseStatus: 'parsed',
+            unresolvedFacts: []
+          }
         }),
       landing_source_id: 42,
       landing_source_key: 'wiki.template.getbuffinfo',
@@ -51,9 +59,19 @@ test('buildBuffEntityRelations mirrors maint buff rows into relation buffs', () 
   assert.deepEqual(JSON.parse(actual.relationBuffs[0].sourceItemsJson), [
     { itemId: 288, internalName: 'ObsidianSkinPotion' }
   ]);
+  assert.deepEqual(JSON.parse(actual.relationBuffs[0].inflictingNpcsJson), [
+    { npcId: 59, internalName: 'LavaSlime', name: 'Lava Slime' }
+  ]);
   assert.deepEqual(JSON.parse(actual.relationBuffs[0].immuneNpcsJson), [
     { npcId: 68, internalName: 'DungeonGuardian', name: 'Dungeon Guardian' },
     { npcId: 69, internalName: 'Clinger', name: 'Clinger' }
   ]);
+  assert.deepEqual(JSON.parse(actual.relationBuffs[0].sourceEvidenceJson), {
+    provider: 'terraria.wiki.gg',
+    pageTitle: 'Obsidian Skin',
+    revisionId: 123,
+    parseStatus: 'parsed',
+    unresolvedFacts: []
+  });
   assert.equal(actual.relationBuffs[0].sourceMaintTable, 'maint_buffs');
 });

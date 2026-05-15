@@ -17,7 +17,22 @@ import { extractItemSellStat } from './item-page-statistics-parser.mjs';
 import { loadZhSourceIndexes } from './zh-source-index.mjs';
 
 const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
+let mysqlModule = null;
+
+function loadMysqlModule() {
+  if (mysqlModule) {
+    return mysqlModule;
+  }
+  try {
+    mysqlModule = require('mysql2/promise');
+  } catch (error) {
+    if (error?.code !== 'MODULE_NOT_FOUND') {
+      throw error;
+    }
+    mysqlModule = createRequire(path.join(repoRoot, 'data-query-app', 'package.json'))('mysql2/promise');
+  }
+  return mysqlModule;
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = getProjectRoot();
@@ -2458,7 +2473,7 @@ async function ensureMaintMigrations(connection) {
 }
 
 export async function runMaintSync(options, dependencies = {}) {
-  const mysqlModule = dependencies.mysqlModule ?? mysql;
+  const mysqlModule = dependencies.mysqlModule ?? loadMysqlModule();
   const writeReport = dependencies.writeReport ?? defaultWriteReport;
   const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
   const scopes = Array.isArray(options.scopes) ? options.scopes : resolveScopes(options.scopes);

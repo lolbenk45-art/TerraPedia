@@ -524,6 +524,51 @@ class AdminBuffControllerTest {
     }
 
     @Test
+    void shouldExposeProjectionEvidenceFieldsInAdminBuffDetail() throws Exception {
+        Buff buff = new Buff();
+        buff.setId(24L);
+        buff.setSourceId(24);
+        buff.setInternalName("OnFire");
+        buff.setEnglishName("On Fire!");
+        buff.setBuffType("debuff");
+        buff.setSourceItemsJson("[]");
+        buff.setImmuneNpcSampleJson("[]");
+
+        when(buffMapper.selectById(24L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(
+            contains("FROM `terria_v1_relation`.`projection_buffs`"),
+            eq(24)
+        )).thenReturn(List.of(Map.of(
+            "source_items_json",
+            """
+            [{"internalName":"FlameburstTower","name":"Flameburst Tower","pageTitle":"Flameburst Tower"}]
+            """,
+            "inflicting_npcs_json",
+            """
+            [{"internalName":"MeteorHead","name":"Meteor Head","pageTitle":"Meteor Head"}]
+            """,
+            "immune_npcs_json",
+            """
+            [{"internalName":"AncientVision","name":"Ancient Vision","pageTitle":"Ancient Vision"}]
+            """,
+            "source_evidence_json",
+            "{\"provider\":\"terraria.wiki.gg\",\"pageTitle\":\"On Fire!\",\"parseStatus\":\"parsed\",\"sectionAnchors\":[\"Causes\",\"Immune_NPCs\"]}"
+        )));
+
+        mockMvc.perform(get("/admin/buffs/24"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.sourceItems[0].internalName").value("FlameburstTower"))
+            .andExpect(jsonPath("$.data.inflictingNpcs[0].internalName").value("MeteorHead"))
+            .andExpect(jsonPath("$.data.immuneNpcs[0].internalName").value("AncientVision"))
+            .andExpect(jsonPath("$.data.sourceEvidence.parseStatus").value("parsed"))
+            .andExpect(jsonPath("$.data.sourceEvidence.pageTitle").value("On Fire!"))
+            .andExpect(jsonPath("$.data.sourceItemsJson").value(containsString("FlameburstTower")))
+            .andExpect(jsonPath("$.data.inflictingNpcsJson").value(containsString("MeteorHead")))
+            .andExpect(jsonPath("$.data.immuneNpcsJson").value(containsString("AncientVision")))
+            .andExpect(jsonPath("$.data.sourceEvidenceJson").value(containsString("parsed")));
+    }
+
+    @Test
     void shouldFormatInflictingNpcWikiDurationTemplateFromNotes() throws Exception {
         Buff buff = new Buff();
         buff.setId(157L);

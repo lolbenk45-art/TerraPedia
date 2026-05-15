@@ -92,17 +92,27 @@ export function applyBuffPageEvidenceToStandardizedPayload({
   }
 
   const itemIndexes = buildItemIndexes(itemRecords);
-  const sourceItems = attachSourceItemIds(evidence?.sourceItems ?? [], itemIndexes);
-  const immuneNpcs = Array.isArray(evidence?.immuneNpcs) ? evidence.immuneNpcs : [];
-  const immuneNpcSample = Array.isArray(evidence?.immuneNpcSample)
-    ? evidence.immuneNpcSample
-    : immuneNpcs.slice(0, 10);
+  const sourceItems = shouldReplaceFactGroup({ evidence, group: 'sourceItems', currentRows: target.sourceItems })
+    ? attachSourceItemIds(evidence?.sourceItems ?? [], itemIndexes)
+    : (target.sourceItems ?? []);
+  const inflictingNpcs = shouldReplaceFactGroup({ evidence, group: 'inflictingNpcs', currentRows: target.inflictingNpcs })
+    ? (Array.isArray(evidence?.inflictingNpcs) ? evidence.inflictingNpcs : [])
+    : (target.inflictingNpcs ?? []);
+  const replaceImmuneNpcs = shouldReplaceFactGroup({ evidence, group: 'immuneNpcs', currentRows: target.immuneNpcs });
+  const immuneNpcs = replaceImmuneNpcs
+    ? (Array.isArray(evidence?.immuneNpcs) ? evidence.immuneNpcs : [])
+    : (target.immuneNpcs ?? []);
+  const immuneNpcSample = replaceImmuneNpcs
+    ? (Array.isArray(evidence?.immuneNpcSample) ? evidence.immuneNpcSample : immuneNpcs.slice(0, 10))
+    : (target.immuneNpcSample ?? immuneNpcs.slice(0, 10));
   const patchedRecord = {
     ...target,
     sourceItemCount: sourceItems.length,
     sourceItems,
-    inflictingNpcs: Array.isArray(evidence?.inflictingNpcs) ? evidence.inflictingNpcs : [],
-    immuneNpcCount: toNullableInteger(evidence?.immuneNpcCount) ?? immuneNpcs.length,
+    inflictingNpcs,
+    immuneNpcCount: replaceImmuneNpcs
+      ? (toNullableInteger(evidence?.immuneNpcCount) ?? immuneNpcs.length)
+      : (toNullableInteger(target.immuneNpcCount) ?? immuneNpcs.length),
     immuneNpcs,
     immuneNpcSample,
     immuneNpcSource: evidence?.immuneNpcSource ?? (immuneNpcs.length ? 'buff-page-immunities' : target.immuneNpcSource ?? null),
@@ -118,6 +128,22 @@ export function applyBuffPageEvidenceToStandardizedPayload({
     generatedAt,
     records
   };
+}
+
+function shouldReplaceFactGroup({ evidence, group, currentRows } = {}) {
+  const rows = Array.isArray(evidence?.[group]) ? evidence[group] : [];
+  if (rows.length > 0) {
+    return true;
+  }
+  const parseStatus = evidence?.sourceEvidence?.parseStatus;
+  if (parseStatus && parseStatus !== 'parsed') {
+    return false;
+  }
+  const existingRows = Array.isArray(currentRows) ? currentRows : [];
+  if (existingRows.length === 0) {
+    return true;
+  }
+  return false;
 }
 
 function buildRawBuffPayloadFromStandardized(standardizedPayload, outputRecords) {
@@ -196,6 +222,9 @@ export async function runRefreshTargetBuffPageEvidence(rawOptions = {}, dependen
     buffId: toNullableInteger(target.id),
     buffName: target.englishName ?? target.internalName,
     pageTitle: pagePayload.pageTitle ?? resolvedPageTitle,
+    canonicalPageTitle: pagePayload.canonicalPageTitle ?? pagePayload.pageTitle ?? resolvedPageTitle,
+    revisionId: pagePayload.revisionId ?? null,
+    revisionTimestamp: pagePayload.revisionTimestamp ?? null,
     html: pagePayload.html,
     wikitext: pagePayload.wikitext,
     sections: pagePayload.sections,
@@ -208,9 +237,10 @@ export async function runRefreshTargetBuffPageEvidence(rawOptions = {}, dependen
     buffId: toNullableInteger(target.id),
     internalName: target.internalName
   });
-  writeJson(outputPath, patched);
+  const writeJsonImpl = dependencies.writeJson ?? writeJson;
+  writeJsonImpl(outputPath, patched);
   if (rawOutputPath) {
-    writeJson(rawOutputPath, buildRawBuffPayloadFromStandardized(patched, patched.records));
+    writeJsonImpl(rawOutputPath, buildRawBuffPayloadFromStandardized(patched, patched.records));
   }
 
   const patchedTarget = resolveRecord(patched.records, { buffId: toNullableInteger(target.id), internalName: target.internalName });

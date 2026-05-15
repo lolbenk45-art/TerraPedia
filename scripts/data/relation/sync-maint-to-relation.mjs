@@ -817,6 +817,20 @@ async function ensureRelationMigrations(connection, databaseName) {
       ]
     },
     {
+      tableName: 'relation_buffs',
+      columns: [
+        ['inflicting_npcs_json', 'LONGTEXT AFTER `source_items_json`'],
+        ['source_evidence_json', 'LONGTEXT AFTER `immune_npc_sample_json`']
+      ]
+    },
+    {
+      tableName: 'projection_buffs',
+      columns: [
+        ['inflicting_npcs_json', 'LONGTEXT AFTER `source_items_json`'],
+        ['source_evidence_json', 'LONGTEXT AFTER `immune_npc_sample_json`']
+      ]
+    },
+    {
       tableName: 'projection_armor_sets',
       columns: [
         ['entity_type', 'VARCHAR(64) DEFAULT NULL AFTER `text_key`'],
@@ -966,6 +980,7 @@ function flattenResults(category, recipe, itemSource, secondary, bossSeries, npc
       ...category.issues,
       ...recipe.issues,
       ...itemSource.issues,
+      ...(secondary.issues ?? []),
       ...bossSeries.issues,
       ...npcSeries.issues,
       ...armorSet.issues

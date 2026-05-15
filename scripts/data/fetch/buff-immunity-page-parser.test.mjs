@@ -175,4 +175,96 @@ test('parseBuffPageEvidence captures Causes and Immune NPCs for zh Cursed Infern
     evidence.inflictingNpcs.map((row) => row.name),
     ['爬藤怪', '腐恶食尸鬼', '魔焰眼']
   );
+  assert.equal(evidence.sourceEvidence.parseStatus, 'parsed');
+});
+
+test('parseBuffPageEvidence reports missing and empty sections instead of treating empty arrays as success', () => {
+  const evidence = parseBuffPageEvidence({
+    pageTitle: 'Empty Buff',
+    sections: [
+      { index: '1', line: 'Causes', anchor: 'Causes' },
+      { index: '2', line: 'From player', anchor: 'From_player' },
+      { index: '3', line: 'Immune NPCs', anchor: 'Immune_NPCs' }
+    ],
+    html: `
+      <h2><span class="mw-headline" id="Causes">Causes</span></h2>
+      <h3><span class="mw-headline" id="From_player">From player</span></h3>
+      <p>No source rows on this page.</p>
+      <h2><span class="mw-headline" id="Immune_NPCs">Immune NPCs</span></h2>
+      <p>No immune rows on this page.</p>
+    `
+  });
+
+  assert.equal(evidence.sourceEvidence.parseStatus, 'parse_incomplete');
+  assert.deepEqual(
+    evidence.sourceEvidence.unresolvedFacts.map((fact) => [fact.group, fact.status]),
+    [
+      ['sourceItems', 'no_rows'],
+      ['immuneNpcs', 'no_rows']
+    ]
+  );
+  assert.equal(evidence.sourceEvidence.factGroups.inflictingNpcs.status, 'section_missing');
+});
+
+test('parseBuffPageEvidence treats absent optional cause subsections as parsed when other evidence is complete', () => {
+  const evidence = parseBuffPageEvidence({
+    pageTitle: 'Hellfire',
+    sections: [
+      { line: 'Causes', anchor: 'Causes' },
+      { line: 'From player', anchor: 'From_player' },
+      { line: 'From environment', anchor: 'From_environment' },
+      { line: 'Immune NPCs', anchor: 'Immune_NPCs' }
+    ],
+    html: `
+      <h2><span class="mw-headline" id="Causes">Causes</span></h2>
+      <h3><span class="mw-headline" id="From_player">From player</span></h3>
+      <table><tr><td><a href="/wiki/Flamethrower" title="Flamethrower">Flamethrower</a></td></tr></table>
+      <h3><span class="mw-headline" id="From_environment">From environment</span></h3>
+      <ul><li><a href="/wiki/Lava" title="Lava">Lava</a></li></ul>
+      <h2><span class="mw-headline" id="Immune_NPCs">Immune NPCs</span></h2>
+      <ul><li><a href="/wiki/Meteor_Head" title="Meteor Head">Meteor Head</a></li></ul>
+    `
+  });
+
+  assert.equal(evidence.sourceEvidence.parseStatus, 'parsed');
+  assert.deepEqual(evidence.sourceEvidence.unresolvedFacts, []);
+  assert.equal(evidence.sourceEvidence.factGroups.inflictingNpcs.status, 'section_missing');
+  assert.deepEqual(evidence.sourceItems.map((entry) => [entry.name, entry.sourceKind]), [
+    ['Flamethrower', 'player'],
+    ['Lava', 'environment']
+  ]);
+  assert.deepEqual(evidence.inflictingNpcs, []);
+  assert.deepEqual(evidence.immuneNpcs.map((entry) => entry.name), ['Meteor Head']);
+});
+
+test('parseBuffPageEvidence recognizes English and zh cause subheadings including environment', () => {
+  const evidence = parseBuffPageEvidence({
+    pageTitle: 'Poisoned',
+    sections: [
+      { line: 'Causes', anchor: 'Causes' },
+      { line: 'From player', anchor: 'From_player' },
+      { line: 'From enemy', anchor: 'From_enemy' },
+      { line: 'From environment', anchor: 'From_environment' },
+      { line: 'Immune NPCs', anchor: 'Immune_NPCs' }
+    ],
+    html: `
+      <h2><span class="mw-headline" id="Causes">Causes</span></h2>
+      <h3><span class="mw-headline" id="From_player">From player</span></h3>
+      <table><tr><td><a href="/wiki/Poisoned_Knife" title="Poisoned Knife">Poisoned Knife</a></td></tr></table>
+      <h3><span class="mw-headline" id="From_enemy">From enemy</span></h3>
+      <table><tr><td><a href="/wiki/Hornet" title="Hornet">Hornet</a></td></tr></table>
+      <h3><span class="mw-headline" id="From_environment">From environment</span></h3>
+      <ul><li><a href="/wiki/Poison_Dart_Trap" title="Poison Dart Trap">Poison Dart Trap</a></li></ul>
+      <h2><span class="mw-headline" id="Immune_NPCs">Immune NPCs</span></h2>
+      <ul><li><a href="/wiki/Blue_Slime" title="Blue Slime">Blue Slime</a></li></ul>
+    `
+  });
+
+  assert.deepEqual(evidence.sourceItems.map((entry) => [entry.name, entry.sourceKind]), [
+    ['Poisoned Knife', 'player'],
+    ['Poison Dart Trap', 'environment']
+  ]);
+  assert.deepEqual(evidence.inflictingNpcs.map((entry) => entry.name), ['Hornet']);
+  assert.deepEqual(evidence.immuneNpcs.map((entry) => entry.name), ['Blue Slime']);
+  assert.equal(evidence.sourceEvidence.parseStatus, 'parsed');
 });

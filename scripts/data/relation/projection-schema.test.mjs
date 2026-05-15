@@ -39,6 +39,7 @@ test('projection npc and projectile schemas include wiki image url columns', () 
   assert.match(npcStatement, /`loot_items_json` LONGTEXT/);
   assert.match(npcStatement, /`shop_items_json` LONGTEXT/);
   assert.match(npcStatement, /`source_items_json` LONGTEXT/);
+  assert.match(buffStatement, /`inflicting_npcs_json` LONGTEXT/);
   assert.match(buffStatement, /`immune_npcs_json` LONGTEXT/);
   assert.match(projectileStatement, /`image_url` VARCHAR\(500\) DEFAULT NULL/);
   assert.match(projectileStatement, /`source_items_json` LONGTEXT/);
