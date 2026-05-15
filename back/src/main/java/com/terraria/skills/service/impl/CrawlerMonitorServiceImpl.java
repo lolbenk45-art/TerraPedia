@@ -52,6 +52,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final int RECENT_REPORT_LIMIT = 20;
     private static final int REPORT_PREVIEW_MAX_BYTES = 200_000;
     private static final long REFRESH_STALE_THRESHOLD_MS = Duration.ofHours(24).toMillis();
+    private static final Duration PROGRESS_STALE_THRESHOLD = Duration.ofMinutes(10);
 
     private final ObjectMapper objectMapper;
     private final Path repoRootOverride;
@@ -287,12 +288,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             summaryPath = findLatestSummary(historyDir);
         }
 
-        CrawlerMonitorOverviewDTO.MonitorRunDTO run = buildRun(repoRoot, outputPath, summaryPath);
-        CrawlerMonitorOverviewDTO.MonitorRunDTO standaloneProgress = buildStandaloneProgressRun(repoRoot);
-        if (shouldPreferStandaloneProgress(run, standaloneProgress)) {
-            return standaloneProgress;
-        }
-        return run;
+        return buildRun(repoRoot, outputPath, summaryPath);
     }
 
     private List<CrawlerMonitorOverviewDTO.MonitorRunDTO> loadHistory(Path repoRoot) {
@@ -681,25 +677,51 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private ReadResult readProgressWithSharedFallback(Path repoRoot, Path relativePath) {
         Path primary = repoRoot.resolve(relativePath).normalize();
         ReadResult primaryResult = readJsonMap(primary);
-        if (primaryResult.found() || primaryResult.readable()) {
-            return primaryResult;
-        }
-
         Path sharedFallback = resolveSharedDataRoot(repoRoot).resolve("generated").resolve(relativePath.getFileName()).normalize();
         if (primary.equals(sharedFallback)) {
             return primaryResult;
         }
-        return readJsonMap(sharedFallback);
+        ReadResult sharedResult = readJsonMap(sharedFallback);
+        return chooseProgressResult(primaryResult, sharedResult);
     }
 
-    private Path resolveProgressPathWithSharedFallback(Path repoRoot, Path relativePath) {
-        Path primary = repoRoot.resolve(relativePath).normalize();
-        if (Files.exists(primary)) {
+    private ReadResult chooseProgressResult(ReadResult primary, ReadResult shared) {
+        if (primary.readable() && !shared.readable()) {
             return primary;
         }
+        if (shared.readable() && !primary.readable()) {
+            return shared;
+        }
+        if (primary.readable() && shared.readable()) {
+            Instant primaryAt = progressEvidenceInstant(primary);
+            Instant sharedAt = progressEvidenceInstant(shared);
+            if (sharedAt != null && (primaryAt == null || sharedAt.isAfter(primaryAt))) {
+                return shared;
+            }
+            return primary;
+        }
+        if (primary.found()) {
+            return primary;
+        }
+        return shared.found() ? shared : primary;
+    }
 
-        Path sharedFallback = resolveSharedDataRoot(repoRoot).resolve("generated").resolve(relativePath.getFileName()).normalize();
-        return Files.exists(sharedFallback) ? sharedFallback : primary;
+    private Instant progressEvidenceInstant(ReadResult result) {
+        if (result.readable()) {
+            Instant payloadInstant = progressPayloadInstant(result.payload());
+            if (payloadInstant != null) {
+                return payloadInstant;
+            }
+        }
+        return readLastModifiedInstant(result.path());
+    }
+
+    private Instant progressPayloadInstant(Map<String, Object> payload) {
+        Instant heartbeat = parseInstant(asString(payload.get("lastHeartbeatAt")));
+        if (heartbeat != null) {
+            return heartbeat;
+        }
+        return parseInstant(asString(payload.get("generatedAt")));
     }
 
     private List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> buildRegisteredTasks(
@@ -853,25 +875,35 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         task.setUpdatedAt(latestRun == null ? null : latestRun.getGeneratedAt());
         if (action != null) {
             copyTaskProgressFromAction(task, action);
+            Path childStatusPath = resolvePayloadPathInsideRepo(repoRoot, action.getChildStatusPath());
+            if (childStatusPath != null) {
+                ReadResult childStatus = readJsonMap(childStatusPath);
+                task.setProgressPath(toDisplayPath(repoRoot, childStatus.path()));
+                applyProgressFileMetadata(task, repoRoot, childStatus);
+                applyReadableProgressState(task);
+            }
         }
         return task;
     }
 
     private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildItemPagesRefreshTask(Path repoRoot, ReadResult progress) {
         CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask("item-pages-refresh", "Item page crawl shard", "fetch", "p0");
-        task.setProgressPath(toDisplayPath(repoRoot, repoRoot.resolve(WIKI_SYNC_PROGRESS_FILE).normalize()));
+        task.setProgressPath(toDisplayPath(repoRoot, progress.path()));
+        applyProgressFileMetadata(task, repoRoot, progress);
         task.setInputPath("wiki item pages");
         task.setOutputPath("data/generated/wiki-item-pages*.json");
         task.setDataStage("wiki item pages -> crawler JSON");
 
         if (!progress.found()) {
             task.setStatus("missing");
+            task.setProgressKind("missing");
             task.setQueueState("progress file missing");
             task.setNextStep("Start the item page crawler runner when the crawl slot is free.");
             return task;
         }
         if (!progress.readable()) {
             task.setStatus("blocked");
+            task.setProgressKind("blocked");
             task.setQueueState(progress.errorMessage());
             task.setNextStep("Repair or replace the unreadable progress JSON before trusting queue state.");
             return task;
@@ -883,25 +915,28 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         task.setNextStep("Monitor the active shard, then retry failures and run transform-standardize.");
         task.setUpdatedAt(firstNonBlank(asString(payload.get("lastHeartbeatAt")), asString(payload.get("generatedAt"))));
         copyTaskProgressFromPayload(task, payload);
+        applyReadableProgressState(task);
         return task;
     }
 
     private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildBuffFetchRefreshTask(Path repoRoot, ReadResult progress) {
-        Path progressPath = resolveProgressPathWithSharedFallback(repoRoot, BUFF_FETCH_PROGRESS_FILE);
         CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask("buff-page-immunity-refresh", "Buff immunity page refresh", "fetch", "p0");
-        task.setProgressPath(progressPath == null ? BUFF_FETCH_PROGRESS_FILE.toString().replace('\\', '/') : toDisplayPath(repoRoot, progressPath));
+        task.setProgressPath(toDisplayPath(repoRoot, progress.path()));
+        applyProgressFileMetadata(task, repoRoot, progress);
         task.setInputPath("wiki buff pages");
         task.setOutputPath("data/terraPedia/raw/wiki/template__getbuffinfo.parsed.latest.json");
         task.setDataStage("wiki buff pages -> immunity evidence");
 
         if (!progress.found()) {
             task.setStatus("missing");
+            task.setProgressKind("missing");
             task.setQueueState("progress file missing");
             task.setNextStep("Start or resume the buff page refresh before standardize-existing-data.");
             return task;
         }
         if (!progress.readable()) {
             task.setStatus("blocked");
+            task.setProgressKind("blocked");
             task.setQueueState(progress.errorMessage());
             task.setNextStep("Repair the unreadable buff progress JSON before trusting completion state.");
             return task;
@@ -913,6 +948,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         task.setNextStep("Wait for buff page refresh to complete, then run standardize-existing-data and downstream relation sync.");
         task.setUpdatedAt(firstNonBlank(asString(payload.get("lastHeartbeatAt")), asString(payload.get("generatedAt"))));
         copyTaskProgressFromPayload(task, payload);
+        applyReadableProgressState(task);
         String reportPath = normalizePayloadPath(repoRoot, payload.get("reportPath"));
         if (reportPath != null && !reportPath.isBlank()) {
             task.setReportPath(reportPath);
@@ -982,6 +1018,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         task.setDataStage(dataStage);
         if (reportPath == null) {
             task.setStatus("pending");
+            task.setProgressKind("missing");
             task.setQueueState("no report yet");
             return task;
         }
@@ -990,10 +1027,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         task.setUpdatedAt(readLastModifiedIso(reportPath));
         if (!report.readable()) {
             task.setStatus("blocked");
+            task.setProgressKind("blocked");
             task.setQueueState(report.errorMessage());
             return task;
         }
         task.setStatus(statusFromReportPayload(report.payload(), "completed"));
+        task.setProgressKind("report-only");
         task.setQueueState(firstNonBlank(asString(report.payload().get("message")), task.getStatus()));
         task.setFailed(firstLong(report.payload(), "failed", "failureCount", "failedCount"));
         return task;
@@ -1038,8 +1077,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             String summaryStatus = firstNonBlank(asString(summary.get("status")), asString(report.payload().get("status")));
             if (blockers > 0) {
                 task.setStatus("blocked");
+                task.setProgressKind("blocked");
             } else if (warnings > 0 || isWarningStatus(summaryStatus)) {
                 task.setStatus("warning");
+                task.setProgressKind("warning");
             }
         }
         return task;
@@ -1067,6 +1108,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         task.setReportPath(reportPath);
         task.setProgressPath(progressPath);
         task.setQueueState(status);
+        task.setProgressKind(progressKindForStatus(status));
         return task;
     }
 
@@ -1077,6 +1119,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         task.setLane(lane);
         task.setPriority(priority);
         task.setStatus("pending");
+        task.setProgressKind("queued");
         return task;
     }
 
@@ -1098,7 +1141,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         task.setTotal(action.getTotal());
         task.setOverallCurrent(action.getOverallCurrent());
         task.setOverallTotal(action.getOverallTotal());
-        task.setPercent(action.getPercent());
+        task.setPercent(firstNonNull(
+            action.getPercent(),
+            derivePercent(action.getOverallCurrent(), action.getOverallTotal(), action.getCurrent(), action.getTotal())
+        ));
         task.setPending(computePending(action.getOverallCurrent(), action.getOverallTotal(), action.getCurrent(), action.getTotal()));
     }
 
@@ -1111,9 +1157,93 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         task.setTotal(total);
         task.setOverallCurrent(overallCurrent);
         task.setOverallTotal(overallTotal);
-        task.setPercent(clampPercent(asNullableDouble(payload.get("percent"))));
+        task.setPercent(firstNonNull(
+            clampPercent(asNullableDouble(payload.get("percent"))),
+            derivePercent(overallCurrent, overallTotal, current, total)
+        ));
         task.setPending(computePending(overallCurrent, overallTotal, current, total));
         task.setFailed(firstLong(payload, "failed", "failedCount", "failureCount"));
+    }
+
+    private void applyProgressFileMetadata(
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task,
+        Path repoRoot,
+        ReadResult progress
+    ) {
+        task.setProgressSource(toDisplayPath(repoRoot, progress.path()));
+        task.setProgressFound(progress.found());
+        task.setProgressReadable(progress.readable());
+        task.setProgressUpdatedAt(readLastModifiedIso(progress.path()));
+        task.setProgressErrorMessage(progress.errorMessage());
+        if (!progress.readable()) {
+            return;
+        }
+
+        String heartbeat = firstNonBlank(
+            asString(progress.payload().get("lastHeartbeatAt")),
+            firstNonBlank(asString(progress.payload().get("generatedAt")), task.getProgressUpdatedAt())
+        );
+        task.setProgressHeartbeatAt(heartbeat);
+        Instant heartbeatAt = parseInstant(heartbeat);
+        if (heartbeatAt != null) {
+            task.setProgressHeartbeatAgeMs(Math.max(0L, Duration.between(heartbeatAt, Instant.now(clock)).toMillis()));
+        }
+    }
+
+    private void applyReadableProgressState(CrawlerMonitorOverviewDTO.RegisteredTaskDTO task) {
+        if (!task.isProgressReadable()) {
+            return;
+        }
+        String status = task.getStatus() == null ? "" : task.getStatus().toLowerCase(Locale.ROOT);
+        if ("running".equals(status)) {
+            if (task.getProgressHeartbeatAgeMs() != null
+                && task.getProgressHeartbeatAgeMs() > PROGRESS_STALE_THRESHOLD.toMillis()) {
+                task.setStatus("stalled");
+                task.setProgressKind("stalled");
+                task.setProgressStale(true);
+                task.setProgressStaleReason("running progress heartbeat is older than 10 minutes");
+                return;
+            }
+            task.setProgressKind("live");
+            task.setProgressStale(false);
+            return;
+        }
+        task.setProgressKind(progressKindForStatus(status));
+        task.setProgressStale(false);
+    }
+
+    private String progressKindForStatus(String status) {
+        String normalized = status == null ? "" : status.toLowerCase(Locale.ROOT);
+        if ("running".equals(normalized)) {
+            return "live";
+        }
+        if ("queued".equals(normalized) || "pending".equals(normalized)) {
+            return "queued";
+        }
+        if ("missing".equals(normalized)) {
+            return "missing";
+        }
+        if ("blocked".equals(normalized)) {
+            return "blocked";
+        }
+        if ("completed".equals(normalized)) {
+            return "completed";
+        }
+        return normalized.isBlank() ? "completed" : normalized;
+    }
+
+    private Double derivePercent(Long overallCurrent, Long overallTotal, Long current, Long total) {
+        if (overallCurrent != null && overallTotal != null && overallTotal > 0) {
+            return clampPercent((overallCurrent.doubleValue() / overallTotal.doubleValue()) * 100.0d);
+        }
+        if (current != null && total != null && total > 0) {
+            return clampPercent((current.doubleValue() / total.doubleValue()) * 100.0d);
+        }
+        return null;
+    }
+
+    private Double firstNonNull(Double first, Double second) {
+        return first == null ? second : first;
     }
 
     private Long computePending(Long overallCurrent, Long overallTotal, Long current, Long total) {
@@ -1363,6 +1493,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         addLastModifiedCandidate(candidates, resolvePayloadPathInsideRepo(repoRoot, overview.getLatestRun().getPath()));
         addLastModifiedCandidate(candidates, resolvePayloadPathInsideRepo(repoRoot, overview.getLatestRun().getSummaryPath()));
         addInstantCandidate(candidates, overview.getLatestRun().getGeneratedAt());
+        for (CrawlerMonitorOverviewDTO.RegisteredTaskDTO task : overview.getRegisteredTasks()) {
+            if (task.isProgressReadable()) {
+                addInstantCandidate(candidates, task.getProgressHeartbeatAt());
+                addInstantCandidate(candidates, task.getProgressUpdatedAt());
+            }
+        }
         return candidates.stream().max(Comparator.naturalOrder()).orElse(null);
     }
 
@@ -1433,53 +1569,6 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             actions.add(action);
         }
         return actions;
-    }
-
-    private boolean shouldPreferStandaloneProgress(
-        CrawlerMonitorOverviewDTO.MonitorRunDTO run,
-        CrawlerMonitorOverviewDTO.MonitorRunDTO standaloneProgress
-    ) {
-        if (standaloneProgress == null || !standaloneProgress.isFound() || !standaloneProgress.isReadable()) {
-            return false;
-        }
-        if (run == null || !run.isFound()) {
-            return true;
-        }
-        Instant standaloneAt = parseInstant(standaloneProgress.getGeneratedAt());
-        Instant runAt = parseInstant(run.getGeneratedAt());
-        return standaloneAt != null && (runAt == null || standaloneAt.isAfter(runAt));
-    }
-
-    private CrawlerMonitorOverviewDTO.MonitorRunDTO buildStandaloneProgressRun(Path repoRoot) {
-        Path progressPath = repoRoot.resolve(WIKI_SYNC_PROGRESS_FILE).normalize();
-        ReadResult result = readJsonMap(progressPath);
-        CrawlerMonitorOverviewDTO.MonitorRunDTO run = new CrawlerMonitorOverviewDTO.MonitorRunDTO();
-        run.setFound(result.found());
-        run.setReadable(result.readable());
-        run.setPath(toDisplayPath(repoRoot, progressPath));
-        run.setSummaryPath(toDisplayPath(repoRoot, progressPath));
-        run.setGeneratedAt(asString(result.payload().get("generatedAt")));
-        run.setOutputPath(toDisplayPath(repoRoot, progressPath));
-        run.setLastActionId(firstNonBlank(asString(result.payload().get("actionId")), "wiki-sync"));
-        run.setTotalActions(result.found() ? 1L : 0L);
-        String status = asString(result.payload().get("status"));
-        run.setCompletedActions("completed".equalsIgnoreCase(status) ? 1L : 0L);
-        run.setFailedActions("failed".equalsIgnoreCase(status) ? 1L : 0L);
-        run.setRunningActions("running".equalsIgnoreCase(status) ? 1L : 0L);
-        run.setPendingActions("pending".equalsIgnoreCase(status) ? 1L : 0L);
-        run.setErrorMessage(result.errorMessage());
-
-        if (result.readable()) {
-            CrawlerMonitorOverviewDTO.MonitorActionDTO action = new CrawlerMonitorOverviewDTO.MonitorActionDTO();
-            action.setId(run.getLastActionId());
-            action.setRunner("external");
-            action.setStatus(status);
-            action.setChildStatusPath(toDisplayPath(repoRoot, progressPath));
-            action.setUpdatedAt(asString(result.payload().get("generatedAt")));
-            applyProgressFields(repoRoot, action, result.payload());
-            run.setActions(List.of(action));
-        }
-        return run;
     }
 
     private Map<String, Object> readChildStatusPayload(Path repoRoot, String childStatusPath) {
@@ -1562,12 +1651,12 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private ReadResult readJsonMap(Path path) {
         if (path == null || !Files.exists(path)) {
-            return new ReadResult(false, false, Collections.emptyMap(), null);
+            return new ReadResult(path, false, false, Collections.emptyMap(), null);
         }
         try {
-            return new ReadResult(true, true, objectMapper.readValue(path.toFile(), MAP_TYPE), null);
+            return new ReadResult(path, true, true, objectMapper.readValue(path.toFile(), MAP_TYPE), null);
         } catch (IOException exception) {
-            return new ReadResult(true, false, Collections.emptyMap(), exception.getMessage());
+            return new ReadResult(path, true, false, Collections.emptyMap(), exception.getMessage());
         }
     }
 
@@ -1840,6 +1929,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     }
 
     private record ReadResult(
+        Path path,
         boolean found,
         boolean readable,
         Map<String, Object> payload,

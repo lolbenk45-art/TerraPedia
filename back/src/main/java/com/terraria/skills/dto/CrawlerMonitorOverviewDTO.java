@@ -164,6 +164,16 @@ public class CrawlerMonitorOverviewDTO {
         private String outputPath;
         private String reportPath;
         private String progressPath;
+        private String progressSource;
+        private boolean progressFound;
+        private boolean progressReadable;
+        private String progressUpdatedAt;
+        private String progressErrorMessage;
+        private String progressHeartbeatAt;
+        private Long progressHeartbeatAgeMs;
+        private boolean progressStale;
+        private String progressStaleReason;
+        private String progressKind;
         private String updatedAt;
     }
 }

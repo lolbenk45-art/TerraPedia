@@ -10,16 +10,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const scriptPath = path.join(__dirname, 'fetch-wiki-item-pages.mjs');
-const defaultProgressPath = path.join(repoRoot, 'data', 'generated', 'wiki-sync-progress.latest.json');
 
 test('writes child progress and report to explicit paths when no item pages are selected', () => {
-  withPreservedFile(defaultProgressPath, () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
     const inputPath = path.join(tempDir, 'items.json');
     const rawDir = path.join(tempDir, 'raw');
     const reportDir = path.join(tempDir, 'reports');
     const progressPath = path.join(tempDir, 'progress.json');
+    const defaultProgressPath = path.join(worktreeRoot, 'data', 'generated', 'wiki-sync-progress.latest.json');
 
+    fs.mkdirSync(worktreeRoot, { recursive: true });
     fs.writeFileSync(inputPath, JSON.stringify({
       items: [{ internalName: 'MiningPotion', name: 'Mining Potion' }]
     }), 'utf8');
@@ -40,6 +41,7 @@ test('writes child progress and report to explicit paths when no item pages are 
       encoding: 'utf8',
       env: {
         ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
         TERRAPEDIA_CRAWLER_ACTION_ID: 'test-item-pages'
       }
     });
@@ -68,11 +70,9 @@ test('writes child progress and report to explicit paths when no item pages are 
     assert.equal(defaultProgress.overallCurrent, 0);
     assert.equal(defaultProgress.overallTotal, 0);
     assert.equal(path.resolve(defaultProgress.childStatusPath), defaultProgressPath);
-  });
 });
 
 test('default fetch progress path follows WORKTREE_ROOT when progress path is omitted', () => {
-  withPreservedFile(defaultProgressPath, () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-worktree-'));
     const worktreeRoot = path.join(tempDir, 'feature-worktree');
     const inputPath = path.join(tempDir, 'items.json');
@@ -112,24 +112,8 @@ test('default fetch progress path follows WORKTREE_ROOT when progress path is om
     assert.equal(progress.actionId, 'test-item-pages-worktree');
     assert.equal(progress.status, 'completed');
     assert.equal(path.resolve(progress.childStatusPath), worktreeProgressPath);
-  });
 });
 
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function withPreservedFile(filePath, task) {
-  const existed = fs.existsSync(filePath);
-  const previous = existed ? fs.readFileSync(filePath) : null;
-  try {
-    task();
-  } finally {
-    if (existed) {
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(filePath, previous);
-    } else {
-      fs.rmSync(filePath, { force: true });
-    }
-  }
 }

@@ -62,28 +62,28 @@
       <article class="ops-card ops-card--primary">
         <div class="ops-card__head">
           <span class="ops-card__label">Active task</span>
-          <span class="status-pill" :class="statusTone(activeRegisteredTask?.status)">
-            {{ activeRegisteredTask?.status || latestRunStatus }}
+          <span class="status-pill" :class="statusTone(rowStatus(activeProgressRow))">
+            {{ rowStatus(activeProgressRow) || latestRunStatus }}
           </span>
         </div>
-        <strong class="ops-card__title">{{ activeRegisteredTask?.label || 'No registered task' }}</strong>
-        <p class="ops-card__text">{{ activeRegisteredTask?.queueState || primaryProgressAction?.message || 'No active queue state yet.' }}</p>
+        <strong class="ops-card__title">{{ activeProgressRow?.label || activeProgressRow?.id || 'No registered task' }}</strong>
+        <p class="ops-card__text">{{ activeProgressRow?.queueState || activeProgressRow?.action?.message || 'No active queue state yet.' }}</p>
         <div class="ops-metrics">
           <span>
             <small>Progress</small>
-            <strong>{{ activeRegisteredTask ? taskProgressLabel(activeRegisteredTask) : '--' }}</strong>
+            <strong>{{ activeProgressRow ? rowProgressLabel(activeProgressRow) : '--' }}</strong>
           </span>
           <span>
             <small>Pending</small>
-            <strong>{{ activeRegisteredTask ? taskPendingLabel(activeRegisteredTask) : '--' }}</strong>
+            <strong>{{ activeProgressRow ? rowPendingLabel(activeProgressRow) : '--' }}</strong>
           </span>
           <span>
             <small>ETA</small>
-            <strong>{{ primaryProgressAction ? actionEtaLabel(primaryProgressAction) : '--' }}</strong>
+            <strong>{{ activeProgressRow ? rowEtaLabel(activeProgressRow) : '--' }}</strong>
           </span>
         </div>
         <div class="progress-track">
-          <span :style="{ width: activeRegisteredTask ? taskProgress(activeRegisteredTask) : '0%' }" :class="statusTone(activeRegisteredTask?.status)" />
+          <span :style="{ width: activeProgressRow ? rowProgress(activeProgressRow) : '0%' }" :class="statusTone(rowStatus(activeProgressRow))" />
         </div>
       </article>
 
@@ -255,41 +255,45 @@
           <div class="section-head">
             <div>
               <h2 class="section-card__title">阶段进度</h2>
-              <p class="section-card__subtitle">从 latest run 的 actions 动态渲染；后续新增细分爬取任务不需要改页面结构。</p>
+              <p class="section-card__subtitle">从 registered tasks 动态渲染；latest run action 只补充运行文件和耗时。</p>
             </div>
             <span class="status-pill" :class="statusTone(latestRunStatus)">{{ latestRunStatus }}</span>
           </div>
 
-          <div v-if="actions.length" class="action-rail">
-            <article v-for="action in actions" :key="action.id || action.runner || 'action'" class="action-card">
+          <div v-if="progressRows.length" class="action-rail">
+            <article v-for="row in progressRows" :key="row.rowKey" class="action-card">
               <div class="action-card__head">
-                <strong>{{ action.id || 'unknown-action' }}</strong>
-                <span class="status-pill" :class="statusTone(action.status)">{{ action.status || 'unknown' }}</span>
+                <strong>{{ row.label || row.id || 'unknown-task' }}</strong>
+                <span class="status-pill" :class="statusTone(rowStatus(row))">{{ rowStatus(row) || 'unknown' }}</span>
               </div>
               <div class="action-card__meta">
-                <span>{{ action.runner || 'runner unknown' }}</span>
-                <span>{{ actionProgressLabel(action) }}</span>
+                <span>{{ row.lane || row.action?.runner || 'runner unknown' }}</span>
+                <span>{{ rowProgressLabel(row) }}</span>
               </div>
-              <p v-if="action.phase || action.message" class="action-card__message">
-                <span v-if="action.phase">{{ action.phase }}</span>
-                {{ action.message || '' }}
+              <p v-if="row.action?.phase || row.queueState || row.action?.message" class="action-card__message">
+                <span v-if="row.action?.phase">{{ row.action.phase }}</span>
+                {{ row.queueState || row.action?.message || '' }}
+              </p>
+              <p v-if="row.progressStaleReason" class="action-card__message action-card__message--warning">
+                {{ row.progressStaleReason }}
               </p>
               <div class="action-card__queue">
                 <span>
                   <small>Pending</small>
-                  <strong>{{ actionPendingLabel(action) }}</strong>
+                  <strong>{{ rowPendingLabel(row) }}</strong>
                 </span>
                 <span>
                   <small>Speed</small>
-                  <strong>{{ actionSpeedLabel(action) }}</strong>
+                  <strong>{{ rowSpeedLabel(row) }}</strong>
                 </span>
                 <span>
                   <small>ETA</small>
-                  <strong>{{ actionEtaLabel(action) }}</strong>
+                  <strong>{{ rowEtaLabel(row) }}</strong>
                 </span>
               </div>
+              <code v-if="rowSourcePath(row)" class="action-card__source">{{ rowSourcePath(row) }}</code>
               <div class="progress-track">
-                <span :style="{ width: actionProgress(action) }" :class="statusTone(action.status)" />
+                <span :style="{ width: rowProgress(row) }" :class="statusTone(rowStatus(row))" />
               </div>
             </article>
           </div>
@@ -350,44 +354,44 @@
             <table class="monitor-table">
               <thead>
                 <tr>
-                  <th>Action</th>
-                  <th>Runner</th>
+                  <th>Task</th>
+                  <th>Lane</th>
                   <th>Status</th>
                   <th>Progress</th>
                   <th>Pending</th>
                   <th>Speed</th>
                   <th>ETA</th>
-                  <th>Duration</th>
-                  <th>Updated</th>
+                  <th>Heartbeat</th>
                   <th>Runtime Files</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="action in actions" :key="`row-${action.id}`">
+                <tr v-for="row in progressRows" :key="`row-${row.rowKey}`">
                   <td>
-                    <strong>{{ action.id || 'unknown-action' }}</strong>
-                    <small>{{ shortArgs(action.args) }}</small>
+                    <strong>{{ row.label || row.id || 'unknown-task' }}</strong>
+                    <small>{{ row.id || shortArgs(row.action?.args) }}</small>
                   </td>
-                  <td>{{ action.runner || '--' }}</td>
-                  <td><span class="status-pill" :class="statusTone(action.status)">{{ action.status || 'unknown' }}</span></td>
+                  <td>{{ row.lane || row.action?.runner || '--' }}</td>
+                  <td><span class="status-pill" :class="statusTone(rowStatus(row))">{{ rowStatus(row) || 'unknown' }}</span></td>
                   <td>
-                    <strong>{{ actionProgressLabel(action) }}</strong>
-                    <small v-if="action.phase || action.message">{{ [action.phase, action.message].filter(Boolean).join(' · ') }}</small>
+                    <strong>{{ rowProgressLabel(row) }}</strong>
+                    <small v-if="row.progressKind || row.action?.phase || row.queueState">{{ [row.progressKind, row.action?.phase, row.queueState].filter(Boolean).join(' · ') }}</small>
+                    <small v-if="row.progressStaleReason">{{ row.progressStaleReason }}</small>
                   </td>
-                  <td>{{ actionPendingLabel(action) }}</td>
-                  <td>{{ actionSpeedLabel(action) }}</td>
-                  <td>{{ actionEtaLabel(action) }}</td>
-                  <td>{{ formatDuration(action.durationMs) }}</td>
-                  <td>{{ formatDate(action.lastHeartbeatAt || action.updatedAt) }}</td>
+                  <td>{{ rowPendingLabel(row) }}</td>
+                  <td>{{ rowSpeedLabel(row) }}</td>
+                  <td>{{ rowEtaLabel(row) }}</td>
+                  <td>{{ rowHeartbeatLabel(row) }}</td>
                   <td>
-                    <code v-if="action.heartbeatPath">{{ action.heartbeatPath }}</code>
-                    <code v-if="action.snapshotPath">{{ action.snapshotPath }}</code>
-                    <code v-if="action.childStatusPath">{{ action.childStatusPath }}</code>
-                    <span v-if="!action.heartbeatPath && !action.snapshotPath && !action.childStatusPath">--</span>
+                    <code v-if="rowSourcePath(row)">{{ rowSourcePath(row) }}</code>
+                    <code v-if="row.action?.heartbeatPath">{{ row.action.heartbeatPath }}</code>
+                    <code v-if="row.action?.snapshotPath">{{ row.action.snapshotPath }}</code>
+                    <code v-if="row.action?.childStatusPath">{{ row.action.childStatusPath }}</code>
+                    <span v-if="!rowSourcePath(row) && !row.action?.heartbeatPath && !row.action?.snapshotPath && !row.action?.childStatusPath">--</span>
                   </td>
                 </tr>
-                <tr v-if="!actions.length">
-                  <td colspan="10" class="table-empty">暂无 action 明细</td>
+                <tr v-if="!progressRows.length">
+                  <td colspan="9" class="table-empty">暂无 action 明细</td>
                 </tr>
               </tbody>
             </table>
@@ -526,6 +530,7 @@ import {
 } from 'lucide-vue-next'
 import { get } from '~/composables/useApi'
 import { showToast } from '~/composables/useToast'
+import { progressRowsFromOverview, rowStatus } from '~/utils/crawlerMonitorProgressRows.mjs'
 import type {
   CrawlerMonitorAction,
   CrawlerMonitorArchitectureFile,
@@ -548,6 +553,11 @@ type StatusCard = {
   tone: string
 }
 
+type ProgressRow = CrawlerMonitorRegisteredTask & {
+  rowKey: string
+  action?: CrawlerMonitorAction | null
+}
+
 const overview = ref<CrawlerMonitorOverview | null>(null)
 const loading = ref(false)
 const autoRefresh = ref(true)
@@ -567,6 +577,7 @@ const history = computed<CrawlerMonitorRun[]>(() => Array.isArray(overview.value
 const recentReports = computed<CrawlerMonitorReport[]>(() => Array.isArray(overview.value?.recentReports) ? overview.value!.recentReports! : [])
 const architectureLayers = computed<CrawlerMonitorArchitectureLayer[]>(() => Array.isArray(overview.value?.architectureLayers) ? overview.value!.architectureLayers! : [])
 const registeredTasks = computed<CrawlerMonitorRegisteredTask[]>(() => Array.isArray(overview.value?.registeredTasks) ? overview.value!.registeredTasks! : [])
+const progressRows = computed<ProgressRow[]>(() => progressRowsFromOverview(overview.value))
 const refreshStale = computed(() => Boolean(overview.value?.refreshStale))
 const latestRunStatus = computed(() => {
   if (!latestRun.value.found) return 'missing'
@@ -585,6 +596,12 @@ const activeRegisteredTask = computed<CrawlerMonitorRegisteredTask | null>(() =>
   return registeredTasks.value.find((task) => String(task.status || '').toLowerCase() === 'running')
     || registeredTasks.value.find((task) => String(task.status || '').toLowerCase() === 'queued')
     || registeredTasks.value[0]
+    || null
+})
+const activeProgressRow = computed<ProgressRow | null>(() => {
+  return progressRows.value.find((row) => ['stalled', 'running'].includes(rowStatus(row)))
+    || progressRows.value.find((row) => ['blocked', 'queued', 'pending', 'missing', 'warning'].includes(rowStatus(row)))
+    || progressRows.value[0]
     || null
 })
 const queuedTasks = computed<CrawlerMonitorRegisteredTask[]>(() => {
@@ -911,6 +928,34 @@ function reportTone(category?: string | null) {
   if (normalized === 'crawler') return 'info'
   if (normalized === 'audit') return 'warning'
   return 'muted'
+}
+
+function rowProgress(row: ProgressRow) {
+  return taskProgress(row)
+}
+
+function rowProgressLabel(row: ProgressRow) {
+  return taskProgressLabel(row)
+}
+
+function rowPendingLabel(row: ProgressRow) {
+  return taskPendingLabel(row)
+}
+
+function rowSpeedLabel(row: ProgressRow) {
+  return row.action ? actionSpeedLabel(row.action) : '--'
+}
+
+function rowEtaLabel(row: ProgressRow) {
+  return row.action ? actionEtaLabel(row.action) : '--'
+}
+
+function rowHeartbeatLabel(row: ProgressRow) {
+  return formatDate(row.progressHeartbeatAt || row.action?.lastHeartbeatAt || row.updatedAt)
+}
+
+function rowSourcePath(row: ProgressRow) {
+  return row.progressSource || row.progressPath || row.action?.childStatusPath || row.reportPath || row.outputPath || ''
 }
 
 function taskProgress(task: CrawlerMonitorRegisteredTask) {

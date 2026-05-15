@@ -165,7 +165,7 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void shouldSurfaceStandaloneWikiSyncProgressWhenBackendRefreshRunIsMissing() throws Exception {
+    void shouldSurfaceStandaloneWikiSyncProgressAsRegisteredTaskWhenBackendRefreshRunIsMissing() throws Exception {
         Path progressPath = repoRoot.resolve("data/generated/wiki-sync-progress.latest.json");
         writeJson(progressPath, Map.ofEntries(
             Map.entry("actionId", "wiki-sync"),
@@ -191,29 +191,149 @@ class CrawlerMonitorServiceImplTest {
 
         CrawlerMonitorOverviewDTO overview = service.getOverview();
 
-        assertTrue(overview.getLatestRun().isFound());
-        assertTrue(overview.getLatestRun().isReadable());
-        assertEquals(1, overview.getLatestRun().getTotalActions());
-        assertEquals(1, overview.getLatestRun().getRunningActions());
-        assertEquals("wiki-sync", overview.getLatestRun().getLastActionId());
-        assertEquals(1, overview.getLatestRun().getActions().size());
-        CrawlerMonitorOverviewDTO.MonitorActionDTO action = overview.getLatestRun().getActions().get(0);
-        assertEquals("wiki-sync", action.getId());
-        assertEquals("external", action.getRunner());
-        assertEquals("running", action.getStatus());
-        assertEquals("data/generated/wiki-sync-progress.latest.json", action.getChildStatusPath());
-        assertEquals("2026-04-29T00:00:00Z", action.getStartedAt());
-        assertEquals(3, action.getCurrent());
-        assertEquals(8, action.getTotal());
-        assertEquals(100L, action.getBatchOffset());
-        assertEquals(100L, action.getBatchLimit());
-        assertEquals(103L, action.getOverallCurrent());
-        assertEquals(6131L, action.getOverallTotal());
-        assertEquals(37.5, action.getPercent());
-        assertEquals("apply", action.getPhase());
-        assertEquals("running standalone wiki sync action 3 of 8", action.getMessage());
-        assertEquals("2026-04-29T00:00:30Z", action.getLastHeartbeatAt());
+        assertFalse(overview.getLatestRun().isFound());
+        assertFalse(overview.getLatestRun().isReadable());
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO itemRefresh = taskById(overview.getRegisteredTasks(), "item-pages-refresh");
+        assertEquals("running", itemRefresh.getStatus());
+        assertEquals("live", itemRefresh.getProgressKind());
+        assertEquals("data/generated/wiki-sync-progress.latest.json", itemRefresh.getProgressSource());
+        assertEquals("2026-04-29T00:00:30Z", itemRefresh.getProgressHeartbeatAt());
+        assertEquals(3, itemRefresh.getCurrent());
+        assertEquals(8, itemRefresh.getTotal());
+        assertEquals(103L, itemRefresh.getOverallCurrent());
+        assertEquals(6131L, itemRefresh.getOverallTotal());
+        assertEquals(37.5, itemRefresh.getPercent());
+        assertEquals("running standalone wiki sync action 3 of 8", itemRefresh.getQueueState());
         assertFalse(overview.isRefreshStale());
+    }
+
+    @Test
+    void shouldExposeRegisteredTaskProgressMetadataAndDerivedPercent() throws Exception {
+        Path progressPath = repoRoot.resolve("data/generated/wiki-sync-progress.latest.json");
+        writeJson(progressPath, Map.ofEntries(
+            Map.entry("actionId", "item-pages-batch-1900"),
+            Map.entry("status", "running"),
+            Map.entry("phase", "fetch"),
+            Map.entry("message", "fetched 43/100 item page(s); ok=43; failed=0"),
+            Map.entry("current", 43),
+            Map.entry("total", 100),
+            Map.entry("batchOffset", 1900),
+            Map.entry("batchLimit", 100),
+            Map.entry("overallCurrent", 1943),
+            Map.entry("overallTotal", 6131),
+            Map.entry("generatedAt", "2026-05-15T03:20:00Z"),
+            Map.entry("lastHeartbeatAt", "2026-05-15T03:20:00Z")
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-05-15T03:22:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO itemRefresh = taskById(overview.getRegisteredTasks(), "item-pages-refresh");
+
+        assertEquals("live", itemRefresh.getProgressKind());
+        assertTrue(itemRefresh.isProgressFound());
+        assertTrue(itemRefresh.isProgressReadable());
+        assertFalse(itemRefresh.isProgressStale());
+        assertEquals("data/generated/wiki-sync-progress.latest.json", itemRefresh.getProgressPath());
+        assertEquals("data/generated/wiki-sync-progress.latest.json", itemRefresh.getProgressSource());
+        assertEquals("2026-05-15T03:20:00Z", itemRefresh.getProgressHeartbeatAt());
+        assertEquals(120000L, itemRefresh.getProgressHeartbeatAgeMs());
+        assertEquals(1943L, itemRefresh.getOverallCurrent());
+        assertEquals(6131L, itemRefresh.getOverallTotal());
+        assertNotNull(itemRefresh.getPercent());
+        assertFalse(overview.isRefreshStale());
+    }
+
+    @Test
+    void shouldMarkRunningProgressAsStalledWhenHeartbeatIsOld() throws Exception {
+        Path progressPath = repoRoot.resolve("data/generated/wiki-sync-progress.latest.json");
+        writeJson(progressPath, Map.ofEntries(
+            Map.entry("actionId", "item-pages-batch-1900"),
+            Map.entry("status", "running"),
+            Map.entry("current", 50),
+            Map.entry("total", 100),
+            Map.entry("generatedAt", "2026-05-15T02:00:00Z"),
+            Map.entry("lastHeartbeatAt", "2026-05-15T02:00:00Z")
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-05-15T02:30:01Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO itemRefresh = taskById(service.getOverview().getRegisteredTasks(), "item-pages-refresh");
+
+        assertEquals("stalled", itemRefresh.getProgressKind());
+        assertEquals("stalled", itemRefresh.getStatus());
+        assertTrue(itemRefresh.isProgressStale());
+        assertTrue(itemRefresh.getProgressStaleReason().contains("older than 10 minutes"));
+    }
+
+    @Test
+    void shouldExposeFailedReadableProgressWithoutMarkingItCompleted() throws Exception {
+        Path progressPath = repoRoot.resolve("data/generated/wiki-sync-progress.latest.json");
+        writeJson(progressPath, Map.ofEntries(
+            Map.entry("actionId", "item-pages-batch-1900"),
+            Map.entry("status", "failed"),
+            Map.entry("message", "item page fetch failed"),
+            Map.entry("current", 12),
+            Map.entry("total", 100),
+            Map.entry("generatedAt", "2026-05-15T03:20:00Z"),
+            Map.entry("lastHeartbeatAt", "2026-05-15T03:20:00Z")
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-05-15T03:22:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO itemRefresh = taskById(service.getOverview().getRegisteredTasks(), "item-pages-refresh");
+
+        assertEquals("failed", itemRefresh.getStatus());
+        assertEquals("failed", itemRefresh.getProgressKind());
+        assertFalse(itemRefresh.isProgressStale());
+    }
+
+    @Test
+    void shouldPreferFresherSharedBuffProgressOverStaleRepoPrimary() throws Exception {
+        Path primary = repoRoot.resolve("data/generated/fetch-wiki-buffs-progress.latest.json");
+        Path shared = repoRoot.getParent().resolve("data/terraPedia/generated/fetch-wiki-buffs-progress.latest.json");
+        writeJson(primary, Map.ofEntries(
+            Map.entry("actionId", "buff-page-immunity-refresh"),
+            Map.entry("status", "running"),
+            Map.entry("current", 1),
+            Map.entry("total", 388),
+            Map.entry("lastHeartbeatAt", "2026-05-15T02:00:00Z"),
+            Map.entry("generatedAt", "2026-05-15T02:00:00Z")
+        ));
+        writeJson(shared, Map.ofEntries(
+            Map.entry("actionId", "buff-page-immunity-refresh"),
+            Map.entry("status", "running"),
+            Map.entry("current", 185),
+            Map.entry("total", 388),
+            Map.entry("overallCurrent", 185),
+            Map.entry("overallTotal", 388),
+            Map.entry("lastHeartbeatAt", "2026-05-15T03:29:54Z"),
+            Map.entry("generatedAt", "2026-05-15T03:29:54Z")
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-05-15T03:31:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO buffRefresh = taskById(service.getOverview().getRegisteredTasks(), "buff-page-immunity-refresh");
+
+        assertEquals(185L, buffRefresh.getCurrent());
+        assertEquals("live", buffRefresh.getProgressKind());
+        assertTrue(buffRefresh.getProgressSource().replace('\\', '/').endsWith("data/terraPedia/generated/fetch-wiki-buffs-progress.latest.json"));
     }
 
     @Test
@@ -342,7 +462,9 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("completed", taskById(tasks, "relation-sync").getStatus());
         assertEquals("completed", taskById(tasks, "projection-local-core").getStatus());
         assertEquals("completed", taskById(tasks, "local-compat-sync").getStatus());
-        assertEquals("warning", taskById(tasks, "relation-health").getStatus());
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO relationHealth = taskById(tasks, "relation-health");
+        assertEquals("warning", relationHealth.getStatus());
+        assertEquals("warning", relationHealth.getProgressKind());
         assertEquals("pending", taskById(tasks, "transform-standardize").getStatus());
     }
 
@@ -510,7 +632,7 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
-    void shouldPreferRunningStandaloneWikiSyncProgressOverStaleBackendRefreshRun() throws Exception {
+    void shouldKeepBackendRefreshRunWhenStandaloneWikiSyncProgressIsNewer() throws Exception {
         Path outputPath = historyDir.resolve("backend-data-refresh-2026-04-26T00-00-00-000Z.json");
         Path summaryPath = historyDir.resolve("backend-data-refresh-2026-04-26T00-00-00-000Z.summary.json");
         Path progressPath = repoRoot.resolve("data/generated/wiki-sync-progress.latest.json");
@@ -554,9 +676,12 @@ class CrawlerMonitorServiceImplTest {
 
         CrawlerMonitorOverviewDTO overview = service.getOverview();
 
-        assertEquals("wiki-sync", overview.getLatestRun().getLastActionId());
-        assertEquals(1, overview.getLatestRun().getRunningActions());
-        assertEquals("new standalone wiki sync is running", overview.getLatestRun().getActions().get(0).getMessage());
+        assertEquals("old-refresh", overview.getLatestRun().getActions().get(0).getId());
+        assertEquals(0, overview.getLatestRun().getRunningActions());
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO itemRefresh = taskById(overview.getRegisteredTasks(), "item-pages-refresh");
+        assertEquals("running", itemRefresh.getStatus());
+        assertEquals("live", itemRefresh.getProgressKind());
+        assertEquals("new standalone wiki sync is running", itemRefresh.getQueueState());
     }
 
     @Test

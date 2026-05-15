@@ -10,16 +10,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const scriptPath = path.join(__dirname, 'run-wiki-sync.mjs');
-const defaultProgressPath = path.join(repoRoot, 'data', 'generated', 'wiki-sync-progress.latest.json');
 
 test('item page plan passes explicit only-changed=false to fetch action', () => {
-  withPreservedFile(defaultProgressPath, () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-sync-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
     const manifestPath = path.join(tempDir, 'manifest.json');
     const monitorStatePath = path.join(tempDir, 'monitor-state.json');
     const planPath = path.join(tempDir, 'plan.json');
     const progressPath = path.join(tempDir, 'progress.json');
 
+    fs.mkdirSync(worktreeRoot, { recursive: true });
     fs.writeFileSync(manifestPath, JSON.stringify({ records: [] }), 'utf8');
     fs.writeFileSync(monitorStatePath, JSON.stringify({ sources: [{ key: 'seed' }] }), 'utf8');
 
@@ -36,7 +36,11 @@ test('item page plan passes explicit only-changed=false to fetch action', () => 
       `--progress-path=${progressPath}`
     ], {
       cwd: repoRoot,
-      encoding: 'utf8'
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+      }
     });
 
     assert.equal(result.status, 0, result.stderr || result.stdout);
@@ -44,11 +48,9 @@ test('item page plan passes explicit only-changed=false to fetch action', () => 
     assert.equal(plan.actions.length, 1);
     assert.ok(plan.actions[0].args.includes('--only-changed=false'));
     assert.ok(!plan.actions[0].args.includes('--only-changed=true'));
-  });
 });
 
 test('default wiki sync progress path follows WORKTREE_ROOT when progress path is omitted', () => {
-  withPreservedFile(defaultProgressPath, () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-sync-worktree-'));
     const worktreeRoot = path.join(tempDir, 'feature-worktree');
     const manifestPath = path.join(tempDir, 'manifest.json');
@@ -85,20 +87,4 @@ test('default wiki sync progress path follows WORKTREE_ROOT when progress path i
     const progress = JSON.parse(fs.readFileSync(worktreeProgressPath, 'utf8'));
     assert.equal(progress.status, 'completed');
     assert.equal(path.resolve(progress.childStatusPath), worktreeProgressPath);
-  });
 });
-
-function withPreservedFile(filePath, task) {
-  const existed = fs.existsSync(filePath);
-  const previous = existed ? fs.readFileSync(filePath) : null;
-  try {
-    task();
-  } finally {
-    if (existed) {
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(filePath, previous);
-    } else {
-      fs.rmSync(filePath, { force: true });
-    }
-  }
-}

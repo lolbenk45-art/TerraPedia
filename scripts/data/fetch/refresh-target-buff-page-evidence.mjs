@@ -10,9 +10,14 @@ import {
   writeJson
 } from '../lib/wiki-item-utils.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import {
+  buildActionProgressPayload,
+  writeJsonFile
+} from '../workflow/backend-refresh-runtime-state.mjs';
 import { parseBuffPageEvidence } from './buff-immunity-page-parser.mjs';
 
 const repoRoot = getProjectRoot();
+const DEFAULT_BUFF_PROGRESS_PATH = path.join(repoRoot, 'data', 'generated', 'fetch-wiki-buffs-progress.latest.json');
 
 function toNullableInteger(value) {
   if (value == null || value === '') return null;
@@ -145,12 +150,24 @@ export async function runRefreshTargetBuffPageEvidence(rawOptions = {}, dependen
   const rawOutputPath = rawOptions['raw-output']
     ? resolveOutputPath(rawOptions['raw-output'])
     : null;
+  const progressPath = resolveOutputPath(rawOptions['progress-path'], DEFAULT_BUFF_PROGRESS_PATH);
   const buffId = toNullableInteger(rawOptions['buff-id'] ?? rawOptions.buffId);
   const internalName = normalizeInternalName(rawOptions['internal-name'] ?? rawOptions.internalName);
   const pageTitle = normalizeInternalName(rawOptions.page ?? rawOptions.pageTitle);
   if (buffId == null && !internalName) {
     throw new Error('Pass --buff-id=<id> or --internal-name=<name>');
   }
+
+  const startedAt = new Date().toISOString();
+  writeTargetBuffProgress(progressPath, {
+    status: 'running',
+    phase: 'load',
+    message: 'loading standardized buff and item inputs',
+    current: 0,
+    total: 1,
+    startedAt,
+    dependencies
+  });
 
   const standardizedPayload = dependencies.readJson?.(inputPath) ?? readJson(inputPath);
   const itemPayload = dependencies.readJson?.(itemsPath) ?? readJson(itemsPath);
@@ -165,6 +182,15 @@ export async function runRefreshTargetBuffPageEvidence(rawOptions = {}, dependen
     ?? target.englishName
     ?? target.localized?.zh?.page
     ?? target.internalName;
+  writeTargetBuffProgress(progressPath, {
+    status: 'running',
+    phase: 'buff-page-immunities',
+    message: `fetching rendered immunity page: ${resolvedPageTitle}`,
+    current: 0,
+    total: 1,
+    startedAt,
+    dependencies
+  });
   const pagePayload = await fetchPagePayload({ pageTitle: resolvedPageTitle });
   const evidence = parseBuffPageEvidence({
     buffId: toNullableInteger(target.id),
@@ -188,10 +214,21 @@ export async function runRefreshTargetBuffPageEvidence(rawOptions = {}, dependen
   }
 
   const patchedTarget = resolveRecord(patched.records, { buffId: toNullableInteger(target.id), internalName: target.internalName });
+  writeTargetBuffProgress(progressPath, {
+    status: 'completed',
+    phase: 'write',
+    message: `updated buff page evidence for ${patchedTarget.englishName ?? patchedTarget.internalName}`,
+    current: 1,
+    total: 1,
+    startedAt,
+    outputPath,
+    dependencies
+  });
   return {
     inputPath,
     outputPath,
     rawOutputPath,
+    progressPath,
     buffId: patchedTarget.id,
     internalName: patchedTarget.internalName,
     pageTitle: pagePayload.pageTitle ?? resolvedPageTitle,
@@ -200,6 +237,41 @@ export async function runRefreshTargetBuffPageEvidence(rawOptions = {}, dependen
     immuneNpcCount: patchedTarget.immuneNpcCount,
     immuneNpcSampleCount: patchedTarget.immuneNpcSample.length
   };
+}
+
+function writeTargetBuffProgress(progressPath, {
+  status,
+  phase,
+  message,
+  current,
+  total,
+  startedAt,
+  outputPath = null,
+  dependencies = {}
+} = {}) {
+  const generatedAt = new Date().toISOString();
+  const payload = buildActionProgressPayload({
+    actionId: 'buff-page-immunity-refresh',
+    status,
+    phase,
+    message,
+    current,
+    total,
+    startedAt,
+    overallCurrent: current,
+    overallTotal: total,
+    generatedAt,
+    lastHeartbeatAt: generatedAt,
+    childStatusPath: progressPath
+  });
+  if (outputPath) {
+    payload.outputPath = outputPath;
+  }
+  payload.queue = 'buff source refresh';
+  payload.dataStage = 'wiki buff pages -> immunity evidence';
+  payload.nextStep = 'standardize buffs, rebuild npc bridge, then backfill npc_buff_relations';
+  const writer = dependencies.writeJson ?? writeJsonFile;
+  writer(progressPath, payload);
 }
 
 function isDirectExecution() {

@@ -119,6 +119,16 @@ export interface CrawlerMonitorRegisteredTask {
   outputPath?: string | null
   reportPath?: string | null
   progressPath?: string | null
+  progressSource?: string | null
+  progressFound?: boolean
+  progressReadable?: boolean
+  progressUpdatedAt?: string | null
+  progressErrorMessage?: string | null
+  progressHeartbeatAt?: string | null
+  progressHeartbeatAgeMs?: number | null
+  progressStale?: boolean
+  progressStaleReason?: string | null
+  progressKind?: string | null
   updatedAt?: string | null
 }
 

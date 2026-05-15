@@ -66,6 +66,15 @@ class AdminCrawlerMonitorControllerTest {
         latestRun.setCompletedActions(2);
         latestRun.setFailedActions(1);
 
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO itemRefresh = new CrawlerMonitorOverviewDTO.RegisteredTaskDTO();
+        itemRefresh.setId("item-pages-refresh");
+        itemRefresh.setStatus("running");
+        itemRefresh.setCurrent(43L);
+        itemRefresh.setTotal(100L);
+        itemRefresh.setPercent(43.0d);
+        itemRefresh.setProgressKind("live");
+        itemRefresh.setProgressHeartbeatAt("2026-05-15T03:20:00Z");
+
         CrawlerMonitorOverviewDTO.MonitorReportDTO recentReport = new CrawlerMonitorOverviewDTO.MonitorReportDTO();
         recentReport.setName("TEST-com.terraria.skills.CrawlerMonitorServiceImplTest.xml");
         recentReport.setPath("back/target/surefire-reports/TEST-com.terraria.skills.CrawlerMonitorServiceImplTest.xml");
@@ -115,6 +124,7 @@ class AdminCrawlerMonitorControllerTest {
         overview.setRecentReports(List.of(recentReport));
         overview.setArchitectureLayers(List.of(architectureLayer));
         overview.setImageNormalization(imageNormalization);
+        overview.setRegisteredTasks(List.of(itemRefresh));
 
         when(crawlerMonitorService.getOverview()).thenReturn(overview);
 
@@ -132,7 +142,9 @@ class AdminCrawlerMonitorControllerTest {
             .andExpect(jsonPath("$.data.imageNormalization.latestImageLineageReport").value("reports/audit/image-source-lineage-2026-05-08-minio-post-normalization-v4.json"))
             .andExpect(jsonPath("$.data.imageNormalization.lastCanonicalSyncAt").value("2026-05-08T09:11:38.895Z"))
             .andExpect(jsonPath("$.data.imageNormalization.projectileWikiOnlyCount").value(1))
-            .andExpect(jsonPath("$.data.imageNormalization.legacyExemptionCount").value(0));
+            .andExpect(jsonPath("$.data.imageNormalization.legacyExemptionCount").value(0))
+            .andExpect(jsonPath("$.data.registeredTasks[0].progressKind").value("live"))
+            .andExpect(jsonPath("$.data.registeredTasks[0].percent").value(43.0));
 
         verify(crawlerMonitorService).getOverview();
     }
