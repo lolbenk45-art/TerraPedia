@@ -347,6 +347,14 @@
               </article>
             </section>
 
+            <section v-if="armorSetPreviewWarnings.length" class="preview-card preview-card--warning">
+              <div class="preview-card__head"><h4>数据质量提示</h4><span>{{ armorSetPreviewWarnings.length }} 项</span></div>
+              <article v-for="(warning, index) in armorSetPreviewWarnings" :key="`${warning.label}-${index}-${warning.value}`" class="preview-note">
+                <strong>{{ warning.label }}</strong>
+                <p>{{ warning.value }}</p>
+              </article>
+            </section>
+
             <section v-if="armorSetPreviewImages.length" class="preview-card">
               <div class="preview-card__head"><h4>穿戴套装图片</h4><span>{{ armorSetPreviewImages.length }} 张</span></div>
               <div class="preview-gallery">
@@ -423,6 +431,12 @@
                 <article v-for="stat in detailStats" :key="stat.label" class="preview-stat">
                   <span>{{ stat.label }}</span>
                   <strong>{{ stat.value }}</strong>
+                </article>
+              </div>
+              <div v-if="armorSetDetailWarnings.length" class="armor-detail__warning-list">
+                <article v-for="(warning, index) in armorSetDetailWarnings" :key="`${warning.label}-${index}-${warning.value}`" class="armor-detail__warning">
+                  <strong>{{ warning.label }}</strong>
+                  <span>{{ warning.value }}</span>
                 </article>
               </div>
             </div>
@@ -1712,6 +1726,46 @@ function splitImageCsv(value: unknown) {
   return value.split(',').map(entry => normalizeImageUrl(entry)).filter(Boolean)
 }
 
+function buildArmorSetDataQualityWarnings(row: Record<string, any>) {
+  if (!row || typeof row !== 'object') return []
+  const warnings = Array.isArray(row.dataQualityWarnings)
+    ? row.dataQualityWarnings.map(value => String(value || '').trim()).filter(Boolean)
+    : []
+  const status = String(row.imagePipelineStatus || '').trim()
+  const sourceCount = Number(row.sourceImageCount ?? 0)
+  const managedCount = Number(row.managedImageCount ?? 0)
+  const sourceMode = String(row.dataSourceMode || '').trim()
+  const rows: Array<{ label: string; value: string }> = []
+  if (sourceMode) {
+    rows.push({ label: '数据来源', value: sourceMode === 'legacy' ? 'Legacy armor_sets fallback' : sourceMode })
+  }
+  if (status) {
+    rows.push({
+      label: '图片管线',
+      value: `${formatArmorImagePipelineStatus(status)}，源图 ${Number.isFinite(sourceCount) ? sourceCount : 0}，托管图 ${Number.isFinite(managedCount) ? managedCount : 0}`,
+    })
+  }
+  for (const warning of warnings) {
+    rows.push({ label: '告警', value: translateArmorDataQualityWarning(warning) })
+  }
+  return rows
+}
+
+function formatArmorImagePipelineStatus(status: string) {
+  if (status === 'managed_images_available') return '托管图片可用'
+  if (status === 'source_images_unmanaged') return '源图存在但尚未托管'
+  if (status === 'managed_images_missing') return '缺少托管图片'
+  return status
+}
+
+function translateArmorDataQualityWarning(warning: string) {
+  if (warning.includes('relation projection is unavailable')) return 'Relation projection 不可用，当前使用 legacy armor_sets fallback。'
+  if (warning.includes('source armor set images exist but managed armor set images are missing')) return 'Wiki 源图存在，但没有同步为可展示的 TerraPedia 托管图片。'
+  if (warning.includes('managed armor set images are missing')) return '缺少可展示的 TerraPedia 托管图片。'
+  if (warning.includes('readable armor set effect text is missing')) return '缺少可读套装效果文本。'
+  return warning
+}
+
 function tryParseJson(value: unknown) {
   if (typeof value !== 'string' || !value.trim()) return null
   try { return JSON.parse(value) } catch { return null }
@@ -2412,6 +2466,10 @@ const armorSetRelatedItems = computed(() => {
   if (entityType.value !== 'armor-sets') return []
   return Array.isArray(previewRow.value.relatedItems) ? previewRow.value.relatedItems : []
 })
+const armorSetPreviewWarnings = computed(() => {
+  if (entityType.value !== 'armor-sets') return []
+  return buildArmorSetDataQualityWarnings(previewRow.value)
+})
 const armorSetDetailImageGroups = computed(() => {
   if (!detailRow.value || entityType.value !== 'armor-sets') return []
   const groups = [
@@ -2420,6 +2478,10 @@ const armorSetDetailImageGroups = computed(() => {
     { label: '特殊展示', description: '补充特殊姿态、额外变体或宣传用套装图。', images: splitImageCsv(detailRow.value.specialImages) },
   ]
   return groups.filter(group => group.images.length)
+})
+const armorSetDetailWarnings = computed(() => {
+  if (!detailRow.value || entityType.value !== 'armor-sets') return []
+  return buildArmorSetDataQualityWarnings(detailRow.value)
 })
 const detailRelatedItems = computed(() => {
   if (!detailRow.value || entityType.value !== 'armor-sets') return []
@@ -3733,6 +3795,7 @@ function formatArmorPartRole(value: unknown) {
 .advanced-fields { display: grid; gap: 14px; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .preview-card { padding: 18px; border-radius: var(--radius-lg); background: color-mix(in srgb, var(--color-bg) 78%, var(--color-bg-secondary)); border: 1px solid var(--color-border); box-shadow: var(--shadow-sm); display: grid; gap: 14px; }
+.preview-card--warning { border-color: color-mix(in srgb, #f59e0b 35%, var(--color-border)); background: color-mix(in srgb, #f59e0b 8%, var(--color-bg-secondary)); }
 .preview-card--hero {
   background:
     radial-gradient(circle at top right, color-mix(in srgb, var(--color-primary) 20%, transparent), transparent 42%),
@@ -3769,6 +3832,10 @@ function formatArmorPartRole(value: unknown) {
 .armor-detail__hero-body { display: grid; gap: 12px; align-content: start; }
 .armor-detail__hero-body h3 { margin: 0; color: var(--color-text); font-size: 1.4rem; }
 .armor-detail__hero-body p { margin: 0; color: var(--color-text-secondary); line-height: 1.6; }
+.armor-detail__warning-list { display: grid; gap: 8px; }
+.armor-detail__warning { display: grid; gap: 4px; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid color-mix(in srgb, #f59e0b 35%, var(--color-border)); background: color-mix(in srgb, #f59e0b 8%, var(--color-bg-secondary)); }
+.armor-detail__warning strong { color: var(--color-text); font-size: 0.78rem; }
+.armor-detail__warning span { color: var(--color-text-secondary); font-size: 0.84rem; line-height: 1.5; }
 .armor-detail__section { display: grid; gap: 14px; }
 .armor-detail__section--effect { padding: 16px; border-radius: var(--radius-lg); border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-border)); background: color-mix(in srgb, var(--color-bg-secondary) 92%, transparent); }
 .armor-detail__section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

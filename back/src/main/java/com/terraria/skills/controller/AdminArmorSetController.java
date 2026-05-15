@@ -32,6 +32,7 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -62,6 +63,7 @@ public class AdminArmorSetController {
     private final ObjectMapper objectMapper;
     private final ManagedImageUrlPolicy managedImageUrlPolicy;
     private Map<String, List<String>> armorBenefitStatementCache;
+    private Map<String, WikiArmorSetSourceRecord> wikiArmorSetSourceCache;
 
     @GetMapping
     @Operation(summary = "Get armor sets")
@@ -76,6 +78,37 @@ public class AdminArmorSetController {
             return getProjectionArmorSets(projectionTable, page, limit, size, search);
         }
 
+        return getLegacyArmorSets(page, limit, size, search);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get armor set detail")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getArmorSetById(@PathVariable Long id) {
+        String projectionTable = resolveProjectionArmorSetsTable();
+        if (projectionTable != null) {
+            ResponseEntity<ApiResponse<Map<String, Object>>> projectionResponse = getProjectionArmorSetById(projectionTable, id);
+            if (projectionResponse.getStatusCode().is2xxSuccessful()) {
+                return projectionResponse;
+            }
+        }
+
+        return getLegacyArmorSetById(id);
+    }
+
+    private ResponseEntity<ApiResponse<Map<String, Object>>> getLegacyArmorSetById(Long id) {
+        Map<String, Object> payload = findLegacyArmorSetPayload(id);
+        if (payload == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "ArmorSet not found"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(payload));
+    }
+
+    private ResponseEntity<ApiResponse<List<Map<String, Object>>>> getLegacyArmorSets(
+        Integer page,
+        Integer limit,
+        Integer size,
+        String search
+    ) {
         int safePage = PaginationParams.resolvePage(page);
         int safeLimit = PaginationParams.resolveLimit(limit, size, 20, 100);
         int offset = (safePage - 1) * safeLimit;
@@ -107,25 +140,6 @@ public class AdminArmorSetController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/{id}")
-    @Operation(summary = "Get armor set detail")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getArmorSetById(@PathVariable Long id) {
-        String projectionTable = resolveProjectionArmorSetsTable();
-        if (projectionTable != null) {
-            return getProjectionArmorSetById(projectionTable, id);
-        }
-
-        return getLegacyArmorSetById(id);
-    }
-
-    private ResponseEntity<ApiResponse<Map<String, Object>>> getLegacyArmorSetById(Long id) {
-        Map<String, Object> payload = findLegacyArmorSetPayload(id);
-        if (payload == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "ArmorSet not found"));
-        }
-        return ResponseEntity.ok(ApiResponse.success(payload));
-    }
-
     private Map<String, Object> findLegacyArmorSetPayload(Long id) {
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
             """
@@ -142,11 +156,12 @@ public class AdminArmorSetController {
     }
 
     private String resolveProjectionArmorSetsTable() {
-        if (tableExistsInCurrentDatabase(PROJECTION_ARMOR_SETS_TABLE)) {
+        if (tableExistsInCurrentDatabase(PROJECTION_ARMOR_SETS_TABLE) && tableHasRows(PROJECTION_ARMOR_SETS_TABLE)) {
             return PROJECTION_ARMOR_SETS_TABLE;
         }
-        if (tableExists(RELATION_DATABASE_NAME, PROJECTION_ARMOR_SETS_TABLE)) {
-            return "`" + RELATION_DATABASE_NAME + "`.`" + PROJECTION_ARMOR_SETS_TABLE + "`";
+        String relationTable = "`" + RELATION_DATABASE_NAME + "`.`" + PROJECTION_ARMOR_SETS_TABLE + "`";
+        if (tableExists(RELATION_DATABASE_NAME, PROJECTION_ARMOR_SETS_TABLE) && tableHasRows(relationTable)) {
+            return relationTable;
         }
         return null;
     }
@@ -184,6 +199,19 @@ public class AdminArmorSetController {
             return count != null && count > 0;
         } catch (Exception exception) {
             log.debug("{}.{} is not available", schemaName, tableName, exception);
+            return false;
+        }
+    }
+
+    private boolean tableHasRows(String tableExpression) {
+        try {
+            Long count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM " + tableExpression,
+                Long.class
+            );
+            return count != null && count > 0;
+        } catch (Exception exception) {
+            log.debug("{} has no readable rows", tableExpression, exception);
             return false;
         }
     }
@@ -395,6 +423,18 @@ public class AdminArmorSetController {
         String nameZh = firstNonBlank(trimToNull(row.get("name_zh")), trimToNull(row.get("name")), textKey);
         String nameEn = firstNonBlank(trimToNull(row.get("name_en")), trimToNull(row.get("name")), textKey);
         String benefitExpression = trimToNull(row.get("benefit_expression"));
+        WikiArmorSetSourceRecord sourceRecord = findWikiArmorSetSourceRecord(
+            trimToNull(row.get("source_key")),
+            nameZh,
+            nameEn,
+            textKey
+        );
+        String benefitZh = firstReadableBenefitText(
+            trimToNull(row.get("benefit_zh")),
+            sourceRecord == null ? null : sourceRecord.effectText(),
+            benefitExpression
+        );
+        String benefitEn = firstReadableBenefitText(trimToNull(row.get("benefit_en")), null, benefitExpression);
         ArmorSetImageGroup snapshotImageGroup = findArmorSetImageGroup(textKey, snapshotImages);
         String snapshotMaleImages = snapshotImageGroup == null ? null : snapshotImageGroup.maleCsv();
         String snapshotFemaleImages = snapshotImageGroup == null ? null : snapshotImageGroup.femaleCsv();
@@ -413,8 +453,11 @@ public class AdminArmorSetController {
         String mappingStatus = firstNonBlank(trimToNull(row.get("mapping_status")), "mapped");
         String entityType = firstNonBlank(trimToNull(row.get("entity_type")), "armor_set");
         String compositionKind = firstNonBlank(trimToNull(row.get("composition_kind")), inferArmorSetCompositionKind(row));
+        int managedImageCount = countCsvEntries(maleImages) + countCsvEntries(femaleImages) + countCsvEntries(specialImages);
+        int sourceImageCount = sourceRecord == null ? 0 : sourceRecord.sourceImageCount();
 
         payload.put("id", toLong(row.get("id")));
+        payload.put("dataSourceMode", "projection");
         payload.put("entityType", entityType);
         payload.put("compositionKind", compositionKind);
         payload.put("name", firstNonBlank(nameZh, nameEn, textKey));
@@ -426,8 +469,8 @@ public class AdminArmorSetController {
         payload.put("textEn", nameEn);
         payload.put("sourceKey", firstNonBlank(trimToNull(row.get("source_key")), textKey));
         payload.put("benefitExpression", benefitExpression);
-        payload.put("benefitZh", firstNonBlank(trimToNull(row.get("benefit_zh")), benefitExpression));
-        payload.put("benefitEn", firstNonBlank(trimToNull(row.get("benefit_en")), benefitExpression));
+        payload.put("benefitZh", firstNonBlank(benefitZh, benefitExpression));
+        payload.put("benefitEn", firstNonBlank(benefitEn, benefitExpression));
         payload.put("primaryPart", row.get("primary_part"));
         payload.put("setCount", toInt(row.get("set_count"), 0));
         payload.put("uniqueItemCount", toInt(row.get("unique_item_count"), 0));
@@ -455,6 +498,16 @@ public class AdminArmorSetController {
         payload.put("equipmentItems", equipmentItems);
         payload.put("setVariants", buildArmorSetVariants(textKey, parseJson(row.get("sets_json")), equipmentItems));
         payload.put("replacementGroups", buildArmorReplacementGroups(equipmentItems));
+        payload.put("imagePipelineStatus", imagePipelineStatus(managedImageCount, sourceImageCount));
+        payload.put("sourceImageCount", sourceImageCount);
+        payload.put("managedImageCount", managedImageCount);
+        payload.put("dataQualityWarnings", buildArmorDataQualityWarnings(
+            false,
+            benefitExpression,
+            trimToNull(payload.get("benefitZh")),
+            managedImageCount,
+            sourceImageCount
+        ));
         payload.put("effectRows", buildArmorEffectRows(benefitZh(payload), benefitEn(payload), benefitExpression, row.get("primary_part"), mappingStatus));
         payload.put("createdAt", row.get("created_at"));
         payload.put("updatedAt", row.get("updated_at"));
@@ -500,12 +553,17 @@ public class AdminArmorSetController {
             trimToNull(definition.get("benefitExpression")),
             trimToNull(row.get("benefit_expression"))
         );
+        WikiArmorSetSourceRecord sourceRecord = findWikiArmorSetSourceRecord(sourceKey, nameZh, nameEn, textKey);
         String benefitZh = firstNonBlank(
-            trimToNull(definition.get("benefitZh")),
+            firstReadableBenefitText(
+                trimToNull(definition.get("benefitZh")),
+                sourceRecord == null ? null : sourceRecord.effectText(),
+                benefitExpression
+            ),
             benefitExpression
         );
         String benefitEn = firstNonBlank(
-            trimToNull(definition.get("benefitEn")),
+            firstReadableBenefitText(trimToNull(definition.get("benefitEn")), null, benefitExpression),
             benefitExpression
         );
         ArmorSetImageGroup snapshotImageGroup = snapshotImages.get(textKey);
@@ -522,8 +580,14 @@ public class AdminArmorSetController {
             .findFirst()
             .orElse(null);
         String previewImage = firstNonBlank(snapshotPreviewImage, relatedPreviewImage);
+        String maleImages = firstManagedImageCsv(trimToNull(row.get("male_images")), trimToNull(definition.get("maleImages")), snapshotMaleImages, previewImage);
+        String femaleImages = firstManagedImageCsv(trimToNull(row.get("female_images")), trimToNull(definition.get("femaleImages")), snapshotFemaleImages);
+        String specialImages = firstManagedImageCsv(trimToNull(row.get("special_images")), trimToNull(definition.get("specialImages")), snapshotSpecialImages);
+        int managedImageCount = countCsvEntries(maleImages) + countCsvEntries(femaleImages) + countCsvEntries(specialImages);
+        int sourceImageCount = sourceRecord == null ? 0 : sourceRecord.sourceImageCount();
 
         payload.put("id", toLong(row.get("id")));
+        payload.put("dataSourceMode", "legacy");
         payload.put("name", nameZh);
         payload.put("nameZh", nameZh);
         payload.put("nameEn", nameEn);
@@ -555,13 +619,23 @@ public class AdminArmorSetController {
         payload.put("armorLegsId", null);
         payload.put("image", previewImage);
         payload.put("imageUrl", previewImage);
-        payload.put("maleImages", firstManagedImageCsv(trimToNull(row.get("male_images")), trimToNull(definition.get("maleImages")), snapshotMaleImages, previewImage));
-        payload.put("femaleImages", firstManagedImageCsv(trimToNull(row.get("female_images")), trimToNull(definition.get("femaleImages")), snapshotFemaleImages));
-        payload.put("specialImages", firstManagedImageCsv(trimToNull(row.get("special_images")), trimToNull(definition.get("specialImages")), snapshotSpecialImages));
+        payload.put("maleImages", maleImages);
+        payload.put("femaleImages", femaleImages);
+        payload.put("specialImages", specialImages);
         payload.put("relatedItems", equipmentItems);
         payload.put("equipmentItems", equipmentItems);
         payload.put("setVariants", buildArmorSetVariants(String.valueOf(payload.getOrDefault("textKey", textKey)), parseJson(payload.get("setsJson")), equipmentItems));
         payload.put("replacementGroups", buildArmorReplacementGroups(equipmentItems));
+        payload.put("imagePipelineStatus", imagePipelineStatus(managedImageCount, sourceImageCount));
+        payload.put("sourceImageCount", sourceImageCount);
+        payload.put("managedImageCount", managedImageCount);
+        payload.put("dataQualityWarnings", buildArmorDataQualityWarnings(
+            true,
+            benefitExpression,
+            trimToNull(payload.get("benefitZh")),
+            managedImageCount,
+            sourceImageCount
+        ));
         payload.put(
             "effectRows",
             buildArmorEffectRows(
@@ -575,6 +649,47 @@ public class AdminArmorSetController {
         payload.put("createdAt", row.get("created_at"));
         payload.put("updatedAt", row.get("updated_at"));
         return payload;
+    }
+
+    private String firstReadableBenefitText(String preferred, String sourceEffectText, String benefitExpression) {
+        String preferredText = trimToNull(preferred);
+        if (!isBenefitExpressionValue(preferredText, benefitExpression)) {
+            return preferredText;
+        }
+        String sourceText = trimToNull(sourceEffectText);
+        return sourceText == null ? preferredText : sourceText;
+    }
+
+    private String imagePipelineStatus(int managedImageCount, int sourceImageCount) {
+        if (managedImageCount > 0) {
+            return "managed_images_available";
+        }
+        if (sourceImageCount > 0) {
+            return "source_images_unmanaged";
+        }
+        return "managed_images_missing";
+    }
+
+    private List<String> buildArmorDataQualityWarnings(
+        boolean legacyMode,
+        String benefitExpression,
+        String benefitZh,
+        int managedImageCount,
+        int sourceImageCount
+    ) {
+        List<String> warnings = new ArrayList<>();
+        if (legacyMode) {
+            warnings.add("relation projection is unavailable; using legacy armor_sets fallback");
+        }
+        if (managedImageCount <= 0 && sourceImageCount > 0) {
+            warnings.add("source armor set images exist but managed armor set images are missing");
+        } else if (managedImageCount <= 0) {
+            warnings.add("managed armor set images are missing");
+        }
+        if (isBenefitExpressionValue(benefitZh, benefitExpression)) {
+            warnings.add("readable armor set effect text is missing");
+        }
+        return warnings;
     }
 
     private String benefitZh(Map<String, Object> payload) {
@@ -826,6 +941,123 @@ public class AdminArmorSetController {
         addEffectRow(rows, "Primary Part", trimToNull(primaryPart));
         addEffectRow(rows, "Mapping Status", trimToNull(mappingStatus));
         return rows;
+    }
+
+    private WikiArmorSetSourceRecord findWikiArmorSetSourceRecord(String sourceKey, String nameZh, String nameEn, String textKey) {
+        Map<String, WikiArmorSetSourceRecord> records = loadWikiArmorSetSourceRecords();
+        if (records.isEmpty()) {
+            return null;
+        }
+        for (String key : new String[] { sourceKey, nameZh, nameEn, textKey }) {
+            WikiArmorSetSourceRecord record = records.get(normalizeLookupKey(key));
+            if (record != null) {
+                return record;
+            }
+        }
+        return null;
+    }
+
+    private Map<String, WikiArmorSetSourceRecord> loadWikiArmorSetSourceRecords() {
+        if (wikiArmorSetSourceCache != null) {
+            return wikiArmorSetSourceCache;
+        }
+        Path path = resolveLatestWikiArmorSetsFile();
+        if (path == null) {
+            wikiArmorSetSourceCache = Map.of();
+            return wikiArmorSetSourceCache;
+        }
+        try {
+            Map<String, Object> root = objectMapper.readValue(path.toFile(), new TypeReference<>() {});
+            Object recordsRaw = root.get("records");
+            if (!(recordsRaw instanceof List<?> records)) {
+                wikiArmorSetSourceCache = Map.of();
+                return wikiArmorSetSourceCache;
+            }
+            Map<String, WikiArmorSetSourceRecord> byName = new LinkedHashMap<>();
+            for (Object rawRecord : records) {
+                if (!(rawRecord instanceof Map<?, ?> record)) {
+                    continue;
+                }
+                WikiArmorSetSourceRecord sourceRecord = toWikiArmorSetSourceRecord(record);
+                if (sourceRecord == null) {
+                    continue;
+                }
+                putWikiArmorSetSourceRecord(byName, sourceRecord.nameZh(), sourceRecord);
+                putWikiArmorSetSourceRecord(byName, sourceRecord.nameEn(), sourceRecord);
+                putWikiArmorSetSourceRecord(byName, sourceRecord.pageTitle(), sourceRecord);
+            }
+            wikiArmorSetSourceCache = byName.isEmpty() ? Map.of() : Collections.unmodifiableMap(byName);
+            return wikiArmorSetSourceCache;
+        } catch (Exception exception) {
+            log.debug("Failed to load wiki armor set source records", exception);
+            wikiArmorSetSourceCache = Map.of();
+            return wikiArmorSetSourceCache;
+        }
+    }
+
+    private WikiArmorSetSourceRecord toWikiArmorSetSourceRecord(Map<?, ?> record) {
+        String nameZh = trimToNull(record.get("nameZh"));
+        String nameEn = trimToNull(record.get("nameEn"));
+        String pageTitle = trimToNull(record.get("pageTitle"));
+        String effectText = trimToNull(record.get("effectText"));
+        int sourceImageCount = 0;
+        Object imagesRaw = record.get("images");
+        if (imagesRaw instanceof List<?> images) {
+            for (Object rawImage : images) {
+                if (rawImage instanceof Map<?, ?> image && trimToNull(image.get("url")) != null) {
+                    sourceImageCount += 1;
+                }
+            }
+        }
+        if (firstNonBlank(nameZh, nameEn, pageTitle) == null && effectText == null && sourceImageCount == 0) {
+            return null;
+        }
+        return new WikiArmorSetSourceRecord(nameZh, nameEn, pageTitle, effectText, sourceImageCount);
+    }
+
+    private void putWikiArmorSetSourceRecord(
+        Map<String, WikiArmorSetSourceRecord> target,
+        String key,
+        WikiArmorSetSourceRecord record
+    ) {
+        String normalized = normalizeLookupKey(key);
+        if (normalized != null) {
+            target.putIfAbsent(normalized, record);
+        }
+    }
+
+    private Path resolveLatestWikiArmorSetsFile() {
+        Path latest = resolveDataFile(Path.of("generated", "wiki-armor-sets.latest.json"));
+        if (latest != null) {
+            return latest;
+        }
+        List<Path> generatedDirs = List.of(
+            Path.of(System.getProperty("user.dir")).resolve("data").resolve("generated").normalize(),
+            Path.of(System.getProperty("user.dir")).resolve("..").resolve("data").resolve("generated").normalize(),
+            Path.of("data").resolve("generated").normalize()
+        );
+        for (Path generatedDir : generatedDirs) {
+            if (!Files.isDirectory(generatedDir)) {
+                continue;
+            }
+            try (var stream = Files.list(generatedDir)) {
+                return stream
+                    .filter(path -> path.getFileName().toString().matches("wiki-armor-sets\\.\\d{4}-\\d{2}-\\d{2}T.+\\.json"))
+                    .max(Comparator.comparing(path -> path.getFileName().toString()))
+                    .orElse(null);
+            } catch (Exception exception) {
+                log.debug("Failed to scan wiki armor set source directory {}", generatedDir, exception);
+            }
+        }
+        return null;
+    }
+
+    private String normalizeLookupKey(String value) {
+        String text = trimToNull(value);
+        if (text == null) {
+            return null;
+        }
+        return text.toLowerCase().replaceAll("\\s+", "");
     }
 
     private boolean isBenefitExpressionValue(String value, String benefitExpression) {
@@ -1430,6 +1662,20 @@ public class AdminArmorSetController {
         return managedUrls.isEmpty() ? null : String.join(",", managedUrls);
     }
 
+    private int countCsvEntries(String value) {
+        String normalized = trimToNull(value);
+        if (normalized == null) {
+            return 0;
+        }
+        int count = 0;
+        for (String entry : normalized.split("\\s*,\\s*")) {
+            if (trimToNull(entry) != null) {
+                count += 1;
+            }
+        }
+        return count;
+    }
+
     private boolean isManagedImageUrl(String value) {
         String normalized = trimToNull(value);
         if (normalized == null) {
@@ -1532,5 +1778,14 @@ public class AdminArmorSetController {
         private String toCsv(List<String> values) {
             return values.isEmpty() ? null : String.join(",", values);
         }
+    }
+
+    private record WikiArmorSetSourceRecord(
+        String nameZh,
+        String nameEn,
+        String pageTitle,
+        String effectText,
+        int sourceImageCount
+    ) {
     }
 }

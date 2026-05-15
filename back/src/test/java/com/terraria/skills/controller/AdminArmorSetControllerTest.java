@@ -52,6 +52,7 @@ class AdminArmorSetControllerTest {
         System.setProperty("user.dir", repoRoot.resolve("back").toString());
         writeArmorSetImageSnapshot(repoRoot);
         writeArmorSetBonusSource(repoRoot);
+        writeWikiArmorSetsSource(repoRoot);
     }
 
     @AfterEach
@@ -181,6 +182,58 @@ class AdminArmorSetControllerTest {
     }
 
     @Test
+    void getArmorSetsReadsRelationProjectionWhenCurrentDatabaseProjectionIsEmpty() {
+        FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(true, true, "emptyCurrentProjection");
+        AdminArmorSetController controller = controller(jdbcTemplate);
+
+        ResponseEntity<ApiResponse<List<Map<String, Object>>>> response =
+            controller.getArmorSets(1, 20, null, null);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertEquals(1, response.getBody().getData().size());
+        assertEquals("projection", response.getBody().getData().get(0).get("dataSourceMode"));
+        assertEquals("ArmorSetBonus.Wood", response.getBody().getData().get(0).get("textKey"));
+        assertTrue(jdbcTemplate.sqlLog.stream().anyMatch(sql -> sql.contains("FROM projection_armor_sets")));
+        assertTrue(jdbcTemplate.sqlLog.stream().anyMatch(sql -> sql.contains("FROM `terria_v1_relation`.`projection_armor_sets`")));
+        assertFalse(jdbcTemplate.sqlLog.stream().anyMatch(sql -> sql.contains("FROM armor_sets")));
+    }
+
+    @Test
+    void getArmorSetsFallsBackToLegacyArmorSetsWhenRelationProjectionIsEmpty() {
+        FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(false, true, "emptyRelationProjection");
+        AdminArmorSetController controller = controller(jdbcTemplate);
+
+        ResponseEntity<ApiResponse<List<Map<String, Object>>>> response =
+            controller.getArmorSets(1, 20, null, null);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertEquals(1, response.getBody().getData().size());
+        assertEquals("legacy-wood", response.getBody().getData().get(0).get("sourceKey"));
+        assertEquals("legacy", response.getBody().getData().get(0).get("dataSourceMode"));
+        assertTrue(jdbcTemplate.sqlLog.stream().anyMatch(sql -> sql.contains("FROM `terria_v1_relation`.`projection_armor_sets`")));
+        assertTrue(jdbcTemplate.sqlLog.stream().anyMatch(sql -> sql.contains("FROM armor_sets")));
+    }
+
+    @Test
+    void getArmorSetsDoesNotFallbackWhenProjectionHasRowsButCurrentPageIsEmpty() {
+        FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(true, "projectionEmptySearchPage");
+        AdminArmorSetController controller = controller(jdbcTemplate);
+
+        ResponseEntity<ApiResponse<List<Map<String, Object>>>> response =
+            controller.getArmorSets(1, 20, null, "not-present");
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertEquals(0, response.getBody().getData().size());
+        assertNotNull(response.getBody().getPagination());
+        assertEquals(0, response.getBody().getPagination().getTotal());
+        assertTrue(jdbcTemplate.sqlLog.stream().anyMatch(sql -> sql.contains("FROM projection_armor_sets")));
+        assertFalse(jdbcTemplate.sqlLog.stream().anyMatch(sql -> sql.contains("FROM armor_sets")));
+    }
+
+    @Test
     void getArmorSetsFallsBackToLegacyArmorSetsWhenProjectionTableIsMissing() {
         FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(false);
         AdminArmorSetController controller = controller(jdbcTemplate);
@@ -207,6 +260,30 @@ class AdminArmorSetControllerTest {
         assertEquals(null, data.get("femaleImages"));
         assertEquals(null, data.get("image"));
         assertEquals(null, data.get("imageUrl"));
+    }
+
+    @Test
+    void legacyFallbackUsesLatestWikiArmorSetSourceForReadableEffectAndImageStatus() {
+        FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(false, false, "legacyWslWood");
+        AdminArmorSetController controller = controller(jdbcTemplate);
+
+        ResponseEntity<ApiResponse<Map<String, Object>>> response = controller.getArmorSetById(237L);
+        Map<String, Object> data = response.getBody().getData();
+
+        assertEquals("套装奖励：+1 防御", data.get("benefitZh"));
+        assertEquals("legacy", data.get("dataSourceMode"));
+        assertEquals("source_images_unmanaged", data.get("imagePipelineStatus"));
+        assertEquals(2, data.get("sourceImageCount"));
+        assertEquals(0, data.get("managedImageCount"));
+        assertEquals(null, data.get("imageUrl"));
+
+        List<Map<String, Object>> effectRows = asMapList(data.get("effectRows"));
+        assertTrue(effectRows.stream().anyMatch(row ->
+            "中文效果".equals(row.get("label")) && String.valueOf(row.get("value")).contains("+1 防御")
+        ));
+
+        List<String> warnings = asStringList(data.get("dataQualityWarnings"));
+        assertTrue(warnings.stream().anyMatch(warning -> warning.contains("managed armor set images are missing")));
     }
 
     @Test
@@ -281,10 +358,40 @@ class AdminArmorSetControllerTest {
         );
     }
 
+    private void writeWikiArmorSetsSource(Path repoRoot) throws IOException {
+        Files.writeString(
+            repoRoot.resolve("data/generated/wiki-armor-sets.2026-04-28T03-04-18.454Z.json"),
+            """
+            {
+              "source": "terraria.wiki.gg:Armor_sets",
+              "generatedAt": "2026-04-28T03:04:18.454Z",
+              "records": [
+                {
+                  "pageTitle": "Wood armor",
+                  "nameEn": "Wood armor",
+                  "nameZh": "木盔甲",
+                  "images": [
+                    {"url": "https://terraria.wiki.gg/images/Wood_armor.png?ef83ed", "role": "male"},
+                    {"url": "https://terraria.wiki.gg/images/Wood_armor_female.png?d68c10", "role": "female"}
+                  ],
+                  "effectText": "套装奖励：+1 防御"
+                }
+              ]
+            }
+            """
+        );
+    }
+
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> asMapList(Object value) {
         assertTrue(value instanceof List<?>);
         return (List<Map<String, Object>>) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> asStringList(Object value) {
+        assertTrue(value instanceof List<?>);
+        return (List<String>) value;
     }
 
     static class FakeJdbcTemplate extends JdbcTemplate {
@@ -312,30 +419,58 @@ class AdminArmorSetControllerTest {
         }
 
         @Override
+        public <T> T queryForObject(String sql, Class<T> requiredType) {
+            sqlLog.add(sql);
+            return requiredType.cast(countForSql(sql));
+        }
+
+        @Override
         public <T> T queryForObject(String sql, Class<T> requiredType, Object... args) {
             sqlLog.add(sql);
+            return requiredType.cast(countForSql(sql, args));
+        }
+
+        private Long countForSql(String sql, Object... args) {
             if (sql.contains("information_schema.tables")) {
                 if (args.length >= 2 && "terria_v1_relation".equals(args[0]) && "projection_armor_sets".equals(args[1])) {
-                    return requiredType.cast(relationProjectionExists ? 1L : 0L);
+                    return relationProjectionExists ? 1L : 0L;
                 }
-                return requiredType.cast(projectionExists ? 1L : 0L);
+                return projectionExists ? 1L : 0L;
+            }
+            if (sql.contains("`terria_v1_relation`.`projection_armor_sets`")) {
+                return relationProjectionExists && !"emptyRelationProjection".equals(projectionScenario) ? 1L : 0L;
             }
             if (sql.contains("projection_armor_sets")) {
-                return requiredType.cast(1L);
+                if ("emptyCurrentProjection".equals(projectionScenario)) {
+                    return 0L;
+                }
+                if ("projectionEmptySearchPage".equals(projectionScenario) && args.length > 0) {
+                    return 0L;
+                }
+                return projectionExists ? 1L : 0L;
             }
             if (sql.contains("armor_sets")) {
-                return requiredType.cast(1L);
+                return 1L;
             }
-            return requiredType.cast(0L);
+            return 0L;
         }
 
         @Override
         public List<Map<String, Object>> queryForList(String sql, Object... args) {
             sqlLog.add(sql);
             if (sql.contains("`terria_v1_relation`.`projection_armor_sets`")) {
+                if ("emptyRelationProjection".equals(projectionScenario)) {
+                    return List.of();
+                }
                 return relationProjectionExists ? List.of(projectionRow()) : List.of();
             }
             if (sql.contains("projection_armor_sets")) {
+                if ("emptyCurrentProjection".equals(projectionScenario)) {
+                    return List.of();
+                }
+                if ("projectionEmptySearchPage".equals(projectionScenario) && sql.contains("ORDER BY id ASC")) {
+                    return List.of();
+                }
                 return List.of(projectionRow());
             }
             if (sql.contains("projection_items")) {
@@ -517,15 +652,15 @@ class AdminArmorSetControllerTest {
 
         private Map<String, Object> legacyRow() {
             Map<String, Object> row = new LinkedHashMap<>();
-            row.put("id", 202L);
-            row.put("source_key", "legacy-wood");
+            row.put("id", "legacyWslWood".equals(projectionScenario) ? 237L : 202L);
+            row.put("source_key", "legacyWslWood".equals(projectionScenario) ? "木盔甲" : "legacy-wood");
             row.put("text_key", "ArmorSetBonus.Wood");
-            row.put("benefit_expression", "Legacy benefit");
+            row.put("benefit_expression", "legacyWslWood".equals(projectionScenario) ? "ArmorSetBonuses.Benefits.Wood" : "Legacy benefit");
             row.put("primary_part", null);
             row.put("set_count", 1);
-            row.put("unique_item_count", 0);
+            row.put("unique_item_count", "legacyWslWood".equals(projectionScenario) ? 3 : 0);
             row.put("sets_json", "[]");
-            row.put("unique_item_ids_json", "[]");
+            row.put("unique_item_ids_json", "legacyWslWood".equals(projectionScenario) ? "[727,728,729]" : "[]");
             row.put("male_images", null);
             row.put("female_images", null);
             row.put("special_images", null);
