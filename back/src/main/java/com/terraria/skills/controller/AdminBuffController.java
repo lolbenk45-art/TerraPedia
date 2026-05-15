@@ -48,6 +48,8 @@ import java.util.regex.Pattern;
 @SecurityRequirement(name = "bearerAuth")
 public class AdminBuffController {
 
+    private static final String RELATION_DATABASE_NAME = "terria_v1_relation";
+
     private static final Pattern DURATION_TEMPLATE_PATTERN = Pattern.compile(
         "\\{\\{\\s*duration\\s*\\|\\s*(?:rawseconds\\s*=\\s*)?([^{}|]+?)\\s*\\}\\}",
         Pattern.CASE_INSENSITIVE
@@ -216,6 +218,7 @@ public class AdminBuffController {
     private Map<String, Object> toPayload(Buff buff, boolean includeLinkedItems) {
         Map<String, Object> supplement = loadBuffSupplement(buff.getInternalName());
         String immuneNpcSampleJson = firstNonBlank(buff.getImmuneNpcSampleJson(), "[]");
+        ProjectionBuffEvidence projectionEvidence = includeLinkedItems ? loadProjectionBuffEvidence(buff) : ProjectionBuffEvidence.empty();
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("id", buff.getId());
         payload.put("sourceId", buff.getSourceId());
@@ -246,7 +249,10 @@ public class AdminBuffController {
         payload.put("immuneNpcCount", firstNonNullInteger(buff.getImmuneNpcCount(), toInteger(supplement.get("immuneNpcCount")), 0));
         payload.put("tooltipEn", firstNonBlank(buff.getTooltipEn(), trimToNull(supplement.get("tooltipEn"))));
         payload.put("tooltipZh", firstNonBlank(buff.getTooltipZh(), trimToNull(supplement.get("tooltipZh"))));
-        payload.put("sourceItemsJson", firstNonBlank(buff.getSourceItemsJson(), "[]"));
+        payload.put("sourceItemsJson", firstNonBlank(projectionEvidence.sourceItemsJson(), buff.getSourceItemsJson(), "[]"));
+        payload.put("inflictingNpcsJson", firstNonBlank(projectionEvidence.inflictingNpcsJson(), "[]"));
+        payload.put("immuneNpcsJson", firstNonBlank(projectionEvidence.immuneNpcsJson(), "[]"));
+        payload.put("sourceEvidenceJson", firstNonBlank(projectionEvidence.sourceEvidenceJson(), "null"));
         payload.put("immuneNpcSampleJson", immuneNpcSampleJson);
         payload.put("status", firstNonNullInteger(buff.getStatus(), 1));
         payload.put("createdAt", buff.getCreatedAt());
@@ -255,12 +261,55 @@ public class AdminBuffController {
             List<Map<String, Object>> inflictingNpcSamples = loadInflictingNpcSamples(buff.getId());
             ImmuneNpcSampleResolution immuneNpcSampleResolution = loadImmuneNpcSamples(immuneNpcSampleJson);
             payload.put("linkedSourceItems", linkedSourceItems);
+            payload.put("sourceItems", toObjectMapList(projectionEvidence.sourceItemsJson()));
+            payload.put("inflictingNpcs", toObjectMapList(projectionEvidence.inflictingNpcsJson()));
+            payload.put("immuneNpcs", toObjectMapList(projectionEvidence.immuneNpcsJson()));
+            payload.put("sourceEvidence", toObjectMap(projectionEvidence.sourceEvidenceJson()));
             payload.put("immuneNpcSamples", immuneNpcSampleResolution.resolvedSamples());
             payload.put("unresolvedImmuneNpcSamples", immuneNpcSampleResolution.unresolvedSamples());
             payload.put("inflictingNpcCount", firstNonNullInteger(countInflictingNpcs(buff.getId()), inflictingNpcSamples.size()));
             payload.put("inflictingNpcSamples", inflictingNpcSamples);
         }
         return payload;
+    }
+
+    private ProjectionBuffEvidence loadProjectionBuffEvidence(Buff buff) {
+        if (buff == null || jdbcTemplate == null) return ProjectionBuffEvidence.empty();
+        List<Object> args = new ArrayList<>();
+        String where;
+        if (buff.getSourceId() != null) {
+            where = "source_id = ?";
+            args.add(buff.getSourceId());
+        } else if (trimToNull(buff.getInternalName()) != null) {
+            where = "internal_name = ?";
+            args.add(buff.getInternalName());
+        } else if (buff.getId() != null) {
+            where = "id = ?";
+            args.add(buff.getId());
+        } else {
+            return ProjectionBuffEvidence.empty();
+        }
+        try {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                """
+                SELECT source_items_json, inflicting_npcs_json, immune_npcs_json, source_evidence_json
+                FROM `%s`.`projection_buffs`
+                WHERE %s
+                LIMIT 1
+                """.formatted(RELATION_DATABASE_NAME, where),
+                args.toArray()
+            );
+            if (rows.isEmpty()) return ProjectionBuffEvidence.empty();
+            Map<String, Object> row = rows.get(0);
+            return new ProjectionBuffEvidence(
+                trimToNull(row.get("source_items_json")),
+                trimToNull(row.get("inflicting_npcs_json")),
+                trimToNull(row.get("immune_npcs_json")),
+                trimToNull(row.get("source_evidence_json"))
+            );
+        } catch (Exception exception) {
+            return ProjectionBuffEvidence.empty();
+        }
     }
 
     private void syncBuffSourceItems(Buff buff, Map<String, Object> request) {
@@ -784,6 +833,20 @@ public class AdminBuffController {
             result.add(new LinkedHashMap<>((Map<String, Object>) entry));
         }
         return result;
+    }
+
+    private Map<String, Object> toObjectMap(Object raw) {
+        if (raw == null) return Map.of();
+        if (raw instanceof Map<?, ?> map) return new LinkedHashMap<>((Map<String, Object>) map);
+        if (raw instanceof String text) {
+            try {
+                Object parsed = objectMapper.readValue(text, new TypeReference<>() {});
+                return parsed instanceof Map<?, ?> map ? new LinkedHashMap<>((Map<String, Object>) map) : Map.of();
+            } catch (Exception exception) {
+                return Map.of();
+            }
+        }
+        return Map.of();
     }
 
     private List<?> toObjectList(Object raw) {
@@ -1388,6 +1451,17 @@ public class AdminBuffController {
             if (value != null && !value.isBlank()) return value;
         }
         return null;
+    }
+
+    private record ProjectionBuffEvidence(
+        String sourceItemsJson,
+        String inflictingNpcsJson,
+        String immuneNpcsJson,
+        String sourceEvidenceJson
+    ) {
+        static ProjectionBuffEvidence empty() {
+            return new ProjectionBuffEvidence(null, null, null, null);
+        }
     }
 
     private record ImmuneNpcSampleResolution(

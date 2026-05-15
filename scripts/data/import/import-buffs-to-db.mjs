@@ -86,6 +86,27 @@ export function resolveSourceItemCount(record = {}) {
     ?? (Array.isArray(record.sourceItems) ? record.sourceItems.length : 0);
 }
 
+export function buildBuffSourceItemUnmatchedSample(record, buffInternalName, sourceItem, mapped, sortOrder) {
+  return {
+    reason: mapped?.reason ?? 'unknown_mapping_error',
+    buffSourceId: toNullableInteger(record?.id),
+    buffInternalName,
+    sourceItemId: mapped?.sourceItemId ?? toNullablePositiveInteger(sourceItem?.itemId),
+    standardizedItemInternalName: mapped?.internalName ?? null,
+    rawSourceItemInternalName: toNullableString(sourceItem?.internalName),
+    rawSourceItemName: toNullableString(sourceItem?.name),
+    rawSourceItemNameZh: toNullableString(sourceItem?.nameZh),
+    pageTitle: toNullableString(sourceItem?.pageTitle),
+    resolveStatus: toNullableString(sourceItem?.resolveStatus),
+    sourceSection: toNullableString(sourceItem?.sourceSection ?? sourceItem?.section),
+    sourceProvider: toNullableString(sourceItem?.sourceProvider ?? sourceItem?.source),
+    evidencePageTitle: toNullableString(record?.sourceEvidence?.pageTitle),
+    evidenceSourceSection: toNullableString(record?.sourceEvidence?.sourceSection),
+    evidenceSourceProvider: toNullableString(record?.sourceEvidence?.sourceProvider ?? record?.sourceEvidence?.provider),
+    sortOrder,
+  };
+}
+
 async function ensureBuffSchema(conn) {
   const sql = `
 CREATE TABLE IF NOT EXISTS \`buffs\` (
@@ -101,7 +122,9 @@ CREATE TABLE IF NOT EXISTS \`buffs\` (
   \`source_item_count\` INT NOT NULL DEFAULT 0,
   \`immune_npc_count\` INT NOT NULL DEFAULT 0,
   \`source_items_json\` LONGTEXT DEFAULT NULL,
+  \`immune_npcs_json\` LONGTEXT DEFAULT NULL,
   \`immune_npc_sample_json\` LONGTEXT DEFAULT NULL,
+  \`source_evidence_json\` LONGTEXT DEFAULT NULL,
   \`status\` INT NOT NULL DEFAULT 1,
   \`deleted\` TINYINT NOT NULL DEFAULT 0,
   \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -132,6 +155,15 @@ CREATE TABLE IF NOT EXISTS \`buff_source_items\` (
 `;
 
   await conn.query(sql);
+  await ensureBuffOptionalColumn(conn, 'immune_npcs_json', 'LONGTEXT DEFAULT NULL AFTER `source_items_json`');
+  await ensureBuffOptionalColumn(conn, 'source_evidence_json', 'LONGTEXT DEFAULT NULL AFTER `immune_npc_sample_json`');
+}
+
+async function ensureBuffOptionalColumn(conn, columnName, definition) {
+  const [rows] = await conn.query('SHOW COLUMNS FROM `buffs` LIKE ?', [columnName]);
+  if (rows.length === 0) {
+    await conn.query(`ALTER TABLE \`buffs\` ADD COLUMN \`${columnName}\` ${definition}`);
+  }
 }
 
 async function loadTableColumns(conn, tableName) {
@@ -192,7 +224,7 @@ export function resolveMappedItem(sourceItemId, sourceItemLookup, itemLookup, so
   return { sourceItemId: sourceItemId ?? null, internalName, dbItem, reason: null };
 }
 
-function buildColumnValueMap(record, index, buffCategoryId) {
+export function buildBuffColumnValueMap(record, index, buffCategoryId) {
   const internalName = normalizeInternalName(record.internalName, record.englishName || record.id || index);
   return {
     source_id: toNullableInteger(record.id),
@@ -207,7 +239,9 @@ function buildColumnValueMap(record, index, buffCategoryId) {
     source_item_count: resolveSourceItemCount(record),
     immune_npc_count: toNullableInteger(record.immuneNpcCount) ?? 0,
     source_items_json: JSON.stringify(record.sourceItems ?? []),
+    immune_npcs_json: JSON.stringify(record.immuneNpcs ?? []),
     immune_npc_sample_json: JSON.stringify(record.immuneNpcSample ?? []),
+    source_evidence_json: JSON.stringify(record.sourceEvidence ?? null),
     status: 1,
     deleted: 0,
     name: toNullableString(record.localized?.zh?.name) ?? toNullableString(record.englishName) ?? internalName,
@@ -216,7 +250,7 @@ function buildColumnValueMap(record, index, buffCategoryId) {
 }
 
 async function upsertBuff(conn, record, index, buffColumns, buffCategoryId) {
-  const valuesByColumn = buildColumnValueMap(record, index, buffCategoryId);
+  const valuesByColumn = buildBuffColumnValueMap(record, index, buffCategoryId);
   const internalName = valuesByColumn.internal_name;
   const sourceId = valuesByColumn.source_id;
 
@@ -272,16 +306,11 @@ async function importBuffs(conn, buffs, itemLookup, sourceItemLookup, stats, rel
         const sourceItemId = toNullablePositiveInteger(sourceItem.itemId);
         const mapped = resolveMappedItem(sourceItemId, sourceItemLookup, itemLookup, sourceItem);
         if (mapped.reason) {
-          recordUnmatched(relationStats, {
-            reason: mapped.reason,
-            buffSourceId: toNullableInteger(record.id),
-            buffInternalName,
-            sourceItemId,
-            standardizedItemInternalName: mapped.internalName,
-            rawSourceItemInternalName: toNullableString(sourceItem.internalName),
-            rawSourceItemName: toNullableString(sourceItem.name),
-            sortOrder,
-          });
+          recordUnmatched(
+            relationStats,
+            buildBuffSourceItemUnmatchedSample(record, buffInternalName, sourceItem, mapped, sortOrder)
+          );
+          continue;
         }
         await conn.execute(
           `INSERT INTO buff_source_items

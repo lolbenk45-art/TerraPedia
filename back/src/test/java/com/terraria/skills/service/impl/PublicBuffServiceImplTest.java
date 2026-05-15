@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 
 @ExtendWith(MockitoExtension.class)
 class PublicBuffServiceImplTest {
@@ -79,9 +80,13 @@ class PublicBuffServiceImplTest {
         buff.setStatus(1);
 
         when(buffMapper.selectById(39L)).thenReturn(buff);
-        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(39L))).thenReturn(List.of(Map.of(
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(39))).thenReturn(List.of(Map.of(
+            "source_items_json",
+            "[{\"sourceId\":47,\"internalName\":\"CursedArrow\",\"nameZh\":\"诅咒箭\"}]",
             "immune_npcs_json",
-            "[{\"sourceId\":68,\"internalName\":\"DungeonGuardian\",\"name\":\"Dungeon Guardian\"},{\"sourceId\":101,\"internalName\":\"Clinger\",\"name\":\"Clinger\"}]"
+            "[{\"sourceId\":68,\"internalName\":\"DungeonGuardian\",\"name\":\"Dungeon Guardian\"},{\"sourceId\":101,\"internalName\":\"Clinger\",\"name\":\"Clinger\"}]",
+            "source_evidence_json",
+            "{\"provider\":\"terraria.wiki.gg\",\"pageTitle\":\"Cursed Inferno\",\"canonicalPageTitle\":\"Cursed Inferno\",\"revisionId\":12345,\"revisionTimestamp\":\"2026-05-15T00:00:00Z\",\"parseStatus\":\"parsed\",\"sectionAnchors\":[\"来自玩家\",\"来自敌怪\",\"免疫的_NPC\"],\"unresolvedFacts\":[{\"type\":\"npc\",\"name\":\"Unresolved\"}]}"
         )));
 
         PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
@@ -96,6 +101,11 @@ class PublicBuffServiceImplTest {
         assertEquals(2, detail.getImmuneNpcs().size());
         assertEquals("Clinger", detail.getImmuneNpcs().get(1).getName());
         assertEquals(25, detail.getImmuneNpcCount());
+        assertNotNull(detail.getSourceEvidence());
+        assertEquals("parsed", detail.getSourceEvidence().getParseStatus());
+        assertEquals(12345L, detail.getSourceEvidence().getRevisionId());
+        assertEquals(1, detail.getSourceEvidence().getUnresolvedFacts().size());
+        assertEquals("Cursed Inferno", detail.getProvenance().getPageTitle());
     }
 
     @Test
@@ -111,7 +121,7 @@ class PublicBuffServiceImplTest {
         buff.setStatus(1);
 
         when(buffMapper.selectById(20L)).thenReturn(buff);
-        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(20L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(20))).thenReturn(List.of());
         when(jdbcTemplate.queryForList(contains("FROM npcs"), any(Object[].class))).thenReturn(List.of(Map.of(
             "id", 9001L,
             "sourceId", -65,
@@ -164,6 +174,52 @@ class PublicBuffServiceImplTest {
     }
 
     @Test
+    void shouldMergeProjectionSourceItemFactsWhenLocalRowsArePartial() {
+        Buff buff = new Buff();
+        buff.setId(24L);
+        buff.setSourceId(24);
+        buff.setInternalName("OnFire");
+        buff.setEnglishName("On Fire!");
+        buff.setNameZh("着火了！");
+        buff.setBuffType("debuff");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(24L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(24))).thenReturn(List.of(Map.of(
+            "source_items_json",
+            """
+            [
+              {"itemId":1322,"internalName":"MagmaStone","name":"Magma Stone","sourceSection":"From player"},
+              {"itemId":null,"internalName":"FlameburstTower","name":"Flameburst Tower","pageTitle":"Flameburst Tower","sourceSection":"From player"},
+              {"itemId":null,"internalName":"Lava","name":"Lava","pageTitle":"Lava","sourceSection":"From environment"}
+            ]
+            """,
+            "immune_npcs_json",
+            "[]",
+            "source_evidence_json",
+            "{\"parseStatus\":\"parsed\"}"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM buff_source_items"), eq(24L))).thenReturn(List.of(Map.of(
+            "id", 1322L,
+            "sourceId", 1322,
+            "internalName", "MagmaStone",
+            "name", "Magma Stone",
+            "imageUrl", CDN_ITEM_IMAGE_URL
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(24L);
+
+        assertNotNull(detail);
+        assertEquals(3, detail.getSourceItems().size());
+        assertEquals("MagmaStone", detail.getSourceItems().get(0).getInternalName());
+        assertEquals("FlameburstTower", detail.getSourceItems().get(1).getInternalName());
+        assertEquals("Lava", detail.getSourceItems().get(2).getInternalName());
+        assertEquals("From environment", detail.getSourceItems().get(2).getSourceSection());
+    }
+
+    @Test
     void shouldEnrichImmuneNpcEvidenceByDisplayNameWhenInternalNameIsWikiAlias() {
         Buff buff = new Buff();
         buff.setId(39L);
@@ -176,7 +232,7 @@ class PublicBuffServiceImplTest {
         buff.setStatus(1);
 
         when(buffMapper.selectById(39L)).thenReturn(buff);
-        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(39L))).thenReturn(List.of(Map.of(
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(39))).thenReturn(List.of(Map.of(
             "immune_npcs_json",
             "[{\"internalName\":\"BubbleShield\",\"name\":\"Bubble Shield\",\"pageTitle\":\"Bubble Shield\"}]"
         )));
@@ -198,6 +254,223 @@ class PublicBuffServiceImplTest {
         assertEquals(384, bubbleShield.getSourceId());
         assertEquals("ForceBubble", bubbleShield.getInternalName());
         assertEquals(CDN_NPC_IMAGE_URL, bubbleShield.getImageUrl());
+    }
+
+    @Test
+    void shouldUseLocalManagedNpcImageWhenFactImageIsRawWikiUrl() {
+        Buff buff = new Buff();
+        buff.setId(323L);
+        buff.setSourceId(323);
+        buff.setInternalName("OnFire3");
+        buff.setEnglishName("Hellfire");
+        buff.setNameZh("狱炎");
+        buff.setBuffType("debuff");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(323L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(323))).thenReturn(List.of(Map.of(
+            "immune_npcs_json",
+            "[{\"internalName\":\"AncientVision\",\"name\":\"Ancient Vision\",\"pageTitle\":\"Ancient Vision\",\"imageUrl\":\"https://terraria.wiki.gg/images/Ancient_Vision.png\"}]"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM npcs"), any(Object[].class))).thenReturn(List.of(Map.of(
+            "id", 999L,
+            "sourceId", 522,
+            "internalName", "AncientCultistSquidhead",
+            "name", "Ancient Vision",
+            "imageUrl", CDN_NPC_IMAGE_URL
+        )));
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(323L);
+
+        assertNotNull(detail);
+        PublicBuffDetailDTO.FactSummary ancientVision = detail.getImmuneNpcs().get(0);
+        assertEquals("AncientCultistSquidhead", ancientVision.getInternalName());
+        assertEquals(CDN_NPC_IMAGE_URL, ancientVision.getImageUrl());
+    }
+
+    @Test
+    void shouldLoadSourceItemsAndInflictingNpcsFromRelationProjectionFallbacks() {
+        Buff buff = new Buff();
+        buff.setId(90039L);
+        buff.setSourceId(39);
+        buff.setInternalName("CursedInferno");
+        buff.setEnglishName("Cursed Inferno");
+        buff.setNameZh("诅咒狱火");
+        buff.setBuffType("debuff");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(90039L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(39))).thenReturn(List.of(Map.of(
+            "source_items_json",
+            "[{\"sourceId\":47,\"internalName\":\"CursedArrow\",\"name\":\"Cursed Arrow\",\"imageUrl\":\"https://cdn.example.com/terrapedia-images/items/wiki/cursed-arrow.png\"}]",
+            "immune_npcs_json",
+            "[]",
+            "source_evidence_json",
+            "{\"parseStatus\":\"parsed\"}"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM buff_source_items"), eq(90039L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of(Map.of(
+            "id", 101L,
+            "sourceId", 214,
+            "internalName", "Clinger",
+            "name", "Clinger",
+            "nameZh", "爬藤怪",
+            "imageUrl", CDN_NPC_IMAGE_URL,
+            "relationType", "inflicts"
+        )));
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(90039L);
+
+        assertNotNull(detail);
+        assertEquals(1, detail.getSourceItems().size());
+        assertEquals("CursedArrow", detail.getSourceItems().get(0).getInternalName());
+        assertEquals(1, detail.getInflictingNpcs().size());
+        assertEquals("Clinger", detail.getInflictingNpcs().get(0).getInternalName());
+    }
+
+    @Test
+    void shouldExposeProjectionInflictingNpcFactsWhenRelationRowsAreUnresolved() {
+        Buff buff = new Buff();
+        buff.setId(48L);
+        buff.setSourceId(48);
+        buff.setInternalName("Honey");
+        buff.setEnglishName("Honey");
+        buff.setBuffType("buff");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(48L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(48))).thenReturn(List.of(Map.of(
+            "source_items_json",
+            "[]",
+            "inflicting_npcs_json",
+            "[{\"internalName\":\"HoneySlime\",\"name\":\"Honey Slime\",\"pageTitle\":\"Honey Slime\",\"sourceSection\":\"From enemy\"}]",
+            "immune_npcs_json",
+            "[]",
+            "source_evidence_json",
+            "{\"parseStatus\":\"parsed\"}"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(48L);
+
+        assertNotNull(detail);
+        assertEquals(1, detail.getInflictingNpcs().size());
+        PublicBuffDetailDTO.FactSummary honeySlime = detail.getInflictingNpcs().get(0);
+        assertEquals("HoneySlime", honeySlime.getInternalName());
+        assertEquals("Honey Slime", honeySlime.getName());
+        assertEquals("From enemy", honeySlime.getSourceSection());
+        assertEquals(null, honeySlime.getImageUrl());
+        assertEquals(1, detail.getInflictingNpcCount());
+    }
+
+    @Test
+    void shouldKeepProjectionInflictingNpcsWhenSourceEvidenceColumnIsMissing() {
+        Buff buff = new Buff();
+        buff.setId(48L);
+        buff.setSourceId(48);
+        buff.setInternalName("Honey");
+        buff.setEnglishName("Honey");
+        buff.setBuffType("buff");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(48L)).thenReturn(buff);
+        doThrow(new org.springframework.jdbc.BadSqlGrammarException("query", "SELECT source_evidence_json", new java.sql.SQLException("Unknown column source_evidence_json")))
+            .when(jdbcTemplate).queryForList(argThat(sql -> sql != null && sql.contains("source_items_json, inflicting_npcs_json")), eq(48));
+        when(jdbcTemplate.queryForList(argThat(sql -> sql != null && sql.contains("inflicting_npcs_json") && !sql.contains("source_items_json") && !sql.contains("source_evidence_json")), eq(48))).thenReturn(List.of(Map.of(
+            "inflicting_npcs_json",
+            "[{\"internalName\":\"HoneySlime\",\"name\":\"Honey Slime\",\"pageTitle\":\"Honey Slime\",\"sourceSection\":\"From enemy\"}]"
+        )));
+        when(jdbcTemplate.queryForList(argThat(sql -> sql != null && sql.contains("source_items_json") && !sql.contains("inflicting_npcs_json") && !sql.contains("source_evidence_json")), eq(48))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(argThat(sql -> sql != null && sql.contains("immune_npcs_json") && !sql.contains("source_evidence_json")), eq(48))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(48L);
+
+        assertNotNull(detail);
+        assertEquals(1, detail.getInflictingNpcs().size());
+        assertEquals("HoneySlime", detail.getInflictingNpcs().get(0).getInternalName());
+        assertEquals(1, detail.getInflictingNpcCount());
+    }
+
+    @Test
+    void shouldKeepProjectionSourceItemsWhenSourceEvidenceColumnIsMissing() {
+        Buff buff = new Buff();
+        buff.setId(90039L);
+        buff.setSourceId(39);
+        buff.setInternalName("CursedInferno");
+        buff.setEnglishName("Cursed Inferno");
+        buff.setNameZh("诅咒狱火");
+        buff.setBuffType("debuff");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(90039L)).thenReturn(buff);
+        doThrow(new org.springframework.jdbc.BadSqlGrammarException("query", "SELECT source_evidence_json", new java.sql.SQLException("Unknown column source_evidence_json")))
+            .when(jdbcTemplate).queryForList(argThat(sql -> sql != null && sql.contains("source_evidence_json")), eq(39));
+        when(jdbcTemplate.queryForList(argThat(sql -> sql != null && sql.contains("source_items_json") && !sql.contains("source_evidence_json")), eq(39))).thenReturn(List.of(Map.of(
+            "source_items_json",
+            "[{\"sourceId\":545,\"internalName\":\"CursedArrow\",\"name\":\"Cursed Arrow\",\"imageUrl\":\"https://cdn.example.com/terrapedia-images/items/wiki/cursed-arrow.png\"}]"
+        )));
+        when(jdbcTemplate.queryForList(argThat(sql -> sql != null && sql.contains("immune_npcs_json") && !sql.contains("source_evidence_json")), eq(39))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM buff_source_items"), eq(90039L))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(90039L);
+
+        assertNotNull(detail);
+        assertEquals(1, detail.getSourceItems().size());
+        assertEquals("CursedArrow", detail.getSourceItems().get(0).getInternalName());
+        assertEquals(545, detail.getSourceItems().get(0).getSourceId());
+        assertEquals(null, detail.getSourceItems().get(0).getId());
+    }
+
+    @Test
+    void shouldNotEnrichNpcEvidenceFromAmbiguousDisplayNameOnly() {
+        Buff buff = new Buff();
+        buff.setId(39L);
+        buff.setSourceId(39);
+        buff.setInternalName("CursedInferno");
+        buff.setEnglishName("Cursed Inferno");
+        buff.setNameZh("诅咒狱火");
+        buff.setBuffType("debuff");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(39L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(39))).thenReturn(List.of(Map.of(
+            "immune_npcs_json",
+            "[{\"internalName\":\"WikiOnlyHornetAlias\",\"name\":\"Hornet\",\"pageTitle\":\"Hornet\"}]"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM npcs"), any(Object[].class))).thenReturn(List.of(
+            Map.of(
+                "id", 901L,
+                "sourceId", -65,
+                "internalName", "BigHornetStingy",
+                "name", "Hornet",
+                "imageUrl", CDN_NPC_IMAGE_URL
+            ),
+            Map.of(
+                "id", 902L,
+                "sourceId", -63,
+                "internalName", "LittleHornetStingy",
+                "name", "Hornet",
+                "imageUrl", CDN_NPC_IMAGE_URL
+            )
+        ));
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(39L);
+
+        assertNotNull(detail);
+        assertEquals(1, detail.getImmuneNpcs().size());
+        PublicBuffDetailDTO.FactSummary hornet = detail.getImmuneNpcs().get(0);
+        assertEquals(null, hornet.getId());
+        assertEquals(null, hornet.getSourceId());
+        assertEquals("WikiOnlyHornetAlias", hornet.getInternalName());
+        assertEquals(null, hornet.getImageUrl());
     }
 
     private ManagedImageUrlPolicy managedImageUrlPolicy() {

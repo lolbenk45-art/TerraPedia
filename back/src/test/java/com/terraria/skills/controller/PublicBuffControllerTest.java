@@ -164,6 +164,14 @@ class PublicBuffControllerTest {
             .pageTitle("诅咒狱火")
             .sectionAnchors(List.of("来自玩家", "来自敌怪", "免疫的_NPC"))
             .build());
+        buff.setSourceEvidence(PublicBuffDetailDTO.SourceEvidence.builder()
+            .provider("terraria.wiki.gg")
+            .pageTitle("Cursed Inferno")
+            .canonicalPageTitle("Cursed Inferno")
+            .parseStatus("parsed")
+            .sectionAnchors(List.of("来自玩家", "来自敌怪", "免疫的_NPC"))
+            .unresolvedFacts(List.of())
+            .build());
 
         when(publicBuffService.getPublicBuffDetail(39L)).thenReturn(buff);
 
@@ -176,7 +184,9 @@ class PublicBuffControllerTest {
             .andExpect(jsonPath("$.data.inflictingNpcs[0].internalName").value("Clinger"))
             .andExpect(jsonPath("$.data.immuneNpcs[0].internalName").value("DungeonGuardian"))
             .andExpect(jsonPath("$.data.provenance.provider").value("terraria.wiki.gg"))
-            .andExpect(jsonPath("$.data.provenance.sectionAnchors[2]").value("免疫的_NPC"));
+            .andExpect(jsonPath("$.data.provenance.sectionAnchors[2]").value("免疫的_NPC"))
+            .andExpect(jsonPath("$.data.sourceEvidence.parseStatus").value("parsed"))
+            .andExpect(jsonPath("$.data.sourceEvidence.canonicalPageTitle").value("Cursed Inferno"));
 
         verify(publicBuffService).getPublicBuffDetail(39L);
     }

@@ -130,6 +130,27 @@ export function resolveSourceItemCount(record = {}) {
     ?? (Array.isArray(record.sourceItems) ? record.sourceItems.length : 0);
 }
 
+export function buildBuffSourceItemUnmatchedSample(record, buffInternalName, sourceItem, mapped, sortOrder) {
+  return {
+    reason: mapped?.reason ?? 'unknown_mapping_error',
+    buffSourceId: toNullableInteger(record?.id),
+    buffInternalName,
+    sourceItemId: mapped?.sourceItemId ?? toNullablePositiveInteger(sourceItem?.itemId),
+    standardizedItemInternalName: mapped?.internalName ?? null,
+    rawSourceItemInternalName: toNullableString(sourceItem?.internalName),
+    rawSourceItemName: toNullableString(sourceItem?.name),
+    rawSourceItemNameZh: toNullableString(sourceItem?.nameZh),
+    pageTitle: toNullableString(sourceItem?.pageTitle),
+    resolveStatus: toNullableString(sourceItem?.resolveStatus),
+    sourceSection: toNullableString(sourceItem?.sourceSection ?? sourceItem?.section),
+    sourceProvider: toNullableString(sourceItem?.sourceProvider ?? sourceItem?.source),
+    evidencePageTitle: toNullableString(record?.sourceEvidence?.pageTitle),
+    evidenceSourceSection: toNullableString(record?.sourceEvidence?.sourceSection),
+    evidenceSourceProvider: toNullableString(record?.sourceEvidence?.sourceProvider ?? record?.sourceEvidence?.provider),
+    sortOrder,
+  };
+}
+
 function recordItemLink(linkStats, sample, mapped) {
   linkStats.checked += 1;
   if (!mapped?.reason && mapped?.dbItem) {
@@ -158,6 +179,15 @@ async function ensureSchema(conn) {
     const sqlPath = path.join(repoRoot, 'back', 'src', 'main', 'resources', 'db', 'migration', migrationName);
     const sql = fs.readFileSync(sqlPath, 'utf8');
     await conn.query(sql);
+  }
+  await ensureBuffOptionalColumn(conn, 'immune_npcs_json', 'LONGTEXT DEFAULT NULL AFTER `source_items_json`');
+  await ensureBuffOptionalColumn(conn, 'source_evidence_json', 'LONGTEXT DEFAULT NULL AFTER `immune_npc_sample_json`');
+}
+
+async function ensureBuffOptionalColumn(conn, columnName, definition) {
+  const [rows] = await conn.query('SHOW COLUMNS FROM `buffs` LIKE ?', [columnName]);
+  if (rows.length === 0) {
+    await conn.query(`ALTER TABLE \`buffs\` ADD COLUMN \`${columnName}\` ${definition}`);
   }
 }
 
@@ -226,13 +256,34 @@ function inferNpcCategoryId(record, categoryByCode) {
   ]);
 }
 
-async function upsertBuff(conn, record, index) {
+export function buildIndependentBuffColumnValueMap(record, index, buffCategoryId = null) {
   const internalName = normalizeInternalName(record.internalName, record.englishName || record.id || index);
+  return {
+    source_id: toNullableInteger(record.id),
+    internal_name: internalName,
+    english_name: toNullableString(record.englishName),
+    name_zh: toNullableString(record.localized?.zh?.name),
+    tooltip_en: toNullableString(record.localized?.en?.tooltip),
+    tooltip_zh: toNullableString(record.localized?.zh?.tooltip),
+    image: toNullableString(record.imageUrl ?? record.image),
+    buff_type: toNullableString(record.type),
+    source_item_count: resolveSourceItemCount(record),
+    immune_npc_count: toNullableInteger(record.immuneNpcCount) ?? 0,
+    source_items_json: JSON.stringify(record.sourceItems ?? []),
+    immune_npcs_json: JSON.stringify(record.immuneNpcs ?? []),
+    immune_npc_sample_json: JSON.stringify(record.immuneNpcSample ?? []),
+    source_evidence_json: JSON.stringify(record.sourceEvidence ?? null),
+    category_id: buffCategoryId,
+  };
+}
+
+async function upsertBuff(conn, record, index) {
+  const values = buildIndependentBuffColumnValueMap(record, index);
   const [[existing]] = await conn.execute('SELECT id FROM buffs WHERE source_id = ? LIMIT 1', [toNullableInteger(record.id)]);
   const [result] = await conn.execute(
     `INSERT INTO buffs
-      (source_id, internal_name, english_name, name_zh, tooltip_en, tooltip_zh, image, buff_type, source_item_count, immune_npc_count, source_items_json, immune_npc_sample_json, status, deleted)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
+      (source_id, internal_name, english_name, name_zh, tooltip_en, tooltip_zh, image, buff_type, source_item_count, immune_npc_count, source_items_json, immune_npcs_json, immune_npc_sample_json, source_evidence_json, status, deleted)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
      ON DUPLICATE KEY UPDATE
        id = LAST_INSERT_ID(id),
        internal_name = VALUES(internal_name),
@@ -245,23 +296,27 @@ async function upsertBuff(conn, record, index) {
        source_item_count = VALUES(source_item_count),
        immune_npc_count = VALUES(immune_npc_count),
        source_items_json = VALUES(source_items_json),
+       immune_npcs_json = VALUES(immune_npcs_json),
        immune_npc_sample_json = VALUES(immune_npc_sample_json),
+       source_evidence_json = VALUES(source_evidence_json),
        status = 1,
        deleted = 0,
        updated_at = NOW()`,
     [
-      toNullableInteger(record.id),
-      internalName,
-      toNullableString(record.englishName),
-      toNullableString(record.localized?.zh?.name),
-      toNullableString(record.localized?.en?.tooltip),
-      toNullableString(record.localized?.zh?.tooltip),
-      toNullableString(record.imageUrl ?? record.image),
-      toNullableString(record.type),
-      resolveSourceItemCount(record),
-      toNullableInteger(record.immuneNpcCount) ?? 0,
-      JSON.stringify(record.sourceItems ?? []),
-      JSON.stringify(record.immuneNpcSample ?? []),
+      values.source_id,
+      values.internal_name,
+      values.english_name,
+      values.name_zh,
+      values.tooltip_en,
+      values.tooltip_zh,
+      values.image,
+      values.buff_type,
+      values.source_item_count,
+      values.immune_npc_count,
+      values.source_items_json,
+      values.immune_npcs_json,
+      values.immune_npc_sample_json,
+      values.source_evidence_json,
     ]
   );
   return { id: Number(result.insertId), isNew: !existing };
@@ -286,16 +341,11 @@ async function importBuffs(conn, records, itemLookup, sourceItemLookup, stats, r
         const sourceItemId = toNullablePositiveInteger(sourceItem.itemId);
         const mapped = resolveMappedItem(sourceItemId, sourceItemLookup, itemLookup, sourceItem);
         if (mapped.reason) {
-          recordUnmatched(relationStats, {
-            reason: mapped.reason,
-            buffSourceId: toNullableInteger(record.id),
-            buffInternalName,
-            sourceItemId,
-            standardizedItemInternalName: mapped.internalName,
-            rawSourceItemInternalName: toNullableString(sourceItem.internalName),
-            rawSourceItemName: toNullableString(sourceItem.name),
-            sortOrder: j,
-          });
+          recordUnmatched(
+            relationStats,
+            buildBuffSourceItemUnmatchedSample(record, buffInternalName, sourceItem, mapped, j)
+          );
+          continue;
         }
         await conn.execute(
           `INSERT INTO buff_source_items

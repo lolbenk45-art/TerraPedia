@@ -10,7 +10,22 @@ import { getProjectRoot } from '../lib/project-root.mjs';
 import { DOMAIN_CONFIG } from './replacement-readiness-audit.mjs';
 
 const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
+let mysqlModule = null;
+
+function loadMysqlModule() {
+  if (mysqlModule) {
+    return mysqlModule;
+  }
+  try {
+    mysqlModule = require('mysql2/promise');
+  } catch (error) {
+    if (error?.code !== 'MODULE_NOT_FOUND') {
+      throw error;
+    }
+    mysqlModule = createRequire(path.join(repoRoot, 'data-query-app', 'package.json'))('mysql2/promise');
+  }
+  return mysqlModule;
+}
 
 const repoRoot = getProjectRoot();
 
@@ -104,6 +119,7 @@ const LOCAL_PRESERVE_COLUMNS = {
     'source_items_json',
     'immune_npcs_json',
     'immune_npc_sample_json',
+    'source_evidence_json',
     'created_at',
     'updated_at'
   ])
@@ -218,7 +234,7 @@ async function defaultExecuteLocal(localDatabase, dependencies, fn) {
     password: config.database?.password ?? 'root',
     database: localDatabase
   };
-  const connection = await mysql.createConnection(mysqlOptions);
+  const connection = await loadMysqlModule().createConnection(mysqlOptions);
   try {
     return await fn(connection);
   } finally {

@@ -228,3 +228,44 @@ test('collectBuffPageImmunityFacts falls back to zh page title when en page titl
   assert.equal(facts.get(39).pageTitle, '诅咒狱火');
   assert.equal(facts.get(39).immuneNpcCount, 1);
 });
+
+test('collectBuffPageImmunityFacts uses full page payload and keeps canonical revision provenance', async () => {
+  const facts = await collectBuffPageImmunityFacts({
+    buffs: [
+      { id: 20, englishName: 'Poisoned' }
+    ],
+    localizedByLang: {
+      en: {
+        20: { page: 'Poisoned' }
+      }
+    },
+    fetchPagePayload: async ({ pageTitle }) => {
+      assert.equal(pageTitle, 'Poisoned');
+      return {
+        requestedPageTitle: 'Poisoned',
+        pageTitle: 'Poisoned',
+        canonicalPageTitle: 'Poisoned',
+        revisionId: 12345,
+        revisionTimestamp: '2026-05-15T00:00:00Z',
+        sections: [
+          { line: 'From player', anchor: 'From_player' },
+          { line: 'Immune NPCs', anchor: 'Immune_NPCs' }
+        ],
+        wikitext: 'wiki text',
+        html: `
+          <h2><span class="mw-headline" id="From_player">From player</span></h2>
+          <table><tr><td><a href="/wiki/Poisoned_Knife" title="Poisoned Knife">Poisoned Knife</a></td></tr></table>
+          <h2><span class="mw-headline" id="Immune_NPCs">Immune NPCs</span></h2>
+          <ul><li><a href="/wiki/Blue_Slime" title="Blue Slime">Blue Slime</a></li></ul>
+        `
+      };
+    },
+    sampleLimit: 1
+  });
+
+  const evidence = facts.get(20);
+  assert.deepEqual(evidence.sourceItems.map((entry) => entry.name), ['Poisoned Knife']);
+  assert.equal(evidence.sourceEvidence.canonicalPageTitle, 'Poisoned');
+  assert.equal(evidence.sourceEvidence.revisionId, 12345);
+  assert.equal(evidence.sourceEvidence.revisionTimestamp, '2026-05-15T00:00:00Z');
+});

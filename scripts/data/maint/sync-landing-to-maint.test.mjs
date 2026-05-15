@@ -150,6 +150,69 @@ test('extractMaintEntitiesFromLandingRow expands parsed npc payload into maint n
   assert.equal(actual.rows[0].flagsJson, JSON.stringify({ friendly: true, townNpc: true, boss: false }));
 });
 
+test('extractMaintEntitiesFromLandingRow preserves full buff evidence in raw json', async () => {
+  const buffLandingRow = {
+    id: 31,
+    dataset_type: 'buffs_raw',
+    provider: 'terrapedia.generated',
+    source_page: 'buffs.standardized',
+    source_key: 'generated.buffs.standardized',
+    source_revision_timestamp: '2026-05-15T00:00:00Z',
+    content_hash: 'e'.repeat(64),
+    fetched_at: '2026-05-15T00:00:00Z',
+    parsed_at: '2026-05-15T00:00:00Z',
+    payload_json: JSON.stringify({
+      buffs: [
+        {
+          id: 323,
+          internalName: 'OnFire3',
+          name: 'Hellfire',
+          type: 'debuff',
+          sourceItemCount: 2,
+          immuneNpcCount: 3,
+          sourceItems: [
+            { itemId: 4846, internalName: 'HellfireTreads', resolveStatus: 'resolved' },
+            { name: 'Unknown source', resolveStatus: 'unresolved' }
+          ],
+          inflictingNpcs: [
+            { npcId: 123, internalName: 'TrainingNpc', resolveStatus: 'resolved' }
+          ],
+          immuneNpcs: [
+            { npcId: 68, internalName: 'DungeonGuardian' },
+            { npcId: 69, internalName: 'Clinger' },
+            { name: 'Unknown immune NPC', resolveStatus: 'unresolved' }
+          ],
+          immuneNpcSample: [{ npcId: 68, internalName: 'DungeonGuardian' }],
+          sourceEvidence: {
+            provider: 'terraria.wiki.gg',
+            pageTitle: 'Hellfire',
+            parseStatus: 'parsed',
+            unresolvedFacts: [{ group: 'sourceItems', name: 'Unknown source' }]
+          }
+        }
+      ]
+    })
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(buffLandingRow);
+  const row = actual.rows[0];
+  const raw = JSON.parse(row.rawJson);
+
+  assert.equal(actual.scope, 'buffs');
+  assert.equal(row.tableName, 'maint_buffs');
+  assert.equal(row.sourceId, 323);
+  assert.equal(row.majorValue, 2);
+  assert.equal(row.combatValue, 3);
+  assert.equal(raw.sourceItems.length, 2);
+  assert.equal(raw.inflictingNpcs.length, 1);
+  assert.equal(raw.immuneNpcs.length, 3);
+  assert.deepEqual(raw.immuneNpcSample, [{ npcId: 68, internalName: 'DungeonGuardian' }]);
+  assert.equal(raw.sourceEvidence.pageTitle, 'Hellfire');
+  assert.deepEqual(raw.sourceEvidence.unresolvedFacts, [
+    { group: 'sourceItems', name: 'Unknown source' }
+  ]);
+});
+
 test('extractMaintEntitiesFromLandingRow expands standardized npc records and preserves crawler projectile id in raw json', async () => {
   const npcLandingRow = {
     id: 24,

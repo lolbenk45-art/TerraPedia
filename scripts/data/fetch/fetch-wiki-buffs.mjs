@@ -6,6 +6,7 @@ import {
   ensureDir,
   expandWikiText,
   fetchWikiModuleContent,
+  fetchWikiPagePayload,
   fetchWikiRenderedHtml,
   parseCliArgs,
   parseIteminfoModulePayload,
@@ -217,6 +218,7 @@ export async function collectBuffPageImmunityFacts({
   localizedByLang,
   enabled = true,
   fetchRenderedHtml = fetchWikiRenderedHtml,
+  fetchPagePayload = null,
   sampleLimit = 10,
   progressCallback = null
 } = {}) {
@@ -248,14 +250,19 @@ export async function collectBuffPageImmunityFacts({
     }
 
     try {
-      const html = await fetchRenderedHtml({ pageTitle });
+      const pagePayload = fetchPagePayload
+        ? await fetchPagePayload({ pageTitle })
+        : await fetchDefaultBuffPagePayload({ pageTitle, fetchRenderedHtml });
       const facts = parseBuffPageEvidence({
         buffId: buff.id,
         buffName: buff.englishName ?? pageTitle,
-        pageTitle,
-        html,
-        wikitext: null,
-        sections: null,
+        pageTitle: pagePayload.pageTitle ?? pageTitle,
+        canonicalPageTitle: pagePayload.canonicalPageTitle ?? pagePayload.pageTitle ?? pageTitle,
+        revisionId: pagePayload.revisionId ?? null,
+        revisionTimestamp: pagePayload.revisionTimestamp ?? null,
+        html: pagePayload.html,
+        wikitext: pagePayload.wikitext,
+        sections: pagePayload.sections,
         sampleLimit
       });
       if (facts) {
@@ -267,6 +274,13 @@ export async function collectBuffPageImmunityFacts({
   }
 
   return factsByBuffId;
+}
+
+async function fetchDefaultBuffPagePayload({ pageTitle, fetchRenderedHtml } = {}) {
+  if (fetchRenderedHtml !== fetchWikiRenderedHtml) {
+    return { pageTitle, html: await fetchRenderedHtml({ pageTitle }), wikitext: null, sections: null };
+  }
+  return fetchWikiPagePayload({ pageTitle });
 }
 
 function writeBuffFetchProgress(progressPath, {

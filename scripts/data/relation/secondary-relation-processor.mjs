@@ -41,6 +41,153 @@ function normalizeBiomePairKey(itemInternalName, biomeCode) {
   return `${item}::${biome}`;
 }
 
+const BLOCKED_BUFF_FACT_RESOLVE_STATUSES = new Set(['unresolved', 'ambiguous']);
+
+function normalizeLookupKey(value) {
+  const text = normalizeText(value);
+  return text == null ? null : text.toLowerCase();
+}
+
+function appendUniqueIdentity(map, value, identity) {
+  const key = normalizeLookupKey(value);
+  if (!key) {
+    return;
+  }
+  const rows = map.get(key) ?? [];
+  if (!rows.some((row) => row.sourceId === identity.sourceId && row.internalName === identity.internalName)) {
+    rows.push(identity);
+  }
+  map.set(key, rows);
+}
+
+function getUniqueIdentity(map, value) {
+  const key = normalizeLookupKey(value);
+  if (!key) {
+    return null;
+  }
+  const rows = map.get(key) ?? [];
+  return rows.length === 1 ? rows[0] : null;
+}
+
+function hasResolvedBuffFactIdentity(row, idKeys, internalNameKeys, displayNameKeys = []) {
+  const resolveStatus = normalizeText(row?.resolveStatus ?? row?.resolve_status)?.toLowerCase() ?? null;
+  if (BLOCKED_BUFF_FACT_RESOLVE_STATUSES.has(resolveStatus)) {
+    return false;
+  }
+  return idKeys.some((key) => toNullableNumber(row?.[key]) != null)
+    || internalNameKeys.some((key) => normalizeText(row?.[key]) != null)
+    || displayNameKeys.some((key) => normalizeText(row?.[key]) != null);
+}
+
+function buildMaintIdentityIndex(rows = []) {
+  const bySourceId = new Map();
+  const byInternalName = new Map();
+  const byInternalNameLower = new Map();
+  const byDisplayName = new Map();
+  for (const row of rows ?? []) {
+    const sourceId = toNullableNumber(row?.source_id ?? row?.sourceId);
+    const internalName = normalizeText(row?.internal_name ?? row?.internalName);
+    const identity = {
+      sourceId,
+      internalName,
+      name: normalizeText(row?.english_name ?? row?.name ?? row?.name_en),
+      nameZh: normalizeText(row?.name_zh ?? row?.nameZh),
+      pageTitle: normalizeText(row?.page_title ?? row?.pageTitle)
+    };
+    if (sourceId != null && !bySourceId.has(sourceId)) {
+      bySourceId.set(sourceId, identity);
+    }
+    if (internalName && !byInternalName.has(internalName)) {
+      byInternalName.set(internalName, identity);
+    }
+    appendUniqueIdentity(byInternalNameLower, internalName, identity);
+    appendUniqueIdentity(byDisplayName, identity.name, identity);
+    appendUniqueIdentity(byDisplayName, identity.nameZh, identity);
+    appendUniqueIdentity(byDisplayName, identity.pageTitle, identity);
+  }
+  return { bySourceId, byInternalName, byInternalNameLower, byDisplayName };
+}
+
+function resolveBuffFactIdentity(row, {
+  idKeys,
+  internalNameKeys,
+  displayNameKeys = [],
+  index
+} = {}) {
+  if (!hasResolvedBuffFactIdentity(row, idKeys, internalNameKeys, displayNameKeys)) {
+    return null;
+  }
+  for (const key of idKeys ?? []) {
+    const sourceId = toNullableNumber(row?.[key]);
+    if (sourceId == null) continue;
+    const match = index.bySourceId.get(sourceId);
+    if (match) return match;
+  }
+  for (const key of internalNameKeys ?? []) {
+    const internalName = normalizeText(row?.[key]);
+    if (!internalName) continue;
+    const match = index.byInternalName.get(internalName);
+    if (match) return match;
+  }
+  for (const key of internalNameKeys ?? []) {
+    const internalName = normalizeText(row?.[key]);
+    if (!internalName) continue;
+    const match = getUniqueIdentity(index.byInternalNameLower, internalName);
+    if (match) return match;
+  }
+  for (const key of displayNameKeys ?? []) {
+    const displayName = normalizeText(row?.[key]);
+    if (!displayName) continue;
+    const match = getUniqueIdentity(index.byDisplayName, displayName);
+    if (match) return match;
+  }
+  return null;
+}
+
+function buildBuffFactIssue({
+  buffRow,
+  factRow,
+  factGroup,
+  relationType,
+  reason,
+  idKeys,
+  internalNameKeys,
+  displayNameKeys,
+  trace,
+  sortOrder
+}) {
+  const sourceId = idKeys.map((key) => toNullableNumber(factRow?.[key])).find((value) => value != null) ?? null;
+  const sourceInternalName = internalNameKeys.map((key) => normalizeText(factRow?.[key])).find(Boolean) ?? null;
+  const sourceName = displayNameKeys.map((key) => normalizeText(factRow?.[key])).find(Boolean) ?? null;
+  return {
+    recordKey: createRecordKey({
+      type: 'buff_fact_unresolved',
+      factGroup,
+      buffSourceId: buffRow.source_id ?? null,
+      buffInternalName: buffRow.internal_name ?? null,
+      sourceId,
+      sourceInternalName,
+      sourceName,
+      sortOrder
+    }),
+    factGroup,
+    relationType,
+    buffSourceId: toNullableNumber(buffRow.source_id),
+    buffInternalName: normalizeText(buffRow.internal_name),
+    sourceId,
+    sourceInternalName,
+    sourceName,
+    sourcePageTitle: normalizeText(factRow?.pageTitle ?? factRow?.page_title),
+    sourceKind: normalizeText(factRow?.sourceKind ?? factRow?.source_kind),
+    sourceSection: normalizeText(factRow?.sourceSection ?? factRow?.source_section),
+    reviewStatus: relationStatus.unresolved,
+    confidence: confidence.none,
+    reason,
+    evidenceJson: JSON.stringify(factRow ?? {}),
+    ...trace
+  };
+}
+
 const ITEM_PROJECTILE_FIELD_CANDIDATES = [
   { path: ['shoot'] },
   { path: ['projectileId'] },
@@ -195,6 +342,8 @@ export function buildSecondaryRelations({
   maintNpcRows = [],
   itemImageRows = []
 } = {}) {
+  const maintItemIndex = buildMaintIdentityIndex(maintItemRows);
+  const maintNpcIndex = buildMaintIdentityIndex(maintNpcRows);
   const itemBiomeRelations = itemBiomeRows.map((row) => {
     const trace = normalizeTrace('maint_item_biomes', row);
     return {
@@ -213,6 +362,7 @@ export function buildSecondaryRelations({
     };
   });
 
+  const itemBuffFactIssues = [];
   const itemBuffRelations = maintBuffRows.flatMap((row) => {
     let parsed = {};
     try {
@@ -225,29 +375,58 @@ export function buildSecondaryRelations({
     const inflictingNpcs = Array.isArray(parsed.inflictingNpcs) ? parsed.inflictingNpcs : [];
     const trace = normalizeTrace('maint_buffs', row);
 
-    return sourceItems.map((sourceItem, index) => ({
-      recordKey: createRecordKey({
-        type: 'item_buff_relation',
-        buffSourceId: row.source_id ?? null,
-        itemInternalName: sourceItem.internalName ?? null,
-        sortOrder: index
-      }),
-      itemSourceId: toNullableNumber(sourceItem.itemId),
-      itemInternalName: normalizeText(sourceItem.internalName),
-      buffSourceId: toNullableNumber(row.source_id),
-      buffInternalName: normalizeText(row.internal_name),
-      relationType: 'buff_source_item',
-      durationTicks: toNullableNumber(sourceItem.buffTime),
-      chanceValue: null,
-      chanceText: null,
-      conditions: null,
-      reviewStatus: relationStatus.resolved,
-      confidence: confidence.high,
-      reason: 'maint_buff_source_item',
-      ...trace
-    }));
+    return sourceItems
+      .map((sourceItem) => ({
+        sourceItem,
+        identity: resolveBuffFactIdentity(sourceItem, {
+          idKeys: ['itemId', 'itemSourceId', 'sourceId'],
+          internalNameKeys: ['internalName', 'itemInternalName'],
+          displayNameKeys: ['pageTitle', 'name', 'nameZh', 'title'],
+          index: maintItemIndex
+        })
+      }))
+      .flatMap(({ sourceItem, identity }, index) => {
+        if (identity == null) {
+          itemBuffFactIssues.push(buildBuffFactIssue({
+            buffRow: row,
+            factRow: sourceItem,
+            factGroup: 'sourceItems',
+            relationType: 'buff_source_item',
+            reason: 'buff_source_item_unresolved',
+            idKeys: ['itemId', 'itemSourceId', 'sourceId'],
+            internalNameKeys: ['internalName', 'itemInternalName'],
+            displayNameKeys: ['pageTitle', 'name', 'nameZh', 'title'],
+            trace,
+            sortOrder: index
+          }));
+          return [];
+        }
+        return [{
+          recordKey: createRecordKey({
+            type: 'item_buff_relation',
+            buffSourceId: row.source_id ?? null,
+            itemInternalName: identity.internalName ?? sourceItem.internalName ?? sourceItem.itemInternalName ?? null,
+            itemSourceId: identity.sourceId ?? sourceItem.itemId ?? sourceItem.itemSourceId ?? sourceItem.sourceId ?? null,
+            sortOrder: index
+          }),
+          itemSourceId: toNullableNumber(identity.sourceId ?? sourceItem.itemId ?? sourceItem.itemSourceId ?? sourceItem.sourceId),
+          itemInternalName: normalizeText(identity.internalName ?? sourceItem.internalName ?? sourceItem.itemInternalName),
+          buffSourceId: toNullableNumber(row.source_id),
+          buffInternalName: normalizeText(row.internal_name),
+          relationType: 'buff_source_item',
+          durationTicks: toNullableNumber(sourceItem.buffTime),
+          chanceValue: null,
+          chanceText: null,
+          conditions: null,
+          reviewStatus: relationStatus.resolved,
+          confidence: confidence.high,
+          reason: 'maint_buff_source_item',
+          ...trace
+        }];
+      });
   });
 
+  const npcBuffFactIssues = [];
   const npcBuffRelations = maintBuffRows.flatMap((row) => {
     let parsed = {};
     try {
@@ -259,28 +438,56 @@ export function buildSecondaryRelations({
     const inflictingNpcs = Array.isArray(parsed.inflictingNpcs) ? parsed.inflictingNpcs : [];
     const trace = normalizeTrace('maint_buffs', row);
 
-    return inflictingNpcs.map((inflictingNpc, index) => ({
-      recordKey: createRecordKey({
-        type: 'npc_buff_relation',
-        buffSourceId: row.source_id ?? null,
-        npcInternalName: inflictingNpc.internalName ?? null,
-        sortOrder: index
-      }),
-      npcSourceId: toNullableNumber(inflictingNpc.npcId),
-      npcInternalName: normalizeText(inflictingNpc.internalName),
-      npcName: normalizeText(inflictingNpc.name),
-      buffSourceId: toNullableNumber(row.source_id),
-      buffInternalName: normalizeText(row.internal_name),
-      relationType: 'inflicts',
-      durationTicks: toNullableNumber(inflictingNpc.buffTime),
-      chanceValue: null,
-      chanceText: null,
-      conditions: null,
-      reviewStatus: relationStatus.resolved,
-      confidence: confidence.high,
-      reason: 'maint_buff_inflicting_npc',
-      ...trace
-    }));
+    return inflictingNpcs
+      .map((inflictingNpc) => ({
+        inflictingNpc,
+        identity: resolveBuffFactIdentity(inflictingNpc, {
+          idKeys: ['npcId', 'npcSourceId', 'sourceId'],
+          internalNameKeys: ['internalName', 'npcInternalName'],
+          displayNameKeys: ['pageTitle', 'name', 'nameZh', 'title'],
+          index: maintNpcIndex
+        })
+      }))
+      .flatMap(({ inflictingNpc, identity }, index) => {
+        if (identity == null) {
+          npcBuffFactIssues.push(buildBuffFactIssue({
+            buffRow: row,
+            factRow: inflictingNpc,
+            factGroup: 'inflictingNpcs',
+            relationType: 'inflicts',
+            reason: 'buff_inflicting_npc_unresolved',
+            idKeys: ['npcId', 'npcSourceId', 'sourceId'],
+            internalNameKeys: ['internalName', 'npcInternalName'],
+            displayNameKeys: ['pageTitle', 'name', 'nameZh', 'title'],
+            trace,
+            sortOrder: index
+          }));
+          return [];
+        }
+        return [{
+          recordKey: createRecordKey({
+            type: 'npc_buff_relation',
+            buffSourceId: row.source_id ?? null,
+            npcInternalName: identity.internalName ?? inflictingNpc.internalName ?? inflictingNpc.npcInternalName ?? null,
+            npcSourceId: identity.sourceId ?? inflictingNpc.npcId ?? inflictingNpc.npcSourceId ?? inflictingNpc.sourceId ?? null,
+            sortOrder: index
+          }),
+          npcSourceId: toNullableNumber(identity.sourceId ?? inflictingNpc.npcId ?? inflictingNpc.npcSourceId ?? inflictingNpc.sourceId),
+          npcInternalName: normalizeText(identity.internalName ?? inflictingNpc.internalName ?? inflictingNpc.npcInternalName),
+          npcName: normalizeText(identity.name ?? inflictingNpc.name),
+          buffSourceId: toNullableNumber(row.source_id),
+          buffInternalName: normalizeText(row.internal_name),
+          relationType: 'inflicts',
+          durationTicks: toNullableNumber(inflictingNpc.buffTime),
+          chanceValue: null,
+          chanceText: null,
+          conditions: null,
+          reviewStatus: relationStatus.resolved,
+          confidence: confidence.high,
+          reason: 'maint_buff_inflicting_npc',
+          ...trace
+        }];
+      });
   });
 
   const projectilesBySourceId = new Map(
@@ -432,12 +639,17 @@ export function buildSecondaryRelations({
     npcProjectileRelations,
     itemProjectileAudits,
     npcProjectileAudits,
+    issues: [
+      ...itemBuffFactIssues,
+      ...npcBuffFactIssues
+    ],
     summary: {
       biomeRows: itemBiomeRelations.length,
       localBiomeMissing: 0,
       buffCrossCheckRows: 0,
       buffRows: itemBuffRelations.length,
       npcBuffRows: npcBuffRelations.length,
+      buffFactIssueRows: itemBuffFactIssues.length + npcBuffFactIssues.length,
       itemProjectileRows: itemProjectileRelations.length,
       npcProjectileRows: npcProjectileRelations.length,
       itemProjectileAuditRows: itemProjectileAudits.length,

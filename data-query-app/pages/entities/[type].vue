@@ -1229,8 +1229,8 @@
             </div>
             <div class="armor-detail__item-grid">
               <article v-for="(item, index) in detailSourceItems" :key="`${item.itemId ?? item.internalName ?? item.name ?? index}`" class="armor-detail__item-card">
-                <button type="button" class="armor-detail__item-media" @click="item.itemId ? openLinkedItemDetail(item) : (getProjectileSourceImage(item) ? openImageLightbox(getProjectileSourceImage(item), item.nameZh || item.name || item.internalName || '物品图片') : null)">
-                  <img v-if="getProjectileSourceImage(item)" :src="getProjectileSourceImage(item)" class="armor-detail__item-image" alt="" @error="handleImageError" />
+                <button type="button" class="armor-detail__item-media" @click="item.itemId ? openLinkedItemDetail(item) : (getBuffFactImage(item) ? openImageLightbox(getBuffFactImage(item), item.nameZh || item.name || item.internalName || '物品图片') : null)">
+                  <img v-if="getBuffFactImage(item)" :src="getBuffFactImage(item)" class="armor-detail__item-image" alt="" @error="handleImageError" />
                   <div v-else class="armor-detail__item-fallback">IT</div>
                 </button>
                 <div class="armor-detail__item-body">
@@ -1250,9 +1250,9 @@
               <span>{{ detailImmuneNpcSamples.length }} 条</span>
             </div>
             <div class="armor-detail__item-grid">
-              <article v-for="(npc, index) in detailImmuneNpcSamples" :key="`${npc.npcId ?? npc.internalName ?? npc.name ?? index}`" class="armor-detail__item-card">
-                <button type="button" class="armor-detail__item-media" @click="npc.__imageUrl ? openImageLightbox(npc.__imageUrl, npc.nameZh || npc.name || npc.internalName || `NPC ${npc.npcId ?? index + 1}`) : null">
-                  <img v-if="npc.__imageUrl" :src="npc.__imageUrl" class="armor-detail__item-image" alt="" @error="handleImageError" />
+              <article v-for="(npc, index) in visibleImmuneNpcSamples" :key="`${npc.npcId ?? npc.internalName ?? npc.name ?? index}`" class="armor-detail__item-card">
+                <button type="button" class="armor-detail__item-media" @click="getBuffFactImage(npc) ? openImageLightbox(getBuffFactImage(npc), npc.nameZh || npc.name || npc.internalName || `NPC ${npc.npcId ?? index + 1}`) : null">
+                  <img v-if="getBuffFactImage(npc)" :src="getBuffFactImage(npc)" class="armor-detail__item-image" alt="" @error="handleImageError" />
                   <div v-else class="armor-detail__item-fallback">NP</div>
                 </button>
                 <div class="armor-detail__item-body">
@@ -1262,6 +1262,9 @@
                 </div>
               </article>
             </div>
+            <p v-if="detailImmuneNpcSamples.length > visibleImmuneNpcSamples.length" class="boss-detail__helper">
+              已折叠 {{ detailImmuneNpcSamples.length - visibleImmuneNpcSamples.length }} 条免疫 NPC，避免详情页一次性渲染过长列表。
+            </p>
           </section>
 
           <section v-if="detailInflictingNpcSamples.length" class="projectile-detail__section">
@@ -1271,8 +1274,8 @@
             </div>
             <div class="armor-detail__item-grid">
               <article v-for="(npc, index) in detailInflictingNpcSamples" :key="`${npc.relationId ?? npc.npcDbId ?? npc.npcId ?? npc.internalName ?? index}`" class="armor-detail__item-card">
-                <button type="button" class="armor-detail__item-media" @click="npc.__imageUrl ? openImageLightbox(npc.__imageUrl, npc.nameZh || npc.name || npc.internalName || `NPC ${npc.npcId ?? index + 1}`) : null">
-                  <img v-if="npc.__imageUrl" :src="npc.__imageUrl" class="armor-detail__item-image" alt="" @error="handleImageError" />
+                <button type="button" class="armor-detail__item-media" @click="getBuffFactImage(npc) ? openImageLightbox(getBuffFactImage(npc), npc.nameZh || npc.name || npc.internalName || `NPC ${npc.npcId ?? index + 1}`) : null">
+                  <img v-if="getBuffFactImage(npc)" :src="getBuffFactImage(npc)" class="armor-detail__item-image" alt="" @error="handleImageError" />
                   <div v-else class="armor-detail__item-fallback">NP</div>
                 </button>
                 <div class="armor-detail__item-body">
@@ -1298,6 +1301,10 @@
                 <pre>{{ block.preview }}</pre>
               </article>
             </div>
+          </section>
+
+          <section v-if="detailBuffEvidenceEmptyState" class="projectile-detail__section">
+            <p class="empty-text">{{ detailBuffEvidenceEmptyState }}</p>
           </section>
         </div>
       </AppModal>
@@ -1376,6 +1383,7 @@ const categoriesStore = useCategoriesStore()
 const itemsStore = useItemsStore()
 const selectedNpcCategoryId = ref<number | null>(null)
 const selectedBuffType = ref<'all' | 'buff' | 'debuff'>('all')
+const BUFF_IMMUNE_NPC_PREVIEW_LIMIT = 40
 const selectedBossType = ref<'all' | 'PRE_HARDMODE' | 'HARDMODE' | 'EVENT' | 'SPECIAL_SEED'>('all')
 const npcCategoryTree = computed(() => {
   const root = categoriesStore.findCategoryNodeByCode('CATEGORY_NPC')
@@ -2684,6 +2692,34 @@ function getProjectileSourceImage(entry: Record<string, any>) {
   return ''
 }
 
+function isRawWikiImageUrl(value: unknown) {
+  const image = normalizeImageUrl(value)
+  return image ? image.toLowerCase().includes('terraria.wiki.gg/images/') : false
+}
+
+function getBuffFactImage(entry: Record<string, any>) {
+  for (const value of [
+    entry.__imageUrl,
+    entry.imageUrl,
+    entry.image,
+    entry.npcImageUrl,
+    entry.itemImageUrl,
+    entry.npcImage,
+    entry.itemImage,
+    entry.image_url,
+    entry.npc_image_url,
+    entry.item_image_url,
+    entry.npc_image,
+    entry.item_image,
+  ]) {
+    const image = normalizeImageUrl(value)
+    if (!image) continue
+    if (isRawWikiImageUrl(image)) continue
+    return image
+  }
+  return ''
+}
+
 function openProjectileSourceImage(entry: Record<string, any>, title: string) {
   const image = getProjectileSourceImage(entry)
   if (image) openImageLightbox(image, title)
@@ -2831,6 +2867,7 @@ const detailImmuneNpcSamples = computed<Array<Record<string, any>>>(() => {
         .map(item => normalizeRow(item as Record<string, any>))
     : []
 })
+const visibleImmuneNpcSamples = computed<Array<Record<string, any>>>(() => detailImmuneNpcSamples.value.slice(0, BUFF_IMMUNE_NPC_PREVIEW_LIMIT))
 const detailInflictingNpcSamples = computed<Array<Record<string, any>>>(() => {
   if (!detailRow.value || entityType.value !== 'buffs') return []
   if (Array.isArray(detailRow.value.inflictingNpcs)) {
@@ -2842,6 +2879,11 @@ const detailInflictingNpcSamples = computed<Array<Record<string, any>>>(() => {
   return detailRow.value.inflictingNpcSamples
     .filter(item => item && typeof item === 'object')
     .map(item => normalizeRow(item as Record<string, any>))
+})
+const detailBuffEvidenceEmptyState = computed(() => {
+  if (!detailRow.value || entityType.value !== 'buffs') return ''
+  if (detailSourceItems.value.length || detailInflictingNpcSamples.value.length || detailImmuneNpcSamples.value.length) return ''
+  return '当前 Buff 暂无结构化来源物品、施加 NPC 或免疫 NPC 证据；请检查 sourceEvidence 解析状态或等待数据链刷新。'
 })
 const detailBuffSourceJsonBlocks = computed(() => {
   if (!detailRow.value || entityType.value !== 'buffs') return []

@@ -465,7 +465,9 @@ test('runProjectionToLocalCoreSync apply preserves local-owned boss fields and m
             'image_content_type',
             'image_last_verified_at',
             'source_items_json',
+            'immune_npcs_json',
             'immune_npc_sample_json',
+            'source_evidence_json',
             'buff_type'
           ];
         }
@@ -476,7 +478,11 @@ test('runProjectionToLocalCoreSync apply preserves local-owned boss fields and m
             'english_name',
             'name_zh',
             'image',
-            'buff_type'
+            'buff_type',
+            'source_items_json',
+            'immune_npcs_json',
+            'immune_npc_sample_json',
+            'source_evidence_json'
           ];
         }
         return [];
@@ -489,10 +495,17 @@ test('runProjectionToLocalCoreSync apply preserves local-owned boss fields and m
   assert.equal(result.report.domains.bosses.syncStrategy, 'upsert_preserve_local');
   assert.deepEqual(result.report.domains.bosses.skippedProtectedColumns, ['created_at', 'summon_method', 'updated_at']);
   assert.equal(result.report.domains.buffs.syncStrategy, 'upsert_preserve_local');
+  assert.deepEqual(result.report.domains.buffs.skippedProtectedColumns, [
+    'immune_npc_sample_json',
+    'immune_npcs_json',
+    'source_evidence_json',
+    'source_items_json'
+  ]);
   assert.ok(result.report.domains.buffs.columnMappings.some(([localColumn, projectionColumn]) => localColumn === 'image_cached_url' && projectionColumn === 'image'));
   const bossSql = statements.find((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`boss_groups`'));
   const buffSql = statements.find((sql) => sql.startsWith('INSERT INTO `terria_v1_local`.`buffs`'));
   assert.match(bossSql, /ON DUPLICATE KEY UPDATE/);
   assert.match(buffSql, /`image_cached_url`/);
   assert.match(buffSql, /SELECT `id`, `internal_name`, `english_name`, `name_zh`, `buff_type`, `image` FROM `terria_v1_relation`\.`projection_buffs`/);
+  assert.doesNotMatch(buffSql, /`source_items_json`|`immune_npcs_json`|`immune_npc_sample_json`|`source_evidence_json`/);
 });

@@ -127,6 +127,54 @@
             <dd>{{ selectedBuff.immuneNpcs?.length ?? selectedBuff.immuneNpcCount ?? 0 }}</dd>
           </div>
         </dl>
+        <div class="entity-card__body">
+          <p v-if="selectedBuff.sourceEvidence?.parseStatus" class="entity-card__summary">
+            Evidence: {{ selectedBuff.sourceEvidence.parseStatus }} from {{ selectedBuff.sourceEvidence.pageTitle || selectedBuff.provenance?.pageTitle || 'unknown page' }}
+          </p>
+          <p v-else class="entity-card__summary entity-card__summary--muted">Evidence provenance is not available yet.</p>
+
+          <section class="entity-card__section">
+            <h4>Source Items</h4>
+            <div v-if="selectedBuff.sourceItems?.length" class="entity-card__fact-grid">
+              <article v-for="fact in selectedBuff.sourceItems" :key="factKey(fact)" class="entity-card__fact">
+                <img v-if="resolveImage(fact.imageUrl)" :src="resolveImage(fact.imageUrl)" :alt="factName(fact)" loading="lazy" />
+                <div v-else class="entity-card__fallback entity-card__fallback--small">IT</div>
+                <strong>{{ factName(fact) }}</strong>
+                <span>{{ fact.internalName || fact.sourcePage || 'resolved item' }}</span>
+              </article>
+            </div>
+            <p v-else class="entity-card__summary entity-card__summary--muted">No source item facts are published for this buff.</p>
+          </section>
+
+          <section class="entity-card__section">
+            <h4>Inflicting NPCs</h4>
+            <div v-if="selectedBuff.inflictingNpcs?.length" class="entity-card__fact-grid">
+              <article v-for="fact in selectedBuff.inflictingNpcs" :key="factKey(fact)" class="entity-card__fact">
+                <img v-if="resolveImage(fact.imageUrl)" :src="resolveImage(fact.imageUrl)" :alt="factName(fact)" loading="lazy" />
+                <div v-else class="entity-card__fallback entity-card__fallback--small">NP</div>
+                <strong>{{ factName(fact) }}</strong>
+                <span>{{ fact.internalName || fact.relationType || 'inflicts' }}</span>
+              </article>
+            </div>
+            <p v-else class="entity-card__summary entity-card__summary--muted">No inflicting NPC facts are published for this buff.</p>
+          </section>
+
+          <section class="entity-card__section">
+            <h4>Immune NPCs</h4>
+            <div v-if="visibleImmuneNpcs.length" class="entity-card__fact-grid">
+              <article v-for="fact in visibleImmuneNpcs" :key="factKey(fact)" class="entity-card__fact">
+                <img v-if="resolveImage(fact.imageUrl)" :src="resolveImage(fact.imageUrl)" :alt="factName(fact)" loading="lazy" />
+                <div v-else class="entity-card__fallback entity-card__fallback--small">NP</div>
+                <strong>{{ factName(fact) }}</strong>
+                <span>{{ fact.internalName || fact.sourceSection || 'immune' }}</span>
+              </article>
+            </div>
+            <p v-if="hiddenImmuneNpcCount > 0" class="entity-card__summary entity-card__summary--muted">
+              Showing {{ visibleImmuneNpcs.length }} of {{ selectedBuff.immuneNpcs?.length }} immune NPCs.
+            </p>
+            <p v-else-if="!visibleImmuneNpcs.length" class="entity-card__summary entity-card__summary--muted">No full immune NPC facts are published for this buff.</p>
+          </section>
+        </div>
       </section>
 
       <section v-if="totalPages > 1" class="public-pager-shell entity-list-view__pager">
@@ -158,6 +206,7 @@ import type { BuffDetailItem, BuffListItem, Pagination } from '@/types'
 const route = useRoute()
 const router = useRouter()
 const pageSize = 12
+const immuneNpcPreviewLimit = 24
 
 const buffs = ref<BuffListItem[]>([])
 const selectedBuff = ref<BuffDetailItem | null>(null)
@@ -202,8 +251,18 @@ const displayedPages = computed(() => {
 })
 
 const displayName = (buff: BuffListItem) => buff.nameZh?.trim() || buff.name?.trim() || buff.internalName?.trim() || 'Unknown Buff'
-const resolveImage = (value?: string | null) => !value ? '' : value.startsWith('http://') || value.startsWith('https://') ? value : value.startsWith('/') ? value : `/${value}`
+const factName = (fact: { nameZh?: string | null; name?: string | null; internalName?: string | null; sourceId?: number | null }) =>
+  fact.nameZh?.trim() || fact.name?.trim() || fact.internalName?.trim() || `Fact ${fact.sourceId ?? '--'}`
+const factKey = (fact: { id?: number | null; sourceId?: number | null; internalName?: string | null; name?: string | null }) =>
+  `${fact.id ?? fact.sourceId ?? fact.internalName ?? fact.name ?? 'fact'}`
+const isRawWikiImageUrl = (value?: string | null) => Boolean(value?.toLowerCase().includes('terraria.wiki.gg/images/'))
+const resolveImage = (value?: string | null) => {
+  if (!value || isRawWikiImageUrl(value)) return ''
+  return value.startsWith('http://') || value.startsWith('https://') ? value : value.startsWith('/') ? value : `/${value}`
+}
 const fallbackMark = (value?: string | null) => value?.trim()?.slice(0, 2).toUpperCase() || 'BF'
+const visibleImmuneNpcs = computed(() => (selectedBuff.value?.immuneNpcs || []).slice(0, immuneNpcPreviewLimit))
+const hiddenImmuneNpcCount = computed(() => Math.max(0, (selectedBuff.value?.immuneNpcs?.length || 0) - visibleImmuneNpcs.value.length))
 
 const openBuffDetail = async (buff: BuffListItem) => {
   const response = await fetchBuffById(buff.id)

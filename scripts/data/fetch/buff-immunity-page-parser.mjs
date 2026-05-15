@@ -4,6 +4,9 @@ export function parseBuffPageEvidence({
   buffId,
   buffName,
   pageTitle,
+  canonicalPageTitle = null,
+  revisionId = null,
+  revisionTimestamp = null,
   html,
   wikitext,
   sections = [],
@@ -12,22 +15,55 @@ export function parseBuffPageEvidence({
   const sectionIndex = buildSectionIndex({ html, wikitext, sections });
   const playerSection = firstSection(sectionIndex, ['来自玩家', 'From player']);
   const enemySection = firstSection(sectionIndex, ['来自敌怪', 'From enemy']);
+  const environmentSection = firstSection(sectionIndex, ['来自环境', 'From environment']);
   const immuneSection = firstSection(sectionIndex, ['免疫的 NPC', 'Immune NPCs']);
+  const playerSourceItems = parseBuffCauseEntries(playerSection?.html, {
+    sourceKind: 'player',
+    sourceSection: playerSection?.line ?? null
+  });
+  const environmentSourceItems = parseBuffCauseEntries(environmentSection?.html, {
+    sourceKind: 'environment',
+    sourceSection: environmentSection?.line ?? null
+  });
+  const sourceItems = [
+    ...playerSourceItems,
+    ...environmentSourceItems
+  ];
+  const inflictingNpcs = parseBuffCauseEntries(enemySection?.html, {
+    sourceKind: 'enemy',
+    sourceSection: enemySection?.line ?? null
+  });
   const immuneNpcs = extractImmuneNpcEntries(immuneSection?.html ?? extractImmuneNpcSectionHtml(html));
   const immuneNpcSample = immuneNpcs.slice(0, Math.max(0, sampleLimit));
+  const factGroups = {
+    sourceItems: factGroupStatus({
+      sections: [playerSection, environmentSection],
+      rows: sourceItems
+    }),
+    inflictingNpcs: factGroupStatus({
+      sections: [enemySection],
+      rows: inflictingNpcs
+    }),
+    immuneNpcs: factGroupStatus({
+      sections: [immuneSection],
+      rows: immuneNpcs
+    })
+  };
+  const unresolvedFacts = Object.entries(factGroups)
+    .filter(([, status]) => status.status === 'no_rows')
+    .map(([group, status]) => ({
+      group,
+      status: status.status,
+      sections: status.sections
+    }));
+  const parseStatus = unresolvedFacts.length === 0 ? 'parsed' : 'parse_incomplete';
 
   return {
     buffId,
     buffName,
     pageTitle,
-    sourceItems: parseBuffCauseEntries(playerSection?.html, {
-      sourceKind: 'player',
-      sourceSection: playerSection?.line ?? null
-    }),
-    inflictingNpcs: parseBuffCauseEntries(enemySection?.html, {
-      sourceKind: 'enemy',
-      sourceSection: enemySection?.line ?? null
-    }),
+    sourceItems,
+    inflictingNpcs,
     immuneNpcs,
     immuneNpcCount: immuneNpcs.length,
     immuneNpcSample,
@@ -38,15 +74,48 @@ export function parseBuffPageEvidence({
     sourceEvidence: {
       provider: 'terraria.wiki.gg',
       pageTitle,
+      canonicalPageTitle: canonicalPageTitle ?? pageTitle ?? null,
+      revisionId,
+      revisionTimestamp,
       sectionAnchors: Array.isArray(sections)
         ? sections.map((section) => section?.anchor).filter(Boolean)
         : [],
       sourceSections: [
         playerSection?.line,
         enemySection?.line,
+        environmentSection?.line,
         immuneSection?.line
-      ].filter(Boolean)
+      ].filter(Boolean),
+      parseStatus,
+      factGroups,
+      unresolvedFacts
     }
+  };
+}
+
+function factGroupStatus({ sections = [], rows = [] } = {}) {
+  const presentSections = sections
+    .filter(Boolean)
+    .map((section) => section.line ?? section.anchor ?? null)
+    .filter(Boolean);
+  if (rows.length > 0) {
+    return {
+      status: 'parsed',
+      count: rows.length,
+      sections: presentSections
+    };
+  }
+  if (presentSections.length > 0) {
+    return {
+      status: 'no_rows',
+      count: 0,
+      sections: presentSections
+    };
+  }
+  return {
+    status: 'section_missing',
+    count: 0,
+    sections: []
   };
 }
 

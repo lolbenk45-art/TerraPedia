@@ -38,3 +38,23 @@ test('buff detail hides empty source json blocks instead of rendering blank arra
   assert.match(entitiesPage, /detailBuffSourceJsonBlocks/)
   assert.doesNotMatch(entitiesPage, /detailRow\.sourceItemsJson \|\| detailRow\.immuneNpcSampleJson/)
 })
+
+test('buff detail cards resolve compatible item and npc image fields without raw wiki priority', () => {
+  const buffSourceItemSection = entitiesPage.match(/<section v-if="detailSourceItems\.length"[\s\S]*?<\/section>/)?.[0] ?? ''
+  const getBuffFactImageBody = entitiesPage.match(/function getBuffFactImage\(entry: Record<string, any>\) \{([\s\S]*?)\n\}/)?.[1] ?? ''
+  assert.match(entitiesPage, /function getBuffFactImage/)
+  assert.match(buffSourceItemSection, /getBuffFactImage\(item\)/)
+  assert.doesNotMatch(buffSourceItemSection, /getProjectileSourceImage\(item\)/)
+  assert.match(entitiesPage, /entry\.npcImageUrl/)
+  assert.match(entitiesPage, /entry\.itemImageUrl/)
+  assert.match(entitiesPage, /entry\.image_url/)
+  assert.match(entitiesPage, /isRawWikiImageUrl/)
+  assert.doesNotMatch(getBuffFactImageBody, /fallbackRawWikiImages/)
+  assert.doesNotMatch(getBuffFactImageBody, /return\s+fallbackRawWikiImages\[0\]/)
+})
+
+test('buff detail truncates large immune npc arrays and shows empty evidence state', () => {
+  assert.match(entitiesPage, /visibleImmuneNpcSamples/)
+  assert.match(entitiesPage, /BUFF_IMMUNE_NPC_PREVIEW_LIMIT/)
+  assert.match(entitiesPage, /detailBuffEvidenceEmptyState/)
+})

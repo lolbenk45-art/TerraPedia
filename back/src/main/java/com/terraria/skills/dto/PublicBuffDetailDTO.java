@@ -6,6 +6,7 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -31,6 +32,7 @@ public class PublicBuffDetailDTO implements Serializable {
     private List<FactSummary> inflictingNpcs = List.of();
     private List<FactSummary> immuneNpcs = List.of();
     private Provenance provenance;
+    private SourceEvidence sourceEvidence;
 
     @Data
     @Builder
@@ -66,5 +68,22 @@ public class PublicBuffDetailDTO implements Serializable {
         private String pageTitle;
         private String revisionTimestamp;
         private List<String> sectionAnchors;
+    }
+
+    @Data
+    @Builder
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class SourceEvidence implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+
+        private String provider;
+        private String pageTitle;
+        private String canonicalPageTitle;
+        private Long revisionId;
+        private String revisionTimestamp;
+        private String parseStatus;
+        private List<String> sectionAnchors;
+        private List<Map<String, Object>> unresolvedFacts;
     }
 }

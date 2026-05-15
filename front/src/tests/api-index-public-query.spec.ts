@@ -473,12 +473,21 @@ describe('api/index public query behavior', () => {
           sourceItemCount: 7,
           immuneNpcCount: 25,
           sourceItems: [{ sourceId: 47, internalName: 'CursedArrow', nameZh: '诅咒箭' }],
-          inflictingNpcs: [{ sourceId: 214, internalName: 'Clinger', nameZh: '爬藤怪' }],
-          immuneNpcs: [{ sourceId: 68, internalName: 'DungeonGuardian', nameZh: '地牢守卫者' }],
+          inflictingNpcs: [{ sourceId: 214, internalName: 'Clinger', nameZh: '爬藤怪', npcImageUrl: 'https://terraria.wiki.gg/images/Clinger.png' }],
+          immuneNpcs: [{ sourceId: 68, internalName: 'DungeonGuardian', nameZh: '地牢守卫者', image_url: 'https://cdn.example.com/terrapedia-images/npcs/wiki/guardian.png' }],
           provenance: {
             provider: 'terraria.wiki.gg',
             pageTitle: '诅咒狱火',
             sectionAnchors: ['来自玩家', '来自敌怪', '免疫的_NPC'],
+          },
+          sourceEvidence: {
+            provider: 'terraria.wiki.gg',
+            pageTitle: 'Cursed Inferno',
+            canonicalPageTitle: 'Cursed Inferno',
+            revisionId: 12345,
+            parseStatus: 'parsed',
+            sectionAnchors: ['来自玩家', '来自敌怪', '免疫的_NPC'],
+            unresolvedFacts: [],
           },
         },
         message: 'ok',
@@ -503,8 +512,9 @@ describe('api/index public query behavior', () => {
       },
     })
     expect(result.data.sourceItems?.[0]).toMatchObject({ internalName: 'CursedArrow' })
-    expect(result.data.inflictingNpcs?.[0]).toMatchObject({ internalName: 'Clinger' })
-    expect(result.data.immuneNpcs?.[0]).toMatchObject({ internalName: 'DungeonGuardian' })
+    expect(result.data.inflictingNpcs?.[0]).toMatchObject({ internalName: 'Clinger', imageUrl: null })
+    expect(result.data.immuneNpcs?.[0]).toMatchObject({ internalName: 'DungeonGuardian', imageUrl: 'https://cdn.example.com/terrapedia-images/npcs/wiki/guardian.png' })
+    expect(result.data.sourceEvidence).toMatchObject({ parseStatus: 'parsed', canonicalPageTitle: 'Cursed Inferno', revisionId: 12345 })
   })
 
   it('fetchProjectiles preserves the public list shape and query parameters', async () => {

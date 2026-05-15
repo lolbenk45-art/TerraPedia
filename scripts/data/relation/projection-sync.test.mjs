@@ -141,8 +141,10 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
         sourceItemCount: 1,
         immuneNpcCount: 2,
         sourceItemsJson: '[{"itemId":1,"internalName":"ObsidianPotion"}]',
-        immuneNpcsJson: '[{"npcId":68,"internalName":"DungeonGuardian","name":"Dungeon Guardian"}]',
+        inflictingNpcsJson: '[{"npcId":59,"internalName":"LavaSlime","name":"Lava Slime"}]',
+        immuneNpcsJson: '[{"npcId":68,"internalName":"DungeonGuardian","name":"Dungeon Guardian"},{"npcId":69,"internalName":"Clinger","name":"Clinger"}]',
         immuneNpcSampleJson: '[{"npcId":68,"internalName":"DungeonGuardian","name":"Dungeon Guardian"}]',
+        sourceEvidenceJson: '{"provider":"terraria.wiki.gg","pageTitle":"Obsidian Skin","parseStatus":"parsed","unresolvedFacts":[]}',
       },
     ],
     relationBuffImages: [
@@ -200,9 +202,19 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
   assert.deepEqual(JSON.parse(actual.projectionBuffs[0].sourceItemsJson), [
     { itemId: 1, internalName: 'ObsidianPotion' }
   ]);
-  assert.deepEqual(JSON.parse(actual.projectionBuffs[0].immuneNpcsJson), [
-    { npcId: 68, internalName: 'DungeonGuardian', name: 'Dungeon Guardian' }
+  assert.deepEqual(JSON.parse(actual.projectionBuffs[0].inflictingNpcsJson), [
+    { npcId: 59, internalName: 'LavaSlime', name: 'Lava Slime' }
   ]);
+  assert.deepEqual(JSON.parse(actual.projectionBuffs[0].immuneNpcsJson), [
+    { npcId: 68, internalName: 'DungeonGuardian', name: 'Dungeon Guardian' },
+    { npcId: 69, internalName: 'Clinger', name: 'Clinger' }
+  ]);
+  assert.deepEqual(JSON.parse(actual.projectionBuffs[0].sourceEvidenceJson), {
+    provider: 'terraria.wiki.gg',
+    pageTitle: 'Obsidian Skin',
+    parseStatus: 'parsed',
+    unresolvedFacts: []
+  });
 });
 
 test('buildProjectionPayload maps boss relations into a public-ready boss projection', () => {

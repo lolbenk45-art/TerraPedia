@@ -1,0 +1,105 @@
+{
+  "generatedAt": "2026-05-15T11:45:20.572Z",
+  "dateTag": "2026-05-15",
+  "apply": true,
+  "localDatabase": "terria_v1_local",
+  "relationDatabase": "terria_v1_relation",
+  "backupSuffix": "20260515194500",
+  "summary": {
+    "totalLocalRowsBefore": 388,
+    "totalProjectionRows": 388
+  },
+  "domains": {
+    "buffs": {
+      "domain": "buffs",
+      "localTable": "buffs",
+      "projectionTable": "projection_buffs",
+      "backupTable": "buffs_relation_backup_20260515194500",
+      "localRowsBefore": 388,
+      "projectionRows": 388,
+      "syncStrategy": "upsert_preserve_local",
+      "columnMappings": [
+        [
+          "id",
+          "id"
+        ],
+        [
+          "source_id",
+          "source_id"
+        ],
+        [
+          "internal_name",
+          "internal_name"
+        ],
+        [
+          "english_name",
+          "english_name"
+        ],
+        [
+          "name_zh",
+          "name_zh"
+        ],
+        [
+          "tooltip_en",
+          "tooltip_en"
+        ],
+        [
+          "tooltip_zh",
+          "tooltip_zh"
+        ],
+        [
+          "image",
+          "image"
+        ],
+        [
+          "buff_type",
+          "buff_type"
+        ],
+        [
+          "source_item_count",
+          "source_item_count"
+        ],
+        [
+          "immune_npc_count",
+          "immune_npc_count"
+        ],
+        [
+          "status",
+          "status"
+        ],
+        [
+          "deleted",
+          "deleted"
+        ],
+        [
+          "image_cached_url",
+          "image"
+        ]
+      ],
+      "columnsToSync": [
+        "id",
+        "source_id",
+        "internal_name",
+        "english_name",
+        "name_zh",
+        "tooltip_en",
+        "tooltip_zh",
+        "image",
+        "buff_type",
+        "source_item_count",
+        "immune_npc_count",
+        "status",
+        "deleted",
+        "image_cached_url"
+      ],
+      "skippedProtectedColumns": [
+        "created_at",
+        "immune_npc_sample_json",
+        "immune_npcs_json",
+        "source_evidence_json",
+        "source_items_json",
+        "updated_at"
+      ]
+    }
+  }
+}
