@@ -249,6 +249,61 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldAppendUnknownBackendRefreshActionsAsRegisteredTasks() throws Exception {
+        Path outputPath = historyDir.resolve("backend-data-refresh-2026-05-15T08-00-00-000Z.json");
+        Path childStatusPath = historyDir.resolve("backend-data-refresh-2026-05-15T08-00-00-000Z.runtime/new-domain-refresh.child-status.json");
+        writeJson(outputPath, Map.of(
+            "generatedAt", "2026-05-15T08:00:00Z",
+            "totalActions", 1,
+            "completedActions", 0,
+            "failedActions", 0,
+            "runningActions", 1,
+            "pendingActions", 0,
+            "timedOutActions", 0,
+            "actions", List.of(Map.ofEntries(
+                Map.entry("id", "new-domain-refresh"),
+                Map.entry("runner", "node"),
+                Map.entry("status", "running"),
+                Map.entry("phase", "fetch"),
+                Map.entry("message", "refreshing new domain 2/10"),
+                Map.entry("current", 2),
+                Map.entry("total", 10),
+                Map.entry("childStatusPath", childStatusPath.toString()),
+                Map.entry("updatedAt", "2026-05-15T08:00:20Z")
+            ))
+        ));
+        writeJson(childStatusPath, Map.ofEntries(
+            Map.entry("actionId", "new-domain-refresh"),
+            Map.entry("status", "running"),
+            Map.entry("message", "refreshing new domain 3/10"),
+            Map.entry("current", 3),
+            Map.entry("total", 10),
+            Map.entry("generatedAt", "2026-05-15T08:00:30Z"),
+            Map.entry("lastHeartbeatAt", "2026-05-15T08:00:30Z")
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-05-15T08:01:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO unknownAction = taskById(
+            service.getOverview().getRegisteredTasks(),
+            "new-domain-refresh"
+        );
+
+        assertEquals("running", unknownAction.getStatus());
+        assertEquals("live", unknownAction.getProgressKind());
+        assertEquals("refreshing new domain 3/10", unknownAction.getQueueState());
+        assertEquals(3, unknownAction.getCurrent());
+        assertEquals(10, unknownAction.getTotal());
+        assertEquals("2026-05-15T08:00:30Z", unknownAction.getProgressHeartbeatAt());
+        assertTrue(unknownAction.getProgressSource().endsWith("new-domain-refresh.child-status.json"));
+        assertTrue(unknownAction.getNextStep().contains("dedicated registered task"));
+    }
+
+    @Test
     void shouldMarkRunningProgressAsStalledWhenHeartbeatIsOld() throws Exception {
         Path progressPath = repoRoot.resolve("data/generated/wiki-sync-progress.latest.json");
         writeJson(progressPath, Map.ofEntries(

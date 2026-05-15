@@ -26,7 +26,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -858,6 +861,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             "reports/relation/replacement-readiness*.json",
             "Use readiness report before replacing local projections."
         ));
+        appendUnregisteredLatestRunActions(repoRoot, latestRun, tasks);
         return tasks;
     }
 
@@ -883,6 +887,61 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
                 applyReadableProgressState(task);
             }
         }
+        return task;
+    }
+
+    private void appendUnregisteredLatestRunActions(
+        Path repoRoot,
+        CrawlerMonitorOverviewDTO.MonitorRunDTO latestRun,
+        List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> tasks
+    ) {
+        if (latestRun == null || latestRun.getActions() == null || latestRun.getActions().isEmpty()) {
+            return;
+        }
+        Set<String> knownIds = tasks.stream()
+            .map(CrawlerMonitorOverviewDTO.RegisteredTaskDTO::getId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+        for (CrawlerMonitorOverviewDTO.MonitorActionDTO action : latestRun.getActions()) {
+            String id = action.getId();
+            if (id == null || id.isBlank() || knownIds.contains(id)) {
+                continue;
+            }
+            tasks.add(buildUnregisteredLatestRunActionTask(repoRoot, action));
+            knownIds.add(id);
+        }
+    }
+
+    private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildUnregisteredLatestRunActionTask(
+        Path repoRoot,
+        CrawlerMonitorOverviewDTO.MonitorActionDTO action
+    ) {
+        String id = firstNonBlank(action.getId(), firstNonBlank(action.getRunner(), "backend-refresh-action"));
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask(id, id, "backend-refresh", "p2");
+        task.setStatus(firstNonBlank(action.getStatus(), "pending"));
+        task.setQueueState(firstNonBlank(action.getMessage(), firstNonBlank(action.getPhase(), task.getStatus())));
+        task.setNextStep("Add a dedicated registered task if this backend-refresh action becomes operationally important.");
+        task.setDataStage(firstNonBlank(action.getDataStage(), firstNonBlank(action.getRunner(), "backend-refresh action")));
+        task.setProgressPath(action.getChildStatusPath());
+        task.setUpdatedAt(firstNonBlank(action.getLastHeartbeatAt(), action.getUpdatedAt()));
+        copyTaskProgressFromAction(task, action);
+
+        Path childStatusPath = resolvePayloadPathInsideRepo(repoRoot, action.getChildStatusPath());
+        if (childStatusPath != null) {
+            ReadResult childStatus = readJsonMap(childStatusPath);
+            task.setProgressPath(toDisplayPath(repoRoot, childStatus.path()));
+            applyProgressFileMetadata(task, repoRoot, childStatus);
+            if (childStatus.readable()) {
+                task.setStatus(firstNonBlank(asString(childStatus.payload().get("status")), task.getStatus()));
+                task.setQueueState(firstNonBlank(asString(childStatus.payload().get("message")), task.getQueueState()));
+                task.setUpdatedAt(firstNonBlank(
+                    asString(childStatus.payload().get("lastHeartbeatAt")),
+                    firstNonBlank(asString(childStatus.payload().get("generatedAt")), task.getUpdatedAt())
+                ));
+                copyTaskProgressFromPayload(task, childStatus.payload());
+            }
+        }
+        applyReadableProgressState(task);
         return task;
     }
 

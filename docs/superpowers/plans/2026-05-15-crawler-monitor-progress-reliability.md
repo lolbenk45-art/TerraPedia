@@ -6,6 +6,8 @@
 
 **Architecture:** Treat `registeredTasks` as the task progress source of truth and keep `latestRun` as a backend-refresh run history view. Add explicit progress metadata to the backend DTO, align script progress paths with the monitor, then render a unified progress table in the Nuxt admin page without adding start/stop/cancel controls or running data mutation jobs.
 
+**New-task rule:** Any new action that appears in `latestRun.actions` must still be shown as a fallback registered task even before it has a dedicated monitor registration. A completely independent new progress file outside the known monitor paths still needs a registered path or backend-refresh action reference; the monitor should not scan arbitrary generated files.
+
 **Tech Stack:** Spring Boot 3, Java 17, Jackson, JUnit 5, Node.js ESM workflow scripts, Node test runner, Nuxt 4, Vue 3, TypeScript.
 
 ---
@@ -24,6 +26,7 @@ Root causes already established by read-only analysis:
 Closure definition:
 
 - A user can open `/operations/crawler-monitor` during or after a crawler/backend refresh task and see each registered task as `running`, `queued`, `stalled`, `completed`, `blocked`, `missing`, or `report-only` with the source path and progress evidence.
+- A new backend-refresh action that is not yet in the fixed registered-task list still appears in the monitor as a fallback progress row.
 - A running long task with fresh progress shows `current/total`, `percent`, pending count, heartbeat age, phase/message, and progress path.
 - A stale `running` progress file is not presented as healthy live work.
 - The original symptom is covered by backend service tests, script progress-path tests, frontend page contract tests, typecheck, and a local authenticated smoke check when credentials are available.
@@ -71,6 +74,7 @@ Mixed-source risks:
 - A repo-local stale buff progress file can hide fresher shared progress.
 - A standalone `wiki-sync` progress file can be newer than backend-refresh history and should not replace `latestRun`.
 - A task can be registered from reports even when no live progress writer exists; it must be explicitly marked `report-only` or `queued`, not silently shown as live progress.
+- A new backend-refresh action must be appended from `latestRun.actions` if no fixed registered task owns its id yet.
 - `running` in JSON is not enough; heartbeat freshness determines whether the UI says live or stalled. Process-exit evidence is out of scope until progress payloads consistently carry a PID or scheduler task identity.
 
 ## File Ownership Map
@@ -873,6 +877,35 @@ Examples of critical gaps:
 - Status: superseded by Pass 3 after multi-agent review found a non-existent script target.
 - Main goal: close the original no-progress complaint without broadening into data refresh.
 - Closure definition: backend tests prove DTO/service contract; script tests prove monitor-visible progress path; frontend contract/typecheck proves registered task progress is primary; smoke validates runtime behavior when auth is available.
+
+### Gate Results
+
+- Goal lock: pass.
+- Source-chain lock: pass.
+- Boundary lock: pass.
+- Evidence lock: pass.
+- Execution continuity: pass.
+- Multi-agent safety: pass.
+- Commit readiness: pass.
+
+## Self-Review Pass 5
+
+### Verdict
+
+- Status: execution-ready after new-task fallback repair.
+- Main goal: unchanged; existing and newly introduced backend-refresh task progress must remain visible without starting crawlers or broadening into data mutation.
+- Closure definition: backend service tests prove unknown `latestRun.actions` are appended as fallback registered tasks; frontend helper tests prove unregistered actions remain visible as fallback rows.
+
+### Blocking Plan Defects Found
+
+- Important: The plan guaranteed registered task progress, but did not explicitly cover a new backend-refresh action before a dedicated monitor registration is added.
+- Important: The boundary between "new backend-refresh action" and "arbitrary new progress file on disk" was implicit and could lead to either missed rows or unsafe filesystem scanning.
+
+### Repairs Applied
+
+- Backend appends any `latestRun.actions` id not already owned by a fixed registered task, using its child-status file for progress metadata when available.
+- Frontend row-helper contract now asserts unregistered latestRun actions become visible fallback rows.
+- Plan now states that arbitrary independent progress files need a registered path or backend-refresh action reference; the monitor does not scan all generated files.
 
 ### Gate Results
 

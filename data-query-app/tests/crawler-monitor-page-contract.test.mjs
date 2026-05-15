@@ -75,6 +75,32 @@ test('crawler monitor status wins over misleading progress kind', () => {
   assert.equal(rowStatus({ id: 'health-warning', status: 'warning', progressKind: 'report-only' }), 'warning')
 })
 
+test('crawler monitor keeps unregistered latestRun actions visible as fallback rows', () => {
+  const rows = progressRowsFromOverview({
+    latestRun: {
+      actions: [
+        {
+          id: 'new-domain-refresh',
+          runner: 'node',
+          status: 'running',
+          message: 'refreshing new domain 2/10',
+          current: 2,
+          total: 10,
+          lastHeartbeatAt: '2026-05-15T08:00:30Z',
+        },
+      ],
+    },
+    registeredTasks: [],
+  })
+
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].id, 'new-domain-refresh')
+  assert.equal(rows[0].rowKey, 'action:new-domain-refresh')
+  assert.equal(rowStatus(rows[0]), 'running')
+  assert.equal(rows[0].current, 2)
+  assert.equal(rows[0].total, 10)
+})
+
 test('crawler monitor registered task type exposes backend progress metadata', () => {
   for (const field of [
     'progressSource',
