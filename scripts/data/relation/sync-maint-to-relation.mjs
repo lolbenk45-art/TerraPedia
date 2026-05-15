@@ -34,10 +34,24 @@ import {
   resolveManagedImageUrlPrefixes
 } from './managed-image-url-policy.mjs';
 
-const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
-
 const repoRoot = getProjectRoot();
+const moduleRequire = createRequire(import.meta.url);
+let mysqlModule = null;
+
+function loadMysqlModule() {
+  if (mysqlModule) {
+    return mysqlModule;
+  }
+  try {
+    mysqlModule = moduleRequire('mysql2/promise');
+  } catch (error) {
+    if (error?.code !== 'MODULE_NOT_FOUND') {
+      throw error;
+    }
+    mysqlModule = createRequire(path.join(repoRoot, 'data-query-app', 'package.json'))('mysql2/promise');
+  }
+  return mysqlModule;
+}
 const ALLOWED_INHERITANCE_KINDS = new Set([
   'segment_family',
   'prototype_variant',
@@ -420,6 +434,7 @@ async function queryRows(connection, sql) {
 }
 
 async function loadDataset(mysqlOptions, database, sql) {
+  const mysql = loadMysqlModule();
   const connection = await mysql.createConnection({ ...mysqlOptions, database });
   try {
     return await queryRows(connection, sql);
@@ -978,6 +993,7 @@ export async function runSync(options, dependencies = {}) {
   const loadReviewedNonNpcSourceExclusions = dependencies.loadReviewedNonNpcSourceExclusions ?? (() => readReviewedNonNpcSourceExclusions());
   const loadReviewedSourceOnlyItemExclusions = dependencies.loadReviewedSourceOnlyItemExclusions ?? (() => readReviewedSourceOnlyItemExclusions());
   const executeRelation = dependencies.executeRelation ?? (async (fn) => {
+    const mysql = loadMysqlModule();
     const connection = await mysql.createConnection({ ...mysqlOptions, database: options.relationDatabase });
     try {
       return await fn(connection);
@@ -1241,6 +1257,7 @@ export async function runSync(options, dependencies = {}) {
 
   if (options.apply) {
     if (options.createDatabase) {
+      const mysql = loadMysqlModule();
       const adminConnection = await mysql.createConnection(mysqlOptions);
       try {
         for (const statement of buildRelationSchemaStatements()) {
