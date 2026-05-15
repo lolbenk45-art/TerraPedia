@@ -87,7 +87,8 @@ export async function fetchWikiModuleContent({
 
 export async function fetchWikiPagePayload({
   pageTitle,
-  apiUrl = DEFAULT_WIKI_API_URL
+  apiUrl = DEFAULT_WIKI_API_URL,
+  fetchWikiApiJsonImpl = fetchWikiApiJson
 } = {}) {
   if (typeof pageTitle !== 'string' || pageTitle.trim() === '') {
     throw new Error('pageTitle is required');
@@ -95,7 +96,8 @@ export async function fetchWikiPagePayload({
 
   const parseUrl = buildWikiPageParseUrl({ pageTitle, apiUrl });
 
-  const parseBody = await wikiRequestGate.runJsonRequest(parseUrl, {
+  const parseBody = await fetchWikiApiJsonImpl({
+    url: parseUrl,
     profile: 'parse',
     sourceKey: pageTitle
   });
@@ -104,7 +106,11 @@ export async function fetchWikiPagePayload({
     throw new Error(`Wiki page parse result missing for ${pageTitle}`);
   }
 
-  const revisionTimestamp = await fetchWikiPageRevisionTimestamp({ pageTitle: parsed.title ?? pageTitle, apiUrl });
+  const revisionTimestamp = await fetchWikiPageRevisionTimestamp({
+    pageTitle: parsed.title ?? pageTitle,
+    apiUrl,
+    fetchWikiApiJsonImpl
+  });
 
   return {
     apiUrl,
@@ -114,7 +120,8 @@ export async function fetchWikiPagePayload({
     revisionTimestamp,
     fetchedAt: new Date().toISOString(),
     wikitext: parsed.wikitext,
-    html: parsed.text
+    html: parsed.text,
+    sections: Array.isArray(parsed.sections) ? parsed.sections : []
   };
 }
 
@@ -129,7 +136,7 @@ export function buildWikiPageParseUrl({
   const parseUrl = new URL(apiUrl);
   parseUrl.searchParams.set('action', 'parse');
   parseUrl.searchParams.set('page', pageTitle);
-  parseUrl.searchParams.set('prop', 'wikitext|text');
+  parseUrl.searchParams.set('prop', 'wikitext|text|sections');
   parseUrl.searchParams.set('format', 'json');
   parseUrl.searchParams.set('formatversion', '2');
   parseUrl.searchParams.set('redirects', '1');
@@ -138,7 +145,8 @@ export function buildWikiPageParseUrl({
 
 export async function fetchWikiPageRevisionTimestamp({
   pageTitle,
-  apiUrl = DEFAULT_WIKI_API_URL
+  apiUrl = DEFAULT_WIKI_API_URL,
+  fetchWikiApiJsonImpl = fetchWikiApiJson
 } = {}) {
   const url = new URL(apiUrl);
   url.searchParams.set('action', 'query');
@@ -149,7 +157,8 @@ export async function fetchWikiPageRevisionTimestamp({
   url.searchParams.set('format', 'json');
   url.searchParams.set('formatversion', '2');
 
-  const body = await wikiRequestGate.runJsonRequest(url, {
+  const body = await fetchWikiApiJsonImpl({
+    url,
     profile: 'revision',
     sourceKey: pageTitle
   });

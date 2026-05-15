@@ -63,3 +63,73 @@ test('standardize-existing-data carries item equipment slots into standardized r
     legSlot: null
   });
 });
+
+test('standardize-existing-data preserves structured buff page evidence', () => {
+  const sourceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-standardize-source-'));
+  const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-standardize-output-'));
+  writeJson(path.join(sourceDir, 'raw', 'wiki', 'template__getbuffinfo.parsed.latest.json'), {
+    source: 'terraria.wiki.gg:Template:GetBuffInfo',
+    sourceApi: 'https://terraria.wiki.gg/api.php',
+    sourcePageTitle: 'Template:GetBuffInfo',
+    sourceRevisionTimestamp: '2026-05-15T00:00:00.000Z',
+    fetchedAt: '2026-05-15T00:00:00.000Z',
+    langs: ['en', 'zh'],
+    totalBuffs: 1,
+    buffs: [
+      {
+        id: 39,
+        internalName: 'CursedInferno',
+        englishName: 'Cursed Inferno',
+        type: 'debuff',
+        image: 'CursedInferno.png',
+        localized: {
+          zh: { name: '诅咒狱火', tooltip: '正在损失生命值' },
+          en: { name: 'Cursed Inferno', tooltip: 'Losing life' }
+        },
+        sourceItemCount: 1,
+        sourceItems: [{ itemId: 47, internalName: 'CursedArrow', name: '诅咒箭' }],
+        inflictingNpcs: [{ npcId: 101, internalName: 'Clinger', name: '爬藤怪' }],
+        immuneNpcCount: 1,
+        immuneNpcs: [{ npcId: 68, internalName: 'DungeonGuardian', name: 'Dungeon Guardian' }],
+        immuneNpcSample: [{ npcId: 68, internalName: 'DungeonGuardian', name: 'Dungeon Guardian' }],
+        sourceEvidence: {
+          provider: 'terraria.wiki.gg',
+          pageTitle: '诅咒狱火',
+          sectionAnchors: ['原因', '来自玩家', '来自敌怪', '免疫的_NPC']
+        }
+      }
+    ]
+  });
+
+  const result = spawnSync(
+    process.execPath,
+    ['scripts/data/transform/standardize-existing-data.mjs'],
+    {
+      cwd: path.resolve(import.meta.dirname, '..', '..', '..'),
+      env: {
+        ...process.env,
+        TERRAPEDIA_SOURCE_DATA_DIR: sourceDir,
+        TERRAPEDIA_STANDARDIZED_OUTPUT_DIR: outputDir
+      },
+      encoding: 'utf8'
+    }
+  );
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const output = JSON.parse(fs.readFileSync(path.join(outputDir, 'buffs.standardized.json'), 'utf8'));
+  assert.equal(output.records.length, 1);
+  assert.deepEqual(output.records[0].sourceItems, [
+    { internalName: 'CursedArrow', itemId: 47, name: '诅咒箭' }
+  ]);
+  assert.deepEqual(output.records[0].inflictingNpcs, [
+    { internalName: 'Clinger', name: '爬藤怪', npcId: 101 }
+  ]);
+  assert.deepEqual(output.records[0].immuneNpcs, [
+    { internalName: 'DungeonGuardian', name: 'Dungeon Guardian', npcId: 68 }
+  ]);
+  assert.deepEqual(output.records[0].sourceEvidence, {
+    pageTitle: '诅咒狱火',
+    provider: 'terraria.wiki.gg',
+    sectionAnchors: ['原因', '来自玩家', '来自敌怪', '免疫的_NPC']
+  });
+});

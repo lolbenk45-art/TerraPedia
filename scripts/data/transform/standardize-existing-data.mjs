@@ -410,8 +410,11 @@ function normalizeBuff(buff) {
     localized: normalizeLooseObject(localized),
     sourceItemCount: toFiniteNumber(buff.sourceItemCount) ?? 0,
     sourceItems: asArray(buff.sourceItems).map((entry) => normalizeLooseObject(entry)),
+    inflictingNpcs: asArray(buff.inflictingNpcs).map((entry) => normalizeLooseObject(entry)),
     immuneNpcCount: toFiniteNumber(buff.immuneNpcCount) ?? 0,
-    immuneNpcSample: asArray(buff.immuneNpcSample).map((entry) => normalizeLooseObject(entry))
+    immuneNpcs: asArray(buff.immuneNpcs).map((entry) => normalizeLooseObject(entry)),
+    immuneNpcSample: asArray(buff.immuneNpcSample).map((entry) => normalizeLooseObject(entry)),
+    sourceEvidence: normalizeLooseObject(buff.sourceEvidence)
   });
 }
 

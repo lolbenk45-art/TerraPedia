@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { resolveIndependentEntityImportApply } from './independent-entity-import-mode.mjs';
 import { loadStandardizedDataset } from '../lib/load-standardized-dataset.mjs';
@@ -9,7 +10,6 @@ import { getProjectRoot } from '../lib/project-root.mjs';
 import { resolveProjectileZhFromRecord } from '../lib/projectile-name-resolver.mjs';
 
 const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
 
 const repoRoot = getProjectRoot();
 
@@ -97,19 +97,25 @@ function loadSourceItemLookup(records) {
   return { bySourceId };
 }
 
-function resolveMappedItem(sourceItemId, sourceItemLookup, itemLookup) {
-  if (sourceItemId == null) {
-    return { sourceItemId: null, internalName: null, dbItem: null, reason: 'missing_source_item_id' };
-  }
-  const internalName = sourceItemLookup.bySourceId.get(sourceItemId) ?? null;
+export function resolveMappedItem(sourceItemId, sourceItemLookup, itemLookup, sourceItem = {}) {
+  const rawInternalName = normalizeInternalName(sourceItem?.internalName);
+  const internalName = sourceItemId == null
+    ? rawInternalName
+    : sourceItemLookup.bySourceId.get(sourceItemId) ?? rawInternalName;
+
   if (!internalName) {
-    return { sourceItemId, internalName: null, dbItem: null, reason: 'source_item_id_not_found_in_standardized_items' };
+    return {
+      sourceItemId: sourceItemId ?? null,
+      internalName: null,
+      dbItem: null,
+      reason: sourceItemId == null ? 'missing_source_item_id' : 'source_item_id_not_found_in_standardized_items'
+    };
   }
   const dbItem = itemLookup.byInternal.get(internalName) ?? null;
   if (!dbItem) {
-    return { sourceItemId, internalName, dbItem: null, reason: 'internal_name_not_found_in_db_items' };
+    return { sourceItemId: sourceItemId ?? null, internalName, dbItem: null, reason: 'internal_name_not_found_in_db_items' };
   }
-  return { sourceItemId, internalName, dbItem, reason: null };
+  return { sourceItemId: sourceItemId ?? null, internalName, dbItem, reason: null };
 }
 
 function recordUnmatched(relationStats, sample) {
@@ -117,6 +123,11 @@ function recordUnmatched(relationStats, sample) {
   if (relationStats.unmatchedSamples.length < 50) {
     relationStats.unmatchedSamples.push(sample);
   }
+}
+
+export function resolveSourceItemCount(record = {}) {
+  return toNullableInteger(record.sourceItemCount)
+    ?? (Array.isArray(record.sourceItems) ? record.sourceItems.length : 0);
 }
 
 function recordItemLink(linkStats, sample, mapped) {
@@ -247,7 +258,7 @@ async function upsertBuff(conn, record, index) {
       toNullableString(record.localized?.zh?.tooltip),
       toNullableString(record.imageUrl ?? record.image),
       toNullableString(record.type),
-      toNullableInteger(record.sourceItemCount) ?? 0,
+      resolveSourceItemCount(record),
       toNullableInteger(record.immuneNpcCount) ?? 0,
       JSON.stringify(record.sourceItems ?? []),
       JSON.stringify(record.immuneNpcSample ?? []),
@@ -273,10 +284,8 @@ async function importBuffs(conn, records, itemLookup, sourceItemLookup, stats, r
       for (let j = 0; j < sourceItems.length; j += 1) {
         const sourceItem = sourceItems[j];
         const sourceItemId = toNullablePositiveInteger(sourceItem.itemId);
-        const mapped = sourceItemId == null
-          ? { sourceItemId: null, internalName: null, dbItem: null, reason: null }
-          : resolveMappedItem(sourceItemId, sourceItemLookup, itemLookup);
-        if (sourceItemId != null && mapped.reason) {
+        const mapped = resolveMappedItem(sourceItemId, sourceItemLookup, itemLookup, sourceItem);
+        if (mapped.reason) {
           recordUnmatched(relationStats, {
             reason: mapped.reason,
             buffSourceId: toNullableInteger(record.id),
@@ -631,6 +640,7 @@ async function main() {
     ?? process.env.TERRAPEDIA_STANDARDIZED_OUTPUT_DIR
     ?? path.join(repoRoot, 'data', 'standardized')
   );
+  const mysql = require('mysql2/promise');
 
   const conn = await mysql.createConnection({
     host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? '127.0.0.1',
@@ -692,11 +702,18 @@ async function main() {
   console.log(JSON.stringify(summary, null, 2));
 }
 
-main().catch((error) => {
-  console.error('[import-independent-entities-to-db] failed');
-  console.error(error?.stack || error?.message || error);
-  process.exit(1);
-});
+function isDirectExecution() {
+  if (!process.argv[1]) return false;
+  return fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+}
+
+if (isDirectExecution()) {
+  main().catch((error) => {
+    console.error('[import-independent-entities-to-db] failed');
+    console.error(error?.stack || error?.message || error);
+    process.exit(1);
+  });
+}
 
 function assertPrimaryDb(database, allowNonPrimaryDb) {
   if (String(database || '').trim() === 'terria_v1_local') return;

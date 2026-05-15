@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.common.ItemImageSql;
 import com.terraria.skills.dto.PublicBuffDetailDTO;
 import com.terraria.skills.dto.PublicBuffListDTO;
 import com.terraria.skills.dto.PublicBuffQuery;
@@ -125,7 +126,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
 
     private List<PublicBuffDetailDTO.FactSummary> loadSourceItems(Buff buff) {
         if (buff == null || buff.getId() == null || jdbcTemplate == null) {
-            return parseFactSummaries(buff == null ? null : buff.getSourceItemsJson(), "来自玩家");
+            return parseFactSummaries(buff == null ? null : buff.getSourceItemsJson(), "来自玩家", "items");
         }
         try {
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(
@@ -136,13 +137,13 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                   COALESCE(i.internal_name, bsi.source_item_internal_name) AS internalName,
                   COALESCE(i.name, bsi.source_item_name) AS name,
                   i.name_zh AS nameZh,
-                  i.image AS imageUrl,
+                  COALESCE(%s, i.image) AS imageUrl,
                   bsi.buff_time AS durationTicks
                 FROM buff_source_items bsi
                 LEFT JOIN items i ON i.id = bsi.item_id AND i.deleted = 0
                 WHERE bsi.buff_id = ?
                 ORDER BY bsi.sort_order ASC, bsi.id ASC
-                """,
+                """.formatted(ItemImageSql.preferredItemImageExpression("i")),
                 buff.getId()
             );
             if (!rows.isEmpty()) {
@@ -152,17 +153,18 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                     .internalName(trimToNull(row.get("internalName")))
                     .name(trimToNull(row.get("name")))
                     .nameZh(trimToNull(row.get("nameZh")))
-                    .imageUrl(managedImageOrNull(trimToNull(row.get("imageUrl"))))
+                    .imageUrl(managedImageOrNull(trimToNull(row.get("imageUrl")), "items"))
                     .durationTicks(toInteger(row.get("durationTicks")))
                     .sourceProvider("terraria.wiki.gg")
                     .sourcePage(firstNonBlank(buff.getNameZh(), buff.getEnglishName(), buff.getInternalName()))
                     .sourceSection("来自玩家")
-                    .build()).toList();
+                    .build())
+                .toList();
             }
         } catch (Exception ignored) {
             // Fall back to the projection JSON when relation tables are unavailable.
         }
-        return parseFactSummaries(buff.getSourceItemsJson(), "来自玩家");
+        return parseFactSummaries(buff.getSourceItemsJson(), "来自玩家", "items");
     }
 
     private List<PublicBuffDetailDTO.FactSummary> loadInflictingNpcs(Long buffId) {
@@ -195,14 +197,15 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                 .internalName(trimToNull(row.get("internalName")))
                 .name(trimToNull(row.get("name")))
                 .nameZh(trimToNull(row.get("nameZh")))
-                .imageUrl(managedImageOrNull(trimToNull(row.get("imageUrl"))))
+                .imageUrl(managedImageOrNull(trimToNull(row.get("imageUrl")), "npcs"))
                 .relationType(firstNonBlank(trimToNull(row.get("relationType")), "inflicts"))
                 .durationTicks(toInteger(row.get("durationTicks")))
                 .chanceText(trimToNull(row.get("chanceText")))
                 .conditions(trimToNull(row.get("conditions")))
                 .sourceProvider("terraria.wiki.gg")
                 .sourceSection("来自敌怪")
-                .build()).toList();
+                .build())
+            .toList();
         } catch (Exception ignored) {
             return List.of();
         }
@@ -211,9 +214,9 @@ public class PublicBuffServiceImpl implements PublicBuffService {
     private List<PublicBuffDetailDTO.FactSummary> loadImmuneNpcs(Buff buff) {
         List<PublicBuffDetailDTO.FactSummary> fullFacts = loadProjectionImmuneNpcs(buff);
         if (!fullFacts.isEmpty()) {
-            return fullFacts;
+            return enrichNpcFacts(fullFacts);
         }
-        return parseFactSummaries(buff == null ? null : buff.getImmuneNpcSampleJson(), "免疫的 NPC");
+        return enrichNpcFacts(parseFactSummaries(buff == null ? null : buff.getImmuneNpcSampleJson(), "免疫的 NPC", "npcs"));
     }
 
     private List<PublicBuffDetailDTO.FactSummary> loadProjectionImmuneNpcs(Buff buff) {
@@ -243,7 +246,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
             if (rows.isEmpty()) {
                 return List.of();
             }
-            return parseFactSummaries(trimToNull(rows.get(0).get("immune_npcs_json")), "免疫的 NPC");
+            return parseFactSummaries(trimToNull(rows.get(0).get("immune_npcs_json")), "免疫的 NPC", "npcs");
         } catch (Exception ignored) {
             return List.of();
         }
@@ -253,17 +256,18 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         return "`" + RELATION_DATABASE_NAME + "`.`projection_buffs`";
     }
 
-    private List<PublicBuffDetailDTO.FactSummary> parseFactSummaries(String json, String sourceSection) {
+    private List<PublicBuffDetailDTO.FactSummary> parseFactSummaries(String json, String sourceSection, String imageDomain) {
         List<Map<String, Object>> rows = parseJsonObjectList(json);
         List<PublicBuffDetailDTO.FactSummary> facts = new ArrayList<>();
         for (Map<String, Object> row : rows) {
+            boolean npcFact = "npcs".equals(imageDomain);
             facts.add(PublicBuffDetailDTO.FactSummary.builder()
-                .id(toLong(firstValue(row, "id", "itemId", "npcDbId")))
-                .sourceId(toInteger(firstValue(row, "sourceId", "source_id", "itemId", "npcId")))
+                .id(toLong(firstValue(row, npcFact ? new String[]{"npcDbId", "npc_db_id", "dbId"} : new String[]{"id", "itemId", "npcDbId"})))
+                .sourceId(toInteger(firstValue(row, npcFact ? new String[]{"sourceId", "source_id", "npcId", "id"} : new String[]{"sourceId", "source_id", "itemId", "npcId"})))
                 .internalName(trimToNull(firstValue(row, "internalName", "internal_name", "itemInternalName", "npcInternalName")))
                 .name(trimToNull(firstValue(row, "name", "nameEn", "itemName", "npcName")))
                 .nameZh(trimToNull(firstValue(row, "nameZh", "itemNameZh", "npcNameZh")))
-                .imageUrl(managedImageOrNull(trimToNull(firstValue(row, "imageUrl", "image", "itemImageUrl", "npcImageUrl"))))
+                .imageUrl(managedImageOrNull(trimToNull(firstValue(row, "imageUrl", "image", "itemImageUrl", "npcImageUrl")), imageDomain))
                 .relationType(trimToNull(firstValue(row, "relationType", "relation_type")))
                 .durationTicks(toInteger(firstValue(row, "durationTicks", "buffTime")))
                 .chanceText(trimToNull(firstValue(row, "chanceText", "chance_text")))
@@ -275,6 +279,145 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                 .build());
         }
         return facts;
+    }
+
+    private List<PublicBuffDetailDTO.FactSummary> enrichNpcFacts(List<PublicBuffDetailDTO.FactSummary> facts) {
+        if (facts == null || facts.isEmpty() || jdbcTemplate == null) {
+            return facts == null ? List.of() : facts;
+        }
+
+        Set<Long> ids = new LinkedHashSet<>();
+        Set<Integer> sourceIds = new LinkedHashSet<>();
+        Set<String> internalNames = new LinkedHashSet<>();
+        Set<String> names = new LinkedHashSet<>();
+        for (PublicBuffDetailDTO.FactSummary fact : facts) {
+            if (fact.getId() != null) ids.add(fact.getId());
+            if (fact.getSourceId() != null) sourceIds.add(fact.getSourceId());
+            String internalName = trimToNull(fact.getInternalName());
+            if (internalName != null) internalNames.add(internalName);
+            String name = trimToNull(fact.getName());
+            if (name != null) names.add(name);
+            String nameZh = trimToNull(fact.getNameZh());
+            if (nameZh != null) names.add(nameZh);
+            String sourcePage = trimToNull(fact.getSourcePage());
+            if (sourcePage != null) names.add(sourcePage);
+        }
+        if (ids.isEmpty() && sourceIds.isEmpty() && internalNames.isEmpty() && names.isEmpty()) {
+            return facts;
+        }
+
+        List<Object> args = new ArrayList<>();
+        List<String> predicates = new ArrayList<>();
+        addInPredicate(predicates, args, "n.id", ids);
+        addInPredicate(predicates, args, "n.source_id", sourceIds);
+        addInPredicate(predicates, args, "n.game_id", sourceIds);
+        addInPredicate(predicates, args, "n.internal_name", internalNames);
+        addInPredicate(predicates, args, "n.name", names);
+        addInPredicate(predicates, args, "n.name_zh", names);
+
+        try {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                """
+                SELECT
+                  n.id AS id,
+                  COALESCE(n.game_id, n.source_id) AS sourceId,
+                  n.source_id AS rawSourceId,
+                  n.game_id AS gameId,
+                  n.internal_name AS internalName,
+                  n.name AS name,
+                  n.name_zh AS nameZh,
+                  n.image_url AS imageUrl
+                FROM npcs n
+                WHERE n.deleted = 0 AND (
+                """ + String.join(" OR ", predicates) + ")",
+                args.toArray()
+            );
+            if (rows == null || rows.isEmpty()) {
+                return facts;
+            }
+
+            Map<Long, Map<String, Object>> byId = new java.util.HashMap<>();
+            Map<Integer, Map<String, Object>> bySourceId = new java.util.HashMap<>();
+            Map<String, Map<String, Object>> byInternalName = new java.util.HashMap<>();
+            Map<String, Map<String, Object>> byName = new java.util.HashMap<>();
+            for (Map<String, Object> row : rows) {
+                Long id = toLong(row.get("id"));
+                if (id != null) byId.putIfAbsent(id, row);
+                putIntegerKey(bySourceId, row.get("sourceId"), row);
+                putIntegerKey(bySourceId, row.get("rawSourceId"), row);
+                putIntegerKey(bySourceId, row.get("gameId"), row);
+                String internalName = trimToNull(row.get("internalName"));
+                if (internalName != null) byInternalName.putIfAbsent(internalName, row);
+                putTextKey(byName, row.get("name"), row);
+                putTextKey(byName, row.get("nameZh"), row);
+            }
+
+            return facts.stream().map(fact -> enrichNpcFact(fact, byId, bySourceId, byInternalName, byName)).toList();
+        } catch (Exception ignored) {
+            return facts;
+        }
+    }
+
+    private PublicBuffDetailDTO.FactSummary enrichNpcFact(
+        PublicBuffDetailDTO.FactSummary fact,
+        Map<Long, Map<String, Object>> byId,
+        Map<Integer, Map<String, Object>> bySourceId,
+        Map<String, Map<String, Object>> byInternalName,
+        Map<String, Map<String, Object>> byName
+    ) {
+        Map<String, Object> npc = null;
+        if (fact.getId() != null) npc = byId.get(fact.getId());
+        if (npc == null && fact.getSourceId() != null) npc = bySourceId.get(fact.getSourceId());
+        String internalName = trimToNull(fact.getInternalName());
+        if (npc == null && internalName != null) npc = byInternalName.get(internalName);
+        String name = trimToNull(fact.getName());
+        if (npc == null && name != null) npc = byName.get(name);
+        String nameZh = trimToNull(fact.getNameZh());
+        if (npc == null && nameZh != null) npc = byName.get(nameZh);
+        String sourcePage = trimToNull(fact.getSourcePage());
+        if (npc == null && sourcePage != null) npc = byName.get(sourcePage);
+        if (npc == null) {
+            return fact;
+        }
+
+        return PublicBuffDetailDTO.FactSummary.builder()
+            .id(firstNonNullLong(toLong(npc.get("id")), fact.getId()))
+            .sourceId(firstNonNullInteger(toInteger(firstValue(npc, "sourceId", "rawSourceId", "gameId")), fact.getSourceId()))
+            .internalName(firstNonBlank(trimToNull(npc.get("internalName")), fact.getInternalName()))
+            .name(firstNonBlank(fact.getName(), trimToNull(npc.get("name"))))
+            .nameZh(firstNonBlank(fact.getNameZh(), trimToNull(npc.get("nameZh"))))
+            .imageUrl(firstNonBlank(fact.getImageUrl(), managedImageOrNull(trimToNull(npc.get("imageUrl")), "npcs")))
+            .relationType(fact.getRelationType())
+            .durationTicks(fact.getDurationTicks())
+            .chanceText(fact.getChanceText())
+            .conditions(fact.getConditions())
+            .sourceProvider(fact.getSourceProvider())
+            .sourcePage(fact.getSourcePage())
+            .sourceSection(fact.getSourceSection())
+            .sourceRevisionTimestamp(fact.getSourceRevisionTimestamp())
+            .build();
+    }
+
+    private void putIntegerKey(Map<Integer, Map<String, Object>> target, Object key, Map<String, Object> row) {
+        Integer integerKey = toInteger(key);
+        if (integerKey != null) {
+            target.putIfAbsent(integerKey, row);
+        }
+    }
+
+    private void putTextKey(Map<String, Map<String, Object>> target, Object key, Map<String, Object> row) {
+        String textKey = trimToNull(key);
+        if (textKey != null) {
+            target.putIfAbsent(textKey, row);
+        }
+    }
+
+    private void addInPredicate(List<String> predicates, List<Object> args, String column, Set<?> values) {
+        if (values == null || values.isEmpty()) {
+            return;
+        }
+        predicates.add(column + " IN (" + "?,".repeat(values.size()).replaceFirst(",$", "") + ")");
+        args.addAll(values);
     }
 
     private List<Map<String, Object>> parseJsonObjectList(String json) {
@@ -302,11 +445,15 @@ public class PublicBuffServiceImpl implements PublicBuffService {
     }
 
     private String managedImageOrNull(String value) {
+        return managedImageOrNull(value, "buffs");
+    }
+
+    private String managedImageOrNull(String value, String domain) {
         if (value == null || value.isBlank()) {
             return null;
         }
         String normalized = value.trim();
-        return managedImageUrlPolicy.isManagedImageUrlForDomain(normalized, "buffs") ? normalized : null;
+        return managedImageUrlPolicy.isManagedImageUrlForDomain(normalized, domain) ? normalized : null;
     }
 
     private String firstNonBlank(String... values) {
@@ -326,6 +473,18 @@ public class PublicBuffServiceImpl implements PublicBuffService {
             return null;
         }
         for (Integer value : values) {
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private Long firstNonNullLong(Long... values) {
+        if (values == null) {
+            return null;
+        }
+        for (Long value : values) {
             if (value != null) {
                 return value;
             }

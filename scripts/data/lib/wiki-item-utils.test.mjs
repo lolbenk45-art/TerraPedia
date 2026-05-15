@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   buildWikiPageParseUrl,
+  fetchWikiPagePayload,
   fetchWikiPageMetadataBatch,
 } from './wiki-item-utils.mjs';
 
@@ -14,10 +15,39 @@ test('buildWikiPageParseUrl enables redirect following for parse requests', () =
 
   assert.equal(url.searchParams.get('action'), 'parse');
   assert.equal(url.searchParams.get('page'), 'Torch');
-  assert.equal(url.searchParams.get('prop'), 'wikitext|text');
+  assert.equal(url.searchParams.get('prop'), 'wikitext|text|sections');
   assert.equal(url.searchParams.get('format'), 'json');
   assert.equal(url.searchParams.get('formatversion'), '2');
   assert.equal(url.searchParams.get('redirects'), '1');
+});
+
+test('fetchWikiPagePayload preserves parse sections for downstream evidence parsing', async () => {
+  const calls = [];
+  const fetchWikiApiJsonImpl = async ({ url }) => {
+    calls.push(url);
+    if (url.searchParams.get('action') === 'parse') {
+      return {
+        parse: {
+          pageid: 39,
+          title: 'Cursed Inferno',
+          wikitext: 'page text',
+          text: '<h2>Causes</h2>',
+          sections: [{ line: 'From player', anchor: 'From_player' }]
+        }
+      };
+    }
+    return {
+      query: {
+        pages: [
+          { revisions: [{ timestamp: '2026-05-15T00:00:00Z' }] }
+        ]
+      }
+    };
+  };
+
+  const payload = await fetchWikiPagePayload({ pageTitle: 'Cursed Inferno', fetchWikiApiJsonImpl });
+  assert.deepEqual(payload.sections, [{ line: 'From player', anchor: 'From_player' }]);
+  assert.equal(calls[0].searchParams.get('prop'), 'wikitext|text|sections');
 });
 
 test('fetchWikiPageMetadataBatch maps requested redirect aliases to returned canonical pages', async () => {

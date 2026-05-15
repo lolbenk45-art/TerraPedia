@@ -2,12 +2,12 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { loadStandardizedDataset } from '../lib/load-standardized-dataset.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 
 const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
 
 const repoRoot = getProjectRoot();
 
@@ -79,6 +79,11 @@ function recordUnmatched(relationStats, sample) {
   if (relationStats.unmatchedSamples.length < 50) {
     relationStats.unmatchedSamples.push(sample);
   }
+}
+
+export function resolveSourceItemCount(record = {}) {
+  return toNullableInteger(record.sourceItemCount)
+    ?? (Array.isArray(record.sourceItems) ? record.sourceItems.length : 0);
 }
 
 async function ensureBuffSchema(conn) {
@@ -166,19 +171,25 @@ async function loadBuffCategoryId(conn) {
   }
 }
 
-function resolveMappedItem(sourceItemId, sourceItemLookup, itemLookup) {
-  if (sourceItemId == null) {
-    return { sourceItemId: null, internalName: null, dbItem: null, reason: 'missing_source_item_id' };
-  }
-  const internalName = sourceItemLookup.bySourceId.get(sourceItemId) ?? null;
+export function resolveMappedItem(sourceItemId, sourceItemLookup, itemLookup, sourceItem = {}) {
+  const rawInternalName = normalizeInternalName(sourceItem?.internalName);
+  const internalName = sourceItemId == null
+    ? rawInternalName
+    : sourceItemLookup.bySourceId.get(sourceItemId) ?? rawInternalName;
+
   if (!internalName) {
-    return { sourceItemId, internalName: null, dbItem: null, reason: 'source_item_id_not_found_in_standardized_items' };
+    return {
+      sourceItemId: sourceItemId ?? null,
+      internalName: null,
+      dbItem: null,
+      reason: sourceItemId == null ? 'missing_source_item_id' : 'source_item_id_not_found_in_standardized_items'
+    };
   }
   const dbItem = itemLookup.byInternal.get(internalName) ?? null;
   if (!dbItem) {
-    return { sourceItemId, internalName, dbItem: null, reason: 'internal_name_not_found_in_db_items' };
+    return { sourceItemId: sourceItemId ?? null, internalName, dbItem: null, reason: 'internal_name_not_found_in_db_items' };
   }
-  return { sourceItemId, internalName, dbItem, reason: null };
+  return { sourceItemId: sourceItemId ?? null, internalName, dbItem, reason: null };
 }
 
 function buildColumnValueMap(record, index, buffCategoryId) {
@@ -193,7 +204,7 @@ function buildColumnValueMap(record, index, buffCategoryId) {
     image: toNullableString(record.imageUrl ?? record.image),
     image_path: toNullableString(record.imageUrl ?? record.image),
     buff_type: toNullableString(record.type),
-    source_item_count: toNullableInteger(record.sourceItemCount) ?? 0,
+    source_item_count: resolveSourceItemCount(record),
     immune_npc_count: toNullableInteger(record.immuneNpcCount) ?? 0,
     source_items_json: JSON.stringify(record.sourceItems ?? []),
     immune_npc_sample_json: JSON.stringify(record.immuneNpcSample ?? []),
@@ -259,8 +270,8 @@ async function importBuffs(conn, buffs, itemLookup, sourceItemLookup, stats, rel
       for (let sortOrder = 0; sortOrder < sourceItems.length; sortOrder += 1) {
         const sourceItem = sourceItems[sortOrder];
         const sourceItemId = toNullablePositiveInteger(sourceItem.itemId);
-        const mapped = resolveMappedItem(sourceItemId, sourceItemLookup, itemLookup);
-        if (sourceItemId != null && mapped.reason) {
+        const mapped = resolveMappedItem(sourceItemId, sourceItemLookup, itemLookup, sourceItem);
+        if (mapped.reason) {
           recordUnmatched(relationStats, {
             reason: mapped.reason,
             buffSourceId: toNullableInteger(record.id),
@@ -307,6 +318,7 @@ async function main() {
     ?? process.env.TERRAPEDIA_STANDARDIZED_OUTPUT_DIR
     ?? path.join(repoRoot, 'data', 'standardized')
   );
+  const mysql = require('mysql2/promise');
 
   const conn = await mysql.createConnection({
     host: args.host ?? process.env.TERRAPEDIA_DB_HOST ?? '127.0.0.1',
@@ -348,8 +360,15 @@ async function main() {
   console.log(JSON.stringify(summary, null, 2));
 }
 
-main().catch((error) => {
-  console.error('[import-buffs-to-db] failed');
-  console.error(error?.stack || error?.message || error);
-  process.exit(1);
-});
+function isDirectExecution() {
+  if (!process.argv[1]) return false;
+  return fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+}
+
+if (isDirectExecution()) {
+  main().catch((error) => {
+    console.error('[import-buffs-to-db] failed');
+    console.error(error?.stack || error?.message || error);
+    process.exit(1);
+  });
+}
