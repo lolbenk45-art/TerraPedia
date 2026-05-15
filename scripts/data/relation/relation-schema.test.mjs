@@ -36,6 +36,7 @@ const EXPECTED_TABLE_NAMES = [
   'item_npc_loot_relations',
   'item_npc_relation_audits',
   'item_buff_relations',
+  'npc_buff_relations',
   'item_biome_relations',
   'item_projectile_relations',
   'npc_projectile_relations',
@@ -145,6 +146,7 @@ test('table-scoped relation run metadata columns are correct', () => {
   assert.match(relationBuffs, /`source_id` INT DEFAULT NULL/);
   assert.match(relationBuffs, /`buff_type` VARCHAR\(64\) DEFAULT NULL/);
   assert.match(relationBuffs, /`tooltip_en` VARCHAR\(1000\) DEFAULT NULL/);
+  assert.match(relationBuffs, /`immune_npcs_json` LONGTEXT/);
   assert.match(relationBuffs, /UNIQUE KEY `uk_relation_buffs_record_key` \(`record_key`\)/);
 
   assert.match(relationBosses, /`boss_title_en` VARCHAR\(255\) DEFAULT NULL/);
@@ -225,6 +227,7 @@ test('table-scoped domain columns and lookup indexes are present', () => {
   const shopRelations = extractTableDdl(sql, 'item_npc_shop_relations');
   const lootRelations = extractTableDdl(sql, 'item_npc_loot_relations');
   const relationAudits = extractTableDdl(sql, 'item_npc_relation_audits');
+  const npcBuffRelations = extractTableDdl(sql, 'npc_buff_relations');
   const itemProjectileRelations = extractTableDdl(sql, 'item_projectile_relations');
   const npcProjectileRelations = extractTableDdl(sql, 'npc_projectile_relations');
   const npcProjectileAudits = extractTableDdl(sql, 'npc_projectile_audits');
@@ -258,6 +261,8 @@ test('table-scoped domain columns and lookup indexes are present', () => {
   );
 
   assert.match(sourceDetails, /`source_fact_key` CHAR\(64\) COLLATE utf8mb4_bin NOT NULL/);
+  assert.match(npcBuffRelations, /`relation_type` VARCHAR\(32\) NOT NULL DEFAULT 'inflicts'/);
+  assert.match(npcBuffRelations, /UNIQUE KEY `uk_npc_buff_relations_record_key` \(`record_key`\)/);
   assert.match(
     sourceDetails,
     /KEY `idx_item_source_details_source_fact_key` \(`source_fact_key`\)/

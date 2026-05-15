@@ -32,6 +32,7 @@ vi.mock('axios', () => ({
 import {
   fetchArmorSets,
   fetchBuffs,
+  fetchBuffById,
   fetchCategories,
   fetchBosses,
   fetchItemById,
@@ -456,6 +457,54 @@ describe('api/index public query behavior', () => {
       imageUrl: 'http://localhost:9000/terrapedia-images/items/wiki/buffs/ab/sharpened.png',
       buffType: 'station',
     })
+  })
+
+  it('fetchBuffById preserves the public detail shape and structured evidence', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          id: 39,
+          sourceId: 39,
+          internalName: 'CursedInferno',
+          name: '诅咒狱火',
+          nameZh: '诅咒狱火',
+          buffType: 'debuff',
+          sourceItemCount: 7,
+          immuneNpcCount: 25,
+          sourceItems: [{ sourceId: 47, internalName: 'CursedArrow', nameZh: '诅咒箭' }],
+          inflictingNpcs: [{ sourceId: 214, internalName: 'Clinger', nameZh: '爬藤怪' }],
+          immuneNpcs: [{ sourceId: 68, internalName: 'DungeonGuardian', nameZh: '地牢守卫者' }],
+          provenance: {
+            provider: 'terraria.wiki.gg',
+            pageTitle: '诅咒狱火',
+            sectionAnchors: ['来自玩家', '来自敌怪', '免疫的_NPC'],
+          },
+        },
+        message: 'ok',
+        statusCode: 200,
+      },
+    })
+
+    const result = await fetchBuffById(39)
+
+    expect(mockGet).toHaveBeenCalledWith('/public/buffs/39')
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        id: 39,
+        internalName: 'CursedInferno',
+        sourceItemCount: 7,
+        immuneNpcCount: 25,
+        provenance: {
+          provider: 'terraria.wiki.gg',
+          pageTitle: '诅咒狱火',
+        },
+      },
+    })
+    expect(result.data.sourceItems?.[0]).toMatchObject({ internalName: 'CursedArrow' })
+    expect(result.data.inflictingNpcs?.[0]).toMatchObject({ internalName: 'Clinger' })
+    expect(result.data.immuneNpcs?.[0]).toMatchObject({ internalName: 'DungeonGuardian' })
   })
 
   it('fetchProjectiles preserves the public list shape and query parameters', async () => {

@@ -27,6 +27,14 @@ test('buildSecondaryRelations promotes matched item and npc projectile facts', (
               internalName: 'BottledHoney',
               buffTime: 900
             }
+          ],
+          inflictingNpcs: [
+            {
+              npcId: 20,
+              internalName: 'GoblinTinkerer',
+              name: 'Goblin Tinkerer',
+              buffTime: 300
+            }
           ]
         })
       }
@@ -62,6 +70,11 @@ test('buildSecondaryRelations promotes matched item and npc projectile facts', (
   assert.equal(actual.itemBuffRelations.length, 1);
   assert.equal(actual.itemBuffRelations[0].reviewStatus, 'resolved');
   assert.equal(actual.itemBuffRelations[0].relationType, 'buff_source_item');
+  assert.equal(actual.npcBuffRelations.length, 1);
+  assert.equal(actual.npcBuffRelations[0].npcInternalName, 'GoblinTinkerer');
+  assert.equal(actual.npcBuffRelations[0].buffInternalName, 'Honey');
+  assert.equal(actual.npcBuffRelations[0].relationType, 'inflicts');
+  assert.equal(actual.npcBuffRelations[0].durationTicks, 300);
   assert.equal(actual.itemProjectileRelations.length, 1);
   assert.equal(actual.itemProjectileRelations[0].itemInternalName, 'ItemA');
   assert.equal(actual.itemProjectileRelations[0].projectileInternalName, 'ProjectileA');

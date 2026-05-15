@@ -2,6 +2,7 @@ package com.terraria.skills.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.dto.PublicBuffDetailDTO;
 import com.terraria.skills.dto.PublicBuffListDTO;
 import com.terraria.skills.dto.PublicBuffQuery;
 import com.terraria.skills.service.PublicBuffService;
@@ -120,5 +121,63 @@ class PublicBuffControllerTest {
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data[0].id").value(160))
             .andExpect(jsonPath("$.data[0].imageUrl").isEmpty());
+    }
+
+    @Test
+    void shouldExposePublicBuffDetailWithStructuredEvidence() throws Exception {
+        PublicBuffDetailDTO buff = new PublicBuffDetailDTO();
+        buff.setId(39L);
+        buff.setSourceId(39);
+        buff.setInternalName("CursedInferno");
+        buff.setName("诅咒狱火");
+        buff.setNameZh("诅咒狱火");
+        buff.setBuffType("debuff");
+        buff.setSourceItemCount(7);
+        buff.setImmuneNpcCount(25);
+        buff.setSourceItems(List.of(PublicBuffDetailDTO.FactSummary.builder()
+            .id(101L)
+            .sourceId(47)
+            .internalName("CursedArrow")
+            .name("Cursed Arrow")
+            .nameZh("诅咒箭")
+            .sourceProvider("terraria.wiki.gg")
+            .sourcePage("诅咒狱火")
+            .sourceSection("来自玩家")
+            .build()));
+        buff.setInflictingNpcs(List.of(PublicBuffDetailDTO.FactSummary.builder()
+            .id(301L)
+            .sourceId(214)
+            .internalName("Clinger")
+            .name("Clinger")
+            .nameZh("爬藤怪")
+            .relationType("inflicts")
+            .sourceSection("来自敌怪")
+            .build()));
+        buff.setImmuneNpcs(List.of(PublicBuffDetailDTO.FactSummary.builder()
+            .sourceId(68)
+            .internalName("DungeonGuardian")
+            .name("Dungeon Guardian")
+            .sourceSection("免疫的 NPC")
+            .build()));
+        buff.setProvenance(PublicBuffDetailDTO.Provenance.builder()
+            .provider("terraria.wiki.gg")
+            .pageTitle("诅咒狱火")
+            .sectionAnchors(List.of("来自玩家", "来自敌怪", "免疫的_NPC"))
+            .build());
+
+        when(publicBuffService.getPublicBuffDetail(39L)).thenReturn(buff);
+
+        mockMvc.perform(get("/public/buffs/39"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.id").value(39))
+            .andExpect(jsonPath("$.data.internalName").value("CursedInferno"))
+            .andExpect(jsonPath("$.data.sourceItems[0].internalName").value("CursedArrow"))
+            .andExpect(jsonPath("$.data.inflictingNpcs[0].internalName").value("Clinger"))
+            .andExpect(jsonPath("$.data.immuneNpcs[0].internalName").value("DungeonGuardian"))
+            .andExpect(jsonPath("$.data.provenance.provider").value("terraria.wiki.gg"))
+            .andExpect(jsonPath("$.data.provenance.sectionAnchors[2]").value("免疫的_NPC"));
+
+        verify(publicBuffService).getPublicBuffDetail(39L);
     }
 }

@@ -17,6 +17,7 @@ import {
   writeJsonFile
 } from '../workflow/backend-refresh-runtime-state.mjs';
 import {
+  parseBuffPageEvidence,
   parseBuffPageImmunityFacts
 } from './buff-immunity-page-parser.mjs';
 
@@ -182,8 +183,9 @@ export function buildBuffRecords({
       };
     }
 
-    const sourceItems = relations.sourceItemsByBuffId.get(buff.id) ?? [];
     const pageFact = pageFacts.get(buff.id);
+    const pageEvidence = pageFact ?? relations.pageEvidenceByBuffId?.get(buff.id) ?? null;
+    const sourceItems = pageEvidence?.sourceItems ?? relations.sourceItemsByBuffId.get(buff.id) ?? [];
     const fallbackCount = relations.immuneNpcCountByBuffId.get(buff.id) ?? 0;
     const immuneNpcCount = pageFact?.immuneNpcCount ?? fallbackCount;
     const immuneNpcSample = pageFact?.immuneNpcSample ?? relations.immuneNpcSampleByBuffId.get(buff.id) ?? [];
@@ -199,6 +201,9 @@ export function buildBuffRecords({
       localized,
       sourceItemCount: sourceItems.length,
       sourceItems,
+      inflictingNpcs: pageEvidence?.inflictingNpcs ?? [],
+      immuneNpcs: pageEvidence?.immuneNpcs ?? [],
+      sourceEvidence: pageEvidence?.sourceEvidence ?? null,
       immuneNpcCount,
       immuneNpcSample,
       immuneNpcSource,
@@ -244,11 +249,13 @@ export async function collectBuffPageImmunityFacts({
 
     try {
       const html = await fetchRenderedHtml({ pageTitle });
-      const facts = parseBuffPageImmunityFacts({
+      const facts = parseBuffPageEvidence({
         buffId: buff.id,
         buffName: buff.englishName ?? pageTitle,
         pageTitle,
         html,
+        wikitext: null,
+        sections: null,
         sampleLimit
       });
       if (facts) {

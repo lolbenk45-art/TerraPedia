@@ -930,6 +930,7 @@ function flattenResults(category, recipe, itemSource, secondary, bossSeries, npc
     itemNpcLootRelations: itemSource.npcLootRelations,
     itemNpcRelationAudits: itemSource.itemNpcRelationAudits,
     itemBuffRelations: secondary.itemBuffRelations,
+    npcBuffRelations: secondary.npcBuffRelations,
     itemBiomeRelations: secondary.itemBiomeRelations,
     itemProjectileRelations: secondary.itemProjectileRelations,
     npcProjectileRelations: secondary.npcProjectileRelations,
@@ -1202,6 +1203,7 @@ export async function runSync(options, dependencies = {}) {
         + results.itemNpcLootRelations.length
         + results.itemNpcRelationAudits.length,
       buff: results.itemBuffRelations.length,
+      npcBuff: results.npcBuffRelations.length,
       biome: results.itemBiomeRelations.length,
       projectile: results.itemProjectileRelations.length
         + results.npcProjectileRelations.length
@@ -1292,6 +1294,7 @@ export async function runSync(options, dependencies = {}) {
         'item_source_details',
         'item_source_facts',
         'item_buff_relations',
+        'npc_buff_relations',
         'item_biome_relations',
         'item_projectile_relations',
         'npc_projectile_relations',
@@ -1348,6 +1351,7 @@ export async function runSync(options, dependencies = {}) {
       await upsertRows(connection, 'item_npc_loot_relations', results.itemNpcLootRelations);
       await upsertRows(connection, 'item_npc_relation_audits', results.itemNpcRelationAudits);
       await upsertRows(connection, 'item_buff_relations', results.itemBuffRelations);
+      await upsertRows(connection, 'npc_buff_relations', results.npcBuffRelations);
       await upsertRows(connection, 'item_biome_relations', results.itemBiomeRelations);
       await upsertRows(connection, 'item_projectile_relations', results.itemProjectileRelations);
       await upsertRows(connection, 'npc_projectile_relations', results.npcProjectileRelations);

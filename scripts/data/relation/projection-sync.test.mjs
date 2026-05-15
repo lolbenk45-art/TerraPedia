@@ -139,9 +139,10 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
         tooltipZh: 'lava immune zh',
         buffType: 'buff',
         sourceItemCount: 1,
-        immuneNpcCount: 0,
-        sourceItemsJson: '[]',
-        immuneNpcSampleJson: '[]',
+        immuneNpcCount: 2,
+        sourceItemsJson: '[{"itemId":1,"internalName":"ObsidianPotion"}]',
+        immuneNpcsJson: '[{"npcId":68,"internalName":"DungeonGuardian","name":"Dungeon Guardian"}]',
+        immuneNpcSampleJson: '[{"npcId":68,"internalName":"DungeonGuardian","name":"Dungeon Guardian"}]',
       },
     ],
     relationBuffImages: [
@@ -196,6 +197,12 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
   assert.equal(actual.projectionBuffs.length, 1);
   assert.equal(actual.projectionBuffs[0].image, 'http://localhost:9000/terrapedia-images/buffs/buff.png');
   assert.equal(actual.projectionBuffs[0].buffType, 'buff');
+  assert.deepEqual(JSON.parse(actual.projectionBuffs[0].sourceItemsJson), [
+    { itemId: 1, internalName: 'ObsidianPotion' }
+  ]);
+  assert.deepEqual(JSON.parse(actual.projectionBuffs[0].immuneNpcsJson), [
+    { npcId: 68, internalName: 'DungeonGuardian', name: 'Dungeon Guardian' }
+  ]);
 });
 
 test('buildProjectionPayload maps boss relations into a public-ready boss projection', () => {

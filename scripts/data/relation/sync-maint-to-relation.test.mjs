@@ -15,6 +15,7 @@ const MANAGED_IMAGE_URL_PREFIXES = [
 function runSync(options, dependencies = {}) {
   return runSyncBase(options, {
     managedImageUrlPrefixes: MANAGED_IMAGE_URL_PREFIXES,
+    queryRelation: async () => [],
     ...dependencies
   });
 }
@@ -120,7 +121,7 @@ test('runSync dry-run reads maint only and does not write relation rows', async 
       config: {
         database: {
           host: '127.0.0.1',
-          port: 3306,
+          port: 13306,
           username: 'root',
           password: 'root'
         }
@@ -148,12 +149,14 @@ test('runSync dry-run reads maint only and does not write relation rows', async 
             internal_name: 'ObsidianSkin',
             english_name: 'Obsidian Skin',
             raw_json: JSON.stringify({
-              image: 'Obsidian Skin.png',
-              type: 'buff',
-              localized: {
-                en: { tooltip: 'Immune to lava' }
-              }
-            })
+                image: 'Obsidian Skin.png',
+                type: 'buff',
+                sourceItems: [{ itemId: 1, internalName: 'LesserHealingPotion' }],
+                immuneNpcs: [],
+                localized: {
+                  en: { tooltip: 'Immune to lava' }
+                }
+              })
           }];
         }
         if (sql.includes('maint_npc_images')) {
@@ -237,6 +240,10 @@ test('runSync dry-run reads maint only and does not write relation rows', async 
   assert.equal(result.summary.bridgeBreakdown.itemTextOverrideRows, 0);
   assert.equal(result.summary.bridgeBreakdown.localItemImageFallbackEnabled, false);
   assert.equal(result.results.relationBuffs.length, 1);
+  assert.deepEqual(JSON.parse(result.results.relationBuffs[0].sourceItemsJson), [
+    { itemId: 1, internalName: 'LesserHealingPotion' }
+  ]);
+  assert.deepEqual(JSON.parse(result.results.relationBuffs[0].immuneNpcsJson), []);
   assert.equal(result.results.relationItemRarities.length, 16);
   assert.equal(result.results.itemRecipeGroupExpansions.length, 0);
   assert.equal(result.results.itemNpcShopRelations.length, 0);
@@ -266,7 +273,7 @@ test('runSync dry-run carries item npc relation audits into results and summary'
       config: {
         database: {
           host: '127.0.0.1',
-          port: 3306,
+          port: 13306,
           username: 'root',
           password: 'root'
         }
@@ -338,7 +345,7 @@ test('runSync dry-run applies reviewed non-NPC source exclusions to item npc aud
       config: {
         database: {
           host: '127.0.0.1',
-          port: 3306,
+          port: 13306,
           username: 'root',
           password: 'root'
         }
@@ -420,7 +427,7 @@ test('runSync dry-run applies reviewed source-only item exclusions to item npc a
       config: {
         database: {
           host: '127.0.0.1',
-          port: 3306,
+          port: 13306,
           username: 'root',
           password: 'root'
         }
@@ -511,7 +518,7 @@ test('runSync dry-run materializes contract-backed inherited npc loot relations'
       config: {
         database: {
           host: '127.0.0.1',
-          port: 3306,
+          port: 13306,
           username: 'root',
           password: 'root'
         }
@@ -603,7 +610,7 @@ test('runSync rejects malformed inheritance contract rows before relation execut
         config: {
           database: {
             host: '127.0.0.1',
-            port: 3306,
+            port: 13306,
             username: 'root',
             password: 'root'
           }
@@ -718,7 +725,7 @@ test('runSync dry-run surfaces projectile crawl candidates for maint items and n
       config: {
         database: {
           host: '127.0.0.1',
-          port: 3306,
+          port: 13306,
           username: 'root',
           password: 'root'
         }
@@ -777,7 +784,7 @@ test('runSync dry-run builds armor set relation and projection rows from maint s
       config: {
         database: {
           host: '127.0.0.1',
-          port: 3306,
+          port: 13306,
           username: 'root',
           password: 'root'
         }
@@ -866,7 +873,7 @@ test('runSync apply mode clears stale relation tables before writing current sna
       config: {
         database: {
           host: '127.0.0.1',
-          port: 3306,
+          port: 13306,
           username: 'root',
           password: 'root'
         }
@@ -1019,7 +1026,7 @@ test('runSync projects maint numeric and text overrides into projection items du
       config: {
         database: {
           host: '127.0.0.1',
-          port: 3306,
+          port: 13306,
           username: 'root',
           password: 'root'
         }
@@ -1093,7 +1100,7 @@ test('runSync marks apply runs succeeded only after snapshot rows and report row
       config: {
         database: {
           host: '127.0.0.1',
-          port: 3306,
+          port: 13306,
           username: 'root',
           password: 'root'
         }
@@ -1149,7 +1156,7 @@ test('runSync apply mode can disable local item image fallback explicitly', asyn
       config: {
         database: {
           host: '127.0.0.1',
-          port: 3306,
+          port: 13306,
           username: 'root',
           password: 'root'
         }
@@ -1208,7 +1215,7 @@ test('runSync emits no managed image SQL predicates when managed prefixes are em
       config: {
         database: {
           host: '127.0.0.1',
-          port: 3306,
+          port: 13306,
           username: 'root',
           password: 'root'
         }

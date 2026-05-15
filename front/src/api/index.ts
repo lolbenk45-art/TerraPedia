@@ -6,6 +6,8 @@ import type {
   BossListItem,
   BossesResponse,
   BuffListItem,
+  BuffDetailItem,
+  BuffDetailResponse,
   BuffsResponse,
   CategoriesResponse,
   Category,
@@ -484,6 +486,40 @@ const normalizeBuffListItem = (buff: BuffListItem): BuffListItem => ({
   immuneNpcCount: buff.immuneNpcCount ?? 0,
 })
 
+const normalizeBuffFactSummary = (fact: Record<string, unknown>) => ({
+  ...fact,
+  id: nullableNumber(fact.id ?? fact.relationId),
+  sourceId: nullableNumber(fact.sourceId ?? fact.source_id ?? fact.npcId),
+  internalName: nullableString(fact.internalName ?? fact.internal_name),
+  name: nullableString(fact.name),
+  nameZh: nullableString(fact.nameZh ?? fact.name_zh),
+  imageUrl: nullableString(fact.imageUrl ?? fact.image_url),
+  relationType: nullableString(fact.relationType ?? fact.relation_type),
+  durationTicks: nullableNumber(fact.durationTicks ?? fact.duration_ticks),
+  chanceText: nullableString(fact.chanceText ?? fact.chance_text),
+  conditions: nullableString(fact.conditions),
+  sourceProvider: nullableString(fact.sourceProvider ?? fact.source_provider),
+  sourcePage: nullableString(fact.sourcePage ?? fact.source_page),
+  sourceSection: nullableString(fact.sourceSection ?? fact.source_section),
+  sourceRevisionTimestamp: nullableString(fact.sourceRevisionTimestamp ?? fact.source_revision_timestamp),
+})
+
+const normalizeBuffDetailItem = (buff: BuffDetailItem): BuffDetailItem => ({
+  ...normalizeBuffListItem(buff),
+  englishName: buff.englishName ?? null,
+  tooltipEn: buff.tooltipEn ?? null,
+  inflictingNpcCount: buff.inflictingNpcCount ?? 0,
+  sourceItems: (buff.sourceItems || []).map(item => normalizeBuffFactSummary(item as Record<string, unknown>)),
+  inflictingNpcs: (buff.inflictingNpcs || []).map(item => normalizeBuffFactSummary(item as Record<string, unknown>)),
+  immuneNpcs: (buff.immuneNpcs || []).map(item => normalizeBuffFactSummary(item as Record<string, unknown>)),
+  provenance: buff.provenance
+    ? {
+        ...buff.provenance,
+        sectionAnchors: buff.provenance.sectionAnchors || [],
+      }
+    : null,
+})
+
 const normalizeProjectileListItem = (projectile: ProjectileListItem): ProjectileListItem => ({
   ...projectile,
   sourceId: projectile.sourceId ?? null,
@@ -601,6 +637,21 @@ export const fetchBuffs = async (
       limit,
       totalPages: 0,
     },
+  })
+}
+
+export const fetchBuffById = async (id: number): Promise<BuffDetailResponse> => {
+  return requestApiResponseWithFallback<BuffDetailItem>({
+    request: async () => {
+      const { data } = await api.get<ApiResponse<BuffDetailItem>>(`/public/buffs/${id}`)
+      return {
+        ...data,
+        data: normalizeBuffDetailItem(data.data),
+      }
+    },
+    fallbackData: {} as BuffDetailItem,
+    fallbackMessage: 'Failed to fetch buff detail',
+    statusCode: 500,
   })
 }
 

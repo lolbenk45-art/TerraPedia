@@ -6,7 +6,6 @@ import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 
 const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
 
 import { getProjectRoot } from '../lib/project-root.mjs';
 
@@ -45,6 +44,19 @@ function toText(value) {
 
 function toArray(value) {
   return Array.isArray(value) ? value : [];
+}
+
+export function classifySourceCoverageIssue(buff) {
+  const internalName = toText(buff?.internalName);
+  const sourceItemCount = Number(buff?.sourceItemCount ?? 0);
+
+  if (internalName !== 'CursedInferno') {
+    return null;
+  }
+  if (sourceItemCount <= 0) {
+    return 'missingSourceItems';
+  }
+  return null;
 }
 
 export function classifyImmuneCoverageIssue(buff) {
@@ -93,14 +105,27 @@ export function buildBuffDomainCoverageBaseline({
   inflictingCountsByBuffInternalName = new Map(),
   npcBridgeRecords = [],
 } = {}) {
+  const sourceCoverageWarnings = [];
   const immuneCoverageWarnings = [];
   const inflictingCoverageWarnings = [];
   const bridgeCoverageWarnings = [];
 
   for (const buff of buffs) {
     const internalName = toText(buff?.internalName) ?? '';
+    const sourceCoverageIssue = classifySourceCoverageIssue(buff);
     const inflictingNpcCount = Number(inflictingCountsByBuffInternalName.get(internalName) ?? 0);
     const enriched = { ...buff, inflictingNpcCount };
+
+    if (sourceCoverageIssue) {
+      sourceCoverageWarnings.push({
+        id: buff?.id ?? null,
+        internalName,
+        englishName: toText(buff?.englishName),
+        nameZh: toText(buff?.nameZh),
+        sourceItemCount: Number(buff?.sourceItemCount ?? 0),
+        issue: sourceCoverageIssue,
+      });
+    }
 
     const immuneIssue = classifyImmuneCoverageIssue(enriched);
     if (immuneIssue) {
@@ -142,10 +167,12 @@ export function buildBuffDomainCoverageBaseline({
     generatedAt: new Date().toISOString(),
     summary: {
       totalBuffs: buffs.length,
+      sourceCoverageWarnings: sourceCoverageWarnings.length,
       immuneCoverageWarnings: immuneCoverageWarnings.length,
       inflictingCoverageWarnings: inflictingCoverageWarnings.length,
       bridgeCoverageWarnings: bridgeCoverageWarnings.length,
     },
+    sourceCoverageWarnings,
     immuneCoverageWarnings,
     inflictingCoverageWarnings,
     bridgeCoverageWarnings,
@@ -175,6 +202,7 @@ async function main() {
   const configPath = resolveLocalStackConfigPath();
   const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
   const db = config.database ?? {};
+  const mysql = require('mysql2/promise');
   const connection = await mysql.createConnection({
     host: db.host ?? '127.0.0.1',
     port: Number(db.port ?? 3306),

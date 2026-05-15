@@ -44,12 +44,31 @@ function parseJsonObject(value) {
   }
 }
 
+function jsonArrayOrNull(value) {
+  return Array.isArray(value) ? JSON.stringify(value) : null;
+}
+
 export function buildBuffEntityRelations({ maintBuffs = [] } = {}) {
   return {
     relationBuffs: maintBuffs.map((row) => {
       const trace = normalizeTrace('maint_buffs', row);
       const raw = parseRawJson(row.raw_json);
       const flags = parseJsonObject(row.flags_json);
+      const sourceItems = Array.isArray(raw.sourceItems)
+        ? raw.sourceItems
+        : Array.isArray(raw.source_items_json)
+          ? raw.source_items_json
+          : null;
+      const immuneNpcs = Array.isArray(raw.immuneNpcs)
+        ? raw.immuneNpcs
+        : Array.isArray(raw.immune_npcs_json)
+          ? raw.immune_npcs_json
+          : null;
+      const immuneNpcSample = Array.isArray(raw.immuneNpcSample)
+        ? raw.immuneNpcSample
+        : Array.isArray(raw.immune_npc_sample_json)
+          ? raw.immune_npc_sample_json
+          : null;
       return {
         recordKey: createRecordKey({
           type: 'maint_buffs',
@@ -64,10 +83,11 @@ export function buildBuffEntityRelations({ maintBuffs = [] } = {}) {
         buffType: normalizeText(raw.type ?? flags.buffType),
         tooltipEn: normalizeText(raw.localized?.en?.tooltip),
         tooltipZh: normalizeText(raw.localized?.zh?.tooltip),
-        sourceItemCount: toNullableNumber(row.major_value ?? raw.sourceItemCount),
-        immuneNpcCount: toNullableNumber(row.combat_value ?? raw.immuneNpcCount),
-        sourceItemsJson: Array.isArray(raw.sourceItems) ? JSON.stringify(raw.sourceItems) : null,
-        immuneNpcSampleJson: Array.isArray(raw.immuneNpcSample) ? JSON.stringify(raw.immuneNpcSample) : null,
+        sourceItemCount: toNullableNumber(row.major_value ?? raw.sourceItemCount ?? sourceItems?.length),
+        immuneNpcCount: toNullableNumber(raw.immuneNpcCount ?? immuneNpcs?.length ?? row.combat_value),
+        sourceItemsJson: jsonArrayOrNull(sourceItems),
+        immuneNpcsJson: jsonArrayOrNull(immuneNpcs),
+        immuneNpcSampleJson: jsonArrayOrNull(immuneNpcSample),
         reviewStatus: relationStatus.resolved,
         confidence: confidence.high,
         reason: 'maint_buffs_mirrored',

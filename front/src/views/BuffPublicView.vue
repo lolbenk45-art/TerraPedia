@@ -71,7 +71,7 @@
       </section>
 
       <section v-else class="entity-list-view__grid">
-        <article v-for="buff in buffs" :key="buff.id" class="public-section-frame entity-card">
+        <article v-for="buff in buffs" :key="buff.id" class="public-section-frame entity-card" @click="openBuffDetail(buff)">
           <div class="entity-card__portrait">
             <img v-if="resolveImage(buff.imageUrl)" :src="resolveImage(buff.imageUrl)" :alt="displayName(buff)" loading="lazy" />
             <div v-else class="entity-card__fallback">
@@ -108,6 +108,27 @@
         </article>
       </section>
 
+      <section v-if="selectedBuff" class="public-section-frame entity-card entity-card--detail">
+        <div class="entity-card__heading">
+          <h3>{{ displayName(selectedBuff) }}</h3>
+          <p v-if="selectedBuff.internalName" class="entity-card__secondary">{{ selectedBuff.internalName }}</p>
+        </div>
+        <dl class="entity-card__facts">
+          <div>
+            <dt>Source items</dt>
+            <dd>{{ selectedBuff.sourceItems?.length ?? selectedBuff.sourceItemCount ?? 0 }}</dd>
+          </div>
+          <div>
+            <dt>Inflicting NPCs</dt>
+            <dd>{{ selectedBuff.inflictingNpcs?.length ?? selectedBuff.inflictingNpcCount ?? 0 }}</dd>
+          </div>
+          <div>
+            <dt>Immune NPCs</dt>
+            <dd>{{ selectedBuff.immuneNpcs?.length ?? selectedBuff.immuneNpcCount ?? 0 }}</dd>
+          </div>
+        </dl>
+      </section>
+
       <section v-if="totalPages > 1" class="public-pager-shell entity-list-view__pager">
         <button type="button" class="btn btn-soft" :disabled="pagination.page <= 1" @click="goToPage(pagination.page - 1)">Prev</button>
         <div class="entity-list-view__page-list">
@@ -131,14 +152,15 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { fetchBuffs } from '@/api'
-import type { BuffListItem, Pagination } from '@/types'
+import { fetchBuffById, fetchBuffs } from '@/api'
+import type { BuffDetailItem, BuffListItem, Pagination } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const pageSize = 12
 
 const buffs = ref<BuffListItem[]>([])
+const selectedBuff = ref<BuffDetailItem | null>(null)
 const isLoading = ref(false)
 const error = ref('')
 const searchInput = ref('')
@@ -182,6 +204,11 @@ const displayedPages = computed(() => {
 const displayName = (buff: BuffListItem) => buff.nameZh?.trim() || buff.name?.trim() || buff.internalName?.trim() || 'Unknown Buff'
 const resolveImage = (value?: string | null) => !value ? '' : value.startsWith('http://') || value.startsWith('https://') ? value : value.startsWith('/') ? value : `/${value}`
 const fallbackMark = (value?: string | null) => value?.trim()?.slice(0, 2).toUpperCase() || 'BF'
+
+const openBuffDetail = async (buff: BuffListItem) => {
+  const response = await fetchBuffById(buff.id)
+  selectedBuff.value = response.success ? response.data : null
+}
 
 const loadBuffs = async () => {
   isLoading.value = true

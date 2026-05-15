@@ -1,0 +1,7 @@
+== 原因 ==
+=== 来自玩家 ===
+{{BuffPageCause|type=player}}
+=== 来自敌怪 ===
+{{BuffPageCause|type=enemy}}
+== 免疫的 NPC ==
+{{BuffPageImmunities}}

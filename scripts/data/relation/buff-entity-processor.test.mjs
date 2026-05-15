@@ -15,16 +15,21 @@ test('buildBuffEntityRelations mirrors maint buff rows into relation buffs', () 
       flags_json: '{"buffType":"buff"}',
       major_value: 1,
       combat_value: 0,
-      raw_json: JSON.stringify({
-        type: 'buff',
-        image: 'Obsidian Skin.png',
-        localized: {
-          en: { tooltip: 'Immune to lava' },
-          zh: { tooltip: '对熔岩免疫' }
-        },
-        sourceItems: [{ itemId: 288, internalName: 'ObsidianSkinPotion' }],
-        immuneNpcSample: []
-      }),
+        raw_json: JSON.stringify({
+          type: 'buff',
+          image: 'Obsidian Skin.png',
+          localized: {
+            en: { tooltip: 'Immune to lava' },
+            zh: { tooltip: '对熔岩免疫' }
+          },
+          sourceItems: [{ itemId: 288, internalName: 'ObsidianSkinPotion' }],
+          immuneNpcs: [
+            { npcId: 68, internalName: 'DungeonGuardian', name: 'Dungeon Guardian' },
+            { npcId: 69, internalName: 'Clinger', name: 'Clinger' }
+          ],
+          immuneNpcCount: 2,
+          immuneNpcSample: [{ npcId: 68, internalName: 'DungeonGuardian', name: 'Dungeon Guardian' }]
+        }),
       landing_source_id: 42,
       landing_source_key: 'wiki.template.getbuffinfo',
       landing_content_hash: 'b'.repeat(64),
@@ -42,6 +47,13 @@ test('buildBuffEntityRelations mirrors maint buff rows into relation buffs', () 
   assert.equal(actual.relationBuffs[0].tooltipEn, 'Immune to lava');
   assert.equal(actual.relationBuffs[0].tooltipZh, '对熔岩免疫');
   assert.equal(actual.relationBuffs[0].sourceItemCount, 1);
-  assert.equal(actual.relationBuffs[0].immuneNpcCount, 0);
+  assert.equal(actual.relationBuffs[0].immuneNpcCount, 2);
+  assert.deepEqual(JSON.parse(actual.relationBuffs[0].sourceItemsJson), [
+    { itemId: 288, internalName: 'ObsidianSkinPotion' }
+  ]);
+  assert.deepEqual(JSON.parse(actual.relationBuffs[0].immuneNpcsJson), [
+    { npcId: 68, internalName: 'DungeonGuardian', name: 'Dungeon Guardian' },
+    { npcId: 69, internalName: 'Clinger', name: 'Clinger' }
+  ]);
   assert.equal(actual.relationBuffs[0].sourceMaintTable, 'maint_buffs');
 });

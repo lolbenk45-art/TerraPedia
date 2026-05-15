@@ -172,6 +172,7 @@ function buildProjectionStatements() {
   \`source_item_count\` INT DEFAULT NULL,
   \`immune_npc_count\` INT DEFAULT NULL,
   \`source_items_json\` LONGTEXT,
+  \`immune_npcs_json\` LONGTEXT,
   \`immune_npc_sample_json\` LONGTEXT,
   \`status\` INT NOT NULL DEFAULT 1,
   \`deleted\` TINYINT NOT NULL DEFAULT 0,

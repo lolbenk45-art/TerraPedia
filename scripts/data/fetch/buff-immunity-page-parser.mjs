@@ -1,5 +1,55 @@
 const DEFAULT_SAMPLE_LIMIT = 10;
 
+export function parseBuffPageEvidence({
+  buffId,
+  buffName,
+  pageTitle,
+  html,
+  wikitext,
+  sections = [],
+  sampleLimit = DEFAULT_SAMPLE_LIMIT
+} = {}) {
+  const sectionIndex = buildSectionIndex({ html, wikitext, sections });
+  const playerSection = firstSection(sectionIndex, ['来自玩家', 'From player']);
+  const enemySection = firstSection(sectionIndex, ['来自敌怪', 'From enemy']);
+  const immuneSection = firstSection(sectionIndex, ['免疫的 NPC', 'Immune NPCs']);
+  const immuneNpcs = extractImmuneNpcEntries(immuneSection?.html ?? extractImmuneNpcSectionHtml(html));
+  const immuneNpcSample = immuneNpcs.slice(0, Math.max(0, sampleLimit));
+
+  return {
+    buffId,
+    buffName,
+    pageTitle,
+    sourceItems: parseBuffCauseEntries(playerSection?.html, {
+      sourceKind: 'player',
+      sourceSection: playerSection?.line ?? null
+    }),
+    inflictingNpcs: parseBuffCauseEntries(enemySection?.html, {
+      sourceKind: 'enemy',
+      sourceSection: enemySection?.line ?? null
+    }),
+    immuneNpcs,
+    immuneNpcCount: immuneNpcs.length,
+    immuneNpcSample,
+    immuneNpcSource: immuneNpcs.length > 0 ? 'buff-page-immunities' : null,
+    immuneNpcSampleSemantics: immuneNpcs.length > 0
+      ? `first ${immuneNpcSample.length} entries from the rendered buff page immunities list; immuneNpcCount is the full rendered list size`
+      : null,
+    sourceEvidence: {
+      provider: 'terraria.wiki.gg',
+      pageTitle,
+      sectionAnchors: Array.isArray(sections)
+        ? sections.map((section) => section?.anchor).filter(Boolean)
+        : [],
+      sourceSections: [
+        playerSection?.line,
+        enemySection?.line,
+        immuneSection?.line
+      ].filter(Boolean)
+    }
+  };
+}
+
 export function parseBuffPageImmunityFacts({
   buffId,
   buffName,
@@ -73,12 +123,146 @@ function isImmuneNpcHeading(markup) {
   for (const match of markup.matchAll(spanPattern)) {
     const attrs = parseTagAttributes(match[1]);
     const className = String(attrs.class ?? '');
-    if (attrs.id !== 'Immune_NPCs' || !className.split(/\s+/).includes('mw-headline')) {
+    if (!['Immune_NPCs', '免疫的_NPC'].includes(attrs.id) || !className.split(/\s+/).includes('mw-headline')) {
       continue;
     }
-    return normalizeWhitespace(stripHtml(match[2])) === 'Immune NPCs';
+    return ['Immune NPCs', '免疫的 NPC'].includes(normalizeWhitespace(stripHtml(match[2])));
   }
   return false;
+}
+
+function buildSectionIndex({ html, sections } = {}) {
+  const htmlSections = extractHtmlSections(html);
+  const index = new Map();
+
+  for (const section of sections ?? []) {
+    const line = normalizeWhitespace(section?.line);
+    const anchor = normalizeWhitespace(section?.anchor);
+    if (!line && !anchor) {
+      continue;
+    }
+    const htmlSection = htmlSections.find((candidate) => {
+      return candidate.anchor === anchor || candidate.line === line;
+    });
+    const entry = {
+      line,
+      anchor,
+      html: htmlSection?.html ?? ''
+    };
+    if (line) {
+      index.set(line, entry);
+    }
+    if (anchor) {
+      index.set(anchor, entry);
+    }
+  }
+
+  for (const section of htmlSections) {
+    if (section.line && !index.has(section.line)) {
+      index.set(section.line, section);
+    }
+    if (section.anchor && !index.has(section.anchor)) {
+      index.set(section.anchor, section);
+    }
+  }
+
+  return index;
+}
+
+function extractHtmlSections(html) {
+  if (typeof html !== 'string' || html.trim() === '') {
+    return [];
+  }
+
+  const headingPattern = /<h([2-6])\b[\s\S]*?<\/h\1>/gi;
+  const headings = [];
+  for (const match of html.matchAll(headingPattern)) {
+    const metadata = extractHeadingMetadata(match[0]);
+    if (!metadata) {
+      continue;
+    }
+    headings.push({
+      ...metadata,
+      level: Number(match[1]),
+      start: match.index,
+      end: match.index + match[0].length
+    });
+  }
+
+  return headings.map((heading, index) => {
+    const next = headings.find((candidate, candidateIndex) => {
+      return candidateIndex > index && candidate.level <= heading.level;
+    });
+    const end = next?.start ?? html.length;
+    return {
+      line: heading.line,
+      anchor: heading.anchor,
+      html: html.slice(heading.end, end)
+    };
+  });
+}
+
+function extractHeadingMetadata(markup) {
+  const spanPattern = /<span\b([^>]*)>([\s\S]*?)<\/span>/gi;
+  for (const match of markup.matchAll(spanPattern)) {
+    const attrs = parseTagAttributes(match[1]);
+    const className = String(attrs.class ?? '');
+    if (!className.split(/\s+/).includes('mw-headline')) {
+      continue;
+    }
+    const line = normalizeWhitespace(stripHtml(match[2]));
+    if (!line) {
+      continue;
+    }
+    return {
+      line,
+      anchor: attrs.id ?? null
+    };
+  }
+  return null;
+}
+
+function firstSection(index, names) {
+  for (const name of names) {
+    const section = index.get(name);
+    if (section) {
+      return section;
+    }
+  }
+  return null;
+}
+
+function parseBuffCauseEntries(sectionHtml, { sourceKind, sourceSection } = {}) {
+  if (typeof sectionHtml !== 'string' || sectionHtml.trim() === '') {
+    return [];
+  }
+
+  const blocks = [...sectionHtml.matchAll(/<tr\b[\s\S]*?<\/tr>/gi)].map((match) => match[0]);
+  if (blocks.length === 0) {
+    blocks.push(...[...sectionHtml.matchAll(/<li\b[\s\S]*?<\/li>/gi)].map((match) => match[0]));
+  }
+
+  const entries = [];
+  for (const block of blocks) {
+    if (/<th\b/i.test(block)) {
+      continue;
+    }
+    const link = extractPrimaryLinkedTitle(block);
+    if (!link) {
+      continue;
+    }
+    entries.push({
+      name: link.text,
+      pageTitle: link.pageTitle,
+      internalName: pageTitleToInternalName(link.pageTitle),
+      source: 'buff-page-causes',
+      sourceKind,
+      sourceSection,
+      sourceOrder: entries.length + 1
+    });
+  }
+
+  return entries;
 }
 
 function extractImmuneNpcEntries(sectionHtml) {

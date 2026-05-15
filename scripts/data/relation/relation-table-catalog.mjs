@@ -136,6 +136,10 @@ const TABLE_ZH = {
     purposeZh: 'item 与 buff 的施加关系桥表。',
     notesZh: '属于次级效果关系层。'
   },
+  npc_buff_relations: {
+    purposeZh: 'NPC 与 buff 的施加关系桥表。',
+    notesZh: '记录会给玩家施加 buff 的 NPC 事实。'
+  },
   item_biome_relations: {
     purposeZh: 'item 与 biome 的关系表。',
     notesZh: '属于次级领域关系层。'
@@ -409,6 +413,15 @@ const TABLE_DEFINITIONS = [
     source: 'maint_buffs + maint_items',
     primaryKeys: ['record_key', 'item_internal_name', 'buff_internal_name'],
     notes: 'Secondary effect relation layer.'
+  },
+  {
+    tableName: 'npc_buff_relations',
+    status: 'kept',
+    layer: 'relation',
+    purpose: 'NPC-to-buff inflicted bridge.',
+    source: 'maint_buffs + maint_npcs',
+    primaryKeys: ['record_key', 'buff_internal_name', 'npc_internal_name'],
+    notes: 'Derived from buff inflicting NPC evidence.'
   },
   {
     tableName: 'item_biome_relations',

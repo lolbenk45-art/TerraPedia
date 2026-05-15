@@ -2087,8 +2087,13 @@ async function openDetailDialog(row: Record<string, any>) {
   let detail: Record<string, any> = row
   if (currentConfig.value) {
     try {
-      const response: any = await get(`${currentConfig.value.endpoint}/${row.id}`)
-      detail = response?.data ?? response ?? row
+      if (entityType.value === 'buffs') {
+        const response: any = await get(`/public/buffs/${row.id}`)
+        detail = response?.data ?? response ?? row
+      } else {
+        const response: any = await get(`${currentConfig.value.endpoint}/${row.id}`)
+        detail = response?.data ?? response ?? row
+      }
     } catch (error) {
       console.error('Failed to load entity detail:', error)
     }
@@ -2732,6 +2737,9 @@ function getProjectileSourceNpcMeta(npc: Record<string, any>) {
 }
 const detailSourceItems = computed(() => {
   if (!detailRow.value || entityType.value !== 'buffs') return []
+  if (Array.isArray(detailRow.value.sourceItems)) {
+    return normalizeSourceEntries(detailRow.value.sourceItems)
+  }
   if (Array.isArray(detailRow.value.linkedSourceItems)) {
     return normalizeSourceEntries(detailRow.value.linkedSourceItems)
   }
@@ -2742,6 +2750,11 @@ const detailSourceItems = computed(() => {
 })
 const detailImmuneNpcSamples = computed<Array<Record<string, any>>>(() => {
   if (!detailRow.value || entityType.value !== 'buffs') return []
+  if (Array.isArray(detailRow.value.immuneNpcs)) {
+    return detailRow.value.immuneNpcs
+      .filter(item => item && typeof item === 'object')
+      .map(item => normalizeRow(item as Record<string, any>))
+  }
   if (Array.isArray(detailRow.value.immuneNpcSamples)) {
     return detailRow.value.immuneNpcSamples
       .filter(item => item && typeof item === 'object')
@@ -2758,6 +2771,11 @@ const detailImmuneNpcSamples = computed<Array<Record<string, any>>>(() => {
 })
 const detailInflictingNpcSamples = computed<Array<Record<string, any>>>(() => {
   if (!detailRow.value || entityType.value !== 'buffs') return []
+  if (Array.isArray(detailRow.value.inflictingNpcs)) {
+    return detailRow.value.inflictingNpcs
+      .filter(item => item && typeof item === 'object')
+      .map(item => normalizeRow(item as Record<string, any>))
+  }
   if (!Array.isArray(detailRow.value.inflictingNpcSamples)) return []
   return detailRow.value.inflictingNpcSamples
     .filter(item => item && typeof item === 'object')
@@ -2770,13 +2788,13 @@ const detailBuffSourceJsonBlocks = computed(() => {
       key: 'sourceItemsJson',
       label: 'Source Items JSON',
       summary: `${detailSourceItems.value.length} items`,
-      raw: detailRow.value.sourceItemsJson,
+      raw: detailRow.value.sourceItemsJson || JSON.stringify(detailRow.value.sourceItems || []),
     },
     {
       key: 'immuneNpcSampleJson',
       label: 'Immune NPC Sample JSON',
       summary: `${detailImmuneNpcSamples.value.length} items`,
-      raw: detailRow.value.immuneNpcSampleJson,
+      raw: detailRow.value.immuneNpcSampleJson || JSON.stringify(detailRow.value.immuneNpcs || []),
     },
   ]
     .filter(block => hasNonEmptyJsonValue(block.raw))
@@ -4205,4 +4223,3 @@ function formatArmorPartRole(value: unknown) {
   .boss-detail__loot-list { grid-template-columns: 1fr; }
 }
 </style>
-

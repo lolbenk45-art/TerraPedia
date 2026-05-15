@@ -102,6 +102,7 @@ const LOCAL_PRESERVE_COLUMNS = {
     'image_source_file_title',
     'image_source_revision_timestamp',
     'source_items_json',
+    'immune_npcs_json',
     'immune_npc_sample_json',
     'created_at',
     'updated_at'

@@ -222,6 +222,7 @@ export function buildSecondaryRelations({
     }
 
     const sourceItems = Array.isArray(parsed.sourceItems) ? parsed.sourceItems : [];
+    const inflictingNpcs = Array.isArray(parsed.inflictingNpcs) ? parsed.inflictingNpcs : [];
     const trace = normalizeTrace('maint_buffs', row);
 
     return sourceItems.map((sourceItem, index) => ({
@@ -243,6 +244,41 @@ export function buildSecondaryRelations({
       reviewStatus: relationStatus.resolved,
       confidence: confidence.high,
       reason: 'maint_buff_source_item',
+      ...trace
+    }));
+  });
+
+  const npcBuffRelations = maintBuffRows.flatMap((row) => {
+    let parsed = {};
+    try {
+      parsed = typeof row.raw_json === 'string' ? JSON.parse(row.raw_json) : row.raw_json ?? {};
+    } catch {
+      parsed = {};
+    }
+
+    const inflictingNpcs = Array.isArray(parsed.inflictingNpcs) ? parsed.inflictingNpcs : [];
+    const trace = normalizeTrace('maint_buffs', row);
+
+    return inflictingNpcs.map((inflictingNpc, index) => ({
+      recordKey: createRecordKey({
+        type: 'npc_buff_relation',
+        buffSourceId: row.source_id ?? null,
+        npcInternalName: inflictingNpc.internalName ?? null,
+        sortOrder: index
+      }),
+      npcSourceId: toNullableNumber(inflictingNpc.npcId),
+      npcInternalName: normalizeText(inflictingNpc.internalName),
+      npcName: normalizeText(inflictingNpc.name),
+      buffSourceId: toNullableNumber(row.source_id),
+      buffInternalName: normalizeText(row.internal_name),
+      relationType: 'inflicts',
+      durationTicks: toNullableNumber(inflictingNpc.buffTime),
+      chanceValue: null,
+      chanceText: null,
+      conditions: null,
+      reviewStatus: relationStatus.resolved,
+      confidence: confidence.high,
+      reason: 'maint_buff_inflicting_npc',
       ...trace
     }));
   });
@@ -391,6 +427,7 @@ export function buildSecondaryRelations({
   return {
     itemBiomeRelations,
     itemBuffRelations,
+    npcBuffRelations,
     itemProjectileRelations,
     npcProjectileRelations,
     itemProjectileAudits,
@@ -400,6 +437,7 @@ export function buildSecondaryRelations({
       localBiomeMissing: 0,
       buffCrossCheckRows: 0,
       buffRows: itemBuffRelations.length,
+      npcBuffRows: npcBuffRelations.length,
       itemProjectileRows: itemProjectileRelations.length,
       npcProjectileRows: npcProjectileRelations.length,
       itemProjectileAuditRows: itemProjectileAudits.length,

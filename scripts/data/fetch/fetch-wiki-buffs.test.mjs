@@ -89,6 +89,72 @@ test('buildBuffRecords applies buff page immunity facts over npcinfo fallback an
   );
 });
 
+test('buildBuffRecords preserves page source, inflicting, immune, and provenance evidence', () => {
+  const [record] = buildBuffRecords({
+    baseBuffs: [
+      {
+        id: 39,
+        image: 'Cursed Inferno.png',
+        internalName: 'CursedInferno',
+        englishName: 'Cursed Inferno',
+        type: 'debuff'
+      }
+    ],
+    localizedByLang: {
+      zh: {
+        39: {
+          name: '诅咒狱火',
+          page: '诅咒狱火',
+          tooltip: '正在损失生命',
+          namesub: null
+        }
+      }
+    },
+    langs: ['zh'],
+    relations: {
+      sourceItemsByBuffId: new Map([
+        [39, [{ itemId: 47, name: 'Module fallback item', internalName: 'ModuleFallbackItem' }]]
+      ]),
+      immuneNpcCountByBuffId: new Map(),
+      immuneNpcSampleByBuffId: new Map(),
+      immuneNpcSourceByBuffId: new Map(),
+      immuneNpcSampleSemanticsByBuffId: new Map()
+    },
+    pageFacts: new Map([
+      [39, {
+        sourceItems: [
+          { name: '诅咒箭', pageTitle: 'Cursed Arrow', sourceKind: 'player', sourceOrder: 1 },
+          { name: '诅咒弹', pageTitle: 'Cursed Bullet', sourceKind: 'player', sourceOrder: 2 }
+        ],
+        inflictingNpcs: [
+          { name: '爬藤怪', pageTitle: 'Clinger', sourceKind: 'enemy', sourceOrder: 1 }
+        ],
+        immuneNpcs: [
+          { name: 'Dungeon Guardian', pageTitle: 'Dungeon Guardian', sourceOrder: 1 }
+        ],
+        immuneNpcCount: 1,
+        immuneNpcSample: [
+          { name: 'Dungeon Guardian', pageTitle: 'Dungeon Guardian', sourceOrder: 1 }
+        ],
+        immuneNpcSource: 'buff-page-immunities',
+        immuneNpcSampleSemantics: 'first 1 entries from the rendered buff page immunities list; immuneNpcCount is the full rendered list size',
+        sourceEvidence: {
+          provider: 'terraria.wiki.gg',
+          pageTitle: '诅咒狱火',
+          sectionAnchors: ['原因', '来自玩家', '来自敌怪', '免疫的_NPC']
+        }
+      }]
+    ])
+  });
+
+  assert.deepEqual(record.sourceItems.map((entry) => entry.name), ['诅咒箭', '诅咒弹']);
+  assert.deepEqual(record.inflictingNpcs.map((entry) => entry.name), ['爬藤怪']);
+  assert.deepEqual(record.immuneNpcs.map((entry) => entry.name), ['Dungeon Guardian']);
+  assert.equal(record.sourceItemCount, 2);
+  assert.equal(record.sourceEvidence.pageTitle, '诅咒狱火');
+  assert.deepEqual(record.sourceEvidence.sectionAnchors, ['原因', '来自玩家', '来自敌怪', '免疫的_NPC']);
+});
+
 test('collectBuffPageImmunityFacts fetches rendered buff pages and parses Cursed Inferno and Poisoned samples', async () => {
   const htmlByPage = new Map([
     ['Cursed Inferno', `

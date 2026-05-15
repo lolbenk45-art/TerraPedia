@@ -142,9 +142,43 @@ export interface BuffListItem {
   immuneNpcCount?: number | null
 }
 
+export interface BuffFactSummary {
+  id?: number | null
+  sourceId?: number | null
+  internalName?: string | null
+  name?: string | null
+  nameZh?: string | null
+  imageUrl?: string | null
+  relationType?: string | null
+  durationTicks?: number | null
+  chanceText?: string | null
+  conditions?: string | null
+  sourceProvider?: string | null
+  sourcePage?: string | null
+  sourceSection?: string | null
+  sourceRevisionTimestamp?: string | null
+}
+
+export interface BuffDetailItem extends BuffListItem {
+  englishName?: string | null
+  tooltipEn?: string | null
+  inflictingNpcCount?: number | null
+  sourceItems?: BuffFactSummary[]
+  inflictingNpcs?: BuffFactSummary[]
+  immuneNpcs?: BuffFactSummary[]
+  provenance?: {
+    provider?: string | null
+    pageTitle?: string | null
+    revisionTimestamp?: string | null
+    sectionAnchors?: string[]
+  } | null
+}
+
 export interface BuffsResponse extends ApiResponse<BuffListItem[]> {
   pagination?: Pagination
 }
+
+export interface BuffDetailResponse extends ApiResponse<BuffDetailItem> {}
 
 export interface ProjectileListItem {
   id: number

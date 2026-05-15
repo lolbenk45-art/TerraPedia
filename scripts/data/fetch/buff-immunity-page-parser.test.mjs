@@ -1,9 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 
 import {
   applyBuffPageImmunityFacts,
-  parseBuffPageImmunityFacts
+  parseBuffPageImmunityFacts,
+  parseBuffPageEvidence
 } from './buff-immunity-page-parser.mjs';
 
 const cursedInfernoFixtureHtml = `
@@ -143,5 +145,34 @@ test('parseBuffPageImmunityFacts matches the Immune_NPCs heading regardless of c
       { name: 'Dungeon Guardian', pageTitle: 'Dungeon Guardian' },
       { name: 'Dungeon Guardian', pageTitle: 'Dungeon Guardian' }
     ]
+  );
+});
+
+test('parseBuffPageEvidence captures Causes and Immune NPCs for zh Cursed Inferno', () => {
+  const html = fs.readFileSync(new URL('./fixtures/zh-cursed-inferno.buff-page.html', import.meta.url), 'utf8');
+  const wikitext = fs.readFileSync(new URL('./fixtures/zh-cursed-inferno.buff-page.wikitext', import.meta.url), 'utf8');
+
+  const evidence = parseBuffPageEvidence({
+    pageTitle: '诅咒狱火',
+    sections: [
+      { index: '1', line: '原因', anchor: '原因' },
+      { index: '2', line: '来自玩家', anchor: '来自玩家' },
+      { index: '3', line: '来自敌怪', anchor: '来自敌怪' },
+      { index: '4', line: '免疫的 NPC', anchor: '免疫的_NPC' }
+    ],
+    html,
+    wikitext
+  });
+
+  assert.equal(evidence.sourceItems.length, 7);
+  assert.equal(evidence.inflictingNpcs.length, 3);
+  assert.ok(evidence.immuneNpcs.length >= 25);
+  assert.deepEqual(
+    evidence.sourceItems.slice(0, 2).map((row) => row.name),
+    ['诅咒箭', '诅咒弹']
+  );
+  assert.deepEqual(
+    evidence.inflictingNpcs.map((row) => row.name),
+    ['爬藤怪', '腐恶食尸鬼', '魔焰眼']
   );
 });

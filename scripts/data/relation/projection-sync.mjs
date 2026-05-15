@@ -775,6 +775,7 @@ export function buildProjectionPayload({
     sourceItemCount: toNullableNumber(row.sourceItemCount),
     immuneNpcCount: toNullableNumber(row.immuneNpcCount),
     sourceItemsJson: row.sourceItemsJson ?? null,
+    immuneNpcsJson: row.immuneNpcsJson ?? null,
     immuneNpcSampleJson: row.immuneNpcSampleJson ?? null,
     status: 1,
     deleted: 0,
