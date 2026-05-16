@@ -9,6 +9,12 @@ front/dist/
 front/coverage/
 front/.vite/
 front/.turbo/
+front-nuxt/node_modules/
+front-nuxt/.nuxt/
+front-nuxt/.output/
+front-nuxt/coverage/
+front-nuxt/.vite/
+front-nuxt/.turbo/
 data-query-app/.nuxt/
 data-query-app/.output/
 data-query-app/coverage/
@@ -21,6 +27,8 @@ data-query-app/.home/
 data-query-app/.localappdata/
 data-query-app/--port/
 data-query-app/--host/
+front-nuxt/--port/
+front-nuxt/--host/
 
 # Local verification logs
 **/.verify-*.log
