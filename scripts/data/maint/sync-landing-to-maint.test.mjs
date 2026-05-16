@@ -213,6 +213,58 @@ test('extractMaintEntitiesFromLandingRow preserves full buff evidence in raw jso
   ]);
 });
 
+test('extractMaintEntitiesFromLandingRow expands standardized buff records payloads', async () => {
+  const buffLandingRow = {
+    id: 32,
+    dataset_type: 'buffs_raw',
+    provider: 'terrapedia.generated',
+    source_page: 'buffs.standardized',
+    source_key: 'generated.buffs.standardized',
+    source_revision_timestamp: null,
+    content_hash: 'f'.repeat(64),
+    fetched_at: '2026-05-15T00:00:00Z',
+    parsed_at: '2026-05-15T00:00:00Z',
+    payload_json: JSON.stringify({
+      entity: 'buffs',
+      generatedAt: '2026-05-15T00:00:00Z',
+      records: [
+        {
+          id: 337,
+          internalName: 'ShadowFlame',
+          englishName: 'Shadowflame',
+          type: 'debuff',
+          sourceItemCount: 4,
+          immuneNpcCount: 2,
+          sourceItems: [{ internalName: 'ShadowFlameKnife', resolveStatus: 'resolved' }],
+          inflictingNpcs: [{ internalName: 'Clothier', resolveStatus: 'resolved' }],
+          immuneNpcs: [{ internalName: 'TargetDummy', resolveStatus: 'resolved' }],
+          sourceEvidence: {
+            pageTitle: 'Shadowflame',
+            parserSections: [{ sectionTitle: 'From NPCs', relationType: 'inflictingNpcs' }],
+          },
+        },
+      ],
+    }),
+  };
+
+  const actual = await extractMaintEntitiesFromLandingRow(buffLandingRow);
+  const row = actual.rows[0];
+  const raw = JSON.parse(row.rawJson);
+
+  assert.equal(actual.scope, 'buffs');
+  assert.equal(actual.rows.length, 1);
+  assert.equal(row.tableName, 'maint_buffs');
+  assert.equal(row.sourceId, 337);
+  assert.equal(row.internalName, 'ShadowFlame');
+  assert.equal(row.englishName, 'Shadowflame');
+  assert.equal(row.sourceProvider, 'terrapedia.generated');
+  assert.equal(row.landingSourceKey, 'generated.buffs.standardized');
+  assert.equal(row.majorValue, 4);
+  assert.equal(row.combatValue, 2);
+  assert.deepEqual(raw.inflictingNpcs, [{ internalName: 'Clothier', resolveStatus: 'resolved' }]);
+  assert.equal(raw.sourceEvidence.parserSections[0].sectionTitle, 'From NPCs');
+});
+
 test('extractMaintEntitiesFromLandingRow expands standardized npc records and preserves crawler projectile id in raw json', async () => {
   const npcLandingRow = {
     id: 24,

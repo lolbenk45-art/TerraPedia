@@ -325,6 +325,79 @@ test('runLandingImport retires stale current rows when source page changes for t
   assert.equal(summary.rows.inserted, 0);
 });
 
+test('runLandingImport retires stale current rows when dataset changes provider and source key', async () => {
+  const executeCalls = [];
+  const summary = await runLandingImport(
+    {
+      apply: true,
+      datasets: ['buffs_raw'],
+      db: { database: 'terria_v1_local' },
+      reportPath: 'G:/ClaudeCode/TerraPedia-dev/reports/source-dataset-landing-schema-2026-05-15.json',
+    },
+    {
+      locateDatasetEntries: async () => [
+        {
+          datasetType: 'buffs_raw',
+          provider: 'terrapedia.generated',
+          sourceKind: 'generated_standardized',
+          sourceKey: 'generated.buffs.standardized',
+          sourcePage: 'buffs.standardized',
+          sourceLocator: 'repo://data/standardized/buffs.standardized.json',
+          contentHash: 'd'.repeat(64),
+          payload: { entity: 'buffs', records: [{ id: 1, internalName: 'PotionSickness' }] },
+          fetchedAt: '2026-05-15T00:00:00.000Z',
+          parsedAt: '2026-05-15T00:00:00.000Z',
+          parseStatus: 'ok',
+        },
+      ],
+      mysqlModule: {
+        async createConnection() {
+          return {
+            async beginTransaction() {},
+            async commit() {},
+            async rollback() {},
+            async query() {},
+            async execute(sql, params) {
+              executeCalls.push({ sql, params });
+              if (sql.startsWith('SELECT id, content_hash') && sql.includes('provider, source_key')) {
+                return [[{
+                  id: 12434,
+                  content_hash: 'c'.repeat(64),
+                  source_page: 'Template:GetBuffInfo',
+                  provider: 'terraria.wiki.gg',
+                  source_key: 'wiki.template.getbuffinfo',
+                }]];
+              }
+              if (sql.startsWith('SELECT id, content_hash') && sql.includes('provider = ?')) {
+                return [[]];
+              }
+              return [{}];
+            },
+            async end() {},
+          };
+        },
+      },
+      writeReport: async () => {},
+    },
+  );
+
+  const retireCalls = executeCalls.filter((call) => call.sql.includes('SET is_current = 0'));
+  const deleteArchivedCalls = executeCalls.filter((call) => call.sql.startsWith('DELETE FROM source_dataset_landings'));
+  const insertCalls = executeCalls.filter((call) => call.sql.startsWith('INSERT INTO source_dataset_landings'));
+  assert.equal(deleteArchivedCalls.length, 1);
+  assert.deepEqual(deleteArchivedCalls[0].params, [
+    'buffs_raw',
+    'terraria.wiki.gg',
+    'wiki.template.getbuffinfo',
+    'Template:GetBuffInfo',
+    12434
+  ]);
+  assert.equal(retireCalls.length, 1);
+  assert.deepEqual(retireCalls[0].params, [12434]);
+  assert.equal(insertCalls.length, 1);
+  assert.equal(summary.rows.replaced, 1);
+});
+
 test('runLandingImport clears prior archived row before retiring a replaced current row', async () => {
   const executeCalls = [];
   const summary = await runLandingImport(

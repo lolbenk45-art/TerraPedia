@@ -257,7 +257,8 @@ function extractProjectilesMaintRows(landingRow, payload, zhSourceIndexes = null
 }
 
 function extractBuffsMaintRows(landingRow, payload) {
-  return (Array.isArray(payload.buffs) ? payload.buffs : []).map((record) => buildBaseMaintRow('buffs', landingRow, record, {
+  const records = Array.isArray(payload.records) ? payload.records : Array.isArray(payload.buffs) ? payload.buffs : [];
+  return records.map((record) => buildBaseMaintRow('buffs', landingRow, record, {
     moduleGeneratedAt: null,
     terrariaVersion: null,
     majorValue: Number(record.sourceItemCount ?? 0) || null,

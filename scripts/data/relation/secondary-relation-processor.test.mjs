@@ -224,6 +224,115 @@ test('buildSecondaryRelations resolves buff facts with safe maint identity fallb
   );
 });
 
+test('buildSecondaryRelations applies reviewed buff npc aliases and fanout without promoting non-entities', () => {
+  const actual = buildSecondaryRelations({
+    maintBuffRows: [
+      {
+        source_id: 24,
+        internal_name: 'OnFire',
+        raw_json: JSON.stringify({
+          inflictingNpcs: [
+            { internalName: 'Diabolist', name: 'Diabolist' },
+            { internalName: 'LunaticCultist', name: 'Lunatic Cultist' }
+          ]
+        })
+      },
+      {
+        source_id: 30,
+        internal_name: 'Bleeding',
+        raw_json: JSON.stringify({
+          inflictingNpcs: [
+            { internalName: 'RustyArmoredBones', name: 'Rusty Armored Bones' }
+          ]
+        })
+      },
+      {
+        source_id: 31,
+        internal_name: 'Slow',
+        raw_json: JSON.stringify({
+          inflictingNpcs: [
+            { internalName: 'RustyArmoredBones', name: 'Rusty Armored Bones' }
+          ]
+        })
+      },
+      {
+        source_id: 33,
+        internal_name: 'Weak',
+        raw_json: JSON.stringify({
+          inflictingNpcs: [
+            { internalName: 'Scarecrow', name: 'Scarecrow' }
+          ]
+        })
+      },
+      {
+        source_id: 42,
+        internal_name: 'Venom',
+        raw_json: JSON.stringify({
+          inflictingNpcs: [
+            { internalName: 'SandPoacher', name: 'Sand Poacher' }
+          ]
+        })
+      },
+      {
+        source_id: 46,
+        internal_name: 'Chilled',
+        raw_json: JSON.stringify({
+          inflictingNpcs: [
+            { internalName: 'ExpertMode', name: '20', pageTitle: 'Expert Mode' }
+          ]
+        })
+      }
+    ],
+    maintNpcRows: [
+      { source_id: 285, internal_name: 'DiabolistRed', english_name: 'Diabolist', raw_json: '{}' },
+      { source_id: 286, internal_name: 'DiabolistWhite', english_name: 'Diabolist', raw_json: '{}' },
+      { source_id: 439, internal_name: 'CultistBoss', english_name: 'Lunatic Cultist', raw_json: '{}' },
+      { source_id: 440, internal_name: 'CultistBossClone', english_name: 'Lunatic Cultist', raw_json: '{}' },
+      { source_id: 269, internal_name: 'RustyArmoredBonesAxe', english_name: 'Rusty Armored Bones', raw_json: '{}' },
+      { source_id: 270, internal_name: 'RustyArmoredBonesFlail', english_name: 'Rusty Armored Bones', raw_json: '{}' },
+      { source_id: 271, internal_name: 'RustyArmoredBonesSword', english_name: 'Rusty Armored Bones', raw_json: '{}' },
+      { source_id: 272, internal_name: 'RustyArmoredBonesSwordNoArmor', english_name: 'Rusty Armored Bones', raw_json: '{}' },
+      { source_id: 305, internal_name: 'Scarecrow1', english_name: 'Scarecrow', raw_json: '{}' },
+      { source_id: 306, internal_name: 'Scarecrow2', english_name: 'Scarecrow', raw_json: '{}' },
+      { source_id: 307, internal_name: 'Scarecrow3', english_name: 'Scarecrow', raw_json: '{}' },
+      { source_id: 308, internal_name: 'Scarecrow4', english_name: 'Scarecrow', raw_json: '{}' },
+      { source_id: 309, internal_name: 'Scarecrow5', english_name: 'Scarecrow', raw_json: '{}' },
+      { source_id: 310, internal_name: 'Scarecrow6', english_name: 'Scarecrow', raw_json: '{}' },
+      { source_id: 311, internal_name: 'Scarecrow7', english_name: 'Scarecrow', raw_json: '{}' },
+      { source_id: 312, internal_name: 'Scarecrow8', english_name: 'Scarecrow', raw_json: '{}' },
+      { source_id: 313, internal_name: 'Scarecrow9', english_name: 'Scarecrow', raw_json: '{}' },
+      { source_id: 314, internal_name: 'Scarecrow10', english_name: 'Scarecrow', raw_json: '{}' },
+      { source_id: 530, internal_name: 'DesertScorpionWalk', english_name: 'Sand Poacher', raw_json: '{}' },
+      { source_id: 531, internal_name: 'DesertScorpionWall', english_name: 'Sand Poacher', raw_json: '{}' }
+    ]
+  });
+
+  assert.deepEqual(
+    actual.npcBuffRelations.map((relation) => [relation.buffInternalName, relation.npcInternalName, relation.npcSourceId]),
+    [
+      ['OnFire', 'DiabolistRed', 285],
+      ['OnFire', 'CultistBoss', 439],
+      ['Bleeding', 'RustyArmoredBonesAxe', 269],
+      ['Slow', 'RustyArmoredBonesAxe', 269],
+      ['Weak', 'Scarecrow1', 305],
+      ['Weak', 'Scarecrow2', 306],
+      ['Weak', 'Scarecrow3', 307],
+      ['Weak', 'Scarecrow4', 308],
+      ['Weak', 'Scarecrow5', 309],
+      ['Weak', 'Scarecrow6', 310],
+      ['Weak', 'Scarecrow7', 311],
+      ['Weak', 'Scarecrow8', 312],
+      ['Weak', 'Scarecrow9', 313],
+      ['Weak', 'Scarecrow10', 314],
+      ['Venom', 'DesertScorpionWalk', 530]
+    ]
+  );
+  assert.deepEqual(
+    actual.issues.map((issue) => [issue.buffInternalName, issue.sourceInternalName, issue.reason]),
+    []
+  );
+});
+
 test('buildSecondaryRelations exports unresolved buff source item facts for relation reports', () => {
   const actual = buildSecondaryRelations({
     maintBuffRows: [

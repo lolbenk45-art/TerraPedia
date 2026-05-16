@@ -153,11 +153,18 @@ class PublicNpcServiceImplImageTest {
 
     @Test
     void shouldReturnManagedCachedBuffImageForPublicNpcBuffRelations() {
-        when(jdbcTemplate.queryForList(contains("FROM npc_buff_relations"), eq(7L))).thenReturn(List.of(Map.of(
+        Npc npc = new Npc();
+        npc.setId(7L);
+        npc.setGameId(285L);
+        npc.setInternalName("DiabolistRed");
+        when(npcMapper.selectById(7L)).thenReturn(npc);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of(Map.of(
             "id", 31L,
-            "buffId", 401L,
-            "buffSourceId", 401,
-            "buffInternalName", "Sharpened",
+            "buffId", 24L,
+            "buffSourceId", 24,
+            "buffInternalName", "OnFire",
+            "buffNameEn", "On Fire!",
+            "buffNameZh", "着火了！",
             "buffImage", "http://localhost:9000/terrapedia-images/buffs/wiki/ab/sharpened.png"
         )));
 
@@ -168,9 +175,25 @@ class PublicNpcServiceImplImageTest {
         assertEquals("http://localhost:9000/terrapedia-images/buffs/wiki/ab/sharpened.png", result.get(0).getImageUrl());
 
         ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-        verify(jdbcTemplate).queryForList(queryCaptor.capture(), eq(7L));
-        assertTrue(queryCaptor.getValue().contains("b.image_cached_url"));
+        verify(jdbcTemplate).queryForList(queryCaptor.capture(), any(Object[].class));
+        assertTrue(queryCaptor.getValue().contains("`terria_v1_relation`.`npc_buff_relations`"));
+        assertTrue(queryCaptor.getValue().contains("pb.image"));
         assertTrue(queryCaptor.getValue().contains("AS buffImage"));
+    }
+
+    @Test
+    void shouldNotFallbackToLocalNpcBuffRelationsWhenRelationProjectionHasNoRows() {
+        Npc npc = new Npc();
+        npc.setId(7L);
+        npc.setGameId(285L);
+        npc.setInternalName("DiabolistRed");
+        when(npcMapper.selectById(7L)).thenReturn(npc);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+
+        PublicNpcServiceImpl service = newService();
+        List<NpcBuffRelationDTO> result = service.getNpcBuffRelations(7L);
+
+        assertTrue(result.isEmpty());
     }
 
     @Test

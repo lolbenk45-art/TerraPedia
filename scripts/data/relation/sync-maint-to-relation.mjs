@@ -1192,6 +1192,8 @@ export async function runSync(options, dependencies = {}) {
     itemNpcLootRelations: results.itemNpcLootRelations,
     itemProjectileRelations: results.itemProjectileRelations,
     npcProjectileRelations: results.npcProjectileRelations,
+    itemBuffRelations: results.itemBuffRelations,
+    npcBuffRelations: results.npcBuffRelations,
     relationBosses: results.relationBosses,
     bossItemRewardRelations: results.bossItemRewardRelations,
     bossEffectRelations: results.bossEffectRelations,

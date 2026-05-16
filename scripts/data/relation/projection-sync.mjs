@@ -269,6 +269,20 @@ function npcRelationKeys(relation) {
   ].filter((key) => key != null && key !== '');
 }
 
+function buffRelationKeys(relation) {
+  return [
+    relation?.buffInternalName,
+    relation?.buffSourceId == null ? null : `source:${Number(relation.buffSourceId)}`
+  ].filter((key) => key != null && key !== '');
+}
+
+function projectionBuffKeys(row) {
+  return [
+    row?.internalName,
+    row?.sourceId == null ? null : `source:${Number(row.sourceId)}`
+  ].filter((key) => key != null && key !== '');
+}
+
 function buildSourceNpcSummary(relation, projectionNpc, relationType) {
   return {
     relationType,
@@ -283,6 +297,50 @@ function buildSourceNpcSummary(relation, projectionNpc, relationType) {
     priceText: relation.priceText ?? null,
     conditionText: resolveProjectionConditionText(relation),
     sourceFactKey: relation.sourceFactKey ?? null,
+    ...buildTraceableRelationFields(relation)
+  };
+}
+
+function buildBuffSourceItemSummary(relation, projectionItem) {
+  const itemSourceId = toNullableNumber(relation.itemSourceId);
+  const itemInternalName = relation.itemInternalName ?? projectionItem?.internalName ?? null;
+  return {
+    itemId: projectionItem?.id ?? itemSourceId,
+    sourceId: itemSourceId ?? projectionItem?.id ?? null,
+    internalName: itemInternalName,
+    itemInternalName,
+    name: relation.itemName ?? projectionItem?.name ?? itemInternalName,
+    nameZh: projectionItem?.nameZh ?? null,
+    imageUrl: projectionItem?.image ?? null,
+    source: 'buff-page-causes',
+    sourceKind: 'item',
+    sourceSection: relation.sourceSection ?? 'From item',
+    relationType: relation.relationType ?? 'buff_source_item',
+    buffTime: toNullableNumber(relation.durationTicks),
+    chanceText: relation.chanceText ?? null,
+    conditions: relation.conditions ?? null,
+    ...buildTraceableRelationFields(relation)
+  };
+}
+
+function buildBuffInflictingNpcSummary(relation, projectionNpc) {
+  const npcSourceId = toNullableNumber(relation.npcSourceId);
+  const npcInternalName = relation.npcInternalName ?? projectionNpc?.internalName ?? null;
+  return {
+    npcId: projectionNpc?.id ?? npcSourceId,
+    sourceId: npcSourceId ?? projectionNpc?.sourceId ?? null,
+    internalName: npcInternalName,
+    npcInternalName,
+    name: relation.npcName ?? projectionNpc?.name ?? npcInternalName,
+    nameZh: projectionNpc?.nameZh ?? null,
+    imageUrl: projectionNpc?.imageUrl ?? null,
+    source: 'buff-page-causes',
+    sourceKind: 'enemy',
+    sourceSection: relation.sourceSection ?? 'From enemy',
+    relationType: relation.relationType ?? 'inflicts',
+    buffTime: toNullableNumber(relation.durationTicks),
+    chanceText: relation.chanceText ?? null,
+    conditions: relation.conditions ?? null,
     ...buildTraceableRelationFields(relation)
   };
 }
@@ -463,6 +521,8 @@ export function buildProjectionPayload({
   itemNpcLootRelations = [],
   itemProjectileRelations = [],
   npcProjectileRelations = [],
+  itemBuffRelations = [],
+  npcBuffRelations = [],
   relationBosses = [],
   bossItemRewardRelations = [],
   bossEffectRelations = [],
@@ -684,6 +744,34 @@ export function buildProjectionPayload({
     ));
   }
 
+  const sourceItemsByBuffKey = new Map();
+  for (const relation of itemBuffRelations) {
+    const projectionItem = projectionItemForRelation(relation, projectionItemIndexes);
+    const summary = buildBuffSourceItemSummary(relation, projectionItem);
+    for (const key of buffRelationKeys(relation)) {
+      appendProjectionSummary(
+        sourceItemsByBuffKey,
+        key,
+        summary,
+        (row) => JSON.stringify([row.relationType, row.internalName, row.sourceId])
+      );
+    }
+  }
+
+  const inflictingNpcsByBuffKey = new Map();
+  for (const relation of npcBuffRelations) {
+    const projectionNpc = projectionNpcForRelation(relation, projectionNpcIndexes);
+    const summary = buildBuffInflictingNpcSummary(relation, projectionNpc);
+    for (const key of buffRelationKeys(relation)) {
+      appendProjectionSummary(
+        inflictingNpcsByBuffKey,
+        key,
+        summary,
+        (row) => JSON.stringify([row.relationType, row.internalName, row.sourceId])
+      );
+    }
+  }
+
   const sourceItemsByProjectileKey = new Map();
   for (const relation of itemProjectileRelations) {
     const itemSourceId = toNullableNumber(relation.itemSourceId);
@@ -761,29 +849,39 @@ export function buildProjectionPayload({
     };
   });
 
-  const projectionBuffs = relationBuffs.map((row) => ({
-    id: toNullableNumber(row.sourceId),
-    relationRecordKey: row.recordKey,
-    sourceId: toNullableNumber(row.sourceId),
-    internalName: row.internalName ?? null,
-    englishName: row.englishName ?? row.internalName ?? null,
-    nameZh: row.nameZh ?? null,
-    tooltipEn: row.tooltipEn ?? null,
-    tooltipZh: row.tooltipZh ?? null,
-    image: resolveProjectedImageUrl(buffImages.get(row.internalName), managedImageUrlPrefixes),
-    buffType: row.buffType ?? null,
-    sourceItemCount: toNullableNumber(row.sourceItemCount),
-    immuneNpcCount: toNullableNumber(row.immuneNpcCount),
-    sourceItemsJson: row.sourceItemsJson ?? null,
-    inflictingNpcsJson: row.inflictingNpcsJson ?? null,
-    immuneNpcsJson: row.immuneNpcsJson ?? null,
-    immuneNpcSampleJson: row.immuneNpcSampleJson ?? null,
-    sourceEvidenceJson: row.sourceEvidenceJson ?? null,
-    status: 1,
-    deleted: 0,
-    createdAt: null,
-    updatedAt: null
-  }));
+  const projectionBuffs = relationBuffs.map((row) => {
+    const sourceItems = dedupeProjectionSummaries(
+      collectMappedValues(sourceItemsByBuffKey, projectionBuffKeys(row)),
+      (entry) => JSON.stringify([entry.relationType, entry.internalName, entry.sourceId])
+    );
+    const inflictingNpcs = dedupeProjectionSummaries(
+      collectMappedValues(inflictingNpcsByBuffKey, projectionBuffKeys(row)),
+      (entry) => JSON.stringify([entry.relationType, entry.internalName, entry.sourceId])
+    );
+    return {
+      id: toNullableNumber(row.sourceId),
+      relationRecordKey: row.recordKey,
+      sourceId: toNullableNumber(row.sourceId),
+      internalName: row.internalName ?? null,
+      englishName: row.englishName ?? row.internalName ?? null,
+      nameZh: row.nameZh ?? null,
+      tooltipEn: row.tooltipEn ?? null,
+      tooltipZh: row.tooltipZh ?? null,
+      image: resolveProjectedImageUrl(buffImages.get(row.internalName), managedImageUrlPrefixes),
+      buffType: row.buffType ?? null,
+      sourceItemCount: sourceItems.length,
+      immuneNpcCount: toNullableNumber(row.immuneNpcCount),
+      sourceItemsJson: JSON.stringify(sourceItems),
+      inflictingNpcsJson: JSON.stringify(inflictingNpcs),
+      immuneNpcsJson: row.immuneNpcsJson ?? null,
+      immuneNpcSampleJson: row.immuneNpcSampleJson ?? null,
+      sourceEvidenceJson: row.sourceEvidenceJson ?? null,
+      status: 1,
+      deleted: 0,
+      createdAt: null,
+      updatedAt: null
+    };
+  });
 
   const bossRewardsByRecordKey = buildRowsByKey(bossItemRewardRelations, 'bossRecordKey');
   const bossEffectsByRecordKey = buildRowsByKey(bossEffectRelations, 'bossRecordKey');

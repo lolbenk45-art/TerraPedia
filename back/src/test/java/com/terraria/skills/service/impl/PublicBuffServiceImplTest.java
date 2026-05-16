@@ -19,6 +19,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
@@ -65,6 +66,37 @@ class PublicBuffServiceImplTest {
     }
 
     @Test
+    void shouldUseProjectionCountsForPublicBuffListWhenLocalCountsAreStale() {
+        Buff buff = new Buff();
+        buff.setId(46L);
+        buff.setSourceId(46);
+        buff.setInternalName("Chilled");
+        buff.setEnglishName("Chilled");
+        buff.setBuffType("debuff");
+        buff.setSourceItemCount(2);
+        buff.setImmuneNpcCount(0);
+        buff.setStatus(1);
+
+        Page<Buff> page = new Page<>(1, 20);
+        page.setTotal(1);
+        page.setRecords(List.of(buff));
+        when(buffMapper.selectPage(any(Page.class), any())).thenReturn(page);
+        when(jdbcTemplate.queryForList(contains("source_item_count, immune_npc_count"), any(Object[].class))).thenReturn(List.of(Map.of(
+            "source_id", 46,
+            "internal_name", "Chilled",
+            "source_item_count", 0,
+            "immune_npc_count", 6
+        )));
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        Page<PublicBuffListDTO> result = service.getPublicBuffs(new PublicBuffQuery());
+
+        assertEquals(1, result.getRecords().size());
+        assertEquals(0, result.getRecords().get(0).getSourceItemCount());
+        assertEquals(6, result.getRecords().get(0).getImmuneNpcCount());
+    }
+
+    @Test
     void shouldLoadPublicBuffDetailWithStructuredEvidence() {
         Buff buff = new Buff();
         buff.setId(39L);
@@ -106,6 +138,46 @@ class PublicBuffServiceImplTest {
         assertEquals(12345L, detail.getSourceEvidence().getRevisionId());
         assertEquals(1, detail.getSourceEvidence().getUnresolvedFacts().size());
         assertEquals("Cursed Inferno", detail.getProvenance().getPageTitle());
+    }
+
+    @Test
+    void shouldUseProjectionSourceItemCountForDetailWhenLocalCountIsStale() {
+        Buff buff = new Buff();
+        buff.setId(46L);
+        buff.setSourceId(46);
+        buff.setInternalName("Chilled");
+        buff.setEnglishName("Chilled");
+        buff.setBuffType("debuff");
+        buff.setSourceItemCount(2);
+        buff.setImmuneNpcCount(0);
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(46L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(argThat(sql ->
+            sql.contains("FROM `terria_v1_relation`.`projection_buffs`")
+                && sql.contains("deleted = 0")
+                && sql.contains("status = 1")
+        ), eq(46))).thenReturn(List.of(Map.of(
+            "source_item_count", 0,
+            "immune_npc_count", 6,
+            "source_items_json",
+            "[]",
+            "inflicting_npcs_json",
+            "[]",
+            "immune_npcs_json",
+            "[{\"internalName\":\"IceSlime\",\"name\":\"Ice Slime\"}]",
+            "source_evidence_json",
+            "{\"parseStatus\":\"parsed\"}"
+        )));
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(46L);
+
+        assertNotNull(detail);
+        assertEquals(0, detail.getSourceItemCount());
+        assertEquals(0, detail.getSourceItems().size());
+        assertEquals(6, detail.getImmuneNpcCount());
+        assertEquals(1, detail.getImmuneNpcs().size());
     }
 
     @Test
@@ -217,6 +289,93 @@ class PublicBuffServiceImplTest {
         assertEquals("FlameburstTower", detail.getSourceItems().get(1).getInternalName());
         assertEquals("Lava", detail.getSourceItems().get(2).getInternalName());
         assertEquals("From environment", detail.getSourceItems().get(2).getSourceSection());
+    }
+
+    @Test
+    void shouldNotFallbackToLocalSourceItemsWhenProjectionHasResolvedEmptyArray() {
+        Buff buff = new Buff();
+        buff.setId(46L);
+        buff.setSourceId(46);
+        buff.setInternalName("Chilled");
+        buff.setEnglishName("Chilled");
+        buff.setBuffType("debuff");
+        buff.setSourceItemsJson("[{\"internalName\":\"Water\",\"name\":\"Water\"}]");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(46L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(46))).thenReturn(List.of(Map.of(
+            "source_item_count", 0,
+            "immune_npc_count", 0,
+            "source_items_json",
+            "[]",
+            "inflicting_npcs_json",
+            "[]",
+            "immune_npcs_json",
+            "[]",
+            "source_evidence_json",
+            "{\"parseStatus\":\"parsed\"}"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`item_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(46L);
+
+        assertNotNull(detail);
+        assertTrue(detail.getSourceItems().isEmpty());
+        assertEquals(0, detail.getSourceItemCount());
+    }
+
+    @Test
+    void shouldLoadResolvedSourceItemsFromRelationProjectionTables() {
+        Buff buff = new Buff();
+        buff.setId(21L);
+        buff.setSourceId(21);
+        buff.setInternalName("PotionSickness");
+        buff.setEnglishName("Potion Sickness");
+        buff.setBuffType("debuff");
+        buff.setSourceItemCount(0);
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(21L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(21))).thenReturn(List.of(Map.of(
+            "source_item_count", 12,
+            "immune_npc_count", 0,
+            "source_items_json",
+            "[{\"sourceId\":5,\"internalName\":\"Mushroom\",\"name\":\"Mushroom\",\"sourceSection\":\"From item\"}]",
+            "inflicting_npcs_json",
+            "[]",
+            "immune_npcs_json",
+            "[]",
+            "source_evidence_json",
+            "{\"parseStatus\":\"parsed\"}"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`item_buff_relations`"), any(Object[].class))).thenReturn(List.of(Map.of(
+            "id", 5L,
+            "sourceId", 5,
+            "internalName", "Mushroom",
+            "name", "Mushroom",
+            "nameZh", "蘑菇",
+            "imageUrl", CDN_ITEM_IMAGE_URL,
+            "relationType", "buff_source_item",
+            "sourceProvider", "terrapedia.generated",
+            "sourcePage", "buffs.standardized"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(21L);
+
+        assertNotNull(detail);
+        assertEquals(12, detail.getSourceItemCount());
+        assertEquals(1, detail.getSourceItems().size());
+        PublicBuffDetailDTO.FactSummary mushroom = detail.getSourceItems().get(0);
+        assertEquals(5, mushroom.getSourceId());
+        assertEquals("Mushroom", mushroom.getInternalName());
+        assertEquals(CDN_ITEM_IMAGE_URL, mushroom.getImageUrl());
+        assertEquals("terrapedia.generated", mushroom.getSourceProvider());
+        assertEquals("buffs.standardized", mushroom.getSourcePage());
+        assertEquals("From item", mushroom.getSourceSection());
     }
 
     @Test

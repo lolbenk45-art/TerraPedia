@@ -1,4 +1,9 @@
 const DEFAULT_SAMPLE_LIMIT = 10;
+const PLAYER_SOURCE_SECTION_NAMES = ['来自玩家', 'From player', 'From_player'];
+const ITEM_SOURCE_SECTION_NAMES = ['来自物品', 'From item', 'From_item'];
+const ENEMY_SOURCE_SECTION_NAMES = ['来自敌怪', 'From enemy', 'From_enemy', 'From NPCs', 'From_NPCs'];
+const ENVIRONMENT_SOURCE_SECTION_NAMES = ['来自环境', 'From environment', 'From_environment'];
+const IMMUNE_NPC_SECTION_NAMES = ['免疫的 NPC', '免疫的_NPC', 'Immune NPCs', 'Immune_NPCs'];
 
 export function parseBuffPageEvidence({
   buffId,
@@ -13,35 +18,29 @@ export function parseBuffPageEvidence({
   sampleLimit = DEFAULT_SAMPLE_LIMIT
 } = {}) {
   const sectionIndex = buildSectionIndex({ html, wikitext, sections });
-  const playerSection = firstSection(sectionIndex, ['来自玩家', 'From player']);
-  const enemySection = firstSection(sectionIndex, ['来自敌怪', 'From enemy']);
-  const environmentSection = firstSection(sectionIndex, ['来自环境', 'From environment']);
-  const immuneSection = firstSection(sectionIndex, ['免疫的 NPC', 'Immune NPCs']);
-  const playerSourceItems = parseBuffCauseEntries(playerSection?.html, {
-    sourceKind: 'player',
-    sourceSection: playerSection?.line ?? null
-  });
-  const environmentSourceItems = parseBuffCauseEntries(environmentSection?.html, {
-    sourceKind: 'environment',
-    sourceSection: environmentSection?.line ?? null
-  });
+  const playerSections = findSections(sectionIndex, PLAYER_SOURCE_SECTION_NAMES);
+  const itemSections = findSections(sectionIndex, ITEM_SOURCE_SECTION_NAMES);
+  const enemySections = findSections(sectionIndex, ENEMY_SOURCE_SECTION_NAMES);
+  const environmentSections = findSections(sectionIndex, ENVIRONMENT_SOURCE_SECTION_NAMES);
+  const immuneSection = firstSection(sectionIndex, IMMUNE_NPC_SECTION_NAMES);
+  const playerSourceItems = parseBuffCauseEntriesFromSections(playerSections, { sourceKind: 'player' });
+  const itemSourceItems = parseBuffCauseEntriesFromSections(itemSections, { sourceKind: 'item' });
+  const environmentSourceItems = parseBuffCauseEntriesFromSections(environmentSections, { sourceKind: 'environment' });
   const sourceItems = [
     ...playerSourceItems,
+    ...itemSourceItems,
     ...environmentSourceItems
   ];
-  const inflictingNpcs = parseBuffCauseEntries(enemySection?.html, {
-    sourceKind: 'enemy',
-    sourceSection: enemySection?.line ?? null
-  });
+  const inflictingNpcs = parseBuffCauseEntriesFromSections(enemySections, { sourceKind: 'enemy' });
   const immuneNpcs = extractImmuneNpcEntries(immuneSection?.html ?? extractImmuneNpcSectionHtml(html));
   const immuneNpcSample = immuneNpcs.slice(0, Math.max(0, sampleLimit));
   const factGroups = {
     sourceItems: factGroupStatus({
-      sections: [playerSection, environmentSection],
+      sections: [...playerSections, ...itemSections, ...environmentSections],
       rows: sourceItems
     }),
     inflictingNpcs: factGroupStatus({
-      sections: [enemySection],
+      sections: enemySections,
       rows: inflictingNpcs
     }),
     immuneNpcs: factGroupStatus({
@@ -81,9 +80,10 @@ export function parseBuffPageEvidence({
         ? sections.map((section) => section?.anchor).filter(Boolean)
         : [],
       sourceSections: [
-        playerSection?.line,
-        enemySection?.line,
-        environmentSection?.line,
+        ...playerSections.map((section) => section?.line ?? section?.anchor),
+        ...itemSections.map((section) => section?.line ?? section?.anchor),
+        ...enemySections.map((section) => section?.line ?? section?.anchor),
+        ...environmentSections.map((section) => section?.line ?? section?.anchor),
         immuneSection?.line
       ].filter(Boolean),
       parseStatus,
@@ -301,6 +301,31 @@ function firstSection(index, names) {
   return null;
 }
 
+function findSections(index, names) {
+  const sections = [];
+  const seen = new Set();
+  for (const name of names) {
+    const section = index.get(name);
+    if (!section) {
+      continue;
+    }
+    const key = `${section.line ?? ''}\u0000${section.anchor ?? ''}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    sections.push(section);
+  }
+  return sections;
+}
+
+function parseBuffCauseEntriesFromSections(sections, { sourceKind } = {}) {
+  return sections.flatMap((section) => parseBuffCauseEntries(section?.html, {
+    sourceKind,
+    sourceSection: section?.line ?? section?.anchor ?? null
+  }));
+}
+
 function parseBuffCauseEntries(sectionHtml, { sourceKind, sourceSection } = {}) {
   if (typeof sectionHtml !== 'string' || sectionHtml.trim() === '') {
     return [];
@@ -373,10 +398,13 @@ function extractPrimaryLinkedTitle(html) {
     if (!pageTitle) {
       continue;
     }
+    if (!isEntityLinkCandidate({ pageTitle, text })) {
+      continue;
+    }
     candidates.push({
       pageTitle,
       text,
-      primary: isPrimaryNpcLinkCandidate({ pageTitle, text })
+      primary: isPrimaryLinkCandidate({ pageTitle, text })
     });
   }
 
@@ -391,11 +419,23 @@ function extractPrimaryLinkedTitle(html) {
   };
 }
 
-function isPrimaryNpcLinkCandidate({ pageTitle, text } = {}) {
+function isEntityLinkCandidate({ pageTitle, text } = {}) {
+  const normalizedPageTitle = normalizeLinkText(pageTitle);
   const normalizedText = normalizeLinkText(text);
-  if (!normalizedText) {
+  if (!normalizedPageTitle) {
     return false;
   }
+  if (isNonEntityPageTitle(normalizedPageTitle)) {
+    return false;
+  }
+  if (normalizedText && isNonEntityLinkText(normalizedText)) {
+    return false;
+  }
+  return true;
+}
+
+function isPrimaryLinkCandidate({ pageTitle, text } = {}) {
+  const normalizedText = normalizeLinkText(text);
   if (/^\([^)]*\)$/.test(normalizedText)) {
     return false;
   }
@@ -403,6 +443,22 @@ function isPrimaryNpcLinkCandidate({ pageTitle, text } = {}) {
     return false;
   }
   return Boolean(pageTitle);
+}
+
+function isNonEntityPageTitle(pageTitle) {
+  const normalized = normalizeLinkText(pageTitle);
+  return /^(classic|expert|master|journey) mode$/i.test(normalized)
+    || /^(desktop|console|mobile|old-gen console|3ds|nintendo switch|tmodloader) version(?: history)?$/i.test(normalized)
+    || /^version history$/i.test(normalized)
+    || /^legacy:.*\bversion\b/i.test(normalized);
+}
+
+function isNonEntityLinkText(text) {
+  const normalized = normalizeLinkText(text);
+  return /^\d+(?:\.\d+)?$/.test(normalized)
+    || /^\([^)]*\bversions?\)$/i.test(normalized)
+    || /\bversions?\b/i.test(normalized)
+    || /^(classic|expert|master|journey) mode$/i.test(normalized);
 }
 
 function normalizeLinkText(text) {

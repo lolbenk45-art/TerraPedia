@@ -43,6 +43,40 @@ function normalizeBiomePairKey(itemInternalName, biomeCode) {
 
 const BLOCKED_BUFF_FACT_RESOLVE_STATUSES = new Set(['unresolved', 'ambiguous']);
 
+const NON_ENTITY_BUFF_FACT_PAGE_TITLES = new Set([
+  'Classic Mode',
+  'Expert Mode',
+  'Master Mode',
+  'Journey Mode',
+  'Desktop version',
+  'Console version',
+  'Mobile version',
+  'Old-gen console version',
+  '3DS version',
+  'Nintendo Switch version',
+  'TModLoader version',
+  'Version history'
+]);
+
+const REVIEWED_BUFF_NPC_ALIAS_TARGETS = Object.freeze({
+  Diabolist: ['DiabolistRed'],
+  LunaticCultist: ['CultistBoss'],
+  RustyArmoredBones: ['RustyArmoredBonesAxe'],
+  SandPoacher: ['DesertScorpionWalk'],
+  Scarecrow: [
+    'Scarecrow1',
+    'Scarecrow2',
+    'Scarecrow3',
+    'Scarecrow4',
+    'Scarecrow5',
+    'Scarecrow6',
+    'Scarecrow7',
+    'Scarecrow8',
+    'Scarecrow9',
+    'Scarecrow10'
+  ]
+});
+
 function normalizeLookupKey(value) {
   const text = normalizeText(value);
   return text == null ? null : text.toLowerCase();
@@ -108,6 +142,45 @@ function buildMaintIdentityIndex(rows = []) {
   return { bySourceId, byInternalName, byInternalNameLower, byDisplayName };
 }
 
+function isNonEntityBuffFact(row) {
+  const pageTitle = normalizeText(row?.pageTitle ?? row?.page_title);
+  const name = normalizeText(row?.name ?? row?.nameZh ?? row?.title);
+  const internalName = normalizeText(row?.internalName ?? row?.npcInternalName ?? row?.itemInternalName);
+  if (pageTitle && NON_ENTITY_BUFF_FACT_PAGE_TITLES.has(pageTitle)) {
+    return true;
+  }
+  if (name && /^\d+(?:\.\d+)?$/.test(name) && pageTitle && NON_ENTITY_BUFF_FACT_PAGE_TITLES.has(pageTitle)) {
+    return true;
+  }
+  return internalName != null && /^(classic|expert|master|journey)mode$/i.test(internalName);
+}
+
+function resolveReviewedBuffNpcAliases(row, index) {
+  if (isNonEntityBuffFact(row)) {
+    return [];
+  }
+  const candidates = [
+    normalizeText(row?.internalName ?? row?.npcInternalName),
+    normalizeText(row?.pageTitle ?? row?.title),
+    normalizeText(row?.name)
+  ].filter(Boolean);
+  const targetInternalNames = [];
+  for (const candidate of candidates) {
+    const targets = REVIEWED_BUFF_NPC_ALIAS_TARGETS[candidate];
+    if (!targets) {
+      continue;
+    }
+    for (const target of targets) {
+      if (!targetInternalNames.includes(target)) {
+        targetInternalNames.push(target);
+      }
+    }
+  }
+  return targetInternalNames
+    .map((internalName) => index.byInternalName.get(internalName) ?? getUniqueIdentity(index.byInternalNameLower, internalName))
+    .filter(Boolean);
+}
+
 function resolveBuffFactIdentity(row, {
   idKeys,
   internalNameKeys,
@@ -142,6 +215,14 @@ function resolveBuffFactIdentity(row, {
     if (match) return match;
   }
   return null;
+}
+
+function resolveBuffFactIdentities(row, options = {}) {
+  const identity = resolveBuffFactIdentity(row, options);
+  if (identity != null) {
+    return [identity];
+  }
+  return resolveReviewedBuffNpcAliases(row, options.index);
 }
 
 function buildBuffFactIssue({
@@ -387,6 +468,9 @@ export function buildSecondaryRelations({
       }))
       .flatMap(({ sourceItem, identity }, index) => {
         if (identity == null) {
+          if (isNonEntityBuffFact(sourceItem)) {
+            return [];
+          }
           itemBuffFactIssues.push(buildBuffFactIssue({
             buffRow: row,
             factRow: sourceItem,
@@ -441,15 +525,18 @@ export function buildSecondaryRelations({
     return inflictingNpcs
       .map((inflictingNpc) => ({
         inflictingNpc,
-        identity: resolveBuffFactIdentity(inflictingNpc, {
+        identities: resolveBuffFactIdentities(inflictingNpc, {
           idKeys: ['npcId', 'npcSourceId', 'sourceId'],
           internalNameKeys: ['internalName', 'npcInternalName'],
           displayNameKeys: ['pageTitle', 'name', 'nameZh', 'title'],
           index: maintNpcIndex
         })
       }))
-      .flatMap(({ inflictingNpc, identity }, index) => {
-        if (identity == null) {
+      .flatMap(({ inflictingNpc, identities }, index) => {
+        if (identities.length === 0) {
+          if (isNonEntityBuffFact(inflictingNpc)) {
+            return [];
+          }
           npcBuffFactIssues.push(buildBuffFactIssue({
             buffRow: row,
             factRow: inflictingNpc,
@@ -464,7 +551,7 @@ export function buildSecondaryRelations({
           }));
           return [];
         }
-        return [{
+        return identities.map((identity) => ({
           recordKey: createRecordKey({
             type: 'npc_buff_relation',
             buffSourceId: row.source_id ?? null,
@@ -486,7 +573,7 @@ export function buildSecondaryRelations({
           confidence: confidence.high,
           reason: 'maint_buff_inflicting_npc',
           ...trace
-        }];
+        }));
       });
   });
 

@@ -50,6 +50,22 @@ const HIGH_RISK_DEBUFF_MIN_NPC_COUNTS = new Map([
   ['Confused', 2],
 ]);
 
+const RELEVANT_FACT_GROUP_SECTION_KEYS = {
+  sourceItems: new Set([
+    'from player',
+    'from item',
+    'from environment',
+    '来自玩家',
+    '来自物品',
+    '来自环境',
+  ]),
+  inflictingNpcs: new Set([
+    'from enemy',
+    'from npcs',
+    '来自敌怪',
+  ]),
+};
+
 function parseArgs(argv) {
   const args = {};
   for (const token of argv) {
@@ -89,7 +105,30 @@ function getFactGroupStatus(buff, group) {
 }
 
 function hasTrustedEmptyFactGroup(buff, group) {
-  return getFactGroupStatus(buff, group) === 'section_missing';
+  if (getFactGroupStatus(buff, group) !== 'section_missing') {
+    return false;
+  }
+  return !hasRelevantSectionEvidenceForFactGroup(buff, group);
+}
+
+function hasRelevantSectionEvidenceForFactGroup(buff, group) {
+  const relevantKeys = RELEVANT_FACT_GROUP_SECTION_KEYS[group];
+  if (!relevantKeys) {
+    return false;
+  }
+  const sectionKeys = [
+    ...toArray(buff?.sourceEvidence?.sectionAnchors),
+    ...toArray(buff?.sourceEvidence?.sourceSections),
+  ].map((value) => normalizeSectionKey(value)).filter(Boolean);
+  return sectionKeys.some((key) => relevantKeys.has(key));
+}
+
+function normalizeSectionKey(value) {
+  const text = toText(value);
+  if (!text) {
+    return null;
+  }
+  return text.replace(/_/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
 function getSourceItemCount(buff) {

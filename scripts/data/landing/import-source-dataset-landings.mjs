@@ -21,6 +21,9 @@ const require = createRequire(import.meta.url);
 const defaultMysqlModule = require('mysql2/promise');
 
 const defaultRepoRoot = resolveProjectPath();
+const SINGLE_CURRENT_DATASET_TYPES = new Set([
+  'buffs_raw',
+]);
 
 export function parseArgs(argv) {
   const args = {};
@@ -311,6 +314,18 @@ async function loadCurrentLandingRows(connection, row) {
   return rows;
 }
 
+async function loadCurrentDatasetRows(connection, row) {
+  const [rows] = await connection.execute(
+    `SELECT id, content_hash, source_page, provider, source_key
+     FROM source_dataset_landings
+     WHERE dataset_type = ?
+       AND is_current = 1
+     ORDER BY id`,
+    [row.datasetType],
+  );
+  return rows;
+}
+
 async function insertLandingRow(connection, row) {
   await connection.execute(
     `INSERT INTO source_dataset_landings (
@@ -397,7 +412,12 @@ async function clearArchivedLandingRowForKey(connection, row, sourcePage, keepRo
 }
 
 async function retireLandingRow(connection, rowId, row, sourcePage) {
-  await clearArchivedLandingRowForKey(connection, row, sourcePage, rowId);
+  const retirementKey = {
+    ...row,
+    provider: normalizeText(row.provider),
+    sourceKey: normalizeText(row.sourceKey),
+  };
+  await clearArchivedLandingRowForKey(connection, retirementKey, sourcePage, rowId);
   await connection.execute(
     `UPDATE source_dataset_landings
      SET is_current = 0,
@@ -410,18 +430,28 @@ async function retireLandingRow(connection, rowId, row, sourcePage) {
 async function upsertLandingEntry(connection, entry, summary) {
   const payload = await resolveEntryPayload(entry);
   const row = buildLandingRow(entry, payload);
+  const datasetCurrentRows = SINGLE_CURRENT_DATASET_TYPES.has(row.datasetType)
+    ? await loadCurrentDatasetRows(connection, row)
+    : [];
   const currentRows = await loadCurrentLandingRows(connection, row);
   if (!currentRows.length) {
     await insertLandingRow(connection, row);
-    summary.rows.inserted += 1;
+    for (const stale of datasetCurrentRows) {
+      await retireLandingRow(connection, Number(stale.id), { ...row, provider: stale.provider, sourceKey: stale.source_key }, stale.source_page);
+    }
+    if (datasetCurrentRows.length > 0) {
+      summary.rows.replaced += 1;
+    } else {
+      summary.rows.inserted += 1;
+    }
     return;
   }
 
   const exactCurrent = currentRows.find((current) => normalizeText(current.source_page, row.sourceKey) === row.sourcePage);
   if (exactCurrent && normalizeText(exactCurrent.content_hash) === row.contentHash) {
-    for (const stale of currentRows) {
+    for (const stale of datasetCurrentRows) {
       if (Number(stale.id) !== Number(exactCurrent.id)) {
-        await retireLandingRow(connection, Number(stale.id), row, stale.source_page);
+        await retireLandingRow(connection, Number(stale.id), { ...row, provider: stale.provider, sourceKey: stale.source_key }, stale.source_page);
       }
     }
     await updateLandingRow(connection, Number(exactCurrent.id), row);

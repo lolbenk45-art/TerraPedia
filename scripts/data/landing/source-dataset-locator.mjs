@@ -246,25 +246,30 @@ export async function listSourceDatasetLandingInputs(options = {}) {
     }),
   );
 
-  await pushFileDescriptor(
-    'buffs_raw',
-    path.join(sharedDataRoot, 'raw', 'wiki', 'template__getbuffinfo.parsed.latest.json'),
-    (filePath, payload) => buildFileDescriptor({
-      datasetType: 'buffs_raw',
-      filePath,
-      payload,
-      provider: 'terraria.wiki.gg',
-      sourceKind: 'template',
-      sourceKey: 'wiki.template.getbuffinfo',
-      sourcePage: payload.sourcePageTitle,
-      sourceRevisionTimestamp: payload.sourceRevisionTimestamp,
-      fetchedAt: payload.fetchedAt,
-      parsedAt: payload.fetchedAt,
-      parseStatus: 'ok',
-      repoRoot,
-      sharedDataRoot,
-    }),
-  );
+  if (shouldInclude('buffs_raw')) {
+    const standardizedBuffsPath = path.join(repoRoot, 'data', 'standardized', 'buffs.standardized.json');
+    const rawTemplateBuffsPath = path.join(sharedDataRoot, 'raw', 'wiki', 'template__getbuffinfo.parsed.latest.json');
+    const filePath = (await exists(standardizedBuffsPath)) ? standardizedBuffsPath : rawTemplateBuffsPath;
+    if (await exists(filePath)) {
+      const payload = await readJson(filePath);
+      const usesStandardizedPayload = filePath === standardizedBuffsPath;
+      entries.push(buildFileDescriptor({
+        datasetType: 'buffs_raw',
+        filePath,
+        payload,
+        provider: usesStandardizedPayload ? 'terrapedia.generated' : 'terraria.wiki.gg',
+        sourceKind: usesStandardizedPayload ? 'generated_standardized' : 'template',
+        sourceKey: usesStandardizedPayload ? 'generated.buffs.standardized' : 'wiki.template.getbuffinfo',
+        sourcePage: usesStandardizedPayload ? 'buffs.standardized' : payload.sourcePageTitle,
+        sourceRevisionTimestamp: usesStandardizedPayload ? null : payload.sourceRevisionTimestamp,
+        fetchedAt: usesStandardizedPayload ? payload.generatedAt : payload.fetchedAt,
+        parsedAt: usesStandardizedPayload ? payload.generatedAt : payload.fetchedAt,
+        parseStatus: 'ok',
+        repoRoot,
+        sharedDataRoot,
+      }));
+    }
+  }
 
   if (shouldInclude('item_pages_raw')) {
     const itemPageDir = path.join(sharedDataRoot, 'raw', 'wiki', 'item-pages');

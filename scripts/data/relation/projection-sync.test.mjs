@@ -128,6 +128,29 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
         relationType: 'npc_infobox_projectile'
       }
     ],
+    itemBuffRelations: [
+      {
+        itemSourceId: 1,
+        itemInternalName: 'IronPickaxe',
+        relationType: 'buff_source_item',
+        buffSourceId: 1,
+        buffInternalName: 'ObsidianSkin',
+        sourceProvider: 'terrapedia.generated',
+        sourcePage: 'buffs.standardized'
+      }
+    ],
+    npcBuffRelations: [
+      {
+        npcSourceId: -65,
+        npcInternalName: 'BigHornetStingy',
+        npcName: 'Hornet',
+        relationType: 'inflicts',
+        buffSourceId: 1,
+        buffInternalName: 'ObsidianSkin',
+        sourceProvider: 'terrapedia.generated',
+        sourcePage: 'buffs.standardized'
+      }
+    ],
     relationBuffs: [
       {
         recordKey: 'buff-rk',
@@ -140,8 +163,8 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
         buffType: 'buff',
         sourceItemCount: 1,
         immuneNpcCount: 2,
-        sourceItemsJson: '[{"itemId":1,"internalName":"ObsidianPotion"}]',
-        inflictingNpcsJson: '[{"npcId":59,"internalName":"LavaSlime","name":"Lava Slime"}]',
+        sourceItemsJson: '[{"itemId":9999,"internalName":"UnresolvedRawItem"}]',
+        inflictingNpcsJson: '[{"npcId":59,"internalName":"ExpertMode","name":"20","pageTitle":"Expert Mode"}]',
         immuneNpcsJson: '[{"npcId":68,"internalName":"DungeonGuardian","name":"Dungeon Guardian"},{"npcId":69,"internalName":"Clinger","name":"Clinger"}]',
         immuneNpcSampleJson: '[{"npcId":68,"internalName":"DungeonGuardian","name":"Dungeon Guardian"}]',
         sourceEvidenceJson: '{"provider":"terraria.wiki.gg","pageTitle":"Obsidian Skin","parseStatus":"parsed","unresolvedFacts":[]}',
@@ -200,11 +223,48 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
   assert.equal(actual.projectionBuffs[0].image, 'http://localhost:9000/terrapedia-images/buffs/buff.png');
   assert.equal(actual.projectionBuffs[0].buffType, 'buff');
   assert.deepEqual(JSON.parse(actual.projectionBuffs[0].sourceItemsJson), [
-    { itemId: 1, internalName: 'ObsidianPotion' }
+    {
+      itemId: 1,
+      sourceId: 1,
+      internalName: 'IronPickaxe',
+      itemInternalName: 'IronPickaxe',
+      name: 'Iron Pickaxe',
+      nameZh: 'iron pickaxe zh',
+      imageUrl: 'http://localhost:9000/terrapedia-images/items/iron.png',
+      source: 'buff-page-causes',
+      sourceKind: 'item',
+      sourceSection: 'From item',
+      relationType: 'buff_source_item',
+      buffTime: null,
+      chanceText: null,
+      conditions: null,
+      relationRecordKey: null,
+      sourceProvider: 'terrapedia.generated',
+      sourcePage: 'buffs.standardized'
+    }
   ]);
   assert.deepEqual(JSON.parse(actual.projectionBuffs[0].inflictingNpcsJson), [
-    { npcId: 59, internalName: 'LavaSlime', name: 'Lava Slime' }
+    {
+      npcId: -65,
+      sourceId: -65,
+      internalName: 'BigHornetStingy',
+      npcInternalName: 'BigHornetStingy',
+      name: 'Hornet',
+      nameZh: 'hornet zh',
+      imageUrl: 'http://localhost:9000/terrapedia-images/items/stingy-hornet.gif',
+      source: 'buff-page-causes',
+      sourceKind: 'enemy',
+      sourceSection: 'From enemy',
+      relationType: 'inflicts',
+      buffTime: null,
+      chanceText: null,
+      conditions: null,
+      relationRecordKey: null,
+      sourceProvider: 'terrapedia.generated',
+      sourcePage: 'buffs.standardized'
+    }
   ]);
+  assert.equal(actual.projectionBuffs[0].sourceItemCount, 1);
   assert.deepEqual(JSON.parse(actual.projectionBuffs[0].immuneNpcsJson), [
     { npcId: 68, internalName: 'DungeonGuardian', name: 'Dungeon Guardian' },
     { npcId: 69, internalName: 'Clinger', name: 'Clinger' }
