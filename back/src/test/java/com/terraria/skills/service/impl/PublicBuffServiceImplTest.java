@@ -379,6 +379,100 @@ class PublicBuffServiceImplTest {
     }
 
     @Test
+    void shouldEnrichRelationSourceItemImageFromLocalItemImagesWhenProjectionImageIsMissing() {
+        Buff buff = new Buff();
+        buff.setId(31L);
+        buff.setSourceId(31);
+        buff.setInternalName("Confused");
+        buff.setEnglishName("Confused");
+        buff.setBuffType("debuff");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(31L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(31))).thenReturn(List.of(Map.of(
+            "source_item_count", 1,
+            "immune_npc_count", 0,
+            "source_items_json",
+            "[]",
+            "inflicting_npcs_json",
+            "[]",
+            "immune_npcs_json",
+            "[]",
+            "source_evidence_json",
+            "{\"parseStatus\":\"parsed\"}"
+        )));
+        when(jdbcTemplate.queryForList(argThat(sql -> sql != null
+            && sql.contains("FROM `terria_v1_relation`.`item_buff_relations`")
+            && sql.contains("LEFT JOIN items")
+            && sql.contains("item_images ii")), any(Object[].class))).thenReturn(List.of(Map.of(
+            "id", 3223L,
+            "sourceId", 3223,
+            "internalName", "BrainOfConfusion",
+            "name", "Brain of Confusion",
+            "nameZh", "混乱之脑",
+            "imageUrl", CDN_ITEM_IMAGE_URL,
+            "relationType", "buff_source_item",
+            "sourceProvider", "terrapedia.generated",
+            "sourcePage", "buffs.standardized"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(31L);
+
+        assertNotNull(detail);
+        assertEquals(1, detail.getSourceItems().size());
+        PublicBuffDetailDTO.FactSummary brain = detail.getSourceItems().get(0);
+        assertEquals("BrainOfConfusion", brain.getInternalName());
+        assertEquals(CDN_ITEM_IMAGE_URL, brain.getImageUrl());
+    }
+
+    @Test
+    void shouldEnrichRelationInflictingNpcImageFromLocalNpcWhenProjectionImageIsMissing() {
+        Buff buff = new Buff();
+        buff.setId(31L);
+        buff.setSourceId(31);
+        buff.setInternalName("Confused");
+        buff.setEnglishName("Confused");
+        buff.setBuffType("debuff");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(31L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(31))).thenReturn(List.of(Map.of(
+            "source_item_count", 0,
+            "immune_npc_count", 0,
+            "source_items_json",
+            "[]",
+            "inflicting_npcs_json",
+            "[]",
+            "immune_npcs_json",
+            "[]",
+            "source_evidence_json",
+            "{\"parseStatus\":\"parsed\"}"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`item_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(argThat(sql -> sql != null
+            && sql.contains("FROM `terria_v1_relation`.`npc_buff_relations`")
+            && sql.contains("LEFT JOIN npcs")), any(Object[].class))).thenReturn(List.of(Map.of(
+            "id", 93L,
+            "sourceId", 93,
+            "internalName", "GiantBat",
+            "name", "Giant Bat",
+            "imageUrl", CDN_NPC_IMAGE_URL,
+            "relationType", "inflicts"
+        )));
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(31L);
+
+        assertNotNull(detail);
+        assertEquals(1, detail.getInflictingNpcs().size());
+        PublicBuffDetailDTO.FactSummary giantBat = detail.getInflictingNpcs().get(0);
+        assertEquals("GiantBat", giantBat.getInternalName());
+        assertEquals(CDN_NPC_IMAGE_URL, giantBat.getImageUrl());
+    }
+
+    @Test
     void shouldEnrichImmuneNpcEvidenceByDisplayNameWhenInternalNameIsWikiAlias() {
         Buff buff = new Buff();
         buff.setId(39L);

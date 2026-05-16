@@ -274,14 +274,14 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         }
         try {
             return jdbcTemplate.queryForList(
-                """
+                ("""
                 SELECT
-                  pi.id AS id,
-                  COALESCE(pi.id, ibr.item_source_id) AS sourceId,
-                  COALESCE(pi.internal_name, ibr.item_internal_name) AS internalName,
-                  COALESCE(pi.name, ibr.item_internal_name) AS name,
-                  pi.name_zh AS nameZh,
-                  pi.image AS imageUrl,
+                  COALESCE(pi.id, li.id) AS id,
+                  COALESCE(pi.id, li.id, ibr.item_source_id) AS sourceId,
+                  COALESCE(pi.internal_name, li.internal_name, ibr.item_internal_name) AS internalName,
+                  COALESCE(pi.name, li.name, ibr.item_internal_name) AS name,
+                  COALESCE(pi.name_zh, li.name_zh) AS nameZh,
+                  COALESCE(pi.image, %s, li.image) AS imageUrl,
                   ibr.relation_type AS relationType,
                   ibr.duration_ticks AS durationTicks,
                   ibr.chance_text AS chanceText,
@@ -293,12 +293,22 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                 LEFT JOIN `terria_v1_relation`.`projection_items` pi
                   ON (ibr.item_source_id IS NOT NULL AND pi.id = ibr.item_source_id)
                   OR (ibr.item_internal_name IS NOT NULL AND pi.internal_name = ibr.item_internal_name)
+                LEFT JOIN items li
+                  ON li.deleted = 0
+                  AND (
+                    (ibr.item_source_id IS NOT NULL AND li.id = ibr.item_source_id)
+                    OR (
+                      ibr.item_source_id IS NULL
+                      AND ibr.item_internal_name IS NOT NULL
+                      AND li.internal_name COLLATE utf8mb4_unicode_ci = ibr.item_internal_name COLLATE utf8mb4_unicode_ci
+                    )
+                  )
                 WHERE ibr.deleted = 0
                   AND ibr.relation_type = 'buff_source_item'
                   AND (""" + String.join(" OR ", relationPredicates) + """
 )
                 ORDER BY ibr.id ASC
-                """,
+                """).formatted(localItemImageExpression("li")),
                 relationArgs.toArray()
             ).stream().map(row -> PublicBuffDetailDTO.FactSummary.builder()
                 .id(toLong(row.get("id")))
@@ -320,6 +330,10 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         } catch (Exception ignored) {
             return List.of();
         }
+    }
+
+    private String localItemImageExpression(String itemAlias) {
+        return ItemImageSql.preferredItemImageExpression(itemAlias);
     }
 
     private List<PublicBuffDetailDTO.FactSummary> loadInflictingNpcs(Buff buff, ProjectionBuffEvidence projectionEvidence) {
@@ -347,12 +361,12 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                 List<PublicBuffDetailDTO.FactSummary> relationFacts = jdbcTemplate.queryForList(
                     """
                     SELECT
-                      pn.id AS id,
-                      COALESCE(pn.game_id, pn.source_id, nbr.npc_source_id) AS sourceId,
-                      COALESCE(pn.internal_name, nbr.npc_internal_name) AS internalName,
-                      COALESCE(pn.name, nbr.npc_name) AS name,
-                      pn.name_zh AS nameZh,
-                      pn.image_url AS imageUrl,
+                      COALESCE(pn.id, ln.id) AS id,
+                      COALESCE(pn.game_id, pn.source_id, ln.game_id, ln.source_id, nbr.npc_source_id) AS sourceId,
+                      COALESCE(pn.internal_name, ln.internal_name, nbr.npc_internal_name) AS internalName,
+                      COALESCE(pn.name, ln.name, nbr.npc_name) AS name,
+                      COALESCE(pn.name_zh, ln.name_zh) AS nameZh,
+                      COALESCE(pn.image_url, ln.image_url) AS imageUrl,
                       nbr.relation_type AS relationType,
                       nbr.duration_ticks AS durationTicks,
                       nbr.chance_text AS chanceText,
@@ -361,6 +375,16 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                     LEFT JOIN `terria_v1_relation`.`projection_npcs` pn
                       ON (nbr.npc_source_id IS NOT NULL AND (pn.source_id = nbr.npc_source_id OR pn.game_id = nbr.npc_source_id))
                       OR (nbr.npc_internal_name IS NOT NULL AND pn.internal_name = nbr.npc_internal_name)
+                    LEFT JOIN npcs ln
+                      ON ln.deleted = 0
+                      AND (
+                        (nbr.npc_source_id IS NOT NULL AND (ln.source_id = nbr.npc_source_id OR ln.game_id = nbr.npc_source_id))
+                        OR (
+                          nbr.npc_source_id IS NULL
+                          AND nbr.npc_internal_name IS NOT NULL
+                          AND ln.internal_name COLLATE utf8mb4_unicode_ci = nbr.npc_internal_name COLLATE utf8mb4_unicode_ci
+                        )
+                      )
                     WHERE nbr.deleted = 0
                       AND nbr.relation_type = 'inflicts'
                       AND (""" + String.join(" OR ", relationPredicates) + """
