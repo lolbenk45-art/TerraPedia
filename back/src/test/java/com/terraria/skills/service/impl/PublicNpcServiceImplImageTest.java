@@ -1,7 +1,9 @@
 package com.terraria.skills.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.dto.NpcDetailDTO;
 import com.terraria.skills.dto.NpcBuffRelationDTO;
 import com.terraria.skills.dto.NpcListItemDTO;
 import com.terraria.skills.dto.NpcLootEntryDTO;
@@ -21,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
@@ -149,6 +152,76 @@ class PublicNpcServiceImplImageTest {
         assertEquals(lootItemsJson, ReflectionTestUtils.getField(result, "lootItemsJson"));
         assertEquals(shopItemsJson, ReflectionTestUtils.getField(result, "shopItemsJson"));
         assertEquals(sourceItemsJson, ReflectionTestUtils.getField(result, "sourceItemsJson"));
+    }
+
+    @Test
+    void shouldCollapseMultipartSameNameNpcSearchToHeadRepresentative() {
+        Npc head = npc(454L, 454L, "CultistDragonHead", "Phantasm Dragon");
+        Npc body = npc(455L, 455L, "CultistDragonBody1", "Phantasm Dragon");
+        Npc tail = npc(459L, 459L, "CultistDragonTail", "Phantasm Dragon");
+
+        Page<Npc> page = new Page<>(1, 20);
+        page.setTotal(3);
+        page.setRecords(List.of(head, body, tail));
+        when(npcMapper.selectPage(any(Page.class), any())).thenReturn(page);
+
+        PublicNpcQuery query = new PublicNpcQuery();
+        query.setPage(1);
+        query.setLimit(20);
+        query.setSearch("Phantasm Dragon");
+
+        Page<NpcListItemDTO> result = newService().getNpcs(query);
+
+        assertEquals(1, result.getRecords().size());
+        assertEquals(1, result.getTotal());
+        NpcListItemDTO representative = result.getRecords().get(0);
+        assertEquals(454L, representative.getId());
+        assertEquals(454L, representative.getGameId());
+        assertEquals("CultistDragonHead", representative.getInternalName());
+    }
+
+    @Test
+    void shouldSearchMultipartBodyInternalNameThroughHeadRepresentative() {
+        Npc head = npc(454L, 454L, "CultistDragonHead", "Phantasm Dragon");
+        Page<Npc> page = new Page<>(1, 20);
+        page.setTotal(1);
+        page.setRecords(List.of(head));
+        when(npcMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(page);
+
+        PublicNpcQuery query = new PublicNpcQuery();
+        query.setSearch("CultistDragonBody1");
+
+        Page<NpcListItemDTO> result = newService().getNpcs(query);
+
+        assertEquals(1, result.getRecords().size());
+        assertEquals(454L, result.getRecords().get(0).getId());
+        assertEquals("CultistDragonHead", result.getRecords().get(0).getInternalName());
+    }
+
+    @Test
+    void shouldDeriveMultipartRootFromBodyAndTailSearchText() throws Exception {
+        PublicNpcServiceImpl service = newService();
+        Method method = PublicNpcServiceImpl.class.getDeclaredMethod("multipartSegmentRoot", String.class);
+        method.setAccessible(true);
+
+        assertEquals("CultistDragon", method.invoke(service, "CultistDragonBody1"));
+        assertEquals("CultistDragon", method.invoke(service, "CultistDragonTail"));
+        assertNull(method.invoke(service, "Guide"));
+        assertNull(method.invoke(service, "Tail"));
+    }
+
+    @Test
+    void shouldResolveMultipartBodyDetailToHeadRepresentative() {
+        Npc body = npc(455L, 455L, "CultistDragonBody1", "Phantasm Dragon");
+        Npc head = npc(454L, 454L, "CultistDragonHead", "Phantasm Dragon");
+        when(npcMapper.selectById(455L)).thenReturn(body);
+        when(npcMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(head);
+
+        NpcDetailDTO result = newService().getNpcById(455L);
+
+        assertEquals(454L, result.getId());
+        assertEquals(454L, result.getGameId());
+        assertEquals("CultistDragonHead", result.getInternalName());
     }
 
     @Test
@@ -469,6 +542,18 @@ class PublicNpcServiceImplImageTest {
 
     private PublicNpcServiceImpl newService() {
         return new PublicNpcServiceImpl(npcMapper, categoryMapper, jdbcTemplate, new ObjectMapper(), managedImageUrlPolicy(), managedItemImageResolver);
+    }
+
+    private Npc npc(Long id, Long gameId, String internalName, String name) {
+        Npc npc = new Npc();
+        npc.setId(id);
+        npc.setGameId(gameId);
+        npc.setInternalName(internalName);
+        npc.setName(name);
+        npc.setCategoryId(1L);
+        npc.setIsBoss(false);
+        npc.setStatus(1);
+        return npc;
     }
 
     private ManagedImageUrlPolicy managedImageUrlPolicy() {

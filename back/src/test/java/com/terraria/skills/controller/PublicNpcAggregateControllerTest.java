@@ -129,6 +129,30 @@ class PublicNpcAggregateControllerTest {
     }
 
     @Test
+    void shouldQueryAggregateModulesWithResolvedRepresentativeNpcId() throws Exception {
+        NpcDetailDTO npc = new NpcDetailDTO();
+        npc.setId(454L);
+        npc.setGameId(454L);
+        npc.setInternalName("CultistDragonHead");
+        npc.setName("Phantasm Dragon");
+
+        publicNpcService.npcToReturn = npc;
+
+        mockMvc.perform(get("/public/npcs/455/aggregate")
+                .param("include", "loot,shop,buffs")
+                .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.npc.id").value(454))
+            .andExpect(jsonPath("$.data.npc.internalName").value("CultistDragonHead"));
+
+        assertEquals(455L, publicNpcService.lastGetNpcById);
+        assertEquals(454L, publicNpcService.lastLootNpcId);
+        assertEquals(454L, publicNpcService.lastShopNpcId);
+        assertEquals(454L, publicNpcService.lastBuffNpcId);
+    }
+
+    @Test
     void shouldExposeBehaviorNotesOnAggregateNpcBase() throws Exception {
         NpcDetailDTO npc = new NpcDetailDTO();
         npc.setId(7L);
@@ -196,6 +220,10 @@ class PublicNpcAggregateControllerTest {
         private int getNpcLootCalls;
         private int getNpcShopEntriesCalls;
         private int getNpcBuffRelationsCalls;
+        private Long lastGetNpcById;
+        private Long lastLootNpcId;
+        private Long lastShopNpcId;
+        private Long lastBuffNpcId;
 
         @Override
         public com.baomidou.mybatisplus.extension.plugins.pagination.Page<com.terraria.skills.dto.NpcListItemDTO> getNpcs(
@@ -207,24 +235,28 @@ class PublicNpcAggregateControllerTest {
         @Override
         public NpcDetailDTO getNpcById(Long id) {
             getNpcByIdCalls += 1;
+            lastGetNpcById = id;
             return npcToReturn;
         }
 
         @Override
         public List<NpcLootEntryDTO> getNpcLoot(Long npcId, Long gameId, String npcName) {
             getNpcLootCalls += 1;
+            lastLootNpcId = npcId;
             return lootToReturn;
         }
 
         @Override
         public List<NpcShopEntryDTO> getNpcShopEntries(Long npcId) {
             getNpcShopEntriesCalls += 1;
+            lastShopNpcId = npcId;
             return shopEntriesToReturn;
         }
 
         @Override
         public List<NpcBuffRelationDTO> getNpcBuffRelations(Long npcId) {
             getNpcBuffRelationsCalls += 1;
+            lastBuffNpcId = npcId;
             return buffRelationsToReturn;
         }
     }

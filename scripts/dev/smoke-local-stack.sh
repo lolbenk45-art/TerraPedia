@@ -68,6 +68,17 @@ join_url() {
   printf '%s%s\n' "$base" "$path"
 }
 
+is_truthy() {
+  case "${1,,}" in
+    true|1|yes|y|on)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 smoke_request() {
   local name="$1"
   local method="$2"
@@ -104,6 +115,38 @@ const fs = require('node:fs');
     const text = await response.text();
     entry.status = response.status;
     entry.ok = response.status >= 200 && response.status < 300;
+    entry.preview = text.slice(0, 300);
+  } catch (error) {
+    entry.preview = error.message;
+  }
+
+  fs.appendFileSync(process.env.SMOKE_RESULTS_PATH, `${JSON.stringify(entry)}\n`);
+})();
+NODE
+}
+
+smoke_minio_public_endpoint() {
+  SMOKE_MINIO_ENABLED="$TP_MINIO_ENABLED" SMOKE_MINIO_PUBLIC_ENDPOINT="$TP_MINIO_PUBLIC_ENDPOINT" SMOKE_MINIO_BUCKET="$TP_MINIO_BUCKET" SMOKE_RESULTS_PATH="$results_path" node <<'NODE'
+const fs = require('node:fs');
+
+(async () => {
+  const endpoint = (process.env.SMOKE_MINIO_PUBLIC_ENDPOINT || '').replace(/\/+$/, '');
+  const bucket = process.env.SMOKE_MINIO_BUCKET || '';
+  const url = endpoint && bucket ? `${endpoint}/${bucket}/` : endpoint;
+  const entry = {
+    name: 'minio.publicEndpoint',
+    method: 'GET',
+    url,
+    ok: false,
+    status: null,
+    preview: null,
+  };
+
+  try {
+    const response = await fetch(url, { method: 'GET' });
+    const text = await response.text();
+    entry.status = response.status;
+    entry.ok = response.status >= 200 && response.status < 500;
     entry.preview = text.slice(0, 300);
   } catch (error) {
     entry.preview = error.message;
@@ -158,6 +201,9 @@ smoke_request backend.items GET "$(join_url "$backend_base_url" '/api/items?page
 smoke_request backend.categories GET "$(join_url "$backend_base_url" '/api/categories')"
 smoke_request admin.root GET "$(join_url "$admin_base_url" '/')"
 smoke_request admin.proxy.items GET "$(join_url "$admin_base_url" '/api/items?page=1&limit=1')"
+if is_truthy "$TP_MINIO_ENABLED" && [[ -n "$TP_MINIO_PUBLIC_ENDPOINT" ]]; then
+  smoke_minio_public_endpoint
+fi
 
 if ! $skip_auth && [[ -n "$TP_ADMIN_USERNAME" && -n "$TP_ADMIN_PASSWORD" ]]; then
   bearer_token="$(SMOKE_AUTH_LOGIN=1 smoke_login "$(join_url "$backend_base_url" '/api/auth/login')")"
@@ -168,7 +214,7 @@ if ! $skip_auth && [[ -n "$TP_ADMIN_USERNAME" && -n "$TP_ADMIN_PASSWORD" ]]; the
   fi
 fi
 
-SMOKE_TIMESTAMP="$timestamp" SMOKE_BACKEND_BASE_URL="$backend_base_url" SMOKE_ADMIN_BASE_URL="$admin_base_url" SMOKE_RESULTS_PATH="$results_path" SMOKE_REPORT_PATH="$report_path" node <<'NODE'
+SMOKE_TIMESTAMP="$timestamp" SMOKE_BACKEND_BASE_URL="$backend_base_url" SMOKE_ADMIN_BASE_URL="$admin_base_url" SMOKE_MINIO_ENABLED="$TP_MINIO_ENABLED" SMOKE_MINIO_PUBLIC_ENDPOINT="$TP_MINIO_PUBLIC_ENDPOINT" SMOKE_RESULTS_PATH="$results_path" SMOKE_REPORT_PATH="$report_path" node <<'NODE'
 const fs = require('node:fs');
 const lines = fs.existsSync(process.env.SMOKE_RESULTS_PATH)
   ? fs.readFileSync(process.env.SMOKE_RESULTS_PATH, 'utf8').trim().split('\n').filter(Boolean)
@@ -178,6 +224,10 @@ const summary = {
   timestamp: process.env.SMOKE_TIMESTAMP,
   backendBaseUrl: process.env.SMOKE_BACKEND_BASE_URL,
   adminBaseUrl: process.env.SMOKE_ADMIN_BASE_URL,
+  minio: {
+    enabled: ['true', '1', 'yes', 'y', 'on'].includes(String(process.env.SMOKE_MINIO_ENABLED || '').toLowerCase()),
+    publicEndpoint: process.env.SMOKE_MINIO_PUBLIC_ENDPOINT || '',
+  },
   total: results.length,
   passed: results.filter((entry) => entry.ok).length,
   failed: results.filter((entry) => !entry.ok).length,

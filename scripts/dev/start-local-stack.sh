@@ -100,6 +100,91 @@ require_runtime_secret_before_manifest() {
   fi
 }
 
+is_truthy() {
+  case "${1,,}" in
+    true|1|yes|y|on)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+resolve_runtime_path() {
+  local input_path="$1"
+
+  RUNTIME_PATH="$input_path" RUNTIME_REPO_ROOT="$REPO_ROOT" RUNTIME_CONFIG_PATH="$TP_CONFIG_PATH" node --input-type=module <<'NODE'
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
+const raw = process.env.RUNTIME_PATH || '';
+if (!raw) {
+  process.stdout.write('');
+  process.exit(0);
+}
+
+function expandHome(value) {
+  if (value === '~') return os.homedir();
+  if (value.startsWith('~/')) return path.join(os.homedir(), value.slice(2));
+  return value;
+}
+
+const expanded = expandHome(raw);
+if (path.isAbsolute(expanded)) {
+  process.stdout.write(path.normalize(expanded));
+  process.exit(0);
+}
+
+const repoRoot = process.env.RUNTIME_REPO_ROOT || process.cwd();
+const configPath = process.env.RUNTIME_CONFIG_PATH || '';
+const marker = `${path.sep}scripts${path.sep}dev${path.sep}config${path.sep}`;
+const configRoot = configPath.includes(marker) ? configPath.slice(0, configPath.indexOf(marker)) : '';
+const candidates = [
+  configRoot && path.resolve(configRoot, expanded),
+  path.resolve(repoRoot, expanded),
+  path.resolve(process.cwd(), expanded),
+].filter(Boolean);
+
+const existing = candidates.find((candidate) => fs.existsSync(candidate));
+process.stdout.write(existing || candidates[0]);
+NODE
+}
+
+url_component() {
+  local value="$1"
+  local component="$2"
+
+  URL_VALUE="$value" URL_COMPONENT="$component" node --input-type=module <<'NODE'
+const value = process.env.URL_VALUE || '';
+const component = process.env.URL_COMPONENT || '';
+const url = new URL(value);
+
+if (component === 'host') {
+  process.stdout.write(url.hostname);
+} else if (component === 'port') {
+  process.stdout.write(url.port || (url.protocol === 'https:' ? '443' : '80'));
+} else {
+  process.stdout.write('');
+}
+NODE
+}
+
+read_minio_credential() {
+  local credentials_path="$1"
+  local field="$2"
+
+  MINIO_CREDENTIALS_PATH="$credentials_path" MINIO_CREDENTIAL_FIELD="$field" node --input-type=module <<'NODE'
+import fs from 'node:fs';
+
+const path = process.env.MINIO_CREDENTIALS_PATH;
+const field = process.env.MINIO_CREDENTIAL_FIELD;
+const parsed = JSON.parse(fs.readFileSync(path, 'utf8'));
+process.stdout.write(String(parsed[field] || ''));
+NODE
+}
+
 if ! $reuse_existing; then
   bash "$SCRIPT_DIR/stop-local-stack.sh"
 fi
@@ -116,6 +201,11 @@ require_command setsid
 require_runtime_secret_before_manifest TP_ADMIN_PASSWORD
 require_runtime_secret_before_manifest TP_ADMIN_TOKEN_SECRET
 require_runtime_secret_before_manifest TP_USER_TOKEN_SECRET
+
+resolved_minio_credentials_file=""
+if [[ -n "$TP_MINIO_CREDENTIALS_FILE" ]]; then
+  resolved_minio_credentials_file="$(resolve_runtime_path "$TP_MINIO_CREDENTIALS_FILE")"
+fi
 
 export APP_PORT="$TP_BACKEND_PORT"
 export TERRAPEDIA_DB_NAME="$TP_DB_NAME"
@@ -135,8 +225,8 @@ export TERRAPEDIA_ADMIN_DISPLAY_NAME="$TP_ADMIN_DISPLAY_NAME"
 export TERRAPEDIA_AUTH_TOKEN_SECRET="$TP_ADMIN_TOKEN_SECRET"
 export TERRAPEDIA_USER_TOKEN_SECRET="$TP_USER_TOKEN_SECRET"
 export TERRAPEDIA_MINIO_ENABLED="$TP_MINIO_ENABLED"
-if [[ -n "$TP_MINIO_CREDENTIALS_FILE" ]]; then
-  export TERRAPEDIA_MINIO_CREDENTIALS_FILE="$TP_MINIO_CREDENTIALS_FILE"
+if [[ -n "$resolved_minio_credentials_file" ]]; then
+  export TERRAPEDIA_MINIO_CREDENTIALS_FILE="$resolved_minio_credentials_file"
 fi
 export TERRAPEDIA_MINIO_ENDPOINT="$TP_MINIO_ENDPOINT"
 export TERRAPEDIA_MINIO_PUBLIC_ENDPOINT="$TP_MINIO_PUBLIC_ENDPOINT"
@@ -184,6 +274,79 @@ start_redis_if_needed() {
 }
 
 start_redis_if_needed
+
+start_minio_if_needed() {
+  if ! is_truthy "$TP_MINIO_ENABLED"; then
+    return 0
+  fi
+
+  require_command node
+
+  local minio_cmd
+  minio_cmd="$(command -v minio || true)"
+  if [[ -z "$minio_cmd" && -x "$HOME/.local/bin/minio" ]]; then
+    minio_cmd="$HOME/.local/bin/minio"
+  fi
+  if [[ -z "$minio_cmd" ]]; then
+    log_error "MinIO is enabled but minio was not found in PATH or $HOME/.local/bin/minio"
+    exit 1
+  fi
+  if [[ -z "$TP_MINIO_ENDPOINT" || -z "$TP_MINIO_PUBLIC_ENDPOINT" ]]; then
+    log_error "MinIO is enabled but endpoint or publicEndpoint is missing"
+    exit 1
+  fi
+  if [[ -z "$resolved_minio_credentials_file" || ! -f "$resolved_minio_credentials_file" ]]; then
+    log_error "MinIO is enabled but credentials file was not found: ${resolved_minio_credentials_file:-<empty>}"
+    exit 1
+  fi
+
+  local access_key root_password data_dir endpoint_host endpoint_port public_host public_port
+  access_key="$(read_minio_credential "$resolved_minio_credentials_file" accessKey)"
+  root_password="$(read_minio_credential "$resolved_minio_credentials_file" secretKey)"
+  if [[ -z "$access_key" || -z "$root_password" ]]; then
+    log_error "MinIO credentials file must contain accessKey and secretKey"
+    exit 1
+  fi
+
+  data_dir="$(resolve_runtime_path "$TP_MINIO_DATA_DIR")"
+  ensure_dir "$data_dir"
+
+  endpoint_host="$(url_component "$TP_MINIO_ENDPOINT" host)"
+  endpoint_port="$(url_component "$TP_MINIO_ENDPOINT" port)"
+  public_host="$(url_component "$TP_MINIO_PUBLIC_ENDPOINT" host)"
+  public_port="$(url_component "$TP_MINIO_PUBLIC_ENDPOINT" port)"
+
+  if ! tcp_check "$endpoint_host" "$endpoint_port" 800; then
+    start_background "minio-$endpoint_port" "$REPO_ROOT" \
+      "minio server $data_dir --address $endpoint_host:$endpoint_port --console-address 127.0.0.1:$TP_MINIO_CONSOLE_PORT" \
+      env MINIO_ROOT_USER="$access_key" MINIO_ROOT_PASSWORD="$root_password" "$minio_cmd" server "$data_dir" --address "$endpoint_host:$endpoint_port" --console-address "127.0.0.1:$TP_MINIO_CONSOLE_PORT"
+    wait_port "$endpoint_host" "$endpoint_port" 25 || {
+      log_error "MinIO failed to start on $endpoint_host:$endpoint_port. Check $(log_path "minio-$endpoint_port")"
+      exit 1
+    }
+  else
+    printf 'minio already running on %s:%s; status=occupied\n' "$endpoint_host" "$endpoint_port"
+  fi
+
+  if ! tcp_check "$public_host" "$public_port" 800; then
+    if [[ "$public_port" == "$endpoint_port" ]]; then
+      log_error "MinIO public endpoint $TP_MINIO_PUBLIC_ENDPOINT is not reachable and uses the same port as endpoint $TP_MINIO_ENDPOINT"
+      exit 1
+    fi
+
+    start_background "minio-public-$public_port" "$REPO_ROOT" \
+      "node scripts/dev/lib/tcp-proxy.mjs $public_host:$public_port -> $endpoint_host:$endpoint_port" \
+      env TP_PROXY_PUBLIC_HOST="$public_host" TP_PROXY_PUBLIC_PORT="$public_port" TP_PROXY_TARGET_HOST="$endpoint_host" TP_PROXY_TARGET_PORT="$endpoint_port" node "$SCRIPT_DIR/lib/tcp-proxy.mjs"
+    wait_port "$public_host" "$public_port" 15 || {
+      log_error "MinIO public endpoint proxy failed to start on $public_host:$public_port. Check $(log_path "minio-public-$public_port")"
+      exit 1
+    }
+  else
+    printf 'minio public endpoint already running on %s:%s; status=occupied\n' "$public_host" "$public_port"
+  fi
+}
+
+start_minio_if_needed
 
 if ! tcp_check 127.0.0.1 "$TP_BACKEND_PORT" 800; then
   start_background back "$REPO_ROOT/back" \
@@ -258,6 +421,20 @@ function portState(port, open) {
   return open ? { "port": Number(port), "status": "occupied" } : { "port": Number(port), "status": "free" };
 }
 
+function truthy(value) {
+  return ['true', '1', 'yes', 'y', 'on'].includes(String(value || '').toLowerCase());
+}
+
+async function tcpEndpointOpen(endpoint) {
+  try {
+    const url = new URL(endpoint);
+    const port = url.port || (url.protocol === 'https:' ? '443' : '80');
+    return await tcpOpen(url.hostname, port);
+  } catch {
+    return false;
+  }
+}
+
 const processLines = fs.existsSync(process.env.TP_PROCESS_FILE)
   ? fs.readFileSync(process.env.TP_PROCESS_FILE, 'utf8').trim().split('\n').filter(Boolean)
   : [];
@@ -268,6 +445,11 @@ const processes = processLines.map((line) => JSON.parse(line));
   const backOpen = await tcpOpen('127.0.0.1', process.env.TP_BACKEND_PORT);
   const frontOpen = await tcpOpen('127.0.0.1', process.env.TP_FRONT_PORT);
   const adminOpen = await tcpOpen('127.0.0.1', process.env.TP_ADMIN_PORT);
+  const minioPublicEndpoint = process.env.TP_MINIO_PUBLIC_ENDPOINT || '';
+  const minioEnabled = truthy(process.env.TP_MINIO_ENABLED);
+  const minioPublicOpen = minioEnabled && minioPublicEndpoint
+    ? await tcpEndpointOpen(minioPublicEndpoint)
+    : false;
 
   const manifest = {
     "runId": process.env.TP_RUN_ID,
@@ -281,6 +463,7 @@ const processes = processLines.map((line) => JSON.parse(line));
       backend: portState(process.env.TP_BACKEND_PORT, backOpen),
       front: portState(process.env.TP_FRONT_PORT, frontOpen),
       admin: portState(process.env.TP_ADMIN_PORT, adminOpen),
+      minioPublic: minioEnabled ? { endpoint: minioPublicEndpoint, status: minioPublicOpen ? 'occupied' : 'free' } : { status: 'disabled' },
     },
     "springProfile": process.env.SPRING_PROFILES_ACTIVE,
     "processes": processes,
@@ -293,6 +476,7 @@ const processes = processLines.map((line) => JSON.parse(line));
       back: { port: Number(process.env.TP_BACKEND_PORT), tcp: backOpen, status: backOpen ? 'occupied' : 'unreachable' },
       front: { port: Number(process.env.TP_FRONT_PORT), tcp: frontOpen, status: frontOpen ? 'occupied' : 'unreachable' },
       dataQueryApp: { port: Number(process.env.TP_ADMIN_PORT), tcp: adminOpen, status: adminOpen ? 'occupied' : 'unreachable' },
+      minioPublic: { endpoint: minioPublicEndpoint, tcp: minioPublicOpen, status: minioEnabled ? (minioPublicOpen ? 'occupied' : 'unreachable') : 'disabled' },
     },
   };
 
@@ -304,4 +488,9 @@ printf '\nredis(%s): %s\n' "$TP_REDIS_PORT" "$(tcp_check "$TP_REDIS_HOST" "$TP_R
 printf 'back(%s): %s\n' "$TP_BACKEND_PORT" "$(tcp_check 127.0.0.1 "$TP_BACKEND_PORT" 500 && printf true || printf false)"
 printf 'front(%s): %s\n' "$TP_FRONT_PORT" "$(tcp_check 127.0.0.1 "$TP_FRONT_PORT" 500 && printf true || printf false)"
 printf 'data-query-app(%s): %s\n' "$TP_ADMIN_PORT" "$(tcp_check 127.0.0.1 "$TP_ADMIN_PORT" 500 && printf true || printf false)"
+if is_truthy "$TP_MINIO_ENABLED"; then
+  minio_public_host="$(url_component "$TP_MINIO_PUBLIC_ENDPOINT" host)"
+  minio_public_port="$(url_component "$TP_MINIO_PUBLIC_ENDPOINT" port)"
+  printf 'minio-public(%s): %s\n' "$TP_MINIO_PUBLIC_ENDPOINT" "$(tcp_check "$minio_public_host" "$minio_public_port" 500 && printf true || printf false)"
+fi
 printf '\ndatabase: %s\nconfig: %s\nflyway.outOfOrder: %s\nmanifest: %s\nLogs: %s\n' "$TP_DB_NAME" "$TP_CONFIG_PATH" "$TP_SPRING_FLYWAY_OUT_OF_ORDER" "$manifest_path" "$report_dir"

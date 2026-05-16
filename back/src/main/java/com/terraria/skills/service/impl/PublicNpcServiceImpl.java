@@ -54,13 +54,18 @@ public class PublicNpcServiceImpl implements PublicNpcService {
     @Override
     public Page<NpcListItemDTO> getNpcs(PublicNpcQuery query) {
         PublicNpcQuery safeQuery = query == null ? new PublicNpcQuery() : query;
+        boolean multipartSearch = isMultipartRepresentativeSearch(safeQuery.getSearch());
         Page<Npc> page = npcMapper.selectPage(
             new Page<>(Math.max(1, safeQuery.getPage()), Math.max(1, safeQuery.getLimit())),
-            buildListWrapper(safeQuery)
+            buildListWrapper(safeQuery, multipartSearch)
         );
 
         Page<NpcListItemDTO> result = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
-        result.setRecords(toListDtos(page.getRecords()));
+        List<Npc> records = collapseMultipartRepresentatives(page.getRecords(), multipartSearch);
+        if (multipartSearch && records.size() != page.getRecords().size()) {
+            result.setTotal(records.size());
+        }
+        result.setRecords(toListDtos(records));
         return result;
     }
 
@@ -73,7 +78,8 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         if (!isPublicNpc(npc)) {
             return null;
         }
-        return toDetailDto(npc, loadCategoryName(npc.getCategoryId()));
+        Npc representative = resolveMultipartRepresentative(npc);
+        return toDetailDto(representative, loadCategoryName(representative.getCategoryId()));
     }
 
     @Override
@@ -265,7 +271,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         ).stream().map(this::toBuffRelationDto).toList();
     }
 
-    private LambdaQueryWrapper<Npc> buildListWrapper(PublicNpcQuery query) {
+    private LambdaQueryWrapper<Npc> buildListWrapper(PublicNpcQuery query, boolean multipartSearch) {
         LambdaQueryWrapper<Npc> wrapper = new LambdaQueryWrapper<>();
         wrapper.and(scope -> scope.eq(Npc::getIsBoss, false).or().isNull(Npc::getIsBoss));
         wrapper.and(scope -> scope.eq(Npc::getStatus, 1).or().isNull(Npc::getStatus));
@@ -279,12 +285,29 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         if (query.getSearch() != null && !query.getSearch().isBlank()) {
             String keyword = query.getSearch().trim();
             Long maybeGameId = toLong(keyword);
+            String multipartRoot = multipartSegmentRoot(keyword);
             wrapper.and(scope -> scope.like(Npc::getInternalName, keyword)
                 .or().like(Npc::getName, keyword)
                 .or().like(Npc::getNameZh, keyword)
                 .or().like(Npc::getSubName, keyword)
                 .or().like(Npc::getSubNameZh, keyword)
+                .or(multipartRoot != null, exact -> exact.likeRight(Npc::getInternalName, multipartRoot))
                 .or(maybeGameId != null, exact -> exact.eq(Npc::getGameId, maybeGameId)));
+            if (multipartSearch) {
+                wrapper.apply("""
+                    (
+                      internal_name REGEXP 'Head$'
+                      OR NOT EXISTS (
+                        SELECT 1 FROM npcs representative
+                        WHERE representative.deleted = 0
+                          AND (representative.status = 1 OR representative.status IS NULL)
+                          AND (representative.is_boss = 0 OR representative.is_boss IS NULL)
+                          AND representative.name = npcs.name
+                          AND representative.internal_name REGEXP 'Head$'
+                      )
+                    )
+                    """);
+            }
         }
         wrapper.orderByDesc(Npc::getIsTownNpc).orderByAsc(Npc::getId);
         return wrapper;
@@ -312,6 +335,92 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         return npcs.stream()
             .map(npc -> toListDto(npc, categoryNames.get(npc.getCategoryId())))
             .toList();
+    }
+
+    private List<Npc> collapseMultipartRepresentatives(List<Npc> npcs, boolean enabled) {
+        if (!enabled || npcs == null || npcs.size() < 2) {
+            return npcs == null ? List.of() : npcs;
+        }
+        Map<String, Npc> headByName = new LinkedHashMap<>();
+        for (Npc npc : npcs) {
+            String nameKey = normalizeDisplayNameKey(npc);
+            if (nameKey != null && isMultipartHead(npc)) {
+                headByName.putIfAbsent(nameKey, npc);
+            }
+        }
+        if (headByName.isEmpty()) {
+            return npcs;
+        }
+        List<Npc> collapsed = new ArrayList<>();
+        for (Npc npc : npcs) {
+            String nameKey = normalizeDisplayNameKey(npc);
+            if (nameKey != null && headByName.containsKey(nameKey) && isMultipartSegment(npc) && !isMultipartHead(npc)) {
+                continue;
+            }
+            collapsed.add(npc);
+        }
+        return collapsed;
+    }
+
+    private Npc resolveMultipartRepresentative(Npc npc) {
+        if (npc == null || isMultipartHead(npc) || !isMultipartSegment(npc)) {
+            return npc;
+        }
+        String name = trimToNull(npc.getName());
+        if (name == null) {
+            return npc;
+        }
+        String root = trimToNull(multipartRoot(npc.getInternalName()));
+        if (root == null) {
+            return npc;
+        }
+        Npc representative = npcMapper.selectOne(new LambdaQueryWrapper<Npc>()
+            .eq(Npc::getName, name)
+            .likeRight(Npc::getInternalName, root)
+            .apply("internal_name REGEXP 'Head$'")
+            .and(scope -> scope.eq(Npc::getIsBoss, false).or().isNull(Npc::getIsBoss))
+            .and(scope -> scope.eq(Npc::getStatus, 1).or().isNull(Npc::getStatus))
+            .last("LIMIT 1"));
+        return representative == null ? npc : representative;
+    }
+
+    private boolean isMultipartRepresentativeSearch(String search) {
+        String text = trimToNull(search);
+        return text != null && !text.matches("\\d+");
+    }
+
+    private boolean isMultipartSegment(Npc npc) {
+        String internalName = trimToNull(npc == null ? null : npc.getInternalName());
+        return internalName != null && internalName.matches(".*(Head|Body\\d*|Tail|Legs)$");
+    }
+
+    private boolean isMultipartHead(Npc npc) {
+        String internalName = trimToNull(npc == null ? null : npc.getInternalName());
+        return internalName != null && internalName.matches(".*Head$");
+    }
+
+    private String multipartSegmentRoot(String value) {
+        String text = trimToNull(value);
+        if (text == null || !text.matches(".*(Head|Body\\d*|Tail|Legs)$")) {
+            return null;
+        }
+        return trimToNull(multipartRoot(text));
+    }
+
+    private String multipartRoot(String internalName) {
+        String text = trimToNull(internalName);
+        if (text == null) {
+            return "";
+        }
+        return text.replaceFirst("(Head|Body\\d*|Tail|Legs)$", "");
+    }
+
+    private String normalizeDisplayNameKey(Npc npc) {
+        String name = firstNonBlank(
+            trimToNull(npc == null ? null : npc.getName()),
+            trimToNull(npc == null ? null : npc.getNameZh())
+        );
+        return name == null ? null : name.toLowerCase(Locale.ROOT);
     }
 
     private NpcListItemDTO toListDto(Npc npc, String categoryName) {

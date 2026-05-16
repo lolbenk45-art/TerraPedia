@@ -94,6 +94,15 @@ test('start exports MinIO endpoint settings from local stack config', () => {
   assert.match(exampleConfig, /"publicEndpoint"/);
 });
 
+test('start records MinIO public endpoint health when MinIO is enabled', () => {
+  const source = startSource();
+
+  assert.match(source, /TP_MINIO_PUBLIC_ENDPOINT/i);
+  assert.match(source, /minioPublicEndpoint/i);
+  assert.match(source, /minioPublicOpen/i);
+  assert.match(source, /minioPublic: \{ endpoint:/i);
+});
+
 test('smoke script is read-only and writes timestamped smoke report', () => {
   const source = smokeSource();
 
@@ -114,6 +123,15 @@ test('smoke script is read-only and writes timestamped smoke report', () => {
   assert.doesNotMatch(source, /smoke_request[\s\S]*(PUT|PATCH|DELETE)/i);
   assert.doesNotMatch(source, /smoke_request[\s\S]*POST(?![\s\S]*\/api\/auth\/login)/i);
   assert.equal((source.match(/\bPOST\b/gi) ?? []).length, 1, 'auth login should be the only POST smoke request');
+});
+
+test('smoke script checks MinIO public endpoint when MinIO is enabled', () => {
+  const source = smokeSource();
+
+  assert.match(source, /TP_MINIO_ENABLED/i);
+  assert.match(source, /minio\.publicEndpoint/i);
+  assert.match(source, /SMOKE_MINIO_ENABLED/i);
+  assert.match(source, /SMOKE_MINIO_PUBLIC_ENDPOINT/i);
 });
 
 test('smoke script does not persist login tokens in reports', () => {

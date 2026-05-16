@@ -39,7 +39,9 @@
     "endpoint": "http://127.0.0.1:9000",
     "publicEndpoint": "http://localhost:9000",
     "bucket": "terrapedia-images",
-    "objectPrefix": "items"
+    "objectPrefix": "items",
+    "dataDir": "~/.local/share/terrapedia/minio/data",
+    "consolePort": 19001
   },
   "dataRefresh": {
     "enabled": false,
