@@ -268,3 +268,100 @@ test('parseBuffPageEvidence recognizes English and zh cause subheadings includin
   assert.deepEqual(evidence.immuneNpcs.map((entry) => entry.name), ['Blue Slime']);
   assert.equal(evidence.sourceEvidence.parseStatus, 'parsed');
 });
+
+test('parseBuffPageEvidence treats From item as source item evidence', () => {
+  const evidence = parseBuffPageEvidence({
+    pageTitle: 'Potion Sickness',
+    sections: [
+      { line: 'Causes', anchor: 'Causes' },
+      { line: 'From item', anchor: 'From_item' }
+    ],
+    html: `
+      <h2><span class="mw-headline" id="Causes">Causes</span></h2>
+      <h3><span class="mw-headline" id="From_item">From item</span></h3>
+      <table>
+        <tr><th>From</th><th>Duration</th></tr>
+        <tr><td><a href="/wiki/Mushroom" title="Mushroom">Mushroom</a></td><td>30 seconds</td></tr>
+        <tr><td><a href="/wiki/Eggnog" title="Eggnog">Eggnog</a></td><td>40 seconds</td></tr>
+      </table>
+    `
+  });
+
+  assert.deepEqual(evidence.sourceItems.map((entry) => [entry.name, entry.sourceKind]), [
+    ['Mushroom', 'item'],
+    ['Eggnog', 'item']
+  ]);
+  assert.equal(evidence.sourceEvidence.factGroups.sourceItems.status, 'parsed');
+  assert.equal(evidence.sourceEvidence.parseStatus, 'parsed');
+});
+
+test('parseBuffPageEvidence treats From NPCs as inflicting NPC evidence', () => {
+  const evidence = parseBuffPageEvidence({
+    pageTitle: 'Shadowflame',
+    sections: [
+      { line: 'Causes', anchor: 'Causes' },
+      { line: 'From player', anchor: 'From_player' },
+      { line: 'From NPCs', anchor: 'From_NPCs' },
+      { line: 'Immune NPCs', anchor: 'Immune_NPCs' }
+    ],
+    html: `
+      <h2><span class="mw-headline" id="Causes">Causes</span></h2>
+      <h3><span class="mw-headline" id="From_player">From player</span></h3>
+      <table><tr><td><a href="/wiki/Shadowflame_Knife" title="Shadowflame Knife">Shadowflame Knife</a></td></tr></table>
+      <h3><span class="mw-headline" id="From_NPCs">From NPCs</span></h3>
+      <table>
+        <tr><th>From</th><th>Duration</th></tr>
+        <tr><td><a href="/wiki/Clothier" title="Clothier">Clothier</a></td><td>5-10 seconds</td></tr>
+      </table>
+      <h2><span class="mw-headline" id="Immune_NPCs">Immune NPCs</span></h2>
+      <ul><li><a href="/wiki/Ancient_Vision" title="Ancient Vision">Ancient Vision</a></li></ul>
+    `
+  });
+
+  assert.deepEqual(evidence.sourceItems.map((entry) => entry.name), ['Shadowflame Knife']);
+  assert.deepEqual(evidence.inflictingNpcs.map((entry) => [entry.name, entry.sourceKind]), [
+    ['Clothier', 'enemy']
+  ]);
+  assert.equal(evidence.sourceEvidence.factGroups.inflictingNpcs.status, 'parsed');
+  assert.equal(evidence.sourceEvidence.parseStatus, 'parsed');
+});
+
+test('parseBuffPageEvidence filters numeric difficulty and version links from cause rows', () => {
+  const evidence = parseBuffPageEvidence({
+    pageTitle: 'Chilled',
+    sections: [
+      { line: 'Causes', anchor: 'Causes' },
+      { line: 'From enemy', anchor: 'From_enemy' },
+      { line: 'From environment', anchor: 'From_environment' }
+    ],
+    html: `
+      <h2><span class="mw-headline" id="Causes">Causes</span></h2>
+      <h3><span class="mw-headline" id="From_enemy">From enemy</span></h3>
+      <table>
+        <tr><th>From</th><th>Duration</th><th>Chance</th></tr>
+        <tr>
+          <td rowspan="2"><a href="/wiki/Ice_Queen" title="Ice Queen">Ice Queen</a></td>
+          <td>5 / <a href="/wiki/Expert_Mode" title="Expert Mode"><abbr title="Expert Mode">10</abbr></a> seconds</td>
+          <td>Frost Wave</td>
+        </tr>
+        <tr>
+          <td>10 / <a href="/wiki/Expert_Mode" title="Expert Mode"><abbr title="Expert Mode">20</abbr></a> / <a href="/wiki/Master_Mode" title="Master Mode">25</a> seconds</td>
+          <td>Frost Shard</td>
+        </tr>
+        <tr>
+          <td><a href="/wiki/Ice_Slime" title="Ice Slime">Ice Slime</a></td>
+          <td><a href="/wiki/Desktop_version" title="Desktop version">Desktop</a> only</td>
+          <td>1/12</td>
+        </tr>
+      </table>
+      <h3><span class="mw-headline" id="From_environment">From environment</span></h3>
+      <ul><li><a href="/wiki/Water" title="Water">Water</a></li></ul>
+    `
+  });
+
+  assert.deepEqual(evidence.inflictingNpcs.map((entry) => entry.name), ['Ice Queen', 'Ice Slime']);
+  assert.ok(!evidence.inflictingNpcs.some((entry) => /^\d+(\.\d+)?$/.test(entry.name)));
+  assert.ok(!evidence.inflictingNpcs.some((entry) => ['Expert Mode', 'Master Mode', 'Desktop version'].includes(entry.pageTitle)));
+  assert.deepEqual(evidence.sourceItems.map((entry) => entry.name), ['Water']);
+  assert.equal(evidence.sourceEvidence.parseStatus, 'parsed');
+});

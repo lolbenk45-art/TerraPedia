@@ -145,6 +145,77 @@ test('listSourceDatasetLandingInputs locates single-file and multi-file landing 
   assert.equal(npcEntry.sourceLocator, 'repo://data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json');
 });
 
+test('listSourceDatasetLandingInputs prefers standardized buff records for buffs_raw landing', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-buff-landing-'));
+  const repoRoot = path.join(tempRoot, 'repo');
+  const sharedDataRoot = path.join(tempRoot, 'shared');
+
+  await writeJson(path.join(sharedDataRoot, 'raw', 'wiki', 'template__getbuffinfo.parsed.latest.json'), {
+    sourcePageTitle: 'Template:GetBuffInfo',
+    fetchedAt: '2026-05-14T00:00:00.000Z',
+    sourceRevisionTimestamp: '2026-05-13T00:00:00Z',
+    buffs: [{ id: 1, internalName: 'OldBuff', name: 'Old Buff' }],
+  });
+  await writeJson(path.join(repoRoot, 'data', 'standardized', 'buffs.standardized.json'), {
+    entity: 'buffs',
+    generatedAt: '2026-05-15T00:00:00.000Z',
+    records: [
+      {
+        id: 323,
+        internalName: 'OnFire3',
+        englishName: 'Hellfire',
+        sourceEvidence: { pageTitle: 'Hellfire', parseStatus: 'parsed' },
+      },
+    ],
+  });
+
+  const actual = await listSourceDatasetLandingInputs({
+    repoRoot,
+    sharedDataRoot,
+    datasets: ['buffs_raw'],
+  });
+
+  assert.equal(actual.length, 1);
+  assert.equal(actual[0].datasetType, 'buffs_raw');
+  assert.equal(actual[0].provider, 'terrapedia.generated');
+  assert.equal(actual[0].sourceKind, 'generated_standardized');
+  assert.equal(actual[0].sourceKey, 'generated.buffs.standardized');
+  assert.equal(actual[0].sourcePage, 'buffs.standardized');
+  assert.equal(actual[0].sourceLocator, 'repo://data/standardized/buffs.standardized.json');
+  assert.equal(actual[0].fetchedAt, '2026-05-15T00:00:00.000Z');
+  assert.equal(actual[0].parsedAt, '2026-05-15T00:00:00.000Z');
+  assert.deepEqual((await actual[0].loadPayload()).records.map((record) => record.internalName), ['OnFire3']);
+});
+
+test('listSourceDatasetLandingInputs falls back to raw buff template when standardized file is missing', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-buff-landing-fallback-'));
+  const repoRoot = path.join(tempRoot, 'repo');
+  const sharedDataRoot = path.join(tempRoot, 'shared');
+
+  await writeJson(path.join(sharedDataRoot, 'raw', 'wiki', 'template__getbuffinfo.parsed.latest.json'), {
+    sourcePageTitle: 'Template:GetBuffInfo',
+    fetchedAt: '2026-05-14T00:00:00.000Z',
+    sourceRevisionTimestamp: '2026-05-13T00:00:00Z',
+    buffs: [{ id: 1, internalName: 'OldBuff', name: 'Old Buff' }],
+  });
+
+  const actual = await listSourceDatasetLandingInputs({
+    repoRoot,
+    sharedDataRoot,
+    datasets: ['buffs_raw'],
+  });
+
+  assert.equal(actual.length, 1);
+  assert.equal(actual[0].datasetType, 'buffs_raw');
+  assert.equal(actual[0].provider, 'terraria.wiki.gg');
+  assert.equal(actual[0].sourceKind, 'template');
+  assert.equal(actual[0].sourceKey, 'wiki.template.getbuffinfo');
+  assert.equal(actual[0].sourcePage, 'Template:GetBuffInfo');
+  assert.equal(actual[0].sourceLocator, 'shared://raw/wiki/template__getbuffinfo.parsed.latest.json');
+  assert.equal(actual[0].fetchedAt, '2026-05-14T00:00:00.000Z');
+  assert.equal(actual[0].parsedAt, '2026-05-14T00:00:00.000Z');
+});
+
 test('listSourceDatasetLandingInputs respects requested dataset filters', async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'terrapedia-landing-filter-'));
   const repoRoot = path.join(tempRoot, 'repo');

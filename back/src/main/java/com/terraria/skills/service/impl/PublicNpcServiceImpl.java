@@ -170,6 +170,75 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             return List.of();
         }
 
+        RelationNpcBuffLookupResult relationResult = loadRelationNpcBuffRelations(npcId);
+        if (relationResult.available()) {
+            return relationResult.rows();
+        }
+
+        return loadLocalNpcBuffRelations(npcId);
+    }
+
+    private RelationNpcBuffLookupResult loadRelationNpcBuffRelations(Long npcId) {
+        Npc npc = npcMapper.selectById(npcId);
+        if (npc == null) {
+            return RelationNpcBuffLookupResult.unavailable();
+        }
+        List<Object> args = new ArrayList<>();
+        List<String> predicates = new ArrayList<>();
+        if (npc.getGameId() != null) {
+            predicates.add("(nbr.npc_source_id = ? OR pn.game_id = ?)");
+            args.add(npc.getGameId());
+            args.add(npc.getGameId());
+        }
+        String internalName = trimToNull(npc.getInternalName());
+        if (internalName != null) {
+            predicates.add("nbr.npc_internal_name = ?");
+            args.add(internalName);
+        }
+        if (predicates.isEmpty()) {
+            return RelationNpcBuffLookupResult.unavailable();
+        }
+
+        try {
+            List<NpcBuffRelationDTO> rows = jdbcTemplate.queryForList(
+                """
+                SELECT
+                  nbr.id,
+                  pb.id AS buffId,
+                  COALESCE(pb.source_id, nbr.buff_source_id) AS buffSourceId,
+                  nbr.relation_type AS relationType,
+                  nbr.duration_ticks AS durationTicks,
+                  nbr.chance_value AS chanceValue,
+                  nbr.chance_text AS chanceText,
+                  nbr.conditions,
+                  NULL AS notes,
+                  nbr.id AS sortOrder,
+                  COALESCE(pb.internal_name, nbr.buff_internal_name) AS buffInternalName,
+                  pb.english_name AS buffNameEn,
+                  pb.name_zh AS buffNameZh,
+                  pb.image AS buffImage
+                FROM `terria_v1_relation`.`npc_buff_relations` nbr
+                LEFT JOIN `terria_v1_relation`.`projection_npcs` pn
+                  ON (nbr.npc_source_id IS NOT NULL AND (pn.source_id = nbr.npc_source_id OR pn.game_id = nbr.npc_source_id))
+                  OR (nbr.npc_internal_name IS NOT NULL AND pn.internal_name = nbr.npc_internal_name)
+                LEFT JOIN `terria_v1_relation`.`projection_buffs` pb
+                  ON (nbr.buff_source_id IS NOT NULL AND pb.source_id = nbr.buff_source_id)
+                  OR (nbr.buff_internal_name IS NOT NULL AND pb.internal_name = nbr.buff_internal_name)
+                WHERE nbr.deleted = 0
+                  AND nbr.relation_type = 'inflicts'
+                  AND (""" + String.join(" OR ", predicates) + """
+)
+                ORDER BY nbr.id ASC
+                """,
+                args.toArray()
+            ).stream().map(this::toBuffRelationDto).toList();
+            return RelationNpcBuffLookupResult.available(rows);
+        } catch (Exception ignored) {
+            return RelationNpcBuffLookupResult.unavailable();
+        }
+    }
+
+    private List<NpcBuffRelationDTO> loadLocalNpcBuffRelations(Long npcId) {
         return jdbcTemplate.queryForList(
             """
             SELECT
@@ -689,5 +758,15 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         Boolean isTownNpc
     ) {
         private static final NpcSupplement EMPTY = new NpcSupplement(null, null, null, null, null, null);
+    }
+
+    private record RelationNpcBuffLookupResult(boolean available, List<NpcBuffRelationDTO> rows) {
+        private static RelationNpcBuffLookupResult available(List<NpcBuffRelationDTO> rows) {
+            return new RelationNpcBuffLookupResult(true, rows == null ? List.of() : rows);
+        }
+
+        private static RelationNpcBuffLookupResult unavailable() {
+            return new RelationNpcBuffLookupResult(false, List.of());
+        }
     }
 }

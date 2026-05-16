@@ -43,7 +43,8 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         );
 
         Page<PublicBuffListDTO> result = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
-        result.setRecords(page.getRecords().stream().map(this::toListDto).toList());
+        Map<String, ProjectionBuffCounts> projectionCounts = loadProjectionBuffCounts(page.getRecords());
+        result.setRecords(page.getRecords().stream().map(buff -> toListDto(buff, projectionCounts)).toList());
         return result;
     }
 
@@ -76,9 +77,9 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         dto.setSourceItems(sourceItems);
         dto.setInflictingNpcs(inflictingNpcs);
         dto.setImmuneNpcs(immuneNpcs);
-        dto.setSourceItemCount(firstNonNullInteger(buff.getSourceItemCount(), sourceItems.isEmpty() ? null : sourceItems.size(), 0));
+        dto.setSourceItemCount(firstNonNullInteger(projectionEvidence.sourceItemCount(), buff.getSourceItemCount(), sourceItems.isEmpty() ? null : sourceItems.size(), 0));
         dto.setInflictingNpcCount(inflictingNpcs.size());
-        dto.setImmuneNpcCount(firstNonNullInteger(buff.getImmuneNpcCount(), immuneNpcs.isEmpty() ? null : immuneNpcs.size(), 0));
+        dto.setImmuneNpcCount(firstNonNullInteger(projectionEvidence.immuneNpcCount(), buff.getImmuneNpcCount(), immuneNpcs.isEmpty() ? null : immuneNpcs.size(), 0));
         PublicBuffDetailDTO.SourceEvidence sourceEvidence = parseSourceEvidence(projectionEvidence.sourceEvidenceJson());
         dto.setSourceEvidence(sourceEvidence);
         dto.setProvenance(PublicBuffDetailDTO.Provenance.builder()
@@ -114,7 +115,8 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         return wrapper;
     }
 
-    private PublicBuffListDTO toListDto(Buff buff) {
+    private PublicBuffListDTO toListDto(Buff buff, Map<String, ProjectionBuffCounts> projectionCounts) {
+        ProjectionBuffCounts counts = projectionCounts == null ? null : projectionCounts.get(projectionCountKey(buff));
         PublicBuffListDTO dto = new PublicBuffListDTO();
         dto.setId(buff.getId());
         dto.setSourceId(buff.getSourceId());
@@ -124,19 +126,94 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         dto.setImageUrl(firstNonBlank(managedImageOrNull(buff.getImageCachedUrl()), managedImageOrNull(buff.getImage())));
         dto.setBuffType(buff.getBuffType());
         dto.setTooltipZh(buff.getTooltipZh());
-        dto.setSourceItemCount(buff.getSourceItemCount());
-        dto.setImmuneNpcCount(buff.getImmuneNpcCount());
+        dto.setSourceItemCount(firstNonNullInteger(counts == null ? null : counts.sourceItemCount(), buff.getSourceItemCount()));
+        dto.setImmuneNpcCount(firstNonNullInteger(counts == null ? null : counts.immuneNpcCount(), buff.getImmuneNpcCount()));
         return dto;
     }
 
+    private Map<String, ProjectionBuffCounts> loadProjectionBuffCounts(List<Buff> buffs) {
+        if (buffs == null || buffs.isEmpty() || jdbcTemplate == null) {
+            return Map.of();
+        }
+
+        List<Object> args = new ArrayList<>();
+        List<String> predicates = new ArrayList<>();
+        Set<Integer> sourceIds = new LinkedHashSet<>();
+        Set<String> internalNames = new LinkedHashSet<>();
+        for (Buff buff : buffs) {
+            if (buff == null) {
+                continue;
+            }
+            if (buff.getSourceId() != null) {
+                sourceIds.add(buff.getSourceId());
+            }
+            String internalName = trimToNull(buff.getInternalName());
+            if (internalName != null) {
+                internalNames.add(internalName);
+            }
+        }
+        addInPredicate(predicates, args, "source_id", sourceIds);
+        addInPredicate(predicates, args, "internal_name", internalNames);
+        if (predicates.isEmpty()) {
+            return Map.of();
+        }
+
+        try {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT source_id, internal_name, source_item_count, immune_npc_count FROM " + qualifiedProjectionBuffsTable() + " WHERE deleted = 0 AND (" + String.join(" OR ", predicates) + ")",
+                args.toArray()
+            );
+            Map<String, ProjectionBuffCounts> byKey = new LinkedHashMap<>();
+            for (Map<String, Object> row : rows) {
+                ProjectionBuffCounts counts = new ProjectionBuffCounts(
+                    toInteger(row.get("source_item_count")),
+                    toInteger(row.get("immune_npc_count"))
+                );
+                Integer sourceId = toInteger(row.get("source_id"));
+                String internalName = trimToNull(row.get("internal_name"));
+                if (sourceId != null) {
+                    byKey.put("source:" + sourceId, counts);
+                }
+                if (internalName != null) {
+                    byKey.put("internal:" + internalName, counts);
+                }
+            }
+            return byKey;
+        } catch (Exception ignored) {
+            return Map.of();
+        }
+    }
+
+    private String projectionCountKey(Buff buff) {
+        if (buff == null) {
+            return "";
+        }
+        if (buff.getSourceId() != null) {
+            return "source:" + buff.getSourceId();
+        }
+        String internalName = trimToNull(buff.getInternalName());
+        if (internalName != null) {
+            return "internal:" + internalName;
+        }
+        return "";
+    }
+
     private List<PublicBuffDetailDTO.FactSummary> loadSourceItems(Buff buff, ProjectionBuffEvidence projectionEvidence) {
+        String projectionSourceItemsJson = projectionEvidence == null ? null : projectionEvidence.sourceItemsJson();
         List<PublicBuffDetailDTO.FactSummary> projectionFacts = parseFactSummaries(
-            firstNonBlank(projectionEvidence == null ? null : projectionEvidence.sourceItemsJson(), buff == null ? null : buff.getSourceItemsJson()),
+            projectionSourceItemsJson,
             "来自玩家",
             "items"
         );
-        if (buff == null || buff.getId() == null || jdbcTemplate == null) {
+        List<PublicBuffDetailDTO.FactSummary> relationFacts = loadRelationSourceItems(buff);
+        if (!relationFacts.isEmpty()) {
+            return mergeFactSummaries(relationFacts, projectionFacts);
+        }
+        if (projectionSourceItemsJson != null) {
             return projectionFacts;
+        }
+        if (buff == null || buff.getId() == null || jdbcTemplate == null) {
+            return parseFactSummaries(buff == null ? null : buff.getSourceItemsJson(), "来自玩家", "items");
         }
         try {
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(
@@ -157,7 +234,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                 buff.getId()
             );
             if (!rows.isEmpty()) {
-                List<PublicBuffDetailDTO.FactSummary> relationFacts = rows.stream().map(row -> PublicBuffDetailDTO.FactSummary.builder()
+                List<PublicBuffDetailDTO.FactSummary> localFacts = rows.stream().map(row -> PublicBuffDetailDTO.FactSummary.builder()
                     .id(toLong(row.get("id")))
                     .sourceId(toInteger(row.get("sourceId")))
                     .internalName(trimToNull(row.get("internalName")))
@@ -168,19 +245,87 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                     .sourceProvider("terraria.wiki.gg")
                     .sourcePage(firstNonBlank(buff.getNameZh(), buff.getEnglishName(), buff.getInternalName()))
                     .sourceSection("来自玩家")
-                    .build())
+                .build())
                 .toList();
-                return mergeFactSummaries(relationFacts, projectionFacts);
+                return mergeFactSummaries(localFacts, projectionFacts);
             }
         } catch (Exception ignored) {
             // Fall back to the projection JSON when relation tables are unavailable.
         }
-        return projectionFacts;
+        return parseFactSummaries(buff.getSourceItemsJson(), "来自玩家", "items");
+    }
+
+    private List<PublicBuffDetailDTO.FactSummary> loadRelationSourceItems(Buff buff) {
+        if (buff == null || jdbcTemplate == null) {
+            return List.of();
+        }
+        List<Object> relationArgs = new ArrayList<>();
+        List<String> relationPredicates = new ArrayList<>();
+        if (buff.getSourceId() != null) {
+            relationPredicates.add("ibr.buff_source_id = ?");
+            relationArgs.add(buff.getSourceId());
+        }
+        if (buff.getInternalName() != null && !buff.getInternalName().isBlank()) {
+            relationPredicates.add("ibr.buff_internal_name = ?");
+            relationArgs.add(buff.getInternalName());
+        }
+        if (relationPredicates.isEmpty()) {
+            return List.of();
+        }
+        try {
+            return jdbcTemplate.queryForList(
+                """
+                SELECT
+                  pi.id AS id,
+                  COALESCE(pi.id, ibr.item_source_id) AS sourceId,
+                  COALESCE(pi.internal_name, ibr.item_internal_name) AS internalName,
+                  COALESCE(pi.name, ibr.item_internal_name) AS name,
+                  pi.name_zh AS nameZh,
+                  pi.image AS imageUrl,
+                  ibr.relation_type AS relationType,
+                  ibr.duration_ticks AS durationTicks,
+                  ibr.chance_text AS chanceText,
+                  ibr.conditions AS conditions,
+                  ibr.source_provider AS sourceProvider,
+                  ibr.source_page AS sourcePage,
+                  ibr.source_revision_timestamp AS sourceRevisionTimestamp
+                FROM `terria_v1_relation`.`item_buff_relations` ibr
+                LEFT JOIN `terria_v1_relation`.`projection_items` pi
+                  ON (ibr.item_source_id IS NOT NULL AND pi.id = ibr.item_source_id)
+                  OR (ibr.item_internal_name IS NOT NULL AND pi.internal_name = ibr.item_internal_name)
+                WHERE ibr.deleted = 0
+                  AND ibr.relation_type = 'buff_source_item'
+                  AND (""" + String.join(" OR ", relationPredicates) + """
+)
+                ORDER BY ibr.id ASC
+                """,
+                relationArgs.toArray()
+            ).stream().map(row -> PublicBuffDetailDTO.FactSummary.builder()
+                .id(toLong(row.get("id")))
+                .sourceId(toInteger(row.get("sourceId")))
+                .internalName(trimToNull(row.get("internalName")))
+                .name(trimToNull(row.get("name")))
+                .nameZh(trimToNull(row.get("nameZh")))
+                .imageUrl(managedImageOrNull(trimToNull(row.get("imageUrl")), "items"))
+                .relationType(firstNonBlank(trimToNull(row.get("relationType")), "buff_source_item"))
+                .durationTicks(toInteger(row.get("durationTicks")))
+                .chanceText(trimToNull(row.get("chanceText")))
+                .conditions(trimToNull(row.get("conditions")))
+                .sourceProvider(firstNonBlank(trimToNull(row.get("sourceProvider")), "terraria.wiki.gg"))
+                .sourcePage(trimToNull(row.get("sourcePage")))
+                .sourceSection("From item")
+                .sourceRevisionTimestamp(trimToNull(row.get("sourceRevisionTimestamp")))
+                .build())
+            .toList();
+        } catch (Exception ignored) {
+            return List.of();
+        }
     }
 
     private List<PublicBuffDetailDTO.FactSummary> loadInflictingNpcs(Buff buff, ProjectionBuffEvidence projectionEvidence) {
+        String projectionInflictingNpcsJson = projectionEvidence == null ? null : projectionEvidence.inflictingNpcsJson();
         List<PublicBuffDetailDTO.FactSummary> projectionFacts = enrichNpcFacts(parseFactSummaries(
-            projectionEvidence == null ? null : projectionEvidence.inflictingNpcsJson(),
+            projectionInflictingNpcsJson,
             "来自敌怪",
             "npcs"
         ));
@@ -245,6 +390,9 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                 // Fall back to legacy local compatibility table below.
             }
         }
+        if (projectionInflictingNpcsJson != null) {
+            return projectionFacts;
+        }
         if (buff.getId() == null) {
             return projectionFacts;
         }
@@ -290,12 +438,13 @@ public class PublicBuffServiceImpl implements PublicBuffService {
     }
 
     private List<PublicBuffDetailDTO.FactSummary> loadImmuneNpcs(Buff buff, ProjectionBuffEvidence projectionEvidence) {
+        String projectionImmuneNpcsJson = projectionEvidence == null ? null : projectionEvidence.immuneNpcsJson();
         List<PublicBuffDetailDTO.FactSummary> fullFacts = parseFactSummaries(
-            projectionEvidence == null ? null : projectionEvidence.immuneNpcsJson(),
+            projectionImmuneNpcsJson,
             "免疫的 NPC",
             "npcs"
         );
-        if (!fullFacts.isEmpty()) {
+        if (projectionImmuneNpcsJson != null) {
             return enrichNpcFacts(fullFacts);
         }
         return enrichNpcFacts(parseFactSummaries(buff == null ? null : buff.getImmuneNpcSampleJson(), "免疫的 NPC", "npcs"));
@@ -312,13 +461,15 @@ public class PublicBuffServiceImpl implements PublicBuffService {
 
         try {
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT source_items_json, inflicting_npcs_json, immune_npcs_json, source_evidence_json FROM " + qualifiedProjectionBuffsTable() + " WHERE " + lookup.where() + " LIMIT 1",
+                "SELECT source_item_count, immune_npc_count, source_items_json, inflicting_npcs_json, immune_npcs_json, source_evidence_json FROM " + qualifiedProjectionBuffsTable() + " WHERE deleted = 0 AND status = 1 AND " + lookup.where() + " LIMIT 1",
                 lookup.args()
             );
             if (rows.isEmpty()) {
                 return ProjectionBuffEvidence.empty();
             }
             return new ProjectionBuffEvidence(
+                toInteger(rows.get(0).get("source_item_count")),
+                toInteger(rows.get(0).get("immune_npc_count")),
                 trimToNull(rows.get(0).get("source_items_json")),
                 trimToNull(rows.get(0).get("inflicting_npcs_json")),
                 trimToNull(rows.get(0).get("immune_npcs_json")),
@@ -326,6 +477,8 @@ public class PublicBuffServiceImpl implements PublicBuffService {
             );
         } catch (Exception ignored) {
             return new ProjectionBuffEvidence(
+                toInteger(loadProjectionBuffScalarColumn(lookup, "source_item_count")),
+                toInteger(loadProjectionBuffScalarColumn(lookup, "immune_npc_count")),
                 loadProjectionBuffJsonColumn(lookup, "source_items_json"),
                 loadProjectionBuffJsonColumn(lookup, "inflicting_npcs_json"),
                 loadProjectionBuffJsonColumn(lookup, "immune_npcs_json"),
@@ -353,15 +506,20 @@ public class PublicBuffServiceImpl implements PublicBuffService {
     }
 
     private String loadProjectionBuffJsonColumn(ProjectionBuffLookup lookup, String column) {
+        Object value = loadProjectionBuffScalarColumn(lookup, column);
+        return trimToNull(value);
+    }
+
+    private Object loadProjectionBuffScalarColumn(ProjectionBuffLookup lookup, String column) {
         try {
             List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT " + column + " FROM " + qualifiedProjectionBuffsTable() + " WHERE " + lookup.where() + " LIMIT 1",
+                "SELECT " + column + " FROM " + qualifiedProjectionBuffsTable() + " WHERE deleted = 0 AND status = 1 AND " + lookup.where() + " LIMIT 1",
                 lookup.args()
             );
             if (rows.isEmpty()) {
                 return null;
             }
-            return trimToNull(rows.get(0).get(column));
+            return rows.get(0).get(column);
         } catch (Exception ignored) {
             return null;
         }
@@ -787,14 +945,19 @@ public class PublicBuffServiceImpl implements PublicBuffService {
     }
 
     private record ProjectionBuffEvidence(
+        Integer sourceItemCount,
+        Integer immuneNpcCount,
         String sourceItemsJson,
         String inflictingNpcsJson,
         String immuneNpcsJson,
         String sourceEvidenceJson
     ) {
         private static ProjectionBuffEvidence empty() {
-            return new ProjectionBuffEvidence(null, null, null, null);
+            return new ProjectionBuffEvidence(null, null, null, null, null, null);
         }
+    }
+
+    private record ProjectionBuffCounts(Integer sourceItemCount, Integer immuneNpcCount) {
     }
 
     private record ProjectionBuffLookup(String where, Object[] args) {

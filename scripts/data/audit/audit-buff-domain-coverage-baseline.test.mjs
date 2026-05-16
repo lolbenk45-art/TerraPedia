@@ -396,6 +396,52 @@ test('full evidence gate fails missing fact groups without trusted terminal sect
   assert.match(report.gates.fullBuffEvidence.reason, /missing_source_items=1/);
 });
 
+test('section_missing is not trusted when page sections show unparsed cause evidence', () => {
+  assert.equal(
+    classifyBuffEvidenceCoverage({
+      internalName: 'PotionSickness',
+      sourceItems: [],
+      inflictingNpcs: [],
+      immuneNpcCount: 0,
+      immuneNpcs: [],
+      sourceEvidence: {
+        parseStatus: 'parsed',
+        sectionAnchors: ['Causes', 'From_item'],
+        sourceSections: [],
+        unresolvedFacts: [],
+        factGroups: {
+          sourceItems: { status: 'section_missing', count: 0, sections: [] },
+          inflictingNpcs: { status: 'section_missing', count: 0, sections: [] },
+          immuneNpcs: { status: 'section_missing', count: 0, sections: [] },
+        },
+      },
+    }),
+    'missing_source_items'
+  );
+
+  assert.equal(
+    classifyBuffEvidenceCoverage({
+      internalName: 'ShadowFlame',
+      sourceItems: [{ internalName: 'ShadowflameKnife' }],
+      inflictingNpcs: [],
+      immuneNpcCount: 1,
+      immuneNpcs: [{ internalName: 'AncientVision' }],
+      sourceEvidence: {
+        parseStatus: 'parsed',
+        sectionAnchors: ['Causes', 'From_player', 'From_NPCs', 'Immune_NPCs'],
+        sourceSections: ['From player', 'Immune NPCs'],
+        unresolvedFacts: [],
+        factGroups: {
+          sourceItems: { status: 'parsed', count: 1, sections: ['From player'] },
+          inflictingNpcs: { status: 'section_missing', count: 0, sections: [] },
+          immuneNpcs: { status: 'parsed', count: 1, sections: ['Immune NPCs'] },
+        },
+      },
+    }),
+    'missing_inflicting_npcs'
+  );
+});
+
 test('buildBuffDomainCoverageBaseline exposes unresolved facts in category rows', () => {
   const report = buildBuffDomainCoverageBaseline({
     buffs: [
