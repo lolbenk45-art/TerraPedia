@@ -132,7 +132,7 @@ class PublicBuffServiceImplTest {
         assertEquals(0, detail.getInflictingNpcs().size());
         assertEquals(2, detail.getImmuneNpcs().size());
         assertEquals("Clinger", detail.getImmuneNpcs().get(1).getName());
-        assertEquals(25, detail.getImmuneNpcCount());
+        assertEquals(2, detail.getImmuneNpcCount());
         assertNotNull(detail.getSourceEvidence());
         assertEquals("parsed", detail.getSourceEvidence().getParseStatus());
         assertEquals(12345L, detail.getSourceEvidence().getRevisionId());
@@ -176,7 +176,7 @@ class PublicBuffServiceImplTest {
         assertNotNull(detail);
         assertEquals(0, detail.getSourceItemCount());
         assertEquals(0, detail.getSourceItems().size());
-        assertEquals(6, detail.getImmuneNpcCount());
+        assertEquals(1, detail.getImmuneNpcCount());
         assertEquals(1, detail.getImmuneNpcs().size());
     }
 
@@ -713,6 +713,45 @@ class PublicBuffServiceImplTest {
     }
 
     @Test
+    void shouldNotTreatBareProjectionNpcIdAsSourceIdForEnrichment() {
+        Buff buff = new Buff();
+        buff.setId(48L);
+        buff.setSourceId(48);
+        buff.setInternalName("Honey");
+        buff.setEnglishName("Honey");
+        buff.setBuffType("buff");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(48L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(48))).thenReturn(List.of(Map.of(
+            "source_items_json",
+            "[]",
+            "inflicting_npcs_json",
+            "[{\"id\":9100,\"internalName\":\"HoneySlime\",\"name\":\"Honey Slime\",\"pageTitle\":\"Honey Slime\"}]",
+            "immune_npcs_json",
+            "[]",
+            "source_evidence_json",
+            "{\"parseStatus\":\"parsed\"}"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npcs"), any(Object[].class))).thenReturn(List.of());
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(48L);
+
+        assertNotNull(detail);
+        assertEquals(1, detail.getInflictingNpcs().size());
+        PublicBuffDetailDTO.FactSummary honeySlime = detail.getInflictingNpcs().get(0);
+        assertEquals(null, honeySlime.getId());
+        assertEquals(null, honeySlime.getSourceId());
+        assertEquals("HoneySlime", honeySlime.getInternalName());
+        verify(jdbcTemplate).queryForList(argThat(sql -> sql != null
+            && sql.contains("FROM npcs")
+            && !sql.contains("n.source_id IN (?)")
+            && !sql.contains("n.game_id IN (?)")), any(Object[].class));
+    }
+
+    @Test
     void shouldKeepProjectionInflictingNpcsWhenSourceEvidenceColumnIsMissing() {
         Buff buff = new Buff();
         buff.setId(48L);
@@ -775,7 +814,7 @@ class PublicBuffServiceImplTest {
     }
 
     @Test
-    void shouldNotEnrichNpcEvidenceFromAmbiguousDisplayNameOnly() {
+    void shouldExpandAmbiguousDisplayNameToLocalNpcCandidatesInsteadOfPickingOne() {
         Buff buff = new Buff();
         buff.setId(39L);
         buff.setSourceId(39);
@@ -811,12 +850,348 @@ class PublicBuffServiceImplTest {
         PublicBuffDetailDTO detail = service.getPublicBuffDetail(39L);
 
         assertNotNull(detail);
+        assertEquals(2, detail.getImmuneNpcs().size());
+        PublicBuffDetailDTO.FactSummary bigHornet = detail.getImmuneNpcs().get(0);
+        PublicBuffDetailDTO.FactSummary littleHornet = detail.getImmuneNpcs().get(1);
+        assertEquals(901L, bigHornet.getId());
+        assertEquals(-65, bigHornet.getSourceId());
+        assertEquals("BigHornetStingy", bigHornet.getInternalName());
+        assertEquals(CDN_NPC_IMAGE_URL, bigHornet.getImageUrl());
+        assertEquals(902L, littleHornet.getId());
+        assertEquals(-63, littleHornet.getSourceId());
+        assertEquals("LittleHornetStingy", littleHornet.getInternalName());
+        assertEquals(CDN_NPC_IMAGE_URL, littleHornet.getImageUrl());
+    }
+
+    @Test
+    void shouldEnrichMultipartNpcEvidenceWithPublicRepresentativeWhenDisplayNameHasSegments() {
+        Buff buff = new Buff();
+        buff.setId(31L);
+        buff.setSourceId(31);
+        buff.setInternalName("Confused");
+        buff.setEnglishName("Confused");
+        buff.setBuffType("debuff");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(31L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(31))).thenReturn(List.of(Map.of(
+            "source_items_json",
+            "[]",
+            "inflicting_npcs_json",
+            "[]",
+            "immune_npcs_json",
+            "[{\"internalName\":\"PhantasmDragon\",\"name\":\"Phantasm Dragon\",\"pageTitle\":\"Phantasm Dragon\"}]",
+            "source_evidence_json",
+            "{\"parseStatus\":\"parsed\"}"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`item_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npcs"), any(Object[].class))).thenReturn(List.of(
+            Map.of(
+                "id", 454L,
+                "sourceId", 454,
+                "rawSourceId", 454,
+                "gameId", 454,
+                "internalName", "CultistDragonHead",
+                "name", "Phantasm Dragon",
+                "imageUrl", CDN_NPC_IMAGE_URL
+            ),
+            Map.of(
+                "id", 455L,
+                "sourceId", 455,
+                "rawSourceId", 455,
+                "gameId", 455,
+                "internalName", "CultistDragonBody1",
+                "name", "Phantasm Dragon",
+                "imageUrl", "https://cdn.example.com/terrapedia-images/npcs/wiki/ab/dragon-body.png"
+            ),
+            Map.of(
+                "id", 459L,
+                "sourceId", 459,
+                "rawSourceId", 459,
+                "gameId", 459,
+                "internalName", "CultistDragonTail",
+                "name", "Phantasm Dragon",
+                "imageUrl", "https://cdn.example.com/terrapedia-images/npcs/wiki/ab/dragon-tail.png"
+            )
+        ));
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(31L);
+
+        assertNotNull(detail);
         assertEquals(1, detail.getImmuneNpcs().size());
-        PublicBuffDetailDTO.FactSummary hornet = detail.getImmuneNpcs().get(0);
-        assertEquals(null, hornet.getId());
-        assertEquals(null, hornet.getSourceId());
-        assertEquals("WikiOnlyHornetAlias", hornet.getInternalName());
-        assertEquals(null, hornet.getImageUrl());
+        PublicBuffDetailDTO.FactSummary phantasmDragon = detail.getImmuneNpcs().get(0);
+        assertEquals(454L, phantasmDragon.getId());
+        assertEquals(454, phantasmDragon.getSourceId());
+        assertEquals("CultistDragonHead", phantasmDragon.getInternalName());
+        assertEquals(CDN_NPC_IMAGE_URL, phantasmDragon.getImageUrl());
+    }
+
+    @Test
+    void shouldEnrichNpcEvidenceByNormalizedInternalNameWhenWikiCasingDiffers() {
+        Buff buff = new Buff();
+        buff.setId(31L);
+        buff.setSourceId(31);
+        buff.setInternalName("Confused");
+        buff.setEnglishName("Confused");
+        buff.setBuffType("debuff");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(31L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(31))).thenReturn(List.of(Map.of(
+            "source_items_json",
+            "[]",
+            "inflicting_npcs_json",
+            "[]",
+            "immune_npcs_json",
+            "[{\"internalName\":\"WallOfFlesh\",\"name\":\"Wall of Flesh\",\"pageTitle\":\"Wall of Flesh\"}]",
+            "source_evidence_json",
+            "{\"parseStatus\":\"parsed\"}"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`item_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npcs"), any(Object[].class))).thenReturn(List.of(
+            Map.of(
+                "id", 113L,
+                "sourceId", 113,
+                "rawSourceId", 113,
+                "gameId", 113,
+                "internalName", "WallofFlesh",
+                "name", "Wall of Flesh",
+                "imageUrl", CDN_NPC_IMAGE_URL
+            ),
+            Map.of(
+                "id", 114L,
+                "sourceId", 114,
+                "rawSourceId", 114,
+                "gameId", 114,
+                "internalName", "WallofFleshEye",
+                "name", "Wall of Flesh",
+                "imageUrl", "https://cdn.example.com/terrapedia-images/npcs/wiki/ab/wall-eye.png"
+            )
+        ));
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(31L);
+
+        assertNotNull(detail);
+        assertEquals(2, detail.getImmuneNpcs().size());
+        PublicBuffDetailDTO.FactSummary wallOfFlesh = detail.getImmuneNpcs().get(0);
+        PublicBuffDetailDTO.FactSummary wallOfFleshEye = detail.getImmuneNpcs().get(1);
+        assertEquals(113L, wallOfFlesh.getId());
+        assertEquals(113, wallOfFlesh.getSourceId());
+        assertEquals("WallofFlesh", wallOfFlesh.getInternalName());
+        assertEquals(CDN_NPC_IMAGE_URL, wallOfFlesh.getImageUrl());
+        assertEquals(114L, wallOfFleshEye.getId());
+        assertEquals(114, wallOfFleshEye.getSourceId());
+        assertEquals("WallofFleshEye", wallOfFleshEye.getInternalName());
+        assertEquals("https://cdn.example.com/terrapedia-images/npcs/wiki/ab/wall-eye.png", wallOfFleshEye.getImageUrl());
+    }
+
+    @Test
+    void shouldExpandSamePageNpcFactToAllLocalVariantsWhenNoSingleRepresentativeExists() {
+        Buff buff = new Buff();
+        buff.setId(31L);
+        buff.setSourceId(31);
+        buff.setInternalName("Confused");
+        buff.setEnglishName("Confused");
+        buff.setBuffType("debuff");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(31L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(31))).thenReturn(List.of(Map.of(
+            "source_items_json",
+            "[]",
+            "inflicting_npcs_json",
+            "[]",
+            "immune_npcs_json",
+            "[{\"internalName\":\"Ogre\",\"name\":\"Ogre\",\"pageTitle\":\"Ogre\"}]",
+            "source_evidence_json",
+            "{\"parseStatus\":\"parsed\"}"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`item_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npcs"), any(Object[].class))).thenReturn(List.of(
+            Map.of(
+                "id", 576L,
+                "sourceId", 576,
+                "rawSourceId", 576,
+                "gameId", 576,
+                "internalName", "DD2OgreT2",
+                "name", "Ogre",
+                "imageUrl", CDN_NPC_IMAGE_URL
+            ),
+            Map.of(
+                "id", 577L,
+                "sourceId", 577,
+                "rawSourceId", 577,
+                "gameId", 577,
+                "internalName", "DD2OgreT3",
+                "name", "Ogre",
+                "imageUrl", "https://cdn.example.com/terrapedia-images/npcs/wiki/ab/ogre-t3.png"
+            )
+        ));
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(31L);
+
+        assertNotNull(detail);
+        assertEquals(2, detail.getImmuneNpcs().size());
+        assertEquals(576L, detail.getImmuneNpcs().get(0).getId());
+        assertEquals("DD2OgreT2", detail.getImmuneNpcs().get(0).getInternalName());
+        assertEquals(CDN_NPC_IMAGE_URL, detail.getImmuneNpcs().get(0).getImageUrl());
+        assertEquals(577L, detail.getImmuneNpcs().get(1).getId());
+        assertEquals("DD2OgreT3", detail.getImmuneNpcs().get(1).getInternalName());
+        assertEquals("https://cdn.example.com/terrapedia-images/npcs/wiki/ab/ogre-t3.png", detail.getImmuneNpcs().get(1).getImageUrl());
+    }
+
+    @Test
+    void shouldOnlyEnrichNpcFactsWithPublicNpcRows() {
+        Buff buff = new Buff();
+        buff.setId(31L);
+        buff.setSourceId(31);
+        buff.setInternalName("Confused");
+        buff.setEnglishName("Confused");
+        buff.setBuffType("debuff");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(31L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(31))).thenReturn(List.of(Map.of(
+            "source_items_json",
+            "[]",
+            "inflicting_npcs_json",
+            "[]",
+            "immune_npcs_json",
+            "[{\"internalName\":\"RetiredNpc\",\"name\":\"Retired NPC\",\"pageTitle\":\"Retired NPC\"}]",
+            "source_evidence_json",
+            "{\"parseStatus\":\"parsed\"}"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`item_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npcs"), any(Object[].class))).thenReturn(List.of());
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(31L);
+
+        assertNotNull(detail);
+        assertEquals(1, detail.getImmuneNpcs().size());
+        PublicBuffDetailDTO.FactSummary retired = detail.getImmuneNpcs().get(0);
+        assertEquals(null, retired.getId());
+        assertEquals(null, retired.getImageUrl());
+        verify(jdbcTemplate).queryForList(argThat(sql -> sql != null
+            && sql.contains("FROM npcs")
+            && sql.contains("(n.status = 1 OR n.status IS NULL)")), any(Object[].class));
+    }
+
+    @Test
+    void shouldExpandSamePageNpcFactWhenWikiInternalAliasMatchesOneVariant() {
+        Buff buff = new Buff();
+        buff.setId(31L);
+        buff.setSourceId(31);
+        buff.setInternalName("Confused");
+        buff.setEnglishName("Confused");
+        buff.setBuffType("debuff");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(31L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(31))).thenReturn(List.of(Map.of(
+            "source_items_json",
+            "[]",
+            "inflicting_npcs_json",
+            "[]",
+            "immune_npcs_json",
+            "[{\"internalName\":\"DD2OgreT2\",\"name\":\"Ogre\",\"pageTitle\":\"Ogre\"}]",
+            "source_evidence_json",
+            "{\"parseStatus\":\"parsed\"}"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`item_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npcs"), any(Object[].class))).thenReturn(List.of(
+            Map.of(
+                "id", 576L,
+                "sourceId", 576,
+                "rawSourceId", 576,
+                "gameId", 576,
+                "internalName", "DD2OgreT2",
+                "name", "Ogre",
+                "imageUrl", CDN_NPC_IMAGE_URL
+            ),
+            Map.of(
+                "id", 577L,
+                "sourceId", 577,
+                "rawSourceId", 577,
+                "gameId", 577,
+                "internalName", "DD2OgreT3",
+                "name", "Ogre",
+                "imageUrl", "https://cdn.example.com/terrapedia-images/npcs/wiki/ab/ogre-t3.png"
+            )
+        ));
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(31L);
+
+        assertNotNull(detail);
+        assertEquals(2, detail.getImmuneNpcs().size());
+        assertEquals(576L, detail.getImmuneNpcs().get(0).getId());
+        assertEquals(577L, detail.getImmuneNpcs().get(1).getId());
+    }
+
+    @Test
+    void shouldPreferExactNpcIdentityOverSamePageExpansion() {
+        Buff buff = new Buff();
+        buff.setId(31L);
+        buff.setSourceId(31);
+        buff.setInternalName("Confused");
+        buff.setEnglishName("Confused");
+        buff.setBuffType("debuff");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(31L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(31))).thenReturn(List.of(Map.of(
+            "source_items_json",
+            "[]",
+            "inflicting_npcs_json",
+            "[]",
+            "immune_npcs_json",
+            "[{\"sourceId\":576,\"internalName\":\"DD2OgreT2\",\"name\":\"Ogre\",\"pageTitle\":\"Ogre\"}]",
+            "source_evidence_json",
+            "{\"parseStatus\":\"parsed\"}"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`item_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npcs"), any(Object[].class))).thenReturn(List.of(
+            Map.of(
+                "id", 576L,
+                "sourceId", 576,
+                "rawSourceId", 576,
+                "gameId", 576,
+                "internalName", "DD2OgreT2",
+                "name", "Ogre",
+                "imageUrl", CDN_NPC_IMAGE_URL
+            ),
+            Map.of(
+                "id", 577L,
+                "sourceId", 577,
+                "rawSourceId", 577,
+                "gameId", 577,
+                "internalName", "DD2OgreT3",
+                "name", "Ogre",
+                "imageUrl", "https://cdn.example.com/terrapedia-images/npcs/wiki/ab/ogre-t3.png"
+            )
+        ));
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(31L);
+
+        assertNotNull(detail);
+        assertEquals(1, detail.getImmuneNpcs().size());
+        PublicBuffDetailDTO.FactSummary ogre = detail.getImmuneNpcs().get(0);
+        assertEquals(576L, ogre.getId());
+        assertEquals(576, ogre.getSourceId());
+        assertEquals("DD2OgreT2", ogre.getInternalName());
+        assertEquals(CDN_NPC_IMAGE_URL, ogre.getImageUrl());
+        assertEquals(1, detail.getImmuneNpcCount());
     }
 
     private ManagedImageUrlPolicy managedImageUrlPolicy() {

@@ -42,6 +42,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PublicNpcServiceImpl implements PublicNpcService {
 
+    private static final String MULTIPART_SEGMENT_SUFFIX_REGEX = "(Head|Body\\d*|Tail|Legs|Hand)$";
+
     private final NpcMapper npcMapper;
     private final CategoryMapper categoryMapper;
     private final JdbcTemplate jdbcTemplate;
@@ -317,9 +319,6 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         if (npc == null) {
             return false;
         }
-        if (Boolean.TRUE.equals(npc.getIsBoss())) {
-            return false;
-        }
         return npc.getStatus() == null || npc.getStatus() == 1;
     }
 
@@ -378,7 +377,6 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             .eq(Npc::getName, name)
             .likeRight(Npc::getInternalName, root)
             .apply("internal_name REGEXP 'Head$'")
-            .and(scope -> scope.eq(Npc::getIsBoss, false).or().isNull(Npc::getIsBoss))
             .and(scope -> scope.eq(Npc::getStatus, 1).or().isNull(Npc::getStatus))
             .last("LIMIT 1"));
         return representative == null ? npc : representative;
@@ -391,7 +389,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
 
     private boolean isMultipartSegment(Npc npc) {
         String internalName = trimToNull(npc == null ? null : npc.getInternalName());
-        return internalName != null && internalName.matches(".*(Head|Body\\d*|Tail|Legs)$");
+        return internalName != null && internalName.matches(".*" + MULTIPART_SEGMENT_SUFFIX_REGEX);
     }
 
     private boolean isMultipartHead(Npc npc) {
@@ -401,7 +399,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
 
     private String multipartSegmentRoot(String value) {
         String text = trimToNull(value);
-        if (text == null || !text.matches(".*(Head|Body\\d*|Tail|Legs)$")) {
+        if (text == null || !text.matches(".*" + MULTIPART_SEGMENT_SUFFIX_REGEX)) {
             return null;
         }
         return trimToNull(multipartRoot(text));
@@ -412,7 +410,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         if (text == null) {
             return "";
         }
-        return text.replaceFirst("(Head|Body\\d*|Tail|Legs)$", "");
+        return text.replaceFirst(MULTIPART_SEGMENT_SUFFIX_REGEX, "");
     }
 
     private String normalizeDisplayNameKey(Npc npc) {

@@ -28,6 +28,7 @@ import java.util.Set;
 public class PublicBuffServiceImpl implements PublicBuffService {
 
     private static final String RELATION_DATABASE_NAME = "terria_v1_relation";
+    private static final String MULTIPART_SEGMENT_SUFFIX_REGEX = "(Head|Body\\d*|Tail|Legs|Hand)$";
 
     private final BuffMapper buffMapper;
     private final ManagedImageUrlPolicy managedImageUrlPolicy;
@@ -79,7 +80,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         dto.setImmuneNpcs(immuneNpcs);
         dto.setSourceItemCount(firstNonNullInteger(projectionEvidence.sourceItemCount(), buff.getSourceItemCount(), sourceItems.isEmpty() ? null : sourceItems.size(), 0));
         dto.setInflictingNpcCount(inflictingNpcs.size());
-        dto.setImmuneNpcCount(firstNonNullInteger(projectionEvidence.immuneNpcCount(), buff.getImmuneNpcCount(), immuneNpcs.isEmpty() ? null : immuneNpcs.size(), 0));
+        dto.setImmuneNpcCount(immuneNpcs.size());
         PublicBuffDetailDTO.SourceEvidence sourceEvidence = parseSourceEvidence(projectionEvidence.sourceEvidenceJson());
         dto.setSourceEvidence(sourceEvidence);
         dto.setProvenance(PublicBuffDetailDTO.Provenance.builder()
@@ -559,7 +560,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
             boolean npcFact = "npcs".equals(imageDomain);
             facts.add(PublicBuffDetailDTO.FactSummary.builder()
                 .id(toLong(firstValue(row, npcFact ? new String[]{"npcDbId", "npc_db_id", "dbId", "db_id"} : new String[]{"itemDbId", "item_db_id", "dbId", "db_id"})))
-                .sourceId(toInteger(firstValue(row, npcFact ? new String[]{"sourceId", "source_id", "npcId", "npc_id", "id"} : new String[]{"sourceId", "source_id", "itemId", "item_id", "npcId", "npc_id"})))
+                .sourceId(toInteger(firstValue(row, npcFact ? new String[]{"sourceId", "source_id", "npcId", "npc_id"} : new String[]{"sourceId", "source_id", "itemId", "item_id", "npcId", "npc_id"})))
                 .internalName(trimToNull(firstValue(row, "internalName", "internal_name", "itemInternalName", "item_internal_name", "npcInternalName", "npc_internal_name")))
                 .name(trimToNull(firstValue(row, "name", "nameEn", "name_en", "itemName", "item_name", "npcName", "npc_name")))
                 .nameZh(trimToNull(firstValue(row, "nameZh", "name_zh", "itemNameZh", "item_name_zh", "npcNameZh", "npc_name_zh")))
@@ -608,6 +609,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         addInPredicate(predicates, args, "n.source_id", sourceIds);
         addInPredicate(predicates, args, "n.game_id", sourceIds);
         addInPredicate(predicates, args, "n.internal_name", internalNames);
+        addNormalizedTextPredicates(predicates, args, "n.internal_name", internalNames);
         addInPredicate(predicates, args, "n.name", names);
         addInPredicate(predicates, args, "n.name_zh", names);
 
@@ -624,7 +626,9 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                   n.name_zh AS nameZh,
                   n.image_url AS imageUrl
                 FROM npcs n
-                WHERE n.deleted = 0 AND (
+                WHERE n.deleted = 0
+                  AND (n.status = 1 OR n.status IS NULL)
+                  AND (
                 """ + String.join(" OR ", predicates) + ")",
                 args.toArray()
             );
@@ -635,6 +639,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
             Map<Long, Map<String, Object>> byId = new java.util.HashMap<>();
             Map<Integer, Map<String, Object>> bySourceId = new java.util.HashMap<>();
             Map<String, Map<String, Object>> byInternalName = new java.util.HashMap<>();
+            Map<String, Map<String, Object>> byNormalizedInternalName = new java.util.HashMap<>();
             Map<String, List<Map<String, Object>>> byName = new java.util.HashMap<>();
             for (Map<String, Object> row : rows) {
                 Long id = toLong(row.get("id"));
@@ -644,11 +649,15 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                 putIntegerKey(bySourceId, row.get("gameId"), row);
                 String internalName = trimToNull(row.get("internalName"));
                 if (internalName != null) byInternalName.putIfAbsent(internalName, row);
+                String normalizedInternalName = normalizeLookupText(internalName);
+                if (normalizedInternalName != null) byNormalizedInternalName.putIfAbsent(normalizedInternalName, row);
                 putTextKey(byName, row.get("name"), row);
                 putTextKey(byName, row.get("nameZh"), row);
             }
 
-            return facts.stream().map(fact -> enrichNpcFact(fact, byId, bySourceId, byInternalName, byName)).toList();
+            return facts.stream()
+                .flatMap(fact -> enrichNpcFact(fact, byId, bySourceId, byInternalName, byNormalizedInternalName, byName).stream())
+                .toList();
         } catch (Exception ignored) {
             return facts;
         }
@@ -698,28 +707,55 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         return String.valueOf(System.identityHashCode(fact));
     }
 
-    private PublicBuffDetailDTO.FactSummary enrichNpcFact(
+    private List<PublicBuffDetailDTO.FactSummary> enrichNpcFact(
         PublicBuffDetailDTO.FactSummary fact,
         Map<Long, Map<String, Object>> byId,
         Map<Integer, Map<String, Object>> bySourceId,
         Map<String, Map<String, Object>> byInternalName,
+        Map<String, Map<String, Object>> byNormalizedInternalName,
         Map<String, List<Map<String, Object>>> byName
     ) {
         Map<String, Object> npc = null;
         if (fact.getId() != null) npc = byId.get(fact.getId());
         if (npc == null && fact.getSourceId() != null) npc = bySourceId.get(fact.getSourceId());
-        String internalName = trimToNull(fact.getInternalName());
-        if (npc == null && internalName != null) npc = byInternalName.get(internalName);
-        String name = trimToNull(fact.getName());
-        if (npc == null && name != null) npc = uniqueNameMatch(byName, name);
-        String nameZh = trimToNull(fact.getNameZh());
-        if (npc == null && nameZh != null) npc = uniqueNameMatch(byName, nameZh);
-        String sourcePage = trimToNull(fact.getSourcePage());
-        if (npc == null && sourcePage != null) npc = uniqueNameMatch(byName, sourcePage);
-        if (npc == null) {
-            return fact;
+        if (npc != null) {
+            return List.of(enrichNpcFact(fact, npc));
         }
 
+        List<Map<String, Object>> expansionCandidates = null;
+        String sourcePage = trimToNull(fact.getSourcePage());
+        if (sourcePage != null) expansionCandidates = nameMatches(byName, sourcePage);
+        String name = trimToNull(fact.getName());
+        if (expansionCandidates == null && name != null) expansionCandidates = nameMatches(byName, name);
+        String nameZh = trimToNull(fact.getNameZh());
+        if (expansionCandidates == null && nameZh != null) expansionCandidates = nameMatches(byName, nameZh);
+        Map<String, Object> representative = uniqueMultipartRepresentative(expansionCandidates);
+        if (representative != null) {
+            return List.of(enrichNpcFact(fact, representative));
+        }
+        if (expansionCandidates != null && expansionCandidates.size() > 1) {
+            return expansionCandidates.stream()
+                .map(candidate -> enrichNpcFact(fact, candidate))
+                .toList();
+        }
+
+        String internalName = trimToNull(fact.getInternalName());
+        if (npc == null && internalName != null) npc = byInternalName.get(internalName);
+        String normalizedInternalName = normalizeLookupText(internalName);
+        if (npc == null && normalizedInternalName != null) npc = byNormalizedInternalName.get(normalizedInternalName);
+        if (npc != null) {
+            return List.of(enrichNpcFact(fact, npc));
+        }
+
+        if (expansionCandidates == null || expansionCandidates.isEmpty()) {
+            return List.of(fact);
+        }
+        return expansionCandidates.stream()
+            .map(candidate -> enrichNpcFact(fact, candidate))
+            .toList();
+    }
+
+    private PublicBuffDetailDTO.FactSummary enrichNpcFact(PublicBuffDetailDTO.FactSummary fact, Map<String, Object> npc) {
         return PublicBuffDetailDTO.FactSummary.builder()
             .id(firstNonNullLong(toLong(npc.get("id")), fact.getId()))
             .sourceId(firstNonNullInteger(toInteger(firstValue(npc, "sourceId", "rawSourceId", "gameId")), fact.getSourceId()))
@@ -752,12 +788,51 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         }
     }
 
-    private Map<String, Object> uniqueNameMatch(Map<String, List<Map<String, Object>>> byName, String key) {
+    private void addNormalizedTextPredicates(List<String> predicates, List<Object> args, String column, Set<String> values) {
+        if (values == null || values.isEmpty()) {
+            return;
+        }
+        List<String> normalizedValues = values.stream()
+            .map(this::normalizeLookupText)
+            .filter(java.util.Objects::nonNull)
+            .distinct()
+            .toList();
+        if (normalizedValues.isEmpty()) {
+            return;
+        }
+        predicates.add("LOWER(" + column + ") IN (" + "?,".repeat(normalizedValues.size()).replaceFirst(",$", "") + ")");
+        args.addAll(normalizedValues);
+    }
+
+    private String normalizeLookupText(String value) {
+        String text = trimToNull(value);
+        return text == null ? null : text.toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private List<Map<String, Object>> nameMatches(Map<String, List<Map<String, Object>>> byName, String key) {
         List<Map<String, Object>> matches = byName.get(key);
-        if (matches == null || matches.size() != 1) {
+        if (matches == null || matches.isEmpty()) {
             return null;
         }
-        return matches.get(0);
+        return matches;
+    }
+
+    private Map<String, Object> uniqueMultipartRepresentative(List<Map<String, Object>> matches) {
+        if (matches == null || matches.size() < 2 || !matches.stream().allMatch(this::isMultipartSegmentRow)) {
+            return null;
+        }
+        List<Map<String, Object>> heads = matches.stream().filter(this::isMultipartHeadRow).toList();
+        return heads.size() == 1 ? heads.get(0) : null;
+    }
+
+    private boolean isMultipartSegmentRow(Map<String, Object> row) {
+        String internalName = trimToNull(row == null ? null : row.get("internalName"));
+        return internalName != null && internalName.matches(".*" + MULTIPART_SEGMENT_SUFFIX_REGEX);
+    }
+
+    private boolean isMultipartHeadRow(Map<String, Object> row) {
+        String internalName = trimToNull(row == null ? null : row.get("internalName"));
+        return internalName != null && internalName.matches(".*Head$");
     }
 
     private void addInPredicate(List<String> predicates, List<Object> args, String column, Set<?> values) {

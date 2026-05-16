@@ -225,6 +225,41 @@ class PublicNpcServiceImplImageTest {
     }
 
     @Test
+    void shouldAllowBossHeadAsMultipartDetailRepresentative() {
+        Npc body = npc(36L, 36L, "SkeletronHand", "Skeletron");
+        Npc head = npc(35L, 35L, "SkeletronHead", "Skeletron");
+        head.setIsBoss(true);
+        when(npcMapper.selectById(36L)).thenReturn(body);
+        when(npcMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(head);
+
+        NpcDetailDTO result = newService().getNpcById(36L);
+
+        assertEquals(35L, result.getId());
+        assertEquals(35L, result.getGameId());
+        assertEquals("SkeletronHead", result.getInternalName());
+        assertTrue(result.getIsBoss());
+
+        ArgumentCaptor<LambdaQueryWrapper<Npc>> wrapperCaptor = ArgumentCaptor.forClass(LambdaQueryWrapper.class);
+        verify(npcMapper).selectOne(wrapperCaptor.capture());
+        String segment = wrapperCaptor.getValue().getExpression().getNormal().toString();
+        assertFalse(segment.contains("is_boss"));
+    }
+
+    @Test
+    void shouldExposeBossNpcDetailForBuffFactRoutes() {
+        Npc boss = npc(35L, 35L, "SkeletronHead", "Skeletron");
+        boss.setIsBoss(true);
+        when(npcMapper.selectById(35L)).thenReturn(boss);
+
+        NpcDetailDTO result = newService().getNpcById(35L);
+
+        assertEquals(35L, result.getId());
+        assertEquals(35L, result.getGameId());
+        assertEquals("SkeletronHead", result.getInternalName());
+        assertEquals(true, result.getIsBoss());
+    }
+
+    @Test
     void shouldReturnManagedCachedBuffImageForPublicNpcBuffRelations() {
         Npc npc = new Npc();
         npc.setId(7L);
