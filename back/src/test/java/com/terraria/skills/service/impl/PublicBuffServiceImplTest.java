@@ -473,6 +473,60 @@ class PublicBuffServiceImplTest {
     }
 
     @Test
+    void shouldPreferLocalNpcIdForRelationInflictingNpcRoutes() {
+        Buff buff = new Buff();
+        buff.setId(31L);
+        buff.setSourceId(31);
+        buff.setInternalName("Confused");
+        buff.setEnglishName("Confused");
+        buff.setBuffType("debuff");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(31L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(31))).thenReturn(List.of(Map.of(
+            "source_item_count", 0,
+            "immune_npc_count", 0,
+            "source_items_json",
+            "[]",
+            "inflicting_npcs_json",
+            "[]",
+            "immune_npcs_json",
+            "[]",
+            "source_evidence_json",
+            "{\"parseStatus\":\"parsed\"}"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`item_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(argThat(sql -> sql != null
+            && sql.contains("FROM `terria_v1_relation`.`npc_buff_relations`")
+            && sql.contains("LEFT JOIN npcs")), any(Object[].class))).thenReturn(List.of(Map.of(
+            "id", 9100L,
+            "sourceId", 454,
+            "internalName", "CultistDragonHead",
+            "name", "Phantasm Dragon",
+            "nameZh", "幻影龙",
+            "imageUrl", CDN_NPC_IMAGE_URL,
+            "relationType", "inflicts"
+        )));
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(31L);
+
+        assertNotNull(detail);
+        assertEquals(1, detail.getInflictingNpcs().size());
+        PublicBuffDetailDTO.FactSummary phantasmDragon = detail.getInflictingNpcs().get(0);
+        assertEquals(9100L, phantasmDragon.getId());
+        assertEquals(454, phantasmDragon.getSourceId());
+        assertEquals("CultistDragonHead", phantasmDragon.getInternalName());
+        verify(jdbcTemplate).queryForList(argThat(sql -> sql != null
+            && sql.contains("FROM `terria_v1_relation`.`npc_buff_relations`")
+            && sql.contains("ln.id AS id")
+            && sql.contains("COALESCE(ln.image_url, pn.image_url) AS imageUrl")
+            && !sql.contains("COALESCE(pn.id, ln.id) AS id")
+            && !sql.contains("COALESCE(ln.id, pn.id) AS id")
+            && !sql.contains("nbr.npc_source_id IS NULL\n                          AND nbr.npc_internal_name IS NOT NULL")), any(Object[].class));
+    }
+
+    @Test
     void shouldEnrichImmuneNpcEvidenceByDisplayNameWhenInternalNameIsWikiAlias() {
         Buff buff = new Buff();
         buff.setId(39L);
@@ -617,6 +671,45 @@ class PublicBuffServiceImplTest {
         assertEquals("From enemy", honeySlime.getSourceSection());
         assertEquals(null, honeySlime.getImageUrl());
         assertEquals(1, detail.getInflictingNpcCount());
+    }
+
+    @Test
+    void shouldParseSnakeCaseProjectionNpcFactsBeforeEnrichment() {
+        Buff buff = new Buff();
+        buff.setId(48L);
+        buff.setSourceId(48);
+        buff.setInternalName("Honey");
+        buff.setEnglishName("Honey");
+        buff.setBuffType("buff");
+        buff.setStatus(1);
+
+        when(buffMapper.selectById(48L)).thenReturn(buff);
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`projection_buffs`"), eq(48))).thenReturn(List.of(Map.of(
+            "source_items_json",
+            "[]",
+            "inflicting_npcs_json",
+            "[{\"npc_id\":122,\"npc_internal_name\":\"HoneySlime\",\"npc_name\":\"Honey Slime\",\"npc_name_zh\":\"蜂蜜史莱姆\",\"npc_image_url\":\"https://cdn.example.com/terrapedia-images/npcs/wiki/honey-slime.gif\",\"source_section\":\"From NPCs\"}]",
+            "immune_npcs_json",
+            "[]",
+            "source_evidence_json",
+            "{\"parseStatus\":\"parsed\"}"
+        )));
+        when(jdbcTemplate.queryForList(contains("FROM `terria_v1_relation`.`npc_buff_relations`"), any(Object[].class))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM npcs"), any(Object[].class))).thenReturn(List.of());
+
+        PublicBuffServiceImpl service = new PublicBuffServiceImpl(buffMapper, managedImageUrlPolicy(), jdbcTemplate, new ObjectMapper());
+        PublicBuffDetailDTO detail = service.getPublicBuffDetail(48L);
+
+        assertNotNull(detail);
+        assertEquals(1, detail.getInflictingNpcs().size());
+        PublicBuffDetailDTO.FactSummary honeySlime = detail.getInflictingNpcs().get(0);
+        assertEquals(null, honeySlime.getId());
+        assertEquals(122, honeySlime.getSourceId());
+        assertEquals("HoneySlime", honeySlime.getInternalName());
+        assertEquals("Honey Slime", honeySlime.getName());
+        assertEquals("蜂蜜史莱姆", honeySlime.getNameZh());
+        assertEquals("https://cdn.example.com/terrapedia-images/npcs/wiki/honey-slime.gif", honeySlime.getImageUrl());
+        assertEquals("From NPCs", honeySlime.getSourceSection());
     }
 
     @Test

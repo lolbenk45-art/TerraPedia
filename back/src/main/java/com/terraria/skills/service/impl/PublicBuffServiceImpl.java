@@ -361,12 +361,12 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                 List<PublicBuffDetailDTO.FactSummary> relationFacts = jdbcTemplate.queryForList(
                     """
                     SELECT
-                      COALESCE(pn.id, ln.id) AS id,
+                      ln.id AS id,
                       COALESCE(pn.game_id, pn.source_id, ln.game_id, ln.source_id, nbr.npc_source_id) AS sourceId,
                       COALESCE(pn.internal_name, ln.internal_name, nbr.npc_internal_name) AS internalName,
                       COALESCE(pn.name, ln.name, nbr.npc_name) AS name,
                       COALESCE(pn.name_zh, ln.name_zh) AS nameZh,
-                      COALESCE(pn.image_url, ln.image_url) AS imageUrl,
+                      COALESCE(ln.image_url, pn.image_url) AS imageUrl,
                       nbr.relation_type AS relationType,
                       nbr.duration_ticks AS durationTicks,
                       nbr.chance_text AS chanceText,
@@ -380,8 +380,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                       AND (
                         (nbr.npc_source_id IS NOT NULL AND (ln.source_id = nbr.npc_source_id OR ln.game_id = nbr.npc_source_id))
                         OR (
-                          nbr.npc_source_id IS NULL
-                          AND nbr.npc_internal_name IS NOT NULL
+                          nbr.npc_internal_name IS NOT NULL
                           AND ln.internal_name COLLATE utf8mb4_unicode_ci = nbr.npc_internal_name COLLATE utf8mb4_unicode_ci
                         )
                       )
@@ -408,7 +407,7 @@ public class PublicBuffServiceImpl implements PublicBuffService {
                     .build())
                 .toList();
                 if (!relationFacts.isEmpty()) {
-                    return mergeFactSummaries(relationFacts, projectionFacts);
+                    return mergeFactSummaries(enrichNpcFacts(relationFacts), projectionFacts);
                 }
             } catch (Exception ignored) {
                 // Fall back to legacy local compatibility table below.
@@ -559,12 +558,12 @@ public class PublicBuffServiceImpl implements PublicBuffService {
         for (Map<String, Object> row : rows) {
             boolean npcFact = "npcs".equals(imageDomain);
             facts.add(PublicBuffDetailDTO.FactSummary.builder()
-                .id(toLong(firstValue(row, npcFact ? new String[]{"npcDbId", "npc_db_id", "dbId"} : new String[]{"itemDbId", "item_db_id", "dbId"})))
-                .sourceId(toInteger(firstValue(row, npcFact ? new String[]{"sourceId", "source_id", "npcId", "id"} : new String[]{"sourceId", "source_id", "itemId", "npcId"})))
-                .internalName(trimToNull(firstValue(row, "internalName", "internal_name", "itemInternalName", "npcInternalName")))
-                .name(trimToNull(firstValue(row, "name", "nameEn", "itemName", "npcName")))
-                .nameZh(trimToNull(firstValue(row, "nameZh", "itemNameZh", "npcNameZh")))
-                .imageUrl(managedImageOrNull(trimToNull(firstValue(row, "imageUrl", "image", "itemImageUrl", "npcImageUrl")), imageDomain))
+                .id(toLong(firstValue(row, npcFact ? new String[]{"npcDbId", "npc_db_id", "dbId", "db_id"} : new String[]{"itemDbId", "item_db_id", "dbId", "db_id"})))
+                .sourceId(toInteger(firstValue(row, npcFact ? new String[]{"sourceId", "source_id", "npcId", "npc_id", "id"} : new String[]{"sourceId", "source_id", "itemId", "item_id", "npcId", "npc_id"})))
+                .internalName(trimToNull(firstValue(row, "internalName", "internal_name", "itemInternalName", "item_internal_name", "npcInternalName", "npc_internal_name")))
+                .name(trimToNull(firstValue(row, "name", "nameEn", "name_en", "itemName", "item_name", "npcName", "npc_name")))
+                .nameZh(trimToNull(firstValue(row, "nameZh", "name_zh", "itemNameZh", "item_name_zh", "npcNameZh", "npc_name_zh")))
+                .imageUrl(managedImageOrNull(trimToNull(firstValue(row, "imageUrl", "image_url", "image", "itemImageUrl", "item_image_url", "npcImageUrl", "npc_image_url")), imageDomain))
                 .relationType(trimToNull(firstValue(row, "relationType", "relation_type")))
                 .durationTicks(toInteger(firstValue(row, "durationTicks", "buffTime")))
                 .chanceText(trimToNull(firstValue(row, "chanceText", "chance_text")))

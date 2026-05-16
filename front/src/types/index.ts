@@ -143,7 +143,9 @@ export interface BuffListItem {
 }
 
 export interface BuffFactSummary {
+  /** Local entity primary key used for detail routes. */
   id?: number | null
+  /** Terraria game/source id used for display and source matching. */
   sourceId?: number | null
   internalName?: string | null
   name?: string | null

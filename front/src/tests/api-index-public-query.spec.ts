@@ -517,6 +517,83 @@ describe('api/index public query behavior', () => {
     expect(result.data.sourceEvidence).toMatchObject({ parseStatus: 'parsed', canonicalPageTitle: 'Cursed Inferno', revisionId: 12345 })
   })
 
+  it('fetchBuffById normalizes snake_case NPC fact aliases into route ids and display fields', async () => {
+    const managedNpcImage = 'https://cdn.example.com/terrapedia-images/npcs/wiki/cultist-dragon-head.gif'
+
+    mockGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          id: 31,
+          sourceId: 31,
+          internalName: 'Confused',
+          name: 'Confused',
+          nameZh: '困惑',
+          inflictingNpcs: [
+            {
+              npc_db_id: 9100,
+              npc_id: 454,
+              npc_internal_name: 'CultistDragonHead',
+              npc_name: 'Phantasm Dragon',
+              npc_name_zh: '幻影龙',
+              npc_image_url: managedNpcImage,
+            },
+          ],
+          immuneNpcs: [],
+          sourceItems: [],
+        },
+        message: 'ok',
+        statusCode: 200,
+      },
+    })
+
+    const result = await fetchBuffById(31)
+
+    expect(result.data.inflictingNpcs?.[0]).toMatchObject({
+      id: 9100,
+      sourceId: 454,
+      internalName: 'CultistDragonHead',
+      name: 'Phantasm Dragon',
+      nameZh: '幻影龙',
+      imageUrl: managedNpcImage,
+    })
+  })
+
+  it('fetchBuffById does not normalize relation ids into NPC route ids', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          id: 31,
+          sourceId: 31,
+          internalName: 'Confused',
+          name: 'Confused',
+          inflictingNpcs: [
+            {
+              relation_id: 7777,
+              npc_id: 454,
+              npc_internal_name: 'CultistDragonHead',
+              npc_name: 'Phantasm Dragon',
+            },
+          ],
+          immuneNpcs: [],
+          sourceItems: [],
+        },
+        message: 'ok',
+        statusCode: 200,
+      },
+    })
+
+    const result = await fetchBuffById(31)
+
+    expect(result.data.inflictingNpcs?.[0]).toMatchObject({
+      id: null,
+      sourceId: 454,
+      internalName: 'CultistDragonHead',
+      name: 'Phantasm Dragon',
+    })
+  })
+
   it('fetchProjectiles preserves the public list shape and query parameters', async () => {
     mockGet.mockResolvedValue({
       data: {

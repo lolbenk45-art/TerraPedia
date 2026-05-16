@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   routerReplace: vi.fn(),
   fetchBosses: vi.fn(),
   fetchBuffs: vi.fn(),
+  fetchBuffById: vi.fn(),
   fetchNpcs: vi.fn(),
   fetchNpcAggregateById: vi.fn(),
   fetchProjectiles: vi.fn(),
@@ -44,6 +45,7 @@ vi.mock('@/api', async () => {
     fetchArmorSets: mocks.fetchArmorSets,
     fetchBosses: mocks.fetchBosses,
     fetchBuffs: mocks.fetchBuffs,
+    fetchBuffById: mocks.fetchBuffById,
     fetchNpcs: mocks.fetchNpcs,
     fetchNpcAggregateById: mocks.fetchNpcAggregateById,
     fetchProjectiles: mocks.fetchProjectiles,
@@ -85,6 +87,7 @@ describe('NPC public shell', () => {
     mocks.fetchArmorSets.mockReset()
     mocks.fetchBosses.mockReset()
     mocks.fetchBuffs.mockReset()
+    mocks.fetchBuffById.mockReset()
     mocks.fetchNpcs.mockReset()
     mocks.fetchNpcAggregateById.mockReset()
     mocks.fetchProjectiles.mockReset()
@@ -355,6 +358,89 @@ describe('NPC public shell', () => {
     expect(wrapper.text()).toContain('Buff Archive')
     expect(wrapper.text()).toContain('Sharpened CN')
     expect(wrapper.text()).toContain('No managed icon')
+  })
+
+  it('links public buff NPC facts with local ids and keeps unresolved facts inert', async () => {
+    applyRoute('/buffs')
+
+    const buffRows: BuffListItem[] = [
+      {
+        id: 31,
+        sourceId: 31,
+        internalName: 'Confused',
+        name: 'Confused',
+        nameZh: 'Confused CN',
+        imageUrl: null,
+        buffType: 'debuff',
+        tooltipZh: 'Confuses enemies.',
+        sourceItemCount: 0,
+        immuneNpcCount: 1,
+      },
+    ]
+
+    mocks.fetchBuffs.mockResolvedValue({
+      success: true,
+      data: buffRows,
+      message: 'ok',
+      statusCode: 200,
+      pagination: {
+        total: 1,
+        page: 1,
+        limit: 12,
+        totalPages: 1,
+      },
+    } satisfies ApiResponse<BuffListItem[]>)
+
+    mocks.fetchBuffById.mockResolvedValue({
+      success: true,
+      data: {
+        ...buffRows[0],
+        sourceItems: [],
+        inflictingNpcs: [
+          {
+            id: 9100,
+            sourceId: 454,
+            internalName: 'CultistDragonHead',
+            name: 'Phantasm Dragon',
+            nameZh: '幻影龙',
+            imageUrl: 'https://cdn.example.com/terrapedia-images/npcs/wiki/cultist-dragon-head.gif',
+          },
+        ],
+        immuneNpcs: [
+          {
+            id: null,
+            sourceId: 68,
+            internalName: 'DungeonGuardian',
+            name: 'Dungeon Guardian',
+            nameZh: '地牢守卫者',
+            imageUrl: null,
+          },
+        ],
+      },
+      message: 'ok',
+      statusCode: 200,
+    })
+
+    const wrapper = mount(BuffPublicView, {
+      global: {
+        stubs: {
+          RouterLink: RouterLinkStub,
+        },
+      },
+    })
+    await flushPromises()
+
+    await wrapper.get('.entity-list-view__grid .entity-card').trigger('click')
+    await flushPromises()
+
+    const npcLinks = wrapper.findAllComponents(RouterLinkStub).filter(link => link.props('to') === '/npcs/9100')
+    expect(npcLinks).toHaveLength(1)
+    expect(npcLinks[0].text()).toContain('幻影龙')
+    expect(npcLinks[0].text()).toContain('ID 9100')
+    expect(npcLinks[0].text()).toContain('Game ID 454')
+    expect(wrapper.text()).toContain('地牢守卫者')
+    expect(wrapper.text()).toContain('Game ID 68')
+    expect(wrapper.findAllComponents(RouterLinkStub).some(link => link.props('to') === '/npcs/68')).toBe(false)
   })
 
   it('renders public projectile cards with managed-image fallback state', async () => {

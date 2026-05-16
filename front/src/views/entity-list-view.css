@@ -237,6 +237,67 @@
   font-weight: 600;
 }
 
+.entity-card__fact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.7rem;
+}
+
+.entity-card__fact {
+  min-width: 0;
+  display: grid;
+  gap: 0.3rem;
+  align-content: start;
+  padding: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--border-color) 82%, transparent);
+  border-radius: 0.7rem;
+  background: color-mix(in srgb, var(--bg-secondary) 82%, white 18%);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.entity-card__fact img {
+  width: 3.2rem;
+  height: 3.2rem;
+  object-fit: contain;
+}
+
+.entity-card__fact strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+
+.entity-card__fact span,
+.entity-card__fact small {
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.entity-card__fact--linked {
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+
+.entity-card__fact--linked:hover {
+  border-color: color-mix(in srgb, var(--accent-primary) 52%, var(--border-color));
+  transform: translateY(-1px);
+}
+
+.entity-card__fallback--small {
+  width: 3.2rem;
+  height: 3.2rem;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 0.7rem;
+  background: color-mix(in srgb, var(--bg-primary) 86%, white 14%);
+  color: var(--accent-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .entity-list-view__pager {
   display: flex;
   flex-wrap: wrap;

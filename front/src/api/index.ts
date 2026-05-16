@@ -488,11 +488,11 @@ const normalizeBuffListItem = (buff: BuffListItem): BuffListItem => ({
 
 const normalizeBuffFactSummary = (fact: Record<string, unknown>) => ({
   ...fact,
-  id: nullableNumber(fact.id ?? fact.relationId),
-  sourceId: nullableNumber(fact.sourceId ?? fact.source_id ?? fact.npcId ?? fact.itemId),
-  internalName: nullableString(fact.internalName ?? fact.internal_name),
-  name: nullableString(fact.name),
-  nameZh: nullableString(fact.nameZh ?? fact.name_zh),
+  id: nullableNumber(fact.id ?? fact.npcDbId ?? fact.npc_db_id ?? fact.itemDbId ?? fact.item_db_id ?? fact.dbId ?? fact.db_id),
+  sourceId: nullableNumber(fact.sourceId ?? fact.source_id ?? fact.npcId ?? fact.npc_id ?? fact.itemId ?? fact.item_id),
+  internalName: nullableString(fact.internalName ?? fact.internal_name ?? fact.npcInternalName ?? fact.npc_internal_name ?? fact.itemInternalName ?? fact.item_internal_name),
+  name: nullableString(fact.name ?? fact.npcName ?? fact.npc_name ?? fact.itemName ?? fact.item_name),
+  nameZh: nullableString(fact.nameZh ?? fact.name_zh ?? fact.npcNameZh ?? fact.npc_name_zh ?? fact.itemNameZh ?? fact.item_name_zh),
   imageUrl: normalizeManagedPublicImageUrl(fact.imageUrl ?? fact.image ?? fact.npcImageUrl ?? fact.itemImageUrl ?? fact.image_url ?? fact.npc_image_url ?? fact.item_image_url),
   relationType: nullableString(fact.relationType ?? fact.relation_type),
   durationTicks: nullableNumber(fact.durationTicks ?? fact.duration_ticks),

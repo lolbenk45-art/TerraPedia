@@ -149,12 +149,21 @@
           <section class="entity-card__section">
             <h4>Inflicting NPCs</h4>
             <div v-if="selectedBuff.inflictingNpcs?.length" class="entity-card__fact-grid">
-              <article v-for="fact in selectedBuff.inflictingNpcs" :key="factKey(fact)" class="entity-card__fact">
+              <component
+                :is="npcFactRoute(fact) ? RouterLink : 'article'"
+                v-for="fact in selectedBuff.inflictingNpcs"
+                :key="factKey(fact)"
+                class="entity-card__fact entity-card__fact--npc"
+                :class="{ 'entity-card__fact--linked': npcFactRoute(fact) }"
+                v-bind="npcFactRoute(fact) ? { to: npcFactRoute(fact) } : {}"
+              >
                 <img v-if="resolveImage(fact.imageUrl)" :src="resolveImage(fact.imageUrl)" :alt="factName(fact)" loading="lazy" />
                 <div v-else class="entity-card__fallback entity-card__fallback--small">NP</div>
                 <strong>{{ factName(fact) }}</strong>
                 <span>{{ fact.internalName || fact.relationType || 'inflicts' }}</span>
-              </article>
+                <small>{{ factIdLabel(fact) }}</small>
+                <small v-if="fact.sourceId != null">Game ID {{ fact.sourceId }}</small>
+              </component>
             </div>
             <p v-else class="entity-card__summary entity-card__summary--muted">No inflicting NPC facts are published for this buff.</p>
           </section>
@@ -162,12 +171,21 @@
           <section class="entity-card__section">
             <h4>Immune NPCs</h4>
             <div v-if="visibleImmuneNpcs.length" class="entity-card__fact-grid">
-              <article v-for="fact in visibleImmuneNpcs" :key="factKey(fact)" class="entity-card__fact">
+              <component
+                :is="npcFactRoute(fact) ? RouterLink : 'article'"
+                v-for="fact in visibleImmuneNpcs"
+                :key="factKey(fact)"
+                class="entity-card__fact entity-card__fact--npc"
+                :class="{ 'entity-card__fact--linked': npcFactRoute(fact) }"
+                v-bind="npcFactRoute(fact) ? { to: npcFactRoute(fact) } : {}"
+              >
                 <img v-if="resolveImage(fact.imageUrl)" :src="resolveImage(fact.imageUrl)" :alt="factName(fact)" loading="lazy" />
                 <div v-else class="entity-card__fallback entity-card__fallback--small">NP</div>
                 <strong>{{ factName(fact) }}</strong>
                 <span>{{ fact.internalName || fact.sourceSection || 'immune' }}</span>
-              </article>
+                <small>{{ factIdLabel(fact) }}</small>
+                <small v-if="fact.sourceId != null">Game ID {{ fact.sourceId }}</small>
+              </component>
             </div>
             <p v-if="hiddenImmuneNpcCount > 0" class="entity-card__summary entity-card__summary--muted">
               Showing {{ visibleImmuneNpcs.length }} of {{ selectedBuff.immuneNpcs?.length }} immune NPCs.
@@ -199,9 +217,9 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { fetchBuffById, fetchBuffs } from '@/api'
-import type { BuffDetailItem, BuffListItem, Pagination } from '@/types'
+import type { BuffDetailItem, BuffFactSummary, BuffListItem, Pagination } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -255,6 +273,8 @@ const factName = (fact: { nameZh?: string | null; name?: string | null; internal
   fact.nameZh?.trim() || fact.name?.trim() || fact.internalName?.trim() || `Fact ${fact.sourceId ?? '--'}`
 const factKey = (fact: { id?: number | null; sourceId?: number | null; internalName?: string | null; name?: string | null }) =>
   `${fact.id ?? fact.sourceId ?? fact.internalName ?? fact.name ?? 'fact'}`
+const npcFactRoute = (fact: BuffFactSummary) => typeof fact.id === 'number' && Number.isFinite(fact.id) ? `/npcs/${fact.id}` : null
+const factIdLabel = (fact: BuffFactSummary) => `ID ${fact.id ?? '--'}`
 const isRawWikiImageUrl = (value?: string | null) => Boolean(value?.toLowerCase().includes('terraria.wiki.gg/images/'))
 const resolveImage = (value?: string | null) => {
   if (!value || isRawWikiImageUrl(value)) return ''
