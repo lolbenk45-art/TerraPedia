@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TerraPedia 低保真逐页预览</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b120c;
+        --panel: #172414;
+        --panel-2: #21311d;
+        --line: rgba(214, 178, 99, 0.3);
+        --gold: #d6b263;
+        --paper: #f3eedc;
+        --muted: rgba(243, 238, 220, 0.62);
+        --ink: #152018;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--paper);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+      }
+
+      button,
+      a {
+        font: inherit;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: 284px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow: auto;
+        border-right: 1px solid var(--line);
+        background: linear-gradient(180deg, #0b120c 0%, #18211b 100%);
+        padding: 26px 18px;
+      }
+
+      .brand {
+        display: grid;
+        grid-template-columns: 42px 1fr;
+        gap: 12px;
+        align-items: center;
+        padding: 0 8px 22px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .mark {
+        position: relative;
+        width: 42px;
+        height: 42px;
+      }
+
+      .mark::before,
+      .mark::after {
+        content: "";
+        position: absolute;
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
+      }
+
+      .mark::before {
+        left: 2px;
+        top: 2px;
+        background: #9ac26b;
+      }
+
+      .mark::after {
+        right: 2px;
+        bottom: 2px;
+        background: var(--gold);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 16px;
+        line-height: 1.2;
+        letter-spacing: 0;
+      }
+
+      .brand p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .group {
+        padding: 18px 0 0;
+      }
+
+      .group-title {
+        padding: 0 8px 10px;
+        color: var(--gold);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .frame-button {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        align-items: center;
+        min-height: 42px;
+        margin: 6px 0;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--paper);
+        cursor: pointer;
+        padding: 8px 10px;
+        text-align: left;
+      }
+
+      .frame-button:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(214, 178, 99, 0.18);
+      }
+
+      .frame-button.active {
+        background: rgba(214, 178, 99, 0.16);
+        border-color: rgba(214, 178, 99, 0.54);
+      }
+
+      .hifi-link {
+        display: block;
+        margin: 18px 0 0;
+        border: 1px solid rgba(214, 178, 99, 0.48);
+        border-radius: 12px;
+        background: rgba(214, 178, 99, 0.16);
+        color: var(--paper);
+        padding: 12px;
+        text-decoration: none;
+      }
+
+      .hifi-link strong {
+        display: block;
+        font-size: 13px;
+      }
+
+      .hifi-link span {
+        display: block;
+        margin-top: 5px;
+        color: rgba(243, 238, 220, 0.58);
+        font-size: 11px;
+      }
+
+      .frame-name {
+        min-width: 0;
+        font-size: 13px;
+        line-height: 1.25;
+      }
+
+      .frame-route {
+        color: rgba(243, 238, 220, 0.48);
+        font-size: 11px;
+        white-space: nowrap;
+      }
+
+      .main {
+        min-width: 0;
+        padding: 24px;
+      }
+
+      .toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: center;
+        margin: -24px -24px 22px;
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(11, 18, 12, 0.92);
+        backdrop-filter: blur(12px);
+      }
+
+      .current-title {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.25;
+        letter-spacing: 0;
+      }
+
+      .current-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        border: 1px solid rgba(214, 178, 99, 0.22);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--muted);
+        padding: 3px 8px;
+        font-size: 12px;
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .nav-button {
+        min-width: 82px;
+        min-height: 38px;
+        border: 1px solid rgba(214, 178, 99, 0.32);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--paper);
+        cursor: pointer;
+        padding: 8px 12px;
+      }
+
+      .nav-button.primary {
+        background: var(--gold);
+        color: var(--ink);
+        border-color: var(--gold);
+        font-weight: 700;
+      }
+
+      .nav-button:disabled {
+        cursor: default;
+        opacity: 0.44;
+      }
+
+      .viewport {
+        overflow: auto;
+        border: 1px solid rgba(214, 178, 99, 0.22);
+        border-radius: 18px;
+        background:
+          linear-gradient(45deg, rgba(255, 255, 255, 0.035) 25%, transparent 25%),
+          linear-gradient(-45deg, rgba(255, 255, 255, 0.035) 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.035) 75%),
+          linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.035) 75%),
+          #0f1711;
+        background-position:
+          0 0,
+          0 12px,
+          12px -12px,
+          -12px 0;
+        background-size: 24px 24px;
+        padding: 18px;
+      }
+
+      .canvas-wrap {
+        width: min(100%, 1440px);
+        min-width: 960px;
+        margin: 0 auto;
+      }
+
+      .frame-svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+        background: #0f1711;
+        box-shadow: 0 18px 34px rgba(0, 0, 0, 0.3);
+      }
+
+      .notes {
+        margin: 14px auto 0;
+        max-width: 1440px;
+        color: rgba(243, 238, 220, 0.58);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 980px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          position: static;
+          height: auto;
+          max-height: 42vh;
+        }
+
+        .toolbar {
+          grid-template-columns: 1fr;
+        }
+
+        .actions {
+          justify-content: flex-start;
+        }
+
+        .canvas-wrap {
+          min-width: 760px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="mark" aria-hidden="true"></span>
+          <div>
+            <h1>低保真逐页预览</h1>
+            <p>一次只看一个页面</p>
+          </div>
+        </div>
+        <a class="hifi-link" href="hifi-preview.html">
+          <strong>打开 HTML 高保真</strong>
+          <span>首页 / 物品列表 / 物品详情 / 文章页</span>
+        </a>
+        <nav id="frameNav" aria-label="低保真页面列表"></nav>
+      </aside>
+
+      <main class="main">
+        <header class="toolbar">
+          <div>
+            <h2 id="currentTitle" class="current-title"></h2>
+            <div id="currentMeta" class="current-meta"></div>
+          </div>
+          <div class="actions">
+            <button id="prevButton" class="nav-button" type="button">上一页</button>
+            <button id="nextButton" class="nav-button primary" type="button">下一页</button>
+          </div>
+        </header>
+
+        <section class="viewport" aria-label="当前低保真稿">
+          <div class="canvas-wrap">
+            <svg
+              id="previewSvg"
+              class="frame-svg"
+              xmlns="http://www.w3.org/2000/svg"
+              width="1440"
+              height="1024"
+              viewBox="0 0 1440 1024"
+              role="img"
+              aria-labelledby="currentTitle"
+            >
+              <image id="previewImage" x="0" y="0" width="1440" height="3504" href="" />
+            </svg>
+          </div>
+        </section>
+        <p id="frameNote" class="notes"></p>
+      </main>
+    </div>
+
+    <script>
+      const sources = {
+        home: {
+          file: "terrapedia-home-complete-lowfi-v1.svg",
+          height: 3504,
+        },
+        public: {
+          file: "terrapedia-public-pages-lowfi-v1.svg",
+          height: 4300,
+        },
+        utility: {
+          file: "terrapedia-utility-pages-lowfi-v1.svg",
+          height: 6820,
+        },
+        interface: {
+          file: "terrapedia-interface-pages-lowfi-v1.svg",
+          height: 8400,
+        },
+        remaining: {
+          file: "terrapedia-frontend-remaining-lowfi-v1.svg",
+          height: 4200,
+        },
+      };
+
+      const groups = [
+        {
+          title: "首页",
+          frames: [
+            {
+              id: "home-hero",
+              name: "首页首屏",
+              route: "/",
+              source: "home",
+              y: 0,
+              height: 1024,
+              note: "已确认方向，用作整体视觉基准。",
+            },
+            {
+              id: "home-lower",
+              name: "首页下半部分",
+              route: "/",
+              source: "home",
+              y: 1024,
+              height: 1920,
+              note: "探索地图、精选路线、Boss 事件条、图鉴卷轴、索引台组合。",
+            },
+            {
+              id: "home-footer",
+              name: "首页底部",
+              route: "/",
+              source: "home",
+              y: 2944,
+              height: 560,
+              note: "营地出口式 footer，用作旅程收束。",
+            },
+          ],
+        },
+        {
+          title: "公开资料页",
+          frames: [
+            {
+              id: "entity-list",
+              name: "统一实体列表",
+              route: "/items /npcs /bosses",
+              source: "public",
+              y: 0,
+              height: 1320,
+              note: "适配物品、NPC、Boss、Buff、射弹、盔甲套列表。",
+            },
+            {
+              id: "entity-detail",
+              name: "统一实体详情",
+              route: "/items/:id 等",
+              source: "public",
+              y: 1400,
+              height: 1460,
+              note: "适配物品、NPC、Boss、Buff 详情页。",
+            },
+            {
+              id: "article-ledger",
+              name: "文章与指南",
+              route: "/articles /articles/:id",
+              source: "public",
+              y: 3000,
+              height: 1220,
+              note: "资料手札式文章列表/详情框架。",
+            },
+          ],
+        },
+        {
+          title: "辅助页面",
+          frames: [
+            {
+              id: "about",
+              name: "关于页",
+              route: "/about",
+              source: "utility",
+              y: 0,
+              height: 1280,
+              note: "项目说明、数据链路、贡献入口。",
+            },
+            {
+              id: "auth",
+              name: "认证页组",
+              route: "/login /register /forgot-password",
+              source: "utility",
+              y: 1360,
+              height: 1280,
+              note: "登录、注册、找回密码共用同一视觉框架。",
+            },
+            {
+              id: "profile",
+              name: "个人中心",
+              route: "/profile",
+              source: "utility",
+              y: 2720,
+              height: 1280,
+              note: "玩家档案、收藏、投稿和账户设置。",
+            },
+            {
+              id: "writing",
+              name: "写作与文案工作台",
+              route: "/articles/write /copywriting",
+              source: "utility",
+              y: 4080,
+              height: 1420,
+              note: "素材、正文编辑、发布检查三栏工作台。",
+            },
+            {
+              id: "not-found",
+              name: "404 页面",
+              route: "/:pathMatch(.*)*",
+              source: "utility",
+              y: 5620,
+              height: 1200,
+              note: "迷失地图和破损图鉴错误页。",
+            },
+          ],
+        },
+        {
+          title: "接口态页面",
+          frames: [
+            {
+              id: "interface-search",
+              name: "搜索与建议",
+              route: "/public/items/suggestions",
+              source: "interface",
+              y: 0,
+              height: 1280,
+              note: "搜索建议、分类入口、热门路径和统计信号。",
+            },
+            {
+              id: "interface-item-aggregate",
+              name: "物品聚合模块",
+              route: "/public/items/:id/aggregate",
+              source: "interface",
+              y: 1400,
+              height: 1320,
+              note: "物品图片、来源、配方树和模块状态。",
+            },
+            {
+              id: "interface-npc-aggregate",
+              name: "NPC 聚合模块",
+              route: "/public/npcs/:id/aggregate",
+              source: "interface",
+              y: 2800,
+              height: 1320,
+              note: "NPC 掉落、商店、状态效果提示和证据状态。",
+            },
+            {
+              id: "interface-buff-detail",
+              name: "Buff 图鉴详情",
+              route: "/public/buffs/:id",
+              source: "interface",
+              y: 4200,
+              height: 1320,
+              note: "前台 Buff 效果说明、获取提示、免疫提示和来源摘要。",
+            },
+            {
+              id: "interface-special-lists",
+              name: "专属列表组合",
+              route: "/public/bosses /public/projectiles /public/armor-sets",
+              source: "interface",
+              y: 5600,
+              height: 1320,
+              note: "Boss、射弹、盔甲套的专属列表形态。",
+            },
+            {
+              id: "interface-creator-review",
+              name: "创作者审核发布",
+              route: "/user/articles/:id/submit-review",
+              source: "interface",
+              y: 7000,
+              height: 1400,
+              note: "草稿、保存、提交审核、发布检查的工作流。",
+            },
+          ],
+        },
+        {
+          title: "前台剩余接口",
+          frames: [
+            {
+              id: "remaining-categories",
+              name: "分类图鉴入口",
+              route: "/categories /categories/items",
+              source: "remaining",
+              y: 0,
+              height: 1280,
+              note: "前台分类导航，不是后台分类管理；用谱系结构承载分类树和图鉴入口。",
+            },
+            {
+              id: "remaining-biomes",
+              name: "生态群落图鉴",
+              route: "/biomes /biomes/:id",
+              source: "remaining",
+              y: 1400,
+              height: 1280,
+              note: "生态群落地图、层级筛选、资源和关系摘要。",
+            },
+            {
+              id: "remaining-statistics",
+              name: "公开统计总览",
+              route: "/statistics/overview",
+              source: "remaining",
+              y: 2800,
+              height: 1280,
+              note: "前台可信度和导航辅助，不是管理端 dashboard。",
+            },
+          ],
+        },
+      ];
+
+      const frames = groups.flatMap((group) =>
+        group.frames.map((frame) => ({
+          ...frame,
+          group: group.title,
+        })),
+      );
+
+      const nav = document.querySelector("#frameNav");
+      const previewSvg = document.querySelector("#previewSvg");
+      const previewImage = document.querySelector("#previewImage");
+      const currentTitle = document.querySelector("#currentTitle");
+      const currentMeta = document.querySelector("#currentMeta");
+      const frameNote = document.querySelector("#frameNote");
+      const prevButton = document.querySelector("#prevButton");
+      const nextButton = document.querySelector("#nextButton");
+
+      let activeIndex = Math.max(
+        0,
+        frames.findIndex((frame) => frame.id === new URLSearchParams(location.search).get("frame")),
+      );
+
+      function renderNav() {
+        nav.innerHTML = groups
+          .map(
+            (group) => `
+              <div class="group">
+                <div class="group-title">${group.title}</div>
+                ${group.frames
+                  .map((frame) => {
+                    const index = frames.findIndex((item) => item.id === frame.id);
+                    return `
+                      <button class="frame-button" type="button" data-index="${index}">
+                        <span class="frame-name">${frame.name}</span>
+                        <span class="frame-route">${frame.route.split(" ")[0]}</span>
+                      </button>
+                    `;
+                  })
+                  .join("")}
+              </div>
+            `,
+          )
+          .join("");
+
+        nav.querySelectorAll(".frame-button").forEach((button) => {
+          button.addEventListener("click", () => setActive(Number(button.dataset.index)));
+        });
+      }
+
+      function setActive(index) {
+        activeIndex = Math.max(0, Math.min(frames.length - 1, index));
+        const frame = frames[activeIndex];
+        const source = sources[frame.source];
+
+        document.querySelectorAll(".frame-button").forEach((button) => {
+          button.classList.toggle("active", Number(button.dataset.index) === activeIndex);
+        });
+
+        currentTitle.textContent = frame.name;
+        currentMeta.innerHTML = `
+          <span class="chip">${frame.group}</span>
+          <span class="chip">${frame.route}</span>
+          <span class="chip">${activeIndex + 1} / ${frames.length}</span>
+        `;
+        frameNote.textContent = frame.note;
+
+        previewSvg.setAttribute("height", String(frame.height));
+        previewSvg.setAttribute("viewBox", `0 0 1440 ${frame.height}`);
+        previewImage.setAttribute("href", source.file);
+        previewImage.setAttribute("width", "1440");
+        previewImage.setAttribute("height", String(source.height));
+        previewImage.setAttribute("y", String(-frame.y));
+
+        prevButton.disabled = activeIndex === 0;
+        nextButton.disabled = activeIndex === frames.length - 1;
+        history.replaceState(null, "", `?frame=${frame.id}`);
+      }
+
+      prevButton.addEventListener("click", () => setActive(activeIndex - 1));
+      nextButton.addEventListener("click", () => setActive(activeIndex + 1));
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowLeft") setActive(activeIndex - 1);
+        if (event.key === "ArrowRight") setActive(activeIndex + 1);
+      });
+
+      renderNav();
+      setActive(activeIndex);
+    </script>
+  </body>
+</html>
