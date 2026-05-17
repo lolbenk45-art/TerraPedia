@@ -1,0 +1,2716 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TerraPedia 核心页面高保真预览</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #050806;
+        --bg-2: #0a110b;
+        --panel: rgba(14, 21, 16, 0.9);
+        --panel-2: rgba(20, 29, 22, 0.95);
+        --paper: #f4ead0;
+        --paper-2: #e5d3a5;
+        --paper-3: #fff7e5;
+        --ink: #172018;
+        --muted: rgba(244, 234, 208, 0.64);
+        --gold: #d6b15a;
+        --gold-2: #f0cf74;
+        --moss: #7da55b;
+        --moss-2: #96c67a;
+        --mint: #77b8a5;
+        --line: rgba(214, 177, 90, 0.22);
+        --index-bg: #0a130d;
+        --index-grid-x: linear-gradient(90deg, rgba(244,234,208,0.028) 1px, transparent 1px);
+        --index-grid-y: linear-gradient(rgba(244,234,208,0.022) 1px, transparent 1px);
+        --index-line: rgba(217, 185, 91, 0.18);
+        --index-line-strong: rgba(217, 185, 91, 0.26);
+        --index-surface: rgba(244,234,208,0.025);
+        --index-surface-strong: rgba(244,234,208,0.035);
+        --shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+        --shadow-heavy: 0 36px 90px rgba(0, 0, 0, 0.44);
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 16% 18%, rgba(125, 165, 91, 0.15), transparent 24rem),
+          radial-gradient(circle at 82% 14%, rgba(240, 207, 116, 0.16), transparent 28rem),
+          linear-gradient(180deg, #050806 0%, #0b130d 100%);
+        color: var(--paper);
+        font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: 0;
+      }
+
+      button, input { font: inherit; }
+      button { cursor: pointer; }
+
+      .preview-shell {
+        display: grid;
+        grid-template-columns: 260px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      .preview-nav {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow: auto;
+        border-right: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(4, 9, 5, 0.96), rgba(13, 20, 15, 0.98)),
+          linear-gradient(90deg, rgba(214, 177, 90, 0.04) 1px, transparent 1px),
+          linear-gradient(rgba(214, 177, 90, 0.04) 1px, transparent 1px);
+        background-size: auto, 34px 34px, 34px 34px;
+        padding: 22px 16px;
+      }
+
+      .preview-brand {
+        display: grid;
+        grid-template-columns: 42px 1fr;
+        gap: 12px;
+        align-items: center;
+        padding: 0 6px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .brand-mark {
+        position: relative;
+        width: 42px;
+        height: 42px;
+        border-radius: 11px;
+        background: #1f2e1d;
+        border: 1px solid rgba(214, 177, 90, 0.34);
+      }
+      .brand-mark::before,
+      .brand-mark::after {
+        content: "";
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border-radius: 6px;
+      }
+      .brand-mark::before { left: 8px; top: 8px; background: var(--moss-2); }
+      .brand-mark::after { right: 7px; bottom: 7px; background: var(--gold); }
+      .preview-brand h1 { margin: 0; font-size: 16px; line-height: 1.2; }
+      .preview-brand p { margin: 5px 0 0; color: rgba(244, 234, 208, 0.56); font-size: 12px; }
+
+      .preview-tabs {
+        display: grid;
+        gap: 8px;
+        padding-top: 18px;
+      }
+
+      .preview-tab {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        align-items: center;
+        min-height: 48px;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        background: transparent;
+        color: var(--paper);
+        padding: 9px 10px;
+        text-align: left;
+      }
+      .preview-tab strong { font-size: 14px; line-height: 1.2; }
+      .preview-tab span { color: rgba(244, 234, 208, 0.48); font-size: 11px; }
+      .preview-tab:hover,
+      .preview-tab.active {
+        border-color: rgba(214, 177, 90, 0.48);
+        background: rgba(214, 177, 90, 0.14);
+      }
+
+      .preview-main { min-width: 0; }
+      .screen { display: none; min-height: 100vh; background: #050806; }
+      .screen.active { display: block; }
+
+      .site-nav {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 24px;
+        align-items: center;
+        min-height: 74px;
+        padding: 0 42px;
+        border-bottom: 1px solid rgba(214, 177, 90, 0.18);
+        background: rgba(6, 10, 6, 0.9);
+        backdrop-filter: blur(16px);
+      }
+      .site-logo {
+        display: inline-grid;
+        grid-template-columns: 36px auto;
+        gap: 12px;
+        align-items: center;
+        color: var(--paper);
+        text-decoration: none;
+      }
+      .logo-gem {
+        position: relative;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: #20301e;
+        box-shadow: inset 0 0 0 1px rgba(214, 177, 90, 0.34);
+      }
+      .logo-gem::before,
+      .logo-gem::after {
+        content: "";
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border-radius: 5px;
+      }
+      .logo-gem::before { left: 7px; top: 7px; background: var(--moss-2); }
+      .logo-gem::after { right: 6px; bottom: 6px; background: var(--gold); }
+      .site-logo strong { display: block; font-size: 18px; line-height: 1.1; }
+      .site-logo small { display: block; margin-top: 4px; color: rgba(244, 234, 208, 0.54); font-size: 11px; }
+
+      .site-links {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        min-width: 0;
+      }
+      .site-link {
+        min-height: 34px;
+        border-radius: 10px;
+        color: rgba(244, 234, 208, 0.72);
+        padding: 8px 12px;
+        text-decoration: none;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+      .site-link.active,
+      .site-link:hover {
+        background: rgba(214, 177, 90, 0.14);
+        color: var(--paper);
+      }
+
+      .site-actions { display: flex; gap: 10px; align-items: center; }
+      .icon-button {
+        display: inline-grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        border: 1px solid rgba(214, 177, 90, 0.22);
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--paper);
+      }
+      .primary-button,
+      .secondary-button {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        border-radius: 12px;
+        padding: 10px 16px;
+        text-decoration: none;
+        font-weight: 700;
+      }
+      .primary-button {
+        border: 1px solid transparent;
+        background: linear-gradient(135deg, var(--gold-2), #bc8934);
+        color: #172016;
+        box-shadow: 0 12px 30px rgba(214, 177, 90, 0.22);
+      }
+      .secondary-button {
+        border: 1px solid rgba(214, 177, 90, 0.34);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--paper);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--gold);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0;
+      }
+      .eyebrow::before {
+        content: "";
+        width: 34px;
+        height: 4px;
+        border-radius: 999px;
+        background: var(--gold);
+      }
+
+      .dark-card,
+      .paper-card {
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+      }
+      .dark-card {
+        border: 1px solid rgba(214, 177, 90, 0.22);
+        background:
+          linear-gradient(135deg, rgba(214, 177, 90, 0.08), transparent 38%),
+          linear-gradient(180deg, rgba(18, 28, 20, 0.98), rgba(10, 16, 12, 0.98));
+        color: var(--paper);
+      }
+      .paper-card {
+        border: 1px solid rgba(214, 177, 90, 0.26);
+        background:
+          linear-gradient(135deg, rgba(255, 255, 255, 0.34), transparent 42%),
+          linear-gradient(180deg, var(--paper-3), var(--paper));
+        color: var(--ink);
+      }
+
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 16px;
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        border-radius: 9px;
+        padding: 5px 9px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .tag.gold {
+        background: rgba(214, 177, 90, 0.22);
+        color: #ffe8a1;
+      }
+
+      .tag.moss {
+        background: rgba(125, 165, 91, 0.22);
+        color: #cff0a5;
+      }
+
+      .tag.paper {
+        background: rgba(244, 234, 208, 0.12);
+        color: rgba(244, 234, 208, 0.78);
+      }
+
+      .item-art {
+        display: inline-block;
+        width: 32px;
+        height: 32px;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: contain;
+        image-rendering: pixelated;
+        filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.24));
+      }
+      .sprite-frame {
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(214, 177, 90, 0.2);
+        border-radius: 12px;
+        background:
+          radial-gradient(circle at 50% 40%, rgba(240, 207, 116, 0.2), transparent 62%),
+          rgba(255, 255, 255, 0.04);
+      }
+
+      .home-screen {
+        background: #0b120c;
+      }
+      .hero {
+        position: relative;
+        overflow: hidden;
+        min-height: 850px;
+        padding: 34px 42px 96px;
+        background:
+          linear-gradient(180deg, rgba(9, 16, 11, 0.08), rgba(9, 16, 11, 0.84) 70%),
+          linear-gradient(125deg, #09100b 0%, #172414 46%, #2f3621 100%);
+      }
+      .hero::before,
+      .hero::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        pointer-events: none;
+      }
+      .hero::before {
+        bottom: 0;
+        height: 270px;
+        background:
+          linear-gradient(142deg, transparent 0 7%, #263820 7% 18%, transparent 18% 25%, #182519 25% 38%, transparent 38% 45%, #263820 45% 56%, transparent 56% 64%, #182519 64% 78%, transparent 78%),
+          linear-gradient(180deg, transparent, rgba(9, 16, 11, 0.74));
+        opacity: 0.32;
+      }
+      .hero::after {
+        bottom: 0;
+        height: 1px;
+        background: rgba(244, 234, 208, 0.1);
+      }
+      .hero-grid {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(500px, 0.96fr) minmax(520px, 0.92fr);
+        gap: 54px;
+        align-items: center;
+        max-width: 1360px;
+        min-height: 760px;
+        margin: 0 auto;
+      }
+      .hero-left {
+        position: relative;
+        display: grid;
+        place-items: center;
+        min-height: 640px;
+      }
+      .hero-left::before {
+        content: "";
+        position: absolute;
+        inset: 66px 22px;
+        border: 1px solid rgba(244, 234, 208, 0.08);
+        border-radius: 8px;
+        background:
+          linear-gradient(90deg, rgba(244,234,208,0.045) 1px, transparent 1px),
+          linear-gradient(rgba(244,234,208,0.035) 1px, transparent 1px);
+        background-size: 56px 56px;
+      }
+      .hero-left::after {
+        content: "";
+        position: absolute;
+        left: 86px;
+        right: 86px;
+        bottom: 58px;
+        height: 36px;
+        background: rgba(0, 0, 0, 0.42);
+        filter: blur(18px);
+      }
+      .atlas-index {
+        position: relative;
+        z-index: 1;
+        overflow: hidden;
+        width: 560px;
+        min-height: 500px;
+        border: 1px solid rgba(244, 234, 208, 0.13);
+        border-radius: 8px;
+        background:
+          linear-gradient(180deg, rgba(244,234,208,0.045), transparent 34%),
+          rgba(7, 12, 9, 0.94);
+        box-shadow:
+          0 36px 86px rgba(0, 0, 0, 0.42),
+          inset 0 1px 0 rgba(255,255,255,0.06);
+        padding: 28px;
+      }
+      .atlas-index::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(90deg, rgba(244,234,208,0.035) 1px, transparent 1px),
+          linear-gradient(rgba(244,234,208,0.03) 1px, transparent 1px);
+        background-size: 44px 44px;
+        mask-image: linear-gradient(180deg, black, transparent 78%);
+        opacity: 0.72;
+        pointer-events: none;
+      }
+      .atlas-index::after {
+        content: "";
+        position: absolute;
+        left: 28px;
+        right: 28px;
+        bottom: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(240,207,116,0.52), transparent);
+      }
+      .index-head {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 24px;
+        align-items: start;
+        padding-bottom: 24px;
+        border-bottom: 1px solid rgba(244, 234, 208, 0.1);
+      }
+      .index-head span {
+        display: block;
+        color: rgba(244, 234, 208, 0.62);
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .index-head strong {
+        display: block;
+        margin-top: 8px;
+        color: var(--paper);
+        font-size: 30px;
+        line-height: 1;
+      }
+      .index-total {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .index-total b {
+        display: block;
+        color: var(--gold-2);
+        font-size: 30px;
+        line-height: 1;
+      }
+      .index-focus {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 56px 1fr auto;
+        gap: 16px;
+        align-items: center;
+        min-height: 96px;
+        margin-top: 28px;
+        border: 1px solid rgba(240, 207, 116, 0.34);
+        border-radius: 8px;
+        background: rgba(244, 234, 208, 0.06);
+        padding: 18px;
+      }
+      .index-focus img {
+        width: 56px;
+        height: 56px;
+        object-fit: contain;
+        image-rendering: pixelated;
+      }
+      .index-focus span {
+        display: block;
+        color: rgba(244, 234, 208, 0.52);
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .index-focus b {
+        display: block;
+        margin-top: 6px;
+        color: var(--paper);
+        font-size: 24px;
+      }
+      .index-focus em {
+        border: 1px solid rgba(244, 234, 208, 0.16);
+        border-radius: 999px;
+        color: var(--gold-2);
+        font-size: 12px;
+        font-style: normal;
+        font-weight: 900;
+        padding: 8px 12px;
+      }
+      .index-metrics {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-top: 28px;
+        border-top: 1px solid rgba(244, 234, 208, 0.1);
+        border-bottom: 1px solid rgba(244, 234, 208, 0.1);
+      }
+      .index-metrics div {
+        min-height: 86px;
+        padding: 18px 14px;
+      }
+      .index-metrics div + div { border-left: 1px solid rgba(244, 234, 208, 0.1); }
+      .index-metrics b {
+        display: block;
+        color: var(--paper);
+        font-size: 23px;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+      }
+      .index-metrics span {
+        display: block;
+        margin-top: 10px;
+        color: rgba(244, 234, 208, 0.52);
+        font-size: 12px;
+      }
+      .index-table {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: 0;
+        margin-top: 28px;
+      }
+      .index-row {
+        display: grid;
+        grid-template-columns: 46px 1fr auto;
+        gap: 14px;
+        align-items: center;
+        min-height: 46px;
+        border-bottom: 1px solid rgba(244, 234, 208, 0.08);
+      }
+      .index-row span,
+      .index-row em {
+        color: rgba(244, 234, 208, 0.46);
+        font-size: 12px;
+        font-style: normal;
+      }
+      .index-row b {
+        color: var(--paper);
+        font-size: 14px;
+      }
+      .index-row:first-child b { color: var(--gold-2); }
+      .hero-center {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: 24px;
+        align-content: center;
+        min-height: 640px;
+      }
+      .hero-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--gold);
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .hero-kicker::before {
+        content: "";
+        width: 28px;
+        height: 4px;
+        border-radius: 999px;
+        background: var(--gold);
+      }
+      .hero-center h2 {
+        margin: 0;
+        max-width: 560px;
+        background: linear-gradient(90deg, #fff8d9, #d7b15b);
+        color: transparent;
+        font-size: 78px;
+        line-height: 0.95;
+        -webkit-background-clip: text;
+        background-clip: text;
+      }
+      .hero-lede {
+        max-width: 540px;
+        margin: 0;
+        color: rgba(244, 234, 208, 0.72);
+        font-size: 16px;
+        line-height: 1.8;
+      }
+      .search-bar {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        align-items: center;
+        border: 1px solid var(--index-line-strong);
+        border-radius: 8px;
+        background:
+          var(--index-grid-x),
+          var(--index-grid-y),
+          var(--index-bg);
+        background-size: 40px 40px, 40px 40px, auto;
+        box-shadow: inset 0 1px 0 rgba(244,234,208,0.035);
+        padding: 10px;
+      }
+      .search-field {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        min-height: 48px;
+        color: var(--paper);
+        padding: 0 12px;
+      }
+      .search-glyph {
+        position: relative;
+        width: 22px;
+        height: 22px;
+        border: 3px solid #9db89a;
+        border-radius: 50%;
+      }
+      .search-glyph::after {
+        content: "";
+        position: absolute;
+        right: -9px;
+        bottom: -7px;
+        width: 13px;
+        height: 3px;
+        border-radius: 999px;
+        background: #9db89a;
+        transform: rotate(45deg);
+      }
+      .search-field strong { font-size: 15px; }
+      .quick-entry {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .quick-entry a {
+        min-height: 42px;
+        border: 1px solid var(--index-line);
+        border-radius: 8px;
+        background: var(--index-surface);
+        color: rgba(244, 234, 208, 0.82);
+        padding: 10px 12px;
+        text-align: center;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .quick-entry a:hover { background: var(--index-surface-strong); }
+      .hero-stats {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0;
+        max-width: 1360px;
+        margin: 0 auto;
+        border-top: 1px solid var(--index-line);
+        border-bottom: 1px solid var(--index-line);
+        background:
+          var(--index-grid-x),
+          var(--index-grid-y),
+          var(--index-bg);
+        background-size: 40px 40px, 40px 40px, auto;
+      }
+      .hero-stat-card {
+        min-height: 92px;
+        border: 0;
+        border-left: 1px solid var(--index-line);
+        border-radius: 0;
+        background: transparent;
+        padding: 20px 24px;
+        box-shadow: none;
+      }
+      .hero-stat-card:first-child { border-left: 0; }
+      .hero-stat-card b {
+        display: block;
+        color: var(--gold-2);
+        font-size: 18px;
+      }
+      .hero-stat-card span {
+        display: block;
+        margin-top: 5px;
+        color: rgba(244, 234, 208, 0.62);
+        font-size: 12px;
+      }
+
+      .home-lower {
+        position: relative;
+        overflow: hidden;
+        background:
+          linear-gradient(180deg, rgba(10, 19, 13, 0) 0, var(--index-bg) 92px),
+          var(--index-grid-x),
+          var(--index-grid-y),
+          var(--index-bg);
+        background-size: auto, 40px 40px, 40px 40px, auto;
+        padding: 0 42px 92px;
+      }
+      .home-lower-inner {
+        position: relative;
+        z-index: 1;
+        max-width: 1360px;
+        margin: 0 auto;
+      }
+      .exploration-map {
+        position: relative;
+        min-height: 620px;
+        border: 1px solid var(--index-line);
+        border-radius: 0 0 8px 8px;
+        background:
+          var(--index-grid-x),
+          var(--index-grid-y),
+          var(--index-bg);
+        background-size: 40px 40px, 40px 40px, auto;
+        color: var(--paper);
+        padding: 54px 70px 64px;
+      }
+      .map-head {
+        max-width: 620px;
+        position: relative;
+        z-index: 2;
+      }
+      .map-head h3,
+      .paper-stage h3,
+      .camp-footer h3 {
+        margin: 12px 0 0;
+        font-size: 34px;
+        line-height: 1.18;
+      }
+      .map-head p,
+      .paper-stage p,
+      .camp-footer p {
+        color: rgba(244, 234, 208, 0.62);
+        line-height: 1.7;
+      }
+      .map-path {
+        position: absolute;
+        left: 11%;
+        right: 10%;
+        top: 300px;
+        height: 190px;
+        border-top: 1px dashed rgba(217, 185, 91, 0.18);
+        border-radius: 50% 50% 0 0;
+        transform: rotate(2deg);
+      }
+      .map-node {
+        position: absolute;
+        width: 208px;
+        min-height: 158px;
+        border: 1px solid var(--index-line);
+        border-radius: 8px;
+        background: var(--index-surface);
+        box-shadow: inset 0 1px 0 rgba(244,234,208,0.035);
+        padding: 18px 18px 20px;
+      }
+      .map-node.featured {
+        width: 270px;
+        min-height: 202px;
+        border-color: var(--index-line-strong);
+        background: var(--index-surface-strong);
+      }
+      .map-node i {
+        display: grid;
+        place-items: center;
+        width: 56px;
+        height: 56px;
+        border: 1px solid var(--index-line);
+        border-radius: 8px;
+        background: rgba(244,234,208,0.025);
+      }
+      .map-node i .item-art { width: 36px; height: 36px; }
+      .map-node b {
+        display: block;
+        margin-top: 14px;
+        color: var(--paper);
+        font-size: 16px;
+        line-height: 1.28;
+      }
+      .map-node span {
+        display: block;
+        margin-top: 8px;
+        color: rgba(244, 234, 208, 0.56);
+        font-size: 12px;
+        line-height: 1.62;
+      }
+      .map-node.one { left: 70px; top: 294px; }
+      .map-node.two { left: 28%; top: 248px; }
+      .map-node.three { left: 45%; top: 404px; }
+      .map-node.four { right: 17%; top: 290px; }
+      .map-node.five { right: 70px; top: 412px; }
+      .paper-stage {
+        position: relative;
+        margin-top: 78px;
+        border: 1px solid var(--index-line);
+        border-radius: 8px;
+        background:
+          var(--index-grid-x),
+          var(--index-grid-y),
+          var(--index-bg);
+        background-size: 40px 40px, 40px 40px, auto;
+        color: var(--paper);
+        box-shadow:
+          0 22px 56px rgba(0, 0, 0, 0.16),
+          inset 0 1px 0 rgba(244,234,208,0.035);
+        padding: 58px 40px 44px;
+      }
+      .paper-stage::before {
+        content: "";
+        position: absolute;
+        left: 40px;
+        right: 40px;
+        top: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(217, 185, 91, 0.22), transparent);
+      }
+      .paper-stage p { color: rgba(244, 234, 208, 0.62); }
+      .paper-stage .eyebrow,
+      .boss-strip .eyebrow,
+      .codex-band .eyebrow,
+      .camp-footer .eyebrow {
+        color: var(--gold);
+      }
+      .paper-stage .eyebrow::before,
+      .boss-strip .eyebrow::before,
+      .codex-band .eyebrow::before,
+      .camp-footer .eyebrow::before {
+        background: var(--gold);
+      }
+      .paper-stage .tag.gold,
+      .camp-footer .tag.gold {
+        border: 1px solid var(--index-line);
+        background: var(--index-surface);
+        color: #ffd765;
+      }
+      .paper-stage .tag.moss,
+      .camp-footer .tag.moss {
+        border: 1px solid var(--index-line);
+        background: var(--index-surface);
+        color: #9db89a;
+      }
+      .paper-stage .tag.paper,
+      .camp-footer .tag.paper {
+        border: 1px solid var(--index-line);
+        background: var(--index-surface);
+        color: rgba(244, 234, 208, 0.76);
+      }
+      .section-head {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(300px, 0.55fr);
+        gap: 34px;
+        align-items: end;
+        max-width: none;
+      }
+      .section-head p {
+        max-width: 520px;
+        margin: 0;
+      }
+      .stage-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.18fr) minmax(360px, 0.82fr);
+        gap: 28px;
+        margin-top: 34px;
+      }
+      .featured-route {
+        position: relative;
+        overflow: hidden;
+        min-height: 368px;
+        border: 1px solid var(--index-line);
+        border-radius: 8px;
+        background:
+          var(--index-grid-x),
+          var(--index-grid-y),
+          var(--index-surface);
+        background-size: 40px 40px, 40px 40px, auto;
+        color: var(--paper);
+        box-shadow: inset 0 1px 0 rgba(244,234,208,0.035);
+        padding: 36px;
+      }
+      .featured-route::after {
+        content: "";
+        position: absolute;
+        right: 34px;
+        bottom: 30px;
+        width: 190px;
+        height: 88px;
+        border-top: 1px solid rgba(217, 185, 91, 0.18);
+        border-right: 1px solid rgba(217, 185, 91, 0.12);
+        opacity: 0.6;
+      }
+      .featured-route .route-art {
+        display: grid;
+        place-items: center;
+        width: 132px;
+        height: 132px;
+        border: 1px solid var(--index-line);
+        border-radius: 8px;
+        background: var(--index-surface);
+        box-shadow: inset 0 1px 0 rgba(244,234,208,0.035);
+      }
+      .featured-route .route-art .item-art { width: 88px; height: 88px; }
+      .featured-route h4 {
+        max-width: 420px;
+        margin: 24px 0 0;
+        font-size: 28px;
+        line-height: 1.18;
+      }
+      .featured-route p {
+        max-width: 520px;
+        margin: 14px 0 0;
+        color: rgba(244, 234, 208, 0.62);
+      }
+      .route-list {
+        display: grid;
+        align-content: stretch;
+        gap: 14px;
+      }
+      .route-list-row {
+        display: grid;
+        grid-template-columns: 56px 1fr auto;
+        gap: 16px;
+        align-items: center;
+        min-height: 112px;
+        border: 1px solid var(--index-line);
+        border-radius: 8px;
+        background: var(--index-surface);
+        padding: 20px 22px;
+        box-shadow: inset 0 1px 0 rgba(244,234,208,0.035);
+      }
+      .route-list-row:nth-child(2) { margin-left: 22px; }
+      .route-list-row:nth-child(3) { margin-left: 44px; }
+      .route-list-row .item-art {
+        width: 48px;
+        height: 48px;
+      }
+      .route-list-row b { display: block; }
+      .route-list-row span { color: rgba(244, 234, 208, 0.54); font-size: 12px; }
+      .route-list-row strong {
+        border-radius: 8px;
+        border: 1px solid var(--index-line);
+        background: rgba(244,234,208,0.025);
+        color: #ffd765;
+        padding: 7px 10px;
+        font-size: 12px;
+      }
+      .boss-strip {
+        display: grid;
+        grid-template-columns: 180px minmax(0, 1fr) 310px;
+        gap: 26px;
+        align-items: stretch;
+        min-height: 214px;
+        margin: 50px 64px 0;
+        border: 1px solid var(--index-line);
+        border-radius: 8px;
+        background:
+          var(--index-grid-x),
+          var(--index-grid-y),
+          var(--index-bg);
+        background-size: 40px 40px, 40px 40px, auto;
+        color: var(--paper);
+        box-shadow:
+          0 24px 54px rgba(0, 0, 0, 0.18),
+          inset 0 1px 0 rgba(244,234,208,0.035);
+        padding: 28px;
+      }
+      .boss-medallion {
+        display: grid;
+        place-items: center;
+        min-height: 188px;
+        border: 1px solid var(--index-line);
+        border-radius: 8px;
+        background: var(--index-surface);
+        box-shadow: inset 0 1px 0 rgba(244,234,208,0.035);
+      }
+      .boss-medallion .item-art {
+        width: 54px;
+        height: 54px;
+      }
+      .boss-copy {
+        display: grid;
+        align-content: center;
+      }
+      .boss-strip h4 { margin: 0; font-size: 26px; }
+      .boss-strip p { margin: 12px 0 0; color: rgba(244, 234, 208, 0.62); }
+      .boss-route {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-top: 24px;
+        border-top: 1px solid var(--index-line);
+        border-bottom: 1px solid var(--index-line);
+      }
+      .boss-route span {
+        min-height: 58px;
+        border-left: 1px solid var(--index-line);
+        color: rgba(244, 234, 208, 0.68);
+        font-size: 12px;
+        font-weight: 800;
+        padding: 13px 12px;
+      }
+      .boss-route span:first-child { border-left: 0; color: #ffd765; }
+      .boss-route b {
+        display: block;
+        color: #9db89a;
+        font-size: 11px;
+        font-weight: 900;
+      }
+      .loot-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        align-content: stretch;
+      }
+      .loot-grid > span {
+        display: grid;
+        place-items: center;
+        min-height: 64px;
+        border: 1px solid var(--index-line);
+        border-radius: 8px;
+        background: var(--index-surface);
+      }
+      .loot-grid .item-art { width: 32px; height: 32px; }
+      .codex-band {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 380px;
+        gap: 24px;
+        margin-top: 50px;
+        border: 1px solid var(--index-line);
+        border-radius: 8px;
+        background:
+          var(--index-grid-x),
+          var(--index-grid-y),
+          var(--index-bg);
+        background-size: 40px 40px, 40px 40px, auto;
+        color: var(--paper);
+        box-shadow:
+          0 24px 58px rgba(0, 0, 0, 0.16),
+          inset 0 1px 0 rgba(244,234,208,0.035);
+        padding: 26px;
+      }
+      .codex-scroll,
+      .codex-notes {
+        border: 1px solid var(--index-line);
+        border-radius: 8px;
+        background: var(--index-surface);
+      }
+      .codex-scroll {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 0.88fr) minmax(260px, 0.58fr);
+        gap: 28px;
+        min-height: 286px;
+        padding: 34px;
+        overflow: hidden;
+        background: var(--index-surface);
+      }
+      .codex-scroll::after {
+        content: "";
+        position: absolute;
+        right: 30px;
+        top: 30px;
+        bottom: 30px;
+        width: 1px;
+        background: rgba(217, 185, 91, 0.22);
+      }
+      .codex-scroll h4 { margin: 18px 0 0; font-size: 26px; }
+      .codex-scroll p { max-width: 620px; }
+      .codex-feature {
+        align-self: center;
+      }
+      .codex-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 22px;
+      }
+      .codex-actions span {
+        border: 1px solid var(--index-line);
+        border-radius: 8px;
+        background: var(--index-surface);
+        color: rgba(244, 234, 208, 0.82);
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .codex-route-list {
+        display: grid;
+        gap: 10px;
+        align-self: center;
+      }
+      .codex-route-list div {
+        display: grid;
+        grid-template-columns: 42px 1fr;
+        gap: 12px;
+        align-items: center;
+        min-height: 58px;
+        border: 1px solid var(--index-line);
+        border-radius: 8px;
+        background: rgba(244,234,208,0.02);
+        padding: 10px 12px;
+      }
+      .codex-route-list span {
+        color: #9db89a;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .codex-route-list b {
+        display: block;
+        color: var(--paper);
+        font-size: 13px;
+      }
+      .codex-route-list em {
+        display: block;
+        margin-top: 3px;
+        color: rgba(244, 234, 208, 0.5);
+        font-size: 12px;
+        font-style: normal;
+      }
+      .codex-notes {
+        display: grid;
+        gap: 14px;
+        padding: 6px 0;
+        background: transparent;
+        border: 0;
+      }
+      .codex-note {
+        display: grid;
+        grid-template-columns: 44px 1fr;
+        gap: 12px;
+        align-items: center;
+        min-height: 86px;
+        border: 1px solid var(--index-line);
+        border-radius: 8px;
+        background: var(--index-surface);
+        padding: 14px;
+      }
+      .codex-note i {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        border: 1px solid rgba(217, 185, 91, 0.18);
+        background: rgba(244,234,208,0.025);
+        color: #ffd765;
+        font-size: 12px;
+        font-style: normal;
+        font-weight: 900;
+      }
+      .codex-note b { display: block; font-size: 13px; }
+      .codex-note span { color: rgba(244, 234, 208, 0.54); font-size: 12px; }
+      .index-plinth {
+        display: grid;
+        grid-template-columns: 250px repeat(4, 1fr);
+        gap: 0;
+        align-items: center;
+        min-height: 156px;
+        margin: 50px 96px 0;
+        max-width: none;
+        border-color: var(--index-line);
+        background:
+          var(--index-grid-x),
+          var(--index-grid-y),
+          var(--index-bg);
+        background-size: 40px 40px, 40px 40px, auto;
+        color: var(--paper);
+        box-shadow:
+          0 22px 56px rgba(0, 0, 0, 0.16),
+          inset 0 1px 0 rgba(244,234,208,0.035);
+        overflow: hidden;
+      }
+      .index-plinth > div {
+        min-height: 118px;
+        padding: 26px;
+        border-left: 1px solid var(--index-line);
+      }
+      .index-plinth > div:first-child { border-left: 0; }
+      .index-plinth b { display: block; color: var(--gold-2); font-size: 20px; }
+      .index-plinth span { display: block; margin-top: 8px; color: rgba(244,234,208,0.56); font-size: 12px; }
+      .camp-footer {
+        position: relative;
+        overflow: hidden;
+        margin: 64px auto 0;
+        max-width: 1360px;
+        min-height: auto;
+        border: 1px solid var(--index-line);
+        border-radius: 0;
+        background:
+          var(--index-grid-x),
+          var(--index-grid-y),
+          var(--index-bg);
+        background-size: 40px 40px, 40px 40px, auto;
+        color: var(--paper);
+        padding: 0;
+      }
+      .camp-footer p { color: rgba(244, 234, 208, 0.62); }
+      .footer-main {
+        display: grid;
+        grid-template-columns: minmax(320px, 1.1fr) repeat(3, minmax(140px, 0.52fr)) minmax(260px, 0.76fr);
+        gap: 34px;
+        padding: 42px 44px 38px;
+      }
+      .footer-brand {
+        max-width: 380px;
+      }
+      .footer-kicker {
+        display: block;
+        color: #9db89a;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .footer-brand h3 {
+        margin: 6px 0 0;
+        font-size: 34px;
+        line-height: 1.06;
+      }
+      .footer-brand p {
+        margin: 18px 0 0;
+        max-width: 340px;
+        color: rgba(244, 234, 208, 0.62);
+        line-height: 1.72;
+      }
+      .footer-proof {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 28px;
+        border-top: 1px solid var(--index-line);
+        border-bottom: 1px solid var(--index-line);
+      }
+      .footer-proof div {
+        min-height: 72px;
+        padding: 16px 14px;
+        border-left: 1px solid var(--index-line);
+      }
+      .footer-proof div:first-child { border-left: 0; }
+      .footer-proof b {
+        display: block;
+        color: #ffd765;
+        font-size: 20px;
+        line-height: 1;
+      }
+      .footer-proof span {
+        display: block;
+        margin-top: 8px;
+        color: #9db89a;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .footer-column h4 {
+        margin: 0 0 16px;
+        color: var(--paper);
+        font-size: 13px;
+      }
+      .footer-links {
+        display: grid;
+        gap: 11px;
+      }
+      .footer-links a,
+      .footer-contact span {
+        color: rgba(244, 234, 208, 0.64);
+        text-decoration: none;
+        font-size: 13px;
+        line-height: 1.35;
+      }
+      .footer-links a:hover { color: #ffd765; }
+      .footer-contact {
+        border: 1px solid var(--index-line);
+        border-radius: 8px;
+        background: var(--index-surface);
+        padding: 18px;
+      }
+      .footer-contact h4 {
+        margin: 0;
+        font-size: 13px;
+      }
+      .footer-contact p {
+        margin: 12px 0 0;
+        line-height: 1.62;
+      }
+      .footer-contact-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 18px;
+      }
+      .footer-contact-list span {
+        display: block;
+        padding-top: 10px;
+        border-top: 1px solid var(--index-line);
+      }
+      .footer-contact em {
+        display: block;
+        color: #9db89a;
+        font-size: 12px;
+        font-style: normal;
+        font-weight: 900;
+      }
+      .footer-bottom {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 24px;
+        align-items: center;
+        min-height: 70px;
+        border-top: 1px solid var(--index-line);
+        background: var(--index-surface);
+        padding: 18px 44px;
+      }
+      .footer-bottom span,
+      .footer-bottom a {
+        color: #8fa58b;
+        font-size: 12px;
+        text-decoration: none;
+      }
+      .footer-legal {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        justify-content: flex-end;
+      }
+
+      .catalog-screen,
+      .detail-screen,
+      .article-screen {
+        background:
+          linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px),
+          linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+          linear-gradient(180deg, #f5ecd2, #dfcc9f);
+        background-size: 38px 38px, 38px 38px, auto;
+        color: var(--ink);
+      }
+
+      .page-head {
+        padding: 28px 42px 26px;
+        background:
+          radial-gradient(circle at 80% 20%, rgba(240, 207, 116, 0.16), transparent 24rem),
+          linear-gradient(180deg, #08100a, #151f15);
+        border-bottom: 1px solid rgba(214, 177, 90, 0.22);
+      }
+      .page-head-inner {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 24px;
+        align-items: center;
+        max-width: 1440px;
+        margin: 0 auto;
+        border: 1px solid rgba(214, 177, 90, 0.22);
+        border-radius: 24px;
+        background: rgba(255,255,255,0.035);
+        padding: 24px 28px;
+      }
+      .page-head h2 { margin: 10px 0 0; color: var(--paper); font-size: 36px; }
+      .page-head p { max-width: 680px; margin: 12px 0 0; color: rgba(244,234,208,0.62); line-height: 1.7; }
+
+      .catalog-layout {
+        display: grid;
+        grid-template-columns: 248px minmax(0, 1fr) 286px;
+        gap: 22px;
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 26px 42px 70px;
+      }
+      .filter-panel,
+      .list-panel,
+      .preview-panel,
+      .detail-module,
+      .article-panel,
+      .article-side {
+        border: 1px solid rgba(214, 177, 90, 0.22);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+      }
+      .filter-panel,
+      .preview-panel { align-self: start; position: sticky; top: 96px; }
+      .filter-panel {
+        padding: 22px 18px;
+        background: linear-gradient(180deg, #fbf3df, #ebd9b6);
+      }
+      .section-label { margin: 0 0 14px; color: #7b5c20; font-size: 12px; font-weight: 900; }
+      .filter-group + .filter-group {
+        margin-top: 22px;
+        padding-top: 20px;
+        border-top: 1px dashed rgba(116, 93, 55, 0.24);
+      }
+      .filter-option {
+        display: grid;
+        grid-template-columns: 26px 1fr auto;
+        gap: 10px;
+        align-items: center;
+        min-height: 40px;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        padding: 8px;
+        color: #263424;
+      }
+      .filter-option.active {
+        border-color: rgba(214, 177, 90, 0.34);
+        background: #1c281d;
+        color: var(--paper);
+      }
+      .filter-dot { width: 22px; height: 22px; border-radius: 7px; background: var(--moss); }
+      .filter-option:nth-child(3n) .filter-dot { background: var(--gold); }
+      .filter-option:nth-child(4n) .filter-dot { background: var(--moss-2); }
+      .count { opacity: 0.52; font-size: 12px; }
+
+      .list-panel {
+        padding: 22px;
+        background:
+          linear-gradient(180deg, rgba(255,255,255,0.58), rgba(244,234,208,0.82)),
+          var(--paper-3);
+      }
+      .catalog-page-headline {
+        display: grid;
+        grid-template-columns: 1fr auto auto auto;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 18px;
+      }
+      .catalog-page-headline h3 { margin: 0; color: #1d2b1e; font-size: 22px; }
+      .small-button {
+        min-height: 38px;
+        border: 1px solid rgba(214, 177, 90, 0.2);
+        border-radius: 11px;
+        background: #efe0bd;
+        color: #273223;
+        padding: 8px 12px;
+        font-weight: 800;
+      }
+      .small-button.active { background: #1d2b1e; color: var(--paper); }
+      .list-toolbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      .catalog-search {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        min-height: 50px;
+        border: 1px solid rgba(214, 177, 90, 0.2);
+        border-radius: 15px;
+        background: #fffaf0;
+        padding: 0 14px;
+        color: #637057;
+      }
+      .toolbar-buttons { display: flex; gap: 8px; }
+      .density-rail {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        margin: -2px 0 16px;
+        border: 1px solid rgba(214, 177, 90, 0.22);
+        border-radius: 14px;
+        background: linear-gradient(90deg, rgba(125,165,91,0.16), rgba(214,177,90,0.12));
+        padding: 10px 12px;
+        color: #4c553f;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .density-rail span {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .density-rail span::before {
+        content: "";
+        width: 36px;
+        height: 7px;
+        border-radius: 999px;
+        background: #7da55b;
+        box-shadow: 42px 0 0 #d6b15a;
+      }
+      .item-grid {
+        display: grid;
+        grid-template-columns: repeat(14, minmax(0, 1fr));
+        gap: 7px;
+      }
+      .item-cell {
+        position: relative;
+        min-height: 62px;
+        padding: 6px 4px 5px;
+        border: 1px solid rgba(214, 177, 90, 0.24);
+        border-radius: 10px;
+        background:
+          radial-gradient(circle at 50% 30%, rgba(214, 177, 90, 0.16), transparent 58%),
+          #fff7e5;
+        color: #263424;
+        text-align: center;
+        box-shadow:
+          inset 0 0 0 1px rgba(255,255,255,0.46),
+          0 10px 18px rgba(87, 61, 34, 0.08);
+      }
+      .item-cell.active {
+        border-color: var(--gold);
+        background:
+          radial-gradient(circle at 50% 28%, rgba(214, 177, 90, 0.26), transparent 62%),
+          #1d2b1e;
+        color: var(--paper);
+        box-shadow: 0 0 0 2px rgba(214, 177, 90, 0.22);
+      }
+      .item-cell .item-art,
+      .item-cell .pixel-icon {
+        width: 28px;
+        height: 28px;
+      }
+      .item-cell .item-art {
+        display: block;
+        margin: 0 auto;
+        border: 1px solid rgba(204,184,141,0.8);
+        border-radius: 8px;
+        background-color: #f7ebd0;
+        background-size: 22px 22px;
+        background-repeat: no-repeat;
+        background-position: center;
+        box-shadow:
+          inset 0 0 0 1px rgba(255,255,255,0.55),
+          0 8px 16px rgba(86, 60, 33, 0.1);
+      }
+      .item-cell span {
+        display: block;
+        overflow: hidden;
+        width: 100%;
+        margin-top: 4px;
+        font-size: 10px;
+        line-height: 1.15;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .pager {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;
+        color: #6e705d;
+        font-size: 13px;
+      }
+
+      .preview-panel {
+        overflow: hidden;
+        background:
+          linear-gradient(135deg, rgba(214,177,90,0.08), transparent 36%),
+          linear-gradient(180deg, #172617, #0d180f);
+        color: var(--paper);
+      }
+      .preview-hero { padding: 28px 24px; }
+      .preview-icon {
+        display: grid;
+        place-items: center;
+        width: 98px;
+        height: 98px;
+        border-radius: 24px;
+        background: radial-gradient(circle, rgba(240,207,116,0.52), rgba(240,207,116,0.08) 65%, transparent 66%);
+        box-shadow:
+          inset 0 0 0 1px rgba(240,207,116,0.34),
+          0 20px 46px rgba(0,0,0,0.26);
+      }
+      .preview-icon .item-art { width: 70px; height: 70px; }
+      .preview-panel h3 { margin: 20px 0 0; font-size: 26px; }
+      .preview-panel p { color: rgba(244,234,208,0.64); line-height: 1.7; }
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 18px;
+      }
+      .stat-box {
+        border: 1px solid rgba(214, 177, 90, 0.18);
+        border-radius: 14px;
+        background: rgba(255,255,255,0.07);
+        padding: 12px;
+      }
+      .stat-box b { display: block; color: var(--gold-2); font-size: 18px; }
+      .stat-box span { color: rgba(244,234,208,0.52); font-size: 12px; }
+      .preview-list {
+        display: grid;
+        gap: 10px;
+        padding: 0 24px 26px;
+      }
+      .preview-list-row {
+        display: grid;
+        grid-template-columns: 34px 1fr;
+        gap: 10px;
+        align-items: center;
+        min-height: 54px;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.07);
+        padding: 9px;
+      }
+      .preview-list-row .item-art { width: 34px; height: 34px; }
+      .preview-list-row b { display: block; font-size: 13px; }
+      .preview-list-row span { color: rgba(244,234,208,0.52); font-size: 12px; }
+
+      .detail-layout {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 28px 42px 70px;
+      }
+      .detail-hero {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr) 330px;
+        gap: 24px;
+        margin-bottom: 24px;
+        padding: 30px;
+        border-radius: 28px;
+      }
+      .detail-icon-stage {
+        display: grid;
+        place-items: center;
+        min-height: 210px;
+        border-radius: 24px;
+        background:
+          radial-gradient(circle, rgba(214, 177, 90, 0.36), transparent 58%),
+          #101b13;
+        box-shadow: inset 0 0 0 1px rgba(214, 177, 90, 0.28);
+      }
+      .detail-icon-stage .item-art { width: 76px; height: 76px; }
+      .detail-main h2 { margin: 10px 0 0; font-size: 42px; }
+      .detail-main p { max-width: 620px; color: rgba(244,234,208,0.68); line-height: 1.8; }
+      .detail-side {
+        border: 1px solid rgba(214, 177, 90, 0.2);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #fff8e5, #f0e0ba);
+        color: var(--ink);
+        padding: 22px;
+      }
+      .detail-side dl {
+        display: grid;
+        grid-template-columns: 90px 1fr;
+        gap: 13px 10px;
+        margin: 18px 0 0;
+      }
+      .detail-side dt { color: #6e705d; font-size: 13px; }
+      .detail-side dd { margin: 0; font-weight: 800; }
+      .detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; }
+      .detail-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: -4px 0 22px;
+      }
+      .detail-tab {
+        min-height: 38px;
+        border: 1px solid rgba(214, 177, 90, 0.28);
+        border-radius: 11px;
+        background: rgba(255,255,255,0.07);
+        color: rgba(244,234,208,0.76);
+        padding: 9px 13px;
+        font-weight: 800;
+      }
+      .detail-tab.active { background: var(--gold); color: #172016; }
+      .module-stack { display: grid; gap: 22px; }
+      .detail-module {
+        padding: 24px;
+        border: 1px solid rgba(214, 177, 90, 0.2);
+        border-radius: 18px;
+        background: rgba(255,255,255,0.035);
+      }
+      .module-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+        margin-bottom: 18px;
+      }
+      .module-title h3 { margin: 0; font-size: 22px; }
+      .recipe-tree {
+        display: grid;
+        grid-template-columns: 1fr 42px 1fr 42px 1fr;
+        gap: 12px;
+        align-items: center;
+      }
+      .recipe-node {
+        display: grid;
+        justify-items: start;
+        border: 1px solid rgba(214, 177, 90, 0.18);
+        border-radius: 16px;
+        background: radial-gradient(circle at 50% 28%, rgba(214, 177, 90, 0.18), transparent 62%), #fffaf0;
+        padding: 14px;
+        box-shadow: 0 14px 26px rgba(94, 69, 35, 0.08);
+      }
+      .recipe-node b { display: block; margin-top: 8px; }
+      .recipe-arrow { display: grid; place-items: center; color: #8a6a26; font-weight: 900; }
+      .source-table { display: grid; gap: 10px; }
+      .source-row {
+        display: grid;
+        grid-template-columns: 42px 1fr 86px;
+        gap: 12px;
+        align-items: center;
+        border: 1px solid rgba(204, 184, 141, 0.74);
+        border-radius: 14px;
+        background: linear-gradient(90deg, rgba(214, 177, 90, 0.08), transparent 42%), #fffaf0;
+        padding: 10px;
+      }
+      .source-row .item-art { width: 42px; height: 42px; }
+      .source-row b { display: block; }
+      .source-row span { color: #6e705d; font-size: 12px; }
+      .evidence-panel {
+        align-self: start;
+        position: sticky;
+        top: 96px;
+        padding: 22px;
+      }
+      .evidence-step {
+        position: relative;
+        display: grid;
+        grid-template-columns: 24px 1fr;
+        gap: 12px;
+        padding: 13px 0;
+      }
+      .evidence-step::before {
+        content: "";
+        width: 12px;
+        height: 12px;
+        margin-top: 4px;
+        border-radius: 50%;
+        background: var(--gold);
+        box-shadow: 0 0 0 5px rgba(214, 177, 90, 0.16);
+      }
+      .evidence-step b { display: block; }
+      .evidence-step span { display: block; margin-top: 4px; color: rgba(244,234,208,0.54); font-size: 12px; }
+
+      .article-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 340px;
+        gap: 24px;
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 28px 42px 70px;
+      }
+      .article-panel {
+        overflow: hidden;
+        background:
+          linear-gradient(180deg, rgba(255,255,255,0.56), rgba(244,234,208,0.82)),
+          var(--paper-3);
+      }
+      .article-lead {
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr);
+        gap: 26px;
+        padding: 30px;
+        border-bottom: 1px dashed rgba(116, 93, 55, 0.24);
+      }
+      .cover-art {
+        position: relative;
+        overflow: hidden;
+        min-height: 250px;
+        border-radius: 22px;
+        background:
+          radial-gradient(circle at 62% 30%, rgba(214, 177, 90, 0.4), transparent 34%),
+          linear-gradient(145deg, #132015, #2b3c23);
+        box-shadow:
+          inset 0 0 0 1px rgba(214, 177, 90, 0.26),
+          0 18px 40px rgba(38, 54, 33, 0.24);
+      }
+      .cover-art::before {
+        content: "";
+        position: absolute;
+        inset: auto -20px 0;
+        height: 92px;
+        background: #0d180f;
+        clip-path: polygon(0 40%, 25% 12%, 48% 36%, 70% 10%, 100% 28%, 100% 100%, 0 100%);
+      }
+      .cover-art::after {
+        content: "";
+        position: absolute;
+        inset: 18px;
+        border: 1px solid rgba(255, 245, 220, 0.12);
+        border-radius: 18px;
+        background:
+          linear-gradient(135deg, rgba(255,255,255,0.06), transparent 44%),
+          radial-gradient(circle at 30% 28%, rgba(214, 177, 90, 0.18), transparent 22%),
+          radial-gradient(circle at 70% 70%, rgba(125, 165, 91, 0.12), transparent 26%);
+        pointer-events: none;
+      }
+      .cover-plate {
+        position: absolute;
+        z-index: 1;
+        border: 1px solid rgba(214, 177, 90, 0.34);
+        border-radius: 18px;
+        background: rgba(255, 248, 226, 0.12);
+        box-shadow:
+          0 16px 32px rgba(0, 0, 0, 0.18),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+      }
+      .cover-plate.primary {
+        left: 50%;
+        top: 54px;
+        width: 128px;
+        height: 128px;
+        transform: translateX(-50%);
+        background:
+          radial-gradient(circle at 50% 38%, rgba(255, 248, 220, 0.34), transparent 60%),
+          url("http://localhost:9000/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png") center/94px 94px no-repeat,
+          rgba(18, 28, 19, 0.54);
+      }
+      .cover-plate.secondary,
+      .cover-plate.tertiary { width: 74px; height: 74px; }
+      .cover-plate.secondary {
+        left: 24px;
+        bottom: 28px;
+        background:
+          radial-gradient(circle at 50% 38%, rgba(255, 248, 220, 0.22), transparent 58%),
+          url("http://localhost:9000/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png") center/54px 54px no-repeat,
+          rgba(24, 38, 25, 0.74);
+      }
+      .cover-plate.tertiary {
+        right: 28px;
+        bottom: 34px;
+        background:
+          radial-gradient(circle at 50% 38%, rgba(255, 248, 220, 0.22), transparent 58%),
+          url("http://localhost:9000/terrapedia-images/items/2026/04/08/5495725121204ede9da25ddf678ca246.png") center/56px 56px no-repeat,
+          rgba(24, 38, 25, 0.68);
+      }
+      .article-lead h2 { margin: 12px 0 0; font-size: 34px; line-height: 1.18; }
+      .article-lead p { color: #5e6654; line-height: 1.8; }
+      .article-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 18px;
+      }
+      .article-meta span {
+        border-radius: 9px;
+        background: #e7d4aa;
+        color: #453b25;
+        padding: 6px 9px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .article-path {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        padding: 24px 26px 0;
+      }
+      .article-path a {
+        border: 1px solid rgba(204, 184, 141, 0.86);
+        border-radius: 14px;
+        background: #f4e5c2;
+        color: #342c1e;
+        padding: 12px;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 900;
+      }
+      .article-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        padding: 0 26px 26px;
+      }
+      .article-card {
+        min-height: 190px;
+        border: 1px solid rgba(204, 184, 141, 0.92);
+        border-radius: 18px;
+        background:
+          linear-gradient(180deg, rgba(255,255,255,0.48), rgba(244,234,208,0.94)),
+          #fffaf0;
+        padding: 18px;
+        box-shadow: 0 14px 26px rgba(87, 61, 34, 0.08);
+      }
+      .article-card::before {
+        content: "";
+        display: block;
+        width: 44px;
+        height: 6px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #7da55b, #d6b15a);
+      }
+      .article-card h3 { margin: 12px 0 0; font-size: 20px; line-height: 1.3; }
+      .article-card p { color: #66705d; line-height: 1.65; }
+      .article-side {
+        align-self: start;
+        position: sticky;
+        top: 96px;
+        overflow: hidden;
+        background:
+          linear-gradient(135deg, rgba(214, 177, 90, 0.08), transparent 36%),
+          linear-gradient(180deg, #172617, #0d180f);
+        color: var(--paper);
+        padding: 24px;
+      }
+      .toc-list { display: grid; gap: 10px; margin-top: 18px; }
+      .toc-item {
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        gap: 10px;
+        align-items: center;
+        min-height: 48px;
+        border-radius: 14px;
+        background: linear-gradient(90deg, rgba(214, 177, 90, 0.1), transparent 48%), rgba(255,255,255,0.07);
+        padding: 10px;
+      }
+      .toc-num {
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 9px;
+        background: rgba(214, 177, 90, 0.22);
+        color: var(--gold-2);
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .toc-item b { display: block; font-size: 13px; }
+      .toc-item span { color: rgba(244,234,208,0.52); font-size: 12px; }
+
+      @media (max-width: 1180px) {
+        .preview-shell { grid-template-columns: 1fr; }
+        .preview-nav { position: static; height: auto; }
+        .preview-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .site-nav,
+        .page-head {
+          padding-left: 22px;
+          padding-right: 22px;
+        }
+        .site-links { display: none; }
+        .hero-grid,
+        .hero-stats,
+        .stage-grid,
+        .boss-strip,
+        .codex-band,
+        .codex-scroll,
+        .index-plinth,
+        .footer-main,
+        .catalog-layout,
+        .detail-hero,
+        .detail-grid,
+        .article-layout,
+        .article-lead { grid-template-columns: 1fr; }
+        .hero-left { min-height: 560px; }
+        .map-node { position: relative; left: auto; right: auto; top: auto; width: auto; min-height: auto; }
+        .map-node.featured { width: auto; }
+        .map-path { display: none; }
+        .exploration-map { display: grid; gap: 14px; min-height: auto; }
+        .section-head { grid-template-columns: 1fr; align-items: start; }
+        .boss-strip,
+        .index-plinth { margin-left: 0; margin-right: 0; }
+        .route-list-row:nth-child(2),
+        .route-list-row:nth-child(3) { margin-left: 0; }
+        .footer-main { grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(130px, 0.5fr)); }
+        .footer-contact { grid-column: 1 / -1; }
+        .filter-panel,
+        .preview-panel,
+        .evidence-panel,
+        .article-side { position: static; }
+        .item-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+      }
+
+      @media (max-width: 720px) {
+        .preview-tabs,
+        .page-head-inner,
+        .list-toolbar,
+        .recipe-tree,
+        .article-list,
+        .hero-stats,
+        .stage-grid,
+        .boss-strip,
+        .boss-route,
+        .codex-band,
+        .codex-scroll,
+        .index-plinth,
+        .footer-main,
+        .footer-proof,
+        .footer-bottom {
+          grid-template-columns: 1fr;
+        }
+        .hero { min-height: auto; padding: 56px 18px 64px; }
+        .hero::after { height: 1px; }
+        .hero-grid { min-height: auto; gap: 24px; }
+        .hero-left { min-height: 460px; }
+        .hero-center { min-height: auto; }
+        .hero-center h2 { font-size: 52px; }
+        .atlas-index { width: 332px; min-height: 390px; padding: 20px; }
+        .index-head { gap: 14px; padding-bottom: 18px; }
+        .index-head strong,
+        .index-total b { font-size: 22px; }
+        .index-focus { grid-template-columns: 44px 1fr; min-height: 78px; padding: 14px; }
+        .index-focus img { width: 44px; height: 44px; }
+        .index-focus b { font-size: 18px; }
+        .index-focus em { display: none; }
+        .index-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 20px; }
+        .index-metrics div { min-height: 70px; padding: 14px 12px; }
+        .index-metrics div:nth-child(3) { border-left: 0; border-top: 1px solid rgba(244, 234, 208, 0.1); }
+        .index-metrics div:nth-child(4) { border-top: 1px solid rgba(244, 234, 208, 0.1); }
+        .index-metrics b { font-size: 18px; }
+        .index-table { margin-top: 20px; }
+        .index-row { grid-template-columns: 34px 1fr auto; min-height: 42px; }
+        .hero-stats { margin: 0; padding: 0; }
+        .home-lower { padding: 0 18px 54px; }
+        .home-lower::before,
+        .home-lower::after { display: none; }
+        .exploration-map { padding: 32px 22px; border-radius: 0 0 8px 8px; }
+        .paper-stage { margin-top: 34px; padding: 44px 18px 32px; }
+        .featured-route { min-height: auto; padding: 24px; }
+        .featured-route::after,
+        .codex-scroll::after { display: none; }
+        .boss-strip,
+        .codex-band,
+        .index-plinth { margin-top: 28px; }
+        .boss-strip { padding: 22px; }
+        .codex-notes { padding: 0; }
+        .camp-footer { margin-top: 28px; }
+        .footer-main { gap: 24px; padding: 28px 18px 30px; }
+        .footer-brand { max-width: none; }
+        .index-total { text-align: left; }
+        .footer-proof div { border-left: 0; border-top: 1px solid var(--index-line); }
+        .footer-proof div:first-child { border-top: 0; }
+        .footer-bottom { padding: 18px; }
+        .footer-legal { justify-content: flex-start; }
+        .site-nav { grid-template-columns: 1fr auto; }
+        .site-actions .secondary-button { display: none; }
+        .search-bar { grid-template-columns: 1fr; }
+        .quick-entry { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .item-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="preview-shell">
+      <aside class="preview-nav">
+        <div class="preview-brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div>
+            <h1>HTML 高保真预览</h1>
+            <p>路线感 / 图鉴感 / 工具感</p>
+          </div>
+        </div>
+        <nav class="preview-tabs" aria-label="核心页面">
+          <button class="preview-tab active" type="button" data-screen="home"><strong>首页</strong><span>/</span></button>
+          <button class="preview-tab" type="button" data-screen="catalog"><strong>物品列表</strong><span>/items</span></button>
+          <button class="preview-tab" type="button" data-screen="detail"><strong>物品详情</strong><span>/items/:id</span></button>
+          <button class="preview-tab" type="button" data-screen="articles"><strong>文章页</strong><span>/articles</span></button>
+        </nav>
+      </aside>
+
+      <main class="preview-main">
+        <section class="screen home-screen active" data-screen-panel="home">
+          <header class="site-nav">
+            <a class="site-logo" href="#">
+              <span class="logo-gem" aria-hidden="true"></span>
+              <span><strong>TerraPedia</strong><small>泰拉瑞亚中文资料库</small></span>
+            </a>
+            <nav class="site-links" aria-label="主导航">
+              <a class="site-link active" href="#">首页</a>
+              <a class="site-link" href="#">物品</a>
+              <a class="site-link" href="#">NPC</a>
+              <a class="site-link" href="#">Boss</a>
+              <a class="site-link" href="#">文章</a>
+            </nav>
+            <div class="site-actions">
+              <button class="icon-button" type="button" aria-label="搜索">⌕</button>
+              <a class="secondary-button" href="#">登录</a>
+            </div>
+          </header>
+
+          <section class="hero">
+            <div class="hero-grid">
+              <aside class="hero-left" aria-hidden="true">
+                <div class="atlas-index">
+                  <div class="index-head">
+                    <div><span>TERRAPEDIA INDEX</span><strong>公共资料索引</strong></div>
+                    <div class="index-total"><b>6,214</b><span>条目</span></div>
+                  </div>
+                  <div class="index-focus">
+                    <img src="http://localhost:9000/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png" alt="" />
+                    <div><span>当前焦点</span><b>泰拉刃</b></div>
+                    <em>详情</em>
+                  </div>
+                  <div class="index-metrics">
+                    <div><b>物品</b><span>装备 / 材料 / 掉落</span></div>
+                    <div><b>NPC</b><span>城镇 / 敌怪</span></div>
+                    <div><b>Boss</b><span>阶段 / 战利品</span></div>
+                    <div><b>攻略</b><span>路线 / 事件</span></div>
+                  </div>
+                  <div class="index-table">
+                    <div class="index-row"><span>01</span><b>物品图鉴</b><em>6,214</em></div>
+                    <div class="index-row"><span>02</span><b>合成链路</b><em>14,746</em></div>
+                    <div class="index-row"><span>03</span><b>Boss 进度</b><em>路线化</em></div>
+                    <div class="index-row"><span>04</span><b>攻略专题</b><em>精选</em></div>
+                  </div>
+                </div>
+              </aside>
+
+              <section class="hero-center">
+                <span class="hero-kicker">公开图鉴 · 世界路线</span>
+                <div>
+                  <h2>从一把泰拉刃进入整个世界</h2>
+                  <p class="hero-lede">
+                    这不是博客首页。它是泰拉瑞亚的资料入口，围绕物品、Boss、NPC、生态和攻略路线组织内容，用完整首页的结构建立第一印象。
+                  </p>
+                </div>
+                <div class="search-bar">
+                  <div class="search-field">
+                    <span class="search-glyph" aria-hidden="true"></span>
+                    <strong>搜索物品、Boss、NPC、路线...</strong>
+                  </div>
+                  <a class="primary-button" href="#">开始检索</a>
+                </div>
+                <div class="quick-entry">
+                  <a href="#">物品</a><a href="#">Boss</a><a href="#">NPC</a><a href="#">攻略</a>
+                </div>
+              </section>
+            </div>
+            <div class="hero-stats">
+              <article class="hero-stat-card"><b>6,214</b><span>物品条目</span></article>
+              <article class="hero-stat-card"><b>高密度</b><span>图标墙浏览</span></article>
+              <article class="hero-stat-card"><b>路线化</b><span>专题与攻略入口</span></article>
+              <article class="hero-stat-card"><b>可追溯</b><span>来源与证据链</span></article>
+            </div>
+          </section>
+
+          <section class="home-lower">
+            <div class="home-lower-inner">
+              <section class="exploration-map">
+                <div class="map-head">
+                  <span class="eyebrow">探索地图</span>
+                  <h3>世界不是一张列表，而是一张可走的图</h3>
+                  <p>把生态、装备、事件和资料入口放在同一张地图里，首页才会像资料中枢，而不是一页普通的产品列表。</p>
+                </div>
+                <div class="map-path"></div>
+                <article class="map-node one">
+                  <i><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/3a43bd1521b5418fade0c386891cc047.png')"></span></i>
+                  <b>开荒入口</b>
+                  <span>铜短剑、木弓、火把，形成第一条路径。</span>
+                </article>
+                <article class="map-node featured two">
+                  <i><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span></i>
+                  <b>物品图鉴</b>
+                  <span>泰拉刃为中心入口，牵出主线路径和合成方向。</span>
+                </article>
+                <article class="map-node three">
+                  <i><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/c626dfb6e7bc4139b099b81ffc4680d1.png')"></span></i>
+                  <b>困难模式</b>
+                  <span>神圣锭、机械 Boss、阶段性推进。</span>
+                </article>
+                <article class="map-node four">
+                  <i><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/195bfda5955641b5bf340322fdd26eba.png')"></span></i>
+                  <b>生态地图</b>
+                  <span>群落、资源与地形入口在同一层表达。</span>
+                </article>
+                <article class="map-node five">
+                  <i><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/6ef1b719169348b595c93654cbf60c1c.png')"></span></i>
+                  <b>资料手札</b>
+                  <span>攻略和专题从这里向外分叉。</span>
+                </article>
+              </section>
+
+              <section class="paper-stage">
+                <div class="section-head">
+                  <span class="eyebrow">精选路线</span>
+                  <h3>首页下半部分承接首屏，但不再继续抬高戏剧性</h3>
+                  <p>这里开始进入资料探索，重点是路线、事件和专题入口，视觉强度比首屏低一点，但依然要有完整设计感。</p>
+                </div>
+
+                <div class="stage-grid">
+                  <article class="featured-route">
+                    <div class="route-art">
+                      <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png')"></span>
+                    </div>
+                    <h4>从机械 Boss 到月亮领主：近战装备推进路线</h4>
+                    <p>以泰拉刃、甲虫套和关键饰品为主线，整理困难模式后期的材料、事件和 Boss 顺序，并标注每一步对应的图鉴入口。</p>
+                    <div class="tag-row">
+                      <span class="tag moss">开荒</span>
+                      <span class="tag gold">Boss 前</span>
+                      <span class="tag paper">困难模式</span>
+                      <span class="tag paper">月前装备</span>
+                    </div>
+                  </article>
+
+                  <div class="route-list">
+                    <div class="route-list-row">
+                      <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png')"></span>
+                      <div>
+                        <b>真永夜刃</b>
+                        <span>合成材料 · 路线主轴</span>
+                      </div>
+                      <strong>合成</strong>
+                    </div>
+                    <div class="route-list-row">
+                      <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/5495725121204ede9da25ddf678ca246.png')"></span>
+                      <div>
+                        <b>真断钢剑</b>
+                        <span>合成材料 · 战前推进</span>
+                      </div>
+                      <strong>合成</strong>
+                    </div>
+                    <div class="route-list-row">
+                      <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/77203300926f489fb82ae1072a8623d4.png')"></span>
+                      <div>
+                        <b>英雄断剑</b>
+                        <span>掉落来源 · 日食事件</span>
+                      </div>
+                      <strong>来源</strong>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <article class="boss-strip">
+                <div class="boss-medallion">
+                  <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/195bfda5955641b5bf340322fdd26eba.png')"></span>
+                </div>
+                <div class="boss-copy">
+                  <span class="eyebrow">Boss 事件条</span>
+                  <h4>将战斗、掉落和推进节奏摆在同一条线上</h4>
+                  <p>战前准备、击败后的掉落与下一阶段入口放成连续信息，不让 Boss 区像普通卡片列表。</p>
+                  <div class="boss-route">
+                    <span><b>01</b>战前准备</span>
+                    <span><b>02</b>事件触发</span>
+                    <span><b>03</b>关键掉落</span>
+                    <span><b>04</b>下一阶段</span>
+                  </div>
+                </div>
+                <div class="loot-grid" aria-hidden="true">
+                  <span><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/6ef1b719169348b595c93654cbf60c1c.png')"></span></span>
+                  <span><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/6b53bc835cd742dba96053653aac8f4f.png')"></span></span>
+                  <span><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/c626dfb6e7bc4139b099b81ffc4680d1.png')"></span></span>
+                  <span><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/034a248ac37a42049c5ef882098a4eb8.png')"></span></span>
+                  <span><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/572d02498c01441e86ce0e55aa946f5b.png')"></span></span>
+                  <span><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/1c9f832ea4a6424c8bdae1bc843ec02f.png')"></span></span>
+                </div>
+              </article>
+
+              <div class="codex-band">
+                <article class="codex-scroll">
+                  <div class="codex-feature">
+                    <span class="eyebrow">资料手札</span>
+                    <h4>文章区不是博客堆叠，而是专题导航</h4>
+                    <p>按游玩阶段、装备目标和机制解释组织内容，和图鉴数据互相跳转，保持站点整体的路线感。</p>
+                    <div class="codex-actions">
+                      <span>攻略</span>
+                      <span>专题</span>
+                      <span>机制</span>
+                    </div>
+                  </div>
+                  <div class="codex-route-list">
+                    <div><span>01</span><p><b>阶段专题</b><em>开荒 / 困难模式 / 月后整理</em></p></div>
+                    <div><span>02</span><p><b>装备目标</b><em>近战、射手、法师和召唤路线</em></p></div>
+                    <div><span>03</span><p><b>机制解释</b><em>事件、生态、掉落与刷新规则</em></p></div>
+                  </div>
+                </article>
+
+                <aside class="codex-notes">
+                  <div class="codex-note">
+                    <i aria-hidden="true">A</i>
+                    <div><b>专题索引</b><span>按阶段、职业和事件组织入口</span></div>
+                  </div>
+                  <div class="codex-note">
+                    <i aria-hidden="true">B</i>
+                    <div><b>路线信号</b><span>把装备和事件拆成可走的流程</span></div>
+                  </div>
+                  <div class="codex-note">
+                    <i aria-hidden="true">C</i>
+                    <div><b>阅读手札</b><span>文章卡片以专题化摘要呈现</span></div>
+                  </div>
+                </aside>
+              </div>
+
+              <section class="index-plinth" aria-label="资料索引台">
+                <div>
+                  <b>资料索引台</b>
+                  <span>统计、导航、信号展示</span>
+                </div>
+                <div>
+                  <b>6,214</b>
+                  <span>物品条目</span>
+                </div>
+                <div>
+                  <b>高密度</b>
+                  <span>图标墙浏览</span>
+                </div>
+                <div>
+                  <b>路线化</b>
+                  <span>专题与攻略入口</span>
+                </div>
+                <div>
+                  <b>可追溯</b>
+                  <span>来源与证据链</span>
+                </div>
+              </section>
+            </div>
+
+            <footer class="camp-footer">
+              <div class="footer-main">
+                <section class="footer-brand">
+                  <span class="footer-kicker">TERRAPEDIA</span>
+                  <h3>为 Terraria 玩家建立可追溯的中文资料中枢</h3>
+                  <p>TerraPedia 聚合物品图鉴、合成链路、Boss 阶段、专题攻略与版本证据，让资料查询从零散搜索变成稳定的路线系统。</p>
+                  <div class="footer-proof">
+                    <div><b>6,214</b><span>物品条目</span></div>
+                    <div><b>14,746</b><span>链路节点</span></div>
+                    <div><b>持续</b><span>数据校验</span></div>
+                  </div>
+                </section>
+
+                <nav class="footer-column" aria-label="产品">
+                  <h4>产品</h4>
+                  <div class="footer-links">
+                    <a href="#">物品图鉴</a>
+                    <a href="#">合成路线</a>
+                    <a href="#">Boss 进度</a>
+                    <a href="#">专题攻略</a>
+                  </div>
+                </nav>
+
+                <nav class="footer-column" aria-label="资源">
+                  <h4>资源</h4>
+                  <div class="footer-links">
+                    <a href="#">更新日志</a>
+                    <a href="#">数据来源</a>
+                    <a href="#">内容规范</a>
+                    <a href="#">开发计划</a>
+                  </div>
+                </nav>
+
+                <nav class="footer-column" aria-label="社区">
+                  <h4>社区</h4>
+                  <div class="footer-links">
+                    <a href="#">反馈建议</a>
+                    <a href="#">内容共建</a>
+                    <a href="#">问题追踪</a>
+                    <a href="#">公开路线图</a>
+                  </div>
+                </nav>
+
+                <aside class="footer-contact">
+                  <h4>联系与合作</h4>
+                  <p>欢迎提交资料纠错、攻略协作、镜像部署和社区合作需求。</p>
+                  <div class="footer-contact-list">
+                    <span><em>Email</em>contact@terrapedia.local</span>
+                    <span><em>GitHub</em>github.com/terrapedia</span>
+                    <span><em>Status</em>Preview build · 2026</span>
+                  </div>
+                </aside>
+              </div>
+
+              <div class="footer-bottom">
+                <span>© 2026 TerraPedia. Unofficial Terraria knowledge project.</span>
+                <div class="footer-legal">
+                  <a href="#">隐私</a>
+                  <a href="#">条款</a>
+                  <a href="#">品牌说明</a>
+                </div>
+              </div>
+            </footer>
+          </section>
+        </section>
+
+        <section class="screen catalog-screen" data-screen-panel="catalog">
+          <header class="site-nav">
+            <a class="site-logo" href="#">
+              <span class="logo-gem" aria-hidden="true"></span>
+              <span><strong>TerraPedia</strong><small>物品图鉴</small></span>
+            </a>
+            <nav class="site-links" aria-label="主导航">
+              <a class="site-link" href="#">首页</a>
+              <a class="site-link active" href="#">物品</a>
+              <a class="site-link" href="#">NPC</a>
+              <a class="site-link" href="#">Boss</a>
+              <a class="site-link" href="#">文章</a>
+            </nav>
+            <div class="site-actions">
+              <button class="icon-button" type="button" aria-label="搜索">⌕</button>
+              <a class="secondary-button" href="#">收藏夹</a>
+            </div>
+          </header>
+
+          <div class="page-head">
+            <div class="page-head-inner">
+              <div>
+                <span class="eyebrow">6,214 个物品 · 高密度浏览</span>
+                <h2>物品图鉴</h2>
+                <p>按分类、稀有度、阶段和关键词快速定位。列表以图标墙为主，右侧固定显示当前选中物品，减少大量翻页带来的疲劳。</p>
+              </div>
+              <a class="primary-button" href="#">查看合成路线</a>
+            </div>
+          </div>
+
+          <div class="catalog-layout">
+            <aside class="filter-panel">
+              <div class="filter-group">
+                <p class="section-label">分类</p>
+                <div class="filter-option active"><span class="filter-dot"></span><b>全部物品</b><span class="count">6214</span></div>
+                <div class="filter-option"><span class="filter-dot"></span><b>武器</b><span class="count">932</span></div>
+                <div class="filter-option"><span class="filter-dot"></span><b>装备</b><span class="count">684</span></div>
+                <div class="filter-option"><span class="filter-dot"></span><b>材料</b><span class="count">1186</span></div>
+                <div class="filter-option"><span class="filter-dot"></span><b>家具</b><span class="count">1408</span></div>
+              </div>
+              <div class="filter-group">
+                <p class="section-label">阶段</p>
+                <div class="filter-option"><span class="filter-dot"></span><b>开荒</b><span class="count">812</span></div>
+                <div class="filter-option"><span class="filter-dot"></span><b>Boss 前</b><span class="count">960</span></div>
+                <div class="filter-option"><span class="filter-dot"></span><b>困难模式</b><span class="count">1244</span></div>
+              </div>
+            </aside>
+
+            <section class="list-panel">
+              <div class="catalog-page-headline">
+                <h3>全部物品</h3>
+                <button class="small-button active" type="button">图标墙</button>
+                <button class="small-button" type="button">列表</button>
+                <button class="small-button" type="button">只看可合成</button>
+              </div>
+              <div class="list-toolbar">
+                <div class="catalog-search"><span class="search-glyph" aria-hidden="true"></span><strong>泰拉刃</strong></div>
+                <div class="toolbar-buttons">
+                  <button class="small-button active" type="button">紧凑</button>
+                  <button class="small-button" type="button">稀有度</button>
+                  <button class="small-button" type="button">阶段</button>
+                </div>
+              </div>
+              <div class="density-rail">
+                <span>高密度图鉴墙 · 当前视口展示 40 个样本，生产页建议 120/240 快速切换</span>
+                <strong>6,214</strong>
+              </div>
+              <div class="item-grid">
+                <div class="item-cell active"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span><span>泰拉刃</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png')"></span><span>真永夜刃</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/5495725121204ede9da25ddf678ca246.png')"></span><span>真断钢剑</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/195bfda5955641b5bf340322fdd26eba.png')"></span><span>神圣镐</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/6ef1b719169348b595c93654cbf60c1c.png')"></span><span>铁皮药水</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/c626dfb6e7bc4139b099b81ffc4680d1.png')"></span><span>神圣锭</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/b3ddc7b2db8b4c53a00b0274ed9edfaa.png')"></span><span>永夜刃</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/c049cc2442144242a8b7768517723664.png')"></span><span>村正</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/3a43bd1521b5418fade0c386891cc047.png')"></span><span>铜短剑</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/195bfda5955641b5bf340322fdd26eba.png')"></span><span>铜镐</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/32a6970ec3f746ad9e23b6312c4dea1c.png')"></span><span>铁矿</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/6ef1b719169348b595c93654cbf60c1c.png')"></span><span>治疗药水</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/572d02498c01441e86ce0e55aa946f5b.png')"></span><span>星星炮</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/6b53bc835cd742dba96053653aac8f4f.png')"></span><span>陨石锭</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/84a7346cf0044805ab5b443b96ca15e0.png')"></span><span>钴镐</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/1c9f832ea4a6424c8bdae1bc843ec02f.png')"></span><span>星怒</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/034a248ac37a42049c5ef882098a4eb8.png')"></span><span>暴雪瓶</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/6ef1b719169348b595c93654cbf60c1c.png')"></span><span>再生药水</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/034a248ac37a42049c5ef882098a4eb8.png')"></span><span>水晶风暴</span></div>
+                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/195bfda5955641b5bf340322fdd26eba.png')"></span><span>梦魇镐</span></div>
+              </div>
+              <div class="pager">
+                <span>第 1 页 · 每页 120 个 · 已筛选 412 项</span>
+                <div class="toolbar-buttons">
+                  <button class="small-button" type="button">上一页</button>
+                  <button class="small-button active" type="button">下一页</button>
+                </div>
+              </div>
+            </section>
+
+            <aside class="preview-panel">
+              <div class="preview-hero">
+                <div class="preview-icon">
+                  <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span>
+                </div>
+                <h3>泰拉刃</h3>
+                <p>近战武器。发射绿色剑气，常用于困难模式后期推进和月亮领主前装备路线。</p>
+                <div class="tag-row">
+                  <span class="tag gold">黄色稀有度</span>
+                  <span class="tag moss">合成</span>
+                </div>
+                <div class="stat-grid">
+                  <div class="stat-box"><b>115</b><span>近战伤害</span></div>
+                  <div class="stat-box"><b>14</b><span>使用时间</span></div>
+                  <div class="stat-box"><b>6.5</b><span>击退</span></div>
+                  <div class="stat-box"><b>1</b><span>最大堆叠</span></div>
+                </div>
+              </div>
+              <div class="preview-list">
+                <div class="preview-list-row">
+                  <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png')"></span>
+                  <div><b>真永夜刃</b><span>合成材料</span></div>
+                </div>
+                <div class="preview-list-row">
+                  <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/5495725121204ede9da25ddf678ca246.png')"></span>
+                  <div><b>真断钢剑</b><span>合成材料</span></div>
+                </div>
+                <div class="preview-list-row">
+                  <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/77203300926f489fb82ae1072a8623d4.png')"></span>
+                  <div><b>英雄断剑</b><span>掉落来源</span></div>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="screen detail-screen" data-screen-panel="detail">
+          <header class="site-nav">
+            <a class="site-logo" href="#">
+              <span class="logo-gem" aria-hidden="true"></span>
+              <span><strong>TerraPedia</strong><small>物品详情</small></span>
+            </a>
+            <nav class="site-links" aria-label="主导航">
+              <a class="site-link" href="#">首页</a>
+              <a class="site-link active" href="#">物品</a>
+              <a class="site-link" href="#">NPC</a>
+              <a class="site-link" href="#">Boss</a>
+              <a class="site-link" href="#">文章</a>
+            </nav>
+            <div class="site-actions">
+              <button class="icon-button" type="button" aria-label="收藏">☆</button>
+              <a class="secondary-button" href="#">返回列表</a>
+            </div>
+          </header>
+
+          <div class="detail-layout">
+            <section class="detail-hero dark-card">
+              <div class="detail-icon-stage">
+                <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span>
+              </div>
+              <div class="detail-main">
+                <span class="eyebrow">物品 #757 · Terra Blade</span>
+                <h2>泰拉刃</h2>
+                <p>泰拉刃是一把困难模式后期近战武器，挥动时会发射高速剑气。它通过真永夜刃和真断钢剑合成，是进入月亮领主阶段前的主线节点。</p>
+                <div class="tag-row">
+                  <span class="tag gold">近战武器</span>
+                  <span class="tag moss">困难模式</span>
+                  <span class="tag paper">可合成</span>
+                  <span class="tag paper">剑气</span>
+                </div>
+                <div class="detail-tabs">
+                  <button class="detail-tab active" type="button">概览</button>
+                  <button class="detail-tab" type="button">合成</button>
+                  <button class="detail-tab" type="button">来源</button>
+                  <button class="detail-tab" type="button">证据链</button>
+                </div>
+              </div>
+              <aside class="detail-side">
+                <p class="section-label">核心属性</p>
+                <dl>
+                  <dt>伤害</dt><dd>115 近战</dd>
+                  <dt>击退</dt><dd>6.5 强</dd>
+                  <dt>使用时间</dt><dd>14 很快</dd>
+                  <dt>稀有度</dt><dd>黄色</dd>
+                  <dt>售出</dt><dd>20 金</dd>
+                </dl>
+              </aside>
+            </section>
+
+            <div class="detail-grid">
+              <div class="module-stack">
+                <section class="detail-module dark-card">
+                  <div class="module-title">
+                    <h3>合成路线</h3>
+                    <span class="tag gold">2 个直接材料</span>
+                  </div>
+                  <div class="recipe-tree">
+                    <div class="recipe-node">
+                      <span class="sprite-frame" style="width:48px;height:48px"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png')"></span></span>
+                      <b>真永夜刃</b><span>永夜刃 + 英雄断剑</span>
+                    </div>
+                    <div class="recipe-arrow">+</div>
+                    <div class="recipe-node">
+                      <span class="sprite-frame" style="width:48px;height:48px"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/5495725121204ede9da25ddf678ca246.png')"></span></span>
+                      <b>真断钢剑</b><span>断钢剑 + 英雄断剑</span>
+                    </div>
+                    <div class="recipe-arrow">=</div>
+                    <div class="recipe-node">
+                      <span class="sprite-frame" style="width:48px;height:48px"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span></span>
+                      <b>泰拉刃</b><span>秘银砧 / 山铜砧</span>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="detail-module dark-card">
+                  <div class="module-title">
+                    <h3>来源与关联</h3>
+                    <span class="tag moss">玩家可读摘要</span>
+                  </div>
+                  <div class="source-table">
+                    <div class="source-row">
+                      <span class="sprite-frame" style="width:42px;height:42px"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/77203300926f489fb82ae1072a8623d4.png')"></span></span>
+                      <div><b>英雄断剑</b><span>日食事件中的蛾怪掉落</span></div>
+                      <strong>25%</strong>
+                    </div>
+                    <div class="source-row">
+                      <span class="sprite-frame" style="width:42px;height:42px"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/195bfda5955641b5bf340322fdd26eba.png')"></span></span>
+                      <div><b>秘银砧 / 山铜砧</b><span>困难模式砧类制作站</span></div>
+                      <strong>制作站</strong>
+                    </div>
+                    <div class="source-row">
+                      <span class="sprite-frame" style="width:42px;height:42px"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/c626dfb6e7bc4139b099b81ffc4680d1.png')"></span></span>
+                      <div><b>装备路线</b><span>推荐在击败机械 Boss 后推进</span></div>
+                      <strong>攻略</strong>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              <aside class="evidence-panel dark-card">
+                <span class="eyebrow">资料链路</span>
+                <div class="evidence-step"><div><b>聚合接口</b><span>/public/items/:id/aggregate</span></div></div>
+                <div class="evidence-step"><div><b>图片关系</b><span>主图标、候选图片、排序状态</span></div></div>
+                <div class="evidence-step"><div><b>来源关系</b><span>掉落、制作站、事件条件</span></div></div>
+                <div class="evidence-step"><div><b>配方树</b><span>检测循环和可展开分支</span></div></div>
+              </aside>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen article-screen" data-screen-panel="articles">
+          <header class="site-nav">
+            <a class="site-logo" href="#">
+              <span class="logo-gem" aria-hidden="true"></span>
+              <span><strong>TerraPedia</strong><small>资料手札</small></span>
+            </a>
+            <nav class="site-links" aria-label="主导航">
+              <a class="site-link" href="#">首页</a>
+              <a class="site-link" href="#">物品</a>
+              <a class="site-link" href="#">NPC</a>
+              <a class="site-link" href="#">Boss</a>
+              <a class="site-link active" href="#">文章</a>
+            </nav>
+            <div class="site-actions">
+              <button class="icon-button" type="button" aria-label="搜索文章">⌕</button>
+              <a class="primary-button" href="#">写手札</a>
+            </div>
+          </header>
+
+          <div class="page-head">
+            <div class="page-head-inner">
+              <div>
+                <span class="eyebrow">编辑部精选 · 路线攻略</span>
+                <h2>资料手札</h2>
+                <p>文章区以游玩路线、装备目标和机制解释组织内容，和图鉴数据互相跳转，避免普通博客列表的松散感。</p>
+              </div>
+              <a class="secondary-button" href="#">查看专题索引</a>
+            </div>
+          </div>
+
+          <div class="article-layout">
+            <section class="article-panel">
+              <article class="article-lead">
+                <div class="cover-art">
+                  <span class="cover-plate primary" aria-hidden="true"></span>
+                  <span class="cover-plate secondary" aria-hidden="true"></span>
+                  <span class="cover-plate tertiary" aria-hidden="true"></span>
+                </div>
+                <div>
+                  <span class="eyebrow">本周主线</span>
+                  <h2>从机械 Boss 到月亮领主：近战装备推进路线</h2>
+                  <p>以泰拉刃、甲虫套和关键饰品为主线，整理困难模式后期的材料、事件和 Boss 顺序，并标注每一步对应的图鉴入口。</p>
+                  <div class="article-meta">
+                    <span>12 分钟阅读</span><span>近战路线</span><span>含 18 个图鉴链接</span>
+                  </div>
+                </div>
+              </article>
+              <div class="article-path">
+                <a href="#">开荒路线</a>
+                <a href="#">Boss 前准备</a>
+                <a href="#">困难模式</a>
+                <a href="#">月亮领主前</a>
+              </div>
+              <div class="article-list">
+                <article class="article-card">
+                  <span class="eyebrow">开荒</span>
+                  <h3>第一次下矿前应该准备什么</h3>
+                  <p>火把、绳索、回忆药水和早期武器的最小配置，适合新存档快速进入地下。</p>
+                </article>
+                <article class="article-card">
+                  <span class="eyebrow">Boss</span>
+                  <h3>克苏鲁之眼前的装备检查表</h3>
+                  <p>从生命水晶、平台、药水到武器选择，按成功率排序准备项。</p>
+                </article>
+                <article class="article-card">
+                  <span class="eyebrow">生态</span>
+                  <h3>丛林探索的风险和收益</h3>
+                  <p>蜂巢、生命果、孢子、丛林宝箱的检索路径，以及推荐进入时机。</p>
+                </article>
+                <article class="article-card">
+                  <span class="eyebrow">建筑</span>
+                  <h3>晶塔网络如何规划</h3>
+                  <p>NPC 幸福度、生态群落和交通节点的组合策略，附常用布局。</p>
+                </article>
+              </div>
+            </section>
+
+            <aside class="article-side">
+              <span class="eyebrow">阅读路径</span>
+              <div class="toc-list">
+                <div class="toc-item"><span class="toc-num">01</span><div><b>开荒到克眼</b><span>基础资源和第一场 Boss</span></div></div>
+                <div class="toc-item"><span class="toc-num">02</span><div><b>邪恶地形推进</b><span>暗影珠、陨石、永夜刃</span></div></div>
+                <div class="toc-item"><span class="toc-num">03</span><div><b>困难模式开局</b><span>三矿、机械 Boss、神圣锭</span></div></div>
+                <div class="toc-item"><span class="toc-num">04</span><div><b>月前装备</b><span>泰拉刃、甲虫套、饰品重铸</span></div></div>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const tabs = Array.from(document.querySelectorAll(".preview-tab"));
+      const panels = Array.from(document.querySelectorAll("[data-screen-panel]"));
+
+      function setScreen(screen) {
+        tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.screen === screen));
+        panels.forEach((panel) => panel.classList.toggle("active", panel.dataset.screenPanel === screen));
+        const url = new URL(window.location.href);
+        url.searchParams.set("page", screen);
+        window.history.replaceState(null, "", url);
+        window.scrollTo({ top: 0, behavior: "instant" });
+      }
+
+      tabs.forEach((tab) => tab.addEventListener("click", () => setScreen(tab.dataset.screen)));
+
+      const initial = new URLSearchParams(window.location.search).get("page");
+      if (initial && tabs.some((tab) => tab.dataset.screen === initial)) {
+        setScreen(initial);
+      }
+    </script>
+  </body>
+</html>
