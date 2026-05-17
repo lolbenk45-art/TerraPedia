@@ -8,6 +8,7 @@ import {
   resolveSourceItemCount as resolveBuffSourceItemCount
 } from './import-buffs-to-db.mjs';
 import {
+  buildIndependentNpcColumnValueMap,
   buildIndependentBuffColumnValueMap,
   buildBuffSourceItemUnmatchedSample as buildIndependentEntityBuffUnmatchedSample,
   resolveMappedItem as resolveIndependentEntityMappedItem,
@@ -208,4 +209,65 @@ test('buff import column maps preserve full immune NPCs and source evidence JSON
     assert.deepEqual(JSON.parse(values.immune_npcs_json), record.immuneNpcs);
     assert.deepEqual(JSON.parse(values.source_evidence_json), record.sourceEvidence);
   }
+});
+
+test('independent NPC import maps extras townNPC into is_town_npc column', () => {
+  const categoryByCode = new Map([
+    ['CATEGORY_NPC_FRIENDLY_TOWN', 356],
+    ['CATEGORY_NPC_FRIENDLY_OTHER', 357],
+    ['CATEGORY_NPC_ENEMY', 354]
+  ]);
+
+  const record = {
+    id: 17,
+    internalName: 'Merchant',
+    name: 'Merchant',
+    flags: { friendly: true },
+    extras: { townNPC: true },
+    combat: { damage: 10, defense: 15, lifeMax: 250, knockBackResist: 0.5 },
+    dimensions: { width: 18, height: 40, scale: 1 },
+    economy: { value: 0 }
+  };
+
+  const actual = buildIndependentNpcColumnValueMap(record, 0, {
+    categoryByCode,
+    sourceItemLookup: { bySourceId: new Map() },
+    itemLookup: { byInternal: new Map() },
+    npcZhMap: new Map()
+  });
+
+  assert.equal(actual.category_id, 356);
+  assert.equal(actual.is_boss, 0);
+  assert.equal(actual.is_friendly, 1);
+  assert.equal(actual.is_town_npc, 1);
+});
+
+test('independent NPC import keeps non-town friendly NPCs out of is_town_npc', () => {
+  const categoryByCode = new Map([
+    ['CATEGORY_NPC_FRIENDLY_TOWN', 356],
+    ['CATEGORY_NPC_FRIENDLY_OTHER', 357],
+    ['CATEGORY_NPC_ENEMY', 354]
+  ]);
+
+  const record = {
+    id: 369,
+    internalName: 'BoundWizard',
+    name: 'Bound Wizard',
+    flags: { friendly: true },
+    extras: {},
+    combat: {},
+    dimensions: {},
+    economy: {}
+  };
+
+  const actual = buildIndependentNpcColumnValueMap(record, 0, {
+    categoryByCode,
+    sourceItemLookup: { bySourceId: new Map() },
+    itemLookup: { byInternal: new Map() },
+    npcZhMap: new Map()
+  });
+
+  assert.equal(actual.category_id, 357);
+  assert.equal(actual.is_friendly, 1);
+  assert.equal(actual.is_town_npc, 0);
 });

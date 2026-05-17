@@ -375,43 +375,34 @@ async function importNpcs(conn, records, itemLookup, sourceItemLookup, categoryB
   for (let i = 0; i < stats.input; i += 1) {
     const r = records[i];
     try {
-      const npcSourceId = toNullableInteger(r.id);
-      const bannerSourceItemId = toNullablePositiveInteger(r.banner);
-      const catchSourceItemId = toNullablePositiveInteger(r.extras?.catchItem);
-      const bannerMapped = bannerSourceItemId == null
-        ? { sourceItemId: null, internalName: null, dbItem: null, reason: null }
-        : resolveMappedItem(bannerSourceItemId, sourceItemLookup, itemLookup);
-      const catchMapped = catchSourceItemId == null
-        ? { sourceItemId: null, internalName: null, dbItem: null, reason: null }
-        : resolveMappedItem(catchSourceItemId, sourceItemLookup, itemLookup);
-      if (bannerSourceItemId != null) {
-        recordItemLink(linkStats.banner, {
-          npcSourceId,
-          npcInternalName: normalizeInternalName(r.internalName, r.name || r.id || i),
-          linkType: 'banner',
-          sourceItemId: bannerSourceItemId,
-        }, bannerMapped);
-      }
-      if (catchSourceItemId != null) {
-        recordItemLink(linkStats.catchItem, {
-          npcSourceId,
-          npcInternalName: normalizeInternalName(r.internalName, r.name || r.id || i),
-          linkType: 'catchItem',
-          sourceItemId: catchSourceItemId,
-        }, catchMapped);
-      }
       const [[existing]] = await conn.execute('SELECT id, category_id FROM npcs WHERE source_id = ? LIMIT 1', [toNullableInteger(r.id)]);
-      const npcInternalName = normalizeInternalName(r.internalName, r.name || r.id || i);
-      const zhMeta = npcZhMap.get(npcInternalName) ?? null;
-      const nextNameZh = resolveNpcZhName(r, npcZhMap);
-      const nextSubNameZh = toNullableString(zhMeta?.subNameZh) ?? toNullableString(r.localized?.zh?.namesub);
-      const nextCategoryId = (existing?.category_id != null && Number(existing.category_id) !== 0)
-        ? Number(existing.category_id)
-        : inferNpcCategoryId(r, categoryByCode);
+      const values = buildIndependentNpcColumnValueMap(r, i, {
+        categoryByCode,
+        sourceItemLookup,
+        itemLookup,
+        npcZhMap,
+        existingCategoryId: existing?.category_id,
+      });
+      if (values.banner_source_item_id != null) {
+        recordItemLink(linkStats.banner, {
+          npcSourceId: values.source_id,
+          npcInternalName: values.internal_name,
+          linkType: 'banner',
+          sourceItemId: values.banner_source_item_id,
+        }, values.bannerMapped);
+      }
+      if (values.catch_source_item_id != null) {
+        recordItemLink(linkStats.catchItem, {
+          npcSourceId: values.source_id,
+          npcInternalName: values.internal_name,
+          linkType: 'catchItem',
+          sourceItemId: values.catch_source_item_id,
+        }, values.catchMapped);
+      }
       await conn.execute(
         `INSERT INTO npcs
-          (source_id, internal_name, name, name_zh, sub_name, sub_name_zh, category_id, net_id, npc_type, ai_style, damage, defense, life_max, knock_back_resist, width, height, scale, value, banner_source_item_id, banner_item_id, catch_source_item_id, catch_item_id, buff_immune, raw_json, status, deleted)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
+          (source_id, internal_name, name, name_zh, sub_name, sub_name_zh, category_id, is_boss, is_friendly, is_town_npc, net_id, npc_type, ai_style, damage, defense, life_max, knock_back_resist, width, height, scale, value, banner_source_item_id, banner_item_id, catch_source_item_id, catch_item_id, buff_immune, raw_json, status, deleted)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
          ON DUPLICATE KEY UPDATE
             internal_name = VALUES(internal_name),
             name = VALUES(name),
@@ -419,6 +410,9 @@ async function importNpcs(conn, records, itemLookup, sourceItemLookup, categoryB
             sub_name = VALUES(sub_name),
             sub_name_zh = VALUES(sub_name_zh),
             category_id = VALUES(category_id),
+           is_boss = VALUES(is_boss),
+           is_friendly = VALUES(is_friendly),
+           is_town_npc = VALUES(is_town_npc),
            net_id = VALUES(net_id),
            npc_type = VALUES(npc_type),
            ai_style = VALUES(ai_style),
@@ -440,30 +434,33 @@ async function importNpcs(conn, records, itemLookup, sourceItemLookup, categoryB
            deleted = 0,
            updated_at = NOW()`,
         [
-          toNullableInteger(r.id),
-          npcInternalName,
-          toNullableString(r.name),
-          nextNameZh,
-          toNullableString(r.localized?.en?.namesub) ?? '',
-          nextSubNameZh,
-          nextCategoryId,
-          toNullableInteger(r.netID),
-          toNullableInteger(r.type),
-          toNullableInteger(r.aiStyle),
-          toNullableInteger(r.combat?.damage),
-          toNullableInteger(r.combat?.defense),
-          toNullableInteger(r.combat?.lifeMax),
-          toNullableDecimal(r.combat?.knockBackResist),
-          toNullableInteger(r.dimensions?.width),
-          toNullableInteger(r.dimensions?.height),
-          toNullableDecimal(r.dimensions?.scale),
-          toNullableInteger(r.economy?.value),
-          bannerSourceItemId,
-          bannerMapped.dbItem?.id ?? null,
-          catchSourceItemId,
-          catchMapped.dbItem?.id ?? null,
-          toNullableString(r.buffImmune),
-          JSON.stringify(r),
+          values.source_id,
+          values.internal_name,
+          values.name,
+          values.name_zh,
+          values.sub_name,
+          values.sub_name_zh,
+          values.category_id,
+          values.is_boss,
+          values.is_friendly,
+          values.is_town_npc,
+          values.net_id,
+          values.npc_type,
+          values.ai_style,
+          values.damage,
+          values.defense,
+          values.life_max,
+          values.knock_back_resist,
+          values.width,
+          values.height,
+          values.scale,
+          values.value,
+          values.banner_source_item_id,
+          values.banner_item_id,
+          values.catch_source_item_id,
+          values.catch_item_id,
+          values.buff_immune,
+          values.raw_json,
         ]
       );
       if (existing) stats.updated += 1;
@@ -516,6 +513,63 @@ function resolveNpcZhName(record, npcZhMap) {
   }
 
   return toNullableString(record.localized?.zh?.name);
+}
+
+export function buildIndependentNpcColumnValueMap(record, index, context = {}) {
+  const {
+    categoryByCode = new Map(),
+    sourceItemLookup = { bySourceId: new Map() },
+    itemLookup = { byInternal: new Map() },
+    npcZhMap = new Map(),
+    existingCategoryId = null,
+  } = context;
+
+  const npcSourceId = toNullableInteger(record.id);
+  const npcInternalName = normalizeInternalName(record.internalName, record.name || record.id || index);
+  const zhMeta = npcZhMap.get(npcInternalName) ?? null;
+  const bannerSourceItemId = toNullablePositiveInteger(record.banner);
+  const catchSourceItemId = toNullablePositiveInteger(record.extras?.catchItem);
+  const bannerMapped = bannerSourceItemId == null
+    ? { sourceItemId: null, internalName: null, dbItem: null, reason: null }
+    : resolveMappedItem(bannerSourceItemId, sourceItemLookup, itemLookup);
+  const catchMapped = catchSourceItemId == null
+    ? { sourceItemId: null, internalName: null, dbItem: null, reason: null }
+    : resolveMappedItem(catchSourceItemId, sourceItemLookup, itemLookup);
+  const nextCategoryId = (existingCategoryId != null && Number(existingCategoryId) !== 0)
+    ? Number(existingCategoryId)
+    : inferNpcCategoryId(record, categoryByCode);
+
+  return {
+    source_id: npcSourceId,
+    internal_name: npcInternalName,
+    name: toNullableString(record.name),
+    name_zh: resolveNpcZhName(record, npcZhMap),
+    sub_name: toNullableString(record.localized?.en?.namesub) ?? '',
+    sub_name_zh: toNullableString(zhMeta?.subNameZh) ?? toNullableString(record.localized?.zh?.namesub),
+    category_id: nextCategoryId,
+    is_boss: toTinyInt(record.flags?.boss, 0),
+    is_friendly: toTinyInt(record.flags?.friendly, 0),
+    is_town_npc: toTinyInt(record.extras?.townNPC === true || record.extras?.townnpc === true, 0),
+    net_id: toNullableInteger(record.netID),
+    npc_type: toNullableInteger(record.type),
+    ai_style: toNullableInteger(record.aiStyle),
+    damage: toNullableInteger(record.combat?.damage),
+    defense: toNullableInteger(record.combat?.defense),
+    life_max: toNullableInteger(record.combat?.lifeMax),
+    knock_back_resist: toNullableDecimal(record.combat?.knockBackResist),
+    width: toNullableInteger(record.dimensions?.width),
+    height: toNullableInteger(record.dimensions?.height),
+    scale: toNullableDecimal(record.dimensions?.scale),
+    value: toNullableInteger(record.economy?.value),
+    banner_source_item_id: bannerSourceItemId,
+    banner_item_id: bannerMapped.dbItem?.id ?? null,
+    catch_source_item_id: catchSourceItemId,
+    catch_item_id: catchMapped.dbItem?.id ?? null,
+    buff_immune: toNullableString(record.buffImmune),
+    raw_json: JSON.stringify(record),
+    bannerMapped,
+    catchMapped,
+  };
 }
 
 function buildProjectileZhLookup(records) {
