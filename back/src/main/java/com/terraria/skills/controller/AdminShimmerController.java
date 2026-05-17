@@ -3,6 +3,7 @@ package com.terraria.skills.controller;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.common.ApiResponse;
+import com.terraria.skills.common.ItemImageSql;
 import com.terraria.skills.common.Pagination;
 import com.terraria.skills.common.PaginationParams;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,9 +25,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/admin/shimmer")
@@ -208,10 +211,10 @@ public class AdminShimmerController {
         List<Object> pageParams = new ArrayList<>(params);
         pageParams.add((safePage - 1L) * safeLimit);
         pageParams.add(safeLimit);
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+        List<Map<String, Object>> rows = enrichDatasetRows(spec, jdbcTemplate.queryForList(
             "SELECT " + buildSelectColumns(spec) + " FROM " + spec.tableName + " " + whereSql + " ORDER BY sort_order ASC, id ASC LIMIT ?, ?",
             pageParams.toArray()
-        );
+        ));
 
         ApiResponse<List<Map<String, Object>>> response = ApiResponse.success(rows);
         response.setPagination(new Pagination(total == null ? 0 : total, safePage, safeLimit));
@@ -222,12 +225,12 @@ public class AdminShimmerController {
     @Operation(summary = "Get shimmer dataset detail")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getDatasetRow(@PathVariable String dataset, @PathVariable Long id) {
         DatasetSpec spec = requireDataset(dataset);
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+        List<Map<String, Object>> rows = enrichDatasetRows(spec, jdbcTemplate.queryForList(
             "SELECT " + buildSelectColumns(spec) + " FROM " + spec.tableName + " WHERE id = ? AND deleted = 0 AND source_provider = ? AND source_page = ? LIMIT 1",
             id,
             SOURCE_PROVIDER,
             SOURCE_PAGE
-        );
+        ));
         if (rows.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "Shimmer row not found"));
         }
@@ -488,13 +491,150 @@ public class AdminShimmerController {
     }
 
     private Map<String, Object> loadDatasetRow(DatasetSpec spec, Long id) {
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+        List<Map<String, Object>> rows = enrichDatasetRows(spec, jdbcTemplate.queryForList(
             "SELECT " + buildSelectColumns(spec) + " FROM " + spec.tableName + " WHERE id = ? AND deleted = 0 AND source_provider = ? AND source_page = ? LIMIT 1",
             id,
             SOURCE_PROVIDER,
             SOURCE_PAGE
-        );
+        ));
         return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    private List<Map<String, Object>> enrichDatasetRows(DatasetSpec spec, List<Map<String, Object>> sourceRows) {
+        if (sourceRows == null || sourceRows.isEmpty()) {
+            return List.of();
+        }
+
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (Map<String, Object> sourceRow : sourceRows) {
+            rows.add(new LinkedHashMap<>(sourceRow));
+        }
+        Set<String> internalNames = new LinkedHashSet<>();
+        for (Map<String, Object> row : rows) {
+            addInternalName(internalNames, row.get("inputInternalName"));
+            addInternalName(internalNames, row.get("outputInternalName"));
+            addInternalName(internalNames, row.get("npcInternalName"));
+            collectOutputsInternalNames(row.get("outputsJson"), internalNames);
+        }
+
+        Map<String, Map<String, Object>> imageLookup = loadImageLookup(internalNames);
+        for (Map<String, Object> row : rows) {
+            putImageFields(row, "input", row.get("inputInternalName"), imageLookup);
+            putImageFields(row, "output", row.get("outputInternalName"), imageLookup);
+            putImageFields(row, "npc", row.get("npcInternalName"), imageLookup);
+            if ("decraft-rules".equals(spec.key)) {
+                List<Map<String, Object>> outputsPreview = buildOutputsPreview(row.get("outputsJson"), imageLookup);
+                row.put("outputsPreview", outputsPreview);
+                row.put("outputImageUrl", firstPreviewImage(outputsPreview));
+            }
+        }
+        return rows;
+    }
+
+    private void addInternalName(Set<String> internalNames, Object value) {
+        String text = trimToNull(value);
+        if (text != null) {
+            internalNames.add(text);
+        }
+    }
+
+    private void collectOutputsInternalNames(Object outputsJson, Set<String> internalNames) {
+        for (Map<String, Object> output : parseObjectList(outputsJson)) {
+            addInternalName(internalNames, output.get("internalName"));
+        }
+    }
+
+    private List<Map<String, Object>> buildOutputsPreview(Object outputsJson, Map<String, Map<String, Object>> imageLookup) {
+        List<Map<String, Object>> preview = new ArrayList<>();
+        for (Map<String, Object> output : parseObjectList(outputsJson)) {
+            Map<String, Object> next = new LinkedHashMap<>();
+            next.put("kind", trimToNull(output.get("kind")));
+            next.put("nameZh", trimToNull(output.get("nameZh")));
+            next.put("nameEn", trimToNull(output.get("nameEn")));
+            next.put("internalName", trimToNull(output.get("internalName")));
+            next.put("quantityText", trimToNull(output.get("quantityText")));
+            next.put("imageUrl", resolveImageUrl(output.get("internalName"), imageLookup));
+            preview.add(next);
+        }
+        return preview;
+    }
+
+    private List<Map<String, Object>> parseObjectList(Object jsonValue) {
+        String text = trimToNull(jsonValue);
+        if (text == null) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(text, new TypeReference<>() {});
+        } catch (Exception ignored) {
+            return List.of();
+        }
+    }
+
+    private String firstPreviewImage(List<Map<String, Object>> preview) {
+        for (Map<String, Object> output : preview) {
+            String imageUrl = trimToNull(output.get("imageUrl"));
+            if (imageUrl != null) {
+                return imageUrl;
+            }
+        }
+        return null;
+    }
+
+    private void putImageFields(Map<String, Object> row, String prefix, Object internalName, Map<String, Map<String, Object>> imageLookup) {
+        String key = normalizeLookupKey(internalName);
+        Map<String, Object> image = key == null ? null : imageLookup.get(key);
+        row.put(prefix + "ImageUrl", image == null ? null : trimToNull(image.get("imageUrl")));
+        row.put(prefix + "ImageName", image == null ? null : trimToNull(image.get("name")));
+        row.put(prefix + "ImageNameZh", image == null ? null : trimToNull(image.get("nameZh")));
+    }
+
+    private String resolveImageUrl(Object internalName, Map<String, Map<String, Object>> imageLookup) {
+        String key = normalizeLookupKey(internalName);
+        Map<String, Object> image = key == null ? null : imageLookup.get(key);
+        return image == null ? null : trimToNull(image.get("imageUrl"));
+    }
+
+    private Map<String, Map<String, Object>> loadImageLookup(Set<String> internalNames) {
+        if (internalNames == null || internalNames.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Object> params = new ArrayList<>(internalNames);
+        String placeholders = String.join(", ", internalNames.stream().map(value -> "?").toList());
+        Map<String, Map<String, Object>> lookup = new LinkedHashMap<>();
+        addImageRows(lookup, jdbcTemplate.queryForList(
+            "SELECT i.internal_name AS internalName, i.name, i.name_zh AS nameZh, COALESCE(" + ItemImageSql.preferredItemImageExpression("i") + ", i.image) AS imageUrl FROM items i WHERE i.deleted = 0 AND i.internal_name IN (" + placeholders + ")",
+            params.toArray()
+        ));
+        addImageRows(lookup, jdbcTemplate.queryForList(
+            "SELECT internal_name AS internalName, name, name_zh AS nameZh, image_url AS imageUrl FROM npcs WHERE deleted = 0 AND internal_name IN (" + placeholders + ")",
+            params.toArray()
+        ));
+        addImageRows(lookup, jdbcTemplate.queryForList(
+            "SELECT internal_name AS internalName, name, name_zh AS nameZh, image_url AS imageUrl FROM projectiles WHERE deleted = 0 AND internal_name IN (" + placeholders + ")",
+            params.toArray()
+        ));
+        addImageRows(lookup, jdbcTemplate.queryForList(
+            "SELECT internal_name AS internalName, english_name AS name, name_zh AS nameZh, COALESCE(image_cached_url, image) AS imageUrl FROM buffs WHERE deleted = 0 AND internal_name IN (" + placeholders + ")",
+            params.toArray()
+        ));
+        return lookup;
+    }
+
+    private void addImageRows(Map<String, Map<String, Object>> lookup, List<Map<String, Object>> rows) {
+        for (Map<String, Object> row : rows) {
+            String key = normalizeLookupKey(row.get("internalName"));
+            if (key == null || lookup.containsKey(key)) {
+                continue;
+            }
+            lookup.put(key, row);
+        }
+    }
+
+    private String normalizeLookupKey(Object value) {
+        String text = trimToNull(value);
+        return text == null ? null : text.toLowerCase();
     }
 
     private String firstValue(Map<String, Object> source, String primaryKey, String fallbackKey) {

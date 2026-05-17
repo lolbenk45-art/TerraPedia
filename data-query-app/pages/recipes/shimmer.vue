@@ -85,6 +85,22 @@
             <label class="field field--full">
               <span class="field__label">Icon URL</span>
               <input v-model.trim="contextForm.iconUrl" class="input" type="text" />
+              <div class="context-preview">
+                <div class="shimmer-thumb shimmer-thumb--context">
+                  <img
+                    v-if="isImageVisible(contextForm.iconUrl)"
+                    :src="normalizeImageUrl(contextForm.iconUrl)"
+                    :alt="contextForm.nameZh || contextForm.nameEn || 'Shimmer'"
+                    loading="lazy"
+                    @error="markImageFailed(contextForm.iconUrl)"
+                  />
+                  <span v-else>SH</span>
+                </div>
+                <div class="context-preview__copy">
+                  <strong>{{ contextForm.nameZh || contextForm.nameEn || 'Shimmer' }}</strong>
+                  <code>{{ contextForm.iconUrl || 'No icon URL' }}</code>
+                </div>
+              </div>
             </label>
           </div>
 
@@ -149,7 +165,49 @@
                 <tbody>
                   <tr v-for="row in rows" :key="row.id">
                     <td v-for="column in currentConfig.columns" :key="`${row.id}-${column.key}`">
-                      <template v-if="column.key === currentConfig.primaryColumn">
+                      <template v-if="column.key === 'outputsPreview'">
+                        <div v-if="getOutputPreviews(row).length" class="shimmer-output-list">
+                          <article v-for="(output, index) in getVisibleOutputPreviews(row)" :key="getOutputPreviewKey(output, index)" class="shimmer-output-chip">
+                            <div class="shimmer-output-chip__thumb">
+                              <img
+                                v-if="isImageVisible(output.imageUrl)"
+                                :src="normalizeImageUrl(output.imageUrl)"
+                                :alt="getOutputTitle(output)"
+                                loading="lazy"
+                                @error="markImageFailed(output.imageUrl)"
+                              />
+                              <span v-else>{{ getOutputFallback(output) }}</span>
+                            </div>
+                            <div class="shimmer-output-chip__copy">
+                              <strong>{{ getOutputTitle(output) }}</strong>
+                              <small v-if="getOutputMeta(output)">{{ getOutputMeta(output) }}</small>
+                            </div>
+                          </article>
+                          <span v-if="getOutputOverflowCount(row)" class="shimmer-output-more">+{{ getOutputOverflowCount(row) }}</span>
+                        </div>
+                        <span v-else>--</span>
+                      </template>
+                      <template v-else-if="getEntityColumnRole(column.key)">
+                        <div class="shimmer-entity-cell">
+                          <div class="shimmer-thumb">
+                            <img
+                              v-if="isImageVisible(getEntityImage(row, column.key))"
+                              :src="normalizeImageUrl(getEntityImage(row, column.key))"
+                              :alt="getEntityLabel(row, column.key)"
+                              loading="lazy"
+                              @error="markImageFailed(getEntityImage(row, column.key))"
+                            />
+                            <span v-else>{{ getEntityFallback(row, column.key) }}</span>
+                          </div>
+                          <div class="shimmer-entity-cell__copy">
+                            <strong>{{ getEntityLabel(row, column.key) }}</strong>
+                            <span v-if="getEntitySecondary(row, column.key)">{{ getEntitySecondary(row, column.key) }}</span>
+                            <code v-if="getEntityMeta(row, column.key)" class="cell-primary__atomic">{{ getEntityMeta(row, column.key) }}</code>
+                            <code v-if="column.key === currentConfig.primaryColumn" class="cell-primary__atomic">#{{ row.id }}</code>
+                          </div>
+                        </div>
+                      </template>
+                      <template v-else-if="column.key === currentConfig.primaryColumn">
                         <div class="cell-primary">
                           <strong>{{ row[column.key] || '--' }}</strong>
                           <span v-if="currentConfig.secondaryColumn && row[currentConfig.secondaryColumn]">{{ row[currentConfig.secondaryColumn] }}</span>
@@ -187,7 +245,27 @@
       </section>
     </section>
 
-    <AppModal v-model="dialogVisible" :title="isEdit ? `Edit ${currentConfig.label}` : `Create ${currentConfig.label}`" width="720px">
+    <AppModal v-model="dialogVisible" :title="isEdit ? `Edit ${currentConfig.label}` : `Create ${currentConfig.label}`" width="min(920px, calc(100vw - 32px))">
+      <div v-if="dialogPreviewCards.length" class="shimmer-dialog-preview">
+        <article v-for="card in dialogPreviewCards" :key="card.key" class="shimmer-dialog-preview__item">
+          <div class="shimmer-thumb shimmer-thumb--dialog">
+            <img
+              v-if="isImageVisible(card.imageUrl)"
+              :src="normalizeImageUrl(card.imageUrl)"
+              :alt="card.title"
+              loading="lazy"
+              @error="markImageFailed(card.imageUrl)"
+            />
+            <span v-else>{{ card.fallback }}</span>
+          </div>
+          <div class="shimmer-dialog-preview__copy">
+            <span>{{ card.label }}</span>
+            <strong>{{ card.title }}</strong>
+            <small v-if="card.subtitle">{{ card.subtitle }}</small>
+            <code v-if="card.meta">{{ card.meta }}</code>
+          </div>
+        </article>
+      </div>
       <div class="form-grid">
         <template v-for="field in currentConfig.fields" :key="field.key">
           <label class="field" :class="field.span === 'full' ? 'field--full' : ''">
@@ -237,6 +315,16 @@ type OverviewContext = Record<string, any> | null
 type OverviewManifest = Record<string, any>
 type DatasetCount = { dataset: string; count: number }
 type DatasetRow = Record<string, any>
+type EntityColumnRole = 'input' | 'output' | 'npc' | 'variant'
+type DialogPreviewCard = {
+  key: string
+  label: string
+  title: string
+  subtitle: string
+  meta: string
+  imageUrl: string
+  fallback: string
+}
 
 type FieldConfig = {
   key: string
@@ -300,6 +388,7 @@ const datasetConfigs: Record<string, DatasetConfig> = {
     secondaryColumn: 'ruleType',
     columns: [
       { key: 'inputNameZh', label: 'Input' },
+      { key: 'outputsPreview', label: 'Outputs' },
       { key: 'ruleType', label: 'Rule Type' },
       { key: 'groupLabel', label: 'Group' },
       { key: 'sortOrder', label: 'Sort' },
@@ -357,6 +446,7 @@ const datasetConfigs: Record<string, DatasetConfig> = {
     columns: [
       { key: 'npcNameZh', label: 'NPC' },
       { key: 'appearanceVariant', label: 'Variant' },
+      { key: 'variantImageUrl', label: 'Variant Image' },
       { key: 'effectType', label: 'Effect Type' },
       { key: 'sortOrder', label: 'Sort' },
       { key: 'status', label: 'Status' },
@@ -393,6 +483,7 @@ const pagination = ref({ total: 0, page: 1, limit: 20, totalPages: 1 })
 const datasetCounts = ref<Record<string, number>>({})
 const context = ref<OverviewContext>(null)
 const manifest = ref<OverviewManifest>({ parseStatus: 'missing', unresolvedCount: 0 })
+const failedImages = ref<Record<string, boolean>>({})
 
 const contextForm = reactive({
   code: 'SHIMMER',
@@ -415,6 +506,47 @@ const summaryCards = computed(() => [
   { label: 'UNRESOLVED', value: manifest.value.unresolvedCount ?? 0 },
   { label: 'STATUS', value: manifest.value.parseStatus || 'missing' },
 ])
+
+const dialogPreviewCards = computed<DialogPreviewCard[]>(() => {
+  const cards: DialogPreviewCard[] = []
+  if (hasAnyValue(form.inputNameZh, form.inputNameEn, form.inputInternalName, form.inputImageUrl)) {
+    cards.push(buildDialogCard('input', 'Input', {
+      title: firstText(form.inputImageNameZh, form.inputNameZh, form.inputImageName, form.inputNameEn, form.inputInternalName, 'Input'),
+      subtitle: firstText(form.inputNameEn, form.inputImageName, form.inputKind),
+      meta: firstText(form.inputInternalName, form.inputKind),
+      imageUrl: firstText(form.inputImageUrl),
+      fallback: getInitials(firstText(form.inputNameZh, form.inputNameEn, form.inputInternalName), 'IT'),
+    }))
+  }
+  if (hasAnyValue(form.outputNameZh, form.outputNameEn, form.outputInternalName, form.outputImageUrl)) {
+    cards.push(buildDialogCard('output', 'Output', {
+      title: firstText(form.outputImageNameZh, form.outputNameZh, form.outputImageName, form.outputNameEn, form.outputInternalName, 'Output'),
+      subtitle: firstText(form.outputNameEn, form.outputImageName, form.outputKind),
+      meta: firstText(form.outputInternalName, form.outputKind),
+      imageUrl: firstText(form.outputImageUrl),
+      fallback: getInitials(firstText(form.outputNameZh, form.outputNameEn, form.outputInternalName), 'IT'),
+    }))
+  }
+  if (hasAnyValue(form.npcNameZh, form.npcNameEn, form.npcInternalName, form.npcImageUrl)) {
+    cards.push(buildDialogCard('npc', 'NPC', {
+      title: firstText(form.npcImageNameZh, form.npcNameZh, form.npcImageName, form.npcNameEn, form.npcInternalName, 'NPC'),
+      subtitle: firstText(form.npcNameEn, form.npcImageName, form.effectType),
+      meta: firstText(form.npcInternalName, form.appearanceVariant),
+      imageUrl: firstText(form.npcImageUrl),
+      fallback: 'NPC',
+    }))
+  }
+  if (hasAnyValue(form.variantImageUrl, form.variantImageAlt)) {
+    cards.push(buildDialogCard('variant', 'Variant', {
+      title: firstText(form.variantImageAlt, form.appearanceVariant, form.npcNameZh, form.npcNameEn, 'Variant'),
+      subtitle: firstText(form.appearanceVariant, form.effectType),
+      meta: firstText(form.variantImageUrl),
+      imageUrl: firstText(form.variantImageUrl),
+      fallback: 'VAR',
+    }))
+  }
+  return cards
+})
 
 onMounted(async () => {
   await loadOverview()
@@ -521,6 +653,7 @@ async function openEditDialog(row: DatasetRow) {
     for (const field of currentConfig.value.fields) {
       form[field.key] = payload[field.key] ?? (field.type === 'status' ? 1 : field.type === 'number' ? 0 : '')
     }
+    assignDisplayFields(payload)
     dialogVisible.value = true
   } catch (error: any) {
     showToast(error?.data?.message || error?.message || 'Failed to load shimmer row detail', 'error')
@@ -591,6 +724,157 @@ function formatJsonField(key: string) {
     showToast('Invalid JSON', 'warning')
   }
 }
+
+function assignDisplayFields(payload: DatasetRow) {
+  const displayKeys = [
+    'inputImageUrl',
+    'inputImageName',
+    'inputImageNameZh',
+    'outputImageUrl',
+    'outputImageName',
+    'outputImageNameZh',
+    'npcImageUrl',
+    'npcImageName',
+    'npcImageNameZh',
+  ]
+  for (const key of displayKeys) {
+    if (payload[key] != null) {
+      form[key] = payload[key]
+    }
+  }
+}
+
+function getEntityColumnRole(columnKey: string): EntityColumnRole | null {
+  if (columnKey.startsWith('input')) return 'input'
+  if (columnKey.startsWith('output')) return 'output'
+  if (columnKey.startsWith('npc')) return 'npc'
+  if (columnKey === 'variantImageUrl') return 'variant'
+  return null
+}
+
+function getEntityImage(row: DatasetRow, columnKey: string) {
+  const role = getEntityColumnRole(columnKey)
+  if (role === 'variant') return firstText(row.variantImageUrl)
+  if (role === 'npc') return firstText(row.npcImageUrl, row.variantImageUrl)
+  if (role === 'output') return firstText(row.outputImageUrl)
+  if (role === 'input') return firstText(row.inputImageUrl)
+  return ''
+}
+
+function getEntityLabel(row: DatasetRow, columnKey: string) {
+  const role = getEntityColumnRole(columnKey)
+  if (role === 'variant') {
+    return firstText(row.variantImageAlt, row.appearanceVariant, row.npcNameZh, row.npcNameEn, 'Variant')
+  }
+  if (role === 'npc') {
+    return firstText(row.npcImageNameZh, row.npcNameZh, row.npcImageName, row.npcNameEn, row.npcInternalName, '--')
+  }
+  if (role === 'output') {
+    return firstText(row.outputImageNameZh, row.outputNameZh, row.outputImageName, row.outputNameEn, row.outputInternalName, '--')
+  }
+  if (role === 'input') {
+    return firstText(row.inputImageNameZh, row.inputNameZh, row.inputImageName, row.inputNameEn, row.inputInternalName, '--')
+  }
+  return firstText(row[columnKey], '--')
+}
+
+function getEntitySecondary(row: DatasetRow, columnKey: string) {
+  const role = getEntityColumnRole(columnKey)
+  if (role === 'variant') return firstText(row.appearanceVariant, row.effectType)
+  if (role === 'npc') return firstText(row.npcNameEn, row.npcImageName, row.effectType)
+  if (role === 'output') return firstText(row.outputNameEn, row.outputImageName, row.outputKind, row.outputEntityType)
+  if (role === 'input') return firstText(row.inputNameEn, row.inputImageName, row.inputKind, row.inputEntityType)
+  return ''
+}
+
+function getEntityMeta(row: DatasetRow, columnKey: string) {
+  const role = getEntityColumnRole(columnKey)
+  if (role === 'variant') return firstText(row.variantImageUrl)
+  if (role === 'npc') return firstText(row.npcInternalName)
+  if (role === 'output') return firstText(row.outputInternalName, row.outputKind, row.outputEntityType)
+  if (role === 'input') return firstText(row.inputInternalName, row.inputKind, row.inputEntityType)
+  return ''
+}
+
+function getEntityFallback(row: DatasetRow, columnKey: string) {
+  const role = getEntityColumnRole(columnKey)
+  if (role === 'npc') return 'NPC'
+  if (role === 'variant') return 'VAR'
+  return getInitials(getEntityLabel(row, columnKey), 'IT')
+}
+
+function getOutputPreviews(row: DatasetRow) {
+  return Array.isArray(row.outputsPreview) ? row.outputsPreview : []
+}
+
+function getVisibleOutputPreviews(row: DatasetRow) {
+  return getOutputPreviews(row).slice(0, 3)
+}
+
+function getOutputOverflowCount(row: DatasetRow) {
+  return Math.max(0, getOutputPreviews(row).length - getVisibleOutputPreviews(row).length)
+}
+
+function getOutputPreviewKey(output: DatasetRow, index: number) {
+  return `${output.internalName || output.nameZh || output.nameEn || 'output'}-${index}`
+}
+
+function getOutputTitle(output: DatasetRow) {
+  return firstText(output.nameZh, output.nameEn, output.internalName, 'Output')
+}
+
+function getOutputMeta(output: DatasetRow) {
+  return firstText(output.quantityText, output.internalName, output.kind)
+}
+
+function getOutputFallback(output: DatasetRow) {
+  return getInitials(getOutputTitle(output), 'IT')
+}
+
+function buildDialogCard(key: string, label: string, card: Omit<DialogPreviewCard, 'key' | 'label'>): DialogPreviewCard {
+  return { key, label, ...card }
+}
+
+function hasAnyValue(...values: any[]) {
+  return values.some(value => firstText(value) !== '')
+}
+
+function firstText(...values: any[]) {
+  for (const value of values) {
+    if (value == null) continue
+    const text = String(value).trim()
+    if (text) return text
+  }
+  return ''
+}
+
+function normalizeImageUrl(value: any) {
+  return firstText(value)
+}
+
+function isImageVisible(value: any) {
+  const imageUrl = normalizeImageUrl(value)
+  return Boolean(imageUrl && !failedImages.value[imageUrl])
+}
+
+function markImageFailed(value: any) {
+  const imageUrl = normalizeImageUrl(value)
+  if (imageUrl) {
+    failedImages.value = { ...failedImages.value, [imageUrl]: true }
+  }
+}
+
+function getInitials(value: any, fallback: string) {
+  const text = firstText(value)
+  if (!text) return fallback
+  if (/^[\u4e00-\u9fa5]/.test(text)) return text.slice(0, 2)
+  return text
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase())
+    .join('') || fallback
+}
 </script>
 
 <style scoped>
@@ -605,19 +889,46 @@ function formatJsonField(key: string) {
 .dataset-tab--active { border-color: color-mix(in srgb, var(--color-primary) 65%, transparent); background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg-secondary)); }
 .shimmer-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: end; }
 .toolbar__actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.context-preview { margin-top: 10px; display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; align-items: center; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-bg-tertiary) 74%, transparent); }
+.context-preview__copy { min-width: 0; display: grid; gap: 4px; }
+.context-preview__copy strong { color: var(--color-text); }
+.context-preview__copy code { color: var(--color-text-muted); font-size: .78rem; overflow-wrap: anywhere; }
 .table-wrap { overflow-x: auto; border-radius: calc(var(--radius-lg) - 2px); border: 1px solid var(--color-border); }
-.data-table { width: 100%; min-width: 920px; border-collapse: collapse; background: color-mix(in srgb, var(--color-bg-secondary) 94%, transparent); }
+.data-table { width: 100%; min-width: 1040px; border-collapse: collapse; background: color-mix(in srgb, var(--color-bg-secondary) 94%, transparent); }
 .data-table th,.data-table td { padding: 13px 14px; border-bottom: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent); text-align: left; vertical-align: middle; }
-.data-table th { background: color-mix(in srgb, var(--color-bg-tertiary) 94%, transparent); color: var(--color-text-secondary); font-weight: 700; }
+.data-table th { background: color-mix(in srgb, var(--color-bg-tertiary) 94%, transparent); color: var(--color-text-secondary); font-weight: 700; white-space: nowrap; }
 .data-table tbody tr:hover { background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg-secondary)); }
 .cell-primary { display: grid; gap: 4px; }
 .cell-primary strong { color: var(--color-text); font-weight: 700; }
-.cell-primary__atomic { color: var(--color-text-muted); font-size: .78rem; font-family: Consolas, monospace; }
+.cell-primary__atomic { color: var(--color-text-muted); font-size: .78rem; font-family: Consolas, monospace; white-space: normal; overflow-wrap: anywhere; }
+.shimmer-entity-cell { min-width: 230px; display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 12px; align-items: center; }
+.shimmer-entity-cell__copy { min-width: 0; display: grid; gap: 4px; }
+.shimmer-entity-cell__copy strong { color: var(--color-text); font-weight: 700; overflow-wrap: anywhere; }
+.shimmer-entity-cell__copy span { color: var(--color-text-secondary); font-size: .84rem; overflow-wrap: anywhere; }
+.shimmer-thumb { width: 46px; height: 46px; border-radius: 12px; border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-bg-tertiary) 88%, transparent); display: grid; place-items: center; overflow: hidden; color: var(--color-text-muted); font-size: .72rem; font-weight: 800; line-height: 1; flex-shrink: 0; }
+.shimmer-thumb img { width: 100%; height: 100%; padding: 4px; object-fit: contain; display: block; }
+.shimmer-thumb--context { width: 64px; height: 64px; border-radius: 14px; font-size: .88rem; }
+.shimmer-thumb--dialog { width: 58px; height: 58px; border-radius: 14px; font-size: .8rem; }
+.shimmer-output-list { min-width: 300px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.shimmer-output-chip { min-width: 130px; max-width: 190px; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-bg-tertiary) 86%, transparent); }
+.shimmer-output-chip__thumb { width: 30px; height: 30px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent); display: grid; place-items: center; overflow: hidden; color: var(--color-text-muted); font-size: .64rem; font-weight: 800; background: color-mix(in srgb, var(--color-bg-secondary) 88%, transparent); }
+.shimmer-output-chip__thumb img { width: 100%; height: 100%; padding: 3px; object-fit: contain; display: block; }
+.shimmer-output-chip__copy { min-width: 0; display: grid; gap: 2px; }
+.shimmer-output-chip__copy strong { color: var(--color-text); font-size: .8rem; overflow-wrap: anywhere; }
+.shimmer-output-chip__copy small { color: var(--color-text-muted); font-size: .72rem; overflow-wrap: anywhere; }
+.shimmer-output-more { color: var(--color-text-muted); font-size: .8rem; font-weight: 700; }
+.shimmer-dialog-preview { margin-bottom: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.shimmer-dialog-preview__item { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 12px; align-items: center; min-width: 0; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-bg-tertiary) 78%, transparent); }
+.shimmer-dialog-preview__copy { min-width: 0; display: grid; gap: 4px; }
+.shimmer-dialog-preview__copy span { color: var(--color-text-muted); font-size: .72rem; font-weight: 800; text-transform: uppercase; }
+.shimmer-dialog-preview__copy strong { color: var(--color-text); overflow-wrap: anywhere; }
+.shimmer-dialog-preview__copy small { color: var(--color-text-secondary); overflow-wrap: anywhere; }
+.shimmer-dialog-preview__copy code { color: var(--color-text-muted); font-size: .74rem; overflow-wrap: anywhere; }
 .row-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .btn-link--danger { color: var(--color-danger); }
 .textarea--code { font-family: Consolas, monospace; min-height: 140px; }
 .toolbar-top--section { margin-top: 18px; justify-content: flex-end; }
 @media (max-width: 960px) {
-  .context-grid, .form-grid, .shimmer-toolbar { grid-template-columns: 1fr; }
+  .context-grid, .form-grid, .shimmer-toolbar, .shimmer-dialog-preview { grid-template-columns: 1fr; }
 }
 </style>
