@@ -1,15 +1,23 @@
 const terrapediaBackendOrigin = (process.env.TERRAPEDIA_BACKEND_ORIGIN || 'http://localhost:18088').replace(/\/$/, '')
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
+  modules: ['@pinia/nuxt'],
 
   devServer: {
     port: 5176,
     host: 'localhost',
   },
 
-  css: ['~/assets/css/hifi-preview.css'],
+  css: ['~/assets/css/app.css'],
+
+  vite: {
+    plugins: [
+      tailwindcss(),
+    ],
+  },
 
   runtimeConfig: {
     public: {

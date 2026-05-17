@@ -1,22 +1,7 @@
 <template>
 <section class="screen article-screen active">
-          <header class="site-nav">
-            <a class="site-logo" href="javascript:void(0)">
-              <span class="logo-gem" aria-hidden="true"></span>
-              <span><strong>TerraPedia</strong><small>资料手札</small></span>
-            </a>
-            <nav class="site-links" aria-label="主导航">
-              <a class="site-link" href="javascript:void(0)">首页</a>
-              <a class="site-link" href="javascript:void(0)">物品</a>
-              <a class="site-link" href="javascript:void(0)">NPC</a>
-              <a class="site-link" href="javascript:void(0)">Boss</a>
-              <a class="site-link active" href="javascript:void(0)">文章</a>
-            </nav>
-            <div class="site-actions">
-              <button class="icon-button" type="button" aria-label="搜索文章">⌕</button>
-              <a class="primary-button" href="javascript:void(0)">写手札</a>
-            </div>
-          </header>
+    <TerraNav />
+    <TerraBreadcrumb />
 
           <div class="page-head">
             <div class="page-head-inner">
@@ -25,7 +10,7 @@
                 <h2>资料手札</h2>
                 <p>文章区以游玩路线、装备目标和机制解释组织内容，和图鉴数据互相跳转，避免普通博客列表的松散感。</p>
               </div>
-              <a class="secondary-button" href="javascript:void(0)">查看专题索引</a>
+              <a class="secondary-button" href="/articles">查看专题索引</a>
             </div>
           </div>
 
@@ -47,10 +32,10 @@
                 </div>
               </article>
               <div class="article-path">
-                <a href="javascript:void(0)">开荒路线</a>
-                <a href="javascript:void(0)">Boss 前准备</a>
-                <a href="javascript:void(0)">困难模式</a>
-                <a href="javascript:void(0)">月亮领主前</a>
+                <a href="/articles">开荒路线</a>
+                <a href="/bosses">Boss 前准备</a>
+                <a href="/armor-sets">困难模式</a>
+                <a href="/items/terra-blade">月亮领主前</a>
               </div>
               <div class="article-list">
                 <article class="article-card">
@@ -86,5 +71,7 @@
               </div>
             </aside>
           </div>
+
+          <TerraFooter />
         </section>
 </template>

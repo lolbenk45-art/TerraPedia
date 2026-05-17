@@ -1,22 +1,7 @@
 <template>
 <section class="screen catalog-screen active">
-          <header class="site-nav">
-            <a class="site-logo" href="javascript:void(0)">
-              <span class="logo-gem" aria-hidden="true"></span>
-              <span><strong>TerraPedia</strong><small>物品图鉴</small></span>
-            </a>
-            <nav class="site-links" aria-label="主导航">
-              <a class="site-link" href="javascript:void(0)">首页</a>
-              <a class="site-link active" href="javascript:void(0)">物品</a>
-              <a class="site-link" href="javascript:void(0)">NPC</a>
-              <a class="site-link" href="javascript:void(0)">Boss</a>
-              <a class="site-link" href="javascript:void(0)">文章</a>
-            </nav>
-            <div class="site-actions">
-              <button class="icon-button" type="button" aria-label="搜索">⌕</button>
-              <a class="secondary-button" href="javascript:void(0)">收藏夹</a>
-            </div>
-          </header>
+    <TerraNav />
+    <TerraBreadcrumb />
 
           <div class="page-head">
             <div class="page-head-inner">
@@ -25,7 +10,7 @@
                 <h2>物品图鉴</h2>
                 <p>按分类、稀有度、阶段和关键词快速定位。列表以图标墙为主，右侧固定显示当前选中物品，减少大量翻页带来的疲劳。</p>
               </div>
-              <a class="primary-button" href="javascript:void(0)">查看合成路线</a>
+              <a class="primary-button" href="/items/terra-blade">查看合成路线</a>
             </div>
           </div>
 
@@ -131,5 +116,7 @@
               </div>
             </aside>
           </div>
+
+          <TerraFooter />
         </section>
 </template>

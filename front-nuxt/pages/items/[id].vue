@@ -1,22 +1,7 @@
 <template>
 <section class="screen detail-screen active">
-          <header class="site-nav">
-            <a class="site-logo" href="javascript:void(0)">
-              <span class="logo-gem" aria-hidden="true"></span>
-              <span><strong>TerraPedia</strong><small>物品详情</small></span>
-            </a>
-            <nav class="site-links" aria-label="主导航">
-              <a class="site-link" href="javascript:void(0)">首页</a>
-              <a class="site-link active" href="javascript:void(0)">物品</a>
-              <a class="site-link" href="javascript:void(0)">NPC</a>
-              <a class="site-link" href="javascript:void(0)">Boss</a>
-              <a class="site-link" href="javascript:void(0)">文章</a>
-            </nav>
-            <div class="site-actions">
-              <button class="icon-button" type="button" aria-label="收藏">☆</button>
-              <a class="secondary-button" href="javascript:void(0)">返回列表</a>
-            </div>
-          </header>
+    <TerraNav />
+    <TerraBreadcrumb />
 
           <div class="detail-layout">
             <section class="detail-hero dark-card">
@@ -111,5 +96,7 @@
               </aside>
             </div>
           </div>
+
+          <TerraFooter />
         </section>
 </template>

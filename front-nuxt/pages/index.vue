@@ -1,22 +1,21 @@
+<script setup lang="ts">
+const heroEntries = [
+  { label: '搜索', href: '/search', code: 'SR', desc: '全站快速定位', tone: 'tone-search' },
+  { label: '物品', href: '/items', code: 'IT', desc: '装备材料掉落', tone: 'tone-items' },
+  { label: '分类', href: '/categories', code: 'CL', desc: '按类型浏览', tone: 'tone-category' },
+  { label: '生态', href: '/biomes', code: 'BM', desc: '群落资源路径', tone: 'tone-biome' },
+  { label: 'Boss', href: '/bosses', code: 'BS', desc: '阶段战斗路线', tone: 'tone-boss' },
+  { label: 'Buff', href: '/buffs', code: 'BF', desc: '增益减益组合', tone: 'tone-buff' },
+  { label: '套装', href: '/armor-sets', code: 'AR', desc: '职业防具推进', tone: 'tone-armor' },
+  { label: '射弹', href: '/projectiles', code: 'PJ', desc: '弹道来源行为', tone: 'tone-projectile' },
+  { label: 'NPC', href: '/npcs', code: 'NP', desc: '城镇敌怪图鉴', tone: 'tone-npc' },
+  { label: '攻略', href: '/articles', code: 'GD', desc: '专题和机制', tone: 'tone-guide' },
+]
+</script>
+
 <template>
 <section class="screen home-screen active">
-          <header class="site-nav">
-            <a class="site-logo" href="javascript:void(0)">
-              <span class="logo-gem" aria-hidden="true"></span>
-              <span><strong>TerraPedia</strong><small>泰拉瑞亚中文资料库</small></span>
-            </a>
-            <nav class="site-links" aria-label="主导航">
-              <a class="site-link active" href="javascript:void(0)">首页</a>
-              <a class="site-link" href="javascript:void(0)">物品</a>
-              <a class="site-link" href="javascript:void(0)">NPC</a>
-              <a class="site-link" href="javascript:void(0)">Boss</a>
-              <a class="site-link" href="javascript:void(0)">文章</a>
-            </nav>
-            <div class="site-actions">
-              <button class="icon-button" type="button" aria-label="搜索">⌕</button>
-              <a class="secondary-button" href="javascript:void(0)">登录</a>
-            </div>
-          </header>
+    <TerraNav />
 
           <section class="hero">
             <div class="hero-grid">
@@ -59,10 +58,23 @@
                     <span class="search-glyph" aria-hidden="true"></span>
                     <strong>搜索物品、Boss、NPC、路线...</strong>
                   </div>
-                  <a class="primary-button" href="javascript:void(0)">开始检索</a>
+                  <a class="primary-button" href="/items">开始检索</a>
                 </div>
                 <div class="quick-entry">
-                  <a href="javascript:void(0)">物品</a><a href="javascript:void(0)">Boss</a><a href="javascript:void(0)">NPC</a><a href="javascript:void(0)">攻略</a>
+                  <a
+                    v-for="entry in heroEntries"
+                    :key="entry.href"
+                    class="quick-entry-card"
+                    :class="entry.tone"
+                    :href="entry.href"
+                  >
+                    <span class="quick-entry-code">{{ entry.code }}</span>
+                    <span class="quick-entry-copy">
+                      <b>{{ entry.label }}</b>
+                      <em>{{ entry.desc }}</em>
+                    </span>
+                    <span class="quick-entry-arrow" aria-hidden="true">›</span>
+                  </a>
                 </div>
               </section>
             </div>
@@ -245,69 +257,7 @@
               </section>
             </div>
 
-            <footer class="camp-footer">
-              <div class="footer-main">
-                <section class="footer-brand">
-                  <span class="footer-kicker">TERRAPEDIA</span>
-                  <h3>为 Terraria 玩家建立可追溯的中文资料中枢</h3>
-                  <p>TerraPedia 聚合物品图鉴、合成链路、Boss 阶段、专题攻略与版本证据，让资料查询从零散搜索变成稳定的路线系统。</p>
-                  <div class="footer-proof">
-                    <div><b>6,214</b><span>物品条目</span></div>
-                    <div><b>14,746</b><span>链路节点</span></div>
-                    <div><b>持续</b><span>数据校验</span></div>
-                  </div>
-                </section>
-
-                <nav class="footer-column" aria-label="产品">
-                  <h4>产品</h4>
-                  <div class="footer-links">
-                    <a href="javascript:void(0)">物品图鉴</a>
-                    <a href="javascript:void(0)">合成路线</a>
-                    <a href="javascript:void(0)">Boss 进度</a>
-                    <a href="javascript:void(0)">专题攻略</a>
-                  </div>
-                </nav>
-
-                <nav class="footer-column" aria-label="资源">
-                  <h4>资源</h4>
-                  <div class="footer-links">
-                    <a href="javascript:void(0)">更新日志</a>
-                    <a href="javascript:void(0)">数据来源</a>
-                    <a href="javascript:void(0)">内容规范</a>
-                    <a href="javascript:void(0)">开发计划</a>
-                  </div>
-                </nav>
-
-                <nav class="footer-column" aria-label="社区">
-                  <h4>社区</h4>
-                  <div class="footer-links">
-                    <a href="javascript:void(0)">反馈建议</a>
-                    <a href="javascript:void(0)">内容共建</a>
-                    <a href="javascript:void(0)">问题追踪</a>
-                    <a href="javascript:void(0)">公开路线图</a>
-                  </div>
-                </nav>
-
-                <aside class="footer-contact">
-                  <h4>联系与合作</h4>
-                  <p>欢迎提交资料纠错、攻略协作、镜像部署和社区合作需求。</p>
-                  <div class="footer-contact-list">
-                    <span><em>Email</em>contact@terrapedia.local</span>
-                    <span><em>GitHub</em>github.com/terrapedia</span>
-                    <span><em>Status</em>Preview build · 2026</span>
-                  </div>
-                </aside>
-              </div>
-
-              <div class="footer-bottom">
-                <span>© 2026 TerraPedia. Unofficial Terraria knowledge project.</span>
-                <div class="footer-legal">
-                  <a href="javascript:void(0)">隐私</a>
-                  <a href="javascript:void(0)">条款</a>
-                  <a href="javascript:void(0)">品牌说明</a>
-                </div>
-              </div>
-            </footer>
+            <TerraFooter />
           </section>
         </section>
 </template>
