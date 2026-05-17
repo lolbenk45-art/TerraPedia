@@ -1,6 +1,6 @@
 {
   "entity": "buffs",
-  "generatedAt": "2026-05-15T09:27:05.627Z",
+  "generatedAt": "2026-05-15T14:23:34.084Z",
   "records": [
     {
       "englishName": "Obsidian Skin",
@@ -3054,8 +3054,129 @@
           "tooltip": "不能再使用治疗物品"
         }
       },
-      "sourceItemCount": 0,
-      "sourceItems": [],
+      "sourceItemCount": 12,
+      "sourceItems": [
+        {
+          "name": "Mushroom",
+          "pageTitle": "Mushroom",
+          "internalName": "Mushroom",
+          "source": "buff-page-causes",
+          "sourceKind": "item",
+          "sourceSection": "From item",
+          "sourceOrder": 1,
+          "itemId": 5
+        },
+        {
+          "name": "Eggnog",
+          "pageTitle": "Eggnog",
+          "internalName": "Eggnog",
+          "source": "buff-page-causes",
+          "sourceKind": "item",
+          "sourceSection": "From item",
+          "sourceOrder": 2,
+          "itemId": 1912
+        },
+        {
+          "name": "Bottled Water",
+          "pageTitle": "Bottled Water",
+          "internalName": "BottledWater",
+          "source": "buff-page-causes",
+          "sourceKind": "item",
+          "sourceSection": "From item",
+          "sourceOrder": 3,
+          "itemId": 126
+        },
+        {
+          "name": "Restoration Potion",
+          "pageTitle": "Restoration Potion",
+          "internalName": "RestorationPotion",
+          "source": "buff-page-causes",
+          "sourceKind": "item",
+          "sourceSection": "From item",
+          "sourceOrder": 4,
+          "itemId": 227
+        },
+        {
+          "name": "Bottled Honey",
+          "pageTitle": "Bottled Honey",
+          "internalName": "BottledHoney",
+          "source": "buff-page-causes",
+          "sourceKind": "item",
+          "sourceSection": "From item",
+          "sourceOrder": 5,
+          "itemId": 1134
+        },
+        {
+          "name": "Honeyfin",
+          "pageTitle": "Honeyfin",
+          "internalName": "Honeyfin",
+          "source": "buff-page-causes",
+          "sourceKind": "item",
+          "sourceSection": "From item",
+          "sourceOrder": 6,
+          "itemId": 2314
+        },
+        {
+          "name": "Lesser Healing Potion",
+          "pageTitle": "Lesser Healing Potion",
+          "internalName": "LesserHealingPotion",
+          "source": "buff-page-causes",
+          "sourceKind": "item",
+          "sourceSection": "From item",
+          "sourceOrder": 7,
+          "itemId": 28
+        },
+        {
+          "name": "Healing Potion",
+          "pageTitle": "Healing Potion",
+          "internalName": "HealingPotion",
+          "source": "buff-page-causes",
+          "sourceKind": "item",
+          "sourceSection": "From item",
+          "sourceOrder": 8,
+          "itemId": 188
+        },
+        {
+          "name": "Greater Healing Potion",
+          "pageTitle": "Greater Healing Potion",
+          "internalName": "GreaterHealingPotion",
+          "source": "buff-page-causes",
+          "sourceKind": "item",
+          "sourceSection": "From item",
+          "sourceOrder": 9,
+          "itemId": 499
+        },
+        {
+          "name": "Jungle Juice",
+          "pageTitle": "Jungle Juice",
+          "internalName": "JungleJuice",
+          "source": "buff-page-causes",
+          "sourceKind": "item",
+          "sourceSection": "From item",
+          "sourceOrder": 10,
+          "itemId": null
+        },
+        {
+          "name": "Super Healing Potion",
+          "pageTitle": "Super Healing Potion",
+          "internalName": "SuperHealingPotion",
+          "source": "buff-page-causes",
+          "sourceKind": "item",
+          "sourceSection": "From item",
+          "sourceOrder": 11,
+          "itemId": 3544
+        },
+        {
+          "name": "Strange Brew",
+          "pageTitle": "Strange Brew",
+          "internalName": "StrangeBrew",
+          "source": "buff-page-causes",
+          "sourceKind": "item",
+          "sourceSection": "From item",
+          "sourceOrder": 12,
+          "itemId": 3001
+        }
+      ],
       "type": "debuff",
       "imageFileTitle": "Potion Sickness.png",
       "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/b97d8cd987da4accab24145654b830fd.png",
@@ -3076,13 +3197,17 @@
           "Trivia",
           "History"
         ],
-        "sourceSections": [],
+        "sourceSections": [
+          "From item"
+        ],
         "parseStatus": "parsed",
         "factGroups": {
           "sourceItems": {
-            "status": "section_missing",
-            "count": 0,
-            "sections": []
+            "status": "parsed",
+            "count": 12,
+            "sections": [
+              "From item"
+            ]
           },
           "inflictingNpcs": {
             "status": "section_missing",
@@ -15733,8 +15858,69 @@
           "tooltip": "魔法伤害降低"
         }
       },
-      "sourceItemCount": 0,
-      "sourceItems": [],
+      "sourceItemCount": 6,
+      "sourceItems": [
+        {
+          "name": "Lesser Mana Potion",
+          "pageTitle": "Lesser Mana Potion",
+          "internalName": "LesserManaPotion",
+          "source": "buff-page-causes",
+          "sourceKind": "item",
+          "sourceSection": "From item",
+          "sourceOrder": 1,
+          "itemId": 110
+        },
+        {
+          "name": "Mana Potion",
+          "pageTitle": "Mana Potion",
+          "internalName": "ManaPotion",
+          "source": "buff-page-causes",
+          "sourceKind": "item",
+          "sourceSection": "From item",
+          "sourceOrder": 2,
+          "itemId": 189
+        },
+        {
+          "name": "Lesser Restoration Potion",
+          "pageTitle": "Lesser Restoration Potion",
+          "internalName": "LesserRestorationPotion",
+          "source": "buff-page-causes",
+          "sourceKind": "item",
+          "sourceSection": "From item",
+          "sourceOrder": 3,
+          "itemId": 226
+        },
+        {
+          "name": "Greater Mana Potion",
+          "pageTitle": "Greater Mana Potion",
+          "internalName": "GreaterManaPotion",
+          "source": "buff-page-causes",
+          "sourceKind": "item",
+          "sourceSection": "From item",
+          "sourceOrder": 4,
+          "itemId": 500
+        },
+        {
+          "name": "Super Mana Potion",
+          "pageTitle": "Super Mana Potion",
+          "internalName": "SuperManaPotion",
+          "source": "buff-page-causes",
+          "sourceKind": "item",
+          "sourceSection": "From item",
+          "sourceOrder": 5,
+          "itemId": 2209
+        },
+        {
+          "name": "Restoration Potion",
+          "pageTitle": "Restoration Potion",
+          "internalName": "RestorationPotion",
+          "source": "buff-page-causes",
+          "sourceKind": "item",
+          "sourceSection": "From item",
+          "sourceOrder": 6,
+          "itemId": 227
+        }
+      ],
       "type": "debuff",
       "imageFileTitle": "Mana Sickness.png",
       "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/2400b4c5b89546e39b48dd0cddc05509.png",
@@ -15756,13 +15942,17 @@
           "History",
           "References"
         ],
-        "sourceSections": [],
+        "sourceSections": [
+          "From item"
+        ],
         "parseStatus": "parsed",
         "factGroups": {
           "sourceItems": {
-            "status": "section_missing",
-            "count": 0,
-            "sections": []
+            "status": "parsed",
+            "count": 6,
+            "sections": [
+              "From item"
+            ]
           },
           "inflictingNpcs": {
             "status": "section_missing",
@@ -20452,7 +20642,17 @@
       "type": "debuff",
       "imageFileTitle": "Shadowflame.png",
       "imageUrl": "http://localhost:9000/terrapedia-images/items/2026/04/08/7f41cddfb0ec4cf6b1663db707aed0f5.png",
-      "inflictingNpcs": [],
+      "inflictingNpcs": [
+        {
+          "name": "Clothier",
+          "pageTitle": "Clothier",
+          "internalName": "Clothier",
+          "source": "buff-page-causes",
+          "sourceKind": "enemy",
+          "sourceSection": "From NPCs",
+          "sourceOrder": 1
+        }
+      ],
       "immuneNpcs": [
         {
           "npcId": null,
@@ -20544,7 +20744,7 @@
         },
         {
           "npcId": null,
-          "name": "Statue",
+          "name": "Statue (enemy)",
           "pageTitle": "Statue (enemy)",
           "internalName": "Statue",
           "source": "buff-page-immunities",
@@ -20584,7 +20784,7 @@
         },
         {
           "npcId": null,
-          "name": "Ghost",
+          "name": "Ghost (enemy)",
           "pageTitle": "Ghost (enemy)",
           "internalName": "Ghost",
           "source": "buff-page-immunities",
@@ -20713,6 +20913,7 @@
         ],
         "sourceSections": [
           "From player",
+          "From NPCs",
           "Immune NPCs"
         ],
         "parseStatus": "parsed",
@@ -20725,9 +20926,11 @@
             ]
           },
           "inflictingNpcs": {
-            "status": "section_missing",
-            "count": 0,
-            "sections": []
+            "status": "parsed",
+            "count": 1,
+            "sections": [
+              "From NPCs"
+            ]
           },
           "immuneNpcs": {
             "status": "parsed",

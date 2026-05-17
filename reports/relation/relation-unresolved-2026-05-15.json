@@ -1026,12 +1026,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 24,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "d109aaa11c917a51a774951ba98081f4d0ace78e0e14150689322e9d304344fe",
@@ -1052,12 +1052,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 24,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "955484858bb6dc0b01fa8aea8c4ece7959bf2ceba7a61207ed31c8e6031b7a05",
@@ -1078,12 +1078,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 30,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "6b9f785593b9b53cb1380d46558ad72e1ca162f7819f0f22d77635ab3a0698cb",
@@ -1104,12 +1104,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 46,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "53681422c9d19a2b9a48d5da7fca24e9655fa4cc33f4aff7543e79697643528e",
@@ -1130,12 +1130,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 46,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "23cf214ca018efd9c38e5f57a4a79659a543732494b106f69f49f49cb837ca92",
@@ -1156,12 +1156,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 48,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "80ef2c387db41edba3aabce52a499e1c349d3e7d717ad3335aa1e1f486d9d6c2",
@@ -1182,12 +1182,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 80,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "2ec551d96ba22a5c0602c82fbc086cecc498b7ec1f3c7f7087ef9cf04fe4bdde",
@@ -1208,12 +1208,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 194,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "3e4116be3cff499e24a20ef5c55f69ff2eb64a83ae73191b605acda12a3b3476",
@@ -1234,12 +1234,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 199,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "42461ab768bd2aa5358fde32a8728d2528c5ec6dde8f8dfc02725343ade90cca",
@@ -1260,12 +1260,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 204,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "47e4ad90ee753210be311c2b591327aa4731a784d90a6399e32f8bc9f78d4324",
@@ -1286,12 +1286,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 323,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "629d9052184f858284e58e11b09258250ba711dac181573a54a6b50e3005967c",
@@ -1312,12 +1312,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 323,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "8f731fa297487a4e6013d59fe8af261b7f74da962d0a24f519cebf177c7ba2f2",
@@ -1338,12 +1338,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 324,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "cd55da96287759b86d56b48b0739ee0c83ce171c1bdcc62ba5e49598d9018f00",
@@ -1364,12 +1364,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 20,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "046bc8a9ec03f798262011784b33a75ac30917b1fca0fa6da95df1675f2b2bf4",
@@ -1390,12 +1390,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 20,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "16be14df624e6b970c313304462010db382ca5d66a7f49c1c50bfd5998ad9a79",
@@ -1416,12 +1416,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 22,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "81499c7eebe826eaac84de6d55f867a6677e0ee97237d0a4f3ed7a4bcf07fa03",
@@ -1442,12 +1442,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 23,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "f25a08c1b85c78193ea64a3fbafdc59ff7c8ad588052c9ecb6f48045cfe2ea36",
@@ -1468,12 +1468,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 23,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "1b49d8ae7ffa0500266db34b489be11d98dc9720e9e85cbe58ed5b0778286a80",
@@ -1494,12 +1494,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 24,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "28f30807db5a27a89a3a0727853465cfb0fff7bb62cdf3a2ef78ee02cfb6a5c5",
@@ -1520,12 +1520,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 24,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "ceba4acae721690991919bc65f7babca0f35569842597b67806b3fe40ef15fe3",
@@ -1546,12 +1546,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 24,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "7c67754f10493e08a1141fdd9f639b88c91bd2414ce4adb64c772e9f7860dd41",
@@ -1572,12 +1572,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 30,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "312b86b3976d1fbf4890131ae5f16ed5a98934ecb8fa4c7ebcc49f298de963b3",
@@ -1598,12 +1598,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 30,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "7eac8dd490392687925c3bd4e9e04e6f85011cbcca37d315f264d19d0c2355f0",
@@ -1624,12 +1624,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 32,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "bb58dafc8682ab4a2f77cf9438664735ac76cdc419deca4240d5d8661c8d643d",
@@ -1650,12 +1650,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 33,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "ec3c8c1985b2395b05a7f9021c24104569ea5656e207515b283f2ae7b55fbbfe",
@@ -1676,12 +1676,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 35,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "cc9022d857645927be55396a15c1bfb336f08b3d648a004f5e9d33c0f5c76017",
@@ -1702,12 +1702,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 44,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "f907185424d587682f65b166dd01d2b6181fc12c644ef9d436242704e19b1998",
@@ -1728,12 +1728,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 44,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "c23f8f7ec9756b450c4a7fba9a54549c1cfcfbe998f2de55aff7dbc1e94ea69d",
@@ -1754,12 +1754,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 46,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "5c5fdc12d4616cb309dc56ab4b6554eedbc9edcf269cc67a3be8261d2b140474",
@@ -1780,12 +1780,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 46,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "6f504d3ef74652f5805def26af9a739a64f14bcdab2ffa393a74503c5faab7c2",
@@ -1806,12 +1806,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 46,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "4e6de5c69cdf296d1d0a80442113fcebf30c64bd1e58b2672dc11c00daded5b6",
@@ -1832,12 +1832,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 48,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "4dafab7e90dc819496869b77419a0e86c9483d0e45111b434c5ee915b45e2ba0",
@@ -1858,12 +1858,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 67,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "674f350eecf4f9d542a7741d58caf196eac56c9e385eac1de07ed5052ebac42e",
@@ -1884,12 +1884,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 70,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "10e480e9869aea917eef64c148d8a701cfad306e2da3ce49ac746de6a2dab7b0",
@@ -1910,12 +1910,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 120,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "0321359270089a9355a0d11bbd3e331a010eea63faf52656c7ff33a9f4ad15ed",
@@ -1936,12 +1936,12 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 149,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   },
   {
     "recordKey": "8519f1a4cd03c88bf2fd8e4672a009e6ab03c91ef08850128d95bc020b633db6",
@@ -1962,11 +1962,11 @@
     "sourceMaintTable": "maint_buffs",
     "sourceMaintRecordKey": null,
     "sourceMaintId": 156,
-    "landingSourceId": 12434,
-    "landingSourceKey": "wiki.template.getbuffinfo",
-    "landingContentHash": "42c882198c8be3b0642c4aac100e8d96f000f7d508bb30c76eeafd50b51796f7",
-    "sourceProvider": "terraria.wiki.gg",
-    "sourcePage": "Template:GetBuffInfo",
-    "sourceRevisionTimestamp": "2026-03-01T03:21:12.000Z"
+    "landingSourceId": 12435,
+    "landingSourceKey": "generated.buffs.standardized",
+    "landingContentHash": "bdc67234b1f6b0bac548b5997b1661979d7d83a83131695d0698d256a34cf367",
+    "sourceProvider": "terrapedia.generated",
+    "sourcePage": "buffs.standardized",
+    "sourceRevisionTimestamp": null
   }
 ]

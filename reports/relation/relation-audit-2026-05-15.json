@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-05-15T11:40:19.420Z",
-  "apply": true,
+  "generatedAt": "2026-05-15T15:43:59.638Z",
+  "apply": false,
   "domainSummary": {
     "base": 8407,
     "image": 1498,
     "category": 0,
     "recipe": 0,
     "npc": 2730,
-    "buff": 376,
-    "npcBuff": 108,
+    "buff": 394,
+    "npcBuff": 109,
     "biome": 0,
     "projectile": 7629,
     "boss": 0,
