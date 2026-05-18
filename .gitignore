@@ -61,6 +61,8 @@ scripts/dev/local-stack.config.json
 scripts/dev/config/local-stack.config.json
 scripts/dev/config/credentials.json
 scripts/tooling/powershell/start-vs2022-codex-devshells.config.json
+scripts/tooling/image-2/xlab.json
+scripts/tooling/image-2/generated/
 credentials.json
 credentials.local.json
 back/src/main/resources/application-*-local.yml
@@ -78,6 +80,10 @@ Thumbs.db
 # Local run artifacts
 reports/run-logs/
 .codex-*.png
+fp-*.png
+review-*.png
+vp-*.png
+TerraPedia_logo.png
 task/
 cargo.txt
 crate_potion_parse.json
