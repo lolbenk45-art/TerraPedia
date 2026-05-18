@@ -8,6 +8,8 @@
     "build": "nuxt build",
     "check": "nuxt typecheck",
     "check:public-pages": "node scripts/check-public-pages.mjs",
+    "check:light-theme": "node scripts/check-light-theme-typography.mjs",
+    "check:visual": "node scripts/check-visual-regression.mjs",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"

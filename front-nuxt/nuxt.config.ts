@@ -2,6 +2,10 @@ const terrapediaBackendOrigin = (process.env.TERRAPEDIA_BACKEND_ORIGIN || 'http:
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineNuxtConfig({
+  srcDir: '.',
+  dir: {
+    app: '.',
+  },
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
   modules: ['@pinia/nuxt'],

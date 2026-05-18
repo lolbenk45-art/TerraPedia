@@ -1,64 +1,70 @@
 <script setup lang="ts">
 import '../assets/css/home-hero-options.css'
 
-type LinkItem = {
-  label: string
-  desc: string
-  icon: string
-  href: string
-}
-
-const primaryLinks: LinkItem[] = [
-  { label: '物品', desc: '装备材料掉落', icon: 'icon-items', href: '/items' },
-  { label: 'Boss', desc: '阶段战斗路线', icon: 'icon-boss', href: '/bosses' },
-  { label: 'NPC', desc: '城镇敌怪图鉴', icon: 'icon-npc', href: '/npcs' },
-  { label: '攻略', desc: '专题机制路线', icon: 'icon-article', href: '/articles' },
+const iconSet = [
+  'icon-items',
+  'icon-boss',
+  'icon-npc',
+  'icon-article',
+  'icon-category',
+  'icon-crafting',
+  'icon-biome',
+  'icon-buff',
+  'icon-armor',
+  'icon-projectile',
 ]
 
-const auxiliaryLinks = [
-  { label: '搜索', icon: 'icon-search', href: '/search' },
-  { label: '分类', icon: 'icon-category', href: '/categories' },
-  { label: '生态', icon: 'icon-biome', href: '/biomes' },
-  { label: 'Buff', icon: 'icon-buff', href: '/buffs' },
-  { label: '套装', icon: 'icon-armor', href: '/armor-sets' },
-  { label: '射弹', icon: 'icon-projectile', href: '/projectiles' },
+const pixelWallItems = Array.from({ length: 48 }, (_, index) => ({
+  id: `wall-${index + 1}`,
+  icon: iconSet[index % iconSet.length] ?? 'icon-items',
+  tone: index % 5,
+  label: ['泰拉刃', '神圣锭', '铁皮药水', '星怒', '村正'][index % 5] ?? '物品',
+}))
+
+const craftNodes = [
+  { name: '永夜刃', meta: '材料', icon: 'icon-items', lane: 'left' },
+  { name: '断钢剑', meta: '材料', icon: 'icon-items', lane: 'left' },
+  { name: '英雄断剑', meta: '日食', icon: 'icon-boss', lane: 'center' },
+  { name: '真永夜刃', meta: '合成', icon: 'icon-crafting', lane: 'right' },
+  { name: '真断钢剑', meta: '合成', icon: 'icon-crafting', lane: 'right' },
+  { name: '泰拉刃', meta: '成品', icon: 'icon-items', lane: 'result' },
 ]
 
-const signalRows = [
-  { index: '01', name: '物品图鉴', meta: '6,214' },
-  { index: '02', name: '合成链路', meta: '14,746' },
-  { index: '03', name: 'Boss 进度', meta: '路线化' },
-  { index: '04', name: '攻略专题', meta: '精选' },
+const manualRows = [
+  { label: '伤害', value: '115' },
+  { label: '使用时间', value: '14' },
+  { label: '击退', value: '6.5' },
+  { label: '稀有度', value: '黄色' },
 ]
 
-const options = [
+const manualIndex = ['武器', '材料', '合成', '来源', '路线']
+
+const itemLayoutOptions = [
   {
-    id: 'a1',
-    label: 'A1',
-    title: '克制标题 + 细线入口',
-    desc: '保留第一版的叙事标题，把入口压成低亮细线导航。右侧有差异，但不抢左侧装置。',
-    panel: 'fine-nav',
+    id: 'pixel-gallery',
+    className: 'layout-pixel-gallery',
+    label: 'A',
+    name: 'Pixel Gallery',
+    cnName: '像素图鉴墙',
+    summary: '把大面积物品图标墙放到第一视觉层，当前物品以悬浮卡片压在墙上。',
   },
   {
-    id: 'a2',
-    label: 'A2',
-    title: '标题 + 主检索轨道',
-    desc: '标题继续保留，视觉焦点收敛到一条检索轨道。入口藏在轨道下面，整体更稳。',
-    panel: 'search-track',
+    id: 'craft-tree',
+    className: 'layout-craft-tree',
+    label: 'B',
+    name: 'Craft Tree',
+    cnName: '合成树工作台',
+    summary: '让泰拉刃合成链成为页面主结构，列表和筛选退到辅助位置。',
   },
   {
-    id: 'a3',
-    label: 'A3',
-    title: '标题 + 隐式索引结构',
-    desc: '不堆卡片，使用淡编号、索引点和短文本形成秩序。差异化来自排版结构。',
-    panel: 'implicit-index',
+    id: 'in-game-manual',
+    className: 'layout-in-game-manual',
+    label: 'C',
+    name: 'In-game Manual',
+    cnName: '游戏内百科',
+    summary: '接近游戏内手册和纸质百科，少后台感，强调翻页、索引和物品说明。',
   },
 ]
-
-const variants = options.flatMap((option) => [
-  { ...option, key: `${option.id}-normal`, reversed: false, note: '常规位置' },
-  { ...option, key: `${option.id}-reversed`, reversed: true, note: '左右互换' },
-])
 </script>
 
 <template>
@@ -67,133 +73,149 @@ const variants = options.flatMap((option) => [
     <TerraBreadcrumb />
 
     <header class="home-options-head">
-      <span class="eyebrow">HOME HERO OPTIONS</span>
-      <h2>首页首屏右侧高保真方案</h2>
-      <p>A1 / A2 / A3 都基于第一版方向细化，每个方案提供常规位置和左右互换位置，便于判断视觉重心是否改善。</p>
+      <span class="eyebrow">ITEM PAGE LAYOUT LAB</span>
+      <h2>物品页三种新方向</h2>
+      <p>这次不做后台式三栏微调，三版分别围绕图标墙、合成树、游戏内百科建立完全不同的第一屏。</p>
     </header>
 
-    <section
-      v-for="variant in variants"
-      :key="variant.key"
-      class="hero-option-card"
-      :class="[`option-${variant.id}`, { 'option-reversed-card': variant.reversed }]"
-      :aria-label="`${variant.label} ${variant.title} ${variant.note}`"
-    >
-      <div class="hero-option-label">
-        <b>{{ variant.label }}</b>
-        <span>{{ variant.title }}</span>
-        <em>{{ variant.note }} · {{ variant.desc }}</em>
-      </div>
-
-      <div class="hero-option-grid" :class="{ 'is-reversed': variant.reversed }">
-        <aside class="option-left-stage" aria-hidden="true">
-          <div class="option-index-device">
-            <div class="option-index-head">
-              <div><span>TERRAPEDIA INDEX</span><strong>公共资料索引</strong></div>
-              <div><b>6,214</b><span>条目</span></div>
-            </div>
-            <div class="option-focus-card">
-              <span class="sprite-icon card-icon icon-items" aria-hidden="true"></span>
-              <div><span>当前焦点</span><b>泰拉刃</b></div>
-              <em>详情</em>
-            </div>
-            <div class="option-metrics">
-              <div><b>物品</b><span>装备 / 材料 / 掉落</span></div>
-              <div><b>NPC</b><span>城镇 / 敌怪</span></div>
-              <div><b>Boss</b><span>阶段 / 战利品</span></div>
-              <div><b>攻略</b><span>路线 / 事件</span></div>
-            </div>
-            <div class="option-index-table">
-              <div v-for="row in signalRows" :key="row.index">
-                <span>{{ row.index }}</span>
-                <b>{{ row.name }}</b>
-                <em>{{ row.meta }}</em>
-              </div>
-            </div>
+    <section class="item-layout-board" aria-label="物品页三种新方向">
+      <article
+        v-for="option in itemLayoutOptions"
+        :key="option.id"
+        class="option-item-lab-card"
+        :class="option.className"
+      >
+        <div class="option-lab-meta">
+          <span>{{ option.label }}</span>
+          <div>
+            <b>{{ option.name }}</b>
+            <em>{{ option.cnName }}</em>
           </div>
-        </aside>
+          <p>{{ option.summary }}</p>
+        </div>
 
         <section
-          class="option-right-panel"
-          :class="{
-            'option-fine-nav': variant.panel === 'fine-nav',
-            'option-search-track': variant.panel === 'search-track',
-            'option-implicit-index': variant.panel === 'implicit-index',
-          }"
+          v-if="option.id === 'pixel-gallery'"
+          class="option-direction-stage pixel-gallery-stage"
+          aria-label="像素图鉴墙方案"
         >
-          <div class="option-copy-block">
-            <span class="option-route-kicker">公开图鉴 · 世界路线</span>
-            <h3>从泰拉刃进入整个世界</h3>
-            <p>它不是博客首页，而是资料入口。右侧只负责建立进入方式，左侧继续承担第一眼的资料装置感。</p>
+          <div class="pixel-gallery-toolbar">
+            <div>
+              <span>ITEM WALL</span>
+              <h3>所有物品先出现</h3>
+            </div>
+            <nav aria-label="图鉴墙筛选">
+              <button type="button" class="active">全部</button>
+              <button type="button">武器</button>
+              <button type="button">材料</button>
+              <button type="button">药水</button>
+            </nav>
           </div>
 
-          <template v-if="variant.panel === 'fine-nav'">
-            <div class="option-action-deck fine-nav-deck">
-              <div class="deck-head">
-                <span>入口层</span>
-                <em>低亮细线导航</em>
-              </div>
-              <div class="fine-nav-search">
-                <span class="search-glyph" aria-hidden="true"></span>
-                <strong>搜索物品、Boss、NPC、路线...</strong>
-                <a href="/search">检索</a>
-              </div>
-              <div class="fine-nav-lines">
-                <a v-for="(link, index) in primaryLinks" :key="link.href" :href="link.href">
-                  <span>{{ String(index + 1).padStart(2, '0') }}</span>
-                  <b>{{ link.label }}</b>
-                  <em>{{ link.desc }}</em>
-                </a>
-              </div>
-            </div>
-          </template>
+          <div class="pixel-wall-grid" aria-hidden="true">
+            <span
+              v-for="item in pixelWallItems"
+              :key="item.id"
+              class="pixel-wall-cell"
+              :class="`tone-${item.tone}`"
+            >
+              <i class="sprite-icon" :class="item.icon"></i>
+            </span>
+          </div>
 
-          <template v-else-if="variant.panel === 'search-track'">
-            <div class="option-action-deck search-track-deck">
-              <div class="deck-head">
-                <span>主操作</span>
-                <em>检索轨道优先</em>
-              </div>
-              <div class="search-track-bar">
-                <span class="search-glyph" aria-hidden="true"></span>
-                <div><b>资料检索轨道</b><em>物品 / Boss / NPC / 路线</em></div>
-                <a href="/search">开始</a>
-              </div>
-              <div class="search-track-steps">
-                <a v-for="link in primaryLinks" :key="link.href" :href="link.href">
-                  <span class="sprite-icon compact" :class="link.icon" aria-hidden="true"></span>
-                  <b>{{ link.label }}</b>
-                </a>
-              </div>
-              <div class="search-track-chips">
-                <a v-for="link in auxiliaryLinks" :key="link.href" :href="link.href">{{ link.label }}</a>
-              </div>
+          <aside class="floating-item-card">
+            <span class="sprite-icon floating-item-icon icon-items" aria-hidden="true"></span>
+            <div>
+              <span>当前焦点</span>
+              <h3>泰拉刃</h3>
+              <p>从图标墙进入详情，用户先看到物品密度，再看到当前选中项的核心信息。</p>
             </div>
-          </template>
-
-          <template v-else>
-            <div class="option-action-deck implicit-index-deck">
-              <div class="deck-head">
-                <span>索引层</span>
-                <em>编号关系优先</em>
-              </div>
-              <div class="implicit-index-map">
-                <a v-for="(link, index) in primaryLinks" :key="link.href" :href="link.href">
-                  <span>{{ String(index + 1).padStart(2, '0') }}</span>
-                  <div>
-                    <b>{{ link.label }}</b>
-                    <em>{{ link.desc }}</em>
-                  </div>
-                </a>
-              </div>
-              <div class="implicit-index-foot">
-                <span>资料入口以低亮编号组织，避免右侧形成第二组重卡片。</span>
-                <a href="/items">进入图鉴</a>
-              </div>
-            </div>
-          </template>
+            <nav aria-label="当前物品动作">
+              <a href="/items/terra-blade">详情</a>
+              <a href="/crafting">合成</a>
+            </nav>
+          </aside>
         </section>
-      </div>
+
+        <section
+          v-else-if="option.id === 'craft-tree'"
+          class="option-direction-stage craft-tree-stage"
+          aria-label="合成树工作台方案"
+        >
+          <div class="craft-tree-head">
+            <span>CRAFT ROUTE</span>
+            <h3>把泰拉刃拆成一条路线</h3>
+            <p>列表不再抢首屏，材料节点、事件节点和结果节点构成主要路径。</p>
+          </div>
+
+          <div class="craft-node-grid">
+            <article
+              v-for="node in craftNodes"
+              :key="node.name"
+              class="craft-node"
+              :class="`lane-${node.lane}`"
+            >
+              <span class="sprite-icon" :class="node.icon" aria-hidden="true"></span>
+              <b>{{ node.name }}</b>
+              <em>{{ node.meta }}</em>
+            </article>
+          </div>
+
+          <aside class="craft-result-panel">
+            <span class="sprite-icon icon-items" aria-hidden="true"></span>
+            <h3>泰拉刃</h3>
+            <p>右侧只承担结果解释和下一步入口，合成关系在中间一眼读完。</p>
+            <div>
+              <b>6</b><span>关键节点</span>
+              <b>2</b><span>合成阶段</span>
+            </div>
+          </aside>
+        </section>
+
+        <section
+          v-else
+          class="option-direction-stage manual-book-stage"
+          aria-label="游戏内百科方案"
+        >
+          <aside class="manual-index-rail">
+            <span>INDEX</span>
+            <button
+              v-for="entry in manualIndex"
+              :key="entry"
+              type="button"
+              :class="{ active: entry === '武器' }"
+            >
+              {{ entry }}
+            </button>
+          </aside>
+
+          <main class="manual-page-panel">
+            <div class="manual-page-head">
+              <span class="sprite-icon icon-items" aria-hidden="true"></span>
+              <div>
+                <small>TERRAPEDIA MANUAL</small>
+                <h3>泰拉刃</h3>
+                <p>一本可翻阅的游戏内百科页，信息像条目说明而不是后台面板。</p>
+              </div>
+            </div>
+
+            <div class="manual-stat-ledger">
+              <span
+                v-for="row in manualRows"
+                :key="row.label"
+              >
+                <b>{{ row.value }}</b>
+                <em>{{ row.label }}</em>
+              </span>
+            </div>
+
+            <div class="manual-paragraphs">
+              <p>用于困难模式后期的近战武器，发射绿色剑气。页面重点是读感和资料索引，而不是控件堆叠。</p>
+              <p>适合希望 TerraPedia 更像游戏百科、少一点 SaaS 工具感的方向。</p>
+            </div>
+          </main>
+        </section>
+      </article>
     </section>
 
     <TerraFooter />

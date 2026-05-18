@@ -1,15 +1,18 @@
 <script setup lang="ts">
-const heroEntries = [
-  { label: '搜索', href: '/search', code: 'SR', desc: '全站快速定位', tone: 'tone-search' },
-  { label: '物品', href: '/items', code: 'IT', desc: '装备材料掉落', tone: 'tone-items' },
-  { label: '分类', href: '/categories', code: 'CL', desc: '按类型浏览', tone: 'tone-category' },
-  { label: '生态', href: '/biomes', code: 'BM', desc: '群落资源路径', tone: 'tone-biome' },
-  { label: 'Boss', href: '/bosses', code: 'BS', desc: '阶段战斗路线', tone: 'tone-boss' },
-  { label: 'Buff', href: '/buffs', code: 'BF', desc: '增益减益组合', tone: 'tone-buff' },
-  { label: '套装', href: '/armor-sets', code: 'AR', desc: '职业防具推进', tone: 'tone-armor' },
-  { label: '射弹', href: '/projectiles', code: 'PJ', desc: '弹道来源行为', tone: 'tone-projectile' },
-  { label: 'NPC', href: '/npcs', code: 'NP', desc: '城镇敌怪图鉴', tone: 'tone-npc' },
-  { label: '攻略', href: '/articles', code: 'GD', desc: '专题和机制', tone: 'tone-guide' },
+const primaryHeroEntries = [
+  { label: '物品', href: '/items', icon: 'icon-items', desc: '装备材料掉落', count: '6,214', hex: '255,215,101' },
+  { label: 'Boss', href: '/bosses', icon: 'icon-boss', desc: '阶段战斗路线', count: '路线化', hex: '224,126,85' },
+  { label: 'NPC', href: '/npcs', icon: 'icon-npc', desc: '城镇敌怪图鉴', count: '580+', hex: '126,178,120' },
+  { label: '攻略', href: '/articles', icon: 'icon-article', desc: '专题和机制', count: '精选', hex: '217,185,91' },
+]
+
+const secondaryHeroLinks = [
+  { label: '分类', href: '/categories', icon: 'icon-category', desc: '类型索引' },
+  { label: '制作', href: '/crafting', icon: 'icon-crafting', desc: '合成路线' },
+  { label: '生态', href: '/biomes', icon: 'icon-biome', desc: '群落资源' },
+  { label: 'Buff', href: '/buffs', icon: 'icon-buff', desc: '状态效果' },
+  { label: '套装', href: '/armor-sets', icon: 'icon-armor', desc: '防具推进' },
+  { label: '射弹', href: '/projectiles', icon: 'icon-projectile', desc: '弹道行为' },
 ]
 </script>
 
@@ -19,6 +22,52 @@ const heroEntries = [
 
           <section class="hero">
             <div class="hero-grid">
+              <section class="hero-j1-panel" aria-label="首页核心入口">
+                <div class="hero-j1-copy">
+                  <span class="hero-kicker">公开图鉴 · 世界路线</span>
+                  <h2 class="hero-j1-title">从泰拉刃<br>进入整个世界</h2>
+                  <p class="hero-j1-lede">
+                    围绕物品、Boss、NPC 和攻略路线组织资料，第一屏直接给出可进入的资料中枢。
+                  </p>
+                </div>
+
+                <nav class="hero-j1-grid" aria-label="核心资料入口">
+                  <a
+                    v-for="entry in primaryHeroEntries"
+                    :key="entry.href"
+                    class="hero-j1-cell"
+                    :href="entry.href"
+                    :style="`--entry-accent: ${entry.hex}`"
+                  >
+                    <span class="sprite-icon hero-j1-icon" :class="entry.icon" aria-hidden="true"></span>
+                    <span class="hero-j1-cell-copy">
+                      <b>{{ entry.label }}</b>
+                      <em>{{ entry.desc }}</em>
+                    </span>
+                    <span class="hero-j1-count">{{ entry.count }}</span>
+                  </a>
+                </nav>
+
+                <div class="hero-j1-search">
+                  <span class="search-glyph" aria-hidden="true"></span>
+                  <strong>物品、Boss、NPC、路线...</strong>
+                  <a href="/search" class="hero-j1-search-btn">检索</a>
+                </div>
+
+                <nav class="hero-j1-paths" aria-label="辅助资料快捷路径">
+                  <a
+                    v-for="link in secondaryHeroLinks"
+                    :key="link.href"
+                    :href="link.href"
+                    class="hero-j1-path-link"
+                  >
+                    <span class="sprite-icon mini" :class="link.icon" aria-hidden="true"></span>
+                    <b>{{ link.label }}</b>
+                    <em>{{ link.desc }}</em>
+                  </a>
+                </nav>
+              </section>
+
               <aside class="hero-left" aria-hidden="true">
                 <div class="atlas-index">
                   <div class="index-head">
@@ -26,7 +75,7 @@ const heroEntries = [
                     <div class="index-total"><b>6,214</b><span>条目</span></div>
                   </div>
                   <div class="index-focus">
-                    <img src="http://localhost:9000/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png" alt="" />
+                    <span class="sprite-icon index-focus-icon icon-items" aria-hidden="true"></span>
                     <div><span>当前焦点</span><b>泰拉刃</b></div>
                     <em>详情</em>
                   </div>
@@ -44,39 +93,6 @@ const heroEntries = [
                   </div>
                 </div>
               </aside>
-
-              <section class="hero-center">
-                <span class="hero-kicker">公开图鉴 · 世界路线</span>
-                <div>
-                  <h2>从一把泰拉刃进入整个世界</h2>
-                  <p class="hero-lede">
-                    这不是博客首页。它是泰拉瑞亚的资料入口，围绕物品、Boss、NPC、生态和攻略路线组织内容，用完整首页的结构建立第一印象。
-                  </p>
-                </div>
-                <div class="search-bar">
-                  <div class="search-field">
-                    <span class="search-glyph" aria-hidden="true"></span>
-                    <strong>搜索物品、Boss、NPC、路线...</strong>
-                  </div>
-                  <a class="primary-button" href="/items">开始检索</a>
-                </div>
-                <div class="quick-entry">
-                  <a
-                    v-for="entry in heroEntries"
-                    :key="entry.href"
-                    class="quick-entry-card"
-                    :class="entry.tone"
-                    :href="entry.href"
-                  >
-                    <span class="quick-entry-code">{{ entry.code }}</span>
-                    <span class="quick-entry-copy">
-                      <b>{{ entry.label }}</b>
-                      <em>{{ entry.desc }}</em>
-                    </span>
-                    <span class="quick-entry-arrow" aria-hidden="true">›</span>
-                  </a>
-                </div>
-              </section>
             </div>
             <div class="hero-stats">
               <article class="hero-stat-card"><b>6,214</b><span>物品条目</span></article>
@@ -111,7 +127,7 @@ const heroEntries = [
                   <span>神圣锭、机械 Boss、阶段性推进。</span>
                 </article>
                 <article class="map-node four">
-                  <i><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/195bfda5955641b5bf340322fdd26eba.png')"></span></i>
+                  <i><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/179b4aea3cc74ae989a9eb86db6f50ec.png')"></span></i>
                   <b>生态地图</b>
                   <span>群落、资源与地形入口在同一层表达。</span>
                 </article>
@@ -174,8 +190,10 @@ const heroEntries = [
               </section>
 
               <article class="boss-strip">
-                <div class="boss-medallion">
-                  <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/195bfda5955641b5bf340322fdd26eba.png')"></span>
+                <div class="boss-medallion" aria-hidden="true">
+                  <span class="boss-orbit one"></span>
+                  <span class="boss-orbit two"></span>
+                  <span class="boss-sigil">BS</span>
                 </div>
                 <div class="boss-copy">
                   <span class="eyebrow">Boss 事件条</span>

@@ -17,10 +17,10 @@
     <main class="settings-layout">
       <section class="settings-list support-panel">
         <span class="eyebrow">设置分组</span>
-        <a class="active" href="/user/settings"><b>个人资料</b><span>昵称、公开简介</span></a>
-        <a href="/user/settings"><b>显示偏好</b><span>列表密度、默认入口</span></a>
-        <a href="/user/settings"><b>通知</b><span>投稿状态、资料更新</span></a>
-        <a href="/user/settings"><b>公开身份</b><span>贡献展示、署名方式</span></a>
+        <a class="active" href="/user/settings"><span class="sprite-icon icon-user menu-icon" aria-hidden="true"></span><span><b>个人资料</b><span>昵称、公开简介</span></span></a>
+        <a href="/user/settings"><span class="sprite-icon icon-items menu-icon" aria-hidden="true"></span><span><b>显示偏好</b><span>列表密度、默认入口</span></span></a>
+        <a href="/user/settings"><span class="sprite-icon icon-notification menu-icon" aria-hidden="true"></span><span><b>通知</b><span>投稿状态、资料更新</span></span></a>
+        <a href="/user/settings"><span class="sprite-icon icon-codex menu-icon" aria-hidden="true"></span><span><b>公开身份</b><span>贡献展示、署名方式</span></span></a>
       </section>
 
       <section class="settings-panel support-panel">

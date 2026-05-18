@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import { useThemeStore } from '../stores/theme'
+
 const route = useRoute()
 const themeStore = useThemeStore()
+const themeOptions = themeStore.themeOptions
 
 type ActiveMenu = 'resources' | 'account' | null
 
@@ -13,12 +16,12 @@ const primaryLinks = [
 ]
 
 const resourceLinks = [
-  { label: '制作路线', href: '/crafting', desc: '合成树、材料、制作站' },
-  { label: '分类索引', href: '/categories', desc: '物品分类、阶段分类' },
-  { label: '生态索引', href: '/biomes', desc: '区域、资源、敌怪' },
-  { label: 'Buff 图鉴', href: '/buffs', desc: '增益、减益、战前组合' },
-  { label: '套装路线', href: '/armor-sets', desc: '防具、职业、阶段' },
-  { label: '射弹行为', href: '/projectiles', desc: '弹道、碰撞、来源' },
+  { label: '制作路线', href: '/crafting', desc: '合成树、材料、制作站', icon: 'icon-crafting' },
+  { label: '分类索引', href: '/categories', desc: '物品分类、阶段分类', icon: 'icon-category' },
+  { label: '生态索引', href: '/biomes', desc: '区域、资源、敌怪', icon: 'icon-biome' },
+  { label: 'Buff 图鉴', href: '/buffs', desc: '增益、减益、战前组合', icon: 'icon-buff' },
+  { label: '套装路线', href: '/armor-sets', desc: '防具、职业、阶段', icon: 'icon-armor' },
+  { label: '射弹行为', href: '/projectiles', desc: '弹道、碰撞、来源', icon: 'icon-projectile' },
 ]
 
 const isActive = (href: string) => {
@@ -65,9 +68,14 @@ onBeforeUnmount(closeMenu)
 
 <template>
   <header class="site-nav">
-    <a class="site-logo" href="/">
-      <span class="logo-gem" aria-hidden="true"></span>
-      <span><strong>TerraPedia</strong><small>泰拉瑞亚中文资料库</small></span>
+    <a class="site-logo" href="/" aria-label="TerraPedia 首页">
+      <span class="logo-gem" aria-hidden="true">
+        <img class="brand-logo-image" src="/brand/terrapedia-emblem-centered.png" alt="" />
+      </span>
+      <span class="site-logo-copy">
+        <strong>TerraPedia</strong>
+        <small>中文资料库</small>
+      </span>
     </a>
 
     <nav class="site-links" aria-label="主导航">
@@ -81,18 +89,32 @@ onBeforeUnmount(closeMenu)
     </nav>
 
     <div class="site-actions">
-      <a class="icon-button search-action" href="/search" aria-label="搜索">⌕</a>
+      <a class="icon-button search-action" href="/search" aria-label="搜索">
+        <span class="sprite-icon icon-search compact" aria-hidden="true"></span>
+      </a>
 
-      <button
-        class="theme-toggle"
-        type="button"
-        :aria-label="themeStore.theme === 'dark' ? '切换浅色风格' : '切换深色风格'"
-        :aria-pressed="themeStore.isLight"
-        @click="themeStore.toggleTheme"
+      <div
+        class="theme-toggle theme-selector"
+        :class="{ 'is-switching': themeStore.isSwitching }"
+        role="radiogroup"
+        aria-label="主题"
       >
-        <span aria-hidden="true"></span>
-        <b>{{ themeStore.theme === 'dark' ? '浅' : '深' }}</b>
-      </button>
+        <button
+          v-for="option in themeOptions"
+          :key="option.value"
+          class="theme-choice"
+          :class="[`theme-choice-${option.value}`, { active: themeStore.theme === option.value }]"
+          type="button"
+          role="radio"
+          :aria-checked="themeStore.theme === option.value"
+          :aria-label="`切换到${option.label}主题`"
+          @click="themeStore.setTheme(option.value)"
+          @dblclick="themeStore.cycleTheme"
+        >
+          <span aria-hidden="true"></span>
+          <b>{{ option.shortLabel }}</b>
+        </button>
+      </div>
 
       <div
         class="nav-menu"
@@ -109,6 +131,7 @@ onBeforeUnmount(closeMenu)
           :aria-expanded="activeMenu === 'resources'"
           :class="{ active: resourceLinks.some((link) => isActive(link.href)) || activeMenu === 'resources' }"
         >
+          <span class="sprite-icon icon-codex mini" aria-hidden="true"></span>
           资料 <span aria-hidden="true">▾</span>
         </button>
         <div class="nav-menu-hover-bridge" aria-hidden="true"></div>
@@ -117,8 +140,11 @@ onBeforeUnmount(closeMenu)
           :class="{ 'is-open': activeMenu === 'resources' }"
         >
           <a class="nav-search-link" href="/search" @click="closeMenu">
-            <b>全站检索</b>
-            <span>搜索物品、NPC、Boss、攻略</span>
+            <span class="sprite-icon icon-search nav-card-icon" aria-hidden="true"></span>
+            <span class="nav-card-copy">
+              <b>全站检索</b>
+              <span>搜索物品、NPC、Boss、攻略</span>
+            </span>
           </a>
           <div class="nav-resource-grid">
             <a
@@ -129,8 +155,11 @@ onBeforeUnmount(closeMenu)
               :href="link.href"
               @click="closeMenu"
             >
-              <b>{{ link.label }}</b>
-              <span>{{ link.desc }}</span>
+              <span class="sprite-icon nav-card-icon" :class="link.icon" aria-hidden="true"></span>
+              <span class="nav-card-copy">
+                <b>{{ link.label }}</b>
+                <span>{{ link.desc }}</span>
+              </span>
             </a>
           </div>
         </div>
@@ -158,13 +187,13 @@ onBeforeUnmount(closeMenu)
           :class="{ 'is-open': activeMenu === 'account' }"
         >
           <div class="account-menu-head">
-            <span>TP</span>
+            <span><span class="sprite-icon icon-user compact" aria-hidden="true"></span></span>
             <div><b>访客用户</b><em>Preview account</em></div>
           </div>
-          <a href="/user" @click="closeMenu"><b>用户中心</b><span>收藏、投稿、设置入口</span></a>
-          <a href="/user/favorites" @click="closeMenu"><b>收藏夹</b><span>保存物品和路线</span></a>
-          <a href="/user/articles" @click="closeMenu"><b>我的文章</b><span>草稿和投稿状态</span></a>
-          <a href="/user/settings" @click="closeMenu"><b>账号设置</b><span>显示偏好和公开资料</span></a>
+          <a href="/user" @click="closeMenu"><span class="sprite-icon icon-user menu-icon" aria-hidden="true"></span><span><b>用户中心</b><span>收藏、投稿、设置入口</span></span></a>
+          <a href="/user/favorites" @click="closeMenu"><span class="sprite-icon icon-favorites menu-icon" aria-hidden="true"></span><span><b>收藏夹</b><span>保存物品和路线</span></span></a>
+          <a href="/user/articles" @click="closeMenu"><span class="sprite-icon icon-article menu-icon" aria-hidden="true"></span><span><b>我的文章</b><span>草稿和投稿状态</span></span></a>
+          <a href="/user/settings" @click="closeMenu"><span class="sprite-icon icon-settings menu-icon" aria-hidden="true"></span><span><b>账号设置</b><span>显示偏好和公开资料</span></span></a>
         </div>
       </div>
     </div>

@@ -1,0 +1,449 @@
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) :where(
+  .screen p,
+  .screen span,
+  .screen em,
+  .screen small,
+  .screen li,
+  .screen dt,
+  .screen dd,
+  .screen label,
+  .screen strong
+) {
+  color: var(--text-main);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) :where(
+  .screen b,
+  .screen .eyebrow,
+  .screen .hero-kicker,
+  .screen .section-label,
+  .screen .tag,
+  .screen .toc-num,
+  .screen .article-meta span,
+  .screen .projectile-facts span,
+  .screen .npc-card em,
+  .screen .armor-card em,
+  .screen .boss-readiness em,
+  .screen .about-grid span
+) {
+  color: var(--text-strong);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) :where(.screen a:not(.primary-button):not(.secondary-button):not(.hero-j1-search-btn):not(.small-button):not(.icon-button):not(.entity-filter)) {
+  color: var(--text-main);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .primary-button,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .hero-j1-search-btn {
+  color: var(--button-primary-fg);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .secondary-button,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .small-button,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .icon-button,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .theme-toggle,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .nav-menu-text-trigger,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .account-avatar-link {
+  color: var(--button-control-fg);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .small-button.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .theme-choice.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .detail-tab.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .filter-option.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .entity-filter.active {
+  color: var(--button-control-active-fg);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .tag.moss,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .tag.paper,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .paper-stage .tag.moss,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .paper-stage .tag.paper {
+  color: var(--text-strong);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .small-button.active :where(span, b, em),
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .theme-choice.active :where(span, b, em),
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .detail-tab.active :where(span, b, em),
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .filter-option.active :where(span, b, em),
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .entity-filter.active :where(span, b, em) {
+  color: var(--button-control-active-fg);
+}
+
+[data-theme="light"],
+[data-theme="morning-paper"],
+[data-theme="warm-slate"] {
+  --theme-surface-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 18px 44px rgba(var(--theme-text-rgb), 0.14);
+  --theme-surface-shadow-raised:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 24px 58px rgba(var(--theme-text-rgb), 0.16);
+  --theme-hover-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 18px 42px rgba(var(--theme-text-rgb), 0.15);
+}
+
+[data-theme="light"],
+[data-theme="morning-paper"] {
+  --text-link: #5c4319;
+  --text-positive: #244d1d;
+  --gold-2: #5c4319;
+  --theme-link-rgb: 92, 67, 25;
+  --theme-positive-rgb: 36, 77, 29;
+}
+
+[data-theme="warm-slate"] {
+  --text-link: #202836;
+  --text-positive: #274d20;
+  --gold-2: #202836;
+  --theme-link-rgb: 32, 40, 54;
+  --theme-positive-rgb: 39, 77, 32;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"]) .home-screen {
+  background:
+    var(--index-grid-x),
+    var(--index-grid-y),
+    linear-gradient(90deg, rgba(122, 90, 33, 0.08), transparent 22%, rgba(46, 92, 36, 0.035) 78%, transparent),
+    #f3ead8;
+  background-size: 64px 64px, 64px 64px, auto, auto;
+}
+
+:where([data-theme="warm-slate"]) .home-screen {
+  background:
+    var(--index-grid-x),
+    var(--index-grid-y),
+    linear-gradient(135deg, rgba(41, 50, 65, 0.08), transparent 34%),
+    #eef1f4;
+  background-size: 52px 52px, 52px 52px, auto, auto;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"]) .hero {
+  border: 1px solid rgba(122, 90, 33, 0.18);
+  border-radius: 10px;
+  background:
+    var(--index-grid-x),
+    var(--index-grid-y),
+    radial-gradient(circle at 18% 12%, rgba(46, 92, 36, 0.1), transparent 24rem),
+    linear-gradient(90deg, rgba(122, 90, 33, 0.08), transparent 22%, rgba(46, 92, 36, 0.035) 78%, transparent),
+    #f3ead8;
+  background-size: 64px 64px, 64px 64px, auto, auto, auto;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 20px 52px rgba(30, 28, 24, 0.1);
+}
+
+:where([data-theme="warm-slate"]) .hero {
+  border: 1px solid rgba(41, 50, 65, 0.16);
+  border-radius: 10px;
+  background:
+    var(--index-grid-x),
+    var(--index-grid-y),
+    radial-gradient(circle at 18% 12%, rgba(41, 50, 65, 0.08), transparent 24rem),
+    linear-gradient(135deg, rgba(41, 50, 65, 0.08), transparent 34%),
+    #eef1f4;
+  background-size: 52px 52px, 52px 52px, auto, auto, auto;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 20px 52px rgba(29, 36, 48, 0.1);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero::before {
+  inset: 18px;
+  height: auto;
+  border: 1px solid rgba(var(--theme-border-rgb), 0.16);
+  border-radius: 8px;
+  background: transparent;
+  opacity: 1;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero::after {
+  left: 38px;
+  right: 38px;
+  bottom: 30px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(var(--theme-border-rgb), 0.24), transparent);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-stat-card span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-path-link em,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .breadcrumb-list li,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .breadcrumb-current,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-lede,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell-copy em,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-search strong,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-head span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-total span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-focus span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-metrics span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-row span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .index-row em,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .map-node span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .item-cell span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-bottom span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-bottom a {
+  color: var(--text-main);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .paper-stage .eyebrow,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-strip .eyebrow,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-band .eyebrow,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .camp-footer .eyebrow,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-actions span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .route-list-row strong,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-facts span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-filter em,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-card em {
+  color: var(--text-link);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-route-list span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-route-list em,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-readiness em,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .about-grid span {
+  color: var(--text-positive);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .item-cell:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-card:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-node:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-card:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-card:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-card:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .about-grid article:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .route-list-row:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .codex-note:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .map-node:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .support-panel:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-body-panel:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .article-route-panel:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-detail-hero:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .recipe-node-card:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .station-card:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .material-row:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-action-card:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .favorite-card:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-feed-row:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-article-row:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .editor-field:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .editor-body-placeholder:hover,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .settings-toggle-row:hover {
+  border-color: rgba(var(--theme-border-rgb), 0.3);
+  background-color: rgba(var(--theme-panel-rgb), 0.72);
+  box-shadow: var(--theme-hover-shadow);
+}
+
+@keyframes subtle-pulse-light {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.72),
+      0 0 0 rgba(var(--theme-gold-rgb), 0);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 0 26px rgba(var(--theme-gold-rgb), 0.16),
+      0 12px 30px rgba(var(--theme-text-rgb), 0.1);
+  }
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .preview-icon,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .portrait-stage,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .npc-detail-portrait,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .moon-stage,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-stack span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-orbit,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-stage,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .category-orbit,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-scan,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-detail-portrait,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .buff-icon-stage,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-node.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-card.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-card.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-card.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-result-card.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .category-branch.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-phase.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .buff-signal.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .recipe-node-card.root,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-action-card.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .favorite-card.active {
+  animation-name: subtle-pulse-light;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-node.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-card.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-card.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-card.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .search-result-card.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .category-branch.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-phase.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .buff-signal.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .recipe-node-card.root,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .user-action-card.active,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .favorite-card.active {
+  border-color: rgba(var(--theme-gold-rgb), 0.34);
+  background:
+    linear-gradient(135deg, rgba(var(--theme-gold-rgb), 0.14), transparent 46%),
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(var(--theme-panel-rgb), 0.72);
+  background-size: auto, 40px 40px, 40px 40px, auto;
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .atlas-index,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-card {
+  box-shadow: var(--theme-surface-shadow-raised);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell {
+  border-color: rgba(var(--entry-accent), 0.28);
+  border-left-color: rgba(var(--entry-accent), 0.62);
+  background:
+    linear-gradient(90deg, rgba(var(--entry-accent), 0.16), rgba(var(--theme-panel-rgb), 0.6) 64%),
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(var(--theme-panel-rgb), 0.58);
+  background-size: auto, 40px 40px, 40px 40px, auto;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 12px 28px rgba(var(--entry-accent), 0.08);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-cell:hover {
+  border-color: rgba(var(--entry-accent), 0.42);
+  background:
+    linear-gradient(90deg, rgba(var(--entry-accent), 0.22), rgba(var(--theme-panel-rgb), 0.7) 64%),
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(var(--theme-panel-rgb), 0.68);
+  background-size: auto, 40px 40px, 40px 40px, auto;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 16px 36px rgba(var(--entry-accent), 0.12);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .hero-j1-icon {
+  filter: saturate(1.08) contrast(1.04);
+  box-shadow:
+    0 10px 22px rgba(var(--entry-accent), 0.18),
+    0 2px 8px rgba(var(--theme-text-rgb), 0.14);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .preview-panel {
+  border-color: rgba(var(--theme-border-rgb), 0.18);
+  background:
+    linear-gradient(135deg, rgba(var(--theme-gold-rgb), 0.12), transparent 38%),
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(var(--theme-panel-rgb), 0.76);
+  background-size: auto, 40px 40px, 40px 40px, auto;
+  color: var(--text-strong);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .preview-hero {
+  background:
+    linear-gradient(180deg, rgba(var(--theme-panel-rgb), 0.6), transparent 72%),
+    rgba(var(--theme-panel-rgb), 0.22);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .preview-icon {
+  background:
+    radial-gradient(circle, rgba(var(--theme-gold-rgb), 0.22), rgba(var(--theme-gold-rgb), 0.06) 65%, transparent 66%),
+    rgba(var(--theme-panel-rgb), 0.72);
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--theme-gold-rgb), 0.3),
+    0 18px 38px rgba(var(--theme-text-rgb), 0.13);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .preview-panel p,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .stat-box span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .preview-list-row span {
+  color: var(--text-muted);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .stat-box,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .preview-list-row,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-preview-dark .mini-facts div,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .category-entry-card {
+  border-color: rgba(var(--theme-border-rgb), 0.14);
+  background:
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(var(--theme-panel-rgb), 0.62);
+  background-size: 40px 40px, 40px 40px, auto;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.68),
+    0 10px 22px rgba(var(--theme-text-rgb), 0.08);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .cover-art {
+  background:
+    radial-gradient(circle at 62% 30%, rgba(var(--theme-gold-rgb), 0.2), transparent 34%),
+    linear-gradient(145deg, rgba(var(--theme-panel-rgb), 0.94), rgba(var(--theme-bg-2-rgb), 0.94));
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--theme-gold-rgb), 0.22),
+    0 20px 44px rgba(var(--theme-text-rgb), 0.14);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .cover-art::before {
+  background: rgba(var(--theme-bg-2-rgb), 0.78);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .cover-art::after {
+  border-color: rgba(var(--theme-border-rgb), 0.16);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 44%),
+    radial-gradient(circle at 30% 28%, rgba(var(--theme-gold-rgb), 0.14), transparent 22%),
+    radial-gradient(circle at 70% 70%, rgba(var(--theme-positive-rgb), 0.1), transparent 26%);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .cover-plate {
+  border-color: rgba(var(--theme-border-rgb), 0.22);
+  background-color: rgba(var(--theme-panel-rgb), 0.74);
+  box-shadow:
+    0 16px 32px rgba(var(--theme-text-rgb), 0.14),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .cover-plate.primary {
+  background:
+    radial-gradient(circle at 50% 38%, rgba(var(--theme-gold-rgb), 0.18), transparent 60%),
+    url("http://localhost:9000/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png") center/94px 94px no-repeat,
+    rgba(var(--theme-panel-rgb), 0.78);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .cover-plate.secondary {
+  background:
+    radial-gradient(circle at 50% 38%, rgba(var(--theme-gold-rgb), 0.16), transparent 58%),
+    url("http://localhost:9000/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png") center/54px 54px no-repeat,
+    rgba(var(--theme-panel-rgb), 0.76);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .cover-plate.tertiary {
+  background:
+    radial-gradient(circle at 50% 38%, rgba(var(--theme-gold-rgb), 0.16), transparent 58%),
+    url("http://localhost:9000/terrapedia-images/items/2026/04/08/5495725121204ede9da25ddf678ca246.png") center/56px 56px no-repeat,
+    rgba(var(--theme-panel-rgb), 0.76);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-medallion {
+  background:
+    radial-gradient(circle at 50% 48%, rgba(var(--theme-gold-rgb), 0.2), transparent 58%),
+    radial-gradient(circle at 50% 50%, rgba(var(--theme-positive-rgb), 0.1), transparent 42%),
+    rgba(var(--theme-text-rgb), 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 18px 42px rgba(var(--theme-text-rgb), 0.13);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-medallion::before {
+  border-color: rgba(var(--theme-gold-rgb), 0.28);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-medallion::after {
+  border-color: rgba(var(--theme-positive-rgb), 0.24);
+}
