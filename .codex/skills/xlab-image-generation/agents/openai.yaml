@@ -1,0 +1,6 @@
+interface:
+  display_name: "XLab Image Generation"
+  short_description: "Generate images with local XLab gpt-image-2"
+  default_prompt: "Use $xlab-image-generation to generate an image from this prompt: a tiny orange cat astronaut."
+policy:
+  allow_implicit_invocation: true
