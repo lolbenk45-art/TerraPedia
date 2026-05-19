@@ -1,7 +1,6 @@
 package com.terraria.skills.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.PublicArmorSetListDTO;
 import com.terraria.skills.dto.PublicArmorSetQuery;
@@ -12,8 +11,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -46,19 +48,22 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         List<Object> queryArgs = new ArrayList<>(args);
         queryArgs.add(offset);
         queryArgs.add(limit);
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-            """
+        String listSql = """
             SELECT id, text_key, source_key, name, name_zh, name_en, primary_part, set_count, unique_item_count,
-                   male_images, female_images, special_images
-            FROM """ + projectionTable + where + """
+                   male_images, female_images, special_images, related_items_json
+            FROM %s
+            %s
             ORDER BY id ASC
             LIMIT ?, ?
-            """,
+            """.formatted(projectionTable, where);
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            listSql,
             queryArgs.toArray()
         );
 
         Page<PublicArmorSetListDTO> result = new Page<>(page, limit, total == null ? 0 : total);
-        result.setRecords(rows.stream().map(this::toListDto).toList());
+        Map<Long, String> fallbackImagesByItemId = resolveFallbackImagesByItemId(rows);
+        result.setRecords(rows.stream().map(row -> toListDto(row, fallbackImagesByItemId)).toList());
         return result;
     }
 
@@ -81,7 +86,7 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         return "`" + RELATION_DATABASE_NAME + "`.`" + PROJECTION_ARMOR_SETS_TABLE + "`";
     }
 
-    private PublicArmorSetListDTO toListDto(Map<String, Object> row) {
+    private PublicArmorSetListDTO toListDto(Map<String, Object> row, Map<Long, String> fallbackImagesByItemId) {
         PublicArmorSetListDTO dto = new PublicArmorSetListDTO();
         dto.setId(toLong(row.get("id")));
         dto.setTextKey(trimToNull(row.get("text_key")));
@@ -95,7 +100,84 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         dto.setMaleImages(filterManagedImages(parseJsonArray(row.get("male_images"))));
         dto.setFemaleImages(filterManagedImages(parseJsonArray(row.get("female_images"))));
         dto.setSpecialImages(filterManagedImages(parseJsonArray(row.get("special_images"))));
+        if (dto.getMaleImages().isEmpty() && dto.getFemaleImages().isEmpty() && dto.getSpecialImages().isEmpty()) {
+            dto.setFallbackImages(resolveFallbackImages(row, fallbackImagesByItemId));
+        }
         return dto;
+    }
+
+    private Map<Long, String> resolveFallbackImagesByItemId(List<Map<String, Object>> rows) {
+        Set<Long> itemIds = new LinkedHashSet<>();
+        for (Map<String, Object> row : rows) {
+            itemIds.addAll(extractRelatedItemIds(row.get("related_items_json")));
+        }
+        if (itemIds.isEmpty()) {
+            return Map.of();
+        }
+
+        String placeholders = String.join(",", itemIds.stream().map(id -> "?").toList());
+        List<Map<String, Object>> imageRows = jdbcTemplate.queryForList(
+            """
+            SELECT item_id, cached_url
+            FROM item_images
+            WHERE deleted = 0
+              AND status = 1
+              AND cached_url IS NOT NULL
+              AND item_id IN (""" + placeholders + """
+              )
+            ORDER BY item_id ASC, is_primary DESC, sort_order ASC, id ASC
+            """,
+            itemIds.toArray()
+        );
+
+        Map<Long, String> result = new LinkedHashMap<>();
+        for (Map<String, Object> imageRow : imageRows) {
+            Long itemId = toLong(imageRow.get("item_id"));
+            String imageUrl = trimToNull(imageRow.get("cached_url"));
+            if (itemId != null && !result.containsKey(itemId) && imageUrl != null && managedImageUrlPolicy.isManagedImageUrl(imageUrl)) {
+                result.put(itemId, imageUrl);
+            }
+        }
+        return result;
+    }
+
+    private List<String> resolveFallbackImages(Map<String, Object> row, Map<Long, String> fallbackImagesByItemId) {
+        if (fallbackImagesByItemId == null || fallbackImagesByItemId.isEmpty()) {
+            return List.of();
+        }
+        List<String> images = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
+        for (Long itemId : extractRelatedItemIds(row.get("related_items_json"))) {
+            String imageUrl = fallbackImagesByItemId.get(itemId);
+            if (imageUrl != null && seen.add(imageUrl)) {
+                images.add(imageUrl);
+            }
+        }
+        return images;
+    }
+
+    private List<Long> extractRelatedItemIds(Object raw) {
+        String text = trimToNull(raw);
+        if (text == null) {
+            return List.of();
+        }
+        try {
+            Object parsed = objectMapper.readValue(text, Object.class);
+            if (parsed instanceof List<?> list) {
+                List<Long> ids = new ArrayList<>();
+                for (Object entry : list) {
+                    if (entry instanceof Map<?, ?> map) {
+                        Long id = firstLong(map.get("itemId"), map.get("item_id"), map.get("id"), map.get("sourceId"), map.get("source_id"));
+                        if (id != null && id > 0) {
+                            ids.add(id);
+                        }
+                    }
+                }
+                return ids;
+            }
+        } catch (Exception ignored) {
+        }
+        return List.of();
     }
 
     private List<String> filterManagedImages(List<String> values) {
@@ -152,6 +234,19 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
 
     private String stringify(Object value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    private Long firstLong(Object... values) {
+        if (values == null) {
+            return null;
+        }
+        for (Object value : values) {
+            Long parsed = toLong(value);
+            if (parsed != null) {
+                return parsed;
+            }
+        }
+        return null;
     }
 
     private String trimToNull(Object value) {

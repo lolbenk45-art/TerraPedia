@@ -581,6 +581,7 @@ const normalizeArmorSetListItem = (armorSet: ArmorSetListItem & Record<string, u
   maleImages: parseManagedImageList(armorSet.maleImages ?? armorSet.male_images),
   femaleImages: parseManagedImageList(armorSet.femaleImages ?? armorSet.female_images),
   specialImages: parseManagedImageList(armorSet.specialImages ?? armorSet.special_images),
+  fallbackImages: parseManagedImageList(armorSet.fallbackImages ?? armorSet.fallback_images),
 })
 
 export const fetchBosses = async (

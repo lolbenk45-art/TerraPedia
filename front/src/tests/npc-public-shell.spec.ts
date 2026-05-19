@@ -526,6 +526,49 @@ describe('NPC public shell', () => {
     expect(wrapper.text()).toContain('No managed set art')
   })
 
+  it('renders public armor set cards with managed item fallback images', async () => {
+    applyRoute('/armor-sets')
+
+    const fallbackImage = 'http://localhost:9000/terrapedia-images/items/wiki/item-images/cc/beetle-helmet.png'
+    const armorSetRows: ArmorSetListItem[] = [
+      {
+        id: 158677909,
+        textKey: 'ArmorSetBonus.BeetleDamage',
+        sourceKey: 'ArmorSetBonus.BeetleDamage',
+        name: 'Beetle armor',
+        nameZh: 'Beetle armor CN',
+        nameEn: 'Beetle armor',
+        primaryPart: 'head',
+        setCount: 1,
+        uniqueItemCount: 3,
+        maleImages: [],
+        femaleImages: [],
+        specialImages: [],
+        fallbackImages: [fallbackImage],
+      },
+    ]
+
+    mocks.fetchArmorSets.mockResolvedValue({
+      success: true,
+      data: armorSetRows,
+      message: 'ok',
+      statusCode: 200,
+      pagination: {
+        total: 1,
+        page: 1,
+        limit: 12,
+        totalPages: 1,
+      },
+    } satisfies ApiResponse<ArmorSetListItem[]>)
+
+    const wrapper = mount(ArmorSetPublicView)
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Beetle armor CN')
+    expect(wrapper.text()).not.toContain('No managed set art')
+    expect(wrapper.find(`img[src="${fallbackImage}"]`).exists()).toBe(true)
+  })
+
   it('renders npc aggregate sections independently and keeps empty sections safe', async () => {
     applyRoute('/npcs/17')
     routeState.params = { id: '17' }

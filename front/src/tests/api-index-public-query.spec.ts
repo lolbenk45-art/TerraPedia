@@ -653,6 +653,7 @@ describe('api/index public query behavior', () => {
             maleImages: ['http://localhost:9000/terrapedia-images/wiki/armor-sets/hallowed-male.png'],
             femaleImages: ['http://localhost:9000/terrapedia-images/wiki/armor-sets/hallowed-female.png'],
             specialImages: [],
+            fallbackImages: ['http://localhost:9000/terrapedia-images/items/wiki/item-images/cc/beetle-helmet.png'],
           },
         ],
         message: 'ok',
@@ -674,6 +675,7 @@ describe('api/index public query behavior', () => {
       textKey: 'ArmorSet.Hallowed',
       primaryPart: 'head',
       setCount: 3,
+      fallbackImages: ['http://localhost:9000/terrapedia-images/items/wiki/item-images/cc/beetle-helmet.png'],
     })
   })
 

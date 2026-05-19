@@ -131,7 +131,10 @@ const displayedPages = computed(() => {
   return [...new Set(pages)]
 })
 const displayName = (armorSet: ArmorSetListItem) => armorSet.nameZh?.trim() || armorSet.name?.trim() || armorSet.nameEn?.trim() || armorSet.textKey?.trim() || 'Unknown Armor Set'
-const primaryImages = (armorSet: ArmorSetListItem) => [...(armorSet.maleImages || []), ...(armorSet.femaleImages || []), ...(armorSet.specialImages || [])]
+const primaryImages = (armorSet: ArmorSetListItem) => {
+  const managedSetImages = [...(armorSet.maleImages || []), ...(armorSet.femaleImages || []), ...(armorSet.specialImages || [])]
+  return managedSetImages.length ? managedSetImages : [...(armorSet.fallbackImages || [])]
+}
 const fallbackMark = (value?: string | null) => value?.trim()?.slice(0, 2).toUpperCase() || 'AS'
 
 const loadArmorSets = async () => {

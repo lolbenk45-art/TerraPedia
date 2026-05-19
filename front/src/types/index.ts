@@ -223,6 +223,7 @@ export interface ArmorSetListItem {
   maleImages?: string[]
   femaleImages?: string[]
   specialImages?: string[]
+  fallbackImages?: string[]
 }
 
 export interface ArmorSetsResponse extends ApiResponse<ArmorSetListItem[]> {

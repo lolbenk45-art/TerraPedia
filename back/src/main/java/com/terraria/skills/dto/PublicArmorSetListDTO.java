@@ -25,4 +25,5 @@ public class PublicArmorSetListDTO implements Serializable {
     private List<String> maleImages = new ArrayList<>();
     private List<String> femaleImages = new ArrayList<>();
     private List<String> specialImages = new ArrayList<>();
+    private List<String> fallbackImages = new ArrayList<>();
 }
