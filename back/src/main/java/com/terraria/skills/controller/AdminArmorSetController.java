@@ -925,19 +925,22 @@ public class AdminArmorSetController {
         Object mappingStatus
     ) {
         List<Map<String, Object>> rows = new ArrayList<>();
-        List<String> statements = loadArmorBenefitStatements().getOrDefault(benefitExpression, List.of());
+        String benefitExpressionKey = trimToNull(benefitExpression);
+        List<String> statements = benefitExpressionKey == null
+            ? List.of()
+            : loadArmorBenefitStatements().getOrDefault(benefitExpressionKey, List.of());
         int effectIndex = 1;
         for (String statement : statements) {
             addEffectRow(rows, "\u6e38\u620f\u6548\u679c " + effectIndex, humanizeArmorBenefitStatement(statement));
             effectIndex += 1;
         }
-        if (!isBenefitExpressionValue(benefitZh, benefitExpression)) {
+        if (!isBenefitExpressionValue(benefitZh, benefitExpressionKey)) {
             addEffectRow(rows, "\u4e2d\u6587\u6548\u679c", benefitZh);
         }
-        if (!isBenefitExpressionValue(benefitEn, benefitExpression)) {
+        if (!isBenefitExpressionValue(benefitEn, benefitExpressionKey)) {
             addEffectRow(rows, "\u82f1\u6587\u6548\u679c", benefitEn);
         }
-        addEffectRow(rows, "Benefit Expression", benefitExpression);
+        addEffectRow(rows, "Benefit Expression", benefitExpressionKey);
         addEffectRow(rows, "Primary Part", trimToNull(primaryPart));
         addEffectRow(rows, "Mapping Status", trimToNull(mappingStatus));
         return rows;

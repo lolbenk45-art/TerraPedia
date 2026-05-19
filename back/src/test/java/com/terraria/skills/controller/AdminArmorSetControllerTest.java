@@ -249,6 +249,28 @@ class AdminArmorSetControllerTest {
     }
 
     @Test
+    void legacyFallbackToleratesMissingBenefitExpressionWhenBenefitSourceIsUnavailable() throws IOException {
+        FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(false, false, "legacyMissingBenefitExpression");
+        AdminArmorSetController controller = controller(jdbcTemplate);
+        Files.deleteIfExists(Path.of(System.getProperty("user.dir"))
+            .resolve("../data/generated/wiki-armorsetbonuses.latest.json")
+            .normalize());
+
+        ResponseEntity<ApiResponse<List<Map<String, Object>>>> response =
+            controller.getArmorSets(1, 20, null, null);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertEquals(1, response.getBody().getData().size());
+
+        Map<String, Object> armorSet = response.getBody().getData().get(0);
+        assertEquals(null, armorSet.get("benefitExpression"));
+        List<Map<String, Object>> effectRows = asMapList(armorSet.get("effectRows"));
+        assertFalse(effectRows.stream().anyMatch(row -> "Benefit Expression".equals(row.get("label"))));
+        assertTrue(jdbcTemplate.sqlLog.stream().anyMatch(sql -> sql.contains("FROM armor_sets")));
+    }
+
+    @Test
     void legacyFallbackUsesLatestArmorSetImageSnapshotWhenDbImageFieldsAreEmpty() {
         FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(false);
         AdminArmorSetController controller = controller(jdbcTemplate);
@@ -655,7 +677,12 @@ class AdminArmorSetControllerTest {
             row.put("id", "legacyWslWood".equals(projectionScenario) ? 237L : 202L);
             row.put("source_key", "legacyWslWood".equals(projectionScenario) ? "木盔甲" : "legacy-wood");
             row.put("text_key", "ArmorSetBonus.Wood");
-            row.put("benefit_expression", "legacyWslWood".equals(projectionScenario) ? "ArmorSetBonuses.Benefits.Wood" : "Legacy benefit");
+            row.put(
+                "benefit_expression",
+                "legacyMissingBenefitExpression".equals(projectionScenario)
+                    ? null
+                    : ("legacyWslWood".equals(projectionScenario) ? "ArmorSetBonuses.Benefits.Wood" : "Legacy benefit")
+            );
             row.put("primary_part", null);
             row.put("set_count", 1);
             row.put("unique_item_count", "legacyWslWood".equals(projectionScenario) ? 3 : 0);
