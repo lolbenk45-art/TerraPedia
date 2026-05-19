@@ -7,7 +7,7 @@
       <div class="page-head-inner">
         <div>
           <span class="eyebrow">/user · public account</span>
-          <h2>用户中心</h2>
+          <h1>用户中心</h1>
           <p>用户页先做前台结构：收藏、投稿、阅读路径和账号入口。当前只做页面，不实现登录状态、保存、提交或接口交互。</p>
         </div>
         <a class="primary-button" href="/user/login">进入登录页</a>
@@ -19,7 +19,7 @@
         <div class="user-avatar"><span class="sprite-icon icon-user" aria-hidden="true"></span></div>
         <div>
           <span class="eyebrow">访客视图</span>
-          <h3>把个人资料动作收进一个清晰的控制台</h3>
+          <h2>把个人资料动作收进一个清晰的控制台</h2>
           <p>不在首页塞用户功能，用户中心单独承载收藏、文章草稿、账号设置和路线记录。</p>
           <div class="tag-row">
             <span class="tag gold">静态占位</span>

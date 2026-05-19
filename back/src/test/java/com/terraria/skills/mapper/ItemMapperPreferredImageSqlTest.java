@@ -172,15 +172,14 @@ class ItemMapperPreferredImageSqlTest {
         assertFalse(publicListSql.contains(" i.defense"), "public item list must not read defense");
         assertFalse(publicListSql.contains(" i.created_at"), "public item list must not read created_at");
         assertFalse(publicListSql.contains(" i.updated_at"), "public item list must not read updated_at");
-        assertTrue(publicListSql.contains("<include refid=\"ManagedItemImageExpr\"/>"), "public item list must reuse the managed-image projection fragment");
+        assertTrue(publicListSql.contains("ii_public.cached_url AS image"), "public item list must expose trusted cached item_images display URLs");
         assertTrue(managedImageExpr.contains("NULLIF(TRIM(i.image), '') IS NOT NULL"), "public item list must guard empty image values");
         assertTrue(managedImageExpr.contains("managedImagePrefixes"), "public item list must only expose configured managed MinIO image prefixes");
         assertFalse(managedImageExpr.contains("LIKE '%/terrapedia-images/%'"), "public item list must not trust broad bucket path substring matches");
         assertFalse(managedImageExpr.contains("item_images"), "public managed-image projection must not evaluate item_images");
         assertFalse(managedImageExpr.contains("original_url"), "public managed-image projection must not expose wiki original_url");
         assertFalse(publicListSql.contains("i.image AS image"), "public item list must not expose raw image without a managed-image guard");
-        assertFalse(publicListSql.contains("ii_primary.cached_url AS image"), "public item list must not evaluate item_images for display image");
-        assertFalse(publicListSql.contains("ii_primary.original_url"), "public item list must not expose wiki original_url");
+        assertFalse(publicListSql.contains("ii_public.original_url"), "public item list must not expose wiki original_url");
     }
 
     @Test
@@ -191,7 +190,8 @@ class ItemMapperPreferredImageSqlTest {
         assertTrue(startsWithDerivedItemPage(publicListSql), "public item list must page items in a derived table before joins");
         assertTrue(publicListSql.contains("LIMIT #{limit}"), "inner public item page must apply the requested limit");
         assertTrue(publicListSql.contains("OFFSET #{offset}"), "inner public item page must apply the requested offset");
-        assertFalse(publicListSql.contains("LEFT JOIN item_images"), "public item list must not join item_images at all");
+        assertTrue(publicListSql.contains("LEFT JOIN item_images ii_public"), "public item list must join item_images after paging to expose real item icons");
+        assertTrue(publicListSql.indexOf("LIMIT #{limit}") < publicListSql.indexOf("LEFT JOIN item_images ii_public"), "public item list must join item_images only after page slicing");
     }
 
     @Test
@@ -252,7 +252,7 @@ class ItemMapperPreferredImageSqlTest {
 
         String sql = boundSql.getSql();
 
-        assertTrue(sql.contains("LEFT(LOWER(TRIM(i.image)), CHAR_LENGTH(?)) = LOWER(?)"), "public SQL must render exact trusted-prefix checks");
+        assertTrue(sql.contains("LEFT(LOWER(TRIM(ii.cached_url)), CHAR_LENGTH(?)) = LOWER(?)"), "public SQL must render exact trusted-prefix checks for item_images cached URLs");
         assertFalse(sql.contains("<foreach"), "public SQL must be rendered by MyBatis, not left as XML tags");
         assertFalse(sql.contains("LIKE '%/terrapedia-images/%'"), "rendered public SQL must not trust broad bucket path substring matches");
     }

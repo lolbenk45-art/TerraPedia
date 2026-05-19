@@ -7,7 +7,7 @@
       <div class="page-head-inner">
         <div>
           <span class="eyebrow">Armor Sets · 职业与阶段</span>
-          <h2>套装路线</h2>
+          <h1>套装路线</h1>
           <p>套装页面要体现“阶段选择”和“职业分支”，而不是只列出部件。这里先用重点套装建立公开页结构。</p>
         </div>
         <a class="primary-button" href="/bosses">按 Boss 推进</a>
@@ -18,7 +18,7 @@
       <section class="armor-spotlight">
         <div>
           <span class="eyebrow">当前推荐</span>
-          <h3>神圣盔甲作为困难模式中段的职业分岔点</h3>
+          <h2>神圣盔甲作为困难模式中段的职业分岔点</h2>
           <p>同一套装通过头部件切换近战、远程、魔法、召唤方向。公开页需要让玩家先看到路线差异，再展开部件细节。</p>
           <div class="tag-row">
             <span class="tag gold">困难模式</span>
@@ -27,13 +27,13 @@
           </div>
         </div>
         <div class="armor-stage">
-          <img src="https://terraria.wiki.gg/images/Hallowed_armor.png?8ccbab" alt="神圣盔甲" />
+          <img :src="'/preview-assets/wiki-images/Hallowed_armor.png?8ccbab'" alt="神圣盔甲" />
         </div>
       </section>
 
       <section class="armor-grid">
         <article class="armor-card active">
-          <img src="https://terraria.wiki.gg/images/Hallowed_armor.png?8ccbab" alt="神圣盔甲" />
+          <img :src="'/preview-assets/wiki-images/Hallowed_armor.png?8ccbab'" alt="神圣盔甲" />
           <div>
             <span>困难模式</span>
             <h3>神圣盔甲</h3>
@@ -42,7 +42,7 @@
           <em>54 神圣锭</em>
         </article>
         <article class="armor-card">
-          <img src="https://terraria.wiki.gg/images/Meteor_armor.png?767b93" alt="流星盔甲" />
+          <img :src="'/preview-assets/wiki-images/Meteor_armor.png?767b93'" alt="流星盔甲" />
           <div>
             <span>肉前</span>
             <h3>流星盔甲</h3>
@@ -51,7 +51,7 @@
           <em>45 陨石锭</em>
         </article>
         <article class="armor-card">
-          <img src="https://terraria.wiki.gg/images/Beetle_armor.png?343dd6" alt="甲虫盔甲" />
+          <img :src="'/preview-assets/wiki-images/Beetle_armor.png?343dd6'" alt="甲虫盔甲" />
           <div>
             <span>月前</span>
             <h3>甲虫盔甲</h3>
@@ -60,7 +60,7 @@
           <em>甲虫外壳</em>
         </article>
         <article class="armor-card">
-          <img src="https://terraria.wiki.gg/images/Solar_Flare_armor.png?e503bc" alt="耀斑盔甲" />
+          <img :src="'/preview-assets/wiki-images/Solar_Flare_armor.png?e503bc'" alt="耀斑盔甲" />
           <div>
             <span>月后</span>
             <h3>耀斑盔甲</h3>

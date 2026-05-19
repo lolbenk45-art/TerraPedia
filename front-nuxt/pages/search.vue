@@ -1,3 +1,7 @@
+<script setup lang="ts">
+const searchQuery = ref('terra / 泰拉 / blade')
+</script>
+
 <template>
   <section class="screen entity-screen active">
     <TerraNav />
@@ -7,7 +11,7 @@
       <div class="page-head-inner">
         <div>
           <span class="eyebrow">搜索建议 · 物品 / NPC / Boss / 攻略</span>
-          <h2>全站检索</h2>
+          <h1>全站检索</h1>
           <p>搜索页先做成高密度入口：左侧聚焦输入与建议，右侧把命中结果按资料类型分组，避免单调的普通列表。</p>
         </div>
         <a class="primary-button" href="/items">进入图鉴墙</a>
@@ -18,15 +22,23 @@
       <section class="search-command search-console support-panel">
         <div class="search-console-copy">
           <span class="eyebrow">当前关键词</span>
-          <h3>泰拉</h3>
+          <h2>泰拉</h2>
           <p>建议接口对应 `/public/items/suggestions`，页面上把建议、快捷筛选和跨域入口放在一起，后续接真实数据时不需要重做结构。</p>
         </div>
         <div class="search-console-module">
-          <div class="search-input-shell search-input-primary">
+          <form class="search-input-shell search-input-primary" role="search" aria-label="全站检索" @submit.prevent>
             <span aria-hidden="true">⌕</span>
-            <strong>terra / 泰拉 / blade</strong>
-            <em>8 条建议</em>
-          </div>
+            <label class="visually-hidden" for="global-search-input">搜索物品、NPC、Boss 或攻略</label>
+            <input
+              id="global-search-input"
+              v-model="searchQuery"
+              type="search"
+              name="keyword"
+              autocomplete="off"
+              aria-describedby="global-search-count"
+            />
+            <em id="global-search-count">8 条建议</em>
+          </form>
           <div class="search-type-tabs" aria-label="搜索类型">
             <a class="search-type-chip active" href="/search">All</a>
             <a class="search-type-chip" href="/items">Items</a>
@@ -49,7 +61,7 @@
           <article class="support-panel search-result-card active">
             <span class="eyebrow">近战武器</span>
             <div class="result-title-line">
-              <i><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span></i>
+              <i><span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span></i>
               <div>
                 <h3>泰拉刃</h3>
                 <p>困难模式后期近战武器，连接合成树、射弹和 Boss 前准备。</p>
@@ -79,7 +91,7 @@
           <article class="support-panel search-result-card">
             <span class="eyebrow">早期门槛</span>
             <div class="result-title-line">
-              <i><img src="http://localhost:9000/terrapedia-images/npcs/2026/05/08/0d8a53901a0e4dfea17b59f2aecae869.gif" alt="克苏鲁之眼" /></i>
+              <i><img :src="'/preview-assets/terrapedia-images/npcs/2026/05/08/0d8a53901a0e4dfea17b59f2aecae869.gif'" alt="克苏鲁之眼" /></i>
               <div>
                 <h3>克苏鲁之眼</h3>
                 <p>早期主线门槛，常与铁皮、再生和平台准备同时出现。</p>

@@ -7,7 +7,7 @@
       <div class="page-head-inner">
         <div>
           <span class="eyebrow">/user/settings · preferences</span>
-          <h2>账号设置</h2>
+          <h1>账号设置</h1>
           <p>设置页只做前台用户偏好页面，不实现保存。保留资料、显示偏好、通知和公开身份四个区域。</p>
         </div>
         <a class="secondary-button" href="/user">返回用户中心</a>

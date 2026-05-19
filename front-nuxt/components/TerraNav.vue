@@ -34,6 +34,8 @@ const isActive = (href: string) => {
 const activeMenu = ref<ActiveMenu>(null)
 let closeTimer: ReturnType<typeof setTimeout> | undefined
 
+const menuLinkTabIndex = (menu: Exclude<ActiveMenu, null>) => activeMenu.value === menu ? 0 : -1
+
 const clearCloseTimer = () => {
   if (!closeTimer) {
     return
@@ -138,8 +140,9 @@ onBeforeUnmount(closeMenu)
         <div
           class="nav-menu-panel"
           :class="{ 'is-open': activeMenu === 'resources' }"
+          :aria-hidden="activeMenu !== 'resources'"
         >
-          <a class="nav-search-link" href="/search" @click="closeMenu">
+          <a class="nav-search-link" href="/search" :tabindex="activeMenu === 'resources' ? 0 : -1" @click="closeMenu">
             <span class="sprite-icon icon-search nav-card-icon" aria-hidden="true"></span>
             <span class="nav-card-copy">
               <b>全站检索</b>
@@ -153,6 +156,7 @@ onBeforeUnmount(closeMenu)
               class="nav-resource-link"
               :class="{ active: isActive(link.href) }"
               :href="link.href"
+              :tabindex="menuLinkTabIndex('resources')"
               @click="closeMenu"
             >
               <span class="sprite-icon nav-card-icon" :class="link.icon" aria-hidden="true"></span>
@@ -185,15 +189,16 @@ onBeforeUnmount(closeMenu)
         <div
           class="account-menu-panel"
           :class="{ 'is-open': activeMenu === 'account' }"
+          :aria-hidden="activeMenu !== 'account'"
         >
           <div class="account-menu-head">
             <span><span class="sprite-icon icon-user compact" aria-hidden="true"></span></span>
             <div><b>访客用户</b><em>Preview account</em></div>
           </div>
-          <a href="/user" @click="closeMenu"><span class="sprite-icon icon-user menu-icon" aria-hidden="true"></span><span><b>用户中心</b><span>收藏、投稿、设置入口</span></span></a>
-          <a href="/user/favorites" @click="closeMenu"><span class="sprite-icon icon-favorites menu-icon" aria-hidden="true"></span><span><b>收藏夹</b><span>保存物品和路线</span></span></a>
-          <a href="/user/articles" @click="closeMenu"><span class="sprite-icon icon-article menu-icon" aria-hidden="true"></span><span><b>我的文章</b><span>草稿和投稿状态</span></span></a>
-          <a href="/user/settings" @click="closeMenu"><span class="sprite-icon icon-settings menu-icon" aria-hidden="true"></span><span><b>账号设置</b><span>显示偏好和公开资料</span></span></a>
+          <a href="/user" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-user menu-icon" aria-hidden="true"></span><span><b>用户中心</b><span>收藏、投稿、设置入口</span></span></a>
+          <a href="/user/favorites" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-favorites menu-icon" aria-hidden="true"></span><span><b>收藏夹</b><span>保存物品和路线</span></span></a>
+          <a href="/user/articles" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-article menu-icon" aria-hidden="true"></span><span><b>我的文章</b><span>草稿和投稿状态</span></span></a>
+          <a href="/user/settings" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-settings menu-icon" aria-hidden="true"></span><span><b>账号设置</b><span>显示偏好和公开资料</span></span></a>
         </div>
       </div>
     </div>

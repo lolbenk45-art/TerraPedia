@@ -244,6 +244,11 @@ if (!existsSync(file('components/TerraNav.vue'))) {
   process.exit(1)
 }
 
+if (!existsSync(file('error.vue'))) {
+  console.error('Missing custom Nuxt error page:\n- error.vue')
+  process.exit(1)
+}
+
 if (!existsSync(file('components/TerraBreadcrumb.vue'))) {
   console.error('Missing public breadcrumb component:\n- components/TerraBreadcrumb.vue')
   process.exit(1)
@@ -252,6 +257,63 @@ if (!existsSync(file('components/TerraBreadcrumb.vue'))) {
 if (!existsSync(file('stores/theme.ts'))) {
   console.error('Missing public theme store:\n- stores/theme.ts')
   process.exit(1)
+}
+
+const requiredPublicDataLayerFiles = [
+  'types/public-api.ts',
+  'composables/usePreviewImage.ts',
+  'composables/usePublicApi.ts',
+  'composables/usePublicItems.ts',
+]
+
+const missingPublicDataLayerFiles = requiredPublicDataLayerFiles.filter((path) => !existsSync(file(path)))
+
+if (missingPublicDataLayerFiles.length > 0) {
+  console.error(`Missing public data layer files:\n${missingPublicDataLayerFiles.map((path) => `- ${path}`).join('\n')}`)
+  process.exit(1)
+}
+
+const requiredPublicDataLayerMarkers = {
+  'types/public-api.ts': [
+    'export type ApiResponse',
+    'export type Pagination',
+    'export type PublicItemListItem',
+    'export type PublicItemQuery',
+    'export type CatalogItem',
+  ],
+  'composables/usePreviewImage.ts': [
+    'export const resolvePreviewImageUrl',
+    '/preview-assets/terrapedia-images/',
+    '/terrapedia-images/',
+  ],
+  'composables/usePublicApi.ts': [
+    'export const unwrapApiResponse',
+    'export const usePublicApiFetch',
+    "config.public.apiBase || '/api'",
+  ],
+  'composables/usePublicItems.ts': [
+    'export const normalizePublicItem',
+    'export const fallbackCatalogItems',
+    'export const fetchPublicItems',
+    'export const usePublicItems',
+    "'/public/items'",
+  ],
+  'nuxt.config.ts': [
+    'TERRAPEDIA_IMAGE_ORIGIN',
+    'TERRAPEDIA_MINIO_PUBLIC_ENDPOINT',
+    'imageOrigin',
+  ],
+}
+
+for (const [path, markers] of Object.entries(requiredPublicDataLayerMarkers)) {
+  const content = readFileSync(file(path), 'utf8')
+
+  for (const marker of markers) {
+    if (!content.includes(marker)) {
+      console.error(`${path}: missing public data layer marker ${marker}`)
+      process.exit(1)
+    }
+  }
 }
 
 if (!existsSync(file('public/brand/terrapedia-logo.png'))) {
@@ -269,10 +331,31 @@ if (!existsSync(file('public/ui/terrapedia-icon-sprite.png'))) {
   process.exit(1)
 }
 
+const generatedHomeHeroPixelSheets = [
+  'public/ui/home-hero-pixel/relic-sheet.png',
+  'public/ui/home-hero-pixel/craft-sheet.png',
+  'public/ui/home-hero-pixel/manual-sheet.png',
+]
+
+for (const generatedPixelSheet of generatedHomeHeroPixelSheets) {
+  if (!existsSync(file(generatedPixelSheet))) {
+    console.error(`Missing home hero generated pixel sheet asset:\n- ${generatedPixelSheet}`)
+    process.exit(1)
+  }
+}
+
 const iconSpriteHeader = readPngHeader(file('public/ui/terrapedia-icon-sprite.png'))
 if (iconSpriteHeader.colorType !== 6) {
   console.error('Public UI icon sprite must use RGBA transparency so dark theme does not show bright icon tiles')
   process.exit(1)
+}
+
+for (const generatedPixelSheet of generatedHomeHeroPixelSheets) {
+  const generatedSheetHeader = readPngHeader(file(generatedPixelSheet))
+  if (generatedSheetHeader.width !== 256 || generatedSheetHeader.height !== 256) {
+    console.error(`Unexpected generated home hero pixel sheet dimensions: ${generatedPixelSheet} is ${generatedSheetHeader.width}x${generatedSheetHeader.height}, expected 256x256`)
+    process.exit(1)
+  }
 }
 
 if (!existsSync(file('public/brand/terrapedia-emblem-centered.png'))) {
@@ -302,6 +385,7 @@ if (Math.abs(emblemBalance.xOffset) > 8 || Math.abs(emblemBalance.yOffset) > 18)
 const scanFiles = [
   ...publicPageFiles,
   'app.vue',
+  'error.vue',
   'nuxt.config.ts',
   'package.json',
   'components/TerraNav.vue',
@@ -315,6 +399,7 @@ const scanFiles = [
 const violations = []
 const hifiCss = readFileSync(file('assets/css/hifi-preview.css'), 'utf8')
 const lightContrastCss = readFileSync(file('assets/css/light-theme-contrast-fixes.css'), 'utf8')
+const homeHeroOptionsCss = readFileSync(file('assets/css/home-hero-options.css'), 'utf8')
 const lightThemeSelector = ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"])'
 
 const requiredLightVisualSelectors = [
@@ -389,13 +474,62 @@ for (const path of scanFiles) {
     violations.push(`${path}: public page must render the shared TerraFooter`)
   }
 
-  if (publicPageFiles.includes(path) && !content.includes('<TerraNav')) {
-    violations.push(`${path}: public page must render the shared TerraNav`)
+  if (path === 'error.vue') {
+    for (const marker of [
+      'defineProps',
+      'clearError',
+      'TerraNav',
+      'TerraFooter',
+      'error-screen',
+      'error-status-code',
+      '404',
+      '返回首页',
+      '物品图鉴',
+      '搜索资料',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: custom Nuxt error page must include marker ${marker}`)
+      }
+    }
+
+    for (const forbiddenMarker of [
+      'Page not found',
+      'Nuxt',
+      'Stack trace',
+      'statusMessage',
+    ]) {
+      if (content.includes(forbiddenMarker)) {
+        violations.push(`${path}: custom error page must not expose default Nuxt error wording (${forbiddenMarker})`)
+      }
+    }
   }
 
-  if (publicPageFiles.includes(path) && path !== 'pages/index.vue' && !content.includes('<TerraBreadcrumb')) {
-    violations.push(`${path}: public page must render the shared TerraBreadcrumb`)
-  }
+    if (publicPageFiles.includes(path) && !content.includes('<TerraNav')) {
+      violations.push(`${path}: public page must render the shared TerraNav`)
+    }
+
+    if (publicPageFiles.includes(path) && !content.includes('<h1')) {
+      violations.push(`${path}: public page must expose one semantic h1 for the primary page title`)
+    }
+
+    if (publicPageFiles.includes(path)) {
+      const headings = [...content.matchAll(/<h([1-6])\b/g)].map((match) => Number(match[1]))
+
+      if (headings.filter((level) => level === 1).length !== 1) {
+        violations.push(`${path}: public page must expose exactly one semantic h1`)
+      }
+
+      for (let index = 1; index < headings.length; index += 1) {
+        if (headings[index] - headings[index - 1] > 1) {
+          violations.push(`${path}: heading hierarchy skips from h${headings[index - 1]} to h${headings[index]}`)
+          break
+        }
+      }
+    }
+
+    if (publicPageFiles.includes(path) && path !== 'pages/index.vue' && !content.includes('<TerraBreadcrumb')) {
+      violations.push(`${path}: public page must render the shared TerraBreadcrumb`)
+    }
 
   if (publicPageFiles.includes(path) && content.includes('<header class="site-nav"')) {
     violations.push(`${path}: public page must not duplicate raw site-nav markup`)
@@ -478,6 +612,10 @@ for (const path of scanFiles) {
       violations.push(`${path}: menu panels must bind their open class to the single activeMenu state`)
     }
 
+    if (!content.includes(':aria-hidden="activeMenu !==') || !content.includes(':tabindex="activeMenu ===')) {
+      violations.push(`${path}: closed resource and account menu links must be hidden from assistive tech and removed from tab order`)
+    }
+
     if (!content.includes('@mouseenter') || !content.includes('@mouseleave')) {
       violations.push(`${path}: managed hover menus must handle pointer enter and leave explicitly`)
     }
@@ -550,6 +688,154 @@ for (const path of scanFiles) {
 
     if (content.includes('195bfda5955641b5bf340322fdd26eba.png')) {
       violations.push(`${path}: home page must not use the Iron Pickaxe placeholder image in showcase sections`)
+    }
+  }
+
+  if (path === 'pages/home-hero-options.vue') {
+    for (const marker of [
+      'heroIconDirections',
+      'hero-icon-option-board',
+      'hero-icon-option-card',
+      'abstractPixelEntries',
+      'craftRouteStages',
+      'pixelSheets',
+      'pixelIconStyle',
+      '/ui/home-hero-pixel/relic-sheet.png',
+      '/ui/home-hero-pixel/craft-sheet.png',
+      '/ui/home-hero-pixel/manual-sheet.png',
+      'generated-pixel-icon abstract-route-icon',
+      'generated-pixel-icon abstract-craft-icon',
+      'generated-pixel-icon abstract-manual-icon',
+      'hero-icon-pixel-preview',
+      'previewIcons',
+      "key: 'category'",
+      "key: 'projectile'",
+      "key: 'npc'",
+      "key: 'biome'",
+      "key: 'material'",
+      "key: 'search'",
+      "key: 'boss'",
+      "key: 'buff'",
+      "key: 'armor'",
+      "key: 'article'",
+      "key: 'favorites'",
+      "key: 'edit'",
+      "key: 'settings'",
+      "key: 'codex'",
+      "key: 'notification'",
+      'iconComboSets',
+      'pixelRoleCatalog',
+      'simplePixelGlyphs',
+      'icon-combo-board',
+      'icon-combo-card',
+      'combo-role-strip',
+      'pixel-category-mosaic',
+      'pixel-mosaic-cell',
+      'pixel-icon-wall',
+      'pixel-icon-token',
+      'craft-route-board',
+      'craft-combo-lane',
+      'manual-chapter-grid',
+      'manual-icon-shelf',
+      'concrete-image-slot floating-item-slot',
+      'concrete-image-slot craft-result-slot',
+      'manual-title-mark',
+      '林地符号像素入口',
+      '工匠符号路线',
+      '手册章节符号',
+      '抽象像素符号',
+      '图鉴筛选',
+      '事件识别',
+      '掉落关系',
+      '个人记录',
+      '路线记录',
+      "visualRole: 'category'",
+      "visualRole: 'projectile'",
+      "visualRole: 'npc'",
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: home hero icon direction preview must include marker ${marker}`)
+      }
+    }
+
+    for (const cssMarker of [
+      '.icon-combo-board',
+      '.icon-combo-card',
+      '.combo-role-strip',
+      '.pixel-icon-wall',
+      '.pixel-icon-token',
+      '.generated-pixel-icon',
+      '--pixel-icon-sheet',
+      '--pixel-icon-x',
+      '--pixel-icon-y',
+      '--icon-slot-line',
+      '--icon-slot-fill',
+      '.role-category',
+      '.role-projectile',
+      '.role-npc',
+      '.craft-combo-lane',
+      '.manual-icon-shelf',
+    ]) {
+      if (!homeHeroOptionsCss.includes(cssMarker)) {
+        violations.push(`assets/css/home-hero-options.css: home hero option page must style expanded pixel icon comparison block ${cssMarker}`)
+      }
+    }
+
+    for (const forbiddenMarker of [
+      'generated-item-icon',
+      'generated-craft-icon',
+      'generated-manual-plate',
+      'generated-abstract-icon',
+      'heroIconTileStyle',
+      '/home-hero-icons/',
+      'sprite-role-code',
+      'sprite-icon',
+      'icon-category',
+      'icon-projectile',
+      '主页同款',
+      '小物件',
+      '工作台物件',
+      '手册印章',
+      '像素图标密集墙',
+    ]) {
+      if (content.includes(forbiddenMarker)) {
+        violations.push(`${path}: home hero option icons must use the new generated low-pixel sheets, not rejected sprite/icon treatments (${forbiddenMarker})`)
+      }
+    }
+
+    for (const noisyIconMarker of [
+      '--role-rgb',
+      '--role-dot-w',
+      '--role-mark-w',
+      '--role-mark-shadow',
+      '.pixel-icon-token::before',
+      '.pixel-icon-token::after',
+      '.sprite-role-code',
+      'content: "C"',
+      'content: "P"',
+      'content: "N"',
+    ]) {
+      if (homeHeroOptionsCss.includes(noisyIconMarker)) {
+        violations.push(`assets/css/home-hero-options.css: minimalist pixel icons must avoid busy role markers (${noisyIconMarker})`)
+      }
+    }
+  }
+
+  if (publicPageFiles.includes(path) || path.startsWith('assets/css/')) {
+    if (content.includes('http://localhost:9000') || content.includes('https://terraria.wiki.gg')) {
+      violations.push(`${path}: public pages and CSS must not hard-code localhost image service or third-party wiki hotlinks; use /preview-assets/`)
+    }
+  }
+
+  if (publicPageFiles.includes(path) && content.includes('<img src="/preview-assets/')) {
+    violations.push(`${path}: preview asset images must use dynamic :src bindings so Nuxt dev does not rewrite them to /_nuxt/@fs paths`)
+  }
+
+  if (path === 'pages/search.vue') {
+    for (const marker of ['type="search"', 'v-model=', 'role="search"', 'search-input-shell']) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: search page must expose a real labeled search input with ${marker}`)
+      }
     }
   }
 
@@ -693,6 +979,16 @@ for (const path of scanFiles) {
 
     if (!content.includes('font-family: var(--font-sans)')) {
       violations.push(`${path}: body typography must use the centralized --font-sans token`)
+    }
+
+    for (const token of ['--control-height-md: 44px', '--control-icon-size: 44px']) {
+      if (!content.includes(token)) {
+        violations.push(`${path}: shared navigation controls must keep mobile-safe touch token ${token}`)
+      }
+    }
+
+    if (!content.includes('.nav-menu-panel:not(.is-open)') || !content.includes('visibility: hidden')) {
+      violations.push(`${path}: closed nav/account menu panels must use visibility hiding, not opacity alone`)
     }
 
     if (content.includes('.index-entry-strip')) {

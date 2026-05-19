@@ -7,7 +7,7 @@
       <div class="page-head-inner">
         <div>
           <span class="eyebrow">/biomes · 生态 / 资源 / 事件</span>
-          <h2>生态索引</h2>
+          <h1>生态索引</h1>
           <p>生态页负责解释“去哪里找资源、会遇到什么、适合推进什么路线”，用地图分区感承接图鉴和攻略。</p>
         </div>
         <a class="primary-button" href="/biomes/jungle">查看丛林</a>
@@ -27,7 +27,7 @@
       <section class="taxonomy-band">
         <article class="support-panel">
           <span class="eyebrow">生态用途</span>
-          <h3>资源入口</h3>
+          <h2>资源入口</h2>
           <p>把矿物、植物、宝箱和制作材料绑定到生态上下文。</p>
         </article>
         <article class="support-panel">

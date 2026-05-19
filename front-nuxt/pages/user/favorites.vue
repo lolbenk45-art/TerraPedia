@@ -7,7 +7,7 @@
       <div class="page-head-inner">
         <div>
           <span class="eyebrow">/user/favorites · saved routes</span>
-          <h2>收藏夹</h2>
+          <h1>收藏夹</h1>
           <p>收藏页展示用户可能保存的物品、Boss、文章和制作路线。当前只是静态视觉，不实现收藏增删。</p>
         </div>
         <a class="secondary-button" href="/user">返回用户中心</a>

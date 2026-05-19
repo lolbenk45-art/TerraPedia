@@ -7,7 +7,7 @@
       <div class="page-head-inner">
         <div>
           <span class="eyebrow">/user/articles/new · editor placeholder</span>
-          <h2>新建文章</h2>
+          <h1>新建文章</h1>
           <p>这里做投稿编辑器的静态布局：标题、摘要、路线节点、关联资料和发布检查。编辑、上传、保存功能暂不实现。</p>
         </div>
         <a class="secondary-button" href="/user/articles">返回我的文章</a>

@@ -5,6 +5,7 @@ const root = new URL('..', import.meta.url)
 const file = (path) => new URL(path, root)
 const baseUrl = process.env.TERRAPEDIA_FRONT_NUXT_URL || 'http://localhost:5176'
 const chromeBin = process.env.CHROMIUM_BIN || '/usr/bin/chromium-browser'
+const checkLocalAssetLeaks = process.env.CHECK_LOCAL_ASSET_LEAKS === '1'
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -77,6 +78,48 @@ const connectToChrome = async (port) => {
   }
 }
 
+const waitForItemsHydration = async (browser) => {
+  await browser.send('Runtime.evaluate', {
+    expression: `(() => new Promise((resolve) => {
+      const startedAt = Date.now();
+      let focusChanged = false;
+      const hasLiveData = () => [...document.querySelectorAll('.catalog-screen .eyebrow, .catalog-density-rail strong')]
+        .some((element) => element.textContent?.includes('实时接口'));
+      const tick = () => {
+        const title = document.querySelector('.catalog-floating-focus h3')?.textContent?.trim() ?? '';
+        const target = [...document.querySelectorAll('.catalog-wall-cell')].find((element) => {
+          const label = element.getAttribute('aria-label') ?? '';
+          return label && !label.includes(title);
+        });
+        target?.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, cancelable: true, view: window }));
+
+        setTimeout(() => {
+          const nextTitle = document.querySelector('.catalog-floating-focus h3')?.textContent?.trim() ?? '';
+          if (nextTitle && nextTitle !== title) {
+            focusChanged = true;
+          }
+
+          if (focusChanged && hasLiveData()) {
+            resolve(true);
+            return;
+          }
+
+          if (Date.now() - startedAt > 6000) {
+            resolve(false);
+            return;
+          }
+
+          tick();
+        }, 80);
+      };
+
+      tick();
+    }))()`,
+    awaitPromise: true,
+    returnByValue: true,
+  })
+}
+
 const auditExpression = `(() => {
   const selectors = [
     '.site-nav',
@@ -100,6 +143,7 @@ const auditExpression = `(() => {
     '.catalog-wall-grid',
     '.catalog-floating-focus',
     '.catalog-empty-state',
+    '.exploration-map .map-node',
     '.camp-footer',
   ];
   const visible = (element) => {
@@ -140,7 +184,7 @@ const auditExpression = `(() => {
     }
   }
 
-	  return {
+	    return {
 	    path: location.pathname,
 	    scrollWidth: document.documentElement.scrollWidth,
 	    clientWidth: document.documentElement.clientWidth,
@@ -153,6 +197,9 @@ const auditExpression = `(() => {
 	    catalogSearchInputCount: document.querySelectorAll('.catalog-search-input').length,
 	    catalogQuickFilterCount: document.querySelectorAll('.catalog-quick-filter-rail button').length,
 	    catalogFocusTitle: document.querySelector('.catalog-floating-focus h3')?.textContent?.trim() ?? '',
+	    catalogDataSourceText: [...document.querySelectorAll('.catalog-screen .eyebrow, .catalog-density-rail strong')]
+	      .map((element) => element.textContent?.trim() ?? '')
+	      .join(' '),
 	    catalogOldPanelCount: document.querySelectorAll('.catalog-layout, .filter-panel, .list-panel, .preview-panel, .item-grid, .pager').length,
 	    itemFallbackCount: document.querySelectorAll('.item-art[data-fallback]').length,
 	    itemImageCount: document.querySelectorAll('.catalog-screen .item-art img[src]').length,
@@ -184,9 +231,65 @@ const auditExpression = `(() => {
 	
 	      return [];
 	    }),
+	    brokenImageCount: [...document.images].filter((image) => image.currentSrc && image.naturalWidth === 0).length,
+	    blockedImageSourceCount: [...document.querySelectorAll('img[src], .item-art[style*="background-image"]')].filter((element) => {
+	      const source = element.getAttribute('src') || element.getAttribute('style') || '';
+	      return source.includes('localhost:9000') || source.includes('terraria.wiki.gg');
+	    }).length,
+    localAssetLeakCount: [...document.querySelectorAll('link[href], script[src], img[src]')].filter((element) => {
+      const source = element.href || element.src || '';
+      const url = new URL(source, location.href);
+      const isNuxtDevModule = url.pathname.startsWith('/_nuxt/home/lolben/')
+        || url.pathname.startsWith('/_nuxt/@fs/home/lolben/');
+      return source.includes('/home/lolben/') && !isNuxtDevModule;
+	    }).length,
+	    h1Count: document.querySelectorAll('h1').length,
+	    hiddenFocusableMenuCount: [...document.querySelectorAll('.nav-menu-panel:not(.is-open) a, .account-menu-panel:not(.is-open) a')].filter((element) => element.tabIndex >= 0).length,
+	    accountMenuPanelRect: (() => {
+	      const panel = document.querySelector('.account-menu-panel');
+	      if (!panel) return null;
+	      panel.classList.add('is-open');
+	      const rect = panel.getBoundingClientRect();
+	      const value = {
+	        left: Math.round(rect.left),
+	        right: Math.round(rect.right),
+	        width: Math.round(rect.width),
+	        viewportWidth: document.documentElement.clientWidth,
+	      };
+	      panel.classList.remove('is-open');
+	      return value;
+	    })(),
+	    navMenuPanelRect: (() => {
+	      const panel = document.querySelector('.nav-menu-panel');
+	      if (!panel) return null;
+	      panel.classList.add('is-open');
+	      const rect = panel.getBoundingClientRect();
+	      const value = {
+	        left: Math.round(rect.left),
+	        right: Math.round(rect.right),
+	        width: Math.round(rect.width),
+	        viewportWidth: document.documentElement.clientWidth,
+	      };
+	      panel.classList.remove('is-open');
+	      return value;
+	    })(),
+	    siteNavHeight: Math.round(document.querySelector('.site-nav')?.getBoundingClientRect().height ?? 0),
+	    firstCatalogCellTop: Math.round(document.querySelector('.catalog-wall-cell')?.getBoundingClientRect().top ?? 0),
+	    entityHeroImageIssueCount: [...document.querySelectorAll('.npc-detail-portrait img, .boss-detail-portrait img, .buff-detail-hero img, .entity-preview-dark img')].filter((image) => {
+	      return image.currentSrc.includes('/preview-assets/terrapedia-images/')
+	        || !image.complete
+	        || image.naturalWidth <= 0
+	        || image.naturalHeight <= 0;
+	    }).length,
+	    smallTouchTargetCount: [...document.querySelectorAll('.site-nav a[href], .site-nav button, .primary-button, .small-button')].filter((element) => {
+	      if (!visible(element)) return false;
+	      const rect = element.getBoundingClientRect();
+	      return rect.width < 44 || rect.height < 44;
+	    }).length,
 	    densityChoiceCount: document.querySelectorAll('.density-choice').length,
 	    searchTypeCount: document.querySelectorAll('.search-type-chip').length,
 	    searchSuggestionRows: document.querySelectorAll('.search-suggestion-row').length,
+	    realSearchInputCount: document.querySelectorAll('input[type="search"]').length,
 	    articleStageCount: document.querySelectorAll('.article-stage-node').length,
     categoryBranchCount: document.querySelectorAll('.category-branch-card').length,
     computedFont: getComputedStyle(document.body).fontFamily,
@@ -204,6 +307,7 @@ const itemsPage = readFileSync(file('pages/items/index.vue'), 'utf8')
 const searchPage = readFileSync(file('pages/search.vue'), 'utf8')
 const articlesPage = readFileSync(file('pages/articles/index.vue'), 'utf8')
 const categoriesPage = readFileSync(file('pages/categories/index.vue'), 'utf8')
+const publicItemsComposable = readFileSync(file('composables/usePublicItems.ts'), 'utf8')
 const failures = []
 
 for (const marker of ['mobile-typography-fixes.css', 'catalog-image-fixes.css', 'discovery-page-fixes.css']) {
@@ -218,6 +322,10 @@ for (const fontName of ['Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaH
   }
 }
 
+if (!css.includes('@fontsource-variable/noto-sans-sc')) {
+  failures.push('CSS must import bundled Noto Sans SC variable font to avoid CJK tofu in headless/Linux Chromium')
+}
+
 if (!itemsPage.includes('in visibleWallItems') || !itemsPage.includes('data-fallback')) {
   failures.push('items page must render visibleWallItems with item-art data-fallback markers')
 }
@@ -226,8 +334,12 @@ if (!itemsPage.includes('density-choice') || !itemsPage.includes('480')) {
   failures.push('items page must expose 120/240/480 density choices')
 }
 
-if (!itemsPage.includes('useAsyncData') || !itemsPage.includes('$fetch')) {
-  failures.push('items page must load catalog data from /api/items instead of only static samples')
+if (!itemsPage.includes('usePublicItems') || !publicItemsComposable.includes('export const fetchPublicItems')) {
+  failures.push('items page must load catalog data through the shared usePublicItems data layer')
+}
+
+if (itemsPage.includes("$fetch<ApiItemsResponse>('/api/items'") || itemsPage.includes('items-pixel-gallery-catalog')) {
+  failures.push('items page must not fetch /api/items directly; use the public item data layer')
 }
 
 if (!itemsPage.includes('catalog-search-input') || !itemsPage.includes('v-model="searchQuery"')) {
@@ -283,6 +395,9 @@ try {
   for (const route of ['/', '/items', '/search', '/articles', '/categories', '/user']) {
     await browser.send('Page.navigate', { url: `${baseUrl}${route}` })
     await sleep(650)
+    if (route === '/items') {
+      await waitForItemsHydration(browser)
+    }
     const result = await browser.send('Runtime.evaluate', {
       expression: auditExpression,
       returnByValue: true,
@@ -301,7 +416,59 @@ try {
       failures.push(`${route}: mobile containers clip horizontal content: ${JSON.stringify(value.clipped.slice(0, 5))}`)
     }
 
+    if (value.h1Count !== 1) {
+      failures.push(`${route}: expected exactly one h1, got ${value.h1Count}`)
+    }
+
+    if (value.brokenImageCount > 0) {
+      failures.push(`${route}: page renders broken images (${value.brokenImageCount})`)
+    }
+
+    if (value.blockedImageSourceCount > 0) {
+      failures.push(`${route}: page still references blocked external/local image sources (${value.blockedImageSourceCount})`)
+    }
+
+    if (checkLocalAssetLeaks && value.localAssetLeakCount > 0) {
+      failures.push(`${route}: page leaks local filesystem asset URLs (${value.localAssetLeakCount})`)
+    }
+
+    if (value.hiddenFocusableMenuCount > 0) {
+      failures.push(`${route}: closed nav/account menu contains focusable links (${value.hiddenFocusableMenuCount})`)
+    }
+
+    if (value.siteNavHeight > 190) {
+      failures.push(`${route}: mobile shared nav should stay compact, got ${value.siteNavHeight}px`)
+    }
+
+    if (
+      value.accountMenuPanelRect
+      && (
+        value.accountMenuPanelRect.left < 0
+        || value.accountMenuPanelRect.right > value.accountMenuPanelRect.viewportWidth
+      )
+    ) {
+      failures.push(`${route}: account menu overflows mobile viewport: ${JSON.stringify(value.accountMenuPanelRect)}`)
+    }
+
+    if (
+      value.navMenuPanelRect
+      && (
+        value.navMenuPanelRect.left < 0
+        || value.navMenuPanelRect.right > value.navMenuPanelRect.viewportWidth
+      )
+    ) {
+      failures.push(`${route}: resource menu overflows mobile viewport: ${JSON.stringify(value.navMenuPanelRect)}`)
+    }
+
+    if (value.smallTouchTargetCount > 0) {
+      failures.push(`${route}: shared interactive touch targets below 44px (${value.smallTouchTargetCount})`)
+    }
+
 	    if (route === '/items') {
+	      if (value.firstCatalogCellTop > 900) {
+	        failures.push(`/items: first catalog cell should appear near the first mobile viewport, got top=${value.firstCatalogCellTop}`)
+	      }
+
 	      if (value.catalogOldPanelCount > 0) {
 	        failures.push(`/items: previous three-panel catalog layout is still rendered (${value.catalogOldPanelCount} old panel markers)`)
 	      }
@@ -312,6 +479,10 @@ try {
 
 	      if (value.catalogSearchInputCount !== 1) {
 	        failures.push(`/items: expected exactly one working Pixel Gallery search input, got ${value.catalogSearchInputCount}`)
+	      }
+
+	      if (!value.catalogDataSourceText.includes('实时接口')) {
+	        failures.push(`/items: expected live public API data source label, got ${JSON.stringify(value.catalogDataSourceText)}`)
 	      }
 
 	      if (value.catalogQuickFilterCount < 5) {
@@ -397,6 +568,10 @@ try {
       failures.push('/search: expected search type chips and suggestion rows')
     }
 
+    if (route === '/search' && value.realSearchInputCount !== 1) {
+      failures.push(`/search: expected one real search input, got ${value.realSearchInputCount}`)
+    }
+
     if (route === '/articles' && value.articleStageCount < 4) {
       failures.push('/articles: expected at least four route stage nodes')
     }
@@ -404,6 +579,95 @@ try {
     if (route === '/categories' && value.categoryBranchCount < 6) {
       failures.push('/categories: expected category branch cards')
     }
+  }
+
+  await browser.send('Page.navigate', { url: `${baseUrl}/__missing-terrapedia-page` })
+  await sleep(650)
+  const errorPage = await browser.send('Runtime.evaluate', {
+    expression: `(() => {
+      const visible = (element) => {
+        if (!element) return false;
+        const style = getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) > 0.05 && rect.width > 1 && rect.height > 1;
+      };
+      const bodyText = document.body.innerText;
+      return {
+        hasErrorScreen: visible(document.querySelector('.error-screen')),
+        hasNav: visible(document.querySelector('.site-nav')),
+        hasFooter: visible(document.querySelector('.camp-footer')),
+        h1Count: document.querySelectorAll('h1').length,
+        statusCode: document.querySelector('.error-status-code')?.textContent?.trim() ?? '',
+        bodyText,
+        hasDefaultNuxtText: bodyText.includes('Page not found') || bodyText.includes('Stack trace') || bodyText.includes('statusMessage'),
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+      };
+    })()`,
+    returnByValue: true,
+  })
+  const errorPageValue = errorPage.result.value
+
+  if (!errorPageValue.hasErrorScreen) {
+    failures.push('/__missing-terrapedia-page: missing visible custom .error-screen')
+  }
+
+  if (!errorPageValue.hasNav || !errorPageValue.hasFooter) {
+    failures.push(`/__missing-terrapedia-page: custom error page must render shared nav/footer, got ${JSON.stringify({ nav: errorPageValue.hasNav, footer: errorPageValue.hasFooter })}`)
+  }
+
+  if (errorPageValue.h1Count !== 1) {
+    failures.push(`/__missing-terrapedia-page: expected exactly one h1 on custom error page, got ${errorPageValue.h1Count}`)
+  }
+
+  if (errorPageValue.statusCode !== '404') {
+    failures.push(`/__missing-terrapedia-page: expected visible status code 404, got ${JSON.stringify(errorPageValue.statusCode)}`)
+  }
+
+  for (const marker of ['这条资料路线还没开放', '返回首页', '物品图鉴', '搜索资料']) {
+    if (!errorPageValue.bodyText.includes(marker)) {
+      failures.push(`/__missing-terrapedia-page: custom error page must show ${marker}`)
+    }
+  }
+
+  if (errorPageValue.hasDefaultNuxtText) {
+    failures.push('/__missing-terrapedia-page: visible error page still exposes Nuxt default error wording')
+  }
+
+  if (errorPageValue.scrollWidth > errorPageValue.clientWidth + 2) {
+    failures.push(`/__missing-terrapedia-page: mobile custom error page overflows horizontally: document=${errorPageValue.scrollWidth}, viewport=${errorPageValue.clientWidth}`)
+  }
+
+  for (const route of ['/npcs', '/npcs/guide', '/bosses/eye-of-cthulhu', '/buffs/ironskin']) {
+    await browser.send('Page.navigate', { url: `${baseUrl}${route}` })
+    await sleep(650)
+    const result = await browser.send('Runtime.evaluate', {
+      expression: auditExpression,
+      returnByValue: true,
+    })
+    const value = result.result.value
+
+    if (value.entityHeroImageIssueCount > 0) {
+      failures.push(`${route}: entity hero/preview images must use recognizable loaded assets instead of preview placeholder fallbacks (${value.entityHeroImageIssueCount})`)
+    }
+  }
+
+  await browser.send('Emulation.setDeviceMetricsOverride', {
+    width: 768,
+    height: 1024,
+    deviceScaleFactor: 1,
+    mobile: false,
+  })
+  await browser.send('Page.navigate', { url: `${baseUrl}/` })
+  await sleep(650)
+  const tabletHome = await browser.send('Runtime.evaluate', {
+    expression: auditExpression,
+    returnByValue: true,
+  })
+  const tabletHomeValue = tabletHome.result.value
+
+  if (tabletHomeValue.overflowing.length > 0) {
+    failures.push(`/: tablet homepage visible elements overflow viewport: ${JSON.stringify(tabletHomeValue.overflowing.slice(0, 5))}`)
   }
 
   for (const viewport of [

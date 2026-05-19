@@ -412,21 +412,21 @@
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .cover-plate.primary {
   background:
     radial-gradient(circle at 50% 38%, rgba(var(--theme-gold-rgb), 0.18), transparent 60%),
-    url("http://localhost:9000/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png") center/94px 94px no-repeat,
+    url("/preview-assets/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png") center/94px 94px no-repeat,
     rgba(var(--theme-panel-rgb), 0.78);
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .cover-plate.secondary {
   background:
     radial-gradient(circle at 50% 38%, rgba(var(--theme-gold-rgb), 0.16), transparent 58%),
-    url("http://localhost:9000/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png") center/54px 54px no-repeat,
+    url("/preview-assets/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png") center/54px 54px no-repeat,
     rgba(var(--theme-panel-rgb), 0.76);
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .cover-plate.tertiary {
   background:
     radial-gradient(circle at 50% 38%, rgba(var(--theme-gold-rgb), 0.16), transparent 58%),
-    url("http://localhost:9000/terrapedia-images/items/2026/04/08/5495725121204ede9da25ddf678ca246.png") center/56px 56px no-repeat,
+    url("/preview-assets/terrapedia-images/items/2026/04/08/5495725121204ede9da25ddf678ca246.png") center/56px 56px no-repeat,
     rgba(var(--theme-panel-rgb), 0.76);
 }
 

@@ -7,7 +7,7 @@
       <section class="category-detail-hero support-panel">
         <div>
           <span class="eyebrow">Category · Weapons</span>
-          <h2>武器分类</h2>
+          <h1>武器分类</h1>
           <p>分类详情先展示玩家决策需要的结构：职业分支、阶段分布、典型代表和下一步路线，而不是只列出数据库字段。</p>
           <div class="tag-row">
             <span class="tag gold">932 条目</span>
@@ -16,9 +16,9 @@
           </div>
         </div>
         <div class="category-orbit">
-          <span><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span></span>
-          <span><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/92ddf79f66844566a9db851856ae756e.png')"></span></span>
-          <span><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png')"></span></span>
+          <span><span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span></span>
+          <span><span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/92ddf79f66844566a9db851856ae756e.png')"></span></span>
+          <span><span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png')"></span></span>
         </div>
       </section>
 

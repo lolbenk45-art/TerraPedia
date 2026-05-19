@@ -7,7 +7,7 @@
       <div class="page-head-inner">
         <div>
           <span class="eyebrow">/categories · /categories/items</span>
-          <h2>分类索引</h2>
+          <h1>分类索引</h1>
           <p>分类页不是后台树形表，而是把玩家最常用的图鉴入口组织成可扫描的资料地图。</p>
         </div>
         <a class="primary-button" href="/categories/weapons">查看武器分类</a>
@@ -18,7 +18,7 @@
       <section class="category-map category-atlas support-panel">
         <div class="category-axis category-atlas-axis">
           <span>图鉴结构</span>
-          <h3>从大类到路线入口</h3>
+          <h2>从大类到路线入口</h2>
           <p>左侧是主分类，右侧是玩家会真正点击的二级入口。后续接入接口后，可直接用分类树渲染。</p>
           <div class="category-axis-branches">
             <a class="active" href="/categories/weapons"><b>战斗轴</b><span>武器 / 防具 / 药水</span></a>

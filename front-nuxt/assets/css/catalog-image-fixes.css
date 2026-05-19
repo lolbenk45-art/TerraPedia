@@ -56,7 +56,7 @@
   min-width: 0;
 }
 
-.catalog-wall-topbar h3 {
+.catalog-wall-topbar :where(h2, h3) {
   margin: 6px 0 0;
   color: #fff7d4;
   font-size: 34px;
@@ -102,7 +102,7 @@
 .catalog-search-input {
   width: 100%;
   min-width: 0;
-  min-height: 42px;
+  min-height: 44px;
   border: 1px solid rgba(214, 177, 90, 0.24);
   border-radius: 8px;
   background: rgba(244, 234, 208, 0.055);
@@ -124,7 +124,7 @@
 }
 
 .catalog-clear-search {
-  min-height: 42px;
+  min-height: 44px;
   border: 1px solid rgba(214, 177, 90, 0.24);
   border-radius: 8px;
   background: rgba(244, 234, 208, 0.045);
@@ -137,7 +137,7 @@
 }
 
 .catalog-screen .catalog-quick-filter-rail .small-button {
-  min-height: 38px;
+  min-height: 44px;
   border-color: rgba(214, 177, 90, 0.24);
   background: rgba(244, 234, 208, 0.045);
   color: rgba(244, 234, 208, 0.72);
@@ -280,7 +280,7 @@
   font-weight: 900;
 }
 
-.catalog-floating-focus h3 {
+.catalog-floating-focus :where(h2, h3) {
   margin: 5px 0 0;
   color: #fff8d9;
   font-size: 34px;
@@ -338,7 +338,7 @@
   display: grid;
   place-items: center;
   min-width: 86px;
-  min-height: 38px;
+  min-height: 44px;
   border: 1px solid rgba(240, 207, 116, 0.3);
   border-radius: 8px;
   color: #ffe8a1;
@@ -587,7 +587,7 @@
   background: radial-gradient(circle, rgba(var(--theme-gold-rgb), 0.18), transparent 68%);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-wall-topbar h3 {
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-wall-topbar :where(h2, h3) {
   color: var(--text-strong);
 }
 
@@ -704,7 +704,7 @@
   color: var(--text-muted);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-floating-focus h3 {
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-floating-focus :where(h2, h3) {
   color: var(--text-strong);
 }
 
@@ -784,16 +784,25 @@
 
 @media (max-width: 720px) {
   .catalog-pixel-stage {
-    padding: 18px 12px 0;
+    padding: 8px 12px 0;
   }
 
   .catalog-wall-shell {
     border-radius: 14px;
-    padding: 14px;
+    padding: 12px;
   }
 
-  .catalog-wall-topbar h3 {
-    font-size: 28px;
+  .catalog-wall-topbar {
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .catalog-wall-topbar :where(h2, h3) {
+    font-size: 24px;
+  }
+
+  .catalog-wall-topbar p {
+    display: none;
   }
 
   .catalog-search-form {
@@ -806,7 +815,7 @@
 
   .catalog-wall-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
+    gap: 7px;
   }
 
   .catalog-wall-cell {
@@ -827,7 +836,7 @@
     padding: 18px;
   }
 
-  .catalog-floating-focus h3 {
+  .catalog-floating-focus :where(h2, h3) {
     font-size: 30px;
   }
 

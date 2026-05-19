@@ -7,7 +7,7 @@
             <div class="page-head-inner">
               <div>
                 <span class="eyebrow">编辑部精选 · 路线攻略</span>
-                <h2>资料手札</h2>
+                <h1>资料手札</h1>
                 <p>文章区以游玩路线、装备目标和机制解释组织内容，和图鉴数据互相跳转，避免普通博客列表的松散感。</p>
               </div>
               <a class="secondary-button" href="/articles">查看专题索引</a>

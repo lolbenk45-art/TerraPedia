@@ -53,6 +53,13 @@ const routes = [
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
+const withTimeout = (promise, ms, label) => Promise.race([
+  promise,
+  sleep(ms).then(() => {
+    throw new Error(`Timed out waiting for ${label}`)
+  }),
+])
+
 const waitFor = async (url, attempts = 80) => {
   for (let index = 0; index < attempts; index += 1) {
     try {
@@ -289,6 +296,31 @@ const rootTokenExpression = `(() => {
   };
 })()`
 
+const themeAppliedExpression = (theme) => `(() => {
+  const root = document.documentElement;
+  const style = getComputedStyle(root);
+  return root.getAttribute('data-theme') === ${JSON.stringify(theme)}
+    && style.getPropertyValue('--theme-text-rgb').trim().length > 0
+    && style.colorScheme.includes('light');
+})()`
+
+const pollRuntimeBoolean = async (browser, expression, attempts = 50) => {
+  for (let index = 0; index < attempts; index += 1) {
+    const result = await browser.send('Runtime.evaluate', {
+      expression,
+      returnByValue: true,
+    })
+
+    if (result.result.value === true) {
+      return
+    }
+
+    await sleep(100)
+  }
+
+  throw new Error('Runtime condition did not become true')
+}
+
 await waitFor(`${baseUrl}/`)
 
 const port = Number(process.env.CHROMIUM_REMOTE_DEBUGGING_PORT || 9241)
@@ -319,8 +351,12 @@ try {
     for (const route of routes) {
       const loaded = browser.once('Page.loadEventFired')
       await browser.send('Page.navigate', { url: `${baseUrl}${route}` })
-      await loaded.catch(() => {})
-      await sleep(520)
+      await withTimeout(loaded, 5000, `load event for ${route}`).catch(() => {})
+      await withTimeout(
+        pollRuntimeBoolean(browser, themeAppliedExpression(targetTheme)),
+        5000,
+        `${targetTheme} applied on ${route}`,
+      )
 
       const result = await browser.send('Runtime.evaluate', {
         expression: auditExpression,

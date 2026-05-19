@@ -7,7 +7,7 @@
       <div class="page-head-inner">
         <div>
           <span class="eyebrow">762 个角色与敌怪 · 公共资料索引</span>
-          <h2>NPC 图鉴</h2>
+          <h1>NPC 图鉴</h1>
           <p>把城镇角色、敌怪、Boss 部件和事件生物放到同一个可筛选图鉴里。重点不是翻页，而是快速判断角色类型、战斗属性和玩家可用信息。</p>
         </div>
         <a class="primary-button" href="/bosses">进入 Boss 路线</a>
@@ -47,32 +47,32 @@
 
         <div class="npc-board">
           <a class="npc-card active" href="/npcs/guide">
-            <i><img src="http://localhost:9000/terrapedia-images/npcs/2026/05/08/a1a47b9270ac4c8eae3af58ecf0dbe3c.png" alt="向导" /></i>
+            <i><img :src="'/preview-assets/wiki-files/Guide.png'" alt="向导" /></i>
             <div><b>向导</b><span>城镇 NPC · 材料咨询</span></div>
             <em>详情</em>
           </a>
           <a class="npc-card" href="/npcs/guide">
-            <i><img src="http://localhost:9000/terrapedia-images/npcs/2026/05/08/899c04acf9d44145abc53dc4aff90803.png" alt="商人" /></i>
+            <i><img :src="'/preview-assets/terrapedia-images/npcs/2026/05/08/899c04acf9d44145abc53dc4aff90803.png'" alt="商人" /></i>
             <div><b>商人</b><span>城镇 NPC · 基础补给</span></div>
             <em>商店</em>
           </a>
           <a class="npc-card" href="/npcs/guide">
-            <i><img src="http://localhost:9000/terrapedia-images/npcs/2026/05/08/730578baf3e94be3ab63148a52fa4db0.png" alt="护士" /></i>
+            <i><img :src="'/preview-assets/terrapedia-images/npcs/2026/05/08/730578baf3e94be3ab63148a52fa4db0.png'" alt="护士" /></i>
             <div><b>护士</b><span>城镇 NPC · 治疗服务</span></div>
             <em>服务</em>
           </a>
           <a class="npc-card danger" href="/bosses">
-            <i><img src="http://localhost:9000/terrapedia-images/npcs/2026/05/08/0d8a53901a0e4dfea17b59f2aecae869.gif" alt="克苏鲁之眼" /></i>
+            <i><img :src="'/preview-assets/terrapedia-images/npcs/2026/05/08/0d8a53901a0e4dfea17b59f2aecae869.gif'" alt="克苏鲁之眼" /></i>
             <div><b>克苏鲁之眼</b><span>Boss · 前期门槛</span></div>
             <em>Boss</em>
           </a>
           <a class="npc-card danger" href="/bosses">
-            <i><img src="http://localhost:9000/terrapedia-images/npcs/2026/05/08/f2e173cc79824f8bb12a8be6807150b9.gif" alt="史莱姆王" /></i>
+            <i><img :src="'/preview-assets/terrapedia-images/npcs/2026/05/08/f2e173cc79824f8bb12a8be6807150b9.gif'" alt="史莱姆王" /></i>
             <div><b>史莱姆王</b><span>Boss · 早期事件</span></div>
             <em>Boss</em>
           </a>
           <a class="npc-card" href="/npcs/guide">
-            <i><img src="http://localhost:9000/terrapedia-images/npcs/2026/05/08/4d7e13d9e77b4d4ea81c80e307dc50ac.gif" alt="黄蜂" /></i>
+            <i><img :src="'/preview-assets/terrapedia-images/npcs/2026/05/08/4d7e13d9e77b4d4ea81c80e307dc50ac.gif'" alt="黄蜂" /></i>
             <div><b>黄蜂</b><span>敌怪 · 丛林生态</span></div>
             <em>生态</em>
           </a>
@@ -82,9 +82,9 @@
       <aside class="entity-preview-dark">
         <span class="eyebrow">当前焦点</span>
         <div class="portrait-stage">
-          <img src="http://localhost:9000/terrapedia-images/npcs/2026/05/08/a1a47b9270ac4c8eae3af58ecf0dbe3c.png" alt="向导" />
+          <img :src="'/preview-assets/wiki-files/Guide.png'" alt="向导" />
         </div>
-        <h3>向导</h3>
+        <h2>向导</h2>
         <p>新世界的基础角色。公开页应先告诉玩家他能做什么，再展示商店、提示、战斗和关联路线。</p>
         <div class="mini-facts">
           <div><b>250</b><span>生命值</span></div>

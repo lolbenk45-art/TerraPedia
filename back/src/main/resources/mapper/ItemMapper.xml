@@ -263,7 +263,7 @@
             i.name,
             i.name_zh AS nameZh,
             i.internal_name AS internalName,
-            <include refid="ManagedItemImageExpr"/> AS image,
+            ii_public.cached_url AS image,
             i.category_id AS categoryId,
             c.name AS categoryName,
             i.rarity_id AS rarityId,
@@ -353,6 +353,38 @@
             LIMIT #{limit}
             OFFSET #{offset}
         ) i
+        LEFT JOIN item_images ii_public
+            ON ii_public.id = (
+                SELECT ii.id
+                FROM item_images ii
+                WHERE ii.item_id = i.id
+                  AND ii.deleted = 0
+                  AND ii.status = 1
+                  AND NULLIF(TRIM(ii.cached_url), '') IS NOT NULL
+                  <choose>
+                      <when test="managedImagePrefixes != null and managedImagePrefixes.size() > 0">
+                          AND (
+                              <foreach collection="managedImagePrefixes" item="managedImagePrefix" separator=" OR ">
+                                  LEFT(LOWER(TRIM(ii.cached_url)), CHAR_LENGTH(#{managedImagePrefix})) = LOWER(#{managedImagePrefix})
+                              </foreach>
+                          )
+                      </when>
+                      <otherwise>
+                          AND 1 = 0
+                      </otherwise>
+                  </choose>
+                  AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%(demo)%'
+                  AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%28demo%29%'
+                  AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&amp;#/-]|$)'
+                  AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%(placed)%'
+                  AND LOWER(TRIM(ii.cached_url)) NOT LIKE '%28placed%29%'
+                  AND LOWER(TRIM(ii.cached_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&amp;#/-]|$)'
+                ORDER BY
+                    CASE WHEN ii.is_primary = 1 THEN 0 ELSE 1 END,
+                    ii.sort_order ASC,
+                    ii.id ASC
+                LIMIT 1
+            )
         LEFT JOIN category c ON c.id = i.category_id AND c.deleted = 0
         LEFT JOIN item_rarity ir ON ir.id = i.rarity_id AND ir.deleted = 0 AND ir.status = 1
         LEFT JOIN game_period gp ON gp.id = i.game_period_id AND gp.deleted = 0 AND gp.status = 1
