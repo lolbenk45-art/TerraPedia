@@ -301,6 +301,37 @@ test('buildArmorSetRelations reuses managed maint armor image cache for wiki arm
   );
 });
 
+test('buildArmorSetRelations carries managed maint armor set image urls into relation rows', () => {
+  const result = buildArmorSetRelations({
+    wikiArmorSets: [{
+      pageTitle: 'Wood armor',
+      entityType: 'armor_set',
+      compositionKind: 'traditional_set',
+      images: [{
+        role: 'male',
+        fileTitle: 'Wood armor.png',
+        url: 'https://terraria.wiki.gg/images/Wood_armor.png'
+      }]
+    }],
+    maintItems: [
+      item(1, 'WoodHelmet', 'Wood Helmet', { headSlot: 1 }),
+      item(2, 'WoodBreastplate', 'Wood Breastplate', { bodySlot: 1 }),
+      item(3, 'WoodGreaves', 'Wood Greaves', { legSlot: 1 })
+    ],
+    maintArmorSetImages: [{
+      pageTitle: 'Wood armor',
+      imageRole: 'male',
+      sourceFileTitle: 'Wood armor.png',
+      originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png',
+      cachedUrl: 'http://localhost:9000/terrapedia-images/items/wiki/armor-sets/00/hash-wood-armor.png'
+    }],
+    managedImageUrlPrefixes: ['http://localhost:9000/terrapedia-images']
+  });
+
+  assert.equal(result.relationArmorSetImages.length, 1);
+  assert.equal(result.relationArmorSetImages[0].cachedUrl, 'http://localhost:9000/terrapedia-images/items/wiki/armor-sets/00/hash-wood-armor.png');
+});
+
 test('buildArmorSetRelations rejects cached armor image rows when managed prefixes are empty', () => {
   const actual = buildArmorSetRelationsBase({
     wikiArmorSets: [

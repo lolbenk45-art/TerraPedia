@@ -18,12 +18,26 @@ import {
 } from './source-dataset-landing-schema.mjs';
 
 const require = createRequire(import.meta.url);
-const defaultMysqlModule = require('mysql2/promise');
-
 const defaultRepoRoot = resolveProjectPath();
 const SINGLE_CURRENT_DATASET_TYPES = new Set([
   'buffs_raw',
 ]);
+let mysqlModule = null;
+
+function loadMysqlModule(repoRoot = defaultRepoRoot) {
+  if (mysqlModule) {
+    return mysqlModule;
+  }
+  try {
+    mysqlModule = require('mysql2/promise');
+  } catch (error) {
+    if (error?.code !== 'MODULE_NOT_FOUND') {
+      throw error;
+    }
+    mysqlModule = createRequire(path.join(repoRoot, 'data-query-app', 'package.json'))('mysql2/promise');
+  }
+  return mysqlModule;
+}
 
 export function parseArgs(argv) {
   const args = {};
@@ -467,7 +481,7 @@ async function upsertLandingEntry(connection, entry, summary) {
 }
 
 export async function runLandingImport(options = {}, dependencies = {}) {
-  const mysqlModule = dependencies.mysqlModule ?? defaultMysqlModule;
+  const mysqlModule = dependencies.mysqlModule ?? loadMysqlModule(options.repoRoot);
   const writeReport = dependencies.writeReport ?? defaultWriteReport;
   const locateDatasetEntries = dependencies.locateDatasetEntries
     ?? ((resolverOptions) => listSourceDatasetLandingInputs(resolverOptions));

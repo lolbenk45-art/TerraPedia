@@ -12,6 +12,7 @@ import {
 test('parseArgs defaults relation item image sync to dry-run', () => {
   assert.deepEqual(parseArgs([]), {
     apply: false,
+    allowUnsafeEmptyRelationInput: false,
     localDatabase: 'terria_v1_local',
     relationDatabase: 'terria_v1_relation',
     dateTag: null,
@@ -170,4 +171,76 @@ test('runRelationItemImagesToLocalSync apply backs up image tables and removes l
   assert.ok(statements.some((sql) => sql.includes('UPDATE `terria_v1_local`.`items` i')));
   assert.ok(statements.some((sql) => sql.includes('SET `image` = NULL')));
   assert.ok(statements.every((sql) => !sql.includes('DELETE FROM `terria_v1_local`.`items`')));
+});
+
+test('runRelationItemImagesToLocalSync apply aborts before deleting local item images when relation input is empty', async () => {
+  const statements = [];
+
+  await assert.rejects(
+    () => runRelationItemImagesToLocalSync(
+      {
+        apply: true,
+        localDatabase: 'terria_v1_local',
+        relationDatabase: 'terria_v1_relation',
+        dateTag: '2026-04-27',
+        backupSuffix: '20260427120000'
+      },
+      {
+        executeLocal: async (fn) => fn({
+          query: async (sql) => {
+            statements.push(sql);
+            return [{ affectedRows: 1 }];
+          }
+        }),
+        collectStats: async () => ({
+          localItems: 2,
+          localItemImagesBefore: 3,
+          relationItemImages: 0,
+          relationImagesMatchedToLocalItems: 0,
+          localItemsWithWikiImageBefore: 0,
+          localItemsWithMinioImageBefore: 2
+        }),
+        writeReport: async () => 'reports/relation/relation-item-images-to-local-sync-2026-04-27.json'
+      }
+    ),
+    /relation item image input is empty/i
+  );
+
+  assert.ok(statements.every((sql) => !sql.includes('DELETE FROM `terria_v1_local`.`item_images`')));
+});
+
+test('runRelationItemImagesToLocalSync apply aborts before deleting local item images when relation images match no local items', async () => {
+  const statements = [];
+
+  await assert.rejects(
+    () => runRelationItemImagesToLocalSync(
+      {
+        apply: true,
+        localDatabase: 'terria_v1_local',
+        relationDatabase: 'terria_v1_relation',
+        dateTag: '2026-04-27',
+        backupSuffix: '20260427120000'
+      },
+      {
+        executeLocal: async (fn) => fn({
+          query: async (sql) => {
+            statements.push(sql);
+            return [{ affectedRows: 1 }];
+          }
+        }),
+        collectStats: async () => ({
+          localItems: 2,
+          localItemImagesBefore: 3,
+          relationItemImages: 4,
+          relationImagesMatchedToLocalItems: 0,
+          localItemsWithWikiImageBefore: 0,
+          localItemsWithMinioImageBefore: 2
+        }),
+        writeReport: async () => 'reports/relation/relation-item-images-to-local-sync-2026-04-27.json'
+      }
+    ),
+    /relation item images matched no local items/i
+  );
+
+  assert.ok(statements.every((sql) => !sql.includes('DELETE FROM `terria_v1_local`.`item_images`')));
 });

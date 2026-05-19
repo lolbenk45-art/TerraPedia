@@ -1219,6 +1219,9 @@ export async function runSync(options, dependencies = {}) {
   const summary = {
     generatedAt: new Date().toISOString(),
     apply: options.apply,
+    maintArmorSetImages: maintArmorSetImages.length,
+    relationArmorSetImages: results.relationArmorSetImages.length,
+    projectionArmorSets: results.projectionArmorSets.length,
     domainSummary: {
       base: results.relationItems.length
         + results.relationNpcs.length

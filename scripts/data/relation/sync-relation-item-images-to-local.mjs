@@ -9,9 +9,24 @@ import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 
 const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
 
 const repoRoot = getProjectRoot();
+let mysqlModule = null;
+
+function loadMysqlModule() {
+  if (mysqlModule) {
+    return mysqlModule;
+  }
+  try {
+    mysqlModule = require('mysql2/promise');
+  } catch (error) {
+    if (error?.code !== 'MODULE_NOT_FOUND') {
+      throw error;
+    }
+    mysqlModule = createRequire(path.join(repoRoot, 'data-query-app', 'package.json'))('mysql2/promise');
+  }
+  return mysqlModule;
+}
 
 function booleanOption(value, fallback = false) {
   if (value == null || value === '') return fallback;
@@ -33,6 +48,7 @@ export function parseArgs(argv) {
 
   return {
     apply: booleanOption(raw.apply, false),
+    allowUnsafeEmptyRelationInput: booleanOption(raw['allow-unsafe-empty-relation-input'] ?? raw.allowUnsafeEmptyRelationInput, false),
     localDatabase: raw['local-database'] ?? raw.localDatabase ?? 'terria_v1_local',
     relationDatabase: raw['relation-database'] ?? raw.relationDatabase ?? 'terria_v1_relation',
     dateTag: raw['date-tag'] ?? raw.dateTag ?? null,
@@ -244,6 +260,7 @@ async function defaultWriteReport(report) {
 
 async function defaultExecuteLocal(localDatabase, dependencies, fn) {
   const config = dependencies.config ?? loadLocalStackConfig(repoRoot);
+  const mysql = dependencies.mysqlModule ?? loadMysqlModule();
   const connection = await mysql.createConnection({
     host: config.database?.host ?? '127.0.0.1',
     port: Number(config.database?.port ?? 3306),
@@ -338,10 +355,29 @@ async function applySync(connection, options) {
   return { itemImagesBackupTable, itemsBackupTable };
 }
 
+export function validateApplySafety(stats, options = {}) {
+  if (options.allowUnsafeEmptyRelationInput) {
+    return;
+  }
+  const relationItemImages = Number(stats?.relationItemImages ?? 0);
+  const relationImagesMatchedToLocalItems = Number(stats?.relationImagesMatchedToLocalItems ?? 0);
+  if (relationItemImages <= 0) {
+    throw new Error(
+      'Unsafe relation item image sync: relation item image input is empty; refusing to replace local item_images without --allow-unsafe-empty-relation-input=true'
+    );
+  }
+  if (relationImagesMatchedToLocalItems <= 0) {
+    throw new Error(
+      'Unsafe relation item image sync: relation item images matched no local items; refusing to replace local item_images without --allow-unsafe-empty-relation-input=true'
+    );
+  }
+}
+
 export async function runRelationItemImagesToLocalSync(options = {}, dependencies = {}) {
   const now = dependencies.now ?? new Date();
   const normalized = {
     apply: Boolean(options.apply),
+    allowUnsafeEmptyRelationInput: Boolean(options.allowUnsafeEmptyRelationInput),
     localDatabase: options.localDatabase ?? 'terria_v1_local',
     relationDatabase: options.relationDatabase ?? 'terria_v1_relation',
     dateTag: options.dateTag ?? toDateTag(now),
@@ -355,6 +391,9 @@ export async function runRelationItemImagesToLocalSync(options = {}, dependencie
 
   return executeLocal(async (connection) => {
     const before = await collectStats(connection, normalized);
+    if (normalized.apply) {
+      validateApplySafety(before, normalized);
+    }
     const applyResult = normalized.apply ? await applySync(connection, normalized) : {};
     const after = normalized.apply ? await collectStats(connection, normalized) : before;
 

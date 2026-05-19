@@ -832,7 +832,24 @@ test('runSync dry-run builds armor set relation and projection rows from maint s
           ];
         }
         if (sql.includes('maint_armor_set_images')) {
-          return [];
+          return [{
+            text_key: 'ArmorSetBonus.Wood',
+            image_role: 'male',
+            source_file_title: 'Wood armor.png',
+            original_url: 'https://terraria.wiki.gg/images/Wood_armor.png',
+            cached_url: 'http://localhost:9000/terrapedia-images/items/wiki/armor-sets/00/hash-wood-armor.png',
+            width: 64,
+            height: 64,
+            content_type: 'image/png',
+            is_primary: 1,
+            sort_order: 0,
+            raw_json: '{}',
+            source_provider: 'terraria.wiki.gg',
+            source_page: 'zh/wiki/盔甲',
+            landing_source_id: 12,
+            landing_source_key: 'wiki.zh.armor',
+            landing_content_hash: 'c'.repeat(64)
+          }];
         }
         return [];
       },
@@ -850,9 +867,12 @@ test('runSync dry-run builds armor set relation and projection rows from maint s
 
   assert.equal(result.results.relationArmorSets.length, 1);
   assert.equal(result.results.relationArmorSetItems.length, 3);
-  assert.equal(result.results.relationArmorSetImages.length, 0);
+  assert.equal(result.results.relationArmorSetImages.length, 1);
   assert.equal(result.results.projectionArmorSets.length, 1);
-  assert.equal(result.summary.domainSummary.armorSet, 4);
+  assert.equal(result.summary.domainSummary.armorSet, 5);
+  assert.equal(result.summary.maintArmorSetImages, 1);
+  assert.equal(result.summary.relationArmorSetImages, 1);
+  assert.equal(result.summary.projectionArmorSets, 1);
   assert.equal(result.results.projectionArmorSets[0].textKey, 'ArmorSetBonus.Wood');
   assert.deepEqual(JSON.parse(result.results.projectionArmorSets[0].currentItemIdsJson), [727, 728, 729]);
 });

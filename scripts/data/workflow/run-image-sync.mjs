@@ -56,6 +56,8 @@ for (const scope of scopes) {
     summary.modules.projectiles = await syncProjectiles();
   } else if (scope === 'buffs') {
     summary.modules.buffs = await syncBuffs();
+  } else if (scope === 'armor_set_images') {
+    summary.modules.armor_set_images = await syncArmorSetImages();
   }
 }
 
@@ -138,6 +140,24 @@ async function syncBuffs() {
     },
     fileNameHint: (record, url) => `${slugify(record?.internalName || record?.englishName || 'buff')}${guessExtension(url)}`,
     nameHint: (record) => record?.internalName || record?.englishName || 'buff'
+  });
+}
+
+async function syncArmorSetImages() {
+  const filePath = path.join(process.cwd(), 'data', 'terraPedia', 'raw', 'wiki', 'armor_set_images.parsed.latest.json');
+  const payload = readJson(filePath);
+  const records = Array.isArray(payload?.armorSetImages) ? payload.armorSetImages : [];
+  return syncRecordImages({
+    entityDomain: 'items',
+    filePath,
+    payload,
+    records,
+    sourceUrlAccessor: (record) => toText(record?.cachedUrl) || toText(record?.originalUrl),
+    targetUrlWriter: (record, url) => {
+      record.cachedUrl = url;
+    },
+    fileNameHint: (record, url) => `${slugify(record?.sourceFileTitle || record?.pageTitle || 'armor-set')}${guessExtension(url)}`,
+    nameHint: (record) => record?.sourceFileTitle || record?.pageTitle || 'armor-set'
   });
 }
 
@@ -252,7 +272,7 @@ function resolveScopes(rawValue) {
       .split(',')
       .map((entry) => entry.trim())
       .filter(Boolean)
-  )].filter((scope) => ['items', 'npcs', 'projectiles', 'buffs'].includes(scope));
+  )].filter((scope) => ['items', 'npcs', 'projectiles', 'buffs', 'armor_set_images'].includes(scope));
 }
 
 function guessExtension(sourceUrl) {

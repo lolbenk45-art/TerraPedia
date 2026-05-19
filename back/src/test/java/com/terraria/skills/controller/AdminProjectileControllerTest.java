@@ -2,9 +2,13 @@ package com.terraria.skills.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.entity.Item;
+import com.terraria.skills.entity.Npc;
 import com.terraria.skills.entity.Projectile;
+import com.terraria.skills.mapper.NpcMapper;
 import com.terraria.skills.mapper.ProjectileMapper;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
+import com.terraria.skills.service.ManagedItemImageResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,8 +19,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -40,12 +46,24 @@ class AdminProjectileControllerTest {
     @Mock
     private ProjectileMapper projectileMapper;
 
+    @Mock
+    private ManagedItemImageResolver managedItemImageResolver;
+
+    @Mock
+    private NpcMapper npcMapper;
+
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
-        AdminProjectileController controller = new AdminProjectileController(projectileMapper, objectMapper, MANAGED_IMAGE_URL_POLICY);
+        AdminProjectileController controller = new AdminProjectileController(
+            projectileMapper,
+            objectMapper,
+            MANAGED_IMAGE_URL_POLICY,
+            managedItemImageResolver,
+            npcMapper
+        );
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
             .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
             .build();
@@ -153,6 +171,60 @@ class AdminProjectileControllerTest {
             .andExpect(jsonPath("$.data.sourceNpcsJson").value("[{\"internalName\":\"Zombie\",\"npcId\":3}]"))
             .andExpect(jsonPath("$.data.sourceItems[0].internalName").value("WoodenArrow"))
             .andExpect(jsonPath("$.data.sourceNpcs[0].internalName").value("Zombie"));
+    }
+
+    @Test
+    void shouldEnrichProjectileDetailSourceItemImagesFromManagedItemImages() throws Exception {
+        String managedImageUrl = "http://localhost:9000/terrapedia-images/items/wiki/item-images/wooden-bow.png";
+        Projectile projectile = new Projectile();
+        projectile.setId(1L);
+        projectile.setSourceId(1);
+        projectile.setInternalName("WoodenArrowFriendly");
+        projectile.setName("Wooden Arrow (friendly)");
+        projectile.setSourceItemsJson("[{\"internalName\":\"WoodenBow\",\"itemId\":39,\"image\":null}]");
+        projectile.setSourceNpcsJson("[]");
+        projectile.setStatus(1);
+
+        when(projectileMapper.selectById(1L)).thenReturn(projectile);
+        when(managedItemImageResolver.resolveManagedImages(argThat(items ->
+            items != null && items.stream().anyMatch(item -> Long.valueOf(39L).equals(item.getId()))
+        ))).thenReturn(Map.of(39L, managedImageUrl));
+
+        mockMvc.perform(get("/admin/projectiles/1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.sourceItems[0].internalName").value("WoodenBow"))
+            .andExpect(jsonPath("$.data.sourceItems[0].image").value(managedImageUrl))
+            .andExpect(jsonPath("$.data.sourceItems[0].imageUrl").value(managedImageUrl))
+            .andExpect(jsonPath("$.data.sourceItems[0].itemImageUrl").value(managedImageUrl));
+    }
+
+    @Test
+    void shouldEnrichProjectileDetailSourceNpcImagesFromManagedNpcImageUrl() throws Exception {
+        String managedImageUrl = "http://localhost:9000/terrapedia-images/npcs/guide.png";
+        Projectile projectile = new Projectile();
+        projectile.setId(1L);
+        projectile.setSourceId(1);
+        projectile.setInternalName("WoodenArrowFriendly");
+        projectile.setName("Wooden Arrow (friendly)");
+        projectile.setSourceItemsJson("[]");
+        projectile.setSourceNpcsJson("[{\"internalName\":\"Guide\",\"npcId\":22,\"sourceId\":22,\"image\":null}]");
+        projectile.setStatus(1);
+
+        Npc npc = new Npc();
+        npc.setId(22L);
+        npc.setGameId(22L);
+        npc.setInternalName("Guide");
+        npc.setImageUrl(managedImageUrl);
+
+        when(projectileMapper.selectById(1L)).thenReturn(projectile);
+        when(npcMapper.selectList(any())).thenReturn(List.of(npc));
+
+        mockMvc.perform(get("/admin/projectiles/1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.sourceNpcs[0].internalName").value("Guide"))
+            .andExpect(jsonPath("$.data.sourceNpcs[0].image").value(managedImageUrl))
+            .andExpect(jsonPath("$.data.sourceNpcs[0].imageUrl").value(managedImageUrl))
+            .andExpect(jsonPath("$.data.sourceNpcs[0].npcImageUrl").value(managedImageUrl));
     }
 
     @Test
