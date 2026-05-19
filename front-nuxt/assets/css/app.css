@@ -1,2 +1,7 @@
 @import "tailwindcss";
+@import "@fontsource-variable/noto-sans-sc";
 @import "./hifi-preview.css";
+@import "./mobile-typography-fixes.css";
+@import "./catalog-image-fixes.css";
+@import "./discovery-page-fixes.css";
+@import "./light-theme-contrast-fixes.css";

@@ -6,11 +6,11 @@
     <main class="support-layout detail-support-layout">
       <section class="buff-detail-hero support-panel">
         <div class="buff-icon-stage">
-          <img src="http://localhost:9000/terrapedia-images/items/2026/04/08/c86addd4cab34c9f9a6f67efef22d45b.png" alt="铁皮" />
+          <img :src="'/preview-assets/wiki-files/Ironskin_Potion.png'" alt="铁皮药水" />
         </div>
         <div>
           <span class="eyebrow">Buff · Ironskin</span>
-          <h2>铁皮</h2>
+          <h1>铁皮</h1>
           <p>防御增加 8。公开详情页用“效果、来源、适用场景、关联路线”表达，不展示后台维护关系字段。</p>
           <div class="tag-row">
             <span class="tag gold">防御增益</span>
@@ -23,17 +23,17 @@
       <section class="buff-detail-grid">
         <article class="support-panel buff-signal active">
           <span>效果</span>
-          <h3>防御 +8</h3>
+          <h2>防御 +8</h2>
           <p>早期 Boss、地下探索和事件战斗都能明显提高容错。</p>
         </article>
         <article class="support-panel buff-signal">
           <span>获得</span>
-          <h3>铁皮药水</h3>
+          <h2>铁皮药水</h2>
           <p>后续接入来源接口后展示药水配方、材料和制作站。</p>
         </article>
         <article class="support-panel buff-signal">
           <span>推荐场景</span>
-          <h3>Boss 前检查</h3>
+          <h2>Boss 前检查</h2>
           <p>和再生、敏捷、食物加成一起组成基础战斗配置。</p>
         </article>
       </section>

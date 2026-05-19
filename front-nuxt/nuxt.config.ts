@@ -1,7 +1,16 @@
 const terrapediaBackendOrigin = (process.env.TERRAPEDIA_BACKEND_ORIGIN || 'http://localhost:18088').replace(/\/$/, '')
+const terrapediaImageOrigin = (
+  process.env.TERRAPEDIA_IMAGE_ORIGIN
+  || process.env.TERRAPEDIA_MINIO_PUBLIC_ENDPOINT
+  || (process.env.NODE_ENV === 'development' ? 'http://localhost:9000' : '')
+).replace(/\/$/, '')
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineNuxtConfig({
+  srcDir: '.',
+  dir: {
+    app: '.',
+  },
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
   modules: ['@pinia/nuxt'],
@@ -22,6 +31,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: '/api',
+      imageOrigin: terrapediaImageOrigin,
     },
   },
 

@@ -6,11 +6,11 @@
           <div class="detail-layout">
             <section class="detail-hero dark-card">
               <div class="detail-icon-stage">
-                <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span>
+                <span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span>
               </div>
               <div class="detail-main">
                 <span class="eyebrow">物品 #757 · Terra Blade</span>
-                <h2>泰拉刃</h2>
+                <h1>泰拉刃</h1>
                 <p>泰拉刃是一把困难模式后期近战武器，挥动时会发射高速剑气。它通过真永夜刃和真断钢剑合成，是进入月亮领主阶段前的主线节点。</p>
                 <div class="tag-row">
                   <span class="tag gold">近战武器</span>
@@ -41,22 +41,22 @@
               <div class="module-stack">
                 <section class="detail-module dark-card">
                   <div class="module-title">
-                    <h3>合成路线</h3>
+                    <h2>合成路线</h2>
                     <span class="tag gold">2 个直接材料</span>
                   </div>
                   <div class="recipe-tree">
                     <div class="recipe-node">
-                      <span class="sprite-frame" style="width:48px;height:48px"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png')"></span></span>
+                      <span class="sprite-frame" style="width:48px;height:48px"><span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png')"></span></span>
                       <b>真永夜刃</b><span>永夜刃 + 英雄断剑</span>
                     </div>
                     <div class="recipe-arrow">+</div>
                     <div class="recipe-node">
-                      <span class="sprite-frame" style="width:48px;height:48px"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/5495725121204ede9da25ddf678ca246.png')"></span></span>
+                      <span class="sprite-frame" style="width:48px;height:48px"><span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/5495725121204ede9da25ddf678ca246.png')"></span></span>
                       <b>真断钢剑</b><span>断钢剑 + 英雄断剑</span>
                     </div>
                     <div class="recipe-arrow">=</div>
                     <div class="recipe-node">
-                      <span class="sprite-frame" style="width:48px;height:48px"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span></span>
+                      <span class="sprite-frame" style="width:48px;height:48px"><span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span></span>
                       <b>泰拉刃</b><span>秘银砧 / 山铜砧</span>
                     </div>
                   </div>
@@ -69,17 +69,17 @@
                   </div>
                   <div class="source-table">
                     <div class="source-row">
-                      <span class="sprite-frame" style="width:42px;height:42px"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/77203300926f489fb82ae1072a8623d4.png')"></span></span>
+                      <span class="sprite-frame" style="width:42px;height:42px"><span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/77203300926f489fb82ae1072a8623d4.png')"></span></span>
                       <div><b>英雄断剑</b><span>日食事件中的蛾怪掉落</span></div>
                       <strong>25%</strong>
                     </div>
                     <div class="source-row">
-                      <span class="sprite-frame" style="width:42px;height:42px"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/195bfda5955641b5bf340322fdd26eba.png')"></span></span>
+                      <span class="sprite-frame" style="width:42px;height:42px"><span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/195bfda5955641b5bf340322fdd26eba.png')"></span></span>
                       <div><b>秘银砧 / 山铜砧</b><span>困难模式砧类制作站</span></div>
                       <strong>制作站</strong>
                     </div>
                     <div class="source-row">
-                      <span class="sprite-frame" style="width:42px;height:42px"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/c626dfb6e7bc4139b099b81ffc4680d1.png')"></span></span>
+                      <span class="sprite-frame" style="width:42px;height:42px"><span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/c626dfb6e7bc4139b099b81ffc4680d1.png')"></span></span>
                       <div><b>装备路线</b><span>推荐在击败机械 Boss 后推进</span></div>
                       <strong>攻略</strong>
                     </div>

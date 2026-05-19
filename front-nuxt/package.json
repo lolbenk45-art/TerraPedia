@@ -8,11 +8,14 @@
     "build": "nuxt build",
     "check": "nuxt typecheck",
     "check:public-pages": "node scripts/check-public-pages.mjs",
+    "check:light-theme": "node scripts/check-light-theme-typography.mjs",
+    "check:visual": "node scripts/check-visual-regression.mjs",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@fontsource-variable/noto-sans-sc": "^5.2.10",
     "@pinia/nuxt": "^0.11.3",
     "nuxt": "^4.0.0",
     "pinia": "^3.0.4",

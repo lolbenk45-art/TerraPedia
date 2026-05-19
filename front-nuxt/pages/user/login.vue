@@ -6,7 +6,7 @@
     <main class="user-auth-layout">
       <section class="user-auth-copy support-panel">
         <span class="eyebrow">账号入口</span>
-        <h2>登录 TerraPedia</h2>
+        <h1>登录 TerraPedia</h1>
         <p>页面只展示登录结构和视觉层，不实现认证。后续接入账号接口后保留当前位置、收藏和投稿入口。</p>
         <div class="user-auth-proof">
           <div><b>收藏</b><span>快速回到资料</span></div>

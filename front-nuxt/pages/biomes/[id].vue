@@ -7,7 +7,7 @@
       <section class="biome-detail-hero support-panel">
         <div>
           <span class="eyebrow">Biome · Jungle</span>
-          <h2>丛林</h2>
+          <h1>丛林</h1>
           <p>丛林详情聚焦风险和收益：蜂巢、孢子、生命果、神庙入口和阶段门槛。玩家能直接判断什么时候进入、带什么装备。</p>
           <div class="tag-row">
             <span class="tag gold">探索收益高</span>

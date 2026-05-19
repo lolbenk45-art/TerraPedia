@@ -6,11 +6,11 @@
     <main class="boss-detail-shell">
       <section class="boss-detail-hero support-panel">
         <div class="boss-detail-portrait">
-          <img src="http://localhost:9000/terrapedia-images/npcs/2026/05/08/0d8a53901a0e4dfea17b59f2aecae869.gif" alt="克苏鲁之眼" />
+          <img :src="'/preview-assets/wiki-files/Eye_of_Cthulhu_(Phase_1).gif'" alt="克苏鲁之眼" />
         </div>
         <div>
           <span class="eyebrow">Boss · Eye of Cthulhu</span>
-          <h2>克苏鲁之眼</h2>
+          <h1>克苏鲁之眼</h1>
           <p>早期主线 Boss。公开详情页优先展示触发、战前准备、阶段变化、关键掉落和下一步，而不是后台分组关系。</p>
           <div class="tag-row">
             <span class="tag gold">2800 HP</span>
@@ -29,17 +29,17 @@
       <section class="boss-phase-grid">
         <article class="support-panel boss-phase active">
           <span>Phase 01</span>
-          <h3>试探阶段</h3>
+          <h2>试探阶段</h2>
           <p>以冲撞和悬停召唤仆从为主，重点检查平台宽度和基础输出。</p>
         </article>
         <article class="support-panel boss-phase">
           <span>Phase 02</span>
-          <h3>高速冲刺</h3>
+          <h2>高速冲刺</h2>
           <p>血量降低后切换高频冲刺，移动速度和再生能力会明显影响容错。</p>
         </article>
         <article class="support-panel boss-phase">
           <span>Route</span>
-          <h3>后续推进</h3>
+          <h2>后续推进</h2>
           <p>胜利后继续推进邪恶地形、陨石、地牢和困难模式前装备。</p>
         </article>
       </section>

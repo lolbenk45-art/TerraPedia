@@ -6,7 +6,7 @@
     <main class="user-auth-layout">
       <section class="user-auth-copy support-panel">
         <span class="eyebrow">创建账号</span>
-        <h2>注册成为资料共建者</h2>
+        <h1>注册成为资料共建者</h1>
         <p>注册页先保留品牌化表单和说明区域，功能暂不实现。视觉上与登录页共享同一套深色网格和低亮边框。</p>
         <div class="user-auth-proof">
           <div><b>路线</b><span>保存阅读进度</span></div>

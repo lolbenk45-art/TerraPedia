@@ -7,7 +7,7 @@
       <div class="page-head-inner">
         <div>
           <span class="eyebrow">/crafting · recipe route</span>
-          <h2>制作路线</h2>
+          <h1>制作路线</h1>
           <p>制作页先做视觉结构：材料、制作站、上游来源和下游目标放在同一个工作台视图里。功能暂不接入，后续再绑定配方接口。</p>
         </div>
         <a class="primary-button" href="/items/terra-blade">查看泰拉刃</a>
@@ -18,7 +18,7 @@
       <section class="crafting-command support-panel">
         <div>
           <span class="eyebrow">当前蓝图</span>
-          <h3>泰拉刃制作链</h3>
+          <h2>泰拉刃制作链</h2>
           <p>左侧保留检索与目标物位置，中间展示主要合成节点，右侧承接制作站、材料缺口和路线入口。</p>
           <div class="tag-row">
             <span class="tag gold">静态占位</span>
@@ -43,7 +43,7 @@
 
         <section class="recipe-canvas support-panel">
           <div class="recipe-node-card root">
-            <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span>
+            <span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span>
             <b>泰拉刃</b>
             <em>目标</em>
           </div>
@@ -51,17 +51,17 @@
           <div class="recipe-connector two" aria-hidden="true"></div>
           <div class="recipe-connector three" aria-hidden="true"></div>
           <div class="recipe-node-card left">
-            <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png')"></span>
+            <span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png')"></span>
             <b>真永夜刃</b>
             <em>材料</em>
           </div>
           <div class="recipe-node-card right">
-            <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/5495725121204ede9da25ddf678ca246.png')"></span>
+            <span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/5495725121204ede9da25ddf678ca246.png')"></span>
             <b>真断钢剑</b>
             <em>材料</em>
           </div>
           <div class="recipe-node-card bottom">
-            <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/77203300926f489fb82ae1072a8623d4.png')"></span>
+            <span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/77203300926f489fb82ae1072a8623d4.png')"></span>
             <b>英雄断剑</b>
             <em>事件来源</em>
           </div>

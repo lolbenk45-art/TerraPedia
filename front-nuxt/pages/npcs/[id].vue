@@ -6,11 +6,11 @@
     <main class="entity-detail-layout">
       <section class="npc-detail-hero">
         <div class="npc-detail-portrait">
-          <img src="http://localhost:9000/terrapedia-images/npcs/2026/05/08/a1a47b9270ac4c8eae3af58ecf0dbe3c.png" alt="向导" />
+          <img :src="'/preview-assets/wiki-files/Guide.png'" alt="向导" />
         </div>
         <div class="npc-detail-copy">
           <span class="eyebrow">NPC #22 · Guide</span>
-          <h2>向导</h2>
+          <h1>向导</h1>
           <p>向导是新世界最早出现的城镇角色，核心价值是材料咨询和基础提示。详情页用玩家视角组织信息：怎么入住、能提供什么、与哪些路线有关。</p>
           <div class="tag-row">
             <span class="tag gold">城镇 NPC</span>
@@ -33,7 +33,7 @@
       <section class="detail-mosaic">
         <article class="detail-module dark-card">
           <div class="module-title">
-            <h3>玩家先看什么</h3>
+            <h2>玩家先看什么</h2>
             <span class="tag moss">公开详情结构</span>
           </div>
           <div class="signal-list">
@@ -45,22 +45,22 @@
 
         <article class="detail-module dark-card">
           <div class="module-title">
-            <h3>关联入口</h3>
+            <h2>关联入口</h2>
             <span class="tag gold">路线导航</span>
           </div>
           <div class="source-table dark-table">
             <a class="source-row" href="/items">
-              <span class="sprite-frame" style="width:42px;height:42px"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/c088eaaa45c5467e9757b30a0e69a797.png')"></span></span>
+              <span class="sprite-frame" style="width:42px;height:42px"><span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/c088eaaa45c5467e9757b30a0e69a797.png')"></span></span>
               <div><b>基础方块与工作台</b><span>开荒制作链路</span></div>
               <strong>物品</strong>
             </a>
             <a class="source-row" href="/buffs">
-              <span class="sprite-frame" style="width:42px;height:42px"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/c86addd4cab34c9f9a6f67efef22d45b.png')"></span></span>
+              <span class="sprite-frame" style="width:42px;height:42px"><span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/c86addd4cab34c9f9a6f67efef22d45b.png')"></span></span>
               <div><b>Boss 前增益</b><span>铁皮、再生、敏捷等准备项</span></div>
               <strong>Buff</strong>
             </a>
             <a class="source-row" href="/bosses">
-              <span class="sprite-frame" style="width:42px;height:42px"><img src="http://localhost:9000/terrapedia-images/npcs/2026/05/08/0d8a53901a0e4dfea17b59f2aecae869.gif" alt="" /></span>
+              <span class="sprite-frame" style="width:42px;height:42px"><img :src="'/preview-assets/terrapedia-images/npcs/2026/05/08/0d8a53901a0e4dfea17b59f2aecae869.gif'" alt="" /></span>
               <div><b>第一批 Boss 检查</b><span>克苏鲁之眼前的装备、场地和药水</span></div>
               <strong>路线</strong>
             </a>

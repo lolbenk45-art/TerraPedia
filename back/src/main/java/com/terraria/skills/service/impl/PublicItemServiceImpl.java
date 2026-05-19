@@ -102,7 +102,7 @@ public class PublicItemServiceImpl implements PublicItemService {
         String sortDirection = normalizeSortDirection(pageQuery == null ? null : pageQuery.getSortDirection());
 
         return String.join("|",
-            "v4",
+            "v5",
             managedImagePrefixFingerprint(),
             String.valueOf(page),
             String.valueOf(limit),

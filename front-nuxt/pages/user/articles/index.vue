@@ -7,7 +7,7 @@
       <div class="page-head-inner">
         <div>
           <span class="eyebrow">/user/articles · drafts</span>
-          <h2>我的文章</h2>
+          <h1>我的文章</h1>
           <p>文章管理是前台用户页，不是后台管理。这里展示用户自己的草稿、投稿状态和公开文章入口，功能暂不实现。</p>
         </div>
         <a class="primary-button" href="/user/articles/new">新建文章</a>

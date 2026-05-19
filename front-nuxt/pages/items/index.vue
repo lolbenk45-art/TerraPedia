@@ -1,122 +1,256 @@
+<script setup lang="ts">
+import { fallbackCatalogItems, usePublicItems } from '~/composables/usePublicItems'
+import type { CatalogItem, PublicItemQuery } from '~/types/public-api'
+
+const failedItemImages = ref(new Set<string>())
+const searchQuery = ref('')
+const activeFilter = ref('全部')
+const selectedDensity = ref(120)
+const focusedItemId = ref<string | null>(null)
+
+const quickFilters = ['全部', '武器', '材料', '药水', '困难模式']
+const densityOptions = [120, 240, 480]
+
+const normalizeSearchText = (value: string) => value.toLocaleLowerCase('zh-CN')
+const publicItemsQuery = {
+  page: 1,
+  limit: 480,
+  sortBy: 'id',
+  sortDirection: 'asc',
+} satisfies PublicItemQuery
+
+const { data: publicItemsResult, pending: itemsPending, error: itemsError } = await usePublicItems(publicItemsQuery)
+
+const catalogItems = computed(() => {
+  const items = publicItemsResult.value?.items
+  return Array.isArray(items) && items.length > 0 ? items : fallbackCatalogItems
+})
+const totalItems = computed(() => publicItemsResult.value?.pagination?.total ?? catalogItems.value.length)
+const dataSourceLabel = computed(() => publicItemsResult.value?.source === 'api' ? '实时接口' : '本地兜底')
+
+const matchesQuickFilter = (item: CatalogItem, filter: string) => {
+  if (filter === '全部') return true
+  if (filter === '困难模式') {
+    return /困难模式后|困难模式|hardmode/i.test(item.phase) && !/困难模式前/i.test(item.phase)
+  }
+  return item.categoryGroup === filter || item.searchText.includes(normalizeSearchText(filter))
+}
+
+const filteredCatalogItems = computed(() => {
+  const keyword = normalizeSearchText(searchQuery.value.trim())
+
+  return catalogItems.value.filter((item) => {
+    if (!matchesQuickFilter(item, activeFilter.value)) return false
+    return !keyword || item.searchText.includes(keyword)
+  })
+})
+
+const visibleWallItems = computed(() => filteredCatalogItems.value.slice(0, selectedDensity.value))
+const defaultFocusedItem = fallbackCatalogItems[0]!
+const focusedItem = computed<CatalogItem>(() => (
+  visibleWallItems.value.find((item) => item.id === focusedItemId.value)
+  ?? filteredCatalogItems.value.find((item) => item.id === focusedItemId.value)
+  ?? visibleWallItems.value[0]
+  ?? catalogItems.value[0]
+  ?? defaultFocusedItem
+))
+const focusedItemIndex = computed(() => Math.max(catalogItems.value.findIndex((item) => item.id === focusedItem.value?.id) + 1, 1))
+const resultSummary = computed(() => `${filteredCatalogItems.value.length} / ${totalItems.value.toLocaleString('zh-CN')}`)
+
+const setFocusedItem = (item: CatalogItem) => {
+  focusedItemId.value = item.id
+}
+
+const setActiveFilter = (filter: string) => {
+  activeFilter.value = filter
+}
+
+const setDensity = (density: number) => {
+  selectedDensity.value = density
+}
+
+const clearSearch = () => {
+  searchQuery.value = ''
+}
+
+const itemImageSrc = (item: CatalogItem) => item.image
+
+const markImageFallback = (image: string) => {
+  failedItemImages.value = new Set(failedItemImages.value).add(image)
+}
+
+watch(catalogItems, (items) => {
+  if (!focusedItemId.value && items[0]) {
+    setFocusedItem(items[0])
+  }
+}, { immediate: true })
+
+watch(filteredCatalogItems, (items) => {
+  const firstItem = items[0]
+  if (firstItem && !items.some((item) => item.id === focusedItemId.value)) {
+    setFocusedItem(firstItem)
+  }
+})
+</script>
+
 <template>
-<section class="screen catalog-screen active">
+  <section class="screen catalog-screen active">
     <TerraNav />
     <TerraBreadcrumb />
 
-          <div class="page-head">
-            <div class="page-head-inner">
-              <div>
-                <span class="eyebrow">6,214 个物品 · 高密度浏览</span>
-                <h2>物品图鉴</h2>
-                <p>按分类、稀有度、阶段和关键词快速定位。列表以图标墙为主，右侧固定显示当前选中物品，减少大量翻页带来的疲劳。</p>
-              </div>
-              <a class="primary-button" href="/items/terra-blade">查看合成路线</a>
+    <div class="page-head">
+      <div class="page-head-inner">
+        <div>
+          <span class="eyebrow">{{ totalItems.toLocaleString('zh-CN') }} 个物品 · {{ dataSourceLabel }}</span>
+          <h1>物品图鉴</h1>
+          <p>图标墙是主浏览界面。搜索、分类、密度和悬停焦点都直接作用在当前墙面上。</p>
+        </div>
+        <a class="primary-button" :href="focusedItem.detailPath">打开当前物品</a>
+      </div>
+    </div>
+
+    <section class="catalog-pixel-stage" aria-label="物品图鉴墙">
+      <div class="catalog-wall-shell">
+        <div class="catalog-wall-main">
+          <div class="catalog-wall-topbar">
+            <div class="catalog-wall-title">
+              <span class="eyebrow">ITEM WALL</span>
+              <h2>所有物品先出现</h2>
+              <p>直接在图标墙里搜索、筛选和扫过图标。右侧焦点卡始终跟随当前物品。</p>
+            </div>
+
+            <div class="catalog-wall-controls">
+              <form class="catalog-search-form" role="search" @submit.prevent>
+                <label class="catalog-search-label" for="catalog-item-search">搜索物品</label>
+                <input
+                  id="catalog-item-search"
+                  v-model="searchQuery"
+                  class="catalog-search-input"
+                  type="search"
+                  name="search"
+                  autocomplete="off"
+                  placeholder="搜索名称 / 英文 / 分类 / 阶段"
+                />
+                <button
+                  v-if="searchQuery"
+                  class="catalog-clear-search"
+                  type="button"
+                  @click="clearSearch"
+                >
+                  清空
+                </button>
+              </form>
+
+              <nav class="catalog-quick-filter-rail" aria-label="快速筛选">
+                <button
+                  v-for="filter in quickFilters"
+                  :key="filter"
+                  class="small-button"
+                  :class="{ active: filter === activeFilter }"
+                  type="button"
+                  :aria-pressed="filter === activeFilter"
+                  @click="setActiveFilter(filter)"
+                >
+                  {{ filter }}
+                </button>
+              </nav>
             </div>
           </div>
 
-          <div class="catalog-layout">
-            <aside class="filter-panel">
-              <div class="filter-group">
-                <p class="section-label">分类</p>
-                <div class="filter-option active"><span class="filter-dot"></span><b>全部物品</b><span class="count">6214</span></div>
-                <div class="filter-option"><span class="filter-dot"></span><b>武器</b><span class="count">932</span></div>
-                <div class="filter-option"><span class="filter-dot"></span><b>装备</b><span class="count">684</span></div>
-                <div class="filter-option"><span class="filter-dot"></span><b>材料</b><span class="count">1186</span></div>
-                <div class="filter-option"><span class="filter-dot"></span><b>家具</b><span class="count">1408</span></div>
-              </div>
-              <div class="filter-group">
-                <p class="section-label">阶段</p>
-                <div class="filter-option"><span class="filter-dot"></span><b>开荒</b><span class="count">812</span></div>
-                <div class="filter-option"><span class="filter-dot"></span><b>Boss 前</b><span class="count">960</span></div>
-                <div class="filter-option"><span class="filter-dot"></span><b>困难模式</b><span class="count">1244</span></div>
-              </div>
-            </aside>
-
-            <section class="list-panel">
-              <div class="catalog-page-headline">
-                <h3>全部物品</h3>
-                <button class="small-button active" type="button">图标墙</button>
-                <button class="small-button" type="button">列表</button>
-                <button class="small-button" type="button">只看可合成</button>
-              </div>
-              <div class="list-toolbar">
-                <div class="catalog-search"><span class="search-glyph" aria-hidden="true"></span><strong>泰拉刃</strong></div>
-                <div class="toolbar-buttons">
-                  <button class="small-button active" type="button">紧凑</button>
-                  <button class="small-button" type="button">稀有度</button>
-                  <button class="small-button" type="button">阶段</button>
-                </div>
-              </div>
-              <div class="density-rail">
-                <span>高密度图鉴墙 · 当前视口展示 40 个样本，生产页建议 120/240 快速切换</span>
-                <strong>6,214</strong>
-              </div>
-              <div class="item-grid">
-                <div class="item-cell active"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span><span>泰拉刃</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png')"></span><span>真永夜刃</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/5495725121204ede9da25ddf678ca246.png')"></span><span>真断钢剑</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/195bfda5955641b5bf340322fdd26eba.png')"></span><span>神圣镐</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/6ef1b719169348b595c93654cbf60c1c.png')"></span><span>铁皮药水</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/c626dfb6e7bc4139b099b81ffc4680d1.png')"></span><span>神圣锭</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/b3ddc7b2db8b4c53a00b0274ed9edfaa.png')"></span><span>永夜刃</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/c049cc2442144242a8b7768517723664.png')"></span><span>村正</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/3a43bd1521b5418fade0c386891cc047.png')"></span><span>铜短剑</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/195bfda5955641b5bf340322fdd26eba.png')"></span><span>铜镐</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/32a6970ec3f746ad9e23b6312c4dea1c.png')"></span><span>铁矿</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/6ef1b719169348b595c93654cbf60c1c.png')"></span><span>治疗药水</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/572d02498c01441e86ce0e55aa946f5b.png')"></span><span>星星炮</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/6b53bc835cd742dba96053653aac8f4f.png')"></span><span>陨石锭</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/84a7346cf0044805ab5b443b96ca15e0.png')"></span><span>钴镐</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/1c9f832ea4a6424c8bdae1bc843ec02f.png')"></span><span>星怒</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/034a248ac37a42049c5ef882098a4eb8.png')"></span><span>暴雪瓶</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/6ef1b719169348b595c93654cbf60c1c.png')"></span><span>再生药水</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/034a248ac37a42049c5ef882098a4eb8.png')"></span><span>水晶风暴</span></div>
-                <div class="item-cell"><span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/195bfda5955641b5bf340322fdd26eba.png')"></span><span>梦魇镐</span></div>
-              </div>
-              <div class="pager">
-                <span>第 1 页 · 每页 120 个 · 已筛选 412 项</span>
-                <div class="toolbar-buttons">
-                  <button class="small-button" type="button">上一页</button>
-                  <button class="small-button active" type="button">下一页</button>
-                </div>
-              </div>
-            </section>
-
-            <aside class="preview-panel">
-              <div class="preview-hero">
-                <div class="preview-icon">
-                  <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span>
-                </div>
-                <h3>泰拉刃</h3>
-                <p>近战武器。发射绿色剑气，常用于困难模式后期推进和月亮领主前装备路线。</p>
-                <div class="tag-row">
-                  <span class="tag gold">黄色稀有度</span>
-                  <span class="tag moss">合成</span>
-                </div>
-                <div class="stat-grid">
-                  <div class="stat-box"><b>115</b><span>近战伤害</span></div>
-                  <div class="stat-box"><b>14</b><span>使用时间</span></div>
-                  <div class="stat-box"><b>6.5</b><span>击退</span></div>
-                  <div class="stat-box"><b>1</b><span>最大堆叠</span></div>
-                </div>
-              </div>
-              <div class="preview-list">
-                <div class="preview-list-row">
-                  <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png')"></span>
-                  <div><b>真永夜刃</b><span>合成材料</span></div>
-                </div>
-                <div class="preview-list-row">
-                  <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/5495725121204ede9da25ddf678ca246.png')"></span>
-                  <div><b>真断钢剑</b><span>合成材料</span></div>
-                </div>
-                <div class="preview-list-row">
-                  <span class="item-art" style="background-image:url('http://localhost:9000/terrapedia-images/items/2026/04/08/77203300926f489fb82ae1072a8623d4.png')"></span>
-                  <div><b>英雄断剑</b><span>掉落来源</span></div>
-                </div>
-              </div>
-            </aside>
+          <div class="density-rail catalog-density-rail">
+            <span>当前结果 {{ resultSummary }} · 墙面显示 {{ visibleWallItems.length }}</span>
+            <div class="density-actions" aria-label="墙面密度">
+              <button
+                v-for="density in densityOptions"
+                :key="density"
+                class="small-button density-choice"
+                :class="{ active: density === selectedDensity }"
+                type="button"
+                :aria-pressed="density === selectedDensity"
+                @click="setDensity(density)"
+              >
+                {{ density }}
+              </button>
+            </div>
+            <strong>{{ itemsPending ? '同步中' : itemsError ? '兜底' : dataSourceLabel }}</strong>
           </div>
 
-          <TerraFooter />
-        </section>
+          <div v-if="visibleWallItems.length" class="catalog-wall-grid" aria-label="物品图标墙">
+            <button
+              v-for="item in visibleWallItems"
+              :key="`wall-${item.id}`"
+              class="catalog-wall-cell"
+              :class="{ active: focusedItem.id === item.id }"
+              type="button"
+              :aria-pressed="focusedItem.id === item.id"
+              :aria-label="item.displayName"
+              :title="`${item.displayName} · ${item.category}`"
+              @mouseenter="setFocusedItem(item)"
+              @focus="setFocusedItem(item)"
+              @click="setFocusedItem(item)"
+            >
+              <span
+                class="item-art"
+                :class="{ 'is-fallback': failedItemImages.has(item.image) }"
+                :data-fallback="item.fallback"
+              >
+                <img
+                  :src="itemImageSrc(item)"
+                  :alt="item.displayName"
+                  loading="lazy"
+                  decoding="async"
+                  @error="markImageFallback(item.image)"
+                />
+              </span>
+              <span class="catalog-wall-cell-index">{{ item.range }}</span>
+              <span class="catalog-wall-cell-label">{{ item.displayName }}</span>
+            </button>
+          </div>
+
+          <div v-else class="catalog-empty-state">
+            <b>没有匹配物品</b>
+            <span>调整搜索词或切回全部分类。</span>
+            <button class="small-button active" type="button" @click="clearSearch">清空搜索</button>
+          </div>
+        </div>
+
+        <aside class="catalog-floating-focus">
+          <span
+            class="item-art focus-art"
+            :class="{ 'is-fallback': failedItemImages.has(focusedItem.image) }"
+            :data-fallback="focusedItem.fallback"
+          >
+            <img
+              :src="itemImageSrc(focusedItem)"
+              :alt="focusedItem.displayName"
+              decoding="async"
+              @error="markImageFallback(focusedItem.image)"
+            />
+          </span>
+          <div>
+            <span>当前焦点 · #{{ focusedItemIndex.toString().padStart(3, '0') }}</span>
+            <h3>{{ focusedItem.displayName }}</h3>
+            <p>{{ focusedItem.description }}</p>
+            <div class="tag-row">
+              <span class="tag gold">{{ focusedItem.category }}</span>
+              <span class="tag moss">{{ focusedItem.rarity }}</span>
+              <span class="tag paper">{{ focusedItem.phase }}</span>
+            </div>
+          </div>
+          <dl class="catalog-focus-stats">
+            <div><dt>伤害</dt><dd>{{ focusedItem.damage ?? '—' }}</dd></div>
+            <div><dt>击退</dt><dd>{{ focusedItem.knockback ?? '—' }}</dd></div>
+            <div><dt>使用</dt><dd>{{ focusedItem.useTime ?? '—' }}</dd></div>
+            <div><dt>堆叠</dt><dd>{{ focusedItem.stackSize ?? '—' }}</dd></div>
+          </dl>
+          <nav :aria-label="`${focusedItem.displayName} 快捷操作`">
+            <a :href="focusedItem.detailPath">详情</a>
+            <a :href="`/search?keyword=${encodeURIComponent(focusedItem.displayName)}`">相关</a>
+          </nav>
+        </aside>
+      </div>
+    </section>
+
+    <TerraFooter />
+  </section>
 </template>
