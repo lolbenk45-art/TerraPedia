@@ -11,8 +11,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,6 +51,17 @@ class ItemImportServiceImplTest {
             invocation.getArgument(0, java.util.function.Consumer.class).accept(null);
             return null;
         }).when(transactionTemplate).executeWithoutResult(any());
+    }
+
+    @Test
+    void shouldDeclareSpringInjectionConstructorWhenTestConstructorAlsoExists() throws Exception {
+        Constructor<ItemImportServiceImpl> constructor = ItemImportServiceImpl.class.getConstructor(
+            ItemMapper.class,
+            CategoryMapper.class,
+            PlatformTransactionManager.class
+        );
+
+        assertEquals(true, constructor.isAnnotationPresent(Autowired.class));
     }
 
     @Test

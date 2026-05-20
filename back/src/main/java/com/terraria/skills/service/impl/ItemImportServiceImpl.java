@@ -11,6 +11,7 @@ import com.terraria.skills.mapper.CategoryMapper;
 import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.service.ItemImportService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,7 @@ public class ItemImportServiceImpl extends ServiceImpl<ItemMapper, Item> impleme
     private final CategoryMapper categoryMapper;
     private final TransactionTemplate transactionTemplate;
 
+    @Autowired
     public ItemImportServiceImpl(
         ItemMapper itemMapper,
         CategoryMapper categoryMapper,
