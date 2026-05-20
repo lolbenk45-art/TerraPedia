@@ -4,13 +4,15 @@ import { join } from 'node:path'
 const root = new URL('..', import.meta.url)
 const file = (path) => join(root.pathname, path)
 const pagePath = 'pages/index.vue'
+const homeHeroPath = 'components/home/HomeHero.vue'
+const homeDataPath = 'composables/useHomeData.ts'
 const cssPath = 'assets/css/hifi-preview.css'
 const lightContrastCssPath = 'assets/css/light-theme-contrast-fixes.css'
 const failures = []
 
 const requiredPageMarkers = [
-  'const primaryHeroEntries',
-  'const secondaryHeroLinks',
+  'primaryEntries',
+  'secondaryLinks',
   'class="hero-j1-panel"',
   'class="hero-j1-copy"',
   'class="hero-j1-title"',
@@ -19,8 +21,8 @@ const requiredPageMarkers = [
   'class="hero-j1-search"',
   'class="hero-j1-paths"',
   'class="hero-j1-path-link"',
-  'v-for="entry in primaryHeroEntries"',
-  'v-for="link in secondaryHeroLinks"',
+  'v-for="entry in primaryEntries"',
+  'v-for="link in secondaryLinks"',
 ]
 
 const forbiddenPageMarkers = [
@@ -32,34 +34,54 @@ const forbiddenPageMarkers = [
 
 if (!existsSync(file(pagePath))) {
   failures.push(`${pagePath}: missing public home page`)
+} else if (!existsSync(file(homeHeroPath))) {
+  failures.push(`${homeHeroPath}: missing split J1 home hero component`)
+} else if (!existsSync(file(homeDataPath))) {
+  failures.push(`${homeDataPath}: missing split home data composable`)
 } else {
   const page = readFileSync(file(pagePath), 'utf8')
+  const homeHero = readFileSync(file(homeHeroPath), 'utf8')
+  const homeData = readFileSync(file(homeDataPath), 'utf8')
+  const homeAuditContent = `${page}\n${homeHero}\n${homeData}`
+
+  for (const marker of [
+    'await useHomeData()',
+    '<HomeHero v-bind="hero"',
+    '<HomeExplorationMap :nodes="explorationNodes"',
+    '<HomeFeaturedRoute :route="featuredRoute"',
+    '<HomeBossProgression :route="bossRoute"',
+    '<HomeCodexBand :codex="codex"',
+  ]) {
+    if (!page.includes(marker)) {
+      failures.push(`${pagePath}: split homepage must render component/data marker ${marker}`)
+    }
+  }
 
   for (const marker of requiredPageMarkers) {
-    if (!page.includes(marker)) {
+    if (!homeAuditContent.includes(marker)) {
       failures.push(`${pagePath}: missing J1 home marker ${marker}`)
     }
   }
 
   for (const marker of forbiddenPageMarkers) {
-    if (page.includes(marker)) {
+    if (homeAuditContent.includes(marker)) {
       failures.push(`${pagePath}: old quick-entry hero marker must be removed from home ${marker}`)
     }
   }
 
-  const cellCount = page.match(/class="hero-j1-cell"/g)?.length ?? 0
+  const cellCount = homeHero.match(/class="hero-j1-cell"/g)?.length ?? 0
   if (cellCount !== 1) {
     failures.push(`${pagePath}: J1 cells must be rendered by one v-for anchor, found ${cellCount}`)
   }
 
-  const heroPanelIndex = page.indexOf('class="hero-j1-panel"')
-  const indexPanelIndex = page.indexOf('class="hero-left"')
+  const heroPanelIndex = homeHero.indexOf('class="hero-j1-panel"')
+  const indexPanelIndex = homeHero.indexOf('class="hero-left"')
   if (heroPanelIndex === -1 || indexPanelIndex === -1 || heroPanelIndex > indexPanelIndex) {
     failures.push(`${pagePath}: selected J1 homepage must use the left-right swapped version with J1 before the index device`)
   }
 
   for (const route of ['/categories', '/crafting', '/biomes', '/buffs', '/armor-sets', '/projectiles']) {
-    if (!page.includes(route)) {
+    if (!homeAuditContent.includes(route)) {
       failures.push(`${pagePath}: J1 secondary shortcuts must expose ${route} below search`)
     }
   }
@@ -96,7 +118,7 @@ if (!existsSync(file(cssPath))) {
     failures.push(`${cssPath}: .hero-j1-grid must use a 2 x 2 grid foundation`)
   }
 
-  const titleRule = /\.hero-j1-title\s*\{[^}]*font-size\s*:\s*80px/m
+  const titleRule = /\.hero-j1-title\s*\{[^}]*font-size\s*:\s*(?:80px|var\(--type-h1\))/m
   if (!titleRule.test(css)) {
     failures.push(`${cssPath}: .hero-j1-title must preserve the large J1 title scale`)
   }

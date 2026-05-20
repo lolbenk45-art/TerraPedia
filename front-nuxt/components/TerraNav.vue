@@ -181,7 +181,7 @@ onBeforeUnmount(closeMenu)
           class="account-avatar-link"
           :class="{ active: isActive('/user') || activeMenu === 'account' }"
           href="/user"
-          aria-label="用户中心"
+          aria-label="TP 用户中心"
           aria-haspopup="true"
           :aria-expanded="activeMenu === 'account'"
         >TP</a>
