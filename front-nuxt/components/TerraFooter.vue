@@ -1,3 +1,11 @@
+<script setup lang="ts">
+withDefaults(defineProps<{
+  itemTotalLabel?: string
+}>(), {
+  itemTotalLabel: '6,154',
+})
+</script>
+
 <template>
   <footer class="camp-footer">
     <div class="footer-main">
@@ -6,7 +14,7 @@
         <h3>为 Terraria 玩家建立可追溯的中文资料中枢</h3>
         <p>TerraPedia 聚合物品图鉴、合成链路、Boss 阶段、专题攻略与版本证据，让资料查询从零散搜索变成稳定的路线系统。</p>
         <div class="footer-proof">
-          <div><b>6,214</b><span>物品条目</span></div>
+          <div><b>{{ itemTotalLabel }}</b><span>物品条目</span></div>
           <div><b>14,746</b><span>链路节点</span></div>
           <div><b>持续</b><span>数据校验</span></div>
         </div>
