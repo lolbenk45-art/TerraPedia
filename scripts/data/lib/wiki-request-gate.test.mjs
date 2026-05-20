@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { createWikiRequestGate } from './wiki-request-gate.mjs';
 
@@ -138,6 +140,137 @@ test('runJsonRequest uses external fallback for wiki.gg challenge responses', as
   const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
   assert.equal(state.failureCount, 0);
   assert.equal(state.successCount, 1);
+});
+
+test('runJsonRequest commits gate state through temp file rename', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-'));
+  const statePath = path.join(tempDir, 'gate.json');
+  const writeTargets = [];
+  const renameTargets = [];
+  const originalWriteFileSync = fs.writeFileSync;
+  const originalRenameSync = fs.renameSync;
+
+  fs.writeFileSync = function writeFileSyncSpy(filePath, ...args) {
+    writeTargets.push(path.resolve(String(filePath)));
+    return originalWriteFileSync.call(this, filePath, ...args);
+  };
+  fs.renameSync = function renameSyncSpy(oldPath, newPath) {
+    renameTargets.push({
+      oldPath: path.resolve(String(oldPath)),
+      newPath: path.resolve(String(newPath))
+    });
+    return originalRenameSync.call(this, oldPath, newPath);
+  };
+
+  try {
+    const gate = createWikiRequestGate({
+      statePath,
+      nowFn: () => Date.parse('2026-04-29T09:15:45.996Z'),
+      sleepFn: async () => {},
+      requestProfiles: {
+        revision: { baseDelayMs: 0, jitterMs: 0, maxAttempts: 1, cooldownMs: 10_000 }
+      },
+      fetchFn: async () => okJsonResponse({ ok: true })
+    });
+
+    await gate.runJsonRequest('https://terraria.wiki.gg/api.php?action=query', {
+      profile: 'revision'
+    });
+  } finally {
+    fs.writeFileSync = originalWriteFileSync;
+    fs.renameSync = originalRenameSync;
+  }
+
+  const resolvedStatePath = path.resolve(statePath);
+  assert.ok(writeTargets.length > 0);
+  assert.ok(renameTargets.length > 0);
+  assert.ok(writeTargets.every((target) => target !== resolvedStatePath));
+  assert.ok(renameTargets.every(({ oldPath, newPath }) => {
+    return path.dirname(oldPath) === tempDir && oldPath !== resolvedStatePath && newPath === resolvedStatePath;
+  }));
+
+  const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  assert.equal(state.successCount, 1);
+});
+
+test('separate gate instances preserve shared state counters', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-'));
+  const statePath = path.join(tempDir, 'gate.json');
+  const requestProfiles = {
+    revision: { baseDelayMs: 0, jitterMs: 0, maxAttempts: 1, cooldownMs: 10_000 }
+  };
+
+  const firstGate = createWikiRequestGate({
+    statePath,
+    nowFn: () => Date.parse('2026-04-29T09:15:46.996Z'),
+    sleepFn: async () => {},
+    requestProfiles,
+    fetchFn: async () => okJsonResponse({ ok: true, gate: 'first' })
+  });
+  const secondGate = createWikiRequestGate({
+    statePath,
+    nowFn: () => Date.parse('2026-04-29T09:15:45.996Z'),
+    sleepFn: async () => {},
+    requestProfiles,
+    fetchFn: async () => okJsonResponse({ ok: true, gate: 'second' })
+  });
+
+  await firstGate.runJsonRequest('https://terraria.wiki.gg/api.php?action=query', {
+    profile: 'revision'
+  });
+  await secondGate.runJsonRequest('https://terraria.wiki.gg/api.php?action=query', {
+    profile: 'revision'
+  });
+
+  const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  assert.equal(state.successCount, 2);
+  assert.equal(state.failureCount, 0);
+  assert.equal(state.lastRequestAt, '2026-04-29T09:15:46.996Z');
+});
+
+test('separate gate processes preserve shared state counters', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-'));
+  const statePath = path.join(tempDir, 'gate.json');
+  const modulePath = fileURLToPath(import.meta.url).replace(/\.test\.mjs$/, '.mjs');
+  const workerCode = `
+    import { createWikiRequestGate } from ${JSON.stringify(pathToFileURL(modulePath).href)};
+    const gate = createWikiRequestGate({
+      statePath: process.env.STATE_PATH,
+      requestProfiles: {
+        revision: { baseDelayMs: 0, jitterMs: 0, maxAttempts: 1, cooldownMs: 10_000 }
+      },
+      sleepFn: async () => {},
+      fetchFn: async () => ({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        text: async () => JSON.stringify({ ok: true })
+      }),
+      externalRequestFn: null
+    });
+    for (let i = 0; i < 40; i += 1) {
+      await gate.runJsonRequest('https://terraria.wiki.gg/api.php?action=query', { profile: 'revision' });
+    }
+  `;
+
+  const children = Array.from({ length: 4 }, () => spawn(process.execPath, [
+    '--input-type=module',
+    '--eval',
+    workerCode
+  ], {
+    env: { ...process.env, STATE_PATH: statePath },
+    stdio: ['ignore', 'ignore', 'pipe']
+  }));
+  const results = await Promise.all(children.map((child) => new Promise((resolve) => {
+    let stderr = '';
+    child.stderr.on('data', (chunk) => stderr += chunk);
+    child.on('close', (code) => resolve({ code, stderr }));
+  })));
+
+  assert.deepEqual(results.map(({ code }) => code), [0, 0, 0, 0]);
+  const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  assert.equal(state.successCount, 160);
+  assert.equal(fs.existsSync(`${statePath}.lock`), false);
 });
 
 function okJsonResponse(body) {
