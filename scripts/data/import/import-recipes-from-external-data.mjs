@@ -3,13 +3,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { resolveSharedDataRoot } from '../lib/project-root.mjs';
 import { resolveRecipeImportApply } from './recipe-import-mode.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
 
 const args = parseArgs(process.argv.slice(2));
-const sourceRoot = path.resolve(args['data-root'] ?? 'G:/ClaudeCode/data/terraPedia');
+const sourceRoot = path.resolve(args['data-root'] ?? resolveSharedDataRoot());
 const explicitInputPath = args.input ? path.resolve(args.input) : null;
 const apply = resolveRecipeImportApply(args);
 

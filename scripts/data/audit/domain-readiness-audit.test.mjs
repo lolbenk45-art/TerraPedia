@@ -755,7 +755,7 @@ test('buildDomainReadinessReport applies armor set source and image semantic gat
       },
     ],
   });
-  writeJson(repoRoot, 'data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json', { records: [{ image: 'a.png' }] });
+  writeSharedJson(repoRoot, 'raw/wiki/armor_set_images.parsed.latest.json', { records: [{ image: 'a.png' }] });
 
   const source = buildDomainReadinessReport({
     repoRoot,
@@ -934,7 +934,7 @@ test('buildDomainReadinessReport warns armor image fetch when warning count exce
       },
     ],
   });
-  writeJson(repoRoot, 'data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json', { records: [{ image: 'a.png' }] });
+  writeSharedJson(repoRoot, 'raw/wiki/armor_set_images.parsed.latest.json', { records: [{ image: 'a.png' }] });
 
   const report = buildDomainReadinessReport({
     repoRoot,
@@ -949,7 +949,7 @@ test('buildDomainReadinessReport warns armor image fetch when warning count exce
 
 test('buildDomainReadinessReport accepts armor image fetch warnings when parsed snapshot has complete fallback evidence', () => {
   const repoRoot = createTempRepo();
-  writeJson(repoRoot, 'data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json', {
+  const latestParsedPath = writeSharedJson(repoRoot, 'raw/wiki/armor_set_images.parsed.latest.json', {
     totalArmorSets: 2,
     totalArmorSetImages: 2,
     armorSetImages: [
@@ -962,7 +962,7 @@ test('buildDomainReadinessReport accepts armor image fetch warnings when parsed 
     ],
   });
   writeJson(repoRoot, 'reports/fetch/fetch-armor-set-images-2026-04-27T19-29-52.416Z.json', {
-    latestParsedPath: path.join(repoRoot, 'data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json'),
+    latestParsedPath,
     totalArmorSets: 2,
     totalArmorSetImages: 2,
     warningCount: 2,
@@ -997,7 +997,7 @@ test('buildDomainReadinessReport rejects armor image parsed snapshot outside rep
       { pageTitle: 'Missing Other armor', message: 'missingtitle' },
     ],
   }), 'utf8');
-  writeJson(repoRoot, 'data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json', { armorSetImages: [], warnings: [] });
+  writeSharedJson(repoRoot, 'raw/wiki/armor_set_images.parsed.latest.json', { armorSetImages: [], warnings: [] });
   writeJson(repoRoot, 'reports/fetch/fetch-armor-set-images-2026-04-27T19-29-52.416Z.json', {
     latestParsedPath: outsidePath,
     totalArmorSets: 2,
@@ -1019,9 +1019,9 @@ test('buildDomainReadinessReport rejects armor image parsed snapshot outside rep
   assert.ok(report.warningReasons.some((reason) => /has only 1 sampled fallback records/.test(reason)));
 });
 
-test('buildDomainReadinessReport accepts armor image parsed snapshot when outside-worktree path maps to repo canonical basename', () => {
+test('buildDomainReadinessReport accepts armor image parsed snapshot when outside-worktree path maps to shared-data canonical basename', () => {
   const repoRoot = createTempRepo();
-  writeJson(repoRoot, 'data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json', {
+  writeSharedJson(repoRoot, 'raw/wiki/armor_set_images.parsed.latest.json', {
     totalArmorSets: 2,
     totalArmorSetImages: 2,
     armorSetImages: [
@@ -1033,7 +1033,7 @@ test('buildDomainReadinessReport accepts armor image parsed snapshot when outsid
       { pageTitle: 'Missing Other armor', message: 'missingtitle' },
     ],
   });
-  writeJson(repoRoot, 'data/terraPedia/raw/wiki/armor_set_images.parsed.2026-04-27T19-29-52.416Z.json', {
+  writeSharedJson(repoRoot, 'raw/wiki/armor_set_images.parsed.2026-04-27T19-29-52.416Z.json', {
     totalArmorSets: 2,
     totalArmorSetImages: 2,
     armorSetImages: [
@@ -1068,7 +1068,7 @@ test('buildDomainReadinessReport accepts armor image parsed snapshot when outsid
 
 test('buildDomainReadinessReport warns when armor image parsed snapshot totals drift', () => {
   const repoRoot = createTempRepo();
-  writeJson(repoRoot, 'data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json', {
+  writeSharedJson(repoRoot, 'raw/wiki/armor_set_images.parsed.latest.json', {
     totalArmorSets: 2,
     totalArmorSetImages: 3,
     armorSetImages: [
@@ -1081,7 +1081,7 @@ test('buildDomainReadinessReport warns when armor image parsed snapshot totals d
     ],
   });
   writeJson(repoRoot, 'reports/fetch/fetch-armor-set-images-2026-04-27T19-29-52.416Z.json', {
-    latestParsedPath: 'data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json',
+    latestParsedPath: 'shared-data/raw/wiki/armor_set_images.parsed.latest.json',
     totalArmorSets: 2,
     totalArmorSetImages: 2,
     warningCount: 2,
@@ -1503,13 +1503,21 @@ test('source stays read-only and does not execute child commands', () => {
 });
 
 function createTempRepo() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-domain-readiness-'));
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-domain-readiness-'));
+  const sharedDataRoot = path.join(repoRoot, 'shared-data');
+  process.env.TERRAPEDIA_SHARED_DATA_ROOT = sharedDataRoot;
+  return repoRoot;
 }
 
 function writeJson(repoRoot, relativePath, payload) {
   const fullPath = path.join(repoRoot, relativePath);
   fs.mkdirSync(path.dirname(fullPath), { recursive: true });
   fs.writeFileSync(fullPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+  return fullPath;
+}
+
+function writeSharedJson(repoRoot, relativePath, payload) {
+  return writeJson(repoRoot, path.join('shared-data', relativePath), payload);
 }
 
 function writeText(repoRoot, relativePath, text) {

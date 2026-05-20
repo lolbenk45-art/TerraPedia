@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { sharedDataPath } from '../lib/wiki-item-utils.mjs';
 import {
   clearPublicItemCaches,
   resolveRedisConfigFromEnv,
@@ -62,7 +63,7 @@ export async function runItemCategorySync(rawArgs = parseArgs(process.argv.slice
   const reportPath = rawArgs.report || path.join(repoRoot, 'reports', `items-wiki-category-sync-${new Date().toISOString().slice(0, 10)}.json`);
   const itemPagesDir = path.resolve(
     repoRoot,
-    rawArgs.itemPagesDir || path.join('..', 'data', 'terraPedia', 'raw', 'wiki', 'item-pages')
+    rawArgs.itemPagesDir || sharedDataPath('raw', 'wiki', 'item-pages')
   );
   const standardizedPath = path.join(repoRoot, 'data', 'standardized', 'items.standardized.json');
   const db = dependencies.db || {

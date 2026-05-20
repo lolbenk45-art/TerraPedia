@@ -179,8 +179,7 @@ function readArmorSets(filePath) {
 function defaultArmorSetInputPath() {
   const candidates = [
     sharedDataPath('standardized', 'armor_sets.standardized.json'),
-    path.resolve(process.cwd(), 'data', 'standardized', 'armor_sets.standardized.json'),
-    path.resolve(process.cwd(), '..', 'data', 'terraPedia', 'standardized', 'armor_sets.standardized.json')
+    path.resolve(process.cwd(), 'data', 'standardized', 'armor_sets.standardized.json')
   ];
   return candidates.find((candidate) => fs.existsSync(candidate)) ?? candidates[0];
 }

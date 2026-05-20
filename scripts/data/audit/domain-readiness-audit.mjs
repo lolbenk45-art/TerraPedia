@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { buildB1ExemptionComplianceReport } from './b1-exemption-compliance.mjs';
+import { resolveSharedDataRoot } from '../lib/project-root.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -332,7 +333,7 @@ const PRODUCT_DOMAIN_CONFIG = {
     imageReadiness: {
       fileKey: 'image-readiness',
       evidence: [
-        optionalJson('data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json'),
+        optionalSharedJson('raw/wiki/armor_set_images.parsed.latest.json'),
         optionalLatestJson('reports/fetch/fetch-armor-set-images*.json'),
       ],
     },
@@ -1319,20 +1320,30 @@ function resolveEvidenceReferencePath(value, repoRoot) {
   }
   const allowedBasename = /^armor_set_images\.parsed\.(latest|\d{4}-\d{2}-\d{2}T.+)\.json$/;
   const candidatePaths = [];
-  const fullPath = path.isAbsolute(text) ? path.resolve(text) : path.resolve(repoRoot, text);
-  candidatePaths.push(fullPath);
+  const normalizedText = normalizePath(text);
+  if (normalizedText.startsWith('shared-data/')) {
+    candidatePaths.push(resolveSharedDataRoot(...normalizedText.slice('shared-data/'.length).split('/').filter(Boolean)));
+  } else {
+    candidatePaths.push(path.isAbsolute(text) ? path.resolve(text) : path.resolve(repoRoot, text));
+  }
   const basename = path.posix.basename(normalizePath(text));
   if (allowedBasename.test(basename)) {
-    candidatePaths.push(path.resolve(repoRoot, 'data', 'terraPedia', 'raw', 'wiki', basename));
+    candidatePaths.push(resolveSharedDataRoot('raw', 'wiki', basename));
   }
   const root = path.resolve(repoRoot);
+  const sharedRoot = resolveSharedDataRoot();
   for (const candidatePath of candidatePaths) {
     const relative = normalizePath(path.relative(root, candidatePath));
-    if (relative.startsWith('..') || path.isAbsolute(relative)) {
-      continue;
+    if (!relative.startsWith('..') && !path.isAbsolute(relative)) {
+      if (/^data\/raw\/wiki\/armor_set_images\.parsed\.(latest|\d{4}-\d{2}-\d{2}T.+)\.json$/.test(relative)) {
+        return candidatePath;
+      }
     }
-    if (/^data\/terraPedia\/raw\/wiki\/armor_set_images\.parsed\.(latest|\d{4}-\d{2}-\d{2}T.+)\.json$/.test(relative)) {
-      return candidatePath;
+    const sharedRelative = normalizePath(path.relative(sharedRoot, candidatePath));
+    if (!sharedRelative.startsWith('..') && !path.isAbsolute(sharedRelative)) {
+      if (/^raw\/wiki\/armor_set_images\.parsed\.(latest|\d{4}-\d{2}-\d{2}T.+)\.json$/.test(sharedRelative)) {
+        return candidatePath;
+      }
     }
   }
   return null;
@@ -1484,7 +1495,10 @@ function inferRecordCount(payload) {
 }
 
 function resolveStaticEvidence(repoRoot, relativePath, type) {
-  const fullPath = path.join(repoRoot, relativePath);
+  const sharedDataPrefix = 'shared-data/';
+  const fullPath = relativePath.startsWith(sharedDataPrefix)
+    ? resolveSharedDataRoot(...relativePath.slice(sharedDataPrefix.length).split('/').filter(Boolean))
+    : path.join(repoRoot, relativePath);
   if (!fs.existsSync(fullPath)) {
     return null;
   }
@@ -1497,7 +1511,9 @@ function resolveStaticEvidence(repoRoot, relativePath, type) {
   }
   return {
     fullPath,
-    relativePath: normalizePath(relativePath),
+    relativePath: relativePath.startsWith(sharedDataPrefix)
+      ? normalizePath(relativePath)
+      : normalizePath(relativePath),
   };
 }
 
@@ -1577,6 +1593,10 @@ function requiredJson(relativePath, options = {}) {
 
 function optionalJson(relativePath, options = {}) {
   return evidence(relativePath, false, options.type ?? 'json');
+}
+
+function optionalSharedJson(relativePath, options = {}) {
+  return evidence(`shared-data/${normalizePath(relativePath)}`, false, options.type ?? 'json');
 }
 
 function requiredLatestJson(reportPattern) {

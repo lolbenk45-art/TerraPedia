@@ -1,4 +1,14 @@
 #!/usr/bin/env python
+"""Legacy shimmer parser.
+
+The maintained shimmer extraction chain is:
+  node scripts/data/fetch/fetch-wiki-shimmer-page.mjs
+  node scripts/data/transform/transform-wiki-shimmer-to-importable.mjs
+
+This Python script is retained only for historical comparison and should not be
+used by sync pipelines.
+"""
+
 import json
 import sys
 from pathlib import Path

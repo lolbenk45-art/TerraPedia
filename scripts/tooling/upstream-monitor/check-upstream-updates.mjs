@@ -3,11 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { getProjectRoot, resolveSharedDataRoot } from '../../data/lib/project-root.mjs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
-const workspaceRoot = path.resolve(repoRoot, '..');
-const sharedDataRoot = path.join(workspaceRoot, 'data', 'terraPedia');
+const repoRoot = getProjectRoot();
+const sharedDataRoot = resolveSharedDataRoot();
 
 const DEFAULT_WIKI_SOURCES = [
   { key: 'iteminfo', pageTitle: 'Module:Iteminfo/data', label: 'Items' },
@@ -41,9 +42,9 @@ const options = parseCliArgs(process.argv.slice(2));
 const now = new Date();
 const startedAt = now.toISOString();
 
-const defaultStateFile = path.join(sharedDataRoot, 'generated', 'upstream-update-state.json');
-const defaultOutputFile = path.join(sharedDataRoot, 'generated', 'upstream-update-check.json');
-const defaultManifestPath = path.join(sharedDataRoot, 'standardized', '_manifest.standardized.json');
+const defaultStateFile = resolveSharedDataRoot('generated', 'upstream-update-state.json');
+const defaultOutputFile = resolveSharedDataRoot('generated', 'upstream-update-check.json');
+const defaultManifestPath = resolveSharedDataRoot('standardized', '_manifest.standardized.json');
 
 const config = {
   apiUrl: String(options['api-url'] ?? 'https://terraria.wiki.gg/api.php'),
@@ -826,7 +827,21 @@ function nullableString(value) {
 }
 
 function normalizePathForOutput(filePath) {
-  return path.relative(workspaceRoot, filePath).replaceAll('\\', '/');
+  const absolutePath = path.resolve(filePath);
+  const normalizedRepoRoot = path.resolve(repoRoot);
+  if (isPathInside(absolutePath, normalizedRepoRoot)) {
+    return path.relative(normalizedRepoRoot, absolutePath).replaceAll('\\', '/');
+  }
+  const normalizedSharedDataRoot = path.resolve(sharedDataRoot);
+  if (isPathInside(absolutePath, normalizedSharedDataRoot)) {
+    return path.relative(normalizedSharedDataRoot, absolutePath).replaceAll('\\', '/');
+  }
+  return absolutePath.replaceAll('\\', '/');
+}
+
+function isPathInside(candidatePath, rootPath) {
+  const relative = path.relative(rootPath, candidatePath);
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
 }
 
 function loadJsonIfExists(filePath) {
