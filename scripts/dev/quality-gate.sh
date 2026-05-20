@@ -52,6 +52,10 @@ run_step "Data workflow acceptance tests" . node --test \
   scripts/data/lib/wiki-item-utils.test.mjs \
   scripts/data/lib/wiki-image-fetch-server.test.mjs \
   scripts/data/lib/python-wiki-gate-bridge-source.test.mjs \
+  scripts/data/fetch/fetch-wiki-iteminfo.test.mjs \
+  scripts/data/fetch/fetch-wiki-item-pages.test.mjs \
+  scripts/data/fetch/snapshot-policy.test.mjs \
+  scripts/data/maint/gc-snapshots.test.mjs \
   scripts/data/crawler/tests/source-layout-warning.test.mjs \
   scripts/data/audit/domain-readiness-audit.test.mjs \
   scripts/data/workflow/data-source-acceptance-report-manifest.test.mjs \

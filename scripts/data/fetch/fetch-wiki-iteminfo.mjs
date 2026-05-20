@@ -8,6 +8,7 @@ import {
   parseIteminfoModulePayload,
   parseCliArgs,
   sharedDataPath,
+  shouldKeepSnapshot,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
 
@@ -15,6 +16,7 @@ const options = parseCliArgs(process.argv.slice(2));
 const moduleTitle = options.module ?? DEFAULT_MODULE_TITLE;
 const rawDir = path.resolve(process.cwd(), options['raw-dir'] ?? sharedDataPath('raw', 'wiki'));
 const reportDir = sharedDataPath('reports', 'fetch');
+const keepSnapshot = shouldKeepSnapshot(options);
 
 ensureDir(rawDir);
 ensureDir(reportDir);
@@ -30,7 +32,9 @@ const itemData = parseIteminfoModulePayload(result.moduleContent);
 const totalItems = Object.keys(itemData).filter((key) => /^\d+$/.test(key) && Number(key) > 0).length;
 
 writeJson(latestJsonPath, result);
-writeJson(snapshotJsonPath, result);
+if (keepSnapshot) {
+  writeJson(snapshotJsonPath, result);
+}
 fs.writeFileSync(latestLuaPath, result.moduleContent);
 
 writeJson(reportPath, {
@@ -45,7 +49,7 @@ writeJson(reportPath, {
   totalItems,
   latestJsonPath,
   latestLuaPath,
-  snapshotJsonPath
+  snapshotJsonPath: keepSnapshot ? snapshotJsonPath : null
 });
 
 console.log(`Fetched module: ${result.pageTitle}`);

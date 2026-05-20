@@ -71,6 +71,39 @@ fs.appendFileSync(process.env.PROC_FILE, `${JSON.stringify(entry)}\n`);
 NODE
 }
 
+run_snapshot_gc_if_due() {
+  local marker_path="$report_dir/snapshot-gc.last-run"
+  local log_file
+  local now_seconds last_seconds age_seconds
+  log_file="$(log_path snapshot-gc)"
+  now_seconds="$(date +%s)"
+  last_seconds=0
+
+  if [[ -f "$marker_path" ]]; then
+    last_seconds="$(cat "$marker_path" 2>/dev/null || printf 0)"
+    if ! [[ "$last_seconds" =~ ^[0-9]+$ ]]; then
+      last_seconds=0
+    fi
+  fi
+
+  age_seconds=$((now_seconds - last_seconds))
+  if [[ "$age_seconds" -lt 604800 ]]; then
+    return 0
+  fi
+
+  if ! command -v node >/dev/null 2>&1; then
+    log_warn "Skipping weekly snapshot GC because node is not available"
+    return 0
+  fi
+
+  if node "$REPO_ROOT/scripts/data/maint/gc-snapshots.mjs" --keep=7 >"$log_file" 2>&1; then
+    printf '%s\n' "$now_seconds" >"$marker_path"
+    log_info "Snapshot GC completed; log=$log_file"
+  else
+    log_warn "Snapshot GC failed; log=$log_file"
+  fi
+}
+
 start_background() {
   local name="$1"
   local cwd="$2"
@@ -185,14 +218,6 @@ process.stdout.write(String(parsed[field] || ''));
 NODE
 }
 
-if ! $reuse_existing; then
-  bash "$SCRIPT_DIR/stop-local-stack.sh"
-fi
-
-log_info "Running preflight checks before local stack startup..."
-bash "$SCRIPT_DIR/verify-local-stack.sh"
-preflight_status="passed"
-
 load_runtime_config
 require_command node
 require_command mvn
@@ -242,6 +267,16 @@ export SPRING_FLYWAY_OUT_OF_ORDER="$TP_SPRING_FLYWAY_OUT_OF_ORDER"
 export SPRING_DEVTOOLS_RESTART_ENABLED=false
 export SPRING_DEVTOOLS_LIVERELOAD_ENABLED=false
 export MANAGEMENT_HEALTH_MAIL_ENABLED=false
+
+if ! $reuse_existing; then
+  bash "$SCRIPT_DIR/stop-local-stack.sh"
+fi
+
+log_info "Running preflight checks before local stack startup..."
+bash "$SCRIPT_DIR/verify-local-stack.sh"
+preflight_status="passed"
+
+run_snapshot_gc_if_due
 
 start_redis_if_needed() {
   if tcp_check "$TP_REDIS_HOST" "$TP_REDIS_PORT" 800; then

@@ -182,6 +182,128 @@ test('probe-only writes changed page report without raw item page payloads', () 
     assert.equal(report.items[0].reason, 'source_changed');
 });
 
+test('item page fetcher does not keep timestamp snapshots by default', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-no-snapshot-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const inputPath = path.join(tempDir, 'items.json');
+    const rawDir = path.join(tempDir, 'raw');
+    const reportDir = path.join(tempDir, 'reports');
+    const progressPath = path.join(tempDir, 'progress.json');
+    const mockApiPath = path.join(tempDir, 'mock-api.json');
+
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    fs.writeFileSync(inputPath, JSON.stringify({
+      items: [{ internalName: 'MiningPotion', name: 'Mining Potion' }]
+    }), 'utf8');
+    fs.writeFileSync(mockApiPath, JSON.stringify({
+      parse: {
+        pageid: 123,
+        title: 'Mining Potion',
+        wikitext: 'Mining Potion page',
+        text: '<p>Mining Potion page</p>',
+        sections: []
+      },
+      query: {
+        pages: [{
+          pageid: 123,
+          title: 'Mining Potion',
+          revisions: [{ revid: 456, timestamp: '2026-05-20T00:00:00Z' }]
+        }]
+      }
+    }), 'utf8');
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      `--input=${inputPath}`,
+      `--raw-dir=${rawDir}`,
+      `--report-dir=${reportDir}`,
+      `--progress-path=${progressPath}`,
+      '--items=MiningPotion',
+      '--limit=1',
+      '--only-changed=false',
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+        TERRAPEDIA_CRAWLER_ACTION_ID: 'test-item-pages-no-snapshot',
+        NODE_ENV: 'test',
+        TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.deepEqual(fs.readdirSync(rawDir).sort(), ['miningpotion.latest.json']);
+
+    const reportFile = fs.readdirSync(reportDir).find((entry) => entry.endsWith('.json'));
+    const report = JSON.parse(fs.readFileSync(path.join(reportDir, reportFile), 'utf8'));
+    assert.equal(report.items[0].latestPath.endsWith('miningpotion.latest.json'), true);
+    assert.equal(report.items[0].snapshotPath, null);
+});
+
+test('item page fetcher keeps timestamp snapshots when explicitly requested', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-keep-snapshot-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const inputPath = path.join(tempDir, 'items.json');
+    const rawDir = path.join(tempDir, 'raw');
+    const reportDir = path.join(tempDir, 'reports');
+    const progressPath = path.join(tempDir, 'progress.json');
+    const mockApiPath = path.join(tempDir, 'mock-api.json');
+
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    fs.writeFileSync(inputPath, JSON.stringify({
+      items: [{ internalName: 'MiningPotion', name: 'Mining Potion' }]
+    }), 'utf8');
+    fs.writeFileSync(mockApiPath, JSON.stringify({
+      parse: {
+        pageid: 123,
+        title: 'Mining Potion',
+        wikitext: 'Mining Potion page',
+        text: '<p>Mining Potion page</p>',
+        sections: []
+      },
+      query: {
+        pages: [{
+          pageid: 123,
+          title: 'Mining Potion',
+          revisions: [{ revid: 456, timestamp: '2026-05-20T00:00:00Z' }]
+        }]
+      }
+    }), 'utf8');
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      `--input=${inputPath}`,
+      `--raw-dir=${rawDir}`,
+      `--report-dir=${reportDir}`,
+      `--progress-path=${progressPath}`,
+      '--items=MiningPotion',
+      '--limit=1',
+      '--only-changed=false',
+      '--keep-snapshot=true',
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+        TERRAPEDIA_CRAWLER_ACTION_ID: 'test-item-pages-keep-snapshot',
+        NODE_ENV: 'test',
+        TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const files = fs.readdirSync(rawDir).sort();
+    assert.equal(files.includes('miningpotion.latest.json'), true);
+    assert.equal(files.filter((entry) => /^miningpotion\.\d{4}-\d{2}-\d{2}T.*\.json$/.test(entry)).length, 1);
+
+    const reportFile = fs.readdirSync(reportDir).find((entry) => entry.endsWith('.json'));
+    const report = JSON.parse(fs.readFileSync(path.join(reportDir, reportFile), 'utf8'));
+    assert.match(report.items[0].snapshotPath, /miningpotion\.\d{4}-\d{2}-\d{2}T.*\.json$/);
+});
+
 test('item page probe writes redis heartbeat when redis-cli is available', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-heartbeat-'));
     const binDir = path.join(tempDir, 'bin');

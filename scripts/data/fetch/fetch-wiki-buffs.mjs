@@ -11,6 +11,7 @@ import {
   parseCliArgs,
   parseIteminfoModulePayload,
   sharedDataPath,
+  shouldKeepSnapshot,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
 import { reportHeartbeat } from '../lib/crawler-heartbeat.mjs';
@@ -36,6 +37,7 @@ async function main(argv = process.argv.slice(2)) {
   const reportDir = sharedDataPath('reports', 'fetch');
   const langs = parseLanguages(options.langs);
   const progressPath = path.resolve(process.cwd(), options['progress-path'] ?? DEFAULT_BUFF_PROGRESS_PATH);
+  const keepSnapshot = shouldKeepSnapshot(options);
   const startedAt = new Date().toISOString();
 
   ensureDir(rawDir);
@@ -115,10 +117,14 @@ async function main(argv = process.argv.slice(2)) {
   };
 
   writeJson(latestJsonPath, result);
-  writeJson(snapshotJsonPath, result);
+  if (keepSnapshot) {
+    writeJson(snapshotJsonPath, result);
+  }
   fs.writeFileSync(latestMarkupPath, result.moduleContent);
   writeJson(latestParsedPath, parsedPayload);
-  writeJson(snapshotParsedPath, parsedPayload);
+  if (keepSnapshot) {
+    writeJson(snapshotParsedPath, parsedPayload);
+  }
 
   const debuffCount = buffs.filter((buff) => buff.type === 'debuff').length;
   const buffCount = buffs.filter((buff) => buff.type === 'buff').length;
@@ -140,8 +146,8 @@ async function main(argv = process.argv.slice(2)) {
     latestJsonPath,
     latestMarkupPath,
     latestParsedPath,
-    snapshotJsonPath,
-    snapshotParsedPath
+    snapshotJsonPath: keepSnapshot ? snapshotJsonPath : null,
+    snapshotParsedPath: keepSnapshot ? snapshotParsedPath : null
   });
   writeBuffFetchProgress(progressPath, {
     status: 'completed',

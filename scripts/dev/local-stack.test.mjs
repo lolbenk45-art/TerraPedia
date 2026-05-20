@@ -119,6 +119,16 @@ test('start can run FlareSolverr through local stack config', () => {
   assert.match(exampleConfig, /"url": "http:\/\/127\.0\.0\.1:8191\/v1"/);
 });
 
+test('start runs snapshot GC at most weekly through a marker file', () => {
+  const source = startSource();
+
+  assert.match(source, /run_snapshot_gc_if_due/);
+  assert.match(source, /snapshot-gc\.last-run/);
+  assert.match(source, /gc-snapshots\.mjs/);
+  assert.match(source, /604800/);
+  assert.match(source, /load_runtime_config[\s\S]*require_command node[\s\S]*run_snapshot_gc_if_due[\s\S]*start_redis_if_needed/);
+});
+
 test('smoke script is read-only and writes timestamped smoke report', () => {
   const source = smokeSource();
 

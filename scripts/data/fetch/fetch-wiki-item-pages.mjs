@@ -11,6 +11,7 @@ import {
   numericOption,
   parseCliArgs,
   sharedDataPath,
+  shouldKeepSnapshot,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
 import { reportHeartbeat } from '../lib/crawler-heartbeat.mjs';
@@ -38,6 +39,7 @@ let batchCandidateCount;
 let skippedExisting = 0;
 let skippedUnchanged = 0;
 let timestamp;
+let keepSnapshot;
 
 async function main() {
 const options = parseCliArgs(process.argv.slice(2));
@@ -52,6 +54,7 @@ const concurrency = Math.max(1, numericOption(options.concurrency, 1));
 const onlyMissing = booleanOption(options['only-missing'] ?? options.onlyMissing, false);
 const onlyChanged = booleanOption(options['only-changed'] ?? options.onlyChanged, true);
 const probeOnly = booleanOption(options['probe-only'] ?? options.probeOnly, false);
+keepSnapshot = shouldKeepSnapshot(options);
 withRecipes = booleanOption(options['with-recipes'] ?? options.withRecipes, false);
 maxAttempts = Math.max(1, numericOption(options['max-attempts'] ?? options.maxAttempts, 8));
 progressPath = options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_WIKI_SYNC_PROGRESS_PATH;
@@ -271,7 +274,9 @@ async function fetchAndPersistItemPage(item, outputDir) {
   };
 
   writeJson(latestPath, storedPayload);
-  writeJson(snapshotPath, storedPayload);
+  if (keepSnapshot) {
+    writeJson(snapshotPath, storedPayload);
+  }
 
   return {
     itemName: item.name,
@@ -280,7 +285,7 @@ async function fetchAndPersistItemPage(item, outputDir) {
     pageId: payload.pageId,
     revisionTimestamp: payload.revisionTimestamp,
     latestPath,
-    snapshotPath
+    snapshotPath: keepSnapshot ? snapshotPath : null
   };
 }
 

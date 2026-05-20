@@ -5,16 +5,20 @@ import path from 'node:path';
 import {
   ensureDir,
   fetchWikiApiJson,
+  parseCliArgs,
   sharedDataPath,
+  shouldKeepSnapshot,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
 
+const options = parseCliArgs(process.argv.slice(2));
 const root = process.cwd();
 const standardizedPath = path.join(root, 'data', 'standardized', 'armor_sets.standardized.json');
 const rawOutputPath = path.join(root, 'data', 'generated', 'wiki-armorsetbonuses.latest.json');
 const reportPath = path.join(root, 'reports', `wiki-armorsetbonuses-refresh-${new Date().toISOString().slice(0, 10)}.json`);
 const sharedRawDir = sharedDataPath('raw', 'wiki');
 const timestamp = new Date().toISOString().replaceAll(':', '-');
+const keepSnapshot = shouldKeepSnapshot(options);
 
 const moduleUrl = new URL('https://terraria.wiki.gg/api.php');
 moduleUrl.searchParams.set('action', 'query');
@@ -85,9 +89,13 @@ writeJson(rawOutputPath, {
   content
 });
 writeJson(path.join(sharedRawDir, 'module__armorsetbonuses.latest.json'), rawPayload);
-writeJson(path.join(sharedRawDir, `module__armorsetbonuses.${timestamp}.json`), rawPayload);
+if (keepSnapshot) {
+  writeJson(path.join(sharedRawDir, `module__armorsetbonuses.${timestamp}.json`), rawPayload);
+}
 writeJson(path.join(sharedRawDir, 'module__armorsetbonuses.parsed.latest.json'), parsedPayload);
-writeJson(path.join(sharedRawDir, `module__armorsetbonuses.parsed.${timestamp}.json`), parsedPayload);
+if (keepSnapshot) {
+  writeJson(path.join(sharedRawDir, `module__armorsetbonuses.parsed.${timestamp}.json`), parsedPayload);
+}
 
 const report = {
   generatedAt: fetchedAt,

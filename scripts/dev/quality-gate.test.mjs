@@ -47,6 +47,22 @@ test('quality gates include wiki request gate contract tests', () => {
   }
 });
 
+test('quality gates include snapshot retention contract tests', () => {
+  const localSource = fs.readFileSync('scripts/dev/quality-gate.sh', 'utf8');
+  const ciSource = fs.readFileSync('scripts/dev/quality-gate-ci.sh', 'utf8');
+
+  for (const source of [localSource, ciSource]) {
+    for (const testPath of [
+      'scripts/data/fetch/fetch-wiki-iteminfo.test.mjs',
+      'scripts/data/fetch/fetch-wiki-item-pages.test.mjs',
+      'scripts/data/fetch/snapshot-policy.test.mjs',
+      'scripts/data/maint/gc-snapshots.test.mjs',
+    ]) {
+      assert.match(source, new RegExp(escapeRegExp(testPath)), `${testPath} should be included in quality gates`);
+    }
+  }
+});
+
 test('quality gate runs full domain acceptance dry-run without writing reports', () => {
   const source = fs.readFileSync('scripts/dev/quality-gate.sh', 'utf8');
 

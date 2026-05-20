@@ -62,7 +62,8 @@ export async function fetchWikiModuleContent({
   url.searchParams.set('format', 'json');
   url.searchParams.set('formatversion', '2');
 
-  const body = await wikiRequestGate.runJsonRequest(url, {
+  const body = await fetchWikiApiJson({
+    url,
     profile: 'revision',
     sourceKey: moduleTitle
   });
@@ -286,6 +287,23 @@ export function numericOption(value, fallback) {
   }
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+export function booleanOption(value, fallback = false) {
+  if (value == null || value === '') {
+    return fallback;
+  }
+  if (value === true || value === 'true' || value === '1' || value === 'yes' || value === 'on') {
+    return true;
+  }
+  if (value === false || value === 'false' || value === '0' || value === 'no' || value === 'off') {
+    return false;
+  }
+  return fallback;
+}
+
+export function shouldKeepSnapshot(options = {}) {
+  return booleanOption(options['keep-snapshot'] ?? options.keepSnapshot, false);
 }
 
 export function chunkArray(list, size) {
