@@ -6,9 +6,9 @@
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">1,111 射弹 · 行为与伤害类型</span>
-          <h1>射弹</h1>
-          <p>看弹道行为、归属、穿透和生命周期，理解武器与 Boss 招式。</p>
+          <span class="eyebrow">1,111 个射弹 · 行为与伤害类型</span>
+          <h1>Projectile 行为库</h1>
+          <p>射弹页不适合做普通图鉴，它应该展示弹道行为、友方/敌方归属、穿透和生命周期，帮助玩家理解武器与 Boss 招式。</p>
         </div>
         <a class="primary-button" href="/bosses">查看 Boss 弹幕</a>
       </div>

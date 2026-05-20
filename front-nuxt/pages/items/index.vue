@@ -223,7 +223,8 @@ const pageLimit = computed(() => pagination.value?.limit ?? pagination.value?.si
 const totalPages = computed(() => Math.max(1, pagination.value?.totalPages ?? Math.ceil(totalItems.value / Math.max(1, pageLimit.value))))
 const canGoPrevious = computed(() => currentPage.value > 1)
 const canGoNext = computed(() => currentPage.value < totalPages.value)
-const showLoadingSpinner = computed(() => itemsPending.value)
+const dataSourceState = computed(() => publicItemsResult.value?.source ?? 'fallback')
+const publicStatusLabel = computed(() => itemsPending.value ? '加载中' : itemsError.value ? '已缓存' : '已更新')
 const activeFilterLabel = computed(() => selectedFilter.value.label)
 const catalogVisualLoading = computed(() => itemsPending.value && publicItemsResult.value?.source !== 'api')
 const catalogLoadingSlots = computed(() => Array.from({ length: Math.min(selectedPageSize.value, 50) }, (_, index) => index + 1))
@@ -539,22 +540,26 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
     <div class="page-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">{{ totalItems.toLocaleString('zh-CN') }} 物品</span>
-          <h1>物品</h1>
+          <span class="eyebrow">{{ totalItems.toLocaleString('zh-CN') }} 个物品</span>
+          <h1>物品图鉴</h1>
+          <p>图标墙是主浏览界面。搜索、分类和分页统一基于完整资料库。</p>
         </div>
       </div>
     </div>
 
     <section
       class="catalog-pixel-stage"
-      aria-label="物品图标墙"
+      aria-label="物品图鉴墙"
       :aria-busy="itemsPending"
+      :data-source="dataSourceState"
     >
       <div ref="catalogWallTopRef" class="catalog-wall-shell">
         <div class="catalog-wall-main">
           <div class="catalog-wall-topbar">
             <div class="catalog-wall-title">
+              <span class="eyebrow">ITEM WALL</span>
               <h2>分页物品墙</h2>
+              <p>每页从资料库载入固定数量的图标。悬停或键盘聚焦物品时查看摘要，点击进入详情。</p>
             </div>
 
             <div class="catalog-wall-controls">
@@ -583,7 +588,7 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
               <div class="catalog-control-summary" aria-live="polite">
                 <span>{{ activeFilterPath }}</span>
                 <b>{{ resultSummary }}</b>
-                <span v-if="showLoadingSpinner" class="catalog-search-spinner" aria-label="加载中"></span>
+                <strong>{{ publicStatusLabel }}</strong>
               </div>
             </div>
           </div>

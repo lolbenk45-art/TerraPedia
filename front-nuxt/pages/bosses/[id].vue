@@ -11,8 +11,7 @@
         <div>
           <span class="eyebrow">Boss · Eye of Cthulhu</span>
           <h1>克苏鲁之眼</h1>
-          <p>早期主线 Boss。公开详情页优先展示触发、战前准备、阶段变化、关键掉落和下一步。</p>
-          <p class="boss-readiness"><b>战前完成度</b><span>生命水晶、平台、远程武器、铁皮药水</span><em>建议准备 4 / 5</em></p>
+          <p>早期主线 Boss。公开详情页优先展示触发、战前准备、阶段变化、关键掉落和下一步，而不是后台分组关系。</p>
           <div class="tag-row">
             <span class="tag gold">2800 HP</span>
             <span class="tag moss">夜晚</span>
@@ -20,6 +19,11 @@
             <span class="tag paper">普通模式</span>
           </div>
         </div>
+        <aside class="boss-readiness">
+          <b>战前完成度</b>
+          <span>生命水晶、平台、远程武器、铁皮药水</span>
+          <em>建议准备 4 / 5</em>
+        </aside>
       </section>
 
       <section class="boss-phase-grid">

@@ -6,9 +6,9 @@
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">合成路线</span>
-          <h1>合成</h1>
-          <p>输入物品名查合成路线，看材料和制作站。</p>
+          <span class="eyebrow">/crafting · recipe route</span>
+          <h1>制作路线</h1>
+          <p>制作页先做视觉结构：材料、制作站、上游来源和下游目标放在同一个工作台视图里。功能暂不接入，后续再绑定配方接口。</p>
         </div>
         <a class="primary-button" href="/items/terra-blade">查看泰拉刃</a>
       </div>
@@ -20,6 +20,11 @@
           <span class="eyebrow">当前蓝图</span>
           <h2>泰拉刃制作链</h2>
           <p>左侧保留检索与目标物位置，中间展示主要合成节点，右侧承接制作站、材料缺口和路线入口。</p>
+          <div class="tag-row">
+            <span class="tag gold">静态占位</span>
+            <span class="tag moss">合成树</span>
+            <span class="tag paper">后续接接口</span>
+          </div>
         </div>
         <div class="crafting-search">
           <span class="search-glyph" aria-hidden="true"></span>

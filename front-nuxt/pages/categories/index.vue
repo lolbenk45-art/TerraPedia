@@ -6,9 +6,9 @@
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">分类入口</span>
-          <h1>分类</h1>
-          <p>按战斗 / 制作 / 建造三轴看物品。</p>
+          <span class="eyebrow">/categories · /categories/items</span>
+          <h1>分类索引</h1>
+          <p>分类页不是后台树形表，而是把玩家最常用的图鉴入口组织成可扫描的资料地图。</p>
         </div>
         <a class="primary-button" href="/categories/weapons">查看武器分类</a>
       </div>
@@ -18,7 +18,7 @@
       <section class="category-map category-atlas support-panel">
         <div class="category-axis category-atlas-axis">
           <span>图鉴结构</span>
-          <h2>从大类到二级入口</h2>
+          <h2>从大类到路线入口</h2>
           <p>左侧是主分类，右侧是玩家会真正点击的二级入口。后续接入接口后，可直接用分类树渲染。</p>
           <div class="category-axis-branches">
             <a class="active" href="/categories/weapons"><b>战斗轴</b><span>武器 / 防具 / 药水</span></a>
@@ -43,26 +43,24 @@
       </section>
 
       <section class="taxonomy-band category-entry-band">
-        <div class="taxonomy-list">
-          <a class="taxonomy-row" href="/articles">
-            <span class="eyebrow">推荐入口</span>
-            <b>按阶段看</b>
-            <span>开荒、Boss 前、困难模式、月亮领主前</span>
-            <em>4 组路线</em>
-          </a>
-          <a class="taxonomy-row" href="/armor-sets">
-            <span class="eyebrow">推荐入口</span>
-            <b>按职业看</b>
-            <span>近战、射手、法师、召唤跨分类浏览</span>
-            <em>4 个职业</em>
-          </a>
-          <a class="taxonomy-row" href="/search">
-            <span class="eyebrow">推荐入口</span>
-            <b>按用途看</b>
-            <span>战斗、建造、探索、事件准备</span>
-            <em>6 类用途</em>
-          </a>
-        </div>
+        <article class="support-panel category-entry-card">
+          <span class="eyebrow">推荐入口</span>
+          <h3>按阶段看</h3>
+          <p>开荒、Boss 前、困难模式、月亮领主前，每个阶段都有不同的分类优先级。</p>
+          <b>4 组路线</b>
+        </article>
+        <article class="support-panel category-entry-card">
+          <span class="eyebrow">推荐入口</span>
+          <h3>按职业看</h3>
+          <p>近战、射手、法师、召唤的装备路线需要跨分类浏览。</p>
+          <b>4 个职业</b>
+        </article>
+        <article class="support-panel category-entry-card">
+          <span class="eyebrow">推荐入口</span>
+          <h3>按用途看</h3>
+          <p>战斗、建造、探索、事件准备，适合从分类直接跳到专题。</p>
+          <b>6 类用途</b>
+        </article>
       </section>
     </main>
 

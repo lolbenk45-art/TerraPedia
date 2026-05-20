@@ -6,9 +6,9 @@
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">职业与阶段</span>
-          <h1>套装</h1>
-          <p>按阶段选择与职业分支，看每套装备的部件与定位。</p>
+          <span class="eyebrow">Armor Sets · 职业与阶段</span>
+          <h1>套装路线</h1>
+          <p>套装页面要体现“阶段选择”和“职业分支”，而不是只列出部件。这里先用重点套装建立公开页结构。</p>
         </div>
         <a class="primary-button" href="/bosses">按 Boss 推进</a>
       </div>

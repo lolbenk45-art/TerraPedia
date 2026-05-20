@@ -84,7 +84,7 @@ useSeoMeta({
 </script>
 
 <template>
-  <section class="screen home-screen active">
+  <section class="screen home-screen search-tool-screen active">
     <TerraNav />
 
     <main class="home-main">

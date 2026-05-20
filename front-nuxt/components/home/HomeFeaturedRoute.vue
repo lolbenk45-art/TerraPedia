@@ -23,7 +23,7 @@ defineProps<{
   <section class="paper-stage">
     <div class="section-head">
       <span class="eyebrow">精选路线</span>
-      <h2>按装备目标推进</h2>
+      <h2>从路线开始探索资料</h2>
       <p>按装备目标、事件顺序和 Boss 阶段查看资料入口。</p>
     </div>
 
