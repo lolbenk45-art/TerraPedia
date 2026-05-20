@@ -30,8 +30,6 @@ let progressPath;
 let progressActionId;
 let progressStartedAt;
 let maxAttempts;
-let delayMs;
-let jitterMs;
 let withRecipes;
 let offset;
 let limit;
@@ -55,8 +53,6 @@ const onlyMissing = booleanOption(options['only-missing'] ?? options.onlyMissing
 const onlyChanged = booleanOption(options['only-changed'] ?? options.onlyChanged, true);
 const probeOnly = booleanOption(options['probe-only'] ?? options.probeOnly, false);
 withRecipes = booleanOption(options['with-recipes'] ?? options.withRecipes, false);
-delayMs = Math.max(0, numericOption(options['delay-ms'] ?? options.delayMs, 5_000));
-jitterMs = Math.max(0, numericOption(options['jitter-ms'] ?? options.jitterMs, 2_000));
 maxAttempts = Math.max(1, numericOption(options['max-attempts'] ?? options.maxAttempts, 8));
 progressPath = options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_WIKI_SYNC_PROGRESS_PATH;
 progressActionId = process.env.TERRAPEDIA_CRAWLER_ACTION_ID ?? 'fetch-item-pages';
@@ -259,7 +255,6 @@ if (process.argv[1] === __filename) {
 }
 
 async function fetchAndPersistItemPage(item, outputDir) {
-  await sleep(computeDelayMs());
   const payload = await withRetry(() => fetchWikiPagePayload({ pageTitle: item.name }), item.name);
   const recipesMarkup = withRecipes && payload.wikitext.includes('{{recipes|result=')
     ? await withRetry(() => expandWikiText({ text: `{{recipes|result=${payload.pageTitle}}}` }), `${item.name} recipes`)
@@ -432,14 +427,7 @@ function isRetryableError(message) {
 }
 
 function computeBackoffMs(attempt) {
-  const exponential = Math.min(120000, 1500 * (2 ** (attempt - 1)));
-  const jitter = jitterMs > 0 ? Math.floor(Math.random() * jitterMs) : 0;
-  return exponential + jitter;
-}
-
-function computeDelayMs() {
-  const jitter = jitterMs > 0 ? Math.floor(Math.random() * jitterMs) : 0;
-  return delayMs + jitter;
+  return Math.min(120000, 1500 * (2 ** (attempt - 1)));
 }
 
 function compactError(message) {

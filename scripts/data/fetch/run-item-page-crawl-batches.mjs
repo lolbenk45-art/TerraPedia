@@ -52,8 +52,6 @@ export function buildFetchArgs({
   concurrency,
   onlyChanged,
   withRecipes,
-  delayMs,
-  jitterMs,
   maxAttempts,
   progressPath,
   inputPath = null,
@@ -67,8 +65,6 @@ export function buildFetchArgs({
     `--concurrency=${Math.max(1, Math.trunc(Number(concurrency) || 1))}`,
     `--only-changed=${Boolean(onlyChanged)}`,
     `--with-recipes=${Boolean(withRecipes)}`,
-    `--delay-ms=${Math.max(0, Math.trunc(Number(delayMs) || 0))}`,
-    `--jitter-ms=${Math.max(0, Math.trunc(Number(jitterMs) || 0))}`,
     `--max-attempts=${Math.max(1, Math.trunc(Number(maxAttempts) || 1))}`,
     `--progress-path=${progressPath || defaultProgressPath}`
   ];
@@ -104,8 +100,6 @@ async function main() {
   const concurrency = Math.max(1, numericOption(options.concurrency, 1));
   const onlyChanged = booleanOption(options['only-changed'] ?? options.onlyChanged, false);
   const withRecipes = booleanOption(options['with-recipes'] ?? options.withRecipes, true);
-  const delayMs = Math.max(0, numericOption(options['delay-ms'] ?? options.delayMs, 5000));
-  const jitterMs = Math.max(0, numericOption(options['jitter-ms'] ?? options.jitterMs, 2000));
   const maxAttempts = Math.max(1, numericOption(options['max-attempts'] ?? options.maxAttempts, 8));
   const continueOnError = booleanOption(options['continue-on-error'] ?? options.continueOnError, true);
   const actionPrefix = String(options['action-prefix'] ?? 'item-pages-batch');
@@ -131,8 +125,6 @@ async function main() {
       concurrency,
       onlyChanged,
       withRecipes,
-      delayMs,
-      jitterMs,
       maxAttempts,
       progressPath,
       inputPath,

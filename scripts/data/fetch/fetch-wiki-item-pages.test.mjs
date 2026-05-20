@@ -34,8 +34,6 @@ test('writes child progress and report to explicit paths when no item pages are 
       '--items=DefinitelyMissingItem',
       '--limit=1',
       '--only-changed=false',
-      '--delay-ms=0',
-      '--jitter-ms=0'
     ], {
       cwd: repoRoot,
       encoding: 'utf8',
@@ -72,6 +70,14 @@ test('writes child progress and report to explicit paths when no item pages are 
     assert.equal(path.resolve(defaultProgress.childStatusPath), defaultProgressPath);
 });
 
+test('item page fetcher leaves request pacing to the wiki request gate', () => {
+    const source = fs.readFileSync(scriptPath, 'utf8');
+
+    assert.doesNotMatch(source, /delay-ms/);
+    assert.doesNotMatch(source, /jitter-ms/);
+    assert.doesNotMatch(source, /computeDelayMs/);
+});
+
 test('default fetch progress path follows WORKTREE_ROOT when progress path is omitted', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-worktree-'));
     const worktreeRoot = path.join(tempDir, 'feature-worktree');
@@ -93,8 +99,6 @@ test('default fetch progress path follows WORKTREE_ROOT when progress path is om
       '--items=DefinitelyMissingItem',
       '--limit=1',
       '--only-changed=false',
-      '--delay-ms=0',
-      '--jitter-ms=0'
     ], {
       cwd: repoRoot,
       encoding: 'utf8',
@@ -151,8 +155,6 @@ test('probe-only writes changed page report without raw item page payloads', () 
       '--probe-only=true',
       '--limit=1',
       '--only-changed=false',
-      '--delay-ms=0',
-      '--jitter-ms=0'
     ], {
       cwd: repoRoot,
       encoding: 'utf8',
@@ -219,8 +221,6 @@ fs.appendFileSync(${JSON.stringify(redisLog)}, JSON.stringify(process.argv.slice
       '--probe-only=true',
       '--limit=1',
       '--only-changed=false',
-      '--delay-ms=0',
-      '--jitter-ms=0'
     ], {
       cwd: repoRoot,
       encoding: 'utf8',
@@ -273,8 +273,6 @@ fs.appendFileSync(${JSON.stringify(redisLog)}, JSON.stringify(process.argv.slice
       `--progress-path=${progressPath}`,
       '--limit=1',
       '--only-changed=false',
-      '--delay-ms=0',
-      '--jitter-ms=0'
     ], {
       cwd: repoRoot,
       encoding: 'utf8',

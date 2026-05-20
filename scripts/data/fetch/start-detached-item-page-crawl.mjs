@@ -21,9 +21,7 @@ const defaultTaskName = 'TerraPediaItemPageCrawl';
 export function buildRunnerCliArgs({
   batchSize,
   concurrency,
-  delayMs,
   endOffset = null,
-  jitterMs,
   maxAttempts,
   onlyChanged,
   progressPath,
@@ -34,8 +32,6 @@ export function buildRunnerCliArgs({
   const args = [
     `--batch-size=${batchSize}`,
     `--concurrency=${concurrency}`,
-    `--delay-ms=${delayMs}`,
-    `--jitter-ms=${jitterMs}`,
     `--max-attempts=${maxAttempts}`,
     `--progress-path=${progressPath}`,
     `--resume-from-progress=${Boolean(resumeFromProgress)}`,
@@ -85,9 +81,7 @@ async function main() {
   const runnerArgs = buildRunnerCliArgs({
     batchSize: Math.max(1, numericOption(options['batch-size'] ?? options.limit, 100)),
     concurrency: Math.max(1, numericOption(options.concurrency, 1)),
-    delayMs: Math.max(0, numericOption(options['delay-ms'] ?? options.delayMs, 5000)),
     endOffset: optionNumberOrNull(options['end-offset'] ?? options.maxOffset),
-    jitterMs: Math.max(0, numericOption(options['jitter-ms'] ?? options.jitterMs, 2000)),
     maxAttempts: Math.max(1, numericOption(options['max-attempts'] ?? options.maxAttempts, 8)),
     onlyChanged: booleanOption(options['only-changed'] ?? options.onlyChanged, false),
     progressPath: String(options['progress-path'] ?? options.progressPath ?? defaultProgressPath),
