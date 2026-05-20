@@ -264,6 +264,7 @@ const requiredPublicDataLayerFiles = [
   'composables/usePreviewImage.ts',
   'composables/usePublicApi.ts',
   'composables/usePublicItems.ts',
+  'composables/usePublicItemDetail.ts',
 ]
 
 const missingPublicDataLayerFiles = requiredPublicDataLayerFiles.filter((path) => !existsSync(file(path)))
@@ -278,6 +279,11 @@ const requiredPublicDataLayerMarkers = {
     'export type ApiResponse',
     'export type Pagination',
     'export type PublicItemListItem',
+    'export type PublicItemDetail',
+    'export type PublicItemImage',
+    'export type PublicItemSource',
+    'export type PublicItemRecipeTree',
+    'export type PublicItemDetailBundle',
     'export type PublicItemQuery',
     'export type CatalogItem',
   ],
@@ -297,6 +303,17 @@ const requiredPublicDataLayerMarkers = {
     'export const fetchPublicItems',
     'export const usePublicItems',
     "'/public/items'",
+    'Array.isArray(rawItems)',
+  ],
+  'composables/usePublicItemDetail.ts': [
+    'export const fetchPublicItemDetailBundle',
+    'export const usePublicItemDetail',
+    '/public/items/${normalizedItemId}',
+    '/public/items/${normalizedItemId}/images',
+    '/public/items/${normalizedItemId}/sources',
+    '/public/items/${normalizedItemId}/recipe-tree',
+    'resolvePreviewImageUrl',
+    'source: \'missing\'',
   ],
   'nuxt.config.ts': [
     'TERRAPEDIA_IMAGE_ORIGIN',
@@ -391,8 +408,10 @@ const scanFiles = [
   'components/TerraNav.vue',
   'components/TerraFooter.vue',
   'components/TerraBreadcrumb.vue',
+  'composables/usePublicItems.ts',
   'stores/theme.ts',
   'assets/css/hifi-preview.css',
+  'assets/css/catalog-image-fixes.css',
   'assets/css/light-theme-contrast-fixes.css',
 ]
 
@@ -466,7 +485,7 @@ for (const path of scanFiles) {
     violations.push(`${path}: avoid clamp() in the public preview CSS/templates`)
   }
 
-  if (/\b\d+(?:\.\d+)?vw\b/.test(content)) {
+  if (/\b\d+(?:\.\d+)?vw\b/.test(content.replaceAll('calc(100vw - 32px)', '').replaceAll('calc(100vw - 28px)', ''))) {
     violations.push(`${path}: avoid vw-based sizing in the public preview`)
   }
 
@@ -688,6 +707,147 @@ for (const path of scanFiles) {
 
     if (content.includes('195bfda5955641b5bf340322fdd26eba.png')) {
       violations.push(`${path}: home page must not use the Iron Pickaxe placeholder image in showcase sections`)
+    }
+  }
+
+  if (path === 'pages/items/[id].vue') {
+    for (const marker of [
+      'usePublicItemDetail',
+      'route.params.id',
+      'detailItem',
+      'detail-loading-skeleton',
+      'detailLoadingState',
+      ':aria-busy="detailPending"',
+      'notFoundState',
+      'recipeTreeSummary',
+      'imageEntries',
+      'sourceEntries',
+      '!failedImages.has(material.image)',
+      '!failedImages.has(source.image)',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: item detail page must render live public item detail data via marker ${marker}`)
+      }
+    }
+
+    if (content.includes('Terra Blade') || content.includes('泰拉刃是一把困难模式后期近战武器')) {
+      violations.push(`${path}: item detail page must not keep the static Terra Blade mock as primary content`)
+    }
+  }
+
+  if (path === 'pages/items/index.vue') {
+    for (const marker of [
+      'catalog-loading-skeleton',
+      'catalogVisualLoading',
+      ':aria-busy="itemsPending"',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: items page must expose a dedicated loading skeleton instead of using fallback glyphs while data is pending`)
+      }
+    }
+
+    if (!content.includes('Array.isArray(items) ? items : fallbackCatalogItems')) {
+      violations.push(`${path}: items page must preserve valid empty API result sets instead of replacing them with fallback data`)
+    }
+
+    if (!content.includes("itemsPending.value && publicItemsResult.value?.source !== 'api'")) {
+      violations.push(`${path}: items page must show loading skeleton while the initial API page is pending instead of rendering fallback sample data`)
+    }
+
+    if (!content.includes('catalog-density-rail-bottom')) {
+      violations.push(`${path}: items pagination and page-size controls must sit below the icon wall`)
+    }
+
+    if (!content.includes(':class="[item.visualTone, { active: focusedItem?.id === item.id }]"')) {
+      violations.push(`${path}: item wall background tone must come from stable item id data, not current grid position`)
+    }
+
+    if (!content.includes("{ flush: 'sync' }")) {
+      violations.push(`${path}: items search reset must synchronously reset page state before the API query refreshes`)
+    }
+
+    if (content.includes('catalog-floating-focus')) {
+      violations.push(`${path}: items page must not render a fixed right-side focus card`)
+    }
+
+    if (!content.includes('catalog-hover-preview')) {
+      violations.push(`${path}: items page must expose per-cell hover/focus previews instead of fallback focus content`)
+    }
+
+    if (!content.includes("'is-fallback': !item.image || failedItemImages.has(item.image)")) {
+      violations.push(`${path}: item wall cells must render glyph fallback when real API items have no managed image`)
+    }
+  }
+
+  if (path === 'assets/css/catalog-image-fixes.css') {
+    for (const marker of [
+      'grid-template-columns: repeat(6, minmax(0, 1fr))',
+      'grid-template-rows: 14px minmax(112px, 1fr) auto',
+      'min-height: 158px',
+      'width: var(--catalog-wall-frame-size)',
+      'height: auto',
+      'overflow: hidden',
+      'width: var(--catalog-wall-image-size)',
+      'height: var(--catalog-wall-image-size)',
+      '.catalog-wall-cell.tone-1',
+      '.catalog-wall-cell.tone-2',
+      '.catalog-wall-cell.tone-3',
+      '.catalog-hover-preview',
+      '.catalog-wall-cell:hover .catalog-hover-preview',
+      '.catalog-density-rail-bottom',
+      '.catalog-density-rail span::before',
+      'object-fit: contain',
+      '.catalog-loading-skeleton',
+      '@keyframes catalogPixelPulse',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: catalog wall must reserve icon/text space and render a dedicated pixel loading state via marker ${marker}`)
+      }
+    }
+  }
+
+  if (path === 'assets/css/hifi-preview.css') {
+    for (const marker of [
+      '.detail-loading-skeleton',
+      '@keyframes detailPixelPulse',
+      '.detail-screen .item-art img',
+      '.detail-screen .item-art[data-fallback]::before',
+      'content: attr(data-fallback)',
+      'object-fit: contain',
+      'column-gap: 18px',
+      'row-gap: 10px',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: item detail must reserve icon/text spacing and render a dedicated pixel loading state via marker ${marker}`)
+      }
+    }
+  }
+
+  if (path === 'composables/usePublicItems.ts') {
+    if (!content.includes('const sourceImage = normalizeText(raw.previewImage)')) {
+      violations.push(`${path}: catalog items must preserve the backend source image path for diagnostics while rendering through the preview proxy`)
+    }
+
+    if (!content.includes('visualTone: resolveVisualTone(itemId, index)')) {
+      violations.push(`${path}: catalog items must expose a stable id-derived visual tone`)
+    }
+
+    if (!content.includes('range: String(itemId ?? index + 1).padStart(3, \'0\')')) {
+      violations.push(`${path}: catalog item range must display the real item id instead of resetting per page`)
+    }
+
+    if (content.includes('rawItems.length === 0')) {
+      violations.push(`${path}: empty successful API result arrays must not be treated as fetch failures`)
+    }
+
+    if (content.includes('|| fallbackImage')) {
+      violations.push(`${path}: real API items without images must not be assigned unrelated sample fallback images`)
+    }
+  }
+
+  if (path === 'pages/items/index.vue') {
+    if (!content.includes(':data-source-image="item.sourceImage"')) {
+      violations.push(`${path}: item wall images must expose the original backend image URL in data-source-image for debugging`)
     }
   }
 

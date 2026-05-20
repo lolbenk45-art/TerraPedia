@@ -51,6 +51,11 @@ const resolveCategoryGroup = (text: string) => {
   return '其他'
 }
 
+const resolveVisualTone = (itemId: number | null, index: number) => {
+  const seed = itemId ?? index + 1
+  return `tone-${(Math.abs(seed) % 3) + 1}`
+}
+
 export const normalizePublicItem = (raw: PublicItemListItem, index = 0): CatalogItem => {
   const itemId = toNumberOrNull(raw.itemId ?? raw.id)
   const displayName = normalizeText(raw.displayName) || normalizeText(raw.nameZh) || normalizeText(raw.name) || `物品 ${index + 1}`
@@ -62,13 +67,11 @@ export const normalizePublicItem = (raw: PublicItemListItem, index = 0): Catalog
   const category = categoryPath || normalizeText(raw.categoryName) || normalizeText(raw.category) || '未分类'
   const phase = normalizeText(raw.gamePeriod) || (Number(raw.gamePeriodId) > 1 ? '困难模式后' : '阶段未标记')
   const rarity = normalizeText(raw.rarity) || normalizeText(raw.rare) || '稀有度未标记'
-  const fallbackImage = `${imageBase}/${primarySampleItems[index % primarySampleItems.length]?.image ?? fallbackSampleItem.image}`
-  const image = resolvePreviewImageUrl(
-    normalizeText(raw.previewImage)
+  const sourceImage = normalizeText(raw.previewImage)
     || normalizeText(raw.imageUrl)
     || normalizeText(raw.iconUrl)
-    || normalizeText(raw.image),
-  ) || fallbackImage
+    || normalizeText(raw.image)
+  const image = resolvePreviewImageUrl(sourceImage)
   const categoryGroup = normalizeText(raw.categoryGroup)
     || resolveCategoryGroup([category, categoryPath, phase, displayName, englishName, internalName].join(' '))
   const description = normalizeText(raw.descriptionZh)
@@ -91,19 +94,21 @@ export const normalizePublicItem = (raw: PublicItemListItem, index = 0): Catalog
   return {
     id,
     itemId,
-    detailPath: itemId ? `/items/${itemId}` : '/items/terra-blade',
+    detailPath: itemId ? `/items/${itemId}` : '/items',
     name: englishName || displayName,
     displayName,
     englishName,
     internalName,
     image,
+    sourceImage,
     category,
     categoryPath,
     categoryGroup,
+    visualTone: resolveVisualTone(itemId, index),
     phase,
     rarity,
     fallback: firstGlyph(displayName),
-    range: String(index + 1).padStart(3, '0'),
+    range: String(itemId ?? index + 1).padStart(3, '0'),
     damage: toNumberOrNull(raw.damage),
     defense: toNumberOrNull(raw.defense),
     knockback: toNumberOrNull(raw.knockback),
@@ -133,17 +138,14 @@ export const fallbackCatalogItems: CatalogItem[] = Array.from({ length: 240 }, (
   }, index)
 })
 
-const defaultPagination = (items: CatalogItem[], query: PublicItemQuery = {}): Pagination => ({
-  total: items.length,
-  page: query.page ?? 1,
-  limit: query.limit ?? query.size ?? items.length,
-  size: query.size ?? query.limit ?? items.length,
-  totalPages: 1,
-})
+const resolveRequestedPage = (query: PublicItemQuery = {}) => {
+  const requestedPage = Number(query.page ?? 1)
+  return Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1
+}
 
 const resolveRequestedLimit = (query: PublicItemQuery = {}) => {
-  const requestedLimit = Number(query.limit ?? query.size ?? 480)
-  return Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.floor(requestedLimit) : 480
+  const requestedLimit = Number(query.limit ?? query.size ?? 100)
+  return Number.isFinite(requestedLimit) && requestedLimit > 0 ? Math.min(Math.floor(requestedLimit), 100) : 100
 }
 
 const buildPublicItemQuery = (query: PublicItemQuery, page: number, limit: number): PublicItemQuery => ({
@@ -156,72 +158,100 @@ const buildPublicItemQuery = (query: PublicItemQuery, page: number, limit: numbe
   sortDirection: query.sortDirection ?? 'asc',
 })
 
+const normalizePagination = (
+  pagination: Pagination | null | undefined,
+  items: CatalogItem[],
+  query: PublicItemQuery,
+): Pagination => {
+  const page = Number(pagination?.page ?? query.page ?? 1)
+  const limit = Number(pagination?.limit ?? pagination?.size ?? query.limit ?? query.size ?? items.length)
+  const total = Number(pagination?.total ?? items.length)
+  const totalPages = Number(pagination?.totalPages ?? Math.ceil(total / Math.max(1, limit)))
+
+  return {
+    total: Number.isFinite(total) ? total : items.length,
+    page: Number.isFinite(page) && page > 0 ? Math.floor(page) : 1,
+    limit: Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : items.length,
+    size: Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : items.length,
+    totalPages: Number.isFinite(totalPages) && totalPages > 0 ? Math.ceil(totalPages) : 1,
+  }
+}
+
+const fallbackPublicItemsResult = (query: PublicItemQuery = {}): PublicItemsResult => {
+  const page = resolveRequestedPage(query)
+  const limit = resolveRequestedLimit(query)
+  const offset = (page - 1) * limit
+  const items = fallbackCatalogItems.slice(offset, offset + limit)
+
+  return {
+    items: items.length > 0 ? items : fallbackCatalogItems.slice(0, limit),
+    rawItems: [],
+    pagination: {
+      total: fallbackCatalogItems.length,
+      page,
+      limit,
+      size: limit,
+      totalPages: Math.max(1, Math.ceil(fallbackCatalogItems.length / limit)),
+    },
+    source: 'fallback',
+  }
+}
+
 export const fetchPublicItems = async (query: PublicItemQuery = {}): Promise<PublicItemsResult> => {
   try {
-    const requestedLimit = resolveRequestedLimit(query)
-    const backendPageLimit = Math.min(requestedLimit, 100)
-    const startPage = Number(query.page ?? 1)
-    const rawItems: PublicItemListItem[] = []
-    let pagination: Pagination | null | undefined
-    let page = Number.isFinite(startPage) && startPage > 0 ? Math.floor(startPage) : 1
+    const page = resolveRequestedPage(query)
+    const limit = resolveRequestedLimit(query)
+    const response = await usePublicApiFetch<PublicItemListItem[]>('/public/items', {
+      query: buildPublicItemQuery(query, page, limit),
+    })
 
-    while (rawItems.length < requestedLimit) {
-      const response = await usePublicApiFetch<PublicItemListItem[]>('/public/items', {
-        query: buildPublicItemQuery(query, page, backendPageLimit),
-      })
-
-      if (response.success === false) {
-        throw new Error(response.message || response.error || 'Public items API returned an unsuccessful response')
-      }
-
-      const pageItems = unwrapApiResponse(response)
-
-      if (!Array.isArray(pageItems) || pageItems.length === 0) {
-        break
-      }
-
-      rawItems.push(...pageItems)
-      pagination = response.pagination ?? pagination
-
-      if (pageItems.length < backendPageLimit || rawItems.length >= (pagination?.total ?? Number.POSITIVE_INFINITY)) {
-        break
-      }
-
-      page += 1
+    if (response.success === false) {
+      throw new Error(response.message || response.error || 'Public items API returned an unsuccessful response')
     }
 
-    const normalizedItems = rawItems.slice(0, requestedLimit).map(normalizePublicItem)
+    const rawItems = unwrapApiResponse(response)
 
-    if (normalizedItems.length > 0) {
-      return {
-        items: normalizedItems,
-        rawItems: rawItems.slice(0, requestedLimit),
-        pagination: pagination ?? defaultPagination(normalizedItems, query),
-        source: 'api',
-      }
+    if (!Array.isArray(rawItems)) {
+      throw new Error('Public items API returned no usable item data')
+    }
+
+    const normalizedItems = rawItems.map(normalizePublicItem)
+
+    return {
+      items: normalizedItems,
+      rawItems,
+      pagination: normalizePagination(response.pagination, normalizedItems, { ...query, page, limit }),
+      source: 'api',
     }
   } catch {
     // Pages can stay renderable while the public backend route is being wired.
   }
 
-  return {
-    items: fallbackCatalogItems,
-    rawItems: [],
-    pagination: defaultPagination(fallbackCatalogItems, query),
-    source: 'fallback',
-  }
+  return fallbackPublicItemsResult(query)
 }
 
-export const usePublicItems = (query: PublicItemQuery = {}) => useAsyncData(
-  'public-items-catalog',
-  () => fetchPublicItems(query),
-  {
-    server: false,
-    default: () => ({
-      items: fallbackCatalogItems,
-      rawItems: [],
-      pagination: defaultPagination(fallbackCatalogItems, query),
-      source: 'fallback' as const,
-    }),
-  },
-)
+export const usePublicItems = (query: PublicItemQuery | (() => PublicItemQuery) = {}) => {
+  const resolvedQuery = computed(() => {
+    const value = typeof query === 'function' ? query() : query
+    const limit = resolveRequestedLimit(value)
+
+    return {
+      ...value,
+      page: resolveRequestedPage(value),
+      limit,
+      search: normalizeText(value.search ?? value.keyword),
+      sortBy: value.sortBy ?? 'id',
+      sortDirection: value.sortDirection ?? 'asc',
+    } satisfies PublicItemQuery
+  })
+
+  return useAsyncData(
+    () => `public-items-catalog:${JSON.stringify(resolvedQuery.value)}`,
+    () => fetchPublicItems(resolvedQuery.value),
+    {
+      server: false,
+      watch: [resolvedQuery],
+      default: () => fallbackPublicItemsResult(resolvedQuery.value),
+    },
+  )
+}

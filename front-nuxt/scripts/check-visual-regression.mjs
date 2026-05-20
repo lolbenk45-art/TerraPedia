@@ -79,38 +79,22 @@ const connectToChrome = async (port) => {
 }
 
 const waitForItemsHydration = async (browser) => {
-  await browser.send('Runtime.evaluate', {
+  const result = await browser.send('Runtime.evaluate', {
     expression: `(() => new Promise((resolve) => {
       const startedAt = Date.now();
-      let focusChanged = false;
-      const hasLiveData = () => [...document.querySelectorAll('.catalog-screen .eyebrow, .catalog-density-rail strong')]
-        .some((element) => element.textContent?.includes('实时接口'));
+      const hasLiveData = () => document.querySelector('.catalog-pixel-stage')?.getAttribute('data-source') === 'api';
       const tick = () => {
-        const title = document.querySelector('.catalog-floating-focus h3')?.textContent?.trim() ?? '';
-        const target = [...document.querySelectorAll('.catalog-wall-cell')].find((element) => {
-          const label = element.getAttribute('aria-label') ?? '';
-          return label && !label.includes(title);
-        });
-        target?.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, cancelable: true, view: window }));
+        if (hasLiveData() && document.querySelectorAll('.catalog-wall-cell').length > 0) {
+          resolve(true);
+          return;
+        }
 
-        setTimeout(() => {
-          const nextTitle = document.querySelector('.catalog-floating-focus h3')?.textContent?.trim() ?? '';
-          if (nextTitle && nextTitle !== title) {
-            focusChanged = true;
-          }
+        if (Date.now() - startedAt > 6000) {
+          resolve(false);
+          return;
+        }
 
-          if (focusChanged && hasLiveData()) {
-            resolve(true);
-            return;
-          }
-
-          if (Date.now() - startedAt > 6000) {
-            resolve(false);
-            return;
-          }
-
-          tick();
-        }, 80);
+        setTimeout(tick, 100);
       };
 
       tick();
@@ -118,6 +102,41 @@ const waitForItemsHydration = async (browser) => {
     awaitPromise: true,
     returnByValue: true,
   })
+
+  return Boolean(result.result.value)
+}
+
+const waitForItemDetailHydration = async (browser) => {
+  const result = await browser.send('Runtime.evaluate', {
+    expression: `(() => new Promise((resolve) => {
+      const startedAt = Date.now();
+      const tick = () => {
+        const bodyText = document.body.innerText;
+        const title = document.querySelector('.detail-screen h1')?.textContent?.trim() ?? '';
+        const pending = bodyText.includes('同步中');
+        const missing = bodyText.includes('没有找到这个物品');
+        const hasDetail = Boolean(document.querySelector('.detail-hero') && document.querySelector('.evidence-panel'));
+
+        if (title && hasDetail && !pending && !missing) {
+          resolve(true);
+          return;
+        }
+
+        if (Date.now() - startedAt > 6000) {
+          resolve(false);
+          return;
+        }
+
+        setTimeout(tick, 100);
+      };
+
+      tick();
+    }))()`,
+    awaitPromise: true,
+    returnByValue: true,
+  })
+
+  return Boolean(result.result.value)
 }
 
 const auditExpression = `(() => {
@@ -196,14 +215,110 @@ const auditExpression = `(() => {
 	    catalogWallCellCount: document.querySelectorAll('.catalog-wall-cell').length,
 	    catalogSearchInputCount: document.querySelectorAll('.catalog-search-input').length,
 	    catalogQuickFilterCount: document.querySelectorAll('.catalog-quick-filter-rail button').length,
-	    catalogFocusTitle: document.querySelector('.catalog-floating-focus h3')?.textContent?.trim() ?? '',
-	    catalogDataSourceText: [...document.querySelectorAll('.catalog-screen .eyebrow, .catalog-density-rail strong')]
+		    catalogFocusTitle: document.querySelector('.catalog-floating-focus h3')?.textContent?.trim() ?? '',
+		    catalogFocusedDetailHref: document.querySelector('.catalog-floating-focus a[href^="/items/"]')?.getAttribute('href') ?? '',
+		    catalogFloatingFocusCount: document.querySelectorAll('.catalog-floating-focus').length,
+		    catalogHoverPreviewCount: document.querySelectorAll('.catalog-hover-preview').length,
+		    catalogPageButtonCount: document.querySelectorAll('.catalog-page-button').length,
+		    catalogFirstLastButtonCount: [...document.querySelectorAll('.catalog-density-rail-bottom button')]
+		      .filter((button) => /首页|末页/.test(button.textContent ?? ''))
+		      .length,
+		    densityRailBeforeContent: getComputedStyle(document.querySelector('.catalog-density-rail-bottom span') ?? document.body, '::before').content,
+		    catalogDataSourceAttribute: document.querySelector('.catalog-pixel-stage')?.getAttribute('data-source') ?? '',
+		    catalogDataSourceText: [...document.querySelectorAll('.catalog-screen .eyebrow, .catalog-density-rail strong')]
 	      .map((element) => element.textContent?.trim() ?? '')
 	      .join(' '),
+	    catalogDebugTextLeakCount: [...document.querySelectorAll('.catalog-screen .eyebrow, .catalog-density-rail strong')]
+	      .filter((element) => /实时接口|本地兜底|兜底/.test(element.textContent ?? ''))
+	      .length,
 	    catalogOldPanelCount: document.querySelectorAll('.catalog-layout, .filter-panel, .list-panel, .preview-panel, .item-grid, .pager').length,
-	    itemFallbackCount: document.querySelectorAll('.item-art[data-fallback]').length,
-	    itemImageCount: document.querySelectorAll('.catalog-screen .item-art img[src]').length,
-	    itemFallbackOverlayIssues: [...document.querySelectorAll('.catalog-screen .item-art[data-fallback]')].flatMap((element) => {
+		    itemFallbackCount: document.querySelectorAll('.item-art[data-fallback]').length,
+		    itemImageCount: document.querySelectorAll('.catalog-screen .item-art img[src]').length,
+		    itemActiveFallbackCount: document.querySelectorAll('.catalog-screen .item-art.is-fallback').length,
+		    catalogIconLayoutIssues: [...document.querySelectorAll('.catalog-wall-cell')].slice(0, 24).flatMap((cell, index) => {
+		      const art = cell.querySelector('.item-art');
+		      const img = art?.querySelector('img[src]');
+		      const label = cell.querySelector('.catalog-wall-cell-label');
+		      const number = cell.querySelector('.catalog-wall-cell-index');
+		      const imageWidth = img?.getAttribute('width');
+		      const imageHeight = img?.getAttribute('height');
+		      if (!art || !label || !number) {
+		        return [{ index, issue: 'missing icon, label, or index element' }];
+		      }
+		      const artRect = art.getBoundingClientRect();
+		      const cellRect = cell.getBoundingClientRect();
+		      const cellStyle = getComputedStyle(cell);
+		      const contentLeft = cellRect.left + Number.parseFloat(cellStyle.paddingLeft || '0');
+		      const contentRight = cellRect.right - Number.parseFloat(cellStyle.paddingRight || '0');
+		      const labelRect = label.getBoundingClientRect();
+		      const numberRect = number.getBoundingClientRect();
+		      const overlaps = (a, b) => !(
+		        a.left >= b.right
+		        || a.right <= b.left
+		        || a.top >= b.bottom
+		        || a.bottom <= b.top
+		      );
+		      const issues = [];
+		      if (cell.getBoundingClientRect().height < 142) {
+		        issues.push('cell too short for separated icon and label');
+		      }
+		      if (getComputedStyle(label).display !== 'none') {
+		        const labelFontSize = Number.parseFloat(getComputedStyle(label).fontSize || '0');
+		        const indexFontSize = Number.parseFloat(getComputedStyle(number).fontSize || '0');
+		        if (labelFontSize < 11) {
+		          issues.push('label text below readable size ' + labelFontSize);
+		        }
+		        if (indexFontSize < 11) {
+		          issues.push('index text below readable size ' + indexFontSize);
+		        }
+		      }
+		      if (artRect.width < 96 || artRect.height < 96) {
+		        issues.push('icon slot too small ' + Math.round(artRect.width) + 'x' + Math.round(artRect.height));
+		      }
+		      if (getComputedStyle(art).overflow !== 'hidden') {
+		        issues.push('icon art does not constrain oversized sprites');
+		      }
+		      if (artRect.left < contentLeft - 1 || artRect.right > contentRight + 1) {
+		        issues.push('icon frame overflows cell content');
+		      }
+		      if (overlaps(artRect, labelRect)) {
+		        issues.push('icon overlaps label');
+		      }
+		      if (overlaps(artRect, numberRect)) {
+		        issues.push('icon overlaps index');
+		      }
+		      if (img && getComputedStyle(img).objectFit !== 'contain') {
+		        issues.push('image object-fit is ' + getComputedStyle(img).objectFit);
+		      }
+		      if (img) {
+		        if (!imageWidth || !imageHeight) {
+		          issues.push('image lacks intrinsic width/height attributes');
+		        }
+		        const imgRect = img.getBoundingClientRect();
+		        if (imgRect.left < artRect.left - 1 || imgRect.right > artRect.right + 1 || imgRect.top < artRect.top - 1 || imgRect.bottom > artRect.bottom + 1) {
+		          issues.push('image overflows sprite frame');
+		        }
+		        if (imgRect.width > artRect.width - 40 || imgRect.height > artRect.height - 40) {
+		          issues.push('image has no protective inset');
+		        }
+		      }
+		      return issues.map((issue) => ({
+		        index,
+		        label: cell.getAttribute('aria-label') ?? '',
+		        issue,
+		        art: {
+		          width: Math.round(artRect.width),
+		          height: Math.round(artRect.height),
+		          top: Math.round(artRect.top),
+		          bottom: Math.round(artRect.bottom),
+		        },
+		        labelRect: {
+		          top: Math.round(labelRect.top),
+		          bottom: Math.round(labelRect.bottom),
+		        },
+		      }));
+		    }),
+		    itemFallbackOverlayIssues: [...document.querySelectorAll('.catalog-screen .item-art[data-fallback]')].flatMap((element) => {
 	      const before = getComputedStyle(element, '::before');
 	      const img = element.querySelector('img[src]');
 	      const hasImageSource = Boolean(img);
@@ -330,8 +445,8 @@ if (!itemsPage.includes('in visibleWallItems') || !itemsPage.includes('data-fall
   failures.push('items page must render visibleWallItems with item-art data-fallback markers')
 }
 
-if (!itemsPage.includes('density-choice') || !itemsPage.includes('480')) {
-  failures.push('items page must expose 120/240/480 density choices')
+if (!itemsPage.includes('pageSizeOptions') || !itemsPage.includes('currentPage') || !itemsPage.includes('goToNextPage')) {
+  failures.push('items page must expose real pagination state and controls')
 }
 
 if (!itemsPage.includes('usePublicItems') || !publicItemsComposable.includes('export const fetchPublicItems')) {
@@ -346,8 +461,60 @@ if (!itemsPage.includes('catalog-search-input') || !itemsPage.includes('v-model=
   failures.push('items page must provide a working search input bound to page state')
 }
 
-if (!itemsPage.includes('@mouseenter="setFocusedItem(item)"') || !itemsPage.includes('@focus="setFocusedItem(item)"')) {
-  failures.push('items page wall cells must update the focus card on hover and keyboard focus')
+if (itemsPage.includes('@mouseenter="setFocusedItem(item)"')) {
+  failures.push('items page wall cells must not repaint the focus card on every mouseenter')
+}
+
+if (!itemsPage.includes('@focus="setFocusedItem(item)"')) {
+  failures.push('items page wall cells must update selection on keyboard focus')
+}
+
+if (!itemsPage.includes('debouncedSearchQuery') || !itemsPage.includes('setTimeout')) {
+  failures.push('items page search query should be debounced before it enters the public item request')
+}
+
+if (!itemsPage.includes('resetCatalogFilters')) {
+  failures.push('items page empty state should offer a full search/filter reset')
+}
+
+if (!itemsPage.includes('useRoute()') || !itemsPage.includes('useRouter()') || !itemsPage.includes('updateCatalogRouteQuery')) {
+  failures.push('items page pagination and filters should sync to URL query for refresh/share')
+}
+
+if (!itemsPage.includes('catalogPageSizeStorageKey') || !itemsPage.includes('localStorage')) {
+  failures.push('items page page-size control should persist the user preference in localStorage')
+}
+
+if (!itemsPage.includes('handleCatalogPaginationKeydown') || !itemsPage.includes('ArrowRight') || !itemsPage.includes('ArrowLeft')) {
+  failures.push('items page pagination should support left/right keyboard navigation')
+}
+
+if (!itemsPage.includes('visiblePageItems') || !itemsPage.includes('goToFirstPage') || !itemsPage.includes('goToLastPage')) {
+  failures.push('items page should expose page number, first page, and last page controls')
+}
+
+if (itemsPage.includes('打开当前物品')) {
+  failures.push('items page should avoid duplicating the focused item detail action in the page head')
+}
+
+if (itemsPage.includes('catalog-floating-focus')) {
+  failures.push('items page should not render a fixed right-side focus card')
+}
+
+if (!itemsPage.includes('catalog-hover-preview')) {
+  failures.push('items page should show item details in a hover/focus preview attached to each item cell')
+}
+
+if (!itemsPage.includes('aria-current')) {
+  failures.push('items page selected wall cell should use aria-current instead of only aria-pressed semantics')
+}
+
+if (!publicItemsComposable.includes("return `tone-${(Math.abs(seed) % 3) + 1}`")) {
+  failures.push('public item normalizer should only emit styled wall tone classes')
+}
+
+if (publicItemsComposable.includes("'/items/terra-blade'")) {
+  failures.push('public item normalizer must not route missing item ids to a fixed terra-blade detail page')
 }
 
 if (itemsPage.includes('class="catalog-layout"') || itemsPage.includes('class="filter-panel"') || itemsPage.includes('class="preview-panel"')) {
@@ -358,7 +525,6 @@ for (const marker of [
   'catalog-pixel-stage',
   'catalog-wall-shell',
   'catalog-wall-topbar',
-  'catalog-floating-focus',
   'catalog-quick-filter-rail',
 ]) {
   if (!itemsPage.includes(marker)) {
@@ -393,10 +559,19 @@ try {
   })
 
   for (const route of ['/', '/items', '/search', '/articles', '/categories', '/user']) {
+    if (route === '/items') {
+      await browser.send('Runtime.evaluate', {
+        expression: `localStorage.removeItem('terrapedia:catalog-page-size')`,
+      })
+    }
+
     await browser.send('Page.navigate', { url: `${baseUrl}${route}` })
     await sleep(650)
     if (route === '/items') {
-      await waitForItemsHydration(browser)
+      const hydrated = await waitForItemsHydration(browser)
+      if (!hydrated) {
+        failures.push('/items: timed out waiting for live catalog hydration')
+      }
     }
     const result = await browser.send('Runtime.evaluate', {
       expression: auditExpression,
@@ -473,51 +648,74 @@ try {
 	        failures.push(`/items: previous three-panel catalog layout is still rendered (${value.catalogOldPanelCount} old panel markers)`)
 	      }
 
-	      if (value.catalogWallCellCount < 80) {
-	        failures.push(`/items: expected the Pixel Gallery wall to render at least 80 cells, got ${value.catalogWallCellCount}`)
+	      if (value.catalogWallCellCount < 50) {
+	        failures.push(`/items: expected the Pixel Gallery wall to render a full default result page, got ${value.catalogWallCellCount}`)
 	      }
 
 	      if (value.catalogSearchInputCount !== 1) {
 	        failures.push(`/items: expected exactly one working Pixel Gallery search input, got ${value.catalogSearchInputCount}`)
 	      }
 
-	      if (!value.catalogDataSourceText.includes('实时接口')) {
-	        failures.push(`/items: expected live public API data source label, got ${JSON.stringify(value.catalogDataSourceText)}`)
+	      if (value.catalogDataSourceAttribute !== 'api') {
+	        failures.push(`/items: expected live public API data source marker, got ${JSON.stringify(value.catalogDataSourceAttribute)}`)
+	      }
+
+	      if (value.catalogDebugTextLeakCount > 0) {
+	        failures.push(`/items: public catalog UI leaks debug data-source wording, got ${JSON.stringify(value.catalogDataSourceText)}`)
 	      }
 
 	      if (value.catalogQuickFilterCount < 5) {
 	        failures.push(`/items: expected at least five Pixel Gallery quick filters, got ${value.catalogQuickFilterCount}`)
+	      }
+
+	      if (value.catalogFloatingFocusCount > 0 || value.catalogHoverPreviewCount < Math.min(value.catalogWallCellCount, 1)) {
+	        failures.push(`/items: catalog should use per-cell hover previews instead of a fixed focus card, got focus=${value.catalogFloatingFocusCount}, hover=${value.catalogHoverPreviewCount}`)
+	      }
+
+	      if (value.catalogPageButtonCount < 5 || value.catalogFirstLastButtonCount < 2) {
+	        failures.push(`/items: pagination should expose page number, first page, and last page controls, got pageButtons=${value.catalogPageButtonCount}, firstLast=${value.catalogFirstLastButtonCount}`)
+	      }
+
+	      if (!['none', 'normal', '""'].includes(value.densityRailBeforeContent)) {
+	        failures.push(`/items: catalog status text should not inherit decorative density rail bullets, got before=${value.densityRailBeforeContent}`)
 	      }
 	
 	      if (value.itemFallbackCount < value.catalogWallCellCount) {
 	        failures.push('/items: every Pixel Gallery wall item should expose a data-fallback marker')
 	      }
 
-	      if (value.itemImageCount < value.catalogWallCellCount) {
-	        failures.push(`/items: expected each Pixel Gallery cell to render an image element, got ${value.itemImageCount} images for ${value.catalogWallCellCount} cells`)
+		      if (value.itemImageCount + value.itemActiveFallbackCount < value.catalogWallCellCount) {
+		        failures.push(`/items: expected each Pixel Gallery cell to render either an image or active fallback, got ${value.itemImageCount} images and ${value.itemActiveFallbackCount} fallbacks for ${value.catalogWallCellCount} cells`)
 	      }
 
 	      if (value.itemFallbackOverlayIssues.length > 0) {
 	        failures.push(`/items: fallback overlay should not cover normal images: ${JSON.stringify(value.itemFallbackOverlayIssues.slice(0, 5))}`)
 	      }
+
+	      if (value.catalogIconLayoutIssues.length > 0) {
+	        failures.push(`/items: catalog icon cells should reserve separate icon, index, and label space: ${JSON.stringify(value.catalogIconLayoutIssues.slice(0, 5))}`)
+	      }
 	
-	      if (value.densityChoiceCount < 3) {
-	        failures.push('/items: expected 120/240/480 density controls')
+	      if (value.densityChoiceCount < 2) {
+	        failures.push('/items: expected page-size controls')
 	      }
 
 	      const interaction = await browser.send('Runtime.evaluate', {
 	        expression: `(() => new Promise((resolve) => {
 	          const flush = () => new Promise((done) => setTimeout(done, 80));
 	          (async () => {
-	            const initialTitle = document.querySelector('.catalog-floating-focus h3')?.textContent?.trim() ?? '';
+	            const initialTitle = document.querySelector('.catalog-wall-cell.active')?.getAttribute('aria-label') ?? '';
 	            const hoverTarget = [...document.querySelectorAll('.catalog-wall-cell')].find((element) => {
 	              const label = element.getAttribute('aria-label') ?? '';
 	              return label && !label.includes(initialTitle);
 	            }) ?? document.querySelector('.catalog-wall-cell');
 	            hoverTarget?.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+	            await flush();
+	            const afterHoverTitle = document.querySelector('.catalog-wall-cell.active')?.getAttribute('aria-label') ?? '';
+	            const hoverPreviewVisible = Boolean(hoverTarget?.querySelector('.catalog-hover-preview'));
 	            hoverTarget?.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
 	            await flush();
-	            const hoverTitle = document.querySelector('.catalog-floating-focus h3')?.textContent?.trim() ?? '';
+	            const hoverTitle = document.querySelector('.catalog-wall-cell.active')?.getAttribute('aria-label') ?? '';
 	            const input = document.querySelector('.catalog-search-input');
 	            if (input) {
 	              input.value = '铁';
@@ -533,7 +731,10 @@ try {
 	            await flush();
 	            resolve({
 	              initialTitle,
+	              afterHoverTitle,
 	              hoverTitle,
+	              hoverIgnored: Boolean(afterHoverTitle && afterHoverTitle === initialTitle),
+	              hoverPreviewVisible,
 	              hoverChanged: Boolean(hoverTitle && hoverTitle !== initialTitle),
 	              searchInputValue: input?.value ?? '',
 	              afterSearchCount,
@@ -547,8 +748,8 @@ try {
 	      })
 	      const interactionValue = interaction.result.value
 
-	      if (!interactionValue.hoverChanged) {
-	        failures.push(`/items: hovering/focusing a wall cell should update the floating focus card, got ${JSON.stringify(interactionValue)}`)
+	      if (!interactionValue.hoverIgnored || !interactionValue.hoverChanged || !interactionValue.hoverPreviewVisible) {
+	        failures.push(`/items: mouseenter should show per-cell preview without changing selection; focus should update selection, got ${JSON.stringify(interactionValue)}`)
 	      }
 
 	      if (interactionValue.afterSearchCount <= 0 || interactionValue.afterSearchCount >= value.catalogWallCellCount) {
@@ -559,10 +760,214 @@ try {
 	        failures.push('/items: clear search button should reset the search input')
 	      }
 
-	      if (!interactionValue.activeFilterText.includes('武器') || interactionValue.afterFilterCount <= 0 || interactionValue.afterFilterCount >= value.catalogWallCellCount) {
-	        failures.push(`/items: quick filters should activate and reduce the wall, got ${JSON.stringify(interactionValue)}`)
+	      if (!interactionValue.activeFilterText.includes('武器') || interactionValue.afterFilterCount <= 0) {
+	        failures.push(`/items: quick filters should activate and keep a visible result page, got ${JSON.stringify(interactionValue)}`)
 	      }
-    }
+
+	      const paginationInteraction = await browser.send('Runtime.evaluate', {
+	        expression: `(() => new Promise((resolve) => {
+	            const snapshotCatalog = () => ({
+	              statusText: document.querySelector('.catalog-density-rail strong')?.textContent ?? '',
+	              pageText: document.querySelector('.density-rail span')?.textContent ?? '',
+	              firstLabel: document.querySelector('.catalog-wall-cell')?.getAttribute('aria-label') ?? '',
+	              firstIndex: document.querySelector('.catalog-wall-cell .catalog-wall-cell-index')?.textContent?.trim() ?? '',
+	              activeFilterText: document.querySelector('.catalog-quick-filter-rail button.active')?.textContent?.trim() ?? '',
+	              cellCount: document.querySelectorAll('.catalog-wall-cell').length,
+	              itemTitles: [...document.querySelectorAll('.catalog-wall-cell')]
+	                .slice(0, 20)
+	                .map((cell) => cell.getAttribute('title') ?? ''),
+	            });
+
+	          const waitForCatalogState = (predicate) => new Promise((done) => {
+	            const startedAt = Date.now();
+	            const tick = () => {
+	              const state = snapshotCatalog();
+	              if (!/(同步中|加载中)/.test(state.statusText) && state.firstLabel && predicate(state)) {
+	                done(state);
+	                return;
+	              }
+	              if (Date.now() - startedAt > 6000) {
+	                done({ ...state, timedOut: true });
+	                return;
+	              }
+	              setTimeout(tick, 100);
+	            };
+	            tick();
+	          });
+
+	          (async () => {
+	            const allButton = [...document.querySelectorAll('.catalog-quick-filter-rail button')]
+	              .find((button) => button.textContent?.includes('全部'));
+	            allButton?.click();
+
+	            const clearButton = document.querySelector('.catalog-clear-search');
+	            clearButton?.click();
+	            const initial = await waitForCatalogState((state) => (
+	              state.activeFilterText.includes('全部')
+	              && state.pageText.includes('第 1')
+	              && state.cellCount === 50
+	            ));
+
+	            const nextButton = [...document.querySelectorAll('.catalog-density-rail-bottom .density-actions button')]
+	              .find((button) => button.textContent?.includes('下一页'));
+	            nextButton?.click();
+	            const next = await waitForCatalogState((state) => (
+	              state.activeFilterText.includes('全部')
+	              && state.pageText.includes('第 2')
+	              && state.firstLabel
+	              && state.firstLabel !== initial.firstLabel
+	              && state.firstIndex === '051'
+	            ));
+
+	            const page50Button = [...document.querySelectorAll('.catalog-density-rail-bottom .density-choice')]
+	              .find((button) => button.textContent?.includes('50'));
+	            page50Button?.click();
+	            const page50 = await waitForCatalogState((state) => (
+	              state.activeFilterText.includes('全部')
+	              && state.pageText.includes('第 1')
+	              && state.cellCount === 50
+	            ));
+
+	            const page25Button = [...document.querySelectorAll('.catalog-density-rail-bottom .density-choice')]
+	              .find((button) => button.textContent?.includes('25'));
+	            page25Button?.click();
+	            const page25 = await waitForCatalogState((state) => (
+	              state.activeFilterText.includes('全部')
+	              && state.pageText.includes('第 1')
+	              && state.cellCount === 25
+	              && new URLSearchParams(location.search).get('pageSize') === '25'
+	            ));
+	            const storedPageSizeAfter25 = localStorage.getItem('terrapedia:catalog-page-size');
+
+	            page50Button?.click();
+	            const page50Restored = await waitForCatalogState((state) => (
+	              state.activeFilterText.includes('全部')
+	              && state.pageText.includes('第 1')
+	              && state.cellCount === 50
+	              && !new URLSearchParams(location.search).get('pageSize')
+	            ));
+
+	            window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+	            const keyboardNext = await waitForCatalogState((state) => (
+	              state.activeFilterText.includes('全部')
+	              && state.pageText.includes('第 2')
+	              && new URLSearchParams(location.search).get('page') === '2'
+	            ));
+	            window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+	            const keyboardPrevious = await waitForCatalogState((state) => (
+	              state.activeFilterText.includes('全部')
+	              && state.pageText.includes('第 1')
+	              && !new URLSearchParams(location.search).get('page')
+	            ));
+
+	            const pageThreeButton = [...document.querySelectorAll('.catalog-page-button')]
+	              .find((button) => button.textContent?.trim() === '3');
+	            pageThreeButton?.click();
+	            const pageThree = await waitForCatalogState((state) => (
+	              state.activeFilterText.includes('全部')
+	              && state.pageText.includes('第 3')
+	              && new URLSearchParams(location.search).get('page') === '3'
+	            ));
+
+	            const lastButton = [...document.querySelectorAll('.catalog-density-rail-bottom button')]
+	              .find((button) => button.textContent?.includes('末页'));
+	            lastButton?.click();
+	            const last = await waitForCatalogState((state) => (
+	              state.activeFilterText.includes('全部')
+	              && new URLSearchParams(location.search).get('page')
+	              && state.pageText.includes('/ ' + new URLSearchParams(location.search).get('page') + ' 页')
+	            ));
+
+	            const weaponButton = [...document.querySelectorAll('.catalog-quick-filter-rail button')]
+	              .find((button) => button.textContent?.includes('武器'));
+	            weaponButton?.click();
+	            const weapon = await waitForCatalogState((state) => (
+	              state.activeFilterText.includes('武器')
+	              && state.pageText.includes('第 1')
+	              && state.cellCount === 50
+	              && !state.pageText.includes('本页')
+	            ));
+
+	            resolve({
+	              initial,
+	              next,
+	              page50,
+	              page25,
+	              page50Restored,
+	              keyboardNext,
+	              keyboardPrevious,
+	              pageThree,
+	              last,
+	              weapon,
+	              storedPageSizeAfter25,
+	              nextDisabled: Boolean(nextButton?.disabled),
+	              page50Active: Boolean(page50Button?.classList.contains('active')),
+	              page50CellCount: document.querySelectorAll('.catalog-wall-cell').length,
+	            });
+	          })();
+	        }))()`,
+	        awaitPromise: true,
+	        returnByValue: true,
+	      })
+	      const paginationValue = paginationInteraction.result.value
+
+	      if (
+	        paginationValue.nextDisabled
+	        || paginationValue.initial?.timedOut
+	        || paginationValue.next?.timedOut
+	        || paginationValue.initial?.firstLabel === paginationValue.next?.firstLabel
+	        || paginationValue.next?.firstIndex !== '051'
+	        || !String(paginationValue.next?.pageText ?? '').includes('第 2')
+	      ) {
+	        failures.push(`/items: pagination next page should load a distinct second page, got ${JSON.stringify(paginationValue)}`)
+	      }
+
+	      if (
+	        paginationValue.page50?.timedOut
+	        || paginationValue.page50Restored?.timedOut
+	        || !paginationValue.page50Active
+	        || paginationValue.page50CellCount !== 50
+	        || !String(paginationValue.page50?.pageText ?? '').includes('第 1')
+	        || !String(paginationValue.page50Restored?.pageText ?? '').includes('第 1')
+	      ) {
+	        failures.push(`/items: 50/page control should reset to first page and render 50 cells, got ${JSON.stringify(paginationValue)}`)
+	      }
+
+	      if (
+	        paginationValue.page25?.timedOut
+	        || paginationValue.page25?.cellCount !== 25
+	        || paginationValue.storedPageSizeAfter25 !== '25'
+	      ) {
+	        failures.push(`/items: 25/page control should update URL, render 25 cells, and persist preference, got ${JSON.stringify(paginationValue)}`)
+	      }
+
+	      if (
+	        paginationValue.keyboardNext?.timedOut
+	        || paginationValue.keyboardPrevious?.timedOut
+	        || !String(paginationValue.keyboardNext?.pageText ?? '').includes('第 2')
+	        || !String(paginationValue.keyboardPrevious?.pageText ?? '').includes('第 1')
+	      ) {
+	        failures.push(`/items: keyboard left/right should navigate adjacent catalog pages and URL query, got ${JSON.stringify(paginationValue)}`)
+	      }
+
+	      if (
+	        paginationValue.pageThree?.timedOut
+	        || !String(paginationValue.pageThree?.pageText ?? '').includes('第 3')
+	        || paginationValue.last?.timedOut
+	      ) {
+	        failures.push(`/items: page number and last-page controls should update visible page and URL query, got ${JSON.stringify(paginationValue)}`)
+	      }
+
+	      if (
+	        paginationValue.weapon?.timedOut
+	        || paginationValue.weapon?.cellCount !== 50
+	        || String(paginationValue.weapon?.pageText ?? '').includes('本页')
+	        || !String(paginationValue.weapon?.activeFilterText ?? '').includes('武器')
+	        || paginationValue.weapon?.itemTitles?.some((title) => /可疑眼球|魔镜/.test(title))
+	      ) {
+	        failures.push(`/items: weapon category should be server-filtered before pagination and render a full filtered page, got ${JSON.stringify(paginationValue)}`)
+	      }
+	    }
 
     if (route === '/search' && (value.searchTypeCount < 5 || value.searchSuggestionRows < 4)) {
       failures.push('/search: expected search type chips and suggestion rows')
@@ -579,6 +984,111 @@ try {
     if (route === '/categories' && value.categoryBranchCount < 6) {
       failures.push('/categories: expected category branch cards')
     }
+  }
+
+  await browser.send('Page.navigate', { url: `${baseUrl}/items/1` })
+  await sleep(650)
+  const detailHydrated = await waitForItemDetailHydration(browser)
+  const detailResult = await browser.send('Runtime.evaluate', {
+    expression: `(() => {
+      const bodyText = document.body.innerText;
+      return {
+	        h1Count: document.querySelectorAll('h1').length,
+        title: document.querySelector('.detail-screen h1')?.textContent?.trim() ?? '',
+        hasDetailHero: Boolean(document.querySelector('.detail-hero')),
+        hasEvidencePanel: Boolean(document.querySelector('.evidence-panel')),
+        missing: bodyText.includes('没有找到这个物品'),
+        oldMock: bodyText.includes('泰拉刃是一把困难模式后期近战武器'),
+        brokenImageCount: [...document.images].filter((image) => image.currentSrc && image.naturalWidth === 0).length,
+        fallbackImageCount: document.querySelectorAll('.detail-screen .item-art.is-fallback').length,
+        heroFallback: Boolean(document.querySelector('.detail-icon-stage .item-art.is-fallback')),
+        detailIconLayoutIssues: [...document.querySelectorAll('.detail-icon-stage .item-art, .source-row .item-art, .recipe-node .item-art')].flatMap((art, index) => {
+          const rect = art.getBoundingClientRect();
+          const img = art.querySelector('img[src]');
+          const issues = [];
+          if (rect.width < 42 || rect.height < 42) {
+            issues.push('detail icon too small');
+          }
+          if (img && getComputedStyle(img).objectFit !== 'contain') {
+            issues.push('detail image object-fit is not contain');
+          }
+          return issues.map((issue) => ({ index, issue, width: Math.round(rect.width), height: Math.round(rect.height) }));
+        }),
+        detailIconTextOverlapIssues: [
+          ...[...document.querySelectorAll('.source-row')].map((row, index) => ({
+            type: 'source-row',
+            index,
+            icon: row.querySelector('.item-art'),
+            text: row.querySelector('div'),
+          })),
+          ...[...document.querySelectorAll('.recipe-node')].map((row, index) => ({
+            type: 'recipe-node',
+            index,
+            icon: row.querySelector('.item-art'),
+            text: row.querySelector('b'),
+          })),
+        ].flatMap((entry) => {
+          if (!entry.icon || !entry.text) return [];
+          const iconRect = entry.icon.getBoundingClientRect();
+          const textRect = entry.text.getBoundingClientRect();
+          const overlaps = !(
+            iconRect.left >= textRect.right
+            || iconRect.right <= textRect.left
+            || iconRect.top >= textRect.bottom
+            || iconRect.bottom <= textRect.top
+          );
+          return overlaps ? [{
+            type: entry.type,
+            index: entry.index,
+            icon: {
+              left: Math.round(iconRect.left),
+              right: Math.round(iconRect.right),
+              top: Math.round(iconRect.top),
+              bottom: Math.round(iconRect.bottom),
+            },
+            text: {
+              left: Math.round(textRect.left),
+              right: Math.round(textRect.right),
+              top: Math.round(textRect.top),
+              bottom: Math.round(textRect.bottom),
+            },
+          }] : [];
+        }),
+      };
+    })()`,
+    returnByValue: true,
+  })
+  const detailValue = {
+    ...detailResult.result.value,
+    hydrated: detailHydrated,
+  }
+
+  if (!detailValue.hydrated || !detailValue.hasDetailHero || !detailValue.hasEvidencePanel || detailValue.missing) {
+    failures.push(`/items/1: item detail page should render live public detail content, got ${JSON.stringify(detailValue)}`)
+  }
+
+  if (detailValue.h1Count !== 1) {
+    failures.push(`/items/1: expected exactly one h1, got ${detailValue.h1Count}`)
+  }
+
+  if (detailValue.oldMock) {
+    failures.push('/items/1: item detail page still exposes static Terra Blade mock content')
+  }
+
+  if (detailValue.brokenImageCount > 0) {
+    failures.push(`/items/1: detail page renders broken images (${detailValue.brokenImageCount})`)
+  }
+
+  if (detailValue.heroFallback) {
+    failures.push(`/items/1: hydrated detail hero should not show fallback glyph for item 1, got ${JSON.stringify(detailValue)}`)
+  }
+
+  if (detailValue.detailIconLayoutIssues.length > 0) {
+    failures.push(`/items/1: detail icon rows should preserve readable image sizing and contain fit, got ${JSON.stringify(detailValue.detailIconLayoutIssues.slice(0, 5))}`)
+  }
+
+  if (detailValue.detailIconTextOverlapIssues.length > 0) {
+    failures.push(`/items/1: detail icon rows should keep icon and text separated, got ${JSON.stringify(detailValue.detailIconTextOverlapIssues.slice(0, 5))}`)
   }
 
   await browser.send('Page.navigate', { url: `${baseUrl}/__missing-terrapedia-page` })
@@ -683,6 +1193,7 @@ try {
     })
     await browser.send('Page.navigate', { url: `${baseUrl}/items` })
     await sleep(650)
+    await waitForItemsHydration(browser)
     const desktopItems = await browser.send('Runtime.evaluate', {
       expression: `(() => new Promise((resolve) => {
         const roundRect = (rect) => ({
@@ -699,6 +1210,47 @@ try {
           || a.top >= b.bottom
           || a.bottom <= b.top
         );
+        const inspectCatalogIconCells = () => (
+          [...document.querySelectorAll('.catalog-wall-cell:not(.catalog-wall-cell-loading)')].slice(0, 24).flatMap((cell, index) => {
+            const art = cell.querySelector('.item-art');
+            const img = art?.querySelector('img[src]');
+            if (!art) {
+              return [{ index, issue: 'missing icon art' }];
+            }
+
+            const cellRect = cell.getBoundingClientRect();
+            const artRect = art.getBoundingClientRect();
+            const cellStyle = getComputedStyle(cell);
+            const contentLeft = cellRect.left + Number.parseFloat(cellStyle.paddingLeft || '0');
+            const contentRight = cellRect.right - Number.parseFloat(cellStyle.paddingRight || '0');
+            const contentWidth = contentRight - contentLeft;
+            const issues = [];
+
+            if (artRect.left < contentLeft - 1 || artRect.right > contentRight + 1) {
+              issues.push('icon frame overflows cell content');
+            }
+
+            if (artRect.width > contentWidth + 1) {
+              issues.push('icon frame wider than cell content');
+            }
+
+            if (img) {
+              const imgRect = img.getBoundingClientRect();
+              if (imgRect.left < artRect.left - 1 || imgRect.right > artRect.right + 1 || imgRect.top < artRect.top - 1 || imgRect.bottom > artRect.bottom + 1) {
+                issues.push('image overflows sprite frame');
+              }
+            }
+
+            return issues.map((issue) => ({
+              index,
+              label: cell.getAttribute('aria-label') ?? '',
+              issue,
+              cell: roundRect(cellRect),
+              art: roundRect(artRect),
+              contentWidth: Math.round(contentWidth),
+            }));
+          })
+        );
         const isVisible = (rect) => (
           rect.bottom > 0
           && rect.top < window.innerHeight
@@ -707,41 +1259,24 @@ try {
         );
         const inspect = (stage) => {
           const grid = document.querySelector('.catalog-wall-grid');
-          const focus = document.querySelector('.catalog-floating-focus');
-          if (!grid || !focus) {
+          if (!grid) {
             return {
               stage,
               missing: true,
               hasGrid: Boolean(grid),
-              hasFocus: Boolean(focus),
             };
           }
 
           const gridRect = grid.getBoundingClientRect();
-          const focusRect = focus.getBoundingClientRect();
-          const visibleCellOverlaps = [...document.querySelectorAll('.catalog-wall-cell')]
-            .map((element, index) => ({
-              index,
-              label: element.getAttribute('aria-label') ?? '',
-              rect: element.getBoundingClientRect(),
-            }))
-            .filter((entry) => isVisible(entry.rect) && overlaps(entry.rect, focusRect))
-            .map((entry) => ({
-              index: entry.index,
-              label: entry.label,
-              rect: roundRect(entry.rect),
-            }));
+          const previewRect = document.querySelector('.catalog-wall-cell:hover .catalog-hover-preview, .catalog-wall-cell:focus-within .catalog-hover-preview')?.getBoundingClientRect() ?? null;
 
           return {
             stage,
             missing: false,
-            intersectsGrid: overlaps(gridRect, focusRect),
-            visibleCellOverlapCount: visibleCellOverlaps.length,
-            visibleCellOverlaps: visibleCellOverlaps.slice(0, 5),
             grid: roundRect(gridRect),
-            focus: roundRect(focusRect),
+            preview: previewRect ? roundRect(previewRect) : null,
+            iconLayoutIssues: inspectCatalogIconCells(),
             shellDisplay: getComputedStyle(document.querySelector('.catalog-wall-shell')).display,
-            focusPosition: getComputedStyle(focus).position,
           };
         };
 
@@ -776,8 +1311,10 @@ try {
     for (const capture of captures) {
       if (capture.missing) {
         failures.push(`/items: desktop overlap check could not find required nodes at ${viewport.width}px/${capture.stage}: ${JSON.stringify(capture)}`)
-      } else if (capture.intersectsGrid || capture.visibleCellOverlapCount > 0) {
-        failures.push(`/items: focus card must not cover the item wall at ${viewport.width}px/${capture.stage}: ${JSON.stringify(capture)}`)
+      }
+
+      if (!capture.missing && capture.iconLayoutIssues.length > 0) {
+        failures.push(`/items: catalog icon frames must fit their cells at ${viewport.width}px/${capture.stage}: ${JSON.stringify(capture.iconLayoutIssues.slice(0, 5))}`)
       }
     }
 
