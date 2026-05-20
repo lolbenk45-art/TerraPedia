@@ -49,7 +49,6 @@
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .small-button.active,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .theme-choice.active,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .detail-tab.active,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .filter-option.active,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .entity-filter.active {
   color: var(--button-control-active-fg);
@@ -64,7 +63,6 @@
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .small-button.active :where(span, b, em),
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .theme-choice.active :where(span, b, em),
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .detail-tab.active :where(span, b, em),
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .filter-option.active :where(span, b, em),
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .entity-filter.active :where(span, b, em) {
   color: var(--button-control-active-fg);

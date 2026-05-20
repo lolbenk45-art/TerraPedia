@@ -1351,7 +1351,6 @@ for (const path of scanFiles) {
       '.nav-menu-text-trigger',
       '.account-avatar-link',
       '.small-button',
-      '.detail-tab',
       '.filter-option',
       '.entity-filter',
     ]

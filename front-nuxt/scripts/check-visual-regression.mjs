@@ -115,7 +115,12 @@ const waitForItemDetailHydration = async (browser) => {
         const title = document.querySelector('.detail-screen h1')?.textContent?.trim() ?? '';
         const pending = bodyText.includes('同步中');
         const missing = bodyText.includes('没有找到这个物品');
-        const hasDetail = Boolean(document.querySelector('.detail-hero') && document.querySelector('.evidence-panel'));
+        const hasDetail = Boolean(
+          document.querySelector('.detail-hero')
+          && document.querySelector('.detail-usage')
+          && document.querySelector('.detail-recipe')
+          && document.querySelector('.detail-extras')
+        );
 
         if (title && hasDetail && !pending && !missing) {
           resolve(true);
@@ -1034,7 +1039,11 @@ try {
 	        h1Count: document.querySelectorAll('h1').length,
         title: document.querySelector('.detail-screen h1')?.textContent?.trim() ?? '',
         hasDetailHero: Boolean(document.querySelector('.detail-hero')),
+        hasUsageSection: Boolean(document.querySelector('.detail-usage')),
+        hasRecipeSection: Boolean(document.querySelector('.detail-recipe')),
+        hasExtrasSection: Boolean(document.querySelector('.detail-extras')),
         hasEvidencePanel: Boolean(document.querySelector('.evidence-panel')),
+        hasDetailTabs: Boolean(document.querySelector('.detail-tabs, .detail-tab')),
         missing: bodyText.includes('没有找到这个物品'),
         oldMock: bodyText.includes('泰拉刃是一把困难模式后期近战武器'),
         brokenImageCount: [...document.images].filter((image) => image.currentSrc && image.naturalWidth === 0).length,
@@ -1101,7 +1110,16 @@ try {
     hydrated: detailHydrated,
   }
 
-  if (!detailValue.hydrated || !detailValue.hasDetailHero || !detailValue.hasEvidencePanel || detailValue.missing) {
+  if (
+    !detailValue.hydrated
+    || !detailValue.hasDetailHero
+    || !detailValue.hasUsageSection
+    || !detailValue.hasRecipeSection
+    || !detailValue.hasExtrasSection
+    || detailValue.hasEvidencePanel
+    || detailValue.hasDetailTabs
+    || detailValue.missing
+  ) {
     failures.push(`/items/1: item detail page should render live public detail content, got ${JSON.stringify(detailValue)}`)
   }
 
