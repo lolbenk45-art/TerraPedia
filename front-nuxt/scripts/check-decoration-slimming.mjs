@@ -11,9 +11,16 @@ const catalog = readProjectFile('assets/css/catalog-image-fixes.css')
 const styles = `${hifi}\n${catalog}`
 
 const count = (content, pattern) => content.match(pattern)?.length ?? 0
+
+const selectorContains = (selectorList, selector) => selectorList
+  .split(',')
+  .map((part) => part.replace(/\s+/g, ' ').trim())
+  .some((part) => part === selector || part.endsWith(` ${selector}`))
+
 const ruleFor = (content, selector) => {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return content.match(new RegExp(`${escaped}\\s*\\{([\\s\\S]*?)\\n\\}`, 'm'))?.[1] ?? ''
+  const rules = [...content.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+  const normalizedTarget = selector.replace(/\s+/g, ' ').trim()
+  return rules.find((match) => selectorContains(match[1], normalizedTarget))?.[2] ?? ''
 }
 
 const failures = []

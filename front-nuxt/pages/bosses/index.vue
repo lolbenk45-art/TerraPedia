@@ -22,10 +22,10 @@
           <p>先展示战斗节点，再连接装备、Buff 和套装入口。页面目标是让玩家一眼知道下一步该准备什么。</p>
         </div>
         <div class="boss-command-stats">
-          <div><b>01</b><span>战前检查</span></div>
-          <div><b>02</b><span>触发方式</span></div>
-          <div><b>03</b><span>关键掉落</span></div>
-          <div><b>04</b><span>后续路线</span></div>
+          <span><b>01</b><em>战前检查</em></span>
+          <span><b>02</b><em>触发方式</em></span>
+          <span><b>03</b><em>关键掉落</em></span>
+          <span><b>04</b><em>后续路线</em></span>
         </div>
       </section>
 

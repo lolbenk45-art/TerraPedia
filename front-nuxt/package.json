@@ -13,6 +13,7 @@
     "check:home-tool-portal": "node scripts/check-home-tool-portal.mjs",
     "check:decoration-slimming": "node scripts/check-decoration-slimming.mjs",
     "check:color-simplification": "node scripts/check-color-simplification.mjs",
+    "check:information-density": "node scripts/check-information-density.mjs",
     "check:visual": "node scripts/check-visual-regression.mjs",
     "generate": "nuxt generate",
     "preview": "nuxt preview",

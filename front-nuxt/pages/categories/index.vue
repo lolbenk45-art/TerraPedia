@@ -43,24 +43,26 @@
       </section>
 
       <section class="taxonomy-band category-entry-band">
-        <article class="support-panel category-entry-card">
-          <span class="eyebrow">推荐入口</span>
-          <h3>按阶段看</h3>
-          <p>开荒、Boss 前、困难模式、月亮领主前，每个阶段都有不同的分类优先级。</p>
-          <b>4 组路线</b>
-        </article>
-        <article class="support-panel category-entry-card">
-          <span class="eyebrow">推荐入口</span>
-          <h3>按职业看</h3>
-          <p>近战、射手、法师、召唤的装备路线需要跨分类浏览。</p>
-          <b>4 个职业</b>
-        </article>
-        <article class="support-panel category-entry-card">
-          <span class="eyebrow">推荐入口</span>
-          <h3>按用途看</h3>
-          <p>战斗、建造、探索、事件准备，适合从分类直接跳到专题。</p>
-          <b>6 类用途</b>
-        </article>
+        <div class="taxonomy-list">
+          <a class="taxonomy-row" href="/articles">
+            <span class="eyebrow">推荐入口</span>
+            <b>按阶段看</b>
+            <span>开荒、Boss 前、困难模式、月亮领主前</span>
+            <em>4 组路线</em>
+          </a>
+          <a class="taxonomy-row" href="/armor-sets">
+            <span class="eyebrow">推荐入口</span>
+            <b>按职业看</b>
+            <span>近战、射手、法师、召唤跨分类浏览</span>
+            <em>4 个职业</em>
+          </a>
+          <a class="taxonomy-row" href="/search">
+            <span class="eyebrow">推荐入口</span>
+            <b>按用途看</b>
+            <span>战斗、建造、探索、事件准备</span>
+            <em>6 类用途</em>
+          </a>
+        </div>
       </section>
     </main>
 
