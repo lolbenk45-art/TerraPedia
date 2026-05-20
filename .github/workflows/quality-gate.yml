@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - feat/**
       - feature/**
 
 jobs:
@@ -21,6 +22,13 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+
+      - name: Run crawler regression baseline
+        run: node --test scripts/data/crawler/tests/regression-baseline.test.mjs
+
+      - name: Run item import regression baseline
+        working-directory: back
+        run: mvn -Dtest=ItemImportRegressionTest test
 
       - name: Enable pnpm
         run: corepack enable

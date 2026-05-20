@@ -1,0 +1,47 @@
+{
+  "source": "phase0-regression-fixture",
+  "overwriteExisting": true,
+  "items": [
+    {
+      "name": "Iron Pickaxe",
+      "internalName": "IronPickaxe",
+      "nameZh": "铁镐",
+      "categoryCode": "PICKAXE",
+      "rarity": "common",
+      "damage": 5,
+      "useTime": 19,
+      "width": 24,
+      "height": 24,
+      "image": "http://localhost:9000/terrapedia-images/items/wiki/item-images/iron-pickaxe.png"
+    },
+    {
+      "name": "Cobalt Drill",
+      "internalName": "CobaltDrill",
+      "nameZh": "钴钻头",
+      "categoryCode": "PICKAXE",
+      "rarity": "rare",
+      "damage": 10,
+      "useTime": 12,
+      "width": 26,
+      "height": 26,
+      "image": "http://localhost:9000/terrapedia-images/items/wiki/item-images/cobalt-drill.png"
+    },
+    {
+      "name": "Drax",
+      "internalName": "Drax",
+      "nameZh": "斧钻",
+      "categoryCode": "PICKAXE",
+      "rarity": "epic",
+      "damage": 35,
+      "useTime": 14,
+      "width": 28,
+      "height": 28,
+      "image": "http://localhost:9000/terrapedia-images/items/wiki/item-images/drax.png"
+    },
+    {
+      "name": "Broken Fixture Item",
+      "internalName": "BrokenFixtureItem",
+      "categoryCode": "UNREVIEWED_CATEGORY"
+    }
+  ]
+}
