@@ -71,9 +71,9 @@ export const useHomeData = async () => {
   }))
 
   const hero = computed(() => ({
-      kicker: '公开图鉴 · 世界路线',
-      title: '从泰拉刃\n进入整个世界',
-      lede: '按物品、Boss、NPC 和攻略路线进入资料，开局、战前、困难模式和月后整理都能直接找到下一步。',
+      kicker: 'TerraPedia',
+      title: 'TerraPedia',
+      lede: 'Terraria 中文资料库',
       primaryEntries: primaryEntries.value,
       progressionStages: [
         { label: '新手开荒', href: '/articles?stage=early', tone: 'moss' },

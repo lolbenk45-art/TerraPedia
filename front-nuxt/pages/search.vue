@@ -34,7 +34,7 @@ watch(() => route.query.keyword, () => {
           <h1>全站检索</h1>
           <p>搜索页先做成高密度入口：左侧聚焦输入与建议，右侧把命中结果按资料类型分组，避免单调的普通列表。</p>
         </div>
-        <a class="primary-button" href="/items">进入图鉴墙</a>
+        <a class="primary-button" href="/items">进入物品</a>
       </div>
     </div>
 

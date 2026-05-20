@@ -3,7 +3,6 @@ import { usePublicItemDetail } from '~/composables/usePublicItemDetail'
 import type {
   PublicItemDetail,
   PublicItemDetailBundle,
-  PublicItemImage,
   PublicItemRecipeTree,
   PublicItemRecipeTreeNode,
   PublicItemRecipeTreeStation,
@@ -70,31 +69,6 @@ const itemImage = computed(() => firstImageUrl(
 ))
 
 const itemFallbackGlyph = computed(() => Array.from(itemName.value)[0] ?? '?')
-const sourceLabel = computed(() => rawBundle.value?.source === 'api' ? '实时接口' : '详情数据')
-
-const imageEntries = computed(() => {
-  const images = rawBundle.value.images.map((image: PublicItemImage, index) => {
-    const url = firstImageUrl(image.previewImageUrl, image.previewImage, image.imageUrl, image.url, image.src, image.path)
-
-    return {
-      id: firstText(image.id, image.imageId, url, index),
-      url,
-      label: firstText(image.label, image.type, image.role, image.name, `图片 ${index + 1}`),
-      note: firstText(image.description, image.source, image.status),
-    }
-  }).filter((image) => image.url)
-
-  if (images.length > 0 || !itemImage.value) {
-    return images
-  }
-
-  return [{
-    id: 'primary',
-    url: itemImage.value,
-    label: '主图标',
-    note: itemName.value,
-  }]
-})
 
 const sourceEntries = computed(() => rawBundle.value.sources.map((source: PublicItemSource, index) => ({
   id: firstText(source.id, source.sourceId, index),
@@ -231,13 +205,6 @@ const markImageFallback = (image: string) => {
             </div>
           </section>
         </div>
-
-        <aside class="evidence-panel dark-card">
-          <span class="eyebrow">资料链路</span>
-          <div v-for="slot in 4" :key="`detail-loading-evidence-${slot}`" class="evidence-step detail-loading-evidence">
-            <div><span class="detail-loading-row-text"></span></div>
-          </div>
-        </aside>
       </div>
     </div>
 
@@ -246,12 +213,12 @@ const markImageFallback = (image: string) => {
         <div class="detail-main">
           <span class="eyebrow">物品 #{{ itemId || '未知' }} · 未找到</span>
           <strong class="detail-missing-title">没有找到这个物品</strong>
-          <p>当前详情接口没有返回可渲染的物品资料。可以返回物品图鉴重新选择，或稍后在数据同步完成后再试。</p>
+          <p>暂时没有这个物品的资料。可以返回物品列表重新选择，或稍后再试。</p>
           <div class="tag-row">
             <span class="tag paper">详情缺失</span>
-            <span v-if="detailError" class="tag moss">接口异常</span>
+            <span v-if="detailError" class="tag moss">数据异常</span>
           </div>
-          <a class="primary-button" href="/items">返回物品图鉴</a>
+          <a class="primary-button" href="/items">返回物品列表</a>
         </div>
       </section>
     </div>
@@ -274,20 +241,18 @@ const markImageFallback = (image: string) => {
           </span>
         </div>
         <div class="detail-main">
-          <span class="eyebrow">物品 #{{ itemId }} · {{ itemEnglishName || sourceLabel }}</span>
+          <span class="eyebrow">#{{ itemId }} · {{ itemEnglishName }}</span>
           <h1>{{ itemName }}</h1>
           <p>{{ itemDescription }}</p>
           <div class="tag-row">
             <span class="tag gold">{{ itemCategory }}</span>
             <span class="tag moss">{{ itemPeriod }}</span>
             <span class="tag paper">{{ itemRarity }}</span>
-            <span v-if="detailPending" class="tag paper">同步中</span>
           </div>
           <div class="detail-tabs">
             <button class="detail-tab active" type="button">概览</button>
             <button class="detail-tab" type="button">合成</button>
             <button class="detail-tab" type="button">来源</button>
-            <button class="detail-tab" type="button">证据链</button>
           </div>
         </div>
         <aside class="detail-side">
@@ -303,39 +268,10 @@ const markImageFallback = (image: string) => {
 
       <div class="detail-grid">
         <div class="module-stack">
-          <section v-if="imageEntries.length" class="detail-module dark-card">
-            <div class="module-title">
-              <h2>图片</h2>
-              <span class="tag gold">{{ imageEntries.length }} 张</span>
-            </div>
-            <div class="source-table">
-              <div v-for="image in imageEntries" :key="String(image.id)" class="source-row">
-                <span class="sprite-frame" style="width:42px;height:42px">
-                  <span
-                    class="item-art"
-                    :class="{ 'is-fallback': failedImages.has(image.url) }"
-                    :data-fallback="itemFallbackGlyph"
-                  >
-                    <img
-                      v-if="!failedImages.has(image.url)"
-                      :src="image.url"
-                      :alt="image.label"
-                      loading="lazy"
-                      decoding="async"
-                      @error="markImageFallback(image.url)"
-                    />
-                  </span>
-                </span>
-                <div><b>{{ image.label }}</b><span>{{ image.note || image.url }}</span></div>
-                <strong>图片</strong>
-              </div>
-            </div>
-          </section>
-
           <section v-if="recipeTreeSummary" class="detail-module dark-card">
             <div class="module-title">
-              <h2>合成路线</h2>
-              <span class="tag gold">{{ recipeTreeSummary.count }} 个直接材料</span>
+              <h2>合成</h2>
+              <span class="tag gold">{{ recipeTreeSummary.count }} 项材料</span>
             </div>
             <div class="recipe-tree">
               <template v-for="(material, index) in recipeTreeSummary.materials" :key="String(material.id)">
@@ -389,7 +325,7 @@ const markImageFallback = (image: string) => {
           <section v-if="sourceEntries.length" class="detail-module dark-card">
             <div class="module-title">
               <h2>来源与关联</h2>
-              <span class="tag moss">{{ sourceEntries.length }} 条</span>
+              <span class="tag moss">{{ sourceEntries.length }} 项</span>
             </div>
             <div class="source-table">
               <div v-for="source in sourceEntries" :key="String(source.id)" class="source-row">
@@ -415,14 +351,6 @@ const markImageFallback = (image: string) => {
             </div>
           </section>
         </div>
-
-        <aside class="evidence-panel dark-card">
-          <span class="eyebrow">资料链路</span>
-          <div class="evidence-step"><div><b>详情接口</b><span>/public/items/{{ itemId }}</span></div></div>
-          <div class="evidence-step"><div><b>图片关系</b><span>{{ imageEntries.length }} 张候选图片</span></div></div>
-          <div class="evidence-step"><div><b>来源关系</b><span>{{ sourceEntries.length }} 条来源记录</span></div></div>
-          <div class="evidence-step"><div><b>配方树</b><span>{{ recipeTreeSummary ? '已返回摘要' : '暂无配方树' }}</span></div></div>
-        </aside>
       </div>
     </div>
 

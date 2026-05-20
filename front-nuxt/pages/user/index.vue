@@ -22,7 +22,6 @@
           <h2>把个人资料动作收进一个清晰的控制台</h2>
           <p>不在首页塞用户功能，用户中心单独承载收藏、文章草稿、账号设置和路线记录。</p>
           <div class="tag-row">
-            <span class="tag gold">静态占位</span>
             <span class="tag moss">前台页面</span>
             <span class="tag paper">功能待接入</span>
           </div>
@@ -71,7 +70,7 @@
         <article class="support-panel user-feed-panel">
           <span class="eyebrow">页面入口</span>
           <div class="user-link-matrix">
-            <a href="/items"><span class="sprite-icon icon-items card-icon" aria-hidden="true"></span><b>物品</b><span>图鉴墙</span></a>
+            <a href="/items"><span class="sprite-icon icon-items card-icon" aria-hidden="true"></span><b>物品</b><span>全库浏览</span></a>
             <a href="/crafting"><span class="sprite-icon icon-crafting card-icon" aria-hidden="true"></span><b>制作</b><span>配方路线</span></a>
             <a href="/articles"><span class="sprite-icon icon-article card-icon" aria-hidden="true"></span><b>文章</b><span>专题阅读</span></a>
             <a href="/about"><span class="sprite-icon icon-codex card-icon" aria-hidden="true"></span><b>项目</b><span>反馈合作</span></a>

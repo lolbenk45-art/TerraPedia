@@ -7,8 +7,8 @@
       <div class="page-head-inner">
         <div>
           <span class="eyebrow">推进顺序 · 战利品 · 阶段入口</span>
-          <h1>Boss 路线</h1>
-          <p>Boss 页面不做普通卡片堆叠，而是把触发条件、战前准备、关键掉落和下一阶段放到同一条推进线上。</p>
+          <h1>Boss</h1>
+          <p>从史莱姆王到月亮领主，按推进顺序排列。</p>
         </div>
         <a class="primary-button" href="/articles">看路线攻略</a>
       </div>

@@ -231,8 +231,8 @@ const heroIconDirections = [
     name: '工匠符号路线',
     target: 'Craft Tree',
     roles: [roleEntry('material', { sheet: 'craft', visualRole: 'material' }), roleEntry('boss', { sheet: 'craft' }), roleEntry('buff', { sheet: 'craft' }), roleEntry('armor', { sheet: 'craft' }), roleEntry('material', { sheet: 'craft', label: '制作', visualRole: 'crafting' }), roleEntry('projectile', { sheet: 'craft' }), roleEntry('items', { sheet: 'craft' }), roleEntry('notification', { sheet: 'craft' })],
-    summary: '把合成、材料、事件、结果压成安静的路线符号，不做技能框。',
-    notes: ['路线符号', '克制轮廓', '不伪装掉落图'],
+    summary: '把合成、材料、事件、结果压成安静的路线符号，避免技能框。',
+    notes: ['路线符号', '克制轮廓', '区别于掉落图'],
   },
   {
     id: 'manual-icons',
@@ -240,8 +240,8 @@ const heroIconDirections = [
     name: '手册章节符号',
     target: 'In-game Manual',
     roles: [roleEntry('items', { sheet: 'manual' }), roleEntry('category', { sheet: 'manual' }), roleEntry('material', { sheet: 'manual', visualRole: 'material' }), roleEntry('boss', { sheet: 'manual' }), roleEntry('article', { sheet: 'manual' }), roleEntry('settings', { sheet: 'manual' }), roleEntry('codex', { sheet: 'manual' }), roleEntry('search', { sheet: 'manual' })],
-    summary: '更像游戏手册里的章节索引符号，用于资料操作，不做实体插图。',
-    notes: ['章节符号', '墨色剪影', '不做实体插图'],
+    summary: '更像游戏手册里的章节索引符号，用于资料操作，避免实体插图。',
+    notes: ['章节符号', '墨色剪影', '避免实体插图'],
   },
 ]
 
@@ -251,7 +251,7 @@ const itemLayoutOptions = [
     className: 'layout-pixel-gallery',
     label: 'A',
     name: 'Pixel Gallery',
-    cnName: '像素图鉴墙',
+    cnName: '像素物品墙',
     summary: '像素图标只承担分类和入口差异，具体物品墙保留真实资源占位。',
   },
   {
@@ -281,7 +281,7 @@ const itemLayoutOptions = [
     <header class="home-options-head">
       <span class="eyebrow">ITEM PAGE LAYOUT LAB</span>
       <h1>物品页三种新方向</h1>
-      <p>这次不做后台式三栏微调，三版分别围绕图标墙、合成树、游戏内百科建立完全不同的第一屏。</p>
+      <p>三版分别围绕图标墙、合成树、游戏内百科建立完全不同的第一屏。</p>
     </header>
 
     <section class="hero-icon-option-board" aria-label="三套 hero icon 方案">
@@ -383,14 +383,14 @@ const itemLayoutOptions = [
         <section
           v-if="option.id === 'pixel-gallery'"
           class="option-direction-stage pixel-gallery-stage"
-          aria-label="像素图鉴墙方案"
+          aria-label="像素物品墙方案"
         >
           <div class="pixel-gallery-toolbar">
             <div>
               <span>ITEM WALL</span>
               <h2>所有物品先出现</h2>
             </div>
-            <nav aria-label="图鉴墙筛选">
+            <nav aria-label="物品墙筛选">
               <button type="button" class="active">全部</button>
               <button type="button">武器</button>
               <button type="button">材料</button>
