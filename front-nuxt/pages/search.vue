@@ -1,180 +1,135 @@
 <script setup lang="ts">
-import type { ItemSuggestion } from '~/composables/usePublicItems'
-
 const route = useRoute()
-const router = useRouter()
+const defaultSearchQuery = 'terra / 泰拉 / blade'
 
-const searchQuery = ref(String(route.query.keyword ?? '').trim())
-const searchInput = ref<HTMLInputElement | null>(null)
-const searchSuggestions = ref<ItemSuggestion[]>([])
-const suggestionsPending = ref(false)
-let suggestionTimer: ReturnType<typeof setTimeout> | undefined
+const normalizeQueryValue = (value: unknown) => Array.isArray(value) ? value[0] : value
 
-const quickEntries = [
-  { label: '物品', href: '/items', icon: 'icon-items', count: '6,131' },
-  { label: 'Boss', href: '/bosses', icon: 'icon-boss', count: '14' },
-  { label: 'NPC', href: '/npcs', icon: 'icon-npc', count: '762' },
-  { label: 'Buff', href: '/buffs', icon: 'icon-buff', count: '388' },
-  { label: '配方', href: '/crafting', icon: 'icon-crafting', count: '14,746' },
-  { label: '文章', href: '/articles', icon: 'icon-article', count: '精选' },
-]
-
-const recentUpdates = [
-  { title: '泰拉刃', meta: '配方与材料入口', href: '/items/757' },
-  { title: '神圣锭', meta: '困难模式材料', href: '/items?search=神圣锭' },
-  { title: '克苏鲁之眼', meta: 'Boss 路线整理', href: '/bosses' },
-  { title: '铁皮药水', meta: '战前增益', href: '/items?search=铁皮药水' },
-  { title: '城镇 NPC', meta: '居住与服务入口', href: '/npcs' },
-]
-
-const hotSearches = [
-  { title: '泰拉刃', meta: '合成目标', href: '/search?keyword=泰拉刃' },
-  { title: '甲虫套', meta: '近战防具', href: '/search?keyword=甲虫套' },
-  { title: '铁皮药水', meta: '防御增益', href: '/search?keyword=铁皮药水' },
-  { title: '翅膀', meta: '移动配饰', href: '/search?keyword=翅膀' },
-  { title: '月亮领主', meta: '后期 Boss', href: '/search?keyword=月亮领主' },
-]
-
-const starterGuides = [
-  { title: '开荒第一天', meta: '工具、火把、工作台', href: '/articles?tag=入门' },
-  { title: 'Boss 顺序', meta: '从史莱姆王到月亮领主', href: '/bosses' },
-  { title: '困难模式准备', meta: '祭坛、矿石、机械 Boss', href: '/articles?stage=hardmode' },
-  { title: '药水清单', meta: '战前 Buff 速查', href: '/buffs' },
-  { title: '合成路线', meta: '材料和制作站', href: '/crafting' },
-]
-
-const refreshSuggestions = async (keyword: string) => {
-  suggestionsPending.value = true
-  try {
-    searchSuggestions.value = (await fetchPublicItemSuggestions(keyword, 5)).slice(0, 5)
-  } finally {
-    suggestionsPending.value = false
-  }
+const resolveSearchQuery = () => {
+  const keyword = String(normalizeQueryValue(route.query.keyword) ?? '').trim()
+  return keyword || defaultSearchQuery
 }
 
-await refreshSuggestions(searchQuery.value)
+const searchQuery = ref(resolveSearchQuery())
+const searchKeywordLabel = computed(() => searchQuery.value.trim() || '泰拉')
 
 const submitSearch = () => {
   const keyword = searchQuery.value.trim()
-  void router.replace({ query: keyword ? { keyword } : {} })
-  void refreshSuggestions(keyword)
+  return navigateTo(keyword ? `/search?keyword=${encodeURIComponent(keyword)}` : '/search')
 }
 
-const showFallbackSuggestions = async () => {
-  searchSuggestions.value = await fetchPublicItemSuggestions('', 5)
-}
-
-watch(searchQuery, (keyword) => {
-  if (suggestionTimer) clearTimeout(suggestionTimer)
-  suggestionTimer = setTimeout(() => void refreshSuggestions(keyword.trim()), 180)
-})
-
-watch(() => route.query.keyword, (kw) => {
-  searchQuery.value = String(kw ?? '').trim()
-})
-
-onBeforeUnmount(() => {
-  if (suggestionTimer) clearTimeout(suggestionTimer)
-})
-
-useSeoMeta({
-  title: 'TerraPedia · 搜索',
-  description: '搜索物品、Boss、NPC 和合成路线的 Terraria 中文资料工具站。',
+watch(() => route.query.keyword, () => {
+  searchQuery.value = resolveSearchQuery()
 })
 </script>
 
 <template>
-  <section class="screen home-screen search-tool-screen active">
+  <section class="screen entity-screen active">
     <TerraNav />
+    <TerraBreadcrumb />
 
-    <main class="home-main">
-      <section class="home-tool-hero" aria-labelledby="search-title">
-        <div class="home-tool-copy">
-          <span class="eyebrow">TerraPedia</span>
-          <h1 id="search-title">搜索</h1>
-          <p>Terraria 中文资料库</p>
+    <div class="page-head entity-head">
+      <div class="page-head-inner">
+        <div>
+          <span class="eyebrow">搜索建议 · 物品 / NPC / Boss / 攻略</span>
+          <h1>全站检索</h1>
+          <p>搜索页先做成高密度入口：左侧聚焦输入与建议，右侧把命中结果按资料类型分组，避免单调的普通列表。</p>
         </div>
+        <a class="primary-button" href="/items">进入物品</a>
+      </div>
+    </div>
 
-        <form class="home-tool-search" role="search" aria-label="全站资料检索" @submit.prevent="submitSearch">
-          <span class="sprite-icon icon-search compact" aria-hidden="true"></span>
-          <label class="visually-hidden" for="search-input">搜索物品、Boss、NPC、配方</label>
-          <input
-            id="search-input"
-            ref="searchInput"
-            v-model="searchQuery"
-            type="search"
-            name="keyword"
-            autocomplete="off"
-            placeholder="搜索物品、Boss、NPC、配方..."
-          />
-          <kbd aria-label="Command K 或 Control K">⌘K / Ctrl K</kbd>
-          <button type="submit" class="home-search-submit">搜索</button>
-        </form>
-
-        <div class="home-suggestion-list" aria-label="搜索建议">
-          <NuxtLink
-            v-for="suggestion in searchSuggestions"
-            :key="suggestion.id"
-            class="home-suggestion-row"
-            :to="suggestion.href"
-          >
-            <span
-              class="item-art"
-              :class="{ 'is-fallback': !suggestion.image }"
-              :data-fallback="suggestion.fallback"
-              :style="suggestion.image ? `background-image:url('${suggestion.image}')` : undefined"
-              aria-hidden="true"
-            ></span>
-            <b>{{ suggestion.title }}</b>
-            <em>{{ suggestion.meta }}</em>
-          </NuxtLink>
-          <span v-if="suggestionsPending" class="home-suggestion-row is-loading">检索中</span>
-          <button
-            v-if="!searchSuggestions.length && !suggestionsPending"
-            class="home-suggestion-row"
-            type="button"
-            @click="showFallbackSuggestions"
-          >
-            查看热门物品
-          </button>
+    <main class="support-layout discovery-search-page search-layout">
+      <section class="search-command search-console support-panel">
+        <div class="search-console-copy">
+          <span class="eyebrow">当前关键词</span>
+          <h2>{{ searchKeywordLabel }}</h2>
+          <p>建议接口对应 `/public/items/suggestions`，页面上把建议、快捷筛选和跨域入口放在一起，后续接真实数据时不需要重做结构。</p>
+        </div>
+        <div class="search-console-module">
+          <form class="search-input-shell search-input-primary" role="search" aria-label="全站检索" @submit.prevent="submitSearch">
+            <span aria-hidden="true">⌕</span>
+            <label class="visually-hidden" for="global-search-input">搜索物品、NPC、Boss 或攻略</label>
+            <input
+              id="global-search-input"
+              v-model="searchQuery"
+              type="search"
+              name="keyword"
+              autocomplete="off"
+              aria-describedby="global-search-count"
+            />
+            <em id="global-search-count">8 条建议</em>
+          </form>
+          <div class="search-type-tabs" aria-label="搜索类型">
+            <a class="search-type-chip active" href="/search">All</a>
+            <a class="search-type-chip" href="/items">Items</a>
+            <a class="search-type-chip" href="/npcs">NPC</a>
+            <a class="search-type-chip" href="/bosses">Boss</a>
+            <a class="search-type-chip" href="/articles">Guides</a>
+          </div>
+          <div class="search-suggestion-rows">
+            <a class="search-suggestion-row" href="/items/terra-blade"><b>泰拉刃</b><span>物品 · 近战武器 · 制作目标</span><em>98%</em></a>
+            <a class="search-suggestion-row" href="/articles/melee-progression"><b>近战推进路线</b><span>攻略 · 困难模式 · Boss 前准备</span><em>84%</em></a>
+            <a class="search-suggestion-row" href="/bosses/eye-of-cthulhu"><b>克苏鲁之眼</b><span>Boss · 早期门槛 · 掉落入口</span><em>61%</em></a>
+            <a class="search-suggestion-row" href="/crafting"><b>泰拉刃合成</b><span>制作 · 真永夜刃 · 真断钢剑</span><em>57%</em></a>
+          </div>
         </div>
       </section>
 
-      <nav class="home-quick-entry" aria-label="核心资料入口">
-        <NuxtLink v-for="entry in quickEntries" :key="entry.href" :to="entry.href">
-          <span class="sprite-icon" :class="entry.icon" aria-hidden="true"></span>
-          <b>{{ entry.label }}</b>
-          <em>{{ entry.count }}</em>
-        </NuxtLink>
-      </nav>
+      <section class="search-results-grid search-results-grouped">
+        <div class="search-result-group">
+          <div class="search-group-head"><span class="eyebrow">Items</span><b>物品命中</b><em>4</em></div>
+          <article class="support-panel search-result-card active">
+            <span class="eyebrow">近战武器</span>
+            <div class="result-title-line">
+              <i><span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span></i>
+              <div>
+                <h3>泰拉刃</h3>
+                <p>困难模式后期近战武器，连接合成树、射弹和 Boss 前准备。</p>
+              </div>
+            </div>
+            <a href="/items/terra-blade">打开物品详情</a>
+          </article>
+        </div>
 
-      <section class="home-tool-columns" aria-label="资料动态">
-        <article>
-          <h2>最近更新</h2>
-          <NuxtLink v-for="row in recentUpdates" :key="row.href" :to="row.href">
-            <b>{{ row.title }}</b>
-            <span>{{ row.meta }}</span>
-          </NuxtLink>
-        </article>
+        <div class="search-result-group">
+          <div class="search-group-head"><span class="eyebrow">Guides</span><b>攻略命中</b><em>3</em></div>
+          <article class="support-panel search-result-card">
+            <span class="eyebrow">路线专题</span>
+            <div class="result-title-line">
+              <i><span class="result-mark gold-mark"></span></i>
+              <div>
+                <h3>近战装备推进路线</h3>
+                <p>从机械 Boss 到月亮领主前的武器、套装和饰品节点。</p>
+              </div>
+            </div>
+            <a href="/articles/melee-progression">打开文章</a>
+          </article>
+        </div>
 
-        <article>
-          <h2>热门搜索</h2>
-          <NuxtLink v-for="row in hotSearches" :key="row.href" :to="row.href">
-            <b>{{ row.title }}</b>
-            <span>{{ row.meta }}</span>
-          </NuxtLink>
-        </article>
-
-        <article>
-          <h2>入门指南</h2>
-          <NuxtLink v-for="row in starterGuides" :key="row.href" :to="row.href">
-            <b>{{ row.title }}</b>
-            <span>{{ row.meta }}</span>
-          </NuxtLink>
-        </article>
+        <div class="search-result-group">
+          <div class="search-group-head"><span class="eyebrow">Boss</span><b>首领命中</b><em>1</em></div>
+          <article class="support-panel search-result-card">
+            <span class="eyebrow">早期门槛</span>
+            <div class="result-title-line">
+              <i><img :src="'/preview-assets/terrapedia-images/npcs/2026/05/08/0d8a53901a0e4dfea17b59f2aecae869.gif'" alt="克苏鲁之眼" /></i>
+              <div>
+                <h3>克苏鲁之眼</h3>
+                <p>早期主线门槛，常与铁皮、再生和平台准备同时出现。</p>
+              </div>
+            </div>
+            <a href="/bosses/eye-of-cthulhu">打开 Boss 详情</a>
+          </article>
+        </div>
       </section>
 
-      <TerraFooter />
+      <section class="search-suggestion-band support-panel">
+        <a href="/items"><b>物品建议</b><span>名称、英文名、分类、稀有度</span></a>
+        <a href="/npcs"><b>NPC 建议</b><span>城镇角色、敌怪、Boss 成员</span></a>
+        <a href="/buffs"><b>Buff 建议</b><span>增益、减益、战前组合</span></a>
+        <a href="/articles"><b>文章建议</b><span>阶段路线、职业攻略、机制解释</span></a>
+      </section>
     </main>
+
+    <TerraFooter />
   </section>
 </template>

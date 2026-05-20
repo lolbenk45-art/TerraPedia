@@ -198,6 +198,7 @@ const measureEmblemBalance = (path) => {
 
 const requiredRoutes = [
   'pages/search.vue',
+  'pages/search-tool.vue',
   'pages/crafting/index.vue',
   'pages/categories/index.vue',
   'pages/categories/[id].vue',
@@ -593,7 +594,7 @@ for (const path of scanFiles) {
       }
     }
 
-    if (publicPageFiles.includes(path) && path !== 'pages/index.vue' && path !== 'pages/search.vue' && !content.includes('<TerraBreadcrumb')) {
+    if (publicPageFiles.includes(path) && path !== 'pages/index.vue' && path !== 'pages/search-tool.vue' && !content.includes('<TerraBreadcrumb')) {
       violations.push(`${path}: public page must render the shared TerraBreadcrumb`)
     }
 
@@ -1185,6 +1186,39 @@ for (const path of scanFiles) {
   }
 
   if (path === 'pages/search.vue') {
+    for (const marker of [
+      '<TerraBreadcrumb',
+      'class="screen entity-screen active"',
+      'class="support-layout discovery-search-page search-layout"',
+      'class="search-command search-console support-panel"',
+      'class="search-input-shell search-input-primary"',
+      'class="search-results-grid search-results-grouped"',
+      'class="search-suggestion-band support-panel"',
+      'type="search"',
+      'v-model=',
+      'role="search"',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: classic search page must expose marker ${marker}`)
+      }
+    }
+
+    for (const marker of [
+      'const route = useRoute()',
+      "const defaultSearchQuery = 'terra / 泰拉 / blade'",
+      'route.query.keyword',
+      'resolveSearchQuery',
+      'searchKeywordLabel',
+      'navigateTo(keyword ? `/search?keyword=',
+      'watch(() => route.query.keyword,',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: classic search page must keep query marker ${marker}`)
+      }
+    }
+  }
+
+  if (path === 'pages/search-tool.vue') {
     for (const marker of [
       'class="screen home-screen search-tool-screen active"',
       'class="home-tool-hero"',
