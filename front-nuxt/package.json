@@ -11,6 +11,7 @@
     "check:light-theme": "node scripts/check-light-theme-typography.mjs",
     "check:detail-three-section": "node scripts/check-detail-three-section.mjs",
     "check:home-tool-portal": "node scripts/check-home-tool-portal.mjs",
+    "check:decoration-slimming": "node scripts/check-decoration-slimming.mjs",
     "check:visual": "node scripts/check-visual-regression.mjs",
     "generate": "nuxt generate",
     "preview": "nuxt preview",

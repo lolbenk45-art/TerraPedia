@@ -11,26 +11,11 @@
   overflow: visible;
   display: block;
   min-height: 560px;
-  border: 1px solid rgba(214, 177, 90, 0.24);
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at 72% 28%, rgba(240, 207, 116, 0.1), transparent 26rem),
-    radial-gradient(circle at 18% 72%, rgba(125, 165, 91, 0.08), transparent 24rem),
-    var(--index-grid-x),
-    var(--index-grid-y),
-    linear-gradient(135deg, #061007 0%, #0d1a10 56%, #050806 100%);
-  background-size: auto, auto, 34px 34px, 34px 34px, auto;
-  box-shadow: var(--shadow-heavy);
-  padding: 24px;
-}
-
-.catalog-wall-shell::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 -22% 34%;
-  height: 280px;
-  background: radial-gradient(circle, rgba(240, 207, 116, 0.1), transparent 68%);
-  pointer-events: none;
+  border: 1px solid var(--panel-light-border);
+  border-radius: 8px;
+  background: var(--panel-light-bg);
+  box-shadow: none;
+  padding: 20px;
 }
 
 .catalog-wall-main {
@@ -362,11 +347,8 @@
   min-height: 130px;
   border: 1px solid rgba(244, 234, 208, 0.09);
   border-radius: 8px;
-  background:
-    radial-gradient(circle at 50% 42%, rgba(240, 207, 116, 0.1), transparent 62%),
-    rgba(244, 234, 208, 0.032);
-  box-shadow:
-    0 6px 14px rgba(0, 0, 0, 0.18);
+  background: rgba(244, 234, 208, 0.032);
+  box-shadow: none;
   color: inherit;
   cursor: pointer;
   font: inherit;
@@ -399,7 +381,7 @@
   z-index: 8;
   border-color: rgba(240, 207, 116, 0.52);
   background-color: rgba(217, 185, 91, 0.12);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   transform: translateY(-1px);
 }
 
@@ -468,12 +450,8 @@
   max-width: min(320px, calc(100vw - 32px));
   border: 1px solid rgba(240, 207, 116, 0.34);
   border-radius: 10px;
-  background:
-    var(--index-grid-x),
-    var(--index-grid-y),
-    rgba(7, 12, 9, 0.96);
-  background-size: 34px 34px, 34px 34px, auto;
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.34);
+  background: rgba(7, 12, 9, 0.96);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
   color: rgba(244, 234, 208, 0.82);
   opacity: 0;
   padding: 12px;
@@ -961,19 +939,9 @@
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-wall-shell {
-  border-color: rgba(var(--theme-border-rgb), 0.2);
-  background:
-    radial-gradient(circle at 72% 28%, rgba(var(--theme-gold-rgb), 0.08), transparent 26rem),
-    radial-gradient(circle at 18% 72%, color-mix(in srgb, var(--moss) 8%, transparent), transparent 24rem),
-    var(--index-grid-x),
-    var(--index-grid-y),
-    linear-gradient(135deg, rgba(var(--theme-panel-rgb), 0.9), rgba(var(--theme-bg-2-rgb), 0.86));
-  background-size: auto, auto, 34px 34px, 34px 34px, auto;
-  box-shadow: 0 10px 22px rgba(var(--theme-text-rgb), 0.06);
-}
-
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-wall-shell::after {
-  background: radial-gradient(circle, rgba(var(--theme-gold-rgb), 0.08), transparent 68%);
+  border-color: var(--panel-light-border);
+  background: var(--panel-light-bg);
+  box-shadow: none;
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-wall-topbar :where(h2, h3) {
@@ -1043,11 +1011,9 @@
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-wall-cell {
   border-color: rgba(var(--theme-border-rgb), 0.16);
-  background:
-    radial-gradient(circle at 50% 42%, rgba(var(--theme-gold-rgb), 0.08), transparent 62%),
-    rgba(var(--theme-panel-rgb), 0.52);
+  background: rgba(var(--theme-panel-rgb), 0.52);
   color: var(--text-strong);
-  box-shadow: 0 8px 16px rgba(var(--theme-text-rgb), 0.06);
+  box-shadow: none;
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-wall-cell.tone-1 {
@@ -1068,7 +1034,7 @@
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-wall-cell.active {
   border-color: rgba(var(--theme-gold-rgb), 0.46);
   background-color: rgba(var(--theme-gold-rgb), 0.14);
-  box-shadow: 0 10px 22px rgba(var(--theme-text-rgb), 0.08);
+  box-shadow: 0 4px 12px rgba(var(--theme-text-rgb), 0.06);
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-wall-cell .item-art {
@@ -1087,12 +1053,8 @@
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-hover-preview {
   border-color: rgba(var(--theme-border-rgb), 0.2);
-  background:
-    var(--index-grid-x),
-    var(--index-grid-y),
-    rgba(var(--theme-panel-rgb), 0.98);
-  background-size: 34px 34px, 34px 34px, auto;
-  box-shadow: 0 16px 34px rgba(var(--theme-text-rgb), 0.12);
+  background: rgba(var(--theme-panel-rgb), 0.98);
+  box-shadow: 0 6px 14px rgba(var(--theme-text-rgb), 0.08);
   color: rgba(var(--theme-text-rgb), 0.84);
 }
 
