@@ -5,3 +5,7 @@
 当前仓库存在大量历史计划仍在 `project-plan/` 根目录和 `project-plan/plan-/` 下。`project-plan/plan-/**` 是历史 legacy cluster，禁止批量移动；任何整理都必须先做引用审计并由单独计划批准。
 
 新增项目级计划应直接放入本目录。任务级可执行计划应放 `docs/plans/`，临时过程上下文应放 `task/`。
+
+## Active TODOs
+
+- `homepage-aggregation-todo-2026-05-20.md`：记录首页改造后续的聚合接口、最近更新、热门/浏览量和阶段筛选数据缺口。
