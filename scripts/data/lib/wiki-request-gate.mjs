@@ -67,13 +67,14 @@ export function createWikiRequestGate({
   }
 
   function clearCooldown() {
+    const previousState = state;
     state = {
       ...state,
       consecutiveThrottleFailures: 0,
       cooldownUntil: null,
       lastError: null
     };
-    saveGateState(gateStatePath, state);
+    state = saveGateState(gateStatePath, state, previousState);
   }
 
   async function performRequest(input, {
@@ -191,14 +192,16 @@ export function createWikiRequestGate({
     if (waitMs > 0) {
       await sleepFn(waitMs);
     }
+    const previousState = state;
     state = {
       ...state,
       lastRequestAt: new Date(Number.isFinite(now) ? now : Date.now()).toISOString()
     };
-    saveGateState(gateStatePath, state);
+    state = saveGateState(gateStatePath, state, previousState);
   }
 
   function noteSuccess() {
+    const previousState = state;
     state = {
       ...state,
       consecutiveThrottleFailures: 0,
@@ -206,10 +209,11 @@ export function createWikiRequestGate({
       lastError: null,
       successCount: Number(state.successCount ?? 0) + 1
     };
-    saveGateState(gateStatePath, state);
+    state = saveGateState(gateStatePath, state, previousState);
   }
 
   function noteFailure(error, profile) {
+    const previousState = state;
     const retryable = isRetryableError(error);
     const nextFailureCount = retryable
       ? Number(state.consecutiveThrottleFailures ?? 0) + 1
@@ -224,7 +228,7 @@ export function createWikiRequestGate({
       failureCount: Number(state.failureCount ?? 0) + 1,
       throttleFailureCount: retryable ? Number(state.throttleFailureCount ?? 0) + 1 : Number(state.throttleFailureCount ?? 0)
     };
-    saveGateState(gateStatePath, state);
+    state = saveGateState(gateStatePath, state, previousState);
   }
 
   return {
@@ -578,13 +582,88 @@ function buildInitialState(hostKey) {
   };
 }
 
-function saveGateState(filePath, state) {
-  const nextState = {
-    ...state,
-    updatedAt: new Date().toISOString()
-  };
+function saveGateState(filePath, state, previousLocalState = null) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, `${JSON.stringify(nextState, null, 2)}\n`);
+  return withGateStateLock(filePath, () => {
+    const previousState = loadGateState(filePath, state.hostKey ?? 'terraria.wiki.gg');
+    const nextState = {
+      ...mergeGateState(previousState, state, previousLocalState),
+      updatedAt: new Date().toISOString()
+    };
+    writeGateStateAtomically(filePath, nextState);
+    return nextState;
+  });
+}
+
+function writeGateStateAtomically(filePath, state) {
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
+  try {
+    fs.writeFileSync(tempPath, `${JSON.stringify(state, null, 2)}\n`);
+    fs.renameSync(tempPath, filePath);
+  } catch (error) {
+    fs.rmSync(tempPath, { force: true });
+    throw error;
+  }
+}
+
+function withGateStateLock(filePath, work) {
+  const lockPath = `${filePath}.lock`;
+  const startedAt = Date.now();
+  while (true) {
+    try {
+      fs.mkdirSync(lockPath);
+      break;
+    } catch (error) {
+      if (error?.code !== 'EEXIST') {
+        throw error;
+      }
+      if (Date.now() - startedAt > 30_000) {
+        throw new Error(`Timed out waiting for wiki request gate state lock: ${lockPath}`);
+      }
+      sleepSync(10);
+    }
+  }
+
+  try {
+    return work();
+  } finally {
+    fs.rmSync(lockPath, { recursive: true, force: true });
+  }
+}
+
+function mergeGateState(previousState, nextState, previousLocalState = null) {
+  const localBase = previousLocalState ?? buildInitialState(nextState.hostKey ?? previousState.hostKey);
+  return {
+    ...previousState,
+    ...nextState,
+    failureCount: addCounterDelta(previousState, localBase, nextState, 'failureCount'),
+    successCount: addCounterDelta(previousState, localBase, nextState, 'successCount'),
+    throttleFailureCount: addCounterDelta(previousState, localBase, nextState, 'throttleFailureCount'),
+    lastRequestAt: latestTimestamp(previousState.lastRequestAt, nextState.lastRequestAt)
+  };
+}
+
+function addCounterDelta(previousState, localBase, nextState, fieldName) {
+  const persistedValue = Number(previousState[fieldName] ?? 0);
+  const localBeforeValue = Number(localBase[fieldName] ?? 0);
+  const localAfterValue = Number(nextState[fieldName] ?? 0);
+  return persistedValue + Math.max(0, localAfterValue - localBeforeValue);
+}
+
+function latestTimestamp(previousValue, nextValue) {
+  const previousTime = Date.parse(previousValue ?? 0);
+  const nextTime = Date.parse(nextValue ?? 0);
+  if (!Number.isFinite(previousTime)) {
+    return nextValue ?? null;
+  }
+  if (!Number.isFinite(nextTime)) {
+    return previousValue ?? null;
+  }
+  return nextTime >= previousTime ? nextValue : previousValue;
+}
+
+function sleepSync(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
 function sleep(ms) {
