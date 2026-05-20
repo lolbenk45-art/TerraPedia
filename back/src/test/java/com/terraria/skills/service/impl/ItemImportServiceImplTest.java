@@ -9,15 +9,17 @@ import com.terraria.skills.mapper.CategoryMapper;
 import com.terraria.skills.mapper.ItemMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.never;
@@ -32,12 +34,25 @@ class ItemImportServiceImplTest {
     @Mock
     private CategoryMapper categoryMapper;
 
-    @InjectMocks
-    private ItemImportServiceImpl itemImportService;
+    @Mock
+    private TransactionTemplate transactionTemplate;
+
+    private TestableItemImportServiceImpl itemImportService() {
+        lenientTransactionTemplate();
+        return new TestableItemImportServiceImpl(itemMapper, categoryMapper, transactionTemplate);
+    }
+
+    private void lenientTransactionTemplate() {
+        lenient().when(transactionTemplate.execute(any())).thenAnswer(invocation -> invocation.getArgument(0, org.springframework.transaction.support.TransactionCallback.class).doInTransaction(null));
+        lenient().doAnswer(invocation -> {
+            invocation.getArgument(0, java.util.function.Consumer.class).accept(null);
+            return null;
+        }).when(transactionTemplate).executeWithoutResult(any());
+    }
 
     @Test
     void importItemsReturnsStructuredErrorForNullRequest() {
-        var result = itemImportService.importItems(null);
+        var result = itemImportService().importItems(null);
 
         assertEquals(1, result.getErrors().size());
         assertEquals("No request provided", result.getErrors().get(0));
@@ -55,11 +70,11 @@ class ItemImportServiceImplTest {
         ItemImportRequestDTO request = new ItemImportRequestDTO();
         request.setItems(List.of(item("Iron Pickaxe", "IronPickaxe", "PICKAXE")));
 
-        itemImportService.importItems(request);
+        TestableItemImportServiceImpl service = itemImportService();
+        service.importItems(request);
 
-        ArgumentCaptor<Item> captor = ArgumentCaptor.forClass(Item.class);
-        verify(itemMapper).insert(captor.capture());
-        assertEquals(10L, captor.getValue().getCategoryId());
+        verify(itemMapper, never()).insert(any(Item.class));
+        assertEquals(10L, service.savedItems().get(0).getCategoryId());
     }
 
     @Test
@@ -73,11 +88,11 @@ class ItemImportServiceImplTest {
         ItemImportRequestDTO request = new ItemImportRequestDTO();
         request.setItems(List.of(item("Cobalt Drill", "CobaltDrill", "PICKAXE")));
 
-        itemImportService.importItems(request);
+        TestableItemImportServiceImpl service = itemImportService();
+        service.importItems(request);
 
-        ArgumentCaptor<Item> captor = ArgumentCaptor.forClass(Item.class);
-        verify(itemMapper).insert(captor.capture());
-        assertEquals(11L, captor.getValue().getCategoryId());
+        verify(itemMapper, never()).insert(any(Item.class));
+        assertEquals(11L, service.savedItems().get(0).getCategoryId());
     }
 
     @Test
@@ -91,11 +106,11 @@ class ItemImportServiceImplTest {
         ItemImportRequestDTO request = new ItemImportRequestDTO();
         request.setItems(List.of(item("Drax", "Drax", "PICKAXE", "斧钻")));
 
-        itemImportService.importItems(request);
+        TestableItemImportServiceImpl service = itemImportService();
+        service.importItems(request);
 
-        ArgumentCaptor<Item> captor = ArgumentCaptor.forClass(Item.class);
-        verify(itemMapper).insert(captor.capture());
-        assertEquals(10L, captor.getValue().getCategoryId());
+        verify(itemMapper, never()).insert(any(Item.class));
+        assertEquals(10L, service.savedItems().get(0).getCategoryId());
     }
 
     @Test
@@ -112,11 +127,11 @@ class ItemImportServiceImplTest {
             item("Cobalt Chainsaw", "CobaltChainsaw", "AXE")
         ));
 
-        itemImportService.importItems(request);
+        TestableItemImportServiceImpl service = itemImportService();
+        service.importItems(request);
 
-        ArgumentCaptor<Item> captor = ArgumentCaptor.forClass(Item.class);
-        verify(itemMapper, org.mockito.Mockito.times(2)).insert(captor.capture());
-        assertEquals(List.of(12L, 13L), captor.getAllValues().stream().map(Item::getCategoryId).toList());
+        verify(itemMapper, never()).insert(any(Item.class));
+        assertEquals(List.of(12L, 13L), service.savedItems().stream().map(Item::getCategoryId).toList());
     }
 
     @Test
@@ -129,7 +144,7 @@ class ItemImportServiceImplTest {
         ItemImportRequestDTO request = new ItemImportRequestDTO();
         request.setItems(List.of(item("   ", null, "PICKAXE")));
 
-        var result = itemImportService.importItems(request);
+        var result = itemImportService().importItems(request);
 
         assertEquals(1, result.getErrors().size());
         verifyNoInteractions(itemMapper);
@@ -153,7 +168,8 @@ class ItemImportServiceImplTest {
             item("Broken", "Broken", "UNKNOWN_CATEGORY")
         ));
 
-        var result = itemImportService.importItems(request, true);
+        TestableItemImportServiceImpl service = itemImportService();
+        var result = service.importItems(request, true);
 
         assertEquals(3, result.getTotal());
         assertEquals(1, result.getCreated());
@@ -167,6 +183,103 @@ class ItemImportServiceImplTest {
         assertEquals("categoryCode not found: UNKNOWN_CATEGORY", result.getToBeSkipped().get(0).getReason());
         verify(itemMapper, never()).insert(any(Item.class));
         verify(itemMapper, never()).updateById(any(Item.class));
+        assertEquals(0, service.savedItems().size());
+    }
+
+    @Test
+    void importItemsBatchesCreatedItemsInChunksOf500() {
+        Category material = category(20L, "MATERIAL");
+        when(categoryMapper.selectList(any(Wrapper.class))).thenReturn(List.of(material));
+        when(itemMapper.selectOne(any(Wrapper.class))).thenReturn(null);
+
+        List<NormalizedItemImportDTO> items = new ArrayList<>();
+        for (int index = 0; index < 501; index++) {
+            items.add(item("Material " + index, "Material" + index, "MATERIAL"));
+        }
+        ItemImportRequestDTO request = new ItemImportRequestDTO();
+        request.setItems(items);
+
+        TestableItemImportServiceImpl service = itemImportService();
+
+        var result = service.importItems(request);
+
+        assertEquals(501, result.getCreated());
+        verify(itemMapper, never()).insert(any(Item.class));
+        assertEquals(2, service.savedBatches.size());
+        assertEquals(500, service.savedBatches.get(0).size());
+        assertEquals(1, service.savedBatches.get(1).size());
+        verify(transactionTemplate, times(2)).executeWithoutResult(any());
+    }
+
+    @Test
+    void importItemsTreatsDuplicatePendingCreatesLikeExistingRows() {
+        Category material = category(20L, "MATERIAL");
+        when(categoryMapper.selectList(any(Wrapper.class))).thenReturn(List.of(material));
+        when(itemMapper.selectOne(any(Wrapper.class))).thenReturn(null);
+
+        ItemImportRequestDTO request = new ItemImportRequestDTO();
+        request.setOverwriteExisting(false);
+        request.setItems(List.of(
+            item("First Material", "SharedMaterial", "MATERIAL"),
+            item("Duplicate Material", "SharedMaterial", "MATERIAL")
+        ));
+
+        TestableItemImportServiceImpl service = itemImportService();
+        var result = service.importItems(request);
+
+        assertEquals(1, result.getCreated());
+        assertEquals(1, result.getSkipped());
+        assertEquals(1, service.savedItems().size());
+        assertEquals("First Material", service.savedItems().get(0).getName());
+    }
+
+    @Test
+    void importItemsUpdatesDuplicatePendingCreatesWithoutExtraDatabaseUpdate() {
+        Category material = category(20L, "MATERIAL");
+        when(categoryMapper.selectList(any(Wrapper.class))).thenReturn(List.of(material));
+        when(itemMapper.selectOne(any(Wrapper.class))).thenReturn(null);
+
+        NormalizedItemImportDTO first = item("First Material", "SharedMaterial", "MATERIAL");
+        NormalizedItemImportDTO duplicate = item("Duplicate Material", "SharedMaterial", "MATERIAL");
+        duplicate.setDescription("updated while pending");
+        ItemImportRequestDTO request = new ItemImportRequestDTO();
+        request.setItems(List.of(first, duplicate));
+
+        TestableItemImportServiceImpl service = itemImportService();
+        var result = service.importItems(request);
+
+        assertEquals(1, result.getCreated());
+        assertEquals(1, result.getUpdated());
+        assertEquals(0, result.getSkipped());
+        assertEquals(1, service.savedItems().size());
+        assertEquals("Duplicate Material", service.savedItems().get(0).getName());
+        assertEquals("updated while pending", service.savedItems().get(0).getDescription());
+        verify(itemMapper, never()).updateById(any(Item.class));
+    }
+
+    private static class TestableItemImportServiceImpl extends ItemImportServiceImpl {
+
+        private final List<List<Item>> savedBatches = new ArrayList<>();
+
+        TestableItemImportServiceImpl(
+            ItemMapper itemMapper,
+            CategoryMapper categoryMapper,
+            TransactionTemplate transactionTemplate
+        ) {
+            super(itemMapper, categoryMapper, transactionTemplate);
+        }
+
+        @Override
+        boolean saveCreatedItemsBatch(List<Item> items, int batchSize) {
+            savedBatches.add(new ArrayList<>(items));
+            return true;
+        }
+
+        private List<Item> savedItems() {
+            return savedBatches.stream()
+                .flatMap(List::stream)
+                .toList();
+        }
     }
 
     private static Category category(Long id, String code) {
