@@ -1409,6 +1409,215 @@ img[data-preview-fallback] {
     #0b120c;
   background-size: auto, 40px 40px, 40px 40px, auto;
 }
+.home-main {
+  min-height: calc(100dvh - 70px);
+  padding: 28px 42px 56px;
+}
+.home-tool-hero {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  min-height: 260px;
+  max-width: 960px;
+  margin: 0 auto;
+  text-align: center;
+}
+.home-tool-copy {
+  display: grid;
+  gap: 8px;
+}
+.home-tool-copy h1 {
+  margin: 0;
+  color: var(--paper);
+  font-family: var(--font-display);
+  font-size: 36px;
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+.home-tool-copy p {
+  margin: 0;
+  color: rgba(244, 234, 208, 0.68);
+  font-size: 15px;
+}
+.home-tool-search {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  width: min(640px, 100%);
+  min-height: 56px;
+  margin-top: 24px;
+  border: 1px solid rgba(244, 234, 208, 0.14);
+  border-radius: 12px;
+  background: rgba(244, 234, 208, 0.035);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  padding: 6px 8px 6px 16px;
+}
+.home-tool-search:focus-within {
+  border-color: rgba(240, 207, 116, 0.46);
+  background: rgba(244, 234, 208, 0.05);
+  box-shadow:
+    0 0 0 3px rgba(240, 207, 116, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.home-tool-search input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--paper);
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+}
+.home-tool-search input::placeholder {
+  color: rgba(244, 234, 208, 0.48);
+}
+.home-tool-search kbd {
+  border: 1px solid rgba(244, 234, 208, 0.14);
+  border-radius: 6px;
+  color: rgba(244, 234, 208, 0.52);
+  padding: 4px 7px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.home-search-submit {
+  min-height: 42px;
+  border: 1px solid rgba(214, 177, 90, 0.28);
+  border-radius: 8px;
+  background: rgba(214, 177, 90, 0.1);
+  color: #ffd765;
+  cursor: pointer;
+  padding: 0 14px;
+  font-weight: 900;
+}
+.home-suggestion-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  width: min(920px, 100%);
+  margin-top: 14px;
+}
+.home-suggestion-row {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 44px;
+  border: 1px solid rgba(244, 234, 208, 0.08);
+  border-radius: 8px;
+  background: rgba(244, 234, 208, 0.025);
+  color: inherit;
+  padding: 8px;
+  text-align: left;
+  text-decoration: none;
+}
+.home-suggestion-row .item-art {
+  grid-row: span 2;
+  width: 26px;
+  height: 26px;
+}
+.home-suggestion-row b {
+  overflow: hidden;
+  color: var(--paper);
+  font-size: 12px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-suggestion-row em {
+  overflow: hidden;
+  color: rgba(244, 234, 208, 0.46);
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-quick-entry {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 14px;
+  max-width: 1120px;
+  margin: 8px auto 0;
+}
+.home-quick-entry a {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 8px 10px;
+  align-items: center;
+  min-height: 72px;
+  border-radius: 8px;
+  color: inherit;
+  padding: 10px;
+  text-decoration: none;
+  transition: background 160ms ease, transform 160ms ease;
+}
+.home-quick-entry a:hover {
+  background: rgba(244, 234, 208, 0.045);
+  transform: translateY(-1px);
+}
+.home-quick-entry .sprite-icon {
+  grid-row: span 2;
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+}
+.home-quick-entry b {
+  color: var(--paper);
+  font-size: 16px;
+  line-height: 1.1;
+}
+.home-quick-entry em {
+  color: rgba(244, 234, 208, 0.5);
+  font-size: 12px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.home-tool-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  max-width: 1120px;
+  margin: 34px auto 0;
+}
+.home-tool-columns article {
+  border-top: 1px solid rgba(244, 234, 208, 0.12);
+  padding-top: 14px;
+}
+.home-tool-columns h2 {
+  margin: 0 0 10px;
+  color: var(--paper);
+  font-size: 18px;
+}
+.home-tool-columns a {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: baseline;
+  min-height: 34px;
+  border-bottom: 1px solid rgba(244, 234, 208, 0.06);
+  color: inherit;
+  text-decoration: none;
+}
+.home-tool-columns a:hover b {
+  color: #ffd765;
+}
+.home-tool-columns b {
+  overflow: hidden;
+  color: rgba(244, 234, 208, 0.82);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-tool-columns span {
+  color: rgba(244, 234, 208, 0.46);
+  font-size: 12px;
+  white-space: nowrap;
+}
 .hero {
   position: relative;
   overflow: hidden;
@@ -4256,6 +4465,22 @@ img[data-preview-fallback] {
   .search-bar { grid-template-columns: 1fr; }
   .quick-entry-primary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .item-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .home-main {
+    padding: 22px 18px 42px;
+  }
+  .home-tool-hero {
+    min-height: 250px;
+  }
+  .home-suggestion-list {
+    grid-template-columns: 1fr;
+  }
+  .home-quick-entry {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .home-tool-columns {
+    grid-template-columns: 1fr;
+    margin-top: 26px;
+  }
 }
 
 .entity-screen {
@@ -6151,6 +6376,47 @@ img[data-preview-fallback] {
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-screen {
   background: var(--theme-screen-bg);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-tool-copy h1 {
+  color: var(--text-strong);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-tool-copy p,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-tool-search input::placeholder,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-tool-search kbd,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-suggestion-row em,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-quick-entry em,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-tool-columns span {
+  color: var(--text-muted);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-tool-search,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-suggestion-row {
+  border-color: rgba(var(--theme-border-rgb), 0.12);
+  background: rgba(var(--theme-panel-rgb), 0.5);
+  color: var(--text-main);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-tool-search:focus-within {
+  border-color: rgba(var(--theme-gold-rgb), 0.42);
+  background: rgba(var(--theme-panel-rgb), 0.68);
+  box-shadow: 0 0 0 3px rgba(var(--theme-gold-rgb), 0.12);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-tool-search input,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-suggestion-row b,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-quick-entry b,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-tool-columns h2,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-tool-columns b {
+  color: var(--text-strong);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-search-submit,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-quick-entry a:hover {
+  border-color: rgba(var(--theme-gold-rgb), 0.24);
+  background: rgba(var(--theme-gold-rgb), 0.12);
+  color: var(--text-accent);
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .site-nav {

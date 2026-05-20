@@ -154,6 +154,12 @@ const auditExpression = `(() => {
     '.hero',
     '.hero-grid',
     '.search-bar',
+    '.home-tool-hero',
+    '.home-tool-search',
+    '.home-suggestion-list',
+    '.home-suggestion-row',
+    '.home-quick-entry',
+    '.home-tool-columns',
     '.quick-entry',
     '.quick-entry-primary',
     '.quick-entry-secondary',
@@ -195,7 +201,7 @@ const auditExpression = `(() => {
     }
   }
 
-  for (const selector of ['.quick-entry-primary', '.quick-entry-secondary', '.search-bar', '.catalog-search-form', '.catalog-wall-shell']) {
+  for (const selector of ['.home-tool-search', '.home-suggestion-list', '.home-quick-entry', '.home-tool-columns', '.quick-entry-primary', '.quick-entry-secondary', '.search-bar', '.catalog-search-form', '.catalog-wall-shell']) {
     for (const element of document.querySelectorAll(selector)) {
       if (!visible(element)) continue;
       if (element.scrollWidth > element.clientWidth + 2) {
@@ -216,6 +222,15 @@ const auditExpression = `(() => {
 	    overflowing,
 	    clipped,
 	    navActionCount: document.querySelectorAll('.site-actions :where(a, button)').length,
+	    homeSearchInputCount: document.querySelectorAll('#home-hero-search').length,
+	    homeQuickEntryCount: document.querySelectorAll('.home-quick-entry a').length,
+	    homeColumnCount: document.querySelectorAll('.home-tool-columns article').length,
+	    homeSuggestionCount: document.querySelectorAll('.home-suggestion-row[href^="/items/"]').length,
+	    homeToolHeroBottom: Math.round(document.querySelector('.home-tool-hero')?.getBoundingClientRect().bottom ?? 0),
+	    homeQuickEntryBottom: Math.round(document.querySelector('.home-quick-entry')?.getBoundingClientRect().bottom ?? 0),
+	    homeToolColumnsTop: Math.round(document.querySelector('.home-tool-columns')?.getBoundingClientRect().top ?? 0),
+	    homeToolColumnsLayout: getComputedStyle(document.querySelector('.home-tool-columns') ?? document.body).gridTemplateColumns,
+	    activeElementId: document.activeElement?.id ?? '',
 	    itemCellCount: document.querySelectorAll('.item-cell').length,
 	    catalogWallCellCount: document.querySelectorAll('.catalog-wall-cell').length,
 	    catalogSearchInputCount: document.querySelectorAll('.catalog-search-input').length,
@@ -600,6 +615,25 @@ try {
 
     if (value.h1Count !== 1) {
       failures.push(`${route}: expected exactly one h1, got ${value.h1Count}`)
+    }
+
+    if (route === '/') {
+      if (value.homeSearchInputCount !== 1) {
+        failures.push('/: phase 3 home page must render one real search input')
+      }
+
+      if (value.homeQuickEntryCount !== 6) {
+        failures.push(`/: phase 3 home page must render 6 quick entries, got ${value.homeQuickEntryCount}`)
+      }
+
+      if (value.homeColumnCount !== 3) {
+        failures.push(`/: phase 3 home page must render 3 tool columns, got ${value.homeColumnCount}`)
+      }
+
+      const homeColumnTrackCount = String(value.homeToolColumnsLayout).split(' ').filter(Boolean).length
+      if (homeColumnTrackCount !== 1) {
+        failures.push(`/: mobile home columns must collapse to one column, got ${value.homeToolColumnsLayout}`)
+      }
     }
 
     if (value.brokenImageCount > 0) {
@@ -1234,6 +1268,85 @@ try {
 
   if (tabletHomeValue.overflowing.length > 0) {
     failures.push(`/: tablet homepage visible elements overflow viewport: ${JSON.stringify(tabletHomeValue.overflowing.slice(0, 5))}`)
+  }
+
+  if (tabletHomeValue.homeSearchInputCount !== 1 || tabletHomeValue.homeQuickEntryCount !== 6 || tabletHomeValue.homeColumnCount !== 3) {
+    failures.push(`/: tablet homepage must keep phase 3 search, 6 entries, and 3 columns: ${JSON.stringify({
+      search: tabletHomeValue.homeSearchInputCount,
+      entries: tabletHomeValue.homeQuickEntryCount,
+      columns: tabletHomeValue.homeColumnCount,
+    })}`)
+  }
+
+  if (tabletHomeValue.homeToolHeroBottom > 460 || tabletHomeValue.homeQuickEntryBottom > 560 || tabletHomeValue.homeToolColumnsTop > 760) {
+    failures.push(`/: tablet homepage first screen must expose compact search hero, quick entries, and column peek: ${JSON.stringify({
+      heroBottom: tabletHomeValue.homeToolHeroBottom,
+      quickEntryBottom: tabletHomeValue.homeQuickEntryBottom,
+      columnsTop: tabletHomeValue.homeToolColumnsTop,
+    })}`)
+  }
+
+  await browser.send('Input.dispatchKeyEvent', {
+    type: 'keyDown',
+    key: 'k',
+    code: 'KeyK',
+    windowsVirtualKeyCode: 75,
+    modifiers: 2,
+  })
+  await browser.send('Input.dispatchKeyEvent', {
+    type: 'keyUp',
+    key: 'k',
+    code: 'KeyK',
+    windowsVirtualKeyCode: 75,
+    modifiers: 2,
+  })
+  await sleep(120)
+  const homeShortcut = await browser.send('Runtime.evaluate', {
+    expression: `document.activeElement?.id ?? ''`,
+    returnByValue: true,
+  })
+  if (homeShortcut.result.value !== 'home-hero-search') {
+    failures.push(`/: Ctrl+K must focus the home search input, got ${JSON.stringify(homeShortcut.result.value)}`)
+  }
+
+  await browser.send('Runtime.evaluate', {
+    expression: `document.querySelector('#home-hero-search').value = '泰拉'; document.querySelector('#home-hero-search').dispatchEvent(new Event('input', { bubbles: true }));`,
+  })
+  await sleep(350)
+  const homeSuggestions = await browser.send('Runtime.evaluate', {
+    expression: `({
+      count: document.querySelectorAll('.home-suggestion-row[href^="/items/"]').length,
+      firstHref: document.querySelector('.home-suggestion-row[href^="/items/"]')?.getAttribute('href') ?? '',
+    })`,
+    returnByValue: true,
+  })
+  if (homeSuggestions.result.value.count < 5 || !homeSuggestions.result.value.firstHref.startsWith('/items/')) {
+    failures.push(`/: typing 泰拉 must reveal 5 item suggestions with item links, got ${JSON.stringify(homeSuggestions.result.value)}`)
+  }
+
+  await browser.send('Page.navigate', { url: `${baseUrl}/items` })
+  await sleep(650)
+  await browser.send('Input.dispatchKeyEvent', {
+    type: 'keyDown',
+    key: 'k',
+    code: 'KeyK',
+    windowsVirtualKeyCode: 75,
+    modifiers: 2,
+  })
+  await browser.send('Input.dispatchKeyEvent', {
+    type: 'keyUp',
+    key: 'k',
+    code: 'KeyK',
+    windowsVirtualKeyCode: 75,
+    modifiers: 2,
+  })
+  await sleep(650)
+  const globalShortcut = await browser.send('Runtime.evaluate', {
+    expression: `({ path: location.pathname, activeElementId: document.activeElement?.id ?? '' })`,
+    returnByValue: true,
+  })
+  if (globalShortcut.result.value.path !== '/search' || globalShortcut.result.value.activeElementId !== 'global-search-input') {
+    failures.push(`/items: Ctrl+K must navigate to /search and focus global-search-input, got ${JSON.stringify(globalShortcut.result.value)}`)
   }
 
   for (const viewport of [

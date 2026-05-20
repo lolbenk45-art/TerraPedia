@@ -3,6 +3,7 @@ import type {
   Pagination,
   PublicItemListItem,
   PublicItemQuery,
+  PublicItemSuggestion,
   PublicItemsResult,
 } from '~/types/public-api'
 
@@ -138,6 +139,50 @@ export const fallbackCatalogItems: CatalogItem[] = Array.from({ length: 240 }, (
   }, index)
 })
 
+export type ItemSuggestion = {
+  id: string
+  href: string
+  title: string
+  meta: string
+  image: string
+  fallback: string
+}
+
+const normalizeSuggestion = (raw: PublicItemSuggestion, index = 0): ItemSuggestion => {
+  const id = normalizeText(raw.id) || `${normalizeText(raw.nameZh) || normalizeText(raw.name) || 'suggestion'}-${index + 1}`
+  const title = normalizeText(raw.nameZh) || normalizeText(raw.name) || normalizeText(raw.internalName) || `物品 ${index + 1}`
+  const category = normalizeText(raw.categoryName) || '物品'
+  const rarity = normalizeText(raw.rarity)
+  const sourceImage = normalizeText(raw.previewImage)
+    || normalizeText(raw.imageUrl)
+    || normalizeText(raw.image)
+
+  return {
+    id,
+    href: raw.id ? `/items/${raw.id}` : '/items',
+    title,
+    meta: [category, rarity].filter(Boolean).join(' · ') || category,
+    image: resolvePreviewImageUrl(sourceImage),
+    fallback: firstGlyph(title),
+  }
+}
+
+const fallbackItemSuggestions = (keyword: string, limit: number): ItemSuggestion[] => {
+  const normalizedKeyword = normalizeSearchText(keyword)
+  const matchedItems = normalizedKeyword
+    ? fallbackCatalogItems.filter((item) => item.searchText.includes(normalizedKeyword))
+    : fallbackCatalogItems
+
+  return matchedItems.slice(0, limit).map((item, index) => ({
+    id: item.id || String(index + 1),
+    href: item.detailPath,
+    title: item.displayName,
+    meta: [item.categoryGroup || item.category, item.phase].filter(Boolean).join(' · '),
+    image: item.image,
+    fallback: item.fallback,
+  }))
+}
+
 const resolveRequestedPage = (query: PublicItemQuery = {}) => {
   const requestedPage = Number(query.page ?? 1)
   return Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1
@@ -228,6 +273,54 @@ export const fetchPublicItems = async (query: PublicItemQuery = {}): Promise<Pub
   }
 
   return fallbackPublicItemsResult(query)
+}
+
+export const fetchPublicItemSuggestions = async (keyword: string, limit = 5): Promise<ItemSuggestion[]> => {
+  const trimmedKeyword = normalizeText(keyword)
+  const safeLimit = Number.isFinite(Number(limit)) && Number(limit) > 0 ? Math.floor(Number(limit)) : 5
+
+  if (!trimmedKeyword) {
+    return fallbackItemSuggestions('', safeLimit)
+  }
+
+  try {
+    const response = await usePublicApiFetch<PublicItemSuggestion[]>('/public/items/suggestions', {
+      query: {
+        keyword: trimmedKeyword,
+        limit: safeLimit,
+      },
+    })
+
+    if (response.success === false) {
+      throw new Error(response.message || response.error || 'Public item suggestions API returned an unsuccessful response')
+    }
+
+    const rawSuggestions = unwrapApiResponse(response)
+    if (Array.isArray(rawSuggestions) && rawSuggestions.length > 0) {
+      return rawSuggestions.map(normalizeSuggestion).slice(0, safeLimit)
+    }
+  } catch {}
+
+  try {
+    const publicItems = await fetchPublicItems({
+      search: trimmedKeyword,
+      page: 1,
+      limit: safeLimit,
+    })
+
+    if (publicItems.items.length > 0) {
+      return publicItems.items.slice(0, safeLimit).map((item) => ({
+        id: item.id,
+        href: item.detailPath,
+        title: item.displayName,
+        meta: [item.categoryGroup || item.category, item.phase].filter(Boolean).join(' · '),
+        image: item.image,
+        fallback: item.fallback,
+      }))
+    }
+  } catch {}
+
+  return fallbackItemSuggestions(trimmedKeyword, safeLimit)
 }
 
 export const usePublicItems = (query: PublicItemQuery | (() => PublicItemQuery) = {}) => {

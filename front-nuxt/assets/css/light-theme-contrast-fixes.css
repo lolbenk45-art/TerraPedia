@@ -29,7 +29,7 @@
   color: var(--text-strong);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) :where(.screen a:not(.primary-button):not(.secondary-button):not(.hero-j1-search-btn):not(.small-button):not(.icon-button):not(.entity-filter)) {
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) :where(.screen a:not(.primary-button):not(.secondary-button):not(.hero-j1-search-btn):not(.home-search-submit):not(.small-button):not(.icon-button):not(.entity-filter)) {
   color: var(--text-main);
 }
 
@@ -66,6 +66,10 @@
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .filter-option.active :where(span, b, em),
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .entity-filter.active :where(span, b, em) {
   color: var(--button-control-active-fg);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-tool-search {
+  color: var(--text-main);
 }
 
 [data-theme="light"],

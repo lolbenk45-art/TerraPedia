@@ -1,6 +1,8 @@
 <script setup lang="ts">
 const themeStore = useThemeStore()
 
+useGlobalSearchShortcut()
+
 watch(
   () => themeStore.isSwitching,
   (isSwitching) => {

@@ -433,11 +433,7 @@ const scanFiles = [
   'components/TerraNav.vue',
   'components/TerraFooter.vue',
   'components/TerraBreadcrumb.vue',
-  'components/home/HomeHero.vue',
-  'components/home/HomeExplorationMap.vue',
-  'components/home/HomeFeaturedRoute.vue',
-  'components/home/HomeBossProgression.vue',
-  'components/home/HomeCodexBand.vue',
+  'composables/useGlobalSearchShortcut.ts',
   'composables/useHomeData.ts',
   'composables/usePublicItems.ts',
   'stores/theme.ts',
@@ -453,14 +449,13 @@ const homeHeroOptionsCss = readFileSync(file('assets/css/home-hero-options.css')
 const lightThemeSelector = ':where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"])'
 const homeTemplateFiles = [
   'pages/index.vue',
-  'components/home/HomeHero.vue',
-  'components/home/HomeExplorationMap.vue',
-  'components/home/HomeFeaturedRoute.vue',
-  'components/home/HomeBossProgression.vue',
-  'components/home/HomeCodexBand.vue',
 ]
 const homeDataFiles = [
+  'app.vue',
+  'composables/useGlobalSearchShortcut.ts',
   'composables/useHomeData.ts',
+  'composables/usePublicItems.ts',
+  'types/public-api.ts',
 ]
 const homeTemplateContent = homeTemplateFiles.map((path) => readFileSync(file(path), 'utf8')).join('\n')
 const homeDataContent = homeDataFiles.map((path) => readFileSync(file(path), 'utf8')).join('\n')
@@ -472,7 +467,7 @@ const requiredLightVisualSelectors = [
   `${lightThemeSelector} .boss-node:hover`,
   `${lightThemeSelector} .buff-signal.active`,
   `${lightThemeSelector} .dark-card`,
-  `${lightThemeSelector} .hero-j1-icon`,
+  `${lightThemeSelector} .home-tool-search`,
   `${lightThemeSelector} .preview-panel`,
   `${lightThemeSelector} .stat-box`,
   `${lightThemeSelector} .preview-list-row`,
@@ -700,55 +695,14 @@ for (const path of scanFiles) {
   if (path === 'pages/index.vue') {
     for (const marker of [
       'await useHomeData()',
-      '<HomeHero v-bind="hero"',
-      '<HomeExplorationMap :nodes="explorationNodes"',
-      '<HomeFeaturedRoute :route="featuredRoute"',
-      '<HomeBossProgression :route="bossRoute"',
-      '<HomeCodexBand :codex="codex"',
+      'class="home-tool-hero"',
+      'class="home-tool-search"',
+      'class="home-quick-entry"',
+      'class="home-tool-columns"',
     ]) {
       if (!content.includes(marker)) {
-        violations.push(`${path}: split home page must render component/data marker ${marker}`)
+        violations.push(`${path}: phase 3 home page must render tool-portal marker ${marker}`)
       }
-    }
-
-    if (!homeDataContent.includes('icon:') || !homeTemplateContent.includes('sprite-icon') || !homeTemplateContent.includes(':class="entry.icon"')) {
-      violations.push(`${path}: home quick entries must render generated sprite icons from entry.icon`)
-    }
-
-    if (homeAuditContent.includes('hero-brand-lockup') || homeAuditContent.includes('hero-brand-emblem')) {
-      violations.push(`${path}: home left index should use the top slot for useful entry/status content, not a repeated large logo`)
-    }
-
-    if (homeAuditContent.includes('index-entry-strip') || homeAuditContent.includes('分类入口') || homeAuditContent.includes('制作路线')) {
-      violations.push(`${path}: home left index must not include the oversized top entry strip; keep the card compact`)
-    }
-
-    if (!homeTemplateContent.includes('hero-j1-panel') || !homeTemplateContent.includes('hero-j1-title')) {
-      violations.push(`${path}: home hero must use the selected J1 large-title panel`)
-    }
-
-    const heroPanelIndex = homeTemplateContent.indexOf('class="hero-j1-panel"')
-    const indexPanelIndex = homeTemplateContent.indexOf('class="hero-left"')
-    if (heroPanelIndex === -1 || indexPanelIndex === -1 || heroPanelIndex > indexPanelIndex) {
-      violations.push(`${path}: home hero must use the selected J1 left-right swapped layout with J1 before the index device`)
-    }
-
-    if (!homeTemplateContent.includes('hero-j1-grid') || !homeTemplateContent.includes('hero-j1-cell') || !homeDataContent.includes('primaryEntries')) {
-      violations.push(`${path}: home hero must render the selected J1 2 x 2 primary entry grid`)
-    }
-
-    if (!homeTemplateContent.includes('hero-j1-icon') || !homeTemplateContent.includes('hero-j1-cell-copy') || !homeTemplateContent.includes('hero-j1-count')) {
-      violations.push(`${path}: home J1 entries must include a large sprite icon, short description, and count`)
-    }
-
-    for (const route of ['/items', '/bosses', '/npcs', '/articles']) {
-      if (!homeAuditContent.includes(route)) {
-        violations.push(`${path}: home J1 primary grid must expose ${route}`)
-      }
-    }
-
-    if (!homeTemplateContent.includes('hero-j1-search') || !homeTemplateContent.includes('/search')) {
-      violations.push(`${path}: home J1 hero must include the full-width search entry`)
     }
 
     for (const marker of [
@@ -759,65 +713,64 @@ for (const path of scanFiles) {
       'type="search"',
       'role="search"',
       '@submit.prevent="submitHomeSearch"',
-      'navigateTo(`/search?keyword=${encodeURIComponent(keyword)}`)',
+      '`/search?keyword=${encodeURIComponent(keyword)}`',
+      'fetchPublicItemSuggestions',
+      'homeSearchSuggestions',
+      'event.metaKey || event.ctrlKey',
+      '⌘K / Ctrl K',
+      'useGlobalSearchShortcut',
+      'globalSearchInputSelector',
+      "await navigateTo('/search')",
+      "window.removeEventListener('keydown', focusSearchFromShortcut)",
     ]) {
       if (!homeAuditContent.includes(marker)) {
-        violations.push(`${path}: home page must replace static/fake hero data with live stats and a real search control via marker ${marker}`)
+        violations.push(`${path}: home page must expose live stats, real search, suggestions, and shortcut marker ${marker}`)
       }
     }
 
-    if (homeTemplateContent.includes('<div class="hero-j1-search">') || homeTemplateContent.includes('<strong>物品、Boss、NPC、路线...</strong>')) {
-      violations.push(`${path}: home hero search must not be a fake static search bar`)
+    if (homeTemplateContent.includes('<div class="hero-j1-search">') || homeTemplateContent.includes('<HomeHero') || homeTemplateContent.includes('home-lower')) {
+      violations.push(`${path}: phase 3 home page must not keep old J1/static narrative homepage blocks`)
     }
 
-    if (!homeDataContent.includes('secondaryLinks') || !homeTemplateContent.includes('hero-j1-paths') || !homeTemplateContent.includes('hero-j1-path-link')) {
-      violations.push(`${path}: home J1 hero must include lower-weight secondary shortcuts below search`)
+    if (!homeDataContent.includes('icon:') || !homeTemplateContent.includes('sprite-icon') || !homeTemplateContent.includes(':class="entry.icon"')) {
+      violations.push(`${path}: home quick entries must render generated sprite icons from entry.icon`)
     }
 
-    for (const route of ['/categories', '/crafting', '/biomes', '/buffs', '/armor-sets', '/projectiles']) {
+    for (const route of ['/items', '/bosses', '/npcs', '/buffs', '/crafting', '/articles']) {
       if (!homeAuditContent.includes(route)) {
-        violations.push(`${path}: home J1 secondary shortcuts must expose ${route}`)
+        violations.push(`${path}: phase 3 quick entry strip must expose ${route}`)
       }
     }
 
     for (const marker of [
-      'explorationNodes',
-      'v-for="node in nodes"',
-      'class="map-node-link"',
-      'featuredRoute',
-      ':href="route.href"',
-      '查看完整路线',
-      'codex:',
-      'v-for="action in codex.links"',
-      'class="index-focus-action"',
-      '/items/757',
-      'home-primary-stat',
+      'recentUpdates',
+      'hotSearches',
+      'starterGuides',
+      'v-for="row in recentUpdates"',
+      'v-for="row in hotSearches"',
+      'v-for="row in starterGuides"',
     ]) {
       if (!homeAuditContent.includes(marker)) {
-        violations.push(`${path}: home page must make showcase nodes, route cards, codex chips, and index focus intentionally navigable via marker ${marker}`)
+        violations.push(`${path}: phase 3 home page must expose three dense fallback columns via marker ${marker}`)
       }
     }
 
-    if (homeTemplateContent.includes('<em>详情</em>') || homeTemplateContent.includes('<div class="codex-actions">') && homeTemplateContent.includes('<span>攻略</span>')) {
-      violations.push(`${path}: home page must not render button-looking spans or em elements for navigable actions`)
+    const quickEntryLabels = ['物品', 'Boss', 'NPC', 'Buff', '配方', '文章']
+    for (const label of quickEntryLabels) {
+      if (!homeDataContent.includes(`label: '${label}'`)) {
+        violations.push(`${path}: phase 3 quick entry data must include ${label}`)
+      }
     }
 
-    if (homeTemplateContent.includes('<section class="index-plinth"')) {
-      violations.push(`${path}: home page must remove the repeated index-plinth statistics block and use the hero/index stats only once`)
+    const itemTotalUsages = homeTemplateContent.match(/itemTotalLabel/g)?.length ?? 0
+    if (itemTotalUsages > 2) {
+      violations.push(`${path}: home page must not repeat the live item total more than twice; found ${itemTotalUsages}`)
     }
 
     for (const forbiddenHeading of ['<h3>首页下半部分承接首屏', '<h4>将战斗、掉落和推进节奏摆在同一条线上', '<h4>文章区不是博客堆叠，而是专题导航']) {
       if (homeTemplateContent.includes(forbiddenHeading)) {
         violations.push(`${path}: home section headings must use a sequential h1 to h2 hierarchy instead of ${forbiddenHeading}`)
       }
-    }
-
-    if (homeTemplateContent.includes('class="boss-medallion">\n                  <span class="item-art"')) {
-      violations.push(`${path}: home Boss event strip must not reuse a generic item sprite as the primary medallion`)
-    }
-
-    if (homeAuditContent.includes('195bfda5955641b5bf340322fdd26eba.png')) {
-      violations.push(`${path}: home page must not use the Iron Pickaxe placeholder image in showcase sections`)
     }
 
     if (!content.includes('<TerraFooter :item-total-label="itemTotalLabel"')) {
