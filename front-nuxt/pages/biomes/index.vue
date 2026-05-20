@@ -6,9 +6,9 @@
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">/biomes · 生态 / 资源 / 事件</span>
-          <h1>生态索引</h1>
-          <p>生态页负责解释“去哪里找资源、会遇到什么、适合推进什么路线”，用地图分区感承接图鉴和攻略。</p>
+          <span class="eyebrow">生态 / 资源 / 事件</span>
+          <h1>生态</h1>
+          <p>看每个区域的资源、敌怪和适合的推进路线。</p>
         </div>
         <a class="primary-button" href="/biomes/jungle">查看丛林</a>
       </div>

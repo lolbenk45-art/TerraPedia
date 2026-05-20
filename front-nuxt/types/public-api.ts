@@ -70,6 +70,20 @@ export type PublicItemListItem = {
   tooltipZh?: string | null
 }
 
+export type PublicItemSuggestion = {
+  id?: number | string | null
+  name?: string | null
+  nameZh?: string | null
+  internalName?: string | null
+  image?: string | null
+  previewImage?: string | null
+  imageUrl?: string | null
+  categoryId?: number | string | null
+  categoryName?: string | null
+  rarityId?: number | string | null
+  rarity?: string | null
+}
+
 export type PublicItemDetail = PublicItemListItem & {
   gameModelId?: number | string | null
   isStackable?: boolean | number | string | null

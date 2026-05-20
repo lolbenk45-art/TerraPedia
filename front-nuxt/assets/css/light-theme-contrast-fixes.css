@@ -29,7 +29,7 @@
   color: var(--text-strong);
 }
 
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) :where(.screen a:not(.primary-button):not(.secondary-button):not(.hero-j1-search-btn):not(.small-button):not(.icon-button):not(.entity-filter)) {
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) :where(.screen a:not(.primary-button):not(.secondary-button):not(.hero-j1-search-btn):not(.home-search-submit):not(.small-button):not(.icon-button):not(.entity-filter)) {
   color: var(--text-main);
 }
 
@@ -49,7 +49,6 @@
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .small-button.active,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .theme-choice.active,
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .detail-tab.active,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .filter-option.active,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .entity-filter.active {
   color: var(--button-control-active-fg);
@@ -64,10 +63,13 @@
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .small-button.active :where(span, b, em),
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .theme-choice.active :where(span, b, em),
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .detail-tab.active :where(span, b, em),
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .filter-option.active :where(span, b, em),
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .screen .entity-filter.active :where(span, b, em) {
   color: var(--button-control-active-fg);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .home-tool-search {
+  color: var(--text-main);
 }
 
 [data-theme="light"],
@@ -86,19 +88,30 @@
 
 [data-theme="light"],
 [data-theme="morning-paper"] {
+  --text-accent: #5c4319;
   --text-link: #5c4319;
-  --text-positive: #244d1d;
+  --text-positive: var(--text-accent);
   --gold-2: #5c4319;
   --theme-link-rgb: 92, 67, 25;
-  --theme-positive-rgb: 36, 77, 29;
+  --theme-positive-rgb: var(--theme-gold-rgb);
 }
 
 [data-theme="warm-slate"] {
+  --text-accent: #5c4319;
   --text-link: #202836;
-  --text-positive: #274d20;
+  --text-positive: var(--text-accent);
   --gold-2: #202836;
   --theme-link-rgb: 32, 40, 54;
-  --theme-positive-rgb: 39, 77, 32;
+  --theme-positive-rgb: var(--theme-gold-rgb);
+}
+
+[data-theme="light"],
+[data-theme="morning-paper"],
+[data-theme="warm-slate"] {
+  --button-primary-bg: linear-gradient(180deg, #f0cf74, #d6b15a);
+  --button-primary-bg-hover: linear-gradient(180deg, #ffd765, #d6b15a);
+  --button-primary-fg: var(--text-strong);
+  --button-primary-border: rgba(var(--theme-gold-rgb), 0.3);
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"]) .home-screen {

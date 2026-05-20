@@ -6,9 +6,9 @@
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">388 个效果 · 增益与减益</span>
-          <h1>Buff 图鉴</h1>
-          <p>Buff 页面用玩家语言表达：这个效果做什么、通常从哪里获得、会影响哪些目标、有哪些免疫提示。后台维护字段不直接出现在公开页。</p>
+          <span class="eyebrow">388 效果 · 增益与减益</span>
+          <h1>Buff</h1>
+          <p>每个效果的作用、来源、影响目标和免疫提示，用玩家能直接看懂的方式呈现。</p>
         </div>
         <a class="primary-button" href="/items">查看药水</a>
       </div>

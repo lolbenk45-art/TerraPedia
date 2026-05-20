@@ -7,7 +7,7 @@
       <article class="article-detail-hero">
         <span class="eyebrow">路线攻略 · 12 分钟阅读</span>
         <h1>从机械 Boss 到月亮领主：近战装备推进路线</h1>
-        <p>文章详情不做普通博客排版，而是把阶段、物品、Boss、Buff 和套装入口固定在内容旁边，让攻略变成可执行路线。</p>
+        <p>沿阶段、物品、Boss、Buff 和套装入口推进，把攻略落到可执行路线。</p>
         <div class="article-meta">
           <span>近战路线</span><span>18 个图鉴链接</span><span>更新于 2026</span>
         </div>

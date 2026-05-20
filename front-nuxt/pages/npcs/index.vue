@@ -6,9 +6,9 @@
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">762 个角色与敌怪 · 公共资料索引</span>
-          <h1>NPC 图鉴</h1>
-          <p>把城镇角色、敌怪、Boss 部件和事件生物放到同一个可筛选图鉴里。重点不是翻页，而是快速判断角色类型、战斗属性和玩家可用信息。</p>
+          <span class="eyebrow">762 角色与敌怪 · 公共资料索引</span>
+          <h1>NPC</h1>
+          <p>城镇角色、敌怪、Boss 部件和事件生物可一起筛选，按类型、战斗属性和玩家可用信息快速定位。</p>
         </div>
         <a class="primary-button" href="/bosses">进入 Boss 路线</a>
       </div>
