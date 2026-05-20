@@ -88,16 +88,16 @@ const submitHomeSearch = () => {
           <p class="hero-j1-lede">
             {{ lede }}
           </p>
-        </div>
 
-        <div class="tag-row hero-trust-band hero-trust-band-mobile" aria-label="站点维护状态">
-          <span
-            v-for="signal in trustSignals"
-            :key="signal.label"
-            class="tag moss hero-trust-item"
-          >
-            {{ signal.label }}
-          </span>
+          <div class="hero-status-line" aria-label="站点维护状态">
+            <span
+              v-for="signal in trustSignals"
+              :key="signal.label"
+              class="hero-status-pill"
+            >
+              {{ signal.label }}
+            </span>
+          </div>
         </div>
 
         <nav class="hero-j1-grid" aria-label="核心资料入口">
@@ -200,15 +200,6 @@ const submitHomeSearch = () => {
       >
         <b>{{ stat.value }}</b><span>{{ stat.label }}</span>
       </a>
-    </div>
-    <div class="tag-row hero-trust-band hero-trust-band-desktop" aria-label="站点维护状态">
-      <span
-        v-for="signal in trustSignals"
-        :key="signal.label"
-        class="tag moss hero-trust-item"
-      >
-        {{ signal.label }}
-      </span>
     </div>
   </section>
 </template>

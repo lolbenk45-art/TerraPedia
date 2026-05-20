@@ -752,6 +752,10 @@ for (const path of scanFiles) {
       violations.push(`${path}: home J1 hero must include the full-width search entry`)
     }
 
+    if (!homeTemplateContent.includes('hero-status-line') || !homeTemplateContent.includes('hero-status-pill') || homeTemplateContent.includes('hero-trust-band-desktop')) {
+      violations.push(`${path}: home maintenance signals must render as a subtle inline status line, not a full-width desktop strip`)
+    }
+
     for (const marker of [
       'useAsyncData(',
       'fetchHomeStats',
