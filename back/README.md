@@ -9,11 +9,13 @@ Backend service for TerraPedia.
 - MySQL 8+
 - Redis
 
-## Local Database
+## Local Databases
 
-Only one local database is supported:
+The backend uses `terria_v1_local` for the primary application schema. Some data-source and image sync flows also read and update the maint and relation schemas:
 
 - `terria_v1_local`
+- `terria_v1_maint`
+- `terria_v1_relation`
 
 Default connection:
 
@@ -24,6 +26,13 @@ $env:TERRAPEDIA_DB_PASSWORD="<local-db-password>"
 $env:TERRAPEDIA_ADMIN_PASSWORD="<local-admin-password>"
 $env:TERRAPEDIA_AUTH_TOKEN_SECRET="<local-admin-token-secret>"
 $env:TERRAPEDIA_USER_TOKEN_SECRET="<local-user-token-secret>"
+```
+
+If your maint or relation schemas use non-default names, configure the cross-database schema names before starting the backend:
+
+```powershell
+$env:TERRAPEDIA_DB_MAINT="terria_v1_maint"
+$env:TERRAPEDIA_DB_RELATION="terria_v1_relation"
 ```
 
 Copy `scripts/dev/config/local-stack.config.example.json` to `scripts/dev/config/local-stack.config.json` and keep the real values only in the ignored local file.
