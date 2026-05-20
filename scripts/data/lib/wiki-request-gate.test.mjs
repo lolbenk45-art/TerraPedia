@@ -152,7 +152,7 @@ test('runJsonRequest uses external fallback for wiki.gg challenge responses', as
       fallbackCount += 1;
       assert.equal(String(url), 'https://terraria.wiki.gg/api.php?action=parse&maxlag=5&format=json');
       assert.equal(method, 'GET');
-      assert.equal(headers['user-agent'], 'TerraPedia-data-sync/2.0 (+https://terraria.wiki.gg/api.php)');
+      assert.equal(headers['user-agent'], 'TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)');
       return {
         status: 200,
         statusText: 'OK',

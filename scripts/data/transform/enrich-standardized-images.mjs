@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fetchWikiUrlJson } from '../lib/wiki-item-utils.mjs';
 
 const root = path.resolve(process.cwd());
 const stdDir = path.join(root, 'data', 'standardized');
@@ -13,7 +14,6 @@ const relationsPath = path.join(stdDir, 'item_relations.standardized.json');
 const npcIdRowImagesPath = path.join(root, 'data', 'generated', 'npc-id-row-images.json');
 const npcIdRowImagesFallbackPath = path.join(root, 'reports', 'npc-id-row-images.json');
 
-const USER_AGENT = 'TerraPedia-image-enrich/1.0';
 const MAX_TITLES_PER_QUERY = 40;
 const RETRY_MAX = 6;
 
@@ -284,15 +284,11 @@ async function queryImageInfoBatch(fileTitles) {
   url.searchParams.set('titles', fileTitles.map((title) => `File:${title}`).join('|'));
 
   const payload = await retry(async () => {
-    const response = await fetch(url, {
-      headers: {
-        'user-agent': USER_AGENT
-      }
+    return fetchWikiUrlJson({
+      url,
+      profile: 'revision',
+      sourceKey: `image-enrich:${fileTitles.join('|')}`
     });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    return response.json();
   });
 
   const map = new Map();

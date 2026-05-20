@@ -4,9 +4,10 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { resolveSharedDataRoot } from './project-root.mjs';
 import { loadAlertConfig, recordCrawlerAlert } from './crawler-alerts.mjs';
+import { WIKI_USER_AGENT } from './wiki-user-agent.mjs';
 
 const defaultStatePath = resolveSharedDataRoot('generated', 'wiki-request-gate.latest.json');
-const defaultUserAgent = 'TerraPedia-data-sync/2.0 (+https://terraria.wiki.gg/api.php)';
+const defaultUserAgent = WIKI_USER_AGENT;
 
 const REQUEST_PROFILES = {
   revision: {
@@ -65,6 +66,10 @@ export function createWikiRequestGate({
     return enqueue(() => performRequest(input, { ...options, responseType: 'text' }));
   }
 
+  async function runBinaryRequest(input, options = {}) {
+    return enqueue(() => performRequest(input, { ...options, responseType: 'binary' }));
+  }
+
   function getStateSnapshot() {
     return { ...state };
   }
@@ -108,7 +113,7 @@ export function createWikiRequestGate({
           signal: AbortSignal.timeout(timeoutMs)
         });
 
-        let rawBody = await response.text();
+        let rawBody = responseType === 'binary' ? null : await response.text();
         if (shouldUseExternalFallback({
           externalRequestFn,
           normalizedUrl,
@@ -131,6 +136,9 @@ export function createWikiRequestGate({
         const maybeJson = responseType === 'json' ? parseJsonSafely(rawBody) : null;
 
         if (!response.ok) {
+          if (rawBody == null && typeof response.text === 'function') {
+            rawBody = await response.text();
+          }
           throw buildHttpError({
             response,
             rawBody,
@@ -149,6 +157,15 @@ export function createWikiRequestGate({
         }
 
         noteSuccess();
+        if (responseType === 'binary') {
+          const body = Buffer.from(await response.arrayBuffer());
+          return {
+            status: response.status,
+            statusText: response.statusText,
+            headers: headersToObject(response.headers),
+            body
+          };
+        }
         if (responseType === 'json') {
           if (maybeJson == null) {
             throw new Error(`Expected JSON response from ${normalizedUrl}`);
@@ -249,11 +266,19 @@ export function createWikiRequestGate({
   return {
     clearCooldown,
     getStateSnapshot,
+    runBinaryRequest,
     runJsonRequest,
     runTextRequest,
     statePath: gateStatePath,
     userAgent
   };
+}
+
+function headersToObject(headers) {
+  if (!headers || typeof headers.entries !== 'function') {
+    return {};
+  }
+  return Object.fromEntries([...headers.entries()].map(([key, value]) => [String(key).toLowerCase(), String(value)]));
 }
 
 function defaultExternalRequestFn() {

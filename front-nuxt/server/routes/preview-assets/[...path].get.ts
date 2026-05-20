@@ -28,15 +28,18 @@ export default defineEventHandler(async (event) => {
     .join('/')
 
   const imageOrigin = String(useRuntimeConfig(event).public.imageOrigin || '').replace(/\/$/, '')
+  const wikiImageGateUrl = String(useRuntimeConfig(event).wikiImageGateUrl || '').replace(/\/$/, '')
   const wikiFileName = safePath.startsWith('wiki-files/') ? safePath.slice('wiki-files/'.length) : ''
 
-  if (wikiFileName) {
+  if (wikiFileName && wikiImageGateUrl) {
     try {
-      const response = await $fetch.raw(`https://terraria.wiki.gg/wiki/Special:Redirect/file/${wikiFileName}`, {
+      const sourceUrl = `https://terraria.wiki.gg/wiki/File:${wikiFileName}`
+      const response = await $fetch.raw(wikiImageGateUrl, {
+        method: 'POST',
         responseType: 'arrayBuffer',
+        body: { url: sourceUrl },
         headers: {
           accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-          'user-agent': 'TerraPedia preview asset proxy',
         },
       })
       const contentType = response.headers.get('content-type')

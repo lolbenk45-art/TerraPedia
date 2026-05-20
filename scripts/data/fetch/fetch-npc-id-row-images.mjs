@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fetchWikiUrlJson } from '../lib/wiki-item-utils.mjs';
 
 const args = parseArgs(process.argv.slice(2));
 const root = path.resolve(process.cwd());
@@ -9,22 +10,17 @@ const standardizedPath = path.join(root, 'data', 'standardized', 'npcs.standardi
 const outputPath = path.resolve(args.output || path.join(root, 'data', 'generated', 'npc-id-row-images.json'));
 const reportPath = path.resolve(args.report || path.join(root, 'reports', `npc-id-row-images-${new Date().toISOString().slice(0, 10)}.json`));
 const sourceUrl = args.sourceUrl || 'https://terraria.wiki.gg/zh/api.php?action=parse&page=NPC_ID&prop=text&format=json';
-const userAgent = 'Mozilla/5.0 TerraPedia/1.0';
 
 const standardized = readJson(standardizedPath);
 const standardizedRecords = Array.isArray(standardized?.records) ? standardized.records : [];
 const standardizedById = new Map(standardizedRecords.map((record) => [toFiniteNumber(record?.id), record]).filter(([id]) => id != null));
 const standardizedByInternalName = new Map(standardizedRecords.map((record) => [toText(record?.internalName), record]).filter(([name]) => name));
 
-const response = await fetch(sourceUrl, {
-  headers: { 'user-agent': userAgent }
+const payload = await fetchWikiUrlJson({
+  url: sourceUrl,
+  profile: 'parse',
+  sourceKey: 'npc-id-row-images'
 });
-
-if (!response.ok) {
-  throw new Error(`Failed to fetch NPC_ID html fragment: ${response.status}`);
-}
-
-const payload = await response.json();
 const html = payload?.parse?.text?.['*'];
 if (!html || typeof html !== 'string') {
   throw new Error('NPC_ID parse response does not contain HTML text.');

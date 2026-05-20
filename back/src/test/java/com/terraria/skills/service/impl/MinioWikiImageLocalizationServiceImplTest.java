@@ -29,14 +29,19 @@ class MinioWikiImageLocalizationServiceImplTest {
     private static final String TEST_MINIO_ENDPOINT = "http://localhost:9000";
 
     private HttpServer imageServer;
+    private HttpServer gateServer;
     private HttpServer minioServer;
     private AtomicInteger putObjectCount = new AtomicInteger();
+    private AtomicInteger gateFetchCount = new AtomicInteger();
     private boolean failPutObject;
 
     @AfterEach
     void stopServers() {
         if (imageServer != null) {
             imageServer.stop(0);
+        }
+        if (gateServer != null) {
+            gateServer.stop(0);
         }
         if (minioServer != null) {
             minioServer.stop(0);
@@ -109,6 +114,46 @@ class MinioWikiImageLocalizationServiceImplTest {
     }
 
     @Test
+    void shouldFetchTerrariaWikiImagesThroughLocalGateServer() throws Exception {
+        String minioEndpoint = startMinioServer();
+        String gateUrl = startGateServer();
+        MinioWikiImageLocalizationServiceImpl service = service(
+            minioEndpoint,
+            true,
+            gateUrl
+        );
+
+        String localized = service.localizeImageUrlOrFallback(
+            "https://terraria.wiki.gg/images/Gated.png",
+            "sync:imageUrl"
+        );
+
+        assertTrue(localized.startsWith(minioEndpoint + "/terrapedia-images/items/api/wiki-images/"));
+        assertEquals(1, gateFetchCount.get());
+        assertEquals(1, putObjectCount.get());
+    }
+
+    @Test
+    void shouldFetchTerrariaWikiFilePagesThroughLocalGateServer() throws Exception {
+        String minioEndpoint = startMinioServer();
+        String gateUrl = startGateServer();
+        MinioWikiImageLocalizationServiceImpl service = service(
+            minioEndpoint,
+            true,
+            gateUrl
+        );
+
+        String localized = service.localizeImageUrlOrFallback(
+            "https://terraria.wiki.gg/wiki/File:Gated_File.png",
+            "sync:filePage"
+        );
+
+        assertTrue(localized.startsWith(minioEndpoint + "/terrapedia-images/items/api/wiki-images/"));
+        assertEquals(1, gateFetchCount.get());
+        assertEquals(1, putObjectCount.get());
+    }
+
+    @Test
     void shouldOnlyTreatWikiImageUrlsAsWikiImages() {
         MinioWikiImageLocalizationServiceImpl service = service("http://localhost:9000");
 
@@ -142,10 +187,21 @@ class MinioWikiImageLocalizationServiceImplTest {
     }
 
     private MinioWikiImageLocalizationServiceImpl service(String minioEndpoint) {
+        return service(minioEndpoint, true, "http://127.0.0.1:18099/fetch-image");
+    }
+
+    private MinioWikiImageLocalizationServiceImpl service(
+        String minioEndpoint,
+        boolean imageFetchViaGate,
+        String imageFetchGateUrl
+    ) {
         return new MinioWikiImageLocalizationServiceImpl(
             minioClient(minioEndpoint),
             connectionDetails(minioEndpoint),
-            Set.of("127.0.0.1")
+            Set.of("127.0.0.1"),
+            imageFetchViaGate,
+            imageFetchGateUrl,
+            "TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)"
         );
     }
 
@@ -187,6 +243,36 @@ class MinioWikiImageLocalizationServiceImplTest {
         minioServer.createContext("/", this::writeMinioResponse);
         minioServer.start();
         return "http://127.0.0.1:" + minioServer.getAddress().getPort();
+    }
+
+    private String startGateServer() throws IOException {
+        byte[] imageBytes = new byte[] {
+            (byte) 0x89, 0x50, 0x4E, 0x47,
+            0x0D, 0x0A, 0x1A, 0x0A
+        };
+        gateServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        gateServer.createContext("/fetch-image", exchange -> {
+            gateFetchCount.incrementAndGet();
+            String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            boolean expectedImage = requestBody.contains("https://terraria.wiki.gg/images/Gated.png");
+            boolean expectedFilePage = requestBody.contains("https://terraria.wiki.gg/wiki/File:Gated_File.png");
+            if (!"POST".equals(exchange.getRequestMethod()) || (!expectedImage && !expectedFilePage)) {
+                exchange.sendResponseHeaders(400, -1);
+                exchange.close();
+                return;
+            }
+            exchange.getResponseHeaders().set("Content-Type", "image/png");
+            exchange.getResponseHeaders().set(
+                "X-TerraPedia-Source-Url",
+                expectedFilePage ? "https://terraria.wiki.gg/images/Gated_File.png" : "https://terraria.wiki.gg/images/Gated.png"
+            );
+            exchange.sendResponseHeaders(200, imageBytes.length);
+            try (OutputStream outputStream = exchange.getResponseBody()) {
+                outputStream.write(imageBytes);
+            }
+        });
+        gateServer.start();
+        return "http://127.0.0.1:" + gateServer.getAddress().getPort() + "/fetch-image";
     }
 
     private void writeMinioResponse(HttpExchange exchange) throws IOException {

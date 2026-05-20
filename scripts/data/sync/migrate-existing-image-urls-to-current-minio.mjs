@@ -3,6 +3,7 @@
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { resolveAdminAuth } from '../../lib/local-runtime-config.mjs';
+import { fetchWikiUrlResponse, isTerrariaWikiUrl } from '../lib/wiki-item-utils.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -269,9 +270,13 @@ async function uploadFromUrl(sourceUrl, nameHint) {
 
   let upstream;
   try {
-    upstream = await fetch(sourceUrl, {
-      headers: { 'user-agent': 'TerraPedia-migrate/1.0' }
-    });
+    upstream = isTerrariaWikiUrl(sourceUrl)
+      ? await fetchWikiUrlResponse({
+          url: sourceUrl,
+          profile: 'page',
+          sourceKey: `migrate-image:${sourceUrl}`
+        })
+      : await fetch(sourceUrl);
   } catch (error) {
     uploadCache.set(sourceUrl, null);
     return null;

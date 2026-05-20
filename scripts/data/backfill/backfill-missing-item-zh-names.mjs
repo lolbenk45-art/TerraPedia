@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { fetchWikiUrlJson, fetchWikiUrlText } from '../lib/wiki-item-utils.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -166,17 +167,11 @@ async function fetchChineseTitleFromWiki(title) {
   }
   const url = `https://terraria.wiki.gg/api.php?action=query&titles=${encodeURIComponent(normalized)}&prop=langlinks&lllang=zh&format=json`;
   try {
-    const response = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 TerraPedia/1.0' } });
-    if (response.status === 429) {
-      wikiLanglinkRateLimited = true;
-      wikiLanglinkCache.set(normalized, null);
-      return null;
-    }
-    if (!response.ok) {
-      wikiLanglinkCache.set(normalized, null);
-      return null;
-    }
-    const payload = await response.json();
+    const payload = await fetchWikiUrlJson({
+      url,
+      profile: 'revision',
+      sourceKey: `item-zh-langlink:${normalized}`
+    });
     const pages = payload?.query?.pages ?? {};
     const page = Object.values(pages)[0];
     const zhTitle = toText(page?.langlinks?.[0]?.['*']);
@@ -189,11 +184,11 @@ async function fetchChineseTitleFromWiki(title) {
 }
 
 async function fetchWikiItemIdMap() {
-  const response = await fetch(wikiItemIdUrl, { headers: { 'user-agent': 'Mozilla/5.0 TerraPedia/1.0' } });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch wiki item id page: ${response.status}`);
-  }
-  const html = await response.text();
+  const html = await fetchWikiUrlText({
+    url: wikiItemIdUrl,
+    profile: 'page',
+    sourceKey: 'zh-item-id-page'
+  });
   const byInternalName = new Map();
   const byId = new Map();
   const rowPattern = /<tr><td>(\d+)<\/td><td>([\s\S]*?)<\/td><td><code>([^<]+)<\/code><\/td><\/tr>/g;

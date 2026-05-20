@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
+import { fetchWikiUrlResponse, isTerrariaWikiUrl } from '../lib/wiki-item-utils.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -276,9 +277,11 @@ async function checkRemoteImageExists(url) {
   }
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchWikiUrlResponse({
+      url,
       method: 'HEAD',
-      headers: { 'user-agent': 'Mozilla/5.0 TerraPedia-items-image-backfill/1.0' },
+      profile: 'page',
+      sourceKey: `item-image-exists:${url}`
     });
     const exists = response.ok && String(response.headers.get('content-type') || '').toLowerCase().startsWith('image/');
     uploadCache.set(`exists:${url}`, exists);
@@ -298,8 +301,10 @@ async function fetchParsedHtml(pageTitle) {
   const url = `https://terraria.wiki.gg/wiki/${encodeURIComponent(normalizedTitle)}`;
   for (let attempt = 1; attempt <= 5; attempt += 1) {
     try {
-      const response = await fetch(url, {
-        headers: { 'user-agent': 'Mozilla/5.0 TerraPedia-items-image-backfill/1.0' },
+      const response = await fetchWikiUrlResponse({
+        url,
+        profile: 'page',
+        sourceKey: `item-image-page:${title}`
       });
       if (response.status === 429) {
         await sleep(Math.min(12000, attempt * 1500));
@@ -404,9 +409,13 @@ async function uploadFromUrl(sourceUrl, nameHint) {
 
   let upstream;
   try {
-    upstream = await fetch(sourceUrl, {
-      headers: { 'user-agent': 'TerraPedia-items-image-backfill/1.0' },
-    });
+    upstream = isTerrariaWikiUrl(sourceUrl)
+      ? await fetchWikiUrlResponse({
+          url: sourceUrl,
+          profile: 'page',
+          sourceKey: `item-image-upload:${sourceUrl}`
+        })
+      : await fetch(sourceUrl);
   } catch {
     uploadCache.set(sourceUrl, null);
     return null;

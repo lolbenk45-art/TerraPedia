@@ -1,5 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 import {
   buildWikiPageParseUrl,
@@ -24,6 +29,40 @@ test('buildWikiPageParseUrl enables redirect following for parse requests', () =
 
 test('reportHeartbeat is exposed from wiki item utilities for fetchers', () => {
   assert.equal(typeof reportHeartbeat, 'function');
+});
+
+test('fetchWikiUrlJson preserves wiki gate API error handling', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-url-json-'));
+  const moduleUrl = new URL('./wiki-item-utils.mjs', import.meta.url).href;
+  const workerCode = `
+    import fs from 'node:fs';
+    import path from 'node:path';
+    const { fetchWikiUrlJson } = await import(${JSON.stringify(moduleUrl)});
+    try {
+      await fetchWikiUrlJson({
+        url: 'data:application/json,{"error":{"code":"badvalue","info":"Invalid request"}}',
+        sourceKey: 'JSON gate probe',
+        timeoutMs: 1_000
+      });
+      console.error('missing expected rejection');
+      process.exit(2);
+    } catch (error) {
+      console.log(String(error.message));
+    }
+    const state = JSON.parse(fs.readFileSync(path.join(process.env.TERRAPEDIA_SHARED_DATA_ROOT, 'generated', 'wiki-request-gate.latest.json'), 'utf8'));
+    console.log(JSON.stringify({
+      failureCount: state.failureCount,
+      throttleFailureCount: state.throttleFailureCount
+    }));
+  `;
+  const result = await runNodeModule(workerCode, {
+    env: { ...process.env, TERRAPEDIA_SHARED_DATA_ROOT: tempDir }
+  });
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /Wiki API error: JSON gate probe \| badvalue \| Invalid request/);
+  assert.match(result.stdout, /"failureCount":1/);
+  assert.match(result.stdout, /"throttleFailureCount":0/);
 });
 
 test('fetchWikiPagePayload preserves parse sections for downstream evidence parsing', async () => {
@@ -106,3 +145,18 @@ test('fetchWikiPageMetadataBatch maps requested redirect aliases to returned can
     ]
   );
 });
+
+function runNodeModule(source, options = {}) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, ['--input-type=module', '--eval', source], {
+      cwd: path.dirname(fileURLToPath(import.meta.url)),
+      env: options.env,
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (chunk) => stdout += chunk);
+    child.stderr.on('data', (chunk) => stderr += chunk);
+    child.on('close', (code) => resolve({ code, stdout, stderr }));
+  });
+}

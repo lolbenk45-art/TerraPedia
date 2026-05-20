@@ -1,24 +1,28 @@
 #!/usr/bin/env python
 import json
+import sys
 from pathlib import Path
 from datetime import datetime, timezone
 
-import requests
 from bs4 import BeautifulSoup
 
 
 REPO_ROOT = Path.cwd()
+sys.path.insert(0, str(REPO_ROOT / "scripts" / "data" / "lib"))
+from wiki_request_gate_bridge import WikiRequestGateClient  # noqa: E402
+
 API_URL = "https://terraria.wiki.gg/zh/api.php"
 PAGE_TITLE = "\u5fae\u5149"
 OUTPUT_PATH = REPO_ROOT / "data" / "generated" / "shimmer" / "wiki-shimmer-python-scrape.latest.json"
+GATE_CLIENT = WikiRequestGateClient(REPO_ROOT)
 
 
 def post_api(form: dict) -> dict:
-    response = requests.post(
+    response = GATE_CLIENT.post_form(
         API_URL,
-        data=form,
-        headers={"User-Agent": "TerraPedia-python-scraper/1.0"},
-        timeout=60,
+        form,
+        profile="parse" if form.get("action") == "parse" else "revision",
+        source_key=f"shimmer:{form.get('action')}",
     )
     response.raise_for_status()
     return response.json()

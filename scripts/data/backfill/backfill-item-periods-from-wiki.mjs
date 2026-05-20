@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
+import { fetchWikiUrlText } from '../lib/wiki-item-utils.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -292,13 +293,15 @@ function classifyUsingFetchedTarget(html, pageTitle) {
 async function fetchWikiPageHtml(title, targetDelayMs) {
   await sleep(targetDelayMs);
   const url = `https://terraria.wiki.gg/wiki/${encodeURIComponent(String(title).replace(/ /g, '_'))}`;
-  const response = await fetch(url, {
-    headers: { 'user-agent': 'Mozilla/5.0 TerraPedia-period-backfill/1.0' },
-  });
-  if (!response.ok) {
+  try {
+    return await fetchWikiUrlText({
+      url,
+      profile: 'page',
+      sourceKey: `item-period:${title}`
+    });
+  } catch {
     return null;
   }
-  return await response.text();
 }
 
 function extractLeadText(wikitext) {

@@ -49,7 +49,6 @@ async function main() {
     apiBase,
     adminUsername,
     adminPassword,
-    userAgent: 'TerraPedia-sync/1.0',
   });
 
   try {

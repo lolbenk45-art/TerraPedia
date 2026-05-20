@@ -4,12 +4,13 @@ import vm from 'node:vm';
 
 import { createWikiRequestGate } from './wiki-request-gate.mjs';
 import { getProjectRoot, resolveSharedDataRoot } from './project-root.mjs';
+import { WIKI_USER_AGENT } from './wiki-user-agent.mjs';
 
 export { reportHeartbeat } from './crawler-heartbeat.mjs';
 
 export const DEFAULT_WIKI_API_URL = 'https://terraria.wiki.gg/api.php';
 export const DEFAULT_MODULE_TITLE = 'Module:Iteminfo/data';
-export const DEFAULT_WIKI_USER_AGENT = 'TerraPedia-data-sync/2.0';
+export const DEFAULT_WIKI_USER_AGENT = WIKI_USER_AGENT;
 export const WORKSPACE_ROOT = getProjectRoot();
 export const DEFAULT_SHARED_DATA_ROOT = resolveSharedDataRoot();
 const wikiRequestGate = createWikiRequestGate({
@@ -317,6 +318,101 @@ export async function fetchWikiApiJson({
     profile,
     sourceKey
   });
+}
+
+export function isTerrariaWikiUrl(value) {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return false;
+  }
+  try {
+    return new URL(value).hostname.toLowerCase() === 'terraria.wiki.gg';
+  } catch {
+    return false;
+  }
+}
+
+export async function fetchWikiUrlText({
+  url,
+  method = 'GET',
+  headers = {},
+  body,
+  profile = 'page',
+  sourceKey = null,
+  timeoutMs = 20_000
+} = {}) {
+  if (!url) {
+    throw new Error('url is required');
+  }
+  return wikiRequestGate.runTextRequest(url, {
+    method,
+    headers,
+    body,
+    profile,
+    sourceKey,
+    timeoutMs
+  });
+}
+
+export async function fetchWikiUrlJson({
+  url,
+  method = 'GET',
+  headers = {},
+  body,
+  profile = 'revision',
+  sourceKey = null,
+  timeoutMs = 20_000
+} = {}) {
+  if (!url) {
+    throw new Error('url is required');
+  }
+  return wikiRequestGate.runJsonRequest(url, {
+    method,
+    headers,
+    body,
+    profile,
+    sourceKey,
+    timeoutMs
+  });
+}
+
+export async function fetchWikiUrlBinary({
+  url,
+  method = 'GET',
+  headers = {},
+  body,
+  profile = 'page',
+  sourceKey = null,
+  timeoutMs = 30_000
+} = {}) {
+  if (!url) {
+    throw new Error('url is required');
+  }
+  return wikiRequestGate.runBinaryRequest(url, {
+    method,
+    headers,
+    body,
+    profile,
+    sourceKey,
+    timeoutMs
+  });
+}
+
+export async function fetchWikiUrlResponse(options = {}) {
+  const result = await fetchWikiUrlBinary(options);
+  const body = Buffer.from(result.body ?? []);
+  return {
+    ok: result.status >= 200 && result.status < 300,
+    status: result.status,
+    statusText: result.statusText,
+    headers: {
+      get(name) {
+        return result.headers?.[String(name).toLowerCase()] ?? null;
+      }
+    },
+    text: async () => body.toString('utf8'),
+    json: async () => JSON.parse(body.toString('utf8')),
+    arrayBuffer: async () => body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength)
+  };
 }
 
 export function buildWikiPageUrl({

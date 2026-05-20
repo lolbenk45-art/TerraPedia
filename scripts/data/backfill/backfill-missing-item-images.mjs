@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
+import { fetchWikiUrlJson, fetchWikiUrlResponse, isTerrariaWikiUrl } from '../lib/wiki-item-utils.mjs';
 
 const packageRequire = createRequire(path.join(process.cwd(), 'data-query-app', 'package.json'));
 const mysql = packageRequire('mysql2/promise');
@@ -283,13 +284,11 @@ async function resolveCanonicalWikiTitle(pageTitle) {
 async function fetchWikiJson(url, maxAttempts = 6) {
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      const response = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 TerraPedia/1.0' } });
-      if (response.status === 429) {
-        await sleep(Math.min(12000, 1200 * attempt));
-        continue;
-      }
-      if (!response.ok) return null;
-      return await response.json();
+      return await fetchWikiUrlJson({
+        url,
+        profile: 'revision',
+        sourceKey: `item-image-backfill:${url}`
+      });
     } catch {
       if (attempt === maxAttempts) return null;
       await sleep(Math.min(12000, 800 * attempt));
@@ -362,9 +361,13 @@ async function uploadFromUrl(sourceUrl, nameHint, apiBase, authHeader, uploadCac
 
   let upstream;
   try {
-    upstream = await fetch(sourceUrl, {
-      headers: { 'user-agent': 'Mozilla/5.0 TerraPedia/1.0' },
-    });
+    upstream = isTerrariaWikiUrl(sourceUrl)
+      ? await fetchWikiUrlResponse({
+          url: sourceUrl,
+          profile: 'page',
+          sourceKey: `item-image-upload:${sourceUrl}`
+        })
+      : await fetch(sourceUrl);
   } catch {
     uploadCache.set(sourceUrl, null);
     return null;

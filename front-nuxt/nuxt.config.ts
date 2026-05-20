@@ -4,6 +4,10 @@ const terrapediaImageOrigin = (
   || process.env.TERRAPEDIA_MINIO_PUBLIC_ENDPOINT
   || (process.env.NODE_ENV === 'development' ? 'http://localhost:9000' : '')
 ).replace(/\/$/, '')
+const terrapediaWikiImageGateUrl = (
+  process.env.TERRAPEDIA_IMAGE_FETCH_GATE_URL
+  || 'http://127.0.0.1:18099/fetch-image'
+).replace(/\/$/, '')
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineNuxtConfig({
@@ -30,6 +34,7 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     apiServerBase: `${terrapediaBackendOrigin}/api`,
+    wikiImageGateUrl: terrapediaWikiImageGateUrl,
     public: {
       apiBase: '/api',
       imageOrigin: terrapediaImageOrigin,

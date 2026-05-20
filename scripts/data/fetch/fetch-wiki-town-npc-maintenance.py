@@ -13,13 +13,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote, unquote, urlparse
 
-import httpx
 from bs4 import BeautifulSoup, Tag
 
 
 WIKI_ORIGIN = "https://terraria.wiki.gg"
 ZH_WIKI_ORIGIN = "https://terraria.wiki.gg/zh"
-DEFAULT_USER_AGENT = "TerraPedia-town-npc-maintenance/2.0"
 LATEST_FILE_NAME = "wiki-town-npc-maintenance.latest.json"
 RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 MAX_REQUEST_RETRIES = 3
@@ -86,6 +84,9 @@ def main() -> int:
 
     args = parse_args()
     repo_root = Path(__file__).resolve().parents[3]
+    sys.path.insert(0, str(repo_root / "scripts" / "data" / "lib"))
+    from wiki_request_gate_bridge import WikiRequestGateClient  # noqa: PLC0415
+
     output_path = Path(args.output).resolve() if args.output else repo_root / "data" / "generated" / LATEST_FILE_NAME
     snapshot_path = Path(args.snapshot_output).resolve() if args.snapshot_output else repo_root / "reports" / f"wiki-town-npc-maintenance-{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.json"
     source_path = Path(args.source).resolve() if args.source else repo_root / "data" / "generated" / "npc-standardized-map.json"
@@ -94,15 +95,8 @@ def main() -> int:
     if args.limit is not None:
         seeds = seeds[: max(args.limit, 0)]
 
-    client = httpx.Client(
-        headers={"User-Agent": DEFAULT_USER_AGENT},
-        follow_redirects=True,
-        timeout=20.0,
-    )
-    try:
-        records = crawl_records(client, seeds, args.delay_ms / 1000.0)
-    finally:
-        client.close()
+    client = WikiRequestGateClient(repo_root=repo_root, timeout_seconds=60.0)
+    records = crawl_records(client, seeds, args.delay_ms / 1000.0)
 
     payload = {
         "entity": "wiki_town_npc_maintenance",
@@ -178,7 +172,7 @@ def load_town_npc_seeds(source_path: Path) -> list[TownNpcSeed]:
     return seeds
 
 
-def crawl_records(client: httpx.Client, seeds: list[TownNpcSeed], delay_seconds: float) -> list[dict[str, Any]]:
+def crawl_records(client: Any, seeds: list[TownNpcSeed], delay_seconds: float) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for index, seed in enumerate(seeds):
         if index > 0:
@@ -204,7 +198,7 @@ def crawl_records(client: httpx.Client, seeds: list[TownNpcSeed], delay_seconds:
     return records
 
 
-def fetch_town_npc_record(client: httpx.Client, seed: TownNpcSeed) -> dict[str, Any]:
+def fetch_town_npc_record(client: Any, seed: TownNpcSeed) -> dict[str, Any]:
     response = None
     last_error: Exception | None = None
     candidate_titles = [seed.page_title]
@@ -263,26 +257,28 @@ def fetch_town_npc_record(client: httpx.Client, seed: TownNpcSeed) -> dict[str, 
     }
 
 
-def get_with_retry(client: httpx.Client, page_url: str) -> httpx.Response:
+def get_with_retry(client: Any, page_url: str) -> Any:
     last_error: Exception | None = None
     for attempt in range(1, MAX_REQUEST_RETRIES + 1):
         try:
-            response = client.get(page_url)
+            response = client.get(page_url, profile="page", source_key=page_url)
             response.raise_for_status()
             return response
-        except httpx.HTTPStatusError as exc:
+        except RuntimeError as exc:
             last_error = exc
-            if exc.response.status_code not in RETRYABLE_STATUS_CODES or attempt >= MAX_REQUEST_RETRIES:
-                raise
-        except httpx.HTTPError as exc:
-            last_error = exc
-            if attempt >= MAX_REQUEST_RETRIES:
+            status_code = extract_status_code(exc)
+            if status_code not in RETRYABLE_STATUS_CODES or attempt >= MAX_REQUEST_RETRIES:
                 raise
         time.sleep((0.8 * attempt) + random.uniform(0.0, 0.3))
 
     if last_error is not None:
         raise last_error
     raise RuntimeError(f"Failed to fetch page: {page_url}")
+
+
+def extract_status_code(exc: Exception) -> int | None:
+    match = re.search(r"HTTP\s+(\d+)", str(exc))
+    return int(match.group(1)) if match else None
 
 
 def resolve_main_parser_output(soup: BeautifulSoup) -> Tag | None:

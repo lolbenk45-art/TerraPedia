@@ -7,6 +7,8 @@ import {
   DEFAULT_WIKI_API_URL,
   ensureDir,
   fetchWikiPageRevisionTimestamp,
+  fetchWikiUrlText,
+  isTerrariaWikiUrl,
   parseCliArgs,
   sharedDataPath,
   writeJson
@@ -176,18 +178,14 @@ async function checkOfficialSource(source) {
   const previous = previousSourceMap.get(source.key);
 
   try {
-    const response = await fetch(source.locator, {
-      headers: {
-        'user-agent': 'TerraPedia source monitor/1.0'
-      },
-      signal: AbortSignal.timeout(20_000)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Official source request failed: ${response.status} ${response.statusText}`);
-    }
-
-    const html = await response.text();
+    const html = isTerrariaWikiUrl(source.locator)
+      ? await fetchWikiUrlText({
+          url: source.locator,
+          profile: 'page',
+          sourceKey: source.key,
+          timeoutMs: 20_000
+        })
+      : await fetchOfficialSourceText(source.locator);
     const normalizedText = normalizeText(html);
     const contentHash = crypto.createHash('sha256').update(normalizedText).digest('hex');
     const preview = extractOfficialPreview(html);
@@ -232,6 +230,21 @@ async function checkOfficialSource(source) {
       }
     };
   }
+}
+
+async function fetchOfficialSourceText(url) {
+  const response = await fetch(url, {
+    headers: {
+      'user-agent': 'TerraPedia source monitor/1.0'
+    },
+    signal: AbortSignal.timeout(20_000)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Official source request failed: ${response.status} ${response.statusText}`);
+  }
+
+  return response.text();
 }
 
 function buildSummary(sources) {

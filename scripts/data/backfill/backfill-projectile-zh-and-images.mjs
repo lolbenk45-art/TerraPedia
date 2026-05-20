@@ -8,6 +8,7 @@ import {
   isProjectileNamePlaceholder,
   resolveProjectileZhName,
 } from '../lib/projectile-name-resolver.mjs';
+import { fetchWikiUrlJson, fetchWikiUrlResponse, isTerrariaWikiUrl } from '../lib/wiki-item-utils.mjs';
 
 const args = parseArgs(process.argv.slice(2));
 const apply = args.apply === 'true';
@@ -159,13 +160,11 @@ async function fetchProjectileZhMap() {
   apiUrl.searchParams.set('format', 'json');
   apiUrl.searchParams.set('formatversion', '2');
 
-  const response = await fetch(apiUrl, {
-    headers: { 'user-agent': 'TerraPedia-projectile-zh/1.0' },
+  const data = await fetchWikiUrlJson({
+    url: apiUrl,
+    profile: 'revision',
+    sourceKey: 'projectile-zh-map'
   });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch projectile zh map: HTTP ${response.status}`);
-  }
-  const data = await response.json();
   const content = data?.query?.pages?.[0]?.revisions?.[0]?.slots?.main?.content;
   if (!toText(content)) {
     throw new Error('Projectile zh language page did not return content');
@@ -244,9 +243,13 @@ async function uploadFromUrl(sourceUrl, nameHint) {
 
   let upstream;
   try {
-    upstream = await fetch(sourceUrl, {
-      headers: { 'user-agent': 'TerraPedia-projectile-image-backfill/1.0' },
-    });
+    upstream = isTerrariaWikiUrl(sourceUrl)
+      ? await fetchWikiUrlResponse({
+          url: sourceUrl,
+          profile: 'page',
+          sourceKey: `projectile-image-upload:${sourceUrl}`
+        })
+      : await fetch(sourceUrl);
   } catch {
     uploadCache.set(sourceUrl, null);
     return null;

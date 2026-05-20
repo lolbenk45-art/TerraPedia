@@ -1,5 +1,6 @@
 import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime-config.mjs';
 import { resolveManagedImageUrlPrefixes } from '../relation/managed-image-url-policy.mjs';
+import { fetchWikiUrlResponse, isTerrariaWikiUrl } from './wiki-item-utils.mjs';
 
 export const DEFAULT_MANAGED_URL_PREFIX = 'http://localhost:9000/terrapedia-images';
 
@@ -21,7 +22,6 @@ export async function createMinioImageUploader(options = {}) {
     options.repoRoot
   );
   const uploadCache = options.uploadCache instanceof Map ? options.uploadCache : new Map();
-  const userAgent = toText(options.userAgent) || 'TerraPedia-sync/1.0';
   const authHeader = options.authHeader ?? await loginAndBuildAuthHeader(apiBase, adminUsername, adminPassword);
 
   async function uploadImageUrl(sourceUrl, uploadOptions = {}) {
@@ -46,9 +46,13 @@ export async function createMinioImageUploader(options = {}) {
 
     let upstream;
     try {
-      upstream = await fetch(normalizedSourceUrl, {
-        headers: { 'user-agent': userAgent },
-      });
+      upstream = isTerrariaWikiUrl(normalizedSourceUrl)
+        ? await fetchWikiUrlResponse({
+            url: normalizedSourceUrl,
+            profile: 'page',
+            sourceKey: `minio-image-upload:${normalizedSourceUrl}`
+          })
+        : await fetch(normalizedSourceUrl);
     } catch {
       uploadCache.set(normalizedSourceUrl, null);
       return null;

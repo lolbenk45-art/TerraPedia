@@ -33,8 +33,7 @@ const uploader = apply
       adminUsername: options.adminUsername,
       adminPassword: options.adminPassword,
       managedUrlPrefixes,
-      repoRoot: process.cwd(),
-      userAgent: 'TerraPedia-workflow-image-sync/1.0'
+      repoRoot: process.cwd()
     })
   : null;
 
