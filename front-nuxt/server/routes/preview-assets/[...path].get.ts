@@ -4,6 +4,8 @@ const escapeXml = (value: string) => value
   .replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;')
 
+const previewProxyUserAgent = 'TerraPedia-preview-proxy/2.0 (+https://terraria.wiki.gg/api.php)'
+
 const fallbackSvg = (rawPath: string) => {
   const filename = rawPath.split('/').filter(Boolean).at(-1) ?? 'asset'
   const label = filename.replace(/\.[^.]+$/, '').slice(0, 2).toUpperCase() || 'TP'
@@ -40,6 +42,7 @@ export default defineEventHandler(async (event) => {
         body: { url: sourceUrl },
         headers: {
           accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+          'user-agent': previewProxyUserAgent,
         },
       })
       const contentType = response.headers.get('content-type')

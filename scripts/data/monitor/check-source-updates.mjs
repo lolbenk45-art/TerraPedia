@@ -15,6 +15,7 @@ import {
 } from '../lib/wiki-item-utils.mjs';
 
 const terraPediaRoot = resolveProjectPath();
+const OFFICIAL_SOURCE_MONITOR_USER_AGENT = 'TerraPedia-source-monitor/2.0 (+https://terraria.wiki.gg/api.php)';
 
 const options = parseCliArgs(process.argv.slice(2));
 const checkedAt = new Date().toISOString();
@@ -235,7 +236,7 @@ async function checkOfficialSource(source) {
 async function fetchOfficialSourceText(url) {
   const response = await fetch(url, {
     headers: {
-      'user-agent': 'TerraPedia source monitor/1.0'
+      'user-agent': OFFICIAL_SOURCE_MONITOR_USER_AGENT
     },
     signal: AbortSignal.timeout(20_000)
   });
