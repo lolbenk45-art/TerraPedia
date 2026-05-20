@@ -103,6 +103,22 @@ test('start records MinIO public endpoint health when MinIO is enabled', () => {
   assert.match(source, /minioPublic: \{ endpoint:/i);
 });
 
+test('start can run FlareSolverr through local stack config', () => {
+  const runtimeConfig = fs.readFileSync('scripts/dev/lib/runtime-config.sh', 'utf8');
+  const source = startSource();
+  const exampleConfig = fs.readFileSync('scripts/dev/config/local-stack.config.example.json', 'utf8');
+
+  assert.match(runtimeConfig, /TP_FLARESOLVERR_ENABLED/);
+  assert.match(runtimeConfig, /TP_FLARESOLVERR_URL/);
+  assert.match(source, /start_flaresolverr_if_needed/);
+  assert.match(source, /docker run -d --name "\$container_name"/);
+  assert.match(source, /ghcr\.io\/flaresolverr\/flaresolverr/);
+  assert.match(source, /export TERRAPEDIA_FLARESOLVERR_URL="\$TP_FLARESOLVERR_URL"/);
+  assert.match(source, /flaresolverrOpen/i);
+  assert.match(exampleConfig, /"flaresolverr"/);
+  assert.match(exampleConfig, /"url": "http:\/\/127\.0\.0\.1:8191\/v1"/);
+});
+
 test('smoke script is read-only and writes timestamped smoke report', () => {
   const source = smokeSource();
 

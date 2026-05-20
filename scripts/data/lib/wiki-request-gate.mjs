@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import { resolveSharedDataRoot } from './project-root.mjs';
 import { loadAlertConfig, recordCrawlerAlert } from './crawler-alerts.mjs';
 import { WIKI_USER_AGENT } from './wiki-user-agent.mjs';
+import { resolveFlareSolverrUrl, runFlareSolverrRequest } from './flaresolverr-bridge.mjs';
 
 const defaultStatePath = resolveSharedDataRoot('generated', 'wiki-request-gate.latest.json');
 const defaultUserAgent = WIKI_USER_AGENT;
@@ -282,7 +283,10 @@ function headersToObject(headers) {
 }
 
 function defaultExternalRequestFn() {
-  return process.platform === 'win32' ? runPowerShellWebRequest : null;
+  if (process.platform === 'win32') {
+    return runPowerShellWebRequest;
+  }
+  return resolveFlareSolverrUrl() ? runFlareSolverrRequest : null;
 }
 
 function shouldUseExternalFallback({
@@ -564,6 +568,9 @@ function isRetryableStatus(status) {
 }
 
 function isCloudflareLikeError(error) {
+  if (error?.cloudflare === true) {
+    return true;
+  }
   const message = compactError(error).toLowerCase();
   return message.includes('cloudflare') || message.includes('403') || message.includes('forbidden');
 }

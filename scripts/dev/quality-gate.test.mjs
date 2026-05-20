@@ -36,6 +36,7 @@ test('quality gates include wiki request gate contract tests', () => {
     for (const testPath of [
       'scripts/data/lib/wiki-user-agent.test.mjs',
       'scripts/data/lib/wiki-direct-request-boundary.test.mjs',
+      'scripts/data/lib/flaresolverr-bridge.test.mjs',
       'scripts/data/lib/wiki-request-gate.test.mjs',
       'scripts/data/lib/wiki-item-utils.test.mjs',
       'scripts/data/lib/wiki-image-fetch-server.test.mjs',

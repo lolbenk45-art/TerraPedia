@@ -175,6 +175,120 @@ test('runJsonRequest uses external fallback for wiki.gg challenge responses', as
   assert.equal(state.successCount, 1);
 });
 
+test('defaultExternalRequestFn uses FlareSolverr when configured on linux', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-'));
+  const statePath = path.join(tempDir, 'gate.json');
+  const previousUrl = process.env.TERRAPEDIA_FLARESOLVERR_URL;
+  const previousFetch = globalThis.fetch;
+  const flaresolverrCalls = [];
+
+  process.env.TERRAPEDIA_FLARESOLVERR_URL = 'http://127.0.0.1:8191/v1';
+  globalThis.fetch = async (input, init = {}) => {
+    if (String(input) === 'http://127.0.0.1:8191/v1') {
+      flaresolverrCalls.push({ input: String(input), init });
+      return okJsonResponse({
+        status: 'ok',
+        solution: {
+          status: 200,
+          response: JSON.stringify({ ok: true, via: 'flaresolverr' }),
+          url: 'https://terraria.wiki.gg/api.php?action=parse&maxlag=5&format=json'
+        }
+      });
+    }
+    return textResponse({
+      ok: false,
+      status: 403,
+      statusText: 'Forbidden',
+      body: '<!doctype html><title data-i18n="pag-title">Just a second... - wiki.gg</title>'
+    });
+  };
+
+  try {
+    const gate = createWikiRequestGate({
+      statePath,
+      nowFn: () => Date.parse('2026-05-20T08:00:00.000Z'),
+      sleepFn: async () => {},
+      requestProfiles: {
+        parse: { baseDelayMs: 0, jitterMs: 0, maxAttempts: 1, cooldownMs: 10_000 }
+      }
+    });
+
+    const payload = await gate.runJsonRequest('https://terraria.wiki.gg/api.php?action=parse', {
+      profile: 'parse',
+      sourceKey: 'Linux FlareSolverr Probe'
+    });
+
+    assert.deepEqual(payload, { ok: true, via: 'flaresolverr' });
+    assert.equal(flaresolverrCalls.length, 1);
+    const requestPayload = JSON.parse(flaresolverrCalls[0].init.body);
+    assert.equal(requestPayload.cmd, 'request.get');
+    assert.equal(requestPayload.url, 'https://terraria.wiki.gg/api.php?action=parse&maxlag=5&format=json');
+    assert.equal(requestPayload.headers['user-agent'], 'TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)');
+  } finally {
+    globalThis.fetch = previousFetch;
+    if (previousUrl == null) {
+      delete process.env.TERRAPEDIA_FLARESOLVERR_URL;
+    } else {
+      process.env.TERRAPEDIA_FLARESOLVERR_URL = previousUrl;
+    }
+  }
+});
+
+test('FlareSolverr fallback failures enter cooldown and alert after repeated challenges', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-'));
+  const statePath = path.join(tempDir, 'gate.json');
+  const alerts = [];
+  const previousUrl = process.env.TERRAPEDIA_FLARESOLVERR_URL;
+  const previousFetch = globalThis.fetch;
+
+  process.env.TERRAPEDIA_FLARESOLVERR_URL = 'http://127.0.0.1:8191/v1';
+  globalThis.fetch = async (input) => {
+    if (String(input) === 'http://127.0.0.1:8191/v1') {
+      throw new Error('connect ECONNREFUSED 127.0.0.1:8191');
+    }
+    return textResponse({
+      ok: false,
+      status: 403,
+      statusText: 'Forbidden',
+      body: '<html><title>Just a second... Cloudflare</title></html>'
+    });
+  };
+
+  try {
+    const gate = createWikiRequestGate({
+      statePath,
+      nowFn: () => Date.parse('2026-05-20T08:00:00.000Z'),
+      sleepFn: async () => {},
+      requestProfiles: {
+        parse: { baseDelayMs: 0, jitterMs: 0, maxAttempts: 3, cooldownMs: 10_000 }
+      },
+      alertFn: (alert) => alerts.push(alert)
+    });
+
+    await assert.rejects(
+      () => gate.runJsonRequest('https://terraria.wiki.gg/api.php?action=parse', {
+        profile: 'parse',
+        sourceKey: 'FlareSolverr Offline Probe'
+      }),
+      /ECONNREFUSED/
+    );
+
+    const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+    assert.equal(state.consecutiveThrottleFailures, 3);
+    assert.equal(state.throttleFailureCount, 3);
+    assert.equal(state.cooldownUntil, '2026-05-20T08:00:10.000Z');
+    assert.equal(alerts.length, 1);
+    assert.equal(alerts[0].type, 'cloudflare');
+  } finally {
+    globalThis.fetch = previousFetch;
+    if (previousUrl == null) {
+      delete process.env.TERRAPEDIA_FLARESOLVERR_URL;
+    } else {
+      process.env.TERRAPEDIA_FLARESOLVERR_URL = previousUrl;
+    }
+  }
+});
+
 test('runJsonRequest commits gate state through temp file rename', async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-'));
   const statePath = path.join(tempDir, 'gate.json');

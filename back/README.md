@@ -52,6 +52,18 @@ mvn test
 mvn clean package
 ```
 
+## Cloudflare Challenge Fallback
+
+Wiki requests normally go through `scripts/data/lib/wiki-request-gate.mjs`. On Linux or WSL, set `TERRAPEDIA_FLARESOLVERR_URL` to enable FlareSolverr as the Cloudflare fallback:
+
+```powershell
+$env:TERRAPEDIA_FLARESOLVERR_URL="http://127.0.0.1:8191/v1"
+```
+
+For the local stack, set `"flaresolverr.enabled": true` in `scripts/dev/config/local-stack.config.json`; `scripts/dev/start-local-stack.sh` will start or reuse the `terrapedia-flaresolverr` Docker container and export the same URL.
+
+If FlareSolverr is offline, the wiki gate treats fallback failure as retryable Cloudflare pressure. It increments the gate failure counters, enters cooldown after the configured threshold, and writes the existing crawler alert record instead of silently bypassing the gate.
+
 ## Local URLs
 
 - Backend API: `http://localhost:18088/api`
