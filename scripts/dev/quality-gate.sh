@@ -44,6 +44,7 @@ done
 run_step "Data workflow acceptance tests" . node --test \
   scripts/dev/quality-gate.test.mjs \
   scripts/dev/local-stack.test.mjs \
+  scripts/dev/data-source-snapshot.test.mjs \
   scripts/data/crawler/tests/source-layout-warning.test.mjs \
   scripts/data/audit/domain-readiness-audit.test.mjs \
   scripts/data/workflow/data-source-acceptance-report-manifest.test.mjs \

@@ -94,6 +94,7 @@ data-query-app/false/
 .superpowers/
 
 # Large local data artifacts
+data/_snapshots/
 data/standardized/item_relations.standardized.json
 data/standardized-view/item_relations/snapshots/
 data/generated/*.latest.json

@@ -161,6 +161,14 @@ test('local stack boundary tests are included in local and ci gates', () => {
   assert.match(ciGate, /scripts\/dev\/local-stack\.test\.mjs/);
 });
 
+test('data source snapshot tests are included in local and ci gates', () => {
+  const localGate = fs.readFileSync('scripts/dev/quality-gate.sh', 'utf8');
+  const ciGate = fs.readFileSync('scripts/dev/quality-gate-ci.sh', 'utf8');
+
+  assert.match(localGate, /scripts\/dev\/data-source-snapshot\.test\.mjs/);
+  assert.match(ciGate, /scripts\/dev\/data-source-snapshot\.test\.mjs/);
+});
+
 test('verify-local-stack checks optional WORKTREE_ROOT against resolved repo root', () => {
   const source = fs.readFileSync('scripts/dev/verify-local-stack.sh', 'utf8');
 
