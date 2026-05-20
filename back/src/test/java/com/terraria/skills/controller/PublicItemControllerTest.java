@@ -114,6 +114,26 @@ class PublicItemControllerTest {
     }
 
     @Test
+    void shouldDefaultPublicItemListLimitToOneHundred() throws Exception {
+        Page<PublicItemListDTO> page = new Page<>(1, 100);
+        page.setTotal(0);
+        page.setRecords(List.of());
+
+        when(publicItemService.getPublicItems(any(PageQuery.class))).thenReturn(page);
+
+        mockMvc.perform(get("/public/items"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.pagination.limit").value(100));
+
+        ArgumentCaptor<PageQuery> queryCaptor = ArgumentCaptor.forClass(PageQuery.class);
+        verify(publicItemService).getPublicItems(queryCaptor.capture());
+        PageQuery query = queryCaptor.getValue();
+        assertEquals(1, query.getPage());
+        assertEquals(100, query.getLimit());
+    }
+
+    @Test
     void shouldExposeOnlyLightweightFieldsForPublicItemSuggestions() throws Exception {
         PublicItemSuggestionDTO item = new PublicItemSuggestionDTO();
         item.setId(12L);

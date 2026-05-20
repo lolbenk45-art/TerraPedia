@@ -45,7 +45,7 @@ public class PublicItemController {
     ) {
         PageQuery pageQuery = new PageQuery();
         pageQuery.setPage(PaginationParams.resolvePage(page));
-        pageQuery.setLimit(PaginationParams.resolveLimit(limit, size, 20, 100));
+        pageQuery.setLimit(PaginationParams.resolveLimit(limit, size, 100, 100));
         pageQuery.setSearch(search);
         pageQuery.setCategoryId(categoryId);
         pageQuery.setRarity(rarity);
