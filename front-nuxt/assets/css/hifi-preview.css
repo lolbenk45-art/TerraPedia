@@ -14,14 +14,17 @@
   --text-muted: rgba(244, 234, 208, 0.68);
   --text-subtle: rgba(244, 234, 208, 0.58);
   --text-faint: rgba(244, 234, 208, 0.5);
-  --text-accent: var(--gold-2);
-  --text-positive: #9db89a;
+  --accent: #d6b15a;
+  --accent-strong: #ffd765;
+  --tag-moss: var(--tag-moss);
+  --text-accent: var(--accent-strong);
+  --text-positive: var(--accent);
   --text-link: #ffd765;
   --text-on-accent: #172016;
-  --gold: #d6b15a;
-  --gold-2: #f0cf74;
-  --moss: #7da55b;
-  --moss-2: #96c67a;
+  --gold: var(--accent);
+  --gold-2: var(--accent-strong);
+  --moss: var(--accent);
+  --moss-2: var(--accent-strong);
   --mint: #77b8a5;
   --line: rgba(214, 177, 90, 0.22);
   --index-bg: #0a130d;
@@ -107,14 +110,17 @@
   --text-muted: rgba(24, 36, 22, 0.76);
   --text-subtle: rgba(24, 36, 22, 0.72);
   --text-faint: rgba(24, 36, 22, 0.68);
-  --text-accent: #6c4a10;
-  --text-positive: #36582a;
+  --accent: #a67822;
+  --accent-strong: #7f5a15;
+  --tag-moss: #5d7f42;
+  --text-accent: var(--accent-strong);
+  --text-positive: var(--text-accent);
   --text-link: #6c4a10;
   --text-on-accent: #1d260f;
-  --gold: #a67822;
-  --gold-2: #7f5a15;
-  --moss: #587a3f;
-  --moss-2: #6f904f;
+  --gold: var(--accent);
+  --gold-2: var(--accent-strong);
+  --moss: var(--accent);
+  --moss-2: var(--accent-strong);
   --mint: #3f8272;
   --line: rgba(94, 72, 28, 0.22);
   --index-bg: #f4eddc;
@@ -128,11 +134,11 @@
   --panel-light-bg: rgba(255, 250, 236, 0.58);
   --shadow: 0 18px 45px rgba(63, 45, 18, 0.12);
   --shadow-heavy: 0 28px 70px rgba(63, 45, 18, 0.18);
-  --button-primary-bg: linear-gradient(180deg, #263b22, #142216);
-  --button-primary-bg-hover: linear-gradient(180deg, #30482a, #182719);
+  --button-primary-bg: linear-gradient(180deg, var(--accent), var(--accent-strong));
+  --button-primary-bg-hover: linear-gradient(180deg, #bd8b39, var(--accent));
   --button-primary-fg: #fff8e7;
-  --button-primary-border: rgba(24, 36, 22, 0.46);
-  --button-primary-shadow: 0 14px 28px rgba(24, 36, 22, 0.18);
+  --button-primary-border: rgba(var(--theme-gold-rgb), 0.42);
+  --button-primary-shadow: 0 14px 28px rgba(var(--theme-gold-rgb), 0.16);
   --button-secondary-bg: rgba(255, 250, 236, 0.62);
   --button-secondary-bg-hover: rgba(255, 250, 236, 0.82);
   --button-secondary-fg: #1a2817;
@@ -149,7 +155,7 @@
   --button-control-active-border: rgba(24, 36, 22, 0.34);
   --button-control-dot-bg: rgba(24, 36, 22, 0.09);
   --button-control-dot-active-bg: #fff8e7;
-  --button-control-accent-fg: #36582a;
+  --button-control-accent-fg: var(--text-accent);
 }
 
 [data-theme="light"],
@@ -168,14 +174,17 @@
   --text-muted: rgba(26, 31, 24, 0.68);
   --text-subtle: rgba(26, 31, 24, 0.58);
   --text-faint: rgba(26, 31, 24, 0.46);
-  --text-accent: #7a5a21;
-  --text-positive: #2e5c24;
+  --accent: #b8820d;
+  --accent-strong: #7a5a21;
+  --tag-moss: #5d7f42;
+  --text-accent: var(--accent-strong);
+  --text-positive: var(--text-accent);
   --text-link: #7a5a21;
   --text-on-accent: #fffaf1;
-  --gold: #b8820d;
-  --gold-2: #7a5a21;
-  --moss: #2e5c24;
-  --moss-2: #3d6d31;
+  --gold: var(--accent);
+  --gold-2: var(--accent-strong);
+  --moss: var(--accent);
+  --moss-2: var(--accent-strong);
   --mint: #3f8272;
   --line: rgba(122, 90, 33, 0.2);
   --index-bg: #f3ead8;
@@ -189,11 +198,11 @@
   --panel-light-bg: rgba(255, 250, 241, 0.62);
   --shadow: 0 4px 16px rgba(30, 28, 24, 0.08);
   --shadow-heavy: 0 18px 42px rgba(30, 28, 24, 0.13);
-  --button-primary-bg: linear-gradient(180deg, #2e5c24, #183318);
-  --button-primary-bg-hover: linear-gradient(180deg, #3a7130, #1f411d);
+  --button-primary-bg: linear-gradient(180deg, var(--accent), var(--accent-strong));
+  --button-primary-bg-hover: linear-gradient(180deg, #d09a2a, var(--accent));
   --button-primary-fg: #fffaf1;
-  --button-primary-border: rgba(46, 92, 36, 0.38);
-  --button-primary-shadow: 0 14px 28px rgba(46, 92, 36, 0.16);
+  --button-primary-border: rgba(var(--theme-gold-rgb), 0.38);
+  --button-primary-shadow: 0 14px 28px rgba(var(--theme-gold-rgb), 0.16);
   --button-secondary-bg: rgba(255, 250, 241, 0.72);
   --button-secondary-bg-hover: rgba(255, 250, 241, 0.92);
   --button-secondary-fg: #1a1f18;
@@ -210,7 +219,7 @@
   --button-control-active-border: rgba(122, 90, 33, 0.34);
   --button-control-dot-bg: rgba(122, 90, 33, 0.12);
   --button-control-dot-active-bg: #fffaf1;
-  --button-control-accent-fg: #2e5c24;
+  --button-control-accent-fg: var(--text-accent);
   --theme-bg-rgb: 243, 234, 216;
   --theme-bg-2-rgb: 234, 220, 195;
   --theme-panel-rgb: 255, 250, 241;
@@ -218,7 +227,7 @@
   --theme-border-rgb: 122, 90, 33;
   --theme-link-rgb: 122, 90, 33;
   --theme-gold-rgb: 184, 130, 13;
-  --theme-positive-rgb: 46, 92, 36;
+  --theme-positive-rgb: var(--theme-gold-rgb);
   --theme-screen-bg: #f3ead8;
   --theme-nav-bg: rgba(255, 250, 241, 0.88);
   --theme-nav-border: rgba(122, 90, 33, 0.18);
@@ -262,14 +271,17 @@
   --text-muted: rgba(29, 36, 48, 0.78);
   --text-subtle: rgba(29, 36, 48, 0.72);
   --text-faint: rgba(29, 36, 48, 0.62);
-  --text-accent: #293241;
-  --text-positive: #2f5b25;
+  --accent: #c07a20;
+  --accent-strong: #9a5f18;
+  --tag-moss: #5d7f42;
+  --text-accent: var(--accent);
+  --text-positive: var(--text-accent);
   --text-link: #293241;
   --text-on-accent: #ffffff;
-  --gold: #c07a20;
-  --gold-2: #293241;
-  --moss: #2f5b25;
-  --moss-2: #3e6a32;
+  --gold: var(--accent);
+  --gold-2: var(--accent-strong);
+  --moss: var(--accent);
+  --moss-2: var(--accent-strong);
   --mint: #3d7a71;
   --line: rgba(41, 50, 65, 0.18);
   --index-bg: #eef1f4;
@@ -283,11 +295,11 @@
   --panel-light-bg: rgba(255, 255, 255, 0.62);
   --shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
   --shadow-heavy: 0 16px 36px rgba(0, 0, 0, 0.11);
-  --button-primary-bg: linear-gradient(180deg, #293241, #1d2430);
-  --button-primary-bg-hover: linear-gradient(180deg, #344154, #232c3a);
+  --button-primary-bg: linear-gradient(180deg, var(--accent), var(--accent-strong));
+  --button-primary-bg-hover: linear-gradient(180deg, #d28b32, var(--accent));
   --button-primary-fg: #ffffff;
-  --button-primary-border: rgba(41, 50, 65, 0.34);
-  --button-primary-shadow: 0 14px 28px rgba(41, 50, 65, 0.14);
+  --button-primary-border: rgba(var(--theme-gold-rgb), 0.34);
+  --button-primary-shadow: 0 14px 28px rgba(var(--theme-gold-rgb), 0.14);
   --button-secondary-bg: rgba(255, 255, 255, 0.74);
   --button-secondary-bg-hover: rgba(255, 255, 255, 0.94);
   --button-secondary-fg: #1d2430;
@@ -312,7 +324,7 @@
   --theme-border-rgb: 41, 50, 65;
   --theme-link-rgb: 41, 50, 65;
   --theme-gold-rgb: 192, 122, 32;
-  --theme-positive-rgb: 47, 91, 37;
+  --theme-positive-rgb: var(--theme-gold-rgb);
   --theme-screen-bg: #eef1f4;
   --theme-nav-bg: rgba(255, 255, 255, 0.88);
   --theme-nav-border: rgba(41, 50, 65, 0.16);
@@ -1338,7 +1350,7 @@ h4,
 
 .tag.moss {
   background: rgba(125, 165, 91, 0.22);
-  color: #cff0a5;
+  color: var(--tag-moss);
 }
 
 .tag.paper {
@@ -2126,7 +2138,7 @@ img[data-preview-fallback] {
   position: relative;
   width: 22px;
   height: 22px;
-  border: 3px solid #9db89a;
+  border: 3px solid var(--text-accent);
   border-radius: 50%;
 }
 .search-glyph::after {
@@ -2137,7 +2149,7 @@ img[data-preview-fallback] {
   width: 13px;
   height: 3px;
   border-radius: 999px;
-  background: #9db89a;
+  background: var(--text-accent);
   transform: rotate(45deg);
 }
 .search-field strong { font-size: 15px; }
@@ -2609,7 +2621,7 @@ img[data-preview-fallback] {
 .camp-footer .tag.moss {
   border: 1px solid var(--index-line);
   background: var(--index-surface);
-  color: #9db89a;
+  color: var(--text-accent);
 }
 .paper-stage .tag.paper,
 .camp-footer .tag.paper {
@@ -2812,7 +2824,7 @@ img[data-preview-fallback] {
 .boss-orbit.two {
   left: 52px;
   bottom: 50px;
-  background: #9db89a;
+  background: var(--text-accent);
   box-shadow: 0 0 18px rgba(157, 184, 154, 0.42);
 }
 .boss-copy {
@@ -2839,7 +2851,7 @@ img[data-preview-fallback] {
 .boss-route span:first-child { border-left: 0; color: #ffd765; }
 .boss-route b {
   display: block;
-  color: #9db89a;
+  color: var(--text-accent);
   font-size: 11px;
   font-weight: 900;
 }
@@ -2937,7 +2949,7 @@ img[data-preview-fallback] {
   padding: 10px 12px;
 }
 .codex-route-list span {
-  color: #9db89a;
+  color: var(--text-accent);
   font-size: 12px;
   font-weight: 900;
 }
@@ -3037,7 +3049,7 @@ img[data-preview-fallback] {
 }
 .footer-kicker {
   display: block;
-  color: #9db89a;
+  color: var(--text-accent);
   font-size: 12px;
   font-weight: 900;
 }
@@ -3074,7 +3086,7 @@ img[data-preview-fallback] {
 .footer-proof span {
   display: block;
   margin-top: 8px;
-  color: #9db89a;
+  color: var(--text-accent);
   font-size: 12px;
   font-weight: 800;
 }
@@ -3127,7 +3139,7 @@ img[data-preview-fallback] {
 }
 .footer-contact em {
   display: block;
-  color: #9db89a;
+  color: var(--text-accent);
   font-size: 12px;
   font-style: normal;
   font-weight: 900;
@@ -3209,7 +3221,7 @@ img[data-preview-fallback] {
   padding: 22px 18px;
   background: rgba(244,234,208,0.025);
 }
-.section-label { margin: 0 0 14px; color: #9db89a; font-size: 12px; font-weight: 900; }
+.section-label { margin: 0 0 14px; color: var(--text-accent); font-size: 12px; font-weight: 900; }
 .filter-group + .filter-group {
   margin-top: 22px;
   padding-top: 20px;
@@ -3312,7 +3324,7 @@ img[data-preview-fallback] {
   width: 36px;
   height: 7px;
   border-radius: 999px;
-  background: #9db89a;
+  background: var(--text-accent);
   box-shadow: 42px 0 0 #d6b15a;
 }
 .item-grid {
@@ -3980,7 +3992,7 @@ img[data-preview-fallback] {
   width: 44px;
   height: 6px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #7da55b, #d6b15a);
+  background: linear-gradient(90deg, var(--accent), #d6b15a);
 }
 .article-card h3 { margin: 12px 0 0; font-size: 20px; line-height: 1.3; }
 .article-card p { color: rgba(244, 234, 208, 0.6); line-height: 1.65; }
@@ -4700,7 +4712,7 @@ img[data-preview-fallback] {
 }
 .signal-list b,
 .signal-list span { font-weight: 900; }
-.signal-list b { color: #9db89a; font-size: 12px; }
+.signal-list b { color: var(--text-accent); font-size: 12px; }
 .signal-list em {
   color: rgba(244, 234, 208, 0.56);
   font-size: 12px;
@@ -4810,7 +4822,7 @@ img[data-preview-fallback] {
 .effect-card span {
   display: block;
   margin-top: 18px;
-  color: #9db89a;
+  color: var(--text-accent);
   font-size: 12px;
   font-weight: 900;
 }
@@ -5043,7 +5055,7 @@ img[data-preview-fallback] {
   padding: 24px;
 }
 .about-grid span {
-  color: #9db89a;
+  color: var(--text-accent);
   font-size: 12px;
   font-weight: 900;
 }
@@ -5153,7 +5165,7 @@ img[data-preview-fallback] {
   color: var(--text-faint);
 }
 .search-input-shell em {
-  color: #9db89a;
+  color: var(--text-accent);
   font-size: 12px;
   font-style: normal;
   font-weight: 900;
@@ -5376,7 +5388,7 @@ img[data-preview-fallback] {
   position: absolute;
   right: 16px;
   bottom: 14px;
-  color: #9db89a;
+  color: var(--text-accent);
   font-style: normal;
   font-weight: 900;
 }
@@ -5544,13 +5556,13 @@ img[data-preview-fallback] {
   line-height: 1.55;
 }
 .boss-readiness em {
-  color: #9db89a;
+  color: var(--text-accent);
   font-style: normal;
   font-weight: 900;
 }
 .boss-phase span,
 .buff-signal span {
-  color: #9db89a;
+  color: var(--text-accent);
   font-size: 12px;
   font-weight: 900;
 }
@@ -5688,7 +5700,7 @@ img[data-preview-fallback] {
 
 .crafting-search em {
   margin-top: 6px;
-  color: #9db89a;
+  color: var(--text-accent);
   font-size: 12px;
   font-style: normal;
   font-weight: 900;
@@ -5755,7 +5767,7 @@ img[data-preview-fallback] {
   line-height: 1.5;
 }
 
-.material-row.done span { color: #9db89a; }
+.material-row.done span { color: var(--text-accent); }
 .material-row.missing span { color: #ffd765; }
 
 .recipe-canvas {
@@ -5802,7 +5814,7 @@ img[data-preview-fallback] {
 
 .recipe-node-card em {
   margin-top: 7px;
-  color: #9db89a;
+  color: var(--text-accent);
   font-size: 12px;
   font-style: normal;
   font-weight: 900;
@@ -5930,7 +5942,7 @@ img[data-preview-fallback] {
   position: absolute;
   right: 18px;
   bottom: 16px;
-  color: #9db89a;
+  color: var(--text-accent);
   font-size: 12px;
   font-style: normal;
   font-weight: 900;
@@ -6080,7 +6092,7 @@ img[data-preview-fallback] {
 
 .user-form-panel label span,
 .settings-panel label span {
-  color: #9db89a;
+  color: var(--text-accent);
   font-size: 12px;
   font-weight: 900;
 }
