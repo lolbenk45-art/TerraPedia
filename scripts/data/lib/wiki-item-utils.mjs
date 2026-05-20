@@ -305,6 +305,9 @@ export async function fetchWikiApiJson({
   if (!url) {
     throw new Error('url is required');
   }
+  if (process.env.NODE_ENV === 'test' && process.env.TERRAPEDIA_WIKI_MOCK_API_RESPONSE) {
+    return JSON.parse(fs.readFileSync(process.env.TERRAPEDIA_WIKI_MOCK_API_RESPONSE, 'utf8'));
+  }
   return wikiRequestGate.runJsonRequest(url, {
     method,
     headers,

@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -132,6 +133,40 @@ class ItemImportServiceImplTest {
 
         assertEquals(1, result.getErrors().size());
         verifyNoInteractions(itemMapper);
+    }
+
+    @Test
+    void importItemsDryRunReturnsPreviewRowsWithoutWritingItems() {
+        Category pickaxe = category(10L, "TOOL_PICKAXE");
+        Category drill = category(11L, "TOOL_DRILL");
+        Item existing = new Item();
+        existing.setId(99L);
+        existing.setInternalName("ExistingDrill");
+
+        when(categoryMapper.selectList(any(Wrapper.class))).thenReturn(List.of(pickaxe, drill));
+        when(itemMapper.selectOne(any(Wrapper.class))).thenReturn(null, null, existing);
+
+        ItemImportRequestDTO request = new ItemImportRequestDTO();
+        request.setItems(List.of(
+            item("Iron Pickaxe", "IronPickaxe", "PICKAXE"),
+            item("Existing Drill", "ExistingDrill", "PICKAXE"),
+            item("Broken", "Broken", "UNKNOWN_CATEGORY")
+        ));
+
+        var result = itemImportService.importItems(request, true);
+
+        assertEquals(3, result.getTotal());
+        assertEquals(1, result.getCreated());
+        assertEquals(1, result.getUpdated());
+        assertEquals(1, result.getSkipped());
+        assertEquals("Iron Pickaxe", result.getToBeCreated().get(0).getName());
+        assertEquals("new_item", result.getToBeCreated().get(0).getReason());
+        assertEquals("ExistingDrill", result.getToBeUpdated().get(0).getInternalName());
+        assertEquals("existing_item", result.getToBeUpdated().get(0).getReason());
+        assertEquals("Broken", result.getToBeSkipped().get(0).getInternalName());
+        assertEquals("categoryCode not found: UNKNOWN_CATEGORY", result.getToBeSkipped().get(0).getReason());
+        verify(itemMapper, never()).insert(any(Item.class));
+        verify(itemMapper, never()).updateById(any(Item.class));
     }
 
     private static Category category(Long id, String code) {

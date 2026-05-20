@@ -52,6 +52,12 @@ public class ItemImportServiceImpl implements ItemImportService {
         @CacheEvict(cacheNames = "stats:overview", allEntries = true)
     })
     public ItemImportResultDTO importItems(ItemImportRequestDTO request) {
+        return importItems(request, false);
+    }
+
+    @Override
+    @Transactional
+    public ItemImportResultDTO importItems(ItemImportRequestDTO request, boolean dryRun) {
         ItemImportResultDTO result = new ItemImportResultDTO();
         if (request == null) {
             result.getErrors().add("No request provided");
@@ -72,16 +78,22 @@ public class ItemImportServiceImpl implements ItemImportService {
         for (int index = 0; index < items.size(); index++) {
             NormalizedItemImportDTO payload = items.get(index);
             try {
-                importSingleItem(payload, Boolean.TRUE.equals(request.getOverwriteExisting()), categoriesByCode, result);
+                importSingleItem(payload, Boolean.TRUE.equals(request.getOverwriteExisting()), dryRun, categoriesByCode, result);
             } catch (IllegalArgumentException ex) {
                 String message = "Item[" + index + "] " + ex.getMessage();
                 result.getErrors().add(message);
                 result.setSkipped(result.getSkipped() + 1);
+                if (dryRun) {
+                    result.getToBeSkipped().add(preview(payload, ex.getMessage()));
+                }
             } catch (Exception ex) {
                 String message = "Item[" + index + "] import failed: " + ex.getMessage();
                 log.error(message, ex);
                 result.getErrors().add(message);
                 result.setSkipped(result.getSkipped() + 1);
+                if (dryRun) {
+                    result.getToBeSkipped().add(preview(payload, "import failed: " + ex.getMessage()));
+                }
             }
         }
 
@@ -91,6 +103,7 @@ public class ItemImportServiceImpl implements ItemImportService {
     private void importSingleItem(
         NormalizedItemImportDTO payload,
         boolean overwriteExisting,
+        boolean dryRun,
         Map<String, Category> categoriesByCode,
         ItemImportResultDTO result
     ) {
@@ -100,6 +113,11 @@ public class ItemImportServiceImpl implements ItemImportService {
         Item existing = findExistingItem(payload);
 
         if (existing == null) {
+            if (dryRun) {
+                result.setCreated(result.getCreated() + 1);
+                result.getToBeCreated().add(preview(payload, "new_item"));
+                return;
+            }
             Item created = new Item();
             applyPayload(created, payload, category);
             if (created.getStatus() == null) {
@@ -112,6 +130,15 @@ public class ItemImportServiceImpl implements ItemImportService {
 
         if (!overwriteExisting) {
             result.setSkipped(result.getSkipped() + 1);
+            if (dryRun) {
+                result.getToBeSkipped().add(preview(payload, "existing_item_overwrite_disabled"));
+            }
+            return;
+        }
+
+        if (dryRun) {
+            result.setUpdated(result.getUpdated() + 1);
+            result.getToBeUpdated().add(preview(payload, "existing_item"));
             return;
         }
 
@@ -268,5 +295,26 @@ public class ItemImportServiceImpl implements ItemImportService {
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private ItemImportResultDTO.ItemImportPreviewDTO preview(NormalizedItemImportDTO payload, String reason) {
+        return ItemImportResultDTO.ItemImportPreviewDTO.of(
+            payload == null ? null : blankToNull(payload.getName()),
+            payload == null ? null : resolvePreviewInternalName(payload),
+            reason
+        );
+    }
+
+    private String resolvePreviewInternalName(NormalizedItemImportDTO payload) {
+        if (payload == null) {
+            return null;
+        }
+        if (!isBlank(payload.getInternalName())) {
+            return payload.getInternalName().trim();
+        }
+        if (isBlank(payload.getName())) {
+            return null;
+        }
+        return resolveInternalName(payload);
     }
 }

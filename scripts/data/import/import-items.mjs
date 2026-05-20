@@ -6,6 +6,7 @@ import { resolveAdminAuth, resolveBackendApiBase } from '../../lib/local-runtime
 import { parseCliArgs, sharedDataPath } from '../lib/wiki-item-utils.mjs';
 
 const reportDir = sharedDataPath('reports', 'import');
+const dryRunReportDir = sharedDataPath('reports', 'dry-run');
 fs.mkdirSync(reportDir, { recursive: true });
 
 export async function importNormalizedItems({
@@ -13,6 +14,7 @@ export async function importNormalizedItems({
   importUrl = process.env.TERRAPEDIA_IMPORT_URL ?? `${resolveBackendApiBase()}/items/import`,
   source,
   overwriteExisting,
+  dryRun = false,
   token,
   authUrl,
   username,
@@ -21,8 +23,10 @@ export async function importNormalizedItems({
   const resolvedInput = path.resolve(process.cwd(), inputPath);
   const rawPayload = JSON.parse(fs.readFileSync(resolvedInput, 'utf8'));
   const payload = buildPayload(rawPayload, { source, overwriteExisting }, resolvedInput);
+  const isDryRun = normalizeBoolean(dryRun, false);
+  const effectiveImportUrl = buildImportUrl(importUrl, { dryRun: isDryRun });
   const auth = await resolveImportAuthorization({
-    importUrl,
+    importUrl: effectiveImportUrl,
     token,
     authUrl,
     username,
@@ -30,7 +34,8 @@ export async function importNormalizedItems({
   });
   const requestMeta = {
     input: resolvedInput,
-    importUrl,
+    importUrl: effectiveImportUrl,
+    dryRun: isDryRun,
     overwriteExisting: payload.overwriteExisting,
     source: payload.source ?? null,
     totalItems: Array.isArray(payload.items) ? payload.items.length : 0,
@@ -43,7 +48,7 @@ export async function importNormalizedItems({
   let parseError = null;
 
   try {
-    response = await fetch(importUrl, {
+    response = await fetch(effectiveImportUrl, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -52,15 +57,17 @@ export async function importNormalizedItems({
       body: JSON.stringify(payload)
     });
   } catch (error) {
-    const reportPath = writeReport({
+    const reportPath = writeImportReport(isDryRun, {
       ok: false,
       request: requestMeta,
       response: null,
       body: null,
-      transportError: error.message
+      transportError: error.message,
+      ...(isDryRun ? extractDryRunPreview(null) : {})
     });
     return {
       ok: false,
+      dryRun: isDryRun,
       reportPath,
       requestMeta,
       response: null,
@@ -78,7 +85,8 @@ export async function importNormalizedItems({
     body = null;
   }
 
-  const reportPath = writeReport({
+  const importErrors = Array.isArray(body?.data?.errors) ? body.data.errors : [];
+  const reportPath = writeImportReport(isDryRun, {
     ok: response.ok && body?.success !== false,
     request: requestMeta,
     response: {
@@ -87,13 +95,13 @@ export async function importNormalizedItems({
     },
     body,
     rawResponseText: parseError ? responseText : undefined,
-    parseError
+    parseError,
+    ...(isDryRun ? extractDryRunPreview(body) : {})
   });
-
-  const importErrors = Array.isArray(body?.data?.errors) ? body.data.errors : [];
 
   return {
     ok: response.ok && !parseError && body?.success !== false && importErrors.length === 0,
+    dryRun: isDryRun,
     reportPath,
     requestMeta,
     response,
@@ -156,6 +164,14 @@ export async function resolveImportAuthorization({
   };
 }
 
+function buildImportUrl(importUrl, { dryRun = false } = {}) {
+  const url = new URL(importUrl);
+  if (dryRun) {
+    url.searchParams.set('dryRun', 'true');
+  }
+  return url.toString();
+}
+
 export function deriveAuthUrl(importUrl) {
   const url = new URL(importUrl);
   if (url.pathname.endsWith('/items/import')) {
@@ -204,9 +220,31 @@ function normalizeBoolean(value, fallback) {
   throw new Error(`Invalid boolean value: ${value}`);
 }
 
+function writeImportReport(dryRun, report) {
+  return dryRun ? writeDryRunReport(report) : writeReport(report);
+}
+
 function writeReport(report) {
   const timestamp = new Date().toISOString().replaceAll(':', '-');
   const target = path.join(reportDir, `import-${timestamp}.json`);
+  fs.writeFileSync(target, JSON.stringify(report, null, 2));
+  return target;
+}
+
+function extractDryRunPreview(body) {
+  const data = body?.data ?? {};
+  return {
+    dryRun: true,
+    toBeCreated: Array.isArray(data.toBeCreated) ? data.toBeCreated : [],
+    toBeUpdated: Array.isArray(data.toBeUpdated) ? data.toBeUpdated : [],
+    toBeSkipped: Array.isArray(data.toBeSkipped) ? data.toBeSkipped : []
+  };
+}
+
+function writeDryRunReport(report) {
+  fs.mkdirSync(dryRunReportDir, { recursive: true });
+  const timestamp = new Date().toISOString().replaceAll(':', '-');
+  const target = path.join(dryRunReportDir, `import-dry-run-${timestamp}.json`);
   fs.writeFileSync(target, JSON.stringify(report, null, 2));
   return target;
 }
@@ -227,6 +265,7 @@ if (isDirectExecution()) {
     importUrl: cliOptions.url ?? process.env.TERRAPEDIA_IMPORT_URL ?? `${resolveBackendApiBase()}/items/import`,
     source: cliOptions.source,
     overwriteExisting: cliOptions['overwrite-existing'] ?? cliOptions.overwriteExisting,
+    dryRun: cliOptions['dry-run'] ?? cliOptions.dryRun,
     token: cliOptions.token,
     authUrl: cliOptions['auth-url'] ?? cliOptions.authUrl,
     username: cliOptions.username,
@@ -235,6 +274,7 @@ if (isDirectExecution()) {
 
   console.log(`Import URL: ${result.requestMeta.importUrl}`);
   console.log(`Payload: ${result.requestMeta.input}`);
+  console.log(`Dry run: ${result.dryRun === true}`);
   console.log(`HTTP Status: ${result.response?.status ?? 'transport-error'}`);
   console.log(`Report: ${result.reportPath}`);
   if (result.body?.data) {

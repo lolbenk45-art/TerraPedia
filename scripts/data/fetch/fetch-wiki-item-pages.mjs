@@ -34,6 +34,7 @@ const offset = numericOption(options.offset, 0);
 const concurrency = Math.max(1, numericOption(options.concurrency, 1));
 const onlyMissing = booleanOption(options['only-missing'] ?? options.onlyMissing, false);
 const onlyChanged = booleanOption(options['only-changed'] ?? options.onlyChanged, true);
+const probeOnly = booleanOption(options['probe-only'] ?? options.probeOnly, false);
 const withRecipes = booleanOption(options['with-recipes'] ?? options.withRecipes, false);
 const delayMs = Math.max(0, numericOption(options['delay-ms'] ?? options.delayMs, 5_000));
 const jitterMs = Math.max(0, numericOption(options['jitter-ms'] ?? options.jitterMs, 2_000));
@@ -71,6 +72,7 @@ const batchCandidateCount = selectedItems.length;
 
 let skippedExisting = 0;
 let skippedUnchanged = 0;
+let revisionMap = new Map();
 if (onlyMissing) {
   const beforeCount = selectedItems.length;
   selectedItems = selectedItems.filter((item) => {
@@ -81,8 +83,11 @@ if (onlyMissing) {
   skippedExisting = beforeCount - selectedItems.length;
 }
 
+if ((onlyChanged || probeOnly) && selectedItems.length > 0) {
+  revisionMap = await loadRemoteRevisionMap(selectedItems);
+}
+
 if (onlyChanged && selectedItems.length > 0) {
-  const revisionMap = await loadRemoteRevisionMap(selectedItems);
   const beforeCount = selectedItems.length;
   selectedItems = selectedItems.filter((item) => {
     const existingRevision = readExistingLatestRevision(item.internalName);
@@ -98,6 +103,47 @@ if (onlyChanged && selectedItems.length > 0) {
 const timestamp = new Date().toISOString().replaceAll(':', '-');
 const errors = [];
 const successes = [];
+
+if (probeOnly) {
+  const probeItems = selectedItems.map((item) => {
+    const existingRevision = readExistingLatestRevision(item.internalName);
+    const remoteRevision = revisionMap.get(normalizeKey(item.name)) ?? null;
+    return {
+      name: item.name,
+      internalName: item.internalName,
+      existingRevision,
+      remoteRevision,
+      changed: remoteRevision == null || existingRevision !== remoteRevision,
+      reason: remoteRevision == null ? 'missing_remote_revision' : existingRevision === remoteRevision ? 'unchanged' : 'source_changed'
+    };
+  });
+  const reportPath = path.join(reportDir, `fetch-item-pages-probe-${timestamp}.json`);
+  writeJson(reportPath, {
+    inputPath,
+    rawDir,
+    probeOnly: true,
+    selectedCount: selectedItems.length,
+    changedCount: probeItems.filter((item) => item.changed).length,
+    skippedExisting,
+    skippedUnchanged,
+    checkedAt: new Date().toISOString(),
+    onlyChanged,
+    items: probeItems
+  });
+  writeFetchProgress({
+    status: 'completed',
+    phase: 'probe',
+    message: `finished item page probe; changed=${probeItems.filter((item) => item.changed).length}; skipped unchanged=${skippedUnchanged}`,
+    current: selectedItems.length,
+    total: selectedItems.length
+  });
+  console.log(`Input: ${inputPath}`);
+  console.log('Probe only: true');
+  console.log(`Selected items: ${selectedItems.length}`);
+  console.log(`Changed pages: ${probeItems.filter((item) => item.changed).length}`);
+  console.log(`Report: ${reportPath}`);
+  process.exit(0);
+}
 
 writeFetchProgress({
   status: 'running',
@@ -143,6 +189,7 @@ writeJson(reportPath, {
   inputPath,
   rawDir,
   selectedCount: selectedItems.length,
+  probeOnly: false,
   allowFullCorpus,
   skippedExisting,
   skippedUnchanged,
