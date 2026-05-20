@@ -867,16 +867,43 @@ for (const path of scanFiles) {
       'const defaultCatalogPageSize = 24',
       'const pageSizeOptions = [12, 24, 48, 96]',
       'pageSize: selectedPageSize.value !== defaultCatalogPageSize',
-      'const edgeWindow = 1',
-      'const sideWindow = 2',
+      'const catalogCategoryGroups',
+      'const quickFilters = catalogCategoryGroups.flatMap',
+      'const selectedCategoryIds = computed',
+      'categoryIds.length === 1 ? categoryIds[0] : undefined',
+      'const pageWindowItems = computed',
+      'matchCategoryFilter',
       'catalogWallTopRef',
       'scrollIntoView',
-      'catalog-page-jump-form',
+      'catalog-category-column',
+      'catalog-category-drawer',
+      'catalog-category-group',
+      'catalog-wall-content',
+      'catalog-wall-board',
+      'catalog-density-picker',
+      'catalog-page-dock',
+      'catalog-dock-jump-form',
       'goToJumpPage',
     ]) {
       if (!content.includes(marker)) {
-        violations.push(`${path}: items pagination density must use compact defaults, top-scroll paging, and jump controls via marker ${marker}`)
+        violations.push(`${path}: items page must use the category drawer layout, compact defaults, top-scroll paging, and light dock controls via marker ${marker}`)
       }
+    }
+
+    if (!content.includes('武器') || !content.includes('照明') || !content.includes('机关') || !content.includes('Boss 掉落')) {
+      violations.push(`${path}: category drawer must include redundant category coverage for future category API mapping`)
+    }
+
+    if (!content.includes('v-for="group in catalogCategoryGroups"') || !content.includes('v-for="filter in group.filters"')) {
+      violations.push(`${path}: category drawer must render grouped redundant categories from catalogCategoryGroups`)
+    }
+
+    if (!content.includes('pageWindowItems') || !content.includes('@click="goToPage(pageItem)"')) {
+      violations.push(`${path}: light page dock must render compact page buttons wired to goToPage`)
+    }
+
+    if (!content.includes('@submit.prevent="goToJumpPage"') || !content.includes('v-for="pageSize in pageSizeOptions"')) {
+      violations.push(`${path}: light page dock and drawer must keep jump-page and page-size controls wired`)
     }
 
     for (const marker of [
@@ -897,8 +924,12 @@ for (const path of scanFiles) {
       violations.push(`${path}: items page must show loading skeleton while the initial API page is pending instead of rendering fallback sample data`)
     }
 
-    if (!content.includes('catalog-density-rail-bottom')) {
-      violations.push(`${path}: items pagination and page-size controls must sit below the icon wall`)
+    if (content.includes('catalog-density-rail-bottom')) {
+      violations.push(`${path}: items page must replace the bulky bottom density rail with the light page dock`)
+    }
+
+    if (content.includes('nth-of-type(n + 7)')) {
+      violations.push(`${path}: items page must not hide mobile page buttons with nth-of-type; compact pagination belongs in computed state`)
     }
 
     if (!content.includes(':class="[item.visualTone, { active: focusedItem?.id === item.id }]"')) {
@@ -938,17 +969,33 @@ for (const path of scanFiles) {
       '.catalog-wall-cell.tone-3',
       '.catalog-hover-preview',
       '.catalog-wall-cell:hover .catalog-hover-preview',
-      '.catalog-density-rail-bottom',
+      '.catalog-wall-content',
+      '.catalog-category-column',
+      '.catalog-category-drawer',
+      '.catalog-category-group',
+      '.catalog-category-chip',
+      '.catalog-density-picker',
+      '.catalog-wall-board',
+      '.catalog-page-dock',
+      '.catalog-page-dock-core',
+      '.catalog-dock-jump-form',
       '.catalog-density-rail span::before',
       'object-fit: contain',
       '.catalog-loading-skeleton',
       'position: sticky',
-      '.catalog-page-jump-form',
       '@keyframes catalogPixelPulse',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: catalog wall must reserve icon/text space and render a dedicated pixel loading state via marker ${marker}`)
       }
+    }
+
+    if (content.includes('.catalog-density-rail-bottom')) {
+      violations.push(`${path}: catalog wall CSS must replace the bulky sticky density rail with the light page dock`)
+    }
+
+    if (content.includes('nth-of-type(n + 7)')) {
+      violations.push(`${path}: catalog dock CSS must not hide mobile page buttons with nth-of-type because non-page buttons affect the count`)
     }
   }
 
