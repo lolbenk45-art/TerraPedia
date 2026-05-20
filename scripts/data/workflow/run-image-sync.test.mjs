@@ -58,7 +58,8 @@ test('npc and projectile items-prefix URLs are not treated as already managed', 
 
 test('armor_set_images scope dry-run counts unmanaged raw armor set images without mutating file', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-run-image-sync-armor-'));
-  const rawDir = path.join(tempDir, 'data', 'terraPedia', 'raw', 'wiki');
+  const sharedDataRoot = path.join(tempDir, 'shared-data');
+  const rawDir = path.join(sharedDataRoot, 'raw', 'wiki');
   fs.mkdirSync(rawDir, { recursive: true });
   fs.mkdirSync(path.join(tempDir, 'scripts', 'dev', 'config'), { recursive: true });
   fs.writeFileSync(
@@ -90,6 +91,10 @@ test('armor_set_images scope dry-run counts unmanaged raw armor set images witho
   const result = spawnSync(process.execPath, [scriptPath, '--apply=false', '--scopes=armor_set_images'], {
     cwd: tempDir,
     encoding: 'utf8',
+    env: {
+      ...process.env,
+      TERRAPEDIA_SHARED_DATA_ROOT: sharedDataRoot,
+    },
   });
 
   assert.equal(result.status, 0, result.stderr || result.stdout);

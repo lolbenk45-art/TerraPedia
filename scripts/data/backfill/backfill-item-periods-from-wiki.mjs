@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
+import { fetchWikiUrlText } from '../lib/wiki-item-utils.mjs';
+import { getProjectRoot, resolveSharedDataRoot } from '../lib/project-root.mjs';
 
 const require = createRequire(import.meta.url);
 const mysql = require('mysql2/promise');
@@ -30,12 +32,12 @@ const db = {
 
 assertPrimaryDb(db.database, apply, allowNonPrimaryDb);
 
-const repoRoot = process.cwd();
+const repoRoot = getProjectRoot();
 const itemPagesPath = path.join(repoRoot, 'data', 'standardized', 'item_pages.standardized.json');
 const standardizedItemsPath = path.join(repoRoot, 'data', 'standardized', 'items.standardized.json');
 const rawItemPagesDirCandidates = [
-  path.resolve(repoRoot, '..', 'terraPedia', 'data', 'raw', 'wiki', 'item-pages'),
-  path.resolve(repoRoot, '..', '..', 'data', 'terraPedia', 'raw', 'wiki', 'item-pages'),
+  resolveSharedDataRoot('raw', 'wiki', 'item-pages'),
+  path.join(repoRoot, 'data', 'raw', 'wiki', 'item-pages'),
 ];
 
 const rawItemPagesDir = rawItemPagesDirCandidates.find((candidate) => fs.existsSync(candidate));
@@ -292,13 +294,15 @@ function classifyUsingFetchedTarget(html, pageTitle) {
 async function fetchWikiPageHtml(title, targetDelayMs) {
   await sleep(targetDelayMs);
   const url = `https://terraria.wiki.gg/wiki/${encodeURIComponent(String(title).replace(/ /g, '_'))}`;
-  const response = await fetch(url, {
-    headers: { 'user-agent': 'Mozilla/5.0 TerraPedia-period-backfill/1.0' },
-  });
-  if (!response.ok) {
+  try {
+    return await fetchWikiUrlText({
+      url,
+      profile: 'page',
+      sourceKey: `item-period:${title}`
+    });
+  } catch {
     return null;
   }
-  return await response.text();
 }
 
 function extractLeadText(wikitext) {
@@ -359,9 +363,11 @@ function matchesBatch(row, { partitionCount, partitionIndex, minId, maxId }) {
 function loadRawPage(sourceFile, internalName) {
   const candidates = [];
   if (sourceFile) {
-    const normalized = String(sourceFile).replace(/^terraPedia[\\/]/i, '');
-    candidates.push(path.resolve(path.dirname(rawItemPagesDir), '..', normalized.replace(/^data[\\/]/i, '')));
-    candidates.push(path.resolve(path.dirname(rawItemPagesDir), '..', '..', normalized));
+    const normalized = String(sourceFile)
+      .replace(/^terraPedia[\\/]data[\\/]raw[\\/]wiki[\\/]item-pages[\\/]/i, '')
+      .replace(/^data[\\/]raw[\\/]wiki[\\/]item-pages[\\/]/i, '')
+      .replace(/^raw[\\/]wiki[\\/]item-pages[\\/]/i, '');
+    candidates.push(path.join(rawItemPagesDir, normalized));
   }
   const fallbackName = `${String(internalName || '').trim().toLowerCase()}.latest.json`;
   candidates.push(path.join(rawItemPagesDir, fallbackName));
@@ -457,7 +463,7 @@ async function loadIteminfoModuleData() {
   const helper = await import(helperPath);
   const rawPathCandidates = [
     path.join(repoRoot, 'data', 'raw', 'wiki', 'module__iteminfo__data.latest.json'),
-    path.resolve(repoRoot, '..', 'data', 'terraPedia', 'raw', 'wiki', 'module__iteminfo__data.latest.json'),
+    resolveSharedDataRoot('raw', 'wiki', 'module__iteminfo__data.latest.json'),
   ];
   const rawPath = rawPathCandidates.find((candidate) => fs.existsSync(candidate));
   if (!rawPath) {

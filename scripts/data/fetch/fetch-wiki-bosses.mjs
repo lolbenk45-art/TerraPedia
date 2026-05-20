@@ -9,7 +9,6 @@ import { getProjectRoot } from '../lib/project-root.mjs';
 const repoRoot = getProjectRoot();
 
 const API_URL = 'https://terraria.wiki.gg/api.php';
-const USER_AGENT = 'TerraPedia-bosses/1.0';
 const generatedAt = new Date().toISOString();
 const dateTag = generatedAt.slice(0, 10);
 
@@ -313,4 +312,3 @@ function parseArgs(argv) {
 function toRepoRelative(filePath) {
   return path.relative(repoRoot, filePath).replaceAll('\\', '/');
 }
-

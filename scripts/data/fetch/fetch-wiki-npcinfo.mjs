@@ -7,6 +7,7 @@ import {
   parseCliArgs,
   parseNpcinfoModulePayload,
   sharedDataPath,
+  shouldKeepSnapshot,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
 
@@ -16,6 +17,7 @@ const options = parseCliArgs(process.argv.slice(2));
 const moduleTitle = options.module ?? DEFAULT_MODULE_TITLE;
 const rawDir = path.resolve(process.cwd(), options['raw-dir'] ?? sharedDataPath('raw', 'wiki'));
 const reportDir = sharedDataPath('reports', 'fetch');
+const keepSnapshot = shouldKeepSnapshot(options);
 
 ensureDir(rawDir);
 ensureDir(reportDir);
@@ -52,10 +54,14 @@ const parsedPayload = {
 };
 
 writeJson(latestJsonPath, result);
-writeJson(snapshotJsonPath, result);
+if (keepSnapshot) {
+  writeJson(snapshotJsonPath, result);
+}
 fs.writeFileSync(latestLuaPath, result.moduleContent);
 writeJson(latestParsedPath, parsedPayload);
-writeJson(snapshotParsedPath, parsedPayload);
+if (keepSnapshot) {
+  writeJson(snapshotParsedPath, parsedPayload);
+}
 
 const friendlyCount = npcs.filter((npc) => npc.friendly === true || npc.friendly === 1).length;
 const townNpcCount = npcs.filter((npc) => npc.townNPC === true || npc.townNPC === 1).length;
@@ -77,8 +83,8 @@ writeJson(reportPath, {
   latestJsonPath,
   latestLuaPath,
   latestParsedPath,
-  snapshotJsonPath,
-  snapshotParsedPath
+  snapshotJsonPath: keepSnapshot ? snapshotJsonPath : null,
+  snapshotParsedPath: keepSnapshot ? snapshotParsedPath : null
 });
 
 console.log(`Fetched module: ${result.pageTitle}`);

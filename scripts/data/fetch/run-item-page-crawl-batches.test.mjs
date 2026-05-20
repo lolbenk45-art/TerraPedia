@@ -56,8 +56,6 @@ test('buildFetchArgs forwards safe crawl defaults and batch identity', () => {
     concurrency: 1,
     onlyChanged: false,
     withRecipes: true,
-    delayMs: 5000,
-    jitterMs: 2000,
     maxAttempts: 8,
     progressPath: 'data/generated/wiki-sync-progress.latest.json'
   });
@@ -69,8 +67,6 @@ test('buildFetchArgs forwards safe crawl defaults and batch identity', () => {
     '--concurrency=1',
     '--only-changed=false',
     '--with-recipes=true',
-    '--delay-ms=5000',
-    '--jitter-ms=2000',
     '--max-attempts=8',
     '--progress-path=data/generated/wiki-sync-progress.latest.json'
   ]);

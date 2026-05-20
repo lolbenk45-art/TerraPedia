@@ -7,6 +7,8 @@ import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
@@ -24,6 +26,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class CrawlerMonitorServiceImplTest {
 
@@ -46,7 +50,7 @@ class CrawlerMonitorServiceImplTest {
 
     @Test
     void shouldDeclareSpringInjectionConstructorWhenTestConstructorAlsoExists() throws Exception {
-        Constructor<CrawlerMonitorServiceImpl> constructor = CrawlerMonitorServiceImpl.class.getConstructor(ObjectMapper.class);
+        Constructor<CrawlerMonitorServiceImpl> constructor = CrawlerMonitorServiceImpl.class.getConstructor(ObjectMapper.class, StringRedisTemplate.class);
 
         assertTrue(constructor.isAnnotationPresent(Autowired.class));
     }
@@ -1099,6 +1103,313 @@ class CrawlerMonitorServiceImplTest {
         assertEquals(388, buffRefresh.getCurrent());
         assertEquals(388, buffRefresh.getTotal());
         assertTrue(buffRefresh.getProgressPath().replace('\\', '/').endsWith("data/terraPedia/generated/fetch-wiki-buffs-progress.latest.json"));
+    }
+
+    @Test
+    void shouldExposeStaleRedisCrawlerHeartbeats() {
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        @SuppressWarnings("unchecked")
+        ValueOperations<String, String> valueOperations = mock(ValueOperations.class);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("terrapedia:crawler:items:heartbeat")).thenReturn("""
+            {
+              "entity": "items",
+              "status": "running",
+              "timestamp": "2026-05-20T04:25:00Z"
+            }
+            """);
+        when(valueOperations.get("terrapedia:crawler:buffs:heartbeat")).thenReturn("""
+            {
+              "entity": "buffs",
+              "status": "completed",
+              "timestamp": "2026-05-20T04:59:00Z"
+            }
+            """);
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-05-20T05:00:00Z"), ZoneOffset.UTC),
+            redisTemplate
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+
+        assertEquals(1, overview.getStaleHeartbeats().size());
+        assertEquals("items", overview.getStaleHeartbeats().get(0));
+        assertEquals(1_800_000L, overview.getHeartbeatStaleAfterMs());
+    }
+
+    @Test
+    void shouldReadRedisCrawlerHeartbeatStaleThresholdFromAlertConfig() throws IOException {
+        writeJson(refreshDir.resolve("alert-config.json"), Map.of(
+            "heartbeatStaleAfterSeconds", 1200
+        ));
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        @SuppressWarnings("unchecked")
+        ValueOperations<String, String> valueOperations = mock(ValueOperations.class);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("terrapedia:crawler:items:heartbeat")).thenReturn("""
+            {
+              "entity": "items",
+              "status": "running",
+              "timestamp": "2026-05-20T04:35:00Z"
+            }
+            """);
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-05-20T05:00:00Z"), ZoneOffset.UTC),
+            redisTemplate
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+
+        assertEquals(1_200_000L, overview.getHeartbeatStaleAfterMs());
+        assertEquals(List.of("items"), overview.getStaleHeartbeats());
+    }
+
+    @Test
+    void shouldPreferRedisRuntimeStateWhenMonitorFilesAreMissing() throws Exception {
+        Path outputPath = historyDir.resolve("backend-data-refresh-2026-05-20T05-00-00-000Z.json");
+        Path summaryPath = historyDir.resolve("backend-data-refresh-2026-05-20T05-00-00-000Z.summary.json");
+        Path missingChildStatusPath = historyDir.resolve("backend-data-refresh-2026-05-20T05-00-00-000Z.runtime/wiki-core-refresh.child-status.json");
+        writeJson(outputPath, Map.of(
+            "generatedAt", "2026-05-20T05:00:00Z",
+            "totalActions", 1,
+            "completedActions", 0,
+            "failedActions", 0,
+            "runningActions", 1,
+            "pendingActions", 0,
+            "timedOutActions", 0,
+            "actions", List.of(Map.ofEntries(
+                Map.entry("id", "wiki-core-refresh"),
+                Map.entry("runner", "node"),
+                Map.entry("status", "running"),
+                Map.entry("childStatusPath", missingChildStatusPath.toString())
+            ))
+        ));
+        writeJson(summaryPath, Map.of(
+            "generatedAt", "2026-05-20T05:00:00Z",
+            "outputPath", outputPath.toString(),
+            "lastActionId", "wiki-core-refresh",
+            "totalActions", 1,
+            "completedActions", 0,
+            "failedActions", 0,
+            "runningActions", 1,
+            "pendingActions", 0,
+            "timedOutActions", 0,
+            "totalDurationMs", 1000
+        ));
+
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        @SuppressWarnings("unchecked")
+        ValueOperations<String, String> valueOperations = mock(ValueOperations.class);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("terrapedia:crawler:backend-refresh:daemon")).thenReturn("""
+            {
+              "status": "running",
+              "generatedAt": "2026-05-20T05:00:10Z",
+              "lastOutputPath": "%s"
+            }
+            """.formatted(outputPath));
+        when(valueOperations.get("terrapedia:crawler:backend-refresh:scheduler")).thenReturn("""
+            {
+              "status": "running",
+              "generatedAt": "2026-05-20T05:00:11Z",
+              "lastOutputPath": "%s",
+              "lastSummaryPath": "%s"
+            }
+            """.formatted(outputPath, summaryPath));
+        when(valueOperations.get("terrapedia:crawler:backend-refresh:lock")).thenReturn("""
+            {
+              "pid": 1200,
+              "startedAt": "2026-05-20T05:00:00Z",
+              "trigger": "scheduled"
+            }
+            """);
+        when(valueOperations.get("terrapedia:crawler:item-pages-refresh:progress")).thenReturn("""
+            {
+              "actionId": "item-pages-refresh",
+              "status": "running",
+              "message": "fetching 25/100 item pages",
+              "current": 25,
+              "total": 100,
+              "lastHeartbeatAt": "2026-05-20T05:00:15Z",
+              "generatedAt": "2026-05-20T05:00:15Z"
+            }
+            """);
+        when(valueOperations.get("terrapedia:crawler:backend-refresh:action:wiki-core-refresh:progress")).thenReturn("""
+            {
+              "actionId": "wiki-core-refresh",
+              "status": "running",
+              "phase": "apply",
+              "message": "running wiki action 4 of 10",
+              "current": 4,
+              "total": 10,
+              "lastHeartbeatAt": "2026-05-20T05:00:20Z",
+              "generatedAt": "2026-05-20T05:00:20Z"
+            }
+            """);
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-05-20T05:01:00Z"), ZoneOffset.UTC),
+            redisTemplate
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+
+        assertEquals("running", overview.getDaemon().getPayload().get("status"));
+        assertEquals("redis://terrapedia:crawler:backend-refresh:daemon", overview.getDaemon().getPath());
+        assertEquals("running", overview.getScheduler().getPayload().get("status"));
+        assertTrue(overview.getLock().isFound());
+        assertEquals("redis://terrapedia:crawler:backend-refresh:lock", overview.getLock().getPath());
+        assertEquals("reports/backend-refresh/history/backend-data-refresh-2026-05-20T05-00-00-000Z.json", overview.getLatestRun().getPath());
+        assertEquals(4, overview.getLatestRun().getActions().get(0).getCurrent());
+        assertEquals("running wiki action 4 of 10", overview.getLatestRun().getActions().get(0).getMessage());
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO itemRefresh = taskById(overview.getRegisteredTasks(), "item-pages-refresh");
+        assertEquals("running", itemRefresh.getStatus());
+        assertEquals("redis://terrapedia:crawler:item-pages-refresh:progress", itemRefresh.getProgressPath());
+        assertEquals(25, itemRefresh.getCurrent());
+        assertEquals(100, itemRefresh.getTotal());
+    }
+
+    @Test
+    void shouldNotFallBackToRuntimeFilesWhenRedisTemplateIsConfigured() throws Exception {
+        writeJson(refreshDir.resolve("backend-refresh.lock.json"), Map.of("status", "locked"));
+        writeJson(repoRoot.resolve("data/generated/wiki-sync-progress.latest.json"), Map.of(
+            "actionId", "item-pages-refresh",
+            "status", "running",
+            "current", 50,
+            "total", 100,
+            "lastHeartbeatAt", "2026-05-20T05:00:00Z",
+            "generatedAt", "2026-05-20T05:00:00Z"
+        ));
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        @SuppressWarnings("unchecked")
+        ValueOperations<String, String> valueOperations = mock(ValueOperations.class);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-05-20T05:01:00Z"), ZoneOffset.UTC),
+            redisTemplate
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+
+        assertFalse(overview.getLock().isFound());
+        assertEquals("redis://terrapedia:crawler:backend-refresh:lock", overview.getLock().getPath());
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO itemRefresh = taskById(overview.getRegisteredTasks(), "item-pages-refresh");
+        assertEquals("missing", itemRefresh.getStatus());
+        assertEquals("redis://terrapedia:crawler:item-pages-refresh:progress", itemRefresh.getProgressPath());
+    }
+
+    @Test
+    void shouldNotFallBackToBackendActionChildStatusFileWhenRedisTemplateIsConfigured() throws Exception {
+        Path outputPath = historyDir.resolve("backend-data-refresh-2026-05-15T08-00-00-000Z.json");
+        Path summaryPath = historyDir.resolve("backend-data-refresh-2026-05-15T08-00-00-000Z.summary.json");
+        Path childStatusPath = historyDir.resolve("backend-data-refresh-2026-05-15T08-00-00-000Z.runtime/wiki-core-refresh.child-status.json");
+        writeJson(outputPath, Map.of(
+            "generatedAt", "2026-05-15T08:00:00Z",
+            "totalActions", 1,
+            "completedActions", 0,
+            "failedActions", 0,
+            "runningActions", 1,
+            "pendingActions", 0,
+            "timedOutActions", 0,
+            "actions", List.of(Map.ofEntries(
+                Map.entry("id", "wiki-core-refresh"),
+                Map.entry("runner", "node"),
+                Map.entry("status", "running"),
+                Map.entry("current", 1),
+                Map.entry("total", 5),
+                Map.entry("childStatusPath", childStatusPath.toString()),
+                Map.entry("updatedAt", "2026-05-15T08:00:20Z")
+            ))
+        ));
+        writeJson(summaryPath, Map.of(
+            "generatedAt", "2026-05-15T08:00:00Z",
+            "outputPath", outputPath.toString(),
+            "lastActionId", "wiki-core-refresh",
+            "totalActions", 1,
+            "completedActions", 0,
+            "failedActions", 0,
+            "runningActions", 1,
+            "pendingActions", 0,
+            "timedOutActions", 0
+        ));
+        writeJson(childStatusPath, Map.ofEntries(
+            Map.entry("actionId", "wiki-core-refresh"),
+            Map.entry("status", "running"),
+            Map.entry("message", "legacy file progress should be ignored"),
+            Map.entry("current", 4),
+            Map.entry("total", 5),
+            Map.entry("generatedAt", "2026-05-15T08:00:30Z"),
+            Map.entry("lastHeartbeatAt", "2026-05-15T08:00:30Z")
+        ));
+
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        @SuppressWarnings("unchecked")
+        ValueOperations<String, String> valueOperations = mock(ValueOperations.class);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("terrapedia:crawler:backend-refresh:scheduler")).thenReturn("""
+            {
+              "status": "sleeping",
+              "generatedAt": "2026-05-15T08:00:00Z",
+              "lastOutputPath": "%s",
+              "lastSummaryPath": "%s"
+            }
+            """.formatted(outputPath, summaryPath));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-05-15T08:01:00Z"), ZoneOffset.UTC),
+            redisTemplate
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+        CrawlerMonitorOverviewDTO.MonitorActionDTO action = overview.getLatestRun().getActions().get(0);
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = taskById(overview.getRegisteredTasks(), "wiki-core-refresh");
+
+        assertEquals(1, action.getCurrent());
+        assertEquals("redis://terrapedia:crawler:backend-refresh:action:wiki-core-refresh:progress", task.getProgressPath());
+        assertFalse(task.isProgressFound());
+        assertFalse(task.isProgressReadable());
+        assertEquals("running", task.getStatus());
+        assertEquals("backend refresh action", task.getQueueState());
+    }
+
+    @Test
+    void shouldIgnoreLegacyRuntimeFileModifiedTimesWhenRedisTemplateIsConfigured() throws Exception {
+        Path daemonPath = refreshDir.resolve("backend-refresh-daemon.heartbeat.json");
+        Path schedulerPath = refreshDir.resolve("backend-refresh-scheduler.latest.json");
+        writeJson(daemonPath, Map.of("status", "running", "generatedAt", "2026-05-20T05:00:00Z"));
+        writeJson(schedulerPath, Map.of("status", "sleeping", "generatedAt", "2026-05-20T05:00:00Z"));
+        Files.setLastModifiedTime(daemonPath, FileTime.from(Instant.parse("2026-05-20T05:00:00Z")));
+        Files.setLastModifiedTime(schedulerPath, FileTime.from(Instant.parse("2026-05-20T05:00:00Z")));
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        @SuppressWarnings("unchecked")
+        ValueOperations<String, String> valueOperations = mock(ValueOperations.class);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-05-20T05:01:00Z"), ZoneOffset.UTC),
+            redisTemplate
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+
+        assertTrue(overview.isRefreshStale());
+        assertEquals("backend-refresh monitor files are missing or unreadable.", overview.getRefreshStaleReason());
     }
 
     private void writeJson(Path path, Map<String, Object> payload) throws IOException {

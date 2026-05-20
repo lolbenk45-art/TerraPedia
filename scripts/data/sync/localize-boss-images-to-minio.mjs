@@ -45,7 +45,6 @@ const uploader = apply
       adminUsername,
       adminPassword,
       managedUrlPrefixes,
-      userAgent: 'TerraPedia-boss-image-localize/1.0',
     })
   : null;
 const connection = await mysql.createConnection(db);

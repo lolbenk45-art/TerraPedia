@@ -10,6 +10,7 @@ import {
   fetchWikiImageInfo,
   parseCliArgs,
   sharedDataPath,
+  shouldKeepSnapshot,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
 
@@ -178,8 +179,7 @@ function readArmorSets(filePath) {
 function defaultArmorSetInputPath() {
   const candidates = [
     sharedDataPath('standardized', 'armor_sets.standardized.json'),
-    path.resolve(process.cwd(), 'data', 'standardized', 'armor_sets.standardized.json'),
-    path.resolve(process.cwd(), '..', 'data', 'terraPedia', 'standardized', 'armor_sets.standardized.json')
+    path.resolve(process.cwd(), 'data', 'standardized', 'armor_sets.standardized.json')
   ];
   return candidates.find((candidate) => fs.existsSync(candidate)) ?? candidates[0];
 }
@@ -210,6 +210,7 @@ async function main(argv = process.argv.slice(2)) {
   const rawDir = path.resolve(process.cwd(), options['raw-dir'] ?? sharedDataPath('raw', 'wiki'));
   const reportDir = path.resolve(process.cwd(), options['report-dir'] ?? sharedDataPath('reports', 'fetch'));
   const limit = Number(options.limit ?? 0);
+  const keepSnapshot = shouldKeepSnapshot(options);
 
   ensureDir(rawDir);
   ensureDir(reportDir);
@@ -273,11 +274,13 @@ async function main(argv = process.argv.slice(2)) {
   const snapshotParsedPath = path.join(rawDir, `armor_set_images.parsed.${timestamp}.json`);
   const reportPath = path.join(reportDir, `fetch-armor-set-images-${timestamp}.json`);
   writeJson(latestParsedPath, parsedPayload);
-  writeJson(snapshotParsedPath, parsedPayload);
+  if (keepSnapshot) {
+    writeJson(snapshotParsedPath, parsedPayload);
+  }
   writeJson(reportPath, {
     inputPath,
     latestParsedPath,
-    snapshotParsedPath,
+    snapshotParsedPath: keepSnapshot ? snapshotParsedPath : null,
     totalArmorSets: armorSets.length,
     totalArmorSetImages: armorSetImages.length,
     warningCount: warnings.length,

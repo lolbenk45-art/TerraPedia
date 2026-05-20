@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,9 +22,14 @@ public class ItemImportController {
     private final ItemImportService itemImportService;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<ItemImportResultDTO>> importItems(@RequestBody ItemImportRequestDTO request) {
-        log.info("import items source={}, count={}", request.getSource(), request.getItems() == null ? 0 : request.getItems().size());
-        ItemImportResultDTO result = itemImportService.importItems(request);
-        return ResponseEntity.ok(ApiResponse.success(result, "Items import finished"));
+    public ResponseEntity<ApiResponse<ItemImportResultDTO>> importItems(
+        @RequestBody ItemImportRequestDTO request,
+        @RequestParam(name = "dryRun", defaultValue = "false") boolean dryRun
+    ) {
+        log.info("import items source={}, count={}, dryRun={}", request.getSource(), request.getItems() == null ? 0 : request.getItems().size(), dryRun);
+        ItemImportResultDTO result = dryRun
+            ? itemImportService.importItems(request, true)
+            : itemImportService.importItems(request);
+        return ResponseEntity.ok(ApiResponse.success(result, dryRun ? "Items import dry-run finished" : "Items import finished"));
     }
 }

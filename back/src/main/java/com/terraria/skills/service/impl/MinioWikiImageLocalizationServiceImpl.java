@@ -1,9 +1,12 @@
 package com.terraria.skills.service.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Ticker;
 import com.terraria.skills.config.MinioConnectionDetails;
 import com.terraria.skills.dto.FileUploadResultDTO;
+import com.terraria.skills.dto.WikiImageLocalizationCacheMetricsDTO;
 import com.terraria.skills.service.WikiImageLocalizationService;
 import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
@@ -12,6 +15,7 @@ import io.minio.PutObjectArgs;
 import io.minio.SetBucketPolicyArgs;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -20,8 +24,6 @@ import org.springframework.util.StringUtils;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -29,13 +31,11 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
@@ -48,23 +48,33 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
 
     private static final Duration FAILURE_CACHE_TTL = Duration.ofMinutes(10);
     private static final int FAILURE_CACHE_MAX_ENTRIES = 2048;
+    private static final Duration UPLOAD_CACHE_TTL = Duration.ofHours(24);
+    private static final int UPLOAD_CACHE_MAX_ENTRIES = 4096;
 
     private final MinioClient minioClient;
     private final MinioConnectionDetails connectionDetails;
     private final Set<String> extraAllowedWikiImageHosts;
+    private final boolean imageFetchViaGate;
+    private final String imageFetchGateUrl;
+    private final String wikiUserAgent;
     private final AtomicBoolean bucketReady = new AtomicBoolean(false);
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final Map<String, FileUploadResultDTO> uploadCache = new ConcurrentHashMap<>();
-    private final Map<String, String> wikiFileUrlCache = new ConcurrentHashMap<>();
-    private final Map<String, Instant> failureCache = new ConcurrentHashMap<>();
+    private final Cache<String, FileUploadResultDTO> uploadCache;
+    private final Cache<String, Boolean> failureCache;
     private final HttpClient httpClient = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(15))
         .followRedirects(HttpClient.Redirect.NORMAL)
         .build();
 
     @Autowired
-    public MinioWikiImageLocalizationServiceImpl(MinioClient minioClient, MinioConnectionDetails connectionDetails) {
-        this(minioClient, connectionDetails, Set.of());
+    public MinioWikiImageLocalizationServiceImpl(
+        MinioClient minioClient,
+        MinioConnectionDetails connectionDetails,
+        @Value("${terraria.crawler.image-fetch-via-gate:true}") boolean imageFetchViaGate,
+        @Value("${terraria.crawler.image-fetch-gate-url:http://127.0.0.1:18099/fetch-image}") String imageFetchGateUrl,
+        @Value("${terraria.crawler.user-agent:TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)}") String wikiUserAgent
+    ) {
+        this(minioClient, connectionDetails, Set.of(), imageFetchViaGate, imageFetchGateUrl, wikiUserAgent);
     }
 
     MinioWikiImageLocalizationServiceImpl(
@@ -72,9 +82,52 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
         MinioConnectionDetails connectionDetails,
         Set<String> extraAllowedWikiImageHosts
     ) {
+        this(
+            minioClient,
+            connectionDetails,
+            extraAllowedWikiImageHosts,
+            true,
+            "http://127.0.0.1:18099/fetch-image",
+            "TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)"
+        );
+    }
+
+    MinioWikiImageLocalizationServiceImpl(
+        MinioClient minioClient,
+        MinioConnectionDetails connectionDetails,
+        Set<String> extraAllowedWikiImageHosts,
+        boolean imageFetchViaGate,
+        String imageFetchGateUrl,
+        String wikiUserAgent
+    ) {
         this.minioClient = minioClient;
         this.connectionDetails = connectionDetails;
         this.extraAllowedWikiImageHosts = extraAllowedWikiImageHosts == null ? Set.of() : extraAllowedWikiImageHosts;
+        this.imageFetchViaGate = imageFetchViaGate;
+        this.imageFetchGateUrl = firstNonBlank(imageFetchGateUrl, "http://127.0.0.1:18099/fetch-image");
+        this.wikiUserAgent = firstNonBlank(wikiUserAgent, "TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)");
+        this.uploadCache = buildUploadCache(Ticker.systemTicker());
+        this.failureCache = buildFailureCache(Ticker.systemTicker());
+    }
+
+    MinioWikiImageLocalizationServiceImpl(
+        MinioClient minioClient,
+        MinioConnectionDetails connectionDetails,
+        Set<String> extraAllowedWikiImageHosts,
+        boolean imageFetchViaGate,
+        String imageFetchGateUrl,
+        String wikiUserAgent,
+        Ticker ticker
+    ) {
+        this.minioClient = minioClient;
+        this.connectionDetails = connectionDetails;
+        this.extraAllowedWikiImageHosts = extraAllowedWikiImageHosts == null ? Set.of() : extraAllowedWikiImageHosts;
+        this.imageFetchViaGate = imageFetchViaGate;
+        this.imageFetchGateUrl = firstNonBlank(imageFetchGateUrl, "http://127.0.0.1:18099/fetch-image");
+        this.wikiUserAgent = firstNonBlank(wikiUserAgent, "TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)");
+        Ticker safeTicker = ticker == null ? Ticker.systemTicker() : ticker;
+        this.uploadCache = buildUploadCache(safeTicker);
+        this.failureCache = buildFailureCache(safeTicker);
     }
 
     @Override
@@ -136,7 +189,7 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
                 "api/wiki-images/" + hashPrefix(sourceUrl),
                 buildStableId(sourceUrl, firstNonBlank(context, "api-image"))
             );
-            failureCache.remove(cacheKey);
+            failureCache.invalidate(cacheKey);
             return upload.getUrl();
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
@@ -157,9 +210,9 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
         }
 
         String normalizedSourceUrl = normalizeFetchUrl(sourceUrl);
-        FileUploadResultDTO cached = uploadCache.get(normalizedSourceUrl);
+        FileUploadResultDTO cached = uploadCache.getIfPresent(normalizedSourceUrl);
         if (cached == null) {
-            cached = uploadCache.get(sourceUrl);
+            cached = uploadCache.getIfPresent(sourceUrl);
         }
         if (cached != null && StringUtils.hasText(cached.getUrl())) {
             return cached.getUrl();
@@ -177,7 +230,7 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
             throw new IllegalArgumentException("Not a supported wiki image URL");
         }
 
-        FileUploadResultDTO cached = uploadCache.get(normalizedSourceUrl);
+        FileUploadResultDTO cached = uploadCache.getIfPresent(normalizedSourceUrl);
         if (cached != null) {
             return cached;
         }
@@ -207,12 +260,13 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
     }
 
     private FetchedWikiImage fetchImageWithWikiFileFallback(String sourceUrl) throws IOException, InterruptedException {
-        if (isWikiFilePageUrl(sourceUrl)) {
-            String resolvedUrl = resolveWikiFileImageUrl(sourceUrl);
-            if (StringUtils.hasText(resolvedUrl)) {
-                HttpResponse<byte[]> resolvedResponse = fetchImage(resolvedUrl);
-                return new FetchedWikiImage(resolvedUrl, resolvedResponse);
-            }
+        if (shouldFetchViaGate(sourceUrl)) {
+            HttpResponse<byte[]> response = fetchImage(sourceUrl);
+            String effectiveSourceUrl = response.headers()
+                .firstValue("x-terrapedia-source-url")
+                .filter(StringUtils::hasText)
+                .orElse(sourceUrl);
+            return new FetchedWikiImage(normalizeFetchUrl(effectiveSourceUrl), response);
         }
 
         HttpResponse<byte[]> response = fetchImage(sourceUrl);
@@ -220,14 +274,7 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
             return new FetchedWikiImage(sourceUrl, response);
         }
 
-        String resolvedUrl = resolveWikiFileImageUrl(sourceUrl);
-        if (!StringUtils.hasText(resolvedUrl) || Objects.equals(normalizeFetchUrl(resolvedUrl), normalizeFetchUrl(sourceUrl))) {
-            return new FetchedWikiImage(sourceUrl, response);
-        }
-
-        String normalizedResolvedUrl = normalizeFetchUrl(resolvedUrl);
-        HttpResponse<byte[]> resolvedResponse = fetchImage(normalizedResolvedUrl);
-        return new FetchedWikiImage(normalizedResolvedUrl, resolvedResponse);
+        return new FetchedWikiImage(sourceUrl, response);
     }
 
     private boolean hasImageContentType(HttpResponse<byte[]> response) {
@@ -239,116 +286,45 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
             .orElse(false);
     }
 
-    private boolean isFailureCached(String cacheKey) {
-        Instant failedAt = failureCache.get(cacheKey);
-        if (failedAt == null) {
-            return false;
-        }
-        if (failedAt.plus(FAILURE_CACHE_TTL).isAfter(Instant.now())) {
-            return true;
-        }
-        failureCache.remove(cacheKey);
-        return false;
+    boolean isFailureCached(String cacheKey) {
+        failureCache.cleanUp();
+        return failureCache.getIfPresent(cacheKey) != null;
     }
 
-    private void rememberFailure(String cacheKey) {
-        if (failureCache.size() >= FAILURE_CACHE_MAX_ENTRIES) {
-            failureCache.clear();
-        }
-        failureCache.put(cacheKey, Instant.now());
+    void rememberFailure(String cacheKey) {
+        failureCache.put(cacheKey, Boolean.TRUE);
+        failureCache.cleanUp();
     }
 
-    private String resolveWikiFileImageUrl(String sourceUrl) {
-        String normalized = normalizeFetchUrl(sourceUrl);
-        if (!isWikiImageUrl(normalized)) {
-            return null;
-        }
-        return wikiFileUrlCache.computeIfAbsent(normalized, this::loadWikiFileImageUrl);
+    @Override
+    public WikiImageLocalizationCacheMetricsDTO cacheMetrics() {
+        failureCache.cleanUp();
+        uploadCache.cleanUp();
+        WikiImageLocalizationCacheMetricsDTO metrics = new WikiImageLocalizationCacheMetricsDTO();
+        metrics.setEnabled(true);
+        metrics.setFailureCacheSize(failureCache.estimatedSize());
+        metrics.setFailureCacheMaxEntries(FAILURE_CACHE_MAX_ENTRIES);
+        metrics.setFailureCacheTtlSeconds(FAILURE_CACHE_TTL.toSeconds());
+        metrics.setUploadCacheSize(uploadCache.estimatedSize());
+        metrics.setUploadCacheMaxEntries(UPLOAD_CACHE_MAX_ENTRIES);
+        metrics.setUploadCacheTtlSeconds(UPLOAD_CACHE_TTL.toSeconds());
+        return metrics;
     }
 
-    private String loadWikiFileImageUrl(String sourceUrl) {
-        String fileTitle = extractWikiFileTitle(sourceUrl);
-        if (!StringUtils.hasText(fileTitle)) {
-            return null;
-        }
-        try {
-            String encodedTitle = URLEncoder.encode("File:" + fileTitle, StandardCharsets.UTF_8).replace("+", "%20");
-            URI uri = URI.create("https://terraria.wiki.gg/api.php?action=query&redirects=1&prop=imageinfo&iiprop=url%7Cmime&format=json&titles=" + encodedTitle);
-            HttpRequest request = HttpRequest.newBuilder(uri)
-                .GET()
-                .timeout(Duration.ofSeconds(20))
-                .header("User-Agent", "TerraPediaBot/1.0 (+https://local.terrapedia)")
-                .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                return null;
-            }
-            JsonNode pages = objectMapper.readTree(response.body()).path("query").path("pages");
-            if (!pages.isObject()) {
-                return null;
-            }
-            for (JsonNode page : pages) {
-                JsonNode imageInfo = page.path("imageinfo");
-                if (imageInfo.isArray() && imageInfo.size() > 0) {
-                    String url = trimToNull(imageInfo.get(0).path("url").asText(null));
-                    if (isWikiImageUrl(url)) {
-                        return normalizeFetchUrl(url);
-                    }
-                }
-            }
-            return null;
-        } catch (Exception exception) {
-            log.debug("Failed to resolve wiki file image url for {}", sourceUrl, exception);
-            return null;
-        }
+    private Cache<String, FileUploadResultDTO> buildUploadCache(Ticker ticker) {
+        return Caffeine.newBuilder()
+            .maximumSize(UPLOAD_CACHE_MAX_ENTRIES)
+            .expireAfterWrite(UPLOAD_CACHE_TTL)
+            .ticker(ticker)
+            .build();
     }
 
-    private String extractWikiFileTitle(String sourceUrl) {
-        String normalized = trimToNull(sourceUrl);
-        if (normalized == null) {
-            return null;
-        }
-        String lowerCase = normalized.toLowerCase(Locale.ROOT);
-        int filePageIndex = lowerCase.indexOf("/wiki/file:");
-        if (filePageIndex >= 0) {
-            String pathPart = normalized.substring(filePageIndex + "/wiki/file:".length());
-            return cleanWikiFilename(pathPart);
-        }
-
-        int markerIndex = lowerCase.indexOf("/images/");
-        if (markerIndex < 0) {
-            return null;
-        }
-        String pathPart = normalized.substring(markerIndex + "/images/".length());
-        int slashIndex = pathPart.lastIndexOf('/');
-        if (slashIndex >= 0) {
-            pathPart = pathPart.substring(slashIndex + 1);
-        }
-        return cleanWikiFilename(pathPart);
-    }
-
-    private String cleanWikiFilename(String pathPart) {
-        int queryIndex = pathPart.indexOf('?');
-        if (queryIndex >= 0) {
-            pathPart = pathPart.substring(0, queryIndex);
-        }
-        int hashIndex = pathPart.indexOf('#');
-        if (hashIndex >= 0) {
-            pathPart = pathPart.substring(0, hashIndex);
-        }
-        if (!StringUtils.hasText(pathPart)) {
-            return null;
-        }
-        return URLDecoder.decode(pathPart, StandardCharsets.UTF_8).replace('_', ' ');
-    }
-
-    private boolean isWikiFilePageUrl(String sourceUrl) {
-        URI uri = parseHttpUri(sourceUrl);
-        if (uri == null || uri.getHost() == null || uri.getPath() == null) {
-            return false;
-        }
-        return "terraria.wiki.gg".equals(uri.getHost().toLowerCase(Locale.ROOT))
-            && uri.getPath().toLowerCase(Locale.ROOT).startsWith("/wiki/file:");
+    private Cache<String, Boolean> buildFailureCache(Ticker ticker) {
+        return Caffeine.newBuilder()
+            .maximumSize(FAILURE_CACHE_MAX_ENTRIES)
+            .expireAfterWrite(FAILURE_CACHE_TTL)
+            .ticker(ticker)
+            .build();
     }
 
     private URI parseHttpUri(String value) {
@@ -373,10 +349,37 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
     }
 
     private HttpResponse<byte[]> fetchImage(String sourceUrl) throws IOException, InterruptedException {
+        if (shouldFetchViaGate(sourceUrl)) {
+            return fetchImageViaGate(sourceUrl);
+        }
+        return fetchImageDirect(sourceUrl);
+    }
+
+    private boolean shouldFetchViaGate(String sourceUrl) {
+        URI uri = parseHttpUri(sourceUrl);
+        return imageFetchViaGate
+            && uri != null
+            && uri.getHost() != null
+            && "terraria.wiki.gg".equals(uri.getHost().toLowerCase(Locale.ROOT));
+    }
+
+    private HttpResponse<byte[]> fetchImageViaGate(String sourceUrl) throws IOException, InterruptedException {
+        String requestBody = objectMapper.writeValueAsString(Map.of("url", sourceUrl));
+        HttpRequest request = HttpRequest.newBuilder(URI.create(imageFetchGateUrl))
+            .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
+            .timeout(Duration.ofSeconds(35))
+            .header("User-Agent", wikiUserAgent)
+            .header("Content-Type", "application/json")
+            .build();
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+    }
+
+    @Deprecated
+    private HttpResponse<byte[]> fetchImageDirect(String sourceUrl) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder(URI.create(sourceUrl))
             .GET()
             .timeout(Duration.ofSeconds(30))
-            .header("User-Agent", "TerraPediaBot/1.0 (+https://local.terrapedia)")
+            .header("User-Agent", wikiUserAgent)
             .build();
         return httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
     }

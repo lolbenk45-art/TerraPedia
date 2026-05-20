@@ -6,4 +6,6 @@ import com.terraria.skills.dto.ItemImportResultDTO;
 public interface ItemImportService {
 
     ItemImportResultDTO importItems(ItemImportRequestDTO request);
+
+    ItemImportResultDTO importItems(ItemImportRequestDTO request, boolean dryRun);
 }

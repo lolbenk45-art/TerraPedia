@@ -2,47 +2,47 @@
   "datasets": [
     {
       "entity": "items",
-      "file": "terraPedia-db-redesign/data/standardized/items.standardized.json",
+      "file": "data/standardized/items.standardized.json",
       "totalRecords": 6131
     },
     {
       "entity": "buffs",
-      "file": "terraPedia-db-redesign/data/standardized/buffs.standardized.json",
+      "file": "data/standardized/buffs.standardized.json",
       "totalRecords": 388
     },
     {
       "entity": "npcs",
-      "file": "terraPedia-db-redesign/data/standardized/npcs.standardized.json",
+      "file": "data/standardized/npcs.standardized.json",
       "totalRecords": 762
     },
     {
       "entity": "projectiles",
-      "file": "terraPedia-db-redesign/data/standardized/projectiles.standardized.json",
+      "file": "data/standardized/projectiles.standardized.json",
       "totalRecords": 1111
     },
     {
       "entity": "armor_sets",
-      "file": "terraPedia-db-redesign/data/standardized/armor_sets.standardized.json",
+      "file": "data/standardized/armor_sets.standardized.json",
       "totalRecords": 18
     },
     {
       "entity": "item_relations",
-      "file": "terraPedia-db-redesign/data/standardized/item_relations.standardized.json",
+      "file": "data/standardized/item_relations.standardized.json",
       "totalRecords": 14746
     },
     {
       "entity": "biomes",
-      "file": "terraPedia-db-redesign/data/standardized/biomes.standardized.json",
+      "file": "data/standardized/biomes.standardized.json",
       "totalRecords": 7
     },
     {
       "entity": "item_pages",
-      "file": "terraPedia-db-redesign/data/standardized/item_pages.standardized.json",
+      "file": "data/standardized/item_pages.standardized.json",
       "totalRecords": 6131
     }
   ],
   "generatedAt": "2026-03-28T11:24:36.383Z",
-  "outputDirectory": "terraPedia-db-redesign/data/standardized",
+  "outputDirectory": "data/standardized",
   "schemaVersion": "1.0.0",
   "sourceDataDir": "G:\\ClaudeCode\\terraPedia\\data",
   "warnings": []

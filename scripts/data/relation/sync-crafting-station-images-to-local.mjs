@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { fetchWikiUrlJson } from '../lib/wiki-item-utils.mjs';
 
 const repoRoot = getProjectRoot();
 const require = createRequire(import.meta.url);
@@ -608,15 +609,11 @@ async function fetchWikiImageInfoByTitle(sourceFileTitle, sourcePage) {
 }
 
 async function fetchWikiJson(url) {
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'TerraPedia crafting station image repair (local data sync)'
-    }
+  return fetchWikiUrlJson({
+    url,
+    profile: 'revision',
+    sourceKey: `crafting-station-image:${url}`
   });
-  if (!response.ok) {
-    throw new Error(`Wiki request failed: ${response.status} ${response.statusText}`);
-  }
-  return response.json();
 }
 
 function chooseWikiImageTitle(images, item) {

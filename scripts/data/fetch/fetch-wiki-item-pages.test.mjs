@@ -34,8 +34,6 @@ test('writes child progress and report to explicit paths when no item pages are 
       '--items=DefinitelyMissingItem',
       '--limit=1',
       '--only-changed=false',
-      '--delay-ms=0',
-      '--jitter-ms=0'
     ], {
       cwd: repoRoot,
       encoding: 'utf8',
@@ -72,6 +70,14 @@ test('writes child progress and report to explicit paths when no item pages are 
     assert.equal(path.resolve(defaultProgress.childStatusPath), defaultProgressPath);
 });
 
+test('item page fetcher leaves request pacing to the wiki request gate', () => {
+    const source = fs.readFileSync(scriptPath, 'utf8');
+
+    assert.doesNotMatch(source, /delay-ms/);
+    assert.doesNotMatch(source, /jitter-ms/);
+    assert.doesNotMatch(source, /computeDelayMs/);
+});
+
 test('default fetch progress path follows WORKTREE_ROOT when progress path is omitted', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-worktree-'));
     const worktreeRoot = path.join(tempDir, 'feature-worktree');
@@ -93,8 +99,6 @@ test('default fetch progress path follows WORKTREE_ROOT when progress path is om
       '--items=DefinitelyMissingItem',
       '--limit=1',
       '--only-changed=false',
-      '--delay-ms=0',
-      '--jitter-ms=0'
     ], {
       cwd: repoRoot,
       encoding: 'utf8',
@@ -112,6 +116,306 @@ test('default fetch progress path follows WORKTREE_ROOT when progress path is om
     assert.equal(progress.actionId, 'test-item-pages-worktree');
     assert.equal(progress.status, 'completed');
     assert.equal(path.resolve(progress.childStatusPath), worktreeProgressPath);
+});
+
+test('probe-only writes changed page report without raw item page payloads', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-probe-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const inputPath = path.join(tempDir, 'items.json');
+    const rawDir = path.join(tempDir, 'raw');
+    const reportDir = path.join(tempDir, 'reports');
+    const progressPath = path.join(tempDir, 'progress.json');
+    const mockApiPath = path.join(tempDir, 'mock-api.json');
+
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    fs.writeFileSync(inputPath, JSON.stringify({
+      items: [{ internalName: 'MiningPotion', name: 'Mining Potion' }]
+    }), 'utf8');
+    fs.mkdirSync(rawDir, { recursive: true });
+    fs.writeFileSync(path.join(rawDir, 'miningpotion.latest.json'), JSON.stringify({
+      itemInternalName: 'MiningPotion',
+      revisionTimestamp: '2026-01-01T00:00:00Z'
+    }), 'utf8');
+    fs.writeFileSync(mockApiPath, JSON.stringify({
+      query: {
+        pages: [{
+          pageid: 123,
+          title: 'Mining Potion',
+          revisions: [{ revid: 456, timestamp: '2026-05-20T00:00:00Z' }]
+        }]
+      }
+    }), 'utf8');
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      `--input=${inputPath}`,
+      `--raw-dir=${rawDir}`,
+      `--report-dir=${reportDir}`,
+      `--progress-path=${progressPath}`,
+      '--probe-only=true',
+      '--limit=1',
+      '--only-changed=false',
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+        TERRAPEDIA_CRAWLER_ACTION_ID: 'test-item-pages-probe',
+        NODE_ENV: 'test',
+        TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.match(result.stdout, /Probe only: true/);
+    assert.equal(fs.existsSync(path.join(rawDir, 'miningpotion.2026-05-20T00-00-00.000Z.json')), false);
+    assert.equal(fs.readdirSync(rawDir).filter((entry) => entry !== 'miningpotion.latest.json').length, 0);
+
+    const reportFiles = fs.readdirSync(reportDir).filter((entry) => entry.endsWith('.json'));
+    assert.equal(reportFiles.length, 1);
+    const report = JSON.parse(fs.readFileSync(path.join(reportDir, reportFiles[0]), 'utf8'));
+    assert.equal(report.probeOnly, true);
+    assert.equal(report.onlyChanged, false);
+    assert.equal(report.changedCount, 1);
+    assert.equal(report.items[0].internalName, 'MiningPotion');
+    assert.equal(report.items[0].reason, 'source_changed');
+});
+
+test('item page fetcher does not keep timestamp snapshots by default', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-no-snapshot-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const inputPath = path.join(tempDir, 'items.json');
+    const rawDir = path.join(tempDir, 'raw');
+    const reportDir = path.join(tempDir, 'reports');
+    const progressPath = path.join(tempDir, 'progress.json');
+    const mockApiPath = path.join(tempDir, 'mock-api.json');
+
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    fs.writeFileSync(inputPath, JSON.stringify({
+      items: [{ internalName: 'MiningPotion', name: 'Mining Potion' }]
+    }), 'utf8');
+    fs.writeFileSync(mockApiPath, JSON.stringify({
+      parse: {
+        pageid: 123,
+        title: 'Mining Potion',
+        wikitext: 'Mining Potion page',
+        text: '<p>Mining Potion page</p>',
+        sections: []
+      },
+      query: {
+        pages: [{
+          pageid: 123,
+          title: 'Mining Potion',
+          revisions: [{ revid: 456, timestamp: '2026-05-20T00:00:00Z' }]
+        }]
+      }
+    }), 'utf8');
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      `--input=${inputPath}`,
+      `--raw-dir=${rawDir}`,
+      `--report-dir=${reportDir}`,
+      `--progress-path=${progressPath}`,
+      '--items=MiningPotion',
+      '--limit=1',
+      '--only-changed=false',
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+        TERRAPEDIA_CRAWLER_ACTION_ID: 'test-item-pages-no-snapshot',
+        NODE_ENV: 'test',
+        TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.deepEqual(fs.readdirSync(rawDir).sort(), ['miningpotion.latest.json']);
+
+    const reportFile = fs.readdirSync(reportDir).find((entry) => entry.endsWith('.json'));
+    const report = JSON.parse(fs.readFileSync(path.join(reportDir, reportFile), 'utf8'));
+    assert.equal(report.items[0].latestPath.endsWith('miningpotion.latest.json'), true);
+    assert.equal(report.items[0].snapshotPath, null);
+});
+
+test('item page fetcher keeps timestamp snapshots when explicitly requested', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-keep-snapshot-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const inputPath = path.join(tempDir, 'items.json');
+    const rawDir = path.join(tempDir, 'raw');
+    const reportDir = path.join(tempDir, 'reports');
+    const progressPath = path.join(tempDir, 'progress.json');
+    const mockApiPath = path.join(tempDir, 'mock-api.json');
+
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    fs.writeFileSync(inputPath, JSON.stringify({
+      items: [{ internalName: 'MiningPotion', name: 'Mining Potion' }]
+    }), 'utf8');
+    fs.writeFileSync(mockApiPath, JSON.stringify({
+      parse: {
+        pageid: 123,
+        title: 'Mining Potion',
+        wikitext: 'Mining Potion page',
+        text: '<p>Mining Potion page</p>',
+        sections: []
+      },
+      query: {
+        pages: [{
+          pageid: 123,
+          title: 'Mining Potion',
+          revisions: [{ revid: 456, timestamp: '2026-05-20T00:00:00Z' }]
+        }]
+      }
+    }), 'utf8');
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      `--input=${inputPath}`,
+      `--raw-dir=${rawDir}`,
+      `--report-dir=${reportDir}`,
+      `--progress-path=${progressPath}`,
+      '--items=MiningPotion',
+      '--limit=1',
+      '--only-changed=false',
+      '--keep-snapshot=true',
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+        TERRAPEDIA_CRAWLER_ACTION_ID: 'test-item-pages-keep-snapshot',
+        NODE_ENV: 'test',
+        TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const files = fs.readdirSync(rawDir).sort();
+    assert.equal(files.includes('miningpotion.latest.json'), true);
+    assert.equal(files.filter((entry) => /^miningpotion\.\d{4}-\d{2}-\d{2}T.*\.json$/.test(entry)).length, 1);
+
+    const reportFile = fs.readdirSync(reportDir).find((entry) => entry.endsWith('.json'));
+    const report = JSON.parse(fs.readFileSync(path.join(reportDir, reportFile), 'utf8'));
+    assert.match(report.items[0].snapshotPath, /miningpotion\.\d{4}-\d{2}-\d{2}T.*\.json$/);
+});
+
+test('item page probe writes redis heartbeat when redis-cli is available', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-heartbeat-'));
+    const binDir = path.join(tempDir, 'bin');
+    const redisLog = path.join(tempDir, 'redis-cli-args.jsonl');
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const inputPath = path.join(tempDir, 'items.json');
+    const rawDir = path.join(tempDir, 'raw');
+    const reportDir = path.join(tempDir, 'reports');
+    const progressPath = path.join(tempDir, 'progress.json');
+    const mockApiPath = path.join(tempDir, 'mock-api.json');
+
+    fs.mkdirSync(binDir, { recursive: true });
+    fs.writeFileSync(path.join(binDir, 'redis-cli'), `#!/usr/bin/env node
+const fs = require('node:fs');
+fs.appendFileSync(${JSON.stringify(redisLog)}, JSON.stringify(process.argv.slice(2)) + '\\n');
+`, { mode: 0o755 });
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    fs.writeFileSync(inputPath, JSON.stringify({
+      items: [{ internalName: 'MiningPotion', name: 'Mining Potion' }]
+    }), 'utf8');
+    fs.writeFileSync(mockApiPath, JSON.stringify({
+      query: {
+        pages: [{
+          pageid: 123,
+          title: 'Mining Potion',
+          revisions: [{ revid: 456, timestamp: '2026-05-20T00:00:00Z' }]
+        }]
+      }
+    }), 'utf8');
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      `--input=${inputPath}`,
+      `--raw-dir=${rawDir}`,
+      `--report-dir=${reportDir}`,
+      `--progress-path=${progressPath}`,
+      '--probe-only=true',
+      '--limit=1',
+      '--only-changed=false',
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        PATH: `${binDir}${path.delimiter}${process.env.PATH}`,
+        WORKTREE_ROOT: worktreeRoot,
+        TERRAPEDIA_CRAWLER_ACTION_ID: 'test-item-pages-heartbeat',
+        TERRAPEDIA_REDIS_HOST: '127.0.0.1',
+        TERRAPEDIA_REDIS_PORT: '6380',
+        TERRAPEDIA_REDIS_DATABASE: '0',
+        NODE_ENV: 'test',
+        TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const calls = fs.readFileSync(redisLog, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
+    assert.ok(calls.some((args) => {
+      return args.includes('SETEX')
+        && args.includes('terrapedia:crawler:items:heartbeat')
+        && args.includes('300')
+        && args.some((arg) => String(arg).includes('"status":"running"'));
+    }));
+    assert.ok(calls.some((args) => args.some((arg) => String(arg).includes('"status":"completed"'))));
+});
+
+test('item page fetch writes failed redis heartbeat before exiting on startup error', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-heartbeat-failed-'));
+    const binDir = path.join(tempDir, 'bin');
+    const redisLog = path.join(tempDir, 'redis-cli-args.jsonl');
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const inputPath = path.join(tempDir, 'missing-items.json');
+    const rawDir = path.join(tempDir, 'raw');
+    const reportDir = path.join(tempDir, 'reports');
+    const progressPath = path.join(tempDir, 'progress.json');
+
+    fs.mkdirSync(binDir, { recursive: true });
+    fs.writeFileSync(path.join(binDir, 'redis-cli'), `#!/usr/bin/env node
+const fs = require('node:fs');
+fs.appendFileSync(${JSON.stringify(redisLog)}, JSON.stringify(process.argv.slice(2)) + '\\n');
+`, { mode: 0o755 });
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      `--input=${inputPath}`,
+      `--raw-dir=${rawDir}`,
+      `--report-dir=${reportDir}`,
+      `--progress-path=${progressPath}`,
+      '--limit=1',
+      '--only-changed=false',
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        PATH: `${binDir}${path.delimiter}${process.env.PATH}`,
+        WORKTREE_ROOT: worktreeRoot,
+        TERRAPEDIA_CRAWLER_ACTION_ID: 'test-item-pages-heartbeat-failed',
+        TERRAPEDIA_REDIS_HOST: '127.0.0.1',
+        TERRAPEDIA_REDIS_PORT: '6380',
+        TERRAPEDIA_REDIS_DATABASE: '0'
+      }
+    });
+
+    assert.notEqual(result.status, 0);
+    const calls = fs.readFileSync(redisLog, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
+    assert.ok(calls.some((args) => {
+      return args.includes('SETEX')
+        && args.includes('terrapedia:crawler:items:heartbeat')
+        && args.some((arg) => String(arg).includes('"status":"failed"'));
+    }));
 });
 
 function escapeRegExp(value) {

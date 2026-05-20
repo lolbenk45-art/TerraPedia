@@ -3,9 +3,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { sharedDataPath } from '../lib/wiki-item-utils.mjs';
 
 const DEFAULT_PUBLIC_BASE_URL = 'http://localhost:9000/terrapedia-images/items/wiki/armor-sets';
-const DEFAULT_INPUT = 'data/terraPedia/raw/wiki/armor_set_images.parsed.latest.json';
+const DEFAULT_INPUT = sharedDataPath('raw', 'wiki', 'armor_set_images.parsed.latest.json');
 const DEFAULT_MINIO_ROOT = '/home/lolben/.local/share/terrapedia/minio/data/terrapedia-images/items/wiki/armor-sets';
 
 export function normalizeArmorImageKey(value) {

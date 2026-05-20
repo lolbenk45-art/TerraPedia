@@ -75,6 +75,10 @@ const values = {
   TP_MINIO_OBJECT_PREFIX: env('TERRAPEDIA_MINIO_OBJECT_PREFIX', get(['minio', 'objectPrefix'], 'items')),
   TP_MINIO_DATA_DIR: env('TERRAPEDIA_MINIO_DATA_DIR', get(['minio', 'dataDir'], `${process.env.HOME || root}/.local/share/terrapedia/minio/data`)),
   TP_MINIO_CONSOLE_PORT: env('TERRAPEDIA_MINIO_CONSOLE_PORT', get(['minio', 'consolePort'], 19001)),
+  TP_FLARESOLVERR_ENABLED: env('TERRAPEDIA_FLARESOLVERR_ENABLED', get(['flaresolverr', 'enabled'], false)),
+  TP_FLARESOLVERR_URL: env('TERRAPEDIA_FLARESOLVERR_URL', get(['flaresolverr', 'url'], 'http://127.0.0.1:8191/v1')),
+  TP_FLARESOLVERR_CONTAINER_NAME: env('TERRAPEDIA_FLARESOLVERR_CONTAINER_NAME', get(['flaresolverr', 'containerName'], 'terrapedia-flaresolverr')),
+  TP_FLARESOLVERR_IMAGE: env('TERRAPEDIA_FLARESOLVERR_IMAGE', get(['flaresolverr', 'image'], 'ghcr.io/flaresolverr/flaresolverr')),
   TP_SPRING_PROFILE: env('SPRING_PROFILES_ACTIVE', get(['backend', 'springProfile'], 'legacy')),
   TP_SPRING_FLYWAY_OUT_OF_ORDER: env('SPRING_FLYWAY_OUT_OF_ORDER', get(['backend', 'flywayOutOfOrder'], true)),
 };

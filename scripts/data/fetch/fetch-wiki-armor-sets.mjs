@@ -7,6 +7,7 @@ import {
   ensureDir,
   fetchWikiPagePayload,
   parseCliArgs,
+  shouldKeepSnapshot,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
@@ -281,6 +282,7 @@ async function main(argv = process.argv.slice(2)) {
   const apiUrl = String(options['api-url'] ?? DEFAULT_ZH_WIKI_API_URL);
   const pageTitle = String(options.page ?? DEFAULT_ARMOR_PAGE_TITLE);
   const outputDir = path.resolve(process.cwd(), options['output-dir'] ?? path.join(repoRoot, 'data', 'generated'));
+  const keepSnapshot = shouldKeepSnapshot(options);
   const payload = await fetchWikiPagePayload({ pageTitle, apiUrl });
   const records = parseWikiArmorSetRows({
     wikitext: payload.wikitext,
@@ -302,7 +304,9 @@ async function main(argv = process.argv.slice(2)) {
 
   ensureDir(outputDir);
   writeJson(path.join(outputDir, 'wiki-armor-sets.latest.json'), result);
-  writeJson(path.join(outputDir, `wiki-armor-sets.${timestamp}.json`), result);
+  if (keepSnapshot) {
+    writeJson(path.join(outputDir, `wiki-armor-sets.${timestamp}.json`), result);
+  }
   console.log(`Fetched ${records.length} wiki armor sets from ${payload.pageTitle}`);
 }
 

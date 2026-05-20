@@ -4,7 +4,9 @@ import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
+import com.terraria.skills.dto.WikiImageLocalizationCacheMetricsDTO;
 import com.terraria.skills.service.CrawlerMonitorService;
+import com.terraria.skills.service.WikiImageLocalizationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,11 +29,18 @@ import java.util.Map;
 public class AdminCrawlerMonitorController {
 
     private final CrawlerMonitorService crawlerMonitorService;
+    private final WikiImageLocalizationService wikiImageLocalizationService;
 
     @GetMapping("/overview")
     @Operation(summary = "Get crawler monitor overview")
     public ApiResponse<CrawlerMonitorOverviewDTO> overview() {
         return ApiResponse.success(crawlerMonitorService.getOverview());
+    }
+
+    @GetMapping("/wiki-image-cache-metrics")
+    @Operation(summary = "Get wiki image localization cache metrics")
+    public ApiResponse<WikiImageLocalizationCacheMetricsDTO> wikiImageCacheMetrics() {
+        return ApiResponse.success(wikiImageLocalizationService.cacheMetrics());
     }
 
     @GetMapping("/report")

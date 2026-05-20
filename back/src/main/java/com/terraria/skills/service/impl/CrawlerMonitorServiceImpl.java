@@ -8,13 +8,12 @@ import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
 import com.terraria.skills.service.CrawlerMonitorService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
 import java.time.Clock;
 import java.time.Duration;
@@ -37,11 +36,11 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private static final TypeReference<LinkedHashMap<String, Object>> MAP_TYPE = new TypeReference<>() {};
     private static final Path REFRESH_DIR = Path.of("reports", "backend-refresh");
-    private static final Path HISTORY_DIR = REFRESH_DIR.resolve("history");
     private static final Path DAEMON_HEARTBEAT = REFRESH_DIR.resolve("backend-refresh-daemon.heartbeat.json");
     private static final Path SCHEDULER_STATE = REFRESH_DIR.resolve("backend-refresh-scheduler.latest.json");
     private static final Path LOCK_FILE = REFRESH_DIR.resolve("backend-refresh.lock.json");
     private static final Path TEST_STATE_FILE = REFRESH_DIR.resolve("manual-monitor-test.json");
+    private static final Path ALERT_CONFIG_FILE = REFRESH_DIR.resolve("alert-config.json");
     private static final Path WIKI_SYNC_PROGRESS_FILE = Path.of("data", "generated", "wiki-sync-progress.latest.json");
     private static final Path BUFF_FETCH_PROGRESS_FILE = Path.of("data", "generated", "fetch-wiki-buffs-progress.latest.json");
     private static final Path NPC_COVERAGE_REPORT = Path.of("data", "wiki-crawler", "report", "npc", "coverage-audit.latest.json");
@@ -51,95 +50,75 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path REPORTS_DIR = Path.of("reports");
     private static final Path RELATION_REPORTS_DIR = Path.of("reports", "relation");
     private static final Path AUDIT_REPORTS_DIR = Path.of("reports", "audit");
-    private static final int HISTORY_LIMIT = 10;
-    private static final int RECENT_REPORT_LIMIT = 20;
-    private static final int REPORT_PREVIEW_MAX_BYTES = 200_000;
     private static final long REFRESH_STALE_THRESHOLD_MS = Duration.ofHours(24).toMillis();
     private static final Duration PROGRESS_STALE_THRESHOLD = Duration.ofMinutes(10);
+    private static final Duration DEFAULT_HEARTBEAT_STALE_THRESHOLD = Duration.ofMinutes(30);
+    private static final List<String> REDIS_HEARTBEAT_ENTITIES = List.of("items", "buffs");
+    private static final String REDIS_BACKEND_DAEMON_KEY = "terrapedia:crawler:backend-refresh:daemon";
+    private static final String REDIS_BACKEND_SCHEDULER_KEY = "terrapedia:crawler:backend-refresh:scheduler";
+    private static final String REDIS_BACKEND_LOCK_KEY = "terrapedia:crawler:backend-refresh:lock";
+    private static final String REDIS_ITEM_PROGRESS_KEY = "terrapedia:crawler:item-pages-refresh:progress";
+    private static final String REDIS_BUFF_PROGRESS_KEY = "terrapedia:crawler:buff-page-immunity-refresh:progress";
+    private static final String REDIS_BACKEND_ACTION_PROGRESS_PREFIX = "terrapedia:crawler:backend-refresh:action:";
+    private static final String REDIS_BACKEND_ACTION_PROGRESS_SUFFIX = ":progress";
 
     private final ObjectMapper objectMapper;
     private final Path repoRootOverride;
     private final Clock clock;
+    private final StringRedisTemplate redisTemplate;
+    private final CrawlerStateRedisRepository redisRepository;
+    private final CrawlerReportArchiver reportArchiver;
 
     @Autowired
-    public CrawlerMonitorServiceImpl(ObjectMapper objectMapper) {
-        this(objectMapper, null, Clock.systemUTC());
+    public CrawlerMonitorServiceImpl(ObjectMapper objectMapper, @Autowired(required = false) StringRedisTemplate redisTemplate) {
+        this(objectMapper, null, Clock.systemUTC(), redisTemplate);
     }
 
     CrawlerMonitorServiceImpl(ObjectMapper objectMapper, Path repoRootOverride) {
-        this(objectMapper, repoRootOverride, Clock.systemUTC());
+        this(objectMapper, repoRootOverride, Clock.systemUTC(), null);
     }
 
     CrawlerMonitorServiceImpl(ObjectMapper objectMapper, Path repoRootOverride, Clock clock) {
+        this(objectMapper, repoRootOverride, clock, null);
+    }
+
+    CrawlerMonitorServiceImpl(ObjectMapper objectMapper, Path repoRootOverride, Clock clock, StringRedisTemplate redisTemplate) {
         this.objectMapper = objectMapper;
         this.repoRootOverride = repoRootOverride == null ? null : repoRootOverride.toAbsolutePath().normalize();
         this.clock = clock == null ? Clock.systemUTC() : clock;
+        this.redisTemplate = redisTemplate;
+        this.redisRepository = redisTemplate == null ? null : new CrawlerStateRedisRepository(objectMapper, redisTemplate);
+        this.reportArchiver = new CrawlerReportArchiver(objectMapper);
     }
 
     @Override
     public CrawlerMonitorOverviewDTO getOverview() {
         Path repoRoot = resolveRepoRoot();
-        CrawlerMonitorOverviewDTO overview = new CrawlerMonitorOverviewDTO();
-        overview.setGeneratedAt(Instant.now());
-        overview.setRepoRoot(repoRoot.toString());
-        overview.setDaemon(readMonitorFile(repoRoot, DAEMON_HEARTBEAT));
-        overview.setScheduler(readMonitorFile(repoRoot, SCHEDULER_STATE));
-        overview.setLock(readMonitorFile(repoRoot, LOCK_FILE));
-        overview.setLatestRun(buildLatestRun(repoRoot, overview.getScheduler().getPayload()));
-        overview.setHistory(loadHistory(repoRoot));
-        overview.setRecentReports(loadRecentReports(repoRoot));
-        overview.setArchitectureLayers(buildArchitectureLayers(repoRoot));
-        overview.setRegisteredTasks(buildRegisteredTasks(repoRoot, overview.getLatestRun()));
-        overview.setImageNormalization(buildImageNormalizationSummary(repoRoot));
+        CrawlerMonitorOverviewDTO.MonitorFileDTO daemon = readRuntimeMonitorState(repoRoot, REDIS_BACKEND_DAEMON_KEY, DAEMON_HEARTBEAT, false);
+        CrawlerMonitorOverviewDTO.MonitorFileDTO scheduler = readRuntimeMonitorState(repoRoot, REDIS_BACKEND_SCHEDULER_KEY, SCHEDULER_STATE, false);
+        CrawlerMonitorOverviewDTO.MonitorFileDTO lock = readRuntimeMonitorState(repoRoot, REDIS_BACKEND_LOCK_KEY, LOCK_FILE, false);
+        CrawlerMonitorOverviewDTO.MonitorRunDTO latestRun = buildLatestRun(repoRoot, scheduler.getPayload());
+        CrawlerMonitorOverviewDTO overview = new CrawlerOverviewBuilder()
+            .generatedAt(Instant.now())
+            .repoRoot(repoRoot)
+            .daemon(daemon)
+            .scheduler(scheduler)
+            .lock(lock)
+            .latestRun(latestRun)
+            .history(reportArchiver.loadHistory(repoRoot))
+            .recentReports(reportArchiver.loadRecentReports(repoRoot))
+            .architectureLayers(buildArchitectureLayers(repoRoot))
+            .registeredTasks(buildRegisteredTasks(repoRoot, latestRun))
+            .imageNormalization(buildImageNormalizationSummary(repoRoot))
+            .build();
+        applyRedisHeartbeatState(repoRoot, overview);
         applyRefreshStaleState(repoRoot, overview);
         return overview;
     }
 
     @Override
     public CrawlerMonitorReportDetailDTO getReportDetail(String path) {
-        Path repoRoot = resolveRepoRoot();
-        CrawlerMonitorReportDetailDTO detail = new CrawlerMonitorReportDetailDTO();
-        detail.setPath(path);
-        detail.setMaxBytes((long) REPORT_PREVIEW_MAX_BYTES);
-
-        Path resolved = resolvePayloadPathInsideRepo(repoRoot, path);
-        if (resolved == null || !isAllowedReportPreviewPath(repoRoot, resolved)) {
-            detail.setFound(false);
-            detail.setReadable(false);
-            detail.setErrorMessage("Report path is not allowed.");
-            return detail;
-        }
-
-        detail.setName(resolved.getFileName().toString());
-        detail.setPath(toDisplayPath(repoRoot, resolved));
-        detail.setCategory(reportCategory(repoRoot, resolved));
-        detail.setContentType(reportContentType(resolved));
-        if (!Files.exists(resolved)) {
-            detail.setFound(false);
-            detail.setReadable(false);
-            detail.setErrorMessage("Report file was not found.");
-            return detail;
-        }
-        if (!Files.isRegularFile(resolved)) {
-            detail.setFound(true);
-            detail.setReadable(false);
-            detail.setErrorMessage("Report path is not a regular file.");
-            return detail;
-        }
-
-        detail.setFound(true);
-        detail.setUpdatedAt(readLastModifiedIso(resolved));
-        detail.setSizeBytes(safeSize(resolved));
-        try {
-            byte[] bytes = readPreviewBytes(resolved, REPORT_PREVIEW_MAX_BYTES);
-            detail.setTruncated(detail.getSizeBytes() != null && detail.getSizeBytes() > REPORT_PREVIEW_MAX_BYTES);
-            detail.setContent(formatReportPreviewContent(resolved, bytes, detail.isTruncated()));
-            detail.setReadable(true);
-        } catch (IOException exception) {
-            detail.setReadable(false);
-            detail.setErrorMessage(exception.getMessage());
-        }
-        return detail;
+        return reportArchiver.getReportDetail(resolveRepoRoot(), path);
     }
 
     @Override
@@ -245,6 +224,51 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return run;
     }
 
+    private List<CrawlerMonitorOverviewDTO.MonitorActionDTO> toActions(Path repoRoot, Object rawActions) {
+        if (!(rawActions instanceof List<?> rows)) {
+            return List.of();
+        }
+        List<CrawlerMonitorOverviewDTO.MonitorActionDTO> actions = new ArrayList<>();
+        for (Object row : rows) {
+            if (!(row instanceof Map<?, ?> map)) {
+                continue;
+            }
+            CrawlerMonitorOverviewDTO.MonitorActionDTO action = new CrawlerMonitorOverviewDTO.MonitorActionDTO();
+            action.setId(asString(map.get("id")));
+            action.setRunner(asString(map.get("runner")));
+            action.setArgs(toStringList(map.get("args")));
+            action.setStatus(asString(map.get("status")));
+            action.setTimeoutMs(asNullableLong(map.get("timeoutMs")));
+            action.setDurationMs(asNullableLong(map.get("durationMs")));
+            action.setTimedOut(Boolean.TRUE.equals(map.get("timedOut")));
+            action.setHeartbeatPath(normalizePayloadPath(repoRoot, map.get("heartbeatPath")));
+            action.setSnapshotPath(normalizePayloadPath(repoRoot, map.get("snapshotPath")));
+            action.setChildStatusPath(normalizePayloadPath(repoRoot, map.get("childStatusPath")));
+            action.setUpdatedAt(asString(map.get("updatedAt")));
+            applyProgressFields(repoRoot, action, map);
+            actions.add(action);
+        }
+        return actions;
+    }
+
+    private CrawlerMonitorOverviewDTO.MonitorRunDTO applyRedisActionProgress(
+        Path repoRoot,
+        CrawlerMonitorOverviewDTO.MonitorRunDTO run
+    ) {
+        if (run == null || run.getActions() == null || run.getActions().isEmpty()) {
+            return run;
+        }
+        for (CrawlerMonitorOverviewDTO.MonitorActionDTO action : run.getActions()) {
+            ReadResult redisProgress = readBackendActionProgress(action.getId());
+            if (redisProgress.readable()) {
+                applyProgressFields(repoRoot, action, redisProgress.payload());
+            } else if (redisRepository == null) {
+                applyProgressFields(repoRoot, action, readChildStatusPayload(repoRoot, action.getChildStatusPath()));
+            }
+        }
+        return run;
+    }
+
     private CrawlerMonitorOverviewDTO.MonitorFileDTO readMonitorFile(Path repoRoot, Path relativePath) {
         Path absolutePath = repoRoot.resolve(relativePath).normalize();
         CrawlerMonitorOverviewDTO.MonitorFileDTO dto = new CrawlerMonitorOverviewDTO.MonitorFileDTO();
@@ -267,62 +291,35 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return dto;
     }
 
+    private CrawlerMonitorOverviewDTO.MonitorFileDTO readRuntimeMonitorState(
+        Path repoRoot,
+        String redisKey,
+        Path legacyRelativePath,
+        boolean redisRequired
+    ) {
+        if (redisRepository == null) {
+            return readMonitorFile(repoRoot, legacyRelativePath);
+        }
+        ReadResult redisState = readRedisState(redisKey, redisRequired);
+        return monitorFileFromReadResult(redisState);
+    }
+
+    private CrawlerMonitorOverviewDTO.MonitorFileDTO monitorFileFromReadResult(ReadResult result) {
+        CrawlerMonitorOverviewDTO.MonitorFileDTO dto = new CrawlerMonitorOverviewDTO.MonitorFileDTO();
+        dto.setPath(result.displayPath());
+        dto.setFound(result.found());
+        dto.setReadable(result.readable());
+        dto.setPayload(result.payload());
+        dto.setErrorMessage(result.errorMessage());
+        dto.setUpdatedAt(firstNonBlank(
+            asString(result.payload().get("lastHeartbeatAt")),
+            asString(result.payload().get("generatedAt"))
+        ));
+        return dto;
+    }
+
     private CrawlerMonitorOverviewDTO.MonitorRunDTO buildLatestRun(Path repoRoot, Map<String, Object> schedulerPayload) {
-        Path historyDir = repoRoot.resolve(HISTORY_DIR).normalize();
-        Path schedulerOutputPath = resolvePayloadPathInsideRepo(repoRoot, schedulerPayload.get("lastOutputPath"));
-        boolean usingSchedulerOutput = schedulerOutputPath != null && Files.exists(schedulerOutputPath);
-        Path outputPath = usingSchedulerOutput ? schedulerOutputPath : findLatestFullReport(historyDir);
-
-        Path summaryPath = null;
-        if (outputPath != null) {
-            Path siblingSummary = buildSummaryPath(outputPath);
-            if (Files.exists(siblingSummary)) {
-                summaryPath = siblingSummary;
-            }
-        }
-
-        Path schedulerSummaryPath = resolvePayloadPathInsideRepo(repoRoot, schedulerPayload.get("lastSummaryPath"));
-        if (summaryPath == null && (usingSchedulerOutput || outputPath == null)
-            && schedulerSummaryPath != null && Files.exists(schedulerSummaryPath)) {
-            summaryPath = schedulerSummaryPath;
-        }
-
-        if (summaryPath == null || !Files.exists(summaryPath)) {
-            summaryPath = findLatestSummary(historyDir);
-        }
-
-        return buildRun(repoRoot, outputPath, summaryPath);
-    }
-
-    private List<CrawlerMonitorOverviewDTO.MonitorRunDTO> loadHistory(Path repoRoot) {
-        Path historyDir = repoRoot.resolve(HISTORY_DIR).normalize();
-        if (!Files.isDirectory(historyDir)) {
-            return List.of();
-        }
-
-        try (Stream<Path> stream = Files.list(historyDir)) {
-            return stream
-                .filter(Files::isRegularFile)
-                .filter(path -> path.getFileName().toString().endsWith(".summary.json"))
-                .sorted(Comparator.comparingLong(this::safeLastModifiedMillis).reversed())
-                .limit(HISTORY_LIMIT)
-                .map(path -> buildRun(repoRoot, null, path))
-                .toList();
-        } catch (IOException ignored) {
-            return List.of();
-        }
-    }
-
-    private List<CrawlerMonitorOverviewDTO.MonitorReportDTO> loadRecentReports(Path repoRoot) {
-        List<Path> candidates = new ArrayList<>();
-        collectReportFiles(repoRoot, repoRoot.resolve("reports").normalize(), candidates);
-        collectReportFiles(repoRoot, repoRoot.resolve("back").resolve("target").resolve("surefire-reports").normalize(), candidates);
-
-        return candidates.stream()
-            .sorted(Comparator.comparingLong(this::safeLastModifiedMillis).reversed())
-            .limit(RECENT_REPORT_LIMIT)
-            .map(path -> toReportDTO(repoRoot, path))
-            .toList();
+        return applyRedisActionProgress(repoRoot, reportArchiver.buildLatestRun(repoRoot, schedulerPayload));
     }
 
     private List<CrawlerMonitorOverviewDTO.ArchitectureLayerDTO> buildArchitectureLayers(Path repoRoot) {
@@ -688,6 +685,22 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return chooseProgressResult(primaryResult, sharedResult);
     }
 
+    private ReadResult readProgressWithRedisFallback(Path repoRoot, String redisKey, Path relativePath) {
+        if (redisRepository == null) {
+            return readJsonMap(repoRoot.resolve(relativePath).normalize());
+        }
+        ReadResult redisState = readRedisState(redisKey, false);
+        return redisState;
+    }
+
+    private ReadResult readProgressWithRedisAndSharedFallback(Path repoRoot, String redisKey, Path relativePath) {
+        if (redisRepository == null) {
+            return readProgressWithSharedFallback(repoRoot, relativePath);
+        }
+        ReadResult redisState = readRedisState(redisKey, false);
+        return redisState;
+    }
+
     private ReadResult chooseProgressResult(ReadResult primary, ReadResult shared) {
         if (primary.readable() && !shared.readable()) {
             return primary;
@@ -731,8 +744,8 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         Path repoRoot,
         CrawlerMonitorOverviewDTO.MonitorRunDTO latestRun
     ) {
-        ReadResult itemProgress = readJsonMap(repoRoot.resolve(WIKI_SYNC_PROGRESS_FILE).normalize());
-        ReadResult buffFetchProgress = readProgressWithSharedFallback(repoRoot, BUFF_FETCH_PROGRESS_FILE);
+        ReadResult itemProgress = readProgressWithRedisFallback(repoRoot, REDIS_ITEM_PROGRESS_KEY, WIKI_SYNC_PROGRESS_FILE);
+        ReadResult buffFetchProgress = readProgressWithRedisAndSharedFallback(repoRoot, REDIS_BUFF_PROGRESS_KEY, BUFF_FETCH_PROGRESS_FILE);
         ReadResult npcCoverage = readJsonMap(repoRoot.resolve(NPC_COVERAGE_REPORT).normalize());
 
         List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> tasks = new ArrayList<>();
@@ -872,20 +885,19 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask("wiki-core-refresh", "Wiki core refresh", "fetch", "p0");
         CrawlerMonitorOverviewDTO.MonitorActionDTO action = findAction(latestRun, "wiki-core-refresh");
         task.setStatus(action == null ? "pending" : firstNonBlank(action.getStatus(), "pending"));
-        task.setQueueState(action == null ? "backend refresh action" : firstNonBlank(action.getMessage(), action.getPhase()));
+        task.setQueueState(action == null
+            ? "backend refresh action"
+            : firstNonBlank(action.getMessage(), firstNonBlank(action.getPhase(), "backend refresh action")));
         task.setNextStep("Keep backend-refresh heartbeat current before dependent item/NPC fetches.");
         task.setDataStage("wiki API -> generated core JSON");
         task.setReportPath(latestRun == null ? null : firstNonBlank(latestRun.getPath(), latestRun.getSummaryPath()));
         task.setUpdatedAt(latestRun == null ? null : latestRun.getGeneratedAt());
         if (action != null) {
             copyTaskProgressFromAction(task, action);
-            Path childStatusPath = resolvePayloadPathInsideRepo(repoRoot, action.getChildStatusPath());
-            if (childStatusPath != null) {
-                ReadResult childStatus = readJsonMap(childStatusPath);
-                task.setProgressPath(toDisplayPath(repoRoot, childStatus.path()));
-                applyProgressFileMetadata(task, repoRoot, childStatus);
-                applyReadableProgressState(task);
-            }
+            ReadResult childStatus = readBackendActionProgressState(repoRoot, action);
+            task.setProgressPath(toDisplayPath(repoRoot, childStatus));
+            applyProgressFileMetadata(task, repoRoot, childStatus);
+            applyReadableProgressState(task);
         }
         return task;
     }
@@ -926,20 +938,17 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         task.setUpdatedAt(firstNonBlank(action.getLastHeartbeatAt(), action.getUpdatedAt()));
         copyTaskProgressFromAction(task, action);
 
-        Path childStatusPath = resolvePayloadPathInsideRepo(repoRoot, action.getChildStatusPath());
-        if (childStatusPath != null) {
-            ReadResult childStatus = readJsonMap(childStatusPath);
-            task.setProgressPath(toDisplayPath(repoRoot, childStatus.path()));
-            applyProgressFileMetadata(task, repoRoot, childStatus);
-            if (childStatus.readable()) {
-                task.setStatus(firstNonBlank(asString(childStatus.payload().get("status")), task.getStatus()));
-                task.setQueueState(firstNonBlank(asString(childStatus.payload().get("message")), task.getQueueState()));
-                task.setUpdatedAt(firstNonBlank(
-                    asString(childStatus.payload().get("lastHeartbeatAt")),
-                    firstNonBlank(asString(childStatus.payload().get("generatedAt")), task.getUpdatedAt())
-                ));
-                copyTaskProgressFromPayload(task, childStatus.payload());
-            }
+        ReadResult childStatus = readBackendActionProgressState(repoRoot, action);
+        task.setProgressPath(toDisplayPath(repoRoot, childStatus));
+        applyProgressFileMetadata(task, repoRoot, childStatus);
+        if (childStatus.readable()) {
+            task.setStatus(firstNonBlank(asString(childStatus.payload().get("status")), task.getStatus()));
+            task.setQueueState(firstNonBlank(asString(childStatus.payload().get("message")), task.getQueueState()));
+            task.setUpdatedAt(firstNonBlank(
+                asString(childStatus.payload().get("lastHeartbeatAt")),
+                firstNonBlank(asString(childStatus.payload().get("generatedAt")), task.getUpdatedAt())
+            ));
+            copyTaskProgressFromPayload(task, childStatus.payload());
         }
         applyReadableProgressState(task);
         return task;
@@ -947,7 +956,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildItemPagesRefreshTask(Path repoRoot, ReadResult progress) {
         CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask("item-pages-refresh", "Item page crawl shard", "fetch", "p0");
-        task.setProgressPath(toDisplayPath(repoRoot, progress.path()));
+        task.setProgressPath(toDisplayPath(repoRoot, progress));
         applyProgressFileMetadata(task, repoRoot, progress);
         task.setInputPath("wiki item pages");
         task.setOutputPath("data/generated/wiki-item-pages*.json");
@@ -980,7 +989,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildBuffFetchRefreshTask(Path repoRoot, ReadResult progress) {
         CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask("buff-page-immunity-refresh", "Buff immunity page refresh", "fetch", "p0");
-        task.setProgressPath(toDisplayPath(repoRoot, progress.path()));
+        task.setProgressPath(toDisplayPath(repoRoot, progress));
         applyProgressFileMetadata(task, repoRoot, progress);
         task.setInputPath("wiki buff pages");
         task.setOutputPath("data/terraPedia/raw/wiki/template__getbuffinfo.parsed.latest.json");
@@ -1229,7 +1238,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         Path repoRoot,
         ReadResult progress
     ) {
-        task.setProgressSource(toDisplayPath(repoRoot, progress.path()));
+        task.setProgressSource(toDisplayPath(repoRoot, progress));
         task.setProgressFound(progress.found());
         task.setProgressReadable(progress.readable());
         task.setProgressUpdatedAt(readLastModifiedIso(progress.path()));
@@ -1394,137 +1403,6 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return value == null ? "0" : String.format(Locale.ROOT, "%d", value);
     }
 
-    private void collectReportFiles(Path repoRoot, Path root, List<Path> candidates) {
-        if (!Files.isDirectory(root)) {
-            return;
-        }
-        Path backendRefreshDir = repoRoot.resolve(REFRESH_DIR).normalize();
-        try (Stream<Path> stream = Files.walk(root)) {
-            stream
-                .filter(Files::isRegularFile)
-                .filter(path -> !path.normalize().startsWith(backendRefreshDir))
-                .filter(this::isReportLikeFile)
-                .forEach(candidates::add);
-        } catch (IOException ignored) {
-            // Best-effort diagnostics should not break the monitor endpoint.
-        }
-    }
-
-    private boolean isReportLikeFile(Path path) {
-        String fileName = path.getFileName().toString().toLowerCase(Locale.ROOT);
-        return fileName.endsWith(".json")
-            || fileName.endsWith(".md")
-            || fileName.endsWith(".xml")
-            || fileName.endsWith(".txt");
-    }
-
-    private boolean isAllowedReportPreviewPath(Path repoRoot, Path path) {
-        Path normalized = path.toAbsolutePath().normalize();
-        if (!isReportLikeFile(normalized)) {
-            return false;
-        }
-
-        Path reportsRoot = repoRoot.resolve("reports").normalize();
-        Path testReportsRoot = repoRoot.resolve("back").resolve("target").resolve("surefire-reports").normalize();
-        if (!normalized.startsWith(reportsRoot) && !normalized.startsWith(testReportsRoot)) {
-            return false;
-        }
-        if (!Files.exists(normalized)) {
-            return true;
-        }
-
-        try {
-            Path realPath = normalized.toRealPath();
-            return realPath.startsWith(realRoot(reportsRoot)) || realPath.startsWith(realRoot(testReportsRoot));
-        } catch (IOException ignored) {
-            return false;
-        }
-    }
-
-    private Path realRoot(Path root) throws IOException {
-        return Files.exists(root) ? root.toRealPath() : root.toAbsolutePath().normalize();
-    }
-
-    private byte[] readPreviewBytes(Path path, int maxBytes) throws IOException {
-        long size = Files.size(path);
-        int length = (int) Math.min(size, maxBytes);
-        byte[] bytes = new byte[length];
-        try (var input = Files.newInputStream(path, StandardOpenOption.READ)) {
-            int offset = 0;
-            while (offset < length) {
-                int read = input.read(bytes, offset, length - offset);
-                if (read < 0) {
-                    break;
-                }
-                offset += read;
-            }
-            if (offset == length) {
-                return bytes;
-            }
-            byte[] resized = new byte[offset];
-            System.arraycopy(bytes, 0, resized, 0, offset);
-            return resized;
-        }
-    }
-
-    private String formatReportPreviewContent(Path path, byte[] bytes, boolean truncated) throws IOException {
-        String content = new String(bytes, StandardCharsets.UTF_8);
-        if (!truncated && "json".equals(reportContentType(path))) {
-            JsonNode node = objectMapper.readTree(content);
-            return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
-        }
-        return content;
-    }
-
-    private String reportContentType(Path path) {
-        String fileName = path.getFileName().toString().toLowerCase(Locale.ROOT);
-        if (fileName.endsWith(".json")) {
-            return "json";
-        }
-        if (fileName.endsWith(".md")) {
-            return "markdown";
-        }
-        if (fileName.endsWith(".xml")) {
-            return "xml";
-        }
-        if (fileName.endsWith(".txt")) {
-            return "text";
-        }
-        return "text";
-    }
-
-    private CrawlerMonitorOverviewDTO.MonitorReportDTO toReportDTO(Path repoRoot, Path path) {
-        CrawlerMonitorOverviewDTO.MonitorReportDTO dto = new CrawlerMonitorOverviewDTO.MonitorReportDTO();
-        dto.setName(path.getFileName().toString());
-        dto.setPath(toDisplayPath(repoRoot, path));
-        dto.setCategory(reportCategory(repoRoot, path));
-        dto.setUpdatedAt(readLastModifiedIso(path));
-        dto.setSizeBytes(safeSize(path));
-        return dto;
-    }
-
-    private String reportCategory(Path repoRoot, Path path) {
-        String displayPath = toDisplayPath(repoRoot, path).toLowerCase(Locale.ROOT).replace('\\', '/');
-        String fileName = path.getFileName().toString().toLowerCase(Locale.ROOT);
-        if (displayPath.contains("surefire-reports") || fileName.startsWith("test-")) {
-            return "test";
-        }
-        if (displayPath.contains("/fetch/") || displayPath.contains("crawler") || displayPath.contains("crawl") || displayPath.contains("wiki")) {
-            return "crawler";
-        }
-        if (displayPath.contains("audit")
-            || displayPath.contains("check")
-            || displayPath.contains("verification")
-            || displayPath.contains("verify")
-            || displayPath.contains("postcheck")
-            || displayPath.contains("readiness")
-            || displayPath.contains("coverage")
-            || displayPath.contains("smoke")) {
-            return "audit";
-        }
-        return "report";
-    }
-
     private void applyRefreshStaleState(Path repoRoot, CrawlerMonitorOverviewDTO overview) {
         Instant lastActivity = findRefreshLastActivity(repoRoot, overview);
         overview.setRefreshStaleThresholdMs(REFRESH_STALE_THRESHOLD_MS);
@@ -1544,11 +1422,71 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
     }
 
+    private void applyRedisHeartbeatState(Path repoRoot, CrawlerMonitorOverviewDTO overview) {
+        Duration staleThreshold = resolveHeartbeatStaleThreshold(repoRoot);
+        overview.setHeartbeatStaleAfterMs(staleThreshold.toMillis());
+        if (redisTemplate == null) {
+            return;
+        }
+
+        List<String> staleHeartbeats = new ArrayList<>();
+        for (String entity : REDIS_HEARTBEAT_ENTITIES) {
+            try {
+                String payload = redisTemplate.opsForValue().get(redisHeartbeatKey(entity));
+                Instant heartbeatAt = redisHeartbeatInstant(payload);
+                if (heartbeatAt != null
+                    && Duration.between(heartbeatAt, Instant.now(clock)).toMillis() > staleThreshold.toMillis()) {
+                    staleHeartbeats.add(entity);
+                }
+            } catch (Exception ignored) {
+                return;
+            }
+        }
+        overview.setStaleHeartbeats(staleHeartbeats);
+    }
+
+    private Duration resolveHeartbeatStaleThreshold(Path repoRoot) {
+        Path configPath = repoRoot.resolve(ALERT_CONFIG_FILE).normalize();
+        if (!Files.isRegularFile(configPath)) {
+            return DEFAULT_HEARTBEAT_STALE_THRESHOLD;
+        }
+        try {
+            JsonNode root = objectMapper.readTree(configPath.toFile());
+            long seconds = root.path("heartbeatStaleAfterSeconds").asLong(DEFAULT_HEARTBEAT_STALE_THRESHOLD.toSeconds());
+            if (seconds <= 0) {
+                return DEFAULT_HEARTBEAT_STALE_THRESHOLD;
+            }
+            return Duration.ofSeconds(seconds);
+        } catch (Exception ignored) {
+            return DEFAULT_HEARTBEAT_STALE_THRESHOLD;
+        }
+    }
+
+    private String redisHeartbeatKey(String entity) {
+        return "terrapedia:crawler:" + entity + ":heartbeat";
+    }
+
+    private Instant redisHeartbeatInstant(String payload) {
+        if (payload == null || payload.isBlank()) {
+            return null;
+        }
+        try {
+            JsonNode root = objectMapper.readTree(payload);
+            Instant timestamp = parseInstant(root.path("timestamp").asText(null));
+            if (timestamp != null) {
+                return timestamp;
+            }
+            return parseInstant(root.path("lastHeartbeatAt").asText(null));
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     private Instant findRefreshLastActivity(Path repoRoot, CrawlerMonitorOverviewDTO overview) {
         List<Instant> candidates = new ArrayList<>();
-        addLastModifiedCandidate(candidates, repoRoot.resolve(DAEMON_HEARTBEAT).normalize());
-        addLastModifiedCandidate(candidates, repoRoot.resolve(SCHEDULER_STATE).normalize());
-        addLastModifiedCandidate(candidates, repoRoot.resolve(LOCK_FILE).normalize());
+        addMonitorFileActivityCandidate(candidates, repoRoot, overview.getDaemon(), DAEMON_HEARTBEAT);
+        addMonitorFileActivityCandidate(candidates, repoRoot, overview.getScheduler(), SCHEDULER_STATE);
+        addMonitorFileActivityCandidate(candidates, repoRoot, overview.getLock(), LOCK_FILE);
         addLastModifiedCandidate(candidates, resolvePayloadPathInsideRepo(repoRoot, overview.getLatestRun().getPath()));
         addLastModifiedCandidate(candidates, resolvePayloadPathInsideRepo(repoRoot, overview.getLatestRun().getSummaryPath()));
         addInstantCandidate(candidates, overview.getLatestRun().getGeneratedAt());
@@ -1559,6 +1497,25 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
             }
         }
         return candidates.stream().max(Comparator.naturalOrder()).orElse(null);
+    }
+
+    private void addMonitorFileActivityCandidate(
+        List<Instant> candidates,
+        Path repoRoot,
+        CrawlerMonitorOverviewDTO.MonitorFileDTO monitorFile,
+        Path legacyPath
+    ) {
+        if (monitorFile == null) {
+            return;
+        }
+        addInstantCandidate(candidates, monitorFile.getUpdatedAt());
+        if (monitorFile.getPath() != null && monitorFile.getPath().startsWith("redis://")) {
+            Map<String, Object> payload = monitorFile.getPayload() == null ? Map.of() : monitorFile.getPayload();
+            addInstantCandidate(candidates, asString(payload.get("lastHeartbeatAt")));
+            addInstantCandidate(candidates, asString(payload.get("generatedAt")));
+            return;
+        }
+        addLastModifiedCandidate(candidates, repoRoot.resolve(legacyPath).normalize());
     }
 
     private void addLastModifiedCandidate(List<Instant> candidates, Path path) {
@@ -1575,59 +1532,23 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
     }
 
-    private CrawlerMonitorOverviewDTO.MonitorRunDTO buildRun(Path repoRoot, Path outputPath, Path summaryPath) {
-        CrawlerMonitorOverviewDTO.MonitorRunDTO run = new CrawlerMonitorOverviewDTO.MonitorRunDTO();
-        run.setFound(outputPath != null || summaryPath != null);
-        run.setPath(outputPath == null ? null : toDisplayPath(repoRoot, outputPath));
-        run.setSummaryPath(summaryPath == null ? null : toDisplayPath(repoRoot, summaryPath));
-
-        ReadResult output = readJsonMap(outputPath);
-        ReadResult summary = readJsonMap(summaryPath);
-        run.setReadable(run.isFound() && (outputPath == null || output.readable()) && (summaryPath == null || summary.readable()));
-        run.setErrorMessage(firstNonBlank(output.errorMessage(), summary.errorMessage()));
-
-        Map<String, Object> summaryPayload = !summary.payload().isEmpty() ? summary.payload() : output.payload();
-        run.setGeneratedAt(asString(summaryPayload.get("generatedAt")));
-        run.setOutputPath(normalizePayloadPath(repoRoot, summaryPayload.get("outputPath")));
-        run.setLastActionId(asString(summaryPayload.get("lastActionId")));
-        run.setTotalActions(asLong(summaryPayload.get("totalActions")));
-        run.setCompletedActions(asLong(summaryPayload.get("completedActions")));
-        run.setFailedActions(asLong(summaryPayload.get("failedActions")));
-        run.setRunningActions(asLong(summaryPayload.get("runningActions")));
-        run.setPendingActions(asLong(summaryPayload.get("pendingActions")));
-        run.setTimedOutActions(asLong(summaryPayload.get("timedOutActions")));
-        run.setTotalDurationMs(asLong(summaryPayload.get("totalDurationMs")));
-        run.setActions(toActions(repoRoot, output.payload().get("actions")));
-        return run;
+    private ReadResult readBackendActionProgress(String actionId) {
+        if (actionId == null || actionId.isBlank()) {
+            return ReadResult.missing(null);
+        }
+        return readRedisState(REDIS_BACKEND_ACTION_PROGRESS_PREFIX + actionId + REDIS_BACKEND_ACTION_PROGRESS_SUFFIX, false);
     }
 
-    private List<CrawlerMonitorOverviewDTO.MonitorActionDTO> toActions(Path repoRoot, Object rawActions) {
-        if (!(rawActions instanceof List<?> rows)) {
-            return List.of();
+    private ReadResult readBackendActionProgressState(Path repoRoot, CrawlerMonitorOverviewDTO.MonitorActionDTO action) {
+        ReadResult redisProgress = readBackendActionProgress(action.getId());
+        if (redisRepository != null) {
+            return redisProgress;
         }
-        List<CrawlerMonitorOverviewDTO.MonitorActionDTO> actions = new ArrayList<>();
-        for (Object row : rows) {
-            if (!(row instanceof Map<?, ?> map)) {
-                continue;
-            }
-            CrawlerMonitorOverviewDTO.MonitorActionDTO action = new CrawlerMonitorOverviewDTO.MonitorActionDTO();
-            action.setId(asString(map.get("id")));
-            action.setRunner(asString(map.get("runner")));
-            action.setArgs(toStringList(map.get("args")));
-            action.setStatus(asString(map.get("status")));
-            action.setTimeoutMs(asNullableLong(map.get("timeoutMs")));
-            action.setDurationMs(asNullableLong(map.get("durationMs")));
-            action.setTimedOut(Boolean.TRUE.equals(map.get("timedOut")));
-            action.setHeartbeatPath(normalizePayloadPath(repoRoot, map.get("heartbeatPath")));
-            action.setSnapshotPath(normalizePayloadPath(repoRoot, map.get("snapshotPath")));
-            action.setChildStatusPath(normalizePayloadPath(repoRoot, map.get("childStatusPath")));
-            action.setUpdatedAt(asString(map.get("updatedAt")));
-            Map<String, Object> childStatus = readChildStatusPayload(repoRoot, action.getChildStatusPath());
-            applyProgressFields(repoRoot, action, map);
-            applyProgressFields(repoRoot, action, childStatus);
-            actions.add(action);
+        Path childStatusPath = resolvePayloadPathInsideRepo(repoRoot, action.getChildStatusPath());
+        if (childStatusPath != null) {
+            return readJsonMap(childStatusPath);
         }
-        return actions;
+        return redisProgress;
     }
 
     private Map<String, Object> readChildStatusPayload(Path repoRoot, String childStatusPath) {
@@ -1710,13 +1631,31 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private ReadResult readJsonMap(Path path) {
         if (path == null || !Files.exists(path)) {
-            return new ReadResult(path, false, false, Collections.emptyMap(), null);
+            return ReadResult.missing(path);
         }
         try {
-            return new ReadResult(path, true, true, objectMapper.readValue(path.toFile(), MAP_TYPE), null);
+            return new ReadResult(path, false, true, true, objectMapper.readValue(path.toFile(), MAP_TYPE), null);
         } catch (IOException exception) {
-            return new ReadResult(path, true, false, Collections.emptyMap(), exception.getMessage());
+            return new ReadResult(path, false, true, false, Collections.emptyMap(), exception.getMessage());
         }
+    }
+
+    private ReadResult readRedisState(String redisKey, boolean required) {
+        if (redisRepository == null) {
+            return ReadResult.missingRedis(redisKey);
+        }
+        CrawlerStateRedisRepository.RedisState state = required
+            ? redisRepository.readRequired(redisKey)
+            : redisRepository.readOptional(redisKey);
+        return new ReadResult(
+            Path.of(state.path()),
+            state.path(),
+            true,
+            state.found(),
+            state.readable(),
+            state.payload(),
+            state.errorMessage()
+        );
     }
 
     private Path resolvePayloadPathInsideRepo(Path repoRoot, Object rawPath) {
@@ -1736,49 +1675,6 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         }
         Path resolved = resolvePayloadPathInsideRepo(repoRoot, text);
         return resolved == null ? text : toDisplayPath(repoRoot, resolved);
-    }
-
-    private Path findLatestFullReport(Path historyDir) {
-        if (!Files.isDirectory(historyDir)) {
-            return null;
-        }
-        try (Stream<Path> stream = Files.list(historyDir)) {
-            return stream
-                .filter(Files::isRegularFile)
-                .filter(path -> {
-                    String fileName = path.getFileName().toString();
-                    return fileName.startsWith("backend-data-refresh-")
-                        && fileName.endsWith(".json")
-                        && !fileName.endsWith(".summary.json");
-                })
-                .max(Comparator.comparingLong(this::safeLastModifiedMillis))
-                .orElse(null);
-        } catch (IOException ignored) {
-            return null;
-        }
-    }
-
-    private Path findLatestSummary(Path historyDir) {
-        if (!Files.isDirectory(historyDir)) {
-            return null;
-        }
-        try (Stream<Path> stream = Files.list(historyDir)) {
-            return stream
-                .filter(Files::isRegularFile)
-                .filter(path -> path.getFileName().toString().endsWith(".summary.json"))
-                .max(Comparator.comparingLong(this::safeLastModifiedMillis))
-                .orElse(null);
-        } catch (IOException ignored) {
-            return null;
-        }
-    }
-
-    private Path buildSummaryPath(Path outputPath) {
-        String fileName = outputPath.getFileName().toString();
-        if (!fileName.endsWith(".json")) {
-            return outputPath.resolveSibling(fileName + ".summary.json");
-        }
-        return outputPath.resolveSibling(fileName.substring(0, fileName.length() - ".json".length()) + ".summary.json");
     }
 
     private Path resolveRepoRoot() {
@@ -1807,6 +1703,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         if (path == null) {
             return null;
         }
+        String rawPath = path.toString();
+        if (rawPath.startsWith("redis:/")) {
+            return rawPath.replaceFirst("^redis:/+", "redis://");
+        }
         Path normalized = path.toAbsolutePath().normalize();
         try {
             if (normalized.startsWith(repoRoot)) {
@@ -1818,9 +1718,22 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         return normalized.toString();
     }
 
+    private String toDisplayPath(Path repoRoot, ReadResult result) {
+        if (result == null) {
+            return null;
+        }
+        if (result.redis()) {
+            return result.displayPath();
+        }
+        return toDisplayPath(repoRoot, result.path());
+    }
+
     private String readLastModifiedIso(Path path) {
         try {
             if (path == null) {
+                return null;
+            }
+            if (path.toString().startsWith("redis:/")) {
                 return null;
             }
             FileTime fileTime = Files.getLastModifiedTime(path);
@@ -1832,7 +1745,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private Instant readLastModifiedInstant(Path path) {
         try {
-            if (path == null || !Files.exists(path)) {
+            if (path == null || path.toString().startsWith("redis:/") || !Files.exists(path)) {
                 return null;
             }
             return Files.getLastModifiedTime(path).toInstant();
@@ -1855,6 +1768,9 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private Long safeSize(Path path) {
         try {
             if (path == null) {
+                return null;
+            }
+            if (path.toString().startsWith("redis:/")) {
                 return null;
             }
             return Files.size(path);
@@ -1989,10 +1905,31 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
 
     private record ReadResult(
         Path path,
+        String displayPath,
+        boolean redis,
         boolean found,
         boolean readable,
         Map<String, Object> payload,
         String errorMessage
     ) {
+        ReadResult(
+            Path path,
+            boolean redis,
+            boolean found,
+            boolean readable,
+            Map<String, Object> payload,
+            String errorMessage
+        ) {
+            this(path, path == null ? null : path.toString(), redis, found, readable, payload, errorMessage);
+        }
+
+        static ReadResult missing(Path path) {
+            return new ReadResult(path, false, false, false, Collections.emptyMap(), null);
+        }
+
+        static ReadResult missingRedis(String key) {
+            String displayPath = key == null ? null : "redis://" + key;
+            return new ReadResult(displayPath == null ? null : Path.of(displayPath), displayPath, true, false, false, Collections.emptyMap(), null);
+        }
     }
 }

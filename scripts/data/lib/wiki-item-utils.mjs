@@ -4,10 +4,13 @@ import vm from 'node:vm';
 
 import { createWikiRequestGate } from './wiki-request-gate.mjs';
 import { getProjectRoot, resolveSharedDataRoot } from './project-root.mjs';
+import { WIKI_USER_AGENT } from './wiki-user-agent.mjs';
+
+export { reportHeartbeat } from './crawler-heartbeat.mjs';
 
 export const DEFAULT_WIKI_API_URL = 'https://terraria.wiki.gg/api.php';
 export const DEFAULT_MODULE_TITLE = 'Module:Iteminfo/data';
-export const DEFAULT_WIKI_USER_AGENT = 'TerraPedia-data-sync/2.0';
+export const DEFAULT_WIKI_USER_AGENT = WIKI_USER_AGENT;
 export const WORKSPACE_ROOT = getProjectRoot();
 export const DEFAULT_SHARED_DATA_ROOT = resolveSharedDataRoot();
 const wikiRequestGate = createWikiRequestGate({
@@ -59,7 +62,8 @@ export async function fetchWikiModuleContent({
   url.searchParams.set('format', 'json');
   url.searchParams.set('formatversion', '2');
 
-  const body = await wikiRequestGate.runJsonRequest(url, {
+  const body = await fetchWikiApiJson({
+    url,
     profile: 'revision',
     sourceKey: moduleTitle
   });
@@ -285,6 +289,23 @@ export function numericOption(value, fallback) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+export function booleanOption(value, fallback = false) {
+  if (value == null || value === '') {
+    return fallback;
+  }
+  if (value === true || value === 'true' || value === '1' || value === 'yes' || value === 'on') {
+    return true;
+  }
+  if (value === false || value === 'false' || value === '0' || value === 'no' || value === 'off') {
+    return false;
+  }
+  return fallback;
+}
+
+export function shouldKeepSnapshot(options = {}) {
+  return booleanOption(options['keep-snapshot'] ?? options.keepSnapshot, false);
+}
+
 export function chunkArray(list, size) {
   const normalizedSize = Math.max(1, Number.isFinite(Number(size)) ? Number(size) : 1);
   const chunks = [];
@@ -305,6 +326,9 @@ export async function fetchWikiApiJson({
   if (!url) {
     throw new Error('url is required');
   }
+  if (process.env.NODE_ENV === 'test' && process.env.TERRAPEDIA_WIKI_MOCK_API_RESPONSE) {
+    return JSON.parse(fs.readFileSync(process.env.TERRAPEDIA_WIKI_MOCK_API_RESPONSE, 'utf8'));
+  }
   return wikiRequestGate.runJsonRequest(url, {
     method,
     headers,
@@ -312,6 +336,101 @@ export async function fetchWikiApiJson({
     profile,
     sourceKey
   });
+}
+
+export function isTerrariaWikiUrl(value) {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return false;
+  }
+  try {
+    return new URL(value).hostname.toLowerCase() === 'terraria.wiki.gg';
+  } catch {
+    return false;
+  }
+}
+
+export async function fetchWikiUrlText({
+  url,
+  method = 'GET',
+  headers = {},
+  body,
+  profile = 'page',
+  sourceKey = null,
+  timeoutMs = 20_000
+} = {}) {
+  if (!url) {
+    throw new Error('url is required');
+  }
+  return wikiRequestGate.runTextRequest(url, {
+    method,
+    headers,
+    body,
+    profile,
+    sourceKey,
+    timeoutMs
+  });
+}
+
+export async function fetchWikiUrlJson({
+  url,
+  method = 'GET',
+  headers = {},
+  body,
+  profile = 'revision',
+  sourceKey = null,
+  timeoutMs = 20_000
+} = {}) {
+  if (!url) {
+    throw new Error('url is required');
+  }
+  return wikiRequestGate.runJsonRequest(url, {
+    method,
+    headers,
+    body,
+    profile,
+    sourceKey,
+    timeoutMs
+  });
+}
+
+export async function fetchWikiUrlBinary({
+  url,
+  method = 'GET',
+  headers = {},
+  body,
+  profile = 'page',
+  sourceKey = null,
+  timeoutMs = 30_000
+} = {}) {
+  if (!url) {
+    throw new Error('url is required');
+  }
+  return wikiRequestGate.runBinaryRequest(url, {
+    method,
+    headers,
+    body,
+    profile,
+    sourceKey,
+    timeoutMs
+  });
+}
+
+export async function fetchWikiUrlResponse(options = {}) {
+  const result = await fetchWikiUrlBinary(options);
+  const body = Buffer.from(result.body ?? []);
+  return {
+    ok: result.status >= 200 && result.status < 300,
+    status: result.status,
+    statusText: result.statusText,
+    headers: {
+      get(name) {
+        return result.headers?.[String(name).toLowerCase()] ?? null;
+      }
+    },
+    text: async () => body.toString('utf8'),
+    json: async () => JSON.parse(body.toString('utf8')),
+    arrayBuffer: async () => body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength)
+  };
 }
 
 export function buildWikiPageUrl({

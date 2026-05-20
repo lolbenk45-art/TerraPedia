@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { fetchWikiImageInfo, parseCliArgs } from '../lib/wiki-item-utils.mjs';
+import { fetchWikiImageInfo, parseCliArgs, sharedDataPath } from '../lib/wiki-item-utils.mjs';
 import {
   createMinioImageUploader,
   isManagedUrl,
@@ -33,8 +33,7 @@ const uploader = apply
       adminUsername: options.adminUsername,
       adminPassword: options.adminPassword,
       managedUrlPrefixes,
-      repoRoot: process.cwd(),
-      userAgent: 'TerraPedia-workflow-image-sync/1.0'
+      repoRoot: process.cwd()
     })
   : null;
 
@@ -144,7 +143,7 @@ async function syncBuffs() {
 }
 
 async function syncArmorSetImages() {
-  const filePath = path.join(process.cwd(), 'data', 'terraPedia', 'raw', 'wiki', 'armor_set_images.parsed.latest.json');
+  const filePath = sharedDataPath('raw', 'wiki', 'armor_set_images.parsed.latest.json');
   const payload = readJson(filePath);
   const records = Array.isArray(payload?.armorSetImages) ? payload.armorSetImages : [];
   return syncRecordImages({

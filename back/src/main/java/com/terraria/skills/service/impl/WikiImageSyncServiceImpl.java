@@ -16,8 +16,8 @@ import com.terraria.skills.mapper.ItemImageMapper;
 import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.service.WikiImageLocalizationService;
 import com.terraria.skills.service.WikiImageSyncService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -38,14 +38,13 @@ import java.util.Objects;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "terraria.storage.minio", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class WikiImageSyncServiceImpl implements WikiImageSyncService {
 
     private static final List<String> WIKI_IMAGE_PROVIDERS = List.of("wiki_gg", "terraria.wiki.gg");
     private static final String BUFF_OBJECT_PREFIX = "buffs";
-    private static final String MAINT_DATABASE_NAME = "terria_v1_maint";
-    private static final String RELATION_DATABASE_NAME = "terria_v1_relation";
+    private static final String DEFAULT_MAINT_DATABASE_NAME = "terria_v1_maint";
+    private static final String DEFAULT_RELATION_DATABASE_NAME = "terria_v1_relation";
     private static final String PROJECTION_ARMOR_SETS_TABLE = "projection_armor_sets";
     private static final String MAINT_ARMOR_SET_IMAGES_TABLE = "maint_armor_set_images";
     private static final String RELATION_ARMOR_SET_IMAGES_TABLE = "relation_armor_set_images";
@@ -57,6 +56,30 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
     private final JdbcTemplate jdbcTemplate;
     private final MinioConnectionDetails connectionDetails;
     private final WikiImageLocalizationService wikiImageLocalizationService;
+    private final String maintDatabaseName;
+    private final String relationDatabaseName;
+
+    public WikiImageSyncServiceImpl(
+        ItemImageMapper itemImageMapper,
+        ItemMapper itemMapper,
+        BuffMapper buffMapper,
+        BiomeMapper biomeMapper,
+        JdbcTemplate jdbcTemplate,
+        MinioConnectionDetails connectionDetails,
+        WikiImageLocalizationService wikiImageLocalizationService,
+        @Value("${terraria.crawler.cross-db.maint-database:" + DEFAULT_MAINT_DATABASE_NAME + "}") String maintDatabaseName,
+        @Value("${terraria.crawler.cross-db.relation-database:" + DEFAULT_RELATION_DATABASE_NAME + "}") String relationDatabaseName
+    ) {
+        this.itemImageMapper = itemImageMapper;
+        this.itemMapper = itemMapper;
+        this.buffMapper = buffMapper;
+        this.biomeMapper = biomeMapper;
+        this.jdbcTemplate = jdbcTemplate;
+        this.connectionDetails = connectionDetails;
+        this.wikiImageLocalizationService = wikiImageLocalizationService;
+        this.maintDatabaseName = normalizeDatabaseName(maintDatabaseName, DEFAULT_MAINT_DATABASE_NAME);
+        this.relationDatabaseName = normalizeDatabaseName(relationDatabaseName, DEFAULT_RELATION_DATABASE_NAME);
+    }
 
     @Override
     public AdminWikiImageSyncResultDTO syncWikiImages(AdminWikiImageSyncRequestDTO request) {
@@ -445,10 +468,10 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
         if (tableExistsInCurrentDatabase(PROJECTION_ARMOR_SETS_TABLE)) {
             tables.add(new ArmorSetImageTable(PROJECTION_ARMOR_SETS_TABLE, PROJECTION_ARMOR_SETS_TABLE, true));
         }
-        if (tableExists(RELATION_DATABASE_NAME, PROJECTION_ARMOR_SETS_TABLE)) {
+        if (tableExists(relationDatabaseName, PROJECTION_ARMOR_SETS_TABLE)) {
             tables.add(new ArmorSetImageTable(
-                RELATION_DATABASE_NAME + "." + PROJECTION_ARMOR_SETS_TABLE,
-                "`" + RELATION_DATABASE_NAME + "`.`" + PROJECTION_ARMOR_SETS_TABLE + "`",
+                relationDatabaseName + "." + PROJECTION_ARMOR_SETS_TABLE,
+                tableExpression(relationDatabaseName, PROJECTION_ARMOR_SETS_TABLE),
                 true
             ));
         }
@@ -457,19 +480,31 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
 
     private List<ArmorSetImageRowTable> armorSetImageRowTables() {
         List<ArmorSetImageRowTable> tables = new ArrayList<>();
-        if (tableExists(MAINT_DATABASE_NAME, MAINT_ARMOR_SET_IMAGES_TABLE)) {
+        if (tableExists(maintDatabaseName, MAINT_ARMOR_SET_IMAGES_TABLE)) {
             tables.add(new ArmorSetImageRowTable(
-                MAINT_DATABASE_NAME + "." + MAINT_ARMOR_SET_IMAGES_TABLE,
-                "`" + MAINT_DATABASE_NAME + "`.`" + MAINT_ARMOR_SET_IMAGES_TABLE + "`"
+                maintDatabaseName + "." + MAINT_ARMOR_SET_IMAGES_TABLE,
+                tableExpression(maintDatabaseName, MAINT_ARMOR_SET_IMAGES_TABLE)
             ));
         }
-        if (tableExists(RELATION_DATABASE_NAME, RELATION_ARMOR_SET_IMAGES_TABLE)) {
+        if (tableExists(relationDatabaseName, RELATION_ARMOR_SET_IMAGES_TABLE)) {
             tables.add(new ArmorSetImageRowTable(
-                RELATION_DATABASE_NAME + "." + RELATION_ARMOR_SET_IMAGES_TABLE,
-                "`" + RELATION_DATABASE_NAME + "`.`" + RELATION_ARMOR_SET_IMAGES_TABLE + "`"
+                relationDatabaseName + "." + RELATION_ARMOR_SET_IMAGES_TABLE,
+                tableExpression(relationDatabaseName, RELATION_ARMOR_SET_IMAGES_TABLE)
             ));
         }
         return tables;
+    }
+
+    private String tableExpression(String databaseName, String tableName) {
+        return "`" + databaseName + "`.`" + tableName + "`";
+    }
+
+    private String normalizeDatabaseName(String value, String fallback) {
+        String normalized = StringUtils.hasText(value) ? value.trim() : fallback;
+        if (!normalized.matches("[A-Za-z0-9_]+")) {
+            throw new IllegalArgumentException("Invalid database name: " + normalized);
+        }
+        return normalized;
     }
 
     private boolean tableExistsInCurrentDatabase(String tableName) {

@@ -43,6 +43,12 @@
     "dataDir": "~/.local/share/terrapedia/minio/data",
     "consolePort": 19001
   },
+  "flaresolverr": {
+    "enabled": false,
+    "url": "http://127.0.0.1:8191/v1",
+    "containerName": "terrapedia-flaresolverr",
+    "image": "ghcr.io/flaresolverr/flaresolverr"
+  },
   "dataRefresh": {
     "enabled": false,
     "mode": "apply",

@@ -11,9 +11,7 @@ test('buildRunnerCliArgs forwards detached crawl options', () => {
   assert.deepEqual(buildRunnerCliArgs({
     batchSize: 100,
     concurrency: 1,
-    delayMs: 5000,
     endOffset: 6200,
-    jitterMs: 2000,
     maxAttempts: 8,
     onlyChanged: false,
     progressPath: 'data/generated/wiki-sync-progress.latest.json',
@@ -23,8 +21,6 @@ test('buildRunnerCliArgs forwards detached crawl options', () => {
   }), [
     '--batch-size=100',
     '--concurrency=1',
-    '--delay-ms=5000',
-    '--jitter-ms=2000',
     '--max-attempts=8',
     '--progress-path=data/generated/wiki-sync-progress.latest.json',
     '--resume-from-progress=true',

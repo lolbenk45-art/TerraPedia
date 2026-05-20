@@ -103,6 +103,32 @@ test('start records MinIO public endpoint health when MinIO is enabled', () => {
   assert.match(source, /minioPublic: \{ endpoint:/i);
 });
 
+test('start can run FlareSolverr through local stack config', () => {
+  const runtimeConfig = fs.readFileSync('scripts/dev/lib/runtime-config.sh', 'utf8');
+  const source = startSource();
+  const exampleConfig = fs.readFileSync('scripts/dev/config/local-stack.config.example.json', 'utf8');
+
+  assert.match(runtimeConfig, /TP_FLARESOLVERR_ENABLED/);
+  assert.match(runtimeConfig, /TP_FLARESOLVERR_URL/);
+  assert.match(source, /start_flaresolverr_if_needed/);
+  assert.match(source, /docker run -d --name "\$container_name"/);
+  assert.match(source, /ghcr\.io\/flaresolverr\/flaresolverr/);
+  assert.match(source, /export TERRAPEDIA_FLARESOLVERR_URL="\$TP_FLARESOLVERR_URL"/);
+  assert.match(source, /flaresolverrOpen/i);
+  assert.match(exampleConfig, /"flaresolverr"/);
+  assert.match(exampleConfig, /"url": "http:\/\/127\.0\.0\.1:8191\/v1"/);
+});
+
+test('start runs snapshot GC at most weekly through a marker file', () => {
+  const source = startSource();
+
+  assert.match(source, /run_snapshot_gc_if_due/);
+  assert.match(source, /snapshot-gc\.last-run/);
+  assert.match(source, /gc-snapshots\.mjs/);
+  assert.match(source, /604800/);
+  assert.match(source, /load_runtime_config[\s\S]*require_command node[\s\S]*run_snapshot_gc_if_due[\s\S]*start_redis_if_needed/);
+});
+
 test('smoke script is read-only and writes timestamped smoke report', () => {
   const source = smokeSource();
 
@@ -159,6 +185,14 @@ test('local stack boundary tests are included in local and ci gates', () => {
 
   assert.match(localGate, /scripts\/dev\/local-stack\.test\.mjs/);
   assert.match(ciGate, /scripts\/dev\/local-stack\.test\.mjs/);
+});
+
+test('data source snapshot tests are included in local and ci gates', () => {
+  const localGate = fs.readFileSync('scripts/dev/quality-gate.sh', 'utf8');
+  const ciGate = fs.readFileSync('scripts/dev/quality-gate-ci.sh', 'utf8');
+
+  assert.match(localGate, /scripts\/dev\/data-source-snapshot\.test\.mjs/);
+  assert.match(ciGate, /scripts\/dev\/data-source-snapshot\.test\.mjs/);
 });
 
 test('verify-local-stack checks optional WORKTREE_ROOT against resolved repo root', () => {

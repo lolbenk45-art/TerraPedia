@@ -20,6 +20,7 @@ import {
   buildActionSnapshotPayload,
   writeJsonFile
 } from './backend-refresh-runtime-state.mjs';
+import { writeCrawlerMonitorRedisState } from '../lib/crawler-monitor-redis-state.mjs';
 
 const options = parseArgs(process.argv.slice(2));
 const mode = String(options.mode ?? 'plan').trim().toLowerCase();
@@ -75,6 +76,7 @@ for (const action of actionsToRun) {
     ...toActionProgressResult(initialProgress)
   });
   writeJsonFile(runtimePaths.childStatusPath, initialProgress);
+  writeActionProgressState(action.id, initialProgress);
   writeJsonFile(runtimePaths.snapshotPath, buildActionSnapshotPayload({
     action,
     status: 'running',
@@ -121,6 +123,7 @@ for (const action of actionsToRun) {
     ...toActionProgressResult(finalProgress)
   });
   writeJsonFile(runtimePaths.childStatusPath, finalProgress);
+  writeActionProgressState(action.id, finalProgress);
   writeJsonFile(runtimePaths.snapshotPath, buildActionSnapshotPayload({
     action,
     status: finalStatus,
@@ -177,6 +180,13 @@ function parseArgs(argv) {
 function writeReport(outputPath, report) {
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, JSON.stringify(report, null, 2), 'utf8');
+}
+
+function writeActionProgressState(actionId, payload) {
+  writeCrawlerMonitorRedisState({
+    stateId: `backend-refresh:action:${actionId}:progress`,
+    payload
+  }).catch(() => {});
 }
 
 function loadExistingActionResults(outputPath) {

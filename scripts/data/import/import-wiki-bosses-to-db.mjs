@@ -153,7 +153,6 @@ async function main() {
         adminUsername,
         adminPassword,
         managedUrlPrefixes,
-        userAgent: 'TerraPedia-wiki-boss-import/1.0',
       });
 
   const conn = await mysql.createConnection({

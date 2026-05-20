@@ -21,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.io.IOException;
@@ -516,6 +517,127 @@ class WikiImageSyncServiceImplTest {
     }
 
     @Test
+    void shouldUseConfiguredCrossDatabaseNamesForArmorSetImageTables() {
+        String sourceUrl = "https://terraria.wiki.gg/images/Configured_armor.png";
+        RecordingWikiImageLocalizationService localizationService = new RecordingWikiImageLocalizationService(sourceUrl);
+        when(jdbcTemplate.queryForObject(
+            argThat(sql -> sql != null && sql.contains("table_schema = DATABASE()") && sql.contains("table_name = ?")),
+            eq(Long.class),
+            eq("projection_armor_sets")
+        )).thenReturn(0L);
+        when(jdbcTemplate.queryForObject(
+            argThat(sql -> sql != null && sql.contains("table_schema = ?") && sql.contains("table_name = ?")),
+            eq(Long.class),
+            eq("test_relation"),
+            eq("projection_armor_sets")
+        )).thenReturn(0L);
+        when(jdbcTemplate.queryForObject(
+            argThat(sql -> sql != null && sql.contains("table_schema = ?") && sql.contains("table_name = ?")),
+            eq(Long.class),
+            eq("test_maint"),
+            eq("maint_armor_set_images")
+        )).thenReturn(1L);
+        when(jdbcTemplate.queryForObject(
+            argThat(sql -> sql != null && sql.contains("table_schema = ?") && sql.contains("table_name = ?")),
+            eq(Long.class),
+            eq("test_relation"),
+            eq("relation_armor_set_images")
+        )).thenReturn(0L);
+        when(jdbcTemplate.queryForList(argThat(sql -> sql != null && sql.contains("FROM armor_sets")))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(argThat(sql -> sql != null && sql.contains("FROM `test_maint`.`maint_armor_set_images`"))))
+            .thenReturn(List.of(Map.of(
+                "id", 201L,
+                "record_key", "configured-maint-row",
+                "text_key", "ArmorSetBonus.Configured",
+                "image_role", "male",
+                "source_file_title", "Configured armor",
+                "original_url", sourceUrl,
+                "cached_url", ""
+            )));
+
+        AdminWikiImageSyncResultDTO result = service(localizationService, "test_maint", "test_relation")
+            .syncWikiImages(armorSetsOnlyRequest(false));
+
+        assertEquals(1, result.getArmorSets().getCandidateCount());
+        assertEquals(1, result.getArmorSets().getSyncedCount());
+        verify(jdbcTemplate).update(
+            contains("UPDATE `test_maint`.`maint_armor_set_images`"),
+            eq(sourceUrl),
+            eq("http://localhost:9000/terrapedia-images/items/wiki/item-images/shared.png"),
+            eq(201L)
+        );
+    }
+
+    @Test
+    void shouldBindConfiguredCrossDatabaseNamesFromSpringProperties() {
+        String sourceUrl = "https://terraria.wiki.gg/images/Property_Configured_armor.png";
+        RecordingWikiImageLocalizationService localizationService = new RecordingWikiImageLocalizationService(sourceUrl);
+        when(jdbcTemplate.queryForObject(
+            argThat(sql -> sql != null && sql.contains("table_schema = DATABASE()") && sql.contains("table_name = ?")),
+            eq(Long.class),
+            eq("projection_armor_sets")
+        )).thenReturn(0L);
+        when(jdbcTemplate.queryForObject(
+            argThat(sql -> sql != null && sql.contains("table_schema = ?") && sql.contains("table_name = ?")),
+            eq(Long.class),
+            eq("test_relation"),
+            eq("projection_armor_sets")
+        )).thenReturn(0L);
+        when(jdbcTemplate.queryForObject(
+            argThat(sql -> sql != null && sql.contains("table_schema = ?") && sql.contains("table_name = ?")),
+            eq(Long.class),
+            eq("test_maint"),
+            eq("maint_armor_set_images")
+        )).thenReturn(1L);
+        when(jdbcTemplate.queryForObject(
+            argThat(sql -> sql != null && sql.contains("table_schema = ?") && sql.contains("table_name = ?")),
+            eq(Long.class),
+            eq("test_relation"),
+            eq("relation_armor_set_images")
+        )).thenReturn(0L);
+        when(jdbcTemplate.queryForList(argThat(sql -> sql != null && sql.contains("FROM armor_sets")))).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(argThat(sql -> sql != null && sql.contains("FROM `test_maint`.`maint_armor_set_images`"))))
+            .thenReturn(List.of(Map.of(
+                "id", 301L,
+                "record_key", "property-configured-maint-row",
+                "text_key", "ArmorSetBonus.PropertyConfigured",
+                "image_role", "male",
+                "source_file_title", "Property configured armor",
+                "original_url", sourceUrl,
+                "cached_url", ""
+            )));
+
+        new ApplicationContextRunner()
+            .withPropertyValues(
+                "terraria.crawler.cross-db.maint-database=test_maint",
+                "terraria.crawler.cross-db.relation-database=test_relation"
+            )
+            .withBean(ItemImageMapper.class, () -> itemImageMapper)
+            .withBean(ItemMapper.class, () -> itemMapper)
+            .withBean(BuffMapper.class, () -> buffMapper)
+            .withBean(BiomeMapper.class, () -> biomeMapper)
+            .withBean(JdbcTemplate.class, () -> jdbcTemplate)
+            .withBean(MinioConnectionDetails.class, this::minioConnectionDetails)
+            .withBean(com.terraria.skills.service.WikiImageLocalizationService.class, () -> localizationService)
+            .withUserConfiguration(WikiImageSyncServiceImpl.class)
+            .run(context -> {
+                assertTrue(context.isRunning(), () -> String.valueOf(context.getStartupFailure()));
+                AdminWikiImageSyncResultDTO result = context.getBean(WikiImageSyncServiceImpl.class)
+                    .syncWikiImages(armorSetsOnlyRequest(false));
+
+                assertEquals(1, result.getArmorSets().getCandidateCount());
+                assertEquals(1, result.getArmorSets().getSyncedCount());
+            });
+
+        verify(jdbcTemplate).update(
+            contains("UPDATE `test_maint`.`maint_armor_set_images`"),
+            eq(sourceUrl),
+            eq("http://localhost:9000/terrapedia-images/items/wiki/item-images/shared.png"),
+            eq(301L)
+        );
+    }
+
+    @Test
     void shouldSyncArmorSetsByDefaultWhenRequestDoesNotSpecifyFlag() {
         RecordingWikiImageLocalizationService localizationService = new RecordingWikiImageLocalizationService("https://terraria.wiki.gg/images/Hallowed_armor.png");
         when(jdbcTemplate.queryForObject(
@@ -590,6 +712,14 @@ class WikiImageSyncServiceImplTest {
     }
 
     private WikiImageSyncServiceImpl service(com.terraria.skills.service.WikiImageLocalizationService localizationService) {
+        return service(localizationService, "terria_v1_maint", "terria_v1_relation");
+    }
+
+    private WikiImageSyncServiceImpl service(
+        com.terraria.skills.service.WikiImageLocalizationService localizationService,
+        String maintDatabaseName,
+        String relationDatabaseName
+    ) {
         return new WikiImageSyncServiceImpl(
             itemImageMapper,
             itemMapper,
@@ -597,7 +727,9 @@ class WikiImageSyncServiceImplTest {
             biomeMapper,
             jdbcTemplate,
             minioConnectionDetails(),
-            localizationService
+            localizationService,
+            maintDatabaseName,
+            relationDatabaseName
         );
     }
 

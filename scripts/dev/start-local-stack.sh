@@ -71,6 +71,39 @@ fs.appendFileSync(process.env.PROC_FILE, `${JSON.stringify(entry)}\n`);
 NODE
 }
 
+run_snapshot_gc_if_due() {
+  local marker_path="$report_dir/snapshot-gc.last-run"
+  local log_file
+  local now_seconds last_seconds age_seconds
+  log_file="$(log_path snapshot-gc)"
+  now_seconds="$(date +%s)"
+  last_seconds=0
+
+  if [[ -f "$marker_path" ]]; then
+    last_seconds="$(cat "$marker_path" 2>/dev/null || printf 0)"
+    if ! [[ "$last_seconds" =~ ^[0-9]+$ ]]; then
+      last_seconds=0
+    fi
+  fi
+
+  age_seconds=$((now_seconds - last_seconds))
+  if [[ "$age_seconds" -lt 604800 ]]; then
+    return 0
+  fi
+
+  if ! command -v node >/dev/null 2>&1; then
+    log_warn "Skipping weekly snapshot GC because node is not available"
+    return 0
+  fi
+
+  if node "$REPO_ROOT/scripts/data/maint/gc-snapshots.mjs" --keep=7 >"$log_file" 2>&1; then
+    printf '%s\n' "$now_seconds" >"$marker_path"
+    log_info "Snapshot GC completed; log=$log_file"
+  else
+    log_warn "Snapshot GC failed; log=$log_file"
+  fi
+}
+
 start_background() {
   local name="$1"
   local cwd="$2"
@@ -185,14 +218,6 @@ process.stdout.write(String(parsed[field] || ''));
 NODE
 }
 
-if ! $reuse_existing; then
-  bash "$SCRIPT_DIR/stop-local-stack.sh"
-fi
-
-log_info "Running preflight checks before local stack startup..."
-bash "$SCRIPT_DIR/verify-local-stack.sh"
-preflight_status="passed"
-
 load_runtime_config
 require_command node
 require_command mvn
@@ -232,6 +257,9 @@ export TERRAPEDIA_MINIO_ENDPOINT="$TP_MINIO_ENDPOINT"
 export TERRAPEDIA_MINIO_PUBLIC_ENDPOINT="$TP_MINIO_PUBLIC_ENDPOINT"
 export TERRAPEDIA_MINIO_BUCKET="$TP_MINIO_BUCKET"
 export TERRAPEDIA_MINIO_OBJECT_PREFIX="$TP_MINIO_OBJECT_PREFIX"
+if is_truthy "$TP_FLARESOLVERR_ENABLED"; then
+  export TERRAPEDIA_FLARESOLVERR_URL="$TP_FLARESOLVERR_URL"
+fi
 
 spring_profile="$TP_SPRING_PROFILE"
 export SPRING_PROFILES_ACTIVE="$spring_profile"
@@ -239,6 +267,16 @@ export SPRING_FLYWAY_OUT_OF_ORDER="$TP_SPRING_FLYWAY_OUT_OF_ORDER"
 export SPRING_DEVTOOLS_RESTART_ENABLED=false
 export SPRING_DEVTOOLS_LIVERELOAD_ENABLED=false
 export MANAGEMENT_HEALTH_MAIL_ENABLED=false
+
+if ! $reuse_existing; then
+  bash "$SCRIPT_DIR/stop-local-stack.sh"
+fi
+
+log_info "Running preflight checks before local stack startup..."
+bash "$SCRIPT_DIR/verify-local-stack.sh"
+preflight_status="passed"
+
+run_snapshot_gc_if_due
 
 start_redis_if_needed() {
   if tcp_check "$TP_REDIS_HOST" "$TP_REDIS_PORT" 800; then
@@ -348,6 +386,40 @@ start_minio_if_needed() {
 
 start_minio_if_needed
 
+start_flaresolverr_if_needed() {
+  if ! is_truthy "$TP_FLARESOLVERR_ENABLED"; then
+    return 0
+  fi
+
+  require_command docker
+
+  local host port container_name image
+  host="$(url_component "$TP_FLARESOLVERR_URL" host)"
+  port="$(url_component "$TP_FLARESOLVERR_URL" port)"
+  container_name="${TP_FLARESOLVERR_CONTAINER_NAME:-terrapedia-flaresolverr}"
+  image="${TP_FLARESOLVERR_IMAGE:-ghcr.io/flaresolverr/flaresolverr}"
+
+  if tcp_check "$host" "$port" 800; then
+    printf 'flaresolverr already running on %s:%s; status=occupied\n' "$host" "$port"
+    return 0
+  fi
+
+  if docker ps --format '{{.Names}}' | grep -Fxq "$container_name"; then
+    printf 'flaresolverr container %s already running; waiting for %s:%s\n' "$container_name" "$host" "$port"
+  elif docker ps -a --format '{{.Names}}' | grep -Fxq "$container_name"; then
+    docker start "$container_name" >/dev/null
+  else
+    docker run -d --name "$container_name" -p "$host:$port:8191" "$image" >/dev/null
+  fi
+
+  if ! wait_port "$host" "$port" 45; then
+    log_error "FlareSolverr failed to start on $host:$port. Check docker logs $container_name"
+    exit 1
+  fi
+}
+
+start_flaresolverr_if_needed
+
 if ! tcp_check 127.0.0.1 "$TP_BACKEND_PORT" 800; then
   start_background back "$REPO_ROOT/back" \
     "mvn -DskipTests -Dspring-boot.run.profiles=\"$spring_profile\" spring-boot:run" \
@@ -450,6 +522,11 @@ const processes = processLines.map((line) => JSON.parse(line));
   const minioPublicOpen = minioEnabled && minioPublicEndpoint
     ? await tcpEndpointOpen(minioPublicEndpoint)
     : false;
+  const flaresolverrEnabled = truthy(process.env.TP_FLARESOLVERR_ENABLED);
+  const flaresolverrUrl = process.env.TP_FLARESOLVERR_URL || '';
+  const flaresolverrOpen = flaresolverrEnabled && flaresolverrUrl
+    ? await tcpEndpointOpen(flaresolverrUrl)
+    : false;
 
   const manifest = {
     "runId": process.env.TP_RUN_ID,
@@ -464,6 +541,7 @@ const processes = processLines.map((line) => JSON.parse(line));
       front: portState(process.env.TP_FRONT_PORT, frontOpen),
       admin: portState(process.env.TP_ADMIN_PORT, adminOpen),
       minioPublic: minioEnabled ? { endpoint: minioPublicEndpoint, status: minioPublicOpen ? 'occupied' : 'free' } : { status: 'disabled' },
+      flaresolverr: flaresolverrEnabled ? { endpoint: flaresolverrUrl, status: flaresolverrOpen ? 'occupied' : 'free' } : { status: 'disabled' },
     },
     "springProfile": process.env.SPRING_PROFILES_ACTIVE,
     "processes": processes,
@@ -477,6 +555,7 @@ const processes = processLines.map((line) => JSON.parse(line));
       front: { port: Number(process.env.TP_FRONT_PORT), tcp: frontOpen, status: frontOpen ? 'occupied' : 'unreachable' },
       dataQueryApp: { port: Number(process.env.TP_ADMIN_PORT), tcp: adminOpen, status: adminOpen ? 'occupied' : 'unreachable' },
       minioPublic: { endpoint: minioPublicEndpoint, tcp: minioPublicOpen, status: minioEnabled ? (minioPublicOpen ? 'occupied' : 'unreachable') : 'disabled' },
+      flaresolverr: { endpoint: flaresolverrUrl, tcp: flaresolverrOpen, status: flaresolverrEnabled ? (flaresolverrOpen ? 'occupied' : 'unreachable') : 'disabled' },
     },
   };
 
@@ -492,5 +571,10 @@ if is_truthy "$TP_MINIO_ENABLED"; then
   minio_public_host="$(url_component "$TP_MINIO_PUBLIC_ENDPOINT" host)"
   minio_public_port="$(url_component "$TP_MINIO_PUBLIC_ENDPOINT" port)"
   printf 'minio-public(%s): %s\n' "$TP_MINIO_PUBLIC_ENDPOINT" "$(tcp_check "$minio_public_host" "$minio_public_port" 500 && printf true || printf false)"
+fi
+if is_truthy "$TP_FLARESOLVERR_ENABLED"; then
+  flaresolverr_host="$(url_component "$TP_FLARESOLVERR_URL" host)"
+  flaresolverr_port="$(url_component "$TP_FLARESOLVERR_URL" port)"
+  printf 'flaresolverr(%s): %s\n' "$TP_FLARESOLVERR_URL" "$(tcp_check "$flaresolverr_host" "$flaresolverr_port" 500 && printf true || printf false)"
 fi
 printf '\ndatabase: %s\nconfig: %s\nflyway.outOfOrder: %s\nmanifest: %s\nLogs: %s\n' "$TP_DB_NAME" "$TP_CONFIG_PATH" "$TP_SPRING_FLYWAY_OUT_OF_ORDER" "$manifest_path" "$report_dir"

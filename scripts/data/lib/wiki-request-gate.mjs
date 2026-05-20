@@ -3,9 +3,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { resolveSharedDataRoot } from './project-root.mjs';
+import { loadAlertConfig, recordCrawlerAlert } from './crawler-alerts.mjs';
+import { WIKI_USER_AGENT } from './wiki-user-agent.mjs';
+import { resolveFlareSolverrUrl, runFlareSolverrRequest } from './flaresolverr-bridge.mjs';
 
 const defaultStatePath = resolveSharedDataRoot('generated', 'wiki-request-gate.latest.json');
-const defaultUserAgent = 'TerraPedia-data-sync/2.0 (+https://terraria.wiki.gg/api.php)';
+const defaultUserAgent = WIKI_USER_AGENT;
 
 const REQUEST_PROFILES = {
   revision: {
@@ -42,7 +45,9 @@ export function createWikiRequestGate({
   sleepFn = sleep,
   nowFn = Date.now,
   fetchFn = globalThis.fetch,
-  externalRequestFn = defaultExternalRequestFn()
+  externalRequestFn = defaultExternalRequestFn(),
+  alertFn = recordCrawlerAlert,
+  alertConfig = loadAlertConfig()
 } = {}) {
   const gateStatePath = path.resolve(statePath);
   let state = loadGateState(gateStatePath, hostKey);
@@ -62,18 +67,23 @@ export function createWikiRequestGate({
     return enqueue(() => performRequest(input, { ...options, responseType: 'text' }));
   }
 
+  async function runBinaryRequest(input, options = {}) {
+    return enqueue(() => performRequest(input, { ...options, responseType: 'binary' }));
+  }
+
   function getStateSnapshot() {
     return { ...state };
   }
 
   function clearCooldown() {
+    const previousState = state;
     state = {
       ...state,
       consecutiveThrottleFailures: 0,
       cooldownUntil: null,
       lastError: null
     };
-    saveGateState(gateStatePath, state);
+    state = saveGateState(gateStatePath, state, previousState);
   }
 
   async function performRequest(input, {
@@ -104,7 +114,7 @@ export function createWikiRequestGate({
           signal: AbortSignal.timeout(timeoutMs)
         });
 
-        let rawBody = await response.text();
+        let rawBody = responseType === 'binary' ? null : await response.text();
         if (shouldUseExternalFallback({
           externalRequestFn,
           normalizedUrl,
@@ -127,6 +137,9 @@ export function createWikiRequestGate({
         const maybeJson = responseType === 'json' ? parseJsonSafely(rawBody) : null;
 
         if (!response.ok) {
+          if (rawBody == null && typeof response.text === 'function') {
+            rawBody = await response.text();
+          }
           throw buildHttpError({
             response,
             rawBody,
@@ -145,6 +158,15 @@ export function createWikiRequestGate({
         }
 
         noteSuccess();
+        if (responseType === 'binary') {
+          const body = Buffer.from(await response.arrayBuffer());
+          return {
+            status: response.status,
+            statusText: response.statusText,
+            headers: headersToObject(response.headers),
+            body
+          };
+        }
         if (responseType === 'json') {
           if (maybeJson == null) {
             throw new Error(`Expected JSON response from ${normalizedUrl}`);
@@ -191,14 +213,16 @@ export function createWikiRequestGate({
     if (waitMs > 0) {
       await sleepFn(waitMs);
     }
+    const previousState = state;
     state = {
       ...state,
       lastRequestAt: new Date(Number.isFinite(now) ? now : Date.now()).toISOString()
     };
-    saveGateState(gateStatePath, state);
+    state = saveGateState(gateStatePath, state, previousState);
   }
 
   function noteSuccess() {
+    const previousState = state;
     state = {
       ...state,
       consecutiveThrottleFailures: 0,
@@ -206,10 +230,11 @@ export function createWikiRequestGate({
       lastError: null,
       successCount: Number(state.successCount ?? 0) + 1
     };
-    saveGateState(gateStatePath, state);
+    state = saveGateState(gateStatePath, state, previousState);
   }
 
   function noteFailure(error, profile) {
+    const previousState = state;
     const retryable = isRetryableError(error);
     const nextFailureCount = retryable
       ? Number(state.consecutiveThrottleFailures ?? 0) + 1
@@ -224,12 +249,25 @@ export function createWikiRequestGate({
       failureCount: Number(state.failureCount ?? 0) + 1,
       throttleFailureCount: retryable ? Number(state.throttleFailureCount ?? 0) + 1 : Number(state.throttleFailureCount ?? 0)
     };
-    saveGateState(gateStatePath, state);
+    state = saveGateState(gateStatePath, state, previousState);
+    if (isCloudflareLikeError(error) && nextFailureCount === Number(alertConfig.consecutiveCloudflareFailures ?? 3)) {
+      alertFn({
+        type: 'cloudflare',
+        entity: hostKey,
+        message: `wiki request gate saw ${nextFailureCount} consecutive Cloudflare or 403 failures`,
+        context: {
+          consecutiveFailures: nextFailureCount,
+          lastError: compactError(error),
+          cooldownUntil: state.cooldownUntil
+        }
+      });
+    }
   }
 
   return {
     clearCooldown,
     getStateSnapshot,
+    runBinaryRequest,
     runJsonRequest,
     runTextRequest,
     statePath: gateStatePath,
@@ -237,8 +275,18 @@ export function createWikiRequestGate({
   };
 }
 
+function headersToObject(headers) {
+  if (!headers || typeof headers.entries !== 'function') {
+    return {};
+  }
+  return Object.fromEntries([...headers.entries()].map(([key, value]) => [String(key).toLowerCase(), String(value)]));
+}
+
 function defaultExternalRequestFn() {
-  return process.platform === 'win32' ? runPowerShellWebRequest : null;
+  if (process.platform === 'win32') {
+    return runPowerShellWebRequest;
+  }
+  return resolveFlareSolverrUrl() ? runFlareSolverrRequest : null;
 }
 
 function shouldUseExternalFallback({
@@ -519,6 +567,14 @@ function isRetryableStatus(status) {
   return status === 403 || status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
 }
 
+function isCloudflareLikeError(error) {
+  if (error?.cloudflare === true) {
+    return true;
+  }
+  const message = compactError(error).toLowerCase();
+  return message.includes('cloudflare') || message.includes('403') || message.includes('forbidden');
+}
+
 function isRetryableApiCode(code) {
   const normalized = String(code ?? '').trim().toLowerCase();
   return normalized === 'maxlag' || normalized === 'ratelimited';
@@ -578,13 +634,88 @@ function buildInitialState(hostKey) {
   };
 }
 
-function saveGateState(filePath, state) {
-  const nextState = {
-    ...state,
-    updatedAt: new Date().toISOString()
-  };
+function saveGateState(filePath, state, previousLocalState = null) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, `${JSON.stringify(nextState, null, 2)}\n`);
+  return withGateStateLock(filePath, () => {
+    const previousState = loadGateState(filePath, state.hostKey ?? 'terraria.wiki.gg');
+    const nextState = {
+      ...mergeGateState(previousState, state, previousLocalState),
+      updatedAt: new Date().toISOString()
+    };
+    writeGateStateAtomically(filePath, nextState);
+    return nextState;
+  });
+}
+
+function writeGateStateAtomically(filePath, state) {
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
+  try {
+    fs.writeFileSync(tempPath, `${JSON.stringify(state, null, 2)}\n`);
+    fs.renameSync(tempPath, filePath);
+  } catch (error) {
+    fs.rmSync(tempPath, { force: true });
+    throw error;
+  }
+}
+
+function withGateStateLock(filePath, work) {
+  const lockPath = `${filePath}.lock`;
+  const startedAt = Date.now();
+  while (true) {
+    try {
+      fs.mkdirSync(lockPath);
+      break;
+    } catch (error) {
+      if (error?.code !== 'EEXIST') {
+        throw error;
+      }
+      if (Date.now() - startedAt > 30_000) {
+        throw new Error(`Timed out waiting for wiki request gate state lock: ${lockPath}`);
+      }
+      sleepSync(10);
+    }
+  }
+
+  try {
+    return work();
+  } finally {
+    fs.rmSync(lockPath, { recursive: true, force: true });
+  }
+}
+
+function mergeGateState(previousState, nextState, previousLocalState = null) {
+  const localBase = previousLocalState ?? buildInitialState(nextState.hostKey ?? previousState.hostKey);
+  return {
+    ...previousState,
+    ...nextState,
+    failureCount: addCounterDelta(previousState, localBase, nextState, 'failureCount'),
+    successCount: addCounterDelta(previousState, localBase, nextState, 'successCount'),
+    throttleFailureCount: addCounterDelta(previousState, localBase, nextState, 'throttleFailureCount'),
+    lastRequestAt: latestTimestamp(previousState.lastRequestAt, nextState.lastRequestAt)
+  };
+}
+
+function addCounterDelta(previousState, localBase, nextState, fieldName) {
+  const persistedValue = Number(previousState[fieldName] ?? 0);
+  const localBeforeValue = Number(localBase[fieldName] ?? 0);
+  const localAfterValue = Number(nextState[fieldName] ?? 0);
+  return persistedValue + Math.max(0, localAfterValue - localBeforeValue);
+}
+
+function latestTimestamp(previousValue, nextValue) {
+  const previousTime = Date.parse(previousValue ?? 0);
+  const nextTime = Date.parse(nextValue ?? 0);
+  if (!Number.isFinite(previousTime)) {
+    return nextValue ?? null;
+  }
+  if (!Number.isFinite(nextTime)) {
+    return previousValue ?? null;
+  }
+  return nextTime >= previousTime ? nextValue : previousValue;
+}
+
+function sleepSync(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
 function sleep(ms) {

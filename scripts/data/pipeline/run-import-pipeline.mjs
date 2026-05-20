@@ -6,6 +6,7 @@ import { validateNormalizedItems } from '../normalize/validate-normalized-items.
 const args = process.argv.slice(2);
 const inputPath = args.find((arg) => !arg.startsWith('--')) ?? sharedDataPath('normalized', 'items.sample.json');
 const options = parseCliArgs(args);
+const dryRun = booleanOption(options['dry-run'] ?? options.dryRun, false);
 
 const validation = validateNormalizedItems(inputPath);
 console.log(`Validated file: ${validation.resolvedInput}`);
@@ -26,6 +27,7 @@ const importResult = await importNormalizedItems({
   importUrl: options.url ?? process.env.TERRAPEDIA_IMPORT_URL ?? `${resolveBackendApiBase()}/items/import`,
   source: options.source,
   overwriteExisting: options['overwrite-existing'] ?? options.overwriteExisting,
+  dryRun,
   token: options.token,
   authUrl: options['auth-url'] ?? options.authUrl,
   username: options.username,
@@ -34,6 +36,7 @@ const importResult = await importNormalizedItems({
 
 console.log(`Import URL: ${importResult.requestMeta.importUrl}`);
 console.log(`Payload: ${importResult.requestMeta.input}`);
+console.log(`Dry run: ${importResult.dryRun === true}`);
 console.log(`HTTP Status: ${importResult.response?.status ?? 'transport-error'}`);
 console.log(`Report: ${importResult.reportPath}`);
 if (importResult.body?.data) {
@@ -59,3 +62,16 @@ if (!importResult.ok) {
 }
 
 console.log('Pipeline finished successfully');
+
+function booleanOption(value, fallback) {
+  if (value == null || value === '') {
+    return fallback;
+  }
+  if (value === true || value === 'true' || value === '1' || value === 'yes') {
+    return true;
+  }
+  if (value === false || value === 'false' || value === '0' || value === 'no') {
+    return false;
+  }
+  return fallback;
+}

@@ -4,6 +4,8 @@ const escapeXml = (value: string) => value
   .replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;')
 
+const previewProxyUserAgent = 'TerraPedia-preview-proxy/2.0 (+https://terraria.wiki.gg/api.php)'
+
 const fallbackSvg = (rawPath: string) => {
   const filename = rawPath.split('/').filter(Boolean).at(-1) ?? 'asset'
   const label = filename.replace(/\.[^.]+$/, '').slice(0, 2).toUpperCase() || 'TP'
@@ -28,15 +30,19 @@ export default defineEventHandler(async (event) => {
     .join('/')
 
   const imageOrigin = String(useRuntimeConfig(event).public.imageOrigin || '').replace(/\/$/, '')
+  const wikiImageGateUrl = String(useRuntimeConfig(event).wikiImageGateUrl || '').replace(/\/$/, '')
   const wikiFileName = safePath.startsWith('wiki-files/') ? safePath.slice('wiki-files/'.length) : ''
 
-  if (wikiFileName) {
+  if (wikiFileName && wikiImageGateUrl) {
     try {
-      const response = await $fetch.raw(`https://terraria.wiki.gg/wiki/Special:Redirect/file/${wikiFileName}`, {
+      const sourceUrl = `https://terraria.wiki.gg/wiki/File:${wikiFileName}`
+      const response = await $fetch.raw(wikiImageGateUrl, {
+        method: 'POST',
         responseType: 'arrayBuffer',
+        body: { url: sourceUrl },
         headers: {
           accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-          'user-agent': 'TerraPedia preview asset proxy',
+          'user-agent': previewProxyUserAgent,
         },
       })
       const contentType = response.headers.get('content-type')

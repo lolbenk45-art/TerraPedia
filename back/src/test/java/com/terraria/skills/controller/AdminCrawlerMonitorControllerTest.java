@@ -6,7 +6,11 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
+import com.terraria.skills.dto.WikiImageLocalizationCacheMetricsDTO;
+import com.terraria.skills.handler.GlobalExceptionHandler;
+import com.terraria.skills.service.CrawlerMonitorRedisUnavailableException;
 import com.terraria.skills.service.CrawlerMonitorService;
+import com.terraria.skills.service.WikiImageLocalizationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +40,9 @@ class AdminCrawlerMonitorControllerTest {
     @Mock
     private CrawlerMonitorService crawlerMonitorService;
 
+    @Mock
+    private WikiImageLocalizationService wikiImageLocalizationService;
+
     @InjectMocks
     private AdminCrawlerMonitorController adminCrawlerMonitorController;
 
@@ -49,6 +56,7 @@ class AdminCrawlerMonitorControllerTest {
 
         mockMvc = MockMvcBuilders.standaloneSetup(adminCrawlerMonitorController)
             .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
+            .setControllerAdvice(new GlobalExceptionHandler())
             .build();
     }
 
@@ -121,6 +129,8 @@ class AdminCrawlerMonitorControllerTest {
         overview.setRefreshLastActivityAt("2026-04-26T00:00:00Z");
         overview.setRefreshStaleThresholdMs(86_400_000L);
         overview.setRefreshStaleReason("backend-refresh monitor has no activity for more than 24 hours");
+        overview.setHeartbeatStaleAfterMs(1_800_000L);
+        overview.setStaleHeartbeats(List.of("items"));
         overview.setRecentReports(List.of(recentReport));
         overview.setArchitectureLayers(List.of(architectureLayer));
         overview.setImageNormalization(imageNormalization);
@@ -135,6 +145,8 @@ class AdminCrawlerMonitorControllerTest {
             .andExpect(jsonPath("$.data.latestRun.totalActions").value(3))
             .andExpect(jsonPath("$.data.latestRun.failedActions").value(1))
             .andExpect(jsonPath("$.data.refreshStale").value(true))
+            .andExpect(jsonPath("$.data.heartbeatStaleAfterMs").value(1_800_000))
+            .andExpect(jsonPath("$.data.staleHeartbeats[0]").value("items"))
             .andExpect(jsonPath("$.data.recentReports[0].category").value("test"))
             .andExpect(jsonPath("$.data.architectureLayers[0].id").value("sync-report"))
             .andExpect(jsonPath("$.data.architectureLayers[0].files[0].latestPath").value("reports/relation/relation-health-2026-04-29.json"))
@@ -147,6 +159,47 @@ class AdminCrawlerMonitorControllerTest {
             .andExpect(jsonPath("$.data.registeredTasks[0].percent").value(43.0));
 
         verify(crawlerMonitorService).getOverview();
+    }
+
+    @Test
+    void shouldReturnServiceUnavailableWhenRedisIsOffline() throws Exception {
+        when(crawlerMonitorService.getOverview())
+            .thenThrow(new CrawlerMonitorRedisUnavailableException("redis offline: backend-refresh monitor state is unavailable"));
+
+        mockMvc.perform(get("/admin/crawler-monitor/overview"))
+            .andExpect(status().isServiceUnavailable())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.statusCode").value(503))
+            .andExpect(jsonPath("$.message").value("redis offline: backend-refresh monitor state is unavailable"));
+
+        verify(crawlerMonitorService).getOverview();
+    }
+
+    @Test
+    void shouldReturnWikiImageCacheMetrics() throws Exception {
+        WikiImageLocalizationCacheMetricsDTO metrics = new WikiImageLocalizationCacheMetricsDTO();
+        metrics.setEnabled(true);
+        metrics.setFailureCacheSize(12);
+        metrics.setFailureCacheMaxEntries(2048);
+        metrics.setFailureCacheTtlSeconds(600);
+        metrics.setUploadCacheSize(34);
+        metrics.setUploadCacheMaxEntries(4096);
+        metrics.setUploadCacheTtlSeconds(86_400);
+
+        when(wikiImageLocalizationService.cacheMetrics()).thenReturn(metrics);
+
+        mockMvc.perform(get("/admin/crawler-monitor/wiki-image-cache-metrics"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.enabled").value(true))
+            .andExpect(jsonPath("$.data.failureCacheSize").value(12))
+            .andExpect(jsonPath("$.data.failureCacheMaxEntries").value(2048))
+            .andExpect(jsonPath("$.data.failureCacheTtlSeconds").value(600))
+            .andExpect(jsonPath("$.data.uploadCacheSize").value(34))
+            .andExpect(jsonPath("$.data.uploadCacheMaxEntries").value(4096))
+            .andExpect(jsonPath("$.data.uploadCacheTtlSeconds").value(86_400));
+
+        verify(wikiImageLocalizationService).cacheMetrics();
     }
 
     @Test

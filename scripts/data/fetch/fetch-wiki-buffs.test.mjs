@@ -1,10 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 import {
   buildBuffRecords,
   collectBuffPageImmunityFacts
 } from './fetch-wiki-buffs.mjs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const repoRoot = path.resolve(__dirname, '..', '..', '..');
+const scriptPath = path.join(__dirname, 'fetch-wiki-buffs.mjs');
 
 test('buildBuffRecords applies buff page immunity facts over npcinfo fallback and labels sample semantics', () => {
   const baseBuffs = [
@@ -268,4 +278,47 @@ test('collectBuffPageImmunityFacts uses full page payload and keeps canonical re
   assert.equal(evidence.sourceEvidence.canonicalPageTitle, 'Poisoned');
   assert.equal(evidence.sourceEvidence.revisionId, 12345);
   assert.equal(evidence.sourceEvidence.revisionTimestamp, '2026-05-15T00:00:00Z');
+});
+
+test('buff fetch writes failed redis heartbeat before exiting on startup error', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-buffs-heartbeat-failed-'));
+  const binDir = path.join(tempDir, 'bin');
+  const redisLog = path.join(tempDir, 'redis-cli-args.jsonl');
+  const worktreeRoot = path.join(tempDir, 'feature-worktree');
+  const rawDir = path.join(tempDir, 'missing', 'raw');
+  const progressPath = path.join(tempDir, 'progress.json');
+
+  fs.mkdirSync(binDir, { recursive: true });
+  fs.writeFileSync(path.join(binDir, 'redis-cli'), `#!/usr/bin/env node
+const fs = require('node:fs');
+  fs.appendFileSync(${JSON.stringify(redisLog)}, JSON.stringify(process.argv.slice(2)) + '\\n');
+`, { mode: 0o755 });
+  fs.mkdirSync(worktreeRoot, { recursive: true });
+  fs.mkdirSync(path.dirname(rawDir), { recursive: true });
+  fs.writeFileSync(rawDir, 'not a directory', 'utf8');
+
+  const result = spawnSync(process.execPath, [
+    scriptPath,
+    `--raw-dir=${rawDir}`,
+    `--progress-path=${progressPath}`
+  ], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      PATH: `${binDir}${path.delimiter}${process.env.PATH}`,
+      WORKTREE_ROOT: worktreeRoot,
+      TERRAPEDIA_REDIS_HOST: '127.0.0.1',
+      TERRAPEDIA_REDIS_PORT: '6380',
+      TERRAPEDIA_REDIS_DATABASE: '0'
+    }
+  });
+
+  assert.notEqual(result.status, 0);
+  const calls = fs.readFileSync(redisLog, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
+  assert.ok(calls.some((args) => {
+    return args.includes('SETEX')
+      && args.includes('terrapedia:crawler:buffs:heartbeat')
+      && args.some((arg) => String(arg).includes('"status":"failed"'));
+  }));
 });

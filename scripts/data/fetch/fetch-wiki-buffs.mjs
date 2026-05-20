@@ -11,8 +11,11 @@ import {
   parseCliArgs,
   parseIteminfoModulePayload,
   sharedDataPath,
+  shouldKeepSnapshot,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
+import { reportHeartbeat } from '../lib/crawler-heartbeat.mjs';
+import { writeCrawlerMonitorRedisState } from '../lib/crawler-monitor-redis-state.mjs';
 import {
   buildActionProgressPayload,
   writeJsonFile
@@ -34,10 +37,12 @@ async function main(argv = process.argv.slice(2)) {
   const reportDir = sharedDataPath('reports', 'fetch');
   const langs = parseLanguages(options.langs);
   const progressPath = path.resolve(process.cwd(), options['progress-path'] ?? DEFAULT_BUFF_PROGRESS_PATH);
+  const keepSnapshot = shouldKeepSnapshot(options);
   const startedAt = new Date().toISOString();
 
   ensureDir(rawDir);
   ensureDir(reportDir);
+  await emitBuffHeartbeat('running', { phase: 'module' });
   writeBuffFetchProgress(progressPath, {
     status: 'running',
     phase: 'module',
@@ -112,10 +117,14 @@ async function main(argv = process.argv.slice(2)) {
   };
 
   writeJson(latestJsonPath, result);
-  writeJson(snapshotJsonPath, result);
+  if (keepSnapshot) {
+    writeJson(snapshotJsonPath, result);
+  }
   fs.writeFileSync(latestMarkupPath, result.moduleContent);
   writeJson(latestParsedPath, parsedPayload);
-  writeJson(snapshotParsedPath, parsedPayload);
+  if (keepSnapshot) {
+    writeJson(snapshotParsedPath, parsedPayload);
+  }
 
   const debuffCount = buffs.filter((buff) => buff.type === 'debuff').length;
   const buffCount = buffs.filter((buff) => buff.type === 'buff').length;
@@ -137,8 +146,8 @@ async function main(argv = process.argv.slice(2)) {
     latestJsonPath,
     latestMarkupPath,
     latestParsedPath,
-    snapshotJsonPath,
-    snapshotParsedPath
+    snapshotJsonPath: keepSnapshot ? snapshotJsonPath : null,
+    snapshotParsedPath: keepSnapshot ? snapshotParsedPath : null
   });
   writeBuffFetchProgress(progressPath, {
     status: 'completed',
@@ -152,6 +161,7 @@ async function main(argv = process.argv.slice(2)) {
     outputPath: latestParsedPath,
     reportPath
   });
+  await emitBuffHeartbeat('completed', { phase: 'write', totalBuffs: buffs.length, reportPath });
 
   console.log(`Fetched template: ${result.pageTitle}`);
   console.log(`Revision timestamp: ${result.revisionTimestamp ?? 'unknown'}`);
@@ -320,6 +330,10 @@ function writeBuffFetchProgress(progressPath, {
   payload.dataStage = 'wiki buff pages -> immunity evidence';
   payload.nextStep = 'standardize buffs, rebuild npc bridge, then backfill npc_buff_relations';
   writeJsonFile(progressPath, payload);
+  writeCrawlerMonitorRedisState({
+    stateId: 'buff-page-immunity-refresh:progress',
+    payload
+  }).catch(() => {});
 }
 
 function pickBuffPageTitle(buff, localizedByLang) {
@@ -522,6 +536,16 @@ const __filename = fileURLToPath(import.meta.url);
 if (process.argv[1] === __filename) {
   main().catch((error) => {
     console.error(error);
-    process.exitCode = 1;
+    emitBuffHeartbeat('failed', { phase: 'error', error: error?.message ?? String(error) }).finally(() => {
+      process.exitCode = 1;
+    });
   });
+}
+
+async function emitBuffHeartbeat(status, detail = {}) {
+  const result = await reportHeartbeat('buffs', status, { detail });
+  if (!result.ok) {
+    console.warn(`Crawler heartbeat skipped: ${result.error}`);
+  }
+  return result;
 }

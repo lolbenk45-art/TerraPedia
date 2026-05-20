@@ -1,0 +1,6 @@
+{
+  "heartbeatStaleAfterSeconds": 1800,
+  "consecutiveCloudflareFailures": 3,
+  "minioBucketSizeMaxGB": 50,
+  "wikiGateCooldownActiveTimeout": 1800
+}

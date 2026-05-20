@@ -9,6 +9,8 @@ const files = [
   'scripts/dev/lib/run-step.sh',
   'scripts/dev/lib/net.sh',
   'scripts/dev/lib/process.sh',
+  'scripts/dev/snapshot-data-source.sh',
+  'scripts/dev/restore-data-source.sh',
 ];
 
 test('bash foundation libraries exist and avoid Windows-only commands', () => {
