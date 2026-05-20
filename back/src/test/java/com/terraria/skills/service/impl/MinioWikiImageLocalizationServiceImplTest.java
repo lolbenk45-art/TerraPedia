@@ -1,6 +1,8 @@
 package com.terraria.skills.service.impl;
 
+import com.github.benmanes.caffeine.cache.Ticker;
 import com.terraria.skills.config.MinioConnectionDetails;
+import com.terraria.skills.dto.WikiImageLocalizationCacheMetricsDTO;
 import com.terraria.skills.service.WikiImageLocalizationService;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -15,8 +17,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -85,6 +89,47 @@ class MinioWikiImageLocalizationServiceImplTest {
 
         assertTrue(output.getOut().contains("Wiki image localization skipped by recent failure cache"));
         assertTrue(output.getOut().contains("api:second.imageUrl"));
+    }
+
+    @Test
+    void shouldBoundFailureCacheWithoutClearingAllEntries() {
+        MinioWikiImageLocalizationServiceImpl service = service(TEST_MINIO_ENDPOINT, new FakeTicker());
+
+        for (int index = 0; index < 2049; index++) {
+            service.rememberFailure("https://terraria.wiki.gg/images/Failure_" + index + ".png");
+        }
+
+        WikiImageLocalizationCacheMetricsDTO metrics = service.cacheMetrics();
+        assertEquals(2048, metrics.getFailureCacheMaxEntries());
+        assertEquals(2048, metrics.getFailureCacheSize());
+    }
+
+    @Test
+    void shouldExpireFailureCacheAfterTenMinutesWithTicker() {
+        FakeTicker ticker = new FakeTicker();
+        MinioWikiImageLocalizationServiceImpl service = service(TEST_MINIO_ENDPOINT, ticker);
+        String cacheKey = "https://terraria.wiki.gg/images/Expired_Failure.png";
+
+        service.rememberFailure(cacheKey);
+        assertTrue(service.isFailureCached(cacheKey));
+
+        ticker.advance(Duration.ofMinutes(10).plusMillis(1));
+
+        assertFalse(service.isFailureCached(cacheKey));
+        assertEquals(0, service.cacheMetrics().getFailureCacheSize());
+    }
+
+    @Test
+    void shouldReportCacheMetrics() {
+        MinioWikiImageLocalizationServiceImpl service = service(TEST_MINIO_ENDPOINT, new FakeTicker());
+
+        WikiImageLocalizationCacheMetricsDTO metrics = service.cacheMetrics();
+
+        assertTrue(metrics.isEnabled());
+        assertEquals(2048, metrics.getFailureCacheMaxEntries());
+        assertEquals(600, metrics.getFailureCacheTtlSeconds());
+        assertEquals(4096, metrics.getUploadCacheMaxEntries());
+        assertEquals(86_400, metrics.getUploadCacheTtlSeconds());
     }
 
     @Test
@@ -188,6 +233,18 @@ class MinioWikiImageLocalizationServiceImplTest {
 
     private MinioWikiImageLocalizationServiceImpl service(String minioEndpoint) {
         return service(minioEndpoint, true, "http://127.0.0.1:18099/fetch-image");
+    }
+
+    private MinioWikiImageLocalizationServiceImpl service(String minioEndpoint, Ticker ticker) {
+        return new MinioWikiImageLocalizationServiceImpl(
+            minioClient(minioEndpoint),
+            connectionDetails(minioEndpoint),
+            Set.of("127.0.0.1"),
+            true,
+            "http://127.0.0.1:18099/fetch-image",
+            "TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)",
+            ticker
+        );
     }
 
     private MinioWikiImageLocalizationServiceImpl service(
@@ -325,6 +382,19 @@ class MinioWikiImageLocalizationServiceImplTest {
         exchange.sendResponseHeaders(200, imageBytes.length);
         try (OutputStream outputStream = exchange.getResponseBody()) {
             outputStream.write(imageBytes);
+        }
+    }
+
+    private static final class FakeTicker implements Ticker {
+        private final AtomicLong nanos = new AtomicLong();
+
+        @Override
+        public long read() {
+            return nanos.get();
+        }
+
+        private void advance(Duration duration) {
+            nanos.addAndGet(duration.toNanos());
         }
     }
 }

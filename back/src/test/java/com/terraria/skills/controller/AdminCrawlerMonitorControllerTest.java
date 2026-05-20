@@ -6,9 +6,11 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
+import com.terraria.skills.dto.WikiImageLocalizationCacheMetricsDTO;
 import com.terraria.skills.handler.GlobalExceptionHandler;
 import com.terraria.skills.service.CrawlerMonitorRedisUnavailableException;
 import com.terraria.skills.service.CrawlerMonitorService;
+import com.terraria.skills.service.WikiImageLocalizationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +39,9 @@ class AdminCrawlerMonitorControllerTest {
 
     @Mock
     private CrawlerMonitorService crawlerMonitorService;
+
+    @Mock
+    private WikiImageLocalizationService wikiImageLocalizationService;
 
     @InjectMocks
     private AdminCrawlerMonitorController adminCrawlerMonitorController;
@@ -168,6 +173,33 @@ class AdminCrawlerMonitorControllerTest {
             .andExpect(jsonPath("$.message").value("redis offline: backend-refresh monitor state is unavailable"));
 
         verify(crawlerMonitorService).getOverview();
+    }
+
+    @Test
+    void shouldReturnWikiImageCacheMetrics() throws Exception {
+        WikiImageLocalizationCacheMetricsDTO metrics = new WikiImageLocalizationCacheMetricsDTO();
+        metrics.setEnabled(true);
+        metrics.setFailureCacheSize(12);
+        metrics.setFailureCacheMaxEntries(2048);
+        metrics.setFailureCacheTtlSeconds(600);
+        metrics.setUploadCacheSize(34);
+        metrics.setUploadCacheMaxEntries(4096);
+        metrics.setUploadCacheTtlSeconds(86_400);
+
+        when(wikiImageLocalizationService.cacheMetrics()).thenReturn(metrics);
+
+        mockMvc.perform(get("/admin/crawler-monitor/wiki-image-cache-metrics"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.enabled").value(true))
+            .andExpect(jsonPath("$.data.failureCacheSize").value(12))
+            .andExpect(jsonPath("$.data.failureCacheMaxEntries").value(2048))
+            .andExpect(jsonPath("$.data.failureCacheTtlSeconds").value(600))
+            .andExpect(jsonPath("$.data.uploadCacheSize").value(34))
+            .andExpect(jsonPath("$.data.uploadCacheMaxEntries").value(4096))
+            .andExpect(jsonPath("$.data.uploadCacheTtlSeconds").value(86_400));
+
+        verify(wikiImageLocalizationService).cacheMetrics();
     }
 
     @Test

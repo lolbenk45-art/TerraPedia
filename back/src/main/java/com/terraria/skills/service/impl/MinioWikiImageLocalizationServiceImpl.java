@@ -1,8 +1,12 @@
 package com.terraria.skills.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Ticker;
 import com.terraria.skills.config.MinioConnectionDetails;
 import com.terraria.skills.dto.FileUploadResultDTO;
+import com.terraria.skills.dto.WikiImageLocalizationCacheMetricsDTO;
 import com.terraria.skills.service.WikiImageLocalizationService;
 import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
@@ -27,13 +31,11 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
@@ -46,6 +48,8 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
 
     private static final Duration FAILURE_CACHE_TTL = Duration.ofMinutes(10);
     private static final int FAILURE_CACHE_MAX_ENTRIES = 2048;
+    private static final Duration UPLOAD_CACHE_TTL = Duration.ofHours(24);
+    private static final int UPLOAD_CACHE_MAX_ENTRIES = 4096;
 
     private final MinioClient minioClient;
     private final MinioConnectionDetails connectionDetails;
@@ -55,8 +59,8 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
     private final String wikiUserAgent;
     private final AtomicBoolean bucketReady = new AtomicBoolean(false);
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final Map<String, FileUploadResultDTO> uploadCache = new ConcurrentHashMap<>();
-    private final Map<String, Instant> failureCache = new ConcurrentHashMap<>();
+    private final Cache<String, FileUploadResultDTO> uploadCache;
+    private final Cache<String, Boolean> failureCache;
     private final HttpClient httpClient = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(15))
         .followRedirects(HttpClient.Redirect.NORMAL)
@@ -102,6 +106,28 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
         this.imageFetchViaGate = imageFetchViaGate;
         this.imageFetchGateUrl = firstNonBlank(imageFetchGateUrl, "http://127.0.0.1:18099/fetch-image");
         this.wikiUserAgent = firstNonBlank(wikiUserAgent, "TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)");
+        this.uploadCache = buildUploadCache(Ticker.systemTicker());
+        this.failureCache = buildFailureCache(Ticker.systemTicker());
+    }
+
+    MinioWikiImageLocalizationServiceImpl(
+        MinioClient minioClient,
+        MinioConnectionDetails connectionDetails,
+        Set<String> extraAllowedWikiImageHosts,
+        boolean imageFetchViaGate,
+        String imageFetchGateUrl,
+        String wikiUserAgent,
+        Ticker ticker
+    ) {
+        this.minioClient = minioClient;
+        this.connectionDetails = connectionDetails;
+        this.extraAllowedWikiImageHosts = extraAllowedWikiImageHosts == null ? Set.of() : extraAllowedWikiImageHosts;
+        this.imageFetchViaGate = imageFetchViaGate;
+        this.imageFetchGateUrl = firstNonBlank(imageFetchGateUrl, "http://127.0.0.1:18099/fetch-image");
+        this.wikiUserAgent = firstNonBlank(wikiUserAgent, "TerraPedia/2.0 (+https://terraria.wiki.gg/api.php)");
+        Ticker safeTicker = ticker == null ? Ticker.systemTicker() : ticker;
+        this.uploadCache = buildUploadCache(safeTicker);
+        this.failureCache = buildFailureCache(safeTicker);
     }
 
     @Override
@@ -163,7 +189,7 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
                 "api/wiki-images/" + hashPrefix(sourceUrl),
                 buildStableId(sourceUrl, firstNonBlank(context, "api-image"))
             );
-            failureCache.remove(cacheKey);
+            failureCache.invalidate(cacheKey);
             return upload.getUrl();
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
@@ -184,9 +210,9 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
         }
 
         String normalizedSourceUrl = normalizeFetchUrl(sourceUrl);
-        FileUploadResultDTO cached = uploadCache.get(normalizedSourceUrl);
+        FileUploadResultDTO cached = uploadCache.getIfPresent(normalizedSourceUrl);
         if (cached == null) {
-            cached = uploadCache.get(sourceUrl);
+            cached = uploadCache.getIfPresent(sourceUrl);
         }
         if (cached != null && StringUtils.hasText(cached.getUrl())) {
             return cached.getUrl();
@@ -204,7 +230,7 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
             throw new IllegalArgumentException("Not a supported wiki image URL");
         }
 
-        FileUploadResultDTO cached = uploadCache.get(normalizedSourceUrl);
+        FileUploadResultDTO cached = uploadCache.getIfPresent(normalizedSourceUrl);
         if (cached != null) {
             return cached;
         }
@@ -260,23 +286,45 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
             .orElse(false);
     }
 
-    private boolean isFailureCached(String cacheKey) {
-        Instant failedAt = failureCache.get(cacheKey);
-        if (failedAt == null) {
-            return false;
-        }
-        if (failedAt.plus(FAILURE_CACHE_TTL).isAfter(Instant.now())) {
-            return true;
-        }
-        failureCache.remove(cacheKey);
-        return false;
+    boolean isFailureCached(String cacheKey) {
+        failureCache.cleanUp();
+        return failureCache.getIfPresent(cacheKey) != null;
     }
 
-    private void rememberFailure(String cacheKey) {
-        if (failureCache.size() >= FAILURE_CACHE_MAX_ENTRIES) {
-            failureCache.clear();
-        }
-        failureCache.put(cacheKey, Instant.now());
+    void rememberFailure(String cacheKey) {
+        failureCache.put(cacheKey, Boolean.TRUE);
+        failureCache.cleanUp();
+    }
+
+    @Override
+    public WikiImageLocalizationCacheMetricsDTO cacheMetrics() {
+        failureCache.cleanUp();
+        uploadCache.cleanUp();
+        WikiImageLocalizationCacheMetricsDTO metrics = new WikiImageLocalizationCacheMetricsDTO();
+        metrics.setEnabled(true);
+        metrics.setFailureCacheSize(failureCache.estimatedSize());
+        metrics.setFailureCacheMaxEntries(FAILURE_CACHE_MAX_ENTRIES);
+        metrics.setFailureCacheTtlSeconds(FAILURE_CACHE_TTL.toSeconds());
+        metrics.setUploadCacheSize(uploadCache.estimatedSize());
+        metrics.setUploadCacheMaxEntries(UPLOAD_CACHE_MAX_ENTRIES);
+        metrics.setUploadCacheTtlSeconds(UPLOAD_CACHE_TTL.toSeconds());
+        return metrics;
+    }
+
+    private Cache<String, FileUploadResultDTO> buildUploadCache(Ticker ticker) {
+        return Caffeine.newBuilder()
+            .maximumSize(UPLOAD_CACHE_MAX_ENTRIES)
+            .expireAfterWrite(UPLOAD_CACHE_TTL)
+            .ticker(ticker)
+            .build();
+    }
+
+    private Cache<String, Boolean> buildFailureCache(Ticker ticker) {
+        return Caffeine.newBuilder()
+            .maximumSize(FAILURE_CACHE_MAX_ENTRIES)
+            .expireAfterWrite(FAILURE_CACHE_TTL)
+            .ticker(ticker)
+            .build();
     }
 
     private URI parseHttpUri(String value) {
