@@ -14,6 +14,7 @@ import {
   writeJson
 } from '../lib/wiki-item-utils.mjs';
 import { reportHeartbeat } from '../lib/crawler-heartbeat.mjs';
+import { writeCrawlerMonitorRedisState } from '../lib/crawler-monitor-redis-state.mjs';
 import {
   buildActionProgressPayload,
   writeJsonFile
@@ -323,6 +324,10 @@ function writeBuffFetchProgress(progressPath, {
   payload.dataStage = 'wiki buff pages -> immunity evidence';
   payload.nextStep = 'standardize buffs, rebuild npc bridge, then backfill npc_buff_relations';
   writeJsonFile(progressPath, payload);
+  writeCrawlerMonitorRedisState({
+    stateId: 'buff-page-immunity-refresh:progress',
+    payload
+  }).catch(() => {});
 }
 
 function pickBuffPageTitle(buff, localizedByLang) {

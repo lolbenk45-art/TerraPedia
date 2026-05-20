@@ -2,7 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 
 import {
   buildBackendRefreshScheduleConfig,
@@ -17,6 +17,10 @@ import {
   buildDaemonHeartbeatPayload,
   buildDaemonStatePayload
 } from './backend-refresh-daemon-state.mjs';
+import {
+  buildCrawlerMonitorRedisDelArgs,
+  buildCrawlerMonitorRedisSetArgs
+} from '../lib/crawler-monitor-redis-state.mjs';
 
 const rawOptions = parseArgs(process.argv.slice(2));
 const scheduleConfig = buildBackendRefreshScheduleConfig(rawOptions, { repoRoot: process.cwd() });
@@ -132,6 +136,7 @@ function acquireLock(lockFile, options = {}) {
 
   try {
     fs.writeFileSync(lockFile, JSON.stringify(lockPayload, null, 2), { encoding: 'utf8', flag: 'wx' });
+    writeRedisStateSync('backend-refresh:lock', lockPayload);
     return { acquired: true, lockPayload };
   } catch (error) {
     if (error?.code !== 'EEXIST') {
@@ -144,6 +149,7 @@ function acquireLock(lockFile, options = {}) {
     try {
       fs.rmSync(lockFile, { force: true });
       fs.writeFileSync(lockFile, JSON.stringify(lockPayload, null, 2), { encoding: 'utf8', flag: 'wx' });
+      writeRedisStateSync('backend-refresh:lock', lockPayload);
       return { acquired: true, lockPayload, recoveredStaleLock: true };
     } catch (error) {
       if (error?.code !== 'EEXIST') {
@@ -159,6 +165,7 @@ function releaseLock(lockFile) {
   try {
     fs.rmSync(lockFile, { force: true });
   } catch {}
+  removeRedisStateSync('backend-refresh:lock');
 }
 
 function writeSchedulerState(stateFile, payload, options = {}) {
@@ -170,13 +177,16 @@ function writeSchedulerState(stateFile, payload, options = {}) {
     : payload;
   fs.mkdirSync(path.dirname(stateFile), { recursive: true });
   fs.writeFileSync(stateFile, `${JSON.stringify(nextState, null, 2)}\n`, 'utf8');
+  writeRedisStateSync('backend-refresh:scheduler', nextState);
 }
 
 function writeDaemonHeartbeat(scheduleConfig, payload = {}) {
-  writeJsonFile(scheduleConfig.heartbeatFile, buildDaemonHeartbeatPayload({
+  const heartbeat = buildDaemonHeartbeatPayload({
     pid: process.pid,
     ...payload
-  }));
+  });
+  writeJsonFile(scheduleConfig.heartbeatFile, heartbeat);
+  writeRedisStateSync('backend-refresh:daemon', heartbeat);
 }
 
 function writeSummaryIfExists(outputPath, summaryPath) {
@@ -190,6 +200,25 @@ function writeSummaryIfExists(outputPath, summaryPath) {
 function writeJsonFile(filePath, payload) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+}
+
+function writeRedisStateSync(stateId, payload) {
+  runRedisCliSync(buildCrawlerMonitorRedisSetArgs({ stateId, payload }));
+}
+
+function removeRedisStateSync(stateId) {
+  runRedisCliSync(buildCrawlerMonitorRedisDelArgs({ stateId }));
+}
+
+function runRedisCliSync(args) {
+  try {
+    spawnSync(process.env.TERRAPEDIA_REDIS_CLI ?? 'redis-cli', args, {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+      stdio: 'ignore',
+      timeout: 3000
+    });
+  } catch {}
 }
 
 function readJsonFile(filePath) {

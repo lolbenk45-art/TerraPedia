@@ -6,6 +6,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.terraria.skills.dto.CrawlerMonitorOverviewDTO;
 import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
+import com.terraria.skills.handler.GlobalExceptionHandler;
+import com.terraria.skills.service.CrawlerMonitorRedisUnavailableException;
 import com.terraria.skills.service.CrawlerMonitorService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +51,7 @@ class AdminCrawlerMonitorControllerTest {
 
         mockMvc = MockMvcBuilders.standaloneSetup(adminCrawlerMonitorController)
             .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
+            .setControllerAdvice(new GlobalExceptionHandler())
             .build();
     }
 
@@ -149,6 +152,20 @@ class AdminCrawlerMonitorControllerTest {
             .andExpect(jsonPath("$.data.imageNormalization.legacyExemptionCount").value(0))
             .andExpect(jsonPath("$.data.registeredTasks[0].progressKind").value("live"))
             .andExpect(jsonPath("$.data.registeredTasks[0].percent").value(43.0));
+
+        verify(crawlerMonitorService).getOverview();
+    }
+
+    @Test
+    void shouldReturnServiceUnavailableWhenRedisIsOffline() throws Exception {
+        when(crawlerMonitorService.getOverview())
+            .thenThrow(new CrawlerMonitorRedisUnavailableException("redis offline: backend-refresh monitor state is unavailable"));
+
+        mockMvc.perform(get("/admin/crawler-monitor/overview"))
+            .andExpect(status().isServiceUnavailable())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.statusCode").value(503))
+            .andExpect(jsonPath("$.message").value("redis offline: backend-refresh monitor state is unavailable"));
 
         verify(crawlerMonitorService).getOverview();
     }

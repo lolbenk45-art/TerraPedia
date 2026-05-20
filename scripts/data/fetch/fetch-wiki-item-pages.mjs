@@ -14,6 +14,7 @@ import {
   writeJson
 } from '../lib/wiki-item-utils.mjs';
 import { reportHeartbeat } from '../lib/crawler-heartbeat.mjs';
+import { writeCrawlerMonitorRedisState } from '../lib/crawler-monitor-redis-state.mjs';
 import {
   buildActionProgressPayload,
   writeJsonFile
@@ -358,6 +359,10 @@ function writeFetchProgress(progress) {
     childStatusPath: progressPath
   });
   writeJsonFile(progressPath, payload);
+  writeCrawlerMonitorRedisState({
+    stateId: 'item-pages-refresh:progress',
+    payload
+  }).catch(() => {});
   if (path.resolve(process.cwd(), progressPath) !== DEFAULT_WIKI_SYNC_PROGRESS_PATH) {
     writeJsonFile(DEFAULT_WIKI_SYNC_PROGRESS_PATH, {
       ...payload,

@@ -10,6 +10,7 @@ import {
   writeJson
 } from '../lib/wiki-item-utils.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import { writeCrawlerMonitorRedisState } from '../lib/crawler-monitor-redis-state.mjs';
 import {
   buildActionProgressPayload,
   writeJsonFile
@@ -302,6 +303,11 @@ function writeTargetBuffProgress(progressPath, {
   payload.nextStep = 'standardize buffs, rebuild npc bridge, then backfill npc_buff_relations';
   const writer = dependencies.writeJson ?? writeJsonFile;
   writer(progressPath, payload);
+  const redisWriter = dependencies.writeRedisState ?? writeCrawlerMonitorRedisState;
+  Promise.resolve(redisWriter({
+    stateId: 'buff-page-immunity-refresh:progress',
+    payload
+  })).catch(() => {});
 }
 
 function isDirectExecution() {

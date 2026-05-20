@@ -1,6 +1,7 @@
 package com.terraria.skills.handler;
 
 import com.terraria.skills.common.ApiResponse;
+import com.terraria.skills.service.CrawlerMonitorRedisUnavailableException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
@@ -22,6 +23,13 @@ public class GlobalExceptionHandler {
     public ApiResponse<Void> handleNoResourceFoundException(NoResourceFoundException e) {
         log.warn("Resource not found path={}", e.getResourcePath());
         return ApiResponse.error(404, "Resource not found: " + e.getResourcePath());
+    }
+
+    @ExceptionHandler(CrawlerMonitorRedisUnavailableException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ApiResponse<Void> handleCrawlerMonitorRedisUnavailable(CrawlerMonitorRedisUnavailableException e) {
+        log.warn("Crawler monitor Redis unavailable: {}", e.getMessage());
+        return ApiResponse.error(503, e.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
