@@ -7,9 +7,10 @@
 
 .catalog-wall-shell {
   position: relative;
+  scroll-margin-top: 88px;
   overflow: visible;
   display: block;
-  min-height: 640px;
+  min-height: 560px;
   border: 1px solid rgba(214, 177, 90, 0.24);
   border-radius: 18px;
   background:
@@ -169,19 +170,19 @@
   z-index: 1;
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .catalog-wall-cell {
-  --catalog-wall-frame-size: min(112px, 100%);
-  --catalog-wall-image-size: min(62px, 58%);
+  --catalog-wall-frame-size: min(88px, 100%);
+  --catalog-wall-image-size: min(54px, 62%);
   position: relative;
   display: grid;
-  grid-template-rows: 14px minmax(112px, 1fr) auto;
+  grid-template-rows: 12px minmax(86px, 1fr) auto;
   justify-items: center;
   align-items: center;
-  gap: 8px;
-  min-height: 158px;
+  gap: 6px;
+  min-height: 130px;
   border: 1px solid rgba(244, 234, 208, 0.09);
   border-radius: 8px;
   background:
@@ -193,7 +194,7 @@
   cursor: pointer;
   font: inherit;
   min-width: 0;
-  padding: 10px 8px 9px;
+  padding: 8px 7px;
   text-decoration: none;
   transition:
     border-color 180ms ease,
@@ -252,7 +253,7 @@
   min-width: 0;
   width: 100%;
   max-width: 100%;
-  min-height: 112px;
+  min-height: 86px;
 }
 
 .catalog-wall-cell-index {
@@ -270,7 +271,7 @@
   overflow: hidden;
   width: 100%;
   color: rgba(244, 234, 208, 0.78);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
   line-height: 1.2;
   text-align: center;
@@ -438,7 +439,7 @@
 }
 
 .catalog-density-rail {
-  grid-template-columns: minmax(150px, 0.62fr) minmax(220px, 1.1fr) auto minmax(260px, 1.4fr) auto;
+  grid-template-columns: minmax(260px, 1fr) auto minmax(300px, auto) minmax(210px, auto) auto;
   gap: 10px;
   font-variant-numeric: tabular-nums;
 }
@@ -488,7 +489,20 @@
 }
 
 .catalog-density-rail-bottom {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
   margin-top: 14px;
+  border: 1px solid rgba(214, 177, 90, 0.18);
+  border-radius: 12px;
+  background:
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(7, 12, 9, 0.9);
+  background-size: 34px 34px, 34px 34px, auto;
+  box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.24);
+  padding: 8px;
+  backdrop-filter: blur(14px);
 }
 
 .catalog-density-rail .density-actions,
@@ -502,6 +516,42 @@
 
 .catalog-density-rail .small-button {
   min-width: 44px;
+}
+
+.catalog-page-jump-form {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  color: rgba(244, 234, 208, 0.72);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.catalog-page-jump-form label,
+.catalog-page-jump-form span {
+  white-space: nowrap;
+}
+
+.catalog-page-jump-form input {
+  width: 68px;
+  min-height: 38px;
+  border: 1px solid rgba(214, 177, 90, 0.22);
+  border-radius: 8px;
+  background: rgba(244, 234, 208, 0.055);
+  color: var(--paper);
+  padding: 0 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.catalog-page-jump-form input:focus {
+  border-color: rgba(240, 207, 116, 0.54);
+  box-shadow: 0 0 0 3px rgba(240, 207, 116, 0.12);
+  outline: none;
 }
 
 .catalog-status-row {
@@ -897,6 +947,26 @@
   color: rgba(var(--theme-text-rgb), 0.78);
 }
 
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-density-rail-bottom {
+  border-color: rgba(var(--theme-border-rgb), 0.18);
+  background:
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(var(--theme-panel-rgb), 0.88);
+  background-size: 34px 34px, 34px 34px, auto;
+  box-shadow: 0 -10px 24px rgba(var(--theme-text-rgb), 0.08);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-page-jump-form {
+  color: rgba(var(--theme-text-rgb), 0.82);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-page-jump-form input {
+  border-color: rgba(var(--theme-border-rgb), 0.18);
+  background: rgba(var(--theme-panel-rgb), 0.72);
+  color: var(--text-main);
+}
+
 @media (max-width: 1180px) {
   .catalog-pixel-stage {
     padding: 22px 24px 0;
@@ -918,6 +988,10 @@
 
   .catalog-density-rail {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  }
+
+  .catalog-page-jump-form {
+    justify-content: flex-start;
   }
 
   .catalog-density-rail .density-actions {

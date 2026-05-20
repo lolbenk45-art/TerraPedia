@@ -4,12 +4,15 @@ import type { CatalogItem, PublicCategory, PublicItemQuery } from '~/types/publi
 
 const route = useRoute()
 const router = useRouter()
+const defaultCatalogPageSize = 24
 const failedItemImages = ref(new Set<string>())
+const catalogWallTopRef = ref<HTMLElement | null>(null)
 const searchQuery = ref('')
 const debouncedSearchQuery = ref('')
 const activeFilter = ref('all')
 const currentPage = ref(1)
-const selectedPageSize = ref(50)
+const selectedPageSize = ref(defaultCatalogPageSize)
+const jumpPageInput = ref('')
 const focusedItemId = ref<string | null>(null)
 let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 const catalogPageSizeStorageKey = 'terrapedia:catalog-page-size'
@@ -21,7 +24,7 @@ const quickFilters = [
   { key: 'potion', label: '药水', categoryCodes: ['CONSUMABLE_POTION'] },
   { key: 'hardmode', label: '困难模式', gamePeriodId: 2 },
 ] as const
-const pageSizeOptions = [25, 50, 100]
+const pageSizeOptions = [12, 24, 48, 96]
 
 type QuickFilterKey = (typeof quickFilters)[number]['key']
 
@@ -130,7 +133,7 @@ const catalogLoadingSlots = computed(() => Array.from({ length: Math.min(selecte
 const visiblePageItems = computed(() => {
   const pages = totalPages.value
   const page = currentPage.value
-  const edgeWindow = 5
+  const edgeWindow = 1
   const sideWindow = 2
   const candidates = new Set([1, pages])
 
@@ -196,6 +199,13 @@ const resultSummary = computed(() => {
 
 const pageControlLabel = (item: number | 'gap') => item === 'gap' ? '…' : String(item)
 
+const scrollCatalogWallToTop = async () => {
+  if (!import.meta.client) return
+
+  await nextTick()
+  catalogWallTopRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
 const setFocusedItem = (item: CatalogItem) => {
   focusedItemId.value = item.id
 }
@@ -203,35 +213,57 @@ const setFocusedItem = (item: CatalogItem) => {
 const setActiveFilter = (filter: QuickFilterKey) => {
   activeFilter.value = filter
   currentPage.value = 1
+  void scrollCatalogWallToTop()
 }
 
 const setPageSize = (pageSize: number) => {
   selectedPageSize.value = pageSize
   currentPage.value = 1
+  jumpPageInput.value = ''
+  void scrollCatalogWallToTop()
 }
 
 const goToPreviousPage = () => {
   if (canGoPrevious.value) {
     currentPage.value -= 1
+    jumpPageInput.value = ''
+    void scrollCatalogWallToTop()
   }
 }
 
 const goToFirstPage = () => {
+  if (currentPage.value === 1) return
   currentPage.value = 1
+  jumpPageInput.value = ''
+  void scrollCatalogWallToTop()
 }
 
 const goToPage = (page: number) => {
-  currentPage.value = Math.min(Math.max(1, page), totalPages.value)
+  const nextPage = Math.min(Math.max(1, page), totalPages.value)
+  if (nextPage === currentPage.value) return
+  currentPage.value = nextPage
+  jumpPageInput.value = ''
+  void scrollCatalogWallToTop()
 }
 
 const goToNextPage = () => {
   if (canGoNext.value) {
     currentPage.value += 1
+    jumpPageInput.value = ''
+    void scrollCatalogWallToTop()
   }
 }
 
 const goToLastPage = () => {
+  if (currentPage.value === totalPages.value) return
   currentPage.value = totalPages.value
+  jumpPageInput.value = ''
+  void scrollCatalogWallToTop()
+}
+
+const goToJumpPage = () => {
+  const page = parsePositiveInteger(jumpPageInput.value, currentPage.value)
+  goToPage(page)
 }
 
 const handleCatalogPaginationKeydown = (event: KeyboardEvent) => {
@@ -276,7 +308,7 @@ const updateCatalogRouteQuery = () => {
   const query = {
     ...route.query,
     page: currentPage.value > 1 ? String(currentPage.value) : undefined,
-    pageSize: selectedPageSize.value !== 50 ? String(selectedPageSize.value) : undefined,
+    pageSize: selectedPageSize.value !== defaultCatalogPageSize ? String(selectedPageSize.value) : undefined,
     filter: activeFilter.value !== 'all' ? activeFilter.value : undefined,
     q: debouncedSearchQuery.value.trim() || undefined,
   }
@@ -396,7 +428,7 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
       :aria-busy="itemsPending"
       :data-source="dataSourceState"
     >
-      <div class="catalog-wall-shell">
+      <div ref="catalogWallTopRef" class="catalog-wall-shell">
         <div class="catalog-wall-main">
           <div class="catalog-wall-topbar">
             <div class="catalog-wall-title">
@@ -557,6 +589,21 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
                 末页
               </button>
             </div>
+            <form class="catalog-page-jump-form" aria-label="跳页" @submit.prevent="goToJumpPage">
+              <label for="catalog-page-jump">跳至</label>
+              <input
+                id="catalog-page-jump"
+                v-model="jumpPageInput"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                :max="totalPages"
+                :placeholder="String(currentPage)"
+                :disabled="itemsPending"
+              />
+              <span>/ {{ totalPages }}</span>
+              <button class="small-button" type="submit" :disabled="itemsPending">前往</button>
+            </form>
             <strong>{{ publicStatusLabel }}</strong>
           </div>
         </div>

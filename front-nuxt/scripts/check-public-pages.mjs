@@ -864,6 +864,22 @@ for (const path of scanFiles) {
 
   if (path === 'pages/items/index.vue') {
     for (const marker of [
+      'const defaultCatalogPageSize = 24',
+      'const pageSizeOptions = [12, 24, 48, 96]',
+      'pageSize: selectedPageSize.value !== defaultCatalogPageSize',
+      'const edgeWindow = 1',
+      'const sideWindow = 2',
+      'catalogWallTopRef',
+      'scrollIntoView',
+      'catalog-page-jump-form',
+      'goToJumpPage',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: items pagination density must use compact defaults, top-scroll paging, and jump controls via marker ${marker}`)
+      }
+    }
+
+    for (const marker of [
       'catalog-loading-skeleton',
       'catalogVisualLoading',
       ':aria-busy="itemsPending"',
@@ -909,13 +925,14 @@ for (const path of scanFiles) {
   if (path === 'assets/css/catalog-image-fixes.css') {
     for (const marker of [
       'grid-template-columns: repeat(6, minmax(0, 1fr))',
-      'grid-template-rows: 14px minmax(112px, 1fr) auto',
-      'min-height: 158px',
+      'grid-template-rows: 12px minmax(86px, 1fr) auto',
+      'min-height: 130px',
       'width: var(--catalog-wall-frame-size)',
       'height: auto',
       'overflow: hidden',
       'width: var(--catalog-wall-image-size)',
       'height: var(--catalog-wall-image-size)',
+      'scroll-margin-top: 88px',
       '.catalog-wall-cell.tone-1',
       '.catalog-wall-cell.tone-2',
       '.catalog-wall-cell.tone-3',
@@ -925,6 +942,8 @@ for (const path of scanFiles) {
       '.catalog-density-rail span::before',
       'object-fit: contain',
       '.catalog-loading-skeleton',
+      'position: sticky',
+      '.catalog-page-jump-form',
       '@keyframes catalogPixelPulse',
     ]) {
       if (!content.includes(marker)) {

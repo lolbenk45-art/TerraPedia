@@ -218,9 +218,11 @@ const auditExpression = `(() => {
 		    catalogFocusTitle: document.querySelector('.catalog-floating-focus h3')?.textContent?.trim() ?? '',
 		    catalogFocusedDetailHref: document.querySelector('.catalog-floating-focus a[href^="/items/"]')?.getAttribute('href') ?? '',
 		    catalogFloatingFocusCount: document.querySelectorAll('.catalog-floating-focus').length,
-		    catalogHoverPreviewCount: document.querySelectorAll('.catalog-hover-preview').length,
-		    catalogPageButtonCount: document.querySelectorAll('.catalog-page-button').length,
-		    catalogFirstLastButtonCount: [...document.querySelectorAll('.catalog-density-rail-bottom button')]
+			    catalogHoverPreviewCount: document.querySelectorAll('.catalog-hover-preview').length,
+			    catalogPageButtonCount: document.querySelectorAll('.catalog-page-button').length,
+			    catalogJumpInputCount: document.querySelectorAll('.catalog-page-jump-form input').length,
+			    catalogStickyRailPosition: getComputedStyle(document.querySelector('.catalog-density-rail-bottom') ?? document.body).position,
+			    catalogFirstLastButtonCount: [...document.querySelectorAll('.catalog-density-rail-bottom button')]
 		      .filter((button) => /首页|末页/.test(button.textContent ?? ''))
 		      .length,
 		    densityRailBeforeContent: getComputedStyle(document.querySelector('.catalog-density-rail-bottom span') ?? document.body, '::before').content,
@@ -648,9 +650,9 @@ try {
 	        failures.push(`/items: previous three-panel catalog layout is still rendered (${value.catalogOldPanelCount} old panel markers)`)
 	      }
 
-	      if (value.catalogWallCellCount < 50) {
-	        failures.push(`/items: expected the Pixel Gallery wall to render a full default result page, got ${value.catalogWallCellCount}`)
-	      }
+		      if (value.catalogWallCellCount < 24) {
+		        failures.push(`/items: expected the Pixel Gallery wall to render a full default result page, got ${value.catalogWallCellCount}`)
+		      }
 
 	      if (value.catalogSearchInputCount !== 1) {
 	        failures.push(`/items: expected exactly one working Pixel Gallery search input, got ${value.catalogSearchInputCount}`)
@@ -672,9 +674,14 @@ try {
 	        failures.push(`/items: catalog should use per-cell hover previews instead of a fixed focus card, got focus=${value.catalogFloatingFocusCount}, hover=${value.catalogHoverPreviewCount}`)
 	      }
 
-	      if (value.catalogPageButtonCount < 5 || value.catalogFirstLastButtonCount < 2) {
-	        failures.push(`/items: pagination should expose page number, first page, and last page controls, got pageButtons=${value.catalogPageButtonCount}, firstLast=${value.catalogFirstLastButtonCount}`)
-	      }
+		      if (
+		        value.catalogPageButtonCount < 4
+		        || value.catalogFirstLastButtonCount < 2
+		        || value.catalogJumpInputCount !== 1
+		        || value.catalogStickyRailPosition !== 'sticky'
+		      ) {
+		        failures.push(`/items: pagination should expose compact page numbers, jump input, sticky rail, first page, and last page controls, got pageButtons=${value.catalogPageButtonCount}, jump=${value.catalogJumpInputCount}, sticky=${value.catalogStickyRailPosition}, firstLast=${value.catalogFirstLastButtonCount}`)
+		      }
 
 	      if (!['none', 'normal', '""'].includes(value.densityRailBeforeContent)) {
 	        failures.push(`/items: catalog status text should not inherit decorative density rail bullets, got before=${value.densityRailBeforeContent}`)
@@ -766,16 +773,21 @@ try {
 
 	      const paginationInteraction = await browser.send('Runtime.evaluate', {
 	        expression: `(() => new Promise((resolve) => {
-	            const snapshotCatalog = () => ({
-	              statusText: document.querySelector('.catalog-density-rail strong')?.textContent ?? '',
-	              pageText: document.querySelector('.density-rail span')?.textContent ?? '',
-	              firstLabel: document.querySelector('.catalog-wall-cell')?.getAttribute('aria-label') ?? '',
-	              firstIndex: document.querySelector('.catalog-wall-cell .catalog-wall-cell-index')?.textContent?.trim() ?? '',
-	              activeFilterText: document.querySelector('.catalog-quick-filter-rail button.active')?.textContent?.trim() ?? '',
-	              cellCount: document.querySelectorAll('.catalog-wall-cell').length,
-	              itemTitles: [...document.querySelectorAll('.catalog-wall-cell')]
-	                .slice(0, 20)
-	                .map((cell) => cell.getAttribute('title') ?? ''),
+		            const snapshotCatalog = () => ({
+		              statusText: document.querySelector('.catalog-density-rail strong')?.textContent ?? '',
+		              pageText: document.querySelector('.density-rail span')?.textContent ?? '',
+		              firstLabel: document.querySelector('.catalog-wall-cell')?.getAttribute('aria-label') ?? '',
+		              firstIndex: document.querySelector('.catalog-wall-cell .catalog-wall-cell-index')?.textContent?.trim() ?? '',
+		              activeFilterText: document.querySelector('.catalog-quick-filter-rail button.active')?.textContent?.trim() ?? '',
+		              cellCount: document.querySelectorAll('.catalog-wall-cell').length,
+		              pageButtonCount: document.querySelectorAll('.catalog-page-button').length,
+		              densityChoices: [...document.querySelectorAll('.catalog-density-rail-bottom .density-choice')]
+		                .map((button) => button.textContent?.trim() ?? ''),
+		              hasJumpForm: Boolean(document.querySelector('.catalog-page-jump-form input')),
+		              railPosition: getComputedStyle(document.querySelector('.catalog-density-rail-bottom') ?? document.body).position,
+		              itemTitles: [...document.querySelectorAll('.catalog-wall-cell')]
+		                .slice(0, 20)
+		                .map((cell) => cell.getAttribute('title') ?? ''),
 	            });
 
 	          const waitForCatalogState = (predicate) => new Promise((done) => {
@@ -802,50 +814,60 @@ try {
 
 	            const clearButton = document.querySelector('.catalog-clear-search');
 	            clearButton?.click();
-	            const initial = await waitForCatalogState((state) => (
-	              state.activeFilterText.includes('全部')
-	              && state.pageText.includes('第 1')
-	              && state.cellCount === 50
-	            ));
+		            const initial = await waitForCatalogState((state) => (
+		              state.activeFilterText.includes('全部')
+		              && state.pageText.includes('第 1')
+		              && state.cellCount === 24
+		              && state.pageButtonCount <= 7
+		              && state.densityChoices.join('|').includes('12 / 页')
+		              && state.densityChoices.join('|').includes('24 / 页')
+		              && state.densityChoices.join('|').includes('48 / 页')
+		              && state.densityChoices.join('|').includes('96 / 页')
+		              && state.hasJumpForm
+		              && state.railPosition === 'sticky'
+		            ));
 
 	            const nextButton = [...document.querySelectorAll('.catalog-density-rail-bottom .density-actions button')]
 	              .find((button) => button.textContent?.includes('下一页'));
 	            nextButton?.click();
 	            const next = await waitForCatalogState((state) => (
 	              state.activeFilterText.includes('全部')
-	              && state.pageText.includes('第 2')
-	              && state.firstLabel
-	              && state.firstLabel !== initial.firstLabel
-	              && state.firstIndex === '051'
-	            ));
+		              && state.pageText.includes('第 2')
+		              && state.firstLabel
+		              && state.firstLabel !== initial.firstLabel
+		              && state.firstIndex === '025'
+		            ));
 
-	            const page50Button = [...document.querySelectorAll('.catalog-density-rail-bottom .density-choice')]
-	              .find((button) => button.textContent?.includes('50'));
-	            page50Button?.click();
-	            const page50 = await waitForCatalogState((state) => (
-	              state.activeFilterText.includes('全部')
-	              && state.pageText.includes('第 1')
-	              && state.cellCount === 50
-	            ));
+		            const page48Button = [...document.querySelectorAll('.catalog-density-rail-bottom .density-choice')]
+		              .find((button) => button.textContent?.includes('48'));
+		            page48Button?.click();
+		            const page48 = await waitForCatalogState((state) => (
+		              state.activeFilterText.includes('全部')
+		              && state.pageText.includes('第 1')
+		              && state.cellCount === 48
+		              && new URLSearchParams(location.search).get('pageSize') === '48'
+		            ));
 
-	            const page25Button = [...document.querySelectorAll('.catalog-density-rail-bottom .density-choice')]
-	              .find((button) => button.textContent?.includes('25'));
-	            page25Button?.click();
-	            const page25 = await waitForCatalogState((state) => (
-	              state.activeFilterText.includes('全部')
-	              && state.pageText.includes('第 1')
-	              && state.cellCount === 25
-	              && new URLSearchParams(location.search).get('pageSize') === '25'
-	            ));
-	            const storedPageSizeAfter25 = localStorage.getItem('terrapedia:catalog-page-size');
+		            const page12Button = [...document.querySelectorAll('.catalog-density-rail-bottom .density-choice')]
+		              .find((button) => button.textContent?.includes('12'));
+		            page12Button?.click();
+		            const page12 = await waitForCatalogState((state) => (
+		              state.activeFilterText.includes('全部')
+		              && state.pageText.includes('第 1')
+		              && state.cellCount === 12
+		              && new URLSearchParams(location.search).get('pageSize') === '12'
+		            ));
+		            const storedPageSizeAfter12 = localStorage.getItem('terrapedia:catalog-page-size');
 
-	            page50Button?.click();
-	            const page50Restored = await waitForCatalogState((state) => (
-	              state.activeFilterText.includes('全部')
-	              && state.pageText.includes('第 1')
-	              && state.cellCount === 50
-	              && !new URLSearchParams(location.search).get('pageSize')
-	            ));
+		            const page24Button = [...document.querySelectorAll('.catalog-density-rail-bottom .density-choice')]
+		              .find((button) => button.textContent?.includes('24'));
+		            page24Button?.click();
+		            const page24Restored = await waitForCatalogState((state) => (
+		              state.activeFilterText.includes('全部')
+		              && state.pageText.includes('第 1')
+		              && state.cellCount === 24
+		              && !new URLSearchParams(location.search).get('pageSize')
+		            ));
 
 	            window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
 	            const keyboardNext = await waitForCatalogState((state) => (
@@ -860,14 +882,27 @@ try {
 	              && !new URLSearchParams(location.search).get('page')
 	            ));
 
-	            const pageThreeButton = [...document.querySelectorAll('.catalog-page-button')]
-	              .find((button) => button.textContent?.trim() === '3');
+		            const pageThreeButton = [...document.querySelectorAll('.catalog-page-button')]
+		              .find((button) => button.textContent?.trim() === '3');
 	            pageThreeButton?.click();
 	            const pageThree = await waitForCatalogState((state) => (
 	              state.activeFilterText.includes('全部')
 	              && state.pageText.includes('第 3')
-	              && new URLSearchParams(location.search).get('page') === '3'
-	            ));
+		              && new URLSearchParams(location.search).get('page') === '3'
+		            ));
+
+		            const jumpInput = document.querySelector('.catalog-page-jump-form input');
+		            const jumpButton = document.querySelector('.catalog-page-jump-form button[type="submit"]');
+		            if (jumpInput) {
+		              jumpInput.value = '5';
+		              jumpInput.dispatchEvent(new Event('input', { bubbles: true }));
+		            }
+		            jumpButton?.click();
+		            const jumpPage = await waitForCatalogState((state) => (
+		              state.activeFilterText.includes('全部')
+		              && state.pageText.includes('第 5')
+		              && new URLSearchParams(location.search).get('page') === '5'
+		            ));
 
 	            const lastButton = [...document.querySelectorAll('.catalog-density-rail-bottom button')]
 	              .find((button) => button.textContent?.includes('末页'));
@@ -882,28 +917,29 @@ try {
 	              .find((button) => button.textContent?.includes('武器'));
 	            weaponButton?.click();
 	            const weapon = await waitForCatalogState((state) => (
-	              state.activeFilterText.includes('武器')
-	              && state.pageText.includes('第 1')
-	              && state.cellCount === 50
-	              && !state.pageText.includes('本页')
-	            ));
+		              state.activeFilterText.includes('武器')
+		              && state.pageText.includes('第 1')
+		              && state.cellCount === 24
+		              && !state.pageText.includes('本页')
+		            ));
 
 	            resolve({
 	              initial,
-	              next,
-	              page50,
-	              page25,
-	              page50Restored,
-	              keyboardNext,
-	              keyboardPrevious,
-	              pageThree,
-	              last,
-	              weapon,
-	              storedPageSizeAfter25,
-	              nextDisabled: Boolean(nextButton?.disabled),
-	              page50Active: Boolean(page50Button?.classList.contains('active')),
-	              page50CellCount: document.querySelectorAll('.catalog-wall-cell').length,
-	            });
+		              next,
+		              page48,
+		              page12,
+		              page24Restored,
+		              keyboardNext,
+		              keyboardPrevious,
+		              pageThree,
+		              jumpPage,
+		              last,
+		              weapon,
+		              storedPageSizeAfter12,
+		              nextDisabled: Boolean(nextButton?.disabled),
+		              page24Active: Boolean(page24Button?.classList.contains('active')),
+		              page24CellCount: document.querySelectorAll('.catalog-wall-cell').length,
+		            });
 	          })();
 	        }))()`,
 	        awaitPromise: true,
@@ -916,29 +952,29 @@ try {
 	        || paginationValue.initial?.timedOut
 	        || paginationValue.next?.timedOut
 	        || paginationValue.initial?.firstLabel === paginationValue.next?.firstLabel
-	        || paginationValue.next?.firstIndex !== '051'
+	        || paginationValue.next?.firstIndex !== '025'
 	        || !String(paginationValue.next?.pageText ?? '').includes('第 2')
 	      ) {
 	        failures.push(`/items: pagination next page should load a distinct second page, got ${JSON.stringify(paginationValue)}`)
 	      }
 
 	      if (
-	        paginationValue.page50?.timedOut
-	        || paginationValue.page50Restored?.timedOut
-	        || !paginationValue.page50Active
-	        || paginationValue.page50CellCount !== 50
-	        || !String(paginationValue.page50?.pageText ?? '').includes('第 1')
-	        || !String(paginationValue.page50Restored?.pageText ?? '').includes('第 1')
+	        paginationValue.page48?.timedOut
+	        || paginationValue.page24Restored?.timedOut
+	        || !paginationValue.page24Active
+	        || paginationValue.page24CellCount !== 24
+	        || !String(paginationValue.page48?.pageText ?? '').includes('第 1')
+	        || !String(paginationValue.page24Restored?.pageText ?? '').includes('第 1')
 	      ) {
-	        failures.push(`/items: 50/page control should reset to first page and render 50 cells, got ${JSON.stringify(paginationValue)}`)
+	        failures.push(`/items: 48/page and default 24/page controls should reset page size and URL state, got ${JSON.stringify(paginationValue)}`)
 	      }
 
 	      if (
-	        paginationValue.page25?.timedOut
-	        || paginationValue.page25?.cellCount !== 25
-	        || paginationValue.storedPageSizeAfter25 !== '25'
+	        paginationValue.page12?.timedOut
+	        || paginationValue.page12?.cellCount !== 12
+	        || paginationValue.storedPageSizeAfter12 !== '12'
 	      ) {
-	        failures.push(`/items: 25/page control should update URL, render 25 cells, and persist preference, got ${JSON.stringify(paginationValue)}`)
+	        failures.push(`/items: 12/page control should update URL, render 12 cells, and persist preference, got ${JSON.stringify(paginationValue)}`)
 	      }
 
 	      if (
@@ -953,14 +989,16 @@ try {
 	      if (
 	        paginationValue.pageThree?.timedOut
 	        || !String(paginationValue.pageThree?.pageText ?? '').includes('第 3')
+	        || paginationValue.jumpPage?.timedOut
+	        || !String(paginationValue.jumpPage?.pageText ?? '').includes('第 5')
 	        || paginationValue.last?.timedOut
 	      ) {
-	        failures.push(`/items: page number and last-page controls should update visible page and URL query, got ${JSON.stringify(paginationValue)}`)
+	        failures.push(`/items: page number, jump, and last-page controls should update visible page and URL query, got ${JSON.stringify(paginationValue)}`)
 	      }
 
 	      if (
 	        paginationValue.weapon?.timedOut
-	        || paginationValue.weapon?.cellCount !== 50
+	        || paginationValue.weapon?.cellCount !== 24
 	        || String(paginationValue.weapon?.pageText ?? '').includes('本页')
 	        || !String(paginationValue.weapon?.activeFilterText ?? '').includes('武器')
 	        || paginationValue.weapon?.itemTitles?.some((title) => /可疑眼球|魔镜/.test(title))
