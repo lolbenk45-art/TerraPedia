@@ -23,7 +23,9 @@ public class CrawlerMonitorOverviewDTO {
     private String refreshLastActivityAt;
     private Long refreshStaleThresholdMs;
     private String refreshStaleReason;
+    private Long heartbeatStaleAfterMs;
     private ImageNormalizationSummaryDTO imageNormalization;
+    private List<String> staleHeartbeats = new ArrayList<>();
     private List<MonitorRunDTO> history = new ArrayList<>();
     private List<MonitorReportDTO> recentReports = new ArrayList<>();
     private List<ArchitectureLayerDTO> architectureLayers = new ArrayList<>();

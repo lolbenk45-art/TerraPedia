@@ -13,6 +13,7 @@ import {
   sharedDataPath,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
+import { reportHeartbeat } from '../lib/crawler-heartbeat.mjs';
 import {
   buildActionProgressPayload,
   writeJsonFile
@@ -23,25 +24,42 @@ const __dirname = path.dirname(__filename);
 const repoRoot = resolveProjectPath();
 const DEFAULT_WIKI_SYNC_PROGRESS_PATH = path.join(repoRoot, 'data', 'generated', 'wiki-sync-progress.latest.json');
 
+let rawDir;
+let progressPath;
+let progressActionId;
+let progressStartedAt;
+let maxAttempts;
+let delayMs;
+let jitterMs;
+let withRecipes;
+let offset;
+let limit;
+let overallTotal;
+let batchCandidateCount;
+let skippedExisting = 0;
+let skippedUnchanged = 0;
+let timestamp;
+
+async function main() {
 const options = parseCliArgs(process.argv.slice(2));
 const inputPath = path.resolve(process.cwd(), options.input ?? sharedDataPath('normalized', 'items.wiki.json'));
-const rawDir = path.resolve(process.cwd(), options['raw-dir'] ?? sharedDataPath('raw', 'wiki', 'item-pages'));
+rawDir = path.resolve(process.cwd(), options['raw-dir'] ?? sharedDataPath('raw', 'wiki', 'item-pages'));
 const reportDir = path.resolve(process.cwd(), options['report-dir'] ?? sharedDataPath('reports', 'fetch'));
 const allowFullCorpus = booleanOption(options['allow-full-corpus'] ?? options.allowFullCorpus, false);
 const requestedLimit = numericOption(options.limit, allowFullCorpus ? null : 100);
-const limit = Number.isFinite(requestedLimit) && requestedLimit > 0 ? requestedLimit : null;
-const offset = numericOption(options.offset, 0);
+limit = Number.isFinite(requestedLimit) && requestedLimit > 0 ? requestedLimit : null;
+offset = numericOption(options.offset, 0);
 const concurrency = Math.max(1, numericOption(options.concurrency, 1));
 const onlyMissing = booleanOption(options['only-missing'] ?? options.onlyMissing, false);
 const onlyChanged = booleanOption(options['only-changed'] ?? options.onlyChanged, true);
 const probeOnly = booleanOption(options['probe-only'] ?? options.probeOnly, false);
-const withRecipes = booleanOption(options['with-recipes'] ?? options.withRecipes, false);
-const delayMs = Math.max(0, numericOption(options['delay-ms'] ?? options.delayMs, 5_000));
-const jitterMs = Math.max(0, numericOption(options['jitter-ms'] ?? options.jitterMs, 2_000));
-const maxAttempts = Math.max(1, numericOption(options['max-attempts'] ?? options.maxAttempts, 8));
-const progressPath = options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_WIKI_SYNC_PROGRESS_PATH;
-const progressActionId = process.env.TERRAPEDIA_CRAWLER_ACTION_ID ?? 'fetch-item-pages';
-const progressStartedAt = new Date().toISOString();
+withRecipes = booleanOption(options['with-recipes'] ?? options.withRecipes, false);
+delayMs = Math.max(0, numericOption(options['delay-ms'] ?? options.delayMs, 5_000));
+jitterMs = Math.max(0, numericOption(options['jitter-ms'] ?? options.jitterMs, 2_000));
+maxAttempts = Math.max(1, numericOption(options['max-attempts'] ?? options.maxAttempts, 8));
+progressPath = options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_WIKI_SYNC_PROGRESS_PATH;
+progressActionId = process.env.TERRAPEDIA_CRAWLER_ACTION_ID ?? 'fetch-item-pages';
+progressStartedAt = new Date().toISOString();
 const requestedItems = new Set(
   String(options.items ?? '')
     .split(',')
@@ -66,12 +84,12 @@ if (requestedItems.size > 0) {
   });
 }
 
-const overallTotal = selectedItems.length;
+overallTotal = selectedItems.length;
 selectedItems = selectedItems.slice(offset, Number.isFinite(limit) && limit > 0 ? offset + limit : undefined);
-const batchCandidateCount = selectedItems.length;
+batchCandidateCount = selectedItems.length;
 
-let skippedExisting = 0;
-let skippedUnchanged = 0;
+skippedExisting = 0;
+skippedUnchanged = 0;
 let revisionMap = new Map();
 if (onlyMissing) {
   const beforeCount = selectedItems.length;
@@ -100,9 +118,11 @@ if (onlyChanged && selectedItems.length > 0) {
   skippedUnchanged = beforeCount - selectedItems.length;
 }
 
-const timestamp = new Date().toISOString().replaceAll(':', '-');
+timestamp = new Date().toISOString().replaceAll(':', '-');
 const errors = [];
 const successes = [];
+
+await emitHeartbeat('running', { phase: probeOnly ? 'probe' : 'select' });
 
 if (probeOnly) {
   const probeItems = selectedItems.map((item) => {
@@ -137,6 +157,7 @@ if (probeOnly) {
     current: selectedItems.length,
     total: selectedItems.length
   });
+  await emitHeartbeat('completed', { phase: 'probe', changedCount: probeItems.filter((item) => item.changed).length });
   console.log(`Input: ${inputPath}`);
   console.log('Probe only: true');
   console.log(`Selected items: ${selectedItems.length}`);
@@ -221,6 +242,20 @@ writeFetchProgress({
   current: selectedItems.length,
   total: selectedItems.length
 });
+await emitHeartbeat(errors.length > 0 ? 'failed' : 'completed', {
+  phase: 'fetch',
+  successCount: successes.length,
+  failureCount: errors.length
+});
+}
+
+if (process.argv[1] === __filename) {
+  main().catch(async (error) => {
+    console.error(error);
+    await emitHeartbeat('failed', { phase: 'error', error: error?.message ?? String(error) });
+    process.exitCode = 1;
+  });
+}
 
 async function fetchAndPersistItemPage(item, outputDir) {
   await sleep(computeDelayMs());
@@ -408,4 +443,12 @@ function compactError(message) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function emitHeartbeat(status, detail = {}) {
+  const result = await reportHeartbeat('items', status, { detail });
+  if (!result.ok) {
+    console.warn(`Crawler heartbeat skipped: ${result.error}`);
+  }
+  return result;
 }

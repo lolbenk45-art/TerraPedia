@@ -13,6 +13,7 @@ import {
   sharedDataPath,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
+import { reportHeartbeat } from '../lib/crawler-heartbeat.mjs';
 import {
   buildActionProgressPayload,
   writeJsonFile
@@ -38,6 +39,7 @@ async function main(argv = process.argv.slice(2)) {
 
   ensureDir(rawDir);
   ensureDir(reportDir);
+  await emitBuffHeartbeat('running', { phase: 'module' });
   writeBuffFetchProgress(progressPath, {
     status: 'running',
     phase: 'module',
@@ -152,6 +154,7 @@ async function main(argv = process.argv.slice(2)) {
     outputPath: latestParsedPath,
     reportPath
   });
+  await emitBuffHeartbeat('completed', { phase: 'write', totalBuffs: buffs.length, reportPath });
 
   console.log(`Fetched template: ${result.pageTitle}`);
   console.log(`Revision timestamp: ${result.revisionTimestamp ?? 'unknown'}`);
@@ -522,6 +525,16 @@ const __filename = fileURLToPath(import.meta.url);
 if (process.argv[1] === __filename) {
   main().catch((error) => {
     console.error(error);
-    process.exitCode = 1;
+    emitBuffHeartbeat('failed', { phase: 'error', error: error?.message ?? String(error) }).finally(() => {
+      process.exitCode = 1;
+    });
   });
+}
+
+async function emitBuffHeartbeat(status, detail = {}) {
+  const result = await reportHeartbeat('buffs', status, { detail });
+  if (!result.ok) {
+    console.warn(`Crawler heartbeat skipped: ${result.error}`);
+  }
+  return result;
 }

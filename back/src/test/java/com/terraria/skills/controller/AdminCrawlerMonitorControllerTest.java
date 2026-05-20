@@ -121,6 +121,8 @@ class AdminCrawlerMonitorControllerTest {
         overview.setRefreshLastActivityAt("2026-04-26T00:00:00Z");
         overview.setRefreshStaleThresholdMs(86_400_000L);
         overview.setRefreshStaleReason("backend-refresh monitor has no activity for more than 24 hours");
+        overview.setHeartbeatStaleAfterMs(1_800_000L);
+        overview.setStaleHeartbeats(List.of("items"));
         overview.setRecentReports(List.of(recentReport));
         overview.setArchitectureLayers(List.of(architectureLayer));
         overview.setImageNormalization(imageNormalization);
@@ -135,6 +137,8 @@ class AdminCrawlerMonitorControllerTest {
             .andExpect(jsonPath("$.data.latestRun.totalActions").value(3))
             .andExpect(jsonPath("$.data.latestRun.failedActions").value(1))
             .andExpect(jsonPath("$.data.refreshStale").value(true))
+            .andExpect(jsonPath("$.data.heartbeatStaleAfterMs").value(1_800_000))
+            .andExpect(jsonPath("$.data.staleHeartbeats[0]").value("items"))
             .andExpect(jsonPath("$.data.recentReports[0].category").value("test"))
             .andExpect(jsonPath("$.data.architectureLayers[0].id").value("sync-report"))
             .andExpect(jsonPath("$.data.architectureLayers[0].files[0].latestPath").value("reports/relation/relation-health-2026-04-29.json"))

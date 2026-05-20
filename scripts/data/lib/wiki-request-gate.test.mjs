@@ -94,6 +94,39 @@ test('runJsonRequest waits after throttle failures trigger cooldown, then retrie
   assert.equal(state.successCount, 1);
 });
 
+test('runJsonRequest records alert when Cloudflare failures reach threshold', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-'));
+  const statePath = path.join(tempDir, 'gate.json');
+  const alerts = [];
+  const gate = createWikiRequestGate({
+    statePath,
+    nowFn: () => Date.parse('2026-05-20T05:00:00.000Z'),
+    sleepFn: async () => {},
+    requestProfiles: {
+      revision: { baseDelayMs: 0, jitterMs: 0, maxAttempts: 3, cooldownMs: 10_000 }
+    },
+    fetchFn: async () => textResponse({
+      ok: false,
+      status: 403,
+      statusText: 'Forbidden',
+      body: '<html><title>Just a second... Cloudflare</title></html>'
+    }),
+    alertFn: (alert) => alerts.push(alert)
+  });
+
+  await assert.rejects(
+    () => gate.runJsonRequest('https://terraria.wiki.gg/api.php?action=query', {
+      profile: 'revision',
+      sourceKey: 'Cloudflare Probe'
+    }),
+    /Forbidden/
+  );
+
+  assert.equal(alerts.length, 1);
+  assert.equal(alerts[0].type, 'cloudflare');
+  assert.equal(alerts[0].context.consecutiveFailures, 3);
+});
+
 test('runJsonRequest uses external fallback for wiki.gg challenge responses', async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-gate-'));
   const statePath = path.join(tempDir, 'gate.json');

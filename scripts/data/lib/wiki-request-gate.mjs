@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { resolveSharedDataRoot } from './project-root.mjs';
+import { loadAlertConfig, recordCrawlerAlert } from './crawler-alerts.mjs';
 
 const defaultStatePath = resolveSharedDataRoot('generated', 'wiki-request-gate.latest.json');
 const defaultUserAgent = 'TerraPedia-data-sync/2.0 (+https://terraria.wiki.gg/api.php)';
@@ -42,7 +43,9 @@ export function createWikiRequestGate({
   sleepFn = sleep,
   nowFn = Date.now,
   fetchFn = globalThis.fetch,
-  externalRequestFn = defaultExternalRequestFn()
+  externalRequestFn = defaultExternalRequestFn(),
+  alertFn = recordCrawlerAlert,
+  alertConfig = loadAlertConfig()
 } = {}) {
   const gateStatePath = path.resolve(statePath);
   let state = loadGateState(gateStatePath, hostKey);
@@ -229,6 +232,18 @@ export function createWikiRequestGate({
       throttleFailureCount: retryable ? Number(state.throttleFailureCount ?? 0) + 1 : Number(state.throttleFailureCount ?? 0)
     };
     state = saveGateState(gateStatePath, state, previousState);
+    if (isCloudflareLikeError(error) && nextFailureCount === Number(alertConfig.consecutiveCloudflareFailures ?? 3)) {
+      alertFn({
+        type: 'cloudflare',
+        entity: hostKey,
+        message: `wiki request gate saw ${nextFailureCount} consecutive Cloudflare or 403 failures`,
+        context: {
+          consecutiveFailures: nextFailureCount,
+          lastError: compactError(error),
+          cooldownUntil: state.cooldownUntil
+        }
+      });
+    }
   }
 
   return {
@@ -521,6 +536,11 @@ function isRetryableError(error) {
 
 function isRetryableStatus(status) {
   return status === 403 || status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+}
+
+function isCloudflareLikeError(error) {
+  const message = compactError(error).toLowerCase();
+  return message.includes('cloudflare') || message.includes('403') || message.includes('forbidden');
 }
 
 function isRetryableApiCode(code) {

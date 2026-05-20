@@ -5,6 +5,7 @@ import {
   buildWikiPageParseUrl,
   fetchWikiPagePayload,
   fetchWikiPageMetadataBatch,
+  reportHeartbeat,
 } from './wiki-item-utils.mjs';
 
 test('buildWikiPageParseUrl enables redirect following for parse requests', () => {
@@ -19,6 +20,10 @@ test('buildWikiPageParseUrl enables redirect following for parse requests', () =
   assert.equal(url.searchParams.get('format'), 'json');
   assert.equal(url.searchParams.get('formatversion'), '2');
   assert.equal(url.searchParams.get('redirects'), '1');
+});
+
+test('reportHeartbeat is exposed from wiki item utilities for fetchers', () => {
+  assert.equal(typeof reportHeartbeat, 'function');
 });
 
 test('fetchWikiPagePayload preserves parse sections for downstream evidence parsing', async () => {

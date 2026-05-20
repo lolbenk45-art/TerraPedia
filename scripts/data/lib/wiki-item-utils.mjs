@@ -5,6 +5,8 @@ import vm from 'node:vm';
 import { createWikiRequestGate } from './wiki-request-gate.mjs';
 import { getProjectRoot, resolveSharedDataRoot } from './project-root.mjs';
 
+export { reportHeartbeat } from './crawler-heartbeat.mjs';
+
 export const DEFAULT_WIKI_API_URL = 'https://terraria.wiki.gg/api.php';
 export const DEFAULT_MODULE_TITLE = 'Module:Iteminfo/data';
 export const DEFAULT_WIKI_USER_AGENT = 'TerraPedia-data-sync/2.0';

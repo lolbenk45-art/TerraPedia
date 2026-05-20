@@ -7,6 +7,8 @@ import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
@@ -24,6 +26,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class CrawlerMonitorServiceImplTest {
 
@@ -46,7 +50,7 @@ class CrawlerMonitorServiceImplTest {
 
     @Test
     void shouldDeclareSpringInjectionConstructorWhenTestConstructorAlsoExists() throws Exception {
-        Constructor<CrawlerMonitorServiceImpl> constructor = CrawlerMonitorServiceImpl.class.getConstructor(ObjectMapper.class);
+        Constructor<CrawlerMonitorServiceImpl> constructor = CrawlerMonitorServiceImpl.class.getConstructor(ObjectMapper.class, StringRedisTemplate.class);
 
         assertTrue(constructor.isAnnotationPresent(Autowired.class));
     }
@@ -1099,6 +1103,71 @@ class CrawlerMonitorServiceImplTest {
         assertEquals(388, buffRefresh.getCurrent());
         assertEquals(388, buffRefresh.getTotal());
         assertTrue(buffRefresh.getProgressPath().replace('\\', '/').endsWith("data/terraPedia/generated/fetch-wiki-buffs-progress.latest.json"));
+    }
+
+    @Test
+    void shouldExposeStaleRedisCrawlerHeartbeats() {
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        @SuppressWarnings("unchecked")
+        ValueOperations<String, String> valueOperations = mock(ValueOperations.class);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("terrapedia:crawler:items:heartbeat")).thenReturn("""
+            {
+              "entity": "items",
+              "status": "running",
+              "timestamp": "2026-05-20T04:25:00Z"
+            }
+            """);
+        when(valueOperations.get("terrapedia:crawler:buffs:heartbeat")).thenReturn("""
+            {
+              "entity": "buffs",
+              "status": "completed",
+              "timestamp": "2026-05-20T04:59:00Z"
+            }
+            """);
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-05-20T05:00:00Z"), ZoneOffset.UTC),
+            redisTemplate
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+
+        assertEquals(1, overview.getStaleHeartbeats().size());
+        assertEquals("items", overview.getStaleHeartbeats().get(0));
+        assertEquals(1_800_000L, overview.getHeartbeatStaleAfterMs());
+    }
+
+    @Test
+    void shouldReadRedisCrawlerHeartbeatStaleThresholdFromAlertConfig() throws IOException {
+        writeJson(refreshDir.resolve("alert-config.json"), Map.of(
+            "heartbeatStaleAfterSeconds", 1200
+        ));
+        StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
+        @SuppressWarnings("unchecked")
+        ValueOperations<String, String> valueOperations = mock(ValueOperations.class);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("terrapedia:crawler:items:heartbeat")).thenReturn("""
+            {
+              "entity": "items",
+              "status": "running",
+              "timestamp": "2026-05-20T04:35:00Z"
+            }
+            """);
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-05-20T05:00:00Z"), ZoneOffset.UTC),
+            redisTemplate
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+
+        assertEquals(1_200_000L, overview.getHeartbeatStaleAfterMs());
+        assertEquals(List.of("items"), overview.getStaleHeartbeats());
     }
 
     private void writeJson(Path path, Map<String, Object> payload) throws IOException {

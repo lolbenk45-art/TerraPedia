@@ -8,6 +8,7 @@ import com.terraria.skills.dto.CrawlerMonitorReportDetailDTO;
 import com.terraria.skills.dto.CrawlerMonitorTestStateDTO;
 import com.terraria.skills.service.CrawlerMonitorService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -42,6 +43,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path SCHEDULER_STATE = REFRESH_DIR.resolve("backend-refresh-scheduler.latest.json");
     private static final Path LOCK_FILE = REFRESH_DIR.resolve("backend-refresh.lock.json");
     private static final Path TEST_STATE_FILE = REFRESH_DIR.resolve("manual-monitor-test.json");
+    private static final Path ALERT_CONFIG_FILE = REFRESH_DIR.resolve("alert-config.json");
     private static final Path WIKI_SYNC_PROGRESS_FILE = Path.of("data", "generated", "wiki-sync-progress.latest.json");
     private static final Path BUFF_FETCH_PROGRESS_FILE = Path.of("data", "generated", "fetch-wiki-buffs-progress.latest.json");
     private static final Path NPC_COVERAGE_REPORT = Path.of("data", "wiki-crawler", "report", "npc", "coverage-audit.latest.json");
@@ -56,24 +58,32 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final int REPORT_PREVIEW_MAX_BYTES = 200_000;
     private static final long REFRESH_STALE_THRESHOLD_MS = Duration.ofHours(24).toMillis();
     private static final Duration PROGRESS_STALE_THRESHOLD = Duration.ofMinutes(10);
+    private static final Duration DEFAULT_HEARTBEAT_STALE_THRESHOLD = Duration.ofMinutes(30);
+    private static final List<String> REDIS_HEARTBEAT_ENTITIES = List.of("items", "buffs");
 
     private final ObjectMapper objectMapper;
     private final Path repoRootOverride;
     private final Clock clock;
+    private final StringRedisTemplate redisTemplate;
 
     @Autowired
-    public CrawlerMonitorServiceImpl(ObjectMapper objectMapper) {
-        this(objectMapper, null, Clock.systemUTC());
+    public CrawlerMonitorServiceImpl(ObjectMapper objectMapper, @Autowired(required = false) StringRedisTemplate redisTemplate) {
+        this(objectMapper, null, Clock.systemUTC(), redisTemplate);
     }
 
     CrawlerMonitorServiceImpl(ObjectMapper objectMapper, Path repoRootOverride) {
-        this(objectMapper, repoRootOverride, Clock.systemUTC());
+        this(objectMapper, repoRootOverride, Clock.systemUTC(), null);
     }
 
     CrawlerMonitorServiceImpl(ObjectMapper objectMapper, Path repoRootOverride, Clock clock) {
+        this(objectMapper, repoRootOverride, clock, null);
+    }
+
+    CrawlerMonitorServiceImpl(ObjectMapper objectMapper, Path repoRootOverride, Clock clock, StringRedisTemplate redisTemplate) {
         this.objectMapper = objectMapper;
         this.repoRootOverride = repoRootOverride == null ? null : repoRootOverride.toAbsolutePath().normalize();
         this.clock = clock == null ? Clock.systemUTC() : clock;
+        this.redisTemplate = redisTemplate;
     }
 
     @Override
@@ -91,6 +101,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         overview.setArchitectureLayers(buildArchitectureLayers(repoRoot));
         overview.setRegisteredTasks(buildRegisteredTasks(repoRoot, overview.getLatestRun()));
         overview.setImageNormalization(buildImageNormalizationSummary(repoRoot));
+        applyRedisHeartbeatState(repoRoot, overview);
         applyRefreshStaleState(repoRoot, overview);
         return overview;
     }
@@ -1541,6 +1552,66 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         overview.setRefreshStale(stale);
         if (stale) {
             overview.setRefreshStaleReason("backend-refresh monitor has no activity for more than 24 hours; recent crawler/test reports may live outside this refresh chain.");
+        }
+    }
+
+    private void applyRedisHeartbeatState(Path repoRoot, CrawlerMonitorOverviewDTO overview) {
+        Duration staleThreshold = resolveHeartbeatStaleThreshold(repoRoot);
+        overview.setHeartbeatStaleAfterMs(staleThreshold.toMillis());
+        if (redisTemplate == null) {
+            return;
+        }
+
+        List<String> staleHeartbeats = new ArrayList<>();
+        for (String entity : REDIS_HEARTBEAT_ENTITIES) {
+            try {
+                String payload = redisTemplate.opsForValue().get(redisHeartbeatKey(entity));
+                Instant heartbeatAt = redisHeartbeatInstant(payload);
+                if (heartbeatAt != null
+                    && Duration.between(heartbeatAt, Instant.now(clock)).toMillis() > staleThreshold.toMillis()) {
+                    staleHeartbeats.add(entity);
+                }
+            } catch (Exception ignored) {
+                return;
+            }
+        }
+        overview.setStaleHeartbeats(staleHeartbeats);
+    }
+
+    private Duration resolveHeartbeatStaleThreshold(Path repoRoot) {
+        Path configPath = repoRoot.resolve(ALERT_CONFIG_FILE).normalize();
+        if (!Files.isRegularFile(configPath)) {
+            return DEFAULT_HEARTBEAT_STALE_THRESHOLD;
+        }
+        try {
+            JsonNode root = objectMapper.readTree(configPath.toFile());
+            long seconds = root.path("heartbeatStaleAfterSeconds").asLong(DEFAULT_HEARTBEAT_STALE_THRESHOLD.toSeconds());
+            if (seconds <= 0) {
+                return DEFAULT_HEARTBEAT_STALE_THRESHOLD;
+            }
+            return Duration.ofSeconds(seconds);
+        } catch (Exception ignored) {
+            return DEFAULT_HEARTBEAT_STALE_THRESHOLD;
+        }
+    }
+
+    private String redisHeartbeatKey(String entity) {
+        return "terrapedia:crawler:" + entity + ":heartbeat";
+    }
+
+    private Instant redisHeartbeatInstant(String payload) {
+        if (payload == null || payload.isBlank()) {
+            return null;
+        }
+        try {
+            JsonNode root = objectMapper.readTree(payload);
+            Instant timestamp = parseInstant(root.path("timestamp").asText(null));
+            if (timestamp != null) {
+                return timestamp;
+            }
+            return parseInstant(root.path("lastHeartbeatAt").asText(null));
+        } catch (Exception ignored) {
+            return null;
         }
     }
 
