@@ -13,7 +13,8 @@ export const usePublicApiFetch = async <T>(
   options: Record<string, unknown> = {},
 ): Promise<ApiResponse<T>> => {
   const config = useRuntimeConfig()
-  const apiBase = String(config.public.apiBase || '/api').replace(/\/$/, '')
+  const browserApiBase = config.public.apiBase || '/api'
+  const apiBase = String(import.meta.server ? config.apiServerBase : browserApiBase).replace(/\/$/, '')
   const apiPath = path.startsWith('/') ? path : `/${path}`
 
   return await $fetch<ApiResponse<T>>(`${apiBase}${apiPath}`, options)

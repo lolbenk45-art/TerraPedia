@@ -296,6 +296,8 @@ const requiredPublicDataLayerMarkers = {
     'export const unwrapApiResponse',
     'export const usePublicApiFetch',
     "config.public.apiBase || '/api'",
+    'config.apiServerBase',
+    'import.meta.server',
   ],
   'composables/usePublicItems.ts': [
     'export const normalizePublicItem',
@@ -316,6 +318,8 @@ const requiredPublicDataLayerMarkers = {
     'source: \'missing\'',
   ],
   'nuxt.config.ts': [
+    'apiServerBase',
+    'terrapediaBackendOrigin',
     'TERRAPEDIA_IMAGE_ORIGIN',
     'TERRAPEDIA_MINIO_PUBLIC_ENDPOINT',
     'imageOrigin',
@@ -691,6 +695,25 @@ for (const path of scanFiles) {
       violations.push(`${path}: home J1 hero must include the full-width search entry`)
     }
 
+    for (const marker of [
+      'useAsyncData(',
+      'fetchHomeStats',
+      '/statistics/overview',
+      'homeSearchQuery',
+      'type="search"',
+      'role="search"',
+      '@submit.prevent="submitHomeSearch"',
+      'navigateTo(`/search?keyword=${encodeURIComponent(keyword)}`)',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: home page must replace static/fake hero data with live stats and a real search control via marker ${marker}`)
+      }
+    }
+
+    if (content.includes('<div class="hero-j1-search">') || content.includes('<strong>物品、Boss、NPC、路线...</strong>')) {
+      violations.push(`${path}: home hero search must not be a fake static search bar`)
+    }
+
     if (!content.includes('secondaryHeroLinks') || !content.includes('hero-j1-paths') || !content.includes('hero-j1-path-link')) {
       violations.push(`${path}: home J1 hero must include lower-weight secondary shortcuts below search`)
     }
@@ -701,12 +724,60 @@ for (const path of scanFiles) {
       }
     }
 
+    for (const marker of [
+      'explorationMapNodes',
+      'v-for="node in explorationMapNodes"',
+      'class="map-node-link"',
+      'featuredRoute',
+      ':href="featuredRoute.href"',
+      '查看完整路线',
+      'codexActionLinks',
+      'v-for="action in codexActionLinks"',
+      'class="index-focus-action"',
+      'href="/items/757"',
+      'home-primary-stat',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: home page must make showcase nodes, route cards, codex chips, and index focus intentionally navigable via marker ${marker}`)
+      }
+    }
+
+    if (content.includes('<em>详情</em>') || content.includes('<div class="codex-actions">') && content.includes('<span>攻略</span>')) {
+      violations.push(`${path}: home page must not render button-looking spans or em elements for navigable actions`)
+    }
+
+    if (content.includes('<section class="index-plinth"')) {
+      violations.push(`${path}: home page must remove the repeated index-plinth statistics block and use the hero/index stats only once`)
+    }
+
+    for (const forbiddenHeading of ['<h3>首页下半部分承接首屏', '<h4>将战斗、掉落和推进节奏摆在同一条线上', '<h4>文章区不是博客堆叠，而是专题导航']) {
+      if (content.includes(forbiddenHeading)) {
+        violations.push(`${path}: home section headings must use a sequential h1 to h2 hierarchy instead of ${forbiddenHeading}`)
+      }
+    }
+
     if (content.includes('class="boss-medallion">\n                  <span class="item-art"')) {
       violations.push(`${path}: home Boss event strip must not reuse a generic item sprite as the primary medallion`)
     }
 
     if (content.includes('195bfda5955641b5bf340322fdd26eba.png')) {
       violations.push(`${path}: home page must not use the Iron Pickaxe placeholder image in showcase sections`)
+    }
+
+    if (!content.includes('<TerraFooter :item-total-label="itemTotalLabel"')) {
+      violations.push(`${path}: home footer must reuse the live item total label instead of showing a stale static total`)
+    }
+  }
+
+  if (path === 'components/TerraFooter.vue') {
+    for (const marker of [
+      'defineProps',
+      'itemTotalLabel?: string',
+      '{{ itemTotalLabel }}',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: shared footer must allow the home page to pass the live item total label via marker ${marker}`)
+      }
     }
   }
 
@@ -997,6 +1068,17 @@ for (const path of scanFiles) {
         violations.push(`${path}: search page must expose a real labeled search input with ${marker}`)
       }
     }
+
+    for (const marker of [
+      'const route = useRoute()',
+      'route.query.keyword',
+      'searchKeywordLabel',
+      "const defaultSearchQuery = 'terra / 泰拉 / blade'",
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: search page must consume the homepage keyword query via marker ${marker}`)
+      }
+    }
   }
 
   if (path === 'pages/categories/index.vue') {
@@ -1046,6 +1128,32 @@ for (const path of scanFiles) {
 
     if (!content.includes('.hero-j1-paths') || !content.includes('.hero-j1-path-link')) {
       violations.push(`${path}: home J1 visual system must define secondary shortcuts below search`)
+    }
+
+    for (const marker of [
+      'min-height: 720px',
+      'grid-template-columns: minmax(420px, 1fr) minmax(400px, 0.9fr)',
+      'width: min(560px, 100%)',
+      '.home-section-band',
+      '.map-node-link',
+      '.home-primary-stat',
+      '.index-focus-action',
+      '.featured-route-cta',
+      '.codex-actions a',
+      '@media (max-width: 1080px)',
+      '.hero-j1-title { font-size: 64px;',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: home page CSS must address homepage review layout, accessibility, and interaction markers via ${marker}`)
+      }
+    }
+
+    if (content.includes('.hero {\n  position: relative;\n  overflow: hidden;\n  min-height: 850px')) {
+      violations.push(`${path}: home hero must not keep the old 850px first-screen lockup`)
+    }
+
+    if (content.includes('.atlas-index {\n  position: relative;\n  z-index: 1;\n  overflow: hidden;\n  width: 560px')) {
+      violations.push(`${path}: atlas index must not use a fixed 560px width`)
     }
 
     const heroJ1TitleSize = readCssPxValue(content, '.hero-j1-title', 'font-size')

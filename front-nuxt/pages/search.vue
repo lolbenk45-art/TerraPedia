@@ -1,5 +1,25 @@
 <script setup lang="ts">
-const searchQuery = ref('terra / 泰拉 / blade')
+const route = useRoute()
+const defaultSearchQuery = 'terra / 泰拉 / blade'
+
+const normalizeQueryValue = (value: unknown) => Array.isArray(value) ? value[0] : value
+
+const resolveSearchQuery = () => {
+  const keyword = String(normalizeQueryValue(route.query.keyword) ?? '').trim()
+  return keyword || defaultSearchQuery
+}
+
+const searchQuery = ref(resolveSearchQuery())
+const searchKeywordLabel = computed(() => searchQuery.value.trim() || '泰拉')
+
+const submitSearch = () => {
+  const keyword = searchQuery.value.trim()
+  return navigateTo(keyword ? `/search?keyword=${encodeURIComponent(keyword)}` : '/search')
+}
+
+watch(() => route.query.keyword, () => {
+  searchQuery.value = resolveSearchQuery()
+})
 </script>
 
 <template>
@@ -22,11 +42,11 @@ const searchQuery = ref('terra / 泰拉 / blade')
       <section class="search-command search-console support-panel">
         <div class="search-console-copy">
           <span class="eyebrow">当前关键词</span>
-          <h2>泰拉</h2>
+          <h2>{{ searchKeywordLabel }}</h2>
           <p>建议接口对应 `/public/items/suggestions`，页面上把建议、快捷筛选和跨域入口放在一起，后续接真实数据时不需要重做结构。</p>
         </div>
         <div class="search-console-module">
-          <form class="search-input-shell search-input-primary" role="search" aria-label="全站检索" @submit.prevent>
+          <form class="search-input-shell search-input-primary" role="search" aria-label="全站检索" @submit.prevent="submitSearch">
             <span aria-hidden="true">⌕</span>
             <label class="visually-hidden" for="global-search-input">搜索物品、NPC、Boss 或攻略</label>
             <input
