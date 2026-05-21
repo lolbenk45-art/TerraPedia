@@ -380,22 +380,9 @@ const generatedHomeHeroPixelSheets = [
   'public/ui/home-hero-pixel/manual-sheet.png',
 ]
 
-const highFidelityHomeHeroImages = [
-  'public/ui/home-hero-hifi/home-hifi-a-search-hub.png',
-  'public/ui/home-hero-hifi/home-hifi-b-directory.png',
-  'public/ui/home-hero-hifi/home-hifi-c-workbench.png',
-]
-
 for (const generatedPixelSheet of generatedHomeHeroPixelSheets) {
   if (!existsSync(file(generatedPixelSheet))) {
     console.error(`Missing home hero generated pixel sheet asset:\n- ${generatedPixelSheet}`)
-    process.exit(1)
-  }
-}
-
-for (const highFidelityImage of highFidelityHomeHeroImages) {
-  if (!existsSync(file(highFidelityImage))) {
-    console.error(`Missing home hero high fidelity preview asset:\n- ${highFidelityImage}`)
     process.exit(1)
   }
 }
@@ -410,14 +397,6 @@ for (const generatedPixelSheet of generatedHomeHeroPixelSheets) {
   const generatedSheetHeader = readPngHeader(file(generatedPixelSheet))
   if (generatedSheetHeader.width !== 256 || generatedSheetHeader.height !== 256) {
     console.error(`Unexpected generated home hero pixel sheet dimensions: ${generatedPixelSheet} is ${generatedSheetHeader.width}x${generatedSheetHeader.height}, expected 256x256`)
-    process.exit(1)
-  }
-}
-
-for (const highFidelityImage of highFidelityHomeHeroImages) {
-  const highFidelityHeader = readPngHeader(file(highFidelityImage))
-  if (highFidelityHeader.width !== 1440 || highFidelityHeader.height !== 960) {
-    console.error(`Unexpected home hero high fidelity preview dimensions: ${highFidelityImage} is ${highFidelityHeader.width}x${highFidelityHeader.height}, expected 1440x960`)
     process.exit(1)
   }
 }
