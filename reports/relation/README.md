@@ -8,5 +8,6 @@ Rules:
 
 - Keep `reports/relation/*.json` in place unless a separate migration plan inventories all references and consumers.
 - Treat relation Markdown files as human-readable evidence paired with JSON snapshots when both exist.
+- Treat `relation-audit-*` outputs as rerunnable local snapshots. They are ignored unless a task explicitly promotes a specific result into a durable audit or baseline.
 - Do not rewrite historical relation evidence only to match new directory preferences.
 - New relation reports should state the command, date, scope, and whether the output is a baseline, verification, or readiness snapshot.

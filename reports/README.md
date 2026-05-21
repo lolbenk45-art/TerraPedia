@@ -11,6 +11,11 @@ Current tracked evidence includes:
 - `reports/relation/*.md`
 - `reports/relation/*.json`
 
+Current tracked evidence excludes rerunnable runtime snapshots such as
+`reports/relation/relation-audit-*.md` and `reports/relation/relation-audit-*.json`.
+Promote any accepted relation-audit conclusion into `docs/audits/**` or a named baseline
+before relying on it across tasks.
+
 Tracked reports should have enough context to identify the command, date, scope, and intended consumer. If a report becomes an accepted audit conclusion, link it from `docs/audits/**` or promote the conclusion into a durable audit document.
 
 ## Ignored Runtime Reports

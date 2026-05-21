@@ -46,6 +46,8 @@ reports/*
 reports/relation/*
 !reports/relation/*.md
 !reports/relation/*.json
+reports/relation/relation-audit-*.md
+reports/relation/relation-audit-*.json
 !reports/domain/
 reports/domain/staleness-history.jsonl
 reports/local-start/
