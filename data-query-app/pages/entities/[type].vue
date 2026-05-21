@@ -97,6 +97,26 @@
               </button>
             </div>
           </div>
+          <div v-if="entityType === 'armor-sets'" class="field field--full">
+            <div class="field__topline">
+              <span class="field__label">套装分类</span>
+              <span class="field__hint">区分完整套装、单件成套装和非标准组合，便于核对装备组成。</span>
+            </div>
+            <div class="filter-chip-group" role="tablist" aria-label="Armor Set 套装分类筛选">
+              <button
+                v-for="option in armorSetCompositionOptions"
+                :key="option.value"
+                type="button"
+                class="filter-chip"
+                :class="{ 'filter-chip--active': selectedArmorSetCompositionKind === option.value }"
+                :aria-pressed="selectedArmorSetCompositionKind === option.value"
+                @click="handleArmorSetCompositionChange(option.value)"
+              >
+                <span>{{ option.label }}</span>
+                <small>{{ option.description }}</small>
+              </button>
+            </div>
+          </div>
           <div class="toolbar__actions">
             <button type="submit" class="btn btn-primary">搜索</button>
             <button type="button" class="btn btn-secondary" @click="handleReset">重置</button>
@@ -206,6 +226,7 @@
                         <strong>{{ getDisplayTitle(row) }}</strong>
                         <span v-if="getDisplaySubtitle(row)">{{ getDisplaySubtitle(row) }}</span>
                         <div v-if="entityType === 'armor-sets'" class="cell-badges">
+                          <span class="cell-badge cell-badge--accent">{{ getArmorSetCompositionKindLabel(row.compositionKind) }}</span>
                           <span v-if="getArmorSetWearCount(row, 'male')" class="cell-badge">男套 {{ getArmorSetWearCount(row, 'male') }}</span>
                           <span v-if="getArmorSetWearCount(row, 'female')" class="cell-badge">女套 {{ getArmorSetWearCount(row, 'female') }}</span>
                           <span v-if="getArmorSetWearCount(row, 'special')" class="cell-badge">特殊 {{ getArmorSetWearCount(row, 'special') }}</span>
@@ -423,6 +444,7 @@
               <div class="preview-pills">
                 <span class="preview-pill preview-pill--accent">SET COMPOSER</span>
                 <span class="preview-pill">穿戴主图</span>
+                <span class="preview-pill">{{ getArmorSetCompositionKindLabel(detailRow.compositionKind) }}</span>
                 <span class="preview-pill">记录 ID {{ detailRow.id ?? '--' }}</span>
                 <span v-if="detailRow.textKey" class="preview-pill">{{ detailRow.textKey }}</span>
                 <span class="preview-pill">{{ detailRow.definitionMappingStatus || 'placeholder' }}</span>
@@ -1388,6 +1410,8 @@ const categoriesStore = useCategoriesStore()
 const itemsStore = useItemsStore()
 const selectedNpcCategoryId = ref<number | null>(null)
 const selectedBuffType = ref<'all' | 'buff' | 'debuff'>('all')
+type ArmorSetCompositionKindFilter = 'all' | 'traditional_set' | 'single_piece_set' | 'nonstandard_piece_set'
+const selectedArmorSetCompositionKind = ref<ArmorSetCompositionKindFilter>('all')
 const BUFF_IMMUNE_NPC_PREVIEW_LIMIT = 40
 const selectedBossType = ref<'all' | 'PRE_HARDMODE' | 'HARDMODE' | 'EVENT' | 'SPECIAL_SEED'>('all')
 const npcCategoryTree = computed(() => {
@@ -1405,6 +1429,12 @@ const bossTypeOptions = [
   { value: 'HARDMODE', label: '困难模式', eyebrow: 'HARD', description: '困难模式主线推进 Boss。' },
   { value: 'EVENT', label: '事件 Boss', eyebrow: 'EVENT', description: '事件波次中的首领与核心目标。' },
   { value: 'SPECIAL_SEED', label: '特殊种子', eyebrow: 'SEED', description: '特殊世界种子专属 Boss。' },
+] as const
+const armorSetCompositionOptions = [
+  { value: 'all', label: '全部套装', description: '显示完整、单件和非标准套装记录。' },
+  { value: 'traditional_set', label: '完整套装', description: '由头部、身体、腿部等多个装备组成。' },
+  { value: 'single_piece_set', label: '单件成套装', description: '魔法帽、长袍等单件即可触发套装效果。' },
+  { value: 'nonstandard_piece_set', label: '非标准组合', description: '不完全按三件套结构组成的套装。' },
 ] as const
 
 const configs: Record<string, EntityConfig> = {
@@ -1617,7 +1647,7 @@ const configs: Record<string, EntityConfig> = {
     ],
     columns: [
       { key: '__imageUrl', label: '穿戴主图' }, { key: 'id', label: 'ID' }, { key: 'nameZh', label: '穿戴套装' }, { key: 'textZh', label: '加成定义' }, { key: 'sourceKey', label: 'Source Key' }, { key: 'benefitZh', label: '效果描述' },
-      { key: 'setCount', label: '套装数' }, { key: 'uniqueItemCount', label: '唯一物品数' }, { key: 'updatedAt', label: '更新时间' },
+      { key: 'compositionKind', label: '套装分类' }, { key: 'setCount', label: '套装数' }, { key: 'uniqueItemCount', label: '唯一物品数' }, { key: 'updatedAt', label: '更新时间' },
     ],
     fields: [
       { key: 'name', label: 'Wear Set Name', type: 'text' },
@@ -1694,6 +1724,7 @@ const hasActiveFilters = computed(() => {
   if (entityType.value === 'npcs' && selectedNpcCategoryId.value != null) return true
   if (entityType.value === 'buffs' && selectedBuffType.value !== 'all') return true
   if (entityType.value === 'bosses' && selectedBossType.value !== 'all') return true
+  if (entityType.value === 'armor-sets' && selectedArmorSetCompositionKind.value !== 'all') return true
   return false
 })
 
@@ -1898,6 +1929,23 @@ function normalizeRow(row: Record<string, any>) {
   return { ...row, __imageUrl: resolveRowImageUrl(row) }
 }
 
+function normalizeArmorSetCompositionKind(value: unknown) {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : ''
+  if (normalized === 'traditional_set' || normalized === 'single_piece_set' || normalized === 'nonstandard_piece_set') {
+    return normalized
+  }
+  return 'traditional_set'
+}
+
+function getArmorSetCompositionKindMeta(value: unknown) {
+  const normalized = normalizeArmorSetCompositionKind(value)
+  return armorSetCompositionOptions.find(option => option.value === normalized) ?? null
+}
+
+function getArmorSetCompositionKindLabel(value: unknown) {
+  return getArmorSetCompositionKindMeta(value)?.label ?? '完整套装'
+}
+
 function normalizeBossType(value: unknown) {
   const normalized = typeof value === 'string' ? value.trim().toUpperCase() : ''
   if (normalized === 'PRE_HARDMODE' || normalized === 'HARDMODE' || normalized === 'EVENT' || normalized === 'SPECIAL_SEED') {
@@ -1943,7 +1991,17 @@ const filteredBossRows = computed(() => {
   return bossSearchedRows.value.filter(row => normalizeBossType(row.bossType) === selectedBossType.value)
 })
 
-const displayRows = computed(() => entityType.value === 'bosses' ? filteredBossRows.value : rows.value)
+const filteredArmorSetRows = computed(() => {
+  if (entityType.value !== 'armor-sets') return []
+  if (selectedArmorSetCompositionKind.value === 'all') return rows.value
+  return rows.value.filter(row => normalizeArmorSetCompositionKind(row.compositionKind) === selectedArmorSetCompositionKind.value)
+})
+
+const displayRows = computed(() => {
+  if (entityType.value === 'bosses') return filteredBossRows.value
+  if (entityType.value === 'armor-sets') return filteredArmorSetRows.value
+  return rows.value
+})
 
 const bossTypeCounts = computed<Record<string, number>>(() => {
   const counts: Record<string, number> = {}
@@ -2328,6 +2386,9 @@ async function syncRouteQuery(page = 1) {
   if (entityType.value === 'bosses' && selectedBossType.value !== 'all') {
     nextQuery.bossType = selectedBossType.value
   }
+  if (entityType.value === 'armor-sets' && selectedArmorSetCompositionKind.value !== 'all') {
+    nextQuery.compositionKind = selectedArmorSetCompositionKind.value
+  }
   if (entityType.value !== 'bosses' && page > 1) {
     nextQuery.page = String(page)
   }
@@ -2345,6 +2406,7 @@ async function handleReset() {
   selectedNpcCategoryId.value = null
   selectedBuffType.value = 'all'
   selectedBossType.value = 'all'
+  selectedArmorSetCompositionKind.value = 'all'
   await syncRouteQuery(1)
   if (entityType.value === 'bosses') return
   await fetchRows(1)
@@ -2365,6 +2427,12 @@ async function handleBuffTypeChange(value: 'all' | 'buff' | 'debuff') {
 async function handleBossTypeChange(value: 'all' | 'PRE_HARDMODE' | 'HARDMODE' | 'EVENT' | 'SPECIAL_SEED') {
   if (selectedBossType.value === value) return
   selectedBossType.value = value
+  await syncRouteQuery(1)
+}
+
+async function handleArmorSetCompositionChange(value: ArmorSetCompositionKindFilter) {
+  if (selectedArmorSetCompositionKind.value === value) return
+  selectedArmorSetCompositionKind.value = value
   await syncRouteQuery(1)
 }
 
@@ -2400,6 +2468,7 @@ function formatStatusLabel(statusValue: unknown) {
 function formatCell(row: Record<string, any>, key: string) {
   if (key === '__imageUrl') return row.__imageUrl ? 'Preview available' : '--'
   if (key === 'bossType') return getBossTypeLabel(row[key])
+  if (key === 'compositionKind') return getArmorSetCompositionKindLabel(row[key])
   if (key.toLowerCase().includes('at')) return formatDateTime(row[key])
   if (typeof row[key] === 'boolean') return row[key] ? 'true' : 'false'
   if (row[key] == null || row[key] === '') return '--'
@@ -2624,6 +2693,7 @@ const detailStats = computed(() => {
   ]
   if (entityType.value !== 'armor-sets') return []
   return [
+    { label: '套装分类', value: getArmorSetCompositionKindLabel(detailRow.value.compositionKind) },
     { label: '映射状态', value: detailRow.value.definitionMappingStatus || 'placeholder' },
     { label: '套装数', value: detailRow.value.setCount ? String(detailRow.value.setCount) : '--' },
     { label: '唯一物品', value: detailRow.value.uniqueItemCount ? String(detailRow.value.uniqueItemCount) : '--' },
@@ -3417,6 +3487,7 @@ watch(() => entityType.value, async () => {
   selectedNpcCategoryId.value = null
   selectedBuffType.value = 'all'
   selectedBossType.value = 'all'
+  selectedArmorSetCompositionKind.value = 'all'
   const pageFromQuery = Number(route.query.page)
   pagination.page = Number.isFinite(pageFromQuery) && pageFromQuery > 0 ? pageFromQuery : 1
   pagination.size = 20
@@ -3437,6 +3508,13 @@ watch(() => entityType.value, async () => {
     selectedBossType.value = rawBossType === 'PRE_HARDMODE' || rawBossType === 'HARDMODE' || rawBossType === 'EVENT' || rawBossType === 'SPECIAL_SEED'
       ? rawBossType
       : 'all'
+  }
+  if (entityType.value === 'armor-sets') {
+    const rawCompositionKind = typeof route.query.compositionKind === 'string' ? route.query.compositionKind.trim().toLowerCase() : ''
+    selectedArmorSetCompositionKind.value =
+      rawCompositionKind === 'traditional_set' || rawCompositionKind === 'single_piece_set' || rawCompositionKind === 'nonstandard_piece_set'
+        ? rawCompositionKind
+        : 'all'
   }
   await fetchRows(pagination.page)
 }, { immediate: true })

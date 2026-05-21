@@ -52,6 +52,21 @@ test('armor set admin main previews do not promote component item images', () =>
   assert.doesNotMatch(page, /if \(entityType\.value === 'armor-sets'\) return ''/)
 })
 
+test('armor set admin exposes composition kind as a management category', () => {
+  const page = read('data-query-app/pages/entities/[type].vue')
+
+  assert.match(page, /selectedArmorSetCompositionKind/)
+  assert.match(page, /armorSetCompositionOptions/)
+  assert.match(page, /handleArmorSetCompositionChange/)
+  assert.match(page, /getArmorSetCompositionKindLabel\(row\.compositionKind\)/)
+  assert.match(page, /\{ key: 'compositionKind', label: '套装分类' \}/)
+  assert.match(page, /getArmorSetCompositionKindLabel\(detailRow\.value\.compositionKind\)/)
+
+  for (const token of ['完整套装', '单件成套装', '非标准组合', 'traditional_set', 'single_piece_set', 'nonstandard_piece_set']) {
+    assert.match(page, new RegExp(escapeRegExp(token)))
+  }
+})
+
 test('armor set admin detail offers item detail actions for composition and replacement equipment', () => {
   const page = read('data-query-app/pages/entities/[type].vue')
 
