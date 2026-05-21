@@ -212,6 +212,36 @@ class AdminArmorSetControllerTest {
     }
 
     @Test
+    void projectionDetailExposesEquipmentItemDetailRefsAndVariantMembership() {
+        FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(true, "hallowedSummoner");
+        AdminArmorSetController controller = controller(jdbcTemplate);
+
+        ResponseEntity<ApiResponse<Map<String, Object>>> response = controller.getArmorSetById(303L);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        Map<String, Object> data = response.getBody().getData();
+
+        List<Map<String, Object>> equipmentItems = asMapList(data.get("equipmentItems"));
+        Map<String, Object> hood = equipmentItems.stream()
+            .filter(item -> Long.valueOf(4873L).equals(item.get("itemId")))
+            .findFirst()
+            .orElseThrow();
+        Map<String, Object> hoodDetailRef = asMap(hood.get("itemDetailRef"));
+        assertEquals(4873L, hoodDetailRef.get("itemId"));
+        assertEquals("HallowedHood", hoodDetailRef.get("internalName"));
+        assertEquals(true, hoodDetailRef.get("canOpenItemDetail"));
+        assertEquals(List.of(0, 1, 2, 3), hoodDetailRef.get("membershipVariantIndexes"));
+
+        List<Map<String, Object>> setVariants = asMapList(data.get("setVariants"));
+        Map<String, Object> firstVariantHood = asMapList(setVariants.get(0).get("items")).stream()
+            .filter(item -> Long.valueOf(4873L).equals(item.get("itemId")))
+            .findFirst()
+            .orElseThrow();
+        assertEquals(hoodDetailRef, firstVariantHood.get("itemDetailRef"));
+    }
+
+    @Test
     void getArmorSetsReadsRelationProjectionWhenCurrentDatabaseProjectionIsMissing() {
         FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(false, true);
         AdminArmorSetController controller = controller(jdbcTemplate);
@@ -355,6 +385,38 @@ class AdminArmorSetControllerTest {
     }
 
     @Test
+    void legacyFallbackDetailExposesEquipmentItemDetailRefs() {
+        FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(false, false, "legacyManagedItems");
+        AdminArmorSetController controller = controller(jdbcTemplate);
+
+        ResponseEntity<ApiResponse<Map<String, Object>>> response = controller.getArmorSetById(202L);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        Map<String, Object> data = response.getBody().getData();
+        assertEquals("legacy", data.get("dataSourceMode"));
+
+        List<Map<String, Object>> equipmentItems = asMapList(data.get("equipmentItems"));
+        assertEquals(3, equipmentItems.size());
+        Map<String, Object> helmet = equipmentItems.stream()
+            .filter(item -> Long.valueOf(727L).equals(item.get("itemId")))
+            .findFirst()
+            .orElseThrow();
+        Map<String, Object> detailRef = asMap(helmet.get("itemDetailRef"));
+        assertEquals(727L, detailRef.get("itemId"));
+        assertEquals("WoodHelmet", detailRef.get("internalName"));
+        assertEquals(true, detailRef.get("canOpenItemDetail"));
+        assertEquals(List.of(0), detailRef.get("membershipVariantIndexes"));
+
+        List<Map<String, Object>> setVariants = asMapList(data.get("setVariants"));
+        Map<String, Object> variantHelmet = asMapList(setVariants.get(0).get("items")).stream()
+            .filter(item -> Long.valueOf(727L).equals(item.get("itemId")))
+            .findFirst()
+            .orElseThrow();
+        assertEquals(detailRef, variantHelmet.get("itemDetailRef"));
+    }
+
+    @Test
     void updateArmorSetReturnsLegacyRowEvenWhenProjectionTableExists() {
         FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(true);
         AdminArmorSetController controller = controller(jdbcTemplate);
@@ -462,6 +524,12 @@ class AdminArmorSetControllerTest {
         return (List<String>) value;
     }
 
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> asMap(Object value) {
+        assertTrue(value instanceof Map<?, ?>);
+        return (Map<String, Object>) value;
+    }
+
     static class FakeJdbcTemplate extends JdbcTemplate {
         private final boolean projectionExists;
         private final boolean relationProjectionExists;
@@ -554,6 +622,9 @@ class AdminArmorSetControllerTest {
                 return List.of();
             }
             if (sql.contains("SELECT id, name, name_zh, internal_name, image FROM items")) {
+                if ("legacyManagedItems".equals(projectionScenario)) {
+                    return legacyManagedItemRows(args);
+                }
                 return List.of();
             }
             return List.of();
@@ -562,6 +633,11 @@ class AdminArmorSetControllerTest {
         @Override
         public <T> List<T> queryForList(String sql, Class<T> elementType, Object... args) {
             sqlLog.add(sql);
+            if ("legacyManagedItems".equals(projectionScenario) && sql.contains("FROM armor_set_items")) {
+                return List.of(727L, 728L, 729L).stream()
+                    .map(elementType::cast)
+                    .toList();
+            }
             return List.of();
         }
 
@@ -788,6 +864,38 @@ class AdminArmorSetControllerTest {
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("item_id", 2199L);
                 row.put("cached_url", "http://localhost:9000/terrapedia-images/items/wiki/item-images/cc/beetle-helmet.png");
+                rows.add(row);
+            }
+            return rows;
+        }
+
+        private List<Map<String, Object>> legacyManagedItemRows(Object... args) {
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (Object arg : args) {
+                Long id = arg instanceof Number number ? number.longValue() : null;
+                if (id == null) {
+                    continue;
+                }
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("id", id);
+                if (id == 727L) {
+                    row.put("name", "Wood Helmet");
+                    row.put("name_zh", "木头盔");
+                    row.put("internal_name", "WoodHelmet");
+                    row.put("image", "http://localhost:9000/terrapedia-images/items/wood-helmet.png");
+                } else if (id == 728L) {
+                    row.put("name", "Wood Breastplate");
+                    row.put("name_zh", "木胸甲");
+                    row.put("internal_name", "WoodBreastplate");
+                    row.put("image", "http://localhost:9000/terrapedia-images/items/wood-breastplate.png");
+                } else if (id == 729L) {
+                    row.put("name", "Wood Greaves");
+                    row.put("name_zh", "木护胫");
+                    row.put("internal_name", "WoodGreaves");
+                    row.put("image", "http://localhost:9000/terrapedia-images/items/wood-greaves.png");
+                } else {
+                    continue;
+                }
                 rows.add(row);
             }
             return rows;

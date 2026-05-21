@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildProjectionPayload as buildProjectionPayloadBase } from './projection-sync.mjs';
+import {
+  buildProjectionPayload as buildProjectionPayloadBase,
+  validateProjectionArmorSetConsistency
+} from './projection-sync.mjs';
 
 const MANAGED_IMAGE_URL_PREFIXES = [
   'http://localhost:9000/terrapedia-images/items/',
@@ -783,6 +786,89 @@ test('buildProjectionPayload maps armor set relations into projection armor sets
   assert.deepEqual(JSON.parse(actual.projectionArmorSets[0].relatedItemsJson).map((item) => item.partRole), ['head', 'body', 'legs']);
   assert.equal(JSON.parse(actual.projectionArmorSets[0].relatedItemsJson)[0].nameZh, '木头盔');
   assert.equal(JSON.parse(actual.projectionArmorSets[0].relatedItemsJson)[0].image, null);
+});
+
+test('validateProjectionArmorSetConsistency rejects related armor items outside set identity fields', () => {
+  const issues = validateProjectionArmorSetConsistency([
+    {
+      textKey: 'ArmorSetBonus.Mixed',
+      compositionKind: 'traditional_set',
+      setsJson: JSON.stringify([[100, 0]]),
+      uniqueItemIdsJson: JSON.stringify([100, 0]),
+      currentItemIdsJson: JSON.stringify([100]),
+      relatedItemsJson: JSON.stringify([
+        { itemId: 100, sourceId: 100, internalName: 'CorrectHat' },
+        { itemId: 999, sourceId: 999, internalName: 'WrongRobe' }
+      ])
+    }
+  ]);
+
+  const issue = issues.find((entry) => entry.code === 'armor_set_related_item_not_in_sets');
+  assert.ok(issue);
+  assert.equal(issue.textKey, 'ArmorSetBonus.Mixed');
+  assert.equal(issue.itemId, 999);
+});
+
+test('validateProjectionArmorSetConsistency accepts zero slot placeholders without requiring related items', () => {
+  const issues = validateProjectionArmorSetConsistency([
+    {
+      textKey: 'ArmorSetBonus.MagicHat',
+      compositionKind: 'traditional_set',
+      setsJson: JSON.stringify([[2275, 1282, 0]]),
+      uniqueItemIdsJson: JSON.stringify([2275, 1282, 0]),
+      currentItemIdsJson: JSON.stringify([2275, 1282]),
+      relatedItemsJson: JSON.stringify([
+        { itemId: 2275, sourceId: 2275, internalName: 'MagicHat' },
+        { itemId: 1282, sourceId: 1282, internalName: 'AmethystRobe' }
+      ])
+    }
+  ]);
+
+  assert.deepEqual(issues, []);
+});
+
+test('validateProjectionArmorSetConsistency rejects omitted positive set members from current and related items', () => {
+  const issues = validateProjectionArmorSetConsistency([
+    {
+      textKey: 'ArmorSetBonus.Incomplete',
+      compositionKind: 'traditional_set',
+      setsJson: JSON.stringify([[100, 200, 0]]),
+      uniqueItemIdsJson: JSON.stringify([100, 200, 0]),
+      currentItemIdsJson: JSON.stringify([100]),
+      relatedItemsJson: JSON.stringify([
+        { itemId: 100, sourceId: 100, internalName: 'OnlyHelmet' }
+      ])
+    }
+  ]);
+
+  assert.deepEqual(
+    issues.map((issue) => issue.code),
+    [
+      'armor_set_current_items_missing_set_members',
+      'armor_set_related_items_missing_set_members'
+    ]
+  );
+});
+
+test('validateProjectionArmorSetConsistency requires single-piece rows to have one related item', () => {
+  const issues = validateProjectionArmorSetConsistency([
+    {
+      textKey: 'WikiArmorSet.Magic Hat',
+      compositionKind: 'single_piece_set',
+      setsJson: JSON.stringify([[2275]]),
+      uniqueItemIdsJson: JSON.stringify([2275]),
+      currentItemIdsJson: JSON.stringify([2275, 1282]),
+      relatedItemsJson: JSON.stringify([
+        { itemId: 2275, sourceId: 2275, internalName: 'MagicHat' },
+        { itemId: 1282, sourceId: 1282, internalName: 'AmethystRobe' }
+      ])
+    }
+  ]);
+
+  assert.deepEqual(
+    issues.map((issue) => issue.code),
+    ['armor_set_related_item_not_in_sets', 'armor_set_single_piece_member_count']
+  );
 });
 
 test('buildProjectionPayload ignores untrusted managed-like armor images', () => {

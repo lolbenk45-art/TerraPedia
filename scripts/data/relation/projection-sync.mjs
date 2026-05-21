@@ -28,6 +28,116 @@ function parseJsonArray(value) {
   }
 }
 
+function toPositiveNumberSet(values = []) {
+  return new Set(
+    values
+      .map((value) => toNullableNumber(value))
+      .filter((value) => value != null && value > 0)
+  );
+}
+
+function flattenSetIds(sets = []) {
+  const ids = [];
+  for (const set of sets) {
+    if (Array.isArray(set)) {
+      ids.push(...set);
+    } else {
+      ids.push(set);
+    }
+  }
+  return ids;
+}
+
+function setsEqual(left, right) {
+  if (left.size !== right.size) return false;
+  for (const value of left) {
+    if (!right.has(value)) return false;
+  }
+  return true;
+}
+
+function armorRelatedItemId(item) {
+  return toNullableNumber(item?.itemId ?? item?.item_id ?? item?.sourceId ?? item?.source_id ?? item?.id);
+}
+
+export function validateProjectionArmorSetConsistency(rows = []) {
+  const issues = [];
+  for (const row of rows) {
+    const textKey = row?.textKey ?? row?.text_key ?? null;
+    const compositionKind = row?.compositionKind ?? row?.composition_kind ?? null;
+    const sets = parseJsonArray(row?.setsJson ?? row?.sets_json);
+    const uniqueIds = parseJsonArray(row?.uniqueItemIdsJson ?? row?.unique_item_ids_json);
+    const currentIds = parseJsonArray(row?.currentItemIdsJson ?? row?.current_item_ids_json);
+    const relatedItems = parseJsonArray(row?.relatedItemsJson ?? row?.related_items_json);
+    const setIdSet = toPositiveNumberSet(flattenSetIds(sets));
+    const uniqueIdSet = toPositiveNumberSet(uniqueIds);
+    const currentIdSet = toPositiveNumberSet(currentIds);
+    const relatedIdSet = toPositiveNumberSet(relatedItems.map((item) => armorRelatedItemId(item)));
+
+    if (!setsEqual(uniqueIdSet, setIdSet)) {
+      issues.push({
+        code: 'armor_set_unique_ids_mismatch',
+        textKey,
+        expectedIds: [...setIdSet],
+        actualIds: [...uniqueIdSet]
+      });
+    }
+    if (!setsEqual(currentIdSet, relatedIdSet)) {
+      issues.push({
+        code: 'armor_set_current_items_mismatch',
+        textKey,
+        expectedIds: [...relatedIdSet],
+        actualIds: [...currentIdSet]
+      });
+    }
+    const missingCurrentSetMemberIds = [...setIdSet].filter((itemId) => !currentIdSet.has(itemId));
+    if (missingCurrentSetMemberIds.length > 0) {
+      issues.push({
+        code: 'armor_set_current_items_missing_set_members',
+        textKey,
+        expectedIds: [...setIdSet],
+        actualIds: [...currentIdSet],
+        missingIds: missingCurrentSetMemberIds
+      });
+    }
+    const missingRelatedSetMemberIds = [...setIdSet].filter((itemId) => !relatedIdSet.has(itemId));
+    if (missingRelatedSetMemberIds.length > 0) {
+      issues.push({
+        code: 'armor_set_related_items_missing_set_members',
+        textKey,
+        expectedIds: [...setIdSet],
+        actualIds: [...relatedIdSet],
+        missingIds: missingRelatedSetMemberIds
+      });
+    }
+
+    for (const item of relatedItems) {
+      const itemId = armorRelatedItemId(item);
+      if (itemId != null && itemId > 0 && !setIdSet.has(itemId)) {
+        issues.push({
+          code: 'armor_set_related_item_not_in_sets',
+          textKey,
+          itemId,
+          internalName: item?.internalName ?? item?.internal_name ?? null
+        });
+      }
+    }
+
+    if (compositionKind === 'single_piece_set' || compositionKind === 'nonstandard_piece_set') {
+      if (relatedIdSet.size !== 1 || setIdSet.size !== 1) {
+        issues.push({
+          code: 'armor_set_single_piece_member_count',
+          textKey,
+          compositionKind,
+          setItemCount: setIdSet.size,
+          relatedItemCount: relatedIdSet.size
+        });
+      }
+    }
+  }
+  return issues;
+}
+
 function toNullableNumber(value) {
   if (value == null || value === '') return null;
   const numeric = Number(value);

@@ -1,8 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 import {
   parseArgs,
+  readWikiArmorSets,
   rewriteArmorSetRelatedItemImages,
   runSync as runSyncBase
 } from './sync-maint-to-relation.mjs';
@@ -46,6 +50,25 @@ test('parseArgs parses relation sync defaults and scopes', () => {
     scopes: ['category', 'recipe', 'npc', 'buff', 'biome', 'projectile']
   });
   assert.match(actual.wikiArmorSetsInput, /data[\\/]+generated[\\/]+wiki-armor-sets\.latest\.json$/);
+});
+
+test('readWikiArmorSets falls back from missing latest file to newest timestamp snapshot', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'armor-set-source-'));
+  const latestPath = path.join(tempDir, 'wiki-armor-sets.latest.json');
+  fs.writeFileSync(
+    path.join(tempDir, 'wiki-armor-sets.2026-04-27T23-30-19.757Z.json'),
+    JSON.stringify({ records: [{ pageTitle: 'Old Hat', compositionKind: 'single_piece_set' }] })
+  );
+  fs.writeFileSync(
+    path.join(tempDir, 'wiki-armor-sets.2026-04-28T03-04-18.454Z.json'),
+    JSON.stringify({ records: [{ pageTitle: 'Magic Hat', compositionKind: 'single_piece_set' }] })
+  );
+
+  const actual = readWikiArmorSets(latestPath);
+
+  assert.equal(actual.length, 1);
+  assert.equal(actual[0].pageTitle, 'Magic Hat');
+  assert.equal(actual[0].compositionKind, 'single_piece_set');
 });
 
 test('rewriteArmorSetRelatedItemImages keeps armor set related item images managed-only', () => {
@@ -873,8 +896,90 @@ test('runSync dry-run builds armor set relation and projection rows from maint s
   assert.equal(result.summary.maintArmorSetImages, 1);
   assert.equal(result.summary.relationArmorSetImages, 1);
   assert.equal(result.summary.projectionArmorSets, 1);
+  assert.equal(result.summary.gateBreakdown.armorSetProjectionConsistencyIssues, 0);
   assert.equal(result.results.projectionArmorSets[0].textKey, 'ArmorSetBonus.Wood');
   assert.deepEqual(JSON.parse(result.results.projectionArmorSets[0].currentItemIdsJson), [727, 728, 729]);
+});
+
+test('runSync dry-run prefers wiki armor source fallback and projects single-piece rows', async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'armor-set-sync-source-'));
+  const latestPath = path.join(tempDir, 'wiki-armor-sets.latest.json');
+  fs.writeFileSync(
+    path.join(tempDir, 'wiki-armor-sets.2026-04-28T03-04-18.454Z.json'),
+    JSON.stringify({
+      records: [
+        {
+          pageTitle: 'Magic Hat',
+          nameZh: '魔法帽',
+          nameEn: 'Magic Hat',
+          compositionKind: 'single_piece_set',
+          effectText: '+60 最大魔力'
+        }
+      ]
+    })
+  );
+
+  const result = await runSync(
+    {
+      apply: false,
+      createDatabase: false,
+      maintDatabase: 'terria_v1_maint',
+      localDatabase: null,
+      relationDatabase: 'terria_v1_relation',
+      wikiArmorSetsInput: latestPath,
+      scopes: ['armor_set']
+    },
+    {
+      config: {
+        database: {
+          host: '127.0.0.1',
+          port: 13306,
+          username: 'root',
+          password: 'root'
+        }
+      },
+      queryMaint: async (sql) => {
+        if (sql.includes('maint_armor_sets')) {
+          return [{
+            id: 1,
+            record_key: 'legacy-armor-maint-key',
+            text_key: 'ArmorSetBonus.Wood',
+            benefit_expression: 'ArmorSetBonuses.Benefits.Wood',
+            set_count: 1,
+            unique_item_count: 3,
+            sets_json: JSON.stringify([[727, 728, 729]]),
+            unique_item_ids_json: JSON.stringify([727, 728, 729]),
+            raw_json: '{}'
+          }];
+        }
+        if (sql.includes('maint_items')) {
+          return [{
+            source_id: 2275,
+            internal_name: 'MagicHat',
+            english_name: 'Magic Hat',
+            name_zh: '魔法帽',
+            raw_json: JSON.stringify({ headSlot: 159 })
+          }];
+        }
+        return [];
+      },
+      writeReports: async () => ({
+        auditJsonPath: 'reports/relation/relation-audit-2026-04-28.json',
+        auditMdPath: 'reports/relation/relation-audit-2026-04-28.md',
+        conflictsPath: 'reports/relation/relation-conflicts-2026-04-28.json',
+        unresolvedPath: 'reports/relation/relation-unresolved-2026-04-28.json'
+      }),
+      executeRelation: async () => {
+        throw new Error('should not write in dry-run');
+      }
+    }
+  );
+
+  assert.equal(result.results.relationArmorSets.length, 1);
+  assert.equal(result.results.relationArmorSets[0].textKey, 'WikiArmorSet.Magic Hat');
+  assert.equal(result.results.projectionArmorSets[0].compositionKind, 'single_piece_set');
+  assert.equal(result.results.projectionArmorSets[0].nameZh, '魔法帽');
+  assert.deepEqual(JSON.parse(result.results.projectionArmorSets[0].currentItemIdsJson), [2275]);
 });
 
 test('runSync apply mode clears stale relation tables before writing current snapshot', async () => {

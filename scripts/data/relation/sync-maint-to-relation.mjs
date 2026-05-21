@@ -26,7 +26,10 @@ import { buildNpcSeriesRelations } from './npc-series-processor.mjs';
 import { buildRelationItemRarities } from './item-rarity-support-processor.mjs';
 import { buildArmorSetRelations } from './armor-set-processor.mjs';
 import { buildProjectionSchemaStatements } from './projection-schema.mjs';
-import { buildProjectionPayload } from './projection-sync.mjs';
+import {
+  buildProjectionPayload,
+  validateProjectionArmorSetConsistency
+} from './projection-sync.mjs';
 import { writeRelationReports } from './relation-report.mjs';
 import {
   isManagedImageUrl,
@@ -110,12 +113,29 @@ export function parseArgs(argv) {
   };
 }
 
-function readWikiArmorSets(inputPath) {
+function resolveWikiArmorSetsInputPath(inputPath) {
   if (!inputPath) {
-    return [];
+    return null;
   }
   const resolved = path.resolve(process.cwd(), inputPath);
-  if (!fs.existsSync(resolved)) {
+  if (fs.existsSync(resolved)) {
+    return resolved;
+  }
+
+  const dirname = path.dirname(resolved);
+  const basename = path.basename(resolved);
+  if (basename !== 'wiki-armor-sets.latest.json' || !fs.existsSync(dirname)) {
+    return null;
+  }
+  const snapshots = fs.readdirSync(dirname)
+    .filter((entry) => /^wiki-armor-sets\.\d{4}-\d{2}-\d{2}T.+\.json$/.test(entry))
+    .sort((left, right) => right.localeCompare(left));
+  return snapshots.length ? path.join(dirname, snapshots[0]) : null;
+}
+
+export function readWikiArmorSets(inputPath) {
+  const resolved = resolveWikiArmorSetsInputPath(inputPath);
+  if (!resolved) {
     return [];
   }
   const payload = JSON.parse(fs.readFileSync(resolved, 'utf8'));
@@ -1210,6 +1230,7 @@ export async function runSync(options, dependencies = {}) {
   results.projectionProjectiles = projection.projectionProjectiles;
   results.projectionBuffs = projection.projectionBuffs;
   results.projectionArmorSets = projection.projectionArmorSets;
+  const armorSetProjectionConsistencyIssues = validateProjectionArmorSetConsistency(results.projectionArmorSets);
   const runKey = createRecordKey({
     dateTag: toDateTag(),
     scopes: options.scopes,
@@ -1270,12 +1291,20 @@ export async function runSync(options, dependencies = {}) {
       localItemImageFallbackRows: 0,
       localArmorSetRelatedItemImageFallbackRows: 0,
     },
+    gateBreakdown: {
+      armorSetProjectionConsistencyIssues: armorSetProjectionConsistencyIssues.length,
+    },
     unresolvedSamples: results.issues.slice(0, 20)
   };
 
   const applyStartedAt = new Date();
 
   if (options.apply) {
+    if (armorSetProjectionConsistencyIssues.length > 0) {
+      const error = new Error(`Armor set projection consistency gate failed with ${armorSetProjectionConsistencyIssues.length} issue(s).`);
+      error.validationIssues = armorSetProjectionConsistencyIssues;
+      throw error;
+    }
     if (options.createDatabase) {
       const mysql = loadMysqlModule();
       const adminConnection = await mysql.createConnection(mysqlOptions);

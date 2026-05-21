@@ -509,6 +509,7 @@
                         <span v-if="getArmorItemSourceId(item)">源 ID {{ getArmorItemSourceId(item) }}</span>
                         <span v-if="getArmorItemSlotLabel(item)">{{ getArmorItemSlotLabel(item) }}</span>
                       </div>
+                      <button v-if="canOpenLinkedItemDetail(item)" type="button" class="btn-link" @click="openLinkedItemDetail(item)">物品详情</button>
                     </div>
                   </article>
                 </div>
@@ -572,6 +573,7 @@
                         <span v-if="getArmorItemSourceId(item)">源 ID {{ getArmorItemSourceId(item) }}</span>
                         <span v-if="getArmorItemSlotLabel(item)">{{ getArmorItemSlotLabel(item) }}</span>
                       </div>
+                      <button v-if="canOpenLinkedItemDetail(item)" type="button" class="btn-link" @click="openLinkedItemDetail(item)">物品详情</button>
                     </div>
                   </article>
                 </div>
@@ -2200,7 +2202,7 @@ async function openDetailDialog(row: Record<string, any>) {
 }
 
 async function openLinkedItemDetail(entry: Record<string, any>) {
-  const rawId = entry?.itemId
+  const rawId = getLinkedItemDetailId(entry)
   const itemId = typeof rawId === 'number'
     ? rawId
     : (typeof rawId === 'string' && rawId.trim() ? Number(rawId) : NaN)
@@ -2224,6 +2226,18 @@ async function openLinkedItemDetail(entry: Record<string, any>) {
   } finally {
     linkedItemLoading.value = false
   }
+}
+
+function getLinkedItemDetailId(entry: Record<string, any>) {
+  if (entry?.itemDetailRef?.canOpenItemDetail) {
+    return entry?.itemDetailRef?.itemId
+  }
+  return entry?.itemId
+}
+
+function canOpenLinkedItemDetail(entry: Record<string, any>) {
+  const itemId = Number(getLinkedItemDetailId(entry))
+  return Number.isFinite(itemId) && itemId > 0
 }
 
 async function openBossLootOwnerNpc() {

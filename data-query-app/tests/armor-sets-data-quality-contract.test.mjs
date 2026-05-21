@@ -44,3 +44,27 @@ test('armor set admin preview resolver keeps backend image fallback chain', () =
   assert.match(page, /equipmentItems/)
   assert.doesNotMatch(page, /if \(entityType\.value === 'armor-sets'\) return ''/)
 })
+
+test('armor set admin detail offers item detail actions for composition and replacement equipment', () => {
+  const page = read('data-query-app/pages/entities/[type].vue')
+
+  assert.match(
+    page,
+    /<section v-if="armorSetReplacementGroups\.length"[\s\S]*?<button v-if="canOpenLinkedItemDetail\(item\)" type="button" class="btn-link" @click="openLinkedItemDetail\(item\)">物品详情<\/button>[\s\S]*?<section v-if="armorSetDetailImageGroups\.length"/,
+  )
+  assert.match(
+    page,
+    /<section v-if="detailRelatedItemGroups\.length"[\s\S]*?<button v-if="canOpenLinkedItemDetail\(item\)" type="button" class="btn-link" @click="openLinkedItemDetail\(item\)">物品详情<\/button>[\s\S]*?<div v-else-if="detailRow && entityType === 'bosses'"/,
+  )
+})
+
+test('armor set admin item detail actions use backend item detail refs before raw item ids', () => {
+  const page = read('data-query-app/pages/entities/[type].vue')
+
+  assert.match(page, /function getLinkedItemDetailId\(entry: Record<string, any>\)/)
+  assert.match(page, /entry\?\.itemDetailRef\?\.canOpenItemDetail/)
+  assert.match(page, /entry\?\.itemDetailRef\?\.itemId/)
+  assert.match(page, /@click="openLinkedItemDetail\(item\)"/)
+  assert.match(page, /v-if="canOpenLinkedItemDetail\(item\)"/)
+  assert.match(page, /const rawId = getLinkedItemDetailId\(entry\)/)
+})

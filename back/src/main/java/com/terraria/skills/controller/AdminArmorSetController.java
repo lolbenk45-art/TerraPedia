@@ -442,7 +442,11 @@ public class AdminArmorSetController {
         String maleImages = firstManagedImageCsv(trimToNull(row.get("male_images")), snapshotMaleImages);
         String femaleImages = firstManagedImageCsv(trimToNull(row.get("female_images")), snapshotFemaleImages);
         String specialImages = firstManagedImageCsv(trimToNull(row.get("special_images")), snapshotSpecialImages);
-        List<Map<String, Object>> equipmentItems = enrichProjectionEquipmentItems(normalizeArmorEquipmentItems(parseJson(row.get("related_items_json"))));
+        Object rawSets = parseJson(row.get("sets_json"));
+        List<Map<String, Object>> equipmentItems = attachArmorEquipmentManagementRefs(
+            enrichProjectionEquipmentItems(normalizeArmorEquipmentItems(parseJson(row.get("related_items_json")))),
+            rawSets
+        );
         int wearManagedImageCount = countCsvEntries(maleImages) + countCsvEntries(femaleImages) + countCsvEntries(specialImages);
         List<String> fallbackImages = wearManagedImageCount > 0 ? List.of() : collectManagedEquipmentImages(equipmentItems);
         String relatedPreviewImage = fallbackImages.stream().findFirst().orElse(null);
@@ -504,7 +508,7 @@ public class AdminArmorSetController {
         payload.put("fallbackImages", fallbackImages);
         payload.put("relatedItems", equipmentItems);
         payload.put("equipmentItems", equipmentItems);
-        payload.put("setVariants", buildArmorSetVariants(textKey, parseJson(row.get("sets_json")), equipmentItems));
+        payload.put("setVariants", buildArmorSetVariants(textKey, rawSets, equipmentItems));
         payload.put("replacementGroups", buildArmorReplacementGroups(equipmentItems));
         payload.put("imagePipelineStatus", imagePipelineStatus(managedImageCount, sourceImageCount));
         payload.put("sourceImageCount", sourceImageCount);
@@ -574,7 +578,11 @@ public class AdminArmorSetController {
         String snapshotSpecialImages = snapshotImageGroup == null ? null : snapshotImageGroup.specialCsv();
         String snapshotPreviewImage = firstManagedImageCsv(snapshotMaleImages, snapshotFemaleImages, snapshotSpecialImages);
         List<Map<String, Object>> relatedItems = loadRelatedItems(definition, currentItemIds);
-        List<Map<String, Object>> equipmentItems = normalizeArmorEquipmentItems(relatedItems);
+        Object rawSets = parseJson(firstNonBlank(trimToNull(definition.get("setsJson")), trimToNull(row.get("sets_json"))));
+        List<Map<String, Object>> equipmentItems = attachArmorEquipmentManagementRefs(
+            normalizeArmorEquipmentItems(relatedItems),
+            rawSets
+        );
         String relatedPreviewImage = relatedItems.stream()
             .map(item -> trimToNull(item.get("image")))
             .filter(this::isManagedImageUrl)
@@ -626,7 +634,7 @@ public class AdminArmorSetController {
         payload.put("specialImages", specialImages);
         payload.put("relatedItems", equipmentItems);
         payload.put("equipmentItems", equipmentItems);
-        payload.put("setVariants", buildArmorSetVariants(String.valueOf(payload.getOrDefault("textKey", textKey)), parseJson(payload.get("setsJson")), equipmentItems));
+        payload.put("setVariants", buildArmorSetVariants(String.valueOf(payload.getOrDefault("textKey", textKey)), rawSets, equipmentItems));
         payload.put("replacementGroups", buildArmorReplacementGroups(equipmentItems));
         payload.put("imagePipelineStatus", imagePipelineStatus(managedImageCount, sourceImageCount));
         payload.put("sourceImageCount", sourceImageCount);
@@ -801,6 +809,68 @@ public class AdminArmorSetController {
             enriched.add(copy);
         }
         return enriched;
+    }
+
+    private List<Map<String, Object>> attachArmorEquipmentManagementRefs(List<Map<String, Object>> equipmentItems, Object rawSets) {
+        if (equipmentItems == null || equipmentItems.isEmpty()) {
+            return List.of();
+        }
+
+        List<List<Long>> setVariants = extractSetVariants(rawSets);
+        Map<Long, List<Integer>> membershipIndexesByItemId = new LinkedHashMap<>();
+        for (int index = 0; index < setVariants.size(); index += 1) {
+            for (Long itemId : setVariants.get(index)) {
+                if (itemId != null && itemId > 0) {
+                    membershipIndexesByItemId.computeIfAbsent(itemId, ignored -> new ArrayList<>()).add(index);
+                }
+            }
+        }
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> item : equipmentItems) {
+            Map<String, Object> copy = new LinkedHashMap<>(item);
+            Long detailItemId = armorEquipmentDetailItemId(copy);
+            List<Integer> membershipVariantIndexes = membershipVariantIndexes(copy, membershipIndexesByItemId);
+            if (membershipVariantIndexes.isEmpty() && setVariants.isEmpty()) {
+                membershipVariantIndexes = List.of(toInt(copy.get("setVariantIndex"), 0));
+            }
+
+            Map<String, Object> itemDetailRef = new LinkedHashMap<>();
+            itemDetailRef.put("itemId", detailItemId);
+            itemDetailRef.put("internalName", trimToNull(copy.get("internalName")));
+            itemDetailRef.put("canOpenItemDetail", detailItemId != null && detailItemId > 0);
+            itemDetailRef.put("membershipVariantIndexes", membershipVariantIndexes);
+            copy.put("itemDetailRef", itemDetailRef);
+            result.add(copy);
+        }
+        return result;
+    }
+
+    private Long armorEquipmentDetailItemId(Map<String, Object> item) {
+        for (Object value : new Object[] { item.get("itemId"), item.get("id") }) {
+            Long itemId = toLong(value);
+            if (itemId != null && itemId > 0) {
+                return itemId;
+            }
+        }
+        return null;
+    }
+
+    private List<Integer> membershipVariantIndexes(
+        Map<String, Object> item,
+        Map<Long, List<Integer>> membershipIndexesByItemId
+    ) {
+        if (membershipIndexesByItemId == null || membershipIndexesByItemId.isEmpty()) {
+            return List.of();
+        }
+        Set<Integer> indexes = new LinkedHashSet<>();
+        for (Long lookupId : armorEquipmentLookupIds(item)) {
+            List<Integer> itemIndexes = membershipIndexesByItemId.get(lookupId);
+            if (itemIndexes != null) {
+                indexes.addAll(itemIndexes);
+            }
+        }
+        return new ArrayList<>(indexes);
     }
 
     private List<Long> armorEquipmentLookupIds(Map<String, Object> item) {
