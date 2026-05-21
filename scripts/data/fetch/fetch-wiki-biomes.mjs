@@ -2,16 +2,26 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-import { fetchWikiApiJson } from '../lib/wiki-item-utils.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
+import {
+  fetchWikiApiJson,
+  parseCliArgs
+} from '../lib/wiki-item-utils.mjs';
+import {
+  buildActionProgressPayload,
+  writeJsonFile
+} from '../workflow/backend-refresh-runtime-state.mjs';
 
 const API_URL = 'https://terraria.wiki.gg/api.php';
-const repoRoot = process.cwd();
-const generatedAt = new Date().toISOString();
-const dateTag = generatedAt.slice(0, 10);
+const __filename = fileURLToPath(import.meta.url);
+const repoRoot = getProjectRoot();
+const DEFAULT_WIKI_SYNC_PROGRESS_PATH = path.join(repoRoot, 'data', 'generated', 'wiki-sync-progress.latest.json');
 
-const outputJsonPath = path.join(repoRoot, 'data', 'generated', 'wiki-biomes.latest.json');
-const outputMdPath = path.join(repoRoot, 'reports', `wiki-biomes-summary-${dateTag}.md`);
+let progressPath = null;
+let progressActionId = 'biomes-refresh';
+let progressStartedAt = null;
 
 const sectionTitleOverrides = new Map([
   ['Underworld', ['The Underworld']],
@@ -74,91 +84,158 @@ const skipTopLevelGroups = new Set([
   'Micro-biomes',
 ]);
 
-const overview = await fetchPageRevision('Biomes');
-const overviewSections = await fetchPageSections('Biomes');
-const discoveredBiomes = discoverBiomeTargets(overviewSections);
-const records = [];
-const derivedRecords = [];
-const unresolved = [];
+async function main(argv = process.argv.slice(2)) {
+  const options = parseCliArgs(argv);
+  const generatedAt = new Date().toISOString();
+  const dateTag = generatedAt.slice(0, 10);
+  const outputJsonPath = path.resolve(process.cwd(), options['output-json'] ?? path.join(repoRoot, 'data', 'generated', 'wiki-biomes.latest.json'));
+  const outputMdPath = path.resolve(process.cwd(), options['report-md'] ?? path.join(repoRoot, 'reports', `wiki-biomes-summary-${dateTag}.md`));
+  progressPath = path.resolve(process.cwd(), options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_WIKI_SYNC_PROGRESS_PATH);
+  progressActionId = process.env.TERRAPEDIA_CRAWLER_ACTION_ID ?? 'biomes-refresh';
+  progressStartedAt = generatedAt;
 
-for (const entry of discoveredBiomes) {
-  const derivedDefinition = derivedVariantDefinitions.get(entry.pageTitle);
-  if (derivedDefinition) {
-    derivedRecords.push({
-      topGroup: entry.topGroup,
-      sectionGroup: entry.sectionGroup,
-      requestedTitle: entry.pageTitle,
-      displayName: derivedDefinition.displayName,
-      sourceType: 'derived_from_biomes_section',
-      variantType: derivedDefinition.variantType,
-      baseBiomeTitle: derivedDefinition.baseBiomeTitle,
-      infectionSourceTitle: derivedDefinition.infectionSourceTitle,
-      sourcePageTitle: 'Biomes',
-      sourceSectionTitle: entry.sectionGroup ?? entry.topGroup,
-      sourceRevisionTimestamp: overview.revisionTimestamp,
-      aliases: [derivedDefinition.displayName],
+  writeBiomeFetchProgress({
+    status: 'running',
+    phase: 'overview',
+    message: 'fetching Biomes overview metadata',
+    current: 0,
+    total: 0
+  });
+
+  const overview = await fetchPageRevision('Biomes');
+  const overviewSections = await fetchPageSections('Biomes');
+  const discoveredBiomes = discoverBiomeTargets(overviewSections);
+  const records = [];
+  const derivedRecords = [];
+  const unresolved = [];
+
+  writeBiomeFetchProgress({
+    status: 'running',
+    phase: 'discover',
+    message: `discovered ${discoveredBiomes.length} biome target(s)`,
+    current: 0,
+    total: discoveredBiomes.length
+  });
+
+  for (let index = 0; index < discoveredBiomes.length; index += 1) {
+    const entry = discoveredBiomes[index];
+    const current = index + 1;
+    const derivedDefinition = derivedVariantDefinitions.get(entry.pageTitle);
+    if (derivedDefinition) {
+      derivedRecords.push({
+        topGroup: entry.topGroup,
+        sectionGroup: entry.sectionGroup,
+        requestedTitle: entry.pageTitle,
+        displayName: derivedDefinition.displayName,
+        sourceType: 'derived_from_biomes_section',
+        variantType: derivedDefinition.variantType,
+        baseBiomeTitle: derivedDefinition.baseBiomeTitle,
+        infectionSourceTitle: derivedDefinition.infectionSourceTitle,
+        sourcePageTitle: 'Biomes',
+        sourceSectionTitle: entry.sectionGroup ?? entry.topGroup,
+        sourceRevisionTimestamp: overview.revisionTimestamp,
+        aliases: [derivedDefinition.displayName],
+      });
+      writeBiomeFetchProgress({
+        status: 'running',
+        phase: 'fetch',
+        message: `recorded derived biome ${current}/${discoveredBiomes.length}: ${entry.pageTitle}`,
+        current,
+        total: discoveredBiomes.length
+      });
+      continue;
+    }
+    try {
+      const page = await fetchPageRevision(entry.pageTitle);
+      const rendered = await fetchRenderedHtml(page.title);
+      records.push({
+        topGroup: entry.topGroup,
+        sectionGroup: entry.sectionGroup,
+        requestedTitle: entry.pageTitle,
+        title: page.title,
+        pageId: page.pageId,
+        revisionId: page.revisionId,
+        revisionTimestamp: page.revisionTimestamp,
+        sourceUrl: `https://terraria.wiki.gg/wiki/${encodeURIComponent(page.title.replaceAll(' ', '_'))}`,
+        intro: extractIntro(rendered),
+        aliases: buildAliases(entry.pageTitle, page.title),
+      });
+    } catch (error) {
+      unresolved.push({
+        topGroup: entry.topGroup,
+        sectionGroup: entry.sectionGroup,
+        requestedTitle: entry.pageTitle,
+        error: String(error),
+      });
+    }
+    writeBiomeFetchProgress({
+      status: 'running',
+      phase: 'fetch',
+      message: `fetched biome ${current}/${discoveredBiomes.length}: ${entry.pageTitle}`,
+      current,
+      total: discoveredBiomes.length
     });
-    continue;
   }
-  try {
-    const page = await fetchPageRevision(entry.pageTitle);
-    const rendered = await fetchRenderedHtml(page.title);
-    records.push({
-      topGroup: entry.topGroup,
-      sectionGroup: entry.sectionGroup,
-      requestedTitle: entry.pageTitle,
-      title: page.title,
-      pageId: page.pageId,
-      revisionId: page.revisionId,
-      revisionTimestamp: page.revisionTimestamp,
-      sourceUrl: `https://terraria.wiki.gg/wiki/${encodeURIComponent(page.title.replaceAll(' ', '_'))}`,
-      intro: extractIntro(rendered),
-      aliases: buildAliases(entry.pageTitle, page.title),
-    });
-  } catch (error) {
-    unresolved.push({
-      topGroup: entry.topGroup,
-      sectionGroup: entry.sectionGroup,
-      requestedTitle: entry.pageTitle,
-      error: String(error),
-    });
-  }
+
+  const payload = {
+    entity: 'wiki_biomes',
+    generatedAt,
+    schemaVersion: '1.0.0',
+    sourceApi: API_URL,
+    overview: {
+      title: overview.title,
+      pageId: overview.pageId,
+      revisionId: overview.revisionId,
+      revisionTimestamp: overview.revisionTimestamp,
+      discoveredBiomeCount: records.length,
+    },
+    derivedRecords,
+    unresolved,
+    records,
+  };
+
+  fs.mkdirSync(path.dirname(outputJsonPath), { recursive: true });
+  fs.mkdirSync(path.dirname(outputMdPath), { recursive: true });
+  fs.writeFileSync(outputJsonPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(outputMdPath, buildMarkdown(payload, outputJsonPath), 'utf8');
+
+  writeBiomeFetchProgress({
+    status: unresolved.length > 0 ? 'failed' : 'completed',
+    phase: 'write',
+    message: `finished biome fetch; records=${records.length}; derived=${derivedRecords.length}; unresolved=${unresolved.length}`,
+    current: discoveredBiomes.length,
+    total: discoveredBiomes.length,
+    outputPath: outputJsonPath,
+    reportPath: outputMdPath
+  });
+
+  console.log(JSON.stringify({
+    outputJsonPath,
+    outputMdPath,
+    discoveredBiomeCount: records.length,
+    derivedBiomeCount: derivedRecords.length,
+    unresolvedCount: unresolved.length,
+    sample: records.slice(0, 8).map(record => ({
+      topGroup: record.topGroup,
+      title: record.title,
+      revisionTimestamp: record.revisionTimestamp,
+    })),
+  }, null, 2));
 }
 
-const payload = {
-  entity: 'wiki_biomes',
-  generatedAt,
-  schemaVersion: '1.0.0',
-  sourceApi: API_URL,
-  overview: {
-    title: overview.title,
-    pageId: overview.pageId,
-    revisionId: overview.revisionId,
-    revisionTimestamp: overview.revisionTimestamp,
-    discoveredBiomeCount: records.length,
-  },
-  derivedRecords,
-  unresolved,
-  records,
-};
-
-fs.mkdirSync(path.dirname(outputJsonPath), { recursive: true });
-fs.mkdirSync(path.dirname(outputMdPath), { recursive: true });
-fs.writeFileSync(outputJsonPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
-fs.writeFileSync(outputMdPath, buildMarkdown(payload), 'utf8');
-
-console.log(JSON.stringify({
-  outputJsonPath,
-  outputMdPath,
-  discoveredBiomeCount: records.length,
-  derivedBiomeCount: derivedRecords.length,
-  unresolvedCount: unresolved.length,
-  sample: records.slice(0, 8).map(record => ({
-    topGroup: record.topGroup,
-    title: record.title,
-    revisionTimestamp: record.revisionTimestamp,
-  })),
-}, null, 2));
+if (process.argv[1] === __filename) {
+  main().catch((error) => {
+    console.error(error);
+    writeBiomeFetchProgress({
+      status: 'failed',
+      phase: 'error',
+      message: error?.message ?? String(error),
+      current: 0,
+      total: 0
+    });
+    process.exitCode = 1;
+  });
+}
 
 async function fetchPageRevision(title) {
   const url = new URL(API_URL);
@@ -273,7 +350,7 @@ function buildAliases(requestedTitle, resolvedTitle) {
   return [...aliases];
 }
 
-function buildMarkdown(payload) {
+function buildMarkdown(payload, outputJsonPath) {
   const lines = [];
   lines.push('# Wiki 群系来源汇总');
   lines.push('');
@@ -345,6 +422,51 @@ async function fetchJson(url) {
   });
 }
 
+function writeBiomeFetchProgress({
+  status,
+  phase,
+  message,
+  current,
+  total,
+  outputPath = null,
+  reportPath = null
+} = {}) {
+  if (!progressPath) {
+    return;
+  }
+  const generatedAt = new Date().toISOString();
+  const payload = buildActionProgressPayload({
+    actionId: progressActionId,
+    status,
+    phase,
+    message,
+    current,
+    total,
+    startedAt: progressStartedAt,
+    overallCurrent: current,
+    overallTotal: total,
+    generatedAt,
+    lastHeartbeatAt: generatedAt,
+    childStatusPath: progressPath
+  });
+  if (outputPath) {
+    payload.outputPath = outputPath;
+  }
+  if (reportPath) {
+    payload.reportPath = reportPath;
+  }
+  payload.queue = 'wiki biomes refresh';
+  payload.dataStage = 'wiki biomes -> generated biome source';
+  payload.nextStep = 'transform wiki-biomes.latest.json to importable biome data';
+  writeJsonFile(progressPath, payload);
+  if (path.resolve(progressPath) !== DEFAULT_WIKI_SYNC_PROGRESS_PATH) {
+    writeJsonFile(DEFAULT_WIKI_SYNC_PROGRESS_PATH, {
+      ...payload,
+      childStatusPath: DEFAULT_WIKI_SYNC_PROGRESS_PATH
+    });
+  }
+}
+
 function extractBlockByClass(html, tagName, className) {
   const regex = new RegExp(`<${tagName}\\b[^>]*class="[^"]*${escapeRegExp(className)}[^"]*"[^>]*>`, 'i');
   const match = regex.exec(html);
@@ -405,4 +527,3 @@ function clean(value) {
 function escapeRegExp(text) {
   return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
-

@@ -4,6 +4,9 @@ export function shouldRunBiomeImport(options = {}) {
 
 export function buildBiomeImportArgs(options = {}) {
   const args = [];
+  if (isTrue(options.apply)) {
+    args.push('--apply=true');
+  }
   pushOption(args, 'wiki-biomes-file', options.wikiBiomesFile ?? options['wiki-biomes-file']);
   return args;
 }
