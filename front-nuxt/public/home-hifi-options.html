@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TerraPedia Home High Fidelity Options</title>
+  <link rel="stylesheet" href="/_nuxt/@fs/home/lolben/TerraPedia/front-nuxt/node_modules/.pnpm/@fontsource-variable+noto-sans-sc@5.2.10/node_modules/@fontsource-variable/noto-sans-sc/index.css">
+  <style>
+    :root {
+      --bg: #050806;
+      --surface: #08110b;
+      --panel: rgba(8, 18, 11, 0.86);
+      --line: rgba(244, 234, 208, 0.14);
+      --paper: #fff6d2;
+      --muted: rgba(244, 234, 208, 0.64);
+      --dim: rgba(244, 234, 208, 0.44);
+      --gold: #ffd765;
+      --green: #9db89a;
+      --grid-x: linear-gradient(90deg, rgba(244, 234, 208, 0.055) 1px, transparent 1px);
+      --grid-y: linear-gradient(rgba(244, 234, 208, 0.05) 1px, transparent 1px);
+      font-family: "Noto Sans SC Variable", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 16% 4%, rgba(240, 207, 116, 0.12), transparent 28rem),
+        radial-gradient(circle at 86% 12%, rgba(125, 183, 165, 0.1), transparent 30rem),
+        var(--grid-x), var(--grid-y),
+        linear-gradient(180deg, #050806 0%, #0a130c 54%, #050806 100%);
+      background-size: auto, auto, 40px 40px, 40px 40px, auto;
+      color: var(--paper);
+    }
+    .mock-page { width: 1440px; height: 960px; overflow: hidden; padding: 24px 30px 28px; }
+    .topbar {
+      display: grid; grid-template-columns: 250px minmax(0, 1fr) auto; gap: 28px; align-items: center;
+      height: 74px; border: 1px solid var(--line); border-radius: 8px; background: rgba(3, 8, 5, 0.72);
+      box-shadow: inset 0 1px 0 rgba(244, 234, 208, 0.05); padding: 12px 16px;
+    }
+    .brand { display: flex; gap: 12px; align-items: center; }
+    .brand img { width: 48px; height: 48px; border-radius: 8px; }
+    .brand b { display: block; font-size: 20px; line-height: 1.05; }
+    .brand span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; }
+    .nav { display: flex; justify-content: center; gap: 34px; color: rgba(244, 234, 208, 0.76); font-size: 13px; font-weight: 800; }
+    .nav span:first-child { color: var(--gold); }
+    .toolbar { display: flex; gap: 10px; align-items: center; }
+    .tool { display: grid; place-items: center; min-width: 44px; height: 44px; border: 1px solid rgba(240, 207, 116, 0.24); border-radius: 8px; background: rgba(214, 177, 90, 0.1); color: var(--gold); font-size: 12px; font-weight: 900; }
+    .hero-shell {
+      position: relative; display: none; margin-top: 22px; height: 822px; border: 1px solid rgba(244, 234, 208, 0.13);
+      border-radius: 8px; background: linear-gradient(135deg, rgba(240, 207, 116, 0.055), transparent 40%), rgba(4, 10, 6, 0.7);
+      box-shadow: 0 32px 90px rgba(0, 0, 0, 0.32); overflow: hidden;
+    }
+    body[data-option="a"] #option-a, body[data-option="b"] #option-b, body[data-option="c"] #option-c { display: grid; }
+    .hero-head {
+      display: grid; grid-template-columns: 58px minmax(0, 1fr) 420px; gap: 16px; align-items: center; min-height: 86px;
+      border-bottom: 1px solid rgba(244, 234, 208, 0.1); background: var(--grid-x), var(--grid-y), rgba(5, 11, 7, 0.62);
+      background-size: 40px 40px, 40px 40px, auto; padding: 16px 20px;
+    }
+    .option-badge { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid rgba(240, 207, 116, 0.32); border-radius: 8px; background: rgba(214, 177, 90, 0.12); color: var(--gold); font-size: 20px; font-weight: 900; }
+    .hero-head h1 { margin: 0; font-size: 25px; line-height: 1.12; }
+    .hero-head p { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .head-note { color: rgba(244, 234, 208, 0.58); font-size: 13px; line-height: 1.65; }
+    .hero-body { min-height: 0; padding: 24px; }
+    .pixel { display: inline-block; width: 34px; height: 34px; border: 1px solid rgba(240, 207, 116, 0.22); border-radius: 6px; background-image: url("/ui/home-hero-pixel/relic-sheet.png"); background-size: 400% 400%; image-rendering: pixelated; box-shadow: inset 0 0 0 1px rgba(244, 234, 208, 0.04); }
+    .p1 { background-position: 33.333% 0; } .p2 { background-position: 0 33.333%; } .p3 { background-position: 0 66.666%; } .p4 { background-position: 66.666% 66.666%; }
+    .p5 { background-position: 100% 0; } .p6 { background-position: 33.333% 33.333%; } .p7 { background-position: 66.666% 0; } .p8 { background-position: 100% 66.666%; }
+    .kicker { display: inline-flex; gap: 9px; align-items: center; color: var(--gold); font-size: 11px; font-weight: 900; }
+    .kicker::before { content: ""; width: 28px; height: 1px; background: var(--gold); }
+    .panel { border: 1px solid var(--line); border-radius: 8px; background: var(--grid-x), var(--grid-y), rgba(4, 10, 6, 0.58); background-size: 40px 40px, 40px 40px, auto; box-shadow: inset 0 1px 0 rgba(244, 234, 208, 0.04); }
+    .search { display: grid; grid-template-columns: 32px minmax(0, 1fr) 86px; gap: 12px; align-items: center; height: 64px; border: 1px solid rgba(240, 207, 116, 0.28); border-radius: 8px; background: rgba(2, 7, 4, 0.72); padding: 8px 8px 8px 18px; }
+    .glass { position: relative; width: 22px; height: 22px; border: 3px solid var(--green); border-radius: 50%; }
+    .glass::after { content: ""; position: absolute; right: -8px; bottom: -6px; width: 13px; height: 3px; border-radius: 99px; background: var(--green); transform: rotate(45deg); }
+    .search b { color: rgba(255, 244, 198, 0.92); font-size: 16px; }
+    .search button { height: 46px; border: 1px solid rgba(240, 207, 116, 0.36); border-radius: 7px; background: rgba(214, 177, 90, 0.14); color: var(--gold); font-weight: 900; }
+    .stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid rgba(244, 234, 208, 0.1); border-left: 1px solid rgba(244, 234, 208, 0.1); }
+    .stat-grid span { min-height: 84px; border-right: 1px solid rgba(244, 234, 208, 0.1); border-bottom: 1px solid rgba(244, 234, 208, 0.1); padding: 16px; }
+    .stat-grid b { display: block; color: var(--gold); font-size: 26px; line-height: 1; }
+    .stat-grid em { display: block; margin-top: 9px; color: rgba(244, 234, 208, 0.58); font-size: 12px; font-style: normal; font-weight: 800; }
+    .update-list { display: grid; gap: 0; }
+    .update-list span { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 54px; border-bottom: 1px solid rgba(244, 234, 208, 0.08); color: var(--muted); font-size: 12px; font-weight: 800; }
+    .update-list b { color: rgba(255, 244, 198, 0.9); font-size: 14px; }
+    .tag { color: var(--green); font-size: 11px; font-weight: 900; }
+    .a-body { display: grid; grid-template-columns: minmax(360px, 0.76fr) minmax(0, 1.18fr) 330px; gap: 18px; }
+    .a-lead { display: grid; align-content: start; gap: 18px; padding: 26px; }
+    .a-lead h2 { margin: 10px 0 0; font-size: 56px; line-height: 1.02; letter-spacing: 0; }
+    .a-lead p { color: var(--muted); font-size: 15px; line-height: 1.75; margin: 0; }
+    .stage-list { display: grid; gap: 8px; }
+    .stage-list span { display: grid; grid-template-columns: 86px minmax(0, 1fr); min-height: 44px; gap: 12px; align-items: center; border: 1px solid rgba(244, 234, 208, 0.11); border-radius: 8px; padding: 10px 12px; color: var(--muted); font-size: 12px; font-weight: 800; }
+    .stage-list span:first-child { border-color: rgba(240, 207, 116, 0.35); background: rgba(214, 177, 90, 0.11); color: var(--paper); }
+    .a-center { display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 14px; }
+    .hot-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .hot-grid span { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 9px; align-items: center; min-height: 66px; border: 1px solid rgba(244, 234, 208, 0.11); border-radius: 8px; background: rgba(4, 10, 6, 0.58); padding: 10px; }
+    .hot-grid b { display: block; color: var(--paper); font-size: 13px; line-height: 1.1; }
+    .hot-grid em { display: block; margin-top: 4px; color: var(--dim); font-size: 10px; font-style: normal; font-weight: 900; }
+    .feature-board { position: relative; overflow: hidden; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 16px; min-height: 384px; padding: 20px; }
+    .feature-board::before { content: ""; position: absolute; inset: 34px 64px; border: 1px dashed rgba(240, 207, 116, 0.2); border-radius: 50%; pointer-events: none; }
+    .item-focus { position: relative; display: grid; align-content: center; justify-items: center; border: 1px solid rgba(240, 207, 116, 0.26); border-radius: 8px; background: radial-gradient(circle at 50% 34%, rgba(240, 207, 116, 0.18), transparent 56%), rgba(4, 10, 6, 0.62); }
+    .item-focus .pixel { width: 78px; height: 78px; border-radius: 10px; }
+    .item-focus h3 { margin: 18px 0 0; color: var(--gold); font-size: 34px; }
+    .item-focus p { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+    .relation { display: grid; gap: 9px; align-content: center; }
+    .relation span { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 58px; border: 1px solid rgba(244, 234, 208, 0.11); border-radius: 8px; background: rgba(3, 8, 5, 0.52); padding: 10px; }
+    .relation b { color: var(--paper); font-size: 13px; } .relation em { color: var(--dim); font-size: 11px; font-style: normal; font-weight: 800; }
+    .a-side { display: grid; align-content: start; gap: 14px; padding: 22px; }
+    .side-title small { color: var(--dim); font-size: 11px; font-weight: 900; } .side-title h3 { margin: 8px 0 0; font-size: 24px; line-height: 1.1; }
+    .b-body { display: grid; grid-template-columns: 116px minmax(0, 1fr) 370px; gap: 16px; }
+    .spine { display: grid; gap: 8px; }
+    .spine span { display: grid; align-content: end; min-height: 154px; border: 1px solid rgba(240, 207, 116, 0.2); border-radius: 8px; background: linear-gradient(180deg, rgba(240, 207, 116, 0.14), transparent 64%), rgba(4, 10, 6, 0.68); padding: 14px; writing-mode: vertical-rl; }
+    .spine b { color: var(--gold); font-size: 21px; line-height: 1; } .spine em { color: var(--muted); font-size: 11px; font-style: normal; font-weight: 900; }
+    .directory { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 14px; }
+    .directory-head { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 16px; padding: 22px; }
+    .directory-head h2 { margin: 8px 0 0; font-size: 48px; line-height: 1.02; } .directory-head p { margin: 10px 0 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+    .mini-search { align-self: center; }
+    .catalog-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+    .catalog-grid span { display: grid; grid-template-rows: 38px auto 1fr; min-height: 130px; border: 1px solid rgba(244, 234, 208, 0.11); border-radius: 8px; background: linear-gradient(180deg, rgba(240, 207, 116, 0.08), transparent 62%), rgba(4, 10, 6, 0.62); padding: 13px; }
+    .catalog-grid b { margin-top: 10px; color: var(--paper); font-size: 16px; line-height: 1.1; } .catalog-grid em { margin-top: 8px; color: var(--dim); font-size: 11px; font-style: normal; font-weight: 800; line-height: 1.35; }
+    .b-side { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 14px; }
+    .spotlight { display: grid; gap: 12px; padding: 20px; }
+    .spotlight-main { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 14px; align-items: center; min-height: 96px; border: 1px solid rgba(240, 207, 116, 0.26); border-radius: 8px; background: rgba(214, 177, 90, 0.08); padding: 14px; }
+    .spotlight-main .pixel { width: 52px; height: 52px; } .spotlight-main h3 { margin: 0; color: var(--gold); font-size: 25px; }
+    .drawer-stack { display: grid; gap: 8px; }
+    .drawer-stack span { display: grid; grid-template-columns: minmax(0, 1fr) auto; min-height: 64px; border: 1px solid rgba(244, 234, 208, 0.11); border-radius: 8px; padding: 12px; }
+    .drawer-stack b { font-size: 13px; } .drawer-stack strong { color: var(--gold); font-size: 16px; } .drawer-stack em { grid-column: 1 / -1; color: var(--dim); font-size: 10px; font-style: normal; font-weight: 800; }
+    .c-body { display: grid; grid-template-columns: 340px minmax(0, 1fr) 350px; gap: 18px; }
+    .filter-panel { display: grid; align-content: start; gap: 16px; padding: 24px; }
+    .filter-panel h2 { margin: 10px 0 0; font-size: 46px; line-height: 1.04; } .filter-panel p { color: var(--muted); font-size: 14px; line-height: 1.65; margin: 0; }
+    .filter-group { display: grid; gap: 8px; } .filter-label { color: var(--green); font-size: 11px; font-weight: 900; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chips span { display: inline-grid; place-items: center; min-height: 38px; border: 1px solid rgba(244, 234, 208, 0.13); border-radius: 7px; background: rgba(244, 234, 208, 0.035); color: rgba(244, 234, 208, 0.74); padding: 0 12px; font-size: 12px; font-weight: 900; }
+    .chips span.active { border-color: rgba(240, 207, 116, 0.38); background: rgba(214, 177, 90, 0.13); color: var(--gold); }
+    .workbench { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 14px; }
+    .result-map { position: relative; overflow: hidden; padding: 18px; background: linear-gradient(180deg, rgba(126, 165, 206, 0.08), transparent 28%), linear-gradient(180deg, transparent 0 32%, rgba(125, 165, 91, 0.09) 33% 57%, transparent 58%), linear-gradient(180deg, transparent 0 62%, rgba(240, 207, 116, 0.08) 63% 100%), var(--grid-x), var(--grid-y), rgba(4, 10, 6, 0.58); background-size: auto, auto, auto, 40px 40px, 40px 40px, auto; }
+    .layers { display: grid; gap: 0; }
+    .layers span { display: grid; grid-template-columns: 110px minmax(0, 1fr); align-items: center; min-height: 48px; border-bottom: 1px solid rgba(244, 234, 208, 0.08); color: var(--muted); font-size: 11px; font-weight: 800; }
+    .route-cards { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: 1fr 1fr; gap: 13px; margin-top: 18px; min-height: 390px; }
+    .route-cards::before { content: ""; position: absolute; left: 8%; right: 8%; top: 50%; height: 2px; background: linear-gradient(90deg, transparent, rgba(255, 215, 101, 0.5), transparent); }
+    .route-cards article { position: relative; z-index: 1; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10px; align-items: center; min-height: 170px; border: 1px solid rgba(244, 234, 208, 0.12); border-radius: 8px; background: rgba(3, 8, 5, 0.75); padding: 15px; }
+    .route-cards article:nth-child(2), .route-cards article:nth-child(4) { transform: translateY(34px); } .route-cards article:last-child { border-color: rgba(240, 207, 116, 0.34); }
+    .route-cards b { color: var(--paper); font-size: 17px; line-height: 1.12; } .route-cards em { color: var(--dim); font-size: 11px; font-style: normal; font-weight: 800; }
+    .c-side { display: grid; align-content: start; gap: 14px; padding: 22px; }
+    .checklist { display: grid; gap: 8px; }
+    .checklist span { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 10px; align-items: center; min-height: 54px; border: 1px solid rgba(244, 234, 208, 0.1); border-radius: 8px; padding: 10px; color: var(--muted); font-size: 12px; font-weight: 800; }
+    .checklist i { width: 9px; height: 9px; border: 1px solid rgba(240, 207, 116, 0.46); border-radius: 50%; background: rgba(240, 207, 116, 0.14); }
+    .loadout { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .loadout span { display: grid; place-items: center; gap: 7px; min-height: 78px; border: 1px solid rgba(244, 234, 208, 0.11); border-radius: 8px; padding: 8px; font-size: 11px; font-weight: 900; }
+  </style>
+</head>
+<body>
+  <main class="mock-page">
+    <nav class="topbar">
+      <div class="brand"><img src="/brand/terrapedia-emblem.png" alt=""><div><b>TerraPedia</b><span>中文资料库</span></div></div>
+      <div class="nav"><span>首页</span><span>物品</span><span>NPC</span><span>Boss</span><span>文章</span></div>
+      <div class="toolbar"><span class="tool">搜</span><span class="tool">深</span><span class="tool">资料</span><span class="tool">TP</span></div>
+    </nav>
+
+    <section id="option-a" class="hero-shell">
+      <header class="hero-head"><span class="option-badge">A</span><div><h1>搜索中枢型首页</h1><p>先给用户一个强搜索入口，再把统计、分类、热门条目压进同一屏。</p></div><div class="head-note">推荐作为默认首页：最像成熟数据网站，首屏效率最高，同时保留 TerraPedia 的暗绿和像素资料感。</div></header>
+      <div class="hero-body a-body">
+        <section class="panel a-lead"><div><span class="kicker">PUBLIC CODEX</span><h2>从搜索进入整个世界</h2></div><p>用户来到数据站，第一动作通常是查一个条目。搜索框、阶段入口和高频分类围绕同一个任务组织。</p><div class="search"><span class="glass"></span><b>泰拉刃、Boss、NPC、合成路线...</b><button>检索</button></div><div class="stage-list"><span><b>开荒</b><em>火把 / 工作台 / 基础装备</em></span><span><b>Boss 前</b><em>召唤物 / 药水 / 防具</em></span><span><b>困难模式</b><em>机械 Boss / 神圣锭</em></span><span><b>月后整理</b><em>最终武器 / 收藏补全</em></span></div></section>
+        <section class="a-center"><div class="panel stat-grid"><span><b>6,159</b><em>物品条目</em></span><span><b>106</b><em>分类索引</em></span><span><b>14,746</b><em>合成链路</em></span><span><b>762</b><em>NPC 条目</em></span></div><div class="hot-grid"><span><i class="pixel p1"></i><b>物品</b><em>装备 / 材料</em></span><span><i class="pixel p2"></i><b>Boss</b><em>阶段 / 战利品</em></span><span><i class="pixel p3"></i><b>NPC</b><em>城镇 / 敌怪</em></span><span><i class="pixel p4"></i><b>攻略</b><em>路线 / 事件</em></span></div><div class="panel feature-board"><div class="item-focus"><i class="pixel p1"></i><h3>泰拉刃</h3><p>当前焦点 · 物品页 / 合成 / 路线</p></div><div class="relation"><span><i class="pixel p5"></i><b>真永夜刃</b><em>合成材料</em></span><span><i class="pixel p6"></i><b>英雄断剑</b><em>日食来源</em></span><span><i class="pixel p7"></i><b>材料索引</b><em>1,913 条</em></span><span><i class="pixel p8"></i><b>近战后期</b><em>路线推荐</em></span></div></div></section>
+        <aside class="panel a-side"><div class="side-title"><small>LIVE INDEX</small><h3>热门与更新</h3></div><div class="update-list"><span><i class="tag">物品</i><b>泰拉刃</b><em>合成链路更新</em></span><span><i class="tag">路线</i><b>近战后期推进</b><em>机械 Boss 后</em></span><span><i class="tag">分类</i><b>材料索引</b><em>材料 1,913 条</em></span><span><i class="tag">攻略</i><b>困难模式准备</b><em>阶段入口</em></span></div></aside>
+      </div>
+    </section>
+
+    <section id="option-b" class="hero-shell">
+      <header class="hero-head"><span class="option-badge">B</span><div><h1>百科目录型首页</h1><p>把首页做成 Wiki 风格资料门户，分类入口优先于装饰。</p></div><div class="head-note">适合强调中文百科属性：目录、统计、焦点条目和最近更新同屏展示，信息密度最高。</div></header>
+      <div class="hero-body b-body"><aside class="spine"><span><b>6,159</b><em>物品条目</em></span><span><b>106</b><em>分类索引</em></span><span><b>14,746</b><em>合成链路</em></span><span><b>762</b><em>NPC 条目</em></span></aside><section class="directory"><div class="panel directory-head"><div><span class="kicker">TERRAPEDIA DIRECTORY</span><h2>资料目录</h2><p>像成熟 Wiki 首页一样，把用户可能进入的资料区按主题铺开，而不是只突出单一 Hero。</p></div><div class="mini-search search"><span class="glass"></span><b>搜索目录或条目...</b><button>进入</button></div></div><div class="catalog-grid"><span><i class="pixel p1"></i><b>武器</b><em>近战、远程、魔法、召唤</em></span><span><i class="pixel p7"></i><b>材料</b><em>矿物、掉落、合成核心</em></span><span><i class="pixel p2"></i><b>Boss</b><em>阶段、召唤物、战利品</em></span><span><i class="pixel p3"></i><b>NPC</b><em>入住、事件、关系索引</em></span><span><i class="pixel p4"></i><b>制作</b><em>配方链、工作站、材料组</em></span><span><i class="pixel p5"></i><b>盔甲</b><em>职业推进、套装效果</em></span><span><i class="pixel p6"></i><b>生态</b><em>地形、资源、生成条件</em></span><span><i class="pixel p8"></i><b>攻略</b><em>阶段路线、事件准备</em></span><span><i class="pixel p1"></i><b>工具</b><em>采集、建造、移动</em></span><span><i class="pixel p2"></i><b>事件</b><em>入侵、节日、日食</em></span><span><i class="pixel p3"></i><b>Buff</b><em>药水、增益、减益</em></span><span><i class="pixel p4"></i><b>收藏</b><em>个人书签、最近查看</em></span></div></section><aside class="b-side"><div class="panel spotlight"><div class="spotlight-main"><i class="pixel p1"></i><div><h3>泰拉刃</h3><span class="tag">当前焦点</span></div></div><div class="drawer-stack"><span><b>武器库</b><strong>458</strong><em>近战 / 远程 / 魔法</em></span><span><b>材料柜</b><strong>1,913</strong><em>矿物 / 掉落 / 合成</em></span><span><b>路线夹</b><strong>精选</strong><em>阶段 / Boss / 配装</em></span></div></div><div class="panel a-side"><div class="side-title"><small>RECENT</small><h3>近期更新</h3></div><div class="update-list"><span><i class="tag">物品</i><b>泰拉刃</b><em>链路更新</em></span><span><i class="tag">攻略</i><b>困难模式准备</b><em>阶段入口</em></span><span><i class="tag">分类</i><b>材料索引</b><em>1,913 条</em></span></div></div></aside></div>
+    </section>
+
+    <section id="option-c" class="hero-shell">
+      <header class="hero-head"><span class="option-badge">C</span><div><h1>筛选工作台型首页</h1><p>面向高级用户，把首页做成可查询、可筛选、可进入路线的资料工作台。</p></div><div class="head-note">适合强化“数据库”属性：过滤器、结果预览、路线图和下一步建议组成完整查询流程。</div></header>
+      <div class="hero-body c-body"><section class="panel filter-panel"><span class="kicker">DATABASE WORKBENCH</span><h2>筛选资料，而不是翻目录</h2><p>用户可以按类型、阶段、用途缩小范围，首屏直接看到匹配结果和路线建议。</p><div class="search"><span class="glass"></span><b>泰拉刃</b><button>查询</button></div><div class="filter-group"><span class="filter-label">类型</span><div class="chips"><span class="active">物品</span><span>Boss</span><span>NPC</span><span>攻略</span></div></div><div class="filter-group"><span class="filter-label">阶段</span><div class="chips"><span>开荒</span><span>Boss 前</span><span class="active">困难模式</span><span>月后</span></div></div><div class="filter-group"><span class="filter-label">用途</span><div class="chips"><span class="active">制作</span><span>掉落</span><span>装备</span><span>路线</span></div></div></section><section class="workbench"><div class="panel stat-grid"><span><b>18</b><em>匹配资料</em></span><span><b>4</b><em>关键节点</em></span><span><b>3</b><em>相关分类</em></span><span><b>1</b><em>推荐路线</em></span></div><div class="panel result-map"><div class="layers"><span><b>地表探索</b><em>基础装备 / NPC</em></span><span><b>地下材料</b><em>矿物 / 工作站</em></span><span><b>事件节点</b><em>Boss / 日食</em></span></div><div class="route-cards"><article><span class="tag">01</span><div><b>真永夜刃</b><em>材料主轴</em></div></article><article><span class="tag">02</span><div><b>真断钢剑</b><em>合成分支</em></div></article><article><span class="tag">03</span><div><b>英雄断剑</b><em>日食事件</em></div></article><article><span class="tag">04</span><div><b>泰拉刃</b><em>路线终点</em></div></article></div></div></section><aside class="panel c-side"><div class="side-title"><small>NEXT STEP</small><h3>下一步建议</h3></div><p style="margin:0;color:var(--muted);line-height:1.65;">先核对材料，再进入合成链路和 Boss 前置。</p><div class="checklist"><span><i></i><b>材料齐套 · 永夜刃 / 断钢剑</b></span><span><i></i><b>事件确认 · 日食掉落英雄断剑</b></span><span><i></i><b>工作站 · 秘银砧或山铜砧</b></span><span><i></i><b>下一页 · 进入泰拉刃条目</b></span></div><div class="loadout"><span><i class="pixel p1"></i>武器</span><span><i class="pixel p5"></i>护甲</span><span><i class="pixel p6"></i>药水</span><span><i class="pixel p8"></i>记录</span></div></aside></div>
+    </section>
+  </main>
+  <script>
+    const params = new URLSearchParams(location.search)
+    document.body.dataset.option = params.get('option') || 'a'
+  </script>
+</body>
+</html>
