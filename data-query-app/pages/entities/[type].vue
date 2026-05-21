@@ -2176,6 +2176,9 @@ async function fetchRows(page = pagination.page) {
     const params: Record<string, any> = entityType.value === 'bosses'
       ? { page: 1, limit: 100 }
       : { page, limit: pagination.size, search: search.value || undefined }
+    if (entityType.value === 'armor-sets' && selectedArmorSetCompositionKind.value !== 'all') {
+      params.compositionKind = selectedArmorSetCompositionKind.value
+    }
     if (entityType.value === 'npcs' && selectedNpcCategoryId.value != null) {
       params.categoryId = selectedNpcCategoryId.value
     }
@@ -2434,6 +2437,7 @@ async function handleArmorSetCompositionChange(value: ArmorSetCompositionKindFil
   if (selectedArmorSetCompositionKind.value === value) return
   selectedArmorSetCompositionKind.value = value
   await syncRouteQuery(1)
+  await fetchRows(1)
 }
 
 function openImageLightbox(image: string, title: string) {

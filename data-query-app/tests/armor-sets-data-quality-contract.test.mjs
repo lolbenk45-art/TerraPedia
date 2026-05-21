@@ -67,6 +67,19 @@ test('armor set admin exposes composition kind as a management category', () => 
   }
 })
 
+test('armor set admin sends composition kind filter to backend instead of filtering only the current page', () => {
+  const page = read('data-query-app/pages/entities/[type].vue')
+
+  assert.match(
+    page,
+    /if \(entityType\.value === 'armor-sets' && selectedArmorSetCompositionKind\.value !== 'all'\) \{[\s\S]*?params\.compositionKind = selectedArmorSetCompositionKind\.value[\s\S]*?\}/,
+  )
+  assert.match(
+    page,
+    /async function handleArmorSetCompositionChange\(value: ArmorSetCompositionKindFilter\) \{[\s\S]*?selectedArmorSetCompositionKind\.value = value[\s\S]*?await syncRouteQuery\(1\)[\s\S]*?await fetchRows\(1\)[\s\S]*?\}/,
+  )
+})
+
 test('armor set admin detail offers item detail actions for composition and replacement equipment', () => {
   const page = read('data-query-app/pages/entities/[type].vue')
 

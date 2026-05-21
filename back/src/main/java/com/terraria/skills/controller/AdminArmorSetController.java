@@ -71,14 +71,24 @@ public class AdminArmorSetController {
         @RequestParam(required = false) Integer page,
         @RequestParam(required = false) Integer limit,
         @RequestParam(required = false) Integer size,
-        @RequestParam(required = false) String search
+        @RequestParam(required = false) String search,
+        @RequestParam(required = false) String compositionKind
     ) {
         String projectionTable = resolveProjectionArmorSetsTable();
         if (projectionTable != null) {
-            return getProjectionArmorSets(projectionTable, page, limit, size, search);
+            return getProjectionArmorSets(projectionTable, page, limit, size, search, compositionKind);
         }
 
         return getLegacyArmorSets(page, limit, size, search);
+    }
+
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getArmorSets(
+        Integer page,
+        Integer limit,
+        Integer size,
+        String search
+    ) {
+        return getArmorSets(page, limit, size, search, null);
     }
 
     @GetMapping("/{id}")
@@ -221,14 +231,15 @@ public class AdminArmorSetController {
         Integer page,
         Integer limit,
         Integer size,
-        String search
+        String search,
+        String compositionKind
     ) {
         int safePage = PaginationParams.resolvePage(page);
         int safeLimit = PaginationParams.resolveLimit(limit, size, 20, 100);
         int offset = (safePage - 1) * safeLimit;
 
         List<Object> countArgs = new ArrayList<>();
-        String where = buildProjectionArmorSearchWhere(search, countArgs);
+        String where = buildProjectionArmorWhere(search, compositionKind, countArgs);
         Long total = jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM " + projectionTable + where,
             Long.class,
@@ -402,19 +413,39 @@ public class AdminArmorSetController {
         return " WHERE (source_key LIKE ? OR text_key LIKE ? OR benefit_expression LIKE ?)";
     }
 
-    private String buildProjectionArmorSearchWhere(String search, List<Object> args) {
+    private String buildProjectionArmorWhere(String search, String compositionKind, List<Object> args) {
+        List<String> conditions = new ArrayList<>();
         String keyword = trimToNull(search);
-        if (keyword == null) return "";
-        String pattern = "%" + keyword + "%";
-        for (int index = 0; index < 8; index += 1) {
-            args.add(pattern);
+        if (keyword != null) {
+            String pattern = "%" + keyword + "%";
+            for (int index = 0; index < 8; index += 1) {
+                args.add(pattern);
+            }
+            conditions.add("""
+                (
+                  source_key LIKE ? OR text_key LIKE ? OR name LIKE ? OR name_zh LIKE ? OR name_en LIKE ?
+                  OR benefit_expression LIKE ? OR benefit_zh LIKE ? OR benefit_en LIKE ?
+                )
+                """);
         }
-        return """
-            WHERE (
-              source_key LIKE ? OR text_key LIKE ? OR name LIKE ? OR name_zh LIKE ? OR name_en LIKE ?
-              OR benefit_expression LIKE ? OR benefit_zh LIKE ? OR benefit_en LIKE ?
-            )
-            """;
+        String normalizedCompositionKind = normalizeProjectionCompositionKind(compositionKind);
+        if (normalizedCompositionKind != null) {
+            conditions.add("composition_kind = ?");
+            args.add(normalizedCompositionKind);
+        }
+        if (conditions.isEmpty()) return "";
+        return " WHERE " + String.join(" AND ", conditions);
+    }
+
+    private String normalizeProjectionCompositionKind(String value) {
+        String normalized = trimToNull(value);
+        if (normalized == null || "all".equals(normalized)) return null;
+        if ("traditional_set".equals(normalized)
+            || "single_piece_set".equals(normalized)
+            || "nonstandard_piece_set".equals(normalized)) {
+            return normalized;
+        }
+        return null;
     }
 
     private Map<String, Object> normalizeProjectionArmorSetRow(Map<String, Object> row, Map<String, ArmorSetImageGroup> snapshotImages) {

@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -97,6 +98,17 @@ class AdminArmorSetControllerTest {
                 && sql.contains("benefit_zh LIKE ?")
                 && sql.contains("benefit_en LIKE ?")
         ));
+    }
+
+    @Test
+    void projectionListCanBeFilteredByCompositionKind() {
+        FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(true);
+        AdminArmorSetController controller = controller(jdbcTemplate);
+
+        invokeGetArmorSets(controller, 1, 20, null, null, "nonstandard_piece_set");
+
+        assertTrue(jdbcTemplate.sqlLog.stream().anyMatch(sql -> sql.contains("composition_kind = ?")));
+        assertTrue(jdbcTemplate.argsLog.stream().anyMatch(args -> args.contains("nonstandard_piece_set")));
     }
 
     @Test
@@ -508,6 +520,41 @@ class AdminArmorSetControllerTest {
         return new AdminArmorSetController(jdbcTemplate, new ObjectMapper(), MANAGED_IMAGE_URL_POLICY);
     }
 
+    private ResponseEntity<ApiResponse<List<Map<String, Object>>>> invokeGetArmorSets(
+        AdminArmorSetController controller,
+        Integer page,
+        Integer limit,
+        Integer size,
+        String search,
+        String compositionKind
+    ) {
+        try {
+            Method method = AdminArmorSetController.class.getMethod(
+                "getArmorSets",
+                Integer.class,
+                Integer.class,
+                Integer.class,
+                String.class,
+                String.class
+            );
+            @SuppressWarnings("unchecked")
+            ResponseEntity<ApiResponse<List<Map<String, Object>>>> response =
+                (ResponseEntity<ApiResponse<List<Map<String, Object>>>>) method.invoke(
+                    controller,
+                    page,
+                    limit,
+                    size,
+                    search,
+                    compositionKind
+                );
+            return response;
+        } catch (NoSuchMethodException exception) {
+            throw new AssertionError("Admin armor-set list must accept a compositionKind query parameter", exception);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError("Admin armor-set list compositionKind invocation failed", exception);
+        }
+    }
+
     private void writeArmorSetBonusSource(Path repoRoot) throws IOException {
         Files.writeString(
             repoRoot.resolve("data/generated/wiki-armorsetbonuses.latest.json"),
@@ -566,6 +613,7 @@ class AdminArmorSetControllerTest {
         private final boolean relationProjectionExists;
         private final String projectionScenario;
         private final List<String> sqlLog = new ArrayList<>();
+        private final List<List<Object>> argsLog = new ArrayList<>();
 
         FakeJdbcTemplate(boolean projectionExists) {
             this(projectionExists, false, "wood");
@@ -594,6 +642,7 @@ class AdminArmorSetControllerTest {
         @Override
         public <T> T queryForObject(String sql, Class<T> requiredType, Object... args) {
             sqlLog.add(sql);
+            argsLog.add(List.of(args));
             return requiredType.cast(countForSql(sql, args));
         }
 
@@ -625,6 +674,7 @@ class AdminArmorSetControllerTest {
         @Override
         public List<Map<String, Object>> queryForList(String sql, Object... args) {
             sqlLog.add(sql);
+            argsLog.add(List.of(args));
             if (sql.contains("`terria_v1_relation`.`projection_armor_sets`")) {
                 if ("emptyRelationProjection".equals(projectionScenario)) {
                     return List.of();
