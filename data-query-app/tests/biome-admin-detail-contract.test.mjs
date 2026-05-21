@@ -5,6 +5,7 @@ import test from 'node:test'
 
 const repoRoot = path.resolve(import.meta.dirname, '..')
 const entitiesPage = fs.readFileSync(path.join(repoRoot, 'pages', 'entities', '[type].vue'), 'utf8')
+const nuxtConfig = fs.readFileSync(path.join(repoRoot, 'nuxt.config.ts'), 'utf8')
 
 test('generic biome admin rows expose the same detail action as other managed entities', () => {
   const rowActions = entitiesPage.match(/<div class="row-actions">[\s\S]*?<\/div>/)?.[0] ?? ''
@@ -30,4 +31,12 @@ test('biome list preview uses a landscape thumbnail instead of a square icon slo
   assert.match(entitiesPage, /thumb--biome/)
   assert.match(entitiesPage, /\.thumb-wrap--biome\s*\{[^}]*width:\s*128px/)
   assert.match(entitiesPage, /\.thumb--biome\s*\{[^}]*width:\s*128px[^}]*height:\s*44px/)
+})
+
+test('managed biome images render through the admin same-origin proxy', () => {
+  assert.match(entitiesPage, /function normalizeManagedImagePath/)
+  assert.match(entitiesPage, /\/terrapedia-images\//)
+  assert.match(entitiesPage, /normalizeManagedImagePath\(normalized\)/)
+  assert.match(nuxtConfig, /TERRAPEDIA_MINIO_PUBLIC_ENDPOINT/)
+  assert.match(nuxtConfig, /['"]\/terrapedia-images['"]/)
 })

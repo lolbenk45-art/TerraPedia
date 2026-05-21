@@ -1846,10 +1846,20 @@ function normalizeImageUrl(value: unknown) {
   if (typeof value !== 'string') return ''
   const normalized = value.trim()
   if (!normalized) return ''
-  if (isHttpUrl(normalized)) return normalizeWikiImagePath(normalized)
-  if (normalized.startsWith('localhost:') || normalized.startsWith('127.0.0.1:')) return `http://${normalized}`
+  if (isHttpUrl(normalized)) return normalizeWikiImagePath(normalizeManagedImagePath(normalized))
+  if (normalized.startsWith('localhost:') || normalized.startsWith('127.0.0.1:')) return normalizeManagedImagePath(`http://${normalized}`)
   if (normalized.startsWith('/')) return normalized
   return ''
+}
+
+function normalizeManagedImagePath(value: string) {
+  try {
+    const url = new URL(value)
+    if (!url.pathname.startsWith('/terrapedia-images/')) return value
+    return `${url.pathname}${url.search}${url.hash}`
+  } catch {
+    return value
+  }
 }
 
 function normalizeWikiImagePath(value: string) {
