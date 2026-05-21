@@ -82,6 +82,7 @@ ORDER BY \`id\` ASC
 `.trim(),
     projectionImageField: 'image',
     coreImageAccessor: (row) => firstText(row?.image),
+    coreKeyAccessor: (row) => firstText(row?.internalName, row?.internal_name),
     maintKeyAccessor: (row) => firstText(row?.itemInternalName, row?.item_internal_name),
     relationKeyAccessor: (row) => firstText(row?.itemInternalName, row?.item_internal_name),
     projectionKeyAccessor: (row) => firstText(row?.internalName, row?.internal_name),
@@ -210,6 +211,7 @@ ORDER BY \`id\` ASC
 `.trim(),
     projectionImageField: 'imageUrl',
     coreImageAccessor: (row) => firstText(row?.imageUrl, row?.image_url),
+    coreKeyAccessor: (row) => firstText(row?.internalName, row?.internal_name),
     maintKeyAccessor: (row) => firstText(row?.npcInternalName, row?.npc_internal_name),
     relationKeyAccessor: (row) => firstText(row?.npcInternalName, row?.npc_internal_name),
     projectionKeyAccessor: (row) => firstText(row?.internalName, row?.internal_name),
@@ -344,17 +346,91 @@ ORDER BY \`id\` ASC
   armor_sets: {
     contractKey: 'armor_set.images',
     coreDatabase: 'relation',
-    coreQuery: (relationDatabase) => `
+    coreQuery: (relationDatabase, { localDatabase = DEFAULT_LOCAL_DATABASE } = {}) => `
 SELECT
-  \`id\`,
-  \`source_key\` AS sourceKey,
-  \`text_key\` AS textKey,
-  \`male_images\` AS maleImages,
-  \`female_images\` AS femaleImages,
-  \`special_images\` AS specialImages
-FROM ${qualified(relationDatabase, 'projection_armor_sets')}
-WHERE \`deleted\` = 0
-ORDER BY \`id\` ASC
+  pas.\`id\`,
+  pas.\`source_key\` AS sourceKey,
+  pas.\`text_key\` AS textKey,
+  pas.\`male_images\` AS maleImages,
+  pas.\`female_images\` AS femaleImages,
+  pas.\`special_images\` AS specialImages,
+  pas.\`related_items_json\` AS relatedItemsJson,
+  SUBSTRING_INDEX(
+    GROUP_CONCAT(
+      CASE
+        WHEN ii.\`cached_url\` IS NOT NULL
+          AND TRIM(ii.\`cached_url\`) <> ''
+          AND LOWER(TRIM(ii.\`cached_url\`)) NOT LIKE '%(demo)%'
+          AND LOWER(TRIM(ii.\`cached_url\`)) NOT LIKE '%28demo%29%'
+          AND LOWER(TRIM(ii.\`cached_url\`)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&#/-]|$)'
+          AND LOWER(TRIM(ii.\`cached_url\`)) NOT LIKE '%(placed)%'
+          AND LOWER(TRIM(ii.\`cached_url\`)) NOT LIKE '%28placed%29%'
+          AND LOWER(TRIM(ii.\`cached_url\`)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&#/-]|$)'
+          AND (
+            ii.\`original_url\` IS NULL
+            OR TRIM(ii.\`original_url\`) = ''
+            OR (
+              LOWER(TRIM(ii.\`original_url\`)) NOT LIKE '%(demo)%'
+              AND LOWER(TRIM(ii.\`original_url\`)) NOT LIKE '%28demo%29%'
+              AND LOWER(TRIM(ii.\`original_url\`)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&#/-]|$)'
+              AND LOWER(TRIM(ii.\`original_url\`)) NOT LIKE '%(placed)%'
+              AND LOWER(TRIM(ii.\`original_url\`)) NOT LIKE '%28placed%29%'
+              AND LOWER(TRIM(ii.\`original_url\`)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&#/-]|$)'
+            )
+          )
+          THEN TRIM(ii.\`cached_url\`)
+      END
+      ORDER BY
+        CASE
+          WHEN ii.\`item_id\` = related_item.itemId THEN 0
+          WHEN ii.\`item_id\` = related_item.itemIdSnake THEN 1
+          WHEN ii.\`item_id\` = related_item.id THEN 2
+          WHEN ii.\`item_id\` = related_item.sourceId THEN 3
+          WHEN ii.\`item_id\` = related_item.sourceIdSnake THEN 4
+          ELSE 5
+        END ASC,
+        ii.\`is_primary\` DESC,
+        ii.\`sort_order\` ASC,
+        ii.\`id\` ASC
+      SEPARATOR ','
+    ),
+    ',',
+    1
+  ) AS fallbackImage
+FROM ${qualified(relationDatabase, 'projection_armor_sets')} pas
+LEFT JOIN JSON_TABLE(
+  CASE
+    WHEN JSON_VALID(pas.\`related_items_json\`) THEN pas.\`related_items_json\`
+    ELSE '[]'
+  END,
+  '$[*]' COLUMNS (
+    itemId BIGINT PATH '$.itemId' NULL ON EMPTY NULL ON ERROR,
+    itemIdSnake BIGINT PATH '$.item_id' NULL ON EMPTY NULL ON ERROR,
+    id BIGINT PATH '$.id' NULL ON EMPTY NULL ON ERROR,
+    sourceId BIGINT PATH '$.sourceId' NULL ON EMPTY NULL ON ERROR,
+    sourceIdSnake BIGINT PATH '$.source_id' NULL ON EMPTY NULL ON ERROR
+  )
+) related_item ON TRUE
+LEFT JOIN ${qualified(localDatabase, 'item_images')} ii
+  ON ii.\`deleted\` = 0
+  AND ii.\`status\` = 1
+  AND ii.\`item_id\` IN (
+    related_item.itemId,
+    related_item.itemIdSnake,
+    related_item.id,
+    related_item.sourceId,
+    related_item.sourceIdSnake
+  )
+WHERE pas.\`deleted\` = 0
+GROUP BY
+  pas.\`id\`,
+  pas.\`source_key\`,
+  pas.\`text_key\`,
+  pas.\`male_images\`,
+  pas.\`female_images\`,
+  pas.\`special_images\`,
+  pas.\`related_items_json\`
+ORDER BY pas.\`id\` ASC
 `.trim(),
     projectionQuery: (relationDatabase) => `
 SELECT
@@ -369,8 +445,19 @@ WHERE \`deleted\` = 0
 ORDER BY \`id\` ASC
 `.trim(),
     projectionImageField: 'maleImages|femaleImages|specialImages',
-    coreImageAccessor: (row) => firstText(row?.maleImages, row?.male_images, row?.femaleImages, row?.female_images, row?.specialImages, row?.special_images),
-    projectionKeyAccessor: (row) => firstText(row?.sourceKey, row?.source_key, row?.textKey, row?.text_key),
+    coreImageAccessor: (row) => firstText(
+      row?.maleImages,
+      row?.male_images,
+      row?.femaleImages,
+      row?.female_images,
+      row?.specialImages,
+      row?.special_images,
+      row?.fallbackImage,
+      row?.fallback_image,
+      ...arrayValues(row?.fallbackImages, row?.fallback_images),
+    ),
+    coreKeyAccessor: (row) => firstText(row?.textKey, row?.text_key),
+    projectionKeyAccessor: (row) => firstText(row?.textKey, row?.text_key),
     projectionImageAccessor: (row) => firstText(row?.maleImages, row?.male_images, row?.femaleImages, row?.female_images, row?.specialImages, row?.special_images),
     requiresMaintTable: false,
     requiresRelationTable: false,
@@ -428,7 +515,7 @@ export function buildImageSourceLineageQueries({
           ? maintDatabase
           : localDatabase;
       const entry = {
-        core: config.coreQuery(coreDatabaseName),
+        core: config.coreQuery(coreDatabaseName, { maintDatabase, relationDatabase, localDatabase }),
       };
       if (config.maintImagesQuery) {
         entry.maintImages = config.maintImagesQuery(maintDatabase);
@@ -510,6 +597,12 @@ function summarizeEntityLineage(entityType, entityData, managedUrlPrefixes) {
     entityType,
     managedUrlPrefixes
   );
+  const projectionBlankButCoreImageAvailableCount = countBlankProjectionRowsWithCoreManagedImageAvailable(
+    coreRows,
+    projectionRows,
+    config,
+    entityManagedUrlPrefixes,
+  );
   const hasProjectionField = Boolean(config.projectionImageField);
 
   if (coreImageCount === 0) {
@@ -550,6 +643,9 @@ function summarizeEntityLineage(entityType, entityData, managedUrlPrefixes) {
   if (projectionWrongManagedPrefixCount > 0) {
     gapReasons.push('projection_image_wrong_managed_prefix');
   }
+  if (projectionBlankButCoreImageAvailableCount > 0) {
+    gapReasons.push('projection_blank_but_core_image_available');
+  }
 
   const contractReady = gapReasons.length === 0;
   return {
@@ -580,6 +676,7 @@ function summarizeEntityLineage(entityType, entityData, managedUrlPrefixes) {
         rowsWithImage: projectionImageCount,
         rowsWithManagedImage: projectionManagedCount,
         rowsWithWrongManagedPrefix: projectionWrongManagedPrefixCount,
+        rowsBlankButCoreImageAvailable: projectionBlankButCoreImageAvailableCount,
       },
     },
   };
@@ -687,6 +784,34 @@ function countRowsWithWrongManagedImagePrefix(rows, accessor, entityType, manage
   }).length;
 }
 
+function countBlankProjectionRowsWithCoreManagedImageAvailable(coreRows, projectionRows, config, managedUrlPrefixes) {
+  if (
+    typeof config.coreKeyAccessor !== 'function'
+    || typeof config.coreImageAccessor !== 'function'
+    || typeof config.projectionKeyAccessor !== 'function'
+    || typeof config.projectionImageAccessor !== 'function'
+  ) {
+    return 0;
+  }
+
+  const coreKeysWithManagedImages = new Set();
+  for (const row of coreRows) {
+    const key = normalizeEntityKey(config.coreKeyAccessor(row));
+    const imageUrl = config.coreImageAccessor(row);
+    if (key && imageUrl && isManagedImageUrl(imageUrl, managedUrlPrefixes)) {
+      coreKeysWithManagedImages.add(key);
+    }
+  }
+
+  return projectionRows.filter((row) => {
+    if (config.projectionImageAccessor(row)) {
+      return false;
+    }
+    const key = normalizeEntityKey(config.projectionKeyAccessor(row));
+    return key ? coreKeysWithManagedImages.has(key) : false;
+  }).length;
+}
+
 function relationImageAccessor(entityType) {
   if (entityType === 'bosses') {
     return (row) => firstText(row?.imageUrl, row?.image_url);
@@ -788,6 +913,23 @@ function firstText(...values) {
     if (text) return text;
   }
   return null;
+}
+
+function arrayValues(...values) {
+  return values.flatMap((value) => {
+    if (Array.isArray(value)) {
+      return value;
+    }
+    if (value == null) {
+      return [];
+    }
+    return [value];
+  });
+}
+
+function normalizeEntityKey(value) {
+  const text = firstText(value);
+  return text ? text.toLowerCase() : null;
 }
 
 function toDateTag(value) {

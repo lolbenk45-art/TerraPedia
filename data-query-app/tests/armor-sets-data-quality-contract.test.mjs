@@ -35,3 +35,12 @@ test('armor set admin page renders backend data quality warnings', () => {
   assert.doesNotMatch(page, /v-for="warning in armorSetPreviewWarnings" :key="warning\.label"/)
   assert.doesNotMatch(page, /v-for="warning in armorSetDetailWarnings" :key="warning\.label"/)
 })
+
+test('armor set admin preview resolver keeps backend image fallback chain', () => {
+  const page = read('data-query-app/pages/entities/[type].vue')
+
+  assert.match(page, /fallbackImages/)
+  assert.match(page, /relatedItems/)
+  assert.match(page, /equipmentItems/)
+  assert.doesNotMatch(page, /if \(entityType\.value === 'armor-sets'\) return ''/)
+})

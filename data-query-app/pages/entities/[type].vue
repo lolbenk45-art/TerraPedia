@@ -1867,10 +1867,38 @@ function resolveImageFromRawJson(rawJson: unknown) {
   return normalizeImageUrl(directUrl)
 }
 
+function collectImageUrls(value: unknown) {
+  if (Array.isArray(value)) return value.map(entry => normalizeImageUrl(entry)).filter(Boolean)
+  return splitImageCsv(value)
+}
+
+function resolveArmorSetRelatedImage(items: unknown) {
+  if (!Array.isArray(items)) return ''
+  for (const item of items) {
+    const image = normalizeImageUrl(item?.image)
+    if (image) return image
+    const imageUrl = normalizeImageUrl(item?.imageUrl)
+    if (imageUrl) return imageUrl
+  }
+  return ''
+}
+
 function resolveRowImageUrl(row: Record<string, any>) {
   const wearImages = [...splitImageCsv(row.maleImages), ...splitImageCsv(row.femaleImages), ...splitImageCsv(row.specialImages)]
   if (wearImages.length > 0) return wearImages[0]
-  if (entityType.value === 'armor-sets') return ''
+  if (entityType.value === 'armor-sets') {
+    const fallbackImages = collectImageUrls(row.fallbackImages)
+    if (fallbackImages.length > 0) return fallbackImages[0]
+    const relatedImage = resolveArmorSetRelatedImage(row.relatedItems)
+    if (relatedImage) return relatedImage
+    const equipmentImage = resolveArmorSetRelatedImage(row.equipmentItems)
+    if (equipmentImage) return equipmentImage
+    const imageUrl = normalizeImageUrl(row.imageUrl)
+    if (imageUrl) return imageUrl
+    const image = normalizeImageUrl(row.image)
+    if (image) return image
+    return ''
+  }
   const iconUrl = normalizeImageUrl(row.iconUrl)
   if (iconUrl) return iconUrl
   const imageUrl = normalizeImageUrl(row.imageUrl)

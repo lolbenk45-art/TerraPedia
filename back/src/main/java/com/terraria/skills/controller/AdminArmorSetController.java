@@ -443,18 +443,25 @@ public class AdminArmorSetController {
         String femaleImages = firstManagedImageCsv(trimToNull(row.get("female_images")), snapshotFemaleImages);
         String specialImages = firstManagedImageCsv(trimToNull(row.get("special_images")), snapshotSpecialImages);
         List<Map<String, Object>> equipmentItems = enrichProjectionEquipmentItems(normalizeArmorEquipmentItems(parseJson(row.get("related_items_json"))));
-        String relatedPreviewImage = equipmentItems.stream()
-            .map(item -> trimToNull(item.get("image")))
-            .filter(this::isManagedImageUrl)
-            .filter(value -> value != null && !value.isBlank())
-            .findFirst()
-            .orElse(null);
+        int wearManagedImageCount = countCsvEntries(maleImages) + countCsvEntries(femaleImages) + countCsvEntries(specialImages);
+        List<String> fallbackImages = wearManagedImageCount > 0 ? List.of() : collectManagedEquipmentImages(equipmentItems);
+        String relatedPreviewImage = fallbackImages.stream().findFirst().orElse(null);
         String previewImage = firstNonBlank(maleImages, femaleImages, specialImages, relatedPreviewImage);
         String mappingStatus = firstNonBlank(trimToNull(row.get("mapping_status")), "mapped");
         String entityType = firstNonBlank(trimToNull(row.get("entity_type")), "armor_set");
         String compositionKind = firstNonBlank(trimToNull(row.get("composition_kind")), inferArmorSetCompositionKind(row));
-        int managedImageCount = countCsvEntries(maleImages) + countCsvEntries(femaleImages) + countCsvEntries(specialImages);
+        int managedImageCount = wearManagedImageCount + fallbackImages.size();
         int sourceImageCount = sourceRecord == null ? 0 : sourceRecord.sourceImageCount();
+        List<String> dataQualityWarnings = buildArmorDataQualityWarnings(
+            false,
+            benefitExpression,
+            benefitZh,
+            managedImageCount,
+            sourceImageCount
+        );
+        if (wearManagedImageCount <= 0 && !fallbackImages.isEmpty()) {
+            dataQualityWarnings.add("managed armor set wear images are missing; using item fallback images");
+        }
 
         payload.put("id", toLong(row.get("id")));
         payload.put("dataSourceMode", "projection");
@@ -494,6 +501,7 @@ public class AdminArmorSetController {
         payload.put("maleImages", maleImages);
         payload.put("femaleImages", femaleImages);
         payload.put("specialImages", specialImages);
+        payload.put("fallbackImages", fallbackImages);
         payload.put("relatedItems", equipmentItems);
         payload.put("equipmentItems", equipmentItems);
         payload.put("setVariants", buildArmorSetVariants(textKey, parseJson(row.get("sets_json")), equipmentItems));
@@ -501,13 +509,7 @@ public class AdminArmorSetController {
         payload.put("imagePipelineStatus", imagePipelineStatus(managedImageCount, sourceImageCount));
         payload.put("sourceImageCount", sourceImageCount);
         payload.put("managedImageCount", managedImageCount);
-        payload.put("dataQualityWarnings", buildArmorDataQualityWarnings(
-            false,
-            benefitExpression,
-            trimToNull(payload.get("benefitZh")),
-            managedImageCount,
-            sourceImageCount
-        ));
+        payload.put("dataQualityWarnings", dataQualityWarnings);
         payload.put("effectRows", buildArmorEffectRows(benefitZh(payload), benefitEn(payload), benefitExpression, row.get("primary_part"), mappingStatus));
         payload.put("createdAt", row.get("created_at"));
         payload.put("updatedAt", row.get("updated_at"));
@@ -710,10 +712,11 @@ public class AdminArmorSetController {
                 continue;
             }
             Map<String, Object> payload = new LinkedHashMap<>();
-            Long id = toLong(firstMapValue(item, "id", "itemId", "item_id"));
+            Long id = toLong(firstMapValue(item, "id"));
+            Long itemId = toLong(firstMapValue(item, "itemId", "item_id", "itemSourceId", "item_source_id"));
             Long sourceId = toLong(firstMapValue(item, "sourceId", "source_id", "itemSourceId", "item_source_id"));
             payload.put("id", id);
-            payload.put("itemId", id);
+            payload.put("itemId", firstNonNullLong(itemId, id));
             payload.put("sourceId", sourceId);
             payload.put("internalName", firstNonBlank(trimToNull(firstMapValue(item, "internalName", "internal_name", "itemInternalName", "item_internal_name"))));
             payload.put("name", firstNonBlank(trimToNull(firstMapValue(item, "name", "itemName", "item_name"))));
@@ -733,39 +736,42 @@ public class AdminArmorSetController {
         if (equipmentItems == null || equipmentItems.isEmpty()) {
             return List.of();
         }
-        List<Long> sourceIds = equipmentItems.stream()
+        List<Long> projectionItemIds = equipmentItems.stream()
             .map(item -> firstNonNullLong(item.get("sourceId"), item.get("id")))
             .filter(value -> value != null && value > 0)
             .distinct()
             .toList();
-        if (sourceIds.isEmpty()) {
+        List<Long> localItemIds = equipmentItems.stream()
+            .flatMap(item -> armorEquipmentLookupIds(item).stream())
+            .filter(value -> value != null && value > 0)
+            .distinct()
+            .toList();
+        if (projectionItemIds.isEmpty() && localItemIds.isEmpty()) {
             return equipmentItems;
         }
 
         String projectionItemsTable = resolveProjectionItemsTable();
-        if (projectionItemsTable == null) {
-            return equipmentItems;
-        }
-
-        String placeholders = String.join(",", sourceIds.stream().map(id -> "?").toList());
         Map<Long, Map<String, Object>> itemById = new LinkedHashMap<>();
-        try {
-            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT id, name, name_zh, internal_name, image FROM " + projectionItemsTable + " WHERE id IN (" + placeholders + ")",
-                sourceIds.toArray()
-            );
-            for (Map<String, Object> row : rows) {
-                Long id = toLong(row.get("id"));
-                if (id != null) {
-                    itemById.put(id, row);
+        if (projectionItemsTable != null && !projectionItemIds.isEmpty()) {
+            String placeholders = String.join(",", projectionItemIds.stream().map(id -> "?").toList());
+            try {
+                List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                    "SELECT id, name, name_zh, internal_name, image FROM " + projectionItemsTable + " WHERE id IN (" + placeholders + ")",
+                    projectionItemIds.toArray()
+                );
+                for (Map<String, Object> row : rows) {
+                    Long id = toLong(row.get("id"));
+                    if (id != null) {
+                        itemById.put(id, row);
+                    }
                 }
+            } catch (Exception exception) {
+                log.debug("Failed to enrich projection armor equipment items from projection_items", exception);
             }
-        } catch (Exception exception) {
-            log.debug("Failed to enrich projection armor equipment items", exception);
-            return equipmentItems;
         }
 
-        if (itemById.isEmpty()) {
+        Map<Long, String> managedItemImagesById = loadManagedItemImagesById(localItemIds);
+        if (itemById.isEmpty() && managedItemImagesById.isEmpty()) {
             return equipmentItems;
         }
 
@@ -782,11 +788,113 @@ public class AdminArmorSetController {
                 copy.put("name", firstNonBlank(trimToNull(copy.get("name")), trimToNull(projectionItem.get("name"))));
                 copy.put("nameZh", firstNonBlank(trimToNull(copy.get("nameZh")), trimToNull(projectionItem.get("name_zh"))));
                 copy.put("internalName", firstNonBlank(trimToNull(copy.get("internalName")), trimToNull(projectionItem.get("internal_name"))));
-                copy.put("image", firstManagedImage(trimToNull(projectionItem.get("image")), trimToNull(copy.get("image"))));
             }
+            String managedItemImage = firstManagedImageForLookupIds(managedItemImagesById, armorEquipmentLookupIds(copy));
+            copy.put(
+                "image",
+                firstManagedImage(
+                    projectionItem == null ? null : trimToNull(projectionItem.get("image")),
+                    trimToNull(copy.get("image")),
+                    managedItemImage
+                )
+            );
             enriched.add(copy);
         }
         return enriched;
+    }
+
+    private List<Long> armorEquipmentLookupIds(Map<String, Object> item) {
+        if (item == null || item.isEmpty()) {
+            return List.of();
+        }
+        List<Long> ids = new ArrayList<>();
+        for (Object value : new Object[] { item.get("itemId"), item.get("id"), item.get("sourceId") }) {
+            Long id = toLong(value);
+            if (id != null && id > 0 && !ids.contains(id)) {
+                ids.add(id);
+            }
+        }
+        return ids;
+    }
+
+    private String firstManagedImageForLookupIds(Map<Long, String> managedItemImagesById, List<Long> itemIds) {
+        if (managedItemImagesById == null || managedItemImagesById.isEmpty() || itemIds == null || itemIds.isEmpty()) {
+            return null;
+        }
+        for (Long itemId : itemIds) {
+            String image = managedItemImagesById.get(itemId);
+            if (isManagedImageUrl(image)) {
+                return image;
+            }
+        }
+        return null;
+    }
+
+    private Map<Long, String> loadManagedItemImagesById(List<Long> itemIds) {
+        if (itemIds == null || itemIds.isEmpty()) {
+            return Map.of();
+        }
+        String placeholders = String.join(",", itemIds.stream().map(id -> "?").toList());
+        try {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                """
+                SELECT item_id, cached_url
+                FROM item_images
+                WHERE deleted = 0
+                  AND status = 1
+                  AND cached_url IS NOT NULL
+                  AND TRIM(cached_url) <> ''
+                  AND LOWER(TRIM(cached_url)) NOT LIKE '%(demo)%'
+                  AND LOWER(TRIM(cached_url)) NOT LIKE '%28demo%29%'
+                  AND LOWER(TRIM(cached_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&#/-]|$)'
+                  AND LOWER(TRIM(cached_url)) NOT LIKE '%(placed)%'
+                  AND LOWER(TRIM(cached_url)) NOT LIKE '%28placed%29%'
+                  AND LOWER(TRIM(cached_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&#/-]|$)'
+                  AND (
+                    original_url IS NULL
+                    OR TRIM(original_url) = ''
+                    OR (
+                      LOWER(TRIM(original_url)) NOT LIKE '%(demo)%'
+                      AND LOWER(TRIM(original_url)) NOT LIKE '%28demo%29%'
+                      AND LOWER(TRIM(original_url)) NOT REGEXP '(^|[/_[:space:]-])demo([._?&#/-]|$)'
+                      AND LOWER(TRIM(original_url)) NOT LIKE '%(placed)%'
+                      AND LOWER(TRIM(original_url)) NOT LIKE '%28placed%29%'
+                      AND LOWER(TRIM(original_url)) NOT REGEXP '(^|[/_[:space:]-])placed([._?&#/-]|$)'
+                    )
+                  )
+                  AND item_id IN (""" + placeholders + """
+                  )
+                ORDER BY item_id ASC, is_primary DESC, sort_order ASC, id ASC
+                """,
+                itemIds.toArray()
+            );
+            Map<Long, String> result = new LinkedHashMap<>();
+            for (Map<String, Object> row : rows) {
+                Long itemId = toLong(row.get("item_id"));
+                String imageUrl = trimToNull(row.get("cached_url"));
+                if (itemId != null && !result.containsKey(itemId) && isManagedImageUrl(imageUrl)) {
+                    result.put(itemId, imageUrl);
+                }
+            }
+            return result;
+        } catch (Exception exception) {
+            log.debug("Failed to load managed item image fallbacks for projection armor equipment items", exception);
+            return Map.of();
+        }
+    }
+
+    private List<String> collectManagedEquipmentImages(List<Map<String, Object>> equipmentItems) {
+        if (equipmentItems == null || equipmentItems.isEmpty()) {
+            return List.of();
+        }
+        Set<String> seen = new LinkedHashSet<>();
+        for (Map<String, Object> item : equipmentItems) {
+            String image = firstManagedImage(trimToNull(item.get("image")), trimToNull(item.get("imageUrl")));
+            if (image != null) {
+                seen.add(image);
+            }
+        }
+        return new ArrayList<>(seen);
     }
 
     private String resolveProjectionItemsTable() {

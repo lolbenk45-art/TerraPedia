@@ -188,6 +188,77 @@ test('buildImageSourceLineageReport flags buff wrong-prefix managed rows', () =>
   assert.equal(report.entities.buffs.lineage.projection.rowsWithWrongManagedPrefix, 1);
 });
 
+test('buildImageSourceLineageReport flags item projection holes when core managed images exist', () => {
+  const report = buildImageSourceLineageReport({
+    generatedAt: GENERATED_AT,
+    managedUrlPrefixes: [
+      'http://localhost:9000/terrapedia-images/items/',
+    ],
+    entities: {
+      items: {
+        coreRows: [{
+          internalName: 'BeetleHelmet',
+          image: 'http://localhost:9000/terrapedia-images/items/beetle.png',
+        }],
+        projectionRows: [{ internalName: 'BeetleHelmet', image: null }],
+      },
+    },
+  });
+
+  assert.equal(report.entities.items.lineage.projection.rowsBlankButCoreImageAvailable, 1);
+  assert.ok(report.entities.items.gapReasons.includes('projection_blank_but_core_image_available'));
+});
+
+test('buildImageSourceLineageReport flags npc projection holes when core managed images exist', () => {
+  const report = buildImageSourceLineageReport({
+    generatedAt: GENERATED_AT,
+    managedUrlPrefixes: [
+      'http://localhost:9000/terrapedia-images/npcs/',
+    ],
+    entities: {
+      npcs: {
+        coreRows: [{
+          internalName: 'Guide',
+          imageUrl: 'http://localhost:9000/terrapedia-images/npcs/guide.png',
+        }],
+        projectionRows: [{ internalName: 'Guide', imageUrl: null }],
+      },
+    },
+  });
+
+  assert.equal(report.entities.npcs.lineage.projection.rowsBlankButCoreImageAvailable, 1);
+  assert.ok(report.entities.npcs.gapReasons.includes('projection_blank_but_core_image_available'));
+});
+
+test('buildImageSourceLineageReport flags armor set projection holes when core fallback managed images exist', () => {
+  const report = buildImageSourceLineageReport({
+    generatedAt: GENERATED_AT,
+    managedUrlPrefixes: [
+      'http://localhost:9000/terrapedia-images/items/',
+    ],
+    entities: {
+      armor_sets: {
+        coreRows: [{
+          textKey: 'ArmorSetBonus.BeetleDamage',
+          maleImages: null,
+          femaleImages: null,
+          specialImages: null,
+          fallbackImages: ['http://localhost:9000/terrapedia-images/items/wiki/item-images/cc/beetle-helmet.png'],
+        }],
+        projectionRows: [{
+          textKey: 'ArmorSetBonus.BeetleDamage',
+          maleImages: null,
+          femaleImages: null,
+          specialImages: null,
+        }],
+      },
+    },
+  });
+
+  assert.equal(report.entities.armor_sets.lineage.projection.rowsBlankButCoreImageAvailable, 1);
+  assert.ok(report.entities.armor_sets.gapReasons.includes('projection_blank_but_core_image_available'));
+});
+
 test('buildImageSourceLineageQueries stay read-only and cover the expected lineage tables', () => {
   const queries = buildImageSourceLineageQueries({
     maintDatabase: 'terria_v1_maint',
@@ -210,6 +281,12 @@ test('buildImageSourceLineageQueries stay read-only and cover the expected linea
   assert.match(queries.projectiles.projection, /FROM `terria_v1_relation`\.`projection_projectiles`/i);
   assert.match(queries.buffs.projection, /FROM `terria_v1_relation`\.`projection_buffs`/i);
   assert.match(queries.armor_sets.core, /FROM `terria_v1_relation`\.`projection_armor_sets`/i);
+  assert.match(queries.armor_sets.core, /related_items_json/i);
+  assert.match(queries.armor_sets.core, /JSON_TABLE/i);
+  assert.match(queries.armor_sets.core, /`terria_v1_local`\.`item_images`/i);
+  assert.match(queries.armor_sets.core, /fallbackImage/i);
+  assert.match(queries.armor_sets.core, /ii\.`item_id` IN/i);
+  assert.doesNotMatch(queries.armor_sets.core, /ii\.`item_id`\s*=\s*COALESCE/i);
   assert.match(queries.armor_sets.projection, /FROM `terria_v1_relation`\.`projection_armor_sets`/i);
   assert.match(queries.biomes.core, /FROM `terria_v1_local`\.`biomes`/);
   assert.doesNotMatch(queries.biomes.core, /raw_json/i);

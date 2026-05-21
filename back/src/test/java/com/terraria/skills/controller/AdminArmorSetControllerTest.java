@@ -141,6 +141,52 @@ class AdminArmorSetControllerTest {
     }
 
     @Test
+    void projectionArmorSetUsesManagedLocalItemImagesWhenWearImagesAreMissing() {
+        FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(true, "beetleLocalItemFallback");
+        AdminArmorSetController controller = controller(jdbcTemplate);
+
+        ResponseEntity<ApiResponse<Map<String, Object>>> response = controller.getArmorSetById(158677909L);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        Map<String, Object> data = response.getBody().getData();
+        String fallbackImage = "http://localhost:9000/terrapedia-images/items/wiki/item-images/cc/beetle-helmet.png";
+        assertEquals(fallbackImage, data.get("imageUrl"));
+        assertEquals(fallbackImage, data.get("image"));
+        assertEquals(List.of(fallbackImage), data.get("fallbackImages"));
+        assertEquals(1, data.get("managedImageCount"));
+
+        List<Map<String, Object>> equipmentItems = asMapList(data.get("equipmentItems"));
+        assertEquals(1, equipmentItems.size());
+        assertEquals(fallbackImage, equipmentItems.get(0).get("image"));
+        assertFalse(String.valueOf(data).contains("terraria.wiki.gg/images"));
+        assertTrue(jdbcTemplate.sqlLog.stream().anyMatch(sql -> sql.contains("FROM item_images")
+            && sql.contains("NOT LIKE '%(demo)%'")
+            && sql.contains("NOT REGEXP '(^|[/_[:space:]-])placed")));
+    }
+
+    @Test
+    void projectionArmorSetUsesItemIdForManagedFallbackWhenRelationIdsDiffer() {
+        FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(true, "beetleLocalItemFallbackRelationIdsDiffer");
+        AdminArmorSetController controller = controller(jdbcTemplate);
+
+        ResponseEntity<ApiResponse<Map<String, Object>>> response = controller.getArmorSetById(158677909L);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        Map<String, Object> data = response.getBody().getData();
+        String fallbackImage = "http://localhost:9000/terrapedia-images/items/wiki/item-images/cc/beetle-helmet.png";
+        assertEquals(fallbackImage, data.get("imageUrl"));
+
+        List<Map<String, Object>> equipmentItems = asMapList(data.get("equipmentItems"));
+        assertEquals(1, equipmentItems.size());
+        assertEquals(900001L, equipmentItems.get(0).get("id"));
+        assertEquals(2199L, equipmentItems.get(0).get("itemId"));
+        assertEquals(900001L, equipmentItems.get(0).get("sourceId"));
+        assertEquals(fallbackImage, equipmentItems.get(0).get("image"));
+    }
+
+    @Test
     void projectionDetailEnrichesEquipmentImagesReplacementGroupsAndEffectRows() {
         FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(true, "hallowedSummoner");
         AdminArmorSetController controller = controller(jdbcTemplate);
@@ -498,6 +544,9 @@ class AdminArmorSetControllerTest {
             if (sql.contains("projection_items")) {
                 return projectionItemRows(args);
             }
+            if (sql.contains("FROM item_images")) {
+                return itemImageRows(args);
+            }
             if (sql.contains("FROM armor_sets")) {
                 return List.of(legacyRow());
             }
@@ -523,6 +572,10 @@ class AdminArmorSetControllerTest {
         }
 
         private Map<String, Object> projectionRow() {
+            if ("beetleLocalItemFallback".equals(projectionScenario)
+                || "beetleLocalItemFallbackRelationIdsDiffer".equals(projectionScenario)) {
+                return beetleLocalItemFallbackProjectionRow();
+            }
             if ("hallowedSummoner".equals(projectionScenario)) {
                 return hallowedSummonerProjectionRow();
             }
@@ -564,6 +617,50 @@ class AdminArmorSetControllerTest {
             row.put("male_images", "https://terraria.wiki.gg/images/Wood_armor.png");
             row.put("female_images", "https://terraria.wiki.gg/images/Wood_armor_female.png");
             row.put("special_images", null);
+            row.put("mapping_status", "mapped");
+            row.put("status", 1);
+            row.put("created_at", null);
+            row.put("updated_at", null);
+            return row;
+        }
+
+        private Map<String, Object> beetleLocalItemFallbackProjectionRow() {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", 158677909L);
+            row.put("relation_record_key", "beetle-rk");
+            row.put("text_key", "ArmorSetBonus.BeetleDamage");
+            row.put("entity_type", "armor_set");
+            row.put("composition_kind", "traditional_set");
+            row.put("name", "ArmorSetBonus.BeetleDamage");
+            row.put("name_zh", "ArmorSetBonus.BeetleDamage");
+            row.put("name_en", "ArmorSetBonus.BeetleDamage");
+            row.put("source_key", "ArmorSetBonus.BeetleDamage");
+            row.put("benefit_expression", "ArmorSetBonuses.Benefits.BeetleDamage");
+            row.put("benefit_zh", "ArmorSetBonuses.Benefits.BeetleDamage");
+            row.put("benefit_en", "ArmorSetBonuses.Benefits.BeetleDamage");
+            row.put("primary_part", "Head");
+            row.put("set_count", 1);
+            row.put("unique_item_count", 1);
+            row.put("sets_json", "[[2199]]");
+            row.put("unique_item_ids_json", "[2199]");
+            row.put("current_item_ids_json", "[2199]");
+            row.put(
+                "related_items_json",
+                "beetleLocalItemFallbackRelationIdsDiffer".equals(projectionScenario)
+                    ? """
+                    [
+                      {"id":900001,"itemId":2199,"sourceId":900001,"internalName":"BeetleHelmet","name":"Beetle Helmet","image":null,"partRole":"head","slotType":"headSlot","equipmentSlotId":157,"setVariantIndex":0,"partIndex":0}
+                    ]
+                    """
+                    : """
+                    [
+                      {"id":2199,"itemId":2199,"sourceId":2199,"internalName":"BeetleHelmet","name":"Beetle Helmet","image":null,"partRole":"head","slotType":"headSlot","equipmentSlotId":157,"setVariantIndex":0,"partIndex":0}
+                    ]
+                    """
+            );
+            row.put("male_images", "");
+            row.put("female_images", "");
+            row.put("special_images", "");
             row.put("mapping_status", "mapped");
             row.put("status", 1);
             row.put("created_at", null);
@@ -638,7 +735,12 @@ class AdminArmorSetControllerTest {
         private Map<String, Object> projectionItemRow(Long id) {
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("id", id);
-            if (id == 4873L) {
+            if (id == 2199L || id == 900001L) {
+                row.put("name", "Beetle Helmet");
+                row.put("name_zh", "甲虫头盔");
+                row.put("internal_name", "BeetleHelmet");
+                row.put("image", null);
+            } else if (id == 4873L) {
                 row.put("name", "Hallowed Hood");
                 row.put("name_zh", "神圣兜帽");
                 row.put("internal_name", "HallowedHood");
@@ -670,6 +772,25 @@ class AdminArmorSetControllerTest {
                 row.put("image", "http://localhost:9000/terrapedia-images/items/wood-helmet.png");
             }
             return row;
+        }
+
+        private List<Map<String, Object>> itemImageRows(Object... args) {
+            if (!"beetleLocalItemFallback".equals(projectionScenario)
+                && !"beetleLocalItemFallbackRelationIdsDiffer".equals(projectionScenario)) {
+                return List.of();
+            }
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (Object arg : args) {
+                Long id = arg instanceof Number number ? number.longValue() : null;
+                if (id == null || id != 2199L) {
+                    continue;
+                }
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("item_id", 2199L);
+                row.put("cached_url", "http://localhost:9000/terrapedia-images/items/wiki/item-images/cc/beetle-helmet.png");
+                rows.add(row);
+            }
+            return rows;
         }
 
         private Map<String, Object> legacyRow() {
