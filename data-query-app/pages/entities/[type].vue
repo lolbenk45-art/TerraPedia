@@ -216,9 +216,9 @@
                 <tr v-for="row in displayRows" :key="row.id">
                   <td v-for="column in currentConfig.columns" :key="`${row.id}-${column.key}`">
                     <template v-if="column.key === '__imageUrl'">
-                      <div class="thumb-wrap">
-                        <img v-if="row.__imageUrl" :src="row.__imageUrl" class="thumb" alt="" loading="lazy" @error="handleImageError" />
-                        <span v-else class="thumb thumb--fallback">{{ currentConfig.fallback }}</span>
+                      <div class="thumb-wrap" :class="{ 'thumb-wrap--biome': entityType === 'biomes' }">
+                        <img v-if="row.__imageUrl" :src="row.__imageUrl" class="thumb" :class="{ 'thumb--biome': entityType === 'biomes' }" alt="" loading="lazy" @error="handleImageError" />
+                        <span v-else class="thumb thumb--fallback" :class="{ 'thumb--biome': entityType === 'biomes' }">{{ currentConfig.fallback }}</span>
                       </div>
                     </template>
                     <template v-else-if="column.key === currentConfig.primaryColumn">
@@ -4158,6 +4158,8 @@ function formatArmorPartRole(value: unknown) {
 .data-table tbody tr:hover { background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg-secondary)); }
 .thumb-wrap { width: 44px; }
 .thumb { width: 44px; height: 44px; object-fit: contain; border-radius: 12px; background: color-mix(in srgb, var(--color-bg-tertiary) 90%, transparent); border: 1px solid var(--color-border); display: grid; place-items: center; overflow: hidden; }
+.thumb-wrap--biome { width: 128px; }
+.thumb--biome { width: 128px; height: 44px; object-fit: cover; }
 .thumb--fallback { font-size: 1.1rem; color: var(--color-text-muted); }
 .cell-primary { display: grid; gap: 4px; }
 .cell-primary strong { color: var(--color-text); font-weight: 700; }

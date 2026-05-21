@@ -24,3 +24,10 @@ test('generic biome admin detail renders structured description relations and re
   assert.match(entitiesPage, /const biomeRelationCards = computed/)
   assert.match(entitiesPage, /const biomeResourceCards = computed/)
 })
+
+test('biome list preview uses a landscape thumbnail instead of a square icon slot', () => {
+  assert.match(entitiesPage, /thumb-wrap--biome/)
+  assert.match(entitiesPage, /thumb--biome/)
+  assert.match(entitiesPage, /\.thumb-wrap--biome\s*\{[^}]*width:\s*128px/)
+  assert.match(entitiesPage, /\.thumb--biome\s*\{[^}]*width:\s*128px[^}]*height:\s*44px/)
+})
