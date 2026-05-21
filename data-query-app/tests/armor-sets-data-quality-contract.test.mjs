@@ -36,12 +36,19 @@ test('armor set admin page renders backend data quality warnings', () => {
   assert.doesNotMatch(page, /v-for="warning in armorSetDetailWarnings" :key="warning\.label"/)
 })
 
-test('armor set admin preview resolver keeps backend image fallback chain', () => {
+test('armor set admin main previews do not promote component item images', () => {
   const page = read('data-query-app/pages/entities/[type].vue')
 
-  assert.match(page, /fallbackImages/)
+  assert.match(page, /function resolveArmorSetWearPreviewImage\(row: Record<string, any>\)/)
+  assert.match(page, /if \(entityType\.value === 'armor-sets'\) return resolveArmorSetWearPreviewImage\(row\)/)
   assert.match(page, /relatedItems/)
   assert.match(page, /equipmentItems/)
+  assert.match(page, /组成单件预览/)
+  assert.match(page, /穿戴主图/)
+  assert.doesNotMatch(
+    page,
+    /if \(entityType\.value === 'armor-sets'\) \{[\s\S]*?resolveArmorSetRelatedImage\(row\.relatedItems\)[\s\S]*?resolveArmorSetRelatedImage\(row\.equipmentItems\)[\s\S]*?\}/,
+  )
   assert.doesNotMatch(page, /if \(entityType\.value === 'armor-sets'\) return ''/)
 })
 
@@ -62,9 +69,14 @@ test('armor set admin item detail actions use backend item detail refs before ra
   const page = read('data-query-app/pages/entities/[type].vue')
 
   assert.match(page, /function getLinkedItemDetailId\(entry: Record<string, any>\)/)
-  assert.match(page, /entry\?\.itemDetailRef\?\.canOpenItemDetail/)
-  assert.match(page, /entry\?\.itemDetailRef\?\.itemId/)
+  assert.match(page, /entry\?\.itemDetailRef != null/)
   assert.match(page, /@click="openLinkedItemDetail\(item\)"/)
   assert.match(page, /v-if="canOpenLinkedItemDetail\(item\)"/)
   assert.match(page, /const rawId = getLinkedItemDetailId\(entry\)/)
+  assert.match(
+    page,
+    /if \(entry\?\.itemDetailRef != null\) \{[\s\S]*?return entry\.itemDetailRef\.canOpenItemDetail \? entry\.itemDetailRef\.itemId : null[\s\S]*?\}[\s\S]*?return entry\?\.itemId/,
+  )
+  assert.doesNotMatch(page, /v-if="item\.itemId"/)
+  assert.doesNotMatch(page, /@click="item\.itemId \? openLinkedItemDetail\(item\)/)
 })

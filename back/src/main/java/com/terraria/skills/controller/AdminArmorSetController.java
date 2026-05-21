@@ -840,6 +840,7 @@ public class AdminArmorSetController {
             itemDetailRef.put("internalName", trimToNull(copy.get("internalName")));
             itemDetailRef.put("canOpenItemDetail", detailItemId != null && detailItemId > 0);
             itemDetailRef.put("membershipVariantIndexes", membershipVariantIndexes);
+            copy.put("membershipVariantIndexes", membershipVariantIndexes);
             copy.put("itemDetailRef", itemDetailRef);
             result.add(copy);
         }

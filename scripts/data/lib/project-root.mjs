@@ -5,7 +5,7 @@ import fs from 'node:fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const FALLBACK_PROJECT_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
+const FALLBACK_PROJECT_ROOT = path.resolve(__dirname, '..', '..', '..');
 
 let cachedProjectRoot = null;
 
@@ -50,8 +50,8 @@ export function resolveSharedDataRoot(...segments) {
   }
 
   const projectRoot = getProjectRoot();
-  const workspaceRoot = deriveWorkspaceRoot(projectRoot);
-  return path.join(workspaceRoot, 'data', 'terraPedia', ...segments);
+  const sharedDataOwnerRoot = resolvePrimaryWorktreeRoot(projectRoot) ?? deriveWorkspaceRoot(projectRoot);
+  return path.join(sharedDataOwnerRoot, 'data', 'terraPedia', ...segments);
 }
 
 function resolveGitTopLevel() {
@@ -94,6 +94,31 @@ function deriveWorkspaceRoot(projectRoot) {
   }
 
   return path.dirname(normalizedProjectRoot);
+}
+
+function resolvePrimaryWorktreeRoot(projectRoot) {
+  const normalizedProjectRoot = normalizeDirectory(projectRoot);
+  if (!normalizedProjectRoot) {
+    return null;
+  }
+  const gitPath = path.join(normalizedProjectRoot, '.git');
+  if (!fs.existsSync(gitPath) || fs.statSync(gitPath).isDirectory()) {
+    return null;
+  }
+  const content = fs.readFileSync(gitPath, 'utf8').trim();
+  const match = content.match(/^gitdir:\s*(.+)$/i);
+  if (!match) {
+    return null;
+  }
+  const gitDir = path.resolve(normalizedProjectRoot, match[1].trim());
+  const segments = gitDir.split(path.sep);
+  const worktreesIndex = segments.lastIndexOf('worktrees');
+  if (worktreesIndex <= 0) {
+    return null;
+  }
+  const commonGitDir = segments.slice(0, worktreesIndex).join(path.sep) || path.sep;
+  const primaryRoot = path.dirname(commonGitDir);
+  return fs.existsSync(path.join(primaryRoot, '.git')) ? primaryRoot : null;
 }
 
 function isRepositoryRoot(directory) {

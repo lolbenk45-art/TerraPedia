@@ -10,7 +10,7 @@ fi
 load_runtime_config() {
   local root config_path
   root="$(resolve_repo_root "$PWD")"
-  config_path="${TERRAPEDIA_LOCAL_STACK_CONFIG:-$root/scripts/dev/config/local-stack.config.json}"
+  config_path="${TERRAPEDIA_LOCAL_STACK_CONFIG:-$(resolve_local_stack_config_path "$root")}"
   if [[ ! -f "$config_path" ]]; then
     config_path="$root/scripts/dev/config/local-stack.config.example.json"
   fi
@@ -90,6 +90,45 @@ NODE
 )"
 
   eval "$exports"
+}
+
+resolve_local_stack_config_path() {
+  local root="$1"
+  local primary_root
+  primary_root="$(resolve_primary_worktree_root "$root")"
+  if [[ -n "$primary_root" && -f "$primary_root/scripts/dev/config/local-stack.config.json" ]]; then
+    printf '%s\n' "$primary_root/scripts/dev/config/local-stack.config.json"
+    return 0
+  fi
+  printf '%s\n' "$root/scripts/dev/config/local-stack.config.json"
+}
+
+resolve_primary_worktree_root() {
+  local root="$1"
+  local git_file git_dir common_git_dir primary_root
+  git_file="$root/.git"
+  if [[ ! -f "$git_file" ]]; then
+    return 0
+  fi
+  git_dir="$(sed -n 's/^gitdir:[[:space:]]*//Ip' "$git_file" | head -n 1)"
+  if [[ -z "$git_dir" ]]; then
+    return 0
+  fi
+  if [[ "$git_dir" != /* ]]; then
+    git_dir="$root/$git_dir"
+  fi
+  case "$git_dir" in
+    */.git/worktrees/*)
+      common_git_dir="${git_dir%%/.git/worktrees/*}/.git"
+      primary_root="$(dirname "$common_git_dir")"
+      if [[ -d "$primary_root/.git" ]]; then
+        printf '%s\n' "$primary_root"
+      fi
+      ;;
+    *)
+      return 0
+      ;;
+  esac
 }
 
 require_runtime_secret() {

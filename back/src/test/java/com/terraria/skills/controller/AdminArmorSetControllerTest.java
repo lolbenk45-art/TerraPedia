@@ -417,6 +417,37 @@ class AdminArmorSetControllerTest {
     }
 
     @Test
+    void legacyFallbackBuildsDetailRefsAndVariantMembershipFromPersistedItemsWhenSetsJsonIsEmpty() {
+        FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(false, false, "legacyManagedItems");
+        AdminArmorSetController controller = controller(jdbcTemplate);
+
+        ResponseEntity<ApiResponse<Map<String, Object>>> response = controller.getArmorSetById(202L);
+
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        Map<String, Object> data = response.getBody().getData();
+        assertEquals("[]", data.get("setsJson"));
+        assertEquals("[727,728,729]", data.get("currentItemIdsJson"));
+
+        List<Map<String, Object>> equipmentItems = asMapList(data.get("equipmentItems"));
+        assertEquals(3, equipmentItems.size());
+        assertTrue(equipmentItems.stream().allMatch(item -> {
+            Map<String, Object> detailRef = asMap(item.get("itemDetailRef"));
+            return Boolean.TRUE.equals(detailRef.get("canOpenItemDetail"))
+                && detailRef.get("itemId").equals(item.get("itemId"))
+                && List.of(0).equals(detailRef.get("membershipVariantIndexes"))
+                && List.of(0).equals(item.get("membershipVariantIndexes"));
+        }));
+
+        List<Map<String, Object>> setVariants = asMapList(data.get("setVariants"));
+        assertEquals(1, setVariants.size());
+        assertEquals(List.of(727L, 728L, 729L), setVariants.get(0).get("itemSourceIds"));
+        assertTrue(asMapList(setVariants.get(0).get("items")).stream().allMatch(item ->
+            asMap(item.get("itemDetailRef")).get("membershipVariantIndexes").equals(List.of(0))
+        ));
+    }
+
+    @Test
     void updateArmorSetReturnsLegacyRowEvenWhenProjectionTableExists() {
         FakeJdbcTemplate jdbcTemplate = new FakeJdbcTemplate(true);
         AdminArmorSetController controller = controller(jdbcTemplate);

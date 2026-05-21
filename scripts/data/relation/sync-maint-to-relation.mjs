@@ -1300,6 +1300,11 @@ export async function runSync(options, dependencies = {}) {
   const applyStartedAt = new Date();
 
   if (options.apply) {
+    if (managedImageUrlPrefixes.length === 0) {
+      throw new Error(
+        'Refusing relation apply with empty managed image URL prefixes. Check scripts/dev/config/local-stack.config.json or TERRAPEDIA_MANAGED_IMAGE_URL_PREFIXES before writing relation/projection image fields.'
+      );
+    }
     if (armorSetProjectionConsistencyIssues.length > 0) {
       const error = new Error(`Armor set projection consistency gate failed with ${armorSetProjectionConsistencyIssues.length} issue(s).`);
       error.validationIssues = armorSetProjectionConsistencyIssues;

@@ -94,6 +94,15 @@ test('start exports MinIO endpoint settings from local stack config', () => {
   assert.match(exampleConfig, /"publicEndpoint"/);
 });
 
+test('runtime config resolves local stack config from linked worktree primary root', () => {
+  const runtimeConfig = fs.readFileSync('scripts/dev/lib/runtime-config.sh', 'utf8');
+
+  assert.match(runtimeConfig, /resolve_primary_worktree_root/);
+  assert.match(runtimeConfig, /\.git\/worktrees/);
+  assert.match(runtimeConfig, /local-stack\.config\.json/);
+  assert.match(runtimeConfig, /primary_root/);
+});
+
 test('start records MinIO public endpoint health when MinIO is enabled', () => {
   const source = startSource();
 

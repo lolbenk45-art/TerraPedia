@@ -115,6 +115,10 @@ function resolveLocalStackConfigPath(repoRoot) {
 
 function candidateRepoRoots(repoRoot) {
   const roots = [];
+  const primaryWorktreeRoot = resolvePrimaryWorktreeRoot(repoRoot);
+  if (primaryWorktreeRoot) {
+    roots.push(primaryWorktreeRoot);
+  }
   let current = path.resolve(repoRoot);
   while (true) {
     roots.push(current);
@@ -129,6 +133,26 @@ function candidateRepoRoots(repoRoot) {
     current = parent;
   }
   return [...new Set(roots)];
+}
+
+function resolvePrimaryWorktreeRoot(repoRoot) {
+  const gitFilePath = path.join(path.resolve(repoRoot), '.git');
+  if (!fs.existsSync(gitFilePath) || fs.statSync(gitFilePath).isDirectory()) {
+    return null;
+  }
+  const content = fs.readFileSync(gitFilePath, 'utf8').trim();
+  const match = content.match(/^gitdir:\s*(.+)$/i);
+  if (!match) {
+    return null;
+  }
+  const gitDir = path.resolve(repoRoot, match[1].trim());
+  const worktreesIndex = gitDir.split(path.sep).lastIndexOf('worktrees');
+  if (worktreesIndex <= 0) {
+    return null;
+  }
+  const commonGitDir = gitDir.split(path.sep).slice(0, worktreesIndex).join(path.sep) || path.sep;
+  const primaryRoot = path.dirname(commonGitDir);
+  return fs.existsSync(path.join(primaryRoot, '.git')) ? primaryRoot : null;
 }
 
 function firstText(...values) {

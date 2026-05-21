@@ -139,6 +139,39 @@ test('resolveManagedImageUrlPrefixes reads MinIO public endpoint from local stac
   );
 });
 
+test('resolveManagedImageUrlPrefixes reads primary worktree config from linked worktrees', () => {
+  const primaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'managed-image-primary-'));
+  const worktreeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'managed-image-linked-'));
+  const configDir = path.join(primaryRoot, 'scripts', 'dev', 'config');
+  const gitWorktreeDir = path.join(primaryRoot, '.git', 'worktrees', 'linked');
+  fs.mkdirSync(configDir, { recursive: true });
+  fs.mkdirSync(gitWorktreeDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(worktreeRoot, '.git'),
+    `gitdir: ${gitWorktreeDir}\n`,
+    'utf8'
+  );
+  fs.writeFileSync(
+    path.join(configDir, 'local-stack.config.json'),
+    JSON.stringify({
+      minio: {
+        publicEndpoint: 'http://localhost:9000',
+        bucket: 'terrapedia-images',
+        objectPrefix: 'items'
+      }
+    }),
+    'utf8'
+  );
+
+  const prefixes = resolveManagedImageUrlPrefixes({ repoRoot: worktreeRoot, env: {} });
+
+  assert.ok(prefixes.includes('http://localhost:9000/terrapedia-images/items/'));
+  assert.equal(
+    isManagedImageUrl('http://localhost:9000/terrapedia-images/items/wiki/armor-sets/wood.png', prefixes),
+    true
+  );
+});
+
 test('default managed prefix allowlist covers canonical npc and projectile prefixes', () => {
   assert.ok(DEFAULT_MANAGED_IMAGE_URL_PREFIXES.includes('http://localhost:9000/terrapedia-images/items/'));
   assert.ok(DEFAULT_MANAGED_IMAGE_URL_PREFIXES.includes('http://localhost:9000/terrapedia-images/npcs/'));

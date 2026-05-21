@@ -1323,12 +1323,58 @@ test('runSync apply mode can disable local item image fallback explicitly', asyn
   assert.ok(statements.every((sql) => !sql.includes('INNER JOIN `terria_v1_local`.`items` li')));
 });
 
-test('runSync emits no managed image SQL predicates when managed prefixes are empty', async () => {
-  const statements = [];
+test('runSync apply mode refuses to write when managed image prefixes are empty', async () => {
+  await assert.rejects(
+    runSync(
+      {
+        apply: true,
+        createDatabase: false,
+        maintDatabase: 'terria_v1_maint',
+        localDatabase: 'terria_v1_local',
+        relationDatabase: 'terria_v1_relation',
+        scopes: ['armor_set']
+      },
+      {
+        managedImageUrlPrefixes: [],
+        config: {
+          database: {
+            host: '127.0.0.1',
+            port: 13306,
+            username: 'root',
+            password: 'root'
+          }
+        },
+        queryMaint: async (sql) => {
+          if (sql.includes('maint_armor_set_images')) {
+            return [{
+              text_key: 'ArmorSetBonus.Wood',
+              image_role: 'male',
+              source_file_title: 'Wood_armor.png',
+              original_url: 'https://terraria.wiki.gg/images/Wood_armor.png',
+              cached_url: 'http://localhost:9000/terrapedia-images/items/wiki/armor-sets/wood-armor.png'
+            }];
+          }
+          return [];
+        },
+        writeReports: async () => ({
+          auditJsonPath: 'reports/relation/relation-audit-2026-04-30.json',
+          auditMdPath: 'reports/relation/relation-audit-2026-04-30.md',
+          conflictsPath: 'reports/relation/relation-conflicts-2026-04-30.json',
+          unresolvedPath: 'reports/relation/relation-unresolved-2026-04-30.json'
+        }),
+        executeRelation: async () => {
+          throw new Error('should not write when managed prefixes are missing');
+        }
+      }
+    ),
+    /Refusing relation apply with empty managed image URL prefixes/
+  );
+});
 
-  await runSync(
+test('runSync dry-run tolerates empty managed image prefixes without relation writes', async () => {
+  const result = await runSync(
     {
-      apply: true,
+      apply: false,
       createDatabase: false,
       maintDatabase: 'terria_v1_maint',
       localDatabase: 'terria_v1_local',
@@ -1366,20 +1412,12 @@ test('runSync emits no managed image SQL predicates when managed prefixes are em
         conflictsPath: 'reports/relation/relation-conflicts-2026-04-30.json',
         unresolvedPath: 'reports/relation/relation-unresolved-2026-04-30.json'
       }),
-      executeRelation: async (fn) => fn({
-        query: async (sql) => {
-          statements.push(sql);
-          return [[], []];
-        },
-        execute: async (sql) => {
-          statements.push(sql);
-          return [[], []];
-        }
-      })
+      executeRelation: async () => {
+        throw new Error('dry-run should not write relation rows');
+      }
     }
   );
 
-  assert.ok(statements.some((sql) => sql.includes('AND FALSE')));
-  assert.ok(statements.every((sql) => !sql.includes('localhost:9000/terrapedia-images/items/%')));
-  assert.ok(statements.every((sql) => !sql.includes('127.0.0.1:9000/terrapedia-images/items/%')));
+  assert.equal(result.apply, false);
+  assert.equal(result.results.projectionItems[0].image, null);
 });

@@ -312,6 +312,7 @@
               <div class="preview-card__body">
                 <div class="preview-pills">
                   <span class="preview-pill preview-pill--accent">{{ currentConfig.badge }}</span>
+                  <span v-if="entityType === 'armor-sets'" class="preview-pill">穿戴主图</span>
                   <span class="preview-pill">{{ statusLabel }}</span>
                 </div>
                 <h3>{{ previewTitle }}</h3>
@@ -363,7 +364,7 @@
             </section>
 
             <section v-if="armorSetRelatedItems.length" class="preview-card">
-              <div class="preview-card__head"><h4>套装物品预览</h4><span>{{ armorSetRelatedItems.length }} 件</span></div>
+              <div class="preview-card__head"><h4>组成单件预览</h4><span>{{ armorSetRelatedItems.length }} 件</span></div>
               <div class="related-items">
                 <article v-for="item in armorSetRelatedItems" :key="item.id ?? item.internalName" class="related-item">
                   <img v-if="item.image" :src="item.image" class="related-item__image" alt="" @error="handleImageError" />
@@ -421,6 +422,7 @@
             <div class="armor-detail__hero-body">
               <div class="preview-pills">
                 <span class="preview-pill preview-pill--accent">SET COMPOSER</span>
+                <span class="preview-pill">穿戴主图</span>
                 <span class="preview-pill">记录 ID {{ detailRow.id ?? '--' }}</span>
                 <span v-if="detailRow.textKey" class="preview-pill">{{ detailRow.textKey }}</span>
                 <span class="preview-pill">{{ detailRow.definitionMappingStatus || 'placeholder' }}</span>
@@ -453,7 +455,7 @@
                 <p>{{ row.value }}</p>
               </article>
             </div>
-            <p v-if="!npcLootEntries.length" class="empty-text">当前 NPC 还没有导入结构化掉落数据，可通过编辑结构化掉落补录。</p>
+            <p v-if="!armorSetEffectRows.length" class="empty-text">当前套装还没有可读效果数据，可通过编辑套装效果字段补录。</p>
           </section>
 
           <section v-if="armorSetVariantRows.length" class="armor-detail__section">
@@ -474,6 +476,7 @@
                     <strong>{{ item.nameZh || item.name || item.internalName || `Item ${getArmorItemSourceId(item) || '--'}` }}</strong>
                     <small>源 ID {{ getArmorItemSourceId(item) || '--' }}</small>
                     <small v-if="getArmorItemSlotLabel(item)">{{ getArmorItemSlotLabel(item) }}</small>
+                    <button v-if="canOpenLinkedItemDetail(item)" type="button" class="btn-link" @click="openLinkedItemDetail(item)">物品详情</button>
                   </div>
                   <span v-for="sourceId in variant.missingSourceIds" :key="`${variant.setId}-missing-${sourceId}`" class="armor-detail__variant-missing">源 ID {{ sourceId }}</span>
                 </div>
@@ -1231,7 +1234,7 @@
             </div>
             <div class="armor-detail__item-grid">
               <article v-for="(item, index) in detailSourceItems" :key="`${item.itemId ?? item.internalName ?? item.name ?? index}`" class="armor-detail__item-card">
-                <button type="button" class="armor-detail__item-media" @click="item.itemId ? openLinkedItemDetail(item) : (getBuffFactImage(item) ? openImageLightbox(getBuffFactImage(item), item.nameZh || item.name || item.internalName || '物品图片') : null)">
+                <button type="button" class="armor-detail__item-media" @click="canOpenLinkedItemDetail(item) ? openLinkedItemDetail(item) : (getBuffFactImage(item) ? openImageLightbox(getBuffFactImage(item), item.nameZh || item.name || item.internalName || '物品图片') : null)">
                   <img v-if="getBuffFactImage(item)" :src="getBuffFactImage(item)" class="armor-detail__item-image" alt="" @error="handleImageError" />
                   <div v-else class="armor-detail__item-fallback">IT</div>
                 </button>
@@ -1240,7 +1243,7 @@
                   <span>{{ item.internalName || `Source ID ${item.itemId ?? '--'}` }}</span>
                   <span v-if="item.buffTime != null">持续 {{ item.buffTime }}</span>
                   <span v-if="item.sourcePage">来源页 {{ item.sourcePage }}</span>
-                  <button v-if="item.itemId" type="button" class="btn-link" @click="openLinkedItemDetail(item)">物品详情</button>
+                  <button v-if="canOpenLinkedItemDetail(item)" type="button" class="btn-link" @click="openLinkedItemDetail(item)">物品详情</button>
                 </div>
               </article>
             </div>
@@ -1613,7 +1616,7 @@ const configs: Record<string, EntityConfig> = {
       { key: 'primaryPart', label: 'primaryPart' },
     ],
     columns: [
-      { key: '__imageUrl', label: '预览' }, { key: 'id', label: 'ID' }, { key: 'nameZh', label: '穿戴套装' }, { key: 'textZh', label: '加成定义' }, { key: 'sourceKey', label: 'Source Key' }, { key: 'benefitZh', label: '效果描述' },
+      { key: '__imageUrl', label: '穿戴主图' }, { key: 'id', label: 'ID' }, { key: 'nameZh', label: '穿戴套装' }, { key: 'textZh', label: '加成定义' }, { key: 'sourceKey', label: 'Source Key' }, { key: 'benefitZh', label: '效果描述' },
       { key: 'setCount', label: '套装数' }, { key: 'uniqueItemCount', label: '唯一物品数' }, { key: 'updatedAt', label: '更新时间' },
     ],
     fields: [
@@ -1874,33 +1877,14 @@ function collectImageUrls(value: unknown) {
   return splitImageCsv(value)
 }
 
-function resolveArmorSetRelatedImage(items: unknown) {
-  if (!Array.isArray(items)) return ''
-  for (const item of items) {
-    const image = normalizeImageUrl(item?.image)
-    if (image) return image
-    const imageUrl = normalizeImageUrl(item?.imageUrl)
-    if (imageUrl) return imageUrl
-  }
+function resolveArmorSetWearPreviewImage(row: Record<string, any>) {
+  const wearImages = [...splitImageCsv(row.maleImages), ...splitImageCsv(row.femaleImages), ...splitImageCsv(row.specialImages)]
+  if (wearImages.length > 0) return wearImages[0]
   return ''
 }
 
 function resolveRowImageUrl(row: Record<string, any>) {
-  const wearImages = [...splitImageCsv(row.maleImages), ...splitImageCsv(row.femaleImages), ...splitImageCsv(row.specialImages)]
-  if (wearImages.length > 0) return wearImages[0]
-  if (entityType.value === 'armor-sets') {
-    const fallbackImages = collectImageUrls(row.fallbackImages)
-    if (fallbackImages.length > 0) return fallbackImages[0]
-    const relatedImage = resolveArmorSetRelatedImage(row.relatedItems)
-    if (relatedImage) return relatedImage
-    const equipmentImage = resolveArmorSetRelatedImage(row.equipmentItems)
-    if (equipmentImage) return equipmentImage
-    const imageUrl = normalizeImageUrl(row.imageUrl)
-    if (imageUrl) return imageUrl
-    const image = normalizeImageUrl(row.image)
-    if (image) return image
-    return ''
-  }
+  if (entityType.value === 'armor-sets') return resolveArmorSetWearPreviewImage(row)
   const iconUrl = normalizeImageUrl(row.iconUrl)
   if (iconUrl) return iconUrl
   const imageUrl = normalizeImageUrl(row.imageUrl)
@@ -2229,8 +2213,8 @@ async function openLinkedItemDetail(entry: Record<string, any>) {
 }
 
 function getLinkedItemDetailId(entry: Record<string, any>) {
-  if (entry?.itemDetailRef?.canOpenItemDetail) {
-    return entry?.itemDetailRef?.itemId
+  if (entry?.itemDetailRef != null) {
+    return entry.itemDetailRef.canOpenItemDetail ? entry.itemDetailRef.itemId : null
   }
   return entry?.itemId
 }
