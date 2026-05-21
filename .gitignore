@@ -115,3 +115,10 @@ data/wiki-crawler/normalized-light/
 data/wiki-crawler/report/
 data/raw/
 data/normalized/
+data/terraPedia/raw/
+data/generated/**/*.latest.json
+data/generated/wiki-*.json
+
+# Local UI prototype exports
+front-nuxt/public/home-hifi-options.html
+front-nuxt/public/ui/home-hero-hifi/
