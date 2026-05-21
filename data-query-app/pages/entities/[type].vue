@@ -216,9 +216,9 @@
                 <tr v-for="row in displayRows" :key="row.id">
                   <td v-for="column in currentConfig.columns" :key="`${row.id}-${column.key}`">
                     <template v-if="column.key === '__imageUrl'">
-                      <div class="thumb-wrap">
-                        <img v-if="row.__imageUrl" :src="row.__imageUrl" class="thumb" alt="" loading="lazy" @error="handleImageError" />
-                        <span v-else class="thumb thumb--fallback">{{ currentConfig.fallback }}</span>
+                      <div class="thumb-wrap" :class="{ 'thumb-wrap--biome': entityType === 'biomes' }">
+                        <img v-if="row.__imageUrl" :src="row.__imageUrl" class="thumb" :class="{ 'thumb--biome': entityType === 'biomes' }" alt="" loading="lazy" @error="handleImageError" />
+                        <span v-else class="thumb thumb--fallback" :class="{ 'thumb--biome': entityType === 'biomes' }">{{ currentConfig.fallback }}</span>
                       </div>
                     </template>
                     <template v-else-if="column.key === currentConfig.primaryColumn">
@@ -262,7 +262,7 @@
                   </td>
                   <td>
                     <div class="row-actions">
-                      <button v-if="entityType === 'armor-sets' || entityType === 'projectiles' || entityType === 'buffs' || entityType === 'bosses' || entityType === 'npcs'" type="button" class="btn-link" @click="openDetailDialog(row)">详情</button>
+                      <button v-if="entityType === 'armor-sets' || entityType === 'projectiles' || entityType === 'buffs' || entityType === 'bosses' || entityType === 'npcs' || entityType === 'biomes'" type="button" class="btn-link" @click="openDetailDialog(row)">详情</button>
                       <button type="button" class="btn-link" @click="openEditDialog(row)">编辑</button>
                       <button type="button" class="btn-link btn-link--danger" @click="handleDelete(row)">删除</button>
                     </div>
@@ -1054,6 +1054,114 @@
           </section>
         </div>
 
+        <div v-else-if="detailRow && entityType === 'biomes'" class="projectile-detail biome-detail">
+          <section class="projectile-detail__hero">
+            <div class="projectile-detail__media">
+              <img v-if="detailHeroImage" :src="detailHeroImage" class="projectile-detail__image" alt="" @error="handleImageError" />
+              <div v-else class="projectile-detail__fallback">{{ currentConfig?.fallback || 'BM' }}</div>
+            </div>
+            <div class="projectile-detail__body">
+              <div class="preview-pills">
+                <span class="preview-pill preview-pill--accent">BIOME ATLAS</span>
+                <span class="preview-pill">{{ detailRow.biomeType || '未分类' }}</span>
+                <span class="preview-pill">{{ detailRow.layerType || '未标注层级' }}</span>
+                <span class="preview-pill">关系 {{ biomeRelationCards.length }}</span>
+                <span class="preview-pill">资源 {{ biomeResourceCards.length }}</span>
+              </div>
+              <h3>{{ detailTitle }}</h3>
+              <p>{{ detailBiomeDescription }}</p>
+              <div class="projectile-detail__lang-grid">
+                <article class="projectile-detail__lang-card">
+                  <span>中文名</span>
+                  <strong>{{ detailRow.nameZh || '--' }}</strong>
+                </article>
+                <article class="projectile-detail__lang-card">
+                  <span>English Name</span>
+                  <strong>{{ detailRow.nameEn || '--' }}</strong>
+                </article>
+                <article class="projectile-detail__lang-card">
+                  <span>Code</span>
+                  <strong>{{ detailRow.code || '--' }}</strong>
+                </article>
+              </div>
+              <div class="preview-stats">
+                <article v-for="stat in detailStats" :key="stat.label" class="preview-stat">
+                  <span>{{ stat.label }}</span>
+                  <strong>{{ stat.value }}</strong>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="projectile-detail__section">
+            <div class="projectile-detail__section-head">
+              <h4>来源与分类</h4>
+              <span>{{ biomeSourceMetadata.length }} 项</span>
+            </div>
+            <div class="projectile-detail__note-grid">
+              <article v-for="field in biomeSourceMetadata" :key="field.label" class="preview-note">
+                <strong>{{ field.label }}</strong>
+                <p>{{ field.value }}</p>
+              </article>
+            </div>
+          </section>
+
+          <section class="projectile-detail__section">
+            <div class="projectile-detail__section-head">
+              <h4>群系描述</h4>
+              <span>Description</span>
+            </div>
+            <article class="preview-note biome-detail__description">
+              <strong>{{ detailTitle }}</strong>
+              <p>{{ detailBiomeDescription }}</p>
+            </article>
+          </section>
+
+          <section class="projectile-detail__section">
+            <div class="projectile-detail__section-head">
+              <h4>相关群系</h4>
+              <span>{{ biomeRelationCards.length }} 条</span>
+            </div>
+            <div v-if="biomeRelationCards.length" class="biome-detail__relation-grid">
+              <article v-for="relation in biomeRelationCards" :key="relation.key" class="preview-note biome-detail__relation-card">
+                <div class="preview-json__head">
+                  <strong>{{ relation.title }}</strong>
+                  <span>{{ relation.relationType }}</span>
+                </div>
+                <p>{{ relation.description }}</p>
+                <div class="armor-detail__item-meta">
+                  <span v-for="meta in relation.meta" :key="meta">{{ meta }}</span>
+                </div>
+              </article>
+            </div>
+            <p v-else class="projectile-detail__empty">暂无相关群系数据。</p>
+          </section>
+
+          <section class="projectile-detail__section">
+            <div class="projectile-detail__section-head">
+              <h4>资源与物品</h4>
+              <span>{{ biomeResourceCards.length }} 条</span>
+            </div>
+            <div v-if="biomeResourceCards.length" class="armor-detail__item-grid">
+              <article v-for="resource in biomeResourceCards" :key="resource.key" class="armor-detail__item-card biome-detail__resource-card">
+                <button type="button" class="armor-detail__item-media" @click="getBiomeResourceImage(resource) ? openImageLightbox(getBiomeResourceImage(resource), resource.title) : null">
+                  <img v-if="getBiomeResourceImage(resource)" :src="getBiomeResourceImage(resource)" class="armor-detail__item-image" alt="" @error="handleImageError" />
+                  <div v-else class="armor-detail__item-fallback">{{ getBiomeResourceRawFallback(resource) }}</div>
+                </button>
+                <div class="armor-detail__item-body">
+                  <strong>{{ resource.title }}</strong>
+                  <span>{{ resource.subtitle }}</span>
+                  <div class="armor-detail__item-meta">
+                    <span v-for="meta in resource.meta" :key="meta">{{ meta }}</span>
+                  </div>
+                  <button v-if="canOpenLinkedItemDetail(resource.raw)" type="button" class="btn-link" @click="openLinkedItemDetail(resource.raw)">物品详情</button>
+                </div>
+              </article>
+            </div>
+            <p v-else class="projectile-detail__empty">暂无资源或物品数据。</p>
+          </section>
+        </div>
+
         <div v-else-if="detailRow && entityType === 'projectiles'" class="projectile-detail">
           <section class="projectile-detail__hero">
             <div class="projectile-detail__media">
@@ -1738,10 +1846,20 @@ function normalizeImageUrl(value: unknown) {
   if (typeof value !== 'string') return ''
   const normalized = value.trim()
   if (!normalized) return ''
-  if (isHttpUrl(normalized)) return normalizeWikiImagePath(normalized)
-  if (normalized.startsWith('localhost:') || normalized.startsWith('127.0.0.1:')) return `http://${normalized}`
+  if (isHttpUrl(normalized)) return normalizeWikiImagePath(normalizeManagedImagePath(normalized))
+  if (normalized.startsWith('localhost:') || normalized.startsWith('127.0.0.1:')) return normalizeManagedImagePath(`http://${normalized}`)
   if (normalized.startsWith('/')) return normalized
   return ''
+}
+
+function normalizeManagedImagePath(value: string) {
+  try {
+    const url = new URL(value)
+    if (!url.pathname.startsWith('/terrapedia-images/')) return value
+    return `${url.pathname}${url.search}${url.hash}`
+  } catch {
+    return value
+  }
 }
 
 function normalizeWikiImagePath(value: string) {
@@ -1925,7 +2043,7 @@ function resolveRowImageUrl(row: Record<string, any>) {
   return resolveImageFromRawJson(row.rawJson)
 }
 
-function normalizeRow(row: Record<string, any>) {
+function normalizeRow<T extends Record<string, any>>(row: T): T & { __imageUrl: string | undefined } {
   return { ...row, __imageUrl: resolveRowImageUrl(row) }
 }
 
@@ -2655,10 +2773,19 @@ const detailSubtitle = computed(() => {
   if (entityType.value === 'buffs') return '查看关联物品、可施加 NPC、免疫 NPC 样例和结构化 JSON。'
   if (entityType.value === 'bosses') return bossDetailSummary.value
   if (entityType.value === 'npcs') return npcDetailSummary.value
+  if (entityType.value === 'biomes') return detailBiomeDescription.value
   return getDisplayValue(detailRow.value, currentConfig.value?.displaySubtitleKeys) || '查看男女穿戴图与具体装配图片。'
 })
 const detailStats = computed(() => {
   if (!detailRow.value) return []
+  if (entityType.value === 'biomes') return [
+    { label: '群系类型', value: detailRow.value.biomeType || '--' },
+    { label: '层级类型', value: detailRow.value.layerType || '--' },
+    { label: '相关群系', value: biomeRelationCards.value.length ? String(biomeRelationCards.value.length) : '--' },
+    { label: '资源条目', value: biomeResourceCards.value.length ? String(biomeResourceCards.value.length) : '--' },
+    { label: '状态', value: detailRow.value.status != null ? formatStatusLabel(detailRow.value.status) : '--' },
+    { label: '更新时间', value: formatDateTime(detailRow.value.updatedAt) },
+  ]
   if (entityType.value === 'npcs') return [
     { label: '分类', value: detailRow.value.categoryName || '--' },
     { label: '伤害', value: detailRow.value.damage != null ? String(detailRow.value.damage) : '--' },
@@ -2709,8 +2836,128 @@ const detailModalTitle = computed(() => {
   if (entityType.value === 'projectiles') return '射弹详情 / Projectile Detail'
   if (entityType.value === 'buffs') return 'Buff 详情'
   if (entityType.value === 'bosses') return 'Boss 详情'
+  if (entityType.value === 'biomes') return '群系详情'
   return '套装详情'
 })
+
+const detailBiomeDescription = computed(() => {
+  if (!detailRow.value || entityType.value !== 'biomes') return ''
+  return pickFirstString(detailRow.value.description, detailRow.value.descriptionZh, detailRow.value.summary, detailRow.value.notes)
+    || '当前群系还没有维护描述。'
+})
+const biomeSourceMetadata = computed(() => {
+  if (!detailRow.value || entityType.value !== 'biomes') return []
+  return [
+    { label: '群系类型', value: detailRow.value.biomeType },
+    { label: '层级类型', value: detailRow.value.layerType },
+    { label: '来源提供方', value: detailRow.value.sourceProvider },
+    { label: '来源页面', value: detailRow.value.sourcePage },
+    { label: '中文别名', value: detailRow.value.aliasZh },
+    { label: '英文别名', value: detailRow.value.aliasEn },
+    { label: 'Code', value: detailRow.value.code },
+  ]
+    .map(row => ({ label: row.label, value: stringifyBiomeValue(row.value) }))
+    .filter(row => row.value)
+})
+const biomeRelationCards = computed(() => {
+  if (!detailRow.value || entityType.value !== 'biomes') return []
+  return getBiomeStructuredArray(detailRow.value.relations)
+    .map((relation, index) => normalizeBiomeRelationCard(relation, index))
+})
+const biomeResourceCards = computed(() => {
+  if (!detailRow.value || entityType.value !== 'biomes') return []
+  return getBiomeStructuredArray(detailRow.value.resources)
+    .map((resource, index) => normalizeBiomeResourceCard(resource, index))
+})
+
+function getBiomeStructuredArray(value: unknown): Array<Record<string, any>> {
+  const parsed = typeof value === 'string' ? tryParseJson(value) : value
+  if (!Array.isArray(parsed)) return []
+  return parsed
+    .filter((entry): entry is Record<string, any> => Boolean(entry) && typeof entry === 'object' && !Array.isArray(entry))
+}
+
+function stringifyBiomeValue(value: unknown) {
+  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  if (typeof value === 'boolean') return value ? '是' : '否'
+  return ''
+}
+
+function normalizeBiomeRelationCard(relation: Record<string, any>, index: number) {
+  const relationType = pickFirstString(relation.relationType, relation.type, relation.kind) || 'related'
+  const title = pickFirstString(
+    relation.relatedBiomeNameZh,
+    relation.relatedNameZh,
+    relation.nameZh,
+    relation.relatedBiomeName,
+    relation.relatedBiomeNameEn,
+    relation.relatedNameEn,
+    relation.nameEn,
+    relation.relatedBiomeCode,
+    relation.code,
+  ) || `相关群系 ${index + 1}`
+  const description = pickFirstString(relation.description, relation.note, relation.notes, relation.summary) || '暂无关系说明。'
+  const meta = [
+    relation.relatedBiomeId != null ? `Biome ID ${relation.relatedBiomeId}` : '',
+    relation.relatedBiomeCode || relation.code ? `Code ${relation.relatedBiomeCode || relation.code}` : '',
+    relation.sourcePage ? `来源 ${relation.sourcePage}` : '',
+  ].filter(Boolean)
+  return {
+    key: `${relationType}-${relation.relatedBiomeId ?? relation.relatedBiomeCode ?? relation.code ?? index}`,
+    title,
+    relationType,
+    description,
+    meta,
+    raw: relation,
+  }
+}
+
+function normalizeBiomeResourceCard(resource: Record<string, any>, index: number) {
+  const raw = normalizeRow(resource)
+  const title = pickFirstString(
+    raw.itemNameZh,
+    raw.nameZh,
+    raw.resourceNameZh,
+    raw.itemName,
+    raw.name,
+    raw.resourceName,
+    raw.resourceNameRaw,
+    raw.itemInternalName,
+    raw.internalName,
+  ) || `资源 ${index + 1}`
+  const subtitle = pickFirstString(raw.itemInternalName, raw.internalName, raw.resourceType, raw.category, raw.resourceNameRaw)
+    || (raw.itemId != null ? `Item ID ${raw.itemId}` : 'Raw resource fallback')
+  const meta = [
+    raw.resourceType ? `类型 ${raw.resourceType}` : '',
+    raw.itemId != null ? `Item ID ${raw.itemId}` : '',
+    raw.sourceItemId != null ? `Source ID ${raw.sourceItemId}` : '',
+    raw.rarity ? `稀有度 ${raw.rarity}` : '',
+    raw.note || raw.notes ? String(raw.note || raw.notes) : '',
+  ].filter(Boolean)
+  return {
+    key: `${raw.itemId ?? raw.sourceItemId ?? raw.itemInternalName ?? raw.internalName ?? raw.resourceNameRaw ?? index}`,
+    title,
+    subtitle,
+    meta,
+    image: getBiomeResourceImage(raw),
+    raw,
+  }
+}
+
+function getBiomeResourceImage(resource: Record<string, any>) {
+  return normalizeImageUrl(resource.image)
+    || normalizeImageUrl(resource.itemImage)
+    || normalizeImageUrl(resource.itemImageUrl)
+    || normalizeImageUrl(resource.imageUrl)
+    || normalizeImageUrl(resource.iconUrl)
+    || normalizeImageUrl(resource.__imageUrl)
+}
+
+function getBiomeResourceRawFallback(resource: Record<string, any>) {
+  const label = pickFirstString(resource.resourceNameRaw, resource.itemInternalName, resource.internalName, resource.resourceType)
+  return label ? label.slice(0, 2).toUpperCase() : 'IT'
+}
 function normalizeSourceEntries(value: unknown): Array<Record<string, any>> {
   if (!Array.isArray(value)) return []
   return value
@@ -3921,6 +4168,8 @@ function formatArmorPartRole(value: unknown) {
 .data-table tbody tr:hover { background: color-mix(in srgb, var(--color-primary) 6%, var(--color-bg-secondary)); }
 .thumb-wrap { width: 44px; }
 .thumb { width: 44px; height: 44px; object-fit: contain; border-radius: 12px; background: color-mix(in srgb, var(--color-bg-tertiary) 90%, transparent); border: 1px solid var(--color-border); display: grid; place-items: center; overflow: hidden; }
+.thumb-wrap--biome { width: 128px; }
+.thumb--biome { width: 128px; height: 44px; object-fit: cover; }
 .thumb--fallback { font-size: 1.1rem; color: var(--color-text-muted); }
 .cell-primary { display: grid; gap: 4px; }
 .cell-primary strong { color: var(--color-text); font-weight: 700; }

@@ -15,7 +15,7 @@ runScript('scripts/data/fetch/fetch-wiki-biomes.mjs', [], 'biome fetch');
 runScript('scripts/data/transform/transform-wiki-biomes-to-import.mjs', [], 'biome transform');
 
 if (shouldRunBiomeImport(options)) {
-  runScript('scripts/data/import/import-standardized-to-db.mjs', buildBiomeImportArgs({ ...options, wikiBiomesFile }), 'biome import');
+  runScript('scripts/data/import/import-biomes-to-db.mjs', buildBiomeImportArgs({ ...options, wikiBiomesFile }), 'biome import');
 } else {
   console.log('Biome import skipped because apply mode is not enabled');
 }

@@ -134,7 +134,7 @@ const biomes = filteredRecords.map(record => {
     layerType: deriveLayerType(record),
     biomeType: biomeTypeMap.get(record.title) || deriveFallbackBiomeType(record),
     description: record.intro || null,
-    iconUrl: null,
+    iconUrl: toNullableString(record.iconUrl),
     sourceProvider: 'wiki_gg',
     sourcePage: record.title,
     sourceRevisionTimestamp: record.revisionTimestamp || null,
@@ -216,6 +216,12 @@ function deriveFallbackBiomeType(record) {
 
 function dedupe(values) {
   return [...new Set(values.filter(Boolean).map(value => String(value).trim()).filter(Boolean))];
+}
+
+function toNullableString(value) {
+  if (value == null) return null;
+  const text = String(value).trim();
+  return text.length > 0 ? text : null;
 }
 
 function buildMarkdown(importable, source) {
