@@ -66,6 +66,10 @@ export function mergeBiomeRecords(baseRecords, overrideRecords) {
 function mergeBiomeRecord(previous, next) {
   const merged = { ...previous };
   for (const [key, value] of Object.entries(next ?? {})) {
+    if (key === 'iconUrl') {
+      merged.iconUrl = mergeIconUrl(previous?.iconUrl, value);
+      continue;
+    }
     if (isEmptyOverrideValue(value) && !isEmptyOverrideValue(previous?.[key])) {
       continue;
     }
@@ -92,6 +96,22 @@ function mergeBiomeRecord(previous, next) {
   return merged;
 }
 
+function mergeIconUrl(previousValue, nextValue) {
+  const nextIcon = toNullableString(nextValue);
+  if (nextIcon) {
+    return isInvalidBiomeIconUrl(nextIcon) ? null : nextIcon;
+  }
+  const previousIcon = toNullableString(previousValue);
+  if (!previousIcon || isInvalidBiomeIconUrl(previousIcon)) {
+    return null;
+  }
+  return previousIcon;
+}
+
+function isInvalidBiomeIconUrl(value) {
+  return /(?:Desktop_only|Console_only|Mobile_only|Old-gen_console_version|Nintendo_Switch_version|tModLoader|Journey_Mode|Classic_Mode|Expert_Mode|Master_Mode|Info_icon|Notice|Question|Achievement|Map_Icon|Bestiary|Icon_)/i.test(String(value ?? ''));
+}
+
 function isEmptyOverrideValue(value) {
   if (value == null) return true;
   if (typeof value === 'string' && value.trim() === '') return true;
@@ -115,6 +135,7 @@ export async function importBiomeDataset(conn, plan) {
   const biomeByCode = await importBiomes(conn, plan.biomes, summary.biomes);
   await importBiomeRelationsAndResources(conn, plan.biomes, biomeByCode, itemLookup, summary.biomeRelations, summary.biomeResources);
   await importItemBiomes(conn, plan.itemBiomes, itemLookup, biomeByCode, summary.itemBiomes);
+  await softDeleteStaleWikiOverviewBiomes(conn, summary.staleBiomes);
   await normalizeBiomeSortOrders(conn, summary.sortNormalization);
   return summary;
 }
@@ -131,6 +152,7 @@ function buildInitialSummary({ biomes = [], itemBiomes = [] } = {}) {
     biomeRelations: makeStatsSection(countNested(biomes, 'relations')),
     biomeResources: makeStatsSection(countNested(biomes, 'resources')),
     itemBiomes: makeStatsSection(Array.isArray(itemBiomes) ? itemBiomes.length : 0),
+    staleBiomes: makeStatsSection(0),
     sortNormalization: {
       item_biomes: 0,
       biome_resources: 0,
@@ -273,7 +295,7 @@ async function importBiomes(conn, biomeRecords, stats) {
         toNullableString(raw?.layerType),
         toNullableString(raw?.biomeType),
         toNullableString(raw?.description),
-        toNullableString(raw?.iconUrl),
+        mergeIconUrl(null, raw?.iconUrl),
         toNullableString(raw?.sourceProvider) ?? 'wiki_gg',
         toNullableString(raw?.sourcePage ?? raw?.pageTitle),
         toDateTime(raw?.sourceRevisionTimestamp ?? raw?.revisionTimestamp),
@@ -374,6 +396,21 @@ async function importItemBiomes(conn, itemBiomeRecords, itemLookup, biomeByCode,
     );
     stats.updated += 1;
   }
+}
+
+async function softDeleteStaleWikiOverviewBiomes(conn, stats) {
+  const [result] = await conn.execute(
+    `UPDATE biomes
+        SET deleted = 1,
+            status = 0,
+            updated_at = NOW()
+      WHERE deleted = 0
+        AND code = 'biomes'
+        AND name_en = 'Biomes'
+        AND source_provider = 'wiki_gg'
+        AND source_page = 'Biomes'`
+  );
+  stats.updated += Number(result?.affectedRows ?? 0);
 }
 
 async function normalizeBiomeSortOrders(conn, stats) {

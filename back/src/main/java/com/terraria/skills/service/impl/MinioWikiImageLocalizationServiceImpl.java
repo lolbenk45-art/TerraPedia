@@ -261,15 +261,22 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
 
     private FetchedWikiImage fetchImageWithWikiFileFallback(String sourceUrl) throws IOException, InterruptedException {
         if (shouldFetchViaGate(sourceUrl)) {
-            HttpResponse<byte[]> response = fetchImage(sourceUrl);
-            String effectiveSourceUrl = response.headers()
-                .firstValue("x-terrapedia-source-url")
-                .filter(StringUtils::hasText)
-                .orElse(sourceUrl);
-            return new FetchedWikiImage(normalizeFetchUrl(effectiveSourceUrl), response);
+            try {
+                HttpResponse<byte[]> response = fetchImageViaGate(sourceUrl);
+                if (response.statusCode() >= 200 && response.statusCode() < 300 && hasImageContentType(response)) {
+                    String effectiveSourceUrl = response.headers()
+                        .firstValue("x-terrapedia-source-url")
+                        .filter(StringUtils::hasText)
+                        .orElse(sourceUrl);
+                    return new FetchedWikiImage(normalizeFetchUrl(effectiveSourceUrl), response);
+                }
+                log.warn("Wiki image gate returned non-image response; falling back to direct fetch url={} status={}", sourceUrl, response.statusCode());
+            } catch (IOException exception) {
+                log.warn("Wiki image gate fetch failed; falling back to direct fetch url={} gate={}", sourceUrl, imageFetchGateUrl, exception);
+            }
         }
 
-        HttpResponse<byte[]> response = fetchImage(sourceUrl);
+        HttpResponse<byte[]> response = fetchImageDirect(sourceUrl);
         if (response.statusCode() >= 200 && response.statusCode() < 300 && hasImageContentType(response)) {
             return new FetchedWikiImage(sourceUrl, response);
         }
@@ -360,7 +367,10 @@ public class MinioWikiImageLocalizationServiceImpl implements WikiImageLocalizat
         return imageFetchViaGate
             && uri != null
             && uri.getHost() != null
-            && "terraria.wiki.gg".equals(uri.getHost().toLowerCase(Locale.ROOT));
+            && (
+                "terraria.wiki.gg".equals(uri.getHost().toLowerCase(Locale.ROOT))
+                || extraAllowedWikiImageHosts.contains(uri.getHost().toLowerCase(Locale.ROOT))
+            );
     }
 
     private HttpResponse<byte[]> fetchImageViaGate(String sourceUrl) throws IOException, InterruptedException {

@@ -88,6 +88,40 @@ test('mergeBiomeRecords lets generated wiki records override stale standardized 
   ]);
 });
 
+test('mergeBiomeRecords drops stale platform marker icons when wiki has no valid replacement', () => {
+  const actual = mergeBiomeRecords(
+    [{
+      code: 'forest',
+      nameEn: 'Forest',
+      iconUrl: 'https://terraria.wiki.gg/images/Desktop_only.png',
+    }],
+    [{
+      code: 'forest',
+      nameEn: 'Forest',
+      iconUrl: null,
+    }]
+  );
+
+  assert.equal(actual[0].iconUrl, null);
+});
+
+test('mergeBiomeRecords preserves valid existing icons when wiki has no replacement', () => {
+  const actual = mergeBiomeRecords(
+    [{
+      code: 'forest',
+      nameEn: 'Forest',
+      iconUrl: 'https://terraria.wiki.gg/images/Forest_biome.png',
+    }],
+    [{
+      code: 'forest',
+      nameEn: 'Forest',
+      iconUrl: '',
+    }]
+  );
+
+  assert.equal(actual[0].iconUrl, 'https://terraria.wiki.gg/images/Forest_biome.png');
+});
+
 test('loadStandardizedBiomeRecords combines standardized file with relation biome parts', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-biome-inputs-'));
   const dataDir = path.join(tempDir, 'standardized');
@@ -151,6 +185,36 @@ test('importBiomeDataset applies only biome-owned tables', async () => {
   assert.doesNotMatch(sql, /\bINSERT INTO items\b|\bUPDATE items\b|\brecipes\b|\bitem_images\b|\bitem_acquisition_sources\b|\bcategory\b|\bentity_source_snapshots\b/);
 });
 
+test('importBiomeDataset soft-deletes stale wiki overview fallback biome rows', async () => {
+  const conn = createFakeConnection({
+    biomeIds: [
+      ['FOREST', 10],
+      ['BIOMES', 12],
+    ],
+  });
+  const plan = buildBiomeImportPlan({
+    wikiBiomes: [
+      {
+        code: 'forest',
+        nameEn: 'Forest',
+        sourceProvider: 'wiki_gg',
+        sourcePage: 'Forest',
+      },
+    ],
+  });
+
+  const summary = await importBiomeDataset(conn, plan);
+
+  const cleanupCall = conn.calls.find((call) => (
+    call.method === 'execute'
+    && /\bUPDATE biomes\b/i.test(call.sql)
+    && /code\s*=\s*'biomes'/i.test(call.sql)
+    && /\bsource_page\b/i.test(call.sql)
+  ));
+  assert.ok(cleanupCall, 'expected stale overview fallback cleanup query');
+  assert.equal(summary.staleBiomes.updated, 1);
+});
+
 test('assertPrimaryDb blocks non-primary writes unless explicitly allowed', () => {
   assert.doesNotThrow(() => assertPrimaryDb('terria_v1_local', false));
   assert.throws(
@@ -165,11 +229,13 @@ test('resolveMysqlRequireCandidates includes data-query-app package manifests', 
   assert.ok(candidates.some((candidate) => String(candidate).endsWith('data-query-app/package.json')));
 });
 
-function createFakeConnection() {
-  const biomeIds = new Map([
+function createFakeConnection({
+  biomeIds: initialBiomeIds = [
     ['FOREST', 10],
     ['HALLOW', 11],
-  ]);
+  ],
+} = {}) {
+  const biomeIds = new Map(initialBiomeIds);
   const itemByInternal = new Map([
     ['WOOD', {
       id: 20,
@@ -194,6 +260,11 @@ function createFakeConnection() {
     },
     async execute(sql, params = []) {
       calls.push({ method: 'execute', sql, params });
+      if (/UPDATE biomes/i.test(sql) && /code\s*=\s*'biomes'/i.test(sql)) {
+        const affectedRows = biomeIds.has('BIOMES') ? 1 : 0;
+        biomeIds.delete('BIOMES');
+        return [{ affectedRows }];
+      }
       if (/INSERT INTO biomes/i.test(sql)) {
         const code = String(params[0]).toUpperCase();
         if (!biomeIds.has(code)) {

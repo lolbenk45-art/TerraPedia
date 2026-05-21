@@ -158,6 +158,7 @@ async function main(argv = process.argv.slice(2)) {
         revisionTimestamp: page.revisionTimestamp,
         sourceUrl: `https://terraria.wiki.gg/wiki/${encodeURIComponent(page.title.replaceAll(' ', '_'))}`,
         intro: extractIntro(rendered),
+        iconUrl: extractRepresentativeImageUrl(rendered),
         aliases: buildAliases(entry.pageTitle, page.title),
       });
     } catch (error) {
@@ -339,6 +340,44 @@ function extractIntro(html) {
     .map(match => clean(stripTags(match[1])))
     .filter(text => text && !text.startsWith('('));
   return paragraphs[0] ?? null;
+}
+
+function extractRepresentativeImageUrl(html) {
+  const parserOutput = extractBlockByClass(html, 'div', 'mw-parser-output') || html;
+  const infobox = extractBlockByClass(parserOutput, 'table', 'infobox') || parserOutput;
+  const candidates = [...infobox.matchAll(/<img\b[^>]*>/gi)]
+    .map(match => extractImageUrlFromTag(match[0]))
+    .filter(Boolean);
+  return candidates.find(url => isValidBiomeImageUrl(url)) ?? null;
+}
+
+function extractImageUrlFromTag(tag) {
+  const src = extractAttribute(tag, 'src');
+  const srcset = extractAttribute(tag, 'srcset');
+  const rawUrl = src || srcset?.split(',')[0]?.trim().split(/\s+/)[0] || null;
+  return normalizeWikiImageUrl(rawUrl);
+}
+
+function extractAttribute(tag, attributeName) {
+  const regex = new RegExp(`\\b${escapeRegExp(attributeName)}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i');
+  const match = regex.exec(tag);
+  return match?.[1] ?? match?.[2] ?? match?.[3] ?? null;
+}
+
+function normalizeWikiImageUrl(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return null;
+  const withoutQuery = raw.split('#')[0].split('?')[0];
+  if (withoutQuery.startsWith('//')) return `https:${withoutQuery}`;
+  if (withoutQuery.startsWith('/')) return `https://terraria.wiki.gg${withoutQuery}`;
+  return withoutQuery;
+}
+
+function isValidBiomeImageUrl(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return false;
+  if (!/\.(?:png|jpg|jpeg|webp|gif)$/i.test(text)) return false;
+  return !/(?:Desktop_only|Console_only|Mobile_only|Old-gen_console_version|Nintendo_Switch_version|tModLoader|Journey_Mode|Classic_Mode|Expert_Mode|Master_Mode|Hardmode|Pre-Hardmode|Info_icon|Notice|Question|Achievement|Map_Icon|Bestiary|Icon_)/i.test(text);
 }
 
 function buildAliases(requestedTitle, resolvedTitle) {

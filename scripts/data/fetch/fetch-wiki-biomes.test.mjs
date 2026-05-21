@@ -59,6 +59,7 @@ test('biome fetch writes monitor progress to explicit and canonical paths', () =
   const output = JSON.parse(fs.readFileSync(path.join(worktreeRoot, 'data', 'generated', 'wiki-biomes.latest.json'), 'utf8'));
   assert.equal(output.records.length, 1);
   assert.equal(output.unresolved.length, 0);
+  assert.equal(output.records[0].iconUrl, 'https://terraria.wiki.gg/images/Forest_biome.png');
 });
 
 test('default biome fetch progress path follows WORKTREE_ROOT when omitted', () => {
@@ -115,7 +116,14 @@ function writeBiomeMock(tempDir) {
         { level: '2', line: 'Surface and Underground' },
         { level: '3', line: 'Forest' }
       ],
-      text: '<div class="mw-parser-output"><p>The Forest is the central surface biome.</p></div>'
+      text: `
+        <div class="mw-parser-output">
+          <table class="infobox">
+            <tr><td><img alt="Desktop version" src="/images/Desktop_only.png?8fb4d9" /></td></tr>
+            <tr><td><img alt="Forest biome" src="/images/Forest_biome.png?123abc" /></td></tr>
+          </table>
+          <p>The Forest is the central surface biome.</p>
+        </div>`
     }
   }), 'utf8');
   return mockPath;

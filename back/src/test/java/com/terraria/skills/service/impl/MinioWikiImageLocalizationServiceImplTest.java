@@ -16,6 +16,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Set;
@@ -179,6 +180,26 @@ class MinioWikiImageLocalizationServiceImplTest {
     }
 
     @Test
+    void shouldFallbackToDirectFetchWhenLocalGateIsUnavailable(CapturedOutput output) throws Exception {
+        String sourceUrl = startImageServer("/images/Gate_Unavailable.png");
+        String minioEndpoint = startMinioServer();
+        MinioWikiImageLocalizationServiceImpl service = service(
+            minioEndpoint,
+            true,
+            unavailableGateUrl()
+        );
+
+        String localized = service.localizeImageUrlOrFallback(
+            sourceUrl,
+            "sync:gateFallback"
+        );
+
+        assertTrue(localized.startsWith(minioEndpoint + "/terrapedia-images/items/api/wiki-images/"));
+        assertEquals(1, putObjectCount.get());
+        assertTrue(output.getOut().contains("falling back to direct fetch"));
+    }
+
+    @Test
     void shouldFetchTerrariaWikiFilePagesThroughLocalGateServer() throws Exception {
         String minioEndpoint = startMinioServer();
         String gateUrl = startGateServer();
@@ -293,6 +314,12 @@ class MinioWikiImageLocalizationServiceImplTest {
         imageServer.createContext(path, exchange -> writeImageResponse(exchange, imageBytes));
         imageServer.start();
         return "http://127.0.0.1:" + imageServer.getAddress().getPort() + path;
+    }
+
+    private String unavailableGateUrl() throws IOException {
+        try (ServerSocket socket = new ServerSocket(0)) {
+            return "http://127.0.0.1:" + socket.getLocalPort() + "/fetch-image";
+        }
     }
 
     private String startMinioServer() throws IOException {

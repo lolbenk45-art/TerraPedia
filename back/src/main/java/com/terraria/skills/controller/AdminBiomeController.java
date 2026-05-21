@@ -19,6 +19,7 @@ import com.terraria.skills.mapper.BiomeMapper;
 import com.terraria.skills.mapper.BiomeRelationMapper;
 import com.terraria.skills.mapper.BiomeResourceMapper;
 import com.terraria.skills.mapper.ItemMapper;
+import com.terraria.skills.service.ManagedItemImageResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -55,6 +56,7 @@ public class AdminBiomeController {
     private final BiomeRelationMapper biomeRelationMapper;
     private final BiomeResourceMapper biomeResourceMapper;
     private final ItemMapper itemMapper;
+    private final ManagedItemImageResolver managedItemImageResolver;
 
     @GetMapping
     @Operation(summary = "Get biomes")
@@ -239,6 +241,9 @@ public class AdminBiomeController {
         Map<Long, Item> itemById = itemIds.isEmpty()
             ? Collections.emptyMap()
             : itemMapper.selectBatchIds(itemIds).stream().collect(Collectors.toMap(Item::getId, Function.identity()));
+        Map<Long, String> managedImagesByItemId = itemById.isEmpty()
+            ? Collections.emptyMap()
+            : managedItemImageResolver.resolveManagedImages(itemById.values());
 
         dto.setRelations(relations.stream().map(relation -> {
             BiomeRelationDTO relationDto = new BiomeRelationDTO();
@@ -259,7 +264,7 @@ public class AdminBiomeController {
             if (item != null) {
                 resourceDto.setItemName(item.getName());
                 resourceDto.setItemInternalName(item.getInternalName());
-                resourceDto.setItemImage(item.getImage());
+                resourceDto.setItemImage(managedItemImageResolver.resolveManagedImage(item, managedImagesByItemId));
             }
             return resourceDto;
         }).toList());
