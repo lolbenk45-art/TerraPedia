@@ -117,25 +117,29 @@
               </button>
             </div>
           </div>
-          <div v-if="entityType === 'biomes'" class="field field--full">
+          <div v-if="entityType === 'biomes'" class="field field--biome-taxonomy">
             <div class="field__topline">
               <span class="field__label">Wiki 群系目录</span>
               <span class="field__hint">按 Terraria Wiki Biomes 页面目录筛选，保留父级与子级层级。</span>
             </div>
-            <div class="filter-chip-group biome-taxonomy-filter" role="tablist" aria-label="Wiki 群系目录筛选">
-              <button
+            <label class="biome-taxonomy-select" for="biome-wiki-group-select">
+              <select
+                id="biome-wiki-group-select"
+                v-model="selectedBiomeWikiGroup"
+                class="input biome-taxonomy-select__control"
+                aria-label="Wiki 群系目录"
+                @change="handleBiomeWikiGroupSelectChange"
+              >
+                <option
                 v-for="option in biomeWikiGroupOptions"
                 :key="option.value"
-                type="button"
-                class="filter-chip biome-taxonomy-filter__chip"
-                :class="[`biome-taxonomy-filter__chip--level-${option.level}`, { 'filter-chip--active': selectedBiomeWikiGroup === option.value }]"
-                :aria-pressed="selectedBiomeWikiGroup === option.value"
-                @click="handleBiomeWikiGroupChange(option.value)"
+                  :value="option.value"
               >
-                <span>{{ option.label }}</span>
-                <small>{{ option.description }}</small>
-              </button>
-            </div>
+                  {{ formatBiomeWikiGroupOptionLabel(option) }}
+                </option>
+              </select>
+              <span class="biome-taxonomy-select__hint">{{ selectedBiomeWikiGroupSummary }}</span>
+            </label>
           </div>
           <div v-if="entityType === 'world-contexts'" class="field field--full">
             <div class="field__topline">
@@ -2401,6 +2405,17 @@ function getBiomeWikiGroupMeta(value: unknown) {
   return biomeWikiGroupOptions.find(option => option.value === normalized) ?? null
 }
 
+function formatBiomeWikiGroupOptionLabel(option: (typeof biomeWikiGroupOptions)[number]) {
+  const prefix = option.level > 0 ? `${'  '.repeat(option.level - 1)}${option.level > 1 ? '└ ' : ''}` : ''
+  return `${prefix}${option.label} · ${option.description}`
+}
+
+const selectedBiomeWikiGroupSummary = computed(() => {
+  const option = getBiomeWikiGroupMeta(selectedBiomeWikiGroup.value)
+  if (!option || option.value === 'all') return '全部 Wiki 群系分类'
+  return `${option.label} · ${option.description}`
+})
+
 function getBiomeWikiCategoryPath(row: Record<string, any>) {
   const zhPath = [row.wikiParentGroupNameZh, row.wikiGroupNameZh].filter(Boolean).join(' > ')
   const enPath = [row.wikiParentGroupNameEn, row.wikiGroupNameEn].filter(Boolean).join(' > ')
@@ -2978,9 +2993,7 @@ async function handleBiomeGroupChange(value: BiomeGroupFilter) {
   await fetchRows(1)
 }
 
-async function handleBiomeWikiGroupChange(value: BiomeWikiGroupFilter) {
-  if (selectedBiomeWikiGroup.value === value) return
-  selectedBiomeWikiGroup.value = value
+async function handleBiomeWikiGroupSelectChange() {
   await syncRouteQuery(1)
   await fetchRows(1)
 }
@@ -4536,21 +4549,22 @@ function formatArmorPartRole(value: unknown) {
 .filter-chip--active small {
   color: var(--color-text);
 }
-.biome-taxonomy-filter { gap: 8px; }
-.biome-taxonomy-filter__chip {
-  min-width: 136px;
-  border-radius: 10px;
+.field--biome-taxonomy {
+  min-width: min(520px, 100%);
 }
-.biome-taxonomy-filter__chip--level-0 {
-  min-width: 156px;
+.biome-taxonomy-select {
+  display: grid;
+  gap: 6px;
+  max-width: 640px;
 }
-.biome-taxonomy-filter__chip--level-1 {
-  border-color: color-mix(in srgb, var(--color-primary) 26%, var(--color-border));
+.biome-taxonomy-select__control {
+  min-height: 48px;
+  cursor: pointer;
 }
-.biome-taxonomy-filter__chip--level-2 {
-  min-width: 128px;
-  margin-left: 14px;
-  background: color-mix(in srgb, var(--color-bg) 92%, var(--color-bg-secondary));
+.biome-taxonomy-select__hint {
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.5;
 }
 .boss-type-strip {
   display: grid;

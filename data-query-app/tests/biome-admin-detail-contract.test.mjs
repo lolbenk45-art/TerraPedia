@@ -44,7 +44,7 @@ test('managed biome images render through the admin same-origin proxy', () => {
 test('biome admin separates wiki categories with Chinese labels and a server-side group filter', () => {
   assert.match(entitiesPage, /selectedBiomeWikiGroup/)
   assert.match(entitiesPage, /biomeWikiGroupOptions/)
-  assert.match(entitiesPage, /handleBiomeWikiGroupChange/)
+  assert.match(entitiesPage, /handleBiomeWikiGroupSelectChange/)
   assert.match(entitiesPage, /getBiomeGroupLabel/)
   assert.match(entitiesPage, /getBiomeTypeLabel/)
   assert.match(entitiesPage, /getBiomeLayerLabel/)
@@ -61,6 +61,9 @@ test('biome admin separates wiki categories with Chinese labels and a server-sid
 test('biome admin uses wiki taxonomy hierarchy instead of flattened layer chips', () => {
   assert.match(entitiesPage, /biomeWikiGroupOptions/)
   assert.match(entitiesPage, /selectedBiomeWikiGroup/)
+  assert.match(entitiesPage, /<select[\s\S]*v-model="selectedBiomeWikiGroup"[\s\S]*@change="handleBiomeWikiGroupSelectChange"/)
+  assert.match(entitiesPage, /biome-taxonomy-select/)
+  assert.doesNotMatch(entitiesPage, /v-for="option in biomeWikiGroupOptions"[\s\S]*class="filter-chip biome-taxonomy-filter__chip"/)
   assert.match(entitiesPage, /params\.wikiGroupCode = selectedBiomeWikiGroup\.value/)
   assert.match(entitiesPage, /nextQuery\.biomeWikiGroup = selectedBiomeWikiGroup\.value/)
 
