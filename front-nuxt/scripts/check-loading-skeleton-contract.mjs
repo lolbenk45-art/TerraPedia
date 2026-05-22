@@ -32,6 +32,18 @@ const assertMarkers = (path, markers) => {
   }
 }
 
+const assertNoMarkers = (path, markers) => {
+  if (!existsSync(file(path))) return
+
+  const content = readFileSync(file(path), 'utf8')
+
+  for (const marker of markers) {
+    if (content.includes(marker)) {
+      failures.push(`${path}: forbidden marker ${marker}`)
+    }
+  }
+}
+
 assertMarkers('assets/css/app.css', [
   '@import "./loading-skeleton.css";',
 ])
@@ -67,8 +79,28 @@ assertMarkers('components/catalog/CatalogWallSkeleton.vue', [
   'defineProps',
   'slots?: number',
   'CatalogWallSkeleton',
+  'catalog-loading-index',
+  'catalog-wall-icon-slot catalog-loading-icon-slot',
   'CommonTpSkeleton type="icon"',
   'CommonTpSkeleton type="line"',
+])
+
+assertMarkers('assets/css/catalog-image-fixes.css', [
+  '.catalog-wall-cell-loading',
+  '.catalog-wall-state-enter-active',
+  '.catalog-wall-state-enter-from',
+  '.catalog-wall-state-leave-active',
+  '.catalog-wall-state-leave-to',
+  '@media (prefers-reduced-motion: reduce)',
+  '.catalog-loading-index',
+  '.catalog-loading-icon-slot',
+  'grid-row: 2',
+  'grid-row: 3',
+  'width: var(--catalog-wall-frame-size)',
+])
+
+assertNoMarkers('assets/css/catalog-image-fixes.css', [
+  'width: min(128px, 100%);',
 ])
 
 assertMarkers('components/detail/ItemDetailSkeleton.vue', [
@@ -86,12 +118,18 @@ assertMarkers('components/search/SuggestionSkeletonRows.vue', [
 ])
 
 assertMarkers('pages/items/index.vue', [
+  '<Transition name="catalog-wall-state" mode="out-in">',
   '<CatalogWallSkeleton',
   ':slots="catalogLoadingSlotCount"',
   'catalogClientReady',
   'catalogFallbackUnavailable',
   'catalogDisplayItems',
+  'catalogRawLoading',
   'catalogVisualLoading',
+  'catalogVisualLoadingMinimumMs',
+  'catalogVisualLoadingTimer',
+  'catalogDockCurrentPage',
+  'catalogDockTotalPages',
   '!catalogClientReady.value || itemsPending.value',
   '<CommonPreviewImage',
 ])

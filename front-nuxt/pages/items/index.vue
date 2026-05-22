@@ -14,7 +14,11 @@ const currentPage = ref(1)
 const selectedPageSize = ref(defaultCatalogPageSize)
 const jumpPageInput = ref('')
 const focusedItemId = ref<string | null>(null)
+const catalogVisualLoadingMinimumMs = 180
+const catalogVisualLoading = ref(true)
 let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
+let catalogVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
+let catalogVisualLoadingStartedAt = Date.now()
 const catalogPageSizeStorageKey = 'terrapedia:catalog-page-size'
 
 type CatalogCategoryFilter = {
@@ -223,7 +227,7 @@ const catalogItems = computed(() => {
   return Array.isArray(items) ? items : fallbackCatalogItems
 })
 const pagination = computed(() => publicItemsResult.value?.pagination)
-const catalogVisualLoading = computed(() => !catalogClientReady.value || itemsPending.value)
+const catalogRawLoading = computed(() => !catalogClientReady.value || itemsPending.value)
 const catalogFallbackUnavailable = computed(() => catalogClientReady.value && !itemsPending.value && publicItemsResult.value?.source !== 'api')
 const catalogDisplayItems = computed(() => (catalogVisualLoading.value || catalogFallbackUnavailable.value) ? [] : catalogItems.value)
 const totalItems = computed(() => (catalogVisualLoading.value || catalogFallbackUnavailable.value) ? 0 : pagination.value?.total ?? catalogDisplayItems.value.length)
@@ -231,6 +235,10 @@ const pageLimit = computed(() => pagination.value?.limit ?? pagination.value?.si
 const totalPages = computed(() => Math.max(1, pagination.value?.totalPages ?? Math.ceil(totalItems.value / Math.max(1, pageLimit.value))))
 const canGoPrevious = computed(() => currentPage.value > 1)
 const canGoNext = computed(() => currentPage.value < totalPages.value)
+const catalogDockCurrentPage = computed(() => catalogVisualLoading.value ? 1 : currentPage.value)
+const catalogDockTotalPages = computed(() => catalogVisualLoading.value ? 1 : totalPages.value)
+const catalogDockCanGoPrevious = computed(() => !catalogVisualLoading.value && canGoPrevious.value)
+const catalogDockCanGoNext = computed(() => !catalogVisualLoading.value && canGoNext.value)
 const dataSourceState = computed(() => publicItemsResult.value?.source ?? 'fallback')
 const publicStatusLabel = computed(() => catalogVisualLoading.value ? '加载中' : catalogFallbackUnavailable.value || itemsError.value ? '未载入' : '已更新')
 const activeFilterLabel = computed(() => selectedFilter.value.label)
@@ -240,6 +248,10 @@ const shouldApplyLocalCategoryFilter = computed(() => (
   || (activeFilter.value !== 'all' && (selectedCategoryIds.value.length !== 1 || !selectedCategoryId.value) && !selectedGamePeriodId.value)
 ))
 const visiblePageItems = computed(() => {
+  if (catalogVisualLoading.value) {
+    return [1]
+  }
+
   const pages = totalPages.value
   const page = currentPage.value
   const edgeWindow = 1
@@ -338,6 +350,31 @@ const resultSummary = computed(() => {
 })
 
 const pageControlLabel = (item: number | 'gap') => item === 'gap' ? '…' : String(item)
+
+const clearCatalogVisualLoadingTimer = () => {
+  if (catalogVisualLoadingTimer) {
+    clearTimeout(catalogVisualLoadingTimer)
+    catalogVisualLoadingTimer = null
+  }
+}
+
+const syncCatalogVisualLoading = (isLoading: boolean) => {
+  clearCatalogVisualLoadingTimer()
+
+  if (isLoading) {
+    catalogVisualLoadingStartedAt = Date.now()
+    catalogVisualLoading.value = true
+    return
+  }
+
+  const elapsed = Date.now() - catalogVisualLoadingStartedAt
+  const remaining = Math.max(0, catalogVisualLoadingMinimumMs - elapsed)
+
+  catalogVisualLoadingTimer = setTimeout(() => {
+    catalogVisualLoading.value = false
+    catalogVisualLoadingTimer = null
+  }, remaining)
+}
 
 const scrollCatalogWallToTop = async () => {
   if (!import.meta.client) return
@@ -498,6 +535,8 @@ onBeforeUnmount(() => {
     clearTimeout(searchDebounceTimer)
   }
 
+  clearCatalogVisualLoadingTimer()
+
   if (import.meta.client) {
     window.removeEventListener('keydown', handleCatalogPaginationKeydown)
   }
@@ -540,6 +579,8 @@ watch(selectedPageSize, (pageSize) => {
     window.localStorage.setItem(catalogPageSizeStorageKey, String(pageSize))
   } catch {}
 }, { flush: 'post' })
+
+watch(catalogRawLoading, syncCatalogVisualLoading, { immediate: true })
 
 watch(() => route.query, hydrateCatalogStateFromRoute)
 </script>
@@ -653,72 +694,75 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
             </aside>
 
             <div class="catalog-wall-board">
-              <CatalogWallSkeleton
-                v-if="catalogVisualLoading"
-                :slots="catalogLoadingSlotCount"
-              />
+              <Transition name="catalog-wall-state" mode="out-in">
+                <CatalogWallSkeleton
+                  v-if="catalogVisualLoading"
+                  key="catalog-wall-loading"
+                  :slots="catalogLoadingSlotCount"
+                />
 
-              <div v-else-if="visibleWallItems.length" class="catalog-wall-grid" aria-label="物品图标墙">
-                <a
-                  v-for="item in visibleWallItems"
-                  :key="`wall-${item.id}`"
-                  class="catalog-wall-cell"
-                  :class="[item.visualTone, { active: focusedItem?.id === item.id }]"
-                  :href="item.detailPath"
-                  :aria-current="focusedItem?.id === item.id ? 'true' : undefined"
-                  :aria-label="item.displayName"
-                  :title="`${item.displayName} · ${item.category}`"
-                  @focus="setFocusedItem(item)"
-                >
-                  <span class="catalog-wall-icon-slot">
-                    <CommonPreviewImage
-                      :src="item.image"
-                      :alt="item.displayName"
-                      :fallback="item.fallback"
-                      :source-image="item.sourceImage"
-                      width="64"
-                      height="64"
-                    />
-                  </span>
-                  <span class="catalog-wall-cell-index">{{ item.range }}</span>
-                  <span class="catalog-wall-cell-label">{{ item.displayName }}</span>
-                  <span class="catalog-hover-preview" role="tooltip">
-                    <span class="catalog-hover-preview-head">
-                      <b>{{ item.displayName }}</b>
-                      <em>{{ item.category }}</em>
+                <div v-else-if="visibleWallItems.length" key="catalog-wall-grid" class="catalog-wall-grid" aria-label="物品图标墙">
+                  <a
+                    v-for="item in visibleWallItems"
+                    :key="`wall-${item.id}`"
+                    class="catalog-wall-cell"
+                    :class="[item.visualTone, { active: focusedItem?.id === item.id }]"
+                    :href="item.detailPath"
+                    :aria-current="focusedItem?.id === item.id ? 'true' : undefined"
+                    :aria-label="item.displayName"
+                    :title="`${item.displayName} · ${item.category}`"
+                    @focus="setFocusedItem(item)"
+                  >
+                    <span class="catalog-wall-icon-slot">
+                      <CommonPreviewImage
+                        :src="item.image"
+                        :alt="item.displayName"
+                        :fallback="item.fallback"
+                        :source-image="item.sourceImage"
+                        width="64"
+                        height="64"
+                      />
                     </span>
-                    <span class="catalog-hover-preview-body">{{ item.description }}</span>
-                    <span class="catalog-hover-preview-tags">
-                      <span>{{ item.rarity }}</span>
-                      <span>{{ item.phase }}</span>
+                    <span class="catalog-wall-cell-index">{{ item.range }}</span>
+                    <span class="catalog-wall-cell-label">{{ item.displayName }}</span>
+                    <span class="catalog-hover-preview" role="tooltip">
+                      <span class="catalog-hover-preview-head">
+                        <b>{{ item.displayName }}</b>
+                        <em>{{ item.category }}</em>
+                      </span>
+                      <span class="catalog-hover-preview-body">{{ item.description }}</span>
+                      <span class="catalog-hover-preview-tags">
+                        <span>{{ item.rarity }}</span>
+                        <span>{{ item.phase }}</span>
+                      </span>
                     </span>
-                  </span>
-                </a>
-              </div>
+                  </a>
+                </div>
 
-              <div v-else class="catalog-empty-state">
-                <b>{{ catalogFallbackUnavailable ? '资料暂未载入' : '没有匹配物品' }}</b>
-                <span>{{ catalogFallbackUnavailable ? '当前公共接口暂不可用，已避免展示样例兜底图标。' : '调整搜索词或切回全部分类。' }}</span>
-                <button
-                  v-if="catalogFallbackUnavailable"
-                  class="small-button active"
-                  type="button"
-                  @click="refreshPublicItems()"
-                >
-                  重新加载
-                </button>
-                <button v-else class="small-button active" type="button" @click="resetCatalogFilters">重置筛选</button>
-              </div>
+                <div v-else key="catalog-wall-empty" class="catalog-empty-state">
+                  <b>{{ catalogFallbackUnavailable ? '资料暂未载入' : '没有匹配物品' }}</b>
+                  <span>{{ catalogFallbackUnavailable ? '当前公共接口暂不可用，已避免展示样例兜底图标。' : '调整搜索词或切回全部分类。' }}</span>
+                  <button
+                    v-if="catalogFallbackUnavailable"
+                    class="small-button active"
+                    type="button"
+                    @click="refreshPublicItems()"
+                  >
+                    重新加载
+                  </button>
+                  <button v-else class="small-button active" type="button" @click="resetCatalogFilters">重置筛选</button>
+                </div>
+              </Transition>
             </div>
           </div>
 
           <div class="catalog-page-dock" aria-label="分页">
-            <span class="catalog-page-dock-summary">第 {{ currentPage }} / {{ totalPages }} 页 · {{ activeFilterLabel }}</span>
+            <span class="catalog-page-dock-summary">第 {{ catalogDockCurrentPage }} / {{ catalogDockTotalPages }} 页 · {{ activeFilterLabel }}</span>
             <div class="catalog-page-dock-core">
-              <button class="catalog-dock-button" type="button" :disabled="!canGoPrevious || catalogVisualLoading" @click="goToFirstPage">
+              <button class="catalog-dock-button" type="button" :disabled="!catalogDockCanGoPrevious" @click="goToFirstPage">
                 首页
               </button>
-              <button class="catalog-dock-icon-button" type="button" aria-label="上一页" :disabled="!canGoPrevious || catalogVisualLoading" @click="goToPreviousPage">
+              <button class="catalog-dock-icon-button" type="button" aria-label="上一页" :disabled="!catalogDockCanGoPrevious" @click="goToPreviousPage">
                 ‹
               </button>
               <template v-for="(pageItem, index) in pageWindowItems" :key="`${pageItem}-${index}`">
@@ -728,17 +772,17 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
                   class="catalog-dock-page-button"
                   type="button"
                   :class="{ active: pageItem === currentPage }"
-                  :aria-current="pageItem === currentPage ? 'page' : undefined"
+                  :aria-current="!catalogVisualLoading && pageItem === currentPage ? 'page' : undefined"
                   :disabled="catalogVisualLoading"
                   @click="goToPage(pageItem)"
                 >
                   {{ pageControlLabel(pageItem) }}
                 </button>
               </template>
-              <button class="catalog-dock-icon-button" type="button" aria-label="下一页" :disabled="!canGoNext || catalogVisualLoading" @click="goToNextPage">
+              <button class="catalog-dock-icon-button" type="button" aria-label="下一页" :disabled="!catalogDockCanGoNext" @click="goToNextPage">
                 ›
               </button>
-              <button class="catalog-dock-button" type="button" :disabled="!canGoNext || catalogVisualLoading" @click="goToLastPage">
+              <button class="catalog-dock-button" type="button" :disabled="!catalogDockCanGoNext" @click="goToLastPage">
                 末页
               </button>
             </div>
@@ -750,11 +794,11 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
                 type="number"
                 inputmode="numeric"
                 min="1"
-                :max="totalPages"
-                :placeholder="String(currentPage)"
+                :max="catalogDockTotalPages"
+                :placeholder="String(catalogDockCurrentPage)"
                 :disabled="catalogVisualLoading"
               />
-              <span>/ {{ totalPages }}</span>
+              <span>/ {{ catalogDockTotalPages }}</span>
               <button class="catalog-dock-button" type="submit" :disabled="catalogVisualLoading">前往</button>
             </form>
           </div>

@@ -339,7 +339,22 @@
 }
 
 .catalog-wall-board {
+  position: relative;
   min-width: 0;
+}
+
+.catalog-wall-state-enter-active,
+.catalog-wall-state-leave-active {
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+  will-change: opacity, transform;
+}
+
+.catalog-wall-state-enter-from,
+.catalog-wall-state-leave-to {
+  opacity: 0;
+  transform: translateY(6px);
 }
 
 .catalog-wall-grid {
@@ -890,7 +905,8 @@
 }
 
 .catalog-loading-icon,
-.catalog-loading-line {
+.catalog-loading-line,
+.catalog-loading-index {
   display: block;
   border: 1px solid rgba(214, 177, 90, 0.14);
   background:
@@ -900,8 +916,21 @@
   animation: catalogPixelPulse 900ms steps(5, end) infinite;
 }
 
+.catalog-loading-index {
+  grid-row: 1;
+  justify-self: end;
+  align-self: start;
+  width: 24px;
+  height: 9px;
+  border-radius: 4px;
+}
+
+.catalog-loading-icon-slot {
+  grid-row: 2;
+}
+
 .catalog-loading-icon {
-  width: min(128px, 100%);
+  width: var(--catalog-wall-frame-size);
   max-width: 100%;
   height: auto;
   aspect-ratio: 1;
@@ -909,6 +938,7 @@
 }
 
 .catalog-loading-line {
+  grid-row: 3;
   width: 72%;
   height: 9px;
   border-radius: 4px;
@@ -918,6 +948,18 @@
   0% { background-position: 120% 0, 0 0; opacity: 0.62; }
   50% { opacity: 1; }
   100% { background-position: -120% 0, 0 0; opacity: 0.62; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalog-wall-state-enter-active,
+  .catalog-wall-state-leave-active {
+    transition: opacity 1ms linear;
+  }
+
+  .catalog-wall-state-enter-from,
+  .catalog-wall-state-leave-to {
+    transform: none;
+  }
 }
 
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .catalog-status-row span {

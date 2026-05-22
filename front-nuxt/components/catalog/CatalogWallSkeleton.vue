@@ -25,7 +25,10 @@ const skeletonSlots = computed(() => {
       class="catalog-wall-cell catalog-wall-cell-loading"
       aria-hidden="true"
     >
-      <CommonTpSkeleton type="icon" class="catalog-loading-icon" />
+      <CommonTpSkeleton type="line" class="catalog-loading-index" />
+      <span class="catalog-wall-icon-slot catalog-loading-icon-slot">
+        <CommonTpSkeleton type="icon" class="catalog-loading-icon" />
+      </span>
       <CommonTpSkeleton type="line" class="catalog-loading-line" />
     </span>
   </div>
