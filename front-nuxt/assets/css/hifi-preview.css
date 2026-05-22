@@ -4744,7 +4744,7 @@ img[data-preview-fallback] {
   position: absolute;
   left: 22px;
   right: 22px;
-  top: 116px;
+  top: 204px;
   height: 1px;
   background: var(--index-line);
 }
@@ -4757,15 +4757,38 @@ img[data-preview-fallback] {
     rgba(244,234,208,0.035);
   background-size: auto, 40px 40px, 40px 40px, auto;
 }
-.boss-node i {
+.boss-node .boss-node-visual {
   position: relative;
   z-index: 1;
-  width: 116px;
-  height: 116px;
+  width: min(100%, 224px);
+  height: 168px;
+  overflow: hidden;
 }
-.boss-node-visual .item-art {
-  width: 96px;
-  height: 96px;
+.boss-node-visual .boss-node-backdrop,
+.boss-node-visual .boss-node-sprite {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+.boss-node-visual .boss-node-backdrop {
+  opacity: 0.18;
+}
+.boss-node-visual .boss-node-sprite {
+  padding: 8px;
+}
+.boss-node-visual .boss-node-backdrop img,
+.boss-node-visual .boss-node-sprite img {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  object-fit: contain;
+  object-position: center;
 }
 .boss-node span,
 .armor-card span,
@@ -5453,19 +5476,43 @@ img[data-preview-fallback] {
   gap: 12px;
 }
 .biome-tile-art {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 112px;
-  height: 112px;
+  width: 100%;
+  height: 188px;
+  overflow: hidden;
   border: 1px solid var(--index-line);
   border-radius: 8px;
   background:
     radial-gradient(circle at 50% 38%, rgba(217, 185, 91, 0.16), transparent 66%),
     rgba(244,234,208,0.035);
 }
-.biome-tile-art .item-art {
-  width: 88px;
-  height: 88px;
+.biome-tile-art .biome-tile-backdrop,
+.biome-tile-art .biome-tile-thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+.biome-tile-art .biome-tile-backdrop {
+  opacity: 0.18;
+}
+.biome-tile-art .biome-tile-thumb {
+  padding: 8px 10px;
+}
+.biome-tile-art .biome-tile-backdrop img,
+.biome-tile-art .biome-tile-thumb img {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  object-fit: contain;
+  object-position: center;
 }
 .biome-tile-title {
   min-width: 0;

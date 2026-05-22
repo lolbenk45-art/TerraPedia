@@ -133,7 +133,8 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
       <section v-if="biomeVisualLoading" class="biome-board" aria-label="群系加载中">
         <article v-for="slot in biomeLoadingSlotCount" :key="`biome-loading-${slot}`" class="biome-tile">
           <div class="biome-tile-art">
-            <CommonTpSkeleton type="icon" />
+            <span class="biome-tile-backdrop"><CommonTpSkeleton type="icon" /></span>
+            <span class="biome-tile-thumb"><CommonTpSkeleton type="icon" /></span>
           </div>
           <b class="biome-tile-title"><CommonTpSkeleton type="line" /></b>
           <span class="biome-tile-description"><CommonTpSkeleton type="line" /><CommonTpSkeleton type="line" short /></span>
@@ -150,12 +151,23 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
         >
           <div class="biome-tile-art">
             <CommonPreviewImage
+              class="biome-tile-backdrop"
               :src="biome.image"
               :alt="biome.displayName"
               :fallback="biome.fallback"
               :source-image="biome.sourceImage"
-              width="72"
-              height="72"
+              decorative
+              width="320"
+              height="148"
+            />
+            <CommonPreviewImage
+              class="biome-tile-thumb"
+              :src="biome.image"
+              :alt="biome.displayName"
+              :fallback="biome.fallback"
+              :source-image="biome.sourceImage"
+              width="260"
+              height="112"
             />
           </div>
           <b class="biome-tile-title">{{ biome.displayName }}</b>

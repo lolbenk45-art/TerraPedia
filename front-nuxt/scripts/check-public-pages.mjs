@@ -1207,6 +1207,8 @@ for (const path of scanFiles) {
       ':aria-busy="bossVisualLoading"',
       'v-for="boss in bossDisplayItems"',
       'boss-node-visual',
+      'boss-node-backdrop',
+      'boss-node-sprite',
       'boss-node-type',
       'boss-node-summary',
       'boss-node-meta',
@@ -1270,6 +1272,8 @@ for (const path of scanFiles) {
       ':aria-busy="biomeVisualLoading"',
       'v-for="biome in biomeDisplayItems"',
       'biome-tile-art',
+      'biome-tile-backdrop',
+      'biome-tile-thumb',
       'biome-tile-title',
       'biome-tile-description',
       'biome-tile-meta',
@@ -1564,11 +1568,16 @@ for (const path of scanFiles) {
       'column-gap: 18px',
       'row-gap: 10px',
       '.boss-node-visual',
+      '.boss-node-backdrop',
+      '.boss-node-sprite',
       '.boss-node-summary',
       '.boss-node-meta',
       '.biome-tile-art',
+      '.biome-tile-backdrop',
+      '.biome-tile-thumb',
       '.biome-tile-description',
       '.biome-tile-meta',
+      'opacity: 0.18',
       'max-height: 7.75em',
       '.crafting-suggestion-button',
       '.recipe-tree-canvas',
@@ -1580,6 +1589,10 @@ for (const path of scanFiles) {
       if (!content.includes(marker)) {
         violations.push(`${path}: item/detail and live entity pages must reserve icon/text spacing and render stable API layouts via marker ${marker}`)
       }
+    }
+
+    if (content.includes('transform: scale(1.3);')) {
+      violations.push(`${path}: boss and biome backdrop layers must not use transform scale because it expands the visual box and clips thumbnails`)
     }
   }
 

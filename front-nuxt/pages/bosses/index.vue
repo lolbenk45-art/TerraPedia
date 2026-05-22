@@ -200,7 +200,10 @@ onBeforeUnmount(() => {
 
       <section class="boss-timeline" aria-label="Boss 推进线">
         <article v-for="slot in bossLoadingSlotCount" v-if="bossVisualLoading" :key="`boss-loading-${slot}`" class="boss-node">
-          <i class="boss-node-visual"><CommonTpSkeleton type="icon" /></i>
+          <i class="boss-node-visual">
+            <span class="boss-node-backdrop"><CommonTpSkeleton type="icon" /></span>
+            <span class="boss-node-sprite"><CommonTpSkeleton type="icon" /></span>
+          </i>
           <span class="boss-node-type"><CommonTpSkeleton type="pill" /></span>
           <h3><CommonTpSkeleton type="line" /></h3>
           <p class="boss-node-summary"><CommonTpSkeleton type="line" /><CommonTpSkeleton type="line" short /></p>
@@ -217,12 +220,23 @@ onBeforeUnmount(() => {
         >
           <i class="boss-node-visual">
             <CommonPreviewImage
+              class="boss-node-backdrop"
               :src="boss.image"
               :alt="boss.displayName"
               :fallback="boss.fallback"
               :source-image="boss.sourceImage"
-              width="72"
-              height="72"
+              decorative
+              width="180"
+              height="112"
+            />
+            <CommonPreviewImage
+              class="boss-node-sprite"
+              :src="boss.image"
+              :alt="boss.displayName"
+              :fallback="boss.fallback"
+              :source-image="boss.sourceImage"
+              width="160"
+              height="104"
             />
           </i>
           <span class="boss-node-type">{{ boss.type }}</span>
