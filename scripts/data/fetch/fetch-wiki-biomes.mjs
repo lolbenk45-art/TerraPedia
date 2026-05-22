@@ -112,7 +112,7 @@ async function main(argv = process.argv.slice(2)) {
   const overview = await fetchPageRevision('Biomes');
   const overviewRendered = await fetchRenderedHtml('Biomes');
   const overviewSections = await fetchPageSections('Biomes');
-  const discoveredBiomes = discoverBiomeTargets(overviewSections);
+  const discoveredBiomes = applyOverviewSectionLinks(discoverBiomeTargets(overviewSections), overviewRendered);
   const records = [];
   const derivedRecords = [];
   const unresolved = [];
@@ -156,7 +156,7 @@ async function main(argv = process.argv.slice(2)) {
       continue;
     }
     try {
-      const page = await fetchPageRevision(entry.pageTitle);
+      const page = await fetchPageRevision(entry.fetchPageTitle ?? entry.pageTitle);
       if (shouldUseOverviewSectionRecord(entry, page.title)) {
         records.push(buildOverviewSectionRecord(entry, overview, overviewRendered));
       } else {
@@ -367,18 +367,37 @@ function discoverBiomeTargets(sections) {
   return deduped;
 }
 
+function applyOverviewSectionLinks(targets, overviewRendered) {
+  return targets.map((target) => {
+    if (!target?.sectionAnchor) return target;
+    const sectionHtml = extractSectionHtml(overviewRendered, target.sectionAnchor, Number(target.sectionLevel || 3)) ?? '';
+    const linkedPageTitle = extractPrimaryBiomePageTitle(sectionHtml, target.pageTitle);
+    if (!linkedPageTitle || !isEquivalentBiomePageTitle(target.pageTitle, linkedPageTitle)) {
+      return target;
+    }
+    return {
+      ...target,
+      pageTitle: target.pageTitle,
+      fetchPageTitle: linkedPageTitle,
+      overviewLinkedPageTitle: linkedPageTitle,
+    };
+  });
+}
+
 function isOverviewPageFallback(requestedTitle, resolvedTitle) {
   return normalizeTitle(resolvedTitle) === 'biomes' && normalizeTitle(requestedTitle) !== 'biomes';
 }
 
 function shouldUseOverviewSectionRecord(entry, resolvedTitle) {
   if (isOverviewPageFallback(entry.pageTitle, resolvedTitle)) return true;
-  if (!entry.sectionAnchor || isEquivalentBiomePageTitle(entry.pageTitle, resolvedTitle)) return false;
+  if (entry.overviewLinkedPageTitle) return false;
+  if (isEquivalentBiomePageTitle(entry.pageTitle, resolvedTitle)) return false;
+  if (!entry.sectionAnchor) return false;
   return true;
 }
 
 function isEquivalentBiomePageTitle(requestedTitle, resolvedTitle) {
-  return normalizeLooseTitle(requestedTitle) === normalizeLooseTitle(resolvedTitle);
+  return normalizeBiomeLinkTitle(requestedTitle) === normalizeBiomeLinkTitle(resolvedTitle);
 }
 
 function buildOverviewSectionRecord(entry, overview, overviewRendered) {
@@ -466,13 +485,108 @@ function extractIntro(html) {
   return paragraphs[0] ?? null;
 }
 
+function extractPrimaryBiomePageTitle(html, sectionTitle) {
+  const source = String(html ?? '');
+  const sectionTokens = buildTitleTokens(sectionTitle);
+  const candidates = [];
+  const anchorPattern = /<a\b[^>]*\bhref\s*=\s*(?:"([^"]+)"|'([^']*)'|([^\s>]+))[^>]*>([\s\S]*?)<\/a>/gi;
+  for (const match of source.matchAll(anchorPattern)) {
+    const href = decodeHtmlEntities(match[1] ?? match[2] ?? match[3] ?? '');
+    const title = extractAttribute(match[0], 'title') ?? '';
+    const label = clean(stripTags(match[4] ?? ''));
+    const pageTitle = extractWikiPageTitleFromHref(href, title);
+    if (!pageTitle || isNonBiomePageTitle(pageTitle)) continue;
+    const tokens = [
+      ...buildTitleTokens(pageTitle),
+      ...buildTitleTokens(title),
+      ...buildTitleTokens(label),
+    ];
+    const matchesSection = sectionTokens.length > 0 && sectionTokens.some(token => tokens.includes(token));
+    const explicitBiome = /\bbiome\b/i.test(`${pageTitle} ${title} ${label}`);
+    if (!matchesSection && !explicitBiome) continue;
+    const before = source.slice(Math.max(0, match.index - 500), match.index);
+    const linkedImageScore = findLinkedImageScoreForPage(source, pageTitle);
+    candidates.push({
+      pageTitle,
+      score: (explicitBiome ? 10 : 0)
+        + (matchesSection ? 6 : 0)
+        + (pageTitle.includes('(') ? 2 : 0)
+        + linkedImageScore
+        - (/Bestiary|navbox|biome-list/i.test(before) ? 20 : 0),
+    });
+  }
+  candidates.sort((left, right) => right.score - left.score);
+  return candidates[0]?.pageTitle ?? null;
+}
+
+function findLinkedImageScoreForPage(source, pageTitle) {
+  const titleHref = `/wiki/${encodeURIComponent(String(pageTitle).replaceAll(' ', '_')).replaceAll('%28', '(').replaceAll('%29', ')')}`;
+  const titlePattern = new RegExp(`href\\s*=\\s*(?:"${escapeRegExp(titleHref)}"|'${escapeRegExp(titleHref)}')`, 'i');
+  let best = 0;
+  for (const imgMatch of source.matchAll(/<img\b[^>]*>/gi)) {
+    const before = source.slice(Math.max(0, imgMatch.index - 700), imgMatch.index);
+    if (!titlePattern.test(before)) continue;
+    const candidate = buildImageCandidate(source, imgMatch.index, imgMatch[0]);
+    if (!candidate.url || !isValidBiomeImageUrl(candidate.url)) continue;
+    best = Math.max(best, candidate.score > 0 ? 20 : 0);
+  }
+  return best;
+}
+
+function extractWikiPageTitleFromHref(href, title) {
+  const text = String(href ?? '').trim();
+  if (!text.startsWith('/wiki/')) return null;
+  if (/[?&]action=edit\b/i.test(text)) return null;
+  if (text.startsWith('/wiki/File:') || text.startsWith('/wiki/Category:') || text.includes(':')) return null;
+  const rawTitle = text.slice('/wiki/'.length).split('#')[0].split('?')[0];
+  if (!rawTitle) return null;
+  return clean(decodeURIComponent(rawTitle).replaceAll('_', ' ')) || clean(title) || null;
+}
+
+function isNonBiomePageTitle(value) {
+  return /^(?:File|Category|Template|Help|Special):/i.test(String(value ?? ''));
+}
+
+function buildTitleTokens(value) {
+  const normalized = normalizeLooseTitle(value)
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\bbiomes?\b/g, '')
+    .replace(/\bcabins?\b/g, 'cabin')
+    .replace(/[^a-z0-9]+/gi, ' ')
+    .trim();
+  const tokens = normalized ? normalized.split(/\s+/).filter(token => token.length > 2) : [];
+  if (normalized) tokens.push(normalized.replace(/\s+/g, ''));
+  return [...new Set(tokens)];
+}
+
 function extractRepresentativeImageUrl(html) {
   const parserOutput = extractBlockByClass(html, 'div', 'mw-parser-output') || html;
   const infobox = extractBlockByClass(parserOutput, 'table', 'infobox') || parserOutput;
   const candidates = [...infobox.matchAll(/<img\b[^>]*>/gi)]
-    .map(match => extractImageUrlFromTag(match[0]))
-    .filter(Boolean);
-  return candidates.find(url => isValidBiomeImageUrl(url)) ?? null;
+    .map(match => buildImageCandidate(infobox, match.index, match[0]))
+    .filter(candidate => candidate.url && isValidBiomeImageUrl(candidate.url))
+    .sort((left, right) => right.score - left.score);
+  return candidates[0]?.url ?? null;
+}
+
+function buildImageCandidate(html, index, tag) {
+  const url = extractImageUrlFromTag(tag);
+  const alt = extractAttribute(tag, 'alt') ?? '';
+  const width = Number(extractAttribute(tag, 'width') ?? 0);
+  const height = Number(extractAttribute(tag, 'height') ?? 0);
+  const before = html.slice(Math.max(0, index - 500), index);
+  const after = html.slice(index, Math.min(html.length, index + 300));
+  let score = 0;
+  if (/BiomeBanner/i.test(url) || /BiomeBanner/i.test(alt)) score += 100;
+  if (/class\s*=\s*["'][^"']*(?:floatright|floatnone|center|thumb|gallerybox|gallery)[^"']*["']/i.test(before)) score += 30;
+  if (/\/wiki\/File:/i.test(before) || /class\s*=\s*["'][^"']*image[^"']*["']/i.test(before + after)) score += 16;
+  if (width >= 160 || height >= 80) score += 24;
+  if (width >= 250 || height >= 120) score += 16;
+  if (width > 0 && height > 0 && width <= 64 && height <= 64) score -= 90;
+  if (/message-box|noexcerpt|hat-note|dotlist|itemlist|navbox|infocard|recipes?|Unique Drops|Music/i.test(before)) score -= 45;
+  if (isLikelyItemOrUiImage(url, alt)) score -= 80;
+  score -= Math.floor(index / 10000);
+  return { url, score };
 }
 
 function extractImageUrlFromTag(tag) {
@@ -501,7 +615,14 @@ function isValidBiomeImageUrl(value) {
   const text = String(value ?? '').trim();
   if (!text) return false;
   if (!/\.(?:png|jpg|jpeg|webp|gif)$/i.test(text)) return false;
-  return !/(?:Desktop_only|Console_only|Mobile_only|Old-gen_console_version|Nintendo_Switch_version|tModLoader|Journey_Mode|Classic_Mode|Expert_Mode|Master_Mode|Hardmode|Pre-Hardmode|Info_icon|Notice|Question|Achievement|Map_Icon|Bestiary|Icon_)/i.test(text);
+  return !/(?:Desktop_only|Console_only|Mobile_only|Old-gen_console_version|Nintendo_Switch_version|tModLoader|Journey_Mode|Classic_Mode|Expert_Mode|Master_Mode|Hardmode|Pre-Hardmode|Info_icon|Notice|Question|Achievement|Map_Icon|Bestiary|Icon_|Auto_icon|Stack_digit|Pickaxe_mask|Rarity_color)/i.test(text);
+}
+
+function isLikelyItemOrUiImage(url, alt) {
+  const text = `${url ?? ''} ${alt ?? ''}`;
+  return /(?:Paint_Roller|Music_Box|Otherworldly_Music_Box|Meteor_Head|Meteorite\.png|Ice_Chest|Torches?|Chests?|Potion|Pickaxe|Sword|Banner|Trophy|Mask|Icon|Bestiary)/i.test(text)
+    && !/BiomeBanner/i.test(text)
+    && !/(?:Cabin|Cave|Tree|Island|Pyramid|Shrine|House|Mosaic|Campsite|Temple|Meteorite_\(biome\))/i.test(text);
 }
 
 function buildAliases(requestedTitle, resolvedTitle) {
@@ -693,6 +814,15 @@ function normalizeTitle(value) {
 
 function normalizeLooseTitle(value) {
   return normalizeTitle(value).replace(/^the\s+/, '');
+}
+
+function normalizeBiomeLinkTitle(value) {
+  return normalizeLooseTitle(value)
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\bbiomes?\b/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
 }
 
 function toWikiAnchor(value) {

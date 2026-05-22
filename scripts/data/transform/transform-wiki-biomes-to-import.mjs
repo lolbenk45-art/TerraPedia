@@ -47,11 +47,15 @@ const biomeTypeMap = new Map([
 const codeOverrideMap = new Map([
   ['Snow biome', 'snow'],
   ['Glowing Mushroom biome', 'glowing_mushroom'],
+  ['Glowing moss biome', 'glowing_moss'],
   ['Ice biome', 'ice'],
   ['The Underworld', 'underworld'],
   ['The Hallow', 'hallow'],
   ['The Corruption', 'corruption'],
   ['The Crimson', 'crimson'],
+  ['Meteorite', 'meteorite'],
+  ['Bee Hive', 'bee_hive'],
+  ['Aether', 'aether'],
 ]);
 
 const zhNameMap = new Map([
@@ -139,7 +143,7 @@ for (const record of payload.records || []) {
 const filteredRecords = (payload.records || []).filter(record => !isOverviewFallbackBiomeRecord(record));
 
 const biomes = filteredRecords.map(record => {
-  const code = deriveCode(record.title);
+  const code = deriveCode(record.requestedTitle) || deriveCode(record.title);
   const aliasEn = dedupe(record.aliases || [])
     .filter(alias => alias !== record.title)
     .join('|') || null;

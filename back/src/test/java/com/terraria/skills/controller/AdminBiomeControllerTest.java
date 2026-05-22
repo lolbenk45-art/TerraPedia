@@ -21,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import java.util.List;
 import java.util.Map;
 import java.util.Collection;
+import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -46,6 +47,30 @@ class AdminBiomeControllerTest {
 
     @Mock
     private ManagedItemImageResolver managedItemImageResolver;
+
+    @Test
+    void listShouldAcceptWikiGroupFilterForMiniMicroAndTreasureRoomCategories() throws Exception {
+        AdminBiomeController controller = new AdminBiomeController(
+            biomeMapper,
+            biomeRelationMapper,
+            biomeResourceMapper,
+            itemMapper,
+            managedItemImageResolver
+        );
+        when(biomeMapper.selectPage(any(), any())).thenReturn(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<Biome>(1, 20));
+
+        Method getBiomes = AdminBiomeController.class.getMethod(
+            "getBiomes",
+            Integer.class,
+            Integer.class,
+            Integer.class,
+            String.class,
+            String.class
+        );
+        getBiomes.invoke(controller, 1, 20, null, null, "treasure_room");
+
+        verify(biomeMapper).selectPage(any(), any());
+    }
 
     @Test
     void detailShouldExposeStructuredFieldsAndManagedResourceItemImages() {
