@@ -35,7 +35,50 @@ test('transform emits stable importable world context records from bounded sourc
   assert.match(byCode.get('BLOOD_MOON').rawJson, /"sourcePage":"Events"/);
 });
 
-function sourcePage(title, intro) {
+test('transform does not reuse one page-level icon across multiple derived contexts', () => {
+  const importable = buildWorldContextImportable({
+    generatedAt: '2026-05-22T00:00:00.000Z',
+    pages: [
+      sourcePage('Moon phase', 'Moon phase summary.', {
+        iconUrl: 'https://terraria.wiki.gg/images/Moon-full.png'
+      }),
+      sourcePage('Events', 'Event summary.', {
+        iconUrl: 'https://terraria.wiki.gg/images/Desktop_only.png'
+      })
+    ]
+  }, {
+    generatedAt: '2026-05-22T01:00:00.000Z',
+    sourceFile: 'data/generated/wiki-world-contexts.latest.json'
+  });
+
+  const byCode = new Map(importable.worldContexts.map(record => [record.code, record]));
+  assert.equal(byCode.get('FULL_MOON').iconUrl, null);
+  assert.equal(byCode.get('NEW_MOON').iconUrl, null);
+  assert.equal(byCode.get('BLOOD_MOON').iconUrl, null);
+});
+
+test('transform keeps only trusted single-context page icons', () => {
+  const importable = buildWorldContextImportable({
+    generatedAt: '2026-05-22T00:00:00.000Z',
+    pages: [
+      sourcePage('Shimmer', 'Shimmer summary.', {
+        iconUrl: 'https://terraria.wiki.gg/images/Shimmer.png'
+      }),
+      sourcePage('Snow biome', 'Snow biome summary.', {
+        iconUrl: 'https://terraria.wiki.gg/images/Desktop_only.png'
+      })
+    ]
+  }, {
+    generatedAt: '2026-05-22T01:00:00.000Z',
+    sourceFile: 'data/generated/wiki-world-contexts.latest.json'
+  });
+
+  const byCode = new Map(importable.worldContexts.map(record => [record.code, record]));
+  assert.equal(byCode.get('SHIMMER').iconUrl, 'https://terraria.wiki.gg/images/Shimmer.png');
+  assert.equal(byCode.get('SNOW').iconUrl, null);
+});
+
+function sourcePage(title, intro, overrides = {}) {
   return {
     requestedTitle: title,
     title,
@@ -45,6 +88,7 @@ function sourcePage(title, intro) {
     sourceUrl: `https://terraria.wiki.gg/wiki/${title.replaceAll(' ', '_')}`,
     intro,
     sections: [{ level: '2', line: 'Contents' }],
-    iconUrl: 'https://terraria.wiki.gg/images/Mock.png'
+    iconUrl: 'https://terraria.wiki.gg/images/Mock.png',
+    ...overrides
   };
 }

@@ -37,6 +37,7 @@ test('world context admin renders traceability fields and raw evidence editor', 
   const worldContextConfig = entitiesPage.match(/'world-contexts': \{[\s\S]*?\n  \},\n\}/)?.[0] ?? ''
 
   for (const token of [
+    "{ key: '__imageUrl', label: '预览' }",
     "{ key: 'sourceProvider', label: 'Source Provider'",
     "{ key: 'sourcePage', label: 'Source Page'",
     "{ key: 'sourceRevisionTimestamp', label: 'Source Revision Timestamp'",

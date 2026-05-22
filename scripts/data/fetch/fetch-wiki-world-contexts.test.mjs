@@ -8,7 +8,8 @@ import { fileURLToPath } from 'node:url';
 
 import {
   WORLD_CONTEXT_SOURCE_PAGES,
-  buildWorldContextProgressPayload
+  buildWorldContextProgressPayload,
+  fetchWorldContextSources
 } from './fetch-wiki-world-contexts.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -51,6 +52,32 @@ test('world context progress payload follows monitor contract shape', () => {
   assert.equal(payload.overallTotal, 6);
   assert.equal(payload.childStatusPath, '/tmp/world-context-progress.json');
   assert.equal(payload.lastHeartbeatAt, '2026-05-22T00:01:00.000Z');
+});
+
+test('world context fetch rejects wiki chrome images as representative icons', async () => {
+  const { records, unresolved } = await fetchWorldContextSources({
+    pages: [{ title: 'Events', domain: 'event' }],
+    fetchWikiPagePayloadImpl: async () => ({
+      pageTitle: 'Events',
+      pageId: 303,
+      revisionId: 202,
+      revisionTimestamp: '2026-05-20T00:00:00Z',
+      fetchedAt: '2026-05-22T00:00:00Z',
+      html: `
+        <div class="mw-parser-output">
+          <table class="infobox">
+            <tr><td><img alt="Desktop version" src="/images/Desktop_only.png?8fb4d9" /></td></tr>
+            <tr><td><img alt="Minecart" src="/images/Minecart.png?123abc" /></td></tr>
+          </table>
+          <p>Events are temporary occurrences.</p>
+        </div>`,
+      sections: []
+    })
+  });
+
+  assert.equal(unresolved.length, 0);
+  assert.equal(records.length, 1);
+  assert.equal(records[0].iconUrl, null);
 });
 
 test('world context fetch writes source JSON and completed progress with mock wiki payload', () => {

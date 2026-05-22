@@ -47,6 +47,7 @@ export function buildWorldContextImportable(payload, {
   generatedAt = new Date().toISOString(),
   sourceFile = null
 } = {}) {
+  const definitionCountBySourcePage = countDefinitionsBySourcePage(CONTEXT_DEFINITIONS);
   const pageByRequestedTitle = new Map(
     (Array.isArray(payload?.pages) ? payload.pages : [])
       .map(page => [String(page?.requestedTitle ?? page?.title ?? '').trim(), page])
@@ -62,7 +63,7 @@ export function buildWorldContextImportable(payload, {
       nameZh: definition.nameZh,
       contextType: definition.contextType,
       description: buildDescription(definition, page),
-      iconUrl: page?.iconUrl ?? null,
+      iconUrl: resolveTrustedIconUrl(definition, page, definitionCountBySourcePage),
       sourceProvider: 'wiki_gg',
       sourcePage: definition.sourcePage,
       sourceRevisionTimestamp,
@@ -71,6 +72,7 @@ export function buildWorldContextImportable(payload, {
         sourcePage: definition.sourcePage,
         sourceTitle: page?.title ?? definition.sourcePage,
         sourceUrl: page?.sourceUrl ?? null,
+        sourceIconUrl: page?.iconUrl ?? null,
         sourceRevisionTimestamp,
         sourceIntro: page?.intro ?? null,
         sourceSections: Array.isArray(page?.sections) ? page.sections : []
@@ -91,6 +93,31 @@ export function buildWorldContextImportable(payload, {
       sourcePageCount: pageByRequestedTitle.size
     }
   };
+}
+
+function countDefinitionsBySourcePage(definitions) {
+  const counts = new Map();
+  for (const definition of definitions) {
+    counts.set(definition.sourcePage, (counts.get(definition.sourcePage) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function resolveTrustedIconUrl(definition, page, definitionCountBySourcePage) {
+  if ((definitionCountBySourcePage.get(definition.sourcePage) ?? 0) !== 1) {
+    return null;
+  }
+  const iconUrl = typeof page?.iconUrl === 'string' ? page.iconUrl.trim() : '';
+  if (!isTrustedWorldContextIconUrl(iconUrl)) {
+    return null;
+  }
+  return iconUrl;
+}
+
+function isTrustedWorldContextIconUrl(value) {
+  const text = String(value ?? '').trim();
+  if (!/\.(?:png|jpg|jpeg|webp|gif)(?:[?#]|$)/i.test(text)) return false;
+  return !/(?:Desktop_only|Console_only|Mobile_only|Old-gen_console_version|Nintendo_Switch_version|tModLoader|Journey_Mode|Classic_Mode|Expert_Mode|Master_Mode|Hardmode|Pre-Hardmode|Info_icon|Notice|Question|Achievement|Map_Icon|Bestiary|Icon_|Disambig|Disambiguation|Minecart)/i.test(text);
 }
 
 function buildDescription(definition, page) {

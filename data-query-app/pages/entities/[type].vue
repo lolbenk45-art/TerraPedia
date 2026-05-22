@@ -1905,6 +1905,7 @@ const configs: Record<string, EntityConfig> = {
       { key: 'lastSyncedAt', label: 'lastSyncedAt' },
     ],
     columns: [
+      { key: '__imageUrl', label: '预览' },
       { key: 'id', label: 'ID' },
       { key: 'code', label: 'Code' },
       { key: 'nameZh', label: '显示名称' },

@@ -174,7 +174,7 @@ async function main(argv = process.argv.slice(2)) {
 function toSourceRecord(source, page) {
   const html = String(page?.html ?? '');
   const intro = extractIntroParagraphs(html)[0] ?? null;
-  const image = extractItemInfoboxImages(html)[0] ?? null;
+  const image = extractItemInfoboxImages(html).find(isTrustedWorldContextImage) ?? null;
   const title = page?.pageTitle ?? page?.title ?? source.title;
   return {
     requestedTitle: source.title,
@@ -195,6 +195,16 @@ function toSourceRecord(source, page) {
       : [],
     iconUrl: image?.url ?? null
   };
+}
+
+function isTrustedWorldContextImage(image) {
+  const url = String(image?.url ?? '');
+  const fileTitle = String(image?.fileTitle ?? '');
+  const alt = String(image?.alt ?? '');
+  const title = String(image?.title ?? '');
+  const text = `${url} ${fileTitle} ${alt} ${title}`;
+  if (!/\.(?:png|jpg|jpeg|webp|gif)(?:[?#]|$)/i.test(url)) return false;
+  return !/(?:Desktop_only|Console_only|Mobile_only|Old-gen_console_version|Nintendo_Switch_version|tModLoader|Journey_Mode|Classic_Mode|Expert_Mode|Master_Mode|Hardmode|Pre-Hardmode|Info_icon|Notice|Question|Achievement|Map_Icon|Bestiary|Icon_|Disambig|Disambiguation|Minecart)/i.test(text);
 }
 
 function buildMarkdown(payload) {
