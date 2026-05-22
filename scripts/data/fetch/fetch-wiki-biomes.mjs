@@ -80,8 +80,15 @@ const skipTopLevelGroups = new Set([
   'Biome existence requirements',
   'Removed biomes',
   'Other biomes',
-  'Treasure rooms',
+]);
+
+const containerOnlyTopLevelGroups = new Set([
+  'Surface and Underground',
+  'Hardmode',
+  'Mini-biomes',
   'Micro-biomes',
+  'Treasure rooms',
+  'Cavern',
 ]);
 
 async function main(argv = process.argv.slice(2)) {
@@ -103,6 +110,7 @@ async function main(argv = process.argv.slice(2)) {
   });
 
   const overview = await fetchPageRevision('Biomes');
+  const overviewRendered = await fetchRenderedHtml('Biomes');
   const overviewSections = await fetchPageSections('Biomes');
   const discoveredBiomes = discoverBiomeTargets(overviewSections);
   const records = [];
@@ -133,6 +141,8 @@ async function main(argv = process.argv.slice(2)) {
         infectionSourceTitle: derivedDefinition.infectionSourceTitle,
         sourcePageTitle: 'Biomes',
         sourceSectionTitle: entry.sectionGroup ?? entry.topGroup,
+        sourceSectionAnchor: entry.sectionAnchor,
+        sourceSectionIndex: entry.sectionIndex,
         sourceRevisionTimestamp: overview.revisionTimestamp,
         aliases: [derivedDefinition.displayName],
       });
@@ -147,21 +157,38 @@ async function main(argv = process.argv.slice(2)) {
     }
     try {
       const page = await fetchPageRevision(entry.pageTitle);
-      const rendered = await fetchRenderedHtml(page.title);
-      records.push({
-        topGroup: entry.topGroup,
-        sectionGroup: entry.sectionGroup,
-        requestedTitle: entry.pageTitle,
-        title: page.title,
-        pageId: page.pageId,
-        revisionId: page.revisionId,
-        revisionTimestamp: page.revisionTimestamp,
-        sourceUrl: `https://terraria.wiki.gg/wiki/${encodeURIComponent(page.title.replaceAll(' ', '_'))}`,
-        intro: extractIntro(rendered),
-        iconUrl: extractRepresentativeImageUrl(rendered),
-        aliases: buildAliases(entry.pageTitle, page.title),
-      });
+      if (shouldUseOverviewSectionRecord(entry, page.title)) {
+        records.push(buildOverviewSectionRecord(entry, overview, overviewRendered));
+      } else {
+        const rendered = await fetchRenderedHtml(page.title);
+        records.push({
+          topGroup: entry.topGroup,
+          sectionGroup: entry.sectionGroup,
+          requestedTitle: entry.pageTitle,
+          title: page.title,
+          pageId: page.pageId,
+          revisionId: page.revisionId,
+          revisionTimestamp: page.revisionTimestamp,
+          sourceUrl: `https://terraria.wiki.gg/wiki/${encodeURIComponent(page.title.replaceAll(' ', '_'))}`,
+          sourceSectionAnchor: entry.sectionAnchor,
+          sourceSectionIndex: entry.sectionIndex,
+          intro: extractIntro(rendered),
+          iconUrl: extractRepresentativeImageUrl(rendered),
+          aliases: buildAliases(entry.pageTitle, page.title),
+        });
+      }
     } catch (error) {
+      if (isMissingWikiPageError(error) && canBuildOverviewSectionRecord(entry, overviewRendered)) {
+        records.push(buildOverviewSectionRecord(entry, overview, overviewRendered));
+        writeBiomeFetchProgress({
+          status: 'running',
+          phase: 'fetch',
+          message: `fetched biome ${current}/${discoveredBiomes.length}: ${entry.pageTitle}`,
+          current,
+          total: discoveredBiomes.length
+        });
+        continue;
+      }
       unresolved.push({
         topGroup: entry.topGroup,
         sectionGroup: entry.sectionGroup,
@@ -300,11 +327,14 @@ function discoverBiomeTargets(sections) {
       if (skipTopLevelGroups.has(line)) continue;
       const titles = sectionTitleOverrides.get(line) || [line];
       for (const title of titles) {
-        if (title !== 'Surface and Underground' && title !== 'Hardmode' && title !== 'Mini-biomes' && title !== 'Cavern') {
+        if (!containerOnlyTopLevelGroups.has(title)) {
           targets.push({
             topGroup: line,
             sectionGroup: null,
             pageTitle: title,
+            sectionAnchor: section.anchor ?? toWikiAnchor(line),
+            sectionIndex: section.index ?? null,
+            sectionLevel: level,
           });
         }
       }
@@ -318,6 +348,9 @@ function discoverBiomeTargets(sections) {
           topGroup: currentTopGroup,
           sectionGroup: line,
           pageTitle: title,
+          sectionAnchor: section.anchor ?? toWikiAnchor(line),
+          sectionIndex: section.index ?? null,
+          sectionLevel: level,
         });
       }
     }
@@ -332,6 +365,97 @@ function discoverBiomeTargets(sections) {
     deduped.push(target);
   }
   return deduped;
+}
+
+function isOverviewPageFallback(requestedTitle, resolvedTitle) {
+  return normalizeTitle(resolvedTitle) === 'biomes' && normalizeTitle(requestedTitle) !== 'biomes';
+}
+
+function shouldUseOverviewSectionRecord(entry, resolvedTitle) {
+  if (isOverviewPageFallback(entry.pageTitle, resolvedTitle)) return true;
+  if (!entry.sectionAnchor || isEquivalentBiomePageTitle(entry.pageTitle, resolvedTitle)) return false;
+  return true;
+}
+
+function isEquivalentBiomePageTitle(requestedTitle, resolvedTitle) {
+  return normalizeLooseTitle(requestedTitle) === normalizeLooseTitle(resolvedTitle);
+}
+
+function buildOverviewSectionRecord(entry, overview, overviewRendered) {
+  const sectionHtml = extractSectionHtml(overviewRendered, entry.sectionAnchor, Number(entry.sectionLevel || 3)) ?? '';
+  return {
+    topGroup: entry.topGroup,
+    sectionGroup: entry.sectionGroup,
+    requestedTitle: entry.pageTitle,
+    title: entry.pageTitle,
+    pageId: overview.pageId,
+    revisionId: overview.revisionId,
+    revisionTimestamp: overview.revisionTimestamp,
+    sourceType: 'overview_section',
+    sourcePageTitle: 'Biomes',
+    sourceSectionTitle: entry.sectionGroup ?? entry.pageTitle,
+    sourceSectionAnchor: entry.sectionAnchor,
+    sourceSectionIndex: entry.sectionIndex,
+    sourceUrl: buildOverviewSectionUrl(entry.sectionAnchor),
+    intro: extractIntro(sectionHtml),
+    iconUrl: extractRepresentativeImageUrl(sectionHtml),
+    aliases: buildAliases(entry.pageTitle, entry.pageTitle),
+  };
+}
+
+function canBuildOverviewSectionRecord(entry, overviewRendered) {
+  return Boolean(entry.sectionAnchor && extractSectionHtml(overviewRendered, entry.sectionAnchor, Number(entry.sectionLevel || 3)));
+}
+
+function isMissingWikiPageError(error) {
+  return String(error?.message ?? error).startsWith('Wiki page not found:');
+}
+
+function buildOverviewSectionUrl(anchor) {
+  const suffix = anchor ? `#${encodeURIComponent(anchor)}` : '';
+  return `https://terraria.wiki.gg/wiki/Biomes${suffix}`;
+}
+
+function extractSectionHtml(html, anchor, level = 3) {
+  const source = String(html ?? '');
+  if (!source || !anchor) return null;
+  const escapedAnchor = escapeRegExp(anchor);
+  const anchorPattern = new RegExp(`\\bid\\s*=\\s*(?:"${escapedAnchor}"|'${escapedAnchor}')`, 'i');
+  const anchorMatch = anchorPattern.exec(source);
+  if (!anchorMatch) return null;
+  const headingStart = findHeadingStart(source, anchorMatch.index);
+  if (headingStart === -1) return source.slice(anchorMatch.index);
+  const headingEnd = source.indexOf('>', headingStart);
+  const headingMatch = /^<h([1-6])\b/i.exec(source.slice(headingStart, headingEnd + 1));
+  const currentLevel = Number(headingMatch?.[1] ?? level);
+  const endIndex = findNextHeadingAtSameOrHigherLevel(source, headingEnd + 1, currentLevel);
+  return source.slice(headingStart, endIndex === -1 ? source.length : endIndex);
+}
+
+function findHeadingStart(source, index) {
+  for (let level = 1; level <= 6; level += 1) {
+    const headingStart = source.lastIndexOf(`<h${level}`, index);
+    if (headingStart !== -1) {
+      const headingEnd = source.indexOf(`</h${level}>`, headingStart);
+      if (headingEnd !== -1 && headingEnd >= index) {
+        return headingStart;
+      }
+    }
+  }
+  return -1;
+}
+
+function findNextHeadingAtSameOrHigherLevel(source, startIndex, currentLevel) {
+  const headingRegex = /<h([1-6])\b/gi;
+  headingRegex.lastIndex = startIndex;
+  let match = headingRegex.exec(source);
+  while (match) {
+    if (Number(match[1]) <= currentLevel) {
+      return match.index;
+    }
+    match = headingRegex.exec(source);
+  }
+  return -1;
 }
 
 function extractIntro(html) {
@@ -561,6 +685,18 @@ function decodeHtmlEntities(text) {
 
 function clean(value) {
   return String(value ?? '').replace(/\s+/g, ' ').trim();
+}
+
+function normalizeTitle(value) {
+  return clean(value).toLowerCase();
+}
+
+function normalizeLooseTitle(value) {
+  return normalizeTitle(value).replace(/^the\s+/, '');
+}
+
+function toWikiAnchor(value) {
+  return clean(value).replaceAll(' ', '_');
 }
 
 function escapeRegExp(text) {

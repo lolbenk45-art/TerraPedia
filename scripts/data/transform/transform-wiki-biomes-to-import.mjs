@@ -19,6 +19,8 @@ const layerTypeMap = new Map([
   ['Underworld', 'underworld'],
   ['Hardmode', 'hardmode'],
   ['Mini-biomes', 'mini_biome'],
+  ['Micro-biomes', 'micro_biome'],
+  ['Treasure rooms', 'treasure_room'],
 ]);
 
 const biomeTypeMap = new Map([
@@ -83,6 +85,23 @@ const zhNameMap = new Map([
   ['Town', '城镇'],
   ['Graveyard', '墓地'],
   ['Aether', '以太'],
+  ['Flower patch', '花丛'],
+  ['Stone patch', '石块斑块'],
+  ['Large ore vein', '大型矿脉'],
+  ['Moss chamber', '苔藓洞室'],
+  ['Gemstone cave', '宝石洞穴'],
+  ['Thin Ice patch', '薄冰斑块'],
+  ['Spike Caves', '尖刺洞穴'],
+  ['Underground Cabin', '地下小屋'],
+  ['Living Tree', '生命树'],
+  ['Floating Island', '漂浮岛'],
+  ['Living Mahogany Tree', '生命红木树'],
+  ['Jungle Shrine', '丛林神龛'],
+  ['Ruined House', '废墟房屋'],
+  ['Pyramid', '金字塔'],
+  ['Enchanted Sword Shrine', '附魔剑冢'],
+  ['Mosaic', '马赛克房间'],
+  ['Campsite', '营地'],
 ]);
 
 const zhAliasMap = new Map([
@@ -128,7 +147,7 @@ const biomes = filteredRecords.map(record => {
   return {
     code,
     nameEn: record.title,
-    nameZh: zhNameMap.get(record.title) || null,
+    nameZh: deriveZhName(record),
     aliasEn,
     aliasZh: zhAliasMap.get(record.title) || null,
     layerType: deriveLayerType(record),
@@ -136,7 +155,7 @@ const biomes = filteredRecords.map(record => {
     description: record.intro || null,
     iconUrl: toNullableString(record.iconUrl),
     sourceProvider: 'wiki_gg',
-    sourcePage: record.title,
+    sourcePage: deriveSourcePage(record),
     sourceRevisionTimestamp: record.revisionTimestamp || null,
     lastSyncedAt: payload.generatedAt || generatedAt,
     status: 1,
@@ -211,7 +230,30 @@ function deriveLayerType(record) {
 
 function deriveFallbackBiomeType(record) {
   if (record.topGroup === 'Mini-biomes') return 'mini_biome';
+  if (record.topGroup === 'Micro-biomes') return 'micro_biome';
+  if (record.topGroup === 'Treasure rooms') return 'treasure_room';
   return 'unknown';
+}
+
+function deriveSourcePage(record) {
+  if (record.sourceType === 'overview_section' && record.sourcePageTitle && record.sourceSectionAnchor) {
+    return `${record.sourcePageTitle}#${record.sourceSectionAnchor}`;
+  }
+  return record.title;
+}
+
+function deriveZhName(record) {
+  const candidates = [
+    record.title,
+    record.requestedTitle,
+    ...(Array.isArray(record.aliases) ? record.aliases : []),
+  ];
+  for (const candidate of candidates) {
+    if (zhNameMap.has(candidate)) {
+      return zhNameMap.get(candidate);
+    }
+  }
+  return null;
 }
 
 function dedupe(values) {

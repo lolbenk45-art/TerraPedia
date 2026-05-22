@@ -327,7 +327,7 @@ export async function fetchWikiApiJson({
     throw new Error('url is required');
   }
   if (process.env.NODE_ENV === 'test' && process.env.TERRAPEDIA_WIKI_MOCK_API_RESPONSE) {
-    return JSON.parse(fs.readFileSync(process.env.TERRAPEDIA_WIKI_MOCK_API_RESPONSE, 'utf8'));
+    return readMockWikiApiResponse(url);
   }
   return wikiRequestGate.runJsonRequest(url, {
     method,
@@ -336,6 +336,28 @@ export async function fetchWikiApiJson({
     profile,
     sourceKey
   });
+}
+
+function readMockWikiApiResponse(url) {
+  const payload = JSON.parse(fs.readFileSync(process.env.TERRAPEDIA_WIKI_MOCK_API_RESPONSE, 'utf8'));
+  if (!payload || !payload.__byRequest) {
+    return payload;
+  }
+  const requestUrl = new URL(String(url));
+  const action = requestUrl.searchParams.get('action') || '';
+  const prop = requestUrl.searchParams.get('prop') || '';
+  const title = requestUrl.searchParams.get('titles') || requestUrl.searchParams.get('page') || '';
+  const requestKeys = [
+    `${action}:${prop}:${title}`,
+    `${action}:*:${title}`,
+    `${action}:${title}`,
+  ];
+  for (const key of requestKeys) {
+    if (Object.hasOwn(payload.__byRequest, key)) {
+      return payload.__byRequest[key];
+    }
+  }
+  throw new Error(`Missing mock wiki API response for ${action}:${prop}:${title}`);
 }
 
 export function isTerrariaWikiUrl(value) {

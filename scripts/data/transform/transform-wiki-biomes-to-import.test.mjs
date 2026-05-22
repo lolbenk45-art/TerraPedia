@@ -40,3 +40,79 @@ test('transform passes through valid extracted biome image URLs', () => {
   const output = JSON.parse(fs.readFileSync(path.join(generatedDir, 'wiki-biomes.importable.latest.json'), 'utf8'));
   assert.equal(output.biomes[0].iconUrl, 'https://terraria.wiki.gg/images/Forest_biome.png');
 });
+
+test('transform keeps intentional overview section records as micro biome imports', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-biome-transform-section-'));
+  const generatedDir = path.join(tempDir, 'data', 'generated');
+  fs.mkdirSync(generatedDir, { recursive: true });
+  fs.writeFileSync(path.join(generatedDir, 'wiki-biomes.latest.json'), JSON.stringify({
+    entity: 'wiki_biomes',
+    generatedAt: '2026-05-20T00:00:00.000Z',
+    overview: { title: 'Biomes' },
+    derivedRecords: [],
+    unresolved: [],
+    records: [{
+      topGroup: 'Micro-biomes',
+      sectionGroup: 'Flower patch',
+      requestedTitle: 'Flower patch',
+      title: 'Flower patch',
+      sourceType: 'overview_section',
+      sourcePageTitle: 'Biomes',
+      sourceSectionAnchor: 'Flower_patch',
+      revisionTimestamp: '2026-05-20T00:00:00Z',
+      intro: 'A flower patch is a tiny surface micro-biome.',
+      aliases: ['Flower patch'],
+      iconUrl: 'https://terraria.wiki.gg/images/Flower_Patch.png',
+    }]
+  }), 'utf8');
+
+  const result = spawnSync(process.execPath, [scriptPath], {
+    cwd: tempDir,
+    encoding: 'utf8',
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const output = JSON.parse(fs.readFileSync(path.join(generatedDir, 'wiki-biomes.importable.latest.json'), 'utf8'));
+  assert.equal(output.biomes.length, 1);
+  assert.equal(output.biomes[0].code, 'flower_patch');
+  assert.equal(output.biomes[0].nameEn, 'Flower patch');
+  assert.equal(output.biomes[0].nameZh, '花丛');
+  assert.equal(output.biomes[0].layerType, 'micro_biome');
+  assert.equal(output.biomes[0].biomeType, 'micro_biome');
+  assert.equal(output.biomes[0].sourcePage, 'Biomes#Flower_patch');
+});
+
+test('transform keeps Chinese names for redirected biome titles with aliases', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-biome-transform-alias-'));
+  const generatedDir = path.join(tempDir, 'data', 'generated');
+  fs.mkdirSync(generatedDir, { recursive: true });
+  fs.writeFileSync(path.join(generatedDir, 'wiki-biomes.latest.json'), JSON.stringify({
+    entity: 'wiki_biomes',
+    generatedAt: '2026-05-20T00:00:00.000Z',
+    overview: { title: 'Biomes' },
+    derivedRecords: [],
+    unresolved: [],
+    records: [{
+      topGroup: 'Mini-biomes',
+      sectionGroup: 'Aether',
+      requestedTitle: 'Aether',
+      title: 'The Aether',
+      revisionTimestamp: '2026-05-20T00:00:00Z',
+      intro: 'The Aether is a rare mini-biome.',
+      aliases: ['Aether', 'The Aether'],
+      iconUrl: 'https://terraria.wiki.gg/images/BiomeBannerAether.png',
+    }]
+  }), 'utf8');
+
+  const result = spawnSync(process.execPath, [scriptPath], {
+    cwd: tempDir,
+    encoding: 'utf8',
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const output = JSON.parse(fs.readFileSync(path.join(generatedDir, 'wiki-biomes.importable.latest.json'), 'utf8'));
+  assert.equal(output.biomes[0].code, 'aether');
+  assert.equal(output.biomes[0].nameEn, 'The Aether');
+  assert.equal(output.biomes[0].nameZh, '以太');
+  assert.equal(output.biomes[0].aliasEn, 'Aether');
+});
