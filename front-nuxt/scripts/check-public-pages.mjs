@@ -287,6 +287,9 @@ const requiredPublicDataLayerFiles = [
   'composables/usePublicApi.ts',
   'composables/usePublicItems.ts',
   'composables/usePublicItemDetail.ts',
+  'composables/usePublicBuffs.ts',
+  'composables/usePublicBuffDetail.ts',
+  'composables/usePublicProjectiles.ts',
   'components/common/PreviewImage.vue',
   'components/common/TpSkeleton.vue',
   'components/catalog/CatalogWallSkeleton.vue',
@@ -314,6 +317,13 @@ const requiredPublicDataLayerMarkers = {
     'export type PublicItemDetailBundle',
     'export type PublicItemQuery',
     'export type CatalogItem',
+    'export type PublicBuffQuery',
+    'export type PublicBuffListItem',
+    'export type PublicBuffDetail',
+    'export type BuffCatalogItem',
+    'export type PublicProjectileQuery',
+    'export type PublicProjectileListItem',
+    'export type ProjectileCatalogItem',
   ],
   'composables/usePreviewImage.ts': [
     'export const resolvePreviewImageUrl',
@@ -344,6 +354,32 @@ const requiredPublicDataLayerMarkers = {
     '/public/items/${normalizedItemId}/recipe-tree',
     'resolvePreviewImageUrl',
     'source: \'missing\'',
+  ],
+  'composables/usePublicBuffs.ts': [
+    'export const normalizePublicBuff',
+    'export const fetchPublicBuffs',
+    'export const usePublicBuffs',
+    "'/public/buffs'",
+    'Array.isArray(rawBuffs)',
+    'source: \'api\'',
+  ],
+  'composables/usePublicBuffDetail.ts': [
+    'export const normalizePublicBuffDetail',
+    'export const fetchPublicBuffDetail',
+    'export const usePublicBuffDetail',
+    '`/public/buffs/${normalizedBuffId}`',
+    "detailRecord[`source${'Items'}`]",
+    "detailRecord[`inflicting${'Npcs'}`]",
+    "detailRecord[`immune${'Npcs'}`]",
+    'source: \'missing\'',
+  ],
+  'composables/usePublicProjectiles.ts': [
+    'export const normalizePublicProjectile',
+    'export const fetchPublicProjectiles',
+    'export const usePublicProjectiles',
+    "'/public/projectiles'",
+    'Array.isArray(rawProjectiles)',
+    'source: \'api\'',
   ],
   'components/common/PreviewImage.vue': [
     'resolvePreviewImageUrl',
@@ -488,6 +524,9 @@ const scanFiles = [
   'components/home/HomeCodexBand.vue',
   'composables/useHomeData.ts',
   'composables/usePublicItems.ts',
+  'composables/usePublicBuffs.ts',
+  'composables/usePublicBuffDetail.ts',
+  'composables/usePublicProjectiles.ts',
   'stores/theme.ts',
   'assets/css/hifi-preview.css',
   'assets/css/loading-skeleton.css',
@@ -913,6 +952,104 @@ for (const path of scanFiles) {
 
     if (content.includes('Terra Blade') || content.includes('泰拉刃是一把困难模式后期近战武器')) {
       violations.push(`${path}: item detail page must not keep the static Terra Blade mock as primary content`)
+    }
+  }
+
+  if (path === 'pages/buffs/index.vue') {
+    for (const marker of [
+      'usePublicBuffs',
+      'buffListQuery',
+      'buffSearchQuery',
+      'buffDisplayItems',
+      'buffVisualLoading',
+      'buffLoadingSlotCount',
+      'goToBuffPage',
+      'goToBuffJumpPage',
+      '<CommonTpSkeleton',
+      '<CommonPreviewImage',
+      ':aria-busy="buffVisualLoading"',
+      'v-for="buff in buffDisplayItems"',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: buffs page must render live public buff data with search, paging, preview images, and skeleton loading via marker ${marker}`)
+      }
+    }
+
+    for (const staticMarker of [
+      '铁皮药水',
+      '再生药水',
+      '敏捷药水',
+      '着火了！</h3>',
+      '中毒</h3>',
+    ]) {
+      if (content.includes(staticMarker)) {
+        violations.push(`${path}: buffs page must not keep static preview-only buff content (${staticMarker})`)
+      }
+    }
+  }
+
+  if (path === 'pages/buffs/[id].vue') {
+    for (const marker of [
+      'usePublicBuffDetail',
+      'route.params.id',
+      'buffDetail',
+      'buffDetailVisualLoading',
+      'buffRelationSections',
+      'sources',
+      'inflicters',
+      'immuneTargets',
+      '<CommonTpSkeleton',
+      '<CommonPreviewImage',
+      ':aria-busy="buffDetailVisualLoading"',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: buff detail page must render live public buff detail data and relation sections via marker ${marker}`)
+      }
+    }
+
+    for (const staticMarker of [
+      'Ironskin',
+      '防御 +8',
+      'Boss 前检查',
+      '后续接入来源接口',
+    ]) {
+      if (content.includes(staticMarker)) {
+        violations.push(`${path}: buff detail page must not keep the static Iron Skin mock as primary content (${staticMarker})`)
+      }
+    }
+  }
+
+  if (path === 'pages/projectiles/index.vue') {
+    for (const marker of [
+      'usePublicProjectiles',
+      'projectileListQuery',
+      'projectileSearchQuery',
+      'projectileSortBy',
+      'projectileDisplayItems',
+      'projectileVisualLoading',
+      'projectileLoadingSlotCount',
+      'goToProjectilePage',
+      'goToProjectileJumpPage',
+      '<CommonTpSkeleton',
+      '<CommonPreviewImage',
+      ':aria-busy="projectileVisualLoading"',
+      'v-for="projectile in projectileDisplayItems"',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: projectiles page must render live public projectile data with search, sort, paging, preview images, and skeleton loading via marker ${marker}`)
+      }
+    }
+
+    for (const staticMarker of [
+      '泰拉光束',
+      '木箭',
+      '死亡激光',
+      '水矢',
+      '高保真预览先建立视觉语言',
+    ]) {
+      if (content.includes(staticMarker)) {
+        violations.push(`${path}: projectiles page must not keep static preview-only projectile content (${staticMarker})`)
+      }
     }
   }
 

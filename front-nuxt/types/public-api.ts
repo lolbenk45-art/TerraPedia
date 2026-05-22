@@ -290,3 +290,141 @@ export type PublicItemsResult = {
   pagination: Pagination
   source: 'api' | 'fallback'
 }
+
+export type PublicBuffQuery = {
+  page?: number
+  limit?: number
+  size?: number
+  search?: string
+  sortBy?: string
+  sortDirection?: 'asc' | 'desc'
+}
+
+export type PublicBuffListItem = {
+  id?: number | string | null
+  sourceId?: number | string | null
+  internalName?: string | null
+  name?: string | null
+  nameZh?: string | null
+  imageUrl?: string | null
+  buffType?: string | null
+  tooltipZh?: string | null
+  sourceItemCount?: number | string | null
+  immuneNpcCount?: number | string | null
+}
+
+export type PublicBuffFactSummary = {
+  id?: number | string | null
+  sourceId?: number | string | null
+  internalName?: string | null
+  name?: string | null
+  nameZh?: string | null
+  imageUrl?: string | null
+  relationType?: string | null
+  durationTicks?: number | string | null
+  chanceText?: string | null
+  conditions?: string | null
+  sourceProvider?: string | null
+  sourcePage?: string | null
+  sourceSection?: string | null
+  sourceRevisionTimestamp?: string | null
+}
+
+export type PublicBuffDetail = PublicBuffListItem & {
+  englishName?: string | null
+  tooltipEn?: string | null
+  inflictingNpcCount?: number | string | null
+  sources?: PublicBuffFactSummary[] | null
+  inflicters?: PublicBuffFactSummary[] | null
+  immuneTargets?: PublicBuffFactSummary[] | null
+  provenance?: Record<string, unknown> | null
+  sourceEvidence?: Record<string, unknown> | null
+}
+
+export type BuffCatalogItem = {
+  id: string
+  buffId: number | null
+  detailPath: string
+  name: string
+  displayName: string
+  englishName: string
+  internalName: string
+  image: string
+  sourceImage: string
+  type: string
+  typeLabel: string
+  tone: string
+  tooltip: string
+  fallback: string
+  sourceCount: number | null
+  immuneCount: number | null
+  inflictingCount: number | null
+  searchText: string
+}
+
+export type PublicBuffsResult = {
+  items: BuffCatalogItem[]
+  rawBuffs: PublicBuffListItem[]
+  pagination: Pagination
+  source: 'api' | 'fallback'
+}
+
+export type PublicBuffDetailResult = {
+  detail: PublicBuffDetail | null
+  item: BuffCatalogItem | null
+  sources: PublicBuffFactSummary[]
+  inflicters: PublicBuffFactSummary[]
+  immuneTargets: PublicBuffFactSummary[]
+  source: 'api' | 'missing'
+}
+
+export type PublicProjectileQuery = {
+  page?: number
+  limit?: number
+  size?: number
+  search?: string
+  sortBy?: 'id' | 'name' | 'damage' | 'aiStyle' | string
+  sortDirection?: 'asc' | 'desc'
+}
+
+export type PublicProjectileListItem = {
+  id?: number | string | null
+  sourceId?: number | string | null
+  internalName?: string | null
+  name?: string | null
+  nameZh?: string | null
+  imageUrl?: string | null
+  aiStyle?: number | string | null
+  damage?: number | string | null
+  knockBack?: number | string | null
+  hostile?: boolean | number | string | null
+  friendly?: boolean | number | string | null
+}
+
+export type ProjectileCatalogItem = {
+  id: string
+  projectileId: number | null
+  name: string
+  displayName: string
+  englishName: string
+  internalName: string
+  image: string
+  sourceImage: string
+  tone: string
+  fallback: string
+  aiStyle: number | null
+  damage: number | null
+  knockBack: number | null
+  hostile: boolean
+  friendly: boolean
+  allegianceLabel: string
+  summary: string
+  searchText: string
+}
+
+export type PublicProjectilesResult = {
+  items: ProjectileCatalogItem[]
+  rawProjectiles: PublicProjectileListItem[]
+  pagination: Pagination
+  source: 'api' | 'fallback'
+}
