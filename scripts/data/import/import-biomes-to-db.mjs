@@ -97,15 +97,41 @@ function mergeBiomeRecord(previous, next) {
 }
 
 function mergeIconUrl(previousValue, nextValue) {
+  const previousIcon = toNullableString(previousValue);
   const nextIcon = toNullableString(nextValue);
+  if (previousIcon && isManagedBiomeIconUrl(previousIcon) && nextIcon && isExternalWikiIconUrl(nextIcon)) {
+    return previousIcon;
+  }
   if (nextIcon) {
     return isInvalidBiomeIconUrl(nextIcon) ? null : nextIcon;
   }
-  const previousIcon = toNullableString(previousValue);
   if (!previousIcon || isInvalidBiomeIconUrl(previousIcon)) {
     return null;
   }
   return previousIcon;
+}
+
+function isManagedBiomeIconUrl(value) {
+  const text = toNullableString(value);
+  if (!text) return false;
+  try {
+    const parsed = new URL(text);
+    return (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1')
+      && parsed.pathname.startsWith('/terrapedia-images/');
+  } catch {
+    return text.startsWith('/terrapedia-images/');
+  }
+}
+
+function isExternalWikiIconUrl(value) {
+  const text = toNullableString(value);
+  if (!text) return false;
+  try {
+    const parsed = new URL(text);
+    return /^https?:$/i.test(parsed.protocol) && parsed.hostname.toLowerCase() === 'terraria.wiki.gg';
+  } catch {
+    return false;
+  }
 }
 
 function isInvalidBiomeIconUrl(value) {
@@ -240,6 +266,17 @@ async function loadBiomeCodeMap(conn) {
   return map;
 }
 
+async function loadExistingBiomeIconMap(conn) {
+  const [rows] = await conn.query('SELECT code, icon_url FROM biomes WHERE deleted = 0');
+  const map = new Map();
+  for (const row of rows) {
+    const code = normalizeCode(row.code);
+    if (!code) continue;
+    map.set(code, toNullableString(row.icon_url));
+  }
+  return map;
+}
+
 function getItemId(itemLookup, internalName, itemName) {
   const internalKey = normalizeInternalName(internalName);
   if (internalKey && itemLookup.byInternal.has(internalKey)) {
@@ -254,6 +291,8 @@ function getItemId(itemLookup, internalName, itemName) {
 
 async function importBiomes(conn, biomeRecords, stats) {
   if (!Array.isArray(biomeRecords) || biomeRecords.length === 0) return new Map();
+
+  const existingIconByCode = await loadExistingBiomeIconMap(conn);
 
   for (let i = 0; i < biomeRecords.length; i += 1) {
     const raw = biomeRecords[i];
@@ -295,7 +334,7 @@ async function importBiomes(conn, biomeRecords, stats) {
         toNullableString(raw?.layerType),
         toNullableString(raw?.biomeType),
         toNullableString(raw?.description),
-        mergeIconUrl(null, raw?.iconUrl),
+        mergeIconUrl(existingIconByCode.get(code), raw?.iconUrl),
         toNullableString(raw?.sourceProvider) ?? 'wiki_gg',
         toNullableString(raw?.sourcePage ?? raw?.pageTitle),
         toDateTime(raw?.sourceRevisionTimestamp ?? raw?.revisionTimestamp),

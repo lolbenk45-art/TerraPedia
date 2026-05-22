@@ -122,6 +122,42 @@ test('mergeBiomeRecords preserves valid existing icons when wiki has no replacem
   assert.equal(actual[0].iconUrl, 'https://terraria.wiki.gg/images/Forest_biome.png');
 });
 
+test('mergeBiomeRecords preserves existing managed biome images over wiki import icons', () => {
+  const managedIcon = 'http://localhost:9000/terrapedia-images/items/wiki/biomes/c4/c4f9-forest.png';
+  const actual = mergeBiomeRecords(
+    [{
+      code: 'forest',
+      nameEn: 'Forest',
+      iconUrl: managedIcon,
+    }],
+    [{
+      code: 'forest',
+      nameEn: 'Forest',
+      iconUrl: 'https://terraria.wiki.gg/images/BiomeBannerForest.png',
+    }]
+  );
+
+  assert.equal(actual[0].iconUrl, managedIcon);
+});
+
+test('mergeBiomeRecords keeps managed biome images when incoming wiki icon is a platform marker', () => {
+  const managedIcon = 'http://localhost:9000/terrapedia-images/items/wiki/biomes/c4/c4f9-forest.png';
+  const actual = mergeBiomeRecords(
+    [{
+      code: 'forest',
+      nameEn: 'Forest',
+      iconUrl: managedIcon,
+    }],
+    [{
+      code: 'forest',
+      nameEn: 'Forest',
+      iconUrl: 'https://terraria.wiki.gg/images/Desktop_only.png',
+    }]
+  );
+
+  assert.equal(actual[0].iconUrl, managedIcon);
+});
+
 test('loadStandardizedBiomeRecords combines standardized file with relation biome parts', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-biome-inputs-'));
   const dataDir = path.join(tempDir, 'standardized');
@@ -185,6 +221,29 @@ test('importBiomeDataset applies only biome-owned tables', async () => {
   assert.doesNotMatch(sql, /\bINSERT INTO items\b|\bUPDATE items\b|\brecipes\b|\bitem_images\b|\bitem_acquisition_sources\b|\bcategory\b|\bentity_source_snapshots\b/);
 });
 
+test('importBiomeDataset preserves existing managed biome icon when incoming wiki icon is external', async () => {
+  const managedIcon = 'http://localhost:9000/terrapedia-images/items/wiki/biomes/c4/c4f9-forest.png';
+  const conn = createFakeConnection({
+    biomeIds: [['FOREST', 10]],
+    biomeIcons: [['FOREST', managedIcon]],
+  });
+  const plan = buildBiomeImportPlan({
+    wikiBiomes: [
+      {
+        code: 'forest',
+        nameEn: 'Forest',
+        iconUrl: 'https://terraria.wiki.gg/images/BiomeBannerForest.png',
+      },
+    ],
+  });
+
+  await importBiomeDataset(conn, plan);
+
+  const upsertCall = conn.calls.find((call) => call.method === 'execute' && /\bINSERT INTO biomes\b/.test(call.sql));
+  assert.ok(upsertCall, 'expected biome upsert call');
+  assert.equal(upsertCall.params[8], managedIcon);
+});
+
 test('importBiomeDataset soft-deletes stale wiki overview fallback biome rows', async () => {
   const conn = createFakeConnection({
     biomeIds: [
@@ -234,8 +293,10 @@ function createFakeConnection({
     ['FOREST', 10],
     ['HALLOW', 11],
   ],
+  biomeIcons: initialBiomeIcons = [],
 } = {}) {
   const biomeIds = new Map(initialBiomeIds);
+  const biomeIcons = new Map(initialBiomeIcons);
   const itemByInternal = new Map([
     ['WOOD', {
       id: 20,
@@ -251,7 +312,11 @@ function createFakeConnection({
     async query(sql) {
       calls.push({ method: 'query', sql });
       if (/FROM biomes WHERE deleted = 0/i.test(sql)) {
-        return [[...biomeIds.entries()].map(([code, id]) => ({ id, code }))];
+        return [[...biomeIds.entries()].map(([code, id]) => ({
+          id,
+          code,
+          icon_url: biomeIcons.get(code) ?? null,
+        }))];
       }
       if (/FROM items WHERE deleted = 0/i.test(sql)) {
         return [[...itemByInternal.values()]];
@@ -270,6 +335,7 @@ function createFakeConnection({
         if (!biomeIds.has(code)) {
           biomeIds.set(code, biomeIds.size + 10);
         }
+        biomeIcons.set(code, params[8] ?? null);
         return [{ affectedRows: 1, insertId: biomeIds.get(code) }];
       }
       if (/FROM biome_resources/i.test(sql)) {
