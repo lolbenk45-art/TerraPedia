@@ -6002,6 +6002,13 @@ img[data-preview-fallback] {
 .recipe-tree-canvas::before {
   inset: 14px;
 }
+.crafting-layout > .recipe-full-tree {
+  overflow: hidden;
+  padding: 22px;
+}
+.crafting-layout > .recipe-full-tree::before {
+  inset: 14px;
+}
 .recipe-tree-stack,
 .recipe-top-layer,
 .recipe-full-tree {
@@ -6126,9 +6133,24 @@ img[data-preview-fallback] {
   z-index: 2;
   display: grid;
   gap: 22px;
+  align-items: start;
+  align-content: start;
   min-width: 0;
   overflow-x: auto;
   padding: 4px 2px 8px;
+}
+.crafting-layout > .recipe-full-tree .recipe-tree-stage {
+  max-height: 760px;
+  overflow: auto;
+  border: 1px solid rgba(244, 234, 208, 0.08);
+  border-radius: 8px;
+  background:
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(7, 12, 9, 0.14);
+  background-size: 40px 40px, 40px 40px, auto;
+  padding: 18px 14px 22px;
+  overscroll-behavior: contain;
 }
 .recipe-tree-grid {
   position: relative;
@@ -6177,11 +6199,21 @@ img[data-preview-fallback] {
   position: relative;
   display: grid;
   justify-items: center;
+  align-items: start;
+  align-content: start;
+  align-self: start;
   gap: 8px;
-  min-width: 0;
+  width: max-content;
+  max-width: 1240px;
+  min-width: 196px;
+  height: auto;
 }
 .recipe-branch.is-root {
   padding-top: 4px;
+}
+.recipe-branch.is-leaf {
+  width: 196px;
+  max-width: 196px;
 }
 .recipe-branch:not(.is-leaf)::after {
   content: "";
@@ -6189,8 +6221,8 @@ img[data-preview-fallback] {
   top: 64px;
   left: 50%;
   width: 1px;
-  height: calc(100% - 64px);
-  background: linear-gradient(180deg, rgba(217, 185, 91, 0.24), transparent 74%);
+  height: 18px;
+  background: rgba(217, 185, 91, 0.24);
   pointer-events: none;
 }
 .recipe-tree-node {
@@ -6202,6 +6234,7 @@ img[data-preview-fallback] {
   align-items: center;
   gap: 2px 10px;
   width: min(196px, 100%);
+  height: auto;
   min-height: 64px;
   border: 1px solid rgba(244, 234, 208, 0.1);
   border-radius: 8px;
@@ -6291,13 +6324,19 @@ img[data-preview-fallback] {
 .recipe-children {
   position: relative;
   z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(134px, 1fr));
-  justify-items: center;
+  display: flex;
+  align-items: start;
+  align-content: start;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 22px 12px;
-  width: 100%;
-  min-width: 0;
+  width: max-content;
+  max-width: 1240px;
+  min-width: 196px;
   padding-top: 18px;
+}
+.recipe-children > .recipe-branch {
+  flex: 0 0 auto;
 }
 .recipe-children::before {
   content: "";
@@ -6316,6 +6355,62 @@ img[data-preview-fallback] {
   width: 1px;
   height: 18px;
   background: rgba(217, 185, 91, 0.22);
+}
+.crafting-layout > .recipe-full-tree .recipe-branch {
+  gap: 6px;
+  min-width: 172px;
+}
+.crafting-layout > .recipe-full-tree .recipe-branch.is-leaf {
+  width: 172px;
+  max-width: 172px;
+}
+.crafting-layout > .recipe-full-tree .recipe-branch:not(.is-leaf)::after {
+  top: 56px;
+  height: 14px;
+}
+.crafting-layout > .recipe-full-tree .recipe-tree-node {
+  grid-template-columns: 42px minmax(0, 1fr);
+  width: min(172px, 100%);
+  min-height: 56px;
+  gap: 1px 8px;
+  padding: 7px;
+}
+.crafting-layout > .recipe-full-tree .recipe-tree-node .item-art {
+  width: 36px;
+  height: 36px;
+}
+.crafting-layout > .recipe-full-tree .recipe-tree-node b {
+  font-size: 12px;
+}
+.crafting-layout > .recipe-full-tree .recipe-tree-node span {
+  font-size: 10px;
+}
+.crafting-layout > .recipe-full-tree .recipe-station-row {
+  width: min(172px, 100%);
+  gap: 4px;
+}
+.crafting-layout > .recipe-full-tree .recipe-station-chip {
+  grid-template-columns: 20px minmax(0, 1fr);
+  max-width: 132px;
+  min-height: 26px;
+  gap: 5px;
+  padding: 2px 7px 2px 3px;
+}
+.crafting-layout > .recipe-full-tree .recipe-station-chip .item-art {
+  width: 18px;
+  height: 18px;
+}
+.crafting-layout > .recipe-full-tree .recipe-station-chip b {
+  font-size: 10px;
+}
+.crafting-layout > .recipe-full-tree .recipe-children {
+  gap: 16px 10px;
+  min-width: 172px;
+  padding-top: 14px;
+}
+.crafting-layout > .recipe-full-tree .recipe-children > .recipe-branch::before {
+  top: -14px;
+  height: 14px;
 }
 
 .user-avatar {
@@ -7910,13 +8005,15 @@ img[data-preview-fallback] {
     min-height: auto;
   }
   .recipe-children {
-    grid-template-columns: 1fr;
+    width: 100%;
+    max-width: 100%;
+    justify-content: center;
   }
   .recipe-children::before {
-    left: 50%;
-    right: auto;
-    width: 1px;
-    height: 100%;
+    left: 24%;
+    right: 24%;
+    width: auto;
+    height: 1px;
     opacity: 0.48;
   }
   .recipe-connector {

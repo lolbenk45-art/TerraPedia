@@ -319,25 +319,6 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
                   </article>
                 </div>
               </section>
-
-              <section class="recipe-full-tree" aria-labelledby="recipe-full-tree-title">
-                <div class="recipe-tree-section-head">
-                  <div>
-                    <span class="eyebrow">full recipe tree</span>
-                    <h3 id="recipe-full-tree-title">完整配方树</h3>
-                  </div>
-                  <small>子叶逐级汇总</small>
-                </div>
-
-                <div class="recipe-tree-stage">
-                  <CraftingRecipeTreeNode
-                    v-for="root in activeRoots"
-                    :key="displayText(root.recipeId, root.itemId, nodeTitle(root), 'root')"
-                    :node="root"
-                    is-root
-                  />
-                </div>
-              </section>
             </div>
           </template>
 
@@ -359,6 +340,29 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
             <span>等待制作路线载入。</span>
           </div>
         </aside>
+      </section>
+
+      <section
+        v-if="!recipeVisualLoading && activeRoots.length"
+        class="recipe-full-tree support-panel"
+        aria-labelledby="recipe-full-tree-title"
+      >
+        <div class="recipe-tree-section-head">
+          <div>
+            <span class="eyebrow">full recipe tree</span>
+            <h3 id="recipe-full-tree-title">完整配方树</h3>
+          </div>
+          <small>子叶逐级汇总</small>
+        </div>
+
+        <div class="recipe-tree-stage">
+          <CraftingRecipeTreeNode
+            v-for="root in activeRoots"
+            :key="displayText(root.recipeId, root.itemId, nodeTitle(root), 'root')"
+            :node="root"
+            is-root
+          />
+        </div>
       </section>
 
       <section class="search-suggestion-band support-panel">

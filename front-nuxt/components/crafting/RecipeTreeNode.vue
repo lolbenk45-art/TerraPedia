@@ -10,6 +10,16 @@ const props = withDefaults(defineProps<{
 
 const recipeNodeChildren = (node: PublicItemRecipeTreeNode) => Array.isArray(node.children) ? node.children : []
 const recipeNodeStations = (node: PublicItemRecipeTreeNode) => Array.isArray(node.stations) ? node.stations : []
+const isSameRecipeItem = (left: PublicItemRecipeTreeNode, right: PublicItemRecipeTreeNode) => {
+  const leftItemId = displayText(left.itemId, left.id)
+  const rightItemId = displayText(right.itemId, right.id)
+
+  if (leftItemId && rightItemId) return leftItemId === rightItemId
+
+  const leftInternalName = displayText(left.itemInternalName, left.itemName)
+  const rightInternalName = displayText(right.itemInternalName, right.itemName)
+  return Boolean(leftInternalName && rightInternalName && leftInternalName === rightInternalName)
+}
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
 const displayText = (...values: unknown[]) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
 const displayCount = (...values: unknown[]) => {
@@ -52,13 +62,34 @@ const recipeStationMeta = (station: PublicItemRecipeTreeStation) => {
   if (station.isAlternative) return '可替代'
   return displayText(station.requirementRole, station.stationType, '合成站')
 }
+const expandedRecipeNode = computed(() => {
+  const children = recipeNodeChildren(props.node)
+  if (children.length !== 1) return null
 
-const children = computed(() => recipeNodeChildren(props.node))
-const stations = computed(() => recipeNodeStations(props.node))
+  const child = children[0]
+  if (!child || !isSameRecipeItem(props.node, child)) return null
+
+  const grandChildren = recipeNodeChildren(child)
+  return grandChildren.length || recipeNodeStations(child).length ? child : null
+})
+
+const displayRecipeNodeChildren = computed(() => (
+  expandedRecipeNode.value ? recipeNodeChildren(expandedRecipeNode.value) : recipeNodeChildren(props.node)
+))
+const displayRecipeNodeStations = computed(() => (
+  expandedRecipeNode.value ? recipeNodeStations(expandedRecipeNode.value) : recipeNodeStations(props.node)
+))
 </script>
 
 <template>
-  <div class="recipe-branch" :class="{ 'is-root': isRoot, 'is-leaf': !children.length }">
+  <div
+    class="recipe-branch"
+    :class="{
+      'is-root': isRoot,
+      'is-leaf': !displayRecipeNodeChildren.length,
+      'is-expanded-recipe': Boolean(expandedRecipeNode),
+    }"
+  >
     <a class="recipe-tree-node" :href="nodeHref(node)">
       <CommonPreviewImage
         :src="nodeImage(node)"
@@ -71,9 +102,9 @@ const stations = computed(() => recipeNodeStations(props.node))
       <span>{{ nodeQuantity(node, isRoot) }}</span>
     </a>
 
-    <div v-if="stations.length" class="recipe-station-row">
+    <div v-if="displayRecipeNodeStations.length" class="recipe-station-row">
       <span
-        v-for="station in stations"
+        v-for="station in displayRecipeNodeStations"
         :key="recipeStationKey(station)"
         class="recipe-station-chip"
       >
@@ -89,9 +120,9 @@ const stations = computed(() => recipeNodeStations(props.node))
       </span>
     </div>
 
-    <div v-if="children.length" class="recipe-children">
+    <div v-if="displayRecipeNodeChildren.length" class="recipe-children">
       <CraftingRecipeTreeNode
-        v-for="child in children"
+        v-for="child in displayRecipeNodeChildren"
         :key="displayText(child.recipeId, child.itemId, nodeTitle(child), 'child')"
         :node="child"
       />
