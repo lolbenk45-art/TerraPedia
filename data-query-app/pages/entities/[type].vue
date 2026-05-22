@@ -1629,7 +1629,7 @@ type ArmorSetCompositionKindFilter = 'all' | 'traditional_set' | 'single_piece_s
 const selectedArmorSetCompositionKind = ref<ArmorSetCompositionKindFilter>('all')
 const BUFF_IMMUNE_NPC_PREVIEW_LIMIT = 40
 const selectedBossType = ref<'all' | 'PRE_HARDMODE' | 'HARDMODE' | 'EVENT' | 'SPECIAL_SEED'>('all')
-type WorldContextTypeFilter = 'all' | 'TIME' | 'ENVIRONMENT' | 'EVENT' | 'MOON_PHASE' | 'WEATHER' | 'PROGRESSION'
+type WorldContextTypeFilter = 'all' | 'TIME' | 'ENVIRONMENT' | 'EVENT' | 'MOON_PHASE' | 'WEATHER' | 'LOCAL_CONDITION'
 const selectedWorldContextType = ref<WorldContextTypeFilter>('all')
 const npcCategoryTree = computed(() => {
   const root = categoriesStore.findCategoryNodeByCode('CATEGORY_NPC')
@@ -1657,10 +1657,10 @@ const worldContextTypeOptions = [
   { value: 'all', label: '全部条件', description: '显示所有世界条件记录。' },
   { value: 'TIME', label: '时间', description: '白天、夜晚等时间条件。' },
   { value: 'ENVIRONMENT', label: '环境', description: '墓地、微光等环境条件。' },
-  { value: 'EVENT', label: '事件', description: '血月、派对、季节等事件条件。' },
-  { value: 'MOON_PHASE', label: '月相', description: '满月、新月等月相条件。' },
+  { value: 'EVENT', label: '事件', description: '血月、派对、入侵和季节事件。' },
+  { value: 'MOON_PHASE', label: '月相', description: 'wiki 明确列出的八个月相。' },
   { value: 'WEATHER', label: '天气', description: '大风天等天气条件。' },
-  { value: 'PROGRESSION', label: '进度', description: 'Boss 或入侵事件完成状态。' },
+  { value: 'LOCAL_CONDITION', label: '条件词汇', description: '组合月相、游戏进度等本地条件词汇。' },
 ] as const
 
 const configs: Record<string, EntityConfig> = {
@@ -2214,7 +2214,7 @@ function getBossTypeLabel(value: unknown) {
 
 function normalizeWorldContextType(value: unknown) {
   const normalized = typeof value === 'string' ? value.trim().toUpperCase() : ''
-  if (normalized === 'TIME' || normalized === 'ENVIRONMENT' || normalized === 'EVENT' || normalized === 'MOON_PHASE' || normalized === 'WEATHER' || normalized === 'PROGRESSION') {
+  if (normalized === 'TIME' || normalized === 'ENVIRONMENT' || normalized === 'EVENT' || normalized === 'MOON_PHASE' || normalized === 'WEATHER' || normalized === 'LOCAL_CONDITION') {
     return normalized
   }
   return ''
@@ -3062,7 +3062,8 @@ function buildWorldContextDataQualityWarnings(row: Record<string, any>) {
   if (!hasTextValue(row.sourcePage)) warnings.push({ label: '缺少来源页面', value: 'sourcePage 为空，无法回溯到 wiki 来源页。' })
   if (!hasTextValue(row.lastSyncedAt)) warnings.push({ label: '缺少同步时间', value: 'lastSyncedAt 为空，无法判断本地记录的新鲜度。' })
   if (!hasTextValue(row.nameEn)) warnings.push({ label: '缺少英文名', value: 'nameEn 为空会削弱跨语言映射和搜索。' })
-  if (!normalizeWorldContextType(row.contextType)) warnings.push({ label: '缺少条件类型', value: 'contextType 未落在 TIME、ENVIRONMENT、EVENT、MOON_PHASE、WEATHER 或 PROGRESSION。' })
+  if (!normalizeWorldContextType(row.contextType)) warnings.push({ label: '缺少条件类型', value: 'contextType 未落在 TIME、ENVIRONMENT、EVENT、MOON_PHASE、WEATHER 或 LOCAL_CONDITION。' })
+  if (row.contextType === 'LOCAL_CONDITION' && row.sourceProvider === 'wiki_gg') warnings.push({ label: '来源分类不清', value: '本地条件词汇不应标记为 wiki_gg，以免误认为 wiki 页面原生归属。' })
   if (!hasTextValue(row.description)) warnings.push({ label: '缺少描述', value: 'description 为空，后台维护时缺少可读条件说明。' })
   return warnings
 }
@@ -3995,7 +3996,7 @@ watch(() => entityType.value, async () => {
   if (entityType.value === 'world-contexts') {
     const rawContextType = typeof route.query.contextType === 'string' ? route.query.contextType.trim().toUpperCase() : ''
     selectedWorldContextType.value =
-      rawContextType === 'TIME' || rawContextType === 'ENVIRONMENT' || rawContextType === 'EVENT' || rawContextType === 'MOON_PHASE' || rawContextType === 'WEATHER' || rawContextType === 'PROGRESSION'
+      rawContextType === 'TIME' || rawContextType === 'ENVIRONMENT' || rawContextType === 'EVENT' || rawContextType === 'MOON_PHASE' || rawContextType === 'WEATHER' || rawContextType === 'LOCAL_CONDITION'
         ? rawContextType
         : 'all'
   }

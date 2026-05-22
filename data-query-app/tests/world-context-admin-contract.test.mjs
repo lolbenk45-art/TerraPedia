@@ -18,7 +18,9 @@ test('world context admin exposes backend context type filtering', () => {
     'handleWorldContextTypeChange',
     '世界条件类型',
     'MOON_PHASE',
-    'PROGRESSION',
+    'LOCAL_CONDITION',
+    '条件词汇',
+    '游戏进度',
   ]) {
     assert.match(entitiesPage, new RegExp(escapeRegExp(token)))
   }

@@ -114,6 +114,39 @@ test('transform keeps only trusted single-context page icons', () => {
   assert.equal(byCode.get('SNOW').iconUrl, null);
 });
 
+test('transform labels derived condition-only contexts as local support vocabulary', () => {
+  const importable = buildWorldContextImportable({
+    generatedAt: '2026-05-22T00:00:00.000Z',
+    pages: [
+      sourcePage('Moon phase', 'Moon phase summary.'),
+      sourcePage('Events', 'Event summary.')
+    ]
+  }, {
+    generatedAt: '2026-05-22T01:00:00.000Z',
+    sourceFile: 'data/generated/wiki-world-contexts.latest.json'
+  });
+
+  const byCode = new Map(importable.worldContexts.map(record => [record.code, record]));
+
+  for (const code of [
+    'MOON_PHASE_1_4',
+    'MOON_PHASE_LISTED',
+    'MARTIAN_MADNESS_COMPLETED',
+    'PIRATE_INVASION_COMPLETED',
+    'SNOW_LEGION_COMPLETED',
+    'ANY_MECH_BOSS_DEFEATED',
+    'ALL_MECH_BOSSES_DEFEATED'
+  ]) {
+    const record = byCode.get(code);
+    assert.equal(record.sourceProvider, 'terrapedia_local', `${code} should not masquerade as wiki_gg evidence`);
+    assert.equal(record.sourcePage, 'town_npc_shop_conditions', `${code} should point at the local condition vocabulary`);
+    assert.equal(record.sourceRevisionTimestamp, null);
+    assert.equal(record.iconUrl, null);
+    assert.match(record.description, /local condition vocabulary/i);
+    assert.match(record.rawJson, /"classification":"derived_condition"/);
+  }
+});
+
 function sourcePage(title, intro, overrides = {}) {
   return {
     requestedTitle: title,

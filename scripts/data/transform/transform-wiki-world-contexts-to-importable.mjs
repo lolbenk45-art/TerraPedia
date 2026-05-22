@@ -48,13 +48,13 @@ const CONTEXT_DEFINITIONS = [
   { code: 'ECTO_MIST', nameEn: 'Ecto Mist', nameZh: '灵雾', contextType: 'ENVIRONMENT', sourcePage: 'Graveyard', sortOrder: 10 },
   { code: 'SNOW', nameEn: 'Snow', nameZh: '雪原', contextType: 'ENVIRONMENT', sourcePage: 'Snow biome', sortOrder: 20 },
   { code: 'SHIMMER', nameEn: 'Shimmer', nameZh: '微光', contextType: 'ENVIRONMENT', sourcePage: 'Shimmer', sortOrder: 30 },
-  { code: 'MOON_PHASE_1_4', nameEn: 'Moon Phase 1-4', nameZh: '月相 1–4', contextType: 'MOON_PHASE', sourcePage: 'Moon phase', sortOrder: 300 },
-  { code: 'MOON_PHASE_LISTED', nameEn: 'Listed Moon Phases', nameZh: '以下月相', contextType: 'MOON_PHASE', sourcePage: 'Moon phase', sortOrder: 310 },
-  { code: 'MARTIAN_MADNESS_COMPLETED', nameEn: 'Martian Madness Completed', nameZh: '火星暴乱已完成', contextType: 'PROGRESSION', sourcePage: 'Events', sortOrder: 320 },
-  { code: 'PIRATE_INVASION_COMPLETED', nameEn: 'Pirate Invasion Completed', nameZh: '海盗入侵已完成', contextType: 'PROGRESSION', sourcePage: 'Events', sortOrder: 330 },
-  { code: 'SNOW_LEGION_COMPLETED', nameEn: 'Snow Legion Completed', nameZh: '雪人军团已完成', contextType: 'PROGRESSION', sourcePage: 'Events', sortOrder: 340 },
-  { code: 'ANY_MECH_BOSS_DEFEATED', nameEn: 'Any Mechanical Boss Defeated', nameZh: '任一机械Boss已击败', contextType: 'PROGRESSION', sourcePage: 'Events', sortOrder: 350 },
-  { code: 'ALL_MECH_BOSSES_DEFEATED', nameEn: 'All Mechanical Bosses Defeated', nameZh: '全部机械Boss已击败', contextType: 'PROGRESSION', sourcePage: 'Events', sortOrder: 360 }
+  { code: 'MOON_PHASE_1_4', nameEn: 'Moon Phase 1-4', nameZh: '月相 1–4', contextType: 'LOCAL_CONDITION', localCategory: 'MOON_PHASE_RANGE', sourcePage: 'town_npc_shop_conditions', sortOrder: 300 },
+  { code: 'MOON_PHASE_LISTED', nameEn: 'Listed Moon Phases', nameZh: '以下月相', contextType: 'LOCAL_CONDITION', localCategory: 'MOON_PHASE_RANGE', sourcePage: 'town_npc_shop_conditions', sortOrder: 310 },
+  { code: 'MARTIAN_MADNESS_COMPLETED', nameEn: 'Martian Madness Completed', nameZh: '火星暴乱已完成', contextType: 'LOCAL_CONDITION', localCategory: 'PROGRESSION', sourcePage: 'town_npc_shop_conditions', sortOrder: 320 },
+  { code: 'PIRATE_INVASION_COMPLETED', nameEn: 'Pirate Invasion Completed', nameZh: '海盗入侵已完成', contextType: 'LOCAL_CONDITION', localCategory: 'PROGRESSION', sourcePage: 'town_npc_shop_conditions', sortOrder: 330 },
+  { code: 'SNOW_LEGION_COMPLETED', nameEn: 'Snow Legion Completed', nameZh: '雪人军团已完成', contextType: 'LOCAL_CONDITION', localCategory: 'PROGRESSION', sourcePage: 'town_npc_shop_conditions', sortOrder: 340 },
+  { code: 'ANY_MECH_BOSS_DEFEATED', nameEn: 'Any Mechanical Boss Defeated', nameZh: '任一机械Boss已击败', contextType: 'LOCAL_CONDITION', localCategory: 'PROGRESSION', sourcePage: 'town_npc_shop_conditions', sortOrder: 350 },
+  { code: 'ALL_MECH_BOSSES_DEFEATED', nameEn: 'All Mechanical Bosses Defeated', nameZh: '全部机械Boss已击败', contextType: 'LOCAL_CONDITION', localCategory: 'PROGRESSION', sourcePage: 'town_npc_shop_conditions', sortOrder: 360 }
 ];
 
 export function buildWorldContextImportable(payload, {
@@ -69,8 +69,9 @@ export function buildWorldContextImportable(payload, {
   );
 
   const worldContexts = CONTEXT_DEFINITIONS.map(definition => {
-    const page = pageByRequestedTitle.get(definition.sourcePage) ?? null;
-    const sourceRevisionTimestamp = page?.revisionTimestamp ?? null;
+    const isLocalCondition = definition.contextType === 'LOCAL_CONDITION';
+    const page = isLocalCondition ? null : pageByRequestedTitle.get(definition.sourcePage) ?? null;
+    const sourceRevisionTimestamp = isLocalCondition ? null : page?.revisionTimestamp ?? null;
     return {
       code: definition.code,
       nameEn: definition.nameEn,
@@ -78,11 +79,13 @@ export function buildWorldContextImportable(payload, {
       contextType: definition.contextType,
       description: buildDescription(definition, page),
       iconUrl: resolveTrustedIconUrl(definition, page, definitionCountBySourcePage),
-      sourceProvider: 'wiki_gg',
+      sourceProvider: isLocalCondition ? 'terrapedia_local' : 'wiki_gg',
       sourcePage: definition.sourcePage,
       sourceRevisionTimestamp,
       lastSyncedAt: generatedAt,
       rawJson: JSON.stringify({
+        classification: isLocalCondition ? 'derived_condition' : 'wiki_world_context',
+        localCategory: definition.localCategory ?? null,
         sourcePage: definition.sourcePage,
         sourceTitle: page?.title ?? definition.sourcePage,
         sourceUrl: page?.sourceUrl ?? null,
@@ -135,6 +138,9 @@ function isTrustedWorldContextIconUrl(value) {
 }
 
 function buildDescription(definition, page) {
+  if (definition.contextType === 'LOCAL_CONDITION') {
+    return `${definition.nameEn} is a TerraPedia local condition vocabulary entry used to structure NPC shop and recipe requirements; it is not a standalone wiki world-context page.`;
+  }
   const intro = typeof page?.intro === 'string' ? page.intro.trim() : '';
   if (intro) {
     return intro.length > 500 ? `${intro.slice(0, 497)}...` : intro;

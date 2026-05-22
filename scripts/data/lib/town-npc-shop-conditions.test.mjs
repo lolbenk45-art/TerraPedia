@@ -315,8 +315,8 @@ test('getRequiredTownNpcWorldContexts includes time-of-day and moon phase range 
       })),
     [
       { code: 'DAY', nameZh: '\u767d\u5929', contextType: 'TIME' },
-      { code: 'MOON_PHASE_1_4', nameZh: '\u6708\u76f8 1\u20134', contextType: 'MOON_PHASE' },
-      { code: 'MOON_PHASE_LISTED', nameZh: '\u4ee5\u4e0b\u6708\u76f8', contextType: 'MOON_PHASE' }
+      { code: 'MOON_PHASE_1_4', nameZh: '\u6708\u76f8 1\u20134', contextType: 'LOCAL_CONDITION' },
+      { code: 'MOON_PHASE_LISTED', nameZh: '\u4ee5\u4e0b\u6708\u76f8', contextType: 'LOCAL_CONDITION' }
     ]
   );
 });
@@ -479,9 +479,9 @@ test('getRequiredTownNpcWorldContexts includes event completion contexts', () =>
         contextType: entry.contextType
       })),
     [
-      { code: 'MARTIAN_MADNESS_COMPLETED', nameZh: '\u706b\u661f\u66b4\u4e71\u5df2\u5b8c\u6210', contextType: 'PROGRESSION' },
-      { code: 'PIRATE_INVASION_COMPLETED', nameZh: '\u6d77\u76d7\u5165\u4fb5\u5df2\u5b8c\u6210', contextType: 'PROGRESSION' },
-      { code: 'SNOW_LEGION_COMPLETED', nameZh: '\u96ea\u4eba\u519b\u56e2\u5df2\u5b8c\u6210', contextType: 'PROGRESSION' }
+      { code: 'MARTIAN_MADNESS_COMPLETED', nameZh: '\u706b\u661f\u66b4\u4e71\u5df2\u5b8c\u6210', contextType: 'LOCAL_CONDITION' },
+      { code: 'PIRATE_INVASION_COMPLETED', nameZh: '\u6d77\u76d7\u5165\u4fb5\u5df2\u5b8c\u6210', contextType: 'LOCAL_CONDITION' },
+      { code: 'SNOW_LEGION_COMPLETED', nameZh: '\u96ea\u4eba\u519b\u56e2\u5df2\u5b8c\u6210', contextType: 'LOCAL_CONDITION' }
     ]
   );
 });
@@ -533,8 +533,8 @@ test('getRequiredTownNpcWorldContexts includes mechanical boss progression conte
         contextType: entry.contextType
       })),
     [
-      { code: 'ANY_MECH_BOSS_DEFEATED', nameZh: '\u4efb\u4e00\u673a\u68b0Boss\u5df2\u51fb\u8d25', contextType: 'PROGRESSION' },
-      { code: 'ALL_MECH_BOSSES_DEFEATED', nameZh: '\u5168\u90e8\u673a\u68b0Boss\u5df2\u51fb\u8d25', contextType: 'PROGRESSION' }
+      { code: 'ANY_MECH_BOSS_DEFEATED', nameZh: '\u4efb\u4e00\u673a\u68b0Boss\u5df2\u51fb\u8d25', contextType: 'LOCAL_CONDITION' },
+      { code: 'ALL_MECH_BOSSES_DEFEATED', nameZh: '\u5168\u90e8\u673a\u68b0Boss\u5df2\u51fb\u8d25', contextType: 'LOCAL_CONDITION' }
     ]
   );
 });
