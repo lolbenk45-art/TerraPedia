@@ -7,6 +7,7 @@
     "dev": "nuxt dev --host 0.0.0.0 --port 5176",
     "build": "nuxt build",
     "check": "nuxt typecheck",
+    "check:loading-skeleton": "node scripts/check-loading-skeleton-contract.mjs",
     "check:public-pages": "node scripts/check-public-pages.mjs",
     "check:light-theme": "node scripts/check-light-theme-typography.mjs",
     "check:visual": "node scripts/check-visual-regression.mjs",

@@ -275,12 +275,21 @@ export const fetchPublicItems = async (query: PublicItemQuery = {}): Promise<Pub
   return fallbackPublicItemsResult(query)
 }
 
-export const fetchPublicItemSuggestions = async (keyword: string, limit = 5): Promise<ItemSuggestion[]> => {
+type FetchPublicItemSuggestionsOptions = {
+  allowFallback?: boolean
+}
+
+export const fetchPublicItemSuggestions = async (
+  keyword: string,
+  limit = 5,
+  options: FetchPublicItemSuggestionsOptions = {},
+): Promise<ItemSuggestion[]> => {
   const trimmedKeyword = normalizeText(keyword)
   const safeLimit = Number.isFinite(Number(limit)) && Number(limit) > 0 ? Math.floor(Number(limit)) : 5
+  const { allowFallback = false } = options
 
   if (!trimmedKeyword) {
-    return fallbackItemSuggestions('', safeLimit)
+    return allowFallback ? fallbackItemSuggestions('', safeLimit) : []
   }
 
   try {
@@ -308,7 +317,7 @@ export const fetchPublicItemSuggestions = async (keyword: string, limit = 5): Pr
       limit: safeLimit,
     })
 
-    if (publicItems.items.length > 0) {
+    if (publicItems.source === 'api' && publicItems.items.length > 0) {
       return publicItems.items.slice(0, safeLimit).map((item) => ({
         id: item.id,
         href: item.detailPath,
@@ -320,7 +329,7 @@ export const fetchPublicItemSuggestions = async (keyword: string, limit = 5): Pr
     }
   } catch {}
 
-  return fallbackItemSuggestions(trimmedKeyword, safeLimit)
+  return allowFallback ? fallbackItemSuggestions(trimmedKeyword, safeLimit) : []
 }
 
 export const usePublicItems = (query: PublicItemQuery | (() => PublicItemQuery) = {}) => {
