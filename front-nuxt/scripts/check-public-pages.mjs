@@ -1206,6 +1206,10 @@ for (const path of scanFiles) {
       '<CommonPreviewImage',
       ':aria-busy="bossVisualLoading"',
       'v-for="boss in bossDisplayItems"',
+      'boss-node-visual',
+      'boss-node-type',
+      'boss-node-summary',
+      'boss-node-meta',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: bosses page must render live public boss data with paging, preview images, and skeleton loading via marker ${marker}`)
@@ -1265,6 +1269,10 @@ for (const path of scanFiles) {
       '<CommonPreviewImage',
       ':aria-busy="biomeVisualLoading"',
       'v-for="biome in biomeDisplayItems"',
+      'biome-tile-art',
+      'biome-tile-title',
+      'biome-tile-description',
+      'biome-tile-meta',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: biomes page must render live public biome data with groups, preview images, and skeleton loading via marker ${marker}`)
@@ -1329,6 +1337,11 @@ for (const path of scanFiles) {
       '<CommonPreviewImage',
       ':aria-busy="recipeVisualLoading"',
       "itemResults.value?.source === 'api'",
+      'crafting-suggestion-button',
+      'recipe-tree-canvas',
+      'recipe-tree-grid',
+      'recipe-node-main',
+      'recipe-node-materials',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: crafting page must render live public recipe tree data and hide fallback item suggestions via marker ${marker}`)
@@ -1550,9 +1563,22 @@ for (const path of scanFiles) {
       'object-fit: contain',
       'column-gap: 18px',
       'row-gap: 10px',
+      '.boss-node-visual',
+      '.boss-node-summary',
+      '.boss-node-meta',
+      '.biome-tile-art',
+      '.biome-tile-description',
+      '.biome-tile-meta',
+      'max-height: 7.75em',
+      '.crafting-suggestion-button',
+      '.recipe-tree-canvas',
+      '.recipe-tree-grid',
+      '.recipe-node-main',
+      '.recipe-node-materials',
+      '-webkit-line-clamp',
     ]) {
       if (!content.includes(marker)) {
-        violations.push(`${path}: item detail must reserve icon/text spacing and render a dedicated pixel loading state via marker ${marker}`)
+        violations.push(`${path}: item/detail and live entity pages must reserve icon/text spacing and render stable API layouts via marker ${marker}`)
       }
     }
   }

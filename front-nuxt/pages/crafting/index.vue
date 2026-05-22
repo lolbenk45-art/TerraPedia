@@ -8,7 +8,7 @@ const router = useRouter()
 const recipeClientReady = ref(false)
 const recipeSearchQuery = ref('')
 const recipeVisualLoading = ref(true)
-const recipeVisualLoadingMinimumMs = 180
+const recipeVisualLoadingMinimumMs = 320
 let recipeVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
 let recipeVisualLoadingStartedAt = Date.now()
 
@@ -162,7 +162,7 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
           <button
             v-for="item in itemSuggestions"
             :key="item.id"
-            class="small-button"
+            class="small-button crafting-suggestion-button"
             type="button"
             @click="selectTarget(item.itemId ?? item.id)"
           >
@@ -198,39 +198,50 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
           </div>
         </aside>
 
-        <section class="recipe-canvas support-panel">
+        <section class="recipe-canvas recipe-tree-canvas support-panel">
           <template v-if="recipeVisualLoading">
-            <div v-for="slot in 5" :key="`recipe-loading-${slot}`" class="recipe-node-card" :class="{ root: slot === 1 }">
-              <CommonTpSkeleton type="icon" />
-              <b><CommonTpSkeleton type="line" /></b>
-              <em><CommonTpSkeleton type="pill" /></em>
+            <div class="recipe-tree-grid">
+              <div v-for="slot in 5" :key="`recipe-loading-${slot}`" class="recipe-node-card" :class="{ root: slot === 1 }">
+                <div class="recipe-node-main">
+                  <CommonTpSkeleton type="icon" />
+                  <b><CommonTpSkeleton type="line" /></b>
+                  <em><CommonTpSkeleton type="pill" /></em>
+                </div>
+                <div class="recipe-node-materials">
+                  <CommonTpSkeleton type="row" />
+                </div>
+              </div>
             </div>
           </template>
 
           <template v-else-if="activeRoots.length">
-            <article v-for="root in activeRoots" :key="displayText(root.recipeId, root.itemId, nodeTitle(root), 'root')" class="recipe-node-card root">
-              <CommonPreviewImage
-                :src="nodeImage(root)"
-                :alt="nodeTitle(root)"
-                :fallback="firstGlyph(nodeTitle(root))"
-                width="56"
-                height="56"
-              />
-              <b>{{ nodeTitle(root) }}</b>
-              <em>{{ root.quantityText || `x${root.resultQuantity ?? 1}` }}</em>
-              <div v-if="recipeNodeStations(root).length" class="tag-row">
-                <span v-for="station in recipeNodeStations(root)" :key="displayText(station.stationItemId, station.stationNameRaw, 'station')" class="tag paper">
-                  {{ displayText(station.stationNameZh, station.stationName, station.stationNameRaw, '制作站') }}
-                </span>
-              </div>
-              <div class="boss-prep-matrix">
-                <a v-for="child in recipeNodeChildren(root)" :key="displayText(child.recipeId, child.itemId, nodeTitle(child), 'child')" :href="child.itemId ? `/items/${child.itemId}` : '/items'">
-                  <CommonPreviewImage :src="nodeImage(child)" :alt="nodeTitle(child)" :fallback="firstGlyph(nodeTitle(child))" width="36" height="36" />
-                  <b>{{ nodeTitle(child) }}</b>
-                  <span>{{ child.quantityText || `x${child.quantityMin ?? child.resultQuantity ?? 1}` }}</span>
-                </a>
-              </div>
-            </article>
+            <div class="recipe-tree-grid">
+              <article v-for="root in activeRoots" :key="displayText(root.recipeId, root.itemId, nodeTitle(root), 'root')" class="recipe-node-card root">
+                <div class="recipe-node-main">
+                  <CommonPreviewImage
+                    :src="nodeImage(root)"
+                    :alt="nodeTitle(root)"
+                    :fallback="firstGlyph(nodeTitle(root))"
+                    width="64"
+                    height="64"
+                  />
+                  <b>{{ nodeTitle(root) }}</b>
+                  <em>{{ root.quantityText || `x${root.resultQuantity ?? 1}` }}</em>
+                </div>
+                <div v-if="recipeNodeStations(root).length" class="tag-row recipe-node-stations">
+                  <span v-for="station in recipeNodeStations(root)" :key="displayText(station.stationItemId, station.stationNameRaw, 'station')" class="tag paper">
+                    {{ displayText(station.stationNameZh, station.stationName, station.stationNameRaw, '制作站') }}
+                  </span>
+                </div>
+                <div class="boss-prep-matrix recipe-node-materials">
+                  <a v-for="child in recipeNodeChildren(root)" :key="displayText(child.recipeId, child.itemId, nodeTitle(child), 'child')" :href="child.itemId ? `/items/${child.itemId}` : '/items'">
+                    <CommonPreviewImage :src="nodeImage(child)" :alt="nodeTitle(child)" :fallback="firstGlyph(nodeTitle(child))" width="42" height="42" />
+                    <b>{{ nodeTitle(child) }}</b>
+                    <span>{{ child.quantityText || `x${child.quantityMin ?? child.resultQuantity ?? 1}` }}</span>
+                  </a>
+                </div>
+              </article>
+            </div>
           </template>
 
           <div v-else class="catalog-empty-state">

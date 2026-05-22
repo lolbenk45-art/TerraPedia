@@ -4,7 +4,7 @@ import { usePublicBiomes } from '~/composables/usePublicBiomes'
 const biomeClientReady = ref(false)
 const biomeSearchQuery = ref('')
 const biomeVisualLoading = ref(true)
-const biomeVisualLoadingMinimumMs = 180
+const biomeVisualLoadingMinimumMs = 320
 let biomeVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
 let biomeVisualLoadingStartedAt = Date.now()
 
@@ -132,9 +132,12 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
 
       <section v-if="biomeVisualLoading" class="biome-board" aria-label="群系加载中">
         <article v-for="slot in biomeLoadingSlotCount" :key="`biome-loading-${slot}`" class="biome-tile">
-          <CommonTpSkeleton type="pill" />
-          <b><CommonTpSkeleton type="line" /></b>
-          <span><CommonTpSkeleton type="line" short /></span>
+          <div class="biome-tile-art">
+            <CommonTpSkeleton type="icon" />
+          </div>
+          <b class="biome-tile-title"><CommonTpSkeleton type="line" /></b>
+          <span class="biome-tile-description"><CommonTpSkeleton type="line" /><CommonTpSkeleton type="line" short /></span>
+          <em class="biome-tile-meta"><CommonTpSkeleton type="pill" /></em>
         </article>
       </section>
 
@@ -145,17 +148,19 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
           class="biome-tile"
           :href="biome.detailPath"
         >
-          <CommonPreviewImage
-            :src="biome.image"
-            :alt="biome.displayName"
-            :fallback="biome.fallback"
-            :source-image="biome.sourceImage"
-            width="44"
-            height="44"
-          />
-          <b>{{ biome.displayName }}</b>
-          <span>{{ biome.description }}</span>
-          <em>{{ biome.groupLabel }} · {{ biome.resourceCount }} 项资源</em>
+          <div class="biome-tile-art">
+            <CommonPreviewImage
+              :src="biome.image"
+              :alt="biome.displayName"
+              :fallback="biome.fallback"
+              :source-image="biome.sourceImage"
+              width="72"
+              height="72"
+            />
+          </div>
+          <b class="biome-tile-title">{{ biome.displayName }}</b>
+          <span class="biome-tile-description">{{ biome.description }}</span>
+          <em class="biome-tile-meta">{{ biome.groupLabel }} · {{ biome.resourceCount }} 项资源</em>
         </a>
       </section>
 

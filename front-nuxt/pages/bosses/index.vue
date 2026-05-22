@@ -10,7 +10,7 @@ const bossDebouncedSearchQuery = ref('')
 const bossCurrentPage = ref(1)
 const bossPageSize = ref(20)
 const bossVisualLoading = ref(true)
-const bossVisualLoadingMinimumMs = 180
+const bossVisualLoadingMinimumMs = 320
 let bossSearchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 let bossVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
 let bossVisualLoadingStartedAt = Date.now()
@@ -200,11 +200,11 @@ onBeforeUnmount(() => {
 
       <section class="boss-timeline" aria-label="Boss 推进线">
         <article v-for="slot in bossLoadingSlotCount" v-if="bossVisualLoading" :key="`boss-loading-${slot}`" class="boss-node">
-          <i><CommonTpSkeleton type="icon" /></i>
-          <span><CommonTpSkeleton type="pill" /></span>
+          <i class="boss-node-visual"><CommonTpSkeleton type="icon" /></i>
+          <span class="boss-node-type"><CommonTpSkeleton type="pill" /></span>
           <h3><CommonTpSkeleton type="line" /></h3>
-          <p><CommonTpSkeleton type="line" /><CommonTpSkeleton type="line" short /></p>
-          <div class="node-meta"><b><CommonTpSkeleton type="line" /></b><em><CommonTpSkeleton type="line" short /></em></div>
+          <p class="boss-node-summary"><CommonTpSkeleton type="line" /><CommonTpSkeleton type="line" short /></p>
+          <div class="node-meta boss-node-meta"><b><CommonTpSkeleton type="line" /></b><em><CommonTpSkeleton type="line" short /></em></div>
         </article>
 
         <a
@@ -215,7 +215,7 @@ onBeforeUnmount(() => {
           :class="{ active: boss.progressionOrder === 1 }"
           :href="boss.detailPath"
         >
-          <i>
+          <i class="boss-node-visual">
             <CommonPreviewImage
               :src="boss.image"
               :alt="boss.displayName"
@@ -225,10 +225,10 @@ onBeforeUnmount(() => {
               height="72"
             />
           </i>
-          <span>{{ boss.type }}</span>
+          <span class="boss-node-type">{{ boss.type }}</span>
           <h3>{{ boss.displayName }}</h3>
-          <p>{{ boss.summary }}</p>
-          <div class="node-meta">
+          <p class="boss-node-summary">{{ boss.summary }}</p>
+          <div class="node-meta boss-node-meta">
             <b>{{ boss.progressionOrder === null ? '顺序未标注' : `#${boss.progressionOrder}` }}</b>
             <em>{{ boss.uniqueLootItemCount ?? 0 }} 件掉落 · {{ boss.memberCount ?? 0 }} 个成员</em>
           </div>
