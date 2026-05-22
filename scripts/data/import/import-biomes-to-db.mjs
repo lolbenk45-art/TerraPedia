@@ -67,7 +67,7 @@ function mergeBiomeRecord(previous, next) {
   const merged = { ...previous };
   for (const [key, value] of Object.entries(next ?? {})) {
     if (key === 'iconUrl') {
-      merged.iconUrl = mergeIconUrl(previous?.iconUrl, value);
+      merged.iconUrl = mergeIconUrl(previous?.iconUrl, value, next);
       continue;
     }
     if (isEmptyOverrideValue(value) && !isEmptyOverrideValue(previous?.[key])) {
@@ -96,11 +96,18 @@ function mergeBiomeRecord(previous, next) {
   return merged;
 }
 
-function mergeIconUrl(previousValue, nextValue) {
+function mergeIconUrl(previousValue, nextValue, nextRecord = null) {
   const previousIcon = toNullableString(previousValue);
   const nextIcon = toNullableString(nextValue);
   if (previousIcon && isManagedBiomeIconUrl(previousIcon) && nextIcon && isExternalWikiIconUrl(nextIcon)) {
-    return previousIcon;
+    const previousInvalid = isInvalidBiomeIconUrl(previousIcon) || isKnownStaleManagedBiomeIcon(previousIcon, nextRecord);
+    const nextInvalid = isInvalidBiomeIconUrl(nextIcon);
+    if (!previousInvalid) {
+      return previousIcon;
+    }
+    if (!nextInvalid) {
+      return nextIcon;
+    }
   }
   if (nextIcon) {
     return isInvalidBiomeIconUrl(nextIcon) ? null : nextIcon;
@@ -135,7 +142,16 @@ function isExternalWikiIconUrl(value) {
 }
 
 function isInvalidBiomeIconUrl(value) {
-  return /(?:Desktop_only|Console_only|Mobile_only|Old-gen_console_version|Nintendo_Switch_version|tModLoader|Journey_Mode|Classic_Mode|Expert_Mode|Master_Mode|Info_icon|Notice|Question|Achievement|Map_Icon|Bestiary|Icon_)/i.test(String(value ?? ''));
+  return /(?:Desktop_only|Console_only|Mobile_only|Old-gen_console_version|Nintendo_Switch_version|tModLoader|Journey_Mode|Classic_Mode|Expert_Mode|Master_Mode|Info_icon|Notice|Question|Achievement|Map_Icon|Bestiary|Icon_|Paint_Roller|(?:^|[-_/])Meteorite\.png(?:[?#]|$))/i.test(String(value ?? ''));
+}
+
+function isKnownStaleManagedBiomeIcon(previousIcon, nextRecord) {
+  const code = normalizeCode(nextRecord?.code ?? nextRecord?.biomeCode);
+  const sourcePage = toNullableString(nextRecord?.sourcePage ?? nextRecord?.pageTitle ?? nextRecord?.nameEn);
+  if (code === 'UNDERGROUND_CABIN' && sourcePage === 'Underground Cabin') {
+    return /\/items\/2026\/05\/22\/3c29b387d34e420c8920a5f39606ad07\.png(?:[?#]|$)/i.test(previousIcon);
+  }
+  return false;
 }
 
 function isEmptyOverrideValue(value) {
@@ -161,7 +177,7 @@ export async function importBiomeDataset(conn, plan) {
   const biomeByCode = await importBiomes(conn, plan.biomes, summary.biomes);
   await importBiomeRelationsAndResources(conn, plan.biomes, biomeByCode, itemLookup, summary.biomeRelations, summary.biomeResources);
   await importItemBiomes(conn, plan.itemBiomes, itemLookup, biomeByCode, summary.itemBiomes);
-  await softDeleteStaleWikiOverviewBiomes(conn, summary.staleBiomes);
+  await softDeleteStaleWikiBiomes(conn, plan.biomes, summary.staleBiomes);
   await normalizeBiomeSortOrders(conn, summary.sortNormalization);
   return summary;
 }
@@ -334,7 +350,7 @@ async function importBiomes(conn, biomeRecords, stats) {
         toNullableString(raw?.layerType),
         toNullableString(raw?.biomeType),
         toNullableString(raw?.description),
-        mergeIconUrl(existingIconByCode.get(code), raw?.iconUrl),
+        mergeIconUrl(existingIconByCode.get(code), raw?.iconUrl, raw),
         toNullableString(raw?.sourceProvider) ?? 'wiki_gg',
         toNullableString(raw?.sourcePage ?? raw?.pageTitle),
         toDateTime(raw?.sourceRevisionTimestamp ?? raw?.revisionTimestamp),
@@ -437,7 +453,26 @@ async function importItemBiomes(conn, itemBiomeRecords, itemLookup, biomeByCode,
   }
 }
 
-async function softDeleteStaleWikiOverviewBiomes(conn, stats) {
+async function softDeleteStaleWikiBiomes(conn, biomeRecords, stats) {
+  const activeCodes = [...new Set((Array.isArray(biomeRecords) ? biomeRecords : [])
+    .map(record => normalizeCode(record?.code ?? record?.biomeCode)?.toLowerCase())
+    .filter(Boolean))].sort();
+  if (activeCodes.length > 0) {
+    const placeholders = activeCodes.map(() => '?').join(', ');
+    const [result] = await conn.execute(
+      `UPDATE biomes
+          SET deleted = 1,
+              status = 0,
+              updated_at = NOW()
+        WHERE deleted = 0
+          AND source_provider = 'wiki_gg'
+          AND LOWER(code) NOT IN (${placeholders})`,
+      activeCodes
+    );
+    stats.updated += Number(result?.affectedRows ?? 0);
+    return;
+  }
+
   const [result] = await conn.execute(
     `UPDATE biomes
         SET deleted = 1,

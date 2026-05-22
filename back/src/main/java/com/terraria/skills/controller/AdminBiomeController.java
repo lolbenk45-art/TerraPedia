@@ -64,12 +64,17 @@ public class AdminBiomeController {
         @RequestParam(required = false) Integer page,
         @RequestParam(required = false) Integer limit,
         @RequestParam(required = false) Integer size,
-        @RequestParam(required = false) String search
+        @RequestParam(required = false) String search,
+        @RequestParam(required = false) String group
     ) {
         int safePage = PaginationParams.resolvePage(page);
         int safeLimit = PaginationParams.resolveLimit(limit, size, 20, 100);
         LambdaQueryWrapper<Biome> wrapper = new LambdaQueryWrapper<Biome>()
             .orderByAsc(Biome::getId);
+        String normalizedGroup = normalizeBiomeGroup(group);
+        if (normalizedGroup != null) {
+            wrapper.eq(Biome::getLayerType, normalizedGroup);
+        }
         if (search != null && !search.isBlank()) {
             String keyword = search.trim();
             wrapper.and(w -> w.like(Biome::getCode, keyword)
@@ -83,6 +88,25 @@ public class AdminBiomeController {
         ApiResponse<List<Biome>> response = ApiResponse.success(mpPage.getRecords());
         response.setPagination(pagination);
         return ResponseEntity.ok(response);
+    }
+
+    private String normalizeBiomeGroup(String value) {
+        if (value == null || value.isBlank() || "all".equalsIgnoreCase(value.trim())) {
+            return null;
+        }
+        String normalized = value.trim().toLowerCase();
+        return switch (normalized) {
+            case "space",
+                 "surface",
+                 "surface_hardmode",
+                 "cavern",
+                 "cavern_hardmode",
+                 "underworld",
+                 "mini_biome",
+                 "micro_biome",
+                 "treasure_room" -> normalized;
+            default -> null;
+        };
     }
 
     @GetMapping("/{id}")

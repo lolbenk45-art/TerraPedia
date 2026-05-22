@@ -140,6 +140,40 @@ test('mergeBiomeRecords preserves existing managed biome images over wiki import
   assert.equal(actual[0].iconUrl, managedIcon);
 });
 
+test('mergeBiomeRecords replaces known stale managed biome placeholder images with wiki import icons', () => {
+  const actual = mergeBiomeRecords(
+    [{
+      code: 'underground_cabin',
+      nameEn: 'Underground Cabin',
+      iconUrl: 'http://localhost:9000/terrapedia-images/items/2026/05/22/3c29b387d34e420c8920a5f39606ad07.png',
+    }],
+    [{
+      code: 'underground_cabin',
+      nameEn: 'Underground Cabin',
+      iconUrl: 'https://terraria.wiki.gg/images/thumb/Underground_Cabin.png/200px-Underground_Cabin.png',
+    }]
+  );
+
+  assert.equal(actual[0].iconUrl, 'https://terraria.wiki.gg/images/thumb/Underground_Cabin.png/200px-Underground_Cabin.png');
+});
+
+test('mergeBiomeRecords replaces known stale managed biome item icons with wiki import icons', () => {
+  const actual = mergeBiomeRecords(
+    [{
+      code: 'meteorite',
+      nameEn: 'Meteorite',
+      iconUrl: 'http://localhost:9000/terrapedia-images/items/wiki/biomes/63/63785642f9d735cc393557b4e893749cf8dfa522-meteorite.png',
+    }],
+    [{
+      code: 'meteorite',
+      nameEn: 'Meteorite (biome)',
+      iconUrl: 'https://terraria.wiki.gg/images/BiomeBannerMeteor.png',
+    }]
+  );
+
+  assert.equal(actual[0].iconUrl, 'https://terraria.wiki.gg/images/BiomeBannerMeteor.png');
+});
+
 test('mergeBiomeRecords keeps managed biome images when incoming wiki icon is a platform marker', () => {
   const managedIcon = 'http://localhost:9000/terrapedia-images/items/wiki/biomes/c4/c4f9-forest.png';
   const actual = mergeBiomeRecords(
@@ -244,11 +278,34 @@ test('importBiomeDataset preserves existing managed biome icon when incoming wik
   assert.equal(upsertCall.params[8], managedIcon);
 });
 
+test('importBiomeDataset replaces known stale managed biome icon when incoming wiki icon is external', async () => {
+  const conn = createFakeConnection({
+    biomeIds: [['UNDERGROUND_CABIN', 10]],
+    biomeIcons: [['UNDERGROUND_CABIN', 'http://localhost:9000/terrapedia-images/items/2026/05/22/3c29b387d34e420c8920a5f39606ad07.png']],
+  });
+  const plan = buildBiomeImportPlan({
+    wikiBiomes: [
+      {
+        code: 'underground_cabin',
+        nameEn: 'Underground Cabin',
+        iconUrl: 'https://terraria.wiki.gg/images/thumb/Underground_Cabin.png/200px-Underground_Cabin.png',
+      },
+    ],
+  });
+
+  await importBiomeDataset(conn, plan);
+
+  const upsertCall = conn.calls.find((call) => call.method === 'execute' && /\bINSERT INTO biomes\b/.test(call.sql));
+  assert.ok(upsertCall, 'expected biome upsert call');
+  assert.equal(upsertCall.params[8], 'https://terraria.wiki.gg/images/thumb/Underground_Cabin.png/200px-Underground_Cabin.png');
+});
+
 test('importBiomeDataset soft-deletes stale wiki overview fallback biome rows', async () => {
   const conn = createFakeConnection({
     biomeIds: [
       ['FOREST', 10],
       ['BIOMES', 12],
+      ['STONE_BLOCK', 13],
     ],
   });
   const plan = buildBiomeImportPlan({
@@ -267,11 +324,12 @@ test('importBiomeDataset soft-deletes stale wiki overview fallback biome rows', 
   const cleanupCall = conn.calls.find((call) => (
     call.method === 'execute'
     && /\bUPDATE biomes\b/i.test(call.sql)
-    && /code\s*=\s*'biomes'/i.test(call.sql)
-    && /\bsource_page\b/i.test(call.sql)
+    && /source_provider\s*=\s*'wiki_gg'/i.test(call.sql)
+    && /LOWER\(code\)\s+NOT IN/i.test(call.sql)
   ));
   assert.ok(cleanupCall, 'expected stale overview fallback cleanup query');
-  assert.equal(summary.staleBiomes.updated, 1);
+  assert.deepEqual(cleanupCall.params, ['forest']);
+  assert.equal(summary.staleBiomes.updated, 2);
 });
 
 test('assertPrimaryDb blocks non-primary writes unless explicitly allowed', () => {
@@ -328,6 +386,17 @@ function createFakeConnection({
       if (/UPDATE biomes/i.test(sql) && /code\s*=\s*'biomes'/i.test(sql)) {
         const affectedRows = biomeIds.has('BIOMES') ? 1 : 0;
         biomeIds.delete('BIOMES');
+        return [{ affectedRows }];
+      }
+      if (/UPDATE biomes/i.test(sql) && /LOWER\(code\)\s+NOT IN/i.test(sql)) {
+        const keptCodes = new Set(params.map((value) => String(value).toUpperCase()));
+        let affectedRows = 0;
+        for (const code of [...biomeIds.keys()]) {
+          if (!keptCodes.has(code)) {
+            biomeIds.delete(code);
+            affectedRows += 1;
+          }
+        }
         return [{ affectedRows }];
       }
       if (/INSERT INTO biomes/i.test(sql)) {

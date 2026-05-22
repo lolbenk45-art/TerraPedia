@@ -146,6 +146,7 @@ test('biome fetch records overview sections for mini and micro biomes without st
   assert.equal(undergroundCabin?.title, 'Underground Cabin');
   assert.equal(undergroundCabin?.topGroup, 'Treasure rooms');
   assert.equal(undergroundCabin?.sourceSectionAnchor, 'Underground_Cabin');
+  assert.equal(undergroundCabin?.iconUrl, 'https://terraria.wiki.gg/images/thumb/Underground_Cabin.png/200px-Underground_Cabin.png');
 
   const aether = output.records.find(record => record.requestedTitle === 'Aether');
   assert.equal(aether?.title, 'The Aether');
@@ -167,6 +168,52 @@ test('biome fetch records overview sections for mini and micro biomes without st
   assert.equal(progress.status, 'completed');
   assert.equal(progress.current, 6);
   assert.equal(progress.total, 6);
+});
+
+test('biome fetch follows biome-specific page links from overview sections before choosing page images', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-biome-links-'));
+  const worktreeRoot = path.join(tempDir, 'feature-worktree');
+  const progressPath = path.join(tempDir, 'progress.json');
+  const mockApiPath = writeBiomeSpecificPageMock(tempDir);
+
+  fs.mkdirSync(worktreeRoot, { recursive: true });
+
+  const result = spawnSync(process.execPath, [
+    scriptPath,
+    `--progress-path=${progressPath}`
+  ], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      WORKTREE_ROOT: worktreeRoot,
+      TERRAPEDIA_CRAWLER_ACTION_ID: 'test-biome-specific-links',
+      NODE_ENV: 'test',
+      TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
+    }
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+
+  const output = JSON.parse(fs.readFileSync(path.join(worktreeRoot, 'data', 'generated', 'wiki-biomes.latest.json'), 'utf8'));
+  assert.equal(output.unresolved.length, 0);
+
+  const meteorite = output.records.find(record => record.requestedTitle === 'Meteorite');
+  assert.equal(meteorite?.title, 'Meteorite (biome)');
+  assert.equal(meteorite?.sourceUrl, 'https://terraria.wiki.gg/wiki/Meteorite_(biome)');
+  assert.equal(meteorite?.iconUrl, 'https://terraria.wiki.gg/images/BiomeBannerMeteor.png');
+  assert.deepEqual(meteorite?.aliases, ['Meteorite', 'Meteorite (biome)']);
+
+  const undergroundCabin = output.records.find(record => record.requestedTitle === 'Underground Cabin');
+  assert.equal(undergroundCabin?.title, 'Underground Cabin');
+  assert.equal(undergroundCabin?.iconUrl, 'https://terraria.wiki.gg/images/thumb/Underground_Cabin.png/200px-Underground_Cabin.png');
+  assert.notEqual(undergroundCabin?.iconUrl, 'https://terraria.wiki.gg/images/thumb/Paint_Roller.png/32px-Paint_Roller.png');
+
+  const stonePatch = output.records.find(record => record.requestedTitle === 'Stone patch');
+  assert.equal(stonePatch?.title, 'Stone patch');
+  assert.equal(stonePatch?.sourceType, 'overview_section');
+  assert.equal(stonePatch?.sourceUrl, 'https://terraria.wiki.gg/wiki/Biomes#Stone_patch');
+  assert.equal(output.records.some(record => record.title === 'Stone Block'), false);
 });
 
 function writeBiomeMock(tempDir) {
@@ -250,6 +297,7 @@ function writeBiomeSectionMock(tempDir) {
           <p>Spike Caves contain traps and spikes.</p>
           <h2><span id="Treasure_rooms">Treasure rooms</span></h2>
           <h3><span id="Underground_Cabin">Underground Cabin</span></h3>
+          <div class="floatright"><a href="/wiki/File:Underground_Cabin_in_Ice_biome.png" class="image"><img alt="Underground Cabin in Ice biome.png" src="/images/thumb/Underground_Cabin_in_Ice_biome.png/250px-Underground_Cabin_in_Ice_biome.png?abc123" width="250" height="138" /></a></div>
           <p>An Underground Cabin is a small generated treasure room.</p>
         </div>`
     }
@@ -284,7 +332,103 @@ function writeBiomeSectionMock(tempDir) {
         parse: {
           title: 'Underground Cabin',
           pageid: 909,
-          text: '<div class="mw-parser-output"><p>An Underground Cabin is a small generated treasure room.</p></div>'
+          text: `
+            <div class="mw-parser-output">
+              <p>An Underground Cabin is a small generated treasure room.</p>
+              <div class="message-box noexcerpt"><div class="icon"><img alt="Click to see a list of candidates for image population" src="/images/thumb/Paint_Roller.png/32px-Paint_Roller.png?681adb" width="32" height="34" /></div></div>
+              <ul class="gallery mw-gallery-traditional">
+                <li class="gallerybox"><div class="thumb"><a href="/wiki/File:Underground_Cabin.png" class="image"><img alt="An Underground Cabin." src="/images/thumb/Underground_Cabin.png/200px-Underground_Cabin.png?29f8d3" width="200" height="139" /></a></div></li>
+              </ul>
+            </div>`
+        }
+      }
+    }
+  }), 'utf8');
+  return mockPath;
+}
+
+function writeBiomeSpecificPageMock(tempDir) {
+  const mockPath = path.join(tempDir, 'mock-api.json');
+  const biomesRevision = {
+    query: {
+      pages: [{
+        pageid: 303,
+        title: 'Biomes',
+        revisions: [{
+          revid: 404,
+          timestamp: '2026-05-20T00:00:00Z',
+          content: 'mock biomes revision'
+        }]
+      }]
+    }
+  };
+  const biomesParse = {
+    parse: {
+      title: 'Biomes',
+      pageid: 303,
+      sections: [
+        { level: '2', line: 'Mini-biomes', anchor: 'Mini-biomes', index: '24' },
+        { level: '3', line: 'Meteorite', anchor: 'Meteorite', index: '33' },
+        { level: '2', line: 'Micro-biomes', anchor: 'Micro-biomes', index: '34' },
+        { level: '3', line: 'Stone patch', anchor: 'Stone_patch', index: '35' },
+        { level: '2', line: 'Treasure rooms', anchor: 'Treasure_rooms', index: '45' },
+        { level: '3', line: 'Underground Cabin', anchor: 'Underground_Cabin', index: '46' }
+      ],
+      text: `
+        <div class="mw-parser-output">
+          <h2><span id="Mini-biomes">Mini-biomes</span></h2>
+          <h3><span id="Meteorite">Meteorite</span><a href="/wiki/Biomes?action=edit&amp;section=33" title="Edit section: Meteorite">edit</a></h3>
+          <div class="floatright"><a href="/wiki/File:BiomeBannerMeteor.png" class="image"><img alt="BiomeBannerMeteor.png" src="/images/thumb/BiomeBannerMeteor.png/300px-BiomeBannerMeteor.png?19964e" width="300" height="80" /></a></div>
+          <p>The <a href="/wiki/Meteorite_(biome)" title="Meteorite (biome)">Meteorite</a> biome is a mini-biome.</p>
+          <h2><span id="Micro-biomes">Micro-biomes</span></h2>
+          <h3><span id="Stone_patch">Stone patch</span><a href="/wiki/Biomes?action=edit&amp;section=34" title="Edit section: Stone patch">edit</a></h3>
+          <p>A <a href="/wiki/Stone_Block" title="Stone Block">Stone Block</a> patch is a micro-biome.</p>
+          <h2><span id="Treasure_rooms">Treasure rooms</span></h2>
+          <h3><span id="Underground_Cabin">Underground Cabin</span><a href="/wiki/Biomes?action=edit&amp;section=46" title="Edit section: Underground Cabin">edit</a></h3>
+          <div class="floatright"><a href="/wiki/File:Underground_Cabin_in_Ice_biome.png" class="image"><img alt="Underground Cabin in Ice biome.png" src="/images/thumb/Underground_Cabin_in_Ice_biome.png/250px-Underground_Cabin_in_Ice_biome.png?a610b5" width="250" height="138" /></a></div>
+          <p><a href="/wiki/Underground_Cabin" title="Underground Cabin">Underground Cabins</a> are found in the Cavern layer.</p>
+        </div>`
+    }
+  };
+
+  fs.writeFileSync(mockPath, JSON.stringify({
+    __byRequest: {
+      'query:revisions:Biomes': biomesRevision,
+      'parse:text:Biomes': biomesParse,
+      'parse:sections:Biomes': biomesParse,
+      'query:revisions:Meteorite (biome)': {
+        query: { pages: [{ pageid: 111, title: 'Meteorite (biome)', revisions: [{ revid: 222, timestamp: '2026-05-20T00:00:00Z', content: 'mock meteorite biome revision' }] }] }
+      },
+      'parse:text:Meteorite (biome)': {
+        parse: {
+          title: 'Meteorite (biome)',
+          pageid: 111,
+          text: `
+            <div class="mw-parser-output">
+              <div class="center"><div class="floatnone"><a href="/wiki/File:BiomeBannerMeteor.png" class="image"><img alt="BiomeBannerMeteor.png" src="/images/BiomeBannerMeteor.png?19964e" width="464" height="124" /></a></div></div>
+              <p>A Meteorite biome is a mini-biome formed when a meteor crashes.</p>
+              <img alt="Meteorite" src="/images/thumb/Meteorite.png/12px-Meteorite.png?e7cc21" width="12" height="12" />
+            </div>`
+        }
+      },
+      'query:revisions:Stone patch': {
+        query: { pages: [{ pageid: 303, title: 'Biomes', revisions: [{ revid: 404, timestamp: '2026-05-20T00:00:00Z', content: 'mock biomes revision' }] }] }
+      },
+      'query:revisions:Underground Cabin': {
+        query: { pages: [{ pageid: 909, title: 'Underground Cabin', revisions: [{ revid: 1001, timestamp: '2026-05-20T00:00:00Z', content: 'mock cabin revision' }] }] }
+      },
+      'parse:text:Underground Cabin': {
+        parse: {
+          title: 'Underground Cabin',
+          pageid: 909,
+          text: `
+            <div class="mw-parser-output">
+              <p>Underground Cabins are small subterranean structures generated at world creation.</p>
+              <div class="message-box noexcerpt"><div class="icon"><a href="/wiki/Category:Pages_needing_images" title="Click to see a list of candidates for image population"><img alt="Click to see a list of candidates for image population" src="/images/thumb/Paint_Roller.png/32px-Paint_Roller.png?681adb" width="32" height="34" data-file-width="38" data-file-height="40" /></a></div></div>
+              <ul class="gallery mw-gallery-traditional">
+                <li class="gallerybox"><div class="thumb"><a href="/wiki/File:Underground_Cabin.png" class="image" title="An Underground Cabin."><img alt="An Underground Cabin." src="/images/thumb/Underground_Cabin.png/200px-Underground_Cabin.png?29f8d3" width="200" height="139" data-file-width="576" data-file-height="400" /></a></div></li>
+              </ul>
+            </div>`
         }
       }
     }

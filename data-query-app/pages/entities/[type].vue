@@ -117,6 +117,26 @@
               </button>
             </div>
           </div>
+          <div v-if="entityType === 'biomes'" class="field field--full">
+            <div class="field__topline">
+              <span class="field__label">群系分类</span>
+              <span class="field__hint">按 wiki 大类区分生物群落、小型群系、微型群系和宝藏房。</span>
+            </div>
+            <div class="filter-chip-group" role="tablist" aria-label="群系分类筛选">
+              <button
+                v-for="option in biomeGroupOptions"
+                :key="option.value"
+                type="button"
+                class="filter-chip"
+                :class="{ 'filter-chip--active': selectedBiomeGroup === option.value }"
+                :aria-pressed="selectedBiomeGroup === option.value"
+                @click="handleBiomeGroupChange(option.value)"
+              >
+                <span>{{ option.label }}</span>
+                <small>{{ option.description }}</small>
+              </button>
+            </div>
+          </div>
           <div class="toolbar__actions">
             <button type="submit" class="btn btn-primary">搜索</button>
             <button type="button" class="btn btn-secondary" @click="handleReset">重置</button>
@@ -1063,8 +1083,8 @@
             <div class="projectile-detail__body">
               <div class="preview-pills">
                 <span class="preview-pill preview-pill--accent">BIOME ATLAS</span>
-                <span class="preview-pill">{{ detailRow.biomeType || '未分类' }}</span>
-                <span class="preview-pill">{{ detailRow.layerType || '未标注层级' }}</span>
+                <span class="preview-pill">{{ getBiomeTypeLabel(detailRow.biomeType) }}</span>
+                <span class="preview-pill">{{ getBiomeLayerLabel(detailRow.layerType) }}</span>
                 <span class="preview-pill">关系 {{ biomeRelationCards.length }}</span>
                 <span class="preview-pill">资源 {{ biomeResourceCards.length }}</span>
               </div>
@@ -1520,6 +1540,8 @@ const selectedNpcCategoryId = ref<number | null>(null)
 const selectedBuffType = ref<'all' | 'buff' | 'debuff'>('all')
 type ArmorSetCompositionKindFilter = 'all' | 'traditional_set' | 'single_piece_set' | 'nonstandard_piece_set'
 const selectedArmorSetCompositionKind = ref<ArmorSetCompositionKindFilter>('all')
+type BiomeGroupFilter = 'all' | 'space' | 'surface' | 'surface_hardmode' | 'cavern' | 'cavern_hardmode' | 'underworld' | 'mini_biome' | 'micro_biome' | 'treasure_room'
+const selectedBiomeGroup = ref<BiomeGroupFilter>('all')
 const BUFF_IMMUNE_NPC_PREVIEW_LIMIT = 40
 const selectedBossType = ref<'all' | 'PRE_HARDMODE' | 'HARDMODE' | 'EVENT' | 'SPECIAL_SEED'>('all')
 const npcCategoryTree = computed(() => {
@@ -1543,6 +1565,18 @@ const armorSetCompositionOptions = [
   { value: 'traditional_set', label: '完整套装', description: '由头部、身体、腿部等多个装备组成。' },
   { value: 'single_piece_set', label: '单件成套装', description: '魔法帽、长袍等单件即可触发套装效果。' },
   { value: 'nonstandard_piece_set', label: '非标准组合', description: '不完全按三件套结构组成的套装。' },
+] as const
+const biomeGroupOptions = [
+  { value: 'all', label: '全部群系', description: '显示所有 wiki 群系记录。' },
+  { value: 'surface', label: '生物群落', description: '地表与地下基础生物群落。' },
+  { value: 'surface_hardmode', label: '困难模式地表', description: '困难模式地表感染或神圣群系。' },
+  { value: 'cavern', label: '洞穴层群系', description: '地下、洞穴及对应基础群系。' },
+  { value: 'cavern_hardmode', label: '困难模式洞穴', description: '困难模式地下感染或神圣群系。' },
+  { value: 'space', label: '太空', description: '世界顶部区域。' },
+  { value: 'underworld', label: '地狱', description: '世界底部区域。' },
+  { value: 'mini_biome', label: '小型群系', description: '陨石、蜂巢、以太等局部群系。' },
+  { value: 'micro_biome', label: '微型群系', description: '花丛、宝石洞穴等微型结构。' },
+  { value: 'treasure_room', label: '宝藏房', description: '地下小屋、金字塔、剑冢等结构房间。' },
 ] as const
 
 const configs: Record<string, EntityConfig> = {
@@ -1833,6 +1867,7 @@ const hasActiveFilters = computed(() => {
   if (entityType.value === 'buffs' && selectedBuffType.value !== 'all') return true
   if (entityType.value === 'bosses' && selectedBossType.value !== 'all') return true
   if (entityType.value === 'armor-sets' && selectedArmorSetCompositionKind.value !== 'all') return true
+  if (entityType.value === 'biomes' && selectedBiomeGroup.value !== 'all') return true
   return false
 })
 
@@ -2062,6 +2097,41 @@ function getArmorSetCompositionKindMeta(value: unknown) {
 
 function getArmorSetCompositionKindLabel(value: unknown) {
   return getArmorSetCompositionKindMeta(value)?.label ?? '完整套装'
+}
+
+function getBiomeGroupMeta(value: unknown) {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : ''
+  return biomeGroupOptions.find(option => option.value === normalized) ?? null
+}
+
+function getBiomeGroupLabel(value: unknown) {
+  return getBiomeGroupMeta(value)?.label ?? String(value || '--')
+}
+
+function getBiomeLayerLabel(value: unknown) {
+  return getBiomeGroupLabel(value)
+}
+
+function getBiomeTypeLabel(value: unknown) {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : ''
+  const labels: Record<string, string> = {
+    pure: '纯净群系',
+    snow: '雪原群系',
+    desert: '沙漠群系',
+    evil: '邪恶群系',
+    jungle: '丛林群系',
+    dungeon: '地牢',
+    ocean: '海洋',
+    mushroom: '发光蘑菇群系',
+    holy: '神圣群系',
+    underworld: '地狱',
+    space: '太空',
+    mini_biome: '小型群系',
+    micro_biome: '微型群系',
+    treasure_room: '宝藏房',
+    unknown: '未分类',
+  }
+  return labels[normalized] ?? String(value || '--')
 }
 
 function normalizeBossType(value: unknown) {
@@ -2297,6 +2367,9 @@ async function fetchRows(page = pagination.page) {
     if (entityType.value === 'armor-sets' && selectedArmorSetCompositionKind.value !== 'all') {
       params.compositionKind = selectedArmorSetCompositionKind.value
     }
+    if (entityType.value === 'biomes' && selectedBiomeGroup.value !== 'all') {
+      params.group = selectedBiomeGroup.value
+    }
     if (entityType.value === 'npcs' && selectedNpcCategoryId.value != null) {
       params.categoryId = selectedNpcCategoryId.value
     }
@@ -2510,6 +2583,9 @@ async function syncRouteQuery(page = 1) {
   if (entityType.value === 'armor-sets' && selectedArmorSetCompositionKind.value !== 'all') {
     nextQuery.compositionKind = selectedArmorSetCompositionKind.value
   }
+  if (entityType.value === 'biomes' && selectedBiomeGroup.value !== 'all') {
+    nextQuery.biomeGroup = selectedBiomeGroup.value
+  }
   if (entityType.value !== 'bosses' && page > 1) {
     nextQuery.page = String(page)
   }
@@ -2528,6 +2604,7 @@ async function handleReset() {
   selectedBuffType.value = 'all'
   selectedBossType.value = 'all'
   selectedArmorSetCompositionKind.value = 'all'
+  selectedBiomeGroup.value = 'all'
   await syncRouteQuery(1)
   if (entityType.value === 'bosses') return
   await fetchRows(1)
@@ -2554,6 +2631,13 @@ async function handleBossTypeChange(value: 'all' | 'PRE_HARDMODE' | 'HARDMODE' |
 async function handleArmorSetCompositionChange(value: ArmorSetCompositionKindFilter) {
   if (selectedArmorSetCompositionKind.value === value) return
   selectedArmorSetCompositionKind.value = value
+  await syncRouteQuery(1)
+  await fetchRows(1)
+}
+
+async function handleBiomeGroupChange(value: BiomeGroupFilter) {
+  if (selectedBiomeGroup.value === value) return
+  selectedBiomeGroup.value = value
   await syncRouteQuery(1)
   await fetchRows(1)
 }
@@ -2591,6 +2675,8 @@ function formatCell(row: Record<string, any>, key: string) {
   if (key === '__imageUrl') return row.__imageUrl ? 'Preview available' : '--'
   if (key === 'bossType') return getBossTypeLabel(row[key])
   if (key === 'compositionKind') return getArmorSetCompositionKindLabel(row[key])
+  if (entityType.value === 'biomes' && key === 'biomeType') return getBiomeTypeLabel(row.biomeType)
+  if (entityType.value === 'biomes' && key === 'layerType') return getBiomeLayerLabel(row.layerType)
   if (key.toLowerCase().includes('at')) return formatDateTime(row[key])
   if (typeof row[key] === 'boolean') return row[key] ? 'true' : 'false'
   if (row[key] == null || row[key] === '') return '--'
@@ -2779,8 +2865,8 @@ const detailSubtitle = computed(() => {
 const detailStats = computed(() => {
   if (!detailRow.value) return []
   if (entityType.value === 'biomes') return [
-    { label: '群系类型', value: detailRow.value.biomeType || '--' },
-    { label: '层级类型', value: detailRow.value.layerType || '--' },
+    { label: '群系类型', value: getBiomeTypeLabel(detailRow.value.biomeType) },
+    { label: '层级类型', value: getBiomeLayerLabel(detailRow.value.layerType) },
     { label: '相关群系', value: biomeRelationCards.value.length ? String(biomeRelationCards.value.length) : '--' },
     { label: '资源条目', value: biomeResourceCards.value.length ? String(biomeResourceCards.value.length) : '--' },
     { label: '状态', value: detailRow.value.status != null ? formatStatusLabel(detailRow.value.status) : '--' },
@@ -2848,8 +2934,8 @@ const detailBiomeDescription = computed(() => {
 const biomeSourceMetadata = computed(() => {
   if (!detailRow.value || entityType.value !== 'biomes') return []
   return [
-    { label: '群系类型', value: detailRow.value.biomeType },
-    { label: '层级类型', value: detailRow.value.layerType },
+    { label: '群系类型', value: getBiomeTypeLabel(detailRow.value.biomeType) },
+    { label: '层级类型', value: getBiomeLayerLabel(detailRow.value.layerType) },
     { label: '来源提供方', value: detailRow.value.sourceProvider },
     { label: '来源页面', value: detailRow.value.sourcePage },
     { label: '中文别名', value: detailRow.value.aliasZh },
@@ -3651,7 +3737,7 @@ const previewStats = computed(() => {
     { label: 'Code', value: previewRow.value.code || '--' },
     { label: '中文名', value: previewRow.value.nameZh || '--' },
     { label: '英文名', value: previewRow.value.nameEn || '--' },
-    { label: '层级', value: previewRow.value.layerType || '--' },
+    { label: '层级', value: getBiomeLayerLabel(previewRow.value.layerType) },
   ]
   if (entityType.value === 'bosses') return [
     { label: 'Code', value: previewRow.value.code || '--' },
@@ -3766,6 +3852,12 @@ watch(() => entityType.value, async () => {
       rawCompositionKind === 'traditional_set' || rawCompositionKind === 'single_piece_set' || rawCompositionKind === 'nonstandard_piece_set'
         ? rawCompositionKind
         : 'all'
+  }
+  if (entityType.value === 'biomes') {
+    const rawBiomeGroup = typeof route.query.biomeGroup === 'string' ? route.query.biomeGroup.trim().toLowerCase() : ''
+    selectedBiomeGroup.value = biomeGroupOptions.some(option => option.value === rawBiomeGroup)
+      ? rawBiomeGroup as BiomeGroupFilter
+      : 'all'
   }
   await fetchRows(pagination.page)
 }, { immediate: true })
