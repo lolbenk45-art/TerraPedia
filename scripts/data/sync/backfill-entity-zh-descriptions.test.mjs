@@ -97,11 +97,43 @@ test('buildZhDescriptionPlan updates only rows with traceable Chinese source tex
       source_page: 'Biomes#Flower_patch',
       wiki_section_anchor: 'Flower_patch',
     },
+    {
+      id: 108,
+      code: 'biomes',
+      name_en: 'Biomes',
+      name_zh: null,
+      description: 'Biomes are the different types of areas that any Terraria world can contain.',
+      source_page: 'Biomes',
+      wiki_section_anchor: null,
+    },
+  ];
+  const items = [
+    {
+      id: 8415,
+      name: 'Spinal Tap',
+      name_zh: '脊柱骨鞭',
+      internal_name: 'ZH_RECIPE_SPINAL_TAP',
+      description: 'Placeholder item inserted from zh recipe import.',
+      description_zh: null,
+      source_page: '配方/工作台',
+    },
+  ];
+  const worldContexts = [
+    {
+      id: 23,
+      code: 'DAY',
+      name_en: 'Day',
+      name_zh: '白天',
+      description: 'The day and night cycle of the Terraria world refers to the rising and setting of the sun and moon.',
+      source_page: 'Day and night cycle',
+    },
   ];
 
   const plan = await buildZhDescriptionPlan({
     bosses,
     biomes,
+    items,
+    worldContexts,
     fetchZhPage: async (title) => {
       if (title === '史莱姆王') {
         return {
@@ -121,25 +153,40 @@ test('buildZhDescriptionPlan updates only rows with traceable Chinese source tex
         return {
           pageTitle: '生物群系',
           revisionTimestamp: '2026-05-20T00:00:00Z',
-          html: '<h3><span class="mw-headline" id="小片花地">小片花地</span></h3><p>小片花地是一小片密密麻麻长满了花的地表地面。</p>',
+          html: '<p><b>生物群系</b>是每个泰拉瑞亚世界都可能包含的不同类型的区域。</p><h3><span class="mw-headline" id="小片花地">小片花地</span></h3><p>小片花地是一小片密密麻麻长满了花的地表地面。</p>',
+        };
+      }
+      if (title === '日夜更替') {
+        return {
+          pageTitle: '日夜更替',
+          revisionTimestamp: '2026-05-20T00:00:00Z',
+          html: '<p>泰拉瑞亚世界的日夜更替是指太阳和月亮的升起与落下，以及其对世界产生影响的方式。</p>',
         };
       }
       return null;
     },
     fetchZhTitle: async (englishTitle) => {
       if (englishTitle === 'King Slime') return '史莱姆王';
+      if (englishTitle === 'Day and night cycle') return '日夜更替';
       return null;
     },
   });
 
   assert.equal(plan.summary.bosses.candidates, 2);
   assert.equal(plan.summary.bosses.patchable, 2);
-  assert.equal(plan.summary.biomes.candidates, 1);
-  assert.equal(plan.summary.biomes.patchable, 1);
+  assert.equal(plan.summary.biomes.candidates, 2);
+  assert.equal(plan.summary.biomes.patchable, 2);
+  assert.equal(plan.summary.items.candidates, 1);
+  assert.equal(plan.summary.items.patchable, 1);
+  assert.equal(plan.summary.worldContexts.candidates, 1);
+  assert.equal(plan.summary.worldContexts.patchable, 1);
   assert.equal(plan.bossUpdates[0].notesAfter, '史莱姆王是个 Boss。其外观是戴着珠宝金冠的巨大蓝史莱姆。');
   assert.equal(plan.bossUpdates[1].nameZhAfter, '日耀柱');
   assert.equal(plan.bossUpdates[1].notesAfter, '天界柱是在月亮事件中出现的四个 Boss。');
   assert.equal(plan.biomeUpdates[0].descriptionAfter, '小片花地是一小片密密麻麻长满了花的地表地面。');
+  assert.equal(plan.biomeUpdates[1].descriptionAfter, '生物群系是每个泰拉瑞亚世界都可能包含的不同类型的区域。');
+  assert.equal(plan.itemUpdates[0].descriptionZhAfter, '中文配方导入生成的占位物品。');
+  assert.equal(plan.worldContextUpdates[0].descriptionAfter, '泰拉瑞亚世界的日夜更替是指太阳和月亮的升起与落下，以及其对世界产生影响的方式。');
 });
 
 test('resolveMysqlRequireCandidates includes data-query-app package manifests', () => {
