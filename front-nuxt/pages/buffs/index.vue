@@ -9,7 +9,6 @@ const buffSearchQuery = ref('')
 const buffDebouncedSearchQuery = ref('')
 const buffCurrentPage = ref(1)
 const buffPageSize = ref(24)
-const buffJumpPageInput = ref('')
 const buffVisualLoading = ref(true)
 const buffVisualLoadingMinimumMs = 180
 let buffSearchDebounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -44,34 +43,8 @@ const buffFallbackUnavailable = computed(() => buffClientReady.value && !buffsPe
 const buffDisplayItems = computed(() => (buffVisualLoading.value || buffFallbackUnavailable.value) ? [] : publicBuffsResult.value?.items ?? [])
 const buffTotalItems = computed(() => (buffVisualLoading.value || buffFallbackUnavailable.value) ? 0 : buffPagination.value?.total ?? buffDisplayItems.value.length)
 const buffTotalPages = computed(() => Math.max(1, buffPagination.value?.totalPages ?? Math.ceil(buffTotalItems.value / Math.max(1, buffPageSize.value))))
-const buffCanGoPrevious = computed(() => buffCurrentPage.value > 1)
-const buffCanGoNext = computed(() => buffCurrentPage.value < buffTotalPages.value)
 const buffStatusLabel = computed(() => buffVisualLoading.value ? '加载中' : buffFallbackUnavailable.value || buffsError.value ? '未载入' : '已更新')
 const buffLoadingSlotCount = computed(() => Math.min(buffPageSize.value, 36))
-const buffPageWindowItems = computed(() => {
-  if (buffVisualLoading.value) return [1]
-
-  const pages = buffTotalPages.value
-  const page = buffCurrentPage.value
-  const candidates = new Set([1, pages])
-
-  for (let index = page - 2; index <= page + 2; index += 1) {
-    if (index >= 1 && index <= pages) {
-      candidates.add(index)
-    }
-  }
-
-  return [...candidates].sort((left, right) => left - right).reduce<Array<number | 'gap'>>((items, item) => {
-    const previous = items[items.length - 1]
-    if (typeof previous === 'number' && item - previous > 1) {
-      items.push('gap')
-    }
-    items.push(item)
-    return items
-  }, [])
-})
-
-const pageControlLabel = (item: number | 'gap') => item === 'gap' ? '…' : String(item)
 
 const clearBuffVisualLoadingTimer = () => {
   if (buffVisualLoadingTimer) {
@@ -102,11 +75,6 @@ const goToBuffPage = (page: number) => {
   const nextPage = Math.min(Math.max(1, page), buffTotalPages.value)
   if (nextPage === buffCurrentPage.value) return
   buffCurrentPage.value = nextPage
-  buffJumpPageInput.value = ''
-}
-
-const goToBuffJumpPage = () => {
-  goToBuffPage(parsePositiveInteger(buffJumpPageInput.value, buffCurrentPage.value))
 }
 
 const clearBuffSearch = () => {
@@ -281,46 +249,14 @@ onBeforeUnmount(() => {
         </button>
       </section>
 
-      <nav class="catalog-page-dock" aria-label="Buff 分页">
-        <span class="catalog-page-dock-summary">第 {{ buffCurrentPage }} / {{ buffTotalPages }} 页</span>
-        <div class="catalog-page-dock-core">
-          <button class="catalog-dock-icon-button" type="button" aria-label="上一页" :disabled="!buffCanGoPrevious || buffVisualLoading" @click="goToBuffPage(buffCurrentPage - 1)">
-            ‹
-          </button>
-          <template v-for="(pageItem, index) in buffPageWindowItems" :key="`${pageItem}-${index}`">
-            <span v-if="pageItem === 'gap'" class="catalog-page-gap">…</span>
-            <button
-              v-else
-              class="catalog-dock-page-button"
-              type="button"
-              :class="{ active: pageItem === buffCurrentPage }"
-              :aria-current="!buffVisualLoading && pageItem === buffCurrentPage ? 'page' : undefined"
-              :disabled="buffVisualLoading"
-              @click="goToBuffPage(pageItem)"
-            >
-              {{ pageControlLabel(pageItem) }}
-            </button>
-          </template>
-          <button class="catalog-dock-icon-button" type="button" aria-label="下一页" :disabled="!buffCanGoNext || buffVisualLoading" @click="goToBuffPage(buffCurrentPage + 1)">
-            ›
-          </button>
-        </div>
-        <form class="catalog-dock-jump-form" aria-label="跳页" @submit.prevent="goToBuffJumpPage">
-          <label for="buff-page-jump">跳至</label>
-          <input
-            id="buff-page-jump"
-            v-model="buffJumpPageInput"
-            type="number"
-            inputmode="numeric"
-            min="1"
-            :max="buffTotalPages"
-            :placeholder="String(buffCurrentPage)"
-            :disabled="buffVisualLoading"
-          />
-          <span>/ {{ buffTotalPages }}</span>
-          <button class="catalog-dock-button" type="submit" :disabled="buffVisualLoading">前往</button>
-        </form>
-      </nav>
+      <CommonPaginationDock
+        :current-page="buffCurrentPage"
+        :total-pages="buffTotalPages"
+        :disabled="buffVisualLoading"
+        aria-label="Buff 分页"
+        jump-id="buff-page-jump"
+        @page-change="goToBuffPage"
+      />
     </main>
 
     <TerraFooter />

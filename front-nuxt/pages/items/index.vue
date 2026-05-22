@@ -12,7 +12,6 @@ const debouncedSearchQuery = ref('')
 const activeFilter = ref('all')
 const currentPage = ref(1)
 const selectedPageSize = ref(defaultCatalogPageSize)
-const jumpPageInput = ref('')
 const focusedItemId = ref<string | null>(null)
 const catalogVisualLoadingMinimumMs = 180
 const catalogVisualLoading = ref(true)
@@ -237,8 +236,6 @@ const canGoPrevious = computed(() => currentPage.value > 1)
 const canGoNext = computed(() => currentPage.value < totalPages.value)
 const catalogDockCurrentPage = computed(() => catalogVisualLoading.value ? 1 : currentPage.value)
 const catalogDockTotalPages = computed(() => catalogVisualLoading.value ? 1 : totalPages.value)
-const catalogDockCanGoPrevious = computed(() => !catalogVisualLoading.value && canGoPrevious.value)
-const catalogDockCanGoNext = computed(() => !catalogVisualLoading.value && canGoNext.value)
 const dataSourceState = computed(() => publicItemsResult.value?.source ?? 'fallback')
 const publicStatusLabel = computed(() => catalogVisualLoading.value ? '加载中' : catalogFallbackUnavailable.value || itemsError.value ? '未载入' : '已更新')
 const activeFilterLabel = computed(() => selectedFilter.value.label)
@@ -247,42 +244,6 @@ const shouldApplyLocalCategoryFilter = computed(() => (
   publicItemsResult.value?.source !== 'api'
   || (activeFilter.value !== 'all' && (selectedCategoryIds.value.length !== 1 || !selectedCategoryId.value) && !selectedGamePeriodId.value)
 ))
-const visiblePageItems = computed(() => {
-  if (catalogVisualLoading.value) {
-    return [1]
-  }
-
-  const pages = totalPages.value
-  const page = currentPage.value
-  const edgeWindow = 1
-  const sideWindow = 2
-  const candidates = new Set([1, pages])
-
-  for (let index = 1; index <= Math.min(edgeWindow, pages); index += 1) {
-    candidates.add(index)
-  }
-
-  for (let index = Math.max(1, pages - edgeWindow + 1); index <= pages; index += 1) {
-    candidates.add(index)
-  }
-
-  for (let index = page - sideWindow; index <= page + sideWindow; index += 1) {
-    if (index >= 1 && index <= pages) {
-      candidates.add(index)
-    }
-  }
-
-  return [...candidates].sort((left, right) => left - right).reduce<Array<number | 'gap'>>((items, item) => {
-    const previous = items[items.length - 1]
-    if (typeof previous === 'number' && item - previous > 1) {
-      items.push('gap')
-    }
-    items.push(item)
-    return items
-  }, [])
-})
-const pageWindowItems = computed(() => visiblePageItems.value)
-
 const matchCategoryFilter = (item: CatalogItem, filter: CatalogCategoryFilter) => {
   if (filter.key === 'all') return true
 
@@ -349,8 +310,6 @@ const resultSummary = computed(() => {
   return `${filteredCatalogItems.value.length} / 本页 ${catalogDisplayItems.value.length} / 总计 ${total}`
 })
 
-const pageControlLabel = (item: number | 'gap') => item === 'gap' ? '…' : String(item)
-
 const clearCatalogVisualLoadingTimer = () => {
   if (catalogVisualLoadingTimer) {
     clearTimeout(catalogVisualLoadingTimer)
@@ -396,51 +355,28 @@ const setActiveFilter = (filter: QuickFilterKey) => {
 const setPageSize = (pageSize: number) => {
   selectedPageSize.value = pageSize
   currentPage.value = 1
-  jumpPageInput.value = ''
   void scrollCatalogWallToTop()
 }
 
 const goToPreviousPage = () => {
   if (canGoPrevious.value) {
     currentPage.value -= 1
-    jumpPageInput.value = ''
     void scrollCatalogWallToTop()
   }
-}
-
-const goToFirstPage = () => {
-  if (currentPage.value === 1) return
-  currentPage.value = 1
-  jumpPageInput.value = ''
-  void scrollCatalogWallToTop()
 }
 
 const goToPage = (page: number) => {
   const nextPage = Math.min(Math.max(1, page), totalPages.value)
   if (nextPage === currentPage.value) return
   currentPage.value = nextPage
-  jumpPageInput.value = ''
   void scrollCatalogWallToTop()
 }
 
 const goToNextPage = () => {
   if (canGoNext.value) {
     currentPage.value += 1
-    jumpPageInput.value = ''
     void scrollCatalogWallToTop()
   }
-}
-
-const goToLastPage = () => {
-  if (currentPage.value === totalPages.value) return
-  currentPage.value = totalPages.value
-  jumpPageInput.value = ''
-  void scrollCatalogWallToTop()
-}
-
-const goToJumpPage = () => {
-  const page = parsePositiveInteger(jumpPageInput.value, currentPage.value)
-  goToPage(page)
 }
 
 const handleCatalogPaginationKeydown = (event: KeyboardEvent) => {
@@ -756,52 +692,15 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
             </div>
           </div>
 
-          <div class="catalog-page-dock" aria-label="分页">
-            <span class="catalog-page-dock-summary">第 {{ catalogDockCurrentPage }} / {{ catalogDockTotalPages }} 页 · {{ activeFilterLabel }}</span>
-            <div class="catalog-page-dock-core">
-              <button class="catalog-dock-button" type="button" :disabled="!catalogDockCanGoPrevious" @click="goToFirstPage">
-                首页
-              </button>
-              <button class="catalog-dock-icon-button" type="button" aria-label="上一页" :disabled="!catalogDockCanGoPrevious" @click="goToPreviousPage">
-                ‹
-              </button>
-              <template v-for="(pageItem, index) in pageWindowItems" :key="`${pageItem}-${index}`">
-                <span v-if="pageItem === 'gap'" class="catalog-page-gap">…</span>
-                <button
-                  v-else
-                  class="catalog-dock-page-button"
-                  type="button"
-                  :class="{ active: pageItem === currentPage }"
-                  :aria-current="!catalogVisualLoading && pageItem === currentPage ? 'page' : undefined"
-                  :disabled="catalogVisualLoading"
-                  @click="goToPage(pageItem)"
-                >
-                  {{ pageControlLabel(pageItem) }}
-                </button>
-              </template>
-              <button class="catalog-dock-icon-button" type="button" aria-label="下一页" :disabled="!catalogDockCanGoNext" @click="goToNextPage">
-                ›
-              </button>
-              <button class="catalog-dock-button" type="button" :disabled="!catalogDockCanGoNext" @click="goToLastPage">
-                末页
-              </button>
-            </div>
-            <form class="catalog-dock-jump-form" aria-label="跳页" @submit.prevent="goToJumpPage">
-              <label for="catalog-page-jump">跳至</label>
-              <input
-                id="catalog-page-jump"
-                v-model="jumpPageInput"
-                type="number"
-                inputmode="numeric"
-                min="1"
-                :max="catalogDockTotalPages"
-                :placeholder="String(catalogDockCurrentPage)"
-                :disabled="catalogVisualLoading"
-              />
-              <span>/ {{ catalogDockTotalPages }}</span>
-              <button class="catalog-dock-button" type="submit" :disabled="catalogVisualLoading">前往</button>
-            </form>
-          </div>
+          <CommonPaginationDock
+            :current-page="catalogDockCurrentPage"
+            :total-pages="catalogDockTotalPages"
+            :disabled="catalogVisualLoading"
+            :summary-suffix="activeFilterLabel"
+            jump-id="catalog-page-jump"
+            show-boundary-controls
+            @page-change="goToPage"
+          />
         </div>
       </div>
     </section>
