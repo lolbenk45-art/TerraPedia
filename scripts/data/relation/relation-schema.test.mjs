@@ -18,6 +18,7 @@ const EXPECTED_TABLE_NAMES = [
   'relation_bosses',
   'relation_armor_sets',
   'relation_armor_set_items',
+  'relation_equipment_effect_attributes',
   'relation_item_rarities',
   'relation_item_images',
   'relation_npc_images',
@@ -103,6 +104,7 @@ test('table-scoped relation run metadata columns are correct', () => {
   const relationBosses = extractTableDdl(sql, 'relation_bosses');
   const relationArmorSets = extractTableDdl(sql, 'relation_armor_sets');
   const relationArmorSetItems = extractTableDdl(sql, 'relation_armor_set_items');
+  const relationEquipmentEffects = extractTableDdl(sql, 'relation_equipment_effect_attributes');
   const relationItemRarities = extractTableDdl(sql, 'relation_item_rarities');
   const relationItemImages = extractTableDdl(sql, 'relation_item_images');
   const relationNpcImages = extractTableDdl(sql, 'relation_npc_images');
@@ -164,6 +166,16 @@ test('table-scoped relation run metadata columns are correct', () => {
   assert.match(relationArmorSetItems, /`part_role` VARCHAR\(64\) DEFAULT NULL/);
   assert.match(relationArmorSetItems, /`equipment_slot_id` INT DEFAULT NULL/);
   assert.match(relationArmorSetItems, /KEY `idx_relation_armor_set_items_set` \(`armor_set_record_key`\)/);
+
+  assert.match(relationEquipmentEffects, /`owner_kind` VARCHAR\(32\) NOT NULL/);
+  assert.match(relationEquipmentEffects, /`owner_record_key` CHAR\(64\) COLLATE utf8mb4_bin DEFAULT NULL/);
+  assert.match(relationEquipmentEffects, /`source_line_index` INT DEFAULT NULL/);
+  assert.match(relationEquipmentEffects, /`stat_key` VARCHAR\(64\) NOT NULL/);
+  assert.match(relationEquipmentEffects, /`value_decimal` DECIMAL\(12,4\) DEFAULT NULL/);
+  assert.match(relationEquipmentEffects, /`parse_status` VARCHAR\(64\) NOT NULL/);
+  assert.match(relationEquipmentEffects, /UNIQUE KEY `uk_relation_equipment_effect_record_key` \(`record_key`\)/);
+  assert.match(relationEquipmentEffects, /KEY `idx_relation_equipment_effect_owner` \(`owner_kind`, `owner_id`\)/);
+  assert.match(relationEquipmentEffects, /KEY `idx_relation_equipment_effect_stat` \(`stat_key`, `class_scope`, `parse_status`\)/);
 
   assert.match(relationItemRarities, /`code` VARCHAR\(32\) NOT NULL/);
   assert.match(relationItemRarities, /`display_name_zh` VARCHAR\(64\) NOT NULL/);

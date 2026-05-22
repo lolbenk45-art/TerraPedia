@@ -2,6 +2,7 @@ package com.terraria.skills.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.dto.EquipmentEffectAttributeDTO;
 import com.terraria.skills.dto.PublicArmorSetListDTO;
 import com.terraria.skills.dto.PublicArmorSetQuery;
 import com.terraria.skills.service.PublicArmorSetService;
@@ -15,6 +16,7 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,12 +52,23 @@ class PublicArmorSetControllerTest {
         armorSet.setName("Hallowed armor CN");
         armorSet.setNameZh("Hallowed armor CN");
         armorSet.setNameEn("Hallowed armor");
+        armorSet.setBenefitZh("套装奖励：+20% 移动速度");
+        armorSet.setBenefitEn("Set bonus: +20% movement speed");
         armorSet.setPrimaryPart("head");
         armorSet.setSetCount(3);
         armorSet.setUniqueItemCount(3);
         armorSet.setMaleImages(List.of("http://localhost:9000/terrapedia-images/wiki/armor-sets/hallowed-male.png"));
         armorSet.setFemaleImages(List.of("http://localhost:9000/terrapedia-images/wiki/armor-sets/hallowed-female.png"));
         armorSet.setSpecialImages(List.of());
+        EquipmentEffectAttributeDTO effect = new EquipmentEffectAttributeDTO();
+        effect.setStatKey("move_speed");
+        effect.setStatLabelZh("移动速度");
+        effect.setValueDecimal(BigDecimal.valueOf(20));
+        effect.setUnit("percent");
+        effect.setApplyScope("set_bonus");
+        effect.setRawText("套装奖励：+20% 移动速度");
+        effect.setParseStatus("parsed");
+        armorSet.setEffects(List.of(effect));
 
         Page<PublicArmorSetListDTO> page = new Page<>(2, 24);
         page.setTotal(25);
@@ -77,6 +90,11 @@ class PublicArmorSetControllerTest {
             .andExpect(jsonPath("$.data[0].sourceKey").value("ArmorSet.Hallowed"))
             .andExpect(jsonPath("$.data[0].nameZh").value("Hallowed armor CN"))
             .andExpect(jsonPath("$.data[0].nameEn").value("Hallowed armor"))
+            .andExpect(jsonPath("$.data[0].benefitZh").value("套装奖励：+20% 移动速度"))
+            .andExpect(jsonPath("$.data[0].benefitEn").value("Set bonus: +20% movement speed"))
+            .andExpect(jsonPath("$.data[0].effects[0].statKey").value("move_speed"))
+            .andExpect(jsonPath("$.data[0].effects[0].valueDecimal").value(20))
+            .andExpect(jsonPath("$.data[0].effects[0].unit").value("percent"))
             .andExpect(jsonPath("$.data[0].primaryPart").value("head"))
             .andExpect(jsonPath("$.data[0].setCount").value(3))
             .andExpect(jsonPath("$.data[0].uniqueItemCount").value(3))

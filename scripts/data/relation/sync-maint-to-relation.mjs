@@ -25,6 +25,7 @@ import { buildBossSeriesRelations } from './boss-series-processor.mjs';
 import { buildNpcSeriesRelations } from './npc-series-processor.mjs';
 import { buildRelationItemRarities } from './item-rarity-support-processor.mjs';
 import { buildArmorSetRelations } from './armor-set-processor.mjs';
+import { parseEquipmentEffectLines } from './equipment-effect-parser.mjs';
 import { buildProjectionSchemaStatements } from './projection-schema.mjs';
 import {
   buildProjectionPayload,
@@ -586,6 +587,18 @@ async function queryRelationOptional(queryRelation, sql, fallback = []) {
   }
 }
 
+function parseJsonObject(value) {
+  if (value == null || value === '') return {};
+  if (typeof value === 'object' && !Array.isArray(value)) return value;
+  if (typeof value !== 'string') return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 function buildItemSourceLookupIndex(rows) {
   const index = new Map();
   for (const row of rows) {
@@ -961,6 +974,7 @@ function flattenResults(category, recipe, itemSource, secondary, bossSeries, npc
     relationBosses: [],
     relationArmorSets: armorSet.relationArmorSets,
     relationArmorSetItems: armorSet.relationArmorSetItems,
+    relationEquipmentEffectAttributes: [],
     relationArmorSetImages: armorSet.relationArmorSetImages,
     relationItemRarities: [],
     relationItemImages: [],
@@ -996,6 +1010,7 @@ function flattenResults(category, recipe, itemSource, secondary, bossSeries, npc
     projectionProjectiles: [],
     projectionBuffs: [],
     projectionArmorSets: [],
+    projectionEquipmentEffectAttributes: [],
     issues: [
       ...category.issues,
       ...recipe.issues,
@@ -1006,6 +1021,55 @@ function flattenResults(category, recipe, itemSource, secondary, bossSeries, npc
       ...armorSet.issues
     ]
   };
+}
+
+function buildArmorSetEquipmentEffectAttributes(relationArmorSets = []) {
+  const rows = [];
+  for (const armorSet of relationArmorSets) {
+    const raw = parseJsonObject(armorSet.rawJson);
+    const benefitZh = raw.effectText ?? null;
+    if (!benefitZh) {
+      continue;
+    }
+    const parsedRows = parseEquipmentEffectLines({
+      owner: {
+        ownerKind: 'armor_set',
+        ownerRecordKey: armorSet.recordKey ?? null,
+        ownerId: armorSet.id ?? null,
+        ownerKey: armorSet.textKey ?? null,
+        sourceProvider: armorSet.sourceProvider ?? null,
+        sourcePage: armorSet.sourcePage ?? null,
+        sourceRevisionTimestamp: armorSet.sourceRevisionTimestamp ?? null
+      },
+      text: benefitZh,
+      sourceKind: 'benefit_zh'
+    });
+    for (const row of parsedRows) {
+      rows.push({
+        recordKey: createRecordKey([
+          'equipment-effect',
+          row.ownerKind,
+          row.ownerRecordKey,
+          row.sourceKind,
+          row.sourceLineIndex,
+          row.effectIndex,
+          row.statKey,
+          row.variantLabel ?? 'all'
+        ]),
+        ...row,
+        confidence: row.confidence ?? 0.9,
+        reviewStatus: row.parseStatus === 'parsed' ? 'accepted' : 'needs_review',
+        reason: row.parseStatus === 'parsed' ? 'parsed_from_armor_set_benefit_zh' : 'unparsed_armor_set_benefit_zh',
+        rawJson: JSON.stringify({
+          sourceLine: row.sourceLine,
+          rawText: row.rawText,
+          ownerKey: row.ownerKey,
+          benefitExpression: armorSet.benefitExpression ?? null
+        })
+      });
+    }
+  }
+  return rows;
 }
 
 export async function runSync(options, dependencies = {}) {
@@ -1182,6 +1246,7 @@ export async function runSync(options, dependencies = {}) {
   results.relationProjectileImages = imageEntities.relationProjectileImages;
   results.relationBuffImages = imageEntities.relationBuffImages;
   results.itemRecipeGroupExpansions = recipeExpansions.groupExpansions;
+  results.relationEquipmentEffectAttributes = buildArmorSetEquipmentEffectAttributes(results.relationArmorSets);
   const projection = buildProjectionPayload({
     relationItems: results.relationItems,
     relationItemImages: results.relationItemImages,
@@ -1222,6 +1287,7 @@ export async function runSync(options, dependencies = {}) {
     relationArmorSets: results.relationArmorSets,
     relationArmorSetItems: results.relationArmorSetItems,
     relationArmorSetImages: results.relationArmorSetImages,
+    relationEquipmentEffectAttributes: results.relationEquipmentEffectAttributes,
     managedImageUrlPrefixes
   });
   results.projectionItems = projection.projectionItems;
@@ -1230,6 +1296,7 @@ export async function runSync(options, dependencies = {}) {
   results.projectionProjectiles = projection.projectionProjectiles;
   results.projectionBuffs = projection.projectionBuffs;
   results.projectionArmorSets = projection.projectionArmorSets;
+  results.projectionEquipmentEffectAttributes = projection.projectionEquipmentEffectAttributes;
   const armorSetProjectionConsistencyIssues = validateProjectionArmorSetConsistency(results.projectionArmorSets);
   const runKey = createRecordKey({
     dateTag: toDateTag(),
@@ -1268,7 +1335,8 @@ export async function runSync(options, dependencies = {}) {
         + results.npcProjectileAudits.length,
       boss: results.relationBosses.length + results.bossItemRewardRelations.length + results.bossEffectRelations.length,
       npcSeries: results.npcSeriesNodes.length + results.npcSeriesMemberships.length + results.npcSeriesItemRelations.length,
-      armorSet: results.relationArmorSets.length + results.relationArmorSetItems.length + results.relationArmorSetImages.length
+      armorSet: results.relationArmorSets.length + results.relationArmorSetItems.length + results.relationArmorSetImages.length,
+      equipmentEffect: results.relationEquipmentEffectAttributes.length
     },
     entityBreakdown: {
       item: results.relationItems.length,
@@ -1377,6 +1445,7 @@ export async function runSync(options, dependencies = {}) {
         'npc_series_memberships',
         'npc_series_nodes',
         'relation_armor_set_images',
+        'relation_equipment_effect_attributes',
         'relation_armor_set_items',
         'relation_armor_sets',
         'relation_item_rarities',
@@ -1391,6 +1460,7 @@ export async function runSync(options, dependencies = {}) {
         'projection_projectiles',
         'projection_buffs',
         'projection_armor_sets',
+        'projection_equipment_effect_attributes',
         'relation_items',
         'relation_npcs',
         'relation_projectiles',
@@ -1404,6 +1474,7 @@ export async function runSync(options, dependencies = {}) {
       await upsertRows(connection, 'relation_bosses', results.relationBosses);
       await upsertRows(connection, 'relation_armor_sets', results.relationArmorSets);
       await upsertRows(connection, 'relation_armor_set_items', results.relationArmorSetItems);
+      await upsertRows(connection, 'relation_equipment_effect_attributes', results.relationEquipmentEffectAttributes);
       await upsertRows(connection, 'relation_item_rarities', results.relationItemRarities);
       await upsertRows(connection, 'relation_item_images', results.relationItemImages);
       await upsertRows(connection, 'relation_npc_images', results.relationNpcImages);
@@ -1439,6 +1510,7 @@ export async function runSync(options, dependencies = {}) {
       await upsertRows(connection, 'projection_projectiles', results.projectionProjectiles);
       await upsertRows(connection, 'projection_buffs', results.projectionBuffs);
       await upsertRows(connection, 'projection_armor_sets', results.projectionArmorSets);
+      await upsertRows(connection, 'projection_equipment_effect_attributes', results.projectionEquipmentEffectAttributes);
       await reconcileItemStackSizeFromMaint(connection, options.maintDatabase);
       summary.bridgeBreakdown.maintItemImageFillRows = await reconcileProjectionItemImageFromMaint(
         connection,

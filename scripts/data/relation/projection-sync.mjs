@@ -641,6 +641,7 @@ export function buildProjectionPayload({
   relationArmorSets = [],
   relationArmorSetItems = [],
   relationArmorSetImages = [],
+  relationEquipmentEffectAttributes = [],
   managedImageUrlPrefixes = []
 } = {}) {
   const itemImages = buildImageIndex(relationItemImages, 'itemInternalName', managedImageUrlPrefixes);
@@ -1167,12 +1168,63 @@ export function buildProjectionPayload({
     };
   });
 
+  const armorSetProjectionIdByRecordKey = new Map(
+    projectionArmorSets
+      .filter((row) => row?.relationRecordKey && row?.id != null)
+      .map((row) => [row.relationRecordKey, row.id])
+  );
+  const projectionEquipmentEffectAttributes = relationEquipmentEffectAttributes
+    .slice()
+    .sort((left, right) => {
+      const leftKey = String(coalesceDefined(left.recordKey, left.record_key) ?? '');
+      const rightKey = String(coalesceDefined(right.recordKey, right.record_key) ?? '');
+      return leftKey.localeCompare(rightKey);
+    })
+    .map((row, index) => {
+      const ownerKind = coalesceDefined(row.ownerKind, row.owner_kind) ?? null;
+      const ownerRecordKey = coalesceDefined(row.ownerRecordKey, row.owner_record_key) ?? null;
+      const ownerProjectionId = ownerKind === 'armor_set'
+        ? armorSetProjectionIdByRecordKey.get(ownerRecordKey)
+        : null;
+      return {
+        id: index + 1,
+        relationRecordKey: coalesceDefined(row.recordKey, row.record_key) ?? null,
+        ownerKind,
+        ownerId: toNullableNumber(ownerProjectionId ?? coalesceDefined(row.ownerId, row.owner_id)),
+        ownerKey: coalesceDefined(row.ownerKey, row.owner_key) ?? null,
+        sourceKind: coalesceDefined(row.sourceKind, row.source_kind) ?? null,
+        sourceLine: coalesceDefined(row.sourceLine, row.source_line) ?? null,
+        sourceLineIndex: toNullableNumber(coalesceDefined(row.sourceLineIndex, row.source_line_index)),
+        effectIndex: toNullableNumber(coalesceDefined(row.effectIndex, row.effect_index)),
+        applyScope: coalesceDefined(row.applyScope, row.apply_scope) ?? null,
+        variantLabel: coalesceDefined(row.variantLabel, row.variant_label) ?? null,
+        itemInternalName: coalesceDefined(row.itemInternalName, row.item_internal_name) ?? null,
+        slotType: coalesceDefined(row.slotType, row.slot_type) ?? null,
+        statKey: coalesceDefined(row.statKey, row.stat_key) ?? null,
+        statLabelZh: coalesceDefined(row.statLabelZh, row.stat_label_zh) ?? null,
+        classScope: coalesceDefined(row.classScope, row.class_scope) ?? null,
+        operation: coalesceDefined(row.operation, row.operation) ?? null,
+        valueDecimal: toNullableNumber(coalesceDefined(row.valueDecimal, row.value_decimal)),
+        valueMaxDecimal: toNullableNumber(coalesceDefined(row.valueMaxDecimal, row.value_max_decimal)),
+        unit: coalesceDefined(row.unit, row.unit) ?? null,
+        conditionText: coalesceDefined(row.conditionText, row.condition_text) ?? null,
+        rawText: coalesceDefined(row.rawText, row.raw_text) ?? null,
+        parseStatus: coalesceDefined(row.parseStatus, row.parse_status) ?? null,
+        confidence: toNullableNumber(coalesceDefined(row.confidence, row.confidence)),
+        status: 1,
+        deleted: 0,
+        createdAt: null,
+        updatedAt: null
+      };
+    });
+
   return {
     projectionItems,
     projectionNpcs,
     projectionBosses,
     projectionProjectiles,
     projectionBuffs,
-    projectionArmorSets
+    projectionArmorSets,
+    projectionEquipmentEffectAttributes
   };
 }

@@ -6,7 +6,8 @@ export const PROJECTION_TABLE_NAMES = [
   'projection_bosses',
   'projection_projectiles',
   'projection_buffs',
-  'projection_armor_sets'
+  'projection_armor_sets',
+  'projection_equipment_effect_attributes'
 ];
 
 function buildProjectionStatements() {
@@ -216,6 +217,39 @@ function buildProjectionStatements() {
   \`updated_at\` DATETIME DEFAULT NULL,
   PRIMARY KEY (\`id\`),
   UNIQUE KEY \`uk_projection_armor_sets_text_key\` (\`text_key\`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+    `CREATE TABLE IF NOT EXISTS \`${RELATION_DATABASE_NAME}\`.\`projection_equipment_effect_attributes\` (
+  \`id\` BIGINT NOT NULL,
+  \`relation_record_key\` CHAR(64) COLLATE utf8mb4_bin DEFAULT NULL,
+  \`owner_kind\` VARCHAR(32) NOT NULL,
+  \`owner_id\` BIGINT DEFAULT NULL,
+  \`owner_key\` VARCHAR(255) DEFAULT NULL,
+  \`source_kind\` VARCHAR(64) NOT NULL,
+  \`source_line\` TEXT,
+  \`source_line_index\` INT DEFAULT NULL,
+  \`effect_index\` INT DEFAULT NULL,
+  \`apply_scope\` VARCHAR(64) DEFAULT NULL,
+  \`variant_label\` VARCHAR(255) DEFAULT NULL,
+  \`item_internal_name\` VARCHAR(255) DEFAULT NULL,
+  \`slot_type\` VARCHAR(64) DEFAULT NULL,
+  \`stat_key\` VARCHAR(64) NOT NULL,
+  \`stat_label_zh\` VARCHAR(255) DEFAULT NULL,
+  \`class_scope\` VARCHAR(64) DEFAULT NULL,
+  \`operation\` VARCHAR(32) DEFAULT NULL,
+  \`value_decimal\` DECIMAL(12,4) DEFAULT NULL,
+  \`value_max_decimal\` DECIMAL(12,4) DEFAULT NULL,
+  \`unit\` VARCHAR(32) DEFAULT NULL,
+  \`condition_text\` VARCHAR(500) DEFAULT NULL,
+  \`raw_text\` TEXT,
+  \`parse_status\` VARCHAR(64) NOT NULL,
+  \`confidence\` DECIMAL(5,4) DEFAULT NULL,
+  \`status\` INT NOT NULL DEFAULT 1,
+  \`deleted\` TINYINT NOT NULL DEFAULT 0,
+  \`created_at\` DATETIME DEFAULT NULL,
+  \`updated_at\` DATETIME DEFAULT NULL,
+  PRIMARY KEY (\`id\`),
+  KEY \`idx_projection_equipment_effect_owner\` (\`owner_kind\`, \`owner_id\`),
+  KEY \`idx_projection_equipment_effect_stat\` (\`stat_key\`, \`class_scope\`, \`parse_status\`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`
   ];
 }

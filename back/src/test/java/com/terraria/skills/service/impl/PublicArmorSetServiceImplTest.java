@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -45,6 +46,8 @@ class PublicArmorSetServiceImplTest {
             entry("name", "ArmorSetBonus.BeetleDamage"),
             entry("name_zh", "ArmorSetBonus.BeetleDamage"),
             entry("name_en", "ArmorSetBonus.BeetleDamage"),
+            entry("benefit_zh", "套装奖励：+20% 移动速度"),
+            entry("benefit_en", "Set bonus: +20% movement speed"),
             entry("primary_part", "head"),
             entry("set_count", 1),
             entry("unique_item_count", 3),
@@ -57,6 +60,18 @@ class PublicArmorSetServiceImplTest {
             "item_id", 2199L,
             "cached_url", MANAGED_ITEM_IMAGE
         )));
+        when(jdbcTemplate.queryForList(contains("projection_equipment_effect_attributes"), isA(Long.class))).thenReturn(List.of(Map.ofEntries(
+            entry("owner_id", 158677909L),
+            entry("stat_key", "move_speed"),
+            entry("stat_label_zh", "移动速度"),
+            entry("class_scope", "all"),
+            entry("operation", "add"),
+            entry("value_decimal", BigDecimal.valueOf(20)),
+            entry("unit", "percent"),
+            entry("apply_scope", "set_bonus"),
+            entry("raw_text", "套装奖励：+20% 移动速度"),
+            entry("parse_status", "parsed")
+        )));
 
         PublicArmorSetServiceImpl service = new PublicArmorSetServiceImpl(jdbcTemplate, new ObjectMapper(), managedImageUrlPolicy);
         Page<PublicArmorSetListDTO> result = service.getPublicArmorSets(new PublicArmorSetQuery());
@@ -67,5 +82,10 @@ class PublicArmorSetServiceImplTest {
         assertEquals(List.of(), armorSet.getFemaleImages());
         assertEquals(List.of(), armorSet.getSpecialImages());
         assertEquals(List.of(MANAGED_ITEM_IMAGE), armorSet.getFallbackImages());
+        assertEquals("套装奖励：+20% 移动速度", armorSet.getBenefitZh());
+        assertEquals("Set bonus: +20% movement speed", armorSet.getBenefitEn());
+        assertEquals(1, armorSet.getEffects().size());
+        assertEquals("move_speed", armorSet.getEffects().get(0).getStatKey());
+        assertEquals(BigDecimal.valueOf(20), armorSet.getEffects().get(0).getValueDecimal());
     }
 }

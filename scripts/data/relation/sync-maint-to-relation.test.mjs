@@ -436,6 +436,84 @@ test('runSync dry-run applies reviewed non-NPC source exclusions to item npc aud
   assert.equal(result.results.itemNpcRelationAudits[0].reasonCode, 'boss_lane_reference_source');
 });
 
+test('runSync dry-run parses armor set benefit text into equipment effect attributes', async () => {
+  const result = await runSync(
+    {
+      apply: false,
+      createDatabase: false,
+      maintDatabase: 'terria_v1_maint',
+      localDatabase: null,
+      relationDatabase: 'terria_v1_relation',
+      scopes: ['armor']
+    },
+    {
+      config: {
+        database: {
+          host: '127.0.0.1',
+          port: 13306,
+          username: 'root',
+          password: 'root'
+        }
+      },
+      queryMaint: async (sql) => {
+        if (sql.includes('maint_armor_sets')) {
+          return [{
+            id: 17,
+            record_key: 'armor-rk',
+            text_key: 'WikiArmorSet.Ninja armor',
+            benefit_expression: 'WikiArmorSet.Ninja armor',
+            primary_part: 'head',
+            set_count: 1,
+            unique_item_count: 3,
+            sets_json: '[[256,257,258]]',
+            unique_item_ids_json: '[256,257,258]',
+            raw_json: JSON.stringify({
+              pageTitle: 'Ninja armor',
+              nameZh: '忍者盔甲',
+              effectText: '+9% 暴击率\n套装奖励：+20% 移动速度'
+            }),
+            source_provider: 'terraria.wiki.gg',
+            source_page: 'Armor',
+            source_revision_timestamp: '2026-05-22 00:00:00'
+          }];
+        }
+        if (sql.includes('maint_items')) {
+          return [
+            { source_id: 256, internal_name: 'NinjaHood', english_name: 'Ninja Hood', raw_json: '{"headSlot":22}' },
+            { source_id: 257, internal_name: 'NinjaShirt', english_name: 'Ninja Shirt', raw_json: '{"bodySlot":14}' },
+            { source_id: 258, internal_name: 'NinjaPants', english_name: 'Ninja Pants', raw_json: '{"legSlot":13}' }
+          ];
+        }
+        return [];
+      },
+      queryRelation: async () => [],
+      writeReports: async () => ({
+        auditJsonPath: 'reports/relation/relation-audit-2026-05-22.json',
+        auditMdPath: 'reports/relation/relation-audit-2026-05-22.md',
+        conflictsPath: 'reports/relation/relation-conflicts-2026-05-22.json',
+        unresolvedPath: 'reports/relation/relation-unresolved-2026-05-22.json'
+      }),
+      executeRelation: async () => {
+        throw new Error('should not write in dry-run');
+      }
+    }
+  );
+
+  assert.equal(result.results.relationEquipmentEffectAttributes.length, 2);
+  assert.deepEqual(
+    result.results.relationEquipmentEffectAttributes.map((row) => row.statKey),
+    ['crit_chance', 'move_speed']
+  );
+  assert.equal(result.results.relationEquipmentEffectAttributes[1].applyScope, 'set_bonus');
+  assert.equal(result.results.projectionEquipmentEffectAttributes.length, 2);
+  assert.equal(
+    result.results.projectionEquipmentEffectAttributes[0].ownerId,
+    result.results.projectionArmorSets[0].id
+  );
+  assert.ok(result.results.projectionEquipmentEffectAttributes[0].ownerId > 0);
+  assert.equal(result.summary.domainSummary.equipmentEffect, 2);
+});
+
 test('runSync dry-run applies reviewed source-only item exclusions to item npc audits', async () => {
   const result = await runSync(
     {

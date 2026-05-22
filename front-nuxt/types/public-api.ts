@@ -291,6 +291,77 @@ export type PublicItemsResult = {
   source: 'api' | 'fallback'
 }
 
+export type PublicArmorSetQuery = {
+  page?: number
+  limit?: number
+  size?: number
+  search?: string
+}
+
+export type EquipmentEffectAttribute = {
+  statKey?: string | null
+  statLabelZh?: string | null
+  classScope?: string | null
+  operation?: string | null
+  valueDecimal?: number | string | null
+  valueMaxDecimal?: number | string | null
+  unit?: string | null
+  applyScope?: string | null
+  variantLabel?: string | null
+  itemInternalName?: string | null
+  slotType?: string | null
+  conditionText?: string | null
+  rawText?: string | null
+  parseStatus?: string | null
+}
+
+export type PublicArmorSetListItem = {
+  id?: number | string | null
+  textKey?: string | null
+  sourceKey?: string | null
+  name?: string | null
+  nameZh?: string | null
+  nameEn?: string | null
+  benefitZh?: string | null
+  benefitEn?: string | null
+  primaryPart?: string | null
+  setCount?: number | string | null
+  uniqueItemCount?: number | string | null
+  maleImages?: string[] | null
+  femaleImages?: string[] | null
+  specialImages?: string[] | null
+  fallbackImages?: string[] | null
+  effects?: EquipmentEffectAttribute[] | null
+}
+
+export type ArmorSetCatalogItem = {
+  id: string
+  armorSetId: number | null
+  name: string
+  displayName: string
+  englishName: string
+  textKey: string
+  sourceKey: string
+  image: string
+  sourceImage: string
+  fallback: string
+  primaryPart: string
+  setCount: number | null
+  uniqueItemCount: number | null
+  benefitZh: string
+  benefitEn: string
+  effects: EquipmentEffectAttribute[]
+  parsedEffects: EquipmentEffectAttribute[]
+  searchText: string
+}
+
+export type PublicArmorSetsResult = {
+  items: ArmorSetCatalogItem[]
+  rawArmorSets: PublicArmorSetListItem[]
+  pagination: Pagination
+  source: 'api' | 'fallback'
+}
+
 export type PublicNpcQuery = {
   page?: number
   limit?: number

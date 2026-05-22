@@ -19,6 +19,8 @@ public class PublicArmorSetListDTO implements Serializable {
     private String name;
     private String nameZh;
     private String nameEn;
+    private String benefitZh;
+    private String benefitEn;
     private String primaryPart;
     private Integer setCount;
     private Integer uniqueItemCount;
@@ -26,4 +28,5 @@ public class PublicArmorSetListDTO implements Serializable {
     private List<String> femaleImages = new ArrayList<>();
     private List<String> specialImages = new ArrayList<>();
     private List<String> fallbackImages = new ArrayList<>();
+    private List<EquipmentEffectAttributeDTO> effects = new ArrayList<>();
 }

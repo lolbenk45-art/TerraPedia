@@ -180,6 +180,180 @@
   color: rgba(157, 184, 154, 0.88);
 }
 
+.armor-command,
+.armor-spotlight {
+  display: grid;
+  gap: 18px;
+  align-items: center;
+}
+
+.armor-command {
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  background:
+    var(--index-grid-x),
+    var(--index-grid-y),
+    var(--index-surface);
+  background-size: 40px 40px, 40px 40px, auto;
+  padding: 18px;
+}
+
+.armor-spotlight {
+  grid-template-columns: minmax(0, 1fr) 300px;
+  min-height: 260px;
+  padding: 28px;
+}
+
+.armor-spotlight h2 {
+  margin: 10px 0 0;
+  color: var(--paper);
+  font-size: 30px;
+  line-height: 1.12;
+}
+
+.armor-spotlight p {
+  margin: 10px 0 0;
+  color: rgba(244, 234, 208, 0.64);
+  line-height: 1.65;
+}
+
+.armor-stage {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  background: rgba(244, 234, 208, 0.035);
+}
+
+.armor-stage .tp-preview-image {
+  width: 180px;
+  height: 110px;
+}
+
+.armor-stage .tp-preview-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.armor-effect-strip,
+.armor-effect-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.armor-effect-strip {
+  margin-top: 18px;
+}
+
+.armor-effect-row {
+  margin-top: 12px;
+}
+
+.armor-effect-strip span,
+.armor-effect-row span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  max-width: 100%;
+  border: 1px solid rgba(214, 177, 90, 0.2);
+  border-radius: 8px;
+  background: rgba(244, 234, 208, 0.04);
+  color: rgba(244, 234, 208, 0.82);
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.armor-card .armor-effect-row span {
+  display: inline-flex;
+  margin-top: 0;
+}
+
+.armor-effect-strip span.is-offense,
+.armor-effect-row span.is-offense {
+  color: rgba(240, 207, 116, 0.92);
+}
+
+.armor-effect-strip span.is-mobility,
+.armor-effect-row span.is-mobility {
+  color: rgba(154, 202, 191, 0.9);
+}
+
+.armor-effect-strip span.is-defense,
+.armor-effect-row span.is-defense {
+  color: rgba(157, 184, 154, 0.92);
+}
+
+.armor-card-live {
+  align-items: start;
+  min-width: 0;
+}
+
+.armor-card-live .tp-preview-image,
+.armor-card-live > .tp-skeleton {
+  width: 88px;
+  height: 92px;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  background: rgba(244,234,208,0.035);
+  padding: 10px;
+}
+
+.armor-card-live .tp-preview-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.armor-card-body {
+  min-width: 0;
+}
+
+.armor-card-body h3 {
+  margin: 7px 0 0;
+}
+
+.armor-card-body p {
+  display: -webkit-box;
+  margin: 8px 0 0;
+  color: rgba(244, 234, 208, 0.62);
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.armor-benefit-lines {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  min-width: 0;
+}
+
+.armor-benefit-lines span {
+  display: block;
+  overflow: hidden;
+  color: rgba(244, 234, 208, 0.68);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.armor-card .armor-benefit-lines span {
+  display: block;
+  margin-top: 0;
+}
+
 .catalog-wall-content {
   position: relative;
   z-index: 3;
@@ -1201,6 +1375,15 @@
 }
 
 @media (max-width: 1180px) {
+  .armor-command,
+  .armor-spotlight {
+    grid-template-columns: 1fr;
+  }
+
+  .armor-command .catalog-control-summary {
+    justify-content: flex-start;
+  }
+
   .catalog-pixel-stage {
     padding: 22px 24px 0;
   }
@@ -1247,6 +1430,10 @@
 }
 
 @media (max-width: 1024px) {
+  .armor-grid {
+    grid-template-columns: 1fr;
+  }
+
   .catalog-wall-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
@@ -1366,6 +1553,37 @@
 }
 
 @media (max-width: 720px) {
+  .armor-command,
+  .armor-spotlight {
+    padding: 14px;
+  }
+
+  .armor-spotlight h2 {
+    font-size: 24px;
+  }
+
+  .armor-card {
+    grid-template-columns: 74px minmax(0, 1fr);
+    gap: 12px;
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .armor-card-live .tp-preview-image,
+  .armor-card-live > .tp-skeleton {
+    width: 72px;
+    height: 78px;
+  }
+
+  .armor-card em {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .armor-route-band {
+    grid-template-columns: 1fr;
+  }
+
   .catalog-pixel-stage {
     padding: 8px 12px 0;
   }

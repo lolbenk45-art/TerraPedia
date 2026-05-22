@@ -2,6 +2,7 @@ package com.terraria.skills.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.terraria.skills.dto.EquipmentEffectAttributeDTO;
 import com.terraria.skills.dto.PublicArmorSetListDTO;
 import com.terraria.skills.dto.PublicArmorSetQuery;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -23,6 +25,7 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
 
     private static final String RELATION_DATABASE_NAME = "terria_v1_relation";
     private static final String PROJECTION_ARMOR_SETS_TABLE = "projection_armor_sets";
+    private static final String PROJECTION_EQUIPMENT_EFFECT_ATTRIBUTES_TABLE = "projection_equipment_effect_attributes";
 
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
@@ -50,7 +53,7 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         queryArgs.add(limit);
         String listSql = """
             SELECT id, text_key, source_key, name, name_zh, name_en, primary_part, set_count, unique_item_count,
-                   male_images, female_images, special_images, related_items_json
+                   benefit_zh, benefit_en, male_images, female_images, special_images, related_items_json
             FROM %s
             %s
             ORDER BY id ASC
@@ -63,7 +66,8 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
 
         Page<PublicArmorSetListDTO> result = new Page<>(page, limit, total == null ? 0 : total);
         Map<Long, String> fallbackImagesByItemId = resolveFallbackImagesByItemId(rows);
-        result.setRecords(rows.stream().map(row -> toListDto(row, fallbackImagesByItemId)).toList());
+        Map<Long, List<EquipmentEffectAttributeDTO>> effectsByArmorSetId = resolveEffectsByArmorSetId(rows);
+        result.setRecords(rows.stream().map(row -> toListDto(row, fallbackImagesByItemId, effectsByArmorSetId)).toList());
         return result;
     }
 
@@ -86,7 +90,15 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         return "`" + RELATION_DATABASE_NAME + "`.`" + PROJECTION_ARMOR_SETS_TABLE + "`";
     }
 
-    private PublicArmorSetListDTO toListDto(Map<String, Object> row, Map<Long, String> fallbackImagesByItemId) {
+    private String qualifiedEquipmentEffectTable() {
+        return "`" + RELATION_DATABASE_NAME + "`.`" + PROJECTION_EQUIPMENT_EFFECT_ATTRIBUTES_TABLE + "`";
+    }
+
+    private PublicArmorSetListDTO toListDto(
+        Map<String, Object> row,
+        Map<Long, String> fallbackImagesByItemId,
+        Map<Long, List<EquipmentEffectAttributeDTO>> effectsByArmorSetId
+    ) {
         PublicArmorSetListDTO dto = new PublicArmorSetListDTO();
         dto.setId(toLong(row.get("id")));
         dto.setTextKey(trimToNull(row.get("text_key")));
@@ -94,6 +106,8 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         dto.setName(firstNonBlank(trimToNull(row.get("name_zh")), trimToNull(row.get("name")), trimToNull(row.get("name_en")), trimToNull(row.get("text_key"))));
         dto.setNameZh(trimToNull(row.get("name_zh")));
         dto.setNameEn(trimToNull(row.get("name_en")));
+        dto.setBenefitZh(trimToNull(row.get("benefit_zh")));
+        dto.setBenefitEn(trimToNull(row.get("benefit_en")));
         dto.setPrimaryPart(trimToNull(row.get("primary_part")));
         dto.setSetCount(toInteger(row.get("set_count")));
         dto.setUniqueItemCount(toInteger(row.get("unique_item_count")));
@@ -103,6 +117,66 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         if (dto.getMaleImages().isEmpty() && dto.getFemaleImages().isEmpty() && dto.getSpecialImages().isEmpty()) {
             dto.setFallbackImages(resolveFallbackImages(row, fallbackImagesByItemId));
         }
+        dto.setEffects(effectsByArmorSetId.getOrDefault(dto.getId(), List.of()));
+        return dto;
+    }
+
+    private Map<Long, List<EquipmentEffectAttributeDTO>> resolveEffectsByArmorSetId(List<Map<String, Object>> rows) {
+        Set<Long> armorSetIds = new LinkedHashSet<>();
+        for (Map<String, Object> row : rows) {
+            Long id = toLong(row.get("id"));
+            if (id != null && id > 0) {
+                armorSetIds.add(id);
+            }
+        }
+        if (armorSetIds.isEmpty()) {
+            return Map.of();
+        }
+
+        String placeholders = String.join(",", armorSetIds.stream().map(id -> "?").toList());
+        String effectSql = """
+            SELECT owner_id, stat_key, stat_label_zh, class_scope, operation, value_decimal, value_max_decimal,
+                   unit, apply_scope, variant_label, item_internal_name, slot_type, condition_text,
+                   raw_text, parse_status
+            FROM %s
+            WHERE deleted = 0
+              AND status = 1
+              AND owner_kind = 'armor_set'
+              AND owner_id IN (%s)
+            ORDER BY owner_id ASC, id ASC
+            """.formatted(qualifiedEquipmentEffectTable(), placeholders);
+        List<Map<String, Object>> effectRows = jdbcTemplate.queryForList(
+            effectSql,
+            armorSetIds.toArray()
+        );
+
+        Map<Long, List<EquipmentEffectAttributeDTO>> result = new LinkedHashMap<>();
+        for (Map<String, Object> effectRow : effectRows) {
+            Long ownerId = toLong(effectRow.get("owner_id"));
+            if (ownerId == null) {
+                continue;
+            }
+            result.computeIfAbsent(ownerId, ignored -> new ArrayList<>()).add(toEffectDto(effectRow));
+        }
+        return result;
+    }
+
+    private EquipmentEffectAttributeDTO toEffectDto(Map<String, Object> row) {
+        EquipmentEffectAttributeDTO dto = new EquipmentEffectAttributeDTO();
+        dto.setStatKey(trimToNull(row.get("stat_key")));
+        dto.setStatLabelZh(trimToNull(row.get("stat_label_zh")));
+        dto.setClassScope(trimToNull(row.get("class_scope")));
+        dto.setOperation(trimToNull(row.get("operation")));
+        dto.setValueDecimal(toBigDecimal(row.get("value_decimal")));
+        dto.setValueMaxDecimal(toBigDecimal(row.get("value_max_decimal")));
+        dto.setUnit(trimToNull(row.get("unit")));
+        dto.setApplyScope(trimToNull(row.get("apply_scope")));
+        dto.setVariantLabel(trimToNull(row.get("variant_label")));
+        dto.setItemInternalName(trimToNull(row.get("item_internal_name")));
+        dto.setSlotType(trimToNull(row.get("slot_type")));
+        dto.setConditionText(trimToNull(row.get("condition_text")));
+        dto.setRawText(trimToNull(row.get("raw_text")));
+        dto.setParseStatus(trimToNull(row.get("parse_status")));
         return dto;
     }
 
@@ -227,6 +301,27 @@ public class PublicArmorSetServiceImpl implements PublicArmorSetService {
         }
         try {
             return Integer.parseInt(text);
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    private BigDecimal toBigDecimal(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof BigDecimal decimal) {
+            return decimal;
+        }
+        if (value instanceof Number number) {
+            return BigDecimal.valueOf(number.doubleValue());
+        }
+        String text = trimToNull(value);
+        if (text == null) {
+            return null;
+        }
+        try {
+            return new BigDecimal(text);
         } catch (NumberFormatException exception) {
             return null;
         }

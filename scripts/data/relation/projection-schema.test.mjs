@@ -13,13 +13,14 @@ test('PROJECTION_TABLE_NAMES stays ordered and complete', () => {
     'projection_bosses',
     'projection_projectiles',
     'projection_buffs',
-    'projection_armor_sets'
+    'projection_armor_sets',
+    'projection_equipment_effect_attributes'
   ]);
 });
 
 test('buildProjectionSchemaStatements emits schema-qualified create statements', () => {
   const statements = buildProjectionSchemaStatements();
-  assert.equal(statements.length, 6);
+  assert.equal(statements.length, 7);
   for (const tableName of PROJECTION_TABLE_NAMES) {
     const statement = statements.find((sql) => sql.includes(`\`${tableName}\``));
     assert.ok(statement, `missing statement for ${tableName}`);
@@ -74,4 +75,18 @@ test('projection armor set schema includes display images and related item json 
   assert.match(armorStatement, /`special_images` TEXT/);
   assert.match(armorStatement, /`related_items_json` LONGTEXT/);
   assert.match(armorStatement, /UNIQUE KEY `uk_projection_armor_sets_text_key` \(`text_key`\)/);
+});
+
+test('projection equipment effect schema includes owner and stat lookup fields', () => {
+  const statements = buildProjectionSchemaStatements();
+  const effectStatement = statements.find((sql) => sql.includes('`projection_equipment_effect_attributes`'));
+
+  assert.match(effectStatement, /`owner_kind` VARCHAR\(32\) NOT NULL/);
+  assert.match(effectStatement, /`owner_id` BIGINT DEFAULT NULL/);
+  assert.match(effectStatement, /`source_kind` VARCHAR\(64\) NOT NULL/);
+  assert.match(effectStatement, /`stat_key` VARCHAR\(64\) NOT NULL/);
+  assert.match(effectStatement, /`value_decimal` DECIMAL\(12,4\) DEFAULT NULL/);
+  assert.match(effectStatement, /`parse_status` VARCHAR\(64\) NOT NULL/);
+  assert.match(effectStatement, /KEY `idx_projection_equipment_effect_owner` \(`owner_kind`, `owner_id`\)/);
+  assert.match(effectStatement, /KEY `idx_projection_equipment_effect_stat` \(`stat_key`, `class_scope`, `parse_status`\)/);
 });

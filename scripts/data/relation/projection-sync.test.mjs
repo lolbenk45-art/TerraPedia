@@ -280,6 +280,59 @@ test('buildProjectionPayload maps relation entities into local-compatible projec
   });
 });
 
+test('buildProjectionPayload maps equipment effect attributes into compact projection rows', () => {
+  const actual = buildProjectionPayload({
+    relationEquipmentEffectAttributes: [
+      {
+        recordKey: 'effect-b',
+        ownerKind: 'armor_set',
+        ownerId: 17,
+        ownerKey: 'WikiArmorSet.Ninja armor',
+        sourceKind: 'benefit_zh',
+        sourceLine: '套装奖励：+20% 移动速度',
+        sourceLineIndex: 1,
+        effectIndex: 0,
+        applyScope: 'set_bonus',
+        statKey: 'move_speed',
+        statLabelZh: '移动速度',
+        operation: 'add',
+        valueDecimal: 20,
+        unit: 'percent',
+        rawText: '套装奖励：+20% 移动速度',
+        parseStatus: 'parsed',
+        confidence: 0.9,
+      },
+      {
+        recordKey: 'effect-a',
+        ownerKind: 'armor_set',
+        ownerId: 17,
+        ownerKey: 'WikiArmorSet.Ninja armor',
+        sourceKind: 'benefit_zh',
+        sourceLine: '+9% 暴击率',
+        sourceLineIndex: 0,
+        effectIndex: 0,
+        statKey: 'crit_chance',
+        statLabelZh: '暴击率',
+        classScope: 'all',
+        operation: 'add',
+        valueDecimal: 9,
+        unit: 'percent',
+        rawText: '+9% 暴击率',
+        parseStatus: 'parsed',
+        confidence: 0.9,
+      }
+    ]
+  });
+
+  assert.equal(actual.projectionEquipmentEffectAttributes.length, 2);
+  assert.deepEqual(actual.projectionEquipmentEffectAttributes.map((row) => row.id), [1, 2]);
+  assert.deepEqual(actual.projectionEquipmentEffectAttributes.map((row) => row.relationRecordKey), ['effect-a', 'effect-b']);
+  assert.equal(actual.projectionEquipmentEffectAttributes[0].ownerKind, 'armor_set');
+  assert.equal(actual.projectionEquipmentEffectAttributes[0].ownerId, 17);
+  assert.equal(actual.projectionEquipmentEffectAttributes[0].statKey, 'crit_chance');
+  assert.equal(actual.projectionEquipmentEffectAttributes[1].statKey, 'move_speed');
+});
+
 test('buildProjectionPayload maps boss relations into a public-ready boss projection', () => {
   const actual = buildProjectionPayload({
     relationItems: [
