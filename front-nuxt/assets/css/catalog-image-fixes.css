@@ -696,6 +696,13 @@
   font-weight: 900;
 }
 
+.catalog-page-dock > .catalog-density-picker {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  border-top-color: rgba(214, 177, 90, 0.12);
+  padding-top: 7px;
+}
+
 .catalog-dock-button,
 .catalog-dock-icon-button,
 .catalog-dock-page-button {

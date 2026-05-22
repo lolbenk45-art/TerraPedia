@@ -21,7 +21,6 @@ const projectileSortBy = ref<PublicProjectileQuery['sortBy']>('id')
 const projectileSortDirection = ref<'asc' | 'desc'>('asc')
 const projectileCurrentPage = ref(1)
 const projectilePageSize = ref(defaultProjectilePageSize)
-const projectileJumpPageInput = ref('')
 const projectileVisualLoading = ref(true)
 const projectileVisualLoadingMinimumMs = 180
 let projectileSearchDebounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -85,8 +84,6 @@ const projectileTotalPages = computed(() => Math.max(
   1,
   projectilePagination.value?.totalPages ?? Math.ceil(projectileTotalItems.value / Math.max(1, projectilePageLimit.value)),
 ))
-const projectileCanGoPrevious = computed(() => projectileCurrentPage.value > 1)
-const projectileCanGoNext = computed(() => projectileCurrentPage.value < projectileTotalPages.value)
 const projectileLoadingSlotCount = computed(() => Math.min(projectilePageSize.value, 48))
 const projectileStatusLabel = computed(() => {
   if (projectileVisualLoading.value) return '加载中'
@@ -99,28 +96,6 @@ const projectileResultSummary = computed(() => {
   return `${projectileDisplayItems.value.length} / ${projectileTotalItems.value.toLocaleString('zh-CN')}`
 })
 const projectileOrbitItems = computed(() => projectileDisplayItems.value.slice(0, 3))
-const projectilePageWindowItems = computed(() => {
-  if (projectileVisualLoading.value) return [1]
-
-  const pages = projectileTotalPages.value
-  const page = projectileCurrentPage.value
-  const candidates = new Set([1, pages])
-
-  for (let index = page - 2; index <= page + 2; index += 1) {
-    if (index >= 1 && index <= pages) {
-      candidates.add(index)
-    }
-  }
-
-  return [...candidates].sort((left, right) => left - right).reduce<Array<number | 'gap'>>((items, item) => {
-    const previous = items[items.length - 1]
-    if (typeof previous === 'number' && item - previous > 1) {
-      items.push('gap')
-    }
-    items.push(item)
-    return items
-  }, [])
-})
 
 const clearProjectileVisualLoadingTimer = () => {
   if (projectileVisualLoadingTimer) {
@@ -159,13 +134,7 @@ const goToProjectilePage = (page: number) => {
   if (nextPage === projectileCurrentPage.value) return
 
   projectileCurrentPage.value = nextPage
-  projectileJumpPageInput.value = ''
   void scrollProjectilesToTop()
-}
-
-const goToProjectileJumpPage = () => {
-  const page = parsePositiveInteger(projectileJumpPageInput.value, projectileCurrentPage.value)
-  goToProjectilePage(page)
 }
 
 const clearProjectileSearch = () => {
@@ -183,7 +152,6 @@ const resetProjectileFilters = () => {
 const setProjectilePageSize = (pageSize: number) => {
   projectilePageSize.value = pageSize
   projectileCurrentPage.value = 1
-  projectileJumpPageInput.value = ''
   void scrollProjectilesToTop()
 }
 
@@ -423,67 +391,18 @@ onBeforeUnmount(() => {
         <div><b>接口</b><span>{{ publicProjectilesResult?.source === 'api' ? '公共 API' : '等待公共 API' }}</span></div>
       </section>
 
-      <nav class="catalog-page-dock" aria-label="射弹分页">
-        <span class="catalog-page-dock-summary">第 {{ projectileVisualLoading ? 1 : projectileCurrentPage }} / {{ projectileVisualLoading ? 1 : projectileTotalPages }} 页</span>
-        <div class="catalog-page-dock-core">
-          <button class="catalog-dock-button" type="button" :disabled="projectileVisualLoading || !projectileCanGoPrevious" @click="goToProjectilePage(1)">
-            首页
-          </button>
-          <button class="catalog-dock-icon-button" type="button" aria-label="上一页" :disabled="projectileVisualLoading || !projectileCanGoPrevious" @click="goToProjectilePage(projectileCurrentPage - 1)">
-            ‹
-          </button>
-          <template v-for="(pageItem, index) in projectilePageWindowItems" :key="`${pageItem}-${index}`">
-            <span v-if="pageItem === 'gap'" class="catalog-page-gap">…</span>
-            <button
-              v-else
-              class="catalog-dock-page-button"
-              type="button"
-              :class="{ active: pageItem === projectileCurrentPage }"
-              :aria-current="!projectileVisualLoading && pageItem === projectileCurrentPage ? 'page' : undefined"
-              :disabled="projectileVisualLoading"
-              @click="goToProjectilePage(pageItem)"
-            >
-              {{ pageItem }}
-            </button>
-          </template>
-          <button class="catalog-dock-icon-button" type="button" aria-label="下一页" :disabled="projectileVisualLoading || !projectileCanGoNext" @click="goToProjectilePage(projectileCurrentPage + 1)">
-            ›
-          </button>
-          <button class="catalog-dock-button" type="button" :disabled="projectileVisualLoading || !projectileCanGoNext" @click="goToProjectilePage(projectileTotalPages)">
-            末页
-          </button>
-        </div>
-        <form class="catalog-dock-jump-form" aria-label="跳页" @submit.prevent="goToProjectileJumpPage">
-          <label for="projectile-page-jump">跳至</label>
-          <input
-            id="projectile-page-jump"
-            v-model="projectileJumpPageInput"
-            type="number"
-            inputmode="numeric"
-            min="1"
-            :max="projectileTotalPages"
-            :placeholder="String(projectileCurrentPage)"
-            :disabled="projectileVisualLoading"
-          />
-          <span>/ {{ projectileTotalPages }}</span>
-          <button class="catalog-dock-button" type="submit" :disabled="projectileVisualLoading">前往</button>
-        </form>
-        <div class="catalog-density-picker" aria-label="每页数量">
-          <span>每页</span>
-          <button
-            v-for="pageSize in projectilePageSizeOptions"
-            :key="pageSize"
-            class="catalog-density-chip"
-            :class="{ active: pageSize === projectilePageSize }"
-            type="button"
-            :aria-pressed="pageSize === projectilePageSize"
-            :disabled="projectileVisualLoading"
-            @click="setProjectilePageSize(pageSize)"
-          >
-            {{ pageSize }}
-          </button>
-        </div>
-      </nav>
+      <CommonPaginationDock
+        :current-page="projectileVisualLoading ? 1 : projectileCurrentPage"
+        :total-pages="projectileVisualLoading ? 1 : projectileTotalPages"
+        :disabled="projectileVisualLoading"
+        :page-size="projectilePageSize"
+        :page-size-options="projectilePageSizeOptions"
+        aria-label="射弹分页"
+        jump-id="projectile-page-jump"
+        show-boundary-controls
+        @page-change="goToProjectilePage"
+        @page-size-change="setProjectilePageSize"
+      />
     </main>
 
     <TerraFooter />

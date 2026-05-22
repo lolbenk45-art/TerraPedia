@@ -292,6 +292,7 @@ const requiredPublicDataLayerFiles = [
   'composables/usePublicBuffDetail.ts',
   'composables/usePublicProjectiles.ts',
   'components/common/PreviewImage.vue',
+  'components/common/PaginationDock.vue',
   'components/common/TpSkeleton.vue',
   'components/catalog/CatalogWallSkeleton.vue',
   'components/detail/ItemDetailSkeleton.vue',
@@ -402,6 +403,29 @@ const requiredPublicDataLayerMarkers = {
     'fallbackGlyph',
     'class="item-art tp-preview-image"',
     '@error="markFailed"',
+  ],
+  'components/common/PaginationDock.vue': [
+    'defineProps',
+    'defineEmits',
+    'catalog-page-dock',
+    "'page-change'",
+    "'page-size-change'",
+    'catalog-density-picker',
+  ],
+  'pages/items/index.vue': [
+    '<CommonPaginationDock',
+    '@page-change="goToPage"',
+    'summary-suffix',
+  ],
+  'pages/buffs/index.vue': [
+    '<CommonPaginationDock',
+    '@page-change="goToBuffPage"',
+    'jump-id="buff-page-jump"',
+  ],
+  'pages/projectiles/index.vue': [
+    '<CommonPaginationDock',
+    '@page-change="goToProjectilePage"',
+    '@page-size-change="setProjectilePageSize"',
   ],
   'components/common/TpSkeleton.vue': [
     "type?: 'icon' | 'line' | 'pill' | 'row'",
@@ -528,6 +552,7 @@ const scanFiles = [
   'components/TerraFooter.vue',
   'components/TerraBreadcrumb.vue',
   'components/common/PreviewImage.vue',
+  'components/common/PaginationDock.vue',
   'components/common/TpSkeleton.vue',
   'components/catalog/CatalogWallSkeleton.vue',
   'components/detail/ItemDetailSkeleton.vue',
@@ -1020,7 +1045,8 @@ for (const path of scanFiles) {
       'buffVisualLoading',
       'buffLoadingSlotCount',
       'goToBuffPage',
-      'goToBuffJumpPage',
+      '<CommonPaginationDock',
+      'jump-id="buff-page-jump"',
       '<CommonTpSkeleton',
       '<CommonPreviewImage',
       ':aria-busy="buffVisualLoading"',
@@ -1085,7 +1111,8 @@ for (const path of scanFiles) {
       'projectileVisualLoading',
       'projectileLoadingSlotCount',
       'goToProjectilePage',
-      'goToProjectileJumpPage',
+      '<CommonPaginationDock',
+      '@page-size-change="setProjectilePageSize"',
       '<CommonTpSkeleton',
       '<CommonPreviewImage',
       ':aria-busy="projectileVisualLoading"',
@@ -1118,7 +1145,6 @@ for (const path of scanFiles) {
       'const quickFilters = catalogCategoryGroups.flatMap',
       'const selectedCategoryIds = computed',
       'categoryIds.length === 1 ? categoryIds[0] : undefined',
-      'const pageWindowItems = computed',
       'matchCategoryFilter',
       'catalogWallTopRef',
       'scrollIntoView',
@@ -1128,9 +1154,9 @@ for (const path of scanFiles) {
       'catalog-wall-content',
       'catalog-wall-board',
       'catalog-density-picker',
-      'catalog-page-dock',
-      'catalog-dock-jump-form',
-      'goToJumpPage',
+      '<CommonPaginationDock',
+      'jump-id="catalog-page-jump"',
+      '@page-change="goToPage"',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: items page must use the category drawer layout, compact defaults, top-scroll paging, and light dock controls via marker ${marker}`)
@@ -1145,12 +1171,12 @@ for (const path of scanFiles) {
       violations.push(`${path}: category drawer must render grouped redundant categories from catalogCategoryGroups`)
     }
 
-    if (!content.includes('pageWindowItems') || !content.includes('@click="goToPage(pageItem)"')) {
-      violations.push(`${path}: light page dock must render compact page buttons wired to goToPage`)
+    if (!content.includes('<CommonPaginationDock') || !content.includes('@page-change="goToPage"')) {
+      violations.push(`${path}: light page dock must render through CommonPaginationDock wired to goToPage`)
     }
 
-    if (!content.includes('@submit.prevent="goToJumpPage"') || !content.includes('v-for="pageSize in pageSizeOptions"')) {
-      violations.push(`${path}: light page dock and drawer must keep jump-page and page-size controls wired`)
+    if (!content.includes('jump-id="catalog-page-jump"') || !content.includes('v-for="pageSize in pageSizeOptions"')) {
+      violations.push(`${path}: light page dock and drawer must keep reusable jump-page and page-size controls wired`)
     }
 
     for (const marker of [
