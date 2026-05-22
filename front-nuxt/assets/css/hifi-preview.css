@@ -4839,12 +4839,22 @@ img[data-preview-fallback] {
   min-height: 286px;
   padding: 22px;
 }
+.effect-card,
+.projectile-card {
+  color: var(--paper);
+  text-decoration: none;
+}
 .effect-card.active { border-color: var(--index-line-strong); }
 .effect-card.debuff { background-color: rgba(73, 32, 32, 0.18); }
 .effect-card i,
 .projectile-card i {
   width: 70px;
   height: 70px;
+}
+.effect-card i .item-art,
+.projectile-card i .item-art {
+  width: 44px;
+  height: 44px;
 }
 .effect-card i img,
 .projectile-card i img { width: 44px; height: 44px; }
@@ -4912,6 +4922,25 @@ img[data-preview-fallback] {
   border-radius: 8px;
   color: #ffd765;
   padding: 7px 9px;
+  font-size: 12px;
+  font-weight: 900;
+}
+.projectile-facts label {
+  display: grid;
+  gap: 5px;
+  min-width: 116px;
+  color: rgba(244, 234, 208, 0.62);
+  font-size: 11px;
+  font-weight: 900;
+}
+.projectile-facts select {
+  min-height: 34px;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  background: rgba(244,234,208,0.045);
+  color: var(--paper);
+  padding: 0 10px;
+  font: inherit;
   font-size: 12px;
   font-weight: 900;
 }
