@@ -16,3 +16,13 @@ test('isOverviewFallbackBiomeRecord keeps intentional Biomes records', () => {
     title: 'Biomes',
   }), false);
 });
+
+test('isOverviewFallbackBiomeRecord keeps intentional overview section records', () => {
+  assert.equal(isOverviewFallbackBiomeRecord({
+    requestedTitle: 'Flower patch',
+    title: 'Flower patch',
+    sourceType: 'overview_section',
+    sourcePageTitle: 'Biomes',
+    sourceSectionAnchor: 'Flower_patch',
+  }), false);
+});
