@@ -42,6 +42,9 @@ const BIOME_OVERVIEW_ANCHOR_BY_CODE = new Map([
   ['mosaic', '拼嵌洞'],
   ['campsite', '露营地'],
 ]);
+const ZH_BIOME_PAGE_TITLE_BY_ENGLISH_TITLE = new Map([
+  ['Biomes', '生物群系'],
+]);
 
 export function isEnglishOnlyText(value) {
   const text = normalizeText(value);
@@ -80,6 +83,8 @@ export function extractSectionParagraphByAnchor(html, anchor, { minLength = 6 } 
 export async function buildZhDescriptionPlan({
   bosses = [],
   biomes = [],
+  items = [],
+  worldContexts = [],
   fetchZhPage,
   fetchZhTitle,
   minDescriptionLength = 6,
@@ -102,7 +107,7 @@ export async function buildZhDescriptionPlan({
     if (!normalized) return null;
     return titleFetcher(normalized);
   };
-  const totalCandidates = bosses.length + biomes.length;
+  const totalCandidates = bosses.length + biomes.length + items.length + worldContexts.length;
   let processedCandidates = 0;
   const notifyProgress = async (scope, row) => {
     processedCandidates += 1;
@@ -134,6 +139,24 @@ export async function buildZhDescriptionPlan({
     await notifyProgress('biomes', row);
   }
 
+  const itemUpdates = [];
+  const itemSkipped = [];
+  for (const row of items) {
+    const candidate = buildItemCandidate(row);
+    if (candidate.update) itemUpdates.push(candidate.update);
+    else itemSkipped.push(candidate.skipped);
+    await notifyProgress('items', row);
+  }
+
+  const worldContextUpdates = [];
+  const worldContextSkipped = [];
+  for (const row of worldContexts) {
+    const candidate = await buildWorldContextCandidate(row, { getZhPage, getZhTitle, minDescriptionLength });
+    if (candidate.update) worldContextUpdates.push(candidate.update);
+    else worldContextSkipped.push(candidate.skipped);
+    await notifyProgress('worldContexts', row);
+  }
+
   return {
     generatedAt,
     summary: {
@@ -147,11 +170,25 @@ export async function buildZhDescriptionPlan({
         patchable: biomeUpdates.length,
         skipped: biomeSkipped.length,
       },
+      items: {
+        candidates: items.length,
+        patchable: itemUpdates.length,
+        skipped: itemSkipped.length,
+      },
+      worldContexts: {
+        candidates: worldContexts.length,
+        patchable: worldContextUpdates.length,
+        skipped: worldContextSkipped.length,
+      },
     },
     bossUpdates,
     bossSkipped,
     biomeUpdates,
     biomeSkipped,
+    itemUpdates,
+    itemSkipped,
+    worldContextUpdates,
+    worldContextSkipped,
   };
 }
 
@@ -216,13 +253,14 @@ async function buildBiomeCandidate(row, { getZhPage, getZhTitle, minDescriptionL
   }
 
   if (!descriptionAfter) {
-    const zhTitle = await getZhTitle(extractEnglishPageTitle(row.source_page) ?? row.name_en);
+    const englishTitle = extractEnglishPageTitle(row.source_page) ?? row.name_en;
+    const zhTitle = resolveKnownZhBiomeTitle(englishTitle) ?? await getZhTitle(englishTitle);
     if (zhTitle) {
       page = await getZhPage(zhTitle);
       descriptionAfter = page?.html
         ? extractFirstChineseParagraph(page.html, { minLength: minDescriptionLength })
         : null;
-      sourceKind = 'wiki-langlink';
+      sourceKind = resolveKnownZhBiomeTitle(englishTitle) ? 'zh-wiki:known-title-map' : 'wiki-langlink';
     }
   }
 
@@ -251,6 +289,60 @@ async function buildBiomeCandidate(row, { getZhPage, getZhTitle, minDescriptionL
       sourceRevisionTimestamp: page?.revisionTimestamp ?? null,
       sourceKind,
       overviewAnchor,
+    },
+  };
+}
+
+function buildItemCandidate(row) {
+  const internalName = normalizeText(row.internal_name);
+  if (!internalName?.startsWith('ZH_RECIPE_')) {
+    return { skipped: skippedRow(row, 'items', 'unsupported_item_description_source') };
+  }
+  const description = normalizeText(row.description);
+  if (description !== 'Placeholder item inserted from zh recipe import.') {
+    return { skipped: skippedRow(row, 'items', 'unsupported_item_description_text') };
+  }
+  return {
+    update: {
+      id: Number(row.id),
+      code: internalName,
+      nameEn: normalizeText(row.name),
+      nameZh: normalizeText(row.name_zh),
+      descriptionBefore: description,
+      descriptionZhBefore: normalizeText(row.description_zh),
+      descriptionZhAfter: '中文配方导入生成的占位物品。',
+      sourcePageBefore: normalizeText(row.source_page),
+      sourceKind: 'local-system-placeholder-copy',
+    },
+  };
+}
+
+async function buildWorldContextCandidate(row, { getZhPage, getZhTitle, minDescriptionLength }) {
+  const sourcePage = extractEnglishPageTitle(row.source_page) ?? row.name_en;
+  const zhTitle = await getZhTitle(sourcePage);
+  if (!zhTitle) {
+    return { skipped: skippedRow(row, 'worldContexts', 'missing_zh_title') };
+  }
+  const page = await getZhPage(zhTitle);
+  if (!page?.html) {
+    return { skipped: skippedRow(row, 'worldContexts', 'missing_zh_page', { zhTitle }) };
+  }
+  const descriptionAfter = extractFirstChineseParagraph(page.html, { minLength: minDescriptionLength });
+  if (!descriptionAfter) {
+    return { skipped: skippedRow(row, 'worldContexts', 'missing_zh_intro', { zhTitle, sourcePageZh: page.pageTitle }) };
+  }
+  return {
+    update: {
+      id: Number(row.id),
+      code: normalizeText(row.code),
+      nameEn: normalizeText(row.name_en),
+      nameZh: normalizeText(row.name_zh),
+      descriptionBefore: normalizeText(row.description),
+      descriptionAfter,
+      sourcePageBefore: normalizeText(row.source_page),
+      sourcePageZh: page.pageTitle,
+      sourceRevisionTimestamp: page.revisionTimestamp ?? null,
+      sourceKind: 'wiki-langlink',
     },
   };
 }
@@ -366,6 +458,11 @@ function resolveBiomeOverviewAnchor(row) {
   return null;
 }
 
+function resolveKnownZhBiomeTitle(title) {
+  const normalized = normalizeText(title);
+  return normalized ? ZH_BIOME_PAGE_TITLE_BY_ENGLISH_TITLE.get(normalized) ?? null : null;
+}
+
 function extractEnglishPageTitle(value) {
   const text = normalizeText(value);
   if (!text) return null;
@@ -471,17 +568,59 @@ async function loadBiomeCandidates(conn, limit = null) {
   return rows;
 }
 
+async function loadItemCandidates(conn, limit = null) {
+  const limitSql = Number.isFinite(Number(limit)) && Number(limit) > 0
+    ? ` LIMIT ${Math.trunc(Number(limit))}`
+    : '';
+  const [rows] = await conn.query(`
+    SELECT id, name, name_zh, internal_name, description, description_zh, source_page
+      FROM items
+     WHERE COALESCE(deleted, 0) = 0
+       AND COALESCE(status, 1) = 1
+       AND description IS NOT NULL
+       AND TRIM(description) <> ''
+       AND description REGEXP '[A-Za-z]'
+       AND (
+         description_zh IS NULL
+         OR TRIM(description_zh) = ''
+         OR (description_zh REGEXP '[A-Za-z]' AND description_zh NOT REGEXP '[一-龥]')
+       )
+     ORDER BY id${limitSql}
+  `);
+  return rows;
+}
+
+async function loadWorldContextCandidates(conn, limit = null) {
+  const limitSql = Number.isFinite(Number(limit)) && Number(limit) > 0
+    ? ` LIMIT ${Math.trunc(Number(limit))}`
+    : '';
+  const [rows] = await conn.query(`
+    SELECT id, code, name_en, name_zh, description, source_page
+      FROM world_contexts
+     WHERE COALESCE(deleted, 0) = 0
+       AND COALESCE(status, 1) = 1
+       AND (
+         (description IS NOT NULL AND description REGEXP '[A-Za-z]' AND description NOT REGEXP '[一-龥]')
+         OR description IS NULL
+         OR TRIM(description) = ''
+       )
+     ORDER BY context_type, sort_order, id${limitSql}
+  `);
+  return rows;
+}
+
 async function loadExtraAuditCounts(conn) {
   const [rows] = await conn.query(`
-    SELECT 'items_description_zh_missing' AS metric, COUNT(*) AS count
+    SELECT 'items_description_en_visible_missing_zh' AS metric, COUNT(*) AS count
       FROM items
      WHERE COALESCE(deleted,0)=0 AND COALESCE(status,1)=1
        AND description IS NOT NULL AND TRIM(description)<>'' AND description REGEXP '[A-Za-z]'
-       AND (description_zh IS NULL OR TRIM(description_zh)='')
+       AND (description_zh IS NULL OR TRIM(description_zh)='' OR (description_zh REGEXP '[A-Za-z]' AND description_zh NOT REGEXP '[一-龥]'))
     UNION ALL
-    SELECT 'buffs_tooltip_zh_missing_or_english', COUNT(*)
+    SELECT 'buffs_tooltip_en_visible_missing_zh', COUNT(*)
       FROM buffs
      WHERE COALESCE(deleted,0)=0 AND COALESCE(status,1)=1
+       AND tooltip_en IS NOT NULL AND TRIM(tooltip_en)<>''
        AND (tooltip_zh IS NULL OR TRIM(tooltip_zh)='' OR (tooltip_zh REGEXP '[A-Za-z]' AND tooltip_zh NOT REGEXP '[一-龥]'))
     UNION ALL
     SELECT 'world_contexts_description_english_or_missing', COUNT(*)
@@ -496,6 +635,8 @@ async function applyPlan(conn, plan, scopes) {
   const summary = {
     bossRowsUpdated: 0,
     biomeRowsUpdated: 0,
+    itemRowsUpdated: 0,
+    worldContextRowsUpdated: 0,
   };
   await conn.beginTransaction();
   try {
@@ -524,6 +665,36 @@ async function applyPlan(conn, plan, scopes) {
           [update.descriptionAfter, update.id]
         );
         summary.biomeRowsUpdated += Number(result.affectedRows || 0);
+      }
+    }
+    if (scopes.has('items')) {
+      for (const update of plan.itemUpdates) {
+        const [result] = await conn.execute(
+          `UPDATE items
+              SET description_zh = ?,
+                  updated_at = NOW()
+            WHERE id = ?
+              AND COALESCE(deleted, 0) = 0`,
+          [update.descriptionZhAfter, update.id]
+        );
+        summary.itemRowsUpdated += Number(result.affectedRows || 0);
+      }
+    }
+    if (scopes.has('world-contexts')) {
+      for (const update of plan.worldContextUpdates) {
+        const [result] = await conn.execute(
+          `UPDATE world_contexts
+              SET description = ?,
+                  source_provider = COALESCE(source_provider, 'wiki_gg'),
+                  source_page = COALESCE(NULLIF(TRIM(source_page), ''), ?),
+                  source_revision_timestamp = COALESCE(source_revision_timestamp, ?),
+                  last_synced_at = NOW(),
+                  updated_at = NOW()
+            WHERE id = ?
+              AND COALESCE(deleted, 0) = 0`,
+          [update.descriptionAfter, update.sourcePageBefore, update.sourceRevisionTimestamp, update.id]
+        );
+        summary.worldContextRowsUpdated += Number(result.affectedRows || 0);
       }
     }
     await conn.commit();
@@ -605,7 +776,7 @@ function resolvePrimaryWorktreeRoot(root) {
 async function main() {
   const options = parseCliArgs(process.argv.slice(2));
   const apply = booleanOption(options.apply, false);
-  const scopes = csvSet(options.scopes ?? options.scope, ['bosses', 'biomes']);
+  const scopes = csvSet(options.scopes ?? options.scope, ['bosses', 'biomes', 'items', 'world-contexts']);
   const limit = options.limit ?? null;
   const reportPath = resolveReportPath(options.report);
   const progressPath = path.resolve(process.cwd(), options['progress-path'] ?? DEFAULT_PROGRESS_PATH);
@@ -627,8 +798,10 @@ async function main() {
     await conn.query('SET NAMES utf8mb4');
     const bosses = scopes.has('bosses') ? await loadBossCandidates(conn, limit) : [];
     const biomes = scopes.has('biomes') ? await loadBiomeCandidates(conn, limit) : [];
+    const items = scopes.has('items') ? await loadItemCandidates(conn, limit) : [];
+    const worldContexts = scopes.has('world-contexts') ? await loadWorldContextCandidates(conn, limit) : [];
     const extraAuditCounts = await loadExtraAuditCounts(conn);
-    const total = bosses.length + biomes.length;
+    const total = bosses.length + biomes.length + items.length + worldContexts.length;
 
     writeProgress(progressPath, {
       status: 'running',
@@ -642,6 +815,8 @@ async function main() {
     const plan = await buildZhDescriptionPlan({
       bosses,
       biomes,
+      items,
+      worldContexts,
       onProgress: ({ current, total, scope, code }) => {
         writeProgress(progressPath, {
           status: 'running',
@@ -653,7 +828,12 @@ async function main() {
         });
       },
     });
-    const writeSummary = apply ? await applyPlan(conn, plan, scopes) : { bossRowsUpdated: 0, biomeRowsUpdated: 0 };
+    const writeSummary = apply ? await applyPlan(conn, plan, scopes) : {
+      bossRowsUpdated: 0,
+      biomeRowsUpdated: 0,
+      itemRowsUpdated: 0,
+      worldContextRowsUpdated: 0,
+    };
     const report = {
       ...plan,
       apply,
@@ -672,7 +852,7 @@ async function main() {
     writeProgress(progressPath, {
       status: 'completed',
       phase: 'write',
-      message: `finished zh description backfill; bossUpdates=${writeSummary.bossRowsUpdated}; biomeUpdates=${writeSummary.biomeRowsUpdated}`,
+      message: `finished zh description backfill; bossUpdates=${writeSummary.bossRowsUpdated}; biomeUpdates=${writeSummary.biomeRowsUpdated}; itemUpdates=${writeSummary.itemRowsUpdated}; worldContextUpdates=${writeSummary.worldContextRowsUpdated}`,
       current: total,
       total,
       startedAt,
@@ -681,14 +861,23 @@ async function main() {
     console.log(JSON.stringify({
       apply,
       scopes: [...scopes],
-      candidates: { bosses: bosses.length, biomes: biomes.length },
+      candidates: {
+        bosses: bosses.length,
+        biomes: biomes.length,
+        items: items.length,
+        worldContexts: worldContexts.length,
+      },
       patchable: {
         bosses: plan.bossUpdates.length,
         biomes: plan.biomeUpdates.length,
+        items: plan.itemUpdates.length,
+        worldContexts: plan.worldContextUpdates.length,
       },
       skipped: {
         bosses: plan.bossSkipped.length,
         biomes: plan.biomeSkipped.length,
+        items: plan.itemSkipped.length,
+        worldContexts: plan.worldContextSkipped.length,
       },
       writeSummary,
       extraAuditCounts,
