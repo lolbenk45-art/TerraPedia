@@ -360,6 +360,7 @@ const requiredPublicDataLayerFiles = [
   'components/common/PreviewImage.vue',
   'components/common/PaginationDock.vue',
   'components/common/TpSkeleton.vue',
+  'components/crafting/RecipeTreeNode.vue',
   'components/catalog/CatalogWallSkeleton.vue',
   'components/detail/ItemDetailSkeleton.vue',
   'components/search/SuggestionSkeletonRows.vue',
@@ -1430,11 +1431,8 @@ for (const path of scanFiles) {
       'recipeVariants',
       'recipeVisualLoading',
       'recipeNodeChildren',
-      'stationImage',
-      'recipeStationImage',
-      'recipeRoutePaths',
-      'recipe-normal-crafting',
-      'recipe-route-panel',
+      '<CraftingRecipeTreeNode',
+      'recipe-tree-stage',
       '<CommonTpSkeleton',
       '<CommonPreviewImage',
       ':aria-busy="recipeVisualLoading"',
@@ -1460,6 +1458,25 @@ for (const path of scanFiles) {
     ]) {
       if (content.includes(staticMarker)) {
         violations.push(`${path}: crafting page must not keep static preview-only recipe content (${staticMarker})`)
+      }
+    }
+  }
+
+  if (path === 'components/crafting/RecipeTreeNode.vue') {
+    for (const marker of [
+      'PublicItemRecipeTreeNode',
+      'PublicItemRecipeTreeStation',
+      'recipeNodeChildren',
+      'stationImage',
+      'recipeStationImage',
+      '<CraftingRecipeTreeNode',
+      'recipe-branch',
+      'recipe-tree-node',
+      'recipe-children',
+      '<CommonPreviewImage',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: crafting recipe tree node must recursively render material leaves, station images, and parent aggregation via marker ${marker}`)
       }
     }
   }
@@ -1687,9 +1704,10 @@ for (const path of scanFiles) {
       'max-height: 7.75em',
       '.crafting-suggestion-button',
       '.recipe-tree-canvas',
-      '.recipe-tree-grid',
-      '.recipe-node-main',
-      '.recipe-node-materials',
+      '.recipe-tree-stage',
+      '.recipe-branch',
+      '.recipe-tree-node',
+      '.recipe-children',
       '-webkit-line-clamp',
     ]) {
       if (!content.includes(marker)) {
