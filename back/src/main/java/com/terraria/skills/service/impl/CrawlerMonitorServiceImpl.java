@@ -43,6 +43,7 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path ALERT_CONFIG_FILE = REFRESH_DIR.resolve("alert-config.json");
     private static final Path WIKI_SYNC_PROGRESS_FILE = Path.of("data", "generated", "wiki-sync-progress.latest.json");
     private static final Path BUFF_FETCH_PROGRESS_FILE = Path.of("data", "generated", "fetch-wiki-buffs-progress.latest.json");
+    private static final Path WORLD_CONTEXT_FETCH_PROGRESS_FILE = Path.of("data", "generated", "wiki-world-contexts-progress.latest.json");
     private static final Path NPC_COVERAGE_REPORT = Path.of("data", "wiki-crawler", "report", "npc", "coverage-audit.latest.json");
     private static final Path RAW_ITEM_PAGES_DIR = Path.of("raw", "wiki", "item-pages");
     private static final Path STANDARDIZED_DIR = Path.of("standardized");
@@ -746,11 +747,13 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     ) {
         ReadResult itemProgress = readProgressWithRedisFallback(repoRoot, REDIS_ITEM_PROGRESS_KEY, WIKI_SYNC_PROGRESS_FILE);
         ReadResult buffFetchProgress = readProgressWithRedisAndSharedFallback(repoRoot, REDIS_BUFF_PROGRESS_KEY, BUFF_FETCH_PROGRESS_FILE);
+        ReadResult worldContextFetchProgress = readProgressWithSharedFallback(repoRoot, WORLD_CONTEXT_FETCH_PROGRESS_FILE);
         ReadResult npcCoverage = readJsonMap(repoRoot.resolve(NPC_COVERAGE_REPORT).normalize());
 
         List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> tasks = new ArrayList<>();
         tasks.add(buildWikiCoreRefreshTask(repoRoot, latestRun));
         tasks.add(buildBuffFetchRefreshTask(repoRoot, buffFetchProgress));
+        tasks.add(buildWorldContextFetchRefreshTask(repoRoot, worldContextFetchProgress));
         tasks.add(buildItemPagesRefreshTask(repoRoot, itemProgress));
         tasks.add(buildStaticTask(
             "item-pages-retry-failures",
@@ -1014,6 +1017,48 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         task.setStatus(firstNonBlank(asString(payload.get("status")), "pending"));
         task.setQueueState(firstNonBlank(asString(payload.get("message")), task.getStatus()));
         task.setNextStep("Wait for buff page refresh to complete, then run standardize-existing-data and downstream relation sync.");
+        task.setUpdatedAt(firstNonBlank(asString(payload.get("lastHeartbeatAt")), asString(payload.get("generatedAt"))));
+        copyTaskProgressFromPayload(task, payload);
+        applyReadableProgressState(task);
+        String reportPath = normalizePayloadPath(repoRoot, payload.get("reportPath"));
+        if (reportPath != null && !reportPath.isBlank()) {
+            task.setReportPath(reportPath);
+        }
+        String outputPath = normalizePayloadPath(repoRoot, payload.get("outputPath"));
+        if (outputPath != null && !outputPath.isBlank()) {
+            task.setOutputPath(outputPath);
+        }
+        return task;
+    }
+
+    private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildWorldContextFetchRefreshTask(Path repoRoot, ReadResult progress) {
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask("world-contexts-refresh", "World contexts source refresh", "fetch", "p1");
+        task.setProgressPath(toDisplayPath(repoRoot, progress));
+        applyProgressFileMetadata(task, repoRoot, progress);
+        task.setInputPath("wiki world context pages");
+        task.setOutputPath("data/terraPedia/generated/wiki-world-contexts.latest.json");
+        task.setReportPath("reports/wiki-world-contexts-summary-*.md");
+        task.setDataStage("wiki pages -> generated world context source");
+
+        if (!progress.found()) {
+            task.setStatus("missing");
+            task.setProgressKind("missing");
+            task.setQueueState("progress file missing");
+            task.setNextStep("Run scripts/data/fetch/fetch-wiki-world-contexts.mjs before transform/import.");
+            return task;
+        }
+        if (!progress.readable()) {
+            task.setStatus("blocked");
+            task.setProgressKind("blocked");
+            task.setQueueState(progress.errorMessage());
+            task.setNextStep("Repair the unreadable world-context progress JSON before trusting completion state.");
+            return task;
+        }
+
+        Map<String, Object> payload = progress.payload();
+        task.setStatus(firstNonBlank(asString(payload.get("status")), "pending"));
+        task.setQueueState(firstNonBlank(asString(payload.get("message")), task.getStatus()));
+        task.setNextStep("Transform wiki-world-contexts.latest.json, dry-run import, then apply to terria_v1_local.world_contexts.");
         task.setUpdatedAt(firstNonBlank(asString(payload.get("lastHeartbeatAt")), asString(payload.get("generatedAt"))));
         copyTaskProgressFromPayload(task, payload);
         applyReadableProgressState(task);

@@ -37,6 +37,21 @@ public class WorldContext implements Serializable {
     @TableField("icon_url")
     private String iconUrl;
 
+    @TableField("source_provider")
+    private String sourceProvider;
+
+    @TableField("source_page")
+    private String sourcePage;
+
+    @TableField("source_revision_timestamp")
+    private LocalDateTime sourceRevisionTimestamp;
+
+    @TableField("last_synced_at")
+    private LocalDateTime lastSyncedAt;
+
+    @TableField("raw_json")
+    private String rawJson;
+
     @TableField("sort_order")
     private Integer sortOrder;
 

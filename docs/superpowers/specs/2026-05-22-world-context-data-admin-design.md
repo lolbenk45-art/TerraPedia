@@ -36,6 +36,7 @@ The initial source set is intentionally bounded and explicit:
 - `Moon phase`
 - `Events`
 - `Weather`
+- `Snow biome`
 - `Graveyard`
 - `Shimmer`
 
@@ -65,6 +66,7 @@ wiki pages
 - The import only upserts `world_contexts`; it does not rewrite recipe or NPC shop condition relations.
 - Generated outputs under `data/generated/` and runtime reports remain local artifacts unless explicitly requested.
 - The database target must be logged in reports as `terria_v1_local`.
+- The importable dataset must cover the existing local 30 active world context records, including `SNOW` from `Snow biome`.
 
 ## Admin Behavior
 

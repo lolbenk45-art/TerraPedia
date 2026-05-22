@@ -141,6 +141,21 @@ public class AdminWorldContextController {
         if (request.getIconUrl() != null || creating) {
             target.setIconUrl(trimToNull(request.getIconUrl()));
         }
+        if (request.getSourceProvider() != null || creating) {
+            target.setSourceProvider(trimToNull(request.getSourceProvider()));
+        }
+        if (request.getSourcePage() != null || creating) {
+            target.setSourcePage(trimToNull(request.getSourcePage()));
+        }
+        if (request.getSourceRevisionTimestamp() != null || creating) {
+            target.setSourceRevisionTimestamp(request.getSourceRevisionTimestamp());
+        }
+        if (request.getLastSyncedAt() != null || creating) {
+            target.setLastSyncedAt(request.getLastSyncedAt());
+        }
+        if (request.getRawJson() != null || creating) {
+            target.setRawJson(trimToNull(request.getRawJson()));
+        }
         if (request.getSortOrder() != null || creating) {
             target.setSortOrder(request.getSortOrder() == null ? 0 : request.getSortOrder());
         }

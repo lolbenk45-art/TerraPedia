@@ -1106,6 +1106,47 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldRegisterWorldContextRefreshFromWorkspaceSharedDataWhenRepoRootIsWorktree() throws Exception {
+        Path workspaceRoot = Files.createDirectories(tempDir.resolve("workspace-world-contexts"));
+        Path worktreeRepoRoot = Files.createDirectories(workspaceRoot.resolve(".worktrees/feat-world-context-data-admin"));
+        Files.createDirectories(worktreeRepoRoot.resolve("back"));
+        Files.createDirectories(worktreeRepoRoot.resolve("data-query-app"));
+        Files.createDirectories(worktreeRepoRoot.resolve("scripts"));
+        Files.createDirectories(worktreeRepoRoot.resolve("reports/backend-refresh/history"));
+        Path progressPath = workspaceRoot.resolve("data/terraPedia/generated/wiki-world-contexts-progress.latest.json");
+
+        writeJson(progressPath, Map.ofEntries(
+            Map.entry("actionId", "world-contexts-refresh"),
+            Map.entry("status", "completed"),
+            Map.entry("phase", "write"),
+            Map.entry("message", "finished world context fetch; pages=6; unresolved=0"),
+            Map.entry("current", 6),
+            Map.entry("total", 6),
+            Map.entry("overallCurrent", 6),
+            Map.entry("overallTotal", 6),
+            Map.entry("percent", 100),
+            Map.entry("reportPath", "reports/wiki-world-contexts-summary-2026-05-22.md"),
+            Map.entry("outputPath", "data/terraPedia/generated/wiki-world-contexts.latest.json"),
+            Map.entry("lastHeartbeatAt", "2026-05-22T02:00:00Z"),
+            Map.entry("generatedAt", "2026-05-22T02:00:00Z")
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(new ObjectMapper(), worktreeRepoRoot);
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO worldContextRefresh = taskById(overview.getRegisteredTasks(), "world-contexts-refresh");
+
+        assertEquals("completed", worldContextRefresh.getStatus());
+        assertEquals("fetch", worldContextRefresh.getLane());
+        assertEquals(6, worldContextRefresh.getCurrent());
+        assertEquals(6, worldContextRefresh.getTotal());
+        assertEquals("finished world context fetch; pages=6; unresolved=0", worldContextRefresh.getQueueState());
+        assertEquals("reports/wiki-world-contexts-summary-2026-05-22.md", worldContextRefresh.getReportPath());
+        assertEquals("data/terraPedia/generated/wiki-world-contexts.latest.json", worldContextRefresh.getOutputPath());
+        assertTrue(worldContextRefresh.getProgressPath().replace('\\', '/').endsWith("data/terraPedia/generated/wiki-world-contexts-progress.latest.json"));
+    }
+
+    @Test
     void shouldExposeStaleRedisCrawlerHeartbeats() {
         StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
         @SuppressWarnings("unchecked")

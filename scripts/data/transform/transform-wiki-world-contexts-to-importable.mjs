@@ -1,0 +1,156 @@
+#!/usr/bin/env node
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { getProjectRoot } from '../lib/project-root.mjs';
+import { parseCliArgs, sharedDataPath } from '../lib/wiki-item-utils.mjs';
+
+const __filename = fileURLToPath(import.meta.url);
+const repoRoot = getProjectRoot();
+
+const CONTEXT_DEFINITIONS = [
+  { code: 'DAY', nameEn: 'Day', nameZh: '白天', contextType: 'TIME', sourcePage: 'Day and night cycle', sortOrder: 205 },
+  { code: 'NIGHT', nameEn: 'Night', nameZh: '夜晚', contextType: 'TIME', sourcePage: 'Day and night cycle', sortOrder: 210 },
+  { code: 'NEW_MOON', nameEn: 'New Moon', nameZh: '新月', contextType: 'MOON_PHASE', sourcePage: 'Moon phase', sortOrder: 110 },
+  { code: 'WAXING_CRESCENT', nameEn: 'Waxing Crescent', nameZh: '娥眉月', contextType: 'MOON_PHASE', sourcePage: 'Moon phase', sortOrder: 120 },
+  { code: 'FIRST_QUARTER', nameEn: 'First Quarter', nameZh: '上弦月', contextType: 'MOON_PHASE', sourcePage: 'Moon phase', sortOrder: 130 },
+  { code: 'WAXING_GIBBOUS', nameEn: 'Waxing Gibbous', nameZh: '盈凸月', contextType: 'MOON_PHASE', sourcePage: 'Moon phase', sortOrder: 140 },
+  { code: 'FULL_MOON', nameEn: 'Full Moon', nameZh: '满月', contextType: 'MOON_PHASE', sourcePage: 'Moon phase', sortOrder: 150 },
+  { code: 'WANING_GIBBOUS', nameEn: 'Waning Gibbous', nameZh: '亏凸月', contextType: 'MOON_PHASE', sourcePage: 'Moon phase', sortOrder: 160 },
+  { code: 'LAST_QUARTER', nameEn: 'Last Quarter', nameZh: '下弦月', contextType: 'MOON_PHASE', sourcePage: 'Moon phase', sortOrder: 170 },
+  { code: 'WANING_CRESCENT', nameEn: 'Waning Crescent', nameZh: '残月', contextType: 'MOON_PHASE', sourcePage: 'Moon phase', sortOrder: 180 },
+  { code: 'BLOOD_MOON', nameEn: 'Blood Moon', nameZh: '血月', contextType: 'EVENT', sourcePage: 'Events', sortOrder: 220 },
+  { code: 'PARTY', nameEn: 'Party', nameZh: '派对', contextType: 'EVENT', sourcePage: 'Events', sortOrder: 240 },
+  { code: 'LANTERN_NIGHT', nameEn: 'Lantern Night', nameZh: '灯笼夜', contextType: 'EVENT', sourcePage: 'Events', sortOrder: 245 },
+  { code: 'SOLAR_ECLIPSE', nameEn: 'Solar Eclipse', nameZh: '日食', contextType: 'EVENT', sourcePage: 'Events', sortOrder: 248 },
+  { code: 'HALLOWEEN', nameEn: 'Halloween', nameZh: '万圣节', contextType: 'EVENT', sourcePage: 'Events', sortOrder: 250 },
+  { code: 'CHRISTMAS', nameEn: 'Christmas', nameZh: '圣诞节', contextType: 'EVENT', sourcePage: 'Events', sortOrder: 260 },
+  { code: 'VALENTINES_DAY', nameEn: "Valentine's Day", nameZh: '情人节', contextType: 'EVENT', sourcePage: 'Events', sortOrder: 270 },
+  { code: 'THANKSGIVING', nameEn: 'Thanksgiving', nameZh: '感恩节', contextType: 'EVENT', sourcePage: 'Events', sortOrder: 280 },
+  { code: 'OKTOBERFEST', nameEn: 'Oktoberfest', nameZh: '十月啤酒节', contextType: 'EVENT', sourcePage: 'Events', sortOrder: 290 },
+  { code: 'WINDY_DAY', nameEn: 'Windy Day', nameZh: '大风天', contextType: 'WEATHER', sourcePage: 'Weather', sortOrder: 230 },
+  { code: 'ECTO_MIST', nameEn: 'Ecto Mist', nameZh: '灵雾', contextType: 'ENVIRONMENT', sourcePage: 'Graveyard', sortOrder: 10 },
+  { code: 'SNOW', nameEn: 'Snow', nameZh: '雪原', contextType: 'ENVIRONMENT', sourcePage: 'Snow biome', sortOrder: 20 },
+  { code: 'SHIMMER', nameEn: 'Shimmer', nameZh: '微光', contextType: 'ENVIRONMENT', sourcePage: 'Shimmer', sortOrder: 30 },
+  { code: 'MOON_PHASE_1_4', nameEn: 'Moon Phase 1-4', nameZh: '月相 1–4', contextType: 'MOON_PHASE', sourcePage: 'Moon phase', sortOrder: 300 },
+  { code: 'MOON_PHASE_LISTED', nameEn: 'Listed Moon Phases', nameZh: '以下月相', contextType: 'MOON_PHASE', sourcePage: 'Moon phase', sortOrder: 310 },
+  { code: 'MARTIAN_MADNESS_COMPLETED', nameEn: 'Martian Madness Completed', nameZh: '火星暴乱已完成', contextType: 'PROGRESSION', sourcePage: 'Events', sortOrder: 320 },
+  { code: 'PIRATE_INVASION_COMPLETED', nameEn: 'Pirate Invasion Completed', nameZh: '海盗入侵已完成', contextType: 'PROGRESSION', sourcePage: 'Events', sortOrder: 330 },
+  { code: 'SNOW_LEGION_COMPLETED', nameEn: 'Snow Legion Completed', nameZh: '雪人军团已完成', contextType: 'PROGRESSION', sourcePage: 'Events', sortOrder: 340 },
+  { code: 'ANY_MECH_BOSS_DEFEATED', nameEn: 'Any Mechanical Boss Defeated', nameZh: '任一机械Boss已击败', contextType: 'PROGRESSION', sourcePage: 'Events', sortOrder: 350 },
+  { code: 'ALL_MECH_BOSSES_DEFEATED', nameEn: 'All Mechanical Bosses Defeated', nameZh: '全部机械Boss已击败', contextType: 'PROGRESSION', sourcePage: 'Events', sortOrder: 360 }
+];
+
+export function buildWorldContextImportable(payload, {
+  generatedAt = new Date().toISOString(),
+  sourceFile = null
+} = {}) {
+  const pageByRequestedTitle = new Map(
+    (Array.isArray(payload?.pages) ? payload.pages : [])
+      .map(page => [String(page?.requestedTitle ?? page?.title ?? '').trim(), page])
+      .filter(([title]) => title)
+  );
+
+  const worldContexts = CONTEXT_DEFINITIONS.map(definition => {
+    const page = pageByRequestedTitle.get(definition.sourcePage) ?? null;
+    const sourceRevisionTimestamp = page?.revisionTimestamp ?? null;
+    return {
+      code: definition.code,
+      nameEn: definition.nameEn,
+      nameZh: definition.nameZh,
+      contextType: definition.contextType,
+      description: buildDescription(definition, page),
+      iconUrl: page?.iconUrl ?? null,
+      sourceProvider: 'wiki_gg',
+      sourcePage: definition.sourcePage,
+      sourceRevisionTimestamp,
+      lastSyncedAt: generatedAt,
+      rawJson: JSON.stringify({
+        sourcePage: definition.sourcePage,
+        sourceTitle: page?.title ?? definition.sourcePage,
+        sourceUrl: page?.sourceUrl ?? null,
+        sourceRevisionTimestamp,
+        sourceIntro: page?.intro ?? null,
+        sourceSections: Array.isArray(page?.sections) ? page.sections : []
+      }),
+      sortOrder: definition.sortOrder,
+      status: 1
+    };
+  });
+
+  return {
+    entity: 'wiki_world_contexts_importable',
+    generatedAt,
+    sourceFile,
+    sourceProvider: 'wiki_gg',
+    worldContexts,
+    summary: {
+      worldContextCount: worldContexts.length,
+      sourcePageCount: pageByRequestedTitle.size
+    }
+  };
+}
+
+function buildDescription(definition, page) {
+  const intro = typeof page?.intro === 'string' ? page.intro.trim() : '';
+  if (intro) {
+    return intro.length > 500 ? `${intro.slice(0, 497)}...` : intro;
+  }
+  return `${definition.nameEn} world context sourced from ${definition.sourcePage}.`;
+}
+
+function main(argv = process.argv.slice(2)) {
+  const options = parseCliArgs(argv);
+  const generatedAt = new Date().toISOString();
+  const dateTag = generatedAt.slice(0, 10);
+  const inputPath = path.resolve(process.cwd(), options.input ?? options['input-json'] ?? sharedDataPath('generated', 'wiki-world-contexts.latest.json'));
+  const outputPath = path.resolve(process.cwd(), options.output ?? options['output-json'] ?? sharedDataPath('generated', 'wiki-world-contexts.importable.latest.json'));
+  const reportPath = path.resolve(process.cwd(), options['report-md'] ?? path.join(repoRoot, 'reports', `wiki-world-contexts-importable-summary-${dateTag}.md`));
+
+  if (!fs.existsSync(inputPath)) {
+    throw new Error(`Input file not found: ${inputPath}`);
+  }
+
+  const payload = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
+  const importable = buildWorldContextImportable(payload, {
+    generatedAt,
+    sourceFile: path.relative(repoRoot, inputPath).replaceAll('\\', '/')
+  });
+
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+  fs.writeFileSync(outputPath, `${JSON.stringify(importable, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(reportPath, buildMarkdown(importable), 'utf8');
+
+  console.log(JSON.stringify({
+    outputPath,
+    reportPath,
+    worldContextCount: importable.worldContexts.length
+  }, null, 2));
+}
+
+function buildMarkdown(importable) {
+  const lines = [
+    '# Wiki World Context Importable Summary',
+    '',
+    `- Generated At: \`${importable.generatedAt}\``,
+    `- World Contexts: \`${importable.worldContexts.length}\``,
+    ''
+  ];
+  for (const context of importable.worldContexts) {
+    lines.push(`- ${context.code} | ${context.nameEn} | type=${context.contextType} | source=${context.sourcePage}`);
+  }
+  lines.push('');
+  return `${lines.join('\n')}\n`;
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+  try {
+    main();
+  } catch (error) {
+    console.error(error);
+    process.exit(1);
+  }
+}

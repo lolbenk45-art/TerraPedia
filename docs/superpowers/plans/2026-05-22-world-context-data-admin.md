@@ -56,7 +56,7 @@ Assert that the fetch script exposes the bounded source page list and writes pro
 
 - [ ] **Step 2: Write failing transform tests**
 
-Use a fixture payload containing `Day and night cycle`, `Moon phase`, `Events`, `Weather`, `Graveyard`, and `Shimmer`; assert the transform emits stable codes such as `DAY`, `NIGHT`, `FULL_MOON`, `BLOOD_MOON`, `WINDY_DAY`, `ECTO_MIST`, and `SHIMMER`.
+Use a fixture payload containing `Day and night cycle`, `Moon phase`, `Events`, `Weather`, `Snow biome`, `Graveyard`, and `Shimmer`; assert the transform emits stable codes such as `DAY`, `NIGHT`, `FULL_MOON`, `BLOOD_MOON`, `WINDY_DAY`, `SNOW`, `ECTO_MIST`, and `SHIMMER`.
 
 - [ ] **Step 3: Run node tests and confirm failure**
 
@@ -145,7 +145,7 @@ Expected: generated source JSON and progress JSON exist; progress ends with `com
 
 Run: `node scripts/data/transform/transform-wiki-world-contexts-to-importable.mjs`
 
-Expected: importable JSON includes the stable world-context codes and source metadata.
+Expected: importable JSON includes the stable world-context codes and source metadata for the local 30 active world context records, including `SNOW`.
 
 - [ ] **Step 3: Run dry-run import**
 
