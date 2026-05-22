@@ -8,6 +8,8 @@ const searchQuery = ref(String(route.query.keyword ?? '').trim())
 const searchInput = ref<HTMLInputElement | null>(null)
 const searchSuggestions = ref<ItemSuggestion[]>([])
 const suggestionsPending = ref(false)
+const suggestionsClientReady = ref(false)
+const suggestionsVisualLoading = computed(() => suggestionsPending.value || !suggestionsClientReady.value)
 let suggestionTimer: ReturnType<typeof setTimeout> | undefined
 
 const quickEntries = [
@@ -46,22 +48,16 @@ const starterGuides = [
 const refreshSuggestions = async (keyword: string) => {
   suggestionsPending.value = true
   try {
-    searchSuggestions.value = (await fetchPublicItemSuggestions(keyword, 5)).slice(0, 5)
+    searchSuggestions.value = (await fetchPublicItemSuggestions(keyword, 5, { allowFallback: false })).slice(0, 5)
   } finally {
     suggestionsPending.value = false
   }
 }
 
-await refreshSuggestions(searchQuery.value)
-
 const submitSearch = () => {
   const keyword = searchQuery.value.trim()
   void router.replace({ query: keyword ? { keyword } : {} })
   void refreshSuggestions(keyword)
-}
-
-const showFallbackSuggestions = async () => {
-  searchSuggestions.value = await fetchPublicItemSuggestions('', 5)
 }
 
 watch(searchQuery, (keyword) => {
@@ -75,6 +71,11 @@ watch(() => route.query.keyword, (kw) => {
 
 onBeforeUnmount(() => {
   if (suggestionTimer) clearTimeout(suggestionTimer)
+})
+
+onMounted(() => {
+  suggestionsClientReady.value = true
+  void refreshSuggestions(searchQuery.value)
 })
 
 useSeoMeta({
@@ -111,32 +112,31 @@ useSeoMeta({
           <button type="submit" class="home-search-submit">搜索</button>
         </form>
 
-        <div class="home-suggestion-list" aria-label="搜索建议">
+        <div class="home-suggestion-list" aria-label="搜索建议" :aria-busy="suggestionsVisualLoading">
           <NuxtLink
             v-for="suggestion in searchSuggestions"
             :key="suggestion.id"
             class="home-suggestion-row"
             :to="suggestion.href"
           >
-            <span
-              class="item-art"
-              :class="{ 'is-fallback': !suggestion.image }"
-              :data-fallback="suggestion.fallback"
-              :style="suggestion.image ? `background-image:url('${suggestion.image}')` : undefined"
-              aria-hidden="true"
-            ></span>
+            <CommonPreviewImage
+              :src="suggestion.image"
+              :fallback="suggestion.fallback"
+              decorative
+            />
             <b>{{ suggestion.title }}</b>
             <em>{{ suggestion.meta }}</em>
           </NuxtLink>
-          <span v-if="suggestionsPending" class="home-suggestion-row is-loading">检索中</span>
-          <button
-            v-if="!searchSuggestions.length && !suggestionsPending"
+          <SearchSuggestionSkeletonRows v-if="suggestionsVisualLoading" />
+          <NuxtLink
+            v-if="!searchSuggestions.length && !suggestionsPending && suggestionsClientReady"
             class="home-suggestion-row"
-            type="button"
-            @click="showFallbackSuggestions"
+            to="/items"
           >
-            查看热门物品
-          </button>
+            <span class="sprite-icon icon-items compact" aria-hidden="true"></span>
+            <b>查看物品图鉴</b>
+            <em>接口暂无建议</em>
+          </NuxtLink>
         </div>
       </section>
 

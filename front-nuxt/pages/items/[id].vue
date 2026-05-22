@@ -11,10 +11,10 @@ import type {
 } from '~/types/public-api'
 
 const route = useRoute()
-const failedImages = ref(new Set<string>())
 
 const itemId = computed(() => String(route.params.id ?? '').trim())
 const { data: detailBundle, pending: detailPending, error: detailError } = await usePublicItemDetail(itemId)
+const detailClientReady = ref(false)
 
 const firstText = (...values: unknown[]) => {
   for (const value of values) {
@@ -34,8 +34,8 @@ const firstImageUrl = (...values: unknown[]) => resolvePreviewImageUrl(firstText
 
 const rawBundle = computed<PublicItemDetailBundle>(() => detailBundle.value)
 const detailItem = computed<PublicItemDetail | null>(() => rawBundle.value.item)
-const detailLoadingState = computed(() => detailPending.value && !detailItem.value)
-const notFoundState = computed(() => !detailPending.value && !detailItem.value)
+const detailLoadingState = computed(() => !detailClientReady.value || (detailPending.value && !detailItem.value))
+const notFoundState = computed(() => detailClientReady.value && !detailPending.value && !detailItem.value)
 
 const itemName = computed(() => firstText(
   detailItem.value?.displayName,
@@ -180,66 +180,17 @@ const statRows = computed(() => [
   { label: '稀有度', value: itemRarity.value },
 ].filter((row) => row.value))
 
-const markImageFallback = (image: string) => {
-  if (!image) return
-  failedImages.value = new Set(failedImages.value).add(image)
-}
+onMounted(() => {
+  detailClientReady.value = true
+})
 </script>
 
 <template>
-  <section class="screen detail-screen active" :aria-busy="detailPending">
+  <section class="screen detail-screen active" :aria-busy="detailLoadingState">
     <TerraNav />
     <TerraBreadcrumb />
 
-    <div v-if="detailLoadingState" class="detail-layout detail-loading-skeleton">
-      <section class="detail-hero dark-card">
-        <div class="detail-icon-stage">
-          <span class="detail-loading-icon" aria-hidden="true"></span>
-        </div>
-        <div class="detail-main">
-          <span class="detail-loading-kicker" aria-hidden="true"></span>
-          <span class="detail-loading-title" aria-hidden="true"></span>
-          <span class="detail-loading-copy" aria-hidden="true"></span>
-          <span class="detail-loading-copy short" aria-hidden="true"></span>
-          <div class="tag-row" aria-hidden="true">
-            <span class="detail-loading-pill"></span>
-            <span class="detail-loading-pill"></span>
-            <span class="detail-loading-pill"></span>
-          </div>
-        </div>
-        <aside class="detail-side">
-          <p class="section-label">核心属性</p>
-          <div class="detail-loading-stat-list" aria-hidden="true">
-            <span v-for="slot in 8" :key="`detail-loading-stat-${slot}`"></span>
-          </div>
-        </aside>
-      </section>
-
-      <div class="detail-grid">
-        <div class="module-stack">
-          <section class="detail-module dark-card">
-            <div class="module-title">
-              <span class="detail-loading-heading" aria-hidden="true"></span>
-              <span class="detail-loading-pill" aria-hidden="true"></span>
-            </div>
-            <div class="source-table" aria-hidden="true">
-              <div v-for="slot in 3" :key="`detail-loading-row-${slot}`" class="source-row detail-loading-row">
-                <span class="detail-loading-mini-icon"></span>
-                <span class="detail-loading-row-text"></span>
-                <span class="detail-loading-row-value"></span>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <aside class="evidence-panel dark-card">
-          <span class="eyebrow">资料链路</span>
-          <div v-for="slot in 4" :key="`detail-loading-evidence-${slot}`" class="evidence-step detail-loading-evidence">
-            <div><span class="detail-loading-row-text"></span></div>
-          </div>
-        </aside>
-      </div>
-    </div>
+    <DetailItemDetailSkeleton v-if="detailLoadingState" />
 
     <div v-else-if="notFoundState" class="detail-layout">
       <section class="detail-hero dark-card">
@@ -259,19 +210,12 @@ const markImageFallback = (image: string) => {
     <div v-else class="detail-layout">
       <section class="detail-hero dark-card">
         <div class="detail-icon-stage">
-          <span
-            class="item-art"
-            :class="{ 'is-fallback': !itemImage || failedImages.has(itemImage) }"
-            :data-fallback="itemFallbackGlyph"
-          >
-            <img
-              v-if="itemImage && !failedImages.has(itemImage)"
-              :src="itemImage"
-              :alt="itemName"
-              decoding="async"
-              @error="markImageFallback(itemImage)"
-            />
-          </span>
+          <CommonPreviewImage
+            :src="itemImage"
+            :alt="itemName"
+            :fallback="itemFallbackGlyph"
+            loading="eager"
+          />
         </div>
         <div class="detail-main">
           <span class="eyebrow">物品 #{{ itemId }} · {{ itemEnglishName || sourceLabel }}</span>
@@ -311,20 +255,11 @@ const markImageFallback = (image: string) => {
             <div class="source-table">
               <div v-for="image in imageEntries" :key="String(image.id)" class="source-row">
                 <span class="sprite-frame" style="width:42px;height:42px">
-                  <span
-                    class="item-art"
-                    :class="{ 'is-fallback': failedImages.has(image.url) }"
-                    :data-fallback="itemFallbackGlyph"
-                  >
-                    <img
-                      v-if="!failedImages.has(image.url)"
-                      :src="image.url"
-                      :alt="image.label"
-                      loading="lazy"
-                      decoding="async"
-                      @error="markImageFallback(image.url)"
-                    />
-                  </span>
+                  <CommonPreviewImage
+                    :src="image.url"
+                    :alt="image.label"
+                    :fallback="itemFallbackGlyph"
+                  />
                 </span>
                 <div><b>{{ image.label }}</b><span>{{ image.note || image.url }}</span></div>
                 <strong>图片</strong>
@@ -341,20 +276,11 @@ const markImageFallback = (image: string) => {
               <template v-for="(material, index) in recipeTreeSummary.materials" :key="String(material.id)">
                 <div class="recipe-node">
                   <span class="sprite-frame" style="width:48px;height:48px">
-                    <span
-                      class="item-art"
-                      :class="{ 'is-fallback': !material.image || failedImages.has(material.image) }"
-                      :data-fallback="material.fallback"
-                    >
-                      <img
-                        v-if="material.image && !failedImages.has(material.image)"
-                        :src="material.image"
-                        :alt="material.name"
-                        loading="lazy"
-                        decoding="async"
-                        @error="markImageFallback(material.image)"
-                      />
-                    </span>
+                    <CommonPreviewImage
+                      :src="material.image"
+                      :alt="material.name"
+                      :fallback="material.fallback"
+                    />
                   </span>
                   <b>{{ material.name }}</b>
                   <span>{{ material.amount || '数量未标记' }}</span>
@@ -364,20 +290,11 @@ const markImageFallback = (image: string) => {
               <div v-if="recipeTreeSummary.materials.length" class="recipe-arrow">=</div>
               <div class="recipe-node">
                 <span class="sprite-frame" style="width:48px;height:48px">
-                  <span
-                    class="item-art"
-                    :class="{ 'is-fallback': !itemImage || failedImages.has(itemImage) }"
-                    :data-fallback="itemFallbackGlyph"
-                  >
-                    <img
-                      v-if="itemImage && !failedImages.has(itemImage)"
-                      :src="itemImage"
-                      :alt="itemName"
-                      loading="lazy"
-                      decoding="async"
-                      @error="markImageFallback(itemImage)"
-                    />
-                  </span>
+                  <CommonPreviewImage
+                    :src="itemImage"
+                    :alt="itemName"
+                    :fallback="itemFallbackGlyph"
+                  />
                 </span>
                 <b>{{ recipeTreeSummary.title }}</b>
                 <span>{{ recipeTreeSummary.station }}</span>
@@ -394,20 +311,11 @@ const markImageFallback = (image: string) => {
             <div class="source-table">
               <div v-for="source in sourceEntries" :key="String(source.id)" class="source-row">
                 <span class="sprite-frame" style="width:42px;height:42px">
-                  <span
-                    class="item-art"
-                    :class="{ 'is-fallback': !source.image || failedImages.has(source.image) }"
-                    :data-fallback="source.fallback"
-                  >
-                    <img
-                      v-if="source.image && !failedImages.has(source.image)"
-                      :src="source.image"
-                      :alt="source.name"
-                      loading="lazy"
-                      decoding="async"
-                      @error="markImageFallback(source.image)"
-                    />
-                  </span>
+                  <CommonPreviewImage
+                    :src="source.image"
+                    :alt="source.name"
+                    :fallback="source.fallback"
+                  />
                 </span>
                 <div><b>{{ source.name }}</b><span>{{ source.detail }}</span></div>
                 <strong>{{ source.value || '来源' }}</strong>

@@ -5,7 +5,7 @@ import type { CatalogItem, PublicCategory, PublicItemQuery } from '~/types/publi
 const route = useRoute()
 const router = useRouter()
 const defaultCatalogPageSize = 24
-const failedItemImages = ref(new Set<string>())
+const catalogClientReady = ref(false)
 const catalogWallTopRef = ref<HTMLElement | null>(null)
 const searchQuery = ref('')
 const debouncedSearchQuery = ref('')
@@ -211,23 +211,30 @@ const publicItemsQuery = computed(() => ({
   sortDirection: 'asc',
 }) satisfies PublicItemQuery)
 
-const { data: publicItemsResult, pending: itemsPending, error: itemsError } = await usePublicItems(() => publicItemsQuery.value)
+const {
+  data: publicItemsResult,
+  pending: itemsPending,
+  error: itemsError,
+  refresh: refreshPublicItems,
+} = await usePublicItems(() => publicItemsQuery.value)
 
 const catalogItems = computed(() => {
   const items = publicItemsResult.value?.items
   return Array.isArray(items) ? items : fallbackCatalogItems
 })
 const pagination = computed(() => publicItemsResult.value?.pagination)
-const totalItems = computed(() => pagination.value?.total ?? catalogItems.value.length)
+const catalogVisualLoading = computed(() => !catalogClientReady.value || itemsPending.value)
+const catalogFallbackUnavailable = computed(() => catalogClientReady.value && !itemsPending.value && publicItemsResult.value?.source !== 'api')
+const catalogDisplayItems = computed(() => (catalogVisualLoading.value || catalogFallbackUnavailable.value) ? [] : catalogItems.value)
+const totalItems = computed(() => (catalogVisualLoading.value || catalogFallbackUnavailable.value) ? 0 : pagination.value?.total ?? catalogDisplayItems.value.length)
 const pageLimit = computed(() => pagination.value?.limit ?? pagination.value?.size ?? selectedPageSize.value)
 const totalPages = computed(() => Math.max(1, pagination.value?.totalPages ?? Math.ceil(totalItems.value / Math.max(1, pageLimit.value))))
 const canGoPrevious = computed(() => currentPage.value > 1)
 const canGoNext = computed(() => currentPage.value < totalPages.value)
 const dataSourceState = computed(() => publicItemsResult.value?.source ?? 'fallback')
-const publicStatusLabel = computed(() => itemsPending.value ? '加载中' : itemsError.value ? '已缓存' : '已更新')
+const publicStatusLabel = computed(() => catalogVisualLoading.value ? '加载中' : catalogFallbackUnavailable.value || itemsError.value ? '未载入' : '已更新')
 const activeFilterLabel = computed(() => selectedFilter.value.label)
-const catalogVisualLoading = computed(() => itemsPending.value && publicItemsResult.value?.source !== 'api')
-const catalogLoadingSlots = computed(() => Array.from({ length: Math.min(selectedPageSize.value, 50) }, (_, index) => index + 1))
+const catalogLoadingSlotCount = computed(() => Math.min(selectedPageSize.value, 50))
 const shouldApplyLocalCategoryFilter = computed(() => (
   publicItemsResult.value?.source !== 'api'
   || (activeFilter.value !== 'all' && (selectedCategoryIds.value.length !== 1 || !selectedCategoryId.value) && !selectedGamePeriodId.value)
@@ -298,7 +305,7 @@ const matchCategoryFilter = (item: CatalogItem, filter: CatalogCategoryFilter) =
 const filteredCatalogItems = computed(() => {
   const keyword = normalizeSearchText(searchQuery.value.trim())
 
-  return catalogItems.value.filter((item) => {
+  return catalogDisplayItems.value.filter((item) => {
     if (shouldApplyLocalCategoryFilter.value && !matchCategoryFilter(item, selectedFilter.value)) return false
     return !keyword || item.searchText.includes(keyword)
   })
@@ -309,17 +316,25 @@ const focusedItem = computed<CatalogItem | null>(() => (
   visibleWallItems.value.find((item) => item.id === focusedItemId.value)
   ?? filteredCatalogItems.value.find((item) => item.id === focusedItemId.value)
   ?? visibleWallItems.value[0]
-  ?? catalogItems.value[0]
+  ?? catalogDisplayItems.value[0]
   ?? null
 ))
 const resultSummary = computed(() => {
+  if (catalogVisualLoading.value) {
+    return '加载中'
+  }
+
+  if (catalogFallbackUnavailable.value) {
+    return '等待接口'
+  }
+
   const total = totalItems.value.toLocaleString('zh-CN')
 
   if ((publicItemsResult.value?.source === 'api' && !shouldApplyLocalCategoryFilter.value) || activeFilter.value === 'all') {
-    return `${catalogItems.value.length} / ${total}`
+    return `${catalogDisplayItems.value.length} / ${total}`
   }
 
-  return `${filteredCatalogItems.value.length} / 本页 ${catalogItems.value.length} / 总计 ${total}`
+  return `${filteredCatalogItems.value.length} / 本页 ${catalogDisplayItems.value.length} / 总计 ${total}`
 })
 
 const pageControlLabel = (item: number | 'gap') => item === 'gap' ? '…' : String(item)
@@ -424,11 +439,6 @@ const resetCatalogFilters = () => {
   currentPage.value = 1
 }
 
-const markImageFallback = (image: string) => {
-  if (!image) return
-  failedItemImages.value = new Set(failedItemImages.value).add(image)
-}
-
 const updateCatalogRouteQuery = () => {
   const query = {
     ...route.query,
@@ -494,6 +504,8 @@ onBeforeUnmount(() => {
 })
 
 onMounted(() => {
+  catalogClientReady.value = true
+
   if (!firstQueryValue(route.query.pageSize)) {
     selectedPageSize.value = readStoredPageSize()
   }
@@ -540,7 +552,7 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
     <div class="page-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">{{ totalItems.toLocaleString('zh-CN') }} 个物品</span>
+          <span class="eyebrow">{{ catalogVisualLoading ? '加载资料' : catalogFallbackUnavailable ? '等待接口返回' : `${totalItems.toLocaleString('zh-CN')} 个物品` }}</span>
           <h1>物品图鉴</h1>
           <p>图标墙是主浏览界面。搜索、分类和分页统一基于完整资料库。</p>
         </div>
@@ -550,7 +562,7 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
     <section
       class="catalog-pixel-stage"
       aria-label="物品图鉴墙"
-      :aria-busy="itemsPending"
+      :aria-busy="catalogVisualLoading"
       :data-source="dataSourceState"
     >
       <div ref="catalogWallTopRef" class="catalog-wall-shell">
@@ -641,21 +653,10 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
             </aside>
 
             <div class="catalog-wall-board">
-              <div
+              <CatalogWallSkeleton
                 v-if="catalogVisualLoading"
-                class="catalog-wall-grid catalog-loading-skeleton"
-                aria-label="物品图标墙加载中"
-              >
-                <span
-                  v-for="slot in catalogLoadingSlots"
-                  :key="`catalog-loading-${slot}`"
-                  class="catalog-wall-cell catalog-wall-cell-loading"
-                  aria-hidden="true"
-                >
-                  <span class="catalog-loading-icon"></span>
-                  <span class="catalog-loading-line"></span>
-                </span>
-              </div>
+                :slots="catalogLoadingSlotCount"
+              />
 
               <div v-else-if="visibleWallItems.length" class="catalog-wall-grid" aria-label="物品图标墙">
                 <a
@@ -670,23 +671,14 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
                   @focus="setFocusedItem(item)"
                 >
                   <span class="catalog-wall-icon-slot">
-                    <span
-                      class="item-art"
-                      :class="{ 'is-fallback': !item.image || failedItemImages.has(item.image) }"
-                      :data-fallback="item.fallback"
-                      :data-source-image="item.sourceImage"
-                    >
-                      <img
-                        v-if="item.image && !failedItemImages.has(item.image)"
-                        :src="item.image"
-                        :alt="item.displayName"
-                        width="64"
-                        height="64"
-                        loading="lazy"
-                        decoding="async"
-                        @error="markImageFallback(item.image)"
-                      />
-                    </span>
+                    <CommonPreviewImage
+                      :src="item.image"
+                      :alt="item.displayName"
+                      :fallback="item.fallback"
+                      :source-image="item.sourceImage"
+                      width="64"
+                      height="64"
+                    />
                   </span>
                   <span class="catalog-wall-cell-index">{{ item.range }}</span>
                   <span class="catalog-wall-cell-label">{{ item.displayName }}</span>
@@ -705,9 +697,17 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
               </div>
 
               <div v-else class="catalog-empty-state">
-                <b>没有匹配物品</b>
-                <span>调整搜索词或切回全部分类。</span>
-                <button class="small-button active" type="button" @click="resetCatalogFilters">重置筛选</button>
+                <b>{{ catalogFallbackUnavailable ? '资料暂未载入' : '没有匹配物品' }}</b>
+                <span>{{ catalogFallbackUnavailable ? '当前公共接口暂不可用，已避免展示样例兜底图标。' : '调整搜索词或切回全部分类。' }}</span>
+                <button
+                  v-if="catalogFallbackUnavailable"
+                  class="small-button active"
+                  type="button"
+                  @click="refreshPublicItems()"
+                >
+                  重新加载
+                </button>
+                <button v-else class="small-button active" type="button" @click="resetCatalogFilters">重置筛选</button>
               </div>
             </div>
           </div>
@@ -715,10 +715,10 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
           <div class="catalog-page-dock" aria-label="分页">
             <span class="catalog-page-dock-summary">第 {{ currentPage }} / {{ totalPages }} 页 · {{ activeFilterLabel }}</span>
             <div class="catalog-page-dock-core">
-              <button class="catalog-dock-button" type="button" :disabled="!canGoPrevious || itemsPending" @click="goToFirstPage">
+              <button class="catalog-dock-button" type="button" :disabled="!canGoPrevious || catalogVisualLoading" @click="goToFirstPage">
                 首页
               </button>
-              <button class="catalog-dock-icon-button" type="button" aria-label="上一页" :disabled="!canGoPrevious || itemsPending" @click="goToPreviousPage">
+              <button class="catalog-dock-icon-button" type="button" aria-label="上一页" :disabled="!canGoPrevious || catalogVisualLoading" @click="goToPreviousPage">
                 ‹
               </button>
               <template v-for="(pageItem, index) in pageWindowItems" :key="`${pageItem}-${index}`">
@@ -729,16 +729,16 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
                   type="button"
                   :class="{ active: pageItem === currentPage }"
                   :aria-current="pageItem === currentPage ? 'page' : undefined"
-                  :disabled="itemsPending"
+                  :disabled="catalogVisualLoading"
                   @click="goToPage(pageItem)"
                 >
                   {{ pageControlLabel(pageItem) }}
                 </button>
               </template>
-              <button class="catalog-dock-icon-button" type="button" aria-label="下一页" :disabled="!canGoNext || itemsPending" @click="goToNextPage">
+              <button class="catalog-dock-icon-button" type="button" aria-label="下一页" :disabled="!canGoNext || catalogVisualLoading" @click="goToNextPage">
                 ›
               </button>
-              <button class="catalog-dock-button" type="button" :disabled="!canGoNext || itemsPending" @click="goToLastPage">
+              <button class="catalog-dock-button" type="button" :disabled="!canGoNext || catalogVisualLoading" @click="goToLastPage">
                 末页
               </button>
             </div>
@@ -752,10 +752,10 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
                 min="1"
                 :max="totalPages"
                 :placeholder="String(currentPage)"
-                :disabled="itemsPending"
+                :disabled="catalogVisualLoading"
               />
               <span>/ {{ totalPages }}</span>
-              <button class="catalog-dock-button" type="submit" :disabled="itemsPending">前往</button>
+              <button class="catalog-dock-button" type="submit" :disabled="catalogVisualLoading">前往</button>
             </form>
           </div>
         </div>

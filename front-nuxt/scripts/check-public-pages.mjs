@@ -287,6 +287,12 @@ const requiredPublicDataLayerFiles = [
   'composables/usePublicApi.ts',
   'composables/usePublicItems.ts',
   'composables/usePublicItemDetail.ts',
+  'components/common/PreviewImage.vue',
+  'components/common/TpSkeleton.vue',
+  'components/catalog/CatalogWallSkeleton.vue',
+  'components/detail/ItemDetailSkeleton.vue',
+  'components/search/SuggestionSkeletonRows.vue',
+  'assets/css/loading-skeleton.css',
 ]
 
 const missingPublicDataLayerFiles = requiredPublicDataLayerFiles.filter((path) => !existsSync(file(path)))
@@ -338,6 +344,42 @@ const requiredPublicDataLayerMarkers = {
     '/public/items/${normalizedItemId}/recipe-tree',
     'resolvePreviewImageUrl',
     'source: \'missing\'',
+  ],
+  'components/common/PreviewImage.vue': [
+    'resolvePreviewImageUrl',
+    'failed',
+    'fallbackGlyph',
+    'class="item-art tp-preview-image"',
+    '@error="markFailed"',
+  ],
+  'components/common/TpSkeleton.vue': [
+    "type?: 'icon' | 'line' | 'pill' | 'row'",
+    'tp-skeleton',
+    '`tp-skeleton-${props.type}`',
+  ],
+  'components/catalog/CatalogWallSkeleton.vue': [
+    'CatalogWallSkeleton',
+    'CommonTpSkeleton type="icon"',
+    'CommonTpSkeleton type="line"',
+  ],
+  'components/detail/ItemDetailSkeleton.vue': [
+    'ItemDetailSkeleton',
+    'detail-loading-skeleton',
+    'CommonTpSkeleton type="icon"',
+    'CommonTpSkeleton type="pill"',
+  ],
+  'components/search/SuggestionSkeletonRows.vue': [
+    'SuggestionSkeletonRows',
+    'home-suggestion-row is-loading',
+    'CommonTpSkeleton type="icon"',
+    'CommonTpSkeleton type="line"',
+  ],
+  'assets/css/loading-skeleton.css': [
+    '.tp-skeleton',
+    '.tp-skeleton-icon',
+    '.tp-skeleton-line',
+    '.tp-skeleton-pill',
+    '@keyframes tpSkeletonPulse',
   ],
   'nuxt.config.ts': [
     'apiServerBase',
@@ -434,6 +476,11 @@ const scanFiles = [
   'components/TerraNav.vue',
   'components/TerraFooter.vue',
   'components/TerraBreadcrumb.vue',
+  'components/common/PreviewImage.vue',
+  'components/common/TpSkeleton.vue',
+  'components/catalog/CatalogWallSkeleton.vue',
+  'components/detail/ItemDetailSkeleton.vue',
+  'components/search/SuggestionSkeletonRows.vue',
   'components/home/HomeHero.vue',
   'components/home/HomeExplorationMap.vue',
   'components/home/HomeFeaturedRoute.vue',
@@ -443,6 +490,7 @@ const scanFiles = [
   'composables/usePublicItems.ts',
   'stores/theme.ts',
   'assets/css/hifi-preview.css',
+  'assets/css/loading-skeleton.css',
   'assets/css/catalog-image-fixes.css',
   'assets/css/light-theme-contrast-fixes.css',
 ]
@@ -847,15 +895,16 @@ for (const path of scanFiles) {
       'usePublicItemDetail',
       'route.params.id',
       'detailItem',
-      'detail-loading-skeleton',
+      '<DetailItemDetailSkeleton v-if="detailLoadingState"',
       'detailLoadingState',
-      ':aria-busy="detailPending"',
+      ':aria-busy="detailLoadingState"',
       'notFoundState',
       'recipeTreeSummary',
       'imageEntries',
       'sourceEntries',
-      '!failedImages.has(material.image)',
-      '!failedImages.has(source.image)',
+      '<CommonPreviewImage',
+      ':src="material.image"',
+      ':src="source.image"',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: item detail page must render live public item detail data via marker ${marker}`)
@@ -912,9 +961,13 @@ for (const path of scanFiles) {
     }
 
     for (const marker of [
-      'catalog-loading-skeleton',
+      '<CatalogWallSkeleton',
+      ':slots="catalogLoadingSlotCount"',
+      'catalogClientReady',
+      'catalogFallbackUnavailable',
+      'catalogDisplayItems',
       'catalogVisualLoading',
-      ':aria-busy="itemsPending"',
+      ':aria-busy="catalogVisualLoading"',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: items page must expose a dedicated loading skeleton instead of using fallback glyphs while data is pending`)
@@ -925,8 +978,8 @@ for (const path of scanFiles) {
       violations.push(`${path}: items page must preserve valid empty API result sets instead of replacing them with fallback data`)
     }
 
-    if (!content.includes("itemsPending.value && publicItemsResult.value?.source !== 'api'")) {
-      violations.push(`${path}: items page must show loading skeleton while the initial API page is pending instead of rendering fallback sample data`)
+    if (!content.includes('!catalogClientReady.value || itemsPending.value')) {
+      violations.push(`${path}: items page must show loading skeleton through client hydration and while the API page is pending instead of rendering fallback sample data`)
     }
 
     if (content.includes('catalog-density-rail-bottom')) {
@@ -953,8 +1006,24 @@ for (const path of scanFiles) {
       violations.push(`${path}: items page must expose per-cell hover/focus previews instead of fallback focus content`)
     }
 
-    if (!content.includes("'is-fallback': !item.image || failedItemImages.has(item.image)")) {
-      violations.push(`${path}: item wall cells must render glyph fallback when real API items have no managed image`)
+    if (!content.includes('<CommonPreviewImage') || !content.includes(':source-image="item.sourceImage"')) {
+      violations.push(`${path}: item wall cells must use PreviewImage so real API items without managed images render a controlled glyph fallback`)
+    }
+  }
+
+  if (path === 'assets/css/loading-skeleton.css') {
+    for (const marker of [
+      '.tp-skeleton',
+      '.tp-skeleton-icon',
+      '.tp-skeleton-line',
+      '.tp-skeleton-pill',
+      '.tp-skeleton-row',
+      '.item-art.tp-preview-image',
+      '@media (prefers-reduced-motion: reduce)',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: shared loading skeleton CSS must expose reusable skeleton and preview image primitives via marker ${marker}`)
+      }
     }
   }
 
@@ -1044,8 +1113,8 @@ for (const path of scanFiles) {
   }
 
   if (path === 'pages/items/index.vue') {
-    if (!content.includes(':data-source-image="item.sourceImage"')) {
-      violations.push(`${path}: item wall images must expose the original backend image URL in data-source-image for debugging`)
+    if (!content.includes(':source-image="item.sourceImage"')) {
+      violations.push(`${path}: item wall images must pass the original backend image URL to PreviewImage for debugging`)
     }
   }
 
@@ -1246,6 +1315,9 @@ for (const path of scanFiles) {
       'fetchPublicItemSuggestions',
       'searchSuggestions',
       'suggestionsPending',
+      'suggestionsClientReady',
+      'suggestionsVisualLoading',
+      'fetchPublicItemSuggestions(keyword, 5, { allowFallback: false })',
       'router.replace',
     ]) {
       if (!content.includes(marker)) {
