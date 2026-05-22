@@ -22,6 +22,25 @@ test('world context fetch exposes bounded source page list', () => {
     'Day and night cycle',
     'Moon phase',
     'Events',
+    'Rain',
+    'Sandstorm',
+    'Windy Day',
+    'Thunderstorm',
+    'Starfall',
+    'Blood Moon',
+    'Party',
+    'Lantern Night',
+    'Goblin Army',
+    'Slime Rain',
+    "Old One's Army",
+    'The Torch God',
+    'Frost Legion',
+    'Solar Eclipse',
+    'Pirate Invasion',
+    'Pumpkin Moon',
+    'Frost Moon',
+    'Martian Madness',
+    'Lunar Events',
     'Weather',
     'Snow biome',
     'Graveyard',
@@ -111,14 +130,14 @@ test('world context fetch writes source JSON and completed progress with mock wi
   assert.equal(progress.actionId, 'test-world-contexts-refresh');
   assert.equal(progress.status, 'completed');
   assert.equal(progress.phase, 'write');
-  assert.equal(progress.current, 7);
-  assert.equal(progress.total, 7);
+  assert.equal(progress.current, WORLD_CONTEXT_SOURCE_PAGES.length);
+  assert.equal(progress.total, WORLD_CONTEXT_SOURCE_PAGES.length);
   assert.match(progress.outputPath, /wiki-world-contexts\.latest\.json$/);
   assert.match(progress.reportPath, /wiki-world-contexts-summary-\d{4}-\d{2}-\d{2}\.md$/);
 
   const output = JSON.parse(fs.readFileSync(path.join(sharedDataRoot, 'generated', 'wiki-world-contexts.latest.json'), 'utf8'));
   assert.equal(output.entity, 'wiki_world_contexts');
-  assert.equal(output.pages.length, 7);
+  assert.equal(output.pages.length, WORLD_CONTEXT_SOURCE_PAGES.length);
   assert.equal(output.pages[0].requestedTitle, 'Day and night cycle');
   assert.equal(output.pages[0].sourceUrl, 'https://terraria.wiki.gg/wiki/Mock%20page');
 });

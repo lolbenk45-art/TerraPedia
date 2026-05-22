@@ -10,10 +10,12 @@ import com.terraria.skills.entity.Biome;
 import com.terraria.skills.entity.Buff;
 import com.terraria.skills.entity.Item;
 import com.terraria.skills.entity.ItemImage;
+import com.terraria.skills.entity.WorldContext;
 import com.terraria.skills.mapper.BiomeMapper;
 import com.terraria.skills.mapper.BuffMapper;
 import com.terraria.skills.mapper.ItemImageMapper;
 import com.terraria.skills.mapper.ItemMapper;
+import com.terraria.skills.mapper.WorldContextMapper;
 import com.terraria.skills.service.WikiImageLocalizationService;
 import com.terraria.skills.service.WikiImageSyncService;
 import lombok.extern.slf4j.Slf4j;
@@ -53,6 +55,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
     private final ItemMapper itemMapper;
     private final BuffMapper buffMapper;
     private final BiomeMapper biomeMapper;
+    private final WorldContextMapper worldContextMapper;
     private final JdbcTemplate jdbcTemplate;
     private final MinioConnectionDetails connectionDetails;
     private final WikiImageLocalizationService wikiImageLocalizationService;
@@ -64,6 +67,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
         ItemMapper itemMapper,
         BuffMapper buffMapper,
         BiomeMapper biomeMapper,
+        WorldContextMapper worldContextMapper,
         JdbcTemplate jdbcTemplate,
         MinioConnectionDetails connectionDetails,
         WikiImageLocalizationService wikiImageLocalizationService,
@@ -74,6 +78,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
         this.itemMapper = itemMapper;
         this.buffMapper = buffMapper;
         this.biomeMapper = biomeMapper;
+        this.worldContextMapper = worldContextMapper;
         this.jdbcTemplate = jdbcTemplate;
         this.connectionDetails = connectionDetails;
         this.wikiImageLocalizationService = wikiImageLocalizationService;
@@ -90,6 +95,7 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
         boolean includeBuffs = safeRequest.getIncludeBuffs() == null || safeRequest.getIncludeBuffs();
         boolean includeBiomes = safeRequest.getIncludeBiomes() == null || safeRequest.getIncludeBiomes();
         boolean includeArmorSets = safeRequest.getIncludeArmorSets() == null || safeRequest.getIncludeArmorSets();
+        boolean includeWorldContexts = safeRequest.getIncludeWorldContexts() == null || safeRequest.getIncludeWorldContexts();
 
         AdminWikiImageSyncResultDTO result = new AdminWikiImageSyncResultDTO();
         result.setBucket(connectionDetails.bucket());
@@ -109,6 +115,10 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
         if (includeBiomes) {
             runScopeSafely(result.getBiomes(), () -> syncBiomeIcons(result.getBiomes(), limit, uploadCache));
             result.accumulate(result.getBiomes());
+        }
+        if (includeWorldContexts) {
+            runScopeSafely(result.getWorldContexts(), () -> syncWorldContextIcons(result.getWorldContexts(), limit, uploadCache));
+            result.accumulate(result.getWorldContexts());
         }
         if (includeArmorSets) {
             runScopeSafely(result.getArmorSets(), () -> syncArmorSetImages(result.getArmorSets(), limit, force, uploadCache));
@@ -436,6 +446,55 @@ public class WikiImageSyncServiceImpl implements WikiImageSyncService {
                 log.warn("Failed to sync biome icon id={} url={}", biome.getId(), currentUrl, exception);
                 scope.setFailedCount(scope.getFailedCount() + 1);
                 scope.addSampleError("biomes#" + biome.getId() + ": " + trimErrorMessage(exception));
+            }
+        }
+    }
+
+    private void syncWorldContextIcons(
+        AdminWikiImageSyncScopeResultDTO scope,
+        Integer limit,
+        Map<String, FileUploadResultDTO> uploadCache
+    ) {
+        List<WorldContext> contexts = worldContextMapper.selectList(new LambdaQueryWrapper<WorldContext>()
+            .isNotNull(WorldContext::getIconUrl)
+            .orderByAsc(WorldContext::getId));
+
+        for (WorldContext context : contexts) {
+            String currentUrl = trimToNull(context.getIconUrl());
+            if (!shouldConsiderWikiSource(currentUrl, currentUrl)) {
+                continue;
+            }
+            if (limitReached(scope, limit)) {
+                break;
+            }
+            scope.setCandidateCount(scope.getCandidateCount() + 1);
+
+            if (isManagedUrl(currentUrl)) {
+                scope.setSkippedCount(scope.getSkippedCount() + 1);
+                continue;
+            }
+
+            if (!isWikiUrl(currentUrl)) {
+                scope.setFailedCount(scope.getFailedCount() + 1);
+                scope.addSampleError("world_contexts#" + context.getId() + " missing wiki source url");
+                continue;
+            }
+
+            try {
+                FileUploadResultDTO upload = uploadFromWikiSource(
+                    uploadCache,
+                    currentUrl,
+                    "wiki/world-contexts/" + hashPrefix(currentUrl),
+                    buildStableId(currentUrl, firstNonBlank(context.getCode(), context.getNameEn(), context.getNameZh(), "world-context"))
+                );
+                context.setIconUrl(upload.getUrl());
+                worldContextMapper.updateById(context);
+                scope.setSyncedCount(scope.getSyncedCount() + 1);
+                scope.addSampleUrl(upload.getUrl());
+            } catch (Exception exception) {
+                log.warn("Failed to sync world context icon id={} url={}", context.getId(), currentUrl, exception);
+                scope.setFailedCount(scope.getFailedCount() + 1);
+                scope.addSampleError("world_contexts#" + context.getId() + ": " + trimErrorMessage(exception));
             }
         }
     }

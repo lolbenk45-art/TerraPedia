@@ -17,6 +17,7 @@ public class AdminWikiImageSyncResultDTO {
     private AdminWikiImageSyncScopeResultDTO buffs = new AdminWikiImageSyncScopeResultDTO("buffs");
     private AdminWikiImageSyncScopeResultDTO biomes = new AdminWikiImageSyncScopeResultDTO("biomes");
     private AdminWikiImageSyncScopeResultDTO armorSets = new AdminWikiImageSyncScopeResultDTO("armorSets");
+    private AdminWikiImageSyncScopeResultDTO worldContexts = new AdminWikiImageSyncScopeResultDTO("worldContexts");
 
     public String getBucket() {
         return bucket;
@@ -120,6 +121,14 @@ public class AdminWikiImageSyncResultDTO {
 
     public void setArmorSets(AdminWikiImageSyncScopeResultDTO armorSets) {
         this.armorSets = armorSets;
+    }
+
+    public AdminWikiImageSyncScopeResultDTO getWorldContexts() {
+        return worldContexts;
+    }
+
+    public void setWorldContexts(AdminWikiImageSyncScopeResultDTO worldContexts) {
+        this.worldContexts = worldContexts;
     }
 
     public void accumulate(AdminWikiImageSyncScopeResultDTO scopeResult) {

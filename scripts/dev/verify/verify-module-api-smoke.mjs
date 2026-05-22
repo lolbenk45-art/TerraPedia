@@ -28,7 +28,7 @@ const checks = [
   { name: 'admin.projectiles.detail', path: '/admin/projectiles/2', method: 'GET', auth: true, expectStatus: 200 },
   { name: 'admin.armorSets.list', path: '/admin/armor-sets?page=1&limit=1', method: 'GET', auth: true, expectStatus: 200 },
   ...(armorSetId ? [{ name: 'admin.armorSets.detail', path: `/admin/armor-sets/${armorSetId}`, method: 'GET', auth: true, expectStatus: 200 }] : []),
-  ...(minioEnabled ? [{ name: 'admin.storage.sync.dryRun', path: '/admin/storage/wiki-images/sync', method: 'POST', auth: true, expectStatus: 200, body: { limit: 1, force: false, includeItemImages: false, includeBuffs: false, includeBiomes: false } }] : []),
+  ...(minioEnabled ? [{ name: 'admin.storage.sync.dryRun', path: '/admin/storage/wiki-images/sync', method: 'POST', auth: true, expectStatus: 200, body: { limit: 1, force: false, includeItemImages: false, includeBuffs: false, includeBiomes: false, includeWorldContexts: false } }] : []),
 ];
 const results = [];
 

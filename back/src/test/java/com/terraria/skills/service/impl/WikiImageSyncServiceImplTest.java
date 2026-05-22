@@ -6,10 +6,12 @@ import com.terraria.skills.dto.AdminWikiImageSyncResultDTO;
 import com.terraria.skills.entity.Buff;
 import com.terraria.skills.entity.Item;
 import com.terraria.skills.entity.ItemImage;
+import com.terraria.skills.entity.WorldContext;
 import com.terraria.skills.mapper.BiomeMapper;
 import com.terraria.skills.mapper.BuffMapper;
 import com.terraria.skills.mapper.ItemImageMapper;
 import com.terraria.skills.mapper.ItemMapper;
+import com.terraria.skills.mapper.WorldContextMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import io.minio.BucketExistsArgs;
@@ -57,6 +59,9 @@ class WikiImageSyncServiceImplTest {
 
     @Mock
     private BiomeMapper biomeMapper;
+
+    @Mock
+    private WorldContextMapper worldContextMapper;
 
     @Mock
     private JdbcTemplate jdbcTemplate;
@@ -408,6 +413,31 @@ class WikiImageSyncServiceImplTest {
     }
 
     @Test
+    void shouldMirrorWorldContextWikiIconIntoManagedUrl() {
+        String sourceUrl = "https://terraria.wiki.gg/images/BiomeBannerParty.png";
+        RecordingWikiImageLocalizationService localizationService = new RecordingWikiImageLocalizationService(sourceUrl);
+        WorldContext context = new WorldContext();
+        context.setId(15L);
+        context.setCode("PARTY");
+        context.setNameEn("Party");
+        context.setNameZh("派对");
+        context.setIconUrl(sourceUrl);
+        when(worldContextMapper.selectList(any())).thenReturn(List.of(context));
+
+        AdminWikiImageSyncResultDTO result = service(localizationService).syncWikiImages(worldContextsOnlyRequest(false));
+
+        assertEquals(1, result.getWorldContexts().getCandidateCount());
+        assertEquals(1, result.getWorldContexts().getSyncedCount());
+        assertEquals(1, result.getTotalSyncedCount());
+
+        ArgumentCaptor<WorldContext> contextCaptor = ArgumentCaptor.forClass(WorldContext.class);
+        verify(worldContextMapper).updateById(contextCaptor.capture());
+        WorldContext updated = contextCaptor.getValue();
+        assertEquals(15L, updated.getId());
+        assertEquals("http://localhost:9000/terrapedia-images/items/wiki/item-images/shared.png", updated.getIconUrl());
+    }
+
+    @Test
     void shouldMirrorRelationProjectionArmorSetWikiCsvUrlIntoManagedUrl() {
         String sourceUrl = "https://terraria.wiki.gg/images/Projection_Armor_Male.png";
         RecordingWikiImageLocalizationService localizationService = new RecordingWikiImageLocalizationService(sourceUrl);
@@ -616,6 +646,7 @@ class WikiImageSyncServiceImplTest {
             .withBean(ItemMapper.class, () -> itemMapper)
             .withBean(BuffMapper.class, () -> buffMapper)
             .withBean(BiomeMapper.class, () -> biomeMapper)
+            .withBean(WorldContextMapper.class, () -> worldContextMapper)
             .withBean(JdbcTemplate.class, () -> jdbcTemplate)
             .withBean(MinioConnectionDetails.class, this::minioConnectionDetails)
             .withBean(com.terraria.skills.service.WikiImageLocalizationService.class, () -> localizationService)
@@ -725,6 +756,7 @@ class WikiImageSyncServiceImplTest {
             itemMapper,
             buffMapper,
             biomeMapper,
+            worldContextMapper,
             jdbcTemplate,
             minioConnectionDetails(),
             localizationService,
@@ -753,6 +785,8 @@ class WikiImageSyncServiceImplTest {
         request.setIncludeItemImages(true);
         request.setIncludeBuffs(false);
         request.setIncludeBiomes(false);
+        request.setIncludeArmorSets(false);
+        request.setIncludeWorldContexts(false);
         return request;
     }
 
@@ -763,6 +797,18 @@ class WikiImageSyncServiceImplTest {
         request.setIncludeBuffs(false);
         request.setIncludeBiomes(false);
         request.setIncludeArmorSets(true);
+        request.setIncludeWorldContexts(false);
+        return request;
+    }
+
+    private AdminWikiImageSyncRequestDTO worldContextsOnlyRequest(boolean force) {
+        AdminWikiImageSyncRequestDTO request = new AdminWikiImageSyncRequestDTO();
+        request.setForce(force);
+        request.setIncludeItemImages(false);
+        request.setIncludeBuffs(false);
+        request.setIncludeBiomes(false);
+        request.setIncludeArmorSets(false);
+        request.setIncludeWorldContexts(true);
         return request;
     }
 
