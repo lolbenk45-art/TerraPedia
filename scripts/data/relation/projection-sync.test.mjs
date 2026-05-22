@@ -709,6 +709,7 @@ test('buildProjectionPayload maps armor set relations into projection armor sets
     relationArmorSets: [
       {
         recordKey: 'armor-rk',
+        id: 7,
         textKey: 'ArmorSetBonus.Wood',
         benefitExpression: 'ArmorSetBonuses.Benefits.Wood',
         primaryPart: null,
@@ -776,8 +777,7 @@ test('buildProjectionPayload maps armor set relations into projection armor sets
   });
 
   assert.equal(actual.projectionArmorSets.length, 1);
-  assert.ok(Number.isInteger(actual.projectionArmorSets[0].id));
-  assert.ok(actual.projectionArmorSets[0].id > 0);
+  assert.equal(actual.projectionArmorSets[0].id, 7);
   assert.equal(actual.projectionArmorSets[0].textKey, 'ArmorSetBonus.Wood');
   assert.equal(actual.projectionArmorSets[0].maleImages, null);
   assert.equal(actual.projectionArmorSets[0].femaleImages, null);

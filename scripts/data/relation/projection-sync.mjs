@@ -1129,9 +1129,10 @@ export function buildProjectionPayload({
       };
     });
     const hasUnresolved = setItems.some((item) => item.reviewStatus === 'unresolved' || !item.itemInternalName);
+    const relationId = toNullableNumber(row.id);
 
     return {
-      id: stablePositiveBigIntId(row.textKey ?? row.recordKey),
+      id: relationId != null && relationId > 0 ? relationId : stablePositiveBigIntId(row.textKey ?? row.recordKey),
       relationRecordKey: row.recordKey,
       textKey: row.textKey ?? null,
       entityType: raw.entityType ?? 'armor_set',
