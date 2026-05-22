@@ -360,6 +360,7 @@ const requiredPublicDataLayerFiles = [
   'components/common/PreviewImage.vue',
   'components/common/PaginationDock.vue',
   'components/common/TpSkeleton.vue',
+  'components/crafting/RecipeTreeNode.vue',
   'components/catalog/CatalogWallSkeleton.vue',
   'components/detail/ItemDetailSkeleton.vue',
   'components/search/SuggestionSkeletonRows.vue',
@@ -667,6 +668,7 @@ const scanFiles = [
   'components/common/PreviewImage.vue',
   'components/common/PaginationDock.vue',
   'components/common/TpSkeleton.vue',
+  'components/crafting/RecipeTreeNode.vue',
   'components/catalog/CatalogWallSkeleton.vue',
   'components/detail/ItemDetailSkeleton.vue',
   'components/search/SuggestionSkeletonRows.vue',
@@ -1430,6 +1432,10 @@ for (const path of scanFiles) {
       'recipeVariants',
       'recipeVisualLoading',
       'recipeNodeChildren',
+      '<CraftingRecipeTreeNode',
+      'recipe-top-layer',
+      'recipe-full-tree',
+      'recipe-tree-stage',
       '<CommonTpSkeleton',
       '<CommonPreviewImage',
       ':aria-busy="recipeVisualLoading"',
@@ -1455,6 +1461,29 @@ for (const path of scanFiles) {
     ]) {
       if (content.includes(staticMarker)) {
         violations.push(`${path}: crafting page must not keep static preview-only recipe content (${staticMarker})`)
+      }
+    }
+  }
+
+  if (path === 'components/crafting/RecipeTreeNode.vue') {
+    for (const marker of [
+      'PublicItemRecipeTreeNode',
+      'PublicItemRecipeTreeStation',
+      'recipeNodeChildren',
+      'stationImage',
+      'recipeStationImage',
+      'expandedRecipeNode',
+      'displayRecipeNodeChildren',
+      'displayRecipeNodeStations',
+      'is-expanded-recipe',
+      '<CraftingRecipeTreeNode',
+      'recipe-branch',
+      'recipe-tree-node',
+      'recipe-children',
+      '<CommonPreviewImage',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: crafting recipe tree node must recursively render material leaves, station images, and parent aggregation via marker ${marker}`)
       }
     }
   }
@@ -1659,6 +1688,40 @@ for (const path of scanFiles) {
   }
 
   if (path === 'assets/css/hifi-preview.css') {
+    const recipeBranchRule = content.match(/\.recipe-branch\s*\{[^}]*\}/m)?.[0] ?? ''
+    const recipeBranchConnectorRule = content.match(/\.recipe-branch:not\(\.is-leaf\)::after\s*\{[^}]*\}/m)?.[0] ?? ''
+    const recipeChildrenRule = content.match(/\.recipe-children\s*\{[^}]*\}/m)?.[0] ?? ''
+    const recipeChildrenBranchRule = content.match(/\.recipe-children\s*>\s*\.recipe-branch\s*\{[^}]*\}/m)?.[0] ?? ''
+    const narrowRecipeChildrenLineRule = content.match(/@media \(max-width: 1180px\)\s*\{[\s\S]*?\.recipe-children::before\s*\{([^}]*)\}/m)?.[1] ?? ''
+
+    if (!/width\s*:\s*max-content/m.test(recipeBranchRule)) {
+      violations.push(`${path}: recipe tree parent branches must size to their subtree instead of collapsing every branch to one card width`)
+    }
+
+    if (/height\s*:\s*calc\(100%\s*-\s*64px\)/m.test(recipeBranchConnectorRule)) {
+      violations.push(`${path}: recipe tree branch connector must not use full branch height because short sibling branches stretch into tall empty columns`)
+    }
+
+    if (/display\s*:\s*grid/m.test(recipeChildrenRule) || /grid-template-columns/m.test(recipeChildrenRule)) {
+      violations.push(`${path}: recipe tree children must use natural-width wrapping instead of grid rows that equalize sibling branch heights`)
+    }
+
+    if (!/width\s*:\s*max-content/m.test(recipeChildrenRule)) {
+      violations.push(`${path}: recipe tree child groups must keep subtree natural width before wrapping`)
+    }
+
+    if (/flex\s*:\s*0\s+1\s+196px/m.test(recipeChildrenBranchRule)) {
+      violations.push(`${path}: recipe tree child branches must not be forced into 196px columns`)
+    }
+
+    if (!content.includes('.recipe-branch.is-leaf')) {
+      violations.push(`${path}: recipe tree leaves must keep a fixed card-sized branch while parents expand to their subtree`)
+    }
+
+    if (/height\s*:\s*100%/m.test(narrowRecipeChildrenLineRule)) {
+      violations.push(`${path}: narrow recipe tree connector must not draw a full-height vertical line through the branch group`)
+    }
+
     for (const marker of [
       '.detail-loading-skeleton',
       '@keyframes detailPixelPulse',
@@ -1682,9 +1745,16 @@ for (const path of scanFiles) {
       'max-height: 7.75em',
       '.crafting-suggestion-button',
       '.recipe-tree-canvas',
-      '.recipe-tree-grid',
-      '.recipe-node-main',
-      '.recipe-node-materials',
+      '.crafting-layout > .recipe-full-tree',
+      'max-height: 760px',
+      'overscroll-behavior: contain',
+      '.recipe-top-layer',
+      '.recipe-full-tree',
+      '.recipe-top-materials',
+      '.recipe-tree-stage',
+      '.recipe-branch',
+      '.recipe-tree-node',
+      '.recipe-children',
       '-webkit-line-clamp',
     ]) {
       if (!content.includes(marker)) {
