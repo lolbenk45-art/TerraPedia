@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,7 +37,7 @@ public class PublicItemServiceImpl implements PublicItemService {
         PageQuery safeQuery = pageQuery == null ? new PageQuery() : pageQuery;
         String normalizedSearch = trimToEmpty(safeQuery.getSearch());
         Long rarityId = mapRarityToId(safeQuery.getRarity());
-        List<Long> categoryIds = resolveCategoryIds(safeQuery.getCategoryId());
+        List<Long> categoryIds = resolveCategoryIds(safeQuery.getCategoryId(), safeQuery.getCategoryIds());
         long total = itemMapper.countItemsWithSearch(
             normalizedSearch,
             safeQuery.getCategoryId(),
@@ -96,6 +97,11 @@ public class PublicItemServiceImpl implements PublicItemService {
         int limit = pageQuery == null || pageQuery.getLimit() < 1 ? 20 : pageQuery.getLimit();
         String search = pageQuery == null ? "" : trimToEmpty(pageQuery.getSearch());
         String categoryId = pageQuery == null || pageQuery.getCategoryId() == null ? "" : String.valueOf(pageQuery.getCategoryId());
+        String categoryIds = pageQuery == null || pageQuery.getCategoryIds() == null ? "" : pageQuery.getCategoryIds().stream()
+            .filter(Objects::nonNull)
+            .sorted()
+            .map(String::valueOf)
+            .collect(Collectors.joining(","));
         String rarity = pageQuery == null ? "" : trimToEmpty(pageQuery.getRarity());
         String gamePeriodId = pageQuery == null || pageQuery.getGamePeriodId() == null ? "" : String.valueOf(pageQuery.getGamePeriodId());
         String sortBy = normalizeSortBy(pageQuery == null ? null : pageQuery.getSortBy());
@@ -108,6 +114,7 @@ public class PublicItemServiceImpl implements PublicItemService {
             String.valueOf(limit),
             search,
             categoryId,
+            categoryIds,
             rarity,
             gamePeriodId,
             sortBy,
@@ -135,17 +142,28 @@ public class PublicItemServiceImpl implements PublicItemService {
         return Math.min(limit, 10);
     }
 
-    private List<Long> resolveCategoryIds(Long categoryId) {
-        if (categoryId == null) {
+    private List<Long> resolveCategoryIds(Long categoryId, List<Long> requestedCategoryIds) {
+        LinkedHashSet<Long> requested = new LinkedHashSet<>();
+        if (categoryId != null) {
+            requested.add(categoryId);
+        }
+        if (requestedCategoryIds != null) {
+            requestedCategoryIds.stream()
+                .filter(Objects::nonNull)
+                .forEach(requested::add);
+        }
+        if (requested.isEmpty()) {
             return null;
         }
 
         LinkedHashSet<Long> categoryIds = new LinkedHashSet<>();
-        categoryIds.add(categoryId);
-        categoryManagementService.getAllDescendants(categoryId).stream()
-            .map(CategoryDTO::getId)
-            .filter(Objects::nonNull)
-            .forEach(categoryIds::add);
+        for (Long requestedCategoryId : requested) {
+            categoryIds.add(requestedCategoryId);
+            categoryManagementService.getAllDescendants(requestedCategoryId).stream()
+                .map(CategoryDTO::getId)
+                .filter(Objects::nonNull)
+                .forEach(categoryIds::add);
+        }
 
         return new ArrayList<>(categoryIds);
     }

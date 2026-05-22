@@ -238,6 +238,65 @@ const forbiddenPublicTerms = [
   'immuneNpcs',
 ]
 
+const playerFacingCopyFiles = [
+  ...publicPageFiles,
+  'components/TerraFooter.vue',
+  'components/TerraNav.vue',
+  'components/TerraBreadcrumb.vue',
+]
+
+const forbiddenPlayerFacingTerms = [
+  '结构化',
+  '追踪',
+  '接口',
+  'API',
+  '聚合',
+  '后端',
+  'Public Aggregate',
+  'Internal',
+  'Trace',
+  'fallback',
+  '/public/',
+]
+
+const extractQuotedStrings = (content) => {
+  const values = []
+  const quotedStringPattern = /(['"`])((?:\\.|(?!\1)[\s\S])*?)\1/g
+  let match
+
+  while ((match = quotedStringPattern.exec(content)) !== null) {
+    values.push(match[2])
+  }
+
+  return values.join('\n')
+}
+
+const extractTemplateContent = (content) => {
+  const match = content.match(/<template\b[^>]*>([\s\S]*?)<\/template>/m)
+  return match ? match[1] : ''
+}
+
+const extractPlayerFacingAuditContent = (content) => {
+  const template = extractTemplateContent(content)
+  const interpolations = [...template.matchAll(/\{\{([\s\S]*?)\}\}/g)].map((match) => match[1]).join('\n')
+  const staticTemplateText = template
+    .replace(/\{\{[\s\S]*?\}\}/g, '\n')
+    .replace(/<[^>]*>/g, '\n')
+  const scriptText = content.replace(template, '')
+  const visibleScriptText = extractQuotedStrings(scriptText)
+    .split('\n')
+    .filter((value) => /(结构化|追踪|接口|API|聚合|后端|Public Aggregate|Internal|Trace|\/public\/)/.test(value))
+    .filter((value) => !/^[A-Za-z_$][\w$]*Internal[A-Za-z_$][\w$]*$/.test(value))
+    .filter((value) => !/^[A-Za-z_$][\w$]*\(entry\.[\s\S]*Internal[A-Za-z_$][\w$]*[\s\S]*\)$/.test(value))
+    .join('\n')
+
+  return [
+    staticTemplateText,
+    extractQuotedStrings(interpolations),
+    visibleScriptText,
+  ].join('\n')
+}
+
 const forbiddenLightThemeTokens = [
   '#f5ecd2',
   '#dfcc9f',
@@ -291,6 +350,7 @@ const requiredPublicDataLayerFiles = [
   'composables/usePublicBuffs.ts',
   'composables/usePublicBuffDetail.ts',
   'composables/usePublicProjectiles.ts',
+  'utils/price.ts',
   'components/common/PreviewImage.vue',
   'components/common/PaginationDock.vue',
   'components/common/TpSkeleton.vue',
@@ -396,6 +456,12 @@ const requiredPublicDataLayerMarkers = {
     "'/public/projectiles'",
     'Array.isArray(rawProjectiles)',
     'source: \'api\'',
+  ],
+  'utils/price.ts': [
+    'export const formatTerrariaPrice',
+    'export const formatCatalogPrice',
+    '不可购买',
+    '不可出售',
   ],
   'components/common/PreviewImage.vue': [
     'resolvePreviewImageUrl',
@@ -647,6 +713,16 @@ if (existsSync(file('app/app.vue'))) {
 
 for (const path of scanFiles) {
   const content = readFileSync(file(path), 'utf8')
+
+  if (playerFacingCopyFiles.includes(path)) {
+    const playerFacingContent = extractPlayerFacingAuditContent(content)
+
+    for (const term of forbiddenPlayerFacingTerms) {
+      if (playerFacingContent.includes(term)) {
+        violations.push(`${path}: player-facing copy must not expose backend/internal wording "${term}"`)
+      }
+    }
+  }
 
   for (const term of forbiddenPublicTerms) {
     if (content.includes(term)) {
@@ -976,7 +1052,7 @@ for (const path of scanFiles) {
       'pagination',
       ':href="npc.detailPath"',
       'v-for="npc in visibleNpcCards"',
-      "npcResult?.source === 'api'",
+      "npcResult.value?.source === 'api'",
       'npc-card-loading',
     ]) {
       if (!content.includes(marker)) {
@@ -989,7 +1065,7 @@ for (const path of scanFiles) {
       'const quickFilters = npcCategoryGroups.flatMap',
       'const pageSizeOptions = [12, 24, 48, 96]',
       'pageSize: selectedPageSize.value !== defaultNpcPageSize',
-      'const pageWindowItems = computed',
+      '<CommonPaginationDock',
       'matchNpcFilter',
       'npcWallTopRef',
       'scrollIntoView',
@@ -1000,9 +1076,7 @@ for (const path of scanFiles) {
       '<CommonTpSkeleton',
       'npc-card-loading',
       'catalog-density-picker',
-      'catalog-page-dock',
-      'catalog-dock-jump-form',
-      'goToJumpPage',
+      'jump-id="npc-page-jump"',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: NPC list page must reuse item category, page-size, pagination dock, URL sync, and skeleton mechanics via marker ${marker}`)
@@ -1027,8 +1101,21 @@ for (const path of scanFiles) {
       violations.push(`${path}: NPC category drawer must render grouped filters from npcCategoryGroups`)
     }
 
-    if (!content.includes('@submit.prevent="goToJumpPage"') || !content.includes('v-for="pageSize in pageSizeOptions"')) {
-      violations.push(`${path}: NPC page dock and drawer must keep jump-page and page-size controls wired`)
+    if (!content.includes('<CommonPaginationDock') || !content.includes('@page-change="goToPage"') || !content.includes('v-for="pageSize in pageSizeOptions"')) {
+      violations.push(`${path}: NPC page dock and drawer must keep reusable paging and page-size controls wired`)
+    }
+
+    for (const marker of [
+      'isFriendly: selectedFilter.value.isFriendly',
+      'isBoss: selectedFilter.value.isBoss',
+      'hasShop: selectedFilter.value.hasShop',
+      'hasLoot: selectedFilter.value.hasLoot',
+      "key: 'shop'",
+      "key: 'loot'",
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: NPC filters must be backed by public query fields through marker ${marker}`)
+      }
     }
 
     if (content.includes('/npcs/guide')) {
@@ -1044,7 +1131,12 @@ for (const path of scanFiles) {
       'trustedLoot',
       'shopEntries',
       'buffRelations',
-      'moduleStatus',
+      'materialStatus',
+      'npcStatRows',
+      '基础数值',
+      '出售物品',
+      '掉落物',
+      '状态效果',
       '加载 NPC 详情',
     ]) {
       if (!content.includes(marker)) {
@@ -1204,6 +1296,8 @@ for (const path of scanFiles) {
       '<CommonPaginationDock',
       'jump-id="catalog-page-jump"',
       '@page-change="goToPage"',
+      'categoryIds: selectedCategoryIds.value.length > 0 ? selectedCategoryIds.value : undefined',
+      'item.priceLabel',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: items page must use the category drawer layout, compact defaults, top-scroll paging, and light dock controls via marker ${marker}`)
@@ -1274,6 +1368,12 @@ for (const path of scanFiles) {
 
     if (!content.includes('<CommonPreviewImage') || !content.includes(':source-image="item.sourceImage"')) {
       violations.push(`${path}: item wall cells must use PreviewImage so real API items without managed images render a controlled glyph fallback`)
+    }
+  }
+
+  if (path === 'pages/items/[id].vue') {
+    if (!content.includes('formatTerrariaPrice')) {
+      violations.push(`${path}: item detail prices must use Terraria coin formatting`)
     }
   }
 
@@ -1375,6 +1475,36 @@ for (const path of scanFiles) {
 
     if (content.includes('|| fallbackImage')) {
       violations.push(`${path}: real API items without images must not be assigned unrelated sample fallback images`)
+    }
+
+    for (const marker of [
+      'formatCatalogPrice',
+      'categoryIds: query.categoryIds',
+      'buy: toNumberOrNull(raw.buy ?? raw.buyPrice)',
+      'sell: toNumberOrNull(raw.sell ?? raw.sellPrice)',
+      'priceLabel: formatCatalogPrice',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: catalog items must include categoryIds query and price normalization marker ${marker}`)
+      }
+    }
+  }
+
+  if (path === 'composables/usePublicNpcs.ts') {
+    for (const marker of [
+      'isFriendly: typeof query.isFriendly === \'boolean\' ? query.isFriendly : undefined',
+      'isBoss: typeof query.isBoss === \'boolean\' ? query.isBoss : undefined',
+      'hasShop: typeof query.hasShop === \'boolean\' ? query.hasShop : undefined',
+      'hasLoot: typeof query.hasLoot === \'boolean\' ? query.hasLoot : undefined',
+      'npcType: toNumberOrNull(raw.npcType ?? raw.npc_type)',
+      'damage: toNumberOrNull(raw.damage)',
+      'lootEntryCount:',
+      'shopEntryCount:',
+      'buffRelationCount:',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: NPC normalizer must forward filters and expose list stats marker ${marker}`)
+      }
     }
   }
 

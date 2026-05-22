@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { usePublicItemDetail } from '~/composables/usePublicItemDetail'
+import { formatTerrariaPrice } from '~/utils/price'
 import type {
   PublicItemDetail,
   PublicItemDetailBundle,
@@ -70,7 +71,7 @@ const itemImage = computed(() => firstImageUrl(
 ))
 
 const itemFallbackGlyph = computed(() => Array.from(itemName.value)[0] ?? '?')
-const sourceLabel = computed(() => rawBundle.value?.source === 'api' ? '实时接口' : '详情数据')
+const sourceLabel = computed(() => rawBundle.value?.source === 'api' ? '详情资料' : '资料整理中')
 
 const imageEntries = computed(() => {
   const images = rawBundle.value.images.map((image: PublicItemImage, index) => {
@@ -175,8 +176,8 @@ const statRows = computed(() => [
   { label: '击退', value: firstNumberText(detailItem.value?.knockback, detailItem.value?.knockBack) },
   { label: '使用时间', value: firstNumberText(detailItem.value?.useTime, detailItem.value?.useAnimation) },
   { label: '堆叠', value: firstNumberText(detailItem.value?.stackSize, detailItem.value?.maxStack) },
-  { label: '买入', value: firstText(detailItem.value?.buyPrice, detailItem.value?.buy) },
-  { label: '售出', value: firstText(detailItem.value?.sellPrice, detailItem.value?.sell) },
+  { label: '买入', value: formatTerrariaPrice(detailItem.value?.buyPrice ?? detailItem.value?.buy, 'buy') },
+  { label: '售出', value: formatTerrariaPrice(detailItem.value?.sellPrice ?? detailItem.value?.sell, 'sell') },
   { label: '稀有度', value: itemRarity.value },
 ].filter((row) => row.value))
 
@@ -197,10 +198,10 @@ onMounted(() => {
         <div class="detail-main">
           <span class="eyebrow">物品 #{{ itemId || '未知' }} · 未找到</span>
           <strong class="detail-missing-title">没有找到这个物品</strong>
-          <p>当前详情接口没有返回可渲染的物品资料。可以返回物品图鉴重新选择，或稍后在数据同步完成后再试。</p>
+          <p>暂时没有可显示的物品资料。可以返回物品图鉴重新选择，或稍后再试。</p>
           <div class="tag-row">
             <span class="tag paper">详情缺失</span>
-            <span v-if="detailError" class="tag moss">接口异常</span>
+            <span v-if="detailError" class="tag moss">载入异常</span>
           </div>
           <a class="primary-button" href="/items">返回物品图鉴</a>
         </div>
@@ -231,7 +232,7 @@ onMounted(() => {
             <button class="detail-tab active" type="button">概览</button>
             <button class="detail-tab" type="button">合成</button>
             <button class="detail-tab" type="button">来源</button>
-            <button class="detail-tab" type="button">证据链</button>
+            <button class="detail-tab" type="button">资料</button>
           </div>
         </div>
         <aside class="detail-side">
@@ -325,11 +326,11 @@ onMounted(() => {
         </div>
 
         <aside class="evidence-panel dark-card">
-          <span class="eyebrow">资料链路</span>
-          <div class="evidence-step"><div><b>详情接口</b><span>/public/items/{{ itemId }}</span></div></div>
-          <div class="evidence-step"><div><b>图片关系</b><span>{{ imageEntries.length }} 张候选图片</span></div></div>
-          <div class="evidence-step"><div><b>来源关系</b><span>{{ sourceEntries.length }} 条来源记录</span></div></div>
-          <div class="evidence-step"><div><b>配方树</b><span>{{ recipeTreeSummary ? '已返回摘要' : '暂无配方树' }}</span></div></div>
+          <span class="eyebrow">资料概览</span>
+          <div class="evidence-step"><div><b>基础资料</b><span>{{ sourceLabel }}</span></div></div>
+          <div class="evidence-step"><div><b>图片</b><span>{{ imageEntries.length }} 张候选图片</span></div></div>
+          <div class="evidence-step"><div><b>来源</b><span>{{ sourceEntries.length }} 条来源记录</span></div></div>
+          <div class="evidence-step"><div><b>合成</b><span>{{ recipeTreeSummary ? '已有摘要' : '暂无合成资料' }}</span></div></div>
         </aside>
       </div>
     </div>

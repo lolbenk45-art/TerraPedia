@@ -24,6 +24,7 @@ export type PublicItemQuery = {
   search?: string
   category?: string
   categoryId?: number | string
+  categoryIds?: Array<number | string>
   gamePeriodId?: number | string
   sortBy?: string
   sortDirection?: 'asc' | 'desc'
@@ -64,6 +65,11 @@ export type PublicItemListItem = {
   knockback?: number | string | null
   useTime?: number | string | null
   stackSize?: number | string | null
+  price?: number | string | null
+  buy?: number | string | null
+  buyPrice?: number | string | null
+  sell?: number | string | null
+  sellPrice?: number | string | null
   description?: string | null
   descriptionZh?: string | null
   tooltip?: string | null
@@ -280,6 +286,9 @@ export type CatalogItem = {
   knockback: number | null
   useTime: number | null
   stackSize: number | null
+  buy: number | null
+  sell: number | null
+  priceLabel: string
   description: string
   searchText: string
 }
@@ -369,6 +378,10 @@ export type PublicNpcQuery = {
   search?: string
   categoryId?: number | string
   isTownNpc?: boolean
+  isFriendly?: boolean
+  isBoss?: boolean
+  hasShop?: boolean
+  hasLoot?: boolean
 }
 
 export type PublicNpcTraceableItemSummary = {
@@ -411,6 +424,20 @@ export type PublicNpcListItem = {
   is_friendly?: boolean | number | string | null
   isTownNpc?: boolean | number | string | null
   is_town_npc?: boolean | number | string | null
+  npcType?: number | string | null
+  npc_type?: number | string | null
+  damage?: number | string | null
+  defense?: number | string | null
+  lifeMax?: number | string | null
+  life_max?: number | string | null
+  knockBackResist?: number | string | null
+  knock_back_resist?: number | string | null
+  lootEntryCount?: number | string | null
+  loot_entry_count?: number | string | null
+  shopEntryCount?: number | string | null
+  shop_entry_count?: number | string | null
+  buffRelationCount?: number | string | null
+  buff_relation_count?: number | string | null
   imageUrl?: string | null
   image_url?: string | null
   behaviorNotes?: string | null
@@ -582,6 +609,14 @@ export type NpcCatalogCard = {
   isBoss: boolean
   isFriendly: boolean
   isTownNpc: boolean
+  npcType: number | null
+  damage: number | null
+  defense: number | null
+  lifeMax: number | null
+  knockBackResist: number | null
+  lootEntryCount: number
+  shopEntryCount: number
+  buffRelationCount: number
   searchText: string
   raw: PublicNpcListItem
 }

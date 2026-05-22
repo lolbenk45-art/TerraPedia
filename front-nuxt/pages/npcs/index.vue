@@ -11,7 +11,6 @@ const debouncedNpcSearch = ref('')
 const activeFilter = ref('all')
 const currentPage = ref(1)
 const selectedPageSize = ref(defaultNpcPageSize)
-const jumpPageInput = ref('')
 const focusedNpcId = ref<string | null>(null)
 const npcVisualLoadingMinimumMs = 180
 const npcVisualLoading = ref(true)
@@ -24,6 +23,10 @@ type NpcCategoryFilter = {
   key: string
   label: string
   isTownNpc?: boolean
+  isFriendly?: boolean
+  isBoss?: boolean
+  hasShop?: boolean
+  hasLoot?: boolean
   terms?: readonly string[]
 }
 
@@ -40,11 +43,11 @@ const npcCategoryGroups: readonly NpcCategoryGroup[] = [
   {
     key: 'overview',
     label: '总览',
-    caption: '接口分页',
+    caption: '全库浏览',
     filters: [
       allNpcFilter,
-      { key: 'town', label: '城镇', isTownNpc: true, terms: ['城镇', 'town', 'merchant', 'guide', 'nurse'] },
-      { key: 'friendly', label: '友好', terms: ['友好', 'friendly', '城镇'] },
+      { key: 'town', label: '城镇居民', isTownNpc: true, terms: ['城镇', 'town', 'merchant', 'guide', 'nurse'] },
+      { key: 'friendly', label: '友好生物', isFriendly: true, terms: ['友好', 'friendly', '城镇'] },
     ],
   },
   {
@@ -52,9 +55,8 @@ const npcCategoryGroups: readonly NpcCategoryGroup[] = [
     label: '遭遇',
     caption: '敌怪 / Boss',
     filters: [
-      { key: 'enemy', label: '敌怪', terms: ['敌怪', 'enemy', 'monster', '生态', 'slime', 'zombie'] },
-      { key: 'boss', label: 'Boss', terms: ['boss', 'Boss', '首领', '克苏鲁', '史莱姆王'] },
-      { key: 'event', label: '事件', terms: ['事件', 'event', '入侵', '军团', '月亮'] },
+      { key: 'enemy', label: '敌对 NPC', isTownNpc: false, isFriendly: false, isBoss: false, terms: ['敌怪', 'enemy', 'monster', '生态', 'slime', 'zombie'] },
+      { key: 'boss', label: 'Boss', isBoss: true, terms: ['boss', 'Boss', '首领', '克苏鲁', '史莱姆王'] },
     ],
   },
   {
@@ -62,9 +64,8 @@ const npcCategoryGroups: readonly NpcCategoryGroup[] = [
     label: '交互',
     caption: '商店 / 掉落',
     filters: [
-      { key: 'shop', label: '商店', terms: ['商人', 'shop', 'vendor', '出售', '商店'] },
-      { key: 'loot', label: '掉落', terms: ['掉落', 'drop', 'loot'] },
-      { key: 'critter', label: '小动物', terms: ['小动物', 'critter', '动物'] },
+      { key: 'shop', label: '出售物品', hasShop: true, terms: ['商人', 'shop', 'vendor', '出售', '商店'] },
+      { key: 'loot', label: '掉落物品', hasLoot: true, terms: ['掉落', 'drop', 'loot'] },
     ],
   },
 ] satisfies readonly NpcCategoryGroup[]
@@ -107,7 +108,11 @@ const publicNpcQuery = computed(() => ({
   page: currentPage.value,
   limit: selectedPageSize.value,
   search: backendSearch.value || undefined,
-  isTownNpc: selectedFilter.value.isTownNpc === true ? true : undefined,
+  isTownNpc: selectedFilter.value.isTownNpc,
+  isFriendly: selectedFilter.value.isFriendly,
+  isBoss: selectedFilter.value.isBoss,
+  hasShop: selectedFilter.value.hasShop,
+  hasLoot: selectedFilter.value.hasLoot,
 }) satisfies PublicNpcQuery)
 
 const {
@@ -129,53 +134,18 @@ const canGoPrevious = computed(() => currentPage.value > 1)
 const canGoNext = computed(() => currentPage.value < totalPages.value)
 const npcDockCurrentPage = computed(() => npcVisualLoading.value ? 1 : currentPage.value)
 const npcDockTotalPages = computed(() => npcVisualLoading.value ? 1 : totalPages.value)
-const npcDockCanGoPrevious = computed(() => !npcVisualLoading.value && canGoPrevious.value)
-const npcDockCanGoNext = computed(() => !npcVisualLoading.value && canGoNext.value)
 const npcLoadingSlotCount = computed(() => Math.min(selectedPageSize.value, 24))
-const npcStatusText = computed(() => npcVisualLoading.value ? '加载中' : npcFallbackUnavailable.value || npcError.value ? '未载入' : '实时接口')
-const shouldApplyLocalNpcFilter = computed(() => npcResult.value?.source !== 'api' || (activeFilter.value !== 'all' && selectedFilter.value.isTownNpc !== true))
-
-const visiblePageItems = computed(() => {
-  if (npcVisualLoading.value) {
-    return [1]
-  }
-
-  const pages = totalPages.value
-  const page = currentPage.value
-  const edgeWindow = 1
-  const sideWindow = 2
-  const candidates = new Set([1, pages])
-
-  for (let index = 1; index <= Math.min(edgeWindow, pages); index += 1) {
-    candidates.add(index)
-  }
-
-  for (let index = Math.max(1, pages - edgeWindow + 1); index <= pages; index += 1) {
-    candidates.add(index)
-  }
-
-  for (let index = page - sideWindow; index <= page + sideWindow; index += 1) {
-    if (index >= 1 && index <= pages) {
-      candidates.add(index)
-    }
-  }
-
-  return [...candidates].sort((left, right) => left - right).reduce<Array<number | 'gap'>>((items, item) => {
-    const previous = items[items.length - 1]
-    if (typeof previous === 'number' && item - previous > 1) {
-      items.push('gap')
-    }
-    items.push(item)
-    return items
-  }, [])
-})
-const pageWindowItems = computed(() => visiblePageItems.value)
+const npcStatusText = computed(() => npcVisualLoading.value ? '加载中' : npcFallbackUnavailable.value || npcError.value ? '未载入' : '已更新')
+const shouldApplyLocalNpcFilter = computed(() => npcResult.value?.source !== 'api')
+const npcSourceReady = computed(() => npcResult.value?.source === 'api')
 
 const matchNpcFilter = (npc: NpcCatalogCard, filter: NpcCategoryFilter) => {
   if (filter.key === 'all') return true
-  if (filter.isTownNpc === true) return npc.isTownNpc
-  if (filter.key === 'friendly') return npc.isFriendly || npc.isTownNpc
-  if (filter.key === 'boss') return npc.isBoss || /boss|首领|克苏鲁|史莱姆王/i.test(npc.searchText)
+  if (typeof filter.isTownNpc === 'boolean' && npc.isTownNpc !== filter.isTownNpc) return false
+  if (typeof filter.isFriendly === 'boolean' && npc.isFriendly !== filter.isFriendly) return false
+  if (typeof filter.isBoss === 'boolean' && npc.isBoss !== filter.isBoss) return false
+  if (filter.hasShop === true && npc.shopEntryCount <= 0) return false
+  if (filter.hasLoot === true && npc.lootEntryCount <= 0) return false
   if (filter.key === 'enemy') return !npc.isTownNpc && !npc.isFriendly
 
   const haystack = normalizeSearchText([
@@ -210,7 +180,7 @@ const selectedNpc = computed<NpcCatalogCard | null>(() => (
 ))
 const resultSummary = computed(() => {
   if (npcVisualLoading.value) return '加载中'
-  if (npcFallbackUnavailable.value) return '等待接口'
+  if (npcFallbackUnavailable.value) return '资料暂未载入'
 
   const total = totalNpcs.value.toLocaleString('zh-CN')
   if ((npcResult.value?.source === 'api' && !shouldApplyLocalNpcFilter.value) || activeFilter.value === 'all') {
@@ -220,13 +190,17 @@ const resultSummary = computed(() => {
   return `${filteredNpcCards.value.length} / 本页 ${npcDisplayCards.value.length} / 总计 ${total}`
 })
 
-const pageControlLabel = (item: number | 'gap') => item === 'gap' ? '...' : String(item)
-
 const npcKindLabel = (npc: NpcCatalogCard) => {
   if (npc.isTownNpc) return '城镇 NPC'
   if (npc.isFriendly) return '友好 NPC'
   return npc.isBoss ? 'Boss 相关' : '敌怪 / 生态'
 }
+
+const npcRelationCountLabel = (npc: NpcCatalogCard) => [
+  npc.shopEntryCount > 0 ? `出售 ${npc.shopEntryCount}` : '',
+  npc.lootEntryCount > 0 ? `掉落 ${npc.lootEntryCount}` : '',
+  npc.buffRelationCount > 0 ? `效果 ${npc.buffRelationCount}` : '',
+].filter(Boolean).join(' · ')
 
 const clearNpcVisualLoadingTimer = () => {
   if (npcVisualLoadingTimer) {
@@ -273,7 +247,6 @@ const setActiveFilter = (filter: QuickFilterKey) => {
 const setPageSize = (pageSize: number) => {
   selectedPageSize.value = pageSize
   currentPage.value = 1
-  jumpPageInput.value = ''
   void scrollNpcWallToTop()
 }
 
@@ -295,44 +268,22 @@ const resetNpcFilters = () => {
 const goToPreviousPage = () => {
   if (canGoPrevious.value) {
     currentPage.value -= 1
-    jumpPageInput.value = ''
     void scrollNpcWallToTop()
   }
-}
-
-const goToFirstPage = () => {
-  if (currentPage.value === 1) return
-  currentPage.value = 1
-  jumpPageInput.value = ''
-  void scrollNpcWallToTop()
 }
 
 const goToPage = (page: number) => {
   const nextPage = Math.min(Math.max(1, page), totalPages.value)
   if (nextPage === currentPage.value) return
   currentPage.value = nextPage
-  jumpPageInput.value = ''
   void scrollNpcWallToTop()
 }
 
 const goToNextPage = () => {
   if (canGoNext.value) {
     currentPage.value += 1
-    jumpPageInput.value = ''
     void scrollNpcWallToTop()
   }
-}
-
-const goToLastPage = () => {
-  if (currentPage.value === totalPages.value) return
-  currentPage.value = totalPages.value
-  jumpPageInput.value = ''
-  void scrollNpcWallToTop()
-}
-
-const goToJumpPage = () => {
-  const page = parsePositiveInteger(jumpPageInput.value, currentPage.value)
-  goToPage(page)
 }
 
 const updateNpcRouteQuery = () => {
@@ -443,7 +394,7 @@ watch(() => route.query, hydrateNpcStateFromRoute)
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">{{ npcVisualLoading ? '加载资料' : npcFallbackUnavailable ? '等待接口返回' : `${totalNpcs.toLocaleString('zh-CN')} 个角色与敌怪` }}</span>
+          <span class="eyebrow">{{ npcVisualLoading ? '加载资料' : npcFallbackUnavailable ? '资料暂未载入' : `${totalNpcs.toLocaleString('zh-CN')} 个角色与敌怪` }}</span>
           <h1>NPC 图鉴</h1>
           <p>保留 NPC 档案的角色式浏览，同时使用和物品图鉴一致的分类、搜索与分页控制。</p>
         </div>
@@ -493,8 +444,8 @@ watch(() => route.query, hydrateNpcStateFromRoute)
         </div>
 
         <div class="entity-mini-panel">
-          <strong>公共展示口径</strong>
-          <p>列表只呈现玩家能理解的信息：身份、生态、公开头像和详情入口。</p>
+          <strong>浏览提示</strong>
+          <p>按身份、关系、商店和掉落快速缩小范围，筛选结果会同步到分页列表。</p>
         </div>
       </aside>
 
@@ -512,7 +463,7 @@ watch(() => route.query, hydrateNpcStateFromRoute)
         </form>
 
         <div class="entity-stat-strip">
-          <div><b>{{ totalNpcs }}</b><span>接口记录</span></div>
+          <div><b>{{ totalNpcs }}</b><span>资料数量</span></div>
           <div><b>{{ selectedPageSize }}</b><span>每页展示</span></div>
           <div><b>{{ npcDockCurrentPage }}/{{ npcDockTotalPages }}</b><span>当前分页</span></div>
           <div><b>{{ npcStatusText }}</b><span>数据状态</span></div>
@@ -531,8 +482,8 @@ watch(() => route.query, hydrateNpcStateFromRoute)
           </div>
 
           <div v-else-if="npcError || npcFallbackUnavailable || visibleNpcCards.length === 0" key="npc-empty" class="entity-mini-panel">
-            <strong>{{ npcError || npcFallbackUnavailable ? 'NPC 接口暂不可用' : '没有匹配 NPC' }}</strong>
-            <p>{{ npcError || npcFallbackUnavailable ? '当前页面没有拿到公开 NPC 列表，可以稍后刷新。' : '换一个关键词或切回全部分类后再试。' }}</p>
+            <strong>{{ npcError || npcFallbackUnavailable ? '资料暂未载入' : '没有符合条件的 NPC' }}</strong>
+            <p>{{ npcError || npcFallbackUnavailable ? '当前页面暂时没有拿到 NPC 列表，可以稍后刷新。' : '换一个关键词或切回全部分类后再试。' }}</p>
             <button v-if="npcError || npcFallbackUnavailable" class="small-button active" type="button" @click="refreshNpcList">重新加载</button>
             <button v-else class="small-button active" type="button" @click="resetNpcFilters">重置筛选</button>
           </div>
@@ -551,58 +502,21 @@ watch(() => route.query, hydrateNpcStateFromRoute)
               <i>
                 <CommonPreviewImage :src="npc.image" :alt="npc.displayName" :fallback="npc.fallback" />
               </i>
-              <div><b>{{ npc.displayName }}</b><span>{{ npcKindLabel(npc) }} · {{ npc.categoryName }}</span></div>
+              <div><b>{{ npc.displayName }}</b><span>{{ [npcKindLabel(npc), npc.categoryName, npcRelationCountLabel(npc)].filter(Boolean).join(' · ') }}</span></div>
               <em>详情</em>
             </a>
           </div>
         </Transition>
 
-        <div class="catalog-page-dock" aria-label="分页">
-          <span class="catalog-page-dock-summary">第 {{ npcDockCurrentPage }} / {{ npcDockTotalPages }} 页 · {{ activeFilterPath }}</span>
-          <div class="catalog-page-dock-core">
-            <button class="catalog-dock-button" type="button" :disabled="!npcDockCanGoPrevious" @click="goToFirstPage">
-              首页
-            </button>
-            <button class="catalog-dock-icon-button" type="button" aria-label="上一页" :disabled="!npcDockCanGoPrevious" @click="goToPreviousPage">
-              ‹
-            </button>
-            <template v-for="(pageItem, index) in pageWindowItems" :key="`${pageItem}-${index}`">
-              <span v-if="pageItem === 'gap'" class="catalog-page-gap">...</span>
-              <button
-                v-else
-                class="catalog-dock-page-button"
-                type="button"
-                :class="{ active: pageItem === currentPage }"
-                :aria-current="!npcVisualLoading && pageItem === currentPage ? 'page' : undefined"
-                :disabled="npcVisualLoading"
-                @click="goToPage(pageItem)"
-              >
-                {{ pageControlLabel(pageItem) }}
-              </button>
-            </template>
-            <button class="catalog-dock-icon-button" type="button" aria-label="下一页" :disabled="!npcDockCanGoNext" @click="goToNextPage">
-              ›
-            </button>
-            <button class="catalog-dock-button" type="button" :disabled="!npcDockCanGoNext" @click="goToLastPage">
-              末页
-            </button>
-          </div>
-          <form class="catalog-dock-jump-form" aria-label="跳页" @submit.prevent="goToJumpPage">
-            <label for="npc-page-jump">跳至</label>
-            <input
-              id="npc-page-jump"
-              v-model="jumpPageInput"
-              type="number"
-              inputmode="numeric"
-              min="1"
-              :max="npcDockTotalPages"
-              :placeholder="String(npcDockCurrentPage)"
-              :disabled="npcVisualLoading"
-            />
-            <span>/ {{ npcDockTotalPages }}</span>
-            <button class="catalog-dock-button" type="submit" :disabled="npcVisualLoading">前往</button>
-          </form>
-        </div>
+        <CommonPaginationDock
+          :current-page="npcDockCurrentPage"
+          :total-pages="npcDockTotalPages"
+          :disabled="npcVisualLoading"
+          :summary-suffix="activeFilterPath"
+          jump-id="npc-page-jump"
+          show-boundary-controls
+          @page-change="goToPage"
+        />
       </section>
 
       <aside class="entity-preview-dark">
@@ -618,10 +532,10 @@ watch(() => route.query, hydrateNpcStateFromRoute)
         <h2>{{ selectedNpc?.displayName || 'NPC 资料' }}</h2>
         <p>{{ selectedNpc ? `${selectedNpc.categoryName} · ${selectedNpc.internalName || selectedNpc.secondaryName || '公开资料'}` : '选择一个公开 NPC 后查看详情。' }}</p>
         <div class="mini-facts">
-          <div><b>{{ selectedNpc?.gameId ?? '--' }}</b><span>Game ID</span></div>
-          <div><b>{{ selectedNpc?.isTownNpc ? '城镇' : '公开' }}</b><span>角色类型</span></div>
+          <div><b>{{ selectedNpc?.gameId ?? '--' }}</b><span>编号</span></div>
+          <div><b>{{ selectedNpc?.isTownNpc ? '城镇' : selectedNpc?.isBoss ? 'Boss' : '生态' }}</b><span>角色类型</span></div>
           <div><b>{{ selectedNpc?.isFriendly ? '友好' : '生态' }}</b><span>关系</span></div>
-          <div><b>{{ npcResult?.source === 'api' ? 'API' : '--' }}</b><span>来源</span></div>
+          <div><b>{{ selectedNpc?.shopEntryCount ?? 0 }}/{{ selectedNpc?.lootEntryCount ?? 0 }}</b><span>出售/掉落</span></div>
         </div>
         <a v-if="selectedNpc" class="primary-button full-button" :href="selectedNpc.detailPath">打开详情</a>
       </aside>

@@ -123,10 +123,10 @@ onMounted(() => {
         <div>
           <span class="eyebrow">Buff #{{ buffId || '未知' }}</span>
           <strong class="detail-missing-title">没有找到这个效果</strong>
-          <p>当前公共详情接口没有返回可渲染资料。</p>
+          <p>当前详情资料还没有可渲染内容。</p>
           <div class="tag-row">
             <span class="tag paper">详情缺失</span>
-            <span v-if="buffDetailError" class="tag moss">接口异常</span>
+            <span v-if="buffDetailError" class="tag moss">加载异常</span>
           </div>
           <a class="primary-button" href="/buffs">返回 Buff 图鉴</a>
         </div>

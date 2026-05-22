@@ -135,7 +135,7 @@ useSeoMeta({
           >
             <span class="sprite-icon icon-items compact" aria-hidden="true"></span>
             <b>查看物品图鉴</b>
-            <em>接口暂无建议</em>
+            <em>暂无建议</em>
           </NuxtLink>
         </div>
       </section>

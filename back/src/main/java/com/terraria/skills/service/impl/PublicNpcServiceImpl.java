@@ -275,7 +275,13 @@ public class PublicNpcServiceImpl implements PublicNpcService {
 
     private LambdaQueryWrapper<Npc> buildListWrapper(PublicNpcQuery query, boolean multipartSearch) {
         LambdaQueryWrapper<Npc> wrapper = new LambdaQueryWrapper<>();
-        wrapper.and(scope -> scope.eq(Npc::getIsBoss, false).or().isNull(Npc::getIsBoss));
+        if (Boolean.TRUE.equals(query.getIsBoss())) {
+            wrapper.eq(Npc::getIsBoss, true);
+        } else if (Boolean.FALSE.equals(query.getIsBoss())) {
+            wrapper.and(scope -> scope.eq(Npc::getIsBoss, false).or().isNull(Npc::getIsBoss));
+        } else {
+            wrapper.and(scope -> scope.eq(Npc::getIsBoss, false).or().isNull(Npc::getIsBoss));
+        }
         wrapper.and(scope -> scope.eq(Npc::getStatus, 1).or().isNull(Npc::getStatus));
 
         if (query.getCategoryId() != null) {
@@ -283,6 +289,30 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         }
         if (query.getIsTownNpc() != null) {
             wrapper.eq(Npc::getIsTownNpc, query.getIsTownNpc());
+        }
+        if (Boolean.TRUE.equals(query.getIsFriendly())) {
+            wrapper.eq(Npc::getIsFriendly, true);
+        } else if (Boolean.FALSE.equals(query.getIsFriendly())) {
+            wrapper.and(scope -> scope.eq(Npc::getIsFriendly, false).or().isNull(Npc::getIsFriendly));
+        }
+        if (query.getHasShop() != null) {
+            wrapper.apply((Boolean.TRUE.equals(query.getHasShop()) ? "" : "NOT ") + """
+                EXISTS (
+                  SELECT 1 FROM npc_shop_entries nse_filter
+                  WHERE nse_filter.npc_id = npcs.id
+                    AND nse_filter.deleted = 0
+                )
+                """);
+        }
+        if (query.getHasLoot() != null) {
+            wrapper.apply((Boolean.TRUE.equals(query.getHasLoot()) ? "" : "NOT ") + """
+                EXISTS (
+                  SELECT 1 FROM npc_loot_entries nle_filter
+                  WHERE nle_filter.npc_id = npcs.id
+                    AND nle_filter.deleted = 0
+                    AND (nle_filter.drop_source_kind IS NULL OR nle_filter.drop_source_kind = 'npc_drop')
+                )
+                """);
         }
         if (query.getSearch() != null && !query.getSearch().isBlank()) {
             String keyword = query.getSearch().trim();
@@ -330,9 +360,18 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         Map<Long, String> categoryNames = loadCategoryNames(
             npcs.stream().map(Npc::getCategoryId).filter(Objects::nonNull).toList()
         );
+        Map<Long, Integer> shopCounts = loadRelationCounts("npc_shop_entries", npcs, false);
+        Map<Long, Integer> lootCounts = loadRelationCounts("npc_loot_entries", npcs, true);
+        Map<Long, Integer> buffCounts = loadRelationCounts("npc_buff_relations", npcs, false);
 
         return npcs.stream()
-            .map(npc -> toListDto(npc, categoryNames.get(npc.getCategoryId())))
+            .map(npc -> toListDto(
+                npc,
+                categoryNames.get(npc.getCategoryId()),
+                shopCounts.getOrDefault(npc.getId(), 0),
+                lootCounts.getOrDefault(npc.getId(), 0),
+                buffCounts.getOrDefault(npc.getId(), 0)
+            ))
             .toList();
     }
 
@@ -422,6 +461,16 @@ public class PublicNpcServiceImpl implements PublicNpcService {
     }
 
     private NpcListItemDTO toListDto(Npc npc, String categoryName) {
+        return toListDto(npc, categoryName, null, null, null);
+    }
+
+    private NpcListItemDTO toListDto(
+        Npc npc,
+        String categoryName,
+        Integer shopEntryCount,
+        Integer lootEntryCount,
+        Integer buffRelationCount
+    ) {
         NpcSupplement supplement = getSupplement(npc.getGameId());
 
         NpcListItemDTO dto = new NpcListItemDTO();
@@ -437,6 +486,14 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setIsBoss(firstNonNullBoolean(npc.getIsBoss(), supplement.isBoss));
         dto.setIsFriendly(firstNonNullBoolean(npc.getIsFriendly(), supplement.isFriendly));
         dto.setIsTownNpc(firstNonNullBoolean(npc.getIsTownNpc(), supplement.isTownNpc));
+        dto.setNpcType(supplement.npcType);
+        dto.setDamage(supplement.damage);
+        dto.setDefense(supplement.defense);
+        dto.setLifeMax(supplement.lifeMax);
+        dto.setKnockBackResist(supplement.knockBackResist);
+        dto.setShopEntryCount(shopEntryCount);
+        dto.setLootEntryCount(lootEntryCount);
+        dto.setBuffRelationCount(buffRelationCount);
         dto.setImageUrl(managedDisplayImageUrl(firstNonBlank(npc.getImageUrl(), supplement.imageUrl)));
         dto.setLootItemsJson(npc.getLootItemsJson());
         dto.setShopItemsJson(npc.getShopItemsJson());
@@ -459,6 +516,14 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setIsBoss(listItem.getIsBoss());
         dto.setIsFriendly(listItem.getIsFriendly());
         dto.setIsTownNpc(listItem.getIsTownNpc());
+        dto.setNpcType(listItem.getNpcType());
+        dto.setDamage(listItem.getDamage());
+        dto.setDefense(listItem.getDefense());
+        dto.setLifeMax(listItem.getLifeMax());
+        dto.setKnockBackResist(listItem.getKnockBackResist());
+        dto.setShopEntryCount(countNpcRelations("npc_shop_entries", npc.getId(), false));
+        dto.setLootEntryCount(countNpcRelations("npc_loot_entries", npc.getId(), true));
+        dto.setBuffRelationCount(countNpcRelations("npc_buff_relations", npc.getId(), false));
         dto.setImageUrl(listItem.getImageUrl());
         dto.setLootItemsJson(listItem.getLootItemsJson());
         dto.setShopItemsJson(listItem.getShopItemsJson());
@@ -466,6 +531,61 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setBehaviorNotes(trimToNull(npc.getBehaviorNotes()));
         dto.setStatus(npc.getStatus());
         return dto;
+    }
+
+    private Map<Long, Integer> loadRelationCounts(String tableName, List<Npc> npcs, boolean npcDropOnly) {
+        if (npcs == null || npcs.isEmpty()) {
+            return Map.of();
+        }
+        List<Long> npcIds = npcs.stream()
+            .map(Npc::getId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+        if (npcIds.isEmpty()) {
+            return Map.of();
+        }
+
+        String placeholders = npcIds.stream().map(ignored -> "?").collect(Collectors.joining(","));
+        String dropPredicate = npcDropOnly ? " AND (drop_source_kind IS NULL OR drop_source_kind = 'npc_drop')" : "";
+        try {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT npc_id AS npcId, COUNT(*) AS entryCount FROM " + tableName
+                    + " WHERE deleted = 0 AND npc_id IN (" + placeholders + ")"
+                    + dropPredicate
+                    + " GROUP BY npc_id",
+                npcIds.toArray()
+            );
+            Map<Long, Integer> counts = new LinkedHashMap<>();
+            for (Map<String, Object> row : rows) {
+                Long npcId = toLong(row.get("npcId"));
+                Integer count = toInteger(row.get("entryCount"));
+                if (npcId != null && count != null) {
+                    counts.put(npcId, count);
+                }
+            }
+            return counts;
+        } catch (Exception exception) {
+            log.warn("Failed to load {} counts for public NPC list", tableName, exception);
+            return Map.of();
+        }
+    }
+
+    private Integer countNpcRelations(String tableName, Long npcId, boolean npcDropOnly) {
+        if (npcId == null) {
+            return 0;
+        }
+        String dropPredicate = npcDropOnly ? " AND (drop_source_kind IS NULL OR drop_source_kind = 'npc_drop')" : "";
+        try {
+            return jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM " + tableName + " WHERE deleted = 0 AND npc_id = ?" + dropPredicate,
+                Integer.class,
+                npcId
+            );
+        } catch (Exception exception) {
+            log.warn("Failed to count {} for public NPC {}", tableName, npcId, exception);
+            return 0;
+        }
     }
 
     private Map<Long, List<NpcShopConditionDTO>> loadShopConditions(List<Long> entryIds) {
@@ -747,13 +867,20 @@ public class PublicNpcServiceImpl implements PublicNpcService {
 
                     JsonNode flags = record.path("flags");
                     JsonNode extras = record.path("extras");
+                    JsonNode combat = record.path("combat");
+                    JsonNode rawJson = parseJson(record.get("rawJson"));
                     loaded.put(gameId, new NpcSupplement(
                         textOrNull(record.get("imageUrl")),
                         textOrNull(record.get("nameZh")),
                         textOrNull(record.get("subNameZh")),
                         booleanOrNull(flags.get("boss")),
                         booleanOrNull(flags.get("friendly")),
-                        booleanOrNull(extras.get("townNPC"))
+                        booleanOrNull(extras.get("townNPC")),
+                        integerOrNull(firstExisting(rawJson.path("type"), record.get("npcType"), record.get("type"))),
+                        integerOrNull(combat.get("damage")),
+                        integerOrNull(combat.get("defense")),
+                        integerOrNull(combat.get("lifeMax")),
+                        scalarOrNull(combat.get("knockBackResist"))
                     ));
                 });
                 return loaded;
@@ -865,15 +992,71 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         return Boolean.parseBoolean(value.toLowerCase(Locale.ROOT));
     }
 
+    private JsonNode parseJson(JsonNode node) {
+        String text = textOrNull(node);
+        if (text == null) {
+            return objectMapper.createObjectNode();
+        }
+        try {
+            return objectMapper.readTree(text);
+        } catch (Exception ignored) {
+            return objectMapper.createObjectNode();
+        }
+    }
+
+    private static JsonNode firstExisting(JsonNode... nodes) {
+        for (JsonNode node : nodes) {
+            if (node != null && !node.isMissingNode() && !node.isNull()) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    private static Integer integerOrNull(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            return null;
+        }
+        if (node.isInt() || node.isLong() || node.isDouble() || node.isFloat()) {
+            return node.asInt();
+        }
+        String value = node.asText();
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private static Object scalarOrNull(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            return null;
+        }
+        if (node.isNumber()) {
+            double value = node.asDouble();
+            return value % 1 == 0 ? (int) value : value;
+        }
+        String value = node.asText();
+        return value == null || value.isBlank() ? null : value;
+    }
+
     private record NpcSupplement(
         String imageUrl,
         String nameZh,
         String subNameZh,
         Boolean isBoss,
         Boolean isFriendly,
-        Boolean isTownNpc
+        Boolean isTownNpc,
+        Integer npcType,
+        Integer damage,
+        Integer defense,
+        Integer lifeMax,
+        Object knockBackResist
     ) {
-        private static final NpcSupplement EMPTY = new NpcSupplement(null, null, null, null, null, null);
+        private static final NpcSupplement EMPTY = new NpcSupplement(null, null, null, null, null, null, null, null, null, null, null);
     }
 
     private record RelationNpcBuffLookupResult(boolean available, List<NpcBuffRelationDTO> rows) {

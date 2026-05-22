@@ -19,7 +19,7 @@
         <div class="category-axis category-atlas-axis">
           <span>图鉴结构</span>
           <h2>从大类到路线入口</h2>
-          <p>左侧是主分类，右侧是玩家会真正点击的二级入口。后续接入接口后，可直接用分类树渲染。</p>
+          <p>左侧是主分类，右侧是玩家会真正点击的二级入口。后续补齐分类资料后，可直接按分类树渲染。</p>
           <div class="category-axis-branches">
             <a class="active" href="/categories/weapons"><b>战斗轴</b><span>武器 / 防具 / 药水</span></a>
             <a href="/categories/materials"><b>制作轴</b><span>材料 / 工具 / 制作站</span></a>

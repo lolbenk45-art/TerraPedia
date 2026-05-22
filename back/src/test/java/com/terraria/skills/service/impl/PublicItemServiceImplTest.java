@@ -101,6 +101,34 @@ class PublicItemServiceImplTest {
     }
 
     @Test
+    void shouldResolveMultipleCategoryDescendantsForPublicListFilters() {
+        PageQuery query = new PageQuery();
+        query.setPage(1);
+        query.setLimit(20);
+        query.setCategoryIds(List.of(10L, 20L));
+
+        CategoryDTO firstChild = new CategoryDTO();
+        firstChild.setId(11L);
+        CategoryDTO secondChild = new CategoryDTO();
+        secondChild.setId(21L);
+
+        List<Long> resolvedCategoryIds = List.of(10L, 11L, 20L, 21L);
+        when(managedImageUrlPolicy.trustedManagedImageUrlPrefixes()).thenReturn(TRUSTED_IMAGE_PREFIXES);
+        when(categoryManagementService.getAllDescendants(10L)).thenReturn(List.of(firstChild));
+        when(categoryManagementService.getAllDescendants(20L)).thenReturn(List.of(secondChild));
+        when(itemMapper.countItemsWithSearch(eq(""), isNull(), eq(resolvedCategoryIds), isNull(), isNull())).thenReturn(0L);
+        when(itemMapper.selectPublicItemsWithSearch(eq(""), isNull(), eq(resolvedCategoryIds), isNull(), isNull(), eq("id"), eq("asc"), eq(20L), eq(0L), eq(TRUSTED_IMAGE_PREFIXES)))
+            .thenReturn(List.of());
+
+        publicItemService.getPublicItems(query);
+
+        verify(categoryManagementService).getAllDescendants(10L);
+        verify(categoryManagementService).getAllDescendants(20L);
+        verify(itemMapper).countItemsWithSearch(eq(""), isNull(), eq(resolvedCategoryIds), isNull(), isNull());
+        verify(itemMapper).selectPublicItemsWithSearch(eq(""), isNull(), eq(resolvedCategoryIds), isNull(), isNull(), eq("id"), eq("asc"), eq(20L), eq(0L), eq(TRUSTED_IMAGE_PREFIXES));
+    }
+
+    @Test
     void shouldUsePublicLightweightMapperForSuggestions() {
         PublicItemSuggestionDTO item = new PublicItemSuggestionDTO();
         item.setId(12L);

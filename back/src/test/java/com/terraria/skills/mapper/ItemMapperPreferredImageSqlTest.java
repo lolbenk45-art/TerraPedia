@@ -170,6 +170,8 @@ class ItemMapperPreferredImageSqlTest {
         assertFalse(publicListSql.contains(" i.tooltip_zh"), "public item list must not read tooltip_zh");
         assertFalse(publicListSql.contains(" i.damage"), "public item list must not read damage");
         assertFalse(publicListSql.contains(" i.defense"), "public item list must not read defense");
+        assertTrue(publicListSql.contains("i.buy"), "public item list must expose buy price for catalog cards");
+        assertTrue(publicListSql.contains("i.sell"), "public item list must expose sell price for catalog cards");
         assertFalse(publicListSql.contains(" i.created_at"), "public item list must not read created_at");
         assertFalse(publicListSql.contains(" i.updated_at"), "public item list must not read updated_at");
         assertTrue(publicListSql.contains("ii_public.cached_url AS image"), "public item list must expose trusted cached item_images display URLs");

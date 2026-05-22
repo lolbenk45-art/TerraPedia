@@ -60,6 +60,9 @@ class PublicItemControllerTest {
         item.setGamePeriod("Pre-Hardmode");
         item.setStackSize(1);
         item.setIsStackable(false);
+        item.setPrice(500L);
+        item.setBuy(500L);
+        item.setSell(100L);
         item.setUpdatedAt(LocalDateTime.of(2026, 5, 4, 13, 0));
 
         Page<PublicItemListDTO> page = new Page<>(1, 36);
@@ -73,6 +76,7 @@ class PublicItemControllerTest {
                 .param("limit", "36")
                 .param("search", "iron")
                 .param("categoryId", "313")
+                .param("categoryIds", "313", "314")
                 .param("rarity", "Blue")
                 .param("sortBy", "name")
                 .param("sortDirection", "asc"))
@@ -89,6 +93,9 @@ class PublicItemControllerTest {
             .andExpect(jsonPath("$.data[0].categoryName").value("Pickaxes"))
             .andExpect(jsonPath("$.data[0].rare").doesNotExist())
             .andExpect(jsonPath("$.data[0].rarity").value("Blue"))
+            .andExpect(jsonPath("$.data[0].price").value(500))
+            .andExpect(jsonPath("$.data[0].buy").value(500))
+            .andExpect(jsonPath("$.data[0].sell").value(100))
             .andExpect(jsonPath("$.data[0].sourceNpcs").doesNotExist())
             .andExpect(jsonPath("$.data[0].sourceNpcsJson").doesNotExist())
             .andExpect(jsonPath("$.data[0].categoryPaths").doesNotExist())
@@ -108,9 +115,28 @@ class PublicItemControllerTest {
         assertEquals(36, query.getLimit());
         assertEquals("iron", query.getSearch());
         assertEquals(313L, query.getCategoryId());
+        assertEquals(List.of(313L, 314L), query.getCategoryIds());
         assertEquals("Blue", query.getRarity());
         assertEquals("name", query.getSortBy());
         assertEquals("asc", query.getSortDirection());
+    }
+
+    @Test
+    void shouldParseCommaSeparatedCategoryIdsForPublicItemList() throws Exception {
+        Page<PublicItemListDTO> page = new Page<>(1, 36);
+        page.setTotal(0);
+        page.setRecords(List.of());
+
+        when(publicItemService.getPublicItems(any(PageQuery.class))).thenReturn(page);
+
+        mockMvc.perform(get("/public/items")
+                .param("categoryIds", "313,314"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
+
+        ArgumentCaptor<PageQuery> queryCaptor = ArgumentCaptor.forClass(PageQuery.class);
+        verify(publicItemService).getPublicItems(queryCaptor.capture());
+        assertEquals(List.of(313L, 314L), queryCaptor.getValue().getCategoryIds());
     }
 
     @Test

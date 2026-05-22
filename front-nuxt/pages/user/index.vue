@@ -8,7 +8,7 @@
         <div>
           <span class="eyebrow">/user · public account</span>
           <h1>用户中心</h1>
-          <p>用户页先做前台结构：收藏、投稿、阅读路径和账号入口。当前只做页面，不实现登录状态、保存、提交或接口交互。</p>
+          <p>用户页先整理收藏、投稿、阅读路径和账号入口。当前只做页面，不实现登录状态、保存或提交。</p>
         </div>
         <a class="primary-button" href="/user/login">进入登录页</a>
       </div>

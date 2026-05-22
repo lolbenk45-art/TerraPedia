@@ -155,6 +155,37 @@ class PublicNpcServiceImplImageTest {
     }
 
     @Test
+    void shouldMapSupplementCombatStatsAndRelationCountsToPublicListDto() {
+        Npc npc = new Npc();
+        npc.setId(7L);
+        npc.setGameId(22L);
+        npc.setInternalName("Guide");
+        npc.setName("Guide");
+        npc.setCategoryId(1L);
+        npc.setIsBoss(false);
+        npc.setStatus(1);
+
+        Page<Npc> page = new Page<>(1, 20);
+        page.setTotal(1);
+        page.setRecords(List.of(npc));
+        when(npcMapper.selectPage(any(Page.class), any())).thenReturn(page);
+        when(jdbcTemplate.queryForList(contains("npc_shop_entries"), any(Object[].class))).thenReturn(List.of(Map.of("npcId", 7L, "entryCount", 3L)));
+        when(jdbcTemplate.queryForList(contains("npc_loot_entries"), any(Object[].class))).thenReturn(List.of(Map.of("npcId", 7L, "entryCount", 1L)));
+        when(jdbcTemplate.queryForList(contains("npc_buff_relations"), any(Object[].class))).thenReturn(List.of(Map.of("npcId", 7L, "entryCount", 0L)));
+
+        NpcListItemDTO result = newService().getNpcs(new PublicNpcQuery()).getRecords().get(0);
+
+        assertEquals(250, result.getLifeMax());
+        assertEquals(10, result.getDamage());
+        assertEquals(30, result.getDefense());
+        assertEquals(0.5, result.getKnockBackResist());
+        assertEquals(22, result.getNpcType());
+        assertEquals(3, result.getShopEntryCount());
+        assertEquals(1, result.getLootEntryCount());
+        assertEquals(0, result.getBuffRelationCount());
+    }
+
+    @Test
     void shouldCollapseMultipartSameNameNpcSearchToHeadRepresentative() {
         Npc head = npc(454L, 454L, "CultistDragonHead", "Phantasm Dragon");
         Npc body = npc(455L, 455L, "CultistDragonBody1", "Phantasm Dragon");
