@@ -287,6 +287,7 @@ const requiredPublicDataLayerFiles = [
   'composables/usePublicApi.ts',
   'composables/usePublicItems.ts',
   'composables/usePublicItemDetail.ts',
+  'composables/usePublicNpcs.ts',
   'components/common/PreviewImage.vue',
   'components/common/TpSkeleton.vue',
   'components/catalog/CatalogWallSkeleton.vue',
@@ -344,6 +345,16 @@ const requiredPublicDataLayerMarkers = {
     '/public/items/${normalizedItemId}/recipe-tree',
     'resolvePreviewImageUrl',
     'source: \'missing\'',
+  ],
+  'composables/usePublicNpcs.ts': [
+    'export const fetchPublicNpcs',
+    'export const fetchPublicNpcAggregate',
+    'export const usePublicNpcs',
+    'export const usePublicNpcAggregate',
+    "'/npcs'",
+    '`/public/npcs/${normalizedNpcId}/aggregate`',
+    "include: 'loot,shop,buffs'",
+    'normalizePublicNpcAggregate',
   ],
   'components/common/PreviewImage.vue': [
     'resolvePreviewImageUrl',
@@ -887,6 +898,47 @@ for (const path of scanFiles) {
       if (!content.includes(marker)) {
         violations.push(`${path}: shared footer must allow the home page to pass the live item total label via marker ${marker}`)
       }
+    }
+  }
+
+  if (path === 'pages/npcs/index.vue') {
+    for (const marker of [
+      'usePublicNpcs',
+      'npcCards',
+      'pagination',
+      ':href="npc.detailPath"',
+      'v-for="npc in npcCards"',
+      "npcResult?.source === 'api'",
+      '加载 NPC',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: NPC list page must use the public NPC API data layer via marker ${marker}`)
+      }
+    }
+
+    if (content.includes('/npcs/guide')) {
+      violations.push(`${path}: NPC list page must not link static /npcs/guide preview routes`)
+    }
+  }
+
+  if (path === 'pages/npcs/[id].vue') {
+    for (const marker of [
+      'usePublicNpcAggregate',
+      'route.params.id',
+      'Number.isInteger',
+      'trustedLoot',
+      'shopEntries',
+      'buffRelations',
+      'moduleStatus',
+      '加载 NPC 详情',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: NPC detail page must use the public aggregate API data layer via marker ${marker}`)
+      }
+    }
+
+    if (content.includes('/npcs/guide') || content.includes('后续接入')) {
+      violations.push(`${path}: NPC detail page must not keep static guide preview links or future-integration copy`)
     }
   }
 

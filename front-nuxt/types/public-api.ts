@@ -290,3 +290,239 @@ export type PublicItemsResult = {
   pagination: Pagination
   source: 'api' | 'fallback'
 }
+
+export type PublicNpcQuery = {
+  page?: number
+  limit?: number
+  size?: number
+  search?: string
+  categoryId?: number | string
+  isTownNpc?: boolean
+}
+
+export type PublicNpcTraceableItemSummary = {
+  itemId?: number | null
+  itemName?: string | null
+  itemNameZh?: string | null
+  itemInternalName?: string | null
+  relationType?: string | null
+  quantityText?: string | null
+  chanceText?: string | null
+  priceText?: string | null
+  sourceFactKey?: string | null
+  sourceProvider?: string | null
+  sourcePage?: string | null
+  sourceRevisionTimestamp?: string | null
+  [key: string]: unknown
+}
+
+export type PublicNpcListItem = {
+  id?: number | string | null
+  gameId?: number | string | null
+  game_id?: number | string | null
+  internalName?: string | null
+  internal_name?: string | null
+  name?: string | null
+  nameZh?: string | null
+  name_zh?: string | null
+  displayName?: string | null
+  subName?: string | null
+  sub_name?: string | null
+  subNameZh?: string | null
+  sub_name_zh?: string | null
+  categoryId?: number | string | null
+  category_id?: number | string | null
+  categoryName?: string | null
+  category_name?: string | null
+  isBoss?: boolean | number | string | null
+  is_boss?: boolean | number | string | null
+  isFriendly?: boolean | number | string | null
+  is_friendly?: boolean | number | string | null
+  isTownNpc?: boolean | number | string | null
+  is_town_npc?: boolean | number | string | null
+  imageUrl?: string | null
+  image_url?: string | null
+  behaviorNotes?: string | null
+  behavior_notes?: string | null
+  status?: number | string | null
+  lootItemsJson?: string | null
+  loot_items_json?: string | null
+  shopItemsJson?: string | null
+  shop_items_json?: string | null
+  sourceItemsJson?: string | null
+  source_items_json?: string | null
+  lootItems?: PublicNpcTraceableItemSummary[] | unknown
+  shopItems?: PublicNpcTraceableItemSummary[] | unknown
+  sourceItems?: PublicNpcTraceableItemSummary[] | unknown
+}
+
+export type PublicNpcShopCondition = {
+  id?: number | string | null
+  refType?: string | null
+  ref_type?: string | null
+  refId?: number | string | null
+  ref_id?: number | string | null
+  conditionRole?: string | null
+  condition_role?: string | null
+  label?: string | null
+  notes?: string | null
+  sortOrder?: number | string | null
+  sort_order?: number | string | null
+  biomeNameZh?: string | null
+  biome_name_zh?: string | null
+  biomeNameEn?: string | null
+  biome_name_en?: string | null
+  contextNameZh?: string | null
+  context_name_zh?: string | null
+  contextNameEn?: string | null
+  context_name_en?: string | null
+  gamePeriodNameZh?: string | null
+  game_period_name_zh?: string | null
+  gamePeriodNameEn?: string | null
+  game_period_name_en?: string | null
+  refItemNameZh?: string | null
+  ref_item_name_zh?: string | null
+  refItemName?: string | null
+  ref_item_name?: string | null
+  refNpcNameZh?: string | null
+  ref_npc_name_zh?: string | null
+  refNpcName?: string | null
+  ref_npc_name?: string | null
+}
+
+export type PublicNpcLootEntry = {
+  id?: number | string | null
+  itemId?: number | string | null
+  item_id?: number | string | null
+  itemName?: string | null
+  item_name?: string | null
+  itemNameZh?: string | null
+  item_name_zh?: string | null
+  itemInternalName?: string | null
+  item_internal_name?: string | null
+  itemImage?: string | null
+  item_image?: string | null
+  imageUrl?: string | null
+  image_url?: string | null
+  quantityText?: string | null
+  quantity_text?: string | null
+  quantityMin?: number | string | null
+  quantity_min?: number | string | null
+  quantityMax?: number | string | null
+  quantity_max?: number | string | null
+  chanceText?: string | null
+  chance_text?: string | null
+  chanceValue?: number | string | null
+  chance_value?: number | string | null
+  conditions?: string | null
+  notes?: string | null
+  lootSourceMode?: string | null
+  loot_source_mode?: string | null
+  trustedStructured?: boolean | number | string | null
+  trusted_structured?: boolean | number | string | null
+  sourceNpcId?: number | string | null
+  source_npc_id?: number | string | null
+  sourceNpcInternalName?: string | null
+  source_npc_internal_name?: string | null
+  sourceRowKey?: string | null
+  source_row_key?: string | null
+}
+
+export type PublicNpcShopEntry = {
+  id?: number | string | null
+  itemId?: number | string | null
+  item_id?: number | string | null
+  itemName?: string | null
+  item_name?: string | null
+  itemNameZh?: string | null
+  item_name_zh?: string | null
+  itemInternalName?: string | null
+  item_internal_name?: string | null
+  itemImage?: string | null
+  item_image?: string | null
+  imageUrl?: string | null
+  image_url?: string | null
+  priceText?: string | null
+  price_text?: string | null
+  buyPriceText?: string | null
+  buy_price_text?: string | null
+  currencyText?: string | null
+  currency_text?: string | null
+  conditions?: PublicNpcShopCondition[] | string | null
+  notes?: string | null
+}
+
+export type PublicNpcBuffRelation = {
+  id?: number | string | null
+  buffId?: number | string | null
+  buff_id?: number | string | null
+  relationType?: string | null
+  relation_type?: string | null
+  buffName?: string | null
+  buff_name?: string | null
+  buffNameZh?: string | null
+  buff_name_zh?: string | null
+  buffInternalName?: string | null
+  buff_internal_name?: string | null
+  buffImage?: string | null
+  buff_image?: string | null
+  imageUrl?: string | null
+  image_url?: string | null
+  sourceText?: string | null
+  source_text?: string | null
+  durationText?: string | null
+  duration_text?: string | null
+  durationSeconds?: number | string | null
+  duration_seconds?: number | string | null
+  chanceText?: string | null
+  chance_text?: string | null
+  chanceValue?: number | string | null
+  chance_value?: number | string | null
+  conditions?: string | null
+  notes?: string | null
+}
+
+export type PublicNpcAggregate = {
+  npc?: PublicNpcListItem | null
+  loot?: PublicNpcLootEntry[] | null
+  shopEntries?: PublicNpcShopEntry[] | null
+  shop_entries?: PublicNpcShopEntry[] | null
+  buffRelations?: PublicNpcBuffRelation[] | null
+  buff_relations?: PublicNpcBuffRelation[] | null
+  moduleStatus?: Record<string, string> | null
+  module_status?: Record<string, string> | null
+  aggregatedAt?: string | null
+  aggregated_at?: string | null
+}
+
+export type NpcCatalogCard = {
+  id: string
+  npcId: number
+  detailPath: string
+  name: string
+  displayName: string
+  secondaryName: string
+  subtitle: string
+  categoryName: string
+  image: string
+  fallback: string
+  gameId: number | null
+  internalName: string
+  isBoss: boolean
+  isFriendly: boolean
+  isTownNpc: boolean
+  searchText: string
+  raw: PublicNpcListItem
+}
+
+export type PublicNpcListResult = {
+  npcs: NpcCatalogCard[]
+  rawNpcs: PublicNpcListItem[]
+  pagination: Pagination
+  source: 'api' | 'missing'
+}
+
+export type PublicNpcAggregateBundle = {
+  aggregate: PublicNpcAggregate | null
+  source: 'api' | 'missing'
+}
