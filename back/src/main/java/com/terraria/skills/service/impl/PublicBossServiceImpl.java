@@ -40,15 +40,6 @@ public class PublicBossServiceImpl implements PublicBossService {
         "MECHDUSA", List.of("THE_TWINS", "THE_DESTROYER", "SKELETRON_PRIME")
     );
 
-    private static final Map<String, String> DEFAULT_SUMMON_METHODS = Map.ofEntries(
-        Map.entry("KING_SLIME", "Use the Slime Crown to summon King Slime."),
-        Map.entry("EYE_OF_CTHULHU", "Use the Suspicious Looking Eye at night, or wait for a natural night spawn."),
-        Map.entry("WALL_OF_FLESH", "Throw the Guide Voodoo Doll into lava while the Guide is alive."),
-        Map.entry("QUEEN_SLIME", "Break a Gelatin Crystal in the Hallow."),
-        Map.entry("MOON_LORD", "Defeat all Celestial Pillars or use the Celestial Sigil."),
-        Map.entry("MECHDUSA", "Only on get fixed boi, use Ocram's Razor at night to summon Mechdusa.")
-    );
-
     private final BossGroupMapper bossGroupMapper;
     private final NpcMapper npcMapper;
     private final JdbcTemplate jdbcTemplate;
@@ -498,15 +489,7 @@ public class PublicBossServiceImpl implements PublicBossService {
         if (bossGroup == null) {
             return null;
         }
-        String explicit = trimToNull(bossGroup.getSummonMethod());
-        if (explicit != null) {
-            return explicit;
-        }
-        String code = trimToNull(bossGroup.getCode());
-        if (code == null) {
-            return null;
-        }
-        return DEFAULT_SUMMON_METHODS.get(code);
+        return trimToNull(bossGroup.getSummonMethod());
     }
 
     private String normalizeSortBy(String sortBy) {
