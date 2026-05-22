@@ -1,3 +1,87 @@
+<script setup lang="ts">
+import { usePublicBiomes } from '~/composables/usePublicBiomes'
+
+const biomeClientReady = ref(false)
+const biomeSearchQuery = ref('')
+const biomeVisualLoading = ref(true)
+const biomeVisualLoadingMinimumMs = 180
+let biomeVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
+let biomeVisualLoadingStartedAt = Date.now()
+
+const {
+  data: publicBiomesResult,
+  pending: biomesPending,
+  error: biomesError,
+  refresh: refreshPublicBiomes,
+} = await usePublicBiomes()
+
+const normalizeSearchText = (value: string) => value.toLocaleLowerCase('zh-CN')
+const biomeItems = computed(() => publicBiomesResult.value?.items ?? [])
+const biomeRawLoading = computed(() => !biomeClientReady.value || biomesPending.value)
+const biomeApiUnavailable = computed(() => biomeClientReady.value && !biomesPending.value && publicBiomesResult.value?.source !== 'api')
+const biomeLoadingSlotCount = computed(() => 12)
+const biomeDisplayItems = computed(() => {
+  if (biomeVisualLoading.value || biomeApiUnavailable.value) return []
+
+  const query = normalizeSearchText(biomeSearchQuery.value.trim())
+  if (!query) return biomeItems.value
+
+  return biomeItems.value.filter((biome) => biome.searchText.includes(query))
+})
+const biomeGroups = computed(() => {
+  const grouped = new Map<string, typeof biomeDisplayItems.value>()
+
+  for (const biome of biomeDisplayItems.value) {
+    const group = biome.groupLabel || '未分组'
+    grouped.set(group, [...(grouped.get(group) ?? []), biome])
+  }
+
+  return Array.from(grouped.entries()).map(([label, items]) => ({ label, items }))
+})
+const biomeStatusLabel = computed(() => {
+  if (biomeVisualLoading.value) return '加载中'
+  if (biomeApiUnavailable.value || biomesError.value) return '未载入'
+  return '已更新'
+})
+
+const clearBiomeVisualLoadingTimer = () => {
+  if (biomeVisualLoadingTimer) {
+    clearTimeout(biomeVisualLoadingTimer)
+    biomeVisualLoadingTimer = null
+  }
+}
+
+const syncBiomeVisualLoading = (isLoading: boolean) => {
+  clearBiomeVisualLoadingTimer()
+
+  if (isLoading) {
+    biomeVisualLoadingStartedAt = Date.now()
+    biomeVisualLoading.value = true
+    return
+  }
+
+  const elapsed = Date.now() - biomeVisualLoadingStartedAt
+  const remaining = Math.max(0, biomeVisualLoadingMinimumMs - elapsed)
+
+  biomeVisualLoadingTimer = setTimeout(() => {
+    biomeVisualLoading.value = false
+    biomeVisualLoadingTimer = null
+  }, remaining)
+}
+
+const clearBiomeSearch = () => {
+  biomeSearchQuery.value = ''
+}
+
+watch(biomeRawLoading, syncBiomeVisualLoading, { immediate: true })
+
+onMounted(() => {
+  biomeClientReady.value = true
+})
+
+onBeforeUnmount(clearBiomeVisualLoadingTimer)
+</script>
+
 <template>
   <section class="screen entity-screen active">
     <TerraNav />
@@ -6,39 +90,93 @@
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">/biomes · 生态 / 资源 / 事件</span>
+          <span class="eyebrow">{{ biomeVisualLoading ? '加载生态资料' : `${biomeDisplayItems.length.toLocaleString('zh-CN')} 个群系` }}</span>
           <h1>生态索引</h1>
-          <p>生态页负责解释“去哪里找资源、会遇到什么、适合推进什么路线”，用地图分区感承接图鉴和攻略。</p>
+          <p>群系页面来自公共接口，按来源分组展示资源、层级和关联数量。</p>
         </div>
-        <a class="primary-button" href="/biomes/jungle">查看丛林</a>
+        <a class="primary-button" href="/items">查看资源</a>
       </div>
     </div>
 
-    <main class="support-layout">
-      <section class="biome-board">
-        <a class="biome-tile forest active" href="/biomes/forest"><b>森林</b><span>开荒 / 城镇 / 基础资源</span></a>
-        <a class="biome-tile desert" href="/biomes/desert"><b>沙漠</b><span>风暴 / 化石 / 地下沙漠</span></a>
-        <a class="biome-tile jungle" href="/biomes/jungle"><b>丛林</b><span>孢子 / 蜂巢 / 神庙路线</span></a>
-        <a class="biome-tile dungeon" href="/biomes/dungeon"><b>地牢</b><span>骷髅王后 / 魔法书 / 宝箱</span></a>
-        <a class="biome-tile underworld" href="/biomes/underworld"><b>地狱</b><span>狱石 / 血肉墙 / 困难模式入口</span></a>
-        <a class="biome-tile hallow" href="/biomes/hallow"><b>神圣</b><span>困难模式 / 光明之魂 / 晶塔</span></a>
+    <main class="support-layout" :aria-busy="biomeVisualLoading">
+      <section class="boss-command">
+        <div>
+          <span class="eyebrow">公开资料</span>
+          <h2>地图区域、资源与关系</h2>
+          <p>接口加载前只显示骨架；接口不可用时保持空状态，不展示静态样例。</p>
+        </div>
+
+        <form class="catalog-search-form" role="search" @submit.prevent>
+          <label class="catalog-search-label" for="biome-search">搜索群系</label>
+          <input
+            id="biome-search"
+            v-model="biomeSearchQuery"
+            class="catalog-search-input"
+            type="search"
+            name="search"
+            autocomplete="off"
+            placeholder="搜索中文名 / 英文名 / 分类"
+          />
+          <button v-if="biomeSearchQuery" class="catalog-clear-search" type="button" @click="clearBiomeSearch">
+            清空
+          </button>
+        </form>
+
+        <div class="boss-command-stats">
+          <div><b>{{ biomeStatusLabel }}</b><span>接口状态</span></div>
+          <div><b>{{ biomeGroups.length }}</b><span>分组</span></div>
+          <div><b>{{ biomeDisplayItems.length }}</b><span>当前结果</span></div>
+          <div><b>{{ biomeItems.length }}</b><span>接口数据</span></div>
+        </div>
       </section>
 
-      <section class="taxonomy-band">
-        <article class="support-panel">
-          <span class="eyebrow">生态用途</span>
-          <h2>资源入口</h2>
-          <p>把矿物、植物、宝箱和制作材料绑定到生态上下文。</p>
+      <section v-if="biomeVisualLoading" class="biome-board" aria-label="群系加载中">
+        <article v-for="slot in biomeLoadingSlotCount" :key="`biome-loading-${slot}`" class="biome-tile">
+          <CommonTpSkeleton type="pill" />
+          <b><CommonTpSkeleton type="line" /></b>
+          <span><CommonTpSkeleton type="line" short /></span>
         </article>
-        <article class="support-panel">
-          <span class="eyebrow">生态用途</span>
-          <h3>敌怪入口</h3>
-          <p>玩家查敌怪时能反向看到它常出现在哪些区域。</p>
-        </article>
-        <article class="support-panel">
-          <span class="eyebrow">生态用途</span>
-          <h3>路线入口</h3>
-          <p>丛林、地牢、地狱等区域天然对应阶段推进。</p>
+      </section>
+
+      <section v-else-if="biomeDisplayItems.length" class="biome-board" aria-label="群系列表">
+        <a
+          v-for="biome in biomeDisplayItems"
+          :key="biome.id"
+          class="biome-tile"
+          :href="biome.detailPath"
+        >
+          <CommonPreviewImage
+            :src="biome.image"
+            :alt="biome.displayName"
+            :fallback="biome.fallback"
+            :source-image="biome.sourceImage"
+            width="44"
+            height="44"
+          />
+          <b>{{ biome.displayName }}</b>
+          <span>{{ biome.description }}</span>
+          <em>{{ biome.groupLabel }} · {{ biome.resourceCount }} 项资源</em>
+        </a>
+      </section>
+
+      <section v-else class="search-suggestion-band support-panel">
+        <div>
+          <b>{{ biomeApiUnavailable ? '群系资料暂未载入' : '没有匹配群系' }}</b>
+          <span>{{ biomeApiUnavailable ? '当前公共接口暂不可用，页面不会展示静态样例。' : '调整搜索词或清空搜索。' }}</span>
+        </div>
+        <button v-if="biomeApiUnavailable" class="small-button active" type="button" @click="refreshPublicBiomes()">
+          重新加载
+        </button>
+        <button v-else class="small-button active" type="button" @click="clearBiomeSearch">
+          清空搜索
+        </button>
+      </section>
+
+      <section class="taxonomy-band" aria-label="群系分组">
+        <article v-for="group in biomeGroups" :key="group.label" class="support-panel">
+          <span class="eyebrow">生态分组</span>
+          <h2>{{ group.label }}</h2>
+          <p>{{ group.items.length }} 个群系 · {{ group.items.reduce((total, item) => total + item.resourceCount, 0) }} 项资源。</p>
         </article>
       </section>
     </main>
