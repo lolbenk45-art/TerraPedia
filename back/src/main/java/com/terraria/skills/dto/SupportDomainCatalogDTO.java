@@ -13,4 +13,5 @@ public class SupportDomainCatalogDTO implements Serializable {
     private List<SupportCategoryOptionDTO> itemCategories = List.of();
     private List<SupportDomainOptionDTO> gamePeriods = List.of();
     private List<SupportDomainOptionDTO> worldContexts = List.of();
+    private List<SupportDomainOptionDTO> conditionTerms = List.of();
 }

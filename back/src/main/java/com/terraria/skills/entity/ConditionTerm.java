@@ -11,8 +11,8 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("world_contexts")
-public class WorldContext implements Serializable {
+@TableName("condition_terms")
+public class ConditionTerm implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -28,26 +28,17 @@ public class WorldContext implements Serializable {
     @TableField("name_zh")
     private String nameZh;
 
-    @TableField("context_type")
-    private String contextType;
+    @TableField("term_type")
+    private String termType;
 
     @TableField("description")
     private String description;
-
-    @TableField("icon_url")
-    private String iconUrl;
 
     @TableField("source_provider")
     private String sourceProvider;
 
     @TableField("source_page")
     private String sourcePage;
-
-    @TableField("source_revision_timestamp")
-    private LocalDateTime sourceRevisionTimestamp;
-
-    @TableField("last_synced_at")
-    private LocalDateTime lastSyncedAt;
 
     @TableField("raw_json")
     private String rawJson;

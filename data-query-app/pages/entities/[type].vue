@@ -137,6 +137,26 @@
               </button>
             </div>
           </div>
+          <div v-if="entityType === 'world-contexts'" class="field field--full">
+            <div class="field__topline">
+              <span class="field__label">世界条件类型</span>
+              <span class="field__hint">按 wiki 明确归属的时间、环境、事件、月相和天气维护世界状态。</span>
+            </div>
+            <div class="filter-chip-group" role="tablist" aria-label="世界条件类型筛选">
+              <button
+                v-for="option in worldContextTypeOptions"
+                :key="option.value"
+                type="button"
+                class="filter-chip"
+                :class="{ 'filter-chip--active': selectedWorldContextType === option.value }"
+                :aria-pressed="selectedWorldContextType === option.value"
+                @click="handleWorldContextTypeChange(option.value)"
+              >
+                <span>{{ option.label }}</span>
+                <small>{{ option.description }}</small>
+              </button>
+            </div>
+          </div>
           <div class="toolbar__actions">
             <button type="submit" class="btn btn-primary">搜索</button>
             <button type="button" class="btn btn-secondary" @click="handleReset">重置</button>
@@ -263,6 +283,12 @@
                           <span class="cell-badge">掉落 {{ row.lootEntryCount ?? 0 }}</span>
                           <span v-if="row.memberSourceMode === 'reference'" class="cell-badge">组合引用</span>
                         </div>
+                        <div v-else-if="entityType === 'world-contexts'" class="cell-badges">
+                          <span class="cell-badge cell-badge--accent">{{ formatWorldContextTypeLabel(row.contextType) }}</span>
+                          <span v-if="row.sourcePage" class="cell-badge">{{ row.sourcePage }}</span>
+                          <span v-if="row.lastSyncedAt" class="cell-badge">已同步</span>
+                          <span v-if="buildWorldContextDataQualityWarnings(row).length" class="cell-badge">提示 {{ buildWorldContextDataQualityWarnings(row).length }}</span>
+                        </div>
                         <div v-else-if="entityType === 'npcs'" class="cell-badges">
                           <span class="cell-badge cell-badge--accent">{{ row.categoryName || '未分类' }}</span>
                           <span class="cell-badge">掉落 {{ row.lootEntryCount ?? 0 }}</span>
@@ -282,7 +308,7 @@
                   </td>
                   <td>
                     <div class="row-actions">
-                      <button v-if="entityType === 'armor-sets' || entityType === 'projectiles' || entityType === 'buffs' || entityType === 'bosses' || entityType === 'npcs' || entityType === 'biomes'" type="button" class="btn-link" @click="openDetailDialog(row)">详情</button>
+                      <button v-if="entityType === 'armor-sets' || entityType === 'projectiles' || entityType === 'buffs' || entityType === 'bosses' || entityType === 'npcs' || entityType === 'biomes' || entityType === 'world-contexts'" type="button" class="btn-link" @click="openDetailDialog(row)">详情</button>
                       <button type="button" class="btn-link" @click="openEditDialog(row)">编辑</button>
                       <button type="button" class="btn-link btn-link--danger" @click="handleDelete(row)">删除</button>
                     </div>
@@ -392,6 +418,14 @@
             <section v-if="armorSetPreviewWarnings.length" class="preview-card preview-card--warning">
               <div class="preview-card__head"><h4>数据质量提示</h4><span>{{ armorSetPreviewWarnings.length }} 项</span></div>
               <article v-for="(warning, index) in armorSetPreviewWarnings" :key="`${warning.label}-${index}-${warning.value}`" class="preview-note">
+                <strong>{{ warning.label }}</strong>
+                <p>{{ warning.value }}</p>
+              </article>
+            </section>
+
+            <section v-if="worldContextPreviewWarnings.length" class="preview-card preview-card--warning">
+              <div class="preview-card__head"><h4>数据质量提示</h4><span>{{ worldContextPreviewWarnings.length }} 项</span></div>
+              <article v-for="(warning, index) in worldContextPreviewWarnings" :key="`${warning.label}-${index}-${warning.value}`" class="preview-note">
                 <strong>{{ warning.label }}</strong>
                 <p>{{ warning.value }}</p>
               </article>
@@ -1182,6 +1216,79 @@
           </section>
         </div>
 
+        <div v-else-if="detailRow && entityType === 'world-contexts'" class="projectile-detail world-context-detail">
+          <section class="projectile-detail__hero">
+            <div class="projectile-detail__media">
+              <img v-if="detailHeroImage" :src="detailHeroImage" class="projectile-detail__image" alt="" @error="handleImageError" />
+              <div v-else class="projectile-detail__fallback">{{ currentConfig?.fallback || 'WC' }}</div>
+            </div>
+            <div class="projectile-detail__body">
+              <div class="preview-pills">
+                <span class="preview-pill preview-pill--accent">WORLD CONTEXT</span>
+                <span class="preview-pill">{{ formatWorldContextTypeLabel(detailRow.contextType) }}</span>
+                <span class="preview-pill">{{ detailRow.sourceProvider || '未标注来源' }}</span>
+                <span class="preview-pill">{{ detailRow.lastSyncedAt ? '已同步' : '待同步' }}</span>
+              </div>
+              <h3>{{ detailTitle }}</h3>
+              <p>{{ worldContextDetailDescription }}</p>
+              <div class="projectile-detail__lang-grid">
+                <article class="projectile-detail__lang-card">
+                  <span>中文名</span>
+                  <strong>{{ detailRow.nameZh || '--' }}</strong>
+                </article>
+                <article class="projectile-detail__lang-card">
+                  <span>English Name</span>
+                  <strong>{{ detailRow.nameEn || '--' }}</strong>
+                </article>
+                <article class="projectile-detail__lang-card">
+                  <span>Code</span>
+                  <strong>{{ detailRow.code || '--' }}</strong>
+                </article>
+              </div>
+              <div class="preview-stats">
+                <article v-for="stat in detailStats" :key="stat.label" class="preview-stat">
+                  <span>{{ stat.label }}</span>
+                  <strong>{{ stat.value }}</strong>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="projectile-detail__section">
+            <div class="projectile-detail__section-head">
+              <h4>来源信息</h4>
+              <span>{{ worldContextSourceMetadata.length }} 项</span>
+            </div>
+            <div class="projectile-detail__note-grid">
+              <article v-for="field in worldContextSourceMetadata" :key="field.label" class="preview-note">
+                <strong>{{ field.label }}</strong>
+                <p>{{ field.value }}</p>
+              </article>
+            </div>
+          </section>
+
+          <section v-if="worldContextDetailWarnings.length" class="projectile-detail__section">
+            <div class="projectile-detail__section-head">
+              <h4>数据质量提示</h4>
+              <span>{{ worldContextDetailWarnings.length }} 项</span>
+            </div>
+            <div class="projectile-detail__note-grid">
+              <article v-for="(warning, index) in worldContextDetailWarnings" :key="`${warning.label}-${index}-${warning.value}`" class="preview-note">
+                <strong>{{ warning.label }}</strong>
+                <p>{{ warning.value }}</p>
+              </article>
+            </div>
+          </section>
+
+          <section v-if="detailRow.rawJson" class="projectile-detail__section">
+            <div class="projectile-detail__section-head">
+              <h4>Raw JSON</h4>
+              <span>Evidence</span>
+            </div>
+            <pre class="projectile-detail__code">{{ formatPrettyJson(detailRow.rawJson) }}</pre>
+          </section>
+        </div>
+
         <div v-else-if="detailRow && entityType === 'projectiles'" class="projectile-detail">
           <section class="projectile-detail__hero">
             <div class="projectile-detail__media">
@@ -1544,6 +1651,8 @@ type BiomeGroupFilter = 'all' | 'space' | 'surface' | 'surface_hardmode' | 'cave
 const selectedBiomeGroup = ref<BiomeGroupFilter>('all')
 const BUFF_IMMUNE_NPC_PREVIEW_LIMIT = 40
 const selectedBossType = ref<'all' | 'PRE_HARDMODE' | 'HARDMODE' | 'EVENT' | 'SPECIAL_SEED'>('all')
+type WorldContextTypeFilter = 'all' | 'TIME' | 'ENVIRONMENT' | 'EVENT' | 'MOON_PHASE' | 'WEATHER'
+const selectedWorldContextType = ref<WorldContextTypeFilter>('all')
 const npcCategoryTree = computed(() => {
   const root = categoriesStore.findCategoryNodeByCode('CATEGORY_NPC')
   return root ? [root] : []
@@ -1578,7 +1687,14 @@ const biomeGroupOptions = [
   { value: 'micro_biome', label: '微型群系', description: '花丛、宝石洞穴等微型结构。' },
   { value: 'treasure_room', label: '宝藏房', description: '地下小屋、金字塔、剑冢等结构房间。' },
 ] as const
-
+const worldContextTypeOptions = [
+  { value: 'all', label: '全部状态', description: '显示所有 wiki-backed 世界状态。' },
+  { value: 'TIME', label: '时间', description: '白天、夜晚等时间条件。' },
+  { value: 'ENVIRONMENT', label: '环境', description: '墓地、微光等环境条件。' },
+  { value: 'EVENT', label: '事件', description: '血月、派对、入侵和季节事件。' },
+  { value: 'MOON_PHASE', label: '月相', description: 'wiki 明确列出的八个月相。' },
+  { value: 'WEATHER', label: '天气', description: '大风天等天气条件。' },
+] as const
 const configs: Record<string, EntityConfig> = {
   buffs: {
     badge: 'BUFF SYSTEM', title: 'Buff 管理', shortLabel: 'Buff', fallback: 'BF', endpoint: '/admin/buffs', primaryColumn: 'nameZh', secondaryColumn: 'englishName',
@@ -1806,22 +1922,29 @@ const configs: Record<string, EntityConfig> = {
   },
   'world-contexts': {
     badge: 'WORLD CONTEXT', title: '世界条件管理', shortLabel: 'Context', fallback: 'WC', endpoint: '/admin/world-contexts', primaryColumn: 'nameZh', secondaryColumn: 'code',
-    subtitle: '统一维护环境、月相等制作或售卖条件，供配方和 NPC 售卖复用。',
+    subtitle: '维护 wiki-backed world states：时间、环境、事件、月相和天气。组合型本地条件词汇已拆到独立入口。',
     searchPlaceholder: '搜索 code、中文名、英文名或说明',
     displayTitleKeys: ['nameZh', 'nameEn', 'code'],
-    displaySubtitleKeys: ['contextType', 'code'],
+    displaySubtitleKeys: ['sourcePage', 'contextType', 'code'],
     referenceFields: [
       { key: 'nameEn', label: '英文名' },
       { key: 'code', label: 'Code' },
+      { key: 'sourceProvider', label: '来源提供方' },
+      { key: 'sourcePage', label: '来源页面' },
     ],
     atomicFields: [
       { key: 'contextType', label: 'contextType' },
+      { key: 'lastSyncedAt', label: 'lastSyncedAt' },
     ],
     columns: [
+      { key: '__imageUrl', label: '预览' },
       { key: 'id', label: 'ID' },
       { key: 'code', label: 'Code' },
       { key: 'nameZh', label: '显示名称' },
       { key: 'contextType', label: '类型' },
+      { key: 'sourceProvider', label: '来源' },
+      { key: 'sourcePage', label: '来源页' },
+      { key: 'lastSyncedAt', label: '同步时间' },
       { key: 'sortOrder', label: '排序' },
       { key: 'updatedAt', label: '更新时间' },
     ],
@@ -1834,6 +1957,51 @@ const configs: Record<string, EntityConfig> = {
       { key: 'status', label: 'Status', type: 'number' },
       { key: 'iconUrl', label: 'Icon URL', type: 'text', span: 'full' },
       { key: 'description', label: 'Description', type: 'textarea', span: 'full', rows: 6 },
+      { key: 'sourceProvider', label: 'Source Provider', type: 'text' },
+      { key: 'sourcePage', label: 'Source Page', type: 'text' },
+      { key: 'sourceRevisionTimestamp', label: 'Source Revision Timestamp', type: 'text', span: 'full' },
+      { key: 'lastSyncedAt', label: 'Last Synced At', type: 'text', span: 'full' },
+      { key: 'rawJson', label: 'Raw JSON Evidence', type: 'textarea', span: 'full', rows: 10, format: 'json', helper: '保留抓取来源、修订版本、候选片段和转换依据。' },
+    ],
+  },
+  'condition-terms': {
+    badge: 'CONDITION TERM', title: '本地条件词汇', shortLabel: 'Condition Term', fallback: 'CT', endpoint: '/admin/condition-terms', primaryColumn: 'nameZh', secondaryColumn: 'code',
+    subtitle: '维护 TerraPedia 本地逻辑条件词汇，承接月相范围、已完成事件和 Boss 进度等非 wiki 独立页面归属。',
+    searchPlaceholder: '搜索 code、中文名、英文名、类型或说明',
+    displayTitleKeys: ['nameZh', 'nameEn', 'code'],
+    displaySubtitleKeys: ['termType', 'sourcePage', 'code'],
+    referenceFields: [
+      { key: 'nameEn', label: '英文名' },
+      { key: 'code', label: 'Code' },
+      { key: 'termType', label: 'Term Type' },
+      { key: 'sourceProvider', label: '来源提供方' },
+      { key: 'sourcePage', label: '来源页面' },
+    ],
+    atomicFields: [
+      { key: 'termType', label: 'termType' },
+      { key: 'sortOrder', label: 'sortOrder' },
+    ],
+    columns: [
+      { key: 'id', label: 'ID' },
+      { key: 'code', label: 'Code' },
+      { key: 'nameZh', label: '显示名称' },
+      { key: 'termType', label: '词汇类型' },
+      { key: 'sourceProvider', label: '来源' },
+      { key: 'sourcePage', label: '来源页' },
+      { key: 'sortOrder', label: '排序' },
+      { key: 'updatedAt', label: '更新时间' },
+    ],
+    fields: [
+      { key: 'code', label: 'Code', type: 'text', required: true },
+      { key: 'nameZh', label: '中文名', type: 'text' },
+      { key: 'nameEn', label: '英文名', type: 'text', required: true },
+      { key: 'termType', label: 'Term Type', type: 'text', required: true, placeholder: 'MOON_PHASE_RANGE / EVENT_COMPLETED / BOSS_PROGRESS' },
+      { key: 'sortOrder', label: 'Sort Order', type: 'number' },
+      { key: 'status', label: 'Status', type: 'number' },
+      { key: 'sourceProvider', label: 'Source Provider', type: 'text' },
+      { key: 'sourcePage', label: 'Source Page', type: 'text' },
+      { key: 'description', label: 'Description', type: 'textarea', span: 'full', rows: 6 },
+      { key: 'rawJson', label: 'Raw JSON Evidence', type: 'textarea', span: 'full', rows: 10, format: 'json', helper: '记录本地条件词汇定义、归一化依据和人工维护说明。' },
     ],
   },
 }
@@ -1868,6 +2036,7 @@ const hasActiveFilters = computed(() => {
   if (entityType.value === 'bosses' && selectedBossType.value !== 'all') return true
   if (entityType.value === 'armor-sets' && selectedArmorSetCompositionKind.value !== 'all') return true
   if (entityType.value === 'biomes' && selectedBiomeGroup.value !== 'all') return true
+  if (entityType.value === 'world-contexts' && selectedWorldContextType.value !== 'all') return true
   return false
 })
 
@@ -2151,6 +2320,23 @@ function getBossTypeLabel(value: unknown) {
   return getBossTypeMeta(value)?.label ?? '--'
 }
 
+function normalizeWorldContextType(value: unknown) {
+  const normalized = typeof value === 'string' ? value.trim().toUpperCase() : ''
+  if (normalized === 'TIME' || normalized === 'ENVIRONMENT' || normalized === 'EVENT' || normalized === 'MOON_PHASE' || normalized === 'WEATHER') {
+    return normalized
+  }
+  return ''
+}
+
+function getWorldContextTypeMeta(value: unknown) {
+  const normalized = normalizeWorldContextType(value)
+  return worldContextTypeOptions.find(option => option.value === normalized) ?? null
+}
+
+function formatWorldContextTypeLabel(value: unknown) {
+  return getWorldContextTypeMeta(value)?.label ?? '--'
+}
+
 function matchesBossSearch(row: Record<string, any>) {
   const keyword = search.value.trim().toLowerCase()
   if (!keyword) return true
@@ -2218,6 +2404,14 @@ const tableCardSubtitle = computed(() => {
   }
   if (entityType.value === 'bosses') {
     return 'Boss 表格继续承担编辑入口，同时在详情里核对召唤方式、主成员 NPC 与掉落归属。'
+  }
+  if (entityType.value === 'world-contexts') {
+    return selectedWorldContextType.value === 'all'
+      ? '世界条件只保留 wiki-backed 状态，按来源、同步时间和质量提示维护。'
+      : `当前筛选：${formatWorldContextTypeLabel(selectedWorldContextType.value)}。`
+  }
+  if (entityType.value === 'condition-terms') {
+    return '本地条件词汇独立维护，供配方与 NPC 售卖条件引用。'
   }
   return '中文优先展示，同时保留英文参考字段与原子字段。'
 })
@@ -2375,6 +2569,9 @@ async function fetchRows(page = pagination.page) {
     }
     if (entityType.value === 'buffs' && selectedBuffType.value !== 'all') {
       params.buffType = selectedBuffType.value
+    }
+    if (entityType.value === 'world-contexts' && selectedWorldContextType.value !== 'all') {
+      params.contextType = selectedWorldContextType.value
     }
     const response: any = await get(currentConfig.value.endpoint, params)
     const normalizedRows = Array.isArray(response?.data) ? response.data.map(normalizeRow) : []
@@ -2586,6 +2783,9 @@ async function syncRouteQuery(page = 1) {
   if (entityType.value === 'biomes' && selectedBiomeGroup.value !== 'all') {
     nextQuery.biomeGroup = selectedBiomeGroup.value
   }
+  if (entityType.value === 'world-contexts' && selectedWorldContextType.value !== 'all') {
+    nextQuery.contextType = selectedWorldContextType.value
+  }
   if (entityType.value !== 'bosses' && page > 1) {
     nextQuery.page = String(page)
   }
@@ -2605,6 +2805,7 @@ async function handleReset() {
   selectedBossType.value = 'all'
   selectedArmorSetCompositionKind.value = 'all'
   selectedBiomeGroup.value = 'all'
+  selectedWorldContextType.value = 'all'
   await syncRouteQuery(1)
   if (entityType.value === 'bosses') return
   await fetchRows(1)
@@ -2638,6 +2839,13 @@ async function handleArmorSetCompositionChange(value: ArmorSetCompositionKindFil
 async function handleBiomeGroupChange(value: BiomeGroupFilter) {
   if (selectedBiomeGroup.value === value) return
   selectedBiomeGroup.value = value
+  await syncRouteQuery(1)
+  await fetchRows(1)
+}
+
+async function handleWorldContextTypeChange(value: WorldContextTypeFilter) {
+  if (selectedWorldContextType.value === value) return
+  selectedWorldContextType.value = value
   await syncRouteQuery(1)
   await fetchRows(1)
 }
@@ -2677,6 +2885,7 @@ function formatCell(row: Record<string, any>, key: string) {
   if (key === 'compositionKind') return getArmorSetCompositionKindLabel(row[key])
   if (entityType.value === 'biomes' && key === 'biomeType') return getBiomeTypeLabel(row.biomeType)
   if (entityType.value === 'biomes' && key === 'layerType') return getBiomeLayerLabel(row.layerType)
+  if (key === 'contextType') return formatWorldContextTypeLabel(row[key])
   if (key.toLowerCase().includes('at')) return formatDateTime(row[key])
   if (typeof row[key] === 'boolean') return row[key] ? 'true' : 'false'
   if (row[key] == null || row[key] === '') return '--'
@@ -2781,6 +2990,10 @@ const armorSetPreviewWarnings = computed(() => {
   if (entityType.value !== 'armor-sets') return []
   return buildArmorSetDataQualityWarnings(previewRow.value)
 })
+const worldContextPreviewWarnings = computed(() => {
+  if (entityType.value !== 'world-contexts') return []
+  return buildWorldContextDataQualityWarnings(previewRow.value)
+})
 const armorSetDetailImageGroups = computed(() => {
   if (!detailRow.value || entityType.value !== 'armor-sets') return []
   const groups = [
@@ -2860,10 +3073,19 @@ const detailSubtitle = computed(() => {
   if (entityType.value === 'bosses') return bossDetailSummary.value
   if (entityType.value === 'npcs') return npcDetailSummary.value
   if (entityType.value === 'biomes') return detailBiomeDescription.value
+  if (entityType.value === 'world-contexts') return worldContextDetailDescription.value
   return getDisplayValue(detailRow.value, currentConfig.value?.displaySubtitleKeys) || '查看男女穿戴图与具体装配图片。'
 })
 const detailStats = computed(() => {
   if (!detailRow.value) return []
+  if (entityType.value === 'world-contexts') return [
+    { label: '类型', value: formatWorldContextTypeLabel(detailRow.value.contextType) },
+    { label: 'Code', value: detailRow.value.code || '--' },
+    { label: '排序', value: detailRow.value.sortOrder != null ? String(detailRow.value.sortOrder) : '--' },
+    { label: '来源页', value: detailRow.value.sourcePage || '--' },
+    { label: '同步时间', value: formatDateTime(detailRow.value.lastSyncedAt) },
+    { label: '状态', value: detailRow.value.status != null ? formatStatusLabel(detailRow.value.status) : '--' },
+  ]
   if (entityType.value === 'biomes') return [
     { label: '群系类型', value: getBiomeTypeLabel(detailRow.value.biomeType) },
     { label: '层级类型', value: getBiomeLayerLabel(detailRow.value.layerType) },
@@ -2923,6 +3145,7 @@ const detailModalTitle = computed(() => {
   if (entityType.value === 'buffs') return 'Buff 详情'
   if (entityType.value === 'bosses') return 'Boss 详情'
   if (entityType.value === 'biomes') return '群系详情'
+  if (entityType.value === 'world-contexts') return '世界条件详情'
   return '套装详情'
 })
 
@@ -2954,6 +3177,44 @@ const biomeResourceCards = computed(() => {
   if (!detailRow.value || entityType.value !== 'biomes') return []
   return getBiomeStructuredArray(detailRow.value.resources)
     .map((resource, index) => normalizeBiomeResourceCard(resource, index))
+})
+
+function hasTextValue(value: unknown) {
+  return typeof value === 'string' && value.trim().length > 0
+}
+
+function buildWorldContextDataQualityWarnings(row: Record<string, any>) {
+  if (!row || typeof row !== 'object') return []
+  const warnings: Array<{ label: string; value: string }> = []
+  if (!hasTextValue(row.sourcePage)) warnings.push({ label: '缺少来源页面', value: 'sourcePage 为空，无法回溯到 wiki 来源页。' })
+  if (!hasTextValue(row.lastSyncedAt)) warnings.push({ label: '缺少同步时间', value: 'lastSyncedAt 为空，无法判断本地记录的新鲜度。' })
+  if (!hasTextValue(row.nameEn)) warnings.push({ label: '缺少英文名', value: 'nameEn 为空会削弱跨语言映射和搜索。' })
+  if (!normalizeWorldContextType(row.contextType)) warnings.push({ label: '缺少条件类型', value: 'contextType 未落在 TIME、ENVIRONMENT、EVENT、MOON_PHASE 或 WEATHER。' })
+  if (!hasTextValue(row.description)) warnings.push({ label: '缺少描述', value: 'description 为空，后台维护时缺少可读条件说明。' })
+  return warnings
+}
+
+const worldContextDetailWarnings = computed(() => {
+  if (!detailRow.value || entityType.value !== 'world-contexts') return []
+  return buildWorldContextDataQualityWarnings(detailRow.value)
+})
+const worldContextDetailDescription = computed(() => {
+  if (!detailRow.value || entityType.value !== 'world-contexts') return ''
+  return pickFirstString(detailRow.value.description, detailRow.value.nameEn, detailRow.value.code)
+    || '当前世界条件还没有维护描述。'
+})
+const worldContextSourceMetadata = computed(() => {
+  if (!detailRow.value || entityType.value !== 'world-contexts') return []
+  return [
+    { label: '来源提供方', value: detailRow.value.sourceProvider },
+    { label: '来源页面', value: detailRow.value.sourcePage },
+    { label: '来源修订时间', value: formatDateTime(detailRow.value.sourceRevisionTimestamp) },
+    { label: '最后同步时间', value: formatDateTime(detailRow.value.lastSyncedAt) },
+    { label: '条件类型', value: formatWorldContextTypeLabel(detailRow.value.contextType) },
+    { label: 'Code', value: detailRow.value.code },
+  ]
+    .map(row => ({ label: row.label, value: stringifyBiomeValue(row.value) }))
+    .filter(row => row.value)
 })
 
 function getBiomeStructuredArray(value: unknown): Array<Record<string, any>> {
@@ -3752,9 +4013,10 @@ const previewStats = computed(() => {
     { label: 'Code', value: previewRow.value.code || '--' },
     { label: '中文名', value: previewRow.value.nameZh || '--' },
     { label: '英文名', value: previewRow.value.nameEn || '--' },
-    { label: '类型', value: previewRow.value.contextType || '--' },
+    { label: '类型', value: formatWorldContextTypeLabel(previewRow.value.contextType) },
+    { label: '来源页', value: previewRow.value.sourcePage || '--' },
+    { label: '同步时间', value: formatDateTime(previewRow.value.lastSyncedAt) },
     { label: '排序', value: previewRow.value.sortOrder != null ? String(previewRow.value.sortOrder) : '--' },
-    { label: '状态', value: statusLabel.value },
   ]
   return [
     { label: '映射状态', value: previewRow.value.definitionMappingStatus || 'placeholder' },
@@ -3775,6 +4037,9 @@ const previewNotes = computed(() => {
     ['Buff Immune', previewRow.value.buffImmune],
     ['效果描述', previewRow.value.benefitExpression],
     ['英文效果定义', previewRow.value.benefitEn],
+    ['条件描述', entityType.value === 'world-contexts' ? previewRow.value.description : ''],
+    ['来源页面', entityType.value === 'world-contexts' ? previewRow.value.sourcePage : ''],
+    ['来源提供方', entityType.value === 'world-contexts' ? previewRow.value.sourceProvider : ''],
   ]
   return entries.filter(([, value]) => typeof value === 'string' && value.trim()).slice(0, 3).map(([label, value]) => ({ label, value: String(value).trim() }))
 })
@@ -3825,6 +4090,7 @@ watch(() => entityType.value, async () => {
   selectedBuffType.value = 'all'
   selectedBossType.value = 'all'
   selectedArmorSetCompositionKind.value = 'all'
+  selectedWorldContextType.value = 'all'
   const pageFromQuery = Number(route.query.page)
   pagination.page = Number.isFinite(pageFromQuery) && pageFromQuery > 0 ? pageFromQuery : 1
   pagination.size = 20
@@ -3858,6 +4124,13 @@ watch(() => entityType.value, async () => {
     selectedBiomeGroup.value = biomeGroupOptions.some(option => option.value === rawBiomeGroup)
       ? rawBiomeGroup as BiomeGroupFilter
       : 'all'
+  }
+  if (entityType.value === 'world-contexts') {
+    const rawContextType = typeof route.query.contextType === 'string' ? route.query.contextType.trim().toUpperCase() : ''
+    selectedWorldContextType.value =
+      rawContextType === 'TIME' || rawContextType === 'ENVIRONMENT' || rawContextType === 'EVENT' || rawContextType === 'MOON_PHASE' || rawContextType === 'WEATHER'
+        ? rawContextType
+        : 'all'
   }
   await fetchRows(pagination.page)
 }, { immediate: true })

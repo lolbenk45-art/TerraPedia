@@ -10,6 +10,7 @@ import com.terraria.skills.dto.RecipeDTO;
 import com.terraria.skills.dto.RecipeIngredientDTO;
 import com.terraria.skills.dto.RecipeStationDTO;
 import com.terraria.skills.entity.Biome;
+import com.terraria.skills.entity.ConditionTerm;
 import com.terraria.skills.entity.CraftingStation;
 import com.terraria.skills.entity.Item;
 import com.terraria.skills.entity.Recipe;
@@ -18,6 +19,7 @@ import com.terraria.skills.entity.RecipeIngredient;
 import com.terraria.skills.entity.RecipeStation;
 import com.terraria.skills.entity.WorldContext;
 import com.terraria.skills.mapper.BiomeMapper;
+import com.terraria.skills.mapper.ConditionTermMapper;
 import com.terraria.skills.mapper.CraftingStationMapper;
 import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.mapper.RecipeContextRequirementMapper;
@@ -68,6 +70,7 @@ public class RecipeServiceImpl implements RecipeService {
     private final ManagedImageUrlPolicy managedImageUrlPolicy;
     private final BiomeMapper biomeMapper;
     private final WorldContextMapper worldContextMapper;
+    private final ConditionTermMapper conditionTermMapper;
 
     @Override
     public List<RecipeDTO> getRecipesByResultItemId(Long itemId) {
@@ -753,6 +756,12 @@ public class RecipeServiceImpl implements RecipeService {
             .filter(Objects::nonNull)
             .distinct()
             .toList();
+        List<Long> conditionTermIds = conditions.stream()
+            .filter(condition -> "CONDITION_TERM".equalsIgnoreCase(condition.getRefType()))
+            .map(RecipeContextRequirement::getRefId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
 
         Map<Long, Biome> biomeById = biomeIds.isEmpty()
             ? Collections.emptyMap()
@@ -760,13 +769,16 @@ public class RecipeServiceImpl implements RecipeService {
         Map<Long, WorldContext> worldContextById = worldContextIds.isEmpty()
             ? Collections.emptyMap()
             : worldContextMapper.selectBatchIds(worldContextIds).stream().collect(Collectors.toMap(WorldContext::getId, Function.identity()));
+        Map<Long, ConditionTerm> conditionTermById = conditionTermIds.isEmpty()
+            ? Collections.emptyMap()
+            : conditionTermMapper.selectBatchIds(conditionTermIds).stream().collect(Collectors.toMap(ConditionTerm::getId, Function.identity()));
 
         return conditions.stream()
-            .map(condition -> toConditionDto(condition, biomeById.get(condition.getRefId()), worldContextById.get(condition.getRefId())))
+            .map(condition -> toConditionDto(condition, biomeById.get(condition.getRefId()), worldContextById.get(condition.getRefId()), conditionTermById.get(condition.getRefId())))
             .collect(Collectors.groupingBy(RecipeConditionDTO::getRecipeId));
     }
 
-    private RecipeConditionDTO toConditionDto(RecipeContextRequirement condition, Biome biome, WorldContext worldContext) {
+    private RecipeConditionDTO toConditionDto(RecipeContextRequirement condition, Biome biome, WorldContext worldContext, ConditionTerm conditionTerm) {
         RecipeConditionDTO dto = new RecipeConditionDTO();
         BeanUtils.copyProperties(condition, dto);
         if (biome != null) {
@@ -779,6 +791,11 @@ public class RecipeServiceImpl implements RecipeService {
             dto.setRefNameEn(worldContext.getNameEn());
             dto.setRefNameZh(worldContext.getNameZh());
             dto.setRefContextType(worldContext.getContextType());
+        } else if (conditionTerm != null) {
+            dto.setRefCode(conditionTerm.getCode());
+            dto.setRefNameEn(conditionTerm.getNameEn());
+            dto.setRefNameZh(conditionTerm.getNameZh());
+            dto.setRefContextType(conditionTerm.getTermType());
         }
         return dto;
     }
@@ -792,6 +809,7 @@ public class RecipeServiceImpl implements RecipeService {
         return switch (normalized) {
             case "BIOME" -> "BIOME";
             case "WORLD_CONTEXT", "CONTEXT", "ENVIRONMENT", "MOON_PHASE" -> "WORLD_CONTEXT";
+            case "CONDITION_TERM", "LOCAL_CONDITION" -> "CONDITION_TERM";
             default -> null;
         };
     }

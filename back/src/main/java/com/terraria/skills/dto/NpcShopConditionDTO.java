@@ -23,6 +23,10 @@ public class NpcShopConditionDTO implements Serializable {
     private String contextNameEn;
     private String contextNameZh;
     private String contextType;
+    private String conditionTermCode;
+    private String conditionTermNameEn;
+    private String conditionTermNameZh;
+    private String conditionTermType;
     private String gamePeriodCode;
     private String gamePeriodNameEn;
     private String gamePeriodNameZh;

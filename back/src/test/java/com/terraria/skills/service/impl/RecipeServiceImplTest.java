@@ -5,12 +5,15 @@ import com.terraria.skills.dto.RecipeStationDTO;
 import com.terraria.skills.dto.AdminRecipeIngredientUpsertRequestDTO;
 import com.terraria.skills.dto.AdminRecipeStationUpsertRequestDTO;
 import com.terraria.skills.dto.AdminRecipeUpsertRequestDTO;
+import com.terraria.skills.entity.ConditionTerm;
 import com.terraria.skills.entity.CraftingStation;
 import com.terraria.skills.entity.Item;
 import com.terraria.skills.entity.Recipe;
+import com.terraria.skills.entity.RecipeContextRequirement;
 import com.terraria.skills.entity.RecipeIngredient;
 import com.terraria.skills.entity.RecipeStation;
 import com.terraria.skills.mapper.BiomeMapper;
+import com.terraria.skills.mapper.ConditionTermMapper;
 import com.terraria.skills.mapper.CraftingStationMapper;
 import com.terraria.skills.mapper.ItemMapper;
 import com.terraria.skills.mapper.RecipeContextRequirementMapper;
@@ -64,6 +67,9 @@ class RecipeServiceImplTest {
 
     @Mock
     private WorldContextMapper worldContextMapper;
+
+    @Mock
+    private ConditionTermMapper conditionTermMapper;
 
     @Mock
     private ManagedItemImageResolver managedItemImageResolver;
@@ -268,6 +274,36 @@ class RecipeServiceImplTest {
         List<RecipeDTO> recipes = service.getRecipesByResultItemId(1L);
 
         assertEquals("http://localhost:9000/terrapedia-images/items/stations/work-bench.png", recipes.get(0).getStations().get(0).getItemImage());
+    }
+
+    @Test
+    void shouldResolveConditionTermRequirements() {
+        Recipe recipe = recipe(59L, "manual_admin");
+        when(recipeMapper.selectList(any())).thenReturn(List.of(recipe));
+
+        RecipeContextRequirement condition = new RecipeContextRequirement();
+        condition.setId(90L);
+        condition.setRecipeId(59L);
+        condition.setRefType("CONDITION_TERM");
+        condition.setRefId(30L);
+        condition.setRequirementRole("required");
+        condition.setSortOrder(1);
+        when(recipeContextRequirementMapper.selectList(any())).thenReturn(List.of(condition));
+
+        ConditionTerm term = new ConditionTerm();
+        term.setId(30L);
+        term.setCode("MOON_PHASE_1_4");
+        term.setNameEn("Moon Phase 1-4");
+        term.setNameZh("月相 1–4");
+        term.setTermType("MOON_PHASE_RANGE");
+        when(conditionTermMapper.selectBatchIds(any())).thenReturn(List.of(term));
+
+        List<RecipeDTO> recipes = service.getRecipesByResultItemId(1L);
+
+        assertEquals(1, recipes.get(0).getConditions().size());
+        assertEquals("CONDITION_TERM", recipes.get(0).getConditions().get(0).getRefType());
+        assertEquals("MOON_PHASE_1_4", recipes.get(0).getConditions().get(0).getRefCode());
+        assertEquals("MOON_PHASE_RANGE", recipes.get(0).getConditions().get(0).getRefContextType());
     }
 
     @Test

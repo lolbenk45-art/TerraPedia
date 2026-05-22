@@ -82,6 +82,9 @@ public class AdminWorldContextController {
         if (code == null || trimToNull(request.getNameEn()) == null || trimToNull(request.getContextType()) == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "code, nameEn and contextType are required"));
         }
+        if ("LOCAL_CONDITION".equalsIgnoreCase(trimToNull(request.getContextType()))) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "LOCAL_CONDITION belongs in condition_terms"));
+        }
         long duplicate = worldContextMapper.selectCount(new LambdaQueryWrapper<WorldContext>().eq(WorldContext::getCode, code));
         if (duplicate > 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "code already exists"));
@@ -98,6 +101,9 @@ public class AdminWorldContextController {
         WorldContext existing = worldContextMapper.selectById(id);
         if (existing == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "World context not found"));
+        }
+        if ("LOCAL_CONDITION".equalsIgnoreCase(trimToNull(request.getContextType()))) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "LOCAL_CONDITION belongs in condition_terms"));
         }
         String nextCode = trimToNull(request.getCode()) == null ? existing.getCode() : trimToNull(request.getCode());
         long duplicate = worldContextMapper.selectCount(new LambdaQueryWrapper<WorldContext>()
@@ -140,6 +146,21 @@ public class AdminWorldContextController {
         }
         if (request.getIconUrl() != null || creating) {
             target.setIconUrl(trimToNull(request.getIconUrl()));
+        }
+        if (request.getSourceProvider() != null || creating) {
+            target.setSourceProvider(trimToNull(request.getSourceProvider()));
+        }
+        if (request.getSourcePage() != null || creating) {
+            target.setSourcePage(trimToNull(request.getSourcePage()));
+        }
+        if (request.getSourceRevisionTimestamp() != null || creating) {
+            target.setSourceRevisionTimestamp(request.getSourceRevisionTimestamp());
+        }
+        if (request.getLastSyncedAt() != null || creating) {
+            target.setLastSyncedAt(request.getLastSyncedAt());
+        }
+        if (request.getRawJson() != null || creating) {
+            target.setRawJson(trimToNull(request.getRawJson()));
         }
         if (request.getSortOrder() != null || creating) {
             target.setSortOrder(request.getSortOrder() == null ? 0 : request.getSortOrder());

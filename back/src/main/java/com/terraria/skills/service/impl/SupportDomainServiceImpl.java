@@ -5,8 +5,10 @@ import com.terraria.skills.dto.CategoryDTO;
 import com.terraria.skills.dto.SupportCategoryOptionDTO;
 import com.terraria.skills.dto.SupportDomainCatalogDTO;
 import com.terraria.skills.dto.SupportDomainOptionDTO;
+import com.terraria.skills.entity.ConditionTerm;
 import com.terraria.skills.entity.GamePeriod;
 import com.terraria.skills.entity.WorldContext;
+import com.terraria.skills.mapper.ConditionTermMapper;
 import com.terraria.skills.mapper.GamePeriodMapper;
 import com.terraria.skills.mapper.WorldContextMapper;
 import com.terraria.skills.service.CategoryManagementService;
@@ -28,6 +30,7 @@ public class SupportDomainServiceImpl implements SupportDomainService {
     private final CategoryManagementService categoryManagementService;
     private final GamePeriodMapper gamePeriodMapper;
     private final WorldContextMapper worldContextMapper;
+    private final ConditionTermMapper conditionTermMapper;
 
     @Override
     public SupportDomainCatalogDTO getAdminCatalog() {
@@ -35,6 +38,7 @@ public class SupportDomainServiceImpl implements SupportDomainService {
         catalog.setItemCategories(flattenItemCategories(categoryManagementService.buildItemCategoryTree()));
         catalog.setGamePeriods(loadGamePeriods().stream().map(this::toGamePeriodOption).toList());
         catalog.setWorldContexts(loadWorldContexts().stream().map(this::toWorldContextOption).toList());
+        catalog.setConditionTerms(loadConditionTerms().stream().map(this::toConditionTermOption).toList());
         return catalog;
     }
 
@@ -62,6 +66,11 @@ public class SupportDomainServiceImpl implements SupportDomainService {
     private List<WorldContext> loadWorldContexts() {
         return worldContextMapper.selectList(new LambdaQueryWrapper<WorldContext>()
             .orderByAsc(WorldContext::getContextType, WorldContext::getSortOrder, WorldContext::getId));
+    }
+
+    private List<ConditionTerm> loadConditionTerms() {
+        return conditionTermMapper.selectList(new LambdaQueryWrapper<ConditionTerm>()
+            .orderByAsc(ConditionTerm::getTermType, ConditionTerm::getSortOrder, ConditionTerm::getId));
     }
 
     private List<SupportCategoryOptionDTO> flattenItemCategories(List<CategoryDTO> roots) {
@@ -118,6 +127,19 @@ public class SupportDomainServiceImpl implements SupportDomainService {
         dto.setContextType(trimToNull(worldContext.getContextType()));
         dto.setSortOrder(worldContext.getSortOrder());
         dto.setStatus(worldContext.getStatus());
+        return dto;
+    }
+
+    private SupportDomainOptionDTO toConditionTermOption(ConditionTerm conditionTerm) {
+        SupportDomainOptionDTO dto = new SupportDomainOptionDTO();
+        dto.setId(conditionTerm.getId());
+        dto.setCode(conditionTerm.getCode());
+        dto.setLabel(chooseLabel(conditionTerm.getNameZh(), conditionTerm.getNameEn(), conditionTerm.getCode()));
+        dto.setLabelZh(trimToNull(conditionTerm.getNameZh()));
+        dto.setLabelEn(trimToNull(conditionTerm.getNameEn()));
+        dto.setContextType(trimToNull(conditionTerm.getTermType()));
+        dto.setSortOrder(conditionTerm.getSortOrder());
+        dto.setStatus(conditionTerm.getStatus());
         return dto;
     }
 

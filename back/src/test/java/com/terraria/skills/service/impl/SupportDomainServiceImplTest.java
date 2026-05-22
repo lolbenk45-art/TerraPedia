@@ -2,8 +2,10 @@ package com.terraria.skills.service.impl;
 
 import com.terraria.skills.dto.CategoryDTO;
 import com.terraria.skills.dto.SupportDomainCatalogDTO;
+import com.terraria.skills.entity.ConditionTerm;
 import com.terraria.skills.entity.GamePeriod;
 import com.terraria.skills.entity.WorldContext;
+import com.terraria.skills.mapper.ConditionTermMapper;
 import com.terraria.skills.mapper.GamePeriodMapper;
 import com.terraria.skills.mapper.WorldContextMapper;
 import com.terraria.skills.service.CategoryManagementService;
@@ -32,6 +34,9 @@ class SupportDomainServiceImplTest {
     @Mock
     private WorldContextMapper worldContextMapper;
 
+    @Mock
+    private ConditionTermMapper conditionTermMapper;
+
     @InjectMocks
     private SupportDomainServiceImpl supportDomainService;
 
@@ -49,6 +54,9 @@ class SupportDomainServiceImplTest {
         when(worldContextMapper.selectList(any())).thenReturn(List.of(
             worldContext(9L, "BLOOD_MOON", "Blood Moon", "血月", "EVENT", 1, 1)
         ));
+        when(conditionTermMapper.selectList(any())).thenReturn(List.of(
+            conditionTerm(30L, "MOON_PHASE_1_4", "Moon Phase 1-4", "月相 1–4", "MOON_PHASE_RANGE", 30, 1)
+        ));
 
         SupportDomainCatalogDTO catalog = supportDomainService.getAdminCatalog();
 
@@ -60,6 +68,8 @@ class SupportDomainServiceImplTest {
         assertEquals("前期", catalog.getGamePeriods().get(0).getLabel());
         assertEquals(1, catalog.getWorldContexts().size());
         assertEquals("EVENT", catalog.getWorldContexts().get(0).getContextType());
+        assertEquals(1, catalog.getConditionTerms().size());
+        assertEquals("MOON_PHASE_RANGE", catalog.getConditionTerms().get(0).getContextType());
         assertEquals("前期", supportDomainService.getGamePeriodLabel(1L));
         assertEquals("阶段 99", supportDomainService.getGamePeriodLabel(99L));
     }
@@ -98,5 +108,18 @@ class SupportDomainServiceImplTest {
         worldContext.setStatus(status);
         worldContext.setDeleted(0);
         return worldContext;
+    }
+
+    private ConditionTerm conditionTerm(Long id, String code, String nameEn, String nameZh, String termType, int sortOrder, int status) {
+        ConditionTerm conditionTerm = new ConditionTerm();
+        conditionTerm.setId(id);
+        conditionTerm.setCode(code);
+        conditionTerm.setNameEn(nameEn);
+        conditionTerm.setNameZh(nameZh);
+        conditionTerm.setTermType(termType);
+        conditionTerm.setSortOrder(sortOrder);
+        conditionTerm.setStatus(status);
+        conditionTerm.setDeleted(0);
+        return conditionTerm;
     }
 }

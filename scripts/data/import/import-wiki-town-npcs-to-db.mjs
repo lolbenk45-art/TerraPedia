@@ -11,13 +11,14 @@ import { parseCliArgs } from '../lib/wiki-item-utils.mjs';
 import {
   buildTownNpcShopConditionLookup,
   extractTownNpcShopConditions,
+  getRequiredTownNpcConditionTerms,
   getRequiredTownNpcWorldContexts
 } from '../lib/town-npc-shop-conditions.mjs';
 
 const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
 
 const repoRoot = getProjectRoot();
+const mysql = loadMysqlModule();
 
 const TOWN_NPC_SHOP_ITEM_ALIASES = new Map([
   ['闪耀翅膀', ["Cenx's Wings", 'Cenx的翅膀']],
@@ -214,6 +215,7 @@ export async function runImportWikiTownNpcsToDb(rawArgs = process.argv.slice(2))
 
 export async function prepareTownNpcShopConditionContext(connection, shouldApply, dependencies = {}) {
   const ensureWorldContexts = dependencies.ensureWorldContexts ?? ensureTownNpcWorldContexts;
+  const ensureConditionTerms = dependencies.ensureConditionTerms ?? ensureTownNpcConditionTerms;
   const loadShopConditionLookup = dependencies.loadShopConditionLookup ?? loadTownNpcShopConditionLookup;
 
   if (shouldApply) {
@@ -221,9 +223,11 @@ export async function prepareTownNpcShopConditionContext(connection, shouldApply
   }
 
   const createdWorldContextCount = await ensureWorldContexts(connection, shouldApply);
+  const createdConditionTermCount = await ensureConditionTerms(connection, shouldApply);
   const shopConditionLookup = await loadShopConditionLookup(connection);
   return {
     createdWorldContextCount,
+    createdConditionTermCount,
     shopConditionLookup
   };
 }
@@ -623,17 +627,75 @@ async function loadTownNpcShopConditionLookup(connection) {
        FROM world_contexts
       WHERE deleted = 0`
   );
+  const [conditionTerms] = await connection.query(
+    `SELECT id, code, name_zh AS nameZh, name_en AS nameEn, term_type AS termType
+       FROM condition_terms
+      WHERE deleted = 0`
+  );
   const mergedWorldContexts = dedupeWorldContextsByCode([
     ...worldContexts,
     ...getRequiredTownNpcWorldContexts()
   ]);
+  const mergedConditionTerms = dedupeWorldContextsByCode([
+    ...conditionTerms,
+    ...getRequiredTownNpcConditionTerms()
+  ]);
   return buildTownNpcShopConditionLookup({
     biomes,
+    conditionTerms: mergedConditionTerms,
     gamePeriods,
     items,
     npcs,
     worldContexts: mergedWorldContexts
   });
+}
+
+async function ensureTownNpcConditionTerms(connection, shouldApply) {
+  const requiredTerms = getRequiredTownNpcConditionTerms();
+  if (requiredTerms.length === 0) {
+    return 0;
+  }
+
+  const [existingRows] = await connection.query(
+    `SELECT code
+       FROM condition_terms
+      WHERE deleted = 0`
+  );
+  const existingCodes = new Set(
+    existingRows
+      .map((row) => toText(row.code))
+      .filter(Boolean)
+  );
+
+  const missing = requiredTerms.filter((entry) => !existingCodes.has(entry.code));
+  if (!shouldApply || missing.length === 0) {
+    return missing.length;
+  }
+
+  for (const entry of missing) {
+    await connection.execute(
+      `INSERT INTO condition_terms
+        (code, name_en, name_zh, term_type, description, source_provider, source_page, raw_json, sort_order, status, deleted)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+      [
+        entry.code,
+        entry.nameEn,
+        entry.nameZh,
+        entry.termType,
+        entry.description ?? null,
+        entry.sourceProvider ?? 'terrapedia_local',
+        entry.sourcePage ?? 'town_npc_shop_conditions',
+        JSON.stringify({
+          classification: 'local_condition_term',
+          sourcePage: entry.sourcePage ?? 'town_npc_shop_conditions'
+        }),
+        entry.sortOrder ?? 0,
+        entry.status ?? 1
+      ]
+    );
+  }
+
+  return missing.length;
 }
 
 async function ensureTownNpcWorldContexts(connection, shouldApply) {
@@ -688,6 +750,18 @@ function dedupeWorldContextsByCode(rows) {
     result.set(code, row);
   }
   return [...result.values()];
+}
+
+function loadMysqlModule() {
+  try {
+    return createRequire(path.join(repoRoot, 'data-query-app', 'package.json'))('mysql2/promise');
+  } catch (firstError) {
+    try {
+      return require('mysql2/promise');
+    } catch {
+      throw firstError;
+    }
+  }
 }
 
 function buildBehaviorNotes(functionSummary, moveInSummary) {

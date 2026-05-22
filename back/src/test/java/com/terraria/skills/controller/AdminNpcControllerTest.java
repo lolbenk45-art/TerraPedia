@@ -1010,7 +1010,17 @@ class AdminNpcControllerTest {
         itemCondition.put("refItemName", "Flare Gun");
         itemCondition.put("refItemNameZh", "信号枪");
         itemCondition.put("refItemInternalName", "FlareGun");
-        when(jdbcTemplate.queryForList(contains("FROM npc_shop_conditions"), eq(21L))).thenReturn(List.of(shopCondition, itemCondition));
+        Map<String, Object> conditionTerm = new LinkedHashMap<>();
+        conditionTerm.put("id", 93L);
+        conditionTerm.put("shopEntryId", 21L);
+        conditionTerm.put("refType", "CONDITION_TERM");
+        conditionTerm.put("refId", 30L);
+        conditionTerm.put("conditionRole", "required");
+        conditionTerm.put("conditionTermCode", "MOON_PHASE_1_4");
+        conditionTerm.put("conditionTermNameZh", "月相 1–4");
+        conditionTerm.put("conditionTermNameEn", "Moon Phase 1-4");
+        conditionTerm.put("conditionTermType", "MOON_PHASE_RANGE");
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_conditions"), eq(21L))).thenReturn(List.of(shopCondition, itemCondition, conditionTerm));
 
         mockMvc.perform(get("/admin/npcs/7").accept(APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -1019,13 +1029,17 @@ class AdminNpcControllerTest {
             .andExpect(jsonPath("$.data.behaviorNotes").value("Offers advice to new players."))
             .andExpect(jsonPath("$.data.shopEntries", hasSize(1)))
             .andExpect(jsonPath("$.data.shopEntries[0].itemName").value("Torch"))
-            .andExpect(jsonPath("$.data.shopEntries[0].conditions", hasSize(2)))
+            .andExpect(jsonPath("$.data.shopEntries[0].conditions", hasSize(3)))
             .andExpect(jsonPath("$.data.shopEntries[0].conditions[0].refType").value("GAME_PERIOD"))
             .andExpect(jsonPath("$.data.shopEntries[0].conditions[0].gamePeriodCode").value("hardmode"))
             .andExpect(jsonPath("$.data.shopEntries[0].conditions[0].gamePeriodNameZh").value("困难模式"))
             .andExpect(jsonPath("$.data.shopEntries[0].conditions[1].refType").value("ITEM"))
             .andExpect(jsonPath("$.data.shopEntries[0].conditions[1].refItemNameZh").value("信号枪"))
-            .andExpect(jsonPath("$.data.shopEntries[0].conditions[1].refItemInternalName").value("FlareGun"));
+            .andExpect(jsonPath("$.data.shopEntries[0].conditions[1].refItemInternalName").value("FlareGun"))
+            .andExpect(jsonPath("$.data.shopEntries[0].conditions[2].refType").value("CONDITION_TERM"))
+            .andExpect(jsonPath("$.data.shopEntries[0].conditions[2].conditionTermCode").value("MOON_PHASE_1_4"))
+            .andExpect(jsonPath("$.data.shopEntries[0].conditions[2].conditionTermNameZh").value("月相 1–4"))
+            .andExpect(jsonPath("$.data.shopEntries[0].conditions[2].conditionTermType").value("MOON_PHASE_RANGE"));
     }
 
     @Test
