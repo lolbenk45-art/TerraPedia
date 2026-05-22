@@ -6002,6 +6002,125 @@ img[data-preview-fallback] {
 .recipe-tree-canvas::before {
   inset: 14px;
 }
+.recipe-tree-stack,
+.recipe-top-layer,
+.recipe-full-tree {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.recipe-tree-section-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: end;
+  min-width: 0;
+  border-bottom: 1px solid rgba(244, 234, 208, 0.08);
+  padding-bottom: 12px;
+}
+.recipe-tree-section-head h3 {
+  margin: 6px 0 0;
+  color: var(--paper);
+  font-size: 22px;
+  line-height: 1.15;
+}
+.recipe-tree-section-head small {
+  color: rgba(244, 234, 208, 0.52);
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+.recipe-top-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+.recipe-top-card {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  border: 1px solid rgba(244, 234, 208, 0.1);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(217, 185, 91, 0.08), transparent 48%),
+    rgba(244,234,208,0.026);
+  padding: 12px;
+}
+.recipe-top-result {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 4px 14px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+.recipe-top-result .item-art {
+  grid-row: 1 / 3;
+  width: 64px;
+  height: 64px;
+}
+.recipe-top-result b,
+.recipe-top-result span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recipe-top-result b {
+  color: var(--paper);
+  font-size: 16px;
+}
+.recipe-top-result span {
+  color: #9db89a;
+  font-size: 12px;
+  font-weight: 900;
+}
+.recipe-top-materials {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+.recipe-top-materials a {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 1px 8px;
+  align-items: center;
+  min-width: 0;
+  min-height: 52px;
+  border: 1px solid rgba(244, 234, 208, 0.08);
+  border-radius: 8px;
+  background: rgba(7, 12, 9, 0.18);
+  color: inherit;
+  padding: 7px;
+  text-decoration: none;
+}
+.recipe-top-materials .item-art {
+  grid-row: 1 / 3;
+  width: 36px;
+  height: 36px;
+}
+.recipe-top-materials b,
+.recipe-top-materials span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recipe-top-materials b {
+  color: var(--paper);
+  font-size: 12px;
+}
+.recipe-top-materials span {
+  color: rgba(244, 234, 208, 0.52);
+  font-size: 11px;
+}
 .recipe-tree-stage {
   position: relative;
   z-index: 2;
@@ -7544,6 +7663,8 @@ img[data-preview-fallback] {
 .npc-card,
 .entity-filter,
 .boss-prep-matrix a,
+.recipe-top-result,
+.recipe-top-materials a,
 .recipe-tree-node,
 .armor-route-band a,
 .contact-grid a,
@@ -7586,6 +7707,8 @@ img[data-preview-fallback] {
 .npc-card:hover,
 .entity-filter:hover,
 .boss-prep-matrix a:hover,
+.recipe-top-result:hover,
+.recipe-top-materials a:hover,
 .recipe-tree-node:hover,
 .armor-route-band a:hover,
 .contact-grid a:hover,

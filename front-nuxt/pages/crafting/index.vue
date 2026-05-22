@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { usePublicItems } from '~/composables/usePublicItems'
 import { usePublicRecipeTree } from '~/composables/usePublicRecipeTree'
-import type { PublicItemRecipeTreeNode } from '~/types/public-api'
+import type { PublicItemRecipeTreeNode, PublicItemRecipeTreeStation } from '~/types/public-api'
 
 const route = useRoute()
 const router = useRouter()
@@ -46,12 +46,49 @@ const recipeRawLoading = computed(() => !recipeClientReady.value || recipePendin
 const hasSelectedTarget = computed(() => selectedItemId.value.length > 0)
 const recipeMissing = computed(() => recipeClientReady.value && hasSelectedTarget.value && !recipePending.value && !recipeTree.value)
 const recipeNodeChildren = (node: PublicItemRecipeTreeNode) => Array.isArray(node.children) ? node.children : []
+const recipeNodeStations = (node: PublicItemRecipeTreeNode) => Array.isArray(node.stations) ? node.stations : []
 
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
 const displayText = (...values: unknown[]) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
+const displayCount = (...values: unknown[]) => {
+  const value = displayText(...values)
+  return value ? `x${value.replace(/^x/i, '')}` : 'x1'
+}
 const nodeTitle = (node: PublicItemRecipeTreeNode) => {
   const itemCodeName = node.itemInternalName
   return displayText(node.displayName, node.itemNameZh, node.itemName, itemCodeName, '配方节点')
+}
+const nodeImage = (node: PublicItemRecipeTreeNode) => resolvePreviewImageUrl(node.itemImage || node.image || node.previewImage || '')
+const nodeHref = (node: PublicItemRecipeTreeNode) => node.itemId ? `/items/${node.itemId}` : '/items'
+const nodeQuantity = (node: PublicItemRecipeTreeNode, isRoot = false) => {
+  if (node.quantityText) return String(node.quantityText)
+  if (node.quantityMin && node.quantityMax && node.quantityMin !== node.quantityMax) {
+    return `${node.quantityMin}-${node.quantityMax}`
+  }
+  return displayCount(node.quantityMin, node.quantity, node.amount, node.count, isRoot ? node.resultQuantity : null)
+}
+const recipeStationTitle = (station: PublicItemRecipeTreeStation) => displayText(
+  station.displayName,
+  station.stationNameZh,
+  station.stationName,
+  station.name,
+  station.stationNameRaw,
+  station.stationInternalName,
+  '制作站',
+)
+const recipeStationImage = (station: PublicItemRecipeTreeStation) => resolvePreviewImageUrl(
+  station.stationImage || station.itemImage || station.itemImageUrl || station.image || '',
+)
+const recipeStationKey = (station: PublicItemRecipeTreeStation) => displayText(
+  station.stationItemId,
+  station.stationInternalName,
+  station.stationNameRaw,
+  recipeStationTitle(station),
+)
+const recipeStationMeta = (station: PublicItemRecipeTreeStation) => {
+  if (station.stationType === 'condition') return '条件'
+  if (station.isAlternative) return '可替代'
+  return displayText(station.requirementRole, station.stationType, '合成站')
 }
 
 const clearRecipeVisualLoadingTimer = () => {
@@ -216,13 +253,91 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
           </template>
 
           <template v-else-if="activeRoots.length">
-            <div class="recipe-tree-stage">
-              <CraftingRecipeTreeNode
-                v-for="root in activeRoots"
-                :key="displayText(root.recipeId, root.itemId, nodeTitle(root), 'root')"
-                :node="root"
-                is-root
-              />
+            <div class="recipe-tree-stack">
+              <section class="recipe-top-layer" aria-labelledby="recipe-top-layer-title">
+                <div class="recipe-tree-section-head">
+                  <div>
+                    <span class="eyebrow">top recipe</span>
+                    <h3 id="recipe-top-layer-title">顶层合成</h3>
+                  </div>
+                  <small>{{ activeRoots.length }} 条顶层配方</small>
+                </div>
+
+                <div class="recipe-top-grid">
+                  <article
+                    v-for="root in activeRoots"
+                    :key="displayText(root.recipeId, root.itemId, nodeTitle(root), 'top-root')"
+                    class="recipe-top-card"
+                  >
+                    <a class="recipe-top-result" :href="nodeHref(root)">
+                      <CommonPreviewImage
+                        :src="nodeImage(root)"
+                        :alt="nodeTitle(root)"
+                        :fallback="firstGlyph(nodeTitle(root))"
+                        width="64"
+                        height="64"
+                      />
+                      <b>{{ nodeTitle(root) }}</b>
+                      <span>{{ nodeQuantity(root, true) }}</span>
+                    </a>
+
+                    <div v-if="recipeNodeStations(root).length" class="recipe-station-row">
+                      <span
+                        v-for="station in recipeNodeStations(root)"
+                        :key="recipeStationKey(station)"
+                        class="recipe-station-chip"
+                      >
+                        <CommonPreviewImage
+                          :src="recipeStationImage(station)"
+                          :alt="recipeStationTitle(station)"
+                          :fallback="firstGlyph(recipeStationTitle(station))"
+                          width="28"
+                          height="28"
+                        />
+                        <b>{{ recipeStationTitle(station) }}</b>
+                        <small>{{ recipeStationMeta(station) }}</small>
+                      </span>
+                    </div>
+
+                    <div v-if="recipeNodeChildren(root).length" class="recipe-top-materials">
+                      <a
+                        v-for="child in recipeNodeChildren(root)"
+                        :key="displayText(child.recipeId, child.itemId, nodeTitle(child), 'top-child')"
+                        :href="nodeHref(child)"
+                      >
+                        <CommonPreviewImage
+                          :src="nodeImage(child)"
+                          :alt="nodeTitle(child)"
+                          :fallback="firstGlyph(nodeTitle(child))"
+                          width="36"
+                          height="36"
+                        />
+                        <b>{{ nodeTitle(child) }}</b>
+                        <span>{{ nodeQuantity(child) }}</span>
+                      </a>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="recipe-full-tree" aria-labelledby="recipe-full-tree-title">
+                <div class="recipe-tree-section-head">
+                  <div>
+                    <span class="eyebrow">full recipe tree</span>
+                    <h3 id="recipe-full-tree-title">完整配方树</h3>
+                  </div>
+                  <small>子叶逐级汇总</small>
+                </div>
+
+                <div class="recipe-tree-stage">
+                  <CraftingRecipeTreeNode
+                    v-for="root in activeRoots"
+                    :key="displayText(root.recipeId, root.itemId, nodeTitle(root), 'root')"
+                    :node="root"
+                    is-root
+                  />
+                </div>
+              </section>
             </div>
           </template>
 
