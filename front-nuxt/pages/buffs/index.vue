@@ -170,7 +170,7 @@ onBeforeUnmount(() => {
         <div>
           <span class="eyebrow">公开资料</span>
           <h2>效果、来源与目标关系</h2>
-          <p>当前列表来自公共 Buff 接口。空结果保持为空，只有接口失败时才进入兜底状态。</p>
+          <p>当前列表读取公开 Buff 资料。空结果保持为空，资料未载入时不会展示静态样例。</p>
         </div>
 
         <form class="catalog-search-form" role="search" @submit.prevent>
@@ -239,7 +239,7 @@ onBeforeUnmount(() => {
       <section v-else class="search-suggestion-band support-panel">
         <div>
           <b>{{ buffFallbackUnavailable ? '资料暂未载入' : '没有匹配效果' }}</b>
-          <span>{{ buffFallbackUnavailable ? '当前公共接口暂不可用，已避免展示静态样例。' : '调整搜索词或清空搜索。' }}</span>
+          <span>{{ buffFallbackUnavailable ? '当前资料暂未载入，已避免展示静态样例。' : '调整搜索词或清空搜索。' }}</span>
         </div>
         <button v-if="buffFallbackUnavailable" class="small-button active" type="button" @click="refreshPublicBuffs()">
           重新加载

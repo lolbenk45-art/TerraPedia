@@ -35,7 +35,11 @@ public class NpcController {
         @RequestParam(required = false) Integer limit,
         @RequestParam(required = false) String search,
         @RequestParam(required = false) Long categoryId,
-        @RequestParam(required = false) Boolean isTownNpc
+        @RequestParam(required = false) Boolean isTownNpc,
+        @RequestParam(required = false) Boolean isFriendly,
+        @RequestParam(required = false) Boolean isBoss,
+        @RequestParam(required = false) Boolean hasShop,
+        @RequestParam(required = false) Boolean hasLoot
     ) {
         PublicNpcQuery query = new PublicNpcQuery();
         query.setPage(PaginationParams.resolvePage(page));
@@ -43,14 +47,22 @@ public class NpcController {
         query.setSearch(search);
         query.setCategoryId(categoryId);
         query.setIsTownNpc(isTownNpc);
+        query.setIsFriendly(isFriendly);
+        query.setIsBoss(isBoss);
+        query.setHasShop(hasShop);
+        query.setHasLoot(hasLoot);
 
         log.info(
-            "get public npcs page={}, limit={}, search={}, categoryId={}, isTownNpc={}",
+            "get public npcs page={}, limit={}, search={}, categoryId={}, isTownNpc={}, isFriendly={}, isBoss={}, hasShop={}, hasLoot={}",
             query.getPage(),
             query.getLimit(),
             search,
             categoryId,
-            isTownNpc
+            isTownNpc,
+            isFriendly,
+            isBoss,
+            hasShop,
+            hasLoot
         );
 
         Page<NpcListItemDTO> npcPage = publicNpcService.getNpcs(query);

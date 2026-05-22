@@ -49,6 +49,14 @@ class NpcControllerTest {
         townNpc.setIsFriendly(true);
         townNpc.setIsTownNpc(true);
         townNpc.setImageUrl("https://cdn.example.com/npcs/guide.png");
+        townNpc.setLifeMax(250);
+        townNpc.setDamage(10);
+        townNpc.setDefense(30);
+        townNpc.setKnockBackResist(0.5);
+        townNpc.setNpcType(22);
+        townNpc.setLootEntryCount(1);
+        townNpc.setShopEntryCount(3);
+        townNpc.setBuffRelationCount(0);
 
         NpcListItemDTO nonTownNpc = new NpcListItemDTO();
         nonTownNpc.setId(9L);
@@ -73,7 +81,11 @@ class NpcControllerTest {
                 .param("limit", "5")
                 .param("search", "guide")
                 .param("categoryId", "3")
-                .param("isTownNpc", "true"))
+                .param("isTownNpc", "true")
+                .param("isFriendly", "true")
+                .param("isBoss", "false")
+                .param("hasShop", "true")
+                .param("hasLoot", "false"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.pagination.page").value(2))
@@ -86,6 +98,14 @@ class NpcControllerTest {
             .andExpect(jsonPath("$.data[0].isBoss").value(false))
             .andExpect(jsonPath("$.data[0].isTownNpc").value(true))
             .andExpect(jsonPath("$.data[0].imageUrl").value("https://cdn.example.com/npcs/guide.png"))
+            .andExpect(jsonPath("$.data[0].lifeMax").value(250))
+            .andExpect(jsonPath("$.data[0].damage").value(10))
+            .andExpect(jsonPath("$.data[0].defense").value(30))
+            .andExpect(jsonPath("$.data[0].knockBackResist").value(0.5))
+            .andExpect(jsonPath("$.data[0].npcType").value(22))
+            .andExpect(jsonPath("$.data[0].lootEntryCount").value(1))
+            .andExpect(jsonPath("$.data[0].shopEntryCount").value(3))
+            .andExpect(jsonPath("$.data[0].buffRelationCount").value(0))
             .andExpect(jsonPath("$.data[1].id").value(9))
             .andExpect(jsonPath("$.data[1].isBoss").value(false));
 
@@ -94,6 +114,10 @@ class NpcControllerTest {
         assertEquals("guide", publicNpcService.lastQuery.getSearch());
         assertEquals(3L, publicNpcService.lastQuery.getCategoryId());
         assertEquals(true, publicNpcService.lastQuery.getIsTownNpc());
+        assertEquals(true, publicNpcService.lastQuery.getIsFriendly());
+        assertEquals(false, publicNpcService.lastQuery.getIsBoss());
+        assertEquals(true, publicNpcService.lastQuery.getHasShop());
+        assertEquals(false, publicNpcService.lastQuery.getHasLoot());
     }
 
     @Test

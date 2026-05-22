@@ -100,6 +100,10 @@ const buildPublicNpcQuery = (query: PublicNpcQuery, page: number, limit: number)
   search: normalizeText(query.search) || undefined,
   categoryId: query.categoryId,
   isTownNpc: typeof query.isTownNpc === 'boolean' ? query.isTownNpc : undefined,
+  isFriendly: typeof query.isFriendly === 'boolean' ? query.isFriendly : undefined,
+  isBoss: typeof query.isBoss === 'boolean' ? query.isBoss : undefined,
+  hasShop: typeof query.hasShop === 'boolean' ? query.hasShop : undefined,
+  hasLoot: typeof query.hasLoot === 'boolean' ? query.hasLoot : undefined,
 })
 
 export const normalizePublicNpcBase = (raw: PublicNpcListItem, index = 0): NpcCatalogCard => {
@@ -117,6 +121,14 @@ export const normalizePublicNpcBase = (raw: PublicNpcListItem, index = 0): NpcCa
   const sourceImage = normalizeText(raw.imageUrl ?? raw.image_url)
   const image = resolvePreviewImageUrl(sourceImage)
   const gameId = toNumberOrNull(raw.gameId ?? raw.game_id)
+  const npcType = toNumberOrNull(raw.npcType ?? raw.npc_type)
+  const damage = toNumberOrNull(raw.damage)
+  const defense = toNumberOrNull(raw.defense)
+  const lifeMax = toNumberOrNull(raw.lifeMax ?? raw.life_max)
+  const knockBackResist = toNumberOrNull(raw.knockBackResist ?? raw.knock_back_resist)
+  const lootEntryCount = toNumberOrNull(raw.lootEntryCount ?? raw.loot_entry_count) ?? 0
+  const shopEntryCount = toNumberOrNull(raw.shopEntryCount ?? raw.shop_entry_count) ?? 0
+  const buffRelationCount = toNumberOrNull(raw.buffRelationCount ?? raw.buff_relation_count) ?? 0
   const id = String(npcId)
 
   return {
@@ -135,7 +147,15 @@ export const normalizePublicNpcBase = (raw: PublicNpcListItem, index = 0): NpcCa
     isBoss: toBoolean(raw.isBoss ?? raw.is_boss),
     isFriendly: toBoolean(raw.isFriendly ?? raw.is_friendly),
     isTownNpc: toBoolean(raw.isTownNpc ?? raw.is_town_npc),
-    searchText: normalizeSearchText([displayName, name, internalName, categoryName, subtitle, gameId].join(' ')),
+    npcType,
+    damage,
+    defense,
+    lifeMax,
+    knockBackResist,
+    lootEntryCount,
+    shopEntryCount,
+    buffRelationCount,
+    searchText: normalizeSearchText([displayName, name, internalName, categoryName, subtitle, gameId, npcType].join(' ')),
     raw: {
       ...raw,
       id: npcId,
@@ -150,6 +170,14 @@ export const normalizePublicNpcBase = (raw: PublicNpcListItem, index = 0): NpcCa
       isBoss: toBoolean(raw.isBoss ?? raw.is_boss),
       isFriendly: toBoolean(raw.isFriendly ?? raw.is_friendly),
       isTownNpc: toBoolean(raw.isTownNpc ?? raw.is_town_npc),
+      npcType,
+      damage,
+      defense,
+      lifeMax,
+      knockBackResist,
+      lootEntryCount,
+      shopEntryCount,
+      buffRelationCount,
       imageUrl: sourceImage || null,
       behaviorNotes: normalizeText(raw.behaviorNotes ?? raw.behavior_notes) || null,
       status: toNumberOrNull(raw.status),
@@ -360,6 +388,10 @@ export const usePublicNpcs = (query: PublicNpcQuery | (() => PublicNpcQuery) = {
       limit,
       search: normalizeText(value.search),
       isTownNpc: typeof value.isTownNpc === 'boolean' ? value.isTownNpc : undefined,
+      isFriendly: typeof value.isFriendly === 'boolean' ? value.isFriendly : undefined,
+      isBoss: typeof value.isBoss === 'boolean' ? value.isBoss : undefined,
+      hasShop: typeof value.hasShop === 'boolean' ? value.hasShop : undefined,
+      hasLoot: typeof value.hasLoot === 'boolean' ? value.hasLoot : undefined,
     } satisfies PublicNpcQuery
   })
 

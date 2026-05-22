@@ -23,10 +23,9 @@ const { data: aggregateBundle, pending: aggregatePending, error: aggregateError 
 
 const aggregate = computed(() => invalidNpcId.value ? null : aggregateBundle.value?.aggregate ?? null)
 const npc = computed(() => aggregate.value?.npc ?? null)
-const moduleStatus = computed(() => aggregate.value?.moduleStatus ?? {})
 const loot = computed(() => aggregate.value?.loot ?? [])
 const trustedLoot = computed(() => loot.value.filter((entry) => entry.trustedStructured === true && entry.lootSourceMode === 'direct'))
-const fallbackLoot = computed(() => loot.value.filter((entry) => !(entry.trustedStructured === true && entry.lootSourceMode === 'direct')))
+const additionalLoot = computed(() => loot.value.filter((entry) => !(entry.trustedStructured === true && entry.lootSourceMode === 'direct')))
 const shopEntries = computed(() => aggregate.value?.shopEntries ?? [])
 const buffRelations = computed(() => aggregate.value?.buffRelations ?? [])
 const loadingState = computed(() => !invalidNpcId.value && aggregatePending.value && !aggregate.value)
@@ -46,12 +45,39 @@ const displayName = computed(() => firstText(npc.value?.nameZh, npc.value?.name,
 const secondaryName = computed(() => firstText(npc.value?.nameZh) ? firstText(npc.value?.name, npc.value?.internalName) : firstText(npc.value?.internalName))
 const portraitImage = computed(() => resolvePreviewImageUrl(firstText(npc.value?.imageUrl)))
 const portraitFallback = computed(() => firstGlyph(displayName.value || 'NPC'))
-const aggregatedAt = computed(() => {
+const detailUpdatedAt = computed(() => {
   const value = firstText(aggregate.value?.aggregatedAt)
   if (!value) return '--'
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString('zh-CN', { hour12: false })
 })
+
+const npcKindLabel = computed(() => {
+  if (npc.value?.isTownNpc) return '城镇角色'
+  if (npc.value?.isFriendly) return '友好角色'
+  return npc.value?.isBoss ? 'Boss' : '敌对角色'
+})
+
+const toNumberOrNull = (value: unknown) => {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+const percentLabel = (value: unknown) => {
+  const numberValue = toNumberOrNull(value)
+  if (numberValue == null) return ''
+  return numberValue <= 1 ? `${Math.round(numberValue * 100)}%` : `${numberValue}%`
+}
+
+const npcStatRows = computed(() => [
+  { label: '编号', value: firstText(npc.value?.gameId, npc.value?.id) },
+  { label: '生命值', value: firstText(npc.value?.lifeMax) },
+  { label: '伤害', value: firstText(npc.value?.damage) },
+  { label: '防御', value: firstText(npc.value?.defense) },
+  { label: '击退抗性', value: percentLabel(npc.value?.knockBackResist) },
+  { label: '类型', value: npcKindLabel.value },
+  { label: '资料更新', value: detailUpdatedAt.value },
+].filter((row) => row.value))
 
 const entryTitle = (entry: PublicNpcLootEntry | PublicNpcShopEntry | PublicNpcBuffRelation) => firstText(
   'buffNameZh' in entry ? entry.buffNameZh : undefined,
@@ -80,7 +106,7 @@ const chanceLabel = (entry: PublicNpcLootEntry | PublicNpcBuffRelation) => {
   return entry.chanceValue != null ? `${entry.chanceValue}%` : ''
 }
 
-const shopPriceLabel = (entry: PublicNpcShopEntry) => firstText(entry.priceText, entry.buyPriceText, entry.currencyText, '价格未标记')
+const shopPriceLabel = (entry: PublicNpcShopEntry) => firstText(entry.priceText, entry.buyPriceText, entry.currencyText, '售价待整理')
 
 const conditionLabel = (condition: PublicNpcShopCondition) => firstText(
   condition.label,
@@ -110,11 +136,11 @@ const buffDurationLabel = (entry: PublicNpcBuffRelation) => firstText(
   entry.durationSeconds != null ? `${entry.durationSeconds}s` : '',
 )
 
-const traceableRelationSections = computed(() => {
+const relatedItemSections = computed(() => {
   const sections = [
-    { title: '掉落追踪', entries: (npc.value?.lootItems ?? []) as PublicNpcTraceableItemSummary[] },
-    { title: '商店追踪', entries: (npc.value?.shopItems ?? []) as PublicNpcTraceableItemSummary[] },
-    { title: '来源追踪', entries: (((npc.value as Record<string, unknown> | null)?.['source' + 'Items'] ?? []) as PublicNpcTraceableItemSummary[]) },
+    { title: '掉落相关', entries: (npc.value?.lootItems ?? []) as PublicNpcTraceableItemSummary[] },
+    { title: '出售相关', entries: (npc.value?.shopItems ?? []) as PublicNpcTraceableItemSummary[] },
+    { title: '来源相关', entries: (((npc.value as Record<string, unknown> | null)?.['source' + 'Items'] ?? []) as PublicNpcTraceableItemSummary[]) },
   ]
 
   return sections.map((section) => ({
@@ -123,10 +149,16 @@ const traceableRelationSections = computed(() => {
       id: firstText(entry.sourceFactKey, entry.itemId, entry.itemInternalName, `${section.title}-${index}`),
       title: firstText(entry.itemNameZh, entry.itemName, entry.itemInternalName, '关联物品'),
       meta: [entry.relationType, entry.quantityText, entry.chanceText, entry.priceText].map(firstText).filter(Boolean).join(' / '),
-      source: [entry.sourceProvider, entry.sourcePage].map(firstText).filter(Boolean).join(' · '),
+      note: [entry.sourceProvider, entry.sourcePage].map(firstText).filter(Boolean).join(' · '),
     })),
   })).filter((section) => section.entries.length > 0)
 })
+
+const materialStatus = computed(() => ({
+  loot: trustedLoot.value.length + additionalLoot.value.length ? '已整理' : '暂无资料',
+  shop: shopEntries.value.length ? '已整理' : '暂无资料',
+  buffs: buffRelations.value.length ? '已整理' : '暂无资料',
+}))
 </script>
 
 <template>
@@ -142,7 +174,7 @@ const traceableRelationSections = computed(() => {
         <div class="npc-detail-copy">
           <span class="eyebrow">加载 NPC 详情</span>
           <strong class="detail-missing-title">加载 NPC 详情</strong>
-          <p>正在通过公开聚合接口读取掉落、商店和 Buff 模块。</p>
+          <p>正在读取数值、掉落、商店和状态效果资料。</p>
         </div>
       </section>
 
@@ -153,10 +185,10 @@ const traceableRelationSections = computed(() => {
         <div class="npc-detail-copy">
           <span class="eyebrow">NPC #{{ routeNpcId || '未知' }} · 未找到</span>
           <strong class="detail-missing-title">没有找到这个 NPC</strong>
-          <p>{{ invalidNpcId ? '当前公开详情只接受数值 NPC id。' : '公开聚合接口没有返回可渲染的 NPC 资料。' }}</p>
+          <p>{{ invalidNpcId ? '请从 NPC 图鉴进入对应详情页。' : '暂时没有可显示的 NPC 资料。' }}</p>
           <div class="tag-row">
             <span class="tag paper">详情缺失</span>
-            <span v-if="aggregateError" class="tag moss">接口异常</span>
+            <span v-if="aggregateError" class="tag moss">载入异常</span>
           </div>
           <a class="primary-button" href="/npcs">返回 NPC 图鉴</a>
         </div>
@@ -168,23 +200,22 @@ const traceableRelationSections = computed(() => {
             <CommonPreviewImage :src="portraitImage" :alt="displayName" :fallback="portraitFallback" loading="eager" />
           </div>
           <div class="npc-detail-copy">
-            <span class="eyebrow">NPC #{{ npc?.gameId ?? npc?.id }} · {{ secondaryName || 'Public Aggregate' }}</span>
+            <span class="eyebrow">NPC #{{ npc?.gameId ?? npc?.id }} · {{ secondaryName || '详情资料' }}</span>
             <h1>{{ displayName }}</h1>
-            <p>{{ firstText(npc?.behaviorNotes, `${displayName} 的公开资料来自 NPC 聚合接口，包含掉落、商店和 Buff 关系。`) }}</p>
+            <p>{{ firstText(npc?.behaviorNotes, `${displayName} 的资料包含基础数值、出售物品、掉落物和状态效果。`) }}</p>
             <div class="tag-row">
               <span v-if="npc?.isTownNpc" class="tag gold">城镇 NPC</span>
               <span v-if="npc?.isFriendly" class="tag moss">友好</span>
               <span class="tag paper">{{ firstText(npc?.categoryName, '未分类') }}</span>
-              <span class="tag paper">{{ aggregateBundle?.source === 'api' ? '实时接口' : '资料状态' }}</span>
+              <span class="tag paper">{{ aggregateBundle?.source === 'api' ? '详情资料' : '资料状态' }}</span>
             </div>
           </div>
           <aside class="npc-detail-facts">
-            <p class="section-label">核心属性</p>
+            <p class="section-label">基础数值</p>
             <dl>
-              <dt>Game ID</dt><dd>{{ npc?.gameId ?? '--' }}</dd>
-              <dt>Internal</dt><dd>{{ npc?.internalName || '--' }}</dd>
-              <dt>聚合时间</dt><dd>{{ aggregatedAt }}</dd>
-              <dt>类型</dt><dd>{{ npc?.isTownNpc ? '城镇角色' : npc?.isFriendly ? '友好角色' : '公开 NPC' }}</dd>
+              <template v-for="row in npcStatRows" :key="row.label">
+                <dt>{{ row.label }}</dt><dd>{{ row.value }}</dd>
+              </template>
             </dl>
           </aside>
         </section>
@@ -192,24 +223,36 @@ const traceableRelationSections = computed(() => {
         <section class="detail-mosaic">
           <article class="detail-module dark-card">
             <div class="module-title">
-              <h2>掉落</h2>
-              <span class="tag moss">{{ trustedLoot.length }} 条</span>
+              <h2>基础数值</h2>
+              <span class="tag paper">{{ npcKindLabel }}</span>
+            </div>
+            <div class="signal-list">
+              <div v-for="row in npcStatRows" :key="`stat-${row.label}`">
+                <b>{{ row.label }}</b><span>{{ row.value }}</span><em>NPC 档案</em>
+              </div>
+            </div>
+          </article>
+
+          <article class="detail-module dark-card">
+            <div class="module-title">
+              <h2>掉落物</h2>
+              <span class="tag moss">{{ trustedLoot.length + additionalLoot.length }} 条</span>
             </div>
             <div v-if="trustedLoot.length" class="source-table dark-table">
               <div v-for="entry in trustedLoot" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" class="source-row">
                 <span class="sprite-frame" style="width:42px;height:42px">
                   <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
                 </span>
-                <div><b>{{ entryTitle(entry) }}</b><span>{{ [quantityLabel(entry), chanceLabel(entry), entry.conditions].filter(Boolean).join(' · ') || '结构化掉落' }}</span></div>
+                <div><b>{{ entryTitle(entry) }}</b><span>{{ [quantityLabel(entry), chanceLabel(entry), entry.conditions].filter(Boolean).join(' · ') || '掉落资料待补充' }}</span></div>
                 <strong>掉落</strong>
               </div>
             </div>
-            <p v-else>当前聚合接口没有返回可信结构化掉落。</p>
+            <p v-else>暂时没有整理到掉落物。</p>
           </article>
 
           <article class="detail-module dark-card">
             <div class="module-title">
-              <h2>商店</h2>
+              <h2>出售物品</h2>
               <span class="tag gold">{{ shopEntries.length }} 项</span>
             </div>
             <div v-if="shopEntries.length" class="source-table dark-table">
@@ -221,12 +264,12 @@ const traceableRelationSections = computed(() => {
                 <strong>商店</strong>
               </div>
             </div>
-            <p v-else>当前聚合接口没有返回商店条目。</p>
+            <p v-else>暂时没有整理到出售物品。</p>
           </article>
 
           <article class="detail-module dark-card">
             <div class="module-title">
-              <h2>Buff</h2>
+              <h2>状态效果</h2>
               <span class="tag paper">{{ buffRelations.length }} 条</span>
             </div>
             <div v-if="buffRelations.length" class="source-table dark-table">
@@ -238,38 +281,38 @@ const traceableRelationSections = computed(() => {
                 <strong>Buff</strong>
               </div>
             </div>
-            <p v-else>当前聚合接口没有返回 Buff 关系。</p>
+            <p v-else>暂时没有整理到状态效果。</p>
           </article>
 
           <aside class="evidence-panel dark-card">
-            <span class="eyebrow">聚合模块</span>
-            <div class="evidence-step"><div><b>Loot</b><span>{{ moduleStatus.loot || 'unknown' }}</span></div></div>
-            <div class="evidence-step"><div><b>Shop</b><span>{{ moduleStatus.shop || 'unknown' }}</span></div></div>
-            <div class="evidence-step"><div><b>Buffs</b><span>{{ moduleStatus.buffs || 'unknown' }}</span></div></div>
+            <span class="eyebrow">关联资料</span>
+            <div class="evidence-step"><div><b>掉落物</b><span>{{ materialStatus.loot }}</span></div></div>
+            <div class="evidence-step"><div><b>出售物品</b><span>{{ materialStatus.shop }}</span></div></div>
+            <div class="evidence-step"><div><b>状态效果</b><span>{{ materialStatus.buffs }}</span></div></div>
           </aside>
         </section>
 
-        <section v-if="fallbackLoot.length || traceableRelationSections.length" class="detail-mosaic">
-          <article v-if="fallbackLoot.length" class="detail-module dark-card">
+        <section v-if="additionalLoot.length || relatedItemSections.length" class="detail-mosaic">
+          <article v-if="additionalLoot.length" class="detail-module dark-card">
             <div class="module-title">
-              <h2>回退掉落</h2>
-              <span class="tag paper">{{ fallbackLoot.length }} 条</span>
+              <h2>其他掉落</h2>
+              <span class="tag paper">{{ additionalLoot.length }} 条</span>
             </div>
             <div class="signal-list">
-              <div v-for="entry in fallbackLoot.slice(0, 6)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)">
-                <b>{{ entry.lootSourceMode || 'fallback' }}</b><span>{{ entryTitle(entry) }}</span><em>{{ [quantityLabel(entry), chanceLabel(entry)].filter(Boolean).join(' · ') || '非直接可信掉落' }}</em>
+              <div v-for="entry in additionalLoot.slice(0, 6)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)">
+                <b>掉落</b><span>{{ entryTitle(entry) }}</span><em>{{ [quantityLabel(entry), chanceLabel(entry)].filter(Boolean).join(' · ') || '掉落资料待补充' }}</em>
               </div>
             </div>
           </article>
 
-          <article v-for="section in traceableRelationSections" :key="section.title" class="detail-module dark-card">
+          <article v-for="section in relatedItemSections" :key="section.title" class="detail-module dark-card">
             <div class="module-title">
               <h2>{{ section.title }}</h2>
               <span class="tag paper">{{ section.entries.length }} 条</span>
             </div>
             <div class="signal-list">
               <div v-for="entry in section.entries" :key="entry.id">
-                <b>Trace</b><span>{{ entry.title }}</span><em>{{ [entry.meta, entry.source].filter(Boolean).join(' · ') || '公开追踪资料' }}</em>
+                <b>关联</b><span>{{ entry.title }}</span><em>{{ [entry.meta, entry.note].filter(Boolean).join(' · ') || '相关资料' }}</em>
               </div>
             </div>
           </article>

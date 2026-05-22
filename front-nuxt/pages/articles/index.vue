@@ -82,7 +82,7 @@
               </div>
               <div class="route-side-summary">
                 <b>路线覆盖</b>
-                <span>武器、Boss、生态、建筑四条主题线合并为一组可追踪阅读路径。</span>
+                <span>武器、Boss、生态、建筑四条主题线合并为一组清晰阅读路径。</span>
               </div>
             </aside>
           </div>

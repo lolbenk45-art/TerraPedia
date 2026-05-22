@@ -9,4 +9,8 @@ public class PublicNpcQuery {
     private String search;
     private Long categoryId;
     private Boolean isTownNpc;
+    private Boolean isFriendly;
+    private Boolean isBoss;
+    private Boolean hasShop;
+    private Boolean hasLoot;
 }

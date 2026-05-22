@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -38,6 +39,7 @@ public class PublicItemController {
         @RequestParam(required = false) Integer size,
         @RequestParam(required = false) String search,
         @RequestParam(required = false) Long categoryId,
+        @RequestParam(required = false) List<String> categoryIds,
         @RequestParam(required = false) String rarity,
         @RequestParam(required = false) Long gamePeriodId,
         @RequestParam(required = false) String sortBy,
@@ -48,6 +50,7 @@ public class PublicItemController {
         pageQuery.setLimit(PaginationParams.resolveLimit(limit, size, 100, 100));
         pageQuery.setSearch(search);
         pageQuery.setCategoryId(categoryId);
+        pageQuery.setCategoryIds(parseCategoryIds(categoryIds));
         pageQuery.setRarity(rarity);
         pageQuery.setGamePeriodId(gamePeriodId);
         pageQuery.setSortBy(sortBy);
@@ -83,5 +86,30 @@ public class PublicItemController {
         String normalizedKeyword = keyword == null ? "" : keyword.trim();
         List<PublicItemSuggestionDTO> suggestions = publicItemService.searchSuggestions(normalizedKeyword, limit);
         return ResponseEntity.ok(ApiResponse.success(suggestions));
+    }
+
+    private List<Long> parseCategoryIds(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+
+        List<Long> parsed = new ArrayList<>();
+        for (String value : values) {
+            if (value == null || value.isBlank()) {
+                continue;
+            }
+            for (String token : value.split(",")) {
+                String trimmed = token.trim();
+                if (trimmed.isEmpty()) {
+                    continue;
+                }
+                try {
+                    parsed.add(Long.parseLong(trimmed));
+                } catch (NumberFormatException ignored) {
+                    // Ignore malformed category ids so one bad token does not discard the whole filter.
+                }
+            }
+        }
+        return parsed.isEmpty() ? null : parsed;
     }
 }

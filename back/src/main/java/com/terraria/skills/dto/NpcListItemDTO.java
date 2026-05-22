@@ -21,6 +21,14 @@ public class NpcListItemDTO implements Serializable {
     private Boolean isBoss;
     private Boolean isFriendly;
     private Boolean isTownNpc;
+    private Integer npcType;
+    private Integer damage;
+    private Integer defense;
+    private Integer lifeMax;
+    private Object knockBackResist;
+    private Integer lootEntryCount;
+    private Integer shopEntryCount;
+    private Integer buffRelationCount;
     private String imageUrl;
     private String lootItemsJson;
     private String shopItemsJson;

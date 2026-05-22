@@ -209,6 +209,7 @@ const publicItemsQuery = computed(() => ({
   limit: selectedPageSize.value,
   search: backendSearch.value || undefined,
   categoryId: selectedCategoryId.value,
+  categoryIds: selectedCategoryIds.value.length > 0 ? selectedCategoryIds.value : undefined,
   gamePeriodId: selectedGamePeriodId.value,
   sortBy: 'id',
   sortDirection: 'asc',
@@ -242,7 +243,7 @@ const activeFilterLabel = computed(() => selectedFilter.value.label)
 const catalogLoadingSlotCount = computed(() => Math.min(selectedPageSize.value, 50))
 const shouldApplyLocalCategoryFilter = computed(() => (
   publicItemsResult.value?.source !== 'api'
-  || (activeFilter.value !== 'all' && (selectedCategoryIds.value.length !== 1 || !selectedCategoryId.value) && !selectedGamePeriodId.value)
+  || (activeFilter.value !== 'all' && selectedCategoryIds.value.length === 0 && !selectedGamePeriodId.value)
 ))
 const matchCategoryFilter = (item: CatalogItem, filter: CatalogCategoryFilter) => {
   if (filter.key === 'all') return true
@@ -298,7 +299,7 @@ const resultSummary = computed(() => {
   }
 
   if (catalogFallbackUnavailable.value) {
-    return '等待接口'
+    return '资料暂未载入'
   }
 
   const total = totalItems.value.toLocaleString('zh-CN')
@@ -529,7 +530,7 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
     <div class="page-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">{{ catalogVisualLoading ? '加载资料' : catalogFallbackUnavailable ? '等待接口返回' : `${totalItems.toLocaleString('zh-CN')} 个物品` }}</span>
+          <span class="eyebrow">{{ catalogVisualLoading ? '加载资料' : catalogFallbackUnavailable ? '资料暂未载入' : `${totalItems.toLocaleString('zh-CN')} 个物品` }}</span>
           <h1>物品图鉴</h1>
           <p>图标墙是主浏览界面。搜索、分类和分页统一基于完整资料库。</p>
         </div>
@@ -670,6 +671,7 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
                       <span class="catalog-hover-preview-tags">
                         <span>{{ item.rarity }}</span>
                         <span>{{ item.phase }}</span>
+                        <span v-if="item.priceLabel">{{ item.priceLabel }}</span>
                       </span>
                     </span>
                   </a>
@@ -677,7 +679,7 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
 
                 <div v-else key="catalog-wall-empty" class="catalog-empty-state">
                   <b>{{ catalogFallbackUnavailable ? '资料暂未载入' : '没有匹配物品' }}</b>
-                  <span>{{ catalogFallbackUnavailable ? '当前公共接口暂不可用，已避免展示样例兜底图标。' : '调整搜索词或切回全部分类。' }}</span>
+                  <span>{{ catalogFallbackUnavailable ? '当前资料暂时没有载入成功，请稍后重试。' : '调整搜索词或切回全部分类。' }}</span>
                   <button
                     v-if="catalogFallbackUnavailable"
                     class="small-button active"

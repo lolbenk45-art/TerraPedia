@@ -8,7 +8,7 @@
         <div>
           <span class="eyebrow">/crafting · recipe route</span>
           <h1>制作路线</h1>
-          <p>制作页先做视觉结构：材料、制作站、上游来源和下游目标放在同一个工作台视图里。功能暂不接入，后续再绑定配方接口。</p>
+          <p>制作页先把材料、制作站、上游来源和下游目标放在同一个工作台视图里。功能待补齐，后续会补上完整配方资料。</p>
         </div>
         <a class="primary-button" href="/items/terra-blade">查看泰拉刃</a>
       </div>
@@ -23,7 +23,7 @@
           <div class="tag-row">
             <span class="tag gold">静态占位</span>
             <span class="tag moss">合成树</span>
-            <span class="tag paper">后续接接口</span>
+            <span class="tag paper">资料待补齐</span>
           </div>
         </div>
         <div class="crafting-search">
