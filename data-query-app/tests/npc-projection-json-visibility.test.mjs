@@ -20,6 +20,18 @@ test('generic NPC admin config exposes projection JSON fields', () => {
   assert.match(npcConfig, /key: 'sourceItemsJson'/)
 })
 
+test('generic NPC admin config exposes Chinese display, form, and search fields', () => {
+  const npcConfig = entitiesPage.match(/npcs:\s*\{[\s\S]*?\n\s*bosses:/)?.[0] ?? ''
+
+  assert.match(npcConfig, /searchPlaceholder: '按中文\/英文名、游戏 ID 或内部标识搜索 NPC'/)
+  assert.match(npcConfig, /displayTitleKeys: \['nameZh', 'name', 'nameEn', 'internalName'\]/)
+  assert.match(npcConfig, /displaySubtitleKeys: \['subNameZh', 'subName', 'subNameEn', 'internalName'\]/)
+  assert.match(npcConfig, /key: 'nameZh', label: '中文名'/)
+  assert.match(npcConfig, /key: 'subNameZh', label: '中文别名'/)
+  assert.match(npcConfig, /key: 'nameZh', label: '中文名', type: 'text'/)
+  assert.match(npcConfig, /key: 'subNameZh', label: '中文别名\/子名', type: 'text'/)
+})
+
 test('town NPC shop cards use shared image resolver for itemImageUrl fallbacks', () => {
   assert.match(townNpcComposable, /resolveTownNpcShopItemImage/)
   assert.match(townNpcComposable, /itemImageUrl/)

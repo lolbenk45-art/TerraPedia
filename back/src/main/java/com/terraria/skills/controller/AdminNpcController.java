@@ -71,6 +71,7 @@ public class AdminNpcController {
     private final ObjectMapper objectMapper;
     private final ManagedImageUrlPolicy managedImageUrlPolicy;
     private volatile TimedValue<Map<Long, Map<String, Object>>> npcSupplementCache;
+    private volatile TimedValue<Map<String, NpcZhName>> npcZhNameCache;
 
     @GetMapping
     @Operation(summary = "Get NPCs")
@@ -99,11 +100,13 @@ public class AdminNpcController {
         if (search != null && !search.isBlank()) {
             String keyword = search.trim();
             Long maybeGameId = toLong(keyword);
+            List<String> matchedInternalNames = findNpcZhInternalNameMatches(keyword);
             wrapper.and(w -> w.like(Npc::getInternalName, keyword)
                 .or().like(Npc::getName, keyword)
                 .or().like(Npc::getNameZh, keyword)
                 .or().like(Npc::getSubName, keyword)
                 .or().like(Npc::getSubNameZh, keyword)
+                .or(!matchedInternalNames.isEmpty(), q -> q.in(Npc::getInternalName, matchedInternalNames))
                 .or(maybeGameId != null, q -> q.eq(Npc::getGameId, maybeGameId)));
         }
 
@@ -290,6 +293,7 @@ public class AdminNpcController {
         BossGroup bossGroup = npc.getBossGroupId() == null ? null : bossGroupMapper.selectById(npc.getBossGroupId());
         Long gameId = npc.getGameId();
         Integer fallbackNetId = gameId == null ? null : gameId.intValue();
+        NpcZhName generatedZhName = resolveNpcZhName(npc);
 
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("id", npc.getId());
@@ -297,10 +301,10 @@ public class AdminNpcController {
         payload.put("gameId", gameId);
         payload.put("netId", firstNonNullInteger(toInteger(supplement.get("netId")), fallbackNetId));
         payload.put("name", npc.getName());
-        payload.put("nameZh", firstNonBlank(npc.getNameZh(), trimToNull(supplement.get("nameZh"))));
+        payload.put("nameZh", firstNonBlank(npc.getNameZh(), trimToNull(supplement.get("nameZh")), generatedZhName.nameZh()));
         payload.put("nameEn", firstNonBlank(trimToNull(supplement.get("nameEn")), npc.getName()));
         payload.put("subName", npc.getSubName());
-        payload.put("subNameZh", firstNonBlank(npc.getSubNameZh(), trimToNull(supplement.get("subNameZh"))));
+        payload.put("subNameZh", firstNonBlank(npc.getSubNameZh(), trimToNull(supplement.get("subNameZh")), generatedZhName.subNameZh()));
         payload.put("subNameEn", trimToNull(supplement.get("subNameEn")));
         payload.put("internalName", npc.getInternalName());
         payload.put("categoryId", npc.getCategoryId());
@@ -377,6 +381,7 @@ public class AdminNpcController {
     ) {
         Long gameId = npc.getGameId();
         Integer fallbackNetId = gameId == null ? null : gameId.intValue();
+        NpcZhName generatedZhName = resolveNpcZhName(npc);
 
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("id", npc.getId());
@@ -384,10 +389,10 @@ public class AdminNpcController {
         payload.put("gameId", gameId);
         payload.put("netId", firstNonNullInteger(toInteger(supplement.get("netId")), fallbackNetId));
         payload.put("name", npc.getName());
-        payload.put("nameZh", firstNonBlank(npc.getNameZh(), trimToNull(supplement.get("nameZh"))));
+        payload.put("nameZh", firstNonBlank(npc.getNameZh(), trimToNull(supplement.get("nameZh")), generatedZhName.nameZh()));
         payload.put("nameEn", firstNonBlank(trimToNull(supplement.get("nameEn")), npc.getName()));
         payload.put("subName", npc.getSubName());
-        payload.put("subNameZh", firstNonBlank(npc.getSubNameZh(), trimToNull(supplement.get("subNameZh"))));
+        payload.put("subNameZh", firstNonBlank(npc.getSubNameZh(), trimToNull(supplement.get("subNameZh")), generatedZhName.subNameZh()));
         payload.put("subNameEn", trimToNull(supplement.get("subNameEn")));
         payload.put("internalName", npc.getInternalName());
         payload.put("categoryId", npc.getCategoryId());
@@ -448,6 +453,179 @@ public class AdminNpcController {
         Map<Long, Map<String, Object>> loaded = loadNpcSupplementSnapshot();
         npcSupplementCache = new TimedValue<>(loaded, System.currentTimeMillis() + NPC_SUPPLEMENT_CACHE_TTL.toMillis());
         return loaded;
+    }
+
+    private Map<String, NpcZhName> getNpcZhNameSnapshot() {
+        TimedValue<Map<String, NpcZhName>> cached = npcZhNameCache;
+        if (isValid(cached)) {
+            return cached.value();
+        }
+
+        Map<String, NpcZhName> loaded = loadNpcZhNameSnapshot();
+        npcZhNameCache = new TimedValue<>(loaded, System.currentTimeMillis() + NPC_SUPPLEMENT_CACHE_TTL.toMillis());
+        return loaded;
+    }
+
+    private Map<String, NpcZhName> loadNpcZhNameSnapshot() {
+        Map<String, NpcZhName> result = new LinkedHashMap<>();
+        seedNpcZhNameRows(result, Path.of("generated", "npc-id-row-images.json"));
+        seedNpcZhNameRows(result, Path.of("generated", "wiki-town-npc-maintenance.latest.json"));
+        seedNpcZhNameRows(result, Path.of("standardized", "npcs.standardized.json"));
+        seedNpcZhNameMapRecords(result, Path.of("generated", "npc-zh-map.json"));
+        seedNpcZhVariantFallbacks(result, Path.of("standardized", "npcs.standardized.json"));
+        return Collections.unmodifiableMap(result);
+    }
+
+    private void seedNpcZhNameRows(Map<String, NpcZhName> result, Path relativePath) {
+        Path path = resolveDataFile(relativePath);
+        if (path == null) {
+            return;
+        }
+        try {
+            Map<String, Object> root = objectMapper.readValue(path.toFile(), new TypeReference<>() {});
+            Object recordsRaw = root == null ? null : root.get("records");
+            if (!(recordsRaw instanceof List<?> records)) {
+                return;
+            }
+            for (Object recordRaw : records) {
+                if (recordRaw instanceof Map<?, ?> record) {
+                    String internalName = trimToNull(record.get("internalName"));
+                    mergeNpcZhName(result, internalName, npcZhNameFrom(record));
+                    mergeNpcVariantZhName(result, internalName);
+                }
+            }
+        } catch (Exception exception) {
+            log.warn("Failed to load NPC zh row source {}", relativePath, exception);
+        }
+    }
+
+    private void seedNpcZhNameMapRecords(Map<String, NpcZhName> result, Path relativePath) {
+        Path path = resolveDataFile(relativePath);
+        if (path == null) {
+            return;
+        }
+        try {
+            Map<String, Object> root = objectMapper.readValue(path.toFile(), new TypeReference<>() {});
+            Object recordsRaw = root == null ? null : root.get("records");
+            if (!(recordsRaw instanceof Map<?, ?> records)) {
+                return;
+            }
+            for (Map.Entry<?, ?> entry : records.entrySet()) {
+                if (entry.getValue() instanceof Map<?, ?> value) {
+                    String internalName = firstNonBlank(trimToNull(value.get("internalName")), trimToNull(entry.getKey()));
+                    mergeNpcZhName(result, internalName, npcZhNameFrom(value));
+                    mergeNpcVariantZhName(result, internalName);
+                }
+            }
+        } catch (Exception exception) {
+            log.warn("Failed to load NPC zh map source {}", relativePath, exception);
+        }
+    }
+
+    private NpcZhName npcZhNameFrom(Map<?, ?> value) {
+        Map<?, ?> localizedZh = asMap(asMap(value.get("localized")).get("zh"));
+        return new NpcZhName(
+            trimToNull(value.get("internalName")),
+            firstNonBlank(trimToNull(value.get("nameZh")), trimToNull(value.get("name_zh")), trimToNull(localizedZh.get("name"))),
+            firstNonBlank(trimToNull(value.get("subNameZh")), trimToNull(value.get("sub_name_zh")), trimToNull(localizedZh.get("namesub")))
+        );
+    }
+
+    private void mergeNpcZhName(Map<String, NpcZhName> result, String internalName, NpcZhName next) {
+        String key = trimToNull(internalName);
+        if (key == null || next == null || (next.nameZh() == null && next.subNameZh() == null)) {
+            return;
+        }
+        NpcZhName previous = result.get(key);
+        result.put(key, new NpcZhName(
+            key,
+            firstNonBlank(next.nameZh(), previous == null ? null : previous.nameZh()),
+            firstNonBlank(next.subNameZh(), previous == null ? null : previous.subNameZh())
+        ));
+    }
+
+    private void mergeNpcVariantZhName(Map<String, NpcZhName> result, String internalName) {
+        String key = trimToNull(internalName);
+        if (key == null || result.containsKey(key)) {
+            return;
+        }
+        String stripped = stripNpcVariantAffixes(key);
+        if (stripped == null || stripped.equals(key)) {
+            return;
+        }
+        NpcZhName fallback = result.get(stripped);
+        if (fallback == null || (fallback.nameZh() == null && fallback.subNameZh() == null)) {
+            return;
+        }
+        result.put(key, new NpcZhName(key, fallback.nameZh(), fallback.subNameZh()));
+    }
+
+    private void seedNpcZhVariantFallbacks(Map<String, NpcZhName> result, Path relativePath) {
+        Path path = resolveDataFile(relativePath);
+        if (path == null) {
+            return;
+        }
+        try {
+            Map<String, Object> root = objectMapper.readValue(path.toFile(), new TypeReference<>() {});
+            Object recordsRaw = root == null ? null : root.get("records");
+            if (!(recordsRaw instanceof List<?> records)) {
+                return;
+            }
+            for (Object recordRaw : records) {
+                if (recordRaw instanceof Map<?, ?> record) {
+                    mergeNpcVariantZhName(result, trimToNull(record.get("internalName")));
+                }
+            }
+        } catch (Exception exception) {
+            log.warn("Failed to load NPC zh variant fallback source {}", relativePath, exception);
+        }
+    }
+
+    private NpcZhName resolveNpcZhName(Npc npc) {
+        if (npc == null) {
+            return NpcZhName.EMPTY;
+        }
+        String internalName = trimToNull(npc.getInternalName());
+        if (internalName == null) {
+            return NpcZhName.EMPTY;
+        }
+        Map<String, NpcZhName> snapshot = getNpcZhNameSnapshot();
+        NpcZhName direct = snapshot.get(internalName);
+        if (direct != null) {
+            return direct;
+        }
+        String stripped = stripNpcVariantAffixes(internalName);
+        if (stripped == null || stripped.equals(internalName)) {
+            return NpcZhName.EMPTY;
+        }
+        return safeGetOrDefault(snapshot, stripped, NpcZhName.EMPTY);
+    }
+
+    private List<String> findNpcZhInternalNameMatches(String keyword) {
+        String normalizedKeyword = trimToNull(keyword);
+        if (normalizedKeyword == null) {
+            return List.of();
+        }
+        return getNpcZhNameSnapshot().values().stream()
+            .filter(entry -> containsText(entry.nameZh(), normalizedKeyword) || containsText(entry.subNameZh(), normalizedKeyword))
+            .map(NpcZhName::internalName)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+    }
+
+    private String stripNpcVariantAffixes(String internalName) {
+        String text = trimToNull(internalName);
+        if (text == null) {
+            return null;
+        }
+        return trimToNull(text
+            .replaceFirst("^(Big|Little|Large|Small)", "")
+            .replaceFirst("(Fatty|Honey|Leafy|Spikey|Stingy)$", ""));
+    }
+
+    private boolean containsText(String value, String keyword) {
+        return value != null && keyword != null && value.toLowerCase(Locale.ROOT).contains(keyword.toLowerCase(Locale.ROOT));
     }
 
     private Map<Long, Map<String, Object>> loadNpcSupplementSnapshot() {
@@ -1064,6 +1242,10 @@ public class AdminNpcController {
         return text.isEmpty() ? null : text;
     }
 
+    private Map<?, ?> asMap(Object value) {
+        return value instanceof Map<?, ?> map ? map : Map.of();
+    }
+
     private Integer toInteger(Object value) {
         if (value == null) return null;
         if (value instanceof Number number) return number.intValue();
@@ -1534,6 +1716,10 @@ public class AdminNpcController {
     }
 
     private record TimedValue<T>(T value, long expiresAtMillis) {
+    }
+
+    private record NpcZhName(String internalName, String nameZh, String subNameZh) {
+        private static final NpcZhName EMPTY = new NpcZhName(null, null, null);
     }
 
     private record NpcLootInheritance(

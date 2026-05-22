@@ -22,6 +22,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -137,6 +139,191 @@ class AdminNpcControllerTest {
         ArgumentCaptor<Page<Npc>> pageCaptor = ArgumentCaptor.forClass(Page.class);
         verify(npcMapper).selectPage(pageCaptor.capture(), any());
         assertTrue(pageCaptor.getValue().getSize() == 20);
+    }
+
+    @Test
+    void shouldFallbackToGeneratedNpcZhMapWhenDatabaseChineseNameIsMissing() throws Exception {
+        Npc npc = new Npc();
+        npc.setId(222L);
+        npc.setGameId(222L);
+        npc.setInternalName("QueenBee");
+        npc.setName("Queen Bee");
+        npc.setStatus(1);
+
+        Page<Npc> page = new Page<>(1, 20);
+        page.setTotal(1);
+        page.setRecords(List.of(npc));
+
+        when(npcMapper.selectPage(any(Page.class), any())).thenReturn(page);
+
+        mockMvc.perform(get("/admin/npcs").param("page", "1").param("limit", "20"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].name").value("Queen Bee"))
+            .andExpect(jsonPath("$.data[0].nameZh").value("蜂王"));
+    }
+
+    @Test
+    void shouldSearchNpcByGeneratedChineseNameFallback() throws Exception {
+        Page<Npc> page = new Page<>(1, 20);
+        page.setTotal(0);
+        page.setRecords(List.of());
+
+        when(npcMapper.selectPage(any(Page.class), any())).thenReturn(page);
+
+        mockMvc.perform(get("/admin/npcs").param("search", "蜂王"))
+            .andExpect(status().isOk());
+
+        @SuppressWarnings("unchecked")
+        List<String> matches = ReflectionTestUtils.invokeMethod(adminNpcController, "findNpcZhInternalNameMatches", "蜂王");
+        assertTrue(matches != null && matches.contains("QueenBee"),
+            "Chinese search should resolve generated zh map matches to NPC internal names");
+    }
+
+    @Test
+    void shouldSearchNpcByNpcIdRowImagesGeneratedSource() throws Exception {
+        Path tempRoot = Files.createTempDirectory("npc-id-row-images-source");
+        Path generatedDir = tempRoot.resolve("data").resolve("generated");
+        Files.createDirectories(generatedDir);
+        Files.writeString(generatedDir.resolve("npc-id-row-images.json"), """
+            {
+              "records": [
+                {
+                  "id": 4,
+                  "gameId": 4,
+                  "internalName": "EyeofCthulhu",
+                  "nameZh": "克苏鲁之眼",
+                  "subNameZh": "第一阶段"
+                }
+              ]
+            }
+            """);
+
+        String previousUserDir = System.getProperty("user.dir");
+        try {
+            System.setProperty("user.dir", tempRoot.toString());
+            ReflectionTestUtils.setField(adminNpcController, "npcZhNameCache", null);
+
+            @SuppressWarnings("unchecked")
+            List<String> matches = ReflectionTestUtils.invokeMethod(adminNpcController, "findNpcZhInternalNameMatches", "克苏鲁");
+
+            assertTrue(matches != null && matches.contains("EyeofCthulhu"),
+                "Chinese search should load NPC_ID generated rows when DB zh fields are empty");
+        } finally {
+            System.setProperty("user.dir", previousUserDir);
+            ReflectionTestUtils.setField(adminNpcController, "npcZhNameCache", null);
+        }
+    }
+
+    @Test
+    void shouldFallbackToStrippedVariantChineseNameWhenDirectInternalNameIsMissing() throws Exception {
+        Npc npc = new Npc();
+        npc.setId(650L);
+        npc.setGameId(-65L);
+        npc.setInternalName("BigHornetStingy");
+        npc.setName("Hornet");
+        npc.setStatus(1);
+
+        Page<Npc> page = new Page<>(1, 20);
+        page.setTotal(1);
+        page.setRecords(List.of(npc));
+
+        ReflectionTestUtils.setField(
+            adminNpcController,
+            "npcZhNameCache",
+            timedNpcZhNameCache(Map.of("Hornet", List.of("Hornet", "黄蜂", "毒刺黄蜂")))
+        );
+        when(npcMapper.selectPage(any(Page.class), any())).thenReturn(page);
+
+        mockMvc.perform(get("/admin/npcs").param("page", "1").param("limit", "20"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data[0].nameZh").value("黄蜂"))
+            .andExpect(jsonPath("$.data[0].subNameZh").value("毒刺黄蜂"));
+    }
+
+    @Test
+    void shouldSearchVariantNpcByStrippedGeneratedChineseName() throws Exception {
+        Path tempRoot = Files.createTempDirectory("npc-variant-zh-search");
+        Path generatedDir = tempRoot.resolve("data").resolve("generated");
+        Path standardizedDir = tempRoot.resolve("data").resolve("standardized");
+        Files.createDirectories(generatedDir);
+        Files.createDirectories(standardizedDir);
+        Files.writeString(generatedDir.resolve("npc-id-row-images.json"), """
+            {
+              "records": [
+                {
+                  "id": 235,
+                  "gameId": 235,
+                  "internalName": "Hornet",
+                  "nameZh": "黄蜂",
+                  "subNameZh": "毒刺黄蜂"
+                }
+              ]
+            }
+            """);
+        Files.writeString(standardizedDir.resolve("npcs.standardized.json"), """
+            {
+              "records": [
+                { "id": -65, "internalName": "BigHornetStingy", "name": "Hornet" }
+              ]
+            }
+            """);
+
+        String previousUserDir = System.getProperty("user.dir");
+        try {
+            System.setProperty("user.dir", tempRoot.toString());
+            ReflectionTestUtils.setField(adminNpcController, "npcZhNameCache", null);
+
+            @SuppressWarnings("unchecked")
+            List<String> matches = ReflectionTestUtils.invokeMethod(adminNpcController, "findNpcZhInternalNameMatches", "黄蜂");
+
+            assertTrue(matches != null && matches.contains("BigHornetStingy"),
+                "Chinese search should include variant NPCs that display a stripped generated zh name");
+        } finally {
+            System.setProperty("user.dir", previousUserDir);
+            ReflectionTestUtils.setField(adminNpcController, "npcZhNameCache", null);
+        }
+    }
+
+    @Test
+    void shouldSearchVariantNpcWhenBaseChineseNameComesFromGeneratedMap() throws Exception {
+        Path tempRoot = Files.createTempDirectory("npc-variant-zh-map-search");
+        Path generatedDir = tempRoot.resolve("data").resolve("generated");
+        Path standardizedDir = tempRoot.resolve("data").resolve("standardized");
+        Files.createDirectories(generatedDir);
+        Files.createDirectories(standardizedDir);
+        Files.writeString(generatedDir.resolve("npc-zh-map.json"), """
+            {
+              "records": {
+                "Hornet": {
+                  "internalName": "Hornet",
+                  "nameZh": "黄蜂",
+                  "subNameZh": "毒刺黄蜂"
+                }
+              }
+            }
+            """);
+        Files.writeString(standardizedDir.resolve("npcs.standardized.json"), """
+            {
+              "records": [
+                { "id": -65, "internalName": "BigHornetStingy", "name": "Hornet" }
+              ]
+            }
+            """);
+
+        String previousUserDir = System.getProperty("user.dir");
+        try {
+            System.setProperty("user.dir", tempRoot.toString());
+            ReflectionTestUtils.setField(adminNpcController, "npcZhNameCache", null);
+
+            @SuppressWarnings("unchecked")
+            List<String> matches = ReflectionTestUtils.invokeMethod(adminNpcController, "findNpcZhInternalNameMatches", "黄蜂");
+
+            assertTrue(matches != null && matches.contains("BigHornetStingy"),
+                "Chinese search should include variant NPCs after all generated zh sources are merged");
+        } finally {
+            System.setProperty("user.dir", previousUserDir);
+            ReflectionTestUtils.setField(adminNpcController, "npcZhNameCache", null);
+        }
     }
 
     @Test
@@ -1124,6 +1311,22 @@ class AdminNpcControllerTest {
     }
 
     private Object timedNpcSupplementCache(Map<Long, Map<String, Object>> value) throws Exception {
+        Class<?> timedValueClass = Class.forName("com.terraria.skills.controller.AdminNpcController$TimedValue");
+        Constructor<?> constructor = timedValueClass.getDeclaredConstructor(Object.class, long.class);
+        constructor.setAccessible(true);
+        return constructor.newInstance(value, System.currentTimeMillis() + 60_000L);
+    }
+
+    private Object timedNpcZhNameCache(Map<String, List<String>> entries) throws Exception {
+        Class<?> npcZhNameClass = Class.forName("com.terraria.skills.controller.AdminNpcController$NpcZhName");
+        Constructor<?> npcZhNameConstructor = npcZhNameClass.getDeclaredConstructor(String.class, String.class, String.class);
+        npcZhNameConstructor.setAccessible(true);
+        Map<String, Object> value = new LinkedHashMap<>();
+        for (Map.Entry<String, List<String>> entry : entries.entrySet()) {
+            List<String> fields = entry.getValue();
+            value.put(entry.getKey(), npcZhNameConstructor.newInstance(fields.get(0), fields.get(1), fields.get(2)));
+        }
+
         Class<?> timedValueClass = Class.forName("com.terraria.skills.controller.AdminNpcController$TimedValue");
         Constructor<?> constructor = timedValueClass.getDeclaredConstructor(Object.class, long.class);
         constructor.setAccessible(true);
