@@ -65,11 +65,79 @@ class AdminBiomeControllerTest {
             Integer.class,
             Integer.class,
             String.class,
+            String.class,
             String.class
         );
-        getBiomes.invoke(controller, 1, 20, null, null, "treasure_room");
+        getBiomes.invoke(controller, 1, 20, null, null, "treasure_room", null);
 
         verify(biomeMapper).selectPage(any(), any());
+    }
+
+    @Test
+    void listShouldAcceptWikiGroupCodeFilterAndSortByWikiOrder() throws Exception {
+        AdminBiomeController controller = new AdminBiomeController(
+            biomeMapper,
+            biomeRelationMapper,
+            biomeResourceMapper,
+            itemMapper,
+            managedItemImageResolver
+        );
+        when(biomeMapper.selectPage(any(), any())).thenReturn(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<Biome>(1, 20));
+
+        Method getBiomes = AdminBiomeController.class.getMethod(
+            "getBiomes",
+            Integer.class,
+            Integer.class,
+            Integer.class,
+            String.class,
+            String.class,
+            String.class
+        );
+        getBiomes.invoke(controller, 1, 20, null, null, null, "micro_biomes");
+
+        verify(biomeMapper).selectPage(any(), any());
+    }
+
+    @Test
+    void detailShouldExposeWikiTaxonomyFields() {
+        AdminBiomeController controller = new AdminBiomeController(
+            biomeMapper,
+            biomeRelationMapper,
+            biomeResourceMapper,
+            itemMapper,
+            managedItemImageResolver
+        );
+
+        Biome biome = new Biome();
+        biome.setId(241L);
+        biome.setCode("spike_caves");
+        biome.setNameEn("Spike Caves");
+        biome.setNameZh("尖刺洞穴");
+        biome.setWikiGroupCode("spike_caves");
+        biome.setWikiGroupNameEn("Spike Caves");
+        biome.setWikiGroupNameZh("尖刺洞穴");
+        biome.setWikiParentGroupCode("micro_biomes");
+        biome.setWikiParentGroupNameEn("Micro-biomes");
+        biome.setWikiParentGroupNameZh("微型群系");
+        biome.setWikiSectionLevel(3);
+        biome.setWikiSortOrder(44);
+        biome.setWikiSectionAnchor("Spike_Caves");
+
+        when(biomeMapper.selectById(241L)).thenReturn(biome);
+        when(biomeRelationMapper.selectList(any())).thenReturn(List.of());
+        when(biomeResourceMapper.selectList(any())).thenReturn(List.of());
+
+        ResponseEntity<ApiResponse<BiomeDTO>> response = controller.getBiomeById(241L);
+
+        assertNotNull(response.getBody());
+        BiomeDTO detail = response.getBody().getData();
+        assertEquals("spike_caves", detail.getWikiGroupCode());
+        assertEquals("尖刺洞穴", detail.getWikiGroupNameZh());
+        assertEquals("micro_biomes", detail.getWikiParentGroupCode());
+        assertEquals("微型群系", detail.getWikiParentGroupNameZh());
+        assertEquals(3, detail.getWikiSectionLevel());
+        assertEquals(44, detail.getWikiSortOrder());
+        assertEquals("Spike_Caves", detail.getWikiSectionAnchor());
     }
 
     @Test

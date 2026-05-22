@@ -322,9 +322,13 @@ async function importBiomes(conn, biomeRecords, stats) {
     const nameEn = toNullableString(raw?.nameEn ?? raw?.pageTitle ?? code) ?? code;
     await conn.execute(
       `INSERT INTO biomes
-        (code, name_en, name_zh, alias_en, alias_zh, layer_type, biome_type, description, icon_url, source_provider, source_page, source_revision_timestamp, last_synced_at, status, deleted)
+        (code, name_en, name_zh, alias_en, alias_zh, layer_type, biome_type,
+         wiki_group_code, wiki_group_name_en, wiki_group_name_zh,
+         wiki_parent_group_code, wiki_parent_group_name_en, wiki_parent_group_name_zh,
+         wiki_section_level, wiki_sort_order, wiki_section_anchor,
+         description, icon_url, source_provider, source_page, source_revision_timestamp, last_synced_at, status, deleted)
        VALUES
-        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
        ON DUPLICATE KEY UPDATE
         name_en = VALUES(name_en),
         name_zh = VALUES(name_zh),
@@ -332,6 +336,15 @@ async function importBiomes(conn, biomeRecords, stats) {
         alias_zh = VALUES(alias_zh),
         layer_type = VALUES(layer_type),
         biome_type = VALUES(biome_type),
+        wiki_group_code = VALUES(wiki_group_code),
+        wiki_group_name_en = VALUES(wiki_group_name_en),
+        wiki_group_name_zh = VALUES(wiki_group_name_zh),
+        wiki_parent_group_code = VALUES(wiki_parent_group_code),
+        wiki_parent_group_name_en = VALUES(wiki_parent_group_name_en),
+        wiki_parent_group_name_zh = VALUES(wiki_parent_group_name_zh),
+        wiki_section_level = VALUES(wiki_section_level),
+        wiki_sort_order = VALUES(wiki_sort_order),
+        wiki_section_anchor = VALUES(wiki_section_anchor),
         description = VALUES(description),
         icon_url = VALUES(icon_url),
         source_provider = VALUES(source_provider),
@@ -349,6 +362,15 @@ async function importBiomes(conn, biomeRecords, stats) {
         toNullableString(raw?.aliasZh),
         toNullableString(raw?.layerType),
         toNullableString(raw?.biomeType),
+        toNullableString(raw?.wikiGroupCode),
+        toNullableString(raw?.wikiGroupNameEn),
+        toNullableString(raw?.wikiGroupNameZh),
+        toNullableString(raw?.wikiParentGroupCode),
+        toNullableString(raw?.wikiParentGroupNameEn),
+        toNullableString(raw?.wikiParentGroupNameZh),
+        toNullableInteger(raw?.wikiSectionLevel),
+        toNullableInteger(raw?.wikiSortOrder),
+        toNullableString(raw?.wikiSectionAnchor),
         toNullableString(raw?.description),
         mergeIconUrl(existingIconByCode.get(code), raw?.iconUrl, raw),
         toNullableString(raw?.sourceProvider) ?? 'wiki_gg',

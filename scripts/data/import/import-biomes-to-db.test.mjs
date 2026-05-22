@@ -275,7 +275,7 @@ test('importBiomeDataset preserves existing managed biome icon when incoming wik
 
   const upsertCall = conn.calls.find((call) => call.method === 'execute' && /\bINSERT INTO biomes\b/.test(call.sql));
   assert.ok(upsertCall, 'expected biome upsert call');
-  assert.equal(upsertCall.params[8], managedIcon);
+  assert.equal(upsertCall.params[17], managedIcon);
 });
 
 test('importBiomeDataset replaces known stale managed biome icon when incoming wiki icon is external', async () => {
@@ -297,7 +297,46 @@ test('importBiomeDataset replaces known stale managed biome icon when incoming w
 
   const upsertCall = conn.calls.find((call) => call.method === 'execute' && /\bINSERT INTO biomes\b/.test(call.sql));
   assert.ok(upsertCall, 'expected biome upsert call');
-  assert.equal(upsertCall.params[8], 'https://terraria.wiki.gg/images/thumb/Underground_Cabin.png/200px-Underground_Cabin.png');
+  assert.equal(upsertCall.params[17], 'https://terraria.wiki.gg/images/thumb/Underground_Cabin.png/200px-Underground_Cabin.png');
+});
+
+test('importBiomeDataset persists wiki taxonomy columns while preserving managed image fallback behavior', async () => {
+  const conn = createFakeConnection({
+    biomeIds: [['SPIKE_CAVES', 10]],
+    biomeIcons: [['SPIKE_CAVES', null]],
+  });
+  const plan = buildBiomeImportPlan({
+    wikiBiomes: [
+      {
+        code: 'spike_caves',
+        nameEn: 'Spike Caves',
+        nameZh: '尖刺洞穴',
+        layerType: 'micro_biome',
+        biomeType: 'micro_biome',
+        wikiGroupCode: 'spike_caves',
+        wikiGroupNameEn: 'Spike Caves',
+        wikiGroupNameZh: '尖刺洞穴',
+        wikiParentGroupCode: 'micro_biomes',
+        wikiParentGroupNameEn: 'Micro-biomes',
+        wikiParentGroupNameZh: '微型群系',
+        wikiSectionLevel: 3,
+        wikiSortOrder: 44,
+        wikiSectionAnchor: 'Spike_Caves',
+        sourcePage: 'Biomes#Spike_Caves',
+      },
+    ],
+  });
+
+  await importBiomeDataset(conn, plan);
+
+  const insert = conn.calls.find((call) => call.method === 'execute' && /INSERT INTO biomes/i.test(call.sql));
+  assert.ok(insert, 'expected biome upsert call');
+  assert.match(insert.sql, /wiki_group_code/);
+  assert.match(insert.sql, /wiki_parent_group_code/);
+  assert.match(insert.sql, /wiki_sort_order/);
+  assert.ok(insert.params.includes('spike_caves'));
+  assert.ok(insert.params.includes('micro_biomes'));
+  assert.ok(insert.params.includes(44));
 });
 
 test('importBiomeDataset soft-deletes stale wiki overview fallback biome rows', async () => {
@@ -404,7 +443,7 @@ function createFakeConnection({
         if (!biomeIds.has(code)) {
           biomeIds.set(code, biomeIds.size + 10);
         }
-        biomeIcons.set(code, params[8] ?? null);
+        biomeIcons.set(code, params[17] ?? null);
         return [{ affectedRows: 1, insertId: biomeIds.get(code) }];
       }
       if (/FROM biome_resources/i.test(sql)) {

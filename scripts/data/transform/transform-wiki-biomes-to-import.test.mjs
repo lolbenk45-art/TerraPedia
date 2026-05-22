@@ -151,3 +151,101 @@ test('transform derives canonical code from requested overview title when linked
   assert.equal(output.biomes[0].nameZh, '发光苔藓群系');
   assert.equal(output.biomes[0].aliasEn, 'Glowing moss biome');
 });
+
+test('transform emits wiki taxonomy codes and Chinese labels matching the Biomes page hierarchy', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-biome-transform-taxonomy-'));
+  const generatedDir = path.join(tempDir, 'data', 'generated');
+  fs.mkdirSync(generatedDir, { recursive: true });
+  fs.writeFileSync(path.join(generatedDir, 'wiki-biomes.latest.json'), JSON.stringify({
+    entity: 'wiki_biomes',
+    generatedAt: '2026-05-20T00:00:00.000Z',
+    overview: { title: 'Biomes' },
+    derivedRecords: [],
+    unresolved: [],
+    records: [
+      {
+        topGroup: 'Space',
+        requestedTitle: 'Space',
+        title: 'Space',
+        wikiSectionPath: ['Space'],
+        wikiTopGroup: 'Space',
+        wikiParentGroup: null,
+        wikiSectionLevel: 2,
+        wikiSortOrder: 1,
+        sourceSectionAnchor: 'Space',
+        revisionTimestamp: '2026-05-20T00:00:00Z',
+        intro: 'Space is the top layer.',
+        aliases: ['Space'],
+        iconUrl: 'https://terraria.wiki.gg/images/Space.png',
+      },
+      {
+        topGroup: 'Surface and Underground',
+        sectionGroup: 'Forest',
+        requestedTitle: 'Forest',
+        title: 'Forest',
+        wikiSectionPath: ['Surface and Underground', 'Forest'],
+        wikiTopGroup: 'Surface and Underground',
+        wikiParentGroup: 'Surface and Underground',
+        wikiSectionLevel: 3,
+        wikiSortOrder: 3,
+        sourceSectionAnchor: 'Forest',
+        revisionTimestamp: '2026-05-20T00:00:00Z',
+        intro: 'Forest is a surface biome.',
+        aliases: ['Forest'],
+        iconUrl: 'https://terraria.wiki.gg/images/Forest_biome.png',
+      },
+      {
+        topGroup: 'Micro-biomes',
+        sectionGroup: 'Spike Caves',
+        requestedTitle: 'Spike Caves',
+        title: 'Spike Caves',
+        sourceType: 'overview_section',
+        sourcePageTitle: 'Biomes',
+        sourceSectionAnchor: 'Spike_Caves',
+        wikiSectionPath: ['Micro-biomes', 'Spike Caves'],
+        wikiTopGroup: 'Micro-biomes',
+        wikiParentGroup: 'Micro-biomes',
+        wikiSectionLevel: 3,
+        wikiSortOrder: 44,
+        revisionTimestamp: '2026-05-20T00:00:00Z',
+        intro: 'Spike Caves contain traps and spikes.',
+        aliases: ['Spike Caves'],
+        iconUrl: null,
+      }
+    ]
+  }), 'utf8');
+
+  const result = spawnSync(process.execPath, [scriptPath], {
+    cwd: tempDir,
+    encoding: 'utf8',
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const output = JSON.parse(fs.readFileSync(path.join(generatedDir, 'wiki-biomes.importable.latest.json'), 'utf8'));
+
+  const space = output.biomes.find(row => row.code === 'space');
+  assert.equal(space.wikiGroupCode, 'space');
+  assert.equal(space.wikiGroupNameEn, 'Space');
+  assert.equal(space.wikiGroupNameZh, '太空');
+  assert.equal(space.wikiParentGroupCode, null);
+  assert.equal(space.wikiSectionLevel, 2);
+  assert.equal(space.wikiSortOrder, 1);
+  assert.equal(space.wikiCategoryPathZh, '太空');
+
+  const forest = output.biomes.find(row => row.code === 'forest');
+  assert.equal(forest.wikiGroupCode, 'forest');
+  assert.equal(forest.wikiGroupNameEn, 'Forest');
+  assert.equal(forest.wikiGroupNameZh, '森林');
+  assert.equal(forest.wikiParentGroupCode, 'surface_and_underground');
+  assert.equal(forest.wikiParentGroupNameZh, '地表和地下');
+  assert.equal(forest.wikiSectionLevel, 3);
+  assert.equal(forest.wikiSortOrder, 3);
+  assert.equal(forest.wikiCategoryPathZh, '地表和地下 > 森林');
+
+  const spikeCaves = output.biomes.find(row => row.code === 'spike_caves');
+  assert.equal(spikeCaves.wikiGroupCode, 'spike_caves');
+  assert.equal(spikeCaves.wikiGroupNameZh, '尖刺洞穴');
+  assert.equal(spikeCaves.wikiParentGroupCode, 'micro_biomes');
+  assert.equal(spikeCaves.wikiParentGroupNameZh, '微型群系');
+  assert.equal(spikeCaves.wikiCategoryPathZh, '微型群系 > 尖刺洞穴');
+});
