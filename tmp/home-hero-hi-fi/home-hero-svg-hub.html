@@ -1,0 +1,135 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>TerraPedia High Fidelity SVG Hub</title><style>
+    @import url("../../front-nuxt/node_modules/.pnpm/@fontsource-variable+noto-sans-sc@5.2.10/node_modules/@fontsource-variable/noto-sans-sc/index.css");
+    :root {
+      --bg:#071008; --bg2:#0e1d12; --card:rgba(5,12,7,.76); --card2:rgba(11,24,14,.72);
+      --paper:#f4ead0; --soft:rgba(244,234,208,.68); --muted:rgba(244,234,208,.48);
+      --gold:#ffd765; --gold2:#d6b15a; --teal:#77b8a5; --sage:#9db89a; --ember:#e07e55;
+      --line:rgba(244,234,208,.13); --line2:rgba(255,215,101,.28);
+      --font:"Noto Sans SC Variable","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;
+    }
+    *{box-sizing:border-box} html,body{margin:0;min-height:100%;background:#020503;color:var(--paper);font-family:var(--font)}
+    body{display:grid;place-items:center} a{color:inherit;text-decoration:none}.svg-defs{position:absolute;width:0;height:0;overflow:hidden}
+    .mockup{position:relative;overflow:hidden;width:1600px;height:1200px;background:
+      radial-gradient(circle at 16% 8%,rgba(255,215,101,.13),transparent 330px),
+      radial-gradient(circle at 84% 12%,rgba(119,184,165,.12),transparent 360px),
+      radial-gradient(ellipse at 48% 98%,rgba(224,126,85,.09),transparent 430px),
+      linear-gradient(rgba(244,234,208,.035) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(244,234,208,.035) 1px,transparent 1px),
+      linear-gradient(180deg,#071008 0%,#0e1d12 48%,#060b07 100%);
+      background-size:auto,auto,auto,42px 42px,42px 42px,auto;box-shadow:0 24px 80px rgba(0,0,0,.42)}
+    .mockup:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.35),transparent 22%,transparent 78%,rgba(0,0,0,.3));pointer-events:none}
+    .nav{position:relative;z-index:2;display:grid;grid-template-columns:310px 1fr auto;gap:28px;align-items:center;height:82px;padding:18px 56px 12px}
+    .brand{display:flex;gap:13px;align-items:center}.brand img{width:48px;height:48px;border:1px solid rgba(255,215,101,.28);border-radius:8px;background:rgba(255,215,101,.08)}
+    .brand b{display:block;color:#fff7d8;font-size:29px;line-height:1}.brand span span{display:block;margin-top:5px;color:rgba(244,234,208,.58);font-size:12px;font-weight:820}
+    .links{display:flex;gap:28px;justify-content:center;color:rgba(244,234,208,.75);font-size:14px;font-weight:950}.links a:first-child{color:var(--gold)}
+    .actions{display:flex;gap:10px}.pill,.square{display:grid;place-items:center;height:42px;border:1px solid var(--line);border-radius:8px;background:rgba(4,10,6,.62);font-size:13px;font-weight:950}.pill{padding:0 16px}.square{width:42px}.square svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+    .vicon{display:grid;place-items:center;border:1px solid rgba(255,215,101,.2);border-radius:8px;background:rgba(255,215,101,.07);color:var(--gold)}
+    .vicon svg{width:62%;height:62%;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.vicon.teal{border-color:rgba(119,184,165,.26);background:rgba(119,184,165,.08);color:var(--teal)}
+    .vicon.ember{border-color:rgba(224,126,85,.25);background:rgba(224,126,85,.08);color:var(--ember)}.vicon.sage{border-color:rgba(157,184,154,.24);background:rgba(157,184,154,.08);color:var(--sage)}
+    .eyebrow{display:inline-flex;align-items:center;gap:10px;color:var(--gold);font-size:12px;font-weight:1000}.eyebrow:before{content:"";width:28px;height:1px;background:currentColor}
+    h1{margin:16px 0 0;color:#fff7d8;font-size:76px;font-weight:1000;line-height:.98;letter-spacing:0} h2{margin:0;color:#fff7d8;font-size:32px;line-height:1.12} p{margin:0}
+    .lead{margin-top:18px;max-width:780px;color:rgba(244,234,208,.72);font-size:17px;font-weight:700;line-height:1.78}
+    .search{display:grid;grid-template-columns:62px minmax(0,1fr) 124px;gap:12px;align-items:center;height:76px;border:1px solid rgba(255,215,101,.32);border-radius:8px;background:linear-gradient(90deg,rgba(255,215,101,.12),transparent 72%),rgba(2,7,4,.76);padding:10px 12px;box-shadow:0 22px 42px rgba(0,0,0,.22)}
+    .search .vicon{width:54px;height:54px}.search b{display:block;color:#fff7d8;font-size:20px;line-height:1.15}.search small{display:block;margin-top:5px;color:rgba(244,234,208,.52);font-size:12px;font-weight:850}
+    .button{display:grid;place-items:center;height:52px;border:1px solid rgba(255,215,101,.42);border-radius:8px;background:linear-gradient(180deg,#ffe08a,#d6a840);color:#17200c;font-size:15px;font-weight:1000}
+    .entry-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}.entry{display:grid;grid-template-rows:auto 1fr auto;min-height:158px;border:1px solid rgba(244,234,208,.12);border-radius:8px;background:linear-gradient(180deg,rgba(244,234,208,.055),transparent 34%),rgba(4,10,6,.66);padding:14px}
+    .entry .vicon{width:38px;height:38px}.entry b{display:block;margin-top:18px;color:#fff4c6;font-size:20px;line-height:1.08}.entry p{margin-top:7px;color:rgba(244,234,208,.55);font-size:12px;font-weight:780;line-height:1.45}.entry strong{color:var(--gold);font-size:26px;line-height:1}.entry small{color:rgba(244,234,208,.42);font-size:11px;font-weight:900}
+    .route{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}.node{position:relative;min-height:118px;border:1px solid rgba(244,234,208,.12);border-radius:8px;background:linear-gradient(180deg,rgba(244,234,208,.055),transparent 42%),rgba(4,10,6,.64);padding:12px}.node:after{content:"";position:absolute;right:-14px;top:58px;width:16px;height:1px;background:rgba(255,215,101,.32)}.node:last-child:after{display:none}.node .vicon{width:36px;height:36px}.node b{display:block;margin-top:13px;color:#fff4c6;font-size:15px}.node span{display:block;margin-top:5px;color:var(--muted);font-size:11px;font-weight:850;line-height:1.35}.node.result{border-color:rgba(255,215,101,.38);background:radial-gradient(circle at 52% 22%,rgba(255,215,101,.18),transparent 66%),rgba(6,14,8,.82)}
+    .topic{display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:11px;align-items:center;min-height:64px;border:1px solid rgba(244,234,208,.11);border-radius:8px;background:linear-gradient(90deg,rgba(119,184,165,.07),transparent 72%),rgba(5,12,7,.62);padding:9px 11px}.topic i{display:grid;place-items:center;width:38px;height:38px;border:1px solid rgba(119,184,165,.22);border-radius:8px;background:rgba(119,184,165,.08);color:var(--teal);font-style:normal;font-weight:1000}.topic b{display:block;color:#fff4c6;font-size:14px}.topic span span{display:block;margin-top:4px;color:var(--muted);font-size:11px;font-weight:820}.topic em{color:var(--gold);font-style:normal;font-size:12px;font-weight:1000}
+    .card{border:1px solid rgba(244,234,208,.13);border-radius:8px;background:linear-gradient(135deg,rgba(255,215,101,.075),transparent 45%),rgba(5,12,7,.74);box-shadow:inset 0 1px 0 rgba(244,234,208,.05),0 28px 64px rgba(0,0,0,.28)}
+    .section-head{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:14px}.section-head p{margin-top:6px;color:var(--muted);font-size:12px;font-weight:850}.section-head a{color:var(--gold);font-size:12px;font-weight:1000}
+    .proofs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.proof{min-height:74px;border:1px solid rgba(244,234,208,.1);border-radius:8px;background:rgba(244,234,208,.04);padding:12px}.proof b{display:block;color:#fff7d8;font-size:27px}.proof span{display:block;margin-top:6px;color:rgba(244,234,208,.5);font-size:11px;font-weight:900}
+  
+    .main{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,1fr) 520px;gap:26px;padding:18px 56px 0}.left{display:grid;gap:18px}.hero-card{position:relative;min-height:420px;padding:30px 34px 26px}.hero-card:after{content:"";position:absolute;right:44px;top:46px;width:220px;height:220px;border:1px dashed rgba(255,215,101,.17);border-radius:50%;background:radial-gradient(circle,rgba(255,215,101,.14),transparent 64%)}.hero-crest{position:absolute;right:82px;top:84px;width:144px;height:144px}.hero-crest svg{width:100%;height:100%;fill:none;stroke:#ffd765;stroke-width:1.8}.hero-card h1{max-width:740px}.hero-card .search{margin-top:28px}.dense{display:grid;grid-template-columns:1.18fr .82fr;gap:18px}.route-book{padding:18px;min-height:282px}.topic-stack{display:grid;gap:10px}.atlas{display:grid;grid-template-rows:auto 470px 1fr auto;min-height:1010px}.atlas-head{display:grid;grid-template-columns:minmax(0,1fr) 88px;gap:16px;align-items:center;border-bottom:1px solid rgba(244,234,208,.1);padding:20px 22px 16px}.atlas-head h2{margin-top:8px}.badge{display:grid;place-items:center;width:88px;height:88px;border:1px solid rgba(255,215,101,.28);border-radius:50%;background:radial-gradient(circle,rgba(255,215,101,.2),transparent 62%),rgba(255,215,101,.06);color:var(--gold);font-size:30px;font-weight:1000}.world-svg{margin:18px;width:484px;height:470px;border:1px solid rgba(244,234,208,.11);border-radius:8px}.map-node rect{fill:rgba(3,8,5,.78);stroke:rgba(244,234,208,.15)}.map-node use{fill:none;stroke:#77b8a5;stroke-width:1.8}.map-node text:first-of-type{fill:#fff4c6;font-size:13px;font-weight:900}.map-node text:nth-of-type(2){fill:#f4ead0;opacity:.5;font-size:10px;font-weight:800}.map-node.ember use{stroke:#e07e55}.atlas-list{display:grid;gap:10px;padding:0 18px 18px}.atlas-row{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;min-height:54px;border:1px solid rgba(244,234,208,.1);border-radius:8px;background:linear-gradient(90deg,rgba(255,215,101,.075),transparent 72%),rgba(4,10,6,.58);padding:9px 11px}.atlas-row i{color:var(--gold);font-style:normal;font-size:12px;font-weight:1000}.atlas-row b{display:block;color:#fff4c6;font-size:14px}.atlas-row small{display:block;margin-top:4px;color:var(--muted);font-size:11px;font-weight:850}.atlas-row strong{color:var(--gold);font-size:12px}.proofs{padding:0 18px 18px}.bottom{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;padding:18px 56px 0}.note{min-height:100px;padding:16px}.note b{font-size:16px}.note p{margin-top:8px;color:rgba(244,234,208,.55);font-size:12px;font-weight:760;line-height:1.55}
+  </style></head><body>
+<svg class="svg-defs" aria-hidden="true" focusable="false">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"/><path d="m15 15 4.5 4.5"/></symbol>
+  <symbol id="i-sword" viewBox="0 0 24 24"><path d="m4 20 4-1 11-11-3-3L5 16z"/><path d="m14 5 5 5M5 19l-2 2M8 16l-3-3"/></symbol>
+  <symbol id="i-boss" viewBox="0 0 24 24"><path d="M6 9 4 5l4 2 4-3 4 3 4-2-2 4"/><path d="M6 10h12v7l-3 3H9l-3-3z"/><path d="M9 14h.1M15 14h.1M10 18h4"/></symbol>
+  <symbol id="i-npc" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-4 3.6-6 7-6s5.8 2 7 6"/></symbol>
+  <symbol id="i-craft" viewBox="0 0 24 24"><path d="m5 19 6-6"/><path d="m13 5 6 6"/><path d="m14 4 6 6-2 2-6-6z"/><path d="M7 17h10"/></symbol>
+  <symbol id="i-biome" viewBox="0 0 24 24"><path d="M4 18h16"/><path d="m5 17 4-7 3 5 2-3 5 6"/><path d="M15 8h3M16.5 6.5v3"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4h10a4 4 0 0 1 4 4v12H9a4 4 0 0 0-4-4z"/><path d="M5 4v12M9 8h5M9 11h6"/></symbol>
+  <symbol id="i-gem" viewBox="0 0 24 24"><path d="M12 3 4 8l8 13 8-13z"/><path d="M4 8h16M9 8l3 13 3-13"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.5 2.6 7.8 7 10 4.4-2.2 7-5.5 7-10V6z"/><path d="M12 7v10M8.5 10h7"/></symbol>
+  <symbol id="i-potion" viewBox="0 0 24 24"><path d="M10 3h4M11 3v5l-5 8a4 4 0 0 0 3.4 6h5.2A4 4 0 0 0 18 16l-5-8V3"/><path d="M8 16h8"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M4 6 9 4l6 2 5-2v14l-5 2-6-2-5 2z"/><path d="M9 4v14M15 6v14"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 4 2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8z"/></symbol>
+</svg><main class="mockup">
+  <header class="nav">
+    <a class="brand" href="#"><img src="../../front-nuxt/public/brand/terrapedia-emblem-centered.png" alt=""><span><b>TerraPedia</b><span>Terraria 中文资料库</span></span></a>
+    <nav class="links"><a>首页</a><a>物品</a><a>制作</a><a>Boss</a><a>NPC</a><a>攻略</a></nav>
+    <div class="actions"><span class="pill">资料索引</span><span class="square"><svg viewBox="0 0 24 24"><use href="#i-search"></use></svg></span><span class="square">TP</span></div>
+  </header>
+    <section class="main">
+      <div class="left">
+        <section class="hero-card card">
+          <span class="eyebrow">PUBLIC CODEX · WORLD ROUTES</span>
+          <h1>从泰拉刃<br>进入整个世界</h1>
+          <p class="lead">把物品、合成、Boss、NPC、生态和攻略放进同一个可探索入口。首屏直接给玩家下一步，而不是让资料散在多个页面里。</p>
+          <div class="hero-crest"><svg viewBox="0 0 120 120"><use href="#i-book" x="22" y="28" width="76" height="76"/><use href="#i-sword" x="43" y="13" width="35" height="70"/></svg></div>
+          <div class="search"><span class="vicon "><svg viewBox="0 0 24 24"><use href="#i-search"></use></svg></span><span><b>泰拉刃、机械 Boss、NPC 入住、材料来源...</b><small>支持物品名、英文名、阶段、掉落和制作路线检索</small></span><a class="button">开始检索</a></div>
+        </section>
+        <section class="dense">
+          <article class="route-book card"><div class="section-head"><div><h2>今日路线：泰拉刃</h2><p>材料、事件、制作站和下一阶段同屏串联</p></div><a>查看完整路线</a></div><div class="route">
+    <article class="node "><span class="vicon teal"><svg viewBox="0 0 24 24"><use href="#i-sword"></use></svg></span><b>永夜刃</b><span>前置武器 · 地狱前后</span></article>
+  
+    <article class="node "><span class="vicon teal"><svg viewBox="0 0 24 24"><use href="#i-gem"></use></svg></span><b>断钢剑</b><span>神圣锭 · 机械三王</span></article>
+  
+    <article class="node "><span class="vicon ember"><svg viewBox="0 0 24 24"><use href="#i-boss"></use></svg></span><b>英雄断剑</b><span>日食事件 · 蛾怪</span></article>
+  
+    <article class="node "><span class="vicon teal"><svg viewBox="0 0 24 24"><use href="#i-craft"></use></svg></span><b>真永夜刃</b><span>合成阶段 · 剑气行为</span></article>
+  
+    <article class="node "><span class="vicon teal"><svg viewBox="0 0 24 24"><use href="#i-shield"></use></svg></span><b>真断钢剑</b><span>工作站 · 秘银砧</span></article>
+  
+    <article class="node result"><span class="vicon "><svg viewBox="0 0 24 24"><use href="#i-star"></use></svg></span><b>泰拉刃</b><span>困难模式后期 · 主目标</span></article>
+  </div></article>
+          <div class="topic-stack"><article class="topic"><i>01</i><span><b>Boss 前准备</b><span>药水、场地、护甲、召唤物</span></span><em>路线</em></article><article class="topic"><i>02</i><span><b>开荒装备包</b><span>木材、矿物、宝箱、早期武器</span></span><em>阶段</em></article><article class="topic"><i>03</i><span><b>NPC 入住条件</b><span>房屋、喜好、传送塔、事件</span></span><em>关系</em></article><article class="topic"><i>04</i><span><b>材料来源速查</b><span>掉落、生物群落、制作链路</span></span><em>速查</em></article></div>
+        </section>
+        <nav class="entry-grid">
+    <a class="entry"><span class="vicon "><svg viewBox="0 0 24 24"><use href="#i-sword"></use></svg></span><span><b>物品图鉴</b><p>装备、材料、工具、掉落</p></span><span><strong>6,159</strong><br><small>条目</small></span></a>
+  
+    <a class="entry"><span class="vicon ember"><svg viewBox="0 0 24 24"><use href="#i-boss"></use></svg></span><span><b>Boss 路线</b><p>召唤、阶段、战利品</p></span><span><strong>路线化</strong><br><small>推进</small></span></a>
+  
+    <a class="entry"><span class="vicon teal"><svg viewBox="0 0 24 24"><use href="#i-npc"></use></svg></span><span><b>NPC 图鉴</b><p>城镇、敌怪、入住关系</p></span><span><strong>762</strong><br><small>角色</small></span></a>
+  
+    <a class="entry"><span class="vicon "><svg viewBox="0 0 24 24"><use href="#i-craft"></use></svg></span><span><b>制作链路</b><p>材料、配方、工作站</p></span><span><strong>14,746</strong><br><small>节点</small></span></a>
+  
+    <a class="entry"><span class="vicon teal"><svg viewBox="0 0 24 24"><use href="#i-biome"></use></svg></span><span><b>生态地图</b><p>地表、洞穴、神圣与腐化</p></span><span><strong>地图</strong><br><small>区域</small></span></a>
+  
+    <a class="entry"><span class="vicon "><svg viewBox="0 0 24 24"><use href="#i-book"></use></svg></span><span><b>攻略手札</b><p>阶段专题、机制解释</p></span><span><strong>精选</strong><br><small>文章</small></span></a>
+  </nav>
+      </div>
+      <aside class="atlas card">
+        <header class="atlas-head"><div><span class="eyebrow">WORLD ATLAS</span><h2>世界图鉴地图</h2><p class="lead" style="font-size:12px;margin-top:7px;line-height:1.5">把首屏右侧做成可探索的世界，不做统计堆叠。</p></div><span class="badge">TP</span></header>
+        
+  <svg class="world-svg hub" viewBox="0 0 560 470" role="img" aria-label="世界图鉴地图">
+    <defs>
+      <radialGradient id="sun-hub" cx="65%" cy="28%" r="38%"><stop offset="0" stop-color="#ffd765" stop-opacity=".26"/><stop offset="1" stop-color="#ffd765" stop-opacity="0"/></radialGradient>
+      <linearGradient id="ground-hub" x1="0" x2="1"><stop offset="0" stop-color="#1f5d30" stop-opacity=".28"/><stop offset=".5" stop-color="#6f985e" stop-opacity=".5"/><stop offset="1" stop-color="#25391e" stop-opacity=".32"/></linearGradient>
+    </defs>
+    <rect width="560" height="470" rx="8" fill="#061109" opacity=".9"/>
+    <rect width="560" height="470" fill="url(#sun-hub)"/>
+    <path d="M0 305 C95 285 145 318 224 292 C307 265 358 314 448 286 C506 268 540 286 560 278 L560 470 L0 470 Z" fill="url(#ground-hub)"/>
+    <path d="M55 345 L155 250 L245 345 Z" fill="#36572f" opacity=".58"/>
+    <path d="M170 350 L300 215 L430 350 Z" fill="#2c4d2d" opacity=".7"/>
+    <path d="M310 348 L430 246 L535 348 Z" fill="#455233" opacity=".46"/>
+    <path d="M76 345 H506" stroke="#ffd765" stroke-opacity=".18"/>
+    <g class="core">
+      <rect x="228" y="132" width="108" height="136" rx="8" fill="#071008" stroke="#ffd765" stroke-opacity=".42"/>
+      <circle cx="282" cy="166" r="12" fill="#77b8a5" opacity=".2" stroke="#77b8a5"/>
+      <path d="M282 145 L282 208 M262 223 L302 183 M300 153 L315 168" stroke="#ffd765" stroke-width="5" stroke-linecap="round"/>
+      <text x="282" y="235" fill="#fff4c6" font-size="20" font-weight="900" text-anchor="middle">泰拉刃</text>
+      <text x="282" y="256" fill="#f4ead0" opacity=".46" font-size="11" font-weight="800" text-anchor="middle">当前探索目标</text>
+    </g>
+    <g class="map-node" transform="translate(40 72)"><rect width="156" height="58" rx="8"/><use href="#i-biome" x="14" y="16" width="25" height="25"/><text x="54" y="24">森林</text><text x="54" y="42">开荒、NPC、木材</text></g>
+    <g class="map-node" transform="translate(382 84)"><rect width="142" height="58" rx="8"/><use href="#i-gem" x="14" y="16" width="25" height="25"/><text x="54" y="24">洞穴</text><text x="54" y="42">矿物、宝箱、生命水晶</text></g>
+    <g class="map-node ember" transform="translate(62 292)"><rect width="146" height="58" rx="8"/><use href="#i-boss" x="14" y="16" width="25" height="25"/><text x="54" y="24">猩红</text><text x="54" y="42">Boss、组织样本、事件</text></g>
+    <g class="map-node" transform="translate(360 302)"><rect width="150" height="58" rx="8"/><use href="#i-star" x="14" y="16" width="25" height="25"/><text x="54" y="24">神圣</text><text x="54" y="42">灵液、独角兽、困难模式</text></g>
+    <g class="map-node" transform="translate(220 380)"><rect width="160" height="58" rx="8"/><use href="#i-map" x="14" y="16" width="25" height="25"/><text x="54" y="24">地狱 / 天空</text><text x="54" y="42">熔岩、狱石、岛屿</text></g>
+  </svg>
+        <section class="atlas-list"><article class="atlas-row"><i>A</i><span><b>机械三王前置路线</b><small>召唤物、护甲、翅膀、药水</small></span><strong>Boss 前</strong></article><article class="atlas-row"><i>B</i><span><b>困难模式材料合集</b><small>神圣锭、叶绿矿、灵气、断剑</small></span><strong>材料</strong></article><article class="atlas-row"><i>C</i><span><b>近战装备推进</b><small>从永夜刃到泰拉刃再到月后</small></span><strong>职业</strong></article><article class="atlas-row"><i>D</i><span><b>NPC 城镇规划</b><small>喜好、邻居、生态和传送塔</small></span><strong>入住</strong></article></section>
+        <footer class="proofs"><span class="proof"><b>6,159</b><span>物品条目</span></span><span class="proof"><b>106</b><span>分类索引</span></span><span class="proof"><b>持续</b><span>资料校验</span></span></footer>
+      </aside>
+    </section>
+    <section class="bottom"><article class="note card"><b>资料中枢版</b><p>最接近上一版：搜索、路线、入口、地图并行，适合直接落成首页。</p></article><article class="note card"><b>SVG 识别增强</b><p>所有入口图形都使用线性矢量符号，避免像素资产在缩小时看不清。</p></article><article class="note card"><b>中高信息量</b><p>信息很多，但按玩家任务组织：查物品、走路线、看地图、找专题。</p></article></section></main></body></html>
