@@ -975,13 +975,60 @@ for (const path of scanFiles) {
       'npcCards',
       'pagination',
       ':href="npc.detailPath"',
-      'v-for="npc in npcCards"',
+      'v-for="npc in visibleNpcCards"',
       "npcResult?.source === 'api'",
-      '加载 NPC',
+      'npc-card-loading',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: NPC list page must use the public NPC API data layer via marker ${marker}`)
       }
+    }
+
+    for (const marker of [
+      'const npcCategoryGroups',
+      'const quickFilters = npcCategoryGroups.flatMap',
+      'const pageSizeOptions = [12, 24, 48, 96]',
+      'pageSize: selectedPageSize.value !== defaultNpcPageSize',
+      'const pageWindowItems = computed',
+      'matchNpcFilter',
+      'npcWallTopRef',
+      'scrollIntoView',
+      'npcFallbackUnavailable',
+      'npcDisplayCards',
+      'npcVisualLoading',
+      'npcLoadingSlotCount',
+      '<CommonTpSkeleton',
+      'npc-card-loading',
+      'catalog-density-picker',
+      'catalog-page-dock',
+      'catalog-dock-jump-form',
+      'goToJumpPage',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: NPC list page must reuse item category, page-size, pagination dock, URL sync, and skeleton mechanics via marker ${marker}`)
+      }
+    }
+
+    for (const marker of [
+      'entity-layout',
+      'entity-rail',
+      'entity-filter',
+      'entity-main-panel',
+      'npc-board',
+      'npc-card',
+      'entity-preview-dark',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: NPC list page must preserve its entity/NPC visual shell while adopting item paging mechanics via marker ${marker}`)
+      }
+    }
+
+    if (!content.includes('v-for="group in npcCategoryGroups"') || !content.includes('v-for="filter in group.filters"')) {
+      violations.push(`${path}: NPC category drawer must render grouped filters from npcCategoryGroups`)
+    }
+
+    if (!content.includes('@submit.prevent="goToJumpPage"') || !content.includes('v-for="pageSize in pageSizeOptions"')) {
+      violations.push(`${path}: NPC page dock and drawer must keep jump-page and page-size controls wired`)
     }
 
     if (content.includes('/npcs/guide')) {
