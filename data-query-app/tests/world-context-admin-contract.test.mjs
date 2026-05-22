@@ -18,12 +18,11 @@ test('world context admin exposes backend context type filtering', () => {
     'handleWorldContextTypeChange',
     '世界条件类型',
     'MOON_PHASE',
-    'LOCAL_CONDITION',
-    '条件词汇',
-    '游戏进度',
   ]) {
     assert.match(entitiesPage, new RegExp(escapeRegExp(token)))
   }
+
+  assert.doesNotMatch(entitiesPage, /value: 'LOCAL_CONDITION'/)
 
   assert.match(
     entitiesPage,
@@ -73,4 +72,19 @@ test('world context admin surfaces source and quality cues in preview and detail
   assert.match(entitiesPage, /buildWorldContextDataQualityWarnings\(detailRow\.value\)/)
   assert.match(entitiesPage, /formatWorldContextTypeLabel\(previewRow\.value\.contextType\)/)
   assert.match(entitiesPage, /formatWorldContextTypeLabel\(detailRow\.value\.contextType\)/)
+})
+
+test('condition terms admin is separated from world contexts', () => {
+  for (const token of [
+    "'condition-terms': {",
+    "endpoint: '/admin/condition-terms'",
+    'CONDITION TERM',
+    '本地条件词汇',
+    'termType',
+    'MOON_PHASE_RANGE',
+    'EVENT_COMPLETED',
+    'BOSS_PROGRESS',
+  ]) {
+    assert.match(entitiesPage, new RegExp(escapeRegExp(token)))
+  }
 })

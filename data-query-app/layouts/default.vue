@@ -190,6 +190,7 @@ import {
   Package,
   PanelLeftClose,
   PanelLeftOpen,
+  ListChecks,
   Settings2,
   ShieldCheck,
   Sparkles,
@@ -268,6 +269,7 @@ const menuSections: MenuSection[] = [
     items: [
       { name: '群系管理', path: '/entities/biomes', hint: '环境与区域信息', icon: Trees },
       { name: '世界条件', path: '/entities/world-contexts', hint: '时间与环境上下文', icon: Globe2 },
+      { name: '条件词汇', path: '/entities/condition-terms', hint: '本地逻辑条件', icon: ListChecks },
     ],
   },
   {

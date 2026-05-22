@@ -7,7 +7,7 @@ import {
   prepareTownNpcShopConditionContext,
 } from './import-wiki-town-npcs-to-db.mjs';
 
-test('prepareTownNpcShopConditionContext starts a transaction before mutating world contexts in apply mode', async () => {
+test('prepareTownNpcShopConditionContext starts a transaction before mutating support terms in apply mode', async () => {
   const calls = [];
   const connection = {
     async beginTransaction() {
@@ -20,14 +20,19 @@ test('prepareTownNpcShopConditionContext starts a transaction before mutating wo
       calls.push(`ensure:${shouldApply}`);
       return 3;
     },
+    ensureConditionTerms: async (_connection, shouldApply) => {
+      calls.push(`ensureTerms:${shouldApply}`);
+      return 7;
+    },
     loadShopConditionLookup: async () => {
       calls.push('load');
       return { loaded: true };
     }
   });
 
-  assert.deepEqual(calls, ['beginTransaction', 'ensure:true', 'load']);
+  assert.deepEqual(calls, ['beginTransaction', 'ensure:true', 'ensureTerms:true', 'load']);
   assert.equal(actual.createdWorldContextCount, 3);
+  assert.equal(actual.createdConditionTermCount, 7);
   assert.deepEqual(actual.shopConditionLookup, { loaded: true });
 });
 
@@ -44,14 +49,19 @@ test('prepareTownNpcShopConditionContext skips transactions in dry-run mode', as
       calls.push(`ensure:${shouldApply}`);
       return 0;
     },
+    ensureConditionTerms: async (_connection, shouldApply) => {
+      calls.push(`ensureTerms:${shouldApply}`);
+      return 7;
+    },
     loadShopConditionLookup: async () => {
       calls.push('load');
       return { loaded: true };
     }
   });
 
-  assert.deepEqual(calls, ['ensure:false', 'load']);
+  assert.deepEqual(calls, ['ensure:false', 'ensureTerms:false', 'load']);
   assert.equal(actual.createdWorldContextCount, 0);
+  assert.equal(actual.createdConditionTermCount, 7);
   assert.deepEqual(actual.shopConditionLookup, { loaded: true });
 });
 

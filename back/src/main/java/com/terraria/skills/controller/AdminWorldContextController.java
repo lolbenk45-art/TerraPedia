@@ -82,6 +82,9 @@ public class AdminWorldContextController {
         if (code == null || trimToNull(request.getNameEn()) == null || trimToNull(request.getContextType()) == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "code, nameEn and contextType are required"));
         }
+        if ("LOCAL_CONDITION".equalsIgnoreCase(trimToNull(request.getContextType()))) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "LOCAL_CONDITION belongs in condition_terms"));
+        }
         long duplicate = worldContextMapper.selectCount(new LambdaQueryWrapper<WorldContext>().eq(WorldContext::getCode, code));
         if (duplicate > 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "code already exists"));
@@ -98,6 +101,9 @@ public class AdminWorldContextController {
         WorldContext existing = worldContextMapper.selectById(id);
         if (existing == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(404, "World context not found"));
+        }
+        if ("LOCAL_CONDITION".equalsIgnoreCase(trimToNull(request.getContextType()))) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(400, "LOCAL_CONDITION belongs in condition_terms"));
         }
         String nextCode = trimToNull(request.getCode()) == null ? existing.getCode() : trimToNull(request.getCode());
         long duplicate = worldContextMapper.selectCount(new LambdaQueryWrapper<WorldContext>()

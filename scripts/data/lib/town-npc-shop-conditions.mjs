@@ -33,13 +33,6 @@ const WORLD_CONTEXT_RULES = [
   { code: 'VALENTINES_DAY', patterns: ['\u5728 \u60c5\u4eba\u8282 \u671f\u95f4', '\u60c5\u4eba\u8282\u671f\u95f4', '\u60c5\u4eba\u8282 \u671f\u95f4'] },
   { code: 'THANKSGIVING', patterns: ['\u5728 \u611f\u6069\u8282 \u671f\u95f4', '\u611f\u6069\u8282\u671f\u95f4', '\u611f\u6069\u8282 \u671f\u95f4'] },
   { code: 'OKTOBERFEST', patterns: ['\u5728 \u5341\u6708\u5564\u9152\u8282 \u671f\u95f4', '\u5341\u6708\u5564\u9152\u8282\u671f\u95f4', '\u5341\u6708\u5564\u9152\u8282 \u671f\u95f4'] },
-  { code: 'MOON_PHASE_1_4', patterns: ['\u6708\u76f8 1\u20134', '\u6708\u76f8 1-4', '\u5728 \u6708\u76f8 1\u20134 \u671f\u95f4', '\u5728 \u6708\u76f8 1-4 \u671f\u95f4'] },
-  { code: 'MOON_PHASE_LISTED', patterns: ['\u4ee5\u4e0b\u6708\u76f8', '\u4ee5\u4e0b \u6708\u76f8', '\u4e0b\u5217 \u6708\u76f8', '\u5728\u4e0b\u5217 \u6708\u76f8 \u671f\u95f4', '\u5728\u4ee5\u4e0b \u6708\u76f8 \u671f\u95f4', '\u4ee5\u4e0b\u6708\u76f8\u671f\u95f4'] },
-  { code: 'MARTIAN_MADNESS_COMPLETED', patterns: ['\u5728\u6253\u8d25\u4e86 \u706b\u661f\u66b4\u4e71 \u4e8b\u4ef6\u540e', '\u6253\u8d25\u4e86 \u706b\u661f\u66b4\u4e71 \u4e8b\u4ef6\u540e', '\u706b\u661f\u66b4\u4e71 \u4e8b\u4ef6\u540e', '\u706b\u661f\u66b4\u4e71\u4e8b\u4ef6\u540e'] },
-  { code: 'PIRATE_INVASION_COMPLETED', patterns: ['\u6d77\u76d7\u5165\u4fb5 \u5df2\u88ab\u6253\u8d25', '\u6253\u8d25 \u6d77\u76d7\u5165\u4fb5 \u540e', '\u6253\u8d25\u4e86 \u6d77\u76d7\u5165\u4fb5 \u540e', '\u5df2\u6253\u8d25 \u6d77\u76d7\u5165\u4fb5'] },
-  { code: 'SNOW_LEGION_COMPLETED', patterns: ['\u96ea\u4eba\u519b\u56e2 \u5df2\u88ab\u6253\u8d25', '\u6253\u8d25 \u96ea\u4eba\u519b\u56e2 \u540e', '\u6253\u8d25\u4e86 \u96ea\u4eba\u519b\u56e2 \u540e', '\u5df2\u6253\u8d25 \u96ea\u4eba\u519b\u56e2'] },
-  { code: 'ANY_MECH_BOSS_DEFEATED', patterns: ['\u4efb\u4f55 \u673a\u68b0 Boss \u88ab\u6253\u8d25\u540e', '\u4efb\u610f \u673a\u68b0 Boss \u88ab\u6253\u8d25\u540e', '\u81f3\u5c11\u4e00\u4e2a \u673a\u68b0 Boss \u540e', '\u6253\u8d25\u81f3\u5c11\u4e00\u4e2a \u673a\u68b0 Boss \u4e4b\u540e', '\u6253\u8d25\u81f3\u5c11\u4e00\u4e2a \u673a\u68b0 Boss \u540e', '\u6253\u8d25\u4e86\u81f3\u5c11\u4e00\u4e2a \u673a\u68b0 Boss \u540e', '\u6709\u4efb\u4e00 \u673a\u68b0 Boss \u5df2\u88ab\u6253\u8d25', '\u4efb\u4e00 \u673a\u68b0 Boss \u5df2\u88ab\u6253\u8d25'] },
-  { code: 'ALL_MECH_BOSSES_DEFEATED', patterns: ['\u5168\u90e8\u4e09\u4e2a \u673a\u68b0 Boss \u90fd\u5df2\u88ab\u6253\u8d25', '\u5168\u90e8\u4e09\u4e2a \u673a\u68b0 Boss \u5df2\u88ab\u6253\u8d25'] },
   { code: 'FULL_MOON', patterns: ['\u6ee1\u6708'] },
   { code: 'NEW_MOON', patterns: ['\u65b0\u6708'] },
   { code: 'FIRST_QUARTER', patterns: ['\u4e0a\u5f26\u6708'] },
@@ -48,6 +41,16 @@ const WORLD_CONTEXT_RULES = [
   { code: 'WANING_CRESCENT', patterns: ['\u6b8b\u6708'] },
   { code: 'WAXING_GIBBOUS', patterns: ['\u76c8\u51f8\u6708'] },
   { code: 'WANING_GIBBOUS', patterns: ['\u4e8f\u51f8\u6708'] },
+];
+
+const CONDITION_TERM_RULES = [
+  { code: 'MOON_PHASE_1_4', patterns: ['\u6708\u76f8 1\u20134', '\u6708\u76f8 1-4', '\u5728 \u6708\u76f8 1\u20134 \u671f\u95f4', '\u5728 \u6708\u76f8 1-4 \u671f\u95f4'] },
+  { code: 'MOON_PHASE_LISTED', patterns: ['\u4ee5\u4e0b\u6708\u76f8', '\u4ee5\u4e0b \u6708\u76f8', '\u4e0b\u5217 \u6708\u76f8', '\u5728\u4e0b\u5217 \u6708\u76f8 \u671f\u95f4', '\u5728\u4ee5\u4e0b \u6708\u76f8 \u671f\u95f4', '\u4ee5\u4e0b\u6708\u76f8\u671f\u95f4'] },
+  { code: 'MARTIAN_MADNESS_COMPLETED', patterns: ['\u5728\u6253\u8d25\u4e86 \u706b\u661f\u66b4\u4e71 \u4e8b\u4ef6\u540e', '\u6253\u8d25\u4e86 \u706b\u661f\u66b4\u4e71 \u4e8b\u4ef6\u540e', '\u706b\u661f\u66b4\u4e71 \u4e8b\u4ef6\u540e', '\u706b\u661f\u66b4\u4e71\u4e8b\u4ef6\u540e'] },
+  { code: 'PIRATE_INVASION_COMPLETED', patterns: ['\u6d77\u76d7\u5165\u4fb5 \u5df2\u88ab\u6253\u8d25', '\u6253\u8d25 \u6d77\u76d7\u5165\u4fb5 \u540e', '\u6253\u8d25\u4e86 \u6d77\u76d7\u5165\u4fb5 \u540e', '\u5df2\u6253\u8d25 \u6d77\u76d7\u5165\u4fb5'] },
+  { code: 'SNOW_LEGION_COMPLETED', patterns: ['\u96ea\u4eba\u519b\u56e2 \u5df2\u88ab\u6253\u8d25', '\u6253\u8d25 \u96ea\u4eba\u519b\u56e2 \u540e', '\u6253\u8d25\u4e86 \u96ea\u4eba\u519b\u56e2 \u540e', '\u5df2\u6253\u8d25 \u96ea\u4eba\u519b\u56e2'] },
+  { code: 'ANY_MECH_BOSS_DEFEATED', patterns: ['\u4efb\u4f55 \u673a\u68b0 Boss \u88ab\u6253\u8d25\u540e', '\u4efb\u610f \u673a\u68b0 Boss \u88ab\u6253\u8d25\u540e', '\u81f3\u5c11\u4e00\u4e2a \u673a\u68b0 Boss \u540e', '\u6253\u8d25\u81f3\u5c11\u4e00\u4e2a \u673a\u68b0 Boss \u4e4b\u540e', '\u6253\u8d25\u81f3\u5c11\u4e00\u4e2a \u673a\u68b0 Boss \u540e', '\u6253\u8d25\u4e86\u81f3\u5c11\u4e00\u4e2a \u673a\u68b0 Boss \u540e', '\u6709\u4efb\u4e00 \u673a\u68b0 Boss \u5df2\u88ab\u6253\u8d25', '\u4efb\u4e00 \u673a\u68b0 Boss \u5df2\u88ab\u6253\u8d25'] },
+  { code: 'ALL_MECH_BOSSES_DEFEATED', patterns: ['\u5168\u90e8\u4e09\u4e2a \u673a\u68b0 Boss \u90fd\u5df2\u88ab\u6253\u8d25', '\u5168\u90e8\u4e09\u4e2a \u673a\u68b0 Boss \u5df2\u88ab\u6253\u8d25'] },
 ];
 
 const REQUIRED_TOWN_NPC_WORLD_CONTEXTS = [
@@ -99,76 +102,6 @@ const REQUIRED_TOWN_NPC_WORLD_CONTEXTS = [
     contextType: 'EVENT',
     description: 'Public NPC shop condition for party event availability.',
     sortOrder: 240,
-    status: 1,
-  },
-  {
-    id: -912,
-    code: 'MOON_PHASE_1_4',
-    nameEn: 'Moon Phase 1-4',
-    nameZh: '\u6708\u76f8 1\u20134',
-    contextType: 'LOCAL_CONDITION',
-    description: 'Public NPC shop condition for moon phase 1-4 availability.',
-    sortOrder: 300,
-    status: 1,
-  },
-  {
-    id: -913,
-    code: 'MOON_PHASE_LISTED',
-    nameEn: 'Listed Moon Phases',
-    nameZh: '\u4ee5\u4e0b\u6708\u76f8',
-    contextType: 'LOCAL_CONDITION',
-    description: 'Public NPC shop condition for listed moon phase availability.',
-    sortOrder: 310,
-    status: 1,
-  },
-  {
-    id: -914,
-    code: 'MARTIAN_MADNESS_COMPLETED',
-    nameEn: 'Martian Madness Completed',
-    nameZh: '\u706b\u661f\u66b4\u4e71\u5df2\u5b8c\u6210',
-    contextType: 'LOCAL_CONDITION',
-    description: 'Public NPC shop condition for Martian Madness completion unlocks.',
-    sortOrder: 320,
-    status: 1,
-  },
-  {
-    id: -915,
-    code: 'PIRATE_INVASION_COMPLETED',
-    nameEn: 'Pirate Invasion Completed',
-    nameZh: '\u6d77\u76d7\u5165\u4fb5\u5df2\u5b8c\u6210',
-    contextType: 'LOCAL_CONDITION',
-    description: 'Public NPC shop condition for Pirate Invasion completion unlocks.',
-    sortOrder: 330,
-    status: 1,
-  },
-  {
-    id: -916,
-    code: 'SNOW_LEGION_COMPLETED',
-    nameEn: 'Snow Legion Completed',
-    nameZh: '\u96ea\u4eba\u519b\u56e2\u5df2\u5b8c\u6210',
-    contextType: 'LOCAL_CONDITION',
-    description: 'Public NPC shop condition for Snow Legion completion unlocks.',
-    sortOrder: 340,
-    status: 1,
-  },
-  {
-    id: -917,
-    code: 'ANY_MECH_BOSS_DEFEATED',
-    nameEn: 'Any Mechanical Boss Defeated',
-    nameZh: '\u4efb\u4e00\u673a\u68b0Boss\u5df2\u51fb\u8d25',
-    contextType: 'LOCAL_CONDITION',
-    description: 'Public NPC shop condition for any mechanical boss defeat unlocks.',
-    sortOrder: 350,
-    status: 1,
-  },
-  {
-    id: -918,
-    code: 'ALL_MECH_BOSSES_DEFEATED',
-    nameEn: 'All Mechanical Bosses Defeated',
-    nameZh: '\u5168\u90e8\u673a\u68b0Boss\u5df2\u51fb\u8d25',
-    contextType: 'LOCAL_CONDITION',
-    description: 'Public NPC shop condition for all mechanical bosses defeat unlocks.',
-    sortOrder: 360,
     status: 1,
   },
   {
@@ -243,11 +176,102 @@ const REQUIRED_TOWN_NPC_WORLD_CONTEXTS = [
   },
 ];
 
+const REQUIRED_TOWN_NPC_CONDITION_TERMS = [
+  {
+    id: -912,
+    code: 'MOON_PHASE_1_4',
+    nameEn: 'Moon Phase 1-4',
+    nameZh: '\u6708\u76f8 1\u20134',
+    termType: 'MOON_PHASE_RANGE',
+    description: 'Public NPC shop condition term for moon phase 1-4 availability.',
+    sourceProvider: 'terrapedia_local',
+    sourcePage: 'town_npc_shop_conditions',
+    sortOrder: 300,
+    status: 1,
+  },
+  {
+    id: -913,
+    code: 'MOON_PHASE_LISTED',
+    nameEn: 'Listed Moon Phases',
+    nameZh: '\u4ee5\u4e0b\u6708\u76f8',
+    termType: 'MOON_PHASE_RANGE',
+    description: 'Public NPC shop condition term for listed moon phase availability.',
+    sourceProvider: 'terrapedia_local',
+    sourcePage: 'town_npc_shop_conditions',
+    sortOrder: 310,
+    status: 1,
+  },
+  {
+    id: -914,
+    code: 'MARTIAN_MADNESS_COMPLETED',
+    nameEn: 'Martian Madness Completed',
+    nameZh: '\u706b\u661f\u66b4\u4e71\u5df2\u5b8c\u6210',
+    termType: 'EVENT_COMPLETED',
+    description: 'Public NPC shop condition term for Martian Madness completion unlocks.',
+    sourceProvider: 'terrapedia_local',
+    sourcePage: 'town_npc_shop_conditions',
+    sortOrder: 320,
+    status: 1,
+  },
+  {
+    id: -915,
+    code: 'PIRATE_INVASION_COMPLETED',
+    nameEn: 'Pirate Invasion Completed',
+    nameZh: '\u6d77\u76d7\u5165\u4fb5\u5df2\u5b8c\u6210',
+    termType: 'EVENT_COMPLETED',
+    description: 'Public NPC shop condition term for Pirate Invasion completion unlocks.',
+    sourceProvider: 'terrapedia_local',
+    sourcePage: 'town_npc_shop_conditions',
+    sortOrder: 330,
+    status: 1,
+  },
+  {
+    id: -916,
+    code: 'SNOW_LEGION_COMPLETED',
+    nameEn: 'Snow Legion Completed',
+    nameZh: '\u96ea\u4eba\u519b\u56e2\u5df2\u5b8c\u6210',
+    termType: 'EVENT_COMPLETED',
+    description: 'Public NPC shop condition term for Snow Legion completion unlocks.',
+    sourceProvider: 'terrapedia_local',
+    sourcePage: 'town_npc_shop_conditions',
+    sortOrder: 340,
+    status: 1,
+  },
+  {
+    id: -917,
+    code: 'ANY_MECH_BOSS_DEFEATED',
+    nameEn: 'Any Mechanical Boss Defeated',
+    nameZh: '\u4efb\u4e00\u673a\u68b0Boss\u5df2\u51fb\u8d25',
+    termType: 'BOSS_PROGRESS',
+    description: 'Public NPC shop condition term for any mechanical boss defeat unlocks.',
+    sourceProvider: 'terrapedia_local',
+    sourcePage: 'town_npc_shop_conditions',
+    sortOrder: 350,
+    status: 1,
+  },
+  {
+    id: -918,
+    code: 'ALL_MECH_BOSSES_DEFEATED',
+    nameEn: 'All Mechanical Bosses Defeated',
+    nameZh: '\u5168\u90e8\u673a\u68b0Boss\u5df2\u51fb\u8d25',
+    termType: 'BOSS_PROGRESS',
+    description: 'Public NPC shop condition term for all mechanical bosses defeat unlocks.',
+    sourceProvider: 'terrapedia_local',
+    sourcePage: 'town_npc_shop_conditions',
+    sortOrder: 360,
+    status: 1,
+  },
+];
+
 export function getRequiredTownNpcWorldContexts() {
   return REQUIRED_TOWN_NPC_WORLD_CONTEXTS.map((entry) => ({ ...entry }));
 }
 
-export function buildTownNpcShopConditionLookup({ biomes, gamePeriods, items, npcs, worldContexts }) {
+export function getRequiredTownNpcConditionTerms() {
+  return REQUIRED_TOWN_NPC_CONDITION_TERMS.map((entry) => ({ ...entry }));
+}
+
+export function buildTownNpcShopConditionLookup({ biomes, conditionTerms, gamePeriods, items, npcs, worldContexts }) {
   return {
     biomesByCode: new Map(
       (Array.isArray(biomes) ? biomes : [])
@@ -263,6 +287,12 @@ export function buildTownNpcShopConditionLookup({ biomes, gamePeriods, items, np
     ),
     itemsByAny: buildItemRefLookup(items),
     npcsByAny: buildNpcRefLookup(npcs),
+    conditionTermsByCode: new Map(
+      (Array.isArray(conditionTerms) ? conditionTerms : [])
+        .map((entry) => normalizeRef(entry, 'CONDITION_TERM'))
+        .filter(Boolean)
+        .map((entry) => [entry.key, entry])
+    ),
     worldContextsByCode: new Map(
       (Array.isArray(worldContexts) ? worldContexts : [])
         .map((entry) => normalizeRef(entry, 'WORLD_CONTEXT'))
@@ -285,6 +315,7 @@ export function extractTownNpcShopConditions(availability, lookup) {
     ...collectNpcDefeatAndMatches(text, lookup?.npcsByAny),
     ...collectNpcDefeatMatches(text, lookup?.npcsByAny),
     ...collectNpcPresenceMatches(text, lookup?.npcsByAny),
+    ...collectMatches(text, CONDITION_TERM_RULES, lookup?.conditionTermsByCode, 'CONDITION_TERM'),
     ...collectMatches(text, WORLD_CONTEXT_RULES, lookup?.worldContextsByCode, 'WORLD_CONTEXT'),
   ];
 

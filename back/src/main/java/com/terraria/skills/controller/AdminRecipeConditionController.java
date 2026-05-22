@@ -5,10 +5,12 @@ import com.terraria.skills.common.ApiResponse;
 import com.terraria.skills.dto.AdminRecipeConditionUpsertRequestDTO;
 import com.terraria.skills.dto.RecipeConditionDTO;
 import com.terraria.skills.entity.Biome;
+import com.terraria.skills.entity.ConditionTerm;
 import com.terraria.skills.entity.Recipe;
 import com.terraria.skills.entity.RecipeContextRequirement;
 import com.terraria.skills.entity.WorldContext;
 import com.terraria.skills.mapper.BiomeMapper;
+import com.terraria.skills.mapper.ConditionTermMapper;
 import com.terraria.skills.mapper.RecipeContextRequirementMapper;
 import com.terraria.skills.mapper.RecipeMapper;
 import com.terraria.skills.mapper.WorldContextMapper;
@@ -45,6 +47,7 @@ public class AdminRecipeConditionController {
     private final RecipeContextRequirementMapper recipeContextRequirementMapper;
     private final BiomeMapper biomeMapper;
     private final WorldContextMapper worldContextMapper;
+    private final ConditionTermMapper conditionTermMapper;
 
     @GetMapping("/{id}/conditions")
     @Operation(summary = "Get recipe conditions")
@@ -106,18 +109,28 @@ public class AdminRecipeConditionController {
             .filter(Objects::nonNull)
             .distinct()
             .toList();
+        List<Long> conditionTermIds = records.stream()
+            .filter(record -> "CONDITION_TERM".equalsIgnoreCase(record.getRefType()))
+            .map(RecipeContextRequirement::getRefId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
         Map<Long, Biome> biomeById = biomeIds.isEmpty()
             ? Collections.emptyMap()
             : biomeMapper.selectBatchIds(biomeIds).stream().collect(Collectors.toMap(Biome::getId, Function.identity()));
         Map<Long, WorldContext> contextById = worldContextIds.isEmpty()
             ? Collections.emptyMap()
             : worldContextMapper.selectBatchIds(worldContextIds).stream().collect(Collectors.toMap(WorldContext::getId, Function.identity()));
+        Map<Long, ConditionTerm> termById = conditionTermIds.isEmpty()
+            ? Collections.emptyMap()
+            : conditionTermMapper.selectBatchIds(conditionTermIds).stream().collect(Collectors.toMap(ConditionTerm::getId, Function.identity()));
 
         return records.stream().map(record -> {
             RecipeConditionDTO dto = new RecipeConditionDTO();
             BeanUtils.copyProperties(record, dto);
             Biome biome = biomeById.get(record.getRefId());
             WorldContext context = contextById.get(record.getRefId());
+            ConditionTerm term = termById.get(record.getRefId());
             if (biome != null) {
                 dto.setRefCode(biome.getCode());
                 dto.setRefNameEn(biome.getNameEn());
@@ -128,6 +141,11 @@ public class AdminRecipeConditionController {
                 dto.setRefNameEn(context.getNameEn());
                 dto.setRefNameZh(context.getNameZh());
                 dto.setRefContextType(context.getContextType());
+            } else if (term != null) {
+                dto.setRefCode(term.getCode());
+                dto.setRefNameEn(term.getNameEn());
+                dto.setRefNameZh(term.getNameZh());
+                dto.setRefContextType(term.getTermType());
             }
             return dto;
         }).toList();
@@ -142,6 +160,7 @@ public class AdminRecipeConditionController {
         return switch (normalized) {
             case "BIOME" -> "BIOME";
             case "WORLD_CONTEXT", "CONTEXT", "ENVIRONMENT", "MOON_PHASE" -> "WORLD_CONTEXT";
+            case "CONDITION_TERM", "LOCAL_CONDITION" -> "CONDITION_TERM";
             default -> null;
         };
     }

@@ -491,6 +491,10 @@ public class PublicNpcServiceImpl implements PublicNpcService {
               wc.name_en AS contextNameEn,
               wc.name_zh AS contextNameZh,
               wc.context_type AS contextType,
+              ct.code AS conditionTermCode,
+              ct.name_en AS conditionTermNameEn,
+              ct.name_zh AS conditionTermNameZh,
+              ct.term_type AS conditionTermType,
               gp.code AS gamePeriodCode,
               gp.display_name_en AS gamePeriodNameEn,
               gp.display_name_zh AS gamePeriodNameZh,
@@ -503,6 +507,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             FROM npc_shop_conditions nsc
             LEFT JOIN biomes b ON nsc.ref_type = 'BIOME' AND b.id = nsc.ref_id AND b.deleted = 0
             LEFT JOIN world_contexts wc ON nsc.ref_type = 'WORLD_CONTEXT' AND wc.id = nsc.ref_id AND wc.deleted = 0
+            LEFT JOIN condition_terms ct ON nsc.ref_type = 'CONDITION_TERM' AND ct.id = nsc.ref_id AND ct.deleted = 0
             LEFT JOIN game_period gp ON nsc.ref_type = 'GAME_PERIOD' AND gp.id = nsc.ref_id AND gp.deleted = 0
             LEFT JOIN items ri ON nsc.ref_type = 'ITEM' AND ri.id = nsc.ref_id AND ri.deleted = 0
             LEFT JOIN npcs rn ON nsc.ref_type = 'NPC' AND rn.id = nsc.ref_id AND rn.deleted = 0
@@ -649,6 +654,10 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setContextNameEn(toStringValue(row.get("contextNameEn")));
         dto.setContextNameZh(toStringValue(row.get("contextNameZh")));
         dto.setContextType(toStringValue(row.get("contextType")));
+        dto.setConditionTermCode(toStringValue(row.get("conditionTermCode")));
+        dto.setConditionTermNameEn(toStringValue(row.get("conditionTermNameEn")));
+        dto.setConditionTermNameZh(toStringValue(row.get("conditionTermNameZh")));
+        dto.setConditionTermType(toStringValue(row.get("conditionTermType")));
         dto.setGamePeriodCode(toStringValue(row.get("gamePeriodCode")));
         dto.setGamePeriodNameEn(toStringValue(row.get("gamePeriodNameEn")));
         dto.setGamePeriodNameZh(toStringValue(row.get("gamePeriodNameZh")));

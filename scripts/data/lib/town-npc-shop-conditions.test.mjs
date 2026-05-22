@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   buildTownNpcShopConditionLookup,
   extractTownNpcShopConditions,
+  getRequiredTownNpcConditionTerms,
   getRequiredTownNpcWorldContexts
 } from './town-npc-shop-conditions.mjs';
 
@@ -302,7 +303,7 @@ test('extractTownNpcShopConditions maps lantern night and solar eclipse event ph
   );
 });
 
-test('getRequiredTownNpcWorldContexts includes time-of-day and moon phase range contexts', () => {
+test('getRequiredTownNpcWorldContexts keeps time-of-day contexts out of local condition terms', () => {
   const actual = getRequiredTownNpcWorldContexts();
 
   assert.deepEqual(
@@ -314,9 +315,25 @@ test('getRequiredTownNpcWorldContexts includes time-of-day and moon phase range 
         contextType: entry.contextType
       })),
     [
-      { code: 'DAY', nameZh: '\u767d\u5929', contextType: 'TIME' },
-      { code: 'MOON_PHASE_1_4', nameZh: '\u6708\u76f8 1\u20134', contextType: 'LOCAL_CONDITION' },
-      { code: 'MOON_PHASE_LISTED', nameZh: '\u4ee5\u4e0b\u6708\u76f8', contextType: 'LOCAL_CONDITION' }
+      { code: 'DAY', nameZh: '\u767d\u5929', contextType: 'TIME' }
+    ]
+  );
+});
+
+test('getRequiredTownNpcConditionTerms includes moon phase range terms', () => {
+  const actual = getRequiredTownNpcConditionTerms();
+
+  assert.deepEqual(
+    actual
+      .filter((entry) => ['MOON_PHASE_1_4', 'MOON_PHASE_LISTED'].includes(entry.code))
+      .map((entry) => ({
+        code: entry.code,
+        nameZh: entry.nameZh,
+        termType: entry.termType
+      })),
+    [
+      { code: 'MOON_PHASE_1_4', nameZh: '\u6708\u76f8 1\u20134', termType: 'MOON_PHASE_RANGE' },
+      { code: 'MOON_PHASE_LISTED', nameZh: '\u4ee5\u4e0b\u6708\u76f8', termType: 'MOON_PHASE_RANGE' }
     ]
   );
 });
@@ -327,11 +344,13 @@ test('extractTownNpcShopConditions maps time-of-day, biome, and moon phase range
       { id: 95, code: 'glowing_mushroom', nameZh: '\u53d1\u5149\u8611\u83c7\u7fa4\u7cfb', nameEn: 'Glowing Mushroom' },
       { id: 96, code: 'ice', nameZh: '\u51b0\u96ea\u7fa4\u7cfb', nameEn: 'Ice biome' }
     ],
+    conditionTerms: [
+      { id: 51, code: 'MOON_PHASE_1_4', nameZh: '\u6708\u76f8 1\u20134', nameEn: 'Moon Phase 1-4', termType: 'MOON_PHASE_RANGE' },
+      { id: 52, code: 'MOON_PHASE_LISTED', nameZh: '\u4ee5\u4e0b\u6708\u76f8', nameEn: 'Listed Moon Phases', termType: 'MOON_PHASE_RANGE' }
+    ],
     worldContexts: [
       { id: 50, code: 'DAY', nameZh: '\u767d\u5929', nameEn: 'Day', contextType: 'TIME' },
-      { id: 12, code: 'NIGHT', nameZh: '\u591c\u665a', nameEn: 'Night', contextType: 'TIME' },
-      { id: 51, code: 'MOON_PHASE_1_4', nameZh: '\u6708\u76f8 1\u20134', nameEn: 'Moon Phase 1-4', contextType: 'MOON_PHASE' },
-      { id: 52, code: 'MOON_PHASE_LISTED', nameZh: '\u4ee5\u4e0b\u6708\u76f8', nameEn: 'Listed Moon Phases', contextType: 'MOON_PHASE' }
+      { id: 12, code: 'NIGHT', nameZh: '\u591c\u665a', nameEn: 'Night', contextType: 'TIME' }
     ]
   });
 
@@ -352,8 +371,8 @@ test('extractTownNpcShopConditions maps time-of-day, biome, and moon phase range
       { refType: 'BIOME', refId: 96, code: 'ice', label: '\u51b0\u96ea\u7fa4\u7cfb' },
       { refType: 'WORLD_CONTEXT', refId: 50, code: 'DAY', label: '\u767d\u5929' },
       { refType: 'WORLD_CONTEXT', refId: 12, code: 'NIGHT', label: '\u591c\u665a' },
-      { refType: 'WORLD_CONTEXT', refId: 51, code: 'MOON_PHASE_1_4', label: '\u6708\u76f8 1\u20134' },
-      { refType: 'WORLD_CONTEXT', refId: 52, code: 'MOON_PHASE_LISTED', label: '\u4ee5\u4e0b\u6708\u76f8' }
+      { refType: 'CONDITION_TERM', refId: 51, code: 'MOON_PHASE_1_4', label: '\u6708\u76f8 1\u20134' },
+      { refType: 'CONDITION_TERM', refId: 52, code: 'MOON_PHASE_LISTED', label: '\u4ee5\u4e0b\u6708\u76f8' }
     ]
   );
 });
@@ -365,8 +384,8 @@ test('extractTownNpcShopConditions maps npc presence phrases alongside world con
       { id: 202, internalName: 'Pirate', nameEn: 'Pirate', nameZh: '\u6d77\u76d7' },
       { id: 203, internalName: 'Angler', nameEn: 'Angler', nameZh: '\u6e14\u592b' }
     ],
-    worldContexts: [
-      { id: 52, code: 'MOON_PHASE_LISTED', nameZh: '\u4ee5\u4e0b\u6708\u76f8', nameEn: 'Listed Moon Phases', contextType: 'MOON_PHASE' }
+    conditionTerms: [
+      { id: 52, code: 'MOON_PHASE_LISTED', nameZh: '\u4ee5\u4e0b\u6708\u76f8', nameEn: 'Listed Moon Phases', termType: 'MOON_PHASE_RANGE' }
     ]
   });
 
@@ -385,7 +404,7 @@ test('extractTownNpcShopConditions maps npc presence phrases alongside world con
     [
       { refType: 'NPC', refId: 201, code: 'TaxCollector', label: '\u7a0e\u6536\u5b98' },
       { refType: 'NPC', refId: 202, code: 'Pirate', label: '\u6d77\u76d7' },
-      { refType: 'WORLD_CONTEXT', refId: 52, code: 'MOON_PHASE_LISTED', label: '\u4ee5\u4e0b\u6708\u76f8' },
+      { refType: 'CONDITION_TERM', refId: 52, code: 'MOON_PHASE_LISTED', label: '\u4ee5\u4e0b\u6708\u76f8' },
       { refType: 'NPC', refId: 203, code: 'Angler', label: '\u6e14\u592b' }
     ]
   );
@@ -467,8 +486,8 @@ test('extractTownNpcShopConditions does not force-structure event completion or 
   assert.deepEqual(actual, []);
 });
 
-test('getRequiredTownNpcWorldContexts includes event completion contexts', () => {
-  const actual = getRequiredTownNpcWorldContexts();
+test('getRequiredTownNpcConditionTerms includes event completion terms', () => {
+  const actual = getRequiredTownNpcConditionTerms();
 
   assert.deepEqual(
     actual
@@ -476,23 +495,23 @@ test('getRequiredTownNpcWorldContexts includes event completion contexts', () =>
       .map((entry) => ({
         code: entry.code,
         nameZh: entry.nameZh,
-        contextType: entry.contextType
+        termType: entry.termType
       })),
     [
-      { code: 'MARTIAN_MADNESS_COMPLETED', nameZh: '\u706b\u661f\u66b4\u4e71\u5df2\u5b8c\u6210', contextType: 'LOCAL_CONDITION' },
-      { code: 'PIRATE_INVASION_COMPLETED', nameZh: '\u6d77\u76d7\u5165\u4fb5\u5df2\u5b8c\u6210', contextType: 'LOCAL_CONDITION' },
-      { code: 'SNOW_LEGION_COMPLETED', nameZh: '\u96ea\u4eba\u519b\u56e2\u5df2\u5b8c\u6210', contextType: 'LOCAL_CONDITION' }
+      { code: 'MARTIAN_MADNESS_COMPLETED', nameZh: '\u706b\u661f\u66b4\u4e71\u5df2\u5b8c\u6210', termType: 'EVENT_COMPLETED' },
+      { code: 'PIRATE_INVASION_COMPLETED', nameZh: '\u6d77\u76d7\u5165\u4fb5\u5df2\u5b8c\u6210', termType: 'EVENT_COMPLETED' },
+      { code: 'SNOW_LEGION_COMPLETED', nameZh: '\u96ea\u4eba\u519b\u56e2\u5df2\u5b8c\u6210', termType: 'EVENT_COMPLETED' }
     ]
   );
 });
 
-test('extractTownNpcShopConditions maps safe event completion phrases to world contexts', () => {
+test('extractTownNpcShopConditions maps safe event completion phrases to condition terms', () => {
   const lookup = buildTownNpcShopConditionLookup({
-    worldContexts: [
-      { id: 61, code: 'MARTIAN_MADNESS_COMPLETED', nameZh: '\u706b\u661f\u66b4\u4e71\u5df2\u5b8c\u6210', nameEn: 'Martian Madness Completed', contextType: 'PROGRESSION' },
-      { id: 62, code: 'PIRATE_INVASION_COMPLETED', nameZh: '\u6d77\u76d7\u5165\u4fb5\u5df2\u5b8c\u6210', nameEn: 'Pirate Invasion Completed', contextType: 'PROGRESSION' },
-      { id: 63, code: 'SNOW_LEGION_COMPLETED', nameZh: '\u96ea\u4eba\u519b\u56e2\u5df2\u5b8c\u6210', nameEn: 'Snow Legion Completed', contextType: 'PROGRESSION' },
-      { id: 52, code: 'MOON_PHASE_LISTED', nameZh: '\u4ee5\u4e0b\u6708\u76f8', nameEn: 'Listed Moon Phases', contextType: 'MOON_PHASE' }
+    conditionTerms: [
+      { id: 61, code: 'MARTIAN_MADNESS_COMPLETED', nameZh: '\u706b\u661f\u66b4\u4e71\u5df2\u5b8c\u6210', nameEn: 'Martian Madness Completed', termType: 'EVENT_COMPLETED' },
+      { id: 62, code: 'PIRATE_INVASION_COMPLETED', nameZh: '\u6d77\u76d7\u5165\u4fb5\u5df2\u5b8c\u6210', nameEn: 'Pirate Invasion Completed', termType: 'EVENT_COMPLETED' },
+      { id: 63, code: 'SNOW_LEGION_COMPLETED', nameZh: '\u96ea\u4eba\u519b\u56e2\u5df2\u5b8c\u6210', nameEn: 'Snow Legion Completed', termType: 'EVENT_COMPLETED' },
+      { id: 52, code: 'MOON_PHASE_LISTED', nameZh: '\u4ee5\u4e0b\u6708\u76f8', nameEn: 'Listed Moon Phases', termType: 'MOON_PHASE_RANGE' }
     ],
     gamePeriods: [
       { id: 2, code: 'hardmode', nameZh: '\u56f0\u96be\u6a21\u5f0f', nameEn: 'Hardmode' }
@@ -512,17 +531,17 @@ test('extractTownNpcShopConditions maps safe event completion phrases to world c
       label: condition.label
     })),
     [
-      { refType: 'WORLD_CONTEXT', refId: 61, code: 'MARTIAN_MADNESS_COMPLETED', label: '\u706b\u661f\u66b4\u4e71\u5df2\u5b8c\u6210' },
+      { refType: 'CONDITION_TERM', refId: 61, code: 'MARTIAN_MADNESS_COMPLETED', label: '\u706b\u661f\u66b4\u4e71\u5df2\u5b8c\u6210' },
       { refType: 'GAME_PERIOD', refId: 2, code: 'hardmode', label: '\u56f0\u96be\u6a21\u5f0f' },
-      { refType: 'WORLD_CONTEXT', refId: 62, code: 'PIRATE_INVASION_COMPLETED', label: '\u6d77\u76d7\u5165\u4fb5\u5df2\u5b8c\u6210' },
-      { refType: 'WORLD_CONTEXT', refId: 52, code: 'MOON_PHASE_LISTED', label: '\u4ee5\u4e0b\u6708\u76f8' },
-      { refType: 'WORLD_CONTEXT', refId: 63, code: 'SNOW_LEGION_COMPLETED', label: '\u96ea\u4eba\u519b\u56e2\u5df2\u5b8c\u6210' }
+      { refType: 'CONDITION_TERM', refId: 62, code: 'PIRATE_INVASION_COMPLETED', label: '\u6d77\u76d7\u5165\u4fb5\u5df2\u5b8c\u6210' },
+      { refType: 'CONDITION_TERM', refId: 52, code: 'MOON_PHASE_LISTED', label: '\u4ee5\u4e0b\u6708\u76f8' },
+      { refType: 'CONDITION_TERM', refId: 63, code: 'SNOW_LEGION_COMPLETED', label: '\u96ea\u4eba\u519b\u56e2\u5df2\u5b8c\u6210' }
     ]
   );
 });
 
-test('getRequiredTownNpcWorldContexts includes mechanical boss progression contexts', () => {
-  const actual = getRequiredTownNpcWorldContexts();
+test('getRequiredTownNpcConditionTerms includes mechanical boss progression terms', () => {
+  const actual = getRequiredTownNpcConditionTerms();
 
   assert.deepEqual(
     actual
@@ -530,20 +549,20 @@ test('getRequiredTownNpcWorldContexts includes mechanical boss progression conte
       .map((entry) => ({
         code: entry.code,
         nameZh: entry.nameZh,
-        contextType: entry.contextType
+        termType: entry.termType
       })),
     [
-      { code: 'ANY_MECH_BOSS_DEFEATED', nameZh: '\u4efb\u4e00\u673a\u68b0Boss\u5df2\u51fb\u8d25', contextType: 'LOCAL_CONDITION' },
-      { code: 'ALL_MECH_BOSSES_DEFEATED', nameZh: '\u5168\u90e8\u673a\u68b0Boss\u5df2\u51fb\u8d25', contextType: 'LOCAL_CONDITION' }
+      { code: 'ANY_MECH_BOSS_DEFEATED', nameZh: '\u4efb\u4e00\u673a\u68b0Boss\u5df2\u51fb\u8d25', termType: 'BOSS_PROGRESS' },
+      { code: 'ALL_MECH_BOSSES_DEFEATED', nameZh: '\u5168\u90e8\u673a\u68b0Boss\u5df2\u51fb\u8d25', termType: 'BOSS_PROGRESS' }
     ]
   );
 });
 
-test('extractTownNpcShopConditions maps safe mechanical boss progression phrases to world contexts', () => {
+test('extractTownNpcShopConditions maps safe mechanical boss progression phrases to condition terms', () => {
   const lookup = buildTownNpcShopConditionLookup({
-    worldContexts: [
-      { id: 64, code: 'ANY_MECH_BOSS_DEFEATED', nameZh: '\u4efb\u4e00\u673a\u68b0Boss\u5df2\u51fb\u8d25', nameEn: 'Any Mechanical Boss Defeated', contextType: 'PROGRESSION' },
-      { id: 65, code: 'ALL_MECH_BOSSES_DEFEATED', nameZh: '\u5168\u90e8\u673a\u68b0Boss\u5df2\u51fb\u8d25', nameEn: 'All Mechanical Bosses Defeated', contextType: 'PROGRESSION' }
+    conditionTerms: [
+      { id: 64, code: 'ANY_MECH_BOSS_DEFEATED', nameZh: '\u4efb\u4e00\u673a\u68b0Boss\u5df2\u51fb\u8d25', nameEn: 'Any Mechanical Boss Defeated', termType: 'BOSS_PROGRESS' },
+      { id: 65, code: 'ALL_MECH_BOSSES_DEFEATED', nameZh: '\u5168\u90e8\u673a\u68b0Boss\u5df2\u51fb\u8d25', nameEn: 'All Mechanical Bosses Defeated', termType: 'BOSS_PROGRESS' }
     ],
     gamePeriods: [
       { id: 2, code: 'hardmode', nameZh: '\u56f0\u96be\u6a21\u5f0f', nameEn: 'Hardmode' }
@@ -563,17 +582,17 @@ test('extractTownNpcShopConditions maps safe mechanical boss progression phrases
       label: condition.label
     })),
     [
-      { refType: 'WORLD_CONTEXT', refId: 64, code: 'ANY_MECH_BOSS_DEFEATED', label: '\u4efb\u4e00\u673a\u68b0Boss\u5df2\u51fb\u8d25' },
+      { refType: 'CONDITION_TERM', refId: 64, code: 'ANY_MECH_BOSS_DEFEATED', label: '\u4efb\u4e00\u673a\u68b0Boss\u5df2\u51fb\u8d25' },
       { refType: 'GAME_PERIOD', refId: 2, code: 'hardmode', label: '\u56f0\u96be\u6a21\u5f0f' },
-      { refType: 'WORLD_CONTEXT', refId: 65, code: 'ALL_MECH_BOSSES_DEFEATED', label: '\u5168\u90e8\u673a\u68b0Boss\u5df2\u51fb\u8d25' }
+      { refType: 'CONDITION_TERM', refId: 65, code: 'ALL_MECH_BOSSES_DEFEATED', label: '\u5168\u90e8\u673a\u68b0Boss\u5df2\u51fb\u8d25' }
     ]
   );
 });
 
-test('extractTownNpcShopConditions maps at-least-one mechanical boss defeat phrasing to world context', () => {
+test('extractTownNpcShopConditions maps at-least-one mechanical boss defeat phrasing to condition term', () => {
   const lookup = buildTownNpcShopConditionLookup({
-    worldContexts: [
-      { id: 64, code: 'ANY_MECH_BOSS_DEFEATED', nameZh: '\u4efb\u4e00\u673a\u68b0Boss\u5df2\u51fb\u8d25', nameEn: 'Any Mechanical Boss Defeated', contextType: 'PROGRESSION' }
+    conditionTerms: [
+      { id: 64, code: 'ANY_MECH_BOSS_DEFEATED', nameZh: '\u4efb\u4e00\u673a\u68b0Boss\u5df2\u51fb\u8d25', nameEn: 'Any Mechanical Boss Defeated', termType: 'BOSS_PROGRESS' }
     ]
   });
 
@@ -590,7 +609,7 @@ test('extractTownNpcShopConditions maps at-least-one mechanical boss defeat phra
       label: condition.label
     })),
     [
-      { refType: 'WORLD_CONTEXT', refId: 64, code: 'ANY_MECH_BOSS_DEFEATED', label: '\u4efb\u4e00\u673a\u68b0Boss\u5df2\u51fb\u8d25' }
+      { refType: 'CONDITION_TERM', refId: 64, code: 'ANY_MECH_BOSS_DEFEATED', label: '\u4efb\u4e00\u673a\u68b0Boss\u5df2\u51fb\u8d25' }
     ]
   );
 });

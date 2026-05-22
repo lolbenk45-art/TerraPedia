@@ -800,6 +800,10 @@ public class AdminNpcController {
               wc.name_en AS contextNameEn,
               wc.name_zh AS contextNameZh,
               wc.context_type AS contextType,
+              ct.code AS conditionTermCode,
+              ct.name_en AS conditionTermNameEn,
+              ct.name_zh AS conditionTermNameZh,
+              ct.term_type AS conditionTermType,
               gp.code AS gamePeriodCode,
               gp.display_name_en AS gamePeriodNameEn,
               gp.display_name_zh AS gamePeriodNameZh,
@@ -812,6 +816,7 @@ public class AdminNpcController {
             FROM npc_shop_conditions nsc
             LEFT JOIN biomes b ON nsc.ref_type = 'BIOME' AND b.id = nsc.ref_id AND b.deleted = 0
             LEFT JOIN world_contexts wc ON nsc.ref_type = 'WORLD_CONTEXT' AND wc.id = nsc.ref_id AND wc.deleted = 0
+            LEFT JOIN condition_terms ct ON nsc.ref_type = 'CONDITION_TERM' AND ct.id = nsc.ref_id AND ct.deleted = 0
             LEFT JOIN game_period gp ON nsc.ref_type = 'GAME_PERIOD' AND gp.id = nsc.ref_id AND gp.deleted = 0
             LEFT JOIN items ri ON nsc.ref_type = 'ITEM' AND ri.id = nsc.ref_id AND ri.deleted = 0
             LEFT JOIN npcs rn ON nsc.ref_type = 'NPC' AND rn.id = nsc.ref_id AND rn.deleted = 0
@@ -1025,6 +1030,7 @@ public class AdminNpcController {
         return switch (normalized) {
             case "BIOME" -> "BIOME";
             case "WORLD_CONTEXT", "CONTEXT", "ENVIRONMENT", "MOON_PHASE" -> "WORLD_CONTEXT";
+            case "CONDITION_TERM", "LOCAL_CONDITION" -> "CONDITION_TERM";
             case "GAME_PERIOD", "PERIOD" -> "GAME_PERIOD";
             case "NPC" -> "NPC";
             case "ITEM" -> "ITEM";

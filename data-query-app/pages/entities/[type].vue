@@ -120,7 +120,7 @@
           <div v-if="entityType === 'world-contexts'" class="field field--full">
             <div class="field__topline">
               <span class="field__label">世界条件类型</span>
-              <span class="field__hint">按时间、环境、事件、月相、天气和进度维护条件记录。</span>
+              <span class="field__hint">按 wiki 明确归属的时间、环境、事件、月相和天气维护世界状态。</span>
             </div>
             <div class="filter-chip-group" role="tablist" aria-label="世界条件类型筛选">
               <button
@@ -1629,7 +1629,7 @@ type ArmorSetCompositionKindFilter = 'all' | 'traditional_set' | 'single_piece_s
 const selectedArmorSetCompositionKind = ref<ArmorSetCompositionKindFilter>('all')
 const BUFF_IMMUNE_NPC_PREVIEW_LIMIT = 40
 const selectedBossType = ref<'all' | 'PRE_HARDMODE' | 'HARDMODE' | 'EVENT' | 'SPECIAL_SEED'>('all')
-type WorldContextTypeFilter = 'all' | 'TIME' | 'ENVIRONMENT' | 'EVENT' | 'MOON_PHASE' | 'WEATHER' | 'LOCAL_CONDITION'
+type WorldContextTypeFilter = 'all' | 'TIME' | 'ENVIRONMENT' | 'EVENT' | 'MOON_PHASE' | 'WEATHER'
 const selectedWorldContextType = ref<WorldContextTypeFilter>('all')
 const npcCategoryTree = computed(() => {
   const root = categoriesStore.findCategoryNodeByCode('CATEGORY_NPC')
@@ -1654,13 +1654,12 @@ const armorSetCompositionOptions = [
   { value: 'nonstandard_piece_set', label: '非标准组合', description: '不完全按三件套结构组成的套装。' },
 ] as const
 const worldContextTypeOptions = [
-  { value: 'all', label: '全部条件', description: '显示所有世界条件记录。' },
+  { value: 'all', label: '全部状态', description: '显示所有 wiki-backed 世界状态。' },
   { value: 'TIME', label: '时间', description: '白天、夜晚等时间条件。' },
   { value: 'ENVIRONMENT', label: '环境', description: '墓地、微光等环境条件。' },
   { value: 'EVENT', label: '事件', description: '血月、派对、入侵和季节事件。' },
   { value: 'MOON_PHASE', label: '月相', description: 'wiki 明确列出的八个月相。' },
   { value: 'WEATHER', label: '天气', description: '大风天等天气条件。' },
-  { value: 'LOCAL_CONDITION', label: '条件词汇', description: '组合月相、游戏进度等本地条件词汇。' },
 ] as const
 
 const configs: Record<string, EntityConfig> = {
@@ -1890,7 +1889,7 @@ const configs: Record<string, EntityConfig> = {
   },
   'world-contexts': {
     badge: 'WORLD CONTEXT', title: '世界条件管理', shortLabel: 'Context', fallback: 'WC', endpoint: '/admin/world-contexts', primaryColumn: 'nameZh', secondaryColumn: 'code',
-    subtitle: '统一维护时间、环境、事件、月相、天气和进度条件，供配方和 NPC 售卖复用。',
+    subtitle: '维护 wiki-backed world states：时间、环境、事件、月相和天气。组合型本地条件词汇已拆到独立入口。',
     searchPlaceholder: '搜索 code、中文名、英文名或说明',
     displayTitleKeys: ['nameZh', 'nameEn', 'code'],
     displaySubtitleKeys: ['sourcePage', 'contextType', 'code'],
@@ -1930,6 +1929,46 @@ const configs: Record<string, EntityConfig> = {
       { key: 'sourceRevisionTimestamp', label: 'Source Revision Timestamp', type: 'text', span: 'full' },
       { key: 'lastSyncedAt', label: 'Last Synced At', type: 'text', span: 'full' },
       { key: 'rawJson', label: 'Raw JSON Evidence', type: 'textarea', span: 'full', rows: 10, format: 'json', helper: '保留抓取来源、修订版本、候选片段和转换依据。' },
+    ],
+  },
+  'condition-terms': {
+    badge: 'CONDITION TERM', title: '本地条件词汇', shortLabel: 'Condition Term', fallback: 'CT', endpoint: '/admin/condition-terms', primaryColumn: 'nameZh', secondaryColumn: 'code',
+    subtitle: '维护 TerraPedia 本地逻辑条件词汇，承接月相范围、已完成事件和 Boss 进度等非 wiki 独立页面归属。',
+    searchPlaceholder: '搜索 code、中文名、英文名、类型或说明',
+    displayTitleKeys: ['nameZh', 'nameEn', 'code'],
+    displaySubtitleKeys: ['termType', 'sourcePage', 'code'],
+    referenceFields: [
+      { key: 'nameEn', label: '英文名' },
+      { key: 'code', label: 'Code' },
+      { key: 'termType', label: 'Term Type' },
+      { key: 'sourceProvider', label: '来源提供方' },
+      { key: 'sourcePage', label: '来源页面' },
+    ],
+    atomicFields: [
+      { key: 'termType', label: 'termType' },
+      { key: 'sortOrder', label: 'sortOrder' },
+    ],
+    columns: [
+      { key: 'id', label: 'ID' },
+      { key: 'code', label: 'Code' },
+      { key: 'nameZh', label: '显示名称' },
+      { key: 'termType', label: '词汇类型' },
+      { key: 'sourceProvider', label: '来源' },
+      { key: 'sourcePage', label: '来源页' },
+      { key: 'sortOrder', label: '排序' },
+      { key: 'updatedAt', label: '更新时间' },
+    ],
+    fields: [
+      { key: 'code', label: 'Code', type: 'text', required: true },
+      { key: 'nameZh', label: '中文名', type: 'text' },
+      { key: 'nameEn', label: '英文名', type: 'text', required: true },
+      { key: 'termType', label: 'Term Type', type: 'text', required: true, placeholder: 'MOON_PHASE_RANGE / EVENT_COMPLETED / BOSS_PROGRESS' },
+      { key: 'sortOrder', label: 'Sort Order', type: 'number' },
+      { key: 'status', label: 'Status', type: 'number' },
+      { key: 'sourceProvider', label: 'Source Provider', type: 'text' },
+      { key: 'sourcePage', label: 'Source Page', type: 'text' },
+      { key: 'description', label: 'Description', type: 'textarea', span: 'full', rows: 6 },
+      { key: 'rawJson', label: 'Raw JSON Evidence', type: 'textarea', span: 'full', rows: 10, format: 'json', helper: '记录本地条件词汇定义、归一化依据和人工维护说明。' },
     ],
   },
 }
@@ -2214,7 +2253,7 @@ function getBossTypeLabel(value: unknown) {
 
 function normalizeWorldContextType(value: unknown) {
   const normalized = typeof value === 'string' ? value.trim().toUpperCase() : ''
-  if (normalized === 'TIME' || normalized === 'ENVIRONMENT' || normalized === 'EVENT' || normalized === 'MOON_PHASE' || normalized === 'WEATHER' || normalized === 'LOCAL_CONDITION') {
+  if (normalized === 'TIME' || normalized === 'ENVIRONMENT' || normalized === 'EVENT' || normalized === 'MOON_PHASE' || normalized === 'WEATHER') {
     return normalized
   }
   return ''
@@ -2299,8 +2338,11 @@ const tableCardSubtitle = computed(() => {
   }
   if (entityType.value === 'world-contexts') {
     return selectedWorldContextType.value === 'all'
-      ? '世界条件按来源、同步时间和质量提示维护，供配方与 NPC 售卖条件复用。'
+      ? '世界条件只保留 wiki-backed 状态，按来源、同步时间和质量提示维护。'
       : `当前筛选：${formatWorldContextTypeLabel(selectedWorldContextType.value)}。`
+  }
+  if (entityType.value === 'condition-terms') {
+    return '本地条件词汇独立维护，供配方与 NPC 售卖条件引用。'
   }
   return '中文优先展示，同时保留英文参考字段与原子字段。'
 })
@@ -3062,8 +3104,7 @@ function buildWorldContextDataQualityWarnings(row: Record<string, any>) {
   if (!hasTextValue(row.sourcePage)) warnings.push({ label: '缺少来源页面', value: 'sourcePage 为空，无法回溯到 wiki 来源页。' })
   if (!hasTextValue(row.lastSyncedAt)) warnings.push({ label: '缺少同步时间', value: 'lastSyncedAt 为空，无法判断本地记录的新鲜度。' })
   if (!hasTextValue(row.nameEn)) warnings.push({ label: '缺少英文名', value: 'nameEn 为空会削弱跨语言映射和搜索。' })
-  if (!normalizeWorldContextType(row.contextType)) warnings.push({ label: '缺少条件类型', value: 'contextType 未落在 TIME、ENVIRONMENT、EVENT、MOON_PHASE、WEATHER 或 LOCAL_CONDITION。' })
-  if (row.contextType === 'LOCAL_CONDITION' && row.sourceProvider === 'wiki_gg') warnings.push({ label: '来源分类不清', value: '本地条件词汇不应标记为 wiki_gg，以免误认为 wiki 页面原生归属。' })
+  if (!normalizeWorldContextType(row.contextType)) warnings.push({ label: '缺少条件类型', value: 'contextType 未落在 TIME、ENVIRONMENT、EVENT、MOON_PHASE 或 WEATHER。' })
   if (!hasTextValue(row.description)) warnings.push({ label: '缺少描述', value: 'description 为空，后台维护时缺少可读条件说明。' })
   return warnings
 }
@@ -3996,7 +4037,7 @@ watch(() => entityType.value, async () => {
   if (entityType.value === 'world-contexts') {
     const rawContextType = typeof route.query.contextType === 'string' ? route.query.contextType.trim().toUpperCase() : ''
     selectedWorldContextType.value =
-      rawContextType === 'TIME' || rawContextType === 'ENVIRONMENT' || rawContextType === 'EVENT' || rawContextType === 'MOON_PHASE' || rawContextType === 'WEATHER' || rawContextType === 'LOCAL_CONDITION'
+      rawContextType === 'TIME' || rawContextType === 'ENVIRONMENT' || rawContextType === 'EVENT' || rawContextType === 'MOON_PHASE' || rawContextType === 'WEATHER'
         ? rawContextType
         : 'all'
   }

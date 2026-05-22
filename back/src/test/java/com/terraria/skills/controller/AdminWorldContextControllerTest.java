@@ -104,6 +104,21 @@ class AdminWorldContextControllerTest {
     }
 
     @Test
+    void shouldRejectLocalConditionWorldContextCreation() throws Exception {
+        mockMvc.perform(post("/admin/world-contexts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "code": "MOON_PHASE_1_4",
+                      "nameEn": "Moon Phase 1-4",
+                      "contextType": "LOCAL_CONDITION"
+                    }
+                    """))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("LOCAL_CONDITION belongs in condition_terms"));
+    }
+
+    @Test
     void shouldPersistTraceabilityFieldsWhenUpdatingWorldContext() throws Exception {
         WorldContext existing = worldContext();
         when(worldContextMapper.selectById(13L)).thenReturn(existing, existing);

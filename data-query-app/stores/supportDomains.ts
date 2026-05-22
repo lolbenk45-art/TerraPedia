@@ -39,6 +39,7 @@ interface SupportDomainCatalog {
   itemCategories?: unknown[]
   gamePeriods?: unknown[]
   worldContexts?: unknown[]
+  conditionTerms?: unknown[]
 }
 
 const normalizeText = (value: unknown) => String(value ?? '').trim()
@@ -80,12 +81,14 @@ export const useSupportDomainsStore = defineStore('supportDomains', () => {
   const itemCategories = ref<SupportCategoryOption[]>([])
   const gamePeriods = ref<SupportDomainOption[]>([])
   const worldContexts = ref<SupportDomainOption[]>([])
+  const conditionTerms = ref<SupportDomainOption[]>([])
   const loading = ref(false)
   const loaded = ref(false)
   let catalogRequest: Promise<void> | null = null
 
   const activeGamePeriods = computed(() => gamePeriods.value.filter(option => option.id > 0 && option.status !== 0))
   const activeWorldContexts = computed(() => worldContexts.value.filter(option => option.id > 0 && option.status !== 0))
+  const activeConditionTerms = computed(() => conditionTerms.value.filter(option => option.id > 0 && option.status !== 0))
 
   const gamePeriodOptions = computed<GamePeriodSelectOption[]>(() => [
     { value: 0, label: '未设置' },
@@ -93,6 +96,11 @@ export const useSupportDomainsStore = defineStore('supportDomains', () => {
   ])
 
   const worldContextOptions = computed<ConditionSelectOption[]>(() => activeWorldContexts.value.map(option => ({
+    id: option.id,
+    label: option.label || option.code || `#${option.id}`,
+    contextType: option.contextType || '',
+  })))
+  const conditionTermOptions = computed<ConditionSelectOption[]>(() => activeConditionTerms.value.map(option => ({
     id: option.id,
     label: option.label || option.code || `#${option.id}`,
     contextType: option.contextType || '',
@@ -117,6 +125,7 @@ export const useSupportDomainsStore = defineStore('supportDomains', () => {
       itemCategories.value = Array.isArray(payload.itemCategories) ? payload.itemCategories.map(normalizeCategoryOption).filter(option => option.id > 0) : []
       gamePeriods.value = Array.isArray(payload.gamePeriods) ? payload.gamePeriods.map(normalizeOption).filter(option => option.id > 0) : []
       worldContexts.value = Array.isArray(payload.worldContexts) ? payload.worldContexts.map(normalizeOption).filter(option => option.id > 0) : []
+      conditionTerms.value = Array.isArray(payload.conditionTerms) ? payload.conditionTerms.map(normalizeOption).filter(option => option.id > 0) : []
       loaded.value = true
     } catch (error: any) {
       showToast(error?.data?.message || error?.message || '加载支撑域字典失败', 'error')
@@ -137,10 +146,12 @@ export const useSupportDomainsStore = defineStore('supportDomains', () => {
     itemCategories,
     gamePeriods,
     worldContexts,
+    conditionTerms,
     loading,
     loaded,
     gamePeriodOptions,
     worldContextOptions,
+    conditionTermOptions,
     fetchCatalog,
     ensureLoaded,
     getGamePeriodLabel,

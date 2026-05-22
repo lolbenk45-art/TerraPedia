@@ -50,6 +50,9 @@ class AdminSupportDomainControllerTest {
         catalog.setWorldContexts(List.of(
             option(9L, "BLOOD_MOON", "血月", "Blood Moon", "EVENT", 10, 1)
         ));
+        catalog.setConditionTerms(List.of(
+            option(30L, "MOON_PHASE_1_4", "月相 1–4", "Moon Phase 1-4", "MOON_PHASE_RANGE", 30, 1)
+        ));
         catalog.setItemCategories(List.of(
             categoryOption(10L, null, "WEAPON", "Weapon", "Weapon", 1, 1),
             categoryOption(11L, 10L, "WEAPON_MELEE_SWORD", "Sword", "Weapon / Sword", 2, 1)
@@ -63,6 +66,7 @@ class AdminSupportDomainControllerTest {
             .andExpect(jsonPath("$.data.gamePeriods[0].code").value("pre_hardmode"))
             .andExpect(jsonPath("$.data.gamePeriods[0].label").value("前期"))
             .andExpect(jsonPath("$.data.worldContexts[0].contextType").value("EVENT"))
+            .andExpect(jsonPath("$.data.conditionTerms[0].contextType").value("MOON_PHASE_RANGE"))
             .andExpect(jsonPath("$.data.itemCategories[1].pathLabel").value("Weapon / Sword"));
 
         verify(supportDomainService).getAdminCatalog();
