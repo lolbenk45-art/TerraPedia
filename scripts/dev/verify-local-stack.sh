@@ -109,7 +109,7 @@ if ! $skip_back; then
 fi
 
 if ! $skip_front; then
-  run_step "Front typecheck" front pnpm run check
+  run_step "Front Nuxt typecheck" "$TP_FRONT_PROJECT_DIR" pnpm run check
 fi
 
 if ! $skip_admin; then

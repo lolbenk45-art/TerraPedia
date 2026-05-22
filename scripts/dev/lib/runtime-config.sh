@@ -60,6 +60,7 @@ const values = {
   TP_REDIS_PASSWORD: env('TERRAPEDIA_REDIS_PASSWORD', get(['redis', 'password'], 'root')),
   TP_REDIS_SERVER_EXE: env('TERRAPEDIA_REDIS_SERVER_EXE', get(['redis', 'serverExe'], '')),
   TP_BACKEND_PORT: env('APP_PORT', get(['backend', 'port'], 18088)),
+  TP_FRONT_PROJECT_DIR: env('TERRAPEDIA_FRONT_PROJECT_DIR', get(['front', 'projectDir'], 'front-nuxt')),
   TP_FRONT_PORT: env('TERRAPEDIA_FRONT_PORT', get(['front', 'port'], 5174)),
   TP_ADMIN_PORT: env('TERRAPEDIA_ADMIN_PORT', get(['admin', 'port'], 3001)),
   TP_ADMIN_USERNAME: env('TERRAPEDIA_ADMIN_USERNAME', get(['auth', 'admin', 'username'], 'admin')),

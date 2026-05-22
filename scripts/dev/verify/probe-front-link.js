@@ -5,15 +5,16 @@ const fs = require('fs');
 const path = require('path');
 
 const cmd = process.env.PNPM_COMMAND || 'pnpm';
-const args = ['run', 'dev'];
-const port = 5174;
+const frontProjectDir = process.env.TP_FRONT_PROJECT_DIR || 'front-nuxt';
+const port = Number(process.env.TP_FRONT_PORT || '5174');
+const args = ['exec', 'nuxt', 'dev', '--host', '127.0.0.1', '--port', String(port)];
 const timeoutMs = 60000;
 
 async function main() {
   const { getProjectRoot } = await import('../../data/lib/project-root.mjs');
   const repoRoot = getProjectRoot();
   const resultPath = path.join(repoRoot, 'reports', 'front-probe-result.json');
-  const cwd = path.join(repoRoot, 'front');
+  const cwd = path.join(repoRoot, frontProjectDir);
 
   const child = spawn(cmd, args, { cwd, shell: false });
   let logs = '';
@@ -48,7 +49,7 @@ async function main() {
 
   function probeApiViaFront() {
     return new Promise((resolve) => {
-      const req = http.get('http://127.0.0.1:5174/api/v3/api-docs', (res) => {
+      const req = http.get(`http://127.0.0.1:${port}/api/v3/api-docs`, (res) => {
         const ok = res.statusCode === 200;
         res.resume();
         resolve(ok);

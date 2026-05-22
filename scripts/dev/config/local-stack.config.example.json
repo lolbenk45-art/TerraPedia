@@ -17,6 +17,7 @@
     "port": 18088
   },
   "front": {
+    "projectDir": "front-nuxt",
     "port": 5174
   },
   "admin": {
