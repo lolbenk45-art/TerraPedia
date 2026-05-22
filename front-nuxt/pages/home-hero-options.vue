@@ -245,6 +245,116 @@ const heroIconDirections = [
   },
 ]
 
+const catalogWallQuickCategories = ['全部', '武器', '工具', '材料', '药水', '盔甲', '饰品', '家具', '召唤', '弹药', 'Boss 掉落', '困难模式']
+const catalogWallCategoryGroups = [
+  {
+    label: '战斗',
+    items: ['武器', '盔甲', '饰品', '弹药', '召唤', 'Boss 掉落'],
+  },
+  {
+    label: '制作',
+    items: ['材料', '矿石', '锭', '工作站', '机关', '电线'],
+  },
+  {
+    label: '探索',
+    items: ['工具', '坐骑', '宠物', '照明', '钥匙', '宝藏袋'],
+  },
+  {
+    label: '建筑',
+    items: ['方块', '墙', '家具', '门', '平台', '装饰'],
+  },
+  {
+    label: '消耗',
+    items: ['药水', '食物', '增益', '鱼饵', '宝匣', '事件'],
+  },
+]
+const paginationMockPageNumbers = ['1', '...', '10', '11', '12', '13', '14', '...', '257']
+const paginationMockItemNames = [
+  '泰拉刃',
+  '永夜刃',
+  '断钢剑',
+  '星怒',
+  '蜂膝弓',
+  '迷你鲨',
+  '生命水晶',
+  '魔力星',
+  '熔岩锭',
+  '光明之魂',
+  '黑曜石',
+  '金钥匙',
+  '铁皮药水',
+  '再生药水',
+  '羽落药水',
+  '狱炎箭',
+  '钴蓝剑',
+  '秘银砧',
+  '精金炉',
+  '飞翔之魂',
+  '向导巫毒娃娃',
+  '暗影鳞片',
+  '神圣锭',
+  '叶绿矿',
+]
+const paginationMockRoles: SpriteRoleKey[] = [
+  'items',
+  'items',
+  'items',
+  'projectile',
+  'projectile',
+  'projectile',
+  'buff',
+  'buff',
+  'material',
+  'material',
+  'material',
+  'favorites',
+]
+const paginationMockSheets: PixelSheetKey[] = ['relic', 'craft', 'manual']
+const paginationMockItems = paginationMockItemNames.map((name, index) => {
+  const roleKey = paginationMockRoles[index % paginationMockRoles.length] ?? 'items'
+  const sheet = paginationMockSheets[index % paginationMockSheets.length] ?? 'relic'
+
+  return {
+    id: `mock-item-${index + 1}`,
+    name,
+    index: String(1201 + index).padStart(4, '0'),
+    tone: index % 4,
+    role: roleEntry(roleKey, {
+      sheet,
+      label: name,
+    }),
+  }
+})
+const paginationMockupOptions = [
+  {
+    id: 'bottom-capsule',
+    className: 'mockup-bottom-capsule mock-layout-dock',
+    label: 'A',
+    name: 'Overflow Rail',
+    cnName: '多行分类 + 轻 Dock',
+    summary: '当前物品墙风格不动，分类先多给一行冗余，底部只放轻分页。',
+    verdict: '最接近现在页面，改动风险最低。',
+  },
+  {
+    id: 'top-only',
+    className: 'mockup-top-only mock-layout-header',
+    label: 'B',
+    name: 'Category Drawer',
+    cnName: '左侧分类抽屉 + 轻 Dock',
+    summary: '分类多时不挤在搜索栏下方，左侧按组收纳，底部仍然是 A 类分页。',
+    verdict: '分类扩展性最好，适合后续接分类树。',
+  },
+  {
+    id: 'floating-mini',
+    className: 'mockup-floating-mini mock-layout-edge',
+    label: 'C',
+    name: 'Compact Menu',
+    cnName: '常用分类 + 更多菜单 + 轻 Dock',
+    summary: '顶部只放常用分类，其余分类进更多菜单，避免分类一多就压住墙面。',
+    verdict: '首屏最清爽，适合分类接口未完全稳定前过渡。',
+  },
+] as const
+
 const itemLayoutOptions = [
   {
     id: 'pixel-gallery',
@@ -283,6 +393,149 @@ const itemLayoutOptions = [
       <h1>物品页三种新方向</h1>
       <p>这次不做后台式三栏微调，三版分别围绕图标墙、合成树、游戏内百科建立完全不同的第一屏。</p>
     </header>
+
+    <section class="pagination-option-board" aria-label="分页减压三版高保真方案">
+      <article
+        v-for="option in paginationMockupOptions"
+        :key="option.id"
+        class="pagination-mockup-card"
+        :class="option.className"
+      >
+        <div class="pagination-option-meta">
+          <span>{{ option.label }}</span>
+          <div class="pagination-option-title">
+            <b>{{ option.name }}</b>
+            <em>{{ option.cnName }}</em>
+          </div>
+          <p>{{ option.summary }}</p>
+          <strong>{{ option.verdict }}</strong>
+        </div>
+
+        <section class="pagination-mockup-stage" :aria-label="`${option.cnName}预览`">
+          <div class="catalog-screen-mock mock-wall-shell">
+            <header class="mock-page-head">
+              <div>
+                <span>ITEM CATALOG</span>
+                <h2>物品图鉴</h2>
+              </div>
+              <strong>24 / 页</strong>
+            </header>
+
+            <section class="mock-control-bar mock-toolbar-shell">
+              <label class="mock-search-box mock-search-compact">
+                <span>搜索</span>
+                <input type="search" value="刃" readonly>
+              </label>
+
+              <nav
+                v-if="option.id === 'bottom-capsule'"
+                class="mock-filter-rail mock-filter-tabs mock-category-overflow"
+                aria-label="多行分类预览"
+              >
+                <button
+                  v-for="filter in catalogWallQuickCategories"
+                  :key="`overflow-${filter}`"
+                  type="button"
+                  :class="{ active: filter === '全部' }"
+                >
+                  {{ filter }}
+                </button>
+              </nav>
+
+              <div
+                v-else-if="option.id === 'top-only'"
+                class="mock-category-dropdown"
+                aria-label="当前分类路径预览"
+              >
+                <span>全部分类</span>
+                <b>战斗 / 武器</b>
+              </div>
+
+              <nav
+                v-else
+                class="mock-filter-rail mock-filter-tabs mock-category-overflow is-compact"
+                aria-label="常用分类预览"
+              >
+                <button
+                  v-for="filter in catalogWallQuickCategories.slice(0, 6)"
+                  :key="`compact-${filter}`"
+                  type="button"
+                  :class="{ active: filter === '全部' }"
+                >
+                  {{ filter }}
+                </button>
+                <button type="button">更多 18</button>
+              </nav>
+
+              <label class="mock-density-select mock-density-pill">
+                <span>每页</span>
+                <select value="24" aria-label="每页数量预览">
+                  <option>12</option>
+                  <option>24</option>
+                  <option>48</option>
+                  <option>96</option>
+                </select>
+              </label>
+
+              <span class="mock-result-summary mock-page-chip">12 / 257 · 6,148</span>
+            </section>
+
+            <div class="mock-wall-content">
+              <div
+                v-if="option.id === 'top-only'"
+                class="mock-category-drawer"
+                aria-label="分类抽屉预览"
+              >
+                <section
+                  v-for="group in catalogWallCategoryGroups"
+                  :key="`drawer-${group.label}`"
+                  class="mock-category-column"
+                >
+                  <b>{{ group.label }}</b>
+                  <span
+                    v-for="category in group.items.slice(0, 3)"
+                    :key="`drawer-${group.label}-${category}`"
+                    :class="{ active: category === '武器' }"
+                  >
+                    {{ category }}
+                  </span>
+                  <span class="more">+{{ group.items.length - 3 }}</span>
+                </section>
+              </div>
+
+              <div class="mock-item-grid mock-wall-grid-current" aria-label="预览物品墙">
+                <article
+                  v-for="item in paginationMockItems"
+                  :key="`${option.id}-${item.id}`"
+                  class="mock-item-cell"
+                  :class="`tone-${item.tone}`"
+                >
+                  <span
+                    class="pixel-icon-token mock-item-token"
+                    :class="`role-${item.role.visualRole}`"
+                  >
+                    <span
+                      class="generated-pixel-icon"
+                      :style="pixelIconStyle(item.role)"
+                      aria-hidden="true"
+                    ></span>
+                  </span>
+                  <b>{{ item.name }}</b>
+                  <em>#{{ item.index }}</em>
+                </article>
+              </div>
+            </div>
+
+            <div class="mock-bottom-capsule mock-page-dock" aria-label="底部极简分页预览">
+              <button type="button" aria-label="上一页">‹</button>
+              <span>12 / 257</span>
+              <button type="button" aria-label="下一页">›</button>
+              <button type="button" class="mock-jump-trigger">跳页</button>
+            </div>
+          </div>
+        </section>
+      </article>
+    </section>
 
     <section class="hero-icon-option-board" aria-label="三套 hero icon 方案">
       <article
