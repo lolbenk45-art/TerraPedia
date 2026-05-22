@@ -249,6 +249,15 @@ CREATE TABLE IF NOT EXISTS `biomes` (
   `alias_zh` VARCHAR(255) DEFAULT NULL,
   `layer_type` VARCHAR(32) DEFAULT NULL,
   `biome_type` VARCHAR(32) DEFAULT NULL,
+  `wiki_group_code` VARCHAR(100) DEFAULT NULL,
+  `wiki_group_name_en` VARCHAR(255) DEFAULT NULL,
+  `wiki_group_name_zh` VARCHAR(255) DEFAULT NULL,
+  `wiki_parent_group_code` VARCHAR(100) DEFAULT NULL,
+  `wiki_parent_group_name_en` VARCHAR(255) DEFAULT NULL,
+  `wiki_parent_group_name_zh` VARCHAR(255) DEFAULT NULL,
+  `wiki_section_level` INT DEFAULT NULL,
+  `wiki_sort_order` INT DEFAULT NULL,
+  `wiki_section_anchor` VARCHAR(255) DEFAULT NULL,
   `description` TEXT DEFAULT NULL,
   `icon_url` VARCHAR(500) DEFAULT NULL,
   `source_provider` VARCHAR(64) DEFAULT NULL,
@@ -262,7 +271,10 @@ CREATE TABLE IF NOT EXISTS `biomes` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_biomes_code` (`code`),
   INDEX `idx_biomes_type` (`biome_type`),
-  INDEX `idx_biomes_layer` (`layer_type`)
+  INDEX `idx_biomes_layer` (`layer_type`),
+  INDEX `idx_biomes_wiki_group` (`wiki_group_code`),
+  INDEX `idx_biomes_wiki_parent_group` (`wiki_parent_group_code`),
+  INDEX `idx_biomes_wiki_order` (`wiki_sort_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `item_biomes` (

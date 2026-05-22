@@ -170,6 +170,60 @@ test('biome fetch records overview sections for mini and micro biomes without st
   assert.equal(progress.total, 6);
 });
 
+test('biome fetch preserves wiki taxonomy path and section order for top-level and nested sections', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-biome-taxonomy-'));
+  const worktreeRoot = path.join(tempDir, 'feature-worktree');
+  const progressPath = path.join(tempDir, 'progress.json');
+  const mockApiPath = writeBiomeTaxonomyMock(tempDir);
+
+  fs.mkdirSync(worktreeRoot, { recursive: true });
+
+  const result = spawnSync(process.execPath, [
+    scriptPath,
+    `--progress-path=${progressPath}`
+  ], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      WORKTREE_ROOT: worktreeRoot,
+      TERRAPEDIA_CRAWLER_ACTION_ID: 'test-biome-taxonomy-refresh',
+      NODE_ENV: 'test',
+      TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
+    }
+  });
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+
+  const output = JSON.parse(fs.readFileSync(path.join(worktreeRoot, 'data', 'generated', 'wiki-biomes.latest.json'), 'utf8'));
+  const space = output.records.find(record => record.requestedTitle === 'Space');
+  assert.deepEqual(space?.wikiSectionPath, ['Space']);
+  assert.equal(space?.wikiTopGroup, 'Space');
+  assert.equal(space?.wikiSectionLevel, 2);
+  assert.equal(space?.wikiSortOrder, 1);
+  assert.equal(space?.sourceSectionAnchor, 'Space');
+
+  const forest = output.records.find(record => record.requestedTitle === 'Forest');
+  assert.deepEqual(forest?.wikiSectionPath, ['Surface and Underground', 'Forest']);
+  assert.equal(forest?.wikiTopGroup, 'Surface and Underground');
+  assert.equal(forest?.wikiParentGroup, 'Surface and Underground');
+  assert.equal(forest?.wikiSectionLevel, 3);
+  assert.equal(forest?.wikiSortOrder, 3);
+
+  const hallow = output.records.find(record => record.requestedTitle === 'The Hallow');
+  assert.deepEqual(hallow?.wikiSectionPath, ['Hardmode', 'The Hallow']);
+  assert.equal(hallow?.wikiTopGroup, 'Hardmode');
+  assert.equal(hallow?.wikiParentGroup, 'Hardmode');
+  assert.equal(hallow?.wikiSortOrder, 18);
+
+  const spikeCaves = output.records.find(record => record.requestedTitle === 'Spike Caves');
+  assert.deepEqual(spikeCaves?.wikiSectionPath, ['Micro-biomes', 'Spike Caves']);
+  assert.equal(spikeCaves?.wikiTopGroup, 'Micro-biomes');
+  assert.equal(spikeCaves?.wikiParentGroup, 'Micro-biomes');
+  assert.equal(spikeCaves?.wikiSectionLevel, 3);
+  assert.equal(spikeCaves?.wikiSortOrder, 44);
+});
+
 test('biome fetch follows biome-specific page links from overview sections before choosing page images', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-biome-links-'));
   const worktreeRoot = path.join(tempDir, 'feature-worktree');
@@ -245,6 +299,77 @@ function writeBiomeMock(tempDir) {
           </table>
           <p>The Forest is the central surface biome.</p>
         </div>`
+    }
+  }), 'utf8');
+  return mockPath;
+}
+
+function writeBiomeTaxonomyMock(tempDir) {
+  const mockPath = path.join(tempDir, 'mock-taxonomy-api.json');
+  const biomesRevision = {
+    query: {
+      pages: [{
+        pageid: 303,
+        title: 'Biomes',
+        revisions: [{
+          revid: 404,
+          timestamp: '2026-05-20T00:00:00Z',
+          content: 'mock biomes revision'
+        }]
+      }]
+    }
+  };
+  const biomesParse = {
+    parse: {
+      title: 'Biomes',
+      pageid: 303,
+      sections: [
+        { level: '2', line: 'Space', anchor: 'Space', index: '1' },
+        { level: '2', line: 'Surface and Underground', anchor: 'Surface_and_Underground', index: '2' },
+        { level: '3', line: 'Forest', anchor: 'Forest', index: '3' },
+        { level: '2', line: 'Hardmode', anchor: 'Hardmode', index: '17' },
+        { level: '3', line: 'The Hallow', anchor: 'The_Hallow', index: '18' },
+        { level: '2', line: 'Micro-biomes', anchor: 'Micro-biomes', index: '37' },
+        { level: '3', line: 'Spike Caves', anchor: 'Spike_Caves', index: '44' },
+      ],
+      text: `
+        <div class="mw-parser-output">
+          <h2><span id="Space">Space</span></h2><p>Space is the top layer.</p><img src="/images/Space.png" width="260" height="120">
+          <h2><span id="Surface_and_Underground">Surface and Underground</span></h2>
+          <h3><span id="Forest">Forest</span></h3><p>Forest is a surface biome.</p><img src="/images/Forest_biome.png" width="260" height="120">
+          <h2><span id="Hardmode">Hardmode</span></h2>
+          <h3><span id="The_Hallow">The Hallow</span></h3><p>The Hallow appears in Hardmode.</p><img src="/images/Hallow.png" width="260" height="120">
+          <h2><span id="Micro-biomes">Micro-biomes</span></h2>
+          <h3><span id="Spike_Caves">Spike Caves</span></h3><p>Spike Caves contain traps and spikes.</p><img src="/images/Spike_Caves.png" width="260" height="120">
+        </div>`
+    }
+  };
+  fs.writeFileSync(mockPath, JSON.stringify({
+    __byRequest: {
+      'query:revisions:Biomes': biomesRevision,
+      'parse:text:Biomes': biomesParse,
+      'parse:sections:Biomes': biomesParse,
+      'query:revisions:Space': {
+        query: { pages: [{ pageid: 101, title: 'Space', revisions: [{ revid: 201, timestamp: '2026-05-20T00:00:00Z', content: 'mock space revision' }] }] }
+      },
+      'parse:text:Space': {
+        parse: { title: 'Space', pageid: 101, text: '<div class="mw-parser-output"><p>Space is the top layer.</p><img src="/images/Space.png" width="260" height="120"></div>' }
+      },
+      'query:revisions:Forest': {
+        query: { pages: [{ pageid: 102, title: 'Forest', revisions: [{ revid: 202, timestamp: '2026-05-20T00:00:00Z', content: 'mock forest revision' }] }] }
+      },
+      'parse:text:Forest': {
+        parse: { title: 'Forest', pageid: 102, text: '<div class="mw-parser-output"><p>Forest is a surface biome.</p><img src="/images/Forest_biome.png" width="260" height="120"></div>' }
+      },
+      'query:revisions:The Hallow': {
+        query: { pages: [{ pageid: 103, title: 'The Hallow', revisions: [{ revid: 203, timestamp: '2026-05-20T00:00:00Z', content: 'mock hallow revision' }] }] }
+      },
+      'parse:text:The Hallow': {
+        parse: { title: 'The Hallow', pageid: 103, text: '<div class="mw-parser-output"><p>The Hallow appears in Hardmode.</p><img src="/images/Hallow.png" width="260" height="120"></div>' }
+      },
+      'query:revisions:Spike Caves': {
+        query: { pages: [{ ns: 0, title: 'Spike Caves', missing: true }] }
+      },
     }
   }), 'utf8');
   return mockPath;

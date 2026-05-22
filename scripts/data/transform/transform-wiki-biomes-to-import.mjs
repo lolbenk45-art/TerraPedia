@@ -108,6 +108,80 @@ const zhNameMap = new Map([
   ['Campsite', '营地'],
 ]);
 
+const wikiGroupZhMap = new Map([
+  ['Space', '太空'],
+  ['Surface and Underground', '地表和地下'],
+  ['Forest', '森林'],
+  ['Snow biome', '雪原生物群系'],
+  ['Desert', '沙漠'],
+  ['Corruption and Crimson', '腐化和猩红'],
+  ['Jungle', '丛林'],
+  ['Dungeon', '地牢'],
+  ['Ocean', '海洋'],
+  ['Glowing Mushroom biome', '发光蘑菇生物群系'],
+  ['Cavern', '洞穴'],
+  ['Ice biome', '冰雪生物群系'],
+  ['Underground Desert', '地下沙漠'],
+  ['Underground Jungle', '地下丛林'],
+  ['Underground Mushroom', '地下蘑菇'],
+  ['Underworld', '地狱'],
+  ['The Underworld', '地狱'],
+  ['Hardmode', '困难模式'],
+  ['The Hallow', '神圣之地'],
+  ['Underground Hallow', '地下神圣之地'],
+  ['Underground Corruption', '地下腐化之地'],
+  ['Underground Crimson', '地下猩红之地'],
+  ['Corrupted, Crimson, and Hallowed Desert', '腐化、猩红、和神圣沙漠'],
+  ['Corrupted, Crimson, and Hallowed Ice', '腐化、猩红、和神圣冰雪'],
+  ['Mini-biomes', '小型群系'],
+  ['Oasis', '绿洲'],
+  ['Granite Cave', '花岗岩洞穴'],
+  ['Marble Cave', '大理石洞穴'],
+  ['Spider Nest', '蜘蛛巢'],
+  ['Bee Hive', '蜂巢'],
+  ['Glowing moss biome', '发光苔藓群系'],
+  ['Ash forest', '灰烬森林'],
+  ['Jungle Temple', '丛林神庙'],
+  ['Meteorite', '陨石群系'],
+  ['Town', '城镇'],
+  ['Graveyard', '墓地'],
+  ['Aether', '以太'],
+  ['Micro-biomes', '微型群系'],
+  ['Flower patch', '花丛'],
+  ['Stone patch', '石块斑块'],
+  ['Large ore vein', '大型矿脉'],
+  ['Moss chamber', '苔藓洞室'],
+  ['Gemstone cave', '宝石洞穴'],
+  ['Thin Ice patch', '薄冰斑块'],
+  ['Spike Caves', '尖刺洞穴'],
+  ['Treasure rooms', '宝藏房'],
+  ['Underground Cabin', '地下小屋'],
+  ['Living Tree', '生命树'],
+  ['Floating Island', '漂浮岛'],
+  ['Living Mahogany Tree', '生命红木树'],
+  ['Jungle Shrine', '丛林神龛'],
+  ['Ruined House', '废墟房屋'],
+  ['Pyramid', '金字塔'],
+  ['Enchanted Sword Shrine', '附魔剑冢'],
+  ['Mosaic', '马赛克房间'],
+  ['Campsite', '营地'],
+]);
+
+const wikiGroupCodeOverrides = new Map([
+  ['Surface and Underground', 'surface_and_underground'],
+  ['Corruption and Crimson', 'corruption_and_crimson'],
+  ['Glowing Mushroom biome', 'glowing_mushroom_biome'],
+  ['Ice biome', 'ice_biome'],
+  ['Underground Mushroom', 'underground_mushroom'],
+  ['The Underworld', 'underworld'],
+  ['The Hallow', 'the_hallow'],
+  ['Corrupted, Crimson, and Hallowed Desert', 'corrupted_crimson_hallowed_desert'],
+  ['Corrupted, Crimson, and Hallowed Ice', 'corrupted_crimson_hallowed_ice'],
+  ['Mini-biomes', 'mini_biomes'],
+  ['Micro-biomes', 'micro_biomes'],
+  ['Treasure rooms', 'treasure_rooms'],
+]);
+
 const zhAliasMap = new Map([
   ['Snow biome', '雪地|苔原'],
   ['The Underworld', '地狱|冥界'],
@@ -144,6 +218,7 @@ const filteredRecords = (payload.records || []).filter(record => !isOverviewFall
 
 const biomes = filteredRecords.map(record => {
   const code = deriveCode(record.requestedTitle) || deriveCode(record.title);
+  const wikiTaxonomy = deriveWikiTaxonomy(record);
   const aliasEn = dedupe(record.aliases || [])
     .filter(alias => alias !== record.title)
     .join('|') || null;
@@ -156,6 +231,7 @@ const biomes = filteredRecords.map(record => {
     aliasZh: zhAliasMap.get(record.title) || null,
     layerType: deriveLayerType(record),
     biomeType: biomeTypeMap.get(record.title) || deriveFallbackBiomeType(record),
+    ...wikiTaxonomy,
     description: record.intro || null,
     iconUrl: toNullableString(record.iconUrl),
     sourceProvider: 'wiki_gg',
@@ -167,6 +243,11 @@ const biomes = filteredRecords.map(record => {
     resources: [],
   };
 });
+
+biomes.sort((left, right) =>
+  Number(left.wikiSortOrder ?? 9999) - Number(right.wikiSortOrder ?? 9999)
+  || String(left.code).localeCompare(String(right.code))
+);
 
 const biomeCodeByTitle = new Map(biomes.map(biome => [biome.nameEn, biome.code]));
 for (const [title, relatedTitle, relationType] of relationRules) {
@@ -222,6 +303,47 @@ function deriveCode(title) {
     .replace(/\bbiome\b/gi, '')
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');
+}
+
+function deriveWikiGroupCode(title) {
+  const text = toNullableString(title);
+  if (!text) return null;
+  if (wikiGroupCodeOverrides.has(text)) return wikiGroupCodeOverrides.get(text);
+  return text
+    .toLowerCase()
+    .replace(/^the\s+/i, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function deriveWikiTaxonomy(record) {
+  const pathParts = Array.isArray(record.wikiSectionPath) && record.wikiSectionPath.length
+    ? record.wikiSectionPath.map(value => String(value).trim()).filter(Boolean)
+    : [record.topGroup, record.sectionGroup || record.requestedTitle || record.title].filter(Boolean);
+  const groupNameEn = pathParts[pathParts.length - 1] ?? null;
+  const parentNameEn = pathParts.length > 1 ? pathParts[pathParts.length - 2] : null;
+  const groupNameZh = getWikiGroupZh(groupNameEn, record);
+  const parentNameZh = parentNameEn ? getWikiGroupZh(parentNameEn, record) : null;
+  const pathZh = pathParts.map(part => getWikiGroupZh(part, record) || part).join(' > ');
+  return {
+    wikiGroupCode: deriveWikiGroupCode(groupNameEn),
+    wikiGroupNameEn: groupNameEn,
+    wikiGroupNameZh: groupNameZh,
+    wikiParentGroupCode: deriveWikiGroupCode(parentNameEn),
+    wikiParentGroupNameEn: parentNameEn,
+    wikiParentGroupNameZh: parentNameZh,
+    wikiSectionLevel: Number(record.wikiSectionLevel ?? record.sectionLevel ?? pathParts.length + 1) || null,
+    wikiSortOrder: Number(record.wikiSortOrder ?? record.sectionIndex ?? 0) || null,
+    wikiSectionAnchor: toNullableString(record.sourceSectionAnchor),
+    wikiCategoryPathEn: pathParts.join(' > '),
+    wikiCategoryPathZh: pathZh,
+  };
+}
+
+function getWikiGroupZh(title, record) {
+  if (!title) return null;
+  if (wikiGroupZhMap.has(title)) return wikiGroupZhMap.get(title);
+  return deriveZhName({ ...record, title, requestedTitle: title, aliases: [title] });
 }
 
 function deriveLayerType(record) {

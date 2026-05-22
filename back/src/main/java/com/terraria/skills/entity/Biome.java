@@ -40,6 +40,33 @@ public class Biome implements Serializable {
     @TableField("biome_type")
     private String biomeType;
 
+    @TableField("wiki_group_code")
+    private String wikiGroupCode;
+
+    @TableField("wiki_group_name_en")
+    private String wikiGroupNameEn;
+
+    @TableField("wiki_group_name_zh")
+    private String wikiGroupNameZh;
+
+    @TableField("wiki_parent_group_code")
+    private String wikiParentGroupCode;
+
+    @TableField("wiki_parent_group_name_en")
+    private String wikiParentGroupNameEn;
+
+    @TableField("wiki_parent_group_name_zh")
+    private String wikiParentGroupNameZh;
+
+    @TableField("wiki_section_level")
+    private Integer wikiSectionLevel;
+
+    @TableField("wiki_sort_order")
+    private Integer wikiSortOrder;
+
+    @TableField("wiki_section_anchor")
+    private String wikiSectionAnchor;
+
     @TableField("description")
     private String description;
 

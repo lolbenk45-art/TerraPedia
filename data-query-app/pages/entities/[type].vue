@@ -119,18 +119,18 @@
           </div>
           <div v-if="entityType === 'biomes'" class="field field--full">
             <div class="field__topline">
-              <span class="field__label">群系分类</span>
-              <span class="field__hint">按 wiki 大类区分生物群落、小型群系、微型群系和宝藏房。</span>
+              <span class="field__label">Wiki 群系目录</span>
+              <span class="field__hint">按 Terraria Wiki Biomes 页面目录筛选，保留父级与子级层级。</span>
             </div>
-            <div class="filter-chip-group" role="tablist" aria-label="群系分类筛选">
+            <div class="filter-chip-group biome-taxonomy-filter" role="tablist" aria-label="Wiki 群系目录筛选">
               <button
-                v-for="option in biomeGroupOptions"
+                v-for="option in biomeWikiGroupOptions"
                 :key="option.value"
                 type="button"
-                class="filter-chip"
-                :class="{ 'filter-chip--active': selectedBiomeGroup === option.value }"
-                :aria-pressed="selectedBiomeGroup === option.value"
-                @click="handleBiomeGroupChange(option.value)"
+                class="filter-chip biome-taxonomy-filter__chip"
+                :class="[`biome-taxonomy-filter__chip--level-${option.level}`, { 'filter-chip--active': selectedBiomeWikiGroup === option.value }]"
+                :aria-pressed="selectedBiomeWikiGroup === option.value"
+                @click="handleBiomeWikiGroupChange(option.value)"
               >
                 <span>{{ option.label }}</span>
                 <small>{{ option.description }}</small>
@@ -1649,6 +1649,64 @@ type ArmorSetCompositionKindFilter = 'all' | 'traditional_set' | 'single_piece_s
 const selectedArmorSetCompositionKind = ref<ArmorSetCompositionKindFilter>('all')
 type BiomeGroupFilter = 'all' | 'space' | 'surface' | 'surface_hardmode' | 'cavern' | 'cavern_hardmode' | 'underworld' | 'mini_biome' | 'micro_biome' | 'treasure_room'
 const selectedBiomeGroup = ref<BiomeGroupFilter>('all')
+type BiomeWikiGroupFilter =
+  | 'all'
+  | 'space'
+  | 'surface_and_underground'
+  | 'forest'
+  | 'snow_biome'
+  | 'desert'
+  | 'corruption_and_crimson'
+  | 'jungle'
+  | 'dungeon'
+  | 'ocean'
+  | 'glowing_mushroom_biome'
+  | 'cavern'
+  | 'ice_biome'
+  | 'underground_desert'
+  | 'underground_jungle'
+  | 'underground_mushroom'
+  | 'underworld'
+  | 'hardmode'
+  | 'the_hallow'
+  | 'underground_hallow'
+  | 'underground_corruption'
+  | 'underground_crimson'
+  | 'corrupted_crimson_hallowed_desert'
+  | 'corrupted_crimson_hallowed_ice'
+  | 'mini_biomes'
+  | 'oasis'
+  | 'granite_cave'
+  | 'marble_cave'
+  | 'spider_nest'
+  | 'bee_hive'
+  | 'glowing_moss_biome'
+  | 'ash_forest'
+  | 'jungle_temple'
+  | 'meteorite'
+  | 'town'
+  | 'graveyard'
+  | 'aether'
+  | 'micro_biomes'
+  | 'flower_patch'
+  | 'stone_patch'
+  | 'large_ore_vein'
+  | 'moss_chamber'
+  | 'gemstone_cave'
+  | 'thin_ice_patch'
+  | 'spike_caves'
+  | 'treasure_rooms'
+  | 'underground_cabin'
+  | 'living_tree'
+  | 'floating_island'
+  | 'living_mahogany_tree'
+  | 'jungle_shrine'
+  | 'ruined_house'
+  | 'pyramid'
+  | 'enchanted_sword_shrine'
+  | 'mosaic'
+  | 'campsite'
+const selectedBiomeWikiGroup = ref<BiomeWikiGroupFilter>('all')
 const BUFF_IMMUNE_NPC_PREVIEW_LIMIT = 40
 const selectedBossType = ref<'all' | 'PRE_HARDMODE' | 'HARDMODE' | 'EVENT' | 'SPECIAL_SEED'>('all')
 type WorldContextTypeFilter = 'all' | 'TIME' | 'ENVIRONMENT' | 'EVENT' | 'MOON_PHASE' | 'WEATHER'
@@ -1686,6 +1744,64 @@ const biomeGroupOptions = [
   { value: 'mini_biome', label: '小型群系', description: '陨石、蜂巢、以太等局部群系。' },
   { value: 'micro_biome', label: '微型群系', description: '花丛、宝石洞穴等微型结构。' },
   { value: 'treasure_room', label: '宝藏房', description: '地下小屋、金字塔、剑冢等结构房间。' },
+] as const
+const biomeWikiGroupOptions = [
+  { value: 'all', label: '全部群系', level: 0, description: '显示 Wiki Biomes 页面全部分类。' },
+  { value: 'space', label: '太空', level: 1, description: 'Wiki 1. Space' },
+  { value: 'surface_and_underground', label: '地表和地下', level: 1, description: 'Wiki 2. Surface and Underground' },
+  { value: 'forest', label: '森林', level: 2, parent: 'surface_and_underground', description: 'Wiki 2.1 Forest' },
+  { value: 'snow_biome', label: '雪原生物群系', level: 2, parent: 'surface_and_underground', description: 'Wiki 2.2 Snow biome' },
+  { value: 'desert', label: '沙漠', level: 2, parent: 'surface_and_underground', description: 'Wiki 2.3 Desert' },
+  { value: 'corruption_and_crimson', label: '腐化和猩红', level: 2, parent: 'surface_and_underground', description: 'Wiki 2.4 Corruption and Crimson' },
+  { value: 'jungle', label: '丛林', level: 2, parent: 'surface_and_underground', description: 'Wiki 2.5 Jungle' },
+  { value: 'dungeon', label: '地牢', level: 2, parent: 'surface_and_underground', description: 'Wiki 2.6 Dungeon' },
+  { value: 'ocean', label: '海洋', level: 2, parent: 'surface_and_underground', description: 'Wiki 2.7 Ocean' },
+  { value: 'glowing_mushroom_biome', label: '发光蘑菇生物群系', level: 2, parent: 'surface_and_underground', description: 'Wiki 2.8 Glowing Mushroom biome' },
+  { value: 'cavern', label: '洞穴', level: 1, description: 'Wiki 3. Cavern' },
+  { value: 'ice_biome', label: '冰雪生物群系', level: 2, parent: 'cavern', description: 'Wiki 3.1 Ice biome' },
+  { value: 'underground_desert', label: '地下沙漠', level: 2, parent: 'cavern', description: 'Wiki 3.2 Underground Desert' },
+  { value: 'underground_jungle', label: '地下丛林', level: 2, parent: 'cavern', description: 'Wiki 3.3 Underground Jungle' },
+  { value: 'underground_mushroom', label: '地下蘑菇', level: 2, parent: 'cavern', description: 'Wiki 3.4 Underground Mushroom' },
+  { value: 'underworld', label: '地狱', level: 1, description: 'Wiki 4. Underworld' },
+  { value: 'hardmode', label: '困难模式', level: 1, description: 'Wiki 5. Hardmode' },
+  { value: 'the_hallow', label: '神圣之地', level: 2, parent: 'hardmode', description: 'Wiki 5.1 The Hallow' },
+  { value: 'underground_hallow', label: '地下神圣之地', level: 2, parent: 'hardmode', description: 'Wiki 5.2 Underground Hallow' },
+  { value: 'underground_corruption', label: '地下腐化之地', level: 2, parent: 'hardmode', description: 'Wiki 5.3 Underground Corruption' },
+  { value: 'underground_crimson', label: '地下猩红之地', level: 2, parent: 'hardmode', description: 'Wiki 5.4 Underground Crimson' },
+  { value: 'corrupted_crimson_hallowed_desert', label: '腐化、猩红、和神圣沙漠', level: 2, parent: 'hardmode', description: 'Wiki 5.5 Corrupted, Crimson, and Hallowed Desert' },
+  { value: 'corrupted_crimson_hallowed_ice', label: '腐化、猩红、和神圣冰雪', level: 2, parent: 'hardmode', description: 'Wiki 5.6 Corrupted, Crimson, and Hallowed Ice' },
+  { value: 'mini_biomes', label: '小型群系', level: 1, description: 'Wiki 6. Mini-biomes' },
+  { value: 'oasis', label: '绿洲', level: 2, parent: 'mini_biomes', description: 'Wiki 6.1 Oasis' },
+  { value: 'granite_cave', label: '花岗岩洞穴', level: 2, parent: 'mini_biomes', description: 'Wiki 6.2 Granite Cave' },
+  { value: 'marble_cave', label: '大理石洞穴', level: 2, parent: 'mini_biomes', description: 'Wiki 6.3 Marble Cave' },
+  { value: 'spider_nest', label: '蜘蛛巢', level: 2, parent: 'mini_biomes', description: 'Wiki 6.4 Spider Nest' },
+  { value: 'bee_hive', label: '蜂巢', level: 2, parent: 'mini_biomes', description: 'Wiki 6.5 Bee Hive' },
+  { value: 'glowing_moss_biome', label: '发光苔藓群系', level: 2, parent: 'mini_biomes', description: 'Wiki 6.6 Glowing moss biome' },
+  { value: 'ash_forest', label: '灰烬森林', level: 2, parent: 'mini_biomes', description: 'Wiki 6.7 Ash forest' },
+  { value: 'jungle_temple', label: '丛林神庙', level: 2, parent: 'mini_biomes', description: 'Wiki 6.8 Jungle Temple' },
+  { value: 'meteorite', label: '陨石群系', level: 2, parent: 'mini_biomes', description: 'Wiki 6.9 Meteorite' },
+  { value: 'town', label: '城镇', level: 2, parent: 'mini_biomes', description: 'Wiki 6.10 Town' },
+  { value: 'graveyard', label: '墓地', level: 2, parent: 'mini_biomes', description: 'Wiki 6.11 Graveyard' },
+  { value: 'aether', label: '以太', level: 2, parent: 'mini_biomes', description: 'Wiki 6.12 Aether' },
+  { value: 'micro_biomes', label: '微型群系', level: 1, description: 'Wiki 7. Micro-biomes' },
+  { value: 'flower_patch', label: '花丛', level: 2, parent: 'micro_biomes', description: 'Wiki 7.1 Flower patch' },
+  { value: 'stone_patch', label: '石块斑块', level: 2, parent: 'micro_biomes', description: 'Wiki 7.2 Stone patch' },
+  { value: 'large_ore_vein', label: '大型矿脉', level: 2, parent: 'micro_biomes', description: 'Wiki 7.3 Large ore vein' },
+  { value: 'moss_chamber', label: '苔藓洞室', level: 2, parent: 'micro_biomes', description: 'Wiki 7.4 Moss chamber' },
+  { value: 'gemstone_cave', label: '宝石洞穴', level: 2, parent: 'micro_biomes', description: 'Wiki 7.5 Gemstone cave' },
+  { value: 'thin_ice_patch', label: '薄冰斑块', level: 2, parent: 'micro_biomes', description: 'Wiki 7.6 Thin Ice patch' },
+  { value: 'spike_caves', label: '尖刺洞穴', level: 2, parent: 'micro_biomes', description: 'Wiki 7.7 Spike Caves' },
+  { value: 'treasure_rooms', label: '宝藏房', level: 1, description: 'Wiki 8. Treasure rooms' },
+  { value: 'underground_cabin', label: '地下小屋', level: 2, parent: 'treasure_rooms', description: 'Wiki 8.1 Underground Cabin' },
+  { value: 'living_tree', label: '生命树', level: 2, parent: 'treasure_rooms', description: 'Wiki 8.2 Living Tree' },
+  { value: 'floating_island', label: '漂浮岛', level: 2, parent: 'treasure_rooms', description: 'Wiki 8.3 Floating Island' },
+  { value: 'living_mahogany_tree', label: '生命红木树', level: 2, parent: 'treasure_rooms', description: 'Wiki 8.4 Living Mahogany Tree' },
+  { value: 'jungle_shrine', label: '丛林神龛', level: 2, parent: 'treasure_rooms', description: 'Wiki 8.5 Jungle Shrine' },
+  { value: 'ruined_house', label: '废墟房屋', level: 2, parent: 'treasure_rooms', description: 'Wiki 8.6 Ruined House' },
+  { value: 'pyramid', label: '金字塔', level: 2, parent: 'treasure_rooms', description: 'Wiki 8.7 Pyramid' },
+  { value: 'enchanted_sword_shrine', label: '附魔剑冢', level: 2, parent: 'treasure_rooms', description: 'Wiki 8.8 Enchanted Sword Shrine' },
+  { value: 'mosaic', label: '马赛克房间', level: 2, parent: 'treasure_rooms', description: 'Wiki 8.9 Mosaic' },
+  { value: 'campsite', label: '营地', level: 2, parent: 'treasure_rooms', description: 'Wiki 8.10 Campsite' },
 ] as const
 const worldContextTypeOptions = [
   { value: 'all', label: '全部状态', description: '显示所有 wiki-backed 世界状态。' },
@@ -1747,7 +1863,7 @@ const configs: Record<string, EntityConfig> = {
     ],
     columns: [
       { key: '__imageUrl', label: '预览' }, { key: 'id', label: 'ID' }, { key: 'code', label: 'Code' }, { key: 'nameZh', label: '展示名称' },
-      { key: 'biomeType', label: '群系类型' }, { key: 'layerType', label: '层级类型' }, { key: 'updatedAt', label: '更新时间' },
+      { key: 'wikiCategoryPathZh', label: 'Wiki 分类' }, { key: 'biomeType', label: '群系类型' }, { key: 'layerType', label: '层级类型' }, { key: 'updatedAt', label: '更新时间' },
     ],
     fields: [
       { key: 'code', label: 'Code', type: 'text', required: true },
@@ -1757,6 +1873,13 @@ const configs: Record<string, EntityConfig> = {
       { key: 'aliasEn', label: 'English Alias', type: 'text' },
       { key: 'biomeType', label: 'Biome Type', type: 'text' },
       { key: 'layerType', label: 'Layer Type', type: 'text' },
+      { key: 'wikiGroupCode', label: 'Wiki Group Code', type: 'text' },
+      { key: 'wikiGroupNameZh', label: 'Wiki Group Name ZH', type: 'text' },
+      { key: 'wikiParentGroupCode', label: 'Wiki Parent Group Code', type: 'text' },
+      { key: 'wikiParentGroupNameZh', label: 'Wiki Parent Group Name ZH', type: 'text' },
+      { key: 'wikiSectionLevel', label: 'Wiki Section Level', type: 'number' },
+      { key: 'wikiSortOrder', label: 'Wiki Sort Order', type: 'number' },
+      { key: 'wikiSectionAnchor', label: 'Wiki Section Anchor', type: 'text' },
       { key: 'status', label: 'Status', type: 'number', helper: '1 = enabled, 0 = disabled.' },
       { key: 'iconUrl', label: 'Icon URL', type: 'text', span: 'full', helper: 'Supports direct image preview.' },
       { key: 'sourceProvider', label: 'Source Provider', type: 'text' },
@@ -2035,7 +2158,7 @@ const hasActiveFilters = computed(() => {
   if (entityType.value === 'buffs' && selectedBuffType.value !== 'all') return true
   if (entityType.value === 'bosses' && selectedBossType.value !== 'all') return true
   if (entityType.value === 'armor-sets' && selectedArmorSetCompositionKind.value !== 'all') return true
-  if (entityType.value === 'biomes' && selectedBiomeGroup.value !== 'all') return true
+  if (entityType.value === 'biomes' && selectedBiomeWikiGroup.value !== 'all') return true
   if (entityType.value === 'world-contexts' && selectedWorldContextType.value !== 'all') return true
   return false
 })
@@ -2271,6 +2394,17 @@ function getArmorSetCompositionKindLabel(value: unknown) {
 function getBiomeGroupMeta(value: unknown) {
   const normalized = typeof value === 'string' ? value.trim().toLowerCase() : ''
   return biomeGroupOptions.find(option => option.value === normalized) ?? null
+}
+
+function getBiomeWikiGroupMeta(value: unknown) {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : ''
+  return biomeWikiGroupOptions.find(option => option.value === normalized) ?? null
+}
+
+function getBiomeWikiCategoryPath(row: Record<string, any>) {
+  const zhPath = [row.wikiParentGroupNameZh, row.wikiGroupNameZh].filter(Boolean).join(' > ')
+  const enPath = [row.wikiParentGroupNameEn, row.wikiGroupNameEn].filter(Boolean).join(' > ')
+  return zhPath || row.wikiCategoryPathZh || enPath || getBiomeLayerLabel(row.layerType)
 }
 
 function getBiomeGroupLabel(value: unknown) {
@@ -2561,8 +2695,8 @@ async function fetchRows(page = pagination.page) {
     if (entityType.value === 'armor-sets' && selectedArmorSetCompositionKind.value !== 'all') {
       params.compositionKind = selectedArmorSetCompositionKind.value
     }
-    if (entityType.value === 'biomes' && selectedBiomeGroup.value !== 'all') {
-      params.group = selectedBiomeGroup.value
+    if (entityType.value === 'biomes' && selectedBiomeWikiGroup.value !== 'all') {
+      params.wikiGroupCode = selectedBiomeWikiGroup.value
     }
     if (entityType.value === 'npcs' && selectedNpcCategoryId.value != null) {
       params.categoryId = selectedNpcCategoryId.value
@@ -2780,8 +2914,8 @@ async function syncRouteQuery(page = 1) {
   if (entityType.value === 'armor-sets' && selectedArmorSetCompositionKind.value !== 'all') {
     nextQuery.compositionKind = selectedArmorSetCompositionKind.value
   }
-  if (entityType.value === 'biomes' && selectedBiomeGroup.value !== 'all') {
-    nextQuery.biomeGroup = selectedBiomeGroup.value
+  if (entityType.value === 'biomes' && selectedBiomeWikiGroup.value !== 'all') {
+    nextQuery.biomeWikiGroup = selectedBiomeWikiGroup.value
   }
   if (entityType.value === 'world-contexts' && selectedWorldContextType.value !== 'all') {
     nextQuery.contextType = selectedWorldContextType.value
@@ -2805,6 +2939,7 @@ async function handleReset() {
   selectedBossType.value = 'all'
   selectedArmorSetCompositionKind.value = 'all'
   selectedBiomeGroup.value = 'all'
+  selectedBiomeWikiGroup.value = 'all'
   selectedWorldContextType.value = 'all'
   await syncRouteQuery(1)
   if (entityType.value === 'bosses') return
@@ -2839,6 +2974,13 @@ async function handleArmorSetCompositionChange(value: ArmorSetCompositionKindFil
 async function handleBiomeGroupChange(value: BiomeGroupFilter) {
   if (selectedBiomeGroup.value === value) return
   selectedBiomeGroup.value = value
+  await syncRouteQuery(1)
+  await fetchRows(1)
+}
+
+async function handleBiomeWikiGroupChange(value: BiomeWikiGroupFilter) {
+  if (selectedBiomeWikiGroup.value === value) return
+  selectedBiomeWikiGroup.value = value
   await syncRouteQuery(1)
   await fetchRows(1)
 }
@@ -2883,6 +3025,7 @@ function formatCell(row: Record<string, any>, key: string) {
   if (key === '__imageUrl') return row.__imageUrl ? 'Preview available' : '--'
   if (key === 'bossType') return getBossTypeLabel(row[key])
   if (key === 'compositionKind') return getArmorSetCompositionKindLabel(row[key])
+  if (entityType.value === 'biomes' && key === 'wikiCategoryPathZh') return getBiomeWikiCategoryPath(row)
   if (entityType.value === 'biomes' && key === 'biomeType') return getBiomeTypeLabel(row.biomeType)
   if (entityType.value === 'biomes' && key === 'layerType') return getBiomeLayerLabel(row.layerType)
   if (key === 'contextType') return formatWorldContextTypeLabel(row[key])
@@ -4120,6 +4263,10 @@ watch(() => entityType.value, async () => {
         : 'all'
   }
   if (entityType.value === 'biomes') {
+    const rawBiomeWikiGroup = typeof route.query.biomeWikiGroup === 'string' ? route.query.biomeWikiGroup.trim().toLowerCase() : ''
+    selectedBiomeWikiGroup.value = biomeWikiGroupOptions.some(option => option.value === rawBiomeWikiGroup)
+      ? rawBiomeWikiGroup as BiomeWikiGroupFilter
+      : 'all'
     const rawBiomeGroup = typeof route.query.biomeGroup === 'string' ? route.query.biomeGroup.trim().toLowerCase() : ''
     selectedBiomeGroup.value = biomeGroupOptions.some(option => option.value === rawBiomeGroup)
       ? rawBiomeGroup as BiomeGroupFilter
@@ -4388,6 +4535,22 @@ function formatArmorPartRole(value: unknown) {
 .filter-chip--active span,
 .filter-chip--active small {
   color: var(--color-text);
+}
+.biome-taxonomy-filter { gap: 8px; }
+.biome-taxonomy-filter__chip {
+  min-width: 136px;
+  border-radius: 10px;
+}
+.biome-taxonomy-filter__chip--level-0 {
+  min-width: 156px;
+}
+.biome-taxonomy-filter__chip--level-1 {
+  border-color: color-mix(in srgb, var(--color-primary) 26%, var(--color-border));
+}
+.biome-taxonomy-filter__chip--level-2 {
+  min-width: 128px;
+  margin-left: 14px;
+  background: color-mix(in srgb, var(--color-bg) 92%, var(--color-bg-secondary));
 }
 .boss-type-strip {
   display: grid;

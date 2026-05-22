@@ -18,6 +18,15 @@ public class BiomeDTO {
     private String aliasZh;
     private String layerType;
     private String biomeType;
+    private String wikiGroupCode;
+    private String wikiGroupNameEn;
+    private String wikiGroupNameZh;
+    private String wikiParentGroupCode;
+    private String wikiParentGroupNameEn;
+    private String wikiParentGroupNameZh;
+    private Integer wikiSectionLevel;
+    private Integer wikiSortOrder;
+    private String wikiSectionAnchor;
     private String description;
     private String iconUrl;
     private String sourceProvider;

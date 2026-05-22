@@ -133,6 +133,7 @@ async function main(argv = process.argv.slice(2)) {
       derivedRecords.push({
         topGroup: entry.topGroup,
         sectionGroup: entry.sectionGroup,
+        ...pickWikiTaxonomy(entry),
         requestedTitle: entry.pageTitle,
         displayName: derivedDefinition.displayName,
         sourceType: 'derived_from_biomes_section',
@@ -164,6 +165,7 @@ async function main(argv = process.argv.slice(2)) {
         records.push({
           topGroup: entry.topGroup,
           sectionGroup: entry.sectionGroup,
+          ...pickWikiTaxonomy(entry),
           requestedTitle: entry.pageTitle,
           title: page.title,
           pageId: page.pageId,
@@ -192,6 +194,7 @@ async function main(argv = process.argv.slice(2)) {
       unresolved.push({
         topGroup: entry.topGroup,
         sectionGroup: entry.sectionGroup,
+        ...pickWikiTaxonomy(entry),
         requestedTitle: entry.pageTitle,
         error: String(error),
       });
@@ -328,9 +331,11 @@ function discoverBiomeTargets(sections) {
       const titles = sectionTitleOverrides.get(line) || [line];
       for (const title of titles) {
         if (!containerOnlyTopLevelGroups.has(title)) {
+          const metadata = buildWikiTaxonomyMetadata({ topGroup: line, sectionTitle: line, level, index: section.index });
           targets.push({
             topGroup: line,
             sectionGroup: null,
+            ...metadata,
             pageTitle: title,
             sectionAnchor: section.anchor ?? toWikiAnchor(line),
             sectionIndex: section.index ?? null,
@@ -344,9 +349,11 @@ function discoverBiomeTargets(sections) {
     if (level === 3 && currentTopGroup && !skipTopLevelGroups.has(currentTopGroup)) {
       const titles = sectionTitleOverrides.get(line) || [line];
       for (const title of titles) {
+        const metadata = buildWikiTaxonomyMetadata({ topGroup: currentTopGroup, sectionTitle: line, level, index: section.index });
         targets.push({
           topGroup: currentTopGroup,
           sectionGroup: line,
+          ...metadata,
           pageTitle: title,
           sectionAnchor: section.anchor ?? toWikiAnchor(line),
           sectionIndex: section.index ?? null,
@@ -365,6 +372,33 @@ function discoverBiomeTargets(sections) {
     deduped.push(target);
   }
   return deduped;
+}
+
+function buildWikiTaxonomyMetadata({ topGroup, sectionTitle, level, index }) {
+  const normalizedLevel = Number(level || 0);
+  const sortOrder = Number(index || 0) || null;
+  const pathParts = normalizedLevel === 2
+    ? [topGroup]
+    : [topGroup, sectionTitle].filter(Boolean);
+  return {
+    wikiSectionPath: pathParts,
+    wikiTopGroup: topGroup,
+    wikiParentGroup: normalizedLevel === 2 ? null : topGroup,
+    wikiSectionLevel: normalizedLevel,
+    wikiSortOrder: sortOrder,
+  };
+}
+
+function pickWikiTaxonomy(entry) {
+  return {
+    wikiSectionPath: Array.isArray(entry?.wikiSectionPath) && entry.wikiSectionPath.length
+      ? entry.wikiSectionPath
+      : [entry?.topGroup, entry?.sectionGroup].filter(Boolean),
+    wikiTopGroup: entry?.wikiTopGroup ?? entry?.topGroup ?? null,
+    wikiParentGroup: entry?.wikiParentGroup ?? (entry?.sectionGroup ? entry.topGroup : null),
+    wikiSectionLevel: Number(entry?.wikiSectionLevel ?? entry?.sectionLevel ?? 0) || null,
+    wikiSortOrder: Number(entry?.wikiSortOrder ?? entry?.sectionIndex ?? 0) || null,
+  };
 }
 
 function applyOverviewSectionLinks(targets, overviewRendered) {
@@ -405,6 +439,7 @@ function buildOverviewSectionRecord(entry, overview, overviewRendered) {
   return {
     topGroup: entry.topGroup,
     sectionGroup: entry.sectionGroup,
+    ...pickWikiTaxonomy(entry),
     requestedTitle: entry.pageTitle,
     title: entry.pageTitle,
     pageId: overview.pageId,

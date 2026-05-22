@@ -65,15 +65,22 @@ public class AdminBiomeController {
         @RequestParam(required = false) Integer limit,
         @RequestParam(required = false) Integer size,
         @RequestParam(required = false) String search,
-        @RequestParam(required = false) String group
+        @RequestParam(required = false) String group,
+        @RequestParam(required = false) String wikiGroupCode
     ) {
         int safePage = PaginationParams.resolvePage(page);
         int safeLimit = PaginationParams.resolveLimit(limit, size, 20, 100);
         LambdaQueryWrapper<Biome> wrapper = new LambdaQueryWrapper<Biome>()
+            .orderByAsc(Biome::getWikiSortOrder)
             .orderByAsc(Biome::getId);
         String normalizedGroup = normalizeBiomeGroup(group);
         if (normalizedGroup != null) {
             wrapper.eq(Biome::getLayerType, normalizedGroup);
+        }
+        String normalizedWikiGroupCode = normalizeText(wikiGroupCode);
+        if (normalizedWikiGroupCode != null) {
+            wrapper.and(w -> w.eq(Biome::getWikiGroupCode, normalizedWikiGroupCode)
+                .or().eq(Biome::getWikiParentGroupCode, normalizedWikiGroupCode));
         }
         if (search != null && !search.isBlank()) {
             String keyword = search.trim();
@@ -188,6 +195,15 @@ public class AdminBiomeController {
         if (request.getAliasZh() != null) biome.setAliasZh(request.getAliasZh());
         if (request.getLayerType() != null) biome.setLayerType(request.getLayerType());
         if (request.getBiomeType() != null) biome.setBiomeType(request.getBiomeType());
+        if (request.getWikiGroupCode() != null) biome.setWikiGroupCode(trimToNull(request.getWikiGroupCode()));
+        if (request.getWikiGroupNameEn() != null) biome.setWikiGroupNameEn(trimToNull(request.getWikiGroupNameEn()));
+        if (request.getWikiGroupNameZh() != null) biome.setWikiGroupNameZh(trimToNull(request.getWikiGroupNameZh()));
+        if (request.getWikiParentGroupCode() != null) biome.setWikiParentGroupCode(trimToNull(request.getWikiParentGroupCode()));
+        if (request.getWikiParentGroupNameEn() != null) biome.setWikiParentGroupNameEn(trimToNull(request.getWikiParentGroupNameEn()));
+        if (request.getWikiParentGroupNameZh() != null) biome.setWikiParentGroupNameZh(trimToNull(request.getWikiParentGroupNameZh()));
+        if (request.getWikiSectionLevel() != null) biome.setWikiSectionLevel(request.getWikiSectionLevel());
+        if (request.getWikiSortOrder() != null) biome.setWikiSortOrder(request.getWikiSortOrder());
+        if (request.getWikiSectionAnchor() != null) biome.setWikiSectionAnchor(trimToNull(request.getWikiSectionAnchor()));
         if (request.getDescription() != null) biome.setDescription(request.getDescription());
         if (request.getIconUrl() != null) biome.setIconUrl(request.getIconUrl());
         if (request.getSourceProvider() != null) biome.setSourceProvider(request.getSourceProvider());
@@ -195,6 +211,20 @@ public class AdminBiomeController {
         if (request.getSourceRevisionTimestamp() != null) biome.setSourceRevisionTimestamp(request.getSourceRevisionTimestamp());
         if (request.getLastSyncedAt() != null) biome.setLastSyncedAt(request.getLastSyncedAt());
         if (request.getStatus() != null) biome.setStatus(request.getStatus());
+    }
+
+    private String normalizeText(String value) {
+        if (value == null || value.isBlank() || "all".equalsIgnoreCase(value.trim())) {
+            return null;
+        }
+        return value.trim().toLowerCase();
+    }
+
+    private String trimToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     private void replaceRelationsAndResources(Long biomeId, AdminBiomeUpsertRequestDTO request) {

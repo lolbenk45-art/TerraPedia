@@ -42,18 +42,32 @@ test('managed biome images render through the admin same-origin proxy', () => {
 })
 
 test('biome admin separates wiki categories with Chinese labels and a server-side group filter', () => {
-  assert.match(entitiesPage, /selectedBiomeGroup/)
-  assert.match(entitiesPage, /biomeGroupOptions/)
-  assert.match(entitiesPage, /handleBiomeGroupChange/)
+  assert.match(entitiesPage, /selectedBiomeWikiGroup/)
+  assert.match(entitiesPage, /biomeWikiGroupOptions/)
+  assert.match(entitiesPage, /handleBiomeWikiGroupChange/)
   assert.match(entitiesPage, /getBiomeGroupLabel/)
   assert.match(entitiesPage, /getBiomeTypeLabel/)
   assert.match(entitiesPage, /getBiomeLayerLabel/)
-  assert.match(entitiesPage, /params\.group = selectedBiomeGroup\.value/)
-  assert.match(entitiesPage, /nextQuery\.biomeGroup = selectedBiomeGroup\.value/)
-  assert.match(entitiesPage, /生物群落/)
+  assert.match(entitiesPage, /params\.wikiGroupCode = selectedBiomeWikiGroup\.value/)
+  assert.match(entitiesPage, /nextQuery\.biomeWikiGroup = selectedBiomeWikiGroup\.value/)
+  assert.match(entitiesPage, /地表和地下/)
   assert.match(entitiesPage, /小型群系/)
   assert.match(entitiesPage, /微型群系/)
   assert.match(entitiesPage, /宝藏房/)
   assert.match(entitiesPage, /getBiomeTypeLabel\(row\.biomeType\)/)
   assert.match(entitiesPage, /getBiomeLayerLabel\(row\.layerType\)/)
+})
+
+test('biome admin uses wiki taxonomy hierarchy instead of flattened layer chips', () => {
+  assert.match(entitiesPage, /biomeWikiGroupOptions/)
+  assert.match(entitiesPage, /selectedBiomeWikiGroup/)
+  assert.match(entitiesPage, /params\.wikiGroupCode = selectedBiomeWikiGroup\.value/)
+  assert.match(entitiesPage, /nextQuery\.biomeWikiGroup = selectedBiomeWikiGroup\.value/)
+
+  for (const label of ['太空', '地表和地下', '森林', '洞穴', '困难模式', '微型群系', '尖刺洞穴', '宝藏房']) {
+    assert.match(entitiesPage, new RegExp(label))
+  }
+
+  assert.match(entitiesPage, /getBiomeWikiCategoryPath\(row\)/)
+  assert.match(entitiesPage, /wikiCategoryPathZh/)
 })
