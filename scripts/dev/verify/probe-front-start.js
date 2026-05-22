@@ -3,14 +3,15 @@ const net = require('net');
 const path = require('path');
 
 const cmd = process.env.PNPM_COMMAND || 'pnpm';
-const args = ['run', 'dev', '--', '--host', '127.0.0.1', '--port', '5173'];
-const port = 5173;
+const frontProjectDir = process.env.TP_FRONT_PROJECT_DIR || 'front-nuxt';
+const port = Number(process.env.TP_FRONT_PORT || '5174');
+const args = ['exec', 'nuxt', 'dev', '--host', '127.0.0.1', '--port', String(port)];
 const timeoutMs = 45000;
 
 async function main() {
   const { getProjectRoot } = await import('../../data/lib/project-root.mjs');
   const repoRoot = getProjectRoot();
-  const cwd = path.join(repoRoot, 'front');
+  const cwd = path.join(repoRoot, frontProjectDir);
 
   const child = spawn(cmd, args, { cwd, shell: false });
   let logs = '';

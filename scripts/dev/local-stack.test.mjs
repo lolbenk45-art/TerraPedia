@@ -94,6 +94,43 @@ test('start exports MinIO endpoint settings from local stack config', () => {
   assert.match(exampleConfig, /"publicEndpoint"/);
 });
 
+test('local stack front service starts the Nuxt frontend from front-nuxt on the configured port', () => {
+  const source = startSource();
+  const stop = stopSource();
+  const runtimeConfig = fs.readFileSync('scripts/dev/lib/runtime-config.sh', 'utf8');
+  const exampleConfig = fs.readFileSync('scripts/dev/config/local-stack.config.example.json', 'utf8');
+  const verify = fs.readFileSync('scripts/dev/verify-local-stack.sh', 'utf8');
+  const qualityGate = fs.readFileSync('scripts/dev/quality-gate.sh', 'utf8');
+  const qualityGateCi = fs.readFileSync('scripts/dev/quality-gate-ci.sh', 'utf8');
+  const probeStart = fs.readFileSync('scripts/dev/verify/probe-front-start.js', 'utf8');
+  const probeLink = fs.readFileSync('scripts/dev/verify/probe-front-link.js', 'utf8');
+
+  assert.match(exampleConfig, /"projectDir": "front-nuxt"/);
+  assert.match(runtimeConfig, /TP_FRONT_PROJECT_DIR/);
+  assert.match(runtimeConfig, /get\(\['front', 'projectDir'\], 'front-nuxt'\)/);
+  assert.match(source, /start_background front "\$REPO_ROOT\/\$TP_FRONT_PROJECT_DIR"/);
+  assert.match(source, /pnpm exec nuxt dev --host localhost --port "\$TP_FRONT_PORT"/);
+  assert.match(verify, /run_step "Front Nuxt typecheck" "\$TP_FRONT_PROJECT_DIR" pnpm run check/);
+  assert.match(qualityGate, /run_step "Front Nuxt checks and build" "\$TP_FRONT_PROJECT_DIR" pnpm run test/);
+  assert.match(qualityGateCi, /run_step "Front Nuxt checks and build" "\$TP_FRONT_PROJECT_DIR" pnpm run test/);
+  assert.match(probeStart, /frontProjectDir = process\.env\.TP_FRONT_PROJECT_DIR \|\| 'front-nuxt'/);
+  assert.match(probeStart, /path\.join\(repoRoot, frontProjectDir\)/);
+  assert.match(probeStart, /'exec', 'nuxt', 'dev'/);
+  assert.match(probeStart, /process\.env\.TP_FRONT_PORT \|\| '5174'/);
+  assert.match(probeLink, /frontProjectDir = process\.env\.TP_FRONT_PROJECT_DIR \|\| 'front-nuxt'/);
+  assert.match(probeLink, /path\.join\(repoRoot, frontProjectDir\)/);
+  assert.match(probeLink, /'exec', 'nuxt', 'dev'/);
+  assert.match(probeLink, /process\.env\.TP_FRONT_PORT \|\| '5174'/);
+  assert.match(stop, /front:\$TP_FRONT_PORT/);
+  assert.doesNotMatch(source, /"\$REPO_ROOT\/front"/);
+  assert.doesNotMatch(verify, /run_step "Front typecheck" front pnpm run check/);
+  assert.doesNotMatch(qualityGate, /run_step "Front checks, unit tests, and build" front pnpm run test/);
+  assert.doesNotMatch(qualityGateCi, /run_step "Front checks, unit tests, and build" front pnpm run test/);
+  assert.doesNotMatch(probeStart, /path\.join\(repoRoot, 'front'\)/);
+  assert.doesNotMatch(probeLink, /path\.join\(repoRoot, 'front'\)/);
+}
+);
+
 test('runtime config resolves local stack config from linked worktree primary root', () => {
   const runtimeConfig = fs.readFileSync('scripts/dev/lib/runtime-config.sh', 'utf8');
 

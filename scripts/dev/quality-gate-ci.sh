@@ -68,7 +68,7 @@ run_step "Backend acceptance contract tests" back mvn \
   test
 
 if ! $skip_front; then
-  run_step "Front checks, unit tests, and build" front pnpm run test
+  run_step "Front Nuxt checks and build" "$TP_FRONT_PROJECT_DIR" pnpm run test
 fi
 
 if ! $skip_admin; then

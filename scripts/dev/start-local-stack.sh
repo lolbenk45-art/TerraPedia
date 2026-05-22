@@ -433,9 +433,9 @@ else
 fi
 
 if ! tcp_check 127.0.0.1 "$TP_FRONT_PORT" 800; then
-  start_background front "$REPO_ROOT/front" \
-    "pnpm run dev --host localhost --port $TP_FRONT_PORT" \
-    pnpm run dev --host localhost --port "$TP_FRONT_PORT"
+  start_background front "$REPO_ROOT/$TP_FRONT_PROJECT_DIR" \
+    "pnpm exec nuxt dev --host localhost --port $TP_FRONT_PORT" \
+    pnpm exec nuxt dev --host localhost --port "$TP_FRONT_PORT"
   wait_port 127.0.0.1 "$TP_FRONT_PORT" 45 || {
     log_error "Front failed to start on $TP_FRONT_PORT. Check $(log_path front)"
     exit 1
