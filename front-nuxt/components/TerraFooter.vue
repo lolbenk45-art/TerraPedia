@@ -11,7 +11,7 @@ withDefaults(defineProps<{
     <div class="footer-main">
       <section class="footer-brand">
         <span class="footer-kicker">TERRAPEDIA</span>
-        <h3>为 Terraria 玩家建立可追溯的中文资料中枢</h3>
+        <h3>为 Terraria 玩家建立清晰可靠的中文资料中枢</h3>
         <p>TerraPedia 汇总物品图鉴、合成链路、Boss 阶段、专题攻略与版本依据，让资料查询从零散搜索变成稳定的路线系统。</p>
         <div class="footer-proof">
           <div><b>{{ itemTotalLabel }}</b><span>物品条目</span></div>

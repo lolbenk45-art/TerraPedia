@@ -248,6 +248,7 @@ const playerFacingCopyFiles = [
 const forbiddenPlayerFacingTerms = [
   '结构化',
   '追踪',
+  '追溯',
   '接口',
   'API',
   '聚合',
@@ -285,7 +286,7 @@ const extractPlayerFacingAuditContent = (content) => {
   const scriptText = content.replace(template, '')
   const visibleScriptText = extractQuotedStrings(scriptText)
     .split('\n')
-    .filter((value) => /(结构化|追踪|接口|API|聚合|后端|Public Aggregate|Internal|Trace|\/public\/)/.test(value))
+    .filter((value) => /(结构化|追踪|追溯|接口|API|聚合|后端|Public Aggregate|Internal|Trace|\/public\/)/.test(value))
     .filter((value) => !/^[A-Za-z_$][\w$]*Internal[A-Za-z_$][\w$]*$/.test(value))
     .filter((value) => !/^[A-Za-z_$][\w$]*\(entry\.[\s\S]*Internal[A-Za-z_$][\w$]*[\s\S]*\)$/.test(value))
     .join('\n')
@@ -350,6 +351,11 @@ const requiredPublicDataLayerFiles = [
   'composables/usePublicBuffs.ts',
   'composables/usePublicBuffDetail.ts',
   'composables/usePublicProjectiles.ts',
+  'composables/usePublicBosses.ts',
+  'composables/usePublicBossDetail.ts',
+  'composables/usePublicBiomes.ts',
+  'composables/usePublicBiomeDetail.ts',
+  'composables/usePublicRecipeTree.ts',
   'utils/price.ts',
   'components/common/PreviewImage.vue',
   'components/common/PaginationDock.vue',
@@ -390,6 +396,13 @@ const requiredPublicDataLayerMarkers = {
     'export type PublicProjectileQuery',
     'export type PublicProjectileListItem',
     'export type ProjectileCatalogItem',
+    'export type PublicBossQuery',
+    'export type PublicBossListItem',
+    'export type PublicBossDetail',
+    'export type BossCatalogCard',
+    'export type PublicBiomeListItem',
+    'export type BiomeCatalogTile',
+    'export type PublicRecipeTreeResult',
   ],
   'composables/usePreviewImage.ts': [
     'export const resolvePreviewImageUrl',
@@ -456,6 +469,40 @@ const requiredPublicDataLayerMarkers = {
     "'/public/projectiles'",
     'Array.isArray(rawProjectiles)',
     'source: \'api\'',
+  ],
+  'composables/usePublicBosses.ts': [
+    'export const normalizePublicBoss',
+    'export const fetchPublicBosses',
+    'export const usePublicBosses',
+    "'/public/bosses'",
+    'Array.isArray(rawBosses)',
+    'source: \'api\'',
+  ],
+  'composables/usePublicBossDetail.ts': [
+    'export const fetchPublicBossDetail',
+    'export const usePublicBossDetail',
+    '`/public/bosses/${normalizedBossId}`',
+    'source: \'missing\'',
+  ],
+  'composables/usePublicBiomes.ts': [
+    'export const normalizePublicBiome',
+    'export const fetchPublicBiomes',
+    'export const usePublicBiomes',
+    "'/public/biomes'",
+    'Array.isArray(rawBiomes)',
+    'source: \'api\'',
+  ],
+  'composables/usePublicBiomeDetail.ts': [
+    'export const fetchPublicBiomeDetail',
+    'export const usePublicBiomeDetail',
+    '`/public/biomes/${normalizedBiomeId}`',
+    'source: \'missing\'',
+  ],
+  'composables/usePublicRecipeTree.ts': [
+    'export const fetchPublicRecipeTree',
+    'export const usePublicRecipeTree',
+    '`/public/items/${normalizedItemId}/recipe-tree`',
+    'source: \'missing\'',
   ],
   'utils/price.ts': [
     'export const formatTerrariaPrice',
@@ -1240,6 +1287,178 @@ for (const path of scanFiles) {
     }
   }
 
+  if (path === 'pages/bosses/index.vue') {
+    for (const marker of [
+      'usePublicBosses',
+      'bossDisplayItems',
+      'bossVisualLoading',
+      'bossLoadingSlotCount',
+      'goToBossPage',
+      '<CommonPaginationDock',
+      '<CommonTpSkeleton',
+      '<CommonPreviewImage',
+      ':aria-busy="bossVisualLoading"',
+      'v-for="boss in bossDisplayItems"',
+      'boss-node-visual',
+      'boss-node-backdrop',
+      'boss-node-sprite',
+      'boss-node-type',
+      'boss-node-summary',
+      'boss-node-meta',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: bosses page must render live public boss data with paging, preview images, and skeleton loading via marker ${marker}`)
+      }
+    }
+
+    for (const staticMarker of [
+      '史莱姆王',
+      '克苏鲁之眼',
+      '血肉墙',
+      '月亮领主',
+      '普通模式到月亮领主前的关键节点',
+    ]) {
+      if (content.includes(staticMarker)) {
+        violations.push(`${path}: bosses page must not keep static preview-only boss content (${staticMarker})`)
+      }
+    }
+  }
+
+  if (path === 'pages/bosses/[id].vue') {
+    for (const marker of [
+      'usePublicBossDetail',
+      'route.params.id',
+      'bossDetailVisualLoading',
+      'bossMembers',
+      'bossLootEntries',
+      '<CommonTpSkeleton',
+      '<CommonPreviewImage',
+      ':aria-busy="bossDetailVisualLoading"',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: boss detail page must render live public boss detail data, members, loot, preview images, and skeleton loading via marker ${marker}`)
+      }
+    }
+
+    for (const staticMarker of [
+      'Eye of Cthulhu',
+      '克苏鲁之眼',
+      '2800 HP',
+      '恶魔矿 / 猩红矿',
+      '战前完成度',
+    ]) {
+      if (content.includes(staticMarker)) {
+        violations.push(`${path}: boss detail page must not keep the static Eye of Cthulhu mock as primary content (${staticMarker})`)
+      }
+    }
+  }
+
+  if (path === 'pages/biomes/index.vue') {
+    for (const marker of [
+      'usePublicBiomes',
+      'biomeDisplayItems',
+      'biomeGroups',
+      'biomeVisualLoading',
+      'biomeLoadingSlotCount',
+      '<CommonTpSkeleton',
+      '<CommonPreviewImage',
+      ':aria-busy="biomeVisualLoading"',
+      'v-for="biome in biomeDisplayItems"',
+      'biome-tile-art',
+      'biome-tile-backdrop',
+      'biome-tile-thumb',
+      'biome-tile-title',
+      'biome-tile-description',
+      'biome-tile-meta',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: biomes page must render live public biome data with groups, preview images, and skeleton loading via marker ${marker}`)
+      }
+    }
+
+    for (const staticMarker of [
+      '/biomes/forest',
+      '/biomes/desert',
+      '/biomes/jungle',
+      '/biomes/dungeon',
+      '/biomes/underworld',
+      '/biomes/hallow',
+      '森林</b>',
+      '丛林</b>',
+    ]) {
+      if (content.includes(staticMarker)) {
+        violations.push(`${path}: biomes page must not keep static preview-only biome tiles (${staticMarker})`)
+      }
+    }
+  }
+
+  if (path === 'pages/biomes/[id].vue') {
+    for (const marker of [
+      'usePublicBiomeDetail',
+      'route.params.id',
+      'biomeDetailVisualLoading',
+      'biomeResources',
+      'biomeRelations',
+      '<CommonTpSkeleton',
+      '<CommonPreviewImage',
+      ':aria-busy="biomeDetailVisualLoading"',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: biome detail page must render live public biome detail data, resources, relations, preview images, and skeleton loading via marker ${marker}`)
+      }
+    }
+
+    for (const staticMarker of [
+      'Biome · Jungle',
+      '丛林',
+      '蜂巢',
+      '生命果',
+      '石巨人路线',
+      '打开专题',
+    ]) {
+      if (content.includes(staticMarker)) {
+        violations.push(`${path}: biome detail page must not keep the static Jungle mock as primary content (${staticMarker})`)
+      }
+    }
+  }
+
+  if (path === 'pages/crafting/index.vue') {
+    for (const marker of [
+      'usePublicRecipeTree',
+      'usePublicItems',
+      'recipeTree',
+      'recipeVariants',
+      'recipeVisualLoading',
+      'recipeNodeChildren',
+      '<CommonTpSkeleton',
+      '<CommonPreviewImage',
+      ':aria-busy="recipeVisualLoading"',
+      "itemResults.value?.source === 'api'",
+      'crafting-suggestion-button',
+      'recipe-tree-canvas',
+      'recipe-tree-grid',
+      'recipe-node-main',
+      'recipe-node-materials',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: crafting page must render live public recipe tree data and hide fallback item suggestions via marker ${marker}`)
+      }
+    }
+
+    for (const staticMarker of [
+      '静态占位',
+      '泰拉刃制作链',
+      '真永夜刃',
+      '真断钢剑',
+      '英雄断剑',
+      '后续接接口',
+    ]) {
+      if (content.includes(staticMarker)) {
+        violations.push(`${path}: crafting page must not keep static preview-only recipe content (${staticMarker})`)
+      }
+    }
+  }
+
   if (path === 'pages/projectiles/index.vue') {
     for (const marker of [
       'usePublicProjectiles',
@@ -1449,10 +1668,32 @@ for (const path of scanFiles) {
       'object-fit: contain',
       'column-gap: 18px',
       'row-gap: 10px',
+      '.boss-node-visual',
+      '.boss-node-backdrop',
+      '.boss-node-sprite',
+      '.boss-node-summary',
+      '.boss-node-meta',
+      '.biome-tile-art',
+      '.biome-tile-backdrop',
+      '.biome-tile-thumb',
+      '.biome-tile-description',
+      '.biome-tile-meta',
+      'opacity: 0.18',
+      'max-height: 7.75em',
+      '.crafting-suggestion-button',
+      '.recipe-tree-canvas',
+      '.recipe-tree-grid',
+      '.recipe-node-main',
+      '.recipe-node-materials',
+      '-webkit-line-clamp',
     ]) {
       if (!content.includes(marker)) {
-        violations.push(`${path}: item detail must reserve icon/text spacing and render a dedicated pixel loading state via marker ${marker}`)
+        violations.push(`${path}: item/detail and live entity pages must reserve icon/text spacing and render stable API layouts via marker ${marker}`)
       }
+    }
+
+    if (content.includes('transform: scale(1.3);')) {
+      violations.push(`${path}: boss and biome backdrop layers must not use transform scale because it expands the visual box and clips thumbnails`)
     }
   }
 
