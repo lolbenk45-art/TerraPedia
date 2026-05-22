@@ -15,6 +15,22 @@ if (!existsSync(file(pagePath))) {
 
   for (const marker of [
     "import '../assets/css/home-hero-options.css'",
+    'playerHeroDirections',
+    "id: 'world-cover'",
+    "id: 'codex-gallery'",
+    "id: 'adventure-manual'",
+    'World Cover',
+    'Codex Gallery',
+    'Adventure Manual',
+    'player-hero-gallery',
+    'player-hero-card',
+    'player-world-scene',
+    'player-codex-gallery',
+    'player-adventure-manual',
+    'player-world-map',
+    'player-entry-paths',
+    'player-codex-shelves',
+    'player-manual-route',
     'itemLayoutOptions',
     "id: 'pixel-gallery'",
     "id: 'craft-tree'",
@@ -27,7 +43,8 @@ if (!existsSync(file(pagePath))) {
     'layout-in-game-manual',
     'option-item-lab-card',
     'pixel-gallery-stage',
-    'pixel-wall-grid',
+    'svg-category-mosaic',
+    'svg-tile-wall',
     'floating-item-card',
     'craft-tree-stage',
     'craft-node-grid',
@@ -35,36 +52,6 @@ if (!existsSync(file(pagePath))) {
     'manual-book-stage',
     'manual-page-panel',
     'manual-index-rail',
-    'paginationMockupOptions',
-    "id: 'bottom-capsule'",
-    "id: 'top-only'",
-    "id: 'floating-mini'",
-    'Overflow Rail',
-    'Category Drawer',
-    'Compact Menu',
-    'pagination-option-board',
-    'pagination-mockup-card',
-    'catalog-screen-mock',
-    'mock-density-select',
-    'mock-result-summary',
-    'mock-toolbar-shell',
-    'mock-search-compact',
-    'mock-filter-tabs',
-    'mock-page-chip',
-    'mock-density-pill',
-    'mock-layout-dock',
-    'mock-layout-header',
-    'mock-layout-edge',
-    'catalogWallCategoryGroups',
-    'catalogWallQuickCategories',
-    'mock-category-overflow',
-    'mock-category-drawer',
-    'mock-category-column',
-    'mock-category-dropdown',
-    'mock-wall-shell',
-    'mock-wall-grid-current',
-    'mock-page-dock',
-    'mock-bottom-capsule',
   ]) {
     if (!page.includes(marker)) {
       failures.push(`${pagePath}: missing required item layout preview marker ${marker}`)
@@ -76,20 +63,24 @@ if (!existsSync(file(pagePath))) {
     failures.push(`${pagePath}: item layout preview must define exactly three layout options`)
   }
 
-  const paginationOptionCount = page.match(/id: '(bottom-capsule|top-only|floating-mini)'/g)?.length ?? 0
-  if (paginationOptionCount !== 3) {
-    failures.push(`${pagePath}: pagination pressure preview must define exactly three options`)
-  }
-
-  if (page.includes('value="terra"') || page.includes('第 12 / 257 页 · 共 6,148 项 · 已更新')) {
-    failures.push(`${pagePath}: pagination mockups must avoid noisy search/result copy in the toolbar`)
-  }
-
-  if (!page.includes('武器') || !page.includes('照明') || !page.includes('机关') || !page.includes('Boss 掉落')) {
-    failures.push(`${pagePath}: pagination mockups must include redundant category coverage for future category API mapping`)
+  const playerHeroOptionCount = page.match(/id: '(world-cover|codex-gallery|adventure-manual)'/g)?.length ?? 0
+  if (playerHeroOptionCount !== 3) {
+    failures.push(`${pagePath}: player-facing home hero preview must define exactly three directions`)
   }
 
   for (const rejected of [
+    'HOME HERO DENSITY LAB',
+    '指挥台首页',
+    '资料墙首页',
+    '路线控制台首页',
+    '圆形指挥盘',
+    '路线控制台',
+    'homeHeroHifiOptions',
+    'heroDensityOptions',
+    'density-command-center',
+    'density-atlas-wall',
+    'density-route-console',
+    'home-density-option-board',
     'Atlas Workbench',
     'Dense Database',
     'layout-atlas-workbench',
@@ -107,14 +98,25 @@ if (!existsSync(file(cssPath))) {
   const css = readFileSync(file(cssPath), 'utf8')
 
   for (const selector of [
+    '.player-hero-gallery',
+    '.player-hero-card',
+    '.player-hero-stage',
+    '.player-world-scene',
+    '.player-codex-gallery',
+    '.player-adventure-manual',
+    '.player-world-map',
+    '.player-entry-paths',
+    '.player-codex-shelves',
+    '.player-manual-route',
     '.item-layout-board',
     '.option-item-lab-card',
     '.layout-pixel-gallery',
     '.layout-craft-tree',
     '.layout-in-game-manual',
     '.pixel-gallery-stage',
-    '.pixel-wall-grid',
-    '.pixel-wall-cell',
+    '.svg-category-mosaic',
+    '.svg-tile-wall',
+    '.svg-tile-cell',
     '.floating-item-card',
     '.craft-tree-stage',
     '.craft-node-grid',
@@ -124,30 +126,6 @@ if (!existsSync(file(cssPath))) {
     '.manual-index-rail',
     '.manual-page-panel',
     '.manual-stat-ledger',
-    '.pagination-option-board',
-    '.pagination-mockup-card',
-    '.pagination-mockup-stage',
-    '.catalog-screen-mock',
-    '.mock-control-bar',
-    '.mock-density-select',
-    '.mock-result-summary',
-    '.mock-toolbar-shell',
-    '.mock-search-compact',
-    '.mock-filter-tabs',
-    '.mock-page-chip',
-    '.mock-density-pill',
-    '.mock-layout-dock',
-    '.mock-layout-header',
-    '.mock-layout-edge',
-    '.mock-category-overflow',
-    '.mock-category-drawer',
-    '.mock-category-column',
-    '.mock-category-dropdown',
-    '.mock-wall-shell',
-    '.mock-wall-grid-current',
-    '.mock-page-dock',
-    '.mock-item-grid',
-    '.mock-bottom-capsule',
   ]) {
     if (!css.includes(selector)) {
       failures.push(`${cssPath}: missing selector ${selector}`)
@@ -155,6 +133,11 @@ if (!existsSync(file(cssPath))) {
   }
 
   for (const rejected of [
+    '.home-hifi-gallery',
+    '.home-density-option-board',
+    '.density-command-center',
+    '.density-atlas-wall',
+    '.density-route-console',
     '.layout-atlas-workbench',
     '.layout-dense-database',
     '.option-catalog-command',
@@ -166,20 +149,6 @@ if (!existsSync(file(cssPath))) {
 
   if (css.includes('clamp(') || /\b\d+(?:\.\d+)?vw\b/.test(css)) {
     failures.push(`${cssPath}: avoid clamp() and vw sizing in preview page`)
-  }
-
-  if (css.includes('grid-template-columns: 270px minmax(0, 1fr)')) {
-    failures.push(`${cssPath}: refined pagination mockups must not use the old unbalanced left-meta layout`)
-  }
-
-  for (const requiredStyle of [
-    'linear-gradient(135deg, #061007 0%, #0d1a10 56%, #050806 100%)',
-    'border: 1px solid rgba(214, 177, 90, 0.24)',
-    'grid-template-columns: repeat(6, minmax(0, 1fr))',
-  ]) {
-    if (!css.includes(requiredStyle)) {
-      failures.push(`${cssPath}: pagination mockups should preserve current item wall visual language (${requiredStyle})`)
-    }
   }
 }
 

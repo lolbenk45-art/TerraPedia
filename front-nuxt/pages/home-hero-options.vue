@@ -1,79 +1,125 @@
 <script setup lang="ts">
+import { defineComponent, h, type PropType } from 'vue'
 import '../assets/css/home-hero-options.css'
 
-type SpriteRole = {
+type SvgRole = {
   key: string
   label: string
   meta: string
   visualRole: string
-  sheet?: PixelSheetKey
-  col: number
-  row: number
   alias: string
   weight?: string
+  tone?: string
+  tags?: string[]
   name?: string
+  sheet?: string
 }
 
-const pixelSheets = {
-  relic: '/ui/home-hero-pixel/relic-sheet.png',
-  craft: '/ui/home-hero-pixel/craft-sheet.png',
-  manual: '/ui/home-hero-pixel/manual-sheet.png',
-} as const
+const svgRoleCatalog = [
+  { key: 'search', label: '搜索', meta: '全站检索', visualRole: 'search', alias: '' },
+  { key: 'items', label: '物品', meta: '图鉴主体', visualRole: 'item', alias: '' },
+  { key: 'category', label: '分类', meta: '抽象分组', visualRole: 'category', alias: '' },
+  { key: 'biome', label: '生态', meta: '世界区域', visualRole: 'biome', alias: '' },
+  { key: 'boss', label: 'Boss', meta: '事件节点', visualRole: 'boss', alias: '' },
+  { key: 'buff', label: 'Buff', meta: '状态效果', visualRole: 'buff', alias: '' },
+  { key: 'armor', label: '套装', meta: '职业路线', visualRole: 'armor', alias: '' },
+  { key: 'projectile', label: '射弹', meta: '弹道行为', visualRole: 'projectile', alias: '' },
+  { key: 'npc', label: 'NPC', meta: '关系索引', visualRole: 'npc', alias: '用户同格' },
+  { key: 'article', label: '攻略', meta: '专题资料', visualRole: 'article', alias: '' },
+  { key: 'material', label: '材料 / 制作', meta: '配方链路', visualRole: 'material', alias: '制作同格' },
+  { key: 'edit', label: '编辑', meta: '投稿动作', visualRole: 'edit', alias: '' },
+  { key: 'favorites', label: '收藏', meta: '个人书签', visualRole: 'favorite', alias: '' },
+  { key: 'settings', label: '设置', meta: '偏好控制', visualRole: 'settings', alias: '' },
+  { key: 'codex', label: '图鉴', meta: '资料库', visualRole: 'codex', alias: '' },
+  { key: 'notification', label: '通知', meta: '状态提醒', visualRole: 'notice', alias: '' },
+] as const satisfies readonly SvgRole[]
 
-type PixelSheetKey = keyof typeof pixelSheets
+type SvgRoleKey = typeof svgRoleCatalog[number]['key']
 
-const pixelRoleCatalog = [
-  { key: 'search', label: '搜索', meta: '全站检索', visualRole: 'search', col: 0, row: 0, alias: '' },
-  { key: 'items', label: '物品', meta: '图鉴主体', visualRole: 'item', col: 1, row: 0, alias: '' },
-  { key: 'category', label: '分类', meta: '抽象分组', visualRole: 'category', col: 2, row: 0, alias: '' },
-  { key: 'biome', label: '生态', meta: '世界区域', visualRole: 'biome', col: 3, row: 0, alias: '' },
-  { key: 'boss', label: 'Boss', meta: '事件节点', visualRole: 'boss', col: 0, row: 1, alias: '' },
-  { key: 'buff', label: 'Buff', meta: '状态效果', visualRole: 'buff', col: 1, row: 1, alias: '' },
-  { key: 'armor', label: '套装', meta: '职业路线', visualRole: 'armor', col: 2, row: 1, alias: '' },
-  { key: 'projectile', label: '射弹', meta: '弹道行为', visualRole: 'projectile', col: 3, row: 1, alias: '' },
-  { key: 'npc', label: 'NPC', meta: '关系索引', visualRole: 'npc', col: 0, row: 2, alias: '用户同格' },
-  { key: 'article', label: '攻略', meta: '专题资料', visualRole: 'article', col: 1, row: 2, alias: '' },
-  { key: 'material', label: '材料 / 制作', meta: '配方链路', visualRole: 'material', col: 2, row: 2, alias: '制作同格' },
-  { key: 'edit', label: '编辑', meta: '投稿动作', visualRole: 'edit', col: 3, row: 2, alias: '' },
-  { key: 'favorites', label: '收藏', meta: '个人书签', visualRole: 'favorite', col: 0, row: 3, alias: '' },
-  { key: 'settings', label: '设置', meta: '偏好控制', visualRole: 'settings', col: 1, row: 3, alias: '' },
-  { key: 'codex', label: '图鉴', meta: '资料库', visualRole: 'codex', col: 2, row: 3, alias: '' },
-  { key: 'notification', label: '通知', meta: '状态提醒', visualRole: 'notice', col: 3, row: 3, alias: '' },
-] as const satisfies readonly SpriteRole[]
+const svgRoleMap = Object.fromEntries(
+  svgRoleCatalog.map((role) => [role.key, role]),
+) as Record<SvgRoleKey, SvgRole>
 
-type SpriteRoleKey = typeof pixelRoleCatalog[number]['key']
-
-const pixelRoleMap = Object.fromEntries(
-  pixelRoleCatalog.map((role) => [role.key, role]),
-) as Record<SpriteRoleKey, SpriteRole>
-
-const roleEntry = (key: SpriteRoleKey, extra: Partial<SpriteRole> = {}): SpriteRole => ({
-  ...pixelRoleMap[key],
+const roleEntry = (key: SvgRoleKey, extra: Partial<SvgRole> = {}): SvgRole => ({
+  ...svgRoleMap[key],
   ...extra,
-}) as SpriteRole
+}) as SvgRole
 
-const pickRoles = (keys: SpriteRoleKey[], sheet: PixelSheetKey = 'relic'): SpriteRole[] => keys.map((key) => roleEntry(key, { sheet }))
+const pickRoles = (keys: SvgRoleKey[], sheet = 'svg'): SvgRole[] => keys.map((key) => roleEntry(key, { sheet }))
 
-const pixelIconStyle = (role: SpriteRole): Record<string, string> => ({
-  '--pixel-icon-sheet': `url("${pixelSheets[role.sheet ?? 'relic']}")`,
-  '--pixel-icon-x': `${role.col * 33.333333}%`,
-  '--pixel-icon-y': `${role.row * 33.333333}%`,
+const roleIconHref = (role: SvgRole): string => `#home-role-${role.visualRole}`
+
+const homeRoleSvgSymbols = [
+  'home-role-search',
+  'home-role-item',
+  'home-role-category',
+  'home-role-biome',
+  'home-role-boss',
+  'home-role-buff',
+  'home-role-armor',
+  'home-role-projectile',
+  'home-role-npc',
+  'home-role-user',
+  'home-role-article',
+  'home-role-material',
+  'home-role-crafting',
+  'home-role-edit',
+  'home-role-favorite',
+  'home-role-settings',
+  'home-role-codex',
+  'home-role-notice',
+] as const
+
+const RoleSvgIcon = defineComponent({
+  name: 'RoleSvgIcon',
+  inheritAttrs: false,
+  props: {
+    role: {
+      type: Object as PropType<SvgRole>,
+      required: true,
+    },
+  },
+  setup(props, { attrs }) {
+    return () => {
+      const { class: className, ...restAttrs } = attrs
+
+      return h(
+        'span',
+        {
+          ...restAttrs,
+          class: ['svg-icon-token', `role-${props.role.visualRole}`, className],
+          'aria-hidden': restAttrs['aria-hidden'] ?? 'true',
+        },
+        [
+          h('svg', {
+            class: 'role-svg-icon',
+            viewBox: '0 0 24 24',
+            focusable: 'false',
+          }, [
+            h('use', {
+              href: roleIconHref(props.role),
+            }),
+          ]),
+        ],
+      )
+    }
+  },
 })
 
-const abstractPixelEntries = [
+const abstractSvgEntries = [
   roleEntry('category', { label: '分类入口', meta: '武器 / 材料 / 工具' }),
   roleEntry('projectile', { label: '射弹行为', meta: '弹道 / 来源 / 命中' }),
   roleEntry('npc', { label: 'NPC 关系', meta: '入住 / 事件 / 掉落' }),
   roleEntry('biome', { label: '生态索引', meta: '地形 / 资源 / 生成' }),
 ]
 
-const simplePixelGlyphs: SpriteRole[] = [
+const simpleSvgGlyphs: SvgRole[] = [
   ...pickRoles(['search', 'category', 'biome', 'projectile', 'npc', 'material', 'favorites', 'codex'], 'relic'),
   ...pickRoles(['boss', 'buff', 'armor', 'items'], 'craft'),
   ...pickRoles(['article', 'edit', 'settings', 'notification'], 'manual'),
 ]
 
-const pixelCategoryMosaic = [
+const svgCategoryMosaic = [
   roleEntry('search', { sheet: 'relic', weight: 'wide' }),
   roleEntry('items', { sheet: 'relic', weight: 'tall' }),
   roleEntry('category', { sheet: 'relic', weight: 'normal' }),
@@ -88,12 +134,27 @@ const pixelCategoryMosaic = [
   roleEntry('favorites', { sheet: 'relic', weight: 'normal' }),
 ]
 
-const pixelIconWall: SpriteRole[] = pickRoles(pixelRoleCatalog.map((role) => role.key))
+const svgIconWall: SvgRole[] = pickRoles(svgRoleCatalog.map((role) => role.key))
 
-const pixelWallItems = Array.from({ length: 48 }, (_, index) => ({
-  id: `wall-${index + 1}`,
-  tone: index % 5,
-}))
+const svgTileWallKeys = [
+  'items',
+  'material',
+  'category',
+  'boss',
+  'npc',
+  'buff',
+  'biome',
+  'projectile',
+  'article',
+  'favorites',
+  'codex',
+  'search',
+] as const satisfies readonly SvgRoleKey[]
+
+const svgTileWall = Array.from({ length: 48 }, (_, index) => {
+  const key = svgTileWallKeys[index % svgTileWallKeys.length] ?? 'items'
+  return roleEntry(key, { sheet: 'svg-tile' })
+})
 
 const craftRouteStages = [
   roleEntry('material', { sheet: 'craft', name: '材料层', meta: '同类材料先归组', visualRole: 'material' }),
@@ -162,7 +223,7 @@ const manualIconShelf = [
   { label: '制作页签', roles: [roleEntry('material', { sheet: 'manual', visualRole: 'material' }), roleEntry('material', { sheet: 'manual', label: '制作', visualRole: 'crafting' }), roleEntry('armor', { sheet: 'manual' })] },
 ]
 
-const previewIcons: SpriteRole[] = simplePixelGlyphs
+const previewSvgIcons: SvgRole[] = simpleSvgGlyphs
 
 const iconComboSets = [
   {
@@ -219,141 +280,31 @@ const heroIconDirections = [
   {
     id: 'pixel-gallery-icons',
     label: 'A',
-    name: '林地符号像素入口',
+    name: '林地 SVG 资料入口',
     target: 'Pixel Gallery',
     roles: pickRoles(['search', 'items', 'category', 'biome', 'npc', 'projectile', 'favorites', 'codex'], 'relic'),
-    summary: '低色数抽象像素符号，专门给分类、射弹、NPC、生态入口做差异。',
-    notes: ['抽象像素符号', '低色数', '不替代物品图'],
+    summary: '用线性 SVG 做大面积轮廓差异，分类、射弹、NPC、生态入口能一眼分辨。',
+    notes: ['抽象 SVG 符号', '轮廓清楚', '不替代物品图'],
   },
   {
     id: 'craft-tree-icons',
     label: 'B',
-    name: '工匠符号路线',
+    name: '工匠 SVG 路线',
     target: 'Craft Tree',
     roles: [roleEntry('material', { sheet: 'craft', visualRole: 'material' }), roleEntry('boss', { sheet: 'craft' }), roleEntry('buff', { sheet: 'craft' }), roleEntry('armor', { sheet: 'craft' }), roleEntry('material', { sheet: 'craft', label: '制作', visualRole: 'crafting' }), roleEntry('projectile', { sheet: 'craft' }), roleEntry('items', { sheet: 'craft' }), roleEntry('notification', { sheet: 'craft' })],
-    summary: '把合成、材料、事件、结果压成安静的路线符号，不做技能框。',
-    notes: ['路线符号', '克制轮廓', '不伪装掉落图'],
+    summary: '把合成、材料、事件、结果做成更明确的路线 SVG 符号，不再依赖低辨识度小图块。',
+    notes: ['路线符号', '清晰轮廓', '不伪装掉落图'],
   },
   {
     id: 'manual-icons',
     label: 'C',
-    name: '手册章节符号',
+    name: '手册 SVG 章节',
     target: 'In-game Manual',
     roles: [roleEntry('items', { sheet: 'manual' }), roleEntry('category', { sheet: 'manual' }), roleEntry('material', { sheet: 'manual', visualRole: 'material' }), roleEntry('boss', { sheet: 'manual' }), roleEntry('article', { sheet: 'manual' }), roleEntry('settings', { sheet: 'manual' }), roleEntry('codex', { sheet: 'manual' }), roleEntry('search', { sheet: 'manual' })],
-    summary: '更像游戏手册里的章节索引符号，用于资料操作，不做实体插图。',
-    notes: ['章节符号', '墨色剪影', '不做实体插图'],
+    summary: '更像游戏手册里的章节索引符号，用于资料操作，识别优先于装饰。',
+    notes: ['章节符号', 'SVG 线稿', '不做实体插图'],
   },
 ]
-
-const catalogWallQuickCategories = ['全部', '武器', '工具', '材料', '药水', '盔甲', '饰品', '家具', '召唤', '弹药', 'Boss 掉落', '困难模式']
-const catalogWallCategoryGroups = [
-  {
-    label: '战斗',
-    items: ['武器', '盔甲', '饰品', '弹药', '召唤', 'Boss 掉落'],
-  },
-  {
-    label: '制作',
-    items: ['材料', '矿石', '锭', '工作站', '机关', '电线'],
-  },
-  {
-    label: '探索',
-    items: ['工具', '坐骑', '宠物', '照明', '钥匙', '宝藏袋'],
-  },
-  {
-    label: '建筑',
-    items: ['方块', '墙', '家具', '门', '平台', '装饰'],
-  },
-  {
-    label: '消耗',
-    items: ['药水', '食物', '增益', '鱼饵', '宝匣', '事件'],
-  },
-]
-const paginationMockPageNumbers = ['1', '...', '10', '11', '12', '13', '14', '...', '257']
-const paginationMockItemNames = [
-  '泰拉刃',
-  '永夜刃',
-  '断钢剑',
-  '星怒',
-  '蜂膝弓',
-  '迷你鲨',
-  '生命水晶',
-  '魔力星',
-  '熔岩锭',
-  '光明之魂',
-  '黑曜石',
-  '金钥匙',
-  '铁皮药水',
-  '再生药水',
-  '羽落药水',
-  '狱炎箭',
-  '钴蓝剑',
-  '秘银砧',
-  '精金炉',
-  '飞翔之魂',
-  '向导巫毒娃娃',
-  '暗影鳞片',
-  '神圣锭',
-  '叶绿矿',
-]
-const paginationMockRoles: SpriteRoleKey[] = [
-  'items',
-  'items',
-  'items',
-  'projectile',
-  'projectile',
-  'projectile',
-  'buff',
-  'buff',
-  'material',
-  'material',
-  'material',
-  'favorites',
-]
-const paginationMockSheets: PixelSheetKey[] = ['relic', 'craft', 'manual']
-const paginationMockItems = paginationMockItemNames.map((name, index) => {
-  const roleKey = paginationMockRoles[index % paginationMockRoles.length] ?? 'items'
-  const sheet = paginationMockSheets[index % paginationMockSheets.length] ?? 'relic'
-
-  return {
-    id: `mock-item-${index + 1}`,
-    name,
-    index: String(1201 + index).padStart(4, '0'),
-    tone: index % 4,
-    role: roleEntry(roleKey, {
-      sheet,
-      label: name,
-    }),
-  }
-})
-const paginationMockupOptions = [
-  {
-    id: 'bottom-capsule',
-    className: 'mockup-bottom-capsule mock-layout-dock',
-    label: 'A',
-    name: 'Overflow Rail',
-    cnName: '多行分类 + 轻 Dock',
-    summary: '当前物品墙风格不动，分类先多给一行冗余，底部只放轻分页。',
-    verdict: '最接近现在页面，改动风险最低。',
-  },
-  {
-    id: 'top-only',
-    className: 'mockup-top-only mock-layout-header',
-    label: 'B',
-    name: 'Category Drawer',
-    cnName: '左侧分类抽屉 + 轻 Dock',
-    summary: '分类多时不挤在搜索栏下方，左侧按组收纳，底部仍然是 A 类分页。',
-    verdict: '分类扩展性最好，适合后续接分类树。',
-  },
-  {
-    id: 'floating-mini',
-    className: 'mockup-floating-mini mock-layout-edge',
-    label: 'C',
-    name: 'Compact Menu',
-    cnName: '常用分类 + 更多菜单 + 轻 Dock',
-    summary: '顶部只放常用分类，其余分类进更多菜单，避免分类一多就压住墙面。',
-    verdict: '首屏最清爽，适合分类接口未完全稳定前过渡。',
-  },
-] as const
 
 const itemLayoutOptions = [
   {
@@ -361,8 +312,8 @@ const itemLayoutOptions = [
     className: 'layout-pixel-gallery',
     label: 'A',
     name: 'Pixel Gallery',
-    cnName: '像素图鉴墙',
-    summary: '像素图标只承担分类和入口差异，具体物品墙保留真实资源占位。',
+    cnName: 'SVG 图鉴墙',
+    summary: 'SVG 图标承担分类和入口差异，具体物品墙保留真实资源占位。',
   },
   {
     id: 'craft-tree',
@@ -370,7 +321,7 @@ const itemLayoutOptions = [
     label: 'B',
     name: 'Craft Tree',
     cnName: '合成树工作台',
-    summary: '把新生成的低像素物件放到路线层级上，具体材料、事件、成品节点只展示结构和文字。',
+    summary: '把 SVG 轮廓符号放到路线层级上，具体材料、事件、成品节点只展示结构和文字。',
   },
   {
     id: 'in-game-manual',
@@ -378,184 +329,506 @@ const itemLayoutOptions = [
     label: 'C',
     name: 'In-game Manual',
     cnName: '游戏内百科',
-    summary: '像素图标只放在手册章节索引，泰拉刃正文区域不使用插图替代真实物品图。',
+    summary: 'SVG 图标只放在手册章节索引，泰拉刃正文区域不使用插图替代真实物品图。',
   },
+]
+
+const playerHeroDirections = [
+  {
+    id: 'world-cover',
+    label: 'A',
+    name: 'World Cover',
+    cnName: '世界封面',
+    className: 'player-world-scene',
+    mood: '日落、地图、当前目标',
+    summary: '搜索、世界区域和热门资料围绕一张 Terraria 世界封面展开，首屏先像游戏入口，再承接资料浏览。',
+  },
+  {
+    id: 'codex-gallery',
+    label: 'B',
+    name: 'Codex Gallery',
+    cnName: '图鉴长廊',
+    className: 'player-codex-gallery',
+    mood: '书架、展签、专题卷',
+    summary: '用书架、书签和横向陈列组织分类，让玩家像逛百科馆一样进入资料。',
+  },
+  {
+    id: 'adventure-manual',
+    label: 'C',
+    name: 'Adventure Manual',
+    cnName: '冒险手册',
+    className: 'player-adventure-manual',
+    mood: '章节、路线、下一页',
+    summary: '阶段、路线和下一页建议以手册章节展开，适合攻略导向首页，同时保留公共站的阅读感。',
+  },
+]
+
+const playerHeroStats = [
+  { value: '6,159', label: '物品', note: '装备、材料、掉落' },
+  { value: '106', label: '分类', note: '类型、阶段、用途' },
+  { value: '14,746', label: '合成', note: '材料和工作站' },
+  { value: '762', label: 'NPC', note: '入住、敌怪、事件' },
+]
+
+const playerCatalogEntries = [
+  roleEntry('items', { sheet: 'relic', label: '物品', meta: '装备 / 材料 / 掉落', weight: '6,159', tone: 'gold', tags: ['武器', '饰品', '工具'] }),
+  roleEntry('boss', { sheet: 'craft', label: 'Boss', meta: '召唤 / 阶段 / 战利品', weight: '路线', tone: 'ember', tags: ['召唤', '掉落', '前置'] }),
+  roleEntry('npc', { sheet: 'relic', label: 'NPC', meta: '城镇 / 敌怪 / 事件', weight: '762', tone: 'sage', tags: ['入住', '喜好', '事件'] }),
+  roleEntry('material', { sheet: 'craft', label: '制作', meta: '材料 / 配方 / 工作站', weight: '14,746', visualRole: 'crafting', tone: 'moss', tags: ['材料', '配方', '链路'] }),
+  roleEntry('biome', { sheet: 'relic', label: '生态', meta: '地表 / 洞穴 / 地狱', weight: '地图', tone: 'aqua', tags: ['资源', '生成', '事件'] }),
+  roleEntry('article', { sheet: 'manual', label: '攻略', meta: '阶段 / 配装 / 专题', weight: '精选', tone: 'paper', tags: ['开荒', '困难', '月后'] }),
+]
+
+const playerWorldTiles = [
+  { label: '森林', meta: '开荒、NPC、木材', role: roleEntry('biome', { sheet: 'relic' }) },
+  { label: '洞穴', meta: '矿物、宝箱、生命水晶', role: roleEntry('material', { sheet: 'craft', visualRole: 'material' }) },
+  { label: '猩红', meta: 'Boss、组织样本、事件', role: roleEntry('boss', { sheet: 'craft' }) },
+  { label: '神圣', meta: '困难模式、灵液、独角兽', role: roleEntry('buff', { sheet: 'craft' }) },
+  { label: '天空', meta: '岛屿、饰品、鱼龙', role: roleEntry('items', { sheet: 'relic' }) },
+  { label: '地狱', meta: '熔岩、狱石、血肉墙', role: roleEntry('article', { sheet: 'manual' }) },
+]
+
+const playerEntryPaths = [
+  { label: '泰拉刃路线', meta: '从材料到成品', role: roleEntry('items', { sheet: 'relic' }) },
+  { label: 'Boss 前准备', meta: '召唤物、药水、防具', role: roleEntry('boss', { sheet: 'craft' }) },
+  { label: '材料速查', meta: '矿物、掉落、合成', role: roleEntry('material', { sheet: 'craft', visualRole: 'material' }) },
+  { label: 'NPC 入住', meta: '房屋条件和喜好', role: roleEntry('npc', { sheet: 'relic' }) },
+]
+
+const playerCodexShelves = [
+  {
+    label: '战斗卷',
+    meta: '武器、Boss、Buff、套装',
+    roles: pickRoles(['items', 'boss', 'buff', 'armor'], 'craft'),
+  },
+  {
+    label: '世界卷',
+    meta: '生态、NPC、事件、射弹',
+    roles: pickRoles(['biome', 'npc', 'notification', 'projectile'], 'relic'),
+  },
+  {
+    label: '制作卷',
+    meta: '材料、制作、分类、图鉴',
+    roles: [
+      roleEntry('material', { sheet: 'craft', visualRole: 'material' }),
+      roleEntry('material', { sheet: 'craft', label: '制作', visualRole: 'crafting' }),
+      roleEntry('category', { sheet: 'relic' }),
+      roleEntry('codex', { sheet: 'manual' }),
+    ],
+  },
+]
+
+const playerCodexBookmarks = [
+  { label: '战斗', value: '458', meta: '武器条目' },
+  { label: '家具', value: '2,671', meta: '建筑装饰' },
+  { label: '材料', value: '1,913', meta: '制作核心' },
+  { label: '盔甲', value: '660', meta: '职业推进' },
+  { label: '消耗', value: '308', meta: '药水弹药' },
+  { label: '工具', value: '128', meta: '采集建造' },
+]
+
+const playerManualChapters = [
+  { label: '开荒', meta: '基础装备、火把、工作台', active: true },
+  { label: 'Boss 前', meta: '召唤物、药水、防具', active: false },
+  { label: '困难模式', meta: '机械 Boss、神圣锭', active: false },
+  { label: '月后整理', meta: '最终武器、收藏补全', active: false },
+]
+
+const playerManualRoute = [
+  { index: '01', title: '真永夜刃', meta: '材料主轴', tag: '材料', role: roleEntry('material', { sheet: 'craft', visualRole: 'material' }) },
+  { index: '02', title: '真断钢剑', meta: '合成分支', tag: '制作', role: roleEntry('material', { sheet: 'craft', visualRole: 'crafting' }) },
+  { index: '03', title: '英雄断剑', meta: '日食事件', tag: '事件', role: roleEntry('boss', { sheet: 'craft' }) },
+  { index: '04', title: '泰拉刃', meta: '路线终点', tag: '条目', role: roleEntry('items', { sheet: 'relic' }) },
+]
+
+const playerManualNotes = [
+  { label: '当前路线', value: '近战后期' },
+  { label: '关键节点', value: '4 步' },
+  { label: '关联资料', value: '18 条' },
+  { label: '下一页', value: '泰拉刃' },
 ]
 </script>
 
 <template>
   <section class="screen home-options-screen active">
+    <svg
+      class="svg-icon-defs"
+      :data-symbol-count="homeRoleSvgSymbols.length"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <symbol id="home-role-search" viewBox="0 0 24 24">
+        <circle cx="10.5" cy="10.5" r="5.5" />
+        <path d="m15 15 4.5 4.5" />
+      </symbol>
+      <symbol id="home-role-item" viewBox="0 0 24 24">
+        <path d="m5 19 11.5-11.5" />
+        <path d="m14 5 5 5" />
+        <path d="m4 20 4-1 11-11-3-3L5 16z" />
+      </symbol>
+      <symbol id="home-role-category" viewBox="0 0 24 24">
+        <path d="M5 6h5v5H5zM14 6h5v5h-5zM5 15h5v3H5zM14 15h5v3h-5z" />
+      </symbol>
+      <symbol id="home-role-biome" viewBox="0 0 24 24">
+        <path d="M4 18h16" />
+        <path d="m5 17 4-7 3 5 2-3 5 6" />
+        <path d="M15 8h3M16.5 6.5v3" />
+      </symbol>
+      <symbol id="home-role-boss" viewBox="0 0 24 24">
+        <path d="M6 9 4 5l4 2 4-3 4 3 4-2-2 4" />
+        <path d="M6 10h12v7l-3 3H9l-3-3z" />
+        <path d="M9 14h.1M15 14h.1M10 18h4" />
+      </symbol>
+      <symbol id="home-role-buff" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
+      </symbol>
+      <symbol id="home-role-armor" viewBox="0 0 24 24">
+        <path d="M12 3 5 6v5c0 4.5 2.6 7.8 7 10 4.4-2.2 7-5.5 7-10V6z" />
+        <path d="M12 7v10M8.5 10h7" />
+      </symbol>
+      <symbol id="home-role-projectile" viewBox="0 0 24 24">
+        <path d="M4 12h12" />
+        <path d="m13 6 7 6-7 6" />
+        <path d="M5 8h3M5 16h5" />
+      </symbol>
+      <symbol id="home-role-npc" viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="3.5" />
+        <path d="M5 20c1.2-4 3.6-6 7-6s5.8 2 7 6" />
+      </symbol>
+      <symbol id="home-role-user" viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="3.5" />
+        <path d="M6 19c1.1-3.2 3.1-4.8 6-4.8s4.9 1.6 6 4.8" />
+        <path d="M18 7h3M19.5 5.5v3" />
+      </symbol>
+      <symbol id="home-role-article" viewBox="0 0 24 24">
+        <path d="M7 3h7l4 4v14H7z" />
+        <path d="M14 3v5h4M9.5 12h5M9.5 15.5h5M9.5 19h3" />
+      </symbol>
+      <symbol id="home-role-material" viewBox="0 0 24 24">
+        <path d="M12 3 4 8l8 13 8-13z" />
+        <path d="M4 8h16M9 8l3 13 3-13" />
+      </symbol>
+      <symbol id="home-role-crafting" viewBox="0 0 24 24">
+        <path d="m5 19 6-6" />
+        <path d="m13 5 6 6" />
+        <path d="m14 4 6 6-2 2-6-6z" />
+        <path d="M7 17h10" />
+      </symbol>
+      <symbol id="home-role-edit" viewBox="0 0 24 24">
+        <path d="M5 19h4l10-10-4-4L5 15z" />
+        <path d="m13.5 6.5 4 4M4 21h16" />
+      </symbol>
+      <symbol id="home-role-favorite" viewBox="0 0 24 24">
+        <path d="m12 4 2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8z" />
+      </symbol>
+      <symbol id="home-role-settings" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M12 3v3M12 18v3M4.2 7.5l2.6 1.5M17.2 15l2.6 1.5M19.8 7.5 17.2 9M6.8 15l-2.6 1.5" />
+      </symbol>
+      <symbol id="home-role-codex" viewBox="0 0 24 24">
+        <path d="M5 4h10a4 4 0 0 1 4 4v12H9a4 4 0 0 0-4-4z" />
+        <path d="M5 4v12M9 8h5M9 11h6" />
+      </symbol>
+      <symbol id="home-role-notice" viewBox="0 0 24 24">
+        <path d="M7 17h10l-1.2-2.2V10a3.8 3.8 0 0 0-7.6 0v4.8z" />
+        <path d="M10 19a2 2 0 0 0 4 0M12 3v2" />
+      </symbol>
+    </svg>
     <TerraNav />
     <TerraBreadcrumb />
 
     <header class="home-options-head">
-      <span class="eyebrow">ITEM PAGE LAYOUT LAB</span>
-      <h1>物品页三种新方向</h1>
-      <p>这次不做后台式三栏微调，三版分别围绕图标墙、合成树、游戏内百科建立完全不同的第一屏。</p>
+      <span class="eyebrow">TERRAPEDIA HOME</span>
+      <h1>从泰拉刃进入整个世界</h1>
+      <p>世界封面、图鉴长廊、冒险手册。</p>
     </header>
 
-    <section class="pagination-option-board" aria-label="分页减压三版高保真方案">
+    <section class="player-hero-gallery" aria-label="公开首页三种玩家入口">
       <article
-        v-for="option in paginationMockupOptions"
+        v-for="option in playerHeroDirections"
         :key="option.id"
-        class="pagination-mockup-card"
-        :class="option.className"
+        class="player-hero-card"
+        :data-scene="option.id"
       >
-        <div class="pagination-option-meta">
-          <span>{{ option.label }}</span>
-          <div class="pagination-option-title">
-            <b>{{ option.name }}</b>
-            <em>{{ option.cnName }}</em>
+        <header class="player-card-head">
+          <span class="player-card-letter">{{ option.label }}</span>
+          <div>
+            <b>{{ option.cnName }}</b>
+            <em>{{ option.name }}</em>
           </div>
-          <p>{{ option.summary }}</p>
-          <strong>{{ option.verdict }}</strong>
-        </div>
+          <p>{{ option.mood }}</p>
+        </header>
+        <div class="player-hero-stage" role="img" :aria-label="`${option.name} 公开首页`">
+          <div class="player-site-topbar">
+            <div class="player-brand-lockup">
+              <img src="/brand/terrapedia-emblem-centered.png" alt="" />
+              <span>
+                <b>TerraPedia</b>
+                <em>中文 Terraria 百科</em>
+              </span>
+            </div>
+            <nav aria-hidden="true">
+              <span>首页</span>
+              <span>物品</span>
+              <span>NPC</span>
+              <span>Boss</span>
+              <span>文章</span>
+            </nav>
+          </div>
 
-        <section class="pagination-mockup-stage" :aria-label="`${option.cnName}预览`">
-          <div class="catalog-screen-mock mock-wall-shell">
-            <header class="mock-page-head">
-              <div>
-                <span>ITEM CATALOG</span>
-                <h2>物品图鉴</h2>
-              </div>
-              <strong>24 / 页</strong>
-            </header>
-
-            <section class="mock-control-bar mock-toolbar-shell">
-              <label class="mock-search-box mock-search-compact">
-                <span>搜索</span>
-                <input type="search" value="刃" readonly>
-              </label>
-
-              <nav
-                v-if="option.id === 'bottom-capsule'"
-                class="mock-filter-rail mock-filter-tabs mock-category-overflow"
-                aria-label="多行分类预览"
-              >
-                <button
-                  v-for="filter in catalogWallQuickCategories"
-                  :key="`overflow-${filter}`"
-                  type="button"
-                  :class="{ active: filter === '全部' }"
-                >
-                  {{ filter }}
-                </button>
-              </nav>
-
-              <div
-                v-else-if="option.id === 'top-only'"
-                class="mock-category-dropdown"
-                aria-label="当前分类路径预览"
-              >
-                <span>全部分类</span>
-                <b>战斗 / 武器</b>
+          <section v-if="option.id === 'world-cover'" class="player-world-scene">
+            <div class="player-world-hero">
+              <div class="player-world-copy">
+                <span class="player-kicker">World Cover</span>
+                <h2>从泰拉刃进入整个世界</h2>
+                <p>先落到一个具体目标，再顺着地图去找材料、Boss、NPC 和生态。</p>
+                <div class="player-search-shell">
+                  <RoleSvgIcon :role="roleEntry('search')" class="player-focus-token" />
+                  <b>泰拉刃、Boss 前准备、NPC 入住、材料来源...</b>
+                  <span>搜索</span>
+                </div>
+                <nav class="player-quick-trails" aria-label="World Cover 热门路径">
+                  <a
+                    v-for="link in playerEntryPaths"
+                    :key="`player-cover-trail-${link.label}`"
+                  >
+                    {{ link.label }}
+                  </a>
+                </nav>
               </div>
 
-              <nav
-                v-else
-                class="mock-filter-rail mock-filter-tabs mock-category-overflow is-compact"
-                aria-label="常用分类预览"
-              >
-                <button
-                  v-for="filter in catalogWallQuickCategories.slice(0, 6)"
-                  :key="`compact-${filter}`"
-                  type="button"
-                  :class="{ active: filter === '全部' }"
+              <div class="player-world-map">
+                <div class="player-map-sun" aria-hidden="true"></div>
+                <div class="player-map-core">
+                  <RoleSvgIcon :role="roleEntry('items')" class="player-focus-token" />
+                  <b>泰拉刃</b>
+                  <em>探索目标</em>
+                </div>
+                <article
+                  v-for="tile in playerWorldTiles"
+                  :key="`player-world-${tile.label}`"
+                  class="player-world-tile"
                 >
-                  {{ filter }}
-                </button>
-                <button type="button">更多 18</button>
+                  <RoleSvgIcon :role="tile.role" class="player-small-token" />
+                  <span>
+                    <b>{{ tile.label }}</b>
+                    <em>{{ tile.meta }}</em>
+                  </span>
+                </article>
+              </div>
+
+              <nav class="player-entry-paths" aria-label="World Cover 常用入口">
+                <a
+                  v-for="entry in playerCatalogEntries"
+                  :key="`player-world-entry-${entry.key}-${entry.visualRole}`"
+                >
+                  <RoleSvgIcon :role="entry" class="player-small-token" />
+                  <span>
+                    <b>{{ entry.label }}</b>
+                    <em>{{ entry.meta }}</em>
+                  </span>
+                  <strong>{{ entry.weight }}</strong>
+                </a>
               </nav>
+            </div>
 
-              <label class="mock-density-select mock-density-pill">
-                <span>每页</span>
-                <select value="24" aria-label="每页数量预览">
-                  <option>12</option>
-                  <option>24</option>
-                  <option>48</option>
-                  <option>96</option>
-                </select>
-              </label>
+            <aside class="player-world-side">
+              <div class="player-feature-link">
+                <RoleSvgIcon :role="roleEntry('items')" class="player-card-token" />
+                <span>
+                  <b>今日入口：泰拉刃</b>
+                  <em>合成路线、材料来源、阶段推进同屏串联</em>
+                </span>
+              </div>
+              <div class="player-path-list">
+                <article
+                  v-for="link in playerEntryPaths"
+                  :key="`player-reader-${link.label}`"
+                >
+                  <RoleSvgIcon :role="link.role" class="player-small-token" />
+                  <span>
+                    <b>{{ link.label }}</b>
+                    <em>{{ link.meta }}</em>
+                  </span>
+                </article>
+              </div>
+              <div class="player-stat-strip">
+                <span v-for="stat in playerHeroStats" :key="`world-stat-${stat.label}`">
+                  <b>{{ stat.value }}</b>
+                  <em>{{ stat.label }}</em>
+                </span>
+              </div>
+            </aside>
+          </section>
 
-              <span class="mock-result-summary mock-page-chip">12 / 257 · 6,148</span>
-            </section>
+          <section v-else-if="option.id === 'codex-gallery'" class="player-codex-gallery">
+            <div class="player-codex-lead">
+              <span class="player-kicker">Codex Gallery</span>
+              <h2>像逛资料书廊一样进入百科</h2>
+              <p>分类变成可翻阅的书脊、展签和专题卷，资料入口藏在场景里。</p>
+              <div class="player-search-shell">
+                <RoleSvgIcon :role="roleEntry('codex')" class="player-focus-token" />
+                <b>物品、材料、Boss、NPC、生态、Buff、路线专题...</b>
+                <span>翻阅</span>
+              </div>
+              <nav class="player-quick-trails" aria-label="Codex Gallery 快速书签">
+                <a
+                  v-for="bookmark in playerCodexBookmarks.slice(0, 4)"
+                  :key="`player-codex-trail-${bookmark.label}`"
+                >
+                  {{ bookmark.label }}
+                </a>
+              </nav>
+            </div>
 
-            <div class="mock-wall-content">
-              <div
-                v-if="option.id === 'top-only'"
-                class="mock-category-drawer"
-                aria-label="分类抽屉预览"
+            <nav class="player-codex-shelves" aria-label="Codex Gallery 图鉴长廊">
+              <article
+                v-for="(entry, entryIndex) in playerCatalogEntries"
+                :key="`player-codex-tile-${entry.key}-${entry.visualRole}`"
+                :class="`tone-${entry.tone}`"
+                :style="`--player-book-index:${entryIndex}`"
               >
-                <section
-                  v-for="group in catalogWallCategoryGroups"
-                  :key="`drawer-${group.label}`"
-                  class="mock-category-column"
+                <RoleSvgIcon :role="entry" class="player-card-token" />
+                <span>
+                  <b>{{ entry.label }}</b>
+                  <em>{{ entry.meta }}</em>
+                </span>
+                <strong>{{ entry.weight }}</strong>
+                <small class="player-entry-tags">
+                  <i
+                    v-for="tag in entry.tags"
+                    :key="`player-codex-${entry.key}-${tag}`"
+                  >
+                    {{ tag }}
+                  </i>
+                </small>
+              </article>
+            </nav>
+
+            <aside class="player-codex-side">
+              <div class="player-feature-link">
+                <RoleSvgIcon :role="roleEntry('items')" class="player-card-token" />
+                <span>
+                  <b>焦点条目：泰拉刃</b>
+                  <em>从书廊进入条目、合成、掉落和路线专题</em>
+                </span>
+              </div>
+              <div class="player-shelf-roll">
+                <article
+                  v-for="shelf in playerCodexShelves"
+                  :key="`player-shelf-${shelf.label}`"
+                >
+                  <span>
+                    <RoleSvgIcon
+                      v-for="role in shelf.roles.slice(0, 3)"
+                      :key="`player-shelf-${shelf.label}-${role.key}-${role.visualRole}`"
+                      :role="role"
+                      class="player-small-token"
+                    />
+                  </span>
+                  <b>{{ shelf.label }}</b>
+                  <em>{{ shelf.meta }}</em>
+                </article>
+              </div>
+              <div class="player-bookmark-grid">
+                <span
+                  v-for="group in playerCodexBookmarks"
+                  :key="`player-bookmark-${group.label}`"
                 >
                   <b>{{ group.label }}</b>
-                  <span
-                    v-for="category in group.items.slice(0, 3)"
-                    :key="`drawer-${group.label}-${category}`"
-                    :class="{ active: category === '武器' }"
-                  >
-                    {{ category }}
-                  </span>
-                  <span class="more">+{{ group.items.length - 3 }}</span>
-                </section>
+                  <strong>{{ group.value }}</strong>
+                  <em>{{ group.meta }}</em>
+                </span>
               </div>
+            </aside>
+          </section>
 
-              <div class="mock-item-grid mock-wall-grid-current" aria-label="预览物品墙">
-                <article
-                  v-for="item in paginationMockItems"
-                  :key="`${option.id}-${item.id}`"
-                  class="mock-item-cell"
-                  :class="`tone-${item.tone}`"
+          <section v-else class="player-adventure-manual">
+            <div class="player-manual-cover">
+              <span class="player-kicker">Adventure Manual</span>
+              <h2>把攻略路线做成玩家手册</h2>
+              <p>打开首页先看到章节和路径，资料站像一本可以继续翻下去的游戏手册。</p>
+              <div class="player-search-shell">
+                <RoleSvgIcon :role="roleEntry('search')" class="player-focus-token" />
+                <b>输入目标，直接翻到对应章节、材料和路线。</b>
+                <span>查找</span>
+              </div>
+              <div class="player-manual-chapters">
+                <span
+                  v-for="stage in playerManualChapters"
+                  :key="`manual-chapter-${stage.label}`"
+                  :class="{ active: stage.active }"
                 >
-                  <span
-                    class="pixel-icon-token mock-item-token"
-                    :class="`role-${item.role.visualRole}`"
-                  >
-                    <span
-                      class="generated-pixel-icon"
-                      :style="pixelIconStyle(item.role)"
-                      aria-hidden="true"
-                    ></span>
-                  </span>
-                  <b>{{ item.name }}</b>
-                  <em>#{{ item.index }}</em>
+                  <b>{{ stage.label }}</b>
+                  <em>{{ stage.meta }}</em>
+                </span>
+              </div>
+            </div>
+
+            <div class="player-manual-route">
+              <div class="player-manual-map" aria-label="Adventure Manual 章节地图">
+                <span
+                  v-for="chapter in playerManualChapters.slice(0, 3)"
+                  :key="`manual-map-${chapter.label}`"
+                >
+                  <b>{{ chapter.label }}</b>
+                  <em>{{ chapter.meta }}</em>
+                </span>
+              </div>
+              <div class="player-route-trail">
+                <article
+                  v-for="step in playerManualRoute"
+                  :key="`player-route-${step.title}`"
+                >
+                  <span>{{ step.index }}</span>
+                  <RoleSvgIcon :role="step.role" class="player-card-token" />
+                  <b>{{ step.title }}</b>
+                  <small>{{ step.tag }}</small>
+                  <em>{{ step.meta }}</em>
                 </article>
               </div>
             </div>
 
-            <div class="mock-bottom-capsule mock-page-dock" aria-label="底部极简分页预览">
-              <button type="button" aria-label="上一页">‹</button>
-              <span>12 / 257</span>
-              <button type="button" aria-label="下一页">›</button>
-              <button type="button" class="mock-jump-trigger">跳页</button>
-            </div>
-          </div>
-        </section>
+            <aside class="player-manual-journal">
+              <RoleSvgIcon :role="roleEntry('items')" class="player-focus-token" />
+              <b>手册下一页</b>
+              <em>进入泰拉刃条目，查看合成材料、事件掉落和后续路线。</em>
+              <div class="player-manual-notes">
+                <span
+                  v-for="brief in playerManualNotes"
+                  :key="`manual-note-${brief.label}`"
+                >
+                  <em>{{ brief.label }}</em>
+                  <b>{{ brief.value }}</b>
+                </span>
+              </div>
+            </aside>
+          </section>
+        </div>
       </article>
     </section>
 
-    <section class="hero-icon-option-board" aria-label="三套 hero icon 方案">
+    <header class="home-options-head compact home-options-archive-head" hidden>
+      <span class="eyebrow">ICON AND ITEM PAGE ARCHIVE</span>
+      <h2>下方保留 SVG 图标与物品页记录</h2>
+      <p>这些内容用于保留 SVG 符号、图鉴墙、合成树和手册页风格记录，不影响上面的首页 hero。</p>
+    </header>
+
+    <section class="hero-icon-option-board home-options-archive-board" aria-label="三套 hero icon 记录" hidden>
       <article
         v-for="direction in heroIconDirections"
         :key="direction.id"
         class="hero-icon-option-card"
         :class="direction.id"
       >
-        <div class="hero-icon-pixel-preview" aria-hidden="true">
-          <span
+        <div class="hero-svg-icon-preview" aria-hidden="true">
+          <RoleSvgIcon
             v-for="role in direction.roles"
             :key="`${direction.id}-${role.key}-${role.visualRole}`"
-            class="pixel-icon-token hero-token"
-            :class="`role-${role.visualRole}`"
-          >
-            <span
-              class="generated-pixel-icon card-icon"
-              :style="pixelIconStyle(role)"
-            ></span>
-          </span>
+            :role="role"
+            class="hero-token"
+          />
         </div>
 
         <div class="hero-icon-option-copy">
@@ -574,22 +847,16 @@ const itemLayoutOptions = [
       </article>
     </section>
 
-    <section class="hero-pixel-library" aria-label="抽象像素符号库">
-      <span
-        v-for="role in previewIcons"
+    <section class="hero-svg-library home-options-archive-board" aria-label="抽象 SVG 符号库" hidden>
+      <RoleSvgIcon
+        v-for="role in previewSvgIcons"
         :key="`library-${role.key}`"
-        class="pixel-icon-token library-token"
-        :class="`role-${role.visualRole}`"
-      >
-        <span
-          class="generated-pixel-icon"
-          :style="pixelIconStyle(role)"
-          aria-hidden="true"
-        ></span>
-      </span>
+        :role="role"
+        class="library-token"
+      />
     </section>
 
-    <section class="icon-combo-board" aria-label="像素图标组合对比">
+    <section class="icon-combo-board home-options-archive-board" aria-label="SVG 图标组合对比" hidden>
       <article
         v-for="combo in iconComboSets"
         :key="combo.label"
@@ -597,18 +864,12 @@ const itemLayoutOptions = [
         :class="`tone-${combo.tone}`"
       >
         <div class="combo-role-strip">
-          <span
+          <RoleSvgIcon
             v-for="role in combo.roles"
             :key="`${combo.label}-${role.key}-${role.visualRole}`"
-            class="pixel-icon-token combo-token"
-            :class="`role-${role.visualRole}`"
-          >
-            <span
-              class="generated-pixel-icon"
-              :style="pixelIconStyle(role)"
-              aria-hidden="true"
-            ></span>
-          </span>
+            :role="role"
+            class="combo-token"
+          />
         </div>
         <span>
           <b>{{ combo.label }}</b>
@@ -617,7 +878,7 @@ const itemLayoutOptions = [
       </article>
     </section>
 
-    <section class="item-layout-board" aria-label="物品页三种新方向">
+    <section class="item-layout-board home-options-archive-board" aria-label="物品页三种新方向" hidden>
       <article
         v-for="option in itemLayoutOptions"
         :key="option.id"
@@ -636,7 +897,7 @@ const itemLayoutOptions = [
         <section
           v-if="option.id === 'pixel-gallery'"
           class="option-direction-stage pixel-gallery-stage"
-          aria-label="像素图鉴墙方案"
+          aria-label="SVG 图鉴墙记录"
         >
           <div class="pixel-gallery-toolbar">
             <div>
@@ -651,23 +912,14 @@ const itemLayoutOptions = [
             </nav>
           </div>
 
-          <div class="pixel-abstract-route-strip" aria-label="抽象入口图标示例">
+          <div class="pixel-abstract-route-strip" aria-label="抽象 SVG 入口图标示例">
             <button
-              v-for="entry in abstractPixelEntries"
+              v-for="entry in abstractSvgEntries"
               :key="entry.label"
               type="button"
               class="pixel-abstract-route"
             >
-              <span
-                class="pixel-icon-token route-token"
-                :class="`role-${entry.visualRole}`"
-              >
-                <span
-                  class="generated-pixel-icon abstract-route-icon"
-                  :style="pixelIconStyle(entry)"
-                  aria-hidden="true"
-                ></span>
-              </span>
+              <RoleSvgIcon :role="entry" class="route-token abstract-route-icon" />
               <span>
                 <b>{{ entry.label }}</b>
                 <em>{{ entry.meta }}</em>
@@ -675,19 +927,14 @@ const itemLayoutOptions = [
             </button>
           </div>
 
-          <div class="pixel-category-mosaic" aria-label="像素分类矩阵">
+          <div class="svg-category-mosaic" aria-label="SVG 分类矩阵">
             <span
-              v-for="cell in pixelCategoryMosaic"
+              v-for="cell in svgCategoryMosaic"
               :key="cell.label"
-              class="pixel-mosaic-cell"
+              class="svg-mosaic-cell"
               :class="`is-${cell.weight}`"
             >
-              <span
-                class="pixel-icon-token mosaic-token"
-                :class="`role-${cell.visualRole}`"
-              >
-                <span class="generated-pixel-icon" :style="pixelIconStyle(cell)" aria-hidden="true"></span>
-              </span>
+              <RoleSvgIcon :role="cell" class="mosaic-token" />
               <span>
                 <b>{{ cell.label }}</b>
                 <em>{{ cell.meta }}</em>
@@ -695,14 +942,16 @@ const itemLayoutOptions = [
             </span>
           </div>
 
-          <div class="pixel-icon-wall" aria-label="抽象符号角色墙">
+          <div class="svg-icon-wall" aria-label="抽象 SVG 符号角色墙">
             <span
-              v-for="role in pixelIconWall"
-              :key="`pixel-wall-icon-${role.key}`"
-              class="pixel-icon-token wall-token"
+              v-for="role in svgIconWall"
+              :key="`svg-wall-icon-${role.key}`"
+              class="svg-icon-token wall-token"
               :class="`role-${role.visualRole}`"
               >
-                <span class="generated-pixel-icon" :style="pixelIconStyle(role)" aria-hidden="true"></span>
+                <svg class="role-svg-icon" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                  <use :href="roleIconHref(role)" />
+                </svg>
               <span>
                 <b>{{ role.label }}</b>
                 <em>{{ role.alias ? `同源 ${role.alias}` : role.meta }}</em>
@@ -710,14 +959,14 @@ const itemLayoutOptions = [
             </span>
           </div>
 
-          <div class="pixel-wall-grid" aria-hidden="true">
+          <div class="svg-tile-wall" aria-label="SVG 分类密集墙">
             <span
-              v-for="item in pixelWallItems"
-              :key="item.id"
-              class="pixel-wall-cell"
-              :class="`tone-${item.tone}`"
+              v-for="(tile, tileIndex) in svgTileWall"
+              :key="`svg-tile-${tileIndex}-${tile.key}-${tile.visualRole}`"
+              class="svg-tile-cell"
+              :class="`tone-${tileIndex % 5}`"
             >
-              <i class="pixel-slot-pip"></i>
+              <RoleSvgIcon :role="tile" class="svg-tile-token" />
             </span>
           </div>
 
@@ -731,7 +980,7 @@ const itemLayoutOptions = [
             <div>
               <span>当前焦点</span>
               <h3>泰拉刃</h3>
-              <p>从图标墙进入详情，用户先看到物品密度，再看到当前选中项的核心信息。</p>
+              <p>从图标墙进入详情，用户先看到物品数量，再看到当前选中项的核心信息。</p>
             </div>
             <nav aria-label="当前物品动作">
               <a href="/items/terra-blade">详情</a>
@@ -743,7 +992,7 @@ const itemLayoutOptions = [
         <section
           v-else-if="option.id === 'craft-tree'"
           class="option-direction-stage craft-tree-stage"
-          aria-label="合成树工作台方案"
+          aria-label="合成树工作台记录"
         >
           <div class="craft-tree-head">
             <span>CRAFT ROUTE</span>
@@ -757,16 +1006,7 @@ const itemLayoutOptions = [
               :key="stage.name"
               class="craft-abstract-stage"
             >
-              <span
-                class="pixel-icon-token craft-token"
-                :class="`role-${stage.visualRole}`"
-              >
-                <span
-                  class="generated-pixel-icon abstract-craft-icon"
-                  :style="pixelIconStyle(stage)"
-                  aria-hidden="true"
-                ></span>
-              </span>
+              <RoleSvgIcon :role="stage" class="craft-token abstract-craft-icon" />
               <span>
                 <b>{{ stage.name }}</b>
                 <em>{{ stage.meta }}</em>
@@ -779,12 +1019,7 @@ const itemLayoutOptions = [
               v-for="entry in craftRouteBoard"
               :key="entry.label"
             >
-              <span
-                class="pixel-icon-token board-token"
-                :class="`role-${entry.visualRole}`"
-              >
-                <span class="generated-pixel-icon" :style="pixelIconStyle(entry)" aria-hidden="true"></span>
-              </span>
+              <RoleSvgIcon :role="entry" class="board-token" />
               <b>{{ entry.label }}</b>
               <em>{{ entry.meta }}</em>
             </article>
@@ -796,18 +1031,12 @@ const itemLayoutOptions = [
               :key="combo.label"
             >
               <div>
-                <span
+                <RoleSvgIcon
                   v-for="role in combo.roles"
                   :key="`${combo.label}-${role.key}-${role.visualRole}`"
-                  class="pixel-icon-token combo-token"
-                  :class="`role-${role.visualRole}`"
-                >
-                  <span
-                    class="generated-pixel-icon"
-                    :style="pixelIconStyle(role)"
-                    aria-hidden="true"
-                  ></span>
-                </span>
+                  :role="role"
+                  class="combo-token"
+                />
               </div>
               <b>{{ combo.label }}</b>
             </article>
@@ -845,7 +1074,7 @@ const itemLayoutOptions = [
         <section
           v-else
           class="option-direction-stage manual-book-stage"
-          aria-label="游戏内百科方案"
+          aria-label="游戏内百科记录"
         >
           <aside class="manual-index-rail">
             <span>INDEX</span>
@@ -855,16 +1084,7 @@ const itemLayoutOptions = [
               type="button"
               :class="{ active: entry.label === '武器' }"
             >
-              <span
-                class="pixel-icon-token manual-nav-token"
-                :class="`role-${entry.visualRole}`"
-              >
-                <span
-                  class="generated-pixel-icon abstract-manual-icon"
-                  :style="pixelIconStyle(entry)"
-                  aria-hidden="true"
-                ></span>
-              </span>
+              <RoleSvgIcon :role="entry" class="manual-nav-token abstract-manual-icon" />
               <span>{{ entry.label }}</span>
             </button>
           </aside>
@@ -875,7 +1095,7 @@ const itemLayoutOptions = [
               <div>
                 <small>TERRAPEDIA MANUAL</small>
                 <h3>泰拉刃</h3>
-                <p>一本可翻阅的游戏内百科页，信息像条目说明而不是后台面板。</p>
+                <p>一本可翻阅的游戏内百科页，信息像条目说明和手册摘录。</p>
               </div>
             </div>
 
@@ -889,17 +1109,12 @@ const itemLayoutOptions = [
               </span>
             </div>
 
-            <div class="manual-chapter-grid" aria-label="手册章节像素图标">
+            <div class="manual-chapter-grid" aria-label="手册章节 SVG 图标">
               <article
                 v-for="chapter in manualChapterGrid"
                 :key="chapter.label"
               >
-                <span
-                  class="pixel-icon-token chapter-token"
-                  :class="`role-${chapter.visualRole}`"
-                >
-                  <span class="generated-pixel-icon" :style="pixelIconStyle(chapter)" aria-hidden="true"></span>
-                </span>
+                <RoleSvgIcon :role="chapter" class="chapter-token" />
                 <b>{{ chapter.label }}</b>
                 <em>{{ chapter.meta }}</em>
               </article>
@@ -911,25 +1126,19 @@ const itemLayoutOptions = [
                 :key="shelf.label"
               >
                 <div>
-                  <span
+                  <RoleSvgIcon
                     v-for="role in shelf.roles"
                     :key="`${shelf.label}-${role.key}-${role.visualRole}`"
-                    class="pixel-icon-token combo-token"
-                    :class="`role-${role.visualRole}`"
-                  >
-                    <span
-                      class="generated-pixel-icon"
-                      :style="pixelIconStyle(role)"
-                      aria-hidden="true"
-                    ></span>
-                  </span>
+                    :role="role"
+                    class="combo-token"
+                  />
                 </div>
                 <b>{{ shelf.label }}</b>
               </article>
             </div>
 
             <div class="manual-paragraphs">
-              <p>用于困难模式后期的近战武器，发射绿色剑气。页面重点是读感和资料索引，而不是控件堆叠。</p>
+              <p>用于困难模式后期的近战武器，发射绿色剑气。页面重点是读感和资料索引。</p>
               <p>适合希望 TerraPedia 更像游戏百科、少一点 SaaS 工具感的方向。</p>
             </div>
           </main>

@@ -1051,21 +1051,46 @@ for (const path of scanFiles) {
 
   if (path === 'pages/home-hero-options.vue') {
     for (const marker of [
+      'playerHeroDirections',
+      "id: 'world-cover'",
+      "id: 'codex-gallery'",
+      "id: 'adventure-manual'",
+      'World Cover',
+      'Codex Gallery',
+      'Adventure Manual',
+      'player-hero-gallery',
+      'player-hero-card',
+      'player-hero-stage',
+      'player-card-head',
+      'player-brand-lockup',
+      'player-quick-trails',
+      'player-world-scene',
+      'player-world-map',
+      'player-entry-paths',
+      'player-codex-gallery',
+      'player-codex-shelves',
+      'player-adventure-manual',
+      'player-manual-route',
+      '世界封面',
+      '图鉴长廊',
+      '冒险手册',
       'heroIconDirections',
       'hero-icon-option-board',
       'hero-icon-option-card',
-      'abstractPixelEntries',
+      'svgRoleCatalog',
+      'homeRoleSvgSymbols',
+      'roleIconHref',
+      'RoleSvgIcon',
+      'abstractSvgEntries',
       'craftRouteStages',
-      'pixelSheets',
-      'pixelIconStyle',
-      '/ui/home-hero-pixel/relic-sheet.png',
-      '/ui/home-hero-pixel/craft-sheet.png',
-      '/ui/home-hero-pixel/manual-sheet.png',
-      'generated-pixel-icon abstract-route-icon',
-      'generated-pixel-icon abstract-craft-icon',
-      'generated-pixel-icon abstract-manual-icon',
-      'hero-icon-pixel-preview',
-      'previewIcons',
+      'svg-icon-defs',
+      'home-role-search',
+      'home-role-crafting',
+      'home-role-codex',
+      'RoleSvgIcon :role="',
+      'hero-svg-icon-preview',
+      'previewSvgIcons',
+      'svgTileWall',
       "key: 'category'",
       "key: 'projectile'",
       "key: 'npc'",
@@ -1082,15 +1107,15 @@ for (const path of scanFiles) {
       "key: 'codex'",
       "key: 'notification'",
       'iconComboSets',
-      'pixelRoleCatalog',
-      'simplePixelGlyphs',
+      'simpleSvgGlyphs',
       'icon-combo-board',
       'icon-combo-card',
       'combo-role-strip',
-      'pixel-category-mosaic',
-      'pixel-mosaic-cell',
-      'pixel-icon-wall',
-      'pixel-icon-token',
+      'svg-category-mosaic',
+      'svg-mosaic-cell',
+      'svg-icon-wall',
+      'svg-tile-wall',
+      'svg-icon-token',
       'craft-route-board',
       'craft-combo-lane',
       'manual-chapter-grid',
@@ -1098,10 +1123,10 @@ for (const path of scanFiles) {
       'concrete-image-slot floating-item-slot',
       'concrete-image-slot craft-result-slot',
       'manual-title-mark',
-      '林地符号像素入口',
-      '工匠符号路线',
-      '手册章节符号',
-      '抽象像素符号',
+      '林地 SVG 资料入口',
+      '工匠 SVG 路线',
+      '手册 SVG 章节',
+      '抽象 SVG 符号',
       '图鉴筛选',
       '事件识别',
       '掉落关系',
@@ -1112,22 +1137,34 @@ for (const path of scanFiles) {
       "visualRole: 'npc'",
     ]) {
       if (!content.includes(marker)) {
-        violations.push(`${path}: home hero icon direction preview must include marker ${marker}`)
+        violations.push(`${path}: player-facing home hero options must include marker ${marker}`)
       }
     }
 
     for (const cssMarker of [
+      '.player-hero-gallery',
+      '.player-hero-card',
+      '.player-hero-stage',
+      '.player-card-head',
+      '.player-brand-lockup',
+      '.player-quick-trails',
+      '.player-world-scene',
+      '.player-world-map',
+      '.player-entry-paths',
+      '.player-codex-gallery',
+      '.player-codex-shelves',
+      '.player-adventure-manual',
+      '.player-manual-route',
+      '.svg-icon-defs',
+      '.svg-icon-token',
+      '.role-svg-icon',
       '.icon-combo-board',
       '.icon-combo-card',
       '.combo-role-strip',
-      '.pixel-icon-wall',
-      '.pixel-icon-token',
-      '.generated-pixel-icon',
-      '--pixel-icon-sheet',
-      '--pixel-icon-x',
-      '--pixel-icon-y',
+      '.svg-icon-wall',
       '--icon-slot-line',
       '--icon-slot-fill',
+      '--icon-stroke',
       '.role-category',
       '.role-projectile',
       '.role-npc',
@@ -1135,7 +1172,60 @@ for (const path of scanFiles) {
       '.manual-icon-shelf',
     ]) {
       if (!homeHeroOptionsCss.includes(cssMarker)) {
-        violations.push(`assets/css/home-hero-options.css: home hero option page must style expanded pixel icon comparison block ${cssMarker}`)
+        violations.push(`assets/css/home-hero-options.css: home hero option page must style player-facing preview block ${cssMarker}`)
+      }
+    }
+
+    const playerHeroOptionCount = content.match(/id: '(world-cover|codex-gallery|adventure-manual)'/g)?.length ?? 0
+    if (playerHeroOptionCount !== 3) {
+      violations.push(`${path}: player-facing home hero preview must define exactly three directions`)
+    }
+
+    for (const rejectedHomeHeroMarker of [
+      'HOME HERO DENSITY LAB',
+      'PUBLIC HOME HERO LAB',
+      'homeHeroHifiOptions',
+      'heroDensityOptions',
+      'homeHeroDensityMetrics',
+      'homeHeroRecentUpdates',
+      'density-command-center',
+      'density-atlas-wall',
+      'density-route-console',
+      'home-density-option-board',
+      'home-density-option-card',
+      '指挥台首页',
+      '资料墙首页',
+      '路线控制台首页',
+      '圆形指挥盘',
+      '路线控制台',
+      '管理面板',
+      '后台模块',
+      '操作台',
+    ]) {
+      if (content.includes(rejectedHomeHeroMarker)) {
+        violations.push(`${path}: player-facing home hero options must not include rejected control-room marker ${rejectedHomeHeroMarker}`)
+      }
+    }
+
+    for (const rejectedHomeHeroSelector of [
+      '.home-density-option-board',
+      '.home-density-option-card',
+      '.density-command-center',
+      '.density-atlas-wall',
+      '.density-route-console',
+      '.home-hifi-gallery',
+      '.home-hifi-card',
+      '.home-hifi-frame',
+      '.home-hifi-live-stage',
+      '.home-hifi-live-command',
+      '.home-hifi-live-category-wall',
+      '.home-hifi-live-route-explorer',
+      '.hifi-home-command-shell',
+      '.hifi-category-wall-layout',
+      '.hifi-route-explorer-layout',
+    ]) {
+      if (homeHeroOptionsCss.includes(rejectedHomeHeroSelector)) {
+        violations.push(`assets/css/home-hero-options.css: player-facing home hero options must not include rejected selector ${rejectedHomeHeroSelector}`)
       }
     }
 
@@ -1146,6 +1236,17 @@ for (const path of scanFiles) {
       'generated-abstract-icon',
       'heroIconTileStyle',
       '/home-hero-icons/',
+      '/ui/home-hero-pixel/',
+      'pixelSheets',
+      'pixelIconStyle',
+      'generated-pixel-icon',
+      'pixel-icon-token',
+      'hero-icon-pixel-preview',
+      '/ui/home-hero-hifi/',
+      'option.image',
+      'pixelWallItems',
+      'pixel-slot-pip',
+      'pixel-wall-grid',
       'sprite-role-code',
       'sprite-icon',
       'icon-category',
@@ -1157,11 +1258,19 @@ for (const path of scanFiles) {
       '像素图标密集墙',
     ]) {
       if (content.includes(forbiddenMarker)) {
-        violations.push(`${path}: home hero option icons must use the new generated low-pixel sheets, not rejected sprite/icon treatments (${forbiddenMarker})`)
+        violations.push(`${path}: home hero option icons must use the SVG symbol system, not rejected pixel/sprite treatments (${forbiddenMarker})`)
       }
     }
 
     for (const noisyIconMarker of [
+      '--pixel-icon-sheet',
+      '--pixel-icon-x',
+      '--pixel-icon-y',
+      '.generated-pixel-icon',
+      '.pixel-icon-token',
+      '.home-hifi-frame img',
+      '.pixel-wall-grid',
+      '.pixel-slot-pip',
       '--role-rgb',
       '--role-dot-w',
       '--role-mark-w',
