@@ -259,6 +259,33 @@ const playerFacingCopyFiles = [
   'components/TerraBreadcrumb.vue',
 ]
 
+const accountUnavailablePageFiles = [
+  'pages/user/index.vue',
+  'pages/user/login.vue',
+  'pages/user/register.vue',
+  'pages/user/articles/index.vue',
+  'pages/user/articles/new.vue',
+  'pages/user/favorites.vue',
+  'pages/user/settings.vue',
+]
+
+const unfinishedAccountRoutes = [
+  '/user/articles',
+  '/user/favorites',
+  '/user/settings',
+  '/user/login',
+  '/user/register',
+  '/user',
+]
+
+const forbiddenAccountUnavailableTerms = [
+  'preview-only',
+  '登录占位',
+  '当前只是静态视觉',
+  '保存物品和路线',
+  '收藏、投稿、设置入口',
+]
+
 const forbiddenPlayerFacingTerms = [
   '结构化',
   '追踪',
@@ -874,9 +901,15 @@ for (const path of scanFiles) {
   }
 
   if (path === 'components/TerraNav.vue') {
-    for (const marker of ['sprite-icon icon-search', 'sprite-icon icon-codex', 'sprite-icon icon-user', 'sprite-icon icon-favorites', 'sprite-icon icon-settings']) {
+    for (const marker of ['sprite-icon icon-search', 'sprite-icon icon-codex']) {
       if (!content.includes(marker)) {
-        violations.push(`${path}: shared navigation and account menu must use the generated sprite icon marker ${marker}`)
+        violations.push(`${path}: shared navigation must use the generated sprite icon marker ${marker}`)
+      }
+    }
+
+    for (const route of unfinishedAccountRoutes) {
+      if (content.includes(`href="${route}"`) || content.includes(`href='${route}'`)) {
+        violations.push(`TerraNav.vue: V0.1 public nav must not link to unfinished account surface ${route}`)
       }
     }
 
@@ -898,14 +931,6 @@ for (const path of scanFiles) {
 
     if (!content.includes('nav-menu-hover-bridge')) {
       violations.push(`${path}: resources hover menu must include a hover bridge so pointer travel does not close the panel`)
-    }
-
-    if (!content.includes('account-avatar-link') || !content.includes('href="/user"')) {
-      violations.push(`${path}: shared navigation must expose /user as a direct visible avatar account entry`)
-    }
-
-    if (!content.includes('account-menu-panel')) {
-      violations.push(`${path}: account avatar must expose a hover account panel`)
     }
 
     if (!content.includes('nav-menu-text-trigger')) {
@@ -935,23 +960,23 @@ for (const path of scanFiles) {
     }
 
     if (!content.includes('activeMenu')) {
-      violations.push(`${path}: resource and account menus must share one activeMenu state to prevent hover races`)
+      violations.push(`${path}: resources menu must use activeMenu state to prevent hover races`)
     }
 
-    if (!content.includes("openMenu('resources')") || !content.includes("openMenu('account')")) {
-      violations.push(`${path}: resource and account triggers must explicitly open their own managed menu state`)
+    if (!content.includes("openMenu('resources')")) {
+      violations.push(`${path}: resources trigger must explicitly open its managed menu state`)
     }
 
     if (!content.includes('scheduleCloseMenu')) {
       violations.push(`${path}: managed hover menus must use a short delayed close for pointer travel into panels`)
     }
 
-    if (!content.includes("activeMenu === 'resources'") || !content.includes("activeMenu === 'account'")) {
-      violations.push(`${path}: menu panels must bind their open class to the single activeMenu state`)
+    if (!content.includes("activeMenu === 'resources'")) {
+      violations.push(`${path}: menu panel must bind its open class to activeMenu state`)
     }
 
     if (!content.includes(':aria-hidden="activeMenu !==') || !content.includes(':tabindex="activeMenu ===')) {
-      violations.push(`${path}: closed resource and account menu links must be hidden from assistive tech and removed from tab order`)
+      violations.push(`${path}: closed resource menu links must be hidden from assistive tech and removed from tab order`)
     }
 
     if (!content.includes('@mouseenter') || !content.includes('@mouseleave')) {
@@ -965,6 +990,14 @@ for (const path of scanFiles) {
     for (const route of ['/search', '/crafting', '/categories', '/biomes', '/buffs', '/armor-sets', '/projectiles']) {
       if (!content.includes(route)) {
         violations.push(`${path}: shared navigation menu must expose ${route} before the footer`)
+      }
+    }
+  }
+
+  if (path === 'components/TerraFooter.vue') {
+    for (const route of unfinishedAccountRoutes) {
+      if (content.includes(`href="${route}"`) || content.includes(`href='${route}'`)) {
+        violations.push(`TerraFooter.vue: V0.1 public nav must not link to unfinished account surface ${route}`)
       }
     }
   }
@@ -2354,18 +2387,16 @@ for (const path of scanFiles) {
     }
   }
 
-  if (path === 'pages/user/index.vue') {
-    for (const marker of ['sprite-icon icon-favorites', 'sprite-icon icon-article', 'sprite-icon icon-edit', 'sprite-icon icon-settings', 'sprite-icon icon-user']) {
+  if (accountUnavailablePageFiles.includes(path)) {
+    for (const marker of ['账户功能暂未开放', 'TerraPedia V0.1 先作为只读资料站发布', '先浏览资料：物品图鉴 / 搜索 / 合成树', 'href="/items"', 'href="/search"', 'href="/crafting"']) {
       if (!content.includes(marker)) {
-        violations.push(`${path}: user center must use generated sprite icon marker ${marker}`)
+        violations.push(`${path}: V0.1 account routes must render the unified unavailable state via marker ${marker}`)
       }
     }
-  }
 
-  if (path === 'pages/user/settings.vue') {
-    for (const marker of ['sprite-icon icon-user', 'sprite-icon icon-items', 'sprite-icon icon-notification', 'sprite-icon icon-codex']) {
-      if (!content.includes(marker)) {
-        violations.push(`${path}: settings groups must use generated sprite icon marker ${marker}`)
+    for (const forbiddenTerm of forbiddenAccountUnavailableTerms) {
+      if (content.includes(forbiddenTerm)) {
+        violations.push(`${path}: V0.1 account unavailable page must not contain unfinished account placeholder term ${forbiddenTerm}`)
       }
     }
   }

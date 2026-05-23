@@ -5,7 +5,7 @@ const route = useRoute()
 const themeStore = useThemeStore()
 const themeOptions = themeStore.themeOptions
 
-type ActiveMenu = 'resources' | 'account' | null
+type ActiveMenu = 'resources' | null
 
 const primaryLinks = [
   { label: '首页', href: '/' },
@@ -22,6 +22,7 @@ const resourceLinks = [
   { label: 'Buff 图鉴', href: '/buffs', desc: '增益、减益、战前组合', icon: 'icon-buff' },
   { label: '套装路线', href: '/armor-sets', desc: '防具、职业、阶段', icon: 'icon-armor' },
   { label: '射弹行为', href: '/projectiles', desc: '弹道、碰撞、来源', icon: 'icon-projectile' },
+  { label: '项目说明', href: '/about', desc: '数据来源、边界、说明', icon: 'icon-codex' },
 ]
 
 const isActive = (href: string) => {
@@ -166,39 +167,6 @@ onBeforeUnmount(closeMenu)
               </span>
             </a>
           </div>
-        </div>
-      </div>
-
-      <div
-        class="account-menu"
-        @mouseenter="openMenu('account')"
-        @mouseleave="scheduleCloseMenu('account')"
-        @focusin="openMenu('account')"
-        @focusout="scheduleCloseMenu('account')"
-        @keydown.esc="closeMenu"
-      >
-        <a
-          class="account-avatar-link"
-          :class="{ active: isActive('/user') || activeMenu === 'account' }"
-          href="/user"
-          aria-label="TP 用户中心"
-          aria-haspopup="true"
-          :aria-expanded="activeMenu === 'account'"
-        >TP</a>
-        <div class="account-menu-hover-bridge" aria-hidden="true"></div>
-        <div
-          class="account-menu-panel"
-          :class="{ 'is-open': activeMenu === 'account' }"
-          :aria-hidden="activeMenu !== 'account'"
-        >
-          <div class="account-menu-head">
-            <span><span class="sprite-icon icon-user compact" aria-hidden="true"></span></span>
-            <div><b>访客用户</b><em>Preview account</em></div>
-          </div>
-          <a href="/user" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-user menu-icon" aria-hidden="true"></span><span><b>用户中心</b><span>收藏、投稿、设置入口</span></span></a>
-          <a href="/user/favorites" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-favorites menu-icon" aria-hidden="true"></span><span><b>收藏夹</b><span>保存物品和路线</span></span></a>
-          <a href="/user/articles" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-article menu-icon" aria-hidden="true"></span><span><b>我的文章</b><span>草稿和投稿状态</span></span></a>
-          <a href="/user/settings" :tabindex="menuLinkTabIndex('account')" @click="closeMenu"><span class="sprite-icon icon-settings menu-icon" aria-hidden="true"></span><span><b>账号设置</b><span>显示偏好和公开资料</span></span></a>
         </div>
       </div>
     </div>

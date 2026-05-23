@@ -3,27 +3,28 @@
     <TerraNav />
     <TerraBreadcrumb />
 
-    <main class="user-auth-layout">
-      <section class="user-auth-copy support-panel">
-        <span class="eyebrow">创建账号</span>
-        <h1>注册成为资料共建者</h1>
-        <p>注册页先保留品牌化表单和说明区域，功能暂不实现。视觉上与登录页共享同一套深色网格和低亮边框。</p>
-        <div class="user-auth-proof">
-          <div><b>路线</b><span>保存阅读进度</span></div>
-          <div><b>纠错</b><span>提交资料反馈</span></div>
-          <div><b>文章</b><span>参与专题共建</span></div>
+    <div class="page-head entity-head">
+      <div class="page-head-inner">
+        <div>
+          <span class="eyebrow">TerraPedia V0.1 · read-only launch</span>
+          <h1>账户功能暂未开放</h1>
+          <p>TerraPedia V0.1 先作为只读资料站发布，登录、收藏、设置和投稿入口会在后续版本评估。</p>
         </div>
-      </section>
+      </div>
+    </div>
 
-      <section class="user-form-panel support-panel">
-        <span class="eyebrow">Preview form</span>
-        <label><span>昵称</span><input type="text" value="Terraria Player" readonly /></label>
-        <label><span>邮箱</span><input type="email" value="new@terrapedia.local" readonly /></label>
-        <label><span>密码</span><input type="password" value="preview-only" readonly /></label>
-        <button class="primary-button" type="button">注册占位</button>
-        <div class="form-footnote">
-          <a href="/user/login">已有账号</a>
-          <a href="/user">返回用户中心</a>
+    <main class="user-layout">
+      <section class="user-hero support-panel">
+        <div class="user-avatar"><span class="sprite-icon icon-user" aria-hidden="true"></span></div>
+        <div>
+          <span class="eyebrow">只读资料站</span>
+          <h2>先浏览资料</h2>
+          <p>先浏览资料：物品图鉴 / 搜索 / 合成树</p>
+          <div class="user-link-matrix single">
+            <a href="/items"><span class="sprite-icon icon-items card-icon" aria-hidden="true"></span><b>物品图鉴</b><span>浏览条目</span></a>
+            <a href="/search"><span class="sprite-icon icon-search card-icon" aria-hidden="true"></span><b>搜索</b><span>查找资料</span></a>
+            <a href="/crafting"><span class="sprite-icon icon-crafting card-icon" aria-hidden="true"></span><b>合成树</b><span>查看配方</span></a>
+          </div>
         </div>
       </section>
     </main>
