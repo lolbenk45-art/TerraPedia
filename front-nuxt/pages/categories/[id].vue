@@ -6,19 +6,19 @@
     <main class="support-layout detail-support-layout">
       <section class="category-detail-hero support-panel">
         <div>
-          <span class="eyebrow">Category · Weapons</span>
-          <h1>武器分类</h1>
-          <p>分类详情先展示玩家决策需要的结构：职业分支、阶段分布、典型代表和下一步路线，而不是只列出数据库字段。</p>
+          <span class="eyebrow">Category · V0.1</span>
+          <h1>分类详情</h1>
+          <p>分类详情先作为有限入口保留。完整分类树和条目计数仍以物品图鉴查询结果为准，本页不展示未验证的代表物品或固定数量。</p>
           <div class="tag-row">
-            <span class="tag gold">932 条目</span>
-            <span class="tag moss">4 个职业分支</span>
-            <span class="tag paper">可关联 Boss 路线</span>
+            <span class="tag gold">有限入口</span>
+            <span class="tag moss">物品图鉴承接</span>
+            <span class="tag paper">持续校验</span>
           </div>
         </div>
         <div class="category-orbit">
-          <span><span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span></span>
-          <span><span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/92ddf79f66844566a9db851856ae756e.png')"></span></span>
-          <span><span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png')"></span></span>
+          <span><span class="sprite-icon icon-category card-icon" aria-hidden="true"></span></span>
+          <span><span class="sprite-icon icon-items card-icon" aria-hidden="true"></span></span>
+          <span><span class="sprite-icon icon-search card-icon" aria-hidden="true"></span></span>
         </div>
       </section>
 
@@ -26,7 +26,7 @@
         <article class="support-panel category-branch active">
           <b>近战</b>
           <span>剑、矛、回旋镖、悠悠球</span>
-          <a href="/items/terra-blade">代表：泰拉刃</a>
+          <a href="/items?search=近战">查看近战物品</a>
         </article>
         <article class="support-panel category-branch">
           <b>远程</b>

@@ -5,39 +5,36 @@
 
     <main class="article-detail-layout">
       <article class="article-detail-hero">
-        <span class="eyebrow">路线攻略 · 12 分钟阅读</span>
-        <h1>从机械 Boss 到月亮领主：近战装备推进路线</h1>
-        <p>文章详情不做普通博客排版，而是把阶段、物品、Boss、Buff 和套装入口固定在内容旁边，让攻略变成可执行路线。</p>
+        <span class="eyebrow">资料手札 · V0.1</span>
+        <h1>公开文章暂未开放</h1>
+        <p>当前没有可验证的已发布文章内容。此页面保留路由和资料入口，避免用静态文章样例替代真实发布内容。</p>
         <div class="article-meta">
-          <span>近战路线</span><span>18 个图鉴链接</span><span>更新于 2026</span>
+          <span>只读资料站</span><span>真实文章待接入</span><span>不展示草稿内容</span>
         </div>
       </article>
 
       <div class="article-detail-grid">
         <section class="article-body-panel">
-          <h2>核心推进</h2>
-          <p>击败机械 Boss 后，玩家的目标应从单件武器升级转向路线组合：神圣锭、断钢剑、永夜刃、英雄断剑和甲虫套会共同决定月前体验。</p>
+          <h2>继续浏览资料</h2>
+          <p>可以先从物品、合成树、Boss、Buff 和生态页面进入公开资料。文章内容接入后，此页再按真实发布状态展示。</p>
           <div class="article-callout">
-            <b>路线判断</b>
-            <span>如果已经拥有真永夜刃和真断钢剑，下一步优先处理日食事件和英雄断剑。</span>
+            <b>V0.1 边界</b>
+            <span>公开站点不展示未发布文章、草稿、阅读时长或虚构图鉴链接数量。</span>
           </div>
-          <h2>装备节点</h2>
-          <p>泰拉刃承担稳定输出，甲虫套承担容错，饰品重铸和药水决定战斗稳定性。页面内的每个节点都应该能回到图鉴详情。</p>
           <div class="article-link-grid">
-            <a href="/items/terra-blade"><b>泰拉刃</b><span>合成树和剑气</span></a>
-            <a href="/armor-sets"><b>甲虫套</b><span>月前近战套装</span></a>
-            <a href="/buffs/ironskin"><b>战前 Buff</b><span>铁皮、再生、敏捷</span></a>
-            <a href="/bosses/moon-lord"><b>月亮领主</b><span>终局战斗入口</span></a>
+            <a href="/items"><b>物品图鉴</b><span>查询装备、材料和价格</span></a>
+            <a href="/crafting"><b>合成树</b><span>查看目标物品材料路线</span></a>
+            <a href="/bosses"><b>Boss</b><span>浏览阶段和掉落入口</span></a>
+            <a href="/search"><b>全站检索</b><span>先查询真实公开物品数据</span></a>
           </div>
         </section>
 
         <aside class="article-route-panel">
-          <span class="eyebrow">路线目录</span>
+          <span class="eyebrow">状态</span>
           <div class="toc-list">
-            <div class="toc-item"><span class="toc-num">01</span><div><b>机械 Boss 后</b><span>神圣锭与制作站</span></div></div>
-            <div class="toc-item"><span class="toc-num">02</span><div><b>日食事件</b><span>英雄断剑与核心材料</span></div></div>
-            <div class="toc-item"><span class="toc-num">03</span><div><b>月前装备</b><span>泰拉刃、甲虫套、饰品</span></div></div>
-            <div class="toc-item"><span class="toc-num">04</span><div><b>终局准备</b><span>药水、场地、弹幕理解</span></div></div>
+            <div class="toc-item"><span class="toc-num">01</span><div><b>文章未载入</b><span>没有真实发布数据</span></div></div>
+            <div class="toc-item"><span class="toc-num">02</span><div><b>路由已保留</b><span>后续可接入发布内容</span></div></div>
+            <div class="toc-item"><span class="toc-num">03</span><div><b>入口可用</b><span>继续访问资料域</span></div></div>
           </div>
         </aside>
       </div>

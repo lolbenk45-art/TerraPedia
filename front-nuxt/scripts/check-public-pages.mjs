@@ -296,6 +296,23 @@ const forbiddenSearchFixtureTerms = [
   '当前只是静态视觉',
 ]
 
+const forbiddenArticleFixtureTerms = [
+  '本周主线',
+  '12 分钟阅读',
+  '18 个图鉴链接',
+  '更新于 2026',
+  '从机械 Boss 到月亮领主：近战装备推进路线',
+  '/items/terra-blade',
+]
+
+const forbiddenCategoryDetailFixtureTerms = [
+  'Category · Weapons',
+  '932 条目',
+  '代表：泰拉刃',
+  '/items/terra-blade',
+  "background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')",
+]
+
 const forbiddenPlayerFacingTerms = [
   '结构化',
   '追踪',
@@ -2413,6 +2430,43 @@ for (const path of scanFiles) {
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: retained search tool page must keep live suggestion/query marker ${marker}`)
+      }
+    }
+  }
+
+  if (path === 'pages/articles/index.vue' || path === 'pages/articles/[slug].vue') {
+    for (const marker of [
+      '公开文章暂未开放',
+      '真实文章待接入',
+      '不展示未发布文章',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: V0.1 article route must render a truthful unavailable state via marker ${marker}`)
+      }
+    }
+
+    for (const term of forbiddenArticleFixtureTerms) {
+      if (content.includes(term)) {
+        violations.push(`${path}: V0.1 article route must not keep static article fixture ${term}`)
+      }
+    }
+  }
+
+  if (path === 'pages/categories/[id].vue') {
+    for (const marker of [
+      'Category · V0.1',
+      '完整分类树和条目计数仍以物品图鉴查询结果为准',
+      '有限入口',
+      'href="/items?search=近战"',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: V0.1 category detail must render a limited truthful state via marker ${marker}`)
+      }
+    }
+
+    for (const term of forbiddenCategoryDetailFixtureTerms) {
+      if (content.includes(term)) {
+        violations.push(`${path}: V0.1 category detail must not keep static category fixture ${term}`)
       }
     }
   }
