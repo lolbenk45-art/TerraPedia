@@ -531,6 +531,7 @@ const auditExpression = `(() => {
   };
   const overflowing = [];
   const clipped = [];
+  const body = document.body;
   const viewportWidth = document.documentElement.clientWidth;
   const blockedImageSources = [...document.querySelectorAll('img[src], .item-art[style*="background-image"], [data-source-image]')].flatMap((element, index) => {
     const selector = element.id
@@ -657,7 +658,7 @@ const auditExpression = `(() => {
 	    search: location.search,
 	    scrollWidth: document.documentElement.scrollWidth,
 	    clientWidth: document.documentElement.clientWidth,
-	    bodyScrollWidth: document.body.scrollWidth,
+		    bodyScrollWidth: body?.scrollWidth ?? document.documentElement.scrollWidth,
 	    overflowing,
 	    clipped,
 	    navActionCount: document.querySelectorAll('.site-actions :where(a, button)').length,
@@ -671,11 +672,11 @@ const auditExpression = `(() => {
 			    catalogHoverPreviewCount: document.querySelectorAll('.catalog-hover-preview').length,
 				    catalogPageButtonCount: document.querySelectorAll('.catalog-dock-page-button').length,
 				    catalogJumpInputCount: document.querySelectorAll('.catalog-dock-jump-form input').length,
-				    catalogStickyRailPosition: getComputedStyle(document.querySelector('.catalog-page-dock') ?? document.body).position,
+					    catalogStickyRailPosition: getComputedStyle(document.querySelector('.catalog-page-dock') ?? body ?? document.documentElement).position,
 				    catalogFirstLastButtonCount: [...document.querySelectorAll('.catalog-page-dock button')]
 			      .filter((button) => /首页|末页/.test(button.textContent ?? ''))
 			      .length,
-			    densityRailBeforeContent: getComputedStyle(document.querySelector('.catalog-page-dock-summary') ?? document.body, '::before').content,
+				    densityRailBeforeContent: getComputedStyle(document.querySelector('.catalog-page-dock-summary') ?? body ?? document.documentElement, '::before').content,
 			    catalogDataSourceAttribute: document.querySelector('.catalog-pixel-stage')?.getAttribute('data-source') ?? '',
 			    catalogDataSourceText: [...document.querySelectorAll('.catalog-screen .eyebrow, .catalog-control-summary strong')]
 		      .map((element) => element.textContent?.trim() ?? '')
@@ -875,8 +876,8 @@ const auditExpression = `(() => {
     rootRecipeTargetVisible: rootRecipeTargetRect ? rootRecipeTargetRect.top < window.innerHeight && rootRecipeTargetRect.bottom > 0 : false,
     relationTextWrapIssues,
     previewFakeAccountControlCount,
-    bodyText: document.body.innerText.slice(0, 20000),
-    computedFont: getComputedStyle(document.body).fontFamily,
+    bodyText: (body?.innerText ?? '').slice(0, 20000),
+    computedFont: getComputedStyle(body ?? document.documentElement).fontFamily,
   };
 })()`
 
