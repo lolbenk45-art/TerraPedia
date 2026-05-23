@@ -71,6 +71,31 @@ const recipeStationMeta = (station: PublicItemRecipeTreeStation) => {
   if (station.isAlternative) return '可替代'
   return displayText(station.requirementRole, station.stationType, '合成站')
 }
+const compactRecipeTextList = (values: string[], limit = 3) => {
+  const visible = values.filter(Boolean).slice(0, limit)
+  const remaining = values.length - visible.length
+  return remaining > 0 ? `${visible.join(' + ')} +${remaining}` : visible.join(' + ')
+}
+const recipeIngredientSummary = (node: PublicItemRecipeTreeNode) => compactRecipeTextList(
+  recipeNodeChildren(node).map((child) => `${nodeTitle(child)} ${nodeQuantity(child)}`),
+)
+const recipeStationSummary = (node: PublicItemRecipeTreeNode) => compactRecipeTextList(
+  recipeNodeStations(node).map(recipeStationTitle),
+  2,
+)
+const recipeOutputSummary = (node: PublicItemRecipeTreeNode) => {
+  const quantity = nodeQuantity(node, true)
+  return quantity === 'x1' ? '' : `产出 ${quantity}`
+}
+const recipeSummaryParts = (node: PublicItemRecipeTreeNode) => [
+  recipeIngredientSummary(node) ? `材料: ${recipeIngredientSummary(node)}` : '',
+  recipeStationSummary(node) ? `站点: ${recipeStationSummary(node)}` : '',
+  recipeOutputSummary(node),
+].filter(Boolean)
+const recipeDifferenceSummary = (node: PublicItemRecipeTreeNode) => {
+  const summary = recipeSummaryParts(node).join('；')
+  return summary || (displayText(node.recipeId) ? `ID ${node.recipeId}` : '')
+}
 const directRecipeNodeChildren = computed(() => recipeNodeChildren(props.node).filter(nodeWithinMaxDepth))
 const recipeAlternativeOptions = computed(() => {
   const children = directRecipeNodeChildren.value
@@ -82,8 +107,8 @@ const recipeAlternativeOptions = computed(() => {
 })
 const hasAlternativeRecipeOptions = computed(() => recipeAlternativeOptions.value.length > 1)
 const recipeOptionLabel = (option: PublicItemRecipeTreeNode, index: number) => {
-  const recipeName = displayText(option.recipeId)
-  return recipeName ? `方案 ${index + 1} · ${recipeName}` : `方案 ${index + 1}`
+  const summary = recipeDifferenceSummary(option)
+  return summary ? `方案 ${index + 1} · ${summary}` : `方案 ${index + 1}`
 }
 const expandedRecipeNode = computed(() => {
   const children = directRecipeNodeChildren.value

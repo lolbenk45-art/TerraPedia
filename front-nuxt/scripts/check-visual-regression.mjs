@@ -532,6 +532,28 @@ const auditExpression = `(() => {
   const overflowing = [];
   const clipped = [];
   const viewportWidth = document.documentElement.clientWidth;
+  const blockedImageSources = [...document.querySelectorAll('img[src], .item-art[style*="background-image"], [data-source-image]')].flatMap((element, index) => {
+    const selector = element.id
+      ? '#' + CSS.escape(element.id)
+      : element.className && typeof element.className === 'string'
+        ? element.tagName.toLowerCase() + '.' + element.className.trim().split(/\\s+/).slice(0, 3).map((name) => CSS.escape(name)).join('.')
+        : element.tagName.toLowerCase();
+    const candidates = [
+      { kind: 'src', value: element.getAttribute('src') || '' },
+      { kind: 'style', value: element.getAttribute('style') || '' },
+      { kind: 'data-source-image', value: element.getAttribute('data-source-image') || '' },
+    ];
+    return candidates
+      .filter((candidate) => candidate.value.includes('localhost:9000') || candidate.value.includes('terraria.wiki.gg'))
+      .map((candidate) => ({
+        index,
+        selector,
+        kind: candidate.kind,
+        source: candidate.value.slice(0, 500),
+        src: (element.getAttribute('src') || '').slice(0, 500),
+        dataSourceImage: (element.getAttribute('data-source-image') || '').slice(0, 500),
+      }));
+  });
 
   for (const selector of selectors) {
     for (const element of document.querySelectorAll(selector)) {
@@ -777,10 +799,8 @@ const auditExpression = `(() => {
 	      return [];
 	    }),
 	    brokenImageCount: [...document.images].filter((image) => image.currentSrc && image.naturalWidth === 0).length,
-	    blockedImageSourceCount: [...document.querySelectorAll('img[src], .item-art[style*="background-image"], [data-source-image]')].filter((element) => {
-	      const source = element.getAttribute('src') || element.getAttribute('style') || element.getAttribute('data-source-image') || '';
-	      return source.includes('localhost:9000') || source.includes('terraria.wiki.gg');
-	    }).length,
+	    blockedImageSources,
+	    blockedImageSourceCount: blockedImageSources.length,
     localAssetLeakCount: [...document.querySelectorAll('link[href], script[src], img[src]')].filter((element) => {
       const source = element.href || element.src || '';
       const url = new URL(source, location.href);
@@ -876,6 +896,7 @@ const publicItemsComposable = readFileSync(file('composables/usePublicItems.ts')
 const assertGenericRoute = (routeConfig, viewportName, value) => {
   const route = routeConfig.route
   const prefix = `${route}: ${viewportName}`
+  const blockedImageSources = value.blockedImageSources || []
 
   if (value.scrollWidth > value.clientWidth + 2 || value.bodyScrollWidth > value.clientWidth + 2) {
     failures.push(`${prefix} page overflows horizontally: document=${value.scrollWidth}, body=${value.bodyScrollWidth}, viewport=${value.clientWidth}`)
@@ -897,8 +918,42 @@ const assertGenericRoute = (routeConfig, viewportName, value) => {
     failures.push(`${prefix} page renders broken images (${value.brokenImageCount})`)
   }
 
-  if (value.blockedImageSourceCount > 0) {
-    failures.push(`${prefix} page still references blocked external/local image sources (${value.blockedImageSourceCount})`)
+  if (blockedImageSources.length > 0) {
+    for (const source of blockedImageSources.slice(0, 8)) {
+      recordFailure(`${prefix} page still references blocked external/local image source via ${source.kind}`, {
+        route,
+        family: routeConfig.family,
+        viewport: viewportName,
+        category: 'image',
+        assertion: 'blocked external/local image source',
+        selector: source.selector ?? null,
+        sourceKind: source.kind ?? null,
+        source: source.source ?? null,
+        src: source.src ?? null,
+        dataSourceImage: source.dataSourceImage ?? null,
+        elementIndex: source.index ?? null,
+      })
+    }
+
+    if (blockedImageSources.length > 8) {
+      recordFailure(`${prefix} page still references blocked external/local image sources (${blockedImageSources.length})`, {
+        route,
+        family: routeConfig.family,
+        viewport: viewportName,
+        category: 'image',
+        assertion: 'blocked external/local image source',
+        blockedImageSourceCount: blockedImageSources.length,
+      })
+    }
+  } else if (value.blockedImageSourceCount > 0) {
+    recordFailure(`${prefix} page still references blocked external/local image sources (${value.blockedImageSourceCount})`, {
+      route,
+      family: routeConfig.family,
+      viewport: viewportName,
+      category: 'image',
+      assertion: 'blocked external/local image source',
+      blockedImageSourceCount: value.blockedImageSourceCount,
+    })
   }
 
   if (checkLocalAssetLeaks && value.localAssetLeakCount > 0) {

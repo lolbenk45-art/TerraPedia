@@ -131,6 +131,35 @@ const recipeStationMeta = (station: PublicItemRecipeTreeStation) => {
   if (station.isAlternative) return '可替代'
   return displayText(station.requirementRole, station.stationType, '合成站')
 }
+const compactRecipeTextList = (values: string[], limit = 3) => {
+  const visible = values.filter(Boolean).slice(0, limit)
+  const remaining = values.length - visible.length
+  return remaining > 0 ? `${visible.join(' + ')} +${remaining}` : visible.join(' + ')
+}
+const recipeIngredientSummary = (node: PublicItemRecipeTreeNode) => compactRecipeTextList(
+  recipeNodeChildren(node).map((child) => `${nodeTitle(child)} ${nodeQuantity(child)}`),
+)
+const recipeStationSummary = (node: PublicItemRecipeTreeNode) => compactRecipeTextList(
+  recipeNodeStations(node).map(recipeStationTitle),
+  2,
+)
+const recipeOutputSummary = (node: PublicItemRecipeTreeNode) => {
+  const quantity = nodeQuantity(node, true)
+  return quantity === 'x1' ? '' : `产出 ${quantity}`
+}
+const recipeSummaryParts = (node: PublicItemRecipeTreeNode) => [
+  recipeIngredientSummary(node) ? `材料: ${recipeIngredientSummary(node)}` : '',
+  recipeStationSummary(node) ? `站点: ${recipeStationSummary(node)}` : '',
+  recipeOutputSummary(node),
+].filter(Boolean)
+const recipeAlternativeSummary = (node: PublicItemRecipeTreeNode) => {
+  const summary = recipeSummaryParts(node).join('；')
+  return summary || (displayText(node.recipeId) ? `ID ${node.recipeId}` : '')
+}
+const recipeRootOptionLabel = (root: PublicItemRecipeTreeNode, index: number) => {
+  const summary = recipeAlternativeSummary(root)
+  return summary ? `方案 ${index + 1} · ${summary}` : `方案 ${index + 1}`
+}
 
 const clearRecipeVisualLoadingTimer = () => {
   if (recipeVisualLoadingTimer) {
@@ -322,15 +351,21 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
                     <span class="eyebrow">top recipe</span>
                     <h3 id="recipe-top-layer-title">顶层合成</h3>
                   </div>
-                  <small>{{ activeRoots.length }} 条顶层配方</small>
+                  <small>{{ activeRoots.length > 1 ? `${activeRoots.length} 个可选配方` : '1 条顶层配方' }}</small>
                 </div>
 
-                <div class="recipe-top-grid">
+                <div class="recipe-top-grid" :class="{ 'has-recipe-alternatives': activeRoots.length > 1 }">
                   <article
-                    v-for="root in activeRoots"
+                    v-for="(root, index) in activeRoots"
                     :key="displayText(root.recipeId, root.itemId, nodeTitle(root), 'top-root')"
                     class="recipe-top-card"
+                    :aria-label="activeRoots.length > 1 ? recipeRootOptionLabel(root, index) : undefined"
                   >
+                    <div v-if="activeRoots.length > 1" class="recipe-top-option-label">
+                      <b>可选配方 {{ index + 1 }}</b>
+                      <span>{{ recipeAlternativeSummary(root) }}</span>
+                    </div>
+
                     <a class="recipe-top-result recipe-target-card" :href="nodeHref(root)">
                       <CommonPreviewImage
                         :src="nodeImage(root)"
@@ -418,14 +453,31 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
         </div>
 
         <div class="recipe-tree-stage recipe-wiki-tree">
-          <CraftingRecipeTreeNode
-            v-for="root in activeRoots"
-            :key="displayText(root.recipeId, root.itemId, nodeTitle(root), 'root')"
-            :node="root"
-            is-root
-            layout="wiki"
-            :max-depth="maxDepth"
-          />
+          <template v-for="(root, index) in activeRoots" :key="displayText(root.recipeId, root.itemId, nodeTitle(root), 'root')">
+            <section
+              v-if="activeRoots.length > 1"
+              class="recipe-root-alternative"
+              :aria-label="recipeRootOptionLabel(root, index)"
+            >
+              <div class="recipe-root-alternative-label">
+                <b>可选配方 {{ index + 1 }}</b>
+                <span>{{ recipeAlternativeSummary(root) }}</span>
+              </div>
+              <CraftingRecipeTreeNode
+                :node="root"
+                is-root
+                layout="wiki"
+                :max-depth="maxDepth"
+              />
+            </section>
+            <CraftingRecipeTreeNode
+              v-else
+              :node="root"
+              is-root
+              layout="wiki"
+              :max-depth="maxDepth"
+            />
+          </template>
         </div>
       </section>
 

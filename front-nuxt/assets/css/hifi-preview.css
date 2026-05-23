@@ -6461,6 +6461,9 @@ img[data-preview-fallback] {
   gap: 14px;
   min-width: 0;
 }
+.recipe-top-grid.has-recipe-alternatives {
+  gap: 12px;
+}
 .recipe-top-card {
   display: grid;
   gap: 12px;
@@ -6471,6 +6474,32 @@ img[data-preview-fallback] {
     linear-gradient(135deg, rgba(217, 185, 91, 0.08), transparent 48%),
     rgba(244,234,208,0.026);
   padding: 12px;
+}
+.recipe-top-option-label,
+.recipe-root-alternative-label {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  border: 1px dashed rgba(217, 185, 91, 0.3);
+  border-radius: 8px;
+  background: rgba(217, 185, 91, 0.06);
+  padding: 7px 9px;
+}
+.recipe-top-option-label b,
+.recipe-root-alternative-label b {
+  color: var(--gold-2);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+.recipe-top-option-label span,
+.recipe-root-alternative-label span {
+  min-width: 0;
+  color: rgba(244, 234, 208, 0.62);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 .recipe-top-result {
   display: grid;
@@ -6554,6 +6583,21 @@ img[data-preview-fallback] {
   min-width: 0;
   overflow-x: auto;
   padding: 4px 2px 8px;
+}
+.recipe-root-alternative {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  width: max-content;
+  min-width: 196px;
+  border: 1px dashed rgba(217, 185, 91, 0.24);
+  border-radius: 8px;
+  background: rgba(7, 12, 9, 0.18);
+  padding: 10px;
+}
+.recipe-root-alternative-label {
+  width: min(240px, 100%);
+  text-align: center;
 }
 .crafting-layout > .recipe-full-tree .recipe-tree-stage {
   overflow-x: auto;
@@ -6890,6 +6934,13 @@ img[data-preview-fallback] {
     rgba(7, 12, 9, 0.28);
   box-shadow: inset 0 1px 0 rgba(244,234,208,0.04);
   padding: 10px 12px 12px;
+}
+.recipe-alternative-recipes::before {
+  content: "可选配方";
+  color: var(--gold-2);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0;
 }
 .recipe-alternative-recipes::after {
   content: "";
@@ -8600,6 +8651,11 @@ img[data-preview-fallback] {
     max-width: 100%;
     justify-content: center;
   }
+  .recipe-root-alternative,
+  .recipe-alternative-recipes {
+    box-sizing: border-box;
+    max-width: 100%;
+  }
   .recipe-children::before {
     left: 24%;
     right: 24%;
@@ -8684,6 +8740,23 @@ img[data-preview-fallback] {
   }
   .recipe-tree-canvas {
     padding: 14px;
+  }
+  .recipe-tree-section-head {
+    align-items: start;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .recipe-tree-section-head small {
+    white-space: normal;
+  }
+  .recipe-root-alternative,
+  .recipe-alternative-recipes {
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+  .recipe-root-alternative-label,
+  .recipe-top-option-label {
+    width: 100%;
   }
   .npc-card,
   .armor-card {
