@@ -43,6 +43,12 @@ const firstText = (...values: unknown[]) => {
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
 const displayName = computed(() => firstText(npc.value?.nameZh, npc.value?.name, npc.value?.internalName, `NPC ${routeNpcId.value}`))
 const secondaryName = computed(() => firstText(npc.value?.nameZh) ? firstText(npc.value?.name, npc.value?.internalName) : firstText(npc.value?.internalName))
+
+useSeoMeta({
+  title: () => `TerraPedia · ${displayName.value}`,
+  description: () => `${displayName.value} 的公开 NPC 资料详情，包含基础数值、掉落、出售物品和状态效果关系。`,
+})
+
 const portraitImage = computed(() => resolvePreviewImageUrl(firstText(npc.value?.imageUrl)))
 const portraitFallback = computed(() => firstGlyph(displayName.value || 'NPC'))
 const detailUpdatedAt = computed(() => {

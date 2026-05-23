@@ -48,6 +48,11 @@ const itemName = computed(() => firstText(
   `物品 ${itemId.value}`,
 ))
 
+useSeoMeta({
+  title: () => `TerraPedia · ${itemName.value}`,
+  description: () => `${itemName.value} 的公开资料详情，包含图片、价格、来源、配方和关联资料。`,
+})
+
 const itemEnglishName = computed(() => firstText(detailItem.value?.nameEn, detailItem.value?.internalName))
 const itemCategory = computed(() => firstText(
   detailItem.value?.categoryName,

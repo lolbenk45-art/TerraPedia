@@ -246,6 +246,22 @@ const publicPageFiles = [
   ...requiredRoutes,
 ]
 
+const requiredSeoRoutes = [
+  'pages/index.vue',
+  'pages/items/index.vue',
+  'pages/items/[id].vue',
+  'pages/search.vue',
+  'pages/crafting/index.vue',
+  'pages/npcs/index.vue',
+  'pages/bosses/index.vue',
+  'pages/buffs/index.vue',
+  'pages/biomes/index.vue',
+  'pages/armor-sets/index.vue',
+  'pages/projectiles/index.vue',
+  'pages/articles/index.vue',
+  'pages/about.vue',
+]
+
 const forbiddenPublicTerms = [
   'sourceItems',
   'inflictingNpcs',
@@ -376,6 +392,12 @@ const forbiddenLightThemeTokens = [
   '#e7d4aa',
   '#f4e5c2',
 ]
+
+const readOptionalFile = (path) => existsSync(file(path)) ? readFileSync(file(path), 'utf8') : ''
+const robotsContent = readOptionalFile('public/robots.txt')
+const sitemapContent = readOptionalFile('public/sitemap.xml')
+const seoSourceReportContent = readOptionalFile('../docs/audits/2026-05-23_basic-public-site-v0.1-seo-source.md')
+const sitemapBlocked = seoSourceReportContent.includes('sitemap blocked because public HTTPS site origin is not confirmed')
 
 const missing = requiredRoutes.filter((route) => !existsSync(file(route)))
 
@@ -715,6 +737,53 @@ if (!existsSync(file('public/ui/terrapedia-icon-sprite.png'))) {
   process.exit(1)
 }
 
+if (!existsSync(file('public/robots.txt'))) {
+  console.error('Missing public robots.txt:\n- public/robots.txt')
+  process.exit(1)
+}
+
+if (!robotsContent.includes('User-agent: *') || !robotsContent.includes('Allow: /')) {
+  console.error('public/robots.txt must allow the public V0.1 read-only site')
+  process.exit(1)
+}
+
+if (robotsContent.includes('Sitemap: /sitemap.xml')) {
+  console.error('public/robots.txt must not reference a relative sitemap URL')
+  process.exit(1)
+}
+
+if (robotsContent.match(/Sitemap:\s*(?!https:\/\/)/)) {
+  console.error('public/robots.txt sitemap URL must be an absolute https origin URL')
+  process.exit(1)
+}
+
+if (!sitemapContent && !sitemapBlocked) {
+  console.error('public/sitemap.xml is missing and no sitemap-blocked SEO source report was recorded')
+  process.exit(1)
+}
+
+if (sitemapContent) {
+  const locValues = [...sitemapContent.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1])
+  const blockedRoutePattern = /\/user|\/login|\/register|\/favorites|\/settings|\/search-tool|\/home-hero-options/
+
+  if (locValues.length === 0) {
+    console.error('public/sitemap.xml must contain at least one <loc> entry when present')
+    process.exit(1)
+  }
+
+  for (const loc of locValues) {
+    if (!loc.startsWith('https://')) {
+      console.error(`public/sitemap.xml loc must be an absolute https URL: ${loc}`)
+      process.exit(1)
+    }
+
+    if (blockedRoutePattern.test(loc)) {
+      console.error(`public/sitemap.xml must not include unavailable or internal route: ${loc}`)
+      process.exit(1)
+    }
+  }
+}
+
 const emblemBalance = measureEmblemBalance(file('public/brand/terrapedia-emblem-centered.png'))
 
 if (Math.abs(emblemBalance.xOffset) > 8 || Math.abs(emblemBalance.yOffset) > 18) {
@@ -843,6 +912,10 @@ if (existsSync(file('app/app.vue'))) {
 
 for (const path of scanFiles) {
   const content = readFileSync(file(path), 'utf8')
+
+  if (requiredSeoRoutes.includes(path) && !content.includes('useSeoMeta')) {
+    violations.push(`${path}: V0.1 public route must define route-level useSeoMeta`)
+  }
 
   if (playerFacingCopyFiles.includes(path)) {
     const playerFacingContent = extractPlayerFacingAuditContent(content)
@@ -2849,8 +2922,32 @@ for (const path of scanFiles) {
       violations.push(`${path}: Nuxt app must install the Pinia Nuxt module`)
     }
 
+    if (!content.includes('TerraPedia 泰拉瑞亚中文资料库')) {
+      violations.push(`${path}: Nuxt app head must include the TerraPedia 泰拉瑞亚中文资料库 baseline title/description marker`)
+    }
+
     if (!/dir\s*:\s*\{[\s\S]*app\s*:\s*['"]\.['"]/m.test(content)) {
       violations.push(`${path}: Nuxt 4 must set dir.app to "." so root app.vue, pages, components, and assets are active at runtime`)
+    }
+  }
+
+  if (path === 'pages/about.vue') {
+    for (const marker of [
+      'TerraPedia 先以只读公开资料站开放',
+      '非官方 Terraria 中文资料站',
+      '基础资料以公开资料和项目维护数据为参考，并通过本项目的数据链路整理',
+      'Terraria 及相关名称、图像和商标归其权利方所有',
+      '页面内容会随数据维护状态持续校正',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: about page must include V0.1 source/disclaimer marker ${marker}`)
+      }
+    }
+
+    for (const forbiddenMarker of ['社区协作', 'Preview build', 'contact@terrapedia.local', '6,214', '1,111']) {
+      if (content.includes(forbiddenMarker)) {
+        violations.push(`${path}: about page must not keep unsupported launch copy marker ${forbiddenMarker}`)
+      }
     }
   }
 

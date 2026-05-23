@@ -34,6 +34,11 @@ const buffImage = computed(() => firstImageUrl(buffDetail.value?.imageUrl, buffI
 const buffFallback = computed(() => firstGlyph(buffName.value))
 const buffTypeLabel = computed(() => buffItem.value?.typeLabel ?? '效果')
 
+useSeoMeta({
+  title: () => `TerraPedia · ${buffName.value}`,
+  description: () => `${buffName.value} 的公开 Buff 资料详情，包含来源、施加者和免疫目标。`,
+})
+
 const factName = (fact: PublicBuffFactSummary, index: number) => firstText(
   fact.nameZh,
   fact.name,

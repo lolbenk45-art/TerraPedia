@@ -1,3 +1,10 @@
+<script setup lang="ts">
+useSeoMeta({
+  title: 'TerraPedia · 资料手札',
+  description: 'TerraPedia 资料手札当前暂未开放公开文章，先提供物品、合成树、Boss、生态和搜索入口。',
+})
+</script>
+
 <template>
   <section class="screen article-screen active">
     <TerraNav />

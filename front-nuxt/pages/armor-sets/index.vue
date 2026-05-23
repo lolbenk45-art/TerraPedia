@@ -4,6 +4,12 @@ import type { ArmorSetCatalogItem, EquipmentEffectAttribute, PublicArmorSetQuery
 
 const route = useRoute()
 const router = useRouter()
+
+useSeoMeta({
+  title: 'TerraPedia · 套装路线',
+  description: '浏览 Terraria 公开防具套装资料，查看部件数量、套装效果、词条解析和分页搜索。',
+})
+
 const armorClientReady = ref(false)
 const armorSearchQuery = ref('')
 const armorDebouncedSearchQuery = ref('')

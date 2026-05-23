@@ -1,3 +1,10 @@
+<script setup lang="ts">
+useSeoMeta({
+  title: 'TerraPedia · 公开文章暂未开放',
+  description: '当前没有可验证的已发布文章内容，此路由只保留资料入口，不展示静态文章样例。',
+})
+</script>
+
 <template>
   <section class="screen article-screen active">
     <TerraNav />

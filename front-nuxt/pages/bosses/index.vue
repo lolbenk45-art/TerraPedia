@@ -4,6 +4,12 @@ import type { PublicBossQuery } from '~/types/public-api'
 
 const route = useRoute()
 const router = useRouter()
+
+useSeoMeta({
+  title: 'TerraPedia · Boss 路线',
+  description: '浏览 Terraria 公开 Boss 资料，查看推进顺序、召唤信息、成员和掉落入口。',
+})
+
 const bossClientReady = ref(false)
 const bossSearchQuery = ref('')
 const bossDebouncedSearchQuery = ref('')

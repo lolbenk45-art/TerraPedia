@@ -25,6 +25,11 @@ const biomeRawLoading = computed(() => !biomeClientReady.value || biomePending.v
 const biomeMissing = computed(() => biomeClientReady.value && !biomePending.value && !biomeDetail.value)
 const biomeTitle = computed(() => biomeTile.value?.displayName || biomeDetail.value?.nameZh || biomeDetail.value?.nameEn || '群系详情')
 
+useSeoMeta({
+  title: () => `TerraPedia · ${biomeTitle.value}`,
+  description: () => `${biomeTitle.value} 的公开群系资料详情，包含资源、来源和关联生态。`,
+})
+
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
 const displayText = (...values: unknown[]) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
 const resourceImage = (value: { itemImage?: string | null }) => resolvePreviewImageUrl(value.itemImage || '')

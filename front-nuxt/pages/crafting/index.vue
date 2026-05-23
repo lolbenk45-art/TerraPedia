@@ -5,6 +5,12 @@ import type { PublicItemRecipeTreeNode, PublicItemRecipeTreeStation } from '~/ty
 
 const route = useRoute()
 const router = useRouter()
+
+useSeoMeta({
+  title: 'TerraPedia · 合成树',
+  description: '查看 Terraria 公开配方树，按目标物品展开材料、替代配方和制作站。',
+})
+
 const recipeClientReady = ref(false)
 const recipeSearchQuery = ref('')
 const recipeVisualLoading = ref(true)

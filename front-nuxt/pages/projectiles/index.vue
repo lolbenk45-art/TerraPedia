@@ -4,6 +4,12 @@ import type { PublicProjectileQuery } from '~/types/public-api'
 
 const route = useRoute()
 const router = useRouter()
+
+useSeoMeta({
+  title: 'TerraPedia · 射弹行为库',
+  description: '浏览 Terraria 公开射弹资料，按名称、编号、伤害和 AI 样式查询弹道行为。',
+})
+
 const defaultProjectilePageSize = 24
 const projectilePageSizeOptions = [12, 24, 48, 96]
 const projectileSortOptions = [

@@ -4,6 +4,12 @@ import type { CatalogItem, PublicCategory, PublicItemQuery } from '~/types/publi
 
 const route = useRoute()
 const router = useRouter()
+
+useSeoMeta({
+  title: 'TerraPedia · 物品图鉴',
+  description: '查询 Terraria 公开物品资料，按分类、时期、关键词和分页浏览装备、材料、工具与消耗品。',
+})
+
 const defaultCatalogPageSize = 24
 const catalogClientReady = ref(false)
 const catalogWallTopRef = ref<HTMLElement | null>(null)

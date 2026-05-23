@@ -53,7 +53,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: 'zh-CN' },
-      title: 'TerraPedia 中文资料库',
+      title: 'TerraPedia 泰拉瑞亚中文资料库',
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },

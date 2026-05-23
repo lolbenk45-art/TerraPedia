@@ -4,6 +4,12 @@ import type { PublicBuffQuery } from '~/types/public-api'
 
 const route = useRoute()
 const router = useRouter()
+
+useSeoMeta({
+  title: 'TerraPedia · Buff 图鉴',
+  description: '浏览 Terraria 公开 Buff 和 Debuff 资料，查看来源数量、免疫关系和效果详情入口。',
+})
+
 const buffClientReady = ref(false)
 const buffSearchQuery = ref('')
 const buffDebouncedSearchQuery = ref('')

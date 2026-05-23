@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { usePublicBiomes } from '~/composables/usePublicBiomes'
 
+useSeoMeta({
+  title: 'TerraPedia · 生态索引',
+  description: '浏览 Terraria 公开生态和群系资料，按 Wiki 分类、层级、资源和关系进入详情。',
+})
+
 const biomeClientReady = ref(false)
 const biomeSearchQuery = ref('')
 const selectedBiomeGroup = ref('全部')

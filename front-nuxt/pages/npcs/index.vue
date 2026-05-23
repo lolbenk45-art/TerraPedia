@@ -3,6 +3,12 @@ import type { NpcCatalogCard, PublicNpcQuery } from '~/types/public-api'
 
 const route = useRoute()
 const router = useRouter()
+
+useSeoMeta({
+  title: 'TerraPedia · NPC 图鉴',
+  description: '浏览 Terraria 公开 NPC、敌怪和城镇角色资料，按身份、商店、掉落和效果关系筛选。',
+})
+
 const defaultNpcPageSize = 24
 const npcClientReady = ref(false)
 const npcWallTopRef = ref<HTMLElement | null>(null)
