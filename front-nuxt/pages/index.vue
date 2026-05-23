@@ -10,7 +10,7 @@ const {
 
 useSeoMeta({
   title: 'TerraPedia · Terraria 中文资料库',
-  description: '泰拉瑞亚物品图鉴、Boss 路线、攻略手札 · 6,131 条资料 · 持续社区共建',
+  description: '泰拉瑞亚物品图鉴、Boss 路线、攻略手札 · 非官方只读中文资料站',
   ogTitle: 'TerraPedia',
   ogDescription: '从泰拉刃进入整个世界 —— Terraria 中文资料中枢',
   ogImage: '/brand/terrapedia-og.png',

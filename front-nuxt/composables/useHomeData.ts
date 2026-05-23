@@ -92,8 +92,8 @@ export const useHomeData = async () => {
       primaryStats: primaryStats.value,
       trustSignals: [
         { label: '已覆盖版本:Terraria v1.4.4' },
-        { label: '最后数据更新:2 天前' },
-        { label: '持续维护 · 社区共建' },
+        { label: '资料数据持续校验' },
+        { label: '持续维护 · 非官方资料站' },
       ],
       atlas: atlasOverview.value,
   }))

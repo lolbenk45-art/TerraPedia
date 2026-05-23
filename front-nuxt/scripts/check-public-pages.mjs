@@ -754,6 +754,14 @@ const homeDataFiles = [
 const homeTemplateContent = homeTemplateFiles.map((path) => readFileSync(file(path), 'utf8')).join('\n')
 const homeDataContent = homeDataFiles.map((path) => readFileSync(file(path), 'utf8')).join('\n')
 const homeAuditContent = `${homeTemplateContent}\n${homeDataContent}`
+const forbiddenHomepageLaunchTerms = [
+  '最后数据更新:2 天前',
+  'trendingArticles',
+  'views',
+  '热门内容',
+  '社区共建',
+  '收藏路线',
+]
 
 const requiredLightVisualSelectors = [
   `${lightThemeSelector} .item-cell:hover`,
@@ -1131,6 +1139,12 @@ for (const path of scanFiles) {
 
     if (!content.includes('<TerraFooter :item-total-label="itemTotalLabel"')) {
       violations.push(`${path}: home footer must reuse the live item total label instead of showing a stale static total`)
+    }
+
+    for (const term of forbiddenHomepageLaunchTerms) {
+      if (homeAuditContent.includes(term)) {
+        violations.push(`${path}: V0.1 homepage must not claim unsupported dynamic or account/community behavior (${term})`)
+      }
     }
   }
 
