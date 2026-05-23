@@ -1,16 +1,34 @@
 <script setup lang="ts">
+import { fetchPublicItems } from '~/composables/usePublicItems'
+import type { CatalogItem, PublicItemsResult } from '~/types/public-api'
+
 const route = useRoute()
-const defaultSearchQuery = 'terra / 泰拉 / blade'
 
 const normalizeQueryValue = (value: unknown) => Array.isArray(value) ? value[0] : value
+const resolvedSearchKeyword = computed(() => String(normalizeQueryValue(route.query.keyword) ?? '').trim())
+const searchQuery = ref(resolvedSearchKeyword.value)
 
-const resolveSearchQuery = () => {
-  const keyword = String(normalizeQueryValue(route.query.keyword) ?? '').trim()
-  return keyword || defaultSearchQuery
+const searchKeywordLabel = computed(() => resolvedSearchKeyword.value || '输入关键词')
+const isEmptyQuery = computed(() => !resolvedSearchKeyword.value)
+
+// State markers for launch contract: empty query, loading, no real results, API error, unsupported domain navigation links.
+const unsupportedDomainNavigationLinks = [
+  { label: 'NPC', href: '/npcs', desc: '城镇角色、敌怪、Boss 成员', icon: 'icon-npc' },
+  { label: 'Boss', href: '/bosses', desc: '阶段路线、召唤方式、掉落入口', icon: 'icon-boss' },
+  { label: 'Buff', href: '/buffs', desc: '增益、减益、战前组合', icon: 'icon-buff' },
+  { label: '攻略', href: '/articles', desc: '阶段路线、职业攻略、机制说明', icon: 'icon-article' },
+  { label: '合成树', href: '/crafting', desc: '材料、制作站、配方路径', icon: 'icon-crafting' },
+]
+
+const domainEntryLinks = [
+  { label: '物品', href: '/items', desc: '名称、英文名、分类、稀有度', icon: 'icon-items' },
+  ...unsupportedDomainNavigationLinks,
+]
+
+const withKeyword = (href: string) => {
+  const keyword = resolvedSearchKeyword.value
+  return keyword ? `${href}?search=${encodeURIComponent(keyword)}` : href
 }
-
-const searchQuery = ref(resolveSearchQuery())
-const searchKeywordLabel = computed(() => searchQuery.value.trim() || '泰拉')
 
 const submitSearch = () => {
   const keyword = searchQuery.value.trim()
@@ -18,7 +36,47 @@ const submitSearch = () => {
 }
 
 watch(() => route.query.keyword, () => {
-  searchQuery.value = resolveSearchQuery()
+  searchQuery.value = resolvedSearchKeyword.value
+})
+
+const {
+  data: itemSearchResult,
+  pending: itemSearchPending,
+  error: itemSearchError,
+} = await useAsyncData<PublicItemsResult | null>(
+  () => `public-search-items:${resolvedSearchKeyword.value}`,
+  () => {
+    const keyword = resolvedSearchKeyword.value
+
+    if (!keyword) {
+      return Promise.resolve(null)
+    }
+
+    return fetchPublicItems({
+      search: keyword,
+      page: 1,
+      limit: 8,
+      sortBy: 'id',
+      sortDirection: 'asc',
+    })
+  },
+  {
+    watch: [resolvedSearchKeyword],
+    default: () => null,
+  },
+)
+
+const itemResults = computed<CatalogItem[]>(() => itemSearchResult.value?.source === 'api' ? itemSearchResult.value.items : [])
+const itemResultTotal = computed(() => itemSearchResult.value?.source === 'api'
+  ? itemSearchResult.value.pagination.total ?? itemResults.value.length
+  : 0)
+const searchLoading = computed(() => !isEmptyQuery.value && itemSearchPending.value)
+const searchApiUnavailable = computed(() => !isEmptyQuery.value && !searchLoading.value && (Boolean(itemSearchError.value) || itemSearchResult.value?.source !== 'api'))
+const noRealResults = computed(() => !isEmptyQuery.value && !searchLoading.value && !searchApiUnavailable.value && itemResults.value.length === 0)
+
+useSeoMeta({
+  title: 'TerraPedia · 全站检索',
+  description: '使用真实公开物品数据进行关键词查询，并提供 NPC、Boss、Buff、攻略和合成树入口。',
 })
 </script>
 
@@ -30,9 +88,9 @@ watch(() => route.query.keyword, () => {
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">搜索建议 · 物品 / NPC / Boss / 攻略</span>
+          <span class="eyebrow">搜索 · 真实物品数据 / 资料入口</span>
           <h1>全站检索</h1>
-          <p>搜索页先做成高密度入口：左侧聚焦输入与建议，右侧把命中结果按资料类型分组，避免单调的普通列表。</p>
+          <p>输入关键词后先查询公开物品数据；其他资料域作为浏览入口保留，不展示未验证的命中卡片。</p>
         </div>
         <a class="primary-button" href="/items">进入物品</a>
       </div>
@@ -43,7 +101,11 @@ watch(() => route.query.keyword, () => {
         <div class="search-console-copy">
           <span class="eyebrow">当前关键词</span>
           <h2>{{ searchKeywordLabel }}</h2>
-          <p>搜索建议会随着关键词更新，页面上把建议、快捷筛选和跨资料入口放在一起，方便快速回到图鉴与攻略。</p>
+          <p v-if="isEmptyQuery">输入物品名称、英文名或分类后开始查询。</p>
+          <p v-else-if="searchLoading">正在查询公开物品数据。</p>
+          <p v-else-if="searchApiUnavailable">搜索服务暂不可用，先通过资料域入口继续浏览。</p>
+          <p v-else-if="noRealResults">没有找到真实物品结果，可以换一个关键词或进入资料域浏览。</p>
+          <p v-else>找到 {{ itemResultTotal.toLocaleString('zh-CN') }} 条物品结果，优先显示前 {{ itemResults.length }} 条。</p>
         </div>
         <div class="search-console-module">
           <form class="search-input-shell search-input-primary" role="search" aria-label="全站检索" @submit.prevent="submitSearch">
@@ -56,77 +118,133 @@ watch(() => route.query.keyword, () => {
               name="keyword"
               autocomplete="off"
               aria-describedby="global-search-count"
+              placeholder="输入物品名称或英文名"
             />
-            <em id="global-search-count">8 条建议</em>
+            <em id="global-search-count">{{ isEmptyQuery ? '等待输入' : `${itemResultTotal.toLocaleString('zh-CN')} 条物品结果` }}</em>
           </form>
           <div class="search-type-tabs" aria-label="搜索类型">
-            <a class="search-type-chip active" href="/search">All</a>
-            <a class="search-type-chip" href="/items">Items</a>
+            <a class="search-type-chip active" :href="resolvedSearchKeyword ? `/search?keyword=${encodeURIComponent(resolvedSearchKeyword)}` : '/search'">All</a>
+            <a class="search-type-chip" :href="withKeyword('/items')">Items</a>
             <a class="search-type-chip" href="/npcs">NPC</a>
             <a class="search-type-chip" href="/bosses">Boss</a>
             <a class="search-type-chip" href="/articles">Guides</a>
           </div>
           <div class="search-suggestion-rows">
-            <a class="search-suggestion-row" href="/items/terra-blade"><b>泰拉刃</b><span>物品 · 近战武器 · 制作目标</span><em>98%</em></a>
-            <a class="search-suggestion-row" href="/articles/melee-progression"><b>近战推进路线</b><span>攻略 · 困难模式 · Boss 前准备</span><em>84%</em></a>
-            <a class="search-suggestion-row" href="/bosses/eye-of-cthulhu"><b>克苏鲁之眼</b><span>Boss · 早期门槛 · 掉落入口</span><em>61%</em></a>
-            <a class="search-suggestion-row" href="/crafting"><b>泰拉刃合成</b><span>制作 · 真永夜刃 · 真断钢剑</span><em>57%</em></a>
+            <SearchSuggestionSkeletonRows v-if="searchLoading" :rows="4" />
+            <template v-else-if="itemResults.length > 0">
+              <a
+                v-for="item in itemResults.slice(0, 4)"
+                :key="`suggestion-${item.id}`"
+                class="search-suggestion-row"
+                :href="item.detailPath"
+              >
+                <b>{{ item.displayName }}</b>
+                <span>{{ [item.categoryGroup || item.category, item.phase].filter(Boolean).join(' · ') }}</span>
+                <em>{{ item.rarity }}</em>
+              </a>
+            </template>
+            <a v-else-if="isEmptyQuery" class="search-suggestion-row" href="/items">
+              <b>物品图鉴</b>
+              <span>输入关键词后查询真实物品结果</span>
+              <em>Items</em>
+            </a>
+            <a v-else class="search-suggestion-row" href="/items">
+              <b>继续浏览物品</b>
+              <span>当前关键词暂无可展示结果</span>
+              <em>Browse</em>
+            </a>
           </div>
         </div>
       </section>
 
       <section class="search-results-grid search-results-grouped">
-        <div class="search-result-group">
-          <div class="search-group-head"><span class="eyebrow">Items</span><b>物品命中</b><em>4</em></div>
-          <article class="support-panel search-result-card active">
-            <span class="eyebrow">近战武器</span>
-            <div class="result-title-line">
-              <i><span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span></i>
-              <div>
-                <h3>泰拉刃</h3>
-                <p>困难模式后期近战武器，连接合成树、射弹和 Boss 前准备。</p>
+        <template v-if="isEmptyQuery">
+          <div
+            v-for="entry in domainEntryLinks.slice(0, 3)"
+            :key="entry.href"
+            class="search-result-group"
+          >
+            <div class="search-group-head"><span class="eyebrow">Browse</span><b>{{ entry.label }}</b><em>入口</em></div>
+            <article class="support-panel search-result-card">
+              <span class="eyebrow">资料域</span>
+              <div class="result-title-line">
+                <i><span class="sprite-icon card-icon" :class="entry.icon" aria-hidden="true"></span></i>
+                <div>
+                  <h3>{{ entry.label }}</h3>
+                  <p>{{ entry.desc }}</p>
+                </div>
               </div>
-            </div>
-            <a href="/items/terra-blade">打开物品详情</a>
+              <a :href="entry.href">打开{{ entry.label }}</a>
+            </article>
+          </div>
+        </template>
+
+        <div v-else-if="searchLoading" class="search-result-group">
+          <div class="search-group-head"><span class="eyebrow">Items</span><b>物品命中</b><em>加载</em></div>
+          <article class="support-panel search-result-card active" aria-busy="true">
+            <span class="eyebrow">loading</span>
+            <SearchSuggestionSkeletonRows :rows="3" />
           </article>
         </div>
 
-        <div class="search-result-group">
-          <div class="search-group-head"><span class="eyebrow">Guides</span><b>攻略命中</b><em>3</em></div>
+        <div v-else-if="searchApiUnavailable" class="search-result-group">
+          <div class="search-group-head"><span class="eyebrow">Items</span><b>物品命中</b><em>不可用</em></div>
           <article class="support-panel search-result-card">
-            <span class="eyebrow">路线专题</span>
+            <span class="eyebrow">暂不可用</span>
             <div class="result-title-line">
-              <i><span class="result-mark gold-mark"></span></i>
+              <i><span class="sprite-icon icon-search card-icon" aria-hidden="true"></span></i>
               <div>
-                <h3>近战装备推进路线</h3>
-                <p>从机械 Boss 到月亮领主前的武器、套装和饰品节点。</p>
+                <h3>搜索服务暂不可用</h3>
+                <p>当前没有可验证的真实结果，先通过资料域入口继续浏览。</p>
               </div>
             </div>
-            <a href="/articles/melee-progression">打开文章</a>
+            <a href="/items">打开物品图鉴</a>
           </article>
         </div>
 
-        <div class="search-result-group">
-          <div class="search-group-head"><span class="eyebrow">Boss</span><b>首领命中</b><em>1</em></div>
+        <div v-else-if="noRealResults" class="search-result-group">
+          <div class="search-group-head"><span class="eyebrow">Items</span><b>物品命中</b><em>0</em></div>
           <article class="support-panel search-result-card">
-            <span class="eyebrow">早期门槛</span>
+            <span class="eyebrow">no real results</span>
             <div class="result-title-line">
-              <i><img :src="'/preview-assets/terrapedia-images/npcs/2026/05/08/0d8a53901a0e4dfea17b59f2aecae869.gif'" alt="克苏鲁之眼" /></i>
+              <i><span class="sprite-icon icon-search card-icon" aria-hidden="true"></span></i>
               <div>
-                <h3>克苏鲁之眼</h3>
-                <p>早期主线门槛，常与铁皮、再生和平台准备同时出现。</p>
+                <h3>没有真实物品结果</h3>
+                <p>换一个关键词，或进入物品图鉴按分类继续查找。</p>
               </div>
             </div>
-            <a href="/bosses/eye-of-cthulhu">打开 Boss 详情</a>
+            <a href="/items">浏览物品分类</a>
           </article>
         </div>
+
+        <template v-else>
+          <div
+            v-for="item in itemResults"
+            :key="item.id"
+            class="search-result-group"
+          >
+            <div class="search-group-head"><span class="eyebrow">Items</span><b>物品命中</b><em>{{ item.range }}</em></div>
+            <article class="support-panel search-result-card active">
+              <span class="eyebrow">{{ item.categoryGroup || item.category }}</span>
+              <div class="result-title-line">
+                <i>
+                  <CommonPreviewImage :src="item.image" :alt="item.displayName" :fallback="item.fallback" />
+                </i>
+                <div>
+                  <h3>{{ item.displayName }}</h3>
+                  <p>{{ item.description }}</p>
+                </div>
+              </div>
+              <a :href="item.detailPath">打开物品详情</a>
+            </article>
+          </div>
+        </template>
       </section>
 
       <section class="search-suggestion-band support-panel">
-        <a href="/items"><b>物品建议</b><span>名称、英文名、分类、稀有度</span></a>
-        <a href="/npcs"><b>NPC 建议</b><span>城镇角色、敌怪、Boss 成员</span></a>
-        <a href="/buffs"><b>Buff 建议</b><span>增益、减益、战前组合</span></a>
-        <a href="/articles"><b>文章建议</b><span>阶段路线、职业攻略、机制解释</span></a>
+        <a v-for="entry in domainEntryLinks" :key="entry.href" :href="entry.href">
+          <b>{{ entry.label }}入口</b><span>{{ entry.desc }}</span>
+        </a>
       </section>
     </main>
 

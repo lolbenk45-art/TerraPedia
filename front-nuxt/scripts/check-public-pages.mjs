@@ -286,6 +286,16 @@ const forbiddenAccountUnavailableTerms = [
   '收藏、投稿、设置入口',
 ]
 
+const forbiddenSearchFixtureTerms = [
+  '98%',
+  '84%',
+  '61%',
+  '57%',
+  '8 条建议',
+  '搜索页先做成高密度入口',
+  '当前只是静态视觉',
+]
+
 const forbiddenPlayerFacingTerms = [
   '结构化',
   '追踪',
@@ -2339,21 +2349,35 @@ for (const path of scanFiles) {
       'role="search"',
     ]) {
       if (!content.includes(marker)) {
-        violations.push(`${path}: classic search page must expose marker ${marker}`)
+        violations.push(`${path}: real minimum search page must expose marker ${marker}`)
       }
     }
 
     for (const marker of [
       'const route = useRoute()',
-      "const defaultSearchQuery = 'terra / 泰拉 / blade'",
       'route.query.keyword',
-      'resolveSearchQuery',
+      'resolvedSearchKeyword',
       'searchKeywordLabel',
+      'fetchPublicItems',
+      "source === 'api'",
+      'empty query',
+      'loading',
+      'no real results',
+      'API error',
+      'unsupported domain navigation links',
+      '<SearchSuggestionSkeletonRows',
+      'v-for="item in itemResults"',
       'navigateTo(keyword ? `/search?keyword=',
       'watch(() => route.query.keyword,',
     ]) {
       if (!content.includes(marker)) {
-        violations.push(`${path}: classic search page must keep query marker ${marker}`)
+        violations.push(`${path}: real minimum search page must keep query/state marker ${marker}`)
+      }
+    }
+
+    for (const term of forbiddenSearchFixtureTerms) {
+      if (content.includes(term)) {
+        violations.push(`${path}: V0.1 search page must not keep static fake result fixture ${term}`)
       }
     }
   }
