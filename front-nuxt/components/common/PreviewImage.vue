@@ -23,10 +23,19 @@ const fallbackGlyph = computed(() => {
   const text = String(props.fallback || props.alt || 'TP').trim()
   return Array.from(text)[0] ?? '?'
 })
-const sourceMarker = computed(() => props.sourceImage || props.src || undefined)
-const renderedAlt = computed(() => props.decorative ? '' : props.alt)
+const sourceMarker = computed(() => normalizedSrc.value || resolvePreviewImageUrl(props.sourceImage) || undefined)
+const accessibleLabel = computed(() => {
+  if (props.decorative) {
+    return ''
+  }
+
+  return String(props.alt || props.fallback || 'TerraPedia 图像').trim() || 'TerraPedia 图像'
+})
+const renderedAlt = computed(() => props.decorative ? '' : accessibleLabel.value)
 const imageElement = ref<HTMLImageElement | null>(null)
 const rootElement = ref<HTMLElement | null>(null)
+const maxVisibleCenterDrawPixels = 1_500_000
+const maxVisibleCenterScanPixels = 120_000
 let resizeObserver: ResizeObserver | null = null
 
 const resetVisibleCenter = () => {
@@ -39,6 +48,12 @@ const syncVisibleCenter = () => {
   const root = rootElement.value
 
   if (!image || !root || !image.complete || image.naturalWidth <= 0 || image.naturalHeight <= 0) {
+    resetVisibleCenter()
+    return
+  }
+
+  const naturalPixels = image.naturalWidth * image.naturalHeight
+  if (naturalPixels > maxVisibleCenterDrawPixels) {
     resetVisibleCenter()
     return
   }
@@ -56,13 +71,14 @@ const syncVisibleCenter = () => {
   try {
     context.drawImage(image, 0, 0)
     const { data } = context.getImageData(0, 0, canvas.width, canvas.height)
+    const sampleStride = Math.max(1, Math.ceil(Math.sqrt(naturalPixels / maxVisibleCenterScanPixels)))
     let minX = canvas.width
     let minY = canvas.height
     let maxX = -1
     let maxY = -1
 
-    for (let y = 0; y < canvas.height; y += 1) {
-      for (let x = 0; x < canvas.width; x += 1) {
+    for (let y = 0; y < canvas.height; y += sampleStride) {
+      for (let x = 0; x < canvas.width; x += sampleStride) {
         const alpha = data[(y * canvas.width + x) * 4 + 3] ?? 0
 
         if (alpha > 8) {
@@ -136,6 +152,8 @@ onBeforeUnmount(() => {
     :data-fallback="fallbackGlyph"
     :data-source-image="sourceMarker"
     :aria-hidden="decorative ? 'true' : undefined"
+    :role="!decorative && !hasImage ? 'img' : undefined"
+    :aria-label="!decorative && !hasImage ? accessibleLabel : undefined"
   >
     <img
       v-if="hasImage"

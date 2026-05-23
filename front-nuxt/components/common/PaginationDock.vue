@@ -78,6 +78,8 @@ const summaryLabel = computed(() => {
   return suffix ? `${base} · ${suffix}` : base
 })
 
+const pageButtonLabel = (page: number) => `第 ${page} 页`
+
 const emitPageChange = (page: number) => {
   if (props.disabled) return
 
@@ -126,6 +128,7 @@ const goToJumpPage = () => {
           type="button"
           :class="{ active: pageItem === normalizedCurrentPage }"
           :aria-current="!disabled && pageItem === normalizedCurrentPage ? 'page' : undefined"
+          :aria-label="pageButtonLabel(pageItem)"
           :disabled="disabled"
           @click="emitPageChange(pageItem)"
         >

@@ -23,6 +23,11 @@ textarea {
 .site-logo,
 .site-links,
 .site-actions,
+.nav-menu,
+.nav-menu-panel,
+.nav-card-copy,
+.breadcrumb-shell,
+.breadcrumb-list,
 .hero,
 .hero-j1-panel,
 .hero-left,
@@ -36,6 +41,21 @@ textarea {
 .item-grid,
 .camp-footer {
   max-width: 100%;
+}
+
+.site-link,
+.nav-menu-text-trigger,
+.nav-search-link,
+.nav-resource-link,
+.breadcrumb-link,
+.breadcrumb-current,
+.footer-links a,
+.footer-contact-list span,
+.catalog-page-dock,
+.catalog-page-dock-summary,
+.catalog-dock-button,
+.catalog-dock-page-button {
+  overflow-wrap: anywhere;
 }
 
 .hero-j1-title,
@@ -225,6 +245,30 @@ textarea {
     width: auto;
     max-height: min(68vh, 560px);
     overflow-y: auto;
+  }
+
+  .nav-resource-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nav-search-link,
+  .nav-resource-link {
+    min-height: 64px;
+  }
+
+  .breadcrumb-shell {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .breadcrumb-list {
+    gap: 4px 0;
+  }
+
+  .breadcrumb-link,
+  .breadcrumb-current {
+    max-width: min(68vw, 30ch);
+    font-size: 12px;
   }
 
   .account-menu-panel {

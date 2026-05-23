@@ -75,6 +75,22 @@
   color: var(--button-control-active-fg);
 }
 
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .site-logo strong,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-search-link b,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-resource-link b,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-brand h3,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-column h4,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-contact h4 {
+  color: var(--text-strong);
+}
+
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .nav-card-copy span,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-brand p,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-contact p,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .footer-contact-list span {
+  color: var(--text-muted);
+}
+
 [data-theme="light"],
 [data-theme="morning-paper"],
 [data-theme="warm-slate"] {
