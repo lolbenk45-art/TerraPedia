@@ -90,6 +90,11 @@ const projectileStatusLabel = computed(() => {
   if (projectileApiUnavailable.value || projectilesError.value) return '未载入'
   return '已更新'
 })
+const projectileHeroEyebrow = computed(() => {
+  if (projectileVisualLoading.value) return '加载射弹资料'
+  if (projectileApiUnavailable.value || projectilesError.value) return '射弹资料暂未载入'
+  return `${projectileTotalItems.value.toLocaleString('zh-CN')} 个射弹`
+})
 const projectileResultSummary = computed(() => {
   if (projectileVisualLoading.value) return '加载中'
   if (projectileApiUnavailable.value) return '未载入'
@@ -237,7 +242,7 @@ onBeforeUnmount(() => {
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">{{ projectileVisualLoading ? '加载射弹资料' : projectileApiUnavailable ? '等待资料载入' : `${projectileTotalItems.toLocaleString('zh-CN')} 个射弹` }}</span>
+          <span class="eyebrow">{{ projectileHeroEyebrow }}</span>
           <h1>Projectile 行为库</h1>
           <p>射弹页展示弹道行为、友方/敌方归属、AI 样式、伤害和击退，帮助玩家理解武器与 Boss 招式。</p>
         </div>

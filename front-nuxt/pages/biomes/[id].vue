@@ -86,10 +86,18 @@ onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
             <CommonTpSkeleton v-if="biomeDetailVisualLoading" type="line" />
             <template v-else>{{ biomeTile?.description || '暂无公开说明。' }}</template>
           </p>
-          <div class="tag-row">
+          <div v-if="biomeDetailVisualLoading" class="tag-row biome-detail-loading-tags">
+            <span class="tag paper"><CommonTpSkeleton type="pill" /></span>
+            <span class="tag paper"><CommonTpSkeleton type="pill" /></span>
+          </div>
+          <div v-else-if="biomeMissing" class="tag-row biome-detail-missing-tags">
+            <span class="tag paper">详情缺失</span>
+            <span v-if="biomeError" class="tag moss">请求异常</span>
+          </div>
+          <div v-else class="tag-row">
             <span class="tag gold">{{ biomeTile?.groupLabel || '未分组' }}</span>
-            <span class="tag moss">{{ biomeTile?.layerType || 'layer' }}</span>
-            <span class="tag paper">{{ biomeTile?.biomeType || 'type' }}</span>
+            <span class="tag moss">{{ biomeTile?.layerType || '层级未标注' }}</span>
+            <span class="tag paper">{{ biomeTile?.biomeType || '类型未标注' }}</span>
           </div>
         </div>
         <div class="biome-scan">

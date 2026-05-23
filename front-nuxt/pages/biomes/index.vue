@@ -77,6 +77,11 @@ const biomeStatusLabel = computed(() => {
   if (biomeApiUnavailable.value || biomesError.value) return '未载入'
   return '已更新'
 })
+const biomeHeroEyebrow = computed(() => {
+  if (biomeVisualLoading.value) return '加载生态资料'
+  if (biomeApiUnavailable.value || biomesError.value) return '群系资料暂未载入'
+  return `${biomeDisplayItems.value.length.toLocaleString('zh-CN')} 个群系`
+})
 const biomeFilterSummary = computed(() => {
   if (biomeVisualLoading.value) return '正在加载生态资料'
   if (selectedBiomeGroup.value !== biomeAllGroupLabel) return selectedBiomeGroup.value
@@ -151,7 +156,7 @@ onBeforeUnmount(clearBiomeVisualLoadingTimer)
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">{{ biomeVisualLoading ? '加载生态资料' : `${biomeDisplayItems.length.toLocaleString('zh-CN')} 个群系` }}</span>
+          <span class="eyebrow">{{ biomeHeroEyebrow }}</span>
           <h1>生态索引</h1>
           <p>按 Wiki 分类、层级和来源资料浏览群系，保留真实资料返回，不插入静态样例。</p>
         </div>

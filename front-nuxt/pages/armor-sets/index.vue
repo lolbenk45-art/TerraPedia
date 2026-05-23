@@ -57,6 +57,11 @@ const armorDisplayItems = computed(() => (armorVisualLoading.value || armorFallb
 const armorTotalItems = computed(() => (armorVisualLoading.value || armorFallbackUnavailable.value) ? 0 : armorPagination.value?.total ?? armorDisplayItems.value.length)
 const armorTotalPages = computed(() => Math.max(1, armorPagination.value?.totalPages ?? Math.ceil(armorTotalItems.value / Math.max(1, armorPageSize.value))))
 const armorStatusLabel = computed(() => armorVisualLoading.value ? '加载中' : armorFallbackUnavailable.value || armorSetsError.value ? '未载入' : '已更新')
+const armorHeroEyebrow = computed(() => {
+  if (armorVisualLoading.value) return '加载套装资料'
+  if (armorFallbackUnavailable.value || armorSetsError.value) return '套装资料暂未载入'
+  return `${armorTotalItems.value.toLocaleString('zh-CN')} 套防具`
+})
 const armorLoadingSlotCount = computed(() => Math.min(armorPageSize.value, 24))
 const featuredArmor = computed(() => armorDisplayItems.value.find((item) => item.parsedEffects.length >= 3) ?? armorDisplayItems.value[0] ?? null)
 
@@ -221,7 +226,7 @@ onBeforeUnmount(() => {
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">{{ armorVisualLoading ? '加载套装资料' : armorFallbackUnavailable ? '等待资料载入' : `${armorTotalItems.toLocaleString('zh-CN')} 套防具` }}</span>
+          <span class="eyebrow">{{ armorHeroEyebrow }}</span>
           <h1>套装路线</h1>
           <p>按套装、部件数量和效果词条查看防具推进。</p>
         </div>

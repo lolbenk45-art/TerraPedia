@@ -1475,6 +1475,8 @@ for (const path of scanFiles) {
     for (const marker of [
       'usePublicBiomes',
       'biomeDisplayItems',
+      'biomeHeroEyebrow',
+      'biomeApiUnavailable.value || biomesError.value',
       'biomeGroups',
       'biomeGroupOptions',
       'selectedBiomeGroup',
@@ -1485,6 +1487,7 @@ for (const path of scanFiles) {
       '<CommonTpSkeleton',
       '<CommonPreviewImage',
       ':aria-busy="biomeVisualLoading"',
+      '{{ biomeHeroEyebrow }}',
       'v-for="biome in biomeDisplayItems"',
       'v-for="group in biomeGroupOptions"',
       'v-for="biome in biomeFeaturedItems"',
@@ -1530,6 +1533,8 @@ for (const path of scanFiles) {
       'biomeDetailVisualLoading',
       'biomeResources',
       'biomeRelations',
+      'biome-detail-loading-tags',
+      'biome-detail-missing-tags',
       '<CommonTpSkeleton',
       '<CommonPreviewImage',
       ':aria-busy="biomeDetailVisualLoading"',
@@ -1546,6 +1551,8 @@ for (const path of scanFiles) {
       '生命果',
       '石巨人路线',
       '打开专题',
+      '{{ biomeTile?.layerType || \'layer\' }}',
+      '{{ biomeTile?.biomeType || \'type\' }}',
     ]) {
       if (content.includes(staticMarker)) {
         violations.push(`${path}: biome detail page must not keep the static Jungle mock as primary content (${staticMarker})`)
@@ -1653,6 +1660,8 @@ for (const path of scanFiles) {
       'projectileSearchQuery',
       'projectileSortBy',
       'projectileDisplayItems',
+      'projectileHeroEyebrow',
+      'projectileApiUnavailable.value || projectilesError.value',
       'projectileVisualLoading',
       'projectileLoadingSlotCount',
       'goToProjectilePage',
@@ -1661,6 +1670,7 @@ for (const path of scanFiles) {
       '<CommonTpSkeleton',
       '<CommonPreviewImage',
       ':aria-busy="projectileVisualLoading"',
+      '{{ projectileHeroEyebrow }}',
       'v-for="projectile in projectileDisplayItems"',
     ]) {
       if (!content.includes(marker)) {
@@ -1677,6 +1687,30 @@ for (const path of scanFiles) {
     ]) {
       if (content.includes(staticMarker)) {
         violations.push(`${path}: projectiles page must not keep static preview-only projectile content (${staticMarker})`)
+      }
+    }
+  }
+
+  if (path === 'pages/armor-sets/index.vue') {
+    for (const marker of [
+      'usePublicArmorSets',
+      'armorListQuery',
+      'armorSearchQuery',
+      'armorDisplayItems',
+      'armorHeroEyebrow',
+      'armorFallbackUnavailable.value || armorSetsError.value',
+      'armorVisualLoading',
+      'armorLoadingSlotCount',
+      'goToArmorPage',
+      '<CommonPaginationDock',
+      '<CommonTpSkeleton',
+      '<CommonPreviewImage',
+      ':aria-busy="armorVisualLoading"',
+      '{{ armorHeroEyebrow }}',
+      'v-for="armor in armorDisplayItems"',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: armor sets page must render live public armor data with search, paging, preview images, skeleton loading, and fallback-safe heading via marker ${marker}`)
       }
     }
   }
