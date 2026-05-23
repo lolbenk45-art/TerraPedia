@@ -43,7 +43,7 @@ watch(() => route.query.keyword, () => {
         <div class="search-console-copy">
           <span class="eyebrow">当前关键词</span>
           <h2>{{ searchKeywordLabel }}</h2>
-          <p>建议接口对应 `/public/items/suggestions`，页面上把建议、快捷筛选和跨域入口放在一起，后续接真实数据时不需要重做结构。</p>
+          <p>搜索建议会随着关键词更新，页面上把建议、快捷筛选和跨资料入口放在一起，方便快速回到图鉴与攻略。</p>
         </div>
         <div class="search-console-module">
           <form class="search-input-shell search-input-primary" role="search" aria-label="全站检索" @submit.prevent="submitSearch">

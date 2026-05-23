@@ -6,6 +6,20 @@ const root = new URL('..', import.meta.url)
 const file = (path) => join(root.pathname, path)
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
+const assertApiPagedListBypassesLocalFilters = (violations, path, content, contract) => {
+  for (const marker of contract.markers) {
+    if (!content.includes(marker)) {
+      violations.push(`${path}: API-backed pagination must expose ${marker} before bypassing local filters`)
+    }
+  }
+
+  const filteredBlock = content.match(contract.filteredBlockPattern)?.[0] ?? ''
+
+  if (!filteredBlock.includes(contract.apiBypassMarker)) {
+    violations.push(`${path}: API-paginated results must render the backend page directly before any local filtering`)
+  }
+}
+
 const readCssPxValue = (content, selector, property) => {
   const rule = content.match(new RegExp(`${escapeRegExp(selector)}\\s*\\{([^}]*)\\}`, 'm'))
   if (!rule) {
@@ -238,6 +252,66 @@ const forbiddenPublicTerms = [
   'immuneNpcs',
 ]
 
+const playerFacingCopyFiles = [
+  ...publicPageFiles,
+  'components/TerraFooter.vue',
+  'components/TerraNav.vue',
+  'components/TerraBreadcrumb.vue',
+]
+
+const forbiddenPlayerFacingTerms = [
+  '结构化',
+  '追踪',
+  '追溯',
+  '接口',
+  'API',
+  '聚合',
+  '后端',
+  'Public Aggregate',
+  'Internal',
+  'Trace',
+  'fallback',
+  '/public/',
+]
+
+const extractQuotedStrings = (content) => {
+  const values = []
+  const quotedStringPattern = /(['"`])((?:\\.|(?!\1)[\s\S])*?)\1/g
+  let match
+
+  while ((match = quotedStringPattern.exec(content)) !== null) {
+    values.push(match[2])
+  }
+
+  return values.join('\n')
+}
+
+const extractTemplateContent = (content) => {
+  const match = content.match(/<template\b[^>]*>([\s\S]*?)<\/template>/m)
+  return match ? match[1] : ''
+}
+
+const extractPlayerFacingAuditContent = (content) => {
+  const template = extractTemplateContent(content)
+  const interpolations = [...template.matchAll(/\{\{([\s\S]*?)\}\}/g)].map((match) => match[1]).join('\n')
+  const staticTemplateText = template
+    .replace(/\{\{[\s\S]*?\}\}/g, '\n')
+    .replace(/<[^>]*>/g, '\n')
+  const scriptText = content.replace(template, '')
+  const visibleScriptText = extractQuotedStrings(scriptText)
+    .split('\n')
+    .filter((value) => /(结构化|追踪|追溯|接口|API|聚合|后端|Public Aggregate|Internal|Trace|\/public\/)/.test(value))
+    .filter((value) => !/^[A-Za-z_$][\w$]*Internal[A-Za-z_$][\w$]*$/.test(value))
+    .filter((value) => !/^[A-Za-z_$][\w$]*\(entry\.[\s\S]*Internal[A-Za-z_$][\w$]*[\s\S]*\)$/.test(value))
+    .join('\n')
+
+  return [
+    staticTemplateText,
+    extractQuotedStrings(interpolations),
+    visibleScriptText,
+  ].join('\n')
+}
+
 const forbiddenLightThemeTokens = [
   '#f5ecd2',
   '#dfcc9f',
@@ -291,9 +365,16 @@ const requiredPublicDataLayerFiles = [
   'composables/usePublicBuffs.ts',
   'composables/usePublicBuffDetail.ts',
   'composables/usePublicProjectiles.ts',
+  'composables/usePublicBosses.ts',
+  'composables/usePublicBossDetail.ts',
+  'composables/usePublicBiomes.ts',
+  'composables/usePublicBiomeDetail.ts',
+  'composables/usePublicRecipeTree.ts',
+  'utils/price.ts',
   'components/common/PreviewImage.vue',
   'components/common/PaginationDock.vue',
   'components/common/TpSkeleton.vue',
+  'components/crafting/RecipeTreeNode.vue',
   'components/catalog/CatalogWallSkeleton.vue',
   'components/detail/ItemDetailSkeleton.vue',
   'components/search/SuggestionSkeletonRows.vue',
@@ -330,6 +411,13 @@ const requiredPublicDataLayerMarkers = {
     'export type PublicProjectileQuery',
     'export type PublicProjectileListItem',
     'export type ProjectileCatalogItem',
+    'export type PublicBossQuery',
+    'export type PublicBossListItem',
+    'export type PublicBossDetail',
+    'export type BossCatalogCard',
+    'export type PublicBiomeListItem',
+    'export type BiomeCatalogTile',
+    'export type PublicRecipeTreeResult',
   ],
   'composables/usePreviewImage.ts': [
     'export const resolvePreviewImageUrl',
@@ -397,12 +485,57 @@ const requiredPublicDataLayerMarkers = {
     'Array.isArray(rawProjectiles)',
     'source: \'api\'',
   ],
+  'composables/usePublicBosses.ts': [
+    'export const normalizePublicBoss',
+    'export const fetchPublicBosses',
+    'export const usePublicBosses',
+    "'/public/bosses'",
+    'Array.isArray(rawBosses)',
+    'source: \'api\'',
+  ],
+  'composables/usePublicBossDetail.ts': [
+    'export const fetchPublicBossDetail',
+    'export const usePublicBossDetail',
+    '`/public/bosses/${normalizedBossId}`',
+    'source: \'missing\'',
+  ],
+  'composables/usePublicBiomes.ts': [
+    'export const normalizePublicBiome',
+    'export const fetchPublicBiomes',
+    'export const usePublicBiomes',
+    "'/public/biomes'",
+    'Array.isArray(rawBiomes)',
+    'source: \'api\'',
+  ],
+  'composables/usePublicBiomeDetail.ts': [
+    'export const fetchPublicBiomeDetail',
+    'export const usePublicBiomeDetail',
+    '`/public/biomes/${normalizedBiomeId}`',
+    'source: \'missing\'',
+  ],
+  'composables/usePublicRecipeTree.ts': [
+    'export const fetchPublicRecipeTree',
+    'export const usePublicRecipeTree',
+    '`/public/items/${normalizedItemId}/recipe-tree`',
+    'source: \'missing\'',
+  ],
+  'utils/price.ts': [
+    'export const formatTerrariaPrice',
+    'export const formatCatalogPrice',
+    '不可购买',
+    '不可出售',
+  ],
   'components/common/PreviewImage.vue': [
     'resolvePreviewImageUrl',
     'failed',
     'fallbackGlyph',
     'class="item-art tp-preview-image"',
+    '@load="syncVisibleCenter"',
     '@error="markFailed"',
+    'getImageData',
+    'ResizeObserver',
+    '--tp-preview-visible-shift-x',
+    '--tp-preview-visible-shift-y',
   ],
   'components/common/PaginationDock.vue': [
     'defineProps',
@@ -554,6 +687,7 @@ const scanFiles = [
   'components/common/PreviewImage.vue',
   'components/common/PaginationDock.vue',
   'components/common/TpSkeleton.vue',
+  'components/crafting/RecipeTreeNode.vue',
   'components/catalog/CatalogWallSkeleton.vue',
   'components/detail/ItemDetailSkeleton.vue',
   'components/search/SuggestionSkeletonRows.vue',
@@ -647,6 +781,16 @@ if (existsSync(file('app/app.vue'))) {
 
 for (const path of scanFiles) {
   const content = readFileSync(file(path), 'utf8')
+
+  if (playerFacingCopyFiles.includes(path)) {
+    const playerFacingContent = extractPlayerFacingAuditContent(content)
+
+    for (const term of forbiddenPlayerFacingTerms) {
+      if (playerFacingContent.includes(term)) {
+        violations.push(`${path}: player-facing copy must not expose backend/internal wording "${term}"`)
+      }
+    }
+  }
 
   for (const term of forbiddenPublicTerms) {
     if (content.includes(term)) {
@@ -976,7 +1120,7 @@ for (const path of scanFiles) {
       'pagination',
       ':href="npc.detailPath"',
       'v-for="npc in visibleNpcCards"',
-      "npcResult?.source === 'api'",
+      "npcResult.value?.source === 'api'",
       'npc-card-loading',
     ]) {
       if (!content.includes(marker)) {
@@ -989,7 +1133,7 @@ for (const path of scanFiles) {
       'const quickFilters = npcCategoryGroups.flatMap',
       'const pageSizeOptions = [12, 24, 48, 96]',
       'pageSize: selectedPageSize.value !== defaultNpcPageSize',
-      'const pageWindowItems = computed',
+      '<CommonPaginationDock',
       'matchNpcFilter',
       'npcWallTopRef',
       'scrollIntoView',
@@ -1000,9 +1144,7 @@ for (const path of scanFiles) {
       '<CommonTpSkeleton',
       'npc-card-loading',
       'catalog-density-picker',
-      'catalog-page-dock',
-      'catalog-dock-jump-form',
-      'goToJumpPage',
+      'jump-id="npc-page-jump"',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: NPC list page must reuse item category, page-size, pagination dock, URL sync, and skeleton mechanics via marker ${marker}`)
@@ -1027,8 +1169,34 @@ for (const path of scanFiles) {
       violations.push(`${path}: NPC category drawer must render grouped filters from npcCategoryGroups`)
     }
 
-    if (!content.includes('@submit.prevent="goToJumpPage"') || !content.includes('v-for="pageSize in pageSizeOptions"')) {
-      violations.push(`${path}: NPC page dock and drawer must keep jump-page and page-size controls wired`)
+    assertApiPagedListBypassesLocalFilters(violations, path, content, {
+      filteredBlockPattern: /const\s+filteredNpcCards\s*=\s*computed\(\(\)\s*=>\s*\{[\s\S]*?\n\}\)/,
+      apiBypassMarker: "if (npcResult.value?.source === 'api') return npcDisplayCards.value",
+      markers: [
+        "search: backendSearch.value || undefined",
+        "isTownNpc: selectedFilter.value.isTownNpc",
+        "isFriendly: selectedFilter.value.isFriendly",
+        "isBoss: selectedFilter.value.isBoss",
+        "hasShop: selectedFilter.value.hasShop",
+        "hasLoot: selectedFilter.value.hasLoot",
+      ],
+    })
+
+    if (!content.includes('<CommonPaginationDock') || !content.includes('@page-change="goToPage"') || !content.includes('v-for="pageSize in pageSizeOptions"')) {
+      violations.push(`${path}: NPC page dock and drawer must keep reusable paging and page-size controls wired`)
+    }
+
+    for (const marker of [
+      'isFriendly: selectedFilter.value.isFriendly',
+      'isBoss: selectedFilter.value.isBoss',
+      'hasShop: selectedFilter.value.hasShop',
+      'hasLoot: selectedFilter.value.hasLoot',
+      "key: 'shop'",
+      "key: 'loot'",
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: NPC filters must be backed by public query fields through marker ${marker}`)
+      }
     }
 
     if (content.includes('/npcs/guide')) {
@@ -1044,7 +1212,12 @@ for (const path of scanFiles) {
       'trustedLoot',
       'shopEntries',
       'buffRelations',
-      'moduleStatus',
+      'materialStatus',
+      'npcStatRows',
+      '基础数值',
+      '出售物品',
+      '掉落物',
+      '状态效果',
       '加载 NPC 详情',
     ]) {
       if (!content.includes(marker)) {
@@ -1070,7 +1243,7 @@ for (const path of scanFiles) {
       'imageEntries',
       'sourceEntries',
       '<CommonPreviewImage',
-      ':src="material.image"',
+      '<CraftingRecipeTreeNode',
       ':src="source.image"',
     ]) {
       if (!content.includes(marker)) {
@@ -1148,6 +1321,234 @@ for (const path of scanFiles) {
     }
   }
 
+  if (path === 'pages/bosses/index.vue') {
+    for (const marker of [
+      'usePublicBosses',
+      'bossDisplayItems',
+      'bossVisualLoading',
+      'bossLoadingSlotCount',
+      'goToBossPage',
+      '<CommonPaginationDock',
+      '<CommonTpSkeleton',
+      '<CommonPreviewImage',
+      ':aria-busy="bossVisualLoading"',
+      'v-for="boss in bossDisplayItems"',
+      'boss-node-visual',
+      'boss-node-backdrop',
+      'boss-node-sprite',
+      'boss-node-type',
+      'boss-node-summary',
+      'boss-node-meta',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: bosses page must render live public boss data with paging, preview images, and skeleton loading via marker ${marker}`)
+      }
+    }
+
+    for (const staticMarker of [
+      '史莱姆王',
+      '克苏鲁之眼',
+      '血肉墙',
+      '月亮领主',
+      '普通模式到月亮领主前的关键节点',
+    ]) {
+      if (content.includes(staticMarker)) {
+        violations.push(`${path}: bosses page must not keep static preview-only boss content (${staticMarker})`)
+      }
+    }
+  }
+
+  if (path === 'pages/bosses/[id].vue') {
+    for (const marker of [
+      'usePublicBossDetail',
+      'route.params.id',
+      'bossDetailVisualLoading',
+      'bossMembers',
+      'bossLootEntries',
+      '<CommonTpSkeleton',
+      '<CommonPreviewImage',
+      ':aria-busy="bossDetailVisualLoading"',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: boss detail page must render live public boss detail data, members, loot, preview images, and skeleton loading via marker ${marker}`)
+      }
+    }
+
+    for (const staticMarker of [
+      'Eye of Cthulhu',
+      '克苏鲁之眼',
+      '2800 HP',
+      '恶魔矿 / 猩红矿',
+      '战前完成度',
+    ]) {
+      if (content.includes(staticMarker)) {
+        violations.push(`${path}: boss detail page must not keep the static Eye of Cthulhu mock as primary content (${staticMarker})`)
+      }
+    }
+  }
+
+  if (path === 'pages/biomes/index.vue') {
+    for (const marker of [
+      'usePublicBiomes',
+      'biomeDisplayItems',
+      'biomeGroups',
+      'biomeVisualLoading',
+      'biomeLoadingSlotCount',
+      '<CommonTpSkeleton',
+      '<CommonPreviewImage',
+      ':aria-busy="biomeVisualLoading"',
+      'v-for="biome in biomeDisplayItems"',
+      'biome-tile-art',
+      'biome-tile-backdrop',
+      'biome-tile-thumb',
+      'biome-tile-title',
+      'biome-tile-description',
+      'biome-tile-meta',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: biomes page must render live public biome data with groups, preview images, and skeleton loading via marker ${marker}`)
+      }
+    }
+
+    for (const staticMarker of [
+      '/biomes/forest',
+      '/biomes/desert',
+      '/biomes/jungle',
+      '/biomes/dungeon',
+      '/biomes/underworld',
+      '/biomes/hallow',
+      '森林</b>',
+      '丛林</b>',
+    ]) {
+      if (content.includes(staticMarker)) {
+        violations.push(`${path}: biomes page must not keep static preview-only biome tiles (${staticMarker})`)
+      }
+    }
+  }
+
+  if (path === 'pages/biomes/[id].vue') {
+    for (const marker of [
+      'usePublicBiomeDetail',
+      'route.params.id',
+      'biomeDetailVisualLoading',
+      'biomeResources',
+      'biomeRelations',
+      '<CommonTpSkeleton',
+      '<CommonPreviewImage',
+      ':aria-busy="biomeDetailVisualLoading"',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: biome detail page must render live public biome detail data, resources, relations, preview images, and skeleton loading via marker ${marker}`)
+      }
+    }
+
+    for (const staticMarker of [
+      'Biome · Jungle',
+      '丛林',
+      '蜂巢',
+      '生命果',
+      '石巨人路线',
+      '打开专题',
+    ]) {
+      if (content.includes(staticMarker)) {
+        violations.push(`${path}: biome detail page must not keep the static Jungle mock as primary content (${staticMarker})`)
+      }
+    }
+  }
+
+  if (path === 'pages/crafting/index.vue') {
+    for (const marker of [
+      'usePublicRecipeTree',
+      'usePublicItems',
+      'recipeTree',
+      'recipeVariants',
+      'recipeVisualLoading',
+      'recipeNodeChildren',
+      '<CraftingRecipeTreeNode',
+      'recipe-top-layer',
+      'recipe-full-tree',
+      'recipe-tree-stage',
+      '<CommonTpSkeleton',
+      '<CommonPreviewImage',
+      ':aria-busy="recipeVisualLoading"',
+      "itemResults.value?.source === 'api'",
+      'crafting-suggestion-button',
+      'recipe-tree-canvas',
+      'recipe-tree-grid',
+      'recipe-node-main',
+      'recipe-node-materials',
+      'defaultRecipeTarget',
+      'effectiveSelectedItemId',
+      'isDefaultRecipeTarget',
+      'recipe-example-targets',
+      'layout="wiki"',
+      ':max-depth="maxDepth"',
+      'recipe-wiki-tree',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: crafting page must render live public recipe tree data and hide fallback item suggestions via marker ${marker}`)
+      }
+    }
+
+    if (!content.includes('usePublicRecipeTree(effectiveSelectedItemId, maxDepth)')) {
+      violations.push(`${path}: crafting page must load a default API-backed recipe tree instead of opening on an empty target`)
+    }
+
+    if (!/itemId:\s*'675'/.test(content) || !content.includes('TrueNightsEdge')) {
+      violations.push(`${path}: crafting page default example must use True Night's Edge so direct Night's Edge + soul ingredients are visible`)
+    }
+
+    for (const staticMarker of [
+      '静态占位',
+      '泰拉刃制作链',
+      '英雄断剑',
+      '后续接接口',
+    ]) {
+      if (content.includes(staticMarker)) {
+        violations.push(`${path}: crafting page must not keep static preview-only recipe content (${staticMarker})`)
+      }
+    }
+  }
+
+  if (path === 'components/crafting/RecipeTreeNode.vue') {
+    for (const marker of [
+      'PublicItemRecipeTreeNode',
+      'PublicItemRecipeTreeStation',
+      'recipeNodeChildren',
+      'stationImage',
+      'recipeStationImage',
+      'expandedRecipeNode',
+      'displayRecipeNodeChildren',
+      'displayRecipeNodeStations',
+      'is-expanded-recipe',
+      "layout?: 'root-first' | 'wiki'",
+      'maxDepth?: number',
+      'nodeWithinMaxDepth',
+      'directRecipeNodeChildren',
+      'recipeAlternativeOptions',
+      'hasAlternativeRecipeOptions',
+      'isWikiFlow',
+      'is-wiki-flow',
+      'recipe-alternative-recipes',
+      'recipe-alternative-option',
+      'recipe-alternative-separator',
+      'recipe-alternative-expansion',
+      'recipe-ingredient-row',
+      'recipe-ingredient-branch',
+      'recipe-child-expansion',
+      'recipe-ingredient-node',
+      '<CraftingRecipeTreeNode',
+      'recipe-branch',
+      'recipe-tree-node',
+      'recipe-children',
+      '<CommonPreviewImage',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: crafting recipe tree node must recursively render material leaves, station images, and parent aggregation via marker ${marker}`)
+      }
+    }
+  }
+
   if (path === 'pages/projectiles/index.vue') {
     for (const marker of [
       'usePublicProjectiles',
@@ -1204,6 +1605,8 @@ for (const path of scanFiles) {
       '<CommonPaginationDock',
       'jump-id="catalog-page-jump"',
       '@page-change="goToPage"',
+      'categoryIds: selectedCategoryIds.value.length > 0 ? selectedCategoryIds.value : undefined',
+      'item.priceLabel',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: items page must use the category drawer layout, compact defaults, top-scroll paging, and light dock controls via marker ${marker}`)
@@ -1264,6 +1667,45 @@ for (const path of scanFiles) {
       violations.push(`${path}: items search reset must synchronously reset page state before the API query refreshes`)
     }
 
+    assertApiPagedListBypassesLocalFilters(violations, path, content, {
+      filteredBlockPattern: /const\s+filteredCatalogItems\s*=\s*computed\(\(\)\s*=>\s*\{[\s\S]*?\n\}\)/,
+      apiBypassMarker: 'if (shouldUseApiPagedItems.value) return catalogDisplayItems.value',
+      markers: [
+        "const shouldUseApiPagedItems = computed(() => publicItemsResult.value?.source === 'api')",
+        "const shouldApplyLocalCategoryFilter = computed(() => publicItemsResult.value?.source !== 'api')",
+        "search: backendSearch.value || undefined",
+        'categoryId: selectedCategoryId.value',
+        'categoryIds: selectedCategoryIds.value.length > 0 ? selectedCategoryIds.value : undefined',
+        'gamePeriodId: selectedGamePeriodId.value',
+      ],
+    })
+
+    for (const invalidCategoryCode of [
+      'MELEE_WEAPON',
+      'RANGED_WEAPON',
+      'MAGIC_WEAPON',
+      'SUMMON_WEAPON',
+      'AMMO',
+      'ORE',
+      'BAR',
+      'INGOT',
+      'CRAFTING_STATION',
+      'WORKSTATION',
+      'TREASURE_BAG',
+      'LOOT_BAG',
+      'FOOD',
+      'BAIT',
+      'CRATE',
+      'BLOCK',
+      'WALL',
+      'DECORATION',
+      'DECOR',
+    ]) {
+      if (content.includes(`'${invalidCategoryCode}'`)) {
+        violations.push(`${path}: items category filters must use backend category tree codes, not stale code ${invalidCategoryCode}`)
+      }
+    }
+
     if (content.includes('catalog-floating-focus')) {
       violations.push(`${path}: items page must not render a fixed right-side focus card`)
     }
@@ -1274,6 +1716,12 @@ for (const path of scanFiles) {
 
     if (!content.includes('<CommonPreviewImage') || !content.includes(':source-image="item.sourceImage"')) {
       violations.push(`${path}: item wall cells must use PreviewImage so real API items without managed images render a controlled glyph fallback`)
+    }
+  }
+
+  if (path === 'pages/items/[id].vue') {
+    if (!content.includes('formatTerrariaPrice')) {
+      violations.push(`${path}: item detail prices must use Terraria coin formatting`)
     }
   }
 
@@ -1291,6 +1739,25 @@ for (const path of scanFiles) {
         violations.push(`${path}: shared loading skeleton CSS must expose reusable skeleton and preview image primitives via marker ${marker}`)
       }
     }
+
+    for (const marker of [
+      'width: 100%',
+      'height: 100%',
+      'min-width: 0',
+      'min-height: 0',
+      'box-sizing: border-box',
+      '--tp-preview-image-size',
+      'width: auto',
+      'height: auto',
+      'max-width: var(--tp-preview-image-size',
+      'max-height: var(--tp-preview-image-size',
+      'translate3d(var(--tp-preview-visible-shift-x',
+      'var(--tp-preview-visible-shift-y',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: PreviewImage wrapper must fill the caller-owned art frame and bound the rendered sprite via marker ${marker}`)
+      }
+    }
   }
 
   if (path === 'assets/css/catalog-image-fixes.css') {
@@ -1300,9 +1767,10 @@ for (const path of scanFiles) {
       'min-height: 130px',
       'width: var(--catalog-wall-frame-size)',
       'height: auto',
-      'overflow: hidden',
-      'width: var(--catalog-wall-image-size)',
       'height: var(--catalog-wall-image-size)',
+      'overflow: hidden',
+      'max-width: var(--catalog-wall-image-size)',
+      'max-height: var(--catalog-wall-image-size)',
       'scroll-margin-top: 88px',
       '.catalog-wall-cell.tone-1',
       '.catalog-wall-cell.tone-2',
@@ -1337,9 +1805,91 @@ for (const path of scanFiles) {
     if (content.includes('nth-of-type(n + 7)')) {
       violations.push(`${path}: catalog dock CSS must not hide mobile page buttons with nth-of-type because non-page buttons affect the count`)
     }
+
+    for (const rule of content.matchAll(/\.catalog-wall-cell\s+\.item-art\[data-fallback\]\s+img\s*\{([^}]*)\}/g)) {
+      const declarations = rule[1]
+
+      if (/(?:^|\n)\s*width:\s*var\(--catalog-wall-image-size\)/.test(declarations)) {
+        violations.push(`${path}: catalog wall images must preserve native aspect ratio instead of forcing all sprites into a square image box`)
+      }
+    }
   }
 
   if (path === 'assets/css/hifi-preview.css') {
+    const recipeBranchRule = content.match(/^\.recipe-branch\s*\{[^}]*\}/m)?.[0] ?? ''
+    const recipeBranchConnectorRule = content.match(/^\.recipe-branch:not\(\.is-leaf\)::after\s*\{[^}]*\}/m)?.[0] ?? ''
+    const recipeChildrenRule = content.match(/^\.recipe-children\s*\{[^}]*\}/m)?.[0] ?? ''
+    const recipeChildrenBranchRule = content.match(/^\.recipe-children\s*>\s*\.recipe-branch\s*\{[^}]*\}/m)?.[0] ?? ''
+    const narrowRecipeChildrenLineRule = content.match(/@media \(max-width: 1180px\)\s*\{[\s\S]*?\.recipe-children::before\s*\{([^}]*)\}/m)?.[1] ?? ''
+    const wikiFlowBranchRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiFlowChildrenRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-children\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiIngredientBranchRule = content.match(/^\.recipe-ingredient-branch\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiFlowStationRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-station-row::before\s*\{[^}]*\}/m)?.[0] ?? ''
+    const recipeFullTreeStageRule = content.match(/^\.crafting-layout\s*>\s*\.recipe-full-tree\s+\.recipe-tree-stage\s*\{[^}]*\}/m)?.[0] ?? ''
+
+    if (!/width\s*:\s*max-content/m.test(recipeBranchRule)) {
+      violations.push(`${path}: recipe tree parent branches must size to their subtree instead of collapsing every branch to one card width`)
+    }
+
+    if (/height\s*:\s*calc\(100%\s*-\s*64px\)/m.test(recipeBranchConnectorRule)) {
+      violations.push(`${path}: recipe tree branch connector must not use full branch height because short sibling branches stretch into tall empty columns`)
+    }
+
+    if (/display\s*:\s*grid/m.test(recipeChildrenRule) || /grid-template-columns/m.test(recipeChildrenRule)) {
+      violations.push(`${path}: recipe tree children must use natural-width wrapping instead of grid rows that equalize sibling branch heights`)
+    }
+
+    if (!/width\s*:\s*max-content/m.test(recipeChildrenRule)) {
+      violations.push(`${path}: recipe tree child groups must keep subtree natural width before wrapping`)
+    }
+
+    if (/flex\s*:\s*0\s+1\s+196px/m.test(recipeChildrenBranchRule)) {
+      violations.push(`${path}: recipe tree child branches must not be forced into 196px columns`)
+    }
+
+    if (!content.includes('.recipe-branch.is-leaf')) {
+      violations.push(`${path}: recipe tree leaves must keep a fixed card-sized branch while parents expand to their subtree`)
+    }
+
+    if (/height\s*:\s*100%/m.test(narrowRecipeChildrenLineRule)) {
+      violations.push(`${path}: narrow recipe tree connector must not draw a full-height vertical line through the branch group`)
+    }
+
+    if (!/flex-direction\s*:\s*column/m.test(wikiFlowBranchRule) || !/max-width\s*:\s*none/m.test(wikiFlowBranchRule)) {
+      violations.push(`${path}: crafting wiki-flow branches must stack materials above station chips and result nodes`)
+    }
+
+    if (!/align-items\s*:\s*flex-end/m.test(wikiFlowChildrenRule) || !/padding-bottom\s*:\s*18px/m.test(wikiFlowChildrenRule) || /padding-top\s*:\s*18px/m.test(wikiFlowChildrenRule)) {
+      violations.push(`${path}: crafting wiki-flow child groups must bottom-align direct ingredients and reserve connector space below the ingredient row`)
+    }
+
+    if (!/flex-direction\s*:\s*column/m.test(wikiIngredientBranchRule) || !/align-items\s*:\s*center/m.test(wikiIngredientBranchRule)) {
+      violations.push(`${path}: crafting wiki-flow ingredients must keep each direct material node below its own expanded sub-recipe`)
+    }
+
+    if (/flex\s*:\s*0\s+0\s+172px/m.test(wikiIngredientBranchRule) || !/width\s*:\s*max-content/m.test(wikiIngredientBranchRule)) {
+      violations.push(`${path}: crafting wiki-flow ingredient branches must expand to the width of nested alternative recipe groups instead of overlapping sibling materials`)
+    }
+
+    if (!/top\s*:\s*50%/m.test(wikiFlowStationRule)) {
+      violations.push(`${path}: crafting wiki-flow station row must draw the station chip on a horizontal connector line`)
+    }
+
+    if (/max-height\s*:\s*760px/m.test(recipeFullTreeStageRule) || /overflow\s*:\s*auto/m.test(recipeFullTreeStageRule)) {
+      violations.push(`${path}: crafting full recipe tree must expand vertically with the page instead of hiding the final result behind a nested scroll pane`)
+    }
+
+    for (const selector of [
+      '.recipe-alternative-recipes',
+      '.recipe-alternative-option',
+      '.recipe-alternative-separator',
+      '.recipe-alternative-expansion > .recipe-tree-node',
+    ]) {
+      if (!content.includes(selector)) {
+        violations.push(`${path}: crafting wiki-flow must style same-result alternative recipes with a visible or-group via selector ${selector}`)
+      }
+    }
+
     for (const marker of [
       '.detail-loading-skeleton',
       '@keyframes detailPixelPulse',
@@ -1349,9 +1899,55 @@ for (const path of scanFiles) {
       'object-fit: contain',
       'column-gap: 18px',
       'row-gap: 10px',
+      '.boss-node-visual',
+      '.boss-node-backdrop',
+      '.boss-node-sprite',
+      '.boss-node-summary',
+      '.boss-node-meta',
+      '.biome-tile-art',
+      '.biome-tile-backdrop',
+      '.biome-tile-thumb',
+      '.biome-tile-description',
+      '.biome-tile-meta',
+      'opacity: 0.18',
+      'max-height: 7.75em',
+      '.crafting-suggestion-button',
+      '.recipe-tree-canvas',
+      '.crafting-layout > .recipe-full-tree',
+      'overflow-x: auto',
+      'overflow-y: visible',
+      'overscroll-behavior-x: contain',
+      '.recipe-top-layer',
+      '.recipe-full-tree',
+      '.recipe-top-materials',
+      '.recipe-tree-stage',
+      '.recipe-branch',
+      '.recipe-tree-node',
+      '.recipe-children',
+      '-webkit-line-clamp',
     ]) {
       if (!content.includes(marker)) {
-        violations.push(`${path}: item detail must reserve icon/text spacing and render a dedicated pixel loading state via marker ${marker}`)
+        violations.push(`${path}: item/detail and live entity pages must reserve icon/text spacing and render stable API layouts via marker ${marker}`)
+      }
+    }
+
+    if (content.includes('transform: scale(1.3);')) {
+      violations.push(`${path}: boss and biome backdrop layers must not use transform scale because it expands the visual box and clips thumbnails`)
+    }
+
+    for (const marker of [
+      '.npc-card i .item-art',
+      '.portrait-stage .item-art',
+      '.npc-detail-portrait .item-art',
+      '.sprite-frame .item-art',
+      '.entity-detail-layout .sprite-frame .item-art',
+      '--tp-preview-image-size',
+      'width: 100%',
+      'height: 100%',
+      'margin: 0',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: NPC and detail image frames must size PreviewImage wrappers explicitly via marker ${marker}`)
       }
     }
   }
@@ -1375,6 +1971,36 @@ for (const path of scanFiles) {
 
     if (content.includes('|| fallbackImage')) {
       violations.push(`${path}: real API items without images must not be assigned unrelated sample fallback images`)
+    }
+
+    for (const marker of [
+      'formatCatalogPrice',
+      'categoryIds: query.categoryIds',
+      'buy: toNumberOrNull(raw.buy ?? raw.buyPrice)',
+      'sell: toNumberOrNull(raw.sell ?? raw.sellPrice)',
+      'priceLabel: formatCatalogPrice',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: catalog items must include categoryIds query and price normalization marker ${marker}`)
+      }
+    }
+  }
+
+  if (path === 'composables/usePublicNpcs.ts') {
+    for (const marker of [
+      'isFriendly: typeof query.isFriendly === \'boolean\' ? query.isFriendly : undefined',
+      'isBoss: typeof query.isBoss === \'boolean\' ? query.isBoss : undefined',
+      'hasShop: typeof query.hasShop === \'boolean\' ? query.hasShop : undefined',
+      'hasLoot: typeof query.hasLoot === \'boolean\' ? query.hasLoot : undefined',
+      'npcType: toNumberOrNull(raw.npcType ?? raw.npc_type)',
+      'damage: toNumberOrNull(raw.damage)',
+      'lootEntryCount:',
+      'shopEntryCount:',
+      'buffRelationCount:',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: NPC normalizer must forward filters and expose list stats marker ${marker}`)
+      }
     }
   }
 

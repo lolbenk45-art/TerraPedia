@@ -92,7 +92,7 @@ const projectileStatusLabel = computed(() => {
 })
 const projectileResultSummary = computed(() => {
   if (projectileVisualLoading.value) return '加载中'
-  if (projectileApiUnavailable.value) return '等待接口'
+  if (projectileApiUnavailable.value) return '未载入'
   return `${projectileDisplayItems.value.length} / ${projectileTotalItems.value.toLocaleString('zh-CN')}`
 })
 const projectileOrbitItems = computed(() => projectileDisplayItems.value.slice(0, 3))
@@ -237,7 +237,7 @@ onBeforeUnmount(() => {
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">{{ projectileVisualLoading ? '加载射弹资料' : projectileApiUnavailable ? '等待接口返回' : `${projectileTotalItems.toLocaleString('zh-CN')} 个射弹` }}</span>
+          <span class="eyebrow">{{ projectileVisualLoading ? '加载射弹资料' : projectileApiUnavailable ? '等待资料载入' : `${projectileTotalItems.toLocaleString('zh-CN')} 个射弹` }}</span>
           <h1>Projectile 行为库</h1>
           <p>射弹页展示弹道行为、友方/敌方归属、AI 样式、伤害和击退，帮助玩家理解武器与 Boss 招式。</p>
         </div>
@@ -255,7 +255,7 @@ onBeforeUnmount(() => {
         <div>
           <span class="eyebrow">行为矩阵</span>
           <h2>从“它叫什么”转成“它怎么运动、怎么命中”</h2>
-          <p>搜索名称或内部名，按编号、名称、伤害或 AI 样式排序。当前列表只使用公共射弹接口。</p>
+          <p>搜索名称或内部名，按编号、名称、伤害或 AI 样式排序。当前列表只展示公开射弹资料。</p>
         </div>
         <div class="projectile-orbit" aria-hidden="true">
           <span v-for="projectile in projectileOrbitItems" :key="`orbit-${projectile.id}`">
@@ -371,7 +371,7 @@ onBeforeUnmount(() => {
 
         <div v-else class="catalog-empty-state">
           <b>{{ projectileApiUnavailable ? '射弹资料暂未载入' : '没有匹配射弹' }}</b>
-          <span>{{ projectileApiUnavailable ? '当前公共接口暂不可用，页面不会展示静态样例射弹。' : '调整搜索词或排序后重试。' }}</span>
+          <span>{{ projectileApiUnavailable ? '当前射弹资料暂未载入，页面不会展示静态样例射弹。' : '调整搜索词或排序后重试。' }}</span>
           <button
             v-if="projectileApiUnavailable"
             class="small-button active"
@@ -388,7 +388,7 @@ onBeforeUnmount(() => {
         <div><b>总数</b><span>{{ projectileTotalItems.toLocaleString('zh-CN') }}</span></div>
         <div><b>分页</b><span>第 {{ projectileCurrentPage }} / {{ projectileTotalPages }} 页</span></div>
         <div><b>排序</b><span>{{ projectileSortBy }} · {{ projectileSortDirection === 'asc' ? '升序' : '降序' }}</span></div>
-        <div><b>接口</b><span>{{ publicProjectilesResult?.source === 'api' ? '公共 API' : '等待公共 API' }}</span></div>
+        <div><b>资料</b><span>{{ publicProjectilesResult?.source === 'api' ? '已更新' : '未载入' }}</span></div>
       </section>
 
       <CommonPaginationDock

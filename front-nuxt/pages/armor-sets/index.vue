@@ -170,7 +170,7 @@ const benefitLines = (armor: ArmorSetCatalogItem, limit = 4) => (
 const armorSummary = (armor: ArmorSetCatalogItem) => {
   const parsedCount = armor.parsedEffects.length
   const totalCount = armor.effects.length
-  return `${numberLabel(armor.uniqueItemCount)} 个部件 · ${parsedCount}/${totalCount} 条已结构化`
+  return `${numberLabel(armor.uniqueItemCount)} 个部件 · ${parsedCount}/${totalCount} 条效果`
 }
 
 hydrateArmorStateFromRoute()
@@ -221,9 +221,9 @@ onBeforeUnmount(() => {
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">{{ armorVisualLoading ? '加载套装资料' : armorFallbackUnavailable ? '等待接口返回' : `${armorTotalItems.toLocaleString('zh-CN')} 套防具` }}</span>
+          <span class="eyebrow">{{ armorVisualLoading ? '加载套装资料' : armorFallbackUnavailable ? '等待资料载入' : `${armorTotalItems.toLocaleString('zh-CN')} 套防具` }}</span>
           <h1>套装路线</h1>
-          <p>按套装、部件数量和结构化效果查看防具推进。</p>
+          <p>按套装、部件数量和效果词条查看防具推进。</p>
         </div>
         <a class="primary-button" href="/items">查看部件</a>
       </div>
@@ -332,7 +332,7 @@ onBeforeUnmount(() => {
       <section v-else class="search-suggestion-band support-panel">
         <div>
           <b>{{ armorFallbackUnavailable ? '套装资料暂未载入' : '没有匹配套装' }}</b>
-          <span>{{ armorFallbackUnavailable ? '当前公共接口暂不可用。' : '调整搜索词或清空搜索。' }}</span>
+          <span>{{ armorFallbackUnavailable ? '当前套装资料暂未载入。' : '调整搜索词或清空搜索。' }}</span>
         </div>
         <button v-if="armorFallbackUnavailable" class="small-button active" type="button" @click="refreshPublicArmorSets()">
           重新加载

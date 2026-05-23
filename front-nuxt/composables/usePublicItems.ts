@@ -6,6 +6,7 @@ import type {
   PublicItemSuggestion,
   PublicItemsResult,
 } from '~/types/public-api'
+import { formatCatalogPrice } from '~/utils/price'
 
 const imageBase = '/preview-assets/terrapedia-images/items/2026/04/08'
 
@@ -73,6 +74,8 @@ export const normalizePublicItem = (raw: PublicItemListItem, index = 0): Catalog
     || normalizeText(raw.iconUrl)
     || normalizeText(raw.image)
   const image = resolvePreviewImageUrl(sourceImage)
+  const buy = toNumberOrNull(raw.buy ?? raw.buyPrice)
+  const sell = toNumberOrNull(raw.sell ?? raw.sellPrice)
   const categoryGroup = normalizeText(raw.categoryGroup)
     || resolveCategoryGroup([category, categoryPath, phase, displayName, englishName, internalName].join(' '))
   const description = normalizeText(raw.descriptionZh)
@@ -115,6 +118,9 @@ export const normalizePublicItem = (raw: PublicItemListItem, index = 0): Catalog
     knockback: toNumberOrNull(raw.knockback),
     useTime: toNumberOrNull(raw.useTime),
     stackSize: toNumberOrNull(raw.stackSize),
+    buy: toNumberOrNull(raw.buy ?? raw.buyPrice),
+    sell: toNumberOrNull(raw.sell ?? raw.sellPrice),
+    priceLabel: formatCatalogPrice(buy, sell),
     description,
     searchText,
   }
@@ -136,6 +142,8 @@ export const fallbackCatalogItems: CatalogItem[] = Array.from({ length: 240 }, (
     gamePeriod: source.phase,
     damage: source.damage ?? null,
     stackSize: source.category === '材料' || source.category === '药水' ? 99 : 1,
+    buy: source.category === '武器' || source.category === '工具' ? (index + 1) * 250 : null,
+    sell: source.category === '材料' || source.category === '药水' ? (index + 1) * 20 : null,
   }, index)
 })
 
@@ -198,6 +206,7 @@ const buildPublicItemQuery = (query: PublicItemQuery, page: number, limit: numbe
   limit,
   search: query.search ?? query.keyword,
   categoryId: query.categoryId,
+  categoryIds: query.categoryIds,
   gamePeriodId: query.gamePeriodId,
   sortBy: query.sortBy ?? 'id',
   sortDirection: query.sortDirection ?? 'asc',
@@ -342,6 +351,7 @@ export const usePublicItems = (query: PublicItemQuery | (() => PublicItemQuery) 
       page: resolveRequestedPage(value),
       limit,
       search: normalizeText(value.search ?? value.keyword),
+      categoryIds: value.categoryIds,
       sortBy: value.sortBy ?? 'id',
       sortDirection: value.sortDirection ?? 'asc',
     } satisfies PublicItemQuery

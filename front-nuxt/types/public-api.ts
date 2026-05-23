@@ -24,6 +24,7 @@ export type PublicItemQuery = {
   search?: string
   category?: string
   categoryId?: number | string
+  categoryIds?: Array<number | string>
   gamePeriodId?: number | string
   sortBy?: string
   sortDirection?: 'asc' | 'desc'
@@ -64,6 +65,11 @@ export type PublicItemListItem = {
   knockback?: number | string | null
   useTime?: number | string | null
   stackSize?: number | string | null
+  price?: number | string | null
+  buy?: number | string | null
+  buyPrice?: number | string | null
+  sell?: number | string | null
+  sellPrice?: number | string | null
   description?: string | null
   descriptionZh?: string | null
   tooltip?: string | null
@@ -211,6 +217,8 @@ export type PublicItemRecipeTreeNode = {
   groupMembers?: PublicItemRecipeTreeGroupMember[] | null
   resultQuantity?: number | string | null
   quantityText?: string | null
+  quantityMin?: number | string | null
+  quantityMax?: number | string | null
   quantity?: number | string | null
   amount?: number | string | null
   count?: number | string | null
@@ -280,6 +288,9 @@ export type CatalogItem = {
   knockback: number | null
   useTime: number | null
   stackSize: number | null
+  buy: number | null
+  sell: number | null
+  priceLabel: string
   description: string
   searchText: string
 }
@@ -369,6 +380,10 @@ export type PublicNpcQuery = {
   search?: string
   categoryId?: number | string
   isTownNpc?: boolean
+  isFriendly?: boolean
+  isBoss?: boolean
+  hasShop?: boolean
+  hasLoot?: boolean
 }
 
 export type PublicNpcTraceableItemSummary = {
@@ -411,6 +426,20 @@ export type PublicNpcListItem = {
   is_friendly?: boolean | number | string | null
   isTownNpc?: boolean | number | string | null
   is_town_npc?: boolean | number | string | null
+  npcType?: number | string | null
+  npc_type?: number | string | null
+  damage?: number | string | null
+  defense?: number | string | null
+  lifeMax?: number | string | null
+  life_max?: number | string | null
+  knockBackResist?: number | string | null
+  knock_back_resist?: number | string | null
+  lootEntryCount?: number | string | null
+  loot_entry_count?: number | string | null
+  shopEntryCount?: number | string | null
+  shop_entry_count?: number | string | null
+  buffRelationCount?: number | string | null
+  buff_relation_count?: number | string | null
   imageUrl?: string | null
   image_url?: string | null
   behaviorNotes?: string | null
@@ -582,6 +611,14 @@ export type NpcCatalogCard = {
   isBoss: boolean
   isFriendly: boolean
   isTownNpc: boolean
+  npcType: number | null
+  damage: number | null
+  defense: number | null
+  lifeMax: number | null
+  knockBackResist: number | null
+  lootEntryCount: number
+  shopEntryCount: number
+  buffRelationCount: number
   searchText: string
   raw: PublicNpcListItem
 }
@@ -734,4 +771,200 @@ export type PublicProjectilesResult = {
   rawProjectiles: PublicProjectileListItem[]
   pagination: Pagination
   source: 'api' | 'fallback'
+}
+
+export type PublicBossQuery = {
+  page?: number
+  limit?: number
+  size?: number
+  search?: string
+  bossType?: string
+  sortBy?: string
+  sortDirection?: 'asc' | 'desc'
+}
+
+export type PublicBossListItem = {
+  id?: number | string | null
+  code?: string | null
+  name?: string | null
+  nameZh?: string | null
+  nameEn?: string | null
+  bossType?: string | null
+  imageUrl?: string | null
+  progressionOrder?: number | string | null
+  summonMethod?: string | null
+  notes?: string | null
+  memberCount?: number | string | null
+  memberNames?: string | null
+  memberSourceMode?: string | null
+  lootEntryCount?: number | string | null
+  uniqueLootItemCount?: number | string | null
+}
+
+export type PublicBossMember = {
+  id?: number | string | null
+  gameId?: number | string | null
+  internalName?: string | null
+  name?: string | null
+  nameZh?: string | null
+  bossRole?: string | null
+  imageUrl?: string | null
+  sourceBossCode?: string | null
+}
+
+export type PublicBossLootEntry = {
+  id?: number | string | null
+  itemId?: number | string | null
+  sourceItemId?: number | string | null
+  dropSourceKind?: string | null
+  quantityMin?: number | string | null
+  quantityMax?: number | string | null
+  quantityText?: string | null
+  chanceValue?: number | string | null
+  chanceText?: string | null
+  conditions?: string | null
+  notes?: string | null
+  sortOrder?: number | string | null
+  itemName?: string | null
+  itemNameZh?: string | null
+  itemInternalName?: string | null
+  itemImage?: string | null
+}
+
+export type PublicBossDetail = PublicBossListItem & {
+  members?: PublicBossMember[] | null
+  referenceMembers?: PublicBossMember[] | null
+  lootOwnerNpc?: PublicBossMember | null
+  lootEntries?: PublicBossLootEntry[] | null
+  directLootCount?: number | string | null
+  treasureBagLootCount?: number | string | null
+}
+
+export type BossCatalogCard = {
+  id: string
+  bossId: number | null
+  detailPath: string
+  code: string
+  name: string
+  displayName: string
+  englishName: string
+  type: string
+  image: string
+  sourceImage: string
+  fallback: string
+  progressionOrder: number | null
+  summonMethod: string
+  summary: string
+  memberCount: number | null
+  lootEntryCount: number | null
+  uniqueLootItemCount: number | null
+  searchText: string
+}
+
+export type PublicBossesResult = {
+  items: BossCatalogCard[]
+  rawBosses: PublicBossListItem[]
+  pagination: Pagination
+  source: 'api' | 'fallback'
+}
+
+export type PublicBossDetailResult = {
+  detail: PublicBossDetail | null
+  item: BossCatalogCard | null
+  members: PublicBossMember[]
+  referenceMembers: PublicBossMember[]
+  lootEntries: PublicBossLootEntry[]
+  source: 'api' | 'missing'
+}
+
+export type PublicBiomeResource = {
+  id?: number | string | null
+  biomeId?: number | string | null
+  itemId?: number | string | null
+  resourceNameRaw?: string | null
+  resourceType?: string | null
+  notes?: string | null
+  sortOrder?: number | string | null
+  itemName?: string | null
+  itemInternalName?: string | null
+  itemImage?: string | null
+}
+
+export type PublicBiomeRelation = {
+  id?: number | string | null
+  biomeId?: number | string | null
+  relatedBiomeId?: number | string | null
+  relationType?: string | null
+  notes?: string | null
+  relatedBiomeCode?: string | null
+  relatedBiomeNameEn?: string | null
+  relatedBiomeNameZh?: string | null
+}
+
+export type PublicBiomeListItem = {
+  id?: number | string | null
+  code?: string | null
+  nameEn?: string | null
+  nameZh?: string | null
+  aliasEn?: string | null
+  aliasZh?: string | null
+  layerType?: string | null
+  biomeType?: string | null
+  wikiGroupCode?: string | null
+  wikiGroupNameEn?: string | null
+  wikiGroupNameZh?: string | null
+  wikiParentGroupCode?: string | null
+  wikiParentGroupNameEn?: string | null
+  wikiParentGroupNameZh?: string | null
+  wikiSectionLevel?: number | string | null
+  wikiSortOrder?: number | string | null
+  wikiSectionAnchor?: string | null
+  description?: string | null
+  iconUrl?: string | null
+  sourceProvider?: string | null
+  sourcePage?: string | null
+  sourceRevisionTimestamp?: string | null
+  lastSyncedAt?: string | null
+  resources?: PublicBiomeResource[] | null
+  relations?: PublicBiomeRelation[] | null
+}
+
+export type BiomeCatalogTile = {
+  id: string
+  biomeId: number | null
+  detailPath: string
+  code: string
+  name: string
+  displayName: string
+  englishName: string
+  image: string
+  sourceImage: string
+  fallback: string
+  layerType: string
+  biomeType: string
+  groupLabel: string
+  description: string
+  resourceCount: number
+  relationCount: number
+  searchText: string
+}
+
+export type PublicBiomesResult = {
+  items: BiomeCatalogTile[]
+  rawBiomes: PublicBiomeListItem[]
+  source: 'api' | 'fallback'
+}
+
+export type PublicBiomeDetailResult = {
+  detail: PublicBiomeListItem | null
+  item: BiomeCatalogTile | null
+  resources: PublicBiomeResource[]
+  relations: PublicBiomeRelation[]
+  source: 'api' | 'missing'
+}
+
+export type PublicRecipeTreeResult = {
+  itemId: string
+  tree: PublicItemRecipeTree | null
+  source: 'api' | 'missing'
 }

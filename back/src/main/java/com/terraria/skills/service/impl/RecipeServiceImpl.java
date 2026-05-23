@@ -451,6 +451,7 @@ public class RecipeServiceImpl implements RecipeService {
     ) {
         RecipeIngredientDTO dto = new RecipeIngredientDTO();
         BeanUtils.copyProperties(ingredient, dto);
+        applyDisplayQuantityDefaults(dto);
         if (item != null) {
             dto.setItemName(item.getName());
             dto.setItemNameZh(item.getNameZh());
@@ -460,6 +461,27 @@ public class RecipeServiceImpl implements RecipeService {
             dto.setItemInternalName(ingredient.getIngredientInternalName());
         }
         return dto;
+    }
+
+    private void applyDisplayQuantityDefaults(RecipeIngredientDTO dto) {
+        if (dto == null || "group".equalsIgnoreCase(dto.getIngredientGroupType())) {
+            return;
+        }
+
+        boolean missingQuantity = trimToNull(dto.getQuantityText()) == null
+            && dto.getQuantityMin() == null
+            && dto.getQuantityMax() == null;
+        boolean zeroQuantity = trimToNull(dto.getQuantityText()) == null
+            && dto.getQuantityMin() != null
+            && dto.getQuantityMax() != null
+            && dto.getQuantityMin() == 0
+            && dto.getQuantityMax() == 0;
+
+        if (missingQuantity || zeroQuantity) {
+            dto.setQuantityText("1");
+            dto.setQuantityMin(1);
+            dto.setQuantityMax(1);
+        }
     }
 
     private RecipeStationDTO toStationDto(

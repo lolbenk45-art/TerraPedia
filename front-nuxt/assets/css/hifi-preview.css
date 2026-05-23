@@ -1403,6 +1403,12 @@ img[data-preview-fallback] {
     rgba(255, 255, 255, 0.04);
 }
 
+.sprite-frame .item-art {
+  width: 100%;
+  height: 100%;
+  --tp-preview-image-size: 82%;
+}
+
 .home-screen {
   background:
     radial-gradient(circle at 16% 8%, rgba(214, 177, 90, 0.08), transparent 28rem),
@@ -3559,19 +3565,24 @@ img[data-preview-fallback] {
     #101b13;
   box-shadow: inset 0 0 0 1px rgba(214, 177, 90, 0.28);
 }
-.detail-icon-stage .item-art { width: 76px; height: 76px; }
+.detail-icon-stage .item-art {
+  width: 76px;
+  height: 76px;
+  --tp-preview-image-size: 88%;
+}
 .detail-screen .sprite-frame .item-art,
 .detail-screen .recipe-node .item-art,
 .detail-screen .source-row .item-art {
-  width: 46px;
-  height: 46px;
+  width: 100%;
+  height: 100%;
+  --tp-preview-image-size: 86%;
 }
 .detail-screen .item-art img {
   display: block;
-  width: 90%;
-  height: 90%;
-  max-width: 100%;
-  max-height: 100%;
+  width: auto;
+  height: auto;
+  max-width: var(--tp-preview-image-size, 90%);
+  max-height: var(--tp-preview-image-size, 90%);
   object-fit: contain;
   image-rendering: pixelated;
 }
@@ -3661,6 +3672,35 @@ img[data-preview-fallback] {
   margin-bottom: 18px;
 }
 .module-title :where(h2, h3) { margin: 0; font-size: 22px; }
+.module-title span:not(.tag) {
+  display: block;
+  margin-top: 5px;
+  color: rgba(244, 234, 208, 0.56);
+  font-size: 12px;
+  font-weight: 800;
+}
+.recipe-variant-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -4px 0 16px;
+}
+.recipe-variant-tab {
+  min-height: var(--control-height-sm);
+  border: 1px solid var(--button-control-border);
+  border-radius: var(--control-radius);
+  background: var(--button-control-bg);
+  color: var(--button-control-fg);
+  padding: var(--control-padding-y) var(--control-padding-x);
+  font-size: var(--font-size-sm);
+  font-weight: var(--control-font-weight);
+  box-shadow: var(--button-control-shadow);
+}
+.recipe-variant-tab.active {
+  border-color: var(--button-control-active-border);
+  background: var(--button-control-active-bg);
+  color: var(--button-control-active-fg);
+}
 .recipe-tree {
   display: grid;
   grid-template-columns: 1fr 42px 1fr 42px 1fr;
@@ -3679,6 +3719,87 @@ img[data-preview-fallback] {
 }
 .recipe-node b { display: block; }
 .recipe-arrow { display: grid; place-items: center; color: #ffd765; font-weight: 900; }
+.detail-module .recipe-tree-stage--detail {
+  max-width: 100%;
+  max-height: 720px;
+  overflow: auto;
+  border: 1px solid rgba(244, 234, 208, 0.1);
+  border-radius: 8px;
+  background:
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(90, 65, 52, 0.36);
+  background-size: 40px 40px, 40px 40px, auto;
+  padding: 20px 16px 24px;
+  overscroll-behavior: contain;
+}
+.recipe-tree-roots {
+  display: flex;
+  align-items: start;
+  justify-content: flex-start;
+  gap: 36px;
+  min-width: max-content;
+}
+.detail-module .recipe-tree-stage--detail .recipe-branch {
+  min-width: 156px;
+  max-width: none;
+}
+.detail-module .recipe-tree-stage--detail .recipe-branch.is-leaf {
+  width: 156px;
+  max-width: 156px;
+}
+.detail-module .recipe-tree-stage--detail .recipe-branch:not(.is-leaf)::after,
+.detail-module .recipe-tree-stage--detail .recipe-children::before,
+.detail-module .recipe-tree-stage--detail .recipe-children > .recipe-branch::before {
+  background: rgba(0, 0, 0, 0.72);
+}
+.detail-module .recipe-tree-stage--detail .recipe-tree-node {
+  grid-template-columns: 38px minmax(0, 1fr);
+  width: min(156px, 100%);
+  min-height: 56px;
+  border: 2px solid #050302;
+  border-radius: 6px;
+  background: rgba(91, 65, 54, 0.96);
+  box-shadow: inset 0 1px 0 rgba(244, 234, 208, 0.09);
+  padding: 7px;
+}
+.detail-module .recipe-tree-stage--detail .recipe-branch.is-root > .recipe-tree-node {
+  border-color: #050302;
+  background:
+    radial-gradient(circle at 18% 24%, rgba(217, 185, 91, 0.18), transparent 48%),
+    rgba(91, 65, 54, 0.96);
+}
+.detail-module .recipe-tree-stage--detail .recipe-tree-node .item-art {
+  width: 34px;
+  height: 34px;
+}
+.detail-module .recipe-tree-stage--detail .recipe-tree-node b {
+  color: #66f0ee;
+  font-size: 12px;
+}
+.detail-module .recipe-tree-stage--detail .recipe-tree-node span {
+  color: rgba(244, 234, 208, 0.78);
+  font-size: 10px;
+}
+.detail-module .recipe-tree-stage--detail .recipe-station-row {
+  width: min(156px, 100%);
+  min-height: 24px;
+}
+.detail-module .recipe-tree-stage--detail .recipe-station-chip {
+  max-width: 136px;
+  border-color: transparent;
+  background: transparent;
+  padding: 0;
+}
+.detail-module .recipe-tree-stage--detail .recipe-station-chip b {
+  color: rgba(244, 234, 208, 0.68);
+  font-size: 10px;
+}
+.detail-module .recipe-tree-stage--detail .recipe-children {
+  gap: 18px 10px;
+  min-width: 156px;
+  padding-top: 16px;
+}
 .source-table { display: grid; gap: 10px; }
 .source-row {
   display: grid;
@@ -4073,6 +4194,13 @@ img[data-preview-fallback] {
   .evidence-panel,
   .article-side { position: static; }
   .item-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .recipe-tree-roots {
+    gap: 22px;
+  }
+  .detail-module .recipe-tree-stage--detail {
+    max-height: 620px;
+    padding: 16px 12px 20px;
+  }
   .search-tool-screen .home-main {
     padding: 22px 18px 42px;
   }
@@ -4515,6 +4643,30 @@ img[data-preview-fallback] {
   background: rgba(244,234,208,0.035);
 }
 .npc-card i { width: 60px; height: 60px; }
+.npc-card i .item-art,
+.portrait-stage .item-art,
+.npc-detail-portrait .item-art,
+.boss-node i .item-art,
+.moon-stage .item-art,
+.effect-card i .item-art,
+.projectile-card i .item-art,
+.armor-stage .item-art {
+  width: 100%;
+  height: 100%;
+}
+.npc-card i .item-art {
+  margin: 0;
+  --tp-preview-image-size: 82%;
+}
+.portrait-stage .item-art { --tp-preview-image-size: 78%; }
+.npc-detail-portrait .item-art { --tp-preview-image-size: 72%; }
+.boss-node i .item-art,
+.moon-stage .item-art,
+.effect-card i .item-art,
+.projectile-card i .item-art,
+.armor-stage .item-art {
+  --tp-preview-image-size: 82%;
+}
 .npc-card img,
 .portrait-stage img,
 .npc-detail-portrait img,
@@ -4602,7 +4754,17 @@ img[data-preview-fallback] {
   padding: 28px;
 }
 .npc-detail-portrait { min-height: 220px; }
-.npc-detail-portrait img { width: 104px; height: 104px; }
+.npc-detail-portrait img {
+  width: auto;
+  height: auto;
+  max-width: var(--tp-preview-image-size, 104px);
+  max-height: var(--tp-preview-image-size, 104px);
+}
+.entity-detail-layout .sprite-frame .item-art {
+  width: 100%;
+  height: 100%;
+  --tp-preview-image-size: 86%;
+}
 .npc-detail-copy h2,
 .boss-command :where(h2, h3),
 .effect-hero-panel :where(h2, h3),
@@ -4733,7 +4895,10 @@ img[data-preview-fallback] {
 }
 .boss-node {
   position: relative;
-  min-height: 340px;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  align-content: start;
+  min-height: 360px;
   padding: 22px;
 }
 .boss-node::before {
@@ -4741,7 +4906,7 @@ img[data-preview-fallback] {
   position: absolute;
   left: 22px;
   right: 22px;
-  top: 94px;
+  top: 204px;
   height: 1px;
   background: var(--index-line);
 }
@@ -4754,11 +4919,38 @@ img[data-preview-fallback] {
     rgba(244,234,208,0.035);
   background-size: auto, 40px 40px, 40px 40px, auto;
 }
-.boss-node i {
+.boss-node .boss-node-visual {
   position: relative;
   z-index: 1;
-  width: 88px;
-  height: 88px;
+  width: min(100%, 224px);
+  height: 168px;
+  overflow: hidden;
+}
+.boss-node-visual .boss-node-backdrop,
+.boss-node-visual .boss-node-sprite {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+.boss-node-visual .boss-node-backdrop {
+  opacity: 0.18;
+}
+.boss-node-visual .boss-node-sprite {
+  padding: 8px;
+}
+.boss-node-visual .boss-node-backdrop img,
+.boss-node-visual .boss-node-sprite img {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  object-fit: contain;
+  object-position: center;
 }
 .boss-node span,
 .armor-card span,
@@ -4769,12 +4961,20 @@ img[data-preview-fallback] {
   font-size: 12px;
   font-weight: 900;
 }
+.boss-node-type {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .boss-node :where(h2, h3),
 .effect-card :where(h2, h3),
 .projectile-card :where(h2, h3),
 .armor-card :where(h2, h3) {
   margin: 8px 0 0;
   font-size: 22px;
+}
+.boss-node h3 {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .boss-node p,
 .effect-card p,
@@ -4783,22 +4983,36 @@ img[data-preview-fallback] {
   color: rgba(244, 234, 208, 0.6);
   line-height: 1.62;
 }
+.boss-node-summary,
+.biome-tile-description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+}
+.boss-node-summary {
+  -webkit-line-clamp: 5;
+  margin: 12px 0 0;
+}
 .node-meta {
-  position: absolute;
-  left: 22px;
-  right: 22px;
-  bottom: 22px;
   display: flex;
   justify-content: space-between;
   gap: 12px;
+  margin-top: 18px;
   border-top: 1px solid var(--index-line);
   padding-top: 14px;
+}
+.boss-node-meta {
+  align-self: end;
+  min-width: 0;
 }
 .node-meta b { color: var(--gold-2); font-size: 13px; }
 .node-meta em {
   color: rgba(244, 234, 208, 0.48);
   font-size: 12px;
   font-style: normal;
+  overflow-wrap: anywhere;
+  text-align: right;
 }
 
 .boss-lower-grid {
@@ -4853,11 +5067,17 @@ img[data-preview-fallback] {
 }
 .effect-card i .item-art,
 .projectile-card i .item-art {
-  width: 44px;
-  height: 44px;
+  width: 100%;
+  height: 100%;
+  --tp-preview-image-size: 82%;
 }
 .effect-card i img,
-.projectile-card i img { width: 44px; height: 44px; }
+.projectile-card i img {
+  width: auto;
+  height: auto;
+  max-width: var(--tp-preview-image-size, 82%);
+  max-height: var(--tp-preview-image-size, 82%);
+}
 .effect-card dl {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5417,9 +5637,71 @@ img[data-preview-fallback] {
   gap: 14px;
 }
 .biome-tile {
-  min-height: 220px;
+  min-height: 260px;
   display: grid;
-  align-content: end;
+  grid-template-rows: auto auto auto auto;
+  align-content: start;
+  gap: 12px;
+}
+.biome-tile-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 188px;
+  overflow: hidden;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(217, 185, 91, 0.16), transparent 66%),
+    rgba(244,234,208,0.035);
+}
+.biome-tile-art .biome-tile-backdrop,
+.biome-tile-art .biome-tile-thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+.biome-tile-art .biome-tile-backdrop {
+  opacity: 0.18;
+}
+.biome-tile-art .biome-tile-thumb {
+  padding: 8px 10px;
+}
+.biome-tile-art .biome-tile-backdrop img,
+.biome-tile-art .biome-tile-thumb img {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  object-fit: contain;
+  object-position: center;
+}
+.biome-tile-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.biome-tile-description {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  max-height: 7.75em;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.biome-tile-meta {
+  align-self: end;
+  border-top: 1px solid var(--index-line);
+  color: #9db89a;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+  padding-top: 12px;
 }
 .biome-tile.forest { background-color: rgba(62, 96, 50, 0.16); }
 .biome-tile.desert { background-color: rgba(143, 114, 55, 0.14); }
@@ -5690,7 +5972,7 @@ img[data-preview-fallback] {
 
 .crafting-workbench {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(190px, 0.48fr) minmax(0, 1.6fr) minmax(190px, 0.52fr);
   gap: 18px;
 }
 
@@ -5846,6 +6128,618 @@ img[data-preview-fallback] {
   top: 346px;
   width: 150px;
   transform: rotate(90deg);
+}
+
+.crafting-suggestion-button {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  justify-content: start;
+  gap: 2px 10px;
+  min-height: 64px;
+  text-align: left;
+  width: 100%;
+}
+.crafting-suggestion-button .item-art {
+  grid-row: 1 / 3;
+  width: 40px;
+  height: 40px;
+}
+.crafting-suggestion-button b,
+.crafting-suggestion-button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.crafting-suggestion-button b {
+  color: var(--paper);
+  font-size: 14px;
+}
+.crafting-suggestion-button span {
+  margin: 0;
+  color: rgba(244, 234, 208, 0.56);
+  font-size: 12px;
+}
+
+.recipe-tree-canvas {
+  min-height: 0;
+  overflow: visible;
+  padding: 22px;
+}
+.recipe-tree-canvas::before {
+  inset: 14px;
+}
+.crafting-layout > .recipe-full-tree {
+  overflow: hidden;
+  padding: 22px;
+}
+.crafting-layout > .recipe-full-tree::before {
+  inset: 14px;
+}
+.recipe-tree-stack,
+.recipe-top-layer,
+.recipe-full-tree {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.recipe-tree-section-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: end;
+  min-width: 0;
+  border-bottom: 1px solid rgba(244, 234, 208, 0.08);
+  padding-bottom: 12px;
+}
+.recipe-tree-section-head h3 {
+  margin: 6px 0 0;
+  color: var(--paper);
+  font-size: 22px;
+  line-height: 1.15;
+}
+.recipe-tree-section-head small {
+  color: rgba(244, 234, 208, 0.52);
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+.recipe-top-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+.recipe-top-card {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  border: 1px solid rgba(244, 234, 208, 0.1);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(217, 185, 91, 0.08), transparent 48%),
+    rgba(244,234,208,0.026);
+  padding: 12px;
+}
+.recipe-top-result {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 4px 14px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+.recipe-top-result .item-art {
+  grid-row: 1 / 3;
+  width: 64px;
+  height: 64px;
+}
+.recipe-top-result b,
+.recipe-top-result span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recipe-top-result b {
+  color: var(--paper);
+  font-size: 16px;
+}
+.recipe-top-result span {
+  color: #9db89a;
+  font-size: 12px;
+  font-weight: 900;
+}
+.recipe-top-materials {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+.recipe-top-materials a {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 1px 8px;
+  align-items: center;
+  min-width: 0;
+  min-height: 52px;
+  border: 1px solid rgba(244, 234, 208, 0.08);
+  border-radius: 8px;
+  background: rgba(7, 12, 9, 0.18);
+  color: inherit;
+  padding: 7px;
+  text-decoration: none;
+}
+.recipe-top-materials .item-art {
+  grid-row: 1 / 3;
+  width: 36px;
+  height: 36px;
+}
+.recipe-top-materials b,
+.recipe-top-materials span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recipe-top-materials b {
+  color: var(--paper);
+  font-size: 12px;
+}
+.recipe-top-materials span {
+  color: rgba(244, 234, 208, 0.52);
+  font-size: 11px;
+}
+.recipe-tree-stage {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 22px;
+  align-items: start;
+  align-content: start;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+}
+.crafting-layout > .recipe-full-tree .recipe-tree-stage {
+  overflow-x: auto;
+  overflow-y: visible;
+  border: 1px solid rgba(244, 234, 208, 0.08);
+  border-radius: 8px;
+  background:
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(7, 12, 9, 0.14);
+  background-size: 40px 40px, 40px 40px, auto;
+  padding: 18px 14px 22px;
+  overscroll-behavior-x: contain;
+}
+.recipe-tree-grid {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+}
+.recipe-tree-canvas .recipe-node-card,
+.recipe-tree-canvas .recipe-node-card.root {
+  position: relative;
+  left: auto;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  transform: none;
+  width: auto;
+  min-width: 0;
+  min-height: 260px;
+  align-content: start;
+  justify-items: stretch;
+  gap: 14px;
+  text-align: left;
+}
+.recipe-node-main {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 4px 14px;
+  align-items: center;
+}
+.recipe-node-main .item-art {
+  grid-row: 1 / 3;
+  width: 64px;
+  height: 64px;
+}
+.recipe-node-main b {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.recipe-node-main em {
+  margin: 0;
+}
+.recipe-branch {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-items: start;
+  align-content: start;
+  align-self: start;
+  gap: 8px;
+  width: max-content;
+  max-width: 1240px;
+  min-width: 196px;
+  height: auto;
+}
+.recipe-branch.is-root {
+  padding-top: 4px;
+}
+.recipe-branch.is-leaf {
+  width: 196px;
+  max-width: 196px;
+}
+.recipe-branch:not(.is-leaf)::after {
+  content: "";
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  width: 1px;
+  height: 18px;
+  background: rgba(217, 185, 91, 0.24);
+  pointer-events: none;
+}
+.recipe-tree-node {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 2px 10px;
+  width: min(196px, 100%);
+  height: auto;
+  min-height: 64px;
+  border: 1px solid rgba(244, 234, 208, 0.1);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(244, 234, 208, 0.04), transparent 54%),
+    rgba(7, 12, 9, 0.2);
+  color: inherit;
+  box-shadow: inset 0 1px 0 rgba(244,234,208,0.035);
+  padding: 9px;
+  text-align: left;
+  text-decoration: none;
+}
+.recipe-branch.is-root > .recipe-tree-node {
+  border-color: var(--index-line-strong);
+  background:
+    linear-gradient(135deg, rgba(217, 185, 91, 0.13), transparent 52%),
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(244,234,208,0.04);
+  background-size: auto, 40px 40px, 40px 40px, auto;
+}
+.recipe-branch.is-leaf > .recipe-tree-node {
+  background: rgba(244,234,208,0.022);
+}
+.recipe-tree-node .item-art {
+  grid-row: 1 / 3;
+  width: 44px;
+  height: 44px;
+}
+.recipe-tree-node b,
+.recipe-tree-node span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recipe-tree-node b {
+  color: var(--paper);
+  font-size: 13px;
+}
+.recipe-tree-node span {
+  color: #9db89a;
+  font-size: 11px;
+  font-weight: 900;
+}
+.recipe-station-row {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  width: min(196px, 100%);
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.recipe-station-chip {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-rows: auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 150px;
+  min-height: 30px;
+  border: 1px solid rgba(157, 184, 154, 0.18);
+  border-radius: 999px;
+  background: rgba(157, 184, 154, 0.055);
+  padding: 3px 8px 3px 4px;
+}
+.recipe-station-chip .item-art {
+  grid-row: auto;
+  width: 22px;
+  height: 22px;
+}
+.recipe-station-chip b,
+.recipe-station-chip small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recipe-station-chip b {
+  color: var(--paper);
+  font-size: 11px;
+}
+.recipe-station-chip small {
+  display: none;
+}
+.recipe-children {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: start;
+  align-content: start;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 22px 12px;
+  width: max-content;
+  max-width: 1240px;
+  min-width: 196px;
+  padding-top: 18px;
+}
+.recipe-children > .recipe-branch {
+  flex: 0 0 auto;
+}
+.recipe-children::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 14%;
+  right: 14%;
+  height: 1px;
+  background: rgba(217, 185, 91, 0.22);
+}
+.recipe-children > .recipe-branch::before {
+  content: "";
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  width: 1px;
+  height: 18px;
+  background: rgba(217, 185, 91, 0.22);
+}
+.crafting-layout > .recipe-full-tree .recipe-branch {
+  gap: 6px;
+  min-width: 172px;
+}
+.crafting-layout > .recipe-full-tree .recipe-branch.is-leaf {
+  width: 172px;
+  max-width: 172px;
+}
+.crafting-layout > .recipe-full-tree .recipe-branch:not(.is-leaf)::after {
+  top: 56px;
+  height: 14px;
+}
+.crafting-layout > .recipe-full-tree .recipe-tree-node {
+  grid-template-columns: 42px minmax(0, 1fr);
+  width: min(172px, 100%);
+  min-height: 56px;
+  gap: 1px 8px;
+  padding: 7px;
+}
+.crafting-layout > .recipe-full-tree .recipe-tree-node .item-art {
+  width: 36px;
+  height: 36px;
+}
+.crafting-layout > .recipe-full-tree .recipe-tree-node b {
+  font-size: 12px;
+}
+.crafting-layout > .recipe-full-tree .recipe-tree-node span {
+  font-size: 10px;
+}
+.crafting-layout > .recipe-full-tree .recipe-station-row {
+  width: min(172px, 100%);
+  gap: 4px;
+}
+.crafting-layout > .recipe-full-tree .recipe-station-chip {
+  grid-template-columns: 20px minmax(0, 1fr);
+  max-width: 132px;
+  min-height: 26px;
+  gap: 5px;
+  padding: 2px 7px 2px 3px;
+}
+.crafting-layout > .recipe-full-tree .recipe-station-chip .item-art {
+  width: 18px;
+  height: 18px;
+}
+.crafting-layout > .recipe-full-tree .recipe-station-chip b {
+  font-size: 10px;
+}
+.crafting-layout > .recipe-full-tree .recipe-children {
+  gap: 16px 10px;
+  min-width: 172px;
+  padding-top: 14px;
+}
+.crafting-layout > .recipe-full-tree .recipe-children > .recipe-branch::before {
+  top: -14px;
+  height: 14px;
+}
+
+.recipe-branch.is-wiki-flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: max-content;
+  min-width: 172px;
+  max-width: none;
+}
+.recipe-branch.is-wiki-flow:not(.is-leaf)::after {
+  display: none;
+}
+.recipe-branch.is-wiki-flow > .recipe-children {
+  order: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  flex-wrap: nowrap;
+  gap: 20px;
+  width: max-content;
+  max-width: none;
+  min-width: 172px;
+  padding-top: 0;
+  padding-bottom: 18px;
+}
+.recipe-ingredient-branch {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  flex: 0 0 auto;
+  width: max-content;
+  min-width: 172px;
+  overflow: visible;
+}
+.recipe-child-expansion {
+  flex: 0 0 auto;
+}
+.recipe-child-expansion > .recipe-tree-node {
+  display: none;
+}
+.recipe-child-expansion > .recipe-station-row {
+  display: none;
+}
+.recipe-alternative-recipes {
+  order: 1;
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  width: max-content;
+  min-width: 172px;
+  max-width: none;
+  border: 1px dashed rgba(217, 185, 91, 0.34);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(217, 185, 91, 0.08), transparent 58%),
+    rgba(7, 12, 9, 0.28);
+  box-shadow: inset 0 1px 0 rgba(244,234,208,0.04);
+  padding: 10px 12px 12px;
+}
+.recipe-alternative-recipes::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -15px;
+  width: 1px;
+  height: 15px;
+  background: rgba(217, 185, 91, 0.24);
+  pointer-events: none;
+}
+.recipe-alternative-option {
+  display: grid;
+  justify-items: center;
+  width: max-content;
+  min-width: 172px;
+  max-width: none;
+  border: 1px solid rgba(244, 234, 208, 0.08);
+  border-radius: 8px;
+  background: rgba(244,234,208,0.024);
+  padding: 8px;
+}
+.recipe-alternative-separator {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  min-height: 24px;
+  border: 1px solid rgba(217, 185, 91, 0.28);
+  border-radius: 999px;
+  background: rgba(217, 185, 91, 0.1);
+  color: var(--gold-2);
+  font-size: 12px;
+  font-weight: 900;
+}
+.recipe-alternative-expansion > .recipe-tree-node {
+  display: none;
+}
+.recipe-ingredient-node {
+  flex: 0 0 auto;
+  z-index: 4;
+}
+.recipe-branch.is-wiki-flow > .recipe-children::before {
+  top: auto;
+  bottom: 0;
+  left: 12%;
+  right: 12%;
+}
+.recipe-branch.is-wiki-flow > .recipe-children > .recipe-ingredient-branch::before {
+  content: "";
+  position: absolute;
+  top: auto;
+  left: 50%;
+  width: 1px;
+  height: 18px;
+  bottom: -18px;
+  background: rgba(217, 185, 91, 0.22);
+  pointer-events: none;
+}
+.recipe-branch.is-wiki-flow > .recipe-station-row {
+  order: 2;
+  position: relative;
+  width: 100%;
+  max-width: none;
+  min-width: 172px;
+  margin: 0;
+  padding: 8px 0;
+}
+.recipe-branch.is-wiki-flow > .recipe-station-row::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: rgba(217, 185, 91, 0.24);
+  pointer-events: none;
+}
+.recipe-branch.is-wiki-flow > .recipe-station-row::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1px;
+  height: 20px;
+  background: rgba(217, 185, 91, 0.24);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.recipe-branch.is-wiki-flow > .recipe-station-row > .recipe-station-chip {
+  position: relative;
+  z-index: 2;
+}
+.recipe-branch.is-wiki-flow > .recipe-tree-node {
+  order: 3;
+  margin-top: 12px;
+}
+.recipe-branch.is-wiki-flow.is-leaf > .recipe-tree-node {
+  margin-top: 0;
 }
 
 .user-avatar {
@@ -7195,6 +8089,9 @@ img[data-preview-fallback] {
 .npc-card,
 .entity-filter,
 .boss-prep-matrix a,
+.recipe-top-result,
+.recipe-top-materials a,
+.recipe-tree-node,
 .armor-route-band a,
 .contact-grid a,
 .projectile-facts span,
@@ -7236,6 +8133,9 @@ img[data-preview-fallback] {
 .npc-card:hover,
 .entity-filter:hover,
 .boss-prep-matrix a:hover,
+.recipe-top-result:hover,
+.recipe-top-materials a:hover,
+.recipe-tree-node:hover,
 .armor-route-band a:hover,
 .contact-grid a:hover,
 .search-result-card a:hover,
@@ -7429,9 +8329,21 @@ img[data-preview-fallback] {
   }
   .recipe-canvas {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 14px;
     min-height: auto;
+  }
+  .recipe-children {
+    width: 100%;
+    max-width: 100%;
+    justify-content: center;
+  }
+  .recipe-children::before {
+    left: 24%;
+    right: 24%;
+    width: auto;
+    height: 1px;
+    opacity: 0.48;
   }
   .recipe-connector {
     display: none;

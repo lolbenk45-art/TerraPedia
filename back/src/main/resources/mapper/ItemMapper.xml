@@ -271,7 +271,10 @@
             i.game_period_id AS gamePeriodId,
             COALESCE(gp.display_name_zh, gp.display_name_en) AS gamePeriod,
             i.is_stackable AS isStackable,
-            i.stack_size AS stackSize
+            i.stack_size AS stackSize,
+            COALESCE(NULLIF(i.buy, 0), NULLIF(i.sell, 0)) AS price,
+            i.buy,
+            i.sell
         FROM (
             SELECT
                 i.id,
@@ -283,7 +286,9 @@
                 i.rarity_id,
                 i.game_period_id,
                 i.is_stackable,
-                i.stack_size
+                i.stack_size,
+                i.buy,
+                i.sell
             FROM items i FORCE INDEX (idx_items_deleted)
             <where>
                 i.deleted = 0

@@ -199,13 +199,11 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         node.setItemName(firstNonBlank(ingredient.getItemName(), rawIngredientName));
         node.setItemNameZh(firstNonBlank(ingredient.getItemNameZh()));
         node.setItemImage(managedImageOrNull(ingredient.getItemImage()));
-        node.setQuantityText(trimToNull(ingredient.getQuantityText()));
-        node.setQuantityMin(ingredient.getQuantityMin());
-        node.setQuantityMax(ingredient.getQuantityMax());
         node.setIngredientGroupType(defaultIfBlank(ingredient.getIngredientGroupType(), "item"));
         node.setDepth(depth);
 
         boolean groupNode = "group".equalsIgnoreCase(node.getIngredientGroupType());
+        applyDisplayQuantity(node, ingredient, groupNode);
         if (groupNode) {
             String fallbackGroupLabel = firstNonBlank(rawIngredientName, ingredient.getIngredientInternalName());
             RecipeGroupReference reference = groupReferences.get(normalizeKey(fallbackGroupLabel));
@@ -294,6 +292,30 @@ public class RecipeTreeServiceImpl implements RecipeTreeService {
         }
         node.setChildren(children);
         return node;
+    }
+
+    private void applyDisplayQuantity(RecipeTreeNodeDTO node, RecipeIngredientDTO ingredient, boolean groupNode) {
+        String quantityText = trimToNull(ingredient.getQuantityText());
+        Integer quantityMin = ingredient.getQuantityMin();
+        Integer quantityMax = ingredient.getQuantityMax();
+
+        boolean missingQuantity = quantityText == null && quantityMin == null && quantityMax == null;
+        boolean zeroQuantity = quantityText == null
+            && quantityMin != null
+            && quantityMax != null
+            && quantityMin == 0
+            && quantityMax == 0;
+
+        if (!groupNode && (missingQuantity || zeroQuantity)) {
+            node.setQuantityText("1");
+            node.setQuantityMin(1);
+            node.setQuantityMax(1);
+            return;
+        }
+
+        node.setQuantityText(quantityText);
+        node.setQuantityMin(quantityMin);
+        node.setQuantityMax(quantityMax);
     }
 
     private List<RecipeDTO> resolveChildRecipes(Long itemId, String variantScope, Map<String, List<RecipeDTO>> recipeCache) {

@@ -1,63 +1,197 @@
+<script setup lang="ts">
+import { usePublicBossDetail } from '~/composables/usePublicBossDetail'
+
+const route = useRoute()
+const bossClientReady = ref(false)
+const bossDetailVisualLoading = ref(true)
+const bossDetailVisualLoadingMinimumMs = 180
+let bossDetailVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
+let bossDetailVisualLoadingStartedAt = Date.now()
+
+const bossRouteId = computed(() => String(route.params.id ?? '').trim())
+
+const {
+  data: bossBundle,
+  pending: bossPending,
+  error: bossError,
+  refresh: refreshBossDetail,
+} = await usePublicBossDetail(bossRouteId)
+
+const bossDetail = computed(() => bossBundle.value?.detail ?? null)
+const bossCard = computed(() => bossBundle.value?.item ?? null)
+const bossMembers = computed(() => bossBundle.value?.members ?? [])
+const bossReferenceMembers = computed(() => bossBundle.value?.referenceMembers ?? [])
+const bossLootEntries = computed(() => bossBundle.value?.lootEntries ?? [])
+const bossRawLoading = computed(() => !bossClientReady.value || bossPending.value)
+const bossMissing = computed(() => bossClientReady.value && !bossPending.value && !bossDetail.value)
+const bossTitle = computed(() => bossCard.value?.displayName || bossDetail.value?.nameZh || bossDetail.value?.name || 'Boss 详情')
+const bossSubtitle = computed(() => bossCard.value?.englishName || bossDetail.value?.nameEn || bossDetail.value?.code || 'Public boss detail')
+
+const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
+const displayText = (...values: unknown[]) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
+const entryImage = (value: { itemImage?: string | null; imageUrl?: string | null }) => resolvePreviewImageUrl(value.itemImage || value.imageUrl || '')
+const memberImage = (value: { imageUrl?: string | null }) => resolvePreviewImageUrl(value.imageUrl || '')
+const lootTitle = (entry: { itemNameZh?: string | null; itemName?: string | null; itemInternalName?: string | null }) => (
+  displayText(entry.itemNameZh, entry.itemName, entry.itemInternalName, '未命名掉落')
+)
+
+const clearBossDetailVisualLoadingTimer = () => {
+  if (bossDetailVisualLoadingTimer) {
+    clearTimeout(bossDetailVisualLoadingTimer)
+    bossDetailVisualLoadingTimer = null
+  }
+}
+
+const syncBossDetailVisualLoading = (isLoading: boolean) => {
+  clearBossDetailVisualLoadingTimer()
+
+  if (isLoading) {
+    bossDetailVisualLoadingStartedAt = Date.now()
+    bossDetailVisualLoading.value = true
+    return
+  }
+
+  const elapsed = Date.now() - bossDetailVisualLoadingStartedAt
+  const remaining = Math.max(0, bossDetailVisualLoadingMinimumMs - elapsed)
+
+  bossDetailVisualLoadingTimer = setTimeout(() => {
+    bossDetailVisualLoading.value = false
+    bossDetailVisualLoadingTimer = null
+  }, remaining)
+}
+
+watch(bossRawLoading, syncBossDetailVisualLoading, { immediate: true })
+
+onMounted(() => {
+  bossClientReady.value = true
+})
+
+onBeforeUnmount(clearBossDetailVisualLoadingTimer)
+</script>
+
 <template>
   <section class="screen entity-screen active">
     <TerraNav />
     <TerraBreadcrumb />
 
-    <main class="boss-detail-shell">
+    <main class="boss-detail-shell" :aria-busy="bossDetailVisualLoading">
       <section class="boss-detail-hero support-panel">
         <div class="boss-detail-portrait">
-          <img :src="'/preview-assets/wiki-files/Eye_of_Cthulhu_(Phase_1).gif'" alt="克苏鲁之眼" />
+          <CommonTpSkeleton v-if="bossDetailVisualLoading" type="icon" />
+          <CommonPreviewImage
+            v-else
+            :src="bossCard?.image || ''"
+            :alt="bossTitle"
+            :fallback="bossCard?.fallback || firstGlyph(bossTitle)"
+            :source-image="bossCard?.sourceImage || ''"
+            width="120"
+            height="120"
+          />
         </div>
+
         <div>
-          <span class="eyebrow">Boss · Eye of Cthulhu</span>
-          <h1>克苏鲁之眼</h1>
-          <p>早期主线 Boss。公开详情页优先展示触发、战前准备、阶段变化、关键掉落和下一步，而不是后台分组关系。</p>
+          <span class="eyebrow">
+            <CommonTpSkeleton v-if="bossDetailVisualLoading" type="pill" />
+            <template v-else>Boss · {{ bossSubtitle }}</template>
+          </span>
+          <h1>
+            <CommonTpSkeleton v-if="bossDetailVisualLoading" type="line" />
+            <template v-else>{{ bossTitle }}</template>
+          </h1>
+          <p>
+            <CommonTpSkeleton v-if="bossDetailVisualLoading" type="line" />
+            <template v-else>{{ bossCard?.summary || bossDetail?.notes || '暂无公开说明。' }}</template>
+          </p>
           <div class="tag-row">
-            <span class="tag gold">2800 HP</span>
-            <span class="tag moss">夜晚</span>
-            <span class="tag paper">可召唤</span>
-            <span class="tag paper">普通模式</span>
+            <span class="tag gold">{{ bossCard?.type || 'boss' }}</span>
+            <span class="tag moss">{{ bossCard?.progressionOrder === null ? '顺序未标注' : `推进 #${bossCard?.progressionOrder}` }}</span>
+            <span class="tag paper">{{ bossLootEntries.length }} 条掉落</span>
+            <span class="tag paper">{{ bossMembers.length }} 个成员</span>
           </div>
         </div>
+
         <aside class="boss-readiness">
-          <b>战前完成度</b>
-          <span>生命水晶、平台、远程武器、铁皮药水</span>
-          <em>建议准备 4 / 5</em>
+          <b>{{ bossDetailVisualLoading ? '加载资料' : '公开资料' }}</b>
+          <span>{{ bossDetailVisualLoading ? '读取 Boss 详情、成员和掉落' : (bossBundle?.source === 'api' ? '已载入真实 Boss 资料' : '未载入公开资料') }}</span>
+          <em>{{ bossError ? '请求异常' : bossPending ? '请求中' : bossBundle?.source === 'api' ? '已更新' : '等待重试' }}</em>
         </aside>
       </section>
 
-      <section class="boss-phase-grid">
-        <article class="support-panel boss-phase active">
-          <span>Phase 01</span>
-          <h2>试探阶段</h2>
-          <p>以冲撞和悬停召唤仆从为主，重点检查平台宽度和基础输出。</p>
-        </article>
-        <article class="support-panel boss-phase">
-          <span>Phase 02</span>
-          <h2>高速冲刺</h2>
-          <p>血量降低后切换高频冲刺，移动速度和再生能力会明显影响容错。</p>
-        </article>
-        <article class="support-panel boss-phase">
-          <span>Route</span>
-          <h2>后续推进</h2>
-          <p>胜利后继续推进邪恶地形、陨石、地牢和困难模式前装备。</p>
+      <section v-if="bossDetailVisualLoading" class="boss-phase-grid">
+        <article v-for="slot in 3" :key="`boss-detail-loading-${slot}`" class="support-panel boss-phase">
+          <span><CommonTpSkeleton type="pill" /></span>
+          <h2><CommonTpSkeleton type="line" /></h2>
+          <p><CommonTpSkeleton type="line" /><CommonTpSkeleton type="line" short /></p>
         </article>
       </section>
 
-      <section class="boss-detail-grid">
-        <article class="support-panel loot-panel">
-          <span class="eyebrow">掉落与路线</span>
-          <div class="loot-row"><b>恶魔矿 / 猩红矿</b><span>通向暗影套和恶魔弓路线</span><em>核心</em></div>
-          <div class="loot-row"><b>弱效治疗药水</b><span>早期补给</span><em>常见</em></div>
-          <div class="loot-row"><b>克苏鲁之盾</b><span>专家模式机动饰品</span><em>专家</em></div>
-        </article>
-        <article class="support-panel prep-panel">
-          <span class="eyebrow">推荐准备</span>
-          <a href="/buffs/ironskin"><b>铁皮药水</b><span>提升防御容错</span></a>
-          <a href="/items"><b>远程武器</b><span>弓、枪、手雷等早期输出</span></a>
-          <a href="/articles/eye-prep"><b>场地搭建</b><span>平台、篝火、心灯占位</span></a>
-        </article>
+      <section v-else-if="bossMissing" class="search-suggestion-band support-panel">
+        <div>
+          <b>Boss 详情暂未载入</b>
+          <span>当前 ID 没有返回公开资料，页面不会展示静态样例。</span>
+        </div>
+        <button class="small-button active" type="button" @click="refreshBossDetail()">重新加载</button>
       </section>
+
+      <template v-else>
+        <section class="boss-phase-grid">
+          <article class="support-panel boss-phase active">
+            <span>Members</span>
+            <h2>成员</h2>
+            <p>{{ bossMembers.length ? `包含 ${bossMembers.length} 个实体或部件。` : '暂无成员资料。' }}</p>
+          </article>
+          <article class="support-panel boss-phase">
+            <span>Loot</span>
+            <h2>掉落</h2>
+            <p>{{ bossLootEntries.length ? `整理 ${bossLootEntries.length} 条掉落记录。` : '暂无掉落资料。' }}</p>
+          </article>
+          <article class="support-panel boss-phase">
+            <span>Reference</span>
+            <h2>参考成员</h2>
+            <p>{{ bossReferenceMembers.length ? `包含 ${bossReferenceMembers.length} 个参考实体。` : '暂无参考成员。' }}</p>
+          </article>
+        </section>
+
+        <section class="boss-detail-grid">
+          <article class="support-panel loot-panel">
+            <span class="eyebrow">掉落</span>
+            <div v-for="entry in bossLootEntries" :key="entry.id ?? `${entry.itemId}-${entry.itemName}`" class="loot-row">
+              <CommonPreviewImage
+                :src="entryImage(entry)"
+                :alt="lootTitle(entry)"
+                :fallback="firstGlyph(lootTitle(entry))"
+                width="44"
+                height="44"
+              />
+              <b>{{ lootTitle(entry) }}</b>
+              <span>{{ displayText(entry.quantityText, entry.conditions, entry.notes, '掉落条件未标注') }}</span>
+              <em>{{ displayText(entry.chanceText, entry.dropSourceKind, '概率未标注') }}</em>
+            </div>
+            <div v-if="!bossLootEntries.length" class="loot-row">
+              <b>暂无掉落</b><span>当前没有可展示的掉落记录。</span><em>空</em>
+            </div>
+          </article>
+
+          <article class="support-panel prep-panel">
+            <span class="eyebrow">成员</span>
+            <a v-for="member in bossMembers" :key="displayText(member.id, member.gameId, member.internalName, 'member')" href="/npcs">
+              <CommonPreviewImage
+                :src="memberImage(member)"
+                :alt="displayText(member.nameZh, member.name, member.internalName, '成员')"
+                :fallback="firstGlyph(displayText(member.nameZh, member.name, member.internalName, '?'))"
+                width="40"
+                height="40"
+              />
+              <b>{{ displayText(member.nameZh, member.name, member.internalName, '未命名成员') }}</b>
+              <span>{{ displayText(member.bossRole, member.sourceBossCode, '角色未标注') }}</span>
+            </a>
+            <a v-if="!bossMembers.length" href="/bosses">
+              <b>暂无成员</b>
+              <span>当前没有可展示的成员记录。</span>
+            </a>
+          </article>
+        </section>
+      </template>
     </main>
 
     <TerraFooter />

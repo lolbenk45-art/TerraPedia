@@ -26,6 +26,9 @@ public class PublicItemListDTO implements Serializable {
     private String gamePeriod;
     private Boolean isStackable;
     private Integer stackSize;
+    private Long price;
+    private Long buy;
+    private Long sell;
 
     @JsonIgnore
     private LocalDateTime updatedAt;

@@ -1,3 +1,187 @@
+<script setup lang="ts">
+import { usePublicItems } from '~/composables/usePublicItems'
+import { usePublicRecipeTree } from '~/composables/usePublicRecipeTree'
+import type { PublicItemRecipeTreeNode, PublicItemRecipeTreeStation } from '~/types/public-api'
+
+const route = useRoute()
+const router = useRouter()
+const recipeClientReady = ref(false)
+const recipeSearchQuery = ref('')
+const recipeVisualLoading = ref(true)
+const recipeVisualLoadingMinimumMs = 320
+let recipeVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
+let recipeVisualLoadingStartedAt = Date.now()
+
+const defaultRecipeTarget = {
+  itemId: '675',
+  label: '真永夜刃',
+  internalName: 'TrueNightsEdge',
+  note: '默认示例',
+}
+
+const selectedItemId = computed(() => String(route.query.itemId ?? '').trim())
+const effectiveSelectedItemId = computed(() => selectedItemId.value || defaultRecipeTarget.itemId)
+const isDefaultRecipeTarget = computed(() => !selectedItemId.value)
+const maxDepth = computed(() => {
+  const parsed = Number(route.query.maxDepth ?? 3)
+  return Number.isFinite(parsed) && parsed > 0 ? Math.min(Math.floor(parsed), 5) : 3
+})
+
+const {
+  data: itemResults,
+  pending: itemSearchPending,
+  refresh: refreshPublicItems,
+} = await usePublicItems(() => ({
+  page: 1,
+  limit: 8,
+  search: recipeSearchQuery.value.trim() || undefined,
+}))
+
+const {
+  data: recipeBundle,
+  pending: recipePending,
+  error: recipeError,
+  refresh: refreshRecipeTree,
+} = await usePublicRecipeTree(effectiveSelectedItemId, maxDepth)
+
+const itemSuggestions = computed(() => itemResults.value?.source === 'api' ? itemResults.value.items : [])
+const showSearchUnavailable = computed(() => !itemSearchPending.value && recipeSearchQuery.value.trim().length > 0 && itemResults.value?.source !== 'api')
+const recipeTree = computed(() => recipeBundle.value?.tree ?? null)
+const recipeVariants = computed(() => recipeTree.value?.variants ?? [])
+const selectedVariantKey = ref('')
+const activeVariant = computed(() => recipeVariants.value.find((variant) => variant.variantKey === selectedVariantKey.value) ?? recipeVariants.value[0] ?? null)
+const activeRoots = computed(() => activeVariant.value?.roots ?? [])
+const recipeRawLoading = computed(() => !recipeClientReady.value || recipePending.value)
+const hasSelectedTarget = computed(() => effectiveSelectedItemId.value.length > 0)
+const recipeMissing = computed(() => recipeClientReady.value && hasSelectedTarget.value && !recipePending.value && !recipeTree.value)
+const activeTargetLabel = computed(() => {
+  const item = recipeTree.value?.item
+  return displayText(item?.nameZh, item?.name, item?.internalName, isDefaultRecipeTarget.value ? defaultRecipeTarget.label : `Item #${effectiveSelectedItemId.value}`)
+})
+const recipeExampleTargets = computed(() => [
+  {
+    itemId: defaultRecipeTarget.itemId,
+    title: defaultRecipeTarget.label,
+    meta: '默认示例 · Wiki 风格树',
+  },
+  {
+    itemId: '273',
+    title: '永夜刃',
+    meta: '多材料分支',
+  },
+  {
+    itemId: '757',
+    title: '泰拉刃',
+    meta: '终局武器链',
+  },
+  {
+    itemId: '1613',
+    title: '十字章护盾',
+    meta: '饰品合成链',
+  },
+])
+const recipeNodeChildren = (node: PublicItemRecipeTreeNode) => Array.isArray(node.children) ? node.children : []
+const recipeNodeStations = (node: PublicItemRecipeTreeNode) => Array.isArray(node.stations) ? node.stations : []
+
+const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
+const displayText = (...values: unknown[]) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
+const displayCount = (...values: unknown[]) => {
+  const value = displayText(...values)
+  return value ? `x${value.replace(/^x/i, '')}` : 'x1'
+}
+const nodeTitle = (node: PublicItemRecipeTreeNode) => {
+  const itemCodeName = node.itemInternalName
+  return displayText(node.displayName, node.itemNameZh, node.itemName, itemCodeName, '配方节点')
+}
+const nodeImage = (node: PublicItemRecipeTreeNode) => resolvePreviewImageUrl(node.itemImage || node.image || node.previewImage || '')
+const nodeHref = (node: PublicItemRecipeTreeNode) => node.itemId ? `/items/${node.itemId}` : '/items'
+const nodeQuantity = (node: PublicItemRecipeTreeNode, isRoot = false) => {
+  if (node.quantityText) return String(node.quantityText)
+  if (node.quantityMin && node.quantityMax && node.quantityMin !== node.quantityMax) {
+    return `${node.quantityMin}-${node.quantityMax}`
+  }
+  return displayCount(node.quantityMin, node.quantity, node.amount, node.count, isRoot ? node.resultQuantity : null)
+}
+const recipeStationTitle = (station: PublicItemRecipeTreeStation) => displayText(
+  station.displayName,
+  station.stationNameZh,
+  station.stationName,
+  station.name,
+  station.stationNameRaw,
+  station.stationInternalName,
+  '制作站',
+)
+const recipeStationImage = (station: PublicItemRecipeTreeStation) => resolvePreviewImageUrl(
+  station.stationImage || station.itemImage || station.itemImageUrl || station.image || '',
+)
+const recipeStationKey = (station: PublicItemRecipeTreeStation) => displayText(
+  station.stationItemId,
+  station.stationInternalName,
+  station.stationNameRaw,
+  recipeStationTitle(station),
+)
+const recipeStationMeta = (station: PublicItemRecipeTreeStation) => {
+  if (station.stationType === 'condition') return '条件'
+  if (station.isAlternative) return '可替代'
+  return displayText(station.requirementRole, station.stationType, '合成站')
+}
+
+const clearRecipeVisualLoadingTimer = () => {
+  if (recipeVisualLoadingTimer) {
+    clearTimeout(recipeVisualLoadingTimer)
+    recipeVisualLoadingTimer = null
+  }
+}
+
+const syncRecipeVisualLoading = (isLoading: boolean) => {
+  clearRecipeVisualLoadingTimer()
+
+  if (isLoading && hasSelectedTarget.value) {
+    recipeVisualLoadingStartedAt = Date.now()
+    recipeVisualLoading.value = true
+    return
+  }
+
+  const elapsed = Date.now() - recipeVisualLoadingStartedAt
+  const remaining = Math.max(0, recipeVisualLoadingMinimumMs - elapsed)
+
+  recipeVisualLoadingTimer = setTimeout(() => {
+    recipeVisualLoading.value = false
+    recipeVisualLoadingTimer = null
+  }, remaining)
+}
+
+const selectTarget = async (itemId: string | number | null) => {
+  const normalized = String(itemId ?? '').trim()
+  if (!normalized) return
+  await router.replace({ query: { ...route.query, itemId: normalized, maxDepth: String(maxDepth.value) } })
+}
+
+const clearRecipeTarget = async () => {
+  recipeSearchQuery.value = ''
+  await router.replace({ query: { ...route.query, itemId: undefined } })
+}
+
+watch(recipeRawLoading, syncRecipeVisualLoading, { immediate: true })
+
+watch(recipeVariants, (variants) => {
+  if (!variants.length) {
+    selectedVariantKey.value = ''
+    return
+  }
+
+  if (!variants.some((variant) => variant.variantKey === selectedVariantKey.value)) {
+    selectedVariantKey.value = String(variants[0]?.variantKey ?? '')
+  }
+}, { immediate: true })
+
+onMounted(() => {
+  recipeClientReady.value = true
+})
+
+onBeforeUnmount(clearRecipeVisualLoadingTimer)
+</script>
+
 <template>
   <section class="screen entity-screen active">
     <TerraNav />
@@ -6,81 +190,236 @@
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">/crafting · recipe route</span>
+          <span class="eyebrow">/crafting · recipe tree</span>
           <h1>制作路线</h1>
-          <p>制作页先做视觉结构：材料、制作站、上游来源和下游目标放在同一个工作台视图里。功能暂不接入，后续再绑定配方接口。</p>
+          <p>选择目标物品后读取公开配方树，展示变体、制作站和材料层级。</p>
         </div>
-        <a class="primary-button" href="/items/terra-blade">查看泰拉刃</a>
+        <a class="primary-button" href="/items">选择物品</a>
       </div>
     </div>
 
-    <main class="crafting-layout">
+    <main class="crafting-layout" :aria-busy="recipeVisualLoading">
       <section class="crafting-command support-panel">
         <div>
-          <span class="eyebrow">当前蓝图</span>
-          <h2>泰拉刃制作链</h2>
-          <p>左侧保留检索与目标物位置，中间展示主要合成节点，右侧承接制作站、材料缺口和路线入口。</p>
+          <span class="eyebrow">目标物品</span>
+          <h2>{{ activeTargetLabel }}</h2>
+          <p>{{ isDefaultRecipeTarget ? '默认载入一个有完整配方链的示例；也可以搜索其它目标物品。' : '当前页面只显示已载入的配方树。' }}</p>
           <div class="tag-row">
-            <span class="tag gold">静态占位</span>
-            <span class="tag moss">合成树</span>
-            <span class="tag paper">后续接接口</span>
+            <span class="tag gold">{{ recipePending ? '请求中' : recipeBundle?.source === 'api' ? '已载入' : '未载入' }}</span>
+            <span class="tag moss">{{ recipeVariants.length }} 个变体</span>
+            <span v-if="isDefaultRecipeTarget" class="tag paper">{{ defaultRecipeTarget.note }}</span>
+            <span class="tag paper">深度 {{ maxDepth }}</span>
           </div>
         </div>
-        <div class="crafting-search">
-          <span class="search-glyph" aria-hidden="true"></span>
-          <div><b>terra blade</b><em>目标物品 / 近战路线</em></div>
+
+        <form class="catalog-search-form" role="search" @submit.prevent>
+          <label class="catalog-search-label" for="recipe-item-search">搜索物品</label>
+          <input
+            id="recipe-item-search"
+            v-model="recipeSearchQuery"
+            class="catalog-search-input"
+            type="search"
+            autocomplete="off"
+            placeholder="搜索目标物品"
+          />
+          <button v-if="hasSelectedTarget" class="catalog-clear-search" type="button" @click="clearRecipeTarget">
+            {{ isDefaultRecipeTarget ? '重置示例' : '清除目标' }}
+          </button>
+        </form>
+      </section>
+
+      <section v-if="isDefaultRecipeTarget" class="recipe-example-targets search-suggestion-band support-panel">
+        <button
+          v-for="target in recipeExampleTargets"
+          :key="target.itemId"
+          class="small-button"
+          type="button"
+          @click="selectTarget(target.itemId)"
+        >
+          <b>{{ target.title }}</b>
+          <span>{{ target.meta }}</span>
+        </button>
+      </section>
+
+      <section v-if="recipeSearchQuery || itemSearchPending || showSearchUnavailable" class="search-suggestion-band support-panel">
+        <template v-if="itemSearchPending">
+          <SearchSuggestionSkeletonRows :count="4" />
+        </template>
+        <template v-else-if="itemSuggestions.length">
+          <button
+            v-for="item in itemSuggestions"
+            :key="item.id"
+            class="small-button crafting-suggestion-button"
+            type="button"
+            @click="selectTarget(item.itemId ?? item.id)"
+          >
+            <CommonPreviewImage :src="item.image" :alt="item.displayName" :fallback="item.fallback" width="36" height="36" />
+            <b>{{ item.displayName }}</b>
+            <span>{{ item.category }}</span>
+          </button>
+        </template>
+        <div v-else>
+          <b>{{ showSearchUnavailable ? '物品建议暂未载入' : '没有匹配物品' }}</b>
+          <span>{{ showSearchUnavailable ? '当前物品资料暂不可用，已隐藏本地样例建议。' : '调整搜索词后重试。' }}</span>
+          <button v-if="showSearchUnavailable" class="small-button active" type="button" @click="refreshPublicItems()">重新加载</button>
         </div>
       </section>
 
       <section class="crafting-workbench">
         <aside class="crafting-rail support-panel">
-          <span class="eyebrow">制作站</span>
-          <div class="station-card active"><b>秘银砧 / 山铜砧</b><span>核心合成节点</span></div>
-          <div class="station-card"><b>恶魔祭坛</b><span>早期路线参考</span></div>
-          <div class="station-card"><b>困难模式事件</b><span>英雄断剑来源</span></div>
-          <div class="station-card"><b>月前装备台</b><span>甲虫套与饰品整理</span></div>
+          <span class="eyebrow">变体</span>
+          <button
+            v-for="variant in recipeVariants"
+            :key="displayText(variant.variantKey, variant.variantLabel, 'variant')"
+            class="station-card"
+            :class="{ active: variant.variantKey === activeVariant?.variantKey }"
+            type="button"
+            @click="selectedVariantKey = String(variant.variantKey ?? '')"
+          >
+            <b>{{ displayText(variant.variantLabel, variant.variantKey, '默认变体') }}</b>
+            <span>{{ variant.recipeCount ?? 0 }} 条配方 · {{ variant.versionScope || '版本未标注' }}</span>
+          </button>
+          <div v-if="!recipeVariants.length" class="station-card active">
+            <b>等待目标</b>
+            <span>选择物品后显示配方变体。</span>
+          </div>
         </aside>
 
-        <section class="recipe-canvas support-panel">
-          <div class="recipe-node-card root">
-            <span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/a192da2a6a2d415ca9c5a09782113e3d.png')"></span>
-            <b>泰拉刃</b>
-            <em>目标</em>
-          </div>
-          <div class="recipe-connector one" aria-hidden="true"></div>
-          <div class="recipe-connector two" aria-hidden="true"></div>
-          <div class="recipe-connector three" aria-hidden="true"></div>
-          <div class="recipe-node-card left">
-            <span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/cd8d30c0359b4fbda34ffcfba4745145.png')"></span>
-            <b>真永夜刃</b>
-            <em>材料</em>
-          </div>
-          <div class="recipe-node-card right">
-            <span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/5495725121204ede9da25ddf678ca246.png')"></span>
-            <b>真断钢剑</b>
-            <em>材料</em>
-          </div>
-          <div class="recipe-node-card bottom">
-            <span class="item-art" style="background-image:url('/preview-assets/terrapedia-images/items/2026/04/08/77203300926f489fb82ae1072a8623d4.png')"></span>
-            <b>英雄断剑</b>
-            <em>事件来源</em>
+        <section class="recipe-canvas recipe-tree-canvas support-panel">
+          <template v-if="recipeVisualLoading">
+            <div class="recipe-tree-grid">
+              <div v-for="slot in 5" :key="`recipe-loading-${slot}`" class="recipe-node-card" :class="{ root: slot === 1 }">
+                <div class="recipe-node-main">
+                  <CommonTpSkeleton type="icon" />
+                  <b><CommonTpSkeleton type="line" /></b>
+                  <em><CommonTpSkeleton type="pill" /></em>
+                </div>
+                <div class="recipe-node-materials">
+                  <CommonTpSkeleton type="row" />
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <template v-else-if="activeRoots.length">
+            <div class="recipe-tree-stack">
+              <section class="recipe-top-layer" aria-labelledby="recipe-top-layer-title">
+                <div class="recipe-tree-section-head">
+                  <div>
+                    <span class="eyebrow">top recipe</span>
+                    <h3 id="recipe-top-layer-title">顶层合成</h3>
+                  </div>
+                  <small>{{ activeRoots.length }} 条顶层配方</small>
+                </div>
+
+                <div class="recipe-top-grid">
+                  <article
+                    v-for="root in activeRoots"
+                    :key="displayText(root.recipeId, root.itemId, nodeTitle(root), 'top-root')"
+                    class="recipe-top-card"
+                  >
+                    <a class="recipe-top-result" :href="nodeHref(root)">
+                      <CommonPreviewImage
+                        :src="nodeImage(root)"
+                        :alt="nodeTitle(root)"
+                        :fallback="firstGlyph(nodeTitle(root))"
+                        width="64"
+                        height="64"
+                      />
+                      <b>{{ nodeTitle(root) }}</b>
+                      <span>{{ nodeQuantity(root, true) }}</span>
+                    </a>
+
+                    <div v-if="recipeNodeStations(root).length" class="recipe-station-row">
+                      <span
+                        v-for="station in recipeNodeStations(root)"
+                        :key="recipeStationKey(station)"
+                        class="recipe-station-chip"
+                      >
+                        <CommonPreviewImage
+                          :src="recipeStationImage(station)"
+                          :alt="recipeStationTitle(station)"
+                          :fallback="firstGlyph(recipeStationTitle(station))"
+                          width="28"
+                          height="28"
+                        />
+                        <b>{{ recipeStationTitle(station) }}</b>
+                        <small>{{ recipeStationMeta(station) }}</small>
+                      </span>
+                    </div>
+
+                    <div v-if="recipeNodeChildren(root).length" class="recipe-top-materials">
+                      <a
+                        v-for="child in recipeNodeChildren(root)"
+                        :key="displayText(child.recipeId, child.itemId, nodeTitle(child), 'top-child')"
+                        :href="nodeHref(child)"
+                      >
+                        <CommonPreviewImage
+                          :src="nodeImage(child)"
+                          :alt="nodeTitle(child)"
+                          :fallback="firstGlyph(nodeTitle(child))"
+                          width="36"
+                          height="36"
+                        />
+                        <b>{{ nodeTitle(child) }}</b>
+                        <span>{{ nodeQuantity(child) }}</span>
+                      </a>
+                    </div>
+                  </article>
+                </div>
+              </section>
+            </div>
+          </template>
+
+          <div v-else class="catalog-empty-state">
+            <b>{{ recipeMissing ? '配方树暂未载入' : '请选择目标物品' }}</b>
+            <span>{{ recipeMissing ? '当前目标没有返回公开配方树。' : '从上方搜索建议中选择一个物品。' }}</span>
+            <button v-if="recipeMissing || recipeError" class="small-button active" type="button" @click="refreshRecipeTree()">重新加载</button>
           </div>
         </section>
 
         <aside class="crafting-rail support-panel">
-          <span class="eyebrow">材料状态</span>
-          <div class="material-row done"><b>真永夜刃</b><span>已定位</span></div>
-          <div class="material-row done"><b>真断钢剑</b><span>已定位</span></div>
-          <div class="material-row missing"><b>英雄断剑</b><span>待刷日食</span></div>
-          <div class="material-row"><b>制作站</b><span>秘银砧 / 山铜砧</span></div>
+          <span class="eyebrow">根节点</span>
+          <div v-for="root in activeRoots" :key="`root-${root.recipeId ?? root.itemId ?? nodeTitle(root)}`" class="material-row done">
+            <b>{{ nodeTitle(root) }}</b>
+            <span>{{ recipeNodeChildren(root).length }} 个材料节点</span>
+          </div>
+          <div v-if="!activeRoots.length" class="material-row">
+            <b>暂无节点</b>
+            <span>等待制作路线载入。</span>
+          </div>
         </aside>
+      </section>
+
+      <section
+        v-if="!recipeVisualLoading && activeRoots.length"
+        class="recipe-full-tree support-panel"
+        aria-labelledby="recipe-full-tree-title"
+      >
+        <div class="recipe-tree-section-head">
+          <div>
+            <span class="eyebrow">full recipe tree</span>
+            <h3 id="recipe-full-tree-title">完整配方树</h3>
+          </div>
+          <small>子叶逐级汇总</small>
+        </div>
+
+        <div class="recipe-tree-stage recipe-wiki-tree">
+          <CraftingRecipeTreeNode
+            v-for="root in activeRoots"
+            :key="displayText(root.recipeId, root.itemId, nodeTitle(root), 'root')"
+            :node="root"
+            is-root
+            layout="wiki"
+            :max-depth="maxDepth"
+          />
+        </div>
       </section>
 
       <section class="search-suggestion-band support-panel">
         <a href="/items"><b>物品图鉴</b><span>从任意材料回到详情</span></a>
-        <a href="/categories/materials"><b>材料分类</b><span>按矿物、事件、生态查看</span></a>
-        <a href="/bosses"><b>Boss 进度</b><span>查看掉落路线和阶段门槛</span></a>
-        <a href="/articles/melee-progression"><b>路线攻略</b><span>把制作目标放入游玩流程</span></a>
+        <a href="/bosses"><b>Boss 路线</b><span>查看掉落来源和阶段门槛</span></a>
+        <a href="/biomes"><b>生态索引</b><span>按资源所在群系继续查找</span></a>
       </section>
     </main>
 

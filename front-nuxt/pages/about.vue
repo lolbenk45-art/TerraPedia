@@ -6,8 +6,8 @@
     <main class="about-layout">
       <section class="about-hero">
         <span class="eyebrow">TerraPedia</span>
-        <h1>一个以结构化数据为底座的 Terraria 中文资料中枢</h1>
-        <p>项目目标不是再做一组松散页面，而是把物品、NPC、Boss、Buff、射弹、套装和文章路线组织成可查询、可追溯、可持续维护的公开资料系统。</p>
+        <h1>一个以整理后资料为底座的 Terraria 中文资料中枢</h1>
+        <p>项目目标不是再做一组松散页面，而是把物品、NPC、Boss、Buff、射弹、套装和文章路线组织成可查询、可核对、可持续维护的公开资料系统。</p>
         <div class="about-proof">
           <div><b>6,214</b><span>物品</span></div>
           <div><b>762</b><span>NPC</span></div>
@@ -20,7 +20,7 @@
         <article>
           <span>01</span>
           <h2>公共图鉴</h2>
-          <p>面向玩家的页面只展示可理解的信息层级，把后台维护口径隐藏在数据链路之后。</p>
+          <p>面向玩家的页面只展示可理解的信息层级，把维护细节收在资料整理流程之后。</p>
         </article>
         <article>
           <span>02</span>
@@ -43,7 +43,7 @@
         <div>
           <span class="eyebrow">联系与合作</span>
           <h3>资料纠错、攻略协作、镜像部署和社区合作</h3>
-          <p>当前 Nuxt 前台是新视觉方向的公开预览。后续接入真实接口时，会继续保持玩家页和后台管理页的边界。</p>
+          <p>当前 Nuxt 前台是新视觉方向的公开预览。后续补齐真实资料时，会继续保持玩家页和管理页的边界。</p>
         </div>
         <div class="contact-grid">
           <a href="/items"><b>产品</b><span>物品图鉴 / NPC / Boss / Buff</span></a>

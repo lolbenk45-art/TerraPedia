@@ -55,6 +55,14 @@ class PublicNpcAggregateControllerTest {
         npc.setIsFriendly(true);
         npc.setIsTownNpc(true);
         npc.setImageUrl("https://cdn.example.com/npcs/guide.png");
+        npc.setLifeMax(250);
+        npc.setDamage(10);
+        npc.setDefense(30);
+        npc.setKnockBackResist(0.5);
+        npc.setNpcType(22);
+        npc.setLootEntryCount(1);
+        npc.setShopEntryCount(0);
+        npc.setBuffRelationCount(1);
 
         NpcLootEntryDTO lootEntry = new NpcLootEntryDTO();
         lootEntry.setId(11L);
@@ -80,6 +88,15 @@ class PublicNpcAggregateControllerTest {
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.npc.id").value(1))
             .andExpect(jsonPath("$.data.npc.imageUrl").value("https://cdn.example.com/npcs/guide.png"))
+            .andExpect(jsonPath("$.data.npc.lifeMax").value(250))
+            .andExpect(jsonPath("$.data.npc.damage").value(10))
+            .andExpect(jsonPath("$.data.npc.defense").value(30))
+            .andExpect(jsonPath("$.data.npc.knockBackResist").value(0.5))
+            .andExpect(jsonPath("$.data.npc.npcType").value(22))
+            .andExpect(jsonPath("$.data.npc.lootEntryCount").value(1))
+            .andExpect(jsonPath("$.data.npc.shopEntryCount").value(0))
+            .andExpect(jsonPath("$.data.npc.buffRelationCount").value(1))
+            .andExpect(jsonPath("$.data.npc.rawJson").doesNotExist())
             .andExpect(jsonPath("$.data.loot.length()").value(1))
             .andExpect(jsonPath("$.data.loot[0].lootSourceMode").value("direct"))
             .andExpect(jsonPath("$.data.loot[0].trustedStructured").value(true))

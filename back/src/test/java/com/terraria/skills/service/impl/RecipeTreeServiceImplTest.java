@@ -424,6 +424,64 @@ class RecipeTreeServiceImplTest {
     }
 
     @Test
+    void shouldDefaultSingleItemIngredientsToOneInRecipeTree() {
+        RecipeTreeServiceImpl service = newService();
+
+        ItemDTO trueNightsEdge = recipeTreeItem(675L, "TrueNightsEdge", "True Night's Edge", "真永夜刃");
+        RecipeDTO recipe = new RecipeDTO();
+        recipe.setId(62640L);
+        recipe.setResultItemId(675L);
+        recipe.setResultItemName("True Night's Edge");
+        recipe.setResultItemNameZh("真永夜刃");
+        recipe.setResultItemInternalName("TrueNightsEdge");
+        recipe.setResultQuantity(1);
+        recipe.setVersionScope("Desktop version Console version Mobile version only");
+
+        RecipeIngredientDTO nightsEdge = simpleIngredient(273L, "NightsEdge", "Night's Edge");
+        nightsEdge.setItemNameZh("永夜刃");
+        nightsEdge.setQuantityMin(0);
+        nightsEdge.setQuantityMax(0);
+
+        RecipeIngredientDTO soulOfFright = simpleIngredient(547L, "SoulofFright", "Soul of Fright");
+        soulOfFright.setItemNameZh("恐惧之魂");
+        soulOfFright.setQuantityText("20");
+        soulOfFright.setQuantityMin(20);
+        soulOfFright.setQuantityMax(20);
+
+        RecipeIngredientDTO soulOfMight = simpleIngredient(548L, "SoulofMight", "Soul of Might");
+        soulOfMight.setItemNameZh("力量之魂");
+        soulOfMight.setQuantityText("20");
+        soulOfMight.setQuantityMin(20);
+        soulOfMight.setQuantityMax(20);
+
+        RecipeIngredientDTO soulOfSight = simpleIngredient(549L, "SoulofSight", "Soul of Sight");
+        soulOfSight.setItemNameZh("视域之魂");
+        soulOfSight.setQuantityText("20");
+        soulOfSight.setQuantityMin(20);
+        soulOfSight.setQuantityMax(20);
+
+        recipe.setIngredients(List.of(nightsEdge, soulOfFright, soulOfMight, soulOfSight));
+
+        when(itemService.getItemById(675L)).thenReturn(trueNightsEdge);
+        when(recipeService.getRecipesByResultItemId(675L)).thenReturn(List.of(recipe));
+        when(recipeService.getRecipesByResultItemId(273L)).thenReturn(List.of());
+        when(recipeService.getRecipesByResultItemId(547L)).thenReturn(List.of());
+        when(recipeService.getRecipesByResultItemId(548L)).thenReturn(List.of());
+        when(recipeService.getRecipesByResultItemId(549L)).thenReturn(List.of());
+        when(itemMapper.selectList(any())).thenReturn(List.of());
+
+        RecipeTreeResponseDTO response = service.getRecipeTreeByItemId(675L, 3);
+
+        RecipeTreeNodeDTO root = response.getVariants().get(0).getRoots().get(0);
+
+        assertEquals("desktop-console-mobile", response.getVariants().get(0).getVariantKey());
+        assertEquals("1", root.getChildren().get(0).getQuantityText());
+        assertEquals(1, root.getChildren().get(0).getQuantityMin());
+        assertEquals(1, root.getChildren().get(0).getQuantityMax());
+        assertEquals(List.of("20", "20", "20"), root.getChildren().subList(1, 4).stream().map(RecipeTreeNodeDTO::getQuantityText).toList());
+    }
+
+    @Test
     void shouldResolveRecipeGroupFromCentralItemGroupOverride() throws IOException {
         String originalUserDir = System.getProperty("user.dir");
         Path repoRoot = tempDir.resolve("repo");

@@ -11,8 +11,8 @@ withDefaults(defineProps<{
     <div class="footer-main">
       <section class="footer-brand">
         <span class="footer-kicker">TERRAPEDIA</span>
-        <h3>为 Terraria 玩家建立可追溯的中文资料中枢</h3>
-        <p>TerraPedia 聚合物品图鉴、合成链路、Boss 阶段、专题攻略与版本证据，让资料查询从零散搜索变成稳定的路线系统。</p>
+        <h3>为 Terraria 玩家建立清晰可靠的中文资料中枢</h3>
+        <p>TerraPedia 汇总物品图鉴、合成链路、Boss 阶段、专题攻略与版本依据，让资料查询从零散搜索变成稳定的路线系统。</p>
         <div class="footer-proof">
           <div><b>{{ itemTotalLabel }}</b><span>物品条目</span></div>
           <div><b>14,746</b><span>链路节点</span></div>
@@ -49,7 +49,7 @@ withDefaults(defineProps<{
         <div class="footer-links">
           <a href="/about">反馈建议</a>
           <a href="/about">内容共建</a>
-          <a href="/about">问题追踪</a>
+          <a href="/about">问题反馈</a>
           <a href="/about">公开路线图</a>
         </div>
       </nav>
