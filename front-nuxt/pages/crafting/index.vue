@@ -12,7 +12,16 @@ const recipeVisualLoadingMinimumMs = 320
 let recipeVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
 let recipeVisualLoadingStartedAt = Date.now()
 
+const defaultRecipeTarget = {
+  itemId: '675',
+  label: '真永夜刃',
+  internalName: 'TrueNightsEdge',
+  note: '默认示例',
+}
+
 const selectedItemId = computed(() => String(route.query.itemId ?? '').trim())
+const effectiveSelectedItemId = computed(() => selectedItemId.value || defaultRecipeTarget.itemId)
+const isDefaultRecipeTarget = computed(() => !selectedItemId.value)
 const maxDepth = computed(() => {
   const parsed = Number(route.query.maxDepth ?? 3)
   return Number.isFinite(parsed) && parsed > 0 ? Math.min(Math.floor(parsed), 5) : 3
@@ -33,7 +42,7 @@ const {
   pending: recipePending,
   error: recipeError,
   refresh: refreshRecipeTree,
-} = await usePublicRecipeTree(selectedItemId, maxDepth)
+} = await usePublicRecipeTree(effectiveSelectedItemId, maxDepth)
 
 const itemSuggestions = computed(() => itemResults.value?.source === 'api' ? itemResults.value.items : [])
 const showSearchUnavailable = computed(() => !itemSearchPending.value && recipeSearchQuery.value.trim().length > 0 && itemResults.value?.source !== 'api')
@@ -43,8 +52,34 @@ const selectedVariantKey = ref('')
 const activeVariant = computed(() => recipeVariants.value.find((variant) => variant.variantKey === selectedVariantKey.value) ?? recipeVariants.value[0] ?? null)
 const activeRoots = computed(() => activeVariant.value?.roots ?? [])
 const recipeRawLoading = computed(() => !recipeClientReady.value || recipePending.value)
-const hasSelectedTarget = computed(() => selectedItemId.value.length > 0)
+const hasSelectedTarget = computed(() => effectiveSelectedItemId.value.length > 0)
 const recipeMissing = computed(() => recipeClientReady.value && hasSelectedTarget.value && !recipePending.value && !recipeTree.value)
+const activeTargetLabel = computed(() => {
+  const item = recipeTree.value?.item
+  return displayText(item?.nameZh, item?.name, item?.internalName, isDefaultRecipeTarget.value ? defaultRecipeTarget.label : `Item #${effectiveSelectedItemId.value}`)
+})
+const recipeExampleTargets = computed(() => [
+  {
+    itemId: defaultRecipeTarget.itemId,
+    title: defaultRecipeTarget.label,
+    meta: '默认示例 · Wiki 风格树',
+  },
+  {
+    itemId: '273',
+    title: '永夜刃',
+    meta: '多材料分支',
+  },
+  {
+    itemId: '757',
+    title: '泰拉刃',
+    meta: '终局武器链',
+  },
+  {
+    itemId: '1613',
+    title: '十字章护盾',
+    meta: '饰品合成链',
+  },
+])
 const recipeNodeChildren = (node: PublicItemRecipeTreeNode) => Array.isArray(node.children) ? node.children : []
 const recipeNodeStations = (node: PublicItemRecipeTreeNode) => Array.isArray(node.stations) ? node.stations : []
 
@@ -167,11 +202,12 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
       <section class="crafting-command support-panel">
         <div>
           <span class="eyebrow">目标物品</span>
-          <h2>{{ hasSelectedTarget ? `Item #${selectedItemId}` : '先搜索一个制作目标' }}</h2>
-          <p>{{ hasSelectedTarget ? '当前页面只显示已载入的配方树。' : '输入物品名称，选择建议后加载制作路线。' }}</p>
+          <h2>{{ activeTargetLabel }}</h2>
+          <p>{{ isDefaultRecipeTarget ? '默认载入一个有完整配方链的示例；也可以搜索其它目标物品。' : '当前页面只显示已载入的配方树。' }}</p>
           <div class="tag-row">
             <span class="tag gold">{{ recipePending ? '请求中' : recipeBundle?.source === 'api' ? '已载入' : '未载入' }}</span>
             <span class="tag moss">{{ recipeVariants.length }} 个变体</span>
+            <span v-if="isDefaultRecipeTarget" class="tag paper">{{ defaultRecipeTarget.note }}</span>
             <span class="tag paper">深度 {{ maxDepth }}</span>
           </div>
         </div>
@@ -187,9 +223,22 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
             placeholder="搜索目标物品"
           />
           <button v-if="hasSelectedTarget" class="catalog-clear-search" type="button" @click="clearRecipeTarget">
-            清除目标
+            {{ isDefaultRecipeTarget ? '重置示例' : '清除目标' }}
           </button>
         </form>
+      </section>
+
+      <section v-if="isDefaultRecipeTarget" class="recipe-example-targets search-suggestion-band support-panel">
+        <button
+          v-for="target in recipeExampleTargets"
+          :key="target.itemId"
+          class="small-button"
+          type="button"
+          @click="selectTarget(target.itemId)"
+        >
+          <b>{{ target.title }}</b>
+          <span>{{ target.meta }}</span>
+        </button>
       </section>
 
       <section v-if="recipeSearchQuery || itemSearchPending || showSearchUnavailable" class="search-suggestion-band support-panel">
@@ -355,12 +404,14 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
           <small>子叶逐级汇总</small>
         </div>
 
-        <div class="recipe-tree-stage">
+        <div class="recipe-tree-stage recipe-wiki-tree">
           <CraftingRecipeTreeNode
             v-for="root in activeRoots"
             :key="displayText(root.recipeId, root.itemId, nodeTitle(root), 'root')"
             :node="root"
             is-root
+            layout="wiki"
+            :max-depth="maxDepth"
           />
         </div>
       </section>
