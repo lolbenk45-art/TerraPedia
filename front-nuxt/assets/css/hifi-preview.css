@@ -3661,6 +3661,35 @@ img[data-preview-fallback] {
   margin-bottom: 18px;
 }
 .module-title :where(h2, h3) { margin: 0; font-size: 22px; }
+.module-title span:not(.tag) {
+  display: block;
+  margin-top: 5px;
+  color: rgba(244, 234, 208, 0.56);
+  font-size: 12px;
+  font-weight: 800;
+}
+.recipe-variant-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -4px 0 16px;
+}
+.recipe-variant-tab {
+  min-height: var(--control-height-sm);
+  border: 1px solid var(--button-control-border);
+  border-radius: var(--control-radius);
+  background: var(--button-control-bg);
+  color: var(--button-control-fg);
+  padding: var(--control-padding-y) var(--control-padding-x);
+  font-size: var(--font-size-sm);
+  font-weight: var(--control-font-weight);
+  box-shadow: var(--button-control-shadow);
+}
+.recipe-variant-tab.active {
+  border-color: var(--button-control-active-border);
+  background: var(--button-control-active-bg);
+  color: var(--button-control-active-fg);
+}
 .recipe-tree {
   display: grid;
   grid-template-columns: 1fr 42px 1fr 42px 1fr;
@@ -3679,6 +3708,87 @@ img[data-preview-fallback] {
 }
 .recipe-node b { display: block; }
 .recipe-arrow { display: grid; place-items: center; color: #ffd765; font-weight: 900; }
+.detail-module .recipe-tree-stage--detail {
+  max-width: 100%;
+  max-height: 720px;
+  overflow: auto;
+  border: 1px solid rgba(244, 234, 208, 0.1);
+  border-radius: 8px;
+  background:
+    var(--index-grid-x),
+    var(--index-grid-y),
+    rgba(90, 65, 52, 0.36);
+  background-size: 40px 40px, 40px 40px, auto;
+  padding: 20px 16px 24px;
+  overscroll-behavior: contain;
+}
+.recipe-tree-roots {
+  display: flex;
+  align-items: start;
+  justify-content: flex-start;
+  gap: 36px;
+  min-width: max-content;
+}
+.detail-module .recipe-tree-stage--detail .recipe-branch {
+  min-width: 156px;
+  max-width: none;
+}
+.detail-module .recipe-tree-stage--detail .recipe-branch.is-leaf {
+  width: 156px;
+  max-width: 156px;
+}
+.detail-module .recipe-tree-stage--detail .recipe-branch:not(.is-leaf)::after,
+.detail-module .recipe-tree-stage--detail .recipe-children::before,
+.detail-module .recipe-tree-stage--detail .recipe-children > .recipe-branch::before {
+  background: rgba(0, 0, 0, 0.72);
+}
+.detail-module .recipe-tree-stage--detail .recipe-tree-node {
+  grid-template-columns: 38px minmax(0, 1fr);
+  width: min(156px, 100%);
+  min-height: 56px;
+  border: 2px solid #050302;
+  border-radius: 6px;
+  background: rgba(91, 65, 54, 0.96);
+  box-shadow: inset 0 1px 0 rgba(244, 234, 208, 0.09);
+  padding: 7px;
+}
+.detail-module .recipe-tree-stage--detail .recipe-branch.is-root > .recipe-tree-node {
+  border-color: #050302;
+  background:
+    radial-gradient(circle at 18% 24%, rgba(217, 185, 91, 0.18), transparent 48%),
+    rgba(91, 65, 54, 0.96);
+}
+.detail-module .recipe-tree-stage--detail .recipe-tree-node .item-art {
+  width: 34px;
+  height: 34px;
+}
+.detail-module .recipe-tree-stage--detail .recipe-tree-node b {
+  color: #66f0ee;
+  font-size: 12px;
+}
+.detail-module .recipe-tree-stage--detail .recipe-tree-node span {
+  color: rgba(244, 234, 208, 0.78);
+  font-size: 10px;
+}
+.detail-module .recipe-tree-stage--detail .recipe-station-row {
+  width: min(156px, 100%);
+  min-height: 24px;
+}
+.detail-module .recipe-tree-stage--detail .recipe-station-chip {
+  max-width: 136px;
+  border-color: transparent;
+  background: transparent;
+  padding: 0;
+}
+.detail-module .recipe-tree-stage--detail .recipe-station-chip b {
+  color: rgba(244, 234, 208, 0.68);
+  font-size: 10px;
+}
+.detail-module .recipe-tree-stage--detail .recipe-children {
+  gap: 18px 10px;
+  min-width: 156px;
+  padding-top: 16px;
+}
 .source-table { display: grid; gap: 10px; }
 .source-row {
   display: grid;
@@ -4073,6 +4183,13 @@ img[data-preview-fallback] {
   .evidence-panel,
   .article-side { position: static; }
   .item-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .recipe-tree-roots {
+    gap: 22px;
+  }
+  .detail-module .recipe-tree-stage--detail {
+    max-height: 620px;
+    padding: 16px 12px 20px;
+  }
   .search-tool-screen .home-main {
     padding: 22px 18px 42px;
   }

@@ -246,6 +246,52 @@ class RecipeServiceImplTest {
     }
 
     @Test
+    void shouldDefaultSingleItemIngredientQuantityToOneInRecipeDto() {
+        Recipe recipe = recipe(56L, "wiki_gg");
+        recipe.setResultItemId(675L);
+        recipe.setResultInternalName("TrueNightsEdge");
+        when(recipeMapper.selectList(any())).thenReturn(List.of(recipe));
+
+        RecipeIngredient nightsEdge = new RecipeIngredient();
+        nightsEdge.setRecipeId(56L);
+        nightsEdge.setIngredientItemId(273L);
+        nightsEdge.setIngredientInternalName("NightsEdge");
+        nightsEdge.setIngredientNameRaw("Night's Edge");
+        nightsEdge.setIngredientGroupType("item");
+        nightsEdge.setQuantityMin(0);
+        nightsEdge.setQuantityMax(0);
+        nightsEdge.setSortOrder(1);
+
+        RecipeIngredient soulOfFright = new RecipeIngredient();
+        soulOfFright.setRecipeId(56L);
+        soulOfFright.setIngredientItemId(547L);
+        soulOfFright.setIngredientInternalName("SoulofFright");
+        soulOfFright.setIngredientNameRaw("Soul of Fright");
+        soulOfFright.setIngredientGroupType("item");
+        soulOfFright.setQuantityText("20");
+        soulOfFright.setQuantityMin(20);
+        soulOfFright.setQuantityMax(20);
+        soulOfFright.setSortOrder(2);
+        when(recipeIngredientMapper.selectList(any())).thenReturn(List.of(nightsEdge, soulOfFright));
+
+        when(itemMapper.selectBatchIds(any())).thenReturn(List.of(
+            item(675L, "TrueNightsEdge", "True Night's Edge", "真永夜刃", null),
+            item(273L, "NightsEdge", "Night's Edge", "永夜刃", null),
+            item(547L, "SoulofFright", "Soul of Fright", "恐惧之魂", null)
+        ));
+
+        List<RecipeDTO> recipes = service.getRecipesByResultItemId(675L);
+
+        assertEquals(1, recipes.size());
+        assertEquals("1", recipes.get(0).getIngredients().get(0).getQuantityText());
+        assertEquals(1, recipes.get(0).getIngredients().get(0).getQuantityMin());
+        assertEquals(1, recipes.get(0).getIngredients().get(0).getQuantityMax());
+        assertEquals("20", recipes.get(0).getIngredients().get(1).getQuantityText());
+        assertEquals(20, recipes.get(0).getIngredients().get(1).getQuantityMin());
+        assertEquals(20, recipes.get(0).getIngredients().get(1).getQuantityMax());
+    }
+
+    @Test
     void shouldUseManagedCraftingStationImageUrlWhenItemImageIsMissing() {
         Recipe recipe = recipe(57L, "manual_admin");
         when(recipeMapper.selectList(any())).thenReturn(List.of(recipe));
