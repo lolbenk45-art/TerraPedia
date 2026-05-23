@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-23T13:46:11.372Z",
+  "generatedAt": "2026-05-23T15:26:14.251Z",
   "domainId": "bosses",
   "panelId": "unresolvedAuditTrend",
-  "status": "blocked",
+  "status": "warning",
   "reportPath": "reports/domain/bosses/unresolved-audit-trend-2026-05-23.json",
   "requiresDatabase": false,
   "writesDatabase": false,
@@ -10,27 +10,27 @@
     "checkCount": 1,
     "requiredEvidenceCount": 1,
     "optionalEvidenceCount": 0,
-    "presentEvidenceCount": 0,
-    "missingEvidenceCount": 1,
-    "blockedCount": 1,
-    "warningCount": 0
+    "presentEvidenceCount": 1,
+    "missingEvidenceCount": 0,
+    "blockedCount": 0,
+    "warningCount": 1
   },
-  "blockingReasons": [
-    "Missing required evidence: reports/relation/reresolve-candidates*.json"
+  "blockingReasons": [],
+  "warningReasons": [
+    "reports/relation/reresolve-candidates-2026-05-23.json: historical baseline is unavailable for unresolved audit trend"
   ],
-  "warningReasons": [],
   "checks": [
     {
       "id": "reports_relation_reresolve_candidateslatest_json",
       "type": "json",
       "required": true,
-      "found": false,
-      "readable": false,
-      "evidencePath": "reports/relation/reresolve-candidates*.json",
-      "latestReportPath": null,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/relation/reresolve-candidates-2026-05-23.json",
+      "latestReportPath": "reports/relation/reresolve-candidates-2026-05-23.json",
       "recordCount": null,
-      "status": "blocked",
-      "message": "Missing required evidence: reports/relation/reresolve-candidates*.json"
+      "status": "warning",
+      "message": "reports/relation/reresolve-candidates-2026-05-23.json: historical baseline is unavailable for unresolved audit trend"
     }
   ]
 }
