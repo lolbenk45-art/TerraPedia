@@ -788,6 +788,8 @@ Expected:
 
 - [ ] **Step 5: Commit closeout**
 
+The explicit report list below is intentional, but omit any report file that was not regenerated in this run. Do not create empty placeholder reports only to satisfy this `git add` list.
+
 Run:
 
 ```bash
@@ -873,6 +875,8 @@ Allowed parallel lanes after Task 0:
 | Lane E | projectile relation gap | projectile gap audit doc only unless a separate implementation plan is approved |
 
 Do not run two lanes that both execute `domain-acceptance-generate-reports.mjs --write=true` at the same time in the same worktree. Parallel lanes should use separate worktrees or perform read-only exploration first, then serialize report regeneration.
+
+`.gitignore` is a shared write target for Group B/C/D evidence-retention allowlists. If multiple workers add allowlists, keep those edits serialized in one integration lane or merge them before staging evidence files; do not let parallel workers independently overwrite `.gitignore`.
 
 ## Stop Conditions
 
