@@ -87,3 +87,17 @@ Decision: The Domain A-grade blocker triage plan may use read-only audits and bo
 Reason: The current blockers are evidence durability, source snapshot, image lineage, item-group audit, and projectile relation classification problems. A multi-day item crawl is a separate data/crawler operation with its own progress, timeout, recovery, and approval plan.
 Evidence: Backend refresh plan includes `item-pages-refresh`; user noted item crawling can take 3+ days.
 Expected follow-up: If a lane proves item crawl is actually required, open a separate crawler plan with the TerraPedia crawler progress contract before execution.
+
+## D-2026-05-23-05: Source snapshot blockers need progress-contract repair first
+
+Decision: Do not run the Boss, Armor Set, Shimmer, or Town NPC source snapshot fetches until their direct fetch lanes have monitor-visible progress contracts or are routed through a monitor-visible backend-refresh/wiki-sync action.
+Reason: The checked fetch scripts do not expose `actionId`, progress path, `lastHeartbeatAt`, or completed/failed status before network work. Running them would violate the TerraPedia crawler progress contract even if each lane is intended to be bounded.
+Evidence: `docs/audits/2026-05-23_domain-a-grade-source-snapshot-evidence.md`.
+Expected follow-up: Add progress contract tests and output for each bounded source snapshot lane, repair the Town NPC `bs4` dependency, then regenerate durable source evidence.
+
+## D-2026-05-23-06: V0.1 remains preview-only after blocker burn-down
+
+Decision: V0.1 remains preview-only after the 2026-05-23 A-grade blocker burn-down.
+Reason: The burn-down reduced generated blockers from 13 to 6, but the final A-grade gate still exits blocked. Remaining blockers require separate source-fetch progress, DB environment, image lineage, and projectile relation repair.
+Evidence: `docs/audits/2026-05-23_domain-a-grade-blocker-burn-down-closeout.md`.
+Expected follow-up: Complete the remaining repair branches, then rerun the full A-grade gate before any release-ready claim.
