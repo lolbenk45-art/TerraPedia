@@ -7,6 +7,7 @@ import type {
   PublicItemImage,
   PublicItemRecipeTree,
   PublicItemRecipeTreeNode,
+  PublicItemRecipeTreeVariant,
   PublicItemRecipeTreeStation,
   PublicItemSource,
 } from '~/types/public-api'
@@ -16,6 +17,7 @@ const route = useRoute()
 const itemId = computed(() => String(route.params.id ?? '').trim())
 const { data: detailBundle, pending: detailPending, error: detailError } = await usePublicItemDetail(itemId)
 const detailClientReady = ref(false)
+const selectedRecipeVariantKey = ref('')
 
 const firstText = (...values: unknown[]) => {
   for (const value of values) {
@@ -138,25 +140,59 @@ const stationName = (station: PublicItemRecipeTreeStation) => firstText(
   station.name,
 )
 
+const recipeTreeVariants = computed(() => {
+  const tree: PublicItemRecipeTree | null = rawBundle.value.recipeTree
+  const variants = Array.isArray(tree?.variants) ? tree.variants : []
+
+  return variants.filter((variant) => Array.isArray(variant?.roots) && variant.roots.length > 0)
+})
+
+const recipeVariantRank = (variant: PublicItemRecipeTreeVariant, index: number) => {
+  const text = firstText(variant.variantKey, variant.variantLabel, variant.versionScope).toLowerCase()
+
+  if (text.includes('desktop') || text.includes('mobile') || text.includes('console')) return index
+  if (text.includes('base') || text.includes('通用')) return 100 + index
+  return 200 + index
+}
+
+const defaultRecipeVariantKey = computed(() => recipeTreeVariants.value
+  .map((variant, index) => ({ variant, index }))
+  .sort((left, right) => recipeVariantRank(left.variant, left.index) - recipeVariantRank(right.variant, right.index))[0]?.variant.variantKey ?? '')
+
+const activeRecipeVariant = computed(() => {
+  const variants = recipeTreeVariants.value
+  if (!variants.length) return null
+
+  return variants.find((variant) => firstText(variant.variantKey) === selectedRecipeVariantKey.value)
+    ?? variants.find((variant) => firstText(variant.variantKey) === defaultRecipeVariantKey.value)
+    ?? variants[0]
+})
+
+watch(
+  defaultRecipeVariantKey,
+  (key) => {
+    if (!selectedRecipeVariantKey.value && key) {
+      selectedRecipeVariantKey.value = key
+    }
+  },
+  { immediate: true },
+)
+
+const activeRecipeRoots = computed(() => activeRecipeVariant.value?.roots ?? [])
+
 const recipeTreeSummary = computed(() => {
   const tree: PublicItemRecipeTree | null = rawBundle.value.recipeTree
-  if (!tree) return null
+  if (!tree || !activeRecipeVariant.value) return null
 
-  const firstRoot = tree.variants?.flatMap((variant) => variant.roots ?? [])[0]
-  const directMaterials = (
-    firstRoot?.children
-    ?? tree.materials
-    ?? tree.ingredients
-    ?? tree.children
-    ?? tree.nodes
-    ?? []
-  )
-  const stations = firstRoot?.stations ?? tree.stations ?? tree.craftingStations ?? []
-  const stationNames = stations.map(stationName).filter(Boolean)
+  const directMaterials = activeRecipeRoots.value.flatMap((root) => root.children ?? [])
+  const stations = activeRecipeRoots.value.flatMap((root) => root.stations ?? [])
+  const stationNames = [...new Set(stations.map(stationName).filter(Boolean))]
   const textStations = firstText(tree.station, tree.craftingStation, tree.stationName)
 
   return {
     title: firstText(tree.item?.nameZh, tree.item?.name, tree.name, tree.displayName, tree.resultName, itemName.value),
+    variant: firstText(activeRecipeVariant.value.variantLabel, activeRecipeVariant.value.variantKey, '默认配方'),
+    recipeCount: activeRecipeRoots.value.length,
     count: directMaterials.length,
     materials: directMaterials.slice(0, 6).map((material, index) => ({
       id: firstText(material.id, material.itemId, material.name, index),
@@ -270,35 +306,32 @@ onMounted(() => {
 
           <section v-if="recipeTreeSummary" class="detail-module dark-card">
             <div class="module-title">
-              <h2>合成路线</h2>
-              <span class="tag gold">{{ recipeTreeSummary.count }} 个直接材料</span>
+              <div>
+                <h2>制作树</h2>
+                <span>{{ recipeTreeSummary.variant }} · {{ recipeTreeSummary.count }} 个直接材料</span>
+              </div>
+              <span class="tag gold">{{ recipeTreeSummary.recipeCount }} 个配方</span>
             </div>
-            <div class="recipe-tree">
-              <template v-for="(material, index) in recipeTreeSummary.materials" :key="String(material.id)">
-                <div class="recipe-node">
-                  <span class="sprite-frame" style="width:48px;height:48px">
-                    <CommonPreviewImage
-                      :src="material.image"
-                      :alt="material.name"
-                      :fallback="material.fallback"
-                    />
-                  </span>
-                  <b>{{ material.name }}</b>
-                  <span>{{ material.amount || '数量未标记' }}</span>
-                </div>
-                <div v-if="index < recipeTreeSummary.materials.length - 1" class="recipe-arrow">+</div>
-              </template>
-              <div v-if="recipeTreeSummary.materials.length" class="recipe-arrow">=</div>
-              <div class="recipe-node">
-                <span class="sprite-frame" style="width:48px;height:48px">
-                  <CommonPreviewImage
-                    :src="itemImage"
-                    :alt="itemName"
-                    :fallback="itemFallbackGlyph"
-                  />
-                </span>
-                <b>{{ recipeTreeSummary.title }}</b>
-                <span>{{ recipeTreeSummary.station }}</span>
+            <div v-if="recipeTreeVariants.length > 1" class="recipe-variant-tabs" aria-label="配方版本">
+              <button
+                v-for="variant in recipeTreeVariants"
+                :key="firstText(variant.variantKey, variant.variantLabel)"
+                class="recipe-variant-tab"
+                :class="{ active: activeRecipeVariant === variant }"
+                type="button"
+                @click="selectedRecipeVariantKey = firstText(variant.variantKey)"
+              >
+                {{ firstText(variant.variantLabel, variant.variantKey, '配方') }}
+              </button>
+            </div>
+            <div class="recipe-tree-stage recipe-tree-stage--detail">
+              <div class="recipe-tree-roots">
+                <CraftingRecipeTreeNode
+                  v-for="root in activeRecipeRoots"
+                  :key="firstText(root.recipeId, root.itemId, root.itemName, 'root')"
+                  :node="root"
+                  is-root
+                />
               </div>
             </div>
             <p v-if="recipeTreeSummary.note">{{ recipeTreeSummary.note }}</p>
