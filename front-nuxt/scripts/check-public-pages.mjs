@@ -1336,6 +1336,8 @@ for (const path of scanFiles) {
       'buffListQuery',
       'buffSearchQuery',
       'buffDisplayItems',
+      'buffHeroEyebrow',
+      'buffFallbackUnavailable.value || buffsError.value',
       'buffVisualLoading',
       'buffLoadingSlotCount',
       'goToBuffPage',
@@ -1344,6 +1346,7 @@ for (const path of scanFiles) {
       '<CommonTpSkeleton',
       '<CommonPreviewImage',
       ':aria-busy="buffVisualLoading"',
+      '{{ buffHeroEyebrow }}',
       'v-for="buff in buffDisplayItems"',
     ]) {
       if (!content.includes(marker)) {
@@ -1399,6 +1402,8 @@ for (const path of scanFiles) {
     for (const marker of [
       'usePublicBosses',
       'bossDisplayItems',
+      'bossHeroEyebrow',
+      'bossApiUnavailable.value || bossesError.value',
       'bossVisualLoading',
       'bossLoadingSlotCount',
       'goToBossPage',
@@ -1406,6 +1411,7 @@ for (const path of scanFiles) {
       '<CommonTpSkeleton',
       '<CommonPreviewImage',
       ':aria-busy="bossVisualLoading"',
+      '{{ bossHeroEyebrow }}',
       'v-for="boss in bossDisplayItems"',
       'boss-node-visual',
       'boss-node-backdrop',
@@ -1439,6 +1445,9 @@ for (const path of scanFiles) {
       'bossDetailVisualLoading',
       'bossMembers',
       'bossLootEntries',
+      'bossProgressionLabel',
+      'boss-detail-loading-tags',
+      'boss-detail-missing-tags',
       '<CommonTpSkeleton',
       '<CommonPreviewImage',
       ':aria-busy="bossDetailVisualLoading"',
@@ -1454,6 +1463,7 @@ for (const path of scanFiles) {
       '2800 HP',
       '恶魔矿 / 猩红矿',
       '战前完成度',
+      '推进 #${bossCard?.progressionOrder}',
     ]) {
       if (content.includes(staticMarker)) {
         violations.push(`${path}: boss detail page must not keep the static Eye of Cthulhu mock as primary content (${staticMarker})`)

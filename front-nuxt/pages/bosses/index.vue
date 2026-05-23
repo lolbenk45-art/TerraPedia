@@ -50,6 +50,11 @@ const bossStatusLabel = computed(() => {
   if (bossApiUnavailable.value || bossesError.value) return '未载入'
   return '已更新'
 })
+const bossHeroEyebrow = computed(() => {
+  if (bossVisualLoading.value) return '加载 Boss 资料'
+  if (bossApiUnavailable.value || bossesError.value) return 'Boss 资料暂未载入'
+  return `${bossTotalItems.value.toLocaleString('zh-CN')} 个 Boss`
+})
 
 const clearBossVisualLoadingTimer = () => {
   if (bossVisualLoadingTimer) {
@@ -158,7 +163,7 @@ onBeforeUnmount(() => {
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">{{ bossVisualLoading ? '加载 Boss 资料' : `${bossTotalItems.toLocaleString('zh-CN')} 个 Boss` }}</span>
+          <span class="eyebrow">{{ bossHeroEyebrow }}</span>
           <h1>Boss 路线</h1>
           <p>Boss 列表按推进顺序展示触发方式、部件数量和掉落覆盖情况。</p>
         </div>

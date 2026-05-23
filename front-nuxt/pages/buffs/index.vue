@@ -44,6 +44,11 @@ const buffDisplayItems = computed(() => (buffVisualLoading.value || buffFallback
 const buffTotalItems = computed(() => (buffVisualLoading.value || buffFallbackUnavailable.value) ? 0 : buffPagination.value?.total ?? buffDisplayItems.value.length)
 const buffTotalPages = computed(() => Math.max(1, buffPagination.value?.totalPages ?? Math.ceil(buffTotalItems.value / Math.max(1, buffPageSize.value))))
 const buffStatusLabel = computed(() => buffVisualLoading.value ? '加载中' : buffFallbackUnavailable.value || buffsError.value ? '未载入' : '已更新')
+const buffHeroEyebrow = computed(() => {
+  if (buffVisualLoading.value) return '加载效果'
+  if (buffFallbackUnavailable.value || buffsError.value) return 'Buff 资料暂未载入'
+  return `${buffTotalItems.value.toLocaleString('zh-CN')} 个效果`
+})
 const buffLoadingSlotCount = computed(() => Math.min(buffPageSize.value, 36))
 
 const clearBuffVisualLoadingTimer = () => {
@@ -157,7 +162,7 @@ onBeforeUnmount(() => {
     <div class="page-head entity-head">
       <div class="page-head-inner">
         <div>
-          <span class="eyebrow">{{ buffVisualLoading ? '加载效果' : `${buffTotalItems.toLocaleString('zh-CN')} 个效果` }}</span>
+          <span class="eyebrow">{{ buffHeroEyebrow }}</span>
           <h1>Buff 图鉴</h1>
           <p>搜索公开效果资料，按来源、影响目标和免疫提示进入详情。</p>
         </div>

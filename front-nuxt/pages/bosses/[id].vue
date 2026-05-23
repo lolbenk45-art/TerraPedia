@@ -26,6 +26,9 @@ const bossRawLoading = computed(() => !bossClientReady.value || bossPending.valu
 const bossMissing = computed(() => bossClientReady.value && !bossPending.value && !bossDetail.value)
 const bossTitle = computed(() => bossCard.value?.displayName || bossDetail.value?.nameZh || bossDetail.value?.name || 'Boss 详情')
 const bossSubtitle = computed(() => bossCard.value?.englishName || bossDetail.value?.nameEn || bossDetail.value?.code || 'Public boss detail')
+const bossProgressionLabel = computed(() => (
+  bossCard.value?.progressionOrder == null ? '顺序未标注' : `推进 #${bossCard.value.progressionOrder}`
+))
 
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
 const displayText = (...values: unknown[]) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
@@ -102,9 +105,17 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
             <CommonTpSkeleton v-if="bossDetailVisualLoading" type="line" />
             <template v-else>{{ bossCard?.summary || bossDetail?.notes || '暂无公开说明。' }}</template>
           </p>
-          <div class="tag-row">
+          <div v-if="bossDetailVisualLoading" class="tag-row boss-detail-loading-tags">
+            <span class="tag paper"><CommonTpSkeleton type="pill" /></span>
+            <span class="tag paper"><CommonTpSkeleton type="pill" /></span>
+          </div>
+          <div v-else-if="bossMissing" class="tag-row boss-detail-missing-tags">
+            <span class="tag paper">详情缺失</span>
+            <span v-if="bossError" class="tag moss">请求异常</span>
+          </div>
+          <div v-else class="tag-row">
             <span class="tag gold">{{ bossCard?.type || 'boss' }}</span>
-            <span class="tag moss">{{ bossCard?.progressionOrder === null ? '顺序未标注' : `推进 #${bossCard?.progressionOrder}` }}</span>
+            <span class="tag moss">{{ bossProgressionLabel }}</span>
             <span class="tag paper">{{ bossLootEntries.length }} 条掉落</span>
             <span class="tag paper">{{ bossMembers.length }} 个成员</span>
           </div>
