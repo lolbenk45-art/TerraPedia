@@ -59,3 +59,17 @@ Reason: Port-based cleanup can terminate unrelated developer services when ports
 
 Decision: `smoke-local-stack.ps1` may issue read-oriented HTTP probes and optional auth login only for authenticated reads. It must not run crawler, import, backfill, load, apply, write, refresh, storage sync, or evidence generation.
 Reason: Local runtime probing must not bypass the manifest -> report evidence -> freshness audit -> manual refresh plan -> quality gate chain.
+
+## D-2026-05-23-01: V0.1 public site is preview-only until A-grade blockers close
+
+Decision: The merged V0.1 Nuxt public site is a local/public preview surface, not final A-grade release readiness.
+Reason: Fresh Domain Acceptance evidence exists, but `domain-acceptance-a-grade-gate.mjs --fail-on-blocked=true` still reports `overallStatus=blocked`, `generatedBlockedCount=13`, and `generatedWarningCount=9`.
+Evidence: `docs/audits/2026-05-23_basic-public-site-v0.1-domain-evidence.md`.
+Expected follow-up: Execute `docs/plans/2026-05-23_domain-a-grade-blocker-burn-down-plan.md`, then make a separate release/staging decision.
+
+## D-2026-05-23-02: Burn down Domain A-grade blockers before new public feature expansion
+
+Decision: The next project-management priority is the Domain A-grade blocker burn-down, ahead of broad new public UI feature expansion.
+Reason: The UI preview can render, but source, relation, item-group, and image-lineage blockers still exist in the acceptance chain.
+Evidence: Current blocked panels include unresolved audit trend evidence, Boss/Armor/Shimmer/Town NPC source snapshots, Boss image lineage, item group source audit, and Projectile `nameZh.gap=1006`.
+Expected follow-up: Split execution into report-only lanes first, then separate DB/crawler/data-write repair plans where blockers prove real data debt.

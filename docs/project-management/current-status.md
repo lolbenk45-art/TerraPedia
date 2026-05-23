@@ -2,20 +2,30 @@
 
 ## Date
 
-2026-05-06
+2026-05-23
 
 ## Current Phase
 
-Phase B stabilization.
+Phase C public preview stabilization.
 
 ## Active Sequence
 
-P0-00 -> P0-01 -> P0-02a -> P0-02b -> P0.5a -> P0.5b -> P0.5c -> P1 -> P2-docs.
+V0.1 public preview has been merged into local `main`.
+
+Next sequence:
+
+P0 domain A-grade blocker burn-down -> P0 staging/preview smoke -> P1 release decision -> P2 UI polish and feature expansion.
 
 ## Current Gate Boundary
 
 CI v1 is a CI-safe gate and is not equivalent to the local full gate.
 The local full gate remains `scripts/dev/quality-gate.ps1`.
+
+As of 2026-05-23:
+
+- Domain freshness is current: `freshCount=45`, `missingCount=0`, `staleCount=0`, `unknownCount=0`.
+- Domain A-grade remains blocked: `generatedBlockedCount=13`, `generatedWarningCount=9`.
+- Public V0.1 must be described as a preview surface, not final A-grade release readiness.
 
 ## Data Chain Boundary
 
@@ -24,8 +34,11 @@ UI/API must not generate evidence, refresh data, or query DB as gate evidence.
 
 ## Public Domain Boundary
 
-Boss, Buff, Projectile, and ArmorSet remain planned-public until Domain Acceptance permits public exposure.
-Current public-blocking policy: missing or unknown evidence blocks. `public-blocking stale` is warning by default; only explicit `accepted-warning` may continue to readiness-only evaluation, and stale evidence cannot make a domain route-ready.
+The V0.1 Nuxt public preview now exposes public pages for Items, NPCs, Bosses, Buffs, Projectiles, Armor Sets, Biomes, Crafting, Categories, Search, Articles, and About.
+
+This preview surface does not override Domain Acceptance. Current public-blocking policy: missing or unknown evidence blocks. `public-blocking stale` is warning by default; only explicit `accepted-warning` may continue to readiness-only evaluation, and stale evidence cannot make a domain route-ready.
+
+The next release decision must use `docs/plans/2026-05-23_domain-a-grade-blocker-burn-down-plan.md` to burn down or classify the remaining blocked panels before calling V0.1 release-ready.
 
 ## Monitor Boundary
 
@@ -39,8 +52,11 @@ Smoke is read-only business probing and report writing under `reports/local-star
 
 ## P2 Status
 
-P2 is readiness-only after P1. No new public Boss, Buff, Projectile, or ArmorSet code is scheduled in Phase B.
+P2 UI work is allowed only after the P0 blocker burn-down path is under control. New public feature expansion should not be prioritized ahead of the Domain A-grade blocker burn-down unless explicitly accepted as preview-only work.
 
-## Next TODO
+## Next Actions
 
-- Add an automatic NPC zh-name gate for the next iteration. Current evidence shows `npc-id-row-images.json` can contain Chinese names while `npcs.name_zh` may still regress to empty if a write path skips zh persistence. Add a DB/API coverage check so this fails before UI review.
+- Execute `docs/plans/2026-05-23_domain-a-grade-blocker-burn-down-plan.md`.
+- Decide whether to push local `main` to `origin/main`; local `main` is ahead of remote after the V0.1 preview merge.
+- Add an automatic NPC zh-name gate in the next data-quality iteration. Current evidence shows `npc-id-row-images.json` can contain Chinese names while `npcs.name_zh` may still regress to empty if a write path skips zh persistence. Add a DB/API coverage check so this fails before UI review.
+- Run staging or preview-origin smoke before any external release claim.
