@@ -4466,6 +4466,7 @@ img[data-preview-fallback] {
 .entity-main-panel,
 .entity-preview-dark,
 .boss-command,
+.biome-command,
 .boss-node,
 .boss-feature-panel,
 .boss-prep-matrix,
@@ -4767,6 +4768,7 @@ img[data-preview-fallback] {
 }
 .npc-detail-copy h2,
 .boss-command :where(h2, h3),
+.biome-command :where(h2, h3),
 .effect-hero-panel :where(h2, h3),
 .projectile-command :where(h2, h3),
 .armor-spotlight :where(h2, h3),
@@ -4777,6 +4779,7 @@ img[data-preview-fallback] {
 }
 .npc-detail-copy p,
 .boss-command p,
+.biome-command p,
 .effect-hero-panel p,
 .projectile-command p,
 .armor-spotlight p,
@@ -4844,6 +4847,67 @@ img[data-preview-fallback] {
   gap: 28px;
   align-items: center;
   padding: 34px;
+}
+.biome-command {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.62fr) minmax(360px, 1fr) minmax(280px, 0.7fr);
+  gap: 22px;
+  align-items: stretch;
+  padding: 28px;
+}
+.biome-command-copy {
+  align-self: center;
+}
+.biome-command-tools {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.biome-search-form {
+  align-self: start;
+}
+.biome-filter-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.biome-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  max-width: 100%;
+  border: 1px solid var(--button-control-border);
+  border-radius: var(--control-radius);
+  background: var(--button-control-bg);
+  color: var(--button-control-fg);
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: var(--button-control-shadow);
+}
+.biome-filter-chip span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.biome-filter-chip b {
+  color: var(--button-control-accent-fg);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.biome-filter-chip.active,
+.biome-filter-chip:hover {
+  border-color: var(--button-control-active-border);
+  background: var(--button-control-active-bg);
+  color: var(--button-control-active-fg);
+}
+.biome-command-stats {
+  align-self: stretch;
 }
 .boss-command-stats,
 .boss-prep-matrix,
@@ -5631,30 +5695,46 @@ img[data-preview-fallback] {
   font-weight: 900;
 }
 
-.biome-board {
+.biome-feature-grid,
+.biome-board,
+.biome-list-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
+.biome-feature-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.biome-list-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 .biome-tile {
-  min-height: 260px;
+  min-height: 184px;
   display: grid;
-  grid-template-rows: auto auto auto auto;
-  align-content: start;
-  gap: 12px;
+  grid-template-columns: 172px minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 16px;
+}
+.biome-feature-card {
+  min-height: 304px;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 .biome-tile-art {
   position: relative;
   display: grid;
   place-items: center;
   width: 100%;
-  height: 188px;
+  min-width: 0;
+  height: 140px;
   overflow: hidden;
   border: 1px solid var(--index-line);
   border-radius: 8px;
   background:
     radial-gradient(circle at 50% 38%, rgba(217, 185, 91, 0.16), transparent 66%),
     rgba(244,234,208,0.035);
+}
+.biome-feature-card .biome-tile-art {
+  height: 162px;
 }
 .biome-tile-art .biome-tile-backdrop,
 .biome-tile-art .biome-tile-thumb {
@@ -5670,6 +5750,9 @@ img[data-preview-fallback] {
 .biome-tile-art .biome-tile-thumb {
   padding: 8px 10px;
 }
+.biome-list-grid .biome-tile-art .biome-tile-thumb {
+  padding: 10px 12px;
+}
 .biome-tile-art .biome-tile-backdrop img,
 .biome-tile-art .biome-tile-thumb img {
   display: block;
@@ -5682,26 +5765,104 @@ img[data-preview-fallback] {
   object-fit: contain;
   object-position: center;
 }
+.biome-tile-body {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+}
 .biome-tile-title {
   min-width: 0;
+  align-self: start;
+  overflow-wrap: anywhere;
+}
+.biome-tile-subtitle {
+  color: rgba(244, 234, 208, 0.46);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.4;
   overflow-wrap: anywhere;
 }
 .biome-tile-description {
   display: -webkit-box;
-  -webkit-line-clamp: 5;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   max-height: 7.75em;
   overflow: hidden;
   overflow-wrap: anywhere;
 }
+.biome-feature-card .biome-tile-description {
+  -webkit-line-clamp: 4;
+}
+.biome-tile-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 2px;
+  min-width: 0;
+}
+.biome-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 28px;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  background: rgba(244,234,208,0.035);
+  color: rgba(244, 234, 208, 0.7);
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
 .biome-tile-meta {
   align-self: end;
-  border-top: 1px solid var(--index-line);
+  justify-self: end;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
   color: #9db89a;
   font-size: 12px;
   font-style: normal;
   font-weight: 900;
-  padding-top: 12px;
+  line-height: 1.2;
+  padding: 8px 10px;
+  text-align: right;
+  white-space: nowrap;
+}
+.biome-feature-card .biome-tile-meta {
+  justify-self: start;
+}
+.biome-taxonomy-band .support-panel {
+  min-height: 170px;
+}
+.biome-group-samples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.biome-group-samples a {
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  color: #ffd765;
+  padding: 7px 9px;
+  font-size: 12px;
+  font-weight: 900;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-filter-chip,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-chip,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-tile-meta,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-group-samples a {
+  border-color: rgba(var(--theme-border-rgb), 0.14);
+  background: rgba(var(--theme-panel-rgb), 0.54);
+  color: var(--text-main);
+}
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-group-samples a,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-tile-meta {
+  color: var(--text-link);
 }
 .biome-tile.forest { background-color: rgba(62, 96, 50, 0.16); }
 .biome-tile.desert { background-color: rgba(143, 114, 55, 0.14); }
@@ -7153,7 +7314,8 @@ img[data-preview-fallback] {
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .filter-option.active :where(b, span, em),
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .small-button.active :where(b, span, em),
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .detail-tab.active :where(b, span, em),
-:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-filter.active :where(b, span, em) {
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-filter.active :where(b, span, em),
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-filter-chip.active :where(b, span, em) {
   color: var(--button-control-active-fg);
 }
 
@@ -7282,6 +7444,7 @@ img[data-preview-fallback] {
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-main-panel,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .entity-preview-dark,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-command,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-command,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-node,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-feature-panel,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-prep-matrix,
@@ -7709,6 +7872,7 @@ img[data-preview-fallback] {
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .signal-list em,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .dark-table .source-row span,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .boss-command p,
+:where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .biome-command p,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .effect-hero-panel p,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .projectile-command p,
 :where([data-theme="light"], [data-theme="morning-paper"], [data-theme="warm-slate"]) .armor-spotlight p,
@@ -8267,6 +8431,8 @@ img[data-preview-fallback] {
   .npc-detail-hero,
   .detail-mosaic,
   .boss-command,
+  .biome-command,
+  .biome-feature-grid,
   .boss-timeline,
   .boss-lower-grid,
   .effect-hero-panel,
@@ -8314,6 +8480,15 @@ img[data-preview-fallback] {
   .article-link-grid,
   .user-auth-proof { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .boss-node { min-height: 260px; }
+  .biome-command {
+    align-items: start;
+  }
+  .biome-feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .biome-list-grid {
+    grid-template-columns: 1fr;
+  }
   .article-route-panel { position: static; }
   .recipe-node-card.root,
   .recipe-node-card.left,
@@ -8372,6 +8547,9 @@ img[data-preview-fallback] {
   .entity-toolbar,
   .npc-board,
   .entity-stat-strip,
+  .biome-command-stats,
+  .biome-feature-grid,
+  .biome-list-grid,
   .mini-facts,
   .boss-command-stats,
   .boss-prep-matrix,
@@ -8395,6 +8573,35 @@ img[data-preview-fallback] {
   .npc-card,
   .armor-card {
     grid-template-columns: 64px 1fr;
+  }
+  .biome-tile {
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 12px;
+    min-height: 154px;
+    padding: 14px;
+  }
+  .biome-feature-card {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+  .biome-tile-art,
+  .biome-feature-card .biome-tile-art {
+    height: 108px;
+  }
+  .biome-tile-meta {
+    grid-column: 1 / -1;
+    justify-self: start;
+    text-align: left;
+    white-space: normal;
+  }
+  .biome-filter-strip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    overscroll-behavior-x: contain;
+  }
+  .biome-filter-chip {
+    flex: 0 0 auto;
   }
   .npc-card em,
   .armor-card em {
@@ -8431,6 +8638,7 @@ img[data-preview-fallback] {
     font-size: 32px;
   }
   .boss-command,
+  .biome-command,
   .effect-hero-panel,
   .projectile-command,
   .armor-spotlight,
