@@ -1,10 +1,10 @@
-# Domain A-Grade Blocker Burn-Down Implementation Plan
+# Domain A-Grade Blocker Triage And Burn-Down Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Reduce the current Domain Acceptance A-grade gate from `blocked` to a truthful non-blocked state by clearing or explicitly reclassifying the 13 blocked panels recorded on 2026-05-23.
+**Goal:** Reduce the current Domain Acceptance A-grade gate from `blocked` to a truthful state by clearing the 13 blocked panels where evidence can be made durable, and by explicitly classifying any real data/source debt into separate repair branches.
 
-**Architecture:** Treat `reports/domain/**` as the gate output and repair the upstream evidence/report producers before changing the gate. Work in evidence lanes first, then data-gap lanes, then policy/registry lanes only if the evidence proves a contract is obsolete. No crawler, import, backfill, DB write, or production mutation is allowed without a separate data-write plan and rollback note.
+**Architecture:** Treat `reports/domain/**` as the gate output and repair the upstream evidence/report producers before changing the gate. "Burn-down" means clearing blockers when the source chain is durable; when a blocker proves to be real data debt, the output is a tracked classification and a separate repair branch, not a hidden pass. No crawler, import, backfill, DB write, or production mutation is allowed without a separate data-write plan and rollback note.
 
 **Tech Stack:** Node.js workflow scripts under `scripts/data/**`, TerraPedia domain acceptance registry/gate, tracked audit docs under `docs/audits/**`, generated evidence under `reports/domain/**` and allowed tracked report paths.
 
@@ -61,7 +61,8 @@ Out of scope for this plan:
 - Public UI redesign.
 - Hiding blocked panels by weakening `domain-acceptance-a-grade-gate.mjs`.
 - Direct registry promotion/demotion without fresh report evidence.
-- Crawler/network fetch execution unless a task explicitly says it is the approved fetch lane.
+- Crawler/network fetch execution unless a task explicitly says it is the approved fetch lane and passes the network/progress checklist below.
+- Long item-page crawl, `item-pages-refresh`, full item crawl, import, or backend refresh apply runs. These are separate data/crawler tasks and may take days.
 - DB-writing import/backfill/apply commands.
 - Remote push.
 
@@ -91,7 +92,57 @@ Potentially generated but ignored by default:
 - `reports/item-groups/any-item-group-source-audit*.json`
 - `reports/audit/image-source-lineage*.json`
 
-If an ignored evidence file is required for reproducible gate proof, record the stdout summary and path in `docs/audits/**`. Do not force-add ignored files unless a separate evidence-retention decision is made.
+Evidence retention rule:
+
+- A blocker may be marked cleared only when the exact evidence path consumed by the gate is durable across machines.
+- If the gate consumes an ignored file, the implementation must either add an explicit `.gitignore` allowlist entry and commit that file, or change the gate/report producer to consume a tracked distilled evidence artifact under `reports/domain/**`, `reports/relation/**`, or `docs/audits/**`.
+- Local-only ignored files and stdout summaries may support classification, but they are not enough to close Group B, Group C, or Group D blockers.
+- Do not force-add ignored artifacts ad hoc. Any ignored artifact that becomes required evidence must be made trackable through an explicit `.gitignore` policy change in the same focused task.
+- If a raw artifact is too large or volatile to track, stop and write a plan repair that changes the acceptance contract to consume a compact, deterministic, tracked summary instead.
+
+Verified script and environment facts from planning:
+
+| Surface | Verified parameter contract |
+| --- | --- |
+| Reresolve candidates | `node scripts/data/relation/generate-reresolve-candidates.mjs --generated-at=... --output=... --write-report=false`; default writes `reports/relation/reresolve-candidates-YYYY-MM-DD.json`; DB read only. |
+| Item group audit | `node scripts/data/audit/audit-any-item-group-sources.mjs --output=... --markdown=...`; default writes JSON and Markdown under ignored `reports/item-groups/`. |
+| Image lineage audit | `node scripts/data/audit/image-source-lineage-report.mjs --source=db --output=... --generated-at=...`; default writes ignored `reports/audit/image-source-lineage-YYYY-MM-DD.json`; DB read only. |
+| Boss source fetch | `node scripts/data/fetch/fetch-wiki-bosses.mjs --output-json=... --report-json=...`; network fetch, no DB write. |
+| Armor source fetch | `node scripts/data/fetch/fetch-wiki-armor-sets.mjs --output-dir=...`; network fetch, no DB write. |
+| Shimmer source fetch | `node scripts/data/fetch/fetch-wiki-shimmer-page.mjs --output=... --report-output=...`; network fetch, no DB write. |
+| Shimmer transform | `node scripts/data/transform/transform-wiki-shimmer-to-importable.mjs --input=... --output=... --report-output=... --use-db-lookup=false`; no network when input exists and DB lookup is false. |
+| Town NPC maintenance fetch | `python` is unavailable; `python3` is available as Python 3.12.3, but current planning check found missing `bs4`. Use `python3 scripts/data/fetch/fetch-wiki-town-npc-maintenance.py --source=... --output=... --snapshot-output=...` only after dependency check passes; network fetch, no DB write. |
+| Entity coverage baseline | `node scripts/data/relation/entity-coverage-baseline.mjs --local-database=... --maint-database=... --relation-database=...`; DB read only, writes `reports/relation/entity-coverage-baseline-YYYY-MM-DD.json/md`. |
+
+Network/progress checklist:
+
+- This plan does not start the 3+ day item crawler and does not run `node scripts/data/workflow/run-backend-data-refresh.mjs --mode=apply`.
+- A network lane must name the script, target wiki page or API, expected output paths, expected report paths, and expected duration before running.
+- Before any network fetch that is not already monitor-visible, verify whether the script writes progress before its first request and updates `lastHeartbeatAt`. If it does not, stop and open a progress-contract repair branch instead of running the fetch.
+- Approved short source-snapshot fetches must be bounded to one domain source each. Stop if a command expands into item page crawling, import, backfill, DB apply, storage sync, or unbounded pagination.
+- Each network lane gets a 20 minute per-command budget. If the command exceeds the budget, abort the lane and record the timeout in the audit doc.
+- The Shimmer transform may run without network only after the raw Shimmer source file exists; run it with `--use-db-lookup=false`.
+
+Git control strategy:
+
+- Do not implement on `main`.
+- Run each write lane in a clean task worktree or serialize writes in one worktree after read-only exploration.
+- Do not run two lanes that both execute `domain-acceptance-generate-reports.mjs --write=true` in the same worktree at the same time.
+- Stage only exact files listed in the task. Never use `git add .`, `git add reports/domain`, `git add docs/audits`, or another directory-level add.
+- Before every commit run `git status --short --branch -uall`, `git diff --cached --stat`, and `git diff --cached --name-status`.
+- If a task needs `.gitignore` changes for durable evidence, stage the `.gitignore` line and the newly trackable evidence paths in that same task commit.
+
+Time budget:
+
+| Task | Budget | Stop threshold |
+| --- | --- | --- |
+| Task 0 baseline | 30 minutes | Gate baseline cannot be reproduced. |
+| Task 1 reresolve evidence | 60 minutes | DB read fails or report target is not `reports/relation/**`. |
+| Task 2 item group audit | 45 minutes | Raw audit is required but still ignored and no tracked distilled contract exists. |
+| Task 3 image lineage | 60 minutes | DB read fails or raw lineage remains the only gate-consumed evidence. |
+| Task 4 Group B source snapshots | 2 hours total, 20 minutes per fetch command | Fetch lacks progress contract, expands to long crawl, or required evidence cannot be made durable. |
+| Task 5 projectile gap classification | 60 minutes | Fresh DB read indicates writes/backfills are required. |
+| Task 6 closeout | 45 minutes | Final gate result cannot be reproduced from tracked artifacts. |
 
 ## Task 0: Branch And Baseline Lock
 
@@ -224,8 +275,17 @@ Create `docs/audits/2026-05-23_domain-a-grade-reresolve-evidence.md` summarizing
 Run:
 
 ```bash
-git add reports/relation/reresolve-candidates-2026-05-23.json reports/domain docs/audits/2026-05-23_domain-a-grade-reresolve-evidence.md
+git add \
+  reports/relation/reresolve-candidates-2026-05-23.json \
+  reports/domain/items/unresolved-audit-trend-2026-05-23.json \
+  reports/domain/npcs/unresolved-audit-trend-2026-05-23.json \
+  reports/domain/bosses/unresolved-audit-trend-2026-05-23.json \
+  reports/domain/buffs/unresolved-audit-trend-2026-05-23.json \
+  reports/domain/projectiles/unresolved-audit-trend-2026-05-23.json \
+  reports/domain/armor_sets/unresolved-audit-trend-2026-05-23.json \
+  docs/audits/2026-05-23_domain-a-grade-reresolve-evidence.md
 git diff --cached --stat
+git diff --cached --name-status
 git commit -m "docs: refresh unresolved audit trend evidence"
 ```
 
@@ -288,15 +348,29 @@ Create `docs/audits/2026-05-23_domain-a-grade-item-group-evidence.md` with:
 
 - [ ] **Step 5: Commit item-group evidence**
 
-If the generated `reports/item-groups/**` files are still ignored, do not force-add them. Commit the tracked domain report changes and audit doc:
+If `support.item_group/blockingGate` depends on `reports/item-groups/any-item-group-source-audit-2026-05-23.json`, first make that exact JSON and Markdown output trackable through `.gitignore` allowlist entries. A tracked audit doc alone is not enough to clear this blocker because the gate consumes `reports/item-groups/any-item-group-source-audit*.json`.
+
+Add the allowlist after the existing `reports/domain` and `reports/relation` rules:
+
+```gitignore
+!reports/item-groups/
+!reports/item-groups/any-item-group-source-audit-2026-05-23.json
+!reports/item-groups/any-item-group-source-audit-2026-05-23.md
+```
 
 ```bash
-git add reports/domain/support.item_group docs/audits/2026-05-23_domain-a-grade-item-group-evidence.md
+git add \
+  .gitignore \
+  reports/item-groups/any-item-group-source-audit-2026-05-23.json \
+  reports/item-groups/any-item-group-source-audit-2026-05-23.md \
+  reports/domain/support.item_group/blocking-gate-2026-05-23.json \
+  docs/audits/2026-05-23_domain-a-grade-item-group-evidence.md
 git diff --cached --stat
+git diff --cached --name-status
 git commit -m "docs: record item group blocker evidence"
 ```
 
-Expected: evidence is traceable from the audit doc, even if raw item-group report remains local-only.
+Expected: the gate-consumed item-group report is committed or the task remains classified as not cleared.
 
 ## Task 3: Resolve Group C Boss Image Lineage Evidence
 
@@ -353,15 +427,27 @@ Create `docs/audits/2026-05-23_domain-a-grade-image-lineage-evidence.md` with:
 
 - [ ] **Step 5: Commit image-lineage evidence**
 
+Add the allowlist after the existing `reports/domain` and `reports/relation` rules:
+
+```gitignore
+!reports/audit/
+!reports/audit/image-source-lineage-2026-05-23.json
+```
+
 Run:
 
 ```bash
-git add reports/domain/bosses/image-readiness-2026-05-23.json docs/audits/2026-05-23_domain-a-grade-image-lineage-evidence.md
+git add \
+  .gitignore \
+  reports/audit/image-source-lineage-2026-05-23.json \
+  reports/domain/bosses/image-readiness-2026-05-23.json \
+  docs/audits/2026-05-23_domain-a-grade-image-lineage-evidence.md
 git diff --cached --stat
+git diff --cached --name-status
 git commit -m "docs: record boss image lineage evidence"
 ```
 
-Expected: tracked domain report and audit doc. Do not force-add ignored `reports/audit/**` unless a separate evidence-retention decision is made.
+Expected: tracked lineage report, tracked domain report, and audit doc. If `reports/audit/**` remains ignored, the blocker is classified but not cleared.
 
 ## Task 4: Resolve Group B Source Snapshot Evidence
 
@@ -379,15 +465,38 @@ Expected: tracked domain report and audit doc. Do not force-add ignored `reports
 Use this decision rule:
 
 - If the required source file exists in another trusted worktree or committed history, copy is not allowed by default; run the producer or document why the latest source cannot be regenerated.
-- Network fetch commands require explicit fetch-lane approval in the task update.
-- Python is currently unavailable in this worktree (`python` command check returned exit `127` during planning); Town NPC maintenance fetch needs either `python3` availability or a separate environment repair.
+- Network fetch commands require explicit fetch-lane approval in the task update and must pass the network/progress checklist.
+- `python` is unavailable in this worktree; `python3` must be used for Town NPC maintenance, and `bs4` must be importable before the fetch can run.
+- The four gate-consumed latest source snapshots are ignored by `.gitignore` today. Clearing Group B requires making these exact outputs trackable or changing the gate to consume a tracked distilled evidence artifact.
+- Do not run full backend refresh apply, `item-pages-refresh`, or long item crawl for Group B. These four blockers are source-snapshot evidence blockers, not a mandate for a multi-day item crawl.
+
+- [ ] **Step 1a: Verify command parameters and progress contract before fetching**
+
+Run:
+
+```bash
+node scripts/data/workflow/domain-acceptance-report-manifest.mjs | rg -n "bosses|armor_sets|support.shimmer|support.town_npc_maintenance|sourceReadiness|writesDatabase"
+rg -n "progress-path|TERRAPEDIA_CRAWLER_PROGRESS_PATH|lastHeartbeatAt|childStatusPath|actionId" \
+  scripts/data/fetch/fetch-wiki-bosses.mjs \
+  scripts/data/fetch/fetch-wiki-armor-sets.mjs \
+  scripts/data/fetch/fetch-wiki-shimmer-page.mjs \
+  scripts/data/fetch/fetch-wiki-town-npc-maintenance.py
+```
+
+Expected:
+
+- Manifest entries remain `writesDatabase=false`.
+- If a fetch script lacks progress output, do not run it in this plan. Open a progress-contract repair branch or classify the Group B blocker as needing that branch first.
+- No manual approval can bypass the progress contract for crawler/fetch execution; approval only decides whether to open the progress-contract repair branch now or leave Group B classified for follow-up.
 
 - [ ] **Step 2: Run Boss source producer if approved**
 
 Run:
 
 ```bash
-node scripts/data/fetch/fetch-wiki-bosses.mjs
+node scripts/data/fetch/fetch-wiki-bosses.mjs \
+  --output-json=data/generated/wiki-bosses.latest.json \
+  --report-json=reports/wiki-bosses-fetch-2026-05-23.json
 ```
 
 Expected:
@@ -395,27 +504,37 @@ Expected:
 - Writes `data/generated/wiki-bosses.latest.json`.
 - Writes `reports/wiki-bosses-fetch-YYYY-MM-DD.json`.
 - Does not write DB rows.
+- Completes within 20 minutes.
 
 - [ ] **Step 3: Run ArmorSet source producer if approved**
 
 Run:
 
 ```bash
-node scripts/data/fetch/fetch-wiki-armor-sets.mjs
+node scripts/data/fetch/fetch-wiki-armor-sets.mjs \
+  --output-dir=data/generated \
+  --keep-snapshot=false
 ```
 
 Expected:
 
 - Writes `data/generated/wiki-armor-sets.latest.json`.
 - Does not write DB rows.
+- Completes within 20 minutes.
 
 - [ ] **Step 4: Run Shimmer source producer if approved**
 
 Run:
 
 ```bash
-node scripts/data/fetch/fetch-wiki-shimmer-page.mjs
-node scripts/data/transform/transform-wiki-shimmer-to-importable.mjs --use-db-lookup=false
+node scripts/data/fetch/fetch-wiki-shimmer-page.mjs \
+  --output=data/generated/wiki-shimmer.latest.json \
+  --report-output=reports/wiki-shimmer-summary-2026-05-23.md
+node scripts/data/transform/transform-wiki-shimmer-to-importable.mjs \
+  --input=data/generated/wiki-shimmer.latest.json \
+  --output=data/generated/shimmer \
+  --report-output=reports/wiki-shimmer-importable-summary-2026-05-23.md \
+  --use-db-lookup=false
 ```
 
 Expected:
@@ -425,13 +544,34 @@ Expected:
 - Writes `data/generated/shimmer/wiki-shimmer-context.importable.latest.json`.
 - Writes `data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json`.
 - Does not write DB rows.
+- Fetch completes within 20 minutes; transform completes within 10 minutes.
 
-- [ ] **Step 5: Run Town NPC maintenance source producer if approved and Python is available**
+- [ ] **Step 5: Run Town NPC maintenance source producer if approved and Python3 dependencies are available**
+
+First verify the interpreter and parser dependency:
+
+```bash
+command -v python3
+python3 --version
+python3 - <<'PY'
+from bs4 import BeautifulSoup, Tag
+print('bs4 ok')
+PY
+```
+
+Expected:
+
+- `python3` exists.
+- `bs4 ok` prints.
+- If `python3` or `bs4` is unavailable, do not run the fetch. Open a separate Python dependency/environment repair branch or classify the Town NPC source snapshot blocker as environment-blocked.
 
 Run:
 
 ```bash
-python3 scripts/data/fetch/fetch-wiki-town-npc-maintenance.py
+python3 scripts/data/fetch/fetch-wiki-town-npc-maintenance.py \
+  --source=data/generated/npc-standardized-map.json \
+  --output=data/generated/wiki-town-npc-maintenance.latest.json \
+  --snapshot-output=reports/wiki-town-npc-maintenance-2026-05-23.json
 ```
 
 Expected:
@@ -439,8 +579,45 @@ Expected:
 - Writes `data/generated/wiki-town-npc-maintenance.latest.json`.
 - Writes `reports/wiki-town-npc-maintenance-*.json`.
 - Does not write DB rows.
+- Completes within 20 minutes.
 
-- [ ] **Step 6: Regenerate domain reports and gate**
+- [ ] **Step 6: Make Group B evidence durable**
+
+Choose one durable evidence path before claiming any Group B clear:
+
+Option A: track the exact gate-consumed snapshots.
+
+Add the allowlist after the existing `data/generated` ignore rules:
+
+```gitignore
+!data/generated/wiki-bosses.latest.json
+!data/generated/wiki-armor-sets.latest.json
+!data/generated/wiki-town-npc-maintenance.latest.json
+!data/generated/shimmer/
+!data/generated/shimmer/wiki-shimmer-manifest.latest.json
+!data/generated/shimmer/wiki-shimmer-context.importable.latest.json
+!data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json
+```
+
+```bash
+# Add explicit allowlist entries for only the required latest source snapshots.
+git add .gitignore \
+  data/generated/wiki-bosses.latest.json \
+  data/generated/wiki-armor-sets.latest.json \
+  data/generated/wiki-town-npc-maintenance.latest.json \
+  data/generated/shimmer/wiki-shimmer-manifest.latest.json \
+  data/generated/shimmer/wiki-shimmer-context.importable.latest.json \
+  data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json
+```
+
+Option B: change `scripts/data/audit/domain-readiness-audit.mjs` so Group B source-readiness consumes a deterministic tracked summary under `reports/domain/source-snapshots/`, add a focused test, and commit that summary.
+
+Expected:
+
+- The gate no longer depends on local-only ignored Group B snapshots.
+- The selected option is recorded in the source-snapshot audit doc.
+
+- [ ] **Step 7: Regenerate domain reports and gate**
 
 Run:
 
@@ -452,9 +629,9 @@ node scripts/data/workflow/domain-acceptance-a-grade-gate.mjs --repo-root="$(pwd
 Expected:
 
 - The four source-readiness missing-evidence blockers are either cleared or converted into explicit source quality blockers.
-- Do not force-add ignored generated source files unless this plan is revised to track them.
+- No Group B panel is marked cleared using local-only ignored files.
 
-- [ ] **Step 7: Write source-snapshot audit**
+- [ ] **Step 8: Write source-snapshot audit**
 
 Create `docs/audits/2026-05-23_domain-a-grade-source-snapshot-evidence.md` with:
 
@@ -462,19 +639,27 @@ Create `docs/audits/2026-05-23_domain-a-grade-source-snapshot-evidence.md` with:
 - Exit codes.
 - Generated file paths.
 - Whether each generated path is ignored or tracked.
+- The selected durable evidence strategy: exact snapshot allowlist or tracked distilled evidence.
+- Progress-contract status and any follow-up progress repair branch.
 - Resulting source-readiness status per affected panel.
 
-- [ ] **Step 8: Commit source-snapshot audit and tracked reports**
+- [ ] **Step 9: Commit source-snapshot audit and tracked reports**
 
 Run:
 
 ```bash
-git add reports/domain docs/audits/2026-05-23_domain-a-grade-source-snapshot-evidence.md
+git add \
+  reports/domain/bosses/source-readiness-2026-05-23.json \
+  reports/domain/armor_sets/source-readiness-2026-05-23.json \
+  reports/domain/support.shimmer/source-readiness-2026-05-23.json \
+  reports/domain/support.town_npc_maintenance/source-readiness-2026-05-23.json \
+  docs/audits/2026-05-23_domain-a-grade-source-snapshot-evidence.md
 git diff --cached --stat
+git diff --cached --name-status
 git commit -m "docs: record source snapshot evidence"
 ```
 
-Expected: tracked domain reports and audit doc. Ignored generated source snapshots stay local-only unless a separate evidence-retention decision is made.
+Expected: tracked domain reports, audit doc, and the durable evidence files from Step 6. If Step 6 chose Option A, add the exact allowlisted snapshot paths to this `git add` command. If Step 6 chose Option B, add the modified audit script, tests, and tracked distilled summary paths.
 
 ## Task 5: Resolve Group E Projectile Relation Field Gap
 
@@ -497,12 +682,22 @@ Expected: enough detail to identify the source of `nameZh.gap=1006` or confirm t
 
 - [ ] **Step 2: Determine whether the blocker is stale evidence or real data gap**
 
-Run the current entity field audit command if it exists and is read-only. If there is no safe command, inspect tests and write the audit conclusion from existing reports only.
+Generate a fresh read-only entity coverage baseline before classification:
+
+```bash
+node scripts/data/relation/entity-coverage-baseline.mjs \
+  --local-database=terria_v1_local \
+  --maint-database=terria_v1_maint \
+  --relation-database=terria_v1_relation
+node -e "const fs=require('fs'); const p='reports/relation/entity-coverage-baseline-2026-05-23.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); console.log(JSON.stringify(j.fieldAudit?.domains?.projectiles ?? null,null,2));"
+```
 
 Expected:
 
-- If a fresh read-only audit shows no projectile `nameZh` gap, retarget or regenerate `reports/relation/entity-coverage-baseline*.json`.
+- The command writes `reports/relation/entity-coverage-baseline-2026-05-23.json` and `.md`.
+- If a fresh read-only audit shows no projectile `nameZh` gap, regenerate domain reports so `projectiles/relationReadiness` points at current evidence.
 - If the gap persists, open a dedicated repair branch for projectile zh relation coverage. Do not weaken the domain gate.
+- If DB connection fails, classify this lane as blocked by DB-read environment and do not use the 2026-04-25 baseline as a current fact.
 
 - [ ] **Step 3: Write projectile gap audit**
 
@@ -517,12 +712,17 @@ Create `docs/audits/2026-05-23_domain-a-grade-projectile-relation-gap.md` with:
 Run:
 
 ```bash
-git add docs/audits/2026-05-23_domain-a-grade-projectile-relation-gap.md
+git add \
+  reports/relation/entity-coverage-baseline-2026-05-23.json \
+  reports/relation/entity-coverage-baseline-2026-05-23.md \
+  reports/domain/projectiles/relation-readiness-2026-05-23.json \
+  docs/audits/2026-05-23_domain-a-grade-projectile-relation-gap.md
 git diff --cached --stat
+git diff --cached --name-status
 git commit -m "docs: classify projectile relation blocker"
 ```
 
-Expected: docs-only classification commit unless a separate implementation branch is opened.
+Expected: fresh tracked baseline plus classification audit. If the DB-read command failed and no fresh baseline exists, commit only the audit doc and explicitly keep the blocker open.
 
 ## Task 6: Final Gate Rebuild And Release Decision
 
@@ -540,7 +740,7 @@ Run:
 ```bash
 node scripts/data/workflow/domain-acceptance-generate-reports.mjs --repo-root="$(pwd)" --write=true
 node scripts/data/workflow/domain-acceptance-freshness-audit.mjs --repo-root="$(pwd)" > /tmp/terrapedia-domain-freshness-closeout.json
-node scripts/data/workflow/domain-acceptance-a-grade-gate.mjs --repo-root="$(pwd)" --fail-on-blocked=true > /tmp/terrapedia-domain-a-grade-closeout.json
+node scripts/data/workflow/domain-acceptance-a-grade-gate.mjs --repo-root="$(pwd)" --fail-on-blocked=true > /tmp/terrapedia-domain-a-grade-closeout.json || test "$?" -eq 1
 ```
 
 Expected:
@@ -591,8 +791,58 @@ Expected:
 Run:
 
 ```bash
-git add reports/domain docs/audits/2026-05-23_domain-a-grade-blocker-burn-down-closeout.md docs/project-management/current-status.md docs/project-management/risk-register.md docs/project-management/decision-log.md
+git add \
+  reports/domain/items/source-readiness-2026-05-23.json \
+  reports/domain/items/relation-readiness-2026-05-23.json \
+  reports/domain/items/image-readiness-2026-05-23.json \
+  reports/domain/items/public-readiness-2026-05-23.json \
+  reports/domain/items/unresolved-audit-trend-2026-05-23.json \
+  reports/domain/npcs/source-readiness-2026-05-23.json \
+  reports/domain/npcs/relation-readiness-2026-05-23.json \
+  reports/domain/npcs/image-readiness-2026-05-23.json \
+  reports/domain/npcs/public-readiness-2026-05-23.json \
+  reports/domain/npcs/unresolved-audit-trend-2026-05-23.json \
+  reports/domain/bosses/source-readiness-2026-05-23.json \
+  reports/domain/bosses/relation-readiness-2026-05-23.json \
+  reports/domain/bosses/image-readiness-2026-05-23.json \
+  reports/domain/bosses/public-readiness-2026-05-23.json \
+  reports/domain/bosses/unresolved-audit-trend-2026-05-23.json \
+  reports/domain/buffs/source-readiness-2026-05-23.json \
+  reports/domain/buffs/relation-readiness-2026-05-23.json \
+  reports/domain/buffs/image-readiness-2026-05-23.json \
+  reports/domain/buffs/public-readiness-2026-05-23.json \
+  reports/domain/buffs/unresolved-audit-trend-2026-05-23.json \
+  reports/domain/projectiles/source-readiness-2026-05-23.json \
+  reports/domain/projectiles/relation-readiness-2026-05-23.json \
+  reports/domain/projectiles/image-readiness-2026-05-23.json \
+  reports/domain/projectiles/public-readiness-2026-05-23.json \
+  reports/domain/projectiles/unresolved-audit-trend-2026-05-23.json \
+  reports/domain/armor_sets/source-readiness-2026-05-23.json \
+  reports/domain/armor_sets/relation-readiness-2026-05-23.json \
+  reports/domain/armor_sets/image-readiness-2026-05-23.json \
+  reports/domain/armor_sets/public-readiness-2026-05-23.json \
+  reports/domain/armor_sets/unresolved-audit-trend-2026-05-23.json \
+  reports/domain/support.recipe/source-readiness-2026-05-23.json \
+  reports/domain/support.recipe/blocking-gate-2026-05-23.json \
+  reports/domain/support.recipe/b1-exemption-compliance-2026-05-23.json \
+  reports/domain/support.shimmer/source-readiness-2026-05-23.json \
+  reports/domain/support.shimmer/blocking-gate-2026-05-23.json \
+  reports/domain/support.shimmer/b1-exemption-compliance-2026-05-23.json \
+  reports/domain/support.category/source-readiness-2026-05-23.json \
+  reports/domain/support.category/blocking-gate-2026-05-23.json \
+  reports/domain/support.category/b1-exemption-compliance-2026-05-23.json \
+  reports/domain/support.item_group/source-readiness-2026-05-23.json \
+  reports/domain/support.item_group/blocking-gate-2026-05-23.json \
+  reports/domain/support.item_group/b1-exemption-compliance-2026-05-23.json \
+  reports/domain/support.town_npc_maintenance/source-readiness-2026-05-23.json \
+  reports/domain/support.town_npc_maintenance/blocking-gate-2026-05-23.json \
+  reports/domain/support.town_npc_maintenance/b1-exemption-compliance-2026-05-23.json \
+  docs/audits/2026-05-23_domain-a-grade-blocker-burn-down-closeout.md \
+  docs/project-management/current-status.md \
+  docs/project-management/risk-register.md \
+  docs/project-management/decision-log.md
 git diff --cached --stat
+git diff --cached --name-status
 git commit -m "docs: close domain blocker burn-down"
 ```
 

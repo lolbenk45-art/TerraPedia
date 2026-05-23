@@ -69,7 +69,21 @@ Expected follow-up: Execute `docs/plans/2026-05-23_domain-a-grade-blocker-burn-d
 
 ## D-2026-05-23-02: Burn down Domain A-grade blockers before new public feature expansion
 
-Decision: The next project-management priority is the Domain A-grade blocker burn-down, ahead of broad new public UI feature expansion.
+Decision: The next project-management priority is Domain A-grade blocker triage and burn-down, ahead of broad new public UI feature expansion.
 Reason: The UI preview can render, but source, relation, item-group, and image-lineage blockers still exist in the acceptance chain.
 Evidence: Current blocked panels include unresolved audit trend evidence, Boss/Armor/Shimmer/Town NPC source snapshots, Boss image lineage, item group source audit, and Projectile `nameZh.gap=1006`.
 Expected follow-up: Split execution into report-only lanes first, then separate DB/crawler/data-write repair plans where blockers prove real data debt.
+
+## D-2026-05-23-03: Gate-consumed evidence must be durable
+
+Decision: Domain A-grade blocker closure requires the exact gate-consumed evidence path to be committed, or the gate/report producer must be changed to consume a deterministic tracked distilled artifact.
+Reason: Group B/C/D can appear fixed on one machine when ignored generated files exist locally, then regress immediately on another checkout.
+Evidence: `.gitignore` ignores `data/generated/wiki-*.json`, `data/generated/**/*.latest.json`, `reports/item-groups/**`, and `reports/audit/**`, while the Domain Readiness audit currently consumes those paths for source/image/item-group evidence.
+Expected follow-up: Repair `docs/plans/2026-05-23_domain-a-grade-blocker-burn-down-plan.md` so stdout summaries are classification support only, not closure evidence.
+
+## D-2026-05-23-04: A-grade burn-down does not start long item crawling
+
+Decision: The Domain A-grade blocker triage plan may use read-only audits and bounded source-snapshot fetch lanes, but it must not start full item-page crawling, `item-pages-refresh`, backend refresh apply, import, or backfill.
+Reason: The current blockers are evidence durability, source snapshot, image lineage, item-group audit, and projectile relation classification problems. A multi-day item crawl is a separate data/crawler operation with its own progress, timeout, recovery, and approval plan.
+Evidence: Backend refresh plan includes `item-pages-refresh`; user noted item crawling can take 3+ days.
+Expected follow-up: If a lane proves item crawl is actually required, open a separate crawler plan with the TerraPedia crawler progress contract before execution.

@@ -14,7 +14,7 @@ V0.1 public preview has been merged into local `main`.
 
 Next sequence:
 
-P0 domain A-grade blocker burn-down -> P0 staging/preview smoke -> P1 release decision -> P2 UI polish and feature expansion.
+P0 domain A-grade blocker triage and burn-down -> P0 staging/preview smoke -> P1 release decision -> P2 UI polish and feature expansion.
 
 ## Current Gate Boundary
 
@@ -38,7 +38,7 @@ The V0.1 Nuxt public preview now exposes public pages for Items, NPCs, Bosses, B
 
 This preview surface does not override Domain Acceptance. Current public-blocking policy: missing or unknown evidence blocks. `public-blocking stale` is warning by default; only explicit `accepted-warning` may continue to readiness-only evaluation, and stale evidence cannot make a domain route-ready.
 
-The next release decision must use `docs/plans/2026-05-23_domain-a-grade-blocker-burn-down-plan.md` to burn down or classify the remaining blocked panels before calling V0.1 release-ready.
+The next release decision must use `docs/plans/2026-05-23_domain-a-grade-blocker-burn-down-plan.md` to burn down or classify the remaining blocked panels before calling V0.1 release-ready. A blocker is cleared only when the gate-consumed evidence is durable across machines; local-only ignored evidence is classification support, not closure.
 
 ## Monitor Boundary
 
@@ -52,7 +52,7 @@ Smoke is read-only business probing and report writing under `reports/local-star
 
 ## P2 Status
 
-P2 UI work is allowed only after the P0 blocker burn-down path is under control. New public feature expansion should not be prioritized ahead of the Domain A-grade blocker burn-down unless explicitly accepted as preview-only work.
+P2 UI work is allowed only after the P0 blocker triage and burn-down path is under control. New public feature expansion should not be prioritized ahead of the Domain A-grade blocker triage unless explicitly accepted as preview-only work.
 
 ## Next Actions
 
