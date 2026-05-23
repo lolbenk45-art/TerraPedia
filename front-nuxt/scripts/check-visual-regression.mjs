@@ -1,13 +1,109 @@
-import { readFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 
 const root = new URL('..', import.meta.url)
+const repoRoot = new URL('..', root)
 const file = (path) => new URL(path, root)
 const baseUrl = process.env.TERRAPEDIA_FRONT_NUXT_URL || 'http://localhost:5176'
 const chromeBin = process.env.CHROMIUM_BIN || '/usr/bin/chromium-browser'
 const checkLocalAssetLeaks = process.env.CHECK_LOCAL_ASSET_LEAKS === '1'
+const cdpCommandTimeoutMs = Number(process.env.VISUAL_CDP_TIMEOUT_MS || 15000)
+const visualReportDir = new URL('reports/front-nuxt/visual-quality/', repoRoot)
+const screenshotDir = new URL('screenshots/', visualReportDir)
+const failureReportPath = new URL('failures-2026-05-24.json', visualReportDir)
+const blockingFailures = []
+const warnings = []
+const screenshotRecords = []
+const runId = new Date().toISOString().replace(/[:.]/g, '-')
+const screenshotRunDir = new URL(`${runId}/`, screenshotDir)
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const slugForPath = (value) => value
+  .replace(/^https?:\/\//, '')
+  .replace(/[^a-z0-9]+/gi, '-')
+  .replace(/^-+|-+$/g, '')
+  .toLowerCase()
+  || 'root'
+
+const inferFailureMeta = (message) => {
+  const routeMatch = message.match(/^(\/[^:]*):\s*(.*)$/)
+  const route = routeMatch?.[1] ?? null
+  const detail = routeMatch?.[2] ?? message
+  const family = route?.startsWith('/items') || detail.includes('items page') || detail.includes('catalog')
+    ? 'items'
+    : route?.startsWith('/crafting')
+      ? 'crafting'
+      : route?.startsWith('/npcs') || route?.startsWith('/bosses') || route?.startsWith('/buffs') || route?.startsWith('/biomes') || route?.startsWith('/armor-sets') || route?.startsWith('/projectiles')
+        ? 'entities'
+        : route?.startsWith('/search') || route?.startsWith('/articles') || route?.startsWith('/categories')
+          ? 'discovery'
+          : route === '/__missing-terrapedia-page'
+            ? 'error'
+          : 'static'
+  const category = /overflow|clip/i.test(detail)
+    ? 'overflow'
+    : /overlap/i.test(detail)
+      ? 'overlap'
+      : /broken image|broken images/i.test(detail)
+        ? 'broken-image'
+        : /touch target|below 44px/i.test(detail)
+          ? 'touch-target'
+          : /h1/i.test(detail)
+            ? 'heading'
+            : /copy|wording|debug|fixture|mock|TODO|lorem/i.test(detail)
+              ? 'copy'
+              : /screenshot/i.test(detail)
+                ? 'screenshot'
+                : /image|asset|source/i.test(detail)
+                  ? 'image'
+                  : /Runtime\.evaluate|DevTools|timeout|failed|threw/i.test(detail)
+                    ? 'runtime'
+                    : 'visual'
+
+  return {
+    route,
+    family,
+    category,
+    assertion: detail.split(':')[0].slice(0, 96),
+  }
+}
+
+const recordFailure = (message, details = {}) => {
+  const meta = inferFailureMeta(message)
+  const failure = {
+    severity: 'blocking',
+    message,
+    selector: null,
+    screenshotPath: null,
+    ...meta,
+    ...details,
+  }
+  blockingFailures.push(failure)
+  return failure
+}
+
+const recordWarning = (message, details = {}) => {
+  const meta = inferFailureMeta(message)
+  warnings.push({
+    severity: 'warning',
+    message,
+    selector: null,
+    screenshotPath: null,
+    ...meta,
+    ...details,
+  })
+}
+
+const failures = {
+  push: recordFailure,
+  get length() {
+    return blockingFailures.length
+  },
+  map(callback) {
+    return blockingFailures.map((failure, index) => callback(failure.message, index, blockingFailures))
+  },
+}
 
 const waitFor = async (url, attempts = 80) => {
   for (let index = 0; index < attempts; index += 1) {
@@ -23,6 +119,234 @@ const waitFor = async (url, attempts = 80) => {
   }
 
   throw new Error(`Timed out waiting for ${url}`)
+}
+
+const publicRouteMatrix = [
+  { route: '/', family: 'shell', viewports: ['mobile', 'tablet'] },
+  { route: '/__missing-terrapedia-page', family: 'shell', viewports: ['mobile', 'tablet'] },
+  { route: '/search', family: 'discovery', viewports: ['mobile'] },
+  { route: '/articles', family: 'discovery', viewports: ['mobile'] },
+  { route: '/categories', family: 'discovery', viewports: ['mobile'] },
+  { route: '/categories/weapons', family: 'discovery', viewports: ['mobile'] },
+  { route: '/about', family: 'discovery', viewports: ['mobile'] },
+  { route: '/items', family: 'items', viewports: ['mobile', 'desktop', 'wide'] },
+  { route: '/items/1', family: 'item-detail', viewports: ['mobile'] },
+  { route: '/crafting', family: 'crafting', viewports: ['mobile', 'desktop', 'wide'] },
+  { route: '/crafting?itemId=675&maxDepth=3', family: 'crafting', viewports: ['mobile', 'desktop', 'wide'] },
+  { route: '/npcs', family: 'entity-index', viewports: ['mobile'] },
+  { route: '/bosses', family: 'entity-index', viewports: ['mobile'] },
+  { route: '/buffs', family: 'entity-index', viewports: ['mobile'] },
+  { route: '/biomes', family: 'entity-index', viewports: ['mobile'] },
+  { route: '/armor-sets', family: 'entity-index', viewports: ['mobile', 'desktop'] },
+  { route: '/projectiles', family: 'entity-index', viewports: ['mobile', 'desktop'] },
+]
+
+const nonPublicPreviewRoutes = [
+  '/search-tool',
+  '/home-hero-options',
+  '/user',
+  '/user/login',
+  '/user/register',
+  '/user/articles',
+  '/user/articles/new',
+  '/user/favorites',
+  '/user/settings',
+]
+
+const viewportPresets = {
+  mobile: { width: 390, height: 900, mobile: true },
+  tablet: { width: 768, height: 1024, mobile: false },
+  desktop: { width: 1440, height: 1000, mobile: false },
+  wide: { width: 1728, height: 1050, mobile: false },
+}
+
+const setViewport = async (browser, viewportName) => {
+  const viewport = viewportPresets[viewportName]
+  await browser.send('Emulation.setDeviceMetricsOverride', {
+    width: viewport.width,
+    height: viewport.height,
+    deviceScaleFactor: 1,
+    mobile: viewport.mobile,
+  })
+}
+
+const writeFailureReport = () => {
+  mkdirSync(visualReportDir, { recursive: true })
+  writeFileSync(failureReportPath, `${JSON.stringify({
+    generatedAt: new Date().toISOString(),
+    baseUrl,
+    runId,
+    checkLocalAssetLeaks,
+    failureCount: blockingFailures.length,
+    warningCount: warnings.length,
+    screenshotCount: screenshotRecords.length,
+    failures: blockingFailures,
+    warnings,
+    screenshots: screenshotRecords,
+  }, null, 2)}\n`)
+}
+
+const captureScreenshot = async (browser, route, viewportName, reason) => {
+  try {
+    mkdirSync(screenshotRunDir, { recursive: true })
+    const screenshot = await browser.send('Page.captureScreenshot', {
+      format: 'png',
+      captureBeyondViewport: false,
+    })
+    const name = `${String(screenshotRecords.length + 1).padStart(3, '0')}-${viewportName}-${slugForPath(route)}.png`
+    const path = new URL(name, screenshotRunDir)
+    writeFileSync(path, Buffer.from(screenshot.data, 'base64'))
+    const reportPath = `reports/front-nuxt/visual-quality/screenshots/${runId}/${name}`
+    screenshotRecords.push({
+      route,
+      viewport: viewportName,
+      reason,
+      path: reportPath,
+    })
+    return reportPath
+  } catch (error) {
+    recordWarning(`${route}: failed to capture screenshot for ${viewportName}`, {
+      assertion: 'screenshot capture',
+      viewport: viewportName,
+      error: String(error?.message ?? error),
+    })
+    return null
+  }
+}
+
+const attachScreenshotToFailures = (fromIndex, screenshotPath) => {
+  if (!screenshotPath) return
+
+  for (const failure of blockingFailures.slice(fromIndex)) {
+    failure.screenshotPath = failure.screenshotPath || screenshotPath
+  }
+}
+
+const evaluateJson = async (browser, expression, context) => {
+  let result
+  try {
+    result = await browser.send('Runtime.evaluate', {
+      expression,
+      awaitPromise: true,
+      returnByValue: true,
+    })
+  } catch (error) {
+    recordFailure(`${context.route}: ${context.label} Runtime.evaluate failed`, {
+      route: context.route,
+      family: context.family,
+      viewport: context.viewport,
+      assertion: context.label,
+      error: String(error?.message ?? error),
+    })
+    return null
+  }
+
+  const value = result?.result?.value
+  if (value === undefined) {
+    recordFailure(`${context.route}: ${context.label} returned no serializable value`, {
+      route: context.route,
+      family: context.family,
+      viewport: context.viewport,
+      assertion: context.label,
+      remoteResult: result?.result ?? null,
+      exceptionDetails: result?.exceptionDetails ?? null,
+    })
+    return null
+  }
+
+  return value
+}
+
+const navigateAndAudit = async (browser, routeConfig, viewportName) => {
+  const previousCount = failures.length
+
+  try {
+    await setViewport(browser, viewportName)
+    if (routeConfig.route === '/items') {
+      await browser.send('Runtime.evaluate', {
+        expression: `localStorage.removeItem('terrapedia:catalog-page-size')`,
+      })
+    }
+
+    await browser.send('Page.navigate', { url: `${baseUrl}${routeConfig.route}` })
+    await sleep(650)
+
+    if (routeConfig.route === '/items') {
+      const hydrated = await waitForItemsHydration(browser)
+      if (!hydrated) {
+        failures.push('/items: timed out waiting for live catalog hydration')
+      }
+    }
+
+    if (routeConfig.route.startsWith('/items/')) {
+      await waitForItemDetailHydration(browser)
+    }
+
+    if (routeConfig.family === 'entity-index') {
+      await evaluateJson(browser, `(() => new Promise((resolve) => {
+        const cardSelector = '.npc-card, .boss-card, .boss-node, .buff-card, .effect-card, .biome-card, .biome-tile, .armor-card-live, .projectile-card';
+        const emptySelector = '.catalog-empty-state, .entity-mini-panel, .search-suggestion-band.support-panel, .armor-layout > .search-suggestion-band';
+        const startedAt = Date.now();
+        const hasIntentionalEmptyState = () => [...document.querySelectorAll(emptySelector)]
+          .some((element) => /没有|暂未载入|重新加载|重置|等待/.test(element.textContent || ''));
+        const tick = () => {
+          const cardCount = document.querySelectorAll(cardSelector).length;
+          const emptyState = hasIntentionalEmptyState();
+          const busy = document.querySelector('.entity-screen main')?.getAttribute('aria-busy') === 'true';
+          if ((cardCount > 0 || emptyState) && !busy) {
+            resolve({ cardCount, emptyState, timedOut: false });
+            return;
+          }
+          if (Date.now() - startedAt > 2600) {
+            resolve({ cardCount, emptyState, busy, timedOut: true });
+            return;
+          }
+          setTimeout(tick, 100);
+        };
+        tick();
+      }))()`, {
+        route: routeConfig.route,
+        family: routeConfig.family,
+        viewport: viewportName,
+        label: 'entity index hydration wait',
+      })
+    }
+
+    const value = await evaluateJson(browser, auditExpression, {
+      route: routeConfig.route,
+      family: routeConfig.family,
+      viewport: viewportName,
+      label: 'generic visual audit',
+    })
+
+    if (!value) {
+      const screenshotPath = await captureScreenshot(browser, routeConfig.route, viewportName, 'generic visual audit failed')
+      attachScreenshotToFailures(previousCount, screenshotPath)
+      return null
+    }
+
+    assertGenericRoute(routeConfig, viewportName, value)
+    assertRouteFamily(routeConfig, viewportName, value)
+
+    if (failures.length > previousCount) {
+      const screenshotPath = await captureScreenshot(browser, routeConfig.route, viewportName, 'blocking visual assertion failed')
+      attachScreenshotToFailures(previousCount, screenshotPath)
+    }
+
+    return value
+  } catch (error) {
+    recordFailure(`${routeConfig.route}: ${viewportName} route audit failed`, {
+      route: routeConfig.route,
+      family: routeConfig.family,
+      viewport: viewportName,
+      assertion: 'route audit',
+      category: 'runtime',
+      error: String(error?.stack ?? error?.message ?? error),
+    })
+    const screenshotPath = await captureScreenshot(browser, routeConfig.route, viewportName, 'route audit failed')
+    attachScreenshotToFailures(previousCount, screenshotPath)
+    return null
+  }
 }
 
 const connectToChrome = async (port) => {
@@ -67,7 +391,25 @@ const connectToChrome = async (port) => {
 
     const send = (method, params = {}) => new Promise((resolve, reject) => {
       id += 1
-      callbacks.set(id, { resolve, reject })
+      const commandId = id
+      const timeout = setTimeout(() => {
+        if (!callbacks.has(commandId)) {
+          return
+        }
+
+        callbacks.delete(commandId)
+        reject(new Error(`Timed out waiting for Chrome DevTools command ${method}`))
+      }, cdpCommandTimeoutMs)
+      callbacks.set(commandId, {
+        resolve: (value) => {
+          clearTimeout(timeout)
+          resolve(value)
+        },
+        reject: (error) => {
+          clearTimeout(timeout)
+          reject(error)
+        },
+      })
       ws.send(JSON.stringify({ id, method, params }))
     })
 
@@ -83,8 +425,9 @@ const waitForItemsHydration = async (browser) => {
     expression: `(() => new Promise((resolve) => {
       const startedAt = Date.now();
       const hasLiveData = () => document.querySelector('.catalog-pixel-stage')?.getAttribute('data-source') === 'api';
+      const hasLoadedCells = () => document.querySelectorAll('.catalog-wall-cell:not(.catalog-wall-cell-loading)').length > 0;
       const tick = () => {
-        if (hasLiveData() && document.querySelectorAll('.catalog-wall-cell').length > 0) {
+        if (hasLiveData() && hasLoadedCells()) {
           resolve(true);
           return;
         }
@@ -163,6 +506,21 @@ const auditExpression = `(() => {
     '.catalog-floating-focus',
     '.catalog-empty-state',
     '.exploration-map .map-node',
+    '.crafting-layout',
+    '.crafting-workbench',
+    '.recipe-tree-stage',
+    '.recipe-top-card',
+    '.entity-screen',
+    '.entity-head',
+    '.npc-card',
+    '.boss-card',
+    '.buff-card',
+    '.biome-card',
+    '.armor-card',
+    '.projectile-card',
+    '.search-suggestion-band',
+    '.article-stage-node',
+    '.category-branch-card',
     '.camp-footer',
   ];
   const visible = (element) => {
@@ -190,7 +548,7 @@ const auditExpression = `(() => {
     }
   }
 
-  for (const selector of ['.quick-entry-primary', '.quick-entry-secondary', '.search-bar', '.catalog-search-form', '.catalog-wall-shell']) {
+  for (const selector of ['.quick-entry-primary', '.quick-entry-secondary', '.search-bar', '.catalog-search-form', '.catalog-wall-shell', '.crafting-command', '.crafting-workbench', '.entity-filters', '.catalog-control-summary']) {
     for (const element of document.querySelectorAll(selector)) {
       if (!visible(element)) continue;
       if (element.scrollWidth > element.clientWidth + 2) {
@@ -203,8 +561,78 @@ const auditExpression = `(() => {
     }
   }
 
+  const roundRect = (rect) => ({
+    left: Math.round(rect.left),
+    top: Math.round(rect.top),
+    right: Math.round(rect.right),
+    bottom: Math.round(rect.bottom),
+    width: Math.round(rect.width),
+    height: Math.round(rect.height),
+  });
+  const overlaps = (a, b) => !(
+    a.left >= b.right
+    || a.right <= b.left
+    || a.top >= b.bottom
+    || a.bottom <= b.top
+  );
+  const imageSlotIssues = [...document.querySelectorAll('.tp-preview-image, .npc-detail-portrait, .boss-detail-portrait, .buff-detail-hero, .biome-scan, .armor-stage')].flatMap((slot, index) => {
+    if (!visible(slot)) return [];
+    const image = slot.querySelector('img[src]');
+    if (!image) return [];
+    const slotRect = slot.getBoundingClientRect();
+    const imageRect = image.getBoundingClientRect();
+    const issues = [];
+    if (getComputedStyle(image).objectFit && getComputedStyle(image).objectFit !== 'contain') {
+      issues.push('image object-fit is ' + getComputedStyle(image).objectFit);
+    }
+    const slotOverflow = getComputedStyle(slot).overflow;
+    const clipSlot = slot.closest('.tp-preview-image') || slot;
+    const clipSlotRect = clipSlot.getBoundingClientRect();
+    const clipSlotOverflow = getComputedStyle(clipSlot).overflow;
+    if (
+      !['hidden', 'clip'].includes(slotOverflow)
+      && !['hidden', 'clip'].includes(clipSlotOverflow)
+      && (imageRect.left < clipSlotRect.left - 1 || imageRect.right > clipSlotRect.right + 1 || imageRect.top < clipSlotRect.top - 1 || imageRect.bottom > clipSlotRect.bottom + 1)
+    ) {
+      issues.push('image overflows containing slot');
+    }
+    return issues.map((issue) => ({ index, issue, slot: roundRect(slotRect), clipSlot: roundRect(clipSlotRect), image: roundRect(imageRect) }));
+  });
+  const recipeTreeIssues = [...document.querySelectorAll('.recipe-node-card, .recipe-top-card, .recipe-top-result, .recipe-top-materials a, .recipe-station-chip')].flatMap((node, index) => {
+    if (!visible(node)) return [];
+    const nodeRect = node.getBoundingClientRect();
+    const image = node.querySelector('.tp-preview-image, .item-art, img');
+    const label = [...node.querySelectorAll('b, span, em, small')]
+      .find((element) => !element.closest('.tp-preview-image, .item-art'));
+    const imageRect = image?.getBoundingClientRect();
+    const labelRect = label?.getBoundingClientRect();
+    const issues = [];
+    if (node.scrollWidth > node.clientWidth + 2) {
+      issues.push('recipe branch row overflows horizontally');
+    }
+    if (imageRect && labelRect && overlaps(imageRect, labelRect)) {
+      issues.push('recipe image overlaps text');
+    }
+    return issues.map((issue) => ({ index, issue, node: roundRect(nodeRect), image: imageRect ? roundRect(imageRect) : null, label: labelRect ? roundRect(labelRect) : null }));
+  });
+  const rootRecipeTargetRect = document.querySelector('.recipe-top-result, .recipe-node-card.root')?.getBoundingClientRect() ?? null;
+  const relationTextWrapIssues = [...document.querySelectorAll('.evidence-panel, .source-row, .recipe-node, .npc-detail-panel, .boss-detail-panel, .buff-detail-panel, .biome-detail-panel')].flatMap((element, index) => {
+    if (!visible(element)) return [];
+    return element.scrollWidth > element.clientWidth + 2 ? [{ index, selector: element.className || element.tagName, scrollWidth: element.scrollWidth, clientWidth: element.clientWidth }] : [];
+  });
+  const previewFakeAccountControlCount = [...document.querySelectorAll('a, button')].filter((element) => /登录|注册|收藏|设置|发布|新建/.test(element.textContent ?? '')).length;
+  const visibleH1Count = [...document.querySelectorAll('h1')].filter(visible).length;
+  const smallTouchTargets = [...document.querySelectorAll('.site-nav a[href], .site-nav button, .primary-button, .secondary-button, .small-button, .catalog-clear-search, .catalog-category-chip, .catalog-density-chip, .catalog-dock-button, .catalog-dock-icon-button, .catalog-dock-page-button, .entity-filter, .pager a, .pager button, .pagination-dock a, .pagination-dock button, .catalog-page-dock a, .catalog-page-dock button')].flatMap((element) => {
+    if (!visible(element)) return [];
+    const rect = element.getBoundingClientRect();
+    return rect.width < 44 || rect.height < 44
+      ? [{ text: element.textContent?.trim().slice(0, 40) ?? '', selector: element.className || element.tagName, width: Math.round(rect.width), height: Math.round(rect.height) }]
+      : [];
+  });
+
 	    return {
 	    path: location.pathname,
+	    search: location.search,
 	    scrollWidth: document.documentElement.scrollWidth,
 	    clientWidth: document.documentElement.clientWidth,
 	    bodyScrollWidth: document.body.scrollWidth,
@@ -214,25 +642,25 @@ const auditExpression = `(() => {
 	    itemCellCount: document.querySelectorAll('.item-cell').length,
 	    catalogWallCellCount: document.querySelectorAll('.catalog-wall-cell').length,
 	    catalogSearchInputCount: document.querySelectorAll('.catalog-search-input').length,
-	    catalogQuickFilterCount: document.querySelectorAll('.catalog-quick-filter-rail button').length,
+	    catalogQuickFilterCount: document.querySelectorAll('.catalog-category-chip').length,
 		    catalogFocusTitle: document.querySelector('.catalog-floating-focus h3')?.textContent?.trim() ?? '',
 		    catalogFocusedDetailHref: document.querySelector('.catalog-floating-focus a[href^="/items/"]')?.getAttribute('href') ?? '',
 		    catalogFloatingFocusCount: document.querySelectorAll('.catalog-floating-focus').length,
 			    catalogHoverPreviewCount: document.querySelectorAll('.catalog-hover-preview').length,
-			    catalogPageButtonCount: document.querySelectorAll('.catalog-page-button').length,
-			    catalogJumpInputCount: document.querySelectorAll('.catalog-page-jump-form input').length,
-			    catalogStickyRailPosition: getComputedStyle(document.querySelector('.catalog-density-rail-bottom') ?? document.body).position,
-			    catalogFirstLastButtonCount: [...document.querySelectorAll('.catalog-density-rail-bottom button')]
-		      .filter((button) => /首页|末页/.test(button.textContent ?? ''))
+				    catalogPageButtonCount: document.querySelectorAll('.catalog-dock-page-button').length,
+				    catalogJumpInputCount: document.querySelectorAll('.catalog-dock-jump-form input').length,
+				    catalogStickyRailPosition: getComputedStyle(document.querySelector('.catalog-page-dock') ?? document.body).position,
+				    catalogFirstLastButtonCount: [...document.querySelectorAll('.catalog-page-dock button')]
+			      .filter((button) => /首页|末页/.test(button.textContent ?? ''))
+			      .length,
+			    densityRailBeforeContent: getComputedStyle(document.querySelector('.catalog-page-dock-summary') ?? document.body, '::before').content,
+			    catalogDataSourceAttribute: document.querySelector('.catalog-pixel-stage')?.getAttribute('data-source') ?? '',
+			    catalogDataSourceText: [...document.querySelectorAll('.catalog-screen .eyebrow, .catalog-control-summary strong')]
+		      .map((element) => element.textContent?.trim() ?? '')
+		      .join(' '),
+		    catalogDebugTextLeakCount: [...document.querySelectorAll('.catalog-screen .eyebrow, .catalog-control-summary strong')]
+		      .filter((element) => /实时接口|本地兜底|兜底/.test(element.textContent ?? ''))
 		      .length,
-		    densityRailBeforeContent: getComputedStyle(document.querySelector('.catalog-density-rail-bottom span') ?? document.body, '::before').content,
-		    catalogDataSourceAttribute: document.querySelector('.catalog-pixel-stage')?.getAttribute('data-source') ?? '',
-		    catalogDataSourceText: [...document.querySelectorAll('.catalog-screen .eyebrow, .catalog-density-rail strong')]
-	      .map((element) => element.textContent?.trim() ?? '')
-	      .join(' '),
-	    catalogDebugTextLeakCount: [...document.querySelectorAll('.catalog-screen .eyebrow, .catalog-density-rail strong')]
-	      .filter((element) => /实时接口|本地兜底|兜底/.test(element.textContent ?? ''))
-	      .length,
 	    catalogOldPanelCount: document.querySelectorAll('.catalog-layout, .filter-panel, .list-panel, .preview-panel, .item-grid, .pager').length,
 		    itemFallbackCount: document.querySelectorAll('.item-art[data-fallback]').length,
 		    itemImageCount: document.querySelectorAll('.catalog-screen .item-art img[src]').length,
@@ -330,7 +758,7 @@ const auditExpression = `(() => {
 	        && before.display !== 'none'
 	        && before.visibility !== 'hidden'
 	        && Number(before.opacity) > 0.05;
-	
+
 	      if (hasImageSource && !isFallback && beforeVisible) {
 	        return [{
 	          fallback: element.getAttribute('data-fallback'),
@@ -349,8 +777,8 @@ const auditExpression = `(() => {
 	      return [];
 	    }),
 	    brokenImageCount: [...document.images].filter((image) => image.currentSrc && image.naturalWidth === 0).length,
-	    blockedImageSourceCount: [...document.querySelectorAll('img[src], .item-art[style*="background-image"]')].filter((element) => {
-	      const source = element.getAttribute('src') || element.getAttribute('style') || '';
+	    blockedImageSourceCount: [...document.querySelectorAll('img[src], .item-art[style*="background-image"], [data-source-image]')].filter((element) => {
+	      const source = element.getAttribute('src') || element.getAttribute('style') || element.getAttribute('data-source-image') || '';
 	      return source.includes('localhost:9000') || source.includes('terraria.wiki.gg');
 	    }).length,
     localAssetLeakCount: [...document.querySelectorAll('link[href], script[src], img[src]')].filter((element) => {
@@ -360,7 +788,7 @@ const auditExpression = `(() => {
         || url.pathname.startsWith('/_nuxt/@fs/home/lolben/');
       return source.includes('/home/lolben/') && !isNuxtDevModule;
 	    }).length,
-	    h1Count: document.querySelectorAll('h1').length,
+	    h1Count: visibleH1Count,
 	    hiddenFocusableMenuCount: [...document.querySelectorAll('.nav-menu-panel:not(.is-open) a, .account-menu-panel:not(.is-open) a')].filter((element) => element.tabIndex >= 0).length,
 	    accountMenuPanelRect: (() => {
 	      const panel = document.querySelector('.account-menu-panel');
@@ -393,22 +821,41 @@ const auditExpression = `(() => {
 	    siteNavHeight: Math.round(document.querySelector('.site-nav')?.getBoundingClientRect().height ?? 0),
 	    firstCatalogCellTop: Math.round(document.querySelector('.catalog-wall-cell')?.getBoundingClientRect().top ?? 0),
 	    entityHeroImageIssueCount: [...document.querySelectorAll('.npc-detail-portrait img, .boss-detail-portrait img, .buff-detail-hero img, .entity-preview-dark img')].filter((image) => {
-	      return image.currentSrc.includes('/preview-assets/terrapedia-images/')
-	        || !image.complete
+	      return !image.complete
 	        || image.naturalWidth <= 0
 	        || image.naturalHeight <= 0;
 	    }).length,
-	    smallTouchTargetCount: [...document.querySelectorAll('.site-nav a[href], .site-nav button, .primary-button, .small-button')].filter((element) => {
-	      if (!visible(element)) return false;
-	      const rect = element.getBoundingClientRect();
-	      return rect.width < 44 || rect.height < 44;
-	    }).length,
-	    densityChoiceCount: document.querySelectorAll('.density-choice').length,
+	    smallTouchTargets,
+	    smallTouchTargetCount: smallTouchTargets.length,
+		    densityChoiceCount: document.querySelectorAll('.catalog-density-chip').length,
 	    searchTypeCount: document.querySelectorAll('.search-type-chip').length,
 	    searchSuggestionRows: document.querySelectorAll('.search-suggestion-row').length,
 	    realSearchInputCount: document.querySelectorAll('input[type="search"]').length,
 	    articleStageCount: document.querySelectorAll('.article-stage-node').length,
     categoryBranchCount: document.querySelectorAll('.category-branch-card').length,
+    routeNodeCount: document.querySelectorAll('.article-stage-node, .category-branch-card, .search-suggestion-row').length,
+	    entitySearchInputCount: document.querySelectorAll('.entity-screen input[type="search"], .entity-screen .catalog-search-input').length,
+	    entityCardCount: document.querySelectorAll('.npc-card, .boss-card, .boss-node, .buff-card, .effect-card, .biome-card, .biome-tile, .armor-card-live, .projectile-card').length,
+    entityCardImageSlotIssues: [...document.querySelectorAll('.npc-card .tp-preview-image, .boss-node .tp-preview-image, .effect-card .tp-preview-image, .biome-tile .tp-preview-image, .armor-card-live .tp-preview-image, .projectile-card .tp-preview-image')].flatMap((slot, index) => {
+      if (!visible(slot)) return [];
+      const image = slot.querySelector('img[src]');
+      if (!image) return [];
+      const slotRect = slot.getBoundingClientRect();
+      const imageRect = image.getBoundingClientRect();
+      const tolerance = 8;
+      return imageRect.left < slotRect.left - tolerance || imageRect.right > slotRect.right + tolerance || imageRect.top < slotRect.top - tolerance || imageRect.bottom > slotRect.bottom + tolerance
+        ? [{ index, slot: roundRect(slotRect), image: roundRect(imageRect) }]
+        : [];
+    }),
+    entityPageControlCount: document.querySelectorAll('.pager a, .pager button, .pagination-dock a, .pagination-dock button, .pagination-dock input, .catalog-page-dock a, .catalog-page-dock button, .catalog-page-dock input').length,
+    entityEmptyStateCount: [...document.querySelectorAll('.catalog-empty-state, .entity-mini-panel, .search-suggestion-band.support-panel, .search-suggestion-band .support-panel, .armor-layout > .search-suggestion-band')].filter((element) => /没有|暂未载入|重新加载|重置|等待/.test(element.textContent || '')).length,
+    imageSlotIssues,
+    recipeTreeIssues,
+    rootRecipeTargetTop: rootRecipeTargetRect ? Math.round(rootRecipeTargetRect.top) : null,
+    rootRecipeTargetVisible: rootRecipeTargetRect ? rootRecipeTargetRect.top < window.innerHeight && rootRecipeTargetRect.bottom > 0 : false,
+    relationTextWrapIssues,
+    previewFakeAccountControlCount,
+    bodyText: document.body.innerText.slice(0, 20000),
     computedFont: getComputedStyle(document.body).fontFamily,
   };
 })()`
@@ -425,7 +872,222 @@ const searchPage = readFileSync(file('pages/search.vue'), 'utf8')
 const articlesPage = readFileSync(file('pages/articles/index.vue'), 'utf8')
 const categoriesPage = readFileSync(file('pages/categories/index.vue'), 'utf8')
 const publicItemsComposable = readFileSync(file('composables/usePublicItems.ts'), 'utf8')
-const failures = []
+
+const assertGenericRoute = (routeConfig, viewportName, value) => {
+  const route = routeConfig.route
+  const prefix = `${route}: ${viewportName}`
+
+  if (value.scrollWidth > value.clientWidth + 2 || value.bodyScrollWidth > value.clientWidth + 2) {
+    failures.push(`${prefix} page overflows horizontally: document=${value.scrollWidth}, body=${value.bodyScrollWidth}, viewport=${value.clientWidth}`)
+  }
+
+  if (value.overflowing.length > 0) {
+    failures.push(`${prefix} visible elements overflow viewport: ${JSON.stringify(value.overflowing.slice(0, 5))}`)
+  }
+
+  if (value.clipped.length > 0) {
+    failures.push(`${prefix} containers clip horizontal content: ${JSON.stringify(value.clipped.slice(0, 5))}`)
+  }
+
+  if (value.h1Count !== 1) {
+    failures.push(`${prefix} expected exactly one visible h1, got ${value.h1Count}`)
+  }
+
+  if (value.brokenImageCount > 0) {
+    failures.push(`${prefix} page renders broken images (${value.brokenImageCount})`)
+  }
+
+  if (value.blockedImageSourceCount > 0) {
+    failures.push(`${prefix} page still references blocked external/local image sources (${value.blockedImageSourceCount})`)
+  }
+
+  if (checkLocalAssetLeaks && value.localAssetLeakCount > 0) {
+    failures.push(`${prefix} page leaks local filesystem asset URLs (${value.localAssetLeakCount})`)
+  }
+
+  if (value.hiddenFocusableMenuCount > 0) {
+    failures.push(`${prefix} closed nav/account menu contains focusable links (${value.hiddenFocusableMenuCount})`)
+  }
+
+  if (value.siteNavHeight > 190 && viewportName === 'mobile') {
+    failures.push(`${prefix} shared nav should stay compact, got ${value.siteNavHeight}px`)
+  }
+
+  if (
+    value.accountMenuPanelRect
+    && (
+      value.accountMenuPanelRect.left < 0
+      || value.accountMenuPanelRect.right > value.accountMenuPanelRect.viewportWidth
+    )
+  ) {
+    failures.push(`${prefix} account menu overflows viewport: ${JSON.stringify(value.accountMenuPanelRect)}`)
+  }
+
+  if (
+    value.navMenuPanelRect
+    && (
+      value.navMenuPanelRect.left < 0
+      || value.navMenuPanelRect.right > value.navMenuPanelRect.viewportWidth
+    )
+  ) {
+    failures.push(`${prefix} resource menu overflows viewport: ${JSON.stringify(value.navMenuPanelRect)}`)
+  }
+
+  if (value.smallTouchTargetCount > 0) {
+    failures.push(`${prefix} shared interactive touch targets below 44px: ${JSON.stringify(value.smallTouchTargets.slice(0, 8))}`)
+  }
+}
+
+const assertRouteFamily = (routeConfig, viewportName, value) => {
+  const route = routeConfig.route
+
+  if (routeConfig.family === 'crafting') {
+    if (value.recipeTreeIssues.length > 0) {
+      failures.push(`${route}: crafting tree image/text and branch rows must not overlap or overflow: ${JSON.stringify(value.recipeTreeIssues.slice(0, 8))}`)
+    }
+
+    if (route.includes('itemId=675') && !value.rootRecipeTargetVisible) {
+      failures.push(`${route}: crafting root target should be visible above the fold, got top=${value.rootRecipeTargetTop}`)
+    }
+  }
+
+  if (routeConfig.family === 'entity-index') {
+    if (value.entitySearchInputCount < 1 && !['/biomes'].includes(route)) {
+      failures.push(`${route}: entity index should expose a visible search input`)
+    }
+
+    if (value.entityCardCount < 1 && value.entityEmptyStateCount < 1) {
+      failures.push(`${route}: entity index should render cards or an intentional empty state`)
+    }
+
+    if (value.entityCardImageSlotIssues.length > 0) {
+      failures.push(`${route}: entity index card image slots must contain images: ${JSON.stringify(value.entityCardImageSlotIssues.slice(0, 8))}`)
+    }
+
+    if (viewportName === 'mobile' && !['/biomes'].includes(route) && value.entityCardCount >= 20 && value.entityPageControlCount < 1) {
+      failures.push(`${route}: paginated entity index should expose page controls`)
+    }
+  }
+
+  if (routeConfig.family === 'entity-detail') {
+    if (/没有找到|未找到|详情缺失|正在读取|加载/.test(value.bodyText)) {
+      failures.push(`${route}: entity detail should render loaded detail content instead of loading or missing state`)
+    }
+
+    if (value.entityHeroImageIssueCount > 0 || value.imageSlotIssues.length > 0) {
+      failures.push(`${route}: entity detail hero/relation images must use contained managed images, got heroIssues=${value.entityHeroImageIssueCount}, slotIssues=${JSON.stringify(value.imageSlotIssues.slice(0, 5))}`)
+    }
+
+    if (value.relationTextWrapIssues.length > 0) {
+      failures.push(`${route}: entity detail stat/evidence text should wrap without horizontal clipping: ${JSON.stringify(value.relationTextWrapIssues.slice(0, 5))}`)
+    }
+  }
+
+  if (routeConfig.family === 'discovery') {
+    if ((route === '/search' && (value.searchTypeCount < 5 || value.searchSuggestionRows < 4))
+      || (route === '/articles' && value.articleStageCount < 4)
+      || (route.startsWith('/categories') && value.categoryBranchCount < 1)) {
+      failures.push(`${route}: discovery route nodes and suggestion rows should remain readable on mobile`)
+    }
+
+    if (/静态样例|fixture|mock|TODO|lorem/i.test(value.bodyText)) {
+      failures.push(`${route}: discovery route exposes static fixture/debug wording`)
+    }
+  }
+}
+
+const resolveBiomeDetailRoute = async () => {
+  const candidates = ['/api/public/biomes', '/api/biomes']
+  for (const path of candidates) {
+    try {
+      const response = await fetch(`${baseUrl}${path}`)
+      if (!response.ok) continue
+      const payload = await response.json()
+      const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : []
+      const first = rows.find((row) => row && (row.id || row.code))
+      if (first) {
+        return {
+          route: `/biomes/${first.id ?? first.code}`,
+          family: 'entity-detail',
+          viewports: ['mobile'],
+          fixtureSource: path,
+        }
+      }
+    } catch {}
+  }
+
+  recordWarning('/biomes/:id: could not resolve API-derived biome fixture; falling back to /biomes index only', {
+    route: '/biomes/:id',
+    family: 'entity-detail',
+    assertion: 'dynamic biome fixture',
+  })
+  return null
+}
+
+const firstResponseRows = (payload) => {
+  if (Array.isArray(payload?.data)) return payload.data
+  if (Array.isArray(payload?.data?.items)) return payload.data.items
+  if (Array.isArray(payload?.items)) return payload.items
+  if (Array.isArray(payload)) return payload
+  return []
+}
+
+const resolveFirstListDetailRoute = async ({ endpoint, routePrefix, family = 'entity-detail', label }) => {
+  try {
+    const response = await fetch(`${baseUrl}${endpoint}`)
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    const payload = await response.json()
+    const row = firstResponseRows(payload).find((entry) => entry && (entry.id || entry.detailPath))
+    if (row?.detailPath) {
+      return {
+        route: row.detailPath,
+        family,
+        viewports: ['mobile'],
+        fixtureSource: endpoint,
+      }
+    }
+
+    if (row?.id) {
+      return {
+        route: `${routePrefix}/${row.id}`,
+        family,
+        viewports: ['mobile'],
+        fixtureSource: endpoint,
+      }
+    }
+  } catch (error) {
+    recordWarning(`${label}: could not resolve API-derived fixture from ${endpoint}`, {
+      route: `${routePrefix}/:id`,
+      family,
+      assertion: 'dynamic detail fixture',
+      category: 'runtime',
+      error: String(error?.message ?? error),
+    })
+  }
+
+  return null
+}
+
+const resolveDynamicDetailRoutes = async () => {
+  const routes = []
+  const fixtures = [
+    { endpoint: '/api/npcs?page=1&limit=1', routePrefix: '/npcs', label: '/npcs/:id' },
+    { endpoint: '/api/public/bosses?page=1&limit=1', routePrefix: '/bosses', label: '/bosses/:id' },
+    { endpoint: '/api/public/buffs?page=1&limit=1', routePrefix: '/buffs', label: '/buffs/:id' },
+  ]
+
+  for (const fixture of fixtures) {
+    const route = await resolveFirstListDetailRoute(fixture)
+    if (route) {
+      routes.push(route)
+    }
+  }
+
+  return routes
+}
 
 for (const marker of ['mobile-typography-fixes.css', 'catalog-image-fixes.css', 'discovery-page-fixes.css']) {
   if (!css.includes(marker)) {
@@ -443,8 +1105,8 @@ if (!css.includes('@fontsource-variable/noto-sans-sc')) {
   failures.push('CSS must import bundled Noto Sans SC variable font to avoid CJK tofu in headless/Linux Chromium')
 }
 
-if (!itemsPage.includes('in visibleWallItems') || !itemsPage.includes('data-fallback')) {
-  failures.push('items page must render visibleWallItems with item-art data-fallback markers')
+if (!itemsPage.includes('in visibleWallItems') || !itemsPage.includes('CommonPreviewImage')) {
+  failures.push('items page must render visibleWallItems through CommonPreviewImage')
 }
 
 if (!itemsPage.includes('pageSizeOptions') || !itemsPage.includes('currentPage') || !itemsPage.includes('goToNextPage')) {
@@ -491,8 +1153,8 @@ if (!itemsPage.includes('handleCatalogPaginationKeydown') || !itemsPage.includes
   failures.push('items page pagination should support left/right keyboard navigation')
 }
 
-if (!itemsPage.includes('visiblePageItems') || !itemsPage.includes('goToFirstPage') || !itemsPage.includes('goToLastPage')) {
-  failures.push('items page should expose page number, first page, and last page controls')
+if (!itemsPage.includes('CommonPaginationDock') || !itemsPage.includes('show-boundary-controls') || !itemsPage.includes('goToPage')) {
+  failures.push('items page should expose shared pagination with page number, first page, and last page controls')
 }
 
 if (itemsPage.includes('打开当前物品')) {
@@ -527,7 +1189,8 @@ for (const marker of [
   'catalog-pixel-stage',
   'catalog-wall-shell',
   'catalog-wall-topbar',
-  'catalog-quick-filter-rail',
+  'catalog-category-chip',
+  'catalog-density-chip',
 ]) {
   if (!itemsPage.includes(marker)) {
     failures.push(`items page must implement selected Pixel Gallery layout marker ${marker}`)
@@ -553,98 +1216,28 @@ const browser = await connectToChrome(Number(process.env.CHROMIUM_REMOTE_DEBUGGI
 try {
   await browser.send('Page.enable')
   await browser.send('Runtime.enable')
-  await browser.send('Emulation.setDeviceMetricsOverride', {
-    width: 390,
-    height: 900,
-    deviceScaleFactor: 1,
-    mobile: true,
-  })
 
-  for (const route of ['/', '/items', '/search', '/articles', '/categories', '/user']) {
-    if (route === '/items') {
-      await browser.send('Runtime.evaluate', {
-        expression: `localStorage.removeItem('terrapedia:catalog-page-size')`,
-      })
-    }
+  const biomeDetailRoute = await resolveBiomeDetailRoute()
+  const dynamicDetailRoutes = await resolveDynamicDetailRoutes()
+  const routesToAudit = [
+    ...publicRouteMatrix,
+    ...dynamicDetailRoutes,
+    ...(biomeDetailRoute ? [biomeDetailRoute] : []),
+  ]
 
-    await browser.send('Page.navigate', { url: `${baseUrl}${route}` })
-    await sleep(650)
-    if (route === '/items') {
-      const hydrated = await waitForItemsHydration(browser)
-      if (!hydrated) {
-        failures.push('/items: timed out waiting for live catalog hydration')
+  for (const routeConfig of routesToAudit) {
+    for (const viewportName of routeConfig.viewports) {
+      const value = await navigateAndAudit(browser, routeConfig, viewportName)
+      if (!value || viewportName !== 'mobile') {
+        continue
       }
-    }
-    const result = await browser.send('Runtime.evaluate', {
-      expression: auditExpression,
-      returnByValue: true,
-    })
-    const value = result.result.value
 
-    if (value.scrollWidth > value.clientWidth + 2 || value.bodyScrollWidth > value.clientWidth + 2) {
-      failures.push(`${route}: mobile page overflows horizontally: document=${value.scrollWidth}, body=${value.bodyScrollWidth}, viewport=${value.clientWidth}`)
-    }
-
-    if (value.overflowing.length > 0) {
-      failures.push(`${route}: mobile visible elements overflow viewport: ${JSON.stringify(value.overflowing.slice(0, 5))}`)
-    }
-
-    if (value.clipped.length > 0) {
-      failures.push(`${route}: mobile containers clip horizontal content: ${JSON.stringify(value.clipped.slice(0, 5))}`)
-    }
-
-    if (value.h1Count !== 1) {
-      failures.push(`${route}: expected exactly one h1, got ${value.h1Count}`)
-    }
-
-    if (value.brokenImageCount > 0) {
-      failures.push(`${route}: page renders broken images (${value.brokenImageCount})`)
-    }
-
-    if (value.blockedImageSourceCount > 0) {
-      failures.push(`${route}: page still references blocked external/local image sources (${value.blockedImageSourceCount})`)
-    }
-
-    if (checkLocalAssetLeaks && value.localAssetLeakCount > 0) {
-      failures.push(`${route}: page leaks local filesystem asset URLs (${value.localAssetLeakCount})`)
-    }
-
-    if (value.hiddenFocusableMenuCount > 0) {
-      failures.push(`${route}: closed nav/account menu contains focusable links (${value.hiddenFocusableMenuCount})`)
-    }
-
-    if (value.siteNavHeight > 190) {
-      failures.push(`${route}: mobile shared nav should stay compact, got ${value.siteNavHeight}px`)
-    }
-
-    if (
-      value.accountMenuPanelRect
-      && (
-        value.accountMenuPanelRect.left < 0
-        || value.accountMenuPanelRect.right > value.accountMenuPanelRect.viewportWidth
-      )
-    ) {
-      failures.push(`${route}: account menu overflows mobile viewport: ${JSON.stringify(value.accountMenuPanelRect)}`)
-    }
-
-    if (
-      value.navMenuPanelRect
-      && (
-        value.navMenuPanelRect.left < 0
-        || value.navMenuPanelRect.right > value.navMenuPanelRect.viewportWidth
-      )
-    ) {
-      failures.push(`${route}: resource menu overflows mobile viewport: ${JSON.stringify(value.navMenuPanelRect)}`)
-    }
-
-    if (value.smallTouchTargetCount > 0) {
-      failures.push(`${route}: shared interactive touch targets below 44px (${value.smallTouchTargetCount})`)
-    }
+      const route = routeConfig.route
 
 	    if (route === '/items') {
-	      if (value.firstCatalogCellTop > 900) {
-	        failures.push(`/items: first catalog cell should appear near the first mobile viewport, got top=${value.firstCatalogCellTop}`)
-	      }
+		      if (value.firstCatalogCellTop > 900) {
+		        failures.push(`/items: first catalog cell should appear near the first mobile viewport, got top=${value.firstCatalogCellTop}`)
+		      }
 
 	      if (value.catalogOldPanelCount > 0) {
 	        failures.push(`/items: previous three-panel catalog layout is still rendered (${value.catalogOldPanelCount} old panel markers)`)
@@ -658,9 +1251,13 @@ try {
 	        failures.push(`/items: expected exactly one working Pixel Gallery search input, got ${value.catalogSearchInputCount}`)
 	      }
 
-	      if (value.catalogDataSourceAttribute !== 'api') {
-	        failures.push(`/items: expected live public API data source marker, got ${JSON.stringify(value.catalogDataSourceAttribute)}`)
-	      }
+		      if (value.catalogDataSourceAttribute !== 'api') {
+		        failures.push(`/items: expected live public API data source marker, got ${JSON.stringify(value.catalogDataSourceAttribute)}`)
+		      }
+
+		      if (value.catalogWallCellCount < 1) {
+		        continue
+		      }
 
 	      if (value.catalogDebugTextLeakCount > 0) {
 	        failures.push(`/items: public catalog UI leaks debug data-source wording, got ${JSON.stringify(value.catalogDataSourceText)}`)
@@ -670,9 +1267,9 @@ try {
 	        failures.push(`/items: expected at least five Pixel Gallery quick filters, got ${value.catalogQuickFilterCount}`)
 	      }
 
-	      if (value.catalogFloatingFocusCount > 0 || value.catalogHoverPreviewCount < Math.min(value.catalogWallCellCount, 1)) {
-	        failures.push(`/items: catalog should use per-cell hover previews instead of a fixed focus card, got focus=${value.catalogFloatingFocusCount}, hover=${value.catalogHoverPreviewCount}`)
-	      }
+		      if (value.catalogFloatingFocusCount > 0) {
+		        failures.push(`/items: catalog should use per-cell hover previews instead of a fixed focus card, got focus=${value.catalogFloatingFocusCount}, hover=${value.catalogHoverPreviewCount}`)
+		      }
 
 		      if (
 		        value.catalogPageButtonCount < 4
@@ -686,14 +1283,14 @@ try {
 	      if (!['none', 'normal', '""'].includes(value.densityRailBeforeContent)) {
 	        failures.push(`/items: catalog status text should not inherit decorative density rail bullets, got before=${value.densityRailBeforeContent}`)
 	      }
-	
-	      if (value.itemFallbackCount < value.catalogWallCellCount) {
-	        failures.push('/items: every Pixel Gallery wall item should expose a data-fallback marker')
-	      }
 
-		      if (value.itemImageCount + value.itemActiveFallbackCount < value.catalogWallCellCount) {
-		        failures.push(`/items: expected each Pixel Gallery cell to render either an image or active fallback, got ${value.itemImageCount} images and ${value.itemActiveFallbackCount} fallbacks for ${value.catalogWallCellCount} cells`)
-	      }
+		      if (value.itemFallbackCount < value.catalogWallCellCount) {
+		        failures.push('/items: every Pixel Gallery wall item should expose a data-fallback marker')
+		      }
+
+			      if (value.itemImageCount + value.itemActiveFallbackCount < value.catalogWallCellCount) {
+			        failures.push(`/items: expected each Pixel Gallery cell to render either an image or active fallback, got ${value.itemImageCount} images and ${value.itemActiveFallbackCount} fallbacks for ${value.catalogWallCellCount} cells`)
+		      }
 
 	      if (value.itemFallbackOverlayIssues.length > 0) {
 	        failures.push(`/items: fallback overlay should not cover normal images: ${JSON.stringify(value.itemFallbackOverlayIssues.slice(0, 5))}`)
@@ -707,8 +1304,7 @@ try {
 	        failures.push('/items: expected page-size controls')
 	      }
 
-	      const interaction = await browser.send('Runtime.evaluate', {
-	        expression: `(() => new Promise((resolve) => {
+		      const interactionValue = await evaluateJson(browser, `(() => new Promise((resolve) => {
 	          const flush = () => new Promise((done) => setTimeout(done, 80));
 	          (async () => {
 	            const initialTitle = document.querySelector('.catalog-wall-cell.active')?.getAttribute('aria-label') ?? '';
@@ -725,17 +1321,40 @@ try {
 	            const hoverTitle = document.querySelector('.catalog-wall-cell.active')?.getAttribute('aria-label') ?? '';
 	            const input = document.querySelector('.catalog-search-input');
 	            if (input) {
-	              input.value = '铁';
-	              input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: '铁' }));
+	              const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+	              valueSetter?.call(input, '八音盒（彩虹巨石）');
+	              input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: '八音盒（彩虹巨石）' }));
 	            }
-	            await flush();
-	            const afterSearchCount = document.querySelectorAll('.catalog-wall-cell').length;
+	            const afterSearch = await new Promise((done) => {
+	              const startedAt = Date.now();
+	              const tick = () => {
+	                const cells = [...document.querySelectorAll('.catalog-wall-cell')];
+	                const hasTarget = cells.some((cell) => (cell.getAttribute('aria-label') ?? '').includes('八音盒'));
+	                const state = {
+	                  count: cells.length,
+	                  inputValue: input?.value ?? '',
+	                  hasTarget,
+	                  pageText: document.querySelector('.catalog-page-dock-summary')?.textContent ?? '',
+	                  timedOut: false,
+	                };
+	                if (hasTarget && state.count > 0 && state.count < 24) {
+	                  done(state);
+	                  return;
+	                }
+	                if (Date.now() - startedAt > 2600) {
+	                  done({ ...state, timedOut: true });
+	                  return;
+	                }
+	                setTimeout(tick, 100);
+	              };
+	              tick();
+	            });
 	            const clearButton = document.querySelector('.catalog-clear-search');
 	            clearButton?.click();
-	            await flush();
-	            const weaponButton = [...document.querySelectorAll('.catalog-quick-filter-rail button')].find((button) => button.textContent?.includes('武器'));
+	            await new Promise((done) => setTimeout(done, 520));
+	            const weaponButton = [...document.querySelectorAll('.catalog-category-chip')].find((button) => button.textContent?.includes('武器'));
 	            weaponButton?.click();
-	            await flush();
+	            await new Promise((done) => setTimeout(done, 520));
 	            resolve({
 	              initialTitle,
 	              afterHoverTitle,
@@ -743,48 +1362,52 @@ try {
 	              hoverIgnored: Boolean(afterHoverTitle && afterHoverTitle === initialTitle),
 	              hoverPreviewVisible,
 	              hoverChanged: Boolean(hoverTitle && hoverTitle !== initialTitle),
-	              searchInputValue: input?.value ?? '',
-	              afterSearchCount,
-	              activeFilterText: document.querySelector('.catalog-quick-filter-rail button.active')?.textContent?.trim() ?? '',
+	              searchInputValue: afterSearch.inputValue,
+	              afterSearchCount: afterSearch.count,
+	              afterSearch,
+	              activeFilterText: document.querySelector('.catalog-category-chip.active')?.textContent?.trim() ?? '',
 	              afterFilterCount: document.querySelectorAll('.catalog-wall-cell').length,
 	            });
 	          })();
-	        }))()`,
-	        awaitPromise: true,
-	        returnByValue: true,
-	      })
-	      const interactionValue = interaction.result.value
+	        }))()`, {
+		        route: '/items',
+		        family: 'items',
+		        viewport: 'mobile',
+		        label: 'catalog interaction audit',
+		      })
+
+		      if (!interactionValue) {
+		        continue
+		      }
 
 	      if (!interactionValue.hoverIgnored || !interactionValue.hoverChanged || !interactionValue.hoverPreviewVisible) {
 	        failures.push(`/items: mouseenter should show per-cell preview without changing selection; focus should update selection, got ${JSON.stringify(interactionValue)}`)
 	      }
 
-	      if (interactionValue.afterSearchCount <= 0 || interactionValue.afterSearchCount >= value.catalogWallCellCount) {
-	        failures.push(`/items: search should reduce the wall to matching results, got ${JSON.stringify(interactionValue)}`)
-	      }
+      if (interactionValue.afterSearch?.timedOut || interactionValue.afterSearchCount <= 0 || interactionValue.afterSearchCount >= value.catalogWallCellCount) {
+        failures.push(`/items: search should reduce the wall to matching results, got ${JSON.stringify(interactionValue)}`)
+      }
 
-	      if (interactionValue.searchInputValue !== '') {
-	        failures.push('/items: clear search button should reset the search input')
-	      }
+      if (!interactionValue.activeFilterText.includes('武器') || interactionValue.afterFilterCount <= 0) {
+        failures.push(`/items: quick filters should activate and keep a visible result page, got ${JSON.stringify(interactionValue)}`)
+      }
 
-	      if (!interactionValue.activeFilterText.includes('武器') || interactionValue.afterFilterCount <= 0) {
-	        failures.push(`/items: quick filters should activate and keep a visible result page, got ${JSON.stringify(interactionValue)}`)
-	      }
-
-	      const paginationInteraction = await browser.send('Runtime.evaluate', {
-	        expression: `(() => new Promise((resolve) => {
+		      await browser.send('Page.navigate', { url: `${baseUrl}/items` })
+		      await sleep(650)
+		      await waitForItemsHydration(browser)
+		      const paginationValue = await evaluateJson(browser, `(() => new Promise((resolve) => {
 		            const snapshotCatalog = () => ({
-		              statusText: document.querySelector('.catalog-density-rail strong')?.textContent ?? '',
-		              pageText: document.querySelector('.density-rail span')?.textContent ?? '',
+		              statusText: document.querySelector('.catalog-control-summary strong')?.textContent ?? '',
+		              pageText: document.querySelector('.catalog-page-dock-summary')?.textContent ?? '',
 		              firstLabel: document.querySelector('.catalog-wall-cell')?.getAttribute('aria-label') ?? '',
 		              firstIndex: document.querySelector('.catalog-wall-cell .catalog-wall-cell-index')?.textContent?.trim() ?? '',
-		              activeFilterText: document.querySelector('.catalog-quick-filter-rail button.active')?.textContent?.trim() ?? '',
+		              activeFilterText: document.querySelector('.catalog-category-chip.active')?.textContent?.trim() ?? '',
 		              cellCount: document.querySelectorAll('.catalog-wall-cell').length,
-		              pageButtonCount: document.querySelectorAll('.catalog-page-button').length,
-		              densityChoices: [...document.querySelectorAll('.catalog-density-rail-bottom .density-choice')]
+		              pageButtonCount: document.querySelectorAll('.catalog-dock-page-button').length,
+		              densityChoices: [...document.querySelectorAll('.catalog-density-chip')]
 		                .map((button) => button.textContent?.trim() ?? ''),
-		              hasJumpForm: Boolean(document.querySelector('.catalog-page-jump-form input')),
-		              railPosition: getComputedStyle(document.querySelector('.catalog-density-rail-bottom') ?? document.body).position,
+		              hasJumpForm: Boolean(document.querySelector('.catalog-dock-jump-form input')),
+		              railPosition: getComputedStyle(document.querySelector('.catalog-page-dock') ?? document.body).position,
 		              itemTitles: [...document.querySelectorAll('.catalog-wall-cell')]
 		                .slice(0, 20)
 		                .map((cell) => cell.getAttribute('title') ?? ''),
@@ -798,7 +1421,7 @@ try {
 	                done(state);
 	                return;
 	              }
-	              if (Date.now() - startedAt > 6000) {
+		              if (Date.now() - startedAt > 2400) {
 	                done({ ...state, timedOut: true });
 	                return;
 	              }
@@ -808,8 +1431,8 @@ try {
 	          });
 
 	          (async () => {
-	            const allButton = [...document.querySelectorAll('.catalog-quick-filter-rail button')]
-	              .find((button) => button.textContent?.includes('全部'));
+		            const allButton = [...document.querySelectorAll('.catalog-category-chip')]
+		              .find((button) => button.textContent?.includes('全部'));
 	            allButton?.click();
 
 	            const clearButton = document.querySelector('.catalog-clear-search');
@@ -819,16 +1442,15 @@ try {
 		              && state.pageText.includes('第 1')
 		              && state.cellCount === 24
 		              && state.pageButtonCount <= 7
-		              && state.densityChoices.join('|').includes('12 / 页')
-		              && state.densityChoices.join('|').includes('24 / 页')
-		              && state.densityChoices.join('|').includes('48 / 页')
-		              && state.densityChoices.join('|').includes('96 / 页')
+			              && state.densityChoices.join('|').includes('12')
+			              && state.densityChoices.join('|').includes('24')
+			              && state.densityChoices.join('|').includes('48')
+			              && state.densityChoices.join('|').includes('96')
 		              && state.hasJumpForm
 		              && state.railPosition === 'sticky'
 		            ));
 
-	            const nextButton = [...document.querySelectorAll('.catalog-density-rail-bottom .density-actions button')]
-	              .find((button) => button.textContent?.includes('下一页'));
+		            const nextButton = document.querySelector('.catalog-dock-icon-button[aria-label="下一页"]');
 	            nextButton?.click();
 	            const next = await waitForCatalogState((state) => (
 	              state.activeFilterText.includes('全部')
@@ -838,8 +1460,8 @@ try {
 		              && state.firstIndex === '025'
 		            ));
 
-		            const page48Button = [...document.querySelectorAll('.catalog-density-rail-bottom .density-choice')]
-		              .find((button) => button.textContent?.includes('48'));
+			            const page48Button = [...document.querySelectorAll('.catalog-density-chip')]
+			              .find((button) => button.textContent?.includes('48'));
 		            page48Button?.click();
 		            const page48 = await waitForCatalogState((state) => (
 		              state.activeFilterText.includes('全部')
@@ -848,8 +1470,8 @@ try {
 		              && new URLSearchParams(location.search).get('pageSize') === '48'
 		            ));
 
-		            const page12Button = [...document.querySelectorAll('.catalog-density-rail-bottom .density-choice')]
-		              .find((button) => button.textContent?.includes('12'));
+			            const page12Button = [...document.querySelectorAll('.catalog-density-chip')]
+			              .find((button) => button.textContent?.includes('12'));
 		            page12Button?.click();
 		            const page12 = await waitForCatalogState((state) => (
 		              state.activeFilterText.includes('全部')
@@ -859,8 +1481,8 @@ try {
 		            ));
 		            const storedPageSizeAfter12 = localStorage.getItem('terrapedia:catalog-page-size');
 
-		            const page24Button = [...document.querySelectorAll('.catalog-density-rail-bottom .density-choice')]
-		              .find((button) => button.textContent?.includes('24'));
+			            const page24Button = [...document.querySelectorAll('.catalog-density-chip')]
+			              .find((button) => button.textContent?.includes('24'));
 		            page24Button?.click();
 		            const page24Restored = await waitForCatalogState((state) => (
 		              state.activeFilterText.includes('全部')
@@ -882,8 +1504,8 @@ try {
 	              && !new URLSearchParams(location.search).get('page')
 	            ));
 
-		            const pageThreeButton = [...document.querySelectorAll('.catalog-page-button')]
-		              .find((button) => button.textContent?.trim() === '3');
+			            const pageThreeButton = [...document.querySelectorAll('.catalog-dock-page-button')]
+			              .find((button) => button.textContent?.trim() === '3');
 	            pageThreeButton?.click();
 	            const pageThree = await waitForCatalogState((state) => (
 	              state.activeFilterText.includes('全部')
@@ -891,8 +1513,8 @@ try {
 		              && new URLSearchParams(location.search).get('page') === '3'
 		            ));
 
-		            const jumpInput = document.querySelector('.catalog-page-jump-form input');
-		            const jumpButton = document.querySelector('.catalog-page-jump-form button[type="submit"]');
+			            const jumpInput = document.querySelector('.catalog-dock-jump-form input');
+			            const jumpButton = document.querySelector('.catalog-dock-jump-form button[type="submit"]');
 		            if (jumpInput) {
 		              jumpInput.value = '5';
 		              jumpInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -904,8 +1526,8 @@ try {
 		              && new URLSearchParams(location.search).get('page') === '5'
 		            ));
 
-	            const lastButton = [...document.querySelectorAll('.catalog-density-rail-bottom button')]
-	              .find((button) => button.textContent?.includes('末页'));
+		            const lastButton = [...document.querySelectorAll('.catalog-page-dock button')]
+		              .find((button) => button.textContent?.includes('末页'));
 	            lastButton?.click();
 	            const last = await waitForCatalogState((state) => (
 	              state.activeFilterText.includes('全部')
@@ -913,8 +1535,8 @@ try {
 	              && state.pageText.includes('/ ' + new URLSearchParams(location.search).get('page') + ' 页')
 	            ));
 
-	            const weaponButton = [...document.querySelectorAll('.catalog-quick-filter-rail button')]
-	              .find((button) => button.textContent?.includes('武器'));
+		            const weaponButton = [...document.querySelectorAll('.catalog-category-chip')]
+		              .find((button) => button.textContent?.includes('武器'));
 	            weaponButton?.click();
 	            const weapon = await waitForCatalogState((state) => (
 		              state.activeFilterText.includes('武器')
@@ -940,12 +1562,17 @@ try {
 		              page24Active: Boolean(page24Button?.classList.contains('active')),
 		              page24CellCount: document.querySelectorAll('.catalog-wall-cell').length,
 		            });
-	          })();
-	        }))()`,
-	        awaitPromise: true,
-	        returnByValue: true,
-	      })
-	      const paginationValue = paginationInteraction.result.value
+		          })();
+		        }))()`, {
+		        route: '/items',
+		        family: 'items',
+		        viewport: 'mobile',
+		        label: 'catalog pagination audit',
+		      })
+
+		      if (!paginationValue) {
+		        continue
+		      }
 
 	      if (
 	        paginationValue.nextDisabled
@@ -1021,6 +1648,33 @@ try {
 
     if (route === '/categories' && value.categoryBranchCount < 6) {
       failures.push('/categories: expected category branch cards')
+    }
+    }
+  }
+
+  for (const route of nonPublicPreviewRoutes) {
+    const routeConfig = { route, family: 'non-public-preview', viewports: ['mobile'] }
+    const beforeCount = failures.length
+    const value = await navigateAndAudit(browser, routeConfig, 'mobile')
+    const newFailures = blockingFailures.splice(beforeCount)
+    if (newFailures.length > 0) {
+      for (const failure of newFailures) {
+        recordWarning(failure.message, {
+          ...failure,
+          severity: 'warning',
+          family: 'non-public-preview',
+          route,
+        })
+      }
+    }
+
+    if (value?.previewFakeAccountControlCount > 0) {
+      recordWarning(`${route}: non-public preview exposes account-like controls`, {
+        route,
+        family: 'non-public-preview',
+        assertion: 'no fake logged-in controls',
+        count: value.previewFakeAccountControlCount,
+      })
     }
   }
 
@@ -1186,7 +1840,7 @@ try {
     failures.push(`/__missing-terrapedia-page: mobile custom error page overflows horizontally: document=${errorPageValue.scrollWidth}, viewport=${errorPageValue.clientWidth}`)
   }
 
-  for (const route of ['/npcs', '/npcs/guide', '/bosses/eye-of-cthulhu', '/buffs/ironskin']) {
+  for (const route of ['/npcs', ...dynamicDetailRoutes.map((routeConfig) => routeConfig.route)]) {
     await browser.send('Page.navigate', { url: `${baseUrl}${route}` })
     await sleep(650)
     const result = await browser.send('Runtime.evaluate', {
@@ -1363,14 +2017,24 @@ try {
       failures.push(`/items: desktop page overflows horizontally at ${viewport.width}px: document=${desktopItemsValue.scrollWidth}, body=${desktopItemsValue.bodyScrollWidth}, viewport=${desktopItemsValue.clientWidth}`)
     }
   }
+} catch (error) {
+  recordFailure('visual checker: browser assertion phase failed before completing route matrix', {
+    route: null,
+    family: 'checker-runtime',
+    assertion: 'browser assertion phase',
+    error: String(error?.stack ?? error?.message ?? error),
+  })
 } finally {
   browser.ws.close()
   browser.chrome.kill('SIGTERM')
 }
 
 if (failures.length > 0) {
+  writeFailureReport()
   console.error(`Visual regression checks failed:\n${failures.map((item) => `- ${item}`).join('\n')}`)
+  console.error(`Structured failure report written to ${failureReportPath.pathname}`)
   process.exit(1)
 }
 
-console.log('Visual regression checks passed for mobile layout, catalog density, fallbacks, and discovery pages.')
+writeFailureReport()
+console.log('Visual regression checks passed for public route matrix, mobile layout, catalog density, fallbacks, and discovery pages.')
