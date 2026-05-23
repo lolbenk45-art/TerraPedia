@@ -1,0 +1,1690 @@
+{
+  "generatedAt": "2026-05-23T15:39:41.625Z",
+  "summary": {
+    "totalGroups": 63,
+    "uniqueGroupKeys": 34,
+    "byClassification": {
+      "derived-from-source": 29,
+      "source-backed": 34
+    },
+    "bySourceFile": {
+      "data/generated/item-group-overrides.json": 1,
+      "data/generated/recipe-group-overrides.json": 29,
+      "data/generated/recipe-material-reference.json": 33
+    },
+    "duplicateGroupKeys": 29,
+    "unresolvedMemberReferences": 0,
+    "blockedGroupReferences": 0,
+    "consumerOnlyReferences": 0
+  },
+  "groups": [
+    {
+      "key": "any adamantite bar",
+      "canonicalName": "Any Adamantite Bar",
+      "displayNameEn": "Any Adamantite Bar",
+      "displayNameZh": "任意精金锭",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 2,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any adamantite bar",
+      "canonicalName": "Any Adamantite Bar",
+      "displayNameEn": "Any Adamantite Bar",
+      "displayNameZh": "任何精金锭",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any balloon",
+      "canonicalName": "Any Balloon",
+      "displayNameEn": "Any Balloon",
+      "displayNameZh": "任意气球",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 3,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any balloon",
+      "canonicalName": "Any Balloon",
+      "displayNameEn": "Any Balloon",
+      "displayNameZh": "任何气球",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 6,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any bird",
+      "canonicalName": "Any Bird",
+      "displayNameEn": "Any Bird",
+      "displayNameZh": "任意鸟类",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 3,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any bird",
+      "canonicalName": "Any Bird",
+      "displayNameEn": "Any Bird",
+      "displayNameZh": "任何鸟",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 6,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any blizzard balloon",
+      "canonicalName": "Any Blizzard Balloon",
+      "displayNameEn": "Any Blizzard Balloon",
+      "displayNameZh": null,
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 2,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any blizzard balloon",
+      "canonicalName": "Any Blizzard Balloon",
+      "displayNameEn": "Any Blizzard Balloon",
+      "displayNameZh": "任何暴雪气球",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any butterfly",
+      "canonicalName": "Any Butterfly",
+      "displayNameEn": "Any Butterfly",
+      "displayNameZh": "任意蝴蝶",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 8,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any butterfly",
+      "canonicalName": "Any Butterfly",
+      "displayNameEn": "Any Butterfly",
+      "displayNameZh": "任何蝴蝶",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 16,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any cloud balloon",
+      "canonicalName": "Any Cloud Balloon",
+      "displayNameEn": "Any Cloud Balloon",
+      "displayNameZh": null,
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 2,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any cloud balloon",
+      "canonicalName": "Any Cloud Balloon",
+      "displayNameEn": "Any Cloud Balloon",
+      "displayNameZh": "任何云气球",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any cobalt bar",
+      "canonicalName": "Any Cobalt Bar",
+      "displayNameEn": "Any Cobalt Bar",
+      "displayNameZh": "任意钴锭",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 2,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any cobalt bar",
+      "canonicalName": "Any Cobalt Bar",
+      "displayNameEn": "Any Cobalt Bar",
+      "displayNameZh": "任何钴锭",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any cockatiel",
+      "canonicalName": "Any Cockatiel",
+      "displayNameEn": "Any Cockatiel",
+      "displayNameZh": "任意鸡尾鹦鹉",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 2,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any cockatiel",
+      "canonicalName": "Any Cockatiel",
+      "displayNameEn": "Any Cockatiel",
+      "displayNameZh": "任何玄凤鹦鹉",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any dragonfly",
+      "canonicalName": "Any Dragonfly",
+      "displayNameEn": "Any Dragonfly",
+      "displayNameZh": "任意蜻蜓",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 6,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any dragonfly",
+      "canonicalName": "Any Dragonfly",
+      "displayNameEn": "Any Dragonfly",
+      "displayNameZh": "任何蜻蜓",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 12,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any duck",
+      "canonicalName": "Any Duck",
+      "displayNameEn": "Any Duck",
+      "displayNameZh": "任意鸭子",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 2,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any duck",
+      "canonicalName": "Any Duck",
+      "displayNameEn": "Any Duck",
+      "displayNameZh": "任何鸭",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any firefly",
+      "canonicalName": "Any Firefly",
+      "displayNameEn": "Any Firefly",
+      "displayNameZh": "任意萤火虫",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 2,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any firefly",
+      "canonicalName": "Any Firefly",
+      "displayNameEn": "Any Firefly",
+      "displayNameZh": "任何萤火虫",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any fragment",
+      "canonicalName": "Any Fragment",
+      "displayNameEn": "Any Fragment",
+      "displayNameZh": "任何碎片",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any fruit",
+      "canonicalName": "Any Fruit",
+      "displayNameEn": "Any Fruit",
+      "displayNameZh": "任意水果",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 19,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any fruit",
+      "canonicalName": "Any Fruit",
+      "displayNameEn": "Any Fruit",
+      "displayNameZh": "任何水果",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 38,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any gem critter",
+      "canonicalName": "Any Gem Critter",
+      "displayNameEn": "Any Gem Critter",
+      "displayNameZh": "任意宝石小动物",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 14,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any gem critter",
+      "canonicalName": "Any Gem Critter",
+      "displayNameEn": "Any Gem Critter",
+      "displayNameZh": "任何宝石小动物",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 28,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any guide to critter companionship",
+      "canonicalName": "Any Guide to Critter Companionship",
+      "displayNameEn": "Any Guide to Critter Companionship",
+      "displayNameZh": "任意小动物友谊指南",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 1,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any guide to critter companionship",
+      "canonicalName": "Any Guide to Critter Companionship",
+      "displayNameEn": "Any Guide to Critter Companionship",
+      "displayNameZh": "任何小动物友谊指南",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 3,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any guide to environmental preservation",
+      "canonicalName": "Any Guide to Environmental Preservation",
+      "displayNameEn": "Any Guide to Environmental Preservation",
+      "displayNameZh": "任意环境保护指南",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 1,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any guide to environmental preservation",
+      "canonicalName": "Any Guide to Environmental Preservation",
+      "displayNameEn": "Any Guide to Environmental Preservation",
+      "displayNameZh": "任何环境保护指南",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 3,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any iron bar",
+      "canonicalName": "Any Iron Bar",
+      "displayNameEn": "Any Iron Bar",
+      "displayNameZh": "任意铁锭",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 2,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any iron bar",
+      "canonicalName": "Any Iron Bar",
+      "displayNameEn": "Any Iron Bar",
+      "displayNameZh": "任何铁锭",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any jellyfish",
+      "canonicalName": "Any Jellyfish",
+      "displayNameEn": "Any Jellyfish",
+      "displayNameZh": "任何水母",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 3,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any jungle bug",
+      "canonicalName": "Any Jungle Bug",
+      "displayNameEn": "Any Jungle Bug",
+      "displayNameZh": "任意丛林昆虫",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 3,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any jungle bug",
+      "canonicalName": "Any Jungle Bug",
+      "displayNameEn": "Any Jungle Bug",
+      "displayNameZh": "任何丛林虫子",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 6,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any macaw",
+      "canonicalName": "Any Macaw",
+      "displayNameEn": "Any Macaw",
+      "displayNameZh": "任意金刚鹦鹉",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 2,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any macaw",
+      "canonicalName": "Any Macaw",
+      "displayNameEn": "Any Macaw",
+      "displayNameZh": "任何金刚鹦鹉",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any magic mirror",
+      "canonicalName": "Any Magic Mirror",
+      "displayNameEn": "Any Magic Mirror",
+      "displayNameZh": "任意魔镜",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 2,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any magic mirror",
+      "canonicalName": "Any Magic Mirror",
+      "displayNameEn": "Any Magic Mirror",
+      "displayNameZh": "任何魔镜",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any mythril bar",
+      "canonicalName": "Any Mythril Bar",
+      "displayNameEn": "Any Mythril Bar",
+      "displayNameZh": "任意秘银锭",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 2,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any mythril bar",
+      "canonicalName": "Any Mythril Bar",
+      "displayNameEn": "Any Mythril Bar",
+      "displayNameZh": "任何秘银锭",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any pressure plate",
+      "canonicalName": "Any Pressure Plate",
+      "displayNameEn": "Any Pressure Plate",
+      "displayNameZh": "任意压力板",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 8,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any pressure plate",
+      "canonicalName": "Any Pressure Plate",
+      "displayNameEn": "Any Pressure Plate",
+      "displayNameZh": "任何压力板",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 16,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any pylon",
+      "canonicalName": "Any Pylon",
+      "displayNameEn": "Any Pylon",
+      "displayNameZh": "任何晶塔",
+      "domains": [
+        "shimmer"
+      ],
+      "sourceKind": "curated_wiki_item_group",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": "https://terraria.wiki.gg/wiki/Pylons",
+      "sourceFile": "data/generated/item-group-overrides.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Pylons",
+        "https://terraria.wiki.gg/wiki/Shimmer"
+      ],
+      "classification": "source-backed",
+      "memberCount": 10,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any sand block",
+      "canonicalName": "Any Sand Block",
+      "displayNameEn": "Any Sand Block",
+      "displayNameZh": "任意沙块",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 8,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any sand block",
+      "canonicalName": "Any Sand Block",
+      "displayNameEn": "Any Sand Block",
+      "displayNameZh": "任何沙",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 16,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any sandstorm balloon",
+      "canonicalName": "Any Sandstorm Balloon",
+      "displayNameEn": "Any Sandstorm Balloon",
+      "displayNameZh": null,
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 2,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any sandstorm balloon",
+      "canonicalName": "Any Sandstorm Balloon",
+      "displayNameEn": "Any Sandstorm Balloon",
+      "displayNameZh": "任何沙尘暴气球",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any scorpion",
+      "canonicalName": "Any Scorpion",
+      "displayNameEn": "Any Scorpion",
+      "displayNameZh": "任意蝎子",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 2,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any scorpion",
+      "canonicalName": "Any Scorpion",
+      "displayNameEn": "Any Scorpion",
+      "displayNameZh": "任何蝎子",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any seashell or starfish",
+      "canonicalName": "Any Seashell or Starfish",
+      "displayNameEn": "Any Seashell or Starfish",
+      "displayNameZh": "任意海贝或海星",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 2,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any seashell or starfish",
+      "canonicalName": "Any Seashell or Starfish",
+      "displayNameEn": "Any Seashell or Starfish",
+      "displayNameZh": "任何贝壳",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any snail",
+      "canonicalName": "Any Snail",
+      "displayNameEn": "Any Snail",
+      "displayNameZh": "任意蜗牛",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 2,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any snail",
+      "canonicalName": "Any Snail",
+      "displayNameEn": "Any Snail",
+      "displayNameZh": "任何蜗牛",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any squirrel",
+      "canonicalName": "Any Squirrel",
+      "displayNameEn": "Any Squirrel",
+      "displayNameZh": "任意松鼠",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 2,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any squirrel",
+      "canonicalName": "Any Squirrel",
+      "displayNameEn": "Any Squirrel",
+      "displayNameZh": "任何松鼠",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any stone block",
+      "canonicalName": "Any Stone Block",
+      "displayNameEn": "Any Stone Block",
+      "displayNameZh": "任意石块",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any stone block",
+      "canonicalName": "Any Stone Block",
+      "displayNameEn": "Any Stone Block",
+      "displayNameZh": "任何石",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 8,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any torch",
+      "canonicalName": "Any Torch",
+      "displayNameEn": "Any Torch",
+      "displayNameZh": "任何火把",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 23,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any turtle",
+      "canonicalName": "Any Turtle",
+      "displayNameEn": "Any Turtle",
+      "displayNameZh": "任意海龟",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "recipe_group_override",
+      "sourceProvider": null,
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-group-overrides.json",
+      "sourceUrls": [],
+      "classification": "derived-from-source",
+      "memberCount": 2,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any turtle",
+      "canonicalName": "Any Turtle",
+      "displayNameEn": "Any Turtle",
+      "displayNameZh": "任何龟",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 4,
+      "unresolvedMembers": []
+    },
+    {
+      "key": "any wood",
+      "canonicalName": "Any Wood",
+      "displayNameEn": "Any Wood",
+      "displayNameZh": "任何木材",
+      "domains": [
+        "recipe"
+      ],
+      "sourceKind": "generated_recipe_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": null,
+      "sourceFile": "data/generated/recipe-material-reference.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Recipes",
+        "https://terraria.wiki.gg/wiki/Alternative_crafting_ingredients",
+        "https://terraria.wiki.gg/zh/wiki/%E5%8F%AF%E9%80%89%E6%8B%A9%E5%88%B6%E4%BD%9C%E6%9D%90%E6%96%99"
+      ],
+      "classification": "source-backed",
+      "memberCount": 9,
+      "unresolvedMembers": []
+    }
+  ],
+  "blockedGroups": [
+    {
+      "key": "recorded music boxes",
+      "canonicalName": "Recorded Music Boxes",
+      "displayNameEn": "Recorded Music Boxes",
+      "displayNameZh": "录音后的八音盒",
+      "domains": [
+        "shimmer"
+      ],
+      "sourceKind": "blocked_consumer_reference",
+      "sourceProvider": "wiki_gg",
+      "sourcePage": "https://terraria.wiki.gg/wiki/Shimmer",
+      "sourceFile": "data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json",
+      "sourceUrls": [
+        "https://terraria.wiki.gg/wiki/Shimmer"
+      ],
+      "classification": "blocked",
+      "memberCount": 0,
+      "unresolvedMembers": [],
+      "blockReason": "Local artifacts prove the shimmer item_group reference but do not provide an explicit source-backed member list."
+    }
+  ],
+  "duplicates": [
+    {
+      "canonicalName": "Any Adamantite Bar",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 4
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 2
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Balloon",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 6
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 3
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Bird",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 6
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 3
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Blizzard Balloon",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 4
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 2
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Butterfly",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 16
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 8
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Cloud Balloon",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 4
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 2
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Cobalt Bar",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 4
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 2
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Cockatiel",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 4
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 2
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Dragonfly",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 12
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 6
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Duck",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 4
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 2
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Firefly",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 4
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 2
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Fruit",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 38
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 19
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Gem Critter",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 28
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 14
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Guide to Critter Companionship",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 3
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 1
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Guide to Environmental Preservation",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 3
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 1
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Iron Bar",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 4
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 2
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Jungle Bug",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 6
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 3
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Macaw",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 4
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 2
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Magic Mirror",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 4
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 2
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Mythril Bar",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 4
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 2
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Pressure Plate",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 16
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 8
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Sand Block",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 16
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 8
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Sandstorm Balloon",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 4
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 2
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Scorpion",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 4
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 2
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Seashell or Starfish",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 4
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 2
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Snail",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 4
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 2
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Squirrel",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 4
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 2
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Stone Block",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 8
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 4
+        }
+      ]
+    },
+    {
+      "canonicalName": "Any Turtle",
+      "sources": [
+        {
+          "sourceFile": "data/generated/recipe-material-reference.json",
+          "classification": "source-backed",
+          "memberCount": 4
+        },
+        {
+          "sourceFile": "data/generated/recipe-group-overrides.json",
+          "classification": "derived-from-source",
+          "memberCount": 2
+        }
+      ]
+    }
+  ],
+  "unresolvedMembers": [],
+  "blockedGroupReferences": [],
+  "consumerOnlyReferences": []
+}

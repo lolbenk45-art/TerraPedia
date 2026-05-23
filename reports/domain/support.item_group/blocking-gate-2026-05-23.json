@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-23T15:26:14.251Z",
+  "generatedAt": "2026-05-23T15:40:18.285Z",
   "domainId": "support.item_group",
   "panelId": "blockingGate",
-  "status": "blocked",
+  "status": "pass",
   "reportPath": "reports/domain/support.item_group/blocking-gate-2026-05-23.json",
   "requiresDatabase": false,
   "writesDatabase": false,
@@ -10,27 +10,25 @@
     "checkCount": 1,
     "requiredEvidenceCount": 1,
     "optionalEvidenceCount": 0,
-    "presentEvidenceCount": 0,
-    "missingEvidenceCount": 1,
-    "blockedCount": 1,
+    "presentEvidenceCount": 1,
+    "missingEvidenceCount": 0,
+    "blockedCount": 0,
     "warningCount": 0
   },
-  "blockingReasons": [
-    "Missing required evidence: reports/item-groups/any-item-group-source-audit*.json"
-  ],
+  "blockingReasons": [],
   "warningReasons": [],
   "checks": [
     {
       "id": "reports_item_groups_any_item_group_source_auditlatest_json",
       "type": "json",
       "required": true,
-      "found": false,
-      "readable": false,
-      "evidencePath": "reports/item-groups/any-item-group-source-audit*.json",
-      "latestReportPath": null,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/item-groups/any-item-group-source-audit-2026-05-23.json",
+      "latestReportPath": "reports/item-groups/any-item-group-source-audit-2026-05-23.json",
       "recordCount": null,
-      "status": "blocked",
-      "message": "Missing required evidence: reports/item-groups/any-item-group-source-audit*.json"
+      "status": "pass",
+      "message": "item group source audit semantic gates are clean in reports/item-groups/any-item-group-source-audit-2026-05-23.json; scoped non-blocking metrics within baseline: duplicateGroupKeys=29/29, blockedGroupReferences=0/1, consumerOnlyReferences=0/0"
     }
   ]
 }

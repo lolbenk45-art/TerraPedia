@@ -50,6 +50,9 @@ reports/relation/relation-audit-*.md
 reports/relation/relation-audit-*.json
 !reports/domain/
 reports/domain/staleness-history.jsonl
+!reports/item-groups/
+!reports/item-groups/any-item-group-source-audit-2026-05-23.json
+!reports/item-groups/any-item-group-source-audit-2026-05-23.md
 reports/local-start/
 reports/runtime/
 reports/db-backup/
