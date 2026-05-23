@@ -159,7 +159,7 @@ onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
         </section>
 
         <section class="search-suggestion-band support-panel">
-          <a v-for="resource in biomeResources" :key="displayText(resource.id, resource.itemId, resource.resourceNameRaw, 'resource')" :href="resource.itemId ? `/items/${resource.itemId}` : '/items'">
+          <a v-for="resource in biomeResources" :key="displayText(resource.id, resource.itemId, resource.resourceNameRaw, 'resource')" class="detail-relation-link" :href="resource.itemId ? `/items/${resource.itemId}` : '/items'">
             <CommonPreviewImage
               :src="resourceImage(resource)"
               :alt="resourceTitle(resource)"
@@ -194,3 +194,27 @@ onBeforeUnmount(clearBiomeDetailVisualLoadingTimer)
     <TerraFooter />
   </section>
 </template>
+
+<style scoped>
+.detail-relation-link {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 2px 12px;
+  min-height: 44px;
+}
+
+.detail-relation-link .item-art {
+  grid-row: 1 / 3;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+}
+
+.detail-relation-link b,
+.detail-relation-link span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+</style>

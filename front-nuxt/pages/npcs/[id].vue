@@ -179,7 +179,7 @@ const materialStatus = computed(() => ({
         </div>
         <div class="npc-detail-copy">
           <span class="eyebrow">加载 NPC 详情</span>
-          <strong class="detail-missing-title">加载 NPC 详情</strong>
+          <component :is="'h1'" class="detail-missing-title">加载 NPC 详情</component>
           <p>正在读取数值、掉落、商店和状态效果资料。</p>
         </div>
       </section>
@@ -190,7 +190,7 @@ const materialStatus = computed(() => ({
         </div>
         <div class="npc-detail-copy">
           <span class="eyebrow">NPC #{{ routeNpcId || '未知' }} · 未找到</span>
-          <strong class="detail-missing-title">没有找到这个 NPC</strong>
+          <component :is="'h1'" class="detail-missing-title">没有找到这个 NPC</component>
           <p>{{ invalidNpcId ? '请从 NPC 图鉴进入对应详情页。' : '暂时没有可显示的 NPC 资料。' }}</p>
           <div class="tag-row">
             <span class="tag paper">详情缺失</span>
@@ -245,12 +245,12 @@ const materialStatus = computed(() => ({
               <span class="tag moss">{{ trustedLoot.length + additionalLoot.length }} 条</span>
             </div>
             <div v-if="trustedLoot.length" class="source-table dark-table">
-              <div v-for="entry in trustedLoot" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" class="source-row">
-                <span class="sprite-frame" style="width:42px;height:42px">
+              <div v-for="entry in trustedLoot" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" class="source-row detail-relation-row">
+                <span class="sprite-frame detail-relation-icon">
                   <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
                 </span>
-                <div><b>{{ entryTitle(entry) }}</b><span>{{ [quantityLabel(entry), chanceLabel(entry), entry.conditions].filter(Boolean).join(' · ') || '掉落资料待补充' }}</span></div>
-                <strong>掉落</strong>
+                <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [quantityLabel(entry), chanceLabel(entry), entry.conditions].filter(Boolean).join(' · ') || '掉落资料待补充' }}</span></div>
+                <strong class="detail-relation-meta">掉落</strong>
               </div>
             </div>
             <p v-else>暂时没有整理到掉落物。</p>
@@ -262,12 +262,12 @@ const materialStatus = computed(() => ({
               <span class="tag gold">{{ shopEntries.length }} 项</span>
             </div>
             <div v-if="shopEntries.length" class="source-table dark-table">
-              <div v-for="entry in shopEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" class="source-row">
-                <span class="sprite-frame" style="width:42px;height:42px">
+              <div v-for="entry in shopEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" class="source-row detail-relation-row">
+                <span class="sprite-frame detail-relation-icon">
                   <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
                 </span>
-                <div><b>{{ entryTitle(entry) }}</b><span>{{ [shopPriceLabel(entry), shopConditionsLabel(entry)].filter(Boolean).join(' · ') }}</span></div>
-                <strong>商店</strong>
+                <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [shopPriceLabel(entry), shopConditionsLabel(entry)].filter(Boolean).join(' · ') }}</span></div>
+                <strong class="detail-relation-meta">商店</strong>
               </div>
             </div>
             <p v-else>暂时没有整理到出售物品。</p>
@@ -279,12 +279,12 @@ const materialStatus = computed(() => ({
               <span class="tag paper">{{ buffRelations.length }} 条</span>
             </div>
             <div v-if="buffRelations.length" class="source-table dark-table">
-              <div v-for="entry in buffRelations" :key="String(entry.id ?? entry.buffId ?? entry.buffInternalName)" class="source-row">
-                <span class="sprite-frame" style="width:42px;height:42px">
+              <div v-for="entry in buffRelations" :key="String(entry.id ?? entry.buffId ?? entry.buffInternalName)" class="source-row detail-relation-row">
+                <span class="sprite-frame detail-relation-icon">
                   <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
                 </span>
-                <div><b>{{ entryTitle(entry) }}</b><span>{{ [entry.relationType, buffDurationLabel(entry), chanceLabel(entry), entry.conditions].filter(Boolean).join(' · ') || 'Buff 关系' }}</span></div>
-                <strong>Buff</strong>
+                <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [entry.relationType, buffDurationLabel(entry), chanceLabel(entry), entry.conditions].filter(Boolean).join(' · ') || 'Buff 关系' }}</span></div>
+                <strong class="detail-relation-meta">Buff</strong>
               </div>
             </div>
             <p v-else>暂时没有整理到状态效果。</p>
@@ -329,3 +329,43 @@ const materialStatus = computed(() => ({
     <TerraFooter />
   </section>
 </template>
+
+<style scoped>
+.detail-relation-row {
+  grid-template-columns: 52px minmax(0, 1fr) minmax(72px, auto);
+}
+
+.detail-relation-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+}
+
+.detail-relation-copy {
+  min-width: 0;
+}
+
+.detail-relation-copy b,
+.detail-relation-copy span,
+.detail-relation-meta {
+  overflow-wrap: anywhere;
+}
+
+.detail-relation-copy span {
+  display: block;
+  line-height: 1.5;
+}
+
+@media (max-width: 720px) {
+  .detail-relation-row {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .detail-relation-meta {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+</style>

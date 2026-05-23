@@ -112,7 +112,7 @@ onMounted(() => {
         </div>
         <div>
           <span class="eyebrow"><CommonTpSkeleton type="pill" /></span>
-          <strong class="detail-missing-title"><CommonTpSkeleton type="line" /></strong>
+          <component :is="'h1'" class="detail-missing-title"><CommonTpSkeleton type="line" /></component>
           <p><CommonTpSkeleton type="line" /></p>
           <div class="tag-row">
             <span class="tag paper"><CommonTpSkeleton type="pill" /></span>
@@ -127,7 +127,7 @@ onMounted(() => {
         </div>
         <div>
           <span class="eyebrow">Buff #{{ buffId || '未知' }}</span>
-          <strong class="detail-missing-title">没有找到这个效果</strong>
+          <component :is="'h1'" class="detail-missing-title">没有找到这个效果</component>
           <p>当前详情资料还没有可渲染内容。</p>
           <div class="tag-row">
             <span class="tag paper">详情缺失</span>
@@ -183,7 +183,7 @@ onMounted(() => {
           </div>
         </template>
         <template v-else-if="section.items.length">
-          <a v-for="item in section.items" :key="String(item.id)" href="/items">
+          <a v-for="item in section.items" :key="String(item.id)" class="detail-relation-link" href="/items">
             <CommonPreviewImage
               :src="item.image"
               :alt="item.name"
@@ -205,3 +205,27 @@ onMounted(() => {
     <TerraFooter />
   </section>
 </template>
+
+<style scoped>
+.detail-relation-link {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 2px 12px;
+  min-height: 44px;
+}
+
+.detail-relation-link .item-art {
+  grid-row: 1 / 3;
+  width: 42px;
+  height: 42px;
+  overflow: hidden;
+}
+
+.detail-relation-link b,
+.detail-relation-link span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+</style>

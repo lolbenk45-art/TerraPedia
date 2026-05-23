@@ -295,16 +295,16 @@ onMounted(() => {
               <span class="tag gold">{{ imageEntries.length }} 张</span>
             </div>
             <div class="source-table">
-              <div v-for="image in imageEntries" :key="String(image.id)" class="source-row">
-                <span class="sprite-frame" style="width:42px;height:42px">
+              <div v-for="image in imageEntries" :key="String(image.id)" class="source-row detail-relation-row">
+                <span class="sprite-frame detail-relation-icon">
                   <CommonPreviewImage
                     :src="image.url"
                     :alt="image.label"
                     :fallback="itemFallbackGlyph"
                   />
                 </span>
-                <div><b>{{ image.label }}</b><span>{{ image.note || image.url }}</span></div>
-                <strong>图片</strong>
+                <div class="detail-relation-copy"><b>{{ image.label }}</b><span>{{ image.note || image.url }}</span></div>
+                <strong class="detail-relation-meta">图片</strong>
               </div>
             </div>
           </section>
@@ -348,16 +348,16 @@ onMounted(() => {
               <span class="tag moss">{{ sourceEntries.length }} 条</span>
             </div>
             <div class="source-table">
-              <div v-for="source in sourceEntries" :key="String(source.id)" class="source-row">
-                <span class="sprite-frame" style="width:42px;height:42px">
+              <div v-for="source in sourceEntries" :key="String(source.id)" class="source-row detail-relation-row">
+                <span class="sprite-frame detail-relation-icon">
                   <CommonPreviewImage
                     :src="source.image"
                     :alt="source.name"
                     :fallback="source.fallback"
                   />
                 </span>
-                <div><b>{{ source.name }}</b><span>{{ source.detail }}</span></div>
-                <strong>{{ source.value || '来源' }}</strong>
+                <div class="detail-relation-copy"><b>{{ source.name }}</b><span>{{ source.detail }}</span></div>
+                <strong class="detail-relation-meta">{{ source.value || '来源' }}</strong>
               </div>
             </div>
           </section>
@@ -376,3 +376,53 @@ onMounted(() => {
     <TerraFooter />
   </section>
 </template>
+
+<style scoped>
+.detail-relation-row {
+  grid-template-columns: 52px minmax(0, 1fr) minmax(72px, auto);
+}
+
+.detail-relation-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+}
+
+.detail-relation-copy {
+  min-width: 0;
+}
+
+.detail-relation-copy b,
+.detail-relation-copy span,
+.detail-relation-meta {
+  overflow-wrap: anywhere;
+}
+
+.detail-relation-copy span {
+  display: block;
+  line-height: 1.5;
+}
+
+@media (max-width: 720px) {
+  .recipe-tree-stage--detail {
+    max-width: 100%;
+    overflow-x: auto;
+    contain: inline-size;
+  }
+
+  .recipe-tree-stage--detail .recipe-tree-roots {
+    max-width: max-content;
+  }
+
+  .detail-relation-row {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .detail-relation-meta {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+</style>

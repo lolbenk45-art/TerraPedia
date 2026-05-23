@@ -23,22 +23,22 @@
       </section>
 
       <section class="category-detail-grid">
-        <article class="support-panel category-branch active">
+        <article class="support-panel category-branch category-branch-card active">
           <b>近战</b>
           <span>剑、矛、回旋镖、悠悠球</span>
           <a href="/items?search=近战">查看近战物品</a>
         </article>
-        <article class="support-panel category-branch">
+        <article class="support-panel category-branch category-branch-card">
           <b>远程</b>
           <span>弓、枪、发射器、弹药</span>
           <a href="/items">查看远程武器</a>
         </article>
-        <article class="support-panel category-branch">
+        <article class="support-panel category-branch category-branch-card">
           <b>魔法</b>
           <span>法杖、魔法书、消耗魔力武器</span>
           <a href="/items">查看魔法武器</a>
         </article>
-        <article class="support-panel category-branch">
+        <article class="support-panel category-branch category-branch-card">
           <b>召唤</b>
           <span>仆从、哨兵、鞭子</span>
           <a href="/items">查看召唤武器</a>

@@ -591,7 +591,57 @@ watch(() => route.query, hydrateCatalogStateFromRoute)
 
           <div class="catalog-wall-content">
             <aside class="catalog-category-column" aria-label="物品分类">
-              <div class="catalog-category-drawer">
+              <details class="catalog-category-mobile-shell">
+                <summary>
+                  <span>分类与每页数量</span>
+                  <b>{{ activeFilterPath }}</b>
+                </summary>
+                <div class="catalog-category-drawer">
+                  <header class="catalog-category-head">
+                    <span>分类</span>
+                    <b>{{ activeFilterLabel }}</b>
+                  </header>
+
+                  <div
+                    v-for="group in catalogCategoryGroups"
+                    :key="group.key"
+                    class="catalog-category-group"
+                  >
+                    <div class="catalog-category-group-head">
+                      <strong>{{ group.label }}</strong>
+                      <span>{{ group.caption }}</span>
+                    </div>
+                    <button
+                      v-for="filter in group.filters"
+                      :key="filter.key"
+                      class="catalog-category-chip"
+                      :class="{ active: filter.key === activeFilter }"
+                      type="button"
+                      :aria-pressed="filter.key === activeFilter"
+                      @click="setActiveFilter(filter.key)"
+                    >
+                      {{ filter.label }}
+                    </button>
+                  </div>
+
+                  <div class="catalog-density-picker" aria-label="每页数量">
+                    <span>每页</span>
+                    <button
+                      v-for="pageSize in pageSizeOptions"
+                      :key="pageSize"
+                      class="catalog-density-chip"
+                      :class="{ active: pageSize === selectedPageSize }"
+                      type="button"
+                      :aria-pressed="pageSize === selectedPageSize"
+                      @click="setPageSize(pageSize)"
+                    >
+                      {{ pageSize }}
+                    </button>
+                  </div>
+                </div>
+              </details>
+
+              <div class="catalog-category-drawer catalog-category-drawer-desktop">
                 <header class="catalog-category-head">
                   <span>分类</span>
                   <b>{{ activeFilterLabel }}</b>

@@ -193,7 +193,7 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
     <TerraNav />
     <TerraBreadcrumb />
 
-    <div class="page-head entity-head">
+    <div class="page-head entity-head crafting-page-head" :class="{ 'has-active-recipe': activeRoots.length > 0 }">
       <div class="page-head-inner">
         <div>
           <span class="eyebrow">/crafting · recipe tree</span>
@@ -204,7 +204,7 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
       </div>
     </div>
 
-    <main class="crafting-layout" :aria-busy="recipeVisualLoading">
+    <main class="crafting-layout" :class="{ 'has-active-recipe': activeRoots.length > 0 }" :aria-busy="recipeVisualLoading">
       <section class="crafting-command support-panel">
         <div>
           <span class="eyebrow">目标物品</span>
@@ -234,7 +234,11 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
         </form>
       </section>
 
-      <section v-if="isDefaultRecipeTarget" class="recipe-example-targets search-suggestion-band support-panel">
+      <details v-if="isDefaultRecipeTarget" class="recipe-example-targets recipe-example-targets-collapsible search-suggestion-band support-panel">
+        <summary>
+          <span>示例目标</span>
+          <b>{{ defaultRecipeTarget.label }}</b>
+        </summary>
         <button
           v-for="target in recipeExampleTargets"
           :key="target.itemId"
@@ -245,7 +249,7 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
           <b>{{ target.title }}</b>
           <span>{{ target.meta }}</span>
         </button>
-      </section>
+      </details>
 
       <section v-if="recipeSearchQuery || itemSearchPending || showSearchUnavailable" class="search-suggestion-band support-panel">
         <template v-if="itemSearchPending">
@@ -271,9 +275,12 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
         </div>
       </section>
 
-      <section class="crafting-workbench">
-        <aside class="crafting-rail support-panel">
-          <span class="eyebrow">变体</span>
+      <section class="crafting-workbench" :class="{ 'has-active-recipe': activeRoots.length > 0 }">
+        <details class="crafting-rail support-panel" :open="!activeRoots.length">
+          <summary>
+            <span class="eyebrow">变体</span>
+            <b>{{ activeVariant?.variantLabel || activeVariant?.variantKey || '默认变体' }}</b>
+          </summary>
           <button
             v-for="variant in recipeVariants"
             :key="displayText(variant.variantKey, variant.variantLabel, 'variant')"
@@ -289,7 +296,7 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
             <b>等待目标</b>
             <span>选择物品后显示配方变体。</span>
           </div>
-        </aside>
+        </details>
 
         <section class="recipe-canvas recipe-tree-canvas support-panel">
           <template v-if="recipeVisualLoading">
@@ -324,7 +331,7 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
                     :key="displayText(root.recipeId, root.itemId, nodeTitle(root), 'top-root')"
                     class="recipe-top-card"
                   >
-                    <a class="recipe-top-result" :href="nodeHref(root)">
+                    <a class="recipe-top-result recipe-target-card" :href="nodeHref(root)">
                       <CommonPreviewImage
                         :src="nodeImage(root)"
                         :alt="nodeTitle(root)"
@@ -432,3 +439,137 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
     <TerraFooter />
   </section>
 </template>
+
+<style scoped>
+.recipe-target-card b,
+.recipe-target-card span {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.recipe-top-materials a {
+  min-width: 0;
+}
+
+.recipe-top-materials b,
+.recipe-top-materials span {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.crafting-workbench.has-active-recipe {
+  align-items: start;
+}
+
+.crafting-workbench.has-active-recipe .crafting-rail {
+  grid-column: 1 / -1;
+}
+
+.crafting-workbench.has-active-recipe .recipe-tree-canvas {
+  grid-column: 1 / -1;
+}
+
+.crafting-rail > summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.crafting-rail > summary b {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--paper);
+}
+
+.recipe-example-targets-collapsible {
+  display: grid;
+}
+
+.recipe-example-targets-collapsible > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.recipe-example-targets-collapsible > summary span,
+.recipe-example-targets-collapsible > summary b {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.recipe-example-targets-collapsible > summary span {
+  color: var(--gold-2);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.recipe-example-targets-collapsible > summary b {
+  color: var(--paper);
+}
+
+@media (max-width: 720px) {
+  .crafting-page-head.has-active-recipe {
+    padding: 12px 14px;
+  }
+
+  .crafting-page-head.has-active-recipe .page-head-inner {
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .crafting-page-head.has-active-recipe p {
+    margin-top: 6px;
+    line-height: 1.45;
+  }
+
+  .crafting-layout.has-active-recipe {
+    gap: 10px;
+    padding-top: 12px;
+  }
+
+  .crafting-layout.has-active-recipe .crafting-command {
+    gap: 8px;
+    padding: 14px;
+  }
+
+  .crafting-layout.has-active-recipe .crafting-command h2 {
+    margin-top: 4px;
+    font-size: 28px;
+  }
+
+  .crafting-layout.has-active-recipe .crafting-command p {
+    margin-top: 5px;
+    line-height: 1.35;
+  }
+
+  .crafting-layout.has-active-recipe .tag-row {
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .crafting-layout.has-active-recipe .catalog-search-form {
+    gap: 8px;
+  }
+
+  .crafting-layout.has-active-recipe .recipe-tree-section-head {
+    align-items: start;
+    padding-bottom: 8px;
+  }
+
+  .crafting-layout.has-active-recipe .recipe-tree-section-head h3 {
+    margin-top: 3px;
+    font-size: 20px;
+  }
+
+  .recipe-tree-canvas {
+    order: -1;
+  }
+}
+</style>

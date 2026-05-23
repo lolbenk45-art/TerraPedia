@@ -81,6 +81,10 @@ const recipeAlternativeOptions = computed(() => {
     : []
 })
 const hasAlternativeRecipeOptions = computed(() => recipeAlternativeOptions.value.length > 1)
+const recipeOptionLabel = (option: PublicItemRecipeTreeNode, index: number) => {
+  const recipeName = displayText(option.recipeId)
+  return recipeName ? `方案 ${index + 1} · ${recipeName}` : `方案 ${index + 1}`
+}
 const expandedRecipeNode = computed(() => {
   const children = directRecipeNodeChildren.value
   if (hasAlternativeRecipeOptions.value) return null
@@ -122,7 +126,8 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
         :key="displayText(option.recipeId, option.itemId, nodeTitle(option), index)"
       >
         <span v-if="index > 0" class="recipe-alternative-separator">或</span>
-        <section class="recipe-alternative-option" :aria-label="`方案 ${index + 1}`">
+        <section class="recipe-alternative-option" :aria-label="recipeOptionLabel(option, index)">
+          <span class="recipe-alternative-label">{{ recipeOptionLabel(option, index) }}</span>
           <CraftingRecipeTreeNode
             :node="option"
             layout="wiki"
@@ -241,3 +246,35 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
     </div>
   </div>
 </template>
+
+<style scoped>
+.recipe-alternative-label {
+  display: block;
+  max-width: 164px;
+  margin-bottom: 6px;
+  color: var(--gold-2);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.recipe-tree-node b,
+.recipe-tree-node span,
+.recipe-station-chip b {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.recipe-tree-node .item-art,
+.recipe-station-chip .item-art {
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+.recipe-station-chip {
+  min-width: 120px;
+  max-width: 172px;
+}
+</style>

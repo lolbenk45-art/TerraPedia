@@ -171,7 +171,7 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
         <section class="boss-detail-grid">
           <article class="support-panel loot-panel">
             <span class="eyebrow">掉落</span>
-            <div v-for="entry in bossLootEntries" :key="entry.id ?? `${entry.itemId}-${entry.itemName}`" class="loot-row">
+            <div v-for="entry in bossLootEntries" :key="entry.id ?? `${entry.itemId}-${entry.itemName}`" class="loot-row detail-loot-row">
               <CommonPreviewImage
                 :src="entryImage(entry)"
                 :alt="lootTitle(entry)"
@@ -190,7 +190,7 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
 
           <article class="support-panel prep-panel">
             <span class="eyebrow">成员</span>
-            <a v-for="member in bossMembers" :key="displayText(member.id, member.gameId, member.internalName, 'member')" href="/npcs">
+            <a v-for="member in bossMembers" :key="displayText(member.id, member.gameId, member.internalName, 'member')" class="detail-member-link" href="/npcs">
               <CommonPreviewImage
                 :src="memberImage(member)"
                 :alt="displayText(member.nameZh, member.name, member.internalName, '成员')"
@@ -201,7 +201,7 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
               <b>{{ displayText(member.nameZh, member.name, member.internalName, '未命名成员') }}</b>
               <span>{{ displayText(member.bossRole, member.sourceBossCode, '角色未标注') }}</span>
             </a>
-            <a v-if="!bossMembers.length" href="/bosses">
+            <a v-if="!bossMembers.length" class="detail-member-link" href="/bosses">
               <b>暂无成员</b>
               <span>当前没有可展示的成员记录。</span>
             </a>
@@ -213,3 +213,60 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
     <TerraFooter />
   </section>
 </template>
+
+<style scoped>
+.detail-loot-row {
+  grid-template-columns: 52px minmax(0, 1fr) minmax(72px, auto);
+}
+
+.detail-loot-row .item-art {
+  grid-row: 1 / span 2;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+}
+
+.detail-loot-row b,
+.detail-loot-row span,
+.detail-loot-row em,
+.detail-member-link b,
+.detail-member-link span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.detail-loot-row span {
+  grid-column: 2;
+}
+
+.detail-loot-row em {
+  grid-column: 3;
+}
+
+.detail-member-link {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 2px 12px;
+}
+
+.detail-member-link .item-art {
+  grid-row: 1 / 3;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+}
+
+@media (max-width: 720px) {
+  .detail-loot-row {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .detail-loot-row em {
+    grid-column: 2;
+    grid-row: auto;
+    justify-self: start;
+  }
+}
+</style>

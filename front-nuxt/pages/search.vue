@@ -143,11 +143,28 @@ useSeoMeta({
                 <em>{{ item.rarity }}</em>
               </a>
             </template>
-            <a v-else-if="isEmptyQuery" class="search-suggestion-row" href="/items">
-              <b>物品图鉴</b>
-              <span>输入关键词后查询真实物品结果</span>
-              <em>Items</em>
-            </a>
+            <template v-else-if="isEmptyQuery">
+              <a class="search-suggestion-row" href="/items">
+                <b>物品图鉴</b>
+                <span>输入关键词后查询真实物品结果</span>
+                <em>Items</em>
+              </a>
+              <a class="search-suggestion-row" href="/crafting">
+                <b>合成树</b>
+                <span>默认载入真永夜刃路线</span>
+                <em>Craft</em>
+              </a>
+              <a class="search-suggestion-row" href="/bosses">
+                <b>Boss 路线</b>
+                <span>按阶段查看成员和掉落</span>
+                <em>Boss</em>
+              </a>
+              <a class="search-suggestion-row" href="/buffs">
+                <b>Buff 图鉴</b>
+                <span>查看来源、施加者和免疫目标</span>
+                <em>Buff</em>
+              </a>
+            </template>
             <a v-else class="search-suggestion-row" href="/items">
               <b>继续浏览物品</b>
               <span>当前关键词暂无可展示结果</span>
