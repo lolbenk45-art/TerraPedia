@@ -516,7 +516,12 @@ const requiredPublicDataLayerMarkers = {
     'failed',
     'fallbackGlyph',
     'class="item-art tp-preview-image"',
+    '@load="syncVisibleCenter"',
     '@error="markFailed"',
+    'getImageData',
+    'ResizeObserver',
+    '--tp-preview-visible-shift-x',
+    '--tp-preview-visible-shift-y',
   ],
   'components/common/PaginationDock.vue': [
     'defineProps',
@@ -1211,7 +1216,7 @@ for (const path of scanFiles) {
       'imageEntries',
       'sourceEntries',
       '<CommonPreviewImage',
-      ':src="material.image"',
+      '<CraftingRecipeTreeNode',
       ':src="source.image"',
     ]) {
       if (!content.includes(marker)) {
@@ -1639,6 +1644,25 @@ for (const path of scanFiles) {
         violations.push(`${path}: shared loading skeleton CSS must expose reusable skeleton and preview image primitives via marker ${marker}`)
       }
     }
+
+    for (const marker of [
+      'width: 100%',
+      'height: 100%',
+      'min-width: 0',
+      'min-height: 0',
+      'box-sizing: border-box',
+      '--tp-preview-image-size',
+      'width: auto',
+      'height: auto',
+      'max-width: var(--tp-preview-image-size',
+      'max-height: var(--tp-preview-image-size',
+      'translate3d(var(--tp-preview-visible-shift-x',
+      'var(--tp-preview-visible-shift-y',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: PreviewImage wrapper must fill the caller-owned art frame and bound the rendered sprite via marker ${marker}`)
+      }
+    }
   }
 
   if (path === 'assets/css/catalog-image-fixes.css') {
@@ -1648,9 +1672,10 @@ for (const path of scanFiles) {
       'min-height: 130px',
       'width: var(--catalog-wall-frame-size)',
       'height: auto',
-      'overflow: hidden',
-      'width: var(--catalog-wall-image-size)',
       'height: var(--catalog-wall-image-size)',
+      'overflow: hidden',
+      'max-width: var(--catalog-wall-image-size)',
+      'max-height: var(--catalog-wall-image-size)',
       'scroll-margin-top: 88px',
       '.catalog-wall-cell.tone-1',
       '.catalog-wall-cell.tone-2',
@@ -1685,13 +1710,21 @@ for (const path of scanFiles) {
     if (content.includes('nth-of-type(n + 7)')) {
       violations.push(`${path}: catalog dock CSS must not hide mobile page buttons with nth-of-type because non-page buttons affect the count`)
     }
+
+    for (const rule of content.matchAll(/\.catalog-wall-cell\s+\.item-art\[data-fallback\]\s+img\s*\{([^}]*)\}/g)) {
+      const declarations = rule[1]
+
+      if (/(?:^|\n)\s*width:\s*var\(--catalog-wall-image-size\)/.test(declarations)) {
+        violations.push(`${path}: catalog wall images must preserve native aspect ratio instead of forcing all sprites into a square image box`)
+      }
+    }
   }
 
   if (path === 'assets/css/hifi-preview.css') {
-    const recipeBranchRule = content.match(/\.recipe-branch\s*\{[^}]*\}/m)?.[0] ?? ''
-    const recipeBranchConnectorRule = content.match(/\.recipe-branch:not\(\.is-leaf\)::after\s*\{[^}]*\}/m)?.[0] ?? ''
-    const recipeChildrenRule = content.match(/\.recipe-children\s*\{[^}]*\}/m)?.[0] ?? ''
-    const recipeChildrenBranchRule = content.match(/\.recipe-children\s*>\s*\.recipe-branch\s*\{[^}]*\}/m)?.[0] ?? ''
+    const recipeBranchRule = content.match(/^\.recipe-branch\s*\{[^}]*\}/m)?.[0] ?? ''
+    const recipeBranchConnectorRule = content.match(/^\.recipe-branch:not\(\.is-leaf\)::after\s*\{[^}]*\}/m)?.[0] ?? ''
+    const recipeChildrenRule = content.match(/^\.recipe-children\s*\{[^}]*\}/m)?.[0] ?? ''
+    const recipeChildrenBranchRule = content.match(/^\.recipe-children\s*>\s*\.recipe-branch\s*\{[^}]*\}/m)?.[0] ?? ''
     const narrowRecipeChildrenLineRule = content.match(/@media \(max-width: 1180px\)\s*\{[\s\S]*?\.recipe-children::before\s*\{([^}]*)\}/m)?.[1] ?? ''
 
     if (!/width\s*:\s*max-content/m.test(recipeBranchRule)) {
@@ -1764,6 +1797,22 @@ for (const path of scanFiles) {
 
     if (content.includes('transform: scale(1.3);')) {
       violations.push(`${path}: boss and biome backdrop layers must not use transform scale because it expands the visual box and clips thumbnails`)
+    }
+
+    for (const marker of [
+      '.npc-card i .item-art',
+      '.portrait-stage .item-art',
+      '.npc-detail-portrait .item-art',
+      '.sprite-frame .item-art',
+      '.entity-detail-layout .sprite-frame .item-art',
+      '--tp-preview-image-size',
+      'width: 100%',
+      'height: 100%',
+      'margin: 0',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: NPC and detail image frames must size PreviewImage wrappers explicitly via marker ${marker}`)
+      }
     }
   }
 
