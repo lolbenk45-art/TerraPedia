@@ -9,12 +9,16 @@ import { getProjectRoot } from '../lib/project-root.mjs';
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { buildEntityFieldAudit } from './entity-field-audit.mjs';
 
-const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = getProjectRoot();
+
+export function resolveMysqlRequirePath(root = repoRoot) {
+  return path.join(root, 'data-query-app', 'package.json');
+}
+
+const require = createRequire(resolveMysqlRequirePath());
+const mysql = require('mysql2/promise');
 
 function parseArgs(argv) {
   const raw = {};
