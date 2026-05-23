@@ -1,7 +1,9 @@
 package com.terraria.skills.service.impl;
 
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.dto.NpcDetailDTO;
 import com.terraria.skills.dto.NpcBuffRelationDTO;
@@ -20,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -186,15 +189,13 @@ class PublicNpcServiceImplImageTest {
     }
 
     @Test
-    void shouldCollapseMultipartSameNameNpcSearchToHeadRepresentative() {
+    void shouldAskMapperToFilterMultipartRepresentativesBeforePagination() {
         Npc head = npc(454L, 454L, "CultistDragonHead", "Phantasm Dragon");
-        Npc body = npc(455L, 455L, "CultistDragonBody1", "Phantasm Dragon");
-        Npc tail = npc(459L, 459L, "CultistDragonTail", "Phantasm Dragon");
 
         Page<Npc> page = new Page<>(1, 20);
-        page.setTotal(3);
-        page.setRecords(List.of(head, body, tail));
-        when(npcMapper.selectPage(any(Page.class), any())).thenReturn(page);
+        page.setTotal(1);
+        page.setRecords(List.of(head));
+        when(npcMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(page);
 
         PublicNpcQuery query = new PublicNpcQuery();
         query.setPage(1);
@@ -205,10 +206,38 @@ class PublicNpcServiceImplImageTest {
 
         assertEquals(1, result.getRecords().size());
         assertEquals(1, result.getTotal());
-        NpcListItemDTO representative = result.getRecords().get(0);
-        assertEquals(454L, representative.getId());
-        assertEquals(454L, representative.getGameId());
-        assertEquals("CultistDragonHead", representative.getInternalName());
+        assertEquals("CultistDragonHead", result.getRecords().get(0).getInternalName());
+
+        ArgumentCaptor<LambdaQueryWrapper<Npc>> wrapperCaptor = ArgumentCaptor.forClass(LambdaQueryWrapper.class);
+        verify(npcMapper).selectPage(any(Page.class), wrapperCaptor.capture());
+        TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), ""), Npc.class);
+        String segment = wrapperCaptor.getValue().getCustomSqlSegment();
+        assertTrue(segment.contains("internal_name REGEXP 'Head$'"));
+        assertTrue(segment.contains("NOT EXISTS"));
+    }
+
+    @Test
+    void shouldNotCollapseMultipartRowsAfterPagination() {
+        Npc head = npc(454L, 454L, "CultistDragonHead", "Phantasm Dragon");
+        Npc body = npc(455L, 455L, "CultistDragonBody1", "Phantasm Dragon");
+
+        Page<Npc> page = new Page<>(1, 2);
+        page.setTotal(3);
+        page.setRecords(List.of(head, body));
+        when(npcMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(page);
+
+        PublicNpcQuery query = new PublicNpcQuery();
+        query.setPage(1);
+        query.setLimit(2);
+        query.setSearch("Dragon");
+
+        Page<NpcListItemDTO> result = newService().getNpcs(query);
+
+        assertEquals(2, result.getRecords().size());
+        assertEquals(3, result.getTotal());
+        assertEquals(List.of("CultistDragonHead", "CultistDragonBody1"), result.getRecords().stream()
+            .map(NpcListItemDTO::getInternalName)
+            .toList());
     }
 
     @Test

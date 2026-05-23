@@ -6,6 +6,20 @@ const root = new URL('..', import.meta.url)
 const file = (path) => join(root.pathname, path)
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
+const assertApiPagedListBypassesLocalFilters = (violations, path, content, contract) => {
+  for (const marker of contract.markers) {
+    if (!content.includes(marker)) {
+      violations.push(`${path}: API-backed pagination must expose ${marker} before bypassing local filters`)
+    }
+  }
+
+  const filteredBlock = content.match(contract.filteredBlockPattern)?.[0] ?? ''
+
+  if (!filteredBlock.includes(contract.apiBypassMarker)) {
+    violations.push(`${path}: API-paginated results must render the backend page directly before any local filtering`)
+  }
+}
+
 const readCssPxValue = (content, selector, property) => {
   const rule = content.match(new RegExp(`${escapeRegExp(selector)}\\s*\\{([^}]*)\\}`, 'm'))
   if (!rule) {
@@ -1155,6 +1169,19 @@ for (const path of scanFiles) {
       violations.push(`${path}: NPC category drawer must render grouped filters from npcCategoryGroups`)
     }
 
+    assertApiPagedListBypassesLocalFilters(violations, path, content, {
+      filteredBlockPattern: /const\s+filteredNpcCards\s*=\s*computed\(\(\)\s*=>\s*\{[\s\S]*?\n\}\)/,
+      apiBypassMarker: "if (npcResult.value?.source === 'api') return npcDisplayCards.value",
+      markers: [
+        "search: backendSearch.value || undefined",
+        "isTownNpc: selectedFilter.value.isTownNpc",
+        "isFriendly: selectedFilter.value.isFriendly",
+        "isBoss: selectedFilter.value.isBoss",
+        "hasShop: selectedFilter.value.hasShop",
+        "hasLoot: selectedFilter.value.hasLoot",
+      ],
+    })
+
     if (!content.includes('<CommonPaginationDock') || !content.includes('@page-change="goToPage"') || !content.includes('v-for="pageSize in pageSizeOptions"')) {
       violations.push(`${path}: NPC page dock and drawer must keep reusable paging and page-size controls wired`)
     }
@@ -1609,6 +1636,45 @@ for (const path of scanFiles) {
 
     if (!content.includes("{ flush: 'sync' }")) {
       violations.push(`${path}: items search reset must synchronously reset page state before the API query refreshes`)
+    }
+
+    assertApiPagedListBypassesLocalFilters(violations, path, content, {
+      filteredBlockPattern: /const\s+filteredCatalogItems\s*=\s*computed\(\(\)\s*=>\s*\{[\s\S]*?\n\}\)/,
+      apiBypassMarker: 'if (shouldUseApiPagedItems.value) return catalogDisplayItems.value',
+      markers: [
+        "const shouldUseApiPagedItems = computed(() => publicItemsResult.value?.source === 'api')",
+        "const shouldApplyLocalCategoryFilter = computed(() => publicItemsResult.value?.source !== 'api')",
+        "search: backendSearch.value || undefined",
+        'categoryId: selectedCategoryId.value',
+        'categoryIds: selectedCategoryIds.value.length > 0 ? selectedCategoryIds.value : undefined',
+        'gamePeriodId: selectedGamePeriodId.value',
+      ],
+    })
+
+    for (const invalidCategoryCode of [
+      'MELEE_WEAPON',
+      'RANGED_WEAPON',
+      'MAGIC_WEAPON',
+      'SUMMON_WEAPON',
+      'AMMO',
+      'ORE',
+      'BAR',
+      'INGOT',
+      'CRAFTING_STATION',
+      'WORKSTATION',
+      'TREASURE_BAG',
+      'LOOT_BAG',
+      'FOOD',
+      'BAIT',
+      'CRATE',
+      'BLOCK',
+      'WALL',
+      'DECORATION',
+      'DECOR',
+    ]) {
+      if (content.includes(`'${invalidCategoryCode}'`)) {
+        violations.push(`${path}: items category filters must use backend category tree codes, not stale code ${invalidCategoryCode}`)
+      }
     }
 
     if (content.includes('catalog-floating-focus')) {

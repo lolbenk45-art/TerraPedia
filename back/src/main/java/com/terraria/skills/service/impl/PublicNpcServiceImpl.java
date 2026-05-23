@@ -63,11 +63,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         );
 
         Page<NpcListItemDTO> result = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
-        List<Npc> records = collapseMultipartRepresentatives(page.getRecords(), multipartSearch);
-        if (multipartSearch && records.size() != page.getRecords().size()) {
-            result.setTotal(records.size());
-        }
-        result.setRecords(toListDtos(records));
+        result.setRecords(toListDtos(page.getRecords()));
         return result;
     }
 
@@ -375,31 +371,6 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             .toList();
     }
 
-    private List<Npc> collapseMultipartRepresentatives(List<Npc> npcs, boolean enabled) {
-        if (!enabled || npcs == null || npcs.size() < 2) {
-            return npcs == null ? List.of() : npcs;
-        }
-        Map<String, Npc> headByName = new LinkedHashMap<>();
-        for (Npc npc : npcs) {
-            String nameKey = normalizeDisplayNameKey(npc);
-            if (nameKey != null && isMultipartHead(npc)) {
-                headByName.putIfAbsent(nameKey, npc);
-            }
-        }
-        if (headByName.isEmpty()) {
-            return npcs;
-        }
-        List<Npc> collapsed = new ArrayList<>();
-        for (Npc npc : npcs) {
-            String nameKey = normalizeDisplayNameKey(npc);
-            if (nameKey != null && headByName.containsKey(nameKey) && isMultipartSegment(npc) && !isMultipartHead(npc)) {
-                continue;
-            }
-            collapsed.add(npc);
-        }
-        return collapsed;
-    }
-
     private Npc resolveMultipartRepresentative(Npc npc) {
         if (npc == null || isMultipartHead(npc) || !isMultipartSegment(npc)) {
             return npc;
@@ -450,14 +421,6 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             return "";
         }
         return text.replaceFirst(MULTIPART_SEGMENT_SUFFIX_REGEX, "");
-    }
-
-    private String normalizeDisplayNameKey(Npc npc) {
-        String name = firstNonBlank(
-            trimToNull(npc == null ? null : npc.getName()),
-            trimToNull(npc == null ? null : npc.getNameZh())
-        );
-        return name == null ? null : name.toLowerCase(Locale.ROOT);
     }
 
     private NpcListItemDTO toListDto(Npc npc, String categoryName) {

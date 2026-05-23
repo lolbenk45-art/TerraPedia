@@ -162,6 +162,8 @@ const matchNpcFilter = (npc: NpcCatalogCard, filter: NpcCategoryFilter) => {
 }
 
 const filteredNpcCards = computed(() => {
+  if (npcResult.value?.source === 'api') return npcDisplayCards.value
+
   const keyword = normalizeSearchText(npcSearch.value.trim())
 
   return npcDisplayCards.value.filter((npc) => {
