@@ -1,0 +1,63 @@
+{
+  "generatedAt": "2026-05-23T13:46:11.372Z",
+  "domainId": "bosses",
+  "panelId": "sourceReadiness",
+  "status": "blocked",
+  "reportPath": "reports/domain/bosses/source-readiness-2026-05-23.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 3,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 2,
+    "presentEvidenceCount": 0,
+    "missingEvidenceCount": 3,
+    "blockedCount": 1,
+    "warningCount": 2
+  },
+  "blockingReasons": [
+    "Missing required evidence: data/generated/wiki-bosses.latest.json"
+  ],
+  "warningReasons": [
+    "Missing optional evidence: reports/wiki-bosses-fetch*.json",
+    "Missing optional evidence: reports/wiki-bosses-import*.json"
+  ],
+  "checks": [
+    {
+      "id": "data_generated_wiki_bosses_latest_json",
+      "type": "json",
+      "required": true,
+      "found": false,
+      "readable": false,
+      "evidencePath": "data/generated/wiki-bosses.latest.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "blocked",
+      "message": "Missing required evidence: data/generated/wiki-bosses.latest.json"
+    },
+    {
+      "id": "reports_wiki_bosses_fetchlatest_json",
+      "type": "json",
+      "required": false,
+      "found": false,
+      "readable": false,
+      "evidencePath": "reports/wiki-bosses-fetch*.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "warning",
+      "message": "Missing optional evidence: reports/wiki-bosses-fetch*.json"
+    },
+    {
+      "id": "reports_wiki_bosses_importlatest_json",
+      "type": "json",
+      "required": false,
+      "found": false,
+      "readable": false,
+      "evidencePath": "reports/wiki-bosses-import*.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "warning",
+      "message": "Missing optional evidence: reports/wiki-bosses-import*.json"
+    }
+  ]
+}

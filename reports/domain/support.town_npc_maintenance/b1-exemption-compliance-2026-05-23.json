@@ -1,0 +1,31 @@
+{
+  "generatedAt": "2026-05-23T13:46:11.372Z",
+  "domainId": "support.town_npc_maintenance",
+  "panelId": "b1ExemptionCompliance",
+  "status": "pass",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "sourcePath": "docs/audits/canonical-migration-boundary.md",
+  "summary": {
+    "trackedExemptionCount": 1,
+    "passedCount": 1,
+    "warningCount": 0,
+    "blockedCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "notes": [],
+  "checks": [
+    {
+      "input": "data/generated/wiki-crawler-npc-bridge/standardized/npcs.standardized.json",
+      "consumer": "NPC 基础数据、NPC-Buff 回填；deadline: 2026-06-30",
+      "migrationTarget": "`source_dataset_landings` -> canonical npc",
+      "acceptanceCommand": "node scripts/data/crawler/src/cli.mjs coverage-audit --domain=npc",
+      "status": "pass",
+      "deadline": "2026-06-30",
+      "daysRemaining": 38,
+      "reason": null
+    }
+  ],
+  "reportPath": "reports/domain/support.town_npc_maintenance/b1-exemption-compliance-2026-05-23.json"
+}

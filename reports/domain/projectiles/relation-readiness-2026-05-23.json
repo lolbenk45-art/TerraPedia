@@ -1,0 +1,50 @@
+{
+  "generatedAt": "2026-05-23T13:46:11.372Z",
+  "domainId": "projectiles",
+  "panelId": "relationReadiness",
+  "status": "blocked",
+  "reportPath": "reports/domain/projectiles/relation-readiness-2026-05-23.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 2,
+    "requiredEvidenceCount": 0,
+    "optionalEvidenceCount": 2,
+    "presentEvidenceCount": 1,
+    "missingEvidenceCount": 1,
+    "blockedCount": 1,
+    "warningCount": 1
+  },
+  "blockingReasons": [
+    "reports/relation/entity-coverage-baseline-2026-04-25.json: projectiles relation field gaps: nameZh.gap=1006"
+  ],
+  "warningReasons": [
+    "Missing optional evidence: reports/projectile-zh-image-backfill*.json"
+  ],
+  "checks": [
+    {
+      "id": "reports_relation_entity_coverage_baselinelatest_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/relation/entity-coverage-baseline-2026-04-25.json",
+      "latestReportPath": "reports/relation/entity-coverage-baseline-2026-04-25.json",
+      "recordCount": null,
+      "status": "blocked",
+      "message": "reports/relation/entity-coverage-baseline-2026-04-25.json: projectiles relation field gaps: nameZh.gap=1006"
+    },
+    {
+      "id": "reports_projectile_zh_image_backfilllatest_json",
+      "type": "json",
+      "required": false,
+      "found": false,
+      "readable": false,
+      "evidencePath": "reports/projectile-zh-image-backfill*.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "warning",
+      "message": "Missing optional evidence: reports/projectile-zh-image-backfill*.json"
+    }
+  ]
+}

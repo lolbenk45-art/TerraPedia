@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-05-23T13:46:11.372Z",
+  "domainId": "buffs",
+  "panelId": "unresolvedAuditTrend",
+  "status": "blocked",
+  "reportPath": "reports/domain/buffs/unresolved-audit-trend-2026-05-23.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 1,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 0,
+    "presentEvidenceCount": 0,
+    "missingEvidenceCount": 1,
+    "blockedCount": 1,
+    "warningCount": 0
+  },
+  "blockingReasons": [
+    "Missing required evidence: reports/relation/reresolve-candidates*.json"
+  ],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "reports_relation_reresolve_candidateslatest_json",
+      "type": "json",
+      "required": true,
+      "found": false,
+      "readable": false,
+      "evidencePath": "reports/relation/reresolve-candidates*.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "blocked",
+      "message": "Missing required evidence: reports/relation/reresolve-candidates*.json"
+    }
+  ]
+}

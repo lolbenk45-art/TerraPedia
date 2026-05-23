@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-05-23T13:46:11.372Z",
+  "domainId": "support.item_group",
+  "panelId": "blockingGate",
+  "status": "blocked",
+  "reportPath": "reports/domain/support.item_group/blocking-gate-2026-05-23.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 1,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 0,
+    "presentEvidenceCount": 0,
+    "missingEvidenceCount": 1,
+    "blockedCount": 1,
+    "warningCount": 0
+  },
+  "blockingReasons": [
+    "Missing required evidence: reports/item-groups/any-item-group-source-audit*.json"
+  ],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "reports_item_groups_any_item_group_source_auditlatest_json",
+      "type": "json",
+      "required": true,
+      "found": false,
+      "readable": false,
+      "evidencePath": "reports/item-groups/any-item-group-source-audit*.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "blocked",
+      "message": "Missing required evidence: reports/item-groups/any-item-group-source-audit*.json"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "generatedAt": "2026-05-23T13:46:11.372Z",
+  "domainId": "support.category",
+  "panelId": "blockingGate",
+  "status": "pass",
+  "reportPath": "reports/domain/support.category/blocking-gate-2026-05-23.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 3,
+    "requiredEvidenceCount": 0,
+    "optionalEvidenceCount": 3,
+    "presentEvidenceCount": 3,
+    "missingEvidenceCount": 0,
+    "blockedCount": 0,
+    "warningCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "front_src_services_categoryManagement_ts",
+      "type": "text",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "front/src/services/categoryManagement.ts",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "Evidence present: front/src/services/categoryManagement.ts"
+    },
+    {
+      "id": "data_query_app_pages_categories_vue",
+      "type": "text",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data-query-app/pages/categories.vue",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "Evidence present: data-query-app/pages/categories.vue"
+    },
+    {
+      "id": "reports_relation_category_recipe_cutover_verificationlatest_md",
+      "type": "text",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/relation/category-recipe-cutover-verification-2026-04-26.md",
+      "latestReportPath": "reports/relation/category-recipe-cutover-verification-2026-04-26.md",
+      "recordCount": null,
+      "status": "pass",
+      "message": "Evidence present: reports/relation/category-recipe-cutover-verification-2026-04-26.md"
+    }
+  ]
+}

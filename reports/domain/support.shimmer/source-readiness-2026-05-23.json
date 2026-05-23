@@ -1,0 +1,63 @@
+{
+  "generatedAt": "2026-05-23T13:46:11.372Z",
+  "domainId": "support.shimmer",
+  "panelId": "sourceReadiness",
+  "status": "blocked",
+  "reportPath": "reports/domain/support.shimmer/source-readiness-2026-05-23.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 3,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 2,
+    "presentEvidenceCount": 0,
+    "missingEvidenceCount": 3,
+    "blockedCount": 1,
+    "warningCount": 2
+  },
+  "blockingReasons": [
+    "Missing required evidence: data/generated/shimmer/wiki-shimmer-manifest.latest.json"
+  ],
+  "warningReasons": [
+    "Missing optional evidence: data/generated/shimmer/wiki-shimmer-context.importable.latest.json",
+    "Missing optional evidence: data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json"
+  ],
+  "checks": [
+    {
+      "id": "data_generated_shimmer_wiki_shimmer_manifest_latest_json",
+      "type": "json",
+      "required": true,
+      "found": false,
+      "readable": false,
+      "evidencePath": "data/generated/shimmer/wiki-shimmer-manifest.latest.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "blocked",
+      "message": "Missing required evidence: data/generated/shimmer/wiki-shimmer-manifest.latest.json"
+    },
+    {
+      "id": "data_generated_shimmer_wiki_shimmer_context_importable_latest_json",
+      "type": "json",
+      "required": false,
+      "found": false,
+      "readable": false,
+      "evidencePath": "data/generated/shimmer/wiki-shimmer-context.importable.latest.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "warning",
+      "message": "Missing optional evidence: data/generated/shimmer/wiki-shimmer-context.importable.latest.json"
+    },
+    {
+      "id": "data_generated_shimmer_wiki_shimmer_item_transforms_importable_latest_json",
+      "type": "json",
+      "required": false,
+      "found": false,
+      "readable": false,
+      "evidencePath": "data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "warning",
+      "message": "Missing optional evidence: data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json"
+    }
+  ]
+}

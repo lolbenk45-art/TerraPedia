@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-05-23T13:46:11.372Z",
+  "domainId": "buffs",
+  "panelId": "imageReadiness",
+  "status": "pass",
+  "reportPath": "reports/domain/buffs/image-readiness-2026-05-23.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 2,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 1,
+    "presentEvidenceCount": 2,
+    "missingEvidenceCount": 0,
+    "blockedCount": 0,
+    "warningCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "data_standardized_buffs_standardized_json",
+      "type": "json",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/standardized/buffs.standardized.json",
+      "latestReportPath": null,
+      "recordCount": 388,
+      "status": "pass",
+      "message": "buff image source semantic gates are clean in data/standardized/buffs.standardized.json"
+    },
+    {
+      "id": "data_standardized_view_buffs_meta_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/standardized-view/buffs/_meta.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "Evidence present: data/standardized-view/buffs/_meta.json"
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "generatedAt": "2026-05-23T13:46:11.372Z",
+  "domainId": "armor_sets",
+  "panelId": "sourceReadiness",
+  "status": "blocked",
+  "reportPath": "reports/domain/armor_sets/source-readiness-2026-05-23.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 3,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 2,
+    "presentEvidenceCount": 2,
+    "missingEvidenceCount": 1,
+    "blockedCount": 1,
+    "warningCount": 0
+  },
+  "blockingReasons": [
+    "Missing required evidence: data/generated/wiki-armor-sets.latest.json"
+  ],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "data_generated_wiki_armor_sets_latest_json",
+      "type": "json",
+      "required": true,
+      "found": false,
+      "readable": false,
+      "evidencePath": "data/generated/wiki-armor-sets.latest.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "blocked",
+      "message": "Missing required evidence: data/generated/wiki-armor-sets.latest.json"
+    },
+    {
+      "id": "data_standardized_armor_sets_standardized_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/standardized/armor_sets.standardized.json",
+      "latestReportPath": null,
+      "recordCount": 63,
+      "status": "pass",
+      "message": "armor standardized source semantic gates are clean in data/standardized/armor_sets.standardized.json"
+    },
+    {
+      "id": "data_generated_armor_set_definition_map_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/generated/armor-set-definition-map.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "armor definition map semantic gate is clean in data/generated/armor-set-definition-map.json; accepted placeholder exceptions=17/17"
+    }
+  ]
+}

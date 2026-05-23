@@ -1,0 +1,48 @@
+{
+  "generatedAt": "2026-05-23T13:46:11.372Z",
+  "domainId": "bosses",
+  "panelId": "relationReadiness",
+  "status": "warning",
+  "reportPath": "reports/domain/bosses/relation-readiness-2026-05-23.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 2,
+    "requiredEvidenceCount": 0,
+    "optionalEvidenceCount": 2,
+    "presentEvidenceCount": 1,
+    "missingEvidenceCount": 1,
+    "blockedCount": 0,
+    "warningCount": 1
+  },
+  "blockingReasons": [],
+  "warningReasons": [
+    "Missing optional evidence: reports/boss-loot-import*.json"
+  ],
+  "checks": [
+    {
+      "id": "reports_boss_loot_importlatest_json",
+      "type": "json",
+      "required": false,
+      "found": false,
+      "readable": false,
+      "evidencePath": "reports/boss-loot-import*.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "warning",
+      "message": "Missing optional evidence: reports/boss-loot-import*.json"
+    },
+    {
+      "id": "reports_relation_entity_coverage_baselinelatest_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/relation/entity-coverage-baseline-2026-04-25.json",
+      "latestReportPath": "reports/relation/entity-coverage-baseline-2026-04-25.json",
+      "recordCount": null,
+      "status": "pass",
+      "message": "Evidence present: reports/relation/entity-coverage-baseline-2026-04-25.json"
+    }
+  ]
+}

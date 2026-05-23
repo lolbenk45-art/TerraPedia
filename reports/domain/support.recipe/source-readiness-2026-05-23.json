@@ -1,0 +1,61 @@
+{
+  "generatedAt": "2026-05-23T13:46:11.372Z",
+  "domainId": "support.recipe",
+  "panelId": "sourceReadiness",
+  "status": "warning",
+  "reportPath": "reports/domain/support.recipe/source-readiness-2026-05-23.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 3,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 2,
+    "presentEvidenceCount": 1,
+    "missingEvidenceCount": 2,
+    "blockedCount": 0,
+    "warningCount": 2
+  },
+  "blockingReasons": [],
+  "warningReasons": [
+    "Missing optional evidence: data/generated/wiki-zh-recipe-pages.latest.json",
+    "Missing optional evidence: reports/wiki-zh-recipe-import*.json"
+  ],
+  "checks": [
+    {
+      "id": "data_generated_recipe_material_reference_json",
+      "type": "json",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/generated/recipe-material-reference.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "Evidence present: data/generated/recipe-material-reference.json"
+    },
+    {
+      "id": "data_generated_wiki_zh_recipe_pages_latest_json",
+      "type": "json",
+      "required": false,
+      "found": false,
+      "readable": false,
+      "evidencePath": "data/generated/wiki-zh-recipe-pages.latest.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "warning",
+      "message": "Missing optional evidence: data/generated/wiki-zh-recipe-pages.latest.json"
+    },
+    {
+      "id": "reports_wiki_zh_recipe_importlatest_json",
+      "type": "json",
+      "required": false,
+      "found": false,
+      "readable": false,
+      "evidencePath": "reports/wiki-zh-recipe-import*.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "warning",
+      "message": "Missing optional evidence: reports/wiki-zh-recipe-import*.json"
+    }
+  ]
+}

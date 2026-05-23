@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-05-23T13:46:11.372Z",
+  "domainId": "support.category",
+  "panelId": "b1ExemptionCompliance",
+  "status": "pass",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "sourcePath": "docs/audits/canonical-migration-boundary.md",
+  "summary": {
+    "trackedExemptionCount": 0,
+    "passedCount": 0,
+    "warningCount": 0,
+    "blockedCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "notes": [
+    "No B1 exemptions registered for support.category."
+  ],
+  "checks": [],
+  "reportPath": "reports/domain/support.category/b1-exemption-compliance-2026-05-23.json"
+}
