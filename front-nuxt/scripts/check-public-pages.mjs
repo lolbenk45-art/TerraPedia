@@ -1102,6 +1102,14 @@ for (const path of scanFiles) {
     }
   }
 
+  if (path === 'components/TerraBreadcrumb.vue') {
+    for (const marker of ['unavailableAccountRoutes', 'isUnavailableAccountRoute(currentPath)', 'href: currentPath === path || isUnavailableAccountRoute(currentPath) ? undefined : currentPath']) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: V0.1 breadcrumb must not link to unfinished account surfaces via marker ${marker}`)
+      }
+    }
+  }
+
   if (path === 'components/TerraFooter.vue') {
     for (const route of unfinishedAccountRoutes) {
       if (content.includes(`href="${route}"`) || content.includes(`href='${route}'`)) {

@@ -67,6 +67,18 @@ const segmentLabels: Record<string, string> = {
   new: '新建文章',
 }
 
+const unavailableAccountRoutes = [
+  '/user',
+  '/user/login',
+  '/user/register',
+  '/user/articles',
+  '/user/articles/new',
+  '/user/favorites',
+  '/user/settings',
+]
+
+const isUnavailableAccountRoute = (path: string) => unavailableAccountRoutes.includes(path)
+
 const formatSegment = (segment: string) => {
   return segmentLabels[segment] ?? segment
     .split('-')
@@ -91,7 +103,7 @@ const crumbs = computed<Crumb[]>(() => {
     const label = routeLabels[currentPath] ?? formatSegment(segment)
     items.push({
       label,
-      href: currentPath === path ? undefined : currentPath,
+      href: currentPath === path || isUnavailableAccountRoute(currentPath) ? undefined : currentPath,
     })
   }
 
