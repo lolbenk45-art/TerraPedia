@@ -1525,8 +1525,14 @@ for (const path of scanFiles) {
       'maxDepth?: number',
       'nodeWithinMaxDepth',
       'directRecipeNodeChildren',
+      'recipeAlternativeOptions',
+      'hasAlternativeRecipeOptions',
       'isWikiFlow',
       'is-wiki-flow',
+      'recipe-alternative-recipes',
+      'recipe-alternative-option',
+      'recipe-alternative-separator',
+      'recipe-alternative-expansion',
       'recipe-ingredient-row',
       'recipe-ingredient-branch',
       'recipe-child-expansion',
@@ -1819,6 +1825,7 @@ for (const path of scanFiles) {
     const wikiFlowChildrenRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-children\s*\{[^}]*\}/m)?.[0] ?? ''
     const wikiIngredientBranchRule = content.match(/^\.recipe-ingredient-branch\s*\{[^}]*\}/m)?.[0] ?? ''
     const wikiFlowStationRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-station-row::before\s*\{[^}]*\}/m)?.[0] ?? ''
+    const recipeFullTreeStageRule = content.match(/^\.crafting-layout\s*>\s*\.recipe-full-tree\s+\.recipe-tree-stage\s*\{[^}]*\}/m)?.[0] ?? ''
 
     if (!/width\s*:\s*max-content/m.test(recipeBranchRule)) {
       violations.push(`${path}: recipe tree parent branches must size to their subtree instead of collapsing every branch to one card width`)
@@ -1860,8 +1867,27 @@ for (const path of scanFiles) {
       violations.push(`${path}: crafting wiki-flow ingredients must keep each direct material node below its own expanded sub-recipe`)
     }
 
+    if (/flex\s*:\s*0\s+0\s+172px/m.test(wikiIngredientBranchRule) || !/width\s*:\s*max-content/m.test(wikiIngredientBranchRule)) {
+      violations.push(`${path}: crafting wiki-flow ingredient branches must expand to the width of nested alternative recipe groups instead of overlapping sibling materials`)
+    }
+
     if (!/top\s*:\s*50%/m.test(wikiFlowStationRule)) {
       violations.push(`${path}: crafting wiki-flow station row must draw the station chip on a horizontal connector line`)
+    }
+
+    if (/max-height\s*:\s*760px/m.test(recipeFullTreeStageRule) || /overflow\s*:\s*auto/m.test(recipeFullTreeStageRule)) {
+      violations.push(`${path}: crafting full recipe tree must expand vertically with the page instead of hiding the final result behind a nested scroll pane`)
+    }
+
+    for (const selector of [
+      '.recipe-alternative-recipes',
+      '.recipe-alternative-option',
+      '.recipe-alternative-separator',
+      '.recipe-alternative-expansion > .recipe-tree-node',
+    ]) {
+      if (!content.includes(selector)) {
+        violations.push(`${path}: crafting wiki-flow must style same-result alternative recipes with a visible or-group via selector ${selector}`)
+      }
     }
 
     for (const marker of [
@@ -1888,8 +1914,9 @@ for (const path of scanFiles) {
       '.crafting-suggestion-button',
       '.recipe-tree-canvas',
       '.crafting-layout > .recipe-full-tree',
-      'max-height: 760px',
-      'overscroll-behavior: contain',
+      'overflow-x: auto',
+      'overflow-y: visible',
+      'overscroll-behavior-x: contain',
       '.recipe-top-layer',
       '.recipe-full-tree',
       '.recipe-top-materials',

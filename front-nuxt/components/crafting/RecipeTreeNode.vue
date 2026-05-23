@@ -72,8 +72,18 @@ const recipeStationMeta = (station: PublicItemRecipeTreeStation) => {
   return displayText(station.requirementRole, station.stationType, '合成站')
 }
 const directRecipeNodeChildren = computed(() => recipeNodeChildren(props.node).filter(nodeWithinMaxDepth))
+const recipeAlternativeOptions = computed(() => {
+  const children = directRecipeNodeChildren.value
+  if (props.layout !== 'wiki' || children.length < 2) return []
+
+  return children.every((child) => displayText(child.recipeId) && isSameRecipeItem(props.node, child))
+    ? children
+    : []
+})
+const hasAlternativeRecipeOptions = computed(() => recipeAlternativeOptions.value.length > 1)
 const expandedRecipeNode = computed(() => {
   const children = directRecipeNodeChildren.value
+  if (hasAlternativeRecipeOptions.value) return null
   if (children.length !== 1) return null
 
   const child = children[0]
@@ -84,7 +94,9 @@ const expandedRecipeNode = computed(() => {
 })
 
 const displayRecipeNodeChildren = computed(() => (
-  expandedRecipeNode.value
+  hasAlternativeRecipeOptions.value
+    ? []
+    : expandedRecipeNode.value
     ? recipeNodeChildren(expandedRecipeNode.value).filter(nodeWithinMaxDepth)
     : directRecipeNodeChildren.value
 ))
@@ -100,11 +112,28 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
     class="recipe-branch is-wiki-flow"
     :class="{
       'is-root': isRoot,
-      'is-leaf': !displayRecipeNodeChildren.length,
+      'is-leaf': !displayRecipeNodeChildren.length && !hasAlternativeRecipeOptions,
       'is-expanded-recipe': Boolean(expandedRecipeNode),
     }"
   >
-    <div v-if="displayRecipeNodeChildren.length" class="recipe-children recipe-ingredient-row">
+    <div v-if="hasAlternativeRecipeOptions" class="recipe-alternative-recipes" aria-label="可选配方">
+      <template
+        v-for="(option, index) in recipeAlternativeOptions"
+        :key="displayText(option.recipeId, option.itemId, nodeTitle(option), index)"
+      >
+        <span v-if="index > 0" class="recipe-alternative-separator">或</span>
+        <section class="recipe-alternative-option" :aria-label="`方案 ${index + 1}`">
+          <CraftingRecipeTreeNode
+            :node="option"
+            layout="wiki"
+            :max-depth="props.maxDepth"
+            class="recipe-alternative-expansion"
+          />
+        </section>
+      </template>
+    </div>
+
+    <div v-else-if="displayRecipeNodeChildren.length" class="recipe-children recipe-ingredient-row">
       <div
         v-for="child in displayRecipeNodeChildren"
         :key="displayText(child.recipeId, child.itemId, nodeTitle(child), 'child')"
@@ -168,7 +197,7 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
     class="recipe-branch"
     :class="{
       'is-root': isRoot,
-      'is-leaf': !displayRecipeNodeChildren.length,
+      'is-leaf': !displayRecipeNodeChildren.length && !hasAlternativeRecipeOptions,
       'is-expanded-recipe': Boolean(expandedRecipeNode),
     }"
   >
