@@ -73,6 +73,15 @@ Progress visibility rule:
 - This plan is intentionally split into commit checkpoints. If Task 1 changes become large or if Task 2 network evidence is deferred, close and merge the completed checkpoint before opening the next branch.
 - No `git push origin main` is allowed in this plan. Pushing any task branch requires a separate ancestry review because local `main` is 37 commits ahead of `origin/main`.
 
+## Time Budget And Stop-Loss
+
+- Task 0 baseline: 30 minutes. Stop if the A-grade gate does not reproduce the expected six blockers.
+- Task 1 progress contract checkpoint: 4 hours initial budget, 6 hours hard stop. If monitor registration, Node fetch progress, and Python progress cannot all land cleanly inside the hard stop, split the unfinished lane into a follow-up branch and commit only passing completed lanes.
+- Task 2 source snapshot evidence: 90 minutes operator-supervised window after Task 1 passes. Stop before any full source fetch if small-sample smoke fails or monitor progress is not visible.
+- Task 3 DB environment classification: 30 minutes. Stop if a complete readable DB inventory is unavailable.
+- Task 4 and Task 5 evidence lanes: 60 minutes each after DB inventory is confirmed.
+- Task 6 final closeout: 45 minutes. Stop if final gates cannot be reproduced from committed evidence.
+
 ## Task 0: Branch, Baseline, And Safety Lock
 
 **Files:**
@@ -144,6 +153,7 @@ git commit -m "docs: record remaining domain blocker baseline"
 
 **Files:**
 - Modify: `back/src/main/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImpl.java`
+- Modify if monitor API contract changes: `back/src/test/java/com/terraria/skills/controller/AdminCrawlerMonitorControllerTest.java`
 - Modify: `back/src/test/java/com/terraria/skills/service/impl/CrawlerMonitorServiceImplTest.java`
 - Modify: `data-query-app/types/crawlerMonitor.typecheck.ts`
 - Modify: `data-query-app/tests/crawler-monitor-page-contract.test.mjs`
@@ -318,6 +328,33 @@ git commit -m "fix(data): add source snapshot progress contracts"
 - Regenerate: affected `reports/domain/**/source-readiness-2026-05-24.json` or current-date files per generator output
 - Create: `docs/audits/2026-05-24_domain-a-grade-source-snapshot-evidence.md`
 
+- [ ] **Step 0: Record Town NPC seed count**
+
+Run:
+
+```bash
+node - <<'NODE'
+const fs = require('fs');
+const payload = JSON.parse(fs.readFileSync('data/generated/npc-standardized-map.json', 'utf8'));
+const records = payload.records || {};
+const seeds = Object.entries(records)
+  .filter(([, record]) => {
+    if (!record || typeof record !== 'object') return false;
+    let raw = {};
+    try {
+      raw = JSON.parse(record.rawJson || '{}');
+    } catch {
+      raw = {};
+    }
+    return raw.extras && String(raw.extras.townNPC).toLowerCase() === 'true';
+  })
+  .map(([id]) => id);
+console.log(JSON.stringify({ townNpcSeedCount: seeds.length, sampleIds: seeds.slice(0, 5) }, null, 2));
+NODE
+```
+
+Expected: writes the full Town NPC seed count to the Task 2 audit doc. Use that exact `townNpcSeedCount` value for the full fetch `--limit`.
+
 - [ ] **Step 1: Verify Python dependency**
 
 Run:
@@ -401,7 +438,7 @@ python3 scripts/data/fetch/fetch-wiki-town-npc-maintenance.py \
   --source=data/generated/npc-standardized-map.json \
   --output=data/generated/wiki-town-npc-maintenance.latest.json \
   --snapshot-output=reports/wiki-town-npc-maintenance-2026-05-24.json \
-  --limit=<seed-count-recorded-in-baseline>
+  --limit=<townNpcSeedCount-from-Task-2-Step-0>
 ```
 
 Expected:
