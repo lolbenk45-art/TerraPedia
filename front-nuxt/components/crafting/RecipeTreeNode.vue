@@ -5,13 +5,20 @@ const props = withDefaults(defineProps<{
   node: PublicItemRecipeTreeNode
   isRoot?: boolean
   layout?: 'root-first' | 'wiki'
+  maxDepth?: number
 }>(), {
   isRoot: false,
   layout: 'root-first',
+  maxDepth: Number.POSITIVE_INFINITY,
 })
 
 const recipeNodeChildren = (node: PublicItemRecipeTreeNode) => Array.isArray(node.children) ? node.children : []
 const recipeNodeStations = (node: PublicItemRecipeTreeNode) => Array.isArray(node.stations) ? node.stations : []
+const nodeDepth = (node: PublicItemRecipeTreeNode) => {
+  const parsed = Number(node.depth)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+const nodeWithinMaxDepth = (node: PublicItemRecipeTreeNode) => nodeDepth(node) <= props.maxDepth
 const isSameRecipeItem = (left: PublicItemRecipeTreeNode, right: PublicItemRecipeTreeNode) => {
   const leftItemId = displayText(left.itemId, left.id)
   const rightItemId = displayText(right.itemId, right.id)
@@ -64,19 +71,22 @@ const recipeStationMeta = (station: PublicItemRecipeTreeStation) => {
   if (station.isAlternative) return '可替代'
   return displayText(station.requirementRole, station.stationType, '合成站')
 }
+const directRecipeNodeChildren = computed(() => recipeNodeChildren(props.node).filter(nodeWithinMaxDepth))
 const expandedRecipeNode = computed(() => {
-  const children = recipeNodeChildren(props.node)
+  const children = directRecipeNodeChildren.value
   if (children.length !== 1) return null
 
   const child = children[0]
   if (!child || !isSameRecipeItem(props.node, child)) return null
 
-  const grandChildren = recipeNodeChildren(child)
-  return grandChildren.length || recipeNodeStations(child).length ? child : null
+  const visibleGrandChildren = recipeNodeChildren(child).filter(nodeWithinMaxDepth)
+  return visibleGrandChildren.length || recipeNodeStations(child).length ? child : null
 })
 
 const displayRecipeNodeChildren = computed(() => (
-  expandedRecipeNode.value ? recipeNodeChildren(expandedRecipeNode.value) : recipeNodeChildren(props.node)
+  expandedRecipeNode.value
+    ? recipeNodeChildren(expandedRecipeNode.value).filter(nodeWithinMaxDepth)
+    : directRecipeNodeChildren.value
 ))
 const displayRecipeNodeStations = computed(() => (
   expandedRecipeNode.value ? recipeNodeStations(expandedRecipeNode.value) : recipeNodeStations(props.node)
@@ -86,24 +96,43 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
 
 <template>
   <div
-    class="recipe-branch"
+    v-if="isWikiFlow"
+    class="recipe-branch is-wiki-flow"
     :class="{
       'is-root': isRoot,
       'is-leaf': !displayRecipeNodeChildren.length,
       'is-expanded-recipe': Boolean(expandedRecipeNode),
-      'is-wiki-flow': isWikiFlow,
     }"
   >
-    <div v-if="isWikiFlow && displayRecipeNodeChildren.length" class="recipe-children">
-      <CraftingRecipeTreeNode
+    <div v-if="displayRecipeNodeChildren.length" class="recipe-children recipe-ingredient-row">
+      <div
         v-for="child in displayRecipeNodeChildren"
         :key="displayText(child.recipeId, child.itemId, nodeTitle(child), 'child')"
-        :node="child"
-        layout="wiki"
-      />
+        class="recipe-ingredient-branch"
+      >
+        <CraftingRecipeTreeNode
+          v-if="recipeNodeChildren(child).length || recipeNodeStations(child).length"
+          :node="child"
+          layout="wiki"
+          :max-depth="props.maxDepth"
+          class="recipe-child-expansion"
+        />
+
+        <a class="recipe-tree-node recipe-ingredient-node" :href="nodeHref(child)">
+          <CommonPreviewImage
+            :src="nodeImage(child)"
+            :alt="nodeTitle(child)"
+            :fallback="firstGlyph(nodeTitle(child))"
+            width="58"
+            height="58"
+          />
+          <b>{{ nodeTitle(child) }}</b>
+          <span>{{ nodeQuantity(child) }}</span>
+        </a>
+      </div>
     </div>
 
-    <div v-if="isWikiFlow && displayRecipeNodeStations.length" class="recipe-station-row">
+    <div v-if="displayRecipeNodeStations.length" class="recipe-station-row">
       <span
         v-for="station in displayRecipeNodeStations"
         :key="recipeStationKey(station)"
@@ -132,8 +161,30 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
       <b>{{ nodeTitle(node) }}</b>
       <span>{{ nodeQuantity(node, isRoot) }}</span>
     </a>
+  </div>
 
-    <div v-if="!isWikiFlow && displayRecipeNodeStations.length" class="recipe-station-row">
+  <div
+    v-else
+    class="recipe-branch"
+    :class="{
+      'is-root': isRoot,
+      'is-leaf': !displayRecipeNodeChildren.length,
+      'is-expanded-recipe': Boolean(expandedRecipeNode),
+    }"
+  >
+    <a class="recipe-tree-node" :href="nodeHref(node)">
+      <CommonPreviewImage
+        :src="nodeImage(node)"
+        :alt="nodeTitle(node)"
+        :fallback="firstGlyph(nodeTitle(node))"
+        width="58"
+        height="58"
+      />
+      <b>{{ nodeTitle(node) }}</b>
+      <span>{{ nodeQuantity(node, isRoot) }}</span>
+    </a>
+
+    <div v-if="displayRecipeNodeStations.length" class="recipe-station-row">
       <span
         v-for="station in displayRecipeNodeStations"
         :key="recipeStationKey(station)"
@@ -151,11 +202,12 @@ const isWikiFlow = computed(() => props.layout === 'wiki')
       </span>
     </div>
 
-    <div v-if="!isWikiFlow && displayRecipeNodeChildren.length" class="recipe-children">
+    <div v-if="displayRecipeNodeChildren.length" class="recipe-children">
       <CraftingRecipeTreeNode
         v-for="child in displayRecipeNodeChildren"
         :key="displayText(child.recipeId, child.itemId, nodeTitle(child), 'child')"
         :node="child"
+        :max-depth="props.maxDepth"
       />
     </div>
   </div>

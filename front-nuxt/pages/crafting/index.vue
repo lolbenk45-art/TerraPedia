@@ -13,9 +13,9 @@ let recipeVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
 let recipeVisualLoadingStartedAt = Date.now()
 
 const defaultRecipeTarget = {
-  itemId: '273',
-  label: '永夜刃',
-  internalName: 'NightsEdge',
+  itemId: '675',
+  label: '真永夜刃',
+  internalName: 'TrueNightsEdge',
   note: '默认示例',
 }
 
@@ -63,6 +63,11 @@ const recipeExampleTargets = computed(() => [
     itemId: defaultRecipeTarget.itemId,
     title: defaultRecipeTarget.label,
     meta: '默认示例 · Wiki 风格树',
+  },
+  {
+    itemId: '273',
+    title: '永夜刃',
+    meta: '多材料分支',
   },
   {
     itemId: '757',
@@ -406,6 +411,7 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
             :node="root"
             is-root
             layout="wiki"
+            :max-depth="maxDepth"
           />
         </div>
       </section>

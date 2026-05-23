@@ -1482,6 +1482,7 @@ for (const path of scanFiles) {
       'isDefaultRecipeTarget',
       'recipe-example-targets',
       'layout="wiki"',
+      ':max-depth="maxDepth"',
       'recipe-wiki-tree',
     ]) {
       if (!content.includes(marker)) {
@@ -1493,11 +1494,13 @@ for (const path of scanFiles) {
       violations.push(`${path}: crafting page must load a default API-backed recipe tree instead of opening on an empty target`)
     }
 
+    if (!/itemId:\s*'675'/.test(content) || !content.includes('TrueNightsEdge')) {
+      violations.push(`${path}: crafting page default example must use True Night's Edge so direct Night's Edge + soul ingredients are visible`)
+    }
+
     for (const staticMarker of [
       '静态占位',
       '泰拉刃制作链',
-      '真永夜刃',
-      '真断钢剑',
       '英雄断剑',
       '后续接接口',
     ]) {
@@ -1519,8 +1522,15 @@ for (const path of scanFiles) {
       'displayRecipeNodeStations',
       'is-expanded-recipe',
       "layout?: 'root-first' | 'wiki'",
+      'maxDepth?: number',
+      'nodeWithinMaxDepth',
+      'directRecipeNodeChildren',
       'isWikiFlow',
       'is-wiki-flow',
+      'recipe-ingredient-row',
+      'recipe-ingredient-branch',
+      'recipe-child-expansion',
+      'recipe-ingredient-node',
       '<CraftingRecipeTreeNode',
       'recipe-branch',
       'recipe-tree-node',
@@ -1807,6 +1817,7 @@ for (const path of scanFiles) {
     const narrowRecipeChildrenLineRule = content.match(/@media \(max-width: 1180px\)\s*\{[\s\S]*?\.recipe-children::before\s*\{([^}]*)\}/m)?.[1] ?? ''
     const wikiFlowBranchRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*\{[^}]*\}/m)?.[0] ?? ''
     const wikiFlowChildrenRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-children\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiIngredientBranchRule = content.match(/^\.recipe-ingredient-branch\s*\{[^}]*\}/m)?.[0] ?? ''
     const wikiFlowStationRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-station-row::before\s*\{[^}]*\}/m)?.[0] ?? ''
 
     if (!/width\s*:\s*max-content/m.test(recipeBranchRule)) {
@@ -1841,8 +1852,12 @@ for (const path of scanFiles) {
       violations.push(`${path}: crafting wiki-flow branches must stack materials above station chips and result nodes`)
     }
 
-    if (!/padding-bottom\s*:\s*18px/m.test(wikiFlowChildrenRule) || /padding-top\s*:\s*18px/m.test(wikiFlowChildrenRule)) {
-      violations.push(`${path}: crafting wiki-flow child groups must reserve connector space below the ingredient row`)
+    if (!/align-items\s*:\s*flex-end/m.test(wikiFlowChildrenRule) || !/padding-bottom\s*:\s*18px/m.test(wikiFlowChildrenRule) || /padding-top\s*:\s*18px/m.test(wikiFlowChildrenRule)) {
+      violations.push(`${path}: crafting wiki-flow child groups must bottom-align direct ingredients and reserve connector space below the ingredient row`)
+    }
+
+    if (!/flex-direction\s*:\s*column/m.test(wikiIngredientBranchRule) || !/align-items\s*:\s*center/m.test(wikiIngredientBranchRule)) {
+      violations.push(`${path}: crafting wiki-flow ingredients must keep each direct material node below its own expanded sub-recipe`)
     }
 
     if (!/top\s*:\s*50%/m.test(wikiFlowStationRule)) {
