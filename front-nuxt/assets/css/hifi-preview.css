@@ -6581,6 +6581,83 @@ img[data-preview-fallback] {
   height: 14px;
 }
 
+.recipe-branch.is-wiki-flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: max-content;
+  min-width: 172px;
+  max-width: none;
+}
+.recipe-branch.is-wiki-flow:not(.is-leaf)::after {
+  display: none;
+}
+.recipe-branch.is-wiki-flow > .recipe-children {
+  order: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: 20px;
+  width: max-content;
+  max-width: none;
+  min-width: 172px;
+  padding-top: 0;
+  padding-bottom: 18px;
+}
+.recipe-branch.is-wiki-flow > .recipe-children::before {
+  top: auto;
+  bottom: 0;
+  left: 12%;
+  right: 12%;
+}
+.recipe-branch.is-wiki-flow > .recipe-children > .recipe-branch::before {
+  top: auto;
+  bottom: -18px;
+}
+.recipe-branch.is-wiki-flow > .recipe-station-row {
+  order: 2;
+  position: relative;
+  width: 100%;
+  max-width: none;
+  min-width: 172px;
+  margin: 0;
+  padding: 8px 0;
+}
+.recipe-branch.is-wiki-flow > .recipe-station-row::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: rgba(217, 185, 91, 0.24);
+  pointer-events: none;
+}
+.recipe-branch.is-wiki-flow > .recipe-station-row::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1px;
+  height: 20px;
+  background: rgba(217, 185, 91, 0.24);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.recipe-branch.is-wiki-flow > .recipe-station-row > .recipe-station-chip {
+  position: relative;
+  z-index: 2;
+}
+.recipe-branch.is-wiki-flow > .recipe-tree-node {
+  order: 3;
+  margin-top: 12px;
+}
+.recipe-branch.is-wiki-flow.is-leaf > .recipe-tree-node {
+  margin-top: 0;
+}
+
 .user-avatar {
   display: grid;
   place-items: center;

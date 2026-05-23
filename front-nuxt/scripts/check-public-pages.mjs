@@ -1477,10 +1477,20 @@ for (const path of scanFiles) {
       'recipe-tree-grid',
       'recipe-node-main',
       'recipe-node-materials',
+      'defaultRecipeTarget',
+      'effectiveSelectedItemId',
+      'isDefaultRecipeTarget',
+      'recipe-example-targets',
+      'layout="wiki"',
+      'recipe-wiki-tree',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: crafting page must render live public recipe tree data and hide fallback item suggestions via marker ${marker}`)
       }
+    }
+
+    if (!content.includes('usePublicRecipeTree(effectiveSelectedItemId, maxDepth)')) {
+      violations.push(`${path}: crafting page must load a default API-backed recipe tree instead of opening on an empty target`)
     }
 
     for (const staticMarker of [
@@ -1508,6 +1518,9 @@ for (const path of scanFiles) {
       'displayRecipeNodeChildren',
       'displayRecipeNodeStations',
       'is-expanded-recipe',
+      "layout?: 'root-first' | 'wiki'",
+      'isWikiFlow',
+      'is-wiki-flow',
       '<CraftingRecipeTreeNode',
       'recipe-branch',
       'recipe-tree-node',
@@ -1792,6 +1805,9 @@ for (const path of scanFiles) {
     const recipeChildrenRule = content.match(/^\.recipe-children\s*\{[^}]*\}/m)?.[0] ?? ''
     const recipeChildrenBranchRule = content.match(/^\.recipe-children\s*>\s*\.recipe-branch\s*\{[^}]*\}/m)?.[0] ?? ''
     const narrowRecipeChildrenLineRule = content.match(/@media \(max-width: 1180px\)\s*\{[\s\S]*?\.recipe-children::before\s*\{([^}]*)\}/m)?.[1] ?? ''
+    const wikiFlowBranchRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiFlowChildrenRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-children\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiFlowStationRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-station-row::before\s*\{[^}]*\}/m)?.[0] ?? ''
 
     if (!/width\s*:\s*max-content/m.test(recipeBranchRule)) {
       violations.push(`${path}: recipe tree parent branches must size to their subtree instead of collapsing every branch to one card width`)
@@ -1819,6 +1835,18 @@ for (const path of scanFiles) {
 
     if (/height\s*:\s*100%/m.test(narrowRecipeChildrenLineRule)) {
       violations.push(`${path}: narrow recipe tree connector must not draw a full-height vertical line through the branch group`)
+    }
+
+    if (!/flex-direction\s*:\s*column/m.test(wikiFlowBranchRule) || !/max-width\s*:\s*none/m.test(wikiFlowBranchRule)) {
+      violations.push(`${path}: crafting wiki-flow branches must stack materials above station chips and result nodes`)
+    }
+
+    if (!/padding-bottom\s*:\s*18px/m.test(wikiFlowChildrenRule) || /padding-top\s*:\s*18px/m.test(wikiFlowChildrenRule)) {
+      violations.push(`${path}: crafting wiki-flow child groups must reserve connector space below the ingredient row`)
+    }
+
+    if (!/top\s*:\s*50%/m.test(wikiFlowStationRule)) {
+      violations.push(`${path}: crafting wiki-flow station row must draw the station chip on a horizontal connector line`)
     }
 
     for (const marker of [

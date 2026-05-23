@@ -4,8 +4,10 @@ import type { PublicItemRecipeTreeNode, PublicItemRecipeTreeStation } from '~/ty
 const props = withDefaults(defineProps<{
   node: PublicItemRecipeTreeNode
   isRoot?: boolean
+  layout?: 'root-first' | 'wiki'
 }>(), {
   isRoot: false,
+  layout: 'root-first',
 })
 
 const recipeNodeChildren = (node: PublicItemRecipeTreeNode) => Array.isArray(node.children) ? node.children : []
@@ -79,6 +81,7 @@ const displayRecipeNodeChildren = computed(() => (
 const displayRecipeNodeStations = computed(() => (
   expandedRecipeNode.value ? recipeNodeStations(expandedRecipeNode.value) : recipeNodeStations(props.node)
 ))
+const isWikiFlow = computed(() => props.layout === 'wiki')
 </script>
 
 <template>
@@ -88,21 +91,19 @@ const displayRecipeNodeStations = computed(() => (
       'is-root': isRoot,
       'is-leaf': !displayRecipeNodeChildren.length,
       'is-expanded-recipe': Boolean(expandedRecipeNode),
+      'is-wiki-flow': isWikiFlow,
     }"
   >
-    <a class="recipe-tree-node" :href="nodeHref(node)">
-      <CommonPreviewImage
-        :src="nodeImage(node)"
-        :alt="nodeTitle(node)"
-        :fallback="firstGlyph(nodeTitle(node))"
-        width="58"
-        height="58"
+    <div v-if="isWikiFlow && displayRecipeNodeChildren.length" class="recipe-children">
+      <CraftingRecipeTreeNode
+        v-for="child in displayRecipeNodeChildren"
+        :key="displayText(child.recipeId, child.itemId, nodeTitle(child), 'child')"
+        :node="child"
+        layout="wiki"
       />
-      <b>{{ nodeTitle(node) }}</b>
-      <span>{{ nodeQuantity(node, isRoot) }}</span>
-    </a>
+    </div>
 
-    <div v-if="displayRecipeNodeStations.length" class="recipe-station-row">
+    <div v-if="isWikiFlow && displayRecipeNodeStations.length" class="recipe-station-row">
       <span
         v-for="station in displayRecipeNodeStations"
         :key="recipeStationKey(station)"
@@ -120,7 +121,37 @@ const displayRecipeNodeStations = computed(() => (
       </span>
     </div>
 
-    <div v-if="displayRecipeNodeChildren.length" class="recipe-children">
+    <a class="recipe-tree-node" :href="nodeHref(node)">
+      <CommonPreviewImage
+        :src="nodeImage(node)"
+        :alt="nodeTitle(node)"
+        :fallback="firstGlyph(nodeTitle(node))"
+        width="58"
+        height="58"
+      />
+      <b>{{ nodeTitle(node) }}</b>
+      <span>{{ nodeQuantity(node, isRoot) }}</span>
+    </a>
+
+    <div v-if="!isWikiFlow && displayRecipeNodeStations.length" class="recipe-station-row">
+      <span
+        v-for="station in displayRecipeNodeStations"
+        :key="recipeStationKey(station)"
+        class="recipe-station-chip"
+      >
+        <CommonPreviewImage
+          :src="recipeStationImage(station)"
+          :alt="recipeStationTitle(station)"
+          :fallback="firstGlyph(recipeStationTitle(station))"
+          width="28"
+          height="28"
+        />
+        <b>{{ recipeStationTitle(station) }}</b>
+        <small>{{ recipeStationMeta(station) }}</small>
+      </span>
+    </div>
+
+    <div v-if="!isWikiFlow && displayRecipeNodeChildren.length" class="recipe-children">
       <CraftingRecipeTreeNode
         v-for="child in displayRecipeNodeChildren"
         :key="displayText(child.recipeId, child.itemId, nodeTitle(child), 'child')"
