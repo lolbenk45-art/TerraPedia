@@ -30,7 +30,7 @@
 
 | Panel | Reason |
 | --- | --- |
-| `armor_sets/imageReadiness` | Missing optional evidence: `reports/fetch/fetch-armor-set-images*.json` |
+| `armor_sets/imageReadiness` | Missing optional evidence: `shared-data/raw/wiki/armor_set_images.parsed.latest.json`; missing optional evidence: `reports/fetch/fetch-armor-set-images*.json` |
 | `armor_sets/unresolvedAuditTrend` | `reports/relation/reresolve-candidates-2026-05-23.json`: historical baseline is unavailable for unresolved audit trend |
 | `bosses/imageReadiness` | `reports/audit/image-source-lineage-2026-05-24.json`: boss image lineage is not contract-ready: `missing_relation_image_rows`, `missing_projection_rows` |
 | `bosses/relationReadiness` | Missing optional evidence: `reports/boss-loot-import*.json` |
