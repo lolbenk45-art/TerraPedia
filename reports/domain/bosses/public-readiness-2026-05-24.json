@@ -1,0 +1,70 @@
+{
+  "generatedAt": "2026-05-24T00:50:38.654Z",
+  "domainId": "bosses",
+  "panelId": "publicReadiness",
+  "status": "pass",
+  "reportPath": "reports/domain/bosses/public-readiness-2026-05-24.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 4,
+    "requiredEvidenceCount": 4,
+    "optionalEvidenceCount": 0,
+    "presentEvidenceCount": 4,
+    "missingEvidenceCount": 0,
+    "blockedCount": 0,
+    "warningCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "scripts_data_relation_projection_schema_mjs",
+      "type": "text",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "scripts/data/relation/projection-schema.mjs",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "boss projection schema evidence is ready in scripts/data/relation/projection-schema.mjs"
+    },
+    {
+      "id": "scripts_data_relation_projection_sync_mjs",
+      "type": "text",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "scripts/data/relation/projection-sync.mjs",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "boss projection sync evidence is ready in scripts/data/relation/projection-sync.mjs"
+    },
+    {
+      "id": "back_src_main_java_com_terraria_skills_controller_PublicBossController_java",
+      "type": "text",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "back/src/main/java/com/terraria/skills/controller/PublicBossController.java",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "boss public controller evidence is ready in back/src/main/java/com/terraria/skills/controller/PublicBossController.java"
+    },
+    {
+      "id": "back_src_test_java_com_terraria_skills_controller_PublicBossControllerTest_java",
+      "type": "text",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "back/src/test/java/com/terraria/skills/controller/PublicBossControllerTest.java",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "boss public controller test evidence is ready in back/src/test/java/com/terraria/skills/controller/PublicBossControllerTest.java"
+    }
+  ]
+}

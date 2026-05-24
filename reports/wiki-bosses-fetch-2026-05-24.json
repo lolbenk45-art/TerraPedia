@@ -1,0 +1,70 @@
+{
+  "generatedAt": "2026-05-24T00:37:36.455Z",
+  "outputJsonPath": "data/generated/wiki-bosses.latest.json",
+  "totalBosses": 33,
+  "byGroup": {
+    "PRE_HARDMODE": 8,
+    "HARDMODE": 10,
+    "EVENT": 14,
+    "SPECIAL_SEED": 1
+  },
+  "unresolved": [],
+  "samples": [
+    {
+      "progressionOrder": 1,
+      "groupType": "PRE_HARDMODE",
+      "titleEn": "King Slime",
+      "titleZh": "史莱姆王",
+      "revisionTimestamp": "2026-05-07T12:44:58Z"
+    },
+    {
+      "progressionOrder": 2,
+      "groupType": "PRE_HARDMODE",
+      "titleEn": "Eye of Cthulhu",
+      "titleZh": "克苏鲁之眼",
+      "revisionTimestamp": "2026-05-10T13:12:56Z"
+    },
+    {
+      "progressionOrder": 3,
+      "groupType": "PRE_HARDMODE",
+      "titleEn": "Eater of Worlds",
+      "titleZh": "世界吞噬怪",
+      "revisionTimestamp": "2026-04-21T08:01:43Z"
+    },
+    {
+      "progressionOrder": 4,
+      "groupType": "PRE_HARDMODE",
+      "titleEn": "Brain of Cthulhu",
+      "titleZh": "克苏鲁之脑",
+      "revisionTimestamp": "2026-04-30T17:11:42Z"
+    },
+    {
+      "progressionOrder": 5,
+      "groupType": "PRE_HARDMODE",
+      "titleEn": "Queen Bee",
+      "titleZh": "蜂王",
+      "revisionTimestamp": "2026-04-08T10:52:40Z"
+    },
+    {
+      "progressionOrder": 6,
+      "groupType": "PRE_HARDMODE",
+      "titleEn": "Deerclops",
+      "titleZh": "独眼巨鹿",
+      "revisionTimestamp": "2026-04-08T11:32:44Z"
+    },
+    {
+      "progressionOrder": 7,
+      "groupType": "PRE_HARDMODE",
+      "titleEn": "Skeletron",
+      "titleZh": "骷髅王",
+      "revisionTimestamp": "2026-04-22T09:22:47Z"
+    },
+    {
+      "progressionOrder": 8,
+      "groupType": "PRE_HARDMODE",
+      "titleEn": "Wall of Flesh",
+      "titleZh": "血肉墙",
+      "revisionTimestamp": "2026-04-29T20:29:11Z"
+    }
+  ]
+}

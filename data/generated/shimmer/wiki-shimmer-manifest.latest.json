@@ -1,0 +1,1273 @@
+{
+  "entity": "wiki_shimmer_manifest",
+  "generatedAt": "2026-05-24T00:45:41.685Z",
+  "sourceFile": "data/generated/wiki-shimmer.latest.json",
+  "page": {
+    "sourcePage": "微光",
+    "sourceRevisionTimestamp": "2026-05-04T13:58:46Z",
+    "sourcePageId": 26209
+  },
+  "outputs": {
+    "contextRecords": 1,
+    "itemTransforms": 279,
+    "decraftRules": 248,
+    "entityTransforms": 121,
+    "npcTransforms": 29
+  },
+  "resolution": {
+    "totalResolvedTitles": 567,
+    "unresolvedCount": 250,
+    "unresolvedEntries": [
+      {
+        "titleZh": "粉珍珠",
+        "titleEn": "Pearls",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "无底水桶",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "无底微光桶",
+        "titleEn": "Bottomless Buckets",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "照明弹",
+        "titleEn": "Flares",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "微光照明弹",
+        "titleEn": "Flares",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "蓝照明弹",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "以太火把",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "篝火",
+        "titleEn": "Campfires",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "以太篝火",
+        "titleEn": "Campfires",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "以太晶塔",
+        "titleEn": "Pylons",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "天使雕像",
+        "titleEn": "Statues",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "以太天塔柱",
+        "titleEn": "Monoliths",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "八音盒（蜂王备选曲）",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "八音盒（火把神）",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "魔法微光滴管",
+        "titleEn": "Magic Droppers",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "熔岩苔藓",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "氦苔藓",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "氪苔藓",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "氙苔藓",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "氩苔藓",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "氖苔藓",
+        "titleEn": "Moss",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "红团队块",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "暗淡红团队块",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "绿团队块",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "暗淡绿团队块",
+        "titleEn": "Team Blocks",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "蓝团队块",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "暗淡蓝团队块",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "黄团队块",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "暗淡黄团队块",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "粉团队块",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "暗淡粉团队块",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "白团队块",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "暗淡白团队块",
+        "titleEn": "Team Blocks",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "蓝砖",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "远古蓝砖",
+        "titleEn": "Ancient Dungeon Bricks",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "绿砖",
+        "titleEn": "Dungeon Bricks",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "远古绿砖",
+        "titleEn": "Ancient Dungeon Bricks",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "粉砖",
+        "titleEn": "Dungeon Bricks",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "远古粉砖",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "蓝砖墙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "诅咒蓝砖墙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "蓝板墙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "诅咒蓝板墙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "蓝瓷砖墙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "诅咒蓝瓷砖墙",
+        "titleEn": "Dungeon Brick Walls",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "绿砖墙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "诅咒绿砖墙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "绿板墙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "诅咒绿板墙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "绿瓷砖墙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "诅咒绿瓷砖墙",
+        "titleEn": "Dungeon Brick Walls",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "粉砖墙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "诅咒粉砖墙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "粉板墙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "诅咒粉板墙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "粉瓷砖墙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "诅咒粉瓷砖墙",
+        "titleEn": "Dungeon Brick Walls",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "蜂蜜桶",
+        "titleEn": "Buckets",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "水桶",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "熔岩桶",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "生命木魔棒",
+        "titleEn": "Block-placing wands",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "爆炸烈焰魔杖",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "弩车魔杖",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "爆炸烈焰手杖",
+        "titleEn": "Flameburst sentry summons",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "弩车手杖",
+        "titleEn": "Ballista sentry summons",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "爆炸烈焰法杖",
+        "titleEn": "Flameburst sentry summons",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "弩车法杖",
+        "titleEn": "Ballista sentry summons",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "爆炸陷阱魔杖",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "爆炸陷阱手杖",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "爆炸陷阱法杖",
+        "titleEn": "Explosive Trap sentry summons",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "闪电光环魔杖",
+        "titleEn": "Lightning Aura sentry summons",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "闪电光环手杖",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "闪电光环法杖",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "紫溶液",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "红溶液",
+        "titleEn": "Solutions",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "挖矿衣",
+        "titleEn": "Mining armor",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "挖矿裤",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "角斗士头盔",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "角斗士胸甲",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "角斗士护腿",
+        "titleEn": "Gladiator armor",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "铁头盔",
+        "titleEn": "Iron armor",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "远古铁头盔",
+        "titleEn": "Iron armor",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "金头盔",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "远古金头盔",
+        "titleEn": "Gold armor",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "丛林帽",
+        "titleEn": "Jungle armor",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "远古钴头盔",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "丛林衣",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "远古钴胸甲",
+        "titleEn": "Ancient Cobalt armor",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "丛林裤",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "远古钴护腿",
+        "titleEn": "Ancient Cobalt armor",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "死灵头盔",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "远古死灵头盔",
+        "titleEn": "Necro armor",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "暗影头盔",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "远古暗影头盔",
+        "titleEn": "Ancient Shadow armor",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "暗影鳞甲",
+        "titleEn": "Shadow armor",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "远古暗影鳞甲",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "暗影护胫",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "远古暗影护胫",
+        "titleEn": "Ancient Shadow armor",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "挂链灯笼",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "黄铜灯笼",
+        "titleEn": "Lanterns",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "笼式灯笼",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "马车灯笼",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "炼金灯笼",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "魔教徒灯",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "油布烛台",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "腐化钥匙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "腐化箱",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "猩红钥匙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "猩红箱",
+        "titleEn": "Biome Chests",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "神圣钥匙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "神圣箱",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "冰冻钥匙",
+        "titleEn": "Biome Keys",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "冰雪箱",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "丛林钥匙",
+        "titleEn": "Biome Keys",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "丛林箱",
+        "titleEn": "Biome Chests",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "沙漠钥匙",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "沙漠箱",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "法老面具",
+        "titleEn": "Pharaoh's set",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "法老长袍",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "黑檀沙块",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "硬化黑檀沙块",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "猩红沙岩块",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "红王朝瓦",
+        "titleEn": "Dynasty Shingles",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "蓝王朝瓦",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "紫晶兔兔",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "紫晶松鼠",
+        "titleEn": "Gem Squirrels",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "黄玉兔兔",
+        "titleEn": "Gem Bunnies",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "黄玉松鼠",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "蓝玉兔兔",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "蓝玉松鼠",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "翡翠兔兔",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "翡翠松鼠",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "红玉兔兔",
+        "titleEn": "Gem Bunnies",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "红玉松鼠",
+        "titleEn": "Gem Squirrels",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "钻石兔兔",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "钻石松鼠",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "琥珀兔兔",
+        "titleEn": "Gem Bunnies",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "琥珀松鼠",
+        "titleEn": "Gem Squirrels",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "魔粉",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "净化粉",
+        "titleEn": "Thrown Powder",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "毒粉",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "铜币",
+        "titleEn": "Coins",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "银币",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "金币",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "铂金币",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "蜡烛",
+        "titleEn": "Candles",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "寒霜头盔",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "寒霜胸甲",
+        "titleEn": "Frost armor",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "寒霜护腿",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "禁戒面具",
+        "titleEn": "Forbidden armor",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "禁戒长袍",
+        "titleEn": "Forbidden armor",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "禁戒裤",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "白绳",
+        "titleEn": "Strings",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "黄平衡锤",
+        "titleEn": "Counterweights",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "黑曜石逃犯帽",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "黑曜石风衣",
+        "titleEn": "Obsidian armor",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "黑曜石裤",
+        "titleEn": "Obsidian armor",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "丛林蜥蜴钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "乌木钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "云钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "仙人掌钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "仙灵木钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "以太钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "冰冻钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "办公钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "南瓜钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "史莱姆钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "哥特钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "坠落之星钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "大理石钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "天域钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "小雪怪皮毛钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "尖刺钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "日耀钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "星云钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "星尘钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "星旋钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "暗影木钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "松木钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "棕榈木钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "死灵护胫",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "死灵胸甲",
+        "titleEn": "Necro armor",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "气球钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "水晶钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "水母钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "永恒旅人兜帽",
+        "titleEn": "Timeless Traveler's set",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "沙岩钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "火星钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "灰烬木钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "王朝钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "玻璃钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "珊瑚礁钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "珍珠木钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "生命木钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "病变钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "瘟疫使者骷髅头",
+        "titleEn": "Plaguebringer's set",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "石钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "神圣钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "竹钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "红木钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "花岗岩钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "蒸汽朋克钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "蘑菇钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "蜘蛛钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "血肉钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "针叶木钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "阴森钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "陨石钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "骨头书架",
+        "titleEn": "Bookcases",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "骨头吊灯",
+        "titleEn": "Chandeliers",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "骨头平台",
+        "titleEn": "Platforms",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "骨头桌",
+        "titleEn": "Tables",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "骨头椅",
+        "titleEn": "Chairs",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "骨头水槽",
+        "titleEn": "Sinks",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "骨头灯",
+        "titleEn": "Lamps",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "骨头灯笼",
+        "titleEn": "Lanterns",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "骨头钢琴",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "骨头门",
+        "titleEn": "Doors",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "丛林蜥蜴书架",
+        "titleEn": "Bookcases",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "丛林蜥蜴吊灯",
+        "titleEn": "Chandeliers",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "丛林蜥蜴平台",
+        "titleEn": "Platforms",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "丛林蜥蜴桌",
+        "titleEn": "Tables",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "丛林蜥蜴椅",
+        "titleEn": "Chairs",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "丛林蜥蜴水槽",
+        "titleEn": "Sinks",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "丛林蜥蜴灯",
+        "titleEn": "Lamps",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "丛林蜥蜴灯笼",
+        "titleEn": "Lanterns",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "丛林蜥蜴蜡烛",
+        "titleEn": "Candles",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "丛林蜥蜴门",
+        "titleEn": "Doors",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "干火箭",
+        "titleEn": "Liquid rockets",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "干炸弹",
+        "titleEn": "Liquid bombs",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "1秒计时器",
+        "titleEn": "Timers",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "3秒计时器",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "5秒计时器",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "龙虾旗",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "蝾螈旗",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "巨型卷壳怪旗",
+        "titleEn": "Banners (enemy)",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "冠蓝鸦",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "蓝金刚鹦鹉",
+        "titleEn": "Macaws",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "绯红金刚鹦鹉",
+        "titleEn": "Macaws",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "灰玄凤鹦鹉",
+        "titleEn": "Cockatiels",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "黄玄凤鹦鹉",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "野鸭",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "蓝仙灵",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "绿仙灵",
+        "titleEn": "Fairies",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "粉仙灵",
+        "titleEn": "Fairies",
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "黑蜻蜓",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "黄蜻蜓",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "绿蜻蜓",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "橙蜻蜓",
+        "titleEn": null,
+        "hint": "unresolved"
+      },
+      {
+        "titleZh": "红蜻蜓",
+        "titleEn": null,
+        "hint": "unresolved"
+      }
+    ]
+  }
+}

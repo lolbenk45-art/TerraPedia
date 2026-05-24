@@ -1,0 +1,48 @@
+{
+  "generatedAt": "2026-05-24T00:50:38.654Z",
+  "domainId": "support.town_npc_maintenance",
+  "panelId": "sourceReadiness",
+  "status": "warning",
+  "reportPath": "reports/domain/support.town_npc_maintenance/source-readiness-2026-05-24.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 2,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 1,
+    "presentEvidenceCount": 1,
+    "missingEvidenceCount": 1,
+    "blockedCount": 0,
+    "warningCount": 1
+  },
+  "blockingReasons": [],
+  "warningReasons": [
+    "Missing optional evidence: reports/wiki-town-npc-import*.json"
+  ],
+  "checks": [
+    {
+      "id": "data_generated_wiki_town_npc_maintenance_latest_json",
+      "type": "json",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/generated/wiki-town-npc-maintenance.latest.json",
+      "latestReportPath": null,
+      "recordCount": 39,
+      "status": "pass",
+      "message": "Evidence present: data/generated/wiki-town-npc-maintenance.latest.json"
+    },
+    {
+      "id": "reports_wiki_town_npc_importlatest_json",
+      "type": "json",
+      "required": false,
+      "found": false,
+      "readable": false,
+      "evidencePath": "reports/wiki-town-npc-import*.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "warning",
+      "message": "Missing optional evidence: reports/wiki-town-npc-import*.json"
+    }
+  ]
+}

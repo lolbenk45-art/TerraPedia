@@ -1,0 +1,51 @@
+{
+  "generatedAt": "2026-05-24T00:50:38.654Z",
+  "domainId": "support.item_group",
+  "panelId": "b1ExemptionCompliance",
+  "status": "pass",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "sourcePath": "docs/audits/canonical-migration-boundary.md",
+  "summary": {
+    "trackedExemptionCount": 3,
+    "passedCount": 3,
+    "warningCount": 0,
+    "blockedCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "notes": [],
+  "checks": [
+    {
+      "input": "data/generated/item-group-overrides.json",
+      "consumer": "npc_shop/shimmer group 解释；deadline: 2026-06-30",
+      "migrationTarget": "canonical item group override",
+      "acceptanceCommand": "node scripts/data/audit/audit-any-item-group-sources.mjs",
+      "status": "pass",
+      "deadline": "2026-06-30",
+      "daysRemaining": 37,
+      "reason": null
+    },
+    {
+      "input": "data/generated/recipe-group-overrides.json",
+      "consumer": "recipe group 补洞；deadline: 2026-06-30",
+      "migrationTarget": "canonical recipe group override",
+      "acceptanceCommand": "node scripts/data/audit/audit-any-item-group-sources.mjs",
+      "status": "pass",
+      "deadline": "2026-06-30",
+      "daysRemaining": 37,
+      "reason": null
+    },
+    {
+      "input": "data/generated/recipe-material-reference.json",
+      "consumer": "recipe material group；deadline: 2026-06-30",
+      "migrationTarget": "canonical recipe group",
+      "acceptanceCommand": "node scripts/data/audit/audit-any-item-group-sources.mjs",
+      "status": "pass",
+      "deadline": "2026-06-30",
+      "daysRemaining": 37,
+      "reason": null
+    }
+  ],
+  "reportPath": "reports/domain/support.item_group/b1-exemption-compliance-2026-05-24.json"
+}

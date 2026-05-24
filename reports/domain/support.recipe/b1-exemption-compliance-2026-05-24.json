@@ -1,0 +1,41 @@
+{
+  "generatedAt": "2026-05-24T00:50:38.654Z",
+  "domainId": "support.recipe",
+  "panelId": "b1ExemptionCompliance",
+  "status": "pass",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "sourcePath": "docs/audits/canonical-migration-boundary.md",
+  "summary": {
+    "trackedExemptionCount": 2,
+    "passedCount": 2,
+    "warningCount": 0,
+    "blockedCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "notes": [],
+  "checks": [
+    {
+      "input": "data/generated/recipe-material-reference.json",
+      "consumer": "recipe material group；deadline: 2026-06-30",
+      "migrationTarget": "canonical recipe group",
+      "acceptanceCommand": "node scripts/data/audit/audit-any-item-group-sources.mjs",
+      "status": "pass",
+      "deadline": "2026-06-30",
+      "daysRemaining": 37,
+      "reason": null
+    },
+    {
+      "input": "data/generated/recipe-group-overrides.json",
+      "consumer": "recipe group 补洞；deadline: 2026-06-30",
+      "migrationTarget": "canonical recipe group override",
+      "acceptanceCommand": "node scripts/data/audit/audit-any-item-group-sources.mjs",
+      "status": "pass",
+      "deadline": "2026-06-30",
+      "daysRemaining": 37,
+      "reason": null
+    }
+  ],
+  "reportPath": "reports/domain/support.recipe/b1-exemption-compliance-2026-05-24.json"
+}

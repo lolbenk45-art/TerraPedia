@@ -1,0 +1,5466 @@
+{
+  "entity": "wiki_town_npc_maintenance",
+  "generatedAt": "2026-05-24T00:49:33.950860Z",
+  "sourceMode": "wiki_zh_page_html",
+  "sourceOrigin": "https://terraria.wiki.gg/zh",
+  "sourceSeedPath": "/home/lolben/.config/superpowers/worktrees/TerraPedia/fix-domain-a-grade-source-evidence-2026-05-24/data/generated/npc-standardized-map.json",
+  "totalTownNpcs": 39,
+  "summary": {
+    "recordCount": 39,
+    "scrapedCount": 39,
+    "errorCount": 0,
+    "shopItemCount": 631,
+    "hardmodeSuggestions": 9,
+    "prehardmodeSuggestions": 30
+  },
+  "records": [
+    {
+      "gameId": 17,
+      "internalName": "Merchant",
+      "pageTitle": "商人",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Merchant",
+      "pageId": 19064,
+      "revisionId": 250210,
+      "nameEn": "Merchant",
+      "nameZh": "商人",
+      "functionSummary": "商人 是个商贩 NPC ，一旦以下条件全部满足就会出现：",
+      "moveInConditions": [
+        {
+          "text": "有一间空的 房屋 。"
+        },
+        {
+          "text": "所有玩家的 物品栏 中有超过 50 SC 。存放在 宝箱 或是诸如 猪猪存钱罐 等 便携式收纳 中的钱币不算入此要求。"
+        }
+      ],
+      "moveInSummary": "有一间空的 房屋 。；所有玩家的 物品栏 中有超过 50 SC 。存放在 宝箱 或是诸如 猪猪存钱罐 等 便携式收纳 中的钱币不算入此要求。",
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [
+        {
+          "nameZh": "挖矿头盔",
+          "nameEn": "挖矿头盔",
+          "priceText": "4 GC (电脑版、主机版、移动版、和3DS版) 8 GC (前代主机版)",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "猪猪存钱罐",
+          "nameEn": "猪猪存钱罐",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "铁砧",
+          "nameEn": "铁砧",
+          "priceText": "50 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "虫网",
+          "nameEn": "虫网",
+          "priceText": "25 SC (电脑版、主机版、和移动版) 1 GC (前代主机版、和3DS版)",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "铜镐",
+          "nameEn": "铜镐",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "铜斧",
+          "nameEn": "铜斧",
+          "priceText": "4 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "火把",
+          "nameEn": "火把",
+          "priceText": "50 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "弱效治疗药水",
+          "nameEn": "弱效治疗药水",
+          "priceText": "3 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "治疗药水",
+          "nameEn": "治疗药水",
+          "priceText": "10 SC",
+          "availability": "(电脑版、主机版、和移动版) 在困难模式"
+        },
+        {
+          "nameZh": "弱效魔力药水",
+          "nameEn": "弱效魔力药水",
+          "priceText": "1 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "魔力药水",
+          "nameEn": "魔力药水",
+          "priceText": "2 SC 50 CC",
+          "availability": "(电脑版、主机版、和移动版) 在困难模式"
+        },
+        {
+          "nameZh": "木箭",
+          "nameEn": "木箭",
+          "priceText": "5 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "手里剑",
+          "nameEn": "手里剑",
+          "priceText": "15 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "绳",
+          "nameEn": "绳",
+          "priceText": "10 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "棉花糖",
+          "nameEn": "棉花糖",
+          "priceText": "1 SC",
+          "availability": "当在 雪原生物群系 中与其说话时。"
+        },
+        {
+          "nameZh": "熔炉",
+          "nameEn": "熔炉",
+          "priceText": "3 SC",
+          "availability": "当在 丛林 中与其对话时。 (电脑版、主机版、和移动版)"
+        },
+        {
+          "nameZh": "风车",
+          "nameEn": "风车",
+          "priceText": "20 SC",
+          "availability": "在 大风天 时。"
+        },
+        {
+          "nameZh": "投刀",
+          "nameEn": "投刀",
+          "priceText": "50 CC",
+          "availability": "在 血月 期间。"
+        },
+        {
+          "nameZh": "荧光棒",
+          "nameEn": "荧光棒",
+          "priceText": "10 CC",
+          "availability": "在夜晚期间。"
+        },
+        {
+          "nameZh": "利器站",
+          "nameEn": "利器站",
+          "priceText": "10 GC",
+          "availability": "在 困难模式 中 (电脑版、主机版、和移动版) 。"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 时。"
+        },
+        {
+          "nameZh": "保险箱",
+          "nameEn": "保险箱",
+          "priceText": "20 GC",
+          "availability": "当 骷髅王 已被打败时。"
+        },
+        {
+          "nameZh": "迪斯科球",
+          "nameEn": "迪斯科球",
+          "priceText": "1 GC",
+          "availability": "在 困难模式 中。"
+        },
+        {
+          "nameZh": "照明弹",
+          "nameEn": "照明弹",
+          "priceText": "7 CC",
+          "availability": "当玩家的物品栏中带有 信号枪 时。"
+        },
+        {
+          "nameZh": "蓝照明弹",
+          "nameEn": "蓝照明弹",
+          "priceText": "7 CC",
+          "availability": "当玩家的物品栏中带有 信号枪 时。"
+        },
+        {
+          "nameZh": "镰刀",
+          "nameEn": "镰刀",
+          "priceText": "60 SC",
+          "availability": "一直有货。 (电脑版、主机版、和移动版) 在 万圣节 期间。 (前代主机版、和3DS版)"
+        },
+        {
+          "nameZh": "金尘",
+          "nameEn": "金尘",
+          "priceText": "17 SC",
+          "availability": "当 血肉墙 已被打败时。"
+        },
+        {
+          "nameZh": "鼓组",
+          "nameEn": "鼓组",
+          "priceText": "10 GC",
+          "availability": "当打败了 世界吞噬怪 、 克苏鲁之脑 、 骷髅王 、或 血肉墙 之后。"
+        },
+        {
+          "nameZh": "鼓槌",
+          "nameEn": "鼓槌",
+          "priceText": "50 SC",
+          "availability": "当打败了 世界吞噬怪 、 克苏鲁之脑 、 骷髅王 、或 血肉墙 之后。"
+        },
+        {
+          "nameZh": "钉子",
+          "nameEn": "钉子",
+          "priceText": "1 SC",
+          "availability": "当玩家拥有 钉枪 (电脑版、主机版、和移动版) 时。"
+        },
+        {
+          "nameZh": "情人节戒指",
+          "nameEn": "情人节戒指",
+          "priceText": "1 GC",
+          "availability": "情人节 期间。"
+        },
+        {
+          "nameZh": "Wiesnbräu啤酒",
+          "nameEn": "Wiesnbräu啤酒",
+          "priceText": "9 SC 95 CC",
+          "availability": "十月啤酒节 期间。"
+        },
+        {
+          "nameZh": "火鸡羽毛",
+          "nameEn": "火鸡羽毛",
+          "priceText": "10 GC",
+          "availability": "感恩节 期间。"
+        },
+        {
+          "nameZh": "心箭",
+          "nameEn": "心箭",
+          "priceText": "50 CC",
+          "availability": "情人节 期间。"
+        },
+        {
+          "nameZh": "节日大礼帽",
+          "nameEn": "节日大礼帽",
+          "priceText": "1 GC",
+          "availability": "圣诞节 期间。"
+        }
+      ],
+      "shopItemCount": 35,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋",
+          "地表",
+          "森林"
+        ],
+        "aiType": "被动 AI",
+        "damage": "12 18 21 （ 投刀 ）",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Merchant.png?b4d9c3",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Merchant.png?8c6551",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Merchant_%28portrait%29.png/70px-Merchant_%28portrait%29.png?db6144"
+      },
+      "fetchedAt": "2026-05-24T00:47:19.395764Z",
+      "error": null
+    },
+    {
+      "gameId": 18,
+      "internalName": "Nurse",
+      "pageTitle": "护士",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Nurse",
+      "pageId": 11684,
+      "revisionId": 223807,
+      "nameEn": "Nurse",
+      "nameZh": "护士",
+      "functionSummary": "护士 是一个 NPC ，一旦以下条件全部满足她就会入住：",
+      "moveInConditions": [
+        {
+          "text": "有一间空闲的 房屋 。"
+        },
+        {
+          "text": "玩家的永久最大 生命 大于 100。"
+        },
+        {
+          "text": "存在 商人 。"
+        }
+      ],
+      "moveInSummary": "有一间空闲的 房屋 。；玩家的永久最大 生命 大于 100。；存在 商人 。",
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [],
+      "shopItemCount": 0,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "8 12 14 （ 注射器 ） [ 1 ]",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Nurse.png?e2b17c",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Nurse.png?ce1038",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Nurse_%28portrait%29.png/70px-Nurse_%28portrait%29.png?503528"
+      },
+      "fetchedAt": "2026-05-24T00:47:23.011373Z",
+      "error": null
+    },
+    {
+      "gameId": 19,
+      "internalName": "ArmsDealer",
+      "pageTitle": "军火商",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Arms_Dealer",
+      "pageId": 16728,
+      "revisionId": 248583,
+      "nameEn": "Arms Dealer",
+      "nameZh": "军火商",
+      "functionSummary": "军火商 是个一旦以下条件全部满足就会出现的 NPC ：",
+      "moveInConditions": [
+        {
+          "text": "有一间空 房屋 。"
+        },
+        {
+          "text": "玩家在其物品栏中至少有一个 子弹 或发射子弹的 枪 （存放在诸如 宝箱 等 收纳物品 中，或是诸如 猪猪存钱罐 等 便携式收纳 中的枪不算） [ 2 ] 。"
+        }
+      ],
+      "moveInSummary": "有一间空 房屋 。；玩家在其物品栏中至少有一个 子弹 或发射子弹的 枪 （存放在诸如 宝箱 等 收纳物品 中，或是诸如 猪猪存钱罐 等 便携式收纳 中的枪不算） [ 2 ] 。",
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [
+        {
+          "nameZh": "火枪子弹",
+          "nameEn": "火枪子弹",
+          "priceText": "7 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "银子弹",
+          "nameEn": "银子弹",
+          "priceText": "15 CC",
+          "availability": "在 血月 期间，或 困难模式 中一直有售。 （在有 银矿 （ (前代主机版、和3DS版) 和有 钨矿 的世界中）。）"
+        },
+        {
+          "nameZh": "钨子弹",
+          "nameEn": "钨子弹",
+          "priceText": "18 CC",
+          "availability": "在 血月 期间，或 困难模式 中一直有售。 （在有 钨矿 的世界中。）"
+        },
+        {
+          "nameZh": "邪箭",
+          "nameEn": "邪箭",
+          "priceText": "40 CC",
+          "availability": "在打败 世界吞噬怪 或 克苏鲁之脑 之后的夜晚期间。 （或 困难模式 中一直有售。）"
+        },
+        {
+          "nameZh": "燧发枪",
+          "nameEn": "燧发枪",
+          "priceText": "5 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "迷你鲨",
+          "nameEn": "迷你鲨",
+          "priceText": "35 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "非法枪械部件",
+          "nameEn": "非法枪械部件",
+          "priceText": "20 GC",
+          "availability": "在夜晚。"
+        },
+        {
+          "nameZh": "弹药箱",
+          "nameEn": "弹药箱",
+          "priceText": "10 GC",
+          "availability": "(电脑版、主机版、和移动版) 在困难模式。"
+        },
+        {
+          "nameZh": "霰弹枪",
+          "nameEn": "霰弹枪",
+          "priceText": "25 GC",
+          "availability": "在 困难模式 中。"
+        },
+        {
+          "nameZh": "空心子弹",
+          "nameEn": "空心子弹",
+          "priceText": "5 CC",
+          "availability": "在 困难模式 中。"
+        },
+        {
+          "nameZh": "毒刺矢",
+          "nameEn": "毒刺矢",
+          "priceText": "75 CC",
+          "availability": "当玩家拥有 毒刺发射器 时。"
+        },
+        {
+          "nameZh": "尖桩",
+          "nameEn": "尖桩",
+          "priceText": "15 CC",
+          "availability": "当玩家拥有 尖桩发射器 时。"
+        },
+        {
+          "nameZh": "钉子",
+          "nameEn": "钉子",
+          "priceText": "1 SC",
+          "availability": "当玩家拥有 钉枪 时。"
+        },
+        {
+          "nameZh": "玉米糖",
+          "nameEn": "玉米糖",
+          "priceText": "5 CC",
+          "availability": "当玩家拥有 玉米糖步枪 时。"
+        },
+        {
+          "nameZh": "爆炸杰克南瓜灯",
+          "nameEn": "爆炸杰克南瓜灯",
+          "priceText": "15 CC",
+          "availability": "当玩家拥有 杰克南瓜灯发射器 时。"
+        },
+        {
+          "nameZh": "护士帽",
+          "nameEn": "护士帽",
+          "priceText": "3 GC",
+          "availability": "万圣节 期间。"
+        },
+        {
+          "nameZh": "护士衣",
+          "nameEn": "护士衣",
+          "priceText": "3 GC",
+          "availability": "在 万圣节 期间。"
+        },
+        {
+          "nameZh": "护士裤",
+          "nameEn": "护士裤",
+          "priceText": "3 GC",
+          "availability": "在 万圣节 期间。"
+        },
+        {
+          "nameZh": "四管霰弹枪",
+          "nameEn": "四管霰弹枪",
+          "priceText": "35 GC",
+          "availability": "击败 骷髅王 后，在 墓地 生物群系中。"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 时。"
+        }
+      ],
+      "shopItemCount": 20,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "24 36 42 › 15 22 26 （ 子弹 ） [ 1 ]",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Arms_Dealer.png?c280c9",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Arms_Dealer.png?96c3d5",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Arms_Dealer_%28portrait%29.png/70px-Arms_Dealer_%28portrait%29.png?97e389"
+      },
+      "fetchedAt": "2026-05-24T00:47:26.252451Z",
+      "error": null
+    },
+    {
+      "gameId": 20,
+      "internalName": "Dryad",
+      "pageTitle": "树妖",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Dryad",
+      "pageId": 7454,
+      "revisionId": 250856,
+      "nameEn": "Dryad",
+      "nameZh": "树妖",
+      "functionSummary": "树妖 是个商贩 NPC ，一旦以下条件全部满足就会出现：",
+      "moveInConditions": [
+        {
+          "text": "有一间空 房屋 。"
+        },
+        {
+          "text": "克苏鲁之眼 、 世界吞噬怪 、 克苏鲁之脑 、 骷髅王 、或 天兔 (3DS版) （其中的一个）已被打败。"
+        }
+      ],
+      "moveInSummary": "有一间空 房屋 。；克苏鲁之眼 、 世界吞噬怪 、 克苏鲁之脑 、 骷髅王 、或 天兔 (3DS版) （其中的一个）已被打败。",
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [
+        {
+          "nameZh": "净化粉",
+          "nameEn": "净化粉",
+          "priceText": "75 CC",
+          "availability": "当不在 血月 期间，且不在 Don't dig up (电脑版、主机版、和移动版) 或 Get fixed boi (电脑版、主机版、和移动版) 世界中。"
+        },
+        {
+          "nameZh": "魔粉",
+          "nameEn": "魔粉",
+          "priceText": "1 SC",
+          "availability": "腐化 世界的 血月 期间，且不在 Don't dig up (电脑版、主机版、和移动版) 或 Get fixed boi (电脑版、主机版、和移动版) 世界中。"
+        },
+        {
+          "nameZh": "毒粉",
+          "nameEn": "毒粉",
+          "priceText": "1 SC",
+          "availability": "猩红 世界的 血月 期间，且不在 Don't dig up (电脑版、主机版、和移动版) 或 Get fixed boi (电脑版、主机版、和移动版) 世界中。"
+        },
+        {
+          "nameZh": "草种子",
+          "nameEn": "草种子",
+          "priceText": "20 CC",
+          "availability": "当不在 血月 期间时。"
+        },
+        {
+          "nameZh": "灰烬草种子",
+          "nameEn": "灰烬草种子",
+          "priceText": "1 SC 50 CC",
+          "availability": "在 地狱 中时。"
+        },
+        {
+          "nameZh": "腐化种子",
+          "nameEn": "腐化种子",
+          "priceText": "5 SC",
+          "availability": "在腐化世界的 血月 期间， 或在 困难模式 猩红世界中在 墓地 (电脑版、主机版、和移动版) 内。"
+        },
+        {
+          "nameZh": "猩红种子",
+          "nameEn": "猩红种子",
+          "priceText": "5 SC",
+          "availability": "在猩红世界的 血月 期间， 或在 困难模式 腐化世界中在 墓地 (电脑版、主机版、和移动版) 内。"
+        },
+        {
+          "nameZh": "向日葵",
+          "nameEn": "向日葵",
+          "priceText": "50 SC",
+          "availability": "当不在 血月 期间时。"
+        },
+        {
+          "nameZh": "橡实",
+          "nameEn": "橡实",
+          "priceText": "10 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "土魔杖",
+          "nameEn": "土魔杖",
+          "priceText": "5 GC (电脑版、主机版、和移动版) 20 GC (前代主机版、和3DS版)",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "南瓜子",
+          "nameEn": "南瓜子",
+          "priceText": "2 SC 50 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "草墙",
+          "nameEn": "草墙",
+          "priceText": "10 CC",
+          "availability": "当不在 血月 期间时。"
+        },
+        {
+          "nameZh": "腐化草墙",
+          "nameEn": "腐化草墙",
+          "priceText": "2 SC 50 CC",
+          "availability": "(电脑版、主机版、和移动版) 在腐化世界的 血月 期间。"
+        },
+        {
+          "nameZh": "猩红草墙",
+          "nameEn": "猩红草墙",
+          "priceText": "2 SC 50 CC",
+          "availability": "(电脑版、主机版、和移动版) 在猩红世界的 血月 期间。"
+        },
+        {
+          "nameZh": "花墙",
+          "nameEn": "花墙",
+          "priceText": "10 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "丛林墙",
+          "nameEn": "丛林墙",
+          "priceText": "10 CC",
+          "availability": "在 困难模式 中。"
+        },
+        {
+          "nameZh": "神圣种子",
+          "nameEn": "神圣种子",
+          "priceText": "20 SC",
+          "availability": "在 困难模式 中。"
+        },
+        {
+          "nameZh": "神圣草墙",
+          "nameEn": "神圣草墙",
+          "priceText": "2 SC 50 CC",
+          "availability": "在 困难模式 中。"
+        },
+        {
+          "nameZh": "蘑菇草种子",
+          "nameEn": "蘑菇草种子",
+          "priceText": "1 SC 50 CC",
+          "availability": "在 发光蘑菇生物群系 中时。"
+        },
+        {
+          "nameZh": "树妖遮体服",
+          "nameEn": "树妖遮体服",
+          "priceText": "3 GC",
+          "availability": "在 万圣节 期间。"
+        },
+        {
+          "nameZh": "树妖腰布",
+          "nameEn": "树妖腰布",
+          "priceText": "3 GC",
+          "availability": "在 万圣节 期间。"
+        },
+        {
+          "nameZh": "太阳花种植盆",
+          "nameEn": "太阳花种植盆",
+          "priceText": "1 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "月光草种植盆",
+          "nameEn": "月光草种植盆",
+          "priceText": "1 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "闪耀根种植盆",
+          "nameEn": "闪耀根种植盆",
+          "priceText": "1 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "死亡草种植盆",
+          "nameEn": "死亡草种植盆",
+          "priceText": "1 SC",
+          "availability": "在 腐化 世界中一直有售"
+        },
+        {
+          "nameZh": "死亡草种植盆",
+          "nameEn": "死亡草种植盆",
+          "priceText": "1 SC",
+          "availability": "在 猩红 世界中一直有售"
+        },
+        {
+          "nameZh": "水叶草种植盆",
+          "nameEn": "水叶草种植盆",
+          "priceText": "1 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "寒颤棘种植盆",
+          "nameEn": "寒颤棘种植盆",
+          "priceText": "1 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "火焰花种植盆",
+          "nameEn": "火焰花种植盆",
+          "priceText": "1 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "环境保护指南",
+          "nameEn": "环境保护指南",
+          "priceText": "5 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "白花种子",
+          "nameEn": "白花种子",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "黄花种子",
+          "nameEn": "黄花种子",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "红花种子",
+          "nameEn": "红花种子",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "粉花种子",
+          "nameEn": "粉花种子",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "洋红花种子",
+          "nameEn": "洋红花种子",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "蓝紫花种子",
+          "nameEn": "蓝紫花种子",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "蓝花种子",
+          "nameEn": "蓝花种子",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "野花种子",
+          "nameEn": "野花种子",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "高茎草种子",
+          "nameEn": "高茎草种子",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "盆栽森林雪松",
+          "nameEn": "盆栽森林雪松",
+          "priceText": "3 GC",
+          "availability": "困难模式 ， 月相 1 和 2"
+        },
+        {
+          "nameZh": "盆栽丛林雪松",
+          "nameEn": "盆栽丛林雪松",
+          "priceText": "3 GC",
+          "availability": "困难模式 ， 月相 1 和 2"
+        },
+        {
+          "nameZh": "盆栽神圣雪松",
+          "nameEn": "盆栽神圣雪松",
+          "priceText": "3 GC",
+          "availability": "困难模式 ， 月相 1 和 2"
+        },
+        {
+          "nameZh": "盆栽森林树",
+          "nameEn": "盆栽森林树",
+          "priceText": "3 GC",
+          "availability": "困难模式 ， 月相 3 和 4"
+        },
+        {
+          "nameZh": "盆栽丛林树",
+          "nameEn": "盆栽丛林树",
+          "priceText": "3 GC",
+          "availability": "困难模式 ， 月相 3 和 4"
+        },
+        {
+          "nameZh": "盆栽神圣树",
+          "nameEn": "盆栽神圣树",
+          "priceText": "3 GC",
+          "availability": "困难模式 ， 月相 3 和 4"
+        },
+        {
+          "nameZh": "盆栽森林棕榈",
+          "nameEn": "盆栽森林棕榈",
+          "priceText": "3 GC",
+          "availability": "困难模式 ， 月相 5 和 6"
+        },
+        {
+          "nameZh": "盆栽丛林棕榈",
+          "nameEn": "盆栽丛林棕榈",
+          "priceText": "3 GC",
+          "availability": "困难模式 ， 月相 5 和 6"
+        },
+        {
+          "nameZh": "盆栽神圣棕榈",
+          "nameEn": "盆栽神圣棕榈",
+          "priceText": "3 GC",
+          "availability": "困难模式 ， 月相 5 和 6"
+        },
+        {
+          "nameZh": "盆栽森林竹",
+          "nameEn": "盆栽森林竹",
+          "priceText": "3 GC",
+          "availability": "困难模式 ， 月相 7 和 8"
+        },
+        {
+          "nameZh": "盆栽丛林竹",
+          "nameEn": "盆栽丛林竹",
+          "priceText": "3 GC",
+          "availability": "困难模式 ， 月相 7 和 8"
+        },
+        {
+          "nameZh": "盆栽神圣竹",
+          "nameEn": "盆栽神圣竹",
+          "priceText": "3 GC",
+          "availability": "困难模式 ， 月相 7 和 8"
+        },
+        {
+          "nameZh": "闪耀翅膀",
+          "nameEn": "闪耀翅膀",
+          "priceText": "40 GC",
+          "availability": "在 困难模式 中、 血月 期间。"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 时。"
+        }
+      ],
+      "shopItemCount": 53,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "0 （见 描述 ） [ 1 ]",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "增益",
+          "增益描述",
+          "持续时间"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Dryad.png?de9350",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Dryad.png?21d3e9",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Dryad_%28portrait%29.png/70px-Dryad_%28portrait%29.png?6057d1"
+      },
+      "fetchedAt": "2026-05-24T00:47:28.941182Z",
+      "error": null
+    },
+    {
+      "gameId": 22,
+      "internalName": "Guide",
+      "pageTitle": "向导",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Guide",
+      "pageId": 19134,
+      "revisionId": 250209,
+      "nameEn": "Guide",
+      "nameZh": "向导",
+      "functionSummary": "向导 通常是玩家见到的第一个 NPC 。他会在世界创建时在玩家附近生成。他提供主要针对新玩家的提示，并可以显示所有用到给他看的物品的 制作配方 （包括所需的 制作站 ）。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [],
+      "shopItemCount": 0,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "地表",
+          "有效的房屋",
+          "森林"
+        ],
+        "aiType": "被动 AI",
+        "damage": "8 12 14 （箭） [ 1 ]",
+        "lifeMax": "250",
+        "defense": "30",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Guide.png?eebef6",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Guide.png?53b805",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Guide_%28portrait%29.png/70px-Guide_%28portrait%29.png?a8de1b"
+      },
+      "fetchedAt": "2026-05-24T00:47:32.757906Z",
+      "error": null
+    },
+    {
+      "gameId": 37,
+      "internalName": "OldMan",
+      "pageTitle": "老人",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Old_Man",
+      "pageId": 8772,
+      "revisionId": 248582,
+      "nameEn": "Old Man",
+      "nameZh": "老人",
+      "functionSummary": "老人 是个 NPC ，其主要功能是召唤 骷髅王 。他出现在 地牢 的入口处。若在 夜晚 与其对话，老人会给玩家一个叫“ 诅咒 ”的选项，此选项会召唤骷髅王。若在白天与其对话，老人会告诉玩家晚上再来。他还会把 300 永久最大 生命 （15 颗心）或更低，或者 10 防御 或更低的玩家判断为太弱，但依然会允许他们召唤召唤骷髅王。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [],
+      "shopItemCount": 0,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "地牢入口"
+        ],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": null,
+        "mapIconImage": null,
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Old_Man_%28portrait%29.png/70px-Old_Man_%28portrait%29.png?bfc1c2"
+      },
+      "fetchedAt": "2026-05-24T00:47:35.479305Z",
+      "error": null
+    },
+    {
+      "gameId": 38,
+      "internalName": "Demolitionist",
+      "pageTitle": "爆破专家",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Demolitionist",
+      "pageId": 18313,
+      "revisionId": 248579,
+      "nameEn": "Demolitionist",
+      "nameZh": "爆破专家",
+      "functionSummary": "爆破专家 是个商贩 NPC ，一旦满足以下条件就会出现： [ 1 ]",
+      "moveInConditions": [
+        {
+          "text": "有一间空 房屋 。"
+        },
+        {
+          "text": "玩家的 物品栏 中有 爆炸物 （存放在诸如 宝箱 等 收纳物品 中，或是诸如 猪猪存钱罐 等 便携式收纳 中的物品不算）。"
+        },
+        {
+          "text": "存在 商人 。"
+        }
+      ],
+      "moveInSummary": "有一间空 房屋 。；玩家的 物品栏 中有 爆炸物 （存放在诸如 宝箱 等 收纳物品 中，或是诸如 猪猪存钱罐 等 便携式收纳 中的物品不算）。；存在 商人 。",
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [
+        {
+          "nameZh": "手榴弹",
+          "nameEn": "手榴弹",
+          "priceText": "75 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "炸弹",
+          "nameEn": "炸弹",
+          "priceText": "3 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "雷管",
+          "nameEn": "雷管",
+          "priceText": "20 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "狱炎箭",
+          "nameEn": "狱炎箭",
+          "priceText": "1 SC",
+          "availability": "在 困难模式 中。"
+        },
+        {
+          "nameZh": "地雷",
+          "nameEn": "地雷",
+          "priceText": "5 GC",
+          "availability": "打败 世纪之花 和 海盗入侵 后。 打败世纪之花之前，在 夜晚 。"
+        },
+        {
+          "nameZh": "爆炸粉",
+          "nameEn": "爆炸粉",
+          "priceText": "12 SC",
+          "availability": "在困难模式中。"
+        },
+        {
+          "nameZh": "毒刺矢",
+          "nameEn": "毒刺矢",
+          "priceText": "10 CC",
+          "availability": "(前代主机版、和3DS版) 一旦 石巨人 被打败。"
+        },
+        {
+          "nameZh": "罗马焰火筒",
+          "nameEn": "罗马焰火筒",
+          "priceText": "5 GC",
+          "availability": "圣诞节 期间。"
+        },
+        {
+          "nameZh": "冻结炸弹",
+          "nameEn": "冻结炸弹",
+          "priceText": "10 SC",
+          "availability": "在 史莱姆王 或 克苏鲁之眼 被击败后的 夜晚 。"
+        },
+        {
+          "nameZh": "干炸弹",
+          "nameEn": "干炸弹",
+          "priceText": "25 SC",
+          "availability": "当玩家物品栏中有干炸弹时。"
+        },
+        {
+          "nameZh": "湿炸弹",
+          "nameEn": "湿炸弹",
+          "priceText": "25 SC",
+          "availability": "当玩家物品栏中有湿炸弹时。"
+        },
+        {
+          "nameZh": "熔岩炸弹",
+          "nameEn": "熔岩炸弹",
+          "priceText": "25 SC",
+          "availability": "当玩家物品栏中有熔岩炸弹时。"
+        },
+        {
+          "nameZh": "蜂蜜炸弹",
+          "nameEn": "蜂蜜炸弹",
+          "priceText": "25 SC",
+          "availability": "当玩家物品栏中有蜂蜜炸弹时。"
+        },
+        {
+          "nameZh": "便携式窑炉",
+          "nameEn": "便携式窑炉",
+          "priceText": "25 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "笋生-石出",
+          "nameEn": "笋生-石出",
+          "priceText": "25 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 时。"
+        }
+      ],
+      "shopItemCount": 16,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "20 30 35 （ 手榴弹 ）",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Demolitionist.png?26c051",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Demolitionist.png?cd29a3",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Demolitionist_%28portrait%29.png/70px-Demolitionist_%28portrait%29.png?94bd7a"
+      },
+      "fetchedAt": "2026-05-24T00:47:39.496070Z",
+      "error": null
+    },
+    {
+      "gameId": 54,
+      "internalName": "Clothier",
+      "pageTitle": "服装商",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Clothier",
+      "pageId": 4413,
+      "revisionId": 248580,
+      "nameEn": "Clothier",
+      "nameZh": "服装商",
+      "functionSummary": "服装商 是个主要出售 时装物品 的 NPC 商贩，一旦满足以下条件就会生成：",
+      "moveInConditions": [
+        {
+          "text": "有一间空 房屋 。"
+        },
+        {
+          "text": "骷髅王 已被打败。"
+        }
+      ],
+      "moveInSummary": "有一间空 房屋 。；骷髅王 已被打败。",
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [
+        {
+          "nameZh": "黑线",
+          "nameEn": "黑线",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "粉线",
+          "nameEn": "粉线",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "r/Terraria",
+          "nameEn": "R/Terraria",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "夏日草帽",
+          "nameEn": "夏日草帽",
+          "priceText": "1 GC",
+          "availability": "在 白天 ，在 墓地 外。"
+        },
+        {
+          "nameZh": "管道工衣",
+          "nameEn": "管道工衣",
+          "priceText": "25 GC",
+          "availability": "在 满月 （ ）期间。"
+        },
+        {
+          "nameZh": "管道工背带裤",
+          "nameEn": "管道工背带裤",
+          "priceText": "25 GC",
+          "availability": "在 满月 （ ）期间。"
+        },
+        {
+          "nameZh": "白西装衣",
+          "nameEn": "白西装衣",
+          "priceText": "25 GC",
+          "availability": "在 满月 的夜晚（ ）期间。"
+        },
+        {
+          "nameZh": "白西装裤",
+          "nameEn": "白西装裤",
+          "priceText": "25 GC",
+          "availability": "在 满月 的夜晚（ ）期间。"
+        },
+        {
+          "nameZh": "博士衣",
+          "nameEn": "博士衣",
+          "priceText": "20 GC",
+          "availability": "在 亏凸月 （ ）期间。"
+        },
+        {
+          "nameZh": "博士裤",
+          "nameEn": "博士裤",
+          "priceText": "20 GC",
+          "availability": "在 亏凸月 （ ）期间。"
+        },
+        {
+          "nameZh": "便装衣",
+          "nameEn": "便装衣",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "便装裤",
+          "nameEn": "便装裤",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "便装假发",
+          "nameEn": "便装假发",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "小丑帽",
+          "nameEn": "小丑帽",
+          "priceText": "2 GC",
+          "availability": "如果已打败 小丑 。"
+        },
+        {
+          "nameZh": "小丑衣",
+          "nameEn": "小丑衣",
+          "priceText": "1 GC",
+          "availability": "如果已打败 小丑 。"
+        },
+        {
+          "nameZh": "小丑裤",
+          "nameEn": "小丑裤",
+          "priceText": "1 GC",
+          "availability": "如果已打败 小丑 。"
+        },
+        {
+          "nameZh": "丑角面具",
+          "nameEn": "丑角面具",
+          "priceText": "2 GC",
+          "availability": "在 血月 期间。"
+        },
+        {
+          "nameZh": "堕落西装衣",
+          "nameEn": "堕落西装衣",
+          "priceText": "25 GC",
+          "availability": "在 血月 期间。"
+        },
+        {
+          "nameZh": "堕落西装裤",
+          "nameEn": "堕落西装裤",
+          "priceText": "25 GC",
+          "availability": "在 血月 期间。"
+        },
+        {
+          "nameZh": "日耀邪教徒兜帽",
+          "nameEn": "日耀邪教徒兜帽",
+          "priceText": "10 GC",
+          "availability": "白天，如果已打败 拜月教邪教徒 。"
+        },
+        {
+          "nameZh": "日耀邪教徒长袍",
+          "nameEn": "日耀邪教徒长袍",
+          "priceText": "10 GC",
+          "availability": "白天，如果已打败 拜月教邪教徒 。"
+        },
+        {
+          "nameZh": "月亮邪教徒兜帽",
+          "nameEn": "月亮邪教徒兜帽",
+          "priceText": "10 GC",
+          "availability": "夜晚，如果已打败 拜月教邪教徒 。"
+        },
+        {
+          "nameZh": "月亮邪教徒长袍",
+          "nameEn": "月亮邪教徒长袍",
+          "priceText": "10 GC",
+          "availability": "夜晚，如果已打败 拜月教邪教徒 。"
+        },
+        {
+          "nameZh": "税收官帽",
+          "nameEn": "税收官帽",
+          "priceText": "3 GC",
+          "availability": "若 税收官 在场。"
+        },
+        {
+          "nameZh": "税收官衣服",
+          "nameEn": "税收官衣服",
+          "priceText": "3 GC",
+          "availability": "若 税收官 在场。"
+        },
+        {
+          "nameZh": "税收官裤",
+          "nameEn": "税收官裤",
+          "priceText": "3 GC",
+          "availability": "若 税收官 在场。"
+        },
+        {
+          "nameZh": "掘墓者帽",
+          "nameEn": "掘墓者帽",
+          "priceText": "10 GC",
+          "availability": "如果在 墓地 中与其交谈。"
+        },
+        {
+          "nameZh": "掘墓者外套",
+          "nameEn": "掘墓者外套",
+          "priceText": "10 GC",
+          "availability": "如果在 墓地 中与其交谈。"
+        },
+        {
+          "nameZh": "葬礼帽",
+          "nameEn": "葬礼帽",
+          "priceText": "10 GC",
+          "availability": "如果在 墓地 中与其交谈。"
+        },
+        {
+          "nameZh": "葬礼外套",
+          "nameEn": "葬礼外套",
+          "priceText": "10 GC",
+          "availability": "如果在 墓地 中与其交谈。"
+        },
+        {
+          "nameZh": "葬礼裤",
+          "nameEn": "葬礼裤",
+          "priceText": "10 GC",
+          "availability": "如果在 墓地 中与其交谈。"
+        },
+        {
+          "nameZh": "悲剧雨伞",
+          "nameEn": "悲剧雨伞",
+          "priceText": "10 GC",
+          "availability": "如果在 墓地 中与其交谈。"
+        },
+        {
+          "nameZh": "维多利亚哥特帽",
+          "nameEn": "维多利亚哥特帽",
+          "priceText": "10 GC",
+          "availability": "如果在 墓地 中与其交谈。"
+        },
+        {
+          "nameZh": "维多利亚哥特裙",
+          "nameEn": "维多利亚哥特裙",
+          "priceText": "10 GC",
+          "availability": "如果在 墓地 中与其交谈。"
+        },
+        {
+          "nameZh": "小便帽",
+          "nameEn": "小便帽",
+          "priceText": "1 GC",
+          "availability": "如果在 雪原生物群系 中与其交谈。"
+        },
+        {
+          "nameZh": "盖伊·福克斯面具",
+          "nameEn": "盖伊·福克斯面具",
+          "priceText": "3 GC",
+          "availability": "在 万圣节 期间。"
+        },
+        {
+          "nameZh": "苏格兰便帽",
+          "nameEn": "苏格兰便帽",
+          "priceText": "2 GC 50 SC",
+          "availability": "在 困难模式 中， 下弦月 （ ）期间。"
+        },
+        {
+          "nameZh": "蓝毕业帽",
+          "nameEn": "蓝毕业帽",
+          "priceText": "10 GC",
+          "availability": "在 困难模式 中， 残月 （ ）期间。"
+        },
+        {
+          "nameZh": "蓝毕业礼服",
+          "nameEn": "蓝毕业礼服",
+          "priceText": "10 GC",
+          "availability": "在 困难模式 中， 残月 （ ）期间。"
+        },
+        {
+          "nameZh": "头冠",
+          "nameEn": "头冠",
+          "priceText": "25 GC",
+          "availability": "在 困难模式 ，中 新月 ( )期间。"
+        },
+        {
+          "nameZh": "公主裙（服装商）",
+          "nameEn": "公主裙（服装商）",
+          "priceText": "10 GC",
+          "availability": "在 困难模式 中， 新月 （ ）期间。"
+        },
+        {
+          "nameZh": "褐红毕业帽",
+          "nameEn": "褐红毕业帽",
+          "priceText": "10 GC",
+          "availability": "在 困难模式 中， 娥眉月 （ ）期间。"
+        },
+        {
+          "nameZh": "褐红毕业礼服",
+          "nameEn": "褐红毕业礼服",
+          "priceText": "10 GC",
+          "availability": "在 困难模式 中， 娥眉月 （ ）期间。"
+        },
+        {
+          "nameZh": "牛仔帽",
+          "nameEn": "牛仔帽",
+          "priceText": "5 GC",
+          "availability": "在 困难模式 中， 上弦月 （ ）期间。"
+        },
+        {
+          "nameZh": "牛仔夹克",
+          "nameEn": "牛仔夹克",
+          "priceText": "5 GC",
+          "availability": "在 困难模式 中， 上弦月 （ ）期间。"
+        },
+        {
+          "nameZh": "牛仔裤",
+          "nameEn": "牛仔裤",
+          "priceText": "5 GC",
+          "availability": "在 困难模式 中， 上弦月 （ ）期间。"
+        },
+        {
+          "nameZh": "黑毕业帽",
+          "nameEn": "黑毕业帽",
+          "priceText": "10 GC",
+          "availability": "在 困难模式 中， 盈凸月 （ ）期间。"
+        },
+        {
+          "nameZh": "黑毕业礼服",
+          "nameEn": "黑毕业礼服",
+          "priceText": "10 GC",
+          "availability": "在 困难模式 中， 盈凸月 （ ）期间。"
+        },
+        {
+          "nameZh": "巴拉帽",
+          "nameEn": "巴拉帽",
+          "priceText": "1 GC",
+          "availability": "如果已打败 雪人军团 。"
+        },
+        {
+          "nameZh": "黑帮帽",
+          "nameEn": "黑帮帽",
+          "priceText": "1 GC",
+          "availability": "如果已打败 雪人军团 。"
+        },
+        {
+          "nameZh": "服装商夹克",
+          "nameEn": "服装商夹克",
+          "priceText": "3 GC",
+          "availability": "在 万圣节 期间。"
+        },
+        {
+          "nameZh": "服装商裤",
+          "nameEn": "服装商裤",
+          "priceText": "3 GC",
+          "availability": "在 万圣节 期间。"
+        },
+        {
+          "nameZh": "派对气球束",
+          "nameEn": "派对气球束",
+          "priceText": "2 GC",
+          "availability": "派对 期间。"
+        },
+        {
+          "nameZh": "气球兔兔",
+          "nameEn": "气球兔兔",
+          "priceText": "2 GC",
+          "availability": "派对 期间。"
+        },
+        {
+          "nameZh": "呆萌向日葵花瓣头盔",
+          "nameEn": "呆萌向日葵花瓣头盔",
+          "priceText": "3 GC",
+          "availability": "派对 期间。"
+        },
+        {
+          "nameZh": "呆萌向日葵上衣",
+          "nameEn": "呆萌向日葵上衣",
+          "priceText": "3 GC",
+          "availability": "派对 期间。"
+        },
+        {
+          "nameZh": "呆萌向日葵裤装",
+          "nameEn": "呆萌向日葵裤装",
+          "priceText": "3 GC",
+          "availability": "派对 期间。"
+        },
+        {
+          "nameZh": "猎人斗篷",
+          "nameEn": "猎人斗篷",
+          "priceText": "15 GC",
+          "availability": "玩家累计 高尔夫 得分达到 2000 或以上。"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 且接近另一个NPC时。"
+        },
+        {
+          "nameZh": "老手杖",
+          "nameEn": "老手杖",
+          "priceText": "1 PC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "George的帽子",
+          "nameEn": "George的帽子",
+          "priceText": "1 GC",
+          "availability": "血月 期间，男性人物。"
+        },
+        {
+          "nameZh": "George的西装上衣",
+          "nameEn": "George的西装上衣",
+          "priceText": "25 GC",
+          "availability": "血月 期间，男性人物。"
+        },
+        {
+          "nameZh": "George的裤子",
+          "nameEn": "George的裤子",
+          "priceText": "25 GC",
+          "availability": "血月 期间，男性人物。"
+        },
+        {
+          "nameZh": "绝妙丝带",
+          "nameEn": "绝妙丝带",
+          "priceText": "1 GC",
+          "availability": "血月 期间，女性人物。"
+        },
+        {
+          "nameZh": "绝妙礼服",
+          "nameEn": "绝妙礼服",
+          "priceText": "25 GC",
+          "availability": "血月 期间，女性人物。"
+        },
+        {
+          "nameZh": "绝妙拖鞋",
+          "nameEn": "绝妙拖鞋",
+          "priceText": "25 GC",
+          "availability": "血月 期间，女性人物。"
+        },
+        {
+          "nameZh": "啤酒节假发",
+          "nameEn": "啤酒节假发",
+          "priceText": "80 SC",
+          "availability": "十月啤酒节 期间。"
+        },
+        {
+          "nameZh": "旦多尔女衫",
+          "nameEn": "旦多尔女衫",
+          "priceText": "1 GC 20 SC",
+          "availability": "十月啤酒节 期间。"
+        },
+        {
+          "nameZh": "旦多尔裙",
+          "nameEn": "旦多尔裙",
+          "priceText": "1 GC",
+          "availability": "十月啤酒节 期间。"
+        },
+        {
+          "nameZh": "登山帽",
+          "nameEn": "登山帽",
+          "priceText": "80 SC",
+          "availability": "十月啤酒节 期间。"
+        },
+        {
+          "nameZh": "皮背心",
+          "nameEn": "皮背心",
+          "priceText": "1 GC 20 SC",
+          "availability": "十月啤酒节 期间。"
+        },
+        {
+          "nameZh": "皮裤",
+          "nameEn": "皮裤",
+          "priceText": "1 GC",
+          "availability": "十月啤酒节 期间。"
+        },
+        {
+          "nameZh": "节日大礼帽",
+          "nameEn": "节日大礼帽",
+          "priceText": "1 GC",
+          "availability": "圣诞节 期间。"
+        },
+        {
+          "nameZh": "多乐头部",
+          "nameEn": "多乐头部",
+          "priceText": "10 GC",
+          "availability": "血月 期间。"
+        },
+        {
+          "nameZh": "多乐身体",
+          "nameEn": "多乐身体",
+          "priceText": "25 GC",
+          "availability": "血月 期间。"
+        },
+        {
+          "nameZh": "多乐腿部",
+          "nameEn": "多乐腿部",
+          "priceText": "25 GC",
+          "availability": "血月 期间。"
+        },
+        {
+          "nameZh": "粉白美头部",
+          "nameEn": "粉白美头部",
+          "priceText": "10 GC",
+          "availability": "血月 期间。"
+        },
+        {
+          "nameZh": "粉白美身体",
+          "nameEn": "粉白美身体",
+          "priceText": "25 GC",
+          "availability": "血月 期间。"
+        },
+        {
+          "nameZh": "粉白美腿部",
+          "nameEn": "粉白美腿部",
+          "priceText": "25 GC",
+          "availability": "血月 期间。"
+        },
+        {
+          "nameZh": "希炼衣",
+          "nameEn": "希炼衣",
+          "priceText": "25 GC",
+          "availability": "满月 （ ）期间。"
+        },
+        {
+          "nameZh": "希炼裤",
+          "nameEn": "希炼裤",
+          "priceText": "25 GC",
+          "availability": "满月 （ ）期间。"
+        },
+        {
+          "nameZh": "r/Terraria 2023",
+          "nameEn": "R/Terraria 2023",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        }
+      ],
+      "shopItemCount": 82,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "16 24 28 （ 骷髅头 ） [ 1 ]",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Clothier.png?5150e3",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Clothier.png?951cfa",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Clothier_%28portrait%29.png/70px-Clothier_%28portrait%29.png?453834"
+      },
+      "fetchedAt": "2026-05-24T00:47:43.054019Z",
+      "error": null
+    },
+    {
+      "gameId": 107,
+      "internalName": "GoblinTinkerer",
+      "pageTitle": "哥布林工匠",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Goblin_Tinkerer",
+      "pageId": 18230,
+      "revisionId": 250214,
+      "nameEn": "Goblin Tinkerer",
+      "nameZh": "哥布林工匠",
+      "functionSummary": "哥布林工匠 是个出售多种独特物品并提供 重铸 功能的 NPC 。在击败 哥布林军队 之后能得到他，他会随机生成在 洞穴 层的开放区域中。一开始，他以静止的 受缚哥布林 状态出现，在此状态下与他谈话会将其释放。如果受缚哥布林被击杀，他在之后依然会重新生成；如果哥布林工匠 NPC 被击杀，只要有空余的 房屋 ，他就会在一段时间后再次入住。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [
+        {
+          "nameZh": "火箭靴",
+          "nameEn": "火箭靴",
+          "priceText": "5 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "标尺",
+          "nameEn": "标尺",
+          "priceText": "10 SC (电脑版、主机版、和移动版) 1 GC (前代主机版)",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "工匠作坊",
+          "nameEn": "工匠作坊",
+          "priceText": "10 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "抓钩",
+          "nameEn": "抓钩",
+          "priceText": "2 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "工具腰带",
+          "nameEn": "工具腰带",
+          "priceText": "10 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "尖球",
+          "nameEn": "尖球",
+          "priceText": "80 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "堆石器",
+          "nameEn": "堆石器",
+          "priceText": "25 GC",
+          "availability": "在 困难模式 中。"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 时。"
+        }
+      ],
+      "shopItemCount": 8,
+      "wikiDetails": {
+        "types": [
+          "NPC",
+          "哥布林"
+        ],
+        "environments": [
+          "洞穴",
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "15 22 26 （ 尖球 ） [ 1 ]",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Goblin_Tinkerer.png?f2d93b",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Goblin_Tinkerer.png?37a1bb",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Goblin_Tinkerer_%28portrait%29.png/70px-Goblin_Tinkerer_%28portrait%29.png?7a3f17"
+      },
+      "fetchedAt": "2026-05-24T00:47:45.815078Z",
+      "error": null
+    },
+    {
+      "gameId": 108,
+      "internalName": "Wizard",
+      "pageTitle": "巫师",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Wizard",
+      "pageId": 14520,
+      "revisionId": 250216,
+      "nameEn": "Wizard",
+      "nameZh": "巫师",
+      "functionSummary": "巫师 是个 困难模式 NPC 商贩，出售 魔法 相关物品。一旦 血肉墙 被打败，他就会偶尔在 洞穴 地层或更深处作为 受缚巫师 生成，与此状态下的他对话会将其释放。如果受缚巫师被杀死，他之后仍会重生；如果巫师 NPC 被杀死，只要有空余 房屋 ，他会在一段时间后再次入住。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 2,
+      "suggestedGamePeriodReason": "条件或说明中命中困难模式、机械 Boss、世纪之花等后期关键词。",
+      "shopItems": [
+        {
+          "nameZh": "水晶球",
+          "nameEn": "水晶球",
+          "priceText": "10 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "冰雪魔杖",
+          "nameEn": "冰雪魔杖",
+          "priceText": "50 GC (电脑版、主机版、和移动版) 1 PC (前代主机版、和3DS版)",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "强效魔力药水",
+          "nameEn": "强效魔力药水",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "铃铛",
+          "nameEn": "铃铛",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "竖琴",
+          "nameEn": "竖琴",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "魔法书",
+          "nameEn": "魔法书",
+          "priceText": "5 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "书",
+          "nameEn": "书",
+          "priceText": "15 SC",
+          "availability": "仅限 电脑版 、 主机版 、和 移动版 。"
+        },
+        {
+          "nameZh": "八音盒",
+          "nameEn": "八音盒",
+          "priceText": "10 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "空滴管",
+          "nameEn": "空滴管",
+          "priceText": "1 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "致命牌组",
+          "nameEn": "致命牌组",
+          "priceText": "20 GC",
+          "availability": "血月 期间。"
+        },
+        {
+          "nameZh": "巫师之帽",
+          "nameEn": "巫师之帽",
+          "priceText": "3 GC",
+          "availability": "万圣节 期间。"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 时。"
+        }
+      ],
+      "shopItemCount": 12,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "18 27 31",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Wizard.png?584906",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Wizard.png?191ab5",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Wizard_%28portrait%29.png/70px-Wizard_%28portrait%29.png?a89f30"
+      },
+      "fetchedAt": "2026-05-24T00:47:49.395057Z",
+      "error": null
+    },
+    {
+      "gameId": 124,
+      "internalName": "Mechanic",
+      "pageTitle": "机械师",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Mechanic",
+      "pageId": 16649,
+      "revisionId": 250215,
+      "nameEn": "Mechanic",
+      "nameZh": "机械师",
+      "functionSummary": "机械师 是个 NPC ，出售各种 机械 ，还有 钢丝钳 和 扳手 ，让玩家能够建设和激活连接电路的设备，比如 陷阱 和 小动物引擎 。在击败 骷髅王 后，可以在 地牢 中 洞穴 地层及更深处找到她，她会作为静止的 受缚机械师 随机生成。在这一状态下与她对话会将其释放。如果受缚机械师被杀死，她之后仍能重生；如果机械师 NPC 被杀死，只要有空余 房屋 ，她会在一段时间后再次入住。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [
+        {
+          "nameZh": "红扳手",
+          "nameEn": "红扳手",
+          "priceText": "2 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "蓝扳手",
+          "nameEn": "蓝扳手",
+          "priceText": "2 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "绿扳手",
+          "nameEn": "绿扳手",
+          "priceText": "2 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "黄扳手",
+          "nameEn": "黄扳手",
+          "priceText": "2 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "钢丝钳",
+          "nameEn": "钢丝钳",
+          "priceText": "2 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "电线",
+          "nameEn": "电线",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "控制杆",
+          "nameEn": "控制杆",
+          "priceText": "30 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "开关",
+          "nameEn": "开关",
+          "priceText": "20 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "红压力板",
+          "nameEn": "红压力板",
+          "priceText": "50 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "绿压力板",
+          "nameEn": "绿压力板",
+          "priceText": "50 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "灰压力板",
+          "nameEn": "灰压力板",
+          "priceText": "50 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "棕压力板",
+          "nameEn": "棕压力板",
+          "priceText": "50 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "蓝压力板",
+          "nameEn": "蓝压力板",
+          "priceText": "50 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "黄压力板",
+          "nameEn": "黄压力板",
+          "priceText": "50 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "橙压力板",
+          "nameEn": "橙压力板",
+          "priceText": "50 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "青绿压力垫板",
+          "nameEn": "青绿压力垫板",
+          "priceText": "2 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "增速轨道",
+          "nameEn": "增速轨道",
+          "priceText": "50 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "致动器",
+          "nameEn": "致动器",
+          "priceText": "10 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "传送机",
+          "nameEn": "传送机",
+          "priceText": "2 GC 50 SC",
+          "availability": "一直有售。 (电脑版、主机版、和移动版)"
+        },
+        {
+          "nameZh": "分线盒",
+          "nameEn": "分线盒",
+          "priceText": "2 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "机械标尺",
+          "nameEn": "机械标尺",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "机械透镜",
+          "nameEn": "机械透镜",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "工程头盔",
+          "nameEn": "工程头盔",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "彩线灯泡",
+          "nameEn": "彩线灯泡",
+          "priceText": "5 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "机械师钓竿",
+          "nameEn": "机械师钓竿",
+          "priceText": "20 GC",
+          "availability": "在下列 月相 期间： ，当 渔夫 在场时。"
+        },
+        {
+          "nameZh": "1秒计时器",
+          "nameEn": "1秒计时器",
+          "priceText": "1 GC",
+          "availability": "一直有售。 (电脑版、主机版、和移动版) (3DS版)"
+        },
+        {
+          "nameZh": "3秒计时器",
+          "nameEn": "3秒计时器",
+          "priceText": "1 GC",
+          "availability": "一直有售。 (电脑版、主机版、和移动版) (3DS版)"
+        },
+        {
+          "nameZh": "5秒计时器",
+          "nameEn": "5秒计时器",
+          "priceText": "1 GC",
+          "availability": "一直有售。 (电脑版、主机版、和移动版) (3DS版)"
+        },
+        {
+          "nameZh": "1/2秒计时器",
+          "nameEn": "1/2秒计时器",
+          "priceText": "2 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "1/4秒计时器",
+          "nameEn": "1/4秒计时器",
+          "priceText": "2 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "像素盒",
+          "nameEn": "像素盒",
+          "priceText": "2 SC",
+          "availability": "一直有售。 (电脑版、主机版、和移动版)"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 时。"
+        }
+      ],
+      "shopItemCount": 32,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "地牢",
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "11 16 19 （ 机械师扳手 ） [ 1 ]",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Mechanic.png?a0843e",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Mechanic.png?19d5ba",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Mechanic_%28portrait%29.png/70px-Mechanic_%28portrait%29.png?688f54"
+      },
+      "fetchedAt": "2026-05-24T00:47:52.750118Z",
+      "error": null
+    },
+    {
+      "gameId": 142,
+      "internalName": "SantaClaus",
+      "pageTitle": "圣诞老人",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Santa_Claus",
+      "pageId": 11384,
+      "revisionId": 250219,
+      "nameEn": "Santa Claus",
+      "nameZh": "圣诞老人",
+      "functionSummary": "圣诞老人 是个 困难模式 商贩 NPC ，在打败 雪人军团 后到达，但仅限于 圣诞节 季期间（ (电脑版、主机版、前代主机版、和移动版) 12 月 15 日 – 12 月 31 日 / (3DS版) 12 月 1 日 – 1 月 15 日， (电脑版、主机版、和移动版) 在这些日期之外也可以通过完成 霜月 来解锁，持续游戏内的一天），在这之后他会死去。他在此期间出售很多圣诞主题的装饰品和时装物品。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 2,
+      "suggestedGamePeriodReason": "条件或说明中命中困难模式、机械 Boss、世纪之花等后期关键词。",
+      "shopItems": [
+        {
+          "nameZh": "圣诞帽",
+          "nameEn": "圣诞帽",
+          "priceText": "15 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "圣诞衣",
+          "nameEn": "圣诞衣",
+          "priceText": "15 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "圣诞裤",
+          "nameEn": "圣诞裤",
+          "priceText": "15 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "圣诞树",
+          "nameEn": "圣诞树",
+          "priceText": "25 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "红灯",
+          "nameEn": "红灯",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "绿灯",
+          "nameEn": "绿灯",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "蓝灯",
+          "nameEn": "蓝灯",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "星星顶饰1",
+          "nameEn": "星星顶饰1",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "星星顶饰2",
+          "nameEn": "星星顶饰2",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "星星顶饰3",
+          "nameEn": "星星顶饰3",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "505顶饰",
+          "nameEn": "505顶饰",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "蝴蝶结顶饰",
+          "nameEn": "蝴蝶结顶饰",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "白花环",
+          "nameEn": "白花环",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "白红花环",
+          "nameEn": "白红花环",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "红花环",
+          "nameEn": "红花环",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "红绿花环",
+          "nameEn": "红绿花环",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "绿花环",
+          "nameEn": "绿花环",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "绿白花环",
+          "nameEn": "绿白花环",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "五彩灯泡",
+          "nameEn": "五彩灯泡",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "红灯泡",
+          "nameEn": "红灯泡",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        }
+      ],
+      "shopItemCount": 20,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Santa_Claus.png?f439c6",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Santa_Claus.png?f3082a",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Santa_Claus_%28portrait%29.png/70px-Santa_Claus_%28portrait%29.png?399a20"
+      },
+      "fetchedAt": "2026-05-24T00:47:55.879189Z",
+      "error": null
+    },
+    {
+      "gameId": 160,
+      "internalName": "Truffle",
+      "pageTitle": "松露人",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Truffle",
+      "pageId": 14712,
+      "revisionId": 250148,
+      "nameEn": "Truffle",
+      "nameZh": "松露人",
+      "functionSummary": "松露人 是一个 困难模式 NPC 商贩，他出售各种 蘑菇 主题的物品。他在困难模式一开始便能以无家可归的状态到达，且他仅能入住到位于 地表 发光蘑菇生物群系 或附近（即，高于 0 高度 ）的空 房屋 中。",
+      "moveInConditions": [
+        {
+          "text": "地表发光蘑菇生物群系不会天然生成，因此必须被手动创建。创建一个发光蘑菇生物群系需要有 100 格的 蘑菇草 和 发光蘑菇 植物。 [ 1 ]"
+        }
+      ],
+      "moveInSummary": "地表发光蘑菇生物群系不会天然生成，因此必须被手动创建。创建一个发光蘑菇生物群系需要有 100 格的 蘑菇草 和 发光蘑菇 植物。 [ 1 ]",
+      "suggestedGamePeriodId": 2,
+      "suggestedGamePeriodReason": "条件或说明中命中困难模式、机械 Boss、世纪之花等后期关键词。",
+      "shopItems": [
+        {
+          "nameZh": "蘑菇帽",
+          "nameEn": "蘑菇帽",
+          "priceText": "2 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "奇异发光蘑菇",
+          "nameEn": "奇异发光蘑菇",
+          "priceText": "45 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "我的儿子",
+          "nameEn": "我的儿子",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "深蓝溶液",
+          "nameEn": "深蓝溶液",
+          "priceText": "15 SC",
+          "availability": "一直有货。 在激活 Remix 的世界中不可用（Remix 和 Celebration Mk 10 激活，而未激活 For the Worthy 的世界除外）。"
+        },
+        {
+          "nameZh": "蘑菇长矛",
+          "nameEn": "蘑菇长矛",
+          "priceText": "70 GC",
+          "availability": "任何 机械 Boss 被打败后。"
+        },
+        {
+          "nameZh": "蘑菇锤",
+          "nameEn": "蘑菇锤",
+          "priceText": "40 GC",
+          "availability": "任何 机械 Boss 被打败后。"
+        },
+        {
+          "nameZh": "自动锤炼机",
+          "nameEn": "自动锤炼机",
+          "priceText": "1 PC",
+          "availability": "世纪之花 被打败后。"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 中且在另一个 NPC 附近。"
+        }
+      ],
+      "shopItemCount": 8,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "发光蘑菇生物群系",
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Truffle.png?97c95f",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Truffle.png?8a42da",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Truffle_%28portrait%29.png/70px-Truffle_%28portrait%29.png?f259a2"
+      },
+      "fetchedAt": "2026-05-24T00:47:59.237270Z",
+      "error": null
+    },
+    {
+      "gameId": 178,
+      "internalName": "Steampunker",
+      "pageTitle": "蒸汽朋克人",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Steampunker",
+      "pageId": 14088,
+      "revisionId": 250217,
+      "nameEn": "Steampunker",
+      "nameZh": "蒸汽朋克人",
+      "functionSummary": "蒸汽朋克人 是个 困难模式 NPC 商贩。一旦玩家打败至少一个 机械 Boss ，并有一间空房屋，她就会出现。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 2,
+      "suggestedGamePeriodReason": "条件或说明中命中困难模式、机械 Boss、世纪之花等后期关键词。",
+      "shopItems": [
+        {
+          "nameZh": "传送机",
+          "nameEn": "传送机",
+          "priceText": "2 GC 50 SC",
+          "availability": "(前代主机版、和3DS版) 一直有售。"
+        },
+        {
+          "nameZh": "环境改造枪",
+          "nameEn": "环境改造枪",
+          "priceText": "2 PC",
+          "availability": "当不在 don't dig up (电脑版、主机版、和移动版) 或 Get fixed boi (电脑版、主机版、和移动版) 世界中时。"
+        },
+        {
+          "nameZh": "蒸汽朋克帽",
+          "nameEn": "蒸汽朋克帽",
+          "priceText": "1 GC 50 SC",
+          "availability": "在 月相 1–4 期间："
+        },
+        {
+          "nameZh": "蒸汽朋克衣",
+          "nameEn": "蒸汽朋克衣",
+          "priceText": "1 GC 50 SC",
+          "availability": "在 月相 1–4 期间："
+        },
+        {
+          "nameZh": "蒸汽朋克裤",
+          "nameEn": "蒸汽朋克裤",
+          "priceText": "1 GC 50 SC",
+          "availability": "在 月相 1–4 期间："
+        },
+        {
+          "nameZh": "喷气背包",
+          "nameEn": "喷气背包",
+          "priceText": "40 GC",
+          "availability": "困难模式 ，在月相 5–8 期间："
+        },
+        {
+          "nameZh": "固化机",
+          "nameEn": "固化机",
+          "priceText": "10 GC",
+          "availability": "(前代主机版、和3DS版) 在 白天 。"
+        },
+        {
+          "nameZh": "搅拌机",
+          "nameEn": "搅拌机",
+          "priceText": "10 GC",
+          "availability": "(电脑版、主机版、和移动版) 一直有售，或在 For the Worthy 或 Get fixed boi 世界中仅在 困难模式 。 (前代主机版、和3DS版) 在 夜晚 。"
+        },
+        {
+          "nameZh": "血肉克隆台",
+          "nameEn": "血肉克隆台",
+          "priceText": "10 GC",
+          "availability": "在 猩红 世界中。"
+        },
+        {
+          "nameZh": "腐变室",
+          "nameEn": "腐变室",
+          "priceText": "10 GC",
+          "availability": "在 腐化 世界中。"
+        },
+        {
+          "nameZh": "冰雪机",
+          "nameEn": "冰雪机",
+          "priceText": "10 GC",
+          "availability": "(电脑版、主机版、和移动版) 当在 冰雪生物群系 中与其交谈时。"
+        },
+        {
+          "nameZh": "天磨",
+          "nameEn": "天磨",
+          "priceText": "10 GC",
+          "availability": "(电脑版、主机版、和移动版) 当在 太空 中与其交谈时。"
+        },
+        {
+          "nameZh": "蜂蜜分配机",
+          "nameEn": "蜂蜜分配机",
+          "priceText": "10 GC",
+          "availability": "(电脑版、主机版、和移动版) 当在 丛林 中与其交谈时。"
+        },
+        {
+          "nameZh": "骨头焊机",
+          "nameEn": "骨头焊机",
+          "priceText": "10 GC",
+          "availability": "(电脑版、主机版、和移动版) 当在 墓地 中与其交谈时。"
+        },
+        {
+          "nameZh": "生命木织机",
+          "nameEn": "生命木织机",
+          "priceText": "2 SC",
+          "availability": "(电脑版、主机版、和移动版) 如果玩家物品栏中有 生命木魔棒 。"
+        },
+        {
+          "nameZh": "蒸汽朋克锅炉",
+          "nameEn": "蒸汽朋克锅炉",
+          "priceText": "10 GC",
+          "availability": "如果 克苏鲁之眼 、 世界吞噬怪 / 克苏鲁之脑 和 骷髅王 已被打败。"
+        },
+        {
+          "nameZh": "紫溶液",
+          "nameEn": "紫溶液",
+          "priceText": "15 SC",
+          "availability": "在腐化世界中， 血月 或 日食 期间，且不在 don't dig up (电脑版、主机版、和移动版) 或 Get fixed boi (电脑版、主机版、和移动版) 世界中。"
+        },
+        {
+          "nameZh": "红溶液",
+          "nameEn": "红溶液",
+          "priceText": "15 SC",
+          "availability": "在猩红世界中， 血月 或 日食 期间，且不在 don't dig up (电脑版、主机版、和移动版) 或 Get fixed boi (电脑版、主机版、和移动版) 世界中。"
+        },
+        {
+          "nameZh": "蓝溶液",
+          "nameEn": "蓝溶液",
+          "priceText": "15 SC",
+          "availability": "在 神圣 或 地下神圣之地 与其交谈，且不在 don't dig up (电脑版、主机版、和移动版) 或 Get fixed boi (电脑版、主机版、和移动版) 世界中。（没有发生血月或日食。）"
+        },
+        {
+          "nameZh": "绿溶液",
+          "nameEn": "绿溶液",
+          "priceText": "15 SC",
+          "availability": "在任何其他生物群系中与其交谈，且不在 don't dig up (电脑版、主机版、和移动版) 或 Get fixed boi (电脑版、主机版、和移动版) 世界中。（没有发生血月或日食。）"
+        },
+        {
+          "nameZh": "黄溶液",
+          "nameEn": "黄溶液",
+          "priceText": "15 SC",
+          "availability": "在击败 月亮领主 后，且不在 Don't dig up 或 Get fixed boi 世界中。"
+        },
+        {
+          "nameZh": "白溶液",
+          "nameEn": "白溶液",
+          "priceText": "15 SC",
+          "availability": "在击败 月亮领主 后，且不在 Don't dig up 或 Get fixed boi 世界中。"
+        },
+        {
+          "nameZh": "棕溶液",
+          "nameEn": "棕溶液",
+          "priceText": "15 SC",
+          "availability": "在击败 月亮领主 后，且不在 Don't dig up 或 Get fixed boi 世界中。"
+        },
+        {
+          "nameZh": "齿轮",
+          "nameEn": "齿轮",
+          "priceText": "7 SC",
+          "availability": "在 困难模式 期间"
+        },
+        {
+          "nameZh": "蒸汽朋克矿车",
+          "nameEn": "蒸汽朋克矿车",
+          "priceText": "10 GC",
+          "availability": "在 困难模式 期间"
+        },
+        {
+          "nameZh": "蒸汽朋克护目镜",
+          "nameEn": "蒸汽朋克护目镜",
+          "priceText": "3 GC",
+          "availability": "在 万圣节 期间。"
+        },
+        {
+          "nameZh": "蒸汽朋克之翼",
+          "nameEn": "蒸汽朋克之翼",
+          "priceText": "3 PC",
+          "availability": "打败 石巨人 后。"
+        },
+        {
+          "nameZh": "逻辑门",
+          "nameEn": "逻辑门",
+          "priceText": "2 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "逻辑门灯（关）",
+          "nameEn": "逻辑门灯（关）",
+          "priceText": "10 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "逻辑门灯（开）",
+          "nameEn": "逻辑门灯（开）",
+          "priceText": "10 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "逻辑门灯（故障）",
+          "nameEn": "逻辑门灯（故障）",
+          "priceText": "2 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "静止钩",
+          "nameEn": "静止钩",
+          "priceText": "50 GC",
+          "availability": "在 困难模式 期间。"
+        },
+        {
+          "nameZh": "传送带",
+          "nameEn": "传送带",
+          "priceText": "5 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 时。"
+        }
+      ],
+      "shopItemCount": 34,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Steampunker.png?62f1dc",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Steampunker.png?3240bc",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Steampunker_%28portrait%29.png/70px-Steampunker_%28portrait%29.png?d31c76"
+      },
+      "fetchedAt": "2026-05-24T00:48:02.576731Z",
+      "error": null
+    },
+    {
+      "gameId": 207,
+      "internalName": "DyeTrader",
+      "pageTitle": "染料商",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Dye_Trader",
+      "pageId": 12009,
+      "revisionId": 250211,
+      "nameEn": "Dye Trader",
+      "nameZh": "染料商",
+      "functionSummary": "染料商 是个出售 染缸 和其他与 染料 有关的物品的 NPC 。一旦以下条件全部满足他就会搬进来：",
+      "moveInConditions": [
+        {
+          "text": "有一间空 房屋 。"
+        },
+        {
+          "text": "(电脑版、主机版、和移动版) 玩家的物品栏中有染料、染料材料、或 奇异植物 ，并且世界中至少有四名其他城镇 NPC。注意 老人 、 旅商 、和 城镇宠物 计入此数量中，但 骷髅商人 并不。 [ 1 ]"
+        },
+        {
+          "text": "(前代主机版) 玩家的物品栏中有染料或染料材料。"
+        }
+      ],
+      "moveInSummary": "有一间空 房屋 。；(电脑版、主机版、和移动版) 玩家的物品栏中有染料、染料材料、或 奇异植物 ，并且世界中至少有四名其他城镇 NPC。注意 老人 、 旅商 、和 城镇宠物 计入此数量中，但 骷髅商人 并不。 [ 1 ]；(前代主机版) 玩家的物品栏中有染料或染料材料。",
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [
+        {
+          "nameZh": "染缸",
+          "nameEn": "染缸",
+          "priceText": "5 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "银染料",
+          "nameEn": "银染料",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "团队染料",
+          "nameEn": "团队染料",
+          "priceText": "1 GC",
+          "availability": "在 多人模式 服务器中。"
+        },
+        {
+          "nameZh": "染料商长袍",
+          "nameEn": "染料商长袍",
+          "priceText": "3 GC",
+          "availability": "万圣节 期间。"
+        },
+        {
+          "nameZh": "染料商头巾",
+          "nameEn": "染料商头巾",
+          "priceText": "3 GC",
+          "availability": "万圣节 期间。"
+        },
+        {
+          "nameZh": "暗影染料",
+          "nameEn": "暗影染料",
+          "priceText": "3 GC 75 SC",
+          "availability": "在 满月 期间。"
+        },
+        {
+          "nameZh": "阴暗染料",
+          "nameEn": "阴暗染料",
+          "priceText": "3 GC 75 SC",
+          "availability": "在 满月 期间。"
+        },
+        {
+          "nameZh": "棕染料",
+          "nameEn": "棕染料",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "灰雾染料",
+          "nameEn": "灰雾染料",
+          "priceText": "7 GC 50 SC",
+          "availability": "在 墓地 中时。"
+        },
+        {
+          "nameZh": "大屠杀染料",
+          "nameEn": "大屠杀染料",
+          "priceText": "7 GC 50 SC",
+          "availability": "血月 期间。"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 时。"
+        }
+      ],
+      "shopItemCount": 11,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "11 16 19 （ 异域弯刀 ）",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Dye_Trader.png?68dd4b",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Dye_Trader.png?376186",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Dye_Trader_%28portrait%29.png/70px-Dye_Trader_%28portrait%29.png?210531"
+      },
+      "fetchedAt": "2026-05-24T00:48:05.472544Z",
+      "error": null
+    },
+    {
+      "gameId": 208,
+      "internalName": "PartyGirl",
+      "pageTitle": "派对女孩",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Party_Girl",
+      "pageId": 11505,
+      "revisionId": 250204,
+      "nameEn": "Party Girl",
+      "nameZh": "派对女孩",
+      "functionSummary": "派对女孩 是个 困难模式之前 的 NPC 商贩，出售喜庆的 小玩具物品 和 家具 。",
+      "moveInConditions": [
+        {
+          "text": "有一间空 房屋 。"
+        },
+        {
+          "text": "(电脑版、主机版、和移动版) 14 / 12 / (前代主机版) 8 名其他城镇 NPC。注意 老人 、 旅商 、和 城镇宠物 (电脑版、主机版、和移动版) 计入此数量中，但 骷髅商人 (电脑版、主机版、和移动版) 并不。 [ 2 ]"
+        }
+      ],
+      "moveInSummary": "有一间空 房屋 。；(电脑版、主机版、和移动版) 14 / 12 / (前代主机版) 8 名其他城镇 NPC。注意 老人 、 旅商 、和 城镇宠物 (电脑版、主机版、和移动版) 计入此数量中，但 骷髅商人 (电脑版、主机版、和移动版) 并不。 [ 2 ]",
+      "suggestedGamePeriodId": 2,
+      "suggestedGamePeriodReason": "条件或说明中命中困难模式、机械 Boss、世纪之花等后期关键词。",
+      "shopItems": [
+        {
+          "nameZh": "彩纸枪",
+          "nameEn": "彩纸枪",
+          "priceText": "1 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "彩纸",
+          "nameEn": "彩纸",
+          "priceText": "2 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "烟雾弹",
+          "nameEn": "烟雾弹",
+          "priceText": "20 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "泡泡机",
+          "nameEn": "泡泡机",
+          "priceText": "4 GC",
+          "availability": "(电脑版、主机版、和移动版) 白天 / (前代主机版、和3DS版) 一直有售。"
+        },
+        {
+          "nameZh": "造雾机",
+          "nameEn": "造雾机",
+          "priceText": "4 GC",
+          "availability": "夜间。"
+        },
+        {
+          "nameZh": "泡泡魔棒",
+          "nameEn": "泡泡魔棒",
+          "priceText": "5 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "沙滩球",
+          "nameEn": "沙滩球",
+          "priceText": "20 CC",
+          "availability": "一直有售。 (电脑版、主机版、和移动版)"
+        },
+        {
+          "nameZh": "熔岩灯",
+          "nameEn": "熔岩灯",
+          "priceText": "2 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "等离子灯",
+          "nameEn": "等离子灯",
+          "priceText": "2 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "烟花盒",
+          "nameEn": "烟花盒",
+          "priceText": "5 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "烟花喷泉",
+          "nameEn": "烟花喷泉",
+          "priceText": "3 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "派对矿车",
+          "nameEn": "派对矿车",
+          "priceText": "10 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "光谱风筝",
+          "nameEn": "光谱风筝",
+          "priceText": "2 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "蹦蹦跷",
+          "nameEn": "蹦蹦跷",
+          "priceText": "25 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 时。"
+        },
+        {
+          "nameZh": "红火箭",
+          "nameEn": "红火箭",
+          "priceText": "15 SC",
+          "availability": "在 困难模式 开始之后。"
+        },
+        {
+          "nameZh": "绿火箭",
+          "nameEn": "绿火箭",
+          "priceText": "15 SC",
+          "availability": "在 困难模式 开始之后。"
+        },
+        {
+          "nameZh": "蓝火箭",
+          "nameEn": "蓝火箭",
+          "priceText": "15 SC",
+          "availability": "在 困难模式 开始之后。"
+        },
+        {
+          "nameZh": "黄火箭",
+          "nameEn": "黄火箭",
+          "priceText": "15 SC",
+          "availability": "在 困难模式 开始之后。"
+        },
+        {
+          "nameZh": "快乐手榴弹",
+          "nameEn": "快乐手榴弹",
+          "priceText": "2 SC 50 CC",
+          "availability": "如果玩家物品栏中有 快乐手榴弹 。"
+        },
+        {
+          "nameZh": "彩纸炮",
+          "nameEn": "彩纸炮",
+          "priceText": "25 GC",
+          "availability": "海盗 在场时。"
+        },
+        {
+          "nameZh": "泡泡",
+          "nameEn": "泡泡",
+          "priceText": "2 SC",
+          "availability": "困难模式 启动以后。"
+        },
+        {
+          "nameZh": "烟雾块",
+          "nameEn": "烟雾块",
+          "priceText": "1 SC",
+          "availability": "在 困难模式 启动后。"
+        },
+        {
+          "nameZh": "派对中心",
+          "nameEn": "派对中心",
+          "priceText": "20 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "派对帽",
+          "nameEn": "派对帽",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "呆萌气球机",
+          "nameEn": "呆萌气球机",
+          "priceText": "5 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "派对礼物",
+          "nameEn": "派对礼物",
+          "priceText": "20 SC",
+          "availability": "派对进行中时。"
+        },
+        {
+          "nameZh": "猪龙彩罐",
+          "nameEn": "猪龙彩罐",
+          "priceText": "1 GC",
+          "availability": "派对进行中时。"
+        },
+        {
+          "nameZh": "蓝饰带",
+          "nameEn": "蓝饰带",
+          "priceText": "50 CC",
+          "availability": "派对进行中时。"
+        },
+        {
+          "nameZh": "绿饰带",
+          "nameEn": "绿饰带",
+          "priceText": "50 CC",
+          "availability": "派对进行中时。"
+        },
+        {
+          "nameZh": "粉饰带",
+          "nameEn": "粉饰带",
+          "priceText": "50 CC",
+          "availability": "派对进行中时。"
+        },
+        {
+          "nameZh": "呆萌紫气球",
+          "nameEn": "呆萌紫气球",
+          "priceText": "1 SC",
+          "availability": "派对进行中时。"
+        },
+        {
+          "nameZh": "呆萌绿气球",
+          "nameEn": "呆萌绿气球",
+          "priceText": "1 SC",
+          "availability": "派对进行中时。"
+        },
+        {
+          "nameZh": "呆萌粉气球",
+          "nameEn": "呆萌粉气球",
+          "priceText": "1 SC",
+          "availability": "派对进行中时。"
+        },
+        {
+          "nameZh": "呆萌丝带气球（绿）",
+          "nameEn": "呆萌丝带气球（绿）",
+          "priceText": "10 SC",
+          "availability": "派对进行中时。"
+        },
+        {
+          "nameZh": "呆萌丝带气球（紫）",
+          "nameEn": "呆萌丝带气球（紫）",
+          "priceText": "10 SC",
+          "availability": "派对进行中时。"
+        },
+        {
+          "nameZh": "呆萌丝带气球（粉）",
+          "nameEn": "呆萌丝带气球（粉）",
+          "priceText": "10 SC",
+          "availability": "派对进行中时。"
+        },
+        {
+          "nameZh": "喜庆弹射器",
+          "nameEn": "喜庆弹射器",
+          "priceText": "80 GC",
+          "availability": "石巨人 被打败后。 (电脑版、主机版、和移动版)"
+        },
+        {
+          "nameZh": "放飞鸽子",
+          "nameEn": "放飞鸽子",
+          "priceText": "1 SC",
+          "availability": "在 墓地 中时。"
+        },
+        {
+          "nameZh": "放飞灯笼",
+          "nameEn": "放飞灯笼",
+          "priceText": "1 SC",
+          "availability": "灯笼夜 期间。"
+        },
+        {
+          "nameZh": "橄榄球",
+          "nameEn": "橄榄球",
+          "priceText": "20 CC",
+          "availability": "玩家累计 高尔夫分数 得分达到至少 500。"
+        }
+      ],
+      "shopItemCount": 41,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "30 45 52 （快乐手榴弹） [ 1 ]",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Party_Girl.png?30a9af",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Party_Girl.png?d29563",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Party_Girl_%28portrait%29.png/70px-Party_Girl_%28portrait%29.png?6439ef"
+      },
+      "fetchedAt": "2026-05-24T00:48:08.136445Z",
+      "error": null
+    },
+    {
+      "gameId": 209,
+      "internalName": "Cyborg",
+      "pageTitle": "机器侠",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Cyborg",
+      "pageId": 13504,
+      "revisionId": 250218,
+      "nameEn": "Cyborg",
+      "nameZh": "机器侠",
+      "functionSummary": "机器侠 是个 困难模式 NPC 商贩，一旦当前世界中 世纪之花 被打败过至少一次且有空 房屋 可用时他就会出现。他出售一些“高科技”物品，其中最吸引目光的是 发射器 武器使用的 火箭 弹药。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 2,
+      "suggestedGamePeriodReason": "条件或说明中命中困难模式、机械 Boss、世纪之花等后期关键词。",
+      "shopItems": [
+        {
+          "nameZh": "火箭一型",
+          "nameEn": "火箭一型",
+          "priceText": "50 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "火箭二型",
+          "nameEn": "火箭二型",
+          "priceText": "2 SC 50 CC",
+          "availability": "在 血月 期间。"
+        },
+        {
+          "nameZh": "火箭三型",
+          "nameEn": "火箭三型",
+          "priceText": "1 SC",
+          "availability": "在 夜晚 或在 日食 期间。"
+        },
+        {
+          "nameZh": "火箭四型",
+          "nameEn": "火箭四型",
+          "priceText": "5 SC",
+          "availability": "在 日食 期间。"
+        },
+        {
+          "nameZh": "干火箭",
+          "nameEn": "干火箭",
+          "priceText": "50 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "感应雷发射器",
+          "nameEn": "感应雷发射器",
+          "priceText": "35 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "纳米机器人",
+          "nameEn": "纳米机器人",
+          "priceText": "15 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "集束火箭一型",
+          "nameEn": "集束火箭一型",
+          "priceText": "7 SC 50 CC",
+          "availability": "在打败了 火星暴乱 事件后就一直有售。"
+        },
+        {
+          "nameZh": "集束火箭二型",
+          "nameEn": "集束火箭二型",
+          "priceText": "15 SC",
+          "availability": "在打败了火星暴乱事件后，血月或日食期间。"
+        },
+        {
+          "nameZh": "机器侠头盔",
+          "nameEn": "机器侠头盔",
+          "priceText": "3 GC",
+          "availability": "在 万圣节 期间。"
+        },
+        {
+          "nameZh": "机器侠衣",
+          "nameEn": "机器侠衣",
+          "priceText": "3 GC",
+          "availability": "在 万圣节 期间。"
+        },
+        {
+          "nameZh": "机器侠裤",
+          "nameEn": "机器侠裤",
+          "priceText": "3 GC",
+          "availability": "在 万圣节 期间。"
+        },
+        {
+          "nameZh": "高科技墨镜",
+          "nameEn": "高科技墨镜",
+          "priceText": "5 GC",
+          "availability": "在打败了 火星暴乱 事件后就一直有售。"
+        },
+        {
+          "nameZh": "夜视头盔",
+          "nameEn": "夜视头盔",
+          "priceText": "5 GC",
+          "availability": "在打败了 火星暴乱 事件后就一直有售。"
+        },
+        {
+          "nameZh": "传送枪站",
+          "nameEn": "传送枪站",
+          "priceText": "10 GC",
+          "availability": "当玩家的物品栏中有 传送枪 或 传送枪站 时。"
+        },
+        {
+          "nameZh": "回声块",
+          "nameEn": "回声块",
+          "priceText": "10 SC",
+          "availability": "当在 墓地 中与其交谈时。"
+        },
+        {
+          "nameZh": "幽灵护目镜",
+          "nameEn": "幽灵护目镜",
+          "priceText": "10 GC",
+          "availability": "当在 墓地 中与其交谈时。"
+        },
+        {
+          "nameZh": "四轴竞速无人机",
+          "nameEn": "四轴竞速无人机",
+          "priceText": "10 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "FPV飞行眼镜",
+          "nameEn": "FPV飞行眼镜",
+          "priceText": "10 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 时。"
+        }
+      ],
+      "shopItemCount": 20,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "500",
+        "defense": "30",
+        "knockBackResist": "75%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Cyborg.png?7a79f4",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Cyborg.png?5ef237",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Cyborg_%28portrait%29.png/70px-Cyborg_%28portrait%29.png?cb39e5"
+      },
+      "fetchedAt": "2026-05-24T00:48:11.900471Z",
+      "error": null
+    },
+    {
+      "gameId": 227,
+      "internalName": "Painter",
+      "pageTitle": "油漆工",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Painter",
+      "pageId": 10667,
+      "revisionId": 238829,
+      "nameEn": "Painter",
+      "nameZh": "油漆工",
+      "functionSummary": "油漆工 是个 NPC 商贩，出售 油漆 (电脑版、主机版、前代主机版、和移动版) 和 油漆工具 ，还有 绘画作品 和 壁纸 。一旦满足以下条件他就会入住：",
+      "moveInConditions": [
+        {
+          "text": "有一间空闲的 房屋 。"
+        },
+        {
+          "text": "世界中至少有 8 名其他城镇 NPC。注意 老人 、 旅商 、和 城镇宠物 计入此数量中，但 骷髅商人 并不计入。 [ 2 ]"
+        }
+      ],
+      "moveInSummary": "有一间空闲的 房屋 。；世界中至少有 8 名其他城镇 NPC。注意 老人 、 旅商 、和 城镇宠物 计入此数量中，但 骷髅商人 并不计入。 [ 2 ]",
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [
+        {
+          "nameZh": "漆刷",
+          "nameEn": "漆刷",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "涂漆滚刷",
+          "nameEn": "涂漆滚刷",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "漆铲",
+          "nameEn": "漆铲",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "红漆",
+          "nameEn": "红漆",
+          "priceText": "25 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "橙漆",
+          "nameEn": "橙漆",
+          "priceText": "25 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "黄漆",
+          "nameEn": "黄漆",
+          "priceText": "25 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "橙绿漆",
+          "nameEn": "橙绿漆",
+          "priceText": "25 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "绿漆",
+          "nameEn": "绿漆",
+          "priceText": "25 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "青绿漆",
+          "nameEn": "青绿漆",
+          "priceText": "25 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "青漆",
+          "nameEn": "青漆",
+          "priceText": "25 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "天蓝漆",
+          "nameEn": "天蓝漆",
+          "priceText": "25 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "蓝漆",
+          "nameEn": "蓝漆",
+          "priceText": "25 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "紫漆",
+          "nameEn": "紫漆",
+          "priceText": "25 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "蓝紫漆",
+          "nameEn": "蓝紫漆",
+          "priceText": "25 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "粉漆",
+          "nameEn": "粉漆",
+          "priceText": "25 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "黑漆",
+          "nameEn": "黑漆",
+          "priceText": "25 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "灰漆",
+          "nameEn": "灰漆",
+          "priceText": "25 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "白漆",
+          "nameEn": "白漆",
+          "priceText": "25 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "棕漆",
+          "nameEn": "棕漆",
+          "priceText": "25 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "暗影漆",
+          "nameEn": "暗影漆",
+          "priceText": "50 CC",
+          "availability": "在 困难模式 中。"
+        },
+        {
+          "nameZh": "反色漆",
+          "nameEn": "反色漆",
+          "priceText": "75 CC",
+          "availability": "在 困难模式 中。"
+        },
+        {
+          "nameZh": "夜明涂料",
+          "nameEn": "夜明涂料",
+          "priceText": "2 SC",
+          "availability": "在 墓地 中时。"
+        },
+        {
+          "nameZh": "回声涂料",
+          "nameEn": "回声涂料",
+          "priceText": "2 SC",
+          "availability": "击败 世纪之花 后，在 墓地 中时。"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 时。"
+        }
+      ],
+      "shopItemCount": 24,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "8 12 14 › 10 15 17 （ 彩弹枪 ） [ 1 ]",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Painter.png?da5141",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Painter.png?a2c441",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Painter_%28portrait%29.png/70px-Painter_%28portrait%29.png?334ae3"
+      },
+      "fetchedAt": "2026-05-24T00:48:14.388641Z",
+      "error": null
+    },
+    {
+      "gameId": 228,
+      "internalName": "WitchDoctor",
+      "pageTitle": "巫医",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Witch_Doctor",
+      "pageId": 11180,
+      "revisionId": 238837,
+      "nameEn": "Witch Doctor",
+      "nameZh": "巫医",
+      "functionSummary": "巫医 是一个 NPC 商贩，一旦以下条件全部满足他就会入住：",
+      "moveInConditions": [
+        {
+          "text": "有一间空闲的 房屋 。"
+        },
+        {
+          "text": "蜂王 已被打败。"
+        }
+      ],
+      "moveInSummary": "有一间空闲的 房屋 。；蜂王 已被打败。",
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [
+        {
+          "nameZh": "灌注站",
+          "nameEn": "灌注站",
+          "priceText": "7 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "吹箭筒",
+          "nameEn": "吹箭筒",
+          "priceText": "5 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "毒刺矢",
+          "nameEn": "毒刺矢",
+          "priceText": "75 CC",
+          "availability": "当玩家有 毒刺发射器 时。"
+        },
+        {
+          "nameZh": "尖桩",
+          "nameEn": "尖桩",
+          "priceText": "15 CC",
+          "availability": "当玩家有 尖桩发射器 时。"
+        },
+        {
+          "nameZh": "大锅",
+          "nameEn": "大锅",
+          "priceText": "1 GC 50 SC",
+          "availability": "万圣节 期间。"
+        },
+        {
+          "nameZh": "提基图腾",
+          "nameEn": "提基图腾",
+          "priceText": "2 PC",
+          "availability": "困难模式 下，在 丛林 生物群系中与其说话。"
+        },
+        {
+          "nameZh": "叶之翼",
+          "nameEn": "叶之翼",
+          "priceText": "1 PC 50 GC",
+          "availability": "困难模式 下，打败 世纪之花 后， 夜晚 时在 丛林 生物群系中与其说话。"
+        },
+        {
+          "nameZh": "小瓶毒液",
+          "nameEn": "小瓶毒液",
+          "priceText": "15 SC",
+          "availability": "打败 世纪之花 后。"
+        },
+        {
+          "nameZh": "提基面具",
+          "nameEn": "提基面具",
+          "priceText": "50 GC",
+          "availability": "打败 世纪之花 后。"
+        },
+        {
+          "nameZh": "提基衣",
+          "nameEn": "提基衣",
+          "priceText": "50 GC",
+          "availability": "打败 世纪之花 后。"
+        },
+        {
+          "nameZh": "提基裤",
+          "nameEn": "提基裤",
+          "priceText": "50 GC",
+          "availability": "打败 世纪之花 后。"
+        },
+        {
+          "nameZh": "矮人项链",
+          "nameEn": "矮人项链",
+          "priceText": "20 GC",
+          "availability": "仅限 夜晚 。"
+        },
+        {
+          "nameZh": "大力士甲虫",
+          "nameEn": "大力士甲虫",
+          "priceText": "40 GC",
+          "availability": "打败 世纪之花 后，在 丛林 生物群系中与其说话。"
+        },
+        {
+          "nameZh": "纯净喷泉",
+          "nameEn": "纯净喷泉",
+          "priceText": "4 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "沙漠喷泉",
+          "nameEn": "沙漠喷泉",
+          "priceText": "4 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "丛林喷泉",
+          "nameEn": "丛林喷泉",
+          "priceText": "4 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "冰雪喷泉",
+          "nameEn": "冰雪喷泉",
+          "priceText": "4 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "腐化喷泉",
+          "nameEn": "腐化喷泉",
+          "priceText": "4 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "猩红喷泉",
+          "nameEn": "猩红喷泉",
+          "priceText": "4 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "神圣喷泉",
+          "nameEn": "神圣喷泉",
+          "priceText": "4 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "血水喷泉",
+          "nameEn": "血水喷泉",
+          "priceText": "4 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "洞穴喷泉",
+          "nameEn": "洞穴喷泉",
+          "priceText": "4 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "绿洲喷泉",
+          "nameEn": "绿洲喷泉",
+          "priceText": "4 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "施法桌",
+          "nameEn": "施法桌",
+          "priceText": "10 GC",
+          "availability": "如果存在 巫师 。"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 时。"
+        }
+      ],
+      "shopItemCount": 25,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "20 30 35 （ 毒镖 ） [ 1 ]",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Witch_Doctor.png?d79fd5",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Witch_Doctor.png?5663ad",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Witch_Doctor_%28portrait%29.png/70px-Witch_Doctor_%28portrait%29.png?c3154e"
+      },
+      "fetchedAt": "2026-05-24T00:48:21.679428Z",
+      "error": null
+    },
+    {
+      "gameId": 229,
+      "internalName": "Pirate",
+      "pageTitle": "海盗",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Pirate",
+      "pageId": 18407,
+      "revisionId": 238823,
+      "nameEn": "Pirate",
+      "nameZh": "海盗",
+      "functionSummary": "海盗 是一个 困难模式 NPC 商贩，他的外观和来自 海盗入侵 的 海盗船长 敌怪 几乎完全一样。一旦以下条件全部满足他就会入住：",
+      "moveInConditions": [
+        {
+          "text": "有一间空闲的 房屋 。"
+        },
+        {
+          "text": "至少完成了一次 海盗入侵 事件 。"
+        }
+      ],
+      "moveInSummary": "有一间空闲的 房屋 。；至少完成了一次 海盗入侵 事件 。",
+      "suggestedGamePeriodId": 2,
+      "suggestedGamePeriodReason": "条件或说明中命中困难模式、机械 Boss、世纪之花等后期关键词。",
+      "shopItems": [
+        {
+          "nameZh": "大炮",
+          "nameEn": "大炮",
+          "priceText": "25 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "炮弹",
+          "nameEn": "炮弹",
+          "priceText": "2 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "海盗帽",
+          "nameEn": "海盗帽",
+          "priceText": "5 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "海盗衣",
+          "nameEn": "海盗衣",
+          "priceText": "5 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "海盗裤",
+          "nameEn": "海盗裤",
+          "priceText": "5 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "船帆",
+          "nameEn": "船帆",
+          "priceText": "50 CC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "鹦鹉饼干",
+          "nameEn": "鹦鹉饼干",
+          "priceText": "3 PC 75 GC",
+          "availability": "当在 海洋 生物群系中与其交谈时。"
+        },
+        {
+          "nameZh": "兔兔炮",
+          "nameEn": "兔兔炮",
+          "priceText": "50 GC",
+          "availability": "派对女孩 在场、世界处于 困难模式 中且已有 机械 Boss 被打败。"
+        },
+        {
+          "nameZh": "爆炸兔",
+          "nameEn": "爆炸兔",
+          "priceText": "35 SC",
+          "availability": "派对女孩在场、世界处于困难模式中且已有机械 Boss被打败。 (前代主机版、和3DS版)"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 时。"
+        }
+      ],
+      "shopItemCount": 10,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀",
+          "被击杀 （微光形态）"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Pirate.png?20e5d3",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Pirate.png?dc1c70",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Pirate_%28portrait%29.png/70px-Pirate_%28portrait%29.png?3bdd5a"
+      },
+      "fetchedAt": "2026-05-24T00:48:24.112399Z",
+      "error": null
+    },
+    {
+      "gameId": 353,
+      "internalName": "Stylist",
+      "pageTitle": "发型师",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Stylist",
+      "pageId": 2396,
+      "revisionId": 238827,
+      "nameEn": "Stylist",
+      "nameZh": "发型师",
+      "functionSummary": "发型师 是一个 NPC 商贩，能够改变玩家的 发型 和头发颜色。她也出售各种能为玩家的头发加上动态效果的 染发剂 。一旦以下条件满足她就会入住：",
+      "moveInConditions": [
+        {
+          "text": "有一间空闲的 房屋 。"
+        },
+        {
+          "text": "解救了在 洞穴 地层 的 蜘蛛窝 中随机生成的 被网住的发型师 。对此状态下的发型师按下 ⚷ 打开/激活 交互可以解救她。如果被网住的发型师被杀死，她之后仍会重生；如果发型师 NPC 被杀死，只要有空余 房屋 ，她会在一段时间后再次入住。"
+        }
+      ],
+      "moveInSummary": "有一间空闲的 房屋 。；解救了在 洞穴 地层 的 蜘蛛窝 中随机生成的 被网住的发型师 。对此状态下的发型师按下 ⚷ 打开/激活 交互可以解救她。如果被网住的发型师被杀死，她之后仍会重生；如果发型师 NPC 被杀死，只要有空余 房屋 ，她会在一段时间后再次入住。",
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [
+        {
+          "nameZh": "绅士胡子",
+          "nameEn": "绅士胡子",
+          "priceText": "5 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "染发剂清除剂",
+          "nameEn": "染发剂清除剂",
+          "priceText": "2 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "深度染发剂",
+          "nameEn": "深度染发剂",
+          "priceText": "5 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "生命染发剂",
+          "nameEn": "生命染发剂",
+          "priceText": "5 GC",
+          "availability": "如果玩家最大生命值至少有 400。"
+        },
+        {
+          "nameZh": "魔力染发剂",
+          "nameEn": "魔力染发剂",
+          "priceText": "5 GC",
+          "availability": "如果玩家最大魔力值至少有 200。"
+        },
+        {
+          "nameZh": "钱币染发剂",
+          "nameEn": "钱币染发剂",
+          "priceText": "10 GC",
+          "availability": "如果玩家物品栏中有至少 1 PC 。"
+        },
+        {
+          "nameZh": "时间染发剂",
+          "nameEn": "时间染发剂",
+          "priceText": "5 GC",
+          "availability": "在 月相 2、4、6、和 8 的夜晚和随后的白天区间： 。"
+        },
+        {
+          "nameZh": "团队染发剂",
+          "nameEn": "团队染发剂",
+          "priceText": "5 GC",
+          "availability": "多人模式 中，当玩家在队伍中时。"
+        },
+        {
+          "nameZh": "派对染发剂",
+          "nameEn": "派对染发剂",
+          "priceText": "7 GC 50 SC",
+          "availability": "当世界中有 派对女孩 时。"
+        },
+        {
+          "nameZh": "生物群系染发剂",
+          "nameEn": "生物群系染发剂",
+          "priceText": "5 GC",
+          "availability": "当世界处于 困难模式 时。"
+        },
+        {
+          "nameZh": "速度染发剂",
+          "nameEn": "速度染发剂",
+          "priceText": "5 GC",
+          "availability": "当世界处于 困难模式 且有任一 机械 Boss 已被打败。"
+        },
+        {
+          "nameZh": "彩虹染发剂",
+          "nameEn": "彩虹染发剂",
+          "priceText": "15 GC",
+          "availability": "当世界处于 困难模式 且全部三个 机械 Boss 都已被打败。"
+        },
+        {
+          "nameZh": "火星染发剂",
+          "nameEn": "火星染发剂",
+          "priceText": "30 GC",
+          "availability": "火星暴乱 后。"
+        },
+        {
+          "nameZh": "暮光染发剂",
+          "nameEn": "暮光染发剂",
+          "priceText": "30 GC",
+          "availability": "火星暴乱 后。"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 时。"
+        }
+      ],
+      "shopItemCount": 15,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "蜘蛛窝",
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "10 15 17 （ 时尚剪刀 ） [ 1 ]",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Stylist.png?fd2703",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Stylist.png?aba9a3",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Stylist_%28portrait%29.png/70px-Stylist_%28portrait%29.png?aed31e"
+      },
+      "fetchedAt": "2026-05-24T00:48:27.731342Z",
+      "error": null
+    },
+    {
+      "gameId": 368,
+      "internalName": "TravellingMerchant",
+      "pageTitle": "旅商",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Traveling_Merchant",
+      "pageId": 1065,
+      "revisionId": 248570,
+      "nameEn": "Traveling Merchant",
+      "nameZh": "旅商",
+      "functionSummary": "旅商 是一个独特的商贩 NPC ，他会随机拜访玩家的城镇并停留一个 白天 。他的商品栏是随机的，每次拜访都会不同，出售 4–10 种 下表 列出的不同物品。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [
+        {
+          "nameZh": "舒适窗户",
+          "nameEn": "舒适窗户",
+          "priceText": "1 GC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "蓝虎Yuuma",
+          "nameEn": "蓝虎Yuuma",
+          "priceText": "50 SC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "异域英雄",
+          "nameEn": "异域英雄",
+          "priceText": "2 GC 50 SC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "Israpony的阳光",
+          "nameEn": "Israpony的阳光",
+          "priceText": "50 SC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "不要吃魔菇！",
+          "nameEn": "不要吃魔菇！",
+          "priceText": "50 SC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "秒差距伙伴",
+          "nameEn": "秒差距伙伴",
+          "priceText": "50 SC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "奶酪比萨海报",
+          "nameEn": "奶酪比萨海报",
+          "priceText": "50 SC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "二元性",
+          "nameEn": "二元性",
+          "priceText": "50 SC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "本尼·沃霍尔",
+          "nameEn": "本尼·沃霍尔",
+          "priceText": "50 SC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "Kargoh的召唤",
+          "nameEn": "Kargoh的召唤",
+          "priceText": "50 SC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "秒表",
+          "nameEn": "秒表",
+          "priceText": "5 GC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "生命体分析机",
+          "nameEn": "生命体分析机",
+          "priceText": "5 GC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "每秒伤害计数器",
+          "nameEn": "每秒伤害计数器",
+          "priceText": "5 GC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "草坪火烈鸟",
+          "nameEn": "草坪火烈鸟",
+          "priceText": "5 GC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "粉团队块",
+          "nameEn": "粉团队块",
+          "priceText": "1 SC",
+          "availability": "一次只会出售 单色团队块"
+        },
+        {
+          "nameZh": "粉团队平台",
+          "nameEn": "粉团队平台",
+          "priceText": "1 SC",
+          "availability": "出售 粉团队块 时 总是有售"
+        },
+        {
+          "nameZh": "黄团队块",
+          "nameEn": "黄团队块",
+          "priceText": "1 SC",
+          "availability": "一次只会出售 单色团队块"
+        },
+        {
+          "nameZh": "黄团队平台",
+          "nameEn": "黄团队平台",
+          "priceText": "1 SC",
+          "availability": "出售 黄团队块 时 总是有售"
+        },
+        {
+          "nameZh": "绿团队块",
+          "nameEn": "绿团队块",
+          "priceText": "1 SC",
+          "availability": "一次只会出售 单色团队块"
+        },
+        {
+          "nameZh": "绿团队平台",
+          "nameEn": "绿团队平台",
+          "priceText": "1 SC",
+          "availability": "出售 绿团队块 时 总是有售"
+        },
+        {
+          "nameZh": "蓝团队块",
+          "nameEn": "蓝团队块",
+          "priceText": "1 SC",
+          "availability": "一次只会出售 单色团队块"
+        },
+        {
+          "nameZh": "蓝团队平台",
+          "nameEn": "蓝团队平台",
+          "priceText": "1 SC",
+          "availability": "出售 蓝团队块 时 总是有售"
+        },
+        {
+          "nameZh": "红团队块",
+          "nameEn": "红团队块",
+          "priceText": "1 SC",
+          "availability": "一次只会出售 单色团队块"
+        },
+        {
+          "nameZh": "红团队平台",
+          "nameEn": "红团队平台",
+          "priceText": "1 SC",
+          "availability": "出售 红团队块 时 总是有售"
+        },
+        {
+          "nameZh": "白团队块",
+          "nameEn": "白团队块",
+          "priceText": "1 SC",
+          "availability": "一次只会出售 单色团队块"
+        },
+        {
+          "nameZh": "白团队平台",
+          "nameEn": "白团队平台",
+          "priceText": "1 SC",
+          "availability": "出售 白团队块 时 总是有售"
+        },
+        {
+          "nameZh": "王朝木",
+          "nameEn": "王朝木",
+          "priceText": "50 CC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "红王朝瓦",
+          "nameEn": "红王朝瓦",
+          "priceText": "50 CC",
+          "availability": "出售 王朝木 时 总是有售"
+        },
+        {
+          "nameZh": "蓝王朝瓦",
+          "nameEn": "蓝王朝瓦",
+          "priceText": "50 CC",
+          "availability": "出售 王朝木 时 总是有售"
+        },
+        {
+          "nameZh": "精致餐具",
+          "nameEn": "精致餐具",
+          "priceText": "20 SC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "圣餐杯",
+          "nameEn": "圣餐杯",
+          "priceText": "50 SC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "斑马皮",
+          "nameEn": "斑马皮",
+          "priceText": "1 GC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "豹皮",
+          "nameEn": "豹皮",
+          "priceText": "1 GC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "虎皮",
+          "nameEn": "虎皮",
+          "priceText": "1 GC",
+          "availability": "‌"
+        },
+        {
+          "nameZh": "清酒",
+          "nameEn": "清酒",
+          "priceText": "5 SC",
+          "availability": "‌"
+        }
+      ],
+      "shopItemCount": 35,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Traveling_Merchant.png?f09d0a",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Traveling_Merchant.png?faebe8",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Traveling_Merchant_%28portrait%29.png/70px-Traveling_Merchant_%28portrait%29.png?f24c9d"
+      },
+      "fetchedAt": "2026-05-24T00:48:30.875517Z",
+      "error": null
+    },
+    {
+      "gameId": 369,
+      "internalName": "Angler",
+      "pageTitle": "渔夫",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Angler",
+      "pageId": 5454,
+      "revisionId": 245248,
+      "nameEn": "Angler",
+      "nameZh": "渔夫",
+      "functionSummary": "渔夫 是个有关于 钓鱼 的专门 NPC ，看起来是个小男孩。他不出售任何东西、但会给予玩家 任务 。任务目标通常涉及为他捕捉特定 生物群系 或 地层 中的 稀有鱼类 ，为此他会发放各种奖励。",
+      "moveInConditions": [
+        {
+          "text": "此外，在 电脑版 、 主机版 、和 移动版 上，他会随着玩家的进展得到 各种属性提升 [ 1 ] 。"
+        }
+      ],
+      "moveInSummary": "此外，在 电脑版 、 主机版 、和 移动版 上，他会随着玩家的进展得到 各种属性提升 [ 1 ] 。",
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [],
+      "shopItemCount": 0,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "海洋",
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "10 15 17 （ 寒霜飞鱼 ） [ 1 ]",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Angler.png?ce8e8c",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Angler.png?1f1ea1",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Angler_%28portrait%29.png/70px-Angler_%28portrait%29.png?40cf6d"
+      },
+      "fetchedAt": "2026-05-24T00:48:34.152154Z",
+      "error": null
+    },
+    {
+      "gameId": 441,
+      "internalName": "TaxCollector",
+      "pageTitle": "税收官",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Tax_Collector",
+      "pageId": 10297,
+      "revisionId": 248574,
+      "nameEn": "Tax Collector",
+      "nameZh": "税收官",
+      "functionSummary": "税收官 是个 困难模式 NPC ，他向其他入住 房屋 的 NPC 收税来为玩家赚取 钱币 。最初遇见时，他是 痛苦亡魂 （一个稀有 地狱 敌怪 ）。对其使用 净化粉 后，它会变成税收官。如果痛苦亡魂被杀死，它之后仍能重生；如果税收官 NPC 被杀死，只要有空余 房屋 ，他会在一段时间后再次入住。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 2,
+      "suggestedGamePeriodReason": "条件或说明中命中困难模式、机械 Boss、世纪之花等后期关键词。",
+      "shopItems": [],
+      "shopItemCount": 0,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "地狱",
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Tax_Collector.png?906fec",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Tax_Collector.png?e3116c",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Tax_Collector_%28portrait%29.png/70px-Tax_Collector_%28portrait%29.png?58b567"
+      },
+      "fetchedAt": "2026-05-24T00:48:37.419742Z",
+      "error": null
+    },
+    {
+      "gameId": 550,
+      "internalName": "DD2Bartender",
+      "pageTitle": "酒馆老板",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Tavernkeep",
+      "pageId": 15071,
+      "revisionId": 251943,
+      "nameEn": "Tavernkeep",
+      "nameZh": "酒馆老板",
+      "functionSummary": "酒馆老板 是个独特的商贩 NPC ，其大多数物品只接受 护卫奖章 作为货币，而非 钱币 。他只在玩家打败 世界吞噬怪 或 克苏鲁之脑 之后才能见到。一旦此条件满足，他会作为 昏迷男子 生成在世界的任何 地层 ，和处于此状态的他对话会使其醒来。如果昏迷男子被杀死，他之后仍能重生；如果酒馆老板 NPC 被杀死，只要有空余 房屋 ，他会在一段时间后再次入住。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [
+        {
+          "nameZh": "麦芽酒",
+          "nameEn": "麦芽酒",
+          "priceText": "1 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "永恒水晶",
+          "nameEn": "永恒水晶",
+          "priceText": "25 SC",
+          "availability": "打败任意 机械 Boss 之前。"
+        },
+        {
+          "nameZh": "永恒水晶",
+          "nameEn": "永恒水晶",
+          "priceText": "1 GC",
+          "availability": "打败了至少一个 机械 Boss 后且又尚未打败 石巨人 。"
+        },
+        {
+          "nameZh": "永恒水晶",
+          "nameEn": "永恒水晶",
+          "priceText": "4 GC",
+          "availability": "打败 石巨人 后。"
+        },
+        {
+          "nameZh": "永恒水晶座",
+          "nameEn": "永恒水晶座",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "护卫熔炉",
+          "nameEn": "护卫熔炉",
+          "priceText": "500000* 50",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "爆炸烈焰魔杖",
+          "nameEn": "爆炸烈焰魔杖",
+          "priceText": "50000* 5",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "爆炸烈焰手杖",
+          "nameEn": "爆炸烈焰手杖",
+          "priceText": "150000* 15",
+          "availability": "打败至少一个 机械 Boss 之后。"
+        },
+        {
+          "nameZh": "爆炸烈焰法杖",
+          "nameEn": "爆炸烈焰法杖",
+          "priceText": "600000* 60",
+          "availability": "打败 石巨人 后。"
+        },
+        {
+          "nameZh": "弩车魔杖",
+          "nameEn": "弩车魔杖",
+          "priceText": "50000* 5",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "弩车手杖",
+          "nameEn": "弩车手杖",
+          "priceText": "150000* 15",
+          "availability": "打败至少一个 机械 Boss 之后。"
+        },
+        {
+          "nameZh": "弩车法杖",
+          "nameEn": "弩车法杖",
+          "priceText": "600000* 60",
+          "availability": "打败 石巨人 后。"
+        },
+        {
+          "nameZh": "爆炸陷阱魔杖",
+          "nameEn": "爆炸陷阱魔杖",
+          "priceText": "50000* 5",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "爆炸陷阱手杖",
+          "nameEn": "爆炸陷阱手杖",
+          "priceText": "150000* 15",
+          "availability": "打败至少一个 机械 Boss 之后。"
+        },
+        {
+          "nameZh": "爆炸陷阱法杖",
+          "nameEn": "爆炸陷阱法杖",
+          "priceText": "600000* 60",
+          "availability": "打败 石巨人 后。"
+        },
+        {
+          "nameZh": "闪电光环魔杖",
+          "nameEn": "闪电光环魔杖",
+          "priceText": "50000* 5",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "闪电光环手杖",
+          "nameEn": "闪电光环手杖",
+          "priceText": "150000* 15",
+          "availability": "打败至少一个 机械 Boss 之后。"
+        },
+        {
+          "nameZh": "闪电光环法杖",
+          "nameEn": "闪电光环法杖",
+          "priceText": "600000* 60",
+          "availability": "打败 石巨人 后。"
+        }
+      ],
+      "shopItemCount": 18,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "24 36 42 （ 麦芽酒 ） [ 1 ]",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Tavernkeep.png?685c06",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Tavernkeep.png?c33f1d",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Tavernkeep_%28portrait%29.png/70px-Tavernkeep_%28portrait%29.png?2d1761"
+      },
+      "fetchedAt": "2026-05-24T00:48:40.883369Z",
+      "error": null
+    },
+    {
+      "gameId": 588,
+      "internalName": "Golfer",
+      "pageTitle": "高尔夫球手",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Golfer",
+      "pageId": 7998,
+      "revisionId": 250213,
+      "nameEn": "Golfer",
+      "nameZh": "高尔夫球手",
+      "functionSummary": "高尔夫球手 是一个 NPC 商贩，出售和 高尔夫 相关的物品。随着玩家打高尔夫的次数增多，会解锁更多物品，包括 高尔夫球杆 、 高尔夫奖杯 、和 绘画作品 。他初始生成于 地下沙漠 中，保持静止，与在此状态下的他对话会“解救”他。如果静止的高尔夫球手被杀死，他之后仍能重生；如果高尔夫球手 NPC 被杀死，只要有空余 房屋 ，他会在一段时间后再次入住。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [
+        {
+          "nameZh": "破旧高尔夫球杆（铁杆）",
+          "nameEn": "破旧高尔夫球杆（铁杆）",
+          "priceText": "10 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "破旧高尔夫球杆（木杆）",
+          "nameEn": "破旧高尔夫球杆（木杆）",
+          "priceText": "10 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "破旧高尔夫球杆（挖起杆）",
+          "nameEn": "破旧高尔夫球杆（挖起杆）",
+          "priceText": "10 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "破旧高尔夫球杆（推杆）",
+          "nameEn": "破旧高尔夫球杆（推杆）",
+          "priceText": "10 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "白三角旗",
+          "nameEn": "白三角旗",
+          "priceText": "20 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "红三角旗",
+          "nameEn": "红三角旗",
+          "priceText": "20 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "绿三角旗",
+          "nameEn": "绿三角旗",
+          "priceText": "20 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "蓝三角旗",
+          "nameEn": "蓝三角旗",
+          "priceText": "20 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "黄三角旗",
+          "nameEn": "黄三角旗",
+          "priceText": "20 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "紫三角旗",
+          "nameEn": "紫三角旗",
+          "priceText": "20 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "高尔夫球座",
+          "nameEn": "高尔夫球座",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "高尔夫球",
+          "nameEn": "高尔夫球",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "高尔夫口哨",
+          "nameEn": "高尔夫口哨",
+          "priceText": "10 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "高尔夫球洞",
+          "nameEn": "高尔夫球洞",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "箭头标牌",
+          "nameEn": "箭头标牌",
+          "priceText": "20 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "彩色箭头标牌",
+          "nameEn": "彩色箭头标牌",
+          "priceText": "20 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "乡村俱乐部帽",
+          "nameEn": "乡村俱乐部帽",
+          "priceText": "2 GC 50 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "乡村俱乐部帽舌",
+          "nameEn": "乡村俱乐部帽舌",
+          "priceText": "2 GC 50 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "乡村俱乐部背心",
+          "nameEn": "乡村俱乐部背心",
+          "priceText": "2 GC 50 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "乡村俱乐部长裤",
+          "nameEn": "乡村俱乐部长裤",
+          "priceText": "2 GC 50 SC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "割草机",
+          "nameEn": "割草机",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "高尔夫球车钥匙",
+          "nameEn": "高尔夫球车钥匙",
+          "priceText": "50 GC",
+          "availability": "高尔夫分数超过 2000、 骷髅王 被打败后"
+        },
+        {
+          "nameZh": "起伏的果岭",
+          "nameEn": "起伏的果岭",
+          "priceText": "1 GC",
+          "availability": "高尔夫分数超过 2000、在以下月相期间："
+        },
+        {
+          "nameZh": "静物球习作",
+          "nameEn": "静物球习作",
+          "priceText": "1 GC",
+          "availability": "高尔夫分数超过 2000、在以下月相期间："
+        },
+        {
+          "nameZh": "球来了！",
+          "nameEn": "球来了！",
+          "priceText": "1 GC",
+          "availability": "高尔夫分数超过 2000、在以下月相期间："
+        },
+        {
+          "nameZh": "映像的二重性",
+          "nameEn": "映像的二重性",
+          "priceText": "1 GC",
+          "availability": "高尔夫分数超过 2000、在以下月相期间："
+        },
+        {
+          "nameZh": "高尔夫球杆（铁杆）",
+          "nameEn": "高尔夫球杆（铁杆）",
+          "priceText": "1 GC",
+          "availability": "高尔夫分数超过 500"
+        },
+        {
+          "nameZh": "高尔夫球杆（木杆）",
+          "nameEn": "高尔夫球杆（木杆）",
+          "priceText": "1 GC",
+          "availability": "高尔夫分数超过 500"
+        },
+        {
+          "nameZh": "高尔夫球杆（挖起杆）",
+          "nameEn": "高尔夫球杆（挖起杆）",
+          "priceText": "1 GC",
+          "availability": "高尔夫分数超过 500"
+        },
+        {
+          "nameZh": "高尔夫球杆（推杆）",
+          "nameEn": "高尔夫球杆（推杆）",
+          "priceText": "1 GC",
+          "availability": "高尔夫分数超过 500"
+        },
+        {
+          "nameZh": "高尔夫箱",
+          "nameEn": "高尔夫箱",
+          "priceText": "3 GC",
+          "availability": "高尔夫分数超过 500"
+        },
+        {
+          "nameZh": "高尔夫铜奖杯",
+          "nameEn": "高尔夫铜奖杯",
+          "priceText": "1 GC",
+          "availability": "高尔夫分数超过 500"
+        },
+        {
+          "nameZh": "精致高尔夫球杆（铁杆）",
+          "nameEn": "精致高尔夫球杆（铁杆）",
+          "priceText": "10 GC",
+          "availability": "高尔夫分数超过 1000"
+        },
+        {
+          "nameZh": "精致高尔夫球杆（木杆）",
+          "nameEn": "精致高尔夫球杆（木杆）",
+          "priceText": "10 GC",
+          "availability": "高尔夫分数超过 1000"
+        },
+        {
+          "nameZh": "精致高尔夫球杆（挖起杆）",
+          "nameEn": "精致高尔夫球杆（挖起杆）",
+          "priceText": "10 GC",
+          "availability": "高尔夫分数超过 1000"
+        },
+        {
+          "nameZh": "精致高尔夫球杆（推杆）",
+          "nameEn": "精致高尔夫球杆（推杆）",
+          "priceText": "10 GC",
+          "availability": "高尔夫分数超过 1000"
+        },
+        {
+          "nameZh": "高尔夫银奖杯",
+          "nameEn": "高尔夫银奖杯",
+          "priceText": "1 GC",
+          "availability": "高尔夫分数超过 1000"
+        },
+        {
+          "nameZh": "高级高尔夫球杆（铁杆）",
+          "nameEn": "高级高尔夫球杆（铁杆）",
+          "priceText": "25 GC",
+          "availability": "高尔夫分数超过 2000"
+        },
+        {
+          "nameZh": "高级高尔夫球杆（木杆）",
+          "nameEn": "高级高尔夫球杆（木杆）",
+          "priceText": "25 GC",
+          "availability": "高尔夫分数超过 2000"
+        },
+        {
+          "nameZh": "高级高尔夫球杆（挖起杆）",
+          "nameEn": "高级高尔夫球杆（挖起杆）",
+          "priceText": "25 GC",
+          "availability": "高尔夫分数超过 2000"
+        },
+        {
+          "nameZh": "高级高尔夫球杆（推杆）",
+          "nameEn": "高级高尔夫球杆（推杆）",
+          "priceText": "25 GC",
+          "availability": "高尔夫分数超过 2000"
+        },
+        {
+          "nameZh": "高尔夫金奖杯",
+          "nameEn": "高尔夫金奖杯",
+          "priceText": "1 GC",
+          "availability": "高尔夫分数超过 2000"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 时。"
+        }
+      ],
+      "shopItemCount": 43,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Golfer.png?3be58a",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Golfer.png?c47064",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Golfer_%28portrait%29.png/70px-Golfer_%28portrait%29.png?26b263"
+      },
+      "fetchedAt": "2026-05-24T00:48:43.625617Z",
+      "error": null
+    },
+    {
+      "gameId": 633,
+      "internalName": "BestiaryGirl",
+      "pageTitle": "动物学家",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Zoologist",
+      "pageId": 18381,
+      "revisionId": 250212,
+      "nameEn": "Zoologist",
+      "nameZh": "动物学家",
+      "functionSummary": "动物学家 是个商贩 NPC ，出售的动物相关的物品和时装。在满足以下条件后她会入住：",
+      "moveInConditions": [
+        {
+          "text": "有一间空 房屋 。"
+        },
+        {
+          "text": "怪物图鉴 至少填充了 10%（55 个条目）。"
+        }
+      ],
+      "moveInSummary": "有一间空 房屋 。；怪物图鉴 至少填充了 10%（55 个条目）。",
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [
+        {
+          "nameZh": "小动物友谊指南",
+          "nameEn": "小动物友谊指南",
+          "priceText": "5 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "松鼠钩",
+          "nameEn": "松鼠钩",
+          "priceText": "2 GC",
+          "availability": "当怪物图鉴已填充至少 10%（55 个条目）。"
+        },
+        {
+          "nameZh": "辉夜姬",
+          "nameEn": "辉夜姬",
+          "priceText": "1 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "狼人",
+          "nameEn": "狼人（绘画作品）",
+          "priceText": "1 GC",
+          "availability": "在满月 期间的夜晚。"
+        },
+        {
+          "nameZh": "皮鞭",
+          "nameEn": "皮鞭",
+          "priceText": "10 GC",
+          "availability": "当怪物图鉴已填充至少 3%（17 个条目）。"
+        },
+        {
+          "nameZh": "贝壳哨",
+          "nameEn": "贝壳哨",
+          "priceText": "20 GC",
+          "availability": "当怪物图鉴已填充至少 25%（137 个条目）。"
+        },
+        {
+          "nameZh": "小动物香波",
+          "nameEn": "小动物香波",
+          "priceText": "10 GC",
+          "availability": "当怪物图鉴已填充至少 30%（164 个条目）。"
+        },
+        {
+          "nameZh": "狗耳朵",
+          "nameEn": "狗耳朵",
+          "priceText": "3 GC",
+          "availability": "以下月相期间："
+        },
+        {
+          "nameZh": "狗尾巴",
+          "nameEn": "狗尾巴",
+          "priceText": "3 GC",
+          "availability": "以下月相期间："
+        },
+        {
+          "nameZh": "狐狸耳朵",
+          "nameEn": "狐狸耳朵",
+          "priceText": "3 GC",
+          "availability": "以下月相期间："
+        },
+        {
+          "nameZh": "狐狸尾巴",
+          "nameEn": "狐狸尾巴",
+          "priceText": "3 GC",
+          "availability": "以下月相期间："
+        },
+        {
+          "nameZh": "蜥蜴耳朵",
+          "nameEn": "蜥蜴耳朵",
+          "priceText": "3 GC",
+          "availability": "以下月相期间："
+        },
+        {
+          "nameZh": "蜥蜴尾巴",
+          "nameEn": "蜥蜴尾巴",
+          "priceText": "3 GC",
+          "availability": "以下月相期间："
+        },
+        {
+          "nameZh": "兔兔耳朵",
+          "nameEn": "兔兔耳朵",
+          "priceText": "3 GC",
+          "availability": "以下月相期间："
+        },
+        {
+          "nameZh": "兔兔尾巴",
+          "nameEn": "兔兔尾巴",
+          "priceText": "3 GC",
+          "availability": "以下月相期间："
+        },
+        {
+          "nameZh": "满月尖叫玩具",
+          "nameEn": "满月尖叫玩具",
+          "priceText": "30 GC",
+          "availability": "在 困难模式 血月 期间"
+        },
+        {
+          "nameZh": "泥芽",
+          "nameEn": "泥芽",
+          "priceText": "50 GC",
+          "availability": "打败 世纪之花 后"
+        },
+        {
+          "nameZh": "猫咪许可证",
+          "nameEn": "猫咪许可证",
+          "priceText": "5 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "狗狗许可证",
+          "nameEn": "狗狗许可证",
+          "priceText": "5 GC",
+          "availability": "当怪物图鉴已填充至少 25%（137 个条目）。"
+        },
+        {
+          "nameZh": "兔兔许可证",
+          "nameEn": "兔兔许可证",
+          "priceText": "5 GC",
+          "availability": "当怪物图鉴已填充至少 45%（246 个条目）。"
+        },
+        {
+          "nameZh": "锦鲤风筝",
+          "nameEn": "锦鲤风筝",
+          "priceText": "2 GC",
+          "availability": "怪物图鉴已填充至少 10%（55 个条目）。"
+        },
+        {
+          "nameZh": "千足蜈蚣风筝",
+          "nameEn": "千足蜈蚣风筝",
+          "priceText": "2 GC",
+          "availability": "打败 日耀柱 后"
+        },
+        {
+          "nameZh": "万能晶塔",
+          "nameEn": "万能晶塔",
+          "priceText": "1 PC",
+          "availability": "怪物图鉴已完全填满（546 个条目）。"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 时。"
+        },
+        {
+          "nameZh": "蒙尘牛皮鞍",
+          "nameEn": "蒙尘牛皮鞍",
+          "priceText": "25 GC",
+          "availability": "怪物图鉴已填充至少 30%（164 个条目）。"
+        },
+        {
+          "nameZh": "皇家鎏金鞍",
+          "nameEn": "皇家鎏金鞍",
+          "priceText": "25 GC",
+          "availability": "怪物图鉴已填充至少 30%（164 个条目）。"
+        },
+        {
+          "nameZh": "黑铆钉鞍",
+          "nameEn": "黑铆钉鞍",
+          "priceText": "25 GC",
+          "availability": "怪物图鉴已填充至少 30%（164 个条目）。"
+        },
+        {
+          "nameZh": "樱花树苗",
+          "nameEn": "樱花树苗",
+          "priceText": "1 GC",
+          "availability": "怪物图鉴已填充至少30%（164 个条目）。"
+        },
+        {
+          "nameZh": "黄柳树苗",
+          "nameEn": "黄柳树苗",
+          "priceText": "1 GC",
+          "availability": "怪物图鉴已填充至少 30% (164 个条目)。"
+        },
+        {
+          "nameZh": "兔子头盔",
+          "nameEn": "兔子头盔",
+          "priceText": "15 GC",
+          "availability": "怪物图鉴已填充至少 40%（219 个条目）。"
+        },
+        {
+          "nameZh": "骑枪",
+          "nameEn": "骑枪",
+          "priceText": "6 GC",
+          "availability": "在 困难模式 中且怪物图鉴已填充至少 30%（219 个条目）。"
+        },
+        {
+          "nameZh": "仙灵荧光棒",
+          "nameEn": "仙灵荧光棒",
+          "priceText": "75 CC",
+          "availability": "一旦玩家在 怪物图鉴 中填上了全部三个 仙灵"
+        },
+        {
+          "nameZh": "世界球",
+          "nameEn": "世界球",
+          "priceText": "3 GC",
+          "availability": "怪物图鉴已填充至少 50% (273 个条目)。"
+        },
+        {
+          "nameZh": "月亮球",
+          "nameEn": "月亮球",
+          "priceText": "3 GC",
+          "availability": "当怪物图鉴已填充至少 50%（273 个条目）。"
+        },
+        {
+          "nameZh": "树球",
+          "nameEn": "树球",
+          "priceText": "3 GC",
+          "availability": "怪物图鉴已填充至少 50%（273 个条目）。"
+        },
+        {
+          "nameZh": "闪电胡萝卜",
+          "nameEn": "闪电胡萝卜",
+          "priceText": "50 GC",
+          "availability": "怪物图鉴已填充至少 50%（273 个条目）。"
+        },
+        {
+          "nameZh": "挖掘鼹鼠矿车",
+          "nameEn": "挖掘鼹鼠矿车",
+          "priceText": "50 GC",
+          "availability": "当怪物图鉴已填充至少 25%（137 个条目）。"
+        },
+        {
+          "nameZh": "保险丝球",
+          "nameEn": "保险丝球",
+          "priceText": "50 GC",
+          "availability": "怪物图鉴已填充至少 70%（383 个条目）。"
+        }
+      ],
+      "shopItemCount": 38,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "15 22 26 （Strike） [ 1 ]",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Zoologist.png?4f185b",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Zoologist.png?d236e4",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Zoologist_%28portrait%29.png/70px-Zoologist_%28portrait%29.png?b8d165"
+      },
+      "fetchedAt": "2026-05-24T00:48:46.641162Z",
+      "error": null
+    },
+    {
+      "gameId": 637,
+      "internalName": "TownCat",
+      "pageTitle": "城镇猫咪",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Cat",
+      "pageId": 8376,
+      "revisionId": 249522,
+      "nameEn": "Cat",
+      "nameZh": "城镇猫咪",
+      "functionSummary": "猫咪 是一种 城镇宠物 。在玩家使用从 动物学家 处以 5 GC 购买的 猫咪许可证 之后，它会在次日黎明（上午 4:30）入住。猫咪不会计入 NPC 的“拥挤”上限，因此也不会影响 NPC 快乐 ，不过它在 晶塔 网络中仍然算作一个普通的城镇 NPC。总共有六种品种的猫咪，入住时会随机选择一种。同一时间仅能存在一只城镇猫咪。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [],
+      "shopItemCount": 0,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Cat.gif?1fde52",
+        "mapIconImage": null,
+        "dialogPortraitImage": null
+      },
+      "fetchedAt": "2026-05-24T00:48:50.246449Z",
+      "error": null
+    },
+    {
+      "gameId": 638,
+      "internalName": "TownDog",
+      "pageTitle": "城镇狗狗",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Dog",
+      "pageId": 18950,
+      "revisionId": 251503,
+      "nameEn": "Dog",
+      "nameZh": "城镇狗狗",
+      "functionSummary": "狗狗 是一种 城镇宠物 。在玩家使用从 动物学家 处以 5 GC 购买的 狗狗许可证 之后，它会在次日黎明（上午 4:30）入住。狗狗不会计入 NPC 的“拥挤”上限，因此也不会影响 NPC 快乐 ，不过它在 晶塔 网络中仍然算作一个普通的城镇 NPC。总共有六种品种的狗狗，入住时会随机选择一种。同一时间仅能存在一只城镇狗狗。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [],
+      "shopItemCount": 0,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Dog.gif?9507cc",
+        "mapIconImage": null,
+        "dialogPortraitImage": null
+      },
+      "fetchedAt": "2026-05-24T00:48:52.887887Z",
+      "error": null
+    },
+    {
+      "gameId": 656,
+      "internalName": "TownBunny",
+      "pageTitle": "兔兔",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Bunny",
+      "pageId": 13909,
+      "revisionId": 234515,
+      "nameEn": "Bunny",
+      "nameZh": "兔兔",
+      "functionSummary": "兔兔 是一种无害 小动物 ，会在 森林 生物群系 中生成。它们是《泰拉瑞亚》中最常见的小动物，通常是新玩家见到的第一种小动物。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [],
+      "shopItemCount": 0,
+      "wikiDetails": {
+        "types": [
+          "制作材料"
+        ],
+        "environments": [],
+        "aiType": null,
+        "damage": null,
+        "lifeMax": null,
+        "defense": null,
+        "knockBackResist": null,
+        "sounds": [
+          "类型",
+          "环境",
+          "AI 类型",
+          "伤害",
+          "最大生命值",
+          "防御",
+          "击退 抗性",
+          "敌怪旗"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Bunny.gif?e3efe5",
+        "mapIconImage": null,
+        "dialogPortraitImage": null
+      },
+      "fetchedAt": "2026-05-24T00:49:00.771310Z",
+      "error": null
+    },
+    {
+      "gameId": 663,
+      "internalName": "Princess",
+      "pageTitle": "公主",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Princess",
+      "pageId": 7537,
+      "revisionId": 250220,
+      "nameEn": "Princess",
+      "nameZh": "公主",
+      "functionSummary": "公主 是个商贩 NPC ，一旦满足以下条件就会生成： [ 1 ]",
+      "moveInConditions": [
+        {
+          "text": "有一间空 房屋 。"
+        },
+        {
+          "text": "所有其他城镇 NPC（不包括 圣诞老人 或 城镇宠物 ）都已在场，这意味着她只能在打败 世纪之花 后才能生成，因为那时候 机器侠 NPC 才会入住。"
+        }
+      ],
+      "moveInSummary": "有一间空 房屋 。；所有其他城镇 NPC（不包括 圣诞老人 或 城镇宠物 ）都已在场，这意味着她只能在打败 世纪之花 后才能生成，因为那时候 机器侠 NPC 才会入住。",
+      "suggestedGamePeriodId": 2,
+      "suggestedGamePeriodReason": "条件或说明中命中困难模式、机械 Boss、世纪之花等后期关键词。",
+      "shopItems": [
+        {
+          "nameZh": "皇家头冠",
+          "nameEn": "皇家头冠",
+          "priceText": "50 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "皇家女衫",
+          "nameEn": "皇家女衫",
+          "priceText": "50 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "皇家礼服裙",
+          "nameEn": "皇家礼服裙",
+          "priceText": "50 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "皇家权杖",
+          "nameEn": "皇家权杖",
+          "priceText": "1 PC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "水晶鞋",
+          "nameEn": "水晶鞋",
+          "priceText": "1 PC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "王子制服",
+          "nameEn": "王子制服",
+          "priceText": "50 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "王子裤",
+          "nameEn": "王子裤",
+          "priceText": "50 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "王子披风",
+          "nameEn": "王子披风",
+          "priceText": "50 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "盆栽水晶蕨",
+          "nameEn": "盆栽水晶蕨",
+          "priceText": "10 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "盆栽水晶螺旋",
+          "nameEn": "盆栽水晶螺旋",
+          "priceText": "10 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "盆栽水晶泪滴",
+          "nameEn": "盆栽水晶泪滴",
+          "priceText": "10 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "盆栽水晶树",
+          "nameEn": "盆栽水晶树",
+          "priceText": "10 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "公主64",
+          "nameEn": "公主64",
+          "priceText": "10 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "少女画像",
+          "nameEn": "少女画像",
+          "priceText": "10 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "神圣之地的黑暗面",
+          "nameEn": "神圣之地的黑暗面",
+          "priceText": "10 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "公主风",
+          "nameEn": "公主风",
+          "priceText": "10 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "可疑闪光",
+          "nameEn": "可疑闪光",
+          "priceText": "10 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "泰拉刃纪事",
+          "nameEn": "泰拉刃纪事",
+          "priceText": "10 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "伯尼的钮扣",
+          "nameEn": "伯尼的钮扣",
+          "priceText": "25 GC",
+          "availability": "一直有售。"
+        },
+        {
+          "nameZh": "皇家浪漫",
+          "nameEn": "皇家浪漫",
+          "priceText": "10 GC",
+          "availability": "当 史莱姆王 和 史莱姆皇后 都被击败后。"
+        },
+        {
+          "nameZh": "八音盒（旅程结束）",
+          "nameEn": "八音盒（旅程结束）",
+          "priceText": "10 GC",
+          "availability": "月亮领主 已被打败且世界是在 困难模式 中。"
+        },
+        {
+          "nameZh": "史莱姆法杖",
+          "nameEn": "史莱姆法杖",
+          "priceText": "10 GC",
+          "availability": "在 Celebrationmk10 (电脑版、主机版、和移动版) 世界中。"
+        },
+        {
+          "nameZh": "红心灯笼",
+          "nameEn": "红心灯笼",
+          "priceText": "7 GC 50 SC",
+          "availability": "在 Celebrationmk10 (电脑版、主机版、和移动版) 世界中。"
+        },
+        {
+          "nameZh": "派对药剂",
+          "nameEn": "派对药剂",
+          "priceText": "15 SC",
+          "availability": "在 Celebrationmk10 (电脑版、主机版、和移动版) 世界中。"
+        },
+        {
+          "nameZh": "沙暴瓶",
+          "nameEn": "沙暴瓶",
+          "priceText": "5 GC",
+          "availability": "在 Celebrationmk10 (电脑版、主机版、和移动版) 世界中，在 沙漠 内与其交谈。"
+        },
+        {
+          "nameZh": "泰拉魔刃",
+          "nameEn": "泰拉魔刃",
+          "priceText": "25 GC",
+          "availability": "在 Celebrationmk10 (电脑版、主机版、和移动版) 世界中， 血月 期间。"
+        },
+        {
+          "nameZh": "海盗法杖",
+          "nameEn": "海盗法杖",
+          "priceText": "5 GC",
+          "availability": "在 Celebrationmk10 (电脑版、主机版、和移动版) 世界中， 困难模式 中， 海盗入侵 已被打败，且在以下 月相 期间： 。"
+        },
+        {
+          "nameZh": "优惠卡",
+          "nameEn": "优惠卡",
+          "priceText": "5 GC",
+          "availability": "在 Celebrationmk10 (电脑版、主机版、和移动版) 世界中， 困难模式 中， 海盗入侵 已被打败，且在以下 月相 期间： 。"
+        },
+        {
+          "nameZh": "幸运币",
+          "nameEn": "幸运币",
+          "priceText": "5 GC",
+          "availability": "在 Celebrationmk10 (电脑版、主机版、和移动版) 世界中， 困难模式 中， 海盗入侵 已被打败，且在以下 月相 期间： 。"
+        },
+        {
+          "nameZh": "钱币枪",
+          "nameEn": "钱币枪",
+          "priceText": "30 GC",
+          "availability": "在 Celebrationmk10 (电脑版、主机版、和移动版) 世界中， 困难模式 中， 海盗入侵 已被打败，且在以下 月相 期间： 。"
+        },
+        {
+          "nameZh": "任何晶塔",
+          "nameEn": "任何晶塔",
+          "priceText": "10 GC",
+          "availability": "当在特定 生物群系 时。"
+        }
+      ],
+      "shopItemCount": 31,
+      "wikiDetails": {
+        "types": [
+          "NPC"
+        ],
+        "environments": [
+          "有效的房屋"
+        ],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Princess.png?552d12",
+        "mapIconImage": "https://terraria.wiki.gg/images/Map_Icon_Princess.png?408e31",
+        "dialogPortraitImage": "https://terraria.wiki.gg/images/thumb/Princess_%28portrait%29.png/70px-Princess_%28portrait%29.png?5efe1f"
+      },
+      "fetchedAt": "2026-05-24T00:49:03.857867Z",
+      "error": null
+    },
+    {
+      "gameId": 670,
+      "internalName": "TownSlimeBlue",
+      "pageTitle": "城镇史莱姆",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Nerdy_Slime",
+      "pageId": 26266,
+      "revisionId": 252457,
+      "nameEn": "Nerdy Slime",
+      "nameZh": "城镇史莱姆",
+      "functionSummary": "城镇史莱姆 是一类 城镇宠物 。目前共有 8 种不同的城镇史莱姆；与 城镇兔兔 、 城镇猫咪 、和 城镇狗狗 不同，各种各样的城镇史莱姆可以同时存在，每种史莱姆有着不同的入住条件。和大部分其他 NPC 一样，这一条件仅需达成一次；若城镇史莱姆被杀死，它们会自行重生。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [],
+      "shopItemCount": 0,
+      "wikiDetails": {
+        "types": [
+          "NPC",
+          "史莱姆"
+        ],
+        "environments": [],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
+        "mapIconImage": null,
+        "dialogPortraitImage": null
+      },
+      "fetchedAt": "2026-05-24T00:49:10.782923Z",
+      "error": null
+    },
+    {
+      "gameId": 678,
+      "internalName": "TownSlimeGreen",
+      "pageTitle": "城镇史莱姆",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Cool_Slime",
+      "pageId": 26266,
+      "revisionId": 252457,
+      "nameEn": "Cool Slime",
+      "nameZh": "城镇史莱姆",
+      "functionSummary": "城镇史莱姆 是一类 城镇宠物 。目前共有 8 种不同的城镇史莱姆；与 城镇兔兔 、 城镇猫咪 、和 城镇狗狗 不同，各种各样的城镇史莱姆可以同时存在，每种史莱姆有着不同的入住条件。和大部分其他 NPC 一样，这一条件仅需达成一次；若城镇史莱姆被杀死，它们会自行重生。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [],
+      "shopItemCount": 0,
+      "wikiDetails": {
+        "types": [
+          "NPC",
+          "史莱姆"
+        ],
+        "environments": [],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
+        "mapIconImage": null,
+        "dialogPortraitImage": null
+      },
+      "fetchedAt": "2026-05-24T00:49:13.769447Z",
+      "error": null
+    },
+    {
+      "gameId": 679,
+      "internalName": "TownSlimeOld",
+      "pageTitle": "城镇史莱姆",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Elder_Slime",
+      "pageId": 26266,
+      "revisionId": 252457,
+      "nameEn": "Elder Slime",
+      "nameZh": "城镇史莱姆",
+      "functionSummary": "城镇史莱姆 是一类 城镇宠物 。目前共有 8 种不同的城镇史莱姆；与 城镇兔兔 、 城镇猫咪 、和 城镇狗狗 不同，各种各样的城镇史莱姆可以同时存在，每种史莱姆有着不同的入住条件。和大部分其他 NPC 一样，这一条件仅需达成一次；若城镇史莱姆被杀死，它们会自行重生。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [],
+      "shopItemCount": 0,
+      "wikiDetails": {
+        "types": [
+          "NPC",
+          "史莱姆"
+        ],
+        "environments": [],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
+        "mapIconImage": null,
+        "dialogPortraitImage": null
+      },
+      "fetchedAt": "2026-05-24T00:49:16.751388Z",
+      "error": null
+    },
+    {
+      "gameId": 680,
+      "internalName": "TownSlimePurple",
+      "pageTitle": "城镇史莱姆",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Clumsy_Slime",
+      "pageId": 26266,
+      "revisionId": 252457,
+      "nameEn": "Clumsy Slime",
+      "nameZh": "城镇史莱姆",
+      "functionSummary": "城镇史莱姆 是一类 城镇宠物 。目前共有 8 种不同的城镇史莱姆；与 城镇兔兔 、 城镇猫咪 、和 城镇狗狗 不同，各种各样的城镇史莱姆可以同时存在，每种史莱姆有着不同的入住条件。和大部分其他 NPC 一样，这一条件仅需达成一次；若城镇史莱姆被杀死，它们会自行重生。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [],
+      "shopItemCount": 0,
+      "wikiDetails": {
+        "types": [
+          "NPC",
+          "史莱姆"
+        ],
+        "environments": [],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
+        "mapIconImage": null,
+        "dialogPortraitImage": null
+      },
+      "fetchedAt": "2026-05-24T00:49:20.333746Z",
+      "error": null
+    },
+    {
+      "gameId": 681,
+      "internalName": "TownSlimeRainbow",
+      "pageTitle": "城镇史莱姆",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Diva_Slime",
+      "pageId": 26266,
+      "revisionId": 252457,
+      "nameEn": "Diva Slime",
+      "nameZh": "城镇史莱姆",
+      "functionSummary": "城镇史莱姆 是一类 城镇宠物 。目前共有 8 种不同的城镇史莱姆；与 城镇兔兔 、 城镇猫咪 、和 城镇狗狗 不同，各种各样的城镇史莱姆可以同时存在，每种史莱姆有着不同的入住条件。和大部分其他 NPC 一样，这一条件仅需达成一次；若城镇史莱姆被杀死，它们会自行重生。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [],
+      "shopItemCount": 0,
+      "wikiDetails": {
+        "types": [
+          "NPC",
+          "史莱姆"
+        ],
+        "environments": [],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
+        "mapIconImage": null,
+        "dialogPortraitImage": null
+      },
+      "fetchedAt": "2026-05-24T00:49:23.520573Z",
+      "error": null
+    },
+    {
+      "gameId": 682,
+      "internalName": "TownSlimeRed",
+      "pageTitle": "城镇史莱姆",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Surly_Slime",
+      "pageId": 26266,
+      "revisionId": 252457,
+      "nameEn": "Surly Slime",
+      "nameZh": "城镇史莱姆",
+      "functionSummary": "城镇史莱姆 是一类 城镇宠物 。目前共有 8 种不同的城镇史莱姆；与 城镇兔兔 、 城镇猫咪 、和 城镇狗狗 不同，各种各样的城镇史莱姆可以同时存在，每种史莱姆有着不同的入住条件。和大部分其他 NPC 一样，这一条件仅需达成一次；若城镇史莱姆被杀死，它们会自行重生。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [],
+      "shopItemCount": 0,
+      "wikiDetails": {
+        "types": [
+          "NPC",
+          "史莱姆"
+        ],
+        "environments": [],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
+        "mapIconImage": null,
+        "dialogPortraitImage": null
+      },
+      "fetchedAt": "2026-05-24T00:49:27.530773Z",
+      "error": null
+    },
+    {
+      "gameId": 683,
+      "internalName": "TownSlimeYellow",
+      "pageTitle": "城镇史莱姆",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Mystic_Slime",
+      "pageId": 26266,
+      "revisionId": 252457,
+      "nameEn": "Mystic Slime",
+      "nameZh": "城镇史莱姆",
+      "functionSummary": "城镇史莱姆 是一类 城镇宠物 。目前共有 8 种不同的城镇史莱姆；与 城镇兔兔 、 城镇猫咪 、和 城镇狗狗 不同，各种各样的城镇史莱姆可以同时存在，每种史莱姆有着不同的入住条件。和大部分其他 NPC 一样，这一条件仅需达成一次；若城镇史莱姆被杀死，它们会自行重生。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [],
+      "shopItemCount": 0,
+      "wikiDetails": {
+        "types": [
+          "NPC",
+          "史莱姆"
+        ],
+        "environments": [],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
+        "mapIconImage": null,
+        "dialogPortraitImage": null
+      },
+      "fetchedAt": "2026-05-24T00:49:30.633669Z",
+      "error": null
+    },
+    {
+      "gameId": 684,
+      "internalName": "TownSlimeCopper",
+      "pageTitle": "城镇史莱姆",
+      "pageUrl": "https://terraria.wiki.gg/zh/wiki/Squire_Slime",
+      "pageId": 26266,
+      "revisionId": 252457,
+      "nameEn": "Squire Slime",
+      "nameZh": "城镇史莱姆",
+      "functionSummary": "城镇史莱姆 是一类 城镇宠物 。目前共有 8 种不同的城镇史莱姆；与 城镇兔兔 、 城镇猫咪 、和 城镇狗狗 不同，各种各样的城镇史莱姆可以同时存在，每种史莱姆有着不同的入住条件。和大部分其他 NPC 一样，这一条件仅需达成一次；若城镇史莱姆被杀死，它们会自行重生。",
+      "moveInConditions": [],
+      "moveInSummary": null,
+      "suggestedGamePeriodId": 1,
+      "suggestedGamePeriodReason": "未命中困难模式关键词，默认归为前期或困难模式前可出现的城镇 NPC。",
+      "shopItems": [],
+      "shopItemCount": 0,
+      "wikiDetails": {
+        "types": [
+          "NPC",
+          "史莱姆"
+        ],
+        "environments": [],
+        "aiType": "被动 AI",
+        "damage": "10",
+        "lifeMax": "250",
+        "defense": "15",
+        "knockBackResist": "50%",
+        "sounds": [
+          "受伤害",
+          "被击杀"
+        ],
+        "spriteImage": "https://terraria.wiki.gg/images/Town_Slimes.gif?3fc6bf",
+        "mapIconImage": null,
+        "dialogPortraitImage": null
+      },
+      "fetchedAt": "2026-05-24T00:49:33.950523Z",
+      "error": null
+    }
+  ]
+}

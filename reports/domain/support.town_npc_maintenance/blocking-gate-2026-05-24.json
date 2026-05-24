@@ -1,0 +1,58 @@
+{
+  "generatedAt": "2026-05-24T00:50:38.654Z",
+  "domainId": "support.town_npc_maintenance",
+  "panelId": "blockingGate",
+  "status": "pass",
+  "reportPath": "reports/domain/support.town_npc_maintenance/blocking-gate-2026-05-24.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 3,
+    "requiredEvidenceCount": 0,
+    "optionalEvidenceCount": 3,
+    "presentEvidenceCount": 3,
+    "missingEvidenceCount": 0,
+    "blockedCount": 0,
+    "warningCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "reports_wiki_town_npc_maintenancelatest_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/wiki-town-npc-maintenance-2026-05-24.json",
+      "latestReportPath": "reports/wiki-town-npc-maintenance-2026-05-24.json",
+      "recordCount": 39,
+      "status": "pass",
+      "message": "Blocking gate counters are clean in reports/wiki-town-npc-maintenance-2026-05-24.json: errorCount=0"
+    },
+    {
+      "id": "data_query_app_pages_entities_town_npcs_index_vue",
+      "type": "text",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data-query-app/pages/entities/town-npcs/index.vue",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "Evidence present: data-query-app/pages/entities/town-npcs/index.vue"
+    },
+    {
+      "id": "back_src_main_java_com_terraria_skills_controller_AdminTownNpcMaintenanceController_java",
+      "type": "text",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "back/src/main/java/com/terraria/skills/controller/AdminTownNpcMaintenanceController.java",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "Evidence present: back/src/main/java/com/terraria/skills/controller/AdminTownNpcMaintenanceController.java"
+    }
+  ]
+}
