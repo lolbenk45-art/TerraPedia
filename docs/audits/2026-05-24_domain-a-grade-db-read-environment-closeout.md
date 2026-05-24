@@ -81,3 +81,9 @@ Read-only searches did not find a local `terria_v1_maint` SQL or dump file under
 - Next branch: `fix/domain-a-grade-db-read-environment-2026-05-24` remains blocked until an operator provides or restores readable `terria_v1_maint`.
 - Blocker: `terria_v1_maint` is not present on the configured MySQL instance at `127.0.0.1:13306`.
 - Required operator action: provide a readable `terria_v1_maint` database or approve a separate restore/import task. This controller plan must not synthesize an empty maint database, copy tables from other DBs, run crawlers, or perform DB writes.
+
+## Follow-Up Update
+
+The operator provided a Windows MySQL source, and `terria_v1_maint` was restored into the WSL local MySQL instance on 2026-05-24.
+
+See `docs/audits/2026-05-24_terria-v1-maint-windows-restore.md`.
