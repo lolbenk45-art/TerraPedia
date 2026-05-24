@@ -58,6 +58,67 @@
       </div>
     </section>
 
+    <section class="source-progress-panel" aria-label="Source snapshot live progress">
+      <div class="source-progress-panel__head">
+        <div>
+          <h2 class="section-card__title">源快照实时进度</h2>
+          <p class="section-card__subtitle">Boss / Armor sets / Shimmer / Town NPC 的 canonical progress 文件；页面只读取状态，不触发爬取。</p>
+        </div>
+        <div class="source-progress-panel__meta">
+          <span class="status-pill" :class="liveSourceSnapshotActive ? 'info' : 'muted'">
+            {{ liveSourceSnapshotActive ? 'live refresh' : 'idle' }}
+          </span>
+          <span>刷新 {{ formatDate(lastOverviewRefreshAt) }}</span>
+          <code>{{ overview?.repoRoot || '--' }}</code>
+        </div>
+      </div>
+
+      <div v-if="sourceSnapshotRows.length" class="source-progress-grid">
+        <article
+          v-for="row in sourceSnapshotRows"
+          :key="`source-${row.rowKey}`"
+          class="source-progress-row"
+          :class="`source-progress-row--${statusTone(rowStatus(row))}`"
+        >
+          <div class="source-progress-row__main">
+            <div class="source-progress-row__title">
+              <strong>{{ row.label || row.id || 'unknown source task' }}</strong>
+              <span class="status-pill" :class="statusTone(rowStatus(row))">{{ rowStatus(row) || 'unknown' }}</span>
+            </div>
+            <p>{{ row.queueState || row.action?.message || row.progressStaleReason || 'No progress message yet.' }}</p>
+            <div class="progress-track">
+              <span :style="{ width: rowProgress(row) }" :class="statusTone(rowStatus(row))" />
+            </div>
+          </div>
+          <div class="source-progress-row__metrics">
+            <span>
+              <small>Progress</small>
+              <strong>{{ rowProgressLabel(row) }}</strong>
+            </span>
+            <span>
+              <small>Heartbeat</small>
+              <strong>{{ rowHeartbeatLabel(row) }}</strong>
+            </span>
+            <span>
+              <small>Pending</small>
+              <strong>{{ rowPendingLabel(row) }}</strong>
+            </span>
+          </div>
+          <div class="source-progress-row__paths">
+            <code v-if="row.progressSource || row.progressPath">{{ row.progressSource || row.progressPath }}</code>
+            <code v-if="row.outputPath">{{ row.outputPath }}</code>
+            <code v-if="row.reportPath">{{ row.reportPath }}</code>
+          </div>
+          <p v-if="row.progressStaleReason" class="source-progress-row__warning">{{ row.progressStaleReason }}</p>
+        </article>
+      </div>
+
+      <div v-else class="empty-block empty-block--compact">
+        <Activity :size="20" />
+        <span>未收到源快照 registered task。先检查后端 repoRoot 和 CrawlerMonitorServiceImpl 注册项。</span>
+      </div>
+    </section>
+
     <section class="operations-grid" aria-label="Crawler operation snapshot">
       <article class="ops-card ops-card--primary">
         <div class="ops-card__head">
@@ -530,7 +591,12 @@ import {
 } from 'lucide-vue-next'
 import { get } from '~/composables/useApi'
 import { showToast } from '~/composables/useToast'
-import { progressRowsFromOverview, rowStatus } from '~/utils/crawlerMonitorProgressRows.mjs'
+import {
+  hasLiveSourceSnapshotProgress,
+  progressRowsFromOverview,
+  rowStatus,
+  sourceSnapshotRowsFromOverview,
+} from '~/utils/crawlerMonitorProgressRows.mjs'
 import type {
   CrawlerMonitorAction,
   CrawlerMonitorArchitectureFile,
@@ -565,6 +631,7 @@ const selectedReportPath = ref<string | null>(null)
 const reportPreview = ref<CrawlerMonitorReportDetail | null>(null)
 const reportPreviewLoading = ref(false)
 const reportPreviewError = ref('')
+const lastOverviewRefreshAt = ref<string | null>(null)
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 
 const daemon = computed(() => overview.value?.daemon || null)
@@ -578,6 +645,9 @@ const recentReports = computed<CrawlerMonitorReport[]>(() => Array.isArray(overv
 const architectureLayers = computed<CrawlerMonitorArchitectureLayer[]>(() => Array.isArray(overview.value?.architectureLayers) ? overview.value!.architectureLayers! : [])
 const registeredTasks = computed<CrawlerMonitorRegisteredTask[]>(() => Array.isArray(overview.value?.registeredTasks) ? overview.value!.registeredTasks! : [])
 const progressRows = computed<ProgressRow[]>(() => progressRowsFromOverview(overview.value))
+const sourceSnapshotRows = computed<ProgressRow[]>(() => sourceSnapshotRowsFromOverview(overview.value))
+const liveSourceSnapshotActive = computed(() => hasLiveSourceSnapshotProgress(overview.value))
+const activeRefreshIntervalMs = computed(() => liveSourceSnapshotActive.value ? 3000 : 10000)
 const refreshStale = computed(() => Boolean(overview.value?.refreshStale))
 const latestRunStatus = computed(() => {
   if (!latestRun.value.found) return 'missing'
@@ -785,11 +855,16 @@ watch(autoRefresh, () => {
   syncAutoRefresh()
 })
 
+watch(activeRefreshIntervalMs, () => {
+  syncAutoRefresh()
+})
+
 async function loadOverview() {
   loading.value = true
   try {
     const response: any = await get('/admin/crawler-monitor/overview')
     overview.value = (response?.data ?? response) || null
+    lastOverviewRefreshAt.value = new Date().toISOString()
   } catch (error: any) {
     console.error('Failed to load crawler monitor overview:', error)
     showToast(error?.data?.message || error?.message || '加载爬取监控失败', 'error')
@@ -837,7 +912,7 @@ function syncAutoRefresh() {
     if (!loading.value) {
       loadOverview()
     }
-  }, 10000)
+  }, activeRefreshIntervalMs.value)
 }
 
 function clearRefreshTimer() {
@@ -918,7 +993,7 @@ function statusTone(status?: string | null) {
   if (['completed', 'success', 'ok', 'readable', 'free'].includes(normalized)) return 'success'
   if (['failed', 'error', 'missing', 'read error', 'blocked'].includes(normalized)) return 'danger'
   if (['running', 'active'].includes(normalized)) return 'info'
-  if (['pending', 'sleeping', 'locked', 'queued', 'warning'].includes(normalized)) return 'warning'
+  if (['pending', 'sleeping', 'locked', 'queued', 'stalled', 'warning'].includes(normalized)) return 'warning'
   return 'muted'
 }
 
@@ -1310,6 +1385,153 @@ function shortArgs(args?: string[]) {
   margin-top: 6px;
   color: #92400e;
   overflow-wrap: anywhere;
+}
+
+.source-progress-panel {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 82%, var(--color-bg));
+}
+
+.source-progress-panel__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.source-progress-panel__head > div {
+  min-width: 0;
+}
+
+.source-progress-panel__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.source-progress-panel__meta code {
+  max-width: min(520px, 100%);
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.source-progress-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.source-progress-row {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--color-border) 86%, transparent);
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: var(--color-bg);
+}
+
+.source-progress-row--success {
+  border-left-color: #16a34a;
+}
+
+.source-progress-row--danger {
+  border-left-color: #dc2626;
+}
+
+.source-progress-row--warning {
+  border-left-color: #d97706;
+}
+
+.source-progress-row--info {
+  border-left-color: #0284c7;
+}
+
+.source-progress-row--muted {
+  border-left-color: #94a3b8;
+}
+
+.source-progress-row__main {
+  min-width: 0;
+}
+
+.source-progress-row__title,
+.source-progress-row__metrics,
+.source-progress-row__paths {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  min-width: 0;
+}
+
+.source-progress-row__title {
+  justify-content: space-between;
+}
+
+.source-progress-row__title strong {
+  min-width: 0;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.source-progress-row__main p,
+.source-progress-row__warning {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.source-progress-row__main .progress-track {
+  margin-top: 10px;
+}
+
+.source-progress-row__warning {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.source-progress-row__metrics span {
+  min-width: 96px;
+}
+
+.source-progress-row__metrics small {
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.source-progress-row__metrics strong {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.source-progress-row__paths code {
+  max-width: 100%;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .operations-grid {
@@ -2170,6 +2392,20 @@ function shortArgs(args?: string[]) {
   }
 
   .monitor-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 980px) {
+  .source-progress-panel__head {
+    display: grid;
+  }
+
+  .source-progress-panel__meta {
+    justify-content: flex-start;
+  }
+
+  .source-progress-grid {
     grid-template-columns: 1fr;
   }
 }

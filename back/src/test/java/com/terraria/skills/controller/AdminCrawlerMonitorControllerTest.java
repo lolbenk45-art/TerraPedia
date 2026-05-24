@@ -83,6 +83,29 @@ class AdminCrawlerMonitorControllerTest {
         itemRefresh.setProgressKind("live");
         itemRefresh.setProgressHeartbeatAt("2026-05-15T03:20:00Z");
 
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO domainSourceBosses = new CrawlerMonitorOverviewDTO.RegisteredTaskDTO();
+        domainSourceBosses.setId("domain-source-bosses");
+        domainSourceBosses.setLabel("Domain source: Bosses");
+        domainSourceBosses.setStatus("running");
+        domainSourceBosses.setProgressKind("live");
+        domainSourceBosses.setDataStage("wiki domain source pages -> generated source snapshot");
+        domainSourceBosses.setQueueState("fetched boss source snapshots 7/14");
+        domainSourceBosses.setCurrent(7L);
+        domainSourceBosses.setTotal(14L);
+        domainSourceBosses.setOverallCurrent(7L);
+        domainSourceBosses.setOverallTotal(14L);
+        domainSourceBosses.setPercent(50.0d);
+        domainSourceBosses.setProgressPath("data/generated/domain-source-bosses-progress.latest.json");
+        domainSourceBosses.setProgressSource("data/generated/domain-source-bosses-progress.latest.json");
+        domainSourceBosses.setProgressFound(true);
+        domainSourceBosses.setProgressReadable(true);
+        domainSourceBosses.setProgressHeartbeatAt("2026-05-24T01:00:00Z");
+        domainSourceBosses.setProgressHeartbeatAgeMs(300_000L);
+        domainSourceBosses.setProgressStale(false);
+        domainSourceBosses.setOutputPath("data/generated/wiki-bosses.latest.json");
+        domainSourceBosses.setReportPath("reports/domain/domain-source-bosses-2026-05-24.json");
+        domainSourceBosses.setNextStep("Review boss source snapshot evidence.");
+
         CrawlerMonitorOverviewDTO.MonitorReportDTO recentReport = new CrawlerMonitorOverviewDTO.MonitorReportDTO();
         recentReport.setName("TEST-com.terraria.skills.CrawlerMonitorServiceImplTest.xml");
         recentReport.setPath("back/target/surefire-reports/TEST-com.terraria.skills.CrawlerMonitorServiceImplTest.xml");
@@ -134,7 +157,7 @@ class AdminCrawlerMonitorControllerTest {
         overview.setRecentReports(List.of(recentReport));
         overview.setArchitectureLayers(List.of(architectureLayer));
         overview.setImageNormalization(imageNormalization);
-        overview.setRegisteredTasks(List.of(itemRefresh));
+        overview.setRegisteredTasks(List.of(itemRefresh, domainSourceBosses));
 
         when(crawlerMonitorService.getOverview()).thenReturn(overview);
 
@@ -156,7 +179,25 @@ class AdminCrawlerMonitorControllerTest {
             .andExpect(jsonPath("$.data.imageNormalization.projectileWikiOnlyCount").value(1))
             .andExpect(jsonPath("$.data.imageNormalization.legacyExemptionCount").value(0))
             .andExpect(jsonPath("$.data.registeredTasks[0].progressKind").value("live"))
-            .andExpect(jsonPath("$.data.registeredTasks[0].percent").value(43.0));
+            .andExpect(jsonPath("$.data.registeredTasks[0].percent").value(43.0))
+            .andExpect(jsonPath("$.data.registeredTasks[1].id").value("domain-source-bosses"))
+            .andExpect(jsonPath("$.data.registeredTasks[1].status").value("running"))
+            .andExpect(jsonPath("$.data.registeredTasks[1].progressKind").value("live"))
+            .andExpect(jsonPath("$.data.registeredTasks[1].dataStage").value("wiki domain source pages -> generated source snapshot"))
+            .andExpect(jsonPath("$.data.registeredTasks[1].queueState").value("fetched boss source snapshots 7/14"))
+            .andExpect(jsonPath("$.data.registeredTasks[1].current").value(7))
+            .andExpect(jsonPath("$.data.registeredTasks[1].total").value(14))
+            .andExpect(jsonPath("$.data.registeredTasks[1].overallCurrent").value(7))
+            .andExpect(jsonPath("$.data.registeredTasks[1].overallTotal").value(14))
+            .andExpect(jsonPath("$.data.registeredTasks[1].percent").value(50.0))
+            .andExpect(jsonPath("$.data.registeredTasks[1].progressPath").value("data/generated/domain-source-bosses-progress.latest.json"))
+            .andExpect(jsonPath("$.data.registeredTasks[1].progressSource").value("data/generated/domain-source-bosses-progress.latest.json"))
+            .andExpect(jsonPath("$.data.registeredTasks[1].progressHeartbeatAt").value("2026-05-24T01:00:00Z"))
+            .andExpect(jsonPath("$.data.registeredTasks[1].progressHeartbeatAgeMs").value(300_000))
+            .andExpect(jsonPath("$.data.registeredTasks[1].progressStale").value(false))
+            .andExpect(jsonPath("$.data.registeredTasks[1].outputPath").value("data/generated/wiki-bosses.latest.json"))
+            .andExpect(jsonPath("$.data.registeredTasks[1].reportPath").value("reports/domain/domain-source-bosses-2026-05-24.json"))
+            .andExpect(jsonPath("$.data.registeredTasks[1].nextStep").value("Review boss source snapshot evidence."));
 
         verify(crawlerMonitorService).getOverview();
     }
