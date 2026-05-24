@@ -222,6 +222,81 @@ const attachScreenshotToFailures = (fromIndex, screenshotPath) => {
   }
 }
 
+const routeLocation = (route) => {
+  const url = new URL(route, 'http://terrapedia.local')
+  return {
+    path: url.pathname,
+    search: url.search,
+    pathWithSearch: `${url.pathname}${url.search}`,
+  }
+}
+
+const waitForRouteVisualReady = async (browser, routeConfig, viewportName) => {
+  const expectedLocation = routeLocation(routeConfig.route)
+  const ready = await evaluateJson(browser, `(() => new Promise((resolve) => {
+    const startedAt = Date.now();
+    const expectedPath = ${JSON.stringify(expectedLocation.path)};
+    const expectedSearch = ${JSON.stringify(expectedLocation.search)};
+    const visible = (element) => {
+      if (!element) return false;
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return style.display !== 'none'
+        && style.visibility !== 'hidden'
+        && Number(style.opacity) > 0.05
+        && rect.width > 1
+        && rect.height > 1;
+    };
+    const tick = () => {
+      const body = document.body;
+      const hasVisibleHeading = [...document.querySelectorAll('h1')].some(visible);
+      const hasVisibleNav = visible(document.querySelector('.site-nav'));
+      const hasBodySize = Boolean(body && body.scrollWidth > 1 && body.scrollHeight > 1);
+      const isTargetRoute = location.pathname === expectedPath && location.search === expectedSearch;
+
+      if (document.readyState !== 'loading' && isTargetRoute && hasBodySize && hasVisibleHeading) {
+        resolve({ ready: true });
+        return;
+      }
+
+      if (Date.now() - startedAt > 3000) {
+        resolve({
+          ready: false,
+          readyState: document.readyState,
+          hasBodySize,
+          hasVisibleNav,
+          hasVisibleHeading,
+          isTargetRoute,
+          actualPath: location.pathname,
+          actualSearch: location.search,
+          expectedPath,
+          expectedSearch,
+          h1Count: document.querySelectorAll('h1').length,
+        });
+        return;
+      }
+
+      setTimeout(tick, 100);
+    };
+    tick();
+  }))()`, {
+    route: routeConfig.route,
+    family: routeConfig.family,
+    viewport: viewportName,
+    label: 'route visual readiness wait',
+  })
+
+  if (ready && !ready.ready) {
+    recordWarning(`${routeConfig.route}: ${viewportName} route visual readiness wait timed out`, {
+      route: routeConfig.route,
+      family: routeConfig.family,
+      viewport: viewportName,
+      assertion: 'route visual readiness wait',
+      details: ready,
+    })
+  }
+}
+
 const evaluateJson = async (browser, expression, context) => {
   let result
   try {
@@ -270,6 +345,7 @@ const navigateAndAudit = async (browser, routeConfig, viewportName) => {
 
     await browser.send('Page.navigate', { url: `${baseUrl}${routeConfig.route}` })
     await sleep(650)
+    await waitForRouteVisualReady(browser, routeConfig, viewportName)
 
     if (routeConfig.route === '/items') {
       const hydrated = await waitForItemsHydration(browser)
@@ -898,6 +974,12 @@ const assertGenericRoute = (routeConfig, viewportName, value) => {
   const route = routeConfig.route
   const prefix = `${route}: ${viewportName}`
   const blockedImageSources = value.blockedImageSources || []
+  const expectedLocation = routeLocation(route)
+  const actualPathWithSearch = `${value.path}${value.search}`
+
+  if (actualPathWithSearch !== expectedLocation.pathWithSearch) {
+    failures.push(`${prefix} audited unexpected route: expected ${expectedLocation.pathWithSearch}, got ${actualPathWithSearch}`)
+  }
 
   if (value.scrollWidth > value.clientWidth + 2 || value.bodyScrollWidth > value.clientWidth + 2) {
     failures.push(`${prefix} page overflows horizontally: document=${value.scrollWidth}, body=${value.bodyScrollWidth}, viewport=${value.clientWidth}`)
