@@ -50,6 +50,82 @@ test('item page plan passes explicit only-changed=false to fetch action', () => 
     assert.ok(!plan.actions[0].args.includes('--only-changed=true'));
 });
 
+test('item page plan passes sample options to fetch action', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-sync-sample-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const manifestPath = path.join(tempDir, 'manifest.json');
+    const monitorStatePath = path.join(tempDir, 'monitor-state.json');
+    const planPath = path.join(tempDir, 'plan.json');
+    const progressPath = path.join(tempDir, 'progress.json');
+
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    fs.writeFileSync(manifestPath, JSON.stringify({ records: [] }), 'utf8');
+    fs.writeFileSync(monitorStatePath, JSON.stringify({ sources: [{ key: 'seed' }] }), 'utf8');
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      '--mode=plan',
+      '--entity=item_pages',
+      '--sample-size=7',
+      '--sample-seed=smoke-a',
+      '--only-changed=false',
+      `--manifest-path=${manifestPath}`,
+      `--monitor-state=${monitorStatePath}`,
+      `--plan-path=${planPath}`,
+      `--progress-path=${progressPath}`
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const plan = JSON.parse(fs.readFileSync(planPath, 'utf8'));
+    assert.equal(plan.actions.length, 1);
+    assert.ok(plan.actions[0].args.includes('--sample-size=7'));
+    assert.ok(plan.actions[0].args.includes('--sample-seed=smoke-a'));
+    assert.ok(plan.actions[0].args.includes('--only-changed=false'));
+    assert.ok(plan.actions[0].args.includes('--limit=100'));
+});
+
+test('item page plan rejects sample sizes above the crawler smoke cap', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-sync-sample-cap-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const manifestPath = path.join(tempDir, 'manifest.json');
+    const monitorStatePath = path.join(tempDir, 'monitor-state.json');
+    const planPath = path.join(tempDir, 'plan.json');
+    const progressPath = path.join(tempDir, 'progress.json');
+
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    fs.writeFileSync(manifestPath, JSON.stringify({ records: [] }), 'utf8');
+    fs.writeFileSync(monitorStatePath, JSON.stringify({ sources: [{ key: 'seed' }] }), 'utf8');
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      '--mode=plan',
+      '--entity=item_pages',
+      '--sample-size=101',
+      '--sample-seed=too-large',
+      `--manifest-path=${manifestPath}`,
+      `--monitor-state=${monitorStatePath}`,
+      `--plan-path=${planPath}`,
+      `--progress-path=${progressPath}`
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+      }
+    });
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /sample-size.*100/i);
+});
+
 test('default wiki sync progress path follows WORKTREE_ROOT when progress path is omitted', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-wiki-sync-worktree-'));
     const worktreeRoot = path.join(tempDir, 'feature-worktree');

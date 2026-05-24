@@ -152,10 +152,19 @@ const ENTITY_CONFIG = {
       if (typeof options.items === 'string' && options.items.trim() !== '') {
         args.push(`--items=${options.items.trim()}`);
       }
+      const sampleSize = normalizeSampleSizeOption(options['sample-size'] ?? options.sampleSize);
+      if (sampleSize != null) {
+        args.push(`--sample-size=${sampleSize}`);
+        if (typeof options['sample-seed'] === 'string' && options['sample-seed'].trim() !== '') {
+          args.push(`--sample-seed=${options['sample-seed'].trim()}`);
+        } else if (typeof options.sampleSeed === 'string' && options.sampleSeed.trim() !== '') {
+          args.push(`--sample-seed=${options.sampleSeed.trim()}`);
+        }
+      }
       return args;
     },
     latestJsonPath: null,
-    estimatedRequests: Math.max(1, Math.min(100, numericOption(parseCliArgs(process.argv.slice(2))['page-limit'], 100))) * 2
+    estimatedRequests: estimateItemPageRequests(parseCliArgs(process.argv.slice(2)))
   },
   zh: {
     entityFamily: 'zh',
@@ -538,16 +547,18 @@ function resolveRequestedEntities(rawOptions) {
 function buildItemPageAction(config, rawOptions) {
   const limit = Math.max(1, Math.min(100, numericOption(rawOptions['page-limit'] ?? rawOptions.limit, 100)));
   const hasItemsFilter = typeof rawOptions.items === 'string' && rawOptions.items.trim() !== '';
+  const sampleSize = normalizeSampleSizeOption(rawOptions['sample-size'] ?? rawOptions.sampleSize);
+  const hasSample = sampleSize != null;
   const allowFullCorpus = booleanOption(rawOptions['allow-full-corpus'] ?? rawOptions.allowFullCorpus, false);
-  if (!allowFullCorpus && !hasItemsFilter && limit > 100) {
-    throw new Error('item_pages planning requires --items or --page-limit <= 100');
+  if (!allowFullCorpus && !hasItemsFilter && !hasSample && limit > 100) {
+    throw new Error('item_pages planning requires --items, --sample-size, or --page-limit <= 100');
   }
   return {
     id: `${config.entityFamily}-refresh`,
     entityFamily: config.entityFamily,
     type: 'run_script',
-    reason: hasItemsFilter ? 'manual_item_selection' : 'manual_shard_refresh',
-    estimatedRequests: config.estimatedRequests,
+    reason: hasItemsFilter ? 'manual_item_selection' : hasSample ? 'manual_sample_smoke' : 'manual_shard_refresh',
+    estimatedRequests: estimateItemPageRequests(rawOptions),
     command: process.execPath,
     args: [config.scriptPath, ...config.scriptArgs(rawOptions)],
     sourceKeys: config.sourceKeys,
@@ -831,4 +842,23 @@ function booleanOption(value, fallback) {
     return false;
   }
   return fallback;
+}
+
+function normalizeSampleSizeOption(value) {
+  const parsed = numericOption(value, null);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+  const normalized = Math.floor(parsed);
+  if (normalized > 100) {
+    throw new Error('--sample-size must be 100 or lower for item page sampled smoke crawls.');
+  }
+  return normalized;
+}
+
+function estimateItemPageRequests(rawOptions) {
+  const sampleSize = normalizeSampleSizeOption(rawOptions['sample-size'] ?? rawOptions.sampleSize);
+  const limit = Math.max(1, Math.min(100, numericOption(rawOptions['page-limit'] ?? rawOptions.limit, 100)));
+  const selectedCount = sampleSize != null ? Math.min(sampleSize, limit) : limit;
+  return selectedCount * 2;
 }
