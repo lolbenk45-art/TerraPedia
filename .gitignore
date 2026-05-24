@@ -72,6 +72,7 @@ scripts/tooling/image-2/xlab.json
 scripts/tooling/image-2/generated/
 credentials.json
 credentials.local.json
+gittoken.json
 back/src/main/resources/application-*-local.yml
 
 # PowerShell cache accidentally created under docs
