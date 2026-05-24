@@ -4,7 +4,22 @@ Date: 2026-05-24
 
 ## Scope
 
-Task 5 was intended to run a fresh read-only relation coverage baseline:
+Task 3 generated a fresh read-only relation coverage baseline against the restored WSL three-database environment.
+
+No crawler, import, backfill, schema creation, or DB write command was run in this task.
+
+## Environment
+
+The local stack config points database reads at `127.0.0.1:13306`.
+
+The relation baseline command required `data-query-app/node_modules` in this task worktree because `scripts/data/relation/entity-coverage-baseline.mjs` resolves `mysql2` from `data-query-app/package.json`. The dependency install was local ignored workspace state only:
+
+```bash
+cd data-query-app
+pnpm install --frozen-lockfile
+```
+
+## Commands
 
 ```bash
 node scripts/data/relation/entity-coverage-baseline.mjs \
@@ -13,41 +28,78 @@ node scripts/data/relation/entity-coverage-baseline.mjs \
   --relation-database=terria_v1_relation
 ```
 
-No DB writes, imports, backfills, applies, restores, or schema creation were run.
+```bash
+node scripts/data/workflow/domain-acceptance-generate-reports.mjs \
+  --repo-root="$(pwd)" \
+  --write=true
+```
 
-## Prerequisite Result
+```bash
+node scripts/data/workflow/domain-acceptance-a-grade-gate.mjs \
+  --repo-root="$(pwd)" \
+  --fail-on-blocked=true \
+  > /tmp/terrapedia-domain-a-grade-projectile-relation.json
+```
 
-Task 3 classified the DB read environment as incomplete:
+## Generated Evidence
 
-- `terria_v1_local`: present
-- `terria_v1_maint`: missing
-- `terria_v1_relation`: present
+- `reports/relation/entity-coverage-baseline-2026-05-24.json`
+- `reports/relation/entity-coverage-baseline-2026-05-24.md`
+- regenerated `reports/domain/**/2026-05-24.json` domain report set
 
-The plan requires a complete readable three-database environment before closing projectile relation coverage evidence.
+The relation baseline evidence is explicitly allowlisted by `.gitignore`:
 
-## Classification
+- `.gitignore:48:!reports/relation/*.json`
+- `.gitignore:47:!reports/relation/*.md`
 
-Task 5 is blocked by missing `terria_v1_maint`.
+## Projectile Coverage Result
 
-The projectile relation-readiness gate remains blocked by the last committed relation baseline:
+Fresh projectile totals:
 
-- current panel: `reports/domain/projectiles/relation-readiness-2026-05-24.json`
-- current blocker: `reports/relation/entity-coverage-baseline-2026-04-25.json: projectiles relation field gaps: nameZh.gap=1006`
+| Source | Count |
+| --- | ---: |
+| local projectiles | 1111 |
+| maint projectiles | 1111 |
+| relation projectiles | 1111 |
 
-Because the maint DB prerequisite is missing, this task did not attempt to repair relation rows or weaken the gate.
+Fresh projectile semantic coverage:
+
+| Field | Local coverage | Relation coverage | Gap |
+| --- | ---: | ---: | ---: |
+| `nameZh` | 1006 | 1006 | 0 |
+| `image` | 0 | 1110 | 0 |
+
+The old `nameZh.gap=1006` blocker came from stale evidence in `reports/relation/entity-coverage-baseline-2026-04-25.json`.
+
+Current projectile relation readiness:
+
+- status: `warning`
+- blocking reasons: none
+- warning reason: missing optional evidence `reports/projectile-zh-image-backfill*.json`
+
+## A-Grade Gate Result
+
+The focused A-grade gate exited `0`.
+
+Summary:
+
+- `overallStatus=warning`
+- `summary.generatedBlockedCount=0`
+- `summary.generatedWarningCount=18`
+- `summary.generatedPassCount=27`
+- `summary.freshCount=45`
+- `summary.staleCount=0`
+- `summary.missingCount=0`
+- `summary.unknownCount=0`
+
+No generated panels are blocked after this task.
 
 ## Next Required Work
 
-Open a separate DB read-environment repair branch, restore or provide readable `terria_v1_maint`, then rerun:
+Continue with:
 
-```bash
-node scripts/data/relation/entity-coverage-baseline.mjs \
-  --local-database=terria_v1_local \
-  --maint-database=terria_v1_maint \
-  --relation-database=terria_v1_relation
-node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync('reports/relation/entity-coverage-baseline-2026-05-24.json','utf8')); console.log(JSON.stringify(j.fieldAudit?.domains?.projectiles,null,2));"
-node scripts/data/workflow/domain-acceptance-generate-reports.mjs --repo-root="$(pwd)" --write=true
-node scripts/data/workflow/domain-acceptance-a-grade-gate.mjs --repo-root="$(pwd)" --fail-on-blocked=true
+```text
+fix/domain-a-grade-closeout-2026-05-24
 ```
 
-If `nameZh.gap > 0`, open a dedicated projectile zh relation repair branch. Do not weaken the gate.
+That branch should run the final freshness audit and A-grade gate closeout. Warnings remain and must be recorded as preview/release-decision risks, but the previous generated blocker loop is clear.

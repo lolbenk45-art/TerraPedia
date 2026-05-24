@@ -24,7 +24,7 @@ The local full gate remains `scripts/dev/quality-gate.ps1`.
 As of 2026-05-24:
 
 - Domain freshness is current: `freshCount=45`, `missingCount=0`, `staleCount=0`, `unknownCount=0`.
-- Domain A-grade remains blocked after Boss image lineage reclassification: `summary.generatedBlockedCount=1`, `summary.generatedWarningCount=17`.
+- Domain A-grade generated blockers are clear after projectile relation reclassification: `summary.generatedBlockedCount=0`, `summary.generatedWarningCount=18`, `overallStatus=warning`.
 - Public V0.1 must be described as a preview surface, not final A-grade release readiness.
 
 ## Data Chain Boundary
@@ -38,7 +38,7 @@ The V0.1 Nuxt public preview now exposes public pages for Items, NPCs, Bosses, B
 
 This preview surface does not override Domain Acceptance. Current public-blocking policy: missing or unknown evidence blocks. `public-blocking stale` is warning by default; only explicit `accepted-warning` may continue to readiness-only evaluation, and stale evidence cannot make a domain route-ready.
 
-The 2026-05-24 remaining-blocker repair closed the four Group B source snapshot blockers with durable gate-consumed evidence. Task 1 of the preview closeout loop initially found only `terria_v1_local` and `terria_v1_relation`, then the operator provided the Windows MySQL source and `terria_v1_maint` was restored into WSL `127.0.0.1:13306`. Task 2 generated Boss image lineage evidence and reclassified `bosses/imageReadiness` from blocked to warning; the warning is a real contract gap (`missing_relation_image_rows`, `missing_projection_rows`) but no longer blocks on missing evidence. The remaining A-grade blocker is `projectiles/relationReadiness`. A blocker is cleared only when the gate-consumed evidence is durable across machines; local-only ignored evidence is classification support, not closure.
+The 2026-05-24 remaining-blocker repair closed the four Group B source snapshot blockers with durable gate-consumed evidence. Task 1 of the preview closeout loop initially found only `terria_v1_local` and `terria_v1_relation`, then the operator provided the Windows MySQL source and `terria_v1_maint` was restored into WSL `127.0.0.1:13306`. Task 2 generated Boss image lineage evidence and reclassified `bosses/imageReadiness` from blocked to warning; the warning is a real contract gap (`missing_relation_image_rows`, `missing_projection_rows`) but no longer blocks on missing evidence. Task 3 regenerated relation coverage and reclassified `projectiles/relationReadiness` from blocked to warning; the old `nameZh.gap=1006` was stale evidence, and fresh `projectiles.nameZh.gap=0`. A blocker is cleared only when the gate-consumed evidence is durable across machines; local-only ignored evidence is classification support, not closure.
 
 ## Monitor Boundary
 
@@ -56,7 +56,7 @@ P2 UI work is allowed only after the P0 blocker triage and burn-down path is und
 
 ## Next Actions
 
-- Continue the preview closeout loop with projectile relation coverage evidence now that `terria_v1_maint` is readable in WSL.
+- Continue the preview closeout loop with the final Domain A-grade freshness and gate closeout.
 - Decide whether to push local `main` to `origin/main`; local `main` is ahead of remote after the V0.1 preview merge.
 - Add an automatic NPC zh-name gate in the next data-quality iteration. Current evidence shows `npc-id-row-images.json` can contain Chinese names while `npcs.name_zh` may still regress to empty if a write path skips zh persistence. Add a DB/API coverage check so this fails before UI review.
 - Run staging or preview-origin smoke before any external release claim.
