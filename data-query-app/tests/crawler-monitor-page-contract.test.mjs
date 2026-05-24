@@ -18,6 +18,10 @@ const registeredTasksOnlyFixture = {
   registeredTasks: [
     { id: 'item-pages-refresh', status: 'running', progressKind: 'live', progressSource: 'data/generated/wiki-sync-progress.latest.json' },
     { id: 'buff-page-immunity-refresh', status: 'stalled', progressKind: 'stalled', progressStaleReason: 'running progress heartbeat is older than 10 minutes' },
+    { id: 'domain-source-bosses', status: 'running', progressKind: 'live', progressSource: 'data/generated/domain-source-bosses-progress.latest.json', outputPath: 'data/generated/wiki-bosses.latest.json' },
+    { id: 'domain-source-armor-sets', status: 'missing', progressKind: 'missing', progressPath: 'data/generated/domain-source-armor-sets-progress.latest.json', outputPath: 'data/generated/wiki-armor-sets.latest.json' },
+    { id: 'domain-source-shimmer', status: 'missing', progressKind: 'missing', progressPath: 'data/generated/domain-source-shimmer-progress.latest.json', outputPath: 'data/generated/shimmer/wiki-shimmer-manifest.latest.json' },
+    { id: 'domain-source-town-npc-maintenance', status: 'missing', progressKind: 'missing', progressPath: 'data/generated/domain-source-town-npc-maintenance-progress.latest.json', outputPath: 'data/generated/wiki-town-npc-maintenance.latest.json' },
     { id: 'npc-coverage-boss', status: 'missing', progressKind: 'missing' },
     { id: 'relation-health', status: 'completed', progressKind: 'report-only', reportPath: 'reports/relation/relation-health.json' },
   ],
@@ -48,25 +52,57 @@ test('crawler monitor has a fixture path for registered tasks without latestRun 
   assert.equal(registeredTasksOnlyFixture.latestRun.actions.length, 0)
   assert.deepEqual(
     registeredTasksOnlyFixture.registeredTasks.map((task) => task.id),
-    ['item-pages-refresh', 'buff-page-immunity-refresh', 'npc-coverage-boss', 'relation-health']
+    [
+      'item-pages-refresh',
+      'buff-page-immunity-refresh',
+      'domain-source-bosses',
+      'domain-source-armor-sets',
+      'domain-source-shimmer',
+      'domain-source-town-npc-maintenance',
+      'npc-coverage-boss',
+      'relation-health',
+    ]
   )
   assert.deepEqual(
     registeredTasksOnlyFixture.registeredTasks.map((task) => task.progressKind),
-    ['live', 'stalled', 'missing', 'report-only']
+    ['live', 'stalled', 'live', 'missing', 'missing', 'missing', 'missing', 'report-only']
   )
 })
 
 test('crawler monitor derives rows directly from registered task progress', () => {
   const rows = progressRowsFromOverview(registeredTasksOnlyFixture)
 
-  assert.equal(rows.length, 4)
+  assert.equal(rows.length, 8)
   assert.deepEqual(
     rows.map((row) => row.id),
-    ['buff-page-immunity-refresh', 'item-pages-refresh', 'npc-coverage-boss', 'relation-health']
+    [
+      'buff-page-immunity-refresh',
+      'item-pages-refresh',
+      'domain-source-bosses',
+      'domain-source-armor-sets',
+      'domain-source-shimmer',
+      'domain-source-town-npc-maintenance',
+      'npc-coverage-boss',
+      'relation-health',
+    ]
   )
   assert.deepEqual(
     rows.map((row) => rowStatus(row)),
-    ['stalled', 'running', 'missing', 'report-only']
+    ['stalled', 'running', 'running', 'missing', 'missing', 'missing', 'missing', 'report-only']
+  )
+})
+
+test('crawler monitor registered task fixture keeps domain source snapshots visible', () => {
+  assert.deepEqual(
+    registeredTasksOnlyFixture.registeredTasks
+      .filter((task) => task.id.startsWith('domain-source-'))
+      .map((task) => [task.id, task.progressPath || task.progressSource, task.outputPath]),
+    [
+      ['domain-source-bosses', 'data/generated/domain-source-bosses-progress.latest.json', 'data/generated/wiki-bosses.latest.json'],
+      ['domain-source-armor-sets', 'data/generated/domain-source-armor-sets-progress.latest.json', 'data/generated/wiki-armor-sets.latest.json'],
+      ['domain-source-shimmer', 'data/generated/domain-source-shimmer-progress.latest.json', 'data/generated/shimmer/wiki-shimmer-manifest.latest.json'],
+      ['domain-source-town-npc-maintenance', 'data/generated/domain-source-town-npc-maintenance-progress.latest.json', 'data/generated/wiki-town-npc-maintenance.latest.json'],
+    ]
   )
 })
 
@@ -123,4 +159,8 @@ test('crawler monitor typecheck covers live and stalled registered task progress
   assert.match(typecheck, /progressKind:\s*'stalled'/)
   assert.match(typecheck, /progressStaleReason/)
   assert.match(typecheck, /progressSource/)
+  assert.match(typecheck, /domain-source-bosses/)
+  assert.match(typecheck, /domain-source-armor-sets/)
+  assert.match(typecheck, /domain-source-shimmer/)
+  assert.match(typecheck, /domain-source-town-npc-maintenance/)
 })

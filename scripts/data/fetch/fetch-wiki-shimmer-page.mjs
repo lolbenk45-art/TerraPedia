@@ -10,48 +10,175 @@ import {
   parseCliArgs,
   writeJson
 } from '../lib/wiki-item-utils.mjs';
+import { getProjectRoot } from '../lib/project-root.mjs';
+import {
+  buildActionProgressPayload,
+  writeJsonFile
+} from '../workflow/backend-refresh-runtime-state.mjs';
 
-const repoRoot = process.cwd();
-const options = parseCliArgs(process.argv.slice(2));
-const generatedAt = new Date().toISOString();
-const dateTag = generatedAt.slice(0, 10);
-const pageTitle = options.page ?? '\u5fae\u5149';
-const apiUrl = options.api ?? DEFAULT_WIKI_API_URL.replace('/api.php', '/zh/api.php');
-const outputPath = path.resolve(options.output ?? path.join(repoRoot, 'data', 'generated', 'wiki-shimmer.latest.json'));
-const reportPath = path.resolve(options['report-output'] ?? path.join(repoRoot, 'reports', `wiki-shimmer-summary-${dateTag}.md`));
+const repoRoot = getProjectRoot();
+const ACTION_ID = 'domain-source-shimmer';
+const DEFAULT_PROGRESS_PATH = path.join(repoRoot, 'data', 'generated', 'domain-source-shimmer-progress.latest.json');
+const DEFAULT_OUTPUT_PATH = path.join(repoRoot, 'data', 'generated', 'wiki-shimmer.latest.json');
 
-const revision = await fetchRevision(pageTitle, apiUrl);
-const sections = await fetchSections(pageTitle, apiUrl);
-const html = await fetchRenderedHtml(pageTitle, apiUrl);
+await main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
 
-const payload = {
-  entity: 'wiki_shimmer_page',
-  generatedAt,
-  sourceApi: apiUrl,
-  requestedPageTitle: pageTitle,
-  pageTitle: revision.pageTitle,
-  pageId: revision.pageId,
-  revisionId: revision.revisionId,
-  revisionTimestamp: revision.revisionTimestamp,
-  fetchedAt: generatedAt,
-  sections,
-  wikitext: revision.wikitext,
-  html
-};
+async function main(argv = process.argv.slice(2)) {
+  const options = parseCliArgs(argv);
+  const generatedAt = new Date().toISOString();
+  const dateTag = generatedAt.slice(0, 10);
+  const pageTitle = options.page ?? '\u5fae\u5149';
+  const apiUrl = options.api ?? DEFAULT_WIKI_API_URL.replace('/api.php', '/zh/api.php');
+  const outputPath = path.resolve(options.output ?? DEFAULT_OUTPUT_PATH);
+  const reportPath = path.resolve(options['report-output'] ?? path.join(repoRoot, 'reports', `wiki-shimmer-summary-${dateTag}.md`));
+  const progressPath = path.resolve(options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_PROGRESS_PATH);
+  const canonicalProgressPath = path.resolve(DEFAULT_PROGRESS_PATH);
 
-writeJson(outputPath, payload);
-ensureDir(path.dirname(reportPath));
-fs.writeFileSync(reportPath, buildMarkdown(payload), 'utf8');
+  const writeProgress = (progress) => {
+    const progressPayload = {
+      startedAt: generatedAt,
+      outputPath,
+      reportPath,
+      ...progress,
+      generatedAt: progress.generatedAt ?? new Date().toISOString()
+    };
+    writeJsonFile(progressPath, buildShimmerProgressPayload({
+      ...progressPayload,
+      progressPath
+    }));
+    if (shouldMirrorProgressPath(progressPath, canonicalProgressPath)) {
+      writeJsonFile(canonicalProgressPath, buildShimmerProgressPayload({
+        ...progressPayload,
+        progressPath: canonicalProgressPath
+      }));
+    }
+  };
 
-console.log(JSON.stringify({
+  writeProgress({
+    status: 'running',
+    phase: 'start',
+    message: 'starting shimmer source fetch',
+    current: 0,
+    total: 3
+  });
+
+  try {
+    const revision = await fetchRevision(pageTitle, apiUrl);
+    writeProgress({
+      status: 'running',
+      phase: 'revision',
+      message: `fetched shimmer revision for ${revision.pageTitle}`,
+      current: 1,
+      total: 3
+    });
+    const sections = await fetchSections(pageTitle, apiUrl);
+    writeProgress({
+      status: 'running',
+      phase: 'sections',
+      message: `fetched shimmer sections for ${pageTitle}`,
+      current: 2,
+      total: 3
+    });
+    const html = await fetchRenderedHtml(pageTitle, apiUrl);
+    writeProgress({
+      status: 'running',
+      phase: 'html',
+      message: `fetched shimmer rendered HTML for ${pageTitle}`,
+      current: 3,
+      total: 3
+    });
+
+    const payload = {
+      entity: 'wiki_shimmer_page',
+      generatedAt,
+      sourceApi: apiUrl,
+      requestedPageTitle: pageTitle,
+      pageTitle: revision.pageTitle,
+      pageId: revision.pageId,
+      revisionId: revision.revisionId,
+      revisionTimestamp: revision.revisionTimestamp,
+      fetchedAt: generatedAt,
+      sections,
+      wikitext: revision.wikitext,
+      html
+    };
+
+    writeJson(outputPath, payload);
+    ensureDir(path.dirname(reportPath));
+    fs.writeFileSync(reportPath, buildMarkdown(payload), 'utf8');
+
+    writeProgress({
+      status: 'completed',
+      phase: 'write',
+      message: `finished shimmer source fetch; sections=${payload.sections.length}`,
+      current: 3,
+      total: 3
+    });
+
+    console.log(JSON.stringify({
+      outputPath,
+      reportPath,
+      pageTitle: payload.pageTitle,
+      pageId: payload.pageId,
+      revisionTimestamp: payload.revisionTimestamp,
+      sectionCount: payload.sections.length,
+      htmlLength: payload.html.length
+    }, null, 2));
+  } catch (error) {
+    writeProgress({
+      status: 'failed',
+      phase: 'error',
+      message: error instanceof Error ? error.message : String(error),
+      current: 0,
+      total: 3,
+      nextStep: 'check wiki shimmer page source availability'
+    });
+    throw error;
+  }
+}
+
+function buildShimmerProgressPayload({
+  status,
+  phase,
+  message,
+  current,
+  total,
+  startedAt,
+  progressPath,
   outputPath,
   reportPath,
-  pageTitle: payload.pageTitle,
-  pageId: payload.pageId,
-  revisionTimestamp: payload.revisionTimestamp,
-  sectionCount: payload.sections.length,
-  htmlLength: payload.html.length
-}, null, 2));
+  nextStep = null,
+  generatedAt = new Date().toISOString()
+} = {}) {
+  const payload = buildActionProgressPayload({
+    actionId: ACTION_ID,
+    status,
+    phase,
+    message,
+    current,
+    total,
+    startedAt,
+    overallCurrent: current,
+    overallTotal: total,
+    generatedAt,
+    lastHeartbeatAt: generatedAt,
+    childStatusPath: progressPath
+  });
+  payload.outputPath = outputPath ?? null;
+  payload.reportPath = reportPath ?? null;
+  if (nextStep) payload.nextStep = nextStep;
+  return payload;
+}
+
+function shouldMirrorProgressPath(progressPath, canonicalProgressPath) {
+  if (path.resolve(progressPath) === path.resolve(canonicalProgressPath)) {
+    return false;
+  }
+  return process.env.NODE_ENV !== 'test' || Boolean(process.env.WORKTREE_ROOT);
+}
 
 async function fetchRevision(title, wikiApiUrl) {
   const url = new URL(wikiApiUrl);

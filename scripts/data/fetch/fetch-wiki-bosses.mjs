@@ -5,16 +5,17 @@ import path from 'node:path';
 
 import { fetchWikiApiJson } from '../lib/wiki-item-utils.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import {
+  buildActionProgressPayload,
+  writeJsonFile
+} from '../workflow/backend-refresh-runtime-state.mjs';
 
 const repoRoot = getProjectRoot();
 
 const API_URL = 'https://terraria.wiki.gg/api.php';
-const generatedAt = new Date().toISOString();
-const dateTag = generatedAt.slice(0, 10);
-
-const args = parseArgs(process.argv.slice(2));
-const outputJsonPath = path.resolve(args['output-json'] ?? path.join(repoRoot, 'data', 'generated', 'wiki-bosses.latest.json'));
-const reportPath = path.resolve(args['report-json'] ?? path.join(repoRoot, 'reports', `wiki-bosses-fetch-${dateTag}.json`));
+const ACTION_ID = 'domain-source-bosses';
+const DEFAULT_OUTPUT_PATH = path.join(repoRoot, 'data', 'generated', 'wiki-bosses.latest.json');
+const DEFAULT_PROGRESS_PATH = path.join(repoRoot, 'data', 'generated', 'domain-source-bosses-progress.latest.json');
 
 const GROUP_CONFIG = {
   'Pre-Hardmode bosses': { groupType: 'PRE_HARDMODE', groupNameZh: '困难模式之前的 Boss' },
@@ -23,54 +24,171 @@ const GROUP_CONFIG = {
   'Special world seed-exclusive boss': { groupType: 'SPECIAL_SEED', groupNameZh: '特殊世界种子专属 Boss' },
 };
 
-const overview = await fetchBossSections();
-const bossEntries = discoverBossEntries(overview.sections);
-const records = await mapWithConcurrency(bossEntries, 1, hydrateBossEntry);
-const sortedRecords = records
-  .filter((record) => record != null)
-  .sort((a, b) => a.progressionOrder - b.progressionOrder);
+await main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
 
-const payload = {
-  entity: 'wiki_bosses',
-  generatedAt,
-  schemaVersion: '1.0.0',
-  sourceApi: API_URL,
-  overview: {
-    title: overview.title,
-    pageId: overview.pageId,
-    sourceUrl: 'https://terraria.wiki.gg/wiki/Bosses',
-    groupCount: Object.keys(GROUP_CONFIG).length,
-    bossCount: sortedRecords.length,
-  },
-  records: sortedRecords,
-};
+async function main(argv = process.argv.slice(2)) {
+  const generatedAt = new Date().toISOString();
+  const dateTag = generatedAt.slice(0, 10);
+  const args = parseArgs(argv);
+  const outputJsonPath = path.resolve(args['output-json'] ?? DEFAULT_OUTPUT_PATH);
+  const reportPath = path.resolve(args['report-json'] ?? path.join(repoRoot, 'reports', `wiki-bosses-fetch-${dateTag}.json`));
+  const progressPath = path.resolve(args['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_PROGRESS_PATH);
+  const canonicalProgressPath = path.resolve(DEFAULT_PROGRESS_PATH);
+  const maxRecords = parseNonNegativeInteger(args['max-records'], null);
 
-const report = {
-  generatedAt,
-  outputJsonPath: toRepoRelative(outputJsonPath),
-  totalBosses: sortedRecords.length,
-  byGroup: summarizeByGroup(sortedRecords),
-  unresolved: sortedRecords.filter((record) => record.status !== 'ok').map((record) => ({
-    titleEn: record.titleEn,
-    pageTitleEn: record.pageTitleEn,
-    status: record.status,
-    error: record.error ?? null,
-  })),
-  samples: sortedRecords.slice(0, 8).map((record) => ({
-    progressionOrder: record.progressionOrder,
-    groupType: record.groupType,
-    titleEn: record.titleEn,
-    titleZh: record.titleZh,
-    revisionTimestamp: record.revisionTimestamp,
-  })),
-};
+  const writeProgress = (progress) => {
+    const progressPayload = {
+      startedAt: generatedAt,
+      outputPath: outputJsonPath,
+      reportPath,
+      ...progress,
+      generatedAt: progress.generatedAt ?? new Date().toISOString()
+    };
+    writeJsonFile(progressPath, buildBossProgressPayload({
+      ...progressPayload,
+      progressPath
+    }));
+    if (shouldMirrorProgressPath(progressPath, canonicalProgressPath)) {
+      writeJsonFile(canonicalProgressPath, buildBossProgressPayload({
+        ...progressPayload,
+        progressPath: canonicalProgressPath
+      }));
+    }
+  };
 
-fs.mkdirSync(path.dirname(outputJsonPath), { recursive: true });
-fs.mkdirSync(path.dirname(reportPath), { recursive: true });
-fs.writeFileSync(outputJsonPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
-fs.writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  writeProgress({
+    status: 'running',
+    phase: 'start',
+    message: 'starting boss source fetch',
+    current: 0,
+    total: 0
+  });
 
-console.log(JSON.stringify(report, null, 2));
+  try {
+    const overview = await fetchBossSections();
+    const bossEntries = discoverBossEntries(overview.sections);
+    if (maxRecords != null && bossEntries.length > maxRecords) {
+      throw new Error(`Discovered ${bossEntries.length} boss records, exceeding --max-records=${maxRecords}`);
+    }
+    writeProgress({
+      status: 'running',
+      phase: 'discover',
+      message: `discovered ${bossEntries.length} boss records`,
+      current: 0,
+      total: bossEntries.length
+    });
+
+    const records = await mapWithConcurrency(bossEntries, 1, async (entry, index) => {
+      writeProgress({
+        status: 'running',
+        phase: 'hydrate',
+        message: `fetching ${entry.titleEn}`,
+        current: index + 1,
+        total: bossEntries.length
+      });
+      return hydrateBossEntry(entry);
+    });
+    const sortedRecords = records
+      .filter((record) => record != null)
+      .sort((a, b) => a.progressionOrder - b.progressionOrder);
+
+    const payload = {
+      entity: 'wiki_bosses',
+      generatedAt,
+      schemaVersion: '1.0.0',
+      sourceApi: API_URL,
+      overview: {
+        title: overview.title,
+        pageId: overview.pageId,
+        sourceUrl: 'https://terraria.wiki.gg/wiki/Bosses',
+        groupCount: Object.keys(GROUP_CONFIG).length,
+        bossCount: sortedRecords.length,
+      },
+      records: sortedRecords,
+    };
+
+    const report = {
+      generatedAt,
+      outputJsonPath: toRepoRelative(outputJsonPath),
+      totalBosses: sortedRecords.length,
+      byGroup: summarizeByGroup(sortedRecords),
+      unresolved: sortedRecords.filter((record) => record.status !== 'ok').map((record) => ({
+        titleEn: record.titleEn,
+        pageTitleEn: record.pageTitleEn,
+        status: record.status,
+        error: record.error ?? null,
+      })),
+      samples: sortedRecords.slice(0, 8).map((record) => ({
+        progressionOrder: record.progressionOrder,
+        groupType: record.groupType,
+        titleEn: record.titleEn,
+        titleZh: record.titleZh,
+        revisionTimestamp: record.revisionTimestamp,
+      })),
+    };
+
+    fs.mkdirSync(path.dirname(outputJsonPath), { recursive: true });
+    fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+    fs.writeFileSync(outputJsonPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+    fs.writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+
+    writeProgress({
+      status: 'completed',
+      phase: 'write',
+      message: `finished boss source fetch; records=${sortedRecords.length}`,
+      current: bossEntries.length,
+      total: bossEntries.length
+    });
+
+    console.log(JSON.stringify(report, null, 2));
+  } catch (error) {
+    writeProgress({
+      status: 'failed',
+      phase: isMaxRecordsError(error) ? 'discover' : 'error',
+      message: error instanceof Error ? error.message : String(error),
+      current: 0,
+      total: 0,
+      nextStep: 'check wiki boss source availability or lower the requested scope'
+    });
+    throw error;
+  }
+}
+
+function buildBossProgressPayload({
+  status,
+  phase,
+  message,
+  current,
+  total,
+  startedAt,
+  progressPath,
+  outputPath,
+  reportPath,
+  nextStep = null,
+  generatedAt = new Date().toISOString()
+} = {}) {
+  const payload = buildActionProgressPayload({
+    actionId: ACTION_ID,
+    status,
+    phase,
+    message,
+    current,
+    total,
+    startedAt,
+    overallCurrent: current,
+    overallTotal: total,
+    generatedAt,
+    lastHeartbeatAt: generatedAt,
+    childStatusPath: progressPath
+  });
+  payload.outputPath = outputPath ?? null;
+  payload.reportPath = reportPath ?? null;
+  if (nextStep) payload.nextStep = nextStep;
+  return payload;
+}
 
 async function fetchBossSections() {
   const url = new URL(API_URL);
@@ -307,6 +425,23 @@ function parseArgs(argv) {
     else parsed[body] = 'true';
   }
   return parsed;
+}
+
+function parseNonNegativeInteger(value, fallback) {
+  if (value == null || value === '') return fallback;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function isMaxRecordsError(error) {
+  return /--max-records/i.test(String(error?.message ?? error));
+}
+
+function shouldMirrorProgressPath(progressPath, canonicalProgressPath) {
+  if (path.resolve(progressPath) === path.resolve(canonicalProgressPath)) {
+    return false;
+  }
+  return process.env.NODE_ENV !== 'test' || Boolean(process.env.WORKTREE_ROOT);
 }
 
 function toRepoRelative(filePath) {

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 import re
 import sys
@@ -18,7 +19,9 @@ from bs4 import BeautifulSoup, Tag
 
 WIKI_ORIGIN = "https://terraria.wiki.gg"
 ZH_WIKI_ORIGIN = "https://terraria.wiki.gg/zh"
+ACTION_ID = "domain-source-town-npc-maintenance"
 LATEST_FILE_NAME = "wiki-town-npc-maintenance.latest.json"
+PROGRESS_FILE_NAME = "domain-source-town-npc-maintenance-progress.latest.json"
 RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 MAX_REQUEST_RETRIES = 3
 
@@ -78,53 +81,139 @@ class TownNpcSeed:
     name_zh: str | None
 
 
+class LocalHtmlResponse:
+    def __init__(self, text: str, url: str):
+        self.text = text
+        self.url = url
+
+    def raise_for_status(self) -> None:
+        return None
+
+
+class LocalHtmlClient:
+    def __init__(self, html_path: Path):
+        self.html_path = html_path
+
+    def get(self, page_url: str, **_kwargs: Any) -> LocalHtmlResponse:
+        return LocalHtmlResponse(self.html_path.read_text(encoding="utf-8"), page_url)
+
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
 
     args = parse_args()
     repo_root = Path(__file__).resolve().parents[3]
-    sys.path.insert(0, str(repo_root / "scripts" / "data" / "lib"))
-    from wiki_request_gate_bridge import WikiRequestGateClient  # noqa: PLC0415
-
     output_path = Path(args.output).resolve() if args.output else repo_root / "data" / "generated" / LATEST_FILE_NAME
     snapshot_path = Path(args.snapshot_output).resolve() if args.snapshot_output else repo_root / "reports" / f"wiki-town-npc-maintenance-{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.json"
     source_path = Path(args.source).resolve() if args.source else repo_root / "data" / "generated" / "npc-standardized-map.json"
+    progress_path = resolve_progress_path(args.progress_path, repo_root)
+    canonical_progress_path = canonical_progress_path_for(repo_root)
+    started_at = now_iso()
 
-    seeds = load_town_npc_seeds(source_path)
-    if args.limit is not None:
-        seeds = seeds[: max(args.limit, 0)]
+    try:
+        seeds = load_town_npc_seeds(source_path)
+        if args.limit is not None:
+            seeds = seeds[: max(args.limit, 0)]
 
-    client = WikiRequestGateClient(repo_root=repo_root, timeout_seconds=60.0)
-    records = crawl_records(client, seeds, args.delay_ms / 1000.0)
+        write_progress(
+            progress_path,
+            build_progress_payload(
+                status="running",
+                phase="fetch",
+                message="starting town NPC maintenance fetch",
+                current=0,
+                total=len(seeds),
+                output_path=output_path,
+                report_path=snapshot_path,
+                started_at=started_at,
+                next_step="fetch town NPC wiki pages",
+            ),
+            canonical_progress_path,
+        )
 
-    payload = {
-        "entity": "wiki_town_npc_maintenance",
-        "generatedAt": now_iso(),
-        "sourceMode": "wiki_zh_page_html",
-        "sourceOrigin": ZH_WIKI_ORIGIN,
-        "sourceSeedPath": str(source_path),
-        "totalTownNpcs": len(seeds),
-        "summary": build_summary(records),
-        "records": records,
-    }
+        client = build_client(repo_root)
+        records = crawl_records(
+            client,
+            seeds,
+            args.delay_ms / 1000.0,
+            lambda current, total, seed: write_progress(
+                progress_path,
+                build_progress_payload(
+                    status="running",
+                    phase="fetch",
+                    message=f"fetching town NPC page {seed.page_title}",
+                    current=current,
+                    total=total,
+                    output_path=output_path,
+                    report_path=snapshot_path,
+                    started_at=started_at,
+                    next_step="continue town NPC wiki page fetch",
+                ),
+                canonical_progress_path,
+            ),
+        )
 
-    write_json(output_path, payload)
-    write_json(snapshot_path, payload)
+        payload = {
+            "entity": "wiki_town_npc_maintenance",
+            "generatedAt": now_iso(),
+            "sourceMode": "wiki_zh_page_html",
+            "sourceOrigin": ZH_WIKI_ORIGIN,
+            "sourceSeedPath": str(source_path),
+            "totalTownNpcs": len(seeds),
+            "summary": build_summary(records),
+            "records": records,
+        }
 
-    print(json.dumps(
-        {
-            "output": str(output_path),
-            "snapshot": str(snapshot_path),
-            "seedCount": len(seeds),
-            "scrapedCount": payload["summary"]["scrapedCount"],
-            "errorCount": payload["summary"]["errorCount"],
-            "shopItems": payload["summary"]["shopItemCount"],
-        },
-        ensure_ascii=False,
-        indent=2,
-    ))
-    return 0
+        write_json(output_path, payload)
+        write_json(snapshot_path, payload)
+        write_progress(
+            progress_path,
+            build_progress_payload(
+                status="completed",
+                phase="write",
+                message="finished town NPC maintenance fetch",
+                current=len(seeds),
+                total=len(seeds),
+                output_path=output_path,
+                report_path=snapshot_path,
+                started_at=started_at,
+            ),
+            canonical_progress_path,
+        )
+
+        print(json.dumps(
+            {
+                "output": str(output_path),
+                "snapshot": str(snapshot_path),
+                "progress": str(progress_path),
+                "seedCount": len(seeds),
+                "scrapedCount": payload["summary"]["scrapedCount"],
+                "errorCount": payload["summary"]["errorCount"],
+                "shopItems": payload["summary"]["shopItemCount"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ))
+        return 0
+    except Exception as exc:  # noqa: BLE001
+        write_progress(
+            progress_path,
+            build_progress_payload(
+                status="failed",
+                phase="error",
+                message=f"town NPC maintenance fetch failed: {exc}",
+                current=0,
+                total=0,
+                output_path=output_path,
+                report_path=snapshot_path,
+                started_at=started_at,
+                next_step="inspect error and rerun the town NPC maintenance fetch",
+            ),
+            canonical_progress_path,
+        )
+        print(str(exc), file=sys.stderr)
+        return 1
 
 
 def parse_args() -> argparse.Namespace:
@@ -132,9 +221,84 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--source", help="Path to npc-standardized-map.json")
     parser.add_argument("--output", help="Path to latest JSON output")
     parser.add_argument("--snapshot-output", dest="snapshot_output", help="Path to snapshot JSON output")
+    parser.add_argument("--progress-path", dest="progress_path", help="Path to crawler progress JSON")
     parser.add_argument("--delay-ms", type=int, default=1600, help="Base delay between page requests")
     parser.add_argument("--limit", type=int, help="Limit seed count for dry runs")
     return parser.parse_args()
+
+
+def build_client(repo_root: Path) -> Any:
+    mock_html_path = normalize_text(os.environ.get("TERRAPEDIA_TOWN_NPC_MAINTENANCE_MOCK_HTML"))
+    if mock_html_path:
+        return LocalHtmlClient(Path(mock_html_path).resolve())
+
+    sys.path.insert(0, str(repo_root / "scripts" / "data" / "lib"))
+    from wiki_request_gate_bridge import WikiRequestGateClient  # noqa: PLC0415
+
+    return WikiRequestGateClient(repo_root=repo_root, timeout_seconds=60.0)
+
+
+def resolve_progress_path(raw_progress_path: str | None, repo_root: Path) -> Path:
+    configured_path = raw_progress_path or os.environ.get("TERRAPEDIA_CRAWLER_PROGRESS_PATH")
+    if configured_path:
+        return Path(configured_path).resolve()
+
+    worktree_root = Path(os.environ.get("WORKTREE_ROOT") or repo_root).resolve()
+    return worktree_root / "data" / "generated" / PROGRESS_FILE_NAME
+
+
+def canonical_progress_path_for(repo_root: Path) -> Path:
+    worktree_root = Path(os.environ.get("WORKTREE_ROOT") or repo_root).resolve()
+    return worktree_root / "data" / "generated" / PROGRESS_FILE_NAME
+
+
+def build_progress_payload(
+    *,
+    status: str,
+    phase: str,
+    message: str,
+    current: int,
+    total: int,
+    output_path: Path,
+    report_path: Path,
+    started_at: str,
+    next_step: str | None = None,
+) -> dict[str, Any]:
+    generated_at = now_iso()
+    payload: dict[str, Any] = {
+        "actionId": ACTION_ID,
+        "status": status,
+        "generatedAt": generated_at,
+        "lastHeartbeatAt": generated_at,
+        "childStatusPath": "",
+        "phase": phase,
+        "message": message,
+        "current": current,
+        "total": total,
+        "outputPath": str(output_path),
+        "reportPath": str(report_path),
+        "startedAt": started_at,
+    }
+    if next_step:
+        payload["nextStep"] = next_step
+    return payload
+
+
+def write_progress(path: Path, payload: dict[str, Any], canonical_path: Path | None = None) -> None:
+    payload = dict(payload)
+    payload["childStatusPath"] = str(path)
+    write_json_atomic(path, payload)
+    if canonical_path is not None and should_mirror_progress_path(path, canonical_path):
+        canonical_payload = dict(payload)
+        canonical_payload["childStatusPath"] = str(canonical_path)
+        write_json_atomic(canonical_path, canonical_payload)
+
+
+def should_mirror_progress_path(progress_path: Path, canonical_progress_path: Path) -> bool:
+    if progress_path.resolve() == canonical_progress_path.resolve():
+        return False
+    return os.environ.get("NODE_ENV") != "test" or bool(os.environ.get("WORKTREE_ROOT"))
+
 
 
 def load_town_npc_seeds(source_path: Path) -> list[TownNpcSeed]:
@@ -172,11 +336,18 @@ def load_town_npc_seeds(source_path: Path) -> list[TownNpcSeed]:
     return seeds
 
 
-def crawl_records(client: Any, seeds: list[TownNpcSeed], delay_seconds: float) -> list[dict[str, Any]]:
+def crawl_records(
+    client: Any,
+    seeds: list[TownNpcSeed],
+    delay_seconds: float,
+    progress_callback: Any | None = None,
+) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for index, seed in enumerate(seeds):
         if index > 0:
             time.sleep(delay_seconds + random.uniform(0.0, 0.4))
+        if progress_callback is not None:
+            progress_callback(index, len(seeds), seed)
         try:
             records.append(fetch_town_npc_record(client, seed))
         except Exception as exc:  # noqa: BLE001
@@ -195,6 +366,8 @@ def crawl_records(client: Any, seeds: list[TownNpcSeed], delay_seconds: float) -
                     "suggestedGamePeriodReason": None,
                 }
             )
+        if progress_callback is not None:
+            progress_callback(index + 1, len(seeds), seed)
     return records
 
 
@@ -520,6 +693,13 @@ def parse_json_object(value: Any) -> dict[str, Any]:
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_name(f".{path.name}.{os.getpid()}.{time.time_ns()}.tmp")
+    tmp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    tmp_path.replace(path)
 
 
 def truthy(value: Any) -> bool:
