@@ -38,7 +38,7 @@ The V0.1 Nuxt public preview now exposes public pages for Items, NPCs, Bosses, B
 
 This preview surface does not override Domain Acceptance. Current public-blocking policy: missing or unknown evidence blocks. `public-blocking stale` is warning by default; only explicit `accepted-warning` may continue to readiness-only evaluation, and stale evidence cannot make a domain route-ready.
 
-The 2026-05-24 remaining-blocker repair closed the four Group B source snapshot blockers with durable gate-consumed evidence. The remaining A-grade blockers are `bosses/imageReadiness` and `projectiles/relationReadiness`; both are now blocked by the incomplete local DB read environment because `terria_v1_maint` is missing. A blocker is cleared only when the gate-consumed evidence is durable across machines; local-only ignored evidence is classification support, not closure.
+The 2026-05-24 remaining-blocker repair closed the four Group B source snapshot blockers with durable gate-consumed evidence. The remaining A-grade blockers are `bosses/imageReadiness` and `projectiles/relationReadiness`; both are now blocked by the incomplete local DB read environment because `terria_v1_maint` is missing. Task 1 of the preview closeout loop reran the read-only inventory against `127.0.0.1:13306` and found only `terria_v1_local` and `terria_v1_relation`. A blocker is cleared only when the gate-consumed evidence is durable across machines; local-only ignored evidence is classification support, not closure.
 
 ## Monitor Boundary
 
@@ -56,7 +56,7 @@ P2 UI work is allowed only after the P0 blocker triage and burn-down path is und
 
 ## Next Actions
 
-- Open `fix/domain-a-grade-db-read-environment-2026-05-24` to restore or point audits at readable `terria_v1_maint`, then rerun Boss image lineage and projectile relation coverage evidence.
+- Keep V0.1 preview-only until an operator provides or restores readable `terria_v1_maint`; then rerun Boss image lineage and projectile relation coverage evidence from the preview closeout loop.
 - Decide whether to push local `main` to `origin/main`; local `main` is ahead of remote after the V0.1 preview merge.
 - Add an automatic NPC zh-name gate in the next data-quality iteration. Current evidence shows `npc-id-row-images.json` can contain Chinese names while `npcs.name_zh` may still regress to empty if a write path skips zh persistence. Add a DB/API coverage check so this fails before UI review.
 - Run staging or preview-origin smoke before any external release claim.
