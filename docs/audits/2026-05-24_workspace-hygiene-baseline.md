@@ -46,3 +46,11 @@
 - Preserve unmerged branches unless the operator explicitly approves a separate archival/delete pass.
 - Stop or migrate runtime before removing any worktree that owns a running local stack process.
 - Do not delete remote branches.
+
+## Runtime Cleanup
+- Stop command: `bash scripts/dev/stop-local-stack.sh`
+- Stop command worktree: `/home/lolben/.config/superpowers/worktrees/TerraPedia/fix-local-stack-preview-closeout-smoke-2026-05-24`
+- Stop result: exit `0`; recorded backend, front, admin, and MinIO process trees stopped.
+- Restart command: not used.
+- Runtime after stop evidence: `/tmp/terrapedia-runtime-after-stop.txt`
+- Runtime after stop result: backend `18088`, front `5174`, admin `3001`, and MinIO public `9000` were no longer listening. Redis `6380` remained listening without a process cwd in `ss` output; it was not force-killed.
