@@ -2,7 +2,7 @@
 
 ## Date
 
-2026-05-23
+2026-05-24
 
 ## Current Phase
 
@@ -21,10 +21,10 @@ P0 domain A-grade blocker triage and burn-down -> P0 staging/preview smoke -> P1
 CI v1 is a CI-safe gate and is not equivalent to the local full gate.
 The local full gate remains `scripts/dev/quality-gate.ps1`.
 
-As of 2026-05-23:
+As of 2026-05-24:
 
 - Domain freshness is current: `freshCount=45`, `missingCount=0`, `staleCount=0`, `unknownCount=0`.
-- Domain A-grade remains blocked after blocker burn-down: `generatedBlockedCount=6`, `generatedWarningCount=15`.
+- Domain A-grade remains blocked after remaining-blocker repair execution: `generatedBlockedCount=2`, `generatedWarningCount=16`.
 - Public V0.1 must be described as a preview surface, not final A-grade release readiness.
 
 ## Data Chain Boundary
@@ -38,7 +38,7 @@ The V0.1 Nuxt public preview now exposes public pages for Items, NPCs, Bosses, B
 
 This preview surface does not override Domain Acceptance. Current public-blocking policy: missing or unknown evidence blocks. `public-blocking stale` is warning by default; only explicit `accepted-warning` may continue to readiness-only evaluation, and stale evidence cannot make a domain route-ready.
 
-The 2026-05-23 blocker burn-down cleared Group A reresolve evidence and Group D item-group evidence. Remaining blockers are classified in `docs/audits/2026-05-23_domain-a-grade-blocker-burn-down-closeout.md` and need separate source-fetch progress, Python dependency, or DB environment/data repair before V0.1 can be called release-ready. A blocker is cleared only when the gate-consumed evidence is durable across machines; local-only ignored evidence is classification support, not closure.
+The 2026-05-24 remaining-blocker repair closed the four Group B source snapshot blockers with durable gate-consumed evidence. The remaining A-grade blockers are `bosses/imageReadiness` and `projectiles/relationReadiness`; both are now blocked by the incomplete local DB read environment because `terria_v1_maint` is missing. A blocker is cleared only when the gate-consumed evidence is durable across machines; local-only ignored evidence is classification support, not closure.
 
 ## Monitor Boundary
 
@@ -56,7 +56,7 @@ P2 UI work is allowed only after the P0 blocker triage and burn-down path is und
 
 ## Next Actions
 
-- Open follow-up repair branches from `docs/audits/2026-05-23_domain-a-grade-blocker-burn-down-closeout.md`: source snapshot progress contract, Town NPC Python dependency, DB environment restoration, Boss image lineage, and projectile relation coverage.
+- Open `fix/domain-a-grade-db-read-environment-2026-05-24` to restore or point audits at readable `terria_v1_maint`, then rerun Boss image lineage and projectile relation coverage evidence.
 - Decide whether to push local `main` to `origin/main`; local `main` is ahead of remote after the V0.1 preview merge.
 - Add an automatic NPC zh-name gate in the next data-quality iteration. Current evidence shows `npc-id-row-images.json` can contain Chinese names while `npcs.name_zh` may still regress to empty if a write path skips zh persistence. Add a DB/API coverage check so this fails before UI review.
 - Run staging or preview-origin smoke before any external release claim.
