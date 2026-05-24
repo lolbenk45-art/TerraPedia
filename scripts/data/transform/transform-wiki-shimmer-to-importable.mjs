@@ -16,7 +16,6 @@ import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { decodeHtmlEntities, extractIntroParagraphs, stripHtml } from '../lib/wiki-page-utils.mjs';
 
 const require = createRequire(import.meta.url);
-const mysql = require('mysql2/promise');
 
 const repoRoot = process.cwd();
 const options = parseCliArgs(process.argv.slice(2));
@@ -368,6 +367,7 @@ async function enrichLookupsFromDb(itemLookup, npcLookup) {
 
   let conn;
   try {
+    const mysql = require('mysql2/promise');
     conn = await mysql.createConnection(db);
     const [itemRows] = await conn.query(`SELECT id, internal_name AS internalName, name, name_zh AS nameZh FROM items WHERE deleted = 0`);
     const [npcRows] = await conn.query(`SELECT id, internal_name AS internalName, name, name_zh AS nameZh FROM npcs WHERE deleted = 0`);
