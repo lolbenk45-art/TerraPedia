@@ -78,12 +78,40 @@ No UI page, admin monitor, or local runtime probe may generate Domain A-grade ev
 
 ## Global Execution Rules
 
-Use this loop for every task branch:
+Run Task 0 first. Task 0 must leave the controller worktree on local `main` with this plan file present on `main`; every later task branch starts from that `main`.
+
+Use an isolated worktree for every task branch:
 
 ```bash
 git switch main
-git status --short --branch -uall
-git switch -c "$TASK_BRANCH"
+MAIN_WORKTREE="$(git rev-parse --show-toplevel)"
+git status --short --branch
+test -z "$(git status --porcelain)"
+test -f docs/superpowers/plans/2026-05-24-domain-a-grade-preview-closeout-loop.md
+
+TASK_WORKTREE="/home/lolben/.config/superpowers/worktrees/TerraPedia/${TASK_BRANCH//\//-}"
+
+if git show-ref --verify --quiet "refs/heads/$TASK_BRANCH"; then
+  echo "Branch already exists: $TASK_BRANCH"
+  echo "Inspect the existing branch and either continue it intentionally or choose a new branch name."
+  exit 1
+fi
+
+if git worktree list --porcelain | grep -F -q "branch refs/heads/$TASK_BRANCH"; then
+  echo "A worktree is already attached to $TASK_BRANCH"
+  git worktree list --porcelain | grep -F -B2 -A2 "branch refs/heads/$TASK_BRANCH"
+  exit 1
+fi
+
+if test -e "$TASK_WORKTREE"; then
+  echo "Task worktree path already exists: $TASK_WORKTREE"
+  echo "Inspect it before reusing or removing it."
+  exit 1
+fi
+
+git worktree add "$TASK_WORKTREE" -b "$TASK_BRANCH" main
+cd "$TASK_WORKTREE"
+git status --short --branch
 ```
 
 Before committing:
@@ -98,12 +126,79 @@ git diff --cached --name-status
 After committing a task branch:
 
 ```bash
+cd "$MAIN_WORKTREE"
 git switch main
-git merge --no-ff "$TASK_BRANCH" -m "Merge branch '$TASK_BRANCH'"
-git status --short --branch -uall
+git status --short --branch
+test -z "$(git status --porcelain)"
+
+if ! git merge --no-ff "$TASK_BRANCH" -m "Merge branch '$TASK_BRANCH'"; then
+  git status --short
+  git diff --name-only --diff-filter=U
+  echo "Resolve conflicts only in files owned by this task or in the single-writer project-management files named by this plan."
+  echo "After resolving, rerun the task validation, stage explicit files, and finish the merge commit. Do not use destructive reset, path checkout, or clean commands."
+  exit 1
+fi
+
+git status --short --branch
 ```
 
 After each merge, rerun the narrow validation for that branch and record the actual result in the relevant audit or closeout document. If a gate result changes the plan, patch this controller plan in a small docs-only commit before starting the next task branch.
+
+## Time Budgets And Stop Rules
+
+- Task 0: 10-20 minutes. Stop at 30 minutes if the plan branch cannot merge cleanly into `main`.
+- Task 1: 45-90 minutes. Stop at 2 hours if the DB read environment is still ambiguous.
+- Task 2: 45-90 minutes. Stop at 2 hours if lineage evidence cannot identify a concrete report path or concrete missing DB field.
+- Task 3: 45-90 minutes. Stop at 2 hours if relation coverage cannot identify a concrete gap count or concrete missing DB field.
+- Task 4: 45-90 minutes. Stop at 2 hours if the freshness or A-grade gate output cannot be parsed into a closeout result.
+- Task 5: 60-120 minutes. Stop at 3 hours if the visual gate fails across multiple unrelated route families; convert the task into focused route repair branches.
+- Task 6: 45-90 minutes. Stop at 2 hours if local stack ownership cannot be proven for the final `main` worktree.
+- Task 7: 30-60 minutes. Stop at 90 minutes if the evidence set is contradictory or missing a required closeout document.
+- Whole loop: stop and repair this controller plan if the loop exceeds one working day, if any command produces no output for 15 minutes, or if a task needs crawler/import/backfill/DB-write work that is out of scope.
+
+Use `timeout` for long-running local commands where it is available:
+
+```bash
+timeout 15m node scripts/data/workflow/domain-acceptance-generate-reports.mjs --repo-root="$(pwd)" --write=true
+```
+
+If `timeout` is unavailable, record the missing utility and use the task stop rule manually.
+
+## Script And Evidence Preflight
+
+Run this preflight in each task worktree before invoking Node or local-stack scripts:
+
+```bash
+test -f scripts/data/audit/image-source-lineage-report.mjs
+test -f scripts/data/relation/entity-coverage-baseline.mjs
+test -f scripts/data/workflow/domain-acceptance-generate-reports.mjs
+test -f scripts/data/workflow/domain-acceptance-freshness-audit.mjs
+test -f scripts/data/workflow/domain-acceptance-a-grade-gate.mjs
+test -f scripts/dev/start-local-stack.sh
+test -f scripts/dev/stop-local-stack.sh
+test -f front-nuxt/scripts/check-public-pages.mjs
+test -f front-nuxt/scripts/check-visual-regression.mjs
+
+node --check scripts/data/audit/image-source-lineage-report.mjs
+node --check scripts/data/relation/entity-coverage-baseline.mjs
+node --check scripts/data/workflow/domain-acceptance-generate-reports.mjs
+node --check scripts/data/workflow/domain-acceptance-freshness-audit.mjs
+node --check scripts/data/workflow/domain-acceptance-a-grade-gate.mjs
+node --check front-nuxt/scripts/check-public-pages.mjs
+node --check front-nuxt/scripts/check-visual-regression.mjs
+
+node -e "const p=require('./front-nuxt/package.json'); for (const s of ['check:public-pages','check:visual','check']) { if (!p.scripts?.[s]) { throw new Error('Missing front-nuxt script '+s); } }"
+bash scripts/dev/start-local-stack.sh --help | grep -q -- '--reuse-existing'
+```
+
+Before staging any `reports/...` evidence file, prove it is not silently ignored:
+
+```bash
+git status --short reports
+git check-ignore -v reports/audit/image-source-lineage*.json reports/relation/entity-coverage-baseline*.json reports/domain/**/2026-05-24.json || true
+```
+
+If `git check-ignore -v` prints any gate-consumed evidence file, do not claim closure. Either add a narrow `.gitignore` allowlist rule for the exact evidence path and commit that rule, or stage the exact file with `git add -f` and document why force-staging is acceptable for that run. Do not force-add broad directories.
 
 ## Branch Sequence
 
@@ -152,7 +247,7 @@ No two agents may edit the same Markdown file in parallel. Project-management fi
 Run:
 
 ```bash
-git status --short --branch -uall
+git status --short --branch
 git branch --show-current
 ```
 
@@ -206,6 +301,32 @@ git commit -m "docs: plan domain a-grade preview closeout loop"
 Expected:
 
 - Commit contains only this controller plan.
+
+- [ ] **Step 4: Merge the controller plan to local main**
+
+Run from the controller plan worktree:
+
+```bash
+git switch main
+git status --short --branch
+test -z "$(git status --porcelain)"
+
+if ! git merge --no-ff plan/domain-a-grade-preview-closeout-loop-2026-05-24 -m "Merge branch 'plan/domain-a-grade-preview-closeout-loop-2026-05-24'"; then
+  git status --short
+  git diff --name-only --diff-filter=U
+  echo "Resolve only the controller plan file or adjacent project-management docs if they conflict, then finish the merge commit."
+  exit 1
+fi
+
+test -f docs/superpowers/plans/2026-05-24-domain-a-grade-preview-closeout-loop.md
+git status --short --branch
+```
+
+Expected:
+
+- Local `main` contains this controller plan.
+- Later task worktrees can be created from `main` and still read or repair the plan file.
+- If the merge cannot be completed cleanly, stop before starting Task 1.
 
 ## Task 1: Restore Or Point The DB Read Environment
 
@@ -468,13 +589,14 @@ sed -n '1,200p' /tmp/terrapedia-boss-lineage-status.txt
 git add docs/audits/2026-05-24_domain-a-grade-boss-image-lineage.md \
   docs/project-management/current-status.md \
   docs/project-management/risk-register.md
+git check-ignore -v reports/audit/image-source-lineage*.json reports/domain/**/2026-05-24.json || true
 git add reports/audit/image-source-lineage*.json
 git add reports/domain/**/2026-05-24.json
 git diff --cached --stat
 git commit -m "docs: reclassify boss image lineage readiness"
 ```
 
-Before running the `git add reports/...` commands, inspect `/tmp/terrapedia-boss-lineage-status.txt`. Omit any glob that matches no regenerated files in this run.
+Before running the `git add reports/...` commands, inspect `/tmp/terrapedia-boss-lineage-status.txt`. Omit any glob that matches no regenerated files in this run. If `git check-ignore -v` prints any regenerated gate-consumed report, either add a narrow `.gitignore` allowlist rule for that exact report path and commit it, or force-add only the exact report file and record why in the audit.
 
 ## Task 3: Reclassify Projectile Relation Coverage
 
@@ -577,13 +699,14 @@ sed -n '1,200p' /tmp/terrapedia-projectile-relation-status.txt
 git add docs/audits/2026-05-24_domain-a-grade-projectile-relation-coverage.md \
   docs/project-management/current-status.md \
   docs/project-management/risk-register.md
+git check-ignore -v reports/relation/entity-coverage-baseline*.json reports/domain/**/2026-05-24.json || true
 git add reports/relation/entity-coverage-baseline*.json
 git add reports/domain/**/2026-05-24.json
 git diff --cached --stat
 git commit -m "docs: reclassify projectile relation readiness"
 ```
 
-Before running the `git add reports/...` commands, inspect `/tmp/terrapedia-projectile-relation-status.txt`. Omit any glob that matches no regenerated files in this run.
+Before running the `git add reports/...` commands, inspect `/tmp/terrapedia-projectile-relation-status.txt`. Omit any glob that matches no regenerated files in this run. If `git check-ignore -v` prints any regenerated gate-consumed report, either add a narrow `.gitignore` allowlist rule for that exact report path and commit it, or force-add only the exact report file and record why in the audit.
 
 ## Task 4: Domain A-Grade Gate Closeout
 
@@ -732,12 +855,13 @@ sed -n '1,200p' /tmp/terrapedia-domain-closeout-status.txt
 git add docs/audits/2026-05-24_domain-a-grade-final-closeout.md \
   docs/project-management/current-status.md \
   docs/project-management/risk-register.md
+git check-ignore -v reports/domain/**/2026-05-24.json || true
 git add reports/domain/**/2026-05-24.json
 git diff --cached --stat
 git commit -m "docs: close domain a-grade gate status"
 ```
 
-Before running `git add reports/domain/**/2026-05-24.json`, inspect `/tmp/terrapedia-domain-closeout-status.txt`. Omit the glob if no domain reports were regenerated in this run.
+Before running `git add reports/domain/**/2026-05-24.json`, inspect `/tmp/terrapedia-domain-closeout-status.txt`. Omit the glob if no domain reports were regenerated in this run. If `git check-ignore -v` prints any regenerated gate-consumed report, either add a narrow `.gitignore` allowlist rule for that exact report path and commit it, or force-add only the exact report file and record why in the audit.
 
 ## Task 5: Front Nuxt Public Visual Final Smoke
 
@@ -765,7 +889,8 @@ Verify that the public `front-nuxt` surface still satisfies the visual and route
 Run:
 
 ```bash
-bash scripts/dev/start-local-stack.sh
+ps -eo pid,cmd | grep -E "java|nuxt|node|18088|3001|5174" | grep -v grep || true
+bash scripts/dev/start-local-stack.sh --reuse-existing
 ```
 
 Expected:
@@ -773,7 +898,8 @@ Expected:
 - Backend is available on `18088`.
 - Admin is available on `3001`.
 - Front Nuxt is available on `5174`.
-- If the stack is already running, record the existing ports and process roots instead of restarting unless stale processes point to a different worktree.
+- If the stack is already running, record the existing ports and process roots. `--reuse-existing` must not kill healthy processes.
+- If any running process points to a stale worktree, stop and restart intentionally with `bash scripts/dev/stop-local-stack.sh` followed by `bash scripts/dev/start-local-stack.sh`, then record that reason in the audit.
 
 - [ ] **Step 2: Run public route checks**
 
@@ -882,6 +1008,7 @@ Verify that the local project stack boots from the final `main` state and that k
 Run:
 
 ```bash
+ps -eo pid,cmd | grep -E "java|nuxt|node|18088|3001|5174" | grep -v grep || true
 bash scripts/dev/stop-local-stack.sh
 bash scripts/dev/start-local-stack.sh
 ```
@@ -898,13 +1025,13 @@ Expected:
 Run:
 
 ```bash
-ps -eo pid,cmd | rg "nuxt|java|18088|3001|5174" | rg -v rg
+ps -eo pid,cmd | grep -E "nuxt|java|18088|3001|5174" | grep -v grep || true
 ```
 
 For each key process, run:
 
 ```bash
-ps -eo pid,cmd | rg "nuxt|java|18088|3001|5174" | rg -v rg \
+ps -eo pid,cmd | grep -E "nuxt|java|18088|3001|5174" | grep -v grep \
   | awk '{print $1}' \
   | while read -r pid; do
       printf '%s ' "$pid"
@@ -1117,7 +1244,11 @@ Omit `decision-log.md` if no durable decision was added.
 After each task branch merges, run this review against this file:
 
 ```bash
-rg -n "fix/domain-a-grade|fix/front-nuxt|fix/local-stack|docs/project-preview|generatedBlockedCount|preview-only|release-decision" docs/superpowers/plans/2026-05-24-domain-a-grade-preview-closeout-loop.md
+if command -v rg >/dev/null 2>&1; then
+  rg -n "fix/domain-a-grade|fix/front-nuxt|fix/local-stack|docs/project-preview|generatedBlockedCount|preview-only|release-decision" docs/superpowers/plans/2026-05-24-domain-a-grade-preview-closeout-loop.md
+else
+  grep -RInE "fix/domain-a-grade|fix/front-nuxt|fix/local-stack|docs/project-preview|generatedBlockedCount|preview-only|release-decision" docs/superpowers/plans/2026-05-24-domain-a-grade-preview-closeout-loop.md
+fi
 ```
 
 Patch this plan when:
@@ -1160,7 +1291,7 @@ If any command cannot run, the final decision must be `preview-only` or `paused-
 
 ```bash
 git fetch origin
-git status --short --branch -uall
+git status --short --branch
 git log --oneline origin/main..main
 git push --dry-run origin main
 ```
