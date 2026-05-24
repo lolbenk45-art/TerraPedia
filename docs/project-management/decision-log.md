@@ -115,3 +115,10 @@ Decision: Do not close Boss image lineage or projectile relation coverage while 
 Reason: The remaining two A-grade blockers require a complete readable three-database environment. The plan forbids synthesizing, restoring, importing, or writing a maint database inside this checkpoint.
 Evidence: `docs/audits/2026-05-24_domain-a-grade-db-read-environment.md`, `docs/audits/2026-05-24_domain-a-grade-remaining-blocker-closeout.md`.
 Expected follow-up: Open a DB read-environment repair branch, provide readable `terria_v1_maint`, then rerun Boss image lineage and projectile relation coverage evidence before any release-ready claim.
+
+## D-2026-05-24-03: V0.1 has release-decision evidence but remains preview until operator release handling
+
+Decision: V0.1 public preview is `release-decision-ready` based on committed closeout evidence, but it remains preview-labeled until the operator chooses push, PR, staging, or release handling and accepts the 18 documented A-grade warning panels.
+Reason: Domain A-grade final closeout has `generatedBlockedCount=0`, Front Nuxt visual smoke passes, and local stack closeout smoke passes. The A-grade gate still has warning panels and local `main` has not been pushed.
+Evidence: `docs/audits/2026-05-24_domain-a-grade-final-closeout.md`, `docs/audits/2026-05-24_front-nuxt-preview-final-smoke.md`, `docs/audits/2026-05-24_local-stack-preview-closeout-smoke.md`, `docs/audits/2026-05-24_preview-release-decision.md`.
+Expected follow-up: Open `plan/public-v0.1-release-or-staging-2026-05-24` or choose a local-only checkpoint; open warning-debt branches if stronger release wording is required.
