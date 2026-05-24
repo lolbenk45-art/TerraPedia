@@ -1,3 +1,10 @@
+const SOURCE_SNAPSHOT_IDS = new Set([
+  'domain-source-bosses',
+  'domain-source-armor-sets',
+  'domain-source-shimmer',
+  'domain-source-town-npc-maintenance',
+])
+
 export function progressRowsFromOverview(source) {
   const tasks = Array.isArray(source?.registeredTasks) ? source.registeredTasks : [];
   const runActions = Array.isArray(source?.latestRun?.actions) ? source.latestRun.actions : [];
@@ -35,6 +42,21 @@ export function progressRowsFromOverview(source) {
   }
 
   return rows.sort((left, right) => progressRowRank(left) - progressRowRank(right));
+}
+
+export function sourceSnapshotRowsFromOverview(source) {
+  return progressRowsFromOverview(source)
+    .filter((row) => isSourceSnapshotRow(row))
+    .sort((left, right) => sourceSnapshotRowRank(left) - sourceSnapshotRowRank(right))
+}
+
+export function hasLiveSourceSnapshotProgress(source) {
+  return sourceSnapshotRowsFromOverview(source)
+    .some((row) => ['running', 'stalled'].includes(rowStatus(row)))
+}
+
+export function isSourceSnapshotRow(row) {
+  return SOURCE_SNAPSHOT_IDS.has(String(row?.id || ''))
 }
 
 export function shouldIncludeProgressTask(task) {
@@ -81,4 +103,16 @@ export function progressKindFromStatus(status) {
   if (['pending', 'queued'].includes(normalized)) return 'queued';
   if (['blocked', 'missing', 'stalled', 'failed', 'error', 'warning'].includes(normalized)) return normalized;
   return normalized || null;
+}
+
+function sourceSnapshotRowRank(row) {
+  const statusRank = progressRowRank(row)
+  const id = String(row?.id || '')
+  const idOrder = {
+    'domain-source-bosses': 0,
+    'domain-source-armor-sets': 1,
+    'domain-source-shimmer': 2,
+    'domain-source-town-npc-maintenance': 3,
+  }
+  return statusRank * 10 + (idOrder[id] ?? 9)
 }

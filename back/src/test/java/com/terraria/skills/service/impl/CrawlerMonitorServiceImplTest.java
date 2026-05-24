@@ -571,26 +571,41 @@ class CrawlerMonitorServiceImplTest {
 
         assertFalse(overview.getLatestRun().isFound());
         assertFalse(overview.getLatestRun().isReadable());
+        assertEquals(repoRoot.toString(), overview.getRepoRoot());
 
         CrawlerMonitorOverviewDTO.RegisteredTaskDTO bosses = taskById(overview.getRegisteredTasks(), "domain-source-bosses");
         assertEquals("Domain source: Bosses", bosses.getLabel());
         assertEquals("running", bosses.getStatus());
         assertEquals("live", bosses.getProgressKind());
+        assertEquals("wiki domain source pages -> generated source snapshot", bosses.getDataStage());
         assertEquals("fetched boss source snapshots 7/14", bosses.getQueueState());
         assertEquals(7, bosses.getCurrent());
         assertEquals(14, bosses.getTotal());
         assertEquals(50.0, bosses.getPercent());
         assertEquals("data/generated/domain-source-bosses-progress.latest.json", bosses.getProgressPath());
         assertEquals("data/generated/domain-source-bosses-progress.latest.json", bosses.getProgressSource());
+        assertTrue(bosses.isProgressFound());
+        assertTrue(bosses.isProgressReadable());
         assertEquals("data/generated/wiki-bosses.latest.json", bosses.getOutputPath());
         assertEquals("reports/domain/domain-source-bosses-2026-05-24.json", bosses.getReportPath());
         assertEquals("Review boss source snapshot evidence.", bosses.getNextStep());
         assertEquals("2026-05-24T01:00:00Z", bosses.getProgressHeartbeatAt());
+        assertEquals(300_000L, bosses.getProgressHeartbeatAgeMs());
+        assertFalse(bosses.isProgressStale());
 
         CrawlerMonitorOverviewDTO.RegisteredTaskDTO armorSets = taskById(overview.getRegisteredTasks(), "domain-source-armor-sets");
         assertEquals("Domain source: Armor sets", armorSets.getLabel());
         assertEquals("completed", armorSets.getStatus());
         assertEquals("completed", armorSets.getProgressKind());
+        assertEquals("wiki domain source pages -> generated source snapshot", armorSets.getDataStage());
+        assertEquals("wrote armor set source snapshot", armorSets.getQueueState());
+        assertEquals(38, armorSets.getCurrent());
+        assertEquals(38, armorSets.getTotal());
+        assertEquals(100.0, armorSets.getPercent());
+        assertEquals("data/generated/domain-source-armor-sets-progress.latest.json", armorSets.getProgressPath());
+        assertEquals("data/generated/domain-source-armor-sets-progress.latest.json", armorSets.getProgressSource());
+        assertEquals("2026-05-24T00:55:00Z", armorSets.getProgressHeartbeatAt());
+        assertFalse(armorSets.isProgressStale());
         assertEquals("data/generated/wiki-armor-sets.latest.json", armorSets.getOutputPath());
         assertEquals("reports/domain/domain-source-armor-sets-2026-05-24.json", armorSets.getReportPath());
 
@@ -599,14 +614,22 @@ class CrawlerMonitorServiceImplTest {
         assertEquals("missing", shimmer.getStatus());
         assertEquals("missing", shimmer.getProgressKind());
         assertEquals("data/generated/domain-source-shimmer-progress.latest.json", shimmer.getProgressPath());
+        assertEquals("data/generated/domain-source-shimmer-progress.latest.json", shimmer.getProgressSource());
+        assertFalse(shimmer.isProgressFound());
+        assertFalse(shimmer.isProgressReadable());
         assertEquals("data/generated/shimmer/wiki-shimmer-manifest.latest.json", shimmer.getOutputPath());
+        assertEquals("Run the domain source snapshot fetch before downstream audit evidence.", shimmer.getNextStep());
 
         CrawlerMonitorOverviewDTO.RegisteredTaskDTO townNpcMaintenance = taskById(overview.getRegisteredTasks(), "domain-source-town-npc-maintenance");
         assertEquals("Domain source: Town NPC maintenance", townNpcMaintenance.getLabel());
         assertEquals("missing", townNpcMaintenance.getStatus());
         assertEquals("missing", townNpcMaintenance.getProgressKind());
         assertEquals("data/generated/domain-source-town-npc-maintenance-progress.latest.json", townNpcMaintenance.getProgressPath());
+        assertEquals("data/generated/domain-source-town-npc-maintenance-progress.latest.json", townNpcMaintenance.getProgressSource());
+        assertFalse(townNpcMaintenance.isProgressFound());
+        assertFalse(townNpcMaintenance.isProgressReadable());
         assertEquals("data/generated/wiki-town-npc-maintenance.latest.json", townNpcMaintenance.getOutputPath());
+        assertEquals("Run the domain source snapshot fetch before downstream audit evidence.", townNpcMaintenance.getNextStep());
     }
 
     @Test

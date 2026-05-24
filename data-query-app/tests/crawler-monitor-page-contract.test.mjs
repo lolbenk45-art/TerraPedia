@@ -2,7 +2,13 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
-import { progressRowsFromOverview, rowStatus } from '../utils/crawlerMonitorProgressRows.mjs'
+import {
+  progressRowsFromOverview,
+  rowStatus,
+  sourceSnapshotRowsFromOverview,
+  hasLiveSourceSnapshotProgress,
+  isSourceSnapshotRow,
+} from '../utils/crawlerMonitorProgressRows.mjs'
 
 const repoRoot = path.resolve(import.meta.dirname, '..')
 
@@ -24,6 +30,17 @@ const registeredTasksOnlyFixture = {
     { id: 'domain-source-town-npc-maintenance', status: 'missing', progressKind: 'missing', progressPath: 'data/generated/domain-source-town-npc-maintenance-progress.latest.json', outputPath: 'data/generated/wiki-town-npc-maintenance.latest.json' },
     { id: 'npc-coverage-boss', status: 'missing', progressKind: 'missing' },
     { id: 'relation-health', status: 'completed', progressKind: 'report-only', reportPath: 'reports/relation/relation-health.json' },
+  ],
+}
+
+const sourceSnapshotPriorityFixture = {
+  latestRun: { actions: [] },
+  registeredTasks: [
+    { id: 'relation-health', label: 'Relation health', status: 'completed', progressKind: 'report-only', reportPath: 'reports/relation/relation-health.json' },
+    { id: 'domain-source-shimmer', label: 'Domain source: Shimmer', status: 'stalled', progressKind: 'stalled', progressPath: 'data/generated/domain-source-shimmer-progress.latest.json', progressHeartbeatAt: '2026-05-24T01:00:00Z', progressStaleReason: 'running progress heartbeat is older than 10 minutes', current: 1, total: 3 },
+    { id: 'domain-source-bosses', label: 'Domain source: Bosses', status: 'running', progressKind: 'live', progressPath: 'data/generated/domain-source-bosses-progress.latest.json', progressHeartbeatAt: '2026-05-24T01:09:00Z', current: 7, total: 14, outputPath: 'data/generated/wiki-bosses.latest.json' },
+    { id: 'domain-source-armor-sets', label: 'Domain source: Armor sets', status: 'completed', progressKind: 'completed', progressPath: 'data/generated/domain-source-armor-sets-progress.latest.json', current: 38, total: 38 },
+    { id: 'domain-source-town-npc-maintenance', label: 'Domain source: Town NPC maintenance', status: 'missing', progressKind: 'missing', progressPath: 'data/generated/domain-source-town-npc-maintenance-progress.latest.json' },
   ],
 }
 
@@ -92,6 +109,31 @@ test('crawler monitor derives rows directly from registered task progress', () =
   )
 })
 
+test('crawler monitor exposes a dedicated source snapshot row set', () => {
+  const rows = sourceSnapshotRowsFromOverview(sourceSnapshotPriorityFixture)
+
+  assert.deepEqual(rows.map((row) => row.id), [
+    'domain-source-shimmer',
+    'domain-source-bosses',
+    'domain-source-town-npc-maintenance',
+    'domain-source-armor-sets',
+  ])
+  assert.equal(rowStatus(rows[0]), 'stalled')
+  assert.equal(rowStatus(rows[1]), 'running')
+  assert.equal(rows.every((row) => isSourceSnapshotRow(row)), true)
+  assert.equal(isSourceSnapshotRow({ id: 'relation-health' }), false)
+})
+
+test('crawler monitor detects live source snapshot progress for fast refresh', () => {
+  assert.equal(hasLiveSourceSnapshotProgress(sourceSnapshotPriorityFixture), true)
+  assert.equal(
+    hasLiveSourceSnapshotProgress({
+      registeredTasks: [{ id: 'domain-source-bosses', status: 'completed', progressKind: 'completed' }],
+    }),
+    false
+  )
+})
+
 test('crawler monitor registered task fixture keeps domain source snapshots visible', () => {
   assert.deepEqual(
     registeredTasksOnlyFixture.registeredTasks
@@ -135,6 +177,19 @@ test('crawler monitor keeps unregistered latestRun actions visible as fallback r
   assert.equal(rowStatus(rows[0]), 'running')
   assert.equal(rows[0].current, 2)
   assert.equal(rows[0].total, 10)
+})
+
+test('crawler monitor uses faster refresh while source snapshots are live', () => {
+  assert.match(page, /liveSourceSnapshotActive/)
+  assert.match(page, /activeRefreshIntervalMs/)
+  assert.match(page, /3000/)
+  assert.match(page, /10000/)
+})
+
+test('crawler monitor exposes repo root and last refresh near source snapshot progress', () => {
+  assert.match(page, /overview\?\.repoRoot/)
+  assert.match(page, /lastOverviewRefreshAt/)
+  assert.match(page, /源快照实时进度/)
 })
 
 test('crawler monitor registered task type exposes backend progress metadata', () => {
