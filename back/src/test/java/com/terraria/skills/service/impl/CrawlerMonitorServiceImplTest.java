@@ -528,6 +528,116 @@ class CrawlerMonitorServiceImplTest {
     }
 
     @Test
+    void shouldExposeDomainSourceSnapshotRegisteredTasksWithoutLatestBackendRefreshRun() throws Exception {
+        Path bossesProgressPath = repoRoot.resolve("data/generated/domain-source-bosses-progress.latest.json");
+        writeJson(bossesProgressPath, Map.ofEntries(
+            Map.entry("actionId", "domain-source-bosses"),
+            Map.entry("status", "running"),
+            Map.entry("phase", "fetch-bosses"),
+            Map.entry("message", "fetched boss source snapshots 7/14"),
+            Map.entry("current", 7),
+            Map.entry("total", 14),
+            Map.entry("percent", 50),
+            Map.entry("outputPath", "data/generated/wiki-bosses.latest.json"),
+            Map.entry("reportPath", "reports/domain/domain-source-bosses-2026-05-24.json"),
+            Map.entry("nextStep", "Review boss source snapshot evidence."),
+            Map.entry("childStatusPath", "data/generated/domain-source-bosses-progress.latest.json"),
+            Map.entry("lastHeartbeatAt", "2026-05-24T01:00:00Z"),
+            Map.entry("generatedAt", "2026-05-24T01:00:00Z")
+        ));
+        writeJson(repoRoot.resolve("data/generated/domain-source-armor-sets-progress.latest.json"), Map.ofEntries(
+            Map.entry("actionId", "domain-source-armor-sets"),
+            Map.entry("status", "completed"),
+            Map.entry("phase", "write-output"),
+            Map.entry("message", "wrote armor set source snapshot"),
+            Map.entry("current", 38),
+            Map.entry("total", 38),
+            Map.entry("percent", 100),
+            Map.entry("outputPath", "data/generated/wiki-armor-sets.latest.json"),
+            Map.entry("reportPath", "reports/domain/domain-source-armor-sets-2026-05-24.json"),
+            Map.entry("nextStep", "Audit armor set snapshot coverage."),
+            Map.entry("childStatusPath", "data/generated/domain-source-armor-sets-progress.latest.json"),
+            Map.entry("lastHeartbeatAt", "2026-05-24T00:55:00Z"),
+            Map.entry("generatedAt", "2026-05-24T00:55:00Z")
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-05-24T01:05:00Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO overview = service.getOverview();
+
+        assertFalse(overview.getLatestRun().isFound());
+        assertFalse(overview.getLatestRun().isReadable());
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO bosses = taskById(overview.getRegisteredTasks(), "domain-source-bosses");
+        assertEquals("Domain source: Bosses", bosses.getLabel());
+        assertEquals("running", bosses.getStatus());
+        assertEquals("live", bosses.getProgressKind());
+        assertEquals("fetched boss source snapshots 7/14", bosses.getQueueState());
+        assertEquals(7, bosses.getCurrent());
+        assertEquals(14, bosses.getTotal());
+        assertEquals(50.0, bosses.getPercent());
+        assertEquals("data/generated/domain-source-bosses-progress.latest.json", bosses.getProgressPath());
+        assertEquals("data/generated/domain-source-bosses-progress.latest.json", bosses.getProgressSource());
+        assertEquals("data/generated/wiki-bosses.latest.json", bosses.getOutputPath());
+        assertEquals("reports/domain/domain-source-bosses-2026-05-24.json", bosses.getReportPath());
+        assertEquals("Review boss source snapshot evidence.", bosses.getNextStep());
+        assertEquals("2026-05-24T01:00:00Z", bosses.getProgressHeartbeatAt());
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO armorSets = taskById(overview.getRegisteredTasks(), "domain-source-armor-sets");
+        assertEquals("Domain source: Armor sets", armorSets.getLabel());
+        assertEquals("completed", armorSets.getStatus());
+        assertEquals("completed", armorSets.getProgressKind());
+        assertEquals("data/generated/wiki-armor-sets.latest.json", armorSets.getOutputPath());
+        assertEquals("reports/domain/domain-source-armor-sets-2026-05-24.json", armorSets.getReportPath());
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO shimmer = taskById(overview.getRegisteredTasks(), "domain-source-shimmer");
+        assertEquals("Domain source: Shimmer", shimmer.getLabel());
+        assertEquals("missing", shimmer.getStatus());
+        assertEquals("missing", shimmer.getProgressKind());
+        assertEquals("data/generated/domain-source-shimmer-progress.latest.json", shimmer.getProgressPath());
+        assertEquals("data/generated/shimmer/wiki-shimmer-manifest.latest.json", shimmer.getOutputPath());
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO townNpcMaintenance = taskById(overview.getRegisteredTasks(), "domain-source-town-npc-maintenance");
+        assertEquals("Domain source: Town NPC maintenance", townNpcMaintenance.getLabel());
+        assertEquals("missing", townNpcMaintenance.getStatus());
+        assertEquals("missing", townNpcMaintenance.getProgressKind());
+        assertEquals("data/generated/domain-source-town-npc-maintenance-progress.latest.json", townNpcMaintenance.getProgressPath());
+        assertEquals("data/generated/wiki-town-npc-maintenance.latest.json", townNpcMaintenance.getOutputPath());
+    }
+
+    @Test
+    void shouldMarkRunningDomainSourceSnapshotProgressAsStalledWhenHeartbeatIsOld() throws Exception {
+        writeJson(repoRoot.resolve("data/generated/domain-source-shimmer-progress.latest.json"), Map.ofEntries(
+            Map.entry("actionId", "domain-source-shimmer"),
+            Map.entry("status", "running"),
+            Map.entry("phase", "fetch-shimmer"),
+            Map.entry("message", "fetching shimmer transmutation snapshot"),
+            Map.entry("current", 1),
+            Map.entry("total", 3),
+            Map.entry("outputPath", "data/generated/shimmer/wiki-shimmer-manifest.latest.json"),
+            Map.entry("lastHeartbeatAt", "2026-05-24T01:00:00Z"),
+            Map.entry("generatedAt", "2026-05-24T01:00:00Z")
+        ));
+
+        CrawlerMonitorServiceImpl service = new CrawlerMonitorServiceImpl(
+            new ObjectMapper(),
+            repoRoot,
+            Clock.fixed(Instant.parse("2026-05-24T01:20:01Z"), ZoneOffset.UTC)
+        );
+
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO shimmer = taskById(service.getOverview().getRegisteredTasks(), "domain-source-shimmer");
+
+        assertEquals("stalled", shimmer.getStatus());
+        assertEquals("stalled", shimmer.getProgressKind());
+        assertTrue(shimmer.isProgressStale());
+        assertTrue(shimmer.getProgressStaleReason().contains("older than 10 minutes"));
+    }
+
+    @Test
     void shouldExposeThreeArchitectureLayersWithFileStatus() throws Exception {
         Path sharedDataRoot = repoRoot.getParent().resolve("data/terraPedia");
         Path rawItemPageDir = sharedDataRoot.resolve("raw/wiki/item-pages");

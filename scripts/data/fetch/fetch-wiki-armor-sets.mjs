@@ -11,11 +11,17 @@ import {
   writeJson
 } from '../lib/wiki-item-utils.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
+import {
+  buildActionProgressPayload,
+  writeJsonFile
+} from '../workflow/backend-refresh-runtime-state.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = getProjectRoot();
 const DEFAULT_ZH_WIKI_API_URL = 'https://terraria.wiki.gg/zh/api.php';
 const DEFAULT_ARMOR_PAGE_TITLE = '盔甲';
+const ACTION_ID = 'domain-source-armor-sets';
+const DEFAULT_PROGRESS_PATH = path.join(repoRoot, 'data', 'generated', 'domain-source-armor-sets-progress.latest.json');
 
 const WIKI_SECTIONS = [
   {
@@ -282,32 +288,127 @@ async function main(argv = process.argv.slice(2)) {
   const apiUrl = String(options['api-url'] ?? DEFAULT_ZH_WIKI_API_URL);
   const pageTitle = String(options.page ?? DEFAULT_ARMOR_PAGE_TITLE);
   const outputDir = path.resolve(process.cwd(), options['output-dir'] ?? path.join(repoRoot, 'data', 'generated'));
+  const outputPath = path.join(outputDir, 'wiki-armor-sets.latest.json');
+  const progressPath = path.resolve(process.cwd(), options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_PROGRESS_PATH);
+  const canonicalProgressPath = path.resolve(DEFAULT_PROGRESS_PATH);
   const keepSnapshot = shouldKeepSnapshot(options);
-  const payload = await fetchWikiPagePayload({ pageTitle, apiUrl });
-  const records = parseWikiArmorSetRows({
-    wikitext: payload.wikitext,
-    html: payload.html,
-    sourceRevisionTimestamp: payload.revisionTimestamp
-  });
   const generatedAt = new Date().toISOString();
-  const timestamp = generatedAt.replaceAll(':', '-');
-  const result = {
-    source: 'terraria.wiki.gg/zh/wiki/盔甲',
-    sourceApi: apiUrl,
-    sourcePageTitle: payload.pageTitle,
-    sourceRevisionTimestamp: payload.revisionTimestamp,
-    fetchedAt: payload.fetchedAt,
-    generatedAt,
-    total: records.length,
-    records
+  const writeProgress = (progress) => {
+    const progressPayload = {
+      startedAt: generatedAt,
+      outputPath,
+      ...progress,
+      generatedAt: progress.generatedAt ?? new Date().toISOString()
+    };
+    writeJsonFile(progressPath, buildArmorProgressPayload({
+      ...progressPayload,
+      progressPath
+    }));
+    if (shouldMirrorProgressPath(progressPath, canonicalProgressPath)) {
+      writeJsonFile(canonicalProgressPath, buildArmorProgressPayload({
+        ...progressPayload,
+        progressPath: canonicalProgressPath
+      }));
+    }
   };
 
-  ensureDir(outputDir);
-  writeJson(path.join(outputDir, 'wiki-armor-sets.latest.json'), result);
-  if (keepSnapshot) {
-    writeJson(path.join(outputDir, `wiki-armor-sets.${timestamp}.json`), result);
+  writeProgress({
+    status: 'running',
+    phase: 'start',
+    message: 'starting armor set source fetch',
+    current: 0,
+    total: 1
+  });
+
+  try {
+    const payload = await fetchWikiPagePayload({ pageTitle, apiUrl });
+    writeProgress({
+      status: 'running',
+      phase: 'parse',
+      message: `parsing armor set rows from ${payload.pageTitle}`,
+      current: 1,
+      total: 1
+    });
+    const records = parseWikiArmorSetRows({
+      wikitext: payload.wikitext,
+      html: payload.html,
+      sourceRevisionTimestamp: payload.revisionTimestamp
+    });
+    const timestamp = generatedAt.replaceAll(':', '-');
+    const result = {
+      source: 'terraria.wiki.gg/zh/wiki/盔甲',
+      sourceApi: apiUrl,
+      sourcePageTitle: payload.pageTitle,
+      sourceRevisionTimestamp: payload.revisionTimestamp,
+      fetchedAt: payload.fetchedAt,
+      generatedAt,
+      total: records.length,
+      records
+    };
+
+    ensureDir(outputDir);
+    writeJson(outputPath, result);
+    if (keepSnapshot) {
+      writeJson(path.join(outputDir, `wiki-armor-sets.${timestamp}.json`), result);
+    }
+    writeProgress({
+      status: 'completed',
+      phase: 'write',
+      message: `finished armor set source fetch; records=${records.length}`,
+      current: 1,
+      total: 1
+    });
+    console.log(`Fetched ${records.length} wiki armor sets from ${payload.pageTitle}`);
+  } catch (error) {
+    writeProgress({
+      status: 'failed',
+      phase: 'error',
+      message: error instanceof Error ? error.message : String(error),
+      current: 0,
+      total: 1,
+      nextStep: 'check wiki armor page source availability'
+    });
+    throw error;
   }
-  console.log(`Fetched ${records.length} wiki armor sets from ${payload.pageTitle}`);
+}
+
+function buildArmorProgressPayload({
+  status,
+  phase,
+  message,
+  current,
+  total,
+  startedAt,
+  progressPath,
+  outputPath,
+  nextStep = null,
+  generatedAt = new Date().toISOString()
+} = {}) {
+  const payload = buildActionProgressPayload({
+    actionId: ACTION_ID,
+    status,
+    phase,
+    message,
+    current,
+    total,
+    startedAt,
+    overallCurrent: current,
+    overallTotal: total,
+    generatedAt,
+    lastHeartbeatAt: generatedAt,
+    childStatusPath: progressPath
+  });
+  payload.outputPath = outputPath ?? null;
+  payload.reportPath = null;
+  if (nextStep) payload.nextStep = nextStep;
+  return payload;
+}
+
+function shouldMirrorProgressPath(progressPath, canonicalProgressPath) {
+  if (path.resolve(progressPath) === path.resolve(canonicalProgressPath)) {
+    return false;
+  }
+  return process.env.NODE_ENV !== 'test' || Boolean(process.env.WORKTREE_ROOT);
 }
 
 if (process.argv[1] === __filename) {

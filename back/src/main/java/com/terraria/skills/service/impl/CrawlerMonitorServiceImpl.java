@@ -44,6 +44,10 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
     private static final Path WIKI_SYNC_PROGRESS_FILE = Path.of("data", "generated", "wiki-sync-progress.latest.json");
     private static final Path BUFF_FETCH_PROGRESS_FILE = Path.of("data", "generated", "fetch-wiki-buffs-progress.latest.json");
     private static final Path WORLD_CONTEXT_FETCH_PROGRESS_FILE = Path.of("data", "generated", "wiki-world-contexts-progress.latest.json");
+    private static final Path DOMAIN_SOURCE_BOSSES_PROGRESS_FILE = Path.of("data", "generated", "domain-source-bosses-progress.latest.json");
+    private static final Path DOMAIN_SOURCE_ARMOR_SETS_PROGRESS_FILE = Path.of("data", "generated", "domain-source-armor-sets-progress.latest.json");
+    private static final Path DOMAIN_SOURCE_SHIMMER_PROGRESS_FILE = Path.of("data", "generated", "domain-source-shimmer-progress.latest.json");
+    private static final Path DOMAIN_SOURCE_TOWN_NPC_MAINTENANCE_PROGRESS_FILE = Path.of("data", "generated", "domain-source-town-npc-maintenance-progress.latest.json");
     private static final Path NPC_COVERAGE_REPORT = Path.of("data", "wiki-crawler", "report", "npc", "coverage-audit.latest.json");
     private static final Path RAW_ITEM_PAGES_DIR = Path.of("raw", "wiki", "item-pages");
     private static final Path STANDARDIZED_DIR = Path.of("standardized");
@@ -748,12 +752,48 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         ReadResult itemProgress = readProgressWithRedisFallback(repoRoot, REDIS_ITEM_PROGRESS_KEY, WIKI_SYNC_PROGRESS_FILE);
         ReadResult buffFetchProgress = readProgressWithRedisAndSharedFallback(repoRoot, REDIS_BUFF_PROGRESS_KEY, BUFF_FETCH_PROGRESS_FILE);
         ReadResult worldContextFetchProgress = readProgressWithSharedFallback(repoRoot, WORLD_CONTEXT_FETCH_PROGRESS_FILE);
+        ReadResult domainSourceBossesProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_BOSSES_PROGRESS_FILE).normalize());
+        ReadResult domainSourceArmorSetsProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_ARMOR_SETS_PROGRESS_FILE).normalize());
+        ReadResult domainSourceShimmerProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_SHIMMER_PROGRESS_FILE).normalize());
+        ReadResult domainSourceTownNpcMaintenanceProgress = readJsonMap(repoRoot.resolve(DOMAIN_SOURCE_TOWN_NPC_MAINTENANCE_PROGRESS_FILE).normalize());
         ReadResult npcCoverage = readJsonMap(repoRoot.resolve(NPC_COVERAGE_REPORT).normalize());
 
         List<CrawlerMonitorOverviewDTO.RegisteredTaskDTO> tasks = new ArrayList<>();
         tasks.add(buildWikiCoreRefreshTask(repoRoot, latestRun));
         tasks.add(buildBuffFetchRefreshTask(repoRoot, buffFetchProgress));
         tasks.add(buildWorldContextFetchRefreshTask(repoRoot, worldContextFetchProgress));
+        tasks.add(buildDomainSourceSnapshotTask(
+            repoRoot,
+            "domain-source-bosses",
+            "Domain source: Bosses",
+            DOMAIN_SOURCE_BOSSES_PROGRESS_FILE,
+            "data/generated/wiki-bosses.latest.json",
+            domainSourceBossesProgress
+        ));
+        tasks.add(buildDomainSourceSnapshotTask(
+            repoRoot,
+            "domain-source-armor-sets",
+            "Domain source: Armor sets",
+            DOMAIN_SOURCE_ARMOR_SETS_PROGRESS_FILE,
+            "data/generated/wiki-armor-sets.latest.json",
+            domainSourceArmorSetsProgress
+        ));
+        tasks.add(buildDomainSourceSnapshotTask(
+            repoRoot,
+            "domain-source-shimmer",
+            "Domain source: Shimmer",
+            DOMAIN_SOURCE_SHIMMER_PROGRESS_FILE,
+            "data/generated/shimmer/wiki-shimmer-manifest.latest.json",
+            domainSourceShimmerProgress
+        ));
+        tasks.add(buildDomainSourceSnapshotTask(
+            repoRoot,
+            "domain-source-town-npc-maintenance",
+            "Domain source: Town NPC maintenance",
+            DOMAIN_SOURCE_TOWN_NPC_MAINTENANCE_PROGRESS_FILE,
+            "data/generated/wiki-town-npc-maintenance.latest.json",
+            domainSourceTownNpcMaintenanceProgress
+        ));
         tasks.add(buildItemPagesRefreshTask(repoRoot, itemProgress));
         tasks.add(buildStaticTask(
             "item-pages-retry-failures",
@@ -1069,6 +1109,58 @@ public class CrawlerMonitorServiceImpl implements CrawlerMonitorService {
         String outputPath = normalizePayloadPath(repoRoot, payload.get("outputPath"));
         if (outputPath != null && !outputPath.isBlank()) {
             task.setOutputPath(outputPath);
+        }
+        return task;
+    }
+
+    private CrawlerMonitorOverviewDTO.RegisteredTaskDTO buildDomainSourceSnapshotTask(
+        Path repoRoot,
+        String id,
+        String label,
+        Path progressPath,
+        String outputPath,
+        ReadResult progress
+    ) {
+        CrawlerMonitorOverviewDTO.RegisteredTaskDTO task = baseTask(id, label, "fetch", "p0");
+        task.setProgressPath(toDisplayPath(repoRoot, repoRoot.resolve(progressPath).normalize()));
+        applyProgressFileMetadata(task, repoRoot, progress);
+        task.setInputPath("wiki domain source pages");
+        task.setOutputPath(outputPath);
+        task.setDataStage("wiki domain source pages -> generated source snapshot");
+
+        if (!progress.found()) {
+            task.setStatus("missing");
+            task.setProgressKind("missing");
+            task.setQueueState("progress file missing");
+            task.setNextStep("Run the domain source snapshot fetch before downstream audit evidence.");
+            return task;
+        }
+        if (!progress.readable()) {
+            task.setStatus("blocked");
+            task.setProgressKind("blocked");
+            task.setQueueState(progress.errorMessage());
+            task.setNextStep("Repair the unreadable domain source progress JSON before trusting completion state.");
+            return task;
+        }
+
+        Map<String, Object> payload = progress.payload();
+        task.setStatus(firstNonBlank(asString(payload.get("status")), "pending"));
+        task.setQueueState(firstNonBlank(asString(payload.get("message")), firstNonBlank(asString(payload.get("phase")), task.getStatus())));
+        task.setNextStep(firstNonBlank(
+            asString(payload.get("nextStep")),
+            "Review source snapshot output and report evidence before downstream domain gates."
+        ));
+        task.setUpdatedAt(firstNonBlank(asString(payload.get("lastHeartbeatAt")), asString(payload.get("generatedAt"))));
+        copyTaskProgressFromPayload(task, payload);
+        applyReadableProgressState(task);
+
+        String reportPath = normalizePayloadPath(repoRoot, payload.get("reportPath"));
+        if (reportPath != null && !reportPath.isBlank()) {
+            task.setReportPath(reportPath);
+        }
+        String payloadOutputPath = normalizePayloadPath(repoRoot, payload.get("outputPath"));
+        if (payloadOutputPath != null && !payloadOutputPath.isBlank()) {
+            task.setOutputPath(payloadOutputPath);
         }
         return task;
     }
