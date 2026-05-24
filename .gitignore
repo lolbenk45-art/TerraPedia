@@ -48,6 +48,8 @@ reports/relation/*
 !reports/relation/*.json
 reports/relation/relation-audit-*.md
 reports/relation/relation-audit-*.json
+!reports/audit/
+!reports/audit/image-source-lineage-2026-05-24.json
 !reports/domain/
 reports/domain/staleness-history.jsonl
 !reports/item-groups/
