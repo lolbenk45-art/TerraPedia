@@ -1,0 +1,122 @@
+{
+  "generatedAt": "2026-05-24T05:25:26.892Z",
+  "databases": {
+    "localDatabase": "terria_v1_local",
+    "maintDatabase": "terria_v1_maint",
+    "relationDatabase": "terria_v1_relation"
+  },
+  "domains": {
+    "items": {
+      "localTotal": 6159,
+      "maintTotal": 6146,
+      "relationTotal": 6146
+    },
+    "npcs": {
+      "localTotal": 762,
+      "maintTotal": 762,
+      "relationTotal": 762
+    },
+    "projectiles": {
+      "localTotal": 1111,
+      "maintTotal": 1111,
+      "relationTotal": 1111
+    },
+    "buffs": {
+      "localTotal": 388,
+      "maintTotal": 388,
+      "relationTotal": 388
+    }
+  },
+  "fieldAudit": {
+    "summary": {
+      "domainCount": 4,
+      "totalGaps": 6980
+    },
+    "domains": {
+      "items": {
+        "localTotal": 6159,
+        "relationTotal": 6146,
+        "fields": {
+          "nameZh": {
+            "localCoverage": 6139,
+            "relationCoverage": 6131,
+            "gap": 8
+          },
+          "image": {
+            "localCoverage": 6133,
+            "relationCoverage": 0,
+            "gap": 6133
+          },
+          "descriptionZh": {
+            "localCoverage": 14,
+            "relationCoverage": 0,
+            "gap": 14
+          },
+          "tooltipZh": {
+            "localCoverage": 6,
+            "relationCoverage": 0,
+            "gap": 6
+          }
+        }
+      },
+      "npcs": {
+        "localTotal": 762,
+        "relationTotal": 762,
+        "fields": {
+          "nameZh": {
+            "localCoverage": 758,
+            "relationCoverage": 145,
+            "gap": 613
+          },
+          "subNameZh": {
+            "localCoverage": 206,
+            "relationCoverage": 0,
+            "gap": 206
+          },
+          "image": {
+            "localCoverage": 0,
+            "relationCoverage": 0,
+            "gap": 0
+          }
+        }
+      },
+      "projectiles": {
+        "localTotal": 1111,
+        "relationTotal": 1111,
+        "fields": {
+          "nameZh": {
+            "localCoverage": 1006,
+            "relationCoverage": 1006,
+            "gap": 0
+          },
+          "image": {
+            "localCoverage": 0,
+            "relationCoverage": 1110,
+            "gap": 0
+          }
+        }
+      },
+      "buffs": {
+        "localTotal": 388,
+        "relationTotal": 388,
+        "fields": {
+          "nameZh": {
+            "localCoverage": 340,
+            "relationCoverage": 340,
+            "gap": 0
+          },
+          "image": {
+            "localCoverage": 388,
+            "relationCoverage": 388,
+            "gap": 0
+          },
+          "tooltipZh": {
+            "localCoverage": 340,
+            "relationCoverage": 340,
+            "gap": 0
+          }
+        }
+      }
+    }
+  }
+}
