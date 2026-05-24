@@ -84,6 +84,14 @@ CLEANUP_BRANCH=chore/workspace-hygiene-closeout-2026-05-24
 
 - Use explicit paths and explicit branch names only.
 - Never remove the main worktree or the cleanup execution worktree.
+- Never remove the plan-authoring worktree or primary checkout in the auto-clean loop:
+  - `/home/lolben/.config/superpowers/worktrees/TerraPedia/plan-workspace-hygiene-closeout-2026-05-24`
+  - `/home/lolben/TerraPedia`
+- Never auto-delete these branches:
+  - `main`
+  - `chore/workspace-hygiene-closeout-2026-05-24`
+  - `plan/workspace-hygiene-closeout-2026-05-24`
+  - `chore/local-stack-front-nuxt-2026-05-23`
 - Before removing any worktree, verify:
   - `git -C <path> status --short --branch` has no changed files.
   - `git branch --contains <branch-tip>` includes `main`.
@@ -179,6 +187,13 @@ Expected:
 - The cleanup branch is based on `main`.
 - No work is performed directly on `main`.
 
+Resume rules:
+
+- If `$CLEANUP_WT` already exists and `git -C "$CLEANUP_WT" branch --show-current` equals `$CLEANUP_BRANCH`, reuse it after `git -C "$CLEANUP_WT" status --short --branch` shows no unrelated changes.
+- If `$CLEANUP_BRANCH` exists but `$CLEANUP_WT` does not, verify `git merge-base --is-ancestor main "$CLEANUP_BRANCH"` exits `0`, then run `git worktree add "$CLEANUP_WT" "$CLEANUP_BRANCH"`.
+- If `$CLEANUP_WT` exists but is not a git worktree for `$CLEANUP_BRANCH`, stop for operator review.
+- Do not delete an existing cleanup branch or path to make the command pass.
+
 - [ ] **Step 3: Verify cleanup worktree baseline**
 
 Run:
@@ -197,6 +212,21 @@ Expected:
 chore/workspace-hygiene-closeout-2026-05-24
 d127331
 ```
+
+- [ ] **Step 4: Ensure the plan file exists in the cleanup execution branch**
+
+If the cleanup branch was created from `main` and the plan authoring branch has not been merged yet, bring the plan commit into the cleanup branch:
+
+```bash
+cd /home/lolben/.config/superpowers/worktrees/TerraPedia/chore-workspace-hygiene-closeout-2026-05-24
+test -f docs/superpowers/plans/2026-05-24-workspace-hygiene-closeout.md || git cherry-pick 97b72a9
+test -f docs/superpowers/plans/2026-05-24-workspace-hygiene-closeout.md
+```
+
+Expected:
+
+- The plan file exists in the cleanup execution branch.
+- Final merge into `main` uses the cleanup execution branch, so `main` receives both the plan and cleanup audit records.
 
 ---
 
@@ -475,6 +505,20 @@ while IFS= read -r branch; do
     continue
   fi
 
+  case "$branch" in
+    main|chore/workspace-hygiene-closeout-2026-05-24|plan/workspace-hygiene-closeout-2026-05-24|chore/local-stack-front-nuxt-2026-05-23)
+      printf '%s\tprotected-branch\t%s\n' "$branch" "$path" >> /tmp/terrapedia-cleanup-rejected.txt
+      continue
+      ;;
+  esac
+
+  case "$path" in
+    /home/lolben/.config/superpowers/worktrees/TerraPedia/main-admin-npc-zh-merge-2026-05-22|/home/lolben/.config/superpowers/worktrees/TerraPedia/chore-workspace-hygiene-closeout-2026-05-24|/home/lolben/.config/superpowers/worktrees/TerraPedia/plan-workspace-hygiene-closeout-2026-05-24|/home/lolben/TerraPedia)
+      printf '%s\tprotected-worktree\t%s\n' "$branch" "$path" >> /tmp/terrapedia-cleanup-rejected.txt
+      continue
+      ;;
+  esac
+
   if [ -n "$(git -C "$path" status --short)" ]; then
     printf '%s\tdirty-worktree\t%s\n' "$branch" "$path" >> /tmp/terrapedia-cleanup-rejected.txt
     continue
@@ -694,7 +738,7 @@ Run:
 cd /home/lolben/.config/superpowers/worktrees/TerraPedia/main-admin-npc-zh-merge-2026-05-22
 git fetch origin
 git status --short --branch
-git merge --no-ff plan/workspace-hygiene-closeout-2026-05-24 -m "Merge branch 'plan/workspace-hygiene-closeout-2026-05-24'"
+git merge --no-ff chore/workspace-hygiene-closeout-2026-05-24 -m "Merge branch 'chore/workspace-hygiene-closeout-2026-05-24'"
 ```
 
 Expected:
