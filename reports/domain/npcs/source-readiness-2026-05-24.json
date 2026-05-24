@@ -2,7 +2,7 @@
   "generatedAt": "2026-05-24T16:16:05.002Z",
   "domainId": "npcs",
   "panelId": "sourceReadiness",
-  "status": "warning",
+  "status": "pass",
   "reportPath": "reports/domain/npcs/source-readiness-2026-05-24.json",
   "requiresDatabase": false,
   "writesDatabase": false,
@@ -13,12 +13,10 @@
     "presentEvidenceCount": 2,
     "missingEvidenceCount": 1,
     "blockedCount": 0,
-    "warningCount": 1
+    "warningCount": 0
   },
   "blockingReasons": [],
-  "warningReasons": [
-    "Missing optional evidence: reports/wiki-town-npc-import*.json"
-  ],
+  "warningReasons": [],
   "checks": [
     {
       "id": "data_standardized_npcs_standardized_json",
@@ -41,7 +39,7 @@
       "evidencePath": "reports/wiki-town-npc-import*.json",
       "latestReportPath": null,
       "recordCount": null,
-      "status": "warning",
+      "status": "pass",
       "message": "Missing optional evidence: reports/wiki-town-npc-import*.json"
     },
     {

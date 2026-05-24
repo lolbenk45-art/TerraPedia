@@ -167,7 +167,7 @@ const PRODUCT_DOMAIN_CONFIG = {
       fileKey: 'source-readiness',
       evidence: [
         requiredJson('data/standardized/npcs.standardized.json'),
-        optionalLatestJson('reports/wiki-town-npc-import*.json'),
+        optionalLatestJson('reports/wiki-town-npc-import*.json', { warnWhenMissing: false }),
         optionalLatestJson('reports/wiki-town-npc-maintenance*.json'),
       ],
     },
@@ -334,7 +334,7 @@ const PRODUCT_DOMAIN_CONFIG = {
       fileKey: 'image-readiness',
       evidence: [
         optionalSharedJson('raw/wiki/armor_set_images.parsed.latest.json'),
-        optionalLatestJson('reports/fetch/fetch-armor-set-images*.json'),
+        optionalLatestJson('reports/fetch/fetch-armor-set-images*.json', { warnWhenMissing: false }),
       ],
     },
     publicReadiness: {
@@ -428,7 +428,8 @@ const SUPPORT_DOMAIN_CONFIG = {
       fileKey: 'source-readiness',
       evidence: [
         requiredJson('data/generated/wiki-town-npc-maintenance.latest.json'),
-        optionalLatestJson('reports/wiki-town-npc-import*.json'),
+        optionalLatestJson('reports/wiki-town-npc-import*.json', { warnWhenMissing: false }),
+        optionalLatestJson('reports/wiki-town-npc-maintenance*.json'),
       ],
     },
     blockingGate: {
@@ -521,6 +522,11 @@ function evaluateEvidence(repoRoot, evidence, { domainId, panelId } = {}) {
     ? findLatestReport(repoRoot, evidence.path)
     : resolveStaticEvidence(repoRoot, evidence.path, evidence.type);
   if (!resolved) {
+    const status = evidence.required
+      ? 'blocked'
+      : evidence.warnWhenMissing === false
+        ? 'pass'
+        : 'warning';
     return {
       id: evidence.id,
       type: evidence.type,
@@ -530,7 +536,7 @@ function evaluateEvidence(repoRoot, evidence, { domainId, panelId } = {}) {
       evidencePath: evidence.path,
       latestReportPath: null,
       recordCount: null,
-      status: evidence.required ? 'blocked' : 'warning',
+      status,
       message: `Missing ${evidence.required ? 'required' : 'optional'} evidence: ${evidence.path}`,
     };
   }
@@ -704,6 +710,12 @@ function evaluateProductDomainSemantics({ repoRoot, evidence, domainId, panelId,
   }
   if (domainId === 'projectiles' && panelId === 'imageReadiness' && pathKey === 'data/generated/projectile-zh-map.json') {
     return mapCountSemantics(payload, reportPath, 'projectile zh map');
+  }
+  if (['npcs', 'support.town_npc_maintenance'].includes(domainId)
+    && panelId === 'sourceReadiness'
+    && evidence.latest
+    && pathKey === 'reports/wiki-town-npc-import*.json') {
+    return townNpcLegacyImportSemantics(payload, reportPath);
   }
   if (domainId === 'armor_sets' && panelId === 'sourceReadiness' && pathKey === 'data/generated/wiki-armor-sets.latest.json') {
     return armorWikiSourceSemantics(payload, reportPath);
@@ -1197,6 +1209,31 @@ function armorImageFetchSemantics(payload, reportPath, repoRoot) {
   });
 }
 
+function townNpcLegacyImportSemantics(payload, reportPath) {
+  const counters = collectCounters(payload, [
+    'errorCount',
+    'blockedCount',
+    'blockingCount',
+    'unresolvedCount',
+    'driftCount',
+    'duplicateCount',
+    'failedCount',
+    'invalidCount',
+    'unmatchedNpcCount',
+    'unmatchedShopItemCount',
+  ]);
+  const warnings = counters
+    .filter((counter) => counter.value > 0)
+    .map((counter) => `${counter.key}=${counter.value}`);
+  return semanticResult({
+    reportPath,
+    cleanMessage: `town NPC legacy import semantic gates are clean in ${reportPath}: ${formatMetrics(Object.fromEntries(counters.map((counter) => [counter.key, counter.value])))}`,
+    warnings: warnings.length > 0
+      ? [`town NPC legacy import counters are non-zero: ${warnings.join(', ')}`]
+      : [],
+  });
+}
+
 function isScopedBuffSourceGap(record) {
   return KNOWN_BUFF_REQUIRED_FIELD_GAP_KEYS.has(`${Number(record?.id)}:${String(record?.internalName ?? '')}`);
 }
@@ -1418,6 +1455,10 @@ function imageSourceSemantics(payload, reportPath, {
 }
 
 function collectBlockingGateCounters(payload) {
+  return collectCounters(payload, BLOCKING_GATE_COUNTER_KEYS);
+}
+
+function collectCounters(payload, keys) {
   const candidates = [
     payload,
     payload?.summary,
@@ -1428,14 +1469,16 @@ function collectBlockingGateCounters(payload) {
     payload?.blockingSummary,
   ];
   const counters = [];
+  const seen = new Set();
   for (const candidate of candidates) {
     if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
       continue;
     }
-    for (const key of BLOCKING_GATE_COUNTER_KEYS) {
+    for (const key of keys) {
       const value = candidate[key];
-      if (Number.isFinite(value)) {
+      if (Number.isFinite(value) && !seen.has(key)) {
         counters.push({ key, value });
+        seen.add(key);
       }
     }
   }
@@ -1599,12 +1642,12 @@ function optionalSharedJson(relativePath, options = {}) {
   return evidence(`shared-data/${normalizePath(relativePath)}`, false, options.type ?? 'json');
 }
 
-function requiredLatestJson(reportPattern) {
-  return evidence(reportPattern, true, 'json', true);
+function requiredLatestJson(reportPattern, options = {}) {
+  return evidence(reportPattern, true, 'json', true, options);
 }
 
-function optionalLatestJson(reportPattern) {
-  return evidence(reportPattern, false, 'json', true);
+function optionalLatestJson(reportPattern, options = {}) {
+  return evidence(reportPattern, false, 'json', true, options);
 }
 
 function optionalLatestText(reportPattern) {
@@ -1623,13 +1666,14 @@ function optionalDirectory(relativePath) {
   return evidence(relativePath, false, 'directory');
 }
 
-function evidence(relativePath, required, type, latest = false) {
+function evidence(relativePath, required, type, latest = false, options = {}) {
   return {
     id: evidenceId(relativePath),
     path: relativePath,
     required,
     type,
     latest,
+    warnWhenMissing: options.warnWhenMissing !== false,
   };
 }
 

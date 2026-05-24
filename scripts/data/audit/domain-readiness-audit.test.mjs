@@ -777,6 +777,28 @@ test('buildDomainReadinessReport applies armor set source and image semantic gat
   assert.ok(image.checks.some((check) => /wiki original fallback/.test(check.message)));
 });
 
+test('buildDomainReadinessReport accepts armor image readiness without legacy fetch report when parsed snapshot exists', () => {
+  const repoRoot = createTempRepo();
+  writeSharedJson(repoRoot, 'raw/wiki/armor_set_images.parsed.latest.json', {
+    totalArmorSets: 1,
+    totalArmorSetImages: 1,
+    armorSetImages: [
+      { originalUrl: 'https://terraria.wiki.gg/images/Wood_armor.png', contentType: 'image/png' },
+    ],
+    warnings: [],
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'armor_sets',
+    panel: 'image',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'pass');
+  assert.ok(!report.warningReasons.some((reason) => /reports\/fetch\/fetch-armor-set-images\*\.json/.test(reason)));
+});
+
 test('buildDomainReadinessReport accepts audited armor definition placeholder exceptions', () => {
   const repoRoot = createTempRepo();
   writeJson(repoRoot, 'data/generated/wiki-armor-sets.latest.json', {
@@ -1147,6 +1169,151 @@ test('buildDomainReadinessReport supports support-domain blocking gates from exi
   assert.equal(report.panelId, 'blockingGate');
   assert.equal(report.summary.presentEvidenceCount, 3);
   assert.equal(report.checks[0].latestReportPath, 'reports/wiki-town-npc-maintenance-2026-04-22-051833.json');
+});
+
+test('buildDomainReadinessReport accepts NPC source readiness with maintenance report but without legacy import report', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/standardized/npcs.standardized.json', {
+    totalRecords: 1,
+    records: [
+      { id: 17, internalName: 'Guide', name: 'Guide', nameZh: '向导' },
+    ],
+  });
+  writeJson(repoRoot, 'reports/wiki-town-npc-maintenance-2026-05-24.json', {
+    generatedAt: '2026-05-24T00:00:00Z',
+    records: [
+      { id: 17, internalName: 'Guide' },
+    ],
+    summary: { errorCount: 0, blockedCount: 0, unresolvedCount: 0, driftCount: 0, duplicateCount: 0 },
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'npcs',
+    panel: 'source',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'pass');
+  assert.ok(!report.warningReasons.some((reason) => /reports\/wiki-town-npc-import\*\.json/.test(reason)));
+});
+
+test('buildDomainReadinessReport accepts town NPC maintenance source without legacy import report', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/generated/wiki-town-npc-maintenance.latest.json', {
+    records: [
+      { id: 17, internalName: 'Guide' },
+    ],
+    summary: { errorCount: 0, blockedCount: 0, unresolvedCount: 0, driftCount: 0, duplicateCount: 0 },
+  });
+  writeJson(repoRoot, 'reports/wiki-town-npc-maintenance-2026-05-24.json', {
+    generatedAt: '2026-05-24T00:00:00Z',
+    records: [
+      { id: 17, internalName: 'Guide' },
+    ],
+    summary: { errorCount: 0, blockedCount: 0, unresolvedCount: 0, driftCount: 0, duplicateCount: 0 },
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'support.town_npc_maintenance',
+    panel: 'source',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'pass');
+  assert.ok(!report.warningReasons.some((reason) => /reports\/wiki-town-npc-import\*\.json/.test(reason)));
+});
+
+test('buildDomainReadinessReport warns when town NPC legacy import report is unreadable', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/generated/wiki-town-npc-maintenance.latest.json', {
+    records: [
+      { id: 17, internalName: 'Guide' },
+    ],
+  });
+  writeJson(repoRoot, 'reports/wiki-town-npc-maintenance-2026-05-24.json', {
+    generatedAt: '2026-05-24T00:00:00Z',
+    records: [
+      { id: 17, internalName: 'Guide' },
+    ],
+    summary: { errorCount: 0, blockedCount: 0, unresolvedCount: 0, driftCount: 0, duplicateCount: 0 },
+  });
+  writeText(repoRoot, 'reports/wiki-town-npc-import-2026-05-24.json', '{not json');
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'support.town_npc_maintenance',
+    panel: 'source',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'warning');
+  assert.ok(report.warningReasons.some((reason) => /Unreadable optional evidence: reports\/wiki-town-npc-import-2026-05-24\.json/.test(reason)));
+});
+
+test('buildDomainReadinessReport warns when town NPC legacy import report has error counters', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/generated/wiki-town-npc-maintenance.latest.json', {
+    records: [
+      { id: 17, internalName: 'Guide' },
+    ],
+  });
+  writeJson(repoRoot, 'reports/wiki-town-npc-maintenance-2026-05-24.json', {
+    generatedAt: '2026-05-24T00:00:00Z',
+    records: [
+      { id: 17, internalName: 'Guide' },
+    ],
+    summary: { errorCount: 0, blockedCount: 0, unresolvedCount: 0, driftCount: 0, duplicateCount: 0 },
+  });
+  writeJson(repoRoot, 'reports/wiki-town-npc-import-2026-05-24.json', {
+    generatedAt: '2026-05-24T00:00:00Z',
+    summary: { errorCount: 1, blockedCount: 0, unresolvedCount: 0, driftCount: 0, duplicateCount: 0 },
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'support.town_npc_maintenance',
+    panel: 'source',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'warning');
+  assert.ok(report.warningReasons.some((reason) => /town NPC legacy import counters are non-zero/.test(reason)));
+});
+
+test('buildDomainReadinessReport warns when town NPC legacy import report has unmatched import counts', () => {
+  const repoRoot = createTempRepo();
+  writeJson(repoRoot, 'data/generated/wiki-town-npc-maintenance.latest.json', {
+    records: [
+      { id: 17, internalName: 'Guide' },
+    ],
+  });
+  writeJson(repoRoot, 'reports/wiki-town-npc-maintenance-2026-05-24.json', {
+    generatedAt: '2026-05-24T00:00:00Z',
+    records: [
+      { id: 17, internalName: 'Guide' },
+    ],
+    summary: { errorCount: 0, blockedCount: 0, unresolvedCount: 0, driftCount: 0, duplicateCount: 0 },
+  });
+  writeJson(repoRoot, 'reports/wiki-town-npc-import-2026-05-24.json', {
+    generatedAt: '2026-05-24T00:00:00Z',
+    totalRecords: 1,
+    matchedNpcCount: 0,
+    unmatchedNpcCount: 1,
+    unmatchedShopItemCount: 2,
+  });
+
+  const report = buildDomainReadinessReport({
+    repoRoot,
+    domainId: 'support.town_npc_maintenance',
+    panel: 'source',
+    generatedAt: '2026-05-03T12:00:00Z',
+  });
+
+  assert.equal(report.status, 'warning');
+  assert.ok(report.warningReasons.some((reason) => /unmatchedNpcCount=1/.test(reason)));
+  assert.ok(report.warningReasons.some((reason) => /unmatchedShopItemCount=2/.test(reason)));
 });
 
 test('buildDomainReadinessReport blocks support gates when latest reports contain non-zero gate counters', () => {
