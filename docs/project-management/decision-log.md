@@ -101,3 +101,17 @@ Decision: V0.1 remains preview-only after the 2026-05-23 A-grade blocker burn-do
 Reason: The burn-down reduced generated blockers from 13 to 6, but the final A-grade gate still exits blocked. Remaining blockers require separate source-fetch progress, DB environment, image lineage, and projectile relation repair.
 Evidence: `docs/audits/2026-05-23_domain-a-grade-blocker-burn-down-closeout.md`.
 Expected follow-up: Complete the remaining repair branches, then rerun the full A-grade gate before any release-ready claim.
+
+## D-2026-05-24-01: Remaining source snapshot blockers are closed with durable evidence
+
+Decision: The four Group B source snapshot blockers are closed only through committed gate-consumed evidence, not local ignored files or stdout.
+Reason: Boss, Armor Set, Shimmer, and Town NPC source readiness previously depended on missing ignored `data/generated/wiki-*.latest.json` or shimmer manifest artifacts.
+Evidence: `docs/audits/2026-05-24_domain-a-grade-source-snapshot-evidence.md`.
+Expected follow-up: Keep the committed `.gitignore` allowlists scoped to exact evidence paths; future source lanes need the same progress-contract and durability checks.
+
+## D-2026-05-24-02: V0.1 remains preview-only until DB read environment is complete
+
+Decision: Do not close Boss image lineage or projectile relation coverage while `terria_v1_maint` is missing.
+Reason: The remaining two A-grade blockers require a complete readable three-database environment. The plan forbids synthesizing, restoring, importing, or writing a maint database inside this checkpoint.
+Evidence: `docs/audits/2026-05-24_domain-a-grade-db-read-environment.md`, `docs/audits/2026-05-24_domain-a-grade-remaining-blocker-closeout.md`.
+Expected follow-up: Open a DB read-environment repair branch, provide readable `terria_v1_maint`, then rerun Boss image lineage and projectile relation coverage evidence before any release-ready claim.

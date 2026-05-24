@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-05-24T00:57:57.889Z",
+  "domainId": "support.item_group",
+  "panelId": "sourceReadiness",
+  "status": "pass",
+  "reportPath": "reports/domain/support.item_group/source-readiness-2026-05-24.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 2,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 1,
+    "presentEvidenceCount": 2,
+    "missingEvidenceCount": 0,
+    "blockedCount": 0,
+    "warningCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "data_generated_item_group_overrides_json",
+      "type": "json",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/generated/item-group-overrides.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "Evidence present: data/generated/item-group-overrides.json"
+    },
+    {
+      "id": "data_generated_recipe_group_overrides_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/generated/recipe-group-overrides.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "Evidence present: data/generated/recipe-group-overrides.json"
+    }
+  ]
+}

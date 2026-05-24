@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-05-24T00:57:57.889Z",
+  "domainId": "buffs",
+  "panelId": "sourceReadiness",
+  "status": "pass",
+  "reportPath": "reports/domain/buffs/source-readiness-2026-05-24.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 2,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 1,
+    "presentEvidenceCount": 2,
+    "missingEvidenceCount": 0,
+    "blockedCount": 0,
+    "warningCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "data_standardized_buffs_standardized_json",
+      "type": "json",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/standardized/buffs.standardized.json",
+      "latestReportPath": null,
+      "recordCount": 388,
+      "status": "pass",
+      "message": "buff source semantic gates are clean in data/standardized/buffs.standardized.json"
+    },
+    {
+      "id": "data_generated_buff_standardized_map_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/generated/buff-standardized-map.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "buff map count semantic gate is clean in data/generated/buff-standardized-map.json"
+    }
+  ]
+}

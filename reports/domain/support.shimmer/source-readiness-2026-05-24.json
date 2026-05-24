@@ -1,0 +1,58 @@
+{
+  "generatedAt": "2026-05-24T00:57:57.889Z",
+  "domainId": "support.shimmer",
+  "panelId": "sourceReadiness",
+  "status": "pass",
+  "reportPath": "reports/domain/support.shimmer/source-readiness-2026-05-24.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 3,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 2,
+    "presentEvidenceCount": 3,
+    "missingEvidenceCount": 0,
+    "blockedCount": 0,
+    "warningCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "data_generated_shimmer_wiki_shimmer_manifest_latest_json",
+      "type": "json",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/generated/shimmer/wiki-shimmer-manifest.latest.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "Evidence present: data/generated/shimmer/wiki-shimmer-manifest.latest.json"
+    },
+    {
+      "id": "data_generated_shimmer_wiki_shimmer_context_importable_latest_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/generated/shimmer/wiki-shimmer-context.importable.latest.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "Evidence present: data/generated/shimmer/wiki-shimmer-context.importable.latest.json"
+    },
+    {
+      "id": "data_generated_shimmer_wiki_shimmer_item_transforms_importable_latest_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json",
+      "latestReportPath": null,
+      "recordCount": 279,
+      "status": "pass",
+      "message": "Evidence present: data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json"
+    }
+  ]
+}

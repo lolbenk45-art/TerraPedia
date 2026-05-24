@@ -1,0 +1,31 @@
+{
+  "generatedAt": "2026-05-24T00:57:57.889Z",
+  "domainId": "support.shimmer",
+  "panelId": "b1ExemptionCompliance",
+  "status": "pass",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "sourcePath": "docs/audits/canonical-migration-boundary.md",
+  "summary": {
+    "trackedExemptionCount": 1,
+    "passedCount": 1,
+    "warningCount": 0,
+    "blockedCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "notes": [],
+  "checks": [
+    {
+      "input": "data/generated/item-group-overrides.json",
+      "consumer": "npc_shop/shimmer group 解释；deadline: 2026-06-30",
+      "migrationTarget": "canonical item group override",
+      "acceptanceCommand": "node scripts/data/audit/audit-any-item-group-sources.mjs",
+      "status": "pass",
+      "deadline": "2026-06-30",
+      "daysRemaining": 37,
+      "reason": null
+    }
+  ],
+  "reportPath": "reports/domain/support.shimmer/b1-exemption-compliance-2026-05-24.json"
+}

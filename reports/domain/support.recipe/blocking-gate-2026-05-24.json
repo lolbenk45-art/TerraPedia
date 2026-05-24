@@ -1,0 +1,62 @@
+{
+  "generatedAt": "2026-05-24T00:57:57.889Z",
+  "domainId": "support.recipe",
+  "panelId": "blockingGate",
+  "status": "warning",
+  "reportPath": "reports/domain/support.recipe/blocking-gate-2026-05-24.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 3,
+    "requiredEvidenceCount": 0,
+    "optionalEvidenceCount": 3,
+    "presentEvidenceCount": 0,
+    "missingEvidenceCount": 3,
+    "blockedCount": 0,
+    "warningCount": 3
+  },
+  "blockingReasons": [],
+  "warningReasons": [
+    "Missing optional evidence: reports/recipe-provider-consolidation*.json",
+    "Missing optional evidence: reports/recipe-provider-suppression*.json",
+    "Missing optional evidence: reports/wiki-zh-recipe-source-coverage*.json"
+  ],
+  "checks": [
+    {
+      "id": "reports_recipe_provider_consolidationlatest_json",
+      "type": "json",
+      "required": false,
+      "found": false,
+      "readable": false,
+      "evidencePath": "reports/recipe-provider-consolidation*.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "warning",
+      "message": "Missing optional evidence: reports/recipe-provider-consolidation*.json"
+    },
+    {
+      "id": "reports_recipe_provider_suppressionlatest_json",
+      "type": "json",
+      "required": false,
+      "found": false,
+      "readable": false,
+      "evidencePath": "reports/recipe-provider-suppression*.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "warning",
+      "message": "Missing optional evidence: reports/recipe-provider-suppression*.json"
+    },
+    {
+      "id": "reports_wiki_zh_recipe_source_coveragelatest_json",
+      "type": "json",
+      "required": false,
+      "found": false,
+      "readable": false,
+      "evidencePath": "reports/wiki-zh-recipe-source-coverage*.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "warning",
+      "message": "Missing optional evidence: reports/wiki-zh-recipe-source-coverage*.json"
+    }
+  ]
+}

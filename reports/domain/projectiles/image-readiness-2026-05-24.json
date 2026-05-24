@@ -1,0 +1,48 @@
+{
+  "generatedAt": "2026-05-24T00:57:57.889Z",
+  "domainId": "projectiles",
+  "panelId": "imageReadiness",
+  "status": "warning",
+  "reportPath": "reports/domain/projectiles/image-readiness-2026-05-24.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 2,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 1,
+    "presentEvidenceCount": 1,
+    "missingEvidenceCount": 1,
+    "blockedCount": 0,
+    "warningCount": 1
+  },
+  "blockingReasons": [],
+  "warningReasons": [
+    "Missing optional evidence: reports/projectile-zh-image-backfill*.json"
+  ],
+  "checks": [
+    {
+      "id": "data_standardized_projectiles_standardized_json",
+      "type": "json",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "data/standardized/projectiles.standardized.json",
+      "latestReportPath": null,
+      "recordCount": 1111,
+      "status": "pass",
+      "message": "projectile image source semantic gates are clean in data/standardized/projectiles.standardized.json"
+    },
+    {
+      "id": "reports_projectile_zh_image_backfilllatest_json",
+      "type": "json",
+      "required": false,
+      "found": false,
+      "readable": false,
+      "evidencePath": "reports/projectile-zh-image-backfill*.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "warning",
+      "message": "Missing optional evidence: reports/projectile-zh-image-backfill*.json"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "generatedAt": "2026-05-24T00:57:57.889Z",
+  "domainId": "armor_sets",
+  "panelId": "imageReadiness",
+  "status": "warning",
+  "reportPath": "reports/domain/armor_sets/image-readiness-2026-05-24.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 2,
+    "requiredEvidenceCount": 0,
+    "optionalEvidenceCount": 2,
+    "presentEvidenceCount": 1,
+    "missingEvidenceCount": 1,
+    "blockedCount": 0,
+    "warningCount": 1
+  },
+  "blockingReasons": [],
+  "warningReasons": [
+    "Missing optional evidence: reports/fetch/fetch-armor-set-images*.json"
+  ],
+  "checks": [
+    {
+      "id": "shared_data_raw_wiki_armor_set_images_parsed_latest_json",
+      "type": "json",
+      "required": false,
+      "found": true,
+      "readable": true,
+      "evidencePath": "shared-data/raw/wiki/armor_set_images.parsed.latest.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "Evidence present: shared-data/raw/wiki/armor_set_images.parsed.latest.json"
+    },
+    {
+      "id": "reports_fetch_fetch_armor_set_imageslatest_json",
+      "type": "json",
+      "required": false,
+      "found": false,
+      "readable": false,
+      "evidencePath": "reports/fetch/fetch-armor-set-images*.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "warning",
+      "message": "Missing optional evidence: reports/fetch/fetch-armor-set-images*.json"
+    }
+  ]
+}

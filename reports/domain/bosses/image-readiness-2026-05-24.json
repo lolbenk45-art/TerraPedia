@@ -1,0 +1,48 @@
+{
+  "generatedAt": "2026-05-24T00:57:57.889Z",
+  "domainId": "bosses",
+  "panelId": "imageReadiness",
+  "status": "blocked",
+  "reportPath": "reports/domain/bosses/image-readiness-2026-05-24.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 2,
+    "requiredEvidenceCount": 2,
+    "optionalEvidenceCount": 0,
+    "presentEvidenceCount": 1,
+    "missingEvidenceCount": 1,
+    "blockedCount": 1,
+    "warningCount": 0
+  },
+  "blockingReasons": [
+    "Missing required evidence: reports/audit/image-source-lineage*.json"
+  ],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "reports_audit_image_source_lineagelatest_json",
+      "type": "json",
+      "required": true,
+      "found": false,
+      "readable": false,
+      "evidencePath": "reports/audit/image-source-lineage*.json",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "blocked",
+      "message": "Missing required evidence: reports/audit/image-source-lineage*.json"
+    },
+    {
+      "id": "docs_contracts_image_source_contract_md",
+      "type": "text",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "docs/contracts/image-source-contract.md",
+      "latestReportPath": null,
+      "recordCount": null,
+      "status": "pass",
+      "message": "boss image contract is documented in docs/contracts/image-source-contract.md"
+    }
+  ]
+}

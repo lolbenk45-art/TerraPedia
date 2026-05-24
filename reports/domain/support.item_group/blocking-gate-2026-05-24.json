@@ -1,0 +1,34 @@
+{
+  "generatedAt": "2026-05-24T00:57:57.889Z",
+  "domainId": "support.item_group",
+  "panelId": "blockingGate",
+  "status": "pass",
+  "reportPath": "reports/domain/support.item_group/blocking-gate-2026-05-24.json",
+  "requiresDatabase": false,
+  "writesDatabase": false,
+  "summary": {
+    "checkCount": 1,
+    "requiredEvidenceCount": 1,
+    "optionalEvidenceCount": 0,
+    "presentEvidenceCount": 1,
+    "missingEvidenceCount": 0,
+    "blockedCount": 0,
+    "warningCount": 0
+  },
+  "blockingReasons": [],
+  "warningReasons": [],
+  "checks": [
+    {
+      "id": "reports_item_groups_any_item_group_source_auditlatest_json",
+      "type": "json",
+      "required": true,
+      "found": true,
+      "readable": true,
+      "evidencePath": "reports/item-groups/any-item-group-source-audit-2026-05-23.json",
+      "latestReportPath": "reports/item-groups/any-item-group-source-audit-2026-05-23.json",
+      "recordCount": null,
+      "status": "pass",
+      "message": "item group source audit semantic gates are clean in reports/item-groups/any-item-group-source-audit-2026-05-23.json; scoped non-blocking metrics within baseline: duplicateGroupKeys=29/29, blockedGroupReferences=0/1, consumerOnlyReferences=0/0"
+    }
+  ]
+}

@@ -122,6 +122,17 @@ data/terraPedia/raw/
 data/terraPedia/generated/
 data/generated/**/*.latest.json
 data/generated/wiki-*.json
+!data/generated/wiki-bosses.latest.json
+!data/generated/wiki-armor-sets.latest.json
+!data/generated/wiki-town-npc-maintenance.latest.json
+!data/generated/shimmer/
+!data/generated/shimmer/wiki-shimmer-manifest.latest.json
+!data/generated/shimmer/wiki-shimmer-context.importable.latest.json
+!data/generated/shimmer/wiki-shimmer-item-transforms.importable.latest.json
+!reports/wiki-bosses-fetch-2026-05-24.json
+!reports/wiki-shimmer-summary-2026-05-24.md
+!reports/wiki-shimmer-importable-summary-2026-05-24.md
+!reports/wiki-town-npc-maintenance-2026-05-24.json
 
 # Local UI prototype exports
 front-nuxt/public/home-hifi-options.html
