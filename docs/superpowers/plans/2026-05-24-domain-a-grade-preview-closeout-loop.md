@@ -1119,7 +1119,7 @@ Create `docs/audits/2026-05-24_local-stack-preview-closeout-smoke.md` with:
 
 ## Follow-Up
 
-- 
+-
 ```
 
 Replace every blank value.
@@ -1189,15 +1189,15 @@ Create `docs/audits/2026-05-24_preview-release-decision.md` with:
 
 ## Remaining Blockers
 
-- 
+-
 
 ## Next Branches
 
-- 
+-
 
 ## User-Facing Statement
 
-- 
+-
 ```
 
 Use one of these statuses:
