@@ -269,12 +269,6 @@ onMounted(() => {
             <span class="tag paper">{{ itemRarity }}</span>
             <span v-if="detailPending" class="tag paper">同步中</span>
           </div>
-          <div class="detail-tabs">
-            <button class="detail-tab active" type="button">概览</button>
-            <button class="detail-tab" type="button">合成</button>
-            <button class="detail-tab" type="button">来源</button>
-            <button class="detail-tab" type="button">资料</button>
-          </div>
         </div>
         <aside class="detail-side">
           <p class="section-label">核心属性</p>
@@ -303,7 +297,10 @@ onMounted(() => {
                     :fallback="itemFallbackGlyph"
                   />
                 </span>
-                <div class="detail-relation-copy"><b>{{ image.label }}</b><span>{{ image.note || image.url }}</span></div>
+                <div class="detail-relation-copy">
+                  <b>{{ image.label }}</b>
+                  <span v-if="image.note">{{ image.note }}</span>
+                </div>
                 <strong class="detail-relation-meta">图片</strong>
               </div>
             </div>

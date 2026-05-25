@@ -1383,6 +1383,28 @@ for (const path of scanFiles) {
     if (content.includes('/npcs/guide') || content.includes('后续接入')) {
       violations.push(`${path}: NPC detail page must not keep static guide preview links or future-integration copy`)
     }
+
+    if (content.includes('sourceProvider') || content.includes('sourcePage')) {
+      violations.push(`${path}: NPC public detail page must not render internal source provider/page fields`)
+    }
+
+    for (const rawRelatedItemMarker of [
+      'entry.quantityText',
+      'entry.chanceText',
+      'entry.priceText',
+      'entry.note',
+      'sourceProvider',
+      'sourcePage',
+    ]) {
+      const relatedItemBlock = content.match(/const relatedItemSections = computed\(\(\) => \{[\s\S]*?\n\}\)/)?.[0] ?? ''
+      if (relatedItemBlock.includes(rawRelatedItemMarker)) {
+        violations.push(`${path}: NPC related item summary must not expose raw relation metadata (${rawRelatedItemMarker})`)
+      }
+    }
+
+    if (!content.includes('relationTypeLabel(entry.relationType)')) {
+      violations.push(`${path}: NPC related item summary must use player-facing relation labels`)
+    }
   }
 
   if (path === 'pages/items/[id].vue') {
@@ -1408,6 +1430,14 @@ for (const path of scanFiles) {
 
     if (content.includes('Terra Blade') || content.includes('泰拉刃是一把困难模式后期近战武器')) {
       violations.push(`${path}: item detail page must not keep the static Terra Blade mock as primary content`)
+    }
+
+    if (content.includes('class="detail-tabs"') || content.includes('class="detail-tab')) {
+      violations.push(`${path}: item detail page must not render fake tab buttons without navigation behavior`)
+    }
+
+    if (content.includes('image.note || image.url')) {
+      violations.push(`${path}: item detail image rows must not fall back to rendering raw image URLs`)
     }
   }
 
@@ -1548,6 +1578,31 @@ for (const path of scanFiles) {
     ]) {
       if (content.includes(staticMarker)) {
         violations.push(`${path}: boss detail page must not keep the static Eye of Cthulhu mock as primary content (${staticMarker})`)
+      }
+    }
+
+    for (const rawUiMarker of [
+      '<span>Members</span>',
+      '<span>Loot</span>',
+      '<span>Reference</span>',
+      'entry.dropSourceKind,',
+      "displayText(member.bossRole, member.sourceBossCode, '角色未标注')",
+      'href="/npcs"',
+    ]) {
+      if (content.includes(rawUiMarker)) {
+        violations.push(`${path}: boss detail page must not expose raw labels, enum fallbacks, or dead relation links (${rawUiMarker})`)
+      }
+    }
+
+    for (const marker of [
+      'dropSourceKindLabel(entry.dropSourceKind)',
+      'bossMemberRoleLabel(member.bossRole, member.sourceBossCode)',
+      'bossMemberPath(member)',
+      'bossLootItemPath(entry)',
+      '<NuxtLink v-if="bossLootItemPath(entry)"',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: boss detail page must expose translated drop source labels and detail links via marker ${marker}`)
       }
     }
   }
