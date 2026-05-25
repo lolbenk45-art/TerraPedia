@@ -142,6 +142,14 @@ const buffDurationLabel = (entry: PublicNpcBuffRelation) => firstText(
   entry.durationSeconds != null ? `${entry.durationSeconds}s` : '',
 )
 
+const relationTypeLabel = (value: unknown) => {
+  const key = firstText(value).toLowerCase()
+  if (key === 'shop') return '出售'
+  if (key === 'loot' || key === 'drop') return '掉落'
+  if (key === 'source') return '来源'
+  return ''
+}
+
 const relatedItemSections = computed(() => {
   const sections = [
     { title: '掉落相关', entries: (npc.value?.lootItems ?? []) as PublicNpcTraceableItemSummary[] },
@@ -154,8 +162,7 @@ const relatedItemSections = computed(() => {
     entries: section.entries.slice(0, 6).map((entry, index) => ({
       id: firstText(entry.sourceFactKey, entry.itemId, entry.itemInternalName, `${section.title}-${index}`),
       title: firstText(entry.itemNameZh, entry.itemName, entry.itemInternalName, '关联物品'),
-      meta: [entry.relationType, entry.quantityText, entry.chanceText, entry.priceText].map(firstText).filter(Boolean).join(' / '),
-      note: [entry.sourceProvider, entry.sourcePage].map(firstText).filter(Boolean).join(' · '),
+      meta: relationTypeLabel(entry.relationType),
     })),
   })).filter((section) => section.entries.length > 0)
 })
@@ -318,7 +325,7 @@ const materialStatus = computed(() => ({
             </div>
             <div class="signal-list">
               <div v-for="entry in section.entries" :key="entry.id">
-                <b>关联</b><span>{{ entry.title }}</span><em>{{ [entry.meta, entry.note].filter(Boolean).join(' · ') || '相关资料' }}</em>
+                <b>关联</b><span>{{ entry.title }}</span><em>{{ entry.meta || '相关资料' }}</em>
               </div>
             </div>
           </article>

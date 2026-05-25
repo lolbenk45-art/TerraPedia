@@ -42,6 +42,27 @@ const memberImage = (value: { imageUrl?: string | null }) => resolvePreviewImage
 const lootTitle = (entry: { itemNameZh?: string | null; itemName?: string | null; itemInternalName?: string | null }) => (
   displayText(entry.itemNameZh, entry.itemName, entry.itemInternalName, '未命名掉落')
 )
+const dropSourceKindLabel = (value: unknown) => {
+  const key = displayText(value).toLowerCase()
+  if (key === 'direct_boss') return '直接掉落'
+  if (key === 'treasure_bag') return '宝藏袋'
+  return ''
+}
+const bossMemberRoleLabel = (bossRole: unknown, sourceBossCode: unknown) => {
+  const key = displayText(bossRole, sourceBossCode).toLowerCase()
+  if (key === 'primary' || key === 'main' || key === 'body') return '本体'
+  if (key === 'part' || key === 'segment' || key === 'body_part') return '部件'
+  if (key === 'minion' || key === 'summon') return '召唤体'
+  return '成员'
+}
+const bossMemberPath = (member: { gameId?: string | number | null; id?: string | number | null }) => {
+  const id = displayText(member.gameId, member.id)
+  return id ? `/npcs/${id}` : '/npcs'
+}
+const bossLootItemPath = (entry: { itemId?: string | number | null }) => {
+  const id = displayText(entry.itemId)
+  return id ? `/items/${id}` : ''
+}
 
 const clearBossDetailVisualLoadingTimer = () => {
   if (bossDetailVisualLoadingTimer) {
@@ -152,17 +173,14 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
       <template v-else>
         <section class="boss-phase-grid">
           <article class="support-panel boss-phase active">
-            <span>Members</span>
             <h2>成员</h2>
             <p>{{ bossMembers.length ? `包含 ${bossMembers.length} 个实体或部件。` : '暂无成员资料。' }}</p>
           </article>
           <article class="support-panel boss-phase">
-            <span>Loot</span>
             <h2>掉落</h2>
             <p>{{ bossLootEntries.length ? `整理 ${bossLootEntries.length} 条掉落记录。` : '暂无掉落资料。' }}</p>
           </article>
           <article class="support-panel boss-phase">
-            <span>Reference</span>
             <h2>参考成员</h2>
             <p>{{ bossReferenceMembers.length ? `包含 ${bossReferenceMembers.length} 个参考实体。` : '暂无参考成员。' }}</p>
           </article>
@@ -179,9 +197,12 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
                 width="44"
                 height="44"
               />
-              <b>{{ lootTitle(entry) }}</b>
+              <NuxtLink v-if="bossLootItemPath(entry)" :to="bossLootItemPath(entry)" class="detail-loot-link">
+                <b>{{ lootTitle(entry) }}</b>
+              </NuxtLink>
+              <b v-else>{{ lootTitle(entry) }}</b>
               <span>{{ displayText(entry.quantityText, entry.conditions, entry.notes, '掉落条件未标注') }}</span>
-              <em>{{ displayText(entry.chanceText, entry.dropSourceKind, '概率未标注') }}</em>
+              <em>{{ displayText(entry.chanceText, dropSourceKindLabel(entry.dropSourceKind), '概率未标注') }}</em>
             </div>
             <div v-if="!bossLootEntries.length" class="loot-row">
               <b>暂无掉落</b><span>当前没有可展示的掉落记录。</span><em>空</em>
@@ -190,7 +211,7 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
 
           <article class="support-panel prep-panel">
             <span class="eyebrow">成员</span>
-            <a v-for="member in bossMembers" :key="displayText(member.id, member.gameId, member.internalName, 'member')" class="detail-member-link" href="/npcs">
+            <NuxtLink v-for="member in bossMembers" :key="displayText(member.id, member.gameId, member.internalName, 'member')" class="detail-member-link" :to="bossMemberPath(member)">
               <CommonPreviewImage
                 :src="memberImage(member)"
                 :alt="displayText(member.nameZh, member.name, member.internalName, '成员')"
@@ -199,8 +220,8 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
                 height="40"
               />
               <b>{{ displayText(member.nameZh, member.name, member.internalName, '未命名成员') }}</b>
-              <span>{{ displayText(member.bossRole, member.sourceBossCode, '角色未标注') }}</span>
-            </a>
+              <span>{{ bossMemberRoleLabel(member.bossRole, member.sourceBossCode) }}</span>
+            </NuxtLink>
             <a v-if="!bossMembers.length" class="detail-member-link" href="/bosses">
               <b>暂无成员</b>
               <span>当前没有可展示的成员记录。</span>
