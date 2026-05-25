@@ -318,7 +318,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                 <h2>掉落物</h2>
                 <span class="tag moss">{{ trustedLoot.length + additionalLoot.length }} 条</span>
               </div>
-              <div v-if="trustedLoot.length" class="source-table dark-table">
+              <div v-if="trustedLoot.length" class="source-table dark-table tp-detail-relation-grid">
                 <div v-for="entry in trustedLootVisibleEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                   <span class="sprite-frame detail-relation-icon">
                     <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
@@ -333,7 +333,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
               </div>
               <details v-if="trustedLootRemainderEntries.length" class="detail-group-remainder">
                 <summary>展开其余 {{ trustedLootRemainderEntries.length }} 条</summary>
-                <div class="source-table dark-table">
+                <div class="source-table dark-table tp-detail-relation-grid">
                   <div v-for="entry in trustedLootRemainderEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                     <span class="sprite-frame detail-relation-icon">
                       <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
@@ -352,7 +352,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                   <b>其他掉落记录</b>
                   <span>{{ additionalLoot.length }} 条 · 需结合来源记录查看</span>
                 </div>
-                <div class="source-table dark-table">
+                <div class="source-table dark-table tp-detail-relation-grid">
                   <div v-for="entry in additionalLoot.slice(0, 6)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                     <span class="sprite-frame detail-relation-icon">
                       <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
@@ -380,7 +380,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                   <b>{{ group.title }}</b>
                   <span>{{ group.entries.length }} 项 · {{ group.meta }}</span>
                 </div>
-                <div class="source-table dark-table">
+                <div class="source-table dark-table tp-detail-relation-grid">
                   <div v-for="entry in group.entries.slice(0, 8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                     <span class="sprite-frame detail-relation-icon">
                       <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
@@ -395,7 +395,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                 </div>
                 <details v-if="group.entries.length > 8" class="detail-group-remainder">
                   <summary>展开其余 {{ group.entries.length - 8 }} 项</summary>
-                  <div class="source-table dark-table">
+                  <div class="source-table dark-table tp-detail-relation-grid">
                     <div v-for="entry in group.entries.slice(8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                       <span class="sprite-frame detail-relation-icon">
                         <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
@@ -465,7 +465,8 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
 
 <style scoped>
 .detail-relation-row {
-  grid-template-columns: 52px minmax(0, 1fr) minmax(72px, auto);
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  padding: 10px;
 }
 
 .detail-relation-icon {
@@ -489,6 +490,17 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
 .detail-relation-copy span {
   display: block;
   line-height: 1.5;
+}
+
+.detail-relation-meta {
+  align-self: center;
+  border: 1px solid var(--index-line);
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .detail-relation-link,
@@ -556,7 +568,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
 
 @media (max-width: 720px) {
   .detail-relation-row {
-    grid-template-columns: 52px minmax(0, 1fr);
+    grid-template-columns: 44px minmax(0, 1fr);
   }
 
   .detail-subgroup-title {

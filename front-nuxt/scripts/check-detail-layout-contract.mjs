@@ -13,6 +13,7 @@ const detailPages = {
     String.raw`:class="\['detail-grid', detailLayout\.detailGridClass, detailLayout\.detailDensityClass\]"`,
     String.raw`:class="\['detail-module dark-card item-recipe-summary-module', detailLayout\.detailModuleClass\]"`,
     String.raw`:class="\['detail-module dark-card item-source-module', detailLayout\.detailModuleClass\]"`,
+    String.raw`class="source-table tp-detail-relation-grid"`,
     String.raw`:class="\['source-row detail-relation-row', detailLayout\.detailRelationRowClass\]"`,
     String.raw`:class="\['evidence-panel dark-card', detailLayout\.detailModuleClass\]"`,
   ],
@@ -20,6 +21,7 @@ const detailPages = {
     String.raw`<main :class="\['entity-detail-layout', detailLayout\.detailShellClass\]"`,
     String.raw`:class="\['detail-grid npc-detail-grid', detailLayout\.detailGridClass, detailLayout\.detailDensityClass\]"`,
     String.raw`:class="\['detail-module dark-card', detailLayout\.detailModuleClass\]"`,
+    String.raw`class="source-table dark-table tp-detail-relation-grid"`,
     String.raw`:class="\['source-row detail-relation-row', detailLayout\.detailRelationRowClass\]"`,
     String.raw`:class="\['evidence-panel dark-card', detailLayout\.detailModuleClass\]"`,
   ],
@@ -28,6 +30,7 @@ const detailPages = {
     String.raw`:class="\['boss-detail-grid', detailLayout\.detailGridClass, detailLayout\.detailDensityClass\]"`,
     String.raw`:class="\['support-panel loot-panel', detailLayout\.detailModuleClass\]"`,
     String.raw`:class="\['support-panel prep-panel', detailLayout\.detailModuleClass\]"`,
+    String.raw`class="detail-loot-items tp-detail-relation-grid"`,
     String.raw`:class="\['loot-row detail-loot-row', detailLayout\.detailRelationRowClass\]"`,
     String.raw`:class="\['detail-member-link', detailLayout\.detailRelationRowClass\]"`,
   ],
@@ -61,6 +64,7 @@ try {
     '.tp-detail-shell',
     '.tp-detail-grid',
     '.tp-detail-module',
+    '.tp-detail-relation-grid',
     '.tp-detail-relation-row',
     '.tp-detail-density-compact',
     '.tp-detail-density-readable',
@@ -95,6 +99,33 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
 }
 
 {
+  const path = 'pages/npcs/[id].vue'
+  const content = read(path)
+  const gridCount = (content.match(/class="source-table dark-table tp-detail-relation-grid"/g) ?? []).length
+
+  if (gridCount < 5) {
+    violations.push(`${path}: NPC loot/shop visible and remainder lists must all use compact relation grids, found ${gridCount}`)
+  }
+}
+
+{
+  const path = 'pages/bosses/[id].vue'
+  const content = read(path)
+  const gridCount = (content.match(/class="detail-loot-items tp-detail-relation-grid"/g) ?? []).length
+
+  if (gridCount < 2) {
+    violations.push(`${path}: boss visible and remainder loot lists must both use compact relation grids, found ${gridCount}`)
+  }
+
+  assertPattern(
+    path,
+    content,
+    String.raw`grid-template-columns:\s*repeat\(auto-fill, minmax\(320px, 1fr\)\);`,
+    'boss loot compact grid must use wider tiles so long item names do not create tall cards',
+  )
+}
+
+{
   const path = 'pages/bosses/[id].vue'
   const content = read(path)
   for (const [pattern, message] of [
@@ -103,8 +134,8 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
       'boss loot rows must group item name and details so the chance column cannot squeeze names into narrow fragments',
     ],
     [
-      String.raw`grid-template-columns:\s*52px minmax\(0, 1fr\) max-content;`,
-      'boss loot rows must keep a stable right-side chance column',
+      String.raw`grid-template-columns:\s*44px minmax\(0, 1fr\);`,
+      'boss loot rows must keep a stable two-column compact tile layout',
     ],
     [
       String.raw`white-space:\s*nowrap;`,

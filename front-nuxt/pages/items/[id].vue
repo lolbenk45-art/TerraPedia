@@ -435,7 +435,7 @@ onMounted(() => {
                   <b>{{ group.title }}</b>
                   <span>{{ group.entries.length }} 条 · {{ group.meta }}</span>
                 </div>
-                <div class="source-table">
+                <div class="source-table tp-detail-relation-grid">
                   <div v-for="source in group.entries" :key="String(source.id)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                     <span class="sprite-frame detail-relation-icon">
                       <CommonPreviewImage
@@ -496,7 +496,8 @@ onMounted(() => {
 
 <style scoped>
 .detail-relation-row {
-  grid-template-columns: 52px minmax(0, 1fr) minmax(72px, auto);
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  padding: 10px;
 }
 
 .detail-relation-icon {
@@ -520,6 +521,17 @@ onMounted(() => {
 .detail-relation-copy span {
   display: block;
   line-height: 1.5;
+}
+
+.detail-relation-meta {
+  align-self: center;
+  border: 1px solid var(--index-line);
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .detail-relation-copy small,
@@ -623,7 +635,7 @@ onMounted(() => {
 
 @media (max-width: 720px) {
   .detail-relation-row {
-    grid-template-columns: 52px minmax(0, 1fr);
+    grid-template-columns: 44px minmax(0, 1fr);
   }
 
   .detail-subgroup-title {

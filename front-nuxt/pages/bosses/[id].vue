@@ -325,26 +325,8 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
                 <b>{{ group.title }}</b>
                 <span>{{ group.entries.length }} 条 · {{ group.meta }}</span>
               </div>
-              <div v-for="entry in group.entries.slice(0, 8)" :key="entry.id ?? `${entry.itemId}-${entry.itemName}`" :class="['loot-row detail-loot-row', detailLayout.detailRelationRowClass]">
-                <CommonPreviewImage
-                  :src="entryImage(entry)"
-                  :alt="lootTitle(entry)"
-                  :fallback="firstGlyph(lootTitle(entry))"
-                  width="44"
-                  height="44"
-                />
-                <div class="detail-loot-copy">
-                  <NuxtLink v-if="bossLootItemPath(entry)" :to="bossLootItemPath(entry)" class="detail-loot-link">
-                    <b>{{ lootTitle(entry) }}</b>
-                  </NuxtLink>
-                  <b v-else>{{ lootTitle(entry) }}</b>
-                  <span>{{ bossLootDetailLabel(entry) }}</span>
-                </div>
-                <em>{{ bossLootChanceLabel(entry) }}</em>
-              </div>
-              <details v-if="group.entries.length > 8" class="detail-group-remainder">
-                <summary>展开其余 {{ group.entries.length - 8 }} 条</summary>
-                <div v-for="entry in group.entries.slice(8)" :key="entry.id ?? `${entry.itemId}-${entry.itemName}`" :class="['loot-row detail-loot-row', detailLayout.detailRelationRowClass]">
+              <div class="detail-loot-items tp-detail-relation-grid">
+                <div v-for="entry in group.entries.slice(0, 8)" :key="entry.id ?? `${entry.itemId}-${entry.itemName}`" :class="['loot-row detail-loot-row', detailLayout.detailRelationRowClass]">
                   <CommonPreviewImage
                     :src="entryImage(entry)"
                     :alt="lootTitle(entry)"
@@ -360,6 +342,28 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
                     <span>{{ bossLootDetailLabel(entry) }}</span>
                   </div>
                   <em>{{ bossLootChanceLabel(entry) }}</em>
+                </div>
+              </div>
+              <details v-if="group.entries.length > 8" class="detail-group-remainder">
+                <summary>展开其余 {{ group.entries.length - 8 }} 条</summary>
+                <div class="detail-loot-items tp-detail-relation-grid">
+                  <div v-for="entry in group.entries.slice(8)" :key="entry.id ?? `${entry.itemId}-${entry.itemName}`" :class="['loot-row detail-loot-row', detailLayout.detailRelationRowClass]">
+                    <CommonPreviewImage
+                      :src="entryImage(entry)"
+                      :alt="lootTitle(entry)"
+                      :fallback="firstGlyph(lootTitle(entry))"
+                      width="44"
+                      height="44"
+                    />
+                    <div class="detail-loot-copy">
+                      <NuxtLink v-if="bossLootItemPath(entry)" :to="bossLootItemPath(entry)" class="detail-loot-link">
+                        <b>{{ lootTitle(entry) }}</b>
+                      </NuxtLink>
+                      <b v-else>{{ lootTitle(entry) }}</b>
+                      <span>{{ bossLootDetailLabel(entry) }}</span>
+                    </div>
+                    <em>{{ bossLootChanceLabel(entry) }}</em>
+                  </div>
                 </div>
               </details>
             </div>
@@ -438,8 +442,29 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
 
 <style scoped>
 .detail-loot-row {
-  grid-template-columns: 52px minmax(0, 1fr) max-content;
-  align-items: center;
+  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: start;
+  min-height: 58px;
+  margin-top: 0;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  background: var(--index-surface);
+  gap: 5px 10px;
+  padding: 10px 12px;
+}
+
+.detail-loot-items.tp-detail-relation-grid {
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  align-items: start;
+}
+
+.detail-loot-row :deep(img),
+.detail-loot-row :deep(.item-art) {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  width: 44px;
+  height: 44px;
 }
 
 .detail-loot-group {
@@ -510,24 +535,39 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
   display: grid;
   gap: 4px;
   grid-column: 2;
+  grid-row: 1;
 }
 
 .detail-loot-copy b {
-  display: block;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   color: var(--text-strong);
-  line-height: 1.35;
+  font-size: 14px;
+  line-height: 1.32;
   word-break: normal;
 }
 
 .detail-loot-copy span {
+  display: block;
+  overflow: hidden;
   color: var(--text-muted);
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .detail-loot-row em {
-  grid-column: 3;
-  justify-self: end;
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: start;
+  align-self: start;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
@@ -632,7 +672,7 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
 
 @media (max-width: 720px) {
   .detail-loot-row {
-    grid-template-columns: 52px minmax(0, 1fr);
+    grid-template-columns: 44px minmax(0, 1fr);
   }
 
   .detail-loot-group-title {
