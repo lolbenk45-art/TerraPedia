@@ -26,17 +26,25 @@ const bossRawLoading = computed(() => !bossClientReady.value || bossPending.valu
 const bossMissing = computed(() => bossClientReady.value && !bossPending.value && !bossDetail.value)
 const bossTitle = computed(() => bossCard.value?.displayName || bossDetail.value?.nameZh || bossDetail.value?.name || 'Boss 详情')
 const bossSubtitle = computed(() => bossCard.value?.englishName || bossDetail.value?.nameEn || bossDetail.value?.code || 'Public boss detail')
+const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
+const displayText = (...values: unknown[]) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
 const bossProgressionLabel = computed(() => (
   bossCard.value?.progressionOrder == null ? '顺序未标注' : `推进 #${bossCard.value.progressionOrder}`
 ))
+const bossTypeLabel = computed(() => {
+  const key = displayText(bossCard.value?.type, bossDetail.value?.bossType).toLowerCase()
+  if (key === 'pre_hardmode') return '困难模式前'
+  if (key === 'hardmode') return '困难模式'
+  if (key === 'event') return '事件 Boss'
+  if (key === 'mini_boss' || key === 'miniboss') return '小 Boss'
+  return key ? key.replaceAll('_', ' ') : 'Boss'
+})
 
 useSeoMeta({
   title: () => `TerraPedia · ${bossTitle.value}`,
   description: () => `${bossTitle.value} 的公开 Boss 资料详情，包含成员、掉落和推进信息。`,
 })
 
-const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
-const displayText = (...values: unknown[]) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
 const entryImage = (value: { itemImage?: string | null; imageUrl?: string | null }) => resolvePreviewImageUrl(value.itemImage || value.imageUrl || '')
 const memberImage = (value: { imageUrl?: string | null }) => resolvePreviewImageUrl(value.imageUrl || '')
 const lootTitle = (entry: { itemNameZh?: string | null; itemName?: string | null; itemInternalName?: string | null }) => (
@@ -63,6 +71,34 @@ const bossLootItemPath = (entry: { itemId?: string | number | null }) => {
   const id = displayText(entry.itemId)
   return id ? `/items/${id}` : ''
 }
+const bossLootGroupKey = (entry: { dropSourceKind?: string | null; conditions?: string | null }) => {
+  if (displayText(entry.conditions)) return 'conditional'
+  const key = displayText(entry.dropSourceKind).toLowerCase()
+  if (key === 'treasure_bag') return 'treasureBag'
+  return 'direct'
+}
+const bossLootGroupMeta = {
+  direct: { title: '普通掉落', meta: 'Boss 本体直接掉落' },
+  treasureBag: { title: '宝藏袋', meta: '专家或大师模式奖励' },
+  conditional: { title: '条件掉落', meta: '需要特定版本、事件或条件' },
+} as const
+const bossLootGroups = computed(() => {
+  const buckets = new Map<keyof typeof bossLootGroupMeta, typeof bossLootEntries.value>()
+
+  for (const entry of bossLootEntries.value) {
+    const key = bossLootGroupKey(entry) as keyof typeof bossLootGroupMeta
+    buckets.set(key, [...(buckets.get(key) ?? []), entry])
+  }
+
+  return (Object.keys(bossLootGroupMeta) as Array<keyof typeof bossLootGroupMeta>)
+    .map((key) => ({
+      key,
+      title: bossLootGroupMeta[key].title,
+      meta: bossLootGroupMeta[key].meta,
+      entries: buckets.get(key) ?? [],
+    }))
+    .filter((group) => group.entries.length > 0)
+})
 
 const clearBossDetailVisualLoadingTimer = () => {
   if (bossDetailVisualLoadingTimer) {
@@ -140,7 +176,7 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
             <span v-if="bossError" class="tag moss">请求异常</span>
           </div>
           <div v-else class="tag-row">
-            <span class="tag gold">{{ bossCard?.type || 'boss' }}</span>
+            <span class="tag gold">{{ bossTypeLabel }}</span>
             <span class="tag moss">{{ bossProgressionLabel }}</span>
             <span class="tag paper">{{ bossLootEntries.length }} 条掉落</span>
             <span class="tag paper">{{ bossMembers.length }} 个成员</span>
@@ -189,20 +225,44 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
         <section class="boss-detail-grid">
           <article class="support-panel loot-panel">
             <span class="eyebrow">掉落</span>
-            <div v-for="entry in bossLootEntries" :key="entry.id ?? `${entry.itemId}-${entry.itemName}`" class="loot-row detail-loot-row">
-              <CommonPreviewImage
-                :src="entryImage(entry)"
-                :alt="lootTitle(entry)"
-                :fallback="firstGlyph(lootTitle(entry))"
-                width="44"
-                height="44"
-              />
-              <NuxtLink v-if="bossLootItemPath(entry)" :to="bossLootItemPath(entry)" class="detail-loot-link">
-                <b>{{ lootTitle(entry) }}</b>
-              </NuxtLink>
-              <b v-else>{{ lootTitle(entry) }}</b>
-              <span>{{ displayText(entry.quantityText, entry.conditions, entry.notes, '掉落条件未标注') }}</span>
-              <em>{{ displayText(entry.chanceText, dropSourceKindLabel(entry.dropSourceKind), '概率未标注') }}</em>
+            <div v-for="group in bossLootGroups" :key="group.key" class="detail-loot-group">
+              <div class="detail-loot-group-title">
+                <b>{{ group.title }}</b>
+                <span>{{ group.entries.length }} 条 · {{ group.meta }}</span>
+              </div>
+              <div v-for="entry in group.entries.slice(0, 8)" :key="entry.id ?? `${entry.itemId}-${entry.itemName}`" class="loot-row detail-loot-row">
+                <CommonPreviewImage
+                  :src="entryImage(entry)"
+                  :alt="lootTitle(entry)"
+                  :fallback="firstGlyph(lootTitle(entry))"
+                  width="44"
+                  height="44"
+                />
+                <NuxtLink v-if="bossLootItemPath(entry)" :to="bossLootItemPath(entry)" class="detail-loot-link">
+                  <b>{{ lootTitle(entry) }}</b>
+                </NuxtLink>
+                <b v-else>{{ lootTitle(entry) }}</b>
+                <span>{{ displayText(entry.quantityText, entry.conditions, entry.notes, '掉落条件未标注') }}</span>
+                <em>{{ displayText(entry.chanceText, dropSourceKindLabel(entry.dropSourceKind), '概率未标注') }}</em>
+              </div>
+              <details v-if="group.entries.length > 8" class="detail-group-remainder">
+                <summary>展开其余 {{ group.entries.length - 8 }} 条</summary>
+                <div v-for="entry in group.entries.slice(8)" :key="entry.id ?? `${entry.itemId}-${entry.itemName}`" class="loot-row detail-loot-row">
+                  <CommonPreviewImage
+                    :src="entryImage(entry)"
+                    :alt="lootTitle(entry)"
+                    :fallback="firstGlyph(lootTitle(entry))"
+                    width="44"
+                    height="44"
+                  />
+                  <NuxtLink v-if="bossLootItemPath(entry)" :to="bossLootItemPath(entry)" class="detail-loot-link">
+                    <b>{{ lootTitle(entry) }}</b>
+                  </NuxtLink>
+                  <b v-else>{{ lootTitle(entry) }}</b>
+                  <span>{{ displayText(entry.quantityText, entry.conditions, entry.notes, '掉落条件未标注') }}</span>
+                  <em>{{ displayText(entry.chanceText, dropSourceKindLabel(entry.dropSourceKind), '概率未标注') }}</em>
+                </div>
+              </details>
             </div>
             <div v-if="!bossLootEntries.length" class="loot-row">
               <b>暂无掉落</b><span>当前没有可展示的掉落记录。</span><em>空</em>
@@ -238,6 +298,53 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
 <style scoped>
 .detail-loot-row {
   grid-template-columns: 52px minmax(0, 1fr) minmax(72px, auto);
+}
+
+.detail-loot-group {
+  display: grid;
+  gap: 10px;
+}
+
+.detail-loot-group + .detail-loot-group {
+  margin-top: 18px;
+}
+
+.detail-loot-group-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: end;
+  min-width: 0;
+}
+
+.detail-loot-group-title b,
+.detail-loot-group-title span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.detail-loot-group-title b {
+  color: var(--paper);
+  font-size: 14px;
+}
+
+.detail-loot-group-title span {
+  color: rgba(244, 234, 208, 0.58);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.detail-group-remainder {
+  display: grid;
+  gap: 10px;
+}
+
+.detail-group-remainder summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .detail-loot-row .item-art {
@@ -282,6 +389,11 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
 @media (max-width: 720px) {
   .detail-loot-row {
     grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .detail-loot-group-title {
+    display: grid;
+    gap: 4px;
   }
 
   .detail-loot-row em {

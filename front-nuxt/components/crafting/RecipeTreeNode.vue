@@ -68,8 +68,9 @@ const recipeStationKey = (station: PublicItemRecipeTreeStation) => displayText(
 )
 const recipeStationMeta = (station: PublicItemRecipeTreeStation) => {
   if (station.stationType === 'condition') return '条件'
+  if (station.stationType === 'crafting_station') return '合成站'
   if (station.isAlternative) return '可替代'
-  return displayText(station.requirementRole, station.stationType, '合成站')
+  return '合成站'
 }
 const compactRecipeTextList = (values: string[], limit = 3) => {
   const visible = values.filter(Boolean).slice(0, limit)
