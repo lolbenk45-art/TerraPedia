@@ -27,6 +27,7 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -236,12 +237,35 @@ class AdminBossControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.summonMethod", containsString("Celestial Sigil")))
+            .andExpect(jsonPath("$.data.summonMethodResolved", containsString("Celestial Sigil")))
+            .andExpect(jsonPath("$.data.summonItems", empty()))
+            .andExpect(jsonPath("$.data.summonConditions", empty()))
+            .andExpect(jsonPath("$.data.mechanicNotes", empty()))
+            .andExpect(jsonPath("$.data.difficultyNotes", empty()))
             .andExpect(jsonPath("$.data.lootOwnerNpc.id").value(464))
             .andExpect(jsonPath("$.data.lootOwnerNpc.internalName").value("MoonLordCore"))
             .andExpect(jsonPath("$.data.lootEntries[0].dropSourceKind").value("direct_boss"))
             .andExpect(jsonPath("$.data.directLootCount").value(2))
             .andExpect(jsonPath("$.data.treasureBagLootCount").value(1))
             .andExpect(jsonPath("$.data.uniqueLootItemCount").value(2));
+    }
+
+    @Test
+    void shouldPreferExplicitSummonMethodForAdminResolvedContract() throws Exception {
+        BossGroup boss = bossGroup(90L, "KING_SLIME", "King Slime", "史莱姆王", "PRE_HARDMODE", 1);
+        boss.setSummonMethod("Use a reviewed Slime Crown note.");
+
+        when(bossGroupMapper.selectById(eq(90L))).thenReturn(boss);
+        when(npcMapper.selectList(any())).thenReturn(List.of());
+
+        mockMvc.perform(get("/admin/bosses/90"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.summonMethod").value("Use a reviewed Slime Crown note."))
+            .andExpect(jsonPath("$.data.summonMethodResolved").value("Use a reviewed Slime Crown note."))
+            .andExpect(jsonPath("$.data.summonItems", empty()))
+            .andExpect(jsonPath("$.data.summonConditions", empty()))
+            .andExpect(jsonPath("$.data.mechanicNotes", empty()))
+            .andExpect(jsonPath("$.data.difficultyNotes", empty()));
     }
 
     @Test

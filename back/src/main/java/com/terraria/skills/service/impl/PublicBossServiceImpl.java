@@ -15,6 +15,7 @@ import com.terraria.skills.entity.BossGroup;
 import com.terraria.skills.entity.Npc;
 import com.terraria.skills.mapper.BossGroupMapper;
 import com.terraria.skills.mapper.NpcMapper;
+import com.terraria.skills.service.BossSummonContractResolver;
 import com.terraria.skills.service.ManagedImageUrlPolicy;
 import com.terraria.skills.service.PublicBossService;
 import lombok.RequiredArgsConstructor;
@@ -149,6 +150,7 @@ public class PublicBossServiceImpl implements PublicBossService {
         dto.setDirectLootCount(countLootEntriesByKind(lootEntries, "direct_boss"));
         dto.setTreasureBagLootCount(countLootEntriesByKind(lootEntries, "treasure_bag"));
         dto.setUniqueLootItemCount(countUniqueLootItems(lootEntries));
+        dto.setSummonMethodResolved(BossSummonContractResolver.resolveSummonMethodResolved(bossGroup));
         return dto;
     }
 
@@ -161,7 +163,7 @@ public class PublicBossServiceImpl implements PublicBossService {
         dto.setBossType(bossGroup.getBossType());
         dto.setImageUrl(managedBossImageOrNull(bossGroup.getImageUrl()));
         dto.setProgressionOrder(bossGroup.getProgressionOrder());
-        dto.setSummonMethod(resolveSummonMethod(bossGroup));
+        dto.setSummonMethod(BossSummonContractResolver.resolveExplicitSummonMethod(bossGroup));
         dto.setNotes(trimToNull(bossGroup.getNotes()));
     }
 
@@ -483,13 +485,6 @@ public class PublicBossServiceImpl implements PublicBossService {
             }
         }
         return null;
-    }
-
-    private String resolveSummonMethod(BossGroup bossGroup) {
-        if (bossGroup == null) {
-            return null;
-        }
-        return trimToNull(bossGroup.getSummonMethod());
     }
 
     private String normalizeSortBy(String sortBy) {

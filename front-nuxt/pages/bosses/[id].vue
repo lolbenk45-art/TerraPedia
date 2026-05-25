@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import { usePublicBossDetail } from '~/composables/usePublicBossDetail'
+import type {
+  BossConditionDTO,
+  BossDifficultyNoteDTO,
+  BossMechanicNoteDTO,
+  BossSummonItemDTO,
+} from '~/types/public-api'
 
 const route = useRoute()
 const bossClientReady = ref(false)
@@ -65,7 +71,34 @@ const dropSourceKindLabel = (value: unknown) => {
   if (key === 'treasure_bag') return '宝藏袋'
   return ''
 }
-const bossSummonMethod = computed(() => safeBossDisplayText(bossDetail.value?.summonMethod, bossCard.value?.summonMethod))
+const asArray = <T,>(value: T[] | null | undefined) => Array.isArray(value) ? value : []
+const bossSummonMethod = computed(() => safeBossDisplayText(
+  bossDetail.value?.summonMethodResolved,
+  bossDetail.value?.summonMethod,
+  bossCard.value?.summonMethod,
+))
+const bossSummonItems = computed(() => asArray(bossDetail.value?.summonItems)
+  .filter((item) => summonItemTitle(item)))
+const bossSummonConditions = computed(() => asArray(bossDetail.value?.summonConditions)
+  .filter((condition) => bossConditionCopy(condition)))
+const bossMechanicNotes = computed(() => asArray(bossDetail.value?.mechanicNotes)
+  .filter((note) => bossMechanicCopy(note)))
+const bossDifficultyNotes = computed(() => asArray(bossDetail.value?.difficultyNotes)
+  .filter((note) => bossDifficultyCopy(note)))
+const summonItemTitle = (item: BossSummonItemDTO) => safeBossDisplayText(item.nameZh, item.name)
+const bossSummonItemPath = (item: BossSummonItemDTO) => {
+  const id = displayText(item.itemId)
+  return id ? `/items/${id}` : ''
+}
+const summonItemImage = (item: BossSummonItemDTO) => resolvePreviewImageUrl(item.imageUrl || '')
+const bossConditionCopy = (condition: BossConditionDTO) => (
+  [safeBossDisplayText(condition.label), safeBossDisplayText(condition.value)]
+    .filter(Boolean)
+    .join(' · ')
+)
+const bossMechanicCopy = (note: BossMechanicNoteDTO) => safeBossDisplayText(note.description)
+const bossMechanicTitle = (note: BossMechanicNoteDTO) => safeBossDisplayText(note.title) || '机制提示'
+const bossDifficultyCopy = (note: BossDifficultyNoteDTO) => safeBossDisplayText(note.description)
 const bossLootConditionLabel = (entry: { conditions?: string | null }) => safeBossDisplayText(entry.conditions)
 const bossLootNoteLabel = (entry: { notes?: string | null }) => safeBossDisplayText(entry.notes)
 const bossLootChanceLabel = (entry: { chanceText?: string | null; dropSourceKind?: string | null }) => (
@@ -86,10 +119,14 @@ const bossSummonStatusRows = computed(() => [
     label: '召唤说明',
     value: bossSummonMethod.value || '公开资料暂未标注召唤方式、召唤物或触发条件',
   },
-  {
+  ...(
+    bossSummonItems.value.length || bossSummonConditions.value.length
+      ? []
+      : [{
     label: '补充资料',
     value: '召唤物、自然出现和特殊触发条件暂无可展示记录',
-  },
+      }]
+  ),
 ])
 const bossMemberRoleLabel = (bossRole: unknown, sourceBossCode: unknown) => {
   const key = displayText(bossRole, sourceBossCode).toLowerCase()
@@ -312,6 +349,41 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
                 <span>{{ row.value }}</span>
               </div>
             </div>
+            <div v-if="bossSummonItems.length" class="boss-contract-list boss-summon-items">
+              <span class="eyebrow">召唤物</span>
+              <div v-for="item in bossSummonItems" :key="displayText(item.itemId, summonItemTitle(item))" class="boss-contract-row boss-contract-item">
+                <CommonPreviewImage
+                  :src="summonItemImage(item)"
+                  :alt="summonItemTitle(item)"
+                  :fallback="firstGlyph(summonItemTitle(item))"
+                  width="40"
+                  height="40"
+                />
+                <NuxtLink v-if="bossSummonItemPath(item)" :to="bossSummonItemPath(item)">
+                  <b>{{ summonItemTitle(item) }}</b>
+                </NuxtLink>
+                <b v-else>{{ summonItemTitle(item) }}</b>
+              </div>
+            </div>
+            <div v-if="bossSummonConditions.length" class="boss-contract-list">
+              <span class="eyebrow">触发条件</span>
+              <div v-for="condition in bossSummonConditions" :key="bossConditionCopy(condition)" class="boss-contract-row">
+                <span>{{ bossConditionCopy(condition) }}</span>
+              </div>
+            </div>
+            <div v-if="bossMechanicNotes.length" class="boss-contract-list">
+              <span class="eyebrow">机制</span>
+              <div v-for="note in bossMechanicNotes" :key="`${bossMechanicTitle(note)}-${bossMechanicCopy(note)}`" class="boss-contract-row">
+                <b>{{ bossMechanicTitle(note) }}</b>
+                <span>{{ bossMechanicCopy(note) }}</span>
+              </div>
+            </div>
+            <div v-if="bossDifficultyNotes.length" class="boss-contract-list">
+              <span class="eyebrow">难度提示</span>
+              <div v-for="note in bossDifficultyNotes" :key="bossDifficultyCopy(note)" class="boss-contract-row">
+                <span>{{ bossDifficultyCopy(note) }}</span>
+              </div>
+            </div>
             <span class="eyebrow boss-members-eyebrow">成员</span>
             <NuxtLink v-for="member in bossMembers" :key="displayText(member.id, member.gameId, member.internalName, 'member')" class="detail-member-link" :to="bossMemberPath(member)">
               <CommonPreviewImage
@@ -448,6 +520,53 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
 }
 
 .boss-summon-facts span {
+  color: var(--text-subtle);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.boss-contract-list {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 20px;
+}
+
+.boss-contract-row {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  background: var(--index-surface);
+  padding: 12px;
+}
+
+.boss-contract-item {
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+}
+
+.boss-contract-item .item-art {
+  grid-row: 1;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+}
+
+.boss-contract-row b,
+.boss-contract-row span,
+.boss-contract-row a {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.boss-contract-row b,
+.boss-contract-row a {
+  color: var(--text-strong);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.boss-contract-row span {
   color: var(--text-subtle);
   font-size: 12px;
   line-height: 1.5;

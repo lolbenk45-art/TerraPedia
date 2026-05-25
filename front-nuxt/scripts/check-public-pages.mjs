@@ -510,6 +510,10 @@ const requiredPublicDataLayerMarkers = {
     'export type PublicBossQuery',
     'export type PublicBossListItem',
     'export type PublicBossDetail',
+    'export type BossSummonItemDTO',
+    'export type BossConditionDTO',
+    'export type BossMechanicNoteDTO',
+    'export type BossDifficultyNoteDTO',
     'export type BossCatalogCard',
     'export type PublicBiomeListItem',
     'export type BiomeCatalogTile',
@@ -1719,6 +1723,10 @@ for (const path of scanFiles) {
       'bossProgressionLabel',
       'bossTypeLabel',
       'bossSummonMethod',
+      'bossSummonItems',
+      'bossSummonConditions',
+      'bossMechanicNotes',
+      'bossDifficultyNotes',
       'bossSummonStatusRows',
       'safeBossDisplayText',
       'bossLootConditionLabel(entry)',
@@ -1802,6 +1810,35 @@ for (const path of scanFiles) {
       violations.push(`${path}: boss type labels must not expose raw enum values when translation is missing`)
     }
 
+    for (const marker of [
+      'bossDetail.value?.summonMethodResolved',
+      'summonItemTitle(item)',
+      'bossSummonItemPath(item)',
+      'bossConditionCopy(condition)',
+      'bossMechanicCopy(note)',
+      'bossDifficultyCopy(note)',
+      'v-for="item in bossSummonItems"',
+      'v-for="condition in bossSummonConditions"',
+      'v-for="note in bossMechanicNotes"',
+      'v-for="note in bossDifficultyNotes"',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: boss detail page must consume P2 boss contract fields through sanitized display helpers via marker ${marker}`)
+      }
+    }
+
+    if (
+      content.includes('item.internalName')
+      || content.includes('item.role')
+      || content.includes('condition.conditionType')
+      || content.includes('note.kind')
+      || content.includes('note.mode')
+      || content.includes('sourceText')
+      || content.includes('derived')
+    ) {
+      violations.push(`${path}: boss detail page must not expose or branch on raw P2 contract keys, source text, internal names, or derived values`)
+    }
+
     assertTemplateOmitsRawFields(violations, path, content, [
       'entry.conditions',
       'entry.notes',
@@ -1809,6 +1846,17 @@ for (const path of scanFiles) {
       'entry.quantityText',
       'member.internalName',
       'bossDetail?.code',
+      'item.internalName',
+      'item.role',
+      'item.sourceText',
+      'item.derived',
+      'condition.conditionType',
+      'condition.sourceText',
+      'condition.derived',
+      'note.kind',
+      'note.mode',
+      'note.sourceText',
+      'note.derived',
     ], 'boss detail templates must render sanitized labels instead of raw/internal fields')
     assertNoUnsafeFieldReader(violations, path, content, [
       'entry.conditions',
