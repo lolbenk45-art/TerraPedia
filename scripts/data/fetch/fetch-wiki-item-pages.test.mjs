@@ -118,6 +118,259 @@ test('default fetch progress path follows WORKTREE_ROOT when progress path is om
     assert.equal(path.resolve(progress.childStatusPath), worktreeProgressPath);
 });
 
+test('sample mode fetches a deterministic bounded item subset and reports sample metadata', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-sample-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const inputPath = path.join(tempDir, 'items.json');
+    const rawDir = path.join(tempDir, 'raw');
+    const reportDir = path.join(tempDir, 'reports');
+    const progressPath = path.join(tempDir, 'progress.json');
+    const mockApiPath = path.join(tempDir, 'mock-api.json');
+    const sampleItems = buildSampleItems();
+
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    writeItemsInput(inputPath, sampleItems);
+    writeMockItemPageApi(mockApiPath, sampleItems);
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      `--input=${inputPath}`,
+      `--raw-dir=${rawDir}`,
+      `--report-dir=${reportDir}`,
+      `--progress-path=${progressPath}`,
+      '--sample-size=2',
+      '--sample-seed=stable-smoke',
+      '--only-changed=false',
+      '--limit=5',
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+        TERRAPEDIA_CRAWLER_ACTION_ID: 'test-item-pages-sample',
+        NODE_ENV: 'test',
+        TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+
+    const report = readOnlyJsonReport(reportDir);
+    assert.equal(report.sampled, true);
+    assert.equal(report.sampleSize, 2);
+    assert.equal(report.sampleSeed, 'stable-smoke');
+    assert.equal(report.candidateCountBeforeSample, 5);
+    assert.equal(report.sampleCandidateCount, 2);
+    assert.equal(report.selectedCount, 2);
+    assert.equal(report.items.length, 2);
+    assert.equal(fs.readdirSync(rawDir).filter((entry) => entry.endsWith('.latest.json')).length, 2);
+
+    const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
+    assert.equal(progress.actionId, 'test-item-pages-sample');
+    assert.equal(progress.status, 'completed');
+    assert.equal(progress.current, 2);
+    assert.equal(progress.total, 2);
+});
+
+test('sample mode selects the same item order for the same seed across runs', () => {
+    const firstRun = runSampleFetchInTemp({ sampleSize: 3, sampleSeed: 'repeatable-seed' });
+    const secondRun = runSampleFetchInTemp({ sampleSize: 3, sampleSeed: 'repeatable-seed' });
+
+    assert.equal(firstRun.status, 0, firstRun.stderr || firstRun.stdout);
+    assert.equal(secondRun.status, 0, secondRun.stderr || secondRun.stdout);
+    assert.equal(firstRun.itemInternalNames.length, 3);
+    assert.deepEqual(secondRun.itemInternalNames, firstRun.itemInternalNames);
+});
+
+test('sample mode writes progress before probe metadata and probes only sampled titles', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-sample-probe-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const inputPath = path.join(tempDir, 'items.json');
+    const rawDir = path.join(tempDir, 'raw');
+    const reportDir = path.join(tempDir, 'reports');
+    const progressPath = path.join(tempDir, 'progress.json');
+    const mockApiPath = path.join(tempDir, 'mock-api.json');
+    const sampleItems = buildSampleItems();
+
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    writeItemsInput(inputPath, sampleItems);
+    writeMockItemPageApi(mockApiPath, sampleItems);
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      `--input=${inputPath}`,
+      `--raw-dir=${rawDir}`,
+      `--report-dir=${reportDir}`,
+      `--progress-path=${progressPath}`,
+      '--probe-only=true',
+      '--sample-size=1',
+      '--sample-seed=metadata-smoke',
+      '--limit=5',
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+        TERRAPEDIA_CRAWLER_ACTION_ID: 'test-item-pages-sample-probe',
+        NODE_ENV: 'test',
+        TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
+      }
+    });
+
+    assert.equal(fs.existsSync(progressPath), true);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+
+    const report = readOnlyJsonReport(reportDir);
+    assert.equal(report.probeOnly, true);
+    assert.equal(report.sampled, true);
+    assert.equal(report.sampleSize, 1);
+    assert.equal(report.sampleSeed, 'metadata-smoke');
+    assert.equal(report.candidateCountBeforeSample, 5);
+    assert.equal(report.sampleCandidateCount, 1);
+    assert.equal(report.selectedCount, 1);
+    assert.equal(report.items.length, 1);
+    assert.equal(fs.readdirSync(rawDir).filter((entry) => entry.endsWith('.latest.json')).length, 0);
+
+    const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
+    assert.equal(progress.status, 'completed');
+    assert.equal(progress.total, 1);
+});
+
+test('sample mode applies sampling before offset and limit', () => {
+    const fullSample = runSampleFetchInTemp({
+      sampleSize: 5,
+      sampleSeed: 'sample-before-limit',
+      limit: 5
+    });
+    assert.equal(fullSample.status, 0, fullSample.stderr || fullSample.stdout);
+
+    const slicedSample = runSampleFetchInTemp({
+      sampleSize: 5,
+      sampleSeed: 'sample-before-limit',
+      offset: 2,
+      limit: 1
+    });
+    assert.equal(slicedSample.status, 0, slicedSample.stderr || slicedSample.stdout);
+    assert.deepEqual(slicedSample.itemInternalNames, [fullSample.itemInternalNames[2]]);
+});
+
+test('sample mode rejects sample sizes above the crawler smoke cap', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-sample-cap-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const inputPath = path.join(tempDir, 'items.json');
+    const rawDir = path.join(tempDir, 'raw');
+    const reportDir = path.join(tempDir, 'reports');
+    const progressPath = path.join(tempDir, 'progress.json');
+
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    writeItemsInput(inputPath, buildSampleItems());
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      `--input=${inputPath}`,
+      `--raw-dir=${rawDir}`,
+      `--report-dir=${reportDir}`,
+      `--progress-path=${progressPath}`,
+      '--sample-size=101',
+      '--sample-seed=too-large',
+      '--only-changed=false',
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+        TERRAPEDIA_CRAWLER_ACTION_ID: 'test-item-pages-sample-cap'
+      }
+    });
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /sample-size.*100/i);
+});
+
+test('sample mode rejects reports under domain acceptance evidence directories', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-sample-domain-report-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const inputPath = path.join(tempDir, 'items.json');
+    const rawDir = path.join(tempDir, 'raw');
+    const reportDir = path.join(worktreeRoot, 'reports', 'domain', 'items', 'sample-smoke');
+    const progressPath = path.join(tempDir, 'progress.json');
+
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    writeItemsInput(inputPath, buildSampleItems());
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      `--input=${inputPath}`,
+      `--raw-dir=${rawDir}`,
+      `--report-dir=${reportDir}`,
+      `--progress-path=${progressPath}`,
+      '--sample-size=2',
+      '--sample-seed=domain-evidence',
+      '--only-changed=false',
+      '--limit=5',
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+        TERRAPEDIA_CRAWLER_ACTION_ID: 'test-item-pages-sample-domain-report'
+      }
+    });
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /reports[\/\\]domain/i);
+    assert.equal(fs.existsSync(reportDir), false);
+});
+
+test('sample mode writes failed progress when sampled remote metadata fails', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-sample-failed-progress-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const inputPath = path.join(tempDir, 'items.json');
+    const rawDir = path.join(tempDir, 'raw');
+    const reportDir = path.join(tempDir, 'reports');
+    const progressPath = path.join(tempDir, 'progress.json');
+    const mockApiPath = path.join(tempDir, 'mock-api.json');
+
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    writeItemsInput(inputPath, buildSampleItems());
+    fs.writeFileSync(mockApiPath, JSON.stringify({ __byRequest: {} }), 'utf8');
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      `--input=${inputPath}`,
+      `--raw-dir=${rawDir}`,
+      `--report-dir=${reportDir}`,
+      `--progress-path=${progressPath}`,
+      '--probe-only=true',
+      '--sample-size=1',
+      '--sample-seed=metadata-fails',
+      '--limit=5',
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+        TERRAPEDIA_CRAWLER_ACTION_ID: 'test-item-pages-sample-failed-progress',
+        NODE_ENV: 'test',
+        TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
+      }
+    });
+
+    assert.notEqual(result.status, 0);
+    assert.equal(fs.existsSync(progressPath), true);
+    const progress = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
+    assert.equal(progress.actionId, 'test-item-pages-sample-failed-progress');
+    assert.equal(progress.status, 'failed');
+    assert.equal(progress.phase, 'error');
+    assert.equal(progress.total, 1);
+    assert.match(progress.message, /Missing mock wiki API response/);
+});
+
 test('probe-only writes changed page report without raw item page payloads', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-probe-'));
     const worktreeRoot = path.join(tempDir, 'feature-worktree');
@@ -420,4 +673,95 @@ fs.appendFileSync(${JSON.stringify(redisLog)}, JSON.stringify(process.argv.slice
 
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildSampleItems() {
+  return [
+    { internalName: 'SampleItemAlpha', name: 'Sample Item Alpha' },
+    { internalName: 'SampleItemBeta', name: 'Sample Item Beta' },
+    { internalName: 'SampleItemGamma', name: 'Sample Item Gamma' },
+    { internalName: 'SampleItemDelta', name: 'Sample Item Delta' },
+    { internalName: 'SampleItemEpsilon', name: 'Sample Item Epsilon' }
+  ];
+}
+
+function writeItemsInput(inputPath, items) {
+  fs.writeFileSync(inputPath, JSON.stringify({ items }), 'utf8');
+}
+
+function writeMockItemPageApi(mockApiPath, items) {
+  const byRequest = {};
+  items.forEach((item, index) => {
+    byRequest[`parse:*:${item.name}`] = {
+      parse: {
+        pageid: 1000 + index,
+        title: item.name,
+        wikitext: `${item.name} page`,
+        text: `<p>${item.name} page</p>`,
+        sections: []
+      }
+    };
+    byRequest[`query:revisions:${item.name}`] = {
+      query: {
+        pages: [{
+          pageid: 1000 + index,
+          title: item.name,
+          revisions: [{ revid: 2000 + index, timestamp: `2026-05-${20 + index}T00:00:00Z` }]
+        }]
+      }
+    };
+  });
+  fs.writeFileSync(mockApiPath, JSON.stringify({ __byRequest: byRequest }), 'utf8');
+}
+
+function runSampleFetchInTemp({ sampleSize, sampleSeed, offset = 0, limit = 5 }) {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-repeatable-sample-'));
+  const worktreeRoot = path.join(tempDir, 'feature-worktree');
+  const inputPath = path.join(tempDir, 'items.json');
+  const rawDir = path.join(tempDir, 'raw');
+  const reportDir = path.join(tempDir, 'reports');
+  const progressPath = path.join(tempDir, 'progress.json');
+  const mockApiPath = path.join(tempDir, 'mock-api.json');
+  const sampleItems = buildSampleItems();
+
+  fs.mkdirSync(worktreeRoot, { recursive: true });
+  writeItemsInput(inputPath, sampleItems);
+  writeMockItemPageApi(mockApiPath, sampleItems);
+
+  const result = spawnSync(process.execPath, [
+    scriptPath,
+    `--input=${inputPath}`,
+    `--raw-dir=${rawDir}`,
+    `--report-dir=${reportDir}`,
+    `--progress-path=${progressPath}`,
+    `--sample-size=${sampleSize}`,
+    `--sample-seed=${sampleSeed}`,
+    '--only-changed=false',
+    `--offset=${offset}`,
+    `--limit=${limit}`,
+  ], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      WORKTREE_ROOT: worktreeRoot,
+      TERRAPEDIA_CRAWLER_ACTION_ID: 'test-item-pages-repeatable-sample',
+      NODE_ENV: 'test',
+      TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
+    }
+  });
+
+  const report = result.status === 0 ? readOnlyJsonReport(reportDir) : null;
+  return {
+    status: result.status,
+    stdout: result.stdout,
+    stderr: result.stderr,
+    itemInternalNames: report?.items?.map((item) => item.itemInternalName) ?? []
+  };
+}
+
+function readOnlyJsonReport(reportDir) {
+  const reportFiles = fs.readdirSync(reportDir).filter((entry) => entry.endsWith('.json'));
+  assert.equal(reportFiles.length, 1);
+  return JSON.parse(fs.readFileSync(path.join(reportDir, reportFiles[0]), 'utf8'));
 }
