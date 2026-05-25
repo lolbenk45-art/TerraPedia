@@ -6,10 +6,11 @@
   "scripts": {
     "dev": "nuxt dev --host 0.0.0.0 --port 5176",
     "build": "nuxt build",
-    "check": "pnpm run check:detail-layout && nuxt typecheck",
+    "check": "pnpm run check:nav-layout && pnpm run check:detail-layout && nuxt typecheck",
     "check:crafting-alternatives": "node scripts/check-crafting-alternative-summaries.mjs",
     "check:loading-skeleton": "node scripts/check-loading-skeleton-contract.mjs",
     "check:public-pages": "node scripts/check-public-pages.mjs",
+    "check:nav-layout": "node scripts/check-nav-layout-contract.mjs",
     "check:detail-layout": "node scripts/check-detail-layout-contract.mjs",
     "check:light-theme": "node scripts/check-light-theme-typography.mjs",
     "check:visual-blocked-source": "node scripts/check-visual-blocked-source-scan.mjs",
