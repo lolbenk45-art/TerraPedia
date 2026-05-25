@@ -6,6 +6,7 @@ import test from 'node:test'
 const repoRoot = path.resolve(import.meta.dirname, '..')
 const entitiesPage = fs.readFileSync(path.join(repoRoot, 'pages', 'entities', '[type].vue'), 'utf8')
 const nuxtConfig = fs.readFileSync(path.join(repoRoot, 'nuxt.config.ts'), 'utf8')
+const itemsStore = fs.readFileSync(path.join(repoRoot, 'stores', 'items.ts'), 'utf8')
 
 test('generic biome admin rows expose the same detail action as other managed entities', () => {
   const rowActions = entitiesPage.match(/<div class="row-actions">[\s\S]*?<\/div>/)?.[0] ?? ''
@@ -39,6 +40,15 @@ test('managed biome images render through the admin same-origin proxy', () => {
   assert.match(entitiesPage, /normalizeManagedImagePath\(normalized\)/)
   assert.match(nuxtConfig, /TERRAPEDIA_MINIO_PUBLIC_ENDPOINT/)
   assert.match(nuxtConfig, /['"]\/terrapedia-images['"]/)
+})
+
+test('managed item images render through the admin same-origin proxy', () => {
+  assert.match(itemsStore, /function normalizeManagedImagePath/)
+  assert.match(itemsStore, /\/terrapedia-images\//)
+  assert.match(itemsStore, /normalizeManagedImagePath\(imgUrl\)/)
+  assert.match(itemsStore, /normalizeManagedImagePath\(`http:\/\/\$\{imgUrl\}`\)/)
+  assert.match(itemsStore, /raw\?\.cachedUrl \?\? raw\?\.originalUrl/)
+  assert.match(itemsStore, /imageUrl: normalizeAssetUrl\(raw\)/)
 })
 
 test('biome admin separates wiki categories with Chinese labels and a server-side group filter', () => {

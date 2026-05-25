@@ -10,8 +10,7 @@
     "host": "127.0.0.1",
     "port": 6380,
     "database": 0,
-    "password": "set-your-local-redis-password",
-    "serverExe": "G:\\Redis\\redis-server.exe"
+    "password": "set-your-local-redis-password"
   },
   "backend": {
     "port": 18088

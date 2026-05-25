@@ -405,10 +405,21 @@ export interface ItemSourceRelation {
 function normalizeImageUrl(raw: any) {
   let imgUrl = String(raw?.image ?? raw?.imageUrl ?? raw?.image_url ?? '')
   if (!imgUrl) return ''
-  if (imgUrl.startsWith('http://') || imgUrl.startsWith('https://') || imgUrl.startsWith('data:')) return imgUrl
-  if (imgUrl.startsWith('localhost:') || imgUrl.startsWith('127.0.0.1:')) return `http://${imgUrl}`
+  if (imgUrl.startsWith('http://') || imgUrl.startsWith('https://')) return normalizeManagedImagePath(imgUrl)
+  if (imgUrl.startsWith('data:')) return imgUrl
+  if (imgUrl.startsWith('localhost:') || imgUrl.startsWith('127.0.0.1:')) return normalizeManagedImagePath(`http://${imgUrl}`)
   if (imgUrl.startsWith('/')) return imgUrl
   return ''
+}
+
+function normalizeManagedImagePath(value: string) {
+  try {
+    const url = new URL(value)
+    if (!url.pathname.startsWith('/terrapedia-images/')) return value
+    return `${url.pathname}${url.search}${url.hash}`
+  } catch {
+    return value
+  }
 }
 
 function normalizeAssetUrl(raw: any) {

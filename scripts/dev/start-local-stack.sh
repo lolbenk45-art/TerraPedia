@@ -434,8 +434,8 @@ fi
 
 if ! tcp_check 127.0.0.1 "$TP_FRONT_PORT" 800; then
   start_background front "$REPO_ROOT/$TP_FRONT_PROJECT_DIR" \
-    "pnpm exec nuxt dev --host localhost --port $TP_FRONT_PORT" \
-    pnpm exec nuxt dev --host localhost --port "$TP_FRONT_PORT"
+    "pnpm exec nuxt dev --host 0.0.0.0 --port $TP_FRONT_PORT" \
+    pnpm exec nuxt dev --host 0.0.0.0 --port "$TP_FRONT_PORT"
   wait_port 127.0.0.1 "$TP_FRONT_PORT" 45 || {
     log_error "Front failed to start on $TP_FRONT_PORT. Check $(log_path front)"
     exit 1
@@ -446,8 +446,8 @@ fi
 
 if ! tcp_check 127.0.0.1 "$TP_ADMIN_PORT" 800; then
   start_background data-query-app "$REPO_ROOT/data-query-app" \
-    "pnpm exec nuxt dev --port $TP_ADMIN_PORT --host localhost" \
-    pnpm exec nuxt dev --port "$TP_ADMIN_PORT" --host localhost
+    "pnpm exec nuxt dev --port $TP_ADMIN_PORT --host 0.0.0.0" \
+    pnpm exec nuxt dev --port "$TP_ADMIN_PORT" --host 0.0.0.0
   wait_port 127.0.0.1 "$TP_ADMIN_PORT" 60 || {
     log_error "data-query-app failed to start on $TP_ADMIN_PORT. Check $(log_path data-query-app)"
     exit 1

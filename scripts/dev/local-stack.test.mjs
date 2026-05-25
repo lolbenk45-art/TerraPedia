@@ -109,7 +109,7 @@ test('local stack front service starts the Nuxt frontend from front-nuxt on the 
   assert.match(runtimeConfig, /TP_FRONT_PROJECT_DIR/);
   assert.match(runtimeConfig, /get\(\['front', 'projectDir'\], 'front-nuxt'\)/);
   assert.match(source, /start_background front "\$REPO_ROOT\/\$TP_FRONT_PROJECT_DIR"/);
-  assert.match(source, /pnpm exec nuxt dev --host localhost --port "\$TP_FRONT_PORT"/);
+  assert.match(source, /pnpm exec nuxt dev --host 0\.0\.0\.0 --port "\$TP_FRONT_PORT"/);
   assert.match(verify, /run_step "Front Nuxt typecheck" "\$TP_FRONT_PROJECT_DIR" pnpm run check/);
   assert.match(qualityGate, /run_step "Front Nuxt checks and build" "\$TP_FRONT_PROJECT_DIR" pnpm run test/);
   assert.match(qualityGateCi, /run_step "Front Nuxt checks and build" "\$TP_FRONT_PROJECT_DIR" pnpm run test/);
@@ -123,6 +123,7 @@ test('local stack front service starts the Nuxt frontend from front-nuxt on the 
   assert.match(probeLink, /process\.env\.TP_FRONT_PORT \|\| '5174'/);
   assert.match(stop, /front:\$TP_FRONT_PORT/);
   assert.doesNotMatch(source, /"\$REPO_ROOT\/front"/);
+  assert.doesNotMatch(source, /pnpm exec nuxt dev --host localhost --port "\$TP_FRONT_PORT"/);
   assert.doesNotMatch(verify, /run_step "Front typecheck" front pnpm run check/);
   assert.doesNotMatch(qualityGate, /run_step "Front checks, unit tests, and build" front pnpm run test/);
   assert.doesNotMatch(qualityGateCi, /run_step "Front checks, unit tests, and build" front pnpm run test/);
@@ -130,6 +131,14 @@ test('local stack front service starts the Nuxt frontend from front-nuxt on the 
   assert.doesNotMatch(probeLink, /path\.join\(repoRoot, 'front'\)/);
 }
 );
+
+test('local stack Nuxt dev servers bind to all interfaces for Windows browser access through WSL IP', () => {
+  const source = startSource();
+
+  assert.match(source, /pnpm exec nuxt dev --host 0\.0\.0\.0 --port "\$TP_FRONT_PORT"/);
+  assert.match(source, /pnpm exec nuxt dev --port "\$TP_ADMIN_PORT" --host 0\.0\.0\.0/);
+  assert.doesNotMatch(source, /--host localhost/);
+});
 
 test('runtime config resolves local stack config from linked worktree primary root', () => {
   const runtimeConfig = fs.readFileSync('scripts/dev/lib/runtime-config.sh', 'utf8');
