@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import { resolveProjectPath } from '../lib/project-root.mjs';
@@ -25,6 +26,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = resolveProjectPath();
 const DEFAULT_WIKI_SYNC_PROGRESS_PATH = path.join(repoRoot, 'data', 'generated', 'wiki-sync-progress.latest.json');
+const MAX_SAMPLE_SIZE = 100;
 
 let rawDir;
 let progressPath;
@@ -40,6 +42,11 @@ let skippedExisting = 0;
 let skippedUnchanged = 0;
 let timestamp;
 let keepSnapshot;
+let sampleSize;
+let sampleSeed;
+let sampled;
+let candidateCountBeforeSample;
+let sampleCandidateCount;
 
 async function main() {
 const options = parseCliArgs(process.argv.slice(2));
@@ -57,6 +64,9 @@ const probeOnly = booleanOption(options['probe-only'] ?? options.probeOnly, fals
 keepSnapshot = shouldKeepSnapshot(options);
 withRecipes = booleanOption(options['with-recipes'] ?? options.withRecipes, false);
 maxAttempts = Math.max(1, numericOption(options['max-attempts'] ?? options.maxAttempts, 8));
+sampleSize = normalizeSampleSize(options['sample-size'] ?? options.sampleSize);
+sampleSeed = String(options['sample-seed'] ?? options.sampleSeed ?? 'terrapedia-item-page-smoke');
+sampled = sampleSize != null;
 progressPath = options['progress-path'] ?? process.env.TERRAPEDIA_CRAWLER_PROGRESS_PATH ?? DEFAULT_WIKI_SYNC_PROGRESS_PATH;
 progressActionId = process.env.TERRAPEDIA_CRAWLER_ACTION_ID ?? 'fetch-item-pages';
 progressStartedAt = new Date().toISOString();
@@ -68,14 +78,15 @@ const requestedItems = new Set(
 );
 
 ensureDir(rawDir);
+assertSampleReportDirAllowed(reportDir);
 ensureDir(reportDir);
 
 const sourcePayload = JSON.parse(await fs.promises.readFile(inputPath, 'utf8'));
-const rawItems = Array.isArray(sourcePayload?.items) ? sourcePayload.items : [];
+const rawItems = readItemRecords(sourcePayload);
 let selectedItems = rawItems.filter((item) => item?.internalName && item?.name);
 
-if (!allowFullCorpus && requestedItems.size === 0 && (limit == null || limit > 100)) {
-  throw new Error('Full-corpus item page refresh is disabled by default. Pass --limit=100 or lower, provide --items=..., or set --allow-full-corpus=true.');
+if (!allowFullCorpus && requestedItems.size === 0 && !sampled && (limit == null || limit > 100)) {
+  throw new Error('Full-corpus item page refresh is disabled by default. Pass --limit=100 or lower, provide --items=..., pass --sample-size=100 or lower, or set --allow-full-corpus=true.');
 }
 
 if (requestedItems.size > 0) {
@@ -84,6 +95,11 @@ if (requestedItems.size > 0) {
   });
 }
 
+candidateCountBeforeSample = selectedItems.length;
+if (sampled) {
+  selectedItems = selectDeterministicSample(selectedItems, sampleSize, sampleSeed);
+}
+sampleCandidateCount = selectedItems.length;
 overallTotal = selectedItems.length;
 selectedItems = selectedItems.slice(offset, Number.isFinite(limit) && limit > 0 ? offset + limit : undefined);
 batchCandidateCount = selectedItems.length;
@@ -100,6 +116,17 @@ if (onlyMissing) {
   });
   skippedExisting = beforeCount - selectedItems.length;
 }
+
+writeFetchProgress({
+  status: 'running',
+  phase: sampled ? 'sample' : 'select',
+  message: sampled
+    ? `sampled ${sampleCandidateCount}/${candidateCountBeforeSample} item page candidate(s); selected ${selectedItems.length} after local filters`
+    : `selected ${selectedItems.length} item page candidate(s) after local filters`,
+  current: 0,
+  total: selectedItems.length
+});
+await emitHeartbeat('running', { phase: sampled ? 'sample' : 'select', sampled, selectedCount: selectedItems.length });
 
 if ((onlyChanged || probeOnly) && selectedItems.length > 0) {
   revisionMap = await loadRemoteRevisionMap(selectedItems);
@@ -122,8 +149,6 @@ timestamp = new Date().toISOString().replaceAll(':', '-');
 const errors = [];
 const successes = [];
 
-await emitHeartbeat('running', { phase: probeOnly ? 'probe' : 'select' });
-
 if (probeOnly) {
   const probeItems = selectedItems.map((item) => {
     const existingRevision = readExistingLatestRevision(item.internalName);
@@ -143,6 +168,7 @@ if (probeOnly) {
     rawDir,
     probeOnly: true,
     selectedCount: selectedItems.length,
+    ...buildSampleReportFields(),
     changedCount: probeItems.filter((item) => item.changed).length,
     skippedExisting,
     skippedUnchanged,
@@ -212,6 +238,7 @@ writeJson(reportPath, {
   selectedCount: selectedItems.length,
   probeOnly: false,
   allowFullCorpus,
+  ...buildSampleReportFields(),
   skippedExisting,
   skippedUnchanged,
   successCount: successes.length,
@@ -252,6 +279,7 @@ await emitHeartbeat(errors.length > 0 ? 'failed' : 'completed', {
 if (process.argv[1] === __filename) {
   main().catch(async (error) => {
     console.error(error);
+    writeFailureProgress(error);
     await emitHeartbeat('failed', { phase: 'error', error: error?.message ?? String(error) });
     process.exitCode = 1;
   });
@@ -324,6 +352,70 @@ function normalizeKey(value) {
   return String(value ?? '').trim().toLowerCase();
 }
 
+function normalizeSampleSize(value) {
+  const parsed = numericOption(value, null);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+  const normalized = Math.floor(parsed);
+  if (normalized > MAX_SAMPLE_SIZE) {
+    throw new Error(`--sample-size must be ${MAX_SAMPLE_SIZE} or lower for item page sampled smoke crawls.`);
+  }
+  return normalized;
+}
+
+function selectDeterministicSample(items, requestedSize, seed) {
+  if (!Array.isArray(items) || items.length === 0 || !Number.isFinite(requestedSize) || requestedSize <= 0) {
+    return [];
+  }
+  const count = Math.min(items.length, Math.floor(requestedSize));
+  return items
+    .map((item, index) => ({
+      item,
+      index,
+      rank: createHash('sha256')
+        .update(String(seed ?? ''))
+        .update('\0')
+        .update(String(item?.internalName ?? ''))
+        .update('\0')
+        .update(String(item?.name ?? ''))
+        .digest('hex')
+    }))
+    .sort((left, right) => left.rank.localeCompare(right.rank) || left.index - right.index)
+    .slice(0, count)
+    .map((entry) => entry.item);
+}
+
+function buildSampleReportFields() {
+  return {
+    sampled,
+    sampleSize: sampleSize ?? null,
+    sampleSeed,
+    candidateCountBeforeSample,
+    sampleCandidateCount
+  };
+}
+
+function readItemRecords(payload) {
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.records)) return payload.records;
+  if (Array.isArray(payload)) return payload;
+  return [];
+}
+
+function assertSampleReportDirAllowed(reportDir) {
+  if (!sampled) {
+    return;
+  }
+  const normalizedSegments = path.resolve(reportDir).split(path.sep).map((segment) => segment.toLowerCase());
+  const reportsIndex = normalizedSegments.findIndex((segment, index) => {
+    return segment === 'reports' && normalizedSegments[index + 1] === 'domain';
+  });
+  if (reportsIndex !== -1) {
+    throw new Error('Sampled item page smoke reports must not be written under reports/domain; use reports/fetch or another non-domain report directory.');
+  }
+}
+
 function chunkArray(list, size) {
   const chunks = [];
   for (let index = 0; index < list.length; index += size) {
@@ -373,19 +465,42 @@ function writeFetchProgress(progress) {
 
 function buildProgressQueueFields(current) {
   const normalizedCurrent = Number.isFinite(Number(current)) ? Math.max(0, Number(current)) : 0;
+  const normalizedBatchCandidateCount = Number.isFinite(Number(batchCandidateCount)) ? Math.max(0, Number(batchCandidateCount)) : 0;
+  const normalizedSkippedExisting = Number.isFinite(Number(skippedExisting)) ? Math.max(0, Number(skippedExisting)) : 0;
+  const normalizedSkippedUnchanged = Number.isFinite(Number(skippedUnchanged)) ? Math.max(0, Number(skippedUnchanged)) : 0;
+  const normalizedOverallTotal = Number.isFinite(Number(overallTotal)) ? Math.max(0, Number(overallTotal)) : normalizedBatchCandidateCount;
+  const normalizedOffset = Number.isFinite(Number(offset)) ? Math.max(0, Number(offset)) : 0;
   const processedInBatch = Math.min(
-    batchCandidateCount,
-    skippedExisting + skippedUnchanged + normalizedCurrent
+    normalizedBatchCandidateCount,
+    normalizedSkippedExisting + normalizedSkippedUnchanged + normalizedCurrent
   );
-  const overallCurrent = Math.min(overallTotal, Math.max(0, offset + processedInBatch));
-  const batchLimit = Number.isFinite(limit) && limit > 0 ? limit : batchCandidateCount;
+  const overallCurrent = Math.min(normalizedOverallTotal, Math.max(0, normalizedOffset + processedInBatch));
+  const batchLimit = Number.isFinite(limit) && limit > 0 ? limit : normalizedBatchCandidateCount;
   return {
     batchLimit,
-    batchOffset: offset,
+    batchOffset: normalizedOffset,
     overallCurrent,
-    overallTotal,
+    overallTotal: normalizedOverallTotal,
     startedAt: progressStartedAt
   };
+}
+
+function writeFailureProgress(error) {
+  if (!progressPath || !progressActionId || !progressStartedAt) {
+    return;
+  }
+  try {
+    const total = Number.isFinite(Number(batchCandidateCount)) ? Number(batchCandidateCount) : 0;
+    writeFetchProgress({
+      status: 'failed',
+      phase: 'error',
+      message: compactError(error?.message ?? String(error)),
+      current: 0,
+      total
+    });
+  } catch (progressError) {
+    console.warn(`Failed to write item page fetch failure progress: ${compactError(progressError?.message ?? String(progressError))}`);
+  }
 }
 
 function sanitizeFileName(value) {
