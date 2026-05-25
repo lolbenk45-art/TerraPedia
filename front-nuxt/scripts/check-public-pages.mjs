@@ -1535,8 +1535,10 @@ for (const path of scanFiles) {
       'itemTooltipText',
       'sourceGroupKey(source)',
       'safeItemDisplayText(tree.note, tree.summary, tree.description)',
+      '制作路线',
+      '来源分组',
       '图片画廊',
-      '覆盖状态',
+      '资料概览',
       'sourceEntries',
       '<CommonPreviewImage',
       '<RecipeSummaryCard',
@@ -1598,7 +1600,7 @@ for (const path of scanFiles) {
     }
 
     const recipeIndex = content.indexOf('<RecipeSummaryCard')
-    const sourceIndex = content.indexOf('<section v-if="sourceEntryGroups.length"')
+    const sourceIndex = content.indexOf('item-source-module')
     const imageIndex = content.indexOf('<section v-if="imageEntries.length"')
     if (recipeIndex === -1 || sourceIndex === -1 || imageIndex === -1 || !(recipeIndex < sourceIndex && sourceIndex < imageIndex)) {
       violations.push(`${path}: item detail modules must order recipe summary before sources and image evidence`)

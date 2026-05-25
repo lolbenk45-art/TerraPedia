@@ -12,6 +12,7 @@ import type {
 } from '~/types/public-api'
 
 const route = useRoute()
+const detailLayout = useDetailLayout({ kind: 'item', density: 'readable' })
 
 const itemId = computed(() => String(route.params.id ?? '').trim())
 const { data: detailBundle, pending: detailPending, error: detailError } = await usePublicItemDetail(itemId)
@@ -66,8 +67,46 @@ const itemCategory = computed(() => safeItemDisplayText(
   detailItem.value?.categoryName,
   detailItem.value?.category,
 ) || '未分类')
-const itemRarity = computed(() => firstText(detailItem.value?.rarity, detailItem.value?.rare, '稀有度未标记'))
-const itemPeriod = computed(() => firstText(detailItem.value?.gamePeriod, detailItem.value?.phase, '阶段未标记'))
+const itemPeriodLabel = (...values: unknown[]) => {
+  const raw = firstText(...values)
+  const key = raw.toLowerCase().replace(/[\s-]+/g, '_')
+  const labels: Record<string, string> = {
+    pre_hardmode: '困难模式前',
+    prehardmode: '困难模式前',
+    early: '开荒阶段',
+    hardmode: '困难模式',
+    post_plantera: '世纪之花后',
+    post_moon_lord: '月亮领主后',
+  }
+
+  return labels[key] || safeItemDisplayText(raw) || '阶段未标记'
+}
+const itemRarityLabel = (...values: unknown[]) => {
+  const raw = firstText(...values)
+  const key = raw.toLowerCase().replace(/[\s-]+/g, '_')
+  const labels: Record<string, string> = {
+    gray: '灰色',
+    white: '白色',
+    blue: '蓝色',
+    green: '绿色',
+    orange: '橙色',
+    light_red: '浅红色',
+    pink: '粉色',
+    light_purple: '浅紫色',
+    lime: '黄绿色',
+    yellow: '黄色',
+    cyan: '青色',
+    red: '红色',
+    purple: '紫色',
+    quest: '任务物品',
+    expert: '专家物品',
+    master: '大师物品',
+  }
+
+  return labels[key] || safeItemDisplayText(raw) || '稀有度未标记'
+}
+const itemRarity = computed(() => itemRarityLabel(detailItem.value?.rarity, detailItem.value?.rare))
+const itemPeriod = computed(() => itemPeriodLabel(detailItem.value?.gamePeriod, detailItem.value?.phase))
 const itemDescriptionSourceText = computed(() => safeItemDisplayText(
   detailItem.value?.descriptionZh,
   detailItem.value?.description,
@@ -156,7 +195,16 @@ const sourceQuantityLabel = (source: PublicItemSource) => {
   return firstText(source.quantity, source.amount)
 }
 
-const sourceChanceLabel = (source: PublicItemSource) => safeItemDisplayText(source.chanceText, source.chance, source.rate)
+const percentLabel = (value: unknown) => {
+  const numberValue = Number(value)
+  if (!Number.isFinite(numberValue)) return ''
+  return numberValue <= 1 ? `${Math.round(numberValue * 100)}%` : `${numberValue}%`
+}
+const sourceChanceLabel = (source: PublicItemSource) => {
+  const explicit = safeItemDisplayText(source.chanceText)
+  if (explicit) return explicit
+  return percentLabel(source.chance ?? source.rate ?? source.chanceValue)
+}
 const sourceBiomeLabel = (source: PublicItemSource) => safeItemDisplayText(source.biomeNameZh, source.biomeNameEn)
 
 const sourceEntries = computed(() => rawBundle.value.sources.map((source: PublicItemSource, index) => ({
@@ -279,12 +327,12 @@ const statRows = computed(() => [
 ].filter((row) => row.value))
 
 const itemCoverageRows = computed(() => [
-  { label: '基础资料', value: detailItem.value ? sourceLabel.value : '缺失' },
-  { label: '描述', value: itemDescriptionSourceText.value ? '已整理' : '暂无说明' },
-  { label: '游戏内提示', value: itemTooltipText.value ? '已整理' : '暂无提示' },
-  { label: '价格', value: itemHasPrice.value ? '已整理' : '暂无价格' },
+  { label: '基础资料', value: detailItem.value ? sourceLabel.value : '暂无记录' },
+  { label: '描述', value: itemDescriptionSourceText.value ? '可查看' : '暂无说明' },
+  { label: '游戏内提示', value: itemTooltipText.value ? '可查看' : '暂无提示' },
+  { label: '价格', value: itemHasPrice.value ? '可查看' : '暂无价格' },
   { label: '来源', value: sourceEntries.value.length ? `${sourceEntries.value.length} 条来源记录` : '暂无来源' },
-  { label: '制作', value: recipeTreeSummary.value ? '已有制作摘要' : '暂无制作资料' },
+  { label: '制作', value: recipeTreeSummary.value ? '可查看制作路线' : '暂无制作资料' },
   { label: '图片', value: imageEntries.value.length ? `${imageEntries.value.length} 张图片` : '暂无图片' },
 ])
 
@@ -300,7 +348,7 @@ onMounted(() => {
 
     <DetailItemDetailSkeleton v-if="detailLoadingState" />
 
-    <div v-else-if="notFoundState" class="detail-layout">
+    <div v-else-if="notFoundState" :class="['detail-layout', detailLayout.detailShellClass]">
       <section class="detail-hero dark-card">
         <div class="detail-main">
           <span class="eyebrow">物品 #{{ itemId || '未知' }} · 未找到</span>
@@ -315,7 +363,7 @@ onMounted(() => {
       </section>
     </div>
 
-    <div v-else class="detail-layout">
+    <div v-else :class="['detail-layout', detailLayout.detailShellClass]">
       <section class="detail-hero dark-card">
         <div class="detail-icon-stage">
           <CommonPreviewImage
@@ -348,17 +396,17 @@ onMounted(() => {
         </aside>
       </section>
 
-      <div class="detail-grid">
+      <div :class="['detail-grid', detailLayout.detailGridClass, detailLayout.detailDensityClass]">
         <div class="module-stack">
-          <section v-if="recipeTreeSummary" class="detail-module dark-card item-recipe-summary-module">
+          <section :class="['detail-module dark-card item-recipe-summary-module', detailLayout.detailModuleClass]">
             <div class="module-title">
               <div>
-                <h2>制作摘要</h2>
-                <span>{{ recipeTreeSummary.variant }} · {{ recipeTreeSummary.count }} 个直接材料</span>
+                <h2>制作路线</h2>
+                <span>{{ recipeTreeSummary ? `${recipeTreeSummary.variant} · ${recipeTreeSummary.count} 个直接材料` : '当前物品暂无制作路线' }}</span>
               </div>
-              <span class="tag gold">{{ recipeTreeSummary.recipeCount }} 个配方</span>
+              <span class="tag gold">{{ recipeTreeSummary ? `${recipeTreeSummary.recipeCount} 个配方` : '暂无配方' }}</span>
             </div>
-            <div v-if="recipeTreeVariants.length > 1" class="recipe-variant-tabs" aria-label="配方版本">
+            <div v-if="recipeTreeSummary && recipeTreeVariants.length > 1" class="recipe-variant-tabs" aria-label="配方版本">
               <button
                 v-for="(variant, index) in recipeTreeVariants"
                 :key="firstText(variant.variantKey, variant.variantLabel)"
@@ -370,24 +418,25 @@ onMounted(() => {
                 {{ recipeVariantDisplayLabel(variant, index) }}
               </button>
             </div>
-            <RecipeSummaryCard :roots="activeRecipeRoots" compact title-id="item-recipe-summary-title" />
-            <p v-if="recipeTreeSummary.note">{{ recipeTreeSummary.note }}</p>
-            <a class="primary-button item-recipe-summary-link" :href="`/crafting?itemId=${itemId}&maxDepth=3`">查看完整制作树</a>
+            <RecipeSummaryCard v-if="recipeTreeSummary" :roots="activeRecipeRoots" compact title-id="item-recipe-summary-title" />
+            <p v-else class="tp-detail-empty">还没有可展示的配方、材料或制作站记录。</p>
+            <p v-if="recipeTreeSummary?.note">{{ recipeTreeSummary.note }}</p>
+            <a v-if="recipeTreeSummary" class="primary-button item-recipe-summary-link" :href="`/crafting?itemId=${itemId}&maxDepth=3`">查看完整制作树</a>
           </section>
 
-          <section v-if="sourceEntryGroups.length" class="detail-module dark-card item-source-module">
+          <section :class="['detail-module dark-card item-source-module', detailLayout.detailModuleClass]">
             <div class="module-title">
               <h2>来源分组</h2>
               <span class="tag moss">{{ sourceEntries.length }} 条</span>
             </div>
-            <div class="grouped-source-list">
+            <div v-if="sourceEntryGroups.length" class="grouped-source-list">
               <section v-for="group in sourceEntryGroups" :key="group.key" class="detail-subgroup item-source-group">
                 <div class="detail-subgroup-title">
                   <b>{{ group.title }}</b>
                   <span>{{ group.entries.length }} 条 · {{ group.meta }}</span>
                 </div>
                 <div class="source-table">
-                  <div v-for="source in group.entries" :key="String(source.id)" class="source-row detail-relation-row">
+                  <div v-for="source in group.entries" :key="String(source.id)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                     <span class="sprite-frame detail-relation-icon">
                       <CommonPreviewImage
                         :src="source.image"
@@ -405,9 +454,10 @@ onMounted(() => {
                 </div>
               </section>
             </div>
+            <p v-else class="tp-detail-empty">还没有可展示的掉落、购买、制作或探索来源记录。</p>
           </section>
 
-          <section v-if="imageEntries.length" class="detail-module dark-card">
+          <section v-if="imageEntries.length" :class="['detail-module dark-card', detailLayout.detailModuleClass]">
             <div class="module-title">
               <h2>图片画廊</h2>
               <span class="tag gold">{{ imageEntries.length }} 张</span>
@@ -431,8 +481,8 @@ onMounted(() => {
           </section>
         </div>
 
-        <aside class="evidence-panel dark-card">
-          <span class="eyebrow">覆盖状态</span>
+        <aside :class="['evidence-panel dark-card', detailLayout.detailModuleClass]">
+          <span class="eyebrow">资料概览</span>
           <div v-for="row in itemCoverageRows" :key="row.label" class="evidence-step">
             <div><b>{{ row.label }}</b><span>{{ row.value }}</span></div>
           </div>

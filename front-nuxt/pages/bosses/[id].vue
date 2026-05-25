@@ -8,6 +8,7 @@ import type {
 } from '~/types/public-api'
 
 const route = useRoute()
+const detailLayout = useDetailLayout({ kind: 'boss', density: 'readable' })
 const bossClientReady = ref(false)
 const bossDetailVisualLoading = ref(true)
 const bossDetailVisualLoadingMinimumMs = 180
@@ -27,6 +28,8 @@ const bossDetail = computed(() => bossBundle.value?.detail ?? null)
 const bossCard = computed(() => bossBundle.value?.item ?? null)
 const bossMembers = computed(() => bossBundle.value?.members ?? [])
 const bossReferenceMembers = computed(() => bossBundle.value?.referenceMembers ?? [])
+const bossVisibleMembers = computed(() => bossMembers.value.length ? bossMembers.value : bossReferenceMembers.value)
+const bossUsesReferenceMembers = computed(() => !bossMembers.value.length && bossReferenceMembers.value.length > 0)
 const bossLootEntries = computed(() => bossBundle.value?.lootEntries ?? [])
 const bossRawLoading = computed(() => !bossClientReady.value || bossPending.value)
 const bossMissing = computed(() => bossClientReady.value && !bossPending.value && !bossDetail.value)
@@ -114,6 +117,26 @@ const bossSummaryText = computed(() => safeBossDisplayText(
   bossDetail.value?.notes,
   '暂无公开说明。',
 ))
+const bossMemberTagLabel = computed(() => {
+  if (bossMembers.value.length) return `${bossMembers.value.length} 个成员`
+  if (bossReferenceMembers.value.length) return `${bossReferenceMembers.value.length} 个参考成员`
+  return '暂无成员'
+})
+const bossMemberSummaryText = computed(() => {
+  if (bossMembers.value.length) return `包含 ${bossMembers.value.length} 个实体或部件。`
+  if (bossReferenceMembers.value.length) return `暂无直接成员记录，可参考 ${bossReferenceMembers.value.length} 个关联成员。`
+  return '暂无成员资料。'
+})
+const bossMemberSectionTitle = computed(() => bossUsesReferenceMembers.value ? '参考成员' : '成员')
+const bossReadinessCopy = computed(() => {
+  if (bossDetailVisualLoading.value) return '正在整理 Boss 详情、成员和掉落'
+  return bossBundle.value?.source === 'api' ? '资料已更新，可查看召唤、成员和掉落' : '资料暂不可用'
+})
+const bossReadinessState = computed(() => {
+  if (bossError.value) return '更新失败'
+  if (bossPending.value) return '正在更新'
+  return bossBundle.value?.source === 'api' ? '已更新' : '稍后重试'
+})
 const bossSummonStatusRows = computed(() => [
   {
     label: '召唤说明',
@@ -211,7 +234,7 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
     <TerraNav />
     <TerraBreadcrumb />
 
-    <main class="boss-detail-shell" :aria-busy="bossDetailVisualLoading">
+    <main :class="['boss-detail-shell', detailLayout.detailShellClass]" :aria-busy="bossDetailVisualLoading">
       <section class="boss-detail-hero support-panel">
         <div class="boss-detail-portrait">
           <CommonTpSkeleton v-if="bossDetailVisualLoading" type="icon" />
@@ -245,20 +268,20 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
           </div>
           <div v-else-if="bossMissing" class="tag-row boss-detail-missing-tags">
             <span class="tag paper">详情缺失</span>
-            <span v-if="bossError" class="tag moss">请求异常</span>
+            <span v-if="bossError" class="tag moss">载入异常</span>
           </div>
           <div v-else class="tag-row">
             <span class="tag gold">{{ bossTypeLabel }}</span>
             <span class="tag moss">{{ bossProgressionLabel }}</span>
             <span class="tag paper">{{ bossLootEntries.length }} 条掉落</span>
-            <span class="tag paper">{{ bossMembers.length }} 个成员</span>
+            <span class="tag paper">{{ bossMemberTagLabel }}</span>
           </div>
         </div>
 
         <aside class="boss-readiness">
           <b>{{ bossDetailVisualLoading ? '加载资料' : '公开资料' }}</b>
-          <span>{{ bossDetailVisualLoading ? '读取 Boss 详情、成员和掉落' : (bossBundle?.source === 'api' ? '已载入真实 Boss 资料' : '未载入公开资料') }}</span>
-          <em>{{ bossError ? '请求异常' : bossPending ? '请求中' : bossBundle?.source === 'api' ? '已更新' : '等待重试' }}</em>
+          <span>{{ bossReadinessCopy }}</span>
+          <em>{{ bossReadinessState }}</em>
         </aside>
       </section>
 
@@ -280,29 +303,29 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
 
       <template v-else>
         <section class="boss-phase-grid">
-          <article class="support-panel boss-phase active">
+          <article :class="['support-panel boss-phase active', detailLayout.detailModuleClass]">
             <h2>召唤与触发</h2>
             <p>{{ bossSummonMethod || '当前资料还没有明确的召唤物和触发条件。' }}</p>
           </article>
-          <article class="support-panel boss-phase">
+          <article :class="['support-panel boss-phase', detailLayout.detailModuleClass]">
             <h2>成员</h2>
-            <p>{{ bossMembers.length ? `包含 ${bossMembers.length} 个实体或部件。` : '暂无成员资料。' }}</p>
+            <p>{{ bossMemberSummaryText }}</p>
           </article>
-          <article class="support-panel boss-phase">
+          <article :class="['support-panel boss-phase', detailLayout.detailModuleClass]">
             <h2>掉落</h2>
             <p>{{ bossLootEntries.length ? `整理 ${bossLootEntries.length} 条掉落记录。` : '暂无掉落资料。' }}</p>
           </article>
         </section>
 
-        <section class="boss-detail-grid">
-          <article class="support-panel loot-panel">
+        <section :class="['boss-detail-grid', detailLayout.detailGridClass, detailLayout.detailDensityClass]">
+          <article :class="['support-panel loot-panel', detailLayout.detailModuleClass]">
             <span class="eyebrow">掉落</span>
             <div v-for="group in bossLootGroups" :key="group.key" class="detail-loot-group">
               <div class="detail-loot-group-title">
                 <b>{{ group.title }}</b>
                 <span>{{ group.entries.length }} 条 · {{ group.meta }}</span>
               </div>
-              <div v-for="entry in group.entries.slice(0, 8)" :key="entry.id ?? `${entry.itemId}-${entry.itemName}`" class="loot-row detail-loot-row">
+              <div v-for="entry in group.entries.slice(0, 8)" :key="entry.id ?? `${entry.itemId}-${entry.itemName}`" :class="['loot-row detail-loot-row', detailLayout.detailRelationRowClass]">
                 <CommonPreviewImage
                   :src="entryImage(entry)"
                   :alt="lootTitle(entry)"
@@ -319,7 +342,7 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
               </div>
               <details v-if="group.entries.length > 8" class="detail-group-remainder">
                 <summary>展开其余 {{ group.entries.length - 8 }} 条</summary>
-                <div v-for="entry in group.entries.slice(8)" :key="entry.id ?? `${entry.itemId}-${entry.itemName}`" class="loot-row detail-loot-row">
+                <div v-for="entry in group.entries.slice(8)" :key="entry.id ?? `${entry.itemId}-${entry.itemName}`" :class="['loot-row detail-loot-row', detailLayout.detailRelationRowClass]">
                   <CommonPreviewImage
                     :src="entryImage(entry)"
                     :alt="lootTitle(entry)"
@@ -336,12 +359,12 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
                 </div>
               </details>
             </div>
-            <div v-if="!bossLootEntries.length" class="loot-row">
-              <b>暂无掉落</b><span>当前没有可展示的掉落记录。</span><em>空</em>
+            <div v-if="!bossLootEntries.length" :class="['loot-row', detailLayout.detailRelationRowClass]">
+              <b>暂无掉落</b><span>当前没有可展示的掉落记录。</span><em>待补充</em>
             </div>
           </article>
 
-          <article class="support-panel prep-panel">
+          <article :class="['support-panel prep-panel', detailLayout.detailModuleClass]">
             <span class="eyebrow">召唤与触发</span>
             <div class="boss-summon-facts">
               <div v-for="row in bossSummonStatusRows" :key="row.label">
@@ -351,7 +374,7 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
             </div>
             <div v-if="bossSummonItems.length" class="boss-contract-list boss-summon-items">
               <span class="eyebrow">召唤物</span>
-              <div v-for="item in bossSummonItems" :key="displayText(item.itemId, summonItemTitle(item))" class="boss-contract-row boss-contract-item">
+              <div v-for="item in bossSummonItems" :key="displayText(item.itemId, summonItemTitle(item))" :class="['boss-contract-row boss-contract-item', detailLayout.detailRelationRowClass]">
                 <CommonPreviewImage
                   :src="summonItemImage(item)"
                   :alt="summonItemTitle(item)"
@@ -367,25 +390,25 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
             </div>
             <div v-if="bossSummonConditions.length" class="boss-contract-list">
               <span class="eyebrow">触发条件</span>
-              <div v-for="condition in bossSummonConditions" :key="bossConditionCopy(condition)" class="boss-contract-row">
+              <div v-for="condition in bossSummonConditions" :key="bossConditionCopy(condition)" :class="['boss-contract-row', detailLayout.detailRelationRowClass]">
                 <span>{{ bossConditionCopy(condition) }}</span>
               </div>
             </div>
             <div v-if="bossMechanicNotes.length" class="boss-contract-list">
               <span class="eyebrow">机制</span>
-              <div v-for="note in bossMechanicNotes" :key="`${bossMechanicTitle(note)}-${bossMechanicCopy(note)}`" class="boss-contract-row">
+              <div v-for="note in bossMechanicNotes" :key="`${bossMechanicTitle(note)}-${bossMechanicCopy(note)}`" :class="['boss-contract-row', detailLayout.detailRelationRowClass]">
                 <b>{{ bossMechanicTitle(note) }}</b>
                 <span>{{ bossMechanicCopy(note) }}</span>
               </div>
             </div>
             <div v-if="bossDifficultyNotes.length" class="boss-contract-list">
               <span class="eyebrow">难度提示</span>
-              <div v-for="note in bossDifficultyNotes" :key="bossDifficultyCopy(note)" class="boss-contract-row">
+              <div v-for="note in bossDifficultyNotes" :key="bossDifficultyCopy(note)" :class="['boss-contract-row', detailLayout.detailRelationRowClass]">
                 <span>{{ bossDifficultyCopy(note) }}</span>
               </div>
             </div>
-            <span class="eyebrow boss-members-eyebrow">成员</span>
-            <NuxtLink v-for="member in bossMembers" :key="displayText(member.id, member.gameId, member.internalName, 'member')" class="detail-member-link" :to="bossMemberPath(member)">
+            <span class="eyebrow boss-members-eyebrow">{{ bossMemberSectionTitle }}</span>
+            <NuxtLink v-for="member in bossVisibleMembers" :key="displayText(member.id, member.gameId, member.internalName, 'member')" :class="['detail-member-link', detailLayout.detailRelationRowClass]" :to="bossMemberPath(member)">
               <CommonPreviewImage
                 :src="memberImage(member)"
                 :alt="safeBossDisplayText(member.nameZh, member.name) || '成员'"
@@ -394,9 +417,9 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
                 height="40"
               />
               <b>{{ safeBossDisplayText(member.nameZh, member.name) || '未命名成员' }}</b>
-              <span>{{ bossMemberRoleLabel(member.bossRole, member.sourceBossCode) }}</span>
+              <span>{{ bossUsesReferenceMembers ? `参考 · ${bossMemberRoleLabel(member.bossRole, member.sourceBossCode)}` : bossMemberRoleLabel(member.bossRole, member.sourceBossCode) }}</span>
             </NuxtLink>
-            <a v-if="!bossMembers.length" class="detail-member-link" href="/bosses">
+            <a v-if="!bossVisibleMembers.length" :class="['detail-member-link', detailLayout.detailRelationRowClass]" href="/bosses">
               <b>暂无成员</b>
               <span>当前没有可展示的成员记录。</span>
             </a>
