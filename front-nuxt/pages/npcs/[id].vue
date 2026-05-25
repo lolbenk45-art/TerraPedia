@@ -25,6 +25,8 @@ const aggregate = computed(() => invalidNpcId.value ? null : aggregateBundle.val
 const npc = computed(() => aggregate.value?.npc ?? null)
 const loot = computed(() => aggregate.value?.loot ?? [])
 const trustedLoot = computed(() => loot.value.filter((entry) => entry.trustedStructured === true && entry.lootSourceMode === 'direct'))
+const trustedLootVisibleEntries = computed(() => trustedLoot.value.slice(0, 8))
+const trustedLootRemainderEntries = computed(() => trustedLoot.value.slice(8))
 const additionalLoot = computed(() => loot.value.filter((entry) => !(entry.trustedStructured === true && entry.lootSourceMode === 'direct')))
 const shopEntries = computed(() => aggregate.value?.shopEntries ?? [])
 const buffRelations = computed(() => aggregate.value?.buffRelations ?? [])
@@ -41,8 +43,21 @@ const firstText = (...values: unknown[]) => {
 }
 
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
-const displayName = computed(() => firstText(npc.value?.nameZh, npc.value?.name, npc.value?.internalName, `NPC ${routeNpcId.value}`))
-const secondaryName = computed(() => firstText(npc.value?.nameZh) ? firstText(npc.value?.name, npc.value?.internalName) : firstText(npc.value?.internalName))
+const rawPublicCopyPattern = /{{|}}|<\/?[a-z][\s\S]*?>|https?:\/\/|wiki\.gg|iteminfo|eicons|internal|wiki\s*(?:page|path)|(?:^|[\s_-])shop[\s_/-]*\d+(?:[\s_/-]*\d+)*(?:$|[\s_-])/i
+const safeNpcDisplayText = (...values: unknown[]) => {
+  for (const value of values) {
+    const text = firstText(value).replace(/\s+/g, ' ')
+    if (text && !rawPublicCopyPattern.test(text)) return text
+  }
+
+  return ''
+}
+const displayName = computed(() => safeNpcDisplayText(npc.value?.nameZh, npc.value?.name) || `NPC ${routeNpcId.value}`)
+const secondaryName = computed(() => {
+  const zhName = safeNpcDisplayText(npc.value?.nameZh)
+  const name = safeNpcDisplayText(npc.value?.name)
+  return zhName && name && name !== zhName ? name : ''
+})
 
 useSeoMeta({
   title: () => `TerraPedia · ${displayName.value}`,
@@ -85,15 +100,12 @@ const npcStatRows = computed(() => [
   { label: '资料更新', value: detailUpdatedAt.value },
 ].filter((row) => row.value))
 
-const entryTitle = (entry: PublicNpcLootEntry | PublicNpcShopEntry | PublicNpcBuffRelation) => firstText(
+const entryTitle = (entry: PublicNpcLootEntry | PublicNpcShopEntry | PublicNpcBuffRelation) => safeNpcDisplayText(
   'buffNameZh' in entry ? entry.buffNameZh : undefined,
   'itemNameZh' in entry ? entry.itemNameZh : undefined,
   'buffName' in entry ? entry.buffName : undefined,
   'itemName' in entry ? entry.itemName : undefined,
-  'buffInternalName' in entry ? entry.buffInternalName : undefined,
-  'itemInternalName' in entry ? entry.itemInternalName : undefined,
-  '资料项',
-)
+) || '资料项'
 
 const entryImage = (entry: PublicNpcLootEntry | PublicNpcShopEntry | PublicNpcBuffRelation) => resolvePreviewImageUrl(firstText(
   entry.imageUrl,
@@ -102,29 +114,28 @@ const entryImage = (entry: PublicNpcLootEntry | PublicNpcShopEntry | PublicNpcBu
 ))
 
 const quantityLabel = (entry: PublicNpcLootEntry) => {
-  if (entry.quantityText) return entry.quantityText
+  const text = safeNpcDisplayText(entry.quantityText)
+  if (text) return text
   if (entry.quantityMin != null && entry.quantityMax != null && entry.quantityMin !== entry.quantityMax) return `${entry.quantityMin}-${entry.quantityMax}`
   return firstText(entry.quantityMin, entry.quantityMax)
 }
 
 const chanceLabel = (entry: PublicNpcLootEntry | PublicNpcBuffRelation) => {
-  if (entry.chanceText) return entry.chanceText
+  const text = safeNpcDisplayText(entry.chanceText)
+  if (text) return text
   return entry.chanceValue != null ? `${entry.chanceValue}%` : ''
 }
 
-const rawPublicCopyPattern = /{{|}}|<\/?[a-z][\s\S]*?>|https?:\/\/|wiki\.gg|iteminfo|eicons/i
-const safeNpcDisplayText = (...values: unknown[]) => {
-  for (const value of values) {
-    const text = firstText(value).replace(/\s+/g, ' ')
-    if (text && !rawPublicCopyPattern.test(text)) return text
-  }
-
-  return ''
-}
+const npcBehaviorSummary = computed(() => safeNpcDisplayText(
+  npc.value?.behaviorNotes,
+  `${displayName.value} 的资料包含基础数值、出售物品、掉落物和状态效果。`,
+))
 
 const shopPriceLabel = (entry: PublicNpcShopEntry) => safeNpcDisplayText(entry.buyPriceText, entry.currencyText, entry.priceText)
+const lootConditionLabel = (entry: PublicNpcLootEntry) => safeNpcDisplayText(entry.conditions, entry.notes)
+const buffConditionLabel = (entry: PublicNpcBuffRelation) => safeNpcDisplayText(entry.conditions, entry.notes, entry.sourceText)
 
-const conditionLabel = (condition: PublicNpcShopCondition) => firstText(
+const conditionLabel = (condition: PublicNpcShopCondition) => safeNpcDisplayText(
   condition.label,
   condition.contextNameZh,
   condition.contextNameEn,
@@ -144,7 +155,14 @@ const shopConditionsLabel = (entry: PublicNpcShopEntry) => {
     return entry.conditions.map(conditionLabel).filter(Boolean).join(' / ')
   }
 
-  return firstText(entry.conditions)
+  return safeNpcDisplayText(entry.conditions, entry.notes)
+}
+
+const shopConditionSummary = (entry: PublicNpcShopEntry) => {
+  if (!Array.isArray(entry.conditions)) return shopConditionsLabel(entry)
+  const labels = entry.conditions.map(conditionLabel).filter(Boolean)
+  if (labels.length <= 2) return labels.join(' / ')
+  return `${labels.slice(0, 2).join(' / ')} / 另有 ${labels.length - 2} 个条件`
 }
 
 const shopGroupKey = (entry: PublicNpcShopEntry) => {
@@ -182,7 +200,7 @@ const shopEntryGroups = computed(() => {
     .filter((group) => group.entries.length > 0)
 })
 
-const buffDurationLabel = (entry: PublicNpcBuffRelation) => firstText(
+const buffDurationLabel = (entry: PublicNpcBuffRelation) => safeNpcDisplayText(
   entry.durationText,
   entry.durationSeconds != null ? `${entry.durationSeconds}s` : '',
 )
@@ -209,7 +227,7 @@ const relatedItemSections = computed(() => {
     ...section,
     entries: section.entries.slice(0, 6).map((entry, index) => ({
       id: firstText(entry.sourceFactKey, entry.itemId, entry.itemInternalName, `${section.title}-${index}`),
-      title: firstText(entry.itemNameZh, entry.itemName, entry.itemInternalName, '关联物品'),
+      title: safeNpcDisplayText(entry.itemNameZh, entry.itemName) || '关联物品',
       meta: relationTypeLabel(entry.relationType),
     })),
   })).filter((section) => section.entries.length > 0)
@@ -263,11 +281,11 @@ const materialStatus = computed(() => ({
           <div class="npc-detail-copy">
             <span class="eyebrow">NPC #{{ npc?.gameId ?? npc?.id }} · {{ secondaryName || '详情资料' }}</span>
             <h1>{{ displayName }}</h1>
-            <p>{{ firstText(npc?.behaviorNotes, `${displayName} 的资料包含基础数值、出售物品、掉落物和状态效果。`) }}</p>
+            <p>{{ npcBehaviorSummary }}</p>
             <div class="tag-row">
               <span v-if="npc?.isTownNpc" class="tag gold">城镇 NPC</span>
               <span v-if="npc?.isFriendly" class="tag moss">友好</span>
-              <span class="tag paper">{{ firstText(npc?.categoryName, '未分类') }}</span>
+                <span class="tag paper">{{ safeNpcDisplayText(npc?.categoryName) || '未分类' }}</span>
               <span class="tag paper">{{ aggregateBundle?.source === 'api' ? '详情资料' : '资料状态' }}</span>
             </div>
           </div>
@@ -300,15 +318,27 @@ const materialStatus = computed(() => ({
               <span class="tag moss">{{ trustedLoot.length + additionalLoot.length }} 条</span>
             </div>
             <div v-if="trustedLoot.length" class="source-table dark-table">
-              <div v-for="entry in trustedLoot" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" class="source-row detail-relation-row">
+              <div v-for="entry in trustedLootVisibleEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" class="source-row detail-relation-row">
                 <span class="sprite-frame detail-relation-icon">
                   <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
                 </span>
-                <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [quantityLabel(entry), chanceLabel(entry), entry.conditions].filter(Boolean).join(' · ') || '掉落资料待补充' }}</span></div>
+                <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [quantityLabel(entry), chanceLabel(entry), lootConditionLabel(entry)].filter(Boolean).join(' · ') || '掉落资料待补充' }}</span></div>
                 <strong class="detail-relation-meta">掉落</strong>
               </div>
             </div>
-            <p v-else>暂时没有整理到掉落物。</p>
+            <details v-if="trustedLootRemainderEntries.length" class="detail-group-remainder">
+              <summary>展开其余 {{ trustedLootRemainderEntries.length }} 条</summary>
+              <div class="source-table dark-table">
+                <div v-for="entry in trustedLootRemainderEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" class="source-row detail-relation-row">
+                  <span class="sprite-frame detail-relation-icon">
+                    <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
+                  </span>
+                  <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [quantityLabel(entry), chanceLabel(entry), lootConditionLabel(entry)].filter(Boolean).join(' · ') || '掉落资料待补充' }}</span></div>
+                  <strong class="detail-relation-meta">掉落</strong>
+                </div>
+              </div>
+            </details>
+            <p v-if="!trustedLoot.length">暂时没有整理到掉落物。</p>
           </article>
 
           <article class="detail-module dark-card">
@@ -327,7 +357,7 @@ const materialStatus = computed(() => ({
                     <span class="sprite-frame detail-relation-icon">
                       <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
                     </span>
-                    <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [shopPriceLabel(entry), shopConditionsLabel(entry)].filter(Boolean).join(' · ') || '商店资料' }}</span></div>
+                    <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [shopPriceLabel(entry), shopConditionSummary(entry)].filter(Boolean).join(' · ') || '商店资料' }}</span></div>
                     <strong class="detail-relation-meta">商店</strong>
                   </div>
                 </div>
@@ -338,7 +368,7 @@ const materialStatus = computed(() => ({
                       <span class="sprite-frame detail-relation-icon">
                         <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
                       </span>
-                      <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [shopPriceLabel(entry), shopConditionsLabel(entry)].filter(Boolean).join(' · ') || '商店资料' }}</span></div>
+                      <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [shopPriceLabel(entry), shopConditionSummary(entry)].filter(Boolean).join(' · ') || '商店资料' }}</span></div>
                       <strong class="detail-relation-meta">商店</strong>
                     </div>
                   </div>
@@ -358,7 +388,7 @@ const materialStatus = computed(() => ({
                 <span class="sprite-frame detail-relation-icon">
                   <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
                 </span>
-                <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [relationTypeLabel(entry.relationType), buffDurationLabel(entry), chanceLabel(entry), entry.conditions].filter(Boolean).join(' · ') || '状态效果资料' }}</span></div>
+                <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [relationTypeLabel(entry.relationType), buffDurationLabel(entry), chanceLabel(entry), buffConditionLabel(entry)].filter(Boolean).join(' · ') || '状态效果资料' }}</span></div>
                 <strong class="detail-relation-meta">Buff</strong>
               </div>
             </div>
@@ -454,12 +484,12 @@ const materialStatus = computed(() => ({
 }
 
 .detail-subgroup-title b {
-  color: var(--paper);
+  color: var(--text-strong);
   font-size: 14px;
 }
 
 .detail-subgroup-title span {
-  color: rgba(244, 234, 208, 0.58);
+  color: var(--text-subtle);
   font-size: 12px;
   font-weight: 800;
 }

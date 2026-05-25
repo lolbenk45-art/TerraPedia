@@ -382,6 +382,25 @@ const extractPlayerFacingAuditContent = (content) => {
   ].join('\n')
 }
 
+const assertTemplateOmitsRawFields = (violations, path, content, fields, reason) => {
+  const template = extractTemplateContent(content)
+
+  for (const field of fields) {
+    if (template.includes(field)) {
+      violations.push(`${path}: ${reason} (${field})`)
+    }
+  }
+}
+
+const assertNoUnsafeFieldReader = (violations, path, content, fields, allowedHelper, reason) => {
+  const fieldPattern = fields.map(escapeRegExp).join('|')
+  const readerPattern = new RegExp(`(?:firstText|displayText)\\([^)]*(?:${fieldPattern})`, 'm')
+
+  if (readerPattern.test(content)) {
+    violations.push(`${path}: ${reason}; use ${allowedHelper} before rendering raw text fields`)
+  }
+}
+
 const forbiddenLightThemeTokens = [
   '#f5ecd2',
   '#dfcc9f',
@@ -1367,10 +1386,16 @@ for (const path of scanFiles) {
       'route.params.id',
       'Number.isInteger',
       'trustedLoot',
+      'trustedLootVisibleEntries',
+      'trustedLootRemainderEntries',
       'shopEntries',
       'buffRelations',
       'materialStatus',
       'npcStatRows',
+      'lootConditionLabel(entry)',
+      'buffConditionLabel(entry)',
+      'shopConditionSummary(entry)',
+      'npcBehaviorSummary',
       '基础数值',
       '出售物品',
       '掉落物',
@@ -1424,6 +1449,48 @@ for (const path of scanFiles) {
       violations.push(`${path}: NPC shop price labels must use the display-safe price helper`)
     }
 
+    if (content.includes('entry.conditions].filter(Boolean)')) {
+      violations.push(`${path}: NPC detail rows must not render raw conditions directly`)
+    }
+
+    if (content.includes('firstText(npc?.behaviorNotes') || content.includes('firstText(npc.value?.behaviorNotes')) {
+      violations.push(`${path}: NPC hero behavior notes must use display-safe text before rendering`)
+    }
+
+    if (!content.includes('trustedLootVisibleEntries') || !content.includes('trustedLootRemainderEntries') || !content.includes('trustedLoot.value.slice(0, 8)')) {
+      violations.push(`${path}: NPC trusted loot must be collapsed after the first 8 rows`)
+    }
+
+    if (!content.includes('trustedLoot.value.slice(8)') || !content.includes('v-for="entry in trustedLootRemainderEntries"')) {
+      violations.push(`${path}: NPC trusted loot remainder must render from the post-8 slice, not drop or duplicate rows`)
+    }
+
+    if (
+      content.includes('firstText(npc.value?.nameZh, npc.value?.name, npc.value?.internalName')
+      || content.includes('firstText(npc.value?.name, npc.value?.internalName')
+      || content.includes('firstText(entry.itemNameZh, entry.itemName, entry.itemInternalName')
+      || content.includes('firstText(entry.buffNameZh, entry.buffName, entry.buffInternalName')
+      || content.includes('safeNpcDisplayText(entry.itemNameZh, entry.itemName, entry.itemInternalName')
+      || content.includes('safeNpcDisplayText(entry.buffNameZh, entry.buffName, entry.buffInternalName')
+    ) {
+      violations.push(`${path}: NPC public labels must not fall back to internal NPC/item/buff names`)
+    }
+
+    assertTemplateOmitsRawFields(violations, path, content, [
+      'entry.conditions',
+      'entry.notes',
+      'entry.chanceText',
+      'entry.quantityText',
+      'entry.durationText',
+    ], 'NPC detail templates must render sanitized relation labels instead of raw relation fields')
+    assertNoUnsafeFieldReader(violations, path, content, [
+      'entry.conditions',
+      'entry.notes',
+      'entry.chanceText',
+      'entry.quantityText',
+      'entry.durationText',
+    ], 'safeNpcDisplayText', 'NPC relation helper readers must not pass raw relation fields through firstText/displayText')
+
     for (const marker of [
       'shopEntryGroups',
       'shopGroupKey(entry)',
@@ -1434,6 +1501,7 @@ for (const path of scanFiles) {
       'v-for="group in shopEntryGroups"',
       'detail-group-remainder',
       'group.entries.slice(0, 8)',
+      'group.entries.slice(8)',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: NPC shop entries must be grouped by player-facing sale conditions via marker ${marker}`)
@@ -1456,6 +1524,15 @@ for (const path of scanFiles) {
       'notFoundState',
       'recipeTreeSummary',
       'imageEntries',
+      'sourceEntryGroups',
+      'itemCoverageRows',
+      'itemDescriptionSourceText',
+      'itemHasPrice',
+      'itemTooltipText',
+      'sourceGroupKey(source)',
+      'safeItemDisplayText(tree.note, tree.summary, tree.description)',
+      '图片画廊',
+      '覆盖状态',
       'sourceEntries',
       '<CommonPreviewImage',
       '<RecipeSummaryCard',
@@ -1478,12 +1555,46 @@ for (const path of scanFiles) {
       violations.push(`${path}: item detail image rows must not fall back to rendering raw image URLs`)
     }
 
+    if (
+      content.includes('firstText(image.label, imageRoleLabel(image)')
+      || content.includes('return firstText(image.label, image.name')
+      || content.includes('safeItemDisplayText(image.label, image.name')
+    ) {
+      violations.push(`${path}: item image gallery must not render raw image labels or names`)
+    }
+
+    if (
+      content.includes('sourceBiomeLabel(source)') && content.match(/sourceBiomeLabel[\s\S]*source\.biomeCode/)
+      || content.match(/safeItemDisplayText\([^)]*source\.biomeCode/)
+    ) {
+      violations.push(`${path}: item source notes must not fall back to raw biome codes`)
+    }
+
+    if (
+      content.includes('variant: firstText(activeRecipeVariant.value.variantLabel, activeRecipeVariant.value.variantKey')
+      || content.includes('{{ firstText(variant.variantLabel, variant.variantKey')
+    ) {
+      violations.push(`${path}: item recipe copy must not fall back to raw recipe variant keys`)
+    }
+
+    if (content.includes('detailItem.value?.internalName') || content.includes('detailItem.value?.categoryPath')) {
+      violations.push(`${path}: item detail header/category must not fall back to internal names or category paths`)
+    }
+
+    if (content.includes("itemDescriptionText.value ? '已整理'") || content.includes("statRows.value.some((row) => row.label === '买入'")) {
+      violations.push(`${path}: item coverage status must be based on source fields, not fallback copy or placeholder stat rows`)
+    }
+
+    if (content.includes('note: firstText(tree.note, tree.summary, tree.description)')) {
+      violations.push(`${path}: item recipe tree notes must use display-safe text before rendering`)
+    }
+
     if (content.includes('<CraftingRecipeTreeNode')) {
       violations.push(`${path}: item detail page must use compact RecipeSummaryCard instead of the full recipe tree`)
     }
 
     const recipeIndex = content.indexOf('<RecipeSummaryCard')
-    const sourceIndex = content.indexOf('<section v-if="sourceEntries.length"')
+    const sourceIndex = content.indexOf('<section v-if="sourceEntryGroups.length"')
     const imageIndex = content.indexOf('<section v-if="imageEntries.length"')
     if (recipeIndex === -1 || sourceIndex === -1 || imageIndex === -1 || !(recipeIndex < sourceIndex && sourceIndex < imageIndex)) {
       violations.push(`${path}: item detail modules must order recipe summary before sources and image evidence`)
@@ -1607,6 +1718,13 @@ for (const path of scanFiles) {
       'bossLootEntries',
       'bossProgressionLabel',
       'bossTypeLabel',
+      'bossSummonMethod',
+      'bossSummonStatusRows',
+      'safeBossDisplayText',
+      'bossLootConditionLabel(entry)',
+      'bossLootNoteLabel(entry)',
+      'bossLootChanceLabel(entry)',
+      'bossSummaryText',
       'boss-detail-loading-tags',
       'boss-detail-missing-tags',
       '<CommonTpSkeleton',
@@ -1655,11 +1773,49 @@ for (const path of scanFiles) {
       'bossMemberPath(member)',
       'bossLootItemPath(entry)',
       '<NuxtLink v-if="bossLootItemPath(entry)"',
+      '召唤与触发',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: boss detail page must expose translated drop source labels and detail links via marker ${marker}`)
       }
     }
+
+    if (content.includes('entry.conditions, entry.notes') || content.includes('entry.quantityText, entry.conditions')) {
+      violations.push(`${path}: boss loot rows must not render raw conditions or notes directly`)
+    }
+
+    if (content.includes('bossCard?.summary || bossDetail?.notes')) {
+      violations.push(`${path}: boss hero summary must use display-safe text before rendering`)
+    }
+
+    if (
+      content.includes('bossDetail.value?.code')
+      || content.includes('displayText(entry.itemNameZh, entry.itemName, entry.itemInternalName')
+      || content.includes('safeBossDisplayText(entry.itemNameZh, entry.itemName, entry.itemInternalName')
+      || content.includes('displayText(member.nameZh, member.name, member.internalName')
+      || content.includes('safeBossDisplayText(member.nameZh, member.name, member.internalName')
+    ) {
+      violations.push(`${path}: boss detail public labels must not fall back to internal codes or internal names`)
+    }
+
+    if (content.includes("key ? key.replaceAll('_', ' ') : 'Boss'")) {
+      violations.push(`${path}: boss type labels must not expose raw enum values when translation is missing`)
+    }
+
+    assertTemplateOmitsRawFields(violations, path, content, [
+      'entry.conditions',
+      'entry.notes',
+      'entry.chanceText',
+      'entry.quantityText',
+      'member.internalName',
+      'bossDetail?.code',
+    ], 'boss detail templates must render sanitized labels instead of raw/internal fields')
+    assertNoUnsafeFieldReader(violations, path, content, [
+      'entry.conditions',
+      'entry.notes',
+      'entry.chanceText',
+      'entry.quantityText',
+    ], 'safeBossDisplayText', 'boss loot helper readers must not pass raw loot fields through firstText/displayText')
 
     for (const marker of [
       'bossLootGroups',
@@ -1670,6 +1826,7 @@ for (const path of scanFiles) {
       'v-for="group in bossLootGroups"',
       'detail-group-remainder',
       'group.entries.slice(0, 8)',
+      'group.entries.slice(8)',
     ]) {
       if (!content.includes(marker)) {
         violations.push(`${path}: boss loot entries must render in grouped player-facing sections via marker ${marker}`)
