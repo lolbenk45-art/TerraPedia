@@ -831,7 +831,50 @@ export type PublicBossLootEntry = {
   itemImage?: string | null
 }
 
+export type BossSummonItemDTO = {
+  itemId?: number | string | null
+  internalName?: string | null
+  name?: string | null
+  nameZh?: string | null
+  imageUrl?: string | null
+  role?: string | null
+  sourceText?: string | null
+  confidence?: number | string | null
+  derived?: boolean | number | string | null
+}
+
+export type BossConditionDTO = {
+  conditionType?: string | null
+  label?: string | null
+  value?: string | null
+  sourceText?: string | null
+  confidence?: number | string | null
+  derived?: boolean | number | string | null
+}
+
+export type BossMechanicNoteDTO = {
+  kind?: string | null
+  title?: string | null
+  description?: string | null
+  sourceText?: string | null
+  confidence?: number | string | null
+  derived?: boolean | number | string | null
+}
+
+export type BossDifficultyNoteDTO = {
+  mode?: string | null
+  description?: string | null
+  sourceText?: string | null
+  confidence?: number | string | null
+  derived?: boolean | number | string | null
+}
+
 export type PublicBossDetail = PublicBossListItem & {
+  summonMethodResolved?: string | null
+  summonItems?: BossSummonItemDTO[] | null
+  summonConditions?: BossConditionDTO[] | null
+  mechanicNotes?: BossMechanicNoteDTO[] | null
+  difficultyNotes?: BossDifficultyNoteDTO[] | null
   members?: PublicBossMember[] | null
   referenceMembers?: PublicBossMember[] | null
   lootOwnerNpc?: PublicBossMember | null

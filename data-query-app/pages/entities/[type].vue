@@ -698,33 +698,29 @@
             </div>
             <div class="boss-detail__primary-grid">
               <article class="boss-detail__feature-card boss-detail__feature-card--accent">
-                <span class="boss-detail__feature-label">召唤方式</span>
-                <p>{{ getBossSummonMethod(detailRow) || '当前还没有补充召唤方式。' }}</p>
-                <div v-if="bossSummonItemsLoading || bossSummonItems.length" class="boss-detail__summon-showcase">
-                  <div class="boss-detail__summon-head">
-                    <strong>召唤物展示</strong>
-                    <span>{{ bossSummonItemsLoading ? '正在匹配物品图片...' : `已命中 ${bossSummonItems.length} 个召唤物，点击可跳转详情` }}</span>
-                  </div>
-                  <div v-if="bossSummonItems.length" class="boss-detail__summon-grid">
-                    <button
-                      v-for="item in bossSummonItems"
-                      :key="item.id"
-                      type="button"
-                      class="boss-detail__summon-item"
-                      @click="openBossSummonItem(item)"
-                    >
-                      <div class="boss-detail__summon-media">
-                        <img v-if="item.image" :src="item.image" :alt="item.nameZh || item.name" class="boss-detail__summon-image" loading="lazy" @error="handleImageError" />
-                        <div v-else class="boss-detail__summon-fallback">IT</div>
-                      </div>
-                      <div class="boss-detail__summon-body">
-                        <strong>{{ item.nameZh || item.name || `#${item.id}` }}</strong>
-                        <span>{{ item.nameZh && item.name ? item.name : item.internalName || `ID ${item.id}` }}</span>
-                      </div>
-                    </button>
-                  </div>
-                  <div v-else class="boss-detail__summon-empty">正在从召唤说明里识别对应物品。</div>
+                <span class="boss-detail__feature-label">已解析召唤方式</span>
+                <p>{{ getBossSummonResolvedText(detailRow) || '契约暂未提供已解析召唤方式。' }}</p>
+                <small v-if="getBossSummonMethod(detailRow)" class="boss-detail__readonly-note">编辑仍使用原始召唤方式字段。</small>
+              </article>
+              <article class="boss-detail__feature-card boss-detail__feature-card--wide">
+                <span class="boss-detail__feature-label">结构化召唤事实</span>
+                <div v-if="bossSummonFactGroups.length" class="boss-detail__fact-groups">
+                  <section v-for="group in bossSummonFactGroups" :key="group.key" class="boss-detail__fact-group">
+                    <div class="boss-detail__summon-head">
+                      <strong>{{ group.title }}</strong>
+                      <span>{{ group.rows.length }} 条</span>
+                    </div>
+                    <div class="boss-detail__fact-list">
+                      <article v-for="row in group.rows" :key="row.key" class="boss-detail__fact-card">
+                        <div v-for="field in row.fields" :key="`${row.key}-${field.label}`" class="boss-detail__fact-row">
+                          <span>{{ field.label }}</span>
+                          <strong>{{ field.value }}</strong>
+                        </div>
+                      </article>
+                    </div>
+                  </section>
                 </div>
+                <p v-else-if="bossSummonContractEmpty" class="boss-detail__summon-empty">契约暂未提供结构化召唤、条件、机制或难度事实。</p>
               </article>
               <article class="boss-detail__feature-card">
                 <span class="boss-detail__feature-label">Boss Notes</span>
@@ -1632,16 +1628,6 @@ interface EntityConfig {
   columns: Array<{ key: string; label: string }>
   fields: FieldConfig[]
 }
-interface SummonItemReference {
-  id: number
-  name: string
-  nameZh?: string
-  internalName?: string
-  image?: string
-  matchText?: string
-  matchIndex?: number
-}
-
 const route = useRoute()
 const router = useRouter()
 const entityType = computed(() => String(route.params.type || ''))
@@ -2148,14 +2134,11 @@ const bossSourceRows = ref<Array<Record<string, any>>>([])
 const previewExtras = ref<Record<string, any>>({})
 const detailRow = ref<Record<string, any> | null>(null)
 const linkedItem = ref<Item | null>(null)
-const bossSummonItems = ref<SummonItemReference[]>([])
-const bossSummonItemsLoading = ref(false)
 const lightboxImage = ref('')
 const lightboxTitle = ref('')
 const search = ref('')
 const pagination = reactive({ page: 1, size: 20, total: 0, totalPages: 0 })
 const form = reactive<Record<string, any>>({})
-let bossSummonLookupSerial = 0
 const hasActiveFilters = computed(() => {
   if (search.value) return true
   if (entityType.value === 'npcs' && selectedNpcCategoryId.value != null) return true
@@ -2274,75 +2257,6 @@ function pickFirstString(...values: unknown[]) {
     if (typeof value === 'string' && value.trim()) return value.trim()
   }
   return ''
-}
-
-function normalizeLookupToken(value: unknown) {
-  if (typeof value !== 'string') return ''
-  return value
-    .toLowerCase()
-    .replace(/['’`"]/g, '')
-    .replace(/[\s\-_.:：,，。；;!?！？/\\()[\]{}（）【】]/g, '')
-    .trim()
-}
-
-function normalizeSummonSuggestionItem(item: any): SummonItemReference | null {
-  const id = Number(item?.id ?? 0)
-  if (!Number.isFinite(id) || id <= 0) return null
-  return {
-    id,
-    name: String(item?.name ?? ''),
-    nameZh: String(item?.nameZh ?? item?.name_zh ?? ''),
-    internalName: String(item?.internalName ?? item?.internal_name ?? ''),
-    image: normalizeImageUrl(item?.image ?? item?.imageUrl ?? item?.image_url),
-  }
-}
-
-function getSummonItemAliases(item: Partial<SummonItemReference>) {
-  return [item.nameZh, item.name, item.internalName]
-    .map(value => normalizeLookupToken(value))
-    .filter((value): value is string => Boolean(value))
-}
-
-function collectBossSummonCandidates(text: string) {
-  const candidates = new Map<string, { value: string; index: number }>()
-  const stopwords = new Set([
-    '夜晚', '白天', '地牢', '海洋', '雪原', '神圣之地', '地表', '地下丛林', '困难模式', '宝藏袋', '波次', '事件',
-    'night', 'day', 'event', 'boss', 'army', 'summon',
-  ].map(normalizeLookupToken))
-
-  const register = (rawValue: unknown, index = Number.MAX_SAFE_INTEGER) => {
-    if (typeof rawValue !== 'string') return
-    const cleaned = rawValue
-      .replace(/^[\s,，。；;:：、]+|[\s,，。；;:：、]+$/g, '')
-      .trim()
-    const normalized = normalizeLookupToken(cleaned)
-    if (!normalized || stopwords.has(normalized)) return
-    const hasChinese = /[\u4e00-\u9fff]/.test(cleaned)
-    if ((hasChinese && cleaned.length < 2) || (!hasChinese && normalized.length < 4)) return
-    const existing = candidates.get(normalized)
-    if (!existing || index < existing.index || (index === existing.index && cleaned.length > existing.value.length)) {
-      candidates.set(normalized, { value: cleaned, index })
-    }
-  }
-
-  for (const match of text.matchAll(/[（(【[]([^（）()【】\[\]]{2,48})[）)】\]]/g)) {
-    register(match[1], match.index ?? Number.MAX_SAFE_INTEGER)
-  }
-
-  const triggerPatterns = [
-    /(?:使用|消耗|放置|装有|装备|用|投掷|献祭)\s*([\u4e00-\u9fffA-Za-z][\u4e00-\u9fffA-Za-z'·\-\s]{1,36}?)(?=(?:[（(]|即可|即|召唤|主动|并|的|后|于|时|来|开启|钓鱼|触发|中))/g,
-    /(?:use|using|consume|place|with)\s+([A-Za-z][A-Za-z' -]{2,40}?)(?=(?:[（(]|to summon|summon|while|during|after|in | on | and))/gi,
-  ]
-  for (const pattern of triggerPatterns) {
-    for (const match of text.matchAll(pattern)) {
-      register(match[1], match.index ?? Number.MAX_SAFE_INTEGER)
-    }
-  }
-
-  return Array.from(candidates.values())
-    .sort((left, right) => left.index - right.index || right.value.length - left.value.length)
-    .map(entry => entry.value)
-    .slice(0, 6)
 }
 
 function resolveImageFromRawJson(rawJson: unknown) {
@@ -2576,76 +2490,9 @@ function getBossSummonMethod(row: Record<string, any> | null | undefined) {
   return row.summonMethod.trim()
 }
 
-async function resolveBossSummonCandidate(candidate: string, summonText: string) {
-  const response: any = await get('/items/suggestions', { keyword: candidate, limit: 8 })
-  const rawList = response?.data ?? response ?? []
-  if (!Array.isArray(rawList) || !rawList.length) return null
-
-  const candidateToken = normalizeLookupToken(candidate)
-  const summonToken = normalizeLookupToken(summonText)
-  const matched = rawList
-    .map(normalizeSummonSuggestionItem)
-    .filter((item): item is SummonItemReference => item !== null)
-    .map(item => {
-      let score = 0
-      for (const alias of getSummonItemAliases(item)) {
-        if (!alias) continue
-        if (alias === candidateToken) score = Math.max(score, 400 + alias.length)
-        else if (candidateToken.includes(alias)) score = Math.max(score, 320 + alias.length)
-        else if (alias.includes(candidateToken)) score = Math.max(score, 260 + candidateToken.length)
-        if (summonToken.includes(alias)) score = Math.max(score, 180 + alias.length)
-      }
-      return { item, score }
-    })
-    .filter(entry => entry.score > 0)
-    .sort((left, right) => right.score - left.score)
-
-  return matched[0]?.item ?? null
-}
-
-async function loadBossSummonItems(row: Record<string, any> | null | undefined) {
-  const requestId = ++bossSummonLookupSerial
-  const summonText = getBossSummonMethod(row)
-  bossSummonItems.value = []
-
-  if (!summonText) {
-    bossSummonItemsLoading.value = false
-    return
-  }
-
-  const candidates = collectBossSummonCandidates(summonText)
-  if (!candidates.length) {
-    bossSummonItemsLoading.value = false
-    return
-  }
-
-  bossSummonItemsLoading.value = true
-  try {
-    const resolved: Array<SummonItemReference | null> = await Promise.all(candidates.map(async (candidate, index) => {
-      const item = await resolveBossSummonCandidate(candidate, summonText)
-      return item ? { ...item, matchText: candidate, matchIndex: index } : null
-    }))
-    if (requestId !== bossSummonLookupSerial) return
-
-    const deduped = new Map<number, SummonItemReference>()
-    for (const item of resolved) {
-      if (!item) continue
-      const existing = deduped.get(item.id)
-      if (!existing || (item.matchIndex ?? Number.MAX_SAFE_INTEGER) < (existing.matchIndex ?? Number.MAX_SAFE_INTEGER)) {
-        deduped.set(item.id, item)
-      }
-    }
-    bossSummonItems.value = Array.from(deduped.values())
-      .sort((left, right) => (left.matchIndex ?? Number.MAX_SAFE_INTEGER) - (right.matchIndex ?? Number.MAX_SAFE_INTEGER))
-  } catch (error) {
-    if (requestId !== bossSummonLookupSerial) return
-    console.error('Failed to resolve boss summon items:', error)
-    bossSummonItems.value = []
-  } finally {
-    if (requestId === bossSummonLookupSerial) {
-      bossSummonItemsLoading.value = false
-    }
-  }
+function getBossSummonResolvedText(row: Record<string, any> | null | undefined) {
+  if (!row || typeof row.summonMethodResolved !== 'string') return ''
+  return row.summonMethodResolved.trim()
 }
 
 function summarizeBossText(text: string, maxLength = 120) {
@@ -2655,7 +2502,7 @@ function summarizeBossText(text: string, maxLength = 120) {
 }
 
 function getBossSummonSummary(row: Record<string, any> | null | undefined, maxLength = 110) {
-  const text = getBossSummonMethod(row)
+  const text = getBossSummonResolvedText(row) || getBossSummonMethod(row)
   if (!text) return '当前还没有补充召唤方式。'
   return summarizeBossText(text, maxLength)
 }
@@ -2773,13 +2620,6 @@ async function openDetailDialog(row: Record<string, any>) {
     }
   }
   detailRow.value = normalizeRow(detail)
-  if (entityType.value === 'bosses') {
-    void loadBossSummonItems(detailRow.value)
-  } else {
-    bossSummonLookupSerial += 1
-    bossSummonItemsLoading.value = false
-    bossSummonItems.value = []
-  }
   detailVisible.value = true
 }
 
@@ -2834,18 +2674,6 @@ async function openBossLootOwnerNpc() {
     query: searchToken ? { search: searchToken } : {},
   })
   detailVisible.value = false
-}
-
-async function openBossSummonItem(item: SummonItemReference) {
-  if (!item?.id) return
-  detailVisible.value = false
-  await router.push({
-    path: '/items',
-    query: {
-      itemId: String(item.id),
-      view: 'detail',
-    },
-  })
 }
 
 async function openEditDialog(row: Record<string, any>) {
@@ -3093,6 +2921,27 @@ function formatBossLootNote(row: Record<string, any>) {
     return ''
   }
   return note
+}
+
+function normalizeBossFactRows(value: unknown, fields: Array<{ key: string; label: string }>) {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter(entry => entry && typeof entry === 'object')
+    .map((entry, index) => ({
+      key: `boss-fact-${index}`,
+      fields: fields
+        .map(field => ({ label: field.label, value: formatBossFactDisplayValue((entry as Record<string, any>)[field.key]) }))
+        .filter(field => field.value),
+    }))
+    .filter(row => row.fields.length)
+}
+
+function formatBossFactDisplayValue(value: unknown) {
+  if (value == null) return ''
+  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  if (typeof value === 'boolean') return value ? '是' : '否'
+  return ''
 }
 
 function shouldSplitBossLootByMode(row: Record<string, any>) {
@@ -4045,6 +3894,52 @@ const bossLootEntries = computed<Array<Record<string, any>>>(() => {
     .filter(item => item && typeof item === 'object')
     .map(item => normalizeRow(item as Record<string, any>))
 })
+const bossSummonFactGroups = computed(() => {
+  if (!detailRow.value || entityType.value !== 'bosses') return []
+  const groups = [
+    {
+      key: 'summonItems',
+      title: '召唤物事实',
+      empty: '契约暂未提供结构化召唤物事实。',
+      rows: normalizeBossFactRows(detailRow.value.summonItems, [
+        { key: 'nameZh', label: '物品' },
+        { key: 'name', label: '英文名' },
+        { key: 'itemId', label: '物品 ID' },
+      ]),
+    },
+    {
+      key: 'summonConditions',
+      title: '召唤条件事实',
+      empty: '契约暂未提供结构化召唤条件事实。',
+      rows: normalizeBossFactRows(detailRow.value.summonConditions, [
+        { key: 'label', label: '条件' },
+        { key: 'value', label: '值' },
+      ]),
+    },
+    {
+      key: 'mechanicNotes',
+      title: '机制说明',
+      empty: '契约暂未提供结构化机制说明。',
+      rows: normalizeBossFactRows(detailRow.value.mechanicNotes, [
+        { key: 'title', label: '标题' },
+        { key: 'description', label: '说明' },
+      ]),
+    },
+    {
+      key: 'difficultyNotes',
+      title: '难度说明',
+      empty: '契约暂未提供结构化难度说明。',
+      rows: normalizeBossFactRows(detailRow.value.difficultyNotes, [
+        { key: 'description', label: '说明' },
+      ]),
+    },
+  ]
+  return groups.filter(group => group.rows.length)
+})
+const bossSummonContractEmpty = computed(() => {
+  if (!detailRow.value || entityType.value !== 'bosses') return false
+  return bossSummonFactGroups.value.length === 0
+})
 const bossLootOwnerLabel = computed(() => {
   if (!bossLootOwner.value) return '--'
   const title = [bossLootOwner.value.nameZh || bossLootOwner.value.name || bossLootOwner.value.internalName || '--']
@@ -4931,6 +4826,16 @@ function formatArmorPartRole(value: unknown) {
   font-size: 1rem;
   line-height: 1.8;
 }
+.boss-detail__feature-card--wide {
+  grid-column: 1 / -1;
+}
+.boss-detail__readonly-note {
+  display: block;
+  margin-top: 10px;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
 .boss-detail__summon-showcase {
   display: grid;
   gap: 12px;
@@ -5009,6 +4914,41 @@ function formatArmorPartRole(value: unknown) {
   color: var(--color-text-secondary);
   font-size: 0.8rem;
   line-height: 1.45;
+}
+.boss-detail__fact-groups {
+  display: grid;
+  gap: 16px;
+}
+.boss-detail__fact-group {
+  display: grid;
+  gap: 10px;
+}
+.boss-detail__fact-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.boss-detail__fact-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-bg-secondary) 86%, transparent);
+}
+.boss-detail__fact-row {
+  display: grid;
+  gap: 3px;
+}
+.boss-detail__fact-row span {
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+}
+.boss-detail__fact-row strong {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  font-weight: 650;
 }
 .boss-detail__group-list { display: grid; gap: 18px; }
 .boss-detail__group {

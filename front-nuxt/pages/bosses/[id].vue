@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import { usePublicBossDetail } from '~/composables/usePublicBossDetail'
+import type {
+  BossConditionDTO,
+  BossDifficultyNoteDTO,
+  BossMechanicNoteDTO,
+  BossSummonItemDTO,
+} from '~/types/public-api'
 
 const route = useRoute()
 const bossClientReady = ref(false)
@@ -25,9 +31,18 @@ const bossLootEntries = computed(() => bossBundle.value?.lootEntries ?? [])
 const bossRawLoading = computed(() => !bossClientReady.value || bossPending.value)
 const bossMissing = computed(() => bossClientReady.value && !bossPending.value && !bossDetail.value)
 const bossTitle = computed(() => bossCard.value?.displayName || bossDetail.value?.nameZh || bossDetail.value?.name || 'Boss 详情')
-const bossSubtitle = computed(() => bossCard.value?.englishName || bossDetail.value?.nameEn || bossDetail.value?.code || 'Public boss detail')
 const firstGlyph = (value: string) => Array.from(value.trim())[0] ?? '?'
 const displayText = (...values: unknown[]) => values.map((value) => String(value ?? '').trim()).find(Boolean) || ''
+const rawPublicCopyPattern = /{{|}}|<\/?[a-z][\s\S]*?>|https?:\/\/|wiki\.gg|iteminfo|eicons|internal|wiki\s*(?:page|path)|(?:^|[\s_-])shop[\s_/-]*\d+(?:[\s_/-]*\d+)*(?:$|[\s_-])/i
+const safeBossDisplayText = (...values: unknown[]) => {
+  for (const value of values) {
+    const text = displayText(value).replace(/\s+/g, ' ')
+    if (text && !rawPublicCopyPattern.test(text)) return text
+  }
+
+  return ''
+}
+const bossSubtitle = computed(() => safeBossDisplayText(bossCard.value?.englishName, bossDetail.value?.nameEn) || '公开 Boss 资料')
 const bossProgressionLabel = computed(() => (
   bossCard.value?.progressionOrder == null ? '顺序未标注' : `推进 #${bossCard.value.progressionOrder}`
 ))
@@ -37,7 +52,7 @@ const bossTypeLabel = computed(() => {
   if (key === 'hardmode') return '困难模式'
   if (key === 'event') return '事件 Boss'
   if (key === 'mini_boss' || key === 'miniboss') return '小 Boss'
-  return key ? key.replaceAll('_', ' ') : 'Boss'
+  return 'Boss'
 })
 
 useSeoMeta({
@@ -48,7 +63,7 @@ useSeoMeta({
 const entryImage = (value: { itemImage?: string | null; imageUrl?: string | null }) => resolvePreviewImageUrl(value.itemImage || value.imageUrl || '')
 const memberImage = (value: { imageUrl?: string | null }) => resolvePreviewImageUrl(value.imageUrl || '')
 const lootTitle = (entry: { itemNameZh?: string | null; itemName?: string | null; itemInternalName?: string | null }) => (
-  displayText(entry.itemNameZh, entry.itemName, entry.itemInternalName, '未命名掉落')
+  safeBossDisplayText(entry.itemNameZh, entry.itemName) || '未命名掉落'
 )
 const dropSourceKindLabel = (value: unknown) => {
   const key = displayText(value).toLowerCase()
@@ -56,6 +71,63 @@ const dropSourceKindLabel = (value: unknown) => {
   if (key === 'treasure_bag') return '宝藏袋'
   return ''
 }
+const asArray = <T,>(value: T[] | null | undefined) => Array.isArray(value) ? value : []
+const bossSummonMethod = computed(() => safeBossDisplayText(
+  bossDetail.value?.summonMethodResolved,
+  bossDetail.value?.summonMethod,
+  bossCard.value?.summonMethod,
+))
+const bossSummonItems = computed(() => asArray(bossDetail.value?.summonItems)
+  .filter((item) => summonItemTitle(item)))
+const bossSummonConditions = computed(() => asArray(bossDetail.value?.summonConditions)
+  .filter((condition) => bossConditionCopy(condition)))
+const bossMechanicNotes = computed(() => asArray(bossDetail.value?.mechanicNotes)
+  .filter((note) => bossMechanicCopy(note)))
+const bossDifficultyNotes = computed(() => asArray(bossDetail.value?.difficultyNotes)
+  .filter((note) => bossDifficultyCopy(note)))
+const summonItemTitle = (item: BossSummonItemDTO) => safeBossDisplayText(item.nameZh, item.name)
+const bossSummonItemPath = (item: BossSummonItemDTO) => {
+  const id = displayText(item.itemId)
+  return id ? `/items/${id}` : ''
+}
+const summonItemImage = (item: BossSummonItemDTO) => resolvePreviewImageUrl(item.imageUrl || '')
+const bossConditionCopy = (condition: BossConditionDTO) => (
+  [safeBossDisplayText(condition.label), safeBossDisplayText(condition.value)]
+    .filter(Boolean)
+    .join(' · ')
+)
+const bossMechanicCopy = (note: BossMechanicNoteDTO) => safeBossDisplayText(note.description)
+const bossMechanicTitle = (note: BossMechanicNoteDTO) => safeBossDisplayText(note.title) || '机制提示'
+const bossDifficultyCopy = (note: BossDifficultyNoteDTO) => safeBossDisplayText(note.description)
+const bossLootConditionLabel = (entry: { conditions?: string | null }) => safeBossDisplayText(entry.conditions)
+const bossLootNoteLabel = (entry: { notes?: string | null }) => safeBossDisplayText(entry.notes)
+const bossLootChanceLabel = (entry: { chanceText?: string | null; dropSourceKind?: string | null }) => (
+  safeBossDisplayText(entry.chanceText) || dropSourceKindLabel(entry.dropSourceKind) || '概率未标注'
+)
+const bossLootDetailLabel = (entry: { quantityText?: string | null; conditions?: string | null; notes?: string | null }) => (
+  [safeBossDisplayText(entry.quantityText), bossLootConditionLabel(entry), bossLootNoteLabel(entry)]
+    .filter(Boolean)
+    .join(' · ') || '掉落条件未标注'
+)
+const bossSummaryText = computed(() => safeBossDisplayText(
+  bossCard.value?.summary,
+  bossDetail.value?.notes,
+  '暂无公开说明。',
+))
+const bossSummonStatusRows = computed(() => [
+  {
+    label: '召唤说明',
+    value: bossSummonMethod.value || '公开资料暂未标注召唤方式、召唤物或触发条件',
+  },
+  ...(
+    bossSummonItems.value.length || bossSummonConditions.value.length
+      ? []
+      : [{
+    label: '补充资料',
+    value: '召唤物、自然出现和特殊触发条件暂无可展示记录',
+      }]
+  ),
+])
 const bossMemberRoleLabel = (bossRole: unknown, sourceBossCode: unknown) => {
   const key = displayText(bossRole, sourceBossCode).toLowerCase()
   if (key === 'primary' || key === 'main' || key === 'body') return '本体'
@@ -72,7 +144,7 @@ const bossLootItemPath = (entry: { itemId?: string | number | null }) => {
   return id ? `/items/${id}` : ''
 }
 const bossLootGroupKey = (entry: { dropSourceKind?: string | null; conditions?: string | null }) => {
-  if (displayText(entry.conditions)) return 'conditional'
+  if (bossLootConditionLabel(entry)) return 'conditional'
   const key = displayText(entry.dropSourceKind).toLowerCase()
   if (key === 'treasure_bag') return 'treasureBag'
   return 'direct'
@@ -165,7 +237,7 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
           </h1>
           <p>
             <CommonTpSkeleton v-if="bossDetailVisualLoading" type="line" />
-            <template v-else>{{ bossCard?.summary || bossDetail?.notes || '暂无公开说明。' }}</template>
+            <template v-else>{{ bossSummaryText }}</template>
           </p>
           <div v-if="bossDetailVisualLoading" class="tag-row boss-detail-loading-tags">
             <span class="tag paper"><CommonTpSkeleton type="pill" /></span>
@@ -209,16 +281,16 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
       <template v-else>
         <section class="boss-phase-grid">
           <article class="support-panel boss-phase active">
+            <h2>召唤与触发</h2>
+            <p>{{ bossSummonMethod || '当前资料还没有明确的召唤物和触发条件。' }}</p>
+          </article>
+          <article class="support-panel boss-phase">
             <h2>成员</h2>
             <p>{{ bossMembers.length ? `包含 ${bossMembers.length} 个实体或部件。` : '暂无成员资料。' }}</p>
           </article>
           <article class="support-panel boss-phase">
             <h2>掉落</h2>
             <p>{{ bossLootEntries.length ? `整理 ${bossLootEntries.length} 条掉落记录。` : '暂无掉落资料。' }}</p>
-          </article>
-          <article class="support-panel boss-phase">
-            <h2>参考成员</h2>
-            <p>{{ bossReferenceMembers.length ? `包含 ${bossReferenceMembers.length} 个参考实体。` : '暂无参考成员。' }}</p>
           </article>
         </section>
 
@@ -242,8 +314,8 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
                   <b>{{ lootTitle(entry) }}</b>
                 </NuxtLink>
                 <b v-else>{{ lootTitle(entry) }}</b>
-                <span>{{ displayText(entry.quantityText, entry.conditions, entry.notes, '掉落条件未标注') }}</span>
-                <em>{{ displayText(entry.chanceText, dropSourceKindLabel(entry.dropSourceKind), '概率未标注') }}</em>
+                <span>{{ bossLootDetailLabel(entry) }}</span>
+                <em>{{ bossLootChanceLabel(entry) }}</em>
               </div>
               <details v-if="group.entries.length > 8" class="detail-group-remainder">
                 <summary>展开其余 {{ group.entries.length - 8 }} 条</summary>
@@ -259,8 +331,8 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
                     <b>{{ lootTitle(entry) }}</b>
                   </NuxtLink>
                   <b v-else>{{ lootTitle(entry) }}</b>
-                  <span>{{ displayText(entry.quantityText, entry.conditions, entry.notes, '掉落条件未标注') }}</span>
-                  <em>{{ displayText(entry.chanceText, dropSourceKindLabel(entry.dropSourceKind), '概率未标注') }}</em>
+                  <span>{{ bossLootDetailLabel(entry) }}</span>
+                  <em>{{ bossLootChanceLabel(entry) }}</em>
                 </div>
               </details>
             </div>
@@ -270,16 +342,58 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
           </article>
 
           <article class="support-panel prep-panel">
-            <span class="eyebrow">成员</span>
+            <span class="eyebrow">召唤与触发</span>
+            <div class="boss-summon-facts">
+              <div v-for="row in bossSummonStatusRows" :key="row.label">
+                <b>{{ row.label }}</b>
+                <span>{{ row.value }}</span>
+              </div>
+            </div>
+            <div v-if="bossSummonItems.length" class="boss-contract-list boss-summon-items">
+              <span class="eyebrow">召唤物</span>
+              <div v-for="item in bossSummonItems" :key="displayText(item.itemId, summonItemTitle(item))" class="boss-contract-row boss-contract-item">
+                <CommonPreviewImage
+                  :src="summonItemImage(item)"
+                  :alt="summonItemTitle(item)"
+                  :fallback="firstGlyph(summonItemTitle(item))"
+                  width="40"
+                  height="40"
+                />
+                <NuxtLink v-if="bossSummonItemPath(item)" :to="bossSummonItemPath(item)">
+                  <b>{{ summonItemTitle(item) }}</b>
+                </NuxtLink>
+                <b v-else>{{ summonItemTitle(item) }}</b>
+              </div>
+            </div>
+            <div v-if="bossSummonConditions.length" class="boss-contract-list">
+              <span class="eyebrow">触发条件</span>
+              <div v-for="condition in bossSummonConditions" :key="bossConditionCopy(condition)" class="boss-contract-row">
+                <span>{{ bossConditionCopy(condition) }}</span>
+              </div>
+            </div>
+            <div v-if="bossMechanicNotes.length" class="boss-contract-list">
+              <span class="eyebrow">机制</span>
+              <div v-for="note in bossMechanicNotes" :key="`${bossMechanicTitle(note)}-${bossMechanicCopy(note)}`" class="boss-contract-row">
+                <b>{{ bossMechanicTitle(note) }}</b>
+                <span>{{ bossMechanicCopy(note) }}</span>
+              </div>
+            </div>
+            <div v-if="bossDifficultyNotes.length" class="boss-contract-list">
+              <span class="eyebrow">难度提示</span>
+              <div v-for="note in bossDifficultyNotes" :key="bossDifficultyCopy(note)" class="boss-contract-row">
+                <span>{{ bossDifficultyCopy(note) }}</span>
+              </div>
+            </div>
+            <span class="eyebrow boss-members-eyebrow">成员</span>
             <NuxtLink v-for="member in bossMembers" :key="displayText(member.id, member.gameId, member.internalName, 'member')" class="detail-member-link" :to="bossMemberPath(member)">
               <CommonPreviewImage
                 :src="memberImage(member)"
-                :alt="displayText(member.nameZh, member.name, member.internalName, '成员')"
-                :fallback="firstGlyph(displayText(member.nameZh, member.name, member.internalName, '?'))"
+                :alt="safeBossDisplayText(member.nameZh, member.name) || '成员'"
+                :fallback="firstGlyph(safeBossDisplayText(member.nameZh, member.name) || '?')"
                 width="40"
                 height="40"
               />
-              <b>{{ displayText(member.nameZh, member.name, member.internalName, '未命名成员') }}</b>
+              <b>{{ safeBossDisplayText(member.nameZh, member.name) || '未命名成员' }}</b>
               <span>{{ bossMemberRoleLabel(member.bossRole, member.sourceBossCode) }}</span>
             </NuxtLink>
             <a v-if="!bossMembers.length" class="detail-member-link" href="/bosses">
@@ -324,12 +438,12 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
 }
 
 .detail-loot-group-title b {
-  color: var(--paper);
+  color: var(--text-strong);
   font-size: 14px;
 }
 
 .detail-loot-group-title span {
-  color: rgba(244, 234, 208, 0.58);
+  color: var(--text-subtle);
   font-size: 12px;
   font-weight: 800;
 }
@@ -377,6 +491,90 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
   grid-template-rows: auto auto;
   align-items: center;
   gap: 2px 12px;
+}
+
+.boss-summon-facts {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 20px;
+}
+
+.boss-summon-facts div {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  background: var(--index-surface);
+  padding: 12px;
+}
+
+.boss-summon-facts b,
+.boss-summon-facts span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.boss-summon-facts b {
+  color: var(--text-strong);
+  font-size: 13px;
+}
+
+.boss-summon-facts span {
+  color: var(--text-subtle);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.boss-contract-list {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 20px;
+}
+
+.boss-contract-row {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  background: var(--index-surface);
+  padding: 12px;
+}
+
+.boss-contract-item {
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+}
+
+.boss-contract-item .item-art {
+  grid-row: 1;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+}
+
+.boss-contract-row b,
+.boss-contract-row span,
+.boss-contract-row a {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.boss-contract-row b,
+.boss-contract-row a {
+  color: var(--text-strong);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.boss-contract-row span {
+  color: var(--text-subtle);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.boss-members-eyebrow {
+  display: block;
+  margin-top: 6px;
 }
 
 .detail-member-link .item-art {
