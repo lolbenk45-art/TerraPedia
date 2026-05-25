@@ -94,6 +94,27 @@ for (const [path, templatePatterns] of Object.entries(detailPages)) {
   }
 }
 
+{
+  const path = 'pages/bosses/[id].vue'
+  const content = read(path)
+  for (const [pattern, message] of [
+    [
+      String.raw`class="detail-loot-copy"`,
+      'boss loot rows must group item name and details so the chance column cannot squeeze names into narrow fragments',
+    ],
+    [
+      String.raw`grid-template-columns:\s*52px minmax\(0, 1fr\) max-content;`,
+      'boss loot rows must keep a stable right-side chance column',
+    ],
+    [
+      String.raw`white-space:\s*nowrap;`,
+      'boss loot chance labels must not wrap into the item title column',
+    ],
+  ]) {
+    assertPattern(path, content, pattern, message)
+  }
+}
+
 if (violations.length) {
   console.error(violations.join('\n'))
   process.exit(1)

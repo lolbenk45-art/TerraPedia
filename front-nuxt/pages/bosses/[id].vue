@@ -333,11 +333,13 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
                   width="44"
                   height="44"
                 />
-                <NuxtLink v-if="bossLootItemPath(entry)" :to="bossLootItemPath(entry)" class="detail-loot-link">
-                  <b>{{ lootTitle(entry) }}</b>
-                </NuxtLink>
-                <b v-else>{{ lootTitle(entry) }}</b>
-                <span>{{ bossLootDetailLabel(entry) }}</span>
+                <div class="detail-loot-copy">
+                  <NuxtLink v-if="bossLootItemPath(entry)" :to="bossLootItemPath(entry)" class="detail-loot-link">
+                    <b>{{ lootTitle(entry) }}</b>
+                  </NuxtLink>
+                  <b v-else>{{ lootTitle(entry) }}</b>
+                  <span>{{ bossLootDetailLabel(entry) }}</span>
+                </div>
                 <em>{{ bossLootChanceLabel(entry) }}</em>
               </div>
               <details v-if="group.entries.length > 8" class="detail-group-remainder">
@@ -350,11 +352,13 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
                     width="44"
                     height="44"
                   />
-                  <NuxtLink v-if="bossLootItemPath(entry)" :to="bossLootItemPath(entry)" class="detail-loot-link">
-                    <b>{{ lootTitle(entry) }}</b>
-                  </NuxtLink>
-                  <b v-else>{{ lootTitle(entry) }}</b>
-                  <span>{{ bossLootDetailLabel(entry) }}</span>
+                  <div class="detail-loot-copy">
+                    <NuxtLink v-if="bossLootItemPath(entry)" :to="bossLootItemPath(entry)" class="detail-loot-link">
+                      <b>{{ lootTitle(entry) }}</b>
+                    </NuxtLink>
+                    <b v-else>{{ lootTitle(entry) }}</b>
+                    <span>{{ bossLootDetailLabel(entry) }}</span>
+                  </div>
                   <em>{{ bossLootChanceLabel(entry) }}</em>
                 </div>
               </details>
@@ -434,7 +438,8 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
 
 <style scoped>
 .detail-loot-row {
-  grid-template-columns: 52px minmax(0, 1fr) minmax(72px, auto);
+  grid-template-columns: 52px minmax(0, 1fr) max-content;
+  align-items: center;
 }
 
 .detail-loot-group {
@@ -485,14 +490,15 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
 }
 
 .detail-loot-row .item-art {
-  grid-row: 1 / span 2;
   width: 44px;
   height: 44px;
   overflow: hidden;
 }
 
-.detail-loot-row b,
-.detail-loot-row span,
+.detail-loot-copy,
+.detail-loot-copy b,
+.detail-loot-copy span,
+.detail-loot-copy a,
 .detail-loot-row em,
 .detail-member-link b,
 .detail-member-link span {
@@ -500,12 +506,29 @@ onBeforeUnmount(clearBossDetailVisualLoadingTimer)
   overflow-wrap: anywhere;
 }
 
-.detail-loot-row span {
+.detail-loot-copy {
+  display: grid;
+  gap: 4px;
   grid-column: 2;
+}
+
+.detail-loot-copy b {
+  display: block;
+  color: var(--text-strong);
+  line-height: 1.35;
+  word-break: normal;
+}
+
+.detail-loot-copy span {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .detail-loot-row em {
   grid-column: 3;
+  justify-self: end;
+  white-space: nowrap;
 }
 
 .detail-member-link {
