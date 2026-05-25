@@ -173,6 +173,52 @@ test('sample mode fetches a deterministic bounded item subset and reports sample
     assert.equal(progress.total, 2);
 });
 
+test('sample mode accepts standardized records input shape', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'terrapedia-fetch-items-records-sample-'));
+    const worktreeRoot = path.join(tempDir, 'feature-worktree');
+    const inputPath = path.join(tempDir, 'items.standardized.json');
+    const rawDir = path.join(tempDir, 'raw');
+    const reportDir = path.join(tempDir, 'reports');
+    const progressPath = path.join(tempDir, 'progress.json');
+    const mockApiPath = path.join(tempDir, 'mock-api.json');
+    const sampleItems = buildSampleItems();
+
+    fs.mkdirSync(worktreeRoot, { recursive: true });
+    fs.writeFileSync(inputPath, JSON.stringify({ records: sampleItems }), 'utf8');
+    writeMockItemPageApi(mockApiPath, sampleItems);
+
+    const result = spawnSync(process.execPath, [
+      scriptPath,
+      `--input=${inputPath}`,
+      `--raw-dir=${rawDir}`,
+      `--report-dir=${reportDir}`,
+      `--progress-path=${progressPath}`,
+      '--sample-size=2',
+      '--sample-seed=standardized-records',
+      '--only-changed=false',
+      '--limit=5',
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        WORKTREE_ROOT: worktreeRoot,
+        TERRAPEDIA_CRAWLER_ACTION_ID: 'test-item-pages-records-sample',
+        NODE_ENV: 'test',
+        TERRAPEDIA_WIKI_MOCK_API_RESPONSE: mockApiPath
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+
+    const report = readOnlyJsonReport(reportDir);
+    assert.equal(report.sampled, true);
+    assert.equal(report.candidateCountBeforeSample, 5);
+    assert.equal(report.sampleCandidateCount, 2);
+    assert.equal(report.selectedCount, 2);
+    assert.equal(report.items.length, 2);
+});
+
 test('sample mode selects the same item order for the same seed across runs', () => {
     const firstRun = runSampleFetchInTemp({ sampleSize: 3, sampleSeed: 'repeatable-seed' });
     const secondRun = runSampleFetchInTemp({ sampleSize: 3, sampleSeed: 'repeatable-seed' });

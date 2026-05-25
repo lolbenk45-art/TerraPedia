@@ -82,7 +82,7 @@ assertSampleReportDirAllowed(reportDir);
 ensureDir(reportDir);
 
 const sourcePayload = JSON.parse(await fs.promises.readFile(inputPath, 'utf8'));
-const rawItems = Array.isArray(sourcePayload?.items) ? sourcePayload.items : [];
+const rawItems = readItemRecords(sourcePayload);
 let selectedItems = rawItems.filter((item) => item?.internalName && item?.name);
 
 if (!allowFullCorpus && requestedItems.size === 0 && !sampled && (limit == null || limit > 100)) {
@@ -394,6 +394,13 @@ function buildSampleReportFields() {
     candidateCountBeforeSample,
     sampleCandidateCount
   };
+}
+
+function readItemRecords(payload) {
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.records)) return payload.records;
+  if (Array.isArray(payload)) return payload;
+  return [];
 }
 
 function assertSampleReportDirAllowed(reportDir) {
