@@ -451,6 +451,7 @@ const requiredPublicDataLayerFiles = [
   'components/common/PaginationDock.vue',
   'components/common/TpSkeleton.vue',
   'components/crafting/RecipeTreeNode.vue',
+  'components/crafting/RecipeSummaryCard.vue',
   'components/catalog/CatalogWallSkeleton.vue',
   'components/detail/ItemDetailSkeleton.vue',
   'components/search/SuggestionSkeletonRows.vue',
@@ -811,6 +812,7 @@ const scanFiles = [
   'components/common/PaginationDock.vue',
   'components/common/TpSkeleton.vue',
   'components/crafting/RecipeTreeNode.vue',
+  'components/crafting/RecipeSummaryCard.vue',
   'components/catalog/CatalogWallSkeleton.vue',
   'components/detail/ItemDetailSkeleton.vue',
   'components/search/SuggestionSkeletonRows.vue',
@@ -1384,6 +1386,10 @@ for (const path of scanFiles) {
       violations.push(`${path}: NPC detail page must not keep static guide preview links or future-integration copy`)
     }
 
+    if (content.includes('售价待整理')) {
+      violations.push(`${path}: NPC detail page must not render price placeholder copy as if it were useful data`)
+    }
+
     if (content.includes('sourceProvider') || content.includes('sourcePage')) {
       violations.push(`${path}: NPC public detail page must not render internal source provider/page fields`)
     }
@@ -1405,6 +1411,38 @@ for (const path of scanFiles) {
     if (!content.includes('relationTypeLabel(entry.relationType)')) {
       violations.push(`${path}: NPC related item summary must use player-facing relation labels`)
     }
+
+    if (content.includes('[entry.relationType,')) {
+      violations.push(`${path}: NPC buff relation rows must not render raw relationType enums`)
+    }
+
+    if (content.includes('const shopPriceLabel = (entry: PublicNpcShopEntry) => firstText(')) {
+      violations.push(`${path}: NPC shop price labels must filter wiki template/raw HTML text before rendering`)
+    }
+
+    if (!content.includes('safeNpcDisplayText(entry.buyPriceText, entry.currencyText, entry.priceText)')) {
+      violations.push(`${path}: NPC shop price labels must use the display-safe price helper`)
+    }
+
+    for (const marker of [
+      'shopEntryGroups',
+      'shopGroupKey(entry)',
+      '常驻出售',
+      '阶段出售',
+      '地点出售',
+      '解锁出售',
+      'v-for="group in shopEntryGroups"',
+      'detail-group-remainder',
+      'group.entries.slice(0, 8)',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: NPC shop entries must be grouped by player-facing sale conditions via marker ${marker}`)
+      }
+    }
+
+    if (content.includes('v-for="entry in shopEntries"')) {
+      violations.push(`${path}: NPC shop entries must not render as one flat ungrouped list`)
+    }
   }
 
   if (path === 'pages/items/[id].vue') {
@@ -1420,7 +1458,7 @@ for (const path of scanFiles) {
       'imageEntries',
       'sourceEntries',
       '<CommonPreviewImage',
-      '<CraftingRecipeTreeNode',
+      '<RecipeSummaryCard',
       ':src="source.image"',
     ]) {
       if (!content.includes(marker)) {
@@ -1438,6 +1476,17 @@ for (const path of scanFiles) {
 
     if (content.includes('image.note || image.url')) {
       violations.push(`${path}: item detail image rows must not fall back to rendering raw image URLs`)
+    }
+
+    if (content.includes('<CraftingRecipeTreeNode')) {
+      violations.push(`${path}: item detail page must use compact RecipeSummaryCard instead of the full recipe tree`)
+    }
+
+    const recipeIndex = content.indexOf('<RecipeSummaryCard')
+    const sourceIndex = content.indexOf('<section v-if="sourceEntries.length"')
+    const imageIndex = content.indexOf('<section v-if="imageEntries.length"')
+    if (recipeIndex === -1 || sourceIndex === -1 || imageIndex === -1 || !(recipeIndex < sourceIndex && sourceIndex < imageIndex)) {
+      violations.push(`${path}: item detail modules must order recipe summary before sources and image evidence`)
     }
   }
 
@@ -1557,6 +1606,7 @@ for (const path of scanFiles) {
       'bossMembers',
       'bossLootEntries',
       'bossProgressionLabel',
+      'bossTypeLabel',
       'boss-detail-loading-tags',
       'boss-detail-missing-tags',
       '<CommonTpSkeleton',
@@ -1588,10 +1638,15 @@ for (const path of scanFiles) {
       'entry.dropSourceKind,',
       "displayText(member.bossRole, member.sourceBossCode, '角色未标注')",
       'href="/npcs"',
+      'bossCard?.type ||',
     ]) {
       if (content.includes(rawUiMarker)) {
         violations.push(`${path}: boss detail page must not expose raw labels, enum fallbacks, or dead relation links (${rawUiMarker})`)
       }
+    }
+
+    if (!content.includes("key === 'pre_hardmode'") || !content.includes('困难模式前')) {
+      violations.push(`${path}: boss detail page must translate boss type enum labels before rendering`)
     }
 
     for (const marker of [
@@ -1604,6 +1659,25 @@ for (const path of scanFiles) {
       if (!content.includes(marker)) {
         violations.push(`${path}: boss detail page must expose translated drop source labels and detail links via marker ${marker}`)
       }
+    }
+
+    for (const marker of [
+      'bossLootGroups',
+      'bossLootGroupKey(entry)',
+      '普通掉落',
+      '宝藏袋',
+      '条件掉落',
+      'v-for="group in bossLootGroups"',
+      'detail-group-remainder',
+      'group.entries.slice(0, 8)',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: boss loot entries must render in grouped player-facing sections via marker ${marker}`)
+      }
+    }
+
+    if (content.includes('v-for="entry in bossLootEntries"')) {
+      violations.push(`${path}: boss loot entries must not render as one flat ungrouped list`)
     }
   }
 
@@ -1705,7 +1779,7 @@ for (const path of scanFiles) {
       'recipeVisualLoading',
       'recipeNodeChildren',
       '<CraftingRecipeTreeNode',
-      'recipe-top-layer',
+      '<RecipeSummaryCard',
       'recipe-full-tree',
       'recipe-tree-stage',
       '<CommonTpSkeleton',
@@ -1786,6 +1860,38 @@ for (const path of scanFiles) {
       if (!content.includes(marker)) {
         violations.push(`${path}: crafting recipe tree node must recursively render material leaves, station images, and parent aggregation via marker ${marker}`)
       }
+    }
+
+    if (content.includes("displayText(station.requirementRole, station.stationType, '合成站')") || content.includes("displayText(station.requirementRole, '合成站')")) {
+      violations.push(`${path}: crafting recipe tree node must translate station metadata instead of exposing raw stationType or requirementRole values`)
+    }
+  }
+
+  if (path === 'components/crafting/RecipeSummaryCard.vue') {
+    for (const marker of [
+      'PublicItemRecipeTreeNode',
+      'PublicItemRecipeTreeStation',
+      'recipeNodeChildren',
+      'recipeNodeStations',
+      'recipeRootOptionLabel',
+      'recipe-top-layer',
+      'recipe-top-grid',
+      'recipe-top-card',
+      'recipe-top-result',
+      'recipe-top-materials',
+      '<CommonPreviewImage',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: recipe summary card must own the shared top-level crafting summary markup via marker ${marker}`)
+      }
+    }
+
+    if (content.includes('station.requirementRole')) {
+      violations.push(`${path}: recipe summary card must not expose raw station requirementRole values`)
+    }
+
+    if (content.includes('top recipe')) {
+      violations.push(`${path}: recipe summary card must not expose English internal section copy`)
     }
   }
 

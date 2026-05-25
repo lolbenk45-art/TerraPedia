@@ -112,7 +112,17 @@ const chanceLabel = (entry: PublicNpcLootEntry | PublicNpcBuffRelation) => {
   return entry.chanceValue != null ? `${entry.chanceValue}%` : ''
 }
 
-const shopPriceLabel = (entry: PublicNpcShopEntry) => firstText(entry.priceText, entry.buyPriceText, entry.currencyText, '售价待整理')
+const rawPublicCopyPattern = /{{|}}|<\/?[a-z][\s\S]*?>|https?:\/\/|wiki\.gg|iteminfo|eicons/i
+const safeNpcDisplayText = (...values: unknown[]) => {
+  for (const value of values) {
+    const text = firstText(value).replace(/\s+/g, ' ')
+    if (text && !rawPublicCopyPattern.test(text)) return text
+  }
+
+  return ''
+}
+
+const shopPriceLabel = (entry: PublicNpcShopEntry) => safeNpcDisplayText(entry.buyPriceText, entry.currencyText, entry.priceText)
 
 const conditionLabel = (condition: PublicNpcShopCondition) => firstText(
   condition.label,
@@ -137,6 +147,41 @@ const shopConditionsLabel = (entry: PublicNpcShopEntry) => {
   return firstText(entry.conditions)
 }
 
+const shopGroupKey = (entry: PublicNpcShopEntry) => {
+  if (!Array.isArray(entry.conditions) || entry.conditions.length === 0) return 'always'
+  const conditions = entry.conditions
+  if (conditions.some((condition) => firstText(condition.gamePeriodNameZh, condition.gamePeriodNameEn))) return 'period'
+  if (conditions.some((condition) => firstText(condition.biomeNameZh, condition.biomeNameEn))) return 'biome'
+  if (conditions.some((condition) => firstText(condition.refNpcNameZh, condition.refNpcName, condition.refItemNameZh, condition.refItemName))) return 'unlock'
+  return conditions.map(conditionLabel).filter(Boolean).length ? 'other' : 'always'
+}
+
+const shopGroupMeta = {
+  always: { title: '常驻出售', meta: '无额外条件' },
+  period: { title: '阶段出售', meta: '随进度解锁' },
+  biome: { title: '地点出售', meta: '与环境或地点相关' },
+  unlock: { title: '解锁出售', meta: '需要 NPC、物品或事件前置' },
+  other: { title: '其他条件', meta: '包含特殊条件' },
+} as const
+
+const shopEntryGroups = computed(() => {
+  const buckets = new Map<keyof typeof shopGroupMeta, PublicNpcShopEntry[]>()
+
+  for (const entry of shopEntries.value) {
+    const key = shopGroupKey(entry) as keyof typeof shopGroupMeta
+    buckets.set(key, [...(buckets.get(key) ?? []), entry])
+  }
+
+  return (Object.keys(shopGroupMeta) as Array<keyof typeof shopGroupMeta>)
+    .map((key) => ({
+      key,
+      title: shopGroupMeta[key].title,
+      meta: shopGroupMeta[key].meta,
+      entries: buckets.get(key) ?? [],
+    }))
+    .filter((group) => group.entries.length > 0)
+})
+
 const buffDurationLabel = (entry: PublicNpcBuffRelation) => firstText(
   entry.durationText,
   entry.durationSeconds != null ? `${entry.durationSeconds}s` : '',
@@ -147,6 +192,9 @@ const relationTypeLabel = (value: unknown) => {
   if (key === 'shop') return '出售'
   if (key === 'loot' || key === 'drop') return '掉落'
   if (key === 'source') return '来源'
+  if (key === 'buff' || key === 'debuff' || key === 'status') return '状态效果'
+  if (key === 'applies' || key === 'inflict' || key === 'inflicts') return '施加'
+  if (key === 'immune' || key === 'immunity') return '免疫'
   return ''
 }
 
@@ -268,14 +316,34 @@ const materialStatus = computed(() => ({
               <h2>出售物品</h2>
               <span class="tag gold">{{ shopEntries.length }} 项</span>
             </div>
-            <div v-if="shopEntries.length" class="source-table dark-table">
-              <div v-for="entry in shopEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" class="source-row detail-relation-row">
-                <span class="sprite-frame detail-relation-icon">
-                  <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
-                </span>
-                <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [shopPriceLabel(entry), shopConditionsLabel(entry)].filter(Boolean).join(' · ') }}</span></div>
-                <strong class="detail-relation-meta">商店</strong>
-              </div>
+            <div v-if="shopEntryGroups.length" class="grouped-source-list">
+              <section v-for="group in shopEntryGroups" :key="group.key" class="detail-subgroup">
+                <div class="detail-subgroup-title">
+                  <b>{{ group.title }}</b>
+                  <span>{{ group.entries.length }} 项 · {{ group.meta }}</span>
+                </div>
+                <div class="source-table dark-table">
+                  <div v-for="entry in group.entries.slice(0, 8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" class="source-row detail-relation-row">
+                    <span class="sprite-frame detail-relation-icon">
+                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
+                    </span>
+                    <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [shopPriceLabel(entry), shopConditionsLabel(entry)].filter(Boolean).join(' · ') || '商店资料' }}</span></div>
+                    <strong class="detail-relation-meta">商店</strong>
+                  </div>
+                </div>
+                <details v-if="group.entries.length > 8" class="detail-group-remainder">
+                  <summary>展开其余 {{ group.entries.length - 8 }} 项</summary>
+                  <div class="source-table dark-table">
+                    <div v-for="entry in group.entries.slice(8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" class="source-row detail-relation-row">
+                      <span class="sprite-frame detail-relation-icon">
+                        <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
+                      </span>
+                      <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [shopPriceLabel(entry), shopConditionsLabel(entry)].filter(Boolean).join(' · ') || '商店资料' }}</span></div>
+                      <strong class="detail-relation-meta">商店</strong>
+                    </div>
+                  </div>
+                </details>
+              </section>
             </div>
             <p v-else>暂时没有整理到出售物品。</p>
           </article>
@@ -290,7 +358,7 @@ const materialStatus = computed(() => ({
                 <span class="sprite-frame detail-relation-icon">
                   <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
                 </span>
-                <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [entry.relationType, buffDurationLabel(entry), chanceLabel(entry), entry.conditions].filter(Boolean).join(' · ') || 'Buff 关系' }}</span></div>
+                <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [relationTypeLabel(entry.relationType), buffDurationLabel(entry), chanceLabel(entry), entry.conditions].filter(Boolean).join(' · ') || '状态效果资料' }}</span></div>
                 <strong class="detail-relation-meta">Buff</strong>
               </div>
             </div>
@@ -365,9 +433,58 @@ const materialStatus = computed(() => ({
   line-height: 1.5;
 }
 
+.grouped-source-list,
+.detail-subgroup {
+  display: grid;
+  gap: 12px;
+}
+
+.detail-subgroup-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: end;
+  min-width: 0;
+}
+
+.detail-subgroup-title b,
+.detail-subgroup-title span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.detail-subgroup-title b {
+  color: var(--paper);
+  font-size: 14px;
+}
+
+.detail-subgroup-title span {
+  color: rgba(244, 234, 208, 0.58);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.detail-group-remainder {
+  display: grid;
+  gap: 10px;
+}
+
+.detail-group-remainder summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 900;
+}
+
 @media (max-width: 720px) {
   .detail-relation-row {
     grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .detail-subgroup-title {
+    display: grid;
+    gap: 4px;
   }
 
   .detail-relation-meta {

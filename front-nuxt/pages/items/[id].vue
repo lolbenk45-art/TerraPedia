@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import RecipeSummaryCard from '~/components/crafting/RecipeSummaryCard.vue'
 import { usePublicItemDetail } from '~/composables/usePublicItemDetail'
 import { formatTerrariaPrice } from '~/utils/price'
 import type {
@@ -6,9 +7,7 @@ import type {
   PublicItemDetailBundle,
   PublicItemImage,
   PublicItemRecipeTree,
-  PublicItemRecipeTreeNode,
   PublicItemRecipeTreeVariant,
-  PublicItemRecipeTreeStation,
   PublicItemSource,
 } from '~/types/public-api'
 
@@ -113,38 +112,6 @@ const sourceEntries = computed(() => rawBundle.value.sources.map((source: Public
   fallback: Array.from(firstText(source.sourceRefNameZh, source.sourceRefName, source.name, source.displayName, source.sourceName, '源'))[0] ?? '源',
 })))
 
-const recipeNodeImage = (node: PublicItemRecipeTreeNode) => firstImageUrl(
-  node.previewImage,
-  node.itemImageUrl,
-  node.itemImage,
-  node.image,
-)
-
-const recipeNodeName = (node: PublicItemRecipeTreeNode, index: number) => firstText(
-  node.itemNameZh,
-  node.displayName,
-  node.itemName,
-  node.name,
-  node.itemInternalName,
-  `材料 ${index + 1}`,
-)
-
-const recipeNodeAmount = (node: PublicItemRecipeTreeNode) => firstText(
-  node.quantityText,
-  node.resultQuantity,
-  node.quantity,
-  node.amount,
-  node.count,
-)
-
-const stationName = (station: PublicItemRecipeTreeStation) => firstText(
-  station.stationNameZh,
-  station.stationName,
-  station.stationNameRaw,
-  station.displayName,
-  station.name,
-)
-
 const recipeTreeVariants = computed(() => {
   const tree: PublicItemRecipeTree | null = rawBundle.value.recipeTree
   const variants = Array.isArray(tree?.variants) ? tree.variants : []
@@ -190,8 +157,6 @@ const recipeTreeSummary = computed(() => {
   if (!tree || !activeRecipeVariant.value) return null
 
   const directMaterials = activeRecipeRoots.value.flatMap((root) => root.children ?? [])
-  const stations = activeRecipeRoots.value.flatMap((root) => root.stations ?? [])
-  const stationNames = [...new Set(stations.map(stationName).filter(Boolean))]
   const textStations = firstText(tree.station, tree.craftingStation, tree.stationName)
 
   return {
@@ -199,14 +164,8 @@ const recipeTreeSummary = computed(() => {
     variant: firstText(activeRecipeVariant.value.variantLabel, activeRecipeVariant.value.variantKey, '默认配方'),
     recipeCount: activeRecipeRoots.value.length,
     count: directMaterials.length,
-    materials: directMaterials.slice(0, 6).map((material, index) => ({
-      id: firstText(material.id, material.itemId, material.name, index),
-      name: recipeNodeName(material, index),
-      amount: recipeNodeAmount(material),
-      image: recipeNodeImage(material),
-      fallback: Array.from(recipeNodeName(material, index))[0] ?? '材',
-    })),
-    station: stationNames.join(' / ') || textStations || '制作站未标记',
+    materialCount: directMaterials.length,
+    station: textStations || '制作站未标记',
     note: firstText(tree.note, tree.summary, tree.description),
   }
 })
@@ -283,6 +242,51 @@ onMounted(() => {
 
       <div class="detail-grid">
         <div class="module-stack">
+          <section v-if="recipeTreeSummary" class="detail-module dark-card item-recipe-summary-module">
+            <div class="module-title">
+              <div>
+                <h2>制作摘要</h2>
+                <span>{{ recipeTreeSummary.variant }} · {{ recipeTreeSummary.count }} 个直接材料</span>
+              </div>
+              <span class="tag gold">{{ recipeTreeSummary.recipeCount }} 个配方</span>
+            </div>
+            <div v-if="recipeTreeVariants.length > 1" class="recipe-variant-tabs" aria-label="配方版本">
+              <button
+                v-for="variant in recipeTreeVariants"
+                :key="firstText(variant.variantKey, variant.variantLabel)"
+                class="recipe-variant-tab"
+                :class="{ active: activeRecipeVariant === variant }"
+                type="button"
+                @click="selectedRecipeVariantKey = firstText(variant.variantKey)"
+              >
+                {{ firstText(variant.variantLabel, variant.variantKey, '配方') }}
+              </button>
+            </div>
+            <RecipeSummaryCard :roots="activeRecipeRoots" compact title-id="item-recipe-summary-title" />
+            <p v-if="recipeTreeSummary.note">{{ recipeTreeSummary.note }}</p>
+            <a class="primary-button item-recipe-summary-link" :href="`/crafting?itemId=${itemId}&maxDepth=3`">查看完整制作树</a>
+          </section>
+
+          <section v-if="sourceEntries.length" class="detail-module dark-card">
+            <div class="module-title">
+              <h2>来源与关联</h2>
+              <span class="tag moss">{{ sourceEntries.length }} 条</span>
+            </div>
+            <div class="source-table">
+              <div v-for="source in sourceEntries" :key="String(source.id)" class="source-row detail-relation-row">
+                <span class="sprite-frame detail-relation-icon">
+                  <CommonPreviewImage
+                    :src="source.image"
+                    :alt="source.name"
+                    :fallback="source.fallback"
+                  />
+                </span>
+                <div class="detail-relation-copy"><b>{{ source.name }}</b><span>{{ source.detail }}</span></div>
+                <strong class="detail-relation-meta">{{ source.value || '来源' }}</strong>
+              </div>
+            </div>
+          </section>
+
           <section v-if="imageEntries.length" class="detail-module dark-card">
             <div class="module-title">
               <h2>图片</h2>
@@ -302,59 +306,6 @@ onMounted(() => {
                   <span v-if="image.note">{{ image.note }}</span>
                 </div>
                 <strong class="detail-relation-meta">图片</strong>
-              </div>
-            </div>
-          </section>
-
-          <section v-if="recipeTreeSummary" class="detail-module dark-card">
-            <div class="module-title">
-              <div>
-                <h2>制作树</h2>
-                <span>{{ recipeTreeSummary.variant }} · {{ recipeTreeSummary.count }} 个直接材料</span>
-              </div>
-              <span class="tag gold">{{ recipeTreeSummary.recipeCount }} 个配方</span>
-            </div>
-            <div v-if="recipeTreeVariants.length > 1" class="recipe-variant-tabs" aria-label="配方版本">
-              <button
-                v-for="variant in recipeTreeVariants"
-                :key="firstText(variant.variantKey, variant.variantLabel)"
-                class="recipe-variant-tab"
-                :class="{ active: activeRecipeVariant === variant }"
-                type="button"
-                @click="selectedRecipeVariantKey = firstText(variant.variantKey)"
-              >
-                {{ firstText(variant.variantLabel, variant.variantKey, '配方') }}
-              </button>
-            </div>
-            <div class="recipe-tree-stage recipe-tree-stage--detail">
-              <div class="recipe-tree-roots">
-                <CraftingRecipeTreeNode
-                  v-for="root in activeRecipeRoots"
-                  :key="firstText(root.recipeId, root.itemId, root.itemName, 'root')"
-                  :node="root"
-                  is-root
-                />
-              </div>
-            </div>
-            <p v-if="recipeTreeSummary.note">{{ recipeTreeSummary.note }}</p>
-          </section>
-
-          <section v-if="sourceEntries.length" class="detail-module dark-card">
-            <div class="module-title">
-              <h2>来源与关联</h2>
-              <span class="tag moss">{{ sourceEntries.length }} 条</span>
-            </div>
-            <div class="source-table">
-              <div v-for="source in sourceEntries" :key="String(source.id)" class="source-row detail-relation-row">
-                <span class="sprite-frame detail-relation-icon">
-                  <CommonPreviewImage
-                    :src="source.image"
-                    :alt="source.name"
-                    :fallback="source.fallback"
-                  />
-                </span>
-                <div class="detail-relation-copy"><b>{{ source.name }}</b><span>{{ source.detail }}</span></div>
-                <strong class="detail-relation-meta">{{ source.value || '来源' }}</strong>
               </div>
             </div>
           </section>
@@ -402,17 +353,16 @@ onMounted(() => {
   line-height: 1.5;
 }
 
+.item-recipe-summary-module {
+  display: grid;
+  gap: 14px;
+}
+
+.item-recipe-summary-link {
+  width: fit-content;
+}
+
 @media (max-width: 720px) {
-  .recipe-tree-stage--detail {
-    max-width: 100%;
-    overflow-x: auto;
-    contain: inline-size;
-  }
-
-  .recipe-tree-stage--detail .recipe-tree-roots {
-    max-width: max-content;
-  }
-
   .detail-relation-row {
     grid-template-columns: 52px minmax(0, 1fr);
   }
