@@ -1,0 +1,84 @@
+.tp-detail-shell {
+  --tp-detail-page-gap: 24px;
+  --tp-detail-module-gap: 14px;
+  --tp-detail-row-gap: 12px;
+  --tp-detail-copy-leading: 1.62;
+  --tp-detail-module-padding: 24px;
+  min-width: 0;
+}
+
+.tp-detail-density-compact {
+  --tp-detail-page-gap: 18px;
+  --tp-detail-module-gap: 12px;
+  --tp-detail-row-gap: 10px;
+  --tp-detail-module-padding: 20px;
+}
+
+.tp-detail-density-readable {
+  --tp-detail-page-gap: 24px;
+  --tp-detail-module-gap: 14px;
+  --tp-detail-row-gap: 12px;
+  --tp-detail-module-padding: 24px;
+}
+
+.tp-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: var(--tp-detail-page-gap);
+  min-width: 0;
+}
+
+.tp-detail-module {
+  display: grid;
+  gap: var(--tp-detail-module-gap);
+  min-width: 0;
+  padding: var(--tp-detail-module-padding);
+}
+
+.tp-detail-module > :last-child {
+  margin-bottom: 0;
+}
+
+.tp-detail-relation-row {
+  min-width: 0;
+  min-height: 62px;
+  gap: var(--tp-detail-row-gap);
+}
+
+.tp-detail-relation-row :where(b, span, small, em, strong, a) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tp-detail-relation-row :where(a) {
+  color: inherit;
+  text-decoration: none;
+}
+
+.tp-detail-empty {
+  margin: 0;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  background: rgba(244, 234, 208, 0.025);
+  color: var(--text-subtle);
+  padding: 14px;
+  font-size: 13px;
+  line-height: var(--tp-detail-copy-leading);
+}
+
+@media (max-width: 1180px) {
+  .tp-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .tp-detail-shell {
+    --tp-detail-page-gap: 16px;
+    --tp-detail-module-padding: 18px;
+  }
+
+  .tp-detail-module {
+    padding: var(--tp-detail-module-padding);
+  }
+}

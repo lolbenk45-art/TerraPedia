@@ -8,6 +8,7 @@ import type {
 } from '~/types/public-api'
 
 const route = useRoute()
+const detailLayout = useDetailLayout({ kind: 'npc', density: 'compact' })
 const include = 'loot,shop,buffs'
 
 const routeNpcId = computed(() => String(route.params.id ?? '').trim())
@@ -125,6 +126,10 @@ const chanceLabel = (entry: PublicNpcLootEntry | PublicNpcBuffRelation) => {
   if (text) return text
   return entry.chanceValue != null ? `${entry.chanceValue}%` : ''
 }
+const itemPath = (entry: PublicNpcLootEntry | PublicNpcShopEntry | PublicNpcTraceableItemSummary) => {
+  const id = firstText(entry.itemId, 'item_id' in entry ? entry.item_id : undefined)
+  return id ? `/items/${id}` : ''
+}
 
 const npcBehaviorSummary = computed(() => safeNpcDisplayText(
   npc.value?.behaviorNotes,
@@ -166,7 +171,10 @@ const shopConditionSummary = (entry: PublicNpcShopEntry) => {
 }
 
 const shopGroupKey = (entry: PublicNpcShopEntry) => {
-  if (!Array.isArray(entry.conditions) || entry.conditions.length === 0) return 'always'
+  if (!Array.isArray(entry.conditions)) {
+    return shopConditionsLabel(entry) ? 'other' : 'always'
+  }
+  if (entry.conditions.length === 0) return 'always'
   const conditions = entry.conditions
   if (conditions.some((condition) => firstText(condition.gamePeriodNameZh, condition.gamePeriodNameEn))) return 'period'
   if (conditions.some((condition) => firstText(condition.biomeNameZh, condition.biomeNameEn))) return 'biome'
@@ -229,6 +237,7 @@ const relatedItemSections = computed(() => {
       id: firstText(entry.sourceFactKey, entry.itemId, entry.itemInternalName, `${section.title}-${index}`),
       title: safeNpcDisplayText(entry.itemNameZh, entry.itemName) || '关联物品',
       meta: relationTypeLabel(entry.relationType),
+      href: itemPath(entry),
     })),
   })).filter((section) => section.entries.length > 0)
 })
@@ -238,6 +247,7 @@ const materialStatus = computed(() => ({
   shop: shopEntries.value.length ? '已整理' : '暂无资料',
   buffs: buffRelations.value.length ? '已整理' : '暂无资料',
 }))
+const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '详情资料' : '资料整理中')
 </script>
 
 <template>
@@ -245,7 +255,7 @@ const materialStatus = computed(() => ({
     <TerraNav />
     <TerraBreadcrumb />
 
-    <main class="entity-detail-layout">
+    <main :class="['entity-detail-layout', detailLayout.detailShellClass]">
       <section v-if="loadingState" class="npc-detail-hero">
         <div class="npc-detail-portrait">
           <span class="item-art tp-preview-image is-fallback" data-fallback="N"></span>
@@ -285,8 +295,10 @@ const materialStatus = computed(() => ({
             <div class="tag-row">
               <span v-if="npc?.isTownNpc" class="tag gold">城镇 NPC</span>
               <span v-if="npc?.isFriendly" class="tag moss">友好</span>
-                <span class="tag paper">{{ safeNpcDisplayText(npc?.categoryName) || '未分类' }}</span>
-              <span class="tag paper">{{ aggregateBundle?.source === 'api' ? '详情资料' : '资料状态' }}</span>
+              <span class="tag paper">{{ safeNpcDisplayText(npc?.categoryName) || '未分类' }}</span>
+              <span class="tag paper">{{ trustedLoot.length + additionalLoot.length }} 条掉落</span>
+              <span class="tag paper">{{ shopEntries.length }} 项出售</span>
+              <span class="tag paper">{{ npcSourceTag }}</span>
             </div>
           </div>
           <aside class="npc-detail-facts">
@@ -299,49 +311,65 @@ const materialStatus = computed(() => ({
           </aside>
         </section>
 
-        <section class="detail-mosaic">
-          <article class="detail-module dark-card">
-            <div class="module-title">
-              <h2>基础数值</h2>
-              <span class="tag paper">{{ npcKindLabel }}</span>
-            </div>
-            <div class="signal-list">
-              <div v-for="row in npcStatRows" :key="`stat-${row.label}`">
-                <b>{{ row.label }}</b><span>{{ row.value }}</span><em>NPC 档案</em>
+        <section :class="['detail-grid npc-detail-grid', detailLayout.detailGridClass, detailLayout.detailDensityClass]">
+          <div class="module-stack">
+            <article :class="['detail-module dark-card', detailLayout.detailModuleClass]">
+              <div class="module-title">
+                <h2>掉落物</h2>
+                <span class="tag moss">{{ trustedLoot.length + additionalLoot.length }} 条</span>
               </div>
-            </div>
-          </article>
-
-          <article class="detail-module dark-card">
-            <div class="module-title">
-              <h2>掉落物</h2>
-              <span class="tag moss">{{ trustedLoot.length + additionalLoot.length }} 条</span>
-            </div>
-            <div v-if="trustedLoot.length" class="source-table dark-table">
-              <div v-for="entry in trustedLootVisibleEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" class="source-row detail-relation-row">
-                <span class="sprite-frame detail-relation-icon">
-                  <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
-                </span>
-                <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [quantityLabel(entry), chanceLabel(entry), lootConditionLabel(entry)].filter(Boolean).join(' · ') || '掉落资料待补充' }}</span></div>
-                <strong class="detail-relation-meta">掉落</strong>
-              </div>
-            </div>
-            <details v-if="trustedLootRemainderEntries.length" class="detail-group-remainder">
-              <summary>展开其余 {{ trustedLootRemainderEntries.length }} 条</summary>
-              <div class="source-table dark-table">
-                <div v-for="entry in trustedLootRemainderEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" class="source-row detail-relation-row">
+              <div v-if="trustedLoot.length" class="source-table dark-table">
+                <div v-for="entry in trustedLootVisibleEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                   <span class="sprite-frame detail-relation-icon">
                     <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
                   </span>
-                  <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [quantityLabel(entry), chanceLabel(entry), lootConditionLabel(entry)].filter(Boolean).join(' · ') || '掉落资料待补充' }}</span></div>
+                  <div class="detail-relation-copy">
+                    <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
+                    <b v-else>{{ entryTitle(entry) }}</b>
+                    <span>{{ [quantityLabel(entry), chanceLabel(entry), lootConditionLabel(entry)].filter(Boolean).join(' · ') || '掉落资料待补充' }}</span>
+                  </div>
                   <strong class="detail-relation-meta">掉落</strong>
                 </div>
               </div>
-            </details>
-            <p v-if="!trustedLoot.length">暂时没有整理到掉落物。</p>
-          </article>
+              <details v-if="trustedLootRemainderEntries.length" class="detail-group-remainder">
+                <summary>展开其余 {{ trustedLootRemainderEntries.length }} 条</summary>
+                <div class="source-table dark-table">
+                  <div v-for="entry in trustedLootRemainderEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
+                    <span class="sprite-frame detail-relation-icon">
+                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
+                    </span>
+                    <div class="detail-relation-copy">
+                      <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
+                      <b v-else>{{ entryTitle(entry) }}</b>
+                      <span>{{ [quantityLabel(entry), chanceLabel(entry), lootConditionLabel(entry)].filter(Boolean).join(' · ') || '掉落资料待补充' }}</span>
+                    </div>
+                    <strong class="detail-relation-meta">掉落</strong>
+                  </div>
+                </div>
+              </details>
+              <div v-if="additionalLoot.length" class="detail-subgroup npc-additional-loot">
+                <div class="detail-subgroup-title">
+                  <b>其他掉落记录</b>
+                  <span>{{ additionalLoot.length }} 条 · 需结合来源记录查看</span>
+                </div>
+                <div class="source-table dark-table">
+                  <div v-for="entry in additionalLoot.slice(0, 6)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
+                    <span class="sprite-frame detail-relation-icon">
+                      <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
+                    </span>
+                    <div class="detail-relation-copy">
+                      <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
+                      <b v-else>{{ entryTitle(entry) }}</b>
+                      <span>{{ [quantityLabel(entry), chanceLabel(entry), lootConditionLabel(entry)].filter(Boolean).join(' · ') || '掉落资料待补充' }}</span>
+                    </div>
+                    <strong class="detail-relation-meta">补充</strong>
+                  </div>
+                </div>
+              </div>
+              <p v-if="!trustedLoot.length && !additionalLoot.length" class="tp-detail-empty">暂时没有整理到掉落物。</p>
+            </article>
 
-          <article class="detail-module dark-card">
+          <article :class="['detail-module dark-card', detailLayout.detailModuleClass]">
             <div class="module-title">
               <h2>出售物品</h2>
               <span class="tag gold">{{ shopEntries.length }} 项</span>
@@ -353,38 +381,46 @@ const materialStatus = computed(() => ({
                   <span>{{ group.entries.length }} 项 · {{ group.meta }}</span>
                 </div>
                 <div class="source-table dark-table">
-                  <div v-for="entry in group.entries.slice(0, 8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" class="source-row detail-relation-row">
+                  <div v-for="entry in group.entries.slice(0, 8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                     <span class="sprite-frame detail-relation-icon">
                       <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
                     </span>
-                    <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [shopPriceLabel(entry), shopConditionSummary(entry)].filter(Boolean).join(' · ') || '商店资料' }}</span></div>
+                    <div class="detail-relation-copy">
+                      <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
+                      <b v-else>{{ entryTitle(entry) }}</b>
+                      <span>{{ [shopPriceLabel(entry), shopConditionSummary(entry)].filter(Boolean).join(' · ') || '商店资料' }}</span>
+                    </div>
                     <strong class="detail-relation-meta">商店</strong>
                   </div>
                 </div>
                 <details v-if="group.entries.length > 8" class="detail-group-remainder">
                   <summary>展开其余 {{ group.entries.length - 8 }} 项</summary>
                   <div class="source-table dark-table">
-                    <div v-for="entry in group.entries.slice(8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" class="source-row detail-relation-row">
+                    <div v-for="entry in group.entries.slice(8)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                       <span class="sprite-frame detail-relation-icon">
                         <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
                       </span>
-                      <div class="detail-relation-copy"><b>{{ entryTitle(entry) }}</b><span>{{ [shopPriceLabel(entry), shopConditionSummary(entry)].filter(Boolean).join(' · ') || '商店资料' }}</span></div>
+                      <div class="detail-relation-copy">
+                        <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
+                        <b v-else>{{ entryTitle(entry) }}</b>
+                        <span>{{ [shopPriceLabel(entry), shopConditionsLabel(entry)].filter(Boolean).join(' · ') || '商店资料' }}</span>
+                      </div>
                       <strong class="detail-relation-meta">商店</strong>
                     </div>
                   </div>
                 </details>
               </section>
             </div>
-            <p v-else>暂时没有整理到出售物品。</p>
+            <p v-else class="tp-detail-empty">暂时没有整理到出售物品。</p>
           </article>
 
-          <article class="detail-module dark-card">
+          <article :class="['detail-module dark-card', detailLayout.detailModuleClass]">
             <div class="module-title">
               <h2>状态效果</h2>
               <span class="tag paper">{{ buffRelations.length }} 条</span>
             </div>
             <div v-if="buffRelations.length" class="source-table dark-table">
-              <div v-for="entry in buffRelations" :key="String(entry.id ?? entry.buffId ?? entry.buffInternalName)" class="source-row detail-relation-row">
+              <div v-for="entry in buffRelations" :key="String(entry.id ?? entry.buffId ?? entry.buffInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
                 <span class="sprite-frame detail-relation-icon">
                   <CommonPreviewImage :src="entryImage(entry)" :alt="entryTitle(entry)" :fallback="firstGlyph(entryTitle(entry))" />
                 </span>
@@ -392,10 +428,11 @@ const materialStatus = computed(() => ({
                 <strong class="detail-relation-meta">Buff</strong>
               </div>
             </div>
-            <p v-else>暂时没有整理到状态效果。</p>
+            <p v-else class="tp-detail-empty">暂时没有整理到状态效果。</p>
           </article>
+          </div>
 
-          <aside class="evidence-panel dark-card">
+          <aside :class="['evidence-panel dark-card', detailLayout.detailModuleClass]">
             <span class="eyebrow">关联资料</span>
             <div class="evidence-step"><div><b>掉落物</b><span>{{ materialStatus.loot }}</span></div></div>
             <div class="evidence-step"><div><b>出售物品</b><span>{{ materialStatus.shop }}</span></div></div>
@@ -403,27 +440,18 @@ const materialStatus = computed(() => ({
           </aside>
         </section>
 
-        <section v-if="additionalLoot.length || relatedItemSections.length" class="detail-mosaic">
-          <article v-if="additionalLoot.length" class="detail-module dark-card">
-            <div class="module-title">
-              <h2>其他掉落</h2>
-              <span class="tag paper">{{ additionalLoot.length }} 条</span>
-            </div>
-            <div class="signal-list">
-              <div v-for="entry in additionalLoot.slice(0, 6)" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)">
-                <b>掉落</b><span>{{ entryTitle(entry) }}</span><em>{{ [quantityLabel(entry), chanceLabel(entry)].filter(Boolean).join(' · ') || '掉落资料待补充' }}</em>
-              </div>
-            </div>
-          </article>
-
-          <article v-for="section in relatedItemSections" :key="section.title" class="detail-module dark-card">
+        <section v-if="relatedItemSections.length" class="npc-related-grid">
+          <article v-for="section in relatedItemSections" :key="section.title" :class="['detail-module dark-card', detailLayout.detailModuleClass]">
             <div class="module-title">
               <h2>{{ section.title }}</h2>
               <span class="tag paper">{{ section.entries.length }} 条</span>
             </div>
             <div class="signal-list">
               <div v-for="entry in section.entries" :key="entry.id">
-                <b>关联</b><span>{{ entry.title }}</span><em>{{ entry.meta || '相关资料' }}</em>
+                <b>关联</b>
+                <NuxtLink v-if="entry.href" :to="entry.href">{{ entry.title }}</NuxtLink>
+                <span v-else>{{ entry.title }}</span>
+                <em>{{ entry.meta || '相关资料' }}</em>
               </div>
             </div>
           </article>
@@ -461,6 +489,25 @@ const materialStatus = computed(() => ({
 .detail-relation-copy span {
   display: block;
   line-height: 1.5;
+}
+
+.detail-relation-link,
+.signal-list a {
+  color: var(--text-strong);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.detail-relation-link:hover,
+.signal-list a:hover {
+  color: var(--gold);
+}
+
+.npc-related-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--tp-detail-page-gap, 22px);
+  min-width: 0;
 }
 
 .grouped-source-list,
