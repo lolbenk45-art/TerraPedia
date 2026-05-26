@@ -7078,6 +7078,17 @@ img[data-preview-fallback] {
   flex: 0 0 auto;
   z-index: 4;
 }
+.recipe-branch.is-wiki-flow > .recipe-children > .recipe-ingredient-branch > .recipe-ingredient-node::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: 1px;
+  height: 10px;
+  background: rgba(217, 185, 91, 0.24);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
 .recipe-branch.is-wiki-flow > .recipe-children::before {
   content: none;
 }
@@ -7094,7 +7105,15 @@ img[data-preview-fallback] {
   padding: 4px 0 0;
 }
 .recipe-branch.is-wiki-flow > .recipe-station-row::before {
-  content: none;
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 1px;
+  height: 10px;
+  background: rgba(217, 185, 91, 0.24);
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 .recipe-branch.is-wiki-flow > .recipe-station-row::after {
   content: "";
