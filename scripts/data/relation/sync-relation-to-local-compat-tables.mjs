@@ -223,7 +223,11 @@ WHERE ${publishableRelationWhere}
   AND ${publishableFactWhere}`.trim()
     },
     npc_shop_entries: {
-      deleteSql: `DELETE FROM ${localShop}`,
+      deleteSql: `DELETE se
+FROM ${localShop} se
+INNER JOIN ${localNpcs} n
+  ON n.id = se.npc_id
+WHERE COALESCE(n.is_town_npc, 0) <> 1`,
       countSql: `SELECT COUNT(*) AS total
 FROM ${shopRelations} r
 INNER JOIN ${sourceFacts} f
@@ -237,7 +241,8 @@ INNER JOIN ${localItems} i
  AND i.deleted = 0
  AND i.status = 1
 WHERE ${publishableRelationWhere}
-  AND ${publishableFactWhere}`,
+  AND ${publishableFactWhere}
+  AND COALESCE(n.is_town_npc, 0) <> 1`,
       sampleSql: `SELECT r.npc_internal_name, r.item_internal_name, r.price_text
 FROM ${shopRelations} r
 INNER JOIN ${sourceFacts} f
@@ -252,6 +257,7 @@ INNER JOIN ${localItems} i
  AND i.status = 1
 WHERE ${publishableRelationWhere}
   AND ${publishableFactWhere}
+  AND COALESCE(n.is_town_npc, 0) <> 1
 LIMIT 5`,
       insertSql: `
 INSERT INTO ${localShop}
@@ -277,10 +283,17 @@ INNER JOIN ${localItems} i
  AND i.deleted = 0
  AND i.status = 1
 WHERE ${publishableRelationWhere}
-  AND ${publishableFactWhere}`.trim()
+  AND ${publishableFactWhere}
+  AND COALESCE(n.is_town_npc, 0) <> 1`.trim()
     },
     npc_shop_conditions: {
-      deleteSql: `DELETE FROM ${localShopConditions}`,
+      deleteSql: `DELETE sc
+FROM ${localShopConditions} sc
+INNER JOIN ${localShop} se
+  ON se.id = sc.shop_entry_id
+INNER JOIN ${localNpcs} n
+  ON n.id = se.npc_id
+WHERE COALESCE(n.is_town_npc, 0) <> 1`,
       countSql: `SELECT COUNT(*) AS total
 FROM ${shopRelations} r
 INNER JOIN ${sourceFacts} f
@@ -295,6 +308,7 @@ INNER JOIN ${localItems} i
  AND i.status = 1
 WHERE ${publishableRelationWhere}
   AND ${publishableFactWhere}
+  AND COALESCE(n.is_town_npc, 0) <> 1
   AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL)`,
       sampleSql: `SELECT r.npc_internal_name, r.item_internal_name, r.condition_source_text
 FROM ${shopRelations} r
@@ -310,6 +324,7 @@ INNER JOIN ${localItems} i
  AND i.status = 1
 WHERE ${publishableRelationWhere}
   AND ${publishableFactWhere}
+  AND COALESCE(n.is_town_npc, 0) <> 1
   AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL)
 LIMIT 5`,
       insertSql: `
@@ -339,6 +354,7 @@ INNER JOIN ${localShop} se
  AND (se.price_text COLLATE utf8mb4_unicode_ci <=> r.price_text COLLATE utf8mb4_unicode_ci)
 WHERE ${publishableRelationWhere}
   AND ${publishableFactWhere}
+  AND COALESCE(n.is_town_npc, 0) <> 1
   AND (r.condition_events_json IS NOT NULL OR r.special_flags_json IS NOT NULL OR r.condition_source_text IS NOT NULL)`.trim()
     }
   };

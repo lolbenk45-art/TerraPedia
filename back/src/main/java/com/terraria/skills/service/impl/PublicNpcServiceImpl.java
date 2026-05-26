@@ -9,8 +9,10 @@ import com.terraria.skills.dto.NpcBuffRelationDTO;
 import com.terraria.skills.dto.NpcDetailDTO;
 import com.terraria.skills.dto.NpcListItemDTO;
 import com.terraria.skills.dto.NpcLootEntryDTO;
+import com.terraria.skills.dto.NpcLivingPreferenceDTO;
 import com.terraria.skills.dto.NpcShopConditionDTO;
 import com.terraria.skills.dto.NpcShopEntryDTO;
+import com.terraria.skills.dto.NpcWikiAssetsDTO;
 import com.terraria.skills.dto.PublicNpcQuery;
 import com.terraria.skills.entity.Category;
 import com.terraria.skills.entity.Item;
@@ -493,7 +495,59 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setSourceItemsJson(listItem.getSourceItemsJson());
         dto.setBehaviorNotes(trimToNull(npc.getBehaviorNotes()));
         dto.setStatus(npc.getStatus());
+        dto.setWikiAssets(parseWikiAssets(npc.getWikiAssetsJson()));
+        dto.setLivingPreferences(parseLivingPreferences(npc.getLivingPreferencesJson()));
         return dto;
+    }
+
+    private NpcWikiAssetsDTO parseWikiAssets(String json) {
+        String text = trimToNull(json);
+        if (text == null) {
+            return null;
+        }
+        try {
+            JsonNode root = objectMapper.readTree(text);
+            NpcWikiAssetsDTO dto = new NpcWikiAssetsDTO();
+            dto.setSpriteImage(managedDisplayImageUrl(textOrNull(root.path("spriteImage"))));
+            dto.setMapIconImage(managedDisplayImageUrl(textOrNull(root.path("mapIconImage"))));
+            dto.setDialogPortraitImage(managedDisplayImageUrl(textOrNull(root.path("dialogPortraitImage"))));
+            if (dto.getSpriteImage() == null && dto.getMapIconImage() == null && dto.getDialogPortraitImage() == null) {
+                return null;
+            }
+            return dto;
+        } catch (Exception exception) {
+            log.warn("Failed to parse NPC wiki assets JSON", exception);
+            return null;
+        }
+    }
+
+    private List<NpcLivingPreferenceDTO> parseLivingPreferences(String json) {
+        String text = trimToNull(json);
+        if (text == null) {
+            return List.of();
+        }
+        try {
+            JsonNode root = objectMapper.readTree(text);
+            if (!root.isArray()) {
+                return List.of();
+            }
+            List<NpcLivingPreferenceDTO> result = new ArrayList<>();
+            for (JsonNode node : root) {
+                NpcLivingPreferenceDTO dto = new NpcLivingPreferenceDTO();
+                dto.setTargetType(textOrNull(node.path("targetType")));
+                dto.setPreference(textOrNull(node.path("preference")));
+                dto.setTargetId(node.path("targetId").isNumber() ? node.path("targetId").asLong() : null);
+                dto.setTargetName(textOrNull(node.path("targetName")));
+                dto.setTargetNameZh(textOrNull(node.path("targetNameZh")));
+                if (dto.getPreference() != null && (dto.getTargetName() != null || dto.getTargetNameZh() != null)) {
+                    result.add(dto);
+                }
+            }
+            return result;
+        } catch (Exception exception) {
+            log.warn("Failed to parse NPC living preferences JSON", exception);
+            return List.of();
+        }
     }
 
     private Map<Long, Integer> loadRelationCounts(String tableName, List<Npc> npcs, boolean npcDropOnly) {

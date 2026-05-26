@@ -33,6 +33,32 @@ test('resolveEntityManagedUrlPrefixes derives entity suffix from generic bucket 
   ]);
 });
 
+test('isManagedUrl enforces URL origin and path boundaries', () => {
+  const npcPrefixes = resolveEntityManagedUrlPrefixes('npcs', [
+    'http://localhost:9000/terrapedia-images'
+  ]);
+
+  assert.deepEqual(npcPrefixes, ['http://localhost:9000/terrapedia-images/npcs']);
+  assert.equal(
+    isManagedUrl('http://localhost:9000/terrapedia-images/npcs/merchant.png', npcPrefixes),
+    true
+  );
+  assert.equal(
+    isManagedUrl('http://localhost:9000/terrapedia-images/items/merchant.png', npcPrefixes),
+    false
+  );
+  assert.equal(
+    isManagedUrl('http://localhost:9000/terrapedia-images/npcs2/guide.png', [
+      'http://localhost:9000/terrapedia-images/npcs/'
+    ]),
+    false
+  );
+  assert.equal(
+    isManagedUrl('http://cdn.example.com/terrapedia-images/npcs/guide.png', npcPrefixes),
+    false
+  );
+});
+
 test('isManagedUrlForEntity rejects cross-domain managed URLs', () => {
   const prefixes = [
     'http://localhost:9000/terrapedia-images/npcs',

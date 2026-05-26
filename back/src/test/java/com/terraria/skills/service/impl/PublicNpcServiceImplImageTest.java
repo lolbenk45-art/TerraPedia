@@ -320,6 +320,40 @@ class PublicNpcServiceImplImageTest {
     }
 
     @Test
+    void shouldHideRawWikiNpcWikiAssetsFromDetailEntityJson() {
+        Npc npc = npc(17L, 17L, "Merchant", "Merchant");
+        npc.setWikiAssetsJson("""
+            {"dialogPortraitImage":"https://terraria.wiki.gg/images/thumb/Merchant_%28portrait%29.png/70px-Merchant_%28portrait%29.png"}
+            """);
+        when(npcMapper.selectById(17L)).thenReturn(npc);
+
+        NpcDetailDTO detail = newService().getNpcById(npc.getId());
+
+        assertNull(detail.getWikiAssets());
+    }
+
+    @Test
+    void shouldParseManagedNpcWikiAssetsAndLivingPreferencesFromDetailEntityJson() {
+        Npc npc = npc(17L, 17L, "Merchant", "Merchant");
+        npc.setWikiAssetsJson("""
+            {"spriteImage":"http://localhost:9000/terrapedia-images/npcs/merchant.png","mapIconImage":"http://localhost:9000/terrapedia-images/npcs/merchant-map.png","dialogPortraitImage":"http://localhost:9000/terrapedia-images/npcs/merchant-dialog-portrait.png"}
+            """);
+        npc.setLivingPreferencesJson("""
+            [{"targetType":"biome","preference":"like","targetName":"Forest","targetNameZh":"森林"},{"targetType":"npc","preference":"hate","targetId":369,"targetName":"Angler","targetNameZh":"渔夫"},{"preference":"like","targetName":"Unknown neighbor","targetNameZh":"未知邻居"}]
+            """);
+        when(npcMapper.selectById(17L)).thenReturn(npc);
+
+        NpcDetailDTO detail = newService().getNpcById(npc.getId());
+
+        assertEquals("http://localhost:9000/terrapedia-images/npcs/merchant-dialog-portrait.png", detail.getWikiAssets().getDialogPortraitImage());
+        assertEquals(3, detail.getLivingPreferences().size());
+        assertEquals("biome", detail.getLivingPreferences().get(0).getTargetType());
+        assertEquals("渔夫", detail.getLivingPreferences().get(1).getTargetNameZh());
+        assertNull(detail.getLivingPreferences().get(2).getTargetType());
+        assertEquals("未知邻居", detail.getLivingPreferences().get(2).getTargetNameZh());
+    }
+
+    @Test
     void shouldReturnManagedCachedBuffImageForPublicNpcBuffRelations() {
         Npc npc = new Npc();
         npc.setId(7L);
@@ -658,6 +692,7 @@ class PublicNpcServiceImplImageTest {
                 return value != null
                     && (value.startsWith("http://localhost:9000/terrapedia-images/items/")
                     || value.startsWith("http://localhost:9000/terrapedia-images/buffs/")
+                    || value.startsWith("http://localhost:9000/terrapedia-images/npcs/")
                     || value.startsWith("https://cdn.example.com/terrapedia-images/buffs/"));
             }
 
@@ -666,6 +701,7 @@ class PublicNpcServiceImplImageTest {
                 return List.of(
                     "http://localhost:9000/terrapedia-images/items/",
                     "http://localhost:9000/terrapedia-images/buffs/",
+                    "http://localhost:9000/terrapedia-images/npcs/",
                     "https://cdn.example.com/terrapedia-images/buffs/"
                 );
             }

@@ -14,6 +14,13 @@ export function buildTownNpcImportArgs(options = {}) {
   return args;
 }
 
+export function buildTownNpcImageSyncArgs(options = {}) {
+  const args = [`--apply=${isTrue(options.apply) ? 'true' : 'false'}`, '--scopes=town_npc_maintenance'];
+  pushOption(args, 'input', options.output ?? options.input);
+  pushOption(args, 'apiBase', options.apiBase);
+  return args;
+}
+
 function pushOption(args, key, value) {
   if (value == null || value === '') {
     return;

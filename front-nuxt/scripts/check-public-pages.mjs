@@ -505,6 +505,8 @@ const requiredPublicDataLayerMarkers = {
     'export type PublicItemQuery',
     'export type CatalogItem',
     'export type PublicNpcQuery',
+    'export type PublicNpcWikiAssets',
+    'export type PublicNpcLivingPreference',
     'export type PublicNpcListItem',
     'export type PublicNpcAggregate',
     'export type NpcCatalogCard',
@@ -1392,6 +1394,31 @@ for (const path of scanFiles) {
     }
   }
 
+  if (path === 'types/public-api.ts') {
+    const livingPreferenceType = content.match(/export type PublicNpcLivingPreference = \{[\s\S]*?\n\}/)?.[0] ?? ''
+    if (livingPreferenceType.includes('sourceText') || livingPreferenceType.includes('source_text')) {
+      violations.push(`${path}: PublicNpcLivingPreference must not expose raw sourceText fields`)
+    }
+  }
+
+  if (path === 'composables/usePublicNpcs.ts') {
+    if (!content.includes('const normalizeNpcLivingPreference = (raw: PublicNpcLivingPreference): PublicNpcLivingPreference => ({')) {
+      violations.push(`${path}: NPC living preferences must pass through the sanitizing normalizer`)
+    }
+    const livingPreferenceNormalizer = content.match(/const normalizeNpcLivingPreference = \(raw: PublicNpcLivingPreference\): PublicNpcLivingPreference => \(\{[\s\S]*?\n\}\)/)?.[0] ?? ''
+    if (livingPreferenceNormalizer.includes('...raw') || livingPreferenceNormalizer.includes('sourceText') || livingPreferenceNormalizer.includes('source_text')) {
+      violations.push(`${path}: normalizeNpcLivingPreference must not forward raw sourceText fields`)
+    }
+    const npcBaseNormalizer = content.match(/export const normalizePublicNpcBase = \(raw: PublicNpcListItem[\s\S]*?\n\}/)?.[0] ?? ''
+    if (npcBaseNormalizer.includes('...raw')) {
+      violations.push(`${path}: normalizePublicNpcBase raw payload must be a normalized field allowlist, not a raw spread`)
+    }
+    const rawPayload = content.match(/raw: \{[\s\S]*?\n    \},\n  \}/)?.[0] ?? ''
+    if (rawPayload.includes('living_preferences') || rawPayload.includes('sourceText') || rawPayload.includes('source_text')) {
+      violations.push(`${path}: normalizePublicNpcBase raw payload must not forward snake_case raw living_preferences`)
+    }
+  }
+
   if (path === 'pages/npcs/[id].vue') {
     for (const marker of [
       'usePublicNpcAggregate',
@@ -1407,6 +1434,18 @@ for (const path of scanFiles) {
       'lootConditionLabel(entry)',
       'buffConditionLabel(entry)',
       'shopConditionSummary(entry)',
+      'dialoguePortraitImage',
+      '生活偏好',
+      'preferenceLabel',
+      'normalizedPreferenceValue',
+      'livingPreferenceRows',
+      'preferenceTargetPath',
+      'preferenceMissingLinkLabel',
+      '偏好对象',
+      '未关联资料',
+      '特殊条件',
+      'npcWikiAssets.value?.spriteImage',
+      'npcWikiAssets.value?.mapIconImage',
       'npcBehaviorSummary',
       '基础数值',
       '出售物品',
@@ -1463,6 +1502,18 @@ for (const path of scanFiles) {
 
     if (content.includes('entry.conditions].filter(Boolean)')) {
       violations.push(`${path}: NPC detail rows must not render raw conditions directly`)
+    }
+
+    const npcDetailTemplate = extractTemplateContent(content)
+    for (const forbiddenMarker of [
+      'sourceText',
+      '{{living preferences',
+      'terraria.wiki.gg',
+      'shopConditionsLabel(entry)',
+    ]) {
+      if (npcDetailTemplate.includes(forbiddenMarker)) {
+        violations.push(`${path}: NPC detail template must not render forbidden raw marker ${forbiddenMarker}`)
+      }
     }
 
     if (content.includes('firstText(npc?.behaviorNotes') || content.includes('firstText(npc.value?.behaviorNotes')) {

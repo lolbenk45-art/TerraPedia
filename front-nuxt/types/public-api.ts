@@ -426,6 +426,27 @@ export type PublicNpcTraceableItemSummary = {
   [key: string]: unknown
 }
 
+export type PublicNpcWikiAssets = {
+  spriteImage?: string | null
+  sprite_image?: string | null
+  mapIconImage?: string | null
+  map_icon_image?: string | null
+  dialogPortraitImage?: string | null
+  dialog_portrait_image?: string | null
+}
+
+export type PublicNpcLivingPreference = {
+  targetType?: string | null
+  target_type?: string | null
+  preference?: string | null
+  targetId?: number | string | null
+  target_id?: number | string | null
+  targetName?: string | null
+  target_name?: string | null
+  targetNameZh?: string | null
+  target_name_zh?: string | null
+}
+
 export type PublicNpcListItem = {
   id?: number | string | null
   gameId?: number | string | null
@@ -475,6 +496,18 @@ export type PublicNpcListItem = {
   shop_items_json?: string | null
   sourceItemsJson?: string | null
   source_items_json?: string | null
+  /**
+   * Rich NPC assets are only expected from detail/aggregate payloads.
+   * List endpoints may omit this field and catalog cards must not expose it at top level.
+   */
+  wikiAssets?: PublicNpcWikiAssets | null
+  wiki_assets?: PublicNpcWikiAssets | null
+  /**
+   * Rich living-preference rows are only expected from detail/aggregate payloads.
+   * List endpoints may omit this field and catalog cards must not expose it at top level.
+   */
+  livingPreferences?: PublicNpcLivingPreference[] | null
+  living_preferences?: PublicNpcLivingPreference[] | null
   lootItems?: PublicNpcTraceableItemSummary[] | unknown
   shopItems?: PublicNpcTraceableItemSummary[] | unknown
   sourceItems?: PublicNpcTraceableItemSummary[] | unknown

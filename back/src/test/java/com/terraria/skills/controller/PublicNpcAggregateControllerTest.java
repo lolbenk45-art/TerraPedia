@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.terraria.skills.dto.NpcBuffRelationDTO;
 import com.terraria.skills.dto.NpcDetailDTO;
+import com.terraria.skills.dto.NpcLivingPreferenceDTO;
 import com.terraria.skills.dto.NpcLootEntryDTO;
 import com.terraria.skills.dto.NpcShopEntryDTO;
+import com.terraria.skills.dto.NpcWikiAssetsDTO;
 import com.terraria.skills.service.PublicNpcService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -185,6 +187,46 @@ class PublicNpcAggregateControllerTest {
                 .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.npc.behaviorNotes").value("Offers advice to new players."));
+    }
+
+    @Test
+    void shouldExposeWikiAssetsAndLivingPreferencesOnAggregateNpcBase() throws Exception {
+        NpcDetailDTO npc = new NpcDetailDTO();
+        npc.setId(17L);
+        npc.setGameId(17L);
+        npc.setInternalName("Merchant");
+        npc.setName("Merchant");
+        npc.setNameZh("商人");
+
+        NpcWikiAssetsDTO wikiAssets = new NpcWikiAssetsDTO();
+        wikiAssets.setSpriteImage("http://localhost:9000/terrapedia-images/npcs/merchant.png");
+        wikiAssets.setMapIconImage("http://localhost:9000/terrapedia-images/npcs/merchant-map.png");
+        wikiAssets.setDialogPortraitImage("http://localhost:9000/terrapedia-images/npcs/merchant-dialog-portrait.png");
+        npc.setWikiAssets(wikiAssets);
+
+        NpcLivingPreferenceDTO forestPreference = new NpcLivingPreferenceDTO();
+        forestPreference.setTargetType("biome");
+        forestPreference.setPreference("like");
+        forestPreference.setTargetName("Forest");
+        forestPreference.setTargetNameZh("森林");
+
+        NpcLivingPreferenceDTO anglerPreference = new NpcLivingPreferenceDTO();
+        anglerPreference.setTargetType("npc");
+        anglerPreference.setPreference("hate");
+        anglerPreference.setTargetId(369L);
+        anglerPreference.setTargetName("Angler");
+        anglerPreference.setTargetNameZh("渔夫");
+
+        npc.setLivingPreferences(List.of(forestPreference, anglerPreference));
+        publicNpcService.npcToReturn = npc;
+
+        mockMvc.perform(get("/public/npcs/17/aggregate")
+                .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.npc.wikiAssets.dialogPortraitImage").value("http://localhost:9000/terrapedia-images/npcs/merchant-dialog-portrait.png"))
+            .andExpect(jsonPath("$.data.npc.livingPreferences[0].targetType").value("biome"))
+            .andExpect(jsonPath("$.data.npc.livingPreferences[0].preference").value("like"))
+            .andExpect(jsonPath("$.data.npc.livingPreferences[1].targetNameZh").value("渔夫"));
     }
 
     @Test

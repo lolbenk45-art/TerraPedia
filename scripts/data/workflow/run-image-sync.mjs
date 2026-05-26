@@ -7,6 +7,7 @@ import { fetchWikiImageInfo, parseCliArgs, sharedDataPath } from '../lib/wiki-it
 import {
   createMinioImageUploader,
   isManagedUrl,
+  resolveEntityManagedUrlPrefixes,
   slugify,
   toText
 } from '../lib/minio-image-upload.mjs';
@@ -57,6 +58,8 @@ for (const scope of scopes) {
     summary.modules.buffs = await syncBuffs();
   } else if (scope === 'armor_set_images') {
     summary.modules.armor_set_images = await syncArmorSetImages();
+  } else if (scope === 'town_npc_maintenance') {
+    summary.modules.town_npc_maintenance = await syncTownNpcMaintenanceImages();
   }
 }
 
@@ -157,6 +160,38 @@ async function syncArmorSetImages() {
     },
     fileNameHint: (record, url) => `${slugify(record?.sourceFileTitle || record?.pageTitle || 'armor-set')}${guessExtension(url)}`,
     nameHint: (record) => record?.sourceFileTitle || record?.pageTitle || 'armor-set'
+  });
+}
+
+async function syncTownNpcMaintenanceImages() {
+  const filePath = path.resolve(
+    options.input ?? path.join(process.cwd(), 'data', 'generated', 'wiki-town-npc-maintenance.latest.json')
+  );
+  const payload = readJson(filePath);
+  const townNpcs = Array.isArray(payload?.records) ? payload.records : [];
+  const records = townNpcs.flatMap((record) => {
+    const details = record?.wikiDetails && typeof record.wikiDetails === 'object'
+      ? record.wikiDetails
+      : {};
+    return [
+      { owner: record, field: 'spriteImage', sourceUrl: toText(details.spriteImage) },
+      { owner: record, field: 'mapIconImage', sourceUrl: toText(details.mapIconImage) },
+      { owner: record, field: 'dialogPortraitImage', sourceUrl: toText(details.dialogPortraitImage) },
+    ].filter((entry) => entry.sourceUrl);
+  });
+
+  return syncRecordImages({
+    entityDomain: 'npcs',
+    filePath,
+    payload,
+    records,
+    sourceUrlAccessor: (record) => record.sourceUrl,
+    targetUrlWriter: (record, url) => {
+      record.owner.wikiDetails = record.owner.wikiDetails ?? {};
+      record.owner.wikiDetails[record.field] = url;
+    },
+    fileNameHint: (record, url) => `${slugify(`${record.owner?.internalName || 'town-npc'}-${record.field}`)}${guessExtension(url)}`,
+    nameHint: (record) => `${record.owner?.internalName || 'town-npc'} ${record.field}`
   });
 }
 
@@ -271,7 +306,7 @@ function resolveScopes(rawValue) {
       .split(',')
       .map((entry) => entry.trim())
       .filter(Boolean)
-  )].filter((scope) => ['items', 'npcs', 'projectiles', 'buffs', 'armor_set_images'].includes(scope));
+  )].filter((scope) => ['items', 'npcs', 'projectiles', 'buffs', 'armor_set_images', 'town_npc_maintenance'].includes(scope));
 }
 
 function guessExtension(sourceUrl) {
@@ -286,16 +321,6 @@ function guessExtension(sourceUrl) {
   } catch {
     return '.png';
   }
-}
-
-function resolveEntityManagedUrlPrefixes(entityDomain, prefixes) {
-  const normalizedDomain = toText(entityDomain)?.toLowerCase();
-  if (!normalizedDomain) {
-    return Array.isArray(prefixes) ? prefixes : [];
-  }
-  const filtered = (Array.isArray(prefixes) ? prefixes : [])
-    .filter((prefix) => String(prefix).toLowerCase().endsWith(`/${normalizedDomain}/`));
-  return filtered.length > 0 ? filtered : (Array.isArray(prefixes) ? prefixes : []);
 }
 
 function readJson(filePath) {

@@ -95,6 +95,11 @@ test('town npc maintenance fetch writes completed progress to explicit path with
   assert.equal(output.totalTownNpcs, 1);
   assert.equal(output.summary.scrapedCount, 1);
   assert.equal(output.records[0].internalName, 'Wizard');
+  assert.deepEqual(output.records[0].livingPreferences, [
+    { targetType: 'biome', preference: 'like', targetName: 'Forest', targetNameZh: null, sourceText: 'Likes Forest' },
+    { targetType: 'npc', preference: 'like', targetName: 'Princess', targetNameZh: null, sourceText: 'Likes Princess' },
+    { targetType: 'npc', preference: 'hate', targetName: 'Angler', targetNameZh: null, sourceText: 'Hates Angler' },
+  ]);
 });
 
 test('default town npc maintenance progress path follows WORKTREE_ROOT when omitted', { skip: missingPythonRuntimeReason() }, () => {
@@ -221,6 +226,11 @@ function buildMockNpcHtml() {
           <table>
             <tr><th>物品</th><th>价格</th><th>可用性</th></tr>
             <tr><td><a href="/wiki/Ice_Rod" title="Ice Rod">冰雪魔杖</a></td><td>50金币</td><td>总是</td></tr>
+          </table>
+          <h2><span id="Living_preferences" class="mw-headline">Living preferences</span></h2>
+          <table class="terraria living-preferences">
+            <tr class="like"><th>Likes</th><td><a href="/wiki/Forest" title="Forest">Forest</a></td><td><a href="/wiki/Princess" title="Princess">Princess</a></td></tr>
+            <tr class="hate"><th>Hates</th><td><span class="na">n/a</span></td><td><a href="/wiki/Angler" title="Angler">Angler</a></td></tr>
           </table>
         </div>
       </body>

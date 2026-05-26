@@ -4,6 +4,7 @@ import type {
   PublicNpcAggregate,
   PublicNpcAggregateBundle,
   PublicNpcBuffRelation,
+  PublicNpcLivingPreference,
   PublicNpcListItem,
   PublicNpcListResult,
   PublicNpcLootEntry,
@@ -11,6 +12,7 @@ import type {
   PublicNpcShopCondition,
   PublicNpcShopEntry,
   PublicNpcTraceableItemSummary,
+  PublicNpcWikiAssets,
 } from '~/types/public-api'
 
 const normalizeText = (value: unknown) => String(value ?? '').trim()
@@ -64,6 +66,28 @@ const parseTraceableItemSummaries = (directValue: unknown, jsonValue: unknown) =
   const directRows = parseJsonArray(directValue)
   return (directRows.length > 0 ? directRows : parseJsonArray(jsonValue)).map(normalizeTraceableItemSummary)
 }
+
+const normalizeNpcWikiAssets = (raw: PublicNpcWikiAssets): PublicNpcWikiAssets | null => {
+  const spriteImage = normalizeText(raw.spriteImage ?? raw.sprite_image) || null
+  const mapIconImage = normalizeText(raw.mapIconImage ?? raw.map_icon_image) || null
+  const dialogPortraitImage = normalizeText(raw.dialogPortraitImage ?? raw.dialog_portrait_image) || null
+
+  if (!spriteImage && !mapIconImage && !dialogPortraitImage) return null
+
+  return {
+    spriteImage,
+    mapIconImage,
+    dialogPortraitImage,
+  }
+}
+
+const normalizeNpcLivingPreference = (raw: PublicNpcLivingPreference): PublicNpcLivingPreference => ({
+  targetType: normalizeText(raw.targetType ?? raw.target_type) || null,
+  preference: normalizeText(raw.preference) || null,
+  targetId: toNumberOrNull(raw.targetId ?? raw.target_id),
+  targetName: normalizeText(raw.targetName ?? raw.target_name) || null,
+  targetNameZh: normalizeText(raw.targetNameZh ?? raw.target_name_zh) || null,
+})
 
 const normalizePagination = (
   pagination: Pagination | null | undefined,
@@ -130,6 +154,12 @@ export const normalizePublicNpcBase = (raw: PublicNpcListItem, index = 0): NpcCa
   const shopEntryCount = toNumberOrNull(raw.shopEntryCount ?? raw.shop_entry_count) ?? 0
   const buffRelationCount = toNumberOrNull(raw.buffRelationCount ?? raw.buff_relation_count) ?? 0
   const id = String(npcId)
+  const hasWikiAssets = raw.wikiAssets !== undefined || raw.wiki_assets !== undefined
+  const wikiAssets = hasWikiAssets ? normalizeNpcWikiAssets((raw.wikiAssets ?? raw.wiki_assets ?? {}) as PublicNpcWikiAssets) : undefined
+  const hasLivingPreferences = raw.livingPreferences !== undefined || raw.living_preferences !== undefined
+  const livingPreferences = hasLivingPreferences && Array.isArray(raw.livingPreferences ?? raw.living_preferences)
+    ? (raw.livingPreferences ?? raw.living_preferences ?? []).map(normalizeNpcLivingPreference)
+    : undefined
 
   return {
     id,
@@ -157,7 +187,6 @@ export const normalizePublicNpcBase = (raw: PublicNpcListItem, index = 0): NpcCa
     buffRelationCount,
     searchText: normalizeSearchText([displayName, name, internalName, categoryName, subtitle, gameId, npcType].join(' ')),
     raw: {
-      ...raw,
       id: npcId,
       gameId,
       internalName,
@@ -187,6 +216,8 @@ export const normalizePublicNpcBase = (raw: PublicNpcListItem, index = 0): NpcCa
       lootItems: parseTraceableItemSummaries(raw.lootItems, raw.lootItemsJson ?? raw.loot_items_json),
       shopItems: parseTraceableItemSummaries(raw.shopItems, raw.shopItemsJson ?? raw.shop_items_json),
       sourceItems: parseTraceableItemSummaries(raw.sourceItems, raw.sourceItemsJson ?? raw.source_items_json),
+      ...(hasWikiAssets ? { wikiAssets } : {}),
+      ...(hasLivingPreferences ? { livingPreferences } : {}),
     },
   }
 }

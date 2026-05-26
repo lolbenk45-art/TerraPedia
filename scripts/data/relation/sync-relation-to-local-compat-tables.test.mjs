@@ -39,6 +39,10 @@ test('buildRelationCompatSyncSql rebuilds only owned local compatibility tables'
   assert.doesNotMatch(sql.npc_loot_entries.insertSql, /\bi\.source_id\b/);
   assert.doesNotMatch(sql.npc_shop_entries.insertSql, /\bi\.source_id\b/);
   assert.match(sql.npc_shop_conditions.insertSql, /se\.price_text COLLATE utf8mb4_unicode_ci <=> r\.price_text COLLATE utf8mb4_unicode_ci/);
+  assert.match(sql.npc_shop_entries.deleteSql, /COALESCE\(n\.is_town_npc,\s*0\)\s*<>\s*1/);
+  assert.match(sql.npc_shop_conditions.deleteSql, /COALESCE\(n\.is_town_npc,\s*0\)\s*<>\s*1/);
+  assert.match(sql.npc_shop_entries.insertSql, /COALESCE\(n\.is_town_npc,\s*0\)\s*<>\s*1/);
+  assert.match(sql.npc_shop_conditions.insertSql, /COALESCE\(n\.is_town_npc,\s*0\)\s*<>\s*1/);
   assert.doesNotMatch(JSON.stringify(sql), /item_npc_shop_candidates|item_npc_loot_candidates/);
 });
 
@@ -209,7 +213,7 @@ test('runRelationToLocalCompatSync apply deletes and rebuilds owned tables in de
   );
 
   const deleteOrder = statements
-    .filter((sql) => sql.startsWith('DELETE FROM `terria_v1_local`'))
+    .filter((sql) => /^DELETE\b/.test(sql))
     .map((sql) => sql.match(/`terria_v1_local`\.`([^`]+)`/)?.[1]);
   assert.deepEqual(deleteOrder, [
     'npc_shop_conditions',

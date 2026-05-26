@@ -26,6 +26,7 @@ RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 MAX_REQUEST_RETRIES = 3
 
 SHOP_HEADING_TEXTS = {"出售物品", "商店", "商品"}
+LIVING_PREFERENCES_HEADING_TEXTS = {"Living preferences", "生活偏好", "生活喜好", "居住偏好"}
 LOCALIZED_PAGE_TITLE_OVERRIDES = {
     "Wizard": "巫师",
     "Cyborg": "机器侠",
@@ -361,6 +362,7 @@ def crawl_records(
                     "error": str(exc),
                     "shopItems": [],
                     "shopItemCount": 0,
+                    "livingPreferences": [],
                     "moveInConditions": [],
                     "suggestedGamePeriodId": None,
                     "suggestedGamePeriodReason": None,
@@ -403,6 +405,7 @@ def fetch_town_npc_record(client: Any, seed: TownNpcSeed) -> dict[str, Any]:
     intro_paragraph, move_in_conditions = extract_intro_and_conditions(parser_output)
     shop_items = extract_shop_items(parser_output)
     wiki_details = extract_wiki_details(parser_output)
+    living_preferences = extract_living_preferences(parser_output)
     page_title = extract_title_text(soup) or seed.page_title
     page_id = extract_wg_number(html, "wgArticleId")
     revision_id = extract_wg_number(html, "wgRevisionId")
@@ -424,6 +427,7 @@ def fetch_town_npc_record(client: Any, seed: TownNpcSeed) -> dict[str, Any]:
         "suggestedGamePeriodReason": suggested_reason,
         "shopItems": shop_items,
         "shopItemCount": len(shop_items),
+        "livingPreferences": living_preferences,
         "wikiDetails": wiki_details,
         "fetchedAt": now_iso(),
         "error": None,
@@ -534,6 +538,101 @@ def find_shop_heading(parser_output: Tag) -> Tag | None:
     return None
 
 
+def extract_living_preferences(parser_output: Tag) -> list[dict[str, Any]]:
+    heading = find_living_preferences_heading(parser_output)
+    if heading is None:
+        return []
+
+    table = heading.find_next("table")
+    if table is None:
+        return []
+
+    preferences: list[dict[str, Any]] = []
+    for row in table.find_all("tr"):
+        cells = row.find_all(["th", "td"], recursive=False)
+        if len(cells) < 2:
+            continue
+
+        preference = normalize_preference_value(
+            " ".join(
+                filter(
+                    None,
+                    [
+                        " ".join(row.get("class", [])),
+                        clean_text(cells[0].get_text(" ", strip=True)) or "",
+                    ],
+                )
+            )
+        )
+        if not preference:
+            continue
+
+        preference_label = clean_text(cells[0].get_text(" ", strip=True)) or preference
+        for target_index, cell in enumerate(cells[1:]):
+            target_type = "biome" if target_index == 0 else "npc"
+            for target in extract_living_preference_targets(cell):
+                preferences.append(
+                    {
+                        "targetType": target_type,
+                        "preference": preference,
+                        "targetName": target["targetName"],
+                        "targetNameZh": target["targetNameZh"],
+                        "sourceText": clean_text(f"{preference_label} {target['targetNameZh'] or target['targetName']}"),
+                    }
+                )
+    return preferences
+
+
+def find_living_preferences_heading(parser_output: Tag) -> Tag | None:
+    for heading in parser_output.find_all(["h2", "h3"]):
+        child_with_id = heading.select_one("[id]")
+        heading_id = normalize_text(heading.get("id")) or (
+            normalize_text(child_with_id.get("id")) if child_with_id else None
+        )
+        text = clean_text(heading.get_text(" ", strip=True))
+        if heading_id == "Living_preferences":
+            return heading
+        if text and any(key in text for key in LIVING_PREFERENCES_HEADING_TEXTS):
+            return heading
+    return None
+
+
+def extract_living_preference_targets(cell: Tag) -> list[dict[str, str | None]]:
+    targets: list[dict[str, str | None]] = []
+    anchors = cell.find_all("a")
+    nodes = anchors if anchors else [cell]
+    for node in nodes:
+        visible_text = clean_text(node.get_text(" ", strip=True))
+        if not visible_text or visible_text.lower() in {"n/a", "na", "不适用", "无"}:
+            continue
+        title = clean_text(node.get("title")) if isinstance(node, Tag) else None
+        href_title = extract_title_from_href(node.get("href")) if isinstance(node, Tag) else None
+        target_name = normalize_title_slug(href_title) or title or visible_text
+        target_name_zh = visible_text if visible_text != target_name else None
+        targets.append(
+            {
+                "targetName": target_name,
+                "targetNameZh": target_name_zh,
+            }
+        )
+    return targets
+
+
+def normalize_preference_value(value: Any) -> str | None:
+    text = (normalize_text(value) or "").lower()
+    if not text:
+        return None
+    if any(token in text for token in ["love", "loves", "最爱", "最喜爱", "最喜欢"]):
+        return "love"
+    if any(token in text for token in ["like", "likes", "喜欢", "喜爱"]):
+        return "like"
+    if any(token in text for token in ["dislike", "dislikes", "不喜欢", "反感"]):
+        return "dislike"
+    if any(token in text for token in ["hate", "hates", "讨厌", "厌恶"]):
+        return "hate"
+    return None
+
+
 def extract_wiki_details(parser_output: Tag) -> dict[str, Any]:
     detail = {
         "types": [],
@@ -628,6 +727,7 @@ def build_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
     scraped_count = sum(1 for row in records if not row.get("error"))
     error_count = sum(1 for row in records if row.get("error"))
     shop_item_count = sum(len(row.get("shopItems") or []) for row in records)
+    living_preference_count = sum(len(row.get("livingPreferences") or []) for row in records)
     hardmode_suggestions = sum(1 for row in records if row.get("suggestedGamePeriodId") == 2)
     prehardmode_suggestions = sum(1 for row in records if row.get("suggestedGamePeriodId") == 1)
     return {
@@ -635,6 +735,7 @@ def build_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
         "scrapedCount": scraped_count,
         "errorCount": error_count,
         "shopItemCount": shop_item_count,
+        "livingPreferenceCount": living_preference_count,
         "hardmodeSuggestions": hardmode_suggestions,
         "prehardmodeSuggestions": prehardmode_suggestions,
     }

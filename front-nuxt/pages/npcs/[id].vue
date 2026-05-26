@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type {
   PublicNpcBuffRelation,
+  PublicNpcLivingPreference,
   PublicNpcLootEntry,
   PublicNpcShopCondition,
   PublicNpcShopEntry,
@@ -62,10 +63,21 @@ const secondaryName = computed(() => {
 
 useSeoMeta({
   title: () => `TerraPedia · ${displayName.value}`,
-  description: () => `${displayName.value} 的公开 NPC 资料详情，包含基础数值、掉落、出售物品和状态效果关系。`,
+  description: () => `${displayName.value} 的公开 NPC 资料详情，包含基础数值、生活偏好、掉落、出售物品和状态效果关系。`,
 })
 
-const portraitImage = computed(() => resolvePreviewImageUrl(firstText(npc.value?.imageUrl)))
+const npcWikiAssets = computed(() => npc.value?.wikiAssets ?? npc.value?.wiki_assets ?? null)
+const dialoguePortraitImage = computed(() => resolvePreviewImageUrl(firstText(
+  npcWikiAssets.value?.dialogPortraitImage,
+  npcWikiAssets.value?.dialog_portrait_image,
+)))
+const portraitImage = computed(() => dialoguePortraitImage.value || resolvePreviewImageUrl(firstText(
+  npcWikiAssets.value?.spriteImage,
+  npcWikiAssets.value?.sprite_image,
+  npcWikiAssets.value?.mapIconImage,
+  npcWikiAssets.value?.map_icon_image,
+  npc.value?.imageUrl,
+)))
 const portraitFallback = computed(() => firstGlyph(displayName.value || 'NPC'))
 const detailUpdatedAt = computed(() => {
   const value = firstText(aggregate.value?.aggregatedAt)
@@ -139,6 +151,49 @@ const itemPath = (entry: PublicNpcLootEntry | PublicNpcShopEntry | PublicNpcTrac
   return id ? `/items/${id}` : ''
 }
 
+const normalizedPreferenceValue = (value: unknown) => {
+  const key = firstText(value).toLowerCase()
+  return ['love', 'like', 'dislike', 'hate'].includes(key) ? key : ''
+}
+
+const preferenceLabel = (value: unknown) => {
+  const preference = normalizedPreferenceValue(value)
+  if (preference === 'love') return '最喜欢'
+  if (preference === 'like') return '喜欢'
+  if (preference === 'dislike') return '不喜欢'
+  if (preference === 'hate') return '讨厌'
+  return '偏好'
+}
+
+const preferenceTargetTypeLabel = (value: unknown) => {
+  const type = firstText(value).toLowerCase()
+  if (type === 'biome') return '生物群系'
+  if (type === 'npc') return '邻近 NPC'
+  return '偏好对象'
+}
+
+const preferenceTargetPath = (row: PublicNpcLivingPreference) => {
+  const id = firstText(row.targetId ?? row.target_id)
+  const type = firstText(row.targetType ?? row.target_type).toLowerCase()
+  if (type === 'npc' && id) return `/npcs/${id}`
+  return ''
+}
+
+const preferenceMissingLinkLabel = (row: PublicNpcLivingPreference) => {
+  const type = firstText(row.targetType ?? row.target_type).toLowerCase()
+  return !preferenceTargetPath(row) && type !== 'biome' ? '未关联资料' : ''
+}
+
+const livingPreferenceRows = computed(() => {
+  const rows = npc.value?.livingPreferences ?? npc.value?.living_preferences ?? []
+
+  return Array.isArray(rows)
+    ? rows.filter((row) => (
+      safeNpcDisplayText(row.targetNameZh ?? row.target_name_zh, row.targetName ?? row.target_name)
+    ))
+    : []
+})
+
 const npcBehaviorSummary = computed(() => safeNpcDisplayText(
   npc.value?.behaviorNotes,
   `${displayName.value} 的资料包含基础数值、出售物品、掉落物和状态效果。`,
@@ -162,10 +217,13 @@ const conditionLabel = (condition: PublicNpcShopCondition) => safeNpcDisplayText
   condition.biomeNameEn,
   condition.notes,
 )
+const conditionHasResolvedLabel = (condition: PublicNpcShopCondition) => Boolean(conditionLabel(condition))
 
 const shopConditionsLabel = (entry: PublicNpcShopEntry) => {
   if (Array.isArray(entry.conditions)) {
-    return entry.conditions.map(conditionLabel).filter(Boolean).join(' / ')
+    const labels = entry.conditions.map(conditionLabel).filter(Boolean)
+    const safeNotes = safeNpcDisplayText(entry.notes)
+    return labels.join(' / ') || safeNotes || (entry.conditions.length > 0 || safeNotes ? '特殊条件' : '')
   }
 
   return safeNpcDisplayText(entry.conditions, entry.notes)
@@ -174,6 +232,10 @@ const shopConditionsLabel = (entry: PublicNpcShopEntry) => {
 const shopConditionSummary = (entry: PublicNpcShopEntry) => {
   if (!Array.isArray(entry.conditions)) return shopConditionsLabel(entry)
   const labels = entry.conditions.map(conditionLabel).filter(Boolean)
+  if (labels.length === 0) {
+    const safeNotes = safeNpcDisplayText(entry.notes)
+    return safeNotes || (entry.conditions.length > 0 || safeNotes ? '特殊条件' : '')
+  }
   if (labels.length <= 2) return labels.join(' / ')
   return `${labels.slice(0, 2).join(' / ')} / 另有 ${labels.length - 2} 个条件`
 }
@@ -182,12 +244,13 @@ const shopGroupKey = (entry: PublicNpcShopEntry) => {
   if (!Array.isArray(entry.conditions)) {
     return shopConditionsLabel(entry) ? 'other' : 'always'
   }
-  if (entry.conditions.length === 0) return 'always'
+  if (entry.conditions.length === 0) return safeNpcDisplayText(entry.notes) ? 'other' : 'always'
   const conditions = entry.conditions
-  if (conditions.some((condition) => firstText(condition.gamePeriodNameZh, condition.gamePeriodNameEn))) return 'period'
-  if (conditions.some((condition) => firstText(condition.biomeNameZh, condition.biomeNameEn))) return 'biome'
-  if (conditions.some((condition) => firstText(condition.refNpcNameZh, condition.refNpcName, condition.refItemNameZh, condition.refItemName))) return 'unlock'
-  return conditions.map(conditionLabel).filter(Boolean).length ? 'other' : 'always'
+  if (conditions.some((condition) => safeNpcDisplayText(condition.gamePeriodNameZh, condition.gamePeriodNameEn))) return 'period'
+  if (conditions.some((condition) => safeNpcDisplayText(condition.biomeNameZh, condition.biomeNameEn))) return 'biome'
+  if (conditions.some((condition) => safeNpcDisplayText(condition.refNpcNameZh, condition.refNpcName, condition.refItemNameZh, condition.refItemName))) return 'unlock'
+  if (!conditions.some(conditionHasResolvedLabel)) return 'other'
+  return shopConditionSummary(entry) ? 'other' : 'always'
 }
 
 const shopGroupMeta = {
@@ -411,7 +474,7 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                       <div class="detail-relation-copy">
                         <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
                         <b v-else>{{ entryTitle(entry) }}</b>
-                        <span>{{ [shopPriceLabel(entry), shopConditionsLabel(entry)].filter(Boolean).join(' · ') || '商店资料' }}</span>
+                        <span>{{ [shopPriceLabel(entry), shopConditionSummary(entry)].filter(Boolean).join(' · ') || '商店资料' }}</span>
                       </div>
                       <strong class="detail-relation-meta">商店</strong>
                     </div>
@@ -446,6 +509,27 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
             <div class="evidence-step"><div><b>出售物品</b><span>{{ materialStatus.shop }}</span></div></div>
             <div class="evidence-step"><div><b>状态效果</b><span>{{ materialStatus.buffs }}</span></div></div>
           </aside>
+        </section>
+
+        <section v-if="livingPreferenceRows.length" class="npc-related-grid">
+          <article :class="['detail-module dark-card', detailLayout.detailModuleClass]">
+            <div class="module-title">
+              <h2>生活偏好</h2>
+              <span class="tag paper">{{ livingPreferenceRows.length }} 条</span>
+            </div>
+            <div class="signal-list">
+              <div v-for="row in livingPreferenceRows" :key="String(row.targetType ?? row.target_type ?? row.targetId ?? row.target_id ?? row.targetName ?? row.target_name)">
+                <b v-if="preferenceLabel(row.preference)">{{ preferenceLabel(row.preference) }}</b>
+                <NuxtLink v-if="preferenceTargetPath(row)" :to="preferenceTargetPath(row)">
+                  {{ preferenceTargetTypeLabel(row.targetType ?? row.target_type) }} · {{ safeNpcDisplayText(row.targetNameZh ?? row.target_name_zh, row.targetName ?? row.target_name) }}
+                </NuxtLink>
+                <span v-else>
+                  {{ preferenceTargetTypeLabel(row.targetType ?? row.target_type) }} · {{ safeNpcDisplayText(row.targetNameZh ?? row.target_name_zh, row.targetName ?? row.target_name) }}
+                </span>
+                <em v-if="preferenceMissingLinkLabel(row)">{{ preferenceMissingLinkLabel(row) }}</em>
+              </div>
+            </div>
+          </article>
         </section>
 
         <section v-if="relatedItemSections.length" class="npc-related-grid">

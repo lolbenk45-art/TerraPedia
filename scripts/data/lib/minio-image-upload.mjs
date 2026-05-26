@@ -128,7 +128,21 @@ export function isManagedUrl(value, managedUrlPrefixes = [DEFAULT_MANAGED_URL_PR
   if (!text) {
     return false;
   }
-  return normalizeManagedUrlPrefixes(managedUrlPrefixes).some((prefix) => text.startsWith(prefix));
+  let candidate;
+  try {
+    candidate = new URL(text);
+  } catch {
+    return false;
+  }
+  return normalizeManagedUrlPrefixes(managedUrlPrefixes).some((prefix) => {
+    try {
+      const parsedPrefix = new URL(prefix);
+      return candidate.origin === parsedPrefix.origin
+        && isPathUnderPrefix(candidate.pathname, parsedPrefix.pathname);
+    } catch {
+      return false;
+    }
+  });
 }
 
 export function isManagedUrlForEntity(value, entityDomain, managedUrlPrefixes = [DEFAULT_MANAGED_URL_PREFIX]) {
@@ -180,6 +194,11 @@ export function resolveEntityManagedUrlPrefixes(entityDomain, managedUrlPrefixes
       ? prefix
       : `${prefix}/${normalizedDomain}`;
   });
+}
+
+function isPathUnderPrefix(candidatePath, prefixPath) {
+  const normalizedPrefix = prefixPath.endsWith('/') ? prefixPath : `${prefixPath}/`;
+  return candidatePath === prefixPath || candidatePath.startsWith(normalizedPrefix);
 }
 
 function normalizeUploadOptions(uploadOptions) {

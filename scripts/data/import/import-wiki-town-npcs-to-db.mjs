@@ -8,17 +8,21 @@ import { fileURLToPath } from 'node:url';
 import { loadLocalStackConfig } from '../../lib/local-runtime-config.mjs';
 import { getProjectRoot } from '../lib/project-root.mjs';
 import { parseCliArgs } from '../lib/wiki-item-utils.mjs';
+import { isManagedUrlForEntity } from '../lib/minio-image-upload.mjs';
 import {
   buildTownNpcShopConditionLookup,
   extractTownNpcShopConditions,
   getRequiredTownNpcConditionTerms,
   getRequiredTownNpcWorldContexts
 } from '../lib/town-npc-shop-conditions.mjs';
+import { resolveManagedImageUrlPrefixes } from '../relation/managed-image-url-policy.mjs';
 
 const require = createRequire(import.meta.url);
 
 const repoRoot = getProjectRoot();
 const mysql = loadMysqlModule();
+const managedImageUrlPrefixes = resolveManagedImageUrlPrefixes({ repoRoot });
+const VALID_LIVING_PREFERENCES = new Set(['love', 'like', 'dislike', 'hate']);
 
 const TOWN_NPC_SHOP_ITEM_ALIASES = new Map([
   ['闪耀翅膀', ["Cenx's Wings", 'Cenx的翅膀']],
@@ -62,7 +66,7 @@ const TOWN_NPC_SHOP_ITEM_GENERIC_PLACEHOLDERS = new Set([
   '传送带',
 ]);
 
-export async function runImportWikiTownNpcsToDb(rawArgs = process.argv.slice(2)) {
+export async function runImportWikiTownNpcsToDb(rawArgs = process.argv.slice(2), dependencies = {}) {
   const args = parseCliArgs(rawArgs);
   const apply = booleanOption(args.apply, false);
   const allowNonPrimaryDb = booleanOption(
@@ -102,7 +106,8 @@ export async function runImportWikiTownNpcsToDb(rawArgs = process.argv.slice(2))
   const payload = JSON.parse(await fs.promises.readFile(inputPath, 'utf8'));
   const records = Array.isArray(payload?.records) ? payload.records : [];
 
-  const conn = await mysql.createConnection(db);
+  const createConnection = dependencies.createConnection ?? mysql.createConnection;
+  const conn = await createConnection(db);
   try {
     await conn.query('SET NAMES utf8mb4');
 
@@ -121,6 +126,8 @@ export async function runImportWikiTownNpcsToDb(rawArgs = process.argv.slice(2))
       unmatchedNpcCount: 0,
       updatedGamePeriodCount: 0,
       updatedBehaviorNotesCount: 0,
+      updatedWikiAssetsCount: 0,
+      updatedLivingPreferencesCount: 0,
       replacedShopNpcCount: 0,
       deletedShopEntryCount: 0,
       insertedShopEntryCount: 0,
@@ -130,6 +137,7 @@ export async function runImportWikiTownNpcsToDb(rawArgs = process.argv.slice(2))
       ignoredLegacyShopItemCount: 0,
       genericChoiceShopItemCount: 0,
       skippedShopReplaceCount: 0,
+      rawWikiAssetUrlCount: 0,
       unmatchedNpcSamples: [],
       unmatchedShopItemSamples: [],
       ignoredLegacyShopItemSamples: [],
@@ -160,6 +168,8 @@ export async function runImportWikiTownNpcsToDb(rawArgs = process.argv.slice(2))
       }
       if (result.updatedGamePeriod) summary.updatedGamePeriodCount += 1;
       if (result.updatedBehaviorNotes) summary.updatedBehaviorNotesCount += 1;
+      if (result.updatedWikiAssets) summary.updatedWikiAssetsCount += 1;
+      if (result.updatedLivingPreferences) summary.updatedLivingPreferencesCount += 1;
       if (result.shopReplaced) summary.replacedShopNpcCount += 1;
       summary.deletedShopEntryCount += result.deletedShopEntryCount;
       summary.insertedShopEntryCount += result.insertedShopEntryCount;
@@ -168,6 +178,7 @@ export async function runImportWikiTownNpcsToDb(rawArgs = process.argv.slice(2))
       summary.ignoredLegacyShopItemCount += result.ignoredLegacyShopItems.length;
       summary.genericChoiceShopItemCount += result.genericChoiceShopItems.length;
       if (result.shopReplaceSkipped) summary.skippedShopReplaceCount += 1;
+      summary.rawWikiAssetUrlCount += result.rawWikiAssetUrlCount;
       for (const item of result.unmatchedShopItems) {
         pushSample(summary.unmatchedShopItemSamples, {
           npcGameId: result.gameId,
@@ -194,6 +205,10 @@ export async function runImportWikiTownNpcsToDb(rawArgs = process.argv.slice(2))
           reason: item.reason
         });
       }
+    }
+
+    if (apply && summary.rawWikiAssetUrlCount > 0) {
+      throw new Error(`Refusing to apply town NPC import with ${summary.rawWikiAssetUrlCount} raw wiki asset URLs. Run town_npc_maintenance image sync before import.`);
     }
 
     if (apply) {
@@ -244,7 +259,7 @@ if (isDirectExecution()) {
   console.log(JSON.stringify(summary, null, 2));
 }
 
-async function importTownNpcRecord(connection, rawRecord, context) {
+export async function importTownNpcRecord(connection, rawRecord, context) {
   const gameId = toInt(rawRecord?.gameId);
   const internalName = toText(rawRecord?.internalName);
   const pageTitle = toText(rawRecord?.pageTitle);
@@ -258,6 +273,9 @@ async function importTownNpcRecord(connection, rawRecord, context) {
     npcMatched: Boolean(npc?.id),
     updatedGamePeriod: false,
     updatedBehaviorNotes: false,
+    updatedWikiAssets: false,
+    updatedLivingPreferences: false,
+    rawWikiAssetUrlCount: 0,
     shopReplaced: false,
     shopReplaceSkipped: false,
     deletedShopEntryCount: 0,
@@ -266,7 +284,8 @@ async function importTownNpcRecord(connection, rawRecord, context) {
     matchedShopItems: [],
     ignoredLegacyShopItems: [],
     genericChoiceShopItems: [],
-    unmatchedShopItems: []
+    unmatchedShopItems: [],
+    livingPreferencesPreview: null
   };
 
   if (!npc?.id) {
@@ -277,6 +296,9 @@ async function importTownNpcRecord(connection, rawRecord, context) {
   const nextBehaviorNotes = toText(rawRecord?.functionSummary)
     ? buildBehaviorNotes(rawRecord?.functionSummary, rawRecord?.moveInSummary)
     : null;
+  const wikiAssetsJson = buildWikiAssetsJson(rawRecord, result);
+  const livingPreferencesJson = buildLivingPreferencesJson(rawRecord, context.npcTargetLookup ?? context.npcLookup);
+  result.livingPreferencesPreview = livingPreferencesJson;
 
   if (context.apply) {
     if (nextGamePeriodId != null && Number(npc.gamePeriodId ?? 0) !== nextGamePeriodId) {
@@ -302,9 +324,17 @@ async function importTownNpcRecord(connection, rawRecord, context) {
       result.updatedBehaviorNotes = true;
       npc.behaviorNotes = nextBehaviorNotes;
     }
+
+    await updateNpcRichProfile(connection, npc, {
+      wikiAssetsJson,
+      livingPreferencesJson,
+      result
+    });
   } else {
     result.updatedGamePeriod = nextGamePeriodId != null && Number(npc.gamePeriodId ?? 0) !== nextGamePeriodId;
     result.updatedBehaviorNotes = Boolean(nextBehaviorNotes && normalizeMultiline(npc.behaviorNotes) !== normalizeMultiline(nextBehaviorNotes));
+    result.updatedWikiAssets = Boolean(wikiAssetsJson && normalizeMultiline(npc.wikiAssetsJson) !== normalizeMultiline(wikiAssetsJson));
+    result.updatedLivingPreferences = Boolean(livingPreferencesJson && normalizeMultiline(npc.livingPreferencesJson) !== normalizeMultiline(livingPreferencesJson));
   }
 
   const preparedShopEntries = prepareShopEntries(
@@ -385,6 +415,37 @@ async function importTownNpcRecord(connection, rawRecord, context) {
   return result;
 }
 
+async function updateNpcRichProfile(connection, npc, { wikiAssetsJson, livingPreferencesJson, result }) {
+  const assignments = [];
+  const params = [];
+  if (wikiAssetsJson && normalizeMultiline(npc.wikiAssetsJson) !== normalizeMultiline(wikiAssetsJson)) {
+    assignments.push('wiki_assets_json = ?');
+    params.push(wikiAssetsJson);
+    result.updatedWikiAssets = true;
+  }
+  if (livingPreferencesJson && normalizeMultiline(npc.livingPreferencesJson) !== normalizeMultiline(livingPreferencesJson)) {
+    assignments.push('living_preferences_json = ?');
+    params.push(livingPreferencesJson);
+    result.updatedLivingPreferences = true;
+  }
+  if (assignments.length === 0) {
+    return;
+  }
+  await connection.execute(
+    `UPDATE npcs
+        SET ${assignments.join(',\n            ')},
+            updated_at = NOW()
+      WHERE id = ?`,
+    [...params, npc.id]
+  );
+  if (wikiAssetsJson) {
+    npc.wikiAssetsJson = wikiAssetsJson;
+  }
+  if (livingPreferencesJson) {
+    npc.livingPreferencesJson = livingPreferencesJson;
+  }
+}
+
 function prepareShopEntries(rawItems, itemLookup, shopConditionLookup, result) {
   const entries = [];
   const seenItemIds = new Set();
@@ -429,6 +490,10 @@ function prepareShopEntries(rawItems, itemLookup, shopConditionLookup, result) {
       priceText: toText(rawItem?.priceText),
       notes: toText(rawItem?.availability),
       conditions: extractTownNpcShopConditions(toText(rawItem?.availability), shopConditionLookup)
+        .map((condition) => ({
+          ...condition,
+          notes: toText(condition.notes) || toText(condition.label) || toText(rawItem?.availability)
+        }))
     });
     result.matchedShopItems.push({
       itemId: matchedItem.id,
@@ -547,21 +612,26 @@ async function loadNpcShopEntryIds(connection, npcId) {
 
 async function loadTownNpcLookup(connection) {
   const [rows] = await connection.query(
-    `SELECT id, game_id AS gameId, internal_name AS internalName, game_period_id AS gamePeriodId, behavior_notes AS behaviorNotes
+    `SELECT id, game_id AS gameId, internal_name AS internalName, name, name_zh AS nameZh, game_period_id AS gamePeriodId, behavior_notes AS behaviorNotes, wiki_assets_json AS wikiAssetsJson, living_preferences_json AS livingPreferencesJson
        FROM npcs
       WHERE COALESCE(is_town_npc, 0) = 1`
   );
   const lookup = {
     byGameId: new Map(),
-    byInternalName: new Map()
+    byInternalName: new Map(),
+    byAny: new Map()
   };
   for (const row of rows) {
     const npc = {
       id: Number(row.id),
       gameId: toInt(row.gameId),
       internalName: toText(row.internalName),
+      name: toText(row.name),
+      nameZh: toText(row.nameZh),
       gamePeriodId: toInt(row.gamePeriodId),
-      behaviorNotes: toText(row.behaviorNotes)
+      behaviorNotes: toText(row.behaviorNotes),
+      wikiAssetsJson: toText(row.wikiAssetsJson),
+      livingPreferencesJson: toText(row.livingPreferencesJson)
     };
     if (npc.gameId != null && !lookup.byGameId.has(npc.gameId)) {
       lookup.byGameId.set(npc.gameId, npc);
@@ -570,6 +640,9 @@ async function loadTownNpcLookup(connection) {
     if (key && !lookup.byInternalName.has(key)) {
       lookup.byInternalName.set(key, npc);
     }
+    addNpcLookupKey(lookup.byAny, npc.internalName, npc);
+    addNpcLookupKey(lookup.byAny, npc.name, npc);
+    addNpcLookupKey(lookup.byAny, npc.nameZh, npc);
   }
   return lookup;
 }
@@ -648,6 +721,110 @@ async function loadTownNpcShopConditionLookup(connection) {
     npcs,
     worldContexts: mergedWorldContexts
   });
+}
+
+function buildWikiAssetsJson(rawRecord, result) {
+  const assets = {};
+  for (const [key, value] of Object.entries({
+    spriteImage: rawRecord?.wikiDetails?.spriteImage,
+    mapIconImage: rawRecord?.wikiDetails?.mapIconImage,
+    dialogPortraitImage: rawRecord?.wikiDetails?.dialogPortraitImage,
+  })) {
+    const managed = managedTownNpcAssetOrNull(value, result);
+    if (managed) {
+      assets[key] = managed;
+    }
+  }
+  return Object.keys(assets).length > 0 ? JSON.stringify(assets) : null;
+}
+
+function managedTownNpcAssetOrNull(value, result) {
+  const text = toText(value);
+  if (!text) return null;
+  if (isManagedUrlForEntity(text, 'npcs', managedImageUrlPrefixes)) return text;
+  if (isRawTerrariaWikiUrl(text)) {
+    result.rawWikiAssetUrlCount += 1;
+  }
+  return null;
+}
+
+function isRawTerrariaWikiUrl(value) {
+  const text = toText(value);
+  if (!text) return false;
+  try {
+    const parsed = new URL(text.startsWith('//') ? `https:${text}` : text);
+    const hostname = parsed.hostname.toLowerCase();
+    return hostname === 'terraria.wiki.gg' || hostname.endsWith('.terraria.wiki.gg');
+  } catch {
+    return false;
+  }
+}
+
+function buildLivingPreferencesJson(rawRecord, npcLookup) {
+  const preferences = normalizeLivingPreferences(rawRecord?.livingPreferences, npcLookup);
+  return preferences.length > 0 ? JSON.stringify(preferences) : null;
+}
+
+function normalizeLivingPreferences(rawPreferences, npcLookup) {
+  const rows = [];
+  for (const raw of Array.isArray(rawPreferences) ? rawPreferences : []) {
+    const targetName = toText(raw?.targetName);
+    const targetNameZh = toText(raw?.targetNameZh);
+    if (!targetName && !targetNameZh) {
+      continue;
+    }
+    const preference = normalizeLivingPreferenceValue(raw?.preference);
+    if (!preference) {
+      continue;
+    }
+    const targetType = normalizeLivingPreferenceTargetType(raw?.targetType);
+    const resolvedNpc = targetType === 'npc'
+      ? findPreferenceTargetNpc(npcLookup, targetName, targetNameZh)
+      : null;
+    rows.push({
+      targetType,
+      preference,
+      targetId: resolvedNpc?.id ?? null,
+      targetName,
+      targetNameZh,
+      sourceText: toText(raw?.sourceText),
+    });
+  }
+  return rows;
+}
+
+function normalizeLivingPreferenceValue(value) {
+  const text = toText(value)?.toLowerCase();
+  return text && VALID_LIVING_PREFERENCES.has(text) ? text : null;
+}
+
+function normalizeLivingPreferenceTargetType(value) {
+  const text = toText(value)?.toLowerCase();
+  if (text === 'biome' || text === 'npc') {
+    return text;
+  }
+  return null;
+}
+
+function findPreferenceTargetNpc(npcLookup, ...names) {
+  const byAny = npcLookup?.byAny instanceof Map ? npcLookup.byAny : null;
+  if (!byAny) {
+    return null;
+  }
+  for (const name of names) {
+    const key = normalizeLookupKey(name);
+    if (key && byAny.has(key)) {
+      return byAny.get(key);
+    }
+  }
+  return null;
+}
+
+function addNpcLookupKey(map, value, npc) {
+  const key = normalizeLookupKey(value);
+  if (key && !map.has(key)) {
+    map.set(key, npc);
+  }
 }
 
 async function ensureTownNpcConditionTerms(connection, shouldApply) {

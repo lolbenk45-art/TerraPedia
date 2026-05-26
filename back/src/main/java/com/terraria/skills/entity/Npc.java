@@ -90,6 +90,12 @@ public class Npc implements Serializable {
     @TableField("source_items_json")
     private String sourceItemsJson;
 
+    @TableField("wiki_assets_json")
+    private String wikiAssetsJson;
+
+    @TableField("living_preferences_json")
+    private String livingPreferencesJson;
+
     @TableField("status")
     private Integer status;
 

@@ -5,21 +5,31 @@ import path from 'node:path';
 
 import { getProjectRoot } from '../lib/project-root.mjs';
 import { parseCliArgs } from '../lib/wiki-item-utils.mjs';
-import { buildTownNpcFetchArgs, buildTownNpcImportArgs } from './town-npc-sync-args.mjs';
+import { buildTownNpcFetchArgs, buildTownNpcImageSyncArgs, buildTownNpcImportArgs } from './town-npc-sync-args.mjs';
 
 const repoRoot = getProjectRoot();
 
 const options = parseCliArgs(process.argv.slice(2));
 const fetchScriptPath = path.join(repoRoot, 'scripts', 'data', 'fetch', 'fetch-wiki-town-npc-maintenance.py');
+const imageSyncScriptPath = path.join(repoRoot, 'scripts', 'data', 'workflow', 'run-image-sync.mjs');
 const importScriptPath = path.join(repoRoot, 'scripts', 'data', 'import', 'import-wiki-town-npcs-to-db.mjs');
 
-const fetchArgs = buildTownNpcFetchArgs(options);
+const maintenanceDataPath = options.output ?? options.input;
+const maintenanceDataOptions = {
+  ...options,
+  output: maintenanceDataPath,
+  input: maintenanceDataPath
+};
+
+const fetchArgs = buildTownNpcFetchArgs(maintenanceDataOptions);
+const imageSyncArgs = buildTownNpcImageSyncArgs(maintenanceDataOptions);
 const importArgs = buildTownNpcImportArgs({
-  input: options.output,
+  input: maintenanceDataPath,
   apply: options.apply
 });
 
 runScript('python', fetchScriptPath, fetchArgs, 'town npc fetch');
+runScript(process.execPath, imageSyncScriptPath, imageSyncArgs, 'town npc image sync');
 runScript(process.execPath, importScriptPath, importArgs, 'town npc import');
 console.log('Town NPC sync pipeline finished successfully');
 
