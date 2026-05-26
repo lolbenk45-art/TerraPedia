@@ -6958,42 +6958,43 @@ img[data-preview-fallback] {
   display: none;
 }
 .recipe-branch.is-wiki-flow > .recipe-children {
-  order: 1;
+  order: 3;
   position: relative;
   display: flex;
   justify-content: center;
-  align-items: flex-end;
+  align-items: flex-start;
   flex-wrap: nowrap;
   gap: 20px;
   width: max-content;
   max-width: none;
   min-width: 172px;
-  padding-top: 0;
-  padding-bottom: 22px;
+  padding-top: 22px;
+  padding-bottom: 0;
 }
 .recipe-ingredient-branch {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
+  align-self: flex-start;
+  gap: 0;
   flex: 0 0 auto;
   width: max-content;
   min-width: 172px;
   overflow: visible;
   z-index: 1;
 }
+.recipe-composed-ingredient {
+  gap: 0;
+}
+.recipe-leaf-ingredient {
+  z-index: 4;
+}
 .recipe-child-expansion {
   flex: 0 0 auto;
 }
-.recipe-child-expansion > .recipe-tree-node {
-  display: none;
-}
-.recipe-child-expansion > .recipe-station-row {
-  display: none;
-}
 .recipe-alternative-recipes {
-  order: 1;
+  order: 3;
   position: relative;
   display: grid;
   justify-items: center;
@@ -7007,6 +7008,7 @@ img[data-preview-fallback] {
     linear-gradient(135deg, rgba(217, 185, 91, 0.08), transparent 58%),
     rgba(7, 12, 9, 0.28);
   box-shadow: inset 0 1px 0 rgba(244,234,208,0.04);
+  margin-top: 14px;
   padding: 10px 12px 12px;
 }
 .recipe-alternative-recipes::before {
@@ -7081,11 +7083,11 @@ img[data-preview-fallback] {
   flex: 0 0 auto;
   z-index: 4;
 }
-.recipe-branch.is-wiki-flow > .recipe-children > .recipe-ingredient-branch > .recipe-ingredient-node::after {
+.recipe-branch.is-wiki-flow > .recipe-children > .recipe-ingredient-branch > .recipe-ingredient-node::before {
   content: "";
   position: absolute;
   left: 50%;
-  bottom: -14px;
+  top: -14px;
   width: 2px;
   height: 14px;
   background: rgba(217, 185, 91, 0.62);
@@ -7101,23 +7103,35 @@ img[data-preview-fallback] {
 .recipe-branch.is-wiki-flow > .recipe-children.has-multiple-ingredients > .recipe-ingredient-branch::before {
   content: "";
   position: absolute;
-  left: -10px;
-  right: -10px;
-  bottom: -15px;
+  left: calc(50% - var(--recipe-collector-left, 96px));
+  width: calc(var(--recipe-collector-left, 96px) + var(--recipe-collector-right, 96px));
+  top: -15px;
   height: 2px;
   background: rgba(217, 185, 91, 0.58);
   pointer-events: none;
 }
 .recipe-branch.is-wiki-flow > .recipe-children.has-multiple-ingredients > .recipe-ingredient-branch:first-child::before {
-  left: 50%;
-  right: -10px;
+  --recipe-collector-left: 0px;
 }
 .recipe-branch.is-wiki-flow > .recipe-children.has-multiple-ingredients > .recipe-ingredient-branch:last-child::before {
-  left: -10px;
-  right: 50%;
+  --recipe-collector-right: 0px;
 }
 .recipe-branch.is-wiki-flow > .recipe-children.has-multiple-ingredients > .recipe-ingredient-branch:first-child:last-child::before {
   content: none;
+}
+.recipe-branch.is-wiki-flow > .recipe-children.has-multiple-ingredients > .recipe-composed-ingredient::before {
+  content: "";
+}
+.recipe-branch.is-wiki-flow > .recipe-children > .recipe-composed-ingredient > .recipe-branch > .recipe-tree-node::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -14px;
+  width: 2px;
+  height: 14px;
+  background: rgba(217, 185, 91, 0.62);
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 .recipe-branch.is-wiki-flow > .recipe-station-row {
   order: 2;
@@ -7125,8 +7139,8 @@ img[data-preview-fallback] {
   width: max-content;
   max-width: none;
   min-width: 172px;
-  margin: 4px 0 0;
-  padding: 4px 0 0;
+  margin: 14px 0 0;
+  padding: 0;
 }
 .recipe-branch.is-wiki-flow > .recipe-station-row::before {
   content: "";
@@ -7155,14 +7169,25 @@ img[data-preview-fallback] {
   z-index: 2;
 }
 .recipe-branch.is-wiki-flow > .recipe-tree-node {
-  order: 3;
-  margin-top: 12px;
+  order: 1;
+  margin-top: 0;
 }
-.recipe-branch.is-wiki-flow:not(.is-leaf) > .recipe-tree-node::before {
-  content: none;
+.recipe-branch.is-wiki-flow:not(.is-leaf) > .recipe-tree-node::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  width: 2px;
+  height: 14px;
+  background: rgba(217, 185, 91, 0.62);
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 .recipe-branch.is-wiki-flow.is-leaf > .recipe-tree-node {
   margin-top: 0;
+}
+.recipe-branch.is-wiki-flow.is-leaf > .recipe-station-row::after {
+  content: none;
 }
 
 .user-avatar {

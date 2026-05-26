@@ -53,6 +53,8 @@ for (const marker of [
   'visibleAlternativeOptions',
   'v-for="entry in visibleAlternativeOptions"',
   ':aria-pressed="recipeAlternativeKey(option, index) === selectedAlternativeKey"',
+  'recipe-composed-ingredient',
+  'recipe-leaf-ingredient',
 ]) {
   if (!recipeTreeNode.includes(marker)) {
     violations.push(`components/crafting/RecipeTreeNode.vue: nested alternative recipes must render only the selected option via marker ${marker}`)
@@ -61,6 +63,14 @@ for (const marker of [
 
 if (/v-for="\([^)]*option[^)]*index[^)]*\) in recipeAlternativeOptions"[\s\S]{0,500}<CraftingRecipeTreeNode/m.test(recipeTreeNode)) {
   violations.push('components/crafting/RecipeTreeNode.vue: nested alternative recipes must not recursively render every recipeAlternativeOption')
+}
+
+if (/>[\s\n]*<a class="recipe-tree-node recipe-ingredient-node"/m.test(recipeTreeNode)) {
+  violations.push('components/crafting/RecipeTreeNode.vue: composed ingredient branches must not render a duplicate ingredient card after their child recipe output')
+}
+
+if (!/v-else[\s\S]{0,260}class="recipe-tree-node recipe-ingredient-node recipe-leaf-ingredient"/m.test(recipeTreeNode)) {
+  violations.push('components/crafting/RecipeTreeNode.vue: leaf ingredients must keep a direct ingredient card while composed ingredients use the child recipe output')
 }
 
 if (violations.length > 0) {

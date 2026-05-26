@@ -15,6 +15,7 @@ useSeoMeta({
 const recipeClientReady = ref(false)
 const recipeSearchQuery = ref('')
 const recipeVisualLoading = ref(true)
+const recipeTreeStageRef = ref<HTMLElement | null>(null)
 const recipeVisualLoadingMinimumMs = 320
 let recipeVisualLoadingTimer: ReturnType<typeof setTimeout> | null = null
 let recipeVisualLoadingStartedAt = Date.now()
@@ -170,6 +171,19 @@ const clearRecipeTarget = async () => {
   await router.replace({ query: { ...route.query, itemId: undefined } })
 }
 
+const centerRecipeTreeOnRoot = async () => {
+  await nextTick()
+
+  requestAnimationFrame(() => {
+    const stage = recipeTreeStageRef.value
+    const rootNode = stage?.querySelector<HTMLElement>(':scope > .recipe-branch.is-wiki-flow.is-root > .recipe-tree-node')
+    if (!stage || !rootNode) return
+
+    const centeredScrollLeft = rootNode.offsetLeft + (rootNode.offsetWidth / 2) - (stage.clientWidth / 2)
+    stage.scrollLeft = Math.max(0, centeredScrollLeft)
+  })
+}
+
 watch(recipeRawLoading, syncRecipeVisualLoading, { immediate: true })
 
 watch(recipeVariants, (variants) => {
@@ -195,6 +209,11 @@ watch(activeRoots, (roots) => {
       selectedRootKey.value = recipeRootKey(firstRoot, 0)
     }
   }
+}, { immediate: true })
+
+watch([recipeVisualLoading, visibleRecipeRoots, selectedRootKey], ([isLoading, roots]) => {
+  if (isLoading || !roots.length) return
+  void centerRecipeTreeOnRoot()
 }, { immediate: true })
 
 onMounted(() => {
@@ -387,7 +406,7 @@ onBeforeUnmount(clearRecipeVisualLoadingTimer)
           </button>
         </div>
 
-        <div class="recipe-tree-stage recipe-wiki-tree">
+        <div ref="recipeTreeStageRef" class="recipe-tree-stage recipe-wiki-tree">
           <template v-for="root in visibleRecipeRoots" :key="displayText(root.recipeId, root.itemId, nodeTitle(root), 'root')">
             <CraftingRecipeTreeNode
               :node="root"

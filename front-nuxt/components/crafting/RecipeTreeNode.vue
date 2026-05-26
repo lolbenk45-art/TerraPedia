@@ -212,7 +212,10 @@ watch(recipeAlternativeOptions, (options) => {
         v-for="child in displayRecipeNodeChildren"
         :key="displayText(child.recipeId, child.itemId, nodeTitle(child), 'child')"
         class="recipe-ingredient-branch"
-        :class="{ 'has-child-expansion': recipeNodeChildren(child).length || recipeNodeStations(child).length }"
+        :class="{
+          'has-child-expansion': recipeNodeChildren(child).length || recipeNodeStations(child).length,
+          'recipe-composed-ingredient': recipeNodeChildren(child).length || recipeNodeStations(child).length,
+        }"
       >
         <CraftingRecipeTreeNode
           v-if="recipeNodeChildren(child).length || recipeNodeStations(child).length"
@@ -222,7 +225,7 @@ watch(recipeAlternativeOptions, (options) => {
           class="recipe-child-expansion"
         />
 
-        <a class="recipe-tree-node recipe-ingredient-node" :href="nodeHref(child)">
+        <a v-else class="recipe-tree-node recipe-ingredient-node recipe-leaf-ingredient" :href="nodeHref(child)">
           <CommonPreviewImage
             :src="nodeImage(child)"
             :alt="nodeTitle(child)"
