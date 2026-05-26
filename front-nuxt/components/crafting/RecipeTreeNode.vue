@@ -203,7 +203,11 @@ watch(recipeAlternativeOptions, (options) => {
       </template>
     </div>
 
-    <div v-else-if="displayRecipeNodeChildren.length" class="recipe-children recipe-ingredient-row">
+    <div
+      v-else-if="displayRecipeNodeChildren.length"
+      class="recipe-children recipe-ingredient-row"
+      :class="{ 'has-multiple-ingredients': displayRecipeNodeChildren.length > 1 }"
+    >
       <div
         v-for="child in displayRecipeNodeChildren"
         :key="displayText(child.recipeId, child.itemId, nodeTitle(child), 'child')"

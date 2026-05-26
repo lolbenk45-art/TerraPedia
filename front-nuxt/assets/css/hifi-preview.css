@@ -6983,17 +6983,6 @@ img[data-preview-fallback] {
   overflow: visible;
   z-index: 1;
 }
-.recipe-ingredient-branch.has-child-expansion > .recipe-ingredient-node::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: -18px;
-  width: 2px;
-  height: 18px;
-  background: rgba(217, 185, 91, 0.62);
-  transform: translateX(-50%);
-  pointer-events: none;
-}
 .recipe-child-expansion {
   flex: 0 0 auto;
 }
@@ -7104,17 +7093,30 @@ img[data-preview-fallback] {
   pointer-events: none;
 }
 .recipe-branch.is-wiki-flow > .recipe-children::before {
+  content: none;
+}
+.recipe-branch.is-wiki-flow > .recipe-children > .recipe-ingredient-branch::before {
+  content: none;
+}
+.recipe-branch.is-wiki-flow > .recipe-children.has-multiple-ingredients > .recipe-ingredient-branch::before {
   content: "";
   position: absolute;
-  top: auto;
-  left: 86px;
-  right: 86px;
-  bottom: 8px;
+  left: -10px;
+  right: -10px;
+  bottom: -15px;
   height: 2px;
   background: rgba(217, 185, 91, 0.58);
   pointer-events: none;
 }
-.recipe-branch.is-wiki-flow > .recipe-children > .recipe-ingredient-branch::before {
+.recipe-branch.is-wiki-flow > .recipe-children.has-multiple-ingredients > .recipe-ingredient-branch:first-child::before {
+  left: 50%;
+  right: -10px;
+}
+.recipe-branch.is-wiki-flow > .recipe-children.has-multiple-ingredients > .recipe-ingredient-branch:last-child::before {
+  left: -10px;
+  right: 50%;
+}
+.recipe-branch.is-wiki-flow > .recipe-children.has-multiple-ingredients > .recipe-ingredient-branch:first-child:last-child::before {
   content: none;
 }
 .recipe-branch.is-wiki-flow > .recipe-station-row {
@@ -7157,15 +7159,7 @@ img[data-preview-fallback] {
   margin-top: 12px;
 }
 .recipe-branch.is-wiki-flow:not(.is-leaf) > .recipe-tree-node::before {
-  content: "";
-  position: absolute;
-  top: -12px;
-  left: 50%;
-  width: 2px;
-  height: 10px;
-  background: rgba(217, 185, 91, 0.58);
-  transform: translateX(-50%);
-  pointer-events: none;
+  content: none;
 }
 .recipe-branch.is-wiki-flow.is-leaf > .recipe-tree-node {
   margin-top: 0;
