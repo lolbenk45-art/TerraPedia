@@ -5,8 +5,10 @@ import type {
   PublicNpcLootEntry,
   PublicNpcShopCondition,
   PublicNpcShopEntry,
+  PublicNpcShopPriceToken,
   PublicNpcTraceableItemSummary,
 } from '~/types/public-api'
+import { buildTerrariaPriceTokens, formatTerrariaPriceTokens, resolveTerrariaPriceUnitLabel, type TerrariaPriceToken } from '~/utils/price'
 
 const route = useRoute()
 const detailLayout = useDetailLayout({ kind: 'npc', density: 'compact' })
@@ -274,7 +276,22 @@ const npcBehaviorSummary = computed(() => safeNpcDisplayText(
   `${displayName.value} 的资料包含基础数值、出售物品、掉落物和状态效果。`,
 ))
 
-const shopPriceLabel = (entry: PublicNpcShopEntry) => safeNpcDisplayText(entry.buyPriceText, entry.currencyText, entry.priceText)
+const shopPriceTokens = (entry: PublicNpcShopEntry): TerrariaPriceToken[] => {
+  const rawTokens = entry.priceTokens ?? entry.price_tokens
+  if (Array.isArray(rawTokens) && rawTokens.length) {
+    return rawTokens
+      .map((token: PublicNpcShopPriceToken) => ({
+        unit: firstText(token.unit),
+        amount: Number(token.amount),
+        label: resolveTerrariaPriceUnitLabel(token.unit),
+        iconUrl: firstText(token.iconUrl, token.icon_url),
+      }))
+      .filter(token => token.unit && Number.isFinite(token.amount) && token.amount >= 0 && token.label)
+  }
+
+  return buildTerrariaPriceTokens(entry.buyPrice ?? entry.buy_price ?? entry.sellPrice ?? entry.sell_price)
+}
+const shopPriceLabel = (entry: PublicNpcShopEntry) => formatTerrariaPriceTokens(shopPriceTokens(entry))
 const lootConditionLabel = (entry: PublicNpcLootEntry) => safeNpcDisplayText(entry.conditions, entry.notes)
 const buffConditionLabel = (entry: PublicNpcBuffRelation) => safeNpcDisplayText(entry.conditions, entry.notes, entry.sourceText)
 
@@ -558,7 +575,18 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                     <div class="detail-relation-copy">
                       <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
                       <b v-else>{{ entryTitle(entry) }}</b>
-                      <span>{{ [shopPriceLabel(entry), shopConditionSummary(entry)].filter(Boolean).join(' · ') || '商店资料' }}</span>
+                      <span class="npc-shop-meta">
+                        <span v-if="shopPriceTokens(entry).length" class="npc-shop-price" :aria-label="shopPriceLabel(entry)">
+                          <span v-for="token in shopPriceTokens(entry)" :key="`${entry.id ?? entry.itemId}-${token.unit}`" class="npc-shop-price-token">
+                            <span class="npc-shop-price-icon">
+                              <CommonPreviewImage :src="token.iconUrl" :alt="token.label" :fallback="token.label" fallback-icon="icon-items" decorative />
+                            </span>
+                            <span>{{ token.amount }}{{ token.label }}</span>
+                          </span>
+                        </span>
+                        <span v-if="shopConditionSummary(entry)" class="npc-shop-condition">{{ shopConditionSummary(entry) }}</span>
+                        <span v-if="!shopPriceTokens(entry).length && !shopConditionSummary(entry)">商店资料</span>
+                      </span>
                     </div>
                     <strong class="detail-relation-meta">商店</strong>
                   </div>
@@ -573,7 +601,18 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
                       <div class="detail-relation-copy">
                         <NuxtLink v-if="itemPath(entry)" :to="itemPath(entry)" class="detail-relation-link"><b>{{ entryTitle(entry) }}</b></NuxtLink>
                         <b v-else>{{ entryTitle(entry) }}</b>
-                        <span>{{ [shopPriceLabel(entry), shopConditionSummary(entry)].filter(Boolean).join(' · ') || '商店资料' }}</span>
+                        <span class="npc-shop-meta">
+                          <span v-if="shopPriceTokens(entry).length" class="npc-shop-price" :aria-label="shopPriceLabel(entry)">
+                            <span v-for="token in shopPriceTokens(entry)" :key="`${entry.id ?? entry.itemId}-${token.unit}`" class="npc-shop-price-token">
+                              <span class="npc-shop-price-icon">
+                                <CommonPreviewImage :src="token.iconUrl" :alt="token.label" :fallback="token.label" fallback-icon="icon-items" decorative />
+                              </span>
+                              <span>{{ token.amount }}{{ token.label }}</span>
+                            </span>
+                          </span>
+                          <span v-if="shopConditionSummary(entry)" class="npc-shop-condition">{{ shopConditionSummary(entry) }}</span>
+                          <span v-if="!shopPriceTokens(entry).length && !shopConditionSummary(entry)">商店资料</span>
+                        </span>
                       </div>
                       <strong class="detail-relation-meta">商店</strong>
                     </div>
@@ -700,6 +739,55 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
 .detail-relation-copy span {
   display: block;
   line-height: 1.5;
+}
+
+.npc-shop-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  min-width: 0;
+}
+
+.npc-shop-price {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 8px;
+  min-width: 0;
+}
+
+.npc-shop-price-token {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  border: 1px solid rgba(222, 187, 95, 0.24);
+  border-radius: 999px;
+  padding: 2px 7px 2px 4px;
+  color: var(--text-strong);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+  background: rgba(222, 187, 95, 0.1);
+}
+
+.npc-shop-price-icon {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  overflow: hidden;
+}
+
+.npc-shop-price-icon .item-art {
+  width: 18px;
+  height: 18px;
+}
+
+.npc-shop-condition {
+  color: var(--text-subtle);
 }
 
 .detail-relation-meta {

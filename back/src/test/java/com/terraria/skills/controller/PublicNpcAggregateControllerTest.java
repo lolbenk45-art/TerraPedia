@@ -8,6 +8,7 @@ import com.terraria.skills.dto.NpcDetailDTO;
 import com.terraria.skills.dto.NpcLivingPreferenceDTO;
 import com.terraria.skills.dto.NpcLootEntryDTO;
 import com.terraria.skills.dto.NpcShopEntryDTO;
+import com.terraria.skills.dto.NpcShopPriceTokenDTO;
 import com.terraria.skills.dto.NpcWikiAssetsDTO;
 import com.terraria.skills.service.PublicNpcService;
 import org.junit.jupiter.api.BeforeEach;
@@ -126,6 +127,14 @@ class PublicNpcAggregateControllerTest {
         shopEntry.setId(21L);
         shopEntry.setItemId(301L);
         shopEntry.setItemName("Torch");
+        shopEntry.setBuyPrice(50);
+        shopEntry.setSellPrice(10);
+        NpcShopPriceTokenDTO priceToken = new NpcShopPriceTokenDTO();
+        priceToken.setUnit("copper");
+        priceToken.setAmount(50);
+        priceToken.setLabel("铜币");
+        priceToken.setIconUrl("http://localhost:9000/terrapedia-images/items/wiki/coins/copper-coin.png");
+        shopEntry.setPriceTokens(List.of(priceToken));
 
         publicNpcService.npcToReturn = npc;
         publicNpcService.shopEntriesToReturn = List.of(shopEntry);
@@ -137,6 +146,12 @@ class PublicNpcAggregateControllerTest {
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.loot.length()").value(0))
             .andExpect(jsonPath("$.data.shopEntries.length()").value(1))
+            .andExpect(jsonPath("$.data.shopEntries[0].buyPrice").value(50))
+            .andExpect(jsonPath("$.data.shopEntries[0].sellPrice").value(10))
+            .andExpect(jsonPath("$.data.shopEntries[0].priceTokens[0].unit").value("copper"))
+            .andExpect(jsonPath("$.data.shopEntries[0].priceTokens[0].amount").value(50))
+            .andExpect(jsonPath("$.data.shopEntries[0].priceTokens[0].label").value("铜币"))
+            .andExpect(jsonPath("$.data.shopEntries[0].priceTokens[0].iconUrl").value("http://localhost:9000/terrapedia-images/items/wiki/coins/copper-coin.png"))
             .andExpect(jsonPath("$.data.buffRelations.length()").value(0))
             .andExpect(jsonPath("$.data.moduleStatus.loot").value("skipped"))
             .andExpect(jsonPath("$.data.moduleStatus.shop").value("ok"))

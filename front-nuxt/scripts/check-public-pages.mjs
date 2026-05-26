@@ -632,6 +632,10 @@ const requiredPublicDataLayerMarkers = {
   'utils/price.ts': [
     'export const formatTerrariaPrice',
     'export const formatCatalogPrice',
+    'export type TerrariaPriceToken',
+    'export const buildTerrariaPriceTokens',
+    'export const formatTerrariaPriceTokens',
+    'export const resolveTerrariaPriceUnitLabel',
     '不可购买',
     '不可出售',
   ],
@@ -1402,6 +1406,18 @@ for (const path of scanFiles) {
   }
 
   if (path === 'composables/usePublicNpcs.ts') {
+    for (const marker of [
+      'const normalizeNpcShopPriceToken',
+      'raw.priceTokens ?? raw.price_tokens',
+      'buyPrice: toNumberOrNull(raw.buyPrice ?? raw.buy_price)',
+      'sellPrice: toNumberOrNull(raw.sellPrice ?? raw.sell_price)',
+      'priceTokens:',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: NPC shop normalizer must preserve structured coin token price data via marker ${marker}`)
+      }
+    }
+
     if (!content.includes('const normalizeNpcLivingPreference = (raw: PublicNpcLivingPreference): PublicNpcLivingPreference => ({')) {
       violations.push(`${path}: NPC living preferences must pass through the sanitizing normalizer`)
     }
@@ -1502,12 +1518,24 @@ for (const path of scanFiles) {
       violations.push(`${path}: NPC buff relation rows must not render raw relationType enums`)
     }
 
-    if (content.includes('const shopPriceLabel = (entry: PublicNpcShopEntry) => firstText(')) {
-      violations.push(`${path}: NPC shop price labels must filter wiki template/raw HTML text before rendering`)
+    if (!content.includes('shopPriceTokens(entry)') || !content.includes('formatTerrariaPriceTokens(shopPriceTokens(entry))')) {
+      violations.push(`${path}: NPC shop prices must render structured Terraria coin tokens instead of raw shorthand price text`)
     }
 
-    if (!content.includes('safeNpcDisplayText(entry.buyPriceText, entry.currencyText, entry.priceText)')) {
-      violations.push(`${path}: NPC shop price labels must use the display-safe price helper`)
+    if (!content.includes('resolveTerrariaPriceUnitLabel(token.unit)')) {
+      violations.push(`${path}: NPC shop prices must derive visible coin labels from controlled unit mapping, not backend token labels`)
+    }
+
+    if (content.includes('label: safeNpcDisplayText(token.label)')) {
+      violations.push(`${path}: NPC shop prices must not trust backend token.label for visible coin labels`)
+    }
+
+    if (!content.includes('class="npc-shop-price-token"') || !content.includes('class="npc-shop-price-icon"') || !content.includes('decorative')) {
+      violations.push(`${path}: NPC shop price tokens must include fixed-size decorative coin images`)
+    }
+
+    if (content.includes('[shopPriceLabel(entry), shopConditionSummary(entry)]')) {
+      violations.push(`${path}: NPC shop rows must not concatenate raw price text into relation metadata`)
     }
 
     if (content.includes('entry.conditions].filter(Boolean)')) {

@@ -108,6 +108,14 @@ export type PublicItemDetail = PublicItemListItem & {
   phase?: string | null
 }
 
+export type PublicNpcShopPriceToken = {
+  unit?: string | null
+  amount?: number | string | null
+  label?: string | null
+  iconUrl?: string | null
+  icon_url?: string | null
+}
+
 export type PublicItemImage = {
   id?: number | string | null
   imageId?: number | string | null
@@ -603,6 +611,12 @@ export type PublicNpcShopEntry = {
   image_url?: string | null
   priceText?: string | null
   price_text?: string | null
+  buyPrice?: number | string | null
+  buy_price?: number | string | null
+  sellPrice?: number | string | null
+  sell_price?: number | string | null
+  priceTokens?: PublicNpcShopPriceToken[] | null
+  price_tokens?: PublicNpcShopPriceToken[] | null
   buyPriceText?: string | null
   buy_price_text?: string | null
   currencyText?: string | null

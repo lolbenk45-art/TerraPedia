@@ -15,11 +15,14 @@ public class NpcShopEntryDTO implements Serializable {
     private Long itemId;
     private Integer sourceItemId;
     private String priceText;
+    private Integer buyPrice;
+    private Integer sellPrice;
     private String notes;
     private Integer sortOrder;
     private String itemName;
     private String itemNameZh;
     private String itemInternalName;
     private String imageUrl;
+    private List<NpcShopPriceTokenDTO> priceTokens = new ArrayList<>();
     private List<NpcShopConditionDTO> conditions = new ArrayList<>();
 }

@@ -9,6 +9,7 @@ import com.terraria.skills.dto.NpcDetailDTO;
 import com.terraria.skills.dto.NpcBuffRelationDTO;
 import com.terraria.skills.dto.NpcListItemDTO;
 import com.terraria.skills.dto.NpcLootEntryDTO;
+import com.terraria.skills.dto.NpcShopEntryDTO;
 import com.terraria.skills.dto.PublicNpcQuery;
 import com.terraria.skills.entity.Item;
 import com.terraria.skills.entity.Npc;
@@ -64,6 +65,7 @@ class PublicNpcServiceImplImageTest {
 
     @BeforeEach
     void setUpManagedItemImageResolver() {
+        lenient().when(jdbcTemplate.queryForList(contains("name IN ('Copper Coin', 'Silver Coin', 'Gold Coin', 'Platinum Coin')"))).thenReturn(List.of());
         lenient().when(managedItemImageResolver.resolveManagedImages(any())).thenReturn(Map.of());
         lenient().when(managedItemImageResolver.resolveManagedImage(any(), anyMap())).thenAnswer(invocation -> {
             Item item = invocation.getArgument(0);
@@ -582,6 +584,81 @@ class PublicNpcServiceImplImageTest {
         assertTrue(queryCaptor.getValue().contains("item_images ii"));
         assertTrue(queryCaptor.getValue().contains("AS itemImage"));
         assertFalse(queryCaptor.getValue().contains("i.image AS itemImage"));
+    }
+
+    @Test
+    void shouldExposeStructuredCoinPriceTokensForNpcShopEntries() {
+        String silverIcon = "http://localhost:9000/terrapedia-images/items/wiki/coins/silver-coin.png";
+        String copperIcon = "http://localhost:9000/terrapedia-images/items/wiki/coins/copper-coin.png";
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries"), eq(17L))).thenReturn(List.of(Map.ofEntries(
+            Map.entry("id", 601L),
+            Map.entry("itemId", 8L),
+            Map.entry("itemName", "Torch"),
+            Map.entry("itemInternalName", "Torch"),
+            Map.entry("priceText", "50 CC"),
+            Map.entry("buyPrice", 50),
+            Map.entry("sellPrice", 10)
+        )));
+        when(jdbcTemplate.queryForList(contains("name IN ('Copper Coin', 'Silver Coin', 'Gold Coin', 'Platinum Coin')"))).thenReturn(List.of(
+            Map.of("name", "Silver Coin", "image", silverIcon),
+            Map.of("name", "Copper Coin", "image", copperIcon)
+        ));
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_conditions"), any(Object[].class))).thenReturn(List.of());
+
+        NpcShopEntryDTO result = newService().getNpcShopEntries(17L).get(0);
+
+        assertEquals(50, result.getBuyPrice());
+        assertEquals(10, result.getSellPrice());
+        assertEquals(1, result.getPriceTokens().size());
+        assertEquals("copper", result.getPriceTokens().get(0).getUnit());
+        assertEquals(50, result.getPriceTokens().get(0).getAmount());
+        assertEquals("铜币", result.getPriceTokens().get(0).getLabel());
+        assertEquals(copperIcon, result.getPriceTokens().get(0).getIconUrl());
+    }
+
+    @Test
+    void shouldPreferShopPriceTextWhenItDisagreesWithItemBuyPrice() {
+        String goldIcon = "http://localhost:9000/terrapedia-images/items/wiki/coins/gold-coin.png";
+        String silverIcon = "http://localhost:9000/terrapedia-images/items/wiki/coins/silver-coin.png";
+        String copperIcon = "http://localhost:9000/terrapedia-images/items/wiki/coins/copper-coin.png";
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_entries"), eq(17L))).thenReturn(List.of(
+            Map.ofEntries(
+                Map.entry("id", 701L),
+                Map.entry("itemId", 5051L),
+                Map.entry("itemName", "Valentine Ring"),
+                Map.entry("itemInternalName", "ValentineRing"),
+                Map.entry("priceText", "1 GC"),
+                Map.entry("buyPrice", 500)
+            ),
+            Map.ofEntries(
+                Map.entry("id", 702L),
+                Map.entry("itemId", 5074L),
+                Map.entry("itemName", "Wiesnbrau"),
+                Map.entry("itemInternalName", "Wiesnbrau"),
+                Map.entry("priceText", "9 SC 95 CC"),
+                Map.entry("buyPrice", 75000)
+            )
+        ));
+        when(jdbcTemplate.queryForList(contains("name IN ('Copper Coin', 'Silver Coin', 'Gold Coin', 'Platinum Coin')"))).thenReturn(List.of(
+            Map.of("name", "Gold Coin", "image", goldIcon),
+            Map.of("name", "Silver Coin", "image", silverIcon),
+            Map.of("name", "Copper Coin", "image", copperIcon)
+        ));
+        when(jdbcTemplate.queryForList(contains("FROM npc_shop_conditions"), any(Object[].class))).thenReturn(List.of());
+
+        List<NpcShopEntryDTO> results = newService().getNpcShopEntries(17L);
+
+        assertEquals(1, results.get(0).getPriceTokens().size());
+        assertEquals("gold", results.get(0).getPriceTokens().get(0).getUnit());
+        assertEquals(1, results.get(0).getPriceTokens().get(0).getAmount());
+        assertEquals("金币", results.get(0).getPriceTokens().get(0).getLabel());
+        assertEquals(goldIcon, results.get(0).getPriceTokens().get(0).getIconUrl());
+
+        assertEquals(2, results.get(1).getPriceTokens().size());
+        assertEquals("silver", results.get(1).getPriceTokens().get(0).getUnit());
+        assertEquals(9, results.get(1).getPriceTokens().get(0).getAmount());
+        assertEquals("copper", results.get(1).getPriceTokens().get(1).getUnit());
+        assertEquals(95, results.get(1).getPriceTokens().get(1).getAmount());
     }
 
     @Test

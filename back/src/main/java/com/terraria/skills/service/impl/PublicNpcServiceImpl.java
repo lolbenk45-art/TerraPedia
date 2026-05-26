@@ -12,6 +12,7 @@ import com.terraria.skills.dto.NpcLootEntryDTO;
 import com.terraria.skills.dto.NpcLivingPreferenceDTO;
 import com.terraria.skills.dto.NpcShopConditionDTO;
 import com.terraria.skills.dto.NpcShopEntryDTO;
+import com.terraria.skills.dto.NpcShopPriceTokenDTO;
 import com.terraria.skills.dto.NpcWikiAssetsDTO;
 import com.terraria.skills.dto.PublicNpcQuery;
 import com.terraria.skills.entity.Category;
@@ -24,6 +25,7 @@ import com.terraria.skills.service.ManagedItemImageResolver;
 import com.terraria.skills.service.PublicNpcService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -37,6 +39,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -45,6 +49,15 @@ import java.util.stream.Collectors;
 public class PublicNpcServiceImpl implements PublicNpcService {
 
     private static final String MULTIPART_SEGMENT_SUFFIX_REGEX = "(Head|Body\\d*|Tail|Legs|Hand)$";
+    private static final List<CoinSegment> COIN_SEGMENTS = List.of(
+        new CoinSegment("platinum", 1_000_000, "铂金币"),
+        new CoinSegment("gold", 10_000, "金币"),
+        new CoinSegment("silver", 100, "银币"),
+        new CoinSegment("copper", 1, "铜币")
+    );
+    private static final Pattern SHOP_PRICE_TEXT_TOKEN_PATTERN = Pattern.compile(
+        "(?i)(\\d+)\\s*(pc|gc|sc|cc|platinum(?:\\s+coin)?s?|gold(?:\\s+coin)?s?|silver(?:\\s+coin)?s?|copper(?:\\s+coin)?s?|铂金币?|金币?|银币?|铜币?)"
+    );
 
     private final NpcMapper npcMapper;
     private final CategoryMapper categoryMapper;
@@ -146,6 +159,8 @@ public class PublicNpcServiceImpl implements PublicNpcService {
               i.name AS itemName,
               i.name_zh AS itemNameZh,
               i.internal_name AS itemInternalName,
+              i.buy AS buyPrice,
+              i.sell AS sellPrice,
               %s AS itemImage
             FROM npc_shop_entries nse
             LEFT JOIN items i ON i.id = nse.item_id AND i.deleted = 0
@@ -155,13 +170,14 @@ public class PublicNpcServiceImpl implements PublicNpcService {
             npcId
         );
         Map<Long, String> managedImagesByItemId = resolveManagedItemImages(rows);
-        List<NpcShopEntryDTO> entries = rows.stream()
-            .map(row -> toShopEntryDto(row, managedImagesByItemId))
-            .collect(Collectors.toCollection(ArrayList::new));
-
-        if (entries.isEmpty()) {
-            return entries;
+        if (rows.isEmpty()) {
+            return List.of();
         }
+
+        Map<String, String> coinIcons = loadCoinIcons();
+        List<NpcShopEntryDTO> entries = rows.stream()
+            .map(row -> toShopEntryDto(row, managedImagesByItemId, coinIcons))
+            .collect(Collectors.toCollection(ArrayList::new));
 
         Map<Long, List<NpcShopConditionDTO>> conditionMap = loadShopConditions(
             entries.stream().map(NpcShopEntryDTO::getId).filter(Objects::nonNull).toList()
@@ -814,19 +830,155 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         return dto;
     }
 
-    private NpcShopEntryDTO toShopEntryDto(Map<String, Object> row, Map<Long, String> managedImagesByItemId) {
+    private NpcShopEntryDTO toShopEntryDto(
+        Map<String, Object> row,
+        Map<Long, String> managedImagesByItemId,
+        Map<String, String> coinIcons
+    ) {
         NpcShopEntryDTO dto = new NpcShopEntryDTO();
         dto.setId(toLong(row.get("id")));
         dto.setItemId(toLong(row.get("itemId")));
         dto.setSourceItemId(toInteger(row.get("sourceItemId")));
         dto.setPriceText(toStringValue(row.get("priceText")));
+        dto.setBuyPrice(toInteger(row.get("buyPrice")));
+        dto.setSellPrice(toInteger(row.get("sellPrice")));
         dto.setNotes(toStringValue(row.get("notes")));
         dto.setSortOrder(toInteger(row.get("sortOrder")));
         dto.setItemName(toStringValue(row.get("itemName")));
         dto.setItemNameZh(toStringValue(row.get("itemNameZh")));
         dto.setItemInternalName(toStringValue(row.get("itemInternalName")));
         dto.setImageUrl(resolveManagedItemImage(row, managedImagesByItemId));
+        dto.setPriceTokens(buildPriceTokens(dto.getPriceText(), dto.getBuyPrice(), dto.getSellPrice(), coinIcons));
         return dto;
+    }
+
+    private Map<String, String> loadCoinIcons() {
+        List<Map<String, Object>> rows;
+        try {
+            rows = jdbcTemplate.queryForList(
+                """
+                SELECT name, %s AS image
+                FROM items
+                WHERE deleted = 0
+                  AND name IN ('Copper Coin', 'Silver Coin', 'Gold Coin', 'Platinum Coin')
+                """.formatted(ItemImageSql.preferredItemImageExpression("items"))
+            );
+        } catch (DataAccessException exception) {
+            log.warn("Failed to load public NPC shop coin icons", exception);
+            return Map.of();
+        }
+
+        if (rows == null || rows.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<String, String> icons = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            String image = managedDisplayImageUrl(toStringValue(row.get("image")));
+            if (image == null) {
+                continue;
+            }
+            switch (toStringValue(row.get("name"))) {
+                case "Copper Coin" -> icons.put("copper", image);
+                case "Silver Coin" -> icons.put("silver", image);
+                case "Gold Coin" -> icons.put("gold", image);
+                case "Platinum Coin" -> icons.put("platinum", image);
+                default -> {
+                }
+            }
+        }
+        return icons;
+    }
+
+    private List<NpcShopPriceTokenDTO> buildPriceTokens(
+        String priceText,
+        Integer buyPrice,
+        Integer sellPrice,
+        Map<String, String> coinIcons
+    ) {
+        Integer rawTotal = parseShopPriceTextCopperValue(priceText);
+        if (rawTotal == null) {
+            rawTotal = buyPrice != null && buyPrice >= 0 ? buyPrice : sellPrice;
+        }
+        if (rawTotal == null || rawTotal < 0) {
+            return List.of();
+        }
+
+        int remainder = rawTotal;
+        List<NpcShopPriceTokenDTO> tokens = new ArrayList<>();
+        if (remainder == 0) {
+            tokens.add(priceToken(COIN_SEGMENTS.get(COIN_SEGMENTS.size() - 1), 0, coinIcons));
+            return tokens;
+        }
+
+        for (CoinSegment segment : COIN_SEGMENTS) {
+            int amount = remainder / segment.divider();
+            remainder %= segment.divider();
+            if (amount <= 0) {
+                continue;
+            }
+            tokens.add(priceToken(segment, amount, coinIcons));
+        }
+        return tokens;
+    }
+
+    private static Integer parseShopPriceTextCopperValue(String priceText) {
+        if (priceText == null || priceText.isBlank()) {
+            return null;
+        }
+
+        Matcher matcher = SHOP_PRICE_TEXT_TOKEN_PATTERN.matcher(priceText);
+        int total = 0;
+        int tokenCount = 0;
+        int scanFrom = 0;
+        while (matcher.find()) {
+            String separator = priceText.substring(scanFrom, matcher.start());
+            if (tokenCount > 0 && !separator.isBlank()) {
+                break;
+            }
+
+            int amount;
+            try {
+                amount = Integer.parseInt(matcher.group(1));
+            } catch (NumberFormatException exception) {
+                return null;
+            }
+
+            CoinSegment segment = coinSegmentByPriceTextUnit(matcher.group(2));
+            if (segment == null) {
+                return null;
+            }
+            total += amount * segment.divider();
+            tokenCount += 1;
+            scanFrom = matcher.end();
+        }
+        return tokenCount > 0 ? total : null;
+    }
+
+    private static CoinSegment coinSegmentByPriceTextUnit(String value) {
+        String unit = value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
+        if (unit.equals("pc") || unit.startsWith("platinum") || unit.equals("铂金币") || unit.equals("铂金")) {
+            return COIN_SEGMENTS.get(0);
+        }
+        if (unit.equals("gc") || unit.startsWith("gold") || unit.equals("金币") || unit.equals("金")) {
+            return COIN_SEGMENTS.get(1);
+        }
+        if (unit.equals("sc") || unit.startsWith("silver") || unit.equals("银币") || unit.equals("银")) {
+            return COIN_SEGMENTS.get(2);
+        }
+        if (unit.equals("cc") || unit.startsWith("copper") || unit.equals("铜币") || unit.equals("铜")) {
+            return COIN_SEGMENTS.get(3);
+        }
+        return null;
+    }
+
+    private NpcShopPriceTokenDTO priceToken(CoinSegment segment, int amount, Map<String, String> coinIcons) {
+        NpcShopPriceTokenDTO token = new NpcShopPriceTokenDTO();
+        token.setUnit(segment.unit());
+        token.setAmount(amount);
+        token.setLabel(segment.label());
+        token.setIconUrl(coinIcons == null ? null : coinIcons.get(segment.unit()));
+        return token;
     }
 
     private NpcShopConditionDTO toShopConditionDto(Map<String, Object> row) {
@@ -1146,5 +1298,8 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         private static RelationNpcBuffLookupResult unavailable() {
             return new RelationNpcBuffLookupResult(false, List.of());
         }
+    }
+
+    private record CoinSegment(String unit, int divider, String label) {
     }
 }

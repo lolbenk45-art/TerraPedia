@@ -272,21 +272,35 @@ const normalizeShopCondition = (raw: PublicNpcShopCondition): PublicNpcShopCondi
   }
 }
 
-export const normalizePublicNpcShopEntry = (raw: PublicNpcShopEntry): PublicNpcShopEntry => ({
-  ...raw,
-  id: toNumberOrNull(raw.id),
-  itemId: toNumberOrNull(raw.itemId ?? raw.item_id),
-  itemName: normalizeText(raw.itemName ?? raw.item_name) || null,
-  itemNameZh: normalizeText(raw.itemNameZh ?? raw.item_name_zh) || null,
-  itemInternalName: normalizeText(raw.itemInternalName ?? raw.item_internal_name) || null,
-  itemImage: normalizeText(raw.itemImage ?? raw.item_image) || null,
-  imageUrl: normalizeText(raw.imageUrl ?? raw.image_url ?? raw.itemImage ?? raw.item_image) || null,
-  priceText: normalizeText(raw.priceText ?? raw.price_text) || null,
-  buyPriceText: normalizeText(raw.buyPriceText ?? raw.buy_price_text) || null,
-  currencyText: normalizeText(raw.currencyText ?? raw.currency_text) || null,
-  conditions: Array.isArray(raw.conditions) ? raw.conditions.map(normalizeShopCondition) : raw.conditions ?? null,
-  notes: normalizeText(raw.notes) || null,
+const normalizeNpcShopPriceToken = (raw: NonNullable<PublicNpcShopEntry['priceTokens']>[number]) => ({
+  unit: normalizeText(raw.unit) || null,
+  amount: toNumberOrNull(raw.amount),
+  label: normalizeText(raw.label) || null,
+  iconUrl: normalizeText(raw.iconUrl ?? raw.icon_url) || null,
 })
+
+export const normalizePublicNpcShopEntry = (raw: PublicNpcShopEntry): PublicNpcShopEntry => {
+  const rawPriceTokens = raw.priceTokens ?? raw.price_tokens
+
+  return {
+    ...raw,
+    id: toNumberOrNull(raw.id),
+    itemId: toNumberOrNull(raw.itemId ?? raw.item_id),
+    itemName: normalizeText(raw.itemName ?? raw.item_name) || null,
+    itemNameZh: normalizeText(raw.itemNameZh ?? raw.item_name_zh) || null,
+    itemInternalName: normalizeText(raw.itemInternalName ?? raw.item_internal_name) || null,
+    itemImage: normalizeText(raw.itemImage ?? raw.item_image) || null,
+    imageUrl: normalizeText(raw.imageUrl ?? raw.image_url ?? raw.itemImage ?? raw.item_image) || null,
+    priceText: normalizeText(raw.priceText ?? raw.price_text) || null,
+    buyPrice: toNumberOrNull(raw.buyPrice ?? raw.buy_price),
+    sellPrice: toNumberOrNull(raw.sellPrice ?? raw.sell_price),
+    priceTokens: Array.isArray(rawPriceTokens) ? rawPriceTokens.map(normalizeNpcShopPriceToken).filter(token => token.amount != null && token.amount >= 0 && token.unit) : [],
+    buyPriceText: normalizeText(raw.buyPriceText ?? raw.buy_price_text) || null,
+    currencyText: normalizeText(raw.currencyText ?? raw.currency_text) || null,
+    conditions: Array.isArray(raw.conditions) ? raw.conditions.map(normalizeShopCondition) : raw.conditions ?? null,
+    notes: normalizeText(raw.notes) || null,
+  }
+}
 
 export const normalizePublicNpcBuffRelation = (raw: PublicNpcBuffRelation): PublicNpcBuffRelation => ({
   ...raw,
