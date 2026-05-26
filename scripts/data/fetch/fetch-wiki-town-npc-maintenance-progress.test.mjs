@@ -98,6 +98,8 @@ test('town npc maintenance fetch writes completed progress to explicit path with
   assert.deepEqual(output.records[0].livingPreferences, [
     { targetType: 'biome', preference: 'like', targetName: 'Forest', targetNameZh: null, sourceText: 'Likes Forest' },
     { targetType: 'npc', preference: 'like', targetName: 'Princess', targetNameZh: null, sourceText: 'Likes Princess' },
+    { targetType: 'biome', preference: 'dislike', targetName: '沙漠', targetNameZh: null, sourceText: '反感 沙漠' },
+    { targetType: 'npc', preference: 'dislike', targetName: '税收官', targetNameZh: null, sourceText: '反感 税收官' },
     { targetType: 'npc', preference: 'hate', targetName: 'Angler', targetNameZh: null, sourceText: 'Hates Angler' },
   ]);
 });
@@ -230,6 +232,7 @@ function buildMockNpcHtml() {
           <h2><span id="Living_preferences" class="mw-headline">Living preferences</span></h2>
           <table class="terraria living-preferences">
             <tr class="like"><th>Likes</th><td><a href="/wiki/Forest" title="Forest">Forest</a></td><td><a href="/wiki/Princess" title="Princess">Princess</a></td></tr>
+            <tr class="dislike"><th>反感</th><td>沙漠</td><td>税收官</td></tr>
             <tr class="hate"><th>Hates</th><td><span class="na">n/a</span></td><td><a href="/wiki/Angler" title="Angler">Angler</a></td></tr>
           </table>
         </div>

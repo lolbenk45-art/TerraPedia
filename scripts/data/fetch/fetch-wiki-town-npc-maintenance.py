@@ -624,12 +624,12 @@ def normalize_preference_value(value: Any) -> str | None:
         return None
     if any(token in text for token in ["love", "loves", "最爱", "最喜爱", "最喜欢"]):
         return "love"
-    if any(token in text for token in ["like", "likes", "喜欢", "喜爱"]):
-        return "like"
-    if any(token in text for token in ["dislike", "dislikes", "不喜欢", "反感"]):
+    if any(token in text for token in ["dislike", "dislikes", "不喜欢", "不喜爱", "反感"]):
         return "dislike"
     if any(token in text for token in ["hate", "hates", "讨厌", "厌恶"]):
         return "hate"
+    if any(token in text for token in ["like", "likes", "喜欢", "喜爱"]):
+        return "like"
     return None
 
 

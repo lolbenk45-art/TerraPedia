@@ -1,6 +1,6 @@
 {
   "entity": "wiki_town_npc_maintenance",
-  "generatedAt": "2026-05-26T09:51:42.148514Z",
+  "generatedAt": "2026-05-26T10:08:00.275599Z",
   "sourceMode": "wiki_zh_page_html",
   "sourceOrigin": "https://terraria.wiki.gg/zh",
   "sourceSeedPath": "/home/lolben/TerraPedia/data/generated/npc-standardized-map.json",
@@ -280,14 +280,14 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "沙漠",
           "targetNameZh": null,
           "sourceText": "反感 沙漠"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "税收官",
           "targetNameZh": null,
           "sourceText": "反感 税收官"
@@ -318,11 +318,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/f907031f736b405d936c075c509e9f63.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/78c4d87e578c4a9da903bb1e5d0a0ee7.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/146b2b3d926b47118996874fed0fc85b.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/3513d74db1d04015be4de3499e05baf5.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/803bdfaa3a4242cfb47f8183a0c2b1dd.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a509222d545f4522b784cd681a79359b.png"
       },
-      "fetchedAt": "2026-05-26T09:49:37.788989Z",
+      "fetchedAt": "2026-05-26T10:06:00.637952Z",
       "error": null
     },
     {
@@ -382,21 +382,21 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "雪原生物群系",
           "targetNameZh": null,
           "sourceText": "反感 雪原生物群系"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "派对女孩",
           "targetNameZh": null,
           "sourceText": "反感 派对女孩"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "树妖",
           "targetNameZh": null,
           "sourceText": "反感 树妖"
@@ -425,11 +425,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/4baad5ae37a64281a0d55b53f3332a17.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/4691d82c19f74e78818dc37975b32a27.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/c6b78e0019244c9485f419b1084092ad.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/5b25d073b82c4acc9d5a69fc5adcaaae.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/ac0b5bf08cb14e6ba7d3a9425993667c.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/b87d1bf10cd64056a6454eae9fa8f61e.png"
       },
-      "fetchedAt": "2026-05-26T09:49:40.748833Z",
+      "fetchedAt": "2026-05-26T10:06:04.047553Z",
       "error": null
     },
     {
@@ -607,14 +607,14 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "雪原生物群系",
           "targetNameZh": null,
           "sourceText": "反感 雪原生物群系"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "高尔夫球手",
           "targetNameZh": null,
           "sourceText": "反感 高尔夫球手"
@@ -643,11 +643,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/aafb5c117ce44a8190cf1f312200009a.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/6027e8729e744be7825f60705133eb84.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/09aa5a76f0474fa7987bb5c6f15ef022.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/795dda144ec24ebe8a5659a5b84ce1f2.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/751b2d48f522423a808d0dc0955f7e88.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/10f3f543cc69482e867212c26185283b.png"
       },
-      "fetchedAt": "2026-05-26T09:49:44.109874Z",
+      "fetchedAt": "2026-05-26T10:06:06.856346Z",
       "error": null
     },
     {
@@ -1023,14 +1023,14 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "沙漠",
           "targetNameZh": null,
           "sourceText": "反感 沙漠"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "渔夫",
           "targetNameZh": null,
           "sourceText": "反感 渔夫"
@@ -1060,11 +1060,11 @@
           "增益描述",
           "持续时间"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/62be29c06bc045a2983fbe0934145cff.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/1e6bf79a0f6f4fc08891ec0f90559fdc.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/5c70f7ce40b84452a540b10c0f8d6d9c.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/fbdde59584944399957f2343967efa70.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/85ffc55bf92c45fd9e3ea4e60c723786.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/ea27f3db016a4b6ca1632fa1fa5cdae1.png"
       },
-      "fetchedAt": "2026-05-26T09:49:47.109771Z",
+      "fetchedAt": "2026-05-26T10:06:10.564820Z",
       "error": null
     },
     {
@@ -1114,14 +1114,14 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "海洋",
           "targetNameZh": null,
           "sourceText": "反感 海洋"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "蒸汽朋克人",
           "targetNameZh": null,
           "sourceText": "反感 蒸汽朋克人"
@@ -1152,11 +1152,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/fb581256e552499c8db060be4a34219b.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/5b23a87e47d644cfb5ba0b7171b2d31d.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a70d05e4b5e24bae8063a490827c6dd9.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/c9f64c342d154ea3bf2618570acca819.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/19c686f8b66a479196cf95e83510dfbb.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/75fef09ec9ea4f2984c2cf95c55ed59b.png"
       },
-      "fetchedAt": "2026-05-26T09:49:50.289347Z",
+      "fetchedAt": "2026-05-26T10:06:13.538981Z",
       "error": null
     },
     {
@@ -1194,9 +1194,9 @@
         ],
         "spriteImage": null,
         "mapIconImage": null,
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/3708de4e80f645c29909f8ce9417a8a7.png"
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/7c3c62510685487593dce15c44bec5e6.png"
       },
-      "fetchedAt": "2026-05-26T09:49:53.012192Z",
+      "fetchedAt": "2026-05-26T10:06:16.598129Z",
       "error": null
     },
     {
@@ -1367,21 +1367,21 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "海洋",
           "targetNameZh": null,
           "sourceText": "反感 海洋"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "哥布林工匠",
           "targetNameZh": null,
           "sourceText": "反感 哥布林工匠"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "军火商",
           "targetNameZh": null,
           "sourceText": "反感 军火商"
@@ -1403,11 +1403,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/6922a39af05643c8a62acee108be0e75.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/9cf8f41bd2c3453c92d7da3cfc7932a2.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/8b8011e63fde4af7b0c0af836b25c52e.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/57a2471076c54ac4bcc298d094e1789f.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/70871408d2944d70aa2e2fbbf0cfc44e.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/f28eeb711657444fa89ee54cdc7c2a4e.png"
       },
-      "fetchedAt": "2026-05-26T09:49:56.715440Z",
+      "fetchedAt": "2026-05-26T10:06:20.264074Z",
       "error": null
     },
     {
@@ -1971,14 +1971,14 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "神圣之地",
           "targetNameZh": null,
           "sourceText": "反感 神圣之地"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "护士",
           "targetNameZh": null,
           "sourceText": "反感 护士"
@@ -2007,11 +2007,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/9f411e10fbe64897a01c9cd65d849ed5.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/64299944e516455a8e611cd003108200.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/4c65c945a4eb4027b346781e6c9e1719.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/cfbebc71b39c4943a93833eef29da978.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/62cdc214e17f4b8687a900781caee490.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/8dc65814eea747a1946185dcac902a2e.png"
       },
-      "fetchedAt": "2026-05-26T09:49:59.678323Z",
+      "fetchedAt": "2026-05-26T10:06:23.150821Z",
       "error": null
     },
     {
@@ -2124,14 +2124,14 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "丛林",
           "targetNameZh": null,
           "sourceText": "反感 丛林"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "服装商",
           "targetNameZh": null,
           "sourceText": "反感 服装商"
@@ -2162,11 +2162,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/208274d1eec64a63866302d4287c8cf2.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/87ac9293402d4684ad535c3eba7a9d65.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/771ff26b021a4fc1bae3102747d2e812.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/8ae589def2fa4fd19a8b9cc3944e64c8.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/9eb169870860412da565eac4f5e9dd51.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/edf276d3987642d8babc1c73b11d88ed.png"
       },
-      "fetchedAt": "2026-05-26T09:50:02.668600Z",
+      "fetchedAt": "2026-05-26T10:06:26.251652Z",
       "error": null
     },
     {
@@ -2289,14 +2289,14 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "海洋",
           "targetNameZh": null,
           "sourceText": "反感 海洋"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "巫医",
           "targetNameZh": null,
           "sourceText": "反感 巫医"
@@ -2325,11 +2325,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/1ed75eeed5d74d55ae9d3d4e8460579d.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/193607236cec44c6abc2b6c04a05f515.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/98d9596d18f8409d810846df5d23f358.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/e0f7c980f360452795538685f35990a6.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/f2bda37954c545cb9f5868208fa213f4.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/b83a2cb8db5b41809ead79edd2699c99.png"
       },
-      "fetchedAt": "2026-05-26T09:50:06.261902Z",
+      "fetchedAt": "2026-05-26T10:06:29.225226Z",
       "error": null
     },
     {
@@ -2572,28 +2572,28 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "地下",
           "targetNameZh": null,
           "sourceText": "反感 地下"
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "洞穴",
           "targetNameZh": null,
           "sourceText": "反感 洞穴"
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "地狱",
           "targetNameZh": null,
           "sourceText": "反感 地狱"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "军火商",
           "targetNameZh": null,
           "sourceText": "反感 军火商"
@@ -2623,11 +2623,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/9563c98b8273433b91eb9ce655855cae.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/7def3b19f70a4a8d81fbe7452c61b383.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/68eacc9d2ff748cd92e1ab520c17149b.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d3e0e703284944c5910cc836dcae9ad9.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/dc5342d359794c15a460d4ba8a257993.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/dde3be1da07e4dd69c6102e17951c5dd.png"
       },
-      "fetchedAt": "2026-05-26T09:50:09.178090Z",
+      "fetchedAt": "2026-05-26T10:06:31.623667Z",
       "error": null
     },
     {
@@ -2813,11 +2813,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/13e50eb4b77a4e04a32b72ab4d727e3d.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/ccd67c527b9c47ec8a393d8ad44b3892.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/2495e70a99de4aa0a8c080e0f92b1383.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/04a8aaa7cb6d43e0a19408ed49b69157.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/f1b76c071b9e470bbf9884097654811c.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/41fe2caa65e64dcda1e942e25774c13c.png"
       },
-      "fetchedAt": "2026-05-26T09:50:11.997428Z",
+      "fetchedAt": "2026-05-26T10:06:34.901141Z",
       "error": null
     },
     {
@@ -2920,7 +2920,7 @@
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "服装商",
           "targetNameZh": null,
           "sourceText": "反感 服装商"
@@ -2950,11 +2950,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/bc8225059ede4f99b6ca3f4d49440232.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/c12b4775700446c3a914842179ddcf7b.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/04f101bde80d420ea3d0e55df0319a1c.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/202351902e8f47c28ea2162fbbb049cd.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/f112eb63b9384382a4629fe847bdef7b.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/6c5bbaf562c04d3db285b552750a1e83.png"
       },
-      "fetchedAt": "2026-05-26T09:50:15.194445Z",
+      "fetchedAt": "2026-05-26T10:06:37.768137Z",
       "error": null
     },
     {
@@ -3209,28 +3209,28 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "丛林",
           "targetNameZh": null,
           "sourceText": "反感 丛林"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "派对女孩",
           "targetNameZh": null,
           "sourceText": "反感 派对女孩"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "巫师",
           "targetNameZh": null,
           "sourceText": "反感 巫师"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "树妖",
           "targetNameZh": null,
           "sourceText": "反感 树妖"
@@ -3252,11 +3252,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/5062a127d59e4ff8b995303bdd325fe5.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/4669f9504caf4138a2b625c2c7660bad.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a21280f7c56a4e7ab0ad70a795ac8822.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/c3e9dc93400d408f8ecdbb3a3f8adbf1.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/0ef6ad40af424b2c8822b03ff496e3fb.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d85dc99e561c451fb6ac49a7e3d5a135.png"
       },
-      "fetchedAt": "2026-05-26T09:50:18.019145Z",
+      "fetchedAt": "2026-05-26T10:06:41.670228Z",
       "error": null
     },
     {
@@ -3383,14 +3383,14 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "森林",
           "targetNameZh": null,
           "sourceText": "反感 森林"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "蒸汽朋克人",
           "targetNameZh": null,
           "sourceText": "反感 蒸汽朋克人"
@@ -3419,11 +3419,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/42aaec7b93f844d8a92cb9f428fba8f5.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/c05dd3b3277e4c76a8a6b6f701b28026.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a05b604ebdcb41bca2376af5099ef729.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/07152aa9a58344d8a3d5e2ab5593d994.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/39553a2db4c44fde87215c7db86baf85.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/b215d1581e8f4d44995d38dcdec75489.png"
       },
-      "fetchedAt": "2026-05-26T09:50:25.057868Z",
+      "fetchedAt": "2026-05-26T10:06:44.503480Z",
       "error": null
     },
     {
@@ -3734,28 +3734,28 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "地下",
           "targetNameZh": null,
           "sourceText": "反感 地下"
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "洞穴",
           "targetNameZh": null,
           "sourceText": "反感 洞穴"
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "地狱",
           "targetNameZh": null,
           "sourceText": "反感 地狱"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "商人",
           "targetNameZh": null,
           "sourceText": "反感 商人"
@@ -3784,11 +3784,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/dba8260afb5f41899852cabe4c3cc663.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/fec41fe5e089489fac45cfaccbf80167.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/6ffc786c4fa74b3eab7f089d7aaeb710.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/60a9182897e740d49306166b4b467ea3.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a0def7818cff48b0bbf467bf61b5d80b.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/7af9d22f289b4240a404d8855e302958.png"
       },
-      "fetchedAt": "2026-05-26T09:50:28.361178Z",
+      "fetchedAt": "2026-05-26T10:06:47.601557Z",
       "error": null
     },
     {
@@ -3966,14 +3966,14 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "丛林",
           "targetNameZh": null,
           "sourceText": "反感 丛林"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "动物学家",
           "targetNameZh": null,
           "sourceText": "反感 动物学家"
@@ -4002,11 +4002,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/7057a040b7ab4f51b0a48c7444e834b4.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d4a953612576496ca4a56983f5782dc7.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/b9f58204f38444568aeec4a59dfe4570.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/9521b79d233143e98459e204abe4e601.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/641fe475d61649e081844358f2aa14eb.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/45a4be76bcaa4edb89f2d40dbb036e3c.png"
       },
-      "fetchedAt": "2026-05-26T09:50:31.752902Z",
+      "fetchedAt": "2026-05-26T10:06:51.291706Z",
       "error": null
     },
     {
@@ -4208,21 +4208,21 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "森林",
           "targetNameZh": null,
           "sourceText": "反感 森林"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "机器侠",
           "targetNameZh": null,
           "sourceText": "反感 机器侠"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "松露人",
           "targetNameZh": null,
           "sourceText": "反感 松露人"
@@ -4244,11 +4244,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/e9c521e1294d4f9ba608d2b4627a17bd.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/bfae06d6e9ce4f36b9feb1502d4e92b8.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/8aa4721a8f08423489a9d283f7d70b5a.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/ab62f6dc5ea24a4db1c220950f55b1a3.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/773683c7ff364d5aa5486280c1667f48.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/8a1dba20f72a4b389de2887355269ecd.png"
       },
-      "fetchedAt": "2026-05-26T09:50:34.901204Z",
+      "fetchedAt": "2026-05-26T10:06:53.771773Z",
       "error": null
     },
     {
@@ -4456,14 +4456,14 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "神圣之地",
           "targetNameZh": null,
           "sourceText": "反感 神圣之地"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "护士",
           "targetNameZh": null,
           "sourceText": "反感 护士"
@@ -4492,11 +4492,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/84b582d2836a48d7a7ace99a17e40dd1.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/cf857556d2fb43dbacbd9dbb523ab332.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/aa0a318b5cf84a3392e108bd21d9bcc3.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/1bf7e9caea87499ea800f79dc4fa2b12.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/96772db08fdc4af297ef5cd33aae7871.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/bd638bb1edad4f2486ed8026b2b0b879.png"
       },
-      "fetchedAt": "2026-05-26T09:50:38.702654Z",
+      "fetchedAt": "2026-05-26T10:06:57.396543Z",
       "error": null
     },
     {
@@ -4614,28 +4614,28 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "地下",
           "targetNameZh": null,
           "sourceText": "反感 地下"
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "洞穴",
           "targetNameZh": null,
           "sourceText": "反感 洞穴"
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "地狱",
           "targetNameZh": null,
           "sourceText": "反感 地狱"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "发型师",
           "targetNameZh": null,
           "sourceText": "反感 发型师"
@@ -4665,11 +4665,11 @@
           "被击杀",
           "被击杀 （微光形态）"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/530f871b46874eac956150f4619f32a1.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/f079eba1b22f4f3bbe194b32697a4f60.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/402a2652fdb94b0d911a9101a80443d5.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/86df131d14ae4396837458a7be033509.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/4d16d6e229f5487fb54e6f8019f6b976.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/b97ba6de9e34482fa75de31befe9f56b.png"
       },
-      "fetchedAt": "2026-05-26T09:50:42.010825Z",
+      "fetchedAt": "2026-05-26T10:07:00.698420Z",
       "error": null
     },
     {
@@ -4817,14 +4817,14 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "雪原生物群系",
           "targetNameZh": null,
           "sourceText": "反感 雪原生物群系"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "酒馆老板",
           "targetNameZh": null,
           "sourceText": "反感 酒馆老板"
@@ -4854,11 +4854,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/ff8601a5438f4822b89e4613882ac84b.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/31ef8aa108ec4330a49f587e059ebd7c.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/dcac594ffa1c4b45b5bc29ff184f84c8.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/281e49886bc445a3aaad47edeab2cfd2.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/adce0331dc044cb89dace9db30dcfe47.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/54363414289b40c082ef08a0e13970b1.png"
       },
-      "fetchedAt": "2026-05-26T09:50:44.762432Z",
+      "fetchedAt": "2026-05-26T10:07:03.258818Z",
       "error": null
     },
     {
@@ -5103,11 +5103,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/f65f55b0c392480b8f89b1b23a2b65a4.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/01454092d23e46bd80c2c0a2641536fc.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/7eb8d4afda074f8db8669210ffcc8a9e.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/89e8f23046744e55a6a9b01913f8338f.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/f4abfcf81abd4ca1a85979fe2916ed18.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/6f9b18a91a1343acbb1eca4cef8fee65.png"
       },
-      "fetchedAt": "2026-05-26T09:50:48.463685Z",
+      "fetchedAt": "2026-05-26T10:07:07.079246Z",
       "error": null
     },
     {
@@ -5168,7 +5168,7 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "沙漠",
           "targetNameZh": null,
           "sourceText": "反感 沙漠"
@@ -5198,11 +5198,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/5e8e00822461453b8518b43fd2c184b7.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/b07bdab5534445dea14f2302dfe19d8a.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/9cbba744135a4720bbcbd5422b716292.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/0e95cb69e1bd488db229683d6cbb683b.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/0e9939bd6a4f47e0a52e429180ee3dbc.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/c7c5156bab344925b41fe306db2ec9a0.png"
       },
-      "fetchedAt": "2026-05-26T09:50:51.735649Z",
+      "fetchedAt": "2026-05-26T10:07:09.856902Z",
       "error": null
     },
     {
@@ -5252,21 +5252,21 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "神圣之地",
           "targetNameZh": null,
           "sourceText": "反感 神圣之地"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "爆破专家",
           "targetNameZh": null,
           "sourceText": "反感 爆破专家"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "机械师",
           "targetNameZh": null,
           "sourceText": "反感 机械师"
@@ -5296,11 +5296,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/c6d1e0222aa045229a7dfbb39a6e7f0d.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/986288acabe74607930c2645d4f4bae1.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/cac441c825084ddea5d2ef3f2aae6fe9.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/77a5ba04236f48598e7c8b96fd28ee6d.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/c9fe2385b1da44febdf280efeb5fb81c.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/39f6d00c152246ef85a2e94beb66bdb1.png"
       },
-      "fetchedAt": "2026-05-26T09:50:54.604591Z",
+      "fetchedAt": "2026-05-26T10:07:13.538060Z",
       "error": null
     },
     {
@@ -5459,14 +5459,14 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "雪原生物群系",
           "targetNameZh": null,
           "sourceText": "反感 雪原生物群系"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "向导",
           "targetNameZh": null,
           "sourceText": "反感 向导"
@@ -5495,11 +5495,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/57f9c79c6b514373a8e2dbb50e2b2b71.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/6d9f6a6ecd6a4e638df9eb8f49d8c027.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/76ec6ddb5fef4bbbbca4e2a5ff49a230.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/33f167cbfd554697afa7b81c2789f9be.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/60964b5edec749f2800af70890c7e8a6.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/5b7701321b1e4f28a5b2994466ee0a75.png"
       },
-      "fetchedAt": "2026-05-26T09:50:57.771884Z",
+      "fetchedAt": "2026-05-26T10:07:16.429792Z",
       "error": null
     },
     {
@@ -5815,28 +5815,28 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "地下",
           "targetNameZh": null,
           "sourceText": "反感 地下"
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "洞穴",
           "targetNameZh": null,
           "sourceText": "反感 洞穴"
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "地狱",
           "targetNameZh": null,
           "sourceText": "反感 地狱"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "海盗",
           "targetNameZh": null,
           "sourceText": "反感 海盗"
@@ -5865,11 +5865,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/040abf9fa04649988ff3f7a6530683cd.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/291ea6d3f94645d2a0fda321addca28b.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/fcc0ae7bb5ba4c0392326e14f9fde5c4.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/b74e7c1afe0548248502bd0bb594568c.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/2a5cb093ea9b4023968ab0c7b21557d4.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/3b15364d6dd44910bd5bf3b239c4cee5.png"
       },
-      "fetchedAt": "2026-05-26T09:51:00.710548Z",
+      "fetchedAt": "2026-05-26T10:07:19.990926Z",
       "error": null
     },
     {
@@ -6155,14 +6155,14 @@
         },
         {
           "targetType": "biome",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "沙漠",
           "targetNameZh": null,
           "sourceText": "反感 沙漠"
         },
         {
           "targetType": "npc",
-          "preference": "like",
+          "preference": "dislike",
           "targetName": "渔夫",
           "targetNameZh": null,
           "sourceText": "反感 渔夫"
@@ -6191,11 +6191,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a69ff4f25bbf4da192c6d1ee860a5233.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/f99afe501efc4f598ab67a3e961c7627.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/26afbab596f1467a8bb485571e939643.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/fa2d40419fa047028dd2896c4176c48b.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/012aa610f6b64eb094624befb0bbfe90.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/7745e18cfcf8429e82a36e6c044238d3.png"
       },
-      "fetchedAt": "2026-05-26T09:51:03.932879Z",
+      "fetchedAt": "2026-05-26T10:07:22.514179Z",
       "error": null
     },
     {
@@ -6229,11 +6229,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/85b7319cff7c4d6a848e53ba324b8426.gif",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/ac671d4314c74d7c84685a64c423ecf4.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T09:51:07.100600Z",
+      "fetchedAt": "2026-05-26T10:07:26.035918Z",
       "error": null
     },
     {
@@ -6267,11 +6267,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/91489daafb0e40efa5052bc24bf09b03.gif",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/14bb025d2c36412ab99da159d99514ae.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T09:51:10.506680Z",
+      "fetchedAt": "2026-05-26T10:07:28.756191Z",
       "error": null
     },
     {
@@ -6311,11 +6311,11 @@
           "击退 抗性",
           "敌怪旗"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/83bc1fc54ed14df68f769ddae801b7bd.gif",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a9f974b7d48648729c9afce23e41e313.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T09:51:13.479846Z",
+      "fetchedAt": "2026-05-26T10:07:32.101044Z",
       "error": null
     },
     {
@@ -6545,11 +6545,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/79fbe3ce74d04229a6617e2dce17d7d8.png",
-        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/cb98f4868ab34829b364f6790e59c826.png",
-        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a2d6c45dc37c42c1a62dd7db751fd233.png"
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/6a6fcaafcf7c45e7aadf7a3e9f825614.png",
+        "mapIconImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/37b6c59100f5449b804ebeebbb251ba8.png",
+        "dialogPortraitImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/4b957e50e02640b69294dc2a02fbacb5.png"
       },
-      "fetchedAt": "2026-05-26T09:51:16.482630Z",
+      "fetchedAt": "2026-05-26T10:07:34.787519Z",
       "error": null
     },
     {
@@ -6584,11 +6584,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d9e2c29ce93848fb934622d5f584fced.gif",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a6a12a72852b4170bea9934d26d1551c.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T09:51:19.987862Z",
+      "fetchedAt": "2026-05-26T10:07:37.917201Z",
       "error": null
     },
     {
@@ -6623,11 +6623,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d9e2c29ce93848fb934622d5f584fced.gif",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a6a12a72852b4170bea9934d26d1551c.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T09:51:22.830856Z",
+      "fetchedAt": "2026-05-26T10:07:41.519735Z",
       "error": null
     },
     {
@@ -6662,11 +6662,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d9e2c29ce93848fb934622d5f584fced.gif",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a6a12a72852b4170bea9934d26d1551c.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T09:51:26.481542Z",
+      "fetchedAt": "2026-05-26T10:07:44.095525Z",
       "error": null
     },
     {
@@ -6701,11 +6701,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d9e2c29ce93848fb934622d5f584fced.gif",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a6a12a72852b4170bea9934d26d1551c.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T09:51:29.897063Z",
+      "fetchedAt": "2026-05-26T10:07:47.630695Z",
       "error": null
     },
     {
@@ -6740,11 +6740,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d9e2c29ce93848fb934622d5f584fced.gif",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a6a12a72852b4170bea9934d26d1551c.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T09:51:32.608830Z",
+      "fetchedAt": "2026-05-26T10:07:50.632921Z",
       "error": null
     },
     {
@@ -6779,11 +6779,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d9e2c29ce93848fb934622d5f584fced.gif",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a6a12a72852b4170bea9934d26d1551c.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T09:51:36.190436Z",
+      "fetchedAt": "2026-05-26T10:07:54.166895Z",
       "error": null
     },
     {
@@ -6818,11 +6818,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d9e2c29ce93848fb934622d5f584fced.gif",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a6a12a72852b4170bea9934d26d1551c.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T09:51:39.294986Z",
+      "fetchedAt": "2026-05-26T10:07:56.630630Z",
       "error": null
     },
     {
@@ -6857,11 +6857,11 @@
           "受伤害",
           "被击杀"
         ],
-        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/d9e2c29ce93848fb934622d5f584fced.gif",
+        "spriteImage": "http://localhost:9000/terrapedia-images/npcs/2026/05/26/a6a12a72852b4170bea9934d26d1551c.gif",
         "mapIconImage": null,
         "dialogPortraitImage": null
       },
-      "fetchedAt": "2026-05-26T09:51:42.148079Z",
+      "fetchedAt": "2026-05-26T10:08:00.275223Z",
       "error": null
     }
   ]
