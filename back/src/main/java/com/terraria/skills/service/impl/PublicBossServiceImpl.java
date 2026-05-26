@@ -5,11 +5,13 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.common.ItemImageSql;
+import com.terraria.skills.dto.PublicBossMoneyDropDTO;
 import com.terraria.skills.dto.PublicBossDetailDTO;
 import com.terraria.skills.dto.PublicBossListDTO;
 import com.terraria.skills.dto.PublicBossLootEntryDTO;
 import com.terraria.skills.dto.PublicBossLootOwnerDTO;
 import com.terraria.skills.dto.PublicBossMemberDTO;
+import com.terraria.skills.dto.PublicCoinTokenDTO;
 import com.terraria.skills.dto.PublicBossQuery;
 import com.terraria.skills.entity.BossGroup;
 import com.terraria.skills.entity.Npc;
@@ -36,6 +38,13 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class PublicBossServiceImpl implements PublicBossService {
+
+    private static final List<CoinSegment> COIN_SEGMENTS = List.of(
+        new CoinSegment("platinum", 1_000_000, "铂金币"),
+        new CoinSegment("gold", 10_000, "金币"),
+        new CoinSegment("silver", 100, "银币"),
+        new CoinSegment("copper", 1, "铜币")
+    );
 
     private static final Map<String, List<String>> REFERENCE_BOSS_GROUP_CODES = Map.of(
         "MECHDUSA", List.of("THE_TWINS", "THE_DESTROYER", "SKELETRON_PRIME")
@@ -143,6 +152,7 @@ public class PublicBossServiceImpl implements PublicBossService {
         dto.setReferenceMembers(referenceMembers);
         dto.setLootOwnerNpc(toLootOwnerDto(lootOwnerNpc));
         dto.setLootEntries(lootEntries);
+        dto.setMoneyDrops(buildMoneyDrops(lootOwnerNpc));
         dto.setMemberCount(resolveVisibleMemberCount(memberDtos, referenceMembers));
         dto.setMemberNames(resolveVisibleMemberNames(members, referenceMembers));
         dto.setMemberSourceMode(resolveMemberSourceMode(memberDtos, referenceMembers));
@@ -264,6 +274,129 @@ public class PublicBossServiceImpl implements PublicBossService {
         dto.setBossRole(npc.getBossRole());
         dto.setDisplayName(firstNonBlank(npc.getNameZh(), npc.getName(), npc.getInternalName()));
         return dto;
+    }
+
+    private List<PublicBossMoneyDropDTO> buildMoneyDrops(Npc lootOwnerNpc) {
+        if (lootOwnerNpc == null) {
+            return null;
+        }
+
+        List<MoneyDropValue> values = resolveMoneyDropValues(lootOwnerNpc);
+        if (values.isEmpty()) {
+            return null;
+        }
+
+        Map<String, String> coinIcons = loadCoinIcons();
+        List<PublicBossMoneyDropDTO> drops = new ArrayList<>();
+        for (MoneyDropValue value : values) {
+            addMoneyDrop(drops, value.mode(), value.label(), value.value(), coinIcons);
+        }
+        return drops.isEmpty() ? null : drops;
+    }
+
+    private List<MoneyDropValue> resolveMoneyDropValues(Npc lootOwnerNpc) {
+        List<MoneyDropValue> values = new ArrayList<>();
+        addMoneyDropValue(values, "normal", "普通", lootOwnerNpc.getValue());
+        Map<String, Object> rawJson = parseObjectJson(lootOwnerNpc.getRawJson());
+        Object extras = rawJson.get("extras");
+        if (extras instanceof Map<?, ?> extrasMap) {
+            addMoneyDropValue(values, "expert", "专家", toInteger(extrasMap.get("value_e")));
+            addMoneyDropValue(values, "master", "大师", toInteger(extrasMap.get("value_m")));
+        }
+        return values;
+    }
+
+    private void addMoneyDropValue(List<MoneyDropValue> values, String mode, String label, Integer value) {
+        if (value == null || value <= 0) {
+            return;
+        }
+        values.add(new MoneyDropValue(mode, label, value));
+    }
+
+    private void addMoneyDrop(
+        List<PublicBossMoneyDropDTO> drops,
+        String mode,
+        String label,
+        Integer value,
+        Map<String, String> coinIcons
+    ) {
+        if (value == null || value <= 0) {
+            return;
+        }
+
+        PublicBossMoneyDropDTO drop = new PublicBossMoneyDropDTO();
+        drop.setMode(mode);
+        drop.setLabel(label);
+        drop.setTokens(buildCoinTokens(value, coinIcons));
+        drops.add(drop);
+    }
+
+    private Map<String, String> loadCoinIcons() {
+        if (jdbcTemplate == null) {
+            return Map.of();
+        }
+
+        List<Map<String, Object>> rows;
+        try {
+            rows = jdbcTemplate.queryForList(
+                """
+                SELECT name, %s AS image
+                FROM items
+                WHERE deleted = 0
+                  AND name IN ('Copper Coin', 'Silver Coin', 'Gold Coin', 'Platinum Coin')
+                """.formatted(ItemImageSql.preferredItemImageExpression("items"))
+            );
+        } catch (Exception exception) {
+            return Map.of();
+        }
+
+        if (rows == null || rows.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<String, String> icons = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            String image = managedImageOrNull(trimToNull(row.get("image")));
+            if (image == null) {
+                continue;
+            }
+            String name = trimToNull(row.get("name"));
+            if (name == null) {
+                continue;
+            }
+            switch (name) {
+                case "Copper Coin" -> icons.put("copper", image);
+                case "Silver Coin" -> icons.put("silver", image);
+                case "Gold Coin" -> icons.put("gold", image);
+                case "Platinum Coin" -> icons.put("platinum", image);
+                default -> {
+                }
+            }
+        }
+        return icons;
+    }
+
+    private List<PublicCoinTokenDTO> buildCoinTokens(Integer value, Map<String, String> coinIcons) {
+        if (value == null || value <= 0) {
+            return List.of();
+        }
+
+        int remainder = value;
+        List<PublicCoinTokenDTO> tokens = new ArrayList<>();
+        for (CoinSegment segment : COIN_SEGMENTS) {
+            int amount = remainder / segment.divider();
+            remainder %= segment.divider();
+            if (amount <= 0) {
+                continue;
+            }
+            PublicCoinTokenDTO token = new PublicCoinTokenDTO();
+            token.setUnit(segment.unit());
+            token.setAmount(amount);
+            token.setLabel(segment.label());
+            token.setIconUrl(coinIcons == null ? null : coinIcons.get(segment.unit()));
+            tokens.add(token);
+        }
+        return tokens;
     }
 
     private List<PublicBossLootEntryDTO> loadLootEntries(Long npcId) {
@@ -442,6 +575,28 @@ public class PublicBossServiceImpl implements PublicBossService {
         }
     }
 
+    private Map<String, Object> parseObjectJson(String rawJson) {
+        String text = trimToNull(rawJson);
+        if (text == null) {
+            return Map.of();
+        }
+        try {
+            Object parsed = objectMapper.readValue(text, Object.class);
+            if (!(parsed instanceof Map<?, ?> map)) {
+                return Map.of();
+            }
+            Map<String, Object> result = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                if (entry.getKey() != null) {
+                    result.put(String.valueOf(entry.getKey()), entry.getValue());
+                }
+            }
+            return result;
+        } catch (Exception exception) {
+            return Map.of();
+        }
+    }
+
     private Map<String, Map<String, Object>> loadNpcSupplementMap() {
         Path path = resolveDataFile(Path.of("generated", "npc-standardized-map.json"));
         if (path == null) {
@@ -588,5 +743,11 @@ public class PublicBossServiceImpl implements PublicBossService {
         } catch (NumberFormatException exception) {
             return null;
         }
+    }
+
+    private record CoinSegment(String unit, int divider, String label) {
+    }
+
+    private record MoneyDropValue(String mode, String label, Integer value) {
     }
 }

@@ -928,6 +928,19 @@ export type PublicBossLootEntry = {
   itemImage?: string | null
 }
 
+export type PublicBossMoneyToken = {
+  unit?: string | null
+  amount?: number | string | null
+  label?: string | null
+  iconUrl?: string | null
+}
+
+export type PublicBossMoneyDrop = {
+  mode?: 'normal' | 'expert' | 'master' | string | null
+  label?: string | null
+  tokens?: PublicBossMoneyToken[] | null
+}
+
 export type BossSummonItemDTO = {
   itemId?: number | string | null
   internalName?: string | null
@@ -976,6 +989,7 @@ export type PublicBossDetail = PublicBossListItem & {
   referenceMembers?: PublicBossMember[] | null
   lootOwnerNpc?: PublicBossMember | null
   lootEntries?: PublicBossLootEntry[] | null
+  moneyDrops?: PublicBossMoneyDrop[] | null
   directLootCount?: number | string | null
   treasureBagLootCount?: number | string | null
 }

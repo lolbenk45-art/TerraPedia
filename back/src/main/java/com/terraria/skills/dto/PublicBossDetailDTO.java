@@ -18,6 +18,7 @@ public class PublicBossDetailDTO extends PublicBossListDTO {
     private List<PublicBossMemberDTO> referenceMembers = new ArrayList<>();
     private PublicBossLootOwnerDTO lootOwnerNpc;
     private List<PublicBossLootEntryDTO> lootEntries = new ArrayList<>();
+    private List<PublicBossMoneyDropDTO> moneyDrops;
     private Integer directLootCount;
     private Integer treasureBagLootCount;
     private String summonMethodResolved;

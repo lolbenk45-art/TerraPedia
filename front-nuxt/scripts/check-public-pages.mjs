@@ -2004,6 +2004,41 @@ for (const path of scanFiles) {
     if (content.includes('v-for="entry in bossLootEntries"')) {
       violations.push(`${path}: boss loot entries must not render as one flat ungrouped list`)
     }
+
+    for (const marker of [
+      'bossDetail.value?.moneyDrops',
+      'asArray(drop.tokens)',
+      'formatTerrariaPriceTokens(drop.tokens)',
+      'resolveTerrariaPriceUnitLabel(token.unit)',
+      'token.iconUrl',
+      'class="boss-money-drops"',
+      'class="boss-money-token"',
+      'decorative',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: boss money drops must render compact Terraria coin tokens with controlled labels and optional backend icons via marker ${marker}`)
+      }
+    }
+
+    if (content.includes('label: safeBossDisplayText(token.label)')) {
+      violations.push(`${path}: boss money drops must not trust backend token.label for visible coin labels`)
+    }
+
+    if (content.includes('safeBossDisplayText(drop.label)')) {
+      violations.push(`${path}: boss money drops must not trust backend drop.label for visible difficulty labels`)
+    }
+
+    if (content.includes('drop.value')) {
+      violations.push(`${path}: boss money drops must not render or fallback from raw copper values; backend must provide structured tokens`)
+    }
+
+    if (content.includes('boss-money-token-fallback')) {
+      violations.push(`${path}: boss money drops must use coin-specific visual marks instead of text glyph fallback when backend icons are missing`)
+    }
+
+    if (!content.includes('!bossClientReady.value || bossDetailVisualLoading.value')) {
+      violations.push(`${path}: boss detail readiness state must remain hydration-stable while client-only API data is pending`)
+    }
   }
 
   if (path === 'pages/biomes/index.vue') {

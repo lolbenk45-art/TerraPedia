@@ -1,5 +1,7 @@
 package com.terraria.skills.controller;
 
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.entity.Category;
@@ -21,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,6 +31,7 @@ import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
@@ -100,6 +104,12 @@ class AdminNpcControllerTest {
             .setMessageConverters(new MappingJackson2HttpMessageConverter(new ObjectMapper()))
             .build();
         lenient().when(jdbcTemplate.queryForList(contains("canonical_npc.name"), any(Object[].class))).thenReturn(List.of());
+    }
+
+    @Test
+    void shouldKeepImportedNpcEconomyFieldsReadOnlyForAdminEntityUpdates() throws Exception {
+        assertNpcFieldUpdateStrategyNever("value");
+        assertNpcFieldUpdateStrategyNever("rawJson");
     }
 
     @Test
@@ -1345,6 +1355,12 @@ class AdminNpcControllerTest {
         Constructor<?> constructor = timedValueClass.getDeclaredConstructor(Object.class, long.class);
         constructor.setAccessible(true);
         return constructor.newInstance(value, System.currentTimeMillis() + 60_000L);
+    }
+
+    private void assertNpcFieldUpdateStrategyNever(String fieldName) throws Exception {
+        Field field = Npc.class.getDeclaredField(fieldName);
+        TableField tableField = field.getAnnotation(TableField.class);
+        assertEquals(FieldStrategy.NEVER, tableField.updateStrategy());
     }
 
     @SuppressWarnings("unchecked")

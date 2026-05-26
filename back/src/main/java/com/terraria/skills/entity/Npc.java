@@ -1,5 +1,6 @@
 package com.terraria.skills.entity;
 
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -81,6 +82,9 @@ public class Npc implements Serializable {
     @TableField("catch_item_id")
     private Long catchItemId;
 
+    @TableField(value = "value", updateStrategy = FieldStrategy.NEVER)
+    private Integer value;
+
     @TableField("loot_items_json")
     private String lootItemsJson;
 
@@ -95,6 +99,9 @@ public class Npc implements Serializable {
 
     @TableField("living_preferences_json")
     private String livingPreferencesJson;
+
+    @TableField(value = "raw_json", updateStrategy = FieldStrategy.NEVER)
+    private String rawJson;
 
     @TableField("status")
     private Integer status;
