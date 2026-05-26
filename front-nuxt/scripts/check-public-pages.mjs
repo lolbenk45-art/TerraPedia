@@ -2063,6 +2063,7 @@ for (const path of scanFiles) {
       'recipe-alternative-tab',
       'recipe-alternative-option',
       'recipe-alternative-expansion',
+      'has-child-expansion',
       'recipe-ingredient-row',
       'recipe-ingredient-branch',
       'recipe-child-expansion',
@@ -2416,6 +2417,7 @@ for (const path of scanFiles) {
     const wikiIngredientBranchRule = content.match(/^\.recipe-ingredient-branch\s*\{[^}]*\}/m)?.[0] ?? ''
     const wikiIngredientConnectorRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-children\s*>\s*\.recipe-ingredient-branch::before\s*\{[^}]*\}/m)?.[0] ?? ''
     const wikiIngredientNodeConnectorRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-children\s*>\s*\.recipe-ingredient-branch\s*>\s*\.recipe-ingredient-node::after\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiExpandedIngredientConnectorRule = content.match(/^\.recipe-ingredient-branch\.has-child-expansion\s*>\s*\.recipe-ingredient-node::before\s*\{[^}]*\}/m)?.[0] ?? ''
     const wikiFlowStationRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-station-row::before\s*\{[^}]*\}/m)?.[0] ?? ''
     const wikiFlowConnectorBusRules = readCssRules(content).filter((rule) => (
       rule.selector.includes('.is-wiki-flow')
@@ -2459,7 +2461,7 @@ for (const path of scanFiles) {
       violations.push(`${path}: crafting wiki-flow branches must stack materials above station chips and result nodes`)
     }
 
-    if (!/align-items\s*:\s*flex-end/m.test(wikiFlowChildrenRule) || !/padding-bottom\s*:\s*18px/m.test(wikiFlowChildrenRule) || /padding-top\s*:\s*18px/m.test(wikiFlowChildrenRule)) {
+    if (!/align-items\s*:\s*flex-end/m.test(wikiFlowChildrenRule) || !/padding-bottom\s*:\s*22px/m.test(wikiFlowChildrenRule) || /padding-top\s*:\s*18px/m.test(wikiFlowChildrenRule)) {
       violations.push(`${path}: crafting wiki-flow child groups must bottom-align direct ingredients and reserve connector space below the ingredient row`)
     }
 
@@ -2467,34 +2469,56 @@ for (const path of scanFiles) {
       violations.push(`${path}: crafting wiki-flow ingredients must keep each direct material node below its own expanded sub-recipe`)
     }
 
-    if (/flex\s*:\s*0\s+0\s+172px/m.test(wikiIngredientBranchRule) || !/width\s*:\s*max-content/m.test(wikiIngredientBranchRule)) {
+    if (/flex\s*:\s*0\s+0\s+172px/m.test(wikiIngredientBranchRule) || !/width\s*:\s*max-content/m.test(wikiIngredientBranchRule) || !/gap\s*:\s*18px/m.test(wikiIngredientBranchRule)) {
       violations.push(`${path}: crafting wiki-flow ingredient branches must expand to the width of nested alternative recipe groups instead of overlapping sibling materials`)
     }
 
-    if (!/content\s*:\s*none/m.test(wikiFlowChildrenBusRule) || !/content\s*:\s*none/m.test(wikiIngredientConnectorRule)) {
-      violations.push(`${path}: crafting wiki-flow must avoid full-width ingredient connector buses; use spacing and short local connectors instead`)
+    if (
+      lastCssDeclarationValue(wikiFlowChildrenBusRule, 'content') === 'none'
+      || !/left\s*:\s*86px/m.test(wikiFlowChildrenBusRule)
+      || !/right\s*:\s*86px/m.test(wikiFlowChildrenBusRule)
+      || !/bottom\s*:\s*8px/m.test(wikiFlowChildrenBusRule)
+      || !/height\s*:\s*2px/m.test(wikiFlowChildrenBusRule)
+      || !/top\s*:\s*auto/m.test(wikiFlowChildrenBusRule)
+    ) {
+      violations.push(`${path}: crafting wiki-flow ingredient rows must use a bounded solid collector line between material nodes and the station/result`)
+    }
+
+    if (!/content\s*:\s*none/m.test(wikiIngredientConnectorRule)) {
+      violations.push(`${path}: crafting wiki-flow ingredient branch pseudo-connectors must stay disabled so nested recipe groups do not draw duplicate long lines`)
     }
 
     if (
       lastCssDeclarationValue(wikiFlowStationRule, 'content') === 'none'
       || !/left\s*:\s*50%/m.test(wikiFlowStationRule)
-      || !/top\s*:\s*-10px/m.test(wikiFlowStationRule)
-      || !/width\s*:\s*1px/m.test(wikiFlowStationRule)
-      || !/height\s*:\s*10px/m.test(wikiFlowStationRule)
+      || !/top\s*:\s*-14px/m.test(wikiFlowStationRule)
+      || !/width\s*:\s*2px/m.test(wikiFlowStationRule)
+      || !/height\s*:\s*14px/m.test(wikiFlowStationRule)
       || /right\s*:/m.test(wikiFlowStationRule)
     ) {
-      violations.push(`${path}: crafting wiki-flow station connector must be a short vertical local connector, not a horizontal row bus`)
+      violations.push(`${path}: crafting wiki-flow station connector must be a solid vertical line from the ingredient collector to the station row`)
     }
 
     if (
       lastCssDeclarationValue(wikiIngredientNodeConnectorRule, 'content') === 'none'
       || !/left\s*:\s*50%/m.test(wikiIngredientNodeConnectorRule)
-      || !/bottom\s*:\s*-10px/m.test(wikiIngredientNodeConnectorRule)
-      || !/width\s*:\s*1px/m.test(wikiIngredientNodeConnectorRule)
-      || !/height\s*:\s*10px/m.test(wikiIngredientNodeConnectorRule)
+      || !/bottom\s*:\s*-14px/m.test(wikiIngredientNodeConnectorRule)
+      || !/width\s*:\s*2px/m.test(wikiIngredientNodeConnectorRule)
+      || !/height\s*:\s*14px/m.test(wikiIngredientNodeConnectorRule)
       || /right\s*:/m.test(wikiIngredientNodeConnectorRule)
     ) {
-      violations.push(`${path}: crafting wiki-flow ingredient nodes must show short local down-connectors so material relationships remain legible`)
+      violations.push(`${path}: crafting wiki-flow ingredient nodes must use solid down-connectors into the bounded material collector line`)
+    }
+
+    if (
+      lastCssDeclarationValue(wikiExpandedIngredientConnectorRule, 'content') === 'none'
+      || !/left\s*:\s*50%/m.test(wikiExpandedIngredientConnectorRule)
+      || !/top\s*:\s*-18px/m.test(wikiExpandedIngredientConnectorRule)
+      || !/width\s*:\s*2px/m.test(wikiExpandedIngredientConnectorRule)
+      || !/height\s*:\s*18px/m.test(wikiExpandedIngredientConnectorRule)
+      || /right\s*:/m.test(wikiExpandedIngredientConnectorRule)
+    ) {
+      violations.push(`${path}: crafting wiki-flow expanded ingredient nodes must show a solid up-connector to their own child recipe output`)
     }
 
     for (const rule of wikiFlowConnectorBusRules) {
@@ -2502,12 +2526,19 @@ for (const path of scanFiles) {
       const isStationLocalConnector = rule.selector.includes('.recipe-station-row::before')
         && finalContent !== 'none'
         && /left\s*:\s*50%/m.test(rule.declarations)
-        && /top\s*:\s*-10px/m.test(rule.declarations)
-        && /width\s*:\s*1px/m.test(rule.declarations)
-        && /height\s*:\s*10px/m.test(rule.declarations)
+        && /top\s*:\s*-14px/m.test(rule.declarations)
+        && /width\s*:\s*2px/m.test(rule.declarations)
+        && /height\s*:\s*14px/m.test(rule.declarations)
         && !/right\s*:/m.test(rule.declarations)
+      const isIngredientCollectorLine = rule.selector.includes('.recipe-children::before')
+        && finalContent !== 'none'
+        && /left\s*:\s*86px/m.test(rule.declarations)
+        && /right\s*:\s*86px/m.test(rule.declarations)
+        && /bottom\s*:\s*8px/m.test(rule.declarations)
+        && /height\s*:\s*2px/m.test(rule.declarations)
+        && /top\s*:\s*auto/m.test(rule.declarations)
 
-      if (finalContent !== 'none' && !isStationLocalConnector) {
+      if (finalContent !== 'none' && !isStationLocalConnector && !isIngredientCollectorLine) {
         violations.push(`${path}: crafting wiki-flow connector bus rule must stay disabled instead of drawing long lines: ${rule.selector}`)
       }
     }

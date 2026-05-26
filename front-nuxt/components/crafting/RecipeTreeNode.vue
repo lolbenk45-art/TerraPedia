@@ -208,6 +208,7 @@ watch(recipeAlternativeOptions, (options) => {
         v-for="child in displayRecipeNodeChildren"
         :key="displayText(child.recipeId, child.itemId, nodeTitle(child), 'child')"
         class="recipe-ingredient-branch"
+        :class="{ 'has-child-expansion': recipeNodeChildren(child).length || recipeNodeStations(child).length }"
       >
         <CraftingRecipeTreeNode
           v-if="recipeNodeChildren(child).length || recipeNodeStations(child).length"

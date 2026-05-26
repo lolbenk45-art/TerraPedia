@@ -6959,6 +6959,7 @@ img[data-preview-fallback] {
 }
 .recipe-branch.is-wiki-flow > .recipe-children {
   order: 1;
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: flex-end;
@@ -6968,18 +6969,30 @@ img[data-preview-fallback] {
   max-width: none;
   min-width: 172px;
   padding-top: 0;
-  padding-bottom: 18px;
+  padding-bottom: 22px;
 }
 .recipe-ingredient-branch {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 18px;
   flex: 0 0 auto;
   width: max-content;
   min-width: 172px;
   overflow: visible;
+  z-index: 1;
+}
+.recipe-ingredient-branch.has-child-expansion > .recipe-ingredient-node::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -18px;
+  width: 2px;
+  height: 18px;
+  background: rgba(217, 185, 91, 0.62);
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 .recipe-child-expansion {
   flex: 0 0 auto;
@@ -7075,6 +7088,7 @@ img[data-preview-fallback] {
   content: none;
 }
 .recipe-ingredient-node {
+  position: relative;
   flex: 0 0 auto;
   z-index: 4;
 }
@@ -7082,15 +7096,23 @@ img[data-preview-fallback] {
   content: "";
   position: absolute;
   left: 50%;
-  bottom: -10px;
-  width: 1px;
-  height: 10px;
-  background: rgba(217, 185, 91, 0.24);
+  bottom: -14px;
+  width: 2px;
+  height: 14px;
+  background: rgba(217, 185, 91, 0.62);
   transform: translateX(-50%);
   pointer-events: none;
 }
 .recipe-branch.is-wiki-flow > .recipe-children::before {
-  content: none;
+  content: "";
+  position: absolute;
+  top: auto;
+  left: 86px;
+  right: 86px;
+  bottom: 8px;
+  height: 2px;
+  background: rgba(217, 185, 91, 0.58);
+  pointer-events: none;
 }
 .recipe-branch.is-wiki-flow > .recipe-children > .recipe-ingredient-branch::before {
   content: none;
@@ -7107,11 +7129,11 @@ img[data-preview-fallback] {
 .recipe-branch.is-wiki-flow > .recipe-station-row::before {
   content: "";
   position: absolute;
-  top: -10px;
+  top: -14px;
   left: 50%;
-  width: 1px;
-  height: 10px;
-  background: rgba(217, 185, 91, 0.24);
+  width: 2px;
+  height: 14px;
+  background: rgba(217, 185, 91, 0.62);
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -7120,9 +7142,9 @@ img[data-preview-fallback] {
   position: absolute;
   top: 100%;
   left: 50%;
-  width: 1px;
+  width: 2px;
   height: 12px;
-  background: rgba(217, 185, 91, 0.2);
+  background: rgba(217, 185, 91, 0.58);
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -7139,9 +7161,9 @@ img[data-preview-fallback] {
   position: absolute;
   top: -12px;
   left: 50%;
-  width: 1px;
+  width: 2px;
   height: 10px;
-  background: rgba(217, 185, 91, 0.18);
+  background: rgba(217, 185, 91, 0.58);
   transform: translateX(-50%);
   pointer-events: none;
 }
