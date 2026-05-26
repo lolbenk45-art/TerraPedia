@@ -5,6 +5,14 @@ import { inflateSync } from 'node:zlib'
 const root = new URL('..', import.meta.url)
 const file = (path) => join(root.pathname, path)
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const readCssRules = (content) => [...content.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((match) => ({
+  selector: match[1].trim(),
+  declarations: match[2],
+}))
+const lastCssDeclarationValue = (declarations, property) => {
+  const matches = [...declarations.matchAll(new RegExp(`${escapeRegExp(property)}\\s*:\\s*([^;]+)`, 'g'))]
+  return matches.at(-1)?.[1]?.trim() ?? ''
+}
 
 const assertApiPagedListBypassesLocalFilters = (violations, path, content, contract) => {
   for (const marker of contract.markers) {
@@ -2404,8 +2412,18 @@ for (const path of scanFiles) {
     const narrowRecipeChildrenLineRule = content.match(/@media \(max-width: 1180px\)\s*\{[\s\S]*?\.recipe-children::before\s*\{([^}]*)\}/m)?.[1] ?? ''
     const wikiFlowBranchRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*\{[^}]*\}/m)?.[0] ?? ''
     const wikiFlowChildrenRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-children\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiFlowChildrenBusRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-children::before\s*\{[^}]*\}/m)?.[0] ?? ''
     const wikiIngredientBranchRule = content.match(/^\.recipe-ingredient-branch\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiIngredientConnectorRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-children\s*>\s*\.recipe-ingredient-branch::before\s*\{[^}]*\}/m)?.[0] ?? ''
     const wikiFlowStationRule = content.match(/^\.recipe-branch\.is-wiki-flow\s*>\s*\.recipe-station-row::before\s*\{[^}]*\}/m)?.[0] ?? ''
+    const wikiFlowConnectorBusRules = readCssRules(content).filter((rule) => (
+      rule.selector.includes('.is-wiki-flow')
+      && (
+        rule.selector.includes('.recipe-children::before')
+        || rule.selector.includes('.recipe-station-row::before')
+        || rule.selector.includes('.recipe-ingredient-branch::before')
+      )
+    ))
     const recipeFullTreeStageRule = content.match(/^\.crafting-layout\s*>\s*\.recipe-full-tree\s+\.recipe-tree-stage\s*\{[^}]*\}/m)?.[0] ?? ''
 
     if (!/width\s*:\s*max-content/m.test(recipeBranchRule)) {
@@ -2452,8 +2470,14 @@ for (const path of scanFiles) {
       violations.push(`${path}: crafting wiki-flow ingredient branches must expand to the width of nested alternative recipe groups instead of overlapping sibling materials`)
     }
 
-    if (!/top\s*:\s*50%/m.test(wikiFlowStationRule)) {
-      violations.push(`${path}: crafting wiki-flow station row must draw the station chip on a horizontal connector line`)
+    if (!/content\s*:\s*none/m.test(wikiFlowChildrenBusRule) || !/content\s*:\s*none/m.test(wikiIngredientConnectorRule) || !/content\s*:\s*none/m.test(wikiFlowStationRule)) {
+      violations.push(`${path}: crafting wiki-flow must avoid full-width connector buses; use spacing and short local connectors instead`)
+    }
+
+    for (const rule of wikiFlowConnectorBusRules) {
+      if (lastCssDeclarationValue(rule.declarations, 'content') !== 'none') {
+        violations.push(`${path}: crafting wiki-flow connector bus rule must stay disabled instead of drawing long lines: ${rule.selector}`)
+      }
     }
 
     if (/max-height\s*:\s*760px/m.test(recipeFullTreeStageRule) || /overflow\s*:\s*auto/m.test(recipeFullTreeStageRule)) {

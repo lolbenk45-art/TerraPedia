@@ -7079,49 +7079,31 @@ img[data-preview-fallback] {
   z-index: 4;
 }
 .recipe-branch.is-wiki-flow > .recipe-children::before {
-  top: auto;
-  bottom: 0;
-  left: 12%;
-  right: 12%;
+  content: none;
 }
 .recipe-branch.is-wiki-flow > .recipe-children > .recipe-ingredient-branch::before {
-  content: "";
-  position: absolute;
-  top: auto;
-  left: 50%;
-  width: 1px;
-  height: 18px;
-  bottom: -18px;
-  background: rgba(217, 185, 91, 0.22);
-  pointer-events: none;
+  content: none;
 }
 .recipe-branch.is-wiki-flow > .recipe-station-row {
   order: 2;
   position: relative;
-  width: 100%;
+  width: max-content;
   max-width: none;
   min-width: 172px;
-  margin: 8px 0 0;
-  padding: 8px 0;
+  margin: 4px 0 0;
+  padding: 4px 0 0;
 }
 .recipe-branch.is-wiki-flow > .recipe-station-row::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 12%;
-  right: 12%;
-  height: 1px;
-  background: rgba(217, 185, 91, 0.24);
-  pointer-events: none;
+  content: none;
 }
 .recipe-branch.is-wiki-flow > .recipe-station-row::after {
   content: "";
   position: absolute;
-  top: 50%;
+  top: 100%;
   left: 50%;
   width: 1px;
-  height: 20px;
-  background: rgba(217, 185, 91, 0.24);
+  height: 12px;
+  background: rgba(217, 185, 91, 0.2);
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -7132,6 +7114,17 @@ img[data-preview-fallback] {
 .recipe-branch.is-wiki-flow > .recipe-tree-node {
   order: 3;
   margin-top: 12px;
+}
+.recipe-branch.is-wiki-flow:not(.is-leaf) > .recipe-tree-node::before {
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  width: 1px;
+  height: 10px;
+  background: rgba(217, 185, 91, 0.18);
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 .recipe-branch.is-wiki-flow.is-leaf > .recipe-tree-node {
   margin-top: 0;
