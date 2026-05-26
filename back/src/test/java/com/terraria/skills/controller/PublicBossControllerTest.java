@@ -31,6 +31,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -49,6 +50,7 @@ class PublicBossControllerTest {
     private static final String CDN_MANAGED_BOSS_IMAGE_URL = "https://cdn.example.com/terrapedia-images/bosses/king-slime.png";
     private static final String MANAGED_MEMBER_IMAGE_URL = "http://localhost:9000/terrapedia-images/npcs/retinazer.png";
     private static final String MANAGED_LOOT_IMAGE_URL = "http://localhost:9000/terrapedia-images/items/slime-gun.png";
+    private static final String MANAGED_SUMMON_ITEM_IMAGE_URL = "http://localhost:9000/terrapedia-images/items/slime-crown.png";
     private static final String WIKI_IMAGE_URL = "https://terraria.wiki.gg/images/King_Slime.png";
     private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
         @Override
@@ -193,6 +195,9 @@ class PublicBossControllerTest {
                     npc(102L, 126L, "Spazmatism", "Spazmatism", "魔焰眼", "part")
                 )
             );
+            when(jdbcTemplate.queryForList(contains("FROM items i"), any(Object[].class))).thenReturn(List.of(
+                summonItem(5334L, "MechdusaSummon", "Ocram's Razor", "奥库瑞姆剃刀", "https://terraria.wiki.gg/images/Ocrams_Razor.png")
+            ));
 
             mockMvc.perform(get("/public/bosses/66"))
                 .andExpect(status().isOk())
@@ -213,7 +218,14 @@ class PublicBossControllerTest {
                 .andExpect(jsonPath("$.data.uniqueLootItemCount").value(0))
                 .andExpect(jsonPath("$.data.summonMethod").doesNotExist())
                 .andExpect(jsonPath("$.data.summonMethodResolved", containsString("奥库瑞姆剃刀")))
-                .andExpect(jsonPath("$.data.summonItems", empty()))
+                .andExpect(jsonPath("$.data.summonItems.length()").value(1))
+                .andExpect(jsonPath("$.data.summonItems[0].itemId").value(5334))
+                .andExpect(jsonPath("$.data.summonItems[0].internalName").value("MechdusaSummon"))
+                .andExpect(jsonPath("$.data.summonItems[0].name").value("Ocram's Razor"))
+                .andExpect(jsonPath("$.data.summonItems[0].nameZh").value("奥库瑞姆剃刀"))
+                .andExpect(jsonPath("$.data.summonItems[0].imageUrl").doesNotExist())
+                .andExpect(jsonPath("$.data.summonItems[0].role").value("summon"))
+                .andExpect(jsonPath("$.data.summonItems[0].derived").value(true))
                 .andExpect(jsonPath("$.data.summonConditions", empty()))
                 .andExpect(jsonPath("$.data.mechanicNotes", empty()))
                 .andExpect(jsonPath("$.data.difficultyNotes", empty()))
@@ -226,6 +238,49 @@ class PublicBossControllerTest {
         } finally {
             System.setProperty("user.dir", originalUserDir);
         }
+    }
+
+    @Test
+    void shouldExposeBossSummonItemsWithManagedItemImages() throws Exception {
+        BossGroup kingSlime = bossGroup(34L, "KING_SLIME", "King Slime", "史莱姆王", "PRE_HARDMODE", 1);
+
+        when(bossGroupMapper.selectById(eq(34L))).thenReturn(kingSlime);
+        when(npcMapper.selectList(any())).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM items i"), any(Object[].class))).thenReturn(List.of(
+            summonItem(
+                560L,
+                "SlimeCrown",
+                "Slime Crown",
+                "史莱姆王冠",
+                "https://terraria.wiki.gg/images/Slime_Crown.png",
+                MANAGED_SUMMON_ITEM_IMAGE_URL
+            )
+        ));
+
+        mockMvc.perform(get("/public/bosses/34"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.summonMethodResolved", containsString("史莱姆王冠")))
+            .andExpect(jsonPath("$.data.summonItems.length()").value(1))
+            .andExpect(jsonPath("$.data.summonItems[0].itemId").value(560))
+            .andExpect(jsonPath("$.data.summonItems[0].internalName").value("SlimeCrown"))
+            .andExpect(jsonPath("$.data.summonItems[0].name").value("Slime Crown"))
+            .andExpect(jsonPath("$.data.summonItems[0].nameZh").value("史莱姆王冠"))
+            .andExpect(jsonPath("$.data.summonItems[0].imageUrl").value(MANAGED_SUMMON_ITEM_IMAGE_URL))
+            .andExpect(jsonPath("$.data.summonItems[0].role").value("summon"))
+            .andExpect(jsonPath("$.data.summonItems[0].sourceText", containsString("史莱姆王冠")))
+            .andExpect(jsonPath("$.data.summonItems[0].derived").value(true));
+
+        ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Object[]> argsCaptor = ArgumentCaptor.forClass(Object[].class);
+        verify(jdbcTemplate).queryForList(queryCaptor.capture(), argsCaptor.capture());
+        String summonSql = queryCaptor.getValue();
+        assertTrue(summonSql.contains("FROM items i"));
+        assertTrue(summonSql.contains("item_images ii"));
+        assertTrue(summonSql.contains("ii.cached_url"));
+        assertTrue(summonSql.contains("i.image AS fallbackImageUrl"));
+        assertTrue(summonSql.contains("i.internal_name IN (?, ?) OR i.name IN (?, ?)"));
+        assertArrayEquals(new Object[]{"SlimeCrown", "Slime Crown", "SlimeCrown", "Slime Crown"}, argsCaptor.getValue());
     }
 
     @Test
@@ -305,7 +360,8 @@ class PublicBossControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.summonMethod").value("Use a reviewed Slime Crown note."))
             .andExpect(jsonPath("$.data.summonMethodResolved").value("Use a reviewed Slime Crown note."))
-            .andExpect(jsonPath("$.data.summonItems", empty()))
+            .andExpect(jsonPath("$.data.summonItems.length()").value(1))
+            .andExpect(jsonPath("$.data.summonItems[0].name").value("Slime Crown"))
             .andExpect(jsonPath("$.data.summonConditions", empty()))
             .andExpect(jsonPath("$.data.mechanicNotes", empty()))
             .andExpect(jsonPath("$.data.difficultyNotes", empty()));
@@ -378,6 +434,28 @@ class PublicBossControllerTest {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("name", name);
         row.put("image", image);
+        return row;
+    }
+
+    private Map<String, Object> summonItem(Long itemId, String internalName, String name, String nameZh, String imageUrl) {
+        return summonItem(itemId, internalName, name, nameZh, imageUrl, null);
+    }
+
+    private Map<String, Object> summonItem(
+        Long itemId,
+        String internalName,
+        String name,
+        String nameZh,
+        String imageUrl,
+        String fallbackImageUrl
+    ) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("itemId", itemId);
+        row.put("internalName", internalName);
+        row.put("name", name);
+        row.put("nameZh", nameZh);
+        row.put("imageUrl", imageUrl);
+        row.put("fallbackImageUrl", fallbackImageUrl);
         return row;
     }
 }

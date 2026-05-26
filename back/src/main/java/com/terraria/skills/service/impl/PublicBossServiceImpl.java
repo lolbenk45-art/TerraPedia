@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.terraria.skills.common.ItemImageSql;
+import com.terraria.skills.dto.BossSummonItemDTO;
 import com.terraria.skills.dto.PublicBossMoneyDropDTO;
 import com.terraria.skills.dto.PublicBossDetailDTO;
 import com.terraria.skills.dto.PublicBossListDTO;
@@ -28,9 +29,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -161,6 +164,7 @@ public class PublicBossServiceImpl implements PublicBossService {
         dto.setTreasureBagLootCount(countLootEntriesByKind(lootEntries, "treasure_bag"));
         dto.setUniqueLootItemCount(countUniqueLootItems(lootEntries));
         dto.setSummonMethodResolved(BossSummonContractResolver.resolveSummonMethodResolved(bossGroup));
+        dto.setSummonItems(loadSummonItems(bossGroup));
         return dto;
     }
 
@@ -397,6 +401,108 @@ public class PublicBossServiceImpl implements PublicBossService {
             tokens.add(token);
         }
         return tokens;
+    }
+
+    private List<BossSummonItemDTO> loadSummonItems(BossGroup bossGroup) {
+        List<BossSummonContractResolver.SummonItemRef> refs = BossSummonContractResolver.resolveSummonItemRefs(bossGroup);
+        if (refs.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, Map<String, Object>> rowsByKey = loadSummonItemRows(refs);
+        String sourceText = BossSummonContractResolver.resolveSummonMethodResolved(bossGroup);
+        List<BossSummonItemDTO> items = new ArrayList<>();
+        for (BossSummonContractResolver.SummonItemRef ref : refs) {
+            Map<String, Object> row = rowsByKey.get(summonLookupKey(ref.itemInternalName()));
+            if (row == null) {
+                row = rowsByKey.get(summonLookupKey(ref.itemName()));
+            }
+            BossSummonItemDTO dto = new BossSummonItemDTO();
+            dto.setItemId(row == null ? null : toLong(row.get("itemId")));
+            dto.setInternalName(firstNonBlank(row == null ? null : trimToNull(row.get("internalName")), ref.itemInternalName()));
+            dto.setName(firstNonBlank(row == null ? null : trimToNull(row.get("name")), ref.itemName()));
+            dto.setNameZh(row == null ? null : trimToNull(row.get("nameZh")));
+            dto.setImageUrl(row == null ? null : firstNonBlank(
+                managedImageOrNull(trimToNull(row.get("imageUrl"))),
+                managedImageOrNull(trimToNull(row.get("fallbackImageUrl")))
+            ));
+            dto.setRole(ref.role());
+            dto.setSourceText(sourceText);
+            dto.setConfidence(1.0);
+            dto.setDerived(true);
+            items.add(dto);
+        }
+        return items;
+    }
+
+    private Map<String, Map<String, Object>> loadSummonItemRows(List<BossSummonContractResolver.SummonItemRef> refs) {
+        if (jdbcTemplate == null || refs == null || refs.isEmpty()) {
+            return Map.of();
+        }
+
+        List<String> values = refs.stream()
+            .flatMap(ref -> java.util.stream.Stream.of(ref.itemInternalName(), ref.itemName()))
+            .map(this::trimToNull)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+        if (values.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            """
+            SELECT
+              i.id AS itemId,
+              i.internal_name AS internalName,
+              i.name,
+              i.name_zh AS nameZh,
+              %s AS imageUrl,
+              i.image AS fallbackImageUrl
+            FROM items i
+            WHERE i.deleted = 0
+              AND (i.internal_name IN (%s) OR i.name IN (%s))
+            ORDER BY i.id ASC
+            """.formatted(
+                ItemImageSql.preferredItemImageExpression("i"),
+                buildPlaceholders(values.size()),
+                buildPlaceholders(values.size())
+            ),
+            buildRepeatedArgs(values)
+        );
+        if (rows == null || rows.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<String, Map<String, Object>> lookup = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            putSummonRow(lookup, row, "internalName");
+            putSummonRow(lookup, row, "name");
+        }
+        return lookup;
+    }
+
+    private void putSummonRow(Map<String, Map<String, Object>> lookup, Map<String, Object> row, String field) {
+        String key = summonLookupKey(row == null ? null : row.get(field));
+        if (key != null && !lookup.containsKey(key)) {
+            lookup.put(key, row);
+        }
+    }
+
+    private Object[] buildRepeatedArgs(List<String> values) {
+        List<String> args = new ArrayList<>(values.size() * 2);
+        args.addAll(values);
+        args.addAll(values);
+        return args.toArray();
+    }
+
+    private String buildPlaceholders(int size) {
+        return String.join(", ", Collections.nCopies(size, "?"));
+    }
+
+    private String summonLookupKey(Object value) {
+        String text = trimToNull(value);
+        return text == null ? null : text.toLowerCase(Locale.ROOT);
     }
 
     private List<PublicBossLootEntryDTO> loadLootEntries(Long npcId) {

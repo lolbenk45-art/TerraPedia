@@ -32,6 +32,24 @@ class BossSummonContractResolverTest {
         assertNull(BossSummonContractResolver.resolveSummonMethodResolved(bossGroup));
     }
 
+    @Test
+    void shouldResolveStructuredSummonItemRefsForBossCode() {
+        BossGroup bossGroup = bossGroup("KING_SLIME", null);
+
+        var refs = BossSummonContractResolver.resolveSummonItemRefs(bossGroup);
+
+        assertEquals(1, refs.size());
+        assertEquals("Slime Crown", refs.get(0).itemName());
+        assertEquals("summon", refs.get(0).role());
+    }
+
+    @Test
+    void shouldReturnNoSummonItemRefsForBossWithoutSummonItem() {
+        BossGroup bossGroup = bossGroup("SKELETRON", null);
+
+        assertTrue(BossSummonContractResolver.resolveSummonItemRefs(bossGroup).isEmpty());
+    }
+
     private BossGroup bossGroup(String code, String summonMethod) {
         BossGroup bossGroup = new BossGroup();
         bossGroup.setCode(code);

@@ -34,10 +34,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -214,7 +216,7 @@ public class AdminBossController {
         payload.put("treasureBagLootCount", countLootEntriesByKind(lootEntries, "treasure_bag"));
         payload.put("uniqueLootItemCount", countUniqueLootItems(lootEntries));
         payload.put("summonMethodResolved", BossSummonContractResolver.resolveSummonMethodResolved(bossGroup));
-        payload.put("summonItems", List.of());
+        payload.put("summonItems", loadSummonItems(bossGroup));
         payload.put("summonConditions", List.of());
         payload.put("mechanicNotes", List.of());
         payload.put("difficultyNotes", List.of());
@@ -271,6 +273,109 @@ public class AdminBossController {
         payload.put("bossRole", npc.getBossRole());
         payload.put("displayName", firstNonBlank(npc.getNameZh(), npc.getName(), npc.getInternalName()));
         return payload;
+    }
+
+    private List<Map<String, Object>> loadSummonItems(BossGroup bossGroup) {
+        List<BossSummonContractResolver.SummonItemRef> refs = BossSummonContractResolver.resolveSummonItemRefs(bossGroup);
+        if (refs.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, Map<String, Object>> rowsByKey = loadSummonItemRows(refs);
+        String sourceText = BossSummonContractResolver.resolveSummonMethodResolved(bossGroup);
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (BossSummonContractResolver.SummonItemRef ref : refs) {
+            Map<String, Object> row = rowsByKey.get(summonLookupKey(ref.itemInternalName()));
+            if (row == null) {
+                row = rowsByKey.get(summonLookupKey(ref.itemName()));
+            }
+
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("itemId", row == null ? null : toLong(row.get("itemId")));
+            item.put("internalName", firstNonBlank(row == null ? null : trimToNull(row.get("internalName")), ref.itemInternalName()));
+            item.put("name", firstNonBlank(row == null ? null : trimToNull(row.get("name")), ref.itemName()));
+            item.put("nameZh", row == null ? null : trimToNull(row.get("nameZh")));
+            item.put("imageUrl", row == null ? null : firstNonBlank(
+                managedImageOrNull(trimToNull(row.get("imageUrl"))),
+                managedImageOrNull(trimToNull(row.get("fallbackImageUrl")))
+            ));
+            item.put("role", ref.role());
+            item.put("sourceText", sourceText);
+            item.put("confidence", 1.0);
+            item.put("derived", true);
+            items.add(item);
+        }
+        return items;
+    }
+
+    private Map<String, Map<String, Object>> loadSummonItemRows(List<BossSummonContractResolver.SummonItemRef> refs) {
+        if (jdbcTemplate == null || refs == null || refs.isEmpty()) {
+            return Map.of();
+        }
+
+        List<String> values = refs.stream()
+            .flatMap(ref -> java.util.stream.Stream.of(ref.itemInternalName(), ref.itemName()))
+            .map(this::trimToNull)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
+        if (values.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+            """
+            SELECT
+              i.id AS itemId,
+              i.internal_name AS internalName,
+              i.name,
+              i.name_zh AS nameZh,
+              %s AS imageUrl,
+              i.image AS fallbackImageUrl
+            FROM items i
+            WHERE i.deleted = 0
+              AND (i.internal_name IN (%s) OR i.name IN (%s))
+            ORDER BY i.id ASC
+            """.formatted(
+                AdminItemImageSql.preferredItemImageExpression("i"),
+                buildPlaceholders(values.size()),
+                buildPlaceholders(values.size())
+            ),
+            buildRepeatedArgs(values)
+        );
+        if (rows == null || rows.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<String, Map<String, Object>> lookup = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            putSummonRow(lookup, row, "internalName");
+            putSummonRow(lookup, row, "name");
+        }
+        return lookup;
+    }
+
+    private void putSummonRow(Map<String, Map<String, Object>> lookup, Map<String, Object> row, String field) {
+        String key = summonLookupKey(row == null ? null : row.get(field));
+        if (key != null && !lookup.containsKey(key)) {
+            lookup.put(key, row);
+        }
+    }
+
+    private Object[] buildRepeatedArgs(List<String> values) {
+        List<String> args = new ArrayList<>(values.size() * 2);
+        args.addAll(values);
+        args.addAll(values);
+        return args.toArray();
+    }
+
+    private String buildPlaceholders(int size) {
+        return String.join(", ", Collections.nCopies(size, "?"));
+    }
+
+    private String summonLookupKey(Object value) {
+        String text = trimToNull(value);
+        return text == null ? null : text.toLowerCase(Locale.ROOT);
     }
 
     private List<Map<String, Object>> loadLootEntries(Long npcId) {

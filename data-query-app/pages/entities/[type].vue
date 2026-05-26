@@ -711,10 +711,20 @@
                       <span>{{ group.rows.length }} 条</span>
                     </div>
                     <div class="boss-detail__fact-list">
-                      <article v-for="row in group.rows" :key="row.key" class="boss-detail__fact-card">
-                        <div v-for="field in row.fields" :key="`${row.key}-${field.label}`" class="boss-detail__fact-row">
-                          <span>{{ field.label }}</span>
-                          <strong>{{ field.value }}</strong>
+                      <article v-for="row in group.rows" :key="row.key" class="boss-detail__fact-card" :class="{ 'boss-detail__fact-card--media': row.imageUrl }">
+                        <button
+                          v-if="row.imageUrl"
+                          type="button"
+                          class="boss-detail__fact-media"
+                          @click="openImageLightbox(row.imageUrl, row.title)"
+                        >
+                          <img :src="row.imageUrl" class="boss-detail__fact-image" :alt="row.title" loading="lazy" @error="handleImageError" />
+                        </button>
+                        <div v-if="row.fields.length" class="boss-detail__fact-content">
+                          <div v-for="field in row.fields" :key="`${row.key}-${field.label}`" class="boss-detail__fact-row">
+                            <span>{{ field.label }}</span>
+                            <strong>{{ field.value }}</strong>
+                          </div>
                         </div>
                       </article>
                     </div>
@@ -2927,12 +2937,19 @@ function normalizeBossFactRows(value: unknown, fields: Array<{ key: string; labe
   if (!Array.isArray(value)) return []
   return value
     .filter(entry => entry && typeof entry === 'object')
-    .map((entry, index) => ({
-      key: `boss-fact-${index}`,
-      fields: fields
-        .map(field => ({ label: field.label, value: formatBossFactDisplayValue((entry as Record<string, any>)[field.key]) }))
-        .filter(field => field.value),
-    }))
+    .map((entry, index) => {
+      const row = entry as Record<string, any>
+      const factFields = fields
+        .map(field => ({ label: field.label, value: formatBossFactDisplayValue(row[field.key]) }))
+        .filter(field => field.value)
+      const imageUrl = normalizeImageUrl(row.imageUrl)
+      return {
+        key: `boss-fact-${index}`,
+        title: factFields[0]?.value || `召唤事实 ${index + 1}`,
+        imageUrl,
+        fields: factFields,
+      }
+    })
     .filter(row => row.fields.length)
 }
 
@@ -4936,6 +4953,31 @@ function formatArmorPartRole(value: unknown) {
   border: 1px solid var(--color-border);
   background: color-mix(in srgb, var(--color-bg-secondary) 86%, transparent);
 }
+.boss-detail__fact-card--media {
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: center;
+}
+.boss-detail__fact-media {
+  width: 56px;
+  height: 56px;
+  padding: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-bg) 72%, transparent);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.boss-detail__fact-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.boss-detail__fact-content {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
 .boss-detail__fact-row {
   display: grid;
   gap: 3px;
@@ -4949,6 +4991,7 @@ function formatArmorPartRole(value: unknown) {
   font-size: 0.9rem;
   line-height: 1.45;
   font-weight: 650;
+  overflow-wrap: anywhere;
 }
 .boss-detail__group-list { display: grid; gap: 18px; }
 .boss-detail__group {

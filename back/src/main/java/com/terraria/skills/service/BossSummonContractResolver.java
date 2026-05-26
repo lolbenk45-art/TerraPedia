@@ -2,6 +2,7 @@ package com.terraria.skills.service;
 
 import com.terraria.skills.entity.BossGroup;
 
+import java.util.List;
 import java.util.Map;
 
 public final class BossSummonContractResolver {
@@ -42,7 +43,38 @@ public final class BossSummonContractResolver {
         Map.entry("MECHDUSA", "仅限天顶世界（Get fixed boi）等特殊种子，夜晚使用奥库瑞姆剃刀（Ocram's Razor）召唤。")
     );
 
+    private static final Map<String, List<SummonItemRef>> DEFAULT_SUMMON_ITEMS = Map.ofEntries(
+        Map.entry("KING_SLIME", List.of(summonItem("SlimeCrown", "Slime Crown"))),
+        Map.entry("EYE_OF_CTHULHU", List.of(summonItem("SuspiciousLookingEye", "Suspicious Looking Eye"))),
+        Map.entry("EATER_OF_WORLDS", List.of(summonItem("WormFood", "Worm Food"))),
+        Map.entry("BRAIN_OF_CTHULHU", List.of(summonItem("BloodySpine", "Bloody Spine"))),
+        Map.entry("QUEEN_BEE", List.of(summonItem("Abeemination", "Abeemination"))),
+        Map.entry("DEERCLOPS", List.of(summonItem("DeerThing", "Deer Thing"))),
+        Map.entry("WALL_OF_FLESH", List.of(summonItem("GuideVoodooDoll", "Guide Voodoo Doll"))),
+        Map.entry("QUEEN_SLIME", List.of(summonItem("QueenSlimeCrystal", "Gelatin Crystal"))),
+        Map.entry("THE_TWINS", List.of(summonItem("MechanicalEye", "Mechanical Eye"))),
+        Map.entry("THE_DESTROYER", List.of(summonItem("MechanicalWorm", "Mechanical Worm"))),
+        Map.entry("SKELETRON_PRIME", List.of(summonItem("MechanicalSkull", "Mechanical Skull"))),
+        Map.entry("GOLEM", List.of(summonItem("LihzahrdPowerCell", "Lihzahrd Power Cell"))),
+        Map.entry("DUKE_FISHRON", List.of(summonItem("TruffleWorm", "Truffle Worm"))),
+        Map.entry("EMPRESS_OF_LIGHT", List.of(summonItem("EmpressButterfly", "Prismatic Lacewing"))),
+        Map.entry("MOON_LORD", List.of(summonItem("CelestialSigil", "Celestial Sigil"))),
+        Map.entry("DARK_MAGE", List.of(summonItem("DD2ElderCrystal", "Eternia Crystal"))),
+        Map.entry("OGRE", List.of(summonItem("DD2ElderCrystal", "Eternia Crystal"))),
+        Map.entry("BETSY", List.of(summonItem("DD2ElderCrystal", "Eternia Crystal"))),
+        Map.entry("FLYING_DUTCHMAN", List.of(summonItem("PirateMap", "Pirate Map"))),
+        Map.entry("MOURNING_WOOD", List.of(summonItem("PumpkinMoonMedallion", "Pumpkin Moon Medallion"))),
+        Map.entry("PUMPKING", List.of(summonItem("PumpkinMoonMedallion", "Pumpkin Moon Medallion"))),
+        Map.entry("EVERSCREAM", List.of(summonItem("NaughtyPresent", "Naughty Present"))),
+        Map.entry("SANTA_NK1", List.of(summonItem("NaughtyPresent", "Naughty Present"))),
+        Map.entry("ICE_QUEEN", List.of(summonItem("NaughtyPresent", "Naughty Present"))),
+        Map.entry("MECHDUSA", List.of(summonItem("MechdusaSummon", "Ocram's Razor")))
+    );
+
     private BossSummonContractResolver() {
+    }
+
+    public record SummonItemRef(String itemInternalName, String itemName, String role) {
     }
 
     public static String resolveExplicitSummonMethod(BossGroup bossGroup) {
@@ -65,6 +97,21 @@ public final class BossSummonContractResolver {
             return null;
         }
         return DEFAULT_SUMMON_METHODS.get(code);
+    }
+
+    public static List<SummonItemRef> resolveSummonItemRefs(BossGroup bossGroup) {
+        if (bossGroup == null) {
+            return List.of();
+        }
+        String code = trimToNull(bossGroup.getCode());
+        if (code == null) {
+            return List.of();
+        }
+        return DEFAULT_SUMMON_ITEMS.getOrDefault(code, List.of());
+    }
+
+    private static SummonItemRef summonItem(String itemInternalName, String itemName) {
+        return new SummonItemRef(itemInternalName, itemName, "summon");
     }
 
     private static String trimToNull(Object value) {

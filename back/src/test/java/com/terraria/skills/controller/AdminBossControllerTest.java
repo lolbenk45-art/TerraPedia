@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -48,6 +49,7 @@ class AdminBossControllerTest {
     private static final String MANAGED_IMAGE_URL = "http://localhost:9000/terrapedia-images/bosses/king-slime.png";
     private static final String CDN_MANAGED_IMAGE_URL = "https://cdn.example.com/terrapedia-images/bosses/king-slime.png";
     private static final String MANAGED_MEMBER_IMAGE_URL = "http://localhost:9000/terrapedia-images/npcs/retinazer.png";
+    private static final String MANAGED_SUMMON_ITEM_IMAGE_URL = "http://localhost:9000/terrapedia-images/items/slime-crown.png";
     private static final String WIKI_IMAGE_URL = "https://terraria.wiki.gg/images/King_Slime.png";
     private static final ManagedImageUrlPolicy MANAGED_IMAGE_URL_POLICY = new ManagedImageUrlPolicy() {
         @Override
@@ -232,13 +234,24 @@ class AdminBossControllerTest {
             lootEntry(3381L, "PortalGun", "Portal Gun", "传送枪", "direct_boss"),
             lootEntry(3381L, "PortalGun", "Portal Gun", "传送枪", "treasure_bag")
         ));
+        when(jdbcTemplate.queryForList(contains("FROM items i"), any(Object[].class))).thenReturn(List.of(
+            summonItem(3601L, "CelestialSigil", "Celestial Sigil", "天界符", "http://localhost:9000/terrapedia-images/items/celestial-sigil.png")
+        ));
 
         mockMvc.perform(get("/admin/bosses/51"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.summonMethod", containsString("Celestial Sigil")))
             .andExpect(jsonPath("$.data.summonMethodResolved", containsString("Celestial Sigil")))
-            .andExpect(jsonPath("$.data.summonItems", empty()))
+            .andExpect(jsonPath("$.data.summonItems.length()").value(1))
+            .andExpect(jsonPath("$.data.summonItems[0].itemId").value(3601))
+            .andExpect(jsonPath("$.data.summonItems[0].internalName").value("CelestialSigil"))
+            .andExpect(jsonPath("$.data.summonItems[0].name").value("Celestial Sigil"))
+            .andExpect(jsonPath("$.data.summonItems[0].nameZh").value("天界符"))
+            .andExpect(jsonPath("$.data.summonItems[0].imageUrl").value("http://localhost:9000/terrapedia-images/items/celestial-sigil.png"))
+            .andExpect(jsonPath("$.data.summonItems[0].role").value("summon"))
+            .andExpect(jsonPath("$.data.summonItems[0].sourceText", containsString("Celestial Sigil")))
+            .andExpect(jsonPath("$.data.summonItems[0].derived").value(true))
             .andExpect(jsonPath("$.data.summonConditions", empty()))
             .andExpect(jsonPath("$.data.mechanicNotes", empty()))
             .andExpect(jsonPath("$.data.difficultyNotes", empty()))
@@ -257,15 +270,50 @@ class AdminBossControllerTest {
 
         when(bossGroupMapper.selectById(eq(90L))).thenReturn(boss);
         when(npcMapper.selectList(any())).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM items i"), any(Object[].class))).thenReturn(List.of(
+            summonItem(560L, "SlimeCrown", "Slime Crown", "史莱姆王冠", MANAGED_SUMMON_ITEM_IMAGE_URL)
+        ));
 
         mockMvc.perform(get("/admin/bosses/90"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.summonMethod").value("Use a reviewed Slime Crown note."))
             .andExpect(jsonPath("$.data.summonMethodResolved").value("Use a reviewed Slime Crown note."))
-            .andExpect(jsonPath("$.data.summonItems", empty()))
+            .andExpect(jsonPath("$.data.summonItems.length()").value(1))
+            .andExpect(jsonPath("$.data.summonItems[0].name").value("Slime Crown"))
+            .andExpect(jsonPath("$.data.summonItems[0].imageUrl").value(MANAGED_SUMMON_ITEM_IMAGE_URL))
             .andExpect(jsonPath("$.data.summonConditions", empty()))
             .andExpect(jsonPath("$.data.mechanicNotes", empty()))
             .andExpect(jsonPath("$.data.difficultyNotes", empty()));
+
+        ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Object[]> argsCaptor = ArgumentCaptor.forClass(Object[].class);
+        verify(jdbcTemplate).queryForList(queryCaptor.capture(), argsCaptor.capture());
+        String summonSql = queryCaptor.getValue();
+        assertTrue(summonSql.contains("FROM items i"));
+        assertTrue(summonSql.contains("item_images ii"));
+        assertTrue(summonSql.contains("ii.cached_url"));
+        assertTrue(summonSql.contains("i.image AS fallbackImageUrl"));
+        assertTrue(summonSql.contains("i.internal_name IN (?, ?) OR i.name IN (?, ?)"));
+        assertArrayEquals(new Object[]{"SlimeCrown", "Slime Crown", "SlimeCrown", "Slime Crown"}, argsCaptor.getValue());
+    }
+
+    @Test
+    void shouldSuppressWikiSummonItemImageInAdminPayload() throws Exception {
+        BossGroup boss = bossGroup(34L, "KING_SLIME", "King Slime", "史莱姆王", "PRE_HARDMODE", 1);
+
+        when(bossGroupMapper.selectById(eq(34L))).thenReturn(boss);
+        when(npcMapper.selectList(any())).thenReturn(List.of());
+        when(jdbcTemplate.queryForList(contains("FROM items i"), any(Object[].class))).thenReturn(List.of(
+            summonItem(560L, "SlimeCrown", "Slime Crown", "史莱姆王冠", WIKI_IMAGE_URL)
+        ));
+
+        mockMvc.perform(get("/admin/bosses/34"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.summonItems.length()").value(1))
+            .andExpect(jsonPath("$.data.summonItems[0].itemId").value(560))
+            .andExpect(jsonPath("$.data.summonItems[0].name").value("Slime Crown"))
+            .andExpect(jsonPath("$.data.summonItems[0].imageUrl", nullValue()));
     }
 
     @Test
@@ -398,5 +446,15 @@ class AdminBossControllerTest {
         entry.put("dropSourceKind", dropSourceKind);
         entry.put("itemImage", itemImage);
         return entry;
+    }
+
+    private Map<String, Object> summonItem(Long itemId, String internalName, String name, String nameZh, String imageUrl) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("itemId", itemId);
+        row.put("internalName", internalName);
+        row.put("name", name);
+        row.put("nameZh", nameZh);
+        row.put("imageUrl", imageUrl);
+        return row;
     }
 }
