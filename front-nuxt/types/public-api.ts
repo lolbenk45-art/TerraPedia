@@ -116,6 +116,20 @@ export type PublicNpcShopPriceToken = {
   icon_url?: string | null
 }
 
+export type PublicNpcMoneyToken = {
+  unit?: string | null
+  amount?: number | string | null
+  label?: string | null
+  iconUrl?: string | null
+  icon_url?: string | null
+}
+
+export type PublicNpcMoneyDrop = {
+  mode?: 'normal' | string | null
+  label?: string | null
+  tokens?: PublicNpcMoneyToken[] | null
+}
+
 export type PublicItemImage = {
   id?: number | string | null
   imageId?: number | string | null
@@ -518,6 +532,8 @@ export type PublicNpcListItem = {
    */
   livingPreferences?: PublicNpcLivingPreference[] | null
   living_preferences?: PublicNpcLivingPreference[] | null
+  moneyDrops?: PublicNpcMoneyDrop[] | null
+  money_drops?: PublicNpcMoneyDrop[] | null
   lootItems?: PublicNpcTraceableItemSummary[] | unknown
   shopItems?: PublicNpcTraceableItemSummary[] | unknown
   sourceItems?: PublicNpcTraceableItemSummary[] | unknown

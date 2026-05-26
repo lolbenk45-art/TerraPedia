@@ -10,6 +10,7 @@ import com.terraria.skills.dto.NpcBuffRelationDTO;
 import com.terraria.skills.dto.NpcListItemDTO;
 import com.terraria.skills.dto.NpcLootEntryDTO;
 import com.terraria.skills.dto.NpcShopEntryDTO;
+import com.terraria.skills.dto.PublicNpcMoneyDropDTO;
 import com.terraria.skills.dto.PublicNpcQuery;
 import com.terraria.skills.entity.Item;
 import com.terraria.skills.entity.Npc;
@@ -659,6 +660,73 @@ class PublicNpcServiceImplImageTest {
         assertEquals(9, results.get(1).getPriceTokens().get(0).getAmount());
         assertEquals("copper", results.get(1).getPriceTokens().get(1).getUnit());
         assertEquals(95, results.get(1).getPriceTokens().get(1).getAmount());
+    }
+
+    @Test
+    void shouldExposeManagedNormalMoneyDropsForHostileNonBossNpcDetail() {
+        String goldIcon = "http://localhost:9000/terrapedia-images/items/wiki/coins/gold-coin.png";
+        String copperIcon = "http://localhost:9000/terrapedia-images/items/wiki/coins/copper-coin.png";
+        Npc npc = npc(42L, 42L, "AngryBones", "Angry Bones");
+        npc.setValue(10060);
+        npc.setIsFriendly(false);
+        npc.setIsTownNpc(false);
+        npc.setIsBoss(false);
+        when(npcMapper.selectById(42L)).thenReturn(npc);
+        when(jdbcTemplate.queryForList(contains("name IN ('Copper Coin', 'Silver Coin', 'Gold Coin', 'Platinum Coin')"))).thenReturn(List.of(
+            Map.of("name", "Gold Coin", "image", goldIcon),
+            Map.of("name", "Copper Coin", "image", copperIcon)
+        ));
+
+        NpcDetailDTO detail = newService().getNpcById(42L);
+
+        assertEquals(1, detail.getMoneyDrops().size());
+        PublicNpcMoneyDropDTO drop = detail.getMoneyDrops().get(0);
+        assertEquals("normal", drop.getMode());
+        assertEquals("普通", drop.getLabel());
+        assertEquals(2, drop.getTokens().size());
+        assertEquals("gold", drop.getTokens().get(0).getUnit());
+        assertEquals(1, drop.getTokens().get(0).getAmount());
+        assertEquals("金币", drop.getTokens().get(0).getLabel());
+        assertEquals(goldIcon, drop.getTokens().get(0).getIconUrl());
+        assertEquals("copper", drop.getTokens().get(1).getUnit());
+        assertEquals(60, drop.getTokens().get(1).getAmount());
+        assertEquals("铜币", drop.getTokens().get(1).getLabel());
+        assertEquals(copperIcon, drop.getTokens().get(1).getIconUrl());
+    }
+
+    @Test
+    void shouldOmitMoneyDropsForNpcDetailWhenNpcIsNotEligible() {
+        Npc friendly = npc(42L, 42L, "Bunny", "Bunny");
+        friendly.setValue(10060);
+        friendly.setIsFriendly(true);
+        friendly.setIsTownNpc(false);
+        friendly.setIsBoss(false);
+        when(npcMapper.selectById(42L)).thenReturn(friendly);
+        assertNull(newService().getNpcById(42L).getMoneyDrops());
+
+        Npc townNpc = npc(43L, 43L, "Merchant", "Merchant");
+        townNpc.setValue(10060);
+        townNpc.setIsFriendly(false);
+        townNpc.setIsTownNpc(true);
+        townNpc.setIsBoss(false);
+        when(npcMapper.selectById(43L)).thenReturn(townNpc);
+        assertNull(newService().getNpcById(43L).getMoneyDrops());
+
+        Npc boss = npc(44L, 44L, "KingSlime", "King Slime");
+        boss.setValue(10060);
+        boss.setIsFriendly(false);
+        boss.setIsTownNpc(false);
+        boss.setIsBoss(true);
+        when(npcMapper.selectById(44L)).thenReturn(boss);
+        assertNull(newService().getNpcById(44L).getMoneyDrops());
+
+        Npc noValue = npc(45L, 45L, "Zombie", "Zombie");
+        noValue.setValue(0);
+        noValue.setIsFriendly(false);
+        noValue.setIsTownNpc(false);
+        noValue.setIsBoss(false);
+        when(npcMapper.selectById(45L)).thenReturn(noValue);
+        assertNull(newService().getNpcById(45L).getMoneyDrops());
     }
 
     @Test

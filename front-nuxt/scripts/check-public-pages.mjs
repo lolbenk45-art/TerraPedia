@@ -1579,6 +1579,41 @@ for (const path of scanFiles) {
       violations.push(`${path}: NPC trusted loot remainder must render from the post-8 slice, not drop or duplicate rows`)
     }
 
+    for (const marker of [
+      'npc.value?.moneyDrops',
+      'formatTerrariaPriceTokens(drop.tokens)',
+      'resolveTerrariaPriceUnitLabel(token.unit)',
+      'token.iconUrl',
+      'class="npc-money-token"',
+      'class="npc-money-token-row"',
+      'decorative',
+    ]) {
+      if (!content.includes(marker)) {
+        violations.push(`${path}: NPC money drops must render compact Terraria coin tokens with controlled labels and optional backend icons via marker ${marker}`)
+      }
+    }
+
+    if (content.includes('label: safeNpcDisplayText(token.label)')) {
+      violations.push(`${path}: NPC money drops must not trust backend token.label for visible coin labels`)
+    }
+
+    for (const rawMoneyMarker of [
+      'drop.value',
+      'drop.moneyDropValue',
+      'drop.money_drop_value',
+      'npc.value?.value',
+      'npc.value?.moneyDropValue',
+      'npc.value?.money_drop_value',
+    ]) {
+      if (content.includes(rawMoneyMarker)) {
+        violations.push(`${path}: NPC money drops must not render or fallback from raw copper values via marker ${rawMoneyMarker}; backend must provide structured tokens`)
+      }
+    }
+
+    if (content.includes('npc-money-token-fallback')) {
+      violations.push(`${path}: NPC money drops must use coin-specific visual marks instead of text glyph fallback when backend icons are missing`)
+    }
+
     if (
       content.includes('firstText(npc.value?.nameZh, npc.value?.name, npc.value?.internalName')
       || content.includes('firstText(npc.value?.name, npc.value?.internalName')

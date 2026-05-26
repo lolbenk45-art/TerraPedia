@@ -1,5 +1,6 @@
 package com.terraria.skills.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -13,4 +14,6 @@ public class NpcDetailDTO extends NpcListItemDTO {
     private Integer status;
     private NpcWikiAssetsDTO wikiAssets;
     private List<NpcLivingPreferenceDTO> livingPreferences = new ArrayList<>();
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<PublicNpcMoneyDropDTO> moneyDrops;
 }

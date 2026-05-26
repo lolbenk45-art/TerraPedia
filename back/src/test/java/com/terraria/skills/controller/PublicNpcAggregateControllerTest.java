@@ -10,6 +10,8 @@ import com.terraria.skills.dto.NpcLootEntryDTO;
 import com.terraria.skills.dto.NpcShopEntryDTO;
 import com.terraria.skills.dto.NpcShopPriceTokenDTO;
 import com.terraria.skills.dto.NpcWikiAssetsDTO;
+import com.terraria.skills.dto.PublicCoinTokenDTO;
+import com.terraria.skills.dto.PublicNpcMoneyDropDTO;
 import com.terraria.skills.service.PublicNpcService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -244,6 +246,42 @@ class PublicNpcAggregateControllerTest {
             .andExpect(jsonPath("$.data.npc.livingPreferences[0].preference").value("like"))
             .andExpect(jsonPath("$.data.npc.livingPreferences[1].targetNameZh").value("渔夫"))
             .andExpect(jsonPath("$.data.npc.livingPreferences[1].targetImageUrl").value("http://localhost:9000/terrapedia-images/npcs/angler-dialog.png"));
+    }
+
+    @Test
+    void shouldExposeNpcMoneyDropsOnAggregateNpcBase() throws Exception {
+        NpcDetailDTO npc = new NpcDetailDTO();
+        npc.setId(42L);
+        npc.setGameId(42L);
+        npc.setInternalName("AngryBones");
+        npc.setName("Angry Bones");
+
+        PublicCoinTokenDTO token = new PublicCoinTokenDTO();
+        token.setUnit("gold");
+        token.setAmount(1);
+        token.setLabel("金币");
+        token.setIconUrl("http://localhost:9000/terrapedia-images/items/wiki/coins/gold-coin.png");
+
+        PublicNpcMoneyDropDTO drop = new PublicNpcMoneyDropDTO();
+        drop.setMode("normal");
+        drop.setLabel("普通");
+        drop.setTokens(List.of(token));
+        npc.setMoneyDrops(List.of(drop));
+
+        publicNpcService.npcToReturn = npc;
+
+        mockMvc.perform(get("/public/npcs/42/aggregate")
+                .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.npc.moneyDrops[0].mode").value("normal"))
+            .andExpect(jsonPath("$.data.npc.moneyDrops[0].label").value("普通"))
+            .andExpect(jsonPath("$.data.npc.moneyDrops[0].tokens[0].unit").value("gold"))
+            .andExpect(jsonPath("$.data.npc.moneyDrops[0].tokens[0].amount").value(1))
+            .andExpect(jsonPath("$.data.npc.moneyDrops[0].tokens[0].label").value("金币"))
+            .andExpect(jsonPath("$.data.npc.moneyDrops[0].tokens[0].iconUrl").value("http://localhost:9000/terrapedia-images/items/wiki/coins/gold-coin.png"))
+            .andExpect(jsonPath("$.data.npc.moneyDrops[0].value").doesNotExist())
+            .andExpect(jsonPath("$.data.npc.value").doesNotExist())
+            .andExpect(jsonPath("$.data.npc.moneyDropValue").doesNotExist());
     }
 
     @Test

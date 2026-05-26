@@ -8,12 +8,15 @@ import type {
   PublicNpcListItem,
   PublicNpcListResult,
   PublicNpcLootEntry,
+  PublicNpcMoneyDrop,
+  PublicNpcMoneyToken,
   PublicNpcQuery,
   PublicNpcShopCondition,
   PublicNpcShopEntry,
   PublicNpcTraceableItemSummary,
   PublicNpcWikiAssets,
 } from '~/types/public-api'
+import { resolveTerrariaPriceUnitLabel } from '~/utils/price'
 
 const normalizeText = (value: unknown) => String(value ?? '').trim()
 const normalizeSearchText = (value: string) => value.toLocaleLowerCase('zh-CN')
@@ -90,6 +93,42 @@ const normalizeNpcLivingPreference = (raw: PublicNpcLivingPreference): PublicNpc
   targetImageUrl: resolvePreviewImageUrl(normalizeText(raw.targetImageUrl ?? raw.target_image_url)) || null,
 })
 
+const normalizeNpcMoneyToken = (raw: PublicNpcMoneyToken): PublicNpcMoneyToken | null => {
+  const unit = normalizeText(raw.unit)
+  const amount = toNumberOrNull(raw.amount)
+  const label = resolveTerrariaPriceUnitLabel(unit)
+
+  if (!unit || amount == null || amount <= 0 || !label) return null
+
+  return {
+    unit,
+    amount: Math.trunc(amount),
+    label,
+    iconUrl: normalizeText(raw.iconUrl ?? raw.icon_url) || null,
+  }
+}
+
+const normalizeNpcMoneyDrop = (raw: PublicNpcMoneyDrop): PublicNpcMoneyDrop | null => {
+  const tokens = Array.isArray(raw.tokens)
+    ? raw.tokens.map(normalizeNpcMoneyToken).filter((token): token is PublicNpcMoneyToken => Boolean(token))
+    : []
+
+  if (!tokens.length) return null
+
+  return {
+    mode: normalizeText(raw.mode) || 'normal',
+    label: normalizeText(raw.label) || null,
+    tokens,
+  }
+}
+
+const normalizeNpcMoneyDrops = (raw: PublicNpcListItem): PublicNpcMoneyDrop[] => {
+  const drops = raw.moneyDrops ?? raw.money_drops
+  return Array.isArray(drops)
+    ? drops.map(normalizeNpcMoneyDrop).filter((drop): drop is PublicNpcMoneyDrop => Boolean(drop))
+    : []
+}
+
 const normalizePagination = (
   pagination: Pagination | null | undefined,
   items: NpcCatalogCard[],
@@ -161,6 +200,8 @@ export const normalizePublicNpcBase = (raw: PublicNpcListItem, index = 0): NpcCa
   const livingPreferences = hasLivingPreferences && Array.isArray(raw.livingPreferences ?? raw.living_preferences)
     ? (raw.livingPreferences ?? raw.living_preferences ?? []).map(normalizeNpcLivingPreference)
     : undefined
+  const hasMoneyDrops = raw.moneyDrops !== undefined || raw.money_drops !== undefined
+  const moneyDrops = normalizeNpcMoneyDrops(raw)
 
   return {
     id,
@@ -217,6 +258,7 @@ export const normalizePublicNpcBase = (raw: PublicNpcListItem, index = 0): NpcCa
       lootItems: parseTraceableItemSummaries(raw.lootItems, raw.lootItemsJson ?? raw.loot_items_json),
       shopItems: parseTraceableItemSummaries(raw.shopItems, raw.shopItemsJson ?? raw.shop_items_json),
       sourceItems: parseTraceableItemSummaries(raw.sourceItems, raw.sourceItemsJson ?? raw.source_items_json),
+      ...(hasMoneyDrops ? { moneyDrops } : {}),
       ...(hasWikiAssets ? { wikiAssets } : {}),
       ...(hasLivingPreferences ? { livingPreferences } : {}),
     },

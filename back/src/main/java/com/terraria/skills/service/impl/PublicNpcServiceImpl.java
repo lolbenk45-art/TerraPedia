@@ -14,6 +14,8 @@ import com.terraria.skills.dto.NpcShopConditionDTO;
 import com.terraria.skills.dto.NpcShopEntryDTO;
 import com.terraria.skills.dto.NpcShopPriceTokenDTO;
 import com.terraria.skills.dto.NpcWikiAssetsDTO;
+import com.terraria.skills.dto.PublicCoinTokenDTO;
+import com.terraria.skills.dto.PublicNpcMoneyDropDTO;
 import com.terraria.skills.dto.PublicNpcQuery;
 import com.terraria.skills.entity.Category;
 import com.terraria.skills.entity.Item;
@@ -513,6 +515,7 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         dto.setStatus(npc.getStatus());
         dto.setWikiAssets(parseWikiAssets(npc.getWikiAssetsJson()));
         dto.setLivingPreferences(enrichLivingPreferenceTargetImages(parseLivingPreferences(npc.getLivingPreferencesJson())));
+        dto.setMoneyDrops(buildNpcMoneyDrops(npc.getValue(), dto));
         return dto;
     }
 
@@ -922,6 +925,38 @@ public class PublicNpcServiceImpl implements PublicNpcService {
         return tokens;
     }
 
+    private List<PublicNpcMoneyDropDTO> buildNpcMoneyDrops(Integer value, NpcDetailDTO dto) {
+        if (value == null || value <= 0 || !isNpcMoneyDropEligible(dto)) {
+            return null;
+        }
+        PublicNpcMoneyDropDTO drop = new PublicNpcMoneyDropDTO();
+        drop.setMode("normal");
+        drop.setLabel("普通");
+        drop.setTokens(buildMoneyDropTokens(value, loadCoinIcons()));
+        return List.of(drop);
+    }
+
+    private boolean isNpcMoneyDropEligible(NpcDetailDTO dto) {
+        return dto != null
+            && !Boolean.TRUE.equals(dto.getIsFriendly())
+            && !Boolean.TRUE.equals(dto.getIsTownNpc())
+            && !Boolean.TRUE.equals(dto.getIsBoss());
+    }
+
+    private List<PublicCoinTokenDTO> buildMoneyDropTokens(int value, Map<String, String> coinIcons) {
+        int remainder = value;
+        List<PublicCoinTokenDTO> tokens = new ArrayList<>();
+        for (CoinSegment segment : COIN_SEGMENTS) {
+            int amount = remainder / segment.divider();
+            remainder %= segment.divider();
+            if (amount <= 0) {
+                continue;
+            }
+            tokens.add(moneyDropToken(segment, amount, coinIcons));
+        }
+        return tokens;
+    }
+
     private static Integer parseShopPriceTextCopperValue(String priceText) {
         if (priceText == null || priceText.isBlank()) {
             return null;
@@ -974,6 +1009,15 @@ public class PublicNpcServiceImpl implements PublicNpcService {
 
     private NpcShopPriceTokenDTO priceToken(CoinSegment segment, int amount, Map<String, String> coinIcons) {
         NpcShopPriceTokenDTO token = new NpcShopPriceTokenDTO();
+        token.setUnit(segment.unit());
+        token.setAmount(amount);
+        token.setLabel(segment.label());
+        token.setIconUrl(coinIcons == null ? null : coinIcons.get(segment.unit()));
+        return token;
+    }
+
+    private PublicCoinTokenDTO moneyDropToken(CoinSegment segment, int amount, Map<String, String> coinIcons) {
+        PublicCoinTokenDTO token = new PublicCoinTokenDTO();
         token.setUnit(segment.unit());
         token.setAmount(amount);
         token.setLabel(segment.label());

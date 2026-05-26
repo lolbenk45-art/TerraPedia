@@ -3,6 +3,8 @@ import type {
   PublicNpcBuffRelation,
   PublicNpcLivingPreference,
   PublicNpcLootEntry,
+  PublicNpcMoneyDrop,
+  PublicNpcMoneyToken,
   PublicNpcShopCondition,
   PublicNpcShopEntry,
   PublicNpcShopPriceToken,
@@ -294,6 +296,40 @@ const shopPriceTokens = (entry: PublicNpcShopEntry): TerrariaPriceToken[] => {
 const shopPriceLabel = (entry: PublicNpcShopEntry) => formatTerrariaPriceTokens(shopPriceTokens(entry))
 const lootConditionLabel = (entry: PublicNpcLootEntry) => safeNpcDisplayText(entry.conditions, entry.notes)
 const buffConditionLabel = (entry: PublicNpcBuffRelation) => safeNpcDisplayText(entry.conditions, entry.notes, entry.sourceText)
+const npcMoneyCoinClass = (unit: unknown) => {
+  const key = firstText(unit).toLowerCase()
+  if (key === 'platinum' || key === 'pc' || key === 'platinum coin') return 'platinum'
+  if (key === 'gold' || key === 'gc' || key === 'gold coin') return 'gold'
+  if (key === 'silver' || key === 'sc' || key === 'silver coin') return 'silver'
+  if (key === 'copper' || key === 'cc' || key === 'copper coin') return 'copper'
+  return 'unknown'
+}
+const normalizeNpcMoneyToken = (token: PublicNpcMoneyToken): TerrariaPriceToken | null => {
+  const amount = Number(token.amount)
+  const unitLabel = resolveTerrariaPriceUnitLabel(token.unit)
+  if (!Number.isFinite(amount) || amount <= 0 || !unitLabel) return null
+
+  return {
+    unit: firstText(token.unit),
+    amount: Math.trunc(amount),
+    label: unitLabel,
+    iconUrl: resolvePreviewImageUrl(firstText(token.iconUrl, token.icon_url)),
+  }
+}
+const npcMoneyDropTokens = (drop: PublicNpcMoneyDrop): TerrariaPriceToken[] => {
+  return Array.isArray(drop.tokens)
+    ? drop.tokens.map(normalizeNpcMoneyToken).filter((token): token is TerrariaPriceToken => Boolean(token))
+    : []
+}
+const npcMoneyDrops = computed(() => (Array.isArray(npc.value?.moneyDrops) ? npc.value?.moneyDrops : [])
+  .map((drop, index) => {
+    const tokens = npcMoneyDropTokens(drop)
+    return {
+      key: `normal-${index}-${formatTerrariaPriceTokens(tokens)}`,
+      tokens,
+    }
+  })
+  .filter((drop) => drop.tokens.length > 0))
 
 const conditionLabel = (condition: PublicNpcShopCondition) => safeNpcDisplayText(
   condition.label,
@@ -504,6 +540,34 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
               <div class="module-title">
                 <h2>掉落物</h2>
                 <span class="tag moss">{{ trustedLoot.length + additionalLoot.length }} 条</span>
+              </div>
+              <div v-if="npcMoneyDrops.length" class="npc-money-drops" aria-label="钱币掉落">
+                <div class="npc-money-drops-heading">
+                  <b>钱币掉落</b>
+                  <span>普通敌怪</span>
+                </div>
+                <div class="npc-money-drop-grid">
+                  <div v-for="drop in npcMoneyDrops" :key="drop.key" class="npc-money-drop-row">
+                    <b>普通掉落</b>
+                    <div class="npc-money-token-row" :aria-label="formatTerrariaPriceTokens(drop.tokens)">
+                      <span v-for="token in drop.tokens" :key="`${drop.key}-${token.unit}`" class="npc-money-token">
+                        <CommonPreviewImage
+                          v-if="token.iconUrl"
+                          class="npc-money-token-icon"
+                          :src="token.iconUrl"
+                          :alt="resolveTerrariaPriceUnitLabel(token.unit)"
+                          :fallback="firstGlyph(resolveTerrariaPriceUnitLabel(token.unit))"
+                          fallback-icon="icon-items"
+                          width="28"
+                          height="28"
+                          decorative
+                        />
+                        <span v-else :class="['npc-money-coin-mark', `is-${npcMoneyCoinClass(token.unit)}`]" aria-hidden="true"></span>
+                        <span class="npc-money-token-copy">{{ token.amount }}{{ resolveTerrariaPriceUnitLabel(token.unit) }}</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div v-if="trustedLoot.length" class="source-table dark-table tp-detail-relation-grid">
                 <div v-for="entry in trustedLootVisibleEntries" :key="String(entry.id ?? entry.itemId ?? entry.itemInternalName)" :class="['source-row detail-relation-row', detailLayout.detailRelationRowClass]">
@@ -828,6 +892,144 @@ const npcSourceTag = computed(() => aggregateBundle.value?.source === 'api' ? '�
   font-size: 10.5px;
   font-weight: 800;
   line-height: 1.1;
+}
+
+.npc-money-drops {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  border: 1px solid color-mix(in srgb, var(--gold) 36%, var(--index-line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--gold) 7%, var(--index-surface));
+  padding: 9px;
+}
+
+.npc-money-drops-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.npc-money-drops-heading b {
+  color: var(--text-strong);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.npc-money-drops-heading span {
+  color: var(--text-subtle);
+  font-size: 10.5px;
+  font-weight: 900;
+}
+
+.npc-money-drop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(172px, 1fr));
+  gap: 7px;
+}
+
+.npc-money-drop-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid var(--index-line);
+  border-radius: 8px;
+  background: var(--index-surface);
+  padding: 6px 8px;
+}
+
+.npc-money-drop-row > b {
+  min-width: 0;
+  color: var(--text-strong);
+  font-size: 11.5px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.npc-money-token-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
+.npc-money-token {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+  color: var(--text-strong);
+  font-size: 11.5px;
+  font-weight: 900;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.npc-money-token-icon,
+.npc-money-token :deep(.npc-money-token-icon),
+.npc-money-token :deep(.item-art) {
+  width: 28px;
+  height: 28px;
+}
+
+.npc-money-coin-mark {
+  --coin-core: #d6b15a;
+  --coin-rim: #8b5f17;
+  --coin-shine: rgba(255, 255, 255, 0.72);
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border: 2px solid var(--coin-rim);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 32% 28%, var(--coin-shine) 0 12%, transparent 13%),
+    radial-gradient(circle at 50% 52%, var(--coin-core) 0 48%, var(--coin-rim) 49% 68%, transparent 69%);
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--coin-core) 45%, transparent),
+    0 1px 3px rgba(0, 0, 0, 0.18);
+}
+
+.npc-money-coin-mark::after {
+  content: "";
+  width: 40%;
+  height: 40%;
+  border: 1px solid color-mix(in srgb, var(--coin-rim) 76%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--coin-core) 74%, transparent);
+}
+
+.npc-money-coin-mark.is-platinum {
+  --coin-core: #e7eef2;
+  --coin-rim: #8c9ba4;
+  --coin-shine: rgba(255, 255, 255, 0.9);
+}
+
+.npc-money-coin-mark.is-gold {
+  --coin-core: #f0c85c;
+  --coin-rim: #9a681c;
+}
+
+.npc-money-coin-mark.is-silver {
+  --coin-core: #c9d2dc;
+  --coin-rim: #6f7f8c;
+  --coin-shine: rgba(255, 255, 255, 0.84);
+}
+
+.npc-money-coin-mark.is-copper {
+  --coin-core: #c77b45;
+  --coin-rim: #7d3f22;
+}
+
+.npc-money-token-copy {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .detail-relation-meta {
